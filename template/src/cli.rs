@@ -46,6 +46,101 @@ pub struct Cli {
     /// Enable verbose output.
     #[arg(long, short = 'v', global = true, action = clap::ArgAction::SetTrue)]
     pub verbose: bool,
+
+    /// Emit JSON Schema tool definitions for LLM tool-calling (mirrors clap-noun-verb --introspect).
+    ///
+    /// Prints a JSON array of [`ToolDefinition`] objects to stdout, one per subcommand,
+    /// then exits. Each definition is immediately consumable as an LLM tool-call target.
+    #[arg(long, global = true, action = clap::ArgAction::SetTrue)]
+    pub introspect: bool,
+}
+
+// ---------------------------------------------------------------------------
+// Tool introspection
+// ---------------------------------------------------------------------------
+
+/// A single LLM tool-call target derived from a CLI subcommand.
+///
+/// Mirrors the `ToolDefinition` surface emitted by `clap-noun-verb --introspect`.
+/// The `parameters` field is a JSON Schema `object` describing the subcommand's
+/// arguments so any LLM tool-calling API can consume it without additional
+/// transformation.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ToolDefinition {
+    /// Stable tool name (typically `<noun>_<verb>` or `<verb>`).
+    pub name: String,
+    /// Human-readable description taken from the subcommand's `about` string.
+    pub description: String,
+    /// JSON Schema `{"type":"object","properties":{...},"required":[...]}` for
+    /// the subcommand's arguments.
+    pub parameters: serde_json::Value,
+}
+
+/// Walk `cmd`'s subcommand tree and collect one [`ToolDefinition`] per leaf.
+///
+/// Call this when `--introspect` is set; print the result as JSON and exit.
+///
+/// ```no_run
+/// use {{crate_name}}::cli::{collect_tools_from_cmd, Cli};
+/// use clap::CommandFactory;
+///
+/// let tools = collect_tools_from_cmd(&Cli::command());
+/// println!("{}", serde_json::to_string_pretty(&tools).unwrap());
+/// ```
+pub fn collect_tools_from_cmd(cmd: &clap::Command) -> Vec<ToolDefinition> {
+    let mut out = Vec::new();
+    collect_recursive(cmd, &[], &mut out);
+    out
+}
+
+fn collect_recursive(cmd: &clap::Command, prefix: &[&str], out: &mut Vec<ToolDefinition>) {
+    let subs: Vec<_> = cmd.get_subcommands().collect();
+    if subs.is_empty() {
+        // Leaf — emit a ToolDefinition.
+        let parts: Vec<&str> = prefix.iter().copied().chain(std::iter::once(cmd.get_name())).collect();
+        let name = parts.join("_");
+        let description = cmd
+            .get_about()
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| format!("Run the {} command.", name));
+
+        let mut properties = serde_json::Map::new();
+        let mut required = Vec::new();
+
+        for arg in cmd.get_arguments() {
+            // Skip global / help / version flags that are not domain args.
+            if matches!(arg.get_id().as_str(), "help" | "version" | "format" | "color" | "verbose" | "introspect") {
+                continue;
+            }
+            let prop_name = arg.get_id().to_string();
+            let schema_type = if arg.get_action().takes_values() {
+                "string"
+            } else {
+                "boolean"
+            };
+            let mut prop = serde_json::json!({ "type": schema_type });
+            if let Some(help) = arg.get_help() {
+                prop["description"] = serde_json::Value::String(help.to_string());
+            }
+            properties.insert(prop_name.clone(), prop);
+            if arg.is_required_set() {
+                required.push(prop_name);
+            }
+        }
+
+        let parameters = serde_json::json!({
+            "type": "object",
+            "properties": properties,
+            "required": required,
+        });
+
+        out.push(ToolDefinition { name, description, parameters });
+    } else {
+        let new_prefix: Vec<&str> = prefix.iter().copied().chain(std::iter::once(cmd.get_name())).collect();
+        for sub in subs {
+            collect_recursive(sub, &new_prefix, out);
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------

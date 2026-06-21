@@ -129,15 +129,53 @@ deps-dupes:
 update:
     cargo update
 
+# ── Hollow Gate ───────────────────────────────────────────────────────────────
+
+# Block unimplemented!/todo!/placeholder stubs (mirrors bcinr contract-gate pattern).
+# tools/hollow-gate/main.rs scans src/ and exits non-zero if any stubs are found.
+hollow-gate:
+    cargo run --manifest-path tools/hollow-gate/Cargo.toml --quiet
+
 # ── Pre-commit & CI ───────────────────────────────────────────────────────────
 
 # Quick local gate: fmt-check + lint + unit tests.
 pre-commit: fmt-check lint test-lib
     @echo "Pre-commit checks passed."
 
+# Definition of Done: fmt-check + clippy + test + artifact presence.
+# Exit 0=all pass, 1=soft (tests ok, receipts missing/stale), 2=hard (broken).
+dod:
+    cargo run --bin dod
+
+# Pre-merge gate: run DOD then full CI.
+pre-merge: dod ci
+    @echo "Pre-merge checks passed."
+
 # Everything CI runs, in order.
-ci: fmt-check lint test doc deny typos
+ci: fmt-check lint hollow-gate test doc deny typos
     @echo "All CI checks passed."
+
+# ── Command Chaining (++ protocol) ───────────────────────────────────────────
+#
+# The ++ chaining protocol splits argv on the literal "++" token and runs each
+# step sequentially, aborting on the first non-zero exit.
+#
+# Steps are whitespace-trimmed segments between "++" separators.  Each segment
+# is passed verbatim to `cargo run --` so it receives the full CLI surface
+# (including --introspect, --format, etc.).
+#
+# Usage examples:
+#   just chain "emit --type build ++ assemble ++ verify receipt.json"
+#   just chain "status show ++ receipt verify path/to/receipt.json"
+#
+# Mirrors the clap-noun-verb ++ convention so tool-callers can compose
+# multi-step workflows in a single invocation.
+chain *CMDS:
+    @echo '{{CMDS}}' | awk 'BEGIN{RS="\\+\\+"} {gsub(/^[ \t\n]+|[ \t\n]+$/, "", $0); if ($0 != "") print $0}' | \
+        while IFS= read -r step; do \
+            echo "[chain] cargo run -- $step"; \
+            cargo run -- $step || exit 1; \
+        done
 
 # ── Housekeeping ──────────────────────────────────────────────────────────────
 

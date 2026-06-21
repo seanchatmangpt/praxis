@@ -35,11 +35,15 @@ expect_used = "warn"
 
 [features]
 default = []
+repl  = ["dep:rustyline"]                                              # interactive REPL with tab-completion
 # otel  = ["opentelemetry", "opentelemetry-otlp", "opentelemetry_sdk"]  # observability
 # lsp   = ["lsp-max"]                                                    # language-server
 # wasm  = ["wasm-bindgen"]                                               # WebAssembly target
+mcp   = ["dep:rmcp", "dep:rmcp-macros", "dep:tokio"]                 # MCP server (LLM tool-call targets)
 
 [dependencies]
+once_cell = "1"
+rustyline = { version = "14", optional = true }
 # House shared crate — pick one source:
 # chatman-common = "26.6"                                              # once published
 # chatman-common = { git = "https://github.com/seanchatmangpt/chatman-common" }
@@ -51,7 +55,9 @@ anyhow = "1"
 blake3 = "1"
 linkme = "0.3"
 clap = { version = "4", features = ["derive", "env"] }               # CLI parsing
-# tokio = { version = "1", features = ["full"] }                       # async runtime
+tokio = { version = "1", features = ["full"], optional = true }      # async runtime (required by mcp feature)
+rmcp = { version = "0.11.0", features = ["transport-io"], optional = true }
+rmcp-macros = { version = "0.11.0", optional = true }
 
 [dev-dependencies]
 assert_cmd = "2"
@@ -61,9 +67,29 @@ insta = { version = "1", features = ["json"] }
 proptest = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
 
+[[bin]]
+name = "dod"
+path = "src/bin/dod.rs"
+
 [[bench]]
 name = "bench_main"
 harness = false
+
+# ── Workspace path overrides ──────────────────────────────────────────────────
+# Use [patch.crates-io] to redirect a published crate to a local checkout during
+# development. This lets you work against an unreleased version without publishing.
+# Remove the block (or comment it out) before cutting a release.
+#
+# Example (monorepo sibling):
+#   [patch.crates-io]
+#   chatman-common = { path = "../chatman-common" }
+#
+# Example (git branch):
+#   [patch.crates-io]
+#   chatman-common = { git = "https://github.com/seanchatmangpt/chatman-common", branch = "dev" }
+#
+# Note: patches are not transitive — each workspace member that needs the
+# override must be covered by the same [patch] block (or the workspace root's).
 
 [profile.release]
 lto = true

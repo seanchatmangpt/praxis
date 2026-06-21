@@ -16,5 +16,7 @@ pub mod lsp;
 #[cfg(feature = "discovery")]
 pub mod discovery;
 
+pub mod repl;
+
 pub use error::AppError;
 pub use types::{Blake3Hash, ObjectRef, canonical_bytes};

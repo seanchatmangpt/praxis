@@ -5,6 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::marker::PhantomData;
 
 // ─── Content Addressing ────────────────────────────────────────────────────
 
@@ -195,6 +196,80 @@ fn sort_value(value: serde_json::Value) -> serde_json::Value {
 // will not compile. This is a value-level immutability guarantee, not just a
 // runtime check.
 
+// ─── Evidence<T, State, W> — Typed Lifecycle Carrier ───────────────────────
+
+/// Sealed state markers — cannot be named or implemented outside this module.
+mod sealed {
+    pub trait EvidenceState {}
+}
+
+/// Raw (unadmitted) evidence state marker.
+pub struct Raw;
+impl sealed::EvidenceState for Raw {}
+
+/// Admitted evidence state marker — only reachable via an [`Admit`] impl.
+pub struct Admitted;
+impl sealed::EvidenceState for Admitted {}
+
+/// Typed lifecycle carrier.
+///
+/// `T` is the inner value, `S` is the lifecycle state (`Raw` or `Admitted`),
+/// and `W` is a witness authority tag (a domain marker struct chosen by the
+/// crate that owns the admission gate).
+///
+/// `Evidence<T, Admitted, W>` can only be constructed by an [`Admit`] impl,
+/// enforcing the one-way admission door at compile time.
+pub struct Evidence<T, S: sealed::EvidenceState, W> {
+    inner: T,
+    _state: PhantomData<S>,
+    _witness: PhantomData<W>,
+}
+
+impl<T, W> Evidence<T, Raw, W> {
+    /// Create raw (unadmitted) evidence. Available to all callers.
+    pub fn raw(inner: T) -> Self {
+        Self { inner, _state: PhantomData, _witness: PhantomData }
+    }
+
+    /// Borrow the inner value of raw evidence.
+    pub fn inner(&self) -> &T {
+        &self.inner
+    }
+}
+
+impl<T, W> Evidence<T, Admitted, W> {
+    /// Borrow the inner value of admitted evidence.
+    pub fn inner(&self) -> &T {
+        &self.inner
+    }
+
+    /// Private constructor — only [`Admit`] impls within this crate may call this.
+    pub(crate) fn admit_unchecked(inner: T) -> Self {
+        Self { inner, _state: PhantomData, _witness: PhantomData }
+    }
+}
+
+/// One-way admission door.
+///
+/// Implementations convert `Evidence<Input, Raw, Witness>` into
+/// `Evidence<Input, Admitted, Witness>` or return a typed rejection reason.
+/// Only the holder of an `Admit` impl can produce `AdmittedEvidence`.
+pub trait Admit {
+    type Input;
+    type Witness;
+    type Reason;
+
+    fn admit(
+        input: Evidence<Self::Input, Raw, Self::Witness>,
+    ) -> Result<Evidence<Self::Input, Admitted, Self::Witness>, Self::Reason>;
+}
+
+/// Convenience alias for raw (unadmitted) evidence.
+pub type RawEvidence<T, W> = Evidence<T, Raw, W>;
+
+/// Convenience alias for admitted evidence.
+pub type AdmittedEvidence<T, W> = Evidence<T, Admitted, W>;
+
 // ─── Forward Compatibility (non_exhaustive) ─────────────────────────────────
 
 /// Example of a `#[non_exhaustive]` enum for forward-compatible protocol variants.
@@ -230,6 +305,66 @@ impl ProfileId {
             ProfileId::CoreV1 => "core/v1",
         }
     }
+}
+
+// ─── CI/CD Policy Surface ──────────────────────────────────────────────────
+
+/// Three-way policy verdict — not a binary pass/fail.
+///
+/// - `Pass`    — all checks clear; proceed without hesitation.
+/// - `Warn`    — notable condition; non-blocking but should be logged/tracked.
+/// - `Suggest` — informational observation; purely advisory.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PolicyVerdict {
+    Pass,
+    Warn,
+    Suggest,
+}
+
+/// Tunable hyperparameters for [`CicdPolicy`] evaluation.
+///
+/// Defaults reproduce historical hard-coded behaviour so existing policies
+/// require no changes when this struct is first introduced.
+///
+/// | Field                     | Default | Meaning |
+/// |---------------------------|---------|---------|
+/// | `behind_threshold`        | 3       | Commits behind remote before a `Warn` is emitted |
+/// | `dirty_threshold`         | 5       | Dirty-file count before a `Warn` is emitted |
+/// | `evidence_staleness_secs` | 3600    | Age of evidence (seconds) before it is considered stale |
+#[derive(Debug, Clone)]
+pub struct PolicyConfig {
+    /// Number of commits behind the remote tracking branch that triggers a warning.
+    /// Default: `3`.
+    pub behind_threshold: usize,
+    /// Number of dirty (modified/untracked) files that triggers a warning.
+    /// Default: `5`.
+    pub dirty_threshold: usize,
+    /// Maximum age of cached evidence in seconds before it is considered stale.
+    /// Default: `3600` (one hour).
+    pub evidence_staleness_secs: u64,
+}
+
+impl Default for PolicyConfig {
+    fn default() -> Self {
+        Self {
+            behind_threshold: 3,
+            dirty_threshold: 5,
+            evidence_staleness_secs: 3_600,
+        }
+    }
+}
+
+/// Autonomic policy trait for the cargo-cicd pattern.
+///
+/// Every new project gets a ready-made policy surface rather than ad-hoc
+/// pass/fail logic. Implement this trait to plug custom checks into the
+/// unified evaluation pipeline.
+pub trait CicdPolicy {
+    /// Short, stable identifier for this policy (used in logs and diagnostics).
+    fn name(&self) -> &'static str;
+
+    /// Evaluate against `config` and return a three-way verdict.
+    fn evaluate(&self, config: &PolicyConfig) -> PolicyVerdict;
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
@@ -315,5 +450,33 @@ mod tests {
     #[test]
     fn profile_id_as_str() {
         assert_eq!(ProfileId::CoreV1.as_str(), "core/v1");
+    }
+
+    #[test]
+    fn policy_config_defaults() {
+        let cfg = PolicyConfig::default();
+        assert_eq!(cfg.behind_threshold, 3);
+        assert_eq!(cfg.dirty_threshold, 5);
+        assert_eq!(cfg.evidence_staleness_secs, 3_600);
+    }
+
+    #[test]
+    fn policy_verdict_equality() {
+        assert_eq!(PolicyVerdict::Pass, PolicyVerdict::Pass);
+        assert_ne!(PolicyVerdict::Pass, PolicyVerdict::Warn);
+        assert_ne!(PolicyVerdict::Warn, PolicyVerdict::Suggest);
+    }
+
+    #[test]
+    fn cicd_policy_trait_dispatch() {
+        struct AlwaysWarn;
+        impl CicdPolicy for AlwaysWarn {
+            fn name(&self) -> &'static str { "always-warn" }
+            fn evaluate(&self, _config: &PolicyConfig) -> PolicyVerdict { PolicyVerdict::Warn }
+        }
+
+        let policy = AlwaysWarn;
+        assert_eq!(policy.name(), "always-warn");
+        assert_eq!(policy.evaluate(&PolicyConfig::default()), PolicyVerdict::Warn);
     }
 }
