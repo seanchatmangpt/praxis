@@ -24,3 +24,6 @@ pub use chain::RollingChain;
 
 #[cfg(feature = "testkit")]
 pub mod testkit;
+
+#[cfg(feature = "living-docs")]
+pub use testkit::{DocContext, DocEvent};
