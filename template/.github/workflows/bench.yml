@@ -1,0 +1,39 @@
+name: Benchmarks
+
+# Criterion benchmark regression gate.
+# Fails if performance regresses more than 150% vs the stored baseline.
+# Run on push to main only (not PRs) to avoid benchmark noise from shared runners.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # needed to push benchmark data to gh-pages
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  bench:
+    name: bench
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: bench
+      - name: Run benchmarks
+        run: cargo bench --workspace -- --output-format bencher | tee target/bench-output.txt
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: cargo
+          output-file-path: target/bench-output.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          fail-on-alert: true
+          alert-threshold: "150%"
+          comment-on-alert: true

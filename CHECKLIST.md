@@ -78,3 +78,36 @@ Deliberately left for human judgment (documented, not done):
 - `[H]` Triage the 16 `src/1000x_*.rs` modules (non-conventional names) and the
   root one-off Python generators (`gen_thesis.py`, etc.).
 - `[H]` MSRV bump 1.78→1.82 and nightly→pinned-stable swap (will change CI signal).
+
+---
+
+## WASM checklist (required when `target_arch = "wasm32"` is present)
+
+- `[A]` Verify `[profile.release]` does NOT have `strip = true` for WASM crates.
+  WASM stripping corrupts binaries — use `wasm-opt` via `just build-opt` instead.
+- `[A]` Verify `[target.'cfg(target_arch = "wasm32")'.dependencies]` sets
+  `getrandom { features = ["js"] }` (and `uuid { features = ["js"] }` if used).
+- `[H]` Replace `HashMap` with `BTreeMap` in WASM-exposed types.
+  Hash randomization makes WASM guest output non-deterministic.
+- `[A]` Confirm `console_error_panic_hook::set_once()` is called in `#[wasm_bindgen(start)]`.
+- `[H]` Use handle-based API (`Store<T>` from `template-wasm/`) rather than raw pointer
+  passing to JS. No `unsafe` required.
+- `[A]` Build with `wasm-pack build --target web --release` and verify binary loads in
+  a browser or `wasm-bindgen-test` runner before shipping.
+
+## Anti-patterns checklist
+
+- `[H]` Verify `.cargo/config.toml` does **not** suppress lints via `RUSTFLAGS`.
+  Move any needed `#[allow(clippy::...)]` to `[workspace.lints.clippy]` with a
+  justification comment. Silent lint suppression is the ANTI-1 pattern.
+- `[H]` If `rust-toolchain.toml` pins `channel = "nightly"`, document exactly which
+  nightly features are required and why stable is insufficient. Use stable for all
+  jobs except `cargo fmt` where nightly features are needed (ANTI-2).
+- `[A]` Run `cargo deny check` — will catch RUSTSEC-2024-0370 (`proc-macro-error`
+  unmaintained). Migrate to `proc-macro-error2` or `manyhow` (ANTI-3).
+- `[H]` Review open issues for self-filed `todo!()` stub admissions. Close any that
+  are fully covered by the `deny(todo)` lint or where a concrete plan now exists
+  in CLAUDE.md (ANTI-4).
+- `[A]` Confirm `[workspace.lints]` exists in root `Cargo.toml` and all member
+  `Cargo.toml` files have `lints.workspace = true`. Inconsistent lints across
+  members is ANTI-5.

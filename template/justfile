@@ -182,3 +182,31 @@ chain *CMDS:
 # Remove build artifacts.
 clean:
     cargo clean
+
+# ── Living Documentation ──────────────────────────────────────────────────────
+
+# Regenerate living test documentation from tests.
+docs-test:
+    UPDATE_GOLDEN=1 cargo test --features living-docs -- --test-threads=1
+    @echo "docs/test/ updated — commit the changes."
+
+# Verify living docs match committed artifacts (CI equivalent).
+docs-verify:
+    cargo test --features living-docs -- --test-threads=1
+
+# ── Changelog ─────────────────────────────────────────────────────────────────
+
+# Generate CHANGELOG.md from conventional commits (needs git-cliff).
+changelog:
+    git cliff --output CHANGELOG.md
+    @echo "CHANGELOG.md updated — review and commit."
+
+# Preview unreleased changelog entries.
+changelog-preview:
+    git cliff --unreleased
+
+# ── Miri ─────────────────────────────────────────────────────────────────────
+
+# Run Miri UB-check (needs nightly + miri component).
+miri:
+    cargo +nightly miri test --workspace
