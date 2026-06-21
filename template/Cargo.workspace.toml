@@ -99,7 +99,9 @@ opt-level      = 3
 lto            = true           # full LTO for maximum inlining across crates
 codegen-units  = 1              # single CGU maximises optimisation
 panic          = "abort"        # smaller binary; no unwinding machinery
-strip          = true           # strip debug symbols from the final binary
+# strip omitted: wasm32 targets require wasm-opt for stripping (strip = true corrupts
+# WASM binaries). Native binaries are stripped by the linker or packaging step.
+# For native-only crates add: strip = true in the member's [profile.release] override.
 
 # ---------------------------------------------------------------------------
 # [profile.bench] — inherits release but keeps debug info for profiling
