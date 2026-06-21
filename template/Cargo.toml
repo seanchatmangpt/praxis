@@ -1,0 +1,72 @@
+[package]
+name = "{{project-name}}"
+version = "26.6.0"                       # CalVer YY.M.patch
+edition = "2021"
+rust-version = "1.82"
+authors = ["Sean Chatman <xpointsh@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "{{description}}"
+repository = "https://github.com/seanchatmangpt/{{project-name}}"
+homepage = "https://github.com/seanchatmangpt/{{project-name}}"
+documentation = "https://docs.rs/{{project-name}}"
+readme = "README.md"
+keywords = []                           # <= 5, lowercase
+categories = []                         # <= 5, from the crates.io category list
+exclude = ["/.github", "/fixtures", "/docs"]
+
+# Lints are defined inline for a single crate. A multi-crate workspace should
+# instead use [workspace.lints] (see Cargo.workspace.toml) and put
+# `[lints] workspace = true` in each member.
+[lints.rust]
+unsafe_code = "forbid"                  # relax to "warn" for linkme/WASM/specgen crates
+missing_docs = "warn"
+unreachable_pub = "warn"
+unexpected_cfgs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+# In libraries, prefer "deny"; in binary-only crates "warn" is fine.
+unwrap_used = "warn"
+expect_used = "warn"
+
+[features]
+default = []
+# otel  = ["opentelemetry", "opentelemetry-otlp", "opentelemetry_sdk"]  # observability
+# lsp   = ["lsp-max"]                                                    # language-server
+# wasm  = ["wasm-bindgen"]                                               # WebAssembly target
+
+[dependencies]
+# House shared crate — pick one source:
+# chatman-common = "26.6"                                              # once published
+# chatman-common = { git = "https://github.com/seanchatmangpt/chatman-common" }
+# chatman-common = { path = "../chatman-common" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+blake3 = "1"
+linkme = "0.3"
+clap = { version = "4", features = ["derive", "env"] }               # CLI parsing
+# tokio = { version = "1", features = ["full"] }                       # async runtime
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"
+insta = { version = "1", features = ["json"] }
+proptest = "1"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "bench_main"
+harness = false
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

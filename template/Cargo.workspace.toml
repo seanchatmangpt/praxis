@@ -1,0 +1,109 @@
+# Workspace variant. Rename to `Cargo.toml` for a multi-crate repo and place
+# member crates under `crates/`. Each member inherits via `.workspace = true`
+# and carries only its own name + crate-local deps:
+#
+#   [package]
+#   name = "{{project-name}}-core"
+#   version.workspace = true
+#   edition.workspace = true
+#   rust-version.workspace = true
+#   authors.workspace = true
+#   license.workspace = true
+#   repository.workspace = true
+#
+#   [lints]
+#   workspace = true
+#
+#   [dependencies]
+#   serde.workspace = true
+#   anyhow.workspace = true
+
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+# ---------------------------------------------------------------------------
+# [workspace.package] — inherited by every member via `.workspace = true`
+# ---------------------------------------------------------------------------
+[workspace.package]
+version = "26.6.0"                                          # CalVer YY.M.patch
+edition = "2021"
+rust-version = "1.82"
+authors = ["Sean Chatman <xpointsh@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/seanchatmangpt/{{project-name}}"
+homepage = "https://github.com/seanchatmangpt/{{project-name}}"
+
+# ---------------------------------------------------------------------------
+# [workspace.dependencies] — pin versions once; members inherit via .workspace = true
+# ---------------------------------------------------------------------------
+[workspace.dependencies]
+# Serialization
+serde            = { version = "1", features = ["derive"] }
+serde_json       = "1"
+
+# Error handling
+anyhow           = "1"
+thiserror        = "2"
+
+# Content addressing
+blake3           = "1"
+
+# Plugin / distributed-slice discovery
+linkme           = "0.3"
+
+# CLI
+clap             = { version = "4", features = ["derive", "env"] }
+
+# Async runtime
+tokio            = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+# Observability
+tracing          = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# ---------------------------------------------------------------------------
+# Test / dev dependencies (members add these under [dev-dependencies])
+# ---------------------------------------------------------------------------
+criterion        = { version = "0.5", features = ["html_reports"] }
+insta            = "1"
+proptest         = "1"
+assert_cmd       = "2"
+predicates       = "3"
+tempfile         = "3"
+
+# ---------------------------------------------------------------------------
+# [workspace.lints] — inherited by every member via `[lints] workspace = true`
+# ---------------------------------------------------------------------------
+[workspace.lints.rust]
+unsafe_code    = "forbid"       # relax to "warn" for linkme/WASM/specgen crates
+missing_docs   = "warn"
+unreachable_pub = "warn"
+unexpected_cfgs = "warn"
+
+[workspace.lints.clippy]
+all            = { level = "warn", priority = -1 }
+pedantic       = { level = "warn", priority = -1 }
+todo           = "deny"
+unimplemented  = "deny"
+dbg_macro      = "deny"
+# In libraries prefer "deny"; in binary-only crates "warn" is fine.
+unwrap_used    = "warn"
+expect_used    = "warn"
+
+# ---------------------------------------------------------------------------
+# [profile.release] — optimised for production binaries
+# ---------------------------------------------------------------------------
+[profile.release]
+opt-level      = 3
+lto            = true           # full LTO for maximum inlining across crates
+codegen-units  = 1              # single CGU maximises optimisation
+panic          = "abort"        # smaller binary; no unwinding machinery
+strip          = true           # strip debug symbols from the final binary
+
+# ---------------------------------------------------------------------------
+# [profile.bench] — inherits release but keeps debug info for profiling
+# ---------------------------------------------------------------------------
+[profile.bench]
+inherits       = "release"
+debug          = true           # retain symbols so perf/flamegraph can resolve frames

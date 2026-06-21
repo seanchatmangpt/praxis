@@ -1,0 +1,146 @@
+# Canonical task runner for the seanchatmangpt Rust house style.
+# `just` is the house standard. Run `just` with no args to list recipes.
+
+set shell := ["bash", "-uc"]
+
+# List recipes.
+default:
+    @just --list
+
+# ── Formatting ────────────────────────────────────────────────────────────────
+
+# Format all code.
+fmt:
+    cargo fmt --all
+
+# Check formatting (CI-equivalent).
+fmt-check:
+    cargo fmt --all --check
+
+# ── Linting ───────────────────────────────────────────────────────────────────
+
+# Clippy with warnings denied.
+lint:
+    cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+# ── Type / Syntax Check ───────────────────────────────────────────────────────
+
+# Fast syntax + type check without codegen.
+check:
+    cargo check --workspace --all-features
+
+# ── Tests ─────────────────────────────────────────────────────────────────────
+
+# Run the full test suite.
+test:
+    cargo test --workspace --all-features
+
+# Run only library unit tests.
+test-lib:
+    cargo test --workspace --all-features --lib
+
+# Run only integration tests (tests/ directory).
+test-e2e:
+    cargo test --workspace --all-features --test '*'
+
+# Run tests single-threaded (for determinism / receipt checks).
+test-serial:
+    cargo test --workspace --all-features -- --test-threads=1
+
+# Run tests matching a pattern. Usage: just test-one <pattern>
+test-one pattern:
+    cargo test --workspace --all-features -- '{{pattern}}'
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+
+# Build (debug).
+build:
+    cargo build --workspace
+
+# Build optimized release.
+build-release:
+    cargo build --workspace --release
+
+# ── Documentation ─────────────────────────────────────────────────────────────
+
+# Build docs the way CI does.
+doc:
+    RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features
+
+# Build and open docs in the browser.
+doc-open:
+    cargo doc --workspace --no-deps --all-features --open
+
+# ── Coverage ──────────────────────────────────────────────────────────────────
+
+# Generate HTML coverage report and open it (needs cargo-llvm-cov).
+coverage:
+    cargo llvm-cov --workspace --all-features --html --open
+
+# Generate LCOV coverage report for CI upload.
+coverage-ci:
+    cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
+
+# ── Benchmarks ────────────────────────────────────────────────────────────────
+
+# Run all Criterion benchmarks.
+bench:
+    cargo bench --workspace
+
+# Run a single named Criterion benchmark. Usage: just bench-one <name>
+bench-one name:
+    cargo bench --workspace -- '{{name}}'
+
+# ── Watch ─────────────────────────────────────────────────────────────────────
+
+# Re-run tests on every file change (needs cargo-watch).
+watch:
+    cargo watch -x "test --workspace --all-features"
+
+# Re-run check on every file change (needs cargo-watch).
+watch-check:
+    cargo watch -x "check --workspace --all-features"
+
+# ── Supply-chain & Security ───────────────────────────────────────────────────
+
+# Supply-chain + license checks (needs `cargo install cargo-deny`).
+deny:
+    cargo deny check
+
+# Audit dependencies for known vulnerabilities (needs `cargo install cargo-audit`).
+audit:
+    cargo audit
+
+# Spell-check (needs `cargo install typos-cli`).
+typos:
+    typos
+
+# ── Dependencies ──────────────────────────────────────────────────────────────
+
+# Print full dependency tree.
+deps:
+    cargo tree --workspace
+
+# Print duplicate dependencies.
+deps-dupes:
+    cargo tree --workspace -d
+
+# Update Cargo.lock to latest compatible versions.
+update:
+    cargo update
+
+# ── Pre-commit & CI ───────────────────────────────────────────────────────────
+
+# Quick local gate: fmt-check + lint + unit tests.
+pre-commit: fmt-check lint test-lib
+    @echo "Pre-commit checks passed."
+
+# Everything CI runs, in order.
+ci: fmt-check lint test doc deny typos
+    @echo "All CI checks passed."
+
+# ── Housekeeping ──────────────────────────────────────────────────────────────
+
+# Remove build artifacts.
+clean:
+    cargo clean
