@@ -1,0 +1,46 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:  # allow manual trigger for the slower suite
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_LOG: debug
+
+jobs:
+  integration:
+    name: integration
+    runs-on: ubuntu-latest
+    # Docker is available on ubuntu-latest by default.
+    # Add named service containers here when needed, e.g.:
+    # services:
+    #   postgres:
+    #     image: postgres:16
+    #     env:
+    #       POSTGRES_PASSWORD: postgres
+    #     ports:
+    #       - 5432:5432
+    #     options: >-
+    #       --health-cmd pg_isready
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: integration
+      - name: Run integration tests
+        run: cargo test --test integration
+        timeout-minutes: 10
