@@ -285,6 +285,33 @@ fn print_yaml_scalar(v: &serde_json::Value) {
 }
 
 // ---------------------------------------------------------------------------
+// Tool introspection implementation
+// ---------------------------------------------------------------------------
+
+/// Walk `cmd`'s subcommand tree and collect one [`ToolDefinition`] per leaf subcommand.
+pub fn collect_tool_definitions(cmd: &clap::Command) -> Vec<ToolDefinition> {
+    collect_tools_from_cmd(cmd)
+}
+
+/// If `--introspect` was passed, emit tool definitions as JSON to stdout and
+/// return `true`. The caller should exit immediately after.
+pub fn handle_introspect(cli: &Cli, cmd: &clap::Command) -> bool {
+    if !cli.introspect {
+        return false;
+    }
+    let tools = collect_tool_definitions(cmd);
+    #[allow(clippy::print_stdout)]
+    {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&tools)
+                .unwrap_or_else(|e| format!("{{\"error\":\"{e}\"}}")),
+        );
+    }
+    true
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 

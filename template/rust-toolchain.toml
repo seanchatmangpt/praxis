@@ -6,6 +6,6 @@
 # certain WASM crates) may override this file with `channel = "nightly-YYYY-MM-DD"`
 # (pinned, never bare "nightly").
 [toolchain]
-channel = "1.82.0"
+channel = "nightly-2026-04-15"
 components = ["rustfmt", "clippy", "llvm-tools-preview"]
 profile = "minimal"

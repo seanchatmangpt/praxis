@@ -26,33 +26,70 @@ pub fn recompute_chain(events: &[impl AsRef<[u8]>]) -> String {
     acc.into()
 }
 
-/// Append-only assembler; running hash is folded incrementally so finalize is O(1).
-pub struct ChainAssembler {
+// ── Type-state markers ────────────────────────────────────────────────────
+
+/// Assembler has not received any events yet. `finalize()` is not available.
+pub struct Unstarted;
+/// Assembler has received at least one event. `finalize()` is now available.
+pub struct NonEmpty;
+
+/// Append-only BLAKE3 chain assembler with compile-time empty-chain prevention.
+///
+/// `ChainAssembler<Unstarted>` cannot be finalized — calling `finalize()` on an
+/// empty assembler is a compile-time error (the method does not exist on that state).
+/// Call `append()` at least once to advance to `ChainAssembler<NonEmpty>`, which
+/// exposes `finalize()`.
+///
+/// # Examples
+///
+/// ```rust
+/// use {{project-name}}::chain::ChainAssembler;
+///
+/// let mut asm = ChainAssembler::new();
+/// // asm.finalize();  // ← compile error: method not found on ChainAssembler<Unstarted>
+/// let mut asm = asm.append(b"first event");
+/// let hash = asm.finalize(); // ✓
+/// assert_eq!(hash.len(), 64);
+/// ```
+pub struct ChainAssembler<State = Unstarted> {
     running: Blake3Hash,
+    _state: std::marker::PhantomData<State>,
 }
 
-impl Default for ChainAssembler {
+impl ChainAssembler<Unstarted> {
+    /// Create a new, empty assembler rooted at the genesis hash.
+    pub fn new() -> Self {
+        ChainAssembler {
+            running: genesis_hash(),
+            _state: std::marker::PhantomData,
+        }
+    }
+
+    /// Append the first event, transitioning to `NonEmpty` state.
+    pub fn append(self, event_bytes: &[u8]) -> ChainAssembler<NonEmpty> {
+        let running = fold(&self.running, event_bytes);
+        ChainAssembler { running, _state: std::marker::PhantomData }
+    }
+}
+
+impl Default for ChainAssembler<Unstarted> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ChainAssembler {
-    pub fn new() -> Self {
-        ChainAssembler { running: genesis_hash() }
-    }
-
-    pub fn append(&mut self, event_bytes: &[u8]) -> Blake3Hash {
-        self.running = fold(&self.running, event_bytes);
-        self.running.clone()
+impl ChainAssembler<NonEmpty> {
+    /// Append another event (remains in `NonEmpty` state).
+    pub fn append(self, event_bytes: &[u8]) -> ChainAssembler<NonEmpty> {
+        let running = fold(&self.running, event_bytes);
+        ChainAssembler { running, _state: std::marker::PhantomData }
     }
 
     /// Consume the assembler and return the final chain hash as a hex string.
+    ///
+    /// Only callable after at least one `append()` — the `Unstarted` state has
+    /// no `finalize()` method, so empty chains are rejected at compile time.
     pub fn finalize(self) -> String {
-        // _seal pattern: the caller cannot construct a Receipt{_seal:(),...} directly;
-        // they must pass through this method (or an equivalent builder) so the chain
-        // hash is always the canonical rolling accumulation — struct-literal construction
-        // of sealed types fails at compile time with E0451 (private field).
         self.running.into()
     }
 }
@@ -71,10 +108,10 @@ mod tests {
     #[test]
     fn append_matches_recompute() {
         let events: &[&[u8]] = &[b"a", b"b", b"c"];
-        let mut asm = ChainAssembler::new();
-        for e in events {
-            asm.append(e);
-        }
+        let asm = ChainAssembler::new()
+            .append(b"a")
+            .append(b"b")
+            .append(b"c");
         assert_eq!(asm.finalize(), recompute_chain(events));
     }
 
@@ -83,5 +120,13 @@ mod tests {
         let honest = recompute_chain(&[b"x", b"y"]);
         let tampered = recompute_chain(&[b"x", b"z"]);
         assert_ne!(honest, tampered);
+    }
+
+    #[test]
+    fn type_state_enforces_non_empty_before_finalize() {
+        // This test proves the happy path; the compile-time block is enforced by
+        // the type system (no finalize() on ChainAssembler<Unstarted>).
+        let hash = ChainAssembler::new().append(b"event").finalize();
+        assert_eq!(hash.len(), 64);
     }
 }

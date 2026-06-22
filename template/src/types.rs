@@ -117,6 +117,115 @@ impl fmt::Display for ObjectRef {
     }
 }
 
+// ── ObjectRef parsing ─────────────────────────────────────────────────────
+
+/// Error returned when an `id:type[:qualifier]` string cannot be parsed.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("invalid object ref '{input}': {reason}")]
+pub struct ObjectRefParseError {
+    /// The original input string.
+    pub input: String,
+    /// Human-readable reason.
+    pub reason: &'static str,
+}
+
+impl ObjectRef {
+    /// Parse an `id:type` or `id:type:qualifier` string.
+    ///
+    /// The first colon-separated segment is the `id`, the second is `type_`,
+    /// and an optional third segment becomes `qualifier`. Additional colons
+    /// within the `id` segment (e.g. `"repo:main"`) are not allowed — encode
+    /// slashes or other separators instead.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use {{project-name}}::types::ObjectRef;
+    ///
+    /// let obj = ObjectRef::parse("artifact-1:artifact:input").unwrap();
+    /// assert_eq!(obj.id, "artifact-1");
+    /// assert_eq!(obj.type_, "artifact");
+    /// assert_eq!(obj.qualifier.as_deref(), Some("input"));
+    ///
+    /// let bare = ObjectRef::parse("suite:test-suite").unwrap();
+    /// assert_eq!(bare.qualifier, None);
+    /// ```
+    pub fn parse(s: &str) -> Result<Self, ObjectRefParseError> {
+        let parts: Vec<&str> = s.splitn(3, ':').collect();
+        match parts.as_slice() {
+            [id, type_] if !id.is_empty() && !type_.is_empty() => Ok(ObjectRef {
+                id: (*id).to_string(),
+                type_: (*type_).to_string(),
+                qualifier: None,
+            }),
+            [id, type_, qualifier]
+                if !id.is_empty() && !type_.is_empty() && !qualifier.is_empty() =>
+            {
+                Ok(ObjectRef {
+                    id: (*id).to_string(),
+                    type_: (*type_).to_string(),
+                    qualifier: Some((*qualifier).to_string()),
+                })
+            }
+            _ => Err(ObjectRefParseError {
+                input: s.to_string(),
+                reason: "expected 'id:type' or 'id:type:qualifier' with non-empty segments",
+            }),
+        }
+    }
+}
+
+impl std::str::FromStr for ObjectRef {
+    type Err = ObjectRefParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        ObjectRef::parse(s)
+    }
+}
+
+#[cfg(test)]
+mod object_ref_parse_tests {
+    use super::*;
+
+    #[test]
+    fn parse_id_type() {
+        let obj: ObjectRef = "suite:test-suite".parse().unwrap();
+        assert_eq!(obj.id, "suite");
+        assert_eq!(obj.type_, "test-suite");
+        assert!(obj.qualifier.is_none());
+    }
+
+    #[test]
+    fn parse_id_type_qualifier() {
+        let obj = ObjectRef::parse("artifact-1:artifact:input").unwrap();
+        assert_eq!(obj.qualifier.as_deref(), Some("input"));
+    }
+
+    #[test]
+    fn display_parse_round_trip() {
+        let original = ObjectRef {
+            id: "repo".to_string(),
+            type_: "git".to_string(),
+            qualifier: Some("output".to_string()),
+        };
+        let s = original.to_string();
+        let parsed = ObjectRef::parse(&s).unwrap();
+        assert_eq!(original, parsed);
+    }
+
+    #[test]
+    fn parse_rejects_missing_type() {
+        assert!(ObjectRef::parse("onlyone").is_err());
+        assert!(ObjectRef::parse("").is_err());
+    }
+
+    #[test]
+    fn parse_rejects_empty_segments() {
+        assert!(ObjectRef::parse(":type").is_err());
+        assert!(ObjectRef::parse("id:").is_err());
+    }
+}
+
 // ─── Canonical Serialization ────────────────────────────────────────────────
 
 /// Produce deterministic, sorted-key JSON bytes for any serializable value.
@@ -292,6 +401,7 @@ pub type AdmittedEvidence<T, W> = Evidence<T, Admitted, W>;
 /// }
 /// ```
 #[non_exhaustive]
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProfileId {
     /// Core v1: every event has a non-empty `event_type` and a valid commitment.
@@ -365,6 +475,335 @@ pub trait CicdPolicy {
 
     /// Evaluate against `config` and return a three-way verdict.
     fn evaluate(&self, config: &PolicyConfig) -> PolicyVerdict;
+}
+
+// ── Compile-time layout assertions ──────────────────────────────────────────
+//
+// These fire at compile time (before any test runs) if a wire type changes
+// size unexpectedly. Adjust the expected value only when you deliberately
+// change the type layout and understand the downstream impact.
+
+#[allow(dead_code)]
+mod layout_assertions {
+    use super::*;
+    use std::mem::{align_of, size_of};
+
+    // Blake3Hash wraps a String; on 64-bit platforms a String is 3 * usize = 24 bytes.
+    const _BLAKE3_HASH_SIZE: () = {
+        assert!(size_of::<Blake3Hash>() == 24, "Blake3Hash size changed — check wire compatibility");
+    };
+
+    // ProfileId is a fieldless enum — expected to be 1 byte (niche-optimised by the compiler).
+    // If this fires after adding a variant, update the comment but leave the assert.
+    const _PROFILE_ID_SIZE: () = {
+        assert!(size_of::<ProfileId>() == 1, "ProfileId size changed — may break OCEL serialization");
+    };
+
+    // PolicyVerdict is a fieldless enum — 1 byte.
+    const _POLICY_VERDICT_SIZE: () = {
+        assert!(size_of::<PolicyVerdict>() == 1, "PolicyVerdict size changed");
+    };
+
+    // Raw and Admitted are ZSTs used as PhantomData witness tags.
+    const _RAW_IS_ZST: () = {
+        assert!(size_of::<Raw>() == 0, "Raw marker must stay ZST");
+    };
+    const _ADMITTED_IS_ZST: () = {
+        assert!(size_of::<Admitted>() == 0, "Admitted marker must stay ZST");
+    };
+
+    // Evidence<T, S, W> with ZST state and witness must not add overhead.
+    // Evidence<u64, Raw, Raw> should be same size as u64.
+    const _EVIDENCE_NO_OVERHEAD: () = {
+        assert!(
+            size_of::<Evidence<u64, Raw, Raw>>() == size_of::<u64>(),
+            "Evidence<T,S,W> must be zero-overhead over T when S and W are ZSTs"
+        );
+    };
+
+    // Alignment checks — ensure no surprise padding.
+    const _BLAKE3_HASH_ALIGN: () = {
+        assert!(align_of::<Blake3Hash>() == align_of::<String>(), "Blake3Hash alignment changed");
+    };
+}
+
+// ── Verdict: 7-stage pipeline result ────────────────────────────────────────
+
+/// Outcome for a single verification stage in the certify pipeline.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StageOutcome {
+    /// Stage name (e.g. `"chain_integrity"`, `"continuity"`).
+    pub stage: String,
+    /// Whether this stage passed.
+    pub passed: bool,
+    /// Human-readable reason if the stage failed; `None` on pass.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+impl StageOutcome {
+    /// Construct a passing stage outcome.
+    pub fn pass(stage: impl Into<String>) -> Self {
+        StageOutcome { stage: stage.into(), passed: true, reason: None }
+    }
+
+    /// Construct a failing stage outcome with a reason.
+    pub fn fail(stage: impl Into<String>, reason: impl Into<String>) -> Self {
+        StageOutcome { stage: stage.into(), passed: false, reason: Some(reason.into()) }
+    }
+}
+
+/// The result of running the full certify pipeline.
+///
+/// `accepted` is `true` iff all stages passed. Use [`Verdict::first_failure`] to
+/// retrieve the first failing stage without exposing raw field access to callers.
+///
+/// # Doctrine
+///
+/// The verifier **certifies, it does not decide.** `Verdict` captures what the
+/// pipeline observed; policy decisions ("should we block this release?") are the
+/// caller's responsibility.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Verdict {
+    /// `true` iff every stage passed.
+    pub accepted: bool,
+    /// Per-stage outcomes in pipeline order.
+    pub stage_outcomes: Vec<StageOutcome>,
+}
+
+impl Verdict {
+    /// Construct an ACCEPT verdict from a list of all-passing stage outcomes.
+    pub fn accept(stages: Vec<StageOutcome>) -> Self {
+        Verdict { accepted: true, stage_outcomes: stages }
+    }
+
+    /// Construct a REJECT verdict. Sets `accepted = false` regardless of individual outcomes.
+    pub fn reject(stages: Vec<StageOutcome>) -> Self {
+        Verdict { accepted: false, stage_outcomes: stages }
+    }
+
+    /// Return the first failing [`StageOutcome`], if any.
+    ///
+    /// Returns `None` for ACCEPT verdicts or (degenerate) REJECT verdicts with no
+    /// recorded failure reason.
+    pub fn first_failure(&self) -> Option<&StageOutcome> {
+        self.stage_outcomes.iter().find(|s| !s.passed)
+    }
+
+    /// A single-line human-readable summary suitable for CLI output.
+    ///
+    /// Examples:
+    /// - `"ACCEPT (7/7 stages passed)"`
+    /// - `"REJECT at stage chain_integrity: chain hash mismatch"`
+    pub fn summary(&self) -> String {
+        if self.accepted {
+            let n = self.stage_outcomes.len();
+            format!("ACCEPT ({n}/{n} stages passed)")
+        } else {
+            match self.first_failure() {
+                Some(s) => {
+                    let reason = s.reason.as_deref().unwrap_or("no reason recorded");
+                    format!("REJECT at stage {}: {reason}", s.stage)
+                }
+                None => "REJECT (no stage failure recorded)".to_string(),
+            }
+        }
+    }
+
+    /// Returns `true` if the verdict is an ACCEPT.
+    pub fn is_accepted(&self) -> bool {
+        self.accepted
+    }
+}
+
+impl fmt::Display for Verdict {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.summary())
+    }
+}
+
+#[cfg(test)]
+mod verdict_tests {
+    use super::*;
+
+    #[test]
+    fn accept_verdict_summary() {
+        let v = Verdict::accept(vec![
+            StageOutcome::pass("decode"),
+            StageOutcome::pass("chain_integrity"),
+        ]);
+        assert!(v.is_accepted());
+        assert_eq!(v.summary(), "ACCEPT (2/2 stages passed)");
+        assert!(v.first_failure().is_none());
+    }
+
+    #[test]
+    fn reject_verdict_first_failure() {
+        let v = Verdict::reject(vec![
+            StageOutcome::pass("decode"),
+            StageOutcome::fail("chain_integrity", "chain hash mismatch"),
+            StageOutcome::fail("continuity", "seq gap at 3"),
+        ]);
+        assert!(!v.is_accepted());
+        let f = v.first_failure().unwrap();
+        assert_eq!(f.stage, "chain_integrity");
+        assert_eq!(v.summary(), "REJECT at stage chain_integrity: chain hash mismatch");
+    }
+
+    #[test]
+    fn verdict_display_matches_summary() {
+        let v = Verdict::accept(vec![StageOutcome::pass("decode")]);
+        assert_eq!(format!("{v}"), v.summary());
+    }
+}
+
+// ── PolicyConfig builder ─────────────────────────────────────────────────
+
+impl PolicyConfig {
+    /// Set the `behind_threshold` and return `self` for chaining.
+    #[must_use]
+    pub fn with_behind_threshold(mut self, n: usize) -> Self {
+        self.behind_threshold = n;
+        self
+    }
+
+    /// Set the `dirty_threshold` and return `self` for chaining.
+    #[must_use]
+    pub fn with_dirty_threshold(mut self, n: usize) -> Self {
+        self.dirty_threshold = n;
+        self
+    }
+
+    /// Set the `evidence_staleness_secs` and return `self` for chaining.
+    #[must_use]
+    pub fn with_evidence_staleness_secs(mut self, secs: u64) -> Self {
+        self.evidence_staleness_secs = secs;
+        self
+    }
+}
+
+// ── PolicyVerdict ordering ────────────────────────────────────────────────
+
+impl PolicyVerdict {
+    /// Returns the "worse" of two verdicts.
+    ///
+    /// Severity order: `Pass` < `Suggest` < `Warn`.
+    pub fn worse(self, other: PolicyVerdict) -> PolicyVerdict {
+        use PolicyVerdict::*;
+        match (self, other) {
+            (Warn, _) | (_, Warn) => Warn,
+            (Suggest, _) | (_, Suggest) => Suggest,
+            _ => Pass,
+        }
+    }
+
+    /// Returns `true` if this verdict is at least as severe as `threshold`.
+    pub fn at_least(&self, threshold: &PolicyVerdict) -> bool {
+        use PolicyVerdict::*;
+        matches!(
+            (self, threshold),
+            (Warn, Warn)
+                | (Warn, Suggest)
+                | (Warn, Pass)
+                | (Suggest, Suggest)
+                | (Suggest, Pass)
+                | (Pass, Pass)
+        )
+    }
+}
+
+/// Evaluate a collection of [`CicdPolicy`] implementations and return the
+/// aggregate (worst) verdict.
+///
+/// # Example
+///
+/// ```rust
+/// use {{project-name}}::types::{CicdPolicy, CicdPolicyRunner, PolicyConfig, PolicyVerdict};
+///
+/// struct AlwaysPass;
+/// impl CicdPolicy for AlwaysPass {
+///     fn name(&self) -> &'static str { "always-pass" }
+///     fn evaluate(&self, _: &PolicyConfig) -> PolicyVerdict { PolicyVerdict::Pass }
+/// }
+///
+/// let runner = CicdPolicyRunner::new(vec![Box::new(AlwaysPass)]);
+/// let (verdict, findings) = runner.run(&PolicyConfig::default());
+/// assert_eq!(verdict, PolicyVerdict::Pass);
+/// assert_eq!(findings.len(), 1);
+/// ```
+pub struct CicdPolicyRunner {
+    policies: Vec<Box<dyn CicdPolicy>>,
+}
+
+/// A single policy finding from a [`CicdPolicyRunner`] run.
+#[derive(Debug, Clone)]
+pub struct PolicyFinding {
+    /// The policy that produced this finding.
+    pub policy_name: &'static str,
+    /// The verdict this policy returned.
+    pub verdict: PolicyVerdict,
+}
+
+impl CicdPolicyRunner {
+    /// Construct a runner from a list of boxed policies.
+    pub fn new(policies: Vec<Box<dyn CicdPolicy>>) -> Self {
+        CicdPolicyRunner { policies }
+    }
+
+    /// Run all policies and return `(aggregate_verdict, findings)`.
+    ///
+    /// The aggregate verdict is the worst verdict across all policies.
+    pub fn run(&self, config: &PolicyConfig) -> (PolicyVerdict, Vec<PolicyFinding>) {
+        let mut aggregate = PolicyVerdict::Pass;
+        let mut findings = Vec::with_capacity(self.policies.len());
+        for policy in &self.policies {
+            let v = policy.evaluate(config);
+            aggregate = aggregate.worse(v.clone());
+            findings.push(PolicyFinding { policy_name: policy.name(), verdict: v });
+        }
+        (aggregate, findings)
+    }
+}
+
+#[cfg(test)]
+mod policy_runner_tests {
+    use super::*;
+
+    struct Fixed(PolicyVerdict);
+    impl CicdPolicy for Fixed {
+        fn name(&self) -> &'static str { "fixed" }
+        fn evaluate(&self, _: &PolicyConfig) -> PolicyVerdict { self.0.clone() }
+    }
+
+    #[test]
+    fn runner_returns_worst_verdict() {
+        let runner = CicdPolicyRunner::new(vec![
+            Box::new(Fixed(PolicyVerdict::Pass)),
+            Box::new(Fixed(PolicyVerdict::Suggest)),
+            Box::new(Fixed(PolicyVerdict::Pass)),
+        ]);
+        let (v, findings) = runner.run(&PolicyConfig::default());
+        assert_eq!(v, PolicyVerdict::Suggest);
+        assert_eq!(findings.len(), 3);
+    }
+
+    #[test]
+    fn policy_config_builder_chain() {
+        let cfg = PolicyConfig::default()
+            .with_behind_threshold(10)
+            .with_dirty_threshold(2)
+            .with_evidence_staleness_secs(7200);
+        assert_eq!(cfg.behind_threshold, 10);
+        assert_eq!(cfg.dirty_threshold, 2);
+        assert_eq!(cfg.evidence_staleness_secs, 7200);
+    }
+
+    #[test]
+    fn verdict_at_least() {
+        assert!(PolicyVerdict::Warn.at_least(&PolicyVerdict::Pass));
+        assert!(PolicyVerdict::Warn.at_least(&PolicyVerdict::Warn));
+        assert!(!PolicyVerdict::Pass.at_least(&PolicyVerdict::Warn));
+    }
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
@@ -478,5 +917,173 @@ mod tests {
         let policy = AlwaysWarn;
         assert_eq!(policy.name(), "always-warn");
         assert_eq!(policy.evaluate(&PolicyConfig::default()), PolicyVerdict::Warn);
+    }
+}
+
+#[cfg(test)]
+mod canonical_determinism_tests {
+    use super::*;
+
+    /// Prove that canonical_bytes produces identical output across 100 calls.
+    #[test]
+    fn canonical_bytes_is_deterministic_across_100_calls() {
+        use serde::Serialize;
+
+        #[derive(Serialize)]
+        struct Payload {
+            z: &'static str,
+            a: &'static str,
+            m: u64,
+        }
+
+        let p = Payload { z: "last", a: "first", m: 42 };
+        let first = canonical_bytes(&p).unwrap();
+        for _ in 0..99 {
+            assert_eq!(canonical_bytes(&p).unwrap(), first,
+                "canonical_bytes must be stable across repeated calls");
+        }
+    }
+
+    /// Prove that BLAKE3 of canonical bytes is stable (same input → same hash).
+    #[test]
+    fn blake3_of_canonical_bytes_is_stable() {
+        use serde::Serialize;
+
+        #[derive(Serialize)]
+        struct Event {
+            seq: u64,
+            event_type: &'static str,
+        }
+
+        let e = Event { seq: 0, event_type: "build" };
+        let bytes = canonical_bytes(&e).unwrap();
+        let h1 = Blake3Hash::content_address(&bytes);
+        let h2 = Blake3Hash::content_address(&bytes);
+        assert_eq!(h1, h2);
+        assert_eq!(h1.as_hex().len(), 64);
+    }
+
+    /// Prove that field declaration order does not affect the canonical hash.
+    /// This is the key guarantee that makes receipts tamper-evident.
+    #[test]
+    fn field_order_does_not_affect_canonical_hash() {
+        use serde::Serialize;
+
+        #[derive(Serialize)]
+        struct OrderA { a: i32, b: i32, c: i32 }
+
+        #[derive(Serialize)]
+        struct OrderB { c: i32, a: i32, b: i32 }
+
+        let a = canonical_bytes(&OrderA { a: 1, b: 2, c: 3 }).unwrap();
+        let b = canonical_bytes(&OrderB { c: 3, a: 1, b: 2 }).unwrap();
+        assert_eq!(a, b, "canonical_bytes must normalize field order");
+        assert_eq!(
+            Blake3Hash::content_address(&a),
+            Blake3Hash::content_address(&b),
+            "canonical hashes must match regardless of struct field order"
+        );
+    }
+
+    /// Prove that modifying any field changes the hash (tampering detection).
+    #[test]
+    fn tampered_field_changes_hash() {
+        use serde::Serialize;
+
+        #[derive(Serialize)]
+        struct Event { seq: u64, payload: &'static str }
+
+        let honest = canonical_bytes(&Event { seq: 1, payload: "build" }).unwrap();
+        let tampered = canonical_bytes(&Event { seq: 1, payload: "build-TAMPERED" }).unwrap();
+        assert_ne!(
+            Blake3Hash::content_address(&honest),
+            Blake3Hash::content_address(&tampered),
+            "tampered payload must produce a different hash"
+        );
+    }
+}
+
+// ── Blake3Hash admission gate ─────────────────────────────────────────────
+
+/// Witness authority tag for BLAKE3 hex-digest admission.
+pub struct HashWitness;
+
+/// Reason a BLAKE3 hex string was rejected at the admission gate.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum InvalidHash {
+    /// The string is not exactly 64 characters.
+    #[error("hash must be exactly 64 hex characters, got {0}")]
+    WrongLength(usize),
+    /// The string contains non-hexadecimal characters.
+    #[error("hash contains non-hex character at position {0}: '{1}'")]
+    NonHexChar(usize, char),
+}
+
+/// Admission gate for BLAKE3 hex digests.
+///
+/// Accepts a `RawEvidence<Blake3Hash, HashWitness>` and validates it is a
+/// 64-character lowercase hex string. Returns `AdmittedEvidence` or an
+/// `InvalidHash` rejection reason.
+///
+/// # Example
+///
+/// ```rust
+/// use {{project-name}}::types::{
+///     Blake3Hash, Evidence, HashAdmit, InvalidHash, RawEvidence,
+/// };
+/// use {{project-name}}::types::Admit;
+///
+/// let raw = Evidence::raw(Blake3Hash::content_address(b"data"));
+/// let admitted = HashAdmit::admit(raw).unwrap();
+/// let _ = admitted.inner(); // ← only reachable after validation
+/// ```
+pub struct HashAdmit;
+
+impl Admit for HashAdmit {
+    type Input = Blake3Hash;
+    type Witness = HashWitness;
+    type Reason = InvalidHash;
+
+    fn admit(
+        input: Evidence<Blake3Hash, Raw, HashWitness>,
+    ) -> Result<Evidence<Blake3Hash, Admitted, HashWitness>, InvalidHash> {
+        let hex = input.inner().as_hex();
+        if hex.len() != 64 {
+            return Err(InvalidHash::WrongLength(hex.len()));
+        }
+        for (i, ch) in hex.chars().enumerate() {
+            if !ch.is_ascii_hexdigit() {
+                return Err(InvalidHash::NonHexChar(i, ch));
+            }
+        }
+        Ok(Evidence::admit_unchecked(input.inner().clone()))
+    }
+}
+
+#[cfg(test)]
+mod hash_admit_tests {
+    use super::*;
+
+    #[test]
+    fn admit_valid_hash() {
+        let hash = Blake3Hash::content_address(b"hello");
+        let raw: RawEvidence<Blake3Hash, HashWitness> = Evidence::raw(hash);
+        assert!(HashAdmit::admit(raw).is_ok());
+    }
+
+    #[test]
+    fn reject_wrong_length() {
+        let short = Blake3Hash::from_hex("abc");
+        let raw: RawEvidence<Blake3Hash, HashWitness> = Evidence::raw(short);
+        assert!(matches!(HashAdmit::admit(raw), Err(InvalidHash::WrongLength(3))));
+    }
+
+    #[test]
+    fn reject_non_hex_char() {
+        let bad = Blake3Hash::from_hex(
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+        );
+        let raw: RawEvidence<Blake3Hash, HashWitness> = Evidence::raw(bad);
+        assert!(matches!(HashAdmit::admit(raw), Err(InvalidHash::NonHexChar(0, 'z'))));
     }
 }

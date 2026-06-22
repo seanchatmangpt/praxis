@@ -14,14 +14,27 @@ mod server {
     use rmcp::{
         handler::server::{router::tool::ToolRouter, wrapper::Parameters},
         model::CallToolResult,
-        tool, tool_router,
+        tool, tool_router, ServerHandler, tool_handler,
     };
     use schemars::JsonSchema;
     use serde::Deserialize;
 
     /// Shared server state (clone-cheap; extend with connection pools, config, etc.)
-    #[derive(Clone, Default)]
-    pub struct ServerState;
+    #[derive(Clone)]
+    pub struct ServerState {
+        tool_router: ToolRouter<Self>,
+    }
+
+    impl Default for ServerState {
+        fn default() -> Self {
+            Self {
+                tool_router: Self::tool_router(),
+            }
+        }
+    }
+
+    #[tool_handler(router = self.tool_router)]
+    impl ServerHandler for ServerState {}
 
     // -------------------------------------------------------------------------
     // Parameter types
@@ -54,87 +67,87 @@ mod server {
     // Tool handlers
     // -------------------------------------------------------------------------
 
-    #[tool(description = "Emit an operation-event and append it to the working receipt chain.")]
-    async fn emit_event(
-        _state: ServerState,
-        params: Parameters<EmitParams>,
-    ) -> CallToolResult {
-        let p = &params.0;
-        let mut cmd = std::process::Command::new("affi");
-        cmd.args(["emit", "--type", &p.event_type, "--object", &p.object]);
-        if let Some(payload) = &p.payload {
-            cmd.args(["--payload", payload.as_str()]);
-        }
-        match cmd.output() {
-            Ok(out) => {
-                let text = String::from_utf8_lossy(&out.stdout).into_owned();
-                if out.status.success() {
-                    CallToolResult::success(vec![rmcp::model::Content::text(text)])
-                } else {
-                    let err = String::from_utf8_lossy(&out.stderr).into_owned();
-                    CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                        "emit failed: {err}"
-                    ))])
+    #[tool_router]
+    impl ServerState {
+        #[tool(description = "Emit an operation-event and append it to the working receipt chain.")]
+        async fn emit_event(
+            &self,
+            params: Parameters<EmitParams>,
+        ) -> Result<CallToolResult, rmcp::ErrorData> {
+            let p = &params.0;
+            let mut cmd = std::process::Command::new("affi");
+            cmd.args(["emit", "--type", &p.event_type, "--object", &p.object]);
+            if let Some(payload) = &p.payload {
+                cmd.args(["--payload", payload.as_str()]);
+            }
+            match cmd.output() {
+                Ok(out) => {
+                    let text = String::from_utf8_lossy(&out.stdout).into_owned();
+                    if out.status.success() {
+                        Ok(CallToolResult::success(vec![rmcp::model::Content::text(text)]))
+                    } else {
+                        let err = String::from_utf8_lossy(&out.stderr).into_owned();
+                        Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
+                            "emit failed: {err}"
+                        ))]))
+                    }
                 }
+                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
+                    "could not launch affi: {e}"
+                ))])),
             }
-            Err(e) => CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                "could not launch affi: {e}"
-            ))]),
         }
-    }
 
-    #[tool(description = "Verify a receipt and return ACCEPT or REJECT verdict.")]
-    async fn verify_receipt(
-        _state: ServerState,
-        params: Parameters<VerifyParams>,
-    ) -> CallToolResult {
-        let path = &params.0.receipt_path;
-        match std::process::Command::new("affi")
-            .args(["verify", path])
-            .output()
-        {
-            Ok(out) => {
-                let verdict = if out.status.success() { "ACCEPT" } else { "REJECT" };
-                let detail = String::from_utf8_lossy(&out.stdout).into_owned();
-                CallToolResult::success(vec![rmcp::model::Content::text(format!(
-                    "{verdict}\n{detail}"
-                ))])
-            }
-            Err(e) => CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                "could not launch affi: {e}"
-            ))]),
-        }
-    }
-
-    #[tool(description = "Show a human-readable dump of a receipt chain.")]
-    async fn show_receipt(
-        _state: ServerState,
-        params: Parameters<ShowParams>,
-    ) -> CallToolResult {
-        let path = &params.0.receipt_path;
-        match std::process::Command::new("affi")
-            .args(["show", path])
-            .output()
-        {
-            Ok(out) => {
-                let text = String::from_utf8_lossy(&out.stdout).into_owned();
-                if out.status.success() {
-                    CallToolResult::success(vec![rmcp::model::Content::text(text)])
-                } else {
-                    let err = String::from_utf8_lossy(&out.stderr).into_owned();
-                    CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                        "show failed: {err}"
-                    ))])
+        #[tool(description = "Verify a receipt and return ACCEPT or REJECT verdict.")]
+        async fn verify_receipt(
+            &self,
+            params: Parameters<VerifyParams>,
+        ) -> Result<CallToolResult, rmcp::ErrorData> {
+            let path = &params.0.receipt_path;
+            match std::process::Command::new("affi")
+                .args(["verify", path])
+                .output()
+            {
+                Ok(out) => {
+                    let verdict = if out.status.success() { "ACCEPT" } else { "REJECT" };
+                    let detail = String::from_utf8_lossy(&out.stdout).into_owned();
+                    Ok(CallToolResult::success(vec![rmcp::model::Content::text(format!(
+                        "{verdict}\n{detail}"
+                    ))]))
                 }
+                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
+                    "could not launch affi: {e}"
+                ))])),
             }
-            Err(e) => CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                "could not launch affi: {e}"
-            ))]),
+        }
+
+        #[tool(description = "Show a human-readable dump of a receipt chain.")]
+        async fn show_receipt(
+            &self,
+            params: Parameters<ShowParams>,
+        ) -> Result<CallToolResult, rmcp::ErrorData> {
+            let path = &params.0.receipt_path;
+            match std::process::Command::new("affi")
+                .args(["show", path])
+                .output()
+            {
+                Ok(out) => {
+                    let text = String::from_utf8_lossy(&out.stdout).into_owned();
+                    if out.status.success() {
+                        Ok(CallToolResult::success(vec![rmcp::model::Content::text(text)]))
+                    } else {
+                        let err = String::from_utf8_lossy(&out.stderr).into_owned();
+                        Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
+                            "show failed: {err}"
+                        ))]))
+                    }
+                }
+                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
+                    "could not launch affi: {e}"
+                ))])),
+            }
         }
     }
-
-    // Wire all tools into a single router on ServerState.
-    tool_router!(ServerState, [emit_event, verify_receipt, show_receipt]);
 }
 
 #[tokio::main]

@@ -73,3 +73,155 @@ impl CliValidator for DefaultCliValidator {
 
 /// Process-wide singleton validator. Replace via dependency injection in tests.
 pub static CLI_VALIDATOR: Lazy<DefaultCliValidator> = Lazy::new(DefaultCliValidator::default);
+
+// ---------------------------------------------------------------------------
+// Typed FM-code constructors
+// ---------------------------------------------------------------------------
+
+impl AppError {
+    /// FM-CLI-* failure: CLI argument or invocation violation.
+    ///
+    /// Embeds `[FM-CLI-{code}]` prefix so log scrapers can extract failure modes.
+    pub fn fm_cli(code: u16, msg: impl Into<String>) -> Self {
+        Self::Validation(format!("[FM-CLI-{code:03}] {}", msg.into()))
+    }
+
+    /// FM-CHAIN-* failure: receipt chain construction or integrity violation.
+    pub fn fm_chain(code: u16, msg: impl Into<String>) -> Self {
+        Self::Validation(format!("[FM-CHAIN-{code:03}] {}", msg.into()))
+    }
+
+    /// FM-VERIFY-* failure: certify pipeline stage violation.
+    pub fn fm_verify(code: u16, stage: &str, msg: impl Into<String>) -> Self {
+        Self::Validation(format!("[FM-VERIFY-{code:03}] stage={stage} {}", msg.into()))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// ValidationChain — collect multiple checks, report all failures at once
+// ---------------------------------------------------------------------------
+
+/// Collect multiple validation results and surface all failures in one error.
+///
+/// Unlike early-return `?`, `ValidationChain` runs every check and joins all
+/// failure messages so operators see the complete picture in one pass.
+///
+/// # Example
+///
+/// ```rust
+/// use {{project-name}}::error::{AppError, ValidationChain};
+///
+/// let mut chain = ValidationChain::new();
+/// chain.check(Err(AppError::fm_cli(1, "--jobs must be positive")));
+/// chain.check(Ok(()));
+/// chain.check(Err(AppError::fm_cli(2, "--output is required")));
+///
+/// let result = chain.finish();
+/// assert!(result.is_err());
+/// let msg = result.unwrap_err().to_string();
+/// assert!(msg.contains("FM-CLI-001"));
+/// assert!(msg.contains("FM-CLI-002"));
+/// ```
+pub struct ValidationChain {
+    errors: Vec<String>,
+}
+
+impl ValidationChain {
+    /// Create an empty chain.
+    pub fn new() -> Self {
+        ValidationChain { errors: Vec::new() }
+    }
+
+    /// Add a check result. `Ok(())` is silently accepted; `Err` is recorded.
+    pub fn check(&mut self, result: Result<()>) -> &mut Self {
+        if let Err(e) = result {
+            self.errors.push(e.to_string());
+        }
+        self
+    }
+
+    /// Convenience: add a check only when `condition` is false.
+    pub fn require(&mut self, condition: bool, error: AppError) -> &mut Self {
+        if !condition {
+            self.errors.push(error.to_string());
+        }
+        self
+    }
+
+    /// Return `Ok(())` if no errors were recorded, else `Err` with all messages joined.
+    pub fn finish(self) -> Result<()> {
+        if self.errors.is_empty() {
+            Ok(())
+        } else {
+            Err(AppError::Validation(self.errors.join("; ")))
+        }
+    }
+
+    /// Returns `true` if any errors have been recorded.
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    /// Returns the count of recorded errors.
+    pub fn error_count(&self) -> usize {
+        self.errors.len()
+    }
+}
+
+impl Default for ValidationChain {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod validation_chain_tests {
+    use super::*;
+
+    #[test]
+    fn empty_chain_is_ok() {
+        assert!(ValidationChain::new().finish().is_ok());
+    }
+
+    #[test]
+    fn single_error_reported() {
+        let mut c = ValidationChain::new();
+        c.check(Err(AppError::fm_cli(1, "bad arg")));
+        let e = c.finish().unwrap_err();
+        assert!(e.to_string().contains("FM-CLI-001"));
+    }
+
+    #[test]
+    fn multiple_errors_joined() {
+        let mut c = ValidationChain::new();
+        c.check(Err(AppError::fm_chain(1, "empty chain")));
+        c.check(Ok(()));
+        c.check(Err(AppError::fm_verify(3, "chain_integrity", "hash mismatch")));
+        let e = c.finish().unwrap_err().to_string();
+        assert!(e.contains("FM-CHAIN-001"), "missing chain error: {e}");
+        assert!(e.contains("FM-VERIFY-003"), "missing verify error: {e}");
+    }
+
+    #[test]
+    fn require_records_error_on_false() {
+        let mut c = ValidationChain::new();
+        c.require(false, AppError::fm_cli(99, "must be true"));
+        assert!(c.has_errors());
+        assert_eq!(c.error_count(), 1);
+    }
+
+    #[test]
+    fn require_passes_on_true() {
+        let mut c = ValidationChain::new();
+        c.require(true, AppError::fm_cli(99, "should not appear"));
+        assert!(!c.has_errors());
+    }
+
+    #[test]
+    fn fm_code_constructors_embed_code() {
+        assert!(AppError::fm_cli(42, "msg").to_string().contains("FM-CLI-042"));
+        assert!(AppError::fm_chain(7, "msg").to_string().contains("FM-CHAIN-007"));
+        assert!(AppError::fm_verify(1, "decode", "msg").to_string().contains("FM-VERIFY-001"));
+        assert!(AppError::fm_verify(1, "decode", "msg").to_string().contains("stage=decode"));
+    }
+}

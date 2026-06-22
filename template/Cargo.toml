@@ -37,7 +37,7 @@ expect_used = "warn"
 default = []
 repl  = ["dep:rustyline"]                                              # interactive REPL with tab-completion
 # otel  = ["opentelemetry", "opentelemetry-otlp", "opentelemetry_sdk"]  # observability
-# lsp   = ["lsp-max"]                                                    # language-server
+lsp   = ["dep:lsp-max", "dep:tree-sitter", "dep:tree-sitter-rust", "dep:dashmap", "dep:parking_lot", "dep:tokio"]  # language-server
 # wasm  = ["wasm-bindgen"]                                               # WebAssembly target
 mcp   = ["dep:rmcp", "dep:rmcp-macros", "dep:tokio"]                 # MCP server (LLM tool-call targets)
 
@@ -56,6 +56,14 @@ blake3 = "1"
 linkme = "0.3"
 clap = { version = "4", features = ["derive", "env"] }               # CLI parsing
 tokio = { version = "1", features = ["full"], optional = true }      # async runtime (required by mcp feature)
+lsp-max = { path = "/Users/sac/lsp-max", optional = true }
+tree-sitter = { version = "0.26", optional = true }
+tree-sitter-rust = { version = "0.23", optional = true }
+dashmap = { version = "6", optional = true }
+parking_lot = { version = "0.12", optional = true }
+clap-noun-verb = { path = "/Users/sac/clap-noun-verb" }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+schemars = { version = "0.8", features = ["derive"] }
 rmcp = { version = "0.11.0", features = ["transport-io"], optional = true }
 rmcp-macros = { version = "0.11.0", optional = true }
 
