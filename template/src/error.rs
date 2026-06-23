@@ -31,6 +31,84 @@ impl AppError {
 pub type Result<T> = std::result::Result<T, AppError>;
 
 // ---------------------------------------------------------------------------
+// ErrorPolicy trait — consolidate error handling patterns
+// ---------------------------------------------------------------------------
+
+/// Explicit error construction policy for a domain.
+///
+/// `ErrorPolicy` consolidates three patterns:
+/// 1. **FM-code constructors** — Failure Mode codes for log extraction
+/// 2. **ValidationChain** — Collect multiple errors, report all at once
+/// 3. **CliValidator** — Argument validation with remediation hints
+///
+/// This trait makes error handling strategy explicit and mockable in tests.
+///
+/// # Example
+///
+/// ```rust
+/// use {{project-name}}::error::{AppError, ErrorPolicy};
+///
+/// let policy = AppError::policy();
+///
+/// // Construct FM-code errors
+/// let err = policy.failure("CLI", 1, "invalid argument");
+///
+/// // Build validation chains
+/// let mut chain = policy.new_validation_chain();
+/// chain.check(Err(policy.failure("CLI", 2, "missing required arg")));
+/// ```
+pub trait ErrorPolicy: Sized + Send + Sync {
+    /// Create a new validation chain for collecting multiple errors.
+    fn new_validation_chain(&self) -> ValidationChain;
+
+    /// Construct an error with an FM (Failure Mode) code.
+    ///
+    /// `domain` — prefix for categorization (e.g., "CLI", "CHAIN", "VERIFY")
+    /// `code` — numeric identifier within the domain (0-999)
+    /// `msg` — human-readable failure description
+    fn failure(&self, domain: &str, code: u16, msg: impl Into<String>) -> Self;
+
+    /// Lift a validation error with stage context (used by verification pipelines).
+    fn failure_with_stage(
+        &self,
+        domain: &str,
+        code: u16,
+        stage: &str,
+        msg: impl Into<String>,
+    ) -> Self;
+}
+
+impl ErrorPolicy for AppError {
+    fn new_validation_chain(&self) -> ValidationChain {
+        ValidationChain::new()
+    }
+
+    fn failure(&self, domain: &str, code: u16, msg: impl Into<String>) -> Self {
+        let formatted = format!("[FM-{domain}-{code:03}] {}", msg.into());
+        match domain {
+            "CLI" => Self::fm_cli(code, formatted),
+            "CHAIN" => Self::fm_chain(code, formatted),
+            "VERIFY" => Self::fm_verify(code, "unknown", formatted),
+            _ => Self::Validation(formatted),
+        }
+    }
+
+    fn failure_with_stage(
+        &self,
+        domain: &str,
+        code: u16,
+        stage: &str,
+        msg: impl Into<String>,
+    ) -> Self {
+        if domain == "VERIFY" {
+            Self::fm_verify(code, stage, msg)
+        } else {
+            self.failure(domain, code, msg)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Poka-yoke CLI validator trait (clnrm poka_yoke pattern)
 // ---------------------------------------------------------------------------
 

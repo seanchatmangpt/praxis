@@ -146,6 +146,29 @@ chatman-common = { git = "https://github.com/seanchatmangpt/chatman-common", fea
 
 ---
 
+## Documentation
+
+### For Users (Creating/Adopting Projects)
+
+- **[`docs/getting-started.md`](docs/getting-started.md)** — End-to-end walkthrough: choose template → generate → customize → test → release
+- **[`docs/faq.md`](docs/faq.md)** — Template selection, adoption strategies, troubleshooting Q&A
+- **[`docs/troubleshooting.md`](docs/troubleshooting.md)** — Solutions to common build, test, and CI issues
+- **[`template/CLAUDE.md`](template/CLAUDE.md)** — Developer guide for template projects (architecture, patterns, adding verbs)
+- **[`crates/chatman-common/DESIGN.md`](crates/chatman-common/DESIGN.md)** — Full API reference and usage patterns for the house shared crate
+
+### For Contributors (Improving Praxis)
+
+- **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — How to submit bugs, patterns, documentation, and improvements to Praxis itself
+- **[`survey/00-SYNTHESIS.md`](survey/00-SYNTHESIS.md)** — Empirical findings from surveying 18 repos; evidence behind every ruling
+- **[`survey/01-SECOND-WAVE.md`](survey/01-SECOND-WAVE.md)** — Deep-dive on WASM patterns, MCP servers, integration testing
+
+### For Fleet Operations
+
+- **[`CHECKLIST.md`](CHECKLIST.md)** — Per-repo migration checklist (18 surveyed repos)
+- **[`BROADEN-ACCESS.md`](BROADEN-ACCESS.md)** — How to apply Praxis to private repos in the fleet
+
+---
+
 ## House defaults (the rulings)
 
 | Axis | Default |

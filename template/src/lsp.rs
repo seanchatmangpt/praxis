@@ -122,15 +122,13 @@ impl LanguageServer for AppLspServer {
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         use lsp_max::rule_pack_server::RulePackServer;
         let uri = &params.text_document.uri;
-        let content = if let Some(index) = self.workspace_index() {
-            index
-                .get(uri.as_str())
-                .map(|doc| doc.content.clone())
-                .unwrap_or_default()
-        } else {
-            String::new()
-        };
-        self.publish_findings_classified(uri.clone(), &content)
-            .await;
+
+        // Optimization: only re-analyze if workspace index exists
+        if let Some(index) = self.workspace_index() {
+            if let Some(doc) = index.get(uri.as_str()) {
+                // Avoid cloning document content: pass by reference
+                self.publish_findings_classified(uri, &doc.content).await;
+            }
+        }
     }
 }
