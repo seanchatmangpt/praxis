@@ -1,0 +1,16 @@
+[package]
+name = "praxis-guard"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ed25519-dalek = { version = "2.2.0", features = ["serde", "rand_core"] }
+rand_core = { version = "0.6.4", features = ["getrandom"] }
+chatman-common = { path = "../../../crates/chatman-common", features = ["full"] }
+hex = "0.4"
+anyhow = "1"
+walkdir = "2"
+chrono = { version = "0.4", features = ["serde"] }

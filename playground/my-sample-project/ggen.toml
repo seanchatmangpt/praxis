@@ -1,0 +1,107 @@
+# ggen.toml — starter template for new projects using ggen code generation.
+#
+# How to use this template:
+#   1. Copy this file and the sibling ontology/ directory into your project root.
+#   2. Fill in [project] metadata.
+#   3. Edit ontology/domain.ttl with your domain classes and properties.
+#   4. Adjust [[generation.rules]] to match the pack(s) you depend on.
+#   5. Run `ggen sync` to render source from your ontology.
+#
+# Core idea: A = mu(O)
+#   Your source code is a pure function of your ontology. The ontology is the
+#   single authoritative description of your domain; ggen renders first-class
+#   source from it via SPARQL SELECT queries and Tera templates.
+
+# --- project metadata --------------------------------------------------------
+# Required. Identifies this manifest to ggen and any downstream tooling.
+[project]
+name    = "my-project"           # Rust crate name or project slug (kebab-case)
+version = "0.1.0"                # Semver; keep in sync with Cargo.toml
+description = "One-line description of what this project does."
+
+# --- pack declarations -------------------------------------------------------
+# Packs supply the SPARQL queries and Tera templates that ggen uses to render
+# source. Declare every pack you reference in [[generation.rules]] below.
+#
+# Each pack is resolved from:
+#   registry = "local"   →  path = "<relative path to pack root>"
+#   registry = "remote"  →  url  = "<registry URL>"  (future)
+#
+# A pack exposes named outputs (e.g. queries=, templates=) declared in its
+# own package.toml; reference them as { pack = "<name>", output = "<key>",
+# file = "<filename>" } in generation rules.
+[[packs]]
+name     = "my-pack"             # Logical name; used in generation rules below
+registry = "local"
+path     = "../my-pack"          # Path to the pack root (contains package.toml)
+
+# --- ontology ----------------------------------------------------------------
+# The single source of truth for your domain. ggen loads this file, applies
+# [inference] rules, then runs [generation] rules against the augmented graph.
+[ontology]
+source = "ontology/domain.ttl"   # Relative to this ggen.toml
+
+# Prefix bindings used in SPARQL queries and Turtle. Add your domain prefixes
+# here so every query can use short names.
+[ontology.prefixes]
+dom  = "http://example.com/ontology#"   # Your domain namespace — change this
+rdf  = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+rdfs = "http://www.w3.org/2000/01/rdf-schema#"
+xsd  = "http://www.w3.org/2001/XMLSchema#"
+
+# --- inference (mu1) ---------------------------------------------------------
+# CONSTRUCT rules that derive implicit triples before generation runs.
+# Use this section to normalize the graph (add back-links, infer types, etc.).
+# Each rule must be idempotent. CONSTRUCT is only valid here, not in generation.
+[inference]
+
+[[inference.rules]]
+name = "attach-label-to-class"
+# Example: copy rdfs:label onto every class that inherits one from its
+# superclass, so generation queries can always SELECT ?label directly.
+construct = """
+PREFIX dom:  <http://example.com/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+CONSTRUCT {
+  ?child rdfs:label ?label .
+} WHERE {
+  ?child rdfs:subClassOf ?parent .
+  ?parent rdfs:label ?label .
+  FILTER NOT EXISTS { ?child rdfs:label ?_ }
+}
+"""
+
+# --- generation (mu3) --------------------------------------------------------
+# Each [[generation.rules]] entry = one SPARQL SELECT + one Tera template.
+# The SELECT produces rows; the template is rendered once per row (fan-out) or
+# once over all rows (aggregate), depending on whether output_file is templated.
+[generation]
+output_dir = "."    # All output_file paths are relative to this directory
+
+# Example rule: generate a Rust types module from the domain ontology.
+# The pack supplies the SELECT query (extracts class + property names) and the
+# Tera template (renders a Rust struct per class). One file is emitted because
+# output_file has no {{ }} placeholder — all rows fold into one aggregate pass.
+[[generation.rules]]
+name        = "domain-types"
+query       = { pack = "my-pack", output = "queries",   file = "domain-types.rq"      }
+template    = { pack = "my-pack", output = "templates", file = "domain-types.rs.tera" }
+output_file = "src/types/domain.rs"
+mode        = "Overwrite"   # Overwrite on every sync (file is fully generated)
+skip_empty  = true          # Suppress the file if the SELECT returns no rows
+
+# --- validation --------------------------------------------------------------
+# ASK queries run before generation. TRUE = invariant satisfied (generation
+# proceeds). FALSE = violation (generation aborts with the description as the
+# error message). Add one rule per invariant you want enforced on every sync.
+[[validation.rules]]
+name        = "every-class-has-label"
+description = "Every dom:DomainClass must have an rdfs:label so generated struct names are deterministic."
+severity    = "Error"       # "Error" aborts generation; "Warning" logs and continues
+ask = """
+ASK { FILTER NOT EXISTS {
+  ?c <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>
+     <http://example.com/ontology#DomainClass> .
+  FILTER NOT EXISTS { ?c <http://www.w3.org/2000/01/rdf-schema#label> ?_ }
+} }
+"""

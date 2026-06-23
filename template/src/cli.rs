@@ -4,6 +4,8 @@
 //! [`OutputFormat`] and [`ColorMode`] enums. Output rendering lives in
 //! [`print_output`] so every verb can share a consistent serialization path.
 
+#![allow(clippy::print_stdout)]
+
 use std::fmt;
 
 use anyhow::Result;
@@ -81,7 +83,7 @@ pub struct ToolDefinition {
 /// Call this when `--introspect` is set; print the result as JSON and exit.
 ///
 /// ```no_run
-/// use {{crate_name}}::cli::{collect_tools_from_cmd, Cli};
+/// use {{project_name}}::cli::{collect_tools_from_cmd, Cli};
 /// use clap::CommandFactory;
 ///
 /// let tools = collect_tools_from_cmd(&Cli::command());

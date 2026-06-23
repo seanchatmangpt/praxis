@@ -1,0 +1,19 @@
+# Enables `cargo generate --git https://github.com/seanchatmangpt/praxis template`
+# for the single-crate scaffold. See README for the workspace flow.
+[template]
+description = "seanchatmangpt house-style Rust crate (single-crate scaffold)."
+
+# Copied verbatim (NOT run through the Liquid template engine) because they
+# contain GitHub Actions `${{ ... }}` expressions that collide with Liquid.
+exclude = [
+    ".github/workflows/ci.yml",
+    ".github/workflows/release.yml",
+]
+
+# The workspace variant is not part of the single-crate generate flow.
+ignore = [
+    "Cargo.workspace.toml",
+]
+
+[placeholders]
+description = { type = "string", prompt = "One-line crate description", default = "A Rust crate." }

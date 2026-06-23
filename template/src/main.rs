@@ -1,7 +1,6 @@
 //! Binary entrypoint for {{project-name}}.
 
 use anyhow::Result;
-use clap_noun_verb::CommandRegistry;
 
 fn main() -> Result<()> {
     let raw: Vec<String> = std::env::args().collect();
@@ -26,12 +25,11 @@ fn main() -> Result<()> {
         )
         .init();
 
-    let mut registry = CommandRegistry::new(env!("CARGO_PKG_NAME"));
-    // linkme fills __VERB_REGISTRY at link time; iterate to register all verbs
-    for register_fn in ::clap_noun_verb::cli::registry::__VERB_REGISTRY {
-        register_fn(&mut registry);
-    }
-    registry.route(args)
+    let registry_mutex = ::clap_noun_verb::cli::CommandRegistry::get();
+    let registry = registry_mutex.lock().map_err(|e| {
+        anyhow::anyhow!("Failed to lock registry: {}", e)
+    })?;
+    registry.run(args).map_err(|e| anyhow::anyhow!("{}", e))
 }
 
 /// Map bare nouns (no verb given) to sensible default verbs.

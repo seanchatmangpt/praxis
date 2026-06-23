@@ -43,7 +43,7 @@ pub struct NonEmpty;
 /// # Examples
 ///
 /// ```rust
-/// use {{project-name}}::chain::ChainAssembler;
+/// use {{project_name}}::chain::ChainAssembler;
 ///
 /// let mut asm = ChainAssembler::new();
 /// // asm.finalize();  // ← compile error: method not found on ChainAssembler<Unstarted>

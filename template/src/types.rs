@@ -18,7 +18,7 @@ use std::marker::PhantomData;
 /// # Examples
 ///
 /// ```rust
-/// use {{project-name}}::Blake3Hash;
+/// use {{project_name}}::Blake3Hash;
 ///
 /// let h = Blake3Hash::content_address(b"hello world");
 /// assert_eq!(h.as_hex().len(), 64);
@@ -81,7 +81,7 @@ impl From<Blake3Hash> for String {
 /// # Examples
 ///
 /// ```rust
-/// use {{project-name}}::ObjectRef;
+/// use {{project_name}}::ObjectRef;
 ///
 /// let obj = ObjectRef {
 ///     id: "artifact-1".to_string(),
@@ -140,7 +140,7 @@ impl ObjectRef {
     /// # Examples
     ///
     /// ```rust
-    /// use {{project-name}}::types::ObjectRef;
+    /// use {{project_name}}::types::ObjectRef;
     ///
     /// let obj = ObjectRef::parse("artifact-1:artifact:input").unwrap();
     /// assert_eq!(obj.id, "artifact-1");
@@ -238,7 +238,7 @@ mod object_ref_parse_tests {
 /// Pair with [`Blake3Hash::content_address`] to get a stable digest:
 ///
 /// ```rust
-/// use {{project-name}}::{canonical_bytes, Blake3Hash};
+/// use {{project_name}}::{canonical_bytes, Blake3Hash};
 /// use serde::Serialize;
 ///
 /// #[derive(Serialize)]
@@ -309,34 +309,43 @@ fn sort_value(value: serde_json::Value) -> serde_json::Value {
 
 /// Sealed state markers — cannot be named or implemented outside this module.
 mod sealed {
-    pub trait EvidenceState {}
+    pub trait LifecycleState {}
 }
 
 /// Raw (unadmitted) evidence state marker.
 pub struct Raw;
-impl sealed::EvidenceState for Raw {}
+impl sealed::LifecycleState for Raw {}
+
+/// Validated evidence state marker.
+pub struct Validated;
+impl sealed::LifecycleState for Validated {}
 
 /// Admitted evidence state marker — only reachable via an [`Admit`] impl.
 pub struct Admitted;
-impl sealed::EvidenceState for Admitted {}
+impl sealed::LifecycleState for Admitted {}
 
 /// Typed lifecycle carrier.
 ///
-/// `T` is the inner value, `S` is the lifecycle state (`Raw` or `Admitted`),
-/// and `W` is a witness authority tag (a domain marker struct chosen by the
+/// `T` is the inner value, `State` is the lifecycle state (`Raw`, `Validated`, or `Admitted`),
+/// and `Witness` is a witness authority tag (a domain marker struct chosen by the
 /// crate that owns the admission gate).
 ///
-/// `Evidence<T, Admitted, W>` can only be constructed by an [`Admit`] impl,
+/// `Evidence<T, Admitted, Witness>` can only be constructed by an [`Admit`] impl,
 /// enforcing the one-way admission door at compile time.
-pub struct Evidence<T, S: sealed::EvidenceState, W> {
+pub struct Evidence<T, State: sealed::LifecycleState, Witness> {
     inner: T,
-    _state: PhantomData<S>,
-    _witness: PhantomData<W>,
+    _state: PhantomData<State>,
+    _witness: PhantomData<Witness>,
 }
 
-impl<T, W> Evidence<T, Raw, W> {
+impl<T, Witness> Evidence<T, Raw, Witness> {
     /// Create raw (unadmitted) evidence. Available to all callers.
     pub fn raw(inner: T) -> Self {
+        Self { inner, _state: PhantomData, _witness: PhantomData }
+    }
+
+    /// Create raw (unadmitted) evidence. Alternative name.
+    pub fn new(inner: T) -> Self {
         Self { inner, _state: PhantomData, _witness: PhantomData }
     }
 
@@ -346,7 +355,19 @@ impl<T, W> Evidence<T, Raw, W> {
     }
 }
 
-impl<T, W> Evidence<T, Admitted, W> {
+impl<T, Witness> Evidence<T, Validated, Witness> {
+    /// Borrow the inner value of validated evidence.
+    pub fn inner(&self) -> &T {
+        &self.inner
+    }
+
+    /// Private constructor — only validators within this crate may call this.
+    pub(crate) fn validate_unchecked(inner: T) -> Self {
+        Self { inner, _state: PhantomData, _witness: PhantomData }
+    }
+}
+
+impl<T, Witness> Evidence<T, Admitted, Witness> {
     /// Borrow the inner value of admitted evidence.
     pub fn inner(&self) -> &T {
         &self.inner
@@ -366,18 +387,45 @@ impl<T, W> Evidence<T, Admitted, W> {
 pub trait Admit {
     type Input;
     type Witness;
-    type Reason;
+    type Error;
 
     fn admit(
         input: Evidence<Self::Input, Raw, Self::Witness>,
-    ) -> Result<Evidence<Self::Input, Admitted, Self::Witness>, Self::Reason>;
+    ) -> Result<Evidence<Self::Input, Admitted, Self::Witness>, Self::Error>;
 }
 
 /// Convenience alias for raw (unadmitted) evidence.
 pub type RawEvidence<T, W> = Evidence<T, Raw, W>;
 
+/// Convenience alias for validated evidence.
+pub type ValidatedEvidence<T, W> = Evidence<T, Validated, W>;
+
 /// Convenience alias for admitted evidence.
 pub type AdmittedEvidence<T, W> = Evidence<T, Admitted, W>;
+
+/// A cryptographic receipt verifying admission.
+///
+/// Constructed only via authorized validators using the Seal Pattern.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AdmittedReceipt {
+    /// The BLAKE3 hash of the admitted state.
+    pub chain_hash: [u8; 32],
+    /// Epoch timestamp of admission in seconds.
+    pub timestamp: u64,
+    #[serde(skip)]
+    _seal: (), // Private field prevents direct construction outside this module
+}
+
+impl AdmittedReceipt {
+    /// Create a new sealed receipt. Restricted to crate/module validator authority.
+    pub(crate) fn new(chain_hash: [u8; 32], timestamp: u64) -> Self {
+        Self {
+            chain_hash,
+            timestamp,
+            _seal: (),
+        }
+    }
+}
 
 // ─── Forward Compatibility (non_exhaustive) ─────────────────────────────────
 
@@ -389,7 +437,7 @@ pub type AdmittedEvidence<T, W> = Evidence<T, Admitted, W>;
 /// # Examples
 ///
 /// ```rust
-/// use {{project-name}}::ProfileId;
+/// use {{project_name}}::ProfileId;
 ///
 /// let profile = ProfileId::CoreV1;
 /// assert_eq!(profile.as_str(), "core/v1");
@@ -507,6 +555,9 @@ mod layout_assertions {
     // Raw and Admitted are ZSTs used as PhantomData witness tags.
     const _RAW_IS_ZST: () = {
         assert!(size_of::<Raw>() == 0, "Raw marker must stay ZST");
+    };
+    const _VALIDATED_IS_ZST: () = {
+        assert!(size_of::<Validated>() == 0, "Validated marker must stay ZST");
     };
     const _ADMITTED_IS_ZST: () = {
         assert!(size_of::<Admitted>() == 0, "Admitted marker must stay ZST");
@@ -718,7 +769,7 @@ impl PolicyVerdict {
 /// # Example
 ///
 /// ```rust
-/// use {{project-name}}::types::{CicdPolicy, CicdPolicyRunner, PolicyConfig, PolicyVerdict};
+/// use {{project_name}}::types::{CicdPolicy, CicdPolicyRunner, PolicyConfig, PolicyVerdict};
 ///
 /// struct AlwaysPass;
 /// impl CicdPolicy for AlwaysPass {
@@ -1028,10 +1079,10 @@ pub enum InvalidHash {
 /// # Example
 ///
 /// ```rust
-/// use {{project-name}}::types::{
+/// use {{project_name}}::types::{
 ///     Blake3Hash, Evidence, HashAdmit, InvalidHash, RawEvidence,
 /// };
-/// use {{project-name}}::types::Admit;
+/// use {{project_name}}::types::Admit;
 ///
 /// let raw = Evidence::raw(Blake3Hash::content_address(b"data"));
 /// let admitted = HashAdmit::admit(raw).unwrap();
@@ -1042,7 +1093,7 @@ pub struct HashAdmit;
 impl Admit for HashAdmit {
     type Input = Blake3Hash;
     type Witness = HashWitness;
-    type Reason = InvalidHash;
+    type Error = InvalidHash;
 
     fn admit(
         input: Evidence<Blake3Hash, Raw, HashWitness>,

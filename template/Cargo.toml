@@ -34,12 +34,15 @@ unwrap_used = "warn"
 expect_used = "warn"
 
 [features]
-default = []
+default = ["typestate"]
+typestate = []
 repl  = ["dep:rustyline"]                                              # interactive REPL with tab-completion
-# otel  = ["opentelemetry", "opentelemetry-otlp", "opentelemetry_sdk"]  # observability
-lsp   = ["dep:lsp-max", "dep:tree-sitter", "dep:tree-sitter-rust", "dep:dashmap", "dep:parking_lot", "dep:tokio"]  # language-server
+otel  = []
+discovery = []
+lsp   = ["dep:lsp-max", "lsp-max/proposed", "dep:tree-sitter", "dep:tree-sitter-rust", "dep:dashmap", "dep:parking_lot", "dep:tokio"]  # language-server
 # wasm  = ["wasm-bindgen"]                                               # WebAssembly target
 mcp   = ["dep:rmcp", "dep:rmcp-macros", "dep:tokio"]                 # MCP server (LLM tool-call targets)
+ggen  = ["dep:oxigraph", "dep:tera", "dep:uuid"]
 
 [dependencies]
 once_cell = "1"
@@ -61,9 +64,12 @@ tree-sitter = { version = "0.26", optional = true }
 tree-sitter-rust = { version = "0.23", optional = true }
 dashmap = { version = "6", optional = true }
 parking_lot = { version = "0.12", optional = true }
+oxigraph = { version = "0.4.8", optional = true }
+tera = { version = "1.20.0", optional = true }
+uuid = { version = "1.10.0", features = ["v4"], optional = true }
 clap-noun-verb = { path = "/Users/sac/clap-noun-verb" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-schemars = { version = "0.8", features = ["derive"] }
+schemars = { version = "1.0", features = ["derive"] }
 rmcp = { version = "0.11.0", features = ["transport-io"], optional = true }
 rmcp-macros = { version = "0.11.0", optional = true }
 
@@ -78,6 +84,11 @@ criterion = { version = "0.5", features = ["html_reports"] }
 [[bin]]
 name = "dod"
 path = "src/bin/dod.rs"
+
+[[bin]]
+name = "mcp_server"
+path = "src/bin/mcp_server.rs"
+required-features = ["mcp"]
 
 [[bench]]
 name = "bench_main"

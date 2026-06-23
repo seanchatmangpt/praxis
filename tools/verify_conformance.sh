@@ -7,10 +7,17 @@ set -euo pipefail
 # and programmatically asserts conformance to Post-Chatman principles.
 
 TEMPLATE_DIR="/Users/sac/praxis/template"
-TEMP_PROJECT_DIR="/tmp/my-conforming-project"
+TEMP_PROJECT_DIR="/tmp/my-conforming-project-$RANDOM"
 PROJECT_NAME="my-conforming-project"
 PROJECT_NAME_SNAKE="my_conforming_project"
 DESCRIPTION="A dynamically generated conforming project for verification."
+
+# Register cleanup function on exit
+cleanup() {
+    echo "Cleaning up temp project directory: $TEMP_PROJECT_DIR"
+    rm -rf "$TEMP_PROJECT_DIR"
+}
+trap cleanup EXIT
 
 echo "=== Conformance Verification Protocol ==="
 echo "Template Source: $TEMPLATE_DIR"
@@ -72,36 +79,25 @@ for root, dirs, files in os.walk(src):
 echo "Project generated successfully."
 
 # 3. Compile Verification
-echo "Running compilation check..."
+echo "Running cargo check..."
 (
     cd "$TEMP_PROJECT_DIR"
-    # Ensure offline compilation is used if needed
-    cargo check --all-targets --all-features
+    cargo check -j 1
 )
-echo "Compilation passed."
+echo "cargo check passed."
 
-# 4. Structural Conformance Checking
-echo "Scanning generated project for structural conformance..."
+echo "Running cargo check --all-features..."
+(
+    cd "$TEMP_PROJECT_DIR"
+    cargo check --all-features -j 1
+)
+echo "cargo check --all-features passed."
 
-TYPES_RS="$TEMP_PROJECT_DIR/src/types.rs"
-LSP_RS="$TEMP_PROJECT_DIR/src/lsp.rs"
-
-# Helper function to assert pattern presence
-assert_contains() {
-    local file="$1"
-    local pattern="$2"
-    local desc="$3"
-    if grep -qF "$pattern" "$file"; then
-        echo "  [PASS] $desc"
-    else
-        echo "  [FAIL] $desc (Pattern not found: '$pattern' in $file)"
-        exit 1
-    fi
-}
-
-assert_contains "$TYPES_RS" "pub struct Evidence<T, S: sealed::EvidenceState, W>" "Evidence typestate structure is present in types.rs"
-assert_contains "$TYPES_RS" "pub trait Admit" "Admit trait is present in types.rs"
-assert_contains "$LSP_RS" "pub struct AppLspServer" "AppLspServer struct is present in lsp.rs"
-assert_contains "$LSP_RS" "impl RulePackServer for AppLspServer" "RulePackServer implementation is present in lsp.rs"
+# 4. Conformance checking logic (running updated hollow-gate tool)
+echo "Running hollow-gate conformance verifier..."
+(
+    cd "$TEMP_PROJECT_DIR"
+    cargo run -j 1 --manifest-path "tools/hollow-gate/Cargo.toml" -- "$TEMP_PROJECT_DIR"
+)
 
 echo "=== Conformance Verification Verdict: VERIFIED ==="

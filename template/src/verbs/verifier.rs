@@ -63,7 +63,7 @@ impl VerifyMetrics {
 /// # Example
 ///
 /// ```rust,no_run
-/// use {{project-name}}::verbs::verify::{VerifyGuard, VerifyMetrics};
+/// use {{project_name}}::verbs::verify::{VerifyGuard, VerifyMetrics};
 ///
 /// let mut guard = VerifyGuard::new();
 /// guard.begin_stage("decode");

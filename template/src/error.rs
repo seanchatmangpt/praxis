@@ -109,7 +109,7 @@ impl AppError {
 /// # Example
 ///
 /// ```rust
-/// use {{project-name}}::error::{AppError, ValidationChain};
+/// use {{project_name}}::error::{AppError, ValidationChain};
 ///
 /// let mut chain = ValidationChain::new();
 /// chain.check(Err(AppError::fm_cli(1, "--jobs must be positive")));

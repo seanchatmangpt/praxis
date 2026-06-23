@@ -1,6 +1,8 @@
 //! src/bin/dod.rs — Definition of Done verification
 //! Exit 0: all pass  |  Exit 1: soft (tests ok, artifacts stale)  |  Exit 2: hard (broken)
 
+#![allow(clippy::print_stdout)]
+
 use std::process::{exit, Command};
 
 fn run(cmd: &str, args: &[&str]) -> bool {

@@ -159,7 +159,7 @@ mod inner {
     /// ```no_run
     /// use {{project_name}}::repl::Repl;
     ///
-    /// let repl = Repl::new(&[("emit", &["--type", "--object"]), ("verify", &["--strict"])]);
+    /// let repl = Repl::new(&[("emit", &["--type", "--object"]), ("verify", &["--strict"])]).unwrap();
     /// repl.run().unwrap();
     /// ```
     pub struct Repl {

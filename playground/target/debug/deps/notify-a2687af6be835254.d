@@ -1,0 +1,13 @@
+/Users/sac/praxis/playground/target/debug/deps/notify-a2687af6be835254.d: /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/lib.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/fsevent.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/event.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/null.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/poll.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/config.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/error.rs
+
+/Users/sac/praxis/playground/target/debug/deps/libnotify-a2687af6be835254.rlib: /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/lib.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/fsevent.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/event.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/null.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/poll.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/config.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/error.rs
+
+/Users/sac/praxis/playground/target/debug/deps/libnotify-a2687af6be835254.rmeta: /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/lib.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/fsevent.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/event.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/null.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/poll.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/config.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/error.rs
+
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/lib.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/fsevent.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/event.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/null.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/poll.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/config.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/error.rs:

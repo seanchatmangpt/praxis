@@ -1,0 +1,9 @@
+[package]
+name = "praxis-reconciler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+notify = "6.1.1"
+anyhow = "1"

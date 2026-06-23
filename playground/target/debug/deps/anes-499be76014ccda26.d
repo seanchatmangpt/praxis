@@ -1,0 +1,12 @@
+/Users/sac/praxis/playground/target/debug/deps/anes-499be76014ccda26.d: /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/lib.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/macros.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/attribute.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/buffer.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/color.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/cursor.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/terminal.rs
+
+/Users/sac/praxis/playground/target/debug/deps/libanes-499be76014ccda26.rmeta: /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/lib.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/macros.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/attribute.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/buffer.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/color.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/cursor.rs /Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/terminal.rs
+
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/lib.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/macros.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/attribute.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/buffer.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/color.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/cursor.rs:
+/Users/sac/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anes-0.1.6/src/sequences/terminal.rs:

@@ -62,6 +62,18 @@ tokio            = { version = "1", features = ["macros", "rt-multi-thread"] }
 tracing          = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
+# LSP & tree-sitter
+lsp-max          = { path = "/Users/sac/lsp-max" }
+tree-sitter      = "0.26"
+tree-sitter-rust = "0.23"
+dashmap          = "6"
+parking_lot      = "0.12"
+
+# Ontology (ggen)
+oxigraph         = "0.4"
+tera             = "1.20"
+uuid             = { version = "1.10", features = ["v4"] }
+
 # ---------------------------------------------------------------------------
 # Test / dev dependencies (members add these under [dev-dependencies])
 # ---------------------------------------------------------------------------
