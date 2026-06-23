@@ -1,0 +1,378 @@
+# Seanchatmangpt Ecosystem Repository Registry
+#
+# Metadata for all 18 surveyed repositories in the seanchatmangpt account.
+# Used for fleet-wide retrofit planning, prioritization, and risk assessment.
+#
+# Format:
+#   [repos.<github-repo-slug>]
+#   - github_url: GitHub HTTPS URL (canonical source)
+#   - github_owner: Account owner (always "seanchatmangpt")
+#   - local_path: Relative path in the fleet (for local discovery)
+#   - crate_name: Primary Rust crate name (from Cargo.toml)
+#   - description: What this repo does
+#   - visibility: "public" | "private"
+#   - workspace_type: "single-crate" | "multi-crate" | "monorepo"
+#   - crate_count: Number of publishable crates
+#   - retrofit_readiness: "ready" | "requires-prep" | "blocked"
+#   - retrofit_phase_complete: 0-5 (phases 1-5, starting from 0=none)
+#   - risk_level: "low" | "medium" | "high"
+#   - priority_score: 0-100 (higher = should be done first; derived from: adoption, dependents, size)
+#   - maintainer_status: "active" | "maintenance" | "experimental"
+#   - notes: Any context needed for retrofit decisions
+
+# ============================================================================
+# PHASE 0: REFERENCE & ANCHOR REPOS (already refactored, model implementations)
+# ============================================================================
+
+[repos.affidavit]
+github_url = "https://github.com/seanchatmangpt/affidavit"
+github_owner = "seanchatmangpt"
+local_path = "../affidavit"
+crate_name = "affidavit"
+description = "Reference sealed-receipt auditing with BLAKE3 provenance; worked example of praxis standards"
+visibility = "public"
+workspace_type = "single-crate"
+crate_count = 1
+retrofit_readiness = "ready"
+retrofit_phase_complete = 5
+risk_level = "low"
+priority_score = 100
+maintainer_status = "active"
+notes = "House reference implementation; praxis-retrofit was built in this session scoped to affidavit + broader fleet. Safe to assume all future PRs align with praxis."
+
+[repos.clap-noun-verb]
+github_url = "https://github.com/seanchatmangpt/clap-noun-verb"
+github_owner = "seanchatmangpt"
+local_path = "../clap-noun-verb"
+crate_name = "clap-noun-verb"
+description = "CLI pattern: zero-boilerplate <noun> <verb> command structure via proc-macros; consumed by affidavit, cargo-cicd, mac-artifact-cleaner"
+visibility = "public"
+workspace_type = "multi-crate"
+crate_count = 3
+retrofit_readiness = "ready"
+retrofit_phase_complete = 4
+risk_level = "low"
+priority_score = 95
+maintainer_status = "active"
+notes = "High adoption (3 direct dependents, 5 indirect). Comprehensive CI (8 jobs), all docs, lint + deny + typos already in place. Phase 4 only: wire [workspace.lints], slight MSRV bump consideration (1.74 macros → 1.82)."
+
+# ============================================================================
+# PHASE 1–2: MAJOR CONSUMERS & FOUNDATIONAL CRATES (medium-to-high complexity)
+# ============================================================================
+
+[repos.ggen]
+github_url = "https://github.com/seanchatmangpt/ggen"
+github_owner = "seanchatmangpt"
+local_path = "../ggen"
+crate_name = "ggen"
+description = "RDF/Turtle ontology → SPARQL → Tera codegen for Rust (foundation for clnrm, wasm4pm-compat, pm4py-rs, and others)"
+visibility = "public"
+workspace_type = "multi-crate"
+crate_count = 15
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 3
+risk_level = "medium"
+priority_score = 90
+maintainer_status = "active"
+notes = "High complexity (15 crates, nightly pinned, sprawling CI 45 files). CalVer 26.6.DD scheme (convert to YY.M.patch). Comprehensive deny + typos + rustfmt + CI. Mission-critical: upstream to clnrm, wasm4pm-compat. Prep: lint matrix scope, nightly feature management."
+
+[repos.lsp-max]
+github_url = "https://github.com/seanchatmangpt/lsp-max"
+github_owner = "seanchatmangpt"
+local_path = "../lsp-max"
+crate_name = "lsp-max"
+description = "LSP server harness with OpenTelemetry, BLAKE3 provenance, plugin discovery (34-crate monorepo)"
+visibility = "public"
+workspace_type = "multi-crate"
+crate_count = 34
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 2
+risk_level = "high"
+priority_score = 85
+maintainer_status = "active"
+notes = "Largest single workspace (34 crates). MSRV 1.82 already set (good). CalVer 26.6.18. Nightly pinned (2026-04-15). CI minimal (2 jobs). Phase 2 only: add deny.toml, typos.toml; wire [workspace.lints]; add release + dependabot workflows."
+
+[repos.cargo-cicd]
+github_url = "https://github.com/seanchatmangpt/cargo-cicd"
+github_owner = "seanchatmangpt"
+local_path = "../cargo-cicd"
+crate_name = "cargo-cicd"
+description = "Cargo CI/CD release workflow engine; produces CI configs; consumes clap-noun-verb"
+visibility = "public"
+workspace_type = "multi-crate"
+crate_count = 3
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 3
+risk_level = "medium"
+priority_score = 85
+maintainer_status = "active"
+notes = "High-quality CI (4 jobs, pinned stable 1.94.1). All docs (R/CL/CO/SE/CH). MSRV awkward: root 1.86 / core 1.85 (standardize to 1.82). Phase 3: add typos.toml, wire [workspace.lints], consider feature-gating complexity."
+
+[repos.clnrm]
+github_url = "https://github.com/seanchatmangpt/clnrm"
+github_owner = "seanchatmangpt"
+local_path = "../clnrm"
+crate_name = "clnrm"
+description = "Conformance + linting for RDF using SPARQL (4-crate workspace, built on ggen.toml)"
+visibility = "public"
+workspace_type = "multi-crate"
+crate_count = 4
+retrofit_readiness = "ready"
+retrofit_phase_complete = 4
+risk_level = "low"
+priority_score = 80
+maintainer_status = "active"
+notes = "Well-structured (4 crates, nightly 2026-04-15, CalVer 26.5.28, deny + rustfmt + comprehensive CI 29 files). Phase 4: wire [workspace.lints], adjust lints for pedantic (fuzz crates may need tweaks), bump edition uniformity."
+
+# ============================================================================
+# PHASE 2–3: GROWING ECOSYSTEM (mid-sized, some CI/docs gaps)
+# ============================================================================
+
+[repos.wasm4pm-compat]
+github_url = "https://github.com/seanchatmangpt/wasm4pm-compat"
+github_owner = "seanchatmangpt"
+local_path = "../wasm4pm-compat"
+crate_name = "wasm4pm-compat"
+description = "WASM 4 process mining artifact compatibility layer (ggen.toml downstream)"
+visibility = "public"
+workspace_type = "single-crate"
+crate_count = 1
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 2
+risk_level = "low"
+priority_score = 70
+maintainer_status = "active"
+notes = "No CI workflows (high-priority gap). Single-crate, CalVer 26.6.14, nightly 2026-05-04, BLAKE3. Phase 2–3: add ci.yml (no-cache), add deny/typos, wire lints. SECURITY.md present. Keep panic=abort for WASM."
+
+[repos.a2a-rs]
+github_url = "https://github.com/seanchatmangpt/a2a-rs"
+github_owner = "seanchatmangpt"
+local_path = "../a2a-rs"
+crate_name = "a2a-rs"
+description = "Automation orchestration (10-crate workspace, internally split 2021/2024 editions, mixes thiserror 1+2)"
+visibility = "public"
+workspace_type = "multi-crate"
+crate_count = 10
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 1
+risk_level = "high"
+priority_score = 75
+maintainer_status = "active"
+notes = "High friction: 2024 edition on newest crates (osiris-compiler 2021), thiserror 1+2 mixed, MSRV 1.85, SemVer 0.1.0, deprecated actions-rs CI, no task runner. Phase 1: resolve edition to 2021 (or feature-gate 2024), unify thiserror → 2, add just/Makefile.toml, add deny/typos/lints."
+
+[repos.pm4py-rs]
+github_url = "https://github.com/seanchatmangpt/pm4py-rs"
+github_owner = "seanchatmangpt"
+local_path = "../pm4py-rs"
+crate_name = "pm4py-rs"
+description = "Process mining for Python interop (single-crate, AGPL-3.0 license anomaly)"
+visibility = "public"
+workspace_type = "single-crate"
+crate_count = 1
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 2
+risk_level = "medium"
+priority_score = 65
+maintainer_status = "maintenance"
+notes = "License divergence (AGPL-3.0; house default MIT OR Apache). CalVer 2026.3.28 (adjust to 26.M.patch). MSRV contradiction: declared 1.85, CI tests 1.70. Task runner: raw Makefile (add just). CI: 3 solid jobs. Phase 2–3: standardize license/version/MSRV, add typos.toml, wire [workspace.lints]. Coordinate with legal on AGPL status."
+
+[repos.ggen-mcp]
+github_url = "https://github.com/seanchatmangpt/ggen-mcp"
+github_owner = "seanchatmangpt"
+local_path = "../ggen-mcp"
+crate_name = "ggen-mcp"
+description = "ggen-backed MCP server for schema generation (single-crate, 2024 edition, Apache-only license)"
+visibility = "public"
+workspace_type = "single-crate"
+crate_count = 1
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 2
+risk_level = "medium"
+priority_score = 70
+maintainer_status = "active"
+notes = "Early-stage modern setup (2024 edition, SemVer 1.0.0, Docker CI). License: Apache only (consider dual for consistency). Phase 2–3: add deny.toml, typos.toml, wire [lints] with clippy pedantic, add rustfmt.toml. Consider edition downgrade to 2021 or explicit 2024 opt-in per house policy."
+
+# ============================================================================
+# PHASE 3–4: MODERATE ADOPTION (lighter CI, docs mostly present)
+# ============================================================================
+
+[repos.bcinr]
+github_url = "https://github.com/seanchatmangpt/bcinr"
+github_owner = "seanchatmangpt"
+local_path = "../bcinr"
+crate_name = "bcinr"
+description = "Bit-chain invariant reasoning (12-crate workspace, hardened release config, BLAKE3 provenance)"
+visibility = "public"
+workspace_type = "multi-crate"
+crate_count = 12
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 3
+risk_level = "medium"
+priority_score = 75
+maintainer_status = "active"
+notes = "CalVer 26.6.x, MSRV 1.70 (lower than house default 1.82; consider upgrade with testing). Nightly pinned. Release hardening (lto/codegen-units/panic=abort/strip) already set. CI: 3 jobs (ci, bench, miri—excellent). Phase 3: add typos.toml + deny.toml (CI runs deny but no file), wire [workspace.lints] + miri-safe unsafe blocks, upgrade MSRV."
+
+[repos.dteam]
+github_url = "https://github.com/seanchatmangpt/dteam"
+github_owner = "seanchatmangpt"
+local_path = "../dteam"
+crate_name = "dteam"
+description = "Digital team provisioning engine (12+ nested-crate workspace, BSL-1.1 license)"
+visibility = "public"
+workspace_type = "multi-crate"
+crate_count = 12
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 2
+risk_level = "high"
+priority_score = 70
+maintainer_status = "active"
+notes = "Complex: nested workspaces, BSL-1.1 license (coordinate with legal), unwired workspace_lints.toml, thiserror 2 (good). SemVer 1.3.0. Nightly unpinned + pin for gate. CI: 2 jobs (minimal). Phase 2–3: resolve nested workspace strategy, wire workspace_lints.toml→Cargo.toml, add CI jobs (fmt/clippy/test/deny/typos/msrv), resolve license alignment."
+
+[repos.swarmsh-v2]
+github_url = "https://github.com/seanchatmangpt/swarmsh-v2"
+github_owner = "seanchatmangpt"
+local_path = "../swarmsh-v2"
+crate_name = "swarmsh"
+description = "Distributed shell orchestration (single-crate, minimal CI)"
+visibility = "public"
+workspace_type = "single-crate"
+crate_count = 1
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 2
+risk_level = "low"
+priority_score = 55
+maintainer_status = "maintenance"
+notes = "SemVer 2.1.0, no MSRV/toolchain declared, deprecated actions-rs, raw Makefile, no task runner. Phase 2–3: migrate to just, add rust-toolchain.toml (1.82), add deny/typos/lints, modernize CI (dtolnay/rust-toolchain, Swatinem cache), add LICENSE files (no .txt present despite MIT in metadata)."
+
+# ============================================================================
+# PHASE 4–5: EMERGING & EXPERIMENTAL (minimal CI, proto status)
+# ============================================================================
+
+[repos.clnrm-prototype]
+github_url = "https://github.com/seanchatmangpt/clnrm-prototype"
+github_owner = "seanchatmangpt"
+local_path = "../clnrm-prototype"
+crate_name = "clnrm-prototype"
+description = "Proto conformance checker (single-crate, precursor to clnrm, serves as CI/release template)"
+visibility = "public"
+workspace_type = "single-crate"
+crate_count = 1
+retrofit_readiness = "ready"
+retrofit_phase_complete = 4
+risk_level = "low"
+priority_score = 50
+maintainer_status = "experimental"
+notes = "Purpose: CI/release workflow template. SemVer 0.2.0, stable toolchain, [lints.clippy] in place (partial). Phase 4: add typos.toml, wire full [lints] (rust + clippy), add deny.toml, consider elevation to CalVer if promoted from proto status."
+
+[repos.pm4wasm]
+github_url = "https://github.com/seanchatmangpt/pm4wasm"
+github_owner = "seanchatmangpt"
+local_path = "../pm4wasm"
+crate_name = "pm4wasm"
+description = "Process mining for WASM (2-crate monorepo, no CI, no task runner)"
+visibility = "public"
+workspace_type = "multi-crate"
+crate_count = 2
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 0
+risk_level = "high"
+priority_score = 40
+maintainer_status = "experimental"
+notes = "Minimal: no CI, no docs beyond README, no task runner, Apache-only license, SemVer 0.1.0. Phase 0–2: add rust-toolchain.toml, add just+Makefile.toml, establish LICENSE files (dual), add ci.yml (basic), add deny/typos/lints."
+
+[repos.miniml]
+github_url = "https://github.com/seanchatmangpt/miniml"
+github_owner = "seanchatmangpt"
+local_path = "../miniml"
+crate_name = "miniml"
+description = "Minimal markup language (monorepo with pnpm/turbo, BSL-1.1, no CI)"
+visibility = "public"
+workspace_type = "monorepo"
+crate_count = 1
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 1
+risk_level = "high"
+priority_score = 35
+maintainer_status = "active"
+notes = "Unusual: pnpm+turbo task runner (not just/Makefile). BSL-1.1 license (coordinate with legal). CalVer 26.4.8, MSRV 1.75 (doc only). No Rust CI at all (only FUNDING.yml). Phase 1–2: add Rust CI (cargo fmt/clippy/test/deny/typos), consider adding just alongside turbo for Rust-only workflows, resolve license alignment."
+
+[repos.semantic-bit]
+github_url = "https://github.com/seanchatmangpt/semantic_bit"
+github_owner = "seanchatmangpt"
+local_path = "../semantic_bit"
+crate_name = "semantic_bit"
+description = "Semantic bit packing via unrdf.toml (single-crate, 2024 edition, no CI/docs)"
+visibility = "public"
+workspace_type = "single-crate"
+crate_count = 1
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 0
+risk_level = "high"
+priority_score = 30
+maintainer_status = "experimental"
+notes = "Bare minimum: no CI, no docs, no task runner, no license file, 2024 edition (earliest example). SemVer 0.1.0. Phase 0–1: add rust-toolchain.toml (1.82 → decide on edition 2021 vs stay 2024), add LICENSE files (default dual), add justfile, add ci.yml (basic), add deny/typos/lints with pedantic scope."
+
+[repos.mac-artifact-cleaner]
+github_url = "https://github.com/seanchatmangpt/mac-artifact-cleaner"
+github_owner = "seanchatmangpt"
+local_path = "../mac-artifact-cleaner"
+crate_name = "mac-artifact-cleaner"
+description = "macOS artifact cleanup utility (2-crate workspace, clap-noun-verb consumer, zero CI)"
+visibility = "public"
+workspace_type = "multi-crate"
+crate_count = 2
+retrofit_readiness = "requires-prep"
+retrofit_phase_complete = 1
+risk_level = "low"
+priority_score = 50
+maintainer_status = "active"
+notes = "Lightweight: SemVer 0.1.0, no CI, but both just and Makefile present (inconsistent). Consumes clap-noun-verb (linkme verb discovery). Phase 1–2: add ci.yml (basic), add deny/typos, wire [lints], unify just vs Makefile (recommend just)."
+
+# ============================================================================
+# METADATA: GLOBAL RETROFIT CONFIGURATION
+# ============================================================================
+
+[metadata]
+ecosystem_name = "seanchatmangpt"
+total_repos = 18
+total_crates = 124
+survey_date = "2026-06-23"
+survey_agents = 10
+survey_scope = "17 public repos + 1 private writable (affidavit)"
+praxis_version = "26.6.0"
+house_msrv = "1.82"
+house_edition = "2021"
+house_toolchain = "1.82.0 pinned stable"
+house_license = "MIT OR Apache-2.0"
+house_version_scheme = "CalVer YY.M.patch"
+
+[metadata.retrofit_stats]
+ready_for_retrofit = 3  # affidavit, clap-noun-verb, clnrm-prototype
+requires_phase_2_or_3 = 8
+requires_phase_0_or_1 = 6
+experimental_status = 5
+
+[metadata.critical_dependencies]
+# Repos that should be retrofit first (upstream of others)
+primary_order = ["affidavit", "clap-noun-verb", "ggen", "lsp-max", "cargo-cicd", "clnrm"]
+secondary_order = ["wasm4pm-compat", "a2a-rs", "pm4py-rs", "ggen-mcp", "bcinr", "dteam"]
+tertiary_order = ["swarmsh-v2", "clnrm-prototype", "pm4wasm", "miniml", "semantic_bit", "mac-artifact-cleaner"]
+
+[metadata.legal_considerations]
+# Licenses requiring coordination
+agpl_repos = ["pm4py-rs"]
+bsl_repos = ["miniml", "dteam"]
+apache_only_repos = ["ggen-mcp", "pm4wasm"]
+missing_license_files = ["swarmsh-v2", "a2a-rs", "semantic_bit", "mac-artifact-cleaner"]
+
+[metadata.ci_gaps]
+no_ci_repos = ["wasm4pm-compat", "pm4wasm", "miniml", "semantic_bit", "mac-artifact-cleaner"]
+deprecated_actions_repos = ["a2a-rs", "swarmsh-v2"]
+minimal_ci_repos = ["lsp-max", "dteam"]
+sparse_release_workflows = 9
+
+[metadata.documentation_gaps]
+missing_claude_md = ["clnrm", "clnrm-prototype", "pm4py-rs", "semantic_bit"]
+missing_security_md = ["affidavit", "clnrm", "clnrm-prototype", "ggen-mcp", "cargo-cicd", "a2a-rs", "swarmsh-v2", "pm4wasm", "miniml", "semantic_bit", "mac-artifact-cleaner"]
+missing_changelog = ["pm4wasm", "dteam", "semantic_bit", "mac-artifact-cleaner"]
+missing_contributing = ["ggen", "clnrm", "ggen-mcp", "a2a-rs", "pm4wasm", "semantic_bit", "mac-artifact-cleaner"]

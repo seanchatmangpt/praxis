@@ -25,12 +25,52 @@ pub mod validate;
 pub mod templates;
 pub mod error;
 pub mod models;
+pub mod fleet_audit;
+pub mod repo_registry;
+pub mod fleet_validate;
+pub mod fleet_apply;
+pub mod compliance_dashboard;
+pub mod ci_gate;
+pub mod pr_generator;
+pub mod preventive_gate;
+pub mod fleet_models;
+pub mod fleet_aggregation;
+pub mod fleet_readiness;
+pub mod fleet_export;
 
 pub use error::{RetrofitError, Result};
 pub use models::{
     ComplianceReport, RetrofitPlan, RepositoryMetadata, RetrofitPhase, RiskLevel,
-    ComplianceStatus, ComplianceCategory,
+    ComplianceStatus, ComplianceCategory, RetrofitAction, RetrofitActionType,
 };
+pub use fleet_validate::{
+    RetrofitValidator, ValidationReport, RetrofitValidationStatus, ValidationConfig,
+    CiGateResult, CiGateName,
+};
+pub use fleet_apply::{RetrofitApplier, RetrofitWorktree, ApplyResult, FleetApplyReport};
+pub use ci_gate::{
+    ComplianceGate, GateConfig, GateCheckOutput, GateResult, RemediationStep, RemediationPriority,
+    BadgeGenerator, format_remediation_markdown,
+};
+pub use pr_generator::{
+    PullRequestGenerator, PullRequestTemplate, PullRequestInfo, FleetPRStatus,
+    PullRequestGeneratorConfig, PRStatus, PRStatusCounts,
+};
+pub use repo_registry::{RepositoryEntry, RepositoryRegistry, EcosystemMetadata};
+pub use fleet_audit::{
+    ComplianceMatrix, FleetAuditCoordinator, FleetSummary, AuditObserver,
+    CategoryStatus, AuditCriticalIssue, AuditMetadata,
+};
+pub use preventive_gate::{
+    GateValidator, ValidationResult, ValidationStatus, ValidateCategory,
+    Severity, GateReport,
+};
+pub use fleet_models::{
+    FleetComplianceReport, ComplianceHeatmap, PhaseReadinessSummary, FleetHealthMetrics,
+    ReadinessStatus, HealthRating, HeatmapCell, RepositoryPhaseReadiness,
+    FleetCriticalIssue, IssueSeverity,
+};
+pub use fleet_export::ExportFormat;
 
 /// Current praxis retrofit version (CalVer)
 pub const VERSION: &str = "26.6.0";

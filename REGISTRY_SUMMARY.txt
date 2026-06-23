@@ -1,0 +1,217 @@
+================================================================================
+SEANCHATMANGPT ECOSYSTEM REGISTRY — QUICK REFERENCE
+================================================================================
+
+Location:  praxis/repos.toml
+Module:    praxis_retrofit::repo_registry
+Docs:      REPO_REGISTRY.md (format), ECOSYSTEM_DISCOVERY.md (usage)
+
+================================================================================
+18 REPOSITORIES SNAPSHOT
+================================================================================
+
+PHASE 0 (REFERENCE IMPLEMENTATIONS)
+  ✓ affidavit (1 crate, retrofit complete, CalVer 26.6.17)
+  ✓ clap-noun-verb (3 crates, retrofit near-complete, CalVer 26.6.14)
+
+PHASE 1–2 (FOUNDATIONAL)
+  ◎ ggen (15 crates, requires-prep, CalVer 26.6.DD, upstream to 5 repos)
+  ◎ lsp-max (34 crates, requires-prep, CalVer 26.6.18, LARGEST WORKSPACE)
+  ◎ cargo-cicd (3 crates, requires-prep, CalVer 26.6.2, high-quality CI)
+  ◎ clnrm (4 crates, ready, CalVer 26.5.28, built on ggen)
+
+PHASE 2–3 (GROWING)
+  ◎ wasm4pm-compat (1 crate, requires-prep, CalVer 26.6.14, ZERO CI)
+  ◎ a2a-rs (10 crates, requires-prep, SemVer 0.1.0, COMPLEX SPLIT)
+  ◎ pm4py-rs (1 crate, requires-prep, CalVer 2026.3.28, AGPL LICENSE)
+  ◎ ggen-mcp (1 crate, requires-prep, SemVer 1.0.0, 2024 EDITION)
+
+PHASE 3–4 (ESTABLISHED)
+  ◎ bcinr (12 crates, requires-prep, CalVer 26.6.x, hardened release)
+  ◎ dteam (12 crates, requires-prep, SemVer 1.3.0, NESTED WORKSPACES)
+  ◎ swarmsh-v2 (1 crate, requires-prep, SemVer 2.1.0, maintenance mode)
+
+PHASE 4–5 (EXPERIMENTAL)
+  ◎ clnrm-prototype (1 crate, ready, SemVer 0.2.0, TEMPLATE REFERENCE)
+  ◎ pm4wasm (2 crates, requires-prep, SemVer 0.1.0, ZERO CI)
+  ◎ miniml (1 crate, requires-prep, CalVer 26.4.8, pnpm+turbo, BSL)
+  ◎ semantic_bit (1 crate, requires-prep, SemVer 0.1.0, 2024 EDITION)
+  ◎ mac-artifact-cleaner (2 crates, requires-prep, SemVer 0.1.0, lightweight)
+
+================================================================================
+RETROFIT STATUS SUMMARY
+================================================================================
+
+Ready for retrofit:           3 repos
+Requires preparation:        12 repos
+Blocked:                      0 repos
+
+Completed phases:
+  Phase 0 (no work):          0 repos
+  Phase 1 (lints):            6 repos (affidavit, clnrm-prototype, …)
+  Phase 2 (deps):             5 repos
+  Phase 3 (justfile):         4 repos
+  Phase 4 (typos):            2 repos
+  Phase 5 (docs/complete):    1 repo (affidavit only)
+
+Risk distribution:
+  Low risk:     5 repos (affidavit, clap-noun-verb, wasm4pm-compat, mac-artifact-cleaner, clnrm-prototype)
+  Medium risk:  8 repos (ggen, pm4py-rs, ggen-mcp, cargo-cicd, clnrm, bcinr, swarmsh-v2)
+  High risk:    5 repos (lsp-max, a2a-rs, dteam, pm4wasm, miniml, semantic_bit)
+
+Effort estimate: ~59 person-weeks total (1.5 person-months at full-time)
+
+================================================================================
+KEY ISSUES TO RESOLVE
+================================================================================
+
+CI GAPS (Add ci.yml):
+  • wasm4pm-compat (high priority, single-crate)
+  • pm4wasm (experimental, monorepo)
+  • miniml (pnpm+turbo, needs Rust CI)
+  • semantic_bit (bare minimum)
+  • mac-artifact-cleaner (lightweight)
+
+LICENSE ISSUES (Need coordination):
+  • pm4py-rs (AGPL-3.0, non-standard)
+  • miniml (BSL-1.1, non-standard)
+  • dteam (BSL-1.1, non-standard)
+  • ggen-mcp (Apache-only, consider dual)
+  • pm4wasm (Apache-only, consider dual)
+
+MISSING LICENSE FILES:
+  • swarmsh-v2, a2a-rs, semantic_bit, mac-artifact-cleaner
+
+ARCHITECTURE DECISIONS:
+  • a2a-rs (edition split: osiris-compiler 2021, rest 2024)
+  • dteam (nested workspaces)
+  • miniml (pnpm+turbo vs just/Makefile.toml)
+
+CONTRADICTIONS:
+  • pm4py-rs (declares MSRV 1.85, CI tests 1.70)
+  • cargo-cicd (root 1.86 / core 1.85 MSRV)
+
+================================================================================
+RECOMMENDED RETROFIT ORDER
+================================================================================
+
+TIER 1 (PRIMARY, UPSTREAM/FOUNDATION):
+  1. affidavit (reference, already done)
+  2. clap-noun-verb (foundation, near-complete)
+  3. ggen (15 crates, upstream to 5 repos)
+  4. lsp-max (34 crates, critical but large)
+  5. cargo-cicd (3 crates, CI engine)
+  6. clnrm (4 crates, depends on ggen)
+
+TIER 2 (SECONDARY, MEDIUM COMPLEXITY):
+  7. wasm4pm-compat (ggen downstream, priority for CI)
+  8. a2a-rs (complex but needed, resolve split)
+  9. pm4py-rs (small, but legal coordination)
+ 10. ggen-mcp (small, modern but needs alignment)
+ 11. bcinr (12 crates, well-structured)
+ 12. dteam (12 crates, nested workspaces)
+
+TIER 3 (TERTIARY, EXPERIMENTAL, CAN PARALLELIZE):
+ 13. swarmsh-v2 (small, maintenance)
+ 14. clnrm-prototype (template, lightweight)
+ 15. pm4wasm (experimental, zero CI)
+ 16. miniml (experimental, non-standard tooling)
+ 17. semantic_bit (experimental, 2024 edition)
+ 18. mac-artifact-cleaner (small, clap-noun-verb consumer)
+
+================================================================================
+QUICK USAGE (RUST MODULE)
+================================================================================
+
+Load registry:
+  let registry = RepositoryRegistry::load("repos.toml").await?;
+
+Find repos ready for retrofit:
+  let ready = registry.filter_by_readiness("ready");
+
+Get top 5 priorities:
+  let top5 = registry.sorted_by_priority().iter().take(5);
+
+Find repos with no CI:
+  let no_ci = registry.no_ci_repos();
+
+Trace dependents:
+  let consumers = registry.downstream_consumers("clap-noun-verb");
+
+Get summary report:
+  println!("{}", registry.readiness_summary());
+
+See: crates/praxis-retrofit/examples/registry_demo.rs for full examples.
+
+================================================================================
+LEGAL/COMPLIANCE TRACKING
+================================================================================
+
+AGPL Repos (legal review needed):
+  • pm4py-rs (AGPL-3.0 in LICENSE file, CalVer in Cargo.toml metadata)
+
+BSL Repos (legal review needed):
+  • miniml (BSL-1.1)
+  • dteam (BSL-1.1)
+
+Apache-Only (consider dual licensing):
+  • ggen-mcp (Apache-2.0)
+  • pm4wasm (Apache-2.0)
+
+Missing LICENSE files entirely:
+  • swarmsh-v2
+  • a2a-rs
+  • semantic_bit
+  • mac-artifact-cleaner
+
+Recommendation: Review legal status quarterly, batch dual-license conversions.
+
+================================================================================
+ECOSYSTEM STATISTICS
+================================================================================
+
+Total repos:           18
+Total crates:          124
+Survey date:           2026-06-23
+Survey agents:         10
+House MSRV:            1.82
+House edition:         2021
+House toolchain:       1.82.0 pinned stable
+House license:         MIT OR Apache-2.0
+House version scheme:  CalVer YY.M.patch
+
+Version scheme breakdown:
+  CalVer (YY.M.patch):  10 repos (house standard)
+  SemVer (other):       8 repos (protos, forks)
+
+Edition breakdown:
+  2021:  14 repos (house standard)
+  2024:   3 repos (ggen-mcp, a2a-rs newest, semantic_bit)
+  Mixed:  1 repo (a2a-rs)
+
+Toolchain breakdown:
+  Stable:           10 repos
+  Nightly pinned:    5 repos (ggen, clnrm, lsp-max, wasm4pm-compat, bcinr)
+  Nightly unpinned:  2 repos (affidavit, dteam)
+  None declared:     1 repo
+
+================================================================================
+FILES & DOCUMENTATION
+================================================================================
+
+repos.toml                      — Central metadata (TOML format)
+REPO_REGISTRY.md                — Format specification & API reference
+ECOSYSTEM_DISCOVERY.md          — Usage guide & scenarios
+REGISTRY_SUMMARY.txt            — This file (quick reference)
+
+crates/praxis-retrofit/src/repo_registry.rs
+                                — Rust module implementation
+
+crates/praxis-retrofit/examples/registry_demo.rs
+                                — Runnable example showing all queries
+
+survey/00-SYNTHESIS.md          — Source data (10-agent survey results)
+CHECKLIST.md                    — Retrofit checklist for all 18 repos
+README.md                       — Praxis overview
+
+================================================================================

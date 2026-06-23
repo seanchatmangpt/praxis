@@ -21,7 +21,7 @@ pub struct ComplianceItem {
     pub remediation: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ComplianceCategory {
     #[serde(rename = "ci-cd")]
     CiCd,
@@ -103,7 +103,7 @@ pub struct RetrofitPlan {
     pub commit_message: String,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RetrofitPhase {
     #[serde(rename = "phase-1-lints")]
     Phase1Lints,

@@ -5,7 +5,7 @@ use crate::{PraxisSpec, Result};
 use std::path::Path;
 use chrono::Local;
 
-pub async fn scan_repository(repo_path: &Path, spec: &PraxisSpec) -> Result<ComplianceReport> {
+pub async fn scan_repository(repo_path: &Path, _spec: &PraxisSpec) -> Result<ComplianceReport> {
     let metadata = RepositoryMetadata {
         path: repo_path.to_path_buf(),
         name: repo_path.file_name().unwrap_or_default().to_string_lossy().to_string(),

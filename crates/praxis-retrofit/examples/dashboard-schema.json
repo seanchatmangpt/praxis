@@ -1,0 +1,465 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Praxis Compliance Dashboard Export",
+  "description": "Complete fleet-wide compliance dashboard data exported for external monitoring systems",
+  "type": "object",
+  "required": [
+    "version",
+    "dashboard_id",
+    "exported_at",
+    "fleet_status",
+    "repositories",
+    "trends",
+    "alerts"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Export format version (e.g., '1.0')",
+      "example": "1.0"
+    },
+    "dashboard_id": {
+      "type": "string",
+      "description": "Unique identifier for this dashboard instance",
+      "example": "praxis-compliance"
+    },
+    "exported_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when this export was generated",
+      "example": "2026-06-23T12:34:56Z"
+    },
+    "fleet_status": {
+      "type": "object",
+      "description": "Current aggregated status across entire fleet",
+      "required": [
+        "timestamp",
+        "fleet_average_score",
+        "fleet_min_score",
+        "fleet_max_score",
+        "passing_repos",
+        "warning_repos",
+        "failing_repos",
+        "total_repos",
+        "fleet_category_summary",
+        "at_risk_repositories"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this status snapshot was created",
+          "example": "2026-06-23T12:34:56Z"
+        },
+        "fleet_average_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Average compliance score across all repositories (percentage)",
+          "example": 87.3
+        },
+        "fleet_min_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Lowest compliance score in fleet",
+          "example": 65.0
+        },
+        "fleet_max_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Highest compliance score in fleet",
+          "example": 100.0
+        },
+        "passing_repos": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of repositories with fully passing compliance",
+          "example": 14
+        },
+        "warning_repos": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of repositories with warnings",
+          "example": 3
+        },
+        "failing_repos": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of repositories with failures",
+          "example": 1
+        },
+        "total_repos": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of repositories in fleet",
+          "example": 18
+        },
+        "fleet_category_summary": {
+          "type": "object",
+          "description": "Aggregated metrics per compliance category",
+          "additionalProperties": {
+            "$ref": "#/definitions/FleetCategoryMetrics"
+          },
+          "example": {
+            "ci-cd": {
+              "category": "ci-cd",
+              "average_score": 95.2,
+              "pass_rate": 88.9,
+              "repos_with_warnings": 2,
+              "repos_with_failures": 0,
+              "total_repos_assessed": 18
+            }
+          }
+        },
+        "at_risk_repositories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of repositories near or below alert threshold",
+          "example": ["repo-alpha", "repo-beta"]
+        }
+      }
+    },
+    "repositories": {
+      "type": "array",
+      "description": "Status of each repository in the fleet",
+      "items": {
+        "$ref": "#/definitions/RepositoryStatus"
+      }
+    },
+    "trends": {
+      "type": "array",
+      "description": "Historical trend data for each repository",
+      "items": {
+        "$ref": "#/definitions/ComplianceTrend"
+      }
+    },
+    "alerts": {
+      "type": "array",
+      "description": "Active compliance alerts requiring attention",
+      "items": {
+        "$ref": "#/definitions/ComplianceAlert"
+      }
+    }
+  },
+  "definitions": {
+    "RepositoryStatus": {
+      "type": "object",
+      "description": "Current compliance status for a single repository",
+      "required": [
+        "name",
+        "path",
+        "compliance_score",
+        "status",
+        "category_status",
+        "last_assessed",
+        "critical_issues"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Repository identifier/name",
+          "example": "core-lib"
+        },
+        "path": {
+          "type": "string",
+          "description": "File system path to repository",
+          "example": "/home/code/repos/core-lib"
+        },
+        "compliance_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Overall compliance score (percentage)",
+          "example": 92.5
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pass", "warn", "fail"],
+          "description": "Overall compliance status",
+          "example": "pass"
+        },
+        "category_status": {
+          "type": "object",
+          "description": "Status breakdown by category",
+          "additionalProperties": {
+            "$ref": "#/definitions/CategoryStatus"
+          }
+        },
+        "last_assessed": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this repository was last assessed",
+          "example": "2026-06-23T10:15:30Z"
+        },
+        "critical_issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Critical compliance issues requiring attention",
+          "example": [
+            "Workspace Lints (linting)",
+            "CI/CD Pipeline (ci-cd)"
+          ]
+        }
+      }
+    },
+    "CategoryStatus": {
+      "type": "object",
+      "description": "Compliance status for a specific category within a repository",
+      "required": [
+        "category",
+        "status",
+        "passed_checks",
+        "warning_checks",
+        "failing_checks",
+        "total_checks",
+        "score"
+      ],
+      "properties": {
+        "category": {
+          "type": "string",
+          "description": "Category name",
+          "example": "ci-cd"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pass", "warn", "fail"],
+          "description": "Category-level status",
+          "example": "pass"
+        },
+        "passed_checks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of passing checks",
+          "example": 3
+        },
+        "warning_checks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of warning checks",
+          "example": 1
+        },
+        "failing_checks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of failing checks",
+          "example": 0
+        },
+        "total_checks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total checks in category",
+          "example": 4
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Category score as percentage",
+          "example": 75.0
+        }
+      }
+    },
+    "FleetCategoryMetrics": {
+      "type": "object",
+      "description": "Aggregated metrics for a compliance category across fleet",
+      "required": [
+        "category",
+        "average_score",
+        "pass_rate",
+        "repos_with_warnings",
+        "repos_with_failures",
+        "total_repos_assessed"
+      ],
+      "properties": {
+        "category": {
+          "type": "string",
+          "description": "Category name",
+          "example": "supply-chain"
+        },
+        "average_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Average score for this category across fleet",
+          "example": 85.5
+        },
+        "pass_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentage of repos passing this category",
+          "example": 88.9
+        },
+        "repos_with_warnings": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of repos with warnings in this category",
+          "example": 2
+        },
+        "repos_with_failures": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of repos with failures in this category",
+          "example": 0
+        },
+        "total_repos_assessed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total repos assessed in this category",
+          "example": 18
+        }
+      }
+    },
+    "ComplianceTrend": {
+      "type": "object",
+      "description": "Historical trend data for a repository's compliance",
+      "required": [
+        "repository",
+        "timeline",
+        "trend_direction",
+        "trend_slope",
+        "days_to_alert"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "description": "Repository name",
+          "example": "utils-lib"
+        },
+        "timeline": {
+          "type": "array",
+          "description": "Historical compliance snapshots",
+          "items": {
+            "$ref": "#/definitions/TrendPoint"
+          }
+        },
+        "trend_direction": {
+          "type": "string",
+          "enum": ["improving", "stable", "declining"],
+          "description": "Direction of compliance trend",
+          "example": "improving"
+        },
+        "trend_slope": {
+          "type": "number",
+          "description": "Slope of trend line (score change per day)",
+          "example": 1.5
+        },
+        "days_to_alert": {
+          "type": ["integer", "null"],
+          "description": "Days until threshold breach if trend continues (null if improving)",
+          "example": 14
+        }
+      }
+    },
+    "TrendPoint": {
+      "type": "object",
+      "description": "Single point in compliance trend timeline",
+      "required": [
+        "timestamp",
+        "score",
+        "status"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Assessment timestamp",
+          "example": "2026-06-20T12:00:00Z"
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Compliance score at this point",
+          "example": 88.5
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pass", "warn", "fail"],
+          "description": "Status at this point",
+          "example": "pass"
+        }
+      }
+    },
+    "ComplianceAlert": {
+      "type": "object",
+      "description": "Compliance alert notification",
+      "required": [
+        "alert_id",
+        "severity",
+        "repository",
+        "message",
+        "triggered_at",
+        "category",
+        "previous_score",
+        "current_score",
+        "remediation_hint",
+        "acknowledged"
+      ],
+      "properties": {
+        "alert_id": {
+          "type": "string",
+          "description": "Unique alert identifier",
+          "example": "alert-repo-alpha-2026-06-23T12:34:56Z"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning", "critical"],
+          "description": "Alert severity level",
+          "example": "critical"
+        },
+        "repository": {
+          "type": "string",
+          "description": "Repository affected",
+          "example": "repo-alpha"
+        },
+        "message": {
+          "type": "string",
+          "description": "Alert message",
+          "example": "Repository below threshold: 75.0% (threshold: 80.0%)"
+        },
+        "triggered_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When alert was triggered",
+          "example": "2026-06-23T12:34:56Z"
+        },
+        "category": {
+          "type": ["string", "null"],
+          "description": "Category that triggered alert (null if fleet-wide)",
+          "example": "supply-chain"
+        },
+        "previous_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Previous compliance score",
+          "example": 82.0
+        },
+        "current_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Current compliance score",
+          "example": 75.0
+        },
+        "remediation_hint": {
+          "type": ["string", "null"],
+          "description": "Suggested remediation steps",
+          "example": "Add deny.toml for supply chain audit"
+        },
+        "acknowledged": {
+          "type": "boolean",
+          "description": "Whether alert has been acknowledged",
+          "example": false
+        }
+      }
+    }
+  }
+}
