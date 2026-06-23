@@ -6,6 +6,13 @@
 //! - Every tool response is wrapped in [`CommonResponse<T>`].
 //! - The `passed` field is **always** present, even on error — it is the CI gate field.
 //! - The `result_hash` field is the BLAKE3 hex digest of the serialised `data`.
+//!
+//! ## CLI mirror
+//!
+//! When the same service is exposed as both MCP and a binary CLI, use
+//! [`TimeWindowCliArgs`] (feature `clap-cli`) as the `clap::Args` struct and
+//! convert it into [`TimeWindowArgs`] with `Into::into`. The two types are
+//! intentionally kept separate so that MCP-only builds do not pull in `clap`.
 
 use serde::{Deserialize, Serialize};
 
@@ -32,6 +39,51 @@ fn default_limit() -> usize { 1000 }
 impl Default for TimeWindowArgs {
     fn default() -> Self {
         Self { hours: default_hours(), limit: default_limit() }
+    }
+}
+
+/// CLI mirror of [`TimeWindowArgs`] that derives [`clap::Args`].
+///
+/// Enable with the `clap-cli` feature. Convert to [`TimeWindowArgs`] via
+/// `Into::into` before passing to tool implementations so that both MCP and
+/// CLI entry-points share the same business logic.
+///
+/// ## Usage
+///
+/// ```rust,ignore
+/// #[cfg(feature = "clap-cli")]
+/// use crate::shared_args::TimeWindowCliArgs;
+///
+/// #[derive(clap::Parser)]
+/// struct Cli {
+///     #[command(flatten)]
+///     window: TimeWindowCliArgs,
+/// }
+///
+/// let args: TimeWindowArgs = cli.window.into();
+/// ```
+#[cfg(feature = "clap-cli")]
+#[derive(Debug, Clone, clap::Args)]
+pub struct TimeWindowCliArgs {
+    /// How many hours of history to include.
+    #[arg(long, default_value_t = 24, help = "Hours of history to analyse")]
+    pub hours: u32,
+    /// Maximum number of results to return.
+    #[arg(long, default_value_t = 1000, help = "Maximum result count")]
+    pub limit: usize,
+}
+
+#[cfg(feature = "clap-cli")]
+impl From<TimeWindowCliArgs> for TimeWindowArgs {
+    fn from(cli: TimeWindowCliArgs) -> Self {
+        Self { hours: cli.hours, limit: cli.limit }
+    }
+}
+
+#[cfg(feature = "clap-cli")]
+impl From<TimeWindowArgs> for TimeWindowCliArgs {
+    fn from(args: TimeWindowArgs) -> Self {
+        Self { hours: args.hours, limit: args.limit }
     }
 }
 
@@ -73,5 +125,37 @@ impl<T: Serialize> CommonResponse<T> {
             data: None,
             error: Some(msg.into()),
         }
+    }
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn time_window_defaults() {
+        let args = TimeWindowArgs::default();
+        assert_eq!(args.hours, 24);
+        assert_eq!(args.limit, 1000);
+    }
+
+    #[cfg(feature = "clap-cli")]
+    #[test]
+    fn cli_args_round_trips_to_time_window() {
+        let cli = TimeWindowCliArgs { hours: 48, limit: 500 };
+        let args: TimeWindowArgs = cli.into();
+        assert_eq!(args.hours, 48);
+        assert_eq!(args.limit, 500);
+    }
+
+    #[cfg(feature = "clap-cli")]
+    #[test]
+    fn time_window_round_trips_to_cli() {
+        let args = TimeWindowArgs { hours: 6, limit: 200 };
+        let cli: TimeWindowCliArgs = args.into();
+        assert_eq!(cli.hours, 6);
+        assert_eq!(cli.limit, 200);
     }
 }

@@ -27,6 +27,19 @@ pub struct ExampleTool;
 
 impl ExampleTool {
     pub fn new() -> Self { Self }
+
+    /// Direct (non-MCP-routed) entry point used by composite fan-out tools.
+    ///
+    /// Calling this method bypasses the MCP proc-macro dispatch and lets
+    /// [`AllTool`](crate::tools::all::AllTool) invoke the same logic directly.
+    pub async fn call_analyse(&self, args: TimeWindowArgs) -> Result<String, ToolError> {
+        let response = match run_analysis(&args) {
+            Ok(data) => CommonResponse::ok(data),
+            Err(e)   => CommonResponse::<AnalysisResult>::err(e.to_string()),
+        };
+        serde_json::to_string_pretty(&response)
+            .map_err(|e| ToolError::ExecutionError(e.to_string()))
+    }
 }
 
 #[tool(tool_box)]
@@ -41,12 +54,7 @@ impl ExampleTool {
         &self,
         #[tool(description = "Time window (hours) and result limit")] args: TimeWindowArgs,
     ) -> Result<String, ToolError> {
-        let response = match run_analysis(&args) {
-            Ok(data) => CommonResponse::ok(data),
-            Err(e)   => CommonResponse::<AnalysisResult>::err(e.to_string()),
-        };
-        serde_json::to_string_pretty(&response)
-            .map_err(|e| ToolError::ExecutionError(e.to_string()))
+        self.call_analyse(args).await
     }
 }
 
@@ -91,5 +99,13 @@ mod tests {
         assert!(!resp.passed);
         assert!(resp.data.is_none());
         assert!(resp.error.is_some());
+    }
+
+    #[tokio::test]
+    async fn call_analyse_returns_json() {
+        let tool = ExampleTool::new();
+        let raw = tool.call_analyse(TimeWindowArgs::default()).await.unwrap();
+        let val: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(val["passed"], true);
     }
 }

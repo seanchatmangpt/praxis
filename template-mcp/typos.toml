@@ -1,0 +1,22 @@
+# typos configuration for {{project-name}}-mcp
+#
+# Run: typos
+# Docs: https://github.com/crate-ci/typos
+
+[default]
+# Check binary files for typos (set to false if this causes false positives).
+binary = false
+
+[default.extend-words]
+# Add project-specific terms that typos should not flag.
+# Example:
+#   "parms" = "parms"  # domain abbreviation, not a typo for "params"
+
+[files]
+# Paths to ignore when scanning for typos.
+extend-exclude = [
+    # Generated files
+    "target/",
+    # Lock file — not human-authored prose
+    "Cargo.lock",
+]

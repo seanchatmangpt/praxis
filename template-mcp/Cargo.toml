@@ -11,6 +11,12 @@ repository = "https://github.com/seanchatmangpt/{{project-name}}"
 name = "{{project-name}}-mcp"
 path = "src/main.rs"
 
+[features]
+# Enable clap-derived CLI arg structs that mirror the MCP tool arguments.
+# Use when the same service is exposed as both MCP (stdio) and a binary CLI.
+# Adds TimeWindowCliArgs (clap::Args) to shared_args with From<> conversion.
+clap-cli = ["dep:clap"]
+
 [dependencies]
 # rmcp is the Rust MCP SDK. Check crates.io for the current version.
 rmcp = { version = "0.1", features = ["server", "transport-io"] }
@@ -22,6 +28,8 @@ thiserror = "2"
 anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+# Optional: only pulled in when the `clap-cli` feature is enabled.
+clap = { version = "4", features = ["derive"], optional = true }
 
 [dev-dependencies]
 tempfile = "3"
