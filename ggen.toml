@@ -1,0 +1,166 @@
+[project]
+name = "praxis-generator"
+version = "26.6.0"
+description = "Ontology-driven code generator for Praxis projects"
+authors = ["Sean Chatman <xpointsh@gmail.com>"]
+license = "MIT OR Apache-2.0"
+
+[ontology]
+source = "schema/praxis.ttl"
+standard_only = false
+
+[ontology.prefixes]
+praxis = "http://seanchatmangpt.github.io/praxis/schema#"
+rdf    = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+rdfs   = "http://www.w3.org/2000/01/rdf-schema#"
+xsd    = "http://www.w3.org/2001/XMLSchema#"
+
+# --- Stage 2: Inference (mu2) ---
+[inference]
+rules = [
+    # Verify and add workspace member relationships implicitly
+    { name = "derive-workspace-members", construct = """
+      PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+      CONSTRUCT {
+        ?c praxis:isWorkspaceMember true .
+      } WHERE {
+        ?p a praxis:Project ;
+           praxis:isWorkspace true ;
+           praxis:hasCrate ?c .
+      }
+    """ }
+]
+
+# --- Stage 1 & 4: Validation (SHACL & ASK) ---
+[[validation.rules]]
+name        = "calver-format-validation"
+description = "All project and crate versions must follow CalVer YY.M.patch format."
+severity    = "Error"
+ask         = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  ASK {
+    FILTER NOT EXISTS {
+      ?x praxis:version ?v .
+      ?x a ?type .
+      FILTER(?type = praxis:Project || ?type = praxis:RustCrate)
+      FILTER(!regex(?v, "^[0-9]{2}\\\\.[0-9]{1,2}\\\\.[0-9]+$"))
+    }
+  }
+"""
+
+[[validation.rules]]
+name        = "workspace-crate-matching"
+description = "A workspace project must have at least one defined Rust crate member."
+severity    = "Error"
+ask         = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  ASK {
+    FILTER NOT EXISTS {
+      ?p a praxis:Project ;
+         praxis:isWorkspace true .
+      FILTER NOT EXISTS { ?p praxis:hasCrate ?c }
+    }
+  }
+"""
+
+# --- Stage 3: Emit (mu3) ---
+[generation]
+output_dir = "."
+
+# Generate Cargo.toml
+[[generation.rules]]
+name        = "cargo-toml"
+query       = { inline = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  SELECT ?name ?version ?description ?license ?rustVersion ?edition ?isWorkspace
+  WHERE {
+    ?p a praxis:Project ;
+       praxis:name ?name ;
+       praxis:version ?version ;
+       praxis:description ?description ;
+       praxis:license ?license ;
+       praxis:rustVersion ?rustVersion ;
+       praxis:edition ?edition ;
+       praxis:isWorkspace ?isWorkspace .
+  }
+""" }
+template    = { file = "templates/Cargo.toml.tera" }
+output_file = "Cargo.toml"
+mode        = "Overwrite"
+
+# Generate Cargo.workspace.toml (only if workspace is true)
+[[generation.rules]]
+name        = "cargo-workspace-toml"
+query       = { inline = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  SELECT ?name ?version ?license ?rustVersion ?edition
+  WHERE {
+    ?p a praxis:Project ;
+       praxis:name ?name ;
+       praxis:version ?version ;
+       praxis:license ?license ;
+       praxis:rustVersion ?rustVersion ;
+       praxis:edition ?edition ;
+       praxis:isWorkspace true .
+  }
+""" }
+template    = { file = "templates/Cargo.workspace.toml.tera" }
+output_file = "Cargo.workspace.toml"
+mode        = "Overwrite"
+skip_empty  = true
+
+# Generate rustfmt.toml
+[[generation.rules]]
+name        = "rustfmt-toml"
+query       = { inline = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  SELECT ?edition WHERE { ?p a praxis:Project ; praxis:edition ?edition . }
+""" }
+template    = { file = "templates/rustfmt.toml.tera" }
+output_file = "rustfmt.toml"
+mode        = "Overwrite"
+
+# Generate types.rs (Generative Typestates & Evidence wrapper)
+[[generation.rules]]
+name        = "src-types"
+query       = { inline = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  SELECT ?name
+  WHERE {
+    ?p a praxis:Project ;
+       praxis:name ?name .
+  }
+""" }
+template    = { file = "templates/src/types.rs.tera" }
+output_file = "src/types.rs"
+mode        = "Overwrite"
+
+# Generate lsp.rs (RulePackServer logic)
+[[generation.rules]]
+name        = "src-lsp"
+query       = { inline = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  SELECT ?name
+  WHERE {
+    ?p a praxis:Project ;
+       praxis:name ?name .
+  }
+""" }
+template    = { file = "templates/src/lsp.rs.tera" }
+output_file = "src/lsp.rs"
+mode        = "Overwrite"
+
+# Generate cli.rs (Noun-Verb command routes)
+[[generation.rules]]
+name        = "src-cli"
+query       = { inline = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  SELECT ?name
+  WHERE {
+    ?p a praxis:Project ;
+       praxis:name ?name .
+  }
+""" }
+template    = { file = "templates/src/cli.rs.tera" }
+output_file = "src/cli.rs"
+mode        = "Overwrite"

@@ -1,0 +1,25 @@
+{
+  "operation_id": "752065f6-7c76-49e3-a6c6-f79f636a312d",
+  "timestamp": "2026-06-23T07:27:49.612371Z",
+  "input_hashes": [
+    "actuator:ggen-sync@26.6.23",
+    "ggen.toml:ee9ff85ccd249b9de0ab5b6aa4d68d41125591d8998797137e8c0d0e546d6946",
+    "schema/praxis.ttl:a106839737f49c236fa04c737392c9c57573a81158aec0976d878d6c48dab284",
+    "templates/Cargo.toml.tera:c8c8f75fed999ba14dd2ee6ab46c7eed20cd40dea43e32828bddc1a7edccad6b",
+    "templates/Cargo.workspace.toml.tera:4f2c696f8ba696bd3633c54f9738345c17711c5d7edf028ece484e939463a4e0",
+    "templates/rustfmt.toml.tera:79fef99b01e0de8803bd8935ef96ad508dda7fa1d191fe74e2fd57c031332c87",
+    "templates/src/types.rs.tera:dbc50be36a5707e80ca69f37bd35a51b9d40663ce9a28db403b72cefb9be958d",
+    "templates/src/lsp.rs.tera:e9724ec02c3d34759ed8697c69bbeae5f115c650c3868be9317b587152df05a4",
+    "templates/src/cli.rs.tera:78c2d5df8c9b8ccd54a82895e1f0cbda5d0b485f4ae036d06edbb06d09ada342"
+  ],
+  "output_hashes": [
+    "./Cargo.toml:b669cbdac17b87d710aebe2a4a1100e180d8ad43d5b201e1795be825f8df778e",
+    "./Cargo.workspace.toml:2092690aaa409fb28309a1ee3ad92ef06d68d56750ed95889b660a7238c6866d",
+    "./rustfmt.toml:c94fc9da5b20c179cbbf04f4e34cfe7b78f028882e3c083b9e8c9a04f61ed505",
+    "./src/types.rs:4ae8dedfb84b53f8fdd07c6f96e3950c908479c5e6c7ec94e499cb0a942fa6f6",
+    "./src/lsp.rs:3629976fafe67f309a21f956bb5ad5bde72cd8a1de9f9edd56e1e1b3dd49ab39",
+    "./src/cli.rs:38cf1e65be5813bfb52d1363c21ad678649c22a93a29dd4e5915a09e91efc301"
+  ],
+  "signature": "f46c9124d7a44671fed3031120c7c6cd78a5efc439fb666b2e3155f5cd65af3dbabcfac833f5f9a9b8391ad365ecf3c4c4d1160b355a57750b01f5772aa0da05",
+  "previous_receipt_hash": null
+}

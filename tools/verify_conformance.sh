@@ -6,7 +6,7 @@ set -euo pipefail
 # Synthesises a conforming project from the template, verifies compilation,
 # and programmatically asserts conformance to Post-Chatman principles.
 
-TEMPLATE_DIR="/Users/sac/praxis/template"
+TEMPLATE_DIR="/Users/sac/praxis/backup_template"
 TEMP_PROJECT_DIR="/tmp/my-conforming-project-$RANDOM"
 PROJECT_NAME="my-conforming-project"
 PROJECT_NAME_SNAKE="my_conforming_project"
@@ -99,5 +99,13 @@ echo "Running hollow-gate conformance verifier..."
     cd "$TEMP_PROJECT_DIR"
     cargo run -j 1 --manifest-path "tools/hollow-gate/Cargo.toml" -- "$TEMP_PROJECT_DIR"
 )
+
+# 5. CLI Execution Verification
+echo "Running generated CLI output verification..."
+(
+    cd "$TEMP_PROJECT_DIR"
+    cargo run -j 1 --bin "$PROJECT_NAME" -- --help
+)
+echo "CLI execution passed."
 
 echo "=== Conformance Verification Verdict: VERIFIED ==="

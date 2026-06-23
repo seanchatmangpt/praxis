@@ -1,0 +1,237 @@
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix praxis:  <http://seanchatmangpt.github.io/praxis/schema#> .
+
+# ===========================================================================
+# 1. Classes
+# ===========================================================================
+
+praxis:Project a rdfs:Class ;
+    rdfs:label "Project" ;
+    rdfs:comment "A top-level repository or system configured under the Praxis house style." .
+
+praxis:RustCrate a rdfs:Class ;
+    rdfs:label "RustCrate" ;
+    rdfs:comment "A Rust crate within the project, either a single crate or workspace member." .
+
+praxis:Component a rdfs:Class ;
+    rdfs:label "Component" ;
+    rdfs:comment "An architectural module or design pattern implemented in Rust code." .
+
+praxis:Feature a rdfs:Class ;
+    rdfs:label "Feature" ;
+    rdfs:comment "A Cargo feature flag in a Rust crate." .
+
+praxis:Dependency a rdfs:Class ;
+    rdfs:label "Dependency" ;
+    rdfs:comment "An external crate dependency for Cargo.toml." .
+
+praxis:ConfigurationFile a rdfs:Class ;
+    rdfs:label "ConfigurationFile" ;
+    rdfs:comment "A project hygiene config file (e.g. rustfmt.toml, deny.toml, typos.toml)." .
+
+praxis:WorkflowFile a rdfs:Class ;
+    rdfs:label "WorkflowFile" ;
+    rdfs:comment "A GitHub actions workflow definition." .
+
+praxis:ZstTypestate a rdfs:Class ;
+    rdfs:label "ZstTypestate" ;
+    rdfs:comment "A Zero-Sized Type used as a compile-time lifecycle state marker." .
+
+praxis:CliCommand a rdfs:Class ;
+    rdfs:label "CliCommand" ;
+    rdfs:comment "A noun-verb CLI command definition." .
+
+# ===========================================================================
+# 2. Properties
+# ===========================================================================
+
+# Project Properties
+praxis:name a rdf:Property ;
+    rdfs:label "name" ;
+    rdfs:domain [ owl:unionOf (praxis:Project praxis:RustCrate praxis:Component praxis:Feature praxis:Dependency praxis:ZstTypestate) ] ;
+    rdfs:range xsd:string .
+
+praxis:version a rdf:Property ;
+    rdfs:label "version" ;
+    rdfs:domain [ owl:unionOf (praxis:Project praxis:RustCrate) ] ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Project version adhering to CalVer (e.g. YY.M.patch)." .
+
+praxis:description a rdf:Property ;
+    rdfs:label "description" ;
+    rdfs:domain [ owl:unionOf (praxis:Project praxis:RustCrate) ] ;
+    rdfs:range xsd:string .
+
+praxis:license a rdf:Property ;
+    rdfs:label "license" ;
+    rdfs:domain [ owl:unionOf (praxis:Project praxis:RustCrate) ] ;
+    rdfs:range xsd:string ;
+    rdfs:comment "License type (e.g., 'MIT OR Apache-2.0')." .
+
+praxis:rustVersion a rdf:Property ;
+    rdfs:label "rustVersion" ;
+    rdfs:domain [ owl:unionOf (praxis:Project praxis:RustCrate) ] ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Minimum Supported Rust Version (e.g., '1.82')." .
+
+praxis:edition a rdf:Property ;
+    rdfs:label "edition" ;
+    rdfs:domain [ owl:unionOf (praxis:Project praxis:RustCrate) ] ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Rust edition (e.g., '2021')." .
+
+praxis:dependencySpec a rdf:Property ;
+    rdfs:label "dependencySpec" ;
+    rdfs:domain praxis:Dependency ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Cargo dependency specification string." .
+
+praxis:isWorkspace a rdf:Property ;
+    rdfs:label "isWorkspace" ;
+    rdfs:domain praxis:Project ;
+    rdfs:range xsd:boolean .
+
+# Relations
+praxis:hasCrate a rdf:Property ;
+    rdfs:label "hasCrate" ;
+    rdfs:domain praxis:Project ;
+    rdfs:range praxis:RustCrate .
+
+praxis:hasComponent a rdf:Property ;
+    rdfs:label "hasComponent" ;
+    rdfs:domain praxis:RustCrate ;
+    rdfs:range praxis:Component .
+
+praxis:hasFeature a rdf:Property ;
+    rdfs:label "hasFeature" ;
+    rdfs:domain praxis:RustCrate ;
+    rdfs:range praxis:Feature .
+
+praxis:hasDependency a rdf:Property ;
+    rdfs:label "hasDependency" ;
+    rdfs:domain praxis:RustCrate ;
+    rdfs:range praxis:Dependency .
+
+praxis:hasConfig a rdf:Property ;
+    rdfs:label "hasConfig" ;
+    rdfs:domain praxis:Project ;
+    rdfs:range praxis:ConfigurationFile .
+
+praxis:hasWorkflow a rdf:Property ;
+    rdfs:label "hasWorkflow" ;
+    rdfs:domain praxis:Project ;
+    rdfs:range praxis:WorkflowFile .
+
+praxis:hasTypestate a rdf:Property ;
+    rdfs:label "hasTypestate" ;
+    rdfs:domain praxis:Component ;
+    rdfs:range praxis:ZstTypestate .
+
+# CLI Command Properties
+praxis:noun a rdf:Property ;
+    rdfs:label "noun" ;
+    rdfs:domain praxis:CliCommand ;
+    rdfs:range xsd:string .
+
+praxis:verb a rdf:Property ;
+    rdfs:label "verb" ;
+    rdfs:domain praxis:CliCommand ;
+    rdfs:range xsd:string .
+
+praxis:handler a rdf:Property ;
+    rdfs:label "handler" ;
+    rdfs:domain praxis:CliCommand ;
+    rdfs:range xsd:string .
+
+# Hygiene Config Properties
+praxis:targetPath a rdf:Property ;
+    rdfs:label "targetPath" ;
+    rdfs:domain [ owl:unionOf (praxis:ConfigurationFile praxis:WorkflowFile) ] ;
+    rdfs:range xsd:string .
+
+# ===========================================================================
+# 3. Reference Instance Model: my-conforming-project
+# ===========================================================================
+
+praxis:MyConformingProject a praxis:Project ;
+    praxis:name "my-conforming-project" ;
+    praxis:version "26.6.0" ;
+    praxis:description "A standardized, structurally conforming boilerplate project." ;
+    praxis:license "MIT OR Apache-2.0" ;
+    praxis:rustVersion "1.82" ;
+    praxis:edition "2021" ;
+    praxis:isWorkspace true ;
+    praxis:hasCrate praxis:CrateCore ;
+    praxis:hasConfig praxis:ConfigRustfmt, praxis:ConfigDeny, praxis:ConfigTypos ;
+    praxis:hasWorkflow praxis:WorkflowCI, praxis:WorkflowRelease .
+
+# Crate Definitions
+praxis:CrateCore a praxis:RustCrate ;
+    praxis:name "my-conforming-project" ;
+    praxis:hasComponent praxis:CompTypestates, praxis:CompLsp, praxis:CompCli ;
+    praxis:hasFeature praxis:FeatLsp, praxis:FeatTypestate ;
+    praxis:hasDependency praxis:DepLspMax, praxis:DepSerde .
+
+# Components
+praxis:CompTypestates a praxis:Component ;
+    praxis:name "GenerativeTypestates" ;
+    praxis:hasTypestate praxis:StateRaw, praxis:StateValidated, praxis:StateAdmitted .
+
+praxis:CompLsp a praxis:Component ;
+    praxis:name "RulePackServer" .
+
+praxis:CompCli a praxis:Component ;
+    praxis:name "NounVerbCli" .
+
+# ZST Typestates
+praxis:StateRaw a praxis:ZstTypestate ;
+    praxis:name "Raw" .
+
+praxis:StateValidated a praxis:ZstTypestate ;
+    praxis:name "Validated" .
+
+praxis:StateAdmitted a praxis:ZstTypestate ;
+    praxis:name "Admitted" .
+
+# Features
+praxis:FeatLsp a praxis:Feature ;
+    praxis:name "lsp" .
+
+praxis:FeatTypestate a praxis:Feature ;
+    praxis:name "typestate" .
+
+# Dependencies
+praxis:DepLspMax a praxis:Dependency ;
+    praxis:name "lsp-max" ;
+    praxis:dependencySpec "path = \"/Users/sac/lsp-max\"" .
+
+praxis:DepSerde a praxis:Dependency ;
+    praxis:name "serde" ;
+    praxis:dependencySpec "1" .
+
+# Hygiene Config Instances
+praxis:ConfigRustfmt a praxis:ConfigurationFile ;
+    praxis:name "rustfmt" ;
+    praxis:targetPath "rustfmt.toml" .
+
+praxis:ConfigDeny a praxis:ConfigurationFile ;
+    praxis:name "deny" ;
+    praxis:targetPath "deny.toml" .
+
+praxis:ConfigTypos a praxis:ConfigurationFile ;
+    praxis:name "typos" ;
+    praxis:targetPath "typos.toml" .
+
+# CLI Commands
+praxis:CmdDodRun a praxis:CliCommand ;
+    praxis:noun "dod" ;
+    praxis:verb "run" ;
+    praxis:handler "handle_dod_run" .
+
+praxis:CmdVerifierVerify a praxis:CliCommand ;
+    praxis:noun "verifier" ;
+    praxis:verb "verify" ;
+    praxis:handler "handle_verifier_verify" .

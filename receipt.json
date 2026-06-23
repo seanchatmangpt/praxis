@@ -1,0 +1,9 @@
+{
+  "data": {
+    "project_name": "praxis",
+    "timestamp": "2026-06-23T08:22:48.949511+00:00",
+    "source_digest": "9a29421e3103728b76ef4a685b127b8667b406ab35b590b4cb973bfbb7b139d4",
+    "public_key": "3754cf497bf5505b43fd172bd96264e48ba76060c72d85820326229f8cdcf902"
+  },
+  "signature": "9d948b852fd89ac12a9e85162e1e387a7bef39044205bccfbf7b51faea650d341b021010cd2ad8e922c439c33cfcc034fbd391a5e693783d54c621b5c6cf8603"
+}

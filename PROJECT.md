@@ -8,10 +8,10 @@ The project executes two primary tracks in parallel:
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|---|---|---|---|
-| M1 | Research Swarm (Wave 1) | Explore Packs, Marketplace, and Post-Chatman theory; compile research paper. | none | PLANNED |
-| M2 | Transition Execution (Wave 2) | Implement ggen-first setup in ~/praxis and run synchronization. | M1 | PLANNED |
-| M3 | Swarm Review & Audit | Independent review and forensic audit verification of the transition and research. | M2 | PLANNED |
-| M4 | Successor Takeover & Final Synthesis | Succession, final verification of results, and user presentation. | M3 | PLANNED |
+| M1 | Research Swarm (Wave 1) | Explore Packs, Marketplace, and Post-Chatman theory; compile research paper. | none | DONE |
+| M2 | Transition Execution (Wave 2) | Implement ggen-first setup in ~/praxis and run synchronization. | M1 | DONE |
+| M3 | Swarm Review & Audit | Independent review and forensic audit verification of the transition and research. | M2 | DONE |
+| M4 | Successor Takeover & Final Synthesis | Succession, final verification of results, and user presentation. | M3 | DONE |
 
 ## Interface Contracts
 - **Research Paper Output**: `/Users/sac/praxis/research/post_chatman_research.md`.

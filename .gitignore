@@ -1,1 +1,6 @@
 .agents/
+target/
+playground/target/
+template/target/
+.DS_Store
+*.backup

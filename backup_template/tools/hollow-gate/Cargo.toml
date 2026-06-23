@@ -1,0 +1,12 @@
+[package]
+name = "hollow-gate"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "hollow-gate"
+path = "main.rs"
+
+[dependencies]
+walkdir = "2"
