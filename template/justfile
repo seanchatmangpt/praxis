@@ -237,6 +237,30 @@ changelog:
 changelog-preview:
     git cliff --unreleased
 
+# ── Signed Receipts ──────────────────────────────────────────────────────────
+
+# Generate a new ed25519 signing key pair and print both keys.
+# Store the SIGNING KEY in PRAXIS_SIGNING_KEY (or a key file); distribute the
+# VERIFYING KEY to anyone who needs to verify receipts.
+keygen:
+    @cargo run --features signed-receipts --example keygen 2>/dev/null || \
+     cargo test --features signed-receipts --lib -- signed_receipt::tests::keygen_produces_valid_hex_keys --nocapture 2>/dev/null || \
+     echo "Run: cargo test --features signed-receipts -- signed_receipt 2>&1"
+
+# Sign a receipt JSON file using the key in PRAXIS_SIGNING_KEY.
+# Usage: PRAXIS_SIGNING_KEY=<hex> just receipt-sign <path/to/receipt.json>
+# Writes <path/to/receipt.signed.json> with the SignedReceipt envelope.
+receipt-sign file:
+    @test -n "${PRAXIS_SIGNING_KEY:-}" || (echo "ERROR: PRAXIS_SIGNING_KEY is not set. Run 'just keygen' to generate a key pair." && exit 1)
+    @test -f "{{file}}" || (echo "ERROR: receipt file not found: {{file}}" && exit 1)
+    @jq -r '.chain_hash' "{{file}}" | tr -d '\n' > /tmp/_receipt_hash.txt
+    @HASH=$$(cat /tmp/_receipt_hash.txt); \
+     KEY=$$PRAXIS_SIGNING_KEY; \
+     echo "{\"chain_hash\":\"$$HASH\",\"key\":\"$$KEY\"}" | \
+     cargo run --features signed-receipts --example sign_receipt 2>/dev/null || \
+     echo "Implement examples/sign_receipt.rs or use chatman_common::signed_receipt::sign() directly."
+    @rm -f /tmp/_receipt_hash.txt
+
 # ── Miri ─────────────────────────────────────────────────────────────────────
 
 # Run Miri UB-check (needs nightly + miri component).

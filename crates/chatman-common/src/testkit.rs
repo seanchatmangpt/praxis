@@ -390,6 +390,10 @@ pub struct TestReceipt {
     /// BLAKE3 hex digest of (test_name || passed || duration_ms || os).
     /// Only populated when the `living-docs` feature is active.
     pub chain_hash: Option<String>,
+    /// Ed25519-signed version of `chain_hash`.
+    /// Populated by [`TestReceipt::sign`] when the `signed-receipts` feature is active.
+    #[cfg(feature = "signed-receipts")]
+    pub signed: Option<crate::signed_receipt::SignedReceipt>,
 }
 
 impl TestReceipt {
@@ -409,7 +413,15 @@ impl TestReceipt {
         #[cfg(not(feature = "living-docs"))]
         let chain_hash = None;
 
-        Self { test_name, passed, duration_ms, environment: env, chain_hash }
+        Self {
+            test_name,
+            passed,
+            duration_ms,
+            environment: env,
+            chain_hash,
+            #[cfg(feature = "signed-receipts")]
+            signed: None,
+        }
     }
 
     /// Run `f`, capture pass/fail, and return a receipt.
@@ -419,6 +431,34 @@ impl TestReceipt {
         let duration_ms = start.elapsed().as_millis() as u64;
         let passed = result.is_ok();
         Self::record(test_name, passed, duration_ms)
+    }
+
+    /// Attach an ed25519 signature to this receipt using the signing key
+    /// loaded from the environment (`PRAXIS_SIGNING_KEY` or
+    /// `PRAXIS_SIGNING_KEY_FILE`).
+    ///
+    /// Only available when the `signed-receipts` feature is active.
+    /// If no signing key is set the receipt is returned unchanged (no error).
+    #[cfg(feature = "signed-receipts")]
+    pub fn sign(mut self) -> Self {
+        if let Some(ref hash) = self.chain_hash {
+            if let Ok(signed) = crate::signed_receipt::sign_with_env_key(hash) {
+                self.signed = Some(signed);
+            }
+        }
+        self
+    }
+
+    /// Attach an ed25519 signature to this receipt using an explicit
+    /// hex-encoded signing key.
+    ///
+    /// Only available when the `signed-receipts` feature is active.
+    #[cfg(feature = "signed-receipts")]
+    pub fn sign_with(mut self, signing_key_hex: &str) -> crate::Result<Self> {
+        if let Some(ref hash) = self.chain_hash {
+            self.signed = Some(crate::signed_receipt::sign(hash, signing_key_hex)?);
+        }
+        Ok(self)
     }
 }
 
@@ -854,5 +894,36 @@ mod tests {
         enum MyErr { NotFound, Other }
         let result: std::result::Result<(), MyErr> = Err(MyErr::NotFound);
         assert_fail!(result, MyErr::NotFound);
+    }
+
+    // ----- TestReceipt::sign tests (signed-receipts feature) -----
+
+    #[test]
+    #[cfg(feature = "signed-receipts")]
+    fn test_receipt_sign_with_explicit_key() {
+        use crate::signed_receipt::KeyPair;
+        let kp = KeyPair::generate();
+        // Needs living-docs for chain_hash to be populated
+        let mut r = TestReceipt::record("signed_test", true, 10);
+        // Manually inject a chain_hash so we can test signing without living-docs
+        r.chain_hash = Some("a".repeat(64));
+        let r = r.sign_with(&kp.signing_key_hex()).unwrap();
+        let signed = r.signed.expect("signed field must be populated after sign_with");
+        assert!(
+            crate::signed_receipt::verify(&signed, &kp.verifying_key_hex()).unwrap(),
+            "TestReceipt signature must be valid"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "signed-receipts")]
+    fn test_receipt_sign_no_key_env_is_noop() {
+        // If env key is not set, sign() must not panic — it silently skips.
+        std::env::remove_var("PRAXIS_SIGNING_KEY");
+        std::env::remove_var("PRAXIS_SIGNING_KEY_FILE");
+        let mut r = TestReceipt::record("no_key_test", true, 1);
+        r.chain_hash = Some("b".repeat(64));
+        let r = r.sign();
+        assert!(r.signed.is_none(), "sign() without env key should leave signed = None");
     }
 }

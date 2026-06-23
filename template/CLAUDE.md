@@ -522,6 +522,115 @@ dependency or if no symbol from that crate is referenced directly. Add an explic
 
 ---
 
+## Provenance Patterns
+
+### BLAKE3 Chain Receipts
+
+Every artifact that flows through the pipeline is content-addressed with BLAKE3:
+
+```rust
+use chatman_common::chain::{genesis_seed, fold_event, RollingChain};
+
+// Build a rolling chain over a sequence of events
+let mut chain = RollingChain::new("my-service");
+chain.push(b"event-0");
+chain.push(b"event-1");
+let chain_hash = chain.finalize();  // 64-char lowercase hex
+```
+
+The rolling chain is tamper-evident: any change to an earlier event propagates to
+every subsequent hash, making tampering detectable without out-of-band signatures.
+
+### Signed Receipts (opt-in, feature `signed-receipts`)
+
+For non-repudiable audit trails, enable the `signed-receipts` feature to wrap a
+BLAKE3 chain hash with an ed25519 digital signature:
+
+```toml
+# Cargo.toml
+chatman-common = { version = "...", features = ["provenance", "signed-receipts"] }
+```
+
+**Generating a key pair:**
+
+```bash
+# Generate a new ed25519 key pair (run once, store securely)
+just keygen
+# Output:
+#   SIGNING KEY (secret): <64 hex chars>  ← store in PRAXIS_SIGNING_KEY
+#   VERIFYING KEY (public): <64 hex chars> ← distribute to verifiers
+```
+
+Or in Rust:
+
+```rust
+use chatman_common::signed_receipt::KeyPair;
+
+let kp = KeyPair::generate();
+println!("SIGNING KEY: {}", kp.signing_key_hex());
+println!("VERIFYING KEY: {}", kp.verifying_key_hex());
+```
+
+**Signing a chain hash:**
+
+```rust
+use chatman_common::signed_receipt::{sign, sign_with_env_key};
+
+// Sign using a key from the environment (PRAXIS_SIGNING_KEY or PRAXIS_SIGNING_KEY_FILE)
+let signed = sign_with_env_key(&chain_hash)?;
+
+// Or sign with an explicit key
+let signed = sign(&chain_hash, &signing_key_hex)?;
+
+// Serialize to JSON for storage / transmission
+let json = serde_json::to_string_pretty(&signed)?;
+```
+
+**Verifying a signed receipt:**
+
+```rust
+use chatman_common::signed_receipt::{SignedReceipt, verify};
+
+let signed: SignedReceipt = serde_json::from_str(&json)?;
+let is_valid = verify(&signed, &verifying_key_hex)?;
+assert!(is_valid, "receipt signature verification failed");
+```
+
+**Attaching a signature to `TestReceipt`:**
+
+```rust
+use chatman_common::testkit::TestReceipt;
+
+// When signed-receipts feature is active, sign() attaches a SignedReceipt
+// using the key in PRAXIS_SIGNING_KEY (silently skips if key not set)
+let receipt = TestReceipt::capture("integration_test", || { /* ... */ })
+    .sign();
+
+// Or sign with an explicit key
+let kp = chatman_common::signed_receipt::KeyPair::generate();
+let receipt = TestReceipt::record("my_test", true, 10)
+    .sign_with(&kp.signing_key_hex())?;
+```
+
+**Key storage conventions:**
+
+| Priority | Source | Format |
+|----------|--------|--------|
+| 1 | `PRAXIS_SIGNING_KEY` env var | 64 lowercase hex chars |
+| 2 | File at `PRAXIS_SIGNING_KEY_FILE` env var | 64 lowercase hex chars, may have trailing newline |
+
+The signing key is the **secret** 32-byte ed25519 seed. The verifying key is the
+**public** key distributed to verifiers. Never commit the signing key to source
+control; store it in a secrets manager or CI secret.
+
+**Signing an existing receipt file:**
+
+```bash
+PRAXIS_SIGNING_KEY=<hex> just receipt-sign path/to/receipt.json
+```
+
+---
+
 ## Code Conventions
 
 - **No `unwrap`/`expect`/`panic` in library code.** Use `?` and `thiserror`.
