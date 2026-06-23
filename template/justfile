@@ -136,6 +136,38 @@ update:
 hollow-gate:
     cargo run --manifest-path tools/hollow-gate/Cargo.toml --quiet
 
+# ── CI Integrity Tooling ──────────────────────────────────────────────────────
+
+# Verify that cicd.toml required_jobs are all present in .github/workflows/ci.yml.
+ci-shape-check:
+    python3 scripts/ci-shape-check.py
+
+# Scan for human-only patterns (from anti-llm.toml) in recent AI-authored commits.
+# Warns but does not fail by default — use ANTI_LLM_ENFORCE=1 for hard failure.
+anti-llm-check:
+    bash scripts/anti-llm-check.sh {{ if env_var_or_default("ANTI_LLM_ENFORCE", "0") == "1" { "" } else { "--warn-only" } }}
+
+# Comprehensive health-check dashboard: ci-shape, anti-llm, deny, typos.
+doctor:
+    @echo ""
+    @echo "════════════════════════════════════"
+    @echo " praxis doctor — health check"
+    @echo "════════════════════════════════════"
+    @echo ""
+    @echo "── 1/4  CI shape check ─────────────"
+    -python3 scripts/ci-shape-check.py
+    @echo "── 2/4  Anti-LLM integrity ─────────"
+    -bash scripts/anti-llm-check.sh --warn-only
+    @echo "── 3/4  Supply-chain (cargo deny) ──"
+    -cargo deny check
+    @echo "── 4/4  Spell-check (typos) ────────"
+    -typos
+    @echo ""
+    @echo "════════════════════════════════════"
+    @echo " doctor complete — review any [FAIL] lines above"
+    @echo "════════════════════════════════════"
+    @echo ""
+
 # ── Pre-commit & CI ───────────────────────────────────────────────────────────
 
 # Quick local gate: fmt-check + lint + unit tests.

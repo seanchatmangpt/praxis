@@ -12,6 +12,7 @@ required_jobs = [
     "msrv",
     "deny",
     "typos",
+    "ci-shape",
     "ci-success",
 ]
 
@@ -19,6 +20,7 @@ required_jobs = [
 advisory_jobs = [
     "coverage",
     "security-audit",
+    "living-docs",
 ]
 
 # Known flaky jobs (tracked, not blocking).
