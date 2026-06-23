@@ -79,8 +79,9 @@ impl TracingGuard {
 impl Drop for TracingGuard {
     fn drop(&mut self) {
         // Flush OTLP pipeline when wired.
-        #[cfg(feature = "otel")]
-        opentelemetry::global::shutdown_tracer_provider();
+        // TODO: call opentelemetry::global::shutdown_tracer_provider() once
+        // the opentelemetry-otlp dep is added to Cargo.toml.
+        let _ = &self._private; // suppress unused-variable lint
     }
 }
 
