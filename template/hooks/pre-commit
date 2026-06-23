@@ -1,0 +1,276 @@
+#!/usr/bin/env bash
+# Pre-commit hook for praxis compliance gates
+# Prevents commits that violate house standards
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+FAILED=0
+WARNINGS=0
+
+# Helper functions
+error() {
+    echo -e "${RED}✗ $1${NC}" >&2
+    FAILED=$((FAILED + 1))
+}
+
+warn() {
+    echo -e "${YELLOW}⚠ $1${NC}" >&2
+    WARNINGS=$((WARNINGS + 1))
+}
+
+success() {
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+# Get the project root
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+cd "$PROJECT_ROOT"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. Check for unstaged changes that shouldn't be committed
+# ─────────────────────────────────────────────────────────────────────────────
+
+echo "🔍 Praxis Pre-Commit Gates"
+echo "─────────────────────────────────────────────────────────────────────"
+
+# Backup files should never be committed
+if git diff --cached --name-only | grep -E '\.rs\.backup$' > /dev/null; then
+    error "Backup files (.rs.backup) detected in staging. Clean via: find . -name '*.rs.backup' -delete"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. Verify Cargo.toml compliance
+# ─────────────────────────────────────────────────────────────────────────────
+
+check_cargo_toml() {
+    local cargo_file="$1"
+    local is_workspace=false
+
+    if grep -q '^\[workspace\]' "$cargo_file"; then
+        is_workspace=true
+    fi
+
+    # Check for required metadata fields (root manifest only)
+    if ! $is_workspace; then
+        # Check version format (CalVer YY.M.patch)
+        if grep -q '^version = ' "$cargo_file"; then
+            local version=$(grep '^version = ' "$cargo_file" | head -1 | sed 's/version = "\(.*\)"/\1/')
+            if ! [[ $version =~ ^[0-9]{2}\.[0-9]+\.[0-9]+$ ]]; then
+                warn "Cargo.toml: version '$version' doesn't match CalVer YY.M.patch format"
+            fi
+        fi
+
+        # Check for MIT OR Apache-2.0
+        if grep -q '^license = ' "$cargo_file"; then
+            if ! grep -q '^license = "MIT OR Apache-2.0"' "$cargo_file"; then
+                warn "Cargo.toml: license should be 'MIT OR Apache-2.0' (for house crates)"
+            fi
+        fi
+
+        # Check for rust-version (MSRV)
+        if ! grep -q '^rust-version = ' "$cargo_file"; then
+            warn "Cargo.toml: missing rust-version field (house default: 1.82)"
+        fi
+    fi
+
+    # Check for [lints] or workspace lints inheritance
+    if ! grep -E '^\[lints\]|workspace = true' "$cargo_file" > /dev/null && ! $is_workspace; then
+        warn "Cargo.toml: missing [lints] block (should inherit or define house lint set)"
+    fi
+}
+
+# Check staged Cargo.toml changes
+git diff --cached --name-only | grep 'Cargo.toml$' | while read -r cargo_file; do
+    check_cargo_toml "$cargo_file"
+done
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. Verify unsafe_code forbid is present (unless explicitly allowed)
+# ─────────────────────────────────────────────────────────────────────────────
+
+check_unsafe_code_lint() {
+    local cargo_file="$1"
+
+    # Skip if workspace file (workspace lints defined there)
+    if grep -q '^\[workspace\]' "$cargo_file"; then
+        return
+    fi
+
+    # Check if this crate is an exception (linkme, WASM, specgen)
+    if grep -qE 'name\s*=\s*"(linkme|wasm|specgen)' "$cargo_file"; then
+        return  # Expected to have warn/allow
+    fi
+
+    # Regular crates should have unsafe_code = "forbid"
+    if grep -q '^\[lints\.rust\]' "$cargo_file"; then
+        if ! grep -q 'unsafe_code = "forbid"' "$cargo_file"; then
+            # Check if it inherits from workspace
+            if ! grep -q 'workspace = true' "$cargo_file"; then
+                warn "$cargo_file: missing 'unsafe_code = \"forbid\"' in [lints.rust]"
+            fi
+        fi
+    fi
+}
+
+git diff --cached --name-only | grep 'Cargo.toml$' | while read -r cargo_file; do
+    check_unsafe_code_lint "$cargo_file"
+done
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. Check for clippy denies (todo, unimplemented, dbg_macro)
+# ─────────────────────────────────────────────────────────────────────────────
+
+check_clippy_denies() {
+    local cargo_file="$1"
+
+    if grep -q '^\[lints\.clippy\]' "$cargo_file"; then
+        local has_todo_deny=false
+        local has_unimplemented_deny=false
+        local has_dbg_deny=false
+
+        grep -A 20 '^\[lints\.clippy\]' "$cargo_file" | grep -q 'todo = "deny"' && has_todo_deny=true
+        grep -A 20 '^\[lints\.clippy\]' "$cargo_file" | grep -q 'unimplemented = "deny"' && has_unimplemented_deny=true
+        grep -A 20 '^\[lints\.clippy\]' "$cargo_file" | grep -q 'dbg_macro = "deny"' && has_dbg_deny=true
+
+        # Only warn if defining lints inline (not inheriting from workspace)
+        if ! grep -q 'workspace = true' "$cargo_file"; then
+            $has_todo_deny || warn "$cargo_file: consider 'todo = \"deny\"' in [lints.clippy]"
+            $has_unimplemented_deny || warn "$cargo_file: consider 'unimplemented = \"deny\"' in [lints.clippy]"
+            $has_dbg_deny || warn "$cargo_file: consider 'dbg_macro = \"deny\"' in [lints.clippy]"
+        fi
+    fi
+}
+
+git diff --cached --name-only | grep 'Cargo.toml$' | while read -r cargo_file; do
+    check_clippy_denies "$cargo_file"
+done
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. Verify required files exist
+# ─────────────────────────────────────────────────────────────────────────────
+
+check_required_files() {
+    local required=(
+        "Cargo.toml"
+        "rust-toolchain.toml"
+        "rustfmt.toml"
+    )
+
+    for file in "${required[@]}"; do
+        if [ ! -f "$file" ]; then
+            warn "Missing $file (house template includes this)"
+        fi
+    done
+
+    # Workspace-specific checks
+    if [ -f "Cargo.toml" ] && grep -q '^\[workspace\]' Cargo.toml; then
+        if [ ! -f "Cargo.workspace.toml" ]; then
+            warn "Workspace detected but Cargo.workspace.toml not found"
+        fi
+    fi
+}
+
+# Only check if we're in a workspace or crate root
+if [ -f "Cargo.toml" ]; then
+    check_required_files
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. Check for disallowed patterns in Rust code
+# ─────────────────────────────────────────────────────────────────────────────
+
+check_rust_patterns() {
+    local rs_files
+    rs_files=$(git diff --cached --name-only | grep '\.rs$' || true)
+
+    if [ -z "$rs_files" ]; then
+        return
+    fi
+
+    # Check for panic! usage (should use ? or Result)
+    if git diff --cached -- $rs_files | grep -E '^\+.*panic!\(' > /dev/null; then
+        warn "panic!() detected in new code (prefer Result errors)"
+    fi
+
+    # Check for unwrap() in library code (not tests/examples)
+    local lib_files=$(echo "$rs_files" | grep -v -E '(test_|_test\.rs|tests/|examples/|benches/)' || true)
+    if [ -n "$lib_files" ]; then
+        if git diff --cached -- $lib_files | grep -E '^\+.*\.unwrap\(' > /dev/null; then
+            warn "unwrap() detected in library code (prefer ? operator)"
+        fi
+    fi
+
+    # Check for dbg! macro
+    if git diff --cached -- $rs_files | grep -E '^\+.*dbg!\(' > /dev/null; then
+        error "dbg!() macro detected (should be removed before commit)"
+    fi
+
+    # Check for todo! and unimplemented! usage
+    if git diff --cached -- $rs_files | grep -E '^\+.*(todo|unimplemented)!\(' > /dev/null; then
+        error "todo!() or unimplemented!() detected (house standard denies these)"
+    fi
+}
+
+check_rust_patterns
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7. Check documentation compliance
+# ─────────────────────────────────────────────────────────────────────────────
+
+check_docs() {
+    # Check for pub fn without doc comment
+    local rs_files
+    rs_files=$(git diff --cached --name-only | grep -E 'src/.*\.rs$' | grep -v test | grep -v example || true)
+
+    if [ -z "$rs_files" ]; then
+        return
+    fi
+
+    # This is a light check; the actual missing_docs lint will catch more
+    for file in $rs_files; do
+        if git diff --cached -- "$file" | grep -E '^\+\s*pub fn [a-z_]+\(' > /dev/null; then
+            if ! git diff --cached -- "$file" | grep -B1 '^\+\s*pub fn [a-z_]+\(' | grep -E '^\+\s*///' > /dev/null; then
+                warn "$file: new pub fn added without doc comment"
+            fi
+        fi
+    done
+}
+
+# Only check if in a crate (not at workspace root)
+if [ -f "Cargo.toml" ] && ! grep -q '^\[workspace\]' Cargo.toml; then
+    check_docs
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Summary
+# ─────────────────────────────────────────────────────────────────────────────
+
+echo ""
+echo "─────────────────────────────────────────────────────────────────────"
+
+if [ $FAILED -gt 0 ]; then
+    echo -e "${RED}✗ Pre-commit gate FAILED ($FAILED critical issues)${NC}"
+    echo ""
+    echo "Remediation suggestions:"
+    echo "  • Check Cargo.toml for format/metadata compliance"
+    echo "  • Remove dbg!(), todo!(), unimplemented!() from library code"
+    echo "  • Ensure [lints] defines required deny clauses"
+    echo "  • Clean up backup files (*.rs.backup)"
+    echo ""
+    exit 1
+fi
+
+if [ $WARNINGS -gt 0 ]; then
+    echo -e "${YELLOW}⚠ Pre-commit gate: $WARNINGS warnings (non-blocking)${NC}"
+    echo "  Consider fixing these before pushing to CI"
+    echo ""
+fi
+
+success "Pre-commit gate passed"
+exit 0

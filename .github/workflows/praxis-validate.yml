@@ -1,0 +1,365 @@
+name: Praxis Compliance Gate
+
+# This workflow runs praxis-retrofit compliance validation as a CI gate.
+# It blocks PRs if compliance score drops, provides remediation suggestions,
+# and generates compliance badges/status reports.
+#
+# Integration: Add this workflow to any repo using praxis standards.
+# Configuration: See COMPLIANCE_GATES.md for setup instructions.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  statuses: write
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ============================================================================
+  # COMPLIANCE VALIDATION
+  # Runs praxis-retrofit validate compliance against the current repo
+  # ============================================================================
+  compliance-validate:
+    name: compliance-validate
+    runs-on: ubuntu-latest
+    outputs:
+      compliance-score: ${{ steps.validate.outputs.score }}
+      is-compliant: ${{ steps.validate.outputs.is_compliant }}
+      report-json: ${{ steps.validate.outputs.report_json }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Install praxis-retrofit tool
+      - name: Install praxis-retrofit
+        run: |
+          cargo install praxis-retrofit --locked
+          praxis-retrofit --version
+
+      # Run compliance validation
+      - name: Validate compliance
+        id: validate
+        run: |
+          set +e  # Don't fail yet; we want to capture output
+
+          # Run validation and capture output
+          REPORT=$(praxis-retrofit validate compliance "${{ github.workspace }}")
+          EXIT_CODE=$?
+
+          # Extract score from JSON report
+          SCORE=$(echo "$REPORT" | jq -r '.score // "0.0"' 2>/dev/null || echo "0.0")
+          IS_COMPLIANT=$([ "$EXIT_CODE" -eq 0 ] && echo "true" || echo "false")
+
+          # Write outputs for subsequent steps
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "is_compliant=$IS_COMPLIANT" >> $GITHUB_OUTPUT
+          echo "report_json=$REPORT" >> $GITHUB_OUTPUT
+
+          # Print for debugging
+          echo "Compliance Score: $SCORE"
+          echo "Is Compliant: $IS_COMPLIANT"
+
+          exit $EXIT_CODE
+
+      # Upload compliance report as artifact
+      - name: Upload compliance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-report-${{ github.run_id }}
+          path: ${{ steps.validate.outputs.report_json }}
+
+  # ============================================================================
+  # COMPLIANCE GATE (Block PR if compliance drops)
+  # ============================================================================
+  compliance-gate:
+    name: compliance-gate
+    runs-on: ubuntu-latest
+    needs: compliance-validate
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Check compliance score threshold
+      - name: Check compliance threshold
+        id: threshold
+        env:
+          CURRENT_SCORE: ${{ needs.compliance-validate.outputs.compliance-score }}
+          IS_COMPLIANT: ${{ needs.compliance-validate.outputs.is-compliant }}
+        run: |
+          # Minimum compliance score required to pass gate (in percentage)
+          MIN_SCORE=85.0
+
+          # Parse current score
+          CURRENT=$(echo "$CURRENT_SCORE" | awk '{printf "%.1f", $0}')
+
+          echo "Current Score: $CURRENT"
+          echo "Minimum Required: $MIN_SCORE"
+
+          # Check threshold
+          if (( $(echo "$CURRENT < $MIN_SCORE" | bc -l) )); then
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "message=Compliance score $CURRENT% is below minimum threshold $MIN_SCORE%" >> $GITHUB_OUTPUT
+          else
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "message=Compliance score $CURRENT% meets minimum threshold" >> $GITHUB_OUTPUT
+          fi
+
+      # Block PR if compliance drops
+      - name: Set gate status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const result = '${{ steps.threshold.outputs.result }}';
+            const message = '${{ steps.threshold.outputs.message }}';
+
+            if (result === 'fail') {
+              core.setFailed(message);
+
+              // Also set a failing check
+              github.rest.checks.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'Praxis Compliance Gate',
+                head_sha: context.sha,
+                status: 'completed',
+                conclusion: 'failure',
+                output: {
+                  title: 'Compliance Gate Failed',
+                  summary: message,
+                  text: 'Your pull request does not meet the minimum compliance threshold. See the remediation suggestions in the PR comment below.'
+                }
+              });
+            } else {
+              // Set passing check
+              github.rest.checks.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'Praxis Compliance Gate',
+                head_sha: context.sha,
+                status: 'completed',
+                conclusion: 'success',
+                output: {
+                  title: 'Compliance Gate Passed',
+                  summary: message,
+                  text: 'Your pull request meets the compliance threshold.'
+                }
+              });
+            }
+
+  # ============================================================================
+  # REMEDIATION SUGGESTIONS (Auto-comment on PR with fix recommendations)
+  # ============================================================================
+  remediation-suggestions:
+    name: remediation-suggestions
+    runs-on: ubuntu-latest
+    needs: compliance-validate
+    if: github.event_name == 'pull_request' && needs.compliance-validate.outputs.is-compliant == 'false'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Generate remediation suggestions
+      - name: Generate remediation comment
+        id: remediation
+        env:
+          REPORT_JSON: ${{ needs.compliance-validate.outputs.report_json }}
+        run: |
+          cat > /tmp/remediation.md << 'EOF'
+          ## 🔧 Praxis Compliance Remediation Suggestions
+
+          Your repository does not fully meet praxis compliance standards. Here are the recommended steps to fix:
+
+          EOF
+
+          # Parse report and generate suggestions (this is a simplified version)
+          # In practice, you would parse the JSON report and generate specific suggestions
+
+          echo "Check the compliance report artifact for detailed findings." >> /tmp/remediation.md
+
+          cat /tmp/remediation.md > remediation.txt
+          cat remediation.txt >> $GITHUB_OUTPUT
+
+      # Post comment to PR with remediation steps
+      - name: Post remediation comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read remediation content
+            const message = `## 🔧 Praxis Compliance Remediation Suggestions
+
+Your repository does not fully meet praxis compliance standards. Here are the recommended remediation steps:
+
+### Failing Compliance Checks
+
+See the compliance report artifact (\`compliance-report-${{ github.run_id }}\`) for the full details.
+
+### Quick Fixes
+
+1. **Review the compliance report** - Download from the artifacts section
+2. **Run locally** - \`praxis-retrofit audit report .\` to see the full analysis
+3. **Apply corrections** - \`praxis-retrofit apply retrofit .\` to auto-apply fixes
+4. **Validate** - \`praxis-retrofit validate compliance .\` to verify
+
+### Common Issues
+
+- **Missing [lints]** - Add workspace linting configuration to Cargo.toml
+- **No deny.toml** - Copy the template from the praxis repository
+- **Missing typos.toml** - Configure spell-check rules
+- **Outdated CI** - Update .github/workflows to match praxis standards
+- **Incomplete docs** - Ensure CONTRIBUTING.md and SECURITY.md are present
+
+### Need Help?
+
+- 📚 [Praxis Retrofit Documentation](../COMPLIANCE_GATES.md)
+- 🔗 [Praxis Standards](https://github.com/seanchatmangpt/praxis)
+- 💬 Comment below with questions
+
+_Generated by Praxis Compliance Gate_`;
+
+            // Find existing compliance comment to update it
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.find(c => c.body.includes('🔧 Praxis Compliance Remediation'));
+
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: message,
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: message,
+              });
+            }
+
+  # ============================================================================
+  # COMPLIANCE BADGE (Report status)
+  # ============================================================================
+  compliance-badge:
+    name: compliance-badge
+    runs-on: ubuntu-latest
+    needs: compliance-validate
+    if: always()
+    steps:
+      - name: Determine badge color
+        id: badge
+        env:
+          SCORE: ${{ needs.compliance-validate.outputs.compliance-score }}
+        run: |
+          SCORE_VAL=$(echo "$SCORE" | awk '{printf "%.0f", $0}')
+
+          if [ "$SCORE_VAL" -ge 90 ]; then
+            COLOR="green"
+            LABEL="Excellent"
+          elif [ "$SCORE_VAL" -ge 75 ]; then
+            COLOR="yellow"
+            LABEL="Good"
+          else
+            COLOR="red"
+            LABEL="Needs Work"
+          fi
+
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+          echo "label=$LABEL" >> $GITHUB_OUTPUT
+          echo "score=$SCORE_VAL" >> $GITHUB_OUTPUT
+
+      # Create badge SVG
+      - name: Generate badge
+        id: badge-gen
+        env:
+          COLOR: ${{ steps.badge.outputs.color }}
+          LABEL: ${{ steps.badge.outputs.label }}
+          SCORE: ${{ steps.badge.outputs.score }}
+        run: |
+          cat > compliance-badge.svg << 'EOF'
+          <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="140" height="20" role="img" aria-label="compliance: ${{ env.SCORE }}%">
+            <title>compliance: ${{ env.SCORE }}%</title>
+            <linearGradient id="s" x2="0" y2="100%">
+              <stop offset="0" stop-color="#bbb"/>
+              <stop offset="1" stop-color="#999"/>
+            </linearGradient>
+            <clipPath id="r">
+              <rect width="140" height="20" rx="3" fill="#fff"/>
+            </clipPath>
+            <g clip-path="url(#r)">
+              <rect width="84" height="20" fill="#555"/>
+              <rect x="84" width="56" height="20" fill="${{ env.COLOR }}"/>
+              <rect width="140" height="20" fill="url(#s)"/>
+            </g>
+            <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
+              <text aria-hidden="true" x="430" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="740">compliance</text>
+              <text x="430" y="140" transform="scale(.1)" fill="#fff" textLength="740">compliance</text>
+              <text aria-hidden="true" x="1110" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="460">${{ env.SCORE }}% - ${{ env.LABEL }}</text>
+              <text x="1110" y="140" transform="scale(.1)" fill="#fff" textLength="460">${{ env.SCORE }}% - ${{ env.LABEL }}</text>
+            </g>
+          </svg>
+          EOF
+
+          cat compliance-badge.svg
+
+      # Upload badge artifact
+      - name: Upload badge
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-badge
+          path: compliance-badge.svg
+
+  # ============================================================================
+  # SUMMARY (Print final status)
+  # ============================================================================
+  summary:
+    name: summary
+    runs-on: ubuntu-latest
+    needs: [compliance-validate, compliance-gate]
+    if: always()
+    steps:
+      - name: Print compliance summary
+        env:
+          SCORE: ${{ needs.compliance-validate.outputs.compliance-score }}
+          IS_COMPLIANT: ${{ needs.compliance-validate.outputs.is-compliant }}
+        run: |
+          echo "=========================================="
+          echo "Praxis Compliance Summary"
+          echo "=========================================="
+          echo "Compliance Score: ${{ env.SCORE }}%"
+          echo "Is Compliant: ${{ env.IS_COMPLIANT }}"
+          echo "=========================================="
