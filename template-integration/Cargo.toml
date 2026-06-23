@@ -1,0 +1,20 @@
+[package]
+name = "{{project-name}}-integration"
+version = "26.6.0"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT OR Apache-2.0"
+description = "Integration test harness for {{project-name}}"
+publish = false
+
+[dev-dependencies]
+# Crate under test — adjust path or registry name as needed:
+# {{project-name}} = { path = ".." }
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+serial_test = "3"
+tempfile = "3"
+
+[[test]]
+name = "integration"
+path = "tests/integration_test.rs"

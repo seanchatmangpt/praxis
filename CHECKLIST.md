@@ -6,16 +6,20 @@ worked reference example (done in-session on branch `claude/jolly-turing-t488iq`
 
 ## Procedure per repo
 
-1. `apply.sh .` to drop in the agnostic hygiene files (it prints what it skipped).
+1. `apply.sh <repo>` to drop in the hygiene files (prints what it skipped/applied).
+   - Add `--wasm` for WASM crates (or let it auto-detect from Cargo.toml).
+   - Add `--integration` if the repo needs Docker-backed integration tests.
+   - Add `--mcp` for MCP server repos.
+   - Add `--check` in CI to gate on praxis conformance (exits 1 if anything is missing).
 2. Cargo.toml: fix `repository`/`homepage` to `seanchatmangpt/<repo>`, set
    `license = "MIT OR Apache-2.0"`, `edition = "2021"`, `rust-version = "1.82"`,
    trim `keywords`<=5 / `categories`<=5, add the `[lints]`/`[workspace.lints]` block.
 3. `cargo clippy --all-targets --all-features -- -D warnings` and fix fallout
    (expect `todo!`/`unwrap` hits — that's the point).
-4. Add `CLAUDE.md`/`CONTRIBUTING.md`/`CHANGELOG.md`/`SECURITY.md` if missing.
-5. `just ci` green, commit on a branch, open a PR with the template.
+4. `just ci` green, commit on a branch, open a PR with the template.
 
-`[A]` = safe/automatic (apply.sh or mechanical). `[H]` = needs a human decision.
+`[A]` = safe/automatic (apply.sh detects/copies or mechanical). `[H]` = human decision.
+`[AUTO]` = apply.sh audit detects and reports (still needs human to fix the root cause).
 
 ## Every repo gets (the cheap, near-universal wins)
 
@@ -78,3 +82,45 @@ Deliberately left for human judgment (documented, not done):
 - `[H]` Triage the 16 `src/1000x_*.rs` modules (non-conventional names) and the
   root one-off Python generators (`gen_thesis.py`, etc.).
 - `[H]` MSRV bump 1.78→1.82 and nightly→pinned-stable swap (will change CI signal).
+
+---
+
+## WASM checklist (required when `target_arch = "wasm32"` is present)
+
+Run `apply.sh <repo> --wasm` — it auto-detects WASM from Cargo.toml and src/*.
+
+- `[AUTO]` Verify `[profile.release]` does NOT have `strip = true` for WASM crates.
+  **apply.sh detects this (WASM-1).** Fix: remove `strip = true`; use `just build-opt`
+  (wasm-opt -Os) instead. Source: survey/01-SECOND-WAVE.md BUG-1.
+- `[AUTO]` Verify `[target.'cfg(target_arch = "wasm32")'.dependencies]` sets
+  `getrandom { features = ["js"] }` (and `uuid { features = ["js"] }` if used).
+  **apply.sh warns if getrandom is present without the js feature (WASM-2).**
+- `[H]` Replace `HashMap` with `BTreeMap` in WASM-exposed types.
+  Hash randomization makes WASM guest output non-deterministic.
+- `[AUTO]` Confirm `console_error_panic_hook::set_once()` is called in
+  `#[wasm_bindgen(start)]`. **apply.sh warns if not found in src/ (WASM-3).**
+- `[H]` Use handle-based API (`Store<T>` from `template-wasm/`) rather than raw pointer
+  passing to JS. No `unsafe` required.
+- `[A]` Build with `wasm-pack build --target web --release` and verify binary loads in
+  a browser or `wasm-bindgen-test` runner before shipping.
+
+## Anti-patterns checklist
+
+Run `apply.sh <repo>` — the audit section reports ANTI-1/2/3/5 automatically.
+
+- `[AUTO]` Verify `.cargo/config.toml` does **not** suppress lints via `RUSTFLAGS`.
+  **apply.sh detects `-A clippy::*` / `--allow` in `.cargo/config.toml` (ANTI-1).**
+  Fix: move lint allows to `[workspace.lints.clippy]` with justification comments.
+- `[AUTO]` If `rust-toolchain.toml` pins `channel = "nightly"`, apply.sh warns (ANTI-2).
+  Fix: pin to `nightly-YYYY-MM-DD` or switch to stable `1.82.0`. Document which
+  nightly feature(s) require it in CLAUDE.md. Use stable for all jobs except `cargo fmt`
+  where nightly formatter options are needed.
+- `[AUTO]` apply.sh scans Cargo.toml and Cargo.lock for `proc-macro-error` (ANTI-3).
+  **RUSTSEC-2024-0370 — unmaintained.** Fix: migrate to `proc-macro-error2` or `manyhow`.
+  `cargo deny check` will also catch this once deny.toml is in place.
+- `[H]` Review open issues for self-filed `todo!()` stub admissions. Close any that
+  are fully covered by the `deny(todo)` lint or where a concrete plan now exists
+  in CLAUDE.md (ANTI-4). Not detectable automatically.
+- `[AUTO]` apply.sh checks all workspace member `Cargo.toml` files for
+  `lints.workspace = true` (ANTI-5). Fix: add `[lints]\nworkspace = true` to each
+  member that is missing it.

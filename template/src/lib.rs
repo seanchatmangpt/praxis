@@ -6,15 +6,14 @@ pub mod chain;
 pub mod cli;
 pub mod error;
 pub mod types;
+pub mod validation;
+pub mod discovery;
 
 #[cfg(feature = "otel")]
 pub mod telemetry;
 
 #[cfg(feature = "lsp")]
 pub mod lsp;
-
-#[cfg(feature = "discovery")]
-pub mod discovery;
 
 pub mod repl;
 

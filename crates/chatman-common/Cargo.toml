@@ -21,6 +21,8 @@ blake3 = { version = "1", optional = true }
 tempfile = { version = "3", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 opentelemetry = { version = "0.22", optional = true }
+ed25519-dalek = { version = "2", features = ["serde", "rand_core"], optional = true }
+rand_core = { version = "0.6", features = ["getrandom"], optional = true }
 
 [features]
 default = []
@@ -29,5 +31,8 @@ telemetry = ["dep:tracing", "dep:tracing-subscriber"]
 otel = ["telemetry", "dep:opentelemetry"]
 cli = ["dep:clap", "telemetry", "dep:serde", "dep:serde_json"]
 provenance = ["dep:blake3"]
-testkit = ["dep:tempfile"]
-full = ["serde", "telemetry", "cli", "provenance", "testkit"]
+testkit = ["dep:tempfile", "dep:serde", "dep:serde_json"]
+living-docs = ["testkit", "dep:blake3"]
+signed-receipts = ["dep:ed25519-dalek", "dep:rand_core", "dep:blake3", "dep:serde", "dep:serde_json"]
+git-runtime = ["dep:serde", "dep:serde_json", "dep:blake3", "dep:tempfile"]
+full = ["serde", "telemetry", "cli", "provenance", "testkit", "living-docs", "signed-receipts", "git-runtime"]

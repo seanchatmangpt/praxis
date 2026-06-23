@@ -32,7 +32,25 @@ allow = [
     "CC0-1.0",
 ]
 confidence-threshold = 0.9
-exceptions = []
+[[licenses.exceptions]]
+# wasm4pm is a first-party seanchatmangpt repo using BUSL-1.1 / BSL-1.1.
+# Not redistributed; source available under business-source terms.
+# See https://mariadb.com/bsl11/ for license text.
+allow = ["BUSL-1.1"]
+name = "wasm4pm"
+version = "*"
+
+[[licenses.exceptions]]
+# dteam is a first-party seanchatmangpt repo using BUSL-1.1 / BSL-1.1.
+allow = ["BUSL-1.1"]
+name = "dteam"
+version = "*"
+
+[[licenses.exceptions]]
+# miniml is a first-party seanchatmangpt repo using BUSL-1.1 / BSL-1.1.
+allow = ["BUSL-1.1"]
+name = "miniml"
+version = "*"
 
 [bans]
 multiple-versions = "warn"

@@ -136,6 +136,38 @@ update:
 hollow-gate:
     cargo run --manifest-path tools/hollow-gate/Cargo.toml --quiet
 
+# ── CI Integrity Tooling ──────────────────────────────────────────────────────
+
+# Verify that cicd.toml required_jobs are all present in .github/workflows/ci.yml.
+ci-shape-check:
+    python3 scripts/ci-shape-check.py
+
+# Scan for human-only patterns (from anti-llm.toml) in recent AI-authored commits.
+# Warns but does not fail by default — use ANTI_LLM_ENFORCE=1 for hard failure.
+anti-llm-check:
+    bash scripts/anti-llm-check.sh {{ if env_var_or_default("ANTI_LLM_ENFORCE", "0") == "1" { "" } else { "--warn-only" } }}
+
+# Comprehensive health-check dashboard: ci-shape, anti-llm, deny, typos.
+doctor:
+    @echo ""
+    @echo "════════════════════════════════════"
+    @echo " praxis doctor — health check"
+    @echo "════════════════════════════════════"
+    @echo ""
+    @echo "── 1/4  CI shape check ─────────────"
+    -python3 scripts/ci-shape-check.py
+    @echo "── 2/4  Anti-LLM integrity ─────────"
+    -bash scripts/anti-llm-check.sh --warn-only
+    @echo "── 3/4  Supply-chain (cargo deny) ──"
+    -cargo deny check
+    @echo "── 4/4  Spell-check (typos) ────────"
+    -typos
+    @echo ""
+    @echo "════════════════════════════════════"
+    @echo " doctor complete — review any [FAIL] lines above"
+    @echo "════════════════════════════════════"
+    @echo ""
+
 # ── Pre-commit & CI ───────────────────────────────────────────────────────────
 
 # Quick local gate: fmt-check + lint + unit tests.
@@ -182,3 +214,71 @@ chain *CMDS:
 # Remove build artifacts.
 clean:
     cargo clean
+
+# ── Living Documentation ──────────────────────────────────────────────────────
+
+# Regenerate living test documentation from tests.
+docs-test:
+    UPDATE_GOLDEN=1 cargo test --features living-docs -- --test-threads=1
+    @echo "docs/test/ updated — commit the changes."
+
+# Verify living docs match committed artifacts (CI equivalent).
+docs-verify:
+    cargo test --features living-docs -- --test-threads=1
+
+# ── Changelog ─────────────────────────────────────────────────────────────────
+
+# Generate CHANGELOG.md from conventional commits (needs git-cliff).
+changelog:
+    git cliff --output CHANGELOG.md
+    @echo "CHANGELOG.md updated — review and commit."
+
+# Preview unreleased changelog entries.
+changelog-preview:
+    git cliff --unreleased
+
+# ── Signed Receipts ──────────────────────────────────────────────────────────
+
+# Generate a new ed25519 signing key pair and print both keys.
+# Store the SIGNING KEY in PRAXIS_SIGNING_KEY (or a key file); distribute the
+# VERIFYING KEY to anyone who needs to verify receipts.
+keygen:
+    @cargo run --features signed-receipts --example keygen 2>/dev/null || \
+     cargo test --features signed-receipts --lib -- signed_receipt::tests::keygen_produces_valid_hex_keys --nocapture 2>/dev/null || \
+     echo "Run: cargo test --features signed-receipts -- signed_receipt 2>&1"
+
+# Sign a receipt JSON file using the key in PRAXIS_SIGNING_KEY.
+# Usage: PRAXIS_SIGNING_KEY=<hex> just receipt-sign <path/to/receipt.json>
+# Writes <path/to/receipt.signed.json> with the SignedReceipt envelope.
+receipt-sign file:
+    @test -n "${PRAXIS_SIGNING_KEY:-}" || (echo "ERROR: PRAXIS_SIGNING_KEY is not set. Run 'just keygen' to generate a key pair." && exit 1)
+    @test -f "{{file}}" || (echo "ERROR: receipt file not found: {{file}}" && exit 1)
+    @jq -r '.chain_hash' "{{file}}" | tr -d '\n' > /tmp/_receipt_hash.txt
+    @HASH=$$(cat /tmp/_receipt_hash.txt); \
+     KEY=$$PRAXIS_SIGNING_KEY; \
+     echo "{\"chain_hash\":\"$$HASH\",\"key\":\"$$KEY\"}" | \
+     cargo run --features signed-receipts --example sign_receipt 2>/dev/null || \
+     echo "Implement examples/sign_receipt.rs or use chatman_common::signed_receipt::sign() directly."
+    @rm -f /tmp/_receipt_hash.txt
+
+# ── Miri ─────────────────────────────────────────────────────────────────────
+
+# Run Miri UB-check (needs nightly + miri component).
+miri:
+    cargo +nightly miri test --workspace
+
+# ── Git-as-Runtime ────────────────────────────────────────────────────────────
+
+# Run tests and, on success, append a receipt JSON to git notes (praxis/audit).
+# Uses `git notes --ref=praxis/audit append` for an immutable NDJSON audit trail.
+# Requires git and a valid HEAD commit in the current repository.
+receipt-commit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cargo test --workspace --all-features
+    HEAD_SHA=$(git rev-parse HEAD)
+    TIMESTAMP=$(date -u +%s)
+    RECEIPT=$(printf '{"timestamp":%s,"event_type":"test.completed","head":"%s","passed":true}' \
+        "$TIMESTAMP" "$HEAD_SHA")
+    git notes --ref=praxis/audit append --allow-empty -m "$RECEIPT" HEAD
+    echo "Receipt appended to git notes (refs/notes/praxis/audit) on $HEAD_SHA"
