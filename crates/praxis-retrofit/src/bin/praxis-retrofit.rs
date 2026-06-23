@@ -1,6 +1,5 @@
 //! Praxis Retrofit CLI - Automate standardization across Rust ecosystem
 
-use clap_noun_verb::Cli;
 use praxis_retrofit::{
     audit, apply, generate, validate, RetrofitPhase, PraxisSpec, VERSION,
 };
@@ -51,7 +50,7 @@ async fn handle_audit(args: &[String], spec: &PraxisSpec) -> anyhow::Result<()> 
     let action = &args[2];
     let repo_path = PathBuf::from(&args[3]);
 
-    match action {
+    match action.as_str() {
         "scan" => {
             let report = audit::scan_repository(&repo_path, spec).await?;
             println!("Audit Report: {}", serde_json::to_string_pretty(&report)?);
@@ -80,7 +79,7 @@ async fn handle_apply(args: &[String], spec: &PraxisSpec) -> anyhow::Result<()> 
     let action = &args[2];
     let repo_path = PathBuf::from(&args[3]);
 
-    match action {
+    match action.as_str() {
         "retrofit" => {
             let plan = generate::generate_retrofit_plan(&repo_path, RetrofitPhase::Phase1Lints, spec)?;
             let results = apply::apply_retrofit(&repo_path, &plan).await?;
@@ -107,7 +106,7 @@ async fn handle_generate(args: &[String], spec: &PraxisSpec) -> anyhow::Result<(
 
     let action = &args[2];
 
-    match action {
+    match action.as_str() {
         "templates" => {
             println!("# Praxis Templates\n");
             println!("## Cargo.toml [lints]");
@@ -141,7 +140,7 @@ async fn handle_validate(args: &[String]) -> anyhow::Result<()> {
     let action = &args[2];
     let repo_path = PathBuf::from(&args[3]);
 
-    match action {
+    match action.as_str() {
         "compliance" => {
             let report = validate::validate_compliance(&repo_path).await?;
             println!("Compliance Score: {:.1}%", report.score());

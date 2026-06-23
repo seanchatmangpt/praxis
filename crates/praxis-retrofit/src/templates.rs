@@ -3,7 +3,7 @@
 use crate::PraxisSpec;
 
 /// Template for Cargo.toml [lints] block
-pub fn cargo_lints_template(spec: &PraxisSpec) -> String {
+pub fn cargo_lints_template(_spec: &PraxisSpec) -> String {
     format!(
         r#"[lints.rust]
 unsafe_code = "forbid"
@@ -320,6 +320,8 @@ check-files = true
 "Refractions" = "Refractions"
 "refractions" = "refractions"
 "#
+    .to_string()
+}
 
 pub fn justfile_template(crate_name: &str) -> String {
     format!(

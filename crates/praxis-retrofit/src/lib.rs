@@ -27,7 +27,10 @@ pub mod error;
 pub mod models;
 
 pub use error::{RetrofitError, Result};
-pub use models::{ComplianceReport, RetrofitPlan, RepositoryMetadata};
+pub use models::{
+    ComplianceReport, RetrofitPlan, RepositoryMetadata, RetrofitPhase, RiskLevel,
+    ComplianceStatus, ComplianceCategory,
+};
 
 /// Current praxis retrofit version (CalVer)
 pub const VERSION: &str = "26.6.0";
