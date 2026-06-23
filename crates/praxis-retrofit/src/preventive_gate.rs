@@ -55,7 +55,7 @@ pub struct ValidationResult {
     pub severity: Severity,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ValidateCategory {
     Versioning,
     Licensing,
@@ -546,7 +546,7 @@ impl GateValidator {
         }
 
         // Parse as integers
-        for part in parts {
+        for part in &parts {
             if part.parse::<u32>().is_err() {
                 return false;
             }

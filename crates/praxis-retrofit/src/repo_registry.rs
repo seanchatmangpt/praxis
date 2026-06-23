@@ -261,10 +261,10 @@ impl RepositoryRegistry {
     pub async fn load(path: impl AsRef<std::path::Path>) -> crate::Result<Self> {
         let contents = tokio::fs::read_to_string(path)
             .await
-            .map_err(|e| crate::RetrofitError::IoError(format!("Failed to read repos.toml: {}", e)))?;
+            .map_err(|e| crate::RetrofitError::ConfigError(format!("Failed to read repos.toml: {}", e)))?;
 
         let parsed: RegistryDocument = toml::from_str(&contents)
-            .map_err(|e| crate::RetrofitError::ParseError(format!("Failed to parse repos.toml: {}", e)))?;
+            .map_err(|e| crate::RetrofitError::ConfigError(format!("Failed to parse repos.toml: {}", e)))?;
 
         Ok(parsed.into_registry())
     }
@@ -280,28 +280,28 @@ impl RepositoryRegistry {
     }
 
     /// Filters repos by retrofit readiness status.
-    pub fn filter_by_readiness(&self, status: &str) -> impl Iterator<Item = &RepositoryEntry> {
-        self.repos.values().filter(move |r| r.retrofit_readiness == status)
+    pub fn filter_by_readiness(&self, status: &str) -> Vec<&RepositoryEntry> {
+        self.repos.values().filter(|r| r.retrofit_readiness == status).collect()
     }
 
     /// Filters repos by retrofit phase completion.
-    pub fn filter_by_phase(&self, phase: u8) -> impl Iterator<Item = &RepositoryEntry> {
-        self.repos.values().filter(move |r| r.retrofit_phase_complete == phase)
+    pub fn filter_by_phase(&self, phase: u8) -> Vec<&RepositoryEntry> {
+        self.repos.values().filter(|r| r.retrofit_phase_complete == phase).collect()
     }
 
     /// Filters repos by risk level.
-    pub fn filter_by_risk(&self, level: &str) -> impl Iterator<Item = &RepositoryEntry> {
-        self.repos.values().filter(move |r| r.risk_level == level)
+    pub fn filter_by_risk(&self, level: &str) -> Vec<&RepositoryEntry> {
+        self.repos.values().filter(|r| r.risk_level == level).collect()
     }
 
     /// Filters repos by maintainer status.
-    pub fn filter_by_status(&self, status: &str) -> impl Iterator<Item = &RepositoryEntry> {
-        self.repos.values().filter(move |r| r.maintainer_status == status)
+    pub fn filter_by_status(&self, status: &str) -> Vec<&RepositoryEntry> {
+        self.repos.values().filter(|r| r.maintainer_status == status).collect()
     }
 
     /// Filters repos by workspace type.
-    pub fn filter_by_workspace_type(&self, wtype: &str) -> impl Iterator<Item = &RepositoryEntry> {
-        self.repos.values().filter(move |r| r.workspace_type == wtype)
+    pub fn filter_by_workspace_type(&self, wtype: &str) -> Vec<&RepositoryEntry> {
+        self.repos.values().filter(|r| r.workspace_type == wtype).collect()
     }
 
     /// Returns all repos sorted by priority score (highest first).
@@ -347,7 +347,7 @@ impl RepositoryRegistry {
             &self.metadata.secondary_order,
             &self.metadata.tertiary_order,
         ] {
-            for name in order_list {
+            for name in order_list.iter() {
                 if let Some(repo) = self.get(name) {
                     result.push(repo);
                 }
@@ -405,13 +405,13 @@ impl RepositoryRegistry {
 
     /// Generates a summary report of ecosystem readiness.
     pub fn readiness_summary(&self) -> String {
-        let ready = self.filter_by_readiness("ready").count();
-        let prep = self.filter_by_readiness("requires-prep").count();
-        let blocked = self.filter_by_readiness("blocked").count();
+        let ready = self.filter_by_readiness("ready").len();
+        let prep = self.filter_by_readiness("requires-prep").len();
+        let blocked = self.filter_by_readiness("blocked").len();
 
-        let low_risk = self.filter_by_risk("low").count();
-        let med_risk = self.filter_by_risk("medium").count();
-        let high_risk = self.filter_by_risk("high").count();
+        let low_risk = self.filter_by_risk("low").len();
+        let med_risk = self.filter_by_risk("medium").len();
+        let high_risk = self.filter_by_risk("high").len();
 
         let total_effort: f32 = self.repos.values()
             .map(|r| r.estimated_effort_weeks())
