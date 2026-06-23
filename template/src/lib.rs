@@ -19,4 +19,7 @@ pub mod discovery;
 pub mod repl;
 
 pub use error::AppError;
-pub use types::{Blake3Hash, ObjectRef, canonical_bytes};
+pub use types::{
+    Blake3Hash, ObjectRef, ONTOLOGY_VERB_IDS, Pending, ReceiptRefusal, Rejected, Sealed,
+    State, Verified, assert_unique_ids, canonical_bytes,
+};

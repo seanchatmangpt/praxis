@@ -1,0 +1,5 @@
+error[E0451]: field `_seal` of struct `SealedReceipt` is private
+  --> tests/compile/fail/seal_forgery.rs:21:56
+   |
+21 |     let _r = sealed_domain::SealedReceipt { chain_hash: "abc".into(), _seal: () };
+   |                                                                        ^^^^^^^^^^ private field

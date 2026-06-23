@@ -33,9 +33,15 @@
 │   └── verbs/          # One file per CLI subcommand
 │       ├── mod.rs
 │       └── <verb>.rs
-├── tests/              # Integration tests (CLI round-trips, property tests)
+├── tests/
+│   ├── compile_tests.rs             # trybuild ALIVE gate
+│   └── compile/
+│       ├── pass/                    # compile-pass fixtures
+│       └── fail/                    # compile-fail fixtures + .stderr snapshots
 ├── benches/            # Criterion benchmarks
 ├── examples/           # Runnable demonstrations (`cargo run --example`)
+├── ontology/
+│   └── domain.ttl      # RDF domain ontology — source of truth for ggen
 ├── justfile            # Task runner (source of truth for all commands)
 ├── Cargo.toml
 ├── rust-toolchain.toml # Pinned stable toolchain
@@ -206,6 +212,188 @@ let r = assembler.finalize()?;
 Apply the seal pattern to any value that must pass through a validation or hashing
 stage before it can be trusted. Users get public read access to fields but cannot
 fabricate the type.
+
+### Full Typestate Pattern (`State<S>`)
+
+When a domain object must progress through distinct phases (e.g., Pending →
+Verified → Rejected) and incorrect phase usage should be a *compile-time* error,
+use the full typestate pattern with a private `Sealed` supertrait:
+
+```rust
+// src/types.rs
+
+mod sealed {
+    mod private {
+        pub trait Sealed {}
+    }
+
+    // This trait is NOT re-exported from the crate root.
+    // Downstream code cannot implement it.
+    pub trait Sealed: private::Sealed {}
+
+    pub struct Pending;
+    impl Sealed for Pending {}
+    impl private::Sealed for Pending {}
+
+    pub struct Verified;
+    impl Sealed for Verified {}
+    impl private::Sealed for Verified {}
+}
+
+pub use sealed::{Pending, Sealed, Verified};
+
+pub struct State<S: Sealed> {
+    _state: std::marker::PhantomData<S>,
+}
+
+impl State<Pending> {
+    pub fn new() -> Self { State { _state: std::marker::PhantomData } }
+    pub fn transition(self) -> State<Verified> {
+        State { _state: std::marker::PhantomData }
+    }
+}
+```
+
+Usage — the type system enforces the state machine:
+
+```rust
+use crate::types::{State, Pending, Verified};
+
+fn verify(s: State<Pending>) -> State<Verified> { s.transition() }
+
+let pending: State<Pending> = State::new();
+let verified: State<Verified> = verify(pending);
+
+// Compile error — E0308: State<Verified> ≠ State<Pending>:
+// verify(verified);
+
+// Compile error — E0599: no method `transition` on State<Verified>:
+// verified.transition();
+
+// Compile error — E0277: MySpy does not implement sealed::private::Sealed:
+// impl Sealed for MySpy {}
+```
+
+The double-module trick (`mod sealed { mod private { ... } }`) is the key: the
+inner `private::Sealed` supertrait is completely unnameable outside `types`, so
+nobody can add a new state marker or forge a `State<T>` for any `T` not defined
+here.  This is the "full typestate" variant documented as INN-1 in the second-wave
+survey (`wasm4pm-compat`).
+
+**When to use full typestate vs. basic seal:**
+
+| Situation | Use |
+|---|---|
+| One valid construction path, no phases | Basic `_seal: ()` |
+| Multiple lifecycle phases, transitions must be enforced | Full `State<S: Sealed>` |
+| External crates must never add new states | Full typestate (private supertrait) |
+
+### Named Refusal Enums
+
+Domain errors must be **named enums**, never bare `String`s or `anyhow::Error::msg`
+calls.  Named variants make error handling exhaustive and let tests use `assert_eq!`:
+
+```rust
+// WRONG — loses structure at the call site:
+return Err(anyhow::Error::msg("seq out of order"));
+
+// RIGHT — caller can match on the variant, tests can assert_eq!:
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
+pub enum ReceiptRefusal {
+    #[error("seq out of order: got {got}, expected {expected}")]
+    SeqOutOfOrder { got: u32, expected: u32 },
+
+    #[error("empty or blank event_id")]
+    EmptyEventId,
+}
+
+return Err(ReceiptRefusal::SeqOutOfOrder { got: seq, expected: next });
+```
+
+```rust
+// In tests — no string parsing needed:
+assert_eq!(admit(5, 0), Err(ReceiptRefusal::SeqOutOfOrder { got: 5, expected: 0 }));
+```
+
+Every domain boundary gets its own `*Refusal` or `*Error` enum.  `AppError` in
+`error.rs` wraps these for the top-level binary; library code returns the domain
+enum directly.
+
+### Compile-Time Ontology KEY Uniqueness (`assert_unique_ids`)
+
+Every verb/class declared in `ontology/domain.ttl` must have a unique ID.
+Duplicates are caught at **compile time** — not at test time, not at runtime —
+using a `const fn` check:
+
+```rust
+// src/types.rs
+
+pub const fn assert_unique_ids(ids: &[&str]) -> () {
+    // O(n²) byte-by-byte comparison — runs only during compilation
+    // Panics at compile time if any two IDs are identical
+}
+
+pub const ONTOLOGY_VERB_IDS: &[&str] = &[
+    "dom:build",
+    "dom:test",
+    "dom:deploy",
+    "dom:verify",
+    // Add new IDs here when adding new verbs to domain.ttl
+];
+
+// This line causes a build failure if any ID appears twice:
+const _: () = assert_unique_ids(ONTOLOGY_VERB_IDS);
+```
+
+When you add a new verb to `domain.ttl`, add its `dom:verbId` to
+`ONTOLOGY_VERB_IDS` and re-run `cargo check`.  A duplicate is caught immediately:
+
+```
+error[E0080]: evaluation of constant value failed
+  --> src/types.rs:419:5
+   |
+   = note: duplicate ontology ID detected — every ID must be globally unique
+```
+
+### trybuild ALIVE Gate
+
+The `tests/compile_tests.rs` suite uses [`trybuild`](https://crates.io/crates/trybuild)
+to verify that the type system rejects exactly what it should.  It is called the
+"ALIVE" gate because if any fixture starts compiling when it should fail (or vice
+versa), the gate turns red.
+
+```bash
+# Run the ALIVE gate:
+cargo test --test compile_tests
+
+# Regenerate .stderr snapshots after a Rust version upgrade:
+TRYBUILD=overwrite cargo test --test compile_tests
+```
+
+**Fixture layout:**
+
+```
+tests/
+├── compile_tests.rs           # Registers all fixtures with trybuild
+└── compile/
+    ├── pass/                  # Must compile with no errors
+    │   ├── seal_via_builder.rs
+    │   ├── typestate_transition.rs
+    │   ├── refusal_eq.rs
+    │   └── unique_ids_ok.rs
+    └── fail/                  # Must produce the error in the .stderr file
+        ├── seal_forgery.rs    + seal_forgery.stderr
+        ├── typestate_wrong_state.rs + typestate_wrong_state.stderr
+        └── sealed_impl_forgery.rs  + sealed_impl_forgery.stderr
+```
+
+**Adding a new compile-fail fixture:**
+
+1. Create `tests/compile/fail/<name>.rs` with code that should not compile.
+2. Run `TRYBUILD=overwrite cargo test --test compile_tests` to capture the
+   expected `.stderr` snapshot.
+3. Commit both the `.rs` and `.stderr` files.
+4. Add `t.compile_fail("tests/compile/fail/<name>.rs");` to `compile_tests.rs`.
 
 ### linkme distributed_slice (full example)
 
@@ -458,7 +646,18 @@ This mirrors CI:
    a specific reason not to.
 3. If the type must be sealed, add a private `_seal: ()` field and expose a
    `pub(crate) fn seal(...)` constructor called only from the canonical builder.
-4. Add a unit test in the same file.
+4. If the type has lifecycle phases, use `State<S: Sealed>` (full typestate).
+5. If the type represents a domain rejection, define a named `*Refusal` enum
+   with `#[derive(Debug, PartialEq, Eq, thiserror::Error)]` — never use bare strings.
+6. Add a unit test in the same file.
+
+### Adding a New Ontology Verb
+
+1. Add a `dom:MyVerb` class to `ontology/domain.ttl` with `dom:verbId "dom:my-verb"`.
+2. Add `"dom:my-verb"` to `ONTOLOGY_VERB_IDS` in `src/types.rs`.
+3. Run `cargo check` — the `const _: () = assert_unique_ids(...)` binding will
+   catch any duplicate at compile time.
+4. Run `ggen sync` to regenerate the CLI verb stub in `src/verbs/`.
 
 ### Adding a Plugin Handler
 
@@ -484,6 +683,38 @@ This mirrors CI:
 You are constructing a sealed struct with a struct literal. Use the canonical
 builder (`ChainAssembler::finalize`, `Builder::build`, etc.). The private `_seal`
 field is intentional — it is the compile-time guarantee.
+
+### `E0277` — `Sealed` trait not satisfied
+
+You are trying to implement `Sealed` for a type not defined in `types.rs`, or
+trying to call a function that requires `S: Sealed` with a type parameter that
+is not one of `Pending`, `Verified`, or `Rejected`.  This is the non-forgery
+guarantee of the full typestate pattern.  Only the state markers defined inside
+`types::sealed` can satisfy the bound.
+
+### `E0599` — method not found on `State<S>`
+
+You are calling a lifecycle method (e.g., `transition()`) on a `State` value
+that is in the wrong phase.  `transition()` is only defined on `State<Pending>`.
+Check the state machine diagram in the `State` docs.
+
+### `E0080` — duplicate ontology ID at compile time
+
+You have added a duplicate entry to `ONTOLOGY_VERB_IDS` in `src/types.rs` (or
+the ontology has two verbs with the same `dom:verbId`).  Every ID must be
+globally unique.  Fix: remove or rename the duplicate, then `cargo check`.
+
+### `trybuild` tests fail after Rust upgrade
+
+The `.stderr` snapshot files in `tests/compile/fail/` contain the exact compiler
+output from the toolchain version that generated them.  After upgrading
+`rust-toolchain.toml`, regenerate all snapshots:
+
+```bash
+TRYBUILD=overwrite cargo test --test compile_tests
+git add tests/compile/fail/*.stderr
+git commit -m "chore: update trybuild snapshots for Rust <version>"
+```
 
 ### `just ci` fails on `cargo deny`
 
