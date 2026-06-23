@@ -7,10 +7,8 @@ all-features = true
 
 [advisories]
 version = 2
-# RustSec advisory DB — local cache and upstream URL.
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
-# In schema v2, vulnerability is always denied; these make the policy explicit.
 vulnerability = "deny"
 unmaintained = "warn"
 yanked = "warn"
@@ -19,8 +17,6 @@ ignore = []
 
 [licenses]
 version = 2
-# House policy: permissive licenses only. Copyleft (GPL/AGPL/LGPL) is denied
-# by omission so a transitive copyleft dep fails CI loudly.
 allow = [
     "MIT",
     "Apache-2.0",
@@ -32,18 +28,11 @@ allow = [
     "CC0-1.0",
 ]
 confidence-threshold = 0.9
-[[licenses.exceptions]]
-# wasm4pm, dteam, miniml are first-party seanchatmangpt repos using BUSL-1.1 / BSL-1.1.
-# These are not redistributed; source is available under business-source terms.
-# See https://mariadb.com/bsl11/ for the license text.
-allow = ["BUSL-1.1"]
-name = "wasm4pm"
-version = "*"
+exceptions = []
 
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
-# Path deps within the house ecosystem are allowed to use wildcard versions.
 allow-wildcard-paths = true
 deny = []
 

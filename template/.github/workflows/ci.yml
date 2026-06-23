@@ -108,3 +108,37 @@ jobs:
       - uses: rustsec/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  ci-shape:
+    name: ci-shape
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install just
+        uses: taiki-e/install-action@just
+      - name: Verify CI shape matches cicd.toml
+        run: python3 scripts/ci-shape-check.py
+
+  ci-success:
+    name: CI success
+    runs-on: ubuntu-latest
+    needs: [fmt, clippy, test, doc, msrv, deny, typos, ci-shape]
+    if: always()
+    steps:
+      - name: Require all jobs passed
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          for r in $results; do
+            [ "$r" = "success" ] || exit 1
+          done
+
+  living-docs:
+    name: living-docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82.0
+      - uses: Swatinem/rust-cache@v2
+      - name: Verify living docs are up to date
+        run: cargo test --features living-docs -- --test-threads=1
+        continue-on-error: true

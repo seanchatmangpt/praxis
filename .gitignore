@@ -1,1 +1,32 @@
 .agents/
+
+# Claude Code local session state — never commit
+.claude/
+
+# Rust build artifacts (per crate)
+target/
+
+# Backup files
+**/*.rs.backup
+**/*.orig
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editor state
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Secrets
+*.pem
+*.key
+.env
+.env.*
+
+# Agent session artifacts at repo root
+*_SUMMARY.md
+AGENT_*
+checkpoints/

@@ -1,0 +1,64 @@
+set shell := ["bash", "-uc"]
+
+default:
+    @just --list
+
+# ── WASM Build ────────────────────────────────────────────────────────────────
+
+# Build WASM (web target, release)
+build-wasm:
+    wasm-pack build --target web --release
+
+# Build WASM for Node.js
+build-node:
+    wasm-pack build --target nodejs --release
+
+# Build + optimise with wasm-opt (requires binaryen installed)
+build-opt:
+    wasm-pack build --target web --release
+    wasm-opt -Os pkg/*.wasm -o pkg/optimized.wasm
+    @echo "Optimized: $(wc -c < pkg/optimized.wasm) bytes"
+
+# Build mobile profile (opt-level = "z", maximum size reduction)
+build-mobile:
+    wasm-pack build --target web --release -- --profile release-mobile
+    @echo "Mobile: $(ls -sh pkg/*.wasm | awk '{print $1}')"
+
+# ── Size Analysis ─────────────────────────────────────────────────────────────
+
+# Show WASM binary size (install twiggy for symbol breakdown)
+wasm-size:
+    @wasm-pack build --target web --release 2>/dev/null || true
+    @echo "=== raw wasm size ==="
+    @ls -lh pkg/*.wasm 2>/dev/null || echo "(build first with just build-wasm)"
+    @command -v twiggy >/dev/null && twiggy top pkg/*.wasm || echo "(install twiggy: cargo install twiggy)"
+
+# ── Native Testing ────────────────────────────────────────────────────────────
+
+# Run library unit tests on native target (fast, no wasm-pack needed)
+test:
+    CARGO_BUILD_TARGET="" cargo test --lib
+
+# Format
+fmt:
+    cargo fmt --all
+
+# Check formatting (CI-equivalent)
+fmt-check:
+    cargo fmt --all --check
+
+# Clippy (native target)
+lint:
+    CARGO_BUILD_TARGET="" cargo clippy --all-targets -- -D warnings
+
+# ── CI Gate ───────────────────────────────────────────────────────────────────
+
+# Local CI gate (native only — runs fast)
+ci: fmt-check lint test
+    @echo "Native CI passed. Run 'just build-wasm' to verify WASM build."
+
+# ── Housekeeping ──────────────────────────────────────────────────────────────
+
+clean:
+    cargo clean
+    rm -rf pkg/

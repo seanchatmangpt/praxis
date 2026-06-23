@@ -103,4 +103,6 @@ harness = false
 lto = true
 codegen-units = 1
 panic = "abort"
-strip = true
+# strip = false by default: wasm32 targets require wasm-opt for stripping (strip=true
+# corrupts WASM binaries). Native binaries are stripped by the linker or packaging step.
+# Override per-package in WASM crates: [profile.release.package."mycrate"] strip = false

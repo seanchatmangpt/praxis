@@ -1,0 +1,43 @@
+# Machine-readable CI state manifest.
+# Used by tooling (ggen, cargo-cicd) to verify CI shape and generate dashboards.
+# Keep in sync with .github/workflows/ci.yml.
+
+[ci]
+# All jobs that must pass before a PR can merge.
+required_jobs = [
+    "fmt",
+    "clippy",
+    "test",
+    "doc",
+    "msrv",
+    "deny",
+    "typos",
+    "ci-shape",
+    "ci-success",
+]
+
+# Jobs that are informational only (failures do not block merge).
+advisory_jobs = [
+    "coverage",
+    "security-audit",
+    "living-docs",
+]
+
+# Known flaky jobs (tracked, not blocking).
+flaky = []
+
+# Jobs temporarily disabled with a reason and tracking issue URL.
+known_failing = []
+
+[release]
+# Jobs that must pass before a release tag is pushed.
+required_jobs = [
+    "fmt",
+    "clippy",
+    "test",
+    "deny",
+]
+
+[toolchain]
+channel = "1.82.0"
+msrv    = "1.82"

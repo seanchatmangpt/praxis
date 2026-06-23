@@ -1,0 +1,33 @@
+name: Miri (UB detection)
+
+# Miri is the only way to detect undefined behavior in transitive deps.
+# #![forbid(unsafe_code)] does NOT cover transitive deps.
+# Run weekly and on demand; not required on every PR (slow: ~10–20 min).
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"  # Monday 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  MIRIFLAGS: "-Zmiri-strict-provenance"
+
+jobs:
+  miri:
+    name: miri
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri, rust-src
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: miri
+      - name: Run Miri
+        run: cargo miri test --workspace
+        timeout-minutes: 30

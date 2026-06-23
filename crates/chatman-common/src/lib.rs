@@ -24,3 +24,14 @@ pub use chain::RollingChain;
 
 #[cfg(feature = "testkit")]
 pub mod testkit;
+
+#[cfg(feature = "living-docs")]
+pub use testkit::{DocContext, DocEvent};
+
+#[cfg(feature = "git-runtime")]
+pub mod git_runtime;
+
+#[cfg(feature = "signed-receipts")]
+pub mod signed_receipt;
+#[cfg(feature = "signed-receipts")]
+pub use signed_receipt::{KeyPair, SignedReceipt};
