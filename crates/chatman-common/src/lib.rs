@@ -27,3 +27,6 @@ pub mod testkit;
 
 #[cfg(feature = "living-docs")]
 pub use testkit::{DocContext, DocEvent};
+
+#[cfg(feature = "git-runtime")]
+pub mod git_runtime;

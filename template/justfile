@@ -210,3 +210,19 @@ changelog-preview:
 # Run Miri UB-check (needs nightly + miri component).
 miri:
     cargo +nightly miri test --workspace
+
+# ── Git-as-Runtime ────────────────────────────────────────────────────────────
+
+# Run tests and, on success, append a receipt JSON to git notes (praxis/audit).
+# Uses `git notes --ref=praxis/audit append` for an immutable NDJSON audit trail.
+# Requires git and a valid HEAD commit in the current repository.
+receipt-commit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cargo test --workspace --all-features
+    HEAD_SHA=$(git rev-parse HEAD)
+    TIMESTAMP=$(date -u +%s)
+    RECEIPT=$(printf '{"timestamp":%s,"event_type":"test.completed","head":"%s","passed":true}' \
+        "$TIMESTAMP" "$HEAD_SHA")
+    git notes --ref=praxis/audit append --allow-empty -m "$RECEIPT" HEAD
+    echo "Receipt appended to git notes (refs/notes/praxis/audit) on $HEAD_SHA"
