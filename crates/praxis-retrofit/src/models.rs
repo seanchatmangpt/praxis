@@ -143,3 +143,24 @@ impl FleetRetrofitPlan {
         self.repositories.iter().map(|r| r.estimated_risk).max().unwrap_or(RiskLevel::Low)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compliance_item_serde_roundtrip() {
+        let item = ComplianceItem {
+            name: "CI/CD Pipeline".to_string(),
+            category: ComplianceCategory::CiCd,
+            status: ComplianceStatus::Pass,
+            evidence: "workflows present".to_string(),
+            remediation: None,
+        };
+        let json = serde_json::to_string(&item).expect("serialize");
+        let back: ComplianceItem = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(back.name, item.name);
+        assert_eq!(back.category, item.category);
+        assert_eq!(back.status, item.status);
+    }
+}

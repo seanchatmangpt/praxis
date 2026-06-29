@@ -52,6 +52,7 @@ use std::{
 
 use chicago_tdd_tools::core::config::poka_yoke::{BoundedU32, PositiveUsize};
 use serde::{Deserialize, Serialize};
+use star_toml::{Validate, Validator, loader::{TrustedLoader, ConfigLifecycle}};
 
 use crate::models::RetrofitPhase;
 
@@ -164,6 +165,7 @@ pub struct RepositoryRegistry {
     repos: HashMap<String, RepositoryEntry>,
 
     /// Metadata about the ecosystem.
+    #[serde(default)]
     pub metadata: EcosystemMetadata,
 }
 
@@ -255,6 +257,70 @@ pub struct EcosystemMetadata {
     pub missing_security_md: Vec<String>,
 }
 
+impl Default for EcosystemMetadata {
+    fn default() -> Self {
+        EcosystemMetadata {
+            ecosystem_name: "seanchatmangpt".to_string(),
+            total_repos: 0,
+            total_crates: 0,
+            survey_date: "unknown".to_string(),
+            survey_agents: 0,
+            survey_scope: "unknown".to_string(),
+            house_msrv: "1.82".to_string(),
+            house_edition: "2021".to_string(),
+            house_toolchain: "1.82.0".to_string(),
+            house_license: "MIT OR Apache-2.0".to_string(),
+            house_version_scheme: "CalVer YY.M.patch".to_string(),
+            ready_for_retrofit: 0,
+            requires_phase_2_or_3: 0,
+            requires_phase_0_or_1: 0,
+            experimental_status: 0,
+            primary_order: vec![],
+            secondary_order: vec![],
+            tertiary_order: vec![],
+            agpl_repos: vec![],
+            bsl_repos: vec![],
+            apache_only_repos: vec![],
+            missing_license_files: vec![],
+            no_ci_repos: vec![],
+            deprecated_actions_repos: vec![],
+            minimal_ci_repos: vec![],
+            sparse_release_workflows: 0,
+            missing_claude_md: vec![],
+            missing_security_md: vec![],
+        }
+    }
+}
+
+impl Validate for RepositoryRegistry {
+    fn validate(&self, v: &mut Validator) {
+        for (slug, entry) in &self.repos {
+            v.field(slug, |v| {
+                v.check_predicate(
+                    "crate_count",
+                    entry.crate_count > 0,
+                    "positive_integer",
+                    "crate_count must be a positive integer",
+                );
+                v.check_range("priority_score", entry.priority_score, 0u8..=100u8);
+            });
+        }
+    }
+}
+
+impl ConfigLifecycle for RepositoryRegistry {
+    fn normalize(&mut self) {
+        let keys: Vec<String> = self.repos.keys().cloned().collect();
+        for slug in keys {
+            if let Some(entry) = self.repos.get_mut(&slug) {
+                if entry.name.is_empty() {
+                    entry.name = slug.clone();
+                }
+            }
+        }
+    }
+}
+
 /// Resolves the path of the registry file by checking the `PRAXIS_REGISTRY_PATH` env var,
 /// searching parent directories up to 5 levels for `repos.toml`, and falling back to the
 /// provided `fallback` path.
@@ -291,19 +357,11 @@ impl RepositoryRegistry {
     /// Returns an error if the file cannot be read or parsed.
     pub async fn load(path: impl AsRef<std::path::Path>) -> crate::Result<Self> {
         let resolved = resolve_layered_path(path.as_ref());
-        let contents = tokio::fs::read_to_string(&resolved).await.map_err(|e| {
-            crate::RetrofitError::ConfigError(format!(
-                "Failed to read repos.toml at {:?}: {}",
-                resolved, e
-            ))
-        })?;
-
-        let parsed: RegistryDocument = toml::from_str(&contents).map_err(|e| {
-            crate::RetrofitError::ConfigError(format!("Failed to parse repos.toml: {}", e))
-        })?;
-
-        let registry = parsed.into_registry()?;
-        Ok(registry)
+        TrustedLoader::new()
+            .layer_file_if_exists(&resolved)
+            .load_admitted::<RepositoryRegistry>()
+            .map(|a| a.into_value())
+            .map_err(|e| crate::RetrofitError::ConfigError(format!("Failed to load repos.toml: {}", e)))
     }
 
     /// Parses the registry from a TOML string and validates invariants.
@@ -312,11 +370,11 @@ impl RepositoryRegistry {
     ///
     /// Returns an error if the string cannot be parsed or if invariants are violated.
     pub async fn load_str(contents: &str) -> crate::Result<Self> {
-        let parsed: RegistryDocument = toml::from_str(contents).map_err(|e| {
-            crate::RetrofitError::ConfigError(format!("Failed to parse repos.toml: {}", e))
-        })?;
-
-        parsed.into_registry()
+        TrustedLoader::new()
+            .layer_str(contents, "inline")
+            .load_admitted::<RepositoryRegistry>()
+            .map(|a| a.into_value())
+            .map_err(|e| crate::RetrofitError::ConfigError(format!("Failed to parse repos.toml: {}", e)))
     }
 
     /// Returns all repositories.

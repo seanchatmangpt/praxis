@@ -126,3 +126,17 @@ fn check_contributing_md(repo_path: &Path) -> Result<ComplianceStatus> {
     let contributing = repo_path.join("CONTRIBUTING.md");
     Ok(if contributing.exists() { ComplianceStatus::Pass } else { ComplianceStatus::Warn })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn test_empty_dir_produces_fail_checks() {
+        // A nonexistent/empty path has no CI or workspace config: cicd→Fail, workspace→Fail
+        let path = Path::new("/tmp/nonexistent-praxis-audit-test");
+        assert_eq!(check_cicd(path).unwrap(), ComplianceStatus::Fail);
+        assert_eq!(check_workspace_lints(path).unwrap(), ComplianceStatus::Fail);
+    }
+}

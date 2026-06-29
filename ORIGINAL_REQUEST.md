@@ -167,3 +167,108 @@ Generate a structured folder of individual JIRA tickets at `/Users/sac/praxis/do
 - [ ] At least 4 distinct tickets are generated, covering the execution of thesis-driven impossibility harvesting and compliance courts.
 - [ ] Each ticket contains non-empty sections for Title, Description, Acceptance Criteria, and Dependencies, with no stubs, placeholders, or `todo!` markers.
 - [ ] Every ticket defines an objective verification mechanism (e.g., specific test suites, configuration parameters, or command executions).
+
+## Follow-up — 2026-06-29T22:14:21Z
+
+Research `wasm4pm` capabilities and design the ultimate Rust project process intelligence template under `/Users/sac/praxis/templates/process-intelligence/`.
+
+Working directory: `/Users/sac/praxis`
+Integrity mode: development
+
+## Requirements
+
+### R1. Capabilities Synthesis & Research
+Analyze `wasm4pm` and `praxis` systems to extract all telemetry, conformance, cryptographic verification, and Chicago-style testing capabilities.
+
+### R2. Reusable Template Workspace
+Create a fully bootstrap-able Rust workspace template under `/Users/sac/praxis/templates/process-intelligence/` containing:
+- **`Cargo.toml`**: Pre-configured with `chicago-tdd-tools = "=26.6.29"`, `proptest`, `serde`, and `serde_json`.
+- **`cicd.toml`**: Pre-configured `cargo-cicd` rules (target limits, autonomic suggest mode, test changed base).
+- **`Justfile`**: Recipes for running verification courts (`wpm validate`), compiling, target pruning, and running changed tests.
+- **`build.rs`**: Boilerplate compile-telemetry hook logging compiler phases and events.
+- **`petri_net_lawful_dispatch.pnml`**: Default Petri Net model specifying standard build-verify-adjudicate transition chains.
+
+### R3. Crate & Telemetry Boilerplate
+Inside the template, create a sample crate (`crates/sample-service/`) containing:
+- Chicago-style TDD unit tests, property-based tests (fuzzing TOML/structures), and snapshot tests.
+- Telemetry configuration using `OcelCollector` to log events dynamically.
+
+### R4. Documentation
+Provide a `README.md` inside the template directory detailing the bootstrapping instructions and how to run process intelligence verifications.
+
+## Acceptance Criteria
+
+### Execution & Verification
+- [ ] The target directory `/Users/sac/praxis/templates/process-intelligence/` is populated with all template files.
+- [ ] Running `cargo check` and `cargo test` inside the template directory compiles and passes cleanly.
+- [ ] Running `cargo cicd workspace doctor` inside the template directory exits successfully (status 0).
+- [ ] The template contains no stubs, placeholders, or `todo!` markers.
+
+---
+
+## Reference: wasm4pm Source Folder Structure & Integration Mapping
+
+```text
+apps
+├── playground-web (Web dashboard mockups/prototypes)
+│   --> Integration: Pre-configure UI views or schema maps for visualizing log conformance.
+└── wasm4pm (Main Node.js CLI packages & build commands)
+    --> Integration: Root Justfile execution bindings triggering "wpm" validation commands.
+
+crates
+├── prolog8 (Prolog resolution & ontology solver)
+│   --> Integration: Axiomatic rule templates (e.g. prolog8 rules asserting clean support chains).
+├── miniml-core (Deductive/inductive reasoning core)
+│   --> Integration: Logic evaluation helpers for testing structural rules.
+├── ocpq (Object-centric process query processing)
+│   --> Integration: Boilerplate query scripts to query the generated OCEL logs.
+├── bench-tools (Benchmark harnesses)
+│   --> Integration: Conformance replay performance benchmarks using Criterion/tick budgets.
+├── wasm4pm-cli (Core Rust CLI binary codebase)
+│   --> Integration: CLI execution wrappers in Justfile/scripts.
+├── wasm4pm-lsp (LSP Server implementation)
+│   --> Integration: Diagnostic configuration files linking the LSP linter to Cargo/cicd files.
+└── wasm4pm-cognition (Axiomatic breeds and lifecycle sensors)
+    --> Integration: build.rs telemetry hook using cognition lifecycle sensors.
+
+packages
+├── config (WASM and CLI config schema bindings)
+│   --> Integration: Schema descriptors (receipt.schema.json, ocel2.json) copied to template.
+├── cognition (Structural and adversarial models)
+│   --> Integration: Invariant definitions for state representation in sample tests.
+├── planner (Plan generation algorithms)
+│   --> Integration: Corrective plan templates in autonomic response configurations.
+├── contracts (Receipt layout validation structures)
+│   --> Integration: Truex compliance receipt templates (PiReceipt & CommandReceipt layouts).
+├── agents (MCP and coordinator abstractions)
+│   --> Integration: Agent/Hooks interaction configuration templates (.agents/hooks.json).
+├── observability (Spans, trace context providers)
+│   --> Integration: OcelCollector instrumentation configurations in crates/sample-service.
+├── supabase (Cloud storage adapter)
+│   --> Integration: Storage backend path configurations for receipts.
+├── testing (Simulation and conformance mocks)
+│   --> Integration: Conformance checking tests using wpm prefix-conformance.
+├── ml (Centroid / page-hinkley algorithms)
+│   --> Integration: Drift-detection test cases checking for execution time anomalies.
+├── agent-context (Runtime conversation/system context)
+│   --> Integration: Diagnostic context logging setup.
+├── autopm (Autonomic loops and package verification)
+│   --> Integration: Autonomic rollback scripts in case of validation court failure.
+└── kernel (WebAssembly backends and prediction)
+    --> Integration: WASM runtime environment settings and court loader files.
+
+src
+├── conformance (Prefix alignment verifiers)
+│   --> Integration: Prefix-conformance models linking events to Petri net tokens.
+├── replay (Petri net token replay simulator)
+│   --> Integration: Simulation verification commands in the template.
+├── mining (Log alpha miner algorithms)
+│   --> Integration: Command templates to run alpha miners and output discovered net diagrams.
+└── lifecycle (Process start/stop event lifecycles)
+    --> Integration: Transition event triggers on build and test execution hooks.
+
+examples (Self-contained execution examples & demos)
+└── 01-supply-chain-drift, 02-incident-triage, 05-safety-process-guard, truex-cli
+    --> Integration: Templates for script-based runbooks (SRE incident triage, safety process guards) under templates/process-intelligence/scripts/.
+```
+
