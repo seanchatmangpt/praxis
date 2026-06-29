@@ -2,6 +2,7 @@ use crate::types::Blake3Hash;
 
 // Domain binding: chains from different projects/versions must not cross-verify.
 const GENESIS_SEED_STR: &str = concat!("{{project-name}}-v", env!("CARGO_PKG_VERSION"), "-genesis");
+/// Genesis seed for the audit chain; ties this chain to the specific project and version.
 pub const GENESIS_SEED: &[u8] = GENESIS_SEED_STR.as_bytes();
 
 fn genesis_hash() -> Blake3Hash {

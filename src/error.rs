@@ -6,9 +6,11 @@ use thiserror::Error;
 /// The top-level error type for this crate.
 #[derive(Debug, Error)]
 pub enum AppError {
+    /// I/O failure (file read, write, or network).
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 
+    /// JSON serialization or deserialization failure.
     #[error("serialization error: {0}")]
     Serde(#[from] serde_json::Error),
 
@@ -16,6 +18,7 @@ pub enum AppError {
     #[error("validation error: {0}")]
     Validation(String),
 
+    /// Catch-all for errors that don't fit another variant.
     #[error("{0}")]
     Other(String),
 }

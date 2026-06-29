@@ -2,6 +2,7 @@
 #![deny(clippy::print_stdout)]
 #![deny(unsafe_code)]
 
+/// Append-only audit chain using BLAKE3 content addressing.
 pub mod chain;
 pub mod cli;
 pub mod error;
