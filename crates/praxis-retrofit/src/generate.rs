@@ -1,9 +1,8 @@
 //! Generate retrofit artifacts and plans
 
-use crate::models::*;
-use crate::templates;
-use crate::{PraxisSpec, Result};
 use std::path::Path;
+
+use crate::{models::*, templates, PraxisSpec, Result};
 
 pub fn generate_retrofit_plan(
     repo_path: &Path,
@@ -26,11 +25,8 @@ pub fn generate_retrofit_plan(
         RetrofitPhase::Phase5Docs => vec![],
     };
 
-    let commit_msg = templates::commit_message(
-        &format!("{:?}", phase),
-        &metadata.name,
-        actions.len(),
-    );
+    let commit_msg =
+        templates::commit_message(&format!("{:?}", phase), &metadata.name, actions.len());
 
     Ok(RetrofitPlan {
         repository: metadata,
@@ -71,11 +67,7 @@ fn generate_typos_action(repo_path: &Path) -> Result<RetrofitAction> {
 }
 
 fn generate_justfile_action(repo_path: &Path) -> Result<RetrofitAction> {
-    let crate_name = repo_path
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
+    let crate_name = repo_path.file_name().unwrap_or_default().to_string_lossy().to_string();
 
     Ok(RetrofitAction {
         action_type: RetrofitActionType::Create,

@@ -1,0 +1,16 @@
+{
+  "schema": "cargo-cicd.receipt.v1",
+  "command": [
+    "just",
+    "build"
+  ],
+  "exit_code": 0,
+  "stdout_digest": "cbf29ce4842223259e3779b97f4a7c156c62272e07bb0142517cc1b727220a95",
+  "stderr_digest": "0a8ab212fcb1e47c76630bdf63532a4983eb0e25634f02ea64f51818e58d0773",
+  "git_before": "b66252b8fe0ffc01efe105735d9ffbe5dfbfb96d",
+  "git_after": "b66252b8fe0ffc01efe105735d9ffbe5dfbfb96d",
+  "input_artifacts": {},
+  "output_artifacts": {},
+  "timestamp": "1782762120058",
+  "receipt_digest": "5e44f6a65a24c8bf5f2f867fd154c560b489a5918c5a2dbb6166333bdacd56f2"
+}

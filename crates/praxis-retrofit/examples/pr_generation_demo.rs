@@ -8,11 +8,12 @@
 //!
 //! Run with: cargo run --example pr_generation_demo
 
+use std::path::PathBuf;
+
 use praxis_retrofit::{
-    PullRequestGenerator, PullRequestGeneratorConfig, PullRequestInfo, PRStatus,
+    PRStatus, PullRequestGenerator, PullRequestGeneratorConfig, PullRequestInfo,
     RepositoryMetadata, RetrofitPhase, RiskLevel,
 };
-use std::path::PathBuf;
 
 fn main() {
     println!("=== Praxis Retrofit: PR Generation Demo ===\n");
@@ -22,18 +23,14 @@ fn main() {
         github_owner: "seanchatmangpt".to_string(),
         create_as_draft: true,
         auto_assign_reviewers: vec!["@seanchatmangpt".to_string()],
-        labels: vec![
-            "retrofit".to_string(),
-            "praxis".to_string(),
-            "automated".to_string(),
-        ],
+        labels: vec!["retrofit".to_string(), "praxis".to_string(), "automated".to_string()],
         base_branch: "main".to_string(),
         branch_prefix: "praxis/retrofit".to_string(),
     };
 
-    let generator = PullRequestGenerator::new(config);
+    let generator = PullRequestGenerator::new(config.clone());
 
-    println!("Configuration:\n{:#?}\n", generator.config);
+    println!("Configuration:\n{:#?}\n", config);
 
     // Step 2: Generate PR templates for a sample repository
     let sample_repo = RepositoryMetadata {
@@ -58,13 +55,14 @@ fn main() {
 
     for (phase_name, phase) in &phases {
         println!("--- {} ---", phase_name);
-        let template =
-            PullRequestGenerator::template_for_phase(*phase, &sample_repo, 5);
+        let template = PullRequestGenerator::template_for_phase(*phase, &sample_repo, 5);
 
         println!("Title:\n  {}\n", template.title);
         println!("Labels: {}\n", template.labels.join(", "));
-        println!("Body preview (first 400 chars):\n  {}\n",
-            template.body.chars().take(400).collect::<String>());
+        println!(
+            "Body preview (first 400 chars):\n  {}\n",
+            template.body.chars().take(400).collect::<String>()
+        );
     }
 
     // Step 3: Generate branch names for each phase
@@ -133,9 +131,7 @@ fn main() {
             estimated_risk: RiskLevel::Low,
             files_changed: 2,
             commits: 1,
-            review_comments: vec![
-                "Awaiting maintainer review".to_string(),
-            ],
+            review_comments: vec!["Awaiting maintainer review".to_string()],
         },
         PullRequestInfo {
             repository: RepositoryMetadata {
@@ -184,7 +180,6 @@ fn main() {
 
     // Step 6: Print example Phase 1 PR body
     println!("\n=== Example: Phase 1 Lints PR Body (full) ===\n");
-    let phase1_template =
-        PullRequestGenerator::template_phase1_lints(&sample_repo, 5);
+    let phase1_template = PullRequestGenerator::template_phase1_lints(&sample_repo, 5);
     println!("{}", phase1_template.body);
 }

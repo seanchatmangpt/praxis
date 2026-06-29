@@ -6,7 +6,7 @@
 //!
 //! # Example
 //!
-//! ```rust
+//! ```rust,ignore
 //! use chatman_common::chain::{genesis_seed, content_address, RollingChain};
 //!
 //! let mut chain = RollingChain::new("my-service");

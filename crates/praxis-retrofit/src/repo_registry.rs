@@ -29,9 +29,7 @@
 //! let registry = RepositoryRegistry::load("repos.toml").await?;
 //!
 //! // List all repos ready for retrofit
-//! let ready: Vec<_> = registry
-//!     .filter_by_readiness("ready")
-//!     .collect();
+//! let ready = registry.filter_by_readiness("ready");
 //! println!("Ready for retrofit: {}", ready.len());
 //!
 //! // Sort by priority for batch processing
@@ -41,16 +39,21 @@
 //! }
 //!
 //! // Find repos blocking others (high-adoption upstream deps)
-//! let upstream = registry.upstream_dependencies("clap-noun-verb");
-//! println!("Downstream consumers: {:?}", upstream);
+//! let consumers = registry.downstream_consumers("clap-noun-verb");
+//! println!("Downstream consumers: {:?}", consumers);
 //! # Ok(())
 //! # }
 //! ```
 
-use crate::models::RetrofitPhase;
+use std::{
+    collections::{BTreeMap, HashMap},
+    path::PathBuf,
+};
+
+use chicago_tdd_tools::core::config::poka_yoke::{BoundedU32, PositiveUsize};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, BTreeMap};
-use std::path::PathBuf;
+
+use crate::models::RetrofitPhase;
 
 /// Metadata for a single repository in the seanchatmangpt ecosystem.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -105,13 +108,13 @@ impl RepositoryEntry {
     /// Returns this repo's retrofit phase as an enum.
     pub fn retrofit_phase(&self) -> RetrofitPhase {
         match self.retrofit_phase_complete {
-            0 => RetrofitPhase::Phase1Lints,   // No work done yet; start at Phase 1
+            0 => RetrofitPhase::Phase1Lints, // No work done yet; start at Phase 1
             1 => RetrofitPhase::Phase1Lints,
             2 => RetrofitPhase::Phase2Deps,
             3 => RetrofitPhase::Phase3Justfile,
             4 => RetrofitPhase::Phase4Typos,
             5 => RetrofitPhase::Phase5Docs,
-            _ => RetrofitPhase::Phase5Docs,    // Clamp to max
+            _ => RetrofitPhase::Phase5Docs, // Clamp to max
         }
     }
 
@@ -149,8 +152,8 @@ impl RepositoryEntry {
             "high" => 2.5,
             _ => 1.0,
         };
-        let base_effort = self.crate_count as f32 * 0.5;  // ~30 min per crate per phase
-        (base_effort * phases_remaining * risk_multiplier) / 40.0  // weeks at 40h/week
+        let base_effort = self.crate_count as f32 * 0.5; // ~30 min per crate per phase
+        (base_effort * phases_remaining * risk_multiplier) / 40.0 // weeks at 40h/week
     }
 }
 
@@ -252,6 +255,34 @@ pub struct EcosystemMetadata {
     pub missing_security_md: Vec<String>,
 }
 
+/// Resolves the path of the registry file by checking the `PRAXIS_REGISTRY_PATH` env var,
+/// searching parent directories up to 5 levels for `repos.toml`, and falling back to the
+/// provided `fallback` path.
+pub fn resolve_layered_path(fallback: &std::path::Path) -> std::path::PathBuf {
+    if let Ok(env_path) = std::env::var("PRAXIS_REGISTRY_PATH") {
+        if !env_path.is_empty() {
+            return std::path::PathBuf::from(env_path);
+        }
+    }
+
+    if let Ok(current_dir) = std::env::current_dir() {
+        let mut current = Some(current_dir.as_path());
+        for _ in 0..=5 {
+            if let Some(dir) = current {
+                let candidate = dir.join("repos.toml");
+                if candidate.is_file() {
+                    return candidate;
+                }
+                current = dir.parent();
+            } else {
+                break;
+            }
+        }
+    }
+
+    fallback.to_path_buf()
+}
+
 impl RepositoryRegistry {
     /// Loads the registry from a TOML file.
     ///
@@ -259,14 +290,33 @@ impl RepositoryRegistry {
     ///
     /// Returns an error if the file cannot be read or parsed.
     pub async fn load(path: impl AsRef<std::path::Path>) -> crate::Result<Self> {
-        let contents = tokio::fs::read_to_string(path)
-            .await
-            .map_err(|e| crate::RetrofitError::ConfigError(format!("Failed to read repos.toml: {}", e)))?;
+        let resolved = resolve_layered_path(path.as_ref());
+        let contents = tokio::fs::read_to_string(&resolved).await.map_err(|e| {
+            crate::RetrofitError::ConfigError(format!(
+                "Failed to read repos.toml at {:?}: {}",
+                resolved, e
+            ))
+        })?;
 
-        let parsed: RegistryDocument = toml::from_str(&contents)
-            .map_err(|e| crate::RetrofitError::ConfigError(format!("Failed to parse repos.toml: {}", e)))?;
+        let parsed: RegistryDocument = toml::from_str(&contents).map_err(|e| {
+            crate::RetrofitError::ConfigError(format!("Failed to parse repos.toml: {}", e))
+        })?;
 
-        Ok(parsed.into_registry())
+        let registry = parsed.into_registry()?;
+        Ok(registry)
+    }
+
+    /// Parses the registry from a TOML string and validates invariants.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the string cannot be parsed or if invariants are violated.
+    pub async fn load_str(contents: &str) -> crate::Result<Self> {
+        let parsed: RegistryDocument = toml::from_str(contents).map_err(|e| {
+            crate::RetrofitError::ConfigError(format!("Failed to parse repos.toml: {}", e))
+        })?;
+
+        parsed.into_registry()
     }
 
     /// Returns all repositories.
@@ -331,9 +381,8 @@ impl RepositoryRegistry {
 
     /// Returns all repos sorted by effort (ascending — easy first).
     pub fn sorted_by_effort(&self) -> Vec<(&RepositoryEntry, f32)> {
-        let mut repos: Vec<_> = self.repos.values()
-            .map(|r| (r, r.estimated_effort_weeks()))
-            .collect();
+        let mut repos: Vec<_> =
+            self.repos.values().map(|r| (r, r.estimated_effort_weeks())).collect();
         repos.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
         repos
     }
@@ -359,23 +408,22 @@ impl RepositoryRegistry {
 
     /// Returns repos that have no CI workflows (high priority for automation).
     pub fn no_ci_repos(&self) -> Vec<&RepositoryEntry> {
-        self.metadata.no_ci_repos.iter()
-            .filter_map(|name| self.get(name))
-            .collect()
+        self.metadata.no_ci_repos.iter().filter_map(|name| self.get(name)).collect()
     }
 
     /// Returns repos with missing license files (compliance issue).
     pub fn missing_license_files(&self) -> Vec<&RepositoryEntry> {
-        self.metadata.missing_license_files.iter()
-            .filter_map(|name| self.get(name))
-            .collect()
+        self.metadata.missing_license_files.iter().filter_map(|name| self.get(name)).collect()
     }
 
     /// Returns repos with non-standard licenses (legal coordination needed).
     pub fn non_standard_licenses(&self) -> Vec<&RepositoryEntry> {
         let mut result = Vec::new();
 
-        for name in self.metadata.agpl_repos.iter()
+        for name in self
+            .metadata
+            .agpl_repos
+            .iter()
             .chain(self.metadata.bsl_repos.iter())
             .chain(self.metadata.apache_only_repos.iter())
         {
@@ -394,13 +442,21 @@ impl RepositoryRegistry {
         let consumers = match repo_name {
             "clap-noun-verb" => vec!["affidavit", "cargo-cicd", "mac-artifact-cleaner"],
             "ggen" => vec!["clnrm", "wasm4pm-compat", "pm4py-rs", "ggen-mcp", "a2a-rs"],
-            "ggen.toml" => vec!["affidavit", "ggen", "clnrm", "clap-noun-verb", "cargo-cicd", "wasm4pm-compat", "ggen-mcp", "pm4py-rs", "a2a-rs"],
+            "ggen.toml" => vec![
+                "affidavit",
+                "ggen",
+                "clnrm",
+                "clap-noun-verb",
+                "cargo-cicd",
+                "wasm4pm-compat",
+                "ggen-mcp",
+                "pm4py-rs",
+                "a2a-rs",
+            ],
             _ => vec![],
         };
 
-        consumers.into_iter()
-            .filter_map(|name| self.get(name))
-            .collect()
+        consumers.into_iter().filter_map(|name| self.get(name)).collect()
     }
 
     /// Generates a summary report of ecosystem readiness.
@@ -413,9 +469,7 @@ impl RepositoryRegistry {
         let med_risk = self.filter_by_risk("medium").len();
         let high_risk = self.filter_by_risk("high").len();
 
-        let total_effort: f32 = self.repos.values()
-            .map(|r| r.estimated_effort_weeks())
-            .sum();
+        let total_effort: f32 = self.repos.values().map(|r| r.estimated_effort_weeks()).sum();
 
         format!(
             "Seanchatmangpt Retrofit Readiness Report\n\
@@ -430,8 +484,13 @@ impl RepositoryRegistry {
              High risk: {}\n\
              \n\
              Estimated Total Effort: {:.1} person-weeks\n",
-            ready, self.metadata.total_repos, prep, blocked,
-            low_risk, med_risk, high_risk,
+            ready,
+            self.metadata.total_repos,
+            prep,
+            blocked,
+            low_risk,
+            med_risk,
+            high_risk,
             total_effort
         )
     }
@@ -448,7 +507,7 @@ struct RegistryDocument {
 }
 
 impl RegistryDocument {
-    fn into_registry(mut self) -> RepositoryRegistry {
+    fn into_registry(mut self) -> crate::Result<RepositoryRegistry> {
         // Fix repo names (key is slug, but field name should match)
         let repos = std::mem::take(&mut self.repos);
         let mut fixed_repos = HashMap::new();
@@ -456,6 +515,24 @@ impl RegistryDocument {
             if entry.name.is_empty() {
                 entry.name = slug.clone();
             }
+
+            // Validate crate_count must be positive integer
+            if PositiveUsize::new(entry.crate_count).is_none() {
+                return Err(crate::RetrofitError::ConfigError(format!(
+                    "Invalid crate_count for repo '{}': count must be a positive integer, found '{}'",
+                    entry.name, entry.crate_count
+                )));
+            }
+
+            // Validate priority_score must be between 0 and 100 (validated via BoundedU32)
+            if entry.priority_score > 100 || BoundedU32::new(entry.priority_score as u32).is_none()
+            {
+                return Err(crate::RetrofitError::ConfigError(format!(
+                    "Invalid priority_score for repo '{}': score must be between 0 and 100, found '{}'",
+                    entry.name, entry.priority_score
+                )));
+            }
+
             fixed_repos.insert(slug, entry);
         }
 
@@ -490,10 +567,7 @@ impl RegistryDocument {
             missing_security_md: vec![],
         });
 
-        RepositoryRegistry {
-            repos: fixed_repos,
-            metadata,
-        }
+        Ok(RepositoryRegistry { repos: fixed_repos, metadata })
     }
 }
 
@@ -575,6 +649,137 @@ mod tests {
 
         let effort = entry.estimated_effort_weeks();
         assert!(effort > 0.0);
-        assert!(effort < 1.0);  // Single crate, 5 phases, low risk should be ~0.375 weeks
+        assert!(effort < 1.0); // Single crate, 5 phases, low risk should be ~0.375 weeks
+    }
+
+    static CWD_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    const MOCK_TOML: &str = r#"
+[metadata]
+ecosystem_name = "seanchatmangpt"
+total_repos = 1
+total_crates = 1
+survey_date = "2026-06-29"
+survey_agents = 1
+survey_scope = "test"
+house_msrv = "1.82"
+house_edition = "2021"
+house_toolchain = "1.82.0"
+house_license = "MIT OR Apache-2.0"
+house_version_scheme = "CalVer"
+ready_for_retrofit = 1
+requires_phase_2_or_3 = 0
+requires_phase_0_or_1 = 1
+experimental_status = 0
+primary_order = ["test"]
+secondary_order = []
+tertiary_order = []
+agpl_repos = []
+bsl_repos = []
+apache_only_repos = []
+missing_license_files = []
+no_ci_repos = []
+deprecated_actions_repos = []
+minimal_ci_repos = []
+sparse_release_workflows = 0
+missing_claude_md = []
+missing_security_md = []
+
+[repos.test]
+name = "test"
+github_url = "https://github.com/seanchatmangpt/test"
+github_owner = "seanchatmangpt"
+local_path = "../test"
+crate_name = "test"
+description = "Test description"
+visibility = "public"
+workspace_type = "single-crate"
+crate_count = 1
+retrofit_readiness = "ready"
+retrofit_phase_complete = 0
+risk_level = "low"
+priority_score = 50
+maintainer_status = "active"
+notes = ""
+"#;
+
+    #[tokio::test]
+    async fn test_load_with_env_var_override() {
+        let _guard = CWD_LOCK.lock().unwrap();
+        let original_env = std::env::var("PRAXIS_REGISTRY_PATH");
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let file_path = temp_dir.path().join("repos.toml");
+        std::fs::write(&file_path, MOCK_TOML).unwrap();
+
+        std::env::set_var("PRAXIS_REGISTRY_PATH", &file_path);
+
+        let result = RepositoryRegistry::load("dummy_fallback.toml").await;
+
+        match original_env {
+            Ok(val) => std::env::set_var("PRAXIS_REGISTRY_PATH", val),
+            Err(_) => std::env::remove_var("PRAXIS_REGISTRY_PATH"),
+        }
+
+        let registry = result.expect("Should load successfully from env override path");
+        assert_eq!(registry.metadata.ecosystem_name, "seanchatmangpt");
+        assert!(registry.get("test").is_some());
+    }
+
+    #[test]
+    fn test_load_with_parent_directory_search() {
+        let _guard = CWD_LOCK.lock().unwrap();
+        let original_cwd = std::env::current_dir().unwrap();
+        let original_env = std::env::var("PRAXIS_REGISTRY_PATH");
+
+        // Ensure env var is not set, so parent search is performed
+        std::env::remove_var("PRAXIS_REGISTRY_PATH");
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let parent_path = temp_dir.path();
+        let child_path = parent_path.join("child");
+        std::fs::create_dir(&child_path).unwrap();
+
+        let repos_file = parent_path.join("repos.toml");
+        std::fs::write(&repos_file, MOCK_TOML).unwrap();
+
+        std::env::set_current_dir(&child_path).unwrap();
+
+        let resolved = resolve_layered_path(std::path::Path::new("fallback.toml"));
+
+        // Restore CWD and Env
+        std::env::set_current_dir(&original_cwd).unwrap();
+        match original_env {
+            Ok(val) => std::env::set_var("PRAXIS_REGISTRY_PATH", val),
+            Err(_) => std::env::remove_var("PRAXIS_REGISTRY_PATH"),
+        }
+
+        assert_eq!(resolved, repos_file);
+    }
+
+    #[test]
+    fn test_load_fallback_to_parameter() {
+        let _guard = CWD_LOCK.lock().unwrap();
+        let original_cwd = std::env::current_dir().unwrap();
+        let original_env = std::env::var("PRAXIS_REGISTRY_PATH");
+
+        // Ensure env var is not set
+        std::env::remove_var("PRAXIS_REGISTRY_PATH");
+
+        // Create a temp dir with no repos.toml, and switch CWD to it
+        let temp_dir = tempfile::tempdir().unwrap();
+        std::env::set_current_dir(temp_dir.path()).unwrap();
+
+        let fallback_path = std::path::Path::new("exact_fallback.toml");
+        let resolved = resolve_layered_path(fallback_path);
+
+        // Restore CWD and Env
+        std::env::set_current_dir(&original_cwd).unwrap();
+        match original_env {
+            Ok(val) => std::env::set_var("PRAXIS_REGISTRY_PATH", val),
+            Err(_) => std::env::remove_var("PRAXIS_REGISTRY_PATH"),
+        }
+
+        assert_eq!(resolved, fallback_path);
     }
 }

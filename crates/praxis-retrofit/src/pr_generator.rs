@@ -6,11 +6,12 @@
 //! - Tracking PR status (open, merged, review status)
 //! - GitHub MCP integration via `gh` CLI
 
-use crate::{RetrofitAction, RetrofitPhase, RiskLevel, RepositoryMetadata};
+use std::{path::PathBuf, process::Command};
+
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use std::process::Command;
-use tracing::{debug, info, warn, error};
+use tracing::{debug, error, info, warn};
+
+use crate::{RepositoryMetadata, RetrofitAction, RetrofitPhase, RiskLevel};
 
 /// A pull request template following conventional commits
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,16 +31,16 @@ pub struct PullRequestTemplate {
 pub enum PRStatus {
     #[serde(rename = "not-created")]
     NotCreated,
-    #[serde(rename = "open")]
-    Open,
     #[serde(rename = "draft")]
     Draft,
+    #[serde(rename = "open")]
+    Open,
     #[serde(rename = "review-requested")]
     ReviewRequested,
-    #[serde(rename = "approved")]
-    Approved,
     #[serde(rename = "changes-requested")]
     ChangesRequested,
+    #[serde(rename = "approved")]
+    Approved,
     #[serde(rename = "merged")]
     Merged,
     #[serde(rename = "closed")]
@@ -203,10 +204,7 @@ impl PullRequestGenerator {
         files_changed: usize,
     ) -> PullRequestTemplate {
         PullRequestTemplate {
-            title: format!(
-                "retrofit(docs): Add praxis documentation standards for {}",
-                repo.name
-            ),
+            title: format!("retrofit(docs): Add praxis documentation standards for {}", repo.name),
             body: pr_body_phase5_docs(&repo.name, files_changed),
             labels: vec!["retrofit".to_string(), "documentation".to_string(), "praxis".to_string()],
             assignees: vec!["@seanchatmangpt".to_string()],
@@ -292,10 +290,7 @@ impl PullRequestGenerator {
         let pr_url = stdout.trim().to_string();
 
         // Extract PR number from URL (format: https://github.com/owner/repo/pull/123)
-        let pr_number = pr_url
-            .split('/')
-            .last()
-            .and_then(|s| s.parse::<usize>().ok());
+        let pr_number = pr_url.split('/').last().and_then(|s| s.parse::<usize>().ok());
 
         debug!("Created PR {} (URL: {})", pr_number.unwrap_or(0), pr_url);
 
@@ -303,11 +298,7 @@ impl PullRequestGenerator {
             repository: repo.clone(),
             url: Some(pr_url),
             number: pr_number,
-            status: if self.config.create_as_draft {
-                PRStatus::Draft
-            } else {
-                PRStatus::Open
-            },
+            status: if self.config.create_as_draft { PRStatus::Draft } else { PRStatus::Open },
             branch_name,
             phase,
             created_at: Some(chrono::Local::now().to_rfc3339()),
@@ -330,7 +321,15 @@ impl PullRequestGenerator {
         debug!("Fetching PR status for #{}", pr_number);
 
         let output = Command::new("gh")
-            .args(&["pr", "view", &pr_number.to_string(), "-R", &self.config.github_owner, "--json", "state"])
+            .args(&[
+                "pr",
+                "view",
+                &pr_number.to_string(),
+                "-R",
+                &self.config.github_owner,
+                "--json",
+                "state",
+            ])
             .current_dir(repo_path)
             .output()
             .map_err(|e| {

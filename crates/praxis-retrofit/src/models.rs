@@ -1,5 +1,6 @@
-use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
 
 /// Metadata about a repository being audited
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -65,7 +66,8 @@ impl ComplianceReport {
         if total == 0.0 {
             return 100.0;
         }
-        let passes = self.checks.iter().filter(|c| c.status == ComplianceStatus::Pass).count() as f32;
+        let passes =
+            self.checks.iter().filter(|c| c.status == ComplianceStatus::Pass).count() as f32;
         (passes / total) * 100.0
     }
 
@@ -138,10 +140,6 @@ pub struct FleetRetrofitPlan {
 
 impl FleetRetrofitPlan {
     pub fn total_risk(&self) -> RiskLevel {
-        self.repositories
-            .iter()
-            .map(|r| r.estimated_risk)
-            .max()
-            .unwrap_or(RiskLevel::Low)
+        self.repositories.iter().map(|r| r.estimated_risk).max().unwrap_or(RiskLevel::Low)
     }
 }

@@ -6,14 +6,13 @@
 //! 3. Running comprehensive post-retrofit validation
 //! 4. Handling validation results with rollback capability
 
-use praxis_retrofit::{
-    audit::scan_repository,
-    apply::apply_retrofit,
-    generate::generate_retrofit_plan,
-    RetrofitValidator, PraxisSpec, ValidationReport, RetrofitValidationStatus, Result,
-    RetrofitPhase, CiGateName,
-};
 use std::path::Path;
+
+use praxis_retrofit::{
+    apply::apply_retrofit, audit::scan_repository, generate::generate_retrofit_plan, CiGateName,
+    PraxisSpec, Result, RetrofitPhase, RetrofitValidationStatus, RetrofitValidator,
+    ValidationReport,
+};
 
 /// Demonstrates the complete retrofit and validation workflow
 #[tokio::main]
@@ -117,21 +116,15 @@ fn print_validation_report(report: &ValidationReport) {
 
         if !gate_result.passed {
             if let Some(error) = &gate_result.error {
-                let error_msg = if error.len() > 100 {
-                    format!("{}...", &error[..100])
-                } else {
-                    error.clone()
-                };
+                let error_msg =
+                    if error.len() > 100 { format!("{}...", &error[..100]) } else { error.clone() };
                 println!("       Error: {}", error_msg);
             }
         }
     }
 
     println!("\n  Compliance Improvement:");
-    println!("    {} → {} ({:+.1}%)",
-             report.pre_score,
-             report.post_score,
-             report.delta);
+    println!("    {} → {} ({:+.1}%)", report.pre_score, report.post_score, report.delta);
 }
 
 /// Print individual compliance check status
@@ -156,14 +149,14 @@ async fn custom_validation_example(repo_path: &Path) -> Result<()> {
 
     // Create validator with custom config
     let config = ValidationConfig {
-        run_tests: false,           // Skip tests to be faster
+        run_tests: false, // Skip tests to be faster
         run_clippy: true,
         check_fmt: true,
         check_deny: true,
-        check_typos: false,         // Skip typos
-        auto_rollback: false,       // Require manual review
+        check_typos: false,   // Skip typos
+        auto_rollback: false, // Require manual review
         keep_report: true,
-        max_output_size: 32768,     // Larger output size
+        max_output_size: 32768, // Larger output size
     };
 
     let validator = RetrofitValidator::with_config(config);
@@ -196,8 +189,7 @@ async fn export_validation_results(report: &ValidationReport) -> Result<()> {
     println!("  compliance_score_pre: {}", report.pre_score);
     println!("  compliance_score_post: {}", report.post_score);
     println!("  compliance_delta: {}", report.delta);
-    println!("  ci_gates_passed: {}",
-             report.ci_results.iter().filter(|r| r.passed).count());
+    println!("  ci_gates_passed: {}", report.ci_results.iter().filter(|r| r.passed).count());
     println!("  ci_gates_total: {}", report.ci_results.len());
     println!("  rolled_back: {}", report.rolled_back);
 

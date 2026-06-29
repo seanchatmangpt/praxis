@@ -1,12 +1,13 @@
 [package]
 name = "praxis-retrofit"
-version = "26.6.0"
+version = "26.6.30"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT OR Apache-2.0"
 description = "Retrofit automation tool: Apply praxis standards across Rust ecosystem"
 
 [dependencies]
+chicago-tdd-tools = { version = "=26.6.30", features = ["ocel-generation"] }
 clap-noun-verb = "26.6.2"
 clap-noun-verb-macros = "26.6.2"
 serde = { version = "1", features = ["derive"] }
@@ -29,6 +30,7 @@ uuid = { version = "1.0", features = ["v4"] }
 [dev-dependencies]
 tempfile = "3"
 insta = "1"
+proptest = "1.4"
 
 [[bin]]
 name = "praxis-retrofit"

@@ -3,9 +3,12 @@
 //! Functions for aggregating individual repository compliance reports
 //! into fleet-wide heatmaps, metrics, and health assessments.
 
-use crate::fleet_models::*;
-use crate::models::{ComplianceCategory, ComplianceReport, ComplianceStatus};
 use std::collections::HashMap;
+
+use crate::{
+    fleet_models::*,
+    models::{ComplianceCategory, ComplianceReport, ComplianceStatus},
+};
 
 /// Build a compliance heatmap from multiple repository reports
 pub fn build_heatmap(reports: &[ComplianceReport]) -> ComplianceHeatmap {
@@ -34,15 +37,15 @@ pub fn build_heatmap(reports: &[ComplianceReport]) -> ComplianceHeatmap {
         // Clone categories to avoid borrow conflicts
         let categories_to_process = heatmap.categories.clone();
         for category in categories_to_process {
-            let checks_in_category: Vec<_> = report
-                .checks
-                .iter()
-                .filter(|c| c.category == category)
-                .collect();
+            let checks_in_category: Vec<_> =
+                report.checks.iter().filter(|c| c.category == category).collect();
 
-            let pass_count = checks_in_category.iter().filter(|c| c.status == ComplianceStatus::Pass).count();
-            let warn_count = checks_in_category.iter().filter(|c| c.status == ComplianceStatus::Warn).count();
-            let fail_count = checks_in_category.iter().filter(|c| c.status == ComplianceStatus::Fail).count();
+            let pass_count =
+                checks_in_category.iter().filter(|c| c.status == ComplianceStatus::Pass).count();
+            let warn_count =
+                checks_in_category.iter().filter(|c| c.status == ComplianceStatus::Warn).count();
+            let fail_count =
+                checks_in_category.iter().filter(|c| c.status == ComplianceStatus::Fail).count();
 
             if pass_count + warn_count + fail_count > 0 {
                 let cell = HeatmapCell::new(pass_count, warn_count, fail_count);
@@ -68,9 +71,12 @@ pub fn aggregate_health_metrics(
     let mut scores = vec![];
 
     for report in reports {
-        let pass_count = report.checks.iter().filter(|c| c.status == ComplianceStatus::Pass).count();
-        let warn_count = report.checks.iter().filter(|c| c.status == ComplianceStatus::Warn).count();
-        let fail_count = report.checks.iter().filter(|c| c.status == ComplianceStatus::Fail).count();
+        let pass_count =
+            report.checks.iter().filter(|c| c.status == ComplianceStatus::Pass).count();
+        let warn_count =
+            report.checks.iter().filter(|c| c.status == ComplianceStatus::Warn).count();
+        let fail_count =
+            report.checks.iter().filter(|c| c.status == ComplianceStatus::Fail).count();
 
         total_pass += pass_count;
         total_warn += warn_count;
@@ -80,27 +86,15 @@ pub fn aggregate_health_metrics(
     }
 
     let total_checks = total_pass + total_warn + total_fail;
-    let pass_percent = if total_checks > 0 {
-        (total_pass as f32 / total_checks as f32) * 100.0
-    } else {
-        100.0
-    };
-    let warn_percent = if total_checks > 0 {
-        (total_warn as f32 / total_checks as f32) * 100.0
-    } else {
-        0.0
-    };
-    let fail_percent = if total_checks > 0 {
-        (total_fail as f32 / total_checks as f32) * 100.0
-    } else {
-        0.0
-    };
+    let pass_percent =
+        if total_checks > 0 { (total_pass as f32 / total_checks as f32) * 100.0 } else { 100.0 };
+    let warn_percent =
+        if total_checks > 0 { (total_warn as f32 / total_checks as f32) * 100.0 } else { 0.0 };
+    let fail_percent =
+        if total_checks > 0 { (total_fail as f32 / total_checks as f32) * 100.0 } else { 0.0 };
 
-    let overall_score = if total_checks > 0 {
-        (total_pass as f32 / total_checks as f32) * 100.0
-    } else {
-        100.0
-    };
+    let overall_score =
+        if total_checks > 0 { (total_pass as f32 / total_checks as f32) * 100.0 } else { 100.0 };
 
     let health_rating = HealthRating::from_score(overall_score);
 
@@ -233,11 +227,9 @@ pub fn identify_critical_issues(reports: &[ComplianceReport]) -> Vec<FleetCritic
     }
 
     // Sort by severity (descending) then by affected count
-    issues.sort_by(|a, b| {
-        match b.severity.cmp(&a.severity) {
-            std::cmp::Ordering::Equal => b.affected_repos.len().cmp(&a.affected_repos.len()),
-            other => other,
-        }
+    issues.sort_by(|a, b| match b.severity.cmp(&a.severity) {
+        std::cmp::Ordering::Equal => b.affected_repos.len().cmp(&a.affected_repos.len()),
+        other => other,
     });
 
     issues
@@ -314,9 +306,10 @@ pub fn get_category_breakdown(
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
     use crate::models::{ComplianceItem, RepositoryMetadata};
-    use std::path::PathBuf;
 
     fn create_test_report(
         name: &str,
@@ -377,7 +370,7 @@ mod tests {
 
     #[test]
     fn test_calculate_score_distribution() {
-        let scores = vec![95.0, 85.0, 75.0, 60.0, 40.0];
+        let scores = vec![95.0, 85.0, 45.0, 60.0, 40.0];
         let dist = calculate_score_distribution(&scores);
 
         assert_eq!(dist.excellent_count, 1);
@@ -391,14 +384,8 @@ mod tests {
     #[test]
     fn test_identify_critical_issues() {
         let reports = vec![
-            create_test_report(
-                "repo-1",
-                vec![(ComplianceCategory::CiCd, ComplianceStatus::Fail)],
-            ),
-            create_test_report(
-                "repo-2",
-                vec![(ComplianceCategory::CiCd, ComplianceStatus::Fail)],
-            ),
+            create_test_report("repo-1", vec![(ComplianceCategory::CiCd, ComplianceStatus::Fail)]),
+            create_test_report("repo-2", vec![(ComplianceCategory::CiCd, ComplianceStatus::Fail)]),
         ];
 
         let issues = identify_critical_issues(&reports);

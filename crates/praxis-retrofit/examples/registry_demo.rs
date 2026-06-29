@@ -3,8 +3,9 @@
 //! Run with:
 //!   cargo run --example registry_demo
 
-use praxis_retrofit::repo_registry::RepositoryRegistry;
 use std::path::PathBuf;
+
+use praxis_retrofit::repo_registry::RepositoryRegistry;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -46,8 +47,14 @@ async fn main() -> anyhow::Result<()> {
     println!("=== TOP 5 PRIORITIES ===");
     for (i, repo) in registry.sorted_by_priority().iter().take(5).enumerate() {
         let effort = repo.estimated_effort_weeks();
-        println!("{:2}. {} (priority: {}, effort: {:.1}w, risk: {})",
-                 i + 1, repo.name, repo.priority_score, effort, repo.risk_level);
+        println!(
+            "{:2}. {} (priority: {}, effort: {:.1}w, risk: {})",
+            i + 1,
+            repo.name,
+            repo.priority_score,
+            effort,
+            repo.risk_level
+        );
     }
     println!();
 
@@ -70,7 +77,12 @@ async fn main() -> anyhow::Result<()> {
         println!("  (None — all repos use standard licenses)");
     } else {
         for repo in legal {
-            println!("  - {} (risk: {}, notes: {})", repo.name, repo.risk_level, &repo.notes[..60.min(repo.notes.len())]);
+            println!(
+                "  - {} (risk: {}, notes: {})",
+                repo.name,
+                repo.risk_level,
+                &repo.notes[..60.min(repo.notes.len())]
+            );
         }
     }
     println!();
@@ -98,8 +110,13 @@ async fn main() -> anyhow::Result<()> {
     // Show recommended retrofit order
     println!("=== RECOMMENDED RETROFIT ORDER ===");
     for (i, repo) in registry.recommended_retrofit_order().iter().take(10).enumerate() {
-        println!("{:2}. {} (phase {}/5, readiness: {})",
-                 i + 1, repo.name, repo.retrofit_phase_complete, repo.retrofit_readiness);
+        println!(
+            "{:2}. {} (phase {}/5, readiness: {})",
+            i + 1,
+            repo.name,
+            repo.retrofit_phase_complete,
+            repo.retrofit_readiness
+        );
     }
     println!();
 

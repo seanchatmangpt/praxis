@@ -1,7 +1,8 @@
 //! Example dashboard configurations for different deployment scenarios
 
-use praxis_retrofit::compliance_dashboard::DashboardConfig;
 use std::collections::HashMap;
+
+use praxis_retrofit::compliance_dashboard::DashboardConfig;
 
 /// Configuration for strict compliance monitoring
 /// Use when compliance is critical (security-sensitive repos)
@@ -9,7 +10,7 @@ pub fn strict_config() -> DashboardConfig {
     let mut config = DashboardConfig::default();
 
     // Very low alert threshold
-    config.alert_threshold = 90.0;  // Alert if below 90%
+    config.alert_threshold = 90.0; // Alert if below 90%
     config.enable_alerts = true;
     config.dashboard_id = "strict-compliance".to_string();
 
@@ -31,7 +32,7 @@ pub fn dev_config() -> DashboardConfig {
     let mut config = DashboardConfig::default();
 
     // Lenient thresholds
-    config.alert_threshold = 70.0;  // Alert if below 70%
+    config.alert_threshold = 70.0; // Alert if below 70%
     config.enable_alerts = true;
     config.dashboard_id = "dev-compliance".to_string();
 
@@ -52,7 +53,7 @@ pub fn production_config() -> DashboardConfig {
     let mut config = DashboardConfig::default();
 
     // Standard alert threshold
-    config.alert_threshold = 85.0;  // Alert if below 85%
+    config.alert_threshold = 85.0; // Alert if below 85%
     config.enable_alerts = true;
     config.dashboard_id = "prod-compliance".to_string();
 
@@ -81,7 +82,7 @@ pub fn analytics_config() -> DashboardConfig {
     config.dashboard_id = "analytics-compliance".to_string();
 
     // Long retention for deep analysis
-    config.history_retention_days = 365;  // 1 year
+    config.history_retention_days = 365; // 1 year
 
     // Equal weights for all categories to see unbiased trends
     for (_, weight) in config.category_weights.iter_mut() {
@@ -97,7 +98,7 @@ pub fn silent_config() -> DashboardConfig {
     let mut config = DashboardConfig::default();
 
     config.alert_threshold = 80.0;
-    config.enable_alerts = false;  // No automatic alerts
+    config.enable_alerts = false; // No automatic alerts
     config.dashboard_id = "silent-compliance".to_string();
     config.history_retention_days = 30;
 
@@ -115,13 +116,13 @@ pub fn security_focused_config() -> DashboardConfig {
 
     // Heavy emphasis on security-related categories
     config.category_weights.clear();
-    config.category_weights.insert("supply-chain".to_string(), 2.0);  // Critical
-    config.category_weights.insert("ci-cd".to_string(), 2.0);        // Critical
-    config.category_weights.insert("licensing".to_string(), 1.5);    // Important
-    config.category_weights.insert("linting".to_string(), 1.0);      // Moderate
+    config.category_weights.insert("supply-chain".to_string(), 2.0); // Critical
+    config.category_weights.insert("ci-cd".to_string(), 2.0); // Critical
+    config.category_weights.insert("licensing".to_string(), 1.5); // Important
+    config.category_weights.insert("linting".to_string(), 1.0); // Moderate
     config.category_weights.insert("documentation".to_string(), 0.8); // Nice to have
     config.category_weights.insert("editor-config".to_string(), 0.2); // Minor
-    config.category_weights.insert("versioning".to_string(), 0.5);   // Low
+    config.category_weights.insert("versioning".to_string(), 0.5); // Low
 
     // Keep 1 year for security audit trails
     config.history_retention_days = 365;
@@ -135,11 +136,11 @@ pub fn reporting_config() -> DashboardConfig {
     let mut config = DashboardConfig::default();
 
     config.alert_threshold = 85.0;
-    config.enable_alerts = false;  // Reports don't need active alerts
+    config.enable_alerts = false; // Reports don't need active alerts
     config.dashboard_id = "reporting-compliance".to_string();
 
     // Long retention for comprehensive reports
-    config.history_retention_days = 180;  // 6 months
+    config.history_retention_days = 180; // 6 months
 
     // Balanced weights for fair assessment
     for (_, weight) in config.category_weights.iter_mut() {
@@ -200,20 +201,13 @@ mod tests {
         assert_eq!(config.history_retention_days, 365);
 
         // Supply chain should have highest weight
-        assert_eq!(
-            config.category_weights.get("supply-chain"),
-            Some(&2.0)
-        );
+        assert_eq!(config.category_weights.get("supply-chain"), Some(&2.0));
     }
 
     #[test]
     fn test_config_weights_sum() {
-        let configs = vec![
-            strict_config(),
-            dev_config(),
-            production_config(),
-            security_focused_config(),
-        ];
+        let configs =
+            vec![strict_config(), dev_config(), production_config(), security_focused_config()];
 
         for config in configs {
             // Weights should be positive

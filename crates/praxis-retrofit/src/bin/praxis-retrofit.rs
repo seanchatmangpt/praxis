@@ -1,10 +1,9 @@
 //! Praxis Retrofit CLI - Automate standardization across Rust ecosystem
 
-use praxis_retrofit::{
-    audit, apply, generate, validate, RetrofitPhase, PraxisSpec, VERSION,
-};
 use std::path::PathBuf;
-use tracing::{info, error};
+
+use praxis_retrofit::{apply, audit, generate, validate, PraxisSpec, RetrofitPhase, VERSION};
+use tracing::{error, info};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -81,7 +80,8 @@ async fn handle_apply(args: &[String], spec: &PraxisSpec) -> anyhow::Result<()> 
 
     match action.as_str() {
         "retrofit" => {
-            let plan = generate::generate_retrofit_plan(&repo_path, RetrofitPhase::Phase1Lints, spec)?;
+            let plan =
+                generate::generate_retrofit_plan(&repo_path, RetrofitPhase::Phase1Lints, spec)?;
             let results = apply::apply_retrofit(&repo_path, &plan).await?;
             println!("Applied {} changes:", results.len());
             for result in results {
@@ -122,7 +122,8 @@ async fn handle_generate(args: &[String], spec: &PraxisSpec) -> anyhow::Result<(
                 return Ok(());
             }
             let repo_path = PathBuf::from(&args[3]);
-            let plan = generate::generate_retrofit_plan(&repo_path, RetrofitPhase::Phase1Lints, spec)?;
+            let plan =
+                generate::generate_retrofit_plan(&repo_path, RetrofitPhase::Phase1Lints, spec)?;
             println!("{}", serde_json::to_string_pretty(&plan)?);
         }
         _ => eprintln!("Unknown generate action: {}", action),

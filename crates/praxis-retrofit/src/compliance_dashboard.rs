@@ -24,11 +24,15 @@
 //! let json = dashboard.export_json()?;
 //! ```
 
-use crate::models::{ComplianceReport, ComplianceStatus};
-use crate::Result;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc, Duration};
+
+use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
+
+use crate::{
+    models::{ComplianceReport, ComplianceStatus},
+    Result,
+};
 
 /// Configuration for the compliance dashboard
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -210,15 +214,15 @@ pub struct ComplianceAlert {
 
 /// Main compliance dashboard
 pub struct Dashboard {
-    config: DashboardConfig,
+    pub config: DashboardConfig,
     /// Current snapshot of all repositories
-    repo_status: HashMap<String, RepositoryStatus>,
+    pub repo_status: HashMap<String, RepositoryStatus>,
     /// Historical trends indexed by repo name
-    trends: HashMap<String, ComplianceTrend>,
+    pub trends: HashMap<String, ComplianceTrend>,
     /// All active alerts
-    alerts: Vec<ComplianceAlert>,
+    pub alerts: Vec<ComplianceAlert>,
     /// Historical fleet snapshots
-    history: Vec<(String, FleetStatus)>, // (timestamp, status)
+    pub history: Vec<(String, FleetStatus)>, // (timestamp, status)
 }
 
 impl Dashboard {
@@ -244,10 +248,7 @@ impl Dashboard {
 
         for check in &report.checks {
             let cat_name = format!("{:?}", check.category).to_lowercase();
-            categories_by_name
-                .entry(cat_name)
-                .or_insert_with(Vec::new)
-                .push(check);
+            categories_by_name.entry(cat_name).or_insert_with(Vec::new).push(check);
         }
 
         for (cat_name, checks) in categories_by_name {
@@ -363,16 +364,13 @@ impl Dashboard {
 
     /// Update trend tracking for a repository
     fn update_trend(&mut self, repo_name: &str, score: f32, timestamp: &str) -> Result<()> {
-        let trend = self
-            .trends
-            .entry(repo_name.to_string())
-            .or_insert_with(|| ComplianceTrend {
-                repository: repo_name.to_string(),
-                timeline: Vec::new(),
-                trend_direction: "stable".to_string(),
-                trend_slope: 0.0,
-                days_to_alert: None,
-            });
+        let trend = self.trends.entry(repo_name.to_string()).or_insert_with(|| ComplianceTrend {
+            repository: repo_name.to_string(),
+            timeline: Vec::new(),
+            trend_direction: "stable".to_string(),
+            trend_slope: 0.0,
+            days_to_alert: None,
+        });
 
         trend.timeline.push(TrendPoint {
             timestamp: timestamp.to_string(),
@@ -472,30 +470,15 @@ impl Dashboard {
             scores.iter().sum::<f32>() / scores.len() as f32
         };
 
-        let fleet_min_score = scores
-            .iter()
-            .copied()
-            .fold(100.0, f32::min);
-        let fleet_max_score = scores
-            .iter()
-            .copied()
-            .fold(0.0, f32::max);
+        let fleet_min_score = scores.iter().copied().fold(100.0, f32::min);
+        let fleet_max_score = scores.iter().copied().fold(0.0, f32::max);
 
-        let passing_repos = self
-            .repo_status
-            .values()
-            .filter(|r| r.status == ComplianceStatus::Pass)
-            .count();
-        let warning_repos = self
-            .repo_status
-            .values()
-            .filter(|r| r.status == ComplianceStatus::Warn)
-            .count();
-        let failing_repos = self
-            .repo_status
-            .values()
-            .filter(|r| r.status == ComplianceStatus::Fail)
-            .count();
+        let passing_repos =
+            self.repo_status.values().filter(|r| r.status == ComplianceStatus::Pass).count();
+        let warning_repos =
+            self.repo_status.values().filter(|r| r.status == ComplianceStatus::Warn).count();
+        let failing_repos =
+            self.repo_status.values().filter(|r| r.status == ComplianceStatus::Fail).count();
 
         let at_risk_repositories = self
             .repo_status
@@ -618,8 +601,7 @@ impl Dashboard {
     /// Record current state as historical snapshot
     pub fn snapshot(&mut self) {
         let fleet_status = self.get_fleet_status();
-        self.history
-            .push((fleet_status.timestamp.clone(), fleet_status));
+        self.history.push((fleet_status.timestamp.clone(), fleet_status));
     }
 
     /// Clean up old history based on retention policy
@@ -661,9 +643,10 @@ pub struct DashboardExport {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::models::{RepositoryMetadata, ComplianceItem};
     use std::path::PathBuf;
+
+    use super::*;
+    use crate::models::{ComplianceCategory, ComplianceItem, RepositoryMetadata};
 
     fn create_test_report(name: &str, score_pct: f32) -> ComplianceReport {
         let passed = (score_pct as usize) / 20;
@@ -721,11 +704,8 @@ mod tests {
 
     #[test]
     fn test_alert_on_threshold_breach() {
-        let config = DashboardConfig {
-            alert_threshold: 85.0,
-            enable_alerts: true,
-            ..Default::default()
-        };
+        let config =
+            DashboardConfig { alert_threshold: 85.0, enable_alerts: true, ..Default::default() };
         let mut dashboard = Dashboard::new(config);
         let report = create_test_report("test-repo", 70.0);
         dashboard.add_report(&report).unwrap();

@@ -4,10 +4,11 @@
 //! to block PRs based on compliance score thresholds, generate remediation suggestions,
 //! and report compliance status.
 
-use crate::models::*;
-use crate::Result;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+
+use crate::{models::*, Result};
 
 /// Configuration for compliance gates
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,10 +30,7 @@ impl Default for GateConfig {
         Self {
             min_score: 85.0,
             block_on_drop: true,
-            critical_categories: vec![
-                ComplianceCategory::CiCd,
-                ComplianceCategory::Linting,
-            ],
+            critical_categories: vec![ComplianceCategory::CiCd, ComplianceCategory::Linting],
             auto_remediate: true,
             generate_badge: true,
         }
@@ -217,11 +215,7 @@ impl ComplianceGate {
     }
 
     /// Determine the gate result
-    fn determine_gate_result(
-        &self,
-        score: f32,
-        blocking_issues: &[String],
-    ) -> GateResult {
+    fn determine_gate_result(&self, score: f32, blocking_issues: &[String]) -> GateResult {
         if !blocking_issues.is_empty() {
             GateResult::Fail
         } else if score >= self.config.min_score {
@@ -352,10 +346,7 @@ pub fn format_remediation_markdown(steps: &[RemediationStep]) -> String {
     // Group by priority
     let mut by_priority: HashMap<RemediationPriority, Vec<_>> = HashMap::new();
     for step in steps {
-        by_priority
-            .entry(step.priority)
-            .or_insert_with(Vec::new)
-            .push(step);
+        by_priority.entry(step.priority).or_insert_with(Vec::new).push(step);
     }
 
     // Output critical issues first
@@ -389,7 +380,9 @@ pub fn format_remediation_markdown(steps: &[RemediationStep]) -> String {
     md.push_str("### Quick Start\n\n");
     md.push_str("1. **Review the compliance report** - See artifacts from this workflow run\n");
     md.push_str("2. **Run locally** - `praxis-retrofit audit report .` to see full analysis\n");
-    md.push_str("3. **Apply corrections** - `praxis-retrofit apply retrofit .` to auto-apply fixes\n");
+    md.push_str(
+        "3. **Apply corrections** - `praxis-retrofit apply retrofit .` to auto-apply fixes\n",
+    );
     md.push_str("4. **Validate** - `praxis-retrofit validate compliance .` to verify\n");
     md.push_str("5. **Push changes** - Commit and push to this PR\n\n");
 

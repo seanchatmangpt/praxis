@@ -14,24 +14,25 @@
 //! # Example
 //!
 //! ```no_run
-//! use praxis_retrofit::preventive_gate::{GateValidator, ValidationResult};
+//! use praxis_retrofit::preventive_gate::{GateValidator, ValidationStatus};
 //! use std::path::Path;
 //!
 //! # async fn example() -> anyhow::Result<()> {
 //! let validator = GateValidator::new();
-//! let result = validator.validate_cargo_toml(Path::new("Cargo.toml"))?;
+//! let results = validator.validate_cargo_toml(Path::new("Cargo.toml"))?;
 //!
-//! match result {
-//!     ValidationResult::Pass(msg) => println!("✓ {}", msg),
-//!     ValidationResult::Warn(msg) => eprintln!("⚠ {}", msg),
-//!     ValidationResult::Fail(msg) => eprintln!("✗ {}", msg),
+//! for result in results {
+//!     match result.status {
+//!         ValidationStatus::Pass => println!("✓ {}", result.message),
+//!         ValidationStatus::Warn => eprintln!("⚠ {}", result.message),
+//!         ValidationStatus::Fail => eprintln!("✗ {}", result.message),
+//!     }
 //! }
 //! # Ok(())
 //! # }
 //! ```
 
-use std::path::Path;
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 /// Validation result status
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -147,9 +148,8 @@ impl GateValidator {
     fn validate_version(&self, toml: &toml::Table) -> Vec<ValidationResult> {
         let mut results = Vec::new();
 
-        if let Some(version) = toml.get("package")
-            .and_then(|p| p.get("version"))
-            .and_then(|v| v.as_str())
+        if let Some(version) =
+            toml.get("package").and_then(|p| p.get("version")).and_then(|v| v.as_str())
         {
             if self.is_valid_calver(version) {
                 results.push(ValidationResult {
@@ -191,9 +191,8 @@ impl GateValidator {
     fn validate_license(&self, toml: &toml::Table) -> Vec<ValidationResult> {
         let mut results = Vec::new();
 
-        if let Some(license) = toml.get("package")
-            .and_then(|p| p.get("license"))
-            .and_then(|l| l.as_str())
+        if let Some(license) =
+            toml.get("package").and_then(|p| p.get("license")).and_then(|l| l.as_str())
         {
             let is_preferred = license == &self.house_defaults.dual_license;
             let is_allowed = self.allowed_licenses.contains(&license.to_string());
@@ -216,7 +215,9 @@ impl GateValidator {
                         "License '{}' is allowed but prefer 'MIT OR Apache-2.0'",
                         license
                     ),
-                    remediation: Some("Consider changing to: license = \"MIT OR Apache-2.0\"".to_string()),
+                    remediation: Some(
+                        "Consider changing to: license = \"MIT OR Apache-2.0\"".to_string(),
+                    ),
                     severity: Severity::Warning,
                 });
             } else {
@@ -247,9 +248,8 @@ impl GateValidator {
     fn validate_msrv(&self, toml: &toml::Table) -> Vec<ValidationResult> {
         let mut results = Vec::new();
 
-        if let Some(msrv) = toml.get("package")
-            .and_then(|p| p.get("rust-version"))
-            .and_then(|v| v.as_str())
+        if let Some(msrv) =
+            toml.get("package").and_then(|p| p.get("rust-version")).and_then(|v| v.as_str())
         {
             if self.is_msrv_compatible(msrv) {
                 results.push(ValidationResult {
@@ -265,10 +265,7 @@ impl GateValidator {
                     status: ValidationStatus::Fail,
                     category: ValidateCategory::Msrv,
                     check_name: "MSRV compliance".to_string(),
-                    message: format!(
-                        "MSRV {} is below house minimum (1.82)",
-                        msrv
-                    ),
+                    message: format!("MSRV {} is below house minimum (1.82)", msrv),
                     remediation: Some("Update to: rust-version = \"1.82\"".to_string()),
                     severity: Severity::Error,
                 });
@@ -292,7 +289,8 @@ impl GateValidator {
         let mut results = Vec::new();
 
         let has_lints = toml.contains_key("lints");
-        let inherits_workspace = toml.get("lints")
+        let inherits_workspace = toml
+            .get("lints")
             .and_then(|l| l.get("workspace"))
             .and_then(|w| w.as_bool())
             .unwrap_or(false);
@@ -304,7 +302,7 @@ impl GateValidator {
                 check_name: "Lints configuration".to_string(),
                 message: "No [lints] configuration found".to_string(),
                 remediation: Some(
-                    "Add [lints] with workspace = true or define inline lints".to_string()
+                    "Add [lints] with workspace = true or define inline lints".to_string(),
                 ),
                 severity: Severity::Warning,
             });
@@ -337,7 +335,8 @@ impl GateValidator {
         ];
 
         for (lint_name, expected_level, category) in required_checks {
-            let found = lints.get("rust")
+            let found = lints
+                .get("rust")
                 .and_then(|r| r.get(lint_name))
                 .or_else(|| lints.get("clippy").and_then(|c| c.get(lint_name)))
                 .and_then(|v| v.as_str());
@@ -404,7 +403,9 @@ impl GateValidator {
                     category: ValidateCategory::Linting,
                     check_name: "Workspace lints".to_string(),
                     message: "[workspace.lints] not found".to_string(),
-                    remediation: Some("Add [workspace.lints] to define shared lint rules".to_string()),
+                    remediation: Some(
+                        "Add [workspace.lints] to define shared lint rules".to_string(),
+                    ),
                     severity: Severity::Warning,
                 });
             }
@@ -469,7 +470,10 @@ impl GateValidator {
                                     line_num + 1,
                                     macro_name
                                 ),
-                                remediation: Some(format!("Remove {} from production code", macro_name)),
+                                remediation: Some(format!(
+                                    "Remove {} from production code",
+                                    macro_name
+                                )),
                                 severity: Severity::Error,
                             });
                         }
@@ -482,7 +486,10 @@ impl GateValidator {
     }
 
     /// Check for required files (LICENSE-MIT, LICENSE-APACHE, etc.)
-    pub fn validate_required_files(&self, repo_root: &Path) -> anyhow::Result<Vec<ValidationResult>> {
+    pub fn validate_required_files(
+        &self,
+        repo_root: &Path,
+    ) -> anyhow::Result<Vec<ValidationResult>> {
         let mut results = Vec::new();
 
         let required_files = vec![
@@ -598,10 +605,7 @@ pub struct GateReport {
 impl GateReport {
     /// Create a new report from validation results
     pub fn new(results: Vec<ValidationResult>) -> Self {
-        Self {
-            results,
-            timestamp: chrono::Local::now().to_rfc3339(),
-        }
+        Self { results, timestamp: chrono::Local::now().to_rfc3339() }
     }
 
     /// Check if all critical gates passed
@@ -639,7 +643,9 @@ impl GateReport {
              | {} | {} | {} |\n\n",
             self.timestamp,
             if self.is_compliant() { "✓ COMPLIANT" } else { "✗ NON-COMPLIANT" },
-            pass, warn, fail
+            pass,
+            warn,
+            fail
         );
 
         // Group by category

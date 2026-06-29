@@ -9,7 +9,7 @@
 //! ```
 
 use praxis_retrofit::{
-    ComplianceGate, GateConfig, GateCheckOutput, GateResult, RemediationPriority,
+    ComplianceGate, GateCheckOutput, GateResult, RemediationPriority,
     BadgeGenerator, format_remediation_markdown, validate_compliance,
 };
 use std::path::PathBuf;
@@ -26,7 +26,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Step 1: Audit the repository
     println!("📊 Step 1: Running compliance audit...\n");
-    let report = praxis_retrofit::validate::validate_compliance(&repo_path).await?;
+    let report = validate_compliance(&repo_path).await?;
 
     println!("Repository: {}", report.repository.name);
     println!("Timestamp: {}", report.timestamp);
@@ -75,7 +75,7 @@ async fn main() -> anyhow::Result<()> {
     if !output.remediation_steps.is_empty() {
         println!("\n🔧 Remediation Steps ({}):", output.remediation_steps.len());
         for (i, step) in output.remediation_steps.iter().enumerate() {
-            println!("\n  {). [{}] {}", i + 1, format!("{:?}", step.priority), step.issue);
+            println!("\n  {}. [{}] {}", i + 1, format!("{:?}", step.priority), step.issue);
             println!("     Suggestion: {}", step.suggestion);
             if let Some(cmd) = &step.command {
                 println!("     Command: {}", cmd);

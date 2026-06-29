@@ -1,8 +1,8 @@
 //! Validate compliance gates
 
-use crate::models::*;
-use crate::Result;
 use std::path::Path;
+
+use crate::{models::*, Result};
 
 pub async fn validate_compliance(repo_path: &Path) -> Result<ComplianceReport> {
     let spec = crate::PraxisSpec::default();

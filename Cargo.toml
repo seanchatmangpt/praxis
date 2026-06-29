@@ -1,6 +1,6 @@
 [package]
 name = "my-conforming-project"
-version = "26.6.0"
+version = "26.6.30"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT OR Apache-2.0"
@@ -73,6 +73,8 @@ tempfile = "3"
 insta = { version = "1", features = ["json"] }
 proptest = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
+praxis-retrofit = { path = "crates/praxis-retrofit" }
+tokio = { version = "1", features = ["full"] }
 
 [[bin]]
 name = "dod"
@@ -92,3 +94,10 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/chatman-common",
+    "crates/praxis-retrofit",
+]

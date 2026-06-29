@@ -108,3 +108,14 @@ jobs:
       - uses: rustsec/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-cicd
+        run: cargo install cargo-cicd
+      - name: Run Workspace Doctor
+        run: cargo cicd workspace doctor

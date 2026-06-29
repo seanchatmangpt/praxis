@@ -1,0 +1,10 @@
+[target]
+max_size_gb = 5.0
+prune_after_days = 7
+
+[test.changed]
+base = "origin/main"
+
+[autonomic]
+enabled = true
+mode = "suggest"

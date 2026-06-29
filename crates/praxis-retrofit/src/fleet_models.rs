@@ -3,9 +3,11 @@
 //! Data structures for aggregating individual repository compliance reports
 //! into fleet-wide audit and readiness assessments.
 
-use crate::models::{ComplianceCategory, ComplianceReport, ComplianceStatus, RetrofitPhase};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+
+use crate::models::{ComplianceCategory, ComplianceReport, ComplianceStatus, RetrofitPhase};
 
 /// Cell status in compliance heatmap with counts
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -31,12 +33,7 @@ impl HeatmapCell {
             ComplianceStatus::Pass
         };
 
-        Self {
-            status,
-            pass_count,
-            warn_count,
-            fail_count,
-        }
+        Self { status, pass_count, warn_count, fail_count }
     }
 
     /// Total checks in this cell
@@ -69,20 +66,11 @@ pub struct ComplianceHeatmap {
 impl ComplianceHeatmap {
     /// Create a new empty heatmap
     pub fn new(repositories: Vec<String>, categories: Vec<ComplianceCategory>) -> Self {
-        Self {
-            matrix: HashMap::new(),
-            repositories,
-            categories,
-        }
+        Self { matrix: HashMap::new(), repositories, categories }
     }
 
     /// Set a cell in the heatmap
-    pub fn set_cell(
-        &mut self,
-        repo: String,
-        category: ComplianceCategory,
-        cell: HeatmapCell,
-    ) {
+    pub fn set_cell(&mut self, repo: String, category: ComplianceCategory, cell: HeatmapCell) {
         self.matrix.insert((repo, category), cell);
     }
 
@@ -148,9 +136,7 @@ impl ComplianceHeatmap {
             .iter()
             .map(|r| (r.clone(), self.repository_stats(r).compliance_percent()))
             .collect();
-        scores.sort_by(|a, b| {
-            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
-        });
+        scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         self.repositories = scores.into_iter().map(|(r, _)| r).collect();
     }
 
@@ -326,11 +312,8 @@ impl CategoryMetrics {
         fail_count: usize,
     ) -> Self {
         let total = pass_count + warn_count + fail_count;
-        let pass_percent = if total > 0 {
-            (pass_count as f32 / total as f32) * 100.0
-        } else {
-            100.0
-        };
+        let pass_percent =
+            if total > 0 { (pass_count as f32 / total as f32) * 100.0 } else { 100.0 };
 
         Self {
             category_name,

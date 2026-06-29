@@ -1,8 +1,8 @@
 //! Apply retrofit changes to repositories
 
-use crate::models::*;
-use crate::Result;
 use std::path::Path;
+
+use crate::{models::*, Result};
 
 pub async fn apply_retrofit(_repo_path: &Path, _plan: &RetrofitPlan) -> Result<Vec<String>> {
     let mut results = vec![];

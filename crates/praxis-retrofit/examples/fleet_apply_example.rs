@@ -10,16 +10,16 @@
 //! cargo run --example fleet_apply_example --release
 //! ```
 
-use praxis_retrofit::{RetrofitApplier, RetrofitPhase, PraxisSpec};
 use std::path::PathBuf;
+
+use praxis_retrofit::{PraxisSpec, RetrofitApplier, RetrofitPhase};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize logging
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("info".parse()?),
+            tracing_subscriber::EnvFilter::from_default_env().add_directive("info".parse()?),
         )
         .init();
 
@@ -30,7 +30,7 @@ async fn main() -> anyhow::Result<()> {
     let mut applier = RetrofitApplier::new(spec)?;
 
     // Configure concurrent limit (default: 4)
-    let applier = applier.with_concurrent_limit(2);
+    let mut applier = applier.with_concurrent_limit(2);
 
     // Example: Add repositories to retrofit
     // You would replace these with actual repository paths
@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    if applier.repositories.is_empty() {
+    if applier.repositories().is_empty() {
         println!("No repositories to retrofit. Create test repos first:");
         println!("  git init test-repo-1");
         println!("  git init test-repo-2");

@@ -7,27 +7,26 @@
 //! - Handling alerts
 //! - Exporting data for external systems
 
-use praxis_retrofit::compliance_dashboard::{
-    Dashboard, DashboardConfig, ComplianceAlert, AlertSeverity,
-};
-use praxis_retrofit::models::{
-    ComplianceReport, RepositoryMetadata, ComplianceItem, ComplianceCategory, ComplianceStatus,
-};
 use std::path::PathBuf;
+
 use chrono::Utc;
+use praxis_retrofit::{
+    compliance_dashboard::{AlertSeverity, ComplianceAlert, Dashboard, DashboardConfig},
+    models::{
+        ComplianceCategory, ComplianceItem, ComplianceReport, ComplianceStatus, RepositoryMetadata,
+    },
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
+    tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
 
     println!("=== Praxis Compliance Dashboard Example ===\n");
 
     // Step 1: Create dashboard with custom configuration
     println!("Step 1: Creating dashboard with configuration...");
     let mut config = DashboardConfig::default();
-    config.alert_threshold = 85.0;  // Alert if compliance drops below 85%
+    config.alert_threshold = 85.0; // Alert if compliance drops below 85%
     config.enable_alerts = true;
     config.dashboard_id = "example-fleet".to_string();
 
@@ -89,10 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  No active alerts");
     } else {
         for alert in alerts {
-            println!(
-                "  [{:?}] {}: {}",
-                alert.severity, alert.repository, alert.message
-            );
+            println!("  [{:?}] {}: {}", alert.severity, alert.repository, alert.message);
             println!("    Score: {:.1}% -> {:.1}%", alert.previous_score, alert.current_score);
             if let Some(hint) = &alert.remediation_hint {
                 println!("    Remedy: {}", hint);
@@ -106,8 +102,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (cat_name, metrics) in &fleet_status.fleet_category_summary {
         println!(
             "  {}: {:.1}% (pass_rate: {:.1}%, warnings: {}, failures: {})",
-            cat_name, metrics.average_score, metrics.pass_rate,
-            metrics.repos_with_warnings, metrics.repos_with_failures
+            cat_name,
+            metrics.average_score,
+            metrics.pass_rate,
+            metrics.repos_with_warnings,
+            metrics.repos_with_failures
         );
     }
     println!();
@@ -167,9 +166,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Step 12: Demonstrate alert acknowledgment
     println!("Step 12: Alert management:");
-    for alert in dashboard.get_alerts() {
-        if dashboard.acknowledge_alert(&alert.alert_id) {
-            println!("Acknowledged alert: {}", alert.alert_id);
+    let alert_ids: Vec<String> =
+        dashboard.get_alerts().iter().map(|a| a.alert_id.clone()).collect();
+    for alert_id in alert_ids {
+        if dashboard.acknowledge_alert(&alert_id) {
+            println!("Acknowledged alert: {}", alert_id);
         }
     }
     println!();
@@ -177,10 +178,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Summary
     println!("=== Summary ===");
     println!("Dashboard configured and populated successfully!");
-    println!(
-        "Fleet Status: {:.1}% average compliance",
-        fleet_status.fleet_average_score
-    );
+    println!("Fleet Status: {:.1}% average compliance", fleet_status.fleet_average_score);
     println!(
         "Compliance Distribution: {} passing, {} warnings, {} failing",
         fleet_status.passing_repos, fleet_status.warning_repos, fleet_status.failing_repos
@@ -201,11 +199,7 @@ fn create_sample_report(name: &str, target_score: f32) -> ComplianceReport {
     checks.push(ComplianceItem {
         name: "CI/CD Pipeline".to_string(),
         category: ComplianceCategory::CiCd,
-        status: if pass_count > 0 {
-            ComplianceStatus::Pass
-        } else {
-            ComplianceStatus::Fail
-        },
+        status: if pass_count > 0 { ComplianceStatus::Pass } else { ComplianceStatus::Fail },
         evidence: "GitHub Actions workflows present".to_string(),
         remediation: Some("Create .github/workflows/ci.yml".to_string()),
     });
@@ -229,11 +223,7 @@ fn create_sample_report(name: &str, target_score: f32) -> ComplianceReport {
     checks.push(ComplianceItem {
         name: "Workspace Lints".to_string(),
         category: ComplianceCategory::Linting,
-        status: if pass_count > 2 {
-            ComplianceStatus::Pass
-        } else {
-            ComplianceStatus::Fail
-        },
+        status: if pass_count > 2 { ComplianceStatus::Pass } else { ComplianceStatus::Fail },
         evidence: "Cargo.toml [lints] block present".to_string(),
         remediation: Some("Add [lints] configuration".to_string()),
     });
@@ -242,11 +232,7 @@ fn create_sample_report(name: &str, target_score: f32) -> ComplianceReport {
     checks.push(ComplianceItem {
         name: "Editor Config".to_string(),
         category: ComplianceCategory::EditorConfig,
-        status: if pass_count > 3 {
-            ComplianceStatus::Pass
-        } else {
-            ComplianceStatus::Warn
-        },
+        status: if pass_count > 3 { ComplianceStatus::Pass } else { ComplianceStatus::Warn },
         evidence: ".editorconfig file".to_string(),
         remediation: Some("Create .editorconfig".to_string()),
     });
@@ -255,11 +241,7 @@ fn create_sample_report(name: &str, target_score: f32) -> ComplianceReport {
     checks.push(ComplianceItem {
         name: "Contributor Guide".to_string(),
         category: ComplianceCategory::Documentation,
-        status: if pass_count > 4 {
-            ComplianceStatus::Pass
-        } else {
-            ComplianceStatus::Warn
-        },
+        status: if pass_count > 4 { ComplianceStatus::Pass } else { ComplianceStatus::Warn },
         evidence: "CONTRIBUTING.md present".to_string(),
         remediation: Some("Create CONTRIBUTING.md".to_string()),
     });
