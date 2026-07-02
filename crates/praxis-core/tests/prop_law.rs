@@ -15,6 +15,27 @@ use praxis_core::{
 };
 use proptest::prelude::*;
 
+/// Fixed 64-hex-char (32-byte) ed25519 seed used only by these tests. Not
+/// security-sensitive: under `--features signed` (enabled by workspace
+/// `--all-features`) `receipt()` signs the chain hash fail-closed, so every
+/// receipt-producing property needs a deterministic `PRAXIS_SIGNING_KEY` —
+/// same house pattern as `tests/receipt_lane.rs`'s `signing_guard`.
+#[cfg(feature = "signed")]
+const PROP_TEST_SIGNING_KEY_HEX: &str =
+    "e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfe4321";
+
+/// Ensure `PRAXIS_SIGNING_KEY` is set before receipting. The value is a
+/// process-wide constant and no test in this binary ever removes it, so a
+/// set-once is race-free across parallel tests and proptest iterations
+/// (no mutex needed, unlike guards that also *unset*).
+fn ensure_signing_key() {
+    #[cfg(feature = "signed")]
+    {
+        static ONCE: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+        ONCE.get_or_init(|| std::env::set_var("PRAXIS_SIGNING_KEY", PROP_TEST_SIGNING_KEY_HEX));
+    }
+}
+
 /// Build a fresh `Admitted` law object wrapping `payload`, with no
 /// obligations — judge/admit always succeed unconditionally, so every
 /// property below is purely about chain-hash sensitivity, not obligation
@@ -47,6 +68,7 @@ proptest! {
     /// and `meta`, must produce different chain hashes.
     #[test]
     fn chain_hash_changes_on_payload_perturbation(a in any::<i64>(), b in any::<i64>()) {
+        ensure_signing_key();
         prop_assume!(a != b);
         let prev = [0u8; 32];
         let meta = fixed_meta(42);
@@ -62,6 +84,7 @@ proptest! {
         a in any::<[u8; 32]>(),
         b in any::<[u8; 32]>(),
     ) {
+        ensure_signing_key();
         prop_assume!(a != b);
         let meta = fixed_meta(42);
         let payload = serde_json::json!({"v": 1});
@@ -73,6 +96,7 @@ proptest! {
     /// Perturbing only `instruction_id` changes the chain hash.
     #[test]
     fn chain_hash_changes_on_instruction_id_perturbation(a in any::<u64>(), b in any::<u64>()) {
+        ensure_signing_key();
         prop_assume!(a != b);
         let prev = [0u8; 32];
         let payload = serde_json::json!({"v": 1});
@@ -86,6 +110,7 @@ proptest! {
     /// Perturbing only `activity_idx` changes the chain hash.
     #[test]
     fn chain_hash_changes_on_activity_idx_perturbation(a in any::<u16>(), b in any::<u16>()) {
+        ensure_signing_key();
         prop_assume!(a != b);
         let prev = [0u8; 32];
         let payload = serde_json::json!({"v": 1});
@@ -99,6 +124,7 @@ proptest! {
     /// Perturbing only `node_kind` changes the chain hash.
     #[test]
     fn chain_hash_changes_on_node_kind_perturbation(a in any::<u8>(), b in any::<u8>()) {
+        ensure_signing_key();
         prop_assume!(a != b);
         let prev = [0u8; 32];
         let payload = serde_json::json!({"v": 1});
@@ -112,6 +138,7 @@ proptest! {
     /// Perturbing only `ts_ns` changes the chain hash.
     #[test]
     fn chain_hash_changes_on_ts_ns_perturbation(a in any::<u64>(), b in any::<u64>()) {
+        ensure_signing_key();
         prop_assume!(a != b);
         let prev = [0u8; 32];
         let payload = serde_json::json!({"v": 1});
@@ -127,6 +154,7 @@ proptest! {
     /// `ts_ns` is explicitly supplied).
     #[test]
     fn receipt_is_deterministic_for_identical_inputs(v in any::<i64>(), ts in any::<u64>()) {
+        ensure_signing_key();
         let prev = [7u8; 32];
         let payload = serde_json::json!({"v": v});
         let meta = fixed_meta(ts);
