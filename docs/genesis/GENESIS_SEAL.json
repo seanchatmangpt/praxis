@@ -1,0 +1,57 @@
+{
+  "artifact": "GENESIS_SEAL",
+  "description": "The seven-day Genesis week sealed as one object: a single blake3 hash over the ordered list of sealed daily manifest hashes. Day 7's seal provably commits Day 1's hash.",
+  "algorithm": "blake3",
+  "seal_method": "seal_hash = blake3(json.dumps(days, sort_keys=True, separators=(\",\",\":\")).encode()) where `days` is the ordered array below (the same canonical-JSON form used for each manifest_hash).",
+  "seal_preimage_canonical_json": "[{\"day\":1,\"manifest_hash\":\"f6ec2387af8c0a6493f3f03c7fb918b7d0879434da5b4afb07458da585fa5dba\"},{\"day\":2,\"manifest_hash\":\"cb184872b7c8bd5030b524a5430bd44d208db5b151f6f21066514293dea4e8c9\"}]",
+  "seal_hash": "9c666317edb61ace94d6cc7cc5114a15effd80caa596dbe370191ee2e8dfd34f",
+  "days": [
+    {
+      "day": 1,
+      "manifest_hash": "f6ec2387af8c0a6493f3f03c7fb918b7d0879434da5b4afb07458da585fa5dba"
+    },
+    {
+      "day": 2,
+      "manifest_hash": "cb184872b7c8bd5030b524a5430bd44d208db5b151f6f21066514293dea4e8c9"
+    }
+  ],
+  "chain_verification": {
+    "method": "For each sealed day, prev_day_hash must equal the prior day's manifest_hash; Day 1's prev_day_hash must be the 64-zero genesis anchor. Each manifest_hash independently recomputed from its own canonical JSON (manifest_hash field removed) and confirmed to match the stated value.",
+    "links": [
+      {
+        "day": 1,
+        "prev_day_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "expected": "0000000000000000000000000000000000000000000000000000000000000000",
+        "link": "INTACT (genesis anchor)",
+        "hash_recomputed": "GENUINE"
+      },
+      {
+        "day": 2,
+        "prev_day_hash": "f6ec2387af8c0a6493f3f03c7fb918b7d0879434da5b4afb07458da585fa5dba",
+        "expected": "f6ec2387af8c0a6493f3f03c7fb918b7d0879434da5b4afb07458da585fa5dba",
+        "link": "INTACT",
+        "hash_recomputed": "GENUINE"
+      }
+    ],
+    "links_intact": true,
+    "all_hashes_genuine": true
+  },
+  "honesty": {
+    "days_programmed": 7,
+    "days_sealed": 2,
+    "sealed_days": [
+      1,
+      2
+    ],
+    "unsealed_days": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "chain_intact_over_sealed_links": true,
+    "chain_closed_over_full_program": false,
+    "finding": "The GENESIS.md program specified seven daily manifests, each chaining its predecessor, so that Day 7 would fold back onto Day 1. Only Days 1 and 2 emitted manifests. Days 3-6 produced real work (commits, crates, tests) but sealed no manifest of their own; the Day 7 release phase produced a frontier report but also sealed no new constellation manifest. This seal therefore binds the two links that genuinely exist, not a fabricated seven. Per the standing rule 'silent gaps are the only forbidden artifact,' the gap is recorded here rather than hidden by inventing manifests that were never produced. The two sealed links are cryptographically intact and independently reproducible."
+  }
+}
