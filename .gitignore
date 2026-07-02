@@ -2,6 +2,7 @@
 target/
 playground/target/
 template/target/
+templates/*/target/
 .DS_Store
 *.backup
 .claude/

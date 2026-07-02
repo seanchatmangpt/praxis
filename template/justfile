@@ -1,0 +1,17 @@
+set shell := ["bash", "-uc"]
+
+# Default: show available recipes
+default:
+    @just --list
+
+check:
+    timeout 30s cargo check --all-targets
+
+test:
+    timeout 30s cargo test
+
+build:
+    timeout 120s cargo build
+
+clean:
+    timeout 30s cargo clean

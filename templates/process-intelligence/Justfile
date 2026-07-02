@@ -1,0 +1,15 @@
+# Run validation court on a process execution log
+validate log_path="ocel/receipts/latest.json":
+    wpm validate {{log_path}}
+
+# Compile the workspace crates
+compile:
+    cargo build
+
+# Prune target directory to enforce limits
+prune:
+    cargo cicd target prune
+
+# Run only tests affected by changes
+test-changed:
+    cargo cicd test changed
