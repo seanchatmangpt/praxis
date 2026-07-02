@@ -300,6 +300,47 @@ A: Yes! Edit your `ontology/domain.ttl` (RDF), run `ggen sync`, and the PDDL dom
 
 ---
 
+## Implementation Status Update (2026-07-01): the sketch is now real code
+
+`ggen_rdf_to_pddl_sketch.rs` above is pseudocode; the **real** RDF → PDDL
+manufacturing pipeline lives in `src/mfg.rs` (`#[cfg(feature = "ggen")]`),
+wired to a real dependency (`ggen-graph`'s `parse_turtle` +
+`DeterministicGraph`) and a real planner (`bcinr_pddl::ground::GroundProblem`)
+rather than Fast Downward.
+
+**One critical correction to this design package:** `lawobject-capability.pddl`
+above uses ADL (`forall`/`implies` inside preconditions). `bcinr-pddl`'s
+grounder (`bcinr_pddl::ground::GroundProblem::find_plan`) is a **STRIPS8**
+solver — positive conjunctive preconditions only, arity/conjuncts/params
+each `<= 8` (`wasm4pm_compat::pddl::PDDL8_MAX_*`). The ADL file **parses**
+via `bcinr_pddl::domain_from_pddl` but does **not ground or solve**.
+
+`src/mfg.rs` therefore does not emit the ADL exemplar. It:
+
+1. Loads a `pdl:` instance-vocabulary Turtle ontology (`ontology/lawobject.ttl`
+   is the shipped example — a PDDL8-safe flattening of this document's
+   capability model, with obligation-clearing pre-compiled into a flat
+   `obligations-met` predicate instead of a `forall`/`implies` check).
+2. Extracts a STRIPS8 intermediate representation (`DomainIr`/`ProblemIr`:
+   typed predicates, and actions as plain `pre`/`add`/`del` atom lists) via
+   `ORDER BY`-deterministic SPARQL queries.
+3. Enforces PDDL8 bounds in Rust (`enforce_pddl8`) *before* emitting a single
+   byte of PDDL text.
+4. Emits domain/problem PDDL text by direct `String` building (not Tera —
+   the bounds are Rust invariants, not a templating concern), plus a
+   `facts_json` SPARQL-to-JSON projection in `ggen-core`'s
+   `sparql_column`/`sparql_row` row shape.
+
+The `mfg` CLI noun (`mfg pddl|facts|validate`, `src/verbs/mfg.rs`) and the
+golden test `tests/mfg_golden.rs` exercise this end to end: manufacture
+`ontology/lawobject.ttl`, round-trip the emitted text back through
+`bcinr_pddl::domain_from_pddl`/`problem_from_pddl`, and confirm
+`GroundProblem::find_plan` actually **solves** it — the five-step plan
+`supply-evidence -> clear-obligations -> judge -> admit -> receipt` is a
+pinned contract other lanes (e.g. a `plan lawobject` self-test) rely on.
+
+---
+
 **Last Updated:** 2026-07-01  
 **Author:** Claude Code (Anthropic)  
 **Context:** CPhy PDDL Capability Model Design Task
