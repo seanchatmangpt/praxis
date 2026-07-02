@@ -17,6 +17,7 @@ pub mod plan;
 #[cfg(feature = "proposer")]
 pub mod propose;
 pub mod receipt;
+pub mod synth;
 #[cfg(feature = "testbed")]
 pub mod testbed;
 pub mod verifier;

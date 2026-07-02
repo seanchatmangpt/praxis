@@ -96,6 +96,7 @@ hex = "0.4"
 bcinr-powl-receipt = { path = "../bcinr/crates/bcinr-powl-receipt", version = "26.6.24" }
 bcinr-pddl = { path = "../bcinr/crates/bcinr-pddl", version = "26.6.26" }
 pddl-index = { path = "crates/pddl-index", version = "26.7.2" }
+praxis-synthesis = { path = "crates/praxis-synthesis", version = "26.7.2" }
 bcinr-powl = { path = "../bcinr/crates/bcinr-powl", version = "26.6.25" }
 prolog8 = { path = "../wasm4pm/crates/prolog8", version = "26.7.1" }
 wasm4pm-compat = { path = "../wasm4pm-compat", version = "26.6.29" }

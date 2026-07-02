@@ -1697,7 +1697,7 @@ dependencies = [
 
 [[package]]
 name = "ggen-config"
-version = "26.7.1"
+version = "26.7.2"
 dependencies = [
  "blake3",
  "chrono",
@@ -1708,7 +1708,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "star-toml 26.7.1",
+ "star-toml 26.7.2",
  "thiserror 2.0.18",
  "tokio",
  "toml 1.1.2+spec-1.1.0",
@@ -1716,7 +1716,7 @@ dependencies = [
 
 [[package]]
 name = "ggen-core"
-version = "26.7.1"
+version = "26.7.2"
 dependencies = [
  "Inflector",
  "ahash",
@@ -1807,7 +1807,7 @@ dependencies = [
 
 [[package]]
 name = "ggen-graph"
-version = "26.7.1"
+version = "26.7.2"
 dependencies = [
  "blake3",
  "chrono",
@@ -1826,7 +1826,7 @@ dependencies = [
 
 [[package]]
 name = "ggen-marketplace"
-version = "26.7.1"
+version = "26.7.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2965,6 +2965,7 @@ dependencies = [
  "praxis-core",
  "praxis-proposer",
  "praxis-retrofit",
+ "praxis-synthesis",
  "predicates",
  "prolog8 26.7.1",
  "proptest",
@@ -5015,7 +5016,7 @@ dependencies = [
 
 [[package]]
 name = "star-toml"
-version = "26.7.1"
+version = "26.7.2"
 dependencies = [
  "serde",
  "thiserror 2.0.18",

@@ -45,6 +45,7 @@ pub mod mission;
 
 pub mod frontier;
 pub mod repl;
+pub mod synth_ops;
 pub mod verify_ops;
 
 pub use error::AppError;
