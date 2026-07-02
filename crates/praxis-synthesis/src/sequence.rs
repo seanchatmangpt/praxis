@@ -44,15 +44,105 @@ pub struct Capability {
     pub cost: u32,
 }
 
+/// The eight constraint kinds — the doctrine's namesake. Capability
+/// references are by name; step indices are within the horizon.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Constraint {
+    /// Every occurrence of `a` precedes every occurrence of `b`.
+    Before {
+        /// Earlier capability.
+        a: String,
+        /// Later capability.
+        b: String,
+    },
+    /// Sugar for `Before { a: b, b: a }`.
+    After {
+        /// Later capability.
+        a: String,
+        /// Earlier capability.
+        b: String,
+    },
+    /// `a` may only occur at step `< k` (deadline).
+    NotLater {
+        /// Constrained capability.
+        a: String,
+        /// Exclusive step bound.
+        k: u8,
+    },
+    /// `a` may only occur at step `>= k` (release time).
+    NotEarlier {
+        /// Constrained capability.
+        a: String,
+        /// Inclusive step bound.
+        k: u8,
+    },
+    /// `a` and `b` may not both appear in one plan.
+    Excludes {
+        /// First capability.
+        a: String,
+        /// Second capability.
+        b: String,
+    },
+    /// If `a` appears, `b` must also appear.
+    Requires {
+        /// Dependent capability.
+        a: String,
+        /// Required capability.
+        b: String,
+    },
+    /// `a` may appear at most `n` times.
+    AtMost {
+        /// Constrained capability.
+        a: String,
+        /// Maximum occurrences.
+        n: u8,
+    },
+    /// Total plan cost may not exceed `max`.
+    Budget {
+        /// Inclusive cost bound.
+        max: u32,
+    },
+}
+
+impl Constraint {
+    /// Human/machine-legible rendering used in unsat cores.
+    #[must_use]
+    pub fn render(&self) -> String {
+        match self {
+            Constraint::Before { a, b } => format!("Before({a},{b})"),
+            Constraint::After { a, b } => format!("After({a},{b})"),
+            Constraint::NotLater { a, k } => format!("NotLater({a},{k})"),
+            Constraint::NotEarlier { a, k } => format!("NotEarlier({a},{k})"),
+            Constraint::Excludes { a, b } => format!("Excludes({a},{b})"),
+            Constraint::Requires { a, b } => format!("Requires({a},{b})"),
+            Constraint::AtMost { a, n } => format!("AtMost({a},{n})"),
+            Constraint::Budget { max } => format!("Budget({max})"),
+        }
+    }
+
+    fn names(&self) -> Vec<&str> {
+        match self {
+            Constraint::Before { a, b }
+            | Constraint::After { a, b }
+            | Constraint::Excludes { a, b }
+            | Constraint::Requires { a, b } => vec![a, b],
+            Constraint::NotLater { a, .. }
+            | Constraint::NotEarlier { a, .. }
+            | Constraint::AtMost { a, .. } => vec![a],
+            Constraint::Budget { .. } => vec![],
+        }
+    }
+}
+
 /// A sequencing problem: capabilities + initial state (a saturated
-/// [`Program`]'s facts) + goal patterns + horizon.
+/// [`Program`]'s facts) + goal patterns + horizon + constraints.
 #[derive(Debug)]
 pub struct SequenceProblem {
-    caps: Vec<Capability>,
-    init: StateDb,
-    goal: Vec<Atom>,
+    pub(crate) caps: Vec<Capability>,
+    pub(crate) init: StateDb,
+    pub(crate) goal: Vec<Atom>,
     horizon: usize,
-    before: Vec<(String, String)>,
+    pub(crate) constraints: Vec<Constraint>,
     problem_hash: String,
 }
 
@@ -98,22 +188,22 @@ pub trait Solver {
 /// Mutable ground-atom state used during search (supports delete effects,
 /// which `FactStore` deliberately does not).
 #[derive(Debug, Clone, Default)]
-struct StateDb {
-    by_pred: BTreeMap<u32, BTreeSet<Vec<u32>>>,
+pub(crate) struct StateDb {
+    pub(crate) by_pred: BTreeMap<u32, BTreeSet<Vec<u32>>>,
 }
 
 impl StateDb {
-    fn insert(&mut self, pred: u32, args: Vec<u32>) -> bool {
+    pub(crate) fn insert(&mut self, pred: u32, args: Vec<u32>) -> bool {
         self.by_pred.entry(pred).or_default().insert(args)
     }
-    fn remove(&mut self, pred: u32, args: &[u32]) -> bool {
+    pub(crate) fn remove(&mut self, pred: u32, args: &[u32]) -> bool {
         self.by_pred.get_mut(&pred).is_some_and(|s| s.remove(args))
     }
     fn tuples_for(&self, pred: u32) -> impl Iterator<Item = &Vec<u32>> {
         self.by_pred.get(&pred).into_iter().flat_map(BTreeSet::iter)
     }
     /// Enumerate bindings for a positive conjunction. Deterministic order.
-    fn join(&self, patterns: &[Atom], cap: usize) -> Vec<[Option<u32>; MAX_VARS]> {
+    pub(crate) fn join(&self, patterns: &[Atom], cap: usize) -> Vec<[Option<u32>; MAX_VARS]> {
         fn descend(
             db: &StateDb,
             patterns: &[Atom],
@@ -172,7 +262,7 @@ impl StateDb {
     }
 }
 
-fn ground(atom: &Atom, binding: &[Option<u32>; MAX_VARS]) -> (u32, Vec<u32>) {
+pub(crate) fn ground(atom: &Atom, binding: &[Option<u32>; MAX_VARS]) -> (u32, Vec<u32>) {
     let args = atom
         .args
         .iter()
@@ -186,7 +276,8 @@ fn ground(atom: &Atom, binding: &[Option<u32>; MAX_VARS]) -> (u32, Vec<u32>) {
 
 impl SequenceProblem {
     /// Build a problem from declared capabilities and a saturated program.
-    /// Validates capability safety and constructs the problem content address.
+    /// `before` pairs are lowered to [`Constraint::Before`]; see
+    /// [`with_constraints`](Self::with_constraints) for the full surface.
     pub fn new(
         program: &Program,
         capabilities: Vec<Capability>,
@@ -194,20 +285,42 @@ impl SequenceProblem {
         horizon: usize,
         before: Vec<(String, String)>,
     ) -> Result<Self, Refusal> {
+        let constraints =
+            before.into_iter().map(|(a, b)| Constraint::Before { a, b }).collect();
+        Self::with_constraints(program, capabilities, goal, horizon, constraints)
+    }
+
+    /// Build a problem with the full eight-kind constraint surface.
+    /// Validates capability safety, constraint references, and the per-problem
+    /// constraint cap (64 = 8×8), and constructs the problem content address.
+    pub fn with_constraints(
+        program: &Program,
+        capabilities: Vec<Capability>,
+        goal: Vec<Atom>,
+        horizon: usize,
+        constraints: Vec<Constraint>,
+    ) -> Result<Self, Refusal> {
         if horizon > MAX_STEPS {
             return Err(Refusal::InvalidInput {
                 detail: format!("horizon {horizon} exceeds MAX_STEPS ({MAX_STEPS})"),
+            });
+        }
+        if constraints.len() > 64 {
+            return Err(Refusal::InvalidInput {
+                detail: format!("{} constraints exceed the 64 (8x8) cap", constraints.len()),
             });
         }
         let names: BTreeSet<&str> = capabilities.iter().map(|c| c.name.as_str()).collect();
         if names.len() != capabilities.len() {
             return Err(Refusal::InvalidInput { detail: "duplicate capability names".into() });
         }
-        for (a, b) in &before {
-            if !names.contains(a.as_str()) || !names.contains(b.as_str()) {
-                return Err(Refusal::InvalidInput {
-                    detail: format!("before({a},{b}) names an undeclared capability"),
-                });
+        for c in &constraints {
+            for n in c.names() {
+                if !names.contains(n) {
+                    return Err(Refusal::InvalidInput {
+                        detail: format!("{} names undeclared capability {n}", c.render()),
+                    });
+                }
             }
         }
         for cap in &capabilities {
@@ -247,12 +360,12 @@ impl SequenceProblem {
             "capabilities": capabilities,
             "goal": goal,
             "horizon": horizon,
-            "before": before,
+            "constraints": constraints,
             "fixpoint": program.fixpoint_hash(),
         });
         let problem_hash =
             chatman_common::provenance::content_address(canon.to_string().as_bytes());
-        Ok(Self { caps: capabilities, init, goal, horizon, before, problem_hash })
+        Ok(Self { caps: capabilities, init, goal, horizon, constraints, problem_hash })
     }
 
     /// Content address of this problem.
@@ -273,7 +386,7 @@ impl SequenceProblem {
         self.horizon
     }
 
-    fn goal_satisfied(&self, state: &StateDb) -> bool {
+    pub(crate) fn goal_satisfied(&self, state: &StateDb) -> bool {
         !state.join(&self.goal, 1).is_empty() || self.goal.is_empty()
     }
 
@@ -402,9 +515,12 @@ impl Search<'_> {
                 self.pruned += 1;
                 continue;
             }
-            // before(a, b): b may not be placed until a has been.
-            let blocked = self.problem.before.iter().any(|(a, b)| {
-                *b == cap.name && !steps.iter().any(|s| s.capability == *a)
+            // Before(a, b): b may not be placed until a has been.
+            let blocked = self.problem.constraints.iter().any(|c| match c {
+                Constraint::Before { a, b } => {
+                    *b == cap.name && !steps.iter().any(|s| s.capability == *a)
+                }
+                _ => false,
             });
             if blocked {
                 continue;

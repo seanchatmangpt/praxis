@@ -27,15 +27,19 @@
 pub mod dag;
 pub mod datalog;
 pub mod pipeline;
+pub mod rel;
 pub mod sequence;
+pub mod solver8;
 pub mod verify;
 
 pub use dag::{Dag, DagReceipt, HashRunner, MemoCache, NodeReceipt, NodeRunner};
 pub use datalog::{Atom, DlRule, Program, SaturationReceipt, Term};
 pub use pipeline::{Synthesis, SynthesisReceipt};
 pub use sequence::{
-    BoundStep, BoundedCsp, Capability, SequencePlan, SequenceProblem, SolveReceipt, Solver,
+    BoundStep, BoundedCsp, Capability, Constraint, SequencePlan, SequenceProblem, SolveReceipt,
+    Solver,
 };
+pub use solver8::{CoreCache, Solver8};
 pub use verify::{CheckOutcome, Verdict};
 
 use serde::{Deserialize, Serialize};
@@ -79,6 +83,22 @@ pub enum Refusal {
         detail: String,
         /// Search nodes explored before concluding.
         nodes_explored: u64,
+    },
+    /// Unsatisfiability *certified before search*: the refusal carries a
+    /// minimal conflicting constraint core (a bounded MUS). A second agent
+    /// can verify the impossibility by re-propagating the core alone —
+    /// no search required. Proofs of impossibility with named culprits are
+    /// the fleet's dead-end-sharing currency.
+    #[error("unsat (certified): {detail}; core = {core:?}")]
+    UnsatProof {
+        /// What became impossible (which mandatory capability's window emptied).
+        detail: String,
+        /// Minimal unsatisfiable core: rendered constraints whose conjunction
+        /// alone reproduces the emptiness.
+        core: Vec<String>,
+        /// Whether this proof was replayed from a shared core cache rather
+        /// than re-derived.
+        replayed: bool,
     },
     /// A structural invariant on inputs was violated (caller error, receipted).
     #[error("invalid input: {detail}")]
