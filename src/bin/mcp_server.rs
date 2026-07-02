@@ -146,7 +146,10 @@ mod server {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     use rmcp::{transport::stdio, ServiceExt as _};
-    server::ServerState::default().serve(stdio()).await?;
+    // `serve()` only completes the initialize handshake and returns a handle;
+    // await `.waiting()` to serve tool calls until the client disconnects.
+    let service = server::ServerState::default().serve(stdio()).await?;
+    service.waiting().await?;
     Ok(())
 }
 

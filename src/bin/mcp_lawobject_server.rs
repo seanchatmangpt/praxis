@@ -20,37 +20,50 @@
 //! cargo run --bin mcp_lawobject_server --features mcp
 //! ```
 //!
-//! The server speaks the Model Context Protocol over stdio and exposes these tools:
+//! The server speaks the Model Context Protocol over stdio and exposes the
+//! whole Genesis Day 2 revenue pipe plus the law lifecycle, so an external
+//! agent with **only** membrane access can drive a receipted mission
+//! (see `scripts/membrane_demo.sh`):
 //!
-//! 1. **`inspect_obligation`** — describe what a JSON array of tagged obligations requires.
-//! 2. **judge** — `ops::judge_payload`: Raw → Validated or `Andon::Halted`.
-//! 3. **admit** — `ops::admit_payload`: Validated → Admitted or a denial.
-//! 4. **receipt** — `ops::receipt_payload`: Admitted → Receipted, BLAKE3-chained.
-//! 5. **`show_andon`** — query the Andon state embedded in any `LawObject`-shaped JSON.
-//! 6. **promote** — `ops::promote_payload`: auditor-gated `BreedStanding` promotion.
-//! 7. **`receipt_validate`** — `ops::receipt_validate_payload`: validate the persisted receipt ledger.
-//! 8. **`receipt_replay`** — `ops::receipt_replay_payload`: POWL-replay the persisted receipt ledger.
+//! Day 2 revenue pipe (observe → propose → plan → admit → receipt):
+//! - **`propose_revenue`** — `ops::propose_revenue_payload`: rank candidate goal states.
+//! - **`propose_goal`** — `ops::propose_goal_payload`: the top proposal's PDDL goal atom.
+//! - **`plan_solve`** — `ops::plan_solve_payload`: solve a classical/temporal PDDL8 problem.
+//! - **judge** — `ops::judge_payload`: Raw → Validated or `Andon::Halted`.
+//! - **admit** — `ops::admit_payload`: Validated → Admitted or a denial.
+//! - **receipt** — `ops::receipt_payload`: Admitted → Receipted, BLAKE3-chained.
+//!
+//! Law lifecycle + ledger:
+//! - **`inspect_obligation`** — describe what a JSON array of tagged obligations requires.
+//! - **`show_andon`** — query the Andon state embedded in any `LawObject`-shaped JSON.
+//! - **promote** — `ops::promote_payload`: auditor-gated `BreedStanding` promotion.
+//! - **`receipt_validate`** — `ops::receipt_validate_payload`: validate the persisted ledger.
+//! - **`receipt_replay`** — `ops::receipt_replay_payload`: POWL-replay the persisted ledger.
+//!
+//! agent8 projection (the session's resident governance byte):
+//! - **`whoami`** — the caller session's current [`agent8::AgentByte`], updated by
+//!   this session's judge/admit/receipt outcomes.
+//! - **`fleet_status`** — sweep a fleet of agent8 bytes with the SWAR popcount kernel.
+//!
+//! Every tool calls the exact same `my_conforming_project::ops::*` function the
+//! matching CLI verb calls — one shared implementation, no drift (AR-2).
 //!
 //! # Domain denial vs. tool error
 //!
 //! A *domain* denial — halted obligations, a prolog8 rejection, a missing
-//! auditor — is a **successful** tool call whose JSON body carries
-//! `"status": "denied"` (or `"verdict": "halted"`), matching the CLI's
-//! "denial is data, not an error" convention. Only malformed input (bad
-//! JSON, bad hex, an unreadable ledger directory) is an MCP tool error.
-//!
-//! # Follow-up (not yet wired)
-//!
-//! `plan_route`/`plan_solve` (over `bcinr-pddl` via the `plan` noun) are not
-//! exposed here yet: `src/verbs/plan.rs`'s `route_payload`/`solve_payload`
-//! live in the `verbs` module tree, which is compiled only into the `main`
-//! binary crate, not into the library this server links against. Exposing
-//! them requires promoting those pure functions into `my_conforming_project::ops`
-//! first (mirroring what lane 8a already did for `law`/`receipt`) — tracked
-//! as a follow-up, not blocking this lane.
+//! auditor, an infeasible plan — is a **successful** tool call whose JSON body
+//! carries `"status": "denied"` / `"verdict": "halted"` / `"admitted": false`,
+//! matching the CLI's "denial is data, not an error" convention. Only malformed
+//! input (bad JSON, bad hex, an unreadable ledger directory) is an MCP tool error.
 
 #[cfg(feature = "mcp")]
 mod server {
+    use std::sync::{
+        atomic::{AtomicU8, Ordering},
+        Arc,
+    };
+
+    use agent8::{AgentByte, AgentSelect, Fleet};
     use my_conforming_project::{
         mcp_cache::{ToolCacheKey, ToolResultCache},
         ops,
@@ -73,21 +86,110 @@ mod server {
     /// change tool semantics.
     const CAPABILITY_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-    /// Shared server state: tool routing plus the tool-result cache.
+    /// Shared server state: tool routing, the tool-result cache, and this
+    /// session's resident [`AgentByte`] — the agent8 projection of the
+    /// caller's governance posture, mutated by judge/admit/receipt outcomes
+    /// (the "MCP lifecycle event → resident byte" adapter, see [`ServerState`]
+    /// impl below).
     #[derive(Clone)]
     pub struct ServerState {
         tool_router: ToolRouter<Self>,
         cache: ToolResultCache,
+        /// The connected session's live [`AgentByte`]. `Arc<AtomicU8>` so every
+        /// clone of `ServerState` (rmcp clones the handler per request) shares
+        /// one byte, and updates are lock-free.
+        session: Arc<AtomicU8>,
     }
 
     impl Default for ServerState {
         fn default() -> Self {
-            Self { tool_router: Self::tool_router(), cache: ToolResultCache::default() }
+            Self {
+                tool_router: Self::tool_router(),
+                cache: ToolResultCache::default(),
+                // A freshly connected session is operationally HEALTHY but
+                // carries no governance bits yet — nothing has been judged,
+                // admitted, or receipted through the membrane.
+                session: Arc::new(AtomicU8::new(AgentByte::HEALTHY)),
+            }
         }
     }
 
     #[tool_handler(router = self.tool_router)]
     impl ServerHandler for ServerState {}
+
+    // =========================================================================
+    // AGENT8 ADAPTER: MCP lifecycle events → the session's resident AgentByte.
+    //
+    // Bit mapping (the load-bearing choice; documented so the byte is auditable):
+    //   judge  validated  -> set   CONFORMANT | EVIDENCE_OK
+    //          halted      -> clear CONFORMANT | EVIDENCE_OK | ADMITTED
+    //   admit  admitted    -> set   ADMITTED | WITHIN_BUDGET | AUTHORITY_BOUND
+    //          denied      -> clear ADMITTED
+    //   receipt receipted  -> set   RECEIPTED | REPLAYABLE
+    //          denied      -> clear ADMITTED
+    //
+    // The AgentByte vocabulary has no BLOCKED bit (unlike the semantic_bit
+    // prior art): a halt/denial is represented by the *absence* of the
+    // governance bits, which is exactly what `select(GRANT_REQUIRED)` reads as
+    // Deny. REPLAYABLE is set on receipt because a receipt is replayable
+    // evidence — mirroring `Fleet::update_from_pulse`, which produces
+    // RECEIPTED|REPLAYABLE on a valid non-error pulse.
+    // =========================================================================
+
+    impl ServerState {
+        /// The session's current [`AgentByte`] projection.
+        fn agent_byte(&self) -> AgentByte {
+            AgentByte::from_raw(self.session.load(Ordering::SeqCst))
+        }
+
+        /// OR the given bits into the session byte.
+        fn agent_set(&self, bits: u8) {
+            let next = self.agent_byte().with(bits).raw();
+            self.session.store(next, Ordering::SeqCst);
+        }
+
+        /// Clear the given bits from the session byte.
+        fn agent_clear(&self, bits: u8) {
+            let next = self.agent_byte().without(bits).raw();
+            self.session.store(next, Ordering::SeqCst);
+        }
+
+        /// Read a top-level string field from a tool's JSON result text.
+        fn result_field(text: &str, field: &str) -> Option<String> {
+            serde_json::from_str::<Value>(text).ok()?.get(field)?.as_str().map(str::to_string)
+        }
+
+        /// Fold a `judge` outcome into the session byte.
+        fn apply_judge(&self, text: &str) {
+            match Self::result_field(text, "verdict").as_deref() {
+                Some("validated") => self.agent_set(AgentByte::CONFORMANT | AgentByte::EVIDENCE_OK),
+                Some("halted") => self.agent_clear(
+                    AgentByte::CONFORMANT | AgentByte::EVIDENCE_OK | AgentByte::ADMITTED,
+                ),
+                _ => {}
+            }
+        }
+
+        /// Fold an `admit` outcome into the session byte.
+        fn apply_admit(&self, text: &str) {
+            match Self::result_field(text, "status").as_deref() {
+                Some("admitted") => self.agent_set(
+                    AgentByte::ADMITTED | AgentByte::WITHIN_BUDGET | AgentByte::AUTHORITY_BOUND,
+                ),
+                Some("denied") => self.agent_clear(AgentByte::ADMITTED),
+                _ => {}
+            }
+        }
+
+        /// Fold a `receipt` outcome into the session byte.
+        fn apply_receipt(&self, text: &str) {
+            match Self::result_field(text, "status").as_deref() {
+                Some("receipted") => self.agent_set(AgentByte::RECEIPTED | AgentByte::REPLAYABLE),
+                Some("denied") => self.agent_clear(AgentByte::ADMITTED),
+                _ => {}
+            }
+        }
+    }
 
     // =========================================================================
     // CACHE / SERIALIZATION HELPERS
@@ -208,6 +310,39 @@ mod server {
         /// (no config wiring in this server yet) — a follow-up.
         #[serde(default)]
         pub dir: Option<String>,
+    }
+
+    /// Parameters for `plan_solve`.
+    #[derive(Deserialize, JsonSchema)]
+    pub struct PlanSolveParams {
+        /// PDDL8 solve payload — `{domain, problem, mode}` (inline text) and/or
+        /// `{domain_file, problem_file}` (paths), or a single combined
+        /// domain+problem string in `domain`. `mode` is `"classical"` (default)
+        /// or `"temporal"`. Same wire schema as the CLI `plan solve` verb.
+        pub payload_json: String,
+    }
+
+    /// Parameters for `propose_revenue`/`propose_goal`. The `mcp` feature
+    /// implies `proposer` (see Cargo.toml), so these tools are always present.
+    #[derive(Deserialize, JsonSchema)]
+    pub struct ProposeParams {
+        /// `{state, objective|objective_file}` — the observed revenue snapshot
+        /// plus a domain-authored objective (inline object or file path).
+        pub payload_json: String,
+        /// Optional path to a domain-authored objective JSON file (mutually
+        /// exclusive with an inline `objective`/`objective_file` in the payload).
+        #[serde(default)]
+        pub objective: Option<String>,
+    }
+
+    /// Parameters for `fleet_status`.
+    #[derive(Deserialize, JsonSchema)]
+    pub struct FleetStatusParams {
+        /// The fleet state as JSON: either a bare array of agent bytes
+        /// (`[111, 255, ...]`) or an object
+        /// `{"agents": [<u8>...], "required_mask": <u8?>}`. `required_mask`
+        /// defaults to [`AgentByte::GRANT_REQUIRED`] (`0x6F`).
+        pub fleet_json: String,
     }
 
     // =========================================================================
@@ -353,17 +488,23 @@ mod server {
             }
             .to_key_string();
 
-            if let Some(cached) = self.cache.get(&key).await {
-                return Ok(success_from_text(cached));
-            }
-            match ops::judge_payload(payload, law) {
-                Ok(value) => {
-                    let text = pretty(&value);
-                    self.cache.insert(key, text.clone()).await;
-                    Ok(success_from_text(text))
+            let text = if let Some(cached) = self.cache.get(&key).await {
+                cached
+            } else {
+                match ops::judge_payload(payload, law) {
+                    Ok(value) => {
+                        let text = pretty(&value);
+                        self.cache.insert(key, text.clone()).await;
+                        text
+                    }
+                    Err(e) => return Ok(error_text(e)),
                 }
-                Err(e) => Ok(error_text(e)),
-            }
+            };
+            // Fold the outcome into the session byte on both cache-hit and
+            // fresh paths: the resident posture tracks the decision, not the
+            // cache mechanics.
+            self.apply_judge(&text);
+            Ok(success_from_text(text))
         }
 
         /// Admit a judged `LawObject` payload: Validated → Admitted or a denial.
@@ -397,17 +538,20 @@ mod server {
             }
             .to_key_string();
 
-            if let Some(cached) = self.cache.get(&key).await {
-                return Ok(success_from_text(cached));
-            }
-            match ops::admit_payload(payload, policy) {
-                Ok(value) => {
-                    let text = pretty(&value);
-                    self.cache.insert(key, text.clone()).await;
-                    Ok(success_from_text(text))
+            let text = if let Some(cached) = self.cache.get(&key).await {
+                cached
+            } else {
+                match ops::admit_payload(payload, policy) {
+                    Ok(value) => {
+                        let text = pretty(&value);
+                        self.cache.insert(key, text.clone()).await;
+                        text
+                    }
+                    Err(e) => return Ok(error_text(e)),
                 }
-                Err(e) => Ok(error_text(e)),
-            }
+            };
+            self.apply_admit(&text);
+            Ok(success_from_text(text))
         }
 
         /// Receipt a judged+admitted `LawObject` payload: compute a BLAKE3
@@ -447,21 +591,22 @@ mod server {
             }
             .to_key_string();
 
-            if has_ts_ns {
-                if let Some(cached) = self.cache.get(&key).await {
-                    return Ok(success_from_text(cached));
-                }
-            }
-            match ops::receipt_payload(payload) {
-                Ok(value) => {
-                    let text = pretty(&value);
-                    if has_ts_ns {
-                        self.cache.insert(key, text.clone()).await;
+            let cached = if has_ts_ns { self.cache.get(&key).await } else { None };
+            let text = match cached {
+                Some(c) => c,
+                None => match ops::receipt_payload(payload) {
+                    Ok(value) => {
+                        let text = pretty(&value);
+                        if has_ts_ns {
+                            self.cache.insert(key, text.clone()).await;
+                        }
+                        text
                     }
-                    Ok(success_from_text(text))
-                }
-                Err(e) => Ok(error_text(e)),
-            }
+                    Err(e) => return Ok(error_text(e)),
+                },
+            };
+            self.apply_receipt(&text);
+            Ok(success_from_text(text))
         }
 
         /// Show Andon state: query the halt/override status embedded in a LawObject-shaped JSON.
@@ -658,6 +803,254 @@ mod server {
                 Err(e) => Ok(error_text(e)),
             }
         }
+
+        /// Solve a PDDL8 problem (the Day 2 `goal → plan` step). Deterministic
+        /// pure function of its input — always cached.
+        #[tool(
+            description = "Solve a classical or temporal PDDL8 problem. \
+                          Input: payload_json ({domain, problem, mode} inline text and/or \
+                          {domain_file, problem_file} paths, or a single combined domain+problem \
+                          string in `domain`; mode is \"classical\" (default) or \"temporal\"). \
+                          Output: {admitted, plan_len, plan, ...} or a structured refusal \
+                          {admitted: false, refusal_reason}. Calls the same ops::plan_solve_payload \
+                          the CLI `plan solve` verb runs — one implementation, no drift."
+        )]
+        async fn plan_solve(
+            &self,
+            params: Parameters<PlanSolveParams>,
+        ) -> Result<CallToolResult, rmcp::ErrorData> {
+            let payload = &params.0.payload_json;
+            let input_hash = input_hash_hex(&canonical_bytes(payload));
+            let key = ToolCacheKey {
+                tool: "plan_solve",
+                input_hash: &input_hash,
+                capability_version: Some(CAPABILITY_VERSION),
+                policy_digest: None,
+                authority_digest: None,
+                environment_digest: None,
+                replay_mode: None,
+            }
+            .to_key_string();
+
+            if let Some(cached) = self.cache.get(&key).await {
+                return Ok(success_from_text(cached));
+            }
+            match ops::plan_solve_payload(payload) {
+                Ok(value) => {
+                    let text = pretty(&value);
+                    self.cache.insert(key, text.clone()).await;
+                    Ok(success_from_text(text))
+                }
+                Err(e) => Ok(error_text(e)),
+            }
+        }
+
+        /// Rank candidate revenue goal states (the Day 2 `observe → propose`
+        /// step). Output is proposal (O), never authority (O*) — AR-9.
+        #[tool(
+            description = "Rank candidate goal states for a revenue snapshot under a \
+                          domain-authored objective. Input: payload_json ({state, \
+                          objective|objective_file}), objective (optional objective JSON file path). \
+                          Output: {status, count, proposals: [{pddl_goal, score, proposal_hash, \
+                          rationale, ...}]}. Output is proposal (observation), not authority: every \
+                          candidate must still pass judge/admit before any effect (AR-9)."
+        )]
+        async fn propose_revenue(
+            &self,
+            params: Parameters<ProposeParams>,
+        ) -> Result<CallToolResult, rmcp::ErrorData> {
+            let payload = &params.0.payload_json;
+            let objective = params.0.objective.unwrap_or_default();
+            let input_hash = input_hash_hex(&canonical_bytes(payload));
+            let policy_digest = if objective.is_empty() { None } else { Some(digest_hex(&objective)) };
+            let key = ToolCacheKey {
+                tool: "propose_revenue",
+                input_hash: &input_hash,
+                capability_version: Some(CAPABILITY_VERSION),
+                policy_digest: policy_digest.as_deref(),
+                authority_digest: None,
+                environment_digest: None,
+                replay_mode: None,
+            }
+            .to_key_string();
+
+            if let Some(cached) = self.cache.get(&key).await {
+                return Ok(success_from_text(cached));
+            }
+            match ops::propose_revenue_payload(payload, &objective) {
+                Ok(value) => {
+                    let text = pretty(&value);
+                    self.cache.insert(key, text.clone()).await;
+                    Ok(success_from_text(text))
+                }
+                Err(e) => Ok(error_text(e)),
+            }
+        }
+
+        /// Emit the top-ranked revenue proposal's PDDL goal atom, ready to
+        /// splice into a `plan_solve` problem `(:goal ...)` block.
+        #[tool(
+            description = "Emit the top-ranked proposal's PDDL goal atom for plan_solve. \
+                          Input: payload_json ({state, objective|objective_file}), objective \
+                          (optional objective JSON file path). Output: {status, goal, proposal_hash, \
+                          rationale, ...} or {status: \"no_lawful_candidates\"}. Output is proposal \
+                          (observation), not authority (AR-9)."
+        )]
+        async fn propose_goal(
+            &self,
+            params: Parameters<ProposeParams>,
+        ) -> Result<CallToolResult, rmcp::ErrorData> {
+            let payload = &params.0.payload_json;
+            let objective = params.0.objective.unwrap_or_default();
+            let input_hash = input_hash_hex(&canonical_bytes(payload));
+            let policy_digest = if objective.is_empty() { None } else { Some(digest_hex(&objective)) };
+            let key = ToolCacheKey {
+                tool: "propose_goal",
+                input_hash: &input_hash,
+                capability_version: Some(CAPABILITY_VERSION),
+                policy_digest: policy_digest.as_deref(),
+                authority_digest: None,
+                environment_digest: None,
+                replay_mode: None,
+            }
+            .to_key_string();
+
+            if let Some(cached) = self.cache.get(&key).await {
+                return Ok(success_from_text(cached));
+            }
+            match ops::propose_goal_payload(payload, &objective) {
+                Ok(value) => {
+                    let text = pretty(&value);
+                    self.cache.insert(key, text.clone()).await;
+                    Ok(success_from_text(text))
+                }
+                Err(e) => Ok(error_text(e)),
+            }
+        }
+
+        /// Sweep a fleet of agent8 bytes with the SWAR popcount kernel and
+        /// report admission statistics plus per-agent flag strings.
+        #[tool(
+            description = "Sweep a fleet of agent8 bytes with the SWAR popcount admission kernel. \
+                          Input: fleet_json (a bare array of agent bytes, or {\"agents\": [<u8>...], \
+                          \"required_mask\": <u8?>}; required_mask defaults to GRANT_REQUIRED 0x6F). \
+                          Output: {required_mask, stats: {total, admitted, blocked, receipted, \
+                          replayable}, per_agent: [{index, byte, flags, grant}]}."
+        )]
+        async fn fleet_status(
+            &self,
+            params: Parameters<FleetStatusParams>,
+        ) -> Result<CallToolResult, rmcp::ErrorData> {
+            let (agents, required_mask) = match parse_fleet(&params.0.fleet_json) {
+                Ok(x) => x,
+                Err(e) => return Ok(error_text(e)),
+            };
+            // Pack into the SWAR fleet (8 agents/word) and sweep with the
+            // popcount kernel. `with_fill` rounds up to a whole 64-bit word;
+            // trailing lanes are zero-filled, so we correct the popcount stats
+            // back to exactly the provided agents below.
+            let mut fleet = Fleet::with_fill(agents.len().max(1), AgentByte::empty());
+            for (i, &b) in agents.iter().enumerate() {
+                fleet.set(i, AgentByte::from_raw(b));
+            }
+            let raw = fleet.sweep_stats(required_mask);
+            let provided = agents.len() as u64;
+            let pad = fleet.len() as u64 - provided;
+            // A zero (empty) padding lane is admitted iff the required mask is
+            // itself empty, and never carries RECEIPTED/REPLAYABLE.
+            let empty_admits = u64::from(AgentByte::empty().denial(required_mask) == 0);
+            let admitted = raw.admitted.saturating_sub(pad * empty_admits);
+            let stats = json!({
+                "total": provided,
+                "admitted": admitted,
+                "blocked": provided - admitted,
+                "receipted": raw.receipted,
+                "replayable": raw.replayable,
+            });
+            const MAX_PER_AGENT: usize = 64;
+            let per_agent: Vec<Value> = agents
+                .iter()
+                .take(MAX_PER_AGENT)
+                .enumerate()
+                .map(|(i, &b)| {
+                    let ab = AgentByte::from_raw(b);
+                    json!({
+                        "index": i,
+                        "byte": b,
+                        "flags": ab.to_string(),
+                        "grant": matches!(ab.select(required_mask), AgentSelect::Grant),
+                    })
+                })
+                .collect();
+            let out = json!({
+                "required_mask": required_mask,
+                "fleet_lanes": fleet.len(),
+                "agents_provided": provided,
+                "stats": stats,
+                "per_agent": per_agent,
+                "per_agent_truncated": agents.len() > MAX_PER_AGENT,
+            });
+            Ok(success_from_text(pretty(&out)))
+        }
+
+        /// Return the calling session's current resident [`AgentByte`] — the
+        /// agent8 projection updated by this session's judge/admit/receipt
+        /// outcomes (see the adapter doc on [`ServerState`]).
+        #[tool(
+            description = "Report the calling session's resident agent8 AgentByte, updated by this \
+                          session's judge/admit/receipt outcomes. Output: {byte, flags (8-char \
+                          PRCHUBEA string), select (Grant|Deny against GRANT_REQUIRED), \
+                          missing_for_grant, ...}. No input."
+        )]
+        async fn whoami(&self) -> Result<CallToolResult, rmcp::ErrorData> {
+            let b = self.agent_byte();
+            let grant = matches!(b.select(AgentByte::GRANT_REQUIRED), AgentSelect::Grant);
+            let out = json!({
+                "byte": b.raw(),
+                "flags": b.to_string(),
+                "select": if grant { "Grant" } else { "Deny" },
+                "grant_required_mask": AgentByte::GRANT_REQUIRED,
+                "missing_for_grant": b.denial(AgentByte::GRANT_REQUIRED),
+                "legend": "flags high→low P R C H U B E A = Replayable Receipted Conformant \
+                           Healthy aUthority Budget Evidence Admitted",
+            });
+            Ok(success_from_text(pretty(&out)))
+        }
+    }
+
+    /// Parse a `fleet_json` string into `(agent_bytes, required_mask)`.
+    ///
+    /// Accepts either a bare JSON array of byte values or an object
+    /// `{"agents": [...], "required_mask": <u8?>}`; `required_mask` defaults to
+    /// [`AgentByte::GRANT_REQUIRED`].
+    fn parse_fleet(input: &str) -> Result<(Vec<u8>, u8), String> {
+        let v: Value =
+            serde_json::from_str(input).map_err(|e| format!("invalid fleet_json: {e}"))?;
+        let (agents_v, mask) = if v.is_array() {
+            (v, AgentByte::GRANT_REQUIRED)
+        } else {
+            let agents = v
+                .get("agents")
+                .cloned()
+                .ok_or_else(|| "fleet_json object needs an `agents` array".to_string())?;
+            let mask = v
+                .get("required_mask")
+                .and_then(serde_json::Value::as_u64)
+                .and_then(|m| u8::try_from(m).ok())
+                .unwrap_or(AgentByte::GRANT_REQUIRED);
+            (agents, mask)
+        };
+        let arr = agents_v
+            .as_array()
+            .ok_or_else(|| "`agents` must be an array of bytes".to_string())?;
+        let mut agents = Vec::with_capacity(arr.len());
+        for a in arr {
+            let n =
+                a.as_u64().ok_or_else(|| "agent bytes must be integers 0..=255".to_string())?;
+            let byte = u8::try_from(n).map_err(|_| format!("agent byte {n} out of range 0..=255"))?;
+            agents.push(byte);
+        }
+        Ok((agents, mask))
     }
 
     #[cfg(test)]
@@ -907,7 +1300,13 @@ mod server {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     use rmcp::{transport::stdio, ServiceExt as _};
-    server::ServerState::default().serve(stdio()).await?;
+    // `serve()` resolves once the initialize handshake completes and returns a
+    // RunningService handle. We must then await `.waiting()` to actually serve
+    // tool calls until the client disconnects — otherwise `main` returns
+    // immediately after the handshake and the process exits (clean code 0)
+    // before answering a single `tools/list` or `tools/call`.
+    let service = server::ServerState::default().serve(stdio()).await?;
+    service.waiting().await?;
     Ok(())
 }
 

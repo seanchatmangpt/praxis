@@ -83,6 +83,21 @@ This step runs the same pipeline twice, and the contrast is the point.
 
 **Does not prove:** anything beyond what its checks encode; it is a dashboard over the same mechanisms, not an extra guarantee.
 
+### Step 8 — The membrane: an external agent builds through MCP alone (PR-14, AR-2, AR-9)
+
+**Run it:** `just membrane-demo` (or `./scripts/membrane_demo.sh`). CI form: `just membrane-test`.
+
+**Proves:** the entire Genesis Day 2 revenue pipe is drivable by an external agent that has **only** the praxis MCP membrane — no repo access, no CLI, no in-process Rust. `scripts/membrane_demo.sh` spawns `mcp_lawobject_server` and speaks raw newline-delimited JSON-RPC over its stdin/stdout: `initialize → tools/list → propose_revenue → propose_goal → plan_solve → judge → admit → receipt → whoami`. Every response is asserted; the run ends by printing the receipt `chain_hash` and the session's resident `AgentByte`, which must carry `RECEIPTED` (0x40). With the mission's evidence obligation satisfied, the byte lands at `0xFF` (`PRCHUBEA`, `select: Grant`) — every governance bit set.
+
+Two load-bearing properties back this:
+
+- **One implementation, no drift (AR-2).** Each tool calls the exact same `my_conforming_project::ops::*` function the CLI verb calls — `plan_solve` → `ops::plan_solve_payload` (the CLI `plan solve`), `propose_revenue`/`propose_goal` → `ops::propose_{revenue,goal}_payload` (the CLI `propose revenue`/`goal`), `judge`/`admit`/`receipt` → `ops::{judge,admit,receipt}_payload`. There is no second copy of the pipe living behind the membrane that could pass while the real one fails.
+- **The resident byte is an adapter, not a claim (agent8).** The session's `AgentByte` is folded forward by the *outcomes* of judge/admit/receipt (validated → `CONFORMANT|EVIDENCE_OK`; admitted → `ADMITTED|WITHIN_BUDGET|AUTHORITY_BOUND`; receipted → `RECEIPTED|REPLAYABLE`), so `whoami` reads back exactly what the membrane admitted. `fleet_status` runs the same 8-bit projection through the SWAR popcount kernel over a whole fleet.
+
+**Does not prove:** that a proposal is *worth doing* (a proposal is observation O, never authority O* — AR-9; it still has to pass judge/admit like any raw input), nor anything about the world outside the boundary (same software-binding limit as Step 3). The resident `AgentByte` is a projection of *what this session admitted*, not an independent attestation — its authority is exactly the authority of the judge/admit/receipt calls that moved it.
+
+**How to read the AgentByte:** `whoami` returns `{byte, flags, select, missing_for_grant}`. `flags` is 8 chars high→low `P R C H U B E A` (Replayable Receipted Conformant Healthy aUthority Budget Evidence Admitted); a `-` marks a clear bit. `select` is `Grant` iff the six governance bits (`GRANT_REQUIRED = 0x6F`) are all set — `HEALTHY` and `REPLAYABLE` are advisory and excluded. `RECEIPTED` set is the proof that this session receipted a mission through the membrane.
+
 ---
 
 ## Reading the artifacts: a field guide
@@ -95,6 +110,7 @@ This step runs the same pipeline twice, and the contrast is the point.
 | `receipts/receipts.jsonl` | Append-only persisted chain; any in-place mutation or reorder is detectable by recompute + replay. | Resistance to wholesale deletion; off-host durability (not yet built — PR-16). |
 | replay `fitness` | Fraction of the trace consumable by the POWL lifecycle model without a token violation. 1.0 = executed order matches receipted intent. | Conformance to any process not encoded in the model. |
 | `target/frontier-report.json` `pass_rate` | Every declared capability × socket cell is admitted-and-working or refused-with-reason. Expected refusals pass. | Completeness of the declared space itself. |
+| session `AgentByte` (`whoami`, 8-bit `PRCHUBEA`) | What *this MCP session* admitted: bits set by its own judge/admit/receipt outcomes. `RECEIPTED` (0x40) ⇒ a mission was receipted through the membrane; `select: Grant` ⇒ all six governance bits (`0x6F`) set. | An independent attestation; authority beyond the judge/admit/receipt calls that moved it. Advisory `HEALTHY`/`REPLAYABLE` do not gate Grant. |
 
 ## If it fails
 

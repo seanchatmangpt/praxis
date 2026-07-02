@@ -10,12 +10,13 @@ use std::path::{Path, PathBuf};
 
 use clap_noun_verb::error::{NounVerbError, Result};
 use clap_noun_verb_macros::{arg, verb};
-
-use rust_fable_testbed::model_client::{AnthropicClient, Message, MessageRequest, ModelClient};
-use rust_fable_testbed::receipt::{append_receipt, chain_receipt, last_chain_hash, TestbedReceipt};
-use rust_fable_testbed::sandbox::{apply_model_output, stage_fixture};
-use rust_fable_testbed::spec::load_task;
-use rust_fable_testbed::{pipeline, prompt};
+use rust_fable_testbed::{
+    model_client::{AnthropicClient, Message, MessageRequest, ModelClient},
+    pipeline, prompt,
+    receipt::{append_receipt, chain_receipt, last_chain_hash, TestbedReceipt},
+    sandbox::{apply_model_output, stage_fixture},
+    spec::load_task,
+};
 
 /// Default directory containing `<task_id>.ttl` task spec files.
 const DEFAULT_TASKS_DIR: &str = "crates/rust-fable-testbed/tasks";
@@ -68,13 +69,15 @@ fn run_task(task_id: &str, model_override: Option<&str>) -> std::result::Result<
         .and_then(|p| Path::new(p).file_name())
         .map_or_else(|| PathBuf::from("src/lib.rs"), |name| Path::new("src").join(name));
 
-    apply_model_output(staged.path(), &target_rel_path, &model_output).map_err(|e| e.to_string())?;
+    apply_model_output(staged.path(), &target_rel_path, &model_output)
+        .map_err(|e| e.to_string())?;
 
     let metrics = pipeline::run_pipeline_for_task(staged.path(), Some(task.task_type));
     let summary = metrics.summary_line();
 
     let prev = last_chain_hash(&ledger_path).map_err(|e| e.to_string())?;
-    let receipt = chain_receipt(&prev, task_id, compiled.hash(), model, &metrics).map_err(|e| e.to_string())?;
+    let receipt = chain_receipt(&prev, task_id, compiled.hash(), model, &metrics)
+        .map_err(|e| e.to_string())?;
     append_receipt(&ledger_path, &receipt).map_err(|e| e.to_string())?;
 
     Ok(summary)
@@ -113,10 +116,7 @@ fn report_lines() -> std::result::Result<Vec<String>, String> {
         .map(|line| {
             let receipt: TestbedReceipt =
                 serde_json::from_str(line).map_err(|e| format!("invalid receipt line: {e}"))?;
-            Ok(format!(
-                "{} | {} | {}",
-                receipt.task_id, receipt.model, receipt.metrics_summary
-            ))
+            Ok(format!("{} | {} | {}", receipt.task_id, receipt.model, receipt.metrics_summary))
         })
         .collect()
 }

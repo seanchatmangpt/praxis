@@ -28,9 +28,22 @@ pub mod discovery;
 #[cfg(feature = "ggen")]
 pub mod mfg;
 
+#[cfg(feature = "ggen")]
+pub mod corpus;
+
+#[cfg(feature = "ggen")]
+pub mod receipt_shacl;
+
 #[cfg(feature = "proposer")]
 pub mod revenue;
 
+#[cfg(feature = "proposer")]
+pub mod revtac;
+
+#[cfg(feature = "proposer")]
+pub mod mission;
+
+pub mod frontier;
 pub mod repl;
 pub mod verify_ops;
 

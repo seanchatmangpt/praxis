@@ -61,7 +61,12 @@ pub fn compute_fluents(account: &Account, target: Stage) -> [f64; 4] {
     let realized = if target == Stage::ClosedWon { amount } else { 0.0 };
     let at_risk = if target < Stage::ClosedWon { amount } else { 0.0 };
     let staleness = account.days_in_stage as f64;
-    let advance = (target.index() - account.stage.index()) as f64;
+    // Subtract in f64, not u8: a backward candidate (target < current stage)
+    // is a legitimate query for this public function and yields a *negative*
+    // advance. Doing `target.index() - account.stage.index()` in u8 underflows
+    // — a debug-build panic and a release-build wrap to a huge positive value.
+    // (Surfaced by differential testing against a naive reimplementation.)
+    let advance = f64::from(target.index()) - f64::from(account.stage.index());
     [realized, at_risk, staleness, advance]
 }
 
@@ -113,24 +118,52 @@ pub struct ObjectiveFunction {
 }
 
 impl ObjectiveFunction {
-    /// Parse and validate an authored objective from a JSON string.
+    /// Parse and validate a **revenue** objective from a JSON string (weights
+    /// checked against the revenue [`FLUENT_NAMES`]). Domain packs with a
+    /// different fluent vocabulary use [`ObjectiveFunction::from_json_str_for`].
     pub fn from_json_str(s: &str) -> Result<Self, ObjectiveError> {
+        Self::from_json_str_for(s, &FLUENT_NAMES)
+    }
+
+    /// Load a **revenue** objective from a JSON file on disk.
+    pub fn from_path(path: &std::path::Path) -> Result<Self, ObjectiveError> {
+        Self::from_path_for(path, &FLUENT_NAMES)
+    }
+
+    /// Parse and validate an authored objective against an **arbitrary** domain
+    /// fluent vocabulary. This is the reuse seam (Genesis Day 6): the loader,
+    /// the `deny_unknown_fields` discipline, and the finite-weight rule are
+    /// identical across domains; only the set of allowed fluent names changes.
+    /// The church pack calls this with its own vocabulary.
+    pub fn from_json_str_for(s: &str, allowed_fluents: &[&str]) -> Result<Self, ObjectiveError> {
         let obj: ObjectiveFunction =
             serde_json::from_str(s).map_err(|e| ObjectiveError::Parse(e.to_string()))?;
-        obj.validate()?;
+        obj.validate_fluents(allowed_fluents)?;
         Ok(obj)
     }
 
-    /// Load an authored objective from a JSON file on disk.
-    pub fn from_path(path: &std::path::Path) -> Result<Self, ObjectiveError> {
+    /// Load an authored objective from disk against an arbitrary domain fluent
+    /// vocabulary. See [`ObjectiveFunction::from_json_str_for`].
+    pub fn from_path_for(
+        path: &std::path::Path,
+        allowed_fluents: &[&str],
+    ) -> Result<Self, ObjectiveError> {
         let s = std::fs::read_to_string(path).map_err(|e| ObjectiveError::Io(e.to_string()))?;
-        Self::from_json_str(&s)
+        Self::from_json_str_for(&s, allowed_fluents)
     }
 
-    /// Strict validation: every key must be a known fluent, every weight finite.
+    /// Strict validation against the revenue vocabulary. Kept for revenue
+    /// callers; delegates to [`ObjectiveFunction::validate_fluents`].
     pub fn validate(&self) -> Result<(), ObjectiveError> {
+        self.validate_fluents(&FLUENT_NAMES)
+    }
+
+    /// Strict validation against an arbitrary fluent vocabulary: every weight
+    /// key must be a known fluent, every weight finite. This one rule serves
+    /// every domain pack.
+    pub fn validate_fluents(&self, allowed_fluents: &[&str]) -> Result<(), ObjectiveError> {
         for (k, v) in &self.weights {
-            if !FLUENT_NAMES.contains(&k.as_str()) {
+            if !allowed_fluents.contains(&k.as_str()) {
                 return Err(ObjectiveError::UnknownFluent(k.clone()));
             }
             if !v.is_finite() {
@@ -154,36 +187,19 @@ impl ObjectiveFunction {
     /// value, the weight, and the contribution — auditable judgment, not
     /// vibes. Zero-weight fluents are noted as ignored.
     pub fn score(&self, account: &Account, target: Stage) -> (f64, Vec<String>) {
+        // Reuse the domain-independent scorer (Genesis Day 6): revenue and
+        // church produce their rationales through the exact same code. Only
+        // the fluent vocabulary and the per-candidate description differ.
         let fluents = compute_fluents(account, target);
-        let mut rationale = Vec::with_capacity(FLUENT_NAMES.len() + 2);
-        rationale.push(format!(
-            "objective '{}' v{} (domain-authored weights; system supplies algebra only)",
-            self.name, self.version
-        ));
-        rationale.push(format!(
+        let candidate_desc = format!(
             "candidate: account {} {} -> {} (amount_cents={}, days_in_stage={})",
             account.id,
             account.stage.pddl_name(),
             target.pddl_name(),
             account.amount_cents,
             account.days_in_stage
-        ));
-        let mut score = 0.0f64;
-        for (i, name) in FLUENT_NAMES.iter().enumerate() {
-            let w = self.weight(name);
-            let v = fluents[i];
-            let contribution = w * v;
-            score += contribution;
-            if w != 0.0 {
-                rationale.push(format!(
-                    "fluent {name} = {v} x weight {w} = {contribution}"
-                ));
-            } else {
-                rationale.push(format!("fluent {name} = {v} (weight 0, ignored)"));
-            }
-        }
-        rationale.push(format!("total score = {score}"));
-        (score, rationale)
+        );
+        crate::engine::score(self, &FLUENT_NAMES, &candidate_desc, &fluents)
     }
 }
 
@@ -196,6 +212,25 @@ mod tests {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("revenue_objective.json");
         let obj = ObjectiveFunction::from_path(&path).expect("default objective must load");
         assert!(obj.weights.contains_key("realized_revenue"));
+    }
+
+    #[test]
+    fn stage_advance_is_negative_for_backward_target_no_underflow() {
+        // Regression (differential-verification finding): compute_fluents must
+        // not underflow when target < current stage. It should report a
+        // negative `stage_advance`, not panic (debug) or wrap (release).
+        let acct = Account {
+            id: "a".into(),
+            stage: Stage::ClosedWon,
+            amount_cents: 1000,
+            security_review_done: true,
+            legal_approved: true,
+            exec_sponsor: true,
+            days_in_stage: 0,
+        };
+        let fluents = compute_fluents(&acct, Stage::Lead);
+        // stage_advance is index 3 in FLUENT_NAMES.
+        assert_eq!(fluents[3], -4.0);
     }
 
     #[test]

@@ -1,0 +1,10 @@
+{
+  "name": "zoe-welcome-team-connection",
+  "version": "2026.07.02",
+  "weights": {
+    "people_connected": 1000.0,
+    "care_completion_rate": 250.0,
+    "volunteer_capacity_used": -50.0,
+    "first_time_followup_within_48h": 500.0
+  }
+}

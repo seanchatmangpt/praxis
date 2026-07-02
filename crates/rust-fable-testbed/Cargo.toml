@@ -1,6 +1,6 @@
 [package]
 name = "rust-fable-testbed"
-version = "26.6.30"
+version = "26.7.2"
 edition = "2021"
 rust-version = "1.82"
 repository = "https://github.com/seanchatmangpt/praxis"

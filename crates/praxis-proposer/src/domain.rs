@@ -167,6 +167,71 @@ pub fn lawful_targets(account: &Account) -> Vec<Stage> {
         .collect()
 }
 
+/// Zero-sized marker binding the revenue ontology to the domain-independent
+/// substrate ([`crate::engine::Domain`]).
+///
+/// Revenue predates the generic engine and keeps its bespoke concrete
+/// [`crate::Proposer`]/[`crate::Proposal`] for API stability, but implementing
+/// [`crate::engine::Domain`] here lets the *generic* substrate reproduce
+/// revenue's ranking with no revenue-specific proposer code — the equivalence
+/// test in `tests/church_proposer_tests.rs` proves the two paths agree, which
+/// is the strongest statement that the substrate is domain-independent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RevenueDomain;
+
+impl crate::engine::Domain for RevenueDomain {
+    type Stage = Stage;
+    type Entity = Account;
+    type State = RevenueState;
+
+    fn pack_name() -> &'static str {
+        "revenue"
+    }
+
+    fn fluent_names() -> &'static [&'static str] {
+        &crate::objective::FLUENT_NAMES
+    }
+
+    fn entities(state: &Self::State) -> &[Self::Entity] {
+        &state.accounts
+    }
+
+    fn entity_id(entity: &Self::Entity) -> &str {
+        &entity.id
+    }
+
+    fn entity_stage(entity: &Self::Entity) -> Self::Stage {
+        entity.stage
+    }
+
+    fn stage_index(stage: Self::Stage) -> u32 {
+        stage.index() as u32
+    }
+
+    fn stage_pddl_name(stage: Self::Stage) -> &'static str {
+        stage.pddl_name()
+    }
+
+    fn lawful_targets(entity: &Self::Entity) -> Vec<Self::Stage> {
+        lawful_targets(entity)
+    }
+
+    fn compute_fluents(entity: &Self::Entity, target: Self::Stage) -> Vec<f64> {
+        crate::objective::compute_fluents(entity, target).to_vec()
+    }
+
+    fn candidate_description(entity: &Self::Entity, target: Self::Stage) -> String {
+        format!(
+            "candidate: account {} {} -> {} (amount_cents={}, days_in_stage={})",
+            entity.id,
+            entity.stage.pddl_name(),
+            target.pddl_name(),
+            entity.amount_cents,
+            entity.days_in_stage
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

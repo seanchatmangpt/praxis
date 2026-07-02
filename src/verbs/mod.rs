@@ -4,10 +4,15 @@
 //! by the `clap_noun_verb` crate via the `linkme::distributed_slice` mechanism.
 
 pub mod config;
+pub mod doctor;
+pub mod dod;
 pub mod example;
+pub mod frontier;
 pub mod law;
 #[cfg(feature = "ggen")]
 pub mod mfg;
+#[cfg(feature = "proposer")]
+pub mod mission;
 pub mod plan;
 #[cfg(feature = "proposer")]
 pub mod propose;

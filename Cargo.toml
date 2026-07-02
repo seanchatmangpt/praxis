@@ -1,6 +1,6 @@
 [package]
 name = "my-conforming-project"
-version = "26.6.30"
+version = "26.7.2"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT OR Apache-2.0"
@@ -43,13 +43,19 @@ lsp   = ["dep:lsp-max", "lsp-max/proposed", "dep:tree-sitter", "dep:tree-sitter-
 # tree-sitter/tokio/dashmap/parking_lot — lsp-max's andon module is not
 # feature-gated internally, so the bare dependency is all this needs.
 andon = ["dep:lsp-max"]
-mcp   = ["dep:rmcp", "dep:rmcp-macros", "dep:tokio", "dep:moka"]
+# The MCP membrane exists to drive the full Day 2 revenue pipe (propose ->
+# plan -> judge/admit/receipt), so it always pulls `proposer`: the propose_*
+# tools are unconditional members of the tool router (the rmcp `#[tool_router]`
+# macro emits router entries for every listed tool, so they cannot be cfg-gated
+# per-method). `agent8` backs the session AgentByte + fleet_status.
+mcp   = ["dep:rmcp", "dep:rmcp-macros", "dep:tokio", "dep:moka", "dep:agent8", "proposer"]
 ggen  = ["dep:oxigraph", "dep:tera", "dep:uuid", "dep:ggen-graph"]
 law-signed = ["praxis-core/signed"]
 law-ocel = ["praxis-core/ocel"]
 testbed = ["dep:rust-fable-testbed"]
 # PR-14 proposer layer (AR-9: proposals are observations, not authority)
-proposer = ["dep:praxis-proposer"]
+# Also pulls `toml` for the RevTAC v0 mission format (JSON or TOML missions).
+proposer = ["dep:praxis-proposer", "dep:toml"]
 all-features = ["typestate", "repl", "otel", "discovery", "lsp", "andon", "mcp", "ggen", "law-signed", "law-ocel", "testbed", "proposer"]
 
 [dependencies]
@@ -80,13 +86,16 @@ rmcp = { version = "0.11.0", features = ["transport-io"], optional = true }
 rmcp-macros = { version = "0.11.0", optional = true }
 moka = { version = "0.12", features = ["future"], optional = true }
 praxis-core = { path = "crates/praxis-core" }
+agent8 = { path = "crates/agent8", optional = true }
 praxis-proposer = { path = "crates/praxis-proposer", optional = true }
 praxis-retrofit = { path = "crates/praxis-retrofit" }
 rust-fable-testbed = { path = "crates/rust-fable-testbed", optional = true }
 star-toml = "26.6.30"
+toml = { version = "0.8", optional = true }
 hex = "0.4"
 bcinr-powl-receipt = { path = "../bcinr/crates/bcinr-powl-receipt", version = "26.6.24" }
 bcinr-pddl = { path = "../bcinr/crates/bcinr-pddl", version = "26.6.26" }
+pddl-index = { path = "crates/pddl-index", version = "26.7.2" }
 bcinr-powl = { path = "../bcinr/crates/bcinr-powl", version = "26.6.25" }
 prolog8 = { path = "../wasm4pm/crates/prolog8", version = "26.7.1" }
 wasm4pm-compat = { path = "../wasm4pm-compat", version = "26.6.29" }
@@ -100,6 +109,10 @@ insta = { version = "1", features = ["json", "redactions"] }
 proptest = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
 tokio = { version = "1", features = ["full"] }
+# Differential-verification oracle pair (tests/differential.rs, Pair 1 PLANNERS):
+# independent PDDL temporal planner (wasm4pm-native, greedy-tick scheduler)
+# checked against praxis's bcinr-pddl dep on a shared durative-STRIPS corpus.
+wasm4pm-planner = { path = "../wasm4pm/crates/wasm4pm-planner", version = "26.7.1" }
 
 [[bin]]
 name = "dod"
@@ -141,11 +154,14 @@ wasm4pm-compat = { path = "../wasm4pm-compat" }
 [workspace]
 resolver = "2"
 members = [
+    "crates/agent8",
     "crates/chatman-common",
     "crates/praxis-core",
     "crates/praxis-proposer",
     "crates/praxis-retrofit",
     "crates/rust-fable-testbed",
+    "crates/powl2-decompose",
+    "crates/pddl-index",
 ]
 [workspace.metadata.dylint]
 libraries = [{ git = "https://github.com/seanchatmangpt/chicago-tdd-tools", pattern = "crates/chicago-lints" }]

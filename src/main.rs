@@ -44,6 +44,7 @@ fn inject_default_verbs(mut args: Vec<String>) -> Vec<String> {
         let default_verb = match noun.as_str() {
             "receipt" => Some("validate"),
             "config" => Some("show"),
+            "doctor" => Some("check"),
             _ => None,
         };
         if let Some(verb) = default_verb {

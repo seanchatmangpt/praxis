@@ -39,10 +39,20 @@
 //! and a PDDL8-safe planning domain for the same vocabulary ships at
 //! `ontology/revenue.pddl`.
 
+pub mod church;
 pub mod domain;
+pub mod engine;
+pub mod mrr;
 pub mod objective;
 pub mod proposer;
 
-pub use domain::{evidence_permits, lawful_targets, Account, RevenueState, Stage};
+pub use domain::{evidence_permits, lawful_targets, Account, RevenueDomain, RevenueState, Stage};
+pub use engine::Domain;
+pub use mrr::{maximum_reachable_revenue, AccountRevenue, MrrReport};
 pub use objective::{compute_fluents, ObjectiveError, ObjectiveFunction, FLUENT_NAMES};
 pub use proposer::{Proposal, Proposer, MAX_PROPOSALS, PROPOSAL_HASH_DOMAIN};
+
+// Church-operations domain pack (Genesis Day 6): Mission Physics beyond
+// revenue. Runs entirely on the generic `engine` substrate — the church
+// proposer is `engine::Proposer<church::ChurchDomain>`.
+pub use church::{ChurchDomain, ChurchProposal, ChurchProposer, ChurchState, Person};

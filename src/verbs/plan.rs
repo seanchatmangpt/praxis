@@ -24,122 +24,21 @@
 use bcinr_pddl::{
     analyze_schedule, compute_plan_chain, domain_from_pddl, execute::execute_temporal_plan,
     problem_from_pddl, route_capability_plan, CapabilityRouteReceipt, CapabilityTask,
-    CapacityDelta, CostVector, DesiredEffect, GroundProblem, GroundTemporalProblem, Pddl8Error,
+    CapacityDelta, CostVector, DesiredEffect, GroundTemporalProblem, Pddl8Error,
     ScheduleAnalysis64,
 };
 use clap_noun_verb::error::{NounVerbError, Result};
 use clap_noun_verb_macros::verb;
 #[cfg(feature = "ggen")]
 use my_conforming_project::mfg;
-use serde::{Deserialize, Serialize};
+// Shared PDDL helpers + the single `plan solve` implementation live in the
+// library `ops` module so the CLI verb and the MCP `plan_solve` tool call one
+// implementation (AR-2, no drift). route/analyze/execute reuse the helpers.
+use my_conforming_project::ops::{
+    self, finite_or_null, is_infeasible, parse_payload, refusal_json, resolve_pddl_source, to_json,
+};
+use serde::Deserialize;
 use serde_json::{json, Value};
-
-// ── Parsing / IO helpers ──────────────────────────────────────────────────
-
-/// Parse a payload string into `T`. Empty or invalid JSON is a hard error.
-fn parse_payload<T: for<'de> Deserialize<'de>>(payload: &str) -> std::result::Result<T, String> {
-    if payload.trim().is_empty() {
-        return Err("empty payload".to_string());
-    }
-    serde_json::from_str(payload).map_err(|e| format!("invalid JSON: {e}"))
-}
-
-fn read_file(path: &str) -> std::result::Result<String, String> {
-    std::fs::read_to_string(path).map_err(|e| format!("failed to read {path}: {e}"))
-}
-
-/// Serialize a value to JSON, falling back to `null` (never panics).
-fn to_json<T: Serialize>(value: &T) -> Value {
-    serde_json::to_value(value).unwrap_or(Value::Null)
-}
-
-/// A finite `f64` as a JSON number; a non-finite one (`INFINITY`, `NAN`) as
-/// JSON `null` — `serde_json` cannot represent non-finite floats, and
-/// `CostVector::refused()` deliberately sets `human_attention_seconds` to
-/// `f64::INFINITY`.
-fn finite_or_null(v: f64) -> Value {
-    if v.is_finite() {
-        json!(v)
-    } else {
-        Value::Null
-    }
-}
-
-/// Marker splitting a combined single-file domain+problem PDDL text.
-const PROBLEM_MARKER: &str = "(define (problem";
-
-/// Split `text` at the last `(define (problem` occurrence — the last, not
-/// the first, so an illustrative example of the marker inside a leading
-/// comment block (as in `docs/lawobject-capability.pddl`'s usage notes)
-/// doesn't get mistaken for the real split point.
-fn split_combined(text: &str) -> std::result::Result<(String, String), String> {
-    match text.rfind(PROBLEM_MARKER) {
-        Some(0) => Err(format!(
-            "combined PDDL text starts with `{PROBLEM_MARKER}` — no domain text precedes it"
-        )),
-        Some(idx) => Ok((text[..idx].to_string(), text[idx..].to_string())),
-        None => Err(format!(
-            "combined PDDL text has no `{PROBLEM_MARKER}` block; supply domain and problem separately"
-        )),
-    }
-}
-
-/// Resolve a domain/problem PDDL source from any combination of inline text
-/// and file paths. If exactly one of `{domain-ish, problem-ish}` is given,
-/// its text is treated as a single combined file and split via
-/// [`split_combined`].
-fn resolve_pddl_source(
-    domain: Option<String>,
-    problem: Option<String>,
-    domain_file: Option<String>,
-    problem_file: Option<String>,
-) -> std::result::Result<(String, String), String> {
-    if domain.is_some() && domain_file.is_some() {
-        return Err("cannot supply both `domain` and `domain_file`".to_string());
-    }
-    if problem.is_some() && problem_file.is_some() {
-        return Err("cannot supply both `problem` and `problem_file`".to_string());
-    }
-    let domain_text = match domain {
-        Some(t) => Some(t),
-        None => match domain_file {
-            Some(p) => Some(read_file(&p)?),
-            None => None,
-        },
-    };
-    let problem_text = match problem {
-        Some(t) => Some(t),
-        None => match problem_file {
-            Some(p) => Some(read_file(&p)?),
-            None => None,
-        },
-    };
-    match (domain_text, problem_text) {
-        (Some(d), Some(p)) => Ok((d, p)),
-        (Some(combined), None) | (None, Some(combined)) => split_combined(&combined),
-        (None, None) => {
-            Err("must supply `domain`/`domain_file` and `problem`/`problem_file`, or a single \
-             combined text/file containing both"
-                .to_string())
-        }
-    }
-}
-
-/// Whether a `Pddl8Error` represents domain *infeasibility* (a legitimate
-/// "no" answer) rather than malformed input or an internal bug.
-fn is_infeasible(e: &Pddl8Error) -> bool {
-    matches!(
-        e,
-        Pddl8Error::EmptyGrounding
-            | Pddl8Error::NoAdmittedPlan
-            | Pddl8Error::StepDenied { .. }
-            | Pddl8Error::GoalNotReached
-    )
-}
-
-fn refusal_json(mode: &str, e: &Pddl8Error) -> Value {
-    json!({ "mode": mode, "admitted": false, "refusal_reason": e.to_string() })
-}
 
 // ── CostVector / ScheduleAnalysis64 hand-serialization ────────────────────
 
@@ -232,84 +131,13 @@ fn route_payload(payload: &str) -> std::result::Result<Value, String> {
 
 // ── `plan solve` ──────────────────────────────────────────────────────────
 
-fn default_mode() -> String {
-    "classical".to_string()
-}
-
-#[derive(Deserialize)]
-struct SolveInput {
-    domain: Option<String>,
-    problem: Option<String>,
-    domain_file: Option<String>,
-    problem_file: Option<String>,
-    #[serde(default = "default_mode")]
-    mode: String,
-}
-
-fn solve_classical(domain_text: &str, problem_text: &str) -> std::result::Result<Value, String> {
-    let domain = domain_from_pddl(domain_text).map_err(|e| e.to_string())?;
-    let problem = problem_from_pddl(problem_text).map_err(|e| e.to_string())?;
-    let ground = match GroundProblem::build(&domain, &problem, None) {
-        Ok(g) => g,
-        Err(e) if is_infeasible(&e) => return Ok(refusal_json("classical", &e)),
-        Err(e) => return Err(e.to_string()),
-    };
-    match ground.find_plan() {
-        Ok(tape) => Ok(json!({
-            "mode": "classical",
-            "admitted": true,
-            "plan_len": tape.len(),
-            "plan": to_json(&tape),
-        })),
-        Err(e) if is_infeasible(&e) => Ok(refusal_json("classical", &e)),
-        Err(e) => Err(e.to_string()),
-    }
-}
-
-fn solve_temporal(domain_text: &str, problem_text: &str) -> std::result::Result<Value, String> {
-    let domain = domain_from_pddl(domain_text).map_err(|e| e.to_string())?;
-    let problem = problem_from_pddl(problem_text).map_err(|e| e.to_string())?;
-    let gtp = match GroundTemporalProblem::build(&domain, &problem) {
-        Ok(g) => g,
-        Err(e) if is_infeasible(&e) => return Ok(refusal_json("temporal", &e)),
-        Err(e) => return Err(e.to_string()),
-    };
-    match gtp.find_temporal_plan() {
-        Ok(plan) => {
-            let plan_chain = compute_plan_chain(&plan.steps);
-            Ok(json!({
-                "mode": "temporal",
-                "admitted": true,
-                "makespan": finite_or_null(plan.makespan),
-                "plan_chain": plan_chain,
-                "plan": to_json(&plan),
-            }))
-        }
-        Err(e) if is_infeasible(&e) => Ok(refusal_json("temporal", &e)),
-        Err(e) => Err(e.to_string()),
-    }
-}
-
-/// Solve a classical (`GroundProblem::find_plan`, BFS) or temporal
-/// (`GroundTemporalProblem::find_temporal_plan`) PDDL8 problem.
-///
-/// `domain`/`problem` accept inline PDDL text, `domain_file`/`problem_file`
-/// accept paths; if only one side (either field or its file variant) is
-/// given, its text is treated as a single combined domain+problem file and
-/// split at the last `(define (problem` occurrence.
-///
-/// `pub(crate)` (not private): `verbs::propose`'s pipe test drives the real
-/// solve path with a proposer-emitted goal, per AR-2's one-implementation
-/// rule — the test must exercise this function, not a lookalike.
+/// Solve a classical or temporal PDDL8 problem — thin call-through to the
+/// single implementation in [`my_conforming_project::ops::plan_solve_payload`],
+/// which the MCP `plan_solve` tool also calls (AR-2: one implementation, no
+/// drift). `pub(crate)` so `verbs::propose`'s pipe test can drive the real
+/// solve path with a proposer-emitted goal.
 pub(crate) fn solve_payload(payload: &str) -> std::result::Result<Value, String> {
-    let input: SolveInput = parse_payload(payload)?;
-    let (domain_text, problem_text) =
-        resolve_pddl_source(input.domain, input.problem, input.domain_file, input.problem_file)?;
-    match input.mode.as_str() {
-        "classical" => solve_classical(&domain_text, &problem_text),
-        "temporal" => solve_temporal(&domain_text, &problem_text),
-        other => Err(format!("unknown mode `{other}` (expected `classical` or `temporal`)")),
-    }
+    ops::plan_solve_payload(payload)
 }
 
 // ── `plan analyze` ────────────────────────────────────────────────────────
@@ -459,7 +287,7 @@ fn lawobject_payload() -> std::result::Result<Value, String> {
         ));
     }
 
-    let (adl_domain_text, adl_problem_text) = split_combined(ADL_EXEMPLAR)?;
+    let (adl_domain_text, adl_problem_text) = ops::split_combined(ADL_EXEMPLAR)?;
     let adl_domain_parses = domain_from_pddl(&adl_domain_text).is_ok();
     let adl_problem_parses = problem_from_pddl(&adl_problem_text).is_ok();
 
@@ -709,13 +537,13 @@ mod tests {
     #[test]
     fn split_combined_finds_last_marker() {
         let text = "(define (domain d) (:requirements :strips))\n(define (problem p) (:domain d))";
-        let (domain, problem) = split_combined(text).expect("should split");
+        let (domain, problem) = ops::split_combined(text).expect("should split");
         assert!(domain.contains("(define (domain d)"));
         assert!(problem.starts_with("(define (problem p)"));
     }
 
     #[test]
     fn split_combined_errors_without_marker() {
-        assert!(split_combined("(define (domain d))").is_err());
+        assert!(ops::split_combined("(define (domain d))").is_err());
     }
 }

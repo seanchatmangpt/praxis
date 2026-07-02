@@ -12,7 +12,7 @@ fn run(cmd: &str, args: &[&str]) -> bool {
 /// The crate name/version pair `cicd-evidence-gen` is invoked with. Keep in
 /// sync with this crate's own `[package]` in `Cargo.toml`.
 const CRATE_NAME: &str = "my-conforming-project";
-const CRATE_VERSION: &str = "26.6.30";
+const CRATE_VERSION: &str = "26.7.2";
 
 /// Soft check: `cicd-evidence-gen --check` against `receipt.json`.
 ///

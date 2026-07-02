@@ -8,6 +8,7 @@
 use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use my_conforming_project::ops;
 
 // ---------------------------------------------------------------------------
 // Subject under benchmark
@@ -106,8 +107,42 @@ fn bench_scaling(c: &mut Criterion) {
 }
 
 // ---------------------------------------------------------------------------
+// 4. Admission throughput — ops::judge_payload / admit_payload calls/sec
+// ---------------------------------------------------------------------------
+//
+// Measures the pure-domain admission hot path (`Throughput::Elements(1)` so
+// Criterion reports calls/sec). The payload is the "green" case: a `LawInput`
+// with a scalar `value` and *no obligations*, so `judge` -> `admit` always
+// reaches `Validated`/`Admitted` (`Andon::Green`) — this is the fast lane an
+// MCP/CLI caller hits when nothing blocks. Malformed/denied paths are exercised
+// exhaustively for panic-freedom in `tests/fuzz_ops.rs`; here we time only the
+// admitted path so the number is a clean throughput ceiling, not a mix.
+
+fn bench_admission(c: &mut Criterion) {
+    // Green payload: scalar value, no obligations => Validated/Admitted.
+    const GREEN: &str = r#"{"value":{"v":1}}"#;
+
+    // Sanity: the payload really is on the green path (an Err here would mean
+    // we were benchmarking a hard parse error, not admission).
+    debug_assert!(ops::judge_payload(GREEN, "default").is_ok());
+    debug_assert!(ops::admit_payload(GREEN, "default").is_ok());
+
+    let mut group = c.benchmark_group("admission_throughput");
+    group.throughput(Throughput::Elements(1));
+
+    group.bench_function("judge_payload/green", |b| {
+        b.iter(|| black_box(ops::judge_payload(black_box(GREEN), black_box("default"))));
+    });
+    group.bench_function("admit_payload/green", |b| {
+        b.iter(|| black_box(ops::admit_payload(black_box(GREEN), black_box("default"))));
+    });
+
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
 // Criterion entry points
 // ---------------------------------------------------------------------------
 
-criterion_group!(benches, bench_throughput, bench_latency, bench_scaling);
+criterion_group!(benches, bench_throughput, bench_latency, bench_scaling, bench_admission);
 criterion_main!(benches);

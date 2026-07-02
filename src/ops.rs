@@ -22,6 +22,7 @@ use prolog8::{
     admit_atom, admit_rule, Atom8, Catalog, FactBlock8, Kernel, QueryAtom8, QueryResult,
     RejectionCode, Rule8,
 };
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use wasm4pm_cognition::breeds::standing::BreedStanding;
@@ -163,8 +164,20 @@ fn parse_obligations(raw: Vec<ObligationInput>) -> std::result::Result<Vec<Oblig
 }
 
 /// Serialize a value to JSON, falling back to `null` (never panics).
-fn to_json<T: Serialize>(value: &T) -> Value {
+pub fn to_json<T: Serialize>(value: &T) -> Value {
     serde_json::to_value(value).unwrap_or(Value::Null)
+}
+
+/// Parse a payload string into `T`. Empty or invalid JSON is a hard error.
+///
+/// Shared by the `plan` and `propose` verb families (both the CLI verbs and
+/// the MCP tools) so there is one deserialization seam, not one per entry
+/// point.
+pub fn parse_payload<T: DeserializeOwned>(payload: &str) -> std::result::Result<T, String> {
+    if payload.trim().is_empty() {
+        return Err("empty payload".to_string());
+    }
+    serde_json::from_str(payload).map_err(|e| format!("invalid JSON: {e}"))
 }
 
 /// Current time in milliseconds since the UNIX epoch (mirrors
@@ -923,6 +936,389 @@ pub fn receipt_export_ocel_payload(
     }))
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PLAN SOLVE (Day 2 pipe): PDDL8 classical/temporal solving.
+//
+// Promoted here from `verbs::plan` so the single `plan solve` implementation is
+// callable from both the CLI verb and the MCP `plan_solve` tool (AR-2:
+// one implementation, no drift). The route/analyze/execute verbs stay in
+// `verbs::plan` but reuse the shared helpers below, so there is still exactly
+// one copy of `resolve_pddl_source`/`is_infeasible`/`refusal_json`/etc.
+// ═══════════════════════════════════════════════════════════════════════════
+
+use bcinr_pddl::{
+    compute_plan_chain, domain_from_pddl, problem_from_pddl, GroundProblem, GroundTemporalProblem,
+    Pddl8Error,
+};
+
+/// Read a file to a string, mapping IO errors to a hard-error message.
+pub fn read_file(path: &str) -> std::result::Result<String, String> {
+    std::fs::read_to_string(path).map_err(|e| format!("failed to read {path}: {e}"))
+}
+
+/// A finite `f64` as a JSON number; a non-finite one (`INFINITY`, `NAN`) as
+/// JSON `null` — `serde_json` cannot represent non-finite floats.
+pub fn finite_or_null(v: f64) -> Value {
+    if v.is_finite() {
+        json!(v)
+    } else {
+        Value::Null
+    }
+}
+
+/// Marker splitting a combined single-file domain+problem PDDL text.
+const PROBLEM_MARKER: &str = "(define (problem";
+
+/// Split `text` at the last `(define (problem` occurrence — the last, not the
+/// first, so an illustrative marker inside a leading comment block doesn't get
+/// mistaken for the real split point.
+pub fn split_combined(text: &str) -> std::result::Result<(String, String), String> {
+    match text.rfind(PROBLEM_MARKER) {
+        Some(0) => Err(format!(
+            "combined PDDL text starts with `{PROBLEM_MARKER}` — no domain text precedes it"
+        )),
+        Some(idx) => Ok((text[..idx].to_string(), text[idx..].to_string())),
+        None => Err(format!(
+            "combined PDDL text has no `{PROBLEM_MARKER}` block; supply domain and problem separately"
+        )),
+    }
+}
+
+/// Resolve a domain/problem PDDL source from any combination of inline text and
+/// file paths. If exactly one of `{domain-ish, problem-ish}` is given, its text
+/// is treated as a single combined file and split via [`split_combined`].
+pub fn resolve_pddl_source(
+    domain: Option<String>,
+    problem: Option<String>,
+    domain_file: Option<String>,
+    problem_file: Option<String>,
+) -> std::result::Result<(String, String), String> {
+    if domain.is_some() && domain_file.is_some() {
+        return Err("cannot supply both `domain` and `domain_file`".to_string());
+    }
+    if problem.is_some() && problem_file.is_some() {
+        return Err("cannot supply both `problem` and `problem_file`".to_string());
+    }
+    let domain_text = match domain {
+        Some(t) => Some(t),
+        None => match domain_file {
+            Some(p) => Some(read_file(&p)?),
+            None => None,
+        },
+    };
+    let problem_text = match problem {
+        Some(t) => Some(t),
+        None => match problem_file {
+            Some(p) => Some(read_file(&p)?),
+            None => None,
+        },
+    };
+    match (domain_text, problem_text) {
+        (Some(d), Some(p)) => Ok((d, p)),
+        (Some(combined), None) | (None, Some(combined)) => split_combined(&combined),
+        (None, None) => Err("must supply `domain`/`domain_file` and `problem`/`problem_file`, or \
+                             a single combined text/file containing both"
+            .to_string()),
+    }
+}
+
+/// Whether a `Pddl8Error` represents domain *infeasibility* (a legitimate "no"
+/// answer) rather than malformed input or an internal bug.
+pub fn is_infeasible(e: &Pddl8Error) -> bool {
+    matches!(
+        e,
+        Pddl8Error::EmptyGrounding
+            | Pddl8Error::NoAdmittedPlan
+            | Pddl8Error::StepDenied { .. }
+            | Pddl8Error::GoalNotReached
+    )
+}
+
+/// A structured refusal (`admitted: false`) for a domain-infeasible PDDL result.
+pub fn refusal_json(mode: &str, e: &Pddl8Error) -> Value {
+    json!({ "mode": mode, "admitted": false, "refusal_reason": e.to_string() })
+}
+
+fn default_mode() -> String {
+    "classical".to_string()
+}
+
+/// Wire schema for `plan solve` — inline PDDL text and/or file paths plus mode.
+#[derive(Deserialize)]
+struct SolveInput {
+    domain: Option<String>,
+    problem: Option<String>,
+    domain_file: Option<String>,
+    problem_file: Option<String>,
+    #[serde(default = "default_mode")]
+    mode: String,
+}
+
+fn solve_classical(domain_text: &str, problem_text: &str) -> std::result::Result<Value, String> {
+    let domain = domain_from_pddl(domain_text).map_err(|e| e.to_string())?;
+    let problem = problem_from_pddl(problem_text).map_err(|e| e.to_string())?;
+    // Auto-select the grounder: a domain whose naive Cartesian product blows
+    // past `GROUND_INDEX_THRESHOLD` is grounded lazily (dictionary-encoded
+    // join, materializing only reachable actions); small domains keep the
+    // simpler bcinr BFS grounder. Both find the identical plan.
+    if pddl_index::should_use_indexed(&domain, &problem) {
+        return solve_classical_indexed(&domain, &problem);
+    }
+    let ground = match GroundProblem::build(&domain, &problem, None) {
+        Ok(g) => g,
+        Err(e) if is_infeasible(&e) => return Ok(refusal_json("classical", &e)),
+        Err(e) => return Err(e.to_string()),
+    };
+    match ground.find_plan() {
+        Ok(tape) => Ok(json!({
+            "mode": "classical",
+            "grounder": "naive",
+            "admitted": true,
+            "plan_len": tape.len(),
+            "plan": to_json(&tape),
+        })),
+        Err(e) if is_infeasible(&e) => Ok(refusal_json("classical", &e)),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Classify a `pddl_index::GroundError` as domain infeasibility versus a hard
+/// error — mirrors [`is_infeasible`] for the indexed path.
+fn indexed_refusal(e: &pddl_index::GroundError) -> Option<Value> {
+    use pddl_index::GroundError::{BoundExceeded, EmptyGrounding, NoAdmittedPlan};
+    match e {
+        EmptyGrounding | NoAdmittedPlan => Some(json!({
+            "mode": "classical",
+            "grounder": "indexed",
+            "admitted": false,
+            "refusal_reason": e.to_string(),
+        })),
+        BoundExceeded { .. } => None,
+    }
+}
+
+/// Lazy dictionary-encoded grounding path. Reports the same fields as the naive
+/// path plus a `grounder: "indexed"` tag and the `grounding` savings stats.
+fn solve_classical_indexed(
+    domain: &bcinr_pddl::Pddl8Domain,
+    problem: &bcinr_pddl::Pddl8Problem,
+) -> std::result::Result<Value, String> {
+    let gp = match pddl_index::IndexedGroundProblem::build(domain, problem, None) {
+        Ok(g) => g,
+        Err(e) => return indexed_refusal(&e).ok_or_else(|| e.to_string()),
+    };
+    let stats = gp.stats();
+    let grounding = json!({
+        "candidate_groundings": stats.candidate_groundings,
+        "materialized_groundings": stats.materialized_groundings,
+        "reachable_atoms": stats.reachable_atoms,
+        "materialization_ratio": finite_or_null(stats.materialization_ratio()),
+    });
+    match gp.find_plan() {
+        Ok(tape) => Ok(json!({
+            "mode": "classical",
+            "grounder": "indexed",
+            "admitted": true,
+            "plan_len": tape.len(),
+            "plan": to_json(&tape),
+            "grounding": grounding,
+        })),
+        Err(e) => indexed_refusal(&e)
+            .map(|mut v| {
+                v["grounding"] = grounding;
+                v
+            })
+            .ok_or_else(|| e.to_string()),
+    }
+}
+
+fn solve_temporal(domain_text: &str, problem_text: &str) -> std::result::Result<Value, String> {
+    let domain = domain_from_pddl(domain_text).map_err(|e| e.to_string())?;
+    let problem = problem_from_pddl(problem_text).map_err(|e| e.to_string())?;
+    let gtp = match GroundTemporalProblem::build(&domain, &problem) {
+        Ok(g) => g,
+        Err(e) if is_infeasible(&e) => return Ok(refusal_json("temporal", &e)),
+        Err(e) => return Err(e.to_string()),
+    };
+    match gtp.find_temporal_plan() {
+        Ok(plan) => {
+            let plan_chain = compute_plan_chain(&plan.steps);
+            Ok(json!({
+                "mode": "temporal",
+                "admitted": true,
+                "makespan": finite_or_null(plan.makespan),
+                "plan_chain": plan_chain,
+                "plan": to_json(&plan),
+            }))
+        }
+        Err(e) if is_infeasible(&e) => Ok(refusal_json("temporal", &e)),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Solve a classical (`GroundProblem::find_plan`, BFS) or temporal
+/// (`GroundTemporalProblem::find_temporal_plan`) PDDL8 problem.
+///
+/// `domain`/`problem` accept inline PDDL text, `domain_file`/`problem_file`
+/// accept paths; if only one side is given, its text is treated as a single
+/// combined domain+problem file and split at the last `(define (problem`
+/// occurrence. Malformed input is a hard `Err`; domain infeasibility is
+/// `Ok(json)` with `"admitted": false` and a `refusal_reason`.
+///
+/// This is the single `plan solve` implementation shared by the CLI verb
+/// (`verbs::plan::solve`) and the MCP `plan_solve` tool.
+pub fn plan_solve_payload(payload: &str) -> std::result::Result<Value, String> {
+    let input: SolveInput = parse_payload(payload)?;
+    let (domain_text, problem_text) =
+        resolve_pddl_source(input.domain, input.problem, input.domain_file, input.problem_file)?;
+    match input.mode.as_str() {
+        "classical" => solve_classical(&domain_text, &problem_text),
+        "temporal" => solve_temporal(&domain_text, &problem_text),
+        other => Err(format!("unknown mode `{other}` (expected `classical` or `temporal`)")),
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROPOSE (Day 2 pipe): observe → rank candidate goal states (feature proposer).
+//
+// Promoted here from `verbs::propose` (`revenue`/`goal`) so the same ranking
+// implementation backs the CLI verb and the MCP `propose_revenue`/
+// `propose_goal` tools. Output is proposal (O), never authority (O*) — AR-9.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Wire schema shared by `propose revenue` and `propose goal`.
+#[cfg(feature = "proposer")]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProposeInput {
+    state: praxis_proposer::RevenueState,
+    #[serde(default)]
+    objective: Option<Value>,
+    #[serde(default)]
+    objective_file: Option<String>,
+}
+
+/// Resolve the authored objective from exactly one of: the `objective_path`
+/// argument, the payload's `objective_file` path, or the payload's inline
+/// `objective` object. None ⇒ hard error (Non-goal 1: the system never invents
+/// values); more than one ⇒ hard error (ambiguous authorship).
+#[cfg(feature = "proposer")]
+fn resolve_objective(
+    arg_path: &str,
+    input: &ProposeInput,
+) -> std::result::Result<praxis_proposer::ObjectiveFunction, String> {
+    let mut sources = 0;
+    if !arg_path.is_empty() {
+        sources += 1;
+    }
+    if input.objective.is_some() {
+        sources += 1;
+    }
+    if input.objective_file.is_some() {
+        sources += 1;
+    }
+    match sources {
+        0 => {
+            return Err("no objective supplied: pass --objective <path>, or put `objective` \
+                        (inline) or `objective_file` (path) in the payload — the objective \
+                        function is domain-authored data the system never invents (Non-goal 1)"
+                .to_string())
+        }
+        1 => {}
+        _ => {
+            return Err("multiple objective sources supplied: use exactly one of \
+                        --objective, payload `objective`, payload `objective_file`"
+                .to_string())
+        }
+    }
+    if let Some(inline) = &input.objective {
+        return praxis_proposer::ObjectiveFunction::from_json_str(&inline.to_string())
+            .map_err(|e| e.to_string());
+    }
+    let path = if !arg_path.is_empty() {
+        arg_path
+    } else {
+        input.objective_file.as_deref().unwrap_or_default()
+    };
+    praxis_proposer::ObjectiveFunction::from_path(std::path::Path::new(path))
+        .map_err(|e| e.to_string())
+}
+
+/// A [`praxis_proposer::Proposal`] as JSON, with the derived `pddl_goal` atom
+/// attached so a caller can splice it into a PDDL problem `(:goal ...)` block
+/// without re-deriving it.
+#[cfg(feature = "proposer")]
+fn proposal_json(p: &praxis_proposer::Proposal) -> Value {
+    let mut v = serde_json::to_value(p).unwrap_or(Value::Null);
+    if let Value::Object(map) = &mut v {
+        map.insert("pddl_goal".to_string(), json!(p.pddl_goal()));
+    }
+    v
+}
+
+/// `{name, version}` summary of an objective function.
+#[cfg(feature = "proposer")]
+pub fn objective_summary(obj: &praxis_proposer::ObjectiveFunction) -> Value {
+    json!({ "name": obj.name, "version": obj.version })
+}
+
+/// Enumerate, score, and rank candidate goal states for a revenue snapshot.
+///
+/// Returns the full ranked proposal list. `objective_path` is the CLI
+/// `--objective` argument (empty string when unset); the objective may instead
+/// arrive inline or as a path inside `payload`. Output is observation (O),
+/// never authority (O*) — AR-9.
+#[cfg(feature = "proposer")]
+pub fn propose_revenue_payload(
+    payload: &str,
+    objective_path: &str,
+) -> std::result::Result<Value, String> {
+    let input: ProposeInput = parse_payload(payload)?;
+    let objective = resolve_objective(objective_path, &input)?;
+    let proposer = praxis_proposer::Proposer::new(objective);
+    let proposals = proposer.propose(&input.state);
+    let status = if proposals.is_empty() { "no_lawful_candidates" } else { "proposed" };
+    Ok(json!({
+        "status": status,
+        "objective": objective_summary(proposer.objective()),
+        "count": proposals.len(),
+        "proposals": proposals.iter().map(proposal_json).collect::<Vec<_>>(),
+    }))
+}
+
+/// Emit only the top-ranked proposal's PDDL goal atom (plus its hash and
+/// rationale), ready to splice into a problem `(:goal ...)` block for
+/// `plan_solve`. A state with no lawful candidates is a domain "no"
+/// (`Ok(json)` with `"status": "no_lawful_candidates"`), not an error.
+#[cfg(feature = "proposer")]
+pub fn propose_goal_payload(
+    payload: &str,
+    objective_path: &str,
+) -> std::result::Result<Value, String> {
+    let input: ProposeInput = parse_payload(payload)?;
+    let objective = resolve_objective(objective_path, &input)?;
+    let proposer = praxis_proposer::Proposer::new(objective);
+    let proposals = proposer.propose(&input.state);
+    let Some(top) = proposals.first() else {
+        return Ok(json!({
+            "status": "no_lawful_candidates",
+            "objective": objective_summary(proposer.objective()),
+        }));
+    };
+    Ok(json!({
+        "status": "proposed",
+        "objective": objective_summary(proposer.objective()),
+        "goal": top.pddl_goal(),
+        "goal_description": top.goal_description,
+        "target_account": top.target_account,
+        "target_stage": top.target_stage,
+        "score": top.score,
+        "proposal_hash": top.proposal_hash,
+        "rationale": top.rationale,
+        "candidates_considered": proposals.len(),
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use prolog8::{
@@ -1188,19 +1584,28 @@ mod tests {
     const TEST_SIGNING_KEY_HEX: &str =
         "8bb5514c228cf4275a64aba09f3da77ef7de8b74a4424d670e71c26b0557e293";
 
-    /// Set `PRAXIS_SIGNING_KEY` for the duration of the returned guard.
+    /// Acquire the single process-wide lock that serializes every test which
+    /// mutates the `PRAXIS_SIGNING_KEY` env var.
     ///
-    /// `std::env` is process-global, so every test in this module that ends
-    /// up calling `receipt_payload` under `--features law-signed` serializes
-    /// on this lock rather than racing another test's env mutation.
+    /// `std::env` is process-global, so ALL signing-key writers in this module
+    /// — the receipt group (`with_test_signing_key`) and the receipt-noun group
+    /// (`with_receipt_noun_signing_key`) — must contend on the *same* mutex.
+    /// Two separate locks would each serialize only their own group and still
+    /// race across groups, flipping the key under a concurrently-running test.
+    #[cfg(feature = "law-signed")]
+    fn signing_key_env_guard() -> std::sync::MutexGuard<'static, ()> {
+        use std::sync::{Mutex, MutexGuard, OnceLock};
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        let guard: MutexGuard<'static, ()> =
+            LOCK.get_or_init(|| Mutex::new(())).lock().unwrap_or_else(|e| e.into_inner());
+        guard
+    }
+
+    /// Set `PRAXIS_SIGNING_KEY` to the receipt-group key for the duration of the
+    /// returned guard. Serializes on the shared [`signing_key_env_guard`] lock.
     #[cfg(feature = "law-signed")]
     fn with_test_signing_key() -> std::sync::MutexGuard<'static, ()> {
-        use std::sync::{Mutex, MutexGuard, OnceLock};
-        fn env_lock() -> MutexGuard<'static, ()> {
-            static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-            LOCK.get_or_init(|| Mutex::new(())).lock().unwrap_or_else(|e| e.into_inner())
-        }
-        let guard = env_lock();
+        let guard = signing_key_env_guard();
         std::env::set_var("PRAXIS_SIGNING_KEY", TEST_SIGNING_KEY_HEX);
         guard
     }
@@ -1430,14 +1835,13 @@ mod tests {
     const RECEIPT_NOUN_SIGNING_KEY_HEX: &str =
         "1a2a3a4a5a6a7a8a9aaaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf11";
 
+    /// Set `PRAXIS_SIGNING_KEY` to the receipt-noun-group key for the duration
+    /// of the returned guard. Serializes on the *same* shared
+    /// [`signing_key_env_guard`] lock as [`with_test_signing_key`], so the two
+    /// groups can never flip the env var underneath one another.
     #[cfg(feature = "law-signed")]
     fn with_receipt_noun_signing_key() -> std::sync::MutexGuard<'static, ()> {
-        use std::sync::{Mutex, MutexGuard, OnceLock};
-        fn env_lock() -> MutexGuard<'static, ()> {
-            static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-            LOCK.get_or_init(|| Mutex::new(())).lock().unwrap_or_else(|e| e.into_inner())
-        }
-        let guard = env_lock();
+        let guard = signing_key_env_guard();
         std::env::set_var("PRAXIS_SIGNING_KEY", RECEIPT_NOUN_SIGNING_KEY_HEX);
         guard
     }

@@ -40,15 +40,13 @@ impl<Payload: Serialize, Law: std::fmt::Debug> ToOcelEvent for LawObject<Payload
     fn to_ocel_event(&self) -> OcelEvent {
         let payload_hash =
             blake3::hash(serde_json::to_vec(&self.payload).unwrap_or_default().as_slice());
-        let payload_hex = format!(
-            "{}",
-            payload_hash.as_bytes().iter().map(|b| format!("{:02x}", b)).collect::<String>()
-        );
+        let payload_hex =
+            payload_hash.as_bytes().iter().map(|b| format!("{:02x}", b)).collect::<String>();
         let event_id = format!("receipt:{}", payload_hex);
 
         let chain_hash_hex = self
             .chain_hash
-            .map(|h| format!("{}", h.iter().map(|b| format!("{:02x}", b)).collect::<String>()));
+            .map(|h| h.iter().map(|b| format!("{:02x}", b)).collect::<String>());
 
         let attributes = serde_json::json!({
             "obligations": self.obligations,

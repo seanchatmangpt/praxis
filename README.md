@@ -115,6 +115,44 @@ It is the reference example of a praxis-conforming project. See
 
 ---
 
+## CLI: verbs and commands
+
+Beyond the scaffolding kit described above, this repository *is* a running
+`clap-noun-verb` CLI (binary `my-conforming-project`, plus the standalone
+`dod`, `revenue_demo`, `mcp_server`, and `mcp_lawobject_server` binaries) —
+the CPhy/Genesis program's law-object admission pipeline, PDDL8 planner,
+receipt ledger, and MCP surface, dogfooding the house style on itself. Every
+noun below is `cargo run --bin my-conforming-project -- <noun> <verb>`; a
+bare `<noun>` with no verb falls back to the default listed, per
+`inject_default_verbs` in `src/main.rs`. This list is generated from
+`src/verbs/mod.rs` — it only documents nouns that actually exist there.
+
+| Noun | Verbs | What it does | Example |
+|------|-------|--------------|---------|
+| `law` | `judge`, `admit`, `receipt`, `show`, `promote`, `verify-signature`¹ | Raw → Validated → Admitted → Receipted law-object lifecycle; runs prolog8 admission when `atom`/`rule` are present in the payload. | `cargo run -- law judge '{"value":{},"obligations":[]}'` |
+| `plan` | `route`, `solve`, `analyze`, `execute`, `lawobject`² | PDDL8 planning over `bcinr-pddl`: route a capability task, solve classical/temporal problems, analyze a temporal schedule, execute through the admission gate (receipt + OCEL), or self-test against the shipped `ontology/lawobject.ttl` exemplar. | `cargo run -- plan solve '{"domain_file":"d.pddl","problem_file":"p.pddl"}'` |
+| `mfg`² | `pddl`, `facts`, `validate` | Manufacture PDDL8 domain/problem text from a `pdl:` Turtle ontology, run a SPARQL `SELECT` over it, or round-trip PDDL8 text through the planner. | `cargo run --features ggen -- mfg pddl ontology/lawobject.ttl` |
+| `receipt` | `issue`, `validate` (default), `show`, `replay`, `export-ocel` | The append-only, BLAKE3-chained receipt ledger: issue a receipt, validate the chain (schema/tamper/linkage/monotonicity/POWL replay), show the trailing records, replay conformance, or export an OCEL 2.0 event log. | `cargo run -- receipt issue '{"value":{},"obligations":[]}'` |
+| `config` | `show` (default), `witness`, `validate` | The layered, admitted `PraxisConfig` (defaults → `~/.praxis/config.toml` → `./praxis.toml` → `PRAXIS_CONFIG__*` env) and its BLAKE3 witness hash. | `cargo run -- config show` |
+| `verifier` | `verify` | The affidavit-style certify pipeline (`decode → check_format → chain_integrity → continuity → verify_commitments → evaluate_profile`) over a receipts JSONL file. | `cargo run -- verifier verify receipts/receipts.jsonl` |
+| `frontier` | `matrix`, `summary`, `counts` | The capability-frontier DfCM matrix: every `capability_source` × `praxis_socket` cell this session evaluated, admitted/executed or refused-with-salvage. | `cargo run -- frontier summary` |
+| `dod` | `matrix` | The same frontier matrix, written to `target/frontier-report.json` (the walkthrough script's and Release-Criterion-3's entry point). Distinct from the standalone `dod` binary, which is the fmt+clippy+test gate. | `cargo run -- dod matrix` |
+| `doctor` | `check` (default) | Holistic health check, the `cargo doctor`/`brew doctor` of this repo: build status, config witness, frontier pass_rate/coverage, required tools on `PATH`, receipts ledger, compiled-in feature flags. `--format json` for machine output. | `cargo run -- doctor check` |
+| `propose`³ | `revenue`, `goal`, `mrr`, `mission`, `church` | PR-14 proposer layer: rank revenue/church-operations proposals, emit a PDDL goal atom, or compute Maximum Reachable Revenue. Output is proposal (`O`), never authority (`O*`) — every candidate still passes `law`/`plan` admission (AR-9). | `cargo run --features proposer -- propose mrr '{"state":{...}}'` |
+| `mission`³ | `run`, `ceiling` | The pack-generalized successor to `propose mission`: run the full observe→propose→plan→admit→receipt pipe, or compute the Maximum Reachable objective, for `--pack revenue` or `--pack church`. | `cargo run --features proposer -- mission run --pack revenue --objective o.json --state s.json` |
+| `testbed`⁴ | `run`, `list`, `report` | The `rust-fable-testbed` harness: run a task spec through prompt→model→sandbox→verify→receipt, list task IDs, or summarize the receipt ledger. | `cargo run --features testbed -- testbed list` |
+| `example` | `show` | The `#[verb]`/`linkme` registration pattern itself, documented in-repo for contributors adding a new noun. | `cargo run -- example show --id foo` |
+
+¹ requires `--features law-signed`. ² requires `--features ggen`.
+³ requires `--features proposer`. ⁴ requires `--features testbed`.
+
+Run `cargo run -- --help` for the full generated command tree, or `cargo run
+-- <noun> --help` for one noun's verbs and arguments. `just --list` shows the
+task-runner recipes (`just doctor`, `just frontier`, `just verify-all`, `just
+check`/`test`/`clippy`, …) that wrap the most common invocations.
+
+---
+
 ## How to use
 
 ### New project (cargo generate)
