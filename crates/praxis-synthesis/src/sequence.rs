@@ -166,6 +166,10 @@ pub struct SolveReceipt {
     pub problem_hash: String,
     /// Content address of the discovered plan.
     pub plan_hash: String,
+    /// Whether this plan was replayed from a fleet-shared solve cache
+    /// rather than searched for.
+    #[serde(default)]
+    pub replayed: bool,
 }
 
 /// A discovered plan with its receipt.
@@ -586,6 +590,7 @@ impl Solver for BoundedCsp {
                 pruned: search.pruned,
                 problem_hash: problem.problem_hash.clone(),
                 plan_hash,
+                replayed: false,
             },
         })
     }

@@ -33,11 +33,15 @@ use crate::sequence::{
 };
 use crate::Refusal;
 
-/// Fleet-shared cache of certified dead ends: problem hash → unsat core.
+/// Fleet-shared solve cache, keyed by problem content address: certified
+/// dead ends (unsat cores) *and* discovered plans both replay. A deliberation
+/// performed once — either outcome — is a lookup for every later agent.
 #[derive(Debug, Default, Clone)]
 pub struct CoreCache {
     cores: HashMap<String, (String, Vec<String>)>,
+    plans: HashMap<String, SequencePlan>,
     hits: u64,
+    plan_hits: u64,
 }
 
 impl CoreCache {
@@ -51,15 +55,25 @@ impl CoreCache {
     pub fn len(&self) -> usize {
         self.cores.len()
     }
-    /// Whether the cache is empty.
+    /// Whether the cache holds no cores (plans may still be cached).
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.cores.is_empty()
     }
-    /// How many solves were answered from cache.
+    /// Number of cached plans.
+    #[must_use]
+    pub fn plan_count(&self) -> usize {
+        self.plans.len()
+    }
+    /// How many refusals were answered from cache.
     #[must_use]
     pub fn hits(&self) -> u64 {
         self.hits
+    }
+    /// How many plans were answered from cache.
+    #[must_use]
+    pub fn plan_hits(&self) -> u64 {
+        self.plan_hits
     }
 }
 
@@ -220,8 +234,11 @@ fn extract_core(
 }
 
 impl Solver8 {
-    /// Solve with a fleet-shared core cache: a problem whose hash matches a
-    /// cached dead end refuses immediately with the replayed certificate.
+    /// Solve with the fleet-shared cache: a problem whose content address
+    /// matches a cached dead end refuses immediately with the replayed
+    /// certificate; one matching a cached plan returns it with
+    /// `nodes_explored = 0` (this solve searched nothing) and
+    /// `replayed = true`.
     pub fn solve_cached(
         &self,
         problem: &SequenceProblem,
@@ -235,11 +252,26 @@ impl Solver8 {
                 replayed: true,
             });
         }
+        if let Some(plan) = cache.plans.get(problem.problem_hash()) {
+            cache.plan_hits += 1;
+            let mut replay = plan.clone();
+            replay.receipt.nodes_explored = 0;
+            replay.receipt.pruned = 0;
+            replay.receipt.replayed = true;
+            return Ok(replay);
+        }
         let result = self.solve(problem);
-        if let Err(Refusal::UnsatProof { detail, core, .. }) = &result {
-            cache
-                .cores
-                .insert(problem.problem_hash().to_string(), (detail.clone(), core.clone()));
+        match &result {
+            Err(Refusal::UnsatProof { detail, core, .. }) => {
+                cache.cores.insert(
+                    problem.problem_hash().to_string(),
+                    (detail.clone(), core.clone()),
+                );
+            }
+            Ok(plan) => {
+                cache.plans.insert(problem.problem_hash().to_string(), plan.clone());
+            }
+            Err(_) => {}
         }
         result
     }
@@ -308,6 +340,7 @@ impl Solver for Solver8 {
                 pruned: search.pruned,
                 problem_hash: problem.problem_hash().to_string(),
                 plan_hash,
+                replayed: false,
             },
         })
     }

@@ -26,6 +26,7 @@
 
 pub mod dag;
 pub mod datalog;
+pub mod fleet;
 pub mod pipeline;
 pub mod rel;
 pub mod sequence;
