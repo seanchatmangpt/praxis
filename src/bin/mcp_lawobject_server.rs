@@ -672,6 +672,42 @@ mod server {
                 .unwrap_or_default()
         }
 
+        /// Fixed 64-hex-char (32-byte) ed25519 seed used only by these tests.
+        /// Not security-sensitive: under `--features law-signed` (part of
+        /// `all-features`) the receipt paths sign fail-closed, so every test
+        /// that produces a receipt or seeds a ledger needs a deterministic
+        /// `PRAXIS_SIGNING_KEY` — same house pattern as `ops::tests`.
+        #[cfg(feature = "law-signed")]
+        const MCP_TEST_SIGNING_KEY_HEX: &str =
+            "3c9d1e2f4a5b6c7d8e9fa0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9cadb";
+
+        /// Set `PRAXIS_SIGNING_KEY` for the duration of the returned guard.
+        /// `std::env` is process-global, so signing-path tests serialize on
+        /// this lock rather than racing each other's env mutation.
+        #[cfg(feature = "law-signed")]
+        fn with_mcp_test_signing_key() -> std::sync::MutexGuard<'static, ()> {
+            use std::sync::{Mutex, MutexGuard, OnceLock};
+            fn env_lock() -> MutexGuard<'static, ()> {
+                static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+                LOCK.get_or_init(|| Mutex::new(())).lock().unwrap_or_else(|e| e.into_inner())
+            }
+            let guard = env_lock();
+            std::env::set_var("PRAXIS_SIGNING_KEY", MCP_TEST_SIGNING_KEY_HEX);
+            guard
+        }
+
+        /// Remove the wall-clock `andon.Halted.at` field before comparing a
+        /// tool result against a direct `ops::*` call: the two invocations
+        /// legitimately run milliseconds apart, and `at` is documented as
+        /// diagnostic, not part of the admission decision.
+        fn strip_halted_at(v: &mut Value) {
+            if let Some(halted) = v.get_mut("andon").and_then(|a| a.get_mut("Halted")) {
+                if let Some(map) = halted.as_object_mut() {
+                    map.remove("at");
+                }
+            }
+        }
+
         // ── judge/admit/receipt match ops::*_payload directly ──────────────
 
         #[tokio::test]
@@ -696,15 +732,22 @@ mod server {
             let tool_result = state.admit(params).await.expect("admit should not error");
             assert!(!tool_result.is_error.unwrap_or(false));
 
-            let tool_json: Value =
+            let mut tool_json: Value =
                 serde_json::from_str(&text_of(&tool_result)).expect("tool output is JSON");
             assert_eq!(tool_json["status"], json!("denied"));
-            let direct_json = ops::admit_payload(&payload, "default").expect("direct admit_payload");
+            let mut direct_json =
+                ops::admit_payload(&payload, "default").expect("direct admit_payload");
+            // The two calls run milliseconds apart; `at` is a wall-clock
+            // diagnostic, not part of the denial shape under test.
+            strip_halted_at(&mut tool_json);
+            strip_halted_at(&mut direct_json);
             assert_eq!(tool_json, direct_json);
         }
 
         #[tokio::test]
         async fn receipt_tool_matches_ops_receipt_payload_with_explicit_ts_ns() {
+            #[cfg(feature = "law-signed")]
+            let _guard = with_mcp_test_signing_key();
             let state = ServerState::default();
             let payload = r#"{"value":{"id":1},"ts_ns":42}"#.to_string();
             let params = Parameters(ReceiptParams { payload_json: payload.clone() });
@@ -780,6 +823,8 @@ mod server {
 
         #[tokio::test]
         async fn receipt_without_ts_ns_is_never_cached() {
+            #[cfg(feature = "law-signed")]
+            let _guard = with_mcp_test_signing_key();
             let state = ServerState::default();
             let payload = r#"{"value":{"id":9}}"#.to_string();
             let make_params = || Parameters(ReceiptParams { payload_json: payload.clone() });
@@ -796,6 +841,8 @@ mod server {
 
         #[tokio::test]
         async fn receipt_with_ts_ns_is_cached_and_deterministic() {
+            #[cfg(feature = "law-signed")]
+            let _guard = with_mcp_test_signing_key();
             let state = ServerState::default();
             let payload = r#"{"value":{"id":11},"ts_ns":123}"#.to_string();
             let make_params = || Parameters(ReceiptParams { payload_json: payload.clone() });
@@ -817,6 +864,8 @@ mod server {
 
         #[tokio::test]
         async fn receipt_validate_and_replay_on_fresh_ledger() {
+            #[cfg(feature = "law-signed")]
+            let _guard = with_mcp_test_signing_key();
             let state = ServerState::default();
             let dir = std::env::temp_dir().join(format!(
                 "praxis-mcp-server-tests-{}-{}",
