@@ -45,7 +45,15 @@ fn build_ledger(n: u64) -> Vec<ReceiptRecord> {
             serde_json::json!({"i": i}),
             vec![],
         );
-        let validated = DefaultLaw::judge(raw).expect("no obligations must judge cleanly");
+        // `Judge::judge`'s `Err` variant is the raw `LawObject` itself, which
+        // intentionally does not derive `Debug` (its phantom stage/law
+        // markers aren't all `Debug`) — so unwrap via `match`, not
+        // `.expect()`, mirroring `praxis-core`'s own `default_law.rs` tests
+        // and `tests/receipt_lane.rs`'s `admitted_value` helper.
+        let validated = match DefaultLaw::judge(raw) {
+            Ok(v) => v,
+            Err(_) => panic!("no obligations must always judge cleanly"),
+        };
         let admitted = DefaultLaw::admit(validated).expect("green andon must admit");
         let meta = ReceiptMeta {
             instruction_id: i,

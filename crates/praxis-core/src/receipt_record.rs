@@ -41,6 +41,16 @@ pub struct ReceiptRecord {
     /// Wall-clock timestamp in nanoseconds (resolved at emission time; never
     /// `None` once persisted).
     pub ts_ns: u64,
+    /// Optional wall-clock duration of the admission this receipt seals, in
+    /// milliseconds. `None` when the emitting path did not measure a span:
+    /// praxis's law layer records the emission instant [`Self::ts_ns`], not a
+    /// duration, so this is `None` on the live `receipt_with_record` path;
+    /// callers that time admission may populate it. Descriptive only — not
+    /// part of the chain-hash computation (like [`Self::activity`]). Added for
+    /// the `SharedReceiptV1` bridge, where it maps to `sr:duration_ms` (see
+    /// `receipt_shacl` in the root crate); absent records read back as `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<u64>,
     /// BLAKE3 hash of the canonical JSON payload bytes, as 64 lowercase hex characters.
     pub payload_hash_hex: String,
     /// The chain hash this record was chained onto, as 64 lowercase hex characters.
@@ -126,6 +136,7 @@ mod tests {
             activity: None,
             node_kind: 0,
             ts_ns: 42,
+            duration_ms: None,
             payload_hash_hex: "11".repeat(32),
             prev_chain_hash_hex: "0".repeat(64),
             chain_hash_hex: String::new(), // filled in below

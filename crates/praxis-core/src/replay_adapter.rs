@@ -191,6 +191,7 @@ mod tests {
             activity: None,
             node_kind: 0,
             ts_ns: 100,
+            duration_ms: None,
             payload_hash_hex: "11".repeat(32),
             prev_chain_hash_hex: "0".repeat(64),
             chain_hash_hex: "22".repeat(32),
