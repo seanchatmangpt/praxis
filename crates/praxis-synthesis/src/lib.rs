@@ -28,6 +28,7 @@ pub mod budget;
 pub mod cell;
 pub mod dag;
 pub mod datalog;
+pub mod fault;
 pub mod fleet;
 pub mod gen;
 pub mod pipeline;

@@ -7,9 +7,11 @@
 //!   - /Users/sac/knhk/rust/genesis-mu-kernel/src/timing.rs:11 (`TickCounter`
 //!     — NOT ported: rdtsc/cntvct is unsafe + arch-specific; praxis budgets
 //!     are DECLARED deterministic costs, not measured cycles)
+//!
 //! DELTAS: rdtsc → abstract [`Ticks`]; no `#[repr(C)]` (no FFI surface);
-//!   serde derives added (budgets travel inside receipts); unsafe removed
-//!   (`forbid(unsafe_code)` crate).
+//! serde derives added (budgets travel inside receipts); unsafe removed
+//! (`forbid(unsafe_code)` crate).
+//!
 //! SYNC: re-diff against the knhk paths above before claiming upstream parity.
 //!
 //! Path-dependency on knhk was refused with evidence: `genesis-mu-kernel`
