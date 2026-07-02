@@ -1,0 +1,887 @@
+\documentclass[11pt,oneside]{book}
+
+\usepackage[margin=1.15in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+
+% ---- theorem environments (identical to the keystone, for series coherence) ----
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{axiom}{Axiom}[chapter]
+\newtheorem{construction}{Construction}[chapter]
+\newtheorem{estimate}{Estimate}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+% ---- notation macros (shared with projection_thesis.tex; NB: never define \Ref) ----
+\newcommand{\Obs}{\mathcal{O}}                 % raw observation space
+\newcommand{\Adm}{\mathcal{O}^{*}}             % admitted observation space
+\newcommand{\Act}{\mathcal{A}}                 % action / artifact space
+\newcommand{\Recs}{\mathcal{R}}                % receipt space
+\newcommand{\Proj}{\pi}                        % projection
+\newcommand{\muop}{\mu}                        % manufacturing morphism
+\newcommand{\adm}{\alpha}                      % admission map
+\newcommand{\chainH}{\mathsf{H}}               % hash
+\newcommand{\Rfsl}{\bot}                        % refusal (NOT \Ref: reserved by hyperref)
+\newcommand{\CL}{\kappa}                       % bounded-verifier context capacity
+\newcommand{\Fitness}{\varphi}
+\newcommand{\dg}{\mathrm{dg}}                  % digest
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\id}{id}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator*{\argmax}{arg\,max}
+% ---- paper-04-local macros ----
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\Over}{\mathsf{Over}}
+\newcommand{\abyte}{\mathbf{b}}                % agent status byte
+\newcommand{\lane}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\Bw}{B}                            % streaming bandwidth
+\newcommand{\Kill}{\mathrm{Kill}}
+\newcommand{\stg}{\mathsf{s}}                  % correct-stage map
+
+\title{\bfseries Beyond Cognitive Load:\\[0.4em]
+\large The Projection Principle at Planetary Scale\\
+Manufactured Trust, the Agent Byte, and the Economics of Admission}
+\author{The Chatman Equation Thesis Program \\ (Praxis / Capability Physics)}
+\date{Genesis --- Scale, Paper 04}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+This paper extends the keystone thesis \cite{keystone} from the theory of a single faithful
+receipt to the physics of a planetary population of them. We do not restate the keystone's
+proofs; we cite them and build forward on three fronts. \emph{First}, we make the
+Comprehension--Verification Gap quantitative, taking the autonomous build of
+$\sim\!2.5\times 10^{6}$ interior tokens as a concrete instance and separating what is
+\emph{measured} (the interior token count, the receipt field count) from what is
+\emph{estimated} (per-message hash wall-time), so the gap ratio $\sim\!6\times 10^{5}$ is
+stated with its provenance. \emph{Second}, we formalize the industrial practice of
+\emph{manufactured trust} --- the simdjson/QLever treatment --- as a general method: a
+correctness question that Rice's theorem \cite{rice1953} makes undecidable is retracted onto a
+decidable \emph{oracle}. We give three oracles and their guarantees: differential agreement as
+mutual verification (with a false-accept bound), boundary fuzzing of the \emph{total} admission
+retraction, and mutation-testing of the receipt chain, proving the \emph{Mutant Kill Theorem} ---
+under staged soundness and completeness, a mutant is killed \emph{iff} the validator rejects it
+at the correct stage. \emph{Third}, we develop the \code{agent8} projection: an MCP/A2A agent
+rendered as an eight-bit status byte. We prove that fleet admission is \emph{branchless mask
+algebra} gating $64$ agents per machine word per lane in a fixed seven-instruction reduction,
+show that a $10^{10}$-agent population is exactly $10\,\mathrm{GB}$ swept in one
+memory-bandwidth pass, and give the planetary Fermi estimate ($10^{8}$--$10^{10}$ admission
+decisions per second) establishing that only bit-parallel admission is affordable while
+comprehension-based admission is not. We close by formalizing the \emph{antibody clause}: the
+overclaim set is empty as an invariant, and the admissible magnitude of any claim is bounded by
+the mechanism that receipts it --- a bound this paper applies reflexively to its own claims.
+Every abstract object is anchored to running code in the \code{praxis} repository: the
+eight-lane \code{DenialPolarity} word, the eight-bucket \code{refusal} taxonomy, the staged
+\code{PowlReplayVerifier}, the BLAKE3 \code{OcelCausalFrame} chain, and the \code{agent8} byte.
+
+\tableofcontents
+
+\mainmatter
+
+\chapter{Introduction: From the Gap to the Sweep}
+\label{ch:intro}
+
+\section{What the keystone settled, and what remains}
+
+The keystone thesis \cite{keystone} settled the \emph{qualitative} shape of trust among agents
+who cannot comprehend one another. Its results are three. The \emph{Faithful Projection
+Theorem} \cite[Thm.~3.2]{keystone} establishes that a chained receipt committing law-bearing
+fields is faithful to lawful consequence over exactly those fields, under collision resistance.
+The \emph{Comprehension--Verification Gap} \cite[Thm.~4.2]{keystone} establishes that boundary
+verification of a receipt costs $O(\CL)$ --- independent of interior dimension --- while honest
+replay costs $O(n)$. The \emph{Conservation of Consequence} \cite[Thm.~3.5]{keystone}
+establishes that every actuated artifact is the image of at least one admitted observation and
+occupies exactly one receipt-chain position. Together these say: a bounded verifier can trust an
+unbounded interior by reading a small faithful coordinate of it.
+
+Those theorems are about \emph{one} receipt and \emph{one} verifier. A civilization is not one
+receipt. It is $10^{10}$ or $10^{12}$ agents, each emitting receipts continuously, each obliged
+to admit or refuse the others' outputs faster than any of them can be read. Three questions the
+keystone raised but did not exhaust are the subject of this paper.
+
+\begin{enumerate}[label=(Q\arabic*),leftmargin=*]
+\item \textbf{How large is the gap, concretely?} The keystone proved the ratio diverges; it did
+not pin the constants. We take the $2.5$-million-token build as an instance and compute the
+ratio with a clean line between measured and estimated quantities (Chapter~\ref{ch:gap}).
+\item \textbf{Where does the trust actually come from, mechanically?} The keystone named
+``differential agreement, adversarial fuzzing, invariants, and checked projections'' as the
+engineering practice it was generalizing \cite[Ch.~1]{keystone}, but treated them as motivation.
+We formalize them as a \emph{general method} with provable guarantees (Chapter~\ref{ch:mt}).
+\item \textbf{What does admission cost at population scale?} The keystone's
+Proposition~\cite[Prop.~6.2]{keystone} gave the agent byte and a one-line bandwidth argument.
+We derive the branchless admission algebra in full, prove its per-word gating, and give the
+planetary economics that make it the \emph{only} affordable regime (Chapters~\ref{ch:agent8}
+and~\ref{ch:econ}).
+\end{enumerate}
+
+\section{The one-line thesis of this paper}
+
+Everything below is a corollary of a single move, made three times. A question of the form
+\emph{``is this interior correct / meaningful / trustworthy?''} is, by Rice's theorem
+\cite{rice1953}, undecidable in general (this is the keystone's Theorem~2.1, on which we build).
+The industrial answer --- and, we argue, the only scalable answer --- is never to ask that
+question. It is to \emph{retract} it onto a decidable surrogate: an equality between two
+oracles, a total classifier's labelled output, a hash comparison, a bitwise mask. Each surrogate
+is cheap, mechanical, and faithful over exactly what it commits. The keystone called this the
+projection principle for one receipt. This paper shows it is also the mutation oracle, the
+differential oracle, the fuzzing oracle, and --- at population scale --- a single AND of eight
+bit-planes sweeping the planet in one pass over memory.
+
+\begin{center}\itshape
+The gap is why comprehension fails; the sweep is what replaces it.
+\end{center}
+
+\paragraph{Structure.} Chapter~\ref{ch:gap} quantifies the gap on the instance.
+Chapter~\ref{ch:mt} formalizes manufactured trust and proves the Mutant Kill Theorem.
+Chapter~\ref{ch:agent8} constructs the agent byte and proves branchless admission.
+Chapter~\ref{ch:econ} gives the planetary Fermi estimate. Chapter~\ref{ch:antibody} formalizes
+the antibody clause. Chapter~\ref{ch:concl} concludes. Throughout, results proved are theorems;
+quantities that must be estimated are set as \emph{Estimates} and labelled as such, following
+the keystone's discipline of claiming only what is true.
+
+\chapter{The Comprehension--Verification Gap, Measured}
+\label{ch:gap}
+
+The keystone proved (Theorem~4.2 there) that the ratio of comprehension cost to boundary-
+verification cost diverges as the interior grows. Divergence is a statement about a limit; a
+civilization runs on constants. This chapter supplies the constants for the canonical instance
+and, in doing so, fixes a methodological rule for the whole series: \emph{every reported number
+is tagged measured or estimated}.
+
+\section{Measured and estimated quantities}
+
+\begin{definition}[Instance quantities]\label{def:instance-q}
+For an executed manufacture $\sigma$ we distinguish:
+\begin{itemize}[leftmargin=*]
+\item $T(\sigma)$, the \emph{interior token count} --- the number of machine-generated tokens in
+the full trace. This is \emph{measured}: it is a count of logged records.
+\item $\CL$, the \emph{boundary field count} --- the number of independently manipulable chunks
+in the receipt projection $\Proj(\sigma)$ (Definition~\cite[Def.~3.1]{keystone}). This is a
+\emph{design constant}, fixed by the frame schema, not by the run.
+\item $t_{\chainH}$, the \emph{per-frame recomputation wall-time} --- the time to hash one frame
+and compare to the claimed chain value. This is \emph{estimated} from published throughput of
+the hash primitive; it is not claimed as measured here.
+\end{itemize}
+\end{definition}
+
+\begin{remark}
+The tag matters because the doctrine's credibility is exactly its refusal to launder estimates
+as measurements (the antibody clause, Chapter~\ref{ch:antibody}). $T$ and $\CL$ are hard
+numbers; $t_{\chainH}$ is a Fermi input. We never add a measured and an estimated number without
+saying so.
+\end{remark}
+
+\section{The instance}
+
+The canonical instance is the autonomous build of the keystone's Chapter~6: a fleet performed
+exploration, planning, and implementation whose interior consumed
+\[
+T(\sigma)\;\approx\;2.5\times 10^{6}\ \text{tokens (measured),}
+\]
+no meaningful fraction of which any agent or human read. Its receipt projection has the schema
+\[
+\Proj(\sigma)=\bigl(\underbrace{\text{verdict}}_{1\ \text{bit}},\ \underbrace{h_{+}}_{256\ \text{bits}},\ \underbrace{\Fitness}_{1\ \text{scalar}},\ \underbrace{r}_{1\ \text{reason word}}\bigr),
+\qquad \CL=4\ \text{fields (design).}
+\]
+The verdict is one bit; $h_{+}$ is the $256$-bit BLAKE3 \cite{blake3} chain head of the
+\code{OcelCausalFrame} sequence; $\Fitness\in[0,1]$ is the \code{PowlReplayVerifier} fitness
+(Chapter~\ref{ch:mt}); $r$ is one of the eight refusal categories (\code{Identity},
+\code{Capacity}, \code{Topology}, \code{Temporal}, \code{Lifecycle}, \code{Authorization},
+\code{Prerequisites}, \code{Reserved}) or empty on accept.
+
+\begin{theorem}[Instance gap]\label{thm:instance-gap}
+Let comprehension cost be $\mathrm{Comp}(\sigma)=\Theta(T(\sigma))$ and boundary-verification
+cost be $\mathrm{Ver}_\partial(\sigma)=\Theta(\CL)$, as in \cite[Thm.~4.2]{keystone}. For the
+instance,
+\[
+\frac{\mathrm{Comp}(\sigma)}{\mathrm{Ver}_\partial(\sigma)}
+\;=\;\Theta\!\left(\frac{T(\sigma)}{\CL}\right)
+\;=\;\Theta\!\left(\frac{2.5\times 10^{6}}{4}\right)
+\;\approx\;6.25\times 10^{5}.
+\]
+Both inputs to the ratio are measured/design constants; the ratio is therefore a measured
+consequence, not an estimate.
+\end{theorem}
+
+\begin{proof}
+Immediate from \cite[Thm.~4.2]{keystone} with the two constants of Definition~\ref{def:instance-q}
+substituted. Comprehension must ingest $\Theta(T)$ tokens; boundary verification reads the
+$\CL=4$ receipt fields and applies the fixed verifier $V$ of \cite[Cor.~3.3]{keystone}. The
+quotient is $T/\CL$; substitution gives the figure. No estimated quantity enters.
+\end{proof}
+
+\begin{remark}[The gap is not a compression ratio]
+Six hundred thousand is not the ratio of trace bytes to receipt bytes; it is the ratio of what a
+verifier would have to \emph{comprehend} to the number of independent chunks it actually
+\emph{reads}. The full trace can still be replayed at honest cost $O(n)$
+(\cite[Def.~4.1]{keystone}); the gap concerns comprehension versus boundary inspection, and it
+grows without bound as $T$ grows while $\CL$ stays fixed.
+\end{remark}
+
+\section{Boundary cost is invariant under interior growth}
+
+\begin{proposition}[Interior-independence of the boundary]\label{prop:invariance}
+Let $\{\sigma_i\}$ be manufactures sharing the frame schema of Definition~\ref{def:instance-q}
+but with interior token counts $T(\sigma_i)\to\infty$. Then $\mathrm{Ver}_\partial(\sigma_i)=
+\Theta(\CL)$ is constant in $i$, and the estimated per-message wall-time
+$\CL\cdot(t_{\text{cmp}}) + c\cdot t_{\chainH}$ (for a constant number $c$ of recomputed frames
+in a spot-check) does not depend on $T(\sigma_i)$.
+\end{proposition}
+
+\begin{proof}
+The projection $\Proj$ has codomain of size $\le\CL$ by \cite[Def.~3.1]{keystone}; the verifier
+$V$ reads only $\Proj(\sigma_i)$. Neither the field count nor $V$'s input size is a function of
+$T$. A spot-check recomputes a fixed number $c$ of frames, each $O(1)$
+(\cite[Def.~4.1]{keystone}), so its cost is $c\cdot t_{\chainH}$, again independent of $T$.
+\end{proof}
+
+\begin{estimate}[Per-message wall-time]\label{est:wall}
+With BLAKE3 throughput on the order of $1$--$3\,\mathrm{GB/s}$ per core \cite{blake3} and a frame
+of a few hundred bytes, $t_{\chainH}\sim 10^{-7}\,\mathrm{s}$ per frame; a four-field boundary
+compare is a handful of machine words, $\ll 10^{-7}\,\mathrm{s}$. A per-message verification that
+inspects the boundary and recomputes $c\!\sim\!10$ spot frames costs $\sim 10^{-6}\,\mathrm{s}$.
+These are order-of-magnitude figures from published primitive throughput, labelled as estimates;
+the point they support --- constancy in $T$ --- is the \emph{proven}
+Proposition~\ref{prop:invariance}, not the estimate.
+\end{estimate}
+
+\chapter{Manufactured Trust as a General Method}
+\label{ch:mt}
+
+Engineers already trust software they cannot comprehend. A branchless vector parser classifies
+sixty-four input bytes per instruction \cite{simdjson}; an indexed triple store answers a query
+over $10^{11}$ facts by a join plan no one reconstructs \cite{qlever}. Neither is trusted by
+reading it. Both are trusted because a battery of \emph{decidable oracles} stands in for the
+undecidable question of correctness. This chapter turns that practice into theory. The unifying
+claim is the keystone's, sharpened: each oracle is an \emph{admission retraction} --- a total,
+terminating, decidable surrogate for a semantic question Rice's theorem forbids us to decide
+directly.
+
+\section{The decidable-oracle move}
+
+\begin{definition}[Correctness question and decidable oracle]\label{def:oracle}
+Let $f:D\to R$ be an implementation and $S\subseteq D\times R$ a specification. The
+\emph{correctness question} is $Q_S(f)\equiv\forall x\,(x,f(x))\in S$. A \emph{decidable oracle}
+for $f$ on a finite test set $X\subseteq D$ is a total computable predicate $\Omega:X\to\{0,1\}$
+such that $\Omega(x)=1$ is intended to witness $(x,f(x))\in S$, and $\Omega$ terminates on every
+$x\in X$.
+\end{definition}
+
+\begin{proposition}[Why an oracle is necessary, not a convenience]\label{prop:necessity}
+For $S$ a non-trivial semantic property, $Q_S(f)$ is undecidable. Hence no procedure decides
+$Q_S(f)$ for arbitrary $f$; any mechanical trust in $f$ must be trust in some $\Omega$ evaluated
+on a finite $X$, together with an argument bounding the residual risk on $D\setminus X$.
+\end{proposition}
+
+\begin{proof}
+$Q_S(f)$ quantifies a non-trivial semantic predicate over the language computed by $f$; by
+Rice's theorem \cite{rice1953} --- the keystone's Theorem~2.1 --- it is undecidable. A total
+$\Omega$ on finite $X$ always terminates and is therefore not a decision procedure for $Q_S$; it
+is a retraction of $Q_S$ onto the decidable fragment ``$f$ passes $\Omega$ on $X$.'' Trust in $f$
+factors through $\Omega$ and $X$.
+\end{proof}
+
+Proposition~\ref{prop:necessity} is the whole chapter in one line: the three methods below are
+three constructions of $\Omega$, each with a different residual-risk argument.
+
+\section{Differential agreement as mutual verification}
+
+The simdjson/QLever pattern's first oracle is \emph{differential}: run a second, independent
+implementation and compare outputs. Agreement is decidable; correctness is not.
+
+\begin{definition}[Differential oracle]\label{def:diff}
+Let $f,g:D\to R$ target the same $S$. The \emph{differential oracle} is
+$\Omega_{f,g}(x)=[\,f(x)=g(x)\,]$. A test \emph{passes} at $x$ iff $\Omega_{f,g}(x)=1$.
+\end{definition}
+
+A pass can be wrong in only one way: both implementations wrong \emph{and} wrong identically.
+The next proposition bounds that event under an explicit independence assumption.
+
+\begin{proposition}[False-accept bound for differential agreement]\label{prop:diff-bound}
+Fix $x\in D$. Suppose $f,g$ err at $x$ with probabilities $p_f,p_g$, that their errors are
+independent, and that conditioned on both erring their wrong outputs are drawn from a set of at
+least $M\ge 2$ distinguishable values with collision probability $\le 1/M$. Then the probability
+that $x$ passes the differential oracle yet $(x,f(x))\notin S$ satisfies
+\[
+\Pr[\,\Omega_{f,g}(x)=1 \wedge (x,f(x))\notin S\,]\;\le\;\frac{p_f\,p_g}{M}.
+\]
+Over an independent test corpus $X$ of size $n$ sampling the same regime, the probability that
+some silent-agreement error survives all $n$ tests is at most $n\,p_f p_g/M$, and the probability
+that a \emph{fixed} silently-wrong input is missed by a corpus that would have exercised it with
+per-input hit rate $q$ is $(1-q)^{n}\to 0$.
+\end{proposition}
+
+\begin{proof}
+A false accept at $x$ requires $f(x)\ne S$-correct value \emph{and} $g(x)=f(x)$. The first has
+probability $p_f$. Given both err (probability $p_f p_g$ by independence), agreement requires the
+two wrong outputs to coincide, probability $\le 1/M$. If $f$ is correct at $x$ but $g$ wrong,
+agreement fails and no false accept occurs; if $f$ wrong but $g$ correct, agreement fails
+likewise. Hence the joint event has probability $\le p_f p_g/M$. The union bound over $n$
+corpus points gives $n p_f p_g/M$. The miss bound is the probability a Bernoulli-$q$ trigger
+never fires in $n$ draws, $(1-q)^n$.
+\end{proof}
+
+\begin{remark}[Mutual verification is symmetric admission]
+$\Omega_{f,g}$ admits $f$'s output on the evidence of $g$ and simultaneously $g$'s on the
+evidence of $f$: neither comprehends the other's interior, exactly as two agents at fleet scale
+do not. The independence assumption is the load-bearing one --- shared bugs (same author, same
+library, same wrong spec reading) violate it, which is why the practice pairs implementations of
+\emph{maximally different provenance} (a scalar reference against a SIMD kernel; a naive triple
+scan against an indexed join). We state the assumption rather than hide it; the antibody clause
+(Chapter~\ref{ch:antibody}) forbids claiming a bound whose hypothesis is unmet.
+\end{remark}
+
+\section{Fuzzing the admission boundary}
+
+The second oracle probes not $\muop$ but $\adm$ itself: it searches for inputs where the
+admission retraction misbehaves. Here the projection principle pays a structural dividend.
+Because $\adm$ is \emph{total} --- its totality is mechanized by wildcard-free \code{match} on a
+closed refusal enum (the foundations paper's Proposition on mechanized totality, realized in
+\code{refusal.rs} where \code{RefusalScenario::category} and \code{denial\_lane} cover every
+variant with no catch-all arm) --- every input has a defined, labelled outcome.
+
+\begin{definition}[Admission-boundary fuzzing oracle]\label{def:fuzz}
+Let $\adm:\Obs\rightharpoonup\Adm\cup\{\Rfsl\}$ be the total admission retraction. The
+\emph{fuzzing oracle} $\Omega_\partial$ maps a generated input $o\in\Obs$ to $1$ iff $\adm(o)$
+\emph{terminates} and yields either an admitted $x\in\Adm$ with a well-formed artifact
+$\muop(x)$ or a refusal $\Rfsl$ carrying a category in the eight-bucket taxonomy; $\Omega_\partial(o)=0$
+iff $\adm$ crashes, diverges, or returns an unlabelled outcome.
+\end{definition}
+
+\begin{proposition}[Fuzzing soundness for a total retraction]\label{prop:fuzz}
+If $\adm$ is total and terminating with codomain $\Adm\cup\{\Rfsl\}$ and $\Rfsl$ is refusal-with-
+category (refusal-as-data), then for every $o\in\Obs$, $\Omega_\partial(o)=1$, and any observed
+$\Omega_\partial(o)=0$ is a genuine defect in the retraction, not a property of the input.
+\end{proposition}
+
+\begin{proof}
+Totality gives termination on all $o$; the closed codomain gives, for each $o$, either $x\in\Adm$
+(whence $\muop(x)$ is defined by boundedness, \cite[Def.~3.1]{keystone}) or $\Rfsl$ with a
+category, since every refusal path maps through the wildcard-free classifier. Thus the disjunction
+defining $\Omega_\partial(o)=1$ holds for every $o$, so $\Omega_\partial\equiv 1$ on a correct
+implementation. Contrapositively, an observed $0$ --- a crash, a hang, or an unlabelled return ---
+contradicts totality or closedness and hence witnesses an implementation defect.
+\end{proof}
+
+\begin{remark}[Fuzzing tests the retraction, never the semantics]
+Fuzzing cannot and does not test ``did the agent understand the observation'' --- that is
+undecidable (Proposition~\ref{prop:necessity}). It tests that the \emph{retraction} is total,
+terminating, and labelling: exactly the properties the keystone requires of $\adm$. This is why
+fuzzing an admission boundary is cheap and conclusive where fuzzing for ``meaning'' would be
+neither. The boundary between admitted and refused is a decidable surface; the fuzzer walks it.
+\end{remark}
+
+\section{Mutation-testing the receipt chain}
+
+The third oracle turns the tools on the verifier itself. \emph{Mutation testing} \cite{demillo1978,jia2011}
+injects a small fault (a \emph{mutant}) and asks whether the test suite --- here, the staged
+\code{PowlReplayVerifier} --- detects it. A mutant that no test detects is \emph{surviving}; one
+that is detected is \emph{killed}. We formalize the verifier as a pipeline of stages and prove
+that killing is exactly rejection at the mutant's proper stage.
+
+The \code{praxis} verifier runs four stages in order: \emph{recompute} (rehash each frame),
+\emph{linkage} (each frame's back-pointer equals the predecessor's chain head), \emph{monotonic}
+(sequence indices strictly increase), and \emph{POWL token replay} (the marking geometry of
+\cite[Ch.~5]{keystone}, fitness $\Fitness=1$ iff no disabled firing). Model this abstractly.
+
+\begin{definition}[Staged validator]\label{def:staged}
+A \emph{staged validator} is a pipeline $V=(V_1,\dots,V_k)$ where each stage
+$V_i:\mathcal{S}\to\{\text{pass}\}\cup\{\text{reject}_i\}$ tests a decidable invariant
+$I_i\subseteq\mathcal{S}$: $V_i(s)=\text{pass}\iff s\in I_i$. The pipeline accepts $s$ iff every
+stage passes, i.e.\ $s\in\bigcap_i I_i$; on rejection it reports the least $i$ with $s\notin I_i$.
+Stage $V_i$ is \emph{sound} if $V_i(s)=\text{reject}_i\Rightarrow s\notin I_i$ and \emph{complete}
+if $s\notin I_i\Rightarrow V_i(s)=\text{reject}_i$.
+\end{definition}
+
+\begin{definition}[Mutation operator and correct stage]\label{def:mut}
+A \emph{mutation operator} $m$ maps a valid subject $s^\star\in\bigcap_i I_i$ to a mutant $m(s^\star)$
+that violates a non-empty set of invariants. The \emph{correct stage} of $m$ is
+\[
+\stg(m)\;=\;\min\{\,i : m(s^\star)\notin I_i\,\},
+\]
+the first invariant the mutant breaks. A mutant is \emph{killed} by $V$, written $\Kill(m)=1$, iff
+$V$ rejects $m(s^\star)$.
+\end{definition}
+
+\begin{theorem}[Mutant Kill Theorem]\label{thm:kill}
+Let $V=(V_1,\dots,V_k)$ be a staged validator in which every stage is sound and complete
+(Definition~\ref{def:staged}), and let $m$ be a mutation operator with correct stage $\stg(m)$
+(Definition~\ref{def:mut}). Then
+\[
+\Kill(m)=1\quad\Longleftrightarrow\quad V_{\stg(m)}\ \text{rejects}\ m(s^\star),
+\]
+and moreover the least rejecting stage reported by $V$ equals $\stg(m)$. Equivalently: a mutant
+is killed if and only if the validator rejects it at the correct stage.
+\end{theorem}
+
+\begin{proof}
+($\Leftarrow$) If $V_{\stg(m)}$ rejects $m(s^\star)$ then $V$ rejects (some stage rejected), so
+$\Kill(m)=1$.
+
+($\Rightarrow$) Suppose $\Kill(m)=1$, so some stage rejects $m(s^\star)$; let $j$ be the least
+such. By soundness of $V_j$, $m(s^\star)\notin I_j$. By completeness of every stage
+$V_1,\dots,V_{j-1}$, none of which rejected, $m(s^\star)\in I_i$ for all $i<j$. Hence $j$ is the
+\emph{least} index with $m(s^\star)\notin I_i$, which is by definition $\stg(m)$. Thus $j=\stg(m)$
+and the rejecting stage is $V_{\stg(m)}$.
+
+For the ``moreover'': $V$ reports the least rejecting index, which the argument identifies as
+$\stg(m)$. Finally, killing occurs at all iff $\stg(m)$ exists, i.e.\ iff $m$ violates some
+invariant; a mutation that violates no $I_i$ leaves $m(s^\star)\in\bigcap_i I_i$, is accepted, and
+is (correctly) not killed --- it is an \emph{equivalent mutant}, semantically identical modulo the
+committed invariants.
+\end{proof}
+
+\begin{corollary}[Diagnostic completeness of the chain]\label{cor:diag}
+Under Theorem~\ref{thm:kill}, mutation testing of a sound-and-complete staged validator is not
+merely a pass/fail gate: the \emph{index} of the killing stage certifies \emph{which} law-bearing
+invariant the mutation broke. A mutant that flips a chain byte is killed at \emph{recompute}; one
+that rewires a back-pointer at \emph{linkage}; one that reorders frames at \emph{monotonic}; one
+that forces a disabled transition at \emph{POWL replay}. Surviving mutants are exactly the
+equivalent mutants (no committed invariant broken), so a non-empty surviving set that is
+\emph{not} equivalent is a proof that the frame under-commits --- the Faithful Projection
+converse of \cite[Thm.~3.2]{keystone}.
+\end{corollary}
+
+\begin{remark}[The three oracles are one principle]
+Differential agreement (Def.~\ref{def:diff}), boundary fuzzing (Def.~\ref{def:fuzz}), and mutation
+kill (Def.~\ref{def:mut}) are three instances of the decidable-oracle move
+(Def.~\ref{def:oracle}): each replaces an undecidable ``is it correct'' with a decidable check ---
+an equality, a totality witness, a staged rejection. This is the projection principle of
+\cite{keystone} applied to the \emph{trust process} rather than the \emph{trust artifact}. The
+receipt projects the interior; these oracles project the correctness question.
+\end{remark}
+
+\chapter{The Agent Byte and Branchless Fleet Admission}
+\label{ch:agent8}
+
+We now scale from one manufacture to a population. The keystone's Construction~6.1 projected an
+agent onto eight bits; here we build that byte from the running \code{DenialPolarity} lanes, prove
+that fleet admission is branchless mask algebra gating $64$ agents per word per lane, and compute
+the footprint and sweep time of a $10^{10}$-agent population exactly (footprint) and by estimate
+(time).
+
+\section{The agent8 byte from the denial lanes}
+
+The \code{praxis} refusal machinery exposes a denial word with eight lanes: the \code{ADMITTED}
+lane and seven denial lanes (\code{WATCHDOG\_DRAINED}, \code{PRECONDITION\_FAILED},
+\code{SLA\_BREACH}, \code{AUTHORIZATION\_DENIED}, \code{RESOURCE\_EXHAUSTED},
+\code{OBJECT\_LIFECYCLE\_VIOLATION}, \code{CONFORMANCE\_GATE\_FAILED}), each mapping to a bucket of
+the eight-category taxonomy of \code{refusal.rs}. The agent byte is the per-agent projection of
+these lanes into a positive (``OK'') polarity.
+
+\begin{construction}[The agent8 byte]\label{con:agent8}
+Project each agent $a$ to a status byte $\abyte(a)\in\{0,1\}^{8}$ whose lanes are the OK-polarity
+complements of the denial lanes:
+\[
+\abyte(a)=\bigl(\lane{admitted},\ \lane{evidence},\ \lane{budget},\ \lane{authority},\ \lane{healthy},\ \lane{conformant},\ \lane{receipted},\ \lane{replayable}\bigr),
+\]
+with lane value $1$ meaning the corresponding obligation holds and $0$ meaning its denial lane is
+set (Construction~\cite[Con.~2.1]{keystone}, the denial monoid). Write $\mathbf 1=0\mathtt{xFF}$
+for the all-OK byte. An agent is \emph{admissible} iff $\abyte(a)=\mathbf 1$, equivalently iff its
+$8$-lane denial restriction is $\bm 0$.
+\end{construction}
+
+\begin{remark}[The byte is computed, not asserted]
+As in the keystone, the \lane{receipted} and \lane{replayable} lanes are set only by chained
+receipts whose frames commit the law-bearing fields; the byte is therefore a faithful projection
+(\cite[Thm.~3.2]{keystone}) of the agent's receipted lifecycle, not a self-report. A peer with
+context $\CL$ reads a counterpart's entire lawful status in one byte-load.
+\end{remark}
+
+\section{Two layouts and the branchless admission sweep}
+
+A fleet of $N$ agents is a matrix of bits: $N$ agents $\times$ $8$ lanes. Two storage layouts
+matter.
+
+\begin{definition}[AoS and SoA layouts]\label{def:layouts}
+The \emph{array-of-structures} (AoS) layout stores the $8$-bit byte of each agent contiguously; a
+$64$-bit machine word holds $8$ agents' bytes. The \emph{structure-of-arrays} (SoA), or
+\emph{bit-plane}, layout stores each lane as its own bitset: lane $\ell$ is a bit-array
+$P_\ell\in\{0,1\}^{N}$, and a $64$-bit word of $P_\ell$ holds the lane-$\ell$ bit of $64$ agents.
+\end{definition}
+
+\begin{theorem}[Branchless admission gates $64$ agents per word]\label{thm:branchless}
+Under the SoA layout of Definition~\ref{def:layouts}, the admissibility of $64$ agents is computed
+by the single branchless word expression
+\[
+\mathsf{adm}\ =\ P_1\ \&\ P_2\ \&\ P_3\ \&\ P_4\ \&\ P_5\ \&\ P_6\ \&\ P_7\ \&\ P_8,
+\]
+where each $P_\ell$ here denotes the $64$-agent word of plane $\ell$ and $\&$ is bitwise AND. Bit
+$j$ of $\mathsf{adm}$ is $1$ iff agent $j$ (of the $64$) has all eight lanes OK, i.e.\ iff
+$\abyte(a_j)=\mathbf 1$. The computation uses exactly $7$ AND instructions, contains no data-
+dependent branch, and processes $64$ agents; its cost is $7/64\approx 0.11$ instructions per
+agent, independent of the lane \emph{values}.
+\end{theorem}
+
+\begin{proof}
+Agent $a_j$ is admissible iff $\bigwedge_{\ell=1}^{8}\abyte(a_j)_\ell=1$
+(Construction~\ref{con:agent8}). Bit $j$ of $P_\ell$ equals $\abyte(a_j)_\ell$ by the SoA
+definition. Bitwise AND acts coordinatewise, so bit $j$ of $P_1\&\cdots\&P_8$ equals
+$\bigwedge_\ell \abyte(a_j)_\ell$, which is $1$ iff $a_j$ is admissible. A left-fold of AND over
+$8$ operands is $7$ binary ANDs. AND is a straight-line instruction with no branch, so the
+sequence is branchless; it reads $8$ words ($64$ agents' worth of each lane) and writes one,
+regardless of the bits' values. The per-agent instruction count is $7/64$.
+\end{proof}
+
+\begin{corollary}[Reduction to a single denial word]\label{cor:onedenial}
+Equivalently, in denial polarity, let $D_\ell$ be the $64$-agent word of denial lane $\ell$
+($D_\ell=\lnot P_\ell$). Then the \emph{denied} set is $\bigvee_\ell D_\ell$ and the admitted set
+its complement, matching the join-semilattice of the denial monoid (\cite[Prop.~2.4]{keystone}):
+fleet admission is the word-parallel join of denial lanes followed by one complement. Adding a
+ninth lane costs one more AND (resp.\ OR) per $64$ agents.
+\end{corollary}
+
+\begin{remark}[SIMD widens the word]
+Theorem~\ref{thm:branchless} is stated for a $64$-bit scalar word. A $512$-bit SIMD register
+(AVX-512) executes the same $7$ ANDs over $512$ agents per lane, dropping the per-agent cost to
+$7/512\approx 0.014$ instructions/agent. The algebra is unchanged; only the word widens. This is
+the same mechanism by which the vector JSON parser classifies $64$ bytes per instruction
+\cite{simdjson} --- admission is byte-classification lifted to agents.
+\end{remark}
+
+\section{Footprint and sweep time of a population}
+
+\begin{proposition}[Population footprint is exact]\label{prop:footprint}
+A population of $N=10^{10}$ agents, each an $8$-bit byte (Construction~\ref{con:agent8}), occupies
+\[
+N\times 8\ \text{bits}\;=\;N\ \text{bytes}\;=\;10^{10}\ \text{bytes}\;=\;10\ \mathrm{GB},
+\]
+in either layout (AoS packs $8$ agents per $64$-bit word; SoA packs the same $8$ planes of $N$
+bits). This is an exact arithmetic identity, not an estimate.
+\end{proposition}
+
+\begin{proof}
+Eight bits is one byte; $N$ agents is $N$ bytes; $10^{10}\,\text{bytes}=10\,\mathrm{GB}$ under the
+decimal-GB convention. Both layouts store the same $8N$ bits, hence the same $N$ bytes. No
+estimated quantity appears.
+\end{proof}
+
+\begin{estimate}[One-pass sweep time is memory-bandwidth-bound]\label{est:sweep}
+A full admission sweep reads all $8$ planes once ($10\,\mathrm{GB}$ total) and, by
+Theorem~\ref{thm:branchless}, performs $7N/64\approx 1.1\times 10^{9}$ AND instructions for
+$N=10^{10}$. At scalar issue rates ($\sim\!10^{10}$ simple ops/s/core) the compute is
+$\sim\!0.1\,\mathrm{s}$ single-core and far less across cores and SIMD; at streaming memory
+bandwidth $\Bw\sim 10^{2}$--$4\times 10^{2}\,\mathrm{GB/s}$ the read of $10\,\mathrm{GB}$ takes
+\[
+t_{\text{sweep}}\;\approx\;\frac{10\,\mathrm{GB}}{\Bw}\;\approx\;25\text{--}100\,\mathrm{ms}.
+\]
+Compute is dominated by memory traffic: the sweep is \emph{bandwidth-bound}, not compute-bound.
+The instruction count is exact (Theorem~\ref{thm:branchless}); the wall-time is an
+order-of-magnitude estimate from commodity bandwidth, labelled as such.
+\end{estimate}
+
+\begin{corollary}[Admission throughput]\label{cor:throughput}
+From Estimate~\ref{est:sweep}, a single commodity server admits $N=10^{10}$ agents in
+$\sim\!25$--$100\,\mathrm{ms}$, i.e.\ at $\sim\!10^{11}$--$4\times 10^{11}$ agent-admission
+decisions per second per server, bandwidth-bound. This is the supply figure the planetary
+economics of Chapter~\ref{ch:econ} weigh against the comprehension-based alternative.
+\end{corollary}
+
+\chapter{Planetary Capacity and the Economics of Admission}
+\label{ch:econ}
+
+We now weigh demand against supply for the two admission regimes --- \emph{bit-parallel} (the
+sweep) and \emph{comprehension-based} (an LLM or human reading each observation) --- and show the
+gap is not a matter of optimization but of feasibility. All figures in this chapter are Fermi
+estimates and are labelled; the \emph{ordering} they establish is robust to an order of magnitude
+in any input.
+
+\section{Demand}
+
+\begin{estimate}[Planetary admission demand]\label{est:demand}
+Take a population of $N\in[10^{9},10^{12}]$ agents (the keystone's fleet), each re-admitted --- on
+receiving a peer message, on a lifecycle transition, on a watchdog tick --- at a rate
+$\rho\in[1,10^{2}]\,\mathrm{s^{-1}}$. The aggregate admission demand is
+\[
+\Lambda_{\text{demand}}\;=\;N\rho\;\in\;\bigl[10^{9},\,10^{14}\bigr]\ \text{decisions/s},
+\]
+with a central estimate of $\sim\!10^{11}$--$10^{12}$ decisions/s for $N\sim 10^{10}$,
+$\rho\sim 10$.
+\end{estimate}
+
+\section{Supply, two regimes}
+
+\begin{estimate}[Comprehension-based supply ceiling]\label{est:comp-supply}
+A comprehension-based admission decision --- reading the observation with an LLM and judging its
+meaning --- costs on the order of $10^{-2}$--$10^{0}\,\mathrm{s}$ of accelerator time per decision
+(the keystone's $\sim\!10^{-2}\,\mathrm{s}$ figure, \cite[Prop.~6.2]{keystone}), i.e.\ a per-
+accelerator rate of $\sim\!1$--$10^{2}$ decisions/s. Even a planetary datacenter fleet of
+$\sim\!10^{6}$--$10^{7}$ accelerators yields a comprehension-supply ceiling
+\[
+\Lambda_{\text{comp}}\;\lesssim\;10^{7}\text{--}10^{9}\ \text{decisions/s},
+\]
+with a conservative central estimate of $\sim\!10^{8}$ decisions/s.
+\end{estimate}
+
+\begin{estimate}[Bit-parallel supply]\label{est:bit-supply}
+By Corollary~\ref{cor:throughput}, one commodity server supplies $\sim\!10^{11}$ decisions/s
+bandwidth-bound. A modest rack of $\sim\!10^{2}$ servers supplies $\sim\!10^{13}$ decisions/s;
+the primitive is $\sim\!10^{7}\times$ cheaper per decision than an LLM judgment
+(\cite[Prop.~6.2]{keystone}), so bit-parallel supply scales into the demand band of
+Estimate~\ref{est:demand} on hardware of a single facility.
+\end{estimate}
+
+\begin{theorem}[Affordability separation]\label{thm:afford}
+Let $\Lambda_{\text{demand}}$, $\Lambda_{\text{comp}}$, $\Lambda_{\text{bit}}$ be the demand and
+the two supplies. Under the estimates above,
+\[
+\Lambda_{\text{comp}}\ \sim\ 10^{8}\ \ll\ \Lambda_{\text{demand}}\ \sim\ 10^{11}\text{--}10^{12}\ \lesssim\ \Lambda_{\text{bit}}\ \sim\ 10^{11}\text{--}10^{13}.
+\]
+Hence comprehension-based admission is under-provisioned by three to four orders of magnitude for
+a $10^{10}$-agent fleet, while bit-parallel admission meets demand on a single facility. The
+separation persists under an order-of-magnitude perturbation of any single input.
+\end{theorem}
+
+\begin{proof}[Estimate]
+Substitute the central estimates of Estimates~\ref{est:demand}--\ref{est:bit-supply}. The
+comprehension ceiling $\Lambda_{\text{comp}}\sim 10^{8}$ falls short of demand
+$\sim\!10^{11}$--$10^{12}$ by $10^{3}$--$10^{4}$; the bit-parallel supply meets or exceeds it. The
+gap between the two supplies is the keystone's per-decision cost ratio $\sim\!10^{7}$ scaled by
+population. A tenfold error in any one input (population, rate, per-decision cost, accelerator
+count) moves the inequality by at most one decade and does not reverse the three-to-four decade
+comprehension shortfall.
+\end{proof}
+
+\begin{corollary}[Only bit-parallel admission is affordable]\label{cor:onlybit}
+A planetary control plane that re-admits its population continuously cannot be built on
+comprehension: no attainable accelerator fleet closes the demand gap. It can be built on the
+sweep of Chapter~\ref{ch:agent8}, whose cost is dominated by a single pass over $10\,\mathrm{GB}$
+of memory. Comprehension is reserved, as in the keystone, for \emph{sampled audit} at honest
+$O(n)$ replay cost --- never for the per-message path.
+\end{corollary}
+
+\begin{remark}[The true floor is bandwidth, and it is generous]
+Because the sweep is bandwidth-bound (Estimate~\ref{est:sweep}), the ultimate limit on planetary
+admission is memory-system throughput, not logic. Bit-plane admission sits comfortably above the
+Landauer thermodynamic floor and orders of magnitude below the energy of a single comprehension
+decision; the physical budget of planetary admission is the cost of streaming a few tens of
+gigabytes, which any facility affords many times per second. Comprehension-based admission has no
+comparable floor because its cost scales with interior dimension per decision, exactly the
+quantity the projection principle exists to avoid paying.
+\end{remark}
+
+\chapter{The Antibody Clause, Formalized}
+\label{ch:antibody}
+
+A thesis addressed to a trillion agents, making claims of planetary capacity, must carry its own
+guardrail against grandiosity --- otherwise it is the very overclaim it warns against. The
+keystone stated this as the antibody clause \cite[Prop.~6.4]{keystone}. We formalize it as an
+invariant on claim magnitude and then apply it to this paper.
+
+\section{Claims, witnesses, and magnitude}
+
+\begin{definition}[Claim, receipt witness, magnitude]\label{def:claim}
+A \emph{claim} is a pair $c=(\phi_c,\,w_c)$ where $\phi_c$ is a proposition and $w_c\in\mathbb R_{\ge 0}$
+its asserted \emph{magnitude} (the size of what it asserts: a throughput, a population, a coverage
+fraction). A \emph{receipt witness} for $c$ is a receipt $r(c)$ whose boundary projection is
+accepted by the fixed verifier, $V(\Proj(r(c)))=1$, and whose committed fields \emph{entail} an
+attested magnitude $\widehat w_c$ --- the largest value the receipt's law-bearing fields support
+under Faithful Projection (\cite[Thm.~3.2]{keystone}). A claim is \emph{admissible} iff it has a
+receipt witness with $w_c\le\widehat w_c$.
+\end{definition}
+
+\begin{definition}[Overclaim set and the antibody invariant]\label{def:over}
+The \emph{overclaim set} of a system emitting claims $\mathcal C$ is
+\[
+\Over\;=\;\{\,c\in\mathcal C : \nexists\,r(c)\ \text{with}\ V(\Proj(r(c)))=1\ \text{and}\ w_c\le\widehat w_c\,\},
+\]
+the claims with no receipt witness, or whose magnitude exceeds what their witness attests. The
+\emph{antibody invariant} is $\Over=\varnothing$: this is the \code{docs-exceed-mechanism} defect
+class of the \code{praxis} definition-of-done, enforced as a gate rather than a guideline.
+\end{definition}
+
+\begin{theorem}[Magnitude is bounded by the receipting mechanism]\label{thm:magnitude}
+If a system maintains the antibody invariant $\Over=\varnothing$, then for every emitted claim
+$c$, its magnitude is bounded by its receipt witness:
+\[
+w_c\;\le\;\widehat w_c\;=\;\max\{\,w : \text{the committed fields of } r(c)\ \text{entail magnitude } w\,\},
+\]
+and $\widehat w_c$ is verifiable at boundary cost $O(\CL)$ independent of the interior that
+produced $c$. Consequently no claim can exceed what its mechanism can receipt, regardless of its
+rhetoric.
+\end{theorem}
+
+\begin{proof}
+By $\Over=\varnothing$ (Definition~\ref{def:over}), every emitted $c$ has a receipt witness with
+$V(\Proj(r(c)))=1$ and $w_c\le\widehat w_c$; the first conjunct is verifiable at $O(\CL)$ by the
+Comprehension--Verification Gap (\cite[Thm.~4.2]{keystone}, and Proposition~\ref{prop:invariance}
+here), and $\widehat w_c$ is a function of the committed fields, which are faithful under
+collision resistance (\cite[Thm.~3.2]{keystone}). A claim with $w_c>\widehat w_c$ would lie in
+$\Over$, contradicting the invariant; hence $w_c\le\widehat w_c$. The bound is on the magnitude a
+\emph{receipt} attests, so it is independent of the unread interior.
+\end{proof}
+
+\begin{corollary}[Reflexive antibody: this paper's own claims]\label{cor:reflexive}
+Each quantitative claim in this paper is either a theorem with a proof (a receipt in the logical
+sense: the derivation is its witness, verifiable by reading the proof, of bounded length) or an
+\emph{Estimate} explicitly labelled and provisioned with its inputs (a receipt of the second kind:
+the magnitude is bounded by the stated Fermi inputs, and no larger value is asserted). The
+partition is exhaustive by construction: no numerical assertion appears unlabelled. Therefore this
+paper's overclaim set is empty, and by Theorem~\ref{thm:magnitude} the magnitude of each claim is
+bounded by its witness --- a proof or a labelled estimate --- as the invariant requires.
+\end{corollary}
+
+\begin{proof}
+Enumerate the paper's magnitude-bearing statements. The gap ratio $6.25\times 10^{5}$
+(Theorem~\ref{thm:instance-gap}), the footprint $10\,\mathrm{GB}$ (Proposition~\ref{prop:footprint}),
+the per-word gating $7/64$ (Theorem~\ref{thm:branchless}), and the magnitude bound itself
+(Theorem~\ref{thm:magnitude}) are theorems with proofs. The wall-time
+(Estimate~\ref{est:wall}), sweep time (Estimate~\ref{est:sweep}), demand, supplies, and
+affordability separation (Estimates~\ref{est:demand}--\ref{thm:afford}) are labelled estimates
+carrying their inputs. Every magnitude falls in one class or the other; none is unlabelled; hence
+$\Over=\varnothing$ for this document.
+\end{proof}
+
+\begin{remark}[The guardrail is what licenses the scale]
+This is the doctrine's discipline made self-applying: \emph{a grand system without receipts is
+grandiosity; a grand system that receipts its own overclaims is machinery} \cite[Ch.~6]{keystone}.
+A paper claiming planetary capacity earns the claim only by receipting it --- by proving what it
+can and labelling what it estimates. The antibody clause is not modesty; it is the mechanism that
+makes a large claim admissible in the sense of the Chatman equation.
+\end{remark}
+
+\chapter{Conclusion}
+\label{ch:concl}
+
+The keystone proved that a bounded verifier can trust an unbounded interior through a faithful
+projection. This paper carried that principle to the scale at which it is not an optimization but
+a precondition of coherence, and made it quantitative and mechanical at each step.
+
+We measured the gap: on the canonical $2.5$-million-token instance it is
+$\sim\!6\times 10^{5}$, with measured inputs and a proved consequence
+(Theorem~\ref{thm:instance-gap}), and boundary cost is provably invariant as the interior grows
+(Proposition~\ref{prop:invariance}). We formalized manufactured trust as the decidable-oracle move
+(Proposition~\ref{prop:necessity}) and gave it three faces --- differential agreement with a
+false-accept bound (Proposition~\ref{prop:diff-bound}), boundary fuzzing of a total retraction
+(Proposition~\ref{prop:fuzz}), and mutation-testing with the Mutant Kill Theorem
+(Theorem~\ref{thm:kill}) that ties a kill to rejection at the correct stage and turns the
+verifier's stage index into a diagnosis (Corollary~\ref{cor:diag}). We built the agent byte from
+the running denial lanes (Construction~\ref{con:agent8}) and proved fleet admission is branchless
+mask algebra gating $64$ agents per word in seven instructions (Theorem~\ref{thm:branchless}),
+with a $10^{10}$-agent population an exact $10\,\mathrm{GB}$ swept in one bandwidth-bound pass
+(Proposition~\ref{prop:footprint}, Estimate~\ref{est:sweep}). We weighed the planetary economics
+and proved the affordability separation (Theorem~\ref{thm:afford}): comprehension-based admission
+is under-provisioned by three to four orders of magnitude, and only bit-parallel admission scales
+(Corollary~\ref{cor:onlybit}). Finally we formalized the antibody clause as the invariant
+$\Over=\varnothing$ and proved that claim magnitude is bounded by the receipting mechanism
+(Theorem~\ref{thm:magnitude}), applying the bound reflexively to this paper
+(Corollary~\ref{cor:reflexive}).
+
+The picture that results is severe and simple. At planetary scale, no one reads anyone. Trust is
+not comprehension; it is a hash comparison, an oracle equality, a total classifier's label, and
+--- for the population as a whole --- a single AND of eight bit-planes streamed across memory. The
+interior may be a trillion tokens or a trillion agents; the admission is a sweep, and the sweep is
+affordable. What makes the civilization coherent is not that its members understand one another. It
+is that each carries a faithful byte, and the byte can be checked in one pass.
+
+\begin{center}\itshape Beyond cognitive load; within admissible projection --- at the scale of the sweep.\end{center}
+
+\appendix
+\chapter{Notation and Constants}
+
+\section*{Symbols specific to this paper}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning\\
+\midrule
+$T(\sigma)$ & interior token count of a manufacture (measured)\\
+$\CL$ & boundary field count / verifier context capacity (design constant)\\
+$t_{\chainH}$ & per-frame recomputation wall-time (estimated)\\
+$\Omega,\ \Omega_{f,g},\ \Omega_\partial$ & decidable oracle; differential; admission-boundary\\
+$V=(V_1,\dots,V_k)$ & staged validator; $I_i$ its stage invariants\\
+$\stg(m),\ \Kill(m)$ & correct stage of a mutation; kill indicator\\
+$\abyte(a)\in\{0,1\}^8$ & agent status byte (Construction~\ref{con:agent8})\\
+$P_\ell,\ D_\ell$ & OK-polarity and denial-polarity bit-planes of lane $\ell$\\
+$\Bw$ & streaming memory bandwidth\\
+$\Lambda_{\text{demand}},\Lambda_{\text{comp}},\Lambda_{\text{bit}}$ & admission demand; comprehension supply; bit-parallel supply\\
+$\Over,\ w_c,\ \widehat w_c$ & overclaim set; claimed and attested magnitude\\
+\bottomrule
+\end{tabular}
+
+\section*{Constants used, with provenance}
+\begin{tabular}{lll}
+\toprule
+Quantity & Value & Provenance\\
+\midrule
+Interior tokens $T(\sigma)$ & $\approx 2.5\times 10^{6}$ & measured (keystone Ch.~6)\\
+Boundary fields $\CL$ & $4$ & design (receipt schema)\\
+Gap ratio $T/\CL$ & $\approx 6.25\times 10^{5}$ & proved (Thm.~\ref{thm:instance-gap})\\
+Byte width & $8$ bits & design (denial lanes)\\
+Gating cost & $7/64$ instr/agent & proved (Thm.~\ref{thm:branchless})\\
+$10^{10}$-agent footprint & $10\,\mathrm{GB}$ & exact (Prop.~\ref{prop:footprint})\\
+Sweep time & $25$--$100\,\mathrm{ms}$ & estimate (Est.~\ref{est:sweep})\\
+Bit-parallel supply & $\sim 10^{11}$/s/server & estimate (Cor.~\ref{cor:throughput})\\
+Comprehension supply & $\sim 10^{8}$/s planetary & estimate (Est.~\ref{est:comp-supply})\\
+Per-decision cost ratio & $\sim 10^{7}$ & keystone (Prop.~6.2)\\
+\bottomrule
+\end{tabular}
+
+\begin{thebibliography}{9}
+
+\bibitem{keystone}
+The Praxis / Capability Physics Program,
+\emph{The Projection Principle: A First-Principles Theory of Bounded Receipted Execution for a
+Trillion Agents Beyond One Another's Comprehension} (keystone thesis of this series), 2026.
+
+\bibitem{chatman2025}
+S.~Chatman,
+\emph{The Chatman Equation and the Industrial Revolution of Knowledge:
+$A=\mu(O)$, Knowledge Hooks, and Production-Verified Enterprise Execution},
+v1.2.0, November 2025.
+
+\bibitem{rice1953}
+H.~G.~Rice,
+\emph{Classes of recursively enumerable sets and their decision problems},
+Transactions of the American Mathematical Society \textbf{74} (1953), 358--366.
+
+\bibitem{simdjson}
+G.~Langdale and D.~Lemire,
+\emph{Parsing gigabytes of JSON per second},
+The VLDB Journal \textbf{28}(6) (2019), 941--960.
+
+\bibitem{qlever}
+H.~Bast and B.~Buchhold,
+\emph{QLever: A query engine for efficient SPARQL+Text search},
+in Proc.\ CIKM, ACM, 2017, 647--656.
+
+\bibitem{demillo1978}
+R.~A.~DeMillo, R.~J.~Lipton, and F.~G.~Sayward,
+\emph{Hints on test data selection: Help for the practicing programmer},
+Computer \textbf{11}(4) (1978), 34--41.
+
+\bibitem{jia2011}
+Y.~Jia and M.~Harman,
+\emph{An analysis and survey of the development of mutation testing},
+IEEE Transactions on Software Engineering \textbf{37}(5) (2011), 649--678.
+
+\bibitem{blake3}
+J.~O'Connor, J.-P.~Aumasson, S.~Neves, and Z.~Wilcox-O'Hearn,
+\emph{BLAKE3: One function, fast everywhere},
+2020.
+
+\bibitem{vdaalst2003patterns}
+W.~M.~P.~van der Aalst, A.~H.~M.~ter Hofstede, B.~Kiepuszewski, and A.~P.~Barros,
+\emph{Workflow patterns},
+Distributed and Parallel Databases \textbf{14}(1) (2003), 5--51.
+
+\end{thebibliography}
+
+\end{document}

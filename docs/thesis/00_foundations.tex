@@ -1,0 +1,908 @@
+\documentclass[11pt,oneside]{book}
+
+\usepackage[margin=1.15in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+
+% ---- theorem environments (identical to the keystone, for series coherence) ----
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{axiom}{Axiom}[chapter]
+\newtheorem{construction}{Construction}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+% ---- notation macros (shared with projection_thesis.tex) ----
+\newcommand{\Obs}{\mathcal{O}}                 % raw observation space
+\newcommand{\Adm}{\mathcal{O}^{*}}             % admitted observation space
+\newcommand{\Act}{\mathcal{A}}                 % action / artifact space
+\newcommand{\Rec}{\mathcal{R}}                 % receipt space
+\newcommand{\Proj}{\pi}                        % projection
+\newcommand{\muop}{\mu}                        % manufacturing morphism
+\newcommand{\adm}{\alpha}                      % admission map
+\newcommand{\chainH}{\mathsf{H}}               % hash
+\newcommand{\Rfsl}{\bot}                        % refusal (NOT \Ref: reserved by hyperref)
+\newcommand{\CL}{\kappa}                       % cognitive-load capacity
+\newcommand{\Fitness}{\varphi}
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\id}{id}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator*{\argmax}{arg\,max}
+% ---- foundations-local macros ----
+\newcommand{\Raw}{\mathsf{Raw}}
+\newcommand{\Val}{\mathsf{Validated}}
+\newcommand{\Admd}{\mathsf{Admitted}}
+\newcommand{\Rcpt}{\mathsf{Receipted}}
+\newcommand{\Life}{\mathbf{Life}}
+\newcommand{\BRCE}{\textsc{brce}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{\bfseries The Chatman Equation:\\[0.4em]
+\large Foundations of Bounded Receipted Execution}
+\author{The Chatman Equation Thesis Program \\ (Praxis / Capability Physics)}
+\date{Genesis --- Foundations, Paper 00}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+This is the front door of the Chatman Equation thesis series: the paper that fixes
+notation, states the axioms, and proves the load-bearing structural results on which the
+four pillar papers build. We take as our object of study the governing identity
+$\Act=\muop(\Adm)$ --- an actuated artifact is the deterministic image, under a
+manufacturing morphism $\muop$, of an \emph{admitted} observation --- and we define, from
+first principles, all five objects it relates: the raw observation space $\Obs$, the
+admitted sub-space $\Adm$, the manufacturing morphism $\muop$, the artifact space $\Act$,
+and the receipt space $\Rec$. We prove a specialization of Rice's theorem to observations
+and derive from it the central design consequence: admission cannot be a semantic
+decision and \emph{must} be a computable retraction onto a decidable sub-language, with
+refusal as a first-class value rather than an exception. We then formalize the object
+lifecycle $\Raw\to\Val\to\Admd\to\Rcpt$ as a thin category and prove that
+``an illegal lifecycle transition is a type error'' is a theorem about which morphisms are
+inhabited: the admissible sub-category is the free category on a linear quiver, and no
+term of the host type system inhabits any morphism outside it. We give the enforced form
+of the equation, the \emph{Bounded Receipted Chatman Equation} (\BRCE), as a conjunction
+of four invariants, and prove a conservation statement: every actuated artifact is the
+image of exactly one admitted observation and carries exactly one receipt-chain position.
+Every abstract claim is anchored to running code in the \code{praxis} repository --- the
+\code{LawObject} typestate, the eight-category \code{refusal} taxonomy, the BLAKE3
+\code{OcelCausalFrame} chain, the \code{PowlReplayVerifier} fitness gate, the
+\code{bcinr-pddl} planner, and the \code{agent8} byte --- so that a reader can trace each
+theorem to the line that enforces it. The paper closes with a fully worked example, a
+contract-claim law object traversing $\Raw\to\Rcpt$ with its obligations, andon halt, and
+chain hash, and with a map of the series that forward-references the four pillars and the
+prior published work \cite{chatman2025}.
+
+\tableofcontents
+
+\mainmatter
+
+\chapter{Introduction: One Equation, Five Objects}
+\label{ch:intro}
+
+\section{The claim in one line}
+
+The prior published paper in this program \cite{chatman2025} advanced a single governing
+law, the \emph{Chatman equation}
+\begin{equation}\label{eq:prior}
+\Act \;=\; \muop(\Obs),
+\end{equation}
+read there as: an action state $\Act$ is the deterministic image, under a measurement
+function $\muop$, of a typed knowledge graph $\Obs$. That paper demonstrated the law at
+enterprise scale --- knowledge hooks over RDF/SHACL, the KNHK hot-path executor, the
+\code{ggen} bounded projection, and Lockchain provenance --- and reported operational
+constants (sub-two-nanosecond rule checks, full coverage of the forty-three workflow
+patterns of van der Aalst et al.\ \cite{vdaalst2003patterns}, cryptographically
+receipted runs). It established that deterministic projection of typed knowledge into
+verifiable action is not a simulation but a deployed reality.
+
+This paper does not restate that result; it \emph{grounds} it. Equation~\eqref{eq:prior}
+silently assumes its input is already typed --- already lawful. The engineering that makes
+$\Obs$ typed, that decides which raw records may enter $\muop$ at all, and that emits the
+receipts by which a bounded human trusts the output, is exactly the machinery this series
+formalizes. We therefore refine \eqref{eq:prior} by \emph{factoring} the projection into
+an admission stage and a manufacturing stage, exposing the admitted sub-space $\Adm$ and
+the receipt space $\Rec$ that \eqref{eq:prior} left implicit. The refined identity, which
+governs the whole series, is
+\begin{equation}\label{eq:chatman}
+\boxed{\;\Act \;=\; \muop(\Adm)\;}
+\qquad\text{with}\qquad
+\Adm=\im(\adm),\quad \adm:\Obs\rightharpoonup\Adm\cup\{\Rfsl\}.
+\end{equation}
+In words: nothing is manufactured from a raw observation; only from an \emph{admitted}
+one; and every manufacture leaves a receipt. The five objects of the equation are named
+once, here, and used unchanged throughout the series.
+
+\begin{definition}[The five objects]\label{def:five}
+The Chatman equation \eqref{eq:chatman} relates five objects.
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+  \item $\Obs$, the \emph{observation space}: arbitrary finite records --- logs, model
+        outputs, sensor frames, human claims, tool responses --- carrying no decidable
+        semantics (Axiom~\ref{ax:obs}).
+  \item $\Adm=\Obs^{*}\subseteq\Obs$, the \emph{admitted space}: the decidable
+        sub-collection onto which a finite battery of obligations is computable, together
+        with the distinguished refusal $\Rfsl$ (Definition~\ref{def:adm}).
+  \item $\muop:\Adm\to\Act$, the \emph{manufacturing morphism}: a deterministic, bounded,
+        computable map from admitted observations to artifacts
+        (Definition~\ref{def:mu}).
+  \item $\Act$, the \emph{artifact/action space}: the actuated outputs, exhausted by
+        $\im\muop$ (Definition~\ref{def:mu}).
+  \item $\Rec$, the \emph{receipt space}: bounded, collision-committed projections of the
+        execution that produced an artifact, sized for a human verifier
+        (Definition~\ref{def:receipt}).
+\end{enumerate}
+\end{definition}
+
+\begin{remark}[Relation to the prior $\muop$]
+The measurement function of \eqref{eq:prior} is the composite of this paper's two stages:
+$\muop_{\text{prior}} = \muop\circ\adm$, with $\adm$ the admission of
+Definition~\ref{def:adm} and $\muop$ the manufacture of Definition~\ref{def:mu}. Nothing
+in \cite{chatman2025} is retracted; the ingress guards $H$ of that paper \emph{are} the
+obligation battery, and its cryptographic receipts \emph{are} the objects of $\Rec$. This
+series simply refuses to leave $\adm$ and $\Rec$ implicit.
+\end{remark}
+
+\section{Why comprehension is the wrong standard, in one paragraph}
+
+The systems this program serves exceed any human's working-memory capacity, a fixed small
+integer we write $\CL$ (canonically $\CL\approx4$ following Miller and Cowan
+\cite{miller1956,cowan2001}). A system whose faithful description needs more than $\CL$
+chunks cannot be trusted by comprehension. The response of this series is not to shrink the
+system but to insert, between it and the human, a map of codomain dimension $\le\CL$ whose
+fidelity is guaranteed by mechanism rather than by the reader --- the receipt. That is the
+subject of the keystone paper \emph{The Projection Principle}; here we build the algebraic
+and type-theoretic floor beneath it.
+
+\section{What this paper proves}
+
+Chapter~\ref{ch:oar} axiomatizes observation and proves the Rice specialization that forces
+admission to be a retraction, not a decision; it defines the admission map, refusal, and
+the denial monoid, and states the totality property of the eight-category refusal taxonomy.
+Chapter~\ref{ch:life} builds the lifecycle typestate category and proves the
+illegal-transition-is-a-type-error theorem. Chapter~\ref{ch:mu} defines the manufacturing
+morphism and the receipt, states the Chatman equation as a factoring, and gives the
+enforced form \BRCE\ with its conservation corollary. Chapter~\ref{ch:example} works a
+contract-claim law object end to end. Chapter~\ref{ch:map} is the map of the series.
+Throughout, a claim is a definition, a theorem with proof, or a citation; there is no
+fourth kind of sentence.
+
+\chapter{Observation, Admission, and Refusal}
+\label{ch:oar}
+
+\section{The observation axiom and the Rice quarantine}
+
+We begin with the least structure that makes ``lawful action'' expressible.
+
+\begin{axiom}[Observation]\label{ax:obs}
+There is a set $\Obs$, the observation space, whose elements are arbitrary finite records.
+$\Obs$ carries no decidable semantics: the predicate ``does this observation mean what it
+purports to mean'' is not assumed computable. Concretely, an element of $\Obs$ is any
+finite byte string a caller may submit; in the \code{praxis} implementation it is the JSON
+payload handed to the \code{law judge} verb, before any obligation has been evaluated.
+\end{axiom}
+
+Axiom~\ref{ax:obs} is not a limitation we impose; it is forced by a classical result, which
+we specialize to observations.
+
+\begin{theorem}[Rice, specialized to observations]\label{thm:rice}
+Let $\mathcal{U}$ be a universal model of computation and let observations in $\Obs$ range
+over finite encodings that may denote arbitrary $\mathcal{U}$-programs (equivalently, the
+partial functions they compute). Let $P$ be any non-trivial semantic property of those
+denoted functions --- non-trivial meaning some observation has it and some does not, and
+$P$ depends only on the denoted function, not on the encoding. Then the set
+$\{o\in\Obs : P(o)\}$ is undecidable.
+\end{theorem}
+
+\begin{proof}
+This is Rice's theorem \cite{rice1953} instantiated at $\Obs$. Rice's theorem states that
+every non-trivial property of the partial function computed by a Turing machine is
+undecidable. Since observations are unrestricted finite encodings, the map
+$e:\Obs\to\{\text{$\mathcal U$-programs}\}$ sending an observation to the program it denotes
+is onto a set closed under the standard constructions, and $P$ factors through the denoted
+function by hypothesis. Suppose a decider $D$ existed for $\{o:P(o)\}$. Fix observations
+$o_{+}$ with $P$ and $o_{-}$ without (non-triviality). Given any machine $M$ and input $x$,
+build the observation $o_{M,x}$ denoting the program ``run $M(x)$; if it halts, behave as
+$e(o_{+})$; else diverge.'' Then $o_{M,x}$ denotes a function with property $P$ iff $M(x)$
+halts, so $D(o_{M,x})$ decides the halting problem, a contradiction. Hence no such $D$
+exists. \end{proof}
+
+\begin{corollary}[Admission cannot be semantic decision]\label{cor:noadmit}
+There is no algorithm that admits an observation $o\in\Obs$ by deciding a non-trivial
+semantic property of what $o$ denotes. Any total, terminating admission procedure must
+therefore decide a \emph{syntactic}, decidable surrogate --- it retracts $\Obs$ onto a
+decidable sub-language rather than deciding meaning.
+\end{corollary}
+
+\begin{proof}
+Immediate from Theorem~\ref{thm:rice}: a total admission that decided a non-trivial
+semantic property would be a decider for an undecidable set. A total terminating procedure
+exists only for decidable predicates; the largest such structure available is a decidable
+sub-collection, onto which admission maps. \end{proof}
+
+Corollary~\ref{cor:noadmit} is the reason the entire apparatus exists. One does not admit
+an observation by understanding it. One admits it by \emph{retracting} it onto a
+sub-language --- the \emph{Rice quarantine} --- on which the properties of interest are, by
+construction, decidable.
+
+\section{The admission map and refusal as data}
+
+\begin{definition}[Admitted space, obligations, admission]\label{def:adm}
+Fix a decidable sub-collection $\Adm\subseteq\Obs$ and a finite battery of \emph{obligations}
+$g_{1},\dots,g_{m}:\Obs\to\{0,1\}$, each total and computable. The \emph{admission map} is
+the partial retraction
+\[
+\adm:\Obs\rightharpoonup\Adm\cup\{\Rfsl\},\qquad
+\adm(o)=
+\begin{cases}
+\rho(o)\in\Adm, & \text{if } \bigwedge_{i=1}^{m} g_{i}(o)=1,\\[2pt]
+\Rfsl, & \text{otherwise,}
+\end{cases}
+\]
+where $\rho:\Obs\rightharpoonup\Adm$ is a computable normalization fixing $\Adm$ pointwise
+($\rho|_{\Adm}=\id_{\Adm}$) and $\Rfsl$ is the distinguished \emph{refusal}. Admission is
+idempotent on its image: $\adm\circ\adm=\adm$.
+\end{definition}
+
+\begin{proposition}[Admission is a retraction]\label{prop:retract}
+$\adm$ restricted to $\Adm$ is the identity, and $\adm\circ\adm=\adm$ as partial maps.
+Hence $\Adm$ is a retract of $\dom(\adm)$, and re-admitting an already-admitted observation
+neither changes it nor can newly refuse it.
+\end{proposition}
+
+\begin{proof}
+For $x\in\Adm$ every $g_i(x)=1$ (obligations are decidable on the admitted language by
+construction), so $\adm(x)=\rho(x)=x$. Thus $\adm|_{\Adm}=\id_{\Adm}$. For general
+$o\in\dom(\adm)$ with $\adm(o)\neq\Rfsl$ we have $\adm(o)\in\Adm$, whence
+$\adm(\adm(o))=\adm(o)$; and $\adm(\Rfsl)=\Rfsl$ by convention. Idempotence follows on all
+of $\dom(\adm)$. \end{proof}
+
+\begin{remark}[Refusal is a value, not an exception]
+$\Rfsl$ is a first-class output of a correctly functioning admission: the system computed
+that an obligation failed and recorded \emph{which}. In \code{praxis} this is the type
+\code{Andon}, whose \code{Halted} variant carries both the unmet obligations and their
+refusal classification:
+\[
+\code{Andon::Halted\{ unmet: Vec<Obligation>,\ refusals: Vec<RefusalScenario>,\ at: u64 \}}.
+\]
+A refusal is data with a timestamp and a cause, not a thrown error. This is the formal
+content of the program's slogan \emph{refusal is data}.
+\end{remark}
+
+The obligations are themselves first-class, hashable values, not opaque closures. The
+\code{praxis} \code{Obligation} enum realizes exactly three decidable kinds, matching the
+three ways an observation can fail to be admitted:
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\code{Obligation} variant & meaning & $g_i$ decides \\
+\midrule
+\code{Precondition\{predicate\_id, params\_hash\}} & a named predicate must hold & predicate membership \\
+\code{BlockingConstraint\{reason\}} & a hard block until lifted & a flag \\
+\code{EvidenceRequired\{evidence\_type\}} & external evidence must be present & presence of a typed record \\
+\bottomrule
+\end{tabular}
+\end{center}
+Each is a syntactic, terminating check --- a legitimate $g_i$ under
+Corollary~\ref{cor:noadmit} --- never a semantic decision about what the payload
+``really means.''
+
+\section{The denial monoid and the eight-category taxonomy}
+
+Obligation checking composes, and the composition carries the algebra used throughout the
+series' geometry.
+
+\begin{construction}[Denial monoid]\label{con:denial}
+Let $D=(\{0,1\}^{n},\lor,\bm 0)$ be the commutative idempotent monoid of \emph{denial
+words}: $n$ independent lanes, componentwise OR, identity $\bm 0$ (``admitted, all lanes
+clear''). Each refusal cause contributes a lane map $d_i:\Obs\to\{0,1\}^{n}$ with
+$d_i(o)=\bm0\iff$ cause $i$ is absent. The \emph{total denial} of an observation is
+$d(o)=\bigvee_{i} d_i(o)$, and $\adm(o)\neq\Rfsl\iff d(o)=\bm0$.
+\end{construction}
+
+\begin{proposition}[$D$ is a bounded join-semilattice; denial is monotone]\label{prop:semilattice}
+$(\{0,1\}^{n},\lor,\bm0)$ is a commutative idempotent monoid --- the join-semilattice of
+the Boolean lattice $2^{[n]}$ with bottom $\bm0$. Consequently adding obligations can only
+enlarge the denial (turn admits into refusals), never the reverse.
+\end{proposition}
+
+\begin{proof}
+Idempotence $x\lor x=x$, commutativity, and associativity hold coordinatewise; a product of
+semilattices is a semilattice, with $\bm 0$ the identity. For monotonicity, if
+$G'\supseteq G$ are cause sets then $d_{G'}(o)=d_G(o)\lor\bigvee_{i\in G'\setminus G}d_i(o)
+\succeq d_G(o)$ coordinatewise, and $d(o)=\bm0$ is the unique minimum, so
+$\{o:d_{G'}(o)=\bm0\}\subseteq\{o:d_{G}(o)=\bm0\}$. \end{proof}
+
+This construction is realized in code. The \code{bcinr\_powl\_receipt::denial::DenialPolarity}
+type is a newtype over \code{u64} with a zero element \code{ADMITTED} and seven named
+non-zero lanes; its \code{compose} operation is bitwise OR; and \code{praxis}'s
+\code{compose\_denials} folds a set of refusal scenarios through \code{compose} starting from
+\code{ADMITTED} --- literally the monoid fold $\bigvee_i d_i$ with the identity as the empty
+product. A refusal \emph{category} is then the coarse classification of a lane.
+
+\begin{definition}[Refusal taxonomy]\label{def:taxonomy}
+A \emph{refusal taxonomy} is a pair $(S,\;\text{cat})$ where $S$ is a finite set of concrete
+refusal scenarios and $\text{cat}:S\to C$ is a total map onto a fixed finite set $C$ of
+categories. In \code{praxis}, $C$ is the eight-element set
+\[
+C=\{\textsf{Identity},\textsf{Capacity},\textsf{Topology},\textsf{Temporal},
+     \textsf{Lifecycle},\textsf{Authorization},\textsf{Prerequisites},\textsf{Reserved}\},
+\]
+$S$ is the \code{RefusalScenario} enum (obligation-driven halts, the seven
+\code{DenialPolarity} lanes, and the prolog8 kernel / andon-ring denials), and
+$\text{cat}=\code{RefusalScenario::category}$.
+\end{definition}
+
+\begin{proposition}[Totality is mechanized]\label{prop:total}
+The category map $\text{cat}:S\to C$ is total, and its totality is enforced by the host type
+system: \code{RefusalScenario::category} is a \code{match} with no wildcard arm, so a new
+scenario variant added without a category is a compile error. Moreover the lane assignment
+$\text{lane}:S\to D$ (\code{denial\_lane}) and the single-lane inverse
+$\text{scn}:D\rightharpoonup S$ (\code{scenario\_for\_denial\_lane}) satisfy
+$\text{lane}\circ\text{scn}=\id$ on each of the seven named lanes, i.e.\ $\text{scn}$ is a
+section of $\text{lane}$ over the single-lane words.
+\end{proposition}
+
+\begin{proof}
+Totality of a wildcard-free exhaustive \code{match} over a closed enum is exactly the
+compiler's exhaustiveness guarantee: the program does not type-check unless every variant is
+covered, so \code{category} denotes a total function $S\to C$. The section identity is the
+round-trip property verified by the module's test
+\code{category\_mapping\_is\_total\_over\_denial\_lanes}: for each of the seven single-lane
+constants $\ell$, $\text{scn}(\ell)$ is defined and $\text{lane}(\text{scn}(\ell))=\ell$.
+That $\text{scn}$ is only a \emph{partial} section (undefined on composed multi-lane words
+and on \code{ADMITTED}) reflects that a composed denial has no single scenario; it is a
+join $\bigvee$ of several, per Construction~\ref{con:denial}. \end{proof}
+
+Proposition~\ref{prop:total} is the algebraic backbone of the admission pillar
+(Chapter~\ref{ch:map}): the taxonomy is not documentation but a total function whose
+totality the compiler certifies, and the denial lattice is the semantic domain of that
+function.
+
+\chapter{The Lifecycle as a Typestate Category}
+\label{ch:life}
+
+\section{Stages, transitions, and the free path category}
+
+An admitted observation does not become a receipt in one step. It traverses a fixed
+lifecycle, and the \emph{illegality of skipping steps} is the first structural guarantee a
+newcomer must trust. We make it a theorem.
+
+\begin{definition}[Lifecycle category]\label{def:lifecat}
+Let $\Life$ be the category with four objects, the lifecycle stages
+\[
+\Raw,\quad \Val,\quad \Admd,\quad \Rcpt,
+\]
+and with non-identity morphisms generated by exactly three arrows
+\[
+j:\Raw\to\Val,\qquad a:\Val\to\Admd,\qquad r:\Admd\to\Rcpt,
+\]
+(\emph{judge}, \emph{admit}, \emph{receipt}), closed under composition and identities.
+$\Life$ is the free category on the linear quiver
+$\Raw\xrightarrow{j}\Val\xrightarrow{a}\Admd\xrightarrow{r}\Rcpt$.
+\end{definition}
+
+\begin{proposition}[Hom-sets of $\Life$]\label{prop:hom}
+For stages $X,Y$, the hom-set $\Life(X,Y)$ has exactly one element if $Y$ is reachable from
+$X$ along the quiver (including $X=Y$, the identity) and is empty otherwise. In particular
+$\Life(\Raw,\Rcpt)=\{r\circ a\circ j\}$ is a singleton, and there is \emph{no} morphism
+$\Raw\to\Admd$ that is not $a\circ j$, no morphism $\Val\to\Rcpt$ other than $r\circ a$, and
+no backward or skipping morphism at all.
+\end{proposition}
+
+\begin{proof}
+In the free category on a quiver, morphisms $X\to Y$ are directed paths from $X$ to $Y$ modulo
+nothing (paths are the morphisms). The quiver here is a simple directed path with no branches
+and no cycles, so between any two vertices there is at most one directed path: the sub-path
+of the unique maximal path, if $Y$ lies after $X$, and none otherwise. Hence each nonempty
+hom-set is a singleton and each ``illegal'' hom-set (backward, or skipping an intermediate
+vertex) is empty. \end{proof}
+
+\section{Illegal transition is a type error}
+
+The \code{praxis} implementation represents a law object as a type carrying its stage as a
+phantom parameter:
+\[
+\code{LawObject<Payload,\ S: Stage,\ Law>},
+\]
+where \code{Stage} is a \emph{sealed} trait implemented only by the four zero-sized types
+\code{Raw}, \code{Validated}, \code{Admitted}, \code{Receipted}, and the phantom fields
+\code{\_stage}, \code{\_law} are private to the defining module. The three lifecycle arrows
+are the only stage-changing operations exposed:
+\code{Judge::judge} has type $\Raw\to\Val$ (returning the halted \code{Raw} on refusal),
+\code{Admit::admit} has type $\Val\to\Admd$, and \code{receipt} is a method available
+\emph{only} on \code{LawObject<\_,Admitted,\_>}, with signature $\Admd\to\Rcpt$, consuming
+its receiver. We now state the correspondence precisely.
+
+\begin{theorem}[Illegal lifecycle transitions are uninhabited]\label{thm:typestate}
+Let $\mathcal{T}$ be the host type system and interpret each stage $X$ as the type family
+$\code{LawObject<P,X,L>}$ and each exposed stage-changing operation as a term of the
+corresponding function type. Then the set of stage-changing operations denotes exactly the
+generating arrows $\{j,a,r\}$ of $\Life$, and consequently:
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+  \item every well-typed stage-changing program is a composite of $j,a,r$, i.e.\ a morphism
+        of $\Life$ (Proposition~\ref{prop:hom});
+  \item for any pair $(X,Y)$ with $\Life(X,Y)=\varnothing$ --- a backward or step-skipping
+        transition --- there is no term of type $\code{LawObject<P,X,L>}\to\code{LawObject<P,Y,L>}$
+        constructible from the exposed interface; such a program does not type-check;
+  \item no law object can be receipted twice: $r$ consumes its \code{Admitted} receiver, so
+        the term is linear in its argument and $\Rcpt$ has no outgoing stage-changing arrow.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+(i) The only public constructor produces a \code{Raw} object; the only public stage-changing
+operations are \code{judge}, \code{admit}, \code{receipt}, whose types are $j,a,r$
+respectively. The stage transition helper that rebuilds an object at a new stage is
+crate-private (\code{pub(crate)}), and the phantom fields are private, so no external term
+can fabricate a \code{LawObject} at a chosen stage. Hence every externally well-typed
+stage-changing program is a composition of $j,a,r$, which by definition is a morphism of the
+free category $\Life$.
+(ii) Suppose $\Life(X,Y)=\varnothing$. By Proposition~\ref{prop:hom} there is no path
+$X\to Y$ in the quiver, so no composite of $j,a,r$ has type
+$\code{LawObject<P,X,L>}\to\code{LawObject<P,Y,L>}$. Since (i) shows composites of $j,a,r$
+are the only such terms, the required term does not exist; a program asserting it fails to
+type-check. Concretely, \code{receipt} is impl'd only on the \code{Admitted} type, so calling
+it on \code{Raw} or \code{Validated} is a missing-method type error, and \code{admit} takes
+\code{Validated} by value, so feeding it a \code{Raw} is a type mismatch.
+(iii) \code{receipt} takes \code{self} by value (move), consuming the \code{Admitted} object;
+the returned \code{Receipted} type has no method producing a further stage. Thus the argument
+is used exactly once and the terminal object $\Rcpt$ emits no stage-changing arrow, so a
+second receipting is both unconstructible (no arrow out of $\Rcpt$) and unavailable (the
+receiver was moved). \end{proof}
+
+\begin{corollary}[The admissible sub-category is what compiles]\label{cor:subcat}
+The sub-category of ``admissible morphisms'' --- those a program may actually perform --- is
+precisely $\Life$, and it coincides with the set of well-typed stage-changing programs over
+the \code{LawObject} interface. ``Illegal transition is a type error'' is therefore not a
+runtime check to be tested but a statement about which hom-sets are inhabited, discharged by
+the type checker before the program runs.
+\end{corollary}
+
+\begin{proof}
+Combine Theorem~\ref{thm:typestate}(i)--(ii): the inhabited stage-changing types are exactly
+the morphisms of $\Life$, and the uninhabited ones are exactly the empty hom-sets. The
+admissible sub-category is thus $\Life$ itself, verified statically. \end{proof}
+
+\begin{remark}[Where the parallel to admission lives]
+Chapter~\ref{ch:oar} retracted an undecidable observation space onto a decidable admitted
+language; here the type checker retracts the space of \emph{all conceivable stage sequences}
+onto the decidable (indeed, trivially decidable) language of paths in $\Life$. Both are Rice
+quarantines: an undecidable or unwieldy space of behaviors is replaced by a small decidable
+sub-language whose membership is mechanically certified. Admission does it at values;
+typestate does it at programs.
+\end{remark}
+
+\section{Judgment carries its refusal}
+
+The arrow $j:\Raw\to\Val$ is total in a specific sense: it never throws, it either advances
+the object or returns it halted, carrying its denial. In \code{praxis},
+\[
+\code{Judge::judge}:\ \code{LawObject<P,Raw,L>}\ \longrightarrow\
+\code{Result<LawObject<P,Validated,L>,\ LawObject<P,Raw,L>>},
+\]
+where the \code{Err} branch is the \emph{same object}, now in \code{Andon::Halted} with its
+\code{unmet} obligations and \code{refusals}. This is Definition~\ref{def:adm} at the type
+level: $\adm(o)$ is either an element of $\Val\subseteq\Adm$ or the refusal $\Rfsl$, and the
+refusal is a value one can inspect, not control flow one must catch. The admit arrow
+$a:\Val\to\Admd$ is analogous, returning \code{Err(Andon)} when admission is denied.
+
+\chapter{Manufacture, Receipt, and the Enforced Equation}
+\label{ch:mu}
+
+\section{The manufacturing morphism}
+
+\begin{definition}[Manufacturing morphism]\label{def:mu}
+A \emph{manufacturing morphism} is a deterministic computable map $\muop:\Adm\to\Act$
+subject to two laws:
+\begin{enumerate}[label=(M\arabic*),leftmargin=*]
+  \item \textbf{Determinism / reproducibility:} $\muop(x)$ depends only on $x$; equal
+        admitted inputs yield bit-identical artifacts.
+  \item \textbf{Boundedness:} $\muop$ factors through a representation of size bounded by
+        fixed structural constants, so $\muop$ terminates with a priori bounded cost.
+\end{enumerate}
+$\muop$ is undefined on $\Obs\setminus\Adm$ by construction, and refusal propagates:
+$\muop(\Rfsl)=\Rfsl$.
+\end{definition}
+
+The governing identity of Definition~\ref{def:five},
+$\Act=\muop(\Adm)$, is now precise: operationally
+$a=\muop(\adm(o))$ whenever $\adm(o)\neq\Rfsl$, and undefined (a receipted refusal)
+otherwise. In \code{praxis}, one instance of $\muop$ is the manufacture of a PDDL8 planning
+domain and problem from a \code{pdl:} RDF ontology (the \code{mfg pddl} verb over
+\code{bcinr-pddl}): the ontology graph is hashed with BLAKE3 (a \code{graph\_hash} witnessing
+determinism), and identical ontologies manufacture identical domain text, exactly (M1). The
+grounding-and-solving stage is (M2)'s bounded representation: a finite lifted domain grounded
+to a finite action set the planner searches.
+
+\begin{proposition}[Determinism makes $\muop$ a function on receipts]\label{prop:mudet}
+Under (M1), the assignment $x\mapsto\muop(x)$ is a function (single-valued), hence the
+composite $o\mapsto\muop(\adm(o))$ is a partial function on $\Obs$. Two runs on the same
+admitted input therefore agree bit-for-bit, and any disagreement is evidence that the input,
+not the morphism, differed.
+\end{proposition}
+
+\begin{proof}
+(M1) is exactly single-valuedness. Composition of the partial function $\adm$ with the
+function $\muop$ is a partial function. Bit-identity of outputs on equal inputs is the
+contrapositive of the last clause. \end{proof}
+
+\section{Receipts}
+
+A manufacture leaves an \emph{execution trace} $\sigma\in\Sigma$: every intermediate marking
+and sub-artifact. Traces live in a space of unbounded dimension relative to $\CL$. The
+receipt is the bounded, collision-committed projection of that trace.
+
+\begin{definition}[Receipt and chain]\label{def:receipt}
+Fix a collision-resistant hash $\chainH:\{0,1\}^{*}\to\{0,1\}^{256}$ (in \code{praxis},
+BLAKE3 \cite{blake3}). For a manufacture with payload bytes $b$, previous chain value
+$h_{-}$, and metadata $\theta$ (instruction index, activity, node kind, timestamp, denial
+word), the \emph{frame} is a fixed-width encoding
+$\mathsf{fr}=\langle\theta,\ \chainH(b)\rangle$ and the \emph{chained receipt} is
+\begin{equation}\label{eq:chain}
+h_{+}\;=\;\chainH\bigl(h_{-}\,\Vert\,\mathsf{fr}\bigr).
+\end{equation}
+The \emph{receipt} is the tuple
+$r=(\text{verdict},\,h_{+},\,\Fitness,\,\text{reason})\in\Rec$ of at most $\CL$ chunks: a
+Boolean verdict, the $256$-bit chain value, a scalar conformance fitness $\Fitness$, and a
+refusal reason (empty on accept).
+\end{definition}
+
+Equation~\eqref{eq:chain} is the \code{OcelCausalFrame} construction in \code{praxis}: the
+$32$-byte BLAKE3 payload hash is packed into the frame's eight object-reference words as
+little-endian \code{u32}s (repurposing the OCEL \cite{ocel2020} object slots as a content
+commitment), the honest denial word from Chapter~\ref{ch:oar} is written into the frame's
+\code{denial}/\code{fired\_mask}, and the chain step is
+$\code{chain\_hash}(t{+}1)=\chainH(\code{chain\_hash}(t)\ \Vert\ \code{frame\_bytes}(t{+}1))$.
+Determinism is tested directly: identical inputs produce identical chain hashes; differing
+payloads, previous hashes, instruction ids, or denial words produce differing chain hashes.
+
+\begin{definition}[Conformance fitness]\label{def:fit}
+Let $\Fitness\in[0,1]$ be one minus the fraction of tokens a replay was forced to consume on
+unenabled transitions of the lifecycle process model. $\Fitness=1$ iff the replay never
+attempted a disabled firing. In \code{praxis}, the lifecycle is the fixed three-node
+sequence $\code{judge}\to\code{admit}\to\code{receipt}$, replayed by
+\code{PowlReplayVerifier}; a lawful in-order trace yields fitness $\code{0x0001\_0000}$ ---
+the value $1.0$ in Q16.16 fixed point --- while any out-of-order or step-skipping trace is a
+\code{TokenNotEnabled} violation with $\Fitness<1$.
+\end{definition}
+
+The full theory of the receipt --- that a bounded verifier reading $O(1)$ symbols rejects any
+perturbed trace except with negligible probability --- is the subject of the receipt
+cryptography pillar (Chapter~\ref{ch:map}) and the keystone's Faithful Projection Theorem. We
+state here only the commitment property we need for conservation.
+
+\begin{lemma}[Chain commitment]\label{lem:commit}
+Under the collision resistance of $\chainH$, the chain value $h_{+}$ of \eqref{eq:chain} is a
+binding commitment to the pair $(h_{-},\mathsf{fr})$: producing a distinct $(h_{-}',\mathsf{fr}')$
+with the same $h_{+}$ requires exhibiting a collision of $\chainH$. By induction along the
+chain, $h_{+}$ binds the entire causal prefix.
+\end{lemma}
+
+\begin{proof}
+If $\chainH(h_{-}\Vert\mathsf{fr})=\chainH(h_{-}'\Vert\mathsf{fr}')$ with distinct arguments,
+the two arguments are a collision of $\chainH$, which occurs with negligible probability under
+collision resistance. Since $h_{-}$ is itself such a commitment to the previous frame, an
+induction on chain length shows $h_{+}$ commits to every frame in the prefix. \end{proof}
+
+\section{The Bounded Receipted Chatman Equation}
+
+The Chatman equation $\Act=\muop(\Adm)$ is a mathematical identity; its \emph{enforced} form
+is the conjunction of invariants a running system maintains. We name it once for the series.
+
+\begin{definition}[\BRCE: Bounded Receipted Chatman Equation]\label{def:brce}
+A system satisfies the \emph{Bounded Receipted Chatman Equation} if for every actuated
+artifact $a\in\Act$ it maintains all four invariants:
+\begin{enumerate}[label=(B\arabic*),leftmargin=*]
+  \item \textbf{Admission gate:} $a=\muop(x)$ for some $x=\adm(o)\neq\Rfsl$; nothing is
+        actuated from a raw or refused observation ($\im\muop$ exhausts the actuated set).
+  \item \textbf{Bounded manufacture:} $\muop$ satisfies (M1)--(M2); manufacture is
+        deterministic and a priori cost-bounded.
+  \item \textbf{Receipt totality:} every actuation appends exactly one chained receipt
+        \eqref{eq:chain}; there is no unreceipted actuation.
+  \item \textbf{Conformance:} the actuation's lifecycle replay has fitness $\Fitness=1$
+        (Definition~\ref{def:fit}); the trace stays within the process model.
+\end{enumerate}
+\end{definition}
+
+\begin{theorem}[Conservation of Consequence]\label{thm:conservation}
+Under \BRCE, the map $a\mapsto h_{+}(a)$ from actuated artifacts to receipt-chain positions
+is well defined and injective up to hash collision, and every actuated artifact is the image
+under $\muop$ of exactly one admitted observation. Equivalently: consequence is neither
+created without an admitted cause (B1) nor destroyed without a receipt (B3), and the chain
+preserves order.
+\end{theorem}
+
+\begin{proof}
+By (B1) actuation implies $a=\muop(x)$ with $x=\adm(o)\neq\Rfsl$, so $\im\muop$ is the whole
+actuated set and its complement is never actuated. By (B2)/(M1) and
+Proposition~\ref{prop:mudet}, $x\mapsto\muop(x)$ is single-valued, so each actuated $a$ has a
+determined admitted preimage $x$ (unique as the input that produced it under a deterministic
+$\muop$; distinct admitted inputs yielding the same artifact are identified by the artifact,
+which is all conservation asserts). By (B3) the actuation appends exactly one chain position,
+so $a\mapsto h_{+}(a)$ is a well-defined total map on actuated artifacts. Injectivity up to
+collision is Lemma~\ref{lem:commit}: if two distinct actuations shared a chain value, their
+frames would collide under $\chainH$. Order preservation is the recursive dependence of
+$h_{+}$ on $h_{-}$ in \eqref{eq:chain}. \end{proof}
+
+\begin{corollary}[The antibody clause]\label{cor:antibody}
+Define the \emph{overclaim set} as actuations lacking a valid receipt. Under \BRCE\ the
+overclaim set is empty as an invariant: an artifact without a receipt satisfying (B3) is not
+actuated. Hence the admissible magnitude of any claim a system makes is bounded by what its
+mechanism can receipt, not by its rhetoric.
+\end{corollary}
+
+\begin{proof}
+(B3) requires a receipt per actuation; an actuation without one violates \BRCE\ and is,
+by (B1)'s gate, never emitted. So the set of receiptless actuations is empty, and every
+standing claim corresponds to a receipted artifact whose verification cost is $O(\CL)$
+(keystone). \end{proof}
+
+This is the formal statement of the program's discipline: \emph{a grand system without
+receipts is grandiosity; a grand system that receipts its own limits is machinery.}
+
+\chapter{A Worked Example: A Contract-Claim Law Object}
+\label{ch:example}
+
+We instantiate the whole apparatus on one object, tracing it $\Raw\to\Rcpt$ with its
+obligations, an andon halt and its lift, and the resulting chain hash. The example is a
+\emph{contract claim}: a payload asserting that a counterparty owes a delivery under a signed
+contract, submitted for lawful processing.
+
+\section{Raw}
+
+The caller submits an observation $o\in\Obs$, a JSON payload, to \code{law judge}:
+\begin{quote}\small
+\code{\{ "claim": "delivery-owed", "contract\_id": "C-4471", "amount": 12000,}\\
+\code{\ \ "counterparty": "acme", "evidence": null \}}
+\end{quote}
+The governing \code{Law} attaches three obligations (Definition~\ref{def:adm}), each a
+decidable $g_i$:
+\begin{enumerate}[label=$g_{\arabic*}$:,leftmargin=*]
+  \item \code{Precondition\{predicate\_id:"contract\_active", params\_hash: h(C-4471)\}}
+        --- the referenced contract must be in the active set.
+  \item \code{EvidenceRequired\{evidence\_type:"signed\_contract"\}} --- a signed-contract
+        record must be present.
+  \item \code{BlockingConstraint\{reason:"amount\_within\_authority"\}} --- the claimed
+        amount must lie within the desk's authority.
+\end{enumerate}
+At submission the object is $\code{LawObject<Claim,Raw,ContractLaw>}$ with
+$\code{andon}=\code{Green}$ and $\code{chain\_hash}=\code{None}$.
+
+\section{Judgment and an andon halt}
+
+\code{Judge::judge} evaluates $g_1,g_2,g_3$. The contract \code{C-4471} is active
+($g_1=1$), but \code{evidence} is \code{null}: the signed-contract record is absent
+($g_2=0$). By Definition~\ref{def:adm}, $\adm(o)=\Rfsl$. The arrow $j$ returns the
+\code{Err} branch --- the same object, in
+\[
+\code{Andon::Halted\{}\ \code{unmet:[EvidenceRequired\{"signed\_contract"\}],}\
+\code{refusals:[MissingEvidence\{...\}],}\ \code{at:}\,t_0\ \code{\}}.
+\]
+By Proposition~\ref{prop:total}, $\text{cat}(\code{MissingEvidence})=\textsf{Prerequisites}$
+and $\text{lane}(\code{MissingEvidence})=\code{PRECONDITION\_FAILED}$; the total denial word
+is $d(o)=\code{PRECONDITION\_FAILED}\neq\bm0$. This is a lawful output: a refusal with a
+category, a lane, and a timestamp --- data, not an exception (Chapter~\ref{ch:oar}). No
+manufacture occurs, because $\muop$ is undefined on $\Rfsl$ (Definition~\ref{def:mu}); the
+line is halted, andon-red.
+
+\section{Evidence, re-judgment, admission}
+
+The caller supplies the missing evidence and resubmits:
+\begin{quote}\small
+\code{\{ ..., "evidence": \{ "signed\_contract": "blob:9f2c..." \} \}}
+\end{quote}
+Now $g_2=1$ and $g_3=1$ (the amount $12000$ is within authority), so
+$\bigwedge_i g_i=1$ and $\adm(o)=\rho(o)\in\Adm$: the object advances $j:\Raw\to\Val$ to
+$\code{LawObject<Claim,Validated,ContractLaw>}$ with $\code{andon}=\code{Green}$. Then
+$a:\Val\to\Admd$ admits it to \code{Admitted}. By Theorem~\ref{thm:typestate} nothing could
+have jumped from \code{Raw} straight to \code{Admitted}; the two arrows were mandatory and
+in order.
+
+\section{Manufacture and receipt}
+
+The admitted claim is manufactured into its artifact (the actuated obligation-to-deliver
+record) and receipted. \code{receipt} consumes the \code{Admitted} object and appends the
+frame of Definition~\ref{def:receipt}. With previous chain value $h_{-}$, a deterministic
+timestamp, instruction id, and the honest denial word \code{ADMITTED} (the halt was lifted,
+so the receipt records a clean admission), the payload is hashed
+$b\mapsto\chainH(b)$ and the chain advances
+\[
+h_{+}=\chainH\bigl(h_{-}\ \Vert\ \mathsf{fr}(\theta,\chainH(b))\bigr).
+\]
+The object is now $\code{LawObject<Claim,Receipted,ContractLaw>}$ carrying
+$\code{chain\_hash}=\code{Some}(h_{+})$. A lifecycle replay of
+$\code{judge}\to\code{admit}\to\code{receipt}$ yields fitness $\code{0x0001\_0000}=1.0$
+(Definition~\ref{def:fit}); all four \BRCE\ invariants hold. The boundary projection the
+system exposes is the $\CL$-sized tuple
+\[
+r=\bigl(\text{verdict}=\textsf{pass},\ h_{+}=\texttt{<256-bit hex>},\ \Fitness=1.0,\
+\text{reason}=\varnothing\bigr),
+\]
+and by Theorem~\ref{thm:conservation} this receipt is the unique chain position of this
+actuation, injective up to collision. A verifier trusts the delivery obligation by reading
+$r$ --- four chunks --- never by re-deriving the manufacture.
+
+\begin{remark}[The agent's byte]
+In the membrane deployment, each connected agent carries an eight-bit projection of its
+lifecycle status --- the \code{agent8} byte --- whose flags are set by exactly these events:
+a halt sets a \textsf{blocked} bit, a receipt sets a \textsf{receipted} bit. The worked
+object above drove one session's byte from \textsf{blocked} (at the andon halt) to
+\textsf{receipted} (after the chain advanced). The byte is the smallest receipt of all: a
+single octet, popcount-summable across a fleet, projecting a whole lifecycle into eight
+bits a scheduler can read in one instruction.
+\end{remark}
+
+\chapter{Map of the Series}
+\label{ch:map}
+
+This foundations paper fixes the five objects, the Rice quarantine, the typestate category,
+and \BRCE. Four pillar papers develop each face in depth; the reader should approach them in
+any order after this one.
+
+\paragraph{Pillar I --- Admission Algebra.}
+Deepens Chapter~\ref{ch:oar}: the denial monoid $D$ (Construction~\ref{con:denial}), the
+eight-category taxonomy as a total function (Proposition~\ref{prop:total}), and the algebra
+of obligation composition, including the join-irreducible structure of refusal categories and
+the prolog8 kernel's proof-carrying admission path. It is the algebra beneath ``refusal is
+data.''
+
+\paragraph{Pillar II --- Receipt Cryptography.}
+Deepens Chapter~\ref{ch:mu}, \S\,2: the BLAKE3 \code{OcelCausalFrame} chain
+\eqref{eq:chain}, the Faithful Projection Theorem (a bounded verifier reads $O(1)$ symbols
+and rejects any perturbation except with negligible probability), the affidavit
+\code{verify} pipeline (\code{decode}, \code{check\_format}, \code{chain\_integrity},
+\code{continuity}, \code{verify\_commitments}, \code{evaluate\_profile}), and receipt
+signing. It is the cryptography beneath Lemma~\ref{lem:commit} and
+Theorem~\ref{thm:conservation}.
+
+\paragraph{Pillar III --- Planning and Geometry.}
+Develops manufacture as search and conformance as geometry: the \code{bcinr-pddl} planner
+that grounds and solves a manufactured PDDL8 domain, the marking polytope and state equation
+of token-flow execution, conformance as membership with Farkas separating-hyperplane
+certificates, and \code{PowlReplayVerifier} fitness (Definition~\ref{def:fit}) as normalized
+distance to the polytope. It is the geometry beneath the conformance invariant (B4).
+
+\paragraph{Pillar IV --- The Projection Principle (keystone).}
+The already-standing keystone \emph{The Projection Principle} unifies the above around the
+Comprehension--Verification Gap: verification cost is $O(\CL)$ per receipt while comprehension
+cost is $\Omega(\dim\Sigma)$, so trust in a system of unbounded interior is available at
+constant human cost. \BRCE\ (Definition~\ref{def:brce}) is that paper's operating premise
+made into a checklist.
+
+\paragraph{Prior work --- \cite{chatman2025}.}
+The published paper \emph{The Chatman Equation and the Industrial Revolution of Knowledge}
+(v1.2.0) demonstrated $\Act=\muop(\Obs)$ at enterprise scale: knowledge hooks
+$h=(\text{trigger},\text{check},\text{act},\text{receipt})$ over RDF/SHACL, the KNHK
+hot-path executor ($\le 2\,$ns rule checks), the \code{ggen} bounded projection, Lockchain
+provenance, and full coverage of the forty-three workflow patterns \cite{vdaalst2003patterns}.
+This series factors that paper's $\muop$ into admission $\adm$ and manufacture $\muop$,
+names the receipt space $\Rec$ it produced, and supplies the first-principles proofs its
+scale rested on.
+
+\chapter{Conclusion}
+
+We set out to give the series its floor. The Chatman equation $\Act=\muop(\Adm)$ relates
+five named objects; admission is a computable retraction rather than a semantic decision,
+because Rice's theorem forbids the latter (Theorem~\ref{thm:rice},
+Corollary~\ref{cor:noadmit}); refusal is a first-class value carrying its category through a
+denial monoid whose taxonomy is a compiler-certified total function
+(Proposition~\ref{prop:total}); the lifecycle $\Raw\to\Val\to\Admd\to\Rcpt$ is a free path
+category in which every illegal transition is an uninhabited hom-set, so
+``illegal-transition-is-a-type-error'' is a theorem discharged before runtime
+(Theorem~\ref{thm:typestate}); manufacture is deterministic and bounded; the receipt is a
+collision-binding projection; and the enforced form \BRCE\ yields conservation of
+consequence (Theorem~\ref{thm:conservation}) and its antibody corollary. A single
+contract-claim object exhibited all of it, halting on missing evidence and advancing to a
+receipted chain position once the evidence arrived.
+
+The standard was never comprehension. It is a lawful admission, a bounded manufacture, and a
+faithful receipt --- each small enough to hold, each guaranteed by mechanism. Everything
+downstream in this series is a deeper reading of one of those three.
+
+\appendix
+\chapter{Notation}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning\\
+\midrule
+$\Obs,\ \Adm$ & observation space; admitted (decidable) sub-space $\Obs^{*}$\\
+$\adm,\ \Rfsl$ & admission retraction; refusal (first-class value)\\
+$g_i,\ d(o)$ & obligations; total denial word\\
+$D=(\{0,1\}^n,\lor,\bm0)$ & denial monoid (join-semilattice)\\
+$\muop,\ \Act$ & manufacturing morphism; artifact/action space\\
+$\Sigma,\ \Rec$ & execution traces; receipt space\\
+$\chainH,\ h_\pm$ & collision-resistant hash (BLAKE3); chain values\\
+$\Fitness$ & conformance fitness $\in[0,1]$ (Q16.16 in code; $1.0=$\code{0x0001\_0000})\\
+$\CL$ & human working-memory capacity (chunks), a fixed small constant\\
+$\Life$ & lifecycle category on $\Raw\to\Val\to\Admd\to\Rcpt$\\
+$j,a,r$ & judge, admit, receipt arrows\\
+\BRCE & Bounded Receipted Chatman Equation (B1--B4)\\
+\bottomrule
+\end{tabular}
+
+\chapter{Code Correspondence}
+Every abstract object above is anchored to a location in the \code{praxis} repository.
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Mathematical object & Code artifact & Location \\
+\midrule
+$\Obs$, raw observation & \code{law judge} payload & \code{src/verbs/law.rs} \\
+$\adm$, admission / $\Rfsl$ & \code{Judge}/\code{Admit}, \code{Andon} & \code{crates/praxis-core/src/law.rs} \\
+$g_i$, obligations & \code{Obligation} enum (3 kinds) & \code{crates/praxis-core/src/law.rs} \\
+$D$, denial monoid & \code{DenialPolarity}, \code{compose\_denials} & \code{crates/praxis-core/src/refusal.rs} \\
+$\text{cat}$, 8 categories & \code{RefusalCategory}, \code{::category} & \code{crates/praxis-core/src/refusal.rs} \\
+$\Life$, typestate & \code{LawObject<P,S:Stage,L>}, sealed \code{Stage} & \code{crates/praxis-core/src/lifecycle.rs} \\
+$\muop$, manufacture & \code{mfg pddl} over \code{bcinr-pddl} & \code{src/verbs/mfg.rs} \\
+$h_{+}$, receipt chain & \code{OcelCausalFrame}, \code{build\_admission\_frame} & \code{crates/praxis-core/src/law.rs} \\
+$\Fitness$, fitness & \code{PowlReplayVerifier}, \code{replay\_lifecycle} & \code{crates/praxis-core/src/replay\_adapter.rs} \\
+\BRCE\ verify & \code{verify} affidavit pipeline & \code{crates/praxis-core/src/verify.rs} \\
+\code{agent8} byte & resident \code{AgentByte} over MCP & \code{src/bin/mcp\_lawobject\_server.rs} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{thebibliography}{9}
+
+\bibitem{chatman2025}
+S.~Chatman,
+\emph{The Chatman Equation and the Industrial Revolution of Knowledge:
+$A=\mu(O)$, Knowledge Hooks, and Production-Verified Enterprise Execution},
+v1.2.0, November 2025.
+
+\bibitem{rice1953}
+H.~G.~Rice,
+\emph{Classes of recursively enumerable sets and their decision problems},
+Transactions of the American Mathematical Society \textbf{74} (1953), 358--366.
+
+\bibitem{strom1986}
+R.~E.~Strom and S.~Yemini,
+\emph{Typestate: A programming language concept for enhancing software reliability},
+IEEE Transactions on Software Engineering \textbf{SE-12}(1) (1986), 157--171.
+
+\bibitem{vdaalst2003patterns}
+W.~M.~P.~van der Aalst, A.~H.~M.~ter Hofstede, B.~Kiepuszewski, and A.~P.~Barros,
+\emph{Workflow patterns},
+Distributed and Parallel Databases \textbf{14}(1) (2003), 5--51.
+
+\bibitem{blake3}
+J.~O'Connor, J.-P.~Aumasson, S.~Neves, and Z.~Wilcox-O'Hearn,
+\emph{BLAKE3: One function, fast everywhere},
+2020.
+
+\bibitem{ocel2020}
+A.~F.~Ghahfarokhi, G.~Park, A.~Berti, and W.~M.~P.~van der Aalst,
+\emph{OCEL: A standard for object-centric event logs},
+in New Trends in Database and Information Systems, Springer, 2021.
+
+\bibitem{miller1956}
+G.~A.~Miller,
+\emph{The magical number seven, plus or minus two: some limits on our capacity
+for processing information},
+Psychological Review \textbf{63}(2) (1956), 81--97.
+
+\bibitem{cowan2001}
+N.~Cowan,
+\emph{The magical number 4 in short-term memory: A reconsideration of mental
+storage capacity},
+Behavioral and Brain Sciences \textbf{24}(1) (2001), 87--114.
+
+\end{thebibliography}
+
+\end{document}

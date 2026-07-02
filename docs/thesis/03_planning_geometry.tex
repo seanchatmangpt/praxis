@@ -1,0 +1,914 @@
+\documentclass[11pt,oneside]{book}
+
+\usepackage[margin=1.15in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+
+% ---- theorem environments (identical to the keystone, for series coherence) ----
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{axiom}{Axiom}[chapter]
+\newtheorem{construction}{Construction}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+% ---- notation macros (shared with projection_thesis.tex; never define \Ref) ----
+\newcommand{\Obs}{\mathcal{O}}                 % raw observation space
+\newcommand{\Adm}{\mathcal{O}^{*}}             % admitted observation space
+\newcommand{\Act}{\mathcal{A}}                 % action / artifact space
+\newcommand{\Recs}{\mathcal{R}}                % receipt space
+\newcommand{\Proj}{\pi}                        % projection
+\newcommand{\muop}{\mu}                        % manufacturing morphism
+\newcommand{\adm}{\alpha}                      % admission map
+\newcommand{\chainH}{\mathsf{H}}               % hash
+\newcommand{\Rfsl}{\bot}                        % refusal (NOT \Ref: reserved by hyperref)
+\newcommand{\CL}{\kappa}                       % bounded-verifier context capacity
+\newcommand{\Fitness}{\varphi}
+\newcommand{\dg}{\mathrm{dg}}                  % digest
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\id}{id}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\cone}{cone}
+\DeclareMathOperator*{\argmax}{arg\,max}
+% ---- geometry-local macros ----
+\newcommand{\Poly}{\mathcal{P}}                % marking polytope
+\newcommand{\Reach}{\mathsf{Reach}}            % reachable set
+\newcommand{\Nmat}{\mathbf{N}}                 % incidence matrix
+\newcommand{\Zplus}{\mathbb{Z}_{\ge 0}}
+\newcommand{\Rplus}{\mathbb{R}_{\ge 0}}
+\newcommand{\CostV}{\bm c}                     % cost vector
+\newcommand{\BRCE}{\textsc{brce}}              % Bounded Receipted Chatman Equation
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{\bfseries Mission Geometry:\\[0.4em]
+\large Planning, Conformance, and Separability\\
+for Bounded Receipted Execution}
+\author{The Chatman Equation Thesis Program \\ (Praxis / Capability Physics)}
+\date{Genesis --- Pillar III}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+This is Pillar III of the Chatman Equation thesis series: the geometry beneath the
+manufacturing morphism $\muop$ and the conformance invariant of the enforced equation. We
+treat mission execution as two dual questions --- \emph{manufacture as search} (how a plan
+is produced) and \emph{conformance as geometry} (how a trace is admitted) --- and give both
+a first-principles account grounded line-for-line in the \code{praxis} and \code{bcinr-pddl}
+codebase. We define the PDDL action law with numeric fluents, and derive the attention
+fluent balance law as the feasibility condition of a durative-action schedule, with
+conservation of the borrowed-and-returned fluent proved directly. We build the marking
+polytope from the Petri state equation $\bm m=\bm m_{0}+\Nmat\bm x$, show the STRIPS
+grounding is a place/transition net whose forward search inhabits marking space, and prove
+that the lifecycle token verifier's branchless firing rule
+$\text{enabled}\gets(\text{enabled}\wedge\lnot\bm m^{-})\vee\bm m^{+}$ is exactly the
+safe-net specialization of that equation. We formalize conformance as membership in the
+reachability cone, and prove a Farkas separation theorem: a nonconformant marking admits a
+separating-hyperplane certificate of dimension $p$, sound for non-reachability and verifiable
+at $O(\CL)$. We define token-replay fitness as the population ratio the
+\code{PowlReplayVerifier} computes in Q16.16, and prove that unit fitness with completion
+characterizes exactly the genuine firing sequences, with the first disabled transition a
+coordinate-localized witness. We formalize POWL~2.0 as recursive partial orders and choice
+graphs, show the plan-to-tape transitive reduction yields the Hasse diagram of the precedence
+order, and reframe the Kourani--van der Aalst separable decomposition
+\cite{powl2023} as a Rice quarantine for processes: separable is admitted, non-separable is
+refused with reason. Finally we derive lexicographic cost arbitration as the infinite-weight
+limit in which the admitted coordinate dominates, and give the makespan functional with its
+critical-path and capacity-sensitivity structure as computed by \code{analyze\_schedule}.
+Every theorem is anchored to the \code{bcinr-pddl} planner (\code{find\_plan},
+\code{find\_temporal\_plan}), the \code{PowlReplayVerifier}, the capability router
+\code{CostVector}, and the \code{ScheduleAnalysis64} analyzer.
+
+\tableofcontents
+
+\mainmatter
+
+\chapter{Introduction: Manufacture as Search, Conformance as Geometry}
+\label{ch:intro}
+
+\section{Where this pillar sits}
+
+The foundations paper of this series fixed the Chatman equation $\Act=\muop(\Adm)$ and its
+enforced form, the Bounded Receipted Chatman Equation (\BRCE\ there), a conjunction of four
+invariants: an admission gate, a bounded deterministic manufacture, receipt totality, and
+\emph{conformance} --- the requirement that an actuation's lifecycle replay have fitness
+$\Fitness=1$. Two of those invariants are the subject of this pillar. The manufacturing
+morphism $\muop$, when its artifact is a \emph{mission} --- a schedule of durative actions
+achieving a goal --- is a bounded search over a state space. The conformance invariant is a
+\emph{geometric} membership test: does a trace lie inside the polytope of lawful markings? We
+develop both from first principles and show they are the same object viewed from two sides.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Question & Object & \code{praxis}/\code{bcinr-pddl} realization\\
+\midrule
+Manufacture ($\muop$) & bounded search & \code{find\_plan} (BFS), \code{find\_temporal\_plan}\\
+Conformance (B4) & cone membership & \code{PowlReplayVerifier}, marking geometry\\
+Arbitration & lexicographic order & \code{CostVector}, \code{route\_capability\_plan}\\
+Makespan / cost & critical-path functional & \code{ScheduleAnalysis64}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{The two theses of this pillar, stated once}
+
+\paragraph{Manufacture is bounded search over a finite ground net.}
+A lifted PDDL domain with numeric fluents grounds to a \emph{finite} set of transitions
+(Theorem~\ref{thm:bounded-ground}), so $\muop$'s search terminates with a priori bounded cost
+--- the boundedness law (M2) of the foundations, instantiated. The state it searches is a
+marking: a vector of atom-tokens plus a valuation of numeric fluents. The attention fluent,
+borrowed at an action's start and returned at its end, obeys a balance law whose
+nonnegativity is exactly schedule feasibility (Proposition~\ref{prop:balance}).
+
+\paragraph{Conformance is distance to a cone, certified by a hyperplane.}
+The reachable markings of a net are constrained by the state equation $\bm m=\bm
+m_{0}+\Nmat\bm x$ to lie in a translated cone (Proposition~\ref{prop:cone}). A trace conforms
+only if its marking lies there; a nonconformant marking is separated from the cone by a
+Farkas hyperplane (Theorem~\ref{thm:farkas}), a certificate of dimension $p$ that a
+bounded verifier checks without replaying the interior. Token-replay fitness measures the
+normalized excursion outside the enabled set, and equals $1$ exactly on genuine firing
+sequences (Theorem~\ref{thm:fitness}).
+
+Throughout, a claim is a definition, a theorem with proof, or a citation. The prior published
+paper \cite{chatman2025} demonstrated $\Act=\muop(\Obs)$ at enterprise scale and full coverage
+of the forty-three workflow patterns \cite{vdaalst2003patterns}; this pillar supplies the
+planning and conformance geometry those numbers rested on.
+
+\chapter{The PDDL Action Law with Numeric Fluents}
+\label{ch:pddl}
+
+\section{Lifted domains, grounding, and the state}
+
+We take the numeric-temporal fragment of PDDL~2.1 \cite{foxlong2003} as the language of
+$\muop$ when it manufactures missions, and give it exactly the structure \code{bcinr-pddl}
+grounds and searches.
+
+\begin{definition}[Lifted numeric-temporal domain]\label{def:domain}
+A \emph{lifted domain} is a tuple $\mathcal{D}=(\mathcal{T},\mathcal{P},\mathcal{F},
+\mathcal{S})$: a finite type hierarchy $\mathcal{T}$ (a forest under a subtype relation, with
+universal root \code{object}); a finite set $\mathcal{P}$ of predicate symbols with typed
+arities; a finite set $\mathcal{F}$ of numeric \emph{function} symbols (fluents) with typed
+arities; and a finite set $\mathcal{S}$ of action schemas. A \emph{durative} schema
+$s\in\mathcal{S}$ carries typed parameters $\bar v$, a duration constraint, a condition
+$C_s$, and an effect $E_s$, where conditions and effects are timestamped \code{at start} /
+\code{at end} and may be atomic (over $\mathcal{P}$) or numeric comparisons/updates (over
+$\mathcal{F}$).
+\end{definition}
+
+\begin{definition}[Grounded temporal problem]\label{def:ground}
+Given a domain $\mathcal{D}$ and a problem $(\mathcal{Ob},\bm m_{0},\nu_{0},\gamma)$ with
+finite typed objects $\mathcal{Ob}$, initial atom set $\bm m_{0}$, initial fluent valuation
+$\nu_{0}:\mathcal{F}\text{-instances}\to\mathbb{R}$, and goal condition $\gamma$, the
+\emph{grounding} substitutes every type-compatible object tuple into each schema's parameters,
+producing a finite set of ground actions. A grounded state is a pair
+$(\bm m,\nu)$ of a set $\bm m$ of true ground atoms and a fluent valuation $\nu$.
+\end{definition}
+
+This is the \code{GroundTemporalProblem} of \code{bcinr-pddl}: \code{initial\_atoms},
+\code{initial\_fn\_values}, grounded \code{durative\_actions}, and a goal
+\code{PddlCondition}. Type compatibility is the \code{TypeIndex::satisfies} walk up the parent
+chain; the universal type \code{object} matches every object.
+
+\begin{theorem}[Grounding is bounded]\label{thm:bounded-ground}
+Let $\mathcal{D}$ have schemas of maximum parameter arity $k$ over $|\mathcal{Ob}|=N$ objects.
+The number of ground actions is at most $|\mathcal{S}|\cdot N^{k}$, a finite constant
+independent of the goal. Consequently a forward search over grounded actions has a branching
+factor bounded a priori, and $\muop$'s manufacture terminates within a fixed depth bound.
+\end{theorem}
+
+\begin{proof}
+Each schema binds at most $k$ parameters, each to one of $\le N$ objects, so it grounds to at
+most $N^{k}$ actions; summing over $|\mathcal{S}|$ schemas gives the bound. In \code{bcinr-pddl}
+the count is additionally capped by the structural constant \code{PDDL8\_MAX\_GROUND}: exceeding
+it is the hard error \code{Pddl8Error::BoundExceeded}, and an empty grounding is
+\code{EmptyGrounding}. Thus the ground action set is finite and its size is a fixed function of
+$(|\mathcal{S}|,N,k)$, discharging the boundedness law (M2) for mission manufacture. \end{proof}
+
+\begin{remark}[The forward search is the manufacture]
+For the classical (atomic) fragment, \code{GroundProblem::find\_plan} is breadth-first search
+over sets of ground atoms: the frontier is a queue of $(\text{state},\text{path})$ pairs,
+visited states are deduplicated, and the first state containing the goal set returns its path
+as a \code{Pddl8Tape}. Search failure within \code{PDDL8\_MAX\_PLAN\_DEPTH} is
+\code{NoAdmittedPlan} --- a \emph{refusal with reason}, not an exception, exactly as admission
+returns $\Rfsl$. The manufacture either yields an artifact or a receipted refusal; it never
+diverges, by Theorem~\ref{thm:bounded-ground}.
+\end{remark}
+
+\section{Numeric fluents and the attention balance law}
+
+The distinctive content of the numeric fragment is that an action may test and update a
+real-valued fluent. \code{bcinr-pddl}'s \code{eval\_numeric} evaluates a fluent expression
+against a valuation, and \code{apply\_numeric\_effect} realizes the five update kinds
+\code{Assign}, \code{Increase}, \code{Decrease}, \code{ScaleUp}, \code{ScaleDown}. We
+formalize the one that carries the calculus of attention.
+
+\begin{definition}[Numeric fluent balance]\label{def:balance}
+A durative action $j$ \emph{draws} on a fluent $\phi$ if its effect contains
+$\code{at start (decrease } \phi\ r_j)$ and $\code{at end (increase } \phi\ r_j)$ for a rate
+$r_j\ge 0$, and its condition contains $\code{at start } (\phi \ge r_j)$. Over the half-open
+interval $[s_j,e_j)$ of its execution, $j$ holds $r_j$ units of $\phi$ and releases them at
+$e_j$. The \emph{free level} of $\phi$ at time $t$ is
+\[
+f_\phi(t)\;=\;\nu_0(\phi)\;-\!\!\sum_{j:\,t\in[s_j,e_j)}\!\! r_j .
+\]
+\end{definition}
+
+This is exactly the capability router's model: its domain declares \code{(:functions
+(attention))}; each capability schema decrements \code{attention} by $1$ \code{at start} under
+the guard \code{(>= (attention) 1)} and increments it back \code{at end}. Attention is ``one
+working human, one active train of thought.''
+
+\begin{proposition}[Attention is borrowed and returned: conservation]\label{prop:conserve}
+If every action drawing on $\phi$ both decrements $\phi$ by $r_j$ at start and increments it by
+$r_j$ at end, then the net effect of each completed action on $\phi$ is zero, and the terminal
+valuation equals the initial: $\nu_{\text{end}}(\phi)=\nu_0(\phi)$. Hence $\phi$ is a conserved
+resource; scheduling redistributes \emph{when} it is held, never \emph{how much} exists.
+\end{proposition}
+
+\begin{proof}
+By \code{apply\_numeric\_effect}, \code{Decrease}$(\phi,r_j)$ then \code{Increase}$(\phi,r_j)$
+compose to the identity on $\nu(\phi)$. Summing over all completed actions, the total change is
+$\sum_j (r_j-r_j)=0$, so $\nu_{\text{end}}(\phi)=\nu_0(\phi)$. The intermediate values differ
+only on the union of the open execution intervals, which is the content of
+Definition~\ref{def:balance}. \end{proof}
+
+\begin{proposition}[Feasibility is pointwise nonnegativity]\label{prop:balance}
+A durative-action schedule is feasible with respect to $\phi$ --- every action's start guard
+$(\phi\ge r_j)$ holds when it fires --- if and only if $f_\phi(t)\ge 0$ for all $t$;
+equivalently, at no instant does the total rate of in-flight draws exceed $\nu_0(\phi)$. For the
+unit-rate attention fluent ($r_j\equiv1$), this says the number of concurrently in-flight
+capabilities never exceeds the capacity $\nu_0(\code{attention})$.
+\end{proposition}
+
+\begin{proof}
+The start guard at $s_j$ requires $\nu(\phi)\ge r_j$ \emph{in the state just before $j$'s
+at-start decrement}. By Definition~\ref{def:balance}, that state's value of $\phi$ is
+$f_\phi(s_j^{-})=\nu_0(\phi)-\sum_{i\neq j:\,s_j\in[s_i,e_i)} r_i$, so the guard holds iff
+$f_\phi(s_j^{-})\ge r_j$, i.e.\ $f_\phi(s_j)\ge 0$ after $j$'s own draw is included. Free level
+changes only at action starts and ends, so if it is $\ge 0$ at every start it is $\ge 0$
+everywhere. Conversely a violated guard is an instant with $f_\phi<0$. For $r_j\equiv 1$, the
+sum counts in-flight actions, so nonnegativity is exactly ``concurrency $\le$ capacity.''
+\end{proof}
+
+\code{bcinr-pddl}'s temporal planner enforces exactly this: within a tick it re-scans
+candidate actions after each start so an \code{at start} decrement is visible to the next
+candidate's guard in the same instant, which the source comments identify as ``what lets
+concurrent starts correctly gate on shared resource fluents.'' The
+\code{zero\_attention\_capacity\_is\_infeasible\_and\_refused} test is
+Proposition~\ref{prop:balance} at capacity $0$: with $f_{\code{attention}}(t)<0$ forced at any
+start, the router refuses rather than defaults a route.
+
+\chapter{The Marking Polytope and the State Equation}
+\label{ch:polytope}
+
+\section{Place/transition nets and the incidence matrix}
+
+Atomic (non-numeric) execution has a native linear-algebraic geometry, that of place/transition
+nets \cite{murata1989}. We reproduce it in the form the code inhabits.
+
+\begin{definition}[Net, marking, enabling, firing]\label{def:net}
+A \emph{net} has $p$ places and a finite set $T$ of transitions. A \emph{marking} is a vector
+$\bm m\in\Zplus^{p}$. A transition $t$ is a pair $(\bm m^{-}_{t},\bm m^{+}_{t})$ of a
+\emph{preset} (consumed) and \emph{postset} (produced) vector. $t$ is \emph{enabled} at $\bm
+m$ iff $\bm m\ge\bm m^{-}_{t}$ coordinatewise; firing it yields
+$\bm m'=\bm m-\bm m^{-}_{t}+\bm m^{+}_{t}$.
+\end{definition}
+
+\begin{definition}[Incidence matrix and state equation]\label{def:incidence}
+Let $\Nmat\in\mathbb{Z}^{p\times|T|}$ have column $\bm\delta_t=\bm m^{+}_{t}-\bm m^{-}_{t}$ for
+each transition $t$. A firing sequence $\varsigma$ with \emph{Parikh vector} $\bm x\in\Zplus^{|T|}$
+(the count of each transition's firings) satisfies the \emph{state equation}
+\begin{equation}\label{eq:state}
+\bm m \;=\; \bm m_{0} + \Nmat\bm x .
+\end{equation}
+\end{definition}
+
+\begin{proposition}[Reachability lies in a translated cone]\label{prop:cone}
+Every marking $\bm m$ reachable from $\bm m_{0}$ satisfies \eqref{eq:state} for some
+$\bm x\in\Zplus^{|T|}$, hence lies in the integer points of
+$\bm m_{0}+\cone(\Nmat)$ intersected with $\Zplus^{p}$, where
+$\cone(\Nmat)=\{\Nmat\bm x:\bm x\ge\bm 0\}$. The state equation is a \emph{necessary}
+condition for reachability; it is not sufficient (a $\bm x$ solving \eqref{eq:state} need not
+correspond to a fireable ordering).
+\end{proposition}
+
+\begin{proof}
+Firing $t$ once adds column $\bm\delta_t$ to the marking (Definition~\ref{def:net}); a sequence
+firing each $t$ exactly $x_t$ times adds $\sum_t x_t\bm\delta_t=\Nmat\bm x$, giving
+\eqref{eq:state}. Since each $x_t\ge0$ and markings are nonnegative integers, $\bm m$ is an
+integer point of $\bm m_{0}+\cone(\Nmat)$ in the nonnegative orthant. Insufficiency is the
+classical Petri-net fact \cite{murata1989}: \eqref{eq:state} ignores intermediate
+nonnegativity and firing order, so spurious solutions exist. \end{proof}
+
+\begin{definition}[Marking polytope]\label{def:polytope}
+The \emph{marking polytope} of a net is the relaxation
+\[
+\Poly \;=\; \bigl\{\,\bm m_{0}+\Nmat\bm x \;:\; \bm x\ge\bm 0\,\bigr\}\cap\{\bm m\ge\bm 0\}
+\;\subseteq\;\Rplus^{p},
+\]
+the continuous translated cone whose integer points over-approximate the reachable set.
+\end{definition}
+
+\section{STRIPS grounding is a net; the lifecycle token model is its safe specialization}
+
+\begin{construction}[STRIPS grounding as a net]\label{con:strips}
+Take the places to be the ground atoms. A ground action $t$ with delete-effects $\bm
+m^{-}_{t}$ and add-effects $\bm m^{+}_{t}$ is a transition; its precondition atoms must all be
+present for it to fire (an enabling condition refining Definition~\ref{def:net}). Then
+\code{GroundProblem::find\_plan} searches marking space: the BFS frontier is a set of markings,
+the successor relation is exactly transition firing (\code{for d in del\_effects \{
+next.remove(d) \}; for a in add\_effects \{ next.insert(a) \}}), and a plan is a path to a
+marking containing the goal.
+\end{construction}
+
+The lifecycle model of the foundations paper --- the fixed sequence
+$\code{judge}\to\code{admit}\to\code{receipt}$ --- is a concrete net whose places are the
+token bits of \code{replay\_adapter}: \code{TOK\_START}, \code{TOK\_JUDGED},
+\code{TOK\_ADMITTED}, \code{TOK\_DONE}. Each step's \code{required\_tokens} is its preset and
+\code{produces\_tokens} its postset:
+\[
+\code{judge}:\ \code{TOK\_START}\!\to\!\code{TOK\_JUDGED},\quad
+\code{admit}:\ \code{TOK\_JUDGED}\!\to\!\code{TOK\_ADMITTED},\quad
+\code{receipt}:\ \code{TOK\_ADMITTED}\!\to\!\code{TOK\_DONE}.
+\]
+
+\begin{proposition}[The verifier's firing rule is the safe-net state equation]\label{prop:safe}
+On a \emph{safe} (1-bounded) net, where every marking and every preset/postset is a $0/1$
+vector and presets are consumed, the integer firing rule
+$\bm m'=\bm m-\bm m^{-}_{t}+\bm m^{+}_{t}$ of Definition~\ref{def:net} coincides with the
+branchless bitset update the \code{PowlReplayVerifier} performs:
+\[
+\code{enabled\_tokens}\;\gets\;(\code{enabled\_tokens}\ \&\ \lnot\,\bm m^{-}_{t})\ |\ \bm m^{+}_{t},
+\]
+and the enabling test $\bm m\ge\bm m^{-}_{t}$ coincides with the branchless subset check
+$(\code{enabled}\ \&\ \bm m^{-}_{t})\oplus \bm m^{-}_{t}=0$.
+\end{proposition}
+
+\begin{proof}
+On $0/1$ markings with $\bm m^{-}_{t}\le\bm m$, the AND-NOT $\code{enabled}\ \&\ \lnot\,\bm
+m^{-}_{t}$ clears exactly the consumed places (subtracting $\bm m^{-}_{t}$), and the OR with
+$\bm m^{+}_{t}$ sets the produced places (adding $\bm m^{+}_{t}$); when preset and postset are
+disjoint from the retained marking this is bit-for-bit the integer expression. The enabling
+identity holds because $(\bm m\ \&\ \bm m^{-})\oplus\bm m^{-}=0$ iff every bit of $\bm m^{-}$ is
+also set in $\bm m$, i.e.\ $\bm m\ge\bm m^{-}$ coordinatewise on $0/1$ vectors. Both are the
+verifier's two guard lines verbatim. \end{proof}
+
+Proposition~\ref{prop:safe} is the bridge between the general Petri geometry of
+\cite{murata1989} and the constant-time bitwise mechanism the receipt path actually runs: the
+polytope theory is the semantics, the mask reduction is the implementation.
+
+\chapter{Conformance as Cone Membership and Farkas Certificates}
+\label{ch:conformance}
+
+\section{Conformance is membership}
+
+\begin{definition}[Conformance]\label{def:conf}
+A trace with final marking $\bm m^{\dagger}$ and transition-count vector $\bm x$
+\emph{conforms} to a net with initial marking $\bm m_{0}$ if $\bm m^{\dagger}\in\Poly$ and the
+$\bm x$ witnessing it is realized by a genuine firing ordering. A trace \emph{fails membership}
+if $\bm m^{\dagger}\notin\Poly$, i.e.\ no $\bm x\ge\bm 0$ solves
+$\Nmat\bm x=\bm m^{\dagger}-\bm m_{0}$ within the nonnegative orthant.
+\end{definition}
+
+\begin{theorem}[Farkas separation certifies nonconformance]\label{thm:farkas}
+Fix $\bm b=\bm m^{\dagger}-\bm m_{0}$. Exactly one of the following holds:
+\begin{enumerate}[label=(\alph*),leftmargin=*]
+\item there exists $\bm x\ge\bm 0$ with $\Nmat\bm x=\bm b$ (the continuous relaxation is
+      feasible; membership in the cone is possible); or
+\item there exists a vector $\bm y\in\mathbb{R}^{p}$ with $\Nmat^{\!\top}\bm y\le\bm 0$ and
+      $\bm y^{\!\top}\bm b>0$ --- a separating hyperplane whose normal $\bm y$ certifies
+      $\bm m^{\dagger}\notin\bm m_{0}+\cone(\Nmat)$.
+\end{enumerate}
+The certificate $\bm y$ is a \emph{sound proof of nonconformance}: if (b) holds, no firing
+sequence, in any order, reaches $\bm m^{\dagger}$ from $\bm m_{0}$.
+\end{theorem}
+
+\begin{proof}
+This is Farkas' lemma \cite{schrijver1986} applied to the system $\Nmat\bm x=\bm b,\ \bm
+x\ge\bm 0$: either the system has a nonnegative solution, or there is $\bm y$ with
+$\bm y^{\!\top}\Nmat\le\bm 0^{\!\top}$ and $\bm y^{\!\top}\bm b>0$, and never both. In case (b),
+suppose for contradiction a firing sequence reached $\bm m^{\dagger}$; by
+Proposition~\ref{prop:cone} its Parikh vector $\bm x^{\star}\ge\bm 0$ satisfies
+$\Nmat\bm x^{\star}=\bm b$, so $\bm y^{\!\top}\bm b=\bm y^{\!\top}\Nmat\bm x^{\star}
+=(\Nmat^{\!\top}\bm y)^{\!\top}\bm x^{\star}\le 0$, contradicting $\bm y^{\!\top}\bm b>0$.
+Hence (b) rules out reachability. Soundness is one-directional by
+Proposition~\ref{prop:cone}: feasibility of the relaxation (a) is necessary but not
+sufficient for an actual firing sequence, so (a) does not by itself certify conformance ---
+only (b) certifies its negation. \end{proof}
+
+\begin{corollary}[The certificate is bounded and verifiable at $O(\CL)$]\label{cor:cert}
+A nonconformance certificate is a single vector $\bm y\in\mathbb{R}^{p}$ together with the two
+inequalities $\Nmat^{\!\top}\bm y\le\bm 0$ and $\bm y^{\!\top}\bm b>0$. Checking it is a matrix
+product and two sign tests --- independent of the length of the trace that produced $\bm
+m^{\dagger}$. Projected to the receipt's bounded coordinate (a verdict and a localized
+witness), it is verifiable within a bounded context $\CL$, per the keystone's
+Comprehension--Verification Gap.
+\end{corollary}
+
+\begin{proof}
+Verification reads $\bm y$ and $\bm b$ and evaluates $\Nmat^{\!\top}\bm y$ and $\bm
+y^{\!\top}\bm b$; the cost is $O(p\cdot|T|)$ in the net's fixed dimensions, with no dependence
+on trace length or interior computation. The receipt exposes the Boolean verdict and the
+witness coordinate, of size $\le\CL$. \end{proof}
+
+\begin{remark}[Geometry is the process-layer projection principle]
+A conformance failure is not reported as ``the trace looked wrong''; it is a hyperplane one can
+recompute. This is the projection principle in linear algebra: an unbounded execution is
+judged by a bounded certificate whose fidelity is mechanical, not a matter of the verifier
+comprehending the run.
+\end{remark}
+
+\chapter{Token-Replay Fitness as Normalized Distance}
+\label{ch:fitness}
+
+\section{The replay verifier as a Petri semantics}
+
+Token-replay conformance \cite{rozinat2008} plays a trace against a process model and measures
+how far it strays from lawful firing. \code{bcinr-powl}'s \code{PowlReplayVerifier} is a
+branchless realization; we give its exact semantics and prove what it characterizes.
+
+\begin{definition}[Replay state and step]\label{def:replay}
+The verifier holds a marking $\bm m$ (\code{enabled\_tokens}) initialized to the entry token,
+and accumulators $\code{replayed}$, $\code{fitted}$, $\code{enabled\_not\_taken}$ (bitsets of
+node identities). A frame carries a one-hot \code{node\_bit}, a preset \code{required\_tokens}
+$=\bm m^{-}$, and a postset \code{produces\_tokens} $=\bm m^{+}$. Replaying a frame:
+\begin{enumerate}[label=(\arabic*),leftmargin=*]
+\item rejects a \code{node\_bit} that is zero or not a power of two (\code{UnknownNode});
+\item requires $\bm m\ge\bm m^{-}$ (else \code{TokenNotEnabled}), the branchless check of
+      Proposition~\ref{prop:safe};
+\item records the enabled-but-unconsumed tokens
+      $\code{enabled\_not\_taken}\mathrel{|}= \bm m\ \&\ \lnot\bm m^{-}\ \&\ \lnot\,\code{node\_bit}$;
+\item fires: $\bm m\gets(\bm m\ \&\ \lnot\bm m^{-})\ |\ \bm m^{+}$; and
+\item sets the $\code{node\_bit}$ in both \code{replayed} and \code{fitted}.
+\end{enumerate}
+\end{definition}
+
+\begin{definition}[Conformance fitness]\label{def:fitness}
+On finalization the verifier returns, in Q16.16 fixed point,
+\[
+\Fitness \;=\; \frac{|\code{fitted}|}{|\code{replayed}|},\qquad
+\text{precision}\;=\;\frac{|\code{replayed}|}{|\code{replayed}|+|\code{enabled\_not\_taken}|},
+\]
+where $|\cdot|$ is population count and $\Fitness\coloneqq 1$ when the denominator is zero. The
+value $1.0$ is the constant \code{0x0001\_0000}.
+\end{definition}
+
+\begin{theorem}[Unit fitness characterizes genuine firing sequences; the fault localizes]\label{thm:fitness}
+Replaying a sequence of frames against the net either (i) completes with no violation, in which
+case the sequence is a genuine firing sequence --- each transition was enabled at the marking
+where it fired --- and $\Fitness=1$; or (ii) halts at the first frame whose preset is not
+contained in the current marking, returning $\code{TokenNotEnabled}\{node\_id\}$, a
+coordinate-localized witness of the earliest disabled transition.
+\end{theorem}
+
+\begin{proof}
+Step (2) of Definition~\ref{def:replay} admits a frame iff $\bm m\ge\bm m^{-}$, which by
+Definition~\ref{def:net} is exactly the enabling condition; step (4) is the firing rule
+(Proposition~\ref{prop:safe}). By induction on the prefix, if no frame is rejected then every
+frame fired from a marking at which it was enabled, so the whole sequence is a genuine firing
+sequence and the intermediate markings are reachable. In that case every replayed frame also
+sets \code{fitted} (step 5), so $|\code{fitted}|=|\code{replayed}|$ and
+$\Fitness=1$. Conversely the guard in step (2) fails at the \emph{first} frame whose
+required tokens are absent --- the verifier returns immediately with that frame's
+\code{node\_id} --- so a non-firing sequence is rejected at the earliest offending index, which
+is the localized witness $t^{\star}$. \end{proof}
+
+\begin{proposition}[Fitness and precision are honest population ratios]\label{prop:honest}
+$\Fitness$ and precision are ratios of bit-populations of disjointly-maintained bitsets;
+neither can exceed $1$, and $\Fitness=1$ is attained exactly on completed replays
+(Theorem~\ref{thm:fitness}). The \code{enabled\_not\_taken} accumulator, gathered
+\emph{before} consumption in step (3), counts tokens that were live but not used by the firing
+--- the model's under-fitting --- and feeds precision, not fitness; the two metrics therefore
+measure orthogonal deviations and cannot be traded against each other.
+\end{proposition}
+
+\begin{proof}
+Population count is monotone and bounded by the number of node bits, and \code{fitted}
+$\subseteq$ \code{replayed} by construction (step 5 sets both), so $\Fitness\le 1$ with
+equality iff no frame was replayed-without-fitting --- which, in the current step, is every
+completed replay. \code{enabled\_not\_taken} is updated only in step (3) and read only by
+precision's denominator, so it is independent of the fitness numerator. \end{proof}
+
+The lifecycle instance makes this concrete. \code{replay\_lifecycle} on the in-order sequence
+$[\code{Judged},\code{Admitted},\code{Receipted}]$ returns $\Fitness=\code{0x0001\_0000}$; the
+out-of-order $[\code{Admitted},\dots]$ fails at the \code{Admitted} frame, which requires
+\code{TOK\_JUDGED} that the entry marking lacks, returning
+$\code{TokenNotEnabled}\{node\_id:2\}$; and skipping \code{admit} before \code{receipt} fails at
+node $3$. These are the three tests \code{lawful\_in\_order\_sequence\_has\_fitness\_one},
+\code{out\_of\_order\_sequence\_is\_token\_not\_enabled}, and
+\code{skipping\_admit\_before\_receipt\_is\_token\_not\_enabled} --- Theorem~\ref{thm:fitness}'s
+two branches, executed.
+
+\begin{remark}[Relation to the keystone's fractional fitness]
+The keystone defines $\Fitness=1-(\text{tokens forced on unenabled transitions})/(\text{tokens
+attempted})$, a fraction in $[0,1]$. The \code{praxis} lifecycle verifier is the strict
+specialization in which a forced-disabled firing is a hard \code{TokenNotEnabled} rather than a
+fractional penalty: the ``forced consumption'' branch is never taken because the verifier
+refuses to fire a disabled transition at all. Both characterize the same lawful set
+$\{\Fitness=1\}$; the specialization is more conservative --- it localizes the first fault and
+stops --- which is the desired behavior for a lifecycle whose only lawful order is a single
+line.
+\end{remark}
+
+\chapter{POWL 2.0: Choice Graphs and Partial Orders}
+\label{ch:powl}
+
+\section{The language}
+
+Partially Ordered Workflow Language (POWL) \cite{powl2023} is the model class into which the
+planner's output is compiled for replay. We define it as the recursive structure the code
+builds.
+
+\begin{definition}[POWL model]\label{def:powl}
+A \emph{POWL model} over an activity alphabet $A$ is one of:
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item an \emph{activity} $a\in A$ (a leaf);
+\item a \emph{partial order} $(\{M_1,\dots,M_k\},\prec)$: a finite set of child POWL models
+      with an irreflexive, acyclic precedence relation $\prec$, executed by respecting $\prec$
+      and running $\prec$-incomparable children concurrently; or
+\item a \emph{choice graph} $(\{M_1,\dots,M_k\},E)$: children combined by exclusive choice
+      (and, in POWL~2.0, cyclic/loop edges $E$), of which the execution takes exactly one live
+      branch.
+\end{enumerate}
+The three node kinds are \code{PowlOpKind::Activity}, \code{PartialOrderGate},
+\code{ChoiceGate} in \code{powl\_bridge}.
+\end{definition}
+
+\begin{construction}[Plan to POWL tape; transitive reduction]\label{con:tape}
+\code{temporal\_plan\_to\_powl\_tape} converts a \code{TemporalPlan} into a tape of
+\code{PowlOpSpec}s. Each step $i$ becomes an activity with a \code{pred\_mask} initialized to
+the set of steps $j<i$ that finish before $i$ starts
+($\code{prev\_end}\le\code{start}_i$), and a one-hot \code{succ\_mask} $=1\!\ll\! i$. A second
+pass performs \emph{transitive reduction}: for each predecessor $k$ of $i$, the bits of $k$'s
+own predecessors are cleared from $i$'s mask, leaving only \emph{direct} predecessors.
+\end{construction}
+
+\begin{proposition}[The reduced masks are the Hasse diagram of the precedence order]\label{prop:hasse}
+Let $\prec$ be the strict order ``$j$ finishes before $i$ starts'' on plan steps. The
+initialized \code{pred\_mask} of step $i$ is $\{j:j\prec i\}$, and after transitive reduction it
+is the covering relation of $\prec$: $j$ remains a predecessor of $i$ iff $j\prec i$ and there
+is no $k$ with $j\prec k\prec i$. The resulting dependency graph is a DAG, and two steps are
+schedulable concurrently iff they are $\prec$-incomparable.
+\end{proposition}
+
+\begin{proof}
+$\prec$ is irreflexive and transitive (it is induced by the total order on real finish/start
+times), hence a strict partial order. The first pass sets bit $j$ in $i$'s mask exactly when
+$j\prec i$. The reduction clears bit $j$ from $i$'s mask when some retained predecessor $k$ of
+$i$ has $j$ in \emph{its} predecessors, i.e.\ $j\prec k\prec i$; what survives is precisely the
+covering relation (the Hasse diagram) of $\prec$. Acyclicity follows from irreflexivity and
+transitivity. Incomparable steps have no path between them, so the scheduler may overlap their
+intervals; comparable steps are ordered by $\prec$. \end{proof}
+
+\begin{proposition}[Local marking dimension is bounded by node arity]\label{prop:local}
+In a POWL model, the token marking local to a node ranges over the tokens of that node's
+immediate children: a partial-order or choice node of arity $k$ has a local marking space of
+dimension $O(k)$, independent of the total size of the model. Consequently the replay of a
+node is checked in a working set bounded by its arity, and the global replay is the composition
+of these bounded-dimension checks.
+\end{proposition}
+
+\begin{proof}
+By Definition~\ref{def:powl} a node's execution semantics reference only its own children's
+tokens: a partial order gates on the $\prec$-predecessors among its $k$ children; a choice
+gates on which of its $k$ branches is live. The token bits touched by one node's firing are
+therefore contained in an $O(k)$-dimensional subspace of the marking, regardless of how large
+the surrounding model is. The bounded-arity constant is the \code{PowlOpSpec} tape's per-op
+mask width. \end{proof}
+
+Proposition~\ref{prop:local} is the structural reason conformance is cheap: even though the
+mission's interior may be arbitrarily large, each POWL node is judged in a working set bounded
+by its arity --- the projection principle, localized to the process tree.
+
+\chapter{Separability as a Rice Quarantine for Processes}
+\label{ch:sep}
+
+\section{The separable decomposition}
+
+Not every workflow net is a POWL model; the ones that are, are exactly the \emph{separable}
+ones, and this is a decidable structural property.
+
+\begin{theorem}[Separable decomposition, after Kourani--van der Aalst]\label{thm:sep}
+A sound, separable workflow net admits a recursive decomposition into a POWL model
+(Definition~\ref{def:powl}) whose every internal node is a partial order (all concurrent /
+sequential logic) or a choice graph (all exclusive / cyclic logic), and whose leaves are
+activities. Each node's local marking geometry has dimension bounded by its arity
+(Proposition~\ref{prop:local}), independent of the global net size.
+\end{theorem}
+
+\begin{proof}[Attribution]
+This is the decomposition established for POWL by Kourani and van der Aalst and colleagues
+\cite{powl2023}, resting on van der Aalst's process-mining foundations \cite{vdaalst2016}. We
+cite it rather than reprove it; the contribution here is the reframing below. \end{proof}
+
+\begin{proposition}[Separability is the process-layer Rice quarantine]\label{prop:quarantine}
+Let $\text{sep}:\{\text{workflow nets}\}\to\{0,1\}$ be the (decidable) predicate ``the net is
+sound and separable.'' Then $\text{sep}$ is a legitimate admission obligation $g$ in the sense
+of the foundations paper: it is total and computable, so admitting a process by $\text{sep}$
+retracts the space of arbitrary control-flow onto the decidable sub-language of POWL-expressible
+processes. A separable net is \emph{admitted} (it decomposes, and its conformance is the
+bounded-arity replay of Chapter~\ref{ch:powl}); a non-separable net is \emph{refused with
+reason} --- the reason being the structural obstruction to decomposition.
+\end{proposition}
+
+\begin{proof}
+Soundness and separability are structural properties of a finite net, checkable by the
+decomposition procedure of Theorem~\ref{thm:sep}, which either returns a POWL tree or the node
+at which decomposition fails. Thus $\text{sep}$ is total and computable, satisfying the
+obligation criterion (a syntactic terminating check, never a semantic decision about what the
+process ``means''). Admission maps the net to its POWL decomposition when $\text{sep}=1$ and to
+$\Rfsl$ with the obstruction as refusal data otherwise, which is exactly the admission map
+$\adm$ specialized to processes. \end{proof}
+
+\begin{remark}[The parallel is exact]
+The foundations paper retracted the undecidable observation space $\Obs$ onto a decidable
+admitted language $\Adm$ because Rice's theorem forbids deciding meaning. Here an unwieldy space
+of arbitrary control-flow is retracted onto the decidable sub-language of separable (POWL)
+processes because only there is conformance a bounded-arity replay. In both cases: a large,
+badly-behaved space is replaced by a small decidable sub-language whose membership is
+mechanically certified, and the boundary certificate --- a POWL tree, a fitness value, a Farkas
+hyperplane --- is small. Separability \emph{is} admission, for processes.
+\end{remark}
+
+\chapter{Cost Arbitration and the Makespan Functional}
+\label{ch:cost}
+
+\section{The cost vector and lexicographic order}
+
+When several admitted plans achieve a goal, the router must choose one deterministically. The
+choice is a total order on a cost vector.
+
+\begin{definition}[Cost vector]\label{def:cost}
+The router's \code{CostVector} is the tuple
+\[
+\CostV=(c_0,c_1,c_2,c_3,c_4,c_5)=
+\bigl(\overline{\code{admitted}},\ \code{risk},\ \code{attention\_seconds},\ \code{tokens},\
+\code{latency},\ \code{switches}\bigr),
+\]
+where $c_0=\overline{\code{admitted}}$ is the unadmitted indicator ($0$ = admitted, and
+admitted sorts first), $c_1=\code{unreceipted\_mutation\_risk}\in\{0,\dots,255\}$,
+$c_2=\code{human\_attention\_seconds}$ (the makespan, \S\ref{sec:makespan}),
+$c_3=\code{token\_cost}$, $c_4=\code{latency\_ms}$, and
+$c_5=\code{context\_switches}\in\{0,\dots,255\}$ (distinct capabilities used). The order is
+lexicographic, cheapest-first, and the refused vector is
+$\code{refused}()=(\text{unadmitted},255,\infty,\infty,\infty,255)$, the top element.
+\end{definition}
+
+\begin{theorem}[Lexicographic order is the infinite-weight limit]\label{thm:lex}
+Let the secondary coordinates be bounded, $|c_i|\le M$ for $i\ge 1$ over the admitted plans
+(the risk and switch coordinates are $\le 255$; the makespan, latency, and token coordinates
+are bounded by the structural depth and duration constants of
+Theorem~\ref{thm:bounded-ground}). Define the scalarization
+$C_\lambda(\CostV)=\sum_{i=0}^{5}\lambda^{5-i}c_i$ with $\lambda>1$. Then there is a threshold
+$\Lambda$ such that for all $\lambda>\Lambda$,
+\[
+\CostV\preceq_{\mathrm{lex}}\CostV' \iff C_\lambda(\CostV)\le C_\lambda(\CostV').
+\]
+As $\lambda\to\infty$ the weight $\lambda^{5}$ on the admitted coordinate $c_0$ diverges
+relative to all others.
+\end{theorem}
+
+\begin{proof}
+If $\CostV\prec_{\mathrm{lex}}\CostV'$ they first differ at some coordinate $p$ with
+$c'_p-c_p\ge\epsilon>0$ (the coordinates are integers or bounded reals with a least positive
+gap $\epsilon$ on the admitted, risk, and switch coordinates; for the continuous coordinates
+take $\epsilon$ the observed resolution). Then
+\[
+C_\lambda(\CostV')-C_\lambda(\CostV)\;\ge\;\lambda^{5-p}\epsilon
+-2M\!\!\sum_{i>p}\lambda^{5-i}\;=\;\lambda^{5-p}\epsilon-2M\,\frac{\lambda^{5-p}-1}{\lambda-1},
+\]
+which is positive once $\lambda>\Lambda\coloneqq 1+2M\cdot 6/\epsilon$. Ties in all
+coordinates map to equality. Hence for $\lambda>\Lambda$ the scalarization order agrees with
+$\preceq_{\mathrm{lex}}$. The admitted coordinate carries weight $\lambda^{5}$, dominating the
+others' $\lambda^{5-i}$ as $\lambda\to\infty$. \end{proof}
+
+\begin{corollary}[Admitted dominates: no finite cost buys a refused route]\label{cor:dominate}
+An admitted plan sorts strictly before any refused plan, regardless of its secondary costs:
+for any finite risk, makespan, token, latency, and switch values, an admitted
+\code{CostVector} is $\prec_{\mathrm{lex}}$ the refused top element. Equivalently, the price of
+unlawfulness is infinite in the limit that defines the order.
+\end{corollary}
+
+\begin{proof}
+The lead coordinate $c_0$ is $0$ for admitted and $1$ for refused, and by
+Theorem~\ref{thm:lex} it dominates: any admitted vector differs from the refused element first
+at $c_0$, where it is strictly smaller. Concretely, \code{CostVector}'s \code{Ord} places
+$\code{admitted}=true$ ahead by reversing the boolean comparison, then breaks ties down the
+remaining coordinates; the \code{refused}() constructor sets $c_0$ to unadmitted and every
+secondary coordinate to its maximum ($\infty$ for the reals, \code{u8::MAX}/\code{u64::MAX} for
+the integers), so it is the unique top. This is the test
+\code{cost\_vector\_orders\_admitted\_before\_refused}. \end{proof}
+
+\begin{remark}[The router's determinism is a receipt]
+\code{route\_capability\_plan} binds the problem text, the plan's steps, and the cost into a
+BLAKE3 \code{route\_chain} \cite{blake3}; identical tasks produce identical chains
+(\code{routing\_is\_deterministic\_same\_task\_same\_route}). The arbitration is thus not a
+heuristic tie-break but a receipted, replayable choice --- the cost order is a function, and its
+value is committed.
+\end{remark}
+
+\section{The makespan functional and critical-path structure}
+\label{sec:makespan}
+
+The primary continuous cost coordinate $c_2$ is the makespan, and its structure is what
+\code{analyze\_schedule} computes over the plan's POWL tape.
+
+\begin{definition}[Makespan functional; forward and backward pass]\label{def:makespan}
+Given the precedence DAG of Construction~\ref{con:tape} with per-op durations $d_i$ and release
+times, the \emph{forward pass} computes earliest starts and finishes
+\[
+\text{es}_i=\max\Bigl(r_i,\ \max_{j\prec i}\text{ef}_j\Bigr),\qquad \text{ef}_i=\text{es}_i+d_i,
+\]
+the \emph{makespan} is $T=\max_i \text{ef}_i$, and the \emph{backward pass} computes latest
+starts $\text{ls}_i=\text{lf}_i-d_i$ with $\text{lf}_i=\min_{i\prec k}\text{ls}_k$ (or $T$ at
+sinks). The \emph{slack} of op $i$ is $\text{ls}_i-\text{es}_i$, and the \emph{critical path}
+is the set of zero-slack ops.
+\end{definition}
+
+\begin{proposition}[Makespan is the longest path; the critical path is zero-slack]\label{prop:critical}
+The makespan $T$ equals the length of the longest ($\prec$-)path in the precedence DAG weighted
+by durations, and an op has zero slack iff it lies on some longest path. Delaying a zero-slack
+op delays the makespan; delaying an op by less than its slack does not.
+\end{proposition}
+
+\begin{proof}
+The forward recursion $\text{ef}_i=\text{es}_i+d_i$ with $\text{es}_i=\max_{j\prec
+i}\text{ef}_j$ is the standard longest-path dynamic program over a DAG (topologically ordered
+here because op $i$'s predecessors have indices $<i$), so $\text{ef}_i$ is the longest weighted
+path ending at $i$ and $T=\max_i\text{ef}_i$ is the overall longest path. The backward pass
+gives the latest each op may start without increasing $T$; slack $\text{ls}_i-\text{es}_i=0$ iff
+$i$ cannot move, i.e.\ it lies on a longest path. This is exactly \code{forward\_pass},
+\code{backward\_pass}, and the \code{critical\_path\_mask} (bit $i$ set iff slack $<10^{-9}$) of
+\code{ScheduleAnalysis64}. \end{proof}
+
+\begin{proposition}[Capacity sensitivity is a finite difference of the found schedule]\label{prop:sensitivity}
+Let $T(\phi=c)$ be the makespan of the schedule the planner finds when fluent $\phi$'s initial
+capacity is $c$. The \emph{capacity delta} reports $\bigl(T(c-1),T(c),T(c+1)\bigr)$, and $\phi$
+is \emph{binding} iff $T(c-1)\neq T(c)$ (or the problem is infeasible at $c-1$). This is a
+finite-difference sensitivity of the \emph{specific schedule the greedy planner produced}, not
+a dual shadow price of an optimal scheduler.
+\end{proposition}
+
+\begin{proof}
+\code{replan\_with\_perturbed\_capacity} re-solves \code{find\_temporal\_plan} with $\phi$'s
+initial value moved by $\pm1$ (clamped at $0$) via \code{find\_temporal\_plan\_with\_fn\_overrides},
+and reads off the resulting makespan; \code{binding\_resource\_mask} sets bit $i$ iff the $-1$
+perturbation changed the makespan or made the problem infeasible. Because
+\code{find\_temporal\_plan} is a greedy forward-chaining planner (its own module comment
+disclaims optimality), the delta is the response of that found schedule, which is the honest
+claim the code makes --- and no more. Infeasibility at $c-1$ is itself evidence the resource
+binds, per Proposition~\ref{prop:balance}. \end{proof}
+
+\begin{remark}[The functional closes the loop]
+The makespan feeds back into arbitration: $c_2=\code{human\_attention\_seconds}
+=\code{analysis.makespan}$ (\code{CostVector::from\_analysis}), so the primary continuous cost
+the lexicographic order minimizes is the longest-path length of Proposition~\ref{prop:critical}.
+Attention conservation (Proposition~\ref{prop:conserve}) says the total attention spent is
+schedule-invariant; the makespan functional says only its \emph{completion time} is what
+arbitration optimizes --- exactly the keystone's ``reordering redistributes when attention is
+spent, not how much.''
+\end{remark}
+
+\chapter{Conclusion}
+
+We gave the geometry beneath two of the enforced equation's invariants. Mission manufacture is
+bounded search over a finite ground net (Theorem~\ref{thm:bounded-ground}); the state it
+searches is a marking with a numeric fluent valuation, and the attention fluent, borrowed and
+returned, obeys a balance law whose nonnegativity is feasibility
+(Propositions~\ref{prop:conserve}--\ref{prop:balance}). The reachable markings lie in a
+translated cone (Proposition~\ref{prop:cone}), the safe-net specialization of which is the
+branchless firing rule the receipt path runs (Proposition~\ref{prop:safe}). Conformance is
+membership in that cone, and a nonconformant trace is separated by a Farkas hyperplane --- a
+bounded, sound certificate verifiable at $O(\CL)$ (Theorem~\ref{thm:farkas},
+Corollary~\ref{cor:cert}). Token-replay fitness equals $1$ exactly on genuine firing sequences,
+with the first disabled transition a localized witness (Theorem~\ref{thm:fitness}), and it is an
+honest population ratio (Proposition~\ref{prop:honest}). POWL~2.0 gives the recursive partial
+orders and choice graphs (Definition~\ref{def:powl}); the plan-to-tape transitive reduction is
+the Hasse diagram of the precedence order (Proposition~\ref{prop:hasse}), and each node is
+judged in a working set bounded by its arity (Proposition~\ref{prop:local}). The
+Kourani--van der Aalst separable decomposition (Theorem~\ref{thm:sep}) is the Rice quarantine
+for processes: separable is admitted, non-separable is refused with reason
+(Proposition~\ref{prop:quarantine}). And cost arbitration is the infinite-weight limit in which
+the admitted coordinate dominates (Theorem~\ref{thm:lex}, Corollary~\ref{cor:dominate}), over a
+makespan functional that is the longest path of the precedence DAG
+(Proposition~\ref{prop:critical}).
+
+The standard was never comprehension of the mission's interior. It is a bounded search, a
+membership test with a small certificate, and a fitness value of one --- each guaranteed by
+mechanism, each small enough to hold.
+
+\begin{center}\itshape Conformance is distance to a cone; the certificate is a hyperplane.\end{center}
+
+\appendix
+\chapter{Notation}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning\\
+\midrule
+$\bm m,\ \bm m_{0}$ & marking; initial marking (vectors in $\Zplus^{p}$)\\
+$\bm m^{-}_{t},\ \bm m^{+}_{t}$ & preset (consumed) / postset (produced) of transition $t$\\
+$\Nmat,\ \bm x$ & incidence matrix; Parikh (firing-count) vector\\
+$\Poly,\ \cone(\Nmat)$ & marking polytope; reachability cone\\
+$\bm y$ & Farkas separating-hyperplane normal (nonconformance certificate)\\
+$\Fitness$ & token-replay fitness $\in[0,1]$ (Q16.16; $1.0=\code{0x0001\_0000}$)\\
+$f_\phi(t)$ & free level of numeric fluent $\phi$ at time $t$\\
+$T,\ \text{es}_i,\ \text{ls}_i$ & makespan; earliest / latest start of op $i$\\
+$\CostV,\ \preceq_{\mathrm{lex}}$ & cost vector; lexicographic cost order\\
+$\muop,\ \Adm,\ \Rfsl,\ \CL$ & manufacturing morphism; admitted space; refusal; verifier context\\
+\bottomrule
+\end{tabular}
+
+\chapter{Code Correspondence}
+Every object above is anchored to the \code{bcinr-pddl} / \code{bcinr-powl} / \code{praxis} source.
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Mathematical object & Code artifact & Location \\
+\midrule
+Grounded temporal problem & \code{GroundTemporalProblem::build} & \code{bcinr-pddl/src/ground.rs} \\
+Bounded grounding & \code{PDDL8\_MAX\_GROUND}, \code{BoundExceeded} & \code{bcinr-pddl/src/ground.rs} \\
+Forward search (manufacture) & \code{GroundProblem::find\_plan} (BFS) & \code{bcinr-pddl/src/ground.rs} \\
+Numeric fluent update & \code{eval\_numeric}, \code{apply\_numeric\_effect} & \code{bcinr-pddl/src/ground.rs} \\
+Attention fluent & \code{(:functions (attention))} domain & \code{bcinr-pddl/src/capability\_router.rs} \\
+Firing rule (safe net) & \code{PowlReplayVerifier::replay\_frame} & \code{bcinr-powl-receipt/src/replay.rs} \\
+Fitness / precision & \code{ConformanceMetrics}, \code{finalize} & \code{bcinr-powl-receipt/src/replay.rs} \\
+Lifecycle token net & \code{TOK\_*}, \code{replay\_lifecycle} & \code{praxis-core/src/replay\_adapter.rs} \\
+POWL tape / reduction & \code{temporal\_plan\_to\_powl\_tape} & \code{bcinr-pddl/src/powl\_bridge.rs} \\
+Cost vector / order & \code{CostVector}, \code{impl Ord} & \code{bcinr-pddl/src/capability\_router.rs} \\
+Route receipt & \code{route\_capability\_plan} & \code{bcinr-pddl/src/capability\_router.rs} \\
+Makespan / critical path & \code{analyze\_schedule}, \code{ScheduleAnalysis64} & \code{bcinr-pddl/src/schedule\_analysis.rs} \\
+Capacity sensitivity & \code{replan\_with\_perturbed\_capacity} & \code{bcinr-pddl/src/schedule\_analysis.rs} \\
+CLI surface & \code{plan solve/analyze/route/execute} & \code{praxis/src/verbs/plan.rs} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{thebibliography}{9}
+
+\bibitem{chatman2025}
+S.~Chatman,
+\emph{The Chatman Equation and the Industrial Revolution of Knowledge:
+$A=\mu(O)$, Knowledge Hooks, and Production-Verified Enterprise Execution},
+v1.2.0, November 2025.
+
+\bibitem{foxlong2003}
+M.~Fox and D.~Long,
+\emph{PDDL2.1: An extension to PDDL for expressing temporal planning domains},
+Journal of Artificial Intelligence Research \textbf{20} (2003), 61--124.
+
+\bibitem{murata1989}
+T.~Murata,
+\emph{Petri nets: Properties, analysis and applications},
+Proceedings of the IEEE \textbf{77}(4) (1989), 541--580.
+
+\bibitem{schrijver1986}
+A.~Schrijver,
+\emph{Theory of Linear and Integer Programming},
+Wiley, 1986.
+
+\bibitem{rozinat2008}
+A.~Rozinat and W.~M.~P.~van der Aalst,
+\emph{Conformance checking of processes based on monitoring real behavior},
+Information Systems \textbf{33}(1) (2008), 64--95.
+
+\bibitem{powl2023}
+H.~Kourani and S.~J.~van Zelst,
+\emph{POWL: Partially Ordered Workflow Language},
+in Business Process Management (BPM 2023), Lecture Notes in Computer Science \textbf{14159},
+Springer, 2023, 92--108.
+
+\bibitem{vdaalst2016}
+W.~M.~P.~van der Aalst,
+\emph{Process Mining: Data Science in Action},
+2nd ed., Springer, 2016.
+
+\bibitem{vdaalst2003patterns}
+W.~M.~P.~van der Aalst, A.~H.~M.~ter Hofstede, B.~Kiepuszewski, and A.~P.~Barros,
+\emph{Workflow patterns},
+Distributed and Parallel Databases \textbf{14}(1) (2003), 5--51.
+
+\bibitem{blake3}
+J.~O'Connor, J.-P.~Aumasson, S.~Neves, and Z.~Wilcox-O'Hearn,
+\emph{BLAKE3: One function, fast everywhere},
+2020.
+
+\end{thebibliography}
+
+\end{document}

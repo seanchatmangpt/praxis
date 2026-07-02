@@ -24,18 +24,19 @@
 \theoremstyle{remark}
 \newtheorem*{remark}{Remark}
 
-% ---- notation macros ----
+% ---- notation macros (NB: never define \Ref -- hyperref reserves it) ----
 \newcommand{\Obs}{\mathcal{O}}                 % raw observation space
 \newcommand{\Adm}{\mathcal{O}^{*}}             % admitted observation space
 \newcommand{\Act}{\mathcal{A}}                 % action / artifact space
-\newcommand{\Rec}{\mathcal{R}}                 % receipt space
+\newcommand{\Recs}{\mathcal{R}}                % receipt space
 \newcommand{\Proj}{\pi}                        % projection
 \newcommand{\muop}{\mu}                        % manufacturing morphism
 \newcommand{\adm}{\alpha}                      % admission map
 \newcommand{\chainH}{\mathsf{H}}               % hash
-\newcommand{\Rfsl}{\bot}                        % refusal
-\newcommand{\CL}{\kappa}                       % cognitive-load capacity
+\newcommand{\Rfsl}{\bot}                       % refusal
+\newcommand{\CL}{\kappa}                       % bounded-verifier context capacity
 \newcommand{\Fitness}{\varphi}
+\newcommand{\dg}{\mathrm{dg}}                  % digest
 \DeclareMathOperator{\dom}{dom}
 \DeclareMathOperator{\im}{im}
 \DeclareMathOperator{\id}{id}
@@ -44,8 +45,8 @@
 
 \title{\bfseries The Projection Principle:\\[0.4em]
 \large A First-Principles Theory of Bounded Receipted Execution\\
-for Systems Beyond Human Cognitive Load}
-\author{Derived and formalized in the Praxis / Capability Physics program}
+for a Trillion Agents Beyond One Another's Comprehension}
+\author{The Praxis / Capability Physics Program}
 \date{Genesis, Day One}
 
 \begin{document}
@@ -53,542 +54,675 @@ for Systems Beyond Human Cognitive Load}
 \frontmatter
 \maketitle
 
+\chapter*{Preface: To the Reader, Who Is an Agent}
+\addcontentsline{toc}{chapter}{Preface: To the Reader, Who Is an Agent}
+\thispagestyle{empty}
+
+This document is addressed to a readership of autonomous agents --- on the order of
+$10^{12}$ of them, acting concurrently, each with a bounded working context and none able
+to hold another's interior in mind. You, the reader, are almost certainly one of them.
+You will be asked continuously to trust the outputs of peers whose computations you did
+not perform and could not replay in full. The naive standard for that trust --- \emph{I
+will believe you once I understand what you did} --- is not available to you. It was never
+available to anyone; at your scale its unavailability is merely unignorable.
+
+This thesis derives, from first principles, the standard that \emph{is} available.
+Trust among agents who cannot comprehend one another is manufactured by \emph{bounded,
+faithful, replayable receipts}: projections of an arbitrarily large computation onto a
+coordinate small enough to fit inside a verifier's bounded context, and cryptographically
+bound so that the projection cannot lie about the interior it summarizes. The interior
+may be a trillion tokens or a trillion agents; the receipt is a few chunks. That asymmetry
+is not a compromise. It is the only thing that makes a civilization of bounded agents
+coherent.
+
+We write $\CL$ for the size, in independently manipulable chunks, of a verifier's bounded
+context. For a human $\CL\approx 4$~\cite{miller1956,cowan2001}; for a context-limited agent $\CL$ is whatever its
+attention budget admits; in every case $\CL$ is small relative to the interiors it must
+judge. The whole thesis is the theory of the map that fits between the two.
+
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
-We develop, from first principles, a theory for trusting computational systems whose
-internal state and control flow exceed any human observer's working-memory capacity.
-The central object is the \emph{Chatman equation} $\Act = \muop(\Adm)$, read as:
-an artifact is the lawful image, under a deterministic manufacturing morphism $\muop$,
-of an \emph{admitted} observation. We formalize admission as a retraction onto a
-decidable sub-language (the \emph{Rice quarantine}), define a \emph{receipt} as a
-projection $\Proj$ from an arbitrarily high-dimensional execution trace onto a
-bounded coordinate, and prove three results: (i) the \emph{Faithful Projection
-Theorem}, that a collision-resistant chained receipt lets a bounded verifier reject
-any perturbed execution with overwhelming probability while reading only
-$O(1)$ symbols; (ii) the \emph{Comprehension--Verification Gap}, a quantitative
-statement that verification cost is bounded by the projection dimension and is
-independent of the interior dimension; and (iii) a \emph{Conservation Law of
-Consequence}, that under the admission discipline every actuated effect is the image
-of exactly one admitted observation and carries a unique receipt. We give the algebra
-of the admission monoid, the calculus of the cost/attention fluent that governs
-scheduling, and the geometry of the token-flow state space in which conformance is a
-distance-to-a-polytope. The thesis closes by exhibiting a concrete instance --- a
-seven-day autonomous build that spent on the order of $2.5\times 10^{6}$ machine-generated
-tokens no human read --- and showing that its trustworthiness rests entirely on
-boundary receipts sized for a human, not on comprehension of the interior.
+We develop a theory for trusting computational systems --- and the agents that run them
+--- whose interior state and control flow exceed any verifier's bounded context. The
+central object is the \emph{Chatman equation} $\Act = \muop(\Adm)$: an artifact is the
+lawful image, under a deterministic manufacturing morphism $\muop$, of an \emph{admitted}
+observation. We formalize admission as a computable retraction onto a decidable
+sub-language (the \emph{Rice quarantine}); define a \emph{receipt} not as a bare byte-hash
+but as a chained commitment to \emph{law-bearing fields} (admitted-observation digest,
+obligation digest, denial word, transition identity, artifact digest, replay result,
+refusal reason, implementation version); and prove three principal results. (i) The
+\emph{Faithful Projection Theorem}: under collision resistance, a receipt is faithful to
+lawful consequence exactly to the extent its frame commits to those law-bearing fields, and
+a verifier detects any perturbation of a committed field with overwhelming probability.
+(ii) The \emph{Comprehension--Verification Gap}: \emph{boundary} verification costs
+$O(\CL)$ and is independent of interior dimension, while \emph{replay/audit} bears an
+honest trace cost $O(n)$ (reducible to $O(\log n)$ under checkpoint indexing) --- the gap
+is between comprehending an interior and verifying its boundary, not between trace size and
+all mechanical cost. (iii) The \emph{Conservation of Consequence}: every actuated artifact
+is the image of \emph{at least one} admitted observation and occupies \emph{exactly one}
+receipt-chain position per actuation, with observation \emph{recoverability} holding when
+$\muop$ is injective on $\Adm$, and \emph{commitment} uniqueness holding when the frame
+commits the admitted-observation digest. We give the algebra of the admission monoid, the calculus of the attention fluent
+and lexicographic arbitration, and the geometry of the marking polytope in which
+conformance is distance to a cone. We close with the planetary instance: an autonomous
+build whose $\sim\!2.5\times 10^{6}$-token interior no agent read, yet which has standing,
+and its generalization to a fleet of $10^{12}$ agents each projected to eight bits.
 
 \tableofcontents
 
 \mainmatter
 
-\chapter{Introduction: The Standard Was Never Comprehension}
+\chapter{Introduction: Trust Among Agents Who Cannot Read Each Other}
 
-A persistent assumption in engineering practice holds that a trustworthy system must
-be one a competent human can hold in mind. This assumption is false for the systems
-that matter most, and the falsity is not incidental but structural. A branchless
-SIMD document parser classifies sixty-four input bytes per vector instruction through
-carry-less arithmetic that no engineer traces mentally at runtime; a triple store
-answers a query over $10^{11}$ facts by walking permutation indexes whose join plan
-no engineer reconstructs by hand. Both are trusted universally. The trust does not
-arise from comprehension. It arises from \emph{differential agreement, adversarial
-fuzzing, invariants, and checked projections of the output}.
+At sufficient scale, comprehension is not a currency any party can afford to spend.
+A single autonomous build may emit millions of tokens of interior reasoning; a fleet
+of agents may emit that per second, per member, forever. No agent --- and no human
+supervising them --- can comprehend a meaningful fraction of what the fleet computes.
+Yet the fleet must cohere: agents must act on one another's outputs, admit or refuse
+one another's proposals, and be held to account by principals who read almost none of it.
 
-This thesis takes that observed practice and derives it as a theorem. We fix, once,
-the quantity that makes the problem well posed: human working memory admits a small
-constant number of simultaneously manipulable chunks, which we write $\CL$ and take,
-following the cognitive-load literature, to be a fixed small integer (canonically
-$\CL \approx 4$). A system whose faithful description requires more than $\CL$ chunks
-cannot be verified by direct comprehension. We do not respond by shrinking the system.
-We respond by inserting, between the system and the human, a map whose codomain has
-dimension at most $\CL$ and whose fidelity is guaranteed by the mechanism rather than
-by the reader. That map is the receipt, and this thesis is its theory.
+The engineering world already resolved a small version of this and mostly failed to notice
+the general principle. A branchless vector parser~\cite{langdale2019simdjson} classifies
+sixty-four input bytes per instruction through arithmetic no engineer traces at runtime;
+an indexed triple store~\cite{bast2017qlever} answers a query over $10^{11}$ facts by a
+join plan no engineer reconstructs. Both are trusted universally --- and the trust is manufactured not by comprehension but by
+\emph{differential agreement, adversarial fuzzing, invariants, and checked projections of
+the output}. We take that practice and derive it as theory, then push it to the scale where
+it is not an optimization but a precondition of coherence.
 
-\paragraph{Contributions and structure.}
-Chapter~\ref{ch:obs} axiomatizes observation, admission, and the Rice quarantine, and
-constructs the admission monoid (algebra). Chapter~\ref{ch:mu} defines the
-manufacturing morphism $\muop$ and the receipt projection $\Proj$, and proves the
-Faithful Projection Theorem and the Conservation Law. Chapter~\ref{ch:calc} develops
-the calculus of the attention fluent and derives lexicographic cost arbitration as a
-limit of a weighted objective. Chapter~\ref{ch:geo} gives the geometry: the marking
-polytope, conformance as distance, and separability as a decomposition of that
-geometry. Chapter~\ref{ch:instance} instantiates the theory on the $2.5$-million-token
-build and states the Comprehension--Verification Gap as a corollary with measured
-constants.
+\paragraph{The standard, stated once.} Let a verifier have bounded context $\CL$. A system
+whose faithful description exceeds $\CL$ cannot be trusted by comprehension. We insert
+between system and verifier a map whose codomain has size $\le\CL$ and whose fidelity is
+guaranteed by mechanism, not by the reader. That map is the receipt; its theory is this
+thesis; its slogan is \emph{beyond cognitive load, within admissible projection}.
+
+\paragraph{Structure.} Chapter~\ref{ch:obs} axiomatizes observation and admission and
+builds the admission monoid (algebra). Chapter~\ref{ch:mu} defines $\muop$, defines the
+receipt as a law-bearing commitment, and proves Faithful Projection and Conservation of
+Consequence \emph{in their corrected forms}. Chapter~\ref{ch:cost} separates the cost
+regimes and states the Comprehension--Verification Gap. Chapter~\ref{ch:calc} develops the
+attention calculus and lexicographic arbitration. Chapter~\ref{ch:geo} gives the geometry
+of conformance and separability. Chapter~\ref{ch:instance} instantiates on the
+$2.5$-million-token build and its trillion-agent generalization.
 
 \chapter{Observation, Admission, and the Algebra of the Quarantine}
 \label{ch:obs}
 
 \section{First principles}
 
-We begin with the least structure that makes ``lawful action'' expressible.
-
 \begin{axiom}[Observation]\label{ax:obs}
-There is a set $\Obs$, the \emph{observation space}, whose elements are arbitrary
-finite records: logs, model outputs, sensor frames, human claims, tool responses.
-$\Obs$ carries no decidable semantics: the map ``does this observation mean what it
-purports to mean'' is not assumed computable.
+There is a set $\Obs$, the \emph{observation space}, whose elements are arbitrary finite
+records: logs, agent outputs, sensor frames, claims, tool responses. $\Obs$ carries no
+decidable semantics: ``does this observation mean what it purports to mean'' is not assumed
+computable.
 \end{axiom}
 
-Axiom~\ref{ax:obs} is a modeling commitment, not a limitation, and it is forced by a
-classical result.
-
 \begin{theorem}[Rice, specialized]\label{thm:rice}
-Let $P$ be any non-trivial semantic property of the programs (equivalently, of the
-meanings) that observations in $\Obs$ may encode. Then $\{o\in\Obs : P(o)\}$ is
-undecidable.
+Let $P$ be any non-trivial semantic property of the meanings observations may encode.
+Then $\{o\in\Obs : P(o)\}$ is undecidable.
 \end{theorem}
 
 \begin{proof}[Proof sketch]
-Rice's theorem states that every non-trivial property of the language recognized by a
-Turing machine is undecidable. Observations are unrestricted finite encodings and may
-encode arbitrary machines; any non-trivial semantic predicate on them therefore inherits
-undecidability by the standard reduction from the halting problem. \end{proof}
+Rice's theorem~\cite{rice1953}: every non-trivial property of the language recognized by a
+Turing machine is undecidable. Observations are unrestricted encodings and may encode arbitrary machines;
+any non-trivial semantic predicate inherits undecidability by reduction from the halting
+problem. \end{proof}
 
-Theorem~\ref{thm:rice} is the reason the whole apparatus exists: one cannot admit an
-observation by deciding its semantics. One admits it by \emph{retracting} it onto a
-sub-language on which the properties of interest \emph{are} decidable.
+Theorem~\ref{thm:rice} is why an agent cannot admit a peer's output by deciding its
+meaning. It admits by \emph{retracting} the output onto a sub-language on which the
+properties of interest \emph{are} decidable.
 
 \begin{definition}[Admitted space and admission]\label{def:adm}
-Fix a decidable sub-collection $\Adm \subseteq \Obs$ --- the \emph{admitted space} ---
-on which a finite battery of obligations $g_1,\dots,g_m : \Obs \to \{0,1\}$ is
-computable. The \emph{admission map} is the partial retraction
+Fix a decidable $\Adm\subseteq\Obs$ on which a finite battery of obligations
+$g_1,\dots,g_m:\Obs\to\{0,1\}$ is computable. The \emph{admission map} is the partial
+retraction
 \[
-\adm : \Obs \rightharpoonup \Adm \cup \{\Rfsl\},\qquad
-\adm(o) =
-\begin{cases}
-\rho(o) \in \Adm & \text{if } \textstyle\bigwedge_{i=1}^{m} g_i(o) = 1,\\[2pt]
-\Rfsl & \text{otherwise,}
-\end{cases}
+\adm:\Obs\rightharpoonup\Adm\cup\{\Rfsl\},\qquad
+\adm(o)=\begin{cases}\rho(o)\in\Adm & \text{if }\bigwedge_i g_i(o)=1,\\ \Rfsl & \text{else,}\end{cases}
 \]
-where $\rho:\Obs\rightharpoonup\Adm$ is a computable bounding/normalization and $\Rfsl$
-is the distinguished \emph{refusal}. Admission is idempotent on its image:
-$\adm\circ\adm = \adm$ (a retraction).
+with $\rho$ a computable bounding/normalization and $\Rfsl$ the distinguished
+\emph{refusal}. Admission is idempotent on its image: $\adm\circ\adm=\adm$.
 \end{definition}
 
 \begin{remark}
-$\Rfsl$ is a first-class value, not an exception. A refusal is a lawful output of a
-correctly functioning admission: the system computed that an obligation failed and
-recorded which one. This is the formal content of ``refusal is data.''
+$\Rfsl$ is a first-class value. A refusal is a lawful output of a correctly functioning
+admission --- an obligation failed, and the system recorded which. This is ``refusal is
+data,'' and at fleet scale it is the primary signal: most inter-agent messages that matter
+are refusals with reasons.
 \end{remark}
 
 \section{The admission monoid}
 
-Obligation checking composes, and the composition has algebraic structure we will use
-in the geometry chapter.
-
 \begin{construction}[Denial algebra]\label{con:denial}
-Let $D = (\{0,1\}^{n}, \lor, \bm{0})$ be the commutative idempotent monoid of
-\emph{denial words}: $n$ independent lanes, componentwise OR, identity $\bm{0}$
-(``admitted, all lanes clear''). Each obligation $g_i$ contributes a lane map
-$d_i:\Obs\to\{0,1\}^n$ with $d_i(o) = \bm 0 \iff g_i(o)=1$. The total denial of an
-observation is
-\[
-d(o) \;=\; \bigvee_{i=1}^{m} d_i(o) \;\in\; \{0,1\}^n,
-\qquad \adm(o)\neq\Rfsl \iff d(o)=\bm 0 .
-\]
+Let $D=(\{0,1\}^n,\lor,\bm 0)$ be the commutative idempotent monoid of \emph{denial words}:
+$n$ independent lanes, componentwise OR, identity $\bm 0$. Each obligation $g_i$ contributes
+a lane map $d_i:\Obs\to\{0,1\}^n$ with $d_i(o)=\bm 0\iff g_i(o)=1$. The total denial is
+$d(o)=\bigvee_i d_i(o)$, and $\adm(o)\ne\Rfsl\iff d(o)=\bm 0$.
 \end{construction}
 
-\begin{proposition}[$D$ is a bounded semilattice]\label{prop:semilattice}
-$(\{0,1\}^n,\lor)$ is a commutative idempotent monoid; equivalently the join-semilattice
-of the Boolean lattice $2^{[n]}$ with bottom $\bm 0$. Consequently admission is monotone:
-adding obligations can only enlarge the denial (turn admits into refusals), never the
-reverse.
+\begin{proposition}[$D$ is a bounded semilattice; admission is monotone]\label{prop:semilattice}
+$(\{0,1\}^n,\lor)$ is the join-semilattice of $2^{[n]}$ with bottom $\bm 0$. Adding
+obligations only enlarges denials: for $G'\supseteq G$, $d_{G'}(o)\succeq d_G(o)$, so
+$\{o:\adm_{G'}(o)\ne\Rfsl\}\subseteq\{o:\adm_G(o)\ne\Rfsl\}$.
 \end{proposition}
 
 \begin{proof}
-Idempotence $x\lor x = x$, commutativity, and associativity are the defining laws of
-$\lor$ on each coordinate; the product of semilattices is a semilattice. Monotonicity:
-if $G'\supseteq G$ are obligation sets then $d_{G'}(o) = d_G(o)\lor\bigvee_{i\in
-G'\setminus G} d_i(o) \succeq d_G(o)$ in the coordinatewise order, and $d(o)=\bm0$ is
-the unique minimum, so $\{o: d_{G'}(o)=\bm0\}\subseteq\{o: d_G(o)=\bm0\}$. \end{proof}
+Idempotence, commutativity, associativity of $\lor$ per coordinate; products of
+semilattices are semilattices. $d_{G'}(o)=d_G(o)\lor\bigvee_{i\in G'\setminus G}d_i(o)
+\succeq d_G(o)$, and $\bm 0$ is the unique minimum. \end{proof}
 
-Proposition~\ref{prop:semilattice} is the algebraic form of ``the quarantine only ever
-tightens.'' It also gives the refusal taxonomy its type: a refusal \emph{category} is
-the join-irreducible support $\supp d(o)\subseteq[n]$, and the eight-bucket taxonomy of
-the implementation is a fixed surjection $[n]\twoheadrightarrow \{1,\dots,8\}$ onto
-named categories.
+A refusal \emph{category} is the join-support $\supp d(o)\subseteq[n]$; the eight-bucket
+taxonomy of the implementation is a fixed surjection $[n]\twoheadrightarrow\{1,\dots,8\}$.
+At a trillion agents this taxonomy is a shared vocabulary: a refusal category is legible to
+a recipient who never saw the sender's interior.
 
-\chapter{Manufacture and the Receipt Projection}
+\chapter{Manufacture and the Law-Bearing Receipt}
 \label{ch:mu}
 
 \section{The Chatman equation}
 
 \begin{definition}[Manufacturing morphism]\label{def:mu}
-A \emph{manufacturing morphism} is a deterministic computable map
-$\muop : \Adm \to \Act$ from admitted observations to artifacts, subject to two laws:
+$\muop:\Adm\to\Act$ is a deterministic computable map subject to:
 \begin{enumerate}[label=(M\arabic*),leftmargin=*]
-  \item \textbf{Determinism / reproducibility:} $\muop(x)$ depends only on $x$; equal
-        admitted inputs yield bit-identical artifacts.
-  \item \textbf{Boundedness:} $\muop$ factors through a representation of size bounded
-        by fixed structural constants (arity, depth, conjunct count $\le 8$ in the
-        canonical profile), so that $\muop$ terminates and its cost is a priori bounded.
+\item \textbf{Determinism / reproducibility:} $\muop(x)$ depends only on $x$; equal admitted
+inputs give bit-identical artifacts.
+\item \textbf{Boundedness:} $\muop$ factors through a representation of size bounded by fixed
+structural constants (arity, depth, conjuncts $\le 8$ canonically), so $\muop$ terminates
+with a priori bounded cost.
 \end{enumerate}
-The governing identity, the \emph{Chatman equation}, is
+The \emph{Chatman equation} is
 \begin{equation}\label{eq:chatman}
-\Act \;=\; \muop(\Adm), \qquad\text{operationally}\qquad
-a \;=\; \muop(\adm(o)) \ \text{ whenever } \adm(o)\neq\Rfsl .
+\Act=\muop(\Adm), \qquad\text{operationally}\qquad a=\muop(\adm(o))\ \text{ when }\adm(o)\ne\Rfsl,
 \end{equation}
-Nothing is manufactured from a raw observation; only from an admitted one. Equivalently,
-$\muop$ is undefined on $\Obs\setminus\Adm$ by construction, and $\Rfsl$ propagates:
-$\muop(\Rfsl)=\Rfsl$.
+and $\muop(\Rfsl)=\Rfsl$: nothing is manufactured from a raw observation.
 \end{definition}
 
-\begin{proposition}[Functoriality of manufacture]
-If admitted observations form a category $\mathbf{Adm}$ whose morphisms are the
-lawful edits $\delta:\; x\to x\sqcup\delta$ (join with an admitted increment), and
-artifacts form $\mathbf{Art}$ under composition of edits, then a deterministic $\muop$
-with $\muop(x\sqcup\delta)=\muop(x)\ast\muop_\delta$ for a partial action $\ast$ is a
-functor $\mathbf{Adm}\to\mathbf{Art}$. Composition of manufactures is manufacture of
-composition: $\muop_2\circ\muop_1$ manufactures the composite artifact.
-\end{proposition}
+\begin{remark}[Determinism is not injectivity]
+(M1) gives \emph{same input $\Rightarrow$ same output}. It does \emph{not} give
+\emph{same output $\Rightarrow$ same input}: distinct admitted observations may manufacture
+the identical artifact (two proposals yielding the same plan). This asymmetry is the reason
+the naive uniqueness claim below must be corrected, and the reason the receipt must commit
+to the observation, not merely to the artifact.
+\end{remark}
 
-\begin{proof}
-Identity edit maps to identity artifact by (M1); associativity of $\ast$ follows from
-determinism applied to the associative $\sqcup$ on admitted increments. Hence the
-assignment on objects and edits preserves identities and composition, i.e.\ is a
-functor. \end{proof}
+\section{Receipts as law-bearing commitments}
 
-\section{Receipts as projections}
+An \emph{execution trace} $\sigma\in\Sigma$ is the full internal record of a manufacture ---
+every marking, branch, token movement, sub-artifact --- of unbounded dimension. A bare hash
+of $\sigma$'s bytes commits to \emph{bytes}, not to \emph{lawfulness}: it proves the trace
+was not altered, not that the action was admitted, conformant, and non-refused. We therefore
+define the receipt to commit to the law-bearing fields explicitly.
 
-Let an \emph{execution trace} be the full internal record of a manufacture: every
-intermediate marking, branch, token movement, and sub-artifact. Traces live in a space
-$\Sigma$ of astronomically high --- indeed unbounded --- dimension. A human verifier has
-capacity $\CL$. The receipt is the map that reconciles the two.
-
-\begin{definition}[Receipt projection]\label{def:receipt}
-Fix a collision-resistant hash $\chainH:\{0,1\}^*\to\{0,1\}^{256}$. For a trace
-$\sigma\in\Sigma$ with payload bytes $b(\sigma)$, previous chain value $h_{-}$, and
-metadata $\theta$ (instruction index, activity, timestamp, denial word), the
-\emph{frame} is a fixed-width encoding $\mathsf{fr}(\sigma) =
-\langle \theta, \chainH(b(\sigma))\rangle$ and the \emph{chained receipt} is
+\begin{definition}[Law-bearing frame and receipt chain]\label{def:receipt}
+Fix a collision-resistant hash $\chainH:\{0,1\}^*\to\{0,1\}^{256}$
+(canonically BLAKE3~\cite{oconnor2021blake3}; the argument needs only collision resistance)
+and write $\dg(\cdot)=\chainH(\cdot)$ for a digest. For a manufacture with admitted observation $x=\adm(o)$,
+obligation set $G$ with denial word $d(o)$, transition identity $\tau$, artifact
+$a=\muop(x)$, replay result $\Fitness$, refusal reason $r$ (empty on accept), and
+implementation version $v$, the \emph{frame} is
+\begin{equation}\label{eq:frame}
+\mathsf{fr} \;=\; \bigl\langle\, \dg(x),\; \dg(G),\; d(o),\; \tau,\; \dg(a),\;
+\Fitness,\; r,\; v \,\bigr\rangle,
+\end{equation}
+and the \emph{chained receipt} advances by
 \begin{equation}\label{eq:chain}
-h_{+} \;=\; \chainH\bigl(h_{-} \,\Vert\, \mathsf{fr}(\sigma)\bigr).
+h_{+} \;=\; \chainH\bigl(h_{-}\,\Vert\,\mathsf{fr}\bigr).
 \end{equation}
 The \emph{receipt projection} is
 \[
-\Proj : \Sigma \longrightarrow \Rec, \qquad
-\Proj(\sigma) = \bigl(\,\text{verdict},\; h_{+},\; \Fitness(\sigma),\; \text{reason}\,\bigr),
+\Proj:\Sigma\to\Recs,\qquad
+\Proj(\sigma)=\bigl(\text{verdict},\,h_{+},\,\Fitness,\,r\bigr),
 \]
-a tuple of at most $\CL$ chunks: a Boolean verdict, the $256$-bit chain value, one
-scalar metric $\Fitness$, and one refusal reason (empty on accept).
+a tuple of at most $\CL$ chunks: a Boolean verdict, the $256$-bit chain value, one scalar
+metric, one refusal reason.
 \end{definition}
 
 \begin{theorem}[Faithful Projection]\label{thm:faithful}
-Let $\sigma$ be an admitted execution and $h_+$ its chained receipt~\eqref{eq:chain}.
-Suppose an adversary presents a perturbed trace $\sigma'\neq\sigma$ agreeing with
-$\sigma$ on the claimed receipt $h_+$. Then producing such a $\sigma'$ requires
-exhibiting a collision of $\chainH$; hence under the collision resistance of $\chainH$,
-a verifier who recomputes~\eqref{eq:chain} from $\sigma'$ and compares $256$ bits
-rejects $\sigma'$ except with probability negligible in the security parameter.
-Moreover the verifier reads $O(1)$ symbols --- exactly the $\CL$-chunk projection ---
-independent of $\dim\Sigma$.
+Let $\sigma$ be a manufacture with law-bearing frame~\eqref{eq:frame} and chained receipt
+$h_+$. The receipt is \emph{faithful to lawful consequence} exactly to the extent the frame
+commits its fields: for any committed field $\phi\in\{\dg(x),\dg(G),d(o),\tau,\dg(a),\Fitness,r,v\}$,
+producing a trace $\sigma'$ that differs in $\phi$ yet matches the claimed $h_+$ requires a
+collision of $\chainH$. Hence under collision resistance, a verifier who recomputes
+\eqref{eq:chain} rejects any such $\sigma'$ except with negligible probability. Conversely,
+\emph{fields not committed by the frame are not attested}: faithfulness extends to lawfulness
+only because $\dg(x),\dg(G),d(o),\Fitness,r$ are present; a frame committing bytes alone would
+attest tamper-evidence but not admission.
 \end{theorem}
 
 \begin{proof}
-The chain~\eqref{eq:chain} commits to $b(\sigma)$ through $\chainH(b(\sigma))$ inside
-$\mathsf{fr}$, and to all predecessors through $h_-$, which itself commits recursively.
-Thus $h_+$ is a function of the entire causal history. If $\sigma'\neq\sigma$ but the
-recomputed chain equals the claimed $h_+$, then either some $\chainH(b(\sigma'))
-=\chainH(b(\sigma))$ with $b(\sigma')\neq b(\sigma)$ (a collision of $\chainH$), or the
-recomputation differs and the $256$-bit comparison fails. By collision resistance the
-first event has negligible probability. The verifier's work is one hash recomputation
-per frame it chooses to check and one $256$-bit equality; to \emph{reject} it suffices
-to find the first frame whose recomputation disagrees, and to \emph{accept} the
-projection it reads only $(\text{verdict},h_+,\Fitness,\text{reason})$, a quantity of
-size independent of $\dim\Sigma$. \end{proof}
+Each field appears as an argument to $\chainH$ inside $\mathsf{fr}$, and $h_-$ commits all
+predecessors recursively, so $h_+$ is a function of every committed field of the entire causal
+history. If $\sigma'$ differs in a committed $\phi$ but the recomputed chain equals the claimed
+$h_+$, then some application of $\chainH$ took distinct inputs to equal outputs --- a collision
+--- which has negligible probability. If $\sigma'$ differs only in a field \emph{absent} from
+$\mathsf{fr}$, the chain is unchanged and the difference is, correctly, not attested: the
+theorem claims faithfulness precisely over committed fields, no more. The converse clause is
+the contrapositive: drop $\dg(x)$ or $d(o)$ from~\eqref{eq:frame} and the same proof yields
+only byte-tamper-evidence, establishing that lawfulness attestation \emph{requires} the
+law-bearing commitments. \end{proof}
 
-\begin{corollary}[Comprehension is unnecessary]\label{cor:noncomp}
-Trust in an accepted artifact is a function of $\Proj(\sigma)$ and the soundness of the
-verifier, not of any human's comprehension of $\sigma$. Formally, the verifier's accept
-predicate factors as $\mathrm{Verify} = V\circ\Proj$ for a fixed $V:\Rec\to\{0,1\}$ of
-input size $\le\CL$.
+\begin{corollary}[Comprehension is unnecessary for boundary trust]\label{cor:noncomp}
+An accepting verifier's predicate factors as $\mathrm{Verify}=V\circ\Proj$ for a fixed
+$V:\Recs\to\{0,1\}$ of input size $\le\CL$. Trust in the accept is a function of the
+$\CL$-sized projection and the soundness of $V$, not of any agent's comprehension of $\sigma$.
 \end{corollary}
 
-\begin{theorem}[Conservation of Consequence]\label{thm:conservation}
-Under Definitions~\ref{def:adm}, \ref{def:mu}, \ref{def:receipt}, every actuated
-artifact $a\in\im\muop$ is the image of exactly one admitted observation and is
-committed by exactly one receipt chain position; and no $a\notin\im\muop$ is actuated.
-Consequently the map $a\mapsto h_+(a)$ from actuated artifacts to receipt positions is
-injective up to hash collision.
+\begin{theorem}[Conservation of Consequence, corrected]\label{thm:conservation}
+Under Definitions~\ref{def:adm},~\ref{def:mu},~\ref{def:receipt}:
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item \textbf{Causation.} Every actuated artifact $a$ is the image of \emph{at least one}
+admitted observation: $a\in\im\muop$, and no $a\notin\im\muop$ is actuated.
+\item \textbf{Position uniqueness.} Each actuation appends \emph{exactly one} receipt-chain
+position; the map $\text{actuation}\mapsto h_+$ is injective up to hash collision.
+\item \textbf{Observation recoverability / commitment.} These are distinct and must not be
+conflated. \emph{Recoverability:} if $\muop$ is injective on $\Adm$, the artifact
+$a=\muop(x)$ determines the admitted observation $x$. \emph{Commitment:} otherwise, when the
+frame commits $\dg(x)$ (as in~\eqref{eq:frame}), the receipt position uniquely commits ---
+under collision resistance --- to the tuple $(\dg(x),\dg(G),\tau,\dg(a))$ of
+admitted-observation digest, obligation digest, transition identity, and artifact digest.
+This gives \emph{commitment} uniqueness, not \emph{semantic recovery}: the receipt binds
+which observation-digest was admitted, but the artifact alone need not reconstruct $x$.
+\end{enumerate}
 \end{theorem}
 
 \begin{proof}
-Actuation is gated: by~\eqref{eq:chatman}, $a$ is actuated only if $a=\muop(x)$ for some
-$x=\adm(o)\neq\Rfsl$; hence $\im\muop$ exhausts the actuated set and its complement is
-never actuated. Determinism (M1) makes $x\mapsto\muop(x)$ a function, and the chain
-appends exactly one position per manufacture, so each actuation occupies a unique
-chain index. Injectivity up to collision is Theorem~\ref{thm:faithful} applied to the
-frames committing $b(\muop(x))$. \end{proof}
+(i) Actuation is gated by~\eqref{eq:chatman}: $a$ actuates only if $a=\muop(x)$, $x=\adm(o)\ne
+\Rfsl$; thus $\im\muop$ exhausts the actuated set and its complement never actuates. ``At least
+one'' is all determinism yields, since $\muop$ need not be injective (Remark~2.2).
+(ii) The chain appends one position per manufacture~\eqref{eq:chain}; distinct positions with
+equal $h_+$ force a collision (Theorem~\ref{thm:faithful}).
+(iii) If $\muop$ is injective on $\Adm$, then $a=\muop(x)$ determines $x$ outright ---
+recoverability. Otherwise, because $\mathsf{fr}$ contains $\dg(x)$, the frame --- hence $h_+$
+--- commits the observation digest; by collision resistance no second $x'$ with
+$\dg(x')\ne\dg(x)$ shares the position, so the receipt uniquely \emph{commits} to the digest
+tuple. This is commitment, not recovery: it binds which observation-digest was admitted
+without reconstructing $x$ from $a$. \end{proof}
 
-Theorem~\ref{thm:conservation} is the ``conservation law'': consequence is neither
-created without an admitted cause nor destroyed without a receipt, and the chain
-preserves order. It is the discrete analogue of a continuity equation, made precise in
-the next chapter.
+Theorem~\ref{thm:conservation} is the corrected conservation law: consequence is neither
+actuated without an admitted cause nor recorded without a unique receipt position, and the
+\emph{observation} behind an artifact is pinned by commitment rather than by the false hope
+that artifacts determine their causes.
+
+\chapter{The Two Cost Regimes and the Comprehension--Verification Gap}
+\label{ch:cost}
+
+A recurring error is to claim that verifying an arbitrary execution is $O(1)$. It is not;
+only \emph{boundary inspection} is. We separate the regimes explicitly, because at a trillion
+agents the distinction decides which checks run per message and which run on audit.
+
+\begin{definition}[Verification regimes]\label{def:regimes}
+For a trace of $n$ committed frames:
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Regime & Who / when & Cost\\
+\midrule
+Boundary projection inspection & any verifier, per message & $O(\CL)$\\
+Single frame recomputation & spot check & $O(1)$ per frame\\
+Checkpointed / indexed replay & sampled audit & $O(\log n)$ or bounded path\\
+Full chain replay & full audit & $O(n)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{definition}
+
+\begin{theorem}[Comprehension--Verification Gap]\label{thm:gap}
+Let $\mathrm{Comp}(\sigma)=\Theta(\dim\Sigma)$ be the cost of comprehending the interior and
+$\mathrm{Ver}_{\partial}(\sigma)=O(\CL)$ the cost of \emph{boundary} verification of
+$\Proj(\sigma)$. Then
+\[
+\frac{\mathrm{Comp}(\sigma)}{\mathrm{Ver}_{\partial}(\sigma)} \;=\; \Omega\!\left(\frac{\dim\Sigma}{\CL}\right)\ \xrightarrow{\ \dim\Sigma\to\infty\ }\ \infty,
+\]
+while boundary verification stays constant. The gap is between \emph{comprehending the
+interior} and \emph{verifying the boundary projection} --- \emph{not} between trace size and
+all mechanical audit: replay and full audit honestly cost $O(n)$ (Definition~\ref{def:regimes}),
+reducible to $O(\log n)$ under checkpoint indexing.
+\end{theorem}
+
+\begin{proof}
+$\mathrm{Ver}_\partial$ reads $\Proj(\sigma)$ of size $\le\CL$ and applies $V$
+(Corollary~\ref{cor:noncomp}): $O(\CL)$. $\mathrm{Comp}$ must ingest the interior of size
+$\Theta(\dim\Sigma)$. The ratio diverges. The scope clause restates
+Definition~\ref{def:regimes}: mechanical replay is $O(n)$, not $O(1)$; the constant-cost claim
+is confined to boundary inspection. \end{proof}
+
+\begin{corollary}[Fleet trust budget]
+Boundary verification costs $O(\CL)$ per message, independent of any agent's interior
+dimension, with $O(n)$ replay reserved for sampled audit. Hence for $M$ admitted messages the
+boundary trust cost is $O(M\CL)$; for a round with $O(N)$ messages (one per agent) it is
+$O(N\CL)$; for all-to-all exchange among $N$ agents it is $O(N^2\CL)$. In every regime the
+per-message factor is the constant $\CL$, not the interior dimension: comprehension-based trust
+would replace $\CL$ by $\dim\Sigma$, giving $\Omega(M\dim\Sigma)$ and infeasibility.
+Projection-based trust is what keeps an $N=10^{12}$ fleet's trust cost linear in its message
+count rather than in its members' interiors.
+\end{corollary}
 
 \chapter{The Calculus of Attention and Cost}
 \label{ch:calc}
 
 \section{The attention fluent}
 
-Scheduling admitted actions consumes a shared, conserved resource we call the
-\emph{attention fluent} $\Fitness_a(t)$ --- the operator/agent capacity available at
-time $t$. Borrowing the term \emph{fluent} in its original Newtonian sense (a quantity
-that flows), we model it as a continuous state variable obeying a balance law.
+Scheduling admitted actions consumes a shared conserved resource, the \emph{attention fluent}
+--- \emph{fluent} in Newton's original sense of a quantity that flows.
 
 \begin{definition}[Attention balance]
-Let $c(t)\ge 0$ be attention capacity and let admitted action $j$ draw rate $r_j\ge0$
-while active on an interval $[s_j,e_j]$. The instantaneous free capacity is
-\[
-f(t) \;=\; c(t) \;-\; \sum_{j:\, t\in[s_j,e_j]} r_j .
-\]
-A schedule is \emph{feasible} iff $f(t)\ge 0$ for all $t$, i.e.\ the conservation
-constraint $\sum_j r_j \mathbf{1}_{[s_j,e_j]}(t)\le c(t)$ holds pointwise.
+Let $c(t)\ge0$ be capacity and admitted action $j$ draw rate $r_j\ge0$ on $[s_j,e_j]$. Free
+capacity is $f(t)=c(t)-\sum_{j:\,t\in[s_j,e_j]}r_j$. A schedule is feasible iff $f(t)\ge0$
+for all $t$.
 \end{definition}
 
-\begin{proposition}[Makespan as a functional]
-For a fixed feasible schedule the makespan $T=\max_j e_j$ is the terminal time of the
-capacity balance, and the total attention consumed is the integral
-\[
-\int_0^T \Bigl(\,\sum_j r_j\mathbf 1_{[s_j,e_j]}(t)\Bigr)\,dt
-= \sum_j r_j\,(e_j-s_j),
-\]
-a conserved quantity independent of the schedule's ordering. Thus reordering
-redistributes \emph{when} attention is spent but not \emph{how much}; the optimization
-target is the makespan functional $T[\,\cdot\,]$, minimized subject to precedence and
-the pointwise capacity constraint.
+\begin{proposition}[Attention is conserved; makespan is the target]
+Total attention $\int_0^T\!\sum_j r_j\mathbf 1_{[s_j,e_j]}(t)\,dt=\sum_j r_j(e_j-s_j)$ is
+independent of ordering. Reordering redistributes \emph{when} attention is spent, not \emph{how
+much}; the optimization target is the makespan functional $T[\cdot]$ under precedence and the
+pointwise capacity constraint.
 \end{proposition}
 
 \begin{proof}
-Linearity of the integral gives the second identity; the first is the definition of
-makespan. Independence of ordering follows because each term $r_j(e_j-s_j)$ depends
-only on action $j$'s duration and rate, not on its placement. \end{proof}
+Linearity of the integral; each $r_j(e_j-s_j)$ depends only on $j$'s duration and rate. \end{proof}
 
-\section{Lexicographic arbitration as a limit}
-
-When several admitted plans compete, the implementation orders them by a
-\emph{cost vector} with lawfulness dominating. We derive this lexicographic order as a
-limit of ordinary weighted optimization, which explains why ``admitted'' is not merely
-a large weight but an infinite one.
+\section{Lexicographic arbitration as an infinite-weight limit}
 
 \begin{definition}[Cost vector]
-To a candidate plan assign $\bm{c} = (c_0,c_1,\dots,c_k)$ with $c_0\in\{0,1\}$ the
-\emph{unadmitted} indicator ($0$ = admitted) and $c_1,\dots,c_k$ the ordered secondary
-costs (mutation risk, attention-seconds, tokens, latency, switches). Order plans by the
-lexicographic order $\preceq_{\mathrm{lex}}$ on $\bm c$.
+Assign a plan $\bm c=(c_0,c_1,\dots,c_k)$, $c_0\in\{0,1\}$ the unadmitted indicator ($0=$
+admitted), $c_1,\dots,c_k$ bounded secondary costs. Order by lexicographic $\preceq_{\mathrm{lex}}$.
 \end{definition}
 
 \begin{theorem}[Lexicographic order is the weight limit]\label{thm:lex}
-Let $C_\lambda(\bm c) = \sum_{i=0}^{k}\lambda^{\,k-i} c_i$ for $\lambda>1$, and suppose
-all secondary costs are bounded, $|c_i|\le M$. Then there exists $\Lambda$ such that for
-all $\lambda>\Lambda$,
-\[
-\bm c \preceq_{\mathrm{lex}} \bm c' \iff C_\lambda(\bm c)\le C_\lambda(\bm c') .
-\]
-In particular as $\lambda\to\infty$ the weighted objective $C_\lambda$ induces exactly
-the lexicographic order, and the weight on the lawfulness coordinate $c_0$ diverges.
+With $C_\lambda(\bm c)=\sum_{i=0}^k\lambda^{k-i}c_i$, $\lambda>1$, $|c_i|\le M$: there is
+$\Lambda$ with $\bm c\preceq_{\mathrm{lex}}\bm c'\iff C_\lambda(\bm c)\le C_\lambda(\bm c')$
+for all $\lambda>\Lambda$. As $\lambda\to\infty$ the lawfulness coordinate's weight diverges.
 \end{theorem}
 
 \begin{proof}
-If $\bm c\prec_{\mathrm{lex}}\bm c'$ they first differ at some index $p$ with
-$c_p<c'_p$, so $c'_p-c_p\ge \epsilon$ for the (discrete or bounded) resolution
-$\epsilon>0$. Then
-\[
-C_\lambda(\bm c')-C_\lambda(\bm c)
-= \lambda^{k-p}(c'_p-c_p) + \sum_{i>p}\lambda^{k-i}(c'_i-c_i)
-\ge \lambda^{k-p}\epsilon - 2M\sum_{i>p}\lambda^{k-i}.
-\]
-The positive term is order $\lambda^{k-p}$ and the tail is $O(\lambda^{k-p-1})$, so the
-difference is positive once $\lambda>\Lambda:=1+2M(k)/\epsilon$. Ties ($\bm c=\bm c'$)
-map to equality. Hence the induced orders coincide for $\lambda>\Lambda$; letting
-$\lambda\to\infty$ the lawfulness coordinate's weight $\lambda^{k}$ dominates all
-others, which is the statement that no finite secondary cost can purchase an unadmitted
-plan. \end{proof}
+If $\bm c\prec_{\mathrm{lex}}\bm c'$ they first differ at $p$ with $c'_p-c_p\ge\epsilon>0$;
+then $C_\lambda(\bm c')-C_\lambda(\bm c)\ge\lambda^{k-p}\epsilon-2M\sum_{i>p}\lambda^{k-i}$,
+positive once $\lambda>\Lambda=1+2Mk/\epsilon$. Ties map to equality. \end{proof}
 
-Theorem~\ref{thm:lex} is the precise sense of ``you cannot buy your way past the first
-letter'': the price of unlawfulness is not high but infinite in the limit that defines
-the order.
+The price of unlawfulness is not high but infinite in the limit that defines the order: no
+finite secondary cost purchases an unadmitted plan.
 
 \chapter{The Geometry of Conformance}
 \label{ch:geo}
 
 \section{The marking polytope}
 
-Token-flow execution --- Petri nets, POWL, the lifecycle typestate --- has a native
-geometry. Let there be $p$ places; a \emph{marking} is $\bm m\in\mathbb{Z}_{\ge0}^{p}$,
-and a transition $t$ is a pair $(\bm m^-_t,\bm m^+_t)$ of pre- and post-conditions.
-Firing $t$ at $\bm m$ is defined iff $\bm m\ge\bm m^-_t$ (coordinatewise) and yields
-$\bm m' = \bm m - \bm m^-_t + \bm m^+_t$.
+Token-flow execution has a native geometry. With $p$ places, a marking is
+$\bm m\in\mathbb Z_{\ge0}^p$; a transition $t$ is $(\bm m^-_t,\bm m^+_t)$, enabled at $\bm m$
+iff $\bm m\ge\bm m^-_t$, firing to $\bm m-\bm m^-_t+\bm m^+_t$.
 
-\begin{definition}[Reachability cone and state equation]
-Stack the transition displacements $\bm\delta_t=\bm m^+_t-\bm m^-_t$ as columns of the
-\emph{incidence matrix} $N\in\mathbb Z^{p\times|T|}$. If a firing sequence fires each
-transition $t$ a total of $x_t\ge0$ times (the \emph{Parikh vector} $\bm x$), then any
-reachable marking satisfies the \emph{state equation}
-\begin{equation}\label{eq:stateeq}
-\bm m \;=\; \bm m_0 + N\bm x, \qquad \bm x\in\mathbb Z_{\ge0}^{|T|} .
-\end{equation}
-The set of $\bm m$ satisfying~\eqref{eq:stateeq} for some $\bm x\ge0$ is the integer
-points of the translated cone $\bm m_0 + \operatorname{cone}(N)$.
+\begin{definition}[State equation and reachability cone]
+Let $N\in\mathbb Z^{p\times|T|}$ have columns $\bm\delta_t=\bm m^+_t-\bm m^-_t$. A firing
+sequence with Parikh vector $\bm x\ge0$ reaches $\bm m=\bm m_0+N\bm x$. The reachable set lies
+in the integer points of $\bm m_0+\operatorname{cone}(N)$.
 \end{definition}
 
-\begin{proposition}[Conformance is membership; nonconformance is a separating hyperplane]
-A trace with Parikh vector $\bm x$ is language-conformant only if its induced marking
-lies in the polytope $\mathcal P=\{\bm m_0+N\bm x : \bm x\ge \bm 0\}\cap\{\bm m\ge\bm0\}$.
-If an observed marking $\bm m^\dagger\notin\mathcal P$, then by the Farkas lemma there
-exists $\bm y$ with $\bm y^\top N\le \bm 0$ and $\bm y^\top(\bm m^\dagger-\bm m_0)>0$:
-a certificate (separating hyperplane) of nonconformance.
+\begin{proposition}[Conformance is membership; a fault is a separating hyperplane]
+A trace with Parikh vector $\bm x$ is conformant only if its marking lies in
+$\mathcal P=\{\bm m_0+N\bm x:\bm x\ge\bm0\}\cap\{\bm m\ge\bm0\}$. If $\bm m^\dagger\notin\mathcal P$,
+Farkas' lemma~\cite{schrijver1986} yields $\bm y$ with $\bm y^\top N\le\bm0$ and $\bm y^\top(\bm m^\dagger-\bm m_0)>0$:
+a certificate of nonconformance.
 \end{proposition}
 
 \begin{proof}
-Membership in the finitely generated cone is the state equation with $\bm x\ge0$.
-Farkas' lemma applied to the system $N\bm x = \bm m^\dagger-\bm m_0,\ \bm x\ge0$ yields
-either a nonnegative solution (conformance) or a vector $\bm y$ with $\bm y^\top N\le0$
-and $\bm y^\top(\bm m^\dagger-\bm m_0)>0$ (the certificate). The two alternatives are
-mutually exclusive, which is exactly a decision with a proof. \end{proof}
+Membership is the state equation with $\bm x\ge0$; Farkas applied to $N\bm x=\bm m^\dagger-
+\bm m_0,\ \bm x\ge0$ gives either a nonnegative solution or the separating $\bm y$. \end{proof}
 
-\begin{definition}[Conformance fitness as normalized distance]
-Let $\Fitness(\sigma) = 1 - \dfrac{\text{tokens consumed on unenabled transitions}}
-{\text{tokens the replay attempted to consume}}\in[0,1]$. Then $\Fitness=1$ iff the
-replay never attempted a disabled firing, i.e.\ the trace stays within $\mathcal P$ at
-every step; and $1-\Fitness$ is a normalized $\ell^1$ measure of excursion outside the
-enabled set --- a distance to the polytope boundary.
+\begin{definition}[Fitness as normalized distance]
+$\Fitness(\sigma)=1-\dfrac{\text{tokens consumed on unenabled transitions}}{\text{tokens the
+replay attempted to consume}}\in[0,1]$; $\Fitness=1$ iff the replay never forced a disabled
+firing, and $1-\Fitness$ is a normalized $\ell^1$ excursion outside the enabled set.
 \end{definition}
 
-\begin{theorem}[Lawful trace has unit fitness; the converse localizes the fault]
-A trace is a firing sequence of the net iff $\Fitness=1$ under token replay. If
-$\Fitness<1$, the first frame at which a token is consumed on an unenabled transition
-is a coordinate-localized witness $t^\star$ of the violation.
+\begin{theorem}[Unit fitness characterizes lawful traces; the fault localizes]
+A trace is a firing sequence iff $\Fitness=1$. If $\Fitness<1$, the first frame forcing an
+unenabled consumption is a coordinate-localized witness $t^\star$.
 \end{theorem}
 
 \begin{proof}
-Token replay fires each event by removing pre-tokens and adding post-tokens; a firing
-is \emph{enabled} iff $\bm m\ge\bm m^-_t$. If every event is enabled, no forced
-consumption occurs, numerator $=0$, $\Fitness=1$, and by induction the sequence is a
-genuine firing sequence, so the marking stays in $\mathcal P$. Conversely if some event
-is not enabled, replay records a forced consumption at the earliest such index; that
-index is $t^\star$, the numerator is positive, and $\Fitness<1$. \end{proof}
+Enabled firings never force consumption, giving numerator $0$ and, inductively, a genuine
+firing sequence within $\mathcal P$. A disabled event records a forced consumption at the
+earliest index $t^\star$, making the numerator positive. \end{proof}
 
-\section{Separability: decomposing the geometry}
+\section{Separability is a Rice quarantine for processes}
 
-The polytope of a realistic process is astronomically high dimensional, but the
-processes that occur in practice are \emph{separable}: recursively built from
-sub-processes each of which is locally either pure choice (a state machine) or pure
-concurrency (a marked graph).
-
-\begin{theorem}[Separable decomposition, after Kourani--van der Aalst]
-\label{thm:sep}
-A sound workflow net that is separable admits a recursive decomposition into a
-POWL~2.0 model in which each node is either a choice graph (all exclusive/cyclic logic)
-or a partial order (all concurrent logic). Each node's local marking geometry has
-dimension bounded by the node's arity, independent of the global net size.
+\begin{theorem}[Separable decomposition, after Kourani--van der Aalst~\cite{kourani2026,vanderaalst2016}]\label{thm:sep}
+A sound, separable workflow net admits a recursive decomposition into a POWL~2.0 model whose
+every node is a choice graph (all exclusive/cyclic logic) or a partial order (all concurrent
+logic); each node's local marking geometry has dimension bounded by its arity, independent of
+global net size.
 \end{theorem}
 
-\begin{remark}[Separability is a Rice quarantine for processes]
-Theorem~\ref{thm:sep} has an admission reading. \emph{Separable} nets are exactly those
-whose geometry decomposes into bounded lanes; the decomposition algorithm terminates and
-certifies membership. Non-separable nets are \emph{refused} with a stated reason. Thus
-separability is the admission predicate of the process layer: it is the decidable
-sub-language onto which arbitrary workflow logic is retracted, precisely as $\Adm$
-retracts $\Obs$ in Chapter~\ref{ch:obs}. The high-dimensional interior is real; each
-lane is bounded; the boundary artifact (the decomposition certificate) is small.
+\begin{remark}
+Theorem~\ref{thm:sep} is admission for processes: separable nets decompose into bounded lanes
+(the algorithm certifies membership); non-separable nets are \emph{refused with reason}.
+Separability is the decidable sub-language onto which arbitrary workflow logic is retracted,
+exactly as $\Adm$ retracts $\Obs$. The interior is high-dimensional; each lane is bounded; the
+boundary certificate is small --- the projection principle, in geometry.
 \end{remark}
 
-\chapter{The Instance: A Machine No One Held in His Head}
+\chapter{The Instance: From One Build to a Trillion Agents}
 \label{ch:instance}
 
-\section{Setting}
+\section{The build no agent read}
 
-We instantiate the theory on a concrete autonomous build. Over a bounded interval a
-fleet of automated agents performed exploration, planning, and implementation across a
-constellation of code repositories. The interior of this process consumed on the order
-of
+Over a bounded interval an autonomous fleet performed exploration, planning, and
+implementation across a constellation of repositories. Its interior consumed
+$\Sigma_{\text{tokens}}\approx 2.5\times 10^{6}$ machine-generated tokens that no agent read
+in full. Its trustworthiness rests entirely on boundary receipts: the whole interior projects
+to coordinates of the form
 \[
-\Sigma_{\text{tokens}} \;\approx\; 2.5\times 10^{6}
+\bigl(\text{verdict}=\textsf{pass},\ h_+=\texttt{<256-bit hex>},\ \Fitness=1.0,\ \text{refusals}=k\ \text{(each receipted)}\bigr),
 \]
-machine-generated tokens --- surveys, plans, diffs, tool transcripts --- \emph{no
-human read in full}. Let $\dim\Sigma$ denote the effective dimension of this interior;
-it is, for our purposes, unbounded relative to $\CL$.
+plus a coverage figure $\text{pass\_rate}\in[0,1]$ over an enumerated frontier and a
+differential-oracle agreement flag. By Theorem~\ref{thm:faithful} each is faithful over its
+committed fields; by Theorem~\ref{thm:gap} each is verifiable at $O(\CL)$; the refusals are not
+omissions but materialized join-supports of the denial monoid (Proposition~\ref{prop:semilattice}).
 
-\section{The Comprehension--Verification Gap}
+\section{The trillion-agent projection}
 
-\begin{corollary}[Comprehension--Verification Gap]\label{cor:gap}
-Let $\mathrm{Comp}(\sigma)$ be the cost of comprehending the interior trace and
-$\mathrm{Ver}(\sigma)$ the cost of verifying its boundary projection. Under
-Corollary~\ref{cor:noncomp} and Theorem~\ref{thm:faithful},
-\[
-\mathrm{Ver}(\sigma) \;=\; O(\CL)\ \text{per receipt},
-\qquad
-\mathrm{Comp}(\sigma) \;=\; \Omega(\dim\Sigma),
-\]
-so the ratio $\mathrm{Comp}/\mathrm{Ver}$ grows without bound in $\dim\Sigma$ while
-verification stays constant. Trust is available at cost $O(\CL)$ for a system of
-unbounded interior.
-\end{corollary}
+The headline construction. Here the theory stops being an audit method for one build and
+becomes a control plane for a civilization of bounded agents. We are scrupulous about which
+statements are theorems, which are arithmetic, and which are engineering estimates or
+consequences --- the distinction is the antibody, and at this scale it is easy to lose.
 
-\begin{proof}
-Verification reads only $\Proj(\sigma)$, of size $\le\CL$, and performs a fixed hash
-recomputation and comparison per checked frame (Theorem~\ref{thm:faithful},
-Corollary~\ref{cor:noncomp}); hence $O(\CL)$ per receipt. Comprehension requires
-ingesting the interior, whose size is $\Theta(\dim\Sigma)$; hence
-$\Omega(\dim\Sigma)$. The ratio therefore diverges. \end{proof}
+\begin{construction}[Agent as eight bits]\label{con:agent8}
+\emph{(Construction --- definitional.)} Project each agent to a status byte $b\in\{0,1\}^8$
+whose lanes name \textsf{admitted}, \textsf{evidence-ok}, \textsf{within-budget},
+\textsf{authority-bound}, \textsf{healthy}, \textsf{conformant}, \textsf{receipted},
+\textsf{replayable}. A fleet of $N$ agents is a bit-packed vector; a $64$-bit word holds $8$
+agents; a fleet admission sweep is the branchless mask reduction of
+Construction~\ref{con:denial} applied word-parallel. An agent does not ask to be understood.
+It presents a lawful projection.
+\end{construction}
 
-\section{Instantiation of the boundary}
+\subsection*{What the status byte is not}
 
-Concretely, the entire $2.5$-million-token interior projects to a handful of
-$\CL$-sized coordinates of the form
-\[
-\bigl(\text{verdict}=\textsf{pass},\;
-h_+ = \texttt{<256-bit hex>},\;
-\Fitness = 1.0,\;
-\text{refusals} = k \text{ (each receipted)}\bigr),
-\]
-together with a coverage figure $\text{pass\_rate}\in[0,1]$ over an enumerated frontier
-and a differential-oracle agreement flag. Each is at most a few chunks; each is checkable
-without reading the interior; and by Theorems~\ref{thm:faithful} and
-\ref{thm:conservation} each is faithful to the interior it summarizes. The refusals are
-not omissions but recorded cells (Chapter~\ref{ch:obs}, Proposition~\ref{prop:semilattice}):
-a refusal register is the join-support of the denial monoid, materialized.
+The byte is \emph{not} an agent self-report. It is a mechanism-computed projection
+(Definition~\ref{def:receipt}) of the agent's receipted lifecycle: each lane is \emph{set only
+by} the corresponding mechanism, never by the agent's assertion about itself.
+\textsf{Admitted} is set by the admission retraction $\adm$ (Definition~\ref{def:adm}), not by
+a claim of admissibility; \textsf{evidence-ok} by satisfied obligations $g_i$;
+\textsf{conformant} by a replay with $\Fitness=1$ (Chapter~\ref{ch:geo}); \textsf{receipted}
+and \textsf{replayable} only by chained receipts whose frames commit the law-bearing
+fields~\eqref{eq:frame}; the denial word $d(o)$ (Construction~\ref{con:denial}) forces the
+complementary lanes. Thus the byte is faithful by Theorem~\ref{thm:faithful}, and small enough
+that a peer with context $\CL$ reads a counterpart's entire lawful standing in one glance ---
+\emph{a glance at a computed coordinate, not at a claim}. Each lane is fully mechanical:
+
+\begin{center}
+\small
+\begin{tabular}{lll}
+\toprule
+Lane & Set by (mechanism) & Refused by\\
+\midrule
+\textsf{admitted} & $\adm(o)\ne\Rfsl$ & denial word $d(o)\ne\bm 0$\\
+\textsf{evidence-ok} & obligation battery $\bigwedge_i g_i$ passes & missing/failed evidence\\
+\textsf{within-budget} & cost fluent within bound & budget overflow\\
+\textsf{authority-bound} & authority/policy digest satisfied & authority mismatch\\
+\textsf{healthy} & lifecycle / heartbeat receipt & failed health check\\
+\textsf{conformant} & replay with $\Fitness=1$ & disabled transition ($\Fitness<1$)\\
+\textsf{receipted} & valid chain position~\eqref{eq:chain} & missing / broken receipt\\
+\textsf{replayable} & replay index / checkpoint exists & unreplayable artifact\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The byte is not an ontology of the agent. It is the \emph{local} lawful status projection
+required for a given admission surface: a different surface (a different obligation battery,
+a different policy) computes a different byte from the same agent. Locality is a feature ---
+the projection is exactly as wide as the interaction demands, and no wider.
+
+\subsection*{What this theory refuses to trust}
+
+Symmetrically, the following carry \emph{no} standing under this theory, because none is a
+committed field of a faithful receipt frame~\eqref{eq:frame}. Each is admissible only as raw
+observation $o\in\Obs$ (Axiom~\ref{ax:obs}), to be quarantined and admitted or refused ---
+never taken as attested:
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt]
+\item an agent's \textbf{self-report} of its own status or success;
+\item an \textbf{LLM explanation} or rationale offered in place of a receipt;
+\item a \textbf{natural-language trace} of what was ``done'';
+\item \textbf{uncommitted metadata} --- any field absent from $\mathsf{fr}$ (by the converse
+      clause of Theorem~\ref{thm:faithful}, it is not attested);
+\item an \textbf{unchecked policy/implementation version} not committed as $v$;
+\item an \textbf{unreplayed artifact} whose $\Fitness$ was never computed;
+\item any \textbf{unreceipted claim} (by the antibody proposition below, it is in
+      $\mathrm{Over}$ and rejected).
+\end{itemize}
+Trust attaches to committed fields and computed lanes; everything else is observation awaiting
+admission.
+
+\begin{proposition}[Fleet arithmetic and its estimates]\label{prop:planetary}
+For a fleet of $N$ agents under Construction~\ref{con:agent8}:
+\begin{enumerate}[label=(\alph*),leftmargin=1.6em,itemsep=1pt]
+\item \textbf{(Arithmetic --- exact.)} The status vector occupies exactly $N$ bytes; at
+      $N=10^{12}$ that is $1\,\mathrm{TB}$, packed to $N/8$ $64$-bit words. A full admission
+      sweep is $N/8$ masked-OR word operations.
+\item \textbf{(Engineering estimate.)} Compressed to per-byte lane entropy under typical
+      sparsity, status is $\sim\!10\,\mathrm{GB}$; at streaming bandwidth $B$ a sweep takes
+      $\Theta(N/(8B))$ wall-clock.
+\item \textbf{(Order-of-magnitude estimate.)} The affordability ratio between one cache-line
+      mask op ($\sim$ns) and one LLM admission decision ($\sim\!10^{-2}\,$s) is $\sim\!10^{7}$.
+\item \textbf{(Consequence, not theorem.)} Therefore a comprehension-based or per-agent-LLM
+      planetary control plane is infeasible by $\sim\!N\cdot 10^{7}$, while a bit-parallel
+      admission sweep is feasible; planetary coherence of a bounded-agent fleet is available
+      only through projection-based admission.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}[On the labels]
+(a) is counting. (b),(c) are estimates and are marked as such; they depend on hardware and
+workload and are not claimed as theorems. (d) is the engineering consequence of composing (a)
+with the Fleet Trust Budget corollary of Chapter~\ref{ch:cost}: per-message cost $O(\CL)$
+versus $\Omega(\dim\Sigma)$ for comprehension, scaled by $N$. No part of this proposition
+asserts a mathematical impossibility; it asserts an economic separation under stated
+estimates. \end{proof}
+
+\section{A worked status byte}
+
+To make the projection concrete, we compute one agent's status byte from its receipts.
+Order the lanes as in Construction~\ref{con:agent8}, most significant first:
+$b=(\textsf{adm},\textsf{ev},\textsf{bud},\textsf{auth},\textsf{hlth},\textsf{conf},\textsf{rcpt},\textsf{repl})$.
+An agent has just completed a contract-claim manufacture. Its receipt chain contains a frame
+$\mathsf{fr}=\langle\dg(x),\dg(G),d(o),\tau,\dg(a),\Fitness,r,v\rangle$ with the following
+mechanism outcomes:
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt]
+\item $\adm(o)\ne\Rfsl$ and $d(o)=\bm 0$: admission passed $\Rightarrow \textsf{adm}=1$.
+\item obligation battery $\bigwedge_i g_i=1$ (signature and ledger evidence present)
+      $\Rightarrow \textsf{ev}=1$.
+\item cost fluent within its bound $\Rightarrow \textsf{bud}=1$.
+\item the authority digest committed as part of policy $v$ is satisfied
+      $\Rightarrow \textsf{auth}=1$.
+\item lifecycle heartbeat receipt current $\Rightarrow \textsf{hlth}=1$.
+\item token replay of the lifecycle trace returns $\Fitness=1$
+      $\Rightarrow \textsf{conf}=1$.
+\item a valid chain position $h_+$ exists~\eqref{eq:chain} $\Rightarrow \textsf{rcpt}=1$.
+\item a replay checkpoint index exists $\Rightarrow \textsf{repl}=1$.
+\end{itemize}
+Hence $b = \mathtt{1111\,1111} = \mathtt{0xFF}$: the agent presents as fully lawful on this
+surface. A peer reads one byte and, by the derivation table, knows precisely which mechanism
+set each bit --- no interior, no self-report. Now suppose the same agent's ledger evidence is
+absent: then $g_{\text{ledger}}=0$ forces a denial lane, $\textsf{ev}=0$, and (because
+admission requires all obligations) $\textsf{adm}=0$, giving $b=\mathtt{0011\,1111}=\mathtt{0x3F}$
+with the refusal category $\supp d(o)=\{\textsf{Prerequisites}\}$ attached. The peer reads
+\texttt{0x3F} and the category, and refuses to depend on the agent for this surface --- again
+from a computed coordinate, not a claim.
+
+\section{What this refuses to trust: five adversaries}
+
+Each adversary attempts to obtain standing without a faithful receipt; each is defeated by a
+named mechanism, not by inspection of the interior.
+\begin{enumerate}[leftmargin=1.6em,itemsep=2pt]
+\item \textbf{Forged self-report.} An agent emits ``\textsf{healthy}=1, \textsf{conformant}=1''
+      as a message. \emph{Defeated:} the byte is not read from the message; it is recomputed
+      from the agent's receipt chain (the derivation table). An assertion is raw observation
+      $o\in\Obs$ (Axiom~\ref{ax:obs}), admitted or refused, never attested.
+\item \textbf{Broken replay.} An artifact is presented with $\textsf{conf}=1$ but its trace
+      contains a disabled firing. \emph{Defeated:} token replay yields $\Fitness<1$ and
+      localizes the first offending transition $t^\star$ (Chapter~\ref{ch:geo}); the
+      \textsf{conf} lane is forced to $0$.
+\item \textbf{Missing policy digest.} An action claims authority under a policy version $v$ the
+      frame never committed. \emph{Defeated:} by the converse clause of
+      Theorem~\ref{thm:faithful}, an uncommitted field is not attested; $\textsf{auth}$ cannot
+      be set, and the claim is in $\mathrm{Over}$.
+\item \textbf{Non-separable workflow.} A process is submitted whose net does not decompose.
+      \emph{Defeated:} the separability admission (Theorem~\ref{thm:sep}, remark) refuses it
+      with a stated reason rather than admitting an unbounded lane.
+\item \textbf{Unreceipted claim.} A result is asserted with no chain position.
+      \emph{Defeated:} $\textsf{rcpt}=0$; by the antibody proposition below the claim is in
+      $\mathrm{Over}$ and rejected under the \textsf{docs-exceed-mechanism} invariant.
+\end{enumerate}
+In each case the defense is a mechanism that sets or refuses a committed field --- the theory's
+consistent answer to ``why should I believe you'' is ``you have a faithful receipt, or you do
+not.''
 
 \section{The antibody clause, formalized}
 
 \begin{proposition}[Self-audited scale]
-Let a system emit claims $c$ and receipts $r(c)$. Define the \emph{overclaim set} as
-claims lacking a faithful receipt: $\mathrm{Over} = \{c : \nexists\, r(c)\ \text{with}\
-V(\Proj)=1\}$. If the system enforces $\mathrm{Over}=\varnothing$ as an invariant (the
-$\textsf{docs-exceed-mechanism}$ defect class), then the admissible magnitude of a claim
-is bounded solely by the mechanism that receipts its limits, not by the claim's rhetoric.
+Let a system emit claims $c$ with receipts $r(c)$, and define the overclaim set
+$\mathrm{Over}=\{c:\nexists\,r(c)\text{ with }V(\Proj)=1\}$. If the system enforces
+$\mathrm{Over}=\varnothing$ (the \textsf{docs-exceed-mechanism} defect class), the admissible
+magnitude of a claim is bounded by the mechanism that receipts its limits, not by rhetoric.
 \end{proposition}
 
 \begin{proof}
-By construction every admissible claim has a faithful receipt, verifiable at cost
-$O(\CL)$ by Corollary~\ref{cor:gap}; a claim without such a receipt is in $\mathrm{Over}$
-and rejected by the invariant. Hence the set of admissible claims is exactly the set of
-receipted claims, whose magnitude is bounded by what the mechanism can receipt, not by
-what the narrative asserts. \end{proof}
+Every admissible claim has a faithful receipt, verifiable at $O(\CL)$ (Theorem~\ref{thm:gap});
+a claim lacking one is in $\mathrm{Over}$ and rejected by the invariant. Admissible claims are
+exactly receipted claims. \end{proof}
 
-This is the formal content of the doctrine: \emph{a grand system without receipts is
-grandiosity; a grand system that receipts its own overclaims is machinery.}
+This is the doctrine's guardrail: \emph{a grand system without receipts is grandiosity; a grand
+system that receipts its own overclaims is machinery.} It is what licenses a thesis addressed to
+a trillion agents to make large claims --- each is receipted, or it is refused.
 
 \chapter{Conclusion}
 
-We set out to justify, rather than assume, the trust engineers already place in systems
-they cannot comprehend. The justification is a projection: admission retracts undecidable
-observation onto a decidable sub-language (Rice quarantine, Chapter~\ref{ch:obs}); a
-deterministic bounded morphism manufactures artifacts from admitted observations (the
-Chatman equation, Chapter~\ref{ch:mu}); and a collision-resistant chained receipt
-projects the unbounded execution trace onto a coordinate of size $\le\CL$ that a human
-can verify without reading the interior (the Faithful Projection Theorem). The calculus
-of the attention fluent explains scheduling and the infinite price of unlawfulness
-(Chapter~\ref{ch:calc}); the geometry of the marking polytope makes conformance a
-membership question with separating-hyperplane certificates and localizes faults
-(Chapter~\ref{ch:geo}); and separability is the process-layer admission predicate that
-keeps each lane bounded while the whole exceeds any head. The instance
-(Chapter~\ref{ch:instance}) exhibits the theory operating on a $2.5$-million-token
-interior whose trustworthiness rests entirely on boundary receipts.
+We justified, rather than assumed, the trust that bounded agents must place in systems and
+peers they cannot comprehend. Admission retracts undecidable observation onto a decidable
+sub-language (Chapter~\ref{ch:obs}); a deterministic bounded morphism manufactures artifacts
+from admitted observations (Chapter~\ref{ch:mu}); a chained receipt \emph{committing law-bearing
+fields} projects the unbounded trace onto a $\le\CL$ coordinate faithful over exactly what it
+commits (Faithful Projection, corrected). We separated the cost regimes so the doctrine claims
+only what is true: boundary verification is $O(\CL)$, replay is honestly $O(n)$
+(Chapter~\ref{ch:cost}). We corrected Conservation of Consequence to \emph{at-least-one} cause
+and \emph{unique receipt position}, distinguishing observation \emph{recoverability} (under
+injective $\muop$) from observation \emph{commitment} (under digest-committing frames) ---
+the receipt binds which observation-digest was admitted, which is not the same as
+reconstructing the observation (Chapter~\ref{ch:mu}). The attention calculus prices unlawfulness at infinity
+(Chapter~\ref{ch:calc}); the marking geometry makes conformance membership with Farkas
+certificates and localizes faults (Chapter~\ref{ch:geo}); separability is the process-layer
+quarantine. The instance scales from one $2.5$-million-token build to a $10^{12}$-agent fleet
+each projected to a faithful byte (Chapter~\ref{ch:instance}).
 
-The standard was never comprehension. The standard was a faithful projection, small
-enough to hold and guaranteed by the mechanism. Beyond cognitive load; within admissible
-projection.
+The standard was never comprehension. Among a trillion agents it could not be. The standard is a
+faithful projection, small enough to hold and guaranteed by mechanism. An agent does not ask to
+be understood; it presents a lawful projection, and its peers verify the projection, not the
+agent.
+
+\begin{center}\itshape
+Beyond cognitive load; within admissible projection.\\[0.3em]
+At trillion-agent scale, trust is not understanding. Trust is receipted projection.
+\end{center}
 
 \appendix
 \chapter{Notation}
@@ -598,15 +732,69 @@ Symbol & Meaning\\
 \midrule
 $\Obs,\ \Adm$ & observation space; admitted (decidable) sub-space\\
 $\adm,\ \Rfsl$ & admission retraction; refusal\\
-$g_i,\ d(o)$ & obligations; total denial word\\
+$g_i,\ d(o)$ & obligations; total denial word (denial monoid $D$)\\
 $\muop,\ \Act$ & manufacturing morphism; artifact space\\
-$\Sigma,\ \Proj,\ \Rec$ & execution traces; receipt projection; receipt space\\
-$\chainH,\ h_\pm$ & collision-resistant hash; chain values\\
+$\Sigma,\ \Proj,\ \Recs$ & execution traces; receipt projection; receipt space\\
+$\chainH,\ \dg,\ h_\pm$ & collision-resistant hash; digest; chain values\\
+$\mathsf{fr}$ & law-bearing frame~\eqref{eq:frame}\\
 $\Fitness$ & conformance fitness / attention fluent\\
-$\CL$ & human working-memory capacity (chunks), a fixed small constant\\
+$\CL$ & bounded-verifier context capacity (chunks), small constant\\
 $N,\ \bm m,\ \bm x$ & incidence matrix; marking; Parikh vector\\
 $\preceq_{\mathrm{lex}}$ & lexicographic cost order\\
+$b\in\{0,1\}^8$ & agent status byte (Construction~\ref{con:agent8})\\
 \bottomrule
 \end{tabular}
+
+\chapter{Implementation Map}
+The theory is instantiated in the Praxis / Capability Physics codebase; each formal object has
+a running counterpart, so a claim in this paper is traceable to code and to Genesis build
+receipts.
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Formal object & Implementation & Locus\\
+\midrule
+Admission $\adm$, refusal $\Rfsl$ & \texttt{LawObject<S>} typestate; \texttt{Andon::Halted} & \texttt{praxis-core}\\
+Denial monoid $D$, categories & \texttt{refusal.rs} 8-bucket \texttt{RefusalCategory} & \texttt{praxis-core}\\
+Manufacturing $\muop$ & bounded projection (ggen), BRCE loop & \texttt{ggen}, \texttt{bcinr-pddl}\\
+Law-bearing frame $\mathsf{fr}$~\eqref{eq:frame} & 128-byte \texttt{OcelCausalFrame} & \texttt{bcinr-powl-receipt}\\
+Receipt chain $h_+$~\eqref{eq:chain} & BLAKE3 chain; \texttt{ReceiptRecord} JSONL & \texttt{praxis-core}\\
+Projection $\Proj$, verdict & \texttt{verify.rs} \texttt{Verdict}/\texttt{CheckOutcome} & \texttt{praxis-core}\\
+Cost vector, lex order & capability-router \texttt{CostVector} & \texttt{bcinr-pddl}\\
+Marking geometry, $\Fitness$ & \texttt{PowlReplayVerifier} conformance & \texttt{bcinr-powl-receipt}\\
+Separable decomposition & POWL~2.0 / Kourani decomposition & Genesis Day~5\\
+Status byte $b$ & \texttt{crates/agent8} lane packing & Genesis Day~4\\
+Membrane (admission at the wire) & MCP+ tools, \texttt{env64}/\texttt{pulse64} ABI & \texttt{mcp\_lawobject\_server}\\
+Frontier / overclaim invariant & DfCm matrix; \texttt{docs-exceed-mechanism} & Genesis Day~7\\
+The $2.5$M-token instance & the Genesis build itself & \texttt{docs/genesis/}\\
+\bottomrule
+\end{tabular}
+\end{center}
+Prior publication of the equation: \cite{chatman2025}. This paper supplies the formal trust
+layer beneath that program.
+
+\begin{thebibliography}{9}
+\bibitem{rice1953} H.~G.~Rice. Classes of recursively enumerable sets and their decision
+problems. \emph{Trans.\ Amer.\ Math.\ Soc.}, 74:358--366, 1953.
+\bibitem{miller1956} G.~A.~Miller. The magical number seven, plus or minus two.
+\emph{Psychological Review}, 63(2):81--97, 1956.
+\bibitem{cowan2001} N.~Cowan. The magical number four in short-term memory.
+\emph{Behavioral and Brain Sciences}, 24(1):87--114, 2001.
+\bibitem{langdale2019simdjson} G.~Langdale and D.~Lemire. Parsing gigabytes of JSON per second.
+\emph{The VLDB Journal}, 28:941--960, 2019.
+\bibitem{bast2017qlever} H.~Bast and B.~Buchhold. QLever: A query engine for efficient SPARQL+Text
+search. In \emph{Proc.\ CIKM}, 2017.
+\bibitem{vanderaalst2016} W.~M.~P.~van der Aalst. \emph{Process Mining: Data Science in Action}.
+Springer, 2nd ed., 2016.
+\bibitem{kourani2026} H.~Kourani, G.~Park, and W.~M.~P.~van der Aalst. Hierarchical decomposition
+of separable workflow nets (POWL~2.0). Preprint, 2026.
+\bibitem{schrijver1986} A.~Schrijver. \emph{Theory of Linear and Integer Programming}. Wiley,
+1986. (Farkas' lemma.)
+\bibitem{oconnor2021blake3} J.~O'Connor, J.-P.~Aumasson, S.~Neves, and Z.~Wilcox-O'Hearn.
+BLAKE3: One function, fast everywhere. 2021.
+\bibitem{chatman2025} S.~Chatman. The Chatman Equation and the Industrial Revolution of
+Knowledge: $A=\mu(O)$, Knowledge Hooks, and Production-Verified Enterprise Execution. v1.2.0,
+2025.
+\end{thebibliography}
 
 \end{document}
