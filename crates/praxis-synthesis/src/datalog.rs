@@ -364,7 +364,7 @@ impl Program {
         let mut order = Vec::with_capacity(body.len());
         let mut used = vec![false; body.len()];
         let mut bound_vars: BTreeSet<u8> = BTreeSet::new();
-        let mut take = |i: usize, used: &mut Vec<bool>, bound: &mut BTreeSet<u8>| {
+        let take = |i: usize, used: &mut Vec<bool>, bound: &mut BTreeSet<u8>| {
             used[i] = true;
             for v in body[i].vars() {
                 bound.insert(v);
@@ -447,7 +447,7 @@ impl Program {
                 prefix[i] = want[i].expect("prefix positions are bound");
             }
 
-            let mut try_tuple =
+            let try_tuple =
                 |tuple: &Tuple,
                  binding: &mut [Option<u32>; MAX_VARS],
                  out: &mut Vec<[Option<u32>; MAX_VARS]>| {
