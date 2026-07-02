@@ -30,6 +30,7 @@ pub mod dag;
 pub mod datalog;
 pub mod fault;
 pub mod fleet;
+pub mod geometry;
 pub mod gen;
 pub mod park;
 pub mod pipeline;

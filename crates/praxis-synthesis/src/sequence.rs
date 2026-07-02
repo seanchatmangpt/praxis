@@ -439,6 +439,38 @@ impl SequenceProblem {
         self.goal_satisfied(&state)
     }
 
+    /// Fragile precondition predicate names for a capability: preconditions
+    /// whose predicate NO capability produces — the producer analysis
+    /// Solver8's unsat certificates use, applied to runtime loss. The
+    /// initial state is a one-time gift: if such a fact is lost mid-run,
+    /// nothing in the plan can lawfully re-produce it (a fact with even one
+    /// producer is recoverable by restarting that producer). The geometry
+    /// layer wires these to AuthorityVacuum→Refuse branches *before runtime*.
+    #[must_use]
+    pub(crate) fn fragile_precondition_names(&self, capability: &str) -> Vec<String> {
+        let Some(cap) = self.capability(capability) else {
+            return Vec::new();
+        };
+        cap.pre
+            .iter()
+            .filter(|pre| {
+                let pred = pre.pred.0;
+                let producers = self
+                    .caps
+                    .iter()
+                    .filter(|c| c.add.iter().any(|a| a.pred.0 == pred))
+                    .count();
+                producers == 0
+            })
+            .map(|pre| {
+                self.pred_names
+                    .get(&pre.pred.0)
+                    .cloned()
+                    .unwrap_or_else(|| format!("pred#{}", pre.pred.0))
+            })
+            .collect()
+    }
+
     /// Ground add-effect atoms of a bound step (used by Layer 3 to derive
     /// data-dependency edges).
     #[must_use]
