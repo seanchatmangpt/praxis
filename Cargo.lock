@@ -3812,6 +3812,7 @@ dependencies = [
 name = "praxis-synthesis"
 version = "26.7.2"
 dependencies = [
+ "blake3",
  "chatman-common",
  "pddl-index",
  "serde",
