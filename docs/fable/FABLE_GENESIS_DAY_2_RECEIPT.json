@@ -1,0 +1,14 @@
+{
+  "release": "praxis-v26.7.2-fable-genesis-day-2",
+  "book": "docs/fiction/BOOK_TWO_THE_LAW_OF_WORK.md",
+  "claims_total": 89,
+  "claims_admitted": 66,
+  "claims_refused": 14,
+  "claims_deferred": 9,
+  "forbidden_language_hits": 0,
+  "implementation_map_present": true,
+  "onboarding_present": true,
+  "manifest_present": true,
+  "receipt_hash": "249623c9f17ff4d9b84593b5ea7acd3537adbda2a61ac08ea3e54229e69fe09a",
+  "algorithm": "blake3"
+}

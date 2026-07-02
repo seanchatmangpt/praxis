@@ -1,0 +1,138 @@
+{
+  "release": "praxis-v26.7.2-fable-genesis-day-2",
+  "book": "docs/fiction/BOOK_TWO_THE_LAW_OF_WORK.md",
+  "chapters": [
+    {
+      "chapter_id": 1,
+      "title": "The Boy Who Built Before He Explained",
+      "doctrine_terms": ["O", "receipt chain"],
+      "subsystems_referenced": ["praxis-core"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md"]
+    },
+    {
+      "chapter_id": 2,
+      "title": "Games as Mission Systems",
+      "doctrine_terms": ["Mission Physics", "O"],
+      "subsystems_referenced": ["mission-runtime"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md"]
+    },
+    {
+      "chapter_id": 3,
+      "title": "The Enterprise Learns to Speak",
+      "doctrine_terms": ["LawObject", "A"],
+      "subsystems_referenced": ["mcp_lawobject_server"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md"]
+    },
+    {
+      "chapter_id": 4,
+      "title": "Civic Receipts",
+      "doctrine_terms": ["receipt chain", "replay"],
+      "subsystems_referenced": ["receipt-ledger"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md"]
+    },
+    {
+      "chapter_id": 5,
+      "title": "Church as Mission Physics",
+      "doctrine_terms": ["Mission Physics", "R"],
+      "subsystems_referenced": ["mission-runtime"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md"]
+    },
+    {
+      "chapter_id": 6,
+      "title": "The Gate of O*",
+      "doctrine_terms": ["O*", "Rice Quarantine", "LawObject"],
+      "subsystems_referenced": ["ostar-gate", "verifier"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md"]
+    },
+    {
+      "chapter_id": 7,
+      "title": "The Workshop of mu",
+      "doctrine_terms": ["mu", "promotion"],
+      "subsystems_referenced": ["mu-workshop", "verbs"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md"]
+    },
+    {
+      "chapter_id": 8,
+      "title": "The Chain of Receipts",
+      "doctrine_terms": ["receipt chain", "replay"],
+      "subsystems_referenced": ["receipt-ledger"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md", "docs/fable/fable_claims.jsonl"]
+    },
+    {
+      "chapter_id": 9,
+      "title": "The Milk on the Floor",
+      "doctrine_terms": ["refusal register", "R"],
+      "subsystems_referenced": ["refusal-register"],
+      "receipts_referenced": ["docs/fable/FABLE_REFUSALS.md"]
+    },
+    {
+      "chapter_id": 10,
+      "title": "The Pen and the Million-Dollar Check",
+      "doctrine_terms": ["Revenue Physics", "LawObject"],
+      "subsystems_referenced": ["revenue-demo"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md"]
+    },
+    {
+      "chapter_id": 11,
+      "title": "Revenue Physics",
+      "doctrine_terms": ["Revenue Physics", "Combinatorial Maximalism"],
+      "subsystems_referenced": ["revenue-demo"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md"]
+    },
+    {
+      "chapter_id": 12,
+      "title": "Mission Physics",
+      "doctrine_terms": ["Mission Physics", "O", "O*"],
+      "subsystems_referenced": ["mission-runtime"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md"]
+    },
+    {
+      "chapter_id": 13,
+      "title": "The Fleet of Lawful Helpers",
+      "doctrine_terms": ["Capability Physics", "LawObject"],
+      "subsystems_referenced": ["agent8", "status byte"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md"]
+    },
+    {
+      "chapter_id": 14,
+      "title": "The Fable Refuses to Lie",
+      "doctrine_terms": ["refusal register", "Rice Quarantine"],
+      "subsystems_referenced": ["refusal-register", "verifier"],
+      "receipts_referenced": ["docs/fable/FABLE_REFUSALS.md", "docs/fable/fable_claims.jsonl"]
+    },
+    {
+      "chapter_id": 15,
+      "title": "The Law of Work",
+      "doctrine_terms": ["O", "O*", "mu", "A", "R", "receipt chain", "promotion"],
+      "subsystems_referenced": ["praxis-core", "ostar-gate", "receipt-ledger"],
+      "receipts_referenced": ["docs/fable/FABLE_RECEIPTS.md", "docs/fable/fable_claims.jsonl"]
+    }
+  ],
+  "doctrine_terms": [
+    "O",
+    "O*",
+    "mu",
+    "A",
+    "R",
+    "Rice Quarantine",
+    "LawObject",
+    "receipt chain",
+    "refusal register",
+    "replay",
+    "promotion",
+    "Combinatorial Maximalism",
+    "Mission Physics",
+    "Revenue Physics",
+    "Capability Physics"
+  ],
+  "evidence_files": [
+    "docs/fable/FABLE_RECEIPTS.md",
+    "docs/fable/FABLE_REFUSALS.md",
+    "docs/fable/fable_claims.jsonl"
+  ],
+  "onboarding": "docs/fable/ONBOARDING_FABLE.md",
+  "next_actions": [
+    "just revenue-demo",
+    "inspect docs/genesis/GENESIS_SEAL.json"
+  ]
+}
