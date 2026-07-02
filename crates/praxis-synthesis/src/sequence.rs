@@ -143,6 +143,9 @@ pub struct SequenceProblem {
     pub(crate) goal: Vec<Atom>,
     horizon: usize,
     pub(crate) constraints: Vec<Constraint>,
+    /// Predicate id → interned name, snapshotted from the program's dict so
+    /// refusal certificates can name facts, not just numbers.
+    pub(crate) pred_names: BTreeMap<u32, String>,
     problem_hash: String,
 }
 
@@ -369,7 +372,13 @@ impl SequenceProblem {
         });
         let problem_hash =
             chatman_common::provenance::content_address(canon.to_string().as_bytes());
-        Ok(Self { caps: capabilities, init, goal, horizon, constraints, problem_hash })
+        // Snapshot every interned symbol (capability precondition predicates
+        // may never appear as facts, but certificates must still name them).
+        #[allow(clippy::cast_possible_truncation)]
+        let pred_names: BTreeMap<u32, String> = (0..program.dict.len() as u32)
+            .map(|i| (i, program.dict.resolve(SymId(i)).to_string()))
+            .collect();
+        Ok(Self { caps: capabilities, init, goal, horizon, constraints, pred_names, problem_hash })
     }
 
     /// Content address of this problem.

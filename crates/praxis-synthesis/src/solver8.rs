@@ -155,32 +155,40 @@ fn propagate(
     masks
 }
 
+fn init_has(problem: &SequenceProblem, pred: u32) -> bool {
+    problem.init.by_pred.get(&pred).is_some_and(|s| !s.is_empty())
+}
+
+fn producers_of(problem: &SequenceProblem, pred: u32) -> Vec<usize> {
+    problem
+        .caps
+        .iter()
+        .enumerate()
+        .filter(|(_, c)| c.add.iter().any(|a| a.pred.0 == pred))
+        .map(|(i, _)| i)
+        .collect()
+}
+
 /// The mandatory set: sole producers of goal predicates, closed under
-/// `Requires`. (Conservative: a goal predicate with several producers makes
-/// none of them individually mandatory.)
+/// `Requires` and under sole-producer precondition support (a mandatory
+/// capability's precondition predicate that the initial state lacks and only
+/// one capability produces makes that producer mandatory too).
+/// (Conservative: several producers make none individually mandatory.)
 fn mandatory_set(problem: &SequenceProblem) -> BTreeSet<usize> {
     let caps = &problem.caps;
     let mut mandatory: BTreeSet<usize> = BTreeSet::new();
     for g in &problem.goal {
-        // Already true in the initial state? Then no producer is needed.
-        if problem.init.by_pred.contains_key(&g.pred.0)
-            && !problem.init.by_pred[&g.pred.0].is_empty()
-        {
+        if init_has(problem, g.pred.0) {
             continue;
         }
-        let producers: Vec<usize> = caps
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| c.add.iter().any(|a| a.pred == g.pred))
-            .map(|(i, _)| i)
-            .collect();
+        let producers = producers_of(problem, g.pred.0);
         if producers.len() == 1 {
             mandatory.insert(producers[0]);
         }
     }
-    // Close under Requires: mandatory(a) ∧ Requires(a,b) ⇒ mandatory(b).
     loop {
         let mut grew = false;
+        // Requires: mandatory(a) ∧ Requires(a,b) ⇒ mandatory(b).
         for c in &problem.constraints {
             if let Constraint::Requires { a, b } = c {
                 let ia = caps.iter().position(|x| x.name == *a);
@@ -192,11 +200,49 @@ fn mandatory_set(problem: &SequenceProblem) -> BTreeSet<usize> {
                 }
             }
         }
+        // Precondition support: mandatory(m) needs pred p, init lacks p, and
+        // exactly one capability produces p ⇒ that producer is mandatory.
+        let snapshot: Vec<usize> = mandatory.iter().copied().collect();
+        for m in snapshot {
+            for pre in &caps[m].pre {
+                if init_has(problem, pre.pred.0) {
+                    continue;
+                }
+                let producers = producers_of(problem, pre.pred.0);
+                if producers.len() == 1 && mandatory.insert(producers[0]) {
+                    grew = true;
+                }
+            }
+        }
         if !grew {
             break;
         }
     }
     mandatory
+}
+
+/// Fact-level certification: a mandatory capability with a precondition
+/// predicate that the initial state lacks and *no* capability produces is
+/// unsatisfiable regardless of ordering — the certificate names the missing
+/// fact itself.
+fn missing_support(
+    problem: &SequenceProblem,
+    mandatory: &BTreeSet<usize>,
+) -> Option<(String, String)> {
+    for &m in mandatory {
+        for pre in &problem.caps[m].pre {
+            let pred = pre.pred.0;
+            if !init_has(problem, pred) && producers_of(problem, pred).is_empty() {
+                let name = problem
+                    .pred_names
+                    .get(&pred)
+                    .cloned()
+                    .unwrap_or_else(|| format!("pred#{pred}"));
+                return Some((problem.caps[m].name.clone(), name));
+            }
+        }
+    }
+    None
 }
 
 /// Check whether `constraints` alone empty any mandatory capability's window.
@@ -281,6 +327,19 @@ impl Solver for Solver8 {
     fn solve(&self, problem: &SequenceProblem) -> Result<SequencePlan, Refusal> {
         let caps = &problem.caps;
         let mandatory = mandatory_set(problem);
+
+        // Fact-level certification: a mandatory capability whose precondition
+        // nothing supplies. The core names the missing fact.
+        if let Some((victim, missing)) = missing_support(problem, &mandatory) {
+            return Err(Refusal::UnsatProof {
+                detail: format!(
+                    "mandatory capability '{victim}' requires '{missing}', which the \
+                     initial state lacks and no capability produces"
+                ),
+                core: vec![format!("MissingFact({missing})")],
+                replayed: false,
+            });
+        }
 
         // Pre-search certification: do the window constraints alone make a
         // mandatory capability impossible?
