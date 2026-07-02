@@ -2,6 +2,7 @@
 name = "praxis-proposer"
 version = "26.6.30"
 edition = "2021"
+repository = "https://github.com/seanchatmangpt/praxis"
 description = "PR-14 proposer layer: ranks candidate goal states from a domain-authored objective function. Proposals are untrusted observations (O, not O*) per AR-9."
 license = "MIT"
 

@@ -3,6 +3,7 @@ name = "praxis-retrofit"
 version = "26.6.30"
 edition = "2021"
 rust-version = "1.82"
+repository = "https://github.com/seanchatmangpt/praxis"
 license = "MIT OR Apache-2.0"
 description = "Retrofit automation tool: Apply praxis standards across Rust ecosystem"
 

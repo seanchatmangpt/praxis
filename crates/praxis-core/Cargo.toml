@@ -2,6 +2,9 @@
 name = "praxis-core"
 version = "26.6.30"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Fused Law Object abstraction: obligation + lifecycle + receipt + OCEL."
+repository = "https://github.com/seanchatmangpt/praxis"
 
 [features]
 default = []
