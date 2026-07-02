@@ -359,7 +359,7 @@ impl SequenceProblem {
         // Snapshot the saturated database into a mutable state.
         let mut init = StateDb::default();
         for pred in program.predicates() {
-            for tuple in program.facts().tuples_for(pred) {
+            for tuple in program.tuples_of(pred).map(|(a, t)| t[..usize::from(a)].to_vec()) {
                 init.insert(pred.0, tuple.clone());
             }
         }
