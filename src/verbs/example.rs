@@ -4,17 +4,14 @@
 //! The filename stem (`example`) becomes the noun; each `#[verb]` function
 //! becomes a sub-command under that noun.
 
-use anyhow::Result;
-use clap_noun_verb::verb;
+use clap_noun_verb::error::Result;
+use clap_noun_verb_macros::{arg, verb};
 
 /// Show an object by ID.
 #[verb]
-pub async fn show(
-    /// Object identifier
-    id: String,
-    /// Enable verbose output
-    #[arg(short, long)]
-    verbose: bool,
+pub fn show(
+    #[arg(help = "Object identifier")] id: String,
+    #[arg(short, help = "Enable verbose output")] verbose: bool,
 ) -> Result<()> {
     println!("show id={id} verbose={verbose}");
     Ok(())

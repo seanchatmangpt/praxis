@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "praxis": {
+      "command": "/Users/sac/praxis/target/debug/{{project-name}}-mcp"
+    }
+  }
+}

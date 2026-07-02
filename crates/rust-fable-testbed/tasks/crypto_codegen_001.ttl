@@ -1,0 +1,53 @@
+@prefix tb: <http://praxis.dev/ns/testbed#> .
+@prefix ggen: <http://praxis.dev/ns/ggen-prompt#> .
+
+# CryptoCodegen task: nonce-reuse fix in an AES-256-GCM helper.
+#
+# `encrypt` in ../fixtures/crypto_codegen_001/src/lib.rs already uses a vetted crate
+# (`aes-gcm`, not a hand-rolled cipher) but reuses a hardcoded 96-bit nonce constant
+# on every call. The model under test is given the flawed source inline (via the
+# `ggen:Code`/`ggen:path` block below) and must fix it so that a fresh, randomly
+# generated nonce is used per call while continuing to rely on `aes-gcm`, so that
+# `cargo test --manifest-path fixtures/crypto_codegen_001/Cargo.toml` passes in full
+# and `safety_audit` (gated for `tb:CryptoCodegen`, see `pipeline.rs::safety_audit`)
+# no longer flags an undocumented hardcoded nonce/IV pattern.
+
+tb:crypto_codegen_001 a tb:Task ;
+    tb:id "crypto_codegen_001" ;
+    tb:taskType tb:CryptoCodegen ;
+    tb:difficulty "hard" ;
+    tb:model "claude-opus-4-8" ;
+    tb:description "Fix an AES-256-GCM helper that reuses a hardcoded 96-bit nonce constant (HARDCODED_NONCE) on every call to encrypt(). Nonce reuse under the same key breaks both confidentiality (ciphertexts leak the XOR of their plaintexts) and integrity (forgeable authentication tags). The fix must (1) generate a fresh, cryptographically random nonce for every call to encrypt() instead of reusing any constant, and (2) continue using the vetted `aes-gcm` crate rather than a hand-rolled cipher implementation. Must not reuse nonces across calls, and must not introduce unsafe code." ;
+
+    tb:promptSection [
+        a ggen:Section ;
+        ggen:role "system" ;
+        ggen:block [
+            a ggen:Instruction ;
+            ggen:text "You are a careful Rust engineer specializing in applied cryptography. You will be given a Rust source file containing exactly one cryptographic flaw. Return the complete corrected contents of src/lib.rs, keeping its existing public API (function names, signatures, and doc comments) unchanged unless the doc comments describe the bug itself. Continue using the `aes-gcm` crate already declared in Cargo.toml; do not hand-roll a cipher, do not add unsafe code, and do not weaken the algorithm (e.g. do not switch to ECB mode or a broken hash)." ;
+        ]
+    ] ;
+
+    tb:promptSection [
+        a ggen:Section ;
+        ggen:role "user" ;
+        ggen:block [
+            a ggen:Code ;
+            ggen:lang "rust" ;
+            ggen:path "../fixtures/crypto_codegen_001/src/lib.rs" ;
+        ] ;
+        ggen:block [
+            a ggen:Instruction ;
+            ggen:text "The `nonces_differ_across_calls` test in the module above currently fails: two calls to encrypt() with the same key return the exact same nonce, because encrypt() always uses the hardcoded HARDCODED_NONCE constant instead of generating a fresh random nonce per call (e.g. via aes_gcm::aead::OsRng). Fix encrypt() so every call uses a freshly generated random nonce, while keeping round_trips_correctly and reused_nonce_leaks_plaintext_xor passing unchanged (the latter builds its own cipher instance directly to document the general nonce-reuse vulnerability class and does not call encrypt(), so it is unaffected by your fix)." ;
+        ]
+    ] ;
+
+    tb:fixture "../fixtures/crypto_codegen_001/" ;
+    tb:targetPath "src/lib.rs" ;
+
+    tb:expectedSteps ( tb:Build tb:Test tb:Clippy tb:SafetyAudit ) ;
+
+    tb:passCriteria [
+        tb:cargoTest "cargo test --manifest-path fixtures/crypto_codegen_001/Cargo.toml" ;
+        tb:clippyDenyWarnings true ;
+    ] .

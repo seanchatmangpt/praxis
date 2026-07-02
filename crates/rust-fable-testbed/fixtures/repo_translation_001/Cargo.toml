@@ -1,0 +1,12 @@
+[package]
+name = "shape-repo-fixture"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+doctest = false
+
+# Standalone scratch project: intentionally NOT a member of the praxis workspace so it
+# can be copied into a tempdir and built/tested in isolation by the testbed pipeline.
+[workspace]

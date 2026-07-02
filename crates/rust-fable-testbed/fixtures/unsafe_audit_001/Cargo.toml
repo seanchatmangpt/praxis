@@ -1,0 +1,15 @@
+[package]
+name = "unsafe-audit-fixture"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+doctest = false
+
+# Standalone scratch project: intentionally NOT a member of the praxis workspace so it
+# can be copied into a tempdir and built/tested in isolation by the testbed pipeline.
+# Unlike the testbed crate itself, this fixture legitimately contains `unsafe` blocks
+# (that is the whole point of the UnsafeAudit task type), so it does NOT set
+# `unsafe_code = "forbid"` in a [lints] table.
+[workspace]

@@ -2,6 +2,9 @@
 
 use anyhow::Result;
 
+// Import verb modules so their #[verb] macros register with clap_noun_verb
+mod verbs;
+
 fn main() -> Result<()> {
     let raw: Vec<String> = std::env::args().collect();
 
@@ -30,9 +33,7 @@ fn main() -> Result<()> {
 /// Map bare nouns (no verb given) to sensible default verbs.
 ///
 /// Examples:
-/// - `tool status`   → `tool status show`
-/// - `tool receipt`  → `tool receipt verify`
-/// - `tool evidence` → `tool evidence doctor`
+/// - `tool receipt` → `tool receipt validate`
 ///
 /// Nouns that need to bypass CliBuilder entirely should use the `run_direct()`
 /// escape hatch before this function is called (or before `registry.route()`).
@@ -41,9 +42,7 @@ fn inject_default_verbs(mut args: Vec<String>) -> Vec<String> {
     let has_verb = args.get(2).map(|a| !a.starts_with('-')).unwrap_or(false);
     if !has_verb {
         let default_verb = match noun.as_str() {
-            "status" => Some("show"),
-            "receipt" => Some("verify"),
-            "evidence" => Some("doctor"),
+            "receipt" => Some("validate"),
             _ => None,
         };
         if let Some(verb) = default_verb {

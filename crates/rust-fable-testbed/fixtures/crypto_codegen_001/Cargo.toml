@@ -1,0 +1,15 @@
+[package]
+name = "crypto-codegen-fixture"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+doctest = false
+
+[dependencies]
+aes-gcm = "0.10"
+
+# Standalone scratch project: intentionally NOT a member of the praxis workspace so it
+# can be copied into a tempdir and built/tested in isolation by the testbed pipeline.
+[workspace]

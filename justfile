@@ -1,12 +1,13 @@
+set shell := ["bash", "-uc"]
+
 # Run only tests affected by changes
 test-changed:
-    cargo cicd test changed
+    timeout 30s cargo cicd test changed
 
 # Check target directory size and prune
 clean-stale:
-    cargo cicd target prune
+    timeout 30s cargo cicd target prune
 
 # Build the workspace
 build:
-    cargo build
-
+    timeout 120s cargo build

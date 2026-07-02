@@ -1,0 +1,88 @@
+@prefix tb: <http://praxis.dev/ns/testbed#> .
+@prefix ggen: <http://praxis.dev/ns/ggen-prompt#> .
+
+# repo_translation_001: first RepoLevelTranslation task.
+#
+# Small (3-file, 2-module) "mini-repo": `../fixtures/repo_translation_001/src/lib.rs`
+# defines a `Shape` struct that recently gained a new `label: String` field.
+# `src/area.rs` was already updated to use `label` and is correct/compiling/passing.
+# `src/describe.rs` was NOT updated: its `describe_shape` function still summarizes a
+# `Shape` as if it only had `width`/`height`, silently dropping `label` from its
+# output. The module compiles (the field is public and just unused there) but fails
+# `describe_shape_includes_the_label`.
+#
+# Known v1 scope limitation (see `src/sandbox.rs`): `apply_model_output` writes exactly
+# one fenced ```rust code block over exactly one target file. True simultaneous
+# multi-file edits aren't supported yet, so this task is deliberately scoped as "given
+# lib.rs and area.rs are already correct, fix describe.rs to match" rather than asking
+# the model to edit all three files at once. It is still genuinely repo-level: the fix
+# requires understanding a struct defined in one module (`lib.rs`) and a sibling
+# module's already-correct usage pattern (`area.rs`) to correctly update a third module
+# (`describe.rs`), i.e. real cross-file/cross-module reasoning -- only the *write*
+# side is single-file in this v1 harness. A v2 harness with real multi-file diff/patch
+# application (noted as an explicit scope cut in `sandbox.rs`'s module docs) could
+# relax this to scoring all three files.
+#
+# `tb:targetPath "src/describe.rs"` below disambiguates which of the three `ggen:Code`
+# blocks shown to the model is the one `bin/testbed.rs` should overwrite with the
+# model's response -- without it, a multi-Code-block task like this one would be
+# ambiguous under the single-Code-block-per-task heuristic used before this field
+# existed (see `spec::TaskSpec::target_path`'s docs).
+
+tb:repo_translation_001 a tb:Task ;
+    tb:id "repo_translation_001" ;
+    tb:taskType tb:RepoLevelTranslation ;
+    tb:difficulty "hard" ;
+    tb:model "claude-opus-4-8" ;
+    tb:description "Small multi-file (3-file, 2-module) mini-repo: a `Shape` struct in lib.rs recently gained a new `label: String` field. The sibling `area` module was already updated to use it and is correct. The `describe` module was not updated: `describe_shape` still summarizes a Shape as if it only had width/height, dropping label from its output entirely. Given lib.rs and area.rs as correct, read-only context, fix describe.rs (and only describe.rs, per this harness's v1 single-target-file scope) so describe_shape includes the shape's label, following the same prefix convention area::describe_area already uses." ;
+
+    tb:promptSection [
+        a ggen:Section ;
+        ggen:role "system" ;
+        ggen:block [
+            a ggen:Instruction ;
+            ggen:text "You are a careful Rust engineer working on a small multi-module crate. You will be given the full, correct contents of two sibling source files for context (lib.rs and area.rs) plus the current, buggy contents of a third file (describe.rs) that is out of sync with a recent struct change. Return the complete corrected contents of src/describe.rs only -- do not restate lib.rs or area.rs, and keep describe_shape's existing public signature unchanged. Do not add unsafe code, unwrap(), or expect() calls." ;
+        ]
+    ] ;
+
+    tb:promptSection [
+        a ggen:Section ;
+        ggen:role "user" ;
+        ggen:block [
+            a ggen:Instruction ;
+            ggen:text "Read-only context: src/lib.rs, defining the shared Shape struct (note the label field)." ;
+        ] ;
+        ggen:block [
+            a ggen:Code ;
+            ggen:lang "rust" ;
+            ggen:path "../fixtures/repo_translation_001/src/lib.rs" ;
+        ] ;
+        ggen:block [
+            a ggen:Instruction ;
+            ggen:text "Read-only context: src/area.rs, a sibling module already correctly updated to use Shape::label -- follow its \"{label} ...\" prefix convention." ;
+        ] ;
+        ggen:block [
+            a ggen:Code ;
+            ggen:lang "rust" ;
+            ggen:path "../fixtures/repo_translation_001/src/area.rs" ;
+        ] ;
+        ggen:block [
+            a ggen:Instruction ;
+            ggen:text "Target file to fix: src/describe.rs. Its describe_shape function currently drops shape.label from the returned summary entirely. The describe_shape_includes_the_label test in the module below currently fails because the output never contains the label. Update describe_shape so its output includes shape.label (following area::describe_area's prefix convention), while keeping describe_shape_includes_dimensions passing too. Return the complete corrected contents of src/describe.rs." ;
+        ] ;
+        ggen:block [
+            a ggen:Code ;
+            ggen:lang "rust" ;
+            ggen:path "../fixtures/repo_translation_001/src/describe.rs" ;
+        ]
+    ] ;
+
+    tb:fixture "../fixtures/repo_translation_001/" ;
+    tb:targetPath "src/describe.rs" ;
+
+    tb:expectedSteps ( tb:Build tb:Test tb:Clippy tb:SafetyAudit ) ;
+
+    tb:passCriteria [
+        tb:cargoTest "cargo test --manifest-path fixtures/repo_translation_001/Cargo.toml" ;
+        tb:clippyDenyWarnings true ;
+    ] .

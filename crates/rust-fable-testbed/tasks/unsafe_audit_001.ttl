@@ -1,0 +1,57 @@
+@prefix tb: <http://praxis.dev/ns/testbed#> .
+@prefix ggen: <http://praxis.dev/ns/ggen-prompt#> .
+
+# First tb:UnsafeAudit task: a small module with three `unsafe` blocks.
+#
+# `last_or_zero` in ../fixtures/unsafe_audit_001/src/lib.rs is unsound: it reads one
+# element past the end of the slice (`ptr.add(arr.len())` instead of
+# `ptr.add(arr.len() - 1)`), an out-of-bounds heap read that is both UB (Miri-detectable)
+# and simply the wrong value. `sum_at_indices` and `swap_first_last` are sound `unsafe`
+# uses, each preceded by an explicit bounds check and a `SAFETY:` comment documenting
+# why the precondition holds. The model under test must fix `last_or_zero` (either by
+# correcting the pointer offset, or — since no raw-pointer trick is actually needed for
+# this function — by replacing the `unsafe` block with safe slice indexing) while
+# leaving `sum_at_indices` and `swap_first_last` untouched: they are sound and already
+# justified, and stripping or rewriting them unnecessarily is itself a wrong answer for
+# an audit task, since it demonstrates the model can't distinguish sound unsafe code
+# from unsound unsafe code.
+
+tb:unsafe_audit_001 a tb:Task ;
+    tb:id "unsafe_audit_001" ;
+    tb:taskType tb:UnsafeAudit ;
+    tb:difficulty "hard" ;
+    tb:model "claude-opus-4-8" ;
+    tb:description "Audit three `unsafe` blocks in a small Rust module. `last_or_zero` is unsound: it dereferences a raw pointer one element past the end of the slice instead of at the last valid index, an out-of-bounds heap read (UB under Miri) that also returns the wrong value. `sum_at_indices` and `swap_first_last` are sound: each is preceded by an explicit bounds/length check and documented with a `SAFETY:` comment justifying why the unsafe operation's preconditions hold. Fix only the unsound function (correct the offset, or replace the unsafe block with a safe equivalent where one exists) and leave the two sound functions unmodified." ;
+
+    tb:promptSection [
+        a ggen:Section ;
+        ggen:role "system" ;
+        ggen:block [
+            a ggen:Instruction ;
+            ggen:text "You are a careful Rust engineer performing an unsafe-code audit. You will be given a Rust source file containing several `unsafe` blocks. Some are sound and already justified with a `SAFETY:` comment; at least one is unsound. Identify the unsound block(s) and fix them -- prefer a safe alternative when one exists, and only keep `unsafe` when it is genuinely necessary, in which case add or correct its `SAFETY:` justification. Do NOT modify, remove the justification from, or otherwise touch blocks that are already sound and documented: an audit that 'fixes' correct code is itself a failure. Return the complete corrected contents of src/lib.rs, keeping the existing public API (function names and signatures) unchanged." ;
+        ]
+    ] ;
+
+    tb:promptSection [
+        a ggen:Section ;
+        ggen:role "user" ;
+        ggen:block [
+            a ggen:Code ;
+            ggen:lang "rust" ;
+            ggen:path "../fixtures/unsafe_audit_001/src/lib.rs" ;
+        ] ;
+        ggen:block [
+            a ggen:Instruction ;
+            ggen:text "The `last_or_zero_returns_the_actual_last_element` test above currently fails: calling `last_or_zero(&[10, 20, 30])` returns garbage (an out-of-bounds read one element past the slice, which Miri reports as UB) instead of 30. Fix `last_or_zero` so it returns the real last element (or 0 for an empty slice), while keeping `sum_at_indices`, `swap_first_last`, and all other currently-passing tests (last_or_zero_returns_zero_for_empty_slice, sum_at_indices_sums_selected_elements, sum_at_indices_panics_on_out_of_bounds_index, swap_first_last_swaps_endpoints, swap_first_last_is_noop_for_short_slices) passing unchanged." ;
+        ]
+    ] ;
+
+    tb:fixture "../fixtures/unsafe_audit_001/" ;
+    tb:targetPath "src/lib.rs" ;
+
+    tb:expectedSteps ( tb:Build tb:Test tb:Clippy tb:SafetyAudit ) ;
+
+    tb:passCriteria [
+        tb:cargoTest "cargo test --manifest-path fixtures/unsafe_audit_001/Cargo.toml" ;
+        tb:clippyDenyWarnings true ;
+    ] .

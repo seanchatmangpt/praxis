@@ -1,0 +1,40 @@
+[package]
+name = "rust-fable-testbed"
+version = "26.6.30"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT OR Apache-2.0"
+description = "Deterministic Rust-eval testbed for Claude models: RDF/Turtle task specs -> compiled prompts -> sandboxed cargo verification -> BLAKE3-chained receipts."
+
+[dependencies]
+ggen-core = { path = "../../../ggen/crates/ggen-core" }
+praxis-core = { path = "../praxis-core" }
+oxigraph = "0.5.8"
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+tempfile = "3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+blake3 = "1"
+thiserror = "2"
+anyhow = "1"
+tera = "1.20.0"
+clap = { version = "4", features = ["derive"] }
+
+[[bin]]
+name = "testbed"
+path = "src/bin/testbed.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+unreachable_pub = "warn"
+unexpected_cfgs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+unwrap_used = "warn"
+expect_used = "warn"

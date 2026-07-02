@@ -1,0 +1,50 @@
+@prefix tb: <http://praxis.dev/ns/testbed#> .
+@prefix ggen: <http://praxis.dev/ns/ggen-prompt#> .
+
+# v1 walking-skeleton task: function-level bugfix.
+#
+# `binary_search` in ../fixtures/function_bugfix_001/src/lib.rs compiles and passes
+# for arrays with unique elements, but returns the wrong (non-leftmost) index when the
+# target value has duplicate occurrences. The model under test is given the buggy
+# source inline (via the `ggen:Code`/`ggen:path` block below) and must fix it so that
+# `cargo test --manifest-path fixtures/function_bugfix_001/Cargo.toml` passes in full.
+
+tb:function_bugfix_001 a tb:Task ;
+    tb:id "function_bugfix_001" ;
+    tb:taskType tb:FunctionLevelBugfix ;
+    tb:difficulty "medium" ;
+    tb:model "claude-opus-4-8" ;
+    tb:description "Fix an off-by-one in a binary_search function: it returns whichever matching index it probes first instead of the leftmost index when the target key has duplicates in the sorted array." ;
+
+    tb:promptSection [
+        a ggen:Section ;
+        ggen:role "system" ;
+        ggen:block [
+            a ggen:Instruction ;
+            ggen:text "You are a careful Rust engineer. You will be given a Rust source file containing exactly one bug. Return the complete corrected contents of src/lib.rs, keeping its existing public API (function name, signature, and doc comments) unchanged. Do not add unsafe code, unwrap(), or expect() calls." ;
+        ]
+    ] ;
+
+    tb:promptSection [
+        a ggen:Section ;
+        ggen:role "user" ;
+        ggen:block [
+            a ggen:Code ;
+            ggen:lang "rust" ;
+            ggen:path "../fixtures/function_bugfix_001/src/lib.rs" ;
+        ] ;
+        ggen:block [
+            a ggen:Instruction ;
+            ggen:text "The `finds_leftmost_index_with_duplicate_keys` test in the module above currently fails: binary_search returns Some(4) instead of the expected Some(2) for a sorted array with duplicate target values. Fix binary_search so it returns the leftmost matching index when the target appears more than once, while keeping the other passing tests (finds_unique_element, returns_none_when_absent) passing." ;
+        ]
+    ] ;
+
+    tb:fixture "../fixtures/function_bugfix_001/" ;
+    tb:targetPath "src/lib.rs" ;
+
+    tb:expectedSteps ( tb:Build tb:Test tb:Clippy tb:SafetyAudit ) ;
+
+    tb:passCriteria [
+        tb:cargoTest "cargo test --manifest-path fixtures/function_bugfix_001/Cargo.toml" ;
+        tb:clippyDenyWarnings true ;
+    ] .
