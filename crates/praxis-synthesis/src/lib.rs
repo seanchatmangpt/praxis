@@ -31,6 +31,7 @@ pub mod datalog;
 pub mod fault;
 pub mod fleet;
 pub mod gen;
+pub mod park;
 pub mod pipeline;
 pub mod rel;
 pub mod sequence;

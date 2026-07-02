@@ -110,6 +110,13 @@ impl MemoCache {
     pub fn insert_raw(&mut self, key: String, output: Vec<u8>) {
         self.entries.insert(key, output);
     }
+    /// Iterate raw `(key, payload)` entries — lets non-memo WAL consumers
+    /// (e.g. the park queue) recover their records. Memo keys are 64-hex
+    /// content addresses; other subsystems namespace with a prefix, so the
+    /// two populations can never collide.
+    pub fn iter_raw(&self) -> impl Iterator<Item = (&String, &Vec<u8>)> {
+        self.entries.iter()
+    }
     /// Number of memoized outputs.
     #[must_use]
     pub fn len(&self) -> usize {
