@@ -36,6 +36,7 @@ pub mod pipeline;
 pub mod rel;
 pub mod sequence;
 pub mod solver8;
+pub mod supervise;
 pub mod verify;
 pub mod wal;
 
