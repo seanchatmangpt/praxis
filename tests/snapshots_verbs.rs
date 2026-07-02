@@ -74,7 +74,17 @@ fn law_admit_denied_halted() {
 }
 
 // ── receipt ───────────────────────────────────────────────────────────────
+//
+// The two receipt snapshots pin the UNSIGNED output shape, so they are
+// gated `cfg(not(feature = "law-signed"))`: under `law-signed` (part of
+// `all-features`) `receipt_payload` signs fail-closed and the output gains
+// a key-derived `signed` block that cannot match the unsigned snapshot —
+// and skipping the env key would abort with "no signing key available".
+// The signed path is covered by `ops::tests` (deterministic env-key guard)
+// and by `law verify-signature`'s own tests; the chain-hash determinism
+// asserted here is byte-identical in both configurations.
 
+#[cfg(not(feature = "law-signed"))]
 #[test]
 fn law_receipt_deterministic() {
     let payload = format!(r#"{{"value":{{"id":1}},"prev_chain_hash":"{}","ts_ns":42}}"#, "11".repeat(32));
@@ -82,6 +92,7 @@ fn law_receipt_deterministic() {
     insta::assert_json_snapshot!("law_receipt_deterministic", result);
 }
 
+#[cfg(not(feature = "law-signed"))]
 #[test]
 fn law_receipt_default_prev() {
     // No `prev_chain_hash` supplied: defaults to the zero/genesis hash.
@@ -124,6 +135,7 @@ fn write_chained_ledger(n: u64) -> tempfile::NamedTempFile {
             activity: None,
             node_kind: 0,
             ts_ns: i * 1000,
+            duration_ms: None,
             payload_hash_hex,
             prev_chain_hash_hex: hex::encode(prev),
             chain_hash_hex: String::new(),
