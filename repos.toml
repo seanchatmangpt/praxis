@@ -315,18 +315,18 @@ notes = "Bare minimum: no CI, no docs, no task runner, no license file, 2024 edi
 [repos.mac-artifact-cleaner]
 github_url = "https://github.com/seanchatmangpt/mac-artifact-cleaner"
 github_owner = "seanchatmangpt"
-local_path = "../mac-artifact-cleaner"
-crate_name = "mac-artifact-cleaner"
-description = "macOS artifact cleanup utility (2-crate workspace, clap-noun-verb consumer, zero CI)"
+local_path = "../osx-clnr"
+crate_name = "osx-clnr"
+description = "Receipted macOS developer disk auditor and cleanup utility (2-crate workspace, clap-noun-verb consumer, star-toml admitted config)"
 visibility = "public"
 workspace_type = "multi-crate"
 crate_count = 2
-retrofit_readiness = "requires-prep"
-retrofit_phase_complete = 1
+retrofit_readiness = "ready"
+retrofit_phase_complete = 5
 risk_level = "low"
 priority_score = 50
 maintainer_status = "active"
-notes = "Lightweight: SemVer 0.1.0, no CI, but both just and Makefile present (inconsistent). Consumes clap-noun-verb (linkme verb discovery). Phase 1–2: add ci.yml (basic), add deny/typos, wire [lints], unify just vs Makefile (recommend just)."
+notes = "FIRST PRAXIS PROJECT (retrofit completed 2026-07-01). All 5 phases done: CalVer 26.7.0, dual MIT/Apache license, [workspace.lints], rustfmt/deny/typos/.editorconfig, pinned nightly-2026-04-15, justfile canonical (Makefile removed), macOS CI with sibling clap-noun-verb checkout, dependabot. Policy config (osxclnr.toml) admitted via star-toml TrustedLoader; cicd.toml wired for cargo-cicd. Deviation: MSRV 1.83 (io::ErrorKind::StorageFull)."
 
 # ============================================================================
 # METADATA: GLOBAL RETROFIT CONFIGURATION
@@ -363,10 +363,10 @@ tertiary_order = ["swarmsh-v2", "clnrm-prototype", "pm4wasm", "miniml", "semanti
 agpl_repos = ["pm4py-rs"]
 bsl_repos = ["miniml", "dteam"]
 apache_only_repos = ["ggen-mcp", "pm4wasm"]
-missing_license_files = ["swarmsh-v2", "a2a-rs", "semantic_bit", "mac-artifact-cleaner"]
+missing_license_files = ["swarmsh-v2", "a2a-rs", "semantic_bit"]
 
 [metadata.ci_gaps]
-no_ci_repos = ["wasm4pm-compat", "pm4wasm", "miniml", "semantic_bit", "mac-artifact-cleaner"]
+no_ci_repos = ["wasm4pm-compat", "pm4wasm", "miniml", "semantic_bit"]
 deprecated_actions_repos = ["a2a-rs", "swarmsh-v2"]
 minimal_ci_repos = ["lsp-max", "dteam"]
 sparse_release_workflows = 9

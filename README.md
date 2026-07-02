@@ -103,6 +103,18 @@ callers get the public fields but cannot fabricate the type.
 
 ---
 
+## First praxis project
+
+**[osx-clnr / mac-artifact-cleaner](https://github.com/seanchatmangpt/mac-artifact-cleaner)** is the
+first fleet repo to complete the full retrofit (2026-07-01): all 5 phases
+(CalVer, dual MIT/Apache license, workspace lints, rustfmt/deny/typos, pinned
+toolchain, canonical justfile, macOS CI), plus star-toml `TrustedLoader`
+admission for its `osxclnr.toml` policy and a `cicd.toml` for cargo-cicd.
+It is the reference example of a praxis-conforming project. See
+`repos.toml` (`[repos.mac-artifact-cleaner]`) for the completion record.
+
+---
+
 ## How to use
 
 ### New project (cargo generate)

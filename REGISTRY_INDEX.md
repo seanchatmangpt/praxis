@@ -180,9 +180,9 @@ let by_effort = registry.sorted_by_effort();
 | 15 | pm4wasm | 0 | ✗ | high | 40 | 2 |
 | 16 | miniml | 1 | ✗ | high | 35 | 1 |
 | 17 | semantic_bit | 0 | ✗ | high | 30 | 1 |
-| 18 | mac-artifact-cleaner | 1 | ✗ | low | 50 | 2 |
+| 18 | mac-artifact-cleaner | 5 | ✓ | low | 50 | 2 | ← FIRST PRAXIS PROJECT (completed 2026-07-01)
 
-Ready: 3, Prep: 14, Phases complete: 1–5 (avg ~2.5)
+Ready: 4, Prep: 13, Phases complete: 1–5 (avg ~2.5)
 
 ---
 

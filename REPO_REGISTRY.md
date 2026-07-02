@@ -114,14 +114,14 @@ The order reflects upstream/downstream dependencies and risk tolerance.
 agpl_repos = ["pm4py-rs"]
 bsl_repos = ["miniml", "dteam"]
 apache_only_repos = ["ggen-mcp", "pm4wasm"]
-missing_license_files = ["swarmsh-v2", "a2a-rs", "semantic_bit", "mac-artifact-cleaner"]
+missing_license_files = ["swarmsh-v2", "a2a-rs", "semantic_bit"]
 ```
 
 #### CI & Documentation Gaps
 
 ```toml
 [metadata.ci_gaps]
-no_ci_repos = ["wasm4pm-compat", "pm4wasm", "miniml", "semantic_bit", "mac-artifact-cleaner"]
+no_ci_repos = ["wasm4pm-compat", "pm4wasm", "miniml", "semantic_bit"]
 deprecated_actions_repos = ["a2a-rs", "swarmsh-v2"]
 minimal_ci_repos = ["lsp-max", "dteam"]
 sparse_release_workflows = 9
@@ -412,7 +412,7 @@ Estimated Total Effort: 127.5 person-weeks
 - **pm4wasm** — WASM process mining (zero CI, monorepo, 2 crates)
 - **miniml** — Minimal markup (pnpm+turbo, BSL, no Rust CI)
 - **semantic_bit** — Semantic packing (bare minimum, 2024 edition)
-- **mac-artifact-cleaner** — Utility (clap-noun-verb consumer, lightweight)
+- **mac-artifact-cleaner** (osx-clnr) — Utility (clap-noun-verb consumer). **First praxis project**: full 5-phase retrofit completed 2026-07-01 (CalVer, dual license, lints, CI, justfile, star-toml admitted config, cargo-cicd).
 
 ---
 
