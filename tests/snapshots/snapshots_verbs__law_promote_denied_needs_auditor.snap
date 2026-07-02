@@ -1,0 +1,11 @@
+---
+source: tests/snapshots_verbs.rs
+assertion_line: 108
+expression: result
+---
+{
+  "status": "denied",
+  "reason": "promotion to REPLAYABLE requires an auditor",
+  "from": "REFUSABLE",
+  "to": "REPLAYABLE"
+}

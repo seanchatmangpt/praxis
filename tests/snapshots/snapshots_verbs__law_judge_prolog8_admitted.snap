@@ -1,0 +1,14 @@
+---
+source: tests/snapshots_verbs.rs
+assertion_line: 55
+expression: result
+---
+{
+  "status": "judged",
+  "law": "default",
+  "verdict": "validated",
+  "andon": "Green",
+  "prolog8": {
+    "atom": "admitted"
+  }
+}

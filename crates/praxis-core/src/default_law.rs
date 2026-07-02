@@ -11,6 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::{
     law::{Admit, Andon, Judge, LawObject, Obligation},
     lifecycle::{Admitted, Raw, Validated},
+    refusal::RefusalScenario,
 };
 
 /// A minimal, dependency-free Judge/Admit policy for JSON payloads.
@@ -81,8 +82,12 @@ impl Judge for DefaultLaw {
         if unmet.is_empty() {
             Ok(raw.transition())
         } else {
+            // Each unmet obligation maps 1:1 onto a `RefusalScenario` (see
+            // `crate::refusal`), so `DefaultLaw`'s halts are always fully
+            // categorized, not just listed.
+            let refusals: Vec<RefusalScenario> = unmet.iter().map(RefusalScenario::from).collect();
             let mut halted = raw;
-            halted.andon = Andon::Halted { unmet, at: now_ms() };
+            halted.andon = Andon::Halted { unmet, refusals, at: now_ms() };
             Err(halted)
         }
     }
@@ -219,6 +224,11 @@ mod tests {
 
     #[test]
     fn admit_succeeds_on_green_andon() {
+        // `receipt()` below signs the chain hash when `signed` is enabled,
+        // which needs a `PRAXIS_SIGNING_KEY`; see `signing::test_support`.
+        #[cfg(feature = "signed")]
+        let _guard = crate::signing::test_support::with_test_signing_key();
+
         let raw = no_obligations();
         let validated = match DefaultLaw::judge(raw) {
             Ok(v) => v,

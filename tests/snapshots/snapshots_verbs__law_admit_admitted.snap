@@ -1,0 +1,10 @@
+---
+source: tests/snapshots_verbs.rs
+assertion_line: 63
+expression: result
+---
+{
+  "status": "admitted",
+  "state": "Admitted",
+  "policy": "default"
+}

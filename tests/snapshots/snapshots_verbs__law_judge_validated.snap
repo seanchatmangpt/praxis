@@ -1,0 +1,11 @@
+---
+source: tests/snapshots_verbs.rs
+assertion_line: 32
+expression: result
+---
+{
+  "status": "judged",
+  "law": "default",
+  "verdict": "validated",
+  "andon": "Green"
+}

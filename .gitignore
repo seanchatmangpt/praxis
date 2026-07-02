@@ -20,3 +20,7 @@ Thumbs.db
 *_SUMMARY.md
 AGENT_*
 checkpoints/
+# Runtime artifacts: receipt ledgers and their validated archives written by
+# `receipt issue` / `receipt validate` when run from the repo root.
+/receipts/
+/data/validated_receipts/

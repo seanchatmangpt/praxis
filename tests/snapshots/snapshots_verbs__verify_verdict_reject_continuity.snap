@@ -1,0 +1,42 @@
+---
+source: tests/snapshots_verbs.rs
+assertion_line: 199
+expression: verdict
+---
+{
+  "accepted": false,
+  "profile": "default",
+  "outcomes": [
+    {
+      "stage": "decode",
+      "passed": true,
+      "detail": "[decode detail]"
+    },
+    {
+      "stage": "check_format",
+      "passed": true,
+      "detail": "2 record(s) well-formed"
+    },
+    {
+      "stage": "chain_integrity",
+      "passed": false,
+      "detail": "record 1: recomputed chain hash does not match stored chain_hash (tamper detected)"
+    },
+    {
+      "stage": "continuity",
+      "passed": false,
+      "detail": "record 1: instruction_id (1) not strictly increasing after 1"
+    },
+    {
+      "stage": "verify_commitments",
+      "passed": true,
+      "detail": "2 record(s) linked"
+    },
+    {
+      "stage": "evaluate_profile",
+      "passed": false,
+      "detail": "profile 'default': one or more prior stages failed"
+    }
+  ],
+  "reason": "record 1: recomputed chain hash does not match stored chain_hash (tamper detected)"
+}

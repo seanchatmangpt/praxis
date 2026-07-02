@@ -5,7 +5,9 @@
 /// Append-only audit chain using BLAKE3 content addressing.
 pub mod chain;
 pub mod cli;
+pub mod config;
 pub mod error;
+pub mod ops;
 pub mod types;
 
 #[cfg(feature = "otel")]
@@ -14,10 +16,23 @@ pub mod telemetry;
 #[cfg(feature = "lsp")]
 pub mod lsp;
 
+#[cfg(feature = "andon")]
+pub mod law_andon;
+
+#[cfg(feature = "mcp")]
+pub mod mcp_cache;
+
 #[cfg(feature = "discovery")]
 pub mod discovery;
 
+#[cfg(feature = "ggen")]
+pub mod mfg;
+
+#[cfg(feature = "proposer")]
+pub mod revenue;
+
 pub mod repl;
+pub mod verify_ops;
 
 pub use error::AppError;
 pub use types::{

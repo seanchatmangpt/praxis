@@ -1,0 +1,10 @@
+{
+  "name": "default-revenue-objective",
+  "version": "2026.07.01",
+  "weights": {
+    "realized_revenue": 1.0,
+    "pipeline_value_at_risk": -0.25,
+    "time_penalty": 500.0,
+    "stage_advance": 1000.0
+  }
+}

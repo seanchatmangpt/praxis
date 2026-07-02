@@ -56,12 +56,73 @@ impl<Payload: Serialize, Law: std::fmt::Debug> ToOcelEvent for LawObject<Payload
             "chain_hash": chain_hash_hex,
         });
 
+        // `LawObject` does not persist the timestamp it was receipted at
+        // (`ReceiptMeta.ts_ns` is consumed by `receipt()` to build the chain
+        // frame, then discarded), so this uses the current wall-clock time
+        // rather than a fabricated one. This replaces a previously
+        // hardcoded `"2026-07-01T00:00:00Z"` literal, which produced the
+        // same (wrong) timestamp for every event regardless of when it was
+        // actually converted. Callers that need the exact receipt-time
+        // timestamp should persist a `crate::receipt_record::ReceiptRecord`
+        // via `receipt_with_record()` and export via
+        // `crate::ocel_export::to_ocel`, which uses the record's real
+        // `ts_ns` instead of "now".
+        let now_ns = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+        let time = crate::ocel_export::ts_ns_to_rfc3339(now_ns).to_rfc3339();
+
         OcelEvent {
             id: event_id,
             r#type: "lifecycle:receipt".to_string(),
-            time: "2026-07-01T00:00:00Z".to_string(),
+            time,
             attributes,
             relationships: vec![],
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{lifecycle::Raw, Admit, DefaultLaw, Judge};
+
+    fn receipted(
+        payload: serde_json::Value,
+    ) -> LawObject<serde_json::Value, Receipted, DefaultLaw> {
+        // `receipt()` signs the chain hash when `signed` is also enabled,
+        // which needs a `PRAXIS_SIGNING_KEY`; see `signing::test_support`.
+        #[cfg(feature = "signed")]
+        let _guard = crate::signing::test_support::with_test_signing_key();
+
+        // Drive the real Raw -> Validated -> Admitted -> Receipted lifecycle
+        // through the public API rather than hand-rolling a `Receipted`
+        // value (the stage phantom fields are private to `law.rs`).
+        //
+        // `LawObject` intentionally does not derive `Debug` (its phantom
+        // stage/law markers are not all `Debug`), so unwrap via `match`
+        // instead of `.expect()` (mirrors `default_law.rs`'s own tests).
+        let raw = LawObject::<serde_json::Value, Raw, DefaultLaw>::new(payload, vec![]);
+        let validated = match DefaultLaw::judge(raw) {
+            Ok(v) => v,
+            Err(_) => panic!("no obligations should always validate"),
+        };
+        let admitted = match DefaultLaw::admit(validated) {
+            Ok(a) => a,
+            Err(_) => panic!("green andon should always admit"),
+        };
+        match admitted.receipt(&[0u8; 32], crate::law::ReceiptMeta::default()) {
+            Ok(r) => r,
+            Err(e) => panic!("receipt should succeed: {e}"),
+        }
+    }
+
+    #[test]
+    fn to_ocel_event_time_is_not_the_old_hardcoded_literal() {
+        let event = receipted(serde_json::json!({"a": 1})).to_ocel_event();
+        assert_ne!(event.time, "2026-07-01T00:00:00Z");
+        // Must parse as a real RFC3339 timestamp.
+        assert!(event.time.parse::<chrono::DateTime<chrono::FixedOffset>>().is_ok());
     }
 }

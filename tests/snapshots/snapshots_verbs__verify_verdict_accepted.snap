@@ -1,0 +1,42 @@
+---
+source: tests/snapshots_verbs.rs
+assertion_line: 158
+expression: verdict
+---
+{
+  "accepted": true,
+  "profile": "default",
+  "outcomes": [
+    {
+      "stage": "decode",
+      "passed": true,
+      "detail": "[decode detail]"
+    },
+    {
+      "stage": "check_format",
+      "passed": true,
+      "detail": "2 record(s) well-formed"
+    },
+    {
+      "stage": "chain_integrity",
+      "passed": true,
+      "detail": "2 record(s) recompute clean"
+    },
+    {
+      "stage": "continuity",
+      "passed": true,
+      "detail": "2 record(s) monotonic"
+    },
+    {
+      "stage": "verify_commitments",
+      "passed": true,
+      "detail": "2 record(s) linked"
+    },
+    {
+      "stage": "evaluate_profile",
+      "passed": true,
+      "detail": "profile 'default': all 4 prior stage(s) passed"
+    }
+  ],
+  "reason": null
+}

@@ -1,0 +1,216 @@
+# PDDL8-safe RDF instance ontology for the CPhy LawObject lifecycle.
+#
+# This is a *flattening* of docs/PDDL_CAPABILITY_MODEL.md and
+# docs/lawobject-capability.pddl down to the STRIPS8 subset that
+# `bcinr_pddl::ground::GroundProblem::find_plan` can actually solve:
+#
+#   - Positive conjunctive preconditions only (no forall/implies/not-in-pre).
+#   - Arity <= 8, precondition/effect conjuncts <= 8, action params <= 8.
+#   - Obligation-clearing is pre-compiled into flat positive predicates
+#     (`obligations-met`) produced by `supply-evidence` + `clear-obligations`,
+#     replacing the ADL exemplar's `forall`/`implies` obligation check.
+#
+# The ADL file (docs/lawobject-capability.pddl) is still the canonical
+# *documentation* of the full obligation algebra; it parses via
+# `bcinr_pddl::domain_from_pddl` but will NOT ground/solve because `forall`
+# and `implies` are not part of STRIPS8. This file is the sibling that DOES
+# solve, produced by `praxis::mfg::manufacture` (src/mfg.rs).
+#
+# CONTRACT (relied on by tests/mfg_golden.rs and, per the CPhy plan, by the
+# `plan lawobject` self-test in a later lane): the golden plan manufactured
+# from this file is exactly, in order:
+#
+#   supply-evidence -> clear-obligations -> judge -> admit -> receipt
+#
+# Do not rename the action/predicate/object identifiers below, or the
+# object/problem name `obligation-validation-case-001`, without updating
+# every consumer of this contract.
+
+@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+
+# ---------------------------------------------------------------------------
+# Domain
+# ---------------------------------------------------------------------------
+
+pdl:domain_lawobject
+    a pdl:Domain ;
+    pdl:name "lawobject-capability-pddl8" .
+
+# ---------------------------------------------------------------------------
+# Types (flat mirror of docs/PDDL_CAPABILITY_MODEL.md's type table; andon-state
+# is declared for documentation parity even though the STRIPS8 flattening
+# below represents "Andon green" as a plain predicate rather than an enum).
+# ---------------------------------------------------------------------------
+
+pdl:type_lawobject    a pdl:Type ; pdl:name "law-object" .
+pdl:type_obligation   a pdl:Type ; pdl:name "obligation" .
+pdl:type_evidencetype a pdl:Type ; pdl:name "evidence-type" .
+pdl:type_stage        a pdl:Type ; pdl:name "lifecycle-stage" .
+pdl:type_andonstate   a pdl:Type ; pdl:name "andon-state" .
+pdl:type_validator    a pdl:Type ; pdl:name "validator" .
+pdl:type_authority    a pdl:Type ; pdl:name "authority" .
+pdl:type_chaintoken   a pdl:Type ; pdl:name "chain-token" .
+
+# ---------------------------------------------------------------------------
+# Predicates (all positive-checkable; STRIPS8-safe)
+# ---------------------------------------------------------------------------
+
+pdl:pred_in_stage
+    a pdl:Predicate ;
+    pdl:name "in-stage" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
+              [ pdl:index 1 ; pdl:var "?stage" ; pdl:ofType "lifecycle-stage" ] .
+
+pdl:pred_has_obligation
+    a pdl:Predicate ;
+    pdl:name "has-obligation" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
+              [ pdl:index 1 ; pdl:var "?ob" ; pdl:ofType "obligation" ] .
+
+pdl:pred_requires_evidence
+    a pdl:Predicate ;
+    pdl:name "requires-evidence" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?ob" ; pdl:ofType "obligation" ] ,
+              [ pdl:index 1 ; pdl:var "?etype" ; pdl:ofType "evidence-type" ] .
+
+pdl:pred_evidence_satisfied
+    a pdl:Predicate ;
+    pdl:name "evidence-satisfied" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?ob" ; pdl:ofType "obligation" ] .
+
+pdl:pred_obligations_met
+    a pdl:Predicate ;
+    pdl:name "obligations-met" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] .
+
+pdl:pred_andon_green
+    a pdl:Predicate ;
+    pdl:name "andon-green" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] .
+
+pdl:pred_validated_by
+    a pdl:Predicate ;
+    pdl:name "validated-by" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
+              [ pdl:index 1 ; pdl:var "?validator" ; pdl:ofType "validator" ] .
+
+pdl:pred_admitted_by
+    a pdl:Predicate ;
+    pdl:name "admitted-by" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
+              [ pdl:index 1 ; pdl:var "?authority" ; pdl:ofType "authority" ] .
+
+pdl:pred_prev_chain_valid
+    a pdl:Predicate ;
+    pdl:name "prev-chain-valid" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?tok" ; pdl:ofType "chain-token" ] .
+
+pdl:pred_chain_hash_computed
+    a pdl:Predicate ;
+    pdl:name "chain-hash-computed" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
+              [ pdl:index 1 ; pdl:var "?tok" ; pdl:ofType "chain-token" ] .
+
+pdl:pred_signature_applied
+    a pdl:Predicate ;
+    pdl:name "signature-applied" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] .
+
+# ---------------------------------------------------------------------------
+# Actions (STRIPS8 flattening of the five-step golden lifecycle plan)
+# ---------------------------------------------------------------------------
+
+# 1. supply-evidence(?obj, ?ob, ?etype)
+#    Satisfies the EvidenceRequired obligation ?ob for law-object ?obj.
+pdl:action_supply_evidence
+    a pdl:Action ;
+    pdl:name "supply-evidence" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
+              [ pdl:index 1 ; pdl:var "?ob" ; pdl:ofType "obligation" ] ,
+              [ pdl:index 2 ; pdl:var "?etype" ; pdl:ofType "evidence-type" ] ;
+    pdl:pre "(has-obligation ?obj ?ob)" ,
+            "(requires-evidence ?ob ?etype)" ;
+    pdl:add "(evidence-satisfied ?ob)" .
+
+# 2. clear-obligations(?obj, ?ob)
+#    Once evidence is satisfied, retires the obligation and marks the
+#    law-object as fully obligations-met (the flat replacement for the ADL
+#    domain's `forall obligation. implies(...)` universal check).
+pdl:action_clear_obligations
+    a pdl:Action ;
+    pdl:name "clear-obligations" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
+              [ pdl:index 1 ; pdl:var "?ob" ; pdl:ofType "obligation" ] ;
+    pdl:pre "(has-obligation ?obj ?ob)" ,
+            "(evidence-satisfied ?ob)" ;
+    pdl:add "(obligations-met ?obj)" ;
+    pdl:del "(has-obligation ?obj ?ob)" .
+
+# 3. judge(?obj, ?validator): Raw -> Validated
+pdl:action_judge
+    a pdl:Action ;
+    pdl:name "judge" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
+              [ pdl:index 1 ; pdl:var "?validator" ; pdl:ofType "validator" ] ;
+    pdl:pre "(in-stage ?obj raw)" ,
+            "(obligations-met ?obj)" ;
+    pdl:add "(in-stage ?obj validated)" ,
+            "(validated-by ?obj ?validator)" ,
+            "(andon-green ?obj)" ;
+    pdl:del "(in-stage ?obj raw)" .
+
+# 4. admit(?obj, ?authority): Validated -> Admitted
+pdl:action_admit
+    a pdl:Action ;
+    pdl:name "admit" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
+              [ pdl:index 1 ; pdl:var "?authority" ; pdl:ofType "authority" ] ;
+    pdl:pre "(in-stage ?obj validated)" ,
+            "(andon-green ?obj)" ;
+    pdl:add "(in-stage ?obj admitted)" ,
+            "(admitted-by ?obj ?authority)" ;
+    pdl:del "(in-stage ?obj validated)" .
+
+# 5. receipt(?obj, ?tok): Admitted -> Receipted
+pdl:action_receipt
+    a pdl:Action ;
+    pdl:name "receipt" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
+              [ pdl:index 1 ; pdl:var "?tok" ; pdl:ofType "chain-token" ] ;
+    pdl:pre "(in-stage ?obj admitted)" ,
+            "(prev-chain-valid ?tok)" ;
+    pdl:add "(in-stage ?obj receipted)" ,
+            "(chain-hash-computed ?obj ?tok)" ,
+            "(signature-applied ?obj)" ;
+    pdl:del "(in-stage ?obj admitted)" .
+
+# ---------------------------------------------------------------------------
+# Problem instance: obligation-validation-case-001
+# ---------------------------------------------------------------------------
+#
+# Expected plan (pinned by tests/mfg_golden.rs):
+#   supply-evidence(obj-001,ob-001,etype-identity)
+#   clear-obligations(obj-001,ob-001)
+#   judge(obj-001,judge-001)
+#   admit(obj-001,authority-001)
+#   receipt(obj-001,tok-genesis)
+
+pdl:problem_obligation_validation_case_001
+    a pdl:Problem ;
+    pdl:name "obligation-validation-case-001" ;
+    pdl:domain "lawobject-capability-pddl8" ;
+    pdl:object [ pdl:name "obj-001" ; pdl:ofType "law-object" ] ,
+               [ pdl:name "ob-001" ; pdl:ofType "obligation" ] ,
+               [ pdl:name "etype-identity" ; pdl:ofType "evidence-type" ] ,
+               [ pdl:name "judge-001" ; pdl:ofType "validator" ] ,
+               [ pdl:name "authority-001" ; pdl:ofType "authority" ] ,
+               [ pdl:name "tok-genesis" ; pdl:ofType "chain-token" ] ,
+               [ pdl:name "raw" ; pdl:ofType "lifecycle-stage" ] ,
+               [ pdl:name "validated" ; pdl:ofType "lifecycle-stage" ] ,
+               [ pdl:name "admitted" ; pdl:ofType "lifecycle-stage" ] ,
+               [ pdl:name "receipted" ; pdl:ofType "lifecycle-stage" ] ;
+    pdl:init "(in-stage obj-001 raw)" ,
+             "(has-obligation obj-001 ob-001)" ,
+             "(requires-evidence ob-001 etype-identity)" ,
+             "(prev-chain-valid tok-genesis)" ;
+    pdl:goal "(in-stage obj-001 receipted)" .

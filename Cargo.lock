@@ -2353,6 +2353,8 @@ checksum = "86f0f8fee8c926415c58d6ae43a08523a26faccb2323f5e6b644fe7dd4ef6b82"
 dependencies = [
  "console 0.16.3",
  "once_cell",
+ "pest",
+ "pest_derive",
  "serde",
  "similar",
  "tempfile",
@@ -2905,14 +2907,17 @@ dependencies = [
  "clap-noun-verb-macros",
  "criterion",
  "dashmap",
+ "ggen-graph",
  "hex",
  "insta",
  "linkme",
  "lsp-max",
+ "moka",
  "once_cell",
  "oxigraph",
  "parking_lot",
  "praxis-core",
+ "praxis-proposer",
  "praxis-retrofit",
  "predicates",
  "prolog8 26.7.1",
@@ -2924,6 +2929,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "star-toml 26.6.30",
  "tempfile",
  "tera",
  "thiserror 2.0.18",
@@ -3686,10 +3692,24 @@ dependencies = [
  "bcinr-powl-receipt",
  "blake3",
  "chatman-common",
+ "chrono",
+ "hex",
+ "proptest",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.18",
  "wasm4pm-compat",
+]
+
+[[package]]
+name = "praxis-proposer"
+version = "26.6.30"
+dependencies = [
+ "blake3",
+ "praxis-core",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

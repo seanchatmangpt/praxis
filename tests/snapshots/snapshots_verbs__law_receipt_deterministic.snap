@@ -1,0 +1,14 @@
+---
+source: tests/snapshots_verbs.rs
+assertion_line: 82
+expression: result
+---
+{
+  "status": "receipted",
+  "state": "Receipted",
+  "chain_hash": "95d83f04085e5532a38152eb9f20b2c90b74398aa2011b4f415d957a61ab728a",
+  "canonical": "blake3:95d83f04085e5532a38152eb9f20b2c90b74398aa2011b4f415d957a61ab728a",
+  "prev_chain_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+  "payload_hash": "7eb500fca7774a3e1554f3dadadc0849cba84473e7eab0778b5fa9d5c1800eb8",
+  "ts_ns": 42
+}

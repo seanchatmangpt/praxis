@@ -1,61 +1,60 @@
-//! `verify` verb — certify pipeline with per-stage RAII metrics.
+//! `verify` verb — affidavit-style receipt certification pipeline.
 //!
-//! Metrics types moved to `praxis_core::verify`; re-exported here for
-//! backward compatibility with existing callers and tests.
+//! Reads a receipts ledger (JSONL, one [`praxis_core::ReceiptRecord`] per
+//! line — or, for convenience, a single JSON object/array of records) and
+//! runs [`praxis_core::verify::run_pipeline`] over it: `check_format`,
+//! `chain_integrity`, `continuity`, `verify_commitments`, `evaluate_profile`,
+//! each timed via `VerifyGuard` and reported as one `CheckOutcome` in the
+//! resulting `Verdict`. A `decode` outcome (the only I/O in the pipeline,
+//! reading and parsing the file) is prepended so the JSON output always
+//! documents the same stage sequence a hand ledger inspection would.
+//!
+//! Distinct from `receipt validate` (`src/verbs/receipt.rs`), which runs
+//! `praxis_core::receipt_validator::ReceiptValidator` (schema, chain
+//! recompute, linkage, monotonic, POWL token replay — no timing metrics, no
+//! named `profile`) directly against the configured receipts directory: this
+//! verb is the timing-instrumented, profile-aware certify pipeline over an
+//! explicit file path, matching the CPHY_ROADMAP's verification lane.
+//!
+//! This is a thin wrapper: all decode/pipeline logic lives in
+//! [`my_conforming_project::verify_ops`], the single source of truth shared
+//! with `tests/snapshots_verbs.rs`.
+//!
+//! The verdict is always returned as `Ok(json)`, whether accepted or
+//! rejected — a rejected verdict is a legitimate, fully-documented answer,
+//! not an error. Callers (CI, `dod`) should check the `accepted` field
+//! themselves rather than relying on a nonzero process exit code.
 
 use clap_noun_verb::error::{NounVerbError, Result};
 use clap_noun_verb_macros::{arg, verb};
-
-pub use praxis_core::verify::{StageMetric, VerifyGuard, VerifyMetrics};
-
-// ── Domain logic ──────────────────────────────────────────────────────────
-
-/// Run the decode + check_format certify pipeline for a receipt file.
-fn run_verify_pipeline(path: &str) -> std::result::Result<VerifyMetrics, VerifyMetrics> {
-    let mut guard = VerifyGuard::new();
-
-    guard.begin_stage("decode");
-    let content = std::fs::read_to_string(path);
-    guard.end_stage(content.is_ok());
-    let Ok(content) = content else {
-        return Err(guard.finish());
-    };
-
-    guard.begin_stage("check_format");
-    let parsed: std::result::Result<serde_json::Value, _> = serde_json::from_str(&content);
-    guard.end_stage(parsed.is_ok());
-
-    Ok(guard.finish())
-}
+use my_conforming_project::verify_ops::run_verify_pipeline;
+use praxis_core::verify::VerifyMetrics;
+use serde_json::Value;
 
 fn print_metrics(metrics: &VerifyMetrics, timings: bool) {
     if timings {
         for s in &metrics.stages {
             let status = if s.passed { "PASS" } else { "FAIL" };
-            println!("  [{status}] {} ({:.2}ms)", s.name, s.duration.as_secs_f64() * 1_000.0);
+            eprintln!("  [{status}] {} ({:.2}ms)", s.name, s.duration.as_secs_f64() * 1_000.0);
         }
     }
-    println!("{}", metrics.summary_line());
+    eprintln!("{}", metrics.summary_line());
 }
 
-// ── Verb registration ─────────────────────────────────────────────────────
-
-/// Verify a receipt at the given path using the 7-stage certify pipeline.
+/// Verify a receipts ledger using the affidavit-style certify pipeline
+/// (`decode` -> `check_format` -> `chain_integrity` -> `continuity` ->
+/// `verify_commitments` -> `evaluate_profile`).
+///
+/// Returns the full `Verdict` as JSON, whether accepted or rejected;
+/// callers should inspect `.accepted` rather than the process exit code.
 #[verb]
 pub fn verify(
-    #[arg(help = "Path to the receipt JSON file")] path: String,
-    #[arg(help = "Print per-stage timing breakdown")] timings: bool,
-) -> Result<()> {
-    let metrics = match run_verify_pipeline(&path) {
-        Ok(m) => m,
-        Err(m) => {
-            eprintln!("{}", m.summary_line());
-            return Err(NounVerbError::execution_error(format!("decode failed: could not read {path}")));
-        }
-    };
+    #[arg(help = "Path to the receipts JSONL file (or a single JSON receipt)")] path: String,
+    #[arg(default_value = "default", help = "Verification profile")] profile: String,
+    #[arg(help = "Print per-stage timing breakdown to stderr")] timings: bool,
+) -> Result<Value> {
+    let (verdict, metrics) = run_verify_pipeline(&path, &profile);
     print_metrics(&metrics, timings);
-    if metrics.failed_count > 0 {
-        std::process::exit(2);
-    }
-    Ok(())
+    serde_json::to_value(&verdict)
+        .map_err(|e| NounVerbError::execution_error(format!("could not serialize verdict: {e}")))
 }

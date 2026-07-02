@@ -1,0 +1,12 @@
+[package]
+name = "praxis-proposer"
+version = "26.6.30"
+edition = "2021"
+description = "PR-14 proposer layer: ranks candidate goal states from a domain-authored objective function. Proposals are untrusted observations (O, not O*) per AR-9."
+license = "MIT"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+blake3 = "1"
+praxis-core = { path = "../praxis-core" }

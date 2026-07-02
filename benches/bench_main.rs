@@ -1,4 +1,4 @@
-//! Criterion benchmarks for {{project-name}}.
+//! Criterion benchmarks for `my-conforming-project` (praxis).
 //!
 //! Three benchmark patterns are demonstrated:
 //! 1. **Throughput** — measures bytes/sec for a hashing operation
@@ -15,7 +15,8 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Through
 
 /// Compute a BLAKE3 digest of `data` and return the hex string.
 /// This stands in for the canonical content-addressing path used throughout
-/// the crate.  Replace with the real public API when the crate grows one.
+/// the crate — the real receipt/chain-hash path is exercised directly by
+/// `benches/receipt_validate.rs`; this one isolates the raw BLAKE3 cost.
 fn hash_bytes(data: &[u8]) -> String {
     blake3::hash(data).to_hex().to_string()
 }

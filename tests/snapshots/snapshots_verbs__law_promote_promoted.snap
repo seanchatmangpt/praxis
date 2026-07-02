@@ -1,0 +1,12 @@
+---
+source: tests/snapshots_verbs.rs
+assertion_line: 100
+expression: result
+---
+{
+  "status": "promoted",
+  "from": "NAMED",
+  "to": "REGISTERED",
+  "is_partial_alive_eligible": false,
+  "auditor": null
+}

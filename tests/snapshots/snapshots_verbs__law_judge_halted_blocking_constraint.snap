@@ -1,0 +1,46 @@
+---
+source: tests/snapshots_verbs.rs
+assertion_line: 40
+expression: result
+---
+{
+  "status": "judged",
+  "law": "default",
+  "verdict": "halted",
+  "andon": {
+    "Halted": {
+      "unmet": [
+        {
+          "BlockingConstraint": {
+            "reason": "stop"
+          }
+        }
+      ],
+      "refusals": [
+        {
+          "BlockingConstraint": {
+            "reason": "stop"
+          }
+        }
+      ],
+      "at": "[ts]"
+    }
+  },
+  "unmet": [
+    {
+      "BlockingConstraint": {
+        "reason": "stop"
+      }
+    }
+  ],
+  "refusals": [
+    {
+      "BlockingConstraint": {
+        "reason": "stop"
+      }
+    }
+  ],
+  "refusal_categories": [
+    "lifecycle"
+  ]
+}

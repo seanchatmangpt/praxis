@@ -10,6 +10,7 @@ use anyhow::Result;
 use rmcp::{transport::io::stdio, ServiceExt};
 use tracing_subscriber::{fmt, EnvFilter};
 
+mod cache;
 mod shared_args;
 mod tools;
 

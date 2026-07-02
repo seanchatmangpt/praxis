@@ -16,3 +16,9 @@ thiserror = "2"
 chatman-common = { path = "../chatman-common", optional = true }
 bcinr-powl-receipt = { path = "../../../bcinr/crates/bcinr-powl-receipt" }
 wasm4pm-compat = { path = "../../../wasm4pm-compat" }
+hex = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tempfile = "3"
+proptest = "1"
