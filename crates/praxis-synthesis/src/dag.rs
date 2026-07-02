@@ -106,6 +106,10 @@ impl MemoCache {
     pub fn new() -> Self {
         Self::default()
     }
+    /// Insert a raw `(key, output)` entry — the WAL recovery path.
+    pub fn insert_raw(&mut self, key: String, output: Vec<u8>) {
+        self.entries.insert(key, output);
+    }
     /// Number of memoized outputs.
     #[must_use]
     pub fn len(&self) -> usize {
@@ -230,6 +234,27 @@ impl Dag {
         runner: &mut dyn NodeRunner,
         cache: &mut MemoCache,
     ) -> Result<DagReceipt, Refusal> {
+        self.execute_inner(runner, cache, None)
+    }
+
+    /// Execute with every cold-computed node journaled to a write-ahead log
+    /// before the receipt advances — the durability contract: a node the
+    /// receipt claims computed is on disk, fsynced, or the frame is absent.
+    pub fn execute_journaled(
+        &self,
+        runner: &mut dyn NodeRunner,
+        cache: &mut MemoCache,
+        wal: &mut crate::wal::Wal,
+    ) -> Result<DagReceipt, Refusal> {
+        self.execute_inner(runner, cache, Some(wal))
+    }
+
+    fn execute_inner(
+        &self,
+        runner: &mut dyn NodeRunner,
+        cache: &mut MemoCache,
+        mut wal: Option<&mut crate::wal::Wal>,
+    ) -> Result<DagReceipt, Refusal> {
         let order = self.topo_order()?;
         let mut outputs: HashMap<String, (String, Vec<u8>)> = HashMap::new();
         let mut chain = genesis_seed(DAG_CHAIN_DOMAIN);
@@ -253,6 +278,9 @@ impl Dag {
                 let input_bytes: Vec<Vec<u8>> =
                     node.inputs.iter().map(|i| outputs[i].1.clone()).collect();
                 let out = runner.run(node, &input_bytes);
+                if let Some(w) = wal.as_deref_mut() {
+                    w.append(&key, &out)?;
+                }
                 cache.entries.insert(key, out.clone());
                 (out, false)
             };

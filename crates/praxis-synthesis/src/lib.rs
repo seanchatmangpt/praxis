@@ -24,6 +24,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod cell;
 pub mod dag;
 pub mod datalog;
 pub mod fleet;
@@ -33,6 +34,7 @@ pub mod rel;
 pub mod sequence;
 pub mod solver8;
 pub mod verify;
+pub mod wal;
 
 pub use dag::{Dag, DagReceipt, HashRunner, MemoCache, NodeReceipt, NodeRunner};
 pub use datalog::{Atom, DlRule, Program, SaturationReceipt, Term};
