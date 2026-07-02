@@ -1,0 +1,21 @@
+[package]
+name = "praxis-synthesis"
+version = "26.7.2"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT OR Apache-2.0"
+description = "Prototype synthesis of the deep-research stack: semi-naive Datalog saturation (Nemo), bounded constraint-driven capability sequencing (SMT lesson), content-addressed DAG execution (OxyMake), and refinement-style admission (Flux) — pure Rust, bounded, receipted."
+
+[lib]
+doctest = false
+
+[dependencies]
+# Dictionary encoding + sorted-ID fact relations, reused as the EDB substrate.
+pddl-index = { path = "../pddl-index", version = "26.7.2" }
+# BLAKE3 content-addressing + rolling receipt chains.
+chatman-common = { path = "../chatman-common", version = "26.7.2", features = ["provenance"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[dev-dependencies]

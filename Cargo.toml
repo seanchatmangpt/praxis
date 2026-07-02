@@ -162,6 +162,7 @@ members = [
     "crates/rust-fable-testbed",
     "crates/powl2-decompose",
     "crates/pddl-index",
+    "crates/praxis-synthesis",
 ]
 [workspace.metadata.dylint]
 libraries = [{ git = "https://github.com/seanchatmangpt/chicago-tdd-tools", pattern = "crates/chicago-lints" }]

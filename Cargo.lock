@@ -3808,6 +3808,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "praxis-synthesis"
+version = "26.7.2"
+dependencies = [
+ "chatman-common",
+ "pddl-index",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "predicates"
 version = "3.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
