@@ -52,12 +52,15 @@ fn run_verifier(base: &Path, adds: &Path, removes: &Path, receipt: &Path) -> std
 }
 
 fn kernel_with_binding(delegability: &str) -> String {
-    format!(
-        "{KERNEL}\n\
-         <http://seanchatmangpt.github.io/praxis/prayer#orientToFather> \
-         <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}deterministic-v1> ;\n\
-         <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"{delegability}\" .\n"
-    )
+    let mut base = KERNEL.to_string();
+    for cap in &["orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt"] {
+        base.push_str(&format!(
+            "\n<http://seanchatmangpt.github.io/praxis/prayer#{cap}> \
+             <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}deterministic-v1> ;\n\
+             <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"{delegability}\" .\n"
+        ));
+    }
+    base
 }
 
 struct Artifacts {
@@ -198,4 +201,78 @@ fn foreign_firing_verifier_fails_a_tampered_verdict_payload() {
         "tampered verdict payload must fail: {stdout}"
     );
     assert!(stdout.contains("FAIL hook_hash"), "{stdout}");
+}
+
+/// Adversarial finding (closed): forging the embedded `admission` /
+/// `bindings` / `agents` objects while leaving their flat hash strings
+/// (`admission_hash` / `handler_hash` / `agent_registry_hash`) untouched
+/// used to sail through `verify_firing` — it never read those embedded
+/// fields at all, only comparing its own from-scratch TTL recomputation
+/// against the (still-correct) hash string. Now each is also payload-bound
+/// (`refold_admission`/`refold_bindings`/`refold_agents`), so a forged body
+/// is caught even though the flat hash string is honest.
+#[test]
+fn foreign_firing_verifier_fails_a_forged_admission_body_behind_an_honest_hash() {
+    if !b3sum_available() {
+        eprintln!("SKIPPED (deferred): b3sum not on PATH — foreign verification needs it");
+        return;
+    }
+    let base = kernel_with_binding("verifiable");
+    let reference = Reference::genesis(&base).expect("kernel admits");
+    let registry = HandlerRegistry::builtin();
+    let source = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."));
+    let mut receipt = fire_hooks(&reference, &source, &registry, &[]).expect("fires");
+
+    // Forge the displayed admission body only — admission_hash (and every
+    // other top-level hash string) is left exactly as honestly computed.
+    receipt.admission.epoch = 999;
+
+    let arts = Artifacts::write(
+        "forged-admission",
+        &base,
+        &source,
+        &serde_json::to_string(&receipt).expect("json"),
+    );
+    let out = arts.run();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        !out.status.success(),
+        "forged admission body behind an honest admission_hash must fail: {stdout}"
+    );
+    assert!(stdout.contains("PASS admission_hash"), "{stdout}");
+    assert!(stdout.contains("FAIL admission payload"), "{stdout}");
+}
+
+/// Same doctrine as above, for the embedded `bindings` array: forging a
+/// binding's declared delegability grade while leaving `handler_hash`
+/// untouched must now be caught.
+#[test]
+fn foreign_firing_verifier_fails_a_forged_bindings_body_behind_an_honest_hash() {
+    if !b3sum_available() {
+        eprintln!("SKIPPED (deferred): b3sum not on PATH — foreign verification needs it");
+        return;
+    }
+    let base = kernel_with_binding("verifiable");
+    let reference = Reference::genesis(&base).expect("kernel admits");
+    let registry = HandlerRegistry::builtin();
+    let source = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."));
+    let mut receipt = fire_hooks(&reference, &source, &registry, &[]).expect("fires");
+    assert!(!receipt.bindings.is_empty(), "must have at least one binding to forge");
+
+    receipt.bindings[0].handler = "http://forged/handler".to_string();
+
+    let arts = Artifacts::write(
+        "forged-bindings",
+        &base,
+        &source,
+        &serde_json::to_string(&receipt).expect("json"),
+    );
+    let out = arts.run();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        !out.status.success(),
+        "forged bindings body behind an honest handler_hash must fail: {stdout}"
+    );
+    assert!(stdout.contains("PASS handler_hash"), "{stdout}");
+    assert!(stdout.contains("FAIL bindings payload"), "{stdout}");
 }

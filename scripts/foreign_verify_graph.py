@@ -738,6 +738,16 @@ def verify_graph(ttl_path: str, receipt_path: str) -> int:
 # history_hash (the window-history commitment) is likewise folded as claimed
 # from the receipt field: the verifier has no history input, so it binds the
 # fold position, not the history bytes (a third named limitation).
+#
+# Adversarial finding (closed): the embedded `admission`, `bindings`, and
+# `agents` objects are ALSO payload-bound to their claimed hash strings
+# (`refold_admission`/`refold_bindings`/`refold_agents`), the same way
+# hook_hash/outcome_hash always were. Previously this script recomputed
+# admission_hash/handler_hash/agent_registry_hash independently from the TTL
+# inputs and never so much as read the embedded `admission`/`bindings`/
+# `agents` fields — so a receipt whose displayed body had been forged, but
+# whose flat hash string still matched the (independently-correct) TTL
+# recomputation, was reported VERIFIED with the forged body never examined.
 
 FIRING_DOMAIN = "praxis:hook-firing:v1"
 NO_ACTION_SENTINEL = "praxis:no-action"
@@ -938,6 +948,81 @@ def compact_json(value) -> str:
     return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
 
 
+_DELEGABILITY_RENDER = {
+    "HumanOnly": "human-only",
+    "Assistive": "assistive",
+    "Automatable": "automatable",
+    "Verifiable": "verifiable",
+}
+
+
+def refold_admission(raw) -> str:
+    """Rebuild receipt["admission"] (an AdmissionRecord) in the exact serde
+    field order and re-hash it — mirrors replay_firing's payload-binding
+    check `receipt.admission.admission_hash()? != receipt.admission_hash`.
+    Without this, a forged `admission` body left sitting behind an untouched
+    (and independently-correct, TTL-derived) `admission_hash` string would
+    never be caught: nothing else in this verifier ever reads the embedded
+    object, only the flat hash string."""
+    if not isinstance(raw, dict) or set(raw) != {
+        "epoch", "base_graph_hash", "post_graph_hash", "event_hash", "verdict"
+    }:
+        raise FiringRefusal("receipt.admission has unexpected shape")
+    if raw["verdict"] not in ("Admitted", "Refused"):
+        raise FiringRefusal(f"unknown admission verdict '{raw['verdict']}'")
+    for key in ("base_graph_hash", "post_graph_hash", "event_hash"):
+        if not isinstance(raw[key], str):
+            raise FiringRefusal(f"admission field '{key}' is not a string")
+    if not isinstance(raw["epoch"], int):
+        raise FiringRefusal("admission field 'epoch' is not an integer")
+    rebuilt = {k: raw[k] for k in
+               ("epoch", "base_graph_hash", "post_graph_hash", "event_hash", "verdict")}
+    return compact_json(rebuilt)
+
+
+def refold_bindings(raw) -> str:
+    """Rebuild receipt["bindings"] (Vec<HandlerBinding>) into the same
+    canonical tab-separated form `handler_hash` is computed over — mirrors
+    replay_firing's `handler_hash(&receipt.bindings) != receipt.handler_hash`.
+    Without this, a forged `bindings` array behind an untouched
+    `handler_hash` (independently re-derived from the TTL, which never
+    reads this embedded array) would never be caught."""
+    if not isinstance(raw, list):
+        raise FiringRefusal("receipt.bindings is not an array")
+    lines = []
+    for b in raw:
+        if not isinstance(b, dict) or set(b) != {"capability", "handler", "delegability"}:
+            raise FiringRefusal("binding record has unexpected shape")
+        deleg = _DELEGABILITY_RENDER.get(b["delegability"])
+        if deleg is None:
+            raise FiringRefusal(f"unknown delegability '{b['delegability']}'")
+        lines.append((b["capability"], f"{b['capability']}\t{b['handler']}\t{deleg}\n"))
+    lines.sort(key=lambda x: x[0])
+    return "".join(line for _, line in lines)
+
+
+def refold_agents(raw) -> str:
+    """Rebuild receipt["agents"] (Vec<AgentProfile>) into the same canonical
+    tab-separated form `agent_registry_hash` is computed over — mirrors the
+    same payload-binding doctrine as `refold_bindings`/`refold_admission`
+    for the agent registry."""
+    if not isinstance(raw, list):
+        raise FiringRefusal("receipt.agents is not an array")
+    lines = []
+    for a in raw:
+        if not isinstance(a, dict) or set(a) != {"iri", "tools", "can_spawn", "layer_depth"}:
+            raise FiringRefusal("agent record has unexpected shape")
+        if not (isinstance(a["tools"], list) and isinstance(a["can_spawn"], list)
+                and isinstance(a["layer_depth"], int)):
+            raise FiringRefusal("agent record field has unexpected type")
+        lines.append((
+            a["iri"],
+            f"{a['iri']}\t{','.join(a['tools'])}\t{','.join(a['can_spawn'])}\t{a['layer_depth']}\n",
+        ))
+    lines.sort(key=lambda x: x[0])
+    return "".join(line for _, line in lines)
+
+
 def refold_verdicts(raw) -> str:
     """Rebuild each HookVerdictRecord in the exact serde field order from the
     receipt's embedded payload (refolded-from-payload: binds bytes to hash,
@@ -1004,6 +1089,9 @@ def verify_firing(base_path: str, adds_path: str, removes_path: str,
         inner = receipt["inner"]
         verdicts_raw = receipt["verdicts"]
         outcome_raw = receipt["outcome"]
+        admission_raw = receipt["admission"]
+        bindings_raw = receipt["bindings"]
+        agents_raw = receipt["agents"]
         if not isinstance(inner, list):
             raise KeyError("inner")
         inner_chains = [entry["chain"] for entry in inner]
@@ -1047,12 +1135,28 @@ def verify_firing(base_path: str, adds_path: str, removes_path: str,
         admission_hash = b3(compact_json(record).encode())
         stage("admission_hash", admission_hash, recorded["admission_hash"])
 
+        # Stage 2b: payload binding — the embedded `admission` object must
+        # itself hash to `admission_hash` (mirrors replay_firing's
+        # `receipt.admission.admission_hash()? != receipt.admission_hash`).
+        # Without this, a forged `admission` body sitting behind an
+        # untouched (TTL-derived-correct) hash string would never be
+        # caught: stage 2 above never reads the embedded object at all.
+        admission_payload_hash = b3(refold_admission(admission_raw).encode())
+        stage("admission payload", admission_payload_hash, recorded["admission_hash"],
+              "payload-binding")
+
         # Stage 3: handler bindings re-extracted from the post state;
         # canonical tab-separated lines, sorted by capability.
         bindings = extract_handler_bindings(post)
         lines = "".join(f"{c}\t{h}\t{d}\n" for c, h, d in bindings)
         handler_hash = b3(lines.encode())
         stage("handler_hash", handler_hash, recorded["handler_hash"])
+
+        # Stage 3b: payload binding for `bindings` — mirrors replay_firing's
+        # `handler_hash(&receipt.bindings) != receipt.handler_hash`.
+        bindings_payload_hash = b3(refold_bindings(bindings_raw).encode())
+        stage("bindings payload", bindings_payload_hash, recorded["handler_hash"],
+              "payload-binding")
 
         # Stage 3.5: agent registry re-extracted from the post state (tool
         # sets, spawn edges, layer depth); canonical tab-separated lines,
@@ -1064,6 +1168,12 @@ def verify_firing(base_path: str, adds_path: str, removes_path: str,
         agent_registry_hash = b3(agent_canonical_form(agents).encode())
         stage("agent_registry_hash", agent_registry_hash,
               recorded["agent_registry_hash"])
+
+        # Stage 3.5b: payload binding for `agents` — mirrors replay_firing's
+        # `agent_registry_hash(&receipt.agents) != receipt.agent_registry_hash`.
+        agents_payload_hash = b3(refold_agents(agents_raw).encode())
+        stage("agents payload", agents_payload_hash, recorded["agent_registry_hash"],
+              "payload-binding")
 
         # Stages 4-5: refolded-from-payload — the embedded verdicts array and
         # outcome object are re-serialized to the serde rendering and hashed;
