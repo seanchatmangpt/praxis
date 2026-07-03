@@ -24,12 +24,14 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod agent_registry;
 pub mod budget;
 pub mod cell;
 pub mod cell_supervise;
 pub mod dag;
 pub mod datalog;
 pub mod delta;
+pub mod envelope;
 pub mod fault;
 pub mod fleet;
 pub mod geometry;
@@ -53,10 +55,12 @@ pub mod supervise;
 pub mod verify;
 pub mod wal;
 
+pub use agent_registry::{agent_canonical_form, agent_registry_hash, extract_agents, spawn_depth_law, AgentProfile};
 pub use dag::{Dag, DagReceipt, HashRunner, MemoCache, NodeReceipt, NodeRunner};
 pub use datalog::{Atom, DlRule, Program, SaturationReceipt, Term};
 pub use glue::{compose_workflows, execute_composed, ComposedGraph, ComposedWorkflowReceipt};
 pub use delta::GraphDelta;
+pub use envelope::{wrap_firing_receipt, wrap_workflow_receipt, verify_envelope_chain, PayloadRef, ReceiptEnvelope};
 pub use graph::{
     execute_workflow, execute_workflow_with, replay_workflow, WorkflowIr, WorkflowReceipt,
 };
@@ -275,6 +279,27 @@ pub enum Refusal {
         /// The clause or hook IRI that violates the boundary.
         subject: String,
         /// Which boundary rule was violated.
+        detail: String,
+    },
+    /// A cross-domain receipt envelope chain does not link: some envelope's
+    /// `previous_envelope_hash` does not equal the prior envelope's
+    /// `envelope_hash` exactly (or a non-genesis envelope declares `None`).
+    #[error("envelope chain broken at index {index}: {detail}")]
+    EnvelopeChainBroken {
+        /// The 0-based index of the first envelope whose link fails.
+        index: usize,
+        /// What was expected vs found.
+        detail: String,
+    },
+    /// An `agent:` node violated the closed-world agent vocabulary or
+    /// shape rules (unknown predicate/class, cardinality, registry bound,
+    /// out-of-range layer depth), or violated the depth-5 spawn law (a
+    /// terminal agent declaring a non-empty spawn set).
+    #[error("agent ill-formed at {subject}: {detail}")]
+    AgentIllFormed {
+        /// The subject IRI of the offending node (or `(registry)`).
+        subject: String,
+        /// What shape or spawn-law rule was violated.
         detail: String,
     },
 }
