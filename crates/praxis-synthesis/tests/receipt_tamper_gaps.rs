@@ -4,6 +4,7 @@
 //! elsewhere) and staleness/rollback replay, as distinct from the existing
 //! single-field-tamper and different-history suites.
 
+use praxis_synthesis::handlers::HANDLER_NS;
 use praxis_synthesis::hooks::HOOK_NS;
 use praxis_synthesis::{
     fire_hooks, replay_firing, FiringOutcome, GraphDelta, HandlerRegistry, MeaningSource, Origin,
@@ -18,6 +19,30 @@ fn src(adds: &str) -> MeaningSource {
     MeaningSource { origin: Origin::Proposer, adds_ttl: adds.to_string(), removes_ttl: String::new() }
 }
 
+/// The kernel document itself never binds handlers (a closed-world law
+/// covered separately in `kernel_coverage.rs`); tests that exercise the
+/// full `fire_hooks` path bind every clause capability to the built-in
+/// deterministic handler at `verifiable`, mirroring `deviation_routes.rs`'s
+/// `kernel_with_bindings` — every used capability now REQUIRES an explicit
+/// `wf:delegability` grade (an unbound capability defaults to
+/// `human-only` and refuses), so this augmented genesis is what makes a
+/// full-graph `Reference::genesis(KERNEL)` firing completable at all.
+fn kernel_with_bindings() -> String {
+    let mut base = KERNEL.to_string();
+    let all_caps = [
+        "orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt",
+        "confessDebt", "releaseResentment", "repairDebt", "restoreReceipt",
+    ];
+    for cap in &all_caps {
+        base.push_str(&format!(
+            "\n<http://seanchatmangpt.github.io/praxis/prayer#{cap}> \
+             <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}deterministic-v1> ;\n\
+             <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"verifiable\" .\n"
+        ));
+    }
+    base
+}
+
 /// Cross-receipt / chain-splice replay (ggen ReplayVerifier pattern): a
 /// whole valid `chain` value from an honest OTHER firing (not a bit-flip)
 /// is spliced onto a structurally self-consistent receipt for a DIFFERENT
@@ -27,7 +52,8 @@ fn src(adds: &str) -> MeaningSource {
 /// not just single-field bit-flip tamper.
 #[test]
 fn splicing_a_whole_valid_chain_from_a_different_firing_is_refused() {
-    let reference = Reference::genesis(KERNEL).expect("kernel admits");
+    let base = kernel_with_bindings();
+    let reference = Reference::genesis(&base).expect("kernel admits");
     let registry = HandlerRegistry::builtin();
 
     let source_bread = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."));
@@ -45,7 +71,7 @@ fn splicing_a_whole_valid_chain_from_a_different_firing_is_refused() {
     let mut spliced = bread.clone();
     spliced.chain = debt.chain.clone();
 
-    match replay_firing(&spliced, KERNEL, &source_bread, &registry, &[]) {
+    match replay_firing(&spliced, &base, &source_bread, &registry, &[]) {
         Err(Refusal::VerificationFailed { failed }) => {
             assert_eq!(failed, vec!["chain".to_string()]);
         }
@@ -120,7 +146,8 @@ fn replaying_an_old_receipt_against_a_since_advanced_history_is_refused() {
 /// `replay_firing`), not merely inner receipt count.
 #[test]
 fn substituting_inner_receipt_from_a_different_firing_is_refused() {
-    let reference = Reference::genesis(KERNEL).expect("kernel admits");
+    let base = kernel_with_bindings();
+    let reference = Reference::genesis(&base).expect("kernel admits");
     let registry = HandlerRegistry::builtin();
 
     let source_bread = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."));
@@ -141,10 +168,29 @@ fn substituting_inner_receipt_from_a_different_firing_is_refused() {
     forged.inner[0] = debt.inner[0].clone();
     assert_eq!(forged.chain, bread.chain, "outer chain field itself is untouched by the swap");
 
-    match replay_firing(&forged, KERNEL, &source_bread, &registry, &[]) {
+    match replay_firing(&forged, &base, &source_bread, &registry, &[]) {
         Err(Refusal::VerificationFailed { failed }) => {
             assert_eq!(failed, vec!["inner chains".to_string()]);
         }
         other => panic!("expected VerificationFailed(inner chains), got {other:?}"),
     }
 }
+
+/// Demonstrates that a forged plan steps payload behind an honest plan hash
+/// is completely accepted by `replay_workflow` (the trustless replay verifier).
+#[test]
+fn mutating_plan_steps_retains_honest_plan_hash_and_passes_replay() {
+    let ttl_demo = include_str!("../ontology/workflow_demo.ttl");
+    let mut receipt = praxis_synthesis::execute_workflow(ttl_demo).expect("demo executes");
+
+    // Clear steps of the plan, which is a major forgery of the plan's payload body.
+    assert!(!receipt.plan.steps.is_empty());
+    receipt.plan.steps.clear();
+
+    // Verify it with replay_workflow.
+    // It passes because replay_workflow only checks `receipt.plan.receipt.plan_hash == receipt.plan_hash`,
+    // and both of those remain the honest plan hash! It never hashes receipt.plan.steps!
+    let result = praxis_synthesis::replay_workflow(&receipt, ttl_demo);
+    assert!(result.is_ok(), "replay_workflow should have rejected the mutated plan steps but didn't");
+}
+

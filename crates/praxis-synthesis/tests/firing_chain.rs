@@ -18,17 +18,16 @@ fn src(adds: &str) -> MeaningSource {
     }
 }
 
-fn kernel_with_cap_binding(cap_local: &str, delegability: &str, handler_local: &str) -> String {
-    format!(
-        "{KERNEL}\n\
-         <http://seanchatmangpt.github.io/praxis/prayer#{cap_local}> \
-         <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}{handler_local}> ;\n\
-         <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"{delegability}\" .\n"
-    )
-}
-
 fn kernel_with_binding(delegability: &str, handler_local: &str) -> String {
-    kernel_with_cap_binding("orientToFather", delegability, handler_local)
+    let mut base = KERNEL.to_string();
+    for cap in &["orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt"] {
+        base.push_str(&format!(
+            "\n<http://seanchatmangpt.github.io/praxis/prayer#{cap}> \
+             <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}{handler_local}> ;\n\
+             <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"{delegability}\" .\n"
+        ));
+    }
+    base
 }
 
 #[test]
@@ -41,8 +40,8 @@ fn completed_firing_chains_and_replays() {
     let receipt = fire_hooks(&reference, &source, &registry, &[]).expect("fires");
     assert_eq!(receipt.outcome, FiringOutcome::Completed);
     assert_eq!(receipt.inner.len(), 1, "daily-bread grounded once");
-    assert_eq!(receipt.bindings.len(), 1);
-    assert_eq!(receipt.verdicts.len(), 8, "all eight hooks receipted");
+    assert_eq!(receipt.bindings.len(), 4);
+    assert_eq!(receipt.verdicts.len(), 11, "all eleven hooks receipted");
 
     replay_firing(&receipt, &base, &source, &registry, &[]).expect("replays");
 }
@@ -92,7 +91,12 @@ fn human_only_binding_on_an_unused_capability_does_not_refuse() {
     // restore-receipt lives in the RepairReceiptWorkflow fragment; the
     // daily-bread firing never grounds it, so its human-only grade is not
     // this firing's business.
-    let base = kernel_with_cap_binding("restoreReceipt", "human-only", "deterministic-v1");
+    let mut base = kernel_with_binding("verifiable", "deterministic-v1");
+    base.push_str(&format!(
+        "\n<http://seanchatmangpt.github.io/praxis/prayer#restoreReceipt> \
+         <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}deterministic-v1> ;\n\
+         <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"human-only\" .\n"
+    ));
     let reference = Reference::genesis(&base).expect("admits");
     let registry = HandlerRegistry::builtin();
     let source = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."));

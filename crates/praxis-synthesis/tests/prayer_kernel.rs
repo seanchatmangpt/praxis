@@ -34,7 +34,7 @@ fn provision_anxiety_grounds_the_daily_prayer_workflow() {
         "",
     );
     let hooks = extract_hooks(event.post()).expect("kernel registry extracts");
-    assert_eq!(hooks.len(), 8, "eight prayer-clause hooks declared (registry at the 8-bound)");
+    assert_eq!(hooks.len(), 11, "eleven prayer-clause hooks declared");
 
     let records = evaluate_hooks(&hooks, &event, &[]).expect("evaluates");
     let bread = records.iter().find(|r| r.hook_name == "daily-bread").unwrap();

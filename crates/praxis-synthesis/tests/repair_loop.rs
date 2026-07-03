@@ -12,6 +12,7 @@
 //!    replaying a firing receipt against a different history is refused.
 
 use praxis_synthesis::graph::parse_ttl;
+use praxis_synthesis::handlers::HANDLER_NS;
 use praxis_synthesis::hooks::HOOK_NS;
 use praxis_synthesis::kernel::enforce_surrender_boundary;
 use praxis_synthesis::{
@@ -21,7 +22,6 @@ use praxis_synthesis::{
 
 const KERNEL: &str = include_str!("../ontology/lord_prayer.ttl");
 const LIFE: &str = "http://seanchatmangpt.github.io/praxis/life#";
-const PRAYER: &str = "http://seanchatmangpt.github.io/praxis/prayer#";
 
 fn src(adds: &str, removes: &str) -> MeaningSource {
     MeaningSource {
@@ -31,26 +31,52 @@ fn src(adds: &str, removes: &str) -> MeaningSource {
     }
 }
 
+/// See `deviation_routes.rs`'s identical helper: the kernel document itself
+/// never binds handlers, so full `fire_hooks` runs need every used
+/// capability bound explicitly (an unbound capability now defaults to
+/// `human-only` and refuses under the closed delegability law).
+fn kernel_with_bindings() -> String {
+    let mut base = KERNEL.to_string();
+    let all_caps = [
+        "orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt",
+        "confessDebt", "releaseResentment", "repairDebt", "restoreReceipt",
+    ];
+    for cap in &all_caps {
+        base.push_str(&format!(
+            "\n<http://seanchatmangpt.github.io/praxis/prayer#{cap}> \
+             <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}deterministic-v1> ;\n\
+             <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"verifiable\" .\n"
+        ));
+    }
+    base
+}
+
 // ---------------------------------------------------------------------------
 // Finding 1 — deliverance/surrender invariant enforced at firing time
 // ---------------------------------------------------------------------------
 
 #[test]
 fn rerouting_deliverance_to_ground_action_is_a_kernel_boundary_refusal() {
-    // The adversary's reproduction: one admitted delta flips the
-    // DeliveranceHook effect from refuse to ground-action and asserts an
-    // unbounded threat. Pre-repair this COMPLETED with a grounded plan —
-    // the unbounded reached computed action.
-    let reference = Reference::genesis(KERNEL).expect("kernel admits");
+    // The adversary's reproduction: the DeliveranceHook is rerouted from
+    // refuse to ground-action against a plain workflow. Pre-repair this
+    // COMPLETED with a grounded plan — the unbounded reached computed
+    // action. Hook/capability LAW is graph-declared at genesis and is
+    // never rewritable by a delta (`fire_hooks` extracts hooks/bindings
+    // from the admitted REFERENCE, not the post-state — a delta supplies
+    // DATA only, never a redefinition of what a hook watches or does), so
+    // the compromised hook must be baked into the admitted base itself —
+    // exactly the same pattern as the sibling test
+    // `a_ground_action_hook_watching_a_surrendered_var_is_refused`.
+    let needle = "    hook:effect \"refuse\" ;\n    \
+        hook:reason \"unbounded threat surrendered to God; no agent computes the unbounded\" ;";
+    let replacement = "    hook:effect \"ground-action\" ;\n    \
+        hook:action ex:DailyPrayerWorkflow ;";
+    let rerouted = KERNEL.replace(needle, replacement);
+    assert_ne!(rerouted, KERNEL, "the DeliveranceHook block must have been rewritten");
+
+    let reference = Reference::genesis(&rerouted).expect("kernel admits");
     let registry = HandlerRegistry::builtin();
-    let source = src(
-        &format!(
-            "<{PRAYER}DeliveranceHook> <{HOOK_NS}effect> \"ground-action\" .\n\
-             <{PRAYER}DeliveranceHook> <{HOOK_NS}action> <{PRAYER}DailyPrayerWorkflow> .\n\
-             <{LIFE}threat1> <{LIFE}hasUnboundedThreat> 1 ."
-        ),
-        &format!("<{PRAYER}DeliveranceHook> <{HOOK_NS}effect> \"refuse\" ."),
-    );
+    let source = src(&format!("<{LIFE}threat1> <{LIFE}hasUnboundedThreat> 1 ."), "");
     let receipt = fire_hooks(&reference, &source, &registry, &[]).expect("refusal is receipted");
     match &receipt.outcome {
         FiringOutcome::Refused { stage, reason } => {
@@ -61,7 +87,7 @@ fn rerouting_deliverance_to_ground_action_is_a_kernel_boundary_refusal() {
     }
     assert!(receipt.inner.is_empty(), "the unbounded must never reach a computed plan");
     // The refusal itself chains and replays.
-    replay_firing(&receipt, KERNEL, &source, &registry, &[]).expect("boundary refusal replays");
+    replay_firing(&receipt, &rerouted, &source, &registry, &[]).expect("boundary refusal replays");
 }
 
 #[test]
@@ -111,7 +137,8 @@ fn boundary_enforcement_is_conditional_on_a_declared_kernel() {
 fn baseline_kernel_still_fires_clean_under_the_boundary_law() {
     // The untampered kernel satisfies the law: the classic daily-bread
     // firing still completes.
-    let reference = Reference::genesis(KERNEL).expect("admits");
+    let base = kernel_with_bindings();
+    let reference = Reference::genesis(&base).expect("admits");
     let registry = HandlerRegistry::builtin();
     let source = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."), "");
     let receipt = fire_hooks(&reference, &source, &registry, &[]).expect("fires");
@@ -135,7 +162,8 @@ fn fragment_a() -> String {
          ex:s0 a wf:Atom ; wf:predicate \"s0\" .\n\
          ex:g a wf:Atom ; wf:predicate \"g\" .\n\
          ex:capA a wf:Capability ; wf:name \"capA\" ; wf:params 0 ; wf:cost 5 ; \
-         wf:pre ex:s0 ; wf:add ex:g .\n"
+         wf:pre ex:s0 ; wf:add ex:g ; \
+         wf:handler <{HANDLER_NS}deterministic-v1> ; wf:delegability \"verifiable\" .\n"
     )
 }
 
