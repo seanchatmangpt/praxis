@@ -47,7 +47,8 @@ pk:hallowed-name a pk:Clause ;
 pk:kingdom-come a pk:Clause ;
     pk:name "kingdom-come" ;
     pk:problemClass "authority-transfer" ;
-    pk:boundary "god-receives-unbounded" .
+    pk:boundary "god-receives-unbounded" ;
+    pk:action ex:RefuseKingdomComeHook .
 
 pk:will-be-done a pk:Clause ;
     pk:name "will-be-done" ;
@@ -57,7 +58,8 @@ pk:will-be-done a pk:Clause ;
 pk:on-earth-as-heaven a pk:Clause ;
     pk:name "on-earth-as-heaven" ;
     pk:problemClass "alignment" ;
-    pk:boundary "god-receives-unbounded" .
+    pk:boundary "god-receives-unbounded" ;
+    pk:action ex:RefuseOnEarthAsHeavenHook .
 
 pk:daily-bread a pk:Clause ;
     pk:name "daily-bread" ;
@@ -68,7 +70,8 @@ pk:daily-bread a pk:Clause ;
 pk:forgive-debts a pk:Clause ;
     pk:name "forgive-debts" ;
     pk:problemClass "owed-debt" ;
-    pk:boundary "god-receives-unbounded" .
+    pk:boundary "god-receives-unbounded" ;
+    pk:action ex:RefuseForgiveDebtsHook .
 
 pk:forgive-debtors a pk:Clause ;
     pk:name "forgive-debtors" ;
@@ -129,6 +132,30 @@ ex:DeliveranceHook a hook:Hook ;
     hook:effect "refuse" ;
     hook:reason "unbounded threat surrendered to God; no agent computes the unbounded" ;
     hook:priority 2 .
+
+ex:RefuseKingdomComeHook a hook:Hook ;
+    hook:name "refuse-kingdom-come" ;
+    hook:kind "delta" ;
+    hook:var "http://seanchatmangpt.github.io/praxis/life#hasKingdomComeSurrender" ;
+    hook:effect "refuse" ;
+    hook:reason "kingdom-come surrendered to God" ;
+    hook:priority 7 .
+
+ex:RefuseOnEarthAsHeavenHook a hook:Hook ;
+    hook:name "refuse-on-earth-as-heaven" ;
+    hook:kind "delta" ;
+    hook:var "http://seanchatmangpt.github.io/praxis/life#hasOnEarthAsHeavenSurrender" ;
+    hook:effect "refuse" ;
+    hook:reason "on-earth-as-heaven surrendered to God" ;
+    hook:priority 7 .
+
+ex:RefuseForgiveDebtsHook a hook:Hook ;
+    hook:name "refuse-forgive-debts" ;
+    hook:kind "delta" ;
+    hook:var "http://seanchatmangpt.github.io/praxis/life#hasForgiveDebtsSurrender" ;
+    hook:effect "refuse" ;
+    hook:reason "forgive-debts surrendered to God" ;
+    hook:priority 7 .
 
 # Lead us not into temptation: guard when day-window load crosses the bound.
 ex:TemptationGuardHook a hook:Hook ;

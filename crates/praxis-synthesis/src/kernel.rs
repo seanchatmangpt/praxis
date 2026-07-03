@@ -177,6 +177,37 @@ pub fn extract_kernel(triples: &[Triple]) -> Result<Vec<PrayerClause>, Refusal> 
         }
     }
 
+    // Cross-typing is refused by subject identity, not by name heuristic:
+    // no `prayer-kernel:Clause` node may ALSO be typed as an executable
+    // class (`wf:Workflow`, `wf:Capability`, `hook:Hook`). The module's own
+    // doctrine is that God/the clause boundary is a STRING property, never
+    // an executable node — this makes that doctrine a closed-world law
+    // instead of a convention that only holds if nobody double-types the
+    // node. Renaming the clause, or the IRI it lives on, cannot bypass this:
+    // it is keyed on the same subject appearing in `typed` (every
+    // canonical clause), not on what the IRI or `pk:name` happen to spell.
+    let executable_classes = [
+        format!("{}Workflow", crate::graph::WF_NS),
+        format!("{}Capability", crate::graph::WF_NS),
+        format!("{}Hook", crate::hooks::HOOK_NS),
+    ];
+    for t in triples {
+        if t.p == RDF_TYPE {
+            if let Object::Iri(class) = &t.o {
+                if executable_classes.contains(class) && typed.contains(&t.s.as_str()) {
+                    return Err(ill(
+                        &t.s,
+                        format!(
+                            "prayer-kernel:Clause node is also typed executable '{class}' — \
+                             the clause boundary must remain a string property, never an \
+                             executable node"
+                        ),
+                    ));
+                }
+            }
+        }
+    }
+
     // Extract each clause.
     let mut clauses = Vec::with_capacity(listed.len());
     for subject in &listed {
@@ -245,14 +276,89 @@ pub fn kernel_declared(triples: &[Triple]) -> bool {
 }
 
 /// Watched predicate of a hook condition, if it has one.
-fn watched_var(hook: &crate::hooks::KnowledgeHook) -> Option<&str> {
+fn extract_datalog_predicates(program: &str) -> Vec<String> {
+    let mut preds = Vec::new();
+    let bytes = program.as_bytes();
+    let n = bytes.len();
+    let mut i = 0;
+    while i < n {
+        if bytes[i] == b't' {
+            let prev_ok = if i > 0 {
+                let prev = bytes[i - 1];
+                !prev.is_ascii_alphanumeric() && prev != b'_' && prev != b':' && prev != b'?'
+            } else {
+                true
+            };
+            if prev_ok {
+                let mut j = i + 1;
+                while j < n && bytes[j].is_ascii_whitespace() {
+                    j += 1;
+                }
+                if j < n && bytes[j] == b'(' {
+                    let mut depth = 1;
+                    let mut k = j + 1;
+                    let mut content = String::new();
+                    while k < n && depth > 0 {
+                        let c = bytes[k] as char;
+                        if c == '(' {
+                            depth += 1;
+                        } else if c == ')' {
+                            depth -= 1;
+                        }
+                        if depth > 0 {
+                            content.push(c);
+                        }
+                        k += 1;
+                    }
+                    let mut args = Vec::new();
+                    let mut current_arg = String::new();
+                    let mut arg_depth = 0usize;
+                    for ac in content.chars() {
+                        match ac {
+                            '(' => {
+                                arg_depth += 1;
+                                current_arg.push(ac);
+                            }
+                            ')' => {
+                                arg_depth = arg_depth.saturating_sub(1);
+                                current_arg.push(ac);
+                            }
+                            ',' if arg_depth == 0 => {
+                                args.push(current_arg.trim().to_string());
+                                current_arg.clear();
+                            }
+                            _ => {
+                                current_arg.push(ac);
+                            }
+                        }
+                    }
+                    args.push(current_arg.trim().to_string());
+                    if args.len() >= 2 {
+                        let pred_arg = &args[1];
+                        if pred_arg.starts_with('<') && pred_arg.ends_with('>') {
+                            let pred = &pred_arg[1..pred_arg.len() - 1];
+                            preds.push(pred.to_string());
+                        }
+                    }
+                    i = k;
+                    continue;
+                }
+            }
+        }
+        i += 1;
+    }
+    preds
+}
+
+/// Watched predicates of a hook condition.
+fn watched_vars(hook: &crate::hooks::KnowledgeHook) -> Vec<String> {
     use crate::hooks::HookCondition as C;
     match &hook.condition {
         C::Delta { var }
         | C::Threshold { var, .. }
         | C::Count { var, .. }
-        | C::Window { var, .. } => Some(var.as_str()),
-        C::Datalog { .. } => None,
+        | C::Window { var, .. } => vec![var.clone()],
+        C::Datalog { program, .. } => extract_datalog_predicates(program),
     }
 }
 
@@ -273,9 +379,17 @@ pub fn enforce_surrender_boundary(
         return Ok(());
     }
     let clauses = extract_kernel(triples)?;
-    let mut surrendered_vars: Vec<(&str, &str)> = Vec::new(); // (var, clause iri)
+    let mut surrendered_vars: Vec<(String, String)> = Vec::new(); // (var, clause iri)
     for clause in clauses.iter().filter(|c| c.boundary == "god-receives-unbounded") {
-        let Some(action) = clause.action.as_deref() else { continue };
+        let Some(action) = clause.action.as_deref() else {
+            return Err(Refusal::BoundaryViolation {
+                subject: clause.iri.clone(),
+                detail: format!(
+                    "god-receives-unbounded clause <{}> is missing pk:action",
+                    clause.iri
+                ),
+            });
+        };
         let Some(hook) = hooks.iter().find(|h| h.iri == action) else {
             return Err(Refusal::BoundaryViolation {
                 subject: clause.iri.clone(),
@@ -294,12 +408,18 @@ pub fn enforce_surrender_boundary(
                 ),
             });
         }
-        if let Some(var) = watched_var(hook) {
-            surrendered_vars.push((var, &clause.iri));
+        if matches!(hook.condition, crate::hooks::HookCondition::Datalog { .. }) {
+            return Err(Refusal::BoundaryViolation {
+                subject: hook.iri.clone(),
+                detail: "god-receives-unbounded hook cannot use a Datalog condition".to_string(),
+            });
+        }
+        for var in watched_vars(hook) {
+            surrendered_vars.push((var, clause.iri.clone()));
         }
     }
     for hook in hooks.iter().filter(|h| h.effect != crate::hooks::EffectKind::Refuse) {
-        if let Some(var) = watched_var(hook) {
+        for var in watched_vars(hook) {
             if let Some((v, clause)) = surrendered_vars.iter().find(|(v, _)| *v == var) {
                 return Err(Refusal::BoundaryViolation {
                     subject: hook.iri.clone(),
