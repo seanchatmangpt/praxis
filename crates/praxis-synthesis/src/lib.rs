@@ -29,14 +29,17 @@ pub mod cell;
 pub mod cell_supervise;
 pub mod dag;
 pub mod datalog;
+pub mod delta;
 pub mod fault;
 pub mod fleet;
 pub mod geometry;
 pub mod gen;
 pub mod glue;
 pub mod graph;
+pub mod hooks;
 pub mod park;
 pub mod pipeline;
+pub mod quarantine;
 pub mod rel;
 pub mod sequence;
 pub mod solver8;
@@ -47,7 +50,17 @@ pub mod wal;
 pub use dag::{Dag, DagReceipt, HashRunner, MemoCache, NodeReceipt, NodeRunner};
 pub use datalog::{Atom, DlRule, Program, SaturationReceipt, Term};
 pub use glue::{compose_workflows, execute_composed, ComposedGraph, ComposedWorkflowReceipt};
-pub use graph::{execute_workflow, replay_workflow, WorkflowIr, WorkflowReceipt};
+pub use delta::GraphDelta;
+pub use graph::{
+    execute_workflow, execute_workflow_with, replay_workflow, WorkflowIr, WorkflowReceipt,
+};
+pub use hooks::{
+    evaluate_hooks, extract_hooks, hook_hash, HookCondition, HookVerdict, HookVerdictRecord,
+    KnowledgeHook,
+};
+pub use quarantine::{
+    Admission, AdmissionRecord, AdmittedEvent, MeaningSource, Origin, Reference, RiceQuarantine,
+};
 pub use pipeline::{Synthesis, SynthesisReceipt};
 pub use sequence::{
     BoundStep, BoundedCsp, Capability, Constraint, SequencePlan, SequenceProblem, SolveReceipt,
@@ -176,5 +189,34 @@ pub enum Refusal {
         predicate: String,
         /// Every distinct canonical object rendering observed (≥ 2, byte-sorted).
         values: Vec<String>,
+    },
+    /// A delta failed the admission gate: retracting an absent triple, or a
+    /// post-state that violates a decidable admission rule.
+    #[error("admission refused for {subject}: {detail}")]
+    AdmissionRefused {
+        /// The offending triple rendering or subject IRI.
+        subject: String,
+        /// Which admission rule was violated.
+        detail: String,
+    },
+    /// A hook declared a condition kind praxis has no bounded engine for.
+    /// Refused by name — never faked — with the honest analog stated.
+    #[error("condition kind '{kind}' unsupported on {subject}; supported analog: {supported_analog}")]
+    ConditionUnsupported {
+        /// The declared kind.
+        kind: String,
+        /// The hook node IRI.
+        subject: String,
+        /// The supported condition kind that honestly approximates it.
+        supported_analog: String,
+    },
+    /// A `hook:` node violated the closed-world hook vocabulary or shape
+    /// rules (cardinality, unknown predicate/class, registry bound).
+    #[error("hook ill-formed at {subject}: {detail}")]
+    HookIllFormed {
+        /// The subject IRI of the offending node.
+        subject: String,
+        /// What shape rule was violated.
+        detail: String,
     },
 }

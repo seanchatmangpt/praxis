@@ -1,12 +1,18 @@
 //! Supervision topology — derived from the plan, never authored.
 //!
-//! NET-NEW: nothing in the constellation has this. knhk's real supervision
-//! is hand-declared Erlang OTP (`genesis_custody_sup.erl`, one_for_one,
-//! static children); its Rust side has classification and symptom analysis
-//! but no supervisor tree. Here the tree is a *derived artifact*: stages
-//! fall out of the plan's own data-dependency structure, the restart policy
-//! is 8-bounded data, and the whole topology is content-addressed into the
-//! plan's receipt lineage.
+//! PROVENANCE (corrected 2026-07-02; supersedes an earlier "NET-NEW"
+//! overclaim): knhk DOES have supervision and closed autonomics on its Rust
+//! side — `genesis-autonomic/controller.rs::execute_cycle()` (closed MAPE-K
+//! with a 10-point hook chain) and `genesis-yawl/src/engine/supervision.rs`
+//! (hand-declared OneForOne/OneForAll/RestForOne with restart→health-check
+//! verification). What is new here is narrower and stated exactly: the
+//! topology is *derived* from the plan's data-dependency structure rather
+//! than authored; `OneForAll` is inexpressible by construction (siblings in
+//! an acyclic data-flow plan cannot share mutable fate — the absence is the
+//! theorem, not a choice); restarts are 8-bounded data replayed in attempt
+//! ticks (epoch-deterministic, no wall clock); and the whole topology is
+//! content-addressed into the plan's receipt lineage. The earlier claim
+//! that "nothing in the constellation has this" was false and is retracted.
 //!
 //! Strategy vocabulary is OTP's, minus two deliberate absences:
 //! - `OneForAll` is not in the enum at all. OTP justifies it by shared

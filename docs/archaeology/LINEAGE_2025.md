@@ -216,3 +216,58 @@ Refused claims (do not make):
 No new performance claim ships without passing the honesty-audit suite;
 the measurement harness self-refutes on flattering artifacts; the fossil
 record above is the reason.
+
+## 11. Hooks / reflex / autonomics addendum (2026-07-02 archaeology)
+
+An 11-agent sweep of the full constellation (unrdf, knhk, wasm4pm(-compat),
+ggen, lsp-max, knowd, gitvan, five-layer-agents, bcinr, cns, bitactor,
+bytestar, star-toml, a2a-rs) mapped the actuation family praxis v26.7.3
+synthesizes as **Knowledge Hooks**: h = (trigger, check, act, receipt).
+
+Lineage, earliest → most complete:
+
+1. **knhk paper** `docs/papers/.../03-knowledge-hooks.tex` — defines the hook
+   tuple; also the source of two REFUSED sub-claims (≤2ns "Chatman Constant"
+   timing — the §5 fabricated-timing fossil — and "43/43 workflow patterns").
+2. **knhk Rust** — `genesis-autonomic/controller.rs::execute_cycle()` (closed
+   MAPE-K, 10-point PreMonitor…PostFeedback hook chain: the direct conceptual
+   ancestor), `genesis-yawl/engine/supervision.rs` (full OTP strategy triple
+   + restart→health-check verify), `genesis-etl/reflex.rs` + `failure_actions.rs`
+   (R1 drop/park/escalate, W1 retry→degrade — ancestor of praxis GaveUp/park),
+   `genesis-graph/actuation` typestate pipeline, `genesis-kernel` receipts +
+   guard compiler, `genesis-lockchain`. Covenant-2 ("a detached or empty
+   receipt is a violation") is imported as POLICY; its hard-coded SECRET_KEY
+   signing is refused as mechanism.
+3. **unrdf @unrdf/hooks** — the hook contract source of truth: content-
+   addressed conditions (sparql-ask/select, shacl block|annotate|repair,
+   delta/threshold/count/window), sandboxed effects, blake3 receipts,
+   git-notes lockchain. Praxis's own port note: `src/frontier.rs` ("knowledge-
+   hooks / mu-reactive semantics were reimplemented in Rust"). Weak link:
+   replay is implicit; receipts are transaction-grain, not per-firing.
+4. **wasm4pm** autonomic suite (`self_healing.rs` — "Ported from knhk" in its
+   header — SPC Western-Electric monitoring, RL planning, audit trail) and
+   **wasm4pm-compat `pddl.rs`** (STRIPS8 grounding, del-effects as epoch seals).
+5. **ggen** receipt chains + `ReplayVerifier` (first-class anti-replay) +
+   Ed25519/blake3 envelope; **lsp-max** receipt_chain + andon; **knowd**
+   `hooks_v33.rs` GuardHook type vocabulary; **gitvan** commit-event daemon;
+   **five-layer-agents** `schema/agents.ttl` (the only graph-declared agent
+   assignment in the constellation — the praxis handler-binding template).
+6. **praxis v26.7.3** — the synthesis: quarantine/admission door (`delta.rs`,
+   `quarantine.rs`), graph-resident hook registry with the honest bounded
+   condition subset (`hooks.rs`: datalog/delta/threshold/count/window;
+   sparql/shacl/n3/semantic-inference refused BY NAME with analogs), every
+   registered hook receipted per event (NotFired recorded — silence provable).
+
+Corrections receipted by this addendum:
+- `supervise.rs`'s former "NET-NEW: nothing in the constellation has this"
+  claim was FALSE (knhk's Rust side has both a MAPE-K controller and
+  supervisor trees) and is retracted in place; praxis's genuine deltas are
+  derived topology, OneForAll-inexpressibility, epoch determinism, and
+  content-addressed lineage.
+- The bitactor `specHash` anti-pattern (sscanf-parsed "hash", XOR-distance
+  acceptance) remains the refuse pole; the admission gate refuses `wf:` hash
+  predicates by vocabulary absence, unchanged.
+
+Refused vocabulary (unchanged): quantum/entangle/collapse/crystal/retrocausal,
+"43/43 patterns", any ≤2ns latency claim, "first in the world". The allowed
+novelty claim is lineage-relative synthesis-and-labeling priority only.

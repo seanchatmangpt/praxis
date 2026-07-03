@@ -615,7 +615,7 @@ fn escape_str(s: &str) -> String {
     out
 }
 
-fn render_object(o: &Object) -> String {
+pub(crate) fn render_object(o: &Object) -> String {
     match o {
         Object::Iri(iri) => format!("<{iri}>"),
         Object::Str(s) => format!("\"{}\"", escape_str(s)),
@@ -789,6 +789,13 @@ impl<'a> NodeIndex<'a> {
             })
             .collect()
     }
+}
+
+/// Closed-world vocabulary check over the `wf:` namespace, exposed for the
+/// admission gate: a post-state graph whose `wf:` triples violate the closed
+/// vocabulary must be refused *at admission*, not later at extraction.
+pub(crate) fn vocab_check(triples: &[Triple]) -> Result<(), Refusal> {
+    NodeIndex::build(triples).map(|_| ())
 }
 
 // ---------------------------------------------------------------------------
@@ -1243,6 +1250,19 @@ fn fold_chain(
 /// `chain` folds `graph_hash` first, then each derived stage in order.
 /// Every failure on any path is a typed [`Refusal`]; nothing panics.
 pub fn execute_workflow(ttl: &str) -> Result<WorkflowReceipt, Refusal> {
+    execute_workflow_with(ttl, &mut DeterministicRunner)
+}
+
+/// [`execute_workflow`] with a caller-injected [`FallibleRunner`] — the
+/// additive seam the hook-firing layer uses to dispatch graph-declared
+/// handlers (which may lawfully crash). Every infallible [`NodeRunner`] is
+/// blanket-adapted. The default path (`execute_workflow`) injects the
+/// private deterministic runner and is byte-identical to the pre-seam
+/// behavior.
+pub fn execute_workflow_with(
+    ttl: &str,
+    runner: &mut dyn crate::dag::FallibleRunner,
+) -> Result<WorkflowReceipt, Refusal> {
     let triples = parse_ttl(ttl)?;
     let ttl_hash = ttl_hash(ttl);
     let graph_hash = graph_hash(&triples);
@@ -1257,7 +1277,7 @@ pub fn execute_workflow(ttl: &str) -> Result<WorkflowReceipt, Refusal> {
     let supervised = dag.execute_supervised(
         &topology,
         &geometry,
-        &mut DeterministicRunner,
+        runner,
         &mut MemoCache::new(),
         &mut ParkManager::new(),
         None,
