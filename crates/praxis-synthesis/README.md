@@ -96,3 +96,61 @@ epoch 2 in every run; every cell verified, and `foreign_verify.py` passes
 | OneForAll strategy | acyclic data-flow cannot express shared mutable fate | absence enforced by exhaustive match |
 | Novelty-curve-under-faults measurement | member-level injection doesn't re-run solver work; a work-proxy would overstate cache dividends | node-level fleet injection is the follow-up |
 | Beat scheduling, full SLO matrix, quarantine parole, supra-cell | v1 scope | receipted in supervised_cell.json |
+
+## RDF as workflow (`graph.rs`)
+
+Lineage: **knhk** genesis-graph computed-hash-per-fired-rule + replay verifier
+(genuine) → imported; **cns** `bitactor_compiler.py` sorted-triple hashing
+(partial) → upgraded to a ground-only canonical form; **bitactor**
+asserted-spec-hash (anti-pattern) → refused by name.
+
+A bounded Turtle subset (no blank nodes, collections, language tags, `^^`
+datatypes, `@base`, decimals/booleans — each refused with line:column) is
+parsed into ground triples, canonicalized (fully-expanded IRIs, byte-sorted,
+deduplicated N-Triples-style lines), and content-addressed. The `wf:`
+vocabulary (`Workflow`/`Capability`/`Atom`/`Constraint`, closed-world) is
+extracted into a sorted `WorkflowIr`, lowered onto the existing
+`Program` + `SequenceProblem` substrate, solved by `Solver8`, and executed
+under the derived supervision stack. Caps: 64 KiB TTL, 4,096 triples,
+256-byte IRIs, 1,024-byte literals, 32 prefixes — each violation a typed
+`GraphCapExceeded`, never a truncation.
+
+### The chain (fold order is the law)
+
+```
+genesis_seed("praxis:workflow:v1")
+  ├─ fold graph_hash      canonical triples — the graph IS the law
+  ├─ fold ir_hash         extracted, sorted WorkflowIr
+  ├─ fold plan_hash       Solver8's bound step sequence
+  ├─ fold topology_hash   derived supervision topology
+  ├─ fold geometry_hash   derived failure geometry
+  └─ fold exec_hash       supervised execution receipt
+                          = WorkflowReceipt.chain
+
+ttl_hash (raw bytes)      field only — NEVER folded, so a reformat of the
+                          same triples yields the identical chain while the
+                          exact input bytes stay nameable
+```
+
+`replay_workflow(receipt, ttl)` re-derives all six folded stages from the
+document and names the first divergent field in
+`Refusal::VerificationFailed` — a receipt never vouches for itself.
+
+### Graph refusals (receipted)
+
+| Refused | Refusal | Why |
+|---|---|---|
+| Blank nodes, collections, tags, datatypes, `@base` | `GraphMalformed { line, column, .. }` | ground-only graphs make sorted-line canonicalization sound without URDNA2015 |
+| Any input cap breach | `GraphCapExceeded { what, cap, actual }` | bounded everything; no silent truncation |
+| Unknown `wf:` predicate (closed world) | `UnknownPredicate { predicate, subject }` | typo'd vocabulary must not silently vanish from the law |
+| Any `wf:*hash*` predicate | `UnknownPredicate` | the bitactor asserted-spec-hash anti-pattern: hashes are computed, never declared |
+| `wf:budget` > 8 | `BudgetExceeded` | CHATMAN_CONSTANT; refused, never clamped |
+| Shape violations (0/2 Workflow nodes, arg gaps, dup names, unknown kind, var in init) | `WorkflowIllFormed { subject, detail }` | every ill-formed graph names its culprit node |
+| Forged/stale receipt on replay | `VerificationFailed { failed }` | first divergent stage named in fold order |
+
+Determinism is locked by `tests/graph_workflow.rs`: byte-identical receipts
+across runs, identical `chain` across whitespace/comment/ordering reformats
+(with differing `ttl_hash`), golden demo plan `[gather, verify, receipt]`
+from `ontology/workflow_demo.ttl`, hand-refolded chain equality, and an
+adversarial malformed-TTL sweep in which every document refuses without a
+panic. No performance claims are made for this layer; none were measured.

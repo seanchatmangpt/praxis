@@ -33,6 +33,7 @@ pub mod fault;
 pub mod fleet;
 pub mod geometry;
 pub mod gen;
+pub mod graph;
 pub mod park;
 pub mod pipeline;
 pub mod rel;
@@ -44,6 +45,7 @@ pub mod wal;
 
 pub use dag::{Dag, DagReceipt, HashRunner, MemoCache, NodeReceipt, NodeRunner};
 pub use datalog::{Atom, DlRule, Program, SaturationReceipt, Term};
+pub use graph::{execute_workflow, replay_workflow, WorkflowIr, WorkflowReceipt};
 pub use pipeline::{Synthesis, SynthesisReceipt};
 pub use sequence::{
     BoundStep, BoundedCsp, Capability, Constraint, SequencePlan, SequenceProblem, SolveReceipt,
@@ -115,6 +117,46 @@ pub enum Refusal {
     InvalidInput {
         /// What was malformed.
         detail: String,
+    },
+    /// The workflow graph document violates the bounded Turtle subset:
+    /// lexical error, grammar error, or a refused construct (blank node,
+    /// collection, language tag, datatype, `@base`, non-integer numeric).
+    #[error("graph malformed at {line}:{column}: {detail}")]
+    GraphMalformed {
+        /// 1-based line of the culprit byte.
+        line: usize,
+        /// 1-based column of the culprit byte.
+        column: usize,
+        /// Which construct or rule was violated.
+        detail: String,
+    },
+    /// A `wf:` predicate outside the closed-world vocabulary table.
+    #[error("unknown predicate {predicate} on {subject}")]
+    UnknownPredicate {
+        /// The offending fully-expanded predicate IRI.
+        predicate: String,
+        /// The subject IRI it appeared on.
+        subject: String,
+    },
+    /// The graph parsed but does not describe a well-formed workflow
+    /// (missing required fields, argument gaps, duplicate names, wrong
+    /// cardinality of `wf:Workflow`, unknown constraint kind).
+    #[error("workflow ill-formed at {subject}: {detail}")]
+    WorkflowIllFormed {
+        /// The subject IRI of the offending node.
+        subject: String,
+        /// What shape rule was violated.
+        detail: String,
+    },
+    /// A hard input cap on the graph front end fired; nothing was truncated.
+    #[error("graph cap exceeded: {what} {actual} of max {cap}")]
+    GraphCapExceeded {
+        /// Which cap fired: `ttl_bytes` | `triples` | `iri_len` | `lit_len` | `prefixes`.
+        what: String,
+        /// The configured cap.
+        cap: u64,
+        /// The observed value when the cap fired.
+        actual: u64,
     },
     /// A verification refinement failed on the pipeline's own artifacts.
     #[error("verification failed: {failed:?}")]

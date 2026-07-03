@@ -1,0 +1,60 @@
+# Demo workflow: a 3-capability evidence pipeline. The graph is the law —
+# the plan, topology, geometry, and receipt chain are all derived from this
+# document's computed hash, never asserted by it.
+@prefix wf: <http://seanchatmangpt.github.io/praxis/workflow#> .
+@prefix ex: <http://example.org/pipeline/> .
+
+ex:workflow a wf:Workflow ;
+    wf:budget 3 ;
+    wf:init ex:raw0 ;
+    wf:goal ex:goal0 .
+
+ex:raw0 a wf:Atom ;
+    wf:predicate "raw" ;
+    wf:arg0 "doc" .
+
+ex:goal0 a wf:Atom ;
+    wf:predicate "receipted" ;
+    wf:arg0 "doc" .
+
+ex:gather a wf:Capability ;
+    wf:name "gather" ;
+    wf:params 1 ;
+    wf:cost 1 ;
+    wf:pre ex:preRaw ;
+    wf:add ex:addEvidence .
+
+ex:preRaw a wf:Atom ;
+    wf:predicate "raw" ;
+    wf:arg0 "?0" .
+
+ex:addEvidence a wf:Atom ;
+    wf:predicate "evidence" ;
+    wf:arg0 "?0" .
+
+ex:verify a wf:Capability ;
+    wf:name "verify" ;
+    wf:params 1 ;
+    wf:cost 1 ;
+    wf:pre ex:addEvidence ;
+    wf:add ex:addVerified .
+
+ex:addVerified a wf:Atom ;
+    wf:predicate "verified" ;
+    wf:arg0 "?0" .
+
+ex:receipt a wf:Capability ;
+    wf:name "receipt" ;
+    wf:params 1 ;
+    wf:cost 1 ;
+    wf:pre ex:addVerified ;
+    wf:add ex:addReceipted .
+
+ex:addReceipted a wf:Atom ;
+    wf:predicate "receipted" ;
+    wf:arg0 "?0" .
+
+ex:orderGatherFirst a wf:Constraint ;
+    wf:kind "before" ;
+    wf:a "gather" ;
+    wf:b "receipt" .

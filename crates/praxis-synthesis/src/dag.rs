@@ -481,7 +481,7 @@ pub enum RunOutcome {
 }
 
 /// The supervised receipt: everything the run did, crash chain included.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SupervisedReceipt {
     /// The derived topology in force.
     pub topology_hash: String,
