@@ -12,11 +12,12 @@ Usage:
 Exit 0 = verified; exit 1 = MISMATCH (printed); exit 2 = usage/IO error.
 
 What is recomputed here: the Turtle-subset parse, the canonical form, the
-graph_hash, the chain refold, the plan-payload binding, and the exec-payload
-hash. What is NOT re-derived: ir/plan/topology/geometry stage hashes are
-refolded as claimed (re-derivation needs the Rust replayer). ttl_hash is
-recomputed and printed informationally only — it is never folded into the
-chain, so a reformat of the same triples is lawful.
+graph_hash, the WorkflowIr extraction and its ir_hash, the chain refold, the
+plan-payload binding, and the exec-payload hash. What is NOT re-derived:
+plan/topology/geometry stage hashes are refolded as claimed (re-derivation
+needs the Rust replayer — the named honest limitation, narrowed by one
+stage). ttl_hash is recomputed and printed informationally only — it is
+never folded into the chain, so a reformat of the same triples is lawful.
 """
 import json
 import subprocess
@@ -356,6 +357,253 @@ def canonical_form(triples) -> str:
     return "\n".join(deduped) + "\n"
 
 
+# ── ir ── re-derivation of WorkflowIr (mirrors graph.rs extract_ir exactly)
+
+WF_NS = "http://seanchatmangpt.github.io/praxis/workflow#"
+WF_CLASSES = ["Workflow", "Capability", "Atom", "Constraint"]
+WF_PREDICATES = ["budget", "init", "goal", "name", "params", "cost", "pre",
+                 "add", "del", "predicate", "arg0", "arg1", "arg2", "arg3",
+                 "arg4", "arg5", "arg6", "arg7", "kind", "a", "b", "k"]
+U32_MAX = 2 ** 32 - 1
+
+# Rust `Object` derived Ord: variant order Iri < Str < Int, then value.
+# ("int" < "iri" < "str" lexically != Rust) — map kinds to ranks instead.
+_OBJ_RANK = {"iri": 0, "str": 1, "int": 2}
+
+
+class IrRefusal(Exception):
+    """A workflow-shape violation — extraction refuses the graph."""
+
+
+def _ir_refuse(subject: str, detail: str) -> "IrRefusal":
+    return IrRefusal(f"<{subject}>: {detail}")
+
+
+class NodeIndex:
+    """Per-subject view of the graph in Rust canonical (sorted) triple order:
+    triples sorted by (s, p, object-variant rank, value), deduplicated;
+    subjects iterated in sorted order (BTreeMap order)."""
+
+    def __init__(self, triples):
+        keyed = sorted(
+            set(triples),
+            key=lambda t: (t[0], t[1], _OBJ_RANK[t[2][0]], t[2][1]),
+        )
+        self.by_subject = {}
+        for s, p, o in keyed:
+            if p.startswith(WF_NS) and p[len(WF_NS):] not in WF_PREDICATES:
+                raise _ir_refuse(s, f"unknown wf: predicate '{p}'")
+            if p == RDF_TYPE and o[0] == "iri" and o[1].startswith(WF_NS):
+                local = o[1][len(WF_NS):]
+                if local not in WF_CLASSES:
+                    raise _ir_refuse(s, f"unknown wf: class '{local}'")
+            self.by_subject.setdefault(s, []).append((p, o))
+
+    def objects(self, subject: str, local: str) -> list:
+        pred = WF_NS + local
+        return [o for p, o in self.by_subject.get(subject, []) if p == pred]
+
+    def subjects_of_class(self, class_local: str) -> list:
+        cls = ("iri", WF_NS + class_local)
+        return [s for s, props in self.by_subject.items()
+                if any(p == RDF_TYPE and o == cls for p, o in props)]
+
+    def one_str(self, subject: str, local: str) -> str:
+        objs = self.objects(subject, local)
+        if not objs:
+            raise _ir_refuse(subject, f"missing wf:{local}")
+        if len(objs) > 1:
+            raise _ir_refuse(subject, f"multiple wf:{local}")
+        if objs[0][0] != "str":
+            raise _ir_refuse(subject, f"wf:{local} must be a string literal")
+        return objs[0][1]
+
+    def one_int(self, subject: str, local: str) -> int:
+        objs = self.objects(subject, local)
+        if not objs:
+            raise _ir_refuse(subject, f"missing wf:{local}")
+        if len(objs) > 1:
+            raise _ir_refuse(subject, f"multiple wf:{local}")
+        if objs[0][0] != "int":
+            raise _ir_refuse(subject, f"wf:{local} must be an integer literal")
+        return objs[0][1]
+
+    def opt_str(self, subject: str, local: str):
+        objs = self.objects(subject, local)
+        if not objs:
+            return None
+        if len(objs) > 1:
+            raise _ir_refuse(subject, f"multiple wf:{local}")
+        if objs[0][0] != "str":
+            raise _ir_refuse(subject, f"wf:{local} must be a string literal")
+        return objs[0][1]
+
+    def opt_int(self, subject: str, local: str):
+        objs = self.objects(subject, local)
+        if not objs:
+            return None
+        if len(objs) > 1:
+            raise _ir_refuse(subject, f"multiple wf:{local}")
+        if objs[0][0] != "int":
+            raise _ir_refuse(subject, f"wf:{local} must be an integer literal")
+        return objs[0][1]
+
+    def atom_refs(self, subject: str, local: str) -> list:
+        out = []
+        for kind, val in self.objects(subject, local):
+            if kind != "iri":
+                raise _ir_refuse(subject, f"wf:{local} must reference an atom IRI")
+            out.append(val)
+        return out
+
+
+def _is_var(arg: str) -> bool:
+    return len(arg) == 2 and arg[0] == "?" and "0" <= arg[1] <= "7"
+
+
+def _extract_atom(idx: NodeIndex, iri: str) -> dict:
+    if iri not in idx.subjects_of_class("Atom"):
+        raise _ir_refuse(iri, "referenced node is not declared 'a wf:Atom'")
+    predicate = idx.one_str(iri, "predicate")
+    args = []
+    ended = False
+    for i in range(8):
+        v = idx.opt_str(iri, f"arg{i}")
+        if v is not None and not ended:
+            args.append(v)
+        elif v is not None:
+            raise _ir_refuse(
+                iri, f"wf:arg{i} present but wf:arg{i - 1} missing (argument gap)")
+        else:
+            ended = True
+    # Dict insertion order reproduces IrAtom's serde field order.
+    return {"predicate": predicate, "args": args}
+
+
+def _extract_constraint(idx: NodeIndex, iri: str, cap_names: set) -> dict:
+    kind = idx.one_str(iri, "kind")
+    a = idx.opt_str(iri, "a")
+    b = idx.opt_str(iri, "b")
+    k = idx.opt_int(iri, "k")
+    if k is not None and not 0 <= k <= U32_MAX:
+        raise _ir_refuse(iri, f"wf:k {k} out of range 0..=u32::MAX")
+    if kind in ("before", "after", "excludes", "requires"):
+        if a is None:
+            raise _ir_refuse(iri, f"kind '{kind}' requires wf:a")
+        if b is None:
+            raise _ir_refuse(iri, f"kind '{kind}' requires wf:b")
+    elif kind in ("not-later", "not-earlier", "at-most"):
+        if a is None:
+            raise _ir_refuse(iri, f"kind '{kind}' requires wf:a")
+        if k is None:
+            raise _ir_refuse(iri, f"kind '{kind}' requires wf:k")
+        if k > 255:
+            raise _ir_refuse(iri, f"kind '{kind}' requires wf:k <= 255, got {k}")
+    elif kind == "budget":
+        if k is None:
+            raise _ir_refuse(iri, f"kind '{kind}' requires wf:k")
+    else:
+        raise _ir_refuse(iri, f"unknown constraint kind '{kind}'")
+    for name in (a, b):
+        if name is not None and name not in cap_names:
+            raise _ir_refuse(
+                iri, f"constraint names undeclared capability '{name}'")
+    # IrConstraint serde order; Option::None serializes as JSON null (never
+    # omitted — graph.rs has no skip attribute), so the key is always emitted.
+    return {"kind": kind, "a": a, "b": b, "k": k}
+
+
+def _constraint_render(c: dict) -> str:
+    # Byte-for-byte the Rust IrConstraint::render sort key.
+    return (f"{c['kind']}:{c['a'] or ''}:{c['b'] or ''}:"
+            f"{'' if c['k'] is None else c['k']}")
+
+
+def _atom_key(a: dict):
+    # Rust IrAtom derived Ord: predicate, then args (Vec<String> lexicographic;
+    # UTF-8 byte order == code-point order, so plain tuple sort matches).
+    return (a["predicate"], tuple(a["args"]))
+
+
+def extract_ir(triples) -> dict:
+    """Re-derive the WorkflowIr dict, mirroring graph.rs extract_ir exactly —
+    including every refusal condition. Dict insertion order reproduces the
+    serde struct field order, so ir_hash(extract_ir(...)) is byte-comparable
+    to the Rust ir_hash."""
+    idx = NodeIndex(triples)
+
+    workflows = idx.subjects_of_class("Workflow")
+    if not workflows:
+        raise _ir_refuse("(document)", "no 'a wf:Workflow' node")
+    if len(workflows) > 1:
+        raise _ir_refuse(
+            workflows[0],
+            f"{len(workflows)} wf:Workflow nodes; exactly one required")
+    wf = workflows[0]
+
+    budget = idx.one_int(wf, "budget")
+    if budget > 8:
+        raise _ir_refuse(wf, f"wf:budget {budget} exceeds budget 8")
+    if budget < 1:
+        raise _ir_refuse(wf, f"wf:budget {budget} out of range 1..=8")
+
+    init = []
+    for iri in idx.atom_refs(wf, "init"):
+        atom = _extract_atom(idx, iri)
+        for v in atom["args"]:
+            if _is_var(v):
+                raise _ir_refuse(
+                    iri, f"wf:init atom has variable '{v}'; init must be ground")
+        init.append(atom)
+    init.sort(key=_atom_key)
+
+    goal_refs = idx.atom_refs(wf, "goal")
+    if not goal_refs:
+        raise _ir_refuse(wf, "missing wf:goal (one or more required)")
+    goal = sorted((_extract_atom(idx, i) for i in goal_refs), key=_atom_key)
+
+    capabilities = []
+    for subject in idx.subjects_of_class("Capability"):
+        name = idx.one_str(subject, "name")
+        params = idx.one_int(subject, "params")
+        if not 0 <= params <= 8:
+            raise _ir_refuse(subject, f"wf:params {params} out of range 0..=8")
+        cost = idx.one_int(subject, "cost")
+        if not 0 <= cost <= U32_MAX:
+            raise _ir_refuse(
+                subject, f"wf:cost {cost} out of range 0..=u32::MAX")
+        lists = []
+        for local in ("pre", "add", "del"):
+            atoms = [_extract_atom(idx, i)
+                     for i in idx.atom_refs(subject, local)]
+            atoms.sort(key=_atom_key)
+            lists.append(atoms)
+        # IrCapability serde field order.
+        capabilities.append({"name": name, "params": params, "cost": cost,
+                             "pre": lists[0], "add": lists[1], "del": lists[2]})
+    capabilities.sort(key=lambda c: c["name"])
+    for x, y in zip(capabilities, capabilities[1:]):
+        if x["name"] == y["name"]:
+            raise _ir_refuse(wf, f"duplicate capability name '{x['name']}'")
+    cap_names = {c["name"] for c in capabilities}
+
+    constraints = sorted(
+        (_extract_constraint(idx, iri, cap_names)
+         for iri in idx.subjects_of_class("Constraint")),
+        key=_constraint_render,
+    )
+
+    # WorkflowIr serde field order.
+    return {"budget": budget, "init": init, "goal": goal,
+            "capabilities": capabilities, "constraints": constraints}
+
+
+def ir_hash(ir: dict) -> str:
+    """Content address of the IR's canonical JSON rendering; compact
+    separators + ensure_ascii=False reproduce serde_json::to_string."""
+    return b3(json.dumps(ir, separators=(",", ":"), ensure_ascii=False).encode())
+
+
 # ── verify ──────────────────────────────────────────────────────────────────
 
 
@@ -429,21 +677,34 @@ def verify_graph(ttl_path: str, receipt_path: str) -> int:
     if graph_hash != recorded_graph:
         return mismatch("graph_hash", graph_hash, recorded_graph)
 
-    # Stage 2: chain refold. Honest note: ir/plan/topology/geometry/exec
-    # hashes are refolded as claimed, not re-derived (re-derivation needs
-    # the Rust replayer); the graph_hash folded first is the recomputed one.
+    # Stage 2: ir_hash re-derived — the WorkflowIr is extracted from the
+    # parsed triples by a second implementation of graph.rs extract_ir and
+    # hashed; a graph-consistent forgery of the IR stage is named here.
+    try:
+        ir = extract_ir(triples)
+    except IrRefusal as e:
+        print(f"MISMATCH: ir extraction refused: {e}")
+        return 1
+    recomputed_ir = ir_hash(ir)
+    if recomputed_ir != claimed[0]:
+        return mismatch("ir_hash", recomputed_ir, claimed[0])
+
+    # Stage 3: chain refold. Honest note: plan/topology/geometry/exec hashes
+    # are refolded as claimed, not re-derived (re-derivation needs the Rust
+    # replayer); the graph_hash and ir_hash folded first are recomputed.
     chain = genesis(WORKFLOW_DOMAIN)
     chain = fold(chain, graph_hash.encode())
-    for h in claimed:
+    chain = fold(chain, recomputed_ir.encode())
+    for h in claimed[1:]:
         chain = fold(chain, h.encode())
     if chain != recorded_chain:
         return mismatch("chain", chain, recorded_chain)
 
-    # Stage 3: plan payload binding (forged-body check from replay_workflow).
+    # Stage 4: plan payload binding (forged-body check from replay_workflow).
     if plan_hash_bound != claimed[1]:
         return mismatch("plan payload", plan_hash_bound, claimed[1])
 
-    # Stage 4: exec payload — recompute the supervised receipt's content
+    # Stage 5: exec payload — recompute the supervised receipt's content
     # address; compact separators + ensure_ascii=False reproduce serde_json.
     exec_hash = b3(
         json.dumps(supervised, separators=(",", ":"), ensure_ascii=False)
@@ -453,7 +714,9 @@ def verify_graph(ttl_path: str, receipt_path: str) -> int:
         return mismatch("exec payload", exec_hash, claimed[4])
 
     print(f"VERIFIED graph: {len(triples)} triples, "
-          f"graph {graph_hash[:16]}…, chain {chain[:16]}…")
+          f"graph {graph_hash[:16]}…, ir {recomputed_ir[:16]}…, "
+          f"chain {chain[:16]}…")
+    print("plan/topology/geometry hashes refolded as claimed (not re-derived)")
     return 0
 
 

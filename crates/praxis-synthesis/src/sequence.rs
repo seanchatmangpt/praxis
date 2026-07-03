@@ -186,6 +186,16 @@ pub struct SequencePlan {
     pub receipt: SolveReceipt,
 }
 
+/// Content address of a step sequence — the single plan-hash formula.
+/// Extracted from the solvers' `solve` bodies so solver and verifier cannot
+/// drift: verified-replay recovery recomputes this over a cached plan's steps
+/// and compares it to the receipt's claimed `plan_hash`.
+#[must_use]
+pub fn plan_hash_of(steps: &[BoundStep]) -> String {
+    let canon = serde_json::to_string(steps).unwrap_or_default();
+    chatman_common::provenance::content_address(canon.as_bytes())
+}
+
 /// The solver seam: [`BoundedCsp`] today, a real SMT backend later.
 pub trait Solver {
     /// Discover a minimum-cost plan reaching the goal, or refuse with reason.
@@ -439,6 +449,54 @@ impl SequenceProblem {
         self.goal_satisfied(&state)
     }
 
+    /// Check every ordering/occurrence/budget constraint against the plan's
+    /// literal step sequence — O(steps × constraints), zero search. Covers
+    /// all eight kinds: `Before`/`After`/`Excludes`/`AtMost`/`Requires`/
+    /// `Budget`/`NotLater`/`NotEarlier`. A step naming an undeclared
+    /// capability fails outright.
+    #[must_use]
+    pub fn plan_respects_constraints(&self, plan: &SequencePlan) -> bool {
+        let steps = &plan.steps;
+        if steps.iter().any(|s| self.capability(&s.capability).is_none()) {
+            return false;
+        }
+        let positions = |name: &str| -> Vec<usize> {
+            steps
+                .iter()
+                .enumerate()
+                .filter(|(_, s)| s.capability == name)
+                .map(|(i, _)| i)
+                .collect()
+        };
+        self.constraints.iter().all(|c| match c {
+            Constraint::Before { a, b } | Constraint::After { b, a } => {
+                let pa = positions(a);
+                positions(b).iter().all(|&j| pa.iter().any(|&i| i < j))
+            }
+            Constraint::NotLater { a, k } => {
+                positions(a).iter().all(|&i| i < usize::from(*k))
+            }
+            Constraint::NotEarlier { a, k } => {
+                positions(a).iter().all(|&i| i >= usize::from(*k))
+            }
+            Constraint::Excludes { a, b } => {
+                positions(a).is_empty() || positions(b).is_empty()
+            }
+            Constraint::Requires { a, b } => {
+                positions(a).is_empty() || !positions(b).is_empty()
+            }
+            Constraint::AtMost { a, n } => positions(a).len() <= usize::from(*n),
+            Constraint::Budget { max } => {
+                let cost = steps
+                    .iter()
+                    .filter_map(|s| self.capability(&s.capability))
+                    .map(|c| c.cost)
+                    .fold(0u32, u32::saturating_add);
+                cost <= *max
+            }
+        })
+    }
+
     /// Fragile precondition predicate names for a capability: preconditions
     /// whose predicate NO capability produces — the producer analysis
     /// Solver8's unsat certificates use, applied to runtime loss. The
@@ -621,8 +679,7 @@ impl Solver for BoundedCsp {
                 nodes_explored: search.nodes,
             });
         };
-        let plan_canon = serde_json::to_string(&steps).unwrap_or_default();
-        let plan_hash = chatman_common::provenance::content_address(plan_canon.as_bytes());
+        let plan_hash = plan_hash_of(&steps);
         Ok(SequencePlan {
             steps,
             cost,

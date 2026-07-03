@@ -139,10 +139,11 @@ fn foreign_graph_verifier_names_the_first_divergent_stage() {
     t1.graph_hash = flip_last_hex(&t1.graph_hash);
     expect_mismatch(&t1, "graph_hash", "tamper-graph.json");
 
-    // Tamper 2: forged ir_hash — graph_hash still honest, chain refold breaks.
+    // Tamper 2: forged ir_hash — the IR is now re-derived from the triples,
+    // so the forgery is named at its own stage (was only "chain" before).
     let mut t2 = honest.clone();
     t2.ir_hash = flip_last_hex(&t2.ir_hash);
-    expect_mismatch(&t2, "chain", "tamper-ir.json");
+    expect_mismatch(&t2, "ir_hash", "tamper-ir.json");
 
     // Tamper 3: forged supervised body, hashes untouched — the payload
     // binding catches a receipt whose hash fields are honest but whose
@@ -152,4 +153,127 @@ fn foreign_graph_verifier_names_the_first_divergent_stage() {
     expect_mismatch(&t3, "exec payload", "tamper-exec.json");
 
     let _ = std::fs::remove_file(&ttl_path);
+}
+
+/// The forgery refold-as-claimed could not name: mutate the document in an
+/// IR-affecting way, execute it honestly, then overwrite `ir_hash` (and the
+/// receipt's other fields stay consistent with the *mutated* document except
+/// the swapped-in original `ir_hash`). The graph stage passes — the receipt
+/// matches the mutated document — but independent IR re-derivation exposes
+/// the swapped hash at its own stage.
+#[test]
+fn foreign_verifier_rederives_ir_catching_a_graph_consistent_forgery() {
+    if !b3sum_available() {
+        eprintln!("SKIPPED (deferred): b3sum not on PATH — foreign verification needs it");
+        return;
+    }
+    let original = execute_workflow(DEMO_TTL).expect("demo executes");
+    let mutated_ttl = DEMO_TTL.replace("wf:cost 1 ;\n    wf:pre ex:preRaw", "wf:cost 2 ;\n    wf:pre ex:preRaw");
+    assert_ne!(mutated_ttl, DEMO_TTL, "mutation must change ex:gather's cost");
+    let mutated = execute_workflow(&mutated_ttl).expect("mutated demo executes");
+    assert_ne!(
+        mutated.ir_hash, original.ir_hash,
+        "cost change must reach the IR"
+    );
+
+    // Forge: the mutated document's receipt, claiming the original ir_hash.
+    let mut forged = mutated.clone();
+    forged.ir_hash = original.ir_hash.clone();
+
+    let ttl_path = temp_path("ir-forgery.ttl");
+    let receipt_path = temp_path("ir-forgery-receipt.json");
+    std::fs::write(&ttl_path, mutated_ttl.as_bytes()).expect("write ttl");
+    std::fs::write(&receipt_path, serde_json::to_string(&forged).expect("json"))
+        .expect("write receipt");
+    let out = run_verifier(&ttl_path, &receipt_path);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        !out.status.success(),
+        "graph-consistent IR forgery must fail: {stdout}"
+    );
+    assert!(
+        stdout.contains("MISMATCH: ir_hash"),
+        "IR re-derivation must name the forged stage, got: {stdout}"
+    );
+    let _ = std::fs::remove_file(&ttl_path);
+    let _ = std::fs::remove_file(&receipt_path);
+}
+
+/// Pin the null-vs-omitted and sorting rules across the two implementations:
+/// a workflow exercising every optional field shape — a `not-later`
+/// constraint with `wf:k` (a/`k` set, `b` = JSON null), a capability with
+/// `wf:del`, and a multi-arg atom — must verify foreign end to end.
+#[test]
+fn foreign_verifier_ir_hash_agrees_on_a_constraint_bearing_workflow() {
+    if !b3sum_available() {
+        eprintln!("SKIPPED (deferred): b3sum not on PATH — foreign verification needs it");
+        return;
+    }
+    const SHAPES_TTL: &str = r#"
+@prefix wf: <http://seanchatmangpt.github.io/praxis/workflow#> .
+@prefix ex: <http://example.org/shapes/> .
+
+ex:workflow a wf:Workflow ;
+    wf:budget 2 ;
+    wf:init ex:raw0 ;
+    wf:goal ex:goal0 .
+
+ex:raw0 a wf:Atom ;
+    wf:predicate "raw" ;
+    wf:arg0 "doc" ;
+    wf:arg1 "src" .
+
+ex:goal0 a wf:Atom ;
+    wf:predicate "receipted" ;
+    wf:arg0 "doc" .
+
+ex:gather a wf:Capability ;
+    wf:name "gather" ;
+    wf:params 2 ;
+    wf:cost 1 ;
+    wf:pre ex:preRaw ;
+    wf:add ex:addEvidence ;
+    wf:del ex:preRaw .
+
+ex:preRaw a wf:Atom ;
+    wf:predicate "raw" ;
+    wf:arg0 "?0" ;
+    wf:arg1 "?1" .
+
+ex:addEvidence a wf:Atom ;
+    wf:predicate "evidence" ;
+    wf:arg0 "?0" .
+
+ex:receipt a wf:Capability ;
+    wf:name "receipt" ;
+    wf:params 1 ;
+    wf:cost 1 ;
+    wf:pre ex:addEvidence ;
+    wf:add ex:addReceipted .
+
+ex:addReceipted a wf:Atom ;
+    wf:predicate "receipted" ;
+    wf:arg0 "?0" .
+
+ex:gatherEarly a wf:Constraint ;
+    wf:kind "not-later" ;
+    wf:a "gather" ;
+    wf:k 1 .
+"#;
+    let receipt = execute_workflow(SHAPES_TTL).expect("shapes workflow executes");
+    let ttl_path = temp_path("shapes.ttl");
+    let receipt_path = temp_path("shapes-receipt.json");
+    std::fs::write(&ttl_path, SHAPES_TTL.as_bytes()).expect("write ttl");
+    std::fs::write(&receipt_path, serde_json::to_string(&receipt).expect("json"))
+        .expect("write receipt");
+    let out = run_verifier(&ttl_path, &receipt_path);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        out.status.success(),
+        "constraint-bearing workflow must verify foreign: {stdout} {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(stdout.contains("VERIFIED graph"), "{stdout}");
+    let _ = std::fs::remove_file(&ttl_path);
+    let _ = std::fs::remove_file(&receipt_path);
 }

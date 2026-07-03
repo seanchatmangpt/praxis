@@ -12,13 +12,14 @@
 //! agent8 lane style, so a fleet run yields a `Vec<u8>` image consumable by
 //! agent8's SWAR sweep.
 
+use chatman_common::provenance::{content_address, fold_event, genesis_seed};
 use serde::{Deserialize, Serialize};
 
 use crate::cell_supervise::splitmix64;
 use crate::dag::{HashRunner, MemoCache};
 use crate::datalog::{Atom, Program, Term};
-use crate::sequence::{Capability, Constraint, SequenceProblem};
-use crate::solver8::{CoreCache, Solver8};
+use crate::sequence::{plan_hash_of, Capability, Constraint, SequenceProblem};
+use crate::solver8::{rederive_unsat_certificate, CoreCache, Solver8};
 use crate::verify::admit;
 use crate::{Dag, Refusal};
 
@@ -86,7 +87,36 @@ pub struct FleetReport {
     /// Solver search nodes attributable to fault-forced re-solves.
     #[serde(default)]
     pub fault_resolve_nodes: u64,
+    /// Faulted pipelines recovered by verified replay (no search).
+    #[serde(default)]
+    pub recovered_by_replay: usize,
+    /// Cached artifacts that FAILED independent verification (poison detected)
+    /// and were discarded + re-solved.
+    #[serde(default)]
+    pub replay_rejected: usize,
+    /// Declared replay-verification work, in solver-node-equivalent units
+    /// (cost model in the v2 receipt).
+    #[serde(default)]
+    pub replay_verify_cost: u64,
+    /// Fold of every replay-verified plan_hash / core certificate over the
+    /// genesis of "praxis-synthesis/replay-verify/v1", in pipeline order —
+    /// the recovery's own verification hash. Empty under `BlindResolve`.
+    #[serde(default)]
+    pub replay_verification_root: String,
 }
+
+/// How a faulted pipeline recovers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RecoveryMode {
+    /// v1 semantics (the receipted refutation's baseline): evict + re-solve.
+    BlindResolve,
+    /// Fetch the cached artifact and INDEPENDENTLY verify it against the
+    /// freshly rebuilt problem; re-solve only on cache miss or verify failure.
+    VerifiedReplay,
+}
+
+/// Domain seed for the replay-verification fold.
+const REPLAY_VERIFY_DOMAIN: &str = "praxis-synthesis/replay-verify/v1";
 
 /// Seed-deterministic node-fault script: a faulted pipeline loses its cached
 /// plan and its memoized DAG outputs for the template and re-solves for real.
@@ -104,6 +134,12 @@ impl FleetReport {
     #[must_use]
     pub fn work(&self) -> u64 {
         self.executed_nodes as u64 + self.solver_nodes
+    }
+    /// v2 work proxy: solver search nodes plus declared replay-verification
+    /// units (cost model stated in the v2 receipt). Deterministic.
+    #[must_use]
+    pub fn work_v2(&self) -> u64 {
+        self.solver_nodes + self.replay_verify_cost
     }
     /// Work per pipeline — the marginal-cost quantity the curve tracks.
     #[must_use]
@@ -166,16 +202,31 @@ struct PipelineOutcome {
     executed_nodes: usize,
     replayed_nodes: usize,
     admitted: bool,
+    recovered_by_replay: bool,
+    replay_rejected: bool,
+    replay_verify_cost: u64,
+    /// Hash folded into the fleet's replay-verification root on recovery.
+    replay_fold: Option<String>,
 }
 
-/// Run one pipeline over template `t`. If `evict` is set, the shared solve
-/// cache's plan/core entry for the template's problem hash is discarded
-/// first, so the solve genuinely re-derives (the node-fault semantics).
+/// How this pipeline treats the shared solve cache.
+#[derive(Clone, Copy)]
+enum FaultHandling {
+    /// Not faulted: ordinary cached solve.
+    None,
+    /// Faulted, v1 semantics: evict, then genuinely re-solve.
+    Evict,
+    /// Faulted, verified replay: independently verify the cached artifact
+    /// against the freshly rebuilt problem; re-solve on miss or poison.
+    VerifiedReplay,
+}
+
+/// Run one pipeline over template `t` under the given fault handling.
 fn run_pipeline(
     t: usize,
     memo: &mut MemoCache,
     cores: &mut CoreCache,
-    evict: bool,
+    fault: FaultHandling,
 ) -> PipelineOutcome {
     let (mut program, caps, goal, constraints) = template(t);
     let mut byte = 0u8;
@@ -185,6 +236,10 @@ fn run_pipeline(
         executed_nodes: 0,
         replayed_nodes: 0,
         admitted: false,
+        recovered_by_replay: false,
+        replay_rejected: false,
+        replay_verify_cost: 0,
+        replay_fold: None,
     };
     let outcome: Result<(), Refusal> = (|| {
         program.saturate()?;
@@ -196,10 +251,93 @@ fn run_pipeline(
             8,
             constraints,
         )?;
-        if evict {
-            cores.evict(problem.problem_hash());
-        }
-        let plan = Solver8.solve_cached(&problem, cores)?;
+        let plan = match fault {
+            FaultHandling::None => Solver8.solve_cached(&problem, cores)?,
+            FaultHandling::Evict => {
+                cores.evict(problem.problem_hash());
+                Solver8.solve_cached(&problem, cores)?
+            }
+            FaultHandling::VerifiedReplay => {
+                // The problem hash is RECOMPUTED from the rebuilt problem,
+                // never read from the cache. The cached artifact is never
+                // trusted: all four checks run, no short-circuit.
+                let h = problem.problem_hash().to_string();
+                if let Some(cached) = cores.cached_plan(&h).cloned() {
+                    // Recompute the plan's cost from the problem's own
+                    // capability declarations — a forged cost field is
+                    // poison like any other forged byte.
+                    let recomputed_cost: Option<u32> = cached
+                        .steps
+                        .iter()
+                        .map(|s| {
+                            problem
+                                .caps
+                                .iter()
+                                .find(|c| c.name == s.capability)
+                                .map(|c| c.cost)
+                        })
+                        .sum();
+                    let verified = cached.receipt.problem_hash == problem.problem_hash()
+                        && plan_hash_of(&cached.steps) == cached.receipt.plan_hash
+                        && recomputed_cost == Some(cached.cost)
+                        && cached.steps.len() <= problem.horizon()
+                        && problem.plan_respects_constraints(&cached)
+                        && problem.replay_reaches_goal(&cached);
+                    if verified {
+                        out.recovered_by_replay = true;
+                        // Cost model: one unit per step re-simulated, one per
+                        // step x constraint checked by
+                        // plan_respects_constraints, one for the plan-hash
+                        // recomputation, one for the problem-hash equality,
+                        // one for the cost recomputation.
+                        out.replay_verify_cost += cached.steps.len() as u64
+                            + (cached.steps.len() * problem.constraints.len()) as u64
+                            + 3;
+                        out.replay_fold = Some(cached.receipt.plan_hash.clone());
+                        let mut plan = cached;
+                        plan.receipt.nodes_explored = 0;
+                        plan.receipt.pruned = 0;
+                        plan.receipt.replayed = true;
+                        plan
+                    } else {
+                        // Poison detected: discard, re-solve for real.
+                        out.replay_rejected = true;
+                        cores.evict(&h);
+                        Solver8.solve_cached(&problem, cores)?
+                    }
+                } else if cores.cached_core(&h).is_some() {
+                    // The cached certificate BODY is never served: the
+                    // detail and core are re-derived from the problem by
+                    // propagation, so a poisoned certificate text cannot
+                    // survive replay (only the unsat FACT is cached).
+                    if let Some((detail, core)) =
+                        rederive_unsat_certificate(&problem)
+                    {
+                        out.recovered_by_replay = true;
+                        out.replay_verify_cost += problem.constraints.len() as u64
+                            + core.len() as u64
+                            + 1;
+                        out.replay_fold = Some(content_address(
+                            core.join("\n").as_bytes(),
+                        ));
+                        return Err(Refusal::UnsatProof {
+                            detail,
+                            core,
+                            replayed: true,
+                        });
+                    }
+                    // Poison detected: the cached certificate no longer
+                    // re-certifies. Discard, re-solve for real.
+                    out.replay_rejected = true;
+                    cores.evict(&h);
+                    Solver8.solve_cached(&problem, cores)?
+                } else {
+                    // Genuine cache miss (novel template): only novelty
+                    // re-solves.
+                    Solver8.solve_cached(&problem, cores)?
+                }
+            }
+        };
         byte |= lane::R_PLANNED;
         out.solver_nodes += plan.receipt.nodes_explored;
         let dag = Dag::from_plan(&plan, &problem);
@@ -265,6 +403,30 @@ pub fn run_fleet_faulted(
     memo: &mut MemoCache,
     cores: &mut CoreCache,
 ) -> FleetReport {
+    run_fleet_faulted_recovering(n, k, faults, RecoveryMode::BlindResolve, memo, cores)
+}
+
+/// [`run_fleet_faulted`] with an explicit [`RecoveryMode`]: under
+/// [`RecoveryMode::VerifiedReplay`] a faulted pipeline rebuilds its problem
+/// from scratch, fetches the cached artifact, and INDEPENDENTLY verifies it
+/// (hash equality, recomputed plan hash, constraint check, full O(plan)
+/// re-simulation) — re-solving only on cache miss or verify failure. Under
+/// [`RecoveryMode::BlindResolve`] this is byte-identical to v1. The faulted
+/// pipeline's memoized DAG is still lost either way: its DAG runs against a
+/// scratch memo, merged back, cold nodes counted honestly.
+///
+/// # Panics
+/// Panics only if a template is internally malformed (a bug, not an input).
+#[must_use]
+#[allow(clippy::missing_panics_doc)]
+pub fn run_fleet_faulted_recovering(
+    n: usize,
+    k: usize,
+    faults: NodeFaults,
+    mode: RecoveryMode,
+    memo: &mut MemoCache,
+    cores: &mut CoreCache,
+) -> FleetReport {
     let start = std::time::Instant::now();
     let mut report = FleetReport {
         n,
@@ -279,6 +441,14 @@ pub fn run_fleet_faulted(
         bytes: Vec::with_capacity(n),
         faults_injected: 0,
         fault_resolve_nodes: 0,
+        recovered_by_replay: 0,
+        replay_rejected: 0,
+        replay_verify_cost: 0,
+        replay_verification_root: String::new(),
+    };
+    let mut replay_root = match mode {
+        RecoveryMode::BlindResolve => String::new(),
+        RecoveryMode::VerifiedReplay => genesis_seed(REPLAY_VERIFY_DOMAIN),
     };
     let hits_before_all = cores.hits();
     for i in 0..n {
@@ -292,14 +462,28 @@ pub fn run_fleet_faulted(
             // (cold nodes counted honestly), merged back afterward: the
             // retry repopulates the shared cache.
             let mut scratch = MemoCache::new();
-            let out = run_pipeline(t, &mut scratch, cores, true);
+            let handling = match mode {
+                RecoveryMode::BlindResolve => FaultHandling::Evict,
+                RecoveryMode::VerifiedReplay => FaultHandling::VerifiedReplay,
+            };
+            let out = run_pipeline(t, &mut scratch, cores, handling);
             for (key, payload) in scratch.iter_raw() {
                 memo.insert_raw(key.clone(), payload.clone());
             }
             report.fault_resolve_nodes += out.solver_nodes;
+            if out.recovered_by_replay {
+                report.recovered_by_replay += 1;
+            }
+            if out.replay_rejected {
+                report.replay_rejected += 1;
+            }
+            report.replay_verify_cost += out.replay_verify_cost;
+            if let Some(fold) = &out.replay_fold {
+                replay_root = fold_event(&replay_root, fold.as_bytes());
+            }
             out
         } else {
-            run_pipeline(t, memo, cores, false)
+            run_pipeline(t, memo, cores, FaultHandling::None)
         };
         report.solver_nodes += out.solver_nodes;
         report.executed_nodes += out.executed_nodes;
@@ -312,6 +496,7 @@ pub fn run_fleet_faulted(
         report.bytes.push(out.byte);
     }
     report.core_hits = cores.hits() - hits_before_all;
+    report.replay_verification_root = replay_root;
     report.elapsed_ns = start.elapsed().as_nanos();
     report
 }
@@ -342,6 +527,24 @@ pub fn overlap_curve_faulted(
             let mut memo = MemoCache::new();
             let mut cores = CoreCache::new();
             run_fleet_faulted(n, k, faults, &mut memo, &mut cores)
+        })
+        .collect()
+}
+
+/// [`overlap_curve_faulted`] with an explicit [`RecoveryMode`]: fresh caches
+/// per point, the same fault script applied at every K.
+#[must_use]
+pub fn overlap_curve_recovering(
+    n: usize,
+    ks: &[usize],
+    faults: NodeFaults,
+    mode: RecoveryMode,
+) -> Vec<FleetReport> {
+    ks.iter()
+        .map(|&k| {
+            let mut memo = MemoCache::new();
+            let mut cores = CoreCache::new();
+            run_fleet_faulted_recovering(n, k, faults, mode, &mut memo, &mut cores)
         })
         .collect()
 }

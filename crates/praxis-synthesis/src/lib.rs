@@ -33,6 +33,7 @@ pub mod fault;
 pub mod fleet;
 pub mod geometry;
 pub mod gen;
+pub mod glue;
 pub mod graph;
 pub mod park;
 pub mod pipeline;
@@ -45,6 +46,7 @@ pub mod wal;
 
 pub use dag::{Dag, DagReceipt, HashRunner, MemoCache, NodeReceipt, NodeRunner};
 pub use datalog::{Atom, DlRule, Program, SaturationReceipt, Term};
+pub use glue::{compose_workflows, execute_composed, ComposedGraph, ComposedWorkflowReceipt};
 pub use graph::{execute_workflow, replay_workflow, WorkflowIr, WorkflowReceipt};
 pub use pipeline::{Synthesis, SynthesisReceipt};
 pub use sequence::{
@@ -163,5 +165,16 @@ pub enum Refusal {
     VerificationFailed {
         /// Names of the refinements that failed.
         failed: Vec<String>,
+    },
+    /// Two constituent graphs assert conflicting values for a functional
+    /// wf: predicate on the same subject — the glue law is violated.
+    #[error("glue conflict on <{subject}> {predicate}: values {values:?}")]
+    GlueConflict {
+        /// The shared subject IRI.
+        subject: String,
+        /// The functional predicate IRI.
+        predicate: String,
+        /// Every distinct canonical object rendering observed (≥ 2, byte-sorted).
+        values: Vec<String>,
     },
 }

@@ -6,9 +6,11 @@
 
 use praxis_synthesis::dag::MemoCache;
 use praxis_synthesis::fleet::{
-    overlap_curve, overlap_curve_faulted, run_fleet, run_fleet_faulted, FleetReport,
-    NodeFaults,
+    overlap_curve, overlap_curve_faulted, overlap_curve_recovering, run_fleet,
+    run_fleet_faulted, run_fleet_faulted_recovering, template, FleetReport, NodeFaults,
+    RecoveryMode,
 };
+use praxis_synthesis::sequence::{plan_hash_of, SequenceProblem};
 use praxis_synthesis::solver8::CoreCache;
 
 fn fresh() -> (MemoCache, CoreCache) {
@@ -103,6 +105,180 @@ fn eviction_is_repopulating_not_cascading() {
         after.solver_nodes, 0,
         "post-fault run must replay from the re-warmed cache"
     );
+}
+
+// ── Verified-replay recovery (v2 mechanism) ─────────────────────────────
+
+/// Rebuild template `t`'s sequencing problem exactly as the fleet does.
+fn rebuild_problem(t: usize) -> SequenceProblem {
+    let (mut program, caps, goal, constraints) = template(t);
+    program.saturate().expect("template saturates");
+    SequenceProblem::with_constraints(&program, caps, goal, 8, constraints)
+        .expect("template problem builds")
+}
+
+#[test]
+fn blind_resolve_mode_is_byte_identical_to_v1() {
+    let faults = NodeFaults { seed: 0xDEAD_BEEF, fault_per_mille: 250 };
+    let (mut memo_a, mut cores_a) = fresh();
+    let mut a = run_fleet_faulted(60, 6, faults, &mut memo_a, &mut cores_a);
+    let (mut memo_b, mut cores_b) = fresh();
+    let mut b = run_fleet_faulted_recovering(
+        60,
+        6,
+        faults,
+        RecoveryMode::BlindResolve,
+        &mut memo_b,
+        &mut cores_b,
+    );
+    a.elapsed_ns = 0;
+    b.elapsed_ns = 0;
+    let ja = serde_json::to_string(&a).expect("report serializes");
+    let jb = serde_json::to_string(&b).expect("report serializes");
+    assert_eq!(ja, jb, "BlindResolve must be byte-identical to v1");
+    assert_eq!(a.recovered_by_replay, 0);
+    assert_eq!(a.replay_verify_cost, 0);
+    assert_eq!(a.replay_verification_root, "");
+}
+
+#[test]
+fn verified_replay_recovers_without_search() {
+    let faults = NodeFaults { seed: 7, fault_per_mille: 1000 };
+
+    // Blind control on its own warm caches: the admissions baseline.
+    let (mut memo_c, mut cores_c) = fresh();
+    let _ = run_fleet(8, 4, &mut memo_c, &mut cores_c);
+    let _ = run_fleet(8, 4, &mut memo_c, &mut cores_c);
+    let blind = run_fleet_faulted(8, 4, faults, &mut memo_c, &mut cores_c);
+
+    // Warm, then fault everything under verified replay.
+    let (mut memo, mut cores) = fresh();
+    let _ = run_fleet(8, 4, &mut memo, &mut cores);
+    let _ = run_fleet(8, 4, &mut memo, &mut cores);
+    let r = run_fleet_faulted_recovering(
+        8,
+        4,
+        faults,
+        RecoveryMode::VerifiedReplay,
+        &mut memo,
+        &mut cores,
+    );
+    assert_eq!(r.faults_injected, 8);
+    assert_eq!(r.fault_resolve_nodes, 0, "recovery must not search");
+    assert_eq!(r.solver_nodes, 0, "recovery must not search");
+    assert_eq!(r.recovered_by_replay, 8);
+    assert_eq!(r.replay_rejected, 0);
+    assert!(r.replay_verify_cost > 0, "verification is real, declared work");
+    assert!(!r.replay_verification_root.is_empty());
+    assert!(r.executed_nodes > 0, "faulted DAGs still re-ran cold");
+    assert_eq!(r.admitted, blind.admitted);
+    assert_eq!(r.refused, blind.refused);
+}
+
+#[test]
+fn poisoned_cache_is_detected_never_trusted() {
+    let faults = NodeFaults { seed: 7, fault_per_mille: 1000 };
+
+    // Honest baseline for the admissions count.
+    let (mut memo_h, mut cores_h) = fresh();
+    let _ = run_fleet(8, 4, &mut memo_h, &mut cores_h);
+    let honest = run_fleet_faulted_recovering(
+        8,
+        4,
+        faults,
+        RecoveryMode::VerifiedReplay,
+        &mut memo_h,
+        &mut cores_h,
+    );
+
+    let (mut memo, mut cores) = fresh();
+    let _ = run_fleet(8, 4, &mut memo, &mut cores);
+    // Poison template 1's cached plan: truncate the steps, KEEP the old
+    // receipt (its plan_hash no longer matches the body).
+    let problem = rebuild_problem(1);
+    let h = problem.problem_hash().to_string();
+    let mut poisoned = cores.cached_plan(&h).expect("warm plan cached").clone();
+    assert!(poisoned.steps.len() > 1);
+    poisoned.steps.truncate(1);
+    cores.insert_plan(h, poisoned);
+
+    let r = run_fleet_faulted_recovering(
+        8,
+        4,
+        faults,
+        RecoveryMode::VerifiedReplay,
+        &mut memo,
+        &mut cores,
+    );
+    assert!(r.replay_rejected >= 1, "poison must be detected, never trusted");
+    assert!(r.fault_resolve_nodes > 0, "poison forces a genuine re-solve");
+    assert_eq!(r.admitted, honest.admitted, "the fleet still ends honest");
+}
+
+#[test]
+fn poisoned_plan_with_recomputed_hash_still_caught() {
+    let faults = NodeFaults { seed: 7, fault_per_mille: 1000 };
+    let (mut memo, mut cores) = fresh();
+    let _ = run_fleet(8, 4, &mut memo, &mut cores);
+    // Internally consistent forgery: corrupt steps AND recompute the hash so
+    // the receipt matches the forged body.
+    let problem = rebuild_problem(1);
+    let h = problem.problem_hash().to_string();
+    let mut forged = cores.cached_plan(&h).expect("warm plan cached").clone();
+    forged.steps.truncate(1);
+    forged.receipt.plan_hash = plan_hash_of(&forged.steps);
+    cores.insert_plan(h, forged);
+
+    let r = run_fleet_faulted_recovering(
+        8,
+        4,
+        faults,
+        RecoveryMode::VerifiedReplay,
+        &mut memo,
+        &mut cores,
+    );
+    assert!(
+        r.replay_rejected >= 1,
+        "re-simulation must catch a hash-consistent forgery"
+    );
+}
+
+#[test]
+fn novel_templates_still_resolve_for_real() {
+    let (mut memo, mut cores) = fresh();
+    let r = run_fleet_faulted_recovering(
+        8,
+        8,
+        NodeFaults { seed: 7, fault_per_mille: 1000 },
+        RecoveryMode::VerifiedReplay,
+        &mut memo,
+        &mut cores,
+    );
+    assert_eq!(r.recovered_by_replay, 0, "first encounters have nothing to replay");
+    assert!(r.solver_nodes > 0, "novelty must be solved for real");
+}
+
+#[test]
+fn recovery_is_seed_deterministic() {
+    let faults = NodeFaults { seed: 0xDEAD_BEEF, fault_per_mille: 250 };
+    let run = || {
+        let (mut memo, mut cores) = fresh();
+        let _ = run_fleet(60, 6, &mut memo, &mut cores);
+        let mut r = run_fleet_faulted_recovering(
+            60,
+            6,
+            faults,
+            RecoveryMode::VerifiedReplay,
+            &mut memo,
+            &mut cores,
+        );
+        r.elapsed_ns = 0;
+        serde_json::to_string(&r).expect("report serializes")
+    };
+    let a = run();
+    let b = run();
+    assert_eq!(a, b, "verified replay must render byte-identically per seed");
+    assert!(a.contains("replay_verification_root"));
 }
 
 // ── The withheld measurement ────────────────────────────────────────────
@@ -233,6 +409,136 @@ fn novelty_under_faults_receipt() {
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../receipts");
     std::fs::create_dir_all(dir).expect("receipts dir");
     let path = format!("{dir}/novelty_under_faults.json");
+    let pretty = serde_json::to_string_pretty(&receipt).expect("receipt renders");
+    std::fs::write(&path, pretty).expect("receipt written");
+    eprintln!("wrote {path}: {verdict}");
+}
+
+// ── The v2 measurement: same tolerances, verified-replay recovery ───────
+
+#[allow(clippy::cast_precision_loss)]
+fn point_json_v2(r: &FleetReport) -> serde_json::Value {
+    let mut v = point_json(r);
+    let obj = v.as_object_mut().expect("point is an object");
+    obj.insert("recovered_by_replay".into(), r.recovered_by_replay.into());
+    obj.insert("replay_rejected".into(), r.replay_rejected.into());
+    obj.insert("replay_verify_cost".into(), r.replay_verify_cost.into());
+    obj.insert(
+        "replay_verification_root".into(),
+        r.replay_verification_root.clone().into(),
+    );
+    obj.insert("work_v2".into(), r.work_v2().into());
+    v
+}
+
+#[test]
+#[ignore = "measurement run; execute explicitly to regenerate receipts/novelty_under_faults_v2.json"]
+#[allow(clippy::cast_precision_loss, clippy::too_many_lines)]
+fn novelty_under_faults_v2_receipt() {
+    let n = 10_000usize;
+    let ks = [10_000usize, 1_000, 100, 10, 1];
+    let faults = NodeFaults { seed: 0xC0FF_EE00, fault_per_mille: 100 };
+
+    // Tolerances verbatim from v1, declared before any numbers exist.
+    const MAX_REL_RESIDUAL: f64 = 0.25;
+    const SLOPE_RATIO_LO: f64 = 0.75;
+    const SLOPE_RATIO_HI: f64 = 1.25;
+    const COST_MODEL: &str = "work = solver_nodes + replay_verify_cost. One \
+        replay-verified plan costs steps + steps*constraints + 3 units (one \
+        unit per step independently re-simulated against the problem's \
+        preconditions/effects, one per step x constraint checked by \
+        plan_respects_constraints, one for the plan-hash recomputation, one \
+        for the problem-hash equality check, one for the plan-cost \
+        recomputation); one re-derived unsat certificate costs constraints + \
+        core_len + 1 units (the certificate detail and core are RE-DERIVED by \
+        propagation, never served from cache). One unit is declared \
+        equivalent to one solver search node (both are one bounded state \
+        operation); this equivalence is a declaration, not a measurement.";
+
+    let baseline = overlap_curve(n, &ks);
+    let faulted =
+        overlap_curve_recovering(n, &ks, faults, RecoveryMode::VerifiedReplay);
+
+    // Work metric: work_v2 = solver nodes + declared replay-verify units —
+    // deterministic, never wall clock. Fit vs K for each curve.
+    let xs: Vec<f64> = ks.iter().map(|&k| k as f64).collect();
+    let ys_base: Vec<f64> = baseline.iter().map(|r| r.work_v2() as f64).collect();
+    let ys_fault: Vec<f64> = faulted.iter().map(|r| r.work_v2() as f64).collect();
+    let (slope_b, icept_b, resid_b) = linear_fit(&xs, &ys_base);
+    let (slope_f, icept_f, resid_f) = linear_fit(&xs, &ys_fault);
+    let slope_ratio = if slope_b == 0.0 { f64::NAN } else { slope_f / slope_b };
+
+    // Self-refutation guard: faulted work_v2 below baseline at any K means
+    // the instrument, not the claim, is broken — withhold any verdict.
+    let self_refuting = ys_fault.iter().zip(&ys_base).any(|(f, b)| f < b);
+
+    let linear_ok = resid_f <= MAX_REL_RESIDUAL;
+    let slope_ok = (SLOPE_RATIO_LO..=SLOPE_RATIO_HI).contains(&slope_ratio);
+    let (claim_survives, verdict) = if self_refuting {
+        (false, "WITHHELD: self-refuting — faulted work_v2 below baseline at some K; \
+                 no survival verdict is offered".to_string())
+    } else if !linear_ok {
+        (false, format!(
+            "REFUTED: faulted work_v2 curve is not linear in K — max relative \
+             residual {resid_f:.4} exceeds bound {MAX_REL_RESIDUAL}"
+        ))
+    } else if !slope_ok {
+        (false, format!(
+            "REFUTED: slope ratio faulted/baseline {slope_ratio:.4} outside \
+             [{SLOPE_RATIO_LO}, {SLOPE_RATIO_HI}] — faults changed the slope, \
+             not just the intercept"
+        ))
+    } else {
+        (true, format!(
+            "SURVIVES: under verified-replay recovery, faulted work_v2 stays \
+             linear in K (max relative residual {resid_f:.4} <= \
+             {MAX_REL_RESIDUAL}) and slope ratio {slope_ratio:.4} within \
+             [{SLOPE_RATIO_LO}, {SLOPE_RATIO_HI}] — recovery is verification \
+             work, not search work"
+        ))
+    };
+
+    let receipt = serde_json::json!({
+        "what": "novelty scaling under node faults, v2 mechanism: recovery is \
+                 VERIFIED REPLAY (fetch cached artifact, independently re-verify \
+                 hashes + constraints + full O(plan) re-simulation), not blind \
+                 re-solve; work metric is work_v2 = solver_nodes + \
+                 replay_verify_cost (deterministic), wall time reported but \
+                 carries no verdict; v1 blind-resolve receipt remains the \
+                 honest baseline",
+        "criterion": format!(
+            "criterion stated before numbers: max_relative_residual_faulted \
+             {MAX_REL_RESIDUAL}, slope_ratio_bounds [{SLOPE_RATIO_LO}, \
+             {SLOPE_RATIO_HI}] — tolerances verbatim from v1, unedited"
+        ),
+        "cost_model": COST_MODEL,
+        "recovery_mode": "VerifiedReplay",
+        "n": n,
+        "fault_per_mille": faults.fault_per_mille,
+        "seed": faults.seed,
+        "points": ks.iter().enumerate().map(|(i, _)| serde_json::json!({
+            "baseline": point_json_v2(&baseline[i]),
+            "faulted": point_json_v2(&faulted[i]),
+        })).collect::<Vec<_>>(),
+        "fit": {
+            "baseline": { "slope": slope_b, "intercept": icept_b,
+                          "max_relative_residual": resid_b },
+            "faulted": { "slope": slope_f, "intercept": icept_f,
+                         "max_relative_residual": resid_f },
+            "slope_ratio_faulted_over_baseline": slope_ratio,
+        },
+        "tolerances": {
+            "max_relative_residual_faulted": MAX_REL_RESIDUAL,
+            "slope_ratio_bounds": [SLOPE_RATIO_LO, SLOPE_RATIO_HI],
+        },
+        "self_refuting": self_refuting,
+        "claim_survives": claim_survives,
+        "verdict": verdict,
+    });
+
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../receipts");
+    std::fs::create_dir_all(dir).expect("receipts dir");
+    let path = format!("{dir}/novelty_under_faults_v2.json");
     let pretty = serde_json::to_string_pretty(&receipt).expect("receipt renders");
     std::fs::write(&path, pretty).expect("receipt written");
     eprintln!("wrote {path}: {verdict}");

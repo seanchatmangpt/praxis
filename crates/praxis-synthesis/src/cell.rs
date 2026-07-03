@@ -294,6 +294,99 @@ pub fn verify_group(group: &GroupReceipt) -> bool {
             == group.admitted
 }
 
+/// Domain seed for the supra-cell chain (cells → supra, mirroring
+/// groups → cell).
+pub const SUPRA_CHAIN_DOMAIN: &str = "praxis-synthesis/supracell/v1";
+
+/// Per-cell projection retained by the supra roll-up: aggregates + the cell
+/// hash + its group replay roots. NO member records — O(groups) per cell.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CellSummary {
+    /// Index of the cell within the supra run.
+    pub cell_index: usize,
+    /// Members in the cell.
+    pub n: usize,
+    /// Members admitted end-to-end.
+    pub admitted: usize,
+    /// Members refused.
+    pub refused: usize,
+    /// The cell's own hash (fold of its group replay roots).
+    pub cell_hash: String,
+    /// Group replay roots (enables verify_cell-equivalent recomputation
+    /// without any member data).
+    pub group_roots: Vec<String>,
+    /// Wall time the cell took to run, in nanoseconds.
+    pub elapsed_ns: u128,
+}
+
+/// Summarize one executed cell, dropping all member interiors.
+#[must_use]
+pub fn summarize_cell(
+    cell_index: usize,
+    elapsed_ns: u128,
+    cell: &CellReceipt,
+    groups: &[GroupReceipt],
+) -> CellSummary {
+    CellSummary {
+        cell_index,
+        n: cell.n,
+        admitted: cell.admitted,
+        refused: cell.refused,
+        cell_hash: cell.cell_hash.clone(),
+        group_roots: groups.iter().map(|gr| gr.replay_root.clone()).collect(),
+        elapsed_ns,
+    }
+}
+
+/// The count-bound line the supra folds per cell: index, counts, and the
+/// cell hash in one canonical rendering (elapsed_ns deliberately excluded —
+/// timing is reported, never hashed). Binding the counts here means a
+/// tampered `admitted`/`refused` breaks the supra, not just an internal
+/// consistency check.
+#[must_use]
+pub fn summary_line(s: &CellSummary) -> String {
+    format!(
+        "{}\n{}\n{}\n{}\n{}",
+        s.cell_index, s.n, s.admitted, s.refused, s.cell_hash
+    )
+}
+
+/// The supra hash: rolling fold over count-bound summary lines in cell
+/// order from the supra genesis — a function of C summaries (counts + cell
+/// hashes), never of N interiors.
+#[must_use]
+pub fn supra_hash(summaries: &[CellSummary]) -> String {
+    let mut h = genesis_seed(SUPRA_CHAIN_DOMAIN);
+    for s in summaries {
+        h = fold_event(&h, summary_line(s).as_bytes());
+    }
+    h
+}
+
+/// Verify the supra receipt from cell summaries ALONE: refold each cell hash
+/// from its G group roots (the existing cell-from-group law, one level up),
+/// check the count invariant, then refold the supra from the count-bound
+/// summary lines rebuilt around the RECOMPUTED cell hashes. Reads
+/// O(C + C·G); no member data is touched. Returns false on any mismatch —
+/// a tampered group root, cell hash, or count anywhere breaks the supra.
+#[must_use]
+pub fn verify_supra(supra: &str, summaries: &[CellSummary]) -> bool {
+    let mut rebuilt = Vec::with_capacity(summaries.len());
+    for s in summaries {
+        let mut h = genesis_seed(CELL_CHAIN_DOMAIN);
+        for root in &s.group_roots {
+            h = fold_event(&h, root.as_bytes());
+        }
+        if h != s.cell_hash || s.admitted + s.refused != s.n {
+            return false;
+        }
+        let mut recomputed = s.clone();
+        recomputed.cell_hash = h;
+        rebuilt.push(recomputed);
+    }
+    supra_hash(&rebuilt) == supra
+}
+
 /// Selectively replay ONE agent (fresh caches — full recomputation) and
 /// check its terminal hash against the recorded member projection. The
 /// challenge path: interiors are read only for the member challenged.

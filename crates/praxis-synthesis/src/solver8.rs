@@ -28,8 +28,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use crate::sequence::{
-    ground, BoundStep, Capability, Constraint, SequencePlan, SequenceProblem, SolveReceipt,
-    Solver, MAX_BINDINGS_PER_STEP, MAX_NODES,
+    ground, plan_hash_of, BoundStep, Capability, Constraint, SequencePlan, SequenceProblem,
+    SolveReceipt, Solver, MAX_BINDINGS_PER_STEP, MAX_NODES,
 };
 use crate::Refusal;
 
@@ -83,6 +83,65 @@ impl CoreCache {
         let plan = self.plans.remove(problem_hash).is_some();
         core || plan
     }
+    /// Read-only view of a cached plan (verified-replay recovery reads this;
+    /// it never trusts it — see `fleet::RecoveryMode::VerifiedReplay`).
+    #[must_use]
+    pub fn cached_plan(&self, problem_hash: &str) -> Option<&SequencePlan> {
+        self.plans.get(problem_hash)
+    }
+    /// Read-only view of a cached unsat certificate (detail, rendered core).
+    #[must_use]
+    pub fn cached_core(&self, problem_hash: &str) -> Option<&(String, Vec<String>)> {
+        self.cores.get(problem_hash)
+    }
+    /// Insert a plan under a problem hash. Test seam for cache-poisoning
+    /// experiments; also the WAL-restore path's entry point.
+    pub fn insert_plan(&mut self, problem_hash: String, plan: SequencePlan) {
+        self.plans.insert(problem_hash, plan);
+    }
+}
+
+/// Re-certify unsatisfiability by propagation alone (mandatory-set +
+/// missing-support + window emptiness) — O(16·|caps|) propagation passes,
+/// never DFS. True iff the problem is provably unsat before search.
+#[must_use]
+pub fn reverify_unsat_by_propagation(problem: &SequenceProblem) -> bool {
+    rederive_unsat_certificate(problem).is_some()
+}
+
+/// Re-derive the full unsat certificate (detail + rendered core) by
+/// propagation — the same rendering [`Solver8::solve`] produces, recomputed
+/// from the problem alone. Replay paths serve THIS, never a cached
+/// certificate body: a cached core is a claim, and claims are recomputed,
+/// not trusted.
+#[must_use]
+pub fn rederive_unsat_certificate(
+    problem: &SequenceProblem,
+) -> Option<(String, Vec<String>)> {
+    let mandatory = mandatory_set(problem);
+    if let Some((victim, missing)) = missing_support(problem, &mandatory) {
+        return Some((
+            format!(
+                "mandatory capability '{victim}' requires '{missing}', which the \
+                 initial state lacks and no capability produces"
+            ),
+            vec![format!("MissingFact({missing})")],
+        ));
+    }
+    if let Some(victim) =
+        empties_mandatory(problem, &problem.constraints, &mandatory)
+    {
+        let core = extract_core(problem, &mandatory);
+        return Some((
+            format!(
+                "mandatory capability '{victim}' has an empty feasible-step window \
+                 within horizon {}",
+                problem.horizon()
+            ),
+            core.iter().map(Constraint::render).collect(),
+        ));
+    }
+    None
 }
 
 /// The propagating solver. Stateless; pair with a [`CoreCache`] via
@@ -397,8 +456,7 @@ impl Solver for Solver8 {
                 nodes_explored: search.nodes,
             });
         };
-        let plan_canon = serde_json::to_string(&steps).unwrap_or_default();
-        let plan_hash = chatman_common::provenance::content_address(plan_canon.as_bytes());
+        let plan_hash = plan_hash_of(&steps);
         Ok(SequencePlan {
             steps,
             cost,

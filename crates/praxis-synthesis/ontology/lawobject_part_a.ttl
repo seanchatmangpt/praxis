@@ -1,0 +1,26 @@
+# Constituent A of the split 5-step lawobject workflow: the wf:Workflow node,
+# init/goal atoms, and the first three capabilities. The boundary atom
+# ex:aValidated (judge's add == admit's pre) is declared identically here AND
+# in part B — the shared-IRI overlap the glue law checks for agreement.
+@prefix wf: <http://seanchatmangpt.github.io/praxis/workflow#> .
+@prefix ex: <http://example.org/lawobject/> .
+
+ex:workflow a wf:Workflow ;
+    wf:budget 5 ;
+    wf:init ex:raw0 ;
+    wf:goal ex:goal0 .
+
+ex:raw0 a wf:Atom ; wf:predicate "raw" ; wf:arg0 "o1" .
+ex:goal0 a wf:Atom ; wf:predicate "receipted" ; wf:arg0 "o1" .
+
+ex:preRaw a wf:Atom ; wf:predicate "raw" ; wf:arg0 "?0" .
+ex:aEvidence a wf:Atom ; wf:predicate "evidence" ; wf:arg0 "?0" .
+ex:aClear a wf:Atom ; wf:predicate "clear" ; wf:arg0 "?0" .
+ex:aValidated a wf:Atom ; wf:predicate "validated" ; wf:arg0 "?0" .
+
+ex:supply a wf:Capability ; wf:name "supply-evidence" ; wf:params 1 ; wf:cost 1 ;
+    wf:pre ex:preRaw ; wf:add ex:aEvidence .
+ex:clear a wf:Capability ; wf:name "clear-obligations" ; wf:params 1 ; wf:cost 1 ;
+    wf:pre ex:aEvidence ; wf:add ex:aClear .
+ex:judge a wf:Capability ; wf:name "judge" ; wf:params 1 ; wf:cost 1 ;
+    wf:pre ex:aClear ; wf:add ex:aValidated .

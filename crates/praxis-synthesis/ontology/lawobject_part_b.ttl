@@ -1,0 +1,15 @@
+# Constituent B of the split 5-step lawobject workflow: the admit and receipt
+# capabilities and their atoms. The boundary atom ex:aValidated is declared
+# here identically to part A — lawful overlap agreement, deduplicated by the
+# sorted-set union.
+@prefix wf: <http://seanchatmangpt.github.io/praxis/workflow#> .
+@prefix ex: <http://example.org/lawobject/> .
+
+ex:aValidated a wf:Atom ; wf:predicate "validated" ; wf:arg0 "?0" .
+ex:aAdmitted a wf:Atom ; wf:predicate "admitted" ; wf:arg0 "?0" .
+ex:aReceipted a wf:Atom ; wf:predicate "receipted" ; wf:arg0 "?0" .
+
+ex:admit a wf:Capability ; wf:name "admit" ; wf:params 1 ; wf:cost 1 ;
+    wf:pre ex:aValidated ; wf:add ex:aAdmitted .
+ex:receipt a wf:Capability ; wf:name "receipt" ; wf:params 1 ; wf:cost 1 ;
+    wf:pre ex:aAdmitted ; wf:add ex:aReceipted .
