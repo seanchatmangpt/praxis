@@ -8,6 +8,8 @@ the receipt is not self-attested.
 
 Usage:
   foreign_verify_graph.py graph <ttl-file> <receipt.json>
+  foreign_verify_graph.py firing <base.ttl> <adds.ttl> <removes.ttl> \
+      <firing_receipt.json>
 
 Exit 0 = verified; exit 1 = MISMATCH (printed); exit 2 = usage/IO error.
 
@@ -720,11 +722,289 @@ def verify_graph(ttl_path: str, receipt_path: str) -> int:
     return 0
 
 
-def main() -> int:
-    if len(sys.argv) < 4 or sys.argv[1] != "graph":
-        print(__doc__)
+# ── firing ── foreign verification of the OUTER hook-firing chain
+#
+# Mirrors crates/praxis-synthesis/src/{firing,delta,quarantine,handlers}.rs.
+# Re-derived independently from (base.ttl, adds.ttl, removes.ttl): the
+# event_hash (delta canonical form), the post state (apply; removal of an
+# absent triple is refused), the admission record hash, and the handler
+# binding hash. hook_hash and outcome_hash are REFOLDED FROM THE RECEIPT'S
+# EMBEDDED PAYLOADS ("refolded-from-payload"): the verdicts array and the
+# outcome object are re-serialized to the exact serde rendering and hashed —
+# this binds payload bytes to hash but does not re-derive hook evaluation
+# (the named limitation; re-derivation needs the Rust evaluator). Inner v1
+# chains are folded as claimed from receipt.inner[].chain (each is itself
+# verifiable by the `graph` subcommand — a second named limitation).
+
+FIRING_DOMAIN = "praxis:hook-firing:v1"
+NO_ACTION_SENTINEL = "praxis:no-action"
+MAX_DELTA_TRIPLES = 64
+DELEGABILITY = ("human-only", "assistive", "automatable", "verifiable")
+
+VERDICT_KEYS = ["hook_iri", "hook_name", "condition_kind", "condition_hash",
+                "verdict", "effect", "action_iri"]
+HOOK_VERDICTS = ("Fired", "NotFired", "Gated")
+EFFECT_KINDS = ("EmitDelta", "GroundAction", "Refuse")
+
+
+class FiringRefusal(Exception):
+    """A firing-stage violation — the verifier refuses at a named stage."""
+
+
+def _triple_key(t):
+    # Rust Triple derived Ord: (s, p, Object) with variant order Iri<Str<Int.
+    return (t[0], t[1], _OBJ_RANK[t[2][0]], t[2][1])
+
+
+def _canon_triples(triples) -> list:
+    """Sorted, deduplicated triples in Rust canonical Ord order."""
+    return sorted(set(triples), key=_triple_key)
+
+
+def parse_delta(adds_ttl: str, removes_ttl: str):
+    """Mirror delta.rs GraphDelta::parse/from_triples: sort, dedup, cap 64
+    per side, refuse a triple asserted and retracted by the same event."""
+    additions = _canon_triples(parse_ttl(adds_ttl))
+    removals = _canon_triples(parse_ttl(removes_ttl))
+    for side, name in ((additions, "delta_additions"), (removals, "delta_removals")):
+        if len(side) > MAX_DELTA_TRIPLES:
+            raise FiringRefusal(f"cap exceeded: {name}")
+    removal_set = set(removals)
+    for t in additions:
+        if t in removal_set:
+            raise FiringRefusal(
+                "delta asserts and retracts the same triple: "
+                f"<{t[0]}> <{t[1]}> {render_object(t[2])} .")
+    return additions, removals
+
+
+def delta_canonical_form(additions, removals) -> str:
+    """Mirror delta.rs canonical_form: labeled canonical N-Triples sections."""
+    return (f"additions\n{canonical_form(additions)}"
+            f"removals\n{canonical_form(removals)}")
+
+
+def apply_delta(base, additions, removals) -> list:
+    """Mirror delta.rs GraphDelta::apply: removal of a triple not present in
+    the base is refused; the post-state is sorted, deduplicated, re-capped."""
+    post = set(base)
+    for r in removals:
+        if r not in post:
+            raise FiringRefusal(
+                "removal of a triple not present in the base graph: "
+                f"<{r[0]}> <{r[1]}> {render_object(r[2])} .")
+        post.remove(r)
+    post.update(additions)
+    if len(post) > MAX_TRIPLES:
+        raise FiringRefusal("cap exceeded: triples")
+    return sorted(post, key=_triple_key)
+
+
+def extract_handler_bindings(post) -> list:
+    """Mirror handlers.rs extract_bindings: every wf:Capability node with
+    wf:handler must carry exactly one IRI handler, one string delegability
+    (explicit — no default) and one string wf:name."""
+    cap_class = ("iri", WF_NS + "Capability")
+    caps = sorted({s for s, p, o in post if p == RDF_TYPE and o == cap_class})
+    bindings = []
+    for cap in caps:
+        props = [(p, o) for s, p, o in post if s == cap]
+
+        def one(local: str) -> list:
+            pred = WF_NS + local
+            return [o for p, o in props if p == pred]
+
+        handlers = one("handler")
+        if not handlers:
+            continue
+        if len(handlers) > 1:
+            raise FiringRefusal(f"<{cap}>: multiple wf:handler")
+        if handlers[0][0] != "iri":
+            raise FiringRefusal(f"<{cap}>: wf:handler must be an IRI")
+        handler = handlers[0][1]
+        delegs = one("delegability")
+        if not delegs:
+            raise FiringRefusal(
+                f"<{cap}>: wf:handler without wf:delegability — the grade is "
+                "explicit or the binding is refused (no default)")
+        if len(delegs) > 1:
+            raise FiringRefusal(f"<{cap}>: multiple wf:delegability")
+        if delegs[0][0] != "str" or delegs[0][1] not in DELEGABILITY:
+            raise FiringRefusal(f"<{cap}>: wf:delegability '{delegs[0][1]}' "
+                                "not in human-only|assistive|automatable|verifiable")
+        names = one("name")
+        if len(names) != 1 or names[0][0] != "str":
+            raise FiringRefusal(
+                f"<{cap}>: handled capability missing unique wf:name")
+        bindings.append((names[0][1], handler, delegs[0][1]))
+    bindings.sort(key=lambda b: b[0])
+    return bindings
+
+
+def compact_json(value) -> str:
+    """serde_json::to_string equivalent."""
+    return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+
+
+def refold_verdicts(raw) -> str:
+    """Rebuild each HookVerdictRecord in the exact serde field order from the
+    receipt's embedded payload (refolded-from-payload: binds bytes to hash,
+    does not re-derive hook evaluation). Unknown or missing keys refuse."""
+    if not isinstance(raw, list):
+        raise FiringRefusal("receipt.verdicts is not an array")
+    rebuilt = []
+    for row in raw:
+        if not isinstance(row, dict) or set(row) != set(VERDICT_KEYS):
+            raise FiringRefusal("verdict record has unexpected shape")
+        if row["verdict"] not in HOOK_VERDICTS:
+            raise FiringRefusal(f"unknown verdict '{row['verdict']}'")
+        if row["effect"] not in EFFECT_KINDS:
+            raise FiringRefusal(f"unknown effect '{row['effect']}'")
+        for key in VERDICT_KEYS[:4]:
+            if not isinstance(row[key], str):
+                raise FiringRefusal(f"verdict field '{key}' is not a string")
+        if row["action_iri"] is not None and not isinstance(row["action_iri"], str):
+            raise FiringRefusal("verdict field 'action_iri' is not a string or null")
+        rebuilt.append({k: row[k] for k in VERDICT_KEYS})
+    return compact_json(rebuilt)
+
+
+def refold_outcome(raw) -> str:
+    """Rebuild the FiringOutcome serde rendering: the unit variant is the
+    plain string \"Completed\"; the struct variant is
+    {\"Refused\":{\"stage\":..,\"reason\":..}}."""
+    if raw == "Completed":
+        return compact_json("Completed")
+    if isinstance(raw, dict) and set(raw) == {"Refused"}:
+        body = raw["Refused"]
+        if (isinstance(body, dict) and set(body) == {"stage", "reason"}
+                and isinstance(body["stage"], str)
+                and isinstance(body["reason"], str)):
+            return compact_json(
+                {"Refused": {"stage": body["stage"], "reason": body["reason"]}})
+    raise FiringRefusal("receipt.outcome has unexpected shape")
+
+
+def verify_firing(base_path: str, adds_path: str, removes_path: str,
+                  receipt_path: str) -> int:
+    try:
+        base_src = open(base_path, encoding="utf-8").read()
+        adds_src = open(adds_path, encoding="utf-8").read()
+        removes_src = open(removes_path, encoding="utf-8").read()
+    except (OSError, UnicodeDecodeError) as e:
+        print(f"cannot read TTL input: {e}")
         return 2
-    return verify_graph(sys.argv[2], sys.argv[3])
+    try:
+        receipt = json.load(open(receipt_path))
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"cannot read receipt JSON: {e}")
+        return 2
+    if not isinstance(receipt, dict):
+        print("receipt is not a JSON object")
+        return 2
+    try:
+        recorded = {
+            k: require_str(receipt, k)
+            for k in ("event_hash", "admission_hash", "handler_hash",
+                      "hook_hash", "outcome_hash", "chain")
+        }
+        inner = receipt["inner"]
+        verdicts_raw = receipt["verdicts"]
+        outcome_raw = receipt["outcome"]
+        if not isinstance(inner, list):
+            raise KeyError("inner")
+        inner_chains = [entry["chain"] for entry in inner]
+        if not all(isinstance(c, str) for c in inner_chains):
+            raise KeyError("inner[].chain")
+    except (KeyError, TypeError) as e:
+        print(f"receipt missing or malformed field: {e}")
+        return 2
+
+    failures = 0
+
+    def stage(name: str, computed: str, claimed: str, note: str = "") -> None:
+        nonlocal failures
+        suffix = f" [{note}]" if note else ""
+        if computed == claimed:
+            print(f"PASS {name}: {computed[:16]}…{suffix}")
+        else:
+            print(f"FAIL {name}: recomputed {computed[:16]} "
+                  f"!= recorded {claimed[:16]}{suffix}")
+            failures += 1
+
+    try:
+        base = _canon_triples(parse_ttl(base_src))
+        additions, removals = parse_delta(adds_src, removes_src)
+
+        # Stage 1: event_hash re-derived from the delta canonical form.
+        event_hash = b3(delta_canonical_form(additions, removals).encode())
+        stage("event_hash", event_hash, recorded["event_hash"])
+
+        # Stage 2: post state applied (removal-not-present refuses) and the
+        # admission record rebuilt field for field (quarantine.rs serde
+        # order); the genesis reference is epoch 0, so admission epoch is 1.
+        post = apply_delta(base, additions, removals)
+        record = {
+            "epoch": 1,
+            "base_graph_hash": b3(canonical_form(base).encode()),
+            "post_graph_hash": b3(canonical_form(post).encode()),
+            "event_hash": event_hash,
+            "verdict": "Admitted",
+        }
+        admission_hash = b3(compact_json(record).encode())
+        stage("admission_hash", admission_hash, recorded["admission_hash"])
+
+        # Stage 3: handler bindings re-extracted from the post state;
+        # canonical tab-separated lines, sorted by capability.
+        bindings = extract_handler_bindings(post)
+        lines = "".join(f"{c}\t{h}\t{d}\n" for c, h, d in bindings)
+        handler_hash = b3(lines.encode())
+        stage("handler_hash", handler_hash, recorded["handler_hash"])
+
+        # Stages 4-5: refolded-from-payload — the embedded verdicts array and
+        # outcome object are re-serialized to the serde rendering and hashed;
+        # hook evaluation itself is NOT re-derived (named limitation).
+        hook_hash = b3(refold_verdicts(verdicts_raw).encode())
+        stage("hook_hash", hook_hash, recorded["hook_hash"],
+              "refolded-from-payload")
+        outcome_hash = b3(refold_outcome(outcome_raw).encode())
+        stage("outcome_hash", outcome_hash, recorded["outcome_hash"],
+              "refolded-from-payload")
+
+        # Stage 6: the outer chain folded from genesis over the recomputed
+        # stage hashes and each inner v1 chain (folded as claimed — verify
+        # each with the `graph` subcommand; empty = the no-action sentinel).
+        chain = genesis(FIRING_DOMAIN)
+        for payload in (event_hash, admission_hash, handler_hash, hook_hash):
+            chain = fold(chain, payload.encode())
+        if inner_chains:
+            for c in inner_chains:
+                chain = fold(chain, c.encode())
+        else:
+            chain = fold(chain, NO_ACTION_SENTINEL.encode())
+        chain = fold(chain, outcome_hash.encode())
+        stage("chain", chain, recorded["chain"])
+    except (ParseRefusal, FiringRefusal) as e:
+        print(f"FAIL firing: refused: {e}")
+        return 1
+
+    if failures:
+        print(f"FIRING MISMATCH: {failures} stage(s) failed")
+        return 1
+    print(f"VERIFIED firing: {len(post)} post triples, "
+          f"{len(inner_chains)} inner chain(s), chain {chain[:16]}…")
+    print("hook_hash/outcome_hash refolded from embedded payloads "
+          "(hook evaluation not re-derived); inner chains folded as claimed")
+    return 0
+
+
+def main() -> int:
+    if len(sys.argv) >= 4 and sys.argv[1] == "graph":
+        return verify_graph(sys.argv[2], sys.argv[3])
+    if len(sys.argv) >= 6 and sys.argv[1] == "firing":
+        return verify_firing(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
+    print(__doc__)
+    return 2
 
 
 if __name__ == "__main__":
