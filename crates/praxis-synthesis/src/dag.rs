@@ -302,13 +302,14 @@ impl Dag {
                 replayed_count += 1;
             }
             let output_hash = content_address(&output);
-            let frame = serde_json::json!({
-                "node_id": id,
-                "action_hash": a_hash,
-                "input_hashes": input_hashes,
-                "output_hash": output_hash,
-            })
-            .to_string();
+            let mut map = BTreeMap::new();
+            map.insert("node_id", serde_json::Value::String(id.clone()));
+            map.insert("action_hash", serde_json::Value::String(a_hash.clone()));
+            map.insert("input_hashes", serde_json::Value::Array(
+                input_hashes.iter().map(|h| serde_json::Value::String(h.clone())).collect()
+            ));
+            map.insert("output_hash", serde_json::Value::String(output_hash.clone()));
+            let frame = serde_json::to_string(&map).expect("serialization");
             chain = fold_event(&chain, frame.as_bytes());
             node_receipts.push(NodeReceipt {
                 node_id: id.clone(),
@@ -694,13 +695,14 @@ impl Dag {
                 replayed_count += 1;
             }
             let output_hash = content_address(&output);
-            let frame = serde_json::json!({
-                "node_id": id,
-                "action_hash": a_hash,
-                "input_hashes": input_hashes,
-                "output_hash": output_hash,
-            })
-            .to_string();
+            let mut map = std::collections::BTreeMap::new();
+            map.insert("node_id", serde_json::Value::String(id.clone()));
+            map.insert("action_hash", serde_json::Value::String(a_hash.clone()));
+            map.insert("input_hashes", serde_json::Value::Array(
+                input_hashes.iter().map(|h| serde_json::Value::String(h.clone())).collect()
+            ));
+            map.insert("output_hash", serde_json::Value::String(output_hash.clone()));
+            let frame = serde_json::to_string(&map).expect("serialization");
             chain = fold_event(&chain, frame.as_bytes());
             node_receipts.push(NodeReceipt {
                 node_id: id.clone(),
