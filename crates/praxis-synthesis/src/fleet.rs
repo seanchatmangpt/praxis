@@ -39,6 +39,21 @@ pub mod lane {
     pub const E_ERROR: u8 = 1 << 6;
     /// Admitted by the verifier.
     pub const A_ADMITTED: u8 = 1 << 7;
+
+    // ── Supervision combo lanes ─────────────────────────────────────────
+    // All 8 bits are taken; supervision claims provably-unreachable
+    // COMBINATIONS instead (exhaustive-legality test in cell_supervise):
+    // the base run never co-sets H with A, so these composites are free.
+
+    /// Halted at least once, then admitted: recovered under supervision.
+    pub const S_RECOVERED: u8 = H_HALTED | A_ADMITTED;
+    /// Halted on budget and parked (knhk semantics: a budget halt IS the
+    /// receipted park action). Discriminate true parks from plain budget
+    /// refusals via the roll-up's `parked` count, not the byte.
+    pub const S_PARKED: u8 = H_HALTED | B_BUDGET;
+    /// U and E co-set is impossible in the base run: claimed as the
+    /// geometry-gap marker.
+    pub const S_GEOMETRY_GAP: u8 = H_HALTED | U_UNSAT_CERTIFIED | E_ERROR;
 }
 
 /// One fleet run's measured outcome.

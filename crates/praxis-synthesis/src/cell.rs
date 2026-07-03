@@ -44,6 +44,9 @@ pub struct MemberRecord {
     pub terminal_hash: String,
     /// Refusal reason (empty when admitted).
     pub refusal: String,
+    /// Restart attempts this member consumed (supervision; additive).
+    #[serde(default)]
+    pub restarts: u8,
 }
 
 /// One group's roll-up receipt — the only thing the cell reads per group.
@@ -63,6 +66,18 @@ pub struct GroupReceipt {
     /// Member records (retained for selective replay; a remote verifier
     /// receives only the fields above plus this on demand).
     pub members: Vec<MemberRecord>,
+    /// Members admitted after >= 1 restart (counted inside `admitted`).
+    #[serde(default)]
+    pub recovered: usize,
+    /// Members parked (counted inside `refused`).
+    #[serde(default)]
+    pub parked: usize,
+    /// Crashes that landed outside the derived geometry (informational).
+    #[serde(default)]
+    pub geometry_gaps: usize,
+    /// Total restart attempts across the group.
+    #[serde(default)]
+    pub restarts: usize,
 }
 
 /// The cell receipt: what a verifier reads INSTEAD of 10,000 interiors.
@@ -82,6 +97,21 @@ pub struct CellReceipt {
     /// order, from the domain genesis. A function of G hashes — not of
     /// N interiors.
     pub cell_hash: String,
+    /// Members admitted after recovery (inside `admitted`; additive).
+    #[serde(default)]
+    pub recovered: usize,
+    /// Members parked (inside `refused`; additive).
+    #[serde(default)]
+    pub parked: usize,
+    /// Geometry gaps observed cell-wide.
+    #[serde(default)]
+    pub geometry_gaps: usize,
+    /// Templates quarantined by the MAPE-K loop.
+    #[serde(default)]
+    pub quarantined_templates: Vec<usize>,
+    /// Hash chain of the receipted epoch plans (MAPE-K decisions).
+    #[serde(default)]
+    pub epoch_plan_hashes: Vec<String>,
 }
 
 /// Run one agent (identified by cell-wide index) and produce its record.
@@ -116,7 +146,7 @@ pub fn run_member(
     })();
     match outcome {
         Ok(terminal_hash) => {
-            MemberRecord { agent, byte, terminal_hash, refusal: String::new() }
+            MemberRecord { agent, byte, terminal_hash, refusal: String::new(), restarts: 0 }
         }
         Err(refusal) => {
             byte |= lane::H_HALTED;
@@ -133,6 +163,7 @@ pub fn run_member(
                 byte,
                 terminal_hash: content_address(rendered.as_bytes()),
                 refusal: rendered,
+                restarts: 0,
             }
         }
     }
@@ -151,6 +182,19 @@ pub fn replay_root(members: &[MemberRecord]) -> String {
 fn roll_up(group: usize, members: Vec<MemberRecord>) -> GroupReceipt {
     let admitted = members.iter().filter(|m| m.byte & lane::A_ADMITTED != 0).count();
     let refused = members.len() - admitted;
+    let recovered = members
+        .iter()
+        .filter(|m| m.byte & lane::S_RECOVERED == lane::S_RECOVERED)
+        .count();
+    let parked = members
+        .iter()
+        .filter(|m| m.byte & lane::A_ADMITTED == 0 && m.byte & lane::S_PARKED == lane::S_PARKED)
+        .count();
+    let geometry_gaps = members
+        .iter()
+        .filter(|m| m.byte & lane::S_GEOMETRY_GAP == lane::S_GEOMETRY_GAP)
+        .count();
+    let restarts = members.iter().map(|m| usize::from(m.restarts)).sum();
     let mut reasons: BTreeMap<String, usize> = BTreeMap::new();
     for m in &members {
         if !m.refusal.is_empty() {
@@ -169,6 +213,10 @@ fn roll_up(group: usize, members: Vec<MemberRecord>) -> GroupReceipt {
         top_refusals: top,
         replay_root: replay_root(&members),
         members,
+        recovered,
+        parked,
+        geometry_gaps,
+        restarts,
     }
 }
 
@@ -201,8 +249,23 @@ pub fn run_cell(n: usize, g: usize, templates: usize) -> (CellReceipt, Vec<Group
     for gr in &groups {
         cell_hash = fold_event(&cell_hash, gr.replay_root.as_bytes());
     }
+    let recovered = groups.iter().map(|gr| gr.recovered).sum();
+    let parked = groups.iter().map(|gr| gr.parked).sum();
+    let geometry_gaps = groups.iter().map(|gr| gr.geometry_gaps).sum();
     (
-        CellReceipt { n, g, admitted, refused, refusal_register: register, cell_hash },
+        CellReceipt {
+            n,
+            g,
+            admitted,
+            refused,
+            refusal_register: register,
+            cell_hash,
+            recovered,
+            parked,
+            geometry_gaps,
+            quarantined_templates: Vec::new(),
+            epoch_plan_hashes: Vec::new(),
+        },
         groups,
     )
 }

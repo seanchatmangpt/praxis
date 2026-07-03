@@ -26,6 +26,7 @@
 
 pub mod budget;
 pub mod cell;
+pub mod cell_supervise;
 pub mod dag;
 pub mod datalog;
 pub mod fault;
