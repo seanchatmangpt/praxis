@@ -43,9 +43,13 @@ fn ensure_signing_key() {
 /// The stable chain hash of the Day-2 mission receipt under [`TS_NS`]. If this
 /// changes, either the pipe's bound payload changed (proposal hash, goal,
 /// admitted plan, objective identity) or determinism regressed — both are
-/// things this test exists to catch.
+/// things this test exists to catch. Repinned when `praxis-core::law.rs`'s
+/// `build_admission_frame` started mixing `andon`/`object_ids` into the
+/// admission-frame hash (closing a gap where those fields could silently
+/// vary without changing the receipt's binding) — a legitimate payload
+/// change, not a determinism regression.
 const EXPECTED_CHAIN_HASH: &str =
-    "229a4fe9c0ede59fbc4d20640ee5a7a48746f5a91aebf1504c175724ea1863f8";
+    "adbfb1b0b7e2b1691edd2c77e7f63ff855de7effbbe0e77e3e5ebbeb03c80bb4";
 
 #[test]
 fn full_pipe_runs_green_and_binds_proposal_hash() {

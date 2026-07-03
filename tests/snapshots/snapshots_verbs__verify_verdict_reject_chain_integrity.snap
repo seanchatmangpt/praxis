@@ -1,6 +1,5 @@
 ---
 source: tests/snapshots_verbs.rs
-assertion_line: 178
 expression: verdict
 ---
 {
@@ -30,7 +29,7 @@ expression: verdict
     {
       "stage": "verify_commitments",
       "passed": false,
-      "detail": "record 1: prev_chain_hash (d46299e292185c897e7c60be256bd45466a65d6cc1ccfd93b064d05a26a44a3d) does not commit to record 0's chain_hash (ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)"
+      "detail": "record 1: prev_chain_hash (a7f2667d894adb2339a2d0d91ca780f769fbbde9cc7b96561793a5ec3adc5bda) does not commit to record 0's chain_hash (ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)"
     },
     {
       "stage": "evaluate_profile",
