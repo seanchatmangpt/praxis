@@ -90,7 +90,7 @@ agent8 = { path = "crates/agent8", optional = true }
 praxis-proposer = { path = "crates/praxis-proposer", optional = true }
 praxis-retrofit = { path = "crates/praxis-retrofit" }
 rust-fable-testbed = { path = "crates/rust-fable-testbed", optional = true }
-star-toml = "26.6.30"
+star-toml = "26.7.3"
 toml = { version = "0.8", optional = true }
 hex = "0.4"
 bcinr-powl-receipt = { path = "../bcinr/crates/bcinr-powl-receipt", version = "26.6.24" }

@@ -27,6 +27,8 @@
 //! forward search per case. Override with `PROPTEST_CASES=<n>`, e.g.
 //! `PROPTEST_CASES=20000 cargo test --test fuzz_ops --all-features`.
 
+#![cfg(feature = "proposer")]
+
 use my_conforming_project::{config::PraxisConfig, ops, revtac::Mission};
 use proptest::prelude::*;
 use star_toml::{loader::TrustedLoader, nouns::EvidenceGate};

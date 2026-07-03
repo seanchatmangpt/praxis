@@ -5002,13 +5002,27 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "star-toml"
-version = "26.7.2"
+version = "26.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "610bba28a41e85fa7bd78692742dc008ac91281a9fe07c63cc580142cda71267"
+checksum = "f094130943ff3ccf0c6064decc9329945349e1e0a3cd34bf37c335c66c0a42e0"
 dependencies = [
+ "blake3",
  "serde",
+ "serde_json",
+ "star-toml-derive",
  "thiserror 2.0.18",
  "toml 1.1.2+spec-1.1.0",
+ "wasm4pm-compat",
+]
+
+[[package]]
+name = "star-toml-derive"
+version = "26.6.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fabb0b46d13ed13bf3ef8cb7b30cc056050bf6020fabec981cdae8f294f89c8"
+dependencies = [
+ "quote",
+ "syn 2.0.118",
 ]
 
 [[package]]

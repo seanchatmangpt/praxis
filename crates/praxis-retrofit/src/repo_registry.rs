@@ -52,7 +52,7 @@ use std::{
 
 use chicago_tdd_tools::core::config::poka_yoke::{BoundedU32, PositiveUsize};
 use serde::{Deserialize, Serialize};
-use star_toml::{Validate, Validator, loader::{TrustedLoader, ConfigLifecycle}};
+use star_toml::{Validate, Validator, TrustedLoader, ConfigLifecycle};
 
 use crate::models::RetrofitPhase;
 
