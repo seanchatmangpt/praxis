@@ -37,12 +37,30 @@ pub const RECEIPT_MISSING: &str = "http://seanchatmangpt.github.io/praxis/life#R
 /// One entry of the nightly inventory.
 pub const INVENTORY_ENTRY: &str = "http://seanchatmangpt.github.io/praxis/life#InventoryEntry";
 
+/// An event that cannot be undone — spilled milk. Closed only through
+/// repair, learning, or release; never through rehearsal.
+pub const IRREVERSIBLE_EVENT: &str =
+    "http://seanchatmangpt.github.io/praxis/life#IrreversibleEvent";
+/// A self-authored plan (open self-will until surrendered).
+pub const SELF_PLAN: &str = "http://seanchatmangpt.github.io/praxis/life#SelfPlan";
+
 /// Predicate: an act releases a resentment loop.
 pub const RELEASES: &str = "http://seanchatmangpt.github.io/praxis/life#releases";
 /// Predicate: an act repairs a debt.
 pub const REPAIRS: &str = "http://seanchatmangpt.github.io/praxis/life#repairs";
 /// Predicate: a task is scheduled inside a day window.
 pub const SCHEDULED_IN: &str = "http://seanchatmangpt.github.io/praxis/life#scheduledIn";
+/// Predicate: a lesson extracted from an irreversible event.
+pub const LEARNS_FROM: &str = "http://seanchatmangpt.github.io/praxis/life#learnsFrom";
+/// Predicate: a candidate amends act addresses a harm.
+pub const AMENDS_FOR: &str = "http://seanchatmangpt.github.io/praxis/life#amendsFor";
+/// Predicate: a self plan has been surrendered (control handed off).
+pub const SURRENDERED: &str = "http://seanchatmangpt.github.io/praxis/life#surrendered";
+/// Predicate: a guard act covers a temptation risk.
+pub const GUARDS: &str = "http://seanchatmangpt.github.io/praxis/life#guards";
+/// Predicate: a provision anxiety carries a daily-bread receipt fact.
+pub const HAS_BREAD_RECEIPT: &str =
+    "http://seanchatmangpt.github.io/praxis/life#hasBreadReceipt";
 
 /// All subjects typed as `class_iri` via `rdf:type`, byte-sorted, deduped.
 #[must_use]

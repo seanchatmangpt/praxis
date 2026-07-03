@@ -583,7 +583,11 @@ fn delta_count(delta: &GraphDelta, var: &str) -> u64 {
     count_pred(&delta.additions, var) + count_pred(&delta.removals, var)
 }
 
-fn eval_datalog(
+/// Evaluate one bounded datalog condition over post-state triples: EDB is
+/// `t(s, p, o)` in canonical renderings; returns whether `goal` is derivable.
+/// Shared with `livelock.rs` so livelock detection reuses THIS evaluator
+/// instead of duplicating it.
+pub(crate) fn eval_datalog(
     program_text: &str,
     goal: &str,
     post: &[Triple],

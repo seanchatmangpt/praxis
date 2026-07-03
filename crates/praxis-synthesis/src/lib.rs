@@ -42,6 +42,7 @@ pub mod handlers;
 pub mod hooks;
 pub mod kernel;
 pub mod life;
+pub mod livelock;
 pub mod park;
 pub mod pipeline;
 pub mod quarantine;
@@ -67,6 +68,9 @@ pub use hooks::{
     KnowledgeHook,
 };
 pub use kernel::{extract_kernel, kernel_hash, PrayerClause};
+pub use livelock::{
+    detect, detection_program, rehearsal_exceeded, LivelockClass, ALL_CLASSES, STEPS,
+};
 pub use quarantine::{
     Admission, AdmissionRecord, AdmittedEvent, MeaningSource, Origin, Reference, RiceQuarantine,
 };
