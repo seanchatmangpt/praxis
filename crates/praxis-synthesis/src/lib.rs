@@ -35,8 +35,10 @@ pub mod fleet;
 pub mod geometry;
 pub mod gen;
 pub mod glue;
+pub mod firing;
 pub mod graph;
 pub mod ground;
+pub mod handlers;
 pub mod hooks;
 pub mod park;
 pub mod pipeline;
@@ -55,7 +57,9 @@ pub use delta::GraphDelta;
 pub use graph::{
     execute_workflow, execute_workflow_with, replay_workflow, WorkflowIr, WorkflowReceipt,
 };
+pub use firing::{fire_hooks, replay_firing, FiringOutcome, HookFiringReceipt};
 pub use ground::{capability_task_spec, ground_fired_action, CapabilityTaskSpec};
+pub use handlers::{Delegability, HandlerBinding, HandlerRegistry};
 pub use hooks::{
     evaluate_hooks, extract_hooks, hook_hash, HookCondition, HookVerdict, HookVerdictRecord,
     KnowledgeHook,
@@ -220,5 +224,27 @@ pub enum Refusal {
         subject: String,
         /// What shape rule was violated.
         detail: String,
+    },
+    /// A graph-declared handler IRI is not in the closed registry.
+    /// Refused BEFORE solving; the known table is named.
+    #[error("unknown handler {handler} on capability '{capability}' (known: {known:?})")]
+    UnknownHandler {
+        /// The capability whose binding named the unknown handler.
+        capability: String,
+        /// The declared handler IRI.
+        handler: String,
+        /// The registry's exact key set.
+        known: Vec<String>,
+    },
+    /// An automated runner was asked to execute a capability whose
+    /// delegability grade reserves the act for the human.
+    #[error("delegability violation on '{capability}': declared {declared}, requires {required}")]
+    DelegabilityViolation {
+        /// The capability.
+        capability: String,
+        /// The minimum grade an automated runner requires.
+        required: String,
+        /// The grade the graph declares.
+        declared: String,
     },
 }
