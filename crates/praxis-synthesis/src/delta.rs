@@ -11,11 +11,68 @@ use serde::Serialize;
 
 use chatman_common::provenance::content_address;
 
-use crate::graph::{canonical_form, parse_ttl, render_object, Triple, MAX_TRIPLES};
+use crate::graph::{
+    canonical_form, parse_ttl, render_object, Object, Triple, MAX_IRI_LEN, MAX_LIT_LEN,
+    MAX_TRIPLES,
+};
 use crate::Refusal;
 
 /// Hard cap on triples per delta side (additions or removals).
 pub const MAX_DELTA_TRIPLES: usize = 64;
+
+/// Bytes an `IRIREF` may never contain — mirrors the lexer's own exclusion
+/// set (`lex_iriref` in `graph.rs`) plus `<`/`>` themselves, which the
+/// lexer never has to reject explicitly because a bare `<` cannot occur
+/// inside a real `IRIREF` token (it would already have ended the previous
+/// one) and `>` terminates it. A hand-built [`Triple`] has no such
+/// guarantee, so both are checked here explicitly.
+const IRI_FORBIDDEN_BYTES: [u8; 10] =
+    [b'<', b'>', b' ', b'\t', b'\n', b'\r', b'"', b'{', b'}', b'|'];
+
+/// Re-run the decidable caps and delimiter-safety checks the lexer would
+/// have enforced on a parsed IRI/literal, against a hand-built term. This
+/// is what makes [`GraphDelta::from_triples`] as strict as [`GraphDelta::parse`]:
+/// without it, a caller could construct a [`Triple`] directly (both fields
+/// are public, by design, so callers can build receipts/specs from parsed
+/// data) and hand it to `from_triples`, skipping every bound the Turtle
+/// front end exists to enforce.
+fn validate_term_shape(t: &Triple) -> Result<(), Refusal> {
+    validate_iri_term(&t.s)?;
+    validate_iri_term(&t.p)?;
+    match &t.o {
+        Object::Iri(iri) => validate_iri_term(iri)?,
+        Object::Str(s) => {
+            if s.len() > MAX_LIT_LEN {
+                return Err(Refusal::GraphCapExceeded {
+                    what: "lit_len".to_string(),
+                    cap: MAX_LIT_LEN as u64,
+                    actual: s.len() as u64,
+                });
+            }
+        }
+        Object::Int(_) => {}
+    }
+    Ok(())
+}
+
+fn validate_iri_term(iri: &str) -> Result<(), Refusal> {
+    if iri.len() > MAX_IRI_LEN {
+        return Err(Refusal::GraphCapExceeded {
+            what: "iri_len".to_string(),
+            cap: MAX_IRI_LEN as u64,
+            actual: iri.len() as u64,
+        });
+    }
+    if iri.bytes().any(|b| IRI_FORBIDDEN_BYTES.contains(&b) || b < 0x20) {
+        return Err(Refusal::InvalidInput {
+            detail: format!(
+                "IRI term contains a delimiter-unsafe or control byte, which a parsed \
+                 IRIREF can never contain: {iri:?}"
+            ),
+        });
+    }
+    Ok(())
+}
 
 /// A canonical graph delta: sorted, deduplicated additions and removals.
 ///
@@ -53,6 +110,9 @@ impl GraphDelta {
     /// and refuses a triple appearing on both sides (an event may not
     /// simultaneously assert and retract the same fact).
     pub fn from_triples(additions: Vec<Triple>, removals: Vec<Triple>) -> Result<Self, Refusal> {
+        for t in additions.iter().chain(removals.iter()) {
+            validate_term_shape(t)?;
+        }
         let mut additions = additions;
         let mut removals = removals;
         additions.sort_unstable();
@@ -197,6 +257,56 @@ mod tests {
             "<http://e/a> <http://e/p> <http://e/b> .",
         );
         assert!(matches!(r, Err(Refusal::InvalidInput { .. })));
+    }
+
+    /// Adversarial finding: `from_triples` is a public constructor that
+    /// bypasses the lexer entirely, so a hand-built `Triple` used to skip
+    /// `MAX_LIT_LEN`/`MAX_IRI_LEN` — a caller could hand-construct an
+    /// oversized literal that a real parse could never produce and have it
+    /// admitted downstream as if it had passed through `RiceQuarantine`.
+    #[test]
+    fn hand_built_triple_cannot_bypass_length_caps() {
+        let oversized = Triple {
+            s: "http://e/s".to_string(),
+            p: "http://e/p".to_string(),
+            o: Object::Str("x".repeat(MAX_LIT_LEN + 1)),
+        };
+        match GraphDelta::from_triples(vec![oversized], Vec::new()) {
+            Err(Refusal::GraphCapExceeded { what, .. }) => assert_eq!(what, "lit_len"),
+            other => panic!("expected lit_len cap refusal, got {other:?}"),
+        }
+
+        let oversized_iri = Triple {
+            s: "http://e/".to_string() + &"x".repeat(MAX_IRI_LEN + 1),
+            p: "http://e/p".to_string(),
+            o: Object::Int(1),
+        };
+        match GraphDelta::from_triples(vec![oversized_iri], Vec::new()) {
+            Err(Refusal::GraphCapExceeded { what, .. }) => assert_eq!(what, "iri_len"),
+            other => panic!("expected iri_len cap refusal, got {other:?}"),
+        }
+    }
+
+    /// Adversarial finding: canonicalization injection — a hand-built
+    /// `Triple` whose subject smuggles a `<`/`>` delimiter can render to
+    /// bytes indistinguishable from two separate, legitimately-parsed
+    /// triples, breaking `canonical_form`'s soundness claim ("every term is
+    /// ground/delimiter-safe"). A real parse can never produce such a term
+    /// (the lexer's IRIREF grammar refuses it), so `from_triples` must
+    /// refuse it too.
+    #[test]
+    fn hand_built_triple_cannot_smuggle_delimiter_characters() {
+        let smuggled = Triple {
+            s: "http://e/a> <http://e/b".to_string(),
+            p: "http://e/c".to_string(),
+            o: Object::Iri("http://e/d".to_string()),
+        };
+        match GraphDelta::from_triples(vec![smuggled], Vec::new()) {
+            Err(Refusal::InvalidInput { detail }) => {
+                assert!(detail.contains("delimiter"), "detail: {detail}");
+            }
+            other => panic!("expected InvalidInput refusal, got {other:?}"),
+        }
     }
 
     #[test]
