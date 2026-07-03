@@ -141,6 +141,50 @@ ex:TemptationGuardHook a hook:Hook ;
     hook:reason "day window over the 8-bound; shed before adding" ;
     hook:priority 3 .
 
+# Forgive us our debts: an open debt with no repair act linked to it is a
+# standing obligation — the hook grounds the confess-and-repair support
+# fragment. Repairing is a bounded human-side act the workflow can walk.
+ex:DebtRepairHook a hook:Hook ;
+    hook:name "debt-repair" ;
+    hook:kind "datalog" ;
+    hook:program "repaired(?0) :- t(?1, <http://seanchatmangpt.github.io/praxis/life#repairs>, ?0). opendebt(?0) :- t(?0, <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>, <http://seanchatmangpt.github.io/praxis/life#Debt>), !repaired(?0)." ;
+    hook:goal "opendebt" ;
+    hook:effect "ground-action" ;
+    hook:action ex:ConfessAndRepairWorkflow ;
+    hook:priority 4 .
+
+# A day that closed without its receipt: the gap itself is a fact, and the
+# repair is a one-step bounded fragment — write the missing receipt.
+ex:ReceiptMissingHook a hook:Hook ;
+    hook:name "receipt-missing" ;
+    hook:kind "delta" ;
+    hook:var "http://seanchatmangpt.github.io/praxis/life#hasMissingReceipt" ;
+    hook:effect "ground-action" ;
+    hook:action ex:RepairReceiptWorkflow ;
+    hook:priority 5 .
+
+# Too much scheduled INTO one delta: more than 4 same-day placements in a
+# single admitted event is an overload burst — refuse, park for reschedule.
+ex:DayWindowOverloadHook a hook:Hook ;
+    hook:name "day-window-overload" ;
+    hook:kind "count" ;
+    hook:var "http://seanchatmangpt.github.io/praxis/life#scheduledToday" ;
+    hook:op ">" ;
+    hook:k 4 ;
+    hook:effect "refuse" ;
+    hook:reason "day window overloaded: refuse-or-reschedule" ;
+    hook:priority 6 .
+
+# A sponsor withdrawing a capability is not a problem the runner solves:
+# reassignment is a human decision, so the firing refuses with standing.
+ex:SponsorUnavailableHook a hook:Hook ;
+    hook:name "sponsor-unavailable" ;
+    hook:kind "delta" ;
+    hook:var "http://seanchatmangpt.github.io/praxis/life#withdrawsCapability" ;
+    hook:effect "refuse" ;
+    hook:reason "sponsor capability withdrawn; reassignment parks for the human" ;
+    hook:priority 7 .
+
 # ---------------------------------------------------------------------------
 # The daily prayer workflow fragment (human-side projection).
 # ---------------------------------------------------------------------------
@@ -197,3 +241,75 @@ ex:writePrayerReceipt a wf:Capability ;
     wf:cost 2 ;
     wf:pre ex:breadRequested ;
     wf:add ex:receiptWritten .
+
+# ---------------------------------------------------------------------------
+# The confess-and-repair workflow fragment (debt-repair support).
+# Atom predicates are distinct from every other fragment so plans stay
+# deterministic when fragments share the global capability space.
+# ---------------------------------------------------------------------------
+
+ex:ConfessAndRepairWorkflow a wf:Workflow ;
+    wf:budget 3 ;
+    wf:init ex:debtSeen ;
+    wf:goal ex:debtRepaired .
+
+ex:debtSeen a wf:Atom ;
+    wf:predicate "debt-seen" ;
+    wf:arg0 "person" .
+
+ex:debtConfessed a wf:Atom ;
+    wf:predicate "debt-confessed" ;
+    wf:arg0 "person" .
+
+ex:resentmentReleased a wf:Atom ;
+    wf:predicate "resentment-released" ;
+    wf:arg0 "person" .
+
+ex:debtRepaired a wf:Atom ;
+    wf:predicate "debt-repaired" ;
+    wf:arg0 "person" .
+
+ex:confessDebt a wf:Capability ;
+    wf:name "confess-debt" ;
+    wf:params 0 ;
+    wf:cost 2 ;
+    wf:pre ex:debtSeen ;
+    wf:add ex:debtConfessed .
+
+ex:releaseResentment a wf:Capability ;
+    wf:name "release-resentment" ;
+    wf:params 0 ;
+    wf:cost 3 ;
+    wf:pre ex:debtConfessed ;
+    wf:add ex:resentmentReleased .
+
+ex:repairDebt a wf:Capability ;
+    wf:name "repair-debt" ;
+    wf:params 0 ;
+    wf:cost 3 ;
+    wf:pre ex:resentmentReleased ;
+    wf:add ex:debtRepaired .
+
+# ---------------------------------------------------------------------------
+# The repair-receipt workflow fragment (receipt-missing support, one step).
+# ---------------------------------------------------------------------------
+
+ex:RepairReceiptWorkflow a wf:Workflow ;
+    wf:budget 1 ;
+    wf:init ex:receiptGapSeen ;
+    wf:goal ex:receiptRestored .
+
+ex:receiptGapSeen a wf:Atom ;
+    wf:predicate "receipt-gap-seen" ;
+    wf:arg0 "person" .
+
+ex:receiptRestored a wf:Atom ;
+    wf:predicate "receipt-restored" ;
+    wf:arg0 "person" .
+
+ex:restoreReceipt a wf:Capability ;
+    wf:name "restore-receipt" ;
+    wf:params 0 ;
+    wf:cost 1 ;
+    wf:pre ex:receiptGapSeen ;
+    wf:add ex:receiptRestored .

@@ -113,8 +113,10 @@ fn fold_firing_chain(
 }
 
 /// Fire the full pipeline for one meaning source: quarantine → admission →
-/// handler judgment (BEFORE any solving) → hook evaluation → grounded
-/// execution of fired actions → one chained receipt.
+/// handler-existence judgment (global, BEFORE any solving) → hook
+/// evaluation → grounded execution of fired actions with delegability
+/// judged per fired action against its plan's capabilities → one chained
+/// receipt.
 ///
 /// Hard failures of the door itself (malformed bytes, cap violations,
 /// admission refusals) are `Err` — there is no admitted event to receipt.
@@ -134,16 +136,15 @@ pub fn fire_hooks(
     let admission = event.record.clone();
     let admission_hash = admission.admission_hash()?;
 
-    // Handler judgment BEFORE solving.
+    // Handler EXISTENCE judgment is global and runs BEFORE any solving:
+    // an unknown handler IRI anywhere in the graph refuses the firing.
+    // Delegability is judged later, PER FIRED ACTION, against the
+    // capabilities that action's derived plan actually uses.
     let bindings = extract_bindings(&event.post)?;
     let handler_hash_v = handler_hash(&bindings);
-    if let Err(refusal) = registry.judge(&bindings) {
-        let stage = match &refusal {
-            Refusal::UnknownHandler { .. } => "handler",
-            _ => "delegability",
-        };
+    if let Err(refusal) = registry.judge_known(&bindings) {
         let outcome =
-            FiringOutcome::Refused { stage: stage.to_string(), reason: refusal.to_string() };
+            FiringOutcome::Refused { stage: "handler".to_string(), reason: refusal.to_string() };
         let outcome_hash = json_hash(&outcome, "outcome")?;
         // Hooks were never evaluated: the verdict list is empty and its
         // hash covers exactly that emptiness.
@@ -188,13 +189,37 @@ pub fn fire_hooks(
             .unwrap_or_else(|| "declared refusal".to_string());
         (Vec::new(), FiringOutcome::Refused { stage: "declared-refusal".to_string(), reason })
     } else {
+        // Ground each fired action, then judge delegability SCOPED to the
+        // capabilities that action's derived plan uses (grounding is a pure
+        // derivation — no side effects — so deriving the plan to discover
+        // the used capabilities is lawful before the judgment). A
+        // human-only binding on a capability no fired plan touches does
+        // not refuse the firing.
         let mut inner = Vec::new();
+        let mut violation: Option<Refusal> = None;
         for record in &verdicts {
             if record.verdict == HookVerdict::Fired && record.effect == EffectKind::GroundAction {
-                inner.push(ground_fired_action(&event, record)?);
+                let receipt = ground_fired_action(&event, record)?;
+                let used: std::collections::BTreeSet<String> =
+                    receipt.plan.steps.iter().map(|s| s.capability.clone()).collect();
+                if let Err(refusal) = registry.judge_delegability(&bindings, &used) {
+                    violation = Some(refusal);
+                    break;
+                }
+                inner.push(receipt);
             }
         }
-        (inner, FiringOutcome::Completed)
+        if let Some(refusal) = violation {
+            (
+                Vec::new(),
+                FiringOutcome::Refused {
+                    stage: "delegability".to_string(),
+                    reason: refusal.to_string(),
+                },
+            )
+        } else {
+            (inner, FiringOutcome::Completed)
+        }
     };
     let outcome_hash = json_hash(&outcome, "outcome")?;
     let inner_chains: Vec<&str> = inner.iter().map(|r| r.chain.as_str()).collect();

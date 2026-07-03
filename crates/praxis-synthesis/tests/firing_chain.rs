@@ -18,13 +18,17 @@ fn src(adds: &str) -> MeaningSource {
     }
 }
 
-fn kernel_with_binding(delegability: &str, handler_local: &str) -> String {
+fn kernel_with_cap_binding(cap_local: &str, delegability: &str, handler_local: &str) -> String {
     format!(
         "{KERNEL}\n\
-         <http://seanchatmangpt.github.io/praxis/prayer#orientToFather> \
+         <http://seanchatmangpt.github.io/praxis/prayer#{cap_local}> \
          <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}{handler_local}> ;\n\
          <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"{delegability}\" .\n"
     )
+}
+
+fn kernel_with_binding(delegability: &str, handler_local: &str) -> String {
+    kernel_with_cap_binding("orientToFather", delegability, handler_local)
 }
 
 #[test]
@@ -38,7 +42,7 @@ fn completed_firing_chains_and_replays() {
     assert_eq!(receipt.outcome, FiringOutcome::Completed);
     assert_eq!(receipt.inner.len(), 1, "daily-bread grounded once");
     assert_eq!(receipt.bindings.len(), 1);
-    assert_eq!(receipt.verdicts.len(), 4, "all four hooks receipted");
+    assert_eq!(receipt.verdicts.len(), 8, "all eight hooks receipted");
 
     replay_firing(&receipt, &base, &source, &registry, &[]).expect("replays");
 }
@@ -65,6 +69,8 @@ fn unknown_handler_is_refused_before_solving_and_still_chained() {
 
 #[test]
 fn human_only_binding_is_a_chained_delegability_refusal() {
+    // orientToFather IS in the fired daily-bread action's derived plan, so
+    // the scoped delegability judgment still refuses.
     let base = kernel_with_binding("human-only", "deterministic-v1");
     let reference = Reference::genesis(&base).expect("admits");
     let registry = HandlerRegistry::builtin();
@@ -78,6 +84,23 @@ fn human_only_binding_is_a_chained_delegability_refusal() {
         }
         other => panic!("expected Refused(delegability), got {other:?}"),
     }
+    assert!(receipt.inner.is_empty(), "no executed receipts survive a delegability refusal");
+}
+
+#[test]
+fn human_only_binding_on_an_unused_capability_does_not_refuse() {
+    // restore-receipt lives in the RepairReceiptWorkflow fragment; the
+    // daily-bread firing never grounds it, so its human-only grade is not
+    // this firing's business.
+    let base = kernel_with_cap_binding("restoreReceipt", "human-only", "deterministic-v1");
+    let reference = Reference::genesis(&base).expect("admits");
+    let registry = HandlerRegistry::builtin();
+    let source = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."));
+
+    let receipt = fire_hooks(&reference, &source, &registry, &[]).expect("fires");
+    assert_eq!(receipt.outcome, FiringOutcome::Completed, "unrelated binding must not refuse");
+    assert_eq!(receipt.inner.len(), 1, "daily-bread still grounded");
+    replay_firing(&receipt, &base, &source, &registry, &[]).expect("replays");
 }
 
 #[test]

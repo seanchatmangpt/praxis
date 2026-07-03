@@ -18,7 +18,7 @@
 //! mechanically); a2a-rs `a2a:hasCapability`; open-ontologies
 //! `port:cellAgent`.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -191,7 +191,22 @@ impl HandlerRegistry {
     /// Judge every binding BEFORE solving: an unknown handler IRI is a
     /// typed refusal naming the known table; a grade below `automatable`
     /// is a delegability violation (the action parks for the human).
+    ///
+    /// This is the UNSCOPED judgment: delegability is checked for every
+    /// binding regardless of use. The firing pipeline instead splits it
+    /// into [`Self::judge_known`] (global, pre-solve) and
+    /// [`Self::judge_delegability`] (scoped to the capabilities a fired
+    /// action actually uses).
     pub fn judge(&self, bindings: &[HandlerBinding]) -> Result<(), Refusal> {
+        self.judge_known(bindings)?;
+        let all: BTreeSet<String> = bindings.iter().map(|b| b.capability.clone()).collect();
+        self.judge_delegability(bindings, &all)
+    }
+
+    /// Judge handler EXISTENCE only, for every binding in the graph — this
+    /// check is global and runs BEFORE any solving: an unknown handler IRI
+    /// anywhere in the admitted graph refuses the whole firing.
+    pub fn judge_known(&self, bindings: &[HandlerBinding]) -> Result<(), Refusal> {
         for b in bindings {
             if !self.contains(&b.handler) {
                 return Err(Refusal::UnknownHandler {
@@ -199,6 +214,25 @@ impl HandlerRegistry {
                     handler: b.handler.clone(),
                     known: self.known.keys().cloned().collect(),
                 });
+            }
+        }
+        Ok(())
+    }
+
+    /// Judge delegability ONLY for bindings whose capability is in `used`
+    /// — the capability names a fired action's derived plan actually
+    /// executes. A `human-only` binding on a capability no fired action
+    /// touches must not refuse the firing; one the plan would execute is a
+    /// typed [`Refusal::DelegabilityViolation`] (the action parks for the
+    /// human).
+    pub fn judge_delegability(
+        &self,
+        bindings: &[HandlerBinding],
+        used: &BTreeSet<String>,
+    ) -> Result<(), Refusal> {
+        for b in bindings {
+            if !used.contains(&b.capability) {
+                continue;
             }
             if b.delegability < Delegability::Automatable {
                 return Err(Refusal::DelegabilityViolation {
