@@ -48,6 +48,7 @@ pub mod livelock;
 pub mod park;
 pub mod pipeline;
 pub mod quarantine;
+pub mod reality;
 pub mod rel;
 pub mod sequence;
 pub mod solver8;
@@ -61,9 +62,11 @@ pub use datalog::{Atom, DlRule, Program, SaturationReceipt, Term};
 pub use glue::{compose_workflows, execute_composed, ComposedGraph, ComposedWorkflowReceipt};
 pub use delta::GraphDelta;
 pub use envelope::{wrap_firing_receipt, wrap_workflow_receipt, verify_envelope_chain, PayloadRef, ReceiptEnvelope};
-pub use graph::{
-    execute_workflow, execute_workflow_with, replay_workflow, WorkflowIr, WorkflowReceipt,
-};
+#[deprecated(since = "26.7.2", note = "use RiceQuarantine and Admission instead")]
+pub use graph::execute_workflow;
+#[deprecated(since = "26.7.2", note = "use RiceQuarantine and Admission instead")]
+pub use graph::execute_workflow_with;
+pub use graph::{replay_workflow, WorkflowIr, WorkflowReceipt};
 pub use firing::{fire_hooks, replay_firing, window_history_hash, FiringOutcome, HookFiringReceipt};
 pub use ground::{capability_task_spec, ground_fired_action, CapabilityTaskSpec};
 pub use handlers::{Delegability, HandlerBinding, HandlerRegistry};
@@ -78,6 +81,7 @@ pub use livelock::{
 pub use quarantine::{
     Admission, AdmissionRecord, AdmittedEvent, MeaningSource, Origin, Reference, RiceQuarantine,
 };
+pub use reality::{RealityAddressRecord, SPACE_PREDICATE, PROVENANCE_PREDICATE, TIME_PREDICATE};
 pub use pipeline::{Synthesis, SynthesisReceipt};
 pub use sequence::{
     BoundStep, BoundedCsp, Capability, Constraint, SequencePlan, SequenceProblem, SolveReceipt,
@@ -300,6 +304,16 @@ pub enum Refusal {
         /// The subject IRI of the offending node (or `(registry)`).
         subject: String,
         /// What shape or spawn-law rule was violated.
+        detail: String,
+    },
+    /// A subject has none of the three public-ontology anchors (OWL-Time,
+    /// GeoSPARQL, PROV-O) and is therefore not a reality address — refused
+    /// rather than returned as an empty-but-valid-looking record.
+    #[error("reality address ill-formed at {subject}: {detail}")]
+    RealityAddressIllFormed {
+        /// The subject IRI that lacks any anchor.
+        subject: String,
+        /// Which anchors were checked and found absent.
         detail: String,
     },
 }

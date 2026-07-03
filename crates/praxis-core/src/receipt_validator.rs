@@ -163,6 +163,18 @@ impl ReceiptValidator {
     }
 
     fn check_chain_linkage(records: &[ReceiptRecord]) -> StageResult {
+        if !records.is_empty() {
+            let genesis_hex = hex::encode(crate::receipt_store::GENESIS_CHAIN_HASH);
+            if records[0].prev_chain_hash_hex != genesis_hex {
+                return StageResult::new(
+                    "chain_linkage",
+                    CheckOutcome::Fail(format!(
+                        "record 0: prev_chain_hash_hex ({}) does not match genesis anchor ({})",
+                        records[0].prev_chain_hash_hex, genesis_hex
+                    )),
+                );
+            }
+        }
         for i in 1..records.len() {
             let expected_prev = &records[i - 1].chain_hash_hex;
             let actual_prev = &records[i].prev_chain_hash_hex;

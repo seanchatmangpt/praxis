@@ -104,6 +104,8 @@ impl ReceiptRecord {
             activity_idx: self.activity_idx,
             node_kind: self.node_kind,
             ts_ns: Some(self.ts_ns),
+            andon: self.andon.clone(),
+            object_ids: self.object_ids.clone(),
             ..Default::default()
         }
     }

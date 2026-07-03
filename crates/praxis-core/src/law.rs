@@ -171,7 +171,7 @@ pub trait Admit {
 /// carries, which is bound separately via `obj_refs`). Passing them in
 /// explicitly (rather than hardcoding zero) lets callers place receipts at
 /// the correct sequence position, activity, and POWL node classification.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ReceiptMeta {
     /// Monotonically increasing step identity within a run.
     pub instruction_id: u64,
@@ -191,6 +191,10 @@ pub struct ReceiptMeta {
     /// receipt records what was actually waved through, not a fiction.
     /// Defaults to `DenialPolarity::ADMITTED`.
     pub denial: DenialPolarity,
+    /// Halt/override status.
+    pub andon: Andon,
+    /// Associated object IDs.
+    pub object_ids: Vec<String>,
 }
 
 impl Default for ReceiptMeta {
@@ -205,6 +209,8 @@ impl Default for ReceiptMeta {
             node_kind: 0,
             ts_ns: None,
             denial: DenialPolarity::ADMITTED,
+            andon: Andon::Green,
+            object_ids: Vec::new(),
         }
     }
 }
@@ -242,8 +248,14 @@ pub(crate) fn build_admission_frame(
     meta: &ReceiptMeta,
     ts_ns: u64,
 ) -> OcelCausalFrame {
+    let meta_json = serde_json::to_vec(&(&meta.andon, &meta.object_ids)).unwrap();
+    let mut combined = Vec::with_capacity(32 + meta_json.len());
+    combined.extend_from_slice(payload_hash);
+    combined.extend_from_slice(&meta_json);
+    let mixed_hash = *blake3::hash(&combined).as_bytes();
+
     let mut obj_refs = [PackedObjRef::default(); 8];
-    for (i, word) in payload_hash.chunks_exact(4).enumerate() {
+    for (i, word) in mixed_hash.chunks_exact(4).enumerate() {
         let w = u32::from_le_bytes([word[0], word[1], word[2], word[3]]);
         obj_refs[i] = PackedObjRef(w);
     }
@@ -299,6 +311,13 @@ impl<Payload: Serialize, Law> LawObject<Payload, Admitted, Law> {
         let payload_bytes = serde_json::to_vec(&self.payload)
             .map_err(|e| crate::error::CoreError::SerializationFailed(e.to_string()))?;
         let payload_hash: [u8; 32] = *blake3::hash(&payload_bytes).as_bytes();
+        let payload_hash_hex = hex::encode(payload_hash);
+
+        let mut meta = meta.clone();
+        meta.andon = self.andon.clone();
+        if meta.object_ids.is_empty() {
+            meta.object_ids = vec![format!("law:{}", &payload_hash_hex[..16])];
+        }
 
         // Get current timestamp in nanoseconds since UNIX_EPOCH, unless the
         // caller supplied a deterministic timestamp via `meta.ts_ns`.
@@ -306,7 +325,7 @@ impl<Payload: Serialize, Law> LawObject<Payload, Admitted, Law> {
             SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos() as u64
         });
 
-        let frame = build_admission_frame(&payload_hash, prev_chain_hash, meta, ts_ns);
+        let frame = build_admission_frame(&payload_hash, prev_chain_hash, &meta, ts_ns);
         let chain_hash = chain_from_frame(prev_chain_hash, &frame);
 
         Ok((payload_hash, ts_ns, chain_hash))
@@ -366,7 +385,18 @@ impl<Payload: Serialize, Law> LawObject<Payload, Admitted, Law> {
         (LawObject<Payload, Receipted, Law>, crate::receipt_record::ReceiptRecord),
         crate::error::CoreError,
     > {
-        let (payload_hash, ts_ns, chain_hash) = self.resolve_receipt(prev_chain_hash, &meta)?;
+        let payload_bytes = serde_json::to_vec(&self.payload)
+            .map_err(|e| crate::error::CoreError::SerializationFailed(e.to_string()))?;
+        let payload_hash: [u8; 32] = *blake3::hash(&payload_bytes).as_bytes();
+        let payload_hash_hex = hex::encode(payload_hash);
+
+        let mut meta = meta;
+        meta.andon = self.andon.clone();
+        if meta.object_ids.is_empty() {
+            meta.object_ids = vec![format!("law:{}", &payload_hash_hex[..16])];
+        }
+
+        let (_payload_hash, ts_ns, chain_hash) = self.resolve_receipt(prev_chain_hash, &meta)?;
         self.chain_hash = Some(chain_hash);
 
         #[cfg(feature = "signed")]
@@ -374,7 +404,6 @@ impl<Payload: Serialize, Law> LawObject<Payload, Admitted, Law> {
             self.signature = Some(crate::signing::sign_chain_hash(&chain_hash)?);
         }
 
-        let payload_hash_hex = hex::encode(payload_hash);
         let record = crate::receipt_record::ReceiptRecord {
             version: crate::receipt_record::RECEIPT_RECORD_VERSION,
             instruction_id: meta.instruction_id,
@@ -388,9 +417,9 @@ impl<Payload: Serialize, Law> LawObject<Payload, Admitted, Law> {
             payload_hash_hex: payload_hash_hex.clone(),
             prev_chain_hash_hex: hex::encode(prev_chain_hash),
             chain_hash_hex: hex::encode(chain_hash),
-            andon: self.andon.clone(),
+            andon: meta.andon.clone(),
             obligation_count: self.obligations.len() as u32,
-            object_ids: vec![format!("law:{}", &payload_hash_hex[..16])],
+            object_ids: meta.object_ids.clone(),
         };
 
         let receipted = LawObject {
@@ -514,7 +543,7 @@ mod tests {
         let meta = fixed_meta(1);
         let prev = [7u8; 32];
         let r1 = admitted(serde_json::json!({"a": 1}))
-            .receipt(&prev, meta)
+            .receipt(&prev, meta.clone())
             .expect("receipt should succeed");
         let r2 = admitted(serde_json::json!({"a": 1}))
             .receipt(&prev, meta)
@@ -533,7 +562,7 @@ mod tests {
         let meta = fixed_meta(1);
         let prev = [7u8; 32];
         let r1 = admitted(serde_json::json!({"a": 1}))
-            .receipt(&prev, meta)
+            .receipt(&prev, meta.clone())
             .expect("receipt should succeed");
         let r2 = admitted(serde_json::json!({"a": 2}))
             .receipt(&prev, meta)
@@ -547,7 +576,7 @@ mod tests {
         let _guard = test_signing_env();
         let meta = fixed_meta(1);
         let r1 = admitted(serde_json::json!({"a": 1}))
-            .receipt(&[1u8; 32], meta)
+            .receipt(&[1u8; 32], meta.clone())
             .expect("receipt should succeed");
         let r2 = admitted(serde_json::json!({"a": 1}))
             .receipt(&[2u8; 32], meta)
