@@ -168,6 +168,14 @@ pub fn handler_hash(bindings: &[HandlerBinding]) -> String {
 
 /// The closed handler table. Exact-key lookup ONLY — prefix, suffix, and
 /// convention matching are unrepresentable.
+///
+/// Richer agent metadata (declared tool sets, spawn-eligibility edges,
+/// layer depth) lives separately in [`crate::agent_registry`] — it is not
+/// yet consulted by `fire_hooks` or this registry's `judge*` methods.
+/// The two vocabularies (`wf:handler`/`wf:delegability` here vs.
+/// `agent:tool`/`agent:canSpawn`/`agent:layerDepth` there) are additive
+/// and must not silently diverge if either is later wired into the
+/// firing path.
 #[derive(Debug, Clone, Default)]
 pub struct HandlerRegistry {
     known: BTreeMap<String, ()>,
