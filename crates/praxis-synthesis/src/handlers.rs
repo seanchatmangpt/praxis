@@ -237,15 +237,17 @@ impl HandlerRegistry {
         bindings: &[HandlerBinding],
         used: &BTreeSet<String>,
     ) -> Result<(), Refusal> {
-        for b in bindings {
-            if !used.contains(&b.capability) {
-                continue;
-            }
-            if b.delegability < Delegability::Automatable {
+        for u in used {
+            let binding = bindings.iter().find(|b| b.capability == *u);
+            let delegability = match binding {
+                Some(b) => b.delegability,
+                None => Delegability::HumanOnly,
+            };
+            if delegability < Delegability::Automatable {
                 return Err(Refusal::DelegabilityViolation {
-                    capability: b.capability.clone(),
+                    capability: u.clone(),
                     required: "automatable".to_string(),
-                    declared: b.delegability.render().to_string(),
+                    declared: delegability.render().to_string(),
                 });
             }
         }
@@ -332,5 +334,31 @@ mod tests {
         let ha = handler_hash(&extract_bindings(&parse_ttl(&a).unwrap()).unwrap());
         let hb = handler_hash(&extract_bindings(&parse_ttl(&b).unwrap()).unwrap());
         assert_ne!(ha, hb, "the graph decides the binding; the hash proves which graph");
+    }
+
+    /// Adversarial finding: a `wf:Capability` with NO `wf:handler` at all
+    /// produces no binding (`extract_bindings` never sees it — it isn't a
+    /// shape violation, no `wf:handler` triple exists to judge). Before the
+    /// repair, `judge_delegability` only ever inspected bindings that
+    /// existed and were also `used`, so a used-but-completely-unbound
+    /// capability had NOTHING to check and passed silently — the
+    /// "legacy-lawful, default runner applies" reading swallowed a capability
+    /// that never opted into the delegability lattice at all. Delegability
+    /// enforcement must be a closed-world property of every USED capability,
+    /// not opt-in per capability: an unbound-but-used capability now
+    /// defaults to `HumanOnly` and is refused exactly as if it had been
+    /// declared `human-only` explicitly.
+    #[test]
+    fn used_capability_with_no_binding_at_all_defaults_to_human_only() {
+        let bindings: Vec<HandlerBinding> = Vec::new();
+        let used: BTreeSet<String> = ["unbound-cap".to_string()].into_iter().collect();
+        match HandlerRegistry::builtin().judge_delegability(&bindings, &used) {
+            Err(Refusal::DelegabilityViolation { capability, required, declared }) => {
+                assert_eq!(capability, "unbound-cap");
+                assert_eq!(required, "automatable");
+                assert_eq!(declared, "human-only");
+            }
+            other => panic!("expected DelegabilityViolation, got {other:?}"),
+        }
     }
 }
