@@ -21,21 +21,41 @@ fn src(adds: &str) -> MeaningSource {
     }
 }
 
+fn kernel_with_bindings(overrides: &[(&str, &str)]) -> String {
+    let mut base = KERNEL.to_string();
+    let all_caps = [
+        "orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt",
+        "confessDebt", "releaseResentment", "repairDebt", "restoreReceipt"
+    ];
+    for cap in &all_caps {
+        let delegability = overrides.iter()
+            .find(|(name, _)| name == cap)
+            .map(|(_, d)| *d)
+            .unwrap_or("verifiable");
+        base.push_str(&format!(
+            "\n<http://seanchatmangpt.github.io/praxis/prayer#{cap}> \
+             <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}deterministic-v1> ;\n\
+             <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"{delegability}\" .\n"
+        ));
+    }
+    base
+}
+
 fn kernel_with_cap_binding(cap_local: &str, delegability: &str) -> String {
-    format!(
-        "{KERNEL}\n\
-         <http://seanchatmangpt.github.io/praxis/prayer#{cap_local}> \
-         <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}deterministic-v1> ;\n\
-         <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"{delegability}\" .\n"
-    )
+    kernel_with_bindings(&[(cap_local, delegability)])
 }
 
 fn fire(base: &str, adds: &str) -> praxis_synthesis::HookFiringReceipt {
-    let reference = Reference::genesis(base).expect("base admits");
+    let base_str = if base == KERNEL {
+        kernel_with_bindings(&[])
+    } else {
+        base.to_string()
+    };
+    let reference = Reference::genesis(&base_str).expect("base admits");
     let registry = HandlerRegistry::builtin();
     let source = src(adds);
     let receipt = fire_hooks(&reference, &source, &registry, &[]).expect("receipted");
-    replay_firing(&receipt, base, &source, &registry, &[]).expect("replays");
+    replay_firing(&receipt, &base_str, &source, &registry, &[]).expect("replays");
     receipt
 }
 

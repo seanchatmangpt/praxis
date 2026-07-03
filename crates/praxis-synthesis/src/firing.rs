@@ -156,6 +156,36 @@ fn fold_firing_chain(
     fold_event(&chain, outcome_hash.as_bytes())
 }
 
+/// Refuse a delta that tries to introduce a brand-new `hook:Hook` /
+/// `wf:Workflow` / `wf:Capability` class definition. Hook and capability LAW
+/// is graph-declared at genesis only — a delta may assert DATA (facts a hook
+/// condition watches) but must never mint new executable definitions, which
+/// would let a proposer smuggle an unreviewed workflow straight into a
+/// firing.
+fn vocab_check(delta: &GraphDelta) -> Result<(), Refusal> {
+    let hook_hook = format!("{}Hook", crate::hooks::HOOK_NS);
+    let wf_workflow = format!("{}Workflow", crate::graph::WF_NS);
+    let wf_capability = format!("{}Capability", crate::graph::WF_NS);
+    let rdf_type = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+
+    for t in delta.additions() {
+        if t.p == rdf_type {
+            if let crate::graph::Object::Iri(class) = &t.o {
+                if class == &hook_hook || class == &wf_workflow || class == &wf_capability {
+                    return Err(Refusal::AdmissionRefused {
+                        subject: t.s.clone(),
+                        detail: format!(
+                            "proposing a new class definition of type '{}' is forbidden in deltas",
+                            class
+                        ),
+                    });
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Fire the full pipeline for one meaning source: quarantine → admission →
 /// handler-existence judgment (global, BEFORE any solving) → hook
 /// evaluation → grounded execution of fired actions with delegability
@@ -174,6 +204,7 @@ pub fn fire_hooks(
     history: &[GraphDelta],
 ) -> Result<HookFiringReceipt, Refusal> {
     let delta = RiceQuarantine::inspect(source)?;
+    vocab_check(&delta)?;
     let delta_ttl_hash = delta_ttl_hash(&source.adds_ttl, &source.removes_ttl);
     let event_hash = delta.event_hash();
     let event = Admission::admit(reference, &delta)?;
@@ -184,7 +215,7 @@ pub fn fire_hooks(
     // an unknown handler IRI anywhere in the graph refuses the firing.
     // Delegability is judged later, PER FIRED ACTION, against the
     // capabilities that action's derived plan actually uses.
-    let bindings = extract_bindings(event.post())?;
+    let bindings = extract_bindings(reference.triples())?;
     let handler_hash_v = handler_hash(&bindings);
     let history_hash_v = window_history_hash(history);
 
@@ -246,7 +277,7 @@ pub fn fire_hooks(
         return pre_evaluation_refusal("agent-spawn-depth", refusal.to_string());
     }
 
-    let hooks = extract_hooks(event.post())?;
+    let hooks = extract_hooks(reference.triples())?;
 
     // The surrender boundary is a runtime law, judged BEFORE any hook
     // evaluation: if the post-state declares a prayer kernel, no

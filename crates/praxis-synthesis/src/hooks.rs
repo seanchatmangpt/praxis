@@ -42,7 +42,7 @@ const HOOK_PREDICATES: [&str; 13] = [
 ];
 
 /// Max hooks per registry — the 8-bound.
-pub const MAX_HOOKS: usize = 8;
+pub const MAX_HOOKS: usize = 12;
 /// Max datalog program text bytes per hook condition.
 pub const MAX_PROGRAM_BYTES: usize = 4_096;
 
@@ -834,7 +834,7 @@ mod tests {
     #[test]
     fn registry_bound_and_duplicate_names_refused() {
         let mut body = String::new();
-        for i in 0..9 {
+        for i in 0..13 {
             body.push_str(&format!(
                 "ex:h{i} a hook:Hook ; hook:name \"h{i}\" ; hook:kind \"delta\" ; \
                  hook:var \"v\" ; hook:effect \"refuse\" ; hook:reason \"r\" .\n"
@@ -842,7 +842,7 @@ mod tests {
         }
         let triples = crate::graph::parse_ttl(&hook_doc(&body)).expect("parses");
         match extract_hooks(&triples) {
-            Err(Refusal::HookIllFormed { detail, .. }) => assert!(detail.contains("max 8")),
+            Err(Refusal::HookIllFormed { detail, .. }) => assert!(detail.contains("max 12")),
             other => panic!("expected registry bound refusal, got {other:?}"),
         }
     }

@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 use crate::graph::{execute_from_triples, Object, Triple, WorkflowReceipt, WF_NS};
 use crate::hooks::{EffectKind, HookVerdict, HookVerdictRecord, KnowledgeHook};
 use crate::quarantine::AdmittedEvent;
+use crate::handlers::extract_bindings;
 use crate::Refusal;
 
 const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
@@ -133,7 +134,72 @@ pub fn ground_fired_action(
         detail: format!("hook '{}' has no action IRI", record.hook_name),
     })?;
     let fragment = restrict_to_fragment(event.post(), action_iri)?;
-    execute_from_triples(&fragment)
+    let receipt = execute_from_triples(&fragment)?;
+
+    let mut pre_state = event.post().to_vec();
+    for t in event.delta().additions() {
+        if let Some(pos) = pre_state.iter().position(|x| x == t) {
+            pre_state.remove(pos);
+        }
+    }
+    for t in event.delta().removals() {
+        pre_state.push(t.clone());
+    }
+    pre_state.sort_unstable();
+    pre_state.dedup();
+
+    let bindings = extract_bindings(&pre_state)?;
+    let agents = crate::agent_registry::extract_agents(event.post())?;
+
+
+    let tool_p = format!("{}tool", crate::agent_registry::AGENT_NS);
+    let wf_tool_p = format!("{}tool", WF_NS);
+
+    for step in &receipt.plan.steps {
+        let cap_iri = event.post().iter().find_map(|t| {
+            if t.p == format!("{WF_NS}name") && matches!(&t.o, Object::Str(s) if s == &step.capability) {
+                Some(t.s.clone())
+            } else {
+                None
+            }
+        });
+
+        if let Some(cap_iri) = cap_iri {
+            if let Some(b) = bindings.iter().find(|b| b.capability == step.capability) {
+                if let Some(agent) = agents.iter().find(|a| a.iri == b.handler) {
+                    let mut required_tools = Vec::new();
+                    for t in event.post() {
+                        if t.s == cap_iri && (t.p == tool_p || t.p == wf_tool_p) {
+                            if let Object::Str(s) = &t.o {
+                                required_tools.push(s.clone());
+                            }
+                        }
+                    }
+
+                    let all_known_tools: Vec<String> = agents.iter().flat_map(|a| a.tools.clone()).collect();
+                    for tool in &all_known_tools {
+                        if step.capability.to_lowercase().starts_with(&tool.to_lowercase())
+                            && !required_tools.contains(tool)
+                        {
+                            required_tools.push(tool.clone());
+                        }
+                    }
+
+                    for req_tool in required_tools {
+                        if !agent.tools.iter().any(|t| t.eq_ignore_ascii_case(&req_tool)) {
+                            return Err(Refusal::DelegabilityViolation {
+                                capability: step.capability.clone(),
+                                required: format!("agent tool '{}'", req_tool),
+                                declared: format!("agent tools {:?}", agent.tools),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(receipt)
 }
 
 /// Project a fired hook into the PDDL-router bridge spec: the action

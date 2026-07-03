@@ -196,12 +196,15 @@ mod tests {
     }
 
     fn kernel_with_binding(delegability: &str, handler_local: &str) -> String {
-        format!(
-            "{KERNEL}\n\
-             <http://seanchatmangpt.github.io/praxis/prayer#orientToFather> \
-             <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}{handler_local}> ;\n\
-             <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"{delegability}\" .\n"
-        )
+        let mut base = KERNEL.to_string();
+        for cap in &["orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt"] {
+            base.push_str(&format!(
+                "\n<http://seanchatmangpt.github.io/praxis/prayer#{cap}> \
+                 <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}{handler_local}> ;\n\
+                 <http://seanchatmangpt.github.io/praxis/workflow#delegability> \"{delegability}\" .\n"
+            ));
+        }
+        base
     }
 
     /// Produce a real, distinct [`crate::HookFiringReceipt`] by firing the

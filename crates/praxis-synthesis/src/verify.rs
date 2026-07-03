@@ -92,13 +92,14 @@ pub fn admit(
     // ChainRecomputes: refold every node frame, byte-compare final link.
     let mut chain = genesis_seed(DAG_CHAIN_DOMAIN);
     for nr in &receipt.node_receipts {
-        let frame = serde_json::json!({
-            "node_id": nr.node_id,
-            "action_hash": nr.action_hash,
-            "input_hashes": nr.input_hashes,
-            "output_hash": nr.output_hash,
-        })
-        .to_string();
+        let mut map = std::collections::BTreeMap::new();
+        map.insert("node_id", serde_json::Value::String(nr.node_id.clone()));
+        map.insert("action_hash", serde_json::Value::String(nr.action_hash.clone()));
+        map.insert("input_hashes", serde_json::Value::Array(
+            nr.input_hashes.iter().map(|h| serde_json::Value::String(h.clone())).collect()
+        ));
+        map.insert("output_hash", serde_json::Value::String(nr.output_hash.clone()));
+        let frame = serde_json::to_string(&map).unwrap_or_default();
         chain = fold_event(&chain, frame.as_bytes());
     }
     let recorded = receipt.node_receipts.last().map_or_else(

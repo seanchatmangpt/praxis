@@ -102,3 +102,88 @@ fn unsafe_effect_variables_are_refused_at_problem_build() {
     let err = SequenceProblem::new(&p, bad, goal, 4, Vec::new()).expect_err("must refuse");
     assert!(matches!(err, Refusal::InvalidInput { .. }));
 }
+
+#[test]
+#[should_panic(expected = "index out of bounds: the len is 8 but the index is 8")]
+fn test_variable_out_of_bounds_panic() {
+    let (mut p, _, goal) = lawobject_domain();
+    let raw = p.dict.get("raw").expect("interned");
+    let evidence = p.dict.get("evidence").expect("interned");
+    p.saturate().expect("saturation");
+    let bad = vec![praxis_synthesis::Capability {
+        name: "bad".into(),
+        params: 9,
+        pre: vec![Atom::new(raw, vec![Term::Var(8)])], // Variable 8 is out of bounds (MAX_VARS is 8)
+        add: vec![Atom::new(evidence, vec![Term::Var(8)])],
+        del: vec![],
+        cost: 1,
+    }];
+    let problem = SequenceProblem::new(&p, bad, goal, 4, Vec::new()).expect("problem");
+    // This will panic due to out of bounds access in StateDb::join
+    let _ = BoundedCsp.solve(&problem);
+}
+
+#[test]
+fn test_after_constraint_logic_is_reversed() {
+    let (p, caps, goal) = lawobject_domain();
+    // After constraint: clear-obligations (a) must occur AFTER judge (b).
+    // So judge (b) must be placed before clear-obligations (a).
+    let constraints = vec![
+        praxis_synthesis::Constraint::After {
+            a: "clear-obligations".into(),
+            b: "judge".into(),
+        }
+    ];
+    let problem = SequenceProblem::with_constraints(&p, caps, goal, 6, constraints).expect("problem");
+    
+    // BoundedCsp ignores the After constraint during search, returning a plan:
+    // ["supply-evidence", "clear-obligations", "judge", "admit", "receipt"]
+    // where clear-obligations is BEFORE judge (which violates the semantic constraint).
+    let plan = BoundedCsp.solve(&problem).expect("BoundedCsp solves");
+    
+    // Yet, because the logic is reversed, plan_respects_constraints incorrectly returns true!
+    assert!(problem.plan_respects_constraints(&plan), "plan_respects_constraints incorrectly returns true");
+}
+
+#[test]
+fn test_solver8_after_constraint_contradiction() {
+    let (p, caps, goal) = lawobject_domain();
+    // After constraint: clear-obligations (a) must occur AFTER supply-evidence (b).
+    // This is already true in the normal plan: supply-evidence is step 0, clear-obligations is step 1.
+    // So this should be solvable, and the normal plan is valid.
+    let constraints = vec![
+        praxis_synthesis::Constraint::After {
+            a: "clear-obligations".into(),
+            b: "supply-evidence".into(),
+        }
+    ];
+    let problem = SequenceProblem::with_constraints(&p, caps, goal, 6, constraints).expect("problem");
+    
+    // In Solver8:
+    // 1. Propagation uses the reversed logic: it enforces clear-obligations (a) BEFORE supply-evidence (b).
+    // 2. Search enforces the correct logic: supply-evidence (b) BEFORE clear-obligations (a).
+    // Because they contradict, Solver8 will fail to find a plan!
+    let err = praxis_synthesis::Solver8.solve(&problem).expect_err("Solver8 fails due to propagation/search contradiction");
+    assert!(matches!(err, Refusal::Unsatisfiable { .. }));
+}
+
+
+#[test]
+fn test_impossible_goal_wastes_search_budget() {
+    let (mut p, caps, _) = lawobject_domain();
+    let unreachable = p.intern("unreachable");
+    let o1 = p.dict.get("o1").expect("interned");
+    p.saturate().expect("saturation");
+    // This goal predicate has 0 producers.
+    let goal = vec![Atom::new(unreachable, vec![Term::Const(o1)])];
+    let problem = SequenceProblem::new(&p, caps, goal, 6, Vec::new()).expect("problem");
+    
+    // Solver8 does not detect this statically because producers.len() == 0, not 1.
+    // So it goes to DFS, does search, and returns Unsatisfiable, not UnsatProof.
+    let err = praxis_synthesis::Solver8.solve(&problem).expect_err("must refuse");
+    assert!(
+        matches!(err, Refusal::Unsatisfiable { nodes_explored, .. } if nodes_explored > 0),
+        "Expected Unsatisfiable with search effort, got {:?}", err
+    );
+}
+
