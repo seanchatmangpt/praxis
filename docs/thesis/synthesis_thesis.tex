@@ -408,17 +408,27 @@ bucketing --- zero register changes.
 
 \begin{measurement}[The supervised cell, 10{,}000 members, release]
 \label{meas:cell}
-Overhead of supervision at fault rate $0$: $-2.7\%$ --- statistical noise;
-the healthy path is untaxed. Recovery counts track injected transient
-rates exactly: $69 / 608 / 3{,}179$ recovered at $1\% / 10\% / 50\%$.
-Throughput is \textbf{flat} across all fault rates
-(${\sim}15{,}000$ members/s at 0\%, 1\%, 10\%, and 50\%). The crash-looping
-template is detected at quorum and quarantined by epoch 2 in every
-configuration; final-epoch members of that class refuse cheaply instead of
-burning restarts. Every cell verifies in Rust, and
-\texttt{foreign\_verify.py} --- byte-unmodified --- verifies the
-supervised receipts. (Receipt: \texttt{receipts/supervised\_cell.json};
-regenerable by the committed harness.)
+Overhead of supervision at fault rate $0$: $-0.9\%$ \emph{of medians over
+five paired runs}, inside the baseline's own $\pm 5.7\%$ run spread ---
+statistical noise; the healthy path is untaxed. (The first edition of this
+measurement reported $-2.7\%$ from a \emph{single} sample; the harness now
+carries a self-refutation guard --- a negative overhead exceeding the
+baseline spread \emph{fails} the run instead of being published --- and
+the single-sample figure is retired.) Per-member latency at $10\%$ faults:
+p50 $34\,\mu$s, p99 $1.42$\,ms, worst $2.29$\,ms --- the tail the
+aggregate throughput was masking; verdicts are percentiles and worst
+cases, never minimums. Composition ratio (whole cell over the sum of
+individually timed members): $1.0004$ --- the roll-up machinery's priced
+cost. Recovery counts track injected transient rates exactly:
+$69 / 608 / 3{,}179$ recovered at $1\% / 10\% / 50\%$. Throughput is
+\textbf{flat} across all fault rates (${\sim}15{,}000$ members/s,
+recomputed from count and elapsed time). The crash-looping template is
+detected at quorum and quarantined by epoch 2 in every configuration;
+final-epoch members of that class refuse cheaply instead of burning
+restarts. Every cell verifies in Rust, and \texttt{foreign\_verify.py}
+--- byte-unmodified --- verifies the supervised receipts. (Receipt:
+\texttt{receipts/supervised\_cell.json}; regenerable by the committed
+harness.)
 \end{measurement}
 
 \begin{remark}[What flat throughput means]
