@@ -74,12 +74,19 @@ without actuation) → **praxis** (this crate: the actuation layer, closed).
 | `dag::execute_supervised` | net-new | crashes as values; classify→actuate closed; GaveUp = lawful Ok-receipt; crash chain anchored to geometry_hash |
 | `cell_supervise` | net-new | combo status lanes (provably-unreachable bit sets); MAPE-K at epoch boundaries; quarantine by cross-group quorum |
 
-Measured (`receipts/supervised_cell.json`, 10k members, release): supervision
-overhead at fault-rate 0 is noise-level; recovery counts track injected rates
-exactly (69/608/3,179 at 1%/10%/50%); throughput flat ~15k members/s across
-fault rates; crashloop template quarantined by epoch 2 in every run; every
-cell verified, and `foreign_verify.py` passes **unmodified** on supervised
-receipts.
+Measured (`receipts/supervised_cell.json` v2, 10k members, release, under
+the honesty-audit discipline of `tests/honesty_audit.rs`): supervision
+overhead is −0.9% **of medians over 5 paired runs**, inside the baseline's
+±5.7% run spread — noise, and the harness self-refutes if a negative
+overhead ever exceeds spread (the v1 single-sample −2.7% figure was retired
+by exactly that guard); per-member latency at 10% faults is p50 34µs /
+p99 1.42ms / worst 2.29ms — the tail the aggregate was masking; verdicts
+are never minimums; composition ratio (whole cell vs sum of members)
+measured at 1.0004; recovery counts track injected rates exactly
+(69/608/3,179 at 1%/10%/50%); throughput flat ~15k members/s across fault
+rates, recomputed from (count, elapsed); crashloop template quarantined by
+epoch 2 in every run; every cell verified, and `foreign_verify.py` passes
+**unmodified** on supervised receipts.
 
 ### Supervision refusals (receipted)
 | Refused | Reason | Salvage |
