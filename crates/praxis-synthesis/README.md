@@ -154,3 +154,28 @@ across runs, identical `chain` across whitespace/comment/ordering reformats
 from `ontology/workflow_demo.ttl`, hand-refolded chain equality, and an
 adversarial malformed-TTL sweep in which every document refuses without a
 panic. No performance claims are made for this layer; none were measured.
+
+## Trustless replay
+
+Two commands re-verify the cell and workflow receipts with no cargo and no
+crate source:
+
+```sh
+scripts/trustless_replay.sh package   # regenerate receipts/trustless/ (needs cargo)
+scripts/trustless_replay.sh verify    # bare dir, PATH = python3 + b3sum only
+```
+
+`verify` copies exactly six files (`foreign_verify.py`,
+`foreign_verify_graph.py`, `cell.json`, `groups.json`, `workflow.ttl`,
+`workflow_receipt.json`) into a fresh temp directory and runs both foreign
+verifiers under `env -i` with a PATH holding only `python3` and `b3sum`.
+
+What a pass proves: both receipts re-verify from JSON alone, by a second
+implementation in a second language using a second BLAKE3 binary, in a
+directory with no source. What it does not prove: the
+ir/plan/topology/geometry stage hashes are refolded as claimed, not
+re-derived (re-derivation requires `replay_workflow` in the Rust crate);
+nothing binds the artifacts to a git commit; and no container or namespace
+isolation is claimed — the guarantee is directory + PATH hygiene only, and
+the `python3`/`b3sum` used are the host's own binaries. Full recipe:
+`docs/TRUSTLESS_REPLAY.md`.

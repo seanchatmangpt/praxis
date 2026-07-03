@@ -75,6 +75,14 @@ impl CoreCache {
     pub fn plan_hits(&self) -> u64 {
         self.plan_hits
     }
+    /// Discard any cached plan and unsat core for `problem_hash`, forcing the
+    /// next `solve_cached` to genuinely re-derive. Node-fault injection uses
+    /// this; returns true if anything was evicted.
+    pub fn evict(&mut self, problem_hash: &str) -> bool {
+        let core = self.cores.remove(problem_hash).is_some();
+        let plan = self.plans.remove(problem_hash).is_some();
+        core || plan
+    }
 }
 
 /// The propagating solver. Stateless; pair with a [`CoreCache`] via

@@ -14,6 +14,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::cell_supervise::splitmix64;
 use crate::dag::{HashRunner, MemoCache};
 use crate::datalog::{Atom, Program, Term};
 use crate::sequence::{Capability, Constraint, SequenceProblem};
@@ -79,6 +80,22 @@ pub struct FleetReport {
     pub refused: usize,
     /// The fleet image: one status byte per pipeline, agent8 lanes.
     pub bytes: Vec<u8>,
+    /// Pipelines that lost their cache to injected node faults this run.
+    #[serde(default)]
+    pub faults_injected: usize,
+    /// Solver search nodes attributable to fault-forced re-solves.
+    #[serde(default)]
+    pub fault_resolve_nodes: u64,
+}
+
+/// Seed-deterministic node-fault script: a faulted pipeline loses its cached
+/// plan and its memoized DAG outputs for the template and re-solves for real.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NodeFaults {
+    /// Seed for the fault lottery.
+    pub seed: u64,
+    /// Probability (per mille) that a pipeline suffers a node fault.
+    pub fault_per_mille: u16,
 }
 
 impl FleetReport {
@@ -142,6 +159,79 @@ pub fn template(t: usize) -> (Program, Vec<Capability>, Vec<Atom>, Vec<Constrain
     (p, caps, goal, constraints)
 }
 
+/// One pipeline's measured outcome, folded into the fleet report by callers.
+struct PipelineOutcome {
+    byte: u8,
+    solver_nodes: u64,
+    executed_nodes: usize,
+    replayed_nodes: usize,
+    admitted: bool,
+}
+
+/// Run one pipeline over template `t`. If `evict` is set, the shared solve
+/// cache's plan/core entry for the template's problem hash is discarded
+/// first, so the solve genuinely re-derives (the node-fault semantics).
+fn run_pipeline(
+    t: usize,
+    memo: &mut MemoCache,
+    cores: &mut CoreCache,
+    evict: bool,
+) -> PipelineOutcome {
+    let (mut program, caps, goal, constraints) = template(t);
+    let mut byte = 0u8;
+    let mut out = PipelineOutcome {
+        byte: 0,
+        solver_nodes: 0,
+        executed_nodes: 0,
+        replayed_nodes: 0,
+        admitted: false,
+    };
+    let outcome: Result<(), Refusal> = (|| {
+        program.saturate()?;
+        byte |= lane::P_SATURATED;
+        let problem = SequenceProblem::with_constraints(
+            &program,
+            caps,
+            goal,
+            8,
+            constraints,
+        )?;
+        if evict {
+            cores.evict(problem.problem_hash());
+        }
+        let plan = Solver8.solve_cached(&problem, cores)?;
+        byte |= lane::R_PLANNED;
+        out.solver_nodes += plan.receipt.nodes_explored;
+        let dag = Dag::from_plan(&plan, &problem);
+        let dag_receipt = dag.execute(&mut HashRunner, memo)?;
+        byte |= lane::C_EXECUTED;
+        out.replayed_nodes += dag_receipt.replayed_count;
+        out.executed_nodes +=
+            dag_receipt.node_receipts.len() - dag_receipt.replayed_count;
+        let verdict = admit(&mut program, &problem, &plan, &dag, &dag_receipt);
+        if !verdict.ok {
+            return Err(Refusal::VerificationFailed { failed: verdict.failed() });
+        }
+        byte |= lane::A_ADMITTED;
+        Ok(())
+    })();
+    match outcome {
+        Ok(()) => out.admitted = true,
+        Err(refusal) => {
+            byte |= lane::H_HALTED;
+            byte |= match refusal {
+                Refusal::UnsatProof { .. } => lane::U_UNSAT_CERTIFIED,
+                Refusal::BudgetExceeded { .. } | Refusal::TupleCapExceeded { .. } => {
+                    lane::B_BUDGET
+                }
+                _ => lane::E_ERROR,
+            };
+        }
+    }
+    out.byte = byte;
+    out
+}
+
 /// Run a fleet of `n` pipelines drawn round-robin from `k` templates, with a
 /// shared memo cache and a shared unsat-core cache.
 ///
@@ -152,6 +242,26 @@ pub fn template(t: usize) -> (Program, Vec<Capability>, Vec<Atom>, Vec<Constrain
 pub fn run_fleet(
     n: usize,
     k: usize,
+    memo: &mut MemoCache,
+    cores: &mut CoreCache,
+) -> FleetReport {
+    run_fleet_faulted(n, k, NodeFaults { seed: 0, fault_per_mille: 0 }, memo, cores)
+}
+
+/// [`run_fleet`] with a seed-deterministic node-fault lottery: a faulted
+/// pipeline loses its cached plan/core for the template and its memoized DAG
+/// outputs, so it re-solves for real and re-executes cold — the "retries are
+/// novelty-bound" mechanism under test. At `fault_per_mille = 0` this is
+/// byte-identical to `run_fleet` by construction.
+///
+/// # Panics
+/// Panics only if a template is internally malformed (a bug, not an input).
+#[must_use]
+#[allow(clippy::missing_panics_doc)]
+pub fn run_fleet_faulted(
+    n: usize,
+    k: usize,
+    faults: NodeFaults,
     memo: &mut MemoCache,
     cores: &mut CoreCache,
 ) -> FleetReport {
@@ -167,53 +277,39 @@ pub fn run_fleet(
         admitted: 0,
         refused: 0,
         bytes: Vec::with_capacity(n),
+        faults_injected: 0,
+        fault_resolve_nodes: 0,
     };
     let hits_before_all = cores.hits();
     for i in 0..n {
         let t = i % k.max(1);
-        let (mut program, caps, goal, constraints) = template(t);
-        let mut byte = 0u8;
-        let outcome: Result<(), Refusal> = (|| {
-            program.saturate()?;
-            byte |= lane::P_SATURATED;
-            let problem = SequenceProblem::with_constraints(
-                &program,
-                caps,
-                goal,
-                8,
-                constraints,
-            )?;
-            let plan = Solver8.solve_cached(&problem, cores)?;
-            byte |= lane::R_PLANNED;
-            report.solver_nodes += plan.receipt.nodes_explored;
-            let dag = Dag::from_plan(&plan, &problem);
-            let dag_receipt = dag.execute(&mut HashRunner, memo)?;
-            byte |= lane::C_EXECUTED;
-            report.replayed_nodes += dag_receipt.replayed_count;
-            report.executed_nodes +=
-                dag_receipt.node_receipts.len() - dag_receipt.replayed_count;
-            let verdict = admit(&mut program, &problem, &plan, &dag, &dag_receipt);
-            if !verdict.ok {
-                return Err(Refusal::VerificationFailed { failed: verdict.failed() });
+        let faulted = faults.fault_per_mille > 0
+            && splitmix64(faults.seed ^ i as u64) % 1000
+                < u64::from(faults.fault_per_mille);
+        let out = if faulted {
+            report.faults_injected += 1;
+            // The faulted pipeline's DAG runs against a fresh scratch memo
+            // (cold nodes counted honestly), merged back afterward: the
+            // retry repopulates the shared cache.
+            let mut scratch = MemoCache::new();
+            let out = run_pipeline(t, &mut scratch, cores, true);
+            for (key, payload) in scratch.iter_raw() {
+                memo.insert_raw(key.clone(), payload.clone());
             }
-            byte |= lane::A_ADMITTED;
-            Ok(())
-        })();
-        match outcome {
-            Ok(()) => report.admitted += 1,
-            Err(refusal) => {
-                report.refused += 1;
-                byte |= lane::H_HALTED;
-                byte |= match refusal {
-                    Refusal::UnsatProof { .. } => lane::U_UNSAT_CERTIFIED,
-                    Refusal::BudgetExceeded { .. } | Refusal::TupleCapExceeded { .. } => {
-                        lane::B_BUDGET
-                    }
-                    _ => lane::E_ERROR,
-                };
-            }
+            report.fault_resolve_nodes += out.solver_nodes;
+            out
+        } else {
+            run_pipeline(t, memo, cores, false)
+        };
+        report.solver_nodes += out.solver_nodes;
+        report.executed_nodes += out.executed_nodes;
+        report.replayed_nodes += out.replayed_nodes;
+        if out.admitted {
+            report.admitted += 1;
+        } else {
+            report.refused += 1;
         }
-        report.bytes.push(byte);
+        report.bytes.push(out.byte);
     }
     report.core_hits = cores.hits() - hits_before_all;
     report.elapsed_ns = start.elapsed().as_nanos();
@@ -229,6 +325,23 @@ pub fn overlap_curve(n: usize, ks: &[usize]) -> Vec<FleetReport> {
             let mut memo = MemoCache::new();
             let mut cores = CoreCache::new();
             run_fleet(n, k, &mut memo, &mut cores)
+        })
+        .collect()
+}
+
+/// [`overlap_curve`] under the node-fault lottery: fresh caches per point,
+/// the same fault script applied at every K.
+#[must_use]
+pub fn overlap_curve_faulted(
+    n: usize,
+    ks: &[usize],
+    faults: NodeFaults,
+) -> Vec<FleetReport> {
+    ks.iter()
+        .map(|&k| {
+            let mut memo = MemoCache::new();
+            let mut cores = CoreCache::new();
+            run_fleet_faulted(n, k, faults, &mut memo, &mut cores)
         })
         .collect()
 }
