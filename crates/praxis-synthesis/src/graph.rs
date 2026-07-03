@@ -1250,7 +1250,9 @@ fn fold_chain(
 /// geometry → derive DAG → supervised execution. Returns the receipt whose
 /// `chain` folds `graph_hash` first, then each derived stage in order.
 /// Every failure on any path is a typed [`Refusal`]; nothing panics.
+#[deprecated(since = "26.7.2", note = "use RiceQuarantine and Admission instead")]
 pub fn execute_workflow(ttl: &str) -> Result<WorkflowReceipt, Refusal> {
+    #[allow(deprecated)]
     execute_workflow_with(ttl, &mut DeterministicRunner)
 }
 
@@ -1260,6 +1262,7 @@ pub fn execute_workflow(ttl: &str) -> Result<WorkflowReceipt, Refusal> {
 /// blanket-adapted. The default path (`execute_workflow`) injects the
 /// private deterministic runner and is byte-identical to the pre-seam
 /// behavior.
+#[deprecated(since = "26.7.2", note = "use RiceQuarantine and Admission instead")]
 pub fn execute_workflow_with(
     ttl: &str,
     runner: &mut dyn crate::dag::FallibleRunner,
@@ -1357,7 +1360,8 @@ pub fn replay_workflow(receipt: &WorkflowReceipt, ttl: &str) -> Result<(), Refus
     // whose hash fields are honest but whose `plan`/`supervised` bodies are
     // forged must not pass replay (a consumer reading the bodies instead of
     // the hashes would otherwise be deceived).
-    if receipt.plan.receipt.plan_hash != receipt.plan_hash {
+    let computed_plan_hash = crate::sequence::plan_hash_of(&receipt.plan.steps);
+    if computed_plan_hash != receipt.plan_hash || receipt.plan.receipt.plan_hash != receipt.plan_hash {
         return Err(Refusal::VerificationFailed {
             failed: vec!["plan payload".to_string()],
         });

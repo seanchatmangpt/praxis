@@ -179,7 +179,7 @@ fn apply(c: &Constraint, idx: &BTreeMap<&str, usize>, masks: &mut Masks) -> bool
             let keep = if *k >= 16 { 0 } else { !((1u16 << k) - 1) };
             narrow(idx[a.as_str()], keep, masks);
         }
-        Constraint::Before { a, b } | Constraint::After { b, a } => {
+        Constraint::Before { a, b } | Constraint::After { a: b, b: a } => {
             let (ia, ib) = (idx[a.as_str()], idx[b.as_str()]);
             // earliest(b) > earliest(a): clear b's bits at or below a's earliest.
             if masks[ia] != 0 {
@@ -296,6 +296,19 @@ fn missing_support(
     problem: &SequenceProblem,
     mandatory: &BTreeSet<usize>,
 ) -> Option<(String, String)> {
+    // Check if any goal predicate not in the initial state has 0 producers.
+    for goal_atom in &problem.goal {
+        let pred = goal_atom.pred.0;
+        if !init_has(problem, pred) && producers_of(problem, pred).is_empty() {
+            let name = problem
+                .pred_names
+                .get(&pred)
+                .cloned()
+                .unwrap_or_else(|| format!("pred#{pred}"));
+            return Some(("Goal".to_string(), name));
+        }
+    }
+
     for &m in mandatory {
         for pre in &problem.caps[m].pre {
             let pred = pre.pred.0;

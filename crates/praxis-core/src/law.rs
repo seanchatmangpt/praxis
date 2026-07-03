@@ -195,6 +195,8 @@ pub struct ReceiptMeta {
     pub andon: Andon,
     /// Associated object IDs.
     pub object_ids: Vec<String>,
+    /// Number of obligations.
+    pub obligation_count: u32,
 }
 
 impl Default for ReceiptMeta {
@@ -211,6 +213,7 @@ impl Default for ReceiptMeta {
             denial: DenialPolarity::ADMITTED,
             andon: Andon::Green,
             object_ids: Vec::new(),
+            obligation_count: 0,
         }
     }
 }
@@ -248,7 +251,7 @@ pub(crate) fn build_admission_frame(
     meta: &ReceiptMeta,
     ts_ns: u64,
 ) -> OcelCausalFrame {
-    let meta_json = serde_json::to_vec(&(&meta.andon, &meta.object_ids)).unwrap();
+    let meta_json = serde_json::to_vec(&(&meta.andon, &meta.object_ids, &meta.obligation_count)).unwrap();
     let mut combined = Vec::with_capacity(32 + meta_json.len());
     combined.extend_from_slice(payload_hash);
     combined.extend_from_slice(&meta_json);
@@ -315,6 +318,7 @@ impl<Payload: Serialize, Law> LawObject<Payload, Admitted, Law> {
 
         let mut meta = meta.clone();
         meta.andon = self.andon.clone();
+        meta.obligation_count = self.obligations.len() as u32;
         if meta.object_ids.is_empty() {
             meta.object_ids = vec![format!("law:{}", &payload_hash_hex[..16])];
         }

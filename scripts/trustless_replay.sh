@@ -117,7 +117,7 @@ EOF
 cmd="${1:-verify}"
 case "${cmd}" in
     package) package ;;
-    verify)  shift || true; verify "${@}" ;;
+    verify)  shift || true; verify "${@:+"$@"}" ;;
     *)
         echo "usage: trustless_replay.sh [package|verify [artifact-dir]]" >&2
         exit 2

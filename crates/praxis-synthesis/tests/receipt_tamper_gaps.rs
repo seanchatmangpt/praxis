@@ -177,10 +177,12 @@ fn substituting_inner_receipt_from_a_different_firing_is_refused() {
 }
 
 /// Demonstrates that a forged plan steps payload behind an honest plan hash
-/// is completely accepted by `replay_workflow` (the trustless replay verifier).
+/// is now caught by `replay_workflow` (the trustless replay verifier).
 #[test]
 fn mutating_plan_steps_retains_honest_plan_hash_and_passes_replay() {
+    #[allow(deprecated)]
     let ttl_demo = include_str!("../ontology/workflow_demo.ttl");
+    #[allow(deprecated)]
     let mut receipt = praxis_synthesis::execute_workflow(ttl_demo).expect("demo executes");
 
     // Clear steps of the plan, which is a major forgery of the plan's payload body.
@@ -188,9 +190,9 @@ fn mutating_plan_steps_retains_honest_plan_hash_and_passes_replay() {
     receipt.plan.steps.clear();
 
     // Verify it with replay_workflow.
-    // It passes because replay_workflow only checks `receipt.plan.receipt.plan_hash == receipt.plan_hash`,
-    // and both of those remain the honest plan hash! It never hashes receipt.plan.steps!
+    // It is rejected because replay_workflow now hashes receipt.plan.steps and compares it.
     let result = praxis_synthesis::replay_workflow(&receipt, ttl_demo);
-    assert!(result.is_ok(), "replay_workflow should have rejected the mutated plan steps but didn't");
+    let err = result.expect_err("replay_workflow must reject the mutated plan steps");
+    assert!(matches!(err, Refusal::VerificationFailed { .. }));
 }
 

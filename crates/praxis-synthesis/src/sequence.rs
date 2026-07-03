@@ -341,6 +341,20 @@ impl SequenceProblem {
             }
         }
         for cap in &capabilities {
+            for atom in cap.pre.iter().chain(cap.add.iter()).chain(cap.del.iter()) {
+                for t in &atom.args {
+                    if let Term::Var(v) = t {
+                        if usize::from(*v) >= MAX_VARS || usize::from(*v) >= usize::from(cap.params) {
+                            return Err(Refusal::InvalidInput {
+                                detail: format!(
+                                    "capability {}: variable ?{v} is out of bounds (params={}, MAX_VARS={})",
+                                    cap.name, cap.params, MAX_VARS
+                                ),
+                            });
+                        }
+                    }
+                }
+            }
             let bound: BTreeSet<u8> = cap
                 .pre
                 .iter()
@@ -469,7 +483,7 @@ impl SequenceProblem {
                 .collect()
         };
         self.constraints.iter().all(|c| match c {
-            Constraint::Before { a, b } | Constraint::After { b, a } => {
+            Constraint::Before { a, b } | Constraint::After { a: b, b: a } => {
                 let pa = positions(a);
                 positions(b).iter().all(|&j| pa.iter().any(|&i| i < j))
             }
@@ -619,9 +633,13 @@ impl Search<'_> {
                 continue;
             }
             // Before(a, b): b may not be placed until a has been.
+            // After(a, b): a may not be placed until b has been.
             let blocked = self.problem.constraints.iter().any(|c| match c {
                 Constraint::Before { a, b } => {
                     *b == cap.name && !steps.iter().any(|s| s.capability == *a)
+                }
+                Constraint::After { a, b } => {
+                    *a == cap.name && !steps.iter().any(|s| s.capability == *b)
                 }
                 _ => false,
             });

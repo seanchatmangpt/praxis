@@ -29,7 +29,7 @@ expression: verdict
     {
       "stage": "verify_commitments",
       "passed": false,
-      "detail": "record 1: prev_chain_hash (a7f2667d894adb2339a2d0d91ca780f769fbbde9cc7b96561793a5ec3adc5bda) does not commit to record 0's chain_hash (ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)"
+      "detail": "record 1: prev_chain_hash (d7a6adf5bbd16b3db23cc11de41f92fc73b42cc4e9503a7875c7e1dc184aad32) does not commit to record 0's chain_hash (ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)"
     },
     {
       "stage": "evaluate_profile",

@@ -1697,7 +1697,7 @@ dependencies = [
 
 [[package]]
 name = "ggen-config"
-version = "26.7.2"
+version = "26.7.3"
 dependencies = [
  "blake3",
  "chrono",
@@ -1716,7 +1716,7 @@ dependencies = [
 
 [[package]]
 name = "ggen-core"
-version = "26.7.2"
+version = "26.7.3"
 dependencies = [
  "Inflector",
  "ahash",
@@ -1807,7 +1807,7 @@ dependencies = [
 
 [[package]]
 name = "ggen-graph"
-version = "26.7.2"
+version = "26.7.3"
 dependencies = [
  "blake3",
  "chrono",
@@ -1826,7 +1826,7 @@ dependencies = [
 
 [[package]]
 name = "ggen-marketplace"
-version = "26.7.2"
+version = "26.7.3"
 dependencies = [
  "anyhow",
  "async-trait",

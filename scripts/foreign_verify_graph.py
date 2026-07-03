@@ -703,6 +703,22 @@ def verify_graph(ttl_path: str, receipt_path: str) -> int:
         return mismatch("chain", chain, recorded_chain)
 
     # Stage 4: plan payload binding (forged-body check from replay_workflow).
+    try:
+        steps_ordered = [
+            {"capability": step["capability"], "binding": step["binding"]}
+            for step in plan.get("steps", [])
+        ]
+        computed_plan_hash = b3(
+            json.dumps(steps_ordered, separators=(",", ":"), ensure_ascii=False)
+            .encode()
+        )
+    except (KeyError, TypeError) as e:
+        print(f"MISMATCH: failed to reconstruct plan steps: {e}")
+        return 1
+
+    if computed_plan_hash != claimed[1]:
+        return mismatch("plan_hash_of(steps)", computed_plan_hash, claimed[1])
+
     if plan_hash_bound != claimed[1]:
         return mismatch("plan payload", plan_hash_bound, claimed[1])
 
@@ -1123,10 +1139,14 @@ def verify_firing(base_path: str, adds_path: str, removes_path: str,
 
         # Stage 2: post state applied (removal-not-present refuses) and the
         # admission record rebuilt field for field (quarantine.rs serde
-        # order); the genesis reference is epoch 0, so admission epoch is 1.
+        # order). Parse the epoch from the receipt payload.
         post = apply_delta(base, additions, removals)
+        try:
+            epoch = int(admission_raw["epoch"])
+        except (KeyError, ValueError, TypeError):
+            epoch = 1
         record = {
-            "epoch": 1,
+            "epoch": epoch,
             "base_graph_hash": b3(canonical_form(base).encode()),
             "post_graph_hash": b3(canonical_form(post).encode()),
             "event_hash": event_hash,

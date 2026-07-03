@@ -104,7 +104,6 @@ fn unsafe_effect_variables_are_refused_at_problem_build() {
 }
 
 #[test]
-#[should_panic(expected = "index out of bounds: the len is 8 but the index is 8")]
 fn test_variable_out_of_bounds_panic() {
     let (mut p, _, goal) = lawobject_domain();
     let raw = p.dict.get("raw").expect("interned");
@@ -118,9 +117,8 @@ fn test_variable_out_of_bounds_panic() {
         del: vec![],
         cost: 1,
     }];
-    let problem = SequenceProblem::new(&p, bad, goal, 4, Vec::new()).expect("problem");
-    // This will panic due to out of bounds access in StateDb::join
-    let _ = BoundedCsp.solve(&problem);
+    let err = SequenceProblem::new(&p, bad, goal, 4, Vec::new()).expect_err("must refuse");
+    assert!(matches!(err, Refusal::InvalidInput { .. }));
 }
 
 #[test]
@@ -136,13 +134,10 @@ fn test_after_constraint_logic_is_reversed() {
     ];
     let problem = SequenceProblem::with_constraints(&p, caps, goal, 6, constraints).expect("problem");
     
-    // BoundedCsp ignores the After constraint during search, returning a plan:
-    // ["supply-evidence", "clear-obligations", "judge", "admit", "receipt"]
-    // where clear-obligations is BEFORE judge (which violates the semantic constraint).
-    let plan = BoundedCsp.solve(&problem).expect("BoundedCsp solves");
-    
-    // Yet, because the logic is reversed, plan_respects_constraints incorrectly returns true!
-    assert!(problem.plan_respects_constraints(&plan), "plan_respects_constraints incorrectly returns true");
+    // BoundedCsp now correctly respects the After constraint during search, which contradicts
+    // the causal dependency (judge requires clear-obligations), so the problem is unsatisfiable.
+    let err = BoundedCsp.solve(&problem).expect_err("BoundedCsp must refuse");
+    assert!(matches!(err, Refusal::Unsatisfiable { .. }));
 }
 
 #[test]
@@ -159,14 +154,14 @@ fn test_solver8_after_constraint_contradiction() {
     ];
     let problem = SequenceProblem::with_constraints(&p, caps, goal, 6, constraints).expect("problem");
     
-    // In Solver8:
-    // 1. Propagation uses the reversed logic: it enforces clear-obligations (a) BEFORE supply-evidence (b).
-    // 2. Search enforces the correct logic: supply-evidence (b) BEFORE clear-obligations (a).
-    // Because they contradict, Solver8 will fail to find a plan!
-    let err = praxis_synthesis::Solver8.solve(&problem).expect_err("Solver8 fails due to propagation/search contradiction");
-    assert!(matches!(err, Refusal::Unsatisfiable { .. }));
+    // With both propagation and search using corrected After logic, Solver8 resolves it successfully.
+    let plan = praxis_synthesis::Solver8.solve(&problem).expect("Solver8 solves successfully");
+    let order: Vec<&str> = plan.steps.iter().map(|s| s.capability.as_str()).collect();
+    assert_eq!(
+        order,
+        ["supply-evidence", "clear-obligations", "judge", "admit", "receipt"]
+    );
 }
-
 
 #[test]
 fn test_impossible_goal_wastes_search_budget() {
@@ -178,12 +173,11 @@ fn test_impossible_goal_wastes_search_budget() {
     let goal = vec![Atom::new(unreachable, vec![Term::Const(o1)])];
     let problem = SequenceProblem::new(&p, caps, goal, 6, Vec::new()).expect("problem");
     
-    // Solver8 does not detect this statically because producers.len() == 0, not 1.
-    // So it goes to DFS, does search, and returns Unsatisfiable, not UnsatProof.
+    // Solver8 now immediately detects this statically in missing_support and returns UnsatProof.
     let err = praxis_synthesis::Solver8.solve(&problem).expect_err("must refuse");
     assert!(
-        matches!(err, Refusal::Unsatisfiable { nodes_explored, .. } if nodes_explored > 0),
-        "Expected Unsatisfiable with search effort, got {:?}", err
+        matches!(err, Refusal::UnsatProof { .. }),
+        "Expected UnsatProof, got {:?}", err
     );
 }
 

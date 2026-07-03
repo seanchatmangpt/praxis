@@ -169,6 +169,15 @@ fn vocab_check(delta: &GraphDelta) -> Result<(), Refusal> {
     let rdf_type = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 
     for t in delta.additions() {
+        if t.s == hook_hook || t.s == wf_workflow || t.s == wf_capability {
+            return Err(Refusal::AdmissionRefused {
+                subject: t.s.clone(),
+                detail: format!(
+                    "modifying or defining the vocabulary class '{}' is forbidden in deltas",
+                    t.s
+                ),
+            });
+        }
         if t.p == rdf_type {
             if let crate::graph::Object::Iri(class) = &t.o {
                 if class == &hook_hook || class == &wf_workflow || class == &wf_capability {

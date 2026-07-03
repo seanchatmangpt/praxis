@@ -35,15 +35,11 @@
 //! coverage boundary is explicit and regression-guarded — if a future change
 //! starts catching them, these tests fail loudly and should be promoted to kills.
 //!
-//!   1. **Out-of-preimage field flips** (`andon`, `obligation_count`,
-//!      `object_ids`, `duration_ms`, `activity`). These fields are deliberately
-//!      excluded from the BLAKE3 chain preimage (`receipt_record.rs` documents
-//!      them as "purely descriptive"), and `token_replay` replays a fixed lawful
-//!      lifecycle that ignores them (`replay_adapter.rs`). Nothing hashes or
-//!      cross-checks them, so mutating them is undetectable. **Security note:**
-//!      this means `andon` (Green vs Halted) carries *no* integrity guarantee —
-//!      a persisted receipt's admission verdict can be flipped post-hoc without
-//!      detection. Flagged for the report.
+//!   1. **Out-of-preimage field flips** (`duration_ms`, `activity`). These fields
+//!      are deliberately excluded from the BLAKE3 chain preimage (`receipt_record.rs`
+//!      documents them as "purely descriptive"), and `token_replay` replays a fixed
+//!      lawful lifecycle that ignores them (`replay_adapter.rs`). Nothing hashes or
+//!      cross-checks them, so mutating them is undetectable.
 //!   2. **Tail drop** — removing the last record yields a strictly-shorter but
 //!      internally-consistent prefix. There is no persisted length/terminal
 //!      commitment, so a truncated ledger validates clean.
@@ -396,13 +392,12 @@ fn mutant_andon_flip_killed_at_chain_recompute() {
     assert_killed_at(&validate(&records), "chain_recompute");
 }
 
-/// SURVIVOR (class 1): `obligation_count` is descriptive metadata outside the
-/// preimage — mutating it is undetectable.
+/// Mutant: mutating `obligation_count` is now detected.
 #[test]
-fn survivor_obligation_count_flip_is_a_documented_gap() {
+fn mutant_obligation_count_flip_killed_at_chain_recompute() {
     let mut records = lawful_chain(3);
     records[1].obligation_count = records[1].obligation_count.wrapping_add(99);
-    assert!(validate(&records).ok, "KNOWN GAP: obligation_count is out-of-preimage and unchecked");
+    assert_killed_at(&validate(&records), "chain_recompute");
 }
 
 /// Mutant: mutating `object_ids` is now detected.

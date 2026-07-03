@@ -225,7 +225,7 @@ fn foreign_firing_verifier_fails_a_forged_admission_body_behind_an_honest_hash()
 
     // Forge the displayed admission body only — admission_hash (and every
     // other top-level hash string) is left exactly as honestly computed.
-    receipt.admission.epoch = 999;
+    receipt.admission.base_graph_hash = "0".repeat(64);
 
     let arts = Artifacts::write(
         "forged-admission",
