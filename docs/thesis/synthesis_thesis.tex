@@ -22,728 +22,526 @@
 \newtheorem{lineage}[theorem]{Lineage}
 
 % Notation
-\newcommand{\B}{\{0,1\}}
 \newcommand{\N}{\mathbb{N}}
 \newcommand{\HB}{\mathsf{H}}            % BLAKE3
 \newcommand{\fold}{\mathsf{fold}}
-\newcommand{\ca}{\mathsf{ca}}           % content address
+\newcommand{\ca}{\mathsf{ca}}
 \newcommand{\Tp}{T_{P}}
 \newcommand{\lfp}{\mathrm{lfp}}
 \newcommand{\Db}{\mathcal{D}}
-\newcommand{\Caps}{\mathcal{C}}
 \newcommand{\Plan}{\pi}
 \newcommand{\Dag}{G}
+\newcommand{\Topo}{\mathcal{T}}
+\newcommand{\Geo}{\Gamma}
 
-\title{\textbf{The Synthesis Prototype, With Its Supply Chain:}\\
-\large Derivation Replacing Authorship in a Bounded, Receipted Pipeline ---\\
-and the Fifty Years of Science Each Layer Stands On\\
-\normalsize semi-naive saturation $\to$ constraint-discovered sequencing $\to$
-content-addressed execution $\to$ refinement admission}
+\title{\textbf{Derived Plans, Derived Crashes:}\\
+\large The Synthesis Substrate, Third Edition ---\\
+Authorship Replaced by Derivation, for Success \emph{and} for Failure\\
+\normalsize saturate $\to$ sequence $\to$ execute $\to$ verify, now under
+derived supervision: topology $\to$ geometry $\to$ named branches $\to$ lawful recovery}
 \author{Sean Chatman \\ \small with the Praxis working system, \texttt{crates/praxis-synthesis} v26.7.2}
-\date{2 July 2026 --- Genesis, Day 9 (revised: the dependency edition)}
+\date{2--3 July 2026 --- Genesis, Days 9--10 (third edition: the fault-tolerant plans)}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
 \noindent
-The first edition of this paper described a working prototype,
-\texttt{praxis-synthesis}, in which a five-step plan that Genesis Day~2
-authored by hand in PDDL is instead \emph{derived}: from declared
-capabilities and a saturated fact base, a bounded solver discovers order and
-parameter bindings, executes the result as a content-addressed DAG, and
-admits the artifact through refinements that recompute rather than trust.
-Each research influence got one sentence. This revision pays the debt in
-full. Every layer of the prototype sits on a lineage of systems and theorems
---- Datalog's forty-year arc from Codd through semi-naive evaluation,
-worst-case-optimal joins, Souffl\'e, RDFox, QLever, and Nemo; the SAT/SMT
-arc from Davis--Putnam through CDCL, MiniSat, Z3, difference logic, and
-minimal-unsatisfiable-core extraction; the content-addressing arc from
-Merkle trees through Git, the Nix thesis, Bazel, and BLAKE3's descent from
-ChaCha; and the refinement-type arc from Freeman--Pfenning through liquid
-types to Flux --- plus the concrete crates the prototype actually links:
-\texttt{blake3}, \texttt{serde}, and the in-house \texttt{pddl-index},
-\texttt{chatman-common}, and \texttt{prolog8} whose designs are themselves
-positions taken in those lineages. We keep the ledger discipline of the
-first edition (theorem / measurement / refusal) and add a fourth label:
-\emph{lineage} --- who discovered it, in what system it shipped, and exactly
-which slice of it the 8-bounded doctrine takes. The thesis is unchanged and
-sharpened: \textbf{when capabilities are declared rather than plans
-authored, correctness moves from the author's head into the derivation
-chain --- and every link of that chain was forged by a community whose
-receipts are its papers.}
+The first edition of this paper showed a plan that had been hand-authored
+becoming a \emph{derived} artifact: from declared capabilities and a
+saturated fact base, a bounded solver discovers order and bindings, executes
+the result as a content-addressed DAG, and admits it through refinements
+that recompute rather than trust. The second edition traced every layer's
+scientific supply chain. Both editions shared a hidden assumption with
+almost all planning literature: \textbf{every step succeeds}. This edition
+removes it. Erlang's answer to failure --- isolate, supervise, restart ---
+was designed for a world where the crash space could not be seen in
+advance; the instruments of modern physics (the LHC's triggers, the EHT's
+reconstruction) teach the opposite discipline: predict the event
+signatures, then measure. We fuse the two: the \emph{planner's own
+analysis} now derives, before runtime, a supervision topology (stages and
+restart strategies earned from the plan's data-dependency structure) and a
+failure geometry (per-node ordered branches: named class, signal
+conjunction, lawful response), both content-addressed into the plan's
+receipt lineage. At runtime, crashes are values; every crash lands in a
+named branch or in the implicit, unshadowable \textsf{GeometryGap}; the
+four lawful responses (restart within an 8-bounded intensity, park with a
+guaranteed way back, refuse with a certificate naming the culprit fact,
+escalate) actuate under receipt; surrender itself is an \emph{Ok} result.
+The machinery is measured, not asserted: at 10{,}000 supervised cell
+members, supervision overhead is statistical noise, throughput is flat
+across fault rates from 0\% to 50\%, recovery counts track injected rates
+exactly, and a crash-looping workload class is quarantined by a
+cross-group quorum within one epoch --- while an unmodified foreign
+verifier still accepts every receipt. The design is a distillation of a
+real lineage (CNS's 8T/8H/8M doctrine, BitActor's tick budgets, ByteActor's
+bounded rings, knhk's classification-without-actuation), ported with
+receipted provenance and zero new dependencies. The thesis, extended:
+\textbf{authorship placed correctness in a head; derivation places it in a
+chain --- and a chain that names its own failure modes before they occur
+is the only kind a trillion agents can share.}
 \end{abstract}
 
 \tableofcontents
 
 %=====================================================================
-\section{Introduction: a Prototype Is a Position in Several Literatures}
+\section{The Removed Assumption}
 
-\texttt{praxis-synthesis} is 2{,}500 lines of bounded Rust that compose four
-capabilities: forward saturation of stratified Horn rules; discovery of
-capability sequences under eight constraint kinds, with certified refusals;
-content-addressed, memoized DAG execution; and refinement-style admission.
-The first edition derived the mathematics from first principles and measured
-the artifact. What it under-served is the fact that \emph{none of the four
-ideas is ours}. Each is the load-bearing conclusion of a research lineage,
-and the prototype's real design content is the set of choices about
-\emph{which slice} of each lineage survives contact with the project's
-standing doctrine: pure Rust, zero native dependencies, every loop capped,
-every cap violation a receipted refusal, everything replayable.
+A derived plan is a proof object: the solver's search establishes that the
+step sequence reaches the goal \emph{if each step behaves}. The first two
+editions stopped there, as does most of the planning literature --- PDDL
+semantics, like Hoare triples, speak of what holds \emph{after} an action,
+never of the action dying halfway. Real fleets die halfway constantly. The
+question this edition answers:
 
-The dependency manifest is short, and that is itself a claim:
+\begin{quote}
+\emph{Can failure handling be derived from the same declarations the plan
+was derived from --- so that recovery, like the plan, is a proof object
+rather than an improvisation?}
+\end{quote}
 
-\begin{center}
-\begin{tabular}{@{}lll@{}}
-\toprule
-dependency & kind & carries \\
-\midrule
-\texttt{pddl-index} (in-house) & path & dictionary interning, sorted-ID relations \\
-\texttt{chatman-common} (in-house) & path & BLAKE3 content addressing, rolling chains \\
-\texttt{blake3} (transitively) & crates.io & the hash function itself \\
-\texttt{serde}, \texttt{serde\_json} & crates.io & canonical serialization of receipts \\
-\texttt{thiserror} & crates.io & the refusal enum's error plumbing \\
-\midrule
-\emph{refused:} \texttt{z3}, \texttt{cvc5} & native & (Section~\ref{sec:smt}) \\
-\emph{refused:} \texttt{datafrog}/\texttt{ascent}/\texttt{crepe} & crates.io & (Section~\ref{sec:datalog}) \\
-\bottomrule
-\end{tabular}
-\end{center}
+Two traditions supply half-answers each.
 
-Sections \ref{sec:datalog}--\ref{sec:flux} each proceed the same way: the
-science and its history; the systems that industrialized it; the concrete
-dependency or in-house implementation the prototype uses; and what the
-8-bounded doctrine kept, dropped, and why. Section~\ref{sec:results}
-restates the measured results; Section~\ref{sec:refusals} re-receipts the
-refusals, now with their intellectual context.
+\begin{lineage}[Armstrong: failure as a normal, supervised event]
+Erlang/OTP \cite{armstrong} made three moves that survive every
+re-examination: processes are isolated so failure cannot spread by memory;
+supervisors --- not the failing code --- own the recovery decision; and
+restart strategies (\texttt{one\_for\_one}, \texttt{rest\_for\_one},
+\texttt{one\_for\_all}) plus a \emph{restart intensity} (max $N$ restarts
+per window, then give up upward) turn ``let it crash'' into a bounded,
+structured discipline. What OTP does \emph{not} do is derive the tree: a
+human writes the supervision hierarchy, and the crash space --- what can
+fail, with what signature, deserving what response --- lives in the
+programmer's head. Armstrong designed for a world where the far side of
+the moon could not be seen.
+\end{lineage}
+
+\begin{lineage}[The instrument sciences: predict, then measure]
+The LHC does not record every collision; its trigger system encodes, in
+advance, the signatures of events worth keeping \cite{lhc}. The EHT did
+not photograph a black hole; it reconstructed one from lawful projections
+gathered by an instrument \emph{designed around a predicted signal}
+\cite{eht}. The discipline common to both: enumerate the event geometry
+before the event, instrument for exactly those signatures, and treat
+anything outside the geometry as a first-class finding --- never as noise
+to be discarded silently.
+\end{lineage}
+
+\begin{lineage}[The 8-bounded actor lineage: CNS $\to$ BitActor $\to$ ByteActor $\to$ knhk]
+A parallel, in-house lineage spent 2025--2026 building the execution-side
+half. CNS fixed the doctrine: \textbf{8T/8H/8M} --- at most 8 ticks per
+hot operation, 8 hops per workflow, 8-byte quantization --- and shipped
+the canonical BitActor engine (\texttt{BITACTOR\_TICK\_BUDGET 8},
+zero-tick fast path, BLAKE3-sealed spec$\leftrightarrow$exec)
+\cite{bitactor}. ByteActor V3 productized it: 64-byte crystal envelopes,
+per-core bounded SPSC rings (the explicit anti-Akka move: no unbounded
+mailboxes, no GC pauses), ``Erlang coordinates, C executes''
+\cite{byteactor}. knhk carried the doctrine into ${\sim}250$K lines of
+Rust: a branchless \texttt{TickBudget} with the Chatman constant, a
+compile-time \texttt{ChatmanBounded} assertion, an R1/W1/C1 runtime-class
+taxonomy with per-class failure policies, and a \texttt{ParkManager} that
+demotes over-budget work with a typed cause \cite{knhk}. The lineage's
+three invariants never wavered: declared semantics compiled down;
+8-bounded execution with a zero-cost fast path; hash-sealed provenance.
+And the lineage's one persistent gap never closed: \textbf{classification
+without actuation}. knhk can say \emph{what kind} of failure occurred and
+\emph{what should} happen; nothing in the constellation restarts,
+re-admits, or closes the loop. Its parked work has no way back; its MAPE-K
+loop re-plans overlays but restarts nothing.
+\end{lineage}
+
+This edition is the fusion: OTP's actuation vocabulary, the instrument
+sciences' predict-then-measure stance, the lineage's bounded machinery ---
+and the synthesis substrate's own novelty, \emph{derivation}, applied to
+all of it. (Dependency note, receipted: the knhk machinery is
+\emph{ported}, not linked --- live build probes showed even its leanest
+crate drags an async/telemetry stack, and its receipt algebra is
+SHA3/ed25519 against praxis's BLAKE3 trust root. Every port carries a
+greppable \texttt{PORT(knhk)} provenance tag; the crate gained zero new
+dependencies.)
 
 %=====================================================================
-\section{Layer 1 --- Datalog: Forty Years from Codd to Nemo}
-\label{sec:datalog}
+\section{Derived Supervision Topology}
 
-\subsection{The science}
+\begin{definition}[Dependency depth and stages]
+Let $\Dag = (V, E)$ be the plan's data-dependency DAG (edge $u \to v$ iff
+an add-effect of $u$ feeds a precondition of $v$; first edition, \S4).
+Define $d(v) = 0$ for sources and $d(v) = 1 + \max_{u \to v} d(u)$
+otherwise. A \emph{stage} $S_k = \{v : d(v) = k\}$.
+\end{definition}
 
-\begin{lineage}[Relational foundations, 1970--1977]
-Datalog's substrate is Codd's relational model \cite{codd}: data as
-relations, queries as algebra. The fixpoint extension --- queries defined
-recursively as the least solution of rule sets --- entered through logic
-programming: Kowalski's predicate-logic-as-programming-language
-\cite{kowalski} and van Emden--Kowalski's semantics giving Horn programs a
-least Herbrand model computed by the immediate-consequence operator $\Tp$
-\cite{vanemden}. The mathematical warrant is Knaster--Tarski \cite{tarski}:
-$\Tp$ is monotone on the powerset lattice, so its least fixpoint exists and
-is the limit of the Kleene chain. Everything Layer~1 proves
-(Theorem~\ref{thm:lfp} of the first edition, restated below) is a
-finite-universe corollary of a 1955 fixpoint theorem.
-\end{lineage}
+\begin{definition}[Earned strategy]
+Stage $S_k$ supervises \textsc{RestForOne} iff some $v \in S_k$ has a
+nonempty transitive dependent set $D(v)$; otherwise \textsc{OneForOne}.
+The \emph{cohort} of $v$ is $\{v\} \cup D(v)$ under \textsc{RestForOne}
+and $\{v\}$ under \textsc{OneForOne}.
+\end{definition}
 
-\begin{lineage}[Datalog proper and semi-naive evaluation, 1980s]
-``Datalog'' names the function-symbol-free fragment studied intensively in
-the 1980s database-theory community; the canonical treatment is
-Abiteboul--Hull--Vianu \cite{abiteboul}. The decade's two durable
-algorithmic results are both in the prototype. \emph{Semi-naive evaluation}
-(Bancilhon; Balbin--Ramamohanarao \cite{bancilhon,balbin}) observes that a
-new derivation at round $i{+}1$ must use at least one premise from round
-$i$, so each rule need only be re-joined against the \emph{delta} --- work
-proportional to novelty, not to knowledge. \emph{Stratified negation}
-(Apt--Blair--Walker \cite{abw}) gives negation-as-failure a coherent
-semantics by layering predicates so that negation only consults strata
-already saturated; programs that cannot be layered (the win/lose pathology)
-are rejected. The prototype implements both exactly, and its
-\texttt{Unstratifiable} refusal is the ABW rejection surfaced as a receipt.
-\end{lineage}
+The strategy is not chosen; it is \emph{earned} by position: a producer
+whose outputs feed later work restarts together with that work, because
+its failure invalidates them; a leaf restarts alone. Two OTP strategies
+are deliberately absent, and the absences are load-bearing:
 
-\begin{lineage}[Worst-case-optimal joins, 2012--2018]
-Pairwise join plans are provably suboptimal on cyclic queries: for the
-triangle query $Q(x,y,z) \leftarrow e(x,y), e(y,z), e(x,z)$, any
-pair-at-a-time plan can materialize $\Theta(N^2)$ intermediate tuples
-against an output bounded by $O(N^{3/2})$. The bound is
-Atserias--Grohe--Marx (AGM) \cite{agm}; the algorithms meeting it are
-Ngo--Porat--R\'e--Rudra's NPRR \cite{nprr} and Veldhuizen's Leapfrog
-Triejoin \cite{leapfrog}, deployed commercially in LogicBlox. The essential
-move: eliminate \emph{variables}, not \emph{atoms} --- bind one variable at
-a time across all atoms that mention it, intersecting sorted candidate
-sets. The prototype's join (Section~\ref{sec:l1impl}) is a bounded cousin:
-greedy most-bound-first atom ordering with sorted prefix-range probes, which
-on the triangle pattern reduces the third atom to a single membership probe
---- the same ``never materialize the blowup'' effect at ${\le}\,8$
-atoms/variables, without the full variable-elimination machinery.
-\end{lineage}
+\begin{refusal}[No \textsc{OneForAll}]
+OTP justifies one-for-all by shared mutable fate between siblings. In an
+acyclic data-flow plan, same-depth siblings are independent \emph{by
+construction} --- the coupling one-for-all encodes is inexpressible. The
+variant does not appear in the \texttt{Strategy} enum at all; an
+exhaustive-match test makes its future addition a compilation event,
+forcing the doctrine conversation.
+\end{refusal}
 
-\begin{lineage}[The engines: Souffl\'e, RDFox, QLever, Nemo, and the Rust crates]
-The 2010s--2020s industrialized Datalog along four axes the prototype
-consciously samples. \emph{Souffl\'e} \cite{souffle} (Oracle Labs lineage;
-static-analysis workloads, notably Datalog-based points-to analysis)
-compiles rules to parallel C++ over specialized B-tree/trie relations ---
-the lesson that \emph{representation dominates}. \emph{RDFox}
-\cite{rdfox} (Oxford; Motik et al.) demonstrated dense-ID, in-memory,
-parallel materialization with incremental maintenance. \emph{QLever}
-\cite{qlever} (Freiburg; Bast et al.) showed that dictionary-encoding
-strings to dense integer IDs plus sorted permutations makes
-knowledge-graph-scale query answering a laptop matter --- this is the
-direct ancestor of praxis's in-house \texttt{pddl-index} crate (``the
-qlever treatment''), whose \texttt{Dict}/\texttt{SymId} interner Layer~1
-reuses verbatim. \emph{Nemo} \cite{nemo} (Dresden; Ivliev et al., ICLP
-2023) is the proximate inspiration surfaced by the research sweep: a Rust
-rule engine handling $10^5$--$10^8$ facts on commodity hardware, fully
-declarative, Apache/MIT --- proof that saturation at knowledge-graph scale
-needs no cluster. On crates.io, \texttt{datafrog} (the minimalist
-semi-naive core once inside Rust's Polonius borrow checker),
-\texttt{ascent}, and \texttt{crepe} (macro-embedded Datalog) were
-considered and \emph{refused} as dependencies: praxis needs runtime-loaded
-rules (not compile-time macros), receipted bounds, and its own interned ID
-space --- the intersection was small enough that a 500-line in-crate engine
-cost less than an integration seam (refusal receipted in
-Section~\ref{sec:refusals}).
-\end{lineage}
+\begin{refusal}[No \textsc{SimpleOneForOne}; intensity $> 8$ refused, not clamped]
+Derived plans have static step sets (dynamic children arrive via the
+incremental-assertion path, edition one \S2.4). And
+\texttt{RestartPolicy::new(9, \_)} returns a \textsf{Refusal} --- the byte
+governor applies to recovery itself, and silently clamping a stated policy
+would be the executor editing the operator's law.
+\end{refusal}
 
-\subsection{What the prototype takes}
-\label{sec:l1impl}
-
-From this lineage Layer~1 (\texttt{datalog.rs} + \texttt{rel.rs}) keeps:
-$\Tp$ and Knaster--Tarski (Theorem~\ref{thm:lfp}); semi-naive deltas
-(Proposition~\ref{prop:seminaive}); ABW stratification with the cycle
-refusal; QLever-style dictionary encoding via \texttt{pddl-index::Dict};
-Souffl\'e's representation lesson as columnar lexicographically sorted
-\texttt{Vec<[u32;8]>} relations with amortized tail merges; and the WCOJ
-\emph{intuition} as greedy bound-prefix join ordering. The doctrine adds
-what none of the engines ship: \textbf{the fixpoint as a value}
-(\textsf{fixpoint\_hash} = BLAKE3 over the sorted structural tuples) and
-\textbf{the closure as a ledger} (Section~\ref{sec:l1incr}) --- successive
-fixpoint hashes chained by $\fold$, so two agents can agree they reasoned
-from the same closure without exchanging it. One deliberate structural
-choice removes a whole failure class: with arity capped at 8, an atom's
-identity is its \emph{tuple}, `(pred, [u32;8])`, not a packed 64-bit hash
---- the birthday problem that haunts key-packed stores (and that the first
-edition had to caveat) is eliminated rather than bounded.
-
-\begin{theorem}[Existence and finiteness; restated]
-\label{thm:lfp}
-For a stratified program over a finite interned universe, per-stratum
-$\Tp$ is monotone on $(2^{\mathsf{Atoms}},\subseteq)$; its least fixpoint
-exists (Knaster--Tarski) and the ascending chain stabilizes finitely.
-\end{theorem}
-
-\begin{proposition}[Semi-naive soundness/completeness; restated]
-\label{prop:seminaive}
-Semi-naive evaluation with per-position delta restriction derives exactly
-the naive fixpoint. (Bancilhon's argument; duplicates are idempotent.)
+\begin{proposition}[The topology is a value]
+$\Topo = (\mathrm{stages}, \mathrm{policy})$ is produced only by
+\textsf{derive} (a sealed constructor: no literal construction compiles),
+and $\mathrm{topology\_hash} = \ca(\mathrm{stages} \,\Vert\,
+\mathrm{policy} \,\Vert\, \mathrm{plan\_hash} \,\Vert\,
+\mathrm{problem\_hash})$ joins the receipt lineage. Determinism is
+test-pinned: same plan, same hash.
 \end{proposition}
 
-\subsection{Incrementality: the ledger the literature does not ship}
-\label{sec:l1incr}
-
-Incremental view maintenance is a mature literature --- counting and
-DRed (delete-rederive) \cite{gupta}, and differential dataflow's general
-solution \cite{ddflow} (McSherry et al.; the Rust ecosystem's deepest entry
-here). The prototype's \texttt{assert\_facts} takes the \emph{additive}
-half: new facts resume semi-naive rounds from exactly the arrived delta,
-provably equal to batch re-saturation (test-pinned by identical fixpoint
-hashes). The \emph{subtractive} half (retraction, and additions under
-negation --- which are retractions in disguise) is where DRed's complexity
-lives, and the prototype \textbf{refuses} it: asserting into a program with
-negative rules returns a nonmonotonicity refusal naming the pathology,
-rather than a wrong closure. What it adds atop the literature is small and,
-to our knowledge, novel in packaging: each increment's fixpoint hash is
-folded onto the last --- an audit chain over \emph{reasoned states}, so the
-history of what was known is as replayable as the history of what was done.
+On the five-step lawobject chain the derivation yields five singleton
+stages, the first four \textsc{RestForOne} (each feeds everything after
+it) and the leaf \textsc{OneForOne}; the root's cohort is the whole plan,
+the leaf's is itself --- exactly the tree an Erlang engineer would have
+written by hand, now emitted by the same machinery that emitted the plan.
 
 %=====================================================================
-\section{Layer 2 --- Constraints: from Davis--Putnam to Certificates}
-\label{sec:smt}
+\section{Derived Failure Geometry}
 
-\subsection{The science}
+\subsection{Classes, signals, responses}
 
-\begin{lineage}[SAT: DP to CDCL to MiniSat, 1960--2003]
-Propositional satisfiability's modern arc runs from the Davis--Putnam
-procedure \cite{dp} and its backtracking refinement DPLL \cite{dpll}
-through the conflict-driven clause learning (CDCL) revolution --- GRASP
-(Marques-Silva--Sakallah \cite{grasp}) introduced learning from conflicts,
-Chaff (Moskewicz et al. \cite{chaff}) made unit propagation cheap with
-watched literals, and MiniSat (E\'en--S\"orensson \cite{minisat}) distilled
-the whole design into a few hundred lines that became the field's reference
-implementation. Two CDCL ideas matter to the prototype even though it
-contains no SAT solver: \emph{propagation before search} (deduce everything
-cheap before branching) and \emph{learning from failure} (a conflict is an
-artifact worth keeping). Solver8's mask propagation is the first idea; its
-core cache is the second, lifted from clauses to whole problems.
-\end{lineage}
+\begin{definition}[The eight classes]
+$\mathsf{FailureClass} = \{$\textsf{LogicFault}, \textsf{BudgetBreach},
+\textsf{AuthorityVacuum}, \textsf{TransientFault}, \textsf{Stall},
+\textsf{StarvedInput}, \textsf{CertifiedUnsat},
+\textsf{GeometryGap}$\}$ --- the semantic axis, capped at eight by the
+doctrine. knhk's R1/W1/C1 tiers ride orthogonally as data on each crash
+snapshot; fusing the axes would yield 24 variants, which is how
+taxonomies die.
+\end{definition}
 
-\begin{lineage}[SMT, DPLL(T), and Z3, 2006--present]
-Satisfiability modulo theories couples a CDCL core with theory solvers ---
-the DPLL(T) architecture (Nieuwenhuis--Oliveras--Tinelli \cite{dpllt}).
-Microsoft Research's Z3 (de Moura--Bj\o rner \cite{z3}, 2008) became the
-field's workhorse: linear arithmetic, arrays, bitvectors, quantifiers, used
-everywhere from program verification to the capability-sequencing research
-\cite{smtcap} that motivated this layer (K\"ocher et al.: declared
-capability models compiled to SMT, the solver discovering execution orders
-and parameter bindings --- exactly the prototype's Layer-2 contract). The
-theory slice the prototype actually needs is far smaller than Z3:
-\emph{difference logic}, constraints of the form $x - y \le c$, decidable
-by shortest-path / negative-cycle detection (Bellman--Ford) --- the
-fragment SMT solvers themselves dispatch to graph algorithms
-\cite{difflogic}. Solver8's \textsf{Before}/\textsf{NotLater}/%
-\textsf{NotEarlier} windows are difference logic over a 16-point timeline,
-which is why 16-bit masks suffice: the theory is small enough to be a
-bitwise operation.
-\end{lineage}
+\begin{definition}[Branch, geometry]
+A \emph{branch} is $(c, \Sigma, r)$: a class, a conjunction of signal
+predicates over a crash snapshot (retries-at-least, ticks-above-budget,
+crash-kind, refusal-head, no-progress, upstream-parked), and a lawful
+response $r \in \{\textsf{Restart}, \textsf{Park}(\rho),
+\textsf{Refuse}(\mathrm{core}), \textsf{Escalate}\}$. The \emph{geometry}
+$\Geo$ maps each node to an ordered branch list; classification is
+first-match-wins; $\mathrm{geometry\_hash} = \ca(\Geo \,\Vert\,
+\mathrm{topology\_hash})$.
+\end{definition}
 
-\begin{lineage}[Constraint propagation: AC-3, 1977]
-Independently of SAT, the constraint-satisfaction community built
-propagation as its primitive: Mackworth's AC-3 \cite{ac3} repeatedly
-revises variable domains against constraints until fixpoint, pruning
-before (or instead of) search. Solver8's window propagation \emph{is} AC-3
-with domains as \texttt{u16} bitmasks and revision as mask
-intersection/shift --- the doctrine's contribution is only the observation
-that horizon ${\le}\,16$ makes every domain a machine word, so a full
-propagation round is a handful of ALU operations per constraint.
-\end{lineage}
+\begin{theorem}[The gap is unshadowable]
+\label{thm:gap}
+\textsf{GeometryGap} is the value classification returns when no stored
+branch matches; it is never a member of any stored list (a structural
+invariant, test-enforced over every derived geometry). Consequently no
+branch ordering, addition, or deletion can capture, mask, or remove the
+gap outcome: the map admits its own incompleteness \emph{by construction},
+not by convention.
+\end{theorem}
 
-\begin{lineage}[Unsat cores and MUS extraction, 2000s--present]
-The product Layer~2 actually ships --- refusals as certificates --- has its
-own literature. Modern SAT solvers emit unsatisfiability proofs (DRAT
-\cite{drat}) that independent checkers verify; the celebrated 200TB
-Pythagorean-triples proof \cite{heule} made ``machine-checkable
-impossibility'' a headline result. A \emph{minimal unsatisfiable subset}
-(MUS) is an unsat core no proper subset of which is unsat; the standard
-deletion-based extractor (try removing each constraint; keep it iff
-satisfiability appears) is folklore formalized across
-\cite{mus1,mus2} with a rich engineering literature on doing better than
-$n$ solver calls. The 8-bounded doctrine makes the naive extractor
-\emph{optimal enough}: with ${\le}\,64$ constraints and propagation-only
-unsat checks costing microseconds, deletion-based MUS is ${\le}\,64$ mask
-fixpoints. The prototype's tests pin true minimality --- every proper
-subset of an emitted core fails to certify --- which is the MUS definition
-verified extensionally.
-\end{lineage}
+\begin{proof}
+Immediate: an unstorable value cannot be shadowed by stored values, and
+first-match-wins terminates in the implicit case exactly when all stored
+matches fail. The enforcement is the derivation function's type: branch
+lists are built from a constructor set that excludes the gap class.
+\end{proof}
 
-\subsection{What the prototype takes --- and the refusal that defines it}
+\subsection{Mining the branches from the plan's own analysis}
 
-Solver8 keeps: AC-3 as bitmask propagation; difference-logic windows;
-deletion-based MUS with named culprits; a mandatory-set analysis
-(sole-producer closure under \textsf{Requires}) that turns \emph{missing
-facts} into certificates too --- the self-application demo refuses to
-schedule \texttt{push} with core
-$[\textsf{MissingFact}(\mathit{authorization})]$, no search performed. The
-defining refusal: \textbf{no \texttt{z3}, no \texttt{cvc5}}. Both are
-mature native libraries; linking them breaks pure-Rust reproducible builds
-and imports megabytes of solver whose theories the problem does not need.
-The counter-bet, receipted: an 8-bounded kernel whose propagation
-vectorizes and whose refusals replay is worth more \emph{at fleet scale}
-than a general solver whose answers are oracular. The \textsf{Solver}
-trait remains the seam; if the falsifier sweep had broken the differential,
-that receipt would have argued for taking the native dependency after all.
-It did not break (Section~\ref{sec:results}).
+The geometry is not a template; parts of it are \emph{computed from the
+problem}. The decisive case:
+
+\begin{definition}[Fragile fact]
+A precondition predicate $p$ of capability $c$ is \emph{fragile} iff
+\textbf{no} capability in the problem produces $p$. The initial state is a
+one-time gift: if a fragile fact is lost mid-run, nothing in the plan can
+lawfully re-produce it --- whereas a fact with even one producer is
+recoverable by restarting that producer.
+\end{definition}
+
+For every fragile fact, derivation emits an \textsf{AuthorityVacuum}
+branch responding $\textsf{Refuse}([\textsf{MissingFact}(p)])$: the same
+producer analysis that powers Solver8's pre-search unsat certificates
+(edition one, \S3), now aimed at runtime loss. In the self-application
+domain, \texttt{push}'s \texttt{authorization} precondition is fragile;
+the derived geometry therefore guards, \emph{before runtime}, exactly the
+gate the release doctrine cares about --- and a runtime revocation of
+authorization refuses in \textbf{one crash, zero futile retries}, with the
+fact named in the certificate (test-pinned).
+
+An instructive honesty note: the first implementation of fragility
+($\neg\mathrm{init} \wedge \mathrm{producers} \le 1$) was wrong in both
+directions --- it guarded recoverable facts and missed init-only ones ---
+and was caught by its own two tests failing with \emph{inverted}
+expectations. The corrected rule ($\mathrm{producers} = 0$) is the one
+proved above. The method continues to catch its author.
+
+The remaining branches encode doctrine as order: a tick breach
+(\textsf{TicksAboveBudget}) refuses \emph{before} the time-tier
+over-budget branch can park it --- the hot path never retries over budget
+(knhk's R1 discipline, upgraded from a metrics counter to a certificate);
+\textsf{Stall} (second attempt, no progress) outranks
+\textsf{TransientFault}; a bad output earns exactly one restart and then a
+\textsf{Manual} park, because \emph{retry does not heal wrong
+computation}.
 
 %=====================================================================
-\section{Layer 3 --- Content Addressing: Merkle to Git to Nix to BLAKE3}
-\label{sec:ca}
+\section{Supervised Execution: the Loop Closed}
 
-\subsection{The science}
+\subsection{Crashes are values}
 
-\begin{lineage}[Hash trees and authenticated data, 1979--1990s]
-Merkle's 1979 thesis and the certified-digital-signature paper \cite{merkle}
-introduced the hash tree: name data by hashes of hashes, and membership,
-equality, and tamper-evidence become $O(\log n)$ comparisons. Every
-subsequent content-addressed system is a Merkle construction with a use
-case attached. The prototype's DAG receipt is two of them at once: the
-rolling chain ($h^{+} = \HB(h^{-} \Vert \mathrm{frame})$, a Merkle
-\emph{list} --- the same shape as a blockchain, used here without consensus
-theater) and the order-independent root (a Merkle \emph{set}: hash of
-sorted \texttt{node:output} pairs).
-\end{lineage}
+Under \texttt{forbid(unsafe\_code)} there are no panics to catch. The
+executor's runner trait returns
+$\mathrm{Result}\langle(\mathrm{bytes},\mathrm{ticks}),
+\mathsf{NodeCrash}\rangle$, with a blanket implementation over every
+infallible runner --- existing code is untouched, and a crash is data:
+\textsf{Io}, \textsf{BadOutput}, \textsf{OverBudget},
+\textsf{PreconditionLost}, \textsf{Refused}. This is the lineage's
+crystal-envelope instinct (state that travels as a small, total value)
+applied to failure itself.
 
-\begin{lineage}[Content-addressed software: Git, Nix, Bazel, 2003--2020]
-Three engineering traditions proved that naming artifacts by their content
-transforms system behavior. \emph{Git} (Torvalds, 2005; the object model
-descends from Monotone's) made every blob, tree, and commit a hash of its
-content --- integrity, deduplication, and distributed merge fall out of
-the naming scheme \cite{git}. \emph{Nix} (Dolstra's 2006 thesis
-\cite{nix}) applied the same move to \emph{builds}: a package's store path
-is a hash of everything that produced it, making builds reproducible,
-rollback trivial, and ``works on my machine'' a checkable proposition ---
-the purely-functional deployment model NixOS and Guix industrialized.
-\emph{Bazel} (Google's Blaze lineage \cite{bazel}) and its remote-execution
-protocol demonstrated the action cache at monorepo scale: an action keyed
-by (command, input digests) never runs twice, organization-wide. The
-prototype's \texttt{MemoCache} key --- $\ca(a_v \Vert \bar h_v)$, action
-hash concatenated with sorted input output-hashes --- is exactly Bazel's
-action key and Nix's derivation hash, shrunk to a struct. \emph{OxyMake}
-\cite{oxymake}, the research sweep's find, packages the same discipline as
-a single-binary Rust workflow engine with BLAKE3 naming and TLA+ specs ---
-proximate confirmation that the pattern wants to live in Rust.
-\end{lineage}
+\subsection{Actuation semantics}
 
-\begin{lineage}[The hash itself: from ChaCha to BLAKE3, 2008--2020]
-The prototype's only cryptographic dependency is the \texttt{blake3} crate
-(via in-house \texttt{chatman-common}). Its pedigree: Bernstein's
-ChaCha stream cipher \cite{chacha} contributed the ARX core; BLAKE
-(Aumasson et al.) built a SHA-3 finalist around it; BLAKE2 \cite{blake2}
-optimized it into the fastest widely-trusted hash of the 2010s; and BLAKE3
-\cite{blake3} (O'Connor, Aumasson, Neves, Wilcox-O'Hearn, 2020)
-restructured it as a Merkle tree internally --- unbounded parallelism,
-incremental verification, one function for hashing/KDF/MAC/XOF. The
-security contract the prototype leans on is collision resistance at 256
-bits: for $N$ objects, collision probability ${\le}\,N^2/2^{257}$; at
-$N=10^{12}$ lifetime objects, ${<}\,10^{-53}$ --- ignorable against
-hardware failure. (The first edition's honest caveat about 64-bit
-\emph{atom-key} collisions is now moot: Layer~1's structural identity
-removed the packed key from the trust path entirely.)
-\end{lineage}
+On crash: snapshot $\to$ classify $\to$ named branch $\to$ actuate, every
+step receipted into a chain seeded
+$\fold(\HB(\texttt{geometry/v1}),\ \mathrm{geometry\_hash})$ --- so the
+chain's genesis \emph{is} the derived map, and replaying it proves
+recovery followed the geometry rather than improvisation.
 
-\begin{lineage}[Serialization as a trust surface: serde]
-Receipts are only as canonical as their bytes. \texttt{serde}
-\cite{serde} (Tolnaru/Tolnay lineage; the Rust ecosystem's
-serialization framework) provides derive-generated, allocation-conscious,
-schema-stable JSON via \texttt{serde\_json}. The prototype's discipline:
-every hashed frame is serialized through one code path, so ``same value,
-same bytes, same hash'' is a property of the derive, not of programmer
-care. \texttt{thiserror} carries the \textsf{Refusal} enum's error
-implementation --- refusals serialize like any other receipt, which is what
-lets an unsat core cross the \texttt{synth/v1} wire intact.
-\end{lineage}
+\begin{itemize}[leftmargin=1.6em]
+\item \textbf{Restart}: retry within intensity; upstream work replays free
+through the memo/WAL layer (edition one's kill\,-9 durability composes
+here unchanged --- process death mid-restart-loop recovers to the same
+receipt).
+\item \textbf{Park}: a \textsf{ParkedEntry} with a derived re-admission
+policy --- \textsf{OnInputChange} (something upstream was fixed),
+\textsf{AfterRuns}$(n)$, or \textsf{Manual} (only authority re-admits) ---
+closing knhk's no-way-back gap; parked entries persist through the same
+BLAKE3 WAL, so \emph{quarantine survives machine death}. Dependents are
+skipped with attribution (\textsf{SkippedBy}), never silently.
+\item \textbf{Refuse / Escalate}: the run halts with the branch's
+certificate inside the receipt; the crash chain is never lost to the
+halt.
+\item \textbf{Surrender}: intensity exhaustion yields
+$\mathsf{RunOutcome{::}GaveUp}$ --- an \emph{Ok}, not an \emph{Err}.
+Lawful surrender is a result with standing; only lawless states are
+errors.
+\item \textbf{The gap}: an unmatched crash emits a \textsf{GeometryGap}
+receipt, takes the safe default (restart), and the run \emph{completes}
+--- with $\mathrm{geometry\_conformance} = \mathrm{false}$ reported
+honestly. A gap is a finding, not a failure.
+\end{itemize}
 
-\subsection{What the prototype takes}
+\begin{proposition}[Total accounting]
+Every node of every supervised run carries exactly one disposition
+(\textsf{Completed}$(r)$, \textsf{Parked}, \textsf{SkippedBy},
+\textsf{GaveUp}); no silent rows exist (test-pinned:
+$|\mathrm{dispositions}| = |V|$).
+\end{proposition}
 
-Layer~3 keeps: Merkle list + Merkle set (chain and root, with distinct
-jobs: history vs.\ artifact identity); the Nix/Bazel action key as the memo
-key; content-based node identity so the root is declaration-order
-invariant (Theorem 4.2 of the first edition, test-pinned); and BLAKE3 via
-\texttt{chatman\_common::provenance} (\texttt{content\_address},
-\texttt{fold\_event}, \texttt{genesis\_seed} --- domain-separated genesis
-values, Merkle hygiene the ad-hoc systems of the 2000s learned painfully).
-The fleet measurement (Section~\ref{sec:results}) is this lineage's payoff
-quantified: with deliberation memoized by content, marginal cost tracks
-novelty --- Nix's promise (``never build the same thing twice''),
-restated for \emph{reasoning} and measured.
-
-%=====================================================================
-\section{Layer 4 --- Refinements: Freeman--Pfenning to Flux}
-\label{sec:flux}
-
-\begin{lineage}[Refinement and liquid types, 1991--2023]
-Refinement types --- types qualified by predicates, $\{v : \mathsf{int}
-\mid v \ge 0\}$ --- enter with Freeman--Pfenning \cite{freeman}. Liquid
-types (Rondon--Kawaguchi--Jhala \cite{liquid}, 2008) made them practical
-by restricting predicates to conjunctions of templates so inference
-reduces to fixpoint computation over an SMT oracle; LiquidHaskell
-\cite{liquidhaskell} carried the discipline into a production language.
-Flux \cite{flux} (Lehmann--Geller--Vazou--Jhala, PLDI 2023) is the Rust
-instantiation and the sweep's fourth find: refinements ride Rust's
-ownership system, so aliasing --- the classic killer of automated
-verification --- is discharged by the borrow checker, halving annotation
-burden relative to program-logic tools like Prusti.
-\end{lineage}
-
-\begin{lineage}[The transposition --- and the differential tradition]
-The prototype does not verify its Rust with Flux (a receipted deferral:
-Flux is a research tool with its own toolchain; the crate's invariants are
-currently enforced by types + tests). It \emph{transposes} the discipline:
-refinements as machine-checkable predicates over \emph{artifacts} ---
-plan-respects-horizon, DAG-acyclic, chain-recomputes, fixpoint-closed,
-plan-reaches-goal --- carried with the object and re-checked by admission,
-never short-circuited. The re-checking style has its own lineage worth
-naming: differential testing (McKeeman \cite{mckeeman}) and the
-fuzzing tradition from Miller's original crash study \cite{miller} through
-csmith \cite{csmith} and simdjson's oracle-pair method \cite{simdjson}.
-The verifier's \textsf{PlanReachesGoal} is a second implementation of plan
-semantics; the falsifier sweep (P6) is fuzzing with the
-Solver8-vs-oracle differential as fitness --- both are McKeeman's insight
-operationalized: \emph{two independent computations that must agree are a
-bug detector with no false negatives on disagreement}.
-\end{lineage}
-
-%=====================================================================
-\section{The In-House Dependencies, Honestly Described}
-
-Three path dependencies are praxis's own, and each is itself a position in
-the lineages above:
-
-\begin{description}[leftmargin=1.6em]
-\item[\texttt{pddl-index} (v26.7.2).] ``The qlever treatment'' for PDDL
-grounding: \texttt{Dict} string interner ($\to$ dense \texttt{u32}
-\texttt{SymId}s), sorted per-predicate tuple relations, XOR-filter
-membership pruning (Graf--Lemire \cite{xorfilter}), and a delete-relaxed
-reachability fixpoint that is precisely a Datalog least fixpoint
-specialized to action grounding. Layer~1 reuses its interner and
-generalizes its fixpoint; the historical order matters --- the grounder
-came first, the general engine is its child.
-\item[\texttt{chatman-common} (v26.7.2).] The provenance kernel:
-\texttt{content\_address}, \texttt{fold\_event}, \texttt{RollingChain},
-domain-separated genesis seeds, and ed25519 signed receipts. It is the
-project's single point of Merkle hygiene --- every praxis chain, from law
-receipts to Genesis seals to this crate's DAG receipts, folds through the
-same forty lines.
-\item[\texttt{prolog8} (v26.7.1; sibling, \emph{not} a dependency of this
-crate).] The bounded backward-chaining Horn kernel (SLD, arity/body/vars
-${\le}\,8$, depth ${\le}\,32$, proof-carrying receipts, replay). Layer~1
-exists because prolog8 \emph{cannot} close large recursive relations ---
-by design: point queries with proofs, not saturation. The two engines are
-complementary halves of the same doctrine, and the 100-node
-transitive-closure measurement is the boundary between them made
-executable.
-\end{description}
-
-%=====================================================================
-\section{Results (Unchanged, Restated with Their Lineage Labels)}
-\label{sec:results}
-
-\begin{measurement}[Saturation --- the Bancilhon/ABW/QLever stack]
-Transitive closure over a 100-node chain: exactly $\binom{100}{2}=4{,}950$
-derived paths, multi-round semi-naive convergence, beyond prolog8's
-depth-32 SLD by construction. Scale receipt (release, under concurrent
-load, recorded as observed): triangles differential-verified against an
-independent hash-join oracle at $10^5$/$4{\times}10^5$/$10^6$ edges (1.2s /
-12.8s / 24.0s); 64-ary-forest closure $10^5 \to 295{,}773$ derived (2.4s),
-$10^6 \to 3{,}729{,}468$ (126s). Known next lever, receipted: per-round
-merge re-sort; the columnar layout is already what index joins want.
-\end{measurement}
-
-\begin{measurement}[Certificates --- the GRASP/MUS stack]
-Conflicting windows over the lawobject domain yield a core of exactly the
-conflicting triple; both decoys excluded; every proper subset fails
-\textsf{verify\_core}; the cached proof replays for later agents
-(\textsf{replayed:\ true}). The self-application domain refuses
-\texttt{push} with $[\textsf{MissingFact}(\mathit{authorization})]$
-pre-search, while the brute oracle needed \textsf{nodes\_explored} $> 0$
-to fail --- a proof versus a failure-to-find, live over the
-\texttt{synth/v1} wire.
-\end{measurement}
-
-\begin{measurement}[The overlap curve --- the Nix/Bazel stack, applied to reasoning]
-$N = 10{,}000$ pipelines from $K$ templates, shared memo + core caches
-(release): work/pipeline $892.26$ at novelty $1.0$; $88.94$ at $0.1$;
-$8.61$ at $0.01$; $0.87$ at $0.001$; $0.00$ at full overlap --- throughput
-$1{,}898 \to 39{,}055$ pipelines/s. Work per pipeline
-$\approx 892 \times (K/N)$: \textbf{a fleet's reasoning cost grows with
-its novelty, not its size.} The first measurement run exposed the missing
-plan cache (cost flat at ${\sim}890$ for all $K > 1$) --- the receipt
-caught its own gap, which is the methodology working.
-\end{measurement}
-
-\begin{measurement}[The falsifier --- the McKeeman/simdjson stack]
-256 adversarial cells over 4 generations of discrepancy-guided mutation
-(8-axis seeded domains: dead-end traps, delete interference, derived-%
-predicate preconditions, constraint load): differential \emph{held} ---
-218 solved-agree (byte-equal plans and costs, Solver8 never searching
-more), 37 refused-agree, 1 lawful asymmetry (Solver8 succeeded where brute
-exhausted budget; plan independently replayed). Optimal plans never
-entered a trap.
+\begin{measurement}[Recovery is invisible in the artifact]
+On the lawobject plan with two injected transient crashes at \texttt{judge}:
+both crashes land in named branches (\textsf{TransientFault}, then
+\textsf{Stall} --- the second identical crash correctly classified as
+no-progress), the run completes, and the final root hash is
+\textbf{byte-identical} to the crash-free run's. Park-then-re-admit heals
+to the same identity: run 0 parks the over-budget node and skips its
+dependents; run 1's re-admission pass completes the plan with upstream
+served from memo, root again byte-equal to crash-free. Machine death
+composes: kill\,-9 mid-restart-loop, WAL recovery, identical receipt.
 \end{measurement}
 
 %=====================================================================
-\section{The Refusal Register, with Intellectual Context}
-\label{sec:refusals}
+\section{The Supervised Cell: Composition Under Failure}
 
-\begin{refusal}[No native SMT (z3/cvc5)]
-Not a rejection of the DPLL(T) lineage --- a bet that its
-difference-logic slice, 8-bounded and bitwise, plus MUS-certified
-refusals, serves a receipted fleet better than an oracular general solver.
-The \textsf{Solver} trait is the seam; the falsifier receipt is the
-standing evidence the bet has not yet lost.
+Supervision must not break the cell's composition law (the cell hash is a
+function of group roll-up roots alone; edition one's minimum
+phase-change cell). Three design rules keep it intact, each test-enforced:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Additive-only receipts.} New counters
+(\textsf{recovered}, \textsf{parked}, \textsf{geometry\_gaps},
+\textsf{restarts}, the quarantine set, the epoch-plan chain) are
+serde-defaulted fields \emph{outside} all hashed material. The invariant
+$\mathrm{admitted} + \mathrm{refused} = n$ holds (parks live inside
+refused; recoveries inside admitted), the fold functions are
+byte-identical --- and the \textbf{unmodified} Python foreign verifier
+accepts every supervised receipt (tested).
+\item \textbf{Combo status lanes.} All eight status-byte bits are taken,
+so supervision claims provably-unreachable \emph{combinations}:
+$\textsf{S\_RECOVERED} = H|A$ (the base run never co-sets halted with
+admitted --- proven by enumeration), $\textsf{S\_PARKED} = H|B$,
+$\textsf{S\_GEOMETRY\_GAP} = H|U|E$. agent8's SWAR sweep is compatible by
+construction: a recovered member still carries $A$ and still counts as
+admitted at 9.76\,G agents/s with zero code change.
+\item \textbf{Determinism through faults.} Injection is a seed-keyed
+splitmix64 lottery; a member's byte, restarts, and terminal hash replay
+exactly given the seed (pinned over 24 agents $\times$ 2 runs), so
+selective challenge survives supervision.
+\end{enumerate}
+
+\subsection{MAPE-K, closed at epoch boundaries}
+
+knhk's MAPE-K loop analyzed and never actuated. Here it closes, with one
+discipline: \emph{parameters change only at epoch boundaries} ---
+mid-epoch mutation is refused by construction (the quarantine set is
+immutable within an epoch), preserving per-epoch replay. The roll-ups
+\emph{are} the monitor plane; analysis detects a crash-looping template by
+\textbf{cross-group quorum} (the same template parking in $\ge 3$ distinct
+groups in one epoch --- replication across independent shards is the
+evidence bar that the template, not the host, is at fault); the plan is a
+receipted \textsf{EpochPlan} whose hash chains under its own domain; the
+execute step is the next epoch's quarantine set, whose refusals surface in
+the \emph{existing} refusal register through the \emph{existing}
+bucketing --- zero register changes.
+
+\begin{measurement}[The supervised cell, 10{,}000 members, release]
+\label{meas:cell}
+Overhead of supervision at fault rate $0$: $-2.7\%$ --- statistical noise;
+the healthy path is untaxed. Recovery counts track injected transient
+rates exactly: $69 / 608 / 3{,}179$ recovered at $1\% / 10\% / 50\%$.
+Throughput is \textbf{flat} across all fault rates
+(${\sim}15{,}000$ members/s at 0\%, 1\%, 10\%, and 50\%). The crash-looping
+template is detected at quorum and quarantined by epoch 2 in every
+configuration; final-epoch members of that class refuse cheaply instead of
+burning restarts. Every cell verifies in Rust, and
+\texttt{foreign\_verify.py} --- byte-unmodified --- verifies the
+supervised receipts. (Receipt: \texttt{receipts/supervised\_cell.json};
+regenerable by the committed harness.)
+\end{measurement}
+
+\begin{remark}[What flat throughput means]
+The cost of a supervised fleet tracked its \emph{failure novelty}, not its
+failure \emph{rate}: recovered transients are absorbed at boundary cost,
+and the one genuinely novel pathology (the crash-looping class) was
+converted --- once, by quorum --- into a cheap standing refusal. This is
+the overlap-curve law of edition one (\emph{deliberation cost is linear in
+novelty, invariant in fleet size}) reappearing on the failure side, which
+is precisely what the trillion-agent thesis predicts supervision must do.
+The full novelty-curve-under-faults re-measurement is receipted as
+deferred (Refusal~\ref{ref:curve}), not claimed.
+\end{remark}
+
+%=====================================================================
+\section{The Refusal Register}
+
+\begin{refusal}[No path dependencies on knhk]
+Verified by live probes, recorded as the standing reason: the leanest
+candidate crate drags tokio/reqwest/opentelemetry transitively; the
+$\mu$-kernel ships property-testing libraries as regular dependencies and
+uses unsafe transmutes; the workspace does not build as a whole. Ports of
+50--200-line designs, tagged \texttt{PORT(knhk)} with per-item deltas,
+cost less than the supply chain. Drift is greppable.
 \end{refusal}
 
-\begin{refusal}[No Datalog crate (datafrog/ascent/crepe)]
-All three are honorable members of the lineage; none offers runtime rule
-loading + receipted caps + praxis's interned ID space without an adapter
-thicker than the engine. Souffl\'e/Nemo-class engines are C++/separate
-processes. The in-crate engine is ${\sim}500$ lines against a
-forty-year-settled specification --- the rare case where reimplementation
-is the \emph{low-risk} path, because the theorems are the spec.
+\begin{refusal}[No measured CPU ticks]
+knhk's own hot receipts carried dummy tick values behind a hardcoded
+4\,GHz assumption. Declared deterministic costs (\textsf{Ticks} as an
+abstract unit) are the honest model for a planner; rdtsc instrumentation
+is a bench follow-up, documented as a divergence, not smuggled in as a
+claim.
 \end{refusal}
 
-\begin{refusal}[No differential-dataflow; no retraction]
-Additions-only incrementality with a refusal on nonmonotonic cases, rather
-than DRed/counting or timely-dataflow generality. Salvage: the ledger
-chain is agnostic to how the delta was computed; a DRed-style maintainer
-can slot beneath it later.
+\begin{refusal}[No novelty-curve-under-faults measurement --- yet]
+\label{ref:curve}
+Member-level fault injection recovers without re-running solver work, so a
+work-proxy re-measurement would \emph{overstate} the cache dividend ---
+the flattering error. The claim is withheld until node-level injection is
+wired through the fleet path; the receipt file names this in its own
+deferred list.
 \end{refusal}
 
-\begin{refusal}[No Flux-the-tool; refinements transposed, not typed]
-The crate's invariants are enforced by Rust types and a 44-test suite, not
-by liquid typing; Flux's discipline is applied to artifacts instead.
-Salvage: the refinement predicates are exactly the properties a future
-Flux annotation pass would state.
-\end{refusal}
-
-\begin{refusal}[No Nemo-scale claim]
-Measured to $10^6$ EDB facts on contended hardware, not $10^8$. The
-storage is already the sorted dense-ID form the big engines use; the
-receipt names the merge-scheduling lever that comes next.
+\begin{refusal}[v1 scope: beat scheduling, full R1/W1/C1 SLO matrix, quarantine parole, supra-cell supervision]
+Each receipted with salvage: the enum and one tier transition ship; epoch
+boundaries already provide the re-admission cadence beats would refine;
+quarantined classes await a parole mechanism; cells supervising cells is
+the composition step after this one.
 \end{refusal}
 
 %=====================================================================
-\section{Conclusion: Standing on the Supply Chain, Receipting It}
+\section{Conclusion: What Derivation Now Covers}
 
-The first edition closed: \emph{authorship placed correctness in a head;
-derivation places it in a chain.} This edition adds the acknowledgment the
-chain deserves: every link was forged elsewhere. Tarski gave the fixpoint;
-Bancilhon the delta; Apt, Blair and Walker the strata; Atserias, Grohe,
-Marx, Ngo, Porat, R\'e and Rudra the join bound; Mackworth the
-propagation; Marques-Silva the learning-from-conflict; the MUS community
-the minimal core; Merkle the tree; Torvalds and Dolstra the addressed
-artifact; Aumasson and colleagues the hash; Freeman, Pfenning, Jhala and
-the Flux group the refinement discipline; McKeeman the differential. The
-prototype's own contribution is deliberately narrow: an 8-bounded
-selection from each lineage, composed so that every stage emits a content
-address, every refusal carries a certificate, and the whole run is one
-hash. Narrow is the point. \textbf{The science is the supply chain; the
-doctrine is the admission gate; the receipts are ours.}
+Edition one: the \emph{plan} is derived --- order and bindings discovered,
+not authored. Edition two: every derivation stands on a named supply
+chain. This edition: the \emph{crash space} is derived --- the supervision
+tree earned from the plan's own dependency structure, the failure branches
+mined from the solver's own fragility analysis, both hashed into the same
+receipt lineage as the plan, so that at runtime every failure either lands
+in a branch that existed before the failure did, or surfaces as an honest,
+unshadowable gap.
+
+Armstrong made failure survivable when the crash space was unknowable.
+The instruments made hidden events reconstructable by predicting their
+signatures. The lineage made execution bounded and sealed. The synthesis
+substrate adds the step none of them had: \emph{the machine that derives
+the work now derives the failure of the work} --- and measures, rather
+than asserts, that supervision costs nothing on the healthy path, tracks
+novelty rather than rate under faults, and converts recurring pathology
+into standing refusals by quorum.
+
+\begin{center}
+\emph{Let it crash} was the right answer when the crash space was
+unknowable.\\
+\textbf{Derive the crash space} is the answer when the planner can see it
+first.\\[0.5em]
+A trillion agents do not need a trillion failure handlers.\\
+They need one law: every crash lands in a named branch, or names a gap ---
+and either way, there is a receipt.
+\end{center}
 
 %=====================================================================
-\begin{thebibliography}{99}
+\begin{thebibliography}{9}
 
-\bibitem{codd} E.~F. Codd. \emph{A Relational Model of Data for Large
-Shared Data Banks}. CACM 13(6), 1970.
+\bibitem{armstrong} J.~Armstrong. \emph{Making Reliable Distributed
+Systems in the Presence of Software Errors}. PhD thesis, KTH, 2003.
+(Supervision trees, restart intensity, ``let it crash.'')
 
-\bibitem{kowalski} R.~Kowalski. \emph{Predicate Logic as Programming
-Language}. IFIP 1974.
+\bibitem{lhc} The ATLAS Collaboration. \emph{The ATLAS Trigger System}.
+JINST 15, 2020. (Predicted event signatures as the admission gate for
+measurement.)
 
-\bibitem{vanemden} M.~van Emden, R.~Kowalski. \emph{The Semantics of
-Predicate Logic as a Programming Language}. JACM 23(4), 1976.
+\bibitem{eht} Event Horizon Telescope Collaboration. \emph{First M87
+Event Horizon Telescope Results I}. ApJL 875, 2019. (Reconstruction from
+lawful projections of an instrument designed around a predicted signal.)
 
-\bibitem{tarski} A.~Tarski. \emph{A Lattice-Theoretical Fixpoint Theorem
-and Its Applications}. Pacific J. Math. 5, 1955.
+\bibitem{bitactor} S.~Chatman. \emph{CNS/BitActor: the 8T/8H/8M doctrine
+and the canonical tick-bounded engine}. In-house, 2025.
+\texttt{cns/bitactor} (\texttt{BITACTOR\_TICK\_BUDGET 8}, zero-tick fast
+path, BLAKE3 spec$\leftrightarrow$exec sealing).
 
-\bibitem{abiteboul} S.~Abiteboul, R.~Hull, V.~Vianu. \emph{Foundations of
-Databases}. Addison--Wesley, 1995. (Chs. 12--15.)
+\bibitem{byteactor} S.~Chatman. \emph{ByteActor V3}. In-house, 2025.
+64-byte crystal envelopes, bounded SPSC rings, two-realm architecture;
+honest V2 validation recorded its own 8-tick FAIL.
 
-\bibitem{bancilhon} F.~Bancilhon. \emph{Naive Evaluation of Recursively
-Defined Relations}. In \emph{On Knowledge Base Management Systems}, 1986.
+\bibitem{knhk} S.~Chatman. \emph{knhk/Genesis: Knowledge-graph hot-path
+engine}. In-house, 2026. \texttt{genesis-mu-kernel} (TickBudget,
+ChatmanBounded, signed ReceiptChain), \texttt{genesis-etl}
+(RuntimeClass R1/W1/C1, ParkManager, failure actions) --- the
+classification plane this edition's actuation layer completes.
 
-\bibitem{balbin} I.~Balbin, K.~Ramamohanarao. \emph{A Generalization of the
-Differential Approach to Recursive Query Evaluation}. J. Logic
-Programming 4(3), 1987.
+\bibitem{ed1} S.~Chatman. \emph{The Synthesis Prototype} (first edition)
+and \emph{…With Its Supply Chain} (second edition). Praxis,
+\texttt{docs/thesis/}, Genesis Day 9 (2026). Derived plans; the
+measured overlap curve; the scientific lineage of each layer.
 
-\bibitem{abw} K.~Apt, H.~Blair, A.~Walker. \emph{Towards a Theory of
-Declarative Knowledge}. In \emph{Foundations of Deductive Databases and
-Logic Programming}, 1988.
+\bibitem{otp-design} Ericsson AB. \emph{OTP Design Principles:
+Supervision Trees}. Erlang/OTP documentation. (one\_for\_one /
+rest\_for\_one / one\_for\_all; max restart intensity.)
 
-\bibitem{agm} A.~Atserias, M.~Grohe, D.~Marx. \emph{Size Bounds and Query
-Plans for Relational Joins}. FOCS 2008 / SIAM J. Comput. 2013.
-
-\bibitem{nprr} H.~Ngo, E.~Porat, C.~R\'e, A.~Rudra. \emph{Worst-Case
-Optimal Join Algorithms}. PODS 2012 / JACM 2018.
-
-\bibitem{leapfrog} T.~Veldhuizen. \emph{Leapfrog Triejoin: A Simple,
-Worst-Case Optimal Join Algorithm}. ICDT 2014.
-
-\bibitem{souffle} H.~Jordan, B.~Scholz, P.~Suboti\'c. \emph{Souffl\'e: On
-Synthesis of Program Analyzers}. CAV 2016.
-
-\bibitem{rdfox} B.~Motik, Y.~Nenov, R.~Piro, I.~Horrocks, D.~Olteanu.
-\emph{Parallel Materialisation of Datalog Programs in Centralised,
-Main-Memory RDF Systems}. AAAI 2014.
-
-\bibitem{qlever} H.~Bast, B.~Buchhold. \emph{QLever: A Query Engine for
-Efficient SPARQL+Text Search}. CIKM 2017.
-
-\bibitem{nemo} A.~Ivliev et al. \emph{Nemo: First Glimpse of a New Rule
-Engine}. ICLP 2023; arXiv:2308.15897.
-
-\bibitem{gupta} A.~Gupta, I.~Mumick, V.~Subrahmanian. \emph{Maintaining
-Views Incrementally}. SIGMOD 1993.
-
-\bibitem{ddflow} F.~McSherry, D.~Murray, R.~Isaacs, M.~Isard.
-\emph{Differential Dataflow}. CIDR 2013.
-
-\bibitem{dp} M.~Davis, H.~Putnam. \emph{A Computing Procedure for
-Quantification Theory}. JACM 7(3), 1960.
-
-\bibitem{dpll} M.~Davis, G.~Logemann, D.~Loveland. \emph{A Machine Program
-for Theorem-Proving}. CACM 5(7), 1962.
-
-\bibitem{grasp} J.~Marques-Silva, K.~Sakallah. \emph{GRASP: A Search
-Algorithm for Propositional Satisfiability}. IEEE Trans. Computers 48(5),
-1999.
-
-\bibitem{chaff} M.~Moskewicz, C.~Madigan, Y.~Zhao, L.~Zhang, S.~Malik.
-\emph{Chaff: Engineering an Efficient SAT Solver}. DAC 2001.
-
-\bibitem{minisat} N.~E\'en, N.~S\"orensson. \emph{An Extensible
-SAT-solver}. SAT 2003.
-
-\bibitem{dpllt} R.~Nieuwenhuis, A.~Oliveras, C.~Tinelli. \emph{Solving SAT
-and SAT Modulo Theories: from DPLL to DPLL(T)}. JACM 53(6), 2006.
-
-\bibitem{z3} L.~de Moura, N.~Bj\o rner. \emph{Z3: An Efficient SMT
-Solver}. TACAS 2008.
-
-\bibitem{smtcap} A.~K\"ocher et al. \emph{Automating the Generation of
-Planning Problems from Semantic Capability Models}. arXiv:2312.08801.
-
-\bibitem{difflogic} S.~Cotton, O.~Maler. \emph{Fast and Flexible
-Difference Constraint Propagation for DPLL(T)}. SAT 2006.
-
-\bibitem{ac3} A.~Mackworth. \emph{Consistency in Networks of Relations}.
-Artificial Intelligence 8(1), 1977.
-
-\bibitem{drat} M.~Heule, W.~Hunt, N.~Wetzler. \emph{Trimming While
-Checking Clausal Proofs}. FMCAD 2013.
-
-\bibitem{heule} M.~Heule, O.~Kullmann, V.~Marek. \emph{Solving and
-Verifying the Boolean Pythagorean Triples Problem via
-Cube-and-Conquer}. SAT 2016.
-
-\bibitem{mus1} A.~Belov, J.~Marques-Silva. \emph{MUSer2: An Efficient MUS
-Extractor}. JSAT 8, 2012.
-
-\bibitem{mus2} J.~Marques-Silva, C.~Menc\'ia. \emph{Reasoning About
-Inconsistent Formulas}. IJCAI 2020 (survey).
-
-\bibitem{merkle} R.~Merkle. \emph{A Certified Digital Signature}. CRYPTO
-1989 (thesis work 1979).
-
-\bibitem{git} L.~Torvalds et al. \emph{Git}. 2005--. Content-addressed
-object store (blobs/trees/commits by SHA-1, later SHA-256).
-
-\bibitem{nix} E.~Dolstra. \emph{The Purely Functional Software Deployment
-Model}. PhD thesis, Utrecht University, 2006.
-
-\bibitem{bazel} Google. \emph{Bazel and the Remote Execution API}.
-2015--. Content-keyed action cache at monorepo scale.
-
-\bibitem{oxymake} \emph{OxyMake: Content-Addressable Workflow Automation
-in Rust}. arXiv:2606.20989, 2025.
-
-\bibitem{chacha} D.~J. Bernstein. \emph{ChaCha, a Variant of Salsa20}.
-SASC 2008.
-
-\bibitem{blake2} J.-P. Aumasson, S.~Neves, Z.~Wilcox-O'Hearn,
-C.~Winnerlein. \emph{BLAKE2: Simpler, Smaller, Fast as MD5}. ACNS 2013.
-
-\bibitem{blake3} J.~O'Connor, J.-P. Aumasson, S.~Neves,
-Z.~Wilcox-O'Hearn. \emph{BLAKE3: One Function, Fast Everywhere}. 2020.
-
-\bibitem{serde} D.~Tolnay et al. \emph{Serde: Serialization Framework for
-Rust}. 2015--.
-
-\bibitem{xorfilter} T.~M. Graf, D.~Lemire. \emph{Xor Filters: Faster and
-Smaller Than Bloom and Cuckoo Filters}. ACM JEA 25, 2020.
-
-\bibitem{freeman} T.~Freeman, F.~Pfenning. \emph{Refinement Types for
-ML}. PLDI 1991.
-
-\bibitem{liquid} P.~Rondon, M.~Kawaguchi, R.~Jhala. \emph{Liquid Types}.
-PLDI 2008.
-
-\bibitem{liquidhaskell} N.~Vazou, E.~Seidel, R.~Jhala, D.~Vytiniotis,
-S.~Peyton-Jones. \emph{Refinement Types for Haskell}. ICFP 2014.
-
-\bibitem{flux} N.~Lehmann, A.~Geller, N.~Vazou, R.~Jhala. \emph{Flux:
-Liquid Types for Rust}. PLDI 2023; arXiv:2207.04034.
-
-\bibitem{mckeeman} W.~McKeeman. \emph{Differential Testing for Software}.
-Digital Technical Journal 10(1), 1998.
-
-\bibitem{miller} B.~Miller, L.~Fredriksen, B.~So. \emph{An Empirical Study
-of the Reliability of UNIX Utilities}. CACM 33(12), 1990.
-
-\bibitem{csmith} X.~Yang, Y.~Chen, E.~Eide, J.~Regehr. \emph{Finding and
-Understanding Bugs in C Compilers}. PLDI 2011.
-
-\bibitem{simdjson} G.~Langdale, D.~Lemire. \emph{Parsing Gigabytes of
-JSON per Second}. VLDB J. 28, 2019.
+\bibitem{chatman} S.~Chatman. \emph{Beyond Cognitive Load, Within
+Admissible Projection}. Praxis, \texttt{docs/thesis/projection\_thesis.pdf},
+Genesis Day 1 (2026).
 
 \end{thebibliography}
 
