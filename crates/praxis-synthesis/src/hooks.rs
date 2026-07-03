@@ -36,9 +36,9 @@ pub const HOOK_NS: &str = "http://seanchatmangpt.github.io/praxis/hook#";
 const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 
 const HOOK_CLASSES: [&str; 1] = ["Hook"];
-const HOOK_PREDICATES: [&str; 12] = [
+const HOOK_PREDICATES: [&str; 13] = [
     "name", "on", "kind", "var", "op", "k", "window", "program", "goal", "action", "effect",
-    "reason",
+    "reason", "priority",
 ];
 
 /// Max hooks per registry — the 8-bound.

@@ -36,6 +36,7 @@ pub mod geometry;
 pub mod gen;
 pub mod glue;
 pub mod graph;
+pub mod ground;
 pub mod hooks;
 pub mod park;
 pub mod pipeline;
@@ -54,6 +55,7 @@ pub use delta::GraphDelta;
 pub use graph::{
     execute_workflow, execute_workflow_with, replay_workflow, WorkflowIr, WorkflowReceipt,
 };
+pub use ground::{capability_task_spec, ground_fired_action, CapabilityTaskSpec};
 pub use hooks::{
     evaluate_hooks, extract_hooks, hook_hash, HookCondition, HookVerdict, HookVerdictRecord,
     KnowledgeHook,

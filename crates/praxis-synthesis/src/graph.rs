@@ -1264,9 +1264,25 @@ pub fn execute_workflow_with(
     runner: &mut dyn crate::dag::FallibleRunner,
 ) -> Result<WorkflowReceipt, Refusal> {
     let triples = parse_ttl(ttl)?;
-    let ttl_hash = ttl_hash(ttl);
-    let graph_hash = graph_hash(&triples);
-    let ir = extract_ir(&triples)?;
+    execute_triples_with(&triples, ttl_hash(ttl), runner)
+}
+
+/// Execute a workflow already in triple form (the grounding path: a fired
+/// hook's action fragment is a restriction of the ADMITTED graph — there
+/// are no surface bytes). `ttl_hash` is set to the canonical form's content
+/// address: the canonical bytes ARE the exact input here.
+pub(crate) fn execute_from_triples(triples: &[Triple]) -> Result<WorkflowReceipt, Refusal> {
+    let surface = content_address(canonical_form(triples).as_bytes());
+    execute_triples_with(triples, surface, &mut DeterministicRunner)
+}
+
+fn execute_triples_with(
+    triples: &[Triple],
+    ttl_hash: String,
+    runner: &mut dyn crate::dag::FallibleRunner,
+) -> Result<WorkflowReceipt, Refusal> {
+    let graph_hash = graph_hash(triples);
+    let ir = extract_ir(triples)?;
     let ir_hash = ir_hash(&ir)?;
     let (_program, problem) = lower(&ir)?;
     let plan = Solver8.solve(&problem)?;
