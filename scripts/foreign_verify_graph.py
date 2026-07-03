@@ -844,6 +844,95 @@ def extract_handler_bindings(post) -> list:
     return bindings
 
 
+AGENT_NS = "http://seanchatmangpt.github.io/praxis/agent#"
+AGENT_CLASSES = ["Agent"]
+AGENT_PREDICATES = ["tool", "canSpawn", "layerDepth"]
+MAX_TOOLS = 8
+MAX_CAN_SPAWN = 8
+MAX_AGENTS = 8
+
+
+def extract_agents(post) -> list:
+    """Mirror agent_registry.rs extract_agents exactly: closed-world sweep
+    over the agent: namespace, then per-agent tool/canSpawn/layerDepth
+    extraction — sorted, deduped, bounded. Returns a list of
+    (iri, tools, can_spawn, layer_depth) tuples sorted by iri."""
+    for s, p, o in post:
+        if p.startswith(AGENT_NS) and p[len(AGENT_NS):] not in AGENT_PREDICATES:
+            raise FiringRefusal(f"<{s}>: unknown agent: predicate "
+                                 f"'{p[len(AGENT_NS):]}'")
+        if p == RDF_TYPE and o[0] == "iri" and o[1].startswith(AGENT_NS):
+            local = o[1][len(AGENT_NS):]
+            if local not in AGENT_CLASSES:
+                raise FiringRefusal(f"<{s}>: unknown agent: class '{local}'")
+
+    agent_class = ("iri", AGENT_NS + "Agent")
+    subjects = sorted({s for s, p, o in post if p == RDF_TYPE and o == agent_class})
+    if len(subjects) > MAX_AGENTS:
+        raise FiringRefusal(
+            f"(registry): {len(subjects)} agents declared; max {MAX_AGENTS}")
+
+    agents = []
+    for subject in subjects:
+        props = [(p, o) for s, p, o in post if s == subject]
+
+        tool_p = AGENT_NS + "tool"
+        tools = []
+        for p, o in props:
+            if p != tool_p:
+                continue
+            if o[0] != "str":
+                raise FiringRefusal(f"<{subject}>: agent:tool must be a "
+                                     "string literal")
+            tools.append(o[1])
+        tools = sorted(set(tools))
+        if len(tools) > MAX_TOOLS:
+            raise FiringRefusal(
+                f"<{subject}>: {len(tools)} agent:tool values; max {MAX_TOOLS}")
+
+        spawn_p = AGENT_NS + "canSpawn"
+        can_spawn = []
+        for p, o in props:
+            if p != spawn_p:
+                continue
+            if o[0] != "iri":
+                raise FiringRefusal(f"<{subject}>: agent:canSpawn must be "
+                                     "an IRI")
+            can_spawn.append(o[1])
+        can_spawn = sorted(set(can_spawn))
+        if len(can_spawn) > MAX_CAN_SPAWN:
+            raise FiringRefusal(
+                f"<{subject}>: {len(can_spawn)} agent:canSpawn values; "
+                f"max {MAX_CAN_SPAWN}")
+
+        depth_p = AGENT_NS + "layerDepth"
+        depths = [o for p, o in props if p == depth_p]
+        if not depths:
+            raise FiringRefusal(f"<{subject}>: missing agent:layerDepth")
+        if len(depths) > 1:
+            raise FiringRefusal(f"<{subject}>: multiple agent:layerDepth")
+        if depths[0][0] != "int":
+            raise FiringRefusal(
+                f"<{subject}>: agent:layerDepth must be an integer literal")
+        layer_depth = depths[0][1]
+        if not (1 <= layer_depth <= 5):
+            raise FiringRefusal(
+                f"<{subject}>: agent:layerDepth {layer_depth} out of range 1..=5")
+
+        agents.append((subject, tools, can_spawn, layer_depth))
+    agents.sort(key=lambda a: a[0])
+    return agents
+
+
+def agent_canonical_form(agents: list) -> str:
+    """Mirror agent_registry.rs agent_canonical_form: sorted
+    `iri\\ttools-csv\\tcan_spawn-csv\\tdepth` lines, trailing newline."""
+    out = []
+    for iri, tools, can_spawn, depth in agents:
+        out.append(f"{iri}\t{','.join(tools)}\t{','.join(can_spawn)}\t{depth}\n")
+    return "".join(out)
+
+
 def compact_json(value) -> str:
     """serde_json::to_string equivalent."""
     return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
@@ -909,7 +998,8 @@ def verify_firing(base_path: str, adds_path: str, removes_path: str,
         recorded = {
             k: require_str(receipt, k)
             for k in ("event_hash", "admission_hash", "handler_hash",
-                      "hook_hash", "history_hash", "outcome_hash", "chain")
+                      "agent_registry_hash", "hook_hash", "history_hash",
+                      "outcome_hash", "chain")
         }
         inner = receipt["inner"]
         verdicts_raw = receipt["verdicts"]
@@ -964,6 +1054,17 @@ def verify_firing(base_path: str, adds_path: str, removes_path: str,
         handler_hash = b3(lines.encode())
         stage("handler_hash", handler_hash, recorded["handler_hash"])
 
+        # Stage 3.5: agent registry re-extracted from the post state (tool
+        # sets, spawn edges, layer depth); canonical tab-separated lines,
+        # sorted by IRI. The depth-5 spawn law itself is NOT independently
+        # re-judged here (same named limitation as handler existence above:
+        # this script binds bytes to the claimed hash, it does not re-run
+        # policy decisions) — only the extraction is re-derived.
+        agents = extract_agents(post)
+        agent_registry_hash = b3(agent_canonical_form(agents).encode())
+        stage("agent_registry_hash", agent_registry_hash,
+              recorded["agent_registry_hash"])
+
         # Stages 4-5: refolded-from-payload — the embedded verdicts array and
         # outcome object are re-serialized to the serde rendering and hashed;
         # hook evaluation itself is NOT re-derived (named limitation).
@@ -978,7 +1079,8 @@ def verify_firing(base_path: str, adds_path: str, removes_path: str,
         # stage hashes and each inner v1 chain (folded as claimed — verify
         # each with the `graph` subcommand; empty = the no-action sentinel).
         chain = genesis(FIRING_DOMAIN)
-        for payload in (event_hash, admission_hash, handler_hash, hook_hash,
+        for payload in (event_hash, admission_hash, handler_hash,
+                        agent_registry_hash, hook_hash,
                         recorded["history_hash"]):
             # history_hash folded as claimed (no history input; named
             # limitation).

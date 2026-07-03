@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 
 use chatman_common::provenance::{content_address, fold_event, genesis_seed};
 
+use crate::agent_registry::{agent_registry_hash, extract_agents, spawn_depth_law, AgentProfile};
 use crate::delta::{delta_ttl_hash, GraphDelta};
 use crate::graph::WorkflowReceipt;
 use crate::ground::ground_fired_action;
@@ -68,6 +69,13 @@ pub struct HookFiringReceipt {
     pub bindings: Vec<HandlerBinding>,
     /// Computed hash of the canonical binding form.
     pub handler_hash: String,
+    /// Graph-declared agent registry (tool sets, spawn edges, layer depth)
+    /// — judged by [`spawn_depth_law`] in the same pre-solve, global phase
+    /// as handler existence (fold 3.5, folded between `handler_hash` and
+    /// `hook_hash`: graph-declared config judged before hook evaluation).
+    pub agents: Vec<AgentProfile>,
+    /// Computed hash of the canonical agent registry form.
+    pub agent_registry_hash: String,
     /// Every registered hook's verdict (NotFired/Gated included) — fold 4
     /// hashes this list.
     pub verdicts: Vec<HookVerdictRecord>,
@@ -117,10 +125,15 @@ pub fn window_history_hash(history: &[GraphDelta]) -> String {
     content_address(lines.as_bytes())
 }
 
+// One argument per named fold stage, in fold order — deliberately explicit
+// rather than bundled into a struct, so the fold order at each call site
+// reads directly against this signature.
+#[allow(clippy::too_many_arguments)]
 fn fold_firing_chain(
     event_hash: &str,
     admission_hash: &str,
     handler_hash: &str,
+    agent_registry_hash: &str,
     hook_hash: &str,
     history_hash: &str,
     inner_chains: &[&str],
@@ -130,6 +143,7 @@ fn fold_firing_chain(
     chain = fold_event(&chain, event_hash.as_bytes());
     chain = fold_event(&chain, admission_hash.as_bytes());
     chain = fold_event(&chain, handler_hash.as_bytes());
+    chain = fold_event(&chain, agent_registry_hash.as_bytes());
     chain = fold_event(&chain, hook_hash.as_bytes());
     chain = fold_event(&chain, history_hash.as_bytes());
     if inner_chains.is_empty() {
@@ -174,6 +188,14 @@ pub fn fire_hooks(
     let handler_hash_v = handler_hash(&bindings);
     let history_hash_v = window_history_hash(history);
 
+    // Graph-declared agent registry (tool sets, spawn edges, layer depth)
+    // is extracted in the SAME pre-solve, global phase as handler bindings
+    // — it is graph-declared config judged before hook evaluation, not a
+    // per-fired-action judgment. `agents` is malformed-shape data, so a
+    // hard `?` (never a lawful, chained refusal) mirrors `extract_bindings`.
+    let agents = extract_agents(event.post())?;
+    let agent_registry_hash_v = agent_registry_hash(&agents);
+
     // Pre-evaluation lawful refusals share one receipt shape: hooks were
     // never evaluated, so the verdict list is empty and its hash covers
     // exactly that emptiness.
@@ -186,6 +208,7 @@ pub fn fire_hooks(
             &event_hash,
             &admission_hash,
             &handler_hash_v,
+            &agent_registry_hash_v,
             &hook_hash_v,
             &history_hash_v,
             &[],
@@ -198,6 +221,8 @@ pub fn fire_hooks(
             admission_hash: admission_hash.clone(),
             bindings: bindings.clone(),
             handler_hash: handler_hash_v.clone(),
+            agents: agents.clone(),
+            agent_registry_hash: agent_registry_hash_v.clone(),
             verdicts,
             hook_hash: hook_hash_v,
             history_hash: history_hash_v.clone(),
@@ -210,6 +235,15 @@ pub fn fire_hooks(
 
     if let Err(refusal) = registry.judge_known(&bindings) {
         return pre_evaluation_refusal("handler", refusal.to_string());
+    }
+
+    // The depth-5 spawn law: no agent at layer depth 5 may declare a
+    // `agent:canSpawn` edge (terminal by absence of the spawn predicate).
+    // Judged in the same global, pre-solve phase as handler existence —
+    // before `extract_hooks`/`evaluate_hooks` — because it is a structural
+    // graph law, not a per-fired-action judgment.
+    if let Err(refusal) = spawn_depth_law(&agents) {
+        return pre_evaluation_refusal("agent-spawn-depth", refusal.to_string());
     }
 
     let hooks = extract_hooks(event.post())?;
@@ -274,6 +308,7 @@ pub fn fire_hooks(
         &event_hash,
         &admission_hash,
         &handler_hash_v,
+        &agent_registry_hash_v,
         &hook_hash_v,
         &history_hash_v,
         &inner_chains,
@@ -286,6 +321,8 @@ pub fn fire_hooks(
         admission_hash,
         bindings,
         handler_hash: handler_hash_v,
+        agents,
+        agent_registry_hash: agent_registry_hash_v,
         verdicts,
         hook_hash: hook_hash_v,
         history_hash: history_hash_v,
@@ -309,10 +346,11 @@ pub fn replay_firing(
 ) -> Result<(), Refusal> {
     let reference = Reference::genesis(base_ttl)?;
     let rederived = fire_hooks(&reference, source, registry, history)?;
-    let stages: [(&str, &str, &str); 7] = [
+    let stages: [(&str, &str, &str); 8] = [
         ("event_hash", &rederived.event_hash, &receipt.event_hash),
         ("admission_hash", &rederived.admission_hash, &receipt.admission_hash),
         ("handler_hash", &rederived.handler_hash, &receipt.handler_hash),
+        ("agent_registry_hash", &rederived.agent_registry_hash, &receipt.agent_registry_hash),
         ("hook_hash", &rederived.hook_hash, &receipt.hook_hash),
         ("history_hash", &rederived.history_hash, &receipt.history_hash),
         ("outcome_hash", &rederived.outcome_hash, &receipt.outcome_hash),
@@ -329,6 +367,9 @@ pub fn replay_firing(
     }
     if handler_hash(&receipt.bindings) != receipt.handler_hash {
         return Err(Refusal::VerificationFailed { failed: vec!["binding payload".to_string()] });
+    }
+    if agent_registry_hash(&receipt.agents) != receipt.agent_registry_hash {
+        return Err(Refusal::VerificationFailed { failed: vec!["agent registry payload".to_string()] });
     }
     if hook_hash(&receipt.verdicts)? != receipt.hook_hash {
         return Err(Refusal::VerificationFailed { failed: vec!["verdict payload".to_string()] });

@@ -170,12 +170,11 @@ pub fn handler_hash(bindings: &[HandlerBinding]) -> String {
 /// convention matching are unrepresentable.
 ///
 /// Richer agent metadata (declared tool sets, spawn-eligibility edges,
-/// layer depth) lives separately in [`crate::agent_registry`] — it is not
-/// yet consulted by `fire_hooks` or this registry's `judge*` methods.
-/// The two vocabularies (`wf:handler`/`wf:delegability` here vs.
-/// `agent:tool`/`agent:canSpawn`/`agent:layerDepth` there) are additive
-/// and must not silently diverge if either is later wired into the
-/// firing path.
+/// layer depth) lives separately in [`crate::agent_registry`]. `fire_hooks`
+/// extracts and judges that registry (the depth-5 spawn law) as its own
+/// pre-solve stage, but this registry's `judge*` methods remain scoped to
+/// `wf:handler`/`wf:delegability` only. The two vocabularies are additive
+/// and must not silently diverge.
 #[derive(Debug, Clone, Default)]
 pub struct HandlerRegistry {
     known: BTreeMap<String, ()>,

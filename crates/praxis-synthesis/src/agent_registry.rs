@@ -12,9 +12,12 @@
 //! This module ports that vocabulary CONCEPT-ONLY under a fresh closed
 //! namespace (`agent:`), mirroring the `hooks.rs`/`kernel.rs`
 //! closed-world-extractor style exactly: unknown `agent:` predicates or
-//! classes are refused by name, never silently ignored. Nothing here is
-//! wired into `firing.rs`/`handlers.rs` execution yet — see the
-//! cross-reference on [`crate::handlers::HandlerRegistry`].
+//! classes are refused by name, never silently ignored. [`extract_agents`]
+//! and [`spawn_depth_law`] are wired into `firing.rs::fire_hooks` as a
+//! pre-solve, global stage (named `agent-spawn-depth`), alongside handler
+//! existence judgment — see [`crate::firing::HookFiringReceipt::agents`].
+//! `handlers.rs`' own binding/delegability judgment is unaffected: the two
+//! vocabularies remain additive.
 
 use serde::{Deserialize, Serialize};
 
