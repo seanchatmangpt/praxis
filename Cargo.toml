@@ -150,6 +150,11 @@ strip = true
 
 [patch.crates-io]
 lsp-max = { path = "/Users/sac/lsp-max" }
+# Required for unification with bcinr-pddl's own hardcoded path dependency
+# on wasm4pm-compat (see /Users/sac/bcinr/crates/bcinr-pddl/Cargo.toml) --
+# without this, cargo resolves two distinct copies of wasm4pm-compat (one
+# from crates.io, one from bcinr-pddl's path dep) and type-mismatches at
+# any crate boundary crossing both (e.g. tests/indexed_grounding.rs).
 wasm4pm-compat = { path = "../wasm4pm-compat" }
 
 [workspace]
