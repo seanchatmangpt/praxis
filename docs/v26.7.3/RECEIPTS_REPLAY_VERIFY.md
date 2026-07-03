@@ -63,6 +63,21 @@ forged_payloads_behind_honest_hashes_are_refused_by_name`.
 
 ## Foreign verification (second implementation)
 
+**Scope statement.** Foreign verification scope for v26.7.3: The foreign
+firing verifier independently re-derives the graph-side authority chain
+through admission and handler binding. It computes the event hash from the
+RDF delta, applies the delta to derive the post-state graph, re-canonicalizes
+that graph, derives the admission record from computed graph hashes, and
+extracts declared handler bindings from the resulting graph. The verifier
+does not independently re-run the hook evaluator or execution runtime. Hook
+verdicts and outcomes are verified by payload binding: the embedded
+verdict/outcome bodies are hashed, compared to the receipt folds, and
+included in the receipt-chain verification. Therefore v26.7.3 proves foreign
+graph/admission/binding verification plus payload-bound verdict/outcome
+integrity. Full foreign semantic re-execution of hook evaluation is a
+withheld claim unless and until a Python-side hook evaluator mirror is
+implemented.
+
 `scripts/foreign_verify_graph.py` — Python stdlib + the `b3sum` binary, no
 Rust, no crate source. (`scripts/foreign_verify.py`, the original workflow
 verifier, is byte-frozen.) Exit 0 = verified, 1 = MISMATCH (first divergent
