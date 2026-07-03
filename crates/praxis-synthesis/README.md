@@ -56,3 +56,36 @@ Bounded everything, receipted refusals, no silence:
 cargo test -p praxis-synthesis     # 20 tests
 cargo clippy -p praxis-synthesis   # clean
 ```
+
+## The Supervision Layer (fault-tolerant plans)
+
+Lineage: **CNS 8T/8H/8M** (tick/hop/memory bounds) → **BitActor** (`TICK_BUDGET 8`,
+sealed spec↔exec) → **ByteActor V3** (bounded rings, crystal envelopes) →
+**knhk** (TickBudget, R1/W1/C1 classification, ParkManager — observation
+without actuation) → **praxis** (this crate: the actuation layer, closed).
+
+| module | provenance | what it adds |
+|---|---|---|
+| `budget` | PORT(knhk timing.rs) | branchless TickBudget, CHATMAN_CONSTANT=8, compile-time ChatmanBounded |
+| `fault` | PORT(knhk runtime_class/failure_actions) | R1/W1/C1 tiers; budget breach = *certified* refusal (knhk had a metric) |
+| `park` | PORT(knhk park.rs) + gaps closed | kill-9-durable quarantine (WAL) + ReAdmission{OnInputChange,AfterRuns,Manual} |
+| `supervise` | net-new | topology DERIVED from the plan's dependency structure; OneForAll refused by absence; intensity ≤ 8 |
+| `geometry` | net-new | 8 failure classes; branches mined from the solver's own fragility analysis; GeometryGap implicit + unshadowable |
+| `dag::execute_supervised` | net-new | crashes as values; classify→actuate closed; GaveUp = lawful Ok-receipt; crash chain anchored to geometry_hash |
+| `cell_supervise` | net-new | combo status lanes (provably-unreachable bit sets); MAPE-K at epoch boundaries; quarantine by cross-group quorum |
+
+Measured (`receipts/supervised_cell.json`, 10k members, release): supervision
+overhead at fault-rate 0 is noise-level; recovery counts track injected rates
+exactly (69/608/3,179 at 1%/10%/50%); throughput flat ~15k members/s across
+fault rates; crashloop template quarantined by epoch 2 in every run; every
+cell verified, and `foreign_verify.py` passes **unmodified** on supervised
+receipts.
+
+### Supervision refusals (receipted)
+| Refused | Reason | Salvage |
+|---|---|---|
+| Path-deps on knhk | verified: even `genesis-runtime-primitives` drags tokio/reqwest/otel; mu-kernel ships test libs as regular deps + unsafe | ports with greppable `PORT(knhk)` provenance |
+| rdtsc tick measurement | knhk's own hot receipts carried dummy ticks; declared costs are the honest model here | `Ticks` abstract; bench follow-up |
+| OneForAll strategy | acyclic data-flow cannot express shared mutable fate | absence enforced by exhaustive match |
+| Novelty-curve-under-faults measurement | member-level injection doesn't re-run solver work; a work-proxy would overstate cache dividends | node-level fleet injection is the follow-up |
+| Beat scheduling, full SLO matrix, quarantine parole, supra-cell | v1 scope | receipted in supervised_cell.json |

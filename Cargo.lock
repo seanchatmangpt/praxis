@@ -1708,7 +1708,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "star-toml 26.7.2",
  "thiserror 2.0.18",
  "tokio",
  "toml 1.1.2+spec-1.1.0",
@@ -2976,7 +2975,7 @@ dependencies = [
  "schemars 1.2.1",
  "serde",
  "serde_json",
- "star-toml 26.6.30",
+ "star-toml",
  "tempfile",
  "tera",
  "thiserror 2.0.18",
@@ -3796,7 +3795,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "star-toml 26.6.30",
+ "star-toml",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
@@ -5013,15 +5012,6 @@ dependencies = [
  "thiserror 2.0.18",
  "toml 1.1.2+spec-1.1.0",
  "wasm4pm-compat",
-]
-
-[[package]]
-name = "star-toml"
-version = "26.7.2"
-dependencies = [
- "serde",
- "thiserror 2.0.18",
- "toml 1.1.2+spec-1.1.0",
 ]
 
 [[package]]
