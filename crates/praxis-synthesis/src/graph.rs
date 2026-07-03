@@ -667,10 +667,10 @@ pub fn ttl_hash(src: &str) -> String {
 pub const WF_NS: &str = "http://seanchatmangpt.github.io/praxis/workflow#";
 
 const WF_CLASSES: [&str; 4] = ["Workflow", "Capability", "Atom", "Constraint"];
-const WF_PREDICATES: [&str; 24] = [
+const WF_PREDICATES: [&str; 26] = [
     "budget", "init", "goal", "name", "params", "cost", "pre", "add", "del", "predicate", "arg0",
     "arg1", "arg2", "arg3", "arg4", "arg5", "arg6", "arg7", "kind", "a", "b", "k", "handler",
-    "delegability",
+    "delegability", "capability", "constraint",
 ];
 
 fn ill(subject: &str, detail: impl Into<String>) -> Refusal {

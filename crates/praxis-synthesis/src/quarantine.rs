@@ -59,17 +59,40 @@ impl RiceQuarantine {
 }
 
 /// The admitted base state a delta is judged against.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+///
+/// Fields are PRIVATE by adversarial-review law: a `Reference` exists only
+/// via [`Reference::genesis`], so the hash is always COMPUTED from the
+/// canonical triples, never asserted. (`Deserialize` is deliberately absent
+/// — a wire-forged reference would bypass the constructor.)
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Reference {
     /// The admitted triples (sorted canonical order).
-    pub triples: Vec<Triple>,
+    triples: Vec<Triple>,
     /// Computed content address of the canonical form of `triples`.
-    pub graph_hash: String,
+    graph_hash: String,
     /// Logical epoch of this state (increments per admission; no wall clock).
-    pub epoch: u64,
+    epoch: u64,
 }
 
 impl Reference {
+    /// The admitted triples (sorted canonical order).
+    #[must_use]
+    pub fn triples(&self) -> &[Triple] {
+        &self.triples
+    }
+
+    /// Computed content address of the canonical form of the triples.
+    #[must_use]
+    pub fn graph_hash(&self) -> &str {
+        &self.graph_hash
+    }
+
+    /// Logical epoch of this state.
+    #[must_use]
+    pub fn epoch(&self) -> u64 {
+        self.epoch
+    }
+
     /// Build the genesis reference (epoch 0) from a TTL document.
     pub fn genesis(ttl: &str) -> Result<Self, Refusal> {
         let mut triples = parse_ttl(ttl)?;
@@ -118,14 +141,41 @@ impl AdmissionRecord {
 }
 
 /// An admitted event: the record plus the new state it produced.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+///
+/// Fields are PRIVATE by adversarial-review law: an `AdmittedEvent` exists
+/// only via [`Admission::admit`], so the type itself witnesses that the
+/// post-state was computed by applying an inspected delta to a reference
+/// under the closed-world vocabulary — a hand-built post-state cannot reach
+/// [`crate::ground::ground_fired_action`]. (`Deserialize` is deliberately
+/// absent for the same reason.)
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AdmittedEvent {
     /// The hashed admission record.
-    pub record: AdmissionRecord,
+    record: AdmissionRecord,
     /// The post-state triples (sorted canonical order).
-    pub post: Vec<Triple>,
+    post: Vec<Triple>,
     /// The delta that was admitted.
-    pub delta: GraphDelta,
+    delta: GraphDelta,
+}
+
+impl AdmittedEvent {
+    /// The hashed admission record.
+    #[must_use]
+    pub fn record(&self) -> &AdmissionRecord {
+        &self.record
+    }
+
+    /// The post-state triples (sorted canonical order).
+    #[must_use]
+    pub fn post(&self) -> &[Triple] {
+        &self.post
+    }
+
+    /// The delta that was admitted.
+    #[must_use]
+    pub fn delta(&self) -> &GraphDelta {
+        &self.delta
+    }
 }
 
 /// The admission gate.

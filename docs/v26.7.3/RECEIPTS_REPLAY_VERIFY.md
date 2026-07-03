@@ -24,6 +24,9 @@ genesis(praxis:hook-firing:v1)
   ⊳ admission_hash      (AdmissionRecord JSON)
   ⊳ handler_hash        (canonical binding lines)
   ⊳ hook_hash           (verdict record list JSON — NotFired included)
+  ⊳ history_hash        (window-history commitment: the first 7 history
+                         deltas' computed event hashes — the max window − 1
+                         that can influence any verdict)
   ⊳ inner chain per fired action, in verdict order
       (none fired -> the sentinel "praxis:no-action")
   ⊳ outcome_hash        (FiringOutcome JSON)
@@ -31,9 +34,13 @@ genesis(praxis:hook-firing:v1)
 
 `delta_ttl_hash` (exact surface bytes) is a receipt FIELD only — never
 folded (the ttl_hash doctrine). Outcomes: `Completed`, or
-`Refused { stage, reason }` with stage `handler` | `delegability` |
-`declared-refusal` — lawful refusals are chained, never silent (knhk
-Covenant-2, imported as policy).
+`Refused { stage, reason }` with stage `handler` | `kernel-boundary` |
+`delegability` | `declared-refusal` — lawful refusals are chained, never
+silent (knhk Covenant-2, imported as policy). The `kernel-boundary` stage
+is the surrender invariant enforced as a runtime law: when the post-state
+declares a prayer kernel, no `god-receives-unbounded` clause may be routed
+toward computation (`kernel.rs :: enforce_surrender_boundary`,
+`tests/repair_loop.rs`).
 
 Evidence: `tests/firing_chain.rs :: completed_firing_chains_and_replays`,
 `unknown_handler_is_refused_before_solving_and_still_chained`,
@@ -44,8 +51,8 @@ Evidence: `tests/firing_chain.rs :: completed_firing_chains_and_replays`,
 
 `firing.rs :: replay_firing(receipt, base_ttl, source, registry, history)`
 re-derives the WHOLE firing from the base TTL and delta documents, compares
-stage by stage in fold order (event, admission, handler, hook, outcome,
-chain), and then binds every embedded payload to the hash just verified:
+stage by stage in fold order (event, admission, handler, hook, history,
+outcome, chain), and then binds every embedded payload to the hash just verified:
 the admission record, the bindings list, the verdict list, the outcome, and
 the inner chains must each reproduce their hash. A receipt whose hashes are
 honest but whose bodies are forged is refused by name — a receipt cannot
@@ -77,7 +84,7 @@ Re-derived from inputs: the event canonical form and event_hash (parse,
 sort, dedup, cap-64, both-sides refusal mirrored); the post-state apply and
 its hash; the AdmissionRecord JSON in serde field order and its hash; the
 handler bindings re-extracted from the post-state (ill-formed refusals
-mirrored) and their canonical lines; the 6-fold chain refold.
+mirrored) and their canonical lines; the chain refold.
 
 Evidence: `tests/foreign_firing.rs ::
 foreign_firing_verifier_agrees_on_an_honest_completed_receipt`,
@@ -98,6 +105,13 @@ Stated in the script itself and repeated here so no claim outruns them:
    subcommand, whose own named limitation is that plan/topology/geometry
    stage hashes are refolded as claimed, not re-derived (re-derivation
    needs the Rust replayer).
+3. `history_hash` (the window-history commitment) is folded as claimed
+   from the receipt field: the `firing` subcommand takes no history input,
+   so it binds the fold position, not the history bytes. Re-deriving the
+   commitment from an actual history needs the Rust side
+   (`replay_firing`, which refuses a mismatched history —
+   `tests/repair_loop.rs ::
+   replaying_a_firing_against_a_different_history_is_refused`).
 
 ## Trustless replay
 

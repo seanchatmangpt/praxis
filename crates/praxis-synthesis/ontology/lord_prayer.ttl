@@ -192,7 +192,9 @@ ex:SponsorUnavailableHook a hook:Hook ;
 ex:DailyPrayerWorkflow a wf:Workflow ;
     wf:budget 4 ;
     wf:init ex:dayOpen ;
-    wf:goal ex:receiptWritten .
+    wf:goal ex:receiptWritten ;
+    wf:capability ex:orientToFather, ex:surrenderWill,
+        ex:requestDailyBread, ex:writePrayerReceipt .
 
 ex:dayOpen a wf:Atom ;
     wf:predicate "day-open" ;
@@ -244,14 +246,16 @@ ex:writePrayerReceipt a wf:Capability ;
 
 # ---------------------------------------------------------------------------
 # The confess-and-repair workflow fragment (debt-repair support).
-# Atom predicates are distinct from every other fragment so plans stay
-# deterministic when fragments share the global capability space.
+# Capabilities belong to a fragment only through the workflow's declared
+# wf:capability membership edges — fragments never share capabilities
+# implicitly.
 # ---------------------------------------------------------------------------
 
 ex:ConfessAndRepairWorkflow a wf:Workflow ;
     wf:budget 3 ;
     wf:init ex:debtSeen ;
-    wf:goal ex:debtRepaired .
+    wf:goal ex:debtRepaired ;
+    wf:capability ex:confessDebt, ex:releaseResentment, ex:repairDebt .
 
 ex:debtSeen a wf:Atom ;
     wf:predicate "debt-seen" ;
@@ -297,7 +301,8 @@ ex:repairDebt a wf:Capability ;
 ex:RepairReceiptWorkflow a wf:Workflow ;
     wf:budget 1 ;
     wf:init ex:receiptGapSeen ;
-    wf:goal ex:receiptRestored .
+    wf:goal ex:receiptRestored ;
+    wf:capability ex:restoreReceipt .
 
 ex:receiptGapSeen a wf:Atom ;
     wf:predicate "receipt-gap-seen" ;

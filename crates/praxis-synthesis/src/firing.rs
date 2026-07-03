@@ -6,6 +6,7 @@
 //!
 //! ```text
 //! genesis ⊳ event_hash ⊳ admission_hash ⊳ handler_hash ⊳ hook_hash
+//!         ⊳ history_hash (the window-history commitment)
 //!         ⊳ inner chain per fired action (or the no-action sentinel)
 //!         ⊳ assignment/outcome record hash
 //! ```
@@ -43,7 +44,8 @@ pub enum FiringOutcome {
     Completed,
     /// The firing was lawfully refused at a named stage.
     Refused {
-        /// The stage that refused: `handler` | `delegability` | `declared-refusal`.
+        /// The stage that refused: `handler` | `kernel-boundary` |
+        /// `delegability` | `declared-refusal`.
         stage: String,
         /// The refusal, rendered (typed refusals carry their own data).
         reason: String,
@@ -71,6 +73,12 @@ pub struct HookFiringReceipt {
     pub verdicts: Vec<HookVerdictRecord>,
     /// Computed hash of `verdicts`.
     pub hook_hash: String,
+    /// Computed commitment to the window history the verdicts were judged
+    /// against (fold 5): only up to the first 7 deltas (max window − 1) can
+    /// influence any verdict, so exactly those are committed. Replaying
+    /// against a different history is a verification failure even when the
+    /// verdicts coincide.
+    pub history_hash: String,
     /// Inner v1 receipts, one per fired ground-action, in verdict order
     /// (each `chain` folded as one event; empty = sentinel fold).
     pub inner: Vec<WorkflowReceipt>,
@@ -89,11 +97,32 @@ fn json_hash<T: Serialize>(value: &T, what: &str) -> Result<String, Refusal> {
     Ok(content_address(json.as_bytes()))
 }
 
+/// Domain-separation tag for the window-history commitment.
+const HISTORY_DOMAIN: &str = "praxis:window-history:v1";
+
+/// Only this many history deltas (max `window` − 1) can influence any
+/// window verdict, so exactly this prefix is committed.
+const HISTORY_COMMIT_LEN: usize = 7;
+
+/// Computed commitment to the effective window history: the domain tag
+/// plus each committed delta's computed `event_hash`, one per line. An
+/// empty history commits to the bare domain line.
+#[must_use]
+pub fn window_history_hash(history: &[GraphDelta]) -> String {
+    let mut lines = String::from(HISTORY_DOMAIN);
+    for delta in history.iter().take(HISTORY_COMMIT_LEN) {
+        lines.push('\n');
+        lines.push_str(&delta.event_hash());
+    }
+    content_address(lines.as_bytes())
+}
+
 fn fold_firing_chain(
     event_hash: &str,
     admission_hash: &str,
     handler_hash: &str,
     hook_hash: &str,
+    history_hash: &str,
     inner_chains: &[&str],
     outcome_hash: &str,
 ) -> String {
@@ -102,6 +131,7 @@ fn fold_firing_chain(
     chain = fold_event(&chain, admission_hash.as_bytes());
     chain = fold_event(&chain, handler_hash.as_bytes());
     chain = fold_event(&chain, hook_hash.as_bytes());
+    chain = fold_event(&chain, history_hash.as_bytes());
     if inner_chains.is_empty() {
         chain = fold_event(&chain, NO_ACTION_SENTINEL.as_bytes());
     } else {
@@ -133,21 +163,23 @@ pub fn fire_hooks(
     let delta_ttl_hash = delta_ttl_hash(&source.adds_ttl, &source.removes_ttl);
     let event_hash = delta.event_hash();
     let event = Admission::admit(reference, &delta)?;
-    let admission = event.record.clone();
+    let admission = event.record().clone();
     let admission_hash = admission.admission_hash()?;
 
     // Handler EXISTENCE judgment is global and runs BEFORE any solving:
     // an unknown handler IRI anywhere in the graph refuses the firing.
     // Delegability is judged later, PER FIRED ACTION, against the
     // capabilities that action's derived plan actually uses.
-    let bindings = extract_bindings(&event.post)?;
+    let bindings = extract_bindings(event.post())?;
     let handler_hash_v = handler_hash(&bindings);
-    if let Err(refusal) = registry.judge_known(&bindings) {
-        let outcome =
-            FiringOutcome::Refused { stage: "handler".to_string(), reason: refusal.to_string() };
+    let history_hash_v = window_history_hash(history);
+
+    // Pre-evaluation lawful refusals share one receipt shape: hooks were
+    // never evaluated, so the verdict list is empty and its hash covers
+    // exactly that emptiness.
+    let pre_evaluation_refusal = |stage: &str, reason: String| -> Result<HookFiringReceipt, Refusal> {
+        let outcome = FiringOutcome::Refused { stage: stage.to_string(), reason };
         let outcome_hash = json_hash(&outcome, "outcome")?;
-        // Hooks were never evaluated: the verdict list is empty and its
-        // hash covers exactly that emptiness.
         let verdicts: Vec<HookVerdictRecord> = Vec::new();
         let hook_hash_v = hook_hash(&verdicts)?;
         let chain = fold_firing_chain(
@@ -155,26 +187,41 @@ pub fn fire_hooks(
             &admission_hash,
             &handler_hash_v,
             &hook_hash_v,
+            &history_hash_v,
             &[],
             &outcome_hash,
         );
-        return Ok(HookFiringReceipt {
-            delta_ttl_hash,
-            event_hash,
-            admission,
-            admission_hash,
-            bindings,
-            handler_hash: handler_hash_v,
+        Ok(HookFiringReceipt {
+            delta_ttl_hash: delta_ttl_hash.clone(),
+            event_hash: event_hash.clone(),
+            admission: admission.clone(),
+            admission_hash: admission_hash.clone(),
+            bindings: bindings.clone(),
+            handler_hash: handler_hash_v.clone(),
             verdicts,
             hook_hash: hook_hash_v,
+            history_hash: history_hash_v.clone(),
             inner: Vec::new(),
             outcome,
             outcome_hash,
             chain,
-        });
+        })
+    };
+
+    if let Err(refusal) = registry.judge_known(&bindings) {
+        return pre_evaluation_refusal("handler", refusal.to_string());
     }
 
-    let hooks = extract_hooks(&event.post)?;
+    let hooks = extract_hooks(event.post())?;
+
+    // The surrender boundary is a runtime law, judged BEFORE any hook
+    // evaluation: if the post-state declares a prayer kernel, no
+    // god-receives-unbounded clause may be routed toward computation —
+    // neither by mutating its refuse-hook nor by a second hook siphoning
+    // the surrendered predicate into a ground-action.
+    if let Err(refusal) = crate::kernel::enforce_surrender_boundary(event.post(), &hooks) {
+        return pre_evaluation_refusal("kernel-boundary", refusal.to_string());
+    }
     let verdicts = evaluate_hooks(&hooks, &event, history)?;
     let hook_hash_v = hook_hash(&verdicts)?;
 
@@ -228,6 +275,7 @@ pub fn fire_hooks(
         &admission_hash,
         &handler_hash_v,
         &hook_hash_v,
+        &history_hash_v,
         &inner_chains,
         &outcome_hash,
     );
@@ -240,6 +288,7 @@ pub fn fire_hooks(
         handler_hash: handler_hash_v,
         verdicts,
         hook_hash: hook_hash_v,
+        history_hash: history_hash_v,
         inner,
         outcome,
         outcome_hash,
@@ -260,11 +309,12 @@ pub fn replay_firing(
 ) -> Result<(), Refusal> {
     let reference = Reference::genesis(base_ttl)?;
     let rederived = fire_hooks(&reference, source, registry, history)?;
-    let stages: [(&str, &str, &str); 6] = [
+    let stages: [(&str, &str, &str); 7] = [
         ("event_hash", &rederived.event_hash, &receipt.event_hash),
         ("admission_hash", &rederived.admission_hash, &receipt.admission_hash),
         ("handler_hash", &rederived.handler_hash, &receipt.handler_hash),
         ("hook_hash", &rederived.hook_hash, &receipt.hook_hash),
+        ("history_hash", &rederived.history_hash, &receipt.history_hash),
         ("outcome_hash", &rederived.outcome_hash, &receipt.outcome_hash),
         ("chain", &rederived.chain, &receipt.chain),
     ];

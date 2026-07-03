@@ -60,7 +60,7 @@ pub use delta::GraphDelta;
 pub use graph::{
     execute_workflow, execute_workflow_with, replay_workflow, WorkflowIr, WorkflowReceipt,
 };
-pub use firing::{fire_hooks, replay_firing, FiringOutcome, HookFiringReceipt};
+pub use firing::{fire_hooks, replay_firing, window_history_hash, FiringOutcome, HookFiringReceipt};
 pub use ground::{capability_task_spec, ground_fired_action, CapabilityTaskSpec};
 pub use handlers::{Delegability, HandlerBinding, HandlerRegistry};
 pub use hooks::{
@@ -263,5 +263,18 @@ pub enum Refusal {
         required: String,
         /// The grade the graph declares.
         declared: String,
+    },
+    /// The surrender boundary of the prayer kernel was violated: a clause
+    /// whose boundary is `god-receives-unbounded` was routed toward
+    /// computation (its action is not a refuse-effect hook, or a
+    /// non-refusing hook watches a surrendered predicate). The unbounded is
+    /// surrendered, never computed — enforced at firing time, not by TTL
+    /// convention.
+    #[error("surrender boundary violated at {subject}: {detail}")]
+    BoundaryViolation {
+        /// The clause or hook IRI that violates the boundary.
+        subject: String,
+        /// Which boundary rule was violated.
+        detail: String,
     },
 }

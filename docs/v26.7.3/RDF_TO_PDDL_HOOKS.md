@@ -60,11 +60,15 @@ Kinds praxis has no bounded engine for are refused at registration with
 the archaeology found missing. For a FIRED verdict with effect
 `ground-action`:
 
-1. `restrict_to_fragment` — restrict the admitted post-graph to the
-   `hook:action` node's `wf:Workflow` fragment: closure under `wf:`
-   object-IRI references, plus all `wf:Capability`/`wf:Constraint` nodes,
-   minus every OTHER `wf:Workflow` typing (so the exactly-one-workflow law
-   holds).
+1. `restrict_to_fragment` — restrict the admitted post-graph to EXACTLY
+   the `hook:action` node's `wf:Workflow` fragment: closure under `wf:`
+   object-IRI references, with capabilities and constraints reachable ONLY
+   through the workflow's own declared `wf:capability` / `wf:constraint`
+   membership edges (nothing is seeded graph-wide), minus every OTHER
+   `wf:Workflow` typing (so the exactly-one-workflow law holds). Foreign
+   fragments sharing the admitted graph can never change — or refuse —
+   this action's derived plan (`tests/repair_loop.rs ::
+   grounding_a_is_byte_identical_with_and_without_foreign_fragments`).
 2. Run the fragment through the EXISTING chain: extract IR -> lower ->
    Solver8 -> derived topology/geometry -> supervised execution.
 

@@ -42,12 +42,14 @@ pub struct CapabilityTaskSpec {
     pub desired_effects: Vec<(String, String)>,
 }
 
-/// Restrict the admitted graph to one action fragment: the closure of the
-/// action's `wf:Workflow` node under `wf:` object-IRI references, PLUS the
-/// graph's `wf:Capability` and `wf:Constraint` nodes and their closures
-/// (capabilities are the shared action vocabulary), MINUS every OTHER
-/// `wf:Workflow` typing — so the fragment satisfies the exactly-one-
-/// workflow law of the extractor.
+/// Restrict the admitted graph to one action fragment: EXACTLY the closure
+/// of the action's `wf:Workflow` node under `wf:` object-IRI references.
+/// Capabilities and constraints participate only through the workflow's own
+/// declared `wf:capability` / `wf:constraint` membership edges — nothing is
+/// seeded graph-wide, so foreign fragments sharing the admitted graph can
+/// never change (or refuse) this action's derived plan. Other `wf:Workflow`
+/// typings are dropped so the fragment satisfies the exactly-one-workflow
+/// law of the extractor.
 fn restrict_to_fragment(triples: &[Triple], action_iri: &str) -> Result<Vec<Triple>, Refusal> {
     let workflow_class = format!("{WF_NS}Workflow");
     let is_wf_typed = |s: &str| {
@@ -62,22 +64,23 @@ fn restrict_to_fragment(triples: &[Triple], action_iri: &str) -> Result<Vec<Trip
         });
     }
 
-    // Seeds: the action node + every capability/constraint node.
-    let cap_class = format!("{WF_NS}Capability");
-    let con_class = format!("{WF_NS}Constraint");
-    let mut seeds: BTreeSet<&str> = BTreeSet::new();
-    seeds.insert(action_iri);
+    // Membership edges must be IRIs — a literal there would silently drop a
+    // capability from the fragment, so it is refused by name instead.
+    let cap_pred = format!("{WF_NS}capability");
+    let con_pred = format!("{WF_NS}constraint");
     for t in triples {
-        if t.p == RDF_TYPE {
-            if let Object::Iri(c) = &t.o {
-                if *c == cap_class || *c == con_class {
-                    seeds.insert(&t.s);
-                }
-            }
+        if (t.p == cap_pred || t.p == con_pred) && !matches!(&t.o, Object::Iri(_)) {
+            return Err(Refusal::WorkflowIllFormed {
+                subject: t.s.clone(),
+                detail: format!("{} must reference a node IRI", t.p),
+            });
         }
     }
-    // Transitive closure over wf: object-IRI references.
-    let mut included: BTreeSet<&str> = seeds.clone();
+
+    // Seed: the action node only. The closure follows the workflow's own
+    // wf: edges (init/goal/capability/constraint/pre/add/del/...).
+    let mut included: BTreeSet<&str> = BTreeSet::new();
+    included.insert(action_iri);
     loop {
         let mut grew = false;
         for t in triples {
@@ -129,7 +132,7 @@ pub fn ground_fired_action(
     let action_iri = record.action_iri.as_deref().ok_or_else(|| Refusal::InvalidInput {
         detail: format!("hook '{}' has no action IRI", record.hook_name),
     })?;
-    let fragment = restrict_to_fragment(&event.post, action_iri)?;
+    let fragment = restrict_to_fragment(event.post(), action_iri)?;
     execute_from_triples(&fragment)
 }
 
@@ -146,11 +149,11 @@ pub fn capability_task_spec(
     let predicate_pred = format!("{WF_NS}predicate");
     let arg0_pred = format!("{WF_NS}arg0");
     let mut desired_effects = Vec::new();
-    for t in &event.post {
+    for t in event.post() {
         if t.s == action_iri && t.p == goal_pred {
             if let Object::Iri(goal_atom) = &t.o {
                 let field = |pred: &str| {
-                    event.post.iter().find_map(|u| {
+                    event.post().iter().find_map(|u| {
                         (u.s == *goal_atom && u.p == pred)
                             .then(|| match &u.o {
                                 Object::Str(s) => s.clone(),

@@ -379,9 +379,16 @@ pub fn extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHook>, Refusal> 
                 }
                 let goal = props.one_str(subject, "goal")?;
                 // Registration-time validation: rules must parse and pass
-                // the engine's safety checks against a scratch program.
+                // the engine's safety checks against a scratch program,
+                // AND stratify — stratification is EDB-independent, so a
+                // trial saturation over the empty EDB proves it here. An
+                // unstratifiable hook is refused at registration, never at
+                // firing time.
                 let mut scratch = Program::new();
                 add_rules(&mut scratch, &program, subject)?;
+                scratch.saturate().map_err(|e| {
+                    ill(subject, format!("datalog program rejected at registration: {e}"))
+                })?;
                 HookCondition::Datalog { program, goal }
             }
             "delta" => HookCondition::Delta { var: props.one_str(subject, "var")? },
@@ -530,8 +537,11 @@ fn split_depth0(text: &str, sep: char) -> Vec<&str> {
 ///
 /// Grammar (one statement per '.'): `head :- lit, lit, ...` where a literal
 /// is `atom` or `!atom`; atoms are `name(arg, ...)`; args `?0..?7` are
-/// variables, all else constants. Engine safety (bound head/negation vars,
-/// arity, MAX_VARS) is enforced by [`Program::add_rule`].
+/// variables, all else constants. Every rule requires at least one POSITIVE
+/// body atom (a bodiless rule would assert a fact through program text) and
+/// the head predicate `t` is reserved for the EDB projection. Engine safety
+/// (bound head/negation vars, arity, MAX_VARS) is enforced by
+/// [`Program::add_rule`].
 fn add_rules(program: &mut Program, text: &str, subject: &str) -> Result<usize, Refusal> {
     let mut added = 0usize;
     for stmt in split_depth0(text, '.') {
@@ -544,6 +554,12 @@ fn add_rules(program: &mut Program, text: &str, subject: &str) -> Result<usize, 
             None => (stmt, None),
         };
         let head = parse_atom(program, head_s, subject)?;
+        if head.pred == program.intern("t") {
+            return Err(ill(
+                subject,
+                "datalog head predicate 't' is reserved for the EDB projection",
+            ));
+        }
         let mut body = Vec::new();
         let mut negative = Vec::new();
         if let Some(b) = body_s {
@@ -555,6 +571,13 @@ fn add_rules(program: &mut Program, text: &str, subject: &str) -> Result<usize, 
                     body.push(parse_atom(program, lit, subject)?);
                 }
             }
+        }
+        if body.is_empty() {
+            return Err(ill(
+                subject,
+                "datalog rule must have at least one positive body atom; \
+                 facts cannot be asserted via program text",
+            ));
         }
         program.add_rule(DlRule { head, body, negative }).map_err(|e| {
             ill(subject, format!("datalog rule rejected by engine: {e}"))
@@ -576,11 +599,11 @@ fn count_pred(triples: &[Triple], var: &str) -> u64 {
 }
 
 fn delta_touches(delta: &GraphDelta, var: &str) -> bool {
-    delta.additions.iter().chain(delta.removals.iter()).any(|t| t.p == var)
+    delta.additions().iter().chain(delta.removals().iter()).any(|t| t.p == var)
 }
 
 fn delta_count(delta: &GraphDelta, var: &str) -> u64 {
-    count_pred(&delta.additions, var) + count_pred(&delta.removals, var)
+    count_pred(delta.additions(), var) + count_pred(delta.removals(), var)
 }
 
 /// Evaluate one bounded datalog condition over post-state triples: EDB is
@@ -623,8 +646,8 @@ pub fn evaluate_hooks(
     let mut records = Vec::with_capacity(hooks.len());
     for hook in hooks {
         let gated = match hook.on.as_str() {
-            "assert" => event.delta.additions.is_empty(),
-            "retract" => event.delta.removals.is_empty(),
+            "assert" => event.delta().additions().is_empty(),
+            "retract" => event.delta().removals().is_empty(),
             _ => false,
         };
         let verdict = if gated {
@@ -632,15 +655,15 @@ pub fn evaluate_hooks(
         } else {
             let fired = match &hook.condition {
                 HookCondition::Datalog { program, goal } => {
-                    eval_datalog(program, goal, &event.post, &hook.iri)?
+                    eval_datalog(program, goal, event.post(), &hook.iri)?
                 }
-                HookCondition::Delta { var } => delta_touches(&event.delta, var),
+                HookCondition::Delta { var } => delta_touches(event.delta(), var),
                 HookCondition::Threshold { var, op, k } => {
-                    op.holds(count_pred(&event.post, var), *k)
+                    op.holds(count_pred(event.post(), var), *k)
                 }
-                HookCondition::Count { var, op, k } => op.holds(delta_count(&event.delta, var), *k),
+                HookCondition::Count { var, op, k } => op.holds(delta_count(event.delta(), var), *k),
                 HookCondition::Window { var, op, k, window } => {
-                    let mut total = delta_count(&event.delta, var);
+                    let mut total = delta_count(event.delta(), var);
                     for d in history.iter().take(usize::from(*window) - 1) {
                         total += delta_count(d, var);
                     }
@@ -700,13 +723,13 @@ mod tests {
     #[test]
     fn delta_hook_fires_and_notfired_is_recorded() {
         let event = admitted(DELTA_HOOK, "<http://e/x> <http://e/p> 1 .", "");
-        let hooks = extract_hooks(&event.post).expect("registry extracts");
+        let hooks = extract_hooks(event.post()).expect("registry extracts");
         assert_eq!(hooks.len(), 1);
         let records = evaluate_hooks(&hooks, &event, &[]).expect("evaluates");
         assert_eq!(records[0].verdict, HookVerdict::Fired);
 
         let quiet = admitted(DELTA_HOOK, "<http://e/x> <http://e/q> 1 .", "");
-        let hooks = extract_hooks(&quiet.post).expect("registry extracts");
+        let hooks = extract_hooks(quiet.post()).expect("registry extracts");
         let records = evaluate_hooks(&hooks, &quiet, &[]).expect("evaluates");
         assert_eq!(records[0].verdict, HookVerdict::NotFired, "silence is recorded");
         assert!(hook_hash(&records).unwrap().len() > 16);
@@ -766,7 +789,7 @@ mod tests {
             "{body}ex:a <http://e/is> <http://e/thing> .\nex:root <http://e/links> ex:a .\n"
         );
         let event = admitted(&base_extra, "<http://e/b> <http://e/is> <http://e/thing> .", "");
-        let hooks = extract_hooks(&event.post).expect("extracts");
+        let hooks = extract_hooks(event.post()).expect("extracts");
         let records = evaluate_hooks(&hooks, &event, &[]).expect("evaluates");
         assert_eq!(records[0].verdict, HookVerdict::Fired, "unlinked b is an orphan");
 
@@ -777,7 +800,7 @@ mod tests {
              <http://e/root> <http://e/links> <http://e/b> .",
             "",
         );
-        let hooks2 = extract_hooks(&event2.post).expect("extracts");
+        let hooks2 = extract_hooks(event2.post()).expect("extracts");
         let records2 = evaluate_hooks(&hooks2, &event2, &[]).expect("evaluates");
         assert_eq!(records2[0].verdict, HookVerdict::NotFired);
     }
@@ -796,7 +819,7 @@ mod tests {
         let base_extra = format!("{body}ex:w <http://e/item> 1 .\nex:w <http://e/item> 2 .\n");
         let prior = GraphDelta::parse("<http://e/w> <http://e/item> 9 .", "").unwrap();
         let event = admitted(&base_extra, "<http://e/w> <http://e/item> 3 .", "");
-        let hooks = extract_hooks(&event.post).expect("extracts");
+        let hooks = extract_hooks(event.post()).expect("extracts");
         assert_eq!(hooks.len(), 3);
         let records = evaluate_hooks(&hooks, &event, std::slice::from_ref(&prior)).unwrap();
         let by_name = |n: &str| records.iter().find(|r| r.hook_name == n).unwrap();

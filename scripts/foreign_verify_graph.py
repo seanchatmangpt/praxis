@@ -734,7 +734,10 @@ def verify_graph(ttl_path: str, receipt_path: str) -> int:
 # this binds payload bytes to hash but does not re-derive hook evaluation
 # (the named limitation; re-derivation needs the Rust evaluator). Inner v1
 # chains are folded as claimed from receipt.inner[].chain (each is itself
-# verifiable by the `graph` subcommand — a second named limitation).
+# verifiable by the `graph` subcommand — a second named limitation). The
+# history_hash (the window-history commitment) is likewise folded as claimed
+# from the receipt field: the verifier has no history input, so it binds the
+# fold position, not the history bytes (a third named limitation).
 
 FIRING_DOMAIN = "praxis:hook-firing:v1"
 NO_ACTION_SENTINEL = "praxis:no-action"
@@ -906,7 +909,7 @@ def verify_firing(base_path: str, adds_path: str, removes_path: str,
         recorded = {
             k: require_str(receipt, k)
             for k in ("event_hash", "admission_hash", "handler_hash",
-                      "hook_hash", "outcome_hash", "chain")
+                      "hook_hash", "history_hash", "outcome_hash", "chain")
         }
         inner = receipt["inner"]
         verdicts_raw = receipt["verdicts"]
@@ -975,7 +978,10 @@ def verify_firing(base_path: str, adds_path: str, removes_path: str,
         # stage hashes and each inner v1 chain (folded as claimed — verify
         # each with the `graph` subcommand; empty = the no-action sentinel).
         chain = genesis(FIRING_DOMAIN)
-        for payload in (event_hash, admission_hash, handler_hash, hook_hash):
+        for payload in (event_hash, admission_hash, handler_hash, hook_hash,
+                        recorded["history_hash"]):
+            # history_hash folded as claimed (no history input; named
+            # limitation).
             chain = fold(chain, payload.encode())
         if inner_chains:
             for c in inner_chains:

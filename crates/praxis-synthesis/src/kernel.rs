@@ -232,6 +232,88 @@ pub fn extract_kernel(triples: &[Triple]) -> Result<Vec<PrayerClause>, Refusal> 
     Ok(clauses)
 }
 
+/// Whether the graph declares any `prayer-kernel:` vocabulary at all — the
+/// gate that makes the surrender boundary a conditional law: no kernel, no
+/// law to enforce.
+#[must_use]
+pub fn kernel_declared(triples: &[Triple]) -> bool {
+    triples.iter().any(|t| {
+        t.p.starts_with(KERNEL_NS)
+            || (t.p == RDF_TYPE
+                && matches!(&t.o, Object::Iri(c) if c.starts_with(KERNEL_NS)))
+    })
+}
+
+/// Watched predicate of a hook condition, if it has one.
+fn watched_var(hook: &crate::hooks::KnowledgeHook) -> Option<&str> {
+    use crate::hooks::HookCondition as C;
+    match &hook.condition {
+        C::Delta { var }
+        | C::Threshold { var, .. }
+        | C::Count { var, .. }
+        | C::Window { var, .. } => Some(var.as_str()),
+        C::Datalog { .. } => None,
+    }
+}
+
+/// Enforce the surrender invariant as a RUNTIME law over an admitted graph:
+/// if the graph declares a prayer kernel, then (a) every clause whose
+/// boundary is `god-receives-unbounded` and whose `pk:action` names a hook
+/// must name a hook whose effect is `refuse` — surrender is never re-routed
+/// to computation; and (b) every hook watching a predicate that a
+/// surrendered clause's refuse-hook watches must itself refuse — the
+/// surrendered predicate cannot be siphoned into a ground-action by a
+/// second hook. Graphs without a kernel are untouched. Every violation is
+/// a typed [`Refusal::BoundaryViolation`] naming the culprit.
+pub fn enforce_surrender_boundary(
+    triples: &[Triple],
+    hooks: &[crate::hooks::KnowledgeHook],
+) -> Result<(), Refusal> {
+    if !kernel_declared(triples) {
+        return Ok(());
+    }
+    let clauses = extract_kernel(triples)?;
+    let mut surrendered_vars: Vec<(&str, &str)> = Vec::new(); // (var, clause iri)
+    for clause in clauses.iter().filter(|c| c.boundary == "god-receives-unbounded") {
+        let Some(action) = clause.action.as_deref() else { continue };
+        let Some(hook) = hooks.iter().find(|h| h.iri == action) else {
+            return Err(Refusal::BoundaryViolation {
+                subject: clause.iri.clone(),
+                detail: format!(
+                    "god-receives-unbounded clause action <{action}> does not resolve \
+                     to a declared hook"
+                ),
+            });
+        };
+        if hook.effect != crate::hooks::EffectKind::Refuse {
+            return Err(Refusal::BoundaryViolation {
+                subject: clause.iri.clone(),
+                detail: format!(
+                    "god-receives-unbounded clause action hook <{action}> must have \
+                     effect 'refuse'; the unbounded is surrendered, never computed"
+                ),
+            });
+        }
+        if let Some(var) = watched_var(hook) {
+            surrendered_vars.push((var, &clause.iri));
+        }
+    }
+    for hook in hooks.iter().filter(|h| h.effect != crate::hooks::EffectKind::Refuse) {
+        if let Some(var) = watched_var(hook) {
+            if let Some((v, clause)) = surrendered_vars.iter().find(|(v, _)| *v == var) {
+                return Err(Refusal::BoundaryViolation {
+                    subject: hook.iri.clone(),
+                    detail: format!(
+                        "non-refusing hook watches surrendered predicate <{v}> of \
+                         god-receives-unbounded clause <{clause}>"
+                    ),
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Content address of the kernel: byte-sorted canonical lines
 /// `name\tproblem_class\tboundary\taction` — COMPUTED, stable under any
 /// surface reordering of the source document.

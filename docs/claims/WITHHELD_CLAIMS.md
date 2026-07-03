@@ -38,3 +38,9 @@ entries are removed only by a receipted retraction, never edited away.
    consumer, or event daemon exists in praxis; deltas enter only when a
    caller presents a `MeaningSource` at the quarantine door. The bridge is
    roadmap, not code.
+10. **Foreign re-derivation of the window-history commitment.** The firing
+    receipt's `history_hash` commits to the first 7 history deltas' computed
+    event hashes and is folded into the outer chain; the Rust replayer
+    (`replay_firing`) refuses a mismatched history. The Python `firing`
+    verifier folds `history_hash` as claimed (it takes no history input), so
+    no claim is made that the foreign verifier authenticates history bytes.

@@ -7,7 +7,7 @@
 //! surface bytes remain nameable via [`delta_ttl_hash`], which is a receipt
 //! field only and is never folded into any chain.
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use chatman_common::provenance::content_address;
 
@@ -18,12 +18,18 @@ use crate::Refusal;
 pub const MAX_DELTA_TRIPLES: usize = 64;
 
 /// A canonical graph delta: sorted, deduplicated additions and removals.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+///
+/// Fields are PRIVATE by adversarial-review law: an instance is obtainable
+/// only through [`GraphDelta::from_triples`] / [`GraphDelta::parse`], so the
+/// type itself witnesses that the per-delta caps and the assert-and-retract
+/// exclusion held. (`Deserialize` is deliberately absent — a wire-forged
+/// delta would bypass the constructors.)
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct GraphDelta {
     /// Triples asserted by this event (sorted, deduplicated).
-    pub additions: Vec<Triple>,
+    additions: Vec<Triple>,
     /// Triples retracted by this event (sorted, deduplicated).
-    pub removals: Vec<Triple>,
+    removals: Vec<Triple>,
 }
 
 fn render_triple(t: &Triple) -> String {
@@ -31,6 +37,18 @@ fn render_triple(t: &Triple) -> String {
 }
 
 impl GraphDelta {
+    /// Triples asserted by this event (sorted, deduplicated).
+    #[must_use]
+    pub fn additions(&self) -> &[Triple] {
+        &self.additions
+    }
+
+    /// Triples retracted by this event (sorted, deduplicated).
+    #[must_use]
+    pub fn removals(&self) -> &[Triple] {
+        &self.removals
+    }
+
     /// Build a delta from raw triple lists: sorts, dedups, enforces caps,
     /// and refuses a triple appearing on both sides (an event may not
     /// simultaneously assert and retract the same fact).

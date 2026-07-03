@@ -140,11 +140,11 @@ fn raw_scripture_is_quarantined_data_not_law() {
     .expect("delta parses");
     let event = Admission::admit(&reference, &delta).expect("admits");
 
-    assert!(event.post.iter().any(|t: &Triple| t.s == "http://e/verse"));
+    assert!(event.post().iter().any(|t: &Triple| t.s == "http://e/verse"));
     assert!(
-        matches!(extract_kernel(&event.post), Err(Refusal::KernelIllFormed { .. })),
+        matches!(extract_kernel(event.post()), Err(Refusal::KernelIllFormed { .. })),
         "scripture text is not a kernel"
     );
-    assert!(extract_hooks(&event.post).expect("no hooks").is_empty(), "no hooks fire from prose");
-    assert!(extract_ir(&event.post).is_err(), "no workflow extracts from prose");
+    assert!(extract_hooks(event.post()).expect("no hooks").is_empty(), "no hooks fire from prose");
+    assert!(extract_ir(event.post()).is_err(), "no workflow extracts from prose");
 }

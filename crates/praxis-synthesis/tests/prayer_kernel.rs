@@ -33,7 +33,7 @@ fn provision_anxiety_grounds_the_daily_prayer_workflow() {
         &format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."),
         "",
     );
-    let hooks = extract_hooks(&event.post).expect("kernel registry extracts");
+    let hooks = extract_hooks(event.post()).expect("kernel registry extracts");
     assert_eq!(hooks.len(), 8, "eight prayer-clause hooks declared (registry at the 8-bound)");
 
     let records = evaluate_hooks(&hooks, &event, &[]).expect("evaluates");
@@ -71,7 +71,7 @@ fn resentment_open_loop_fires_by_datalog_rule_and_release_quiets_it() {
         &format!("<{LIFE}resentment123> a <{LIFE}ResentmentLoop> ."),
         "",
     );
-    let hooks = extract_hooks(&event.post).expect("extracts");
+    let hooks = extract_hooks(event.post()).expect("extracts");
     let records = evaluate_hooks(&hooks, &event, &[]).expect("evaluates");
     let forgive = records.iter().find(|r| r.hook_name == "forgive-debtors").unwrap();
     assert_eq!(forgive.verdict, HookVerdict::Fired, "open loop detected by rule");
@@ -85,7 +85,7 @@ fn resentment_open_loop_fires_by_datalog_rule_and_release_quiets_it() {
         ),
         "",
     );
-    let hooks2 = extract_hooks(&event2.post).expect("extracts");
+    let hooks2 = extract_hooks(event2.post()).expect("extracts");
     let records2 = evaluate_hooks(&hooks2, &event2, &[]).expect("evaluates");
     let forgive2 = records2.iter().find(|r| r.hook_name == "forgive-debtors").unwrap();
     assert_eq!(forgive2.verdict, HookVerdict::NotFired, "released loop is closed");
@@ -96,7 +96,7 @@ fn unbounded_threat_is_surrendered_not_computed() {
     // Deliverance: the effect is a REFUSAL with standing — no agent
     // computes the unbounded. The refusal reason is declared in the graph.
     let event = admit(&format!("<{LIFE}threat999> <{LIFE}hasUnboundedThreat> 1 ."), "");
-    let hooks = extract_hooks(&event.post).expect("extracts");
+    let hooks = extract_hooks(event.post()).expect("extracts");
     let records = evaluate_hooks(&hooks, &event, &[]).expect("evaluates");
     let deliver = records.iter().find(|r| r.hook_name == "deliverance").unwrap();
     assert_eq!(deliver.verdict, HookVerdict::Fired);
@@ -113,33 +113,21 @@ fn v1_chain_golden_pin_direct_execution_unchanged_by_the_hook_layer() {
     // and via grounding yield the same derived stages: the inner v1 chain is
     // untouched by Slice A/B — hooks add folds, they never mutate the chain.
     let event = admit(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."), "");
-    let hooks = extract_hooks(&event.post).expect("extracts");
+    let hooks = extract_hooks(event.post()).expect("extracts");
     let records = evaluate_hooks(&hooks, &event, &[]).expect("evaluates");
     let bread = records.iter().find(|r| r.hook_name == "daily-bread").unwrap();
     let grounded = ground_fired_action(&event, bread).expect("grounds");
 
-    // Direct: strip the graph to a standalone TTL doc holding EXACTLY ONE
-    // wf:Workflow typing (the daily prayer fragment) plus the full shared
-    // capability/atom space — the same restriction ground.rs derives — and
-    // execute the classic way. Same triples -> same graph/ir/plan hashes.
+    // Direct: strip the graph to a standalone TTL doc holding EXACTLY the
+    // daily prayer fragment — its workflow node, its declared wf:capability
+    // members, and their atoms; the same restriction ground.rs derives via
+    // membership edges (foreign fragments are never this action's business).
+    // Execute the classic way: same triples -> same graph/ir/plan hashes.
     let kernel_triples = parse_ttl(KERNEL).expect("kernel parses");
-    let mut skipping_other_workflow = false;
     let wf_only: String = KERNEL
         .lines()
         .skip_while(|l| !l.contains("The daily prayer workflow"))
-        .filter(|l| {
-            if skipping_other_workflow {
-                if l.trim_end().ends_with('.') {
-                    skipping_other_workflow = false;
-                }
-                return false;
-            }
-            if l.contains("a wf:Workflow") && !l.contains("DailyPrayerWorkflow") {
-                skipping_other_workflow = !l.trim_end().ends_with('.');
-                return false;
-            }
-            true
-        })
+        .take_while(|l| !l.contains("The confess-and-repair workflow"))
         .collect::<Vec<_>>()
         .join("\n");
     let doc = format!(
@@ -163,7 +151,7 @@ fn day_window_over_the_eight_bound_trips_the_temptation_guard() {
         adds.push_str(&format!("<{LIFE}task{i}> <{LIFE}scheduledToday> {i} .\n"));
     }
     let event = admit(&adds, "");
-    let hooks = extract_hooks(&event.post).expect("extracts");
+    let hooks = extract_hooks(event.post()).expect("extracts");
     let records = evaluate_hooks(&hooks, &event, &[]).expect("evaluates");
     let guard = records.iter().find(|r| r.hook_name == "temptation-guard").unwrap();
     assert_eq!(guard.verdict, HookVerdict::Fired, "9 > 8: the bound holds the line");
