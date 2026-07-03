@@ -149,6 +149,11 @@ panic = "abort"
 strip = true
 
 [patch.crates-io]
+# lsp-max is published (v26.7.3, confirmed on crates.io 2026-07-03) but the
+# patch stays: bcinr-pddl-lsp hardcodes lsp-max = { path = "../../../lsp-max" }
+# (a raw path, same unification requirement as wasm4pm-compat below) --
+# removing this patch would resolve two distinct lsp-max copies wherever
+# both this workspace and bcinr-pddl-lsp are in the same dependency graph.
 lsp-max = { path = "/Users/sac/lsp-max" }
 # Required for unification with bcinr-pddl's own hardcoded path dependency
 # on wasm4pm-compat (see /Users/sac/bcinr/crates/bcinr-pddl/Cargo.toml) --
