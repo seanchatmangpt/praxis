@@ -40,6 +40,8 @@ pub mod graph;
 pub mod ground;
 pub mod handlers;
 pub mod hooks;
+pub mod kernel;
+pub mod life;
 pub mod park;
 pub mod pipeline;
 pub mod quarantine;
@@ -64,6 +66,7 @@ pub use hooks::{
     evaluate_hooks, extract_hooks, hook_hash, HookCondition, HookVerdict, HookVerdictRecord,
     KnowledgeHook,
 };
+pub use kernel::{extract_kernel, kernel_hash, PrayerClause};
 pub use quarantine::{
     Admission, AdmissionRecord, AdmittedEvent, MeaningSource, Origin, Reference, RiceQuarantine,
 };
@@ -223,6 +226,16 @@ pub enum Refusal {
         /// The subject IRI of the offending node.
         subject: String,
         /// What shape rule was violated.
+        detail: String,
+    },
+    /// A `prayer-kernel:` node violated the closed-world kernel vocabulary
+    /// or coverage rules (unknown predicate/class, wrong cardinality,
+    /// missing/extra/duplicate clause, unknown clause name or boundary).
+    #[error("prayer kernel ill-formed at {subject}: {detail}")]
+    KernelIllFormed {
+        /// The subject IRI of the offending node (or `(kernel)`).
+        subject: String,
+        /// What coverage or shape rule was violated.
         detail: String,
     },
     /// A graph-declared handler IRI is not in the closed registry.

@@ -14,6 +14,84 @@
 @prefix hook: <http://seanchatmangpt.github.io/praxis/hook#> .
 @prefix prx:  <http://seanchatmangpt.github.io/praxis/life#> .
 @prefix ex:   <http://seanchatmangpt.github.io/praxis/prayer#> .
+@prefix pk:   <http://seanchatmangpt.github.io/praxis/prayer-kernel#> .
+
+# ---------------------------------------------------------------------------
+# The prayer kernel — ALL 11 clauses as typed nodes.
+#
+# The boundary is a STRING property, never an executable node: God is not
+# typed as wf:Capability, hook:Hook, agent, or handler anywhere in this
+# document. "god-receives-unbounded" marks the clauses whose object is
+# surrendered, not computed; "human-only" marks acts reserved for the human;
+# "automatable-support" marks clauses where a bounded support workflow may
+# assist the human act.
+# ---------------------------------------------------------------------------
+
+pk:LordPrayerKernel a pk:Kernel ;
+    pk:clause pk:our-father, pk:hallowed-name, pk:kingdom-come,
+        pk:will-be-done, pk:on-earth-as-heaven, pk:daily-bread,
+        pk:forgive-debts, pk:forgive-debtors, pk:temptation-guard,
+        pk:deliverance, pk:doxology .
+
+pk:our-father a pk:Clause ;
+    pk:name "our-father" ;
+    pk:problemClass "orientation" ;
+    pk:boundary "human-only" ;
+    pk:action ex:DailyPrayerWorkflow .
+
+pk:hallowed-name a pk:Clause ;
+    pk:name "hallowed-name" ;
+    pk:problemClass "reverence" ;
+    pk:boundary "human-only" .
+
+pk:kingdom-come a pk:Clause ;
+    pk:name "kingdom-come" ;
+    pk:problemClass "authority-transfer" ;
+    pk:boundary "god-receives-unbounded" .
+
+pk:will-be-done a pk:Clause ;
+    pk:name "will-be-done" ;
+    pk:problemClass "will-surrender" ;
+    pk:boundary "human-only" .
+
+pk:on-earth-as-heaven a pk:Clause ;
+    pk:name "on-earth-as-heaven" ;
+    pk:problemClass "alignment" ;
+    pk:boundary "god-receives-unbounded" .
+
+pk:daily-bread a pk:Clause ;
+    pk:name "daily-bread" ;
+    pk:problemClass "provision-anxiety" ;
+    pk:boundary "automatable-support" ;
+    pk:action ex:DailyBreadHook .
+
+pk:forgive-debts a pk:Clause ;
+    pk:name "forgive-debts" ;
+    pk:problemClass "owed-debt" ;
+    pk:boundary "god-receives-unbounded" .
+
+pk:forgive-debtors a pk:Clause ;
+    pk:name "forgive-debtors" ;
+    pk:problemClass "resentment-loop" ;
+    pk:boundary "human-only" ;
+    pk:action ex:ForgiveDebtorsHook .
+
+pk:temptation-guard a pk:Clause ;
+    pk:name "temptation-guard" ;
+    pk:problemClass "temptation-risk" ;
+    pk:boundary "automatable-support" ;
+    pk:action ex:TemptationGuardHook .
+
+pk:deliverance a pk:Clause ;
+    pk:name "deliverance" ;
+    pk:problemClass "unbounded-threat" ;
+    pk:boundary "god-receives-unbounded" ;
+    pk:action ex:DeliveranceHook .
+
+pk:doxology a pk:Clause ;
+    pk:name "doxology" ;
+    pk:problemClass "closure" ;
+    pk:boundary "human-only" .
 
 # ---------------------------------------------------------------------------
 # Knowledge hooks — prayer clauses indexed to problem classes.
