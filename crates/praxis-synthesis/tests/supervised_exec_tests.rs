@@ -165,10 +165,10 @@ fn budget_breach_parks_and_readmission_completes_the_run_later() {
     let r0 = dag
         .execute_supervised(&topo, &geometry, &mut runner, &mut cache, &mut parks, None, 0)
         .expect("run 0");
-    assert!(matches!(
-        r0.dispositions.values().find(|d| matches!(d, Disposition::Parked { .. })),
-        Some(_)
-    ));
+    assert!(r0
+        .dispositions
+        .values()
+        .any(|d| matches!(d, Disposition::Parked { .. })));
     assert_eq!(parks.parked_count(), 1);
     let parked_entry = parks.iter().next().expect("entry");
     assert_eq!(parked_entry.readmission, ReAdmission::AfterRuns(1));

@@ -341,7 +341,7 @@ use crate::budget::Ticks;
 use crate::geometry::{
     Classification, CrashKind, CrashSnapshot, FailureClass, FailureGeometry, LawfulResponse,
 };
-use crate::park::{ParkCause, ParkManager, ParkedEntry, ReAdmission};
+use crate::park::{ParkCause, ParkManager, ParkedEntry};
 use crate::supervise::SupervisionTopology;
 
 /// Domain seed for the crash-receipt chain.
