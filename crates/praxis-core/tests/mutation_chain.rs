@@ -388,18 +388,12 @@ fn boundary_equal_consecutive_ts_is_allowed() {
 
 // ── Documented survivors (known-uncovered classes) ─────────────────────────
 
-/// SURVIVOR (class 1): flipping `andon` from `Green` to `Halted` is undetectable —
-/// `andon` is outside the hash preimage and `token_replay` ignores it. This is a
-/// real integrity gap: a persisted admission verdict can be rewritten post-hoc.
+/// Mutant: flipping `andon` from `Green` to `Halted` is now detected.
 #[test]
-fn survivor_andon_flip_is_a_documented_gap() {
+fn mutant_andon_flip_killed_at_chain_recompute() {
     let mut records = lawful_chain(3);
     records[1].andon = Andon::Halted { unmet: vec![], refusals: vec![], at: 0 };
-    let v = validate(&records);
-    assert!(
-        v.ok,
-        "KNOWN GAP: andon is out-of-preimage and unchecked; if this now fails, promote to a kill. {v:?}"
-    );
+    assert_killed_at(&validate(&records), "chain_recompute");
 }
 
 /// SURVIVOR (class 1): `obligation_count` is descriptive metadata outside the
@@ -411,13 +405,12 @@ fn survivor_obligation_count_flip_is_a_documented_gap() {
     assert!(validate(&records).ok, "KNOWN GAP: obligation_count is out-of-preimage and unchecked");
 }
 
-/// SURVIVOR (class 1): `object_ids` flows only into the OCEL/replay frame (which
-/// always replays lawful order) and is not hashed — mutating it is undetectable.
+/// Mutant: mutating `object_ids` is now detected.
 #[test]
-fn survivor_object_ids_mutation_is_a_documented_gap() {
+fn mutant_object_ids_mutation_killed_at_chain_recompute() {
     let mut records = lawful_chain(3);
     records[1].object_ids = vec!["law:forged-identity".to_string()];
-    assert!(validate(&records).ok, "KNOWN GAP: object_ids is out-of-preimage and unchecked");
+    assert_killed_at(&validate(&records), "chain_recompute");
 }
 
 /// SURVIVOR (class 2): dropping the tail record yields a strictly-shorter,
@@ -433,15 +426,10 @@ fn survivor_tail_drop_is_a_documented_gap() {
     );
 }
 
-/// SURVIVOR (class 3): dropping the genesis record leaves a chain whose new head
-/// references an absent predecessor, but linkage only checks `i >= 1` and there
-/// is no genesis anchor, so it survives.
+/// Mutant: dropping the genesis record is now caught by the genesis anchor check.
 #[test]
-fn survivor_head_drop_is_a_documented_gap() {
+fn mutant_head_drop_killed_at_chain_linkage() {
     let mut records = lawful_chain(4);
     records.remove(0);
-    assert!(
-        validate(&records).ok,
-        "KNOWN GAP: no genesis anchor (records[0].prev is unchecked), so a head-dropped ledger validates clean"
-    );
+    assert_killed_at(&validate(&records), "chain_linkage");
 }

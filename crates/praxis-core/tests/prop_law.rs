@@ -72,7 +72,7 @@ proptest! {
         prop_assume!(a != b);
         let prev = [0u8; 32];
         let meta = fixed_meta(42);
-        let ra = admitted(serde_json::json!({"v": a})).receipt(&prev, meta).expect("receipt a");
+        let ra = admitted(serde_json::json!({"v": a})).receipt(&prev, meta.clone()).expect("receipt a");
         let rb = admitted(serde_json::json!({"v": b})).receipt(&prev, meta).expect("receipt b");
         prop_assert_ne!(ra.chain_hash(), rb.chain_hash());
     }
@@ -88,7 +88,7 @@ proptest! {
         prop_assume!(a != b);
         let meta = fixed_meta(42);
         let payload = serde_json::json!({"v": 1});
-        let ra = admitted(payload.clone()).receipt(&a, meta).expect("receipt a");
+        let ra = admitted(payload.clone()).receipt(&a, meta.clone()).expect("receipt a");
         let rb = admitted(payload).receipt(&b, meta).expect("receipt b");
         prop_assert_ne!(ra.chain_hash(), rb.chain_hash());
     }
@@ -101,7 +101,7 @@ proptest! {
         let prev = [0u8; 32];
         let payload = serde_json::json!({"v": 1});
         let meta_a = ReceiptMeta { instruction_id: a, ts_ns: Some(42), ..Default::default() };
-        let meta_b = ReceiptMeta { instruction_id: b, ..meta_a };
+        let meta_b = ReceiptMeta { instruction_id: b, ..meta_a.clone() };
         let ra = admitted(payload.clone()).receipt(&prev, meta_a).expect("receipt a");
         let rb = admitted(payload).receipt(&prev, meta_b).expect("receipt b");
         prop_assert_ne!(ra.chain_hash(), rb.chain_hash());
@@ -115,7 +115,7 @@ proptest! {
         let prev = [0u8; 32];
         let payload = serde_json::json!({"v": 1});
         let meta_a = ReceiptMeta { instruction_id: 1, activity_idx: a, ts_ns: Some(42), ..Default::default() };
-        let meta_b = ReceiptMeta { activity_idx: b, ..meta_a };
+        let meta_b = ReceiptMeta { activity_idx: b, ..meta_a.clone() };
         let ra = admitted(payload.clone()).receipt(&prev, meta_a).expect("receipt a");
         let rb = admitted(payload).receipt(&prev, meta_b).expect("receipt b");
         prop_assert_ne!(ra.chain_hash(), rb.chain_hash());
@@ -129,7 +129,7 @@ proptest! {
         let prev = [0u8; 32];
         let payload = serde_json::json!({"v": 1});
         let meta_a = ReceiptMeta { instruction_id: 1, node_kind: a, ts_ns: Some(42), ..Default::default() };
-        let meta_b = ReceiptMeta { node_kind: b, ..meta_a };
+        let meta_b = ReceiptMeta { node_kind: b, ..meta_a.clone() };
         let ra = admitted(payload.clone()).receipt(&prev, meta_a).expect("receipt a");
         let rb = admitted(payload).receipt(&prev, meta_b).expect("receipt b");
         prop_assert_ne!(ra.chain_hash(), rb.chain_hash());
@@ -158,7 +158,7 @@ proptest! {
         let prev = [7u8; 32];
         let payload = serde_json::json!({"v": v});
         let meta = fixed_meta(ts);
-        let r1 = admitted(payload.clone()).receipt(&prev, meta).expect("receipt 1");
+        let r1 = admitted(payload.clone()).receipt(&prev, meta.clone()).expect("receipt 1");
         let r2 = admitted(payload).receipt(&prev, meta).expect("receipt 2");
         prop_assert_eq!(r1.chain_hash(), r2.chain_hash());
     }

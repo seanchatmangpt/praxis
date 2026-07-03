@@ -225,3 +225,45 @@ fn ocel_export_round_trips_with_valid_rfc3339_timestamps() {
         serde_json::from_str(&json).expect("deserialize OCEL");
     assert_eq!(round_tripped.events.len(), ocel.events.len());
 }
+
+#[test]
+fn tampering_andon_is_caught_by_validator() {
+    let _guard = signing_guard();
+    let mut records = chained_records(2);
+    // Change Andon::Green to Andon::Halted on the second record.
+    assert_eq!(records[1].andon, praxis_core::law::Andon::Green);
+    records[1].andon = praxis_core::law::Andon::Halted {
+        unmet: vec![],
+        refusals: vec![],
+        at: 0,
+    };
+
+    // The validator now says ok: false because chain_recompute fails!
+    let verdict = ReceiptValidator::validate(&records, &SystemClock);
+    assert!(!verdict.ok);
+    let stage = verdict.stages.iter().find(|s| s.stage == "chain_recompute").unwrap();
+    assert!(matches!(stage.outcome, praxis_core::receipt_validator::CheckOutcome::Fail(_)));
+}
+
+#[test]
+fn tampering_genesis_prev_chain_hash_is_caught_by_linkage() {
+    let _guard = signing_guard();
+    let mut records = chained_records(2);
+    // Change first record's prev_chain_hash_hex to a dummy value.
+    records[0].prev_chain_hash_hex = "33".repeat(32);
+    // Recompute and update first record's chain_hash_hex based on the new prev_chain_hash.
+    let recomputed = records[0].recompute_chain_hash().expect("recompute");
+    records[0].chain_hash_hex = hex::encode(recomputed);
+    
+    // Also update second record's prev_chain_hash_hex to link to the new chain_hash_hex.
+    records[1].prev_chain_hash_hex = records[0].chain_hash_hex.clone();
+    let recomputed_2 = records[1].recompute_chain_hash().expect("recompute 2");
+    records[1].chain_hash_hex = hex::encode(recomputed_2);
+
+    // The validator fails because the genesis anchor has been changed to "3333..."!
+    let verdict = ReceiptValidator::validate(&records, &SystemClock);
+    assert!(!verdict.ok);
+    let stage = verdict.stages.iter().find(|s| s.stage == "chain_linkage").unwrap();
+    assert!(matches!(stage.outcome, praxis_core::receipt_validator::CheckOutcome::Fail(_)));
+}
+
