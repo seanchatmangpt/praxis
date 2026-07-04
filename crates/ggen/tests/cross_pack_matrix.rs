@@ -349,3 +349,80 @@ fn corrupting_one_pack_post_lock_fails_closed_naming_only_that_pack() {
         doctor.stderr
     );
 }
+
+/// (5) FULL WASM4PM COVERAGE: `wasm4pm-algorithms-pack` and
+/// `wasm4pm-cognition-pack` together in one consumer project must
+/// precipitate a typed catalog entry per ontology individual — all 60
+/// `pi:ProcessIntelligenceAlgorithm` instances and all 55
+/// `compat:CognitionBreed` instances, not a representative subset. `ggen
+/// graph validate` must exit 0 (no unbound vars from the larger
+/// generation), and a second sync must be byte-identical (idempotent).
+#[test]
+fn wasm4pm_algorithms_and_cognition_packs_full_coverage() {
+    let (_dir, project) =
+        scaffold_multi_pack_project(&["wasm4pm-algorithms-pack", "wasm4pm-cognition-pack"]);
+
+    CliHarness::cargo_bin("ggen")
+        .args(["sync", "run"])
+        .current_dir(&project)
+        .run()
+        .expect("run sync")
+        .assert_success();
+
+    CliHarness::cargo_bin("ggen")
+        .args(["graph", "validate"])
+        .current_dir(&project)
+        .run()
+        .expect("run graph validate")
+        .assert_success();
+
+    let algorithms_catalog = std::fs::read_to_string(project.join("src/w4pm_algorithms_catalog.rs"))
+        .expect("algorithms catalog");
+    let algorithm_entries = algorithms_catalog.matches("algorithm_id: \"").count();
+    assert_eq!(
+        algorithm_entries, 60,
+        "expected 60 algorithm entries in generated catalog, found {algorithm_entries}"
+    );
+
+    let cognition_catalog = std::fs::read_to_string(project.join("src/w4pm_cognition_catalog.rs"))
+        .expect("cognition catalog");
+    let breed_entries = cognition_catalog.matches("=> Some(CognitionBreedId::").count();
+    assert_eq!(
+        breed_entries, 55,
+        "expected 55 breed entries in generated cognition catalog, found {breed_entries}"
+    );
+
+    let dispatch = std::fs::read_to_string(project.join("src/w4pm_cognition_dispatch.rs"))
+        .expect("cognition dispatch");
+    let dispatch_entries = dispatch.matches("dispatch_cognition_run(\"").count();
+    assert_eq!(
+        dispatch_entries, 55,
+        "expected 55 dispatch stubs, found {dispatch_entries}"
+    );
+
+    // Second sync: byte-identical outputs (idempotent).
+    let algorithms_1 = algorithms_catalog;
+    let cognition_1 = cognition_catalog;
+    let dispatch_1 = dispatch;
+    let lock_1 = std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock");
+
+    CliHarness::cargo_bin("ggen")
+        .args(["sync", "run"])
+        .current_dir(&project)
+        .run()
+        .expect("second sync")
+        .assert_success();
+
+    let algorithms_2 = std::fs::read_to_string(project.join("src/w4pm_algorithms_catalog.rs"))
+        .expect("algorithms catalog 2");
+    let cognition_2 = std::fs::read_to_string(project.join("src/w4pm_cognition_catalog.rs"))
+        .expect("cognition catalog 2");
+    let dispatch_2 = std::fs::read_to_string(project.join("src/w4pm_cognition_dispatch.rs"))
+        .expect("cognition dispatch 2");
+    let lock_2 = std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock 2");
+
+    assert_eq!(algorithms_1, algorithms_2, "algorithms catalog must be byte-identical");
+    assert_eq!(cognition_1, cognition_2, "cognition catalog must be byte-identical");
+    assert_eq!(dispatch_1, dispatch_2, "cognition dispatch must be byte-identical");
+    assert_eq!(lock_1, lock_2, "ggen.lock must be byte-identical across identical runs");
+}
