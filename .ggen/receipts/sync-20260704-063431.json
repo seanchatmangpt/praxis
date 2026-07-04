@@ -1,0 +1,32 @@
+{
+  "operation_id": "ffc36b2a-f3ac-4fff-80da-c82eda2a5026",
+  "timestamp": "2026-07-04T06:34:31.047516Z",
+  "input_hashes": [
+    "actuator:ggen-sync@26.7.2",
+    "ggen.toml:9ccf1f5f6443f0a255493c798024e990136024644144de0779a95620911dac8d",
+    "schema/praxis.ttl:67bf587a97239ad9217b2d587b0f48e96bf437fe4ddf6617968c687fb914bf50",
+    "templates/Cargo.toml.tera:7c7d6fb13d95fd019d7232152b590dfaff5575d09348ad08f56229b8d2cfcba8",
+    "templates/Cargo.workspace.toml.tera:4f2c696f8ba696bd3633c54f9738345c17711c5d7edf028ece484e939463a4e0",
+    "templates/rustfmt.toml.tera:79fef99b01e0de8803bd8935ef96ad508dda7fa1d191fe74e2fd57c031332c87",
+    "templates/src/types.rs.tera:f72038cd378a350c144a205b6c605d1650f7bb552586e57ada4def3185a3ec6c",
+    "templates/src/lsp.rs.tera:e9724ec02c3d34759ed8697c69bbeae5f115c650c3868be9317b587152df05a4",
+    "templates/src/cli.rs.tera:8850d26d527fcefd683e89f2c20d91bcb11ad4a42e715e272e6930ad14748517",
+    "templates/crates/ggen/verbs_mod.rs.tera:b3a11974a5067cf8d1018cae72594cf09c3b6c461e8dc097982c1cf217514616",
+    "templates/crates/ggen/verbs_noun.rs.tera:5bb52741ea6d4d37938df9f4e00028733b2b778f46b612a7415933713e2bc6bc",
+    "templates/crates/ggen/verbs_noun.rs.tera:5bb52741ea6d4d37938df9f4e00028733b2b778f46b612a7415933713e2bc6bc",
+    "templates/crates/ggen/verbs_noun.rs.tera:5bb52741ea6d4d37938df9f4e00028733b2b778f46b612a7415933713e2bc6bc"
+  ],
+  "output_hashes": [
+    "./Cargo.workspace.toml:2092690aaa409fb28309a1ee3ad92ef06d68d56750ed95889b660a7238c6866d",
+    "./rustfmt.toml:c94fc9da5b20c179cbbf04f4e34cfe7b78f028882e3c083b9e8c9a04f61ed505",
+    "./src/types.rs:57c60097b9675cea442c5e2fd99845e5d066334d46983d1ca9d9be22c342c66f",
+    "./src/lsp.rs:3629976fafe67f309a21f956bb5ad5bde72cd8a1de9f9edd56e1e1b3dd49ab39",
+    "./src/cli.rs:43be9974ac29c55d6e9685ed6e9f82cfc40b14e45383e751cb135603a94e6fad",
+    "./crates/ggen/src/verbs/mod.rs:f66bbd234b50ec4298d40dee8c2d974c3b58a89bfbd33f2af0670aca81d6d3ca",
+    "./crates/ggen/src/verbs/sync.rs:0fca04dab313f49fdf4b2cfd25ce7a660b04412488487e2a95aa7e723025b121",
+    "./crates/ggen/src/verbs/graph.rs:6407c0e9f61ed10646c622b642f38a9cecdac3435e361ef12eba99f6cc91b6d6",
+    "./crates/ggen/src/verbs/receipt.rs:c8bd03b1928d008dccf0605824183dfc551512ee80f846f763261df818932cbc"
+  ],
+  "signature": "8c32ae0997a88a09c9a03c9af8264c6e35fc0012edfcd732a9caf91cedcb949041bd65c33387f9ca6ab45fc7a153d36ac481db56be5f3f0ed792a1ddbccbf80d",
+  "previous_receipt_hash": "20a97a9bde3d8ff26c7a6b19602d29694c90cf110e996980a14f31d58aeba66d"
+}

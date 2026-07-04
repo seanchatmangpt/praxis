@@ -8,6 +8,10 @@ description = "seanchatmangpt house-style Rust crate (single-crate scaffold)."
 exclude = [
     ".github/workflows/ci.yml",
     ".github/workflows/release.yml",
+    # Contain Tera `{{ ... }}` / `{% ... %}` syntax that collides with Liquid.
+    "benches/bench_main.rs",
+    "ggen.toml",
+    "src/cli.rs",
 ]
 
 # The workspace variant is not part of the single-crate generate flow.

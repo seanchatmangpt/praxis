@@ -68,6 +68,11 @@ ask         = """
 output_dir = "."
 
 # Generate Cargo.toml
+# mode = Create (NOT Overwrite): the real root Cargo.toml carries the
+# hand-maintained workspace (members, features, path deps). Overwrite here
+# clobbered it with the single-crate template on 2026-07-03 — the template
+# does not model the workspace surface yet. Restore to Overwrite only once
+# templates/Cargo.toml.tera renders the full workspace from the ontology.
 [[generation.rules]]
 name        = "cargo-toml"
 query       = { inline = """
@@ -86,7 +91,7 @@ query       = { inline = """
 """ }
 template    = { file = "templates/Cargo.toml.tera" }
 output_file = "Cargo.toml"
-mode        = "Overwrite"
+mode        = "Create"
 
 # Generate Cargo.workspace.toml (only if workspace is true)
 [[generation.rules]]
@@ -163,4 +168,147 @@ query       = { inline = """
 """ }
 template    = { file = "templates/src/cli.rs.tera" }
 output_file = "src/cli.rs"
+mode        = "Overwrite"
+
+# ---------------------------------------------------------------------------
+# crates/ggen — noun-verb routes generated from praxis:CliCommand instances
+# (praxis:inCrate praxis:CrateGgen). Route files are pure projections of the
+# ontology (Overwrite); hand logic lives in crates/ggen/src/verbs/handlers.rs.
+# ---------------------------------------------------------------------------
+
+[[generation.rules]]
+name        = "crate-ggen-verbs-mod"
+query       = { inline = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  SELECT DISTINCT ?noun
+  WHERE {
+    ?cmd a praxis:CliCommand ;
+         praxis:inCrate ?c ;
+         praxis:noun ?noun .
+    ?c praxis:name "ggen" .
+  }
+  ORDER BY ?noun
+""" }
+template    = { file = "templates/crates/ggen/verbs_mod.rs.tera" }
+output_file = "crates/ggen/src/verbs/mod.rs"
+mode        = "Overwrite"
+
+[[generation.rules]]
+name        = "crate-ggen-verbs-sync"
+query       = { inline = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+  SELECT ?noun ?verb ?handler ?comment (GROUP_CONCAT(?flag; separator=",") AS ?flags)
+  WHERE {
+    {
+      SELECT ?cmd ?noun ?verb ?handler ?comment ?flag
+      WHERE {
+        ?cmd a praxis:CliCommand ;
+             praxis:inCrate ?c ;
+             praxis:noun ?noun ;
+             praxis:verb ?verb ;
+             praxis:handler ?handler .
+        ?c praxis:name "ggen" .
+        OPTIONAL { ?cmd rdfs:comment ?comment }
+        OPTIONAL { ?cmd praxis:flag ?flag }
+        FILTER(?noun = "sync")
+      }
+      ORDER BY ?flag
+    }
+  }
+  GROUP BY ?noun ?verb ?handler ?comment
+  ORDER BY ?verb
+""" }
+template    = { file = "templates/crates/ggen/verbs_noun.rs.tera" }
+output_file = "crates/ggen/src/verbs/sync.rs"
+mode        = "Overwrite"
+
+[[generation.rules]]
+name        = "crate-ggen-verbs-graph"
+query       = { inline = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+  SELECT ?noun ?verb ?handler ?comment (GROUP_CONCAT(?flag; separator=",") AS ?flags)
+  WHERE {
+    {
+      SELECT ?cmd ?noun ?verb ?handler ?comment ?flag
+      WHERE {
+        ?cmd a praxis:CliCommand ;
+             praxis:inCrate ?c ;
+             praxis:noun ?noun ;
+             praxis:verb ?verb ;
+             praxis:handler ?handler .
+        ?c praxis:name "ggen" .
+        OPTIONAL { ?cmd rdfs:comment ?comment }
+        OPTIONAL { ?cmd praxis:flag ?flag }
+        FILTER(?noun = "graph")
+      }
+      ORDER BY ?flag
+    }
+  }
+  GROUP BY ?noun ?verb ?handler ?comment
+  ORDER BY ?verb
+""" }
+template    = { file = "templates/crates/ggen/verbs_noun.rs.tera" }
+output_file = "crates/ggen/src/verbs/graph.rs"
+mode        = "Overwrite"
+
+[[generation.rules]]
+name        = "crate-ggen-verbs-receipt"
+query       = { inline = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+  SELECT ?noun ?verb ?handler ?comment (GROUP_CONCAT(?flag; separator=",") AS ?flags)
+  WHERE {
+    {
+      SELECT ?cmd ?noun ?verb ?handler ?comment ?flag
+      WHERE {
+        ?cmd a praxis:CliCommand ;
+             praxis:inCrate ?c ;
+             praxis:noun ?noun ;
+             praxis:verb ?verb ;
+             praxis:handler ?handler .
+        ?c praxis:name "ggen" .
+        OPTIONAL { ?cmd rdfs:comment ?comment }
+        OPTIONAL { ?cmd praxis:flag ?flag }
+        FILTER(?noun = "receipt")
+      }
+      ORDER BY ?flag
+    }
+  }
+  GROUP BY ?noun ?verb ?handler ?comment
+  ORDER BY ?verb
+""" }
+template    = { file = "templates/crates/ggen/verbs_noun.rs.tera" }
+output_file = "crates/ggen/src/verbs/receipt.rs"
+mode        = "Overwrite"
+
+[[generation.rules]]
+name        = "crate-ggen-verbs-doctor"
+query       = { inline = """
+  PREFIX praxis: <http://seanchatmangpt.github.io/praxis/schema#>
+  PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+  SELECT ?noun ?verb ?handler ?comment (GROUP_CONCAT(?flag; separator=",") AS ?flags)
+  WHERE {
+    {
+      SELECT ?cmd ?noun ?verb ?handler ?comment ?flag
+      WHERE {
+        ?cmd a praxis:CliCommand ;
+             praxis:inCrate ?c ;
+             praxis:noun ?noun ;
+             praxis:verb ?verb ;
+             praxis:handler ?handler .
+        ?c praxis:name "ggen" .
+        OPTIONAL { ?cmd rdfs:comment ?comment }
+        OPTIONAL { ?cmd praxis:flag ?flag }
+        FILTER(?noun = "doctor")
+      }
+      ORDER BY ?flag
+    }
+  }
+  GROUP BY ?noun ?verb ?handler ?comment
+  ORDER BY ?verb
+""" }
+template    = { file = "templates/crates/ggen/verbs_noun.rs.tera" }
+output_file = "crates/ggen/src/verbs/doctor.rs"
 mode        = "Overwrite"

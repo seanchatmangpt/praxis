@@ -1,0 +1,175 @@
+{
+  "generated_at": "2026-07-04T04:56:13.220934+00:00",
+  "ggen_version": "26.7.2",
+  "inputs": {
+    "manifest_hash": "f86a5f96692b272cf872a633c465a8757e48d0d804d1ae5ce04c58436409dbd5",
+    "ontology_hashes": {
+      "schema/praxis.ttl": "12a38d4fb61e215d348695175683334beb7f9db161ed332aeab87183fffa5814"
+    },
+    "template_hashes": {
+      "templates/Cargo.toml.tera": "7c7d6fb13d95fd019d7232152b590dfaff5575d09348ad08f56229b8d2cfcba8",
+      "templates/Cargo.workspace.toml.tera": "4f2c696f8ba696bd3633c54f9738345c17711c5d7edf028ece484e939463a4e0",
+      "templates/crates/ggen/verbs_mod.rs.tera": "bcbcf15d60438e21adbdc632a92842409e1887549fb9852a6f1d1ff21b46462a",
+      "templates/crates/ggen/verbs_noun.rs.tera": "c97c787b5f4a534f9d43b894b36280467c67a4d0a043590f6c78473e6561f882",
+      "templates/rustfmt.toml.tera": "79fef99b01e0de8803bd8935ef96ad508dda7fa1d191fe74e2fd57c031332c87",
+      "templates/src/cli.rs.tera": "8850d26d527fcefd683e89f2c20d91bcb11ad4a42e715e272e6930ad14748517",
+      "templates/src/lsp.rs.tera": "e9724ec02c3d34759ed8697c69bbeae5f115c650c3868be9317b587152df05a4",
+      "templates/src/types.rs.tera": "f72038cd378a350c144a205b6c605d1650f7bb552586e57ada4def3185a3ec6c"
+    },
+    "query_hashes": {}
+  },
+  "pipeline": [
+    {
+      "step_type": "inference",
+      "name": "derive-workspace-members",
+      "duration_ms": 3,
+      "triples_added": 2,
+      "status": "success",
+      "error": null
+    },
+    {
+      "step_type": "render",
+      "name": "cargo-toml",
+      "duration_ms": 4,
+      "triples_added": null,
+      "status": "success",
+      "error": null
+    },
+    {
+      "step_type": "render",
+      "name": "cargo-workspace-toml",
+      "duration_ms": 4,
+      "triples_added": null,
+      "status": "success",
+      "error": null
+    },
+    {
+      "step_type": "render",
+      "name": "rustfmt-toml",
+      "duration_ms": 4,
+      "triples_added": null,
+      "status": "success",
+      "error": null
+    },
+    {
+      "step_type": "render",
+      "name": "src-types",
+      "duration_ms": 3,
+      "triples_added": null,
+      "status": "success",
+      "error": null
+    },
+    {
+      "step_type": "render",
+      "name": "src-lsp",
+      "duration_ms": 4,
+      "triples_added": null,
+      "status": "success",
+      "error": null
+    },
+    {
+      "step_type": "render",
+      "name": "src-cli",
+      "duration_ms": 4,
+      "triples_added": null,
+      "status": "success",
+      "error": null
+    },
+    {
+      "step_type": "render",
+      "name": "crate-ggen-verbs-mod",
+      "duration_ms": 2,
+      "triples_added": null,
+      "status": "success",
+      "error": null
+    },
+    {
+      "step_type": "render",
+      "name": "crate-ggen-verbs-sync",
+      "duration_ms": 3,
+      "triples_added": null,
+      "status": "success",
+      "error": null
+    },
+    {
+      "step_type": "render",
+      "name": "crate-ggen-verbs-graph",
+      "duration_ms": 3,
+      "triples_added": null,
+      "status": "success",
+      "error": null
+    },
+    {
+      "step_type": "render",
+      "name": "crate-ggen-verbs-receipt",
+      "duration_ms": 3,
+      "triples_added": null,
+      "status": "success",
+      "error": null
+    }
+  ],
+  "outputs": [
+    {
+      "path": "./Cargo.toml",
+      "content_hash": "2a932f7d94afb8f1f47992a39cc217ecc064dd8416fd4d8f2bd21eb4b003c4d1",
+      "size_bytes": 2654,
+      "source_rule": "rule-./Cargo.toml"
+    },
+    {
+      "path": "./Cargo.workspace.toml",
+      "content_hash": "2092690aaa409fb28309a1ee3ad92ef06d68d56750ed95889b660a7238c6866d",
+      "size_bytes": 49,
+      "source_rule": "rule-./Cargo.workspace.toml"
+    },
+    {
+      "path": "./rustfmt.toml",
+      "content_hash": "c94fc9da5b20c179cbbf04f4e34cfe7b78f028882e3c083b9e8c9a04f61ed505",
+      "size_bytes": 39,
+      "source_rule": "rule-./rustfmt.toml"
+    },
+    {
+      "path": "./src/types.rs",
+      "content_hash": "57c60097b9675cea442c5e2fd99845e5d066334d46983d1ca9d9be22c342c66f",
+      "size_bytes": 5486,
+      "source_rule": "rule-./src/types.rs"
+    },
+    {
+      "path": "./src/lsp.rs",
+      "content_hash": "3629976fafe67f309a21f956bb5ad5bde72cd8a1de9f9edd56e1e1b3dd49ab39",
+      "size_bytes": 3532,
+      "source_rule": "rule-./src/lsp.rs"
+    },
+    {
+      "path": "./src/cli.rs",
+      "content_hash": "43be9974ac29c55d6e9685ed6e9f82cfc40b14e45383e751cb135603a94e6fad",
+      "size_bytes": 11936,
+      "source_rule": "rule-./src/cli.rs"
+    },
+    {
+      "path": "./crates/ggen/src/verbs/mod.rs",
+      "content_hash": "0441e19248a2e40bb73c69f7af3ab82f2c1942769d9c08be8ed8255321ac8401",
+      "size_bytes": 482,
+      "source_rule": "rule-./crates/ggen/src/verbs/mod.rs"
+    },
+    {
+      "path": "./crates/ggen/src/verbs/sync.rs",
+      "content_hash": "a9d7ba4bd40a5dd0fb9ae5f04f38050b7f92514c5daa5ca079d55f2686e080b4",
+      "size_bytes": 422,
+      "source_rule": "rule-./crates/ggen/src/verbs/sync.rs"
+    },
+    {
+      "path": "./crates/ggen/src/verbs/graph.rs",
+      "content_hash": "c3661b71fa79cdfe15d150557df42bcccccc5bf1b864419bbf95c0111816bfcc",
+      "size_bytes": 419,
+      "source_rule": "rule-./crates/ggen/src/verbs/graph.rs"
+    },
+    {
+      "path": "./crates/ggen/src/verbs/receipt.rs",
+      "content_hash": "76a2f5c042353c9835ca47bd4bc1fb5b9e17283f228e935c2fd06242299ebc4f",
+      "size_bytes": 415,
+      "source_rule": "rule-./crates/ggen/src/verbs/receipt.rs"
+    }
+  ],
+  "validation_passed": true,
+  "total_duration_ms": 0
+}

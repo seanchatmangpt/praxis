@@ -166,6 +166,7 @@ wasm4pm-compat = { path = "../wasm4pm-compat" }
 resolver = "2"
 members = [
     "crates/agent8",
+    "crates/ggen",
     "crates/chatman-common",
     "crates/praxis-core",
     "crates/praxis-proposer",

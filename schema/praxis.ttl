@@ -146,6 +146,18 @@ praxis:handler a rdf:Property ;
     rdfs:domain praxis:CliCommand ;
     rdfs:range xsd:string .
 
+praxis:inCrate a rdf:Property ;
+    rdfs:label "inCrate" ;
+    rdfs:comment "Which workspace crate a CLI command's noun-verb route is generated into." ;
+    rdfs:domain praxis:CliCommand ;
+    rdfs:range praxis:RustCrate .
+
+praxis:flag a rdf:Property ;
+    rdfs:label "flag" ;
+    rdfs:comment "An optional boolean CLI flag (snake_case name) exposed by the command and passed to its handler." ;
+    rdfs:domain praxis:CliCommand ;
+    rdfs:range xsd:string .
+
 # Hygiene Config Properties
 praxis:targetPath a rdf:Property ;
     rdfs:label "targetPath" ;
@@ -164,7 +176,7 @@ praxis:MyConformingProject a praxis:Project ;
     praxis:rustVersion "1.82" ;
     praxis:edition "2021" ;
     praxis:isWorkspace true ;
-    praxis:hasCrate praxis:CrateCore ;
+    praxis:hasCrate praxis:CrateCore, praxis:CrateGgen ;
     praxis:hasConfig praxis:ConfigRustfmt, praxis:ConfigDeny, praxis:ConfigTypos ;
     praxis:hasWorkflow praxis:WorkflowCI, praxis:WorkflowRelease .
 
@@ -235,3 +247,48 @@ praxis:CmdVerifierVerify a praxis:CliCommand ;
     praxis:noun "verifier" ;
     praxis:verb "verify" ;
     praxis:handler "handle_verifier_verify" .
+
+# ---------------------------------------------------------------------------
+# ggen crate (crates/ggen): SPARQL-in-Tera code generation
+# ---------------------------------------------------------------------------
+
+praxis:CrateGgen a praxis:RustCrate ;
+    praxis:name "ggen" ;
+    praxis:description "SPARQL-in-Tera code generation: ggen sync as the single verb." .
+
+praxis:CmdGgenSyncRun a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateGgen ;
+    praxis:noun "sync" ;
+    praxis:verb "run" ;
+    praxis:handler "handle_sync_run" ;
+    praxis:flag "dry_run" ;
+    praxis:flag "watch" ;
+    rdfs:comment "Run the five-stage generation pipeline: resolve, enrich, extract, render, write. --watch re-runs the pipeline on filesystem changes." .
+
+praxis:CmdGgenGraphValidate a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateGgen ;
+    praxis:noun "graph" ;
+    praxis:verb "validate" ;
+    praxis:handler "handle_graph_validate" ;
+    rdfs:comment "Load a Turtle ontology and report parse or constraint violations." .
+
+praxis:CmdGgenReceiptVerify a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateGgen ;
+    praxis:noun "receipt" ;
+    praxis:verb "verify" ;
+    praxis:handler "handle_receipt_verify" ;
+    rdfs:comment "Recompute and verify the BLAKE3 chain hash of a sync receipt." .
+
+praxis:CmdGgenReceiptHistory a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateGgen ;
+    praxis:noun "receipt" ;
+    praxis:verb "history" ;
+    praxis:handler "handle_receipt_history" ;
+    rdfs:comment "Verify the full chain of sync receipts in .ggen-v2/receipt-log.jsonl." .
+
+praxis:CmdGgenDoctorRun a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateGgen ;
+    praxis:noun "doctor" ;
+    praxis:verb "run" ;
+    praxis:handler "handle_doctor" ;
+    rdfs:comment "Check lockfile/pack drift, orphaned generated artifacts, and receipt-vs-disk staleness." .

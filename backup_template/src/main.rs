@@ -2,6 +2,10 @@
 
 use anyhow::Result;
 
+// Link the library crate so its `#[verb]` linkme registrations are included
+// in the binary; without this the CommandRegistry would be empty.
+use {{project_name}} as _;
+
 fn main() -> Result<()> {
     let raw: Vec<String> = std::env::args().collect();
 

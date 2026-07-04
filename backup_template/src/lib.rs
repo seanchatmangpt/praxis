@@ -17,6 +17,7 @@ pub mod lsp;
 pub mod discovery;
 
 pub mod repl;
+pub mod verbs;
 
 pub use error::AppError;
 pub use types::{Blake3Hash, ObjectRef, canonical_bytes, ProfileId, Evidence, Admit, Raw, Validated, Admitted, RawEvidence, ValidatedEvidence, AdmittedEvidence, AdmittedReceipt};
