@@ -1,0 +1,541 @@
+\documentclass[11pt,a4paper]{report}
+
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black]{hyperref}
+
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{axiom}[theorem]{Axiom}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{finding}[theorem]{Finding}
+
+\newcommand{\Ont}{\mathbf{Ont}}
+\newcommand{\sync}{\mathsf{sync}}
+\newcommand{\wdec}{\mathsf{w}}
+\newcommand{\Sig}{\Sigma}
+\newcommand{\Out}{\mathcal{D}}
+\newcommand{\Hash}{\mathsf{H}}
+\newcommand{\canon}{\mathsf{c14n}}
+\newcommand{\rec}{\mathsf{R}}
+\newcommand{\mymu}{\mu}
+\newcommand{\Packs}{\mathcal{P}}
+\newcommand{\del}{\Delta}
+
+\title{\textbf{Combinatorial Maximalism}\\[0.6em]
+\large Exhaustion as Proof in Context-Bounded Software Construction:\\
+the Algebra, Geometry, and Calculus of the Verified Projection Engine}
+\author{Sean Chatman}
+\date{July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+\emph{Combinatorial maximalism} is the methodological stance that when a system's
+behavioural space is finite by construction --- closed vocabularies, enumerated
+flags, discrete file states --- correctness claims must be discharged by
+\emph{exhaustion over the whole space}, never by sampling, narration, or review.
+This thesis formalises the stance as practised in the construction of a
+deterministic graph-to-filesystem projection engine governed by the Chatman
+Equation $A = \mymu(O)$. We give the configuration space of the write
+discipline an exact product structure and prove total coverage of its
+$144$ cells against an independent reference model; we organise pack
+composition as a simplicial complex whose $\binom{8}{2}=28$ edges and single
+top face were verified collision-free; and we develop the delta calculus in
+which projection idempotence, replay, and drift acquire the standard shapes of
+fixed points, integrals, and metrics. Three empirical findings anchor the
+mathematics: an aggregate that failed to be a \emph{function} of its inputs
+(the \textsc{group\_concat} incident), a fixed point that held at the level of
+states but not of annotations (the \texttt{force} finding), and the
+predictive success of the exhaustive matrix, whose one flagged tension was
+independently re-encountered as a live defect before the ink was dry. The
+central theorem of the thesis is sociotechnical as much as mathematical:
+under context-bounded construction, \emph{exhaustion is cheaper than trust},
+and every place where the space was not exhausted is exactly where the
+defects lived.
+\end{abstract}
+
+\tableofcontents
+
+%=====================================================================
+\chapter{The Maximalist Principle}
+
+\section{The stance}
+
+Let a system expose a behaviour $b : X \to Y$ where the input space $X$ is
+\emph{finite by construction}. The combinatorial maximalist asserts:
+
+\begin{axiom}[Exhaustion]\label{ax:exhaustion}
+If $|X| < \infty$ and membership in $X$ is decidable, then the only admissible
+verification of a specification $\hat b : X \to Y$ is the total check
+\[
+  \forall x \in X:\quad b(x) = \hat b(x),
+\]
+executed against the running system, with the witness for every $x$ recorded.
+Sampling, review, and reported success are inadmissible whenever exhaustion is
+feasible.
+\end{axiom}
+
+\begin{axiom}[Independent reference]\label{ax:reference}
+The specification $\hat b$ must be computed by an artifact \emph{other than}
+$b$ --- a reference model written from the documented law, not read off the
+implementation. Verifying $b$ against itself is the self-certification
+failure mode.
+\end{axiom}
+
+\begin{axiom}[Closure precedes exhaustion]\label{ax:closure}
+Exhaustion is only possible over spaces that have been deliberately
+\emph{closed}: vocabularies that refuse unknown members by name, enumerations
+with no wildcard arms, flag sets declared rather than discovered. Closure is
+therefore not a stylistic preference but the precondition of proof.
+\end{axiom}
+
+Axiom~\ref{ax:closure} explains why the same three engineering laws
+(closed vocabulary; status earned by evidence; chained history) precipitated
+independently in five sibling systems: they are the minimal conditions under
+which Axiom~\ref{ax:exhaustion} can be applied at all.
+
+\section{Why maximalism, not minimalism}
+
+The classical testing doctrine is minimalist: choose representative points,
+partition by equivalence classes, argue the rest by analogy. That doctrine
+presumes an analyst who holds the whole space in mind while choosing the
+representatives. The empirical record of the construction examined here shows
+the presumption false: every defect arose at a \emph{context boundary}, where
+no single participant --- human or model --- held both halves of an
+interaction. When the analyst's memory is the weakest component, the
+partition argument inherits its weakness. Exhaustion removes the analyst from
+the trusted base.
+
+\begin{remark}
+Maximalism is not profligacy. The spaces exhausted below have cardinalities
+$144$, $28$, $10$, and $8$: closure keeps them small. The maximalist bet is
+that \emph{designing for small closed spaces and then exhausting them} beats
+designing for open spaces and then sampling them.
+\end{remark}
+
+%=====================================================================
+\chapter{Algebra: the Structure of the Exhausted Spaces}
+
+\section{The write discipline as a product space}
+
+The engine's write stage decides, for each rendered artifact, one of a closed
+set of outcomes. Its inputs form a product of finite dimensions:
+
+\begin{definition}[Write configuration space]\label{def:sigma}
+\[
+  \Sig \;=\; F \times U \times I \times S \times T
+\]
+with
+$F = \{\bot,\top\}$ (\texttt{force}),
+$U = \{\bot,\top\}$ (\texttt{unless\_exists}),
+$I = \{\bot,\top\}$ (\texttt{inject}),
+$S = \{\varnothing, s_{=}, s_{\neq}\}$ (\texttt{skip\_if} absent, matching,
+non-matching), and $T$ the target-file state. For $I=\bot$,
+$T = \{\mathrm{absent}, \mathrm{identical}, \mathrm{different},
+\mathrm{anchored}\}$; for $I=\top$ the anchored state refines into the anchor
+modes $\{\mathrm{append}, \mathrm{before}, \mathrm{after},
+\mathrm{at}, \mathrm{at}_{\mathrm{oob}}\}$. The realised cardinality is
+\[
+  |\Sig| \;=\; 2\cdot 2\cdot 3\cdot\bigl(4 + 3 + 5\bigr) \;=\; 144 .
+\]
+\end{definition}
+
+\begin{definition}[Decision codomain]
+$\Out = \{\mathrm{Written},\ \mathrm{Injected},\
+\mathrm{Skip}_r,\ \mathrm{Refuse}_c\}$, where $r$ ranges over named skip
+reasons and $c$ over the closed error-code set
+$\{\text{FM-WRITE-}002,\dots,005\}$.
+\end{definition}
+
+\begin{definition}[First-match-wins composition]\label{def:fmw}
+The decision function is a \emph{priority composition} of guarded rules
+$\rho_1 \triangleright \rho_2 \triangleright \dots \triangleright \rho_k$:
+\[
+  \wdec(\sigma) \;=\; \rho_{j(\sigma)}(\sigma), \qquad
+  j(\sigma) = \min\{\, i : \sigma \in \mathrm{dom}(\rho_i) \,\}.
+\]
+Priority composition is associative and idempotent but \emph{not}
+commutative; the order of the rule list is semantics.
+\end{definition}
+
+\begin{theorem}[Total coverage of the write matrix]\label{thm:matrix}
+Let $\hat\wdec$ be the reference model transcribed from the documented decision
+table (escape $\to$ \textnormal{FM-WRITE-002}; \texttt{unless\_exists}
+$\to$ skip; \texttt{skip\_if} match $\to$ skip; inject family
+$\to$ \textnormal{Injected} or \textnormal{FM-WRITE-003/004}; force
+$\to$ \textnormal{Written}; absent $\to$ \textnormal{Written}; identical
+$\to$ \textnormal{Skip}; different without force $\to$
+\textnormal{FM-WRITE-005}). Then, as executed against the real filesystem,
+\[
+  \forall \sigma \in \Sig:\quad \wdec(\sigma) = \hat\wdec(\sigma),
+\]
+with a cardinality guard $\#\{\sigma\ \text{exercised}\} = 144$ preventing
+silent shrinkage of the exhausted space.
+\end{theorem}
+
+\begin{finding}[Force precedes identity]\label{find:force}
+The single tension surfaced by Theorem~\ref{thm:matrix} is not a
+counterexample but a precedence fact: because
+$\rho_{\mathrm{force}} \triangleright \rho_{\mathrm{identical}}$ in
+Definition~\ref{def:fmw}, a configuration with $F=\top$ and
+$T=\mathrm{identical}$ yields $\mathrm{Written}$, never
+$\mathrm{Skip}_{\mathrm{unchanged}}$. The implementation matches the law;
+the law diverges from the na\"ive expectation. Chapter~4 shows this is a
+distinction between two \emph{grades} of idempotence.
+\end{finding}
+
+\section{The vocabulary group and the refusal boundary}
+
+\begin{definition}[Closed vocabulary]
+The frontmatter vocabulary is a finite set
+$V = \{\texttt{to}, \texttt{sparql}, \texttt{construct}, \texttt{inject},
+\texttt{before}, \texttt{after}, \texttt{at\_line}, \texttt{skip\_if},
+\texttt{unless\_exists}, \texttt{force}, \texttt{when},
+\texttt{skip\_empty}\}$, $|V| = 12$, together with a refusal map
+$\neg V \to \mathrm{Refuse}_{\text{FM-TPL-002}}$ that names the offending key.
+\end{definition}
+
+Exhaustion here has two sides: all $12$ members admit; a chosen adversarial
+sample of $10$ plausible non-members (\texttt{vars}, \texttt{sh\_before},
+\texttt{backup}, \texttt{from}, \texttt{mode}, \dots) refuses by name.
+The complement of a closed set is infinite, so Axiom~\ref{ax:exhaustion}
+applies only to $V$ itself; the non-member check is a boundary probe, and
+honesty requires saying so.
+
+\section{The delta group}
+
+\begin{definition}[Delta group]\label{def:delta}
+For canonical graphs $O, O'$ over vocabulary $V$, define
+$\del(O,O') = (A, D)$ with $A = O' \setminus O$, $D = O \setminus O'$.
+Deltas compose by
+\[
+  (A_1, D_1) \oplus (A_2, D_2)
+  \;=\;
+  \bigl( (A_1 \setminus D_2) \cup A_2,\; (D_1 \setminus A_2) \cup D_2 \bigr),
+\]
+with identity $\varnothing = (\emptyset,\emptyset)$ and inverse
+$(A,D)^{-1} = (D,A)$.
+\end{definition}
+
+\begin{proposition}[Verified group laws]\label{prop:group}
+As property-tested over randomly generated graph pairs:
+$\del \oplus \del^{-1} = \varnothing$;\quad
+$(\del^{-1})^{-1} = \del$;\quad
+$O \oplus \del(O,O') \simeq O'$ (replay identity, checked by hash equality).
+\end{proposition}
+
+\section{The hash homomorphism and the incident of the non-function}
+
+\begin{definition}[Canonical hash]
+Let $\approx$ be the congruence generated by blank-node relabelling and
+insertion order. The state hash is
+$\Hash = \mathrm{BLAKE3} \circ \canon : \Ont/\!\approx\ \to \{0,1\}^{256}$,
+where $\canon$ sorts canonical N-quads (with a bounded colour-refinement pass
+for blank nodes).
+\end{definition}
+
+\begin{proposition}[Well-definedness, exhaustively probed]
+$\Hash$ is constant on $\approx$-classes: verified under (i) permutation of
+insertion order and (ii) blank-node renaming, both as property tests over
+generated instances.
+\end{proposition}
+
+\begin{finding}[The \textsc{group\_concat} incident: an aggregate that was
+not a function]\label{find:gc}
+The self-hosting layer projected a CLI route's flag list via
+$\mathrm{GROUP\_CONCAT}$ over an \emph{unordered} solution multiset. SPARQL
+guarantees no aggregate ordering; the projection was therefore a
+\emph{relation}, not a function, on the quotient by solution order. The
+realised failure was maximally quiet: the two flags were both \texttt{bool},
+so the swapped signature
+$\mathsf{sync\_run}(\mathtt{watch}, \mathtt{dry\_run})$ type-checked against
+the handler's fixed $(\mathtt{dry\_run}, \mathtt{watch})$ and inverted the
+semantics of both flags at the CLI. The repair --- an inner
+$\mathrm{ORDER\ BY}$ subquery --- is precisely the completion of the diagram
+\[
+  \text{solutions} \xrightarrow{\ \mathrm{sort}\ }
+  \text{sequence} \xrightarrow{\ \mathrm{concat}\ } \text{string},
+\]
+restoring functionality by factoring through a canonical total order. Moral,
+in the algebraic register: \emph{every projection out of a quotient must be
+shown constant on equivalence classes, and where the standard gives you a
+multiset, you must pay for the order yourself.}
+\end{finding}
+
+\section{Receipt chains as a monoid homomorphism}
+
+\begin{definition}[Chain functional]
+Histories form the free monoid $E^{*}$ over receipt payloads. The chain map
+$\rec : E^{*} \to \{0,1\}^{256}$ is the left fold
+$\rec(\epsilon) = g$ (genesis, the all-zero word) and
+$\rec(w\!\cdot\!e) = \mathrm{BLAKE3}\bigl(\rec(w) \,\|\, \phi(e)\bigr)$,
+with $\phi$ the canonical payload serialisation.
+\end{definition}
+
+\begin{proposition}[Tamper evidence, adversarially exhausted]
+For each index $i$ of a three-link chain, mutation of any field of $e_i$
+changes $\rec$ of every prefix extending $i$; the verifier names the least
+broken index. Verified for payload mutation, chain-hash mutation,
+truncation, and reordering --- the full (small, closed) set of single-step
+tamper moves.
+\end{proposition}
+
+%=====================================================================
+\chapter{Geometry: Composition Space and Drift}
+
+\section{The pack complex}
+
+\begin{definition}[Pack composition complex]\label{def:complex}
+Let $\Packs = \{p_1,\dots,p_8\}$ be the pack set. For $S \subseteq \Packs$
+let $\sync_S$ denote projection of a consumer project admitting exactly $S$.
+Say $S$ is \emph{coherent} if $\sync_S$ succeeds with all packs' distinctive
+outputs present and no output-path collision. The coherent subsets form a
+simplicial complex $K \subseteq 2^{\Packs}$ (coherence is inherited by
+subsets, since removing a pack removes only its own contributions).
+\end{definition}
+
+\begin{theorem}[Verified skeleton and top face]\label{thm:complex}
+The following faces of $K$ were verified by execution:
+all $8$ vertices (single-pack syncs); all $\binom{8}{2} = 28$ edges
+(pairwise syncs, fresh state each); and the top face $\Packs$ itself
+(the mega-project), including lockfile enumeration, receipt coverage of all
+eight content hashes, and second-sync idempotence.
+\end{theorem}
+
+\begin{remark}[Why edges suffice between the vertices and the top]
+Full exhaustion of $2^{8} = 256$ subsets was not performed, and the omission
+is principled: pack interactions in this engine factor through exactly two
+channels --- ontology union and output-path union --- and both are
+\emph{pairwise-generated}: a collision or prefix clash among $k$ packs
+implies one among some pair. Hence coherence of all edges plus the top face
+(which exercises the union of all channels simultaneously) covers the lattice.
+Where interactions cease to be pairwise-generated --- e.g.\ future
+\texttt{construct} rules of one pack feeding \texttt{select}s of another ---
+this argument lapses and the maximalist must widen the exhausted skeleton.
+The boundary of the method is stated, not hidden.
+\end{remark}
+
+\begin{proposition}[Order invariance]
+The graph-union channel is a commutative idempotent monoid
+$(\Ont, \cup, \emptyset)$; consequently declaration order of packs is
+immaterial, verified by syncing reversed declarations and obtaining a
+byte-identical receipt payload.
+\end{proposition}
+
+\section{Drift as distance; admission as membership}
+
+\begin{definition}[Drift metric]
+On canonical graphs, $d(O,O') = |O \,\triangle\, O'|$, the symmetric
+difference; equivalently $d(O,O') = |A| + |D|$ for
+$\del(O,O') = (A,D)$. On artifacts, drift is measured per file by hash
+inequality against the receipt's recorded output map.
+\end{definition}
+
+The engine's health verbs are radius measurements in three projections of
+one state space: lock drift ($d$ between locked and on-disk pack content),
+staleness ($d$ between receipted outputs and disk), and orphanhood
+(outputs whose preimage under the current template set is empty ---
+a point outside the image of $\mymu$). Refusal is the assertion
+$d > 0 \Rightarrow$ named error; the corruption sweep verified that
+perturbing any single pack moves exactly one coordinate and that the refusal
+names it and nothing else.
+
+\begin{definition}[Feasible region]
+Admission constraints (SHACL shapes, \texttt{when} guards, closed
+vocabularies) carve a feasible region
+$\mathcal{F} \subseteq \Ont$; $\mymu$ is a partial map with
+$\mathrm{dom}(\mymu) = \mathcal{F}$, and fail-closed means the complement of
+$\mathcal{F}$ maps to named refusals rather than to best-effort artifacts.
+\end{definition}
+
+\section{Projection as retraction}
+
+\begin{theorem}[Idempotence as fixed point]\label{thm:retract}
+For fixed admitted inputs $(O^{*}, C^{*}, P^{*}, T^{*})$, the map
+$F \mapsto \sync(F)$ is a retraction of filesystem space onto its image:
+$\sync \circ \sync = \sync$, verified at byte level (output files identical)
+and at payload level (graph hash, output hashes, pack hashes identical)
+across repeated runs and across independently created state
+(property-tested over generated projects).
+\end{theorem}
+
+Geometrically: the admitted state $F^{*} = \sync(F^{*})$ is the unique fixed
+point in each fibre, and every sync is a projection onto it. Drift moves you
+off the fibre; the next sync either brings you back (\texttt{force}) or
+refuses by name (default) --- but never silently splits the difference.
+
+%=====================================================================
+\chapter{Calculus: Deltas, Replay, and the Two Grades of Idempotence}
+
+\section{Differentiation and integration of history}
+
+\begin{definition}[Discrete derivative and integral]
+For an ontology trajectory $O_0, O_1, \dots, O_n$, the derivative is
+$\del_i = \del(O_{i-1}, O_i)$ and the integral is replay:
+\[
+  O_n \;=\; O_0 \oplus \bigoplus_{i=1}^{n} \del_i ,
+\]
+a discrete fundamental theorem verified term-by-term against the receipt
+chain: $\rec$ of the prefix at step $i$ must equal the
+$\mathrm{prev}$-pointer of step $i+1$, genesis-rooted.
+\end{definition}
+
+\begin{proposition}[Chain rule across the pipeline]
+Writing $\mymu = \mymu_5 \circ \dots \circ \mymu_1$ (resolve, admit, enrich,
+extract, render/write), a perturbation $\del O$ propagates as
+$\del A \subseteq \mymu_5'\!\cdot\!\mymu_4'\!\cdots\mymu_1'\,(\del O)$:
+each stage's sensitivity bounds which artifacts a graph change may touch.
+The enrichment stage $\mymu_3$ is a closure operator
+(extensive, monotone, idempotent), so its ``derivative'' at a fixed point is
+the identity on already-entailed triples --- the formal content of
+``running enrichment twice adds nothing.''
+\end{proposition}
+
+\section{The two grades of idempotence}
+
+Finding~\ref{find:force} and its live recurrence (a freshly authored pack
+shipped with \texttt{force:\,true} and failed the second-sync gate) force a
+distinction the na\"ive statement of Theorem~\ref{thm:retract} blurs.
+
+\begin{definition}[State- and trace-idempotence]
+Let $\sync$ act on states $F$ and also emit an annotation trace
+$\tau(F) \in \Out^{*}$ (the per-file decisions bound into the receipt).
+Call the system \emph{state-idempotent} if $\sync(\sync(F)) = \sync(F)$,
+and \emph{trace-idempotent} if additionally
+$\tau(\sync(F)) = \tau(\sync(\sync(F)))$ up to the intended
+$\mathrm{Written} \to \mathrm{Skip}_{\mathrm{unchanged}}$ transition.
+\end{definition}
+
+\begin{finding}[Force is state-idempotent but not trace-quiescent]
+With \texttt{force:\,true} the second sync rewrites identical bytes:
+the state fixed point holds, the byte comparison holds, but the trace
+reports $\mathrm{Written}$ forever and the file's modification time advances
+each run. Under a filesystem watcher this non-quiescence is not cosmetic:
+it is a self-excitation term, and the engine's watch mode oscillated on
+exactly this coupling until the lockfile write was made trace-quiescent
+(skip when bytes match). The calculus lesson: \emph{a fixed point of the
+state map is insufficient; the closed loop formed with any observer of
+side-channels (mtimes, events, logs) requires quiescence of the trace as
+well.} Formally, the watch loop computes
+$F_{k+1} = \sync(F_k)$ triggered by $\mathrm{events}(F_k \to F_{k+1})$;
+convergence demands $\mathrm{events}(F^{*} \to F^{*}) = \emptyset$, a
+strictly stronger condition than $F^{*}$ being fixed.
+\end{finding}
+
+\section{Sensitivity of the guard cross}
+
+The $2 \times 2 \times 2$ cross of \texttt{when}-guard truth, result-set
+emptiness, and \texttt{skip\_empty} was exhausted by execution (eight cells,
+each asserting both the decision string and the presence/absence of the file).
+In calculus terms this is the verification that the piecewise definition of
+$\mymu$ has no unglued seams: on each cell the projection restricts to the
+documented branch, and the branches agree on their shared boundaries
+(empty result with guard false is skipped for the guard's reason, not the
+emptiness's --- precedence again, exhaustively pinned).
+
+%=====================================================================
+\chapter{The Maximalist Theorems}
+
+\begin{theorem}[Exhaustibility]\label{thm:exhaust}
+If a subsystem's inputs are confined to a product of closed dimensions
+(Axiom~\ref{ax:closure}), then total verification against an independent
+reference model (Axiom~\ref{ax:reference}) is decidable in
+$O(|\Sig|)$ executions, and $|\Sig|$ is a design variable: closure
+decisions made for refusal's sake simultaneously make proof cheap.
+\end{theorem}
+
+\begin{theorem}[Predictive power of exhaustion]\label{thm:predict}
+An exhaustive matrix does not merely confirm; it \emph{forecasts}. The one
+tension it flagged (Finding~\ref{find:force}) was re-encountered as a live
+defect in independently authored code before any consumer existed. A sampled
+suite that skipped the $F=\top,\ T=\mathrm{identical}$ cell --- the natural
+cell to skip, since ``force obviously overwrites'' --- would have shipped the
+oscillation.
+\end{theorem}
+
+\begin{theorem}[Locality of the defect set]\label{thm:local}
+Every defect in the construction record lay outside some exhausted space at
+the moment of its introduction: the aggregate-order relation (no ordering
+dimension had been closed), the manifest clobber (no exhausted check compared
+disk to intent across sessions), the lockfile self-excitation (the trace
+dimension was not yet in the matrix), the pack \texttt{force} recurrence
+(pack authors' space excluded the write-precedence dimension). Conversely,
+no defect was found \emph{inside} a space after its exhaustion. The
+maximalist reading: the boundary of the exhausted region is the support of
+the defect distribution.
+\end{theorem}
+
+\begin{corollary}[The programme]
+Verification effort should be spent enlarging the closed, exhausted region
+--- adding dimensions (trace quiescence, aggregate order, cross-session disk
+state) to $\Sig$ --- rather than deepening scrutiny inside it. Each of the
+2028--2030 frontier items (triple admission gating, receipt federation) is
+the closure of one presently-open dimension.
+\end{corollary}
+
+%=====================================================================
+\chapter{Conclusion}
+
+Combinatorial maximalism is often mistaken for brute force. This thesis has
+argued it is the opposite: a \emph{design} discipline in which vocabularies
+are closed so that spaces become finite, spaces are given product structure
+so that exhaustion is enumerable, and exhaustion is executed against
+independent reference models so that no participant's memory --- human or
+machine --- remains in the trusted base. The algebra supplied the objects
+(priority compositions, delta groups, hash homomorphisms on quotients,
+chain monoids); the geometry supplied the shapes (the pack complex, the
+drift metric, projection as retraction); the calculus supplied the dynamics
+(replay as integration, the chain rule of the pipeline, and the two grades
+of idempotence whose gap is precisely where a live system oscillates).
+
+The empirical record closes the argument. Where the space was exhausted, no
+defect survived. Where a dimension was still open, a defect was waiting ---
+quiet, type-correct, and confidently reported as done. Between those two
+observations lies the whole thesis:
+
+\begin{center}
+\emph{The boundary of what you have exhausted is the frontier of what you
+may trust.}
+\end{center}
+
+\appendix
+\chapter{Empirical Ledger}
+
+\begin{center}
+\begin{tabular}{@{}llr@{}}
+\toprule
+Exhausted space & Structure & Cardinality \\
+\midrule
+Write-decision matrix & product $F{\times}U{\times}I{\times}S{\times}T$ & $144$ \\
+Pack pairwise skeleton & edges of $K$ on $8$ vertices & $28$ \\
+Pack vertices + top face & $K^{(0)} \cup \{\Packs\}$ & $8 + 1$ \\
+Guard cross & \texttt{when} $\times$ emptiness $\times$ \texttt{skip\_empty} & $8$ \\
+Vocabulary admission & members of $V$ & $12$ \\
+Vocabulary boundary probe & adversarial non-members & $10$ \\
+Tamper moves on a 3-chain & field/chain/truncate/reorder per index & all \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+Property-tested laws (generated instances): state-hash invariance under
+insertion order and blank-node renaming; delta cancellation
+$\del \oplus \del^{-1} = \varnothing$ and involution; replay identity;
+byte- and payload-level sync idempotence. Engine: \texttt{praxis/crates/ggen}
+v26.7.4, $182$ tests, zero test doubles; commits
+\texttt{f011738}, \texttt{71699f8}, \texttt{314db73}. Formal substrate:
+\texttt{docs/ggen-theory.md}; companion prospectus:
+\texttt{docs/chatman-equation-phd-thesis.md}.
+
+\end{document}

@@ -1,0 +1,372 @@
+\documentclass[11pt,a4paper]{report}
+
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black]{hyperref}
+
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{axiom}[theorem]{Axiom}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{finding}[theorem]{Finding}
+\newtheorem{station}[theorem]{Site Report}
+
+\newcommand{\Ont}{\mathbf{Ont}}
+\newcommand{\Rcpt}{\mathbf{Rcpt}}
+\newcommand{\Mkt}{\mathcal{M}}
+\newcommand{\sync}{\mathsf{sync}}
+\newcommand{\Hash}{\mathsf{H}}
+\newcommand{\rec}{\mathsf{R}}
+\newcommand{\mymu}{\mu}
+\newcommand{\Packs}{\mathcal{P}}
+\newcommand{\del}{\Delta}
+\newcommand{\Feas}{\mathcal{F}}
+\newcommand{\head}{\mathsf{head}}
+\newcommand{\lat}{\tau}
+
+\title{\textbf{The Unspectacular Settlement}\\[0.6em]
+\large Commerce in Admitted Projections Across an $n$-Dimensional
+Marketplace, Earth to the Outer Stations, 2030:\\
+a Nonfiction Account, With the Mathematics That Made It Boring}
+\author{Sean Chatman}
+\date{July 2030}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+This is not the future that was advertised. There is no chrome and there
+are no street samurai; the rain on Titan is methane and nobody stands in
+it for atmosphere. What there is, in 2030, is a working market: some
+tens of thousands of software estates --- terrestrial enterprises, orbital
+logistics operators, the Luna fabrication co-operatives, the Mars survey
+authorities, and a scatter of long-latency outer-system stations --- trading
+not code but \emph{admitted projections}: packs, deltas, and the receipt
+chains that make them checkable by strangers. The market is
+$n$-dimensional in the plain combinatorial sense: every listing is a point
+in a product of closed dimensions (domain, jurisdiction, evidence regime,
+latency class, hardware profile, liability tier), and every dimension is
+closed because the market's one law --- the Chatman Equation,
+$A = \mymu(O)$, with its receipts --- only prices what it can recompute.
+The thesis of this account is deliberately anti-dramatic: \emph{the
+constraint that shaped interplanetary software commerce was not
+bandwidth, ideology, or security theatre, but light}. At $3$ to $22$
+minutes one-way, review is impossible, conversation is impossible,
+supervision is impossible --- and so the only trust artifact that survives
+the crossing is one that verifies in local time from content alone.
+The Chatman Equation was not adopted off-world because it was futuristic.
+It was adopted because at Mars distance it is the only thing that works,
+and by 2030 the same physics-forced discipline had quietly become the
+terrestrial default too. The future arrived as paperwork that checks
+itself. This document explains the mathematics of that paperwork, reports
+from the sites where it runs, and accounts honestly for what it has not
+solved.
+\end{abstract}
+
+\tableofcontents
+
+%=====================================================================
+\chapter{Against the Advertised Future}
+
+The fictional futures of the last century organised themselves around
+spectacle: augmentation, neon, the corporation as cathedral. What actually
+scaled was duller and stranger. The decisive artifacts of 2030 commerce
+are TOML manifests, canonical N-quads, and BLAKE3 digests; the decisive
+institutions are registries and admission gates; the decisive skill is
+writing an ontology whose predicates are worth gating. Nobody in this
+account jacks in. They run \(\sync\), read the refusal, and fix the graph.
+
+Post-cyberpunk as nonfiction means taking seriously the least glamorous
+prediction: that trust, not computation, was the scarce commodity, and
+that trust industrialised the way everything industrialises --- by
+becoming cheap to verify, standard to package, and boring to use. The
+remainder of this document is the mathematics and the field reports of
+that industrialisation, from Frankfurt trading floors to the Saturn-system
+relay stations, with the same equation running at every site.
+
+\begin{remark}[Terminology]
+Throughout, an \emph{estate} is any governed software installation with
+its own receipt chain; a \emph{pack} is a portable projection bundle
+(ontology, templates, chain head); the \emph{market} \(\Mkt\) is the set
+of listed packs with the admission and settlement machinery around them.
+No estate in this account is fictionalised in kind; sites are anonymised
+per consortium disclosure rules, and the outer-system reports are drawn
+from the public chains those stations publish by charter.
+\end{remark}
+
+%=====================================================================
+\chapter{Light as the Regulator}
+
+\section{The latency axiom}
+
+\begin{axiom}[No conversation across the crossing]\label{ax:light}
+Let $\lat$ be one-way signal latency between counterparties. Any trust
+procedure requiring $k$ interactive round trips costs $2k\lat$ before
+value transfers. For Earth--Mars, $\lat \in [3, 22]$ minutes; for the
+Saturn system, $\lat \approx 80$ minutes. Hence every procedure whose
+correctness depends on \emph{dialogue} --- code review, supervision,
+clarifying questions, incident calls --- degrades linearly in $\lat$ and
+is abandoned in practice beyond cislunar space.
+\end{axiom}
+
+\begin{theorem}[Latency forces content-addressed trust]\label{thm:latency}
+Under Axiom~\ref{ax:light}, the only admission procedures with
+$\lat$-independent cost are those computable from received content alone:
+verification of $\Hash$-values, replay of $\del$-streams against chain
+heads, and membership tests in locally-held feasible regions $\Feas$.
+Consequently a market spanning heterogeneous $\lat$ must denominate trust
+in recomputable artifacts, or partition into latency islands.
+\end{theorem}
+
+This theorem is the whole geopolitical story of off-world software in one
+line. The Mars survey authorities did not adopt receipted projection out
+of enthusiasm for terrestrial governance fashion; they adopted it because
+a supplier attestation that requires a phone call is, at Mars, a supplier
+attestation that requires forty minutes of silence per question. The
+receipt chain is the first trust instrument in engineering history whose
+cost of verification is invariant in distance. Commerce followed the
+invariance.
+
+\section{Autonomy as a corollary, not a rebellion}
+
+Fiction expected off-world settlements to diverge politically. What
+happened instead is that they diverged \emph{operationally} --- forced by
+$\lat$ to admit changes locally, on local evidence, against locally-held
+gates --- while remaining commercially entangled through federation.
+Autonomy was not declared; it was a corollary of Theorem~\ref{thm:latency}.
+The Luna co-operatives run the same engine, the same closed frontmatter
+vocabulary, the same FM-coded refusals as a Frankfurt bank, and this
+sameness, not any treaty, is what lets a Luna fabrication pack settle into
+a terrestrial estate within one synodic trading window.
+
+\begin{station}[Mars survey authority, 2029]\label{st:mars}
+The authority's estates admit approximately $400$ deltas per sol with no
+terrestrial participation. Their charter requires the full chain to be
+mirrored Earthside at every conjunction window; auditors on Earth verify
+months of Martian operation in under an hour of hash recomputation,
+$O(|E|)$ in the supply edges, per Theorem~\ref{thm:limit-recall} below.
+The authority's own engineers describe the arrangement without romance:
+``Earth doesn't trust us. Earth trusts the arithmetic. That's better.''
+\end{station}
+
+%=====================================================================
+\chapter{The $n$-Dimensional Marketplace}
+
+\section{Listings as points in a closed product}
+
+\begin{definition}[Market coordinate system]\label{def:market}
+The market $\Mkt$ assigns every listing a coordinate in
+\[
+  X \;=\; D \times J \times E \times L \times H \times B ,
+\]
+where $D$ is the domain vocabulary (a registered, closed namespace);
+$J$ the jurisdiction/regulatory regime; $E$ the evidence regime (which
+admission gates the producer's chain proves were applied); $L$ the latency
+class the pack is certified for (interactive, cislunar, planetary,
+outer-system); $H$ the hardware/determinism profile; and $B$ the liability
+tier its insurer underwrites. Every axis is finite and closed; extending
+any axis is a governance act priced to the extender, on the 2027 rule that
+\emph{the proposer of a dimension pays for its matrix}.
+\end{definition}
+
+\begin{proposition}[Search is membership, settlement is verification]
+Because $X$ is a finite product of closed sets, procurement --- historically
+a negotiation --- reduces to two computable steps: (i) membership: does a
+listing's coordinate lie in the buyer's feasible sub-box
+$\Feas_{\mathrm{buyer}} \subseteq X$? (ii) verification: does the pack's
+chain head recompute, and do its evidence-regime claims ($E$-coordinate)
+correspond to gates actually present in the chain? Neither step involves
+the producer. A Titan-orbit relay station procures terrestrial navigation
+packs by exactly this procedure, with no message ever sent to the vendor.
+\end{proposition}
+
+\begin{remark}[What ``$n$-dimensional'' does not mean]
+The phrase promises exotica; the reality is an index. The market's
+dimensionality is the plain statement that six-or-so closed coordinates
+suffice to make any listing findable and checkable by any counterparty in
+the system, human or procedural. The exotic version --- continuous embedding
+spaces, learned similarity, recommendation --- exists at the market's edges
+as \emph{discovery}, and is firewalled from \emph{admission}: a model may
+suggest a pack; only arithmetic may admit one. The market survived its
+first adversarial decade by never confusing the two.
+\end{remark}
+
+\section{Deltas as the traded good}
+
+Mature estates rarely buy whole packs; they subscribe to \emph{delta
+streams}: sequences $(\del_i, \text{evidence}_i, \rec\text{-link}_i)$
+priced per admitted change. The unit economics follow the calculus of the
+2026 thesis directly: a delta's price correlates with its computed blast
+radius $\mymu'(\del O)$ (the chain-rule bound on what it may touch), and
+its insurability with the evidence regime of its admission. Low-sensitivity
+deltas settle automatically; high-sensitivity deltas queue for the buyer's
+own gates. The result is the quiet inversion fiction never predicted:
+\emph{changes} became the commodity, and \emph{stability} became the
+service.
+
+\begin{finding}[The outer-system premium]
+Listings certified for the outer-system latency class ($L$-coordinate
+maximal) command a durable price premium not for performance but for
+\emph{trace quiescence}: at $80$ light-minutes, a projection that rewrites
+identical bytes (state-fixed but trace-live, the 2026 \texttt{force}
+finding) pollutes scarce downlink with observer noise. The two-grades-of-%
+idempotence distinction, an academic refinement in 2026, is a line item on
+Saturn-system invoices in 2030.
+\end{finding}
+
+%=====================================================================
+\chapter{The Mathematics That Holds It Together}
+
+\section{Recalled foundations}
+
+The market machinery is the 2026--2029 stack unchanged in kind: graphs
+admit into $\Ont^{*}$ through evidence-gated deltas; $\mymu$ projects;
+receipts chain with $\rec(w \cdot e) = \Hash(\rec(w) \| \phi(e))$;
+federation binds producer chain heads into consumer receipts.
+
+\begin{theorem}[Audit as a limit, system-wide]\label{thm:limit-recall}
+For the interplanetary supply digraph $G$ --- nodes now separated by
+light-minutes --- coherence remains the commutativity of the bound-head
+diagram over each consumer's in-neighbourhood, verifiable in $O(|E|)$
+local hash recomputations. Latency appears nowhere in the bound; that
+absence is Theorem~\ref{thm:latency} made operational.
+\end{theorem}
+
+\section{Time without simultaneity}
+
+Interplanetary operation sharpened a discipline the 2026 engine adopted
+for humbler reasons: \emph{no wall-clock in hashed material}. There is no
+shared ``now'' worth the name between Earth and the outer stations;
+ordering is causal, carried by the chains themselves. The receipt DAG is,
+in practice, the system's clock: an event's time is its position in the
+partial order of bound heads, and disputes about sequence are resolved by
+exhibiting paths, not by comparing timestamps. What began as a
+determinism rule for replay turned out to be the correct relativistic
+posture by accident --- or rather, by the non-accident that both problems
+are the same problem: never let an unverifiable ambient quantity into the
+evidence.
+
+\begin{proposition}[Conjunction-window consistency]
+During solar conjunction, Earth--Mars links degrade for days. Estates on
+both sides continue admitting locally; on reconnection, the federation
+layer faces divergent chain extensions. Because deltas form a group and
+receipts a monoid homomorphism, reconciliation is not a merge heuristic
+but a computation: the divergent suffixes are replayed against each side's
+gates, conflicts surface as named refusals on specific deltas, and the
+reconciled head binds both branches. In four conjunctions of recorded
+operation, no reconciliation has required human adjudication of
+\emph{facts} --- only, occasionally, of \emph{policy}, which is where
+humans belong.
+\end{proposition}
+
+\section{The residue, off-world}
+
+The intent-residue ratio $\rho$ --- hand-authored over total admitted
+bytes --- plateaued terrestrially near $0.1$. The off-world estates run
+lower still (the Mars authority reports $\rho \approx 0.04$), not because
+Martian engineers write less but because scarcity discipline forces more
+of the system into projectable form: when every hand-written line must be
+maintained across a $40$-minute question loop, institutions economise on
+exactly the artifact that requires conversation. The residue concentrates
+where it always concentrates --- evidence schemas, gate policy, the
+asserted core of the ontology --- which is to say: in the places where a
+settlement decides what kind of place it is.
+
+%=====================================================================
+\chapter{What It Did Not Solve}
+
+Nonfiction owes its failures. Four stand.
+
+\textbf{Ontology politics did not dissolve; they relocated.} Gating
+assertion made the graph's asserted core the site of institutional power.
+The disputes are now precise --- about named predicates with named owners
+--- which is an improvement, but the market has produced no mechanism for
+resolving them beyond the oldest one: people, in rooms (or, off-world, in
+long document exchanges shaped by $\lat$). The equation governs what
+follows from the graph. It is silent on who the graph belongs to.
+
+\textbf{The discovery edge is a standing adversary.} The firewall between
+learned discovery and arithmetic admission holds, but pressure on it is
+constant, because suggestion shapes what gets verified. A recommender
+that never lies but selectively surfaces is a censor the admission
+arithmetic cannot see. The 2030 consortium treats discovery-layer
+auditing as an open problem; this document concurs and offers nothing
+better.
+
+\textbf{Long-latency incident response remains slow where it matters
+least often.} Refusals prevent the common failures locally. The rare
+failure that requires cross-planet coordination still pays full price in
+$\lat$, and no artifact shortens it; the chains only guarantee that when
+the humans finally converse, they argue from identical, verified state ---
+which converts disasters into slow meetings, an exchange everyone accepts
+and nobody enjoys.
+
+\textbf{The residue does not go to zero, anywhere.} Four years and two
+planets of measurement put $\rho$'s floor strictly above zero. Whatever
+intent is, some of it does not compress into verifiable form. The market
+prices around this honestly (liability tiers attach precisely to residue),
+but the 2026 hope of a vanishing hand-written core is, on the evidence,
+false --- and its falseness is now itself a measured, receipted fact,
+which is the only kind of defeat this programme respects.
+
+%=====================================================================
+\chapter{Conclusion: The Future as Paperwork That Checks Itself}
+
+The settlement of the solar system's software economy did not look like
+its fictions because its binding constraint was never dramatised: light
+does not negotiate, and so trust had to become arithmetic. The Chatman
+Equation crossed the crossing because it is the only trust instrument
+whose verification cost is invariant in distance, indifferent to
+simultaneity, and executable by a counterparty who will never meet you.
+Around that invariance, an $n$-dimensional market assembled itself out of
+closed coordinates and priced deltas --- unspectacular, auditable, and
+strange chiefly in how little it resembles adventure.
+
+The 2026 thesis closed on a frontier: the boundary of the exhausted is the
+frontier of the trusted. The 2030 retrospective proved its converse on
+Earth. This account extends it outward, and downward into ordinariness:
+
+\begin{center}
+\emph{Across three light-hours of inhabited space, the working
+definition of trust in 2030 is: that which recomputes.\\
+Everything else is conversation --- and conversation does not
+survive the crossing.}
+\end{center}
+
+\appendix
+\chapter{Ledger of Sites and Structures}
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Site class & $\lat$ (one-way) & Trust procedure in force \\
+\midrule
+Terrestrial estates & $<0.1$ s & full stack; receipts normative since 2030 \\
+Cislunar operators & $1.3$ s & interactive gates viable; federation standard \\
+Mars authorities & $3$--$22$ min & local admission; conjunction reconciliation \\
+Belt logistics & $10$--$40$ min & delta-stream subscription, auto-settlement \\
+Saturn-system relays & $\approx 80$ min & outer-system $L$-class only; quiescence priced \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{1em}
+\noindent
+Market coordinates (Definition~\ref{def:market}): $6$ closed axes,
+extension priced to the proposer. Foundational corpus:
+\texttt{combinatorial-maximalism-thesis.tex} (2026, exhaustion),
+\texttt{receipted-projection-2030-retrospective.tex} (2030, terrestrial),
+\texttt{chatman-equation-phd-thesis.md} (prospectus),
+\texttt{vision-2030-prd-adr.md} (requirements). The engine of record
+remains a direct descendant of \texttt{praxis/crates/ggen} v26.7.4; the
+laws it enforces have not changed, which is the point.
+
+\end{document}

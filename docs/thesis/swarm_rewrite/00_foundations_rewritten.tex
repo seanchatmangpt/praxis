@@ -1,0 +1,1061 @@
+\documentclass[11pt,oneside]{book}
+
+\usepackage[margin=1.15in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+
+% ---- theorem environments (identical to the keystone, for series coherence) ----
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{axiom}{Axiom}[chapter]
+\newtheorem{construction}{Construction}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+% ---- notation macros ----
+\newcommand{\Obs}{\mathcal{O}}                 % raw observation space
+\newcommand{\Obsbot}{\Obs_{\bot}}             % extended observation space
+\newcommand{\Adm}{\mathcal{O}^{*}}             % admitted observation space
+\newcommand{\Act}{\mathcal{A}}                 % action / artifact space
+\newcommand{\Rec}{\mathcal{R}}                 % receipt space
+\newcommand{\Proj}{\pi}                        % projection
+\newcommand{\muop}{\mu}                        % manufacturing morphism
+\newcommand{\adm}{\alpha}                      % admission map
+\newcommand{\chainH}{\mathsf{H}}               % hash
+\newcommand{\Rfsl}{\bot}                        % refusal
+\newcommand{\CL}{\kappa}                       % cognitive-load capacity
+\newcommand{\Fitness}{\varphi}
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\id}{id}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% ---- foundations-local macros ----
+\newcommand{\Raw}{\mathsf{Raw}}
+\newcommand{\Val}{\mathsf{Validated}}
+\newcommand{\Admd}{\mathsf{Admitted}}
+\newcommand{\Rcpt}{\mathsf{Receipted}}
+\newcommand{\Life}{\mathbf{Life}}
+\newcommand{\BRCE}{\textsc{brce}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{\bfseries The Chatman Equation:\\[0.4em]
+\large A Receipt Calculus for Reality-Addressed Agentic AI}
+\author{Sean Chatman \\ Independent Researcher}
+\date{Genesis --- Foundations, Paper 00}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter{Chapter 0: Abstract}
+\label{ch:abstract}
+% [ORIENT] This chapter presents the abstract of the thesis program paper.
+% [CITE] Citing Abstracts A, B, and C as defined in the executive abstracts.
+
+This thesis program paper presents a formal receipt calculus designed to establish verifiable accountability in autonomous agentic AI systems. % [DEF]
+We address the fundamental gap between the scale of model-driven execution traces and the cognitive limits of human operators ($\kappa \approx 4$). % [ORIENT]
+
+\paragraph{Algebraic Foundation.}
+We factor the raw, undecidable observation space $\mathcal{O}$ by introducing the extended observation space $\mathcal{O}_\bot = \mathcal{O} \cup \{\bot\}$ and defining a computable retraction map $\alpha: \mathcal{O}_\bot \to \mathcal{O}^* \cup \{\bot\}$. % [DEF]
+This retraction maps raw, unstructured inputs onto a decidable, normalized syntactic subspace $\mathcal{O}^*$ while mapping validation failures to the first-class refusal value $\bot$. % [DEF]
+Refusal composition is formalized via the denial monoid, a commutative idempotent join-semilattice. % [DEF]
+Typestate and execution order are modeled category-theoretically using a path category over a linear quiver, where illegal transitions map to empty hom-sets. % [DEF]
+
+\paragraph{Geometric \& Process Modeling.}
+We represent lifecycle trajectories and process execution. % [ORIENT]
+The lifecycle process is mapped to a safe Petri net token game, enabling the evaluation of conformance fitness $\varphi \in [0, 1]$ during replay. % [DEF]
+We model the manufacturing morphism $\mu: \mathcal{O}^* \cup \{\bot\} \to \mathcal{A} \cup \{\bot\}$ as a deterministic, cost-bounded map that translates admitted payloads into actuated artifacts while propagating refusal. % [DEF]
+
+\paragraph{Cryptographic Commitment.}
+Execution traces are projected onto a compact receipt space $\mathcal{R}$. % [DEF]
+Each receipt contains a collision-resistant hash digest $h_+ = \mathcal{H}(h_- \parallel \mathsf{fr})$, where the causal frame $\mathsf{fr}$ commits recursively to the timestamp, instruction, and payload bytes. % [DEF]
+
+\paragraph{Limits \& Guarantees.}
+Under the assumption of the collision resistance of $\mathcal{H}$ and the completeness of the host compiler's type checking, we prove the Conservation of Consequence. % [THM]
+This theorem guarantees that every actuation event is mapped injectively to a unique position in the receipt chain, and the corresponding actuated artifact is caused by at least one admitted observation. % [THM]
+Importantly, our proofs are bounded by these cryptographic and type-system assumptions; we do not claim absolute semantic correctness of model outputs, but rather verify that actuation conforms strictly to the specified syntactic and lifecycle constraints. % [ORIENT]
+The resulting framework provides a rigorous, constant-time audit boundary for complex autonomous systems. % [ORIENT]
+
+\tableofcontents
+
+\mainmatter
+
+\chapter{Chapter 1: The Problem: Trust Without Comprehension}
+\label{ch:problem}
+% [ORIENT] This chapter defines the core problem statement.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+How can a human agent verify the behavior of an autonomous agentic AI system when the system's interior state space exceeds human cognitive capacity? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced because human cognitive capacity is a fixed, small biological constant. % [ORIENT]
+A system whose interior execution trace cannot be held in human working memory cannot be trusted via direct runtime comprehension. % [ORIENT]
+Therefore, we must find an alternative verification mechanism that does not require full semantic comprehension. % [ORIENT]
+
+\section{Definitions and Constructions}
+% [DEF] Defining the capacity limit and verification gap.
+
+\begin{definition}[Cognitive Capacity Limit]\label{def:cognitive_limit}
+The cognitive capacity limit $\kappa \in \mathbb{N}$ represents the maximum number of independent information chunks a human operator can hold in working memory. % [DEF]
+Canonically, we assume $\kappa \approx 4$. % [CITE]
+\end{definition}
+
+\begin{construction}[Comprehension-Verification Gap]\label{con:verification_gap}
+Let $\sigma \in \Sigma$ be an execution trace of size $n$. % [DEF]
+The cognitive cost to comprehend the interior of the system is modeled as $\mathrm{Comp}(\sigma) = \Theta(\dim \Sigma)$. % [DEF]
+The cost to verify the boundary projection is modeled as $\mathrm{Ver}_{\partial}(\sigma) = O(\kappa)$. % [DEF]
+The ratio of comprehension cost to verification cost is the comprehension-verification gap:
+\[
+\frac{\mathrm{Comp}(\sigma)}{\mathrm{Ver}_{\partial}(\sigma)} = \Omega\left(\frac{\dim \Sigma}{\kappa}\right)
+\]
+which diverges to infinity as the complexity of the trace grows. % [THM]
+\end{construction}
+
+\begin{theorem}[Divergence of Comprehension]\label{thm:comp_diverge}
+As trace dimension grows, verification cost remains bounded while trace dimension grows, assuming the receipt projection remains faithful and the hash assumption holds. % [THM]
+\end{theorem}
+
+\begin{proof}
+By Construction~\ref{con:verification_gap}, $\mathrm{Ver}_{\partial}(\sigma)$ is bounded by $O(\kappa)$ which is constant. % [PROOF]
+Since $\dim \Sigma$ is unbounded as trace length increases, the ratio $\dim \Sigma / \kappa$ diverges to infinity. % [PROOF]
+Hence, direct comprehension of the trace is impossible for large systems, forcing reliance on a constant-sized boundary projection. % [PROOF]
+\end{proof}
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+In the \code{praxis} implementation, this gap is operationalized by providing signature and hash verification via the \code{verify} verb, which checks a fixed-size receipt tuple rather than executing full RDF graph re-evaluations. % [CODE]
+
+\section{Boundaries}
+% [BOUNDARY] Stating the boundaries of verification.
+We do not verify the semantic intent of the AI agent; we restrict verification to the boundary receipts. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The cognitive capacity limit $\kappa$ and the comprehension-verification gap. % [ORIENT]
+  \item \textbf{What was refused:} Unbounded runtime human comprehension of execution traces. % [ORIENT]
+  \item \textbf{What this enables next:} The introduction of the Chatman Equation in Chapter 2 to factor the execution path. % [ORIENT]
+\end{itemize}
+
+\chapter{Chapter 2: The Equation: Five Objects and One Route}
+\label{ch:equation}
+% [ORIENT] This chapter introduces the refined Chatman Equation.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+What algebraic objects and mappings are necessary to factor an agentic system's execution path into verifiable components? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced because we cannot execute raw observations directly due to Rice's Theorem. % [ORIENT]
+We must factor the execution route so that validation is performed on a decidable sub-language before manufacture. % [ORIENT]
+
+\section{Definitions and Constructions}
+% [DEF] Factoring the prior equation.
+
+\begin{definition}[Observation Spaces and Refusal Constant]\label{def:obs_spaces}
+Let $\Obs$ be the raw observation space containing arbitrary finite byte strings. % [DEF]
+Let $\Rfsl$ be the distinguished refusal constant representing failure, halt, or invalid input, where $\Rfsl \notin \Obs$. % [DEF]
+The extended observation space $\Obsbot$ is the union:
+\[
+\Obsbot = \Obs \cup \mathcal{H} \cup \{\Rfsl\}
+\]
+where $\mathcal{H}$ is the refusal space of halted configurations defined in Chapter 4. % [DEF]
+Let $\Obs^* \subseteq \Obs$ be the admitted syntactic subspace consisting of raw observations that pass all obligations. % [DEF]
+\end{definition}
+
+\begin{definition}[Refined Chatman Equation]\label{def:chatman_eq}
+This paper studies one architecture in which scalable action standing is obtained by decidable admission, bounded manufacture, and replayable receipts. % [ORIENT]
+The governing equation is:
+\begin{equation}\label{eq:chatman_factored}
+\boxed{\;\Act \;=\; \muop(\Obs^*)\;}
+\end{equation}
+where $\Act$ is the action space representing actuated system changes. % [DEF]
+The admission map is a function $\adm: \Obsbot \to \Obs^* \cup \{\Rfsl\}$ whose image is $\im(\adm) = \Obs^* \cup \{\Rfsl\}$. % [DEF]
+The manufacturing morphism is a map $\muop: \Obs^* \to \Act$, which is extended to the domain $\Obs^* \cup \{\Rfsl\}$ by propagating the refusal constant such that $\muop(\Rfsl) = \Rfsl$. % [DEF]
+\end{definition}
+
+\begin{construction}[The Five Objects]\label{con:five_objects}
+The Chatman equation relates five spaces and maps: % [DEF]
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+  \item $\Obs$, the raw observation space containing arbitrary finite byte strings. % [DEF]
+  \item $\Obs^* \subseteq \Obs$, the admitted syntactic subspace. % [DEF]
+  \item $\muop: \Obs^* \to \Act$, the manufacturing morphism, extended as $\muop: \Obs^* \cup \{\Rfsl\} \to \Act \cup \{\Rfsl\}$ with $\muop(\Rfsl) = \Rfsl$. % [DEF]
+  \item $\Act$, the artifact/action space representing actuated system changes. % [DEF]
+  \item $\Rec$, the receipt space containing bounded execution projections. % [DEF]
+\end{enumerate}
+\end{construction}
+
+\begin{theorem}[Morphism Domain Consistency]\label{thm:mu_domain}
+The manufacturing morphism $\muop$ is well-defined on all elements of the admitted space $\Obs^*$ and propagates the refusal constant $\Rfsl$ without evaluating raw payloads. % [THM]
+\end{theorem}
+
+\begin{proof}
+By Definition~\ref{def:chatman_eq}, $\muop$ maps $\Obs^*$ to $\Act$. % [PROOF]
+For $x \in \Obs^*$, $\muop(x)$ is a well-defined element of $\Act$. % [PROOF]
+For $x = \Rfsl$, the map propagates to $\Rfsl$. % [PROOF]
+Since $\Obs \setminus \Obs^*$ is excluded from the domain of $\muop$ (being mapped to $\Rfsl$ by the admission map $\adm$), no unadmitted raw observation bypasses the admission filter. % [PROOF]
+\end{proof}
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+The five objects are mapped to the Rust type family \code{LawObject<Payload, S: Stage, Law>} in \code{crates/praxis-core/src/law.rs}, which enforces transitions between stages. % [CODE]
+
+\section{Boundaries}
+% [BOUNDARY] Stating domain boundaries.
+The manufacturing morphism $\muop$ cannot be evaluated on elements of $\Obs \setminus \Obs^*$. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The signature of $\muop$ on the admitted domain $\Obs^*$. % [ORIENT]
+  \item \textbf{What was refused:} Evaluating the manufacturing morphism on raw, unvalidated observations. % [ORIENT]
+  \item \textbf{What this enables next:} Analyzing the computability boundary of semantic validation in Chapter 3. % [ORIENT]
+\end{itemize}
+
+\chapter{Chapter 3: The Computability Boundary: Why Admission Exists}
+\label{ch:computability}
+% [ORIENT] This chapter establishes the necessity of the syntactic quarantine.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+Why is it mathematically impossible to design an admission gate that decides the semantic correctness of an observation? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced by Rice's Theorem on recursive enumerability. % [ORIENT]
+Any attempt to decide a non-trivial semantic property of program behavior within a total program will fail, forcing us to restrict admission to syntactic retractions. % [ORIENT]
+
+\section{Definitions and Constructions}
+% [AX] Axiomatizing observation space.
+
+\begin{axiom}[Observation Space]\label{ax:obs_space}
+There is a set $\Obs$, the observation space, whose elements are arbitrary finite records. % [AX]
+$\Obs$ carries no decidable semantics; the predicate "does this observation mean what it purports to mean" is not assumed computable. % [AX]
+\end{axiom}
+
+\begin{theorem}[Rice, specialized to observations]\label{thm:rice_specialized}
+Let $\mathcal{U}$ be a universal model of computation and let observations in $\Obs$ range over finite encodings that may denote arbitrary $\mathcal{U}$-programs. % [THM]
+Let $P$ be any non-trivial semantic property of those denoted functions. % [THM]
+Then the set $\{o\in\Obs : P(o)\}$ is undecidable. % [THM]
+\end{theorem}
+
+\begin{proof}
+This is Rice's theorem \cite{rice1953} instantiated at $\Obs$. % [CITE]
+Suppose a decider $D$ existed for $\{o:P(o)\}$. % [PROOF]
+Fix observations $o_{+}$ with $P$ and $o_{-}$ without $P$. % [PROOF]
+Given any machine $M$ and input $x$, build the observation $o_{M,x}$ denoting the program: "run $M(x)$; if it halts, behave as $e(o_{+})$; else diverge." % [PROOF]
+Then $o_{M,x}$ denotes a function with property $P$ iff $M(x)$ halts. % [PROOF]
+Thus, $D(o_{M,x})$ decides the halting problem, which is a contradiction. % [PROOF]
+Hence, no such decider $D$ exists. % [PROOF]
+\end{proof}
+
+\begin{corollary}[Admission cannot be semantic decision]\label{cor:no_semantic_admit}
+There is no algorithm that admits an observation $o\in\Obs$ by deciding a non-trivial semantic property of what $o$ denotes. % [THM]
+Any total, terminating admission procedure must therefore decide a syntactic, decidable surrogate. % [THM]
+\end{corollary}
+
+\begin{proof}
+Immediate from Theorem~\ref{thm:rice_specialized}. % [PROOF]
+A total admission map that decided a non-trivial semantic property would decide an undecidable set, which is a contradiction. % [PROOF]
+\end{proof}
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+The \code{praxis} parser handles raw payloads as untyped JSON strings using \code{serde\_json::Value} in \code{src/verbs/law.rs}, which does not execute code during initial parsing. % [CODE]
+
+\section{Boundaries}
+% [BOUNDARY] Stating boundaries of Rice quarantine.
+We do not use terms like "understands intent" or "proves meaning"; validation is strictly confined to syntactic conformance. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The syntactic boundary as a decidable surrogate for semantic validation. % [ORIENT]
+  \item \textbf{What was refused:} Semantic verification of program behavior at ingress. % [ORIENT]
+  \item \textbf{What this enables next:} The definition of the admission algebra and refusal monoid in Chapter 4. % [ORIENT]
+\end{itemize}
+
+\chapter{Chapter 4: Refusal as Data: The Admission Algebra}
+\label{ch:refusal_algebra}
+% [ORIENT] This chapter formalizes the admission retraction and refusal monoid.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+How can validation failures be composed and computed as first-class data without raising exceptions, and how is this executed at register speed? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced because we must maintain total execution flow in high-frequency environments. % [ORIENT]
+Exceptions bypass formal state tracking, so we must represent refusal as a value in a commutative idempotent monoid. % [ORIENT]
+
+\section{Definitions and Constructions}
+% [DEF] Formalizing the retraction and monoid.
+
+\begin{definition}[Extended Observation Space]\label{def:extended_obs}
+Let $\Obs$ be the raw observation space. % [DEF]
+Let $D_{\text{refuse}} = \{0,1\}^n$ be the space of denial words representing obligation failures. % [DEF]
+We formalize the refusal space as the set of halted configurations:
+\[
+\mathcal{H} = \Obs \times D_{\text{refuse}} \times \mathbb{N}
+\]
+where an element $(o, d, t) \in \mathcal{H}$ carries the original raw observation $o$, the non-zero denial word $d$, and a timestamp $t \in \mathbb{N}$ representing when the failure occurred. % [DEF]
+The extended observation space $\Obsbot$ is defined as:
+\[
+\Obsbot = \Obs \cup \mathcal{H} \cup \{\Rfsl\}
+\]
+where $\Rfsl$ is the distinguished refusal constant representing terminal failure or lack of any input. % [DEF]
+\end{definition}
+
+\begin{definition}[Admission Map]\label{def:admission_map}
+Let $\Obs^* \subseteq \Obs$ be the admitted space. % [DEF]
+Let $g_1, \dots, g_m: \Obs \to \{0,1\}$ be total computable obligations. % [DEF]
+The admission map $\adm: \Obsbot \to \Obs^* \cup \{\Rfsl\}$ is:
+\[
+\adm(x) = \begin{cases}
+\rho(o) \in \Obs^* & \text{if } x = o \in \Obs \text{ and } \bigwedge_{i=1}^m g_i(o) = 1, \\
+\Rfsl & \text{otherwise},
+\end{cases}
+\]
+where $\rho: \Obs \rightharpoonup \Obs^*$ is a computable normalization fixing $\Obs^*$ pointwise. % [DEF]
+To ensure $\adm$ is total, we assume the obligation compatibility condition:
+\[
+\{o \in \Obs : \bigwedge_{i=1}^m g_i(o) = 1\} \subseteq \operatorname{dom}(\rho)
+\]
+reflecting that any observation passing all obligations is within the domain of the normalization map. % [DEF]
+\end{definition}
+
+\begin{theorem}[Idempotence of Admission]\label{thm:idempotence}
+The admission map is a retraction: $\adm \circ \adm = \adm$ on all of $\Obsbot$. % [THM]
+\end{theorem}
+
+\begin{proof}
+For $x = \Rfsl$, $\adm(\adm(\Rfsl)) = \adm(\Rfsl) = \Rfsl$. % [PROOF]
+For $x \in \mathcal{H}$, $\adm(x) = \Rfsl$ by definition, so $\adm(\adm(x)) = \adm(\Rfsl) = \Rfsl$. % [PROOF]
+For $x = o \in \Obs$ where obligations fail, $\adm(o) = \Rfsl$, so $\adm(\adm(o)) = \adm(\Rfsl) = \Rfsl$. % [PROOF]
+For $x = o \in \Obs$ where obligations pass, $y = \adm(o) = \rho(o) \in \Obs^* \subseteq \Obs$. % [PROOF]
+Since $\rho$ fixes $\Obs^*$ pointwise and obligations pass on $\Obs^*$, $\adm(y) = y$. % [PROOF]
+Hence, $\adm(\adm(x)) = \adm(x)$ for all inputs in $\Obsbot$. % [PROOF]
+\end{proof}
+
+\begin{construction}[Denial Monoid]\label{con:denial_monoid}
+Let $D = (\{0,1\}^n, \lor, \mathbf{0})$ be the commutative idempotent monoid of denial words of width $n$, where $\mathbf{0}$ represents a clean admission and $\lor$ is bitwise OR. % [DEF]
+For a subset of active obligations $G \subseteq \{1, \dots, n\}$, and an observation $o \in \Obs$, let $d_i(o) \in \{0, 1\}$ be the binary indicator of the failure of obligation $i$ (where $d_i(o) = 1$ if obligation $i$ is violated, and $0$ otherwise). % [DEF]
+The denial word projection $d_G(o) \in D$ is defined as the bit-vector whose components corresponding to indices in $G$ are $d_i(o)$ and whose other components are $0$, so that:
+\[
+d_G(o) = \bigvee_{i \in G} d_i(o) \mathbf{e}_i
+\]
+where $\mathbf{e}_i$ is the $i$-th standard basis vector of $\{0,1\}^n$. % [DEF]
+\end{construction}
+
+\begin{proposition}[Monotonicity of Denial]\label{prop:denial_mono}
+Adding obligations to the battery can only enlarge the denial word under the lattice join, i.e., $\{o: d_{G'}(o)=\mathbf{0}\} \subseteq \{o: d_G(o)=\mathbf{0}\}$ for $G \subseteq G'$. % [THM]
+\end{proposition}
+
+\begin{proof}
+Let $d_G(o) = \bigvee_{i \in G} d_i(o)$. % [PROOF]
+For $G' = G \cup \Delta$, $d_{G'}(o) = d_G(o) \lor \bigvee_{i \in \Delta} d_i(o)$. % [PROOF]
+Under the Boolean lattice, $d_G(o) \preceq d_{G'}(o)$. % [PROOF]
+If $d_{G'}(o) = \mathbf{0}$, then $d_G(o) = \mathbf{0}$ must hold. % [PROOF]
+\end{proof}
+
+\begin{definition}[Refusal Taxonomy]\label{def:taxonomy_def}
+A refusal taxonomy is a total map $\mathrm{cat}: S \to C$ from concrete refusal scenarios $S$ to categories:
+\[
+C = \{\textsf{Identity}, \textsf{Capacity}, \textsf{Topology}, \textsf{Temporal},
+     \textsf{Lifecycle}, \textsf{Authorization}, \textsf{Prerequisites}, \textsf{Reserved}\}.
+\] % [DEF]
+\end{definition}
+
+\begin{definition}[Register Space and Operators]\label{def:register_ops}
+Let $\mathbb{B}^8 = \{0, 1\}^8$ be the space of 8-bit binary words (bytes). % [DEF]
+We define the following register operations on $x, y \in \mathbb{B}^8$: % [DEF]
+\begin{itemize}
+  \item Bitwise AND: $x \wedge_8 y \in \mathbb{B}^8$. % [DEF]
+  \item Bitwise OR: $x \lor_8 y \in \mathbb{B}^8$. % [DEF]
+  \item Bitwise XOR: $x \oplus_8 y \in \mathbb{B}^8$. % [DEF]
+  \item Bitwise NOT: $\neg_8 x \in \mathbb{B}^8$. % [DEF]
+  \item Zero test: $\text{z}(x) = 1$ if $x = 00000000_2$, and $0$ otherwise. % [DEF]
+  \item Non-zero test: $\text{nz}(x) = 1$ if $x \neq 00000000_2$, and $0$ otherwise. % [DEF]
+  \item Population count: $\text{pop}_8(x) \in \{0, 1, \dots, 8\}$ counts the number of set bits in $x$. % [DEF]
+\end{itemize}
+The register operation alphabet is the set of these operators: $\mathcal{I}_8 = \{ \wedge_8, \lor_8, \oplus_8, \neg_8, \text{z}, \text{nz}, \text{pop}_8 \}$. % [DEF]
+\end{definition}
+
+\begin{construction}[Machine Byte Algebra]\label{con:byte_algebra}
+Let the standing byte be $b \in \mathbb{B}^8$. % [DEF]
+The admission gate is the operator $A_{\text{gate}}: \mathbb{B}^8 \to \{0,1\}$ defined as:
+\[
+A_{\text{gate}}(b) = \text{z}(\neg_8 b)
+\] % [DEF]
+For a mask $m \in \mathbb{B}^8$, the mask predicate $P_m(b) \in \{0, 1\}$ is defined as:
+\[
+P_m(b) = \text{z}((b \wedge_8 m) \oplus_8 m)
+\]
+which evaluates to $1$ if and only if all bits set in $m$ are also set in $b$. % [DEF]
+The select operator $\text{sel}: \mathbb{B}^8 \times \mathbb{B}^8 \to \mathbb{B}^8$ performs bitwise masking:
+\[
+\text{sel}(b, m) = b \wedge_8 m
+\] % [DEF]
+\end{construction}
+
+\begin{theorem}[Constant-Depth Eligibility]\label{thm:constant_depth}
+The gate, mask, and select operations compile to constant-depth expressions over register-level CPU operations. % [THM]
+\end{theorem}
+
+\begin{proof}
+The gate operation $A_{\text{gate}}(b)$ requires exactly two primitive register operations: NOT ($\neg_8$) and zero test ($\text{z}$). % [PROOF]
+The depth is therefore bounded by $2$. % [PROOF]
+Similar analysis holds for the mask predicate $P_m(b) = \text{z}((b \wedge_8 m) \oplus_8 m)$ with depth $3$. % [PROOF]
+Since $n=8$ is fixed, all Boolean maps have constant-depth circuits. % [PROOF]
+\end{proof}
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+The denial monoid is implemented as the \code{DenialPolarity} type in \code{crates/praxis-core/src/refusal.rs}. % [CODE]
+The refusal taxonomy is verified by a wildcard-free match on \code{RefusalScenario::category}. % [CODE]
+The standing byte is implemented in the \code{agent8} crate under \code{crates/agent8/src/byte.rs}. % [CODE]
+
+\section{Boundaries}
+% [BOUNDARY] Stating standing limits.
+No validation metadata outside the 8-bit standing vector is evaluated on the execution hot path. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The retraction $\alpha$ on $\Obsbot$, the monoid $D$, and the standing byte $b$. % [ORIENT]
+  \item \textbf{What was refused:} Dynamic exceptions and variable-width validation pathways. % [ORIENT]
+  \item \textbf{What this enables next:} The categories of lifecycle typestate transitions in Chapter 5. % [ORIENT]
+\end{itemize}
+
+\chapter{Chapter 5: Lifecycle Order: Typestate and Process}
+\label{ch:lifecycle}
+% [ORIENT] This chapter formalizes lifecycle stages and process conformance.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+How do we ensure that every observation traverses the lifecycle in order, and that out-of-order operations fail at compile time? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced because runtime checks for step skipping add overhead and introduce failure states in execution. % [ORIENT]
+We must rely on the host language's type system to prove that illegal transitions are unconstructible. % [ORIENT]
+
+\section{Definitions and Constructions}
+% [DEF] Formalizing the categories and typestate.
+
+\begin{definition}[Lifecycle Category $\Life$]\label{def:lifecycle_cat}
+The lifecycle category $\Life$ is the free category on the linear quiver:
+\[
+\Raw \xrightarrow{j} \Val \xrightarrow{a} \Admd \xrightarrow{r} \Rcpt,
+\]
+where $j$ is judgment, $a$ is admission, and $r$ is receipt. % [DEF]
+\end{definition}
+
+\begin{proposition}[Hom-Sets of $\Life$]\label{prop:hom_sets}
+For any stages $X, Y$, the hom-set $\Life(X, Y)$ contains exactly one element if $Y$ is reachable from $X$, and is empty otherwise. % [THM]
+\end{proposition}
+
+\begin{proof}
+The quiver is a finite acyclic path with no parallel edges. % [PROOF]
+In a free category, morphisms are paths. % [PROOF]
+Since the path from $X$ to $Y$ is unique, there is at most one path. % [PROOF]
+If $Y$ precedes $X$, no directed path exists, so the hom-set is empty. % [PROOF]
+\end{proof}
+
+\begin{construction}[Factored Retraction]\label{con:factored_retraction}
+The single-step retraction $\adm$ is factored as:
+\[
+\adm = a \circ j,
+\] % [DEF]
+where $j: \Obsbot \to \Obsbot \cup \{\Rfsl\}$ transitions $\Raw \to \Val$ by evaluating obligations, and $a: \Obsbot \cup \{\Rfsl\} \to \Obs^* \cup \{\Rfsl\}$ transitions $\Val \to \Admd$ by normalizing the payload. % [DEF]
+To reconcile the category-theoretic and set-theoretic representations, we note that the admission map $\adm$ is a retraction (an idempotent map $\adm \circ \adm = \adm$) in the concrete set category $\mathbf{Set}$ where the objects are sets (namely $\Obsbot$) and the morphisms are functions. % [DEF]
+In contrast, $\Life$ is an abstract stage transition category represented as a free category over a linear quiver, where objects are abstract lifecycle stages and morphisms are allowed paths of execution. % [DEF]
+\end{construction}
+
+\begin{theorem}[Illegal Transitions are Uninhabited]\label{thm:uninhabited}
+For any two stages $X, Y$ in the lifecycle category $\Life$, a transition path from $X$ to $Y$ is possible if and only if the hom-set $\Life(X, Y)$ is non-empty. % [THM]
+If the hom-set $\Life(X, Y) = \emptyset$, then any transition from $X$ to $Y$ is uninhabited and mathematically impossible. % [THM]
+\end{theorem}
+
+\begin{proof}
+By Proposition~\ref{prop:hom_sets}, the hom-set $\Life(X, Y)$ is empty if $Y$ is not reachable from $X$ along the directed edges of the quiver. % [PROOF]
+Since morphisms in the free category $\Life$ represent all valid execution paths, the absence of a morphism (an empty hom-set) implies that no sequence of valid transitions can connect $X$ to $Y$. % [PROOF]
+Therefore, any transition attempting to bypass the quiver's order is uninhabited. % [PROOF]
+\end{proof}
+
+\begin{definition}[Q16.16 Format]\label{def:q16_16}
+The Q16.16 format is a fixed-point number representation in which a 32-bit signed integer represents a real number by allocating the upper 16 bits to the integer part and the lower 16 bits to the fractional part. % [DEF]
+Specifically, an integer value $V \in \mathbb{Z}$ represents the real value $x = V \cdot 2^{-16}$. % [DEF]
+In this format, the unit interval $[0, 1]$ is represented by the integer range $[0, 65536]$. % [DEF]
+\end{definition}
+
+\begin{definition}[3-Node SEQ POWL Token Game]\label{def:token_game}
+The lifecycle process is a safe Petri net with state $M \in \{0, 1\}^4$ and transitions $\{j, a, r\}$. % [DEF]
+Let $M = (\code{TOK\_START}, \code{TOK\_JUDGED}, \code{TOK\_ADMITTED}, \code{TOK\_DONE})$. % [DEF]
+The conformance fitness $\varphi \in [0, 1]$ is computed in Q16.16 format based on token shortfall during replay. % [DEF]
+\end{definition}
+
+\begin{definition}[Pipeline Aggregate Denial Map]\label{def:pipeline_denial}
+Let $\mathrm{Stage}^*$ be the free monoid on stages. % [DEF]
+The pipeline aggregate denial map $\Phi_o: \mathrm{Stage}^* \to D$ evaluates the accumulated denial word over a sequence of stages:
+\[
+\Phi_o(s_1s_2\cdots s_k) = \delta_{s_1}(o)\lor\delta_{s_2}(o)\lor\cdots\lor\delta_{s_k}(o)
+\]
+where $\delta_s(o) \in D$ is the stage-denial map. % [DEF]
+The map is a monoid homomorphism satisfying $\Phi_o(uv) = \Phi_o(u) \lor \Phi_o(v)$ and $\Phi_o(\varepsilon) = \mathbf{0}$. % [DEF]
+\end{definition}
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+The typestate is implemented via the sealed trait \code{Stage} on \code{LawObject} in \code{crates/praxis-core/src/lifecycle.rs}. % [CODE]
+This corresponds directly to Theorem~\ref{thm:uninhabited}: stages are represented as Rust types, and transitions are methods consuming the object by value. % [CODE]
+Since the method for a transition $X \to Y$ is only defined when the object is in type $X$, attempting an out-of-order transition (such as $\Raw \to \Admd$ without $j$) results in a compilation failure. % [CODE]
+The sealed trait design and module-private constructors ensure that the compiler's type checker statically guarantees that illegal transitions are uninhabited and cannot compile. % [CODE]
+Process replay is performed by the \code{PowlReplayVerifier} in \code{crates/praxis-core/src/replay\_adapter.rs}. % [CODE]
+
+\section{Boundaries}
+% [BOUNDARY] Stating compiler boundaries.
+Typestate enforcement is a static compiler boundary; no runtime checks are performed for path conformance in the hot path. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The category $\Life$ and the factored retraction $\alpha = a \circ j$. % [ORIENT]
+  \item \textbf{What was refused:} Compiling stage transitions that bypass intermediate validation states. % [ORIENT]
+  \item \textbf{What this enables next:} Formulating the deterministic manufacturing morphism in Chapter 6. % [ORIENT]
+\end{itemize}
+
+\chapter{Chapter 6: Manufacture: Deterministic Bounded Production}
+\label{ch:manufacture}
+% [ORIENT] This chapter formalizes the manufacturing morphism.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+How do we define the compilation of admitted observations into artifacts such that the output is reproducible and bounded? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced because non-deterministic artifact generation prevents historical replay verification. % [ORIENT]
+Additionally, unbounded resource usage during manufacture would allow denial-of-service vectors. % [ORIENT]
+
+\section{Definitions and Constructions}
+% [AX] Axiomatizing manufacturing constraints.
+
+\begin{definition}[Manufacturing Morphism]\label{def:mfg_morphism}
+The manufacturing morphism $\muop: \Obs^* \to \Act$, extended to the domain $\Obs^* \cup \{\Rfsl\}$ by propagating the refusal constant such that $\muop(\Rfsl) = \Rfsl$, is a computable map satisfying: % [DEF]
+\begin{enumerate}[label=(M\arabic*),leftmargin=*]
+  \item \textbf{Determinism:} $\muop(x)$ depends only on $x$; equal admitted inputs yield bit-identical artifacts. % [AX]
+  \item \textbf{Boundedness:} $\muop$ factors through a representation of size bounded by fixed structural constants, terminating with a priori bounded cost. % [AX]
+\end{enumerate}
+\end{definition}
+
+\begin{proposition}[Single-Valuedness of Morphism]\label{prop:single_valued}
+Under determinism (M1), $\muop$ is a mathematical function on $\Obs^*$, and the composite $\muop \circ \adm$ is a function on $\Obsbot$ mapping to $\Act \cup \{\Rfsl\}$. % [THM]
+\end{proposition}
+
+\begin{proof}
+By (M1), for any $x_1, x_2 \in \Obs^*$, $x_1 = x_2 \implies \muop(x_1) = \muop(x_2)$. % [PROOF]
+Since $\adm$ is single-valued, the composition of the function $\muop$ with $\adm$ is a well-defined function. % [PROOF]
+\end{proof}
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+The manufacturing morphism is implemented in the \code{bcinr-pddl} ontology compiler under \code{src/verbs/mfg.rs}, which compiles RDF graphs to PDDL domains deterministically. % [CODE]
+
+\section{Boundaries}
+% [BOUNDARY] Stating manufacture boundaries.
+The morphism $\muop$ cannot invoke dynamic or non-deterministic external network calls. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The deterministic, cost-bounded manufacturing morphism $\mu$. % [ORIENT]
+  \item \textbf{What was refused:} Non-deterministic or resource-unbounded execution paths during compilation. % [ORIENT]
+  \item \textbf{What this enables next:} The generation of cryptographic causal chain receipts in Chapter 7. % [ORIENT]
+\end{itemize}
+
+\chapter{Chapter 7: Receipts: Commitment, Chain, and Replay}
+\label{ch:receipts}
+% [ORIENT] This chapter details the receipt frame and cryptographic chain.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+How can execution traces of arbitrary size be committed to a fixed-size representation that is verifiable in constant time? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced because we cannot transmit or parse large traces within the cognitive load limit $\kappa$. % [ORIENT]
+We must recursively hash execution frames to bind the entire history to a single hash value. % [ORIENT]
+
+\section{Definitions and Constructions}
+% [DEF] Formalizing receipt and chain hash.
+
+\begin{definition}[Receipt]\label{def:receipt_def}
+A receipt $r \in \Rec$ is a tuple:
+\[
+r = (\text{verdict},\, h_+,\, \Fitness,\, \text{reason}),
+\]
+where verdict is a Boolean, $h_+$ is a 256-bit chain hash, $\Fitness$ is conformance fitness, and reason is a refusal scenario list. % [DEF]
+\end{definition}
+
+\begin{definition}[Concatenation and Frame Bracket Notation]\label{def:bracket_concat}
+Let $A, B$ be finite byte sequences. The concatenation operator $\parallel$ maps two byte sequences to their combined sequence $A \parallel B$ by appending $B$ to the end of $A$. % [DEF]
+For metadata $\theta$ and a hash value $y \in \{0, 1\}^{256}$, the frame bracket notation $\langle \theta, y \rangle$ represents a structured byte alignment that packs the fields into a canonical binary layout:
+\[
+\langle \theta, y \rangle = \operatorname{serialize}(\theta) \parallel y
+\]
+where $\operatorname{serialize}(\theta)$ is a fixed-length or prefix-free encoding of the metadata structure. % [DEF]
+\end{definition}
+
+\begin{construction}[Causal Chain Step]\label{con:chain_step}
+Let $\chainH: \{0,1\}^* \to \{0,1\}^{256}$ be a collision-resistant hash function. % [DEF]
+For payload bytes $b$, metadata $\theta$, and previous hash $h_-$, the frame is $\mathsf{fr} = \langle\theta,\, \chainH(b)\rangle$. % [DEF]
+The chained receipt hash is:
+\begin{equation}\label{eq:hash_chain}
+h_+ = \chainH(h_- \parallel \mathsf{fr}).
+\end{equation} % [DEF]
+\end{construction}
+
+\begin{lemma}[Chain Commitment]\label{lem:chain_commit}
+Under the collision resistance of $\chainH$, the chain value $h_+$ is a binding commitment to the prefix history $(h_-,\, \mathsf{fr})$. % [THM]
+\end{lemma}
+
+\begin{proof}
+Suppose a caller exhibits a distinct history $(h_-',\, \mathsf{fr}')$ that yields the same hash $h_+$. % [PROOF]
+This implies $\chainH(h_- \parallel \mathsf{fr}) = \chainH(h_-' \parallel \mathsf{fr}')$, which is a hash collision. % [PROOF]
+Under the collision resistance assumption, the probability of this occurrence is negligible. % [PROOF]
+By induction, $h_+$ binds all preceding frames in the chain. % [PROOF]
+\end{proof}
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+The causal frame is implemented as \code{OcelCausalFrame} using BLAKE3 in \code{crates/praxis-core/src/law.rs}. % [CODE]
+
+\section{Boundaries}
+% [BOUNDARY] Stating what receipts do not prove.
+A receipt proves committed trace structure, not moral or semantic correctness. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The receipt tuple $r$ and the recursive causal frame commitment. % [ORIENT]
+  \item \textbf{What was refused:} Storing full execution trace histories directly on the verification hot path. % [ORIENT]
+  \item \textbf{What this enables next:} Defining the system-wide invariants of the enforced equation in Chapter 8. % [ORIENT]
+\end{itemize}
+
+\chapter{Chapter 8: The Enforced Equation: BRCE}
+\label{ch:brce}
+% [ORIENT] This chapter formalizes the BRCE invariants.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+What invariants must a running system enforce to maintain the structural safety of the receipt calculus? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced because a system with unverified actuation paths would permit arbitrary unreceipted side effects, violating the security guarantees of the thesis. % [ORIENT]
+
+\section{Definitions and Constructions}
+% [DEF] Formalizing the four invariants.
+
+\begin{definition}[Bounded Receipted Chatman Equation]\label{def:brce_invariants}
+A system satisfies the \BRCE\ if for every actuated artifact $a \in \Act$ it enforces four invariants: % [DEF]
+\begin{enumerate}[label=(B\arabic*),leftmargin=*]
+  \item \textbf{Admission Gate:} $a = \muop(x)$ for some $x = \adm(o) \neq \Rfsl$; no actuation occurs from raw or refused observations. % [DEF]
+  \item \textbf{Bounded Manufacture:} $\muop$ is deterministic and cost-bounded. % [DEF]
+  \item \textbf{Receipt Totality:} Every actuation appends exactly one chained receipt frame. % [DEF]
+  \item \textbf{Conformance:} The lifecycle replay has fitness $\Fitness = 1.0$. % [DEF]
+\end{enumerate}
+\end{definition}
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+The \BRCE\ invariants are verified by the validation pipeline in \code{crates/praxis-core/src/verify.rs}. % [CODE]
+
+\section{Boundaries}
+% [BOUNDARY] Stating enforcement boundaries.
+Any execution trace that fails to maintain B1–B4 is halted before actuation. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The four invariants (B1–B4) of the \BRCE\ framework. % [ORIENT]
+  \item \textbf{What was refused:} Execution pathways that bypass the receipt and conformance checks. % [ORIENT]
+  \item \textbf{What this enables next:} Proving the Conservation of Consequence in Chapter 9. % [ORIENT]
+\end{itemize}
+
+\chapter{Chapter 9: Conservation of Consequence}
+\label{ch:conservation}
+% [ORIENT] This chapter proves the primary conservation theorem.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+Can a consequence or action stand in the system without a verifiable, unique cause and receipt? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced because if consequence could be fabricated without a cause, the audit trail could be manipulated. % [ORIENT]
+
+\section{Definitions and Theorems}
+
+\begin{definition}[Actuation-to-Terminal-Commitment Map]\label{def:Psi_map}
+The actuation-to-terminal-commitment map $\Psi: \Act \to \{0,1\}^{256}$ associates each actuated artifact $a \in \Act$ with its corresponding terminal receipt-chain hash $h_+ = \Psi(a)$ under the receipt totality invariant (B3). % [DEF]
+\end{definition}
+
+% [THM] Stating the conservation theorem
+\begin{theorem}[Conservation of Consequence]\label{thm:conservation_theorem}
+Under \BRCE\ invariants, the map $e \mapsto h_+(e)$ from actuation events (or trace steps) to receipt-chain positions (represented by receipt-chain hashes) is well-defined and injective up to hash collision, and the actuated artifact $a_e \in \Act$ associated with each event $e$ is caused by at least one admitted observation. % [THM]
+\end{theorem}
+
+\begin{proof}
+We prove the two properties of the theorem separately. % [PROOF]
+
+\paragraph{(1) Causation.}
+We prove by induction on the trace length $N$ that for every step $t \in \{1, \dots, N\}$, if an actuation event occurs yielding artifact $a_t$, then $a_t = \muop(x)$ for some admitted observation $x \in \Obs^*$. % [PROOF]
+For the base case $N = 0$, the trace is empty; no actuation has occurred, so the claim holds vacuously. % [PROOF]
+Assume that for all traces of length $k$, any actuated artifact $a_t$ (for $t \le k$) is the image under $\muop$ of some $x \in \Obs^*$. % [PROOF]
+Consider a trace of length $k+1$. % [PROOF]
+By Receipt Totality (B3), if an actuation event $e$ occurs at step $k+1$, it must append exactly one receipt frame to the chain. % [PROOF]
+The Admission Gate invariant (B1) is enforced at the gate before any actuation is finalized. % [PROOF]
+By B1, the system transitions to a halted configuration if the input is refused, blocking actuation. % [PROOF]
+Thus, actuation at step $k+1$ is only executed if the incoming observation $o_{k+1}$ is successfully admitted, yielding $x_{k+1} = \adm(o_{k+1}) \in \Obs^*$, and producing $a_{k+1} = \muop(x_{k+1})$. % [PROOF]
+By induction, every actuated artifact in any trace of length $N$ is caused by at least one admitted observation. % [PROOF]
+
+\paragraph{(2) Commitment Uniqueness.}
+We show that the mapping from actuation events to receipt-chain positions is well-defined and injective. % [PROOF]
+By Receipt Totality (B3), each actuation event $e_t$ at step $t$ maps to a unique receipt frame $\mathsf{fr}_t$ and a corresponding receipt-chain hash $h_+^{(t)}$, ensuring the map is well-defined. % [PROOF]
+To prove injectivity, suppose two distinct actuation events $e_{t_1}$ and $e_{t_2}$ (with $t_1 < t_2$) map to the same receipt-chain hash, i.e., $h_+^{(t_1)} = h_+^{(t_2)}$. % [PROOF]
+By Construction~\ref{con:chain_step}, the hash is computed as $h_+^{(t_2)} = \chainH(h_-^{(t_2)} \parallel \mathsf{fr}_{t_2})$. % [PROOF]
+If $h_+^{(t_1)} = h_+^{(t_2)}$, we have $\chainH(h_-^{(t_1)} \parallel \mathsf{fr}_{t_1}) = \chainH(h_-^{(t_2)} \parallel \mathsf{fr}_{t_2})$. % [PROOF]
+Under the collision-resistance assumption of $\chainH$, this implies that $h_-^{(t_1)} \parallel \mathsf{fr}_{t_1} = h_-^{(t_2)} \parallel \mathsf{fr}_{t_2}$, which means the frames and prior histories must be identical. % [PROOF]
+This contradicts the assumption that $t_1 < t_2$, as $h_-^{(t_2)}$ commits to $h_+^{(t_1)}$ recursively. % [PROOF]
+Thus, the receipt-chain hash uniquely commits to the entire history, guaranteeing injectivity. % [PROOF]
+\end{proof}
+
+\begin{corollary}[The Antibody Clause]\label{cor:antibody_clause}
+The overclaim set, defined as the set of actuations lacking a valid receipt, is empty by construction. % [THM]
+\end{corollary}
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+The conservation invariants are tested in the property tests under \code{crates/praxis-core/tests/prop\_law.rs}. % [CODE]
+The program slogan is: "A grand system without receipts is grandiosity; a grand system that receipts its own limits is machinery." % [ORIENT]
+
+\section{Boundaries}
+% [BOUNDARY] Stating bounds of conservation.
+The conservation guarantee is strictly conditional on the collision resistance of BLAKE3. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The Conservation of Consequence theorem separating causation from injectivity. % [ORIENT]
+  \item \textbf{What was refused:} The assumption that $\muop$ must be injective to guarantee accountability. % [ORIENT]
+  \item \textbf{What this enables next:} Tracing a worked contract-claim example in Chapter 10. % [ORIENT]
+\end{itemize}
+
+\chapter{Chapter 10: Worked Example: A Contract-Claim Law Object}
+\label{ch:worked_example}
+% [ORIENT] This chapter walks through a concrete worked example.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+How does a raw observation traverse the entire pipeline from submission to receipt? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced because we must verify the operational correctness of the type transitions and monoid composition. % [ORIENT]
+
+\section{Definitions and Constructions}
+% [EX] Tracing the concrete execution.
+
+\paragraph{Submission (Raw Stage).}
+The caller submits a JSON observation payload:
+\[
+o = \code{\{ "claim": "delivery-owed", "contract\_id": "C-4471", "amount": 12000, "evidence": null \}}.
+\] % [EX]
+The system assigns three obligations: $g_1$ (contract active), $g_2$ (signed evidence present), and $g_3$ (amount within authority). % [EX]
+The stage type is \code{LawObject<Claim, Raw, ContractLaw>}. % [CODE]
+
+\paragraph{Judgment and Halt (Refusal Value).}
+Upon evaluation, $g_1 = 1$ and $g_3 = 1$, but $g_2 = 0$ since evidence is null. % [EX]
+The retraction maps $\adm(o) = \Rfsl$. % [EX]
+The transition returns the halted object carrying the refusal metadata:
+\[
+\code{Andon::Halted\{ unmet: [EvidenceRequired], refusals: [MissingEvidence], at: 17188100 \}}.
+\] % [CODE]
+The denial monoid evaluates to $d(o) = \code{PRECONDITION\_FAILED} \neq \mathbf{0}$, halting the line. % [CODE]
+
+\paragraph{Resubmission and Admission.}
+The caller resubmits the payload with the signed evidence blob. % [EX]
+All obligations pass: $\bigwedge_{i=1}^3 g_i(o) = 1$. % [EX]
+The object transitions to \code{Validated} via $j$, then to \code{Admitted} via $a$. % [CODE]
+
+\paragraph{Manufacture and Receipt.}
+The admitted payload $x \in \Obs^*$ compiles deterministically into the delivery record $a = \muop(x)$. % [EX]
+The receipt consumes the object, hashing the frame and advancing the chain to $h_+$. % [EX]
+The final receipt returned is:
+\[
+r = (\text{verdict} = \text{true},\, h_+ = \code{0x7a2c...},\, \Fitness = 1.0,\, \text{reason} = \varnothing).
+\] % [EX]
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+The worked example mirrors the integration tests in \code{crates/praxis-core/tests/prop\_law.rs}. % [CODE]
+The agent's status transitions are projected into the \code{agent8} byte in \code{crates/agent8/src/byte.rs}. % [CODE]
+
+\section{Boundaries}
+% [BOUNDARY] Stating boundaries of the example.
+Actuation is completely blocked while the object remains in the halted state. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The complete stage transition sequence for a contract claim. % [ORIENT]
+  \item \textbf{What was refused:} Execution of PDDL domain compilation while the evidence obligation was failed. % [ORIENT]
+  \item \textbf{What this enables next:} Mapping this foundational paper to the broader thesis program in Chapter 11. % [ORIENT]
+\end{itemize}
+
+\chapter{Chapter 11: Map of the Thesis Program}
+\label{ch:thesis_map}
+% [ORIENT] This chapter maps out downstream papers in the Antigravity series.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+Where does this foundations paper sit within the broader Antigravity research series? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced because a single paper cannot address all cryptographic, geometric, and scaling dimensions of the receipt calculus. % [ORIENT]
+
+\section{Map of Pillars}
+% [ORIENT] Listing the four downstream pillars.
+
+\paragraph{Pillar I --- Admission Algebra.}
+This pillar deepens Chapter 4: the denial monoid, the refusal taxonomy as a total function, and the algebra of obligation composition. % [ORIENT]
+
+\paragraph{Pillar II --- Receipt Cryptography.}
+This pillar deepens Chapter 7: the BLAKE3 causality frame chain, the Faithful Projection Theorem, and the affidavit verification pipeline. % [ORIENT]
+
+\paragraph{Pillar III --- Planning and Geometry.}
+This pillar deepens Chapter 5 and 6: PDDL domain grounding, token-flow execution marking polytopes, and conformance as separating hyperplanes. % [ORIENT]
+
+\paragraph{Pillar IV --- The Projection Principle (Keystone).}
+This pillar unifies the series, proving that verification cost is bounded at $O(\kappa)$ while system interior dimension grows. % [CITE]
+
+\paragraph{Prior Work.}
+The prior paper \cite{chatman2025} demonstrated $\Act = \muop(\Obs)$ at scale using RDF/SHACL and KNHK executors. % [CITE]
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+Downstream components map to the \code{ggen} project in \code{ggen.toml} and the \code{chatman-common} crate. % [CODE]
+
+\section{Boundaries}
+% [BOUNDARY] Stating thesis scope.
+We do not analyze multi-agent game-theoretic trust dynamics; our scope is limited to single-system receipt boundaries. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The structural layout of the four downstream research pillars. % [ORIENT]
+  \item \textbf{What was refused:} Attempting to prove cryptographic completeness within this foundations paper. % [ORIENT]
+  \item \textbf{What this enables next:} Drawing final conclusions in Chapter 12. % [ORIENT]
+\end{itemize}
+
+\chapter{Chapter 12: Conclusion}
+\label{ch:conclusion}
+% [ORIENT] This chapter concludes the paper.
+
+\section{The Question}
+% [ORIENT] The question is stated below.
+What formal conclusions does the receipt calculus yield for autonomous agent safety? % [ORIENT]
+
+\section{Why the Question is Forced}
+% [ORIENT] The order constraint is stated below.
+This question is forced by the need to synthesize our proofs and state our operational limits. % [ORIENT]
+
+\section{Synthesis of Guarantees}
+% [ORIENT] Summarizing the paper contributions.
+We have formalised a receipt calculus that factors execution into admission, manufacture, and receipt. % [ORIENT]
+We have proven that semantic validation is impossible under Rice's Theorem, forcing syntactic retractions. % [ORIENT]
+We have proven that illegal lifecycle transitions are uninhabited type families. % [ORIENT]
+Finally, we have proven the Conservation of Consequence, guaranteeing that every actuated artifact is causally receipted. % [ORIENT]
+The standard was never comprehension; it is a lawful admission, a bounded manufacture, and a faithful receipt --- each small enough to hold, each guaranteed by mechanism. % [ORIENT]
+
+\section{Operational Correspondence}
+% [CODE] Mapping to the praxis codebase.
+The entire architecture is verified by the property tests and type checks in the \code{praxis} codebase. % [CODE]
+
+\section{Boundaries}
+% [BOUNDARY] Stating final limitations.
+Our formal guarantees are bounded by the collision-resistance strength of the BLAKE3 hash function. % [BOUNDARY]
+
+\paragraph{Chapter Summary.}
+\begin{itemize}
+  \item \textbf{What was admitted:} The complete receipt calculus foundations. % [ORIENT]
+  \item \textbf{What was refused:} The claim that any system can be verified by post-hoc explanations alone. % [ORIENT]
+  \item \textbf{What this enables next:} The execution of downstream thesis program pillars. % [ORIENT]
+\end{itemize}
+
+\appendix
+
+\chapter{Appendix A: Notation}
+\label{app:notation}
+% [ORIENT] This appendix lists the notation used in the paper.
+
+This appendix defines the mathematical symbols and mappings. % [ORIENT]
+To resolve the inconsistencies identified in phase 2, we explicitly document the extended domain and factored mappings: % [ORIENT]
+
+\begin{enumerate}
+  \item \textbf{Extended Observation Space:} $\Obsbot = \Obs \cup \mathcal{H} \cup \{\Rfsl\}$ (incorporating halted configurations $\mathcal{H}$) is the domain of the admission map. % [DEF]
+  \item \textbf{Morphism Signature:} $\muop: \Obs^* \to \Act$, extended to the domain $\Obs^* \cup \{\Rfsl\} \to \Act \cup \{\Rfsl\}$ with $\muop(\Rfsl) = \Rfsl$. % [DEF]
+  \item \textbf{Factored Retraction:} $\adm = a \circ j$ is the retraction map factored via intermediate stages in the set category $\mathbf{Set}$. % [DEF]
+\end{enumerate}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+$\Obs$ & Raw observation space \\
+$\Obsbot$ & Extended observation space ($\Obs \cup \mathcal{H} \cup \{\Rfsl\}$) \\
+$\Obs^*$ & Admitted syntactic subspace \\
+$\adm$ & Admission map / retraction ($\adm: \Obsbot \to \Obs^* \cup \{\Rfsl\}$) \\
+$\Rfsl$ & Refusal constant (first-class value) \\
+$\muop$ & Manufacturing morphism ($\muop: \Obs^* \to \Act$, extended with $\muop(\Rfsl) = \Rfsl$) \\
+$\Act$ & Artifact/action space \\
+$\Rec$ & Receipt space \\
+$\chainH$ & Collision-resistant hash function (BLAKE3) \\
+$\kappa$ & Cognitive-load capacity limit ($\kappa \approx 4$) \\
+$\Fitness$ & Conformance fitness ($\Fitness \in [0,1]$) \\
+$\Life$ & Lifecycle category \\
+$\BRCE$ & Bounded Receipted Chatman Equation invariants \\
+$\Psi$ & Actuation-to-terminal-commitment map ($\Psi: \Act \to \{0,1\}^{256}$) \\
+$\Phi_o$ & Pipeline aggregate denial map ($\Phi_o: \mathrm{Stage}^* \to D$) \\
+\bottomrule
+\end{tabular}
+\caption{Table of Mathematical Symbols and Mappings}
+\label{tab:notation}
+\end{table}
+
+% [ORIENT] Citing alternative abstracts for reference.
+Abstract A (arXiv technical) and Abstract C (zero-background expository) are recorded in the program files under \code{docs/thesis/swarm\_rewrite/ABSTRACTS.md}. % [CITE]
+
+\chapter{Appendix B: Code Correspondence}
+\label{app:code}
+% [ORIENT] This appendix maps mathematical objects to code.
+
+Every abstract mathematical object defined in this paper is anchored to a concrete implementation in the \code{praxis} codebase: % [ORIENT]
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+\toprule
+Mathematical Object & Code Artifact & Location \\
+\midrule
+$\Obs$, raw observation & JSON payload check & \code{src/verbs/law.rs} \\
+$\Obsbot$, extended space & \code{LawObject} input wrappers & \code{crates/praxis-core/src/law.rs} \\
+$\adm$, factored retraction & \code{Judge::judge} and \code{Admit::admit} & \code{crates/praxis-core/src/law.rs} \\
+$\Rfsl$, refusal & \code{Andon::Halted} and \code{RefusalScenario} & \code{crates/praxis-core/src/law.rs} \\
+$D$, denial monoid & \code{DenialPolarity} and \code{compose\_denials} & \code{crates/praxis-core/src/refusal.rs} \\
+$\Life$, category & Sealed trait \code{Stage} & \code{crates/praxis-core/src/lifecycle.rs} \\
+$\muop$, morphism & PDDL compile verb & \code{src/verbs/mfg.rs} \\
+$h_+$, receipt chain & \code{OcelCausalFrame} and BLAKE3 hash & \code{crates/praxis-core/src/law.rs} \\
+$\Fitness$, fitness & \code{PowlReplayVerifier} & \code{crates/praxis-core/src/replay\_adapter.rs} \\
+$\BRCE$, invariants & \code{verify} pipeline & \code{crates/praxis-core/src/verify.rs} \\
+$b$, standing byte & \code{AgentByte} byte flags & \code{crates/agent8/src/byte.rs} \\
+\bottomrule
+\end{tabular}
+\caption{Code Correspondence Mapping}
+\label{tab:code_corr}
+\end{table}
+
+\chapter{Appendix C: Claim Standing Table}
+\label{app:claims}
+% [ORIENT] This appendix lists all claims and their standing.
+
+This appendix lists the complete inventory of mathematical and logical claims extracted from the foundations manuscript, along with their standing status and verifying test suites: % [ORIENT]
+
+\begin{table}[h]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lllll}
+\toprule
+Claim ID & Category & Status & LaTeX Location & Verifying Test / Code File \\
+\midrule
+\code{CLAIM-00\_ABS\_01} & Definition & ADMIT & Abstract & \code{crates/praxis-core/src/law.rs} \\
+\code{CLAIM-00\_ABS\_02} & Definition & ADMIT & Abstract & \code{crates/praxis-core/src/law.rs} \\
+\code{CLAIM-01\_INT\_03} & Definition & ADMIT & Chapter 2 & \code{crates/praxis-core/src/law.rs} \\
+\code{CLAIM-02\_RIC\_02} & Theorem & ADMIT & Chapter 3 & Theoretical (Theorem~\ref{thm:rice_specialized}) \\
+\code{CLAIM-03\_ADM\_02} & Theorem & ADMIT & Chapter 4 & Verified (Theorem~\ref{thm:idempotence}) \\
+\code{CLAIM-03\_ADM\_04} & Impl Claim & ADMIT & Chapter 4 & \code{Andon::Halted} representation \\
+\code{CLAIM-03\_ADM\_07} & Theorem & ADMIT & Chapter 4 & Verified (Proposition~\ref{prop:denial_mono}) \\
+\code{CLAIM-03\_ADM\_11} & Impl Claim & ADMIT & Chapter 4 & Wildcard-free category match \\
+\code{CLAIM-04\_BYT\_04} & Theorem & ADMIT & Chapter 4 & \code{crates/agent8/benches/fleet\_sweep.rs} \\
+\code{CLAIM-05\_LIF\_02} & Theorem & ADMIT & Chapter 5 & Verified (Proposition~\ref{prop:hom_sets}) \\
+\code{CLAIM-05\_LIF\_05} & Theorem & ADMIT & Chapter 5 & Verified (Theorem~\ref{thm:uninhabited}) \\
+\code{CLAIM-06\_MFG\_03} & Theorem & ADMIT & Chapter 6 & Verified (Proposition~\ref{prop:single_valued}) \\
+\code{CLAIM-06\_MFG\_08} & Theorem & ADMIT & Chapter 7 & Verified (Lemma~\ref{lem:chain_commit}) \\
+\code{CLAIM-06\_MFG\_11} & Theorem & ADMIT & Chapter 9 & Verified (Theorem~\ref{thm:conservation_theorem}) \\
+\code{CLAIM-06\_MFG\_13} & Theorem & ADMIT & Chapter 9 & Verified (Corollary~\ref{cor:antibody_clause}) \\
+\bottomrule
+\end{tabular}
+}
+\caption{Claim Standing and Verification Table}
+\label{tab:claims_table}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{chatman2025}
+S.~Chatman,
+\emph{The Chatman Equation and the Industrial Revolution of Knowledge:
+$A=\mu(O)$, Knowledge Hooks, and Production-Verified Enterprise Execution},
+v1.2.0, November 2025.
+
+\bibitem{rice1953}
+H.~G.~Rice,
+\emph{Classes of recursively enumerable sets and their decision problems},
+Transactions of the American Mathematical Society \textbf{74} (1953), 358--366.
+
+\bibitem{strom1986}
+R.~E.~Strom and S.~Yemini,
+\emph{Typestate: A programming language concept for enhancing software reliability},
+IEEE Transactions on Software Engineering \textbf{SE-12}(1) (1986), 157--171.
+
+\bibitem{vdaalst2003patterns}
+\emph{Workflow patterns},
+Distributed and Parallel Databases \textbf{14}(1) (2003), 5--51.
+
+\bibitem{blake3}
+J.~O'Connor, J.-P.~Aumasson, S.~Neves, and Z.~Wilcox-O'Hearn,
+\emph{BLAKE3: One function, fast everywhere},
+2020.
+
+\bibitem{ocel2020}
+A.~F\_Ghahfarokhi, G.~Park, A.~Berti, and W.~M.~P.~van der Aalst,
+\emph{OCEL: A standard for object-centric event logs},
+in New Trends in Database and Information Systems, Springer, 2021.
+
+\bibitem{miller1956}
+G.~A.~Miller,
+\emph{The magical number seven, plus or minus two: some limits on our capacity
+for processing information},
+Psychological Review \textbf{63}(2) (1956), 81--97.
+
+\bibitem{cowan2001}
+N.~Cowan,
+\emph{The magical number 4 in short-term memory: A reconsideration of mental
+storage capacity},
+Behavioral and Brain Sciences \textbf{24}(1) (2001), 87--114.
+
+\end{thebibliography}
+
+\end{document}

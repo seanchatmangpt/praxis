@@ -469,6 +469,32 @@ an equality, a totality witness, a staged rejection. This is the projection prin
 receipt projects the interior; these oracles project the correctness question.
 \end{remark}
 
+\subsection{Autonomic Reconciliation and Visual Gap Measurement}
+
+The reconciler corrects structural drift in runtime environments by implementing the $A = \muop(O)$ loop.
+
+\begin{definition}[Residual Vector and Dominant Dimension]\label{def:residual}
+Let $O$ be environmental observations and $A$ the target artifact. The measurement $\muop(O)$ returns a residual vector $R \in \mathbb{R}^k$ with:
+\begin{equation}\label{eq:residual}
+r_i \;=\; \text{measured}_i \;-\; \text{midpoint}(\text{target}_i).
+\end{equation}
+Reconciliation selects the dominant dimension:
+\[
+\text{dominant} \;=\; \arg\max_{i=1}^k |r_i|,
+\]
+and applies a repair operator subject to $\code{RepairBand}$ limits.
+\end{definition}
+
+\subsection{Git Worktrees and CI Gate Oracles}
+
+\begin{definition}[Isolated Retrofit Worktree]\label{def:worktree}
+An applier isolates modifications by spawning a decoupled working tree:
+\begin{equation}\label{eq:worktree}
+\code{git worktree add } \text{temp\_path} \ \text{phase\_branch},
+\end{equation}
+running validation gates and executing the auto-rollback protocol $\code{git reset --hard baseline\_sha}$ on failure to guarantee main branch cleanliness.
+\end{definition}
+
 \chapter{The Agent Byte and Branchless Fleet Admission}
 \label{ch:agent8}
 
@@ -556,6 +582,24 @@ $7/512\approx 0.014$ instructions/agent. The algebra is unchanged; only the word
 the same mechanism by which the vector JSON parser classifies $64$ bytes per instruction
 \cite{simdjson} --- admission is byte-classification lifted to agents.
 \end{remark}
+
+\begin{construction}[Borrow-Safe Zero-Lane Detector]\label{con:swar}
+Let $w\in\{0,1\}^{64}$ be a denial word comprising eight $8$-bit lanes. Define the lane masks
+$L_{\text{high}} = \code{0x8080\_8080\_8080\_8080}$ and $L_{\text{low7}} = \code{0x7f7f\_7f7f\_7f7f\_7f7f}$. The
+zero-lane bitmask $z(w)\in\{0,1\}^{64}$ is computed branchlessly by:
+\begin{equation}\label{eq:swar}
+z(w)\;=\;\lnot\Bigl(\bigl((w\ \&\ L_{\text{low7}}) + L_{\text{low7}}\bigr) \ \lor\ w\Bigr)\ \&\ L_{\text{high}},
+\end{equation}
+where $+$ is wrapping addition and $\lor, \&, \lnot$ are bitwise operations. Bit $7$ of lane $j$ in $z(w)$ is $1$ iff lane $j$ in $w$ is exactly $\code{0x00}$, and $0$ otherwise.
+\end{construction}
+
+\begin{theorem}[SWAR Fleet Sweep Verification]\label{thm:swar-verify}
+Let $w$ be a $64$-bit word packing $8$ agents. If $w$ is gated against the broadcast required mask, the number of admitted agents is obtained by the popcount:
+\[
+\text{admitted}(w)\;=\;\code{popcount}\bigl(z(w)\bigr).
+\]
+This sweeps $8$ agents in one CPU instruction with zero branches and no lane borrow leakage.
+\end{theorem}
 
 \section{Footprint and sweep time of a population}
 
@@ -757,6 +801,109 @@ A paper claiming planetary capacity earns the claim only by receipting it --- by
 can and labelling what it estimates. The antibody clause is not modesty; it is the mechanism that
 makes a large claim admissible in the sense of the Chatman equation.
 \end{remark}
+
+\chapter{Fleet Application and Autonomic Reconciliation}
+\label{ch:retrofit}
+
+\section{The praxis-retrofit fleet applier}
+
+When a plan produces a code modification as its artifact, the artifact must be applied to
+a live fleet. The \code{praxis-retrofit} crate realizes this as a \emph{receipted applier}:
+every application is gated, isolated in a Git worktree, and admitted through a CI oracle
+before any branch is advanced.
+
+\begin{definition}[AST-gate isolation]\label{def:astgate}
+An \emph{AST gate} is a syntactic predicate $g:\mathcal{T}\to\{0,1\}$ on an abstract
+syntax tree $\mathcal{T}$ that is computable in $O(|\mathcal{T}|)$ time. The retrofit
+applier gates every proposed change through an ordered battery
+$(g_1,\dots,g_m)$ of AST gates: the change is admitted iff all gates pass, i.e.\
+$\bigwedge_{i=1}^m g_i(\mathcal{T})=1$. A failing gate returns a denial with the gate
+index $i$ and the offending AST node, constituting a \emph{refusal with reason} in the
+sense of the denial monoid (Proposition~\ref{prop:monoid}).
+\end{definition}
+
+\begin{proposition}[AST-gate admission is total and terminating]\label{prop:astterm}
+For any finite AST $\mathcal{T}$ and finite gate battery $(g_1,\dots,g_m)$ where each
+$g_i$ is a syntactic predicate, the battery evaluation terminates in time
+$O(m\cdot|\mathcal{T}|)$ and returns either $\code{Admitted}$ or a refusal carrying the
+first failing gate index and the offending node. The retraction is total: it never
+diverges and never returns an unlabelled outcome.
+\end{proposition}
+
+\begin{proof}
+Each $g_i$ traverses the finite tree $\mathcal{T}$ once in $O(|\mathcal{T}|)$ time (no
+recursion below the finite tree can diverge on a finite input). The battery evaluates the
+gates in order; on the first failure it returns the structured denial; on all-pass it
+returns \code{Admitted}. The \code{RetrofitApplier} in \code{praxis-retrofit} wraps each
+gate result in the \code{DenialPolarity} framework, so the denial composes as a monoid
+element (Chapter~\ref{ch:mt}).
+\end{proof}
+
+\begin{definition}[Isolated worktree applier]\label{def:worktree-ret}
+The retrofit applier isolates each application attempt in a fresh Git worktree:
+\[
+\code{git worktree add}\ \text{temp\_path}\ \text{phase\_branch},
+\]
+applies the change, runs the CI oracle $(g_1,\dots,g_m)$ (which includes
+\code{cargo build}, \code{cargo test}, \code{cargo clippy}), and on any gate failure
+executes the rollback protocol:
+\[
+\code{git reset --hard}\ \text{baseline\_sha}.
+\]
+On all-pass, the worktree change is merged into the target branch, and the chain receipt
+for the application is minted with the worktree OID committed into the frame's
+\code{obj\_refs} payload digest.
+\end{definition}
+
+\begin{proposition}[Main branch cleanliness is an invariant]\label{prop:mainclean}
+Under Definition~\ref{def:worktree-ret}, the main branch is never advanced past a
+failing CI gate. The rollback protocol is unconditional on failure: it runs before the
+worktree is removed, restoring the branch to \code{baseline\_sha} regardless of which
+gate failed. Hence the main branch satisfies all CI gates at every point in its history.
+\end{proposition}
+
+\begin{proof}
+The applier's critical section is:
+\begin{enumerate}
+\item create worktree,
+\item apply change to worktree,
+\item run gate battery,
+\item on pass: merge; on fail: \code{git reset --hard baseline\_sha} and abort.
+\end{enumerate}
+Step 4's fail branch executes before the worktree is deleted, and \code{git reset --hard}
+on a worktree has no effect on the main working tree. The main branch pointer is advanced
+only in step 4's pass branch, which is never reached on a gate failure. Hence the main
+branch history is a subsequence of attempts all of which passed every gate.
+\end{proof}
+
+\section{Visual gap measurement and the reconciler residual}
+
+\begin{definition}[Visual gap report]\label{def:vizgap}
+A \emph{visual gap report} is the output of \code{praxis-reconciler}'s
+\code{measure\_gap} function: for each reconcilable dimension $i\in\{1,\dots,k\}$, the
+residual $r_i = \mathrm{measured}_i - \mathrm{midpoint}(\mathrm{target}_i)$ and the
+dominant dimension $i^*=\argmax_i|r_i|$ together with a rendered diff block for the
+discrepancy. The report is bounded: it has $k$ residual values and one dominant index,
+of total size $O(k)$ independent of the interior that generated the measurements.
+\end{definition}
+
+\begin{proposition}[The visual gap report is a bounded projection]\label{prop:vizgap}
+Definition~\ref{def:vizgap} gives $\mathrm{gap}:\mathbb{R}^k\to\mathbb{R}^k\times[k]$, a
+projection from the $k$-dimensional measurement space onto the residual vector and its
+argmax. This projection has the same cost structure as the receipt projection:
+$O(k)$ to compute, $O(k)$ to verify. The repair operator \code{apply\_repair} then acts
+on the dominant dimension $i^*$ subject to \code{RepairBand} bounds, producing at most
+one corrective actuation --- a bounded deterministic manufacture (law M2 of the
+foundations paper).
+\end{proposition}
+
+\begin{proof}
+The residual vector is a linear map (subtraction of midpoint from measurement); it costs
+$O(k)$ arithmetic operations. The argmax is a single pass over $k$ values. The dominant
+dimension is one index; the repair acts on that dimension only. By Definition, the
+\code{RepairBand} is a finite closed interval, so the repair is a bounded projection onto
+that interval.
+\end{proof}
 
 \chapter{Conclusion}
 \label{ch:concl}

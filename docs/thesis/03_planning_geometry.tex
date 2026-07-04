@@ -211,6 +211,26 @@ returns $\Rfsl$. The manufacture either yields an artifact or a receipted refusa
 diverges, by Theorem~\ref{thm:bounded-ground}.
 \end{remark}
 
+\subsection{Relational Grounding and XOR Filter Membership Gates}
+
+To avoid the naive grounding parameter explosion, grounding is refactored into a relational database join query over type-safe dictionary-encoded symbol IDs: $\text{SymId} \in \mathbb{Z}_{>0}$.
+
+\begin{construction}[XOR-Filter-Pruned Membership Gate]\label{con:xorf}
+Let $R\subseteq\Obs$ be the reachability fixpoint fact set. A frozen fact store builds an $8$-bit XOR filter over FNV-1a hashes of $R$. Index mapping uses the fastrange reduction:
+\begin{equation}\label{eq:fastrange}
+\text{reduce}(x, n)\;=\;\frac{x \times n}{2^{32}},
+\end{equation}
+which projects hash $x$ onto $n$ blocks using multiplication and bit-shifts. Let $F$ be the filter and $B$ the sorted BTreeSet of $R$. Membership is gated by:
+\[
+\text{contains}(x)\;=\;
+\begin{cases}
+x\in B, & \text{if } F(x) = \text{true},\\
+\text{false}, & \text{otherwise}.
+\end{cases}
+\]
+The false-positive rate is $\approx 0.4\%$, and false negatives are $0$.
+\end{construction}
+
 \section{Numeric fluents and the attention balance law}
 
 The distinctive content of the numeric fragment is that an action may test and update a
@@ -647,6 +667,21 @@ mechanically certified, and the boundary certificate --- a POWL tree, a fitness 
 hyperplane --- is small. Separability \emph{is} admission, for processes.
 \end{remark}
 
+\begin{construction}[Sub-Net Normalization Interface]\label{con:normalize}
+Given a partition part $T'\subseteq T$ with entry places $P_{\text{in}}$ and exit places $P_{\text{out}}$, the sub-net is normalized to a valid WF-net by adding fresh boundary places $p_s, p_e$ and silent transitions $\tau_{\text{in}}, \tau_{\text{out}}$. The normalized flow relation is:
+\begin{equation}\label{eq:normalize}
+F_{\text{norm}}\;=\;F' \;\cup\; \{ (\text{src}, \tau_{\text{in}}), (\tau_{\text{in}}, p_s), (p_e, \tau_{\text{out}}), (\tau_{\text{out}}, \text{snk}) \},
+\end{equation}
+redirecting boundary arcs onto the unified source $\text{src}$ and sink $\text{snk}$.
+\end{construction}
+
+\begin{theorem}[Recursive Language Correctness]\label{thm:lang-correct}
+Let $N$ be a safe \& sound workflow net, and let $\psi = \text{convert}(N)$ be its POWL 2.0 conversion. Then for any prefix trace length $k$:
+\[
+\mathcal{L}_k(N) \;=\; \mathcal{L}_k(\psi) \;=\; \mathcal{L}_k\bigl(\text{recompose}(\psi)\bigr).
+\]
+\end{theorem}
+
 \chapter{Cost Arbitration and the Makespan Functional}
 \label{ch:cost}
 
@@ -723,6 +758,18 @@ BLAKE3 \code{route\_chain} \cite{blake3}; identical tasks produce identical chai
 heuristic tie-break but a receipted, replayable choice --- the cost order is a function, and its
 value is committed.
 \end{remark}
+
+\subsection{Additive Separation of Maximum Reachable Revenue}
+
+Evaluating the global maximum of realizable revenue across accounts would normally result in exponential search complexity due to combinatorial action options.
+
+\begin{theorem}[Additive Separation of MRR]\label{thm:mrr}
+Let $A$ be a set of independent client accounts. Let $\text{realized}(a)$ be the revenue of account $a$ under a target stage, and let $\text{lawful\_targets}(a)$ be its evidence-gated target stages. The joint plan optimization decomposes linearly:
+\begin{equation}\label{eq:mrr}
+\max_{\text{joint plan}} \sum_{a\in A} \text{realized}(a)\;=\;\sum_{a\in A} \max_{t \in \text{lawful\_targets}(a)} \text{realized}(a, t).
+\end{equation}
+Consequently, the search complexity is reduced from $\Omega(\prod_a |T_a|)$ to $O(|A|\cdot |T_a|)$ linear sum.
+\end{theorem}
 
 \section{The makespan functional and critical-path structure}
 \label{sec:makespan}
@@ -860,7 +907,118 @@ CLI surface & \code{plan solve/analyze/route/execute} & \code{praxis/src/verbs/p
 \end{tabular}
 \end{center}
 
+\chapter{The Datalog Index Layer: Nemo Saturation and Symbol Encoding}
+\label{ch:pddlindex}
+
+\section{Datalog saturation as the reachability fixpoint}
+
+Forward planning (Chapter~\ref{ch:pddl}) searches over explicit markings. At the index
+layer, reachability can be decided faster by computing the \emph{fixpoint} of a Datalog
+program that derives all entailed atoms from initial facts and action rules, before any
+search begins. The \code{pddl-index} crate embeds the Nemo Datalog engine to realize this.
+
+\begin{definition}[Datalog saturation for grounded PDDL]\label{def:saturation}
+Let $(\mathcal{D},\mathcal{Ob})$ be a grounded PDDL problem with initial atom set $\bm
+m_0$ and ground action set $T$. The \emph{Nemo Datalog program} $\Pi$ for this problem
+has one fact per atom in $\bm m_0$ and one rule per ground action $t\in T$:
+\[
+\text{add-effect}(t) \leftarrow \bigwedge_{\text{prec}} \text{prec}(t).
+\]
+The \emph{saturation} $\mathrm{sat}(\Pi)$ is the least fixpoint $\mathrm{lfp}(T_{\Pi})$
+of the immediate-consequence operator $T_{\Pi}$, which applies all rules until no new
+atom is derived. An atom $p$ is \emph{reachable} iff $p\in\mathrm{sat}(\Pi)$.
+\end{definition}
+
+\begin{proposition}[Saturation is sound and complete for forward reachability]
+\label{prop:satcorrect}
+$p\in\mathrm{sat}(\Pi)$ iff there exists a sequence of ground actions whose add-effects
+include $p$, i.e.\ $p$ is reachable from $\bm m_0$ in the Petri-net sense of
+Chapter~\ref{ch:polytope}.
+\end{proposition}
+
+\begin{proof}
+Soundness: every derived atom is the add-effect of a ground action whose preconditions
+were derived earlier (by induction on the derivation depth); the actions form a witness
+firing sequence. Completeness: a reachable atom has a witness sequence; unrolling it
+gives a derivation in $T_{\Pi}$. This is the standard Datalog fixpoint theorem
+\cite{kowalski1974,lloyd1987} applied to the grounded action rules.
+\end{proof}
+
+\begin{remark}[Saturation prunes the BFS frontier]
+Once $\mathrm{sat}(\Pi)$ is computed, the BFS of \code{find\_plan} need not consider
+action $t$ if any of its preconditions is absent from $\mathrm{sat}(\Pi)$ --- such an
+action cannot contribute to any plan reachable from $\bm m_0$. This is the
+\code{pddl-index} pruning step: the frozen fact store (Construction~\ref{con:xorf}) is
+built from $\mathrm{sat}(\Pi)$, and the XOR-filter membership gate discards unreachable
+preconditions before the search even begins.
+\end{remark}
+
+\section{Dictionary-encoded symbol identifiers}
+
+\begin{definition}[Symbol dictionary]\label{def:symdict}
+A \emph{symbol identifier} $\mathrm{SymId}\in\mathbb{Z}_{>0}$ is a compact integer
+encoding of a ground atom or object name. The \code{pddl-index} crate maintains a
+bidirectional map between string symbols and $\mathrm{SymId}$ values:
+\[
+\code{SymDict}: \{\text{strings}\} \;\leftrightarrow\; \mathbb{Z}_{>0},
+\]
+encoded as a \code{FxHashMap<String, u32>} in the forward direction and a \code{Vec<String>}
+in the reverse (lookup by ID). The zero value is reserved as ``undefined,'' so all live
+IDs are strictly positive.
+\end{definition}
+
+\begin{proposition}[Dictionary encoding reduces grounding cost]
+\label{prop:dictcost}
+With symbol dictionary encoding, a ground atom $p(o_1,\dots,o_k)$ is represented as a
+tuple of $k+1$ $\mathrm{SymId}$ values (predicate ID plus argument IDs), each a
+$32$-bit integer. Equality testing reduces to integer comparison; hash-set membership
+(e.g.\ for the initial atom set $\bm m_0$) is a single hash over $4(k+1)$ bytes. The
+cost of the grounding loop (Theorem~\ref{thm:bounded-ground}) with encoding is
+$O(|T|\cdot k \cdot N)$ integer operations, replacing $O(|T|\cdot k \cdot N)$ string
+comparisons with their $O(1)$-time integer counterparts.
+\end{proposition}
+
+\begin{proof}
+Each parameter binding substitutes an object's $\mathrm{SymId}$ (an integer lookup in a
+$\code{Vec}$, $O(1)$) for a parameter name. Forming the atom tuple is $O(k)$ integer
+writes. The hash of a tuple of $32$-bit integers is computed by FxHash in $O(k)$ time
+independent of string lengths. Summing over $|T|$ schemas and $N^k$ bindings gives the
+stated cost.
+\end{proof}
+
+\begin{construction}[Relational join for type-safe grounding]\label{con:join}
+Grounding with type constraints is a relational join: let $\mathcal{T}$ be the type
+hierarchy (Definition~\ref{def:domain}) encoded as a parent array
+$\code{parent: Vec<SymId>}$. For a schema parameter $v$ with type $\tau$, the admissible
+objects are $\{o : \code{TypeIndex::satisfies}(\mathrm{SymId}(o), \mathrm{SymId}(\tau))\}$, where
+$\code{satisfies}$ walks the parent chain upward until either $\mathrm{SymId}(\tau)$ is found
+(admissible) or the root is reached (not admissible). This walk has depth $\le$ the height
+of $\mathcal{T}$, a design constant independent of $|\mathcal{Ob}|$. The join loop iterates
+only over type-compatible objects for each parameter, reducing the effective branching
+factor from $N^k$ to $\prod_i |\{o:\mathrm{type}(o)\le\tau_i\}|$, which for narrow types
+is much smaller.
+\end{construction}
+
+\begin{remark}[Symbol encoding and the XOR filter compose]
+Construction~\ref{con:join} produces $\mathrm{SymId}$ tuples; the XOR filter
+(Construction~\ref{con:xorf}) applies FNV-1a to those tuples. Since FNV-1a is a
+deterministic function of its input bytes and $\mathrm{SymId}$ values are fixed-width
+$32$-bit integers, the filter is canonical across runs: rebuilding the fact store from
+the same saturation produces the same filter bytes, enabling content-addressable
+caching of the grounded index.
+\end{remark}
+
 \begin{thebibliography}{9}
+
+\bibitem{kowalski1974}
+R.~A.~Kowalski,
+\emph{Predicate logic as programming language},
+Information Processing \textbf{74} (Proc.\ IFIP Congress), North-Holland, 1974, 569--574.
+
+\bibitem{lloyd1987}
+J.~W.~Lloyd,
+\emph{Foundations of Logic Programming},
+2nd ed., Springer-Verlag, 1987.
 
 \bibitem{chatman2025}
 S.~Chatman,

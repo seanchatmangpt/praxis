@@ -51,8 +51,8 @@
 \newcommand{\code}[1]{\texttt{#1}}
 
 \title{\bfseries The Chatman Equation:\\[0.4em]
-\large Foundations of Bounded Receipted Execution}
-\author{The Chatman Equation Thesis Program \\ (Praxis / Capability Physics)}
+\large A Receipt Calculus for Reality-Addressed Agentic AI}
+\author{Sean Chatman \\ Independent Researcher}
 \date{Genesis --- Foundations, Paper 00}
 
 \begin{document}
@@ -62,32 +62,12 @@
 
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
-This is the front door of the Chatman Equation thesis series: the paper that fixes
-notation, states the axioms, and proves the load-bearing structural results on which the
-four pillar papers build. We take as our object of study the governing identity
-$\Act=\muop(\Adm)$ --- an actuated artifact is the deterministic image, under a
-manufacturing morphism $\muop$, of an \emph{admitted} observation --- and we define, from
-first principles, all five objects it relates: the raw observation space $\Obs$, the
-admitted sub-space $\Adm$, the manufacturing morphism $\muop$, the artifact space $\Act$,
-and the receipt space $\Rec$. We prove a specialization of Rice's theorem to observations
-and derive from it the central design consequence: admission cannot be a semantic
-decision and \emph{must} be a computable retraction onto a decidable sub-language, with
-refusal as a first-class value rather than an exception. We then formalize the object
-lifecycle $\Raw\to\Val\to\Admd\to\Rcpt$ as a thin category and prove that
-``an illegal lifecycle transition is a type error'' is a theorem about which morphisms are
-inhabited: the admissible sub-category is the free category on a linear quiver, and no
-term of the host type system inhabits any morphism outside it. We give the enforced form
-of the equation, the \emph{Bounded Receipted Chatman Equation} (\BRCE), as a conjunction
-of four invariants, and prove a conservation statement: every actuated artifact is the
-image of exactly one admitted observation and carries exactly one receipt-chain position.
-Every abstract claim is anchored to running code in the \code{praxis} repository --- the
-\code{LawObject} typestate, the eight-category \code{refusal} taxonomy, the BLAKE3
-\code{OcelCausalFrame} chain, the \code{PowlReplayVerifier} fitness gate, the
-\code{bcinr-pddl} planner, and the \code{agent8} byte --- so that a reader can trace each
-theorem to the line that enforces it. The paper closes with a fully worked example, a
-contract-claim law object traversing $\Raw\to\Rcpt$ with its obligations, andon halt, and
-chain hash, and with a map of the series that forward-references the four pillars and the
-prior published work \cite{chatman2025}.
+
+This paper introduces the Chatman Equation, $\mathcal{A} = \mu(\mathcal{O}^*)$ with $\mathcal{R} = \text{receipt}(\mathcal{A})$, as a receipt calculus for agentic AI systems. The equation separates raw observation from admitted observation: an action is not manufactured from arbitrary model output, logs, claims, or tool responses, but only from an admitted subspace produced by finite, decidable obligations. This boundary is motivated by Rice's theorem: arbitrary semantic truth cannot be decided by a total program, so execution must proceed through a restricted admission language rather than through unbounded interpretation.
+
+The paper formalizes five objects: observation space, admitted space, manufacturing morphism, action/artifact space, and receipt space. It defines admission as a computable retraction, refusal as a first-class value, refusal composition as a denial monoid, and lifecycle governance as a typestate category whose illegal transitions are uninhabited. Manufacture is modeled as a deterministic bounded morphism from admitted observations to artifacts, while receipts are collision-committed projections of execution traces sized for bounded verification.
+
+The enforced form, the Bounded Receipted Chatman Equation, requires four invariants: no actuation from raw or refused observations, bounded deterministic manufacture, total receipt emission, and conformance replay. Under these invariants, the paper proves conservation of consequence: every standing action has an admitted cause and a receipt-chain position, while receiptless actuation is excluded by construction. The result is a formal foundation for reality-addressed agentic systems in which scalable trust is obtained through admission, manufacture, receipt, and replay rather than through semantic omniscience or post hoc explanation.
 
 \tableofcontents
 
@@ -98,7 +78,7 @@ prior published work \cite{chatman2025}.
 
 \section{The claim in one line}
 
-The prior published paper in this program \cite{chatman2025} advanced a single governing
+A prior paper in this program \cite{chatman2025} advanced a single governing
 law, the \emph{Chatman equation}
 \begin{equation}\label{eq:prior}
 \Act \;=\; \muop(\Obs),
@@ -182,10 +162,10 @@ contract-claim law object end to end. Chapter~\ref{ch:map} is the map of the ser
 Throughout, a claim is a definition, a theorem with proof, or a citation; there is no
 fourth kind of sentence.
 
-\chapter{Observation, Admission, and Refusal}
+\chapter{The Computability Boundary: Rice Quarantine}
 \label{ch:oar}
 
-\section{The observation axiom and the Rice quarantine}
+\section{The observation axiom}
 
 We begin with the least structure that makes ``lawful action'' expressible.
 
@@ -239,6 +219,9 @@ Corollary~\ref{cor:noadmit} is the reason the entire apparatus exists. One does 
 an observation by understanding it. One admits it by \emph{retracting} it onto a
 sub-language --- the \emph{Rice quarantine} --- on which the properties of interest are, by
 construction, decidable.
+
+\chapter{Admission Algebra: Refusal as Data}
+\label{ch:admission_algebra}
 
 \section{The admission map and refusal as data}
 
@@ -374,6 +357,61 @@ Proposition~\ref{prop:total} is the algebraic backbone of the admission pillar
 totality the compiler certifies, and the denial lattice is the semantic domain of that
 function.
 
+\chapter{The BRCE Byte: Machine Algebra of Standing}
+\label{ch:brce_byte}
+
+\section{CPU notation for the BRCE byte}
+
+When $O^*$ is projected into the machine's fastest lawful state, it becomes a single byte. We now assign notation to the physical operations by which the Bounded Receipted Chatman Equation (\BRCE) achieves execution at the picosecond scale.
+
+Let $\mathbb{B} = \{0, 1\}$ and let the \BRCE\ standing byte be $b \in \mathbb{B}^8$. Write $0 = 00000000_2$ and $1 = 11111111_2$. Each basis bit is $e_i \in \mathbb{B}^8$, for $0 \le i < 8$, where $e_i$ has a $1$ in lane $i$ and $0$ everywhere else. A standing byte is $b = b_0e_0 \vee b_1e_1 \vee \dots \vee b_7e_7$. In the canonical instance, the lanes represent:
+\begin{align*}
+b_0 &= \text{admitted}, & b_1 &= \text{evidenced}, & b_2 &= \text{budgeted}, & b_3 &= \text{authorized},\\
+b_4 &= \text{healthy}, & b_5 &= \text{conformant}, & b_6 &= \text{receipted}, & b_7 &= \text{replayable}.
+\end{align*}
+
+Define the register-level CPU operation alphabet $\mathcal{I}_8$:
+\[
+\mathcal{I}_8 = \{ \wedge_8, \vee_8, \oplus_8, \neg_8, \ll_k, \gg_k, =_c, \text{z}, \text{nz}, \text{sel}, \text{pop}_8 \}.
+\]
+These correspond to the primitive machine instructions acting directly on fixed-width state: bitwise AND ($\wedge_8$), OR ($\vee_8$), XOR ($\oplus_8$), NOT ($\neg_8$), constant comparison ($=_c$), zero test ($\text{z}$), nonzero test ($\text{nz}$), branchless select ($\text{sel}$), and population count ($\text{pop}_8$). A lawful \BRCE\ hot path is a word over $\mathcal{I}_8$.
+
+\section{The machine algebra of lawful action}
+
+With the CPU alphabet defined, every governance operation reduces to a bounded Boolean map over $\mathbb{B}^8$.
+
+\paragraph{Admission and Denial.}
+The denial byte is the complement of the standing byte: $D(b) = \neg_8 b$. No denial exists when $D(b) = 0$. Admission is exactly the zero-test of the denial byte:
+\[
+A_{\text{gate}}(b) = \text{z}(D(b)) \implies A_{\text{gate}}(b) = 1 \iff b = 1.
+\]
+Refusal is the nonzero test: $H(b) = \text{nz}(D(b))$. If $d^{(1)}, \dots, d^{(n)}$ are denial bytes from independent obligations, their composed denial is simply the bitwise OR: $d_\Sigma = d^{(1)} \vee_8 d^{(2)} \vee_8 \dots \vee_8 d^{(n)}$. Admission exists exactly when $d_\Sigma = 0$.
+
+\paragraph{Policy masks and repairs.}
+Let $m \in \mathbb{B}^8$ be a required policy mask. The policy predicate is $P_m(b) = [ (b \wedge_8 m) = m ]$, meaning every lane required by $m$ is present in $b$. The missing lanes are isolated by $M_m(b) = m \wedge_8 \neg_8 b$, so $P_m(b) = 1 \iff M_m(b) = 0$.
+A policy is just a mask; a violation is simply ``mask AND NOT byte''. Repairing a lane $i$ is $b' = b \vee_8 e_i$.
+
+\paragraph{Completeness and Branchless Selection.}
+Completeness is the population count $C(b) = \text{pop}_8(b) \in \{0, \dots, 8\}$. Repair distance is $R(b) = 8 - \text{pop}_8(b)$. This allows the system to determine that an object is ``missing one lane'' without inspecting raw meaning.
+For a predicate bit $p \in \mathbb{B}$, define its full-byte mask $\hat{p} = 1$ if $p=1$ else $0$. Branchless select is $\text{sel}(p, u, v) = (\hat{p} \wedge_8 u) \vee_8 (\neg_8 \hat{p} \wedge_8 v)$.
+
+\paragraph{Action selection.}
+Define the byte-to-integer decoder $\nu(b) = \sum_{i=0}^7 b_i 2^i$, mapping $\mathbb{B}^8 \to \{0, \dots, 255\}$. Reserving zero ($\nu(b)=0 \implies \perp$), the action selector is:
+\[
+\sigma(b) = \begin{cases}
+\perp, & \nu(b) = 0, \\
+a_{\nu(b)}, & 1 \le \nu(b) \le 255.
+\end{cases}
+\]
+Thus $|\im(\sigma) \setminus \{\perp\}| \le 255$. Eight bits can select 255 non-null lawful actions without branching.
+
+\paragraph{The constant-depth eligibility theorem.}
+
+Let $\tau$ be the cycle quantum of the target machine. For primitive register operations, $\text{cost}(i) = 1$ for $i \in \mathcal{I}_8$. The execution depth $\text{depth}(f)$ of a composed expression $f$ is its longest dependency chain in $\mathcal{I}_8$. The bounding constraint is $T(f) \approx \text{depth}(f) \cdot \tau$.
+The admission check $G(b) = [b = 1]$ has depth $1$. The policy mask $P_m(b)$ has depth $2$. From first principles, \BRCE\ proves that admission, denial composition, policy masking, and action selection are finite Boolean maps with $\text{depth} \in \{1, 2, 3\}$. The hot-path eligibility checks compile to constant-depth Boolean expressions over fixed-width registers. On machines whose primitive register operations retire within a sub-nanosecond cycle budget, the admission predicate is picosecond-eligible.
+
+Thus \BRCE\ does not merely claim that eight bits are compact; it gives a CPU-level algebra in which lawful standing, denial, policy, repair, and action selection are all words over the machine's primitive register operations. \BRCE\ opens high-frequency domains by making law executable as byte algebra.
+
 \chapter{The Lifecycle as a Typestate Category}
 \label{ch:life}
 
@@ -501,6 +539,22 @@ where the \code{Err} branch is the \emph{same object}, now in \code{Andon::Halte
 level: $\adm(o)$ is either an element of $\Val\subseteq\Adm$ or the refusal $\Rfsl$, and the
 refusal is a value one can inspect, not control flow one must catch. The admit arrow
 $a:\Val\to\Admd$ is analogous, returning \code{Err(Andon)} when admission is denied.
+
+\section{The 3-Node SEQ Lifecycle Token Game}
+
+The lifecycle transitions of the $\code{LawObject}$ parameters represent a sequential path: $\code{judge} \to \code{admit} \to \code{receipt}$.
+
+\begin{definition}[3-Node SEQ POWL Token Game]\label{def:seqtoken}
+The lifecycle process is a safe Petri net with state $M\in\{0,1\}^{4}$ and transitions $T=\{j, a, r\}$ representing the judge, admit, and receipt actions. The token state is:
+\begin{equation}\label{eq:seqtoken}
+M\;=\;(\code{TOK\_START},\ \code{TOK\_JUDGED},\ \code{TOK\_ADMITTED},\ \code{TOK\_DONE}),
+\end{equation}
+with firing rules enabled by coordinatewise subtraction and addition:
+\[
+M_{\text{next}}\;=\;(M \setminus \bm m^{-}) \;\cup\; \bm m^{+}.
+\]
+Fitness $\Fitness\in[0,1]$ is computed in Q16.16 format. An out-of-order transition triggers a token shortfall and results in $\Fitness < 1.0$.
+\end{definition}
 
 \chapter{Manufacture, Receipt, and the Enforced Equation}
 \label{ch:mu}

@@ -1,0 +1,445 @@
+\documentclass[11pt,a4paper]{report}
+
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black]{hyperref}
+
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{axiom}[theorem]{Axiom}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{finding}[theorem]{Finding}
+\newtheorem{casestudy}[theorem]{Deployment}
+
+\newcommand{\Ont}{\mathbf{Ont}}
+\newcommand{\Rcpt}{\mathbf{Rcpt}}
+\newcommand{\sync}{\mathsf{sync}}
+\newcommand{\wdec}{\mathsf{w}}
+\newcommand{\Sig}{\Sigma}
+\newcommand{\Hash}{\mathsf{H}}
+\newcommand{\canon}{\mathsf{c14n}}
+\newcommand{\rec}{\mathsf{R}}
+\newcommand{\mymu}{\mu}
+\newcommand{\Packs}{\mathcal{P}}
+\newcommand{\del}{\Delta}
+\newcommand{\Feas}{\mathcal{F}}
+\newcommand{\adm}{\mathsf{admit}}
+\newcommand{\head}{\mathsf{head}}
+
+\title{\textbf{Receipted Projection at Scale}\\[0.6em]
+\large A 2030 Retrospective on Combinatorial Maximalism, the Chatman
+Equation, and Four Years of Enterprise Deployment:\\
+the Algebra, Geometry, and Calculus of Trust That Held}
+\author{Sean Chatman}
+\date{July 2030}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+In 2026 we proved a projection engine correct by exhaustion --- $144$ write
+cells, $\binom{8}{2}$ pack pairs, delta-group laws --- and stated a
+conjecture we did not yet dare call a theorem: that under context-bounded
+agentic construction, \emph{authority computed at every layer and claimed at
+none} would become the default trust posture of industrial software. This
+retrospective closes the loop. Between 2026 and 2030 the stack --- the
+\textsf{ggen} projection engine, the pack distribution calculus, chained
+decision receipts, triple admission gating (2028), and cross-organisational
+receipt federation (2029) --- was adopted across regulated Fortune~500
+environments in banking, pharmaceutical manufacturing, telecommunications,
+aerospace, and insurance. We restate the original mathematics in its mature
+form: the write discipline as an exhausted product space whose boundary
+provably carried the defect distribution; pack composition as a simplicial
+complex that grew from $8$ vertices to registry scale ($10^{4}$ packs)
+without abandoning the pairwise-generation theorem, because the two
+interaction channels were held closed by governance; federation as a functor
+from the supply digraph to the category of receipt chains, whose limit
+condition \emph{is} the audit; and the intent-residue ratio as a measured,
+monotone trajectory rather than a slogan. We report what broke, what the
+mathematics predicted about where it would break, and the one deployment
+truth no theorem anticipated: the hardest migration was never technical ---
+it was persuading institutions that a verifier which refuses is more
+valuable than a narrator which reassures. By 2030, an unreceipted change in
+a governed estate is treated as an unsigned binary was treated in 2020:
+not wrong, merely \emph{unadmittable}. That sentence, unremarkable to
+today's reader, is the result.
+\end{abstract}
+
+\tableofcontents
+
+%=====================================================================
+\chapter{What We Claimed in 2026, and What Happened}
+
+\section{The claim}
+
+The Chatman Equation, in its live form
+\[
+  F_{n+1} \;=\; \mymu\bigl(O^{*}, C^{*}, P^{*}, T^{*}, F_{n}\bigr),
+  \qquad
+  R_{n+1} \;=\; \mathrm{receipt}\bigl(F_{n+1} - F_{n}\bigr),
+\]
+asserted that a codebase is not an authored artifact but the lawful
+projection of an admitted graph into a live filesystem, with every write
+decision bound into a tamper-evident chain. In 2026 this held for one
+engine, eight packs, and $182$ tests. The 2027 conjecture was distributional
+(every open-source project ships a pack); the 2030 conjecture was
+epistemic (receipts displace review as the unit of trust).
+
+\section{The adoption curve, compressed}
+
+\begin{casestudy}[Banking, 2027--2028]\label{dep:bank}
+A global systemically important bank adopted pack projection for its
+regulatory-reporting integration surfaces. The driver was not velocity but
+\emph{attestation cost}: quarterly evidence packages that had consumed
+audit-team months collapsed to chain verifications executed in minutes.
+The bank's regulators accepted receipt-chain heads as primary evidence in
+2028 --- the first time in our records that a supervisor consumed
+$\rec$-values directly. The decisive property was not that the code was
+correct but that \emph{drift was refused by name}: FM-coded failures gave
+examiners a closed vocabulary of everything that could have gone wrong.
+\end{casestudy}
+
+\begin{casestudy}[Pharmaceutical manufacturing, 2028]\label{dep:pharma}
+Computer-system validation (CSV) under GxP had always been the industry's
+context-loss pathology in institutional form: documentation asserting what
+systems do, drifting silently from what they did. Projection inverted the
+burden. Validation protocols became SHACL feasible-region definitions;
+the installed system became $\mymu(O^{*})$; and the validation evidence
+became the receipt chain itself. Re-validation after change --- historically
+weeks --- became replay: $O_n = O_0 \oplus \bigoplus_i \del_i$, verified
+term-by-term.
+\end{casestudy}
+
+\begin{casestudy}[Telecommunications, 2028--2029]\label{dep:telco}
+A tier-one carrier projected its network-service catalogue (thousands of
+service variants) from a governed ontology. This was the first deployment
+to hit the boundary of the pairwise-generation theorem
+(Chapter~3): service packs began feeding \texttt{construct} entailments
+into one another's \texttt{select}s, breaking the two-channel factorisation.
+The response was the theorem's own contrapositive: the interaction was
+\emph{re-closed} by introducing declared entailment interfaces, restoring
+pairwise coverage rather than abandoning exhaustion.
+\end{casestudy}
+
+\begin{casestudy}[Aerospace and insurance, 2029--2030]
+Aerospace brought the strictest reading: receipts co-signed by deterministic
+old-AI verifiers only, LLM output permanently classified
+$\mathrm{LlmProjection}$ and excluded from every evidence path --- the
+2026 doctrine (``Old AI is the factory; LLMs are the brochure'') adopted
+verbatim as a certification requirement. Insurance closed the loop from the
+other side: actuarial models began \emph{pricing} unreceipted software
+estates as a distinct (and expensive) risk class, which did more for
+adoption in 2030 than any engineering argument had done in 2027.
+\end{casestudy}
+
+\section{The honest ledger}
+
+Adoption was neither smooth nor universal. Three frictions recurred:
+(i) the \emph{handlers negotiation} --- every organisation initially
+over-estimated its intent residue, claiming hand-written status for code
+that was in fact projectable; the measured ratio (Chapter~5) settled the
+argument each time; (ii) \emph{ontology politics} --- once triples were
+gated, asserting one became an act with an owner, and institutions
+discovered they had never actually decided who owns their nouns; and
+(iii) the \emph{refusal shock} --- teams accustomed to warnings experienced
+fail-closed as hostility for roughly one quarter, until the first prevented
+incident converted them. None of these were engineering problems. All of
+them were the engineering surfacing decisions that had always been made
+implicitly, in nobody's context.
+
+%=====================================================================
+\chapter{Algebra, Matured}
+
+\section{The exhausted core, unchanged}
+
+The write-discipline product space
+$\Sig = F \times U \times I \times S \times T$, $|\Sig| = 144$, has not
+grown a dimension since 2026 --- by policy. Every proposed frontmatter
+extension since has been rejected or expressed as composition of existing
+dimensions, because the governance rule adopted in 2027 states:
+\emph{a new dimension multiplies the exhausted space; the proposer pays for
+the new matrix}. Four years of Fortune~500 pressure produced exactly zero
+additions. The lesson generalised: closure survives contact with the
+enterprise precisely when the cost of opening is charged to the opener.
+
+\begin{theorem}[Stability of the coverage theorem]
+The 2026 total-coverage result
+$\forall \sigma \in \Sig : \wdec(\sigma) = \hat\wdec(\sigma)$ has been
+re-executed on every release for four years across all deployment estates.
+No cell has ever regressed in production code. The two incidents recorded
+against the write discipline (2027, 2029) both occurred in \emph{vendor
+forks that had disabled the matrix} --- the boundary theorem
+(Chapter~5 of the 2026 thesis) holding in its contrapositive form.
+\end{theorem}
+
+\section{Admission as a subcategory: the 2028 governance algebra}
+
+The open frontier of 2026 --- nothing gates who may assert a triple ---
+closed in 2028 with triple admission.
+
+\begin{definition}[Admitted ontology category]
+Let $\Ont_V$ be graphs over closed vocabulary $V$. An \emph{admission
+policy} is a pair $(\Feas, \adm)$ where $\Feas \subseteq \Ont_V$ is the
+SHACL-definable feasible region and
+$\adm : \del \times \mathrm{Evidence} \rightharpoonup \Feas$ is a partial
+map admitting a delta only with evidence. The admitted graphs with
+evidence-carrying deltas as morphisms form a subcategory
+$\Ont^{*} \hookrightarrow \Ont_V$; $\mymu$ is defined on $\Ont^{*}$ only.
+\end{definition}
+
+\begin{proposition}[Asserted/derived factorisation]
+Every predicate in $V$ is classified asserted-only or derived-only, and
+derived predicates factor through $\mathrm{CONSTRUCT}$ from evidence:
+there is no morphism in $\Ont^{*}$ that introduces a derived triple
+directly. The 2026 wasm4pm convention (\texttt{breedStatus} is never
+asserted) is the special case that seeded the general law. In banking and
+pharma estates this factorisation is now the control that auditors test
+first, because it is the algebraic statement of ``status is earned.''
+\end{proposition}
+
+\begin{finding}[The 2028 red-team result]
+When triple gating shipped, an internal red team attempted the attack the
+2026 thesis had predicted: corrupt the source of truth rather than the
+projection. Every attempted assertion of a derived predicate refused by
+name; the successful attacks (two, both against \emph{asserted} predicates
+with weak evidence schemas) forced the evidence-schema hardening of 2028Q4.
+The defect distribution again lay exactly on the boundary of the exhausted
+region --- this time the region of \emph{gated predicates}.
+\end{finding}
+
+\section{Federation as a functor: the 2029 supply calculus}
+
+\begin{definition}[Supply digraph and the chain functor]
+Let $G = (\mathcal{N}, E)$ be the supply digraph: nodes are producing
+estates (a pack registry entry, an internal platform team, a vendor), edges
+are consumption. Federation assigns to each node its receipt-chain monoid
+and to each edge the \emph{head-binding} morphism: consumer receipts include
+$\head(\rec_{\mathrm{producer}})$ as bound content. This assignment is a
+functor $\rec_{(-)} : G \to \Rcpt$; transitive attestation is its
+composition law.
+\end{definition}
+
+\begin{theorem}[Audit as a limit condition]\label{thm:limit}
+An estate's supply position is \emph{coherent} iff the diagram of bound
+heads over its in-neighbourhood commutes: every path from a root producer
+to the consumer yields the same bound head at each intermediate node.
+Verification is a traversal of $G$ recomputing $O(|E|)$ hashes ---
+the property that replaced supplier questionnaires in the 2029--2030 audit
+cycles of Deployments~\ref{dep:bank} and \ref{dep:pharma}.
+\end{theorem}
+
+\begin{finding}[The content-hash gap, exploited once, then closed]
+The 2026 thesis predicted that binding pack \emph{content} hashes without
+\emph{chain heads} permits a producer to regenerate a pack from a corrupted
+upstream ontology and ship a valid content hash. In 2028 exactly this
+occurred in the wild (a compromised vendor build system; contents valid,
+provenance destroyed). It was the last such incident: head-binding became
+mandatory in the 2029 federation protocol, and the attack class is now
+structurally excluded rather than probabilistically deterred.
+\end{finding}
+
+%=====================================================================
+\chapter{Geometry, Matured}
+
+\section{The pack complex at registry scale}
+
+The 2026 complex had $8$ vertices, $28$ verified edges, one top face.
+The 2030 public registry holds order $10^{4}$ packs; full pairwise
+verification is no longer executed globally, and does not need to be:
+
+\begin{theorem}[Sharded pairwise sufficiency]
+Pack interaction still factors through the two 2026 channels ---
+namespace union and output-path union --- \emph{because governance holds
+them closed}: registry admission requires a declared namespace (globally
+unique by construction) and a declared output-path prefix (collision-checked
+at registration). Under these two closures, coherence of an arbitrary
+consumer set $S$ reduces to (i) per-pack vertex proofs, carried in each
+pack's own receipt chain, and (ii) the consumer's local top-face sync,
+which exercises the union directly. Pairwise edges are verified lazily,
+per-consumer, only for the pairs that consumer actually admits --- restoring
+$O(|S|^2)$ local work with $|S|$ typically under twenty.
+\end{theorem}
+
+\begin{remark}
+The telecommunications deployment (\ref{dep:telco}) is the exception that
+proved the theorem's hypotheses matter: cross-pack entailment broke the
+two-channel factorisation, and the repair was not cleverer verification but
+\emph{re-closure} --- declared entailment interfaces that turned an open
+interaction channel back into a checkable dimension. Four years of scale
+have not falsified the 2026 remark that where interactions cease to be
+pairwise-generated, the maximalist must widen the exhausted skeleton;
+they have shown that widening is usually cheaper as governance than as
+combinatorics.
+\end{remark}
+
+\section{Drift in production: the metric earned its keep}
+
+The drift metric $d(O, O') = |O \,\triangle\, O'|$ and its artifact-side
+analogue became operational quantities: estates alarm on drift radius, not
+on incident reports. The doctor triad (lock drift, staleness, orphanhood)
+runs continuously; in the pharma estate its time series is itself a
+regulated record. The geometric fact that mattered most in practice is the
+simplest: refusal keeps the state \emph{on} the fibre of the admitted fixed
+point, so the distance an auditor must reason about is always either zero
+or a named, receipted exception --- never an unbounded accumulation.
+
+\begin{proposition}[Fixed points under organisational load]
+The retraction property $\sync \circ \sync = \sync$ survived every scale
+regime because it was enforced at two grades: state idempotence (bytes) and
+trace quiescence (decisions, mtimes, events). The 2026 \texttt{force}
+finding --- state-fixed but trace-live, hence oscillation under observers ---
+recurred in three enterprise integrations (each coupling projection to a
+change-data-capture or backup observer) and was diagnosed in minutes each
+time, because the failure mode had a name, a theorem, and a matrix cell.
+\end{proposition}
+
+%=====================================================================
+\chapter{Calculus, Matured}
+
+\section{Replay as the institutional memory}
+
+The discrete fundamental theorem
+$O_n = O_0 \oplus \bigoplus_{i=1}^{n} \del_i$ stopped being a test
+assertion and became the mechanism of institutional memory. In four years
+of governed operation, no estate in our records has performed an
+archaeology-style investigation (``what was true in March?'') by reading
+code or interviewing engineers: the answer is integration of the delta
+stream to the queried instant, verified against the chain. The 2026
+observation that the session's own context compaction was survivable
+because authority lived outside the window scaled without modification to
+organisations, where the ``window'' is staff turnover and the ``compaction''
+is a reorg.
+
+\section{Sensitivity and the economics of change}
+
+The chain rule across $\mymu_1 \dots \mymu_5$ matured into the
+change-costing function enterprises actually use: a proposed
+$\del O$ is priced by the bound
+$\del A \subseteq \mymu_5' \cdots \mymu_1'(\del O)$ \emph{before} it is
+admitted --- blast radius as a derivative, computed from the graph, not
+estimated in a meeting. The banking estate's change-approval board was
+reduced to reviewing exactly the deltas whose computed sensitivity crossed
+declared thresholds; everything below threshold is admitted by evidence
+alone. This, more than any other single mechanism, is where the review-hour
+savings of Chapter~1 came from.
+
+\section{The intent-residue trajectory}
+
+\begin{definition}[Residue ratio]
+For an estate at time $t$, let $\rho(t)$ be hand-authored bytes (the
+handlers layer and gated assertions) over total admitted bytes. The 2026
+proposal made $\rho$ a first-class receipt field; since 2027 it has been
+measured, not argued.
+\end{definition}
+
+Across the deployments of Chapter~1, $\rho$ fell from initial values near
+$0.6$ (organisations systematically over-claiming intent) toward stable
+plateaus between $0.08$ and $0.15$ --- and, importantly, \emph{stopped
+falling} there. The plateau is the empirical measurement of the 2026
+conjecture that some context resists compression into verifiable form.
+The residue did not vanish; it \emph{clarified}. What remains hand-written
+in 2030 is dense with genuine decision: the handlers, the evidence schemas,
+the ontology's asserted core. The calculus reading: $\rho(t)$ behaved as a
+decaying process onto a positive fixed point, and the fixed point, not
+zero, is the honest asymptote of the programme.
+
+%=====================================================================
+\chapter{Theorems Revisited, Four Years On}
+
+\begin{theorem}[Locality, extended record]
+The 2026 locality theorem --- every defect lies outside some exhausted
+space at introduction; none found inside one after exhaustion --- extended
+unbroken through 2030 across all governed estates in our records. Each
+production incident class maps to a then-open dimension: the vendor forks
+that disabled the matrix (open by choice); the weak asserted-evidence
+schemas of 2028 (gating dimension newly opened); the provenance-destroying
+regeneration of 2028 (federation dimension not yet closed); the
+observer-coupling oscillations (trace dimension known but not yet enforced
+in those integrations). The theorem's practical form became a planning
+instrument: the incident forecast \emph{is} the map of open dimensions.
+\end{theorem}
+
+\begin{theorem}[The economic theorem, now measured]
+The 2026 conjecture that receipted projection inverts the
+generation/verification cost asymmetry is, as of 2030, an actuarial fact:
+verification is $O(\mathrm{hash})$ per link and $O(|E|)$ per supply
+position; unreceipted estates carry a distinct insurance loading; and the
+market behaviour predicted from the cost inversion (unreceipted
+$\Rightarrow$ unadmittable) is observable policy in every regulated estate
+we surveyed. Trust migrated to the cheap-to-verify artifact for the same
+reason it always has --- because checking became cheaper than believing.
+\end{theorem}
+
+\begin{remark}[What no theorem anticipated]
+The mathematics predicted where systems would fail. It did not predict the
+principal human finding: that institutions initially experience a refusing
+verifier as an \emph{insult} and a reassuring narrator as a
+\emph{colleague}, and that this preference inverts permanently after the
+first incident a refusal prevents. The adoption curve of receipted
+projection is, in every estate we observed, a step function whose step is
+located at that first prevented incident. Engineering determined whether
+the step was possible; a saved quarter determined when it occurred.
+\end{remark}
+
+%=====================================================================
+\chapter{Conclusion: The Sentence That Became Unremarkable}
+
+In 2026, ``authority must be computed, not claimed'' was a thesis defended
+by one engine, eight packs, and an exhausted matrix. In 2030 it is the
+unexamined default of governed software estates: graphs admit, projections
+precipitate, receipts chain, federation composes, and the residue --- the
+genuinely human part --- is small, named, and priced. The combinatorial
+maximalist's wager closed in the black: the spaces we closed stayed closed,
+the boundaries we declared carried exactly the defects we later met, and
+every widening of the exhausted region retired an incident class rather
+than a test suite.
+
+The 2026 thesis ended: \emph{the boundary of what you have exhausted is the
+frontier of what you may trust.} The 2030 retrospective can finally state
+its converse, which four years of enterprise operation earned:
+
+\begin{center}
+\emph{What remained trustworthy is exactly what we had exhausted ---\\
+and the map of our open dimensions was, cell for cell,\\
+the forecast of everything that failed.}
+\end{center}
+
+\appendix
+\chapter{Ledger, 2026--2030}
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Milestone & Year & Mathematical form \\
+\midrule
+Engine + exhausted write matrix ($144$) & 2026 & product-space coverage \\
+Pack calculus, $8$ vertices, $\binom{8}{2}$ edges & 2026 & simplicial skeleton \\
+Registry + namespace/path closure & 2027 & channel governance \\
+Triple admission gating & 2028 & subcategory $\Ont^{*}$, asserted/derived factorisation \\
+Head-binding federation protocol & 2029 & chain functor $\rec_{(-)}: G \to \Rcpt$, limit audit \\
+Unreceipted $=$ unadmittable (policy norm) & 2030 & cost-inversion equilibrium \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{1em}
+\noindent
+Foundational record: \texttt{praxis/crates/ggen} v26.7.4 and its receipt
+chains; commits \texttt{f011738}, \texttt{71699f8}, \texttt{314db73};
+companion volumes \texttt{combinatorial-maximalism-thesis.tex} (2026),
+\texttt{chatman-equation-phd-thesis.md} (prospectus),
+\texttt{vision-2030-prd-adr.md} (the requirements this retrospective
+grades). Deployment identities anonymised per the federation
+consortium's disclosure rules; every quantitative claim about a governed
+estate is, in that estate, a receipt.
+
+\end{document}

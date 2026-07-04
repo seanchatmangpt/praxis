@@ -1,0 +1,103 @@
+\contentsline {chapter}{Chapter 0: Abstract}{i}{chapter*.1}%
+\contentsline {paragraph}{Algebraic Foundation.}{i}{chapter*.1}%
+\contentsline {paragraph}{Geometric \& Process Modeling.}{i}{chapter*.1}%
+\contentsline {paragraph}{Cryptographic Commitment.}{i}{chapter*.1}%
+\contentsline {paragraph}{Limits \& Guarantees.}{i}{chapter*.1}%
+\contentsline {chapter}{\numberline {1}Chapter 1: The Problem: Trust Without Comprehension}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}The Question}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Why the Question is Forced}{1}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Definitions and Constructions}{1}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Operational Correspondence}{2}{section.1.4}%
+\contentsline {section}{\numberline {1.5}Boundaries}{2}{section.1.5}%
+\contentsline {paragraph}{Chapter Summary.}{2}{section.1.5}%
+\contentsline {chapter}{\numberline {2}Chapter 2: The Equation: Five Objects and One Route}{3}{chapter.2}%
+\contentsline {section}{\numberline {2.1}The Question}{3}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Why the Question is Forced}{3}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Definitions and Constructions}{3}{section.2.3}%
+\contentsline {section}{\numberline {2.4}Operational Correspondence}{4}{section.2.4}%
+\contentsline {section}{\numberline {2.5}Boundaries}{4}{section.2.5}%
+\contentsline {paragraph}{Chapter Summary.}{4}{section.2.5}%
+\contentsline {chapter}{\numberline {3}Chapter 3: The Computability Boundary: Why Admission Exists}{5}{chapter.3}%
+\contentsline {section}{\numberline {3.1}The Question}{5}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Why the Question is Forced}{5}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Definitions and Constructions}{5}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Operational Correspondence}{6}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Boundaries}{6}{section.3.5}%
+\contentsline {paragraph}{Chapter Summary.}{6}{section.3.5}%
+\contentsline {chapter}{\numberline {4}Chapter 4: Refusal as Data: The Admission Algebra}{7}{chapter.4}%
+\contentsline {section}{\numberline {4.1}The Question}{7}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Why the Question is Forced}{7}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Definitions and Constructions}{7}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Operational Correspondence}{9}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Boundaries}{9}{section.4.5}%
+\contentsline {paragraph}{Chapter Summary.}{9}{section.4.5}%
+\contentsline {chapter}{\numberline {5}Chapter 5: Lifecycle Order: Typestate and Process}{10}{chapter.5}%
+\contentsline {section}{\numberline {5.1}The Question}{10}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Why the Question is Forced}{10}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Definitions and Constructions}{10}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Operational Correspondence}{11}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Boundaries}{12}{section.5.5}%
+\contentsline {paragraph}{Chapter Summary.}{12}{section.5.5}%
+\contentsline {chapter}{\numberline {6}Chapter 6: Manufacture: Deterministic Bounded Production}{13}{chapter.6}%
+\contentsline {section}{\numberline {6.1}The Question}{13}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Why the Question is Forced}{13}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Definitions and Constructions}{13}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Operational Correspondence}{14}{section.6.4}%
+\contentsline {section}{\numberline {6.5}Boundaries}{14}{section.6.5}%
+\contentsline {paragraph}{Chapter Summary.}{14}{section.6.5}%
+\contentsline {chapter}{\numberline {7}Chapter 7: Receipts: Commitment, Chain, and Replay}{15}{chapter.7}%
+\contentsline {section}{\numberline {7.1}The Question}{15}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Why the Question is Forced}{15}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Definitions and Constructions}{15}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Operational Correspondence}{16}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Boundaries}{16}{section.7.5}%
+\contentsline {paragraph}{Chapter Summary.}{16}{section.7.5}%
+\contentsline {chapter}{\numberline {8}Chapter 8: The Enforced Equation: BRCE}{17}{chapter.8}%
+\contentsline {section}{\numberline {8.1}The Question}{17}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Why the Question is Forced}{17}{section.8.2}%
+\contentsline {section}{\numberline {8.3}Definitions and Constructions}{17}{section.8.3}%
+\contentsline {section}{\numberline {8.4}Operational Correspondence}{17}{section.8.4}%
+\contentsline {section}{\numberline {8.5}Boundaries}{17}{section.8.5}%
+\contentsline {paragraph}{Chapter Summary.}{18}{section.8.5}%
+\contentsline {chapter}{\numberline {9}Chapter 9: Conservation of Consequence}{19}{chapter.9}%
+\contentsline {section}{\numberline {9.1}The Question}{19}{section.9.1}%
+\contentsline {section}{\numberline {9.2}Why the Question is Forced}{19}{section.9.2}%
+\contentsline {section}{\numberline {9.3}Definitions and Theorems}{19}{section.9.3}%
+\contentsline {paragraph}{(1) Causation.}{19}{theorem.9.1}%
+\contentsline {paragraph}{(2) Commitment Uniqueness.}{20}{theorem.9.1}%
+\contentsline {section}{\numberline {9.4}Operational Correspondence}{20}{section.9.4}%
+\contentsline {section}{\numberline {9.5}Boundaries}{20}{section.9.5}%
+\contentsline {paragraph}{Chapter Summary.}{20}{section.9.5}%
+\contentsline {chapter}{\numberline {10}Chapter 10: Worked Example: A Contract-Claim Law Object}{21}{chapter.10}%
+\contentsline {section}{\numberline {10.1}The Question}{21}{section.10.1}%
+\contentsline {section}{\numberline {10.2}Why the Question is Forced}{21}{section.10.2}%
+\contentsline {section}{\numberline {10.3}Definitions and Constructions}{21}{section.10.3}%
+\contentsline {paragraph}{Submission (Raw Stage).}{21}{section.10.3}%
+\contentsline {paragraph}{Judgment and Halt (Refusal Value).}{21}{section.10.3}%
+\contentsline {paragraph}{Resubmission and Admission.}{21}{section.10.3}%
+\contentsline {paragraph}{Manufacture and Receipt.}{22}{section.10.3}%
+\contentsline {section}{\numberline {10.4}Operational Correspondence}{22}{section.10.4}%
+\contentsline {section}{\numberline {10.5}Boundaries}{22}{section.10.5}%
+\contentsline {paragraph}{Chapter Summary.}{22}{section.10.5}%
+\contentsline {chapter}{\numberline {11}Chapter 11: Map of the Thesis Program}{23}{chapter.11}%
+\contentsline {section}{\numberline {11.1}The Question}{23}{section.11.1}%
+\contentsline {section}{\numberline {11.2}Why the Question is Forced}{23}{section.11.2}%
+\contentsline {section}{\numberline {11.3}Map of Pillars}{23}{section.11.3}%
+\contentsline {paragraph}{Pillar I --- Admission Algebra.}{23}{section.11.3}%
+\contentsline {paragraph}{Pillar II --- Receipt Cryptography.}{23}{section.11.3}%
+\contentsline {paragraph}{Pillar III --- Planning and Geometry.}{23}{section.11.3}%
+\contentsline {paragraph}{Pillar IV --- The Projection Principle (Keystone).}{23}{section.11.3}%
+\contentsline {paragraph}{Prior Work.}{23}{section.11.3}%
+\contentsline {section}{\numberline {11.4}Operational Correspondence}{24}{section.11.4}%
+\contentsline {section}{\numberline {11.5}Boundaries}{24}{section.11.5}%
+\contentsline {paragraph}{Chapter Summary.}{24}{section.11.5}%
+\contentsline {chapter}{\numberline {12}Chapter 12: Conclusion}{25}{chapter.12}%
+\contentsline {section}{\numberline {12.1}The Question}{25}{section.12.1}%
+\contentsline {section}{\numberline {12.2}Why the Question is Forced}{25}{section.12.2}%
+\contentsline {section}{\numberline {12.3}Synthesis of Guarantees}{25}{section.12.3}%
+\contentsline {section}{\numberline {12.4}Operational Correspondence}{25}{section.12.4}%
+\contentsline {section}{\numberline {12.5}Boundaries}{25}{section.12.5}%
+\contentsline {paragraph}{Chapter Summary.}{25}{section.12.5}%
+\contentsline {chapter}{\numberline {A}Appendix A: Notation}{27}{appendix.A}%
+\contentsline {chapter}{\numberline {B}Appendix B: Code Correspondence}{28}{appendix.B}%
+\contentsline {chapter}{\numberline {C}Appendix C: Claim Standing Table}{29}{appendix.C}%

@@ -355,6 +355,22 @@ depends on $h_{t-1}$ (which by hypothesis commits $\fr_1,\dots,\fr_{t-1}$ and $\
 on $\body(\fr_t)$. So $h_t$ depends on all of $\Genesis,\fr_1,\dots,\fr_t$. The collision
 clause is deferred to Theorem~\ref{thm:faithful}. \end{proof}
 
+\section{Git-as-a-Runtime CAS Locking and Ledgers}
+
+To prevent coordination drift in local-first, air-gapped environment execution, we rely on the host repository's reference structures to enforce atomic locks.
+
+\begin{definition}[Git CAS Lock]\label{def:gitlock}
+An atomic Compare-And-Swap (CAS) lock for resource $L$ at repository HEAD OID $H$ is acquired by invoking the reference update:
+\begin{equation}\label{eq:gitlock}
+\code{git update-ref refs/locks/}L\ H\ \bm 0,
+\end{equation}
+which fails with a non-zero exit code if $\code{refs/locks/}L$ already exists, and succeeds atomically otherwise via POSIX rename. Deletion on drop releases the lock.
+\end{definition}
+
+\begin{proposition}[Append-Only notes Ledger]\label{prop:notesledger}
+The audit ledger is stored under the custom namespace $\code{refs/notes/praxis/audit}$. Appending entries is a commit transition in which the hash-chain receipts are written as NDJSON notes, preserving the immutability of the execution timeline.
+\end{proposition}
+
 \chapter{The Faithful Chain Theorem}
 \label{ch:faithful}
 
@@ -711,6 +727,60 @@ window $w$?'', ``what is the pass-rate over frontier $F$?'') at index speed, tou
 $O(\CL)$-sized committed coordinates, never the interiors. This is the projection principle at
 the scale of a whole civilization's audit log: the interior is a trillion manufactures; the
 queryable surface is their committed frames.
+\end{remark}
+
+\section{Git-CAS Locking and Crash Recovery}
+
+The \code{chatman-common} crate realizes atomic receipt ledger writes by mapping the
+receipt lock problem onto the host Git object store. For an air-gapped, local-first
+execution environment where no external coordinator is available, this is the correct level
+of mechanism: Git's reference-update protocol uses POSIX rename, which is atomic on
+POSIX-compliant filesystems.
+
+\begin{definition}[Git CAS Lock, operational form]\label{def:gitlock-op}
+Let $L$ be a named resource (e.g.\ the praxis audit ledger) and let $H$ be the current
+HEAD OID of the local repository. The CAS lock for $L$ is acquired by
+\[
+\code{git update-ref refs/locks/}L\ H\ \bm 0_{20},
+\]
+which atomically creates \code{refs/locks/}$L$ pointing to $H$, succeeding iff the
+reference does not already exist (the old-value argument $\bm 0_{20}$ means ``require
+absent''). Deletion of the reference on drop releases the lock. The lock is therefore
+held for at most the duration of one \code{git update-ref} round-trip plus the critical
+section, without holding any OS-level file lock that could block unrelated operations.
+\end{definition}
+
+\begin{proposition}[Append-only notes ledger under CAS]
+\label{prop:notesledger-op}
+The audit ledger is stored under the custom Git notes namespace
+\code{refs/notes/praxis/audit}. Under the CAS lock of Definition~\ref{def:gitlock-op},
+each append of a receipt record is a \emph{commit transition}: the new record is serialized
+as NDJSON and appended to the notes tree under the commit OID it annotates. Because Git
+commits are content-addressed (the commit hash is the BLAKE3 of its tree plus metadata),
+the appended entry is immutable by Git's object model. The notes reference advances
+atomically under the CAS guard, so two concurrent append attempts on the same ledger are
+serialized by the acquire-fail branch of the CAS.
+\end{proposition}
+
+\begin{proof}
+A failing CAS (reference already exists) exits with a non-zero code before touching the
+notes tree; only the lock holder proceeds. Within the critical section, the notes append
+is a single \code{git notes add} followed by the reference-delete on the lock. If the
+process is killed after the notes append but before the lock release, the lock entry
+remains; the restart protocol in \code{chatman-common} detects a stale lock by comparing
+the locked OID $H$ to the current HEAD --- if they differ (a new commit has been pushed),
+the lock is stale and is force-released, because the locked OID no longer uniquely
+identifies a live critical section.
+\end{proof}
+
+\begin{remark}[Relationship to the Faithful Chain Theorem]
+The CAS lock protocol is orthogonal to the hash chain: the chain guards \emph{what was
+recorded} (no field tampered), while the CAS lock guards \emph{that only one writer
+appended at a time} (no race). Together they give a ledger that is simultaneously
+append-sequential (by the lock) and tamper-evident (by the chain). Violation of
+sequentiality (two writers appending concurrently) would not break Theorem~\ref{thm:faithful};
+it would produce a fork in the notes tree rather than a hash collision. The CAS lock
+prevents the fork; the chain prevents the tamper; neither subsumes the other.
 \end{remark}
 
 \chapter{Integrity Is Not Virtue: The Scope Theorem}

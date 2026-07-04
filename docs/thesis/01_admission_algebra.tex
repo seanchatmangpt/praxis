@@ -753,6 +753,100 @@ the logic layer even a denial carries its proof, so a bounded verifier can trust
 without re-running the search.
 \end{remark}
 
+\chapter{The Boundary Observation Algebra and the Domain Proposer}
+\label{ch:proposer}
+
+\section{Untrusted observations and the boundary}
+
+A subtle consequence of the admission algebra is that observations arriving from outside a
+system boundary carry no authority by default. The \code{praxis-proposer} crate formalizes
+this by distinguishing two regimes.
+
+\begin{definition}[Observation authority]\label{def:obsauth}
+Let $\Obs$ be the raw observation space (Axiom~\ref{ax:refusal}). An observation
+$o\in\Obs$ is \emph{authoritative} ($o\in\Obs^{*}$) if it was produced by an admitted
+actuation with a chained receipt --- equivalently, if it carries a committed payload digest
+inside an \code{OcelCausalFrame}. All other observations are \emph{untrusted}
+($o\in\Obs\setminus\Obs^{*}$). The proposer's admission map $\adm_{\mathrm{prop}}$ retracts
+$\Obs$ onto $\Adm_{\mathrm{prop}}$ by treating every inbound observation as untrusted until
+its receipt chain satisfies the obligation battery $G_{\mathrm{prop}}$.
+\end{definition}
+
+\begin{proposition}[Proposer boundary separation]\label{prop:boundary}
+Under Definition~\ref{def:obsauth}, the \code{praxis-proposer} enforces the invariant
+$\im\muop_{\mathrm{prop}} \subseteq \Adm_{\mathrm{prop}}$: no proposal is manufactured from
+an unadmitted observation. Operationally, the generic \code{Domain<D>} proposer evaluates
+its \code{Obligation} battery on every inbound record before calling
+\code{Admit::admit}; a record that fails any obligation is refused with its denial word and
+never reaches the manufacturing step.
+\end{proposition}
+
+\begin{proof}
+The \code{Domain} struct holds a \code{Law<Obligation>} attached to its typed domain
+\code{D}. Proposing calls \code{judge} then \code{admit} in sequence (the lifecycle arrows
+$j,a$ of the foundations paper). An \code{Andon::Halted} on either step returns the
+\code{Err} branch with its denial word; the manufacturing step (\code{D::manufacture}) is
+unreachable from the \code{Err} branch. Hence $\im\muop_{\mathrm{prop}}$ is contained in
+\code{Admitted} objects, elements of $\Adm_{\mathrm{prop}}$.
+\end{proof}
+
+\section{Maximum Reachable Revenue: additive separation over accounts}
+
+\begin{definition}[Maximum Reachable Revenue]\label{def:mrr}
+Let $A$ be a set of client accounts. For each $a\in A$, let
+$\mathrm{lawful\_targets}(a)$ be the evidence-gated target stages for account $a$, and let
+$\mathrm{realized}(a, s)$ be the revenue function under target stage $s$. The
+\emph{Maximum Reachable Revenue} (MRR) of the fleet is
+\[
+\mathrm{MRR}\;=\;\max_{\text{plan}}\sum_{a\in A}\mathrm{realized}(a)\;.
+\]
+\end{definition}
+
+\begin{theorem}[MRR additively separates over independent accounts]\label{thm:mrrsep}
+If the accounts in $A$ are independent --- no account's target stages share resources or
+evidence with another's --- then
+\[
+\mathrm{MRR}\;=\;\sum_{a\in A}\max_{s\in\mathrm{lawful\_targets}(a)}\mathrm{realized}(a,s)\;,
+\]
+reducing the joint plan search from exponential
+($\prod_{a}|\mathrm{lawful\_targets}(a)|$) to linear
+($\sum_{a}|\mathrm{lawful\_targets}(a)|$).
+\end{theorem}
+
+\begin{proof}
+Independence means the feasibility of account $a$'s targets is unaffected by the targets
+of any $b\neq a$. Hence the joint optimization $\max_{\text{joint}}\sum_a r(a)$ decomposes
+into $\sum_a\max_{s_a} r(a, s_a)$ by linearity of the sum and independence of the maxima.
+In \code{praxis-proposer} this is realized in \code{mrr.rs}: \code{compute\_mrr} iterates
+over accounts, calls \code{max\_realized\_revenue(a)} for each, and sums the per-account
+maxima. No cross-account joint optimization is performed.
+\end{proof}
+
+\begin{corollary}[Boundary independence is the MRR precondition]\label{cor:mrrindep}
+Theorem~\ref{thm:mrrsep} holds exactly when no obligation in $G_{\mathrm{prop}}$ couples
+distinct accounts (e.g.\ a shared authority token or a mutually exclusive resource). If
+such coupling exists, the proposer's obligation battery must be extended with a
+\code{BlockingConstraint} on the shared resource, which by Theorem~\ref{thm:mono} only
+tightens the admitted set and preserves the denial algebra.
+\end{corollary}
+
+\begin{proof}
+Immediate from Theorem~\ref{thm:mono}: adding an obligation enlarges denial and shrinks
+admission. With the extended battery the coupled accounts are refused by the coupling
+constraint and the remaining independent ones decompose additively as before.
+\end{proof}
+
+\begin{remark}[The generic \code{Domain<D>} proposer]
+The \code{Domain} struct in \code{praxis-proposer} is a generic adapter parameterized by
+\code{DomainSpec}, a sealed trait that supplies the domain's typed observation schema and
+\code{manufacture}. Any domain (revenue, scheduling, compliance) inherits the full denial
+algebra of Chapters~\ref{ch:sl}--\ref{ch:proof} for free: its refusals compose under
+\code{DenialPolarity}, are classified by \code{RefusalCategory}, and are swept byte-parallel
+across a fleet. The MRR theorem (Theorem~\ref{thm:mrrsep}) is the domain-neutral
+consequence of this inheritance: account-level independence is a structural claim about the
+obligation battery, independent of what the domain manufactures.
+\end{remark}
+
 \chapter{Conclusion}
 \label{ch:concl}
 
