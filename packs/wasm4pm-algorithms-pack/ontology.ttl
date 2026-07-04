@@ -1,0 +1,268 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix pi:   <https://wasm4pm.dev/pi#> .
+
+# wasm4pm-algorithms-pack ontology — CATALOG/CALLER surface for the wasm4pm
+# process-intelligence algorithm layer.
+#
+# Vocabulary and instances are carried over from the authoritative sources:
+#   wasm4pm/ggen/ontology-algorithms/algorithm-vocabulary.ttl (vocabulary)
+#   wasm4pm/ggen/ontology/algorithms.ttl                       (60 instances)
+# This pack bundles a representative 14-instance subset spanning discovery,
+# conformance, prediction, and simulation. IRIs, labels, citations, and
+# wasmExport names are preserved EXACTLY.
+#
+# DERIVED PROPERTIES (never asserted here, by design):
+#   pi:algorithmStatus / pi:standing / pi:measuredFitness / pi:piAdmitted /
+#   pi:fitnessProvenance — CONSTRUCT-derived from evidence in wasm4pm.
+# This pack generates catalog surfaces only; evidence/witness vocabulary
+# belongs to the wasm4pm-compat family.
+
+# ── Vocabulary (self-contained) ─────────────────────────────────────────────
+
+pi:ProcessIntelligenceAlgorithm a rdfs:Class ;
+  rdfs:label "ProcessIntelligenceAlgorithm" ;
+  rdfs:comment "A registered process mining algorithm in the wasm4pm platform, with paper-grounded evidence and WASM export metadata." .
+
+pi:algorithmId a rdf:Property ;
+  rdfs:domain pi:ProcessIntelligenceAlgorithm ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Canonical snake_case algorithm identifier — matches Rust enum id() and TypeScript AlgorithmId." .
+
+pi:algorithmLabel a rdf:Property ;
+  rdfs:domain pi:ProcessIntelligenceAlgorithm ;
+  rdfs:range xsd:string ;
+  rdfs:comment "PascalCase label used as Rust enum variant name (e.g. 'AlphaPlusPlus')." .
+
+pi:algorithmDoc a rdf:Property ;
+  rdfs:domain pi:ProcessIntelligenceAlgorithm ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Human-readable description of what the algorithm computes and its primary use case." .
+
+pi:citation a rdf:Property ;
+  rdfs:domain pi:ProcessIntelligenceAlgorithm ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Bibliographic reference to the primary paper introducing or canonically describing this algorithm." .
+
+pi:outputType a rdf:Property ;
+  rdfs:domain pi:ProcessIntelligenceAlgorithm ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Primary artifact type produced: dfg | petrinet | declare | tree | analytics | ml_result | model." .
+
+pi:category a rdf:Property ;
+  rdfs:domain pi:ProcessIntelligenceAlgorithm ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Functional category: discovery | discovery_analytics | object_centric | ml_analytics | conformance | simulation | prediction | import_export | agentic." .
+
+pi:speedTier a rdf:Property ;
+  rdfs:domain pi:ProcessIntelligenceAlgorithm ;
+  rdfs:range xsd:integer ;
+  rdfs:comment "Relative throughput rank 1-80 (lower = faster, 1 = fastest)." .
+
+pi:qualityTier a rdf:Property ;
+  rdfs:domain pi:ProcessIntelligenceAlgorithm ;
+  rdfs:range xsd:integer ;
+  rdfs:comment "Model quality rank 0-100 (higher = more faithful to the process). Orthogonal to speed." .
+
+pi:wasmExport a rdf:Property ;
+  rdfs:domain pi:ProcessIntelligenceAlgorithm ;
+  rdfs:range xsd:string ;
+  rdfs:comment "WASM-exported function name callable from TypeScript. Empty string if no direct WASM export." .
+
+pi:cliAlias a rdf:Property ;
+  rdfs:domain pi:ProcessIntelligenceAlgorithm ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Optional CLI alias string for wpm run (e.g. 'dfg'). Omit entirely when no alias exists." .
+
+pi:inputFormat a rdf:Property ;
+  rdfs:domain pi:ProcessIntelligenceAlgorithm ;
+  rdfs:range xsd:string ;
+  rdfs:comment "Required input format: xes | ocel | bpmn | pnml | petri_net_handle | any." .
+
+# ── Instances: DISCOVERY (6 of 20) ──────────────────────────────────────────
+
+pi:Algo_dfg a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "dfg" ;
+  pi:algorithmLabel "Dfg" ;
+  pi:algorithmDoc   "Directly-Follows Graph — fastest baseline discovery, counting how often one activity directly follows another. Serves as input to most other discovery algorithms." ;
+  pi:citation       "van der Aalst, W.M.P. (2016). Process Mining: Data Science in Action (2nd ed.). Springer." ;
+  pi:outputType     "dfg" ;
+  pi:category       "discovery" ;
+  pi:speedTier      "1"^^xsd:integer ;
+  pi:qualityTier    "30"^^xsd:integer ;
+  pi:wasmExport     "discover_dfg" ;
+  pi:cliAlias       "dfg" ;
+  pi:inputFormat    "xes" .
+
+pi:Algo_inductive_miner a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "inductive_miner" ;
+  pi:algorithmLabel "InductiveMiner" ;
+  pi:algorithmDoc   "Inductive Miner — recursively discovers a sound, block-structured process tree from the event log by detecting cut types (sequence, parallel, choice, loop)." ;
+  pi:citation       "Leemans, S.J.J., Fahland, D., & van der Aalst, W.M.P. (2013). Discovering Block-Structured Process Models from Event Logs. Petri Nets 2013, LNCS 7927. Springer." ;
+  pi:outputType     "tree" ;
+  pi:category       "discovery" ;
+  pi:speedTier      "10"^^xsd:integer ;
+  pi:qualityTier    "85"^^xsd:integer ;
+  pi:wasmExport     "discover_inductive_miner" ;
+  pi:cliAlias       "inductive" ;
+  pi:inputFormat    "xes" .
+
+pi:Algo_alpha_plus_plus a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "alpha_plus_plus" ;
+  pi:algorithmLabel "AlphaPlusPlus" ;
+  pi:algorithmDoc   "Alpha++ miner — extends the original Alpha algorithm to handle length-one and length-two loops, producing a Petri net from the directly-follows footprint matrix." ;
+  pi:citation       "van der Aalst, W.M.P., Weijters, T., & Maruster, L. (2004). Workflow Mining: Discovering Process Models from Event Logs. IEEE TKDE, 16(9), 1128-1142." ;
+  pi:outputType     "petrinet" ;
+  pi:category       "discovery" ;
+  pi:speedTier      "5"^^xsd:integer ;
+  pi:qualityTier    "50"^^xsd:integer ;
+  pi:wasmExport     "discover_alpha_plus_plus" ;
+  pi:cliAlias       "alpha" ;
+  pi:inputFormat    "xes" .
+
+pi:Algo_heuristic_miner a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "heuristic_miner" ;
+  pi:algorithmLabel "HeuristicMiner" ;
+  pi:algorithmDoc   "Heuristics Miner — uses dependency measures to filter noise before constructing a causal net. Dependency threshold controls filtering aggressiveness." ;
+  pi:citation       "Weijters, A.J.M.M., & van der Aalst, W.M.P. (2006). Process Mining with the HeuristicsMiner Algorithm. BETA Working Paper WP 166, Eindhoven University of Technology." ;
+  pi:outputType     "petrinet" ;
+  pi:category       "discovery" ;
+  pi:speedTier      "8"^^xsd:integer ;
+  pi:qualityTier    "70"^^xsd:integer ;
+  pi:wasmExport     "discover_heuristic_miner" ;
+  pi:cliAlias       "heuristic" ;
+  pi:inputFormat    "xes" .
+
+pi:Algo_declare a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "declare" ;
+  pi:algorithmLabel "Declare" ;
+  pi:algorithmDoc   "Declarative constraint mining using LTL-based temporal logic — discovers existence, response, and precedence constraints rather than a procedural model." ;
+  pi:citation       "Pesic, M., & van der Aalst, W.M.P. (2006). A Declarative Approach for Flexible Business Processes. BPM 2006 Workshops, LNCS 4103. Springer." ;
+  pi:outputType     "declare" ;
+  pi:category       "discovery" ;
+  pi:speedTier      "20"^^xsd:integer ;
+  pi:qualityTier    "80"^^xsd:integer ;
+  pi:wasmExport     "discover_declare" ;
+  pi:cliAlias       "declare" ;
+  pi:inputFormat    "xes" .
+
+pi:Algo_ilp a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "ilp" ;
+  pi:algorithmLabel "Ilp" ;
+  pi:algorithmDoc   "ILP Miner — solves an integer linear programming problem to find a Petri net fitting the directly-follows relations; produces high-precision sound models." ;
+  pi:citation       "van der Aalst, W.M.P. (2016). Process Mining: Data Science in Action (2nd ed.). Springer." ;
+  pi:outputType     "petrinet" ;
+  pi:category       "discovery" ;
+  pi:speedTier      "40"^^xsd:integer ;
+  pi:qualityTier    "90"^^xsd:integer ;
+  pi:wasmExport     "discover_ilp_petri_net" ;
+  pi:cliAlias       "ilp" ;
+  pi:inputFormat    "xes" .
+
+# ── Instances: CONFORMANCE (3 of 4) ─────────────────────────────────────────
+
+pi:Algo_alignments a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "alignments" ;
+  pi:algorithmLabel "Alignments" ;
+  pi:algorithmDoc   "Alignment-based conformance checking — synchronously replays each trace on the Petri net, computing optimal alignment cost using A* over the synchronous product automaton." ;
+  pi:citation       "van der Aalst, W.M.P., Adriansyah, A., & van Dongen, B.F. (2012). Replaying History on Process Models for Conformance Checking. WIREs DMKD, 2(2), 182-192." ;
+  pi:outputType     "analytics" ;
+  pi:category       "conformance" ;
+  pi:speedTier      "25"^^xsd:integer ;
+  pi:qualityTier    "95"^^xsd:integer ;
+  pi:wasmExport     "compute_alignments" ;
+  pi:cliAlias       "alignment" ;
+  pi:inputFormat    "xes" .
+
+pi:Algo_etconformance_precision a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "etconformance_precision" ;
+  pi:algorithmLabel "EtconformancePrecision" ;
+  pi:algorithmDoc   "ETConformance precision — measures how much of the model's behaviour is actually observed in the log using escaping-edges token-based precision." ;
+  pi:citation       "Munoz-Gama, J., & Carmona, J. (2010). A Fresh Look at Precision in Process Conformance. BPM 2010, LNCS 6336. Springer." ;
+  pi:outputType     "analytics" ;
+  pi:category       "conformance" ;
+  pi:speedTier      "20"^^xsd:integer ;
+  pi:qualityTier    "92"^^xsd:integer ;
+  pi:wasmExport     "compute_align_etconformance_precision" ;
+  pi:cliAlias       "etconformance" ;
+  pi:inputFormat    "petri_net_handle" .
+
+pi:Algo_generalization a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "generalization" ;
+  pi:algorithmLabel "Generalization" ;
+  pi:algorithmDoc   "Van der Aalst generalization score — measures how well the model generalises beyond the observed log by penalising infrequently visited transitions." ;
+  pi:citation       "Buijs, J.C.A.M., van Dongen, B.F., & van der Aalst, W.M.P. (2012). On the Role of Fitness, Precision, Generalization and Simplicity in Process Discovery. CoopIS 2012, LNCS 7565. Springer." ;
+  pi:outputType     "analytics" ;
+  pi:category       "conformance" ;
+  pi:speedTier      "20"^^xsd:integer ;
+  pi:qualityTier    "90"^^xsd:integer ;
+  pi:wasmExport     "generalization" ;
+  pi:cliAlias       "generalization" ;
+  pi:inputFormat    "petri_net_handle" .
+
+# ── Instances: PREDICTION (3 of 5) ──────────────────────────────────────────
+
+pi:Algo_predict_next_activity a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "predict_next_activity" ;
+  pi:algorithmLabel "PredictNextActivity" ;
+  pi:algorithmDoc   "Next-activity prediction from trace prefix — encodes the trace prefix as a feature vector and predicts the most likely next activity." ;
+  pi:citation       "Teinemaa, I., Dumas, M., Rosa, M.L., & Maggi, F.M. (2019). Outcome-Oriented Predictive Process Monitoring. ACM TKDD, 13(2), Article 17." ;
+  pi:outputType     "ml_result" ;
+  pi:category       "prediction" ;
+  pi:speedTier      "30"^^xsd:integer ;
+  pi:qualityTier    "80"^^xsd:integer ;
+  pi:wasmExport     "predict_next_activity" ;
+  pi:inputFormat    "xes" .
+
+pi:Algo_predict_remaining_time a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "predict_remaining_time" ;
+  pi:algorithmLabel "PredictRemainingTime" ;
+  pi:algorithmDoc   "Remaining time prediction from trace prefix — estimates time until case completion using a regression model trained on completed cases." ;
+  pi:citation       "Teinemaa, I., Dumas, M., Rosa, M.L., & Maggi, F.M. (2019). Outcome-Oriented Predictive Process Monitoring. ACM TKDD, 13(2), Article 17." ;
+  pi:outputType     "ml_result" ;
+  pi:category       "prediction" ;
+  pi:speedTier      "32"^^xsd:integer ;
+  pi:qualityTier    "85"^^xsd:integer ;
+  pi:wasmExport     "predict_case_duration" ;
+  pi:inputFormat    "xes" .
+
+pi:Algo_detect_drift a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "detect_drift" ;
+  pi:algorithmLabel "DetectDrift" ;
+  pi:algorithmDoc   "Concept drift detection — applies statistical change-point tests (ADWIN, Page-Hinkley) to a sliding window to detect when the underlying process has changed." ;
+  pi:citation       "Bose, R.P.J.C., van der Aalst, W.M.P., Zliobaite, I., & Pechenizkiy, M. (2011). Handling Concept Drift in Process Mining. CAiSE 2011, LNCS 6741. Springer." ;
+  pi:outputType     "analytics" ;
+  pi:category       "prediction" ;
+  pi:speedTier      "25"^^xsd:integer ;
+  pi:qualityTier    "82"^^xsd:integer ;
+  pi:wasmExport     "detect_drift" ;
+  pi:inputFormat    "xes" .
+
+# ── Instances: SIMULATION (2 of 2) ──────────────────────────────────────────
+
+pi:Algo_monte_carlo_simulation a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "monte_carlo_simulation" ;
+  pi:algorithmLabel "MonteCarloSimulation" ;
+  pi:algorithmDoc   "Monte Carlo simulation from discovered model — samples synthetic traces from empirical transition probability distribution to estimate throughput time distributions." ;
+  pi:citation       "van der Aalst, W.M.P. (2016). Process Mining: Data Science in Action (2nd ed.). Springer." ;
+  pi:outputType     "analytics" ;
+  pi:category       "simulation" ;
+  pi:speedTier      "35"^^xsd:integer ;
+  pi:qualityTier    "78"^^xsd:integer ;
+  pi:wasmExport     "monte_carlo_simulation" ;
+  pi:cliAlias       "montecarlo" ;
+  pi:inputFormat    "xes" .
+
+pi:Algo_playout a pi:ProcessIntelligenceAlgorithm ;
+  pi:algorithmId    "playout" ;
+  pi:algorithmLabel "Playout" ;
+  pi:algorithmDoc   "Stochastic playout from Petri net — generates synthetic event logs by firing enabled transitions according to stochastic weights until all tokens reach the final marking." ;
+  pi:citation       "van der Aalst, W.M.P. (2016). Process Mining: Data Science in Action (2nd ed.). Springer." ;
+  pi:outputType     "analytics" ;
+  pi:category       "simulation" ;
+  pi:speedTier      "30"^^xsd:integer ;
+  pi:qualityTier    "80"^^xsd:integer ;
+  pi:wasmExport     "petri_net_playout" ;
+  pi:cliAlias       "playout" ;
+  pi:inputFormat    "xes" .

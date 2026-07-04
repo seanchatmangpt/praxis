@@ -468,3 +468,175 @@ fn praxis_core_pack_syncs() {
     let lock2 = std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock idem");
     assert_eq!(lock, lock2, "ggen.lock must be byte-identical across identical runs");
 }
+
+/// wasm4pm-cognition-pack: `compat:CognitionBreed` individuals in the pack
+/// ontology precipitate a typed breed catalog (`src/w4pm_cognition_catalog.rs`)
+/// and a per-breed dispatch-surface skeleton over the stable 6-verb ABI
+/// (`src/w4pm_cognition_dispatch.rs`); sync is idempotent and
+/// `ggen graph validate` passes.
+#[test]
+fn wasm4pm_cognition_pack_syncs() {
+    let (_dir, project) = scaffold_pack_project("wasm4pm-cognition-pack");
+
+    // (1) First sync via the real binary succeeds.
+    CliHarness::cargo_bin("ggen")
+        .args(["sync", "run"])
+        .current_dir(&project)
+        .run()
+        .expect("run sync")
+        .assert_success();
+
+    // (2) Catalog landed where such code lives (src/), no generated/ dir,
+    // with values only the pack ontology's breed instances could produce.
+    assert!(!project.join("generated").exists(), "no generated/ dir allowed");
+    let catalog_path = project.join("src/w4pm_cognition_catalog.rs");
+    assert!(catalog_path.is_file(), "pack must write src/w4pm_cognition_catalog.rs");
+    let catalog = std::fs::read_to_string(&catalog_path).expect("catalog.rs");
+    assert!(catalog.contains("pub enum CognitionBreedId"), "{catalog}");
+    assert!(catalog.contains("pub const BREED_CATALOG"), "{catalog}");
+    assert!(catalog.contains("pub fn from_breed_id(s: &str) -> Option<CognitionBreedId>"), "{catalog}");
+    // Distinctive breed citation flowed verbatim from the ontology.
+    assert!(
+        catalog.contains("Fikes, R. E., & Nilsson, N. J. (1971). STRIPS"),
+        "STRIPS citation must flow from the ontology: {catalog}"
+    );
+    for variant in ["Strips", "Gps", "HtnPlanning", "PartialOrderPlan", "Prolog",
+                    "BayesianNetwork", "DempsterShafer", "FuzzyLogic", "Mycin",
+                    "Eliza", "Soar", "ActR", "Hearsay"] {
+        assert!(catalog.contains(variant), "catalog missing breed {variant}");
+    }
+    // breedStatus is CONSTRUCT-derived by design and must never surface here.
+    assert!(!catalog.contains("breedStatus"), "{catalog}");
+
+    // Dispatch skeleton: one documented stub per breed delegating to the
+    // single hand-completable helper.
+    let dispatch_path = project.join("src/w4pm_cognition_dispatch.rs");
+    assert!(dispatch_path.is_file(), "pack must write src/w4pm_cognition_dispatch.rs");
+    let dispatch = std::fs::read_to_string(&dispatch_path).expect("dispatch.rs");
+    assert!(
+        dispatch.contains("pub fn dispatch_cognition_run(breed_id: &str, input_json: &str) -> Result<String, String>"),
+        "{dispatch}"
+    );
+    assert!(dispatch.contains("pub fn run_strips(input_json: &str) -> Result<String, String>"), "{dispatch}");
+    assert!(dispatch.contains("dispatch_cognition_run(\"dempster_shafer\", input_json)"), "{dispatch}");
+    assert!(
+        dispatch.contains("Shafer, G. (1976). A Mathematical Theory of Evidence."),
+        "Dempster–Shafer citation must flow into the stub doc: {dispatch}"
+    );
+    assert!(dispatch.contains("`cognition_run`"), "6-verb ABI reference missing: {dispatch}");
+
+    // (3) ggen.lock records the pack by name with a blake3 hash.
+    let lock = std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock");
+    assert!(lock.contains("[packs.wasm4pm-cognition-pack]"), "lock: {lock}");
+    assert!(lock.contains("content_hash = \"blake3:"), "lock: {lock}");
+
+    // (4) Static lints pass on the project (pack templates included).
+    CliHarness::cargo_bin("ggen")
+        .args(["graph", "validate"])
+        .current_dir(&project)
+        .run()
+        .expect("run graph validate")
+        .assert_success();
+
+    // (5) Second sync is idempotent: exit 0, outputs byte-identical.
+    let before = std::fs::read(&catalog_path).expect("catalog bytes");
+    CliHarness::cargo_bin("ggen")
+        .args(["sync", "run"])
+        .current_dir(&project)
+        .run()
+        .expect("second sync")
+        .assert_success();
+    assert_eq!(
+        std::fs::read(&catalog_path).expect("catalog bytes after"),
+        before,
+        "second sync must leave the catalog unchanged"
+    );
+    let lock2 = std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock 2");
+    assert_eq!(lock, lock2, "ggen.lock must be byte-identical across identical runs");
+}
+
+/// wasm4pm-algorithms-pack: `pi:ProcessIntelligenceAlgorithm` individuals
+/// (carried over from the wasm4pm algorithm ontology) precipitate a typed
+/// `src/w4pm_algorithms_catalog.rs` (AlgorithmId enum + const CATALOG +
+/// by_wasm_export lookup) and a `docs/w4pm_algorithms.md` reference table;
+/// sync is idempotent and `ggen graph validate` passes.
+#[test]
+fn wasm4pm_algorithms_pack_syncs() {
+    let (_dir, project) = scaffold_pack_project("wasm4pm-algorithms-pack");
+
+    // (1) First sync via the real binary succeeds.
+    CliHarness::cargo_bin("ggen")
+        .args(["sync", "run"])
+        .current_dir(&project)
+        .run()
+        .expect("run sync")
+        .assert_success();
+
+    // (2) The typed catalog landed where such code lives (src/), with
+    // content only the pack ontology's algorithm individuals could produce.
+    assert!(!project.join("generated").exists(), "no generated/ dir allowed");
+    let catalog_path = project.join("src/w4pm_algorithms_catalog.rs");
+    assert!(catalog_path.is_file(), "pack must write src/w4pm_algorithms_catalog.rs");
+    let catalog = std::fs::read_to_string(&catalog_path).expect("catalog.rs");
+    assert!(catalog.contains("pub enum AlgorithmId"), "{catalog}");
+    assert!(catalog.contains("InductiveMiner"), "{catalog}");
+    assert!(catalog.contains("EtconformancePrecision"), "{catalog}");
+    assert!(
+        catalog.contains("\"discover_inductive_miner\" => Some(AlgorithmId::InductiveMiner)"),
+        "by_wasm_export arm missing: {catalog}"
+    );
+    assert!(
+        catalog.contains("algorithm_id: \"predict_remaining_time\""),
+        "{catalog}"
+    );
+    assert!(
+        catalog.contains("wasm_export: \"predict_case_duration\""),
+        "wasm export names must be carried over exactly: {catalog}"
+    );
+    assert!(catalog.contains("pub fn by_wasm_export(export: &str)"), "{catalog}");
+
+    // The reference doc landed too, carrying real paper citations that can
+    // only have come from the ontology (e.g. the 2013 Inductive Miner paper).
+    let doc = std::fs::read_to_string(project.join("docs/w4pm_algorithms.md"))
+        .expect("algorithms doc");
+    assert!(
+        doc.contains(
+            "Leemans, S.J.J., Fahland, D., & van der Aalst, W.M.P. (2013). \
+             Discovering Block-Structured Process Models from Event Logs."
+        ),
+        "inductive miner citation missing: {doc}"
+    );
+    assert!(
+        doc.contains("Munoz-Gama, J., & Carmona, J. (2010)"),
+        "precision citation missing: {doc}"
+    );
+    for label in ["Dfg", "Alignments", "PredictNextActivity", "MonteCarloSimulation"] {
+        assert!(doc.contains(label), "doc missing {label}: {doc}");
+    }
+
+    // (3) ggen.lock records the pack by name with a blake3 hash.
+    let lock = std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock");
+    assert!(lock.contains("[packs.wasm4pm-algorithms-pack]"), "lock: {lock}");
+    assert!(lock.contains("content_hash = \"blake3:"), "lock: {lock}");
+
+    // (4) Static lints pass on the project (pack templates included).
+    CliHarness::cargo_bin("ggen")
+        .args(["graph", "validate"])
+        .current_dir(&project)
+        .run()
+        .expect("run graph validate")
+        .assert_success();
+
+    // (5) Second sync is idempotent: exit 0, outputs byte-identical.
+    let before = std::fs::read(&catalog_path).expect("catalog bytes");
+    CliHarness::cargo_bin("ggen")
+        .args(["sync", "run"])
+        .current_dir(&project)
+        .run()
+        .expect("second sync")
+        .assert_success();
+    let after = std::fs::read(&catalog_path).expect("catalog bytes after");
+    assert_eq!(before, after, "second sync must leave the catalog unchanged");
+    let lock2 = std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock 2");
+    assert_eq!(lock, lock2, "ggen.lock must be byte-identical across identical runs");
+}

@@ -21,6 +21,8 @@ const PACKS: &[(&str, &str)] = &[
     ("lsp-max-pack", "rules/lsp_max_lspmax_unwrap_001.toml"),
     ("praxis-core-pack", "src/praxis_core_refusal_table.rs"),
     ("star-toml-pack", "src/star_toml_config.rs"),
+    ("wasm4pm-algorithms-pack", "src/w4pm_algorithms_catalog.rs"),
+    ("wasm4pm-cognition-pack", "src/w4pm_cognition_catalog.rs"),
     ("wasm4pm-compat-pack", "src/wasm4pm_compat_events.rs"),
 ];
 
@@ -76,7 +78,7 @@ fn read_receipt(project: &Path) -> SyncReceipt {
 /// (0) Every expected framework pack must actually exist on disk with the
 /// full pack shape — this is the ground truth the matrix builds on.
 #[test]
-fn all_six_framework_packs_exist_on_disk() {
+fn all_eight_framework_packs_exist_on_disk() {
     for (name, _) in PACKS {
         let root = packs_dir().join(name);
         assert!(root.is_dir(), "pack missing: {}", root.display());
@@ -189,7 +191,7 @@ fn mega_project_all_packs_sync() {
     assert_eq!(lock_1, lock_2, "ggen.lock must be byte-identical across identical runs");
 }
 
-/// (2) PAIRWISE SUBSETS: all C(6,2) = 15 pairs in one test, each in a fresh
+/// (2) PAIRWISE SUBSETS: all C(8,2) = 28 pairs in one test, each in a fresh
 /// TempDir project with exactly those two packs, driven through the library
 /// `sync()` (fast — no subprocess). Exit Ok, both distinctive outputs
 /// present, lock has exactly those two pack names. Catches pair-specific

@@ -1,0 +1,131 @@
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix compat: <https://wasm4pm.dev/ns#> .
+
+# Cognition breed catalog surface for the wasm4pm platform.
+#
+# Vocabulary reused from wasm4pm/packs/wasm4pm-breeds-rust/ggen/ontology/
+# breed-vocabulary.ttl (self-contained compat:CognitionBreed class + predicates,
+# purpose-built for pack redistribution). Instances carried over verbatim from
+# wasm4pm/ggen/ontology/breeds.ttl (16 of 55 representative breeds spanning
+# planning, reasoning, uncertainty, and classic-systems families).
+#
+# breedStatus is NEVER asserted here — it is CONSTRUCT-derived from evidence
+# via the alive-gate in wasm4pm. This pack generates catalog/caller surfaces
+# only; evidence, witnesses, and receipts belong to the compat family.
+
+compat:CognitionBreed a rdfs:Class ;
+  rdfs:comment "A registered cognition algorithm breed in the wasm4pm platform." .
+
+compat:breedId    a rdf:Property ; rdfs:domain compat:CognitionBreed ; rdfs:range xsd:string .
+compat:breedLabel a rdf:Property ; rdfs:domain compat:CognitionBreed ; rdfs:range xsd:string .
+compat:breedDoc   a rdf:Property ; rdfs:domain compat:CognitionBreed ; rdfs:range xsd:string .
+compat:citation   a rdf:Property ; rdfs:domain compat:CognitionBreed ; rdfs:range xsd:string .
+compat:modulePath a rdf:Property ; rdfs:domain compat:CognitionBreed ; rdfs:range xsd:string .
+
+# ---- Planning family ----
+
+compat:Breed_strips a compat:CognitionBreed ;
+  compat:breedId    "strips" ;
+  compat:breedLabel "Strips" ;
+  compat:breedDoc   "STRIPS-style precondition-based planner with iterative deepening goal-regression search (Fikes & Nilsson 1971)." ;
+  compat:citation   "Fikes, R. E., & Nilsson, N. J. (1971). STRIPS: A new approach to the application of theorem proving to problem solving. Artificial Intelligence, 2(3–4), 189–208." .
+
+compat:Breed_gps a compat:CognitionBreed ;
+  compat:breedId    "gps" ;
+  compat:breedLabel "Gps" ;
+  compat:breedDoc   "GPS (General Problem Solver) — means-ends gap reduction (Newell & Shaw 1963)." ;
+  compat:citation   "A. Newell and H. A. Simon, \"GPS, A Program That Simulates Human Thought,\" RAND Corporation, P-2257, March 30, 1961 (Revised April 10, 1961). Presented at the Conference on Learning Automata, Karlsruhe, Germany, April 11–14, 1961." .
+
+compat:Breed_htn_planning a compat:CognitionBreed ;
+  compat:breedId    "htn_planning" ;
+  compat:breedLabel "HtnPlanning" ;
+  compat:breedDoc   "HTN planning — SHOP2-style total-order decomposition (Nau et al." ;
+  compat:citation   "Nau, D., Au, T.-C., Ilghami, O., Kuter, U., Murdock, J. W., Wu, D., & Yaman, F. (2003). SHOP2: An HTN Planning System. Journal of Artificial Intelligence Research, 20, 379-404." .
+
+compat:Breed_partial_order_plan a compat:CognitionBreed ;
+  compat:breedId    "partial_order_plan" ;
+  compat:breedLabel "PartialOrderPlan" ;
+  compat:breedDoc   "SNLP partial-order planning (McAllester & Rosenblitt, 'Systematic Nonlinear Planning', AAAI 1991)." ;
+  compat:citation   "McAllester, D., & Rosenblitt, D. (1991). Systematic Nonlinear Planning. In: Proceedings of the Ninth National Conference on Artificial Intelligence (AAAI-91), pp. 634–639." .
+
+# ---- Reasoning family ----
+
+compat:Breed_prolog a compat:CognitionBreed ;
+  compat:breedId    "prolog" ;
+  compat:breedLabel "Prolog" ;
+  compat:breedDoc   "Breed: Prolog — flat-term Robinson unification over positional ?N variables." ;
+  compat:citation   "Kowalski, R. A. (1974). Predicate logic as programming language. IFIP Congress 74, Stockholm, pp. 569–574." .
+
+compat:Breed_default_logic a compat:CognitionBreed ;
+  compat:breedId    "default_logic" ;
+  compat:breedLabel "DefaultLogic" ;
+  compat:breedDoc   "Default logic — Reiter 1980 (normal defaults with justifications)." ;
+  compat:citation   "Reiter, R. (1980). A Logic for Default Reasoning. Artificial Intelligence, 13(1-2), 81-132." .
+
+compat:Breed_circumscription a compat:CognitionBreed ;
+  compat:breedId    "circumscription" ;
+  compat:breedLabel "Circumscription" ;
+  compat:breedDoc   "Predicate circumscription via minimal-model enumeration (McCarthy 1980)." ;
+  compat:citation   "McCarthy, J. (1980). Artificial Intelligence, 13(1-2), 27-39." .
+
+compat:Breed_description_logic a compat:CognitionBreed ;
+  compat:breedId    "description_logic" ;
+  compat:breedLabel "DescriptionLogic" ;
+  compat:breedDoc   "Description Logic: EL completion-rule classification (Baader, Brandt & Lutz, 'Pushing the EL Envelope', IJCAI 2005)." ;
+  compat:citation   "Baader, F., Brandt, S., & Lutz, C. (2005). Pushing the EL Envelope. In: Proceedings of the 19th International Joint Conference on Artificial Intelligence (IJCAI 2005), pp. 364–369." .
+
+# ---- Uncertainty family ----
+
+compat:Breed_bayesian_network a compat:CognitionBreed ;
+  compat:breedId    "bayesian_network" ;
+  compat:breedLabel "BayesianNetwork" ;
+  compat:breedDoc   "Bayesian network inference — Pearl 1988." ;
+  compat:citation   "Pearl, J. (1988). Probabilistic Reasoning in Intelligent Systems: Networks of Plausible Inference. Morgan Kaufmann." .
+
+compat:Breed_dempster_shafer a compat:CognitionBreed ;
+  compat:breedId    "dempster_shafer" ;
+  compat:breedLabel "DempsterShafer" ;
+  compat:breedDoc   "Dempster–Shafer theory of evidence — Shafer 1976." ;
+  compat:citation   "Shafer, G. (1976). A Mathematical Theory of Evidence. Princeton University Press." .
+
+compat:Breed_fuzzy_logic a compat:CognitionBreed ;
+  compat:breedId    "fuzzy_logic" ;
+  compat:breedLabel "FuzzyLogic" ;
+  compat:breedDoc   "Mamdani fuzzy inference — Mamdani & Assilian 1975 (Zadeh 1965 sets)." ;
+  compat:citation   "Mamdani, E. H., & Assilian, S. (1975). An Experiment in Linguistic Synthesis with a Fuzzy Logic Controller. International Journal of Man-Machine Studies, 7(1), 1-13." .
+
+# ---- Classic systems family ----
+
+compat:Breed_mycin a compat:CognitionBreed ;
+  compat:breedId    "mycin" ;
+  compat:breedLabel "Mycin" ;
+  compat:breedDoc   "MYCIN-style forward-chaining rule engine with Shortliffe-Buchanan certainty-factor combination (Shortliffe 1976)." ;
+  compat:modulePath "production_rules" ;
+  compat:citation   "Shortliffe, E. H., & Buchanan, B. G. (1975). A model of inexact reasoning in medicine. Mathematical Biosciences, 23(3–4), 351–379. Reprinted as Chapter 11 in: Buchanan, B. G., & Shortliffe, E. H. (Eds.), Rule-Based Expert Systems. Addison-Wesley, 1984." .
+
+compat:Breed_eliza a compat:CognitionBreed ;
+  compat:breedId    "eliza" ;
+  compat:breedLabel "Eliza" ;
+  compat:breedDoc   "ELIZA-style frame/pattern matching with pronoun reflection (Weizenbaum 1966)." ;
+  compat:modulePath "frame" ;
+  compat:citation   "Weizenbaum, J. (1966). ELIZA—A computer program for the study of natural language communication between man and machine. Communications of the ACM, 9(1), 36–45. https://doi.org/10.1145/365153.365168" .
+
+compat:Breed_soar a compat:CognitionBreed ;
+  compat:breedId    "soar" ;
+  compat:breedLabel "Soar" ;
+  compat:breedDoc   "SOAR-style preference-based operator selection with impasse detection and bounded subgoaling (Laird 1987)." ;
+  compat:citation   "Laird, J. E., Newell, A., & Rosenbloom, P. S. (1987). Soar: An architecture for general intelligence. Artificial Intelligence, 33(1), 1–64. https://doi.org/10.1016/0004-3702(87)90050-6" .
+
+compat:Breed_act_r a compat:CognitionBreed ;
+  compat:breedId    "act_r" ;
+  compat:breedLabel "ActR" ;
+  compat:breedDoc   "ACT-R production cycle with declarative retrieval by activation (Anderson & Lebiere 1998, *The Atomic Components of Thought*)." ;
+  compat:citation   "Anderson, J. R., & Lebiere, C. (1998). Lawrence Erlbaum Associates. Chapter 3 (the activation equation A_i = B_i + Σ_j W_j·S_ji) and Chapter 9 (cognitive arithmetic: retrieval of addition facts)." .
+
+compat:Breed_hearsay a compat:CognitionBreed ;
+  compat:breedId    "hearsay" ;
+  compat:breedLabel "Hearsay" ;
+  compat:breedDoc   "Hearsay-II blackboard architecture with knowledge-source consensus fusion via noisy-OR (Erman & Lesser 1980)." ;
+  compat:citation   "Erman, L. D., Hayes-Roth, F., Lesser, V. R., and Reddy, D. R. (1980). The Hearsay-II speech-understanding system: Integrating knowledge to resolve uncertainty. ACM Computing Surveys, 12(2), 213–253." .
