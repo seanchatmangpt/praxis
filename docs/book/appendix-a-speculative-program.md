@@ -1,0 +1,45 @@
+# Appendix A — The Speculative Program
+
+> **This chapter is argument, not documentation.** Every other chapter in this book cites a file and a line number for a claim about what ships today. Nothing below does that, because nothing below describes shipped behavior. The five documents linked here are a dissertation prospectus, a forward-looking PRD/ADR, and three pieces of speculative nonfiction set in 2026 and 2030. They argue for a research program and dramatize its consequences; they do not describe the `ggen` binary you can build and run from this repository. Read them as such.
+
+## Why this chapter exists
+
+The rest of this book is grounded in `crates/*/src` and can point at a line. The documents below are grounded in an argument — the Chatman Equation, `A = μ(O)`, and its claim that authority in agent-built software must be recomputable rather than remembered. That argument motivates real, shipped mechanisms (packs, receipts, the sync pipeline) described earlier in this book. But the documents themselves reach past what is built, into formal generalizations, market projections, and a four-year retrospective on adoption that has not happened. Collecting them here, clearly labeled, keeps that reach from leaking into the descriptive chapters.
+
+One disambiguation before the list: `docs/VISION_2030_PRD.md` (no relative-path prefix, all-caps filename) is a **different document** from `../vision-2030-prd-adr.md` linked below. `VISION_2030_PRD.md` is a PRD for **Praxis Capability Physics** — a proof-of-lawful-execution system for AI agents, unrelated to `ggen`'s pack/receipt mechanism. It is not one of the five documents this chapter covers; it is flagged here only so a reader who encounters both similarly-named files in `docs/` does not conflate them.
+
+## The five documents
+
+### 1. The Chatman Equation — dissertation prospectus
+
+[`../chatman-equation-phd-thesis.md`](../chatman-equation-phd-thesis.md)
+
+This is a dissertation prospectus, not a finished thesis or a spec. Its abstract argues that the binding constraint on LLM-agent software construction is context loss, not model capability, and proposes an architectural response: correctness must be externalized into artifacts "cheaper to verify than to trust," formalized as `A = μ(O)` and its live-system extensions `Fₙ₊₁ = μ(O*, C*, P*, T*, Fₙ)` and `A ≅ O ≅ L`. It then reaches for an algebra (closure operators, delta groups, hash homomorphisms), a geometry (metric drift on graph space), and a calculus (deltas as differentiation, replay as integration) to back the equation formally. It is speculative rather than descriptive for two compounding reasons: it generalizes a working mechanism (this book's Chapters 2–4 describe the real `Delta`, `sync`, and receipt code) into claims about categories, metrics, and monoid homomorphisms that go well past what any test in this repository exercises; and its central empirical claim — that five independent systems "converged" on the same three-law immune system — is offered as a dissertation's evidentiary chapter, not as something this book's citation discipline can verify line-by-line against those other four systems' source.
+
+### 2. Vision 2030 — PRD / ADR
+
+[`../vision-2030-prd-adr.md`](../vision-2030-prd-adr.md)
+
+This document is explicitly dated: it opens by naming 2026 as done (engine, packs, lockfile, chained receipts, doctor, watch) and stakes everything from 2027 onward — a pack ecosystem and registry, ontology governance, cross-pack receipt federation, and a world where "unreceipted = unadmitted" — as roadmap, not shipped state. Its own rollout line says so directly. It is a PRD/ADR pairing: product requirements (P1–P4, with acceptance-style requirement IDs like R1.1, R2.3) sitting next to architecture decisions (AD-1 through AD-6), several of which are marked "implemented, falsifier-tested" against 2026-era work but others explicitly marked "2030-open" — meaning the decision itself has not yet been made. That mixture is exactly why it belongs in this appendix rather than the descriptive chapters: some sentences in it are past-tense and checkable against code, but the document as a whole is organized around success metrics for 2030 (≥80% receipted integration code, zero silent-drift incidents) that describe a target market state, not a measured one.
+
+### 3. Combinatorial Maximalism — thesis
+
+[`../combinatorial-maximalism-thesis.pdf`](../combinatorial-maximalism-thesis.pdf)
+
+Dated July 2026 on its title page, this thesis formalizes a narrower methodological claim: when a system's behavioral space is finite by construction (closed vocabularies, enumerated flags, discrete file states), correctness claims must be discharged by exhaustion over the *whole* space, never by sampling or narration. Its abstract cites concrete numbers — 144 write-discipline cells checked against a reference model, a pack-composition simplicial complex with `C(8,2) = 28` edges verified collision-free — and grounds its central theorem in three named incidents (a `GROUP_CONCAT` aggregate that was not a function of its inputs, a `force`-flag fixed point that held at the state level but not the annotation level, and an exhaustive matrix that predicted a defect before it was independently rediscovered). It is speculative rather than descriptive here because its *conclusion* — "exhaustion is cheaper than trust" as a general sociotechnical law of context-bounded construction — is a generalization argued from those three incidents, not a property this book's chapters test or cite line-by-line; the underlying incidents may be real engineering history, but the thesis's claim is about what that history proves in general, which is exactly the kind of extrapolation this book's citation rule is built to keep out of the main chapters.
+
+### 4. Receipted Projection at Scale — 2030 retrospective
+
+[`../receipted-projection-2030-retrospective.pdf`](../receipted-projection-2030-retrospective.pdf)
+
+This is written in the form of a retrospective looking back from 2030 on four years of enterprise deployment across banking, pharmaceutical manufacturing, telecommunications, aerospace, and insurance — none of which has happened at the time this book is written. Its abstract states its own method plainly: it "closes the loop" on a 2026 conjecture (that authority computed at every layer and claimed at none would become the default trust posture of industrial software) by narrating the loop as closed, complete with a claimed growth trajectory for the pack-composition complex from 8 vertices to registry scale (10⁴ packs) and a stated finding about what "the hardest migration" turned out to be. It is speculative rather than descriptive in the most direct way of any document in this set: it is dated four years in the future and reports on events, adoption figures, and organizational behavior that cannot yet have occurred. It reads as a retrospective because that is its literary device, not because it is reporting history.
+
+### 5. The Unspectacular Settlement — solar marketplace thesis
+
+[`solar-marketplace-2030-thesis.pdf`](../solar-marketplace-2030-thesis.pdf)
+
+Dated July 2030 and framed as "a nonfiction account, with the mathematics that made it boring," this document imagines an interplanetary software marketplace — terrestrial enterprises, orbital logistics, Luna fabrication co-operatives, Mars survey authorities — trading not code but admitted projections: packs, deltas, and receipt chains, organized as an *n*-dimensional combinatorial space of closed dimensions (domain, jurisdiction, evidence regime, latency class, hardware profile, liability tier). Its thesis is that light-speed latency (3 to 22 minutes one-way to Mars) makes real-time review and supervision physically impossible, so the only trust artifact that survives the crossing is one that verifies locally from content alone — and it argues the Chatman Equation was adopted off-world for that reason, then became the terrestrial default too. This is the most explicitly speculative document in the set by genre: it is dated in the future, describes fictional or not-yet-existent institutions (Mars survey authorities, outer-system stations), and its own subtitle calls it a nonfiction account of events that have not occurred. It belongs in this appendix as argument-by-extrapolation about where the equation's constraints lead at the limit, not as a description of anything running today.
+
+## How to read this appendix against the rest of the book
+
+The earlier chapters describe `crates/ggen-core`, the template pipeline, packs, and receipts as they exist in this repository, with a file and a line for every claim. The five documents above take the mechanism those chapters describe and ask what it would mean, or require, or produce, if generalized formally, deployed at enterprise scale, or extended off-world. That is a legitimate and clearly-marked research and rhetorical program. It is not, and does not claim to be, a report on what `ggen sync` does when you run it today.

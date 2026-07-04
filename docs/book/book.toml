@@ -1,0 +1,8 @@
+[book]
+title = "Praxis"
+authors = ["Sean Chatman"]
+src = "."
+language = "en"
+
+[output.html]
+default-theme = "light"
