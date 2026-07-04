@@ -247,6 +247,93 @@ pub fn handle_receipt_history() -> Result<serde_json::Value> {
     }))
 }
 
+/// Whether `path` could have been produced by the templated `to:` pattern
+/// `pattern` (containing `{{ … }}` placeholders). Placeholders match any
+/// substring; the literal chunks around them must appear in order, with the
+/// first anchored at the start and the last at the end. A malformed pattern
+/// (unclosed `{{`) matches nothing — fail closed.
+fn templated_to_matches(pattern: &str, path: &str) -> bool {
+    let mut chunks: Vec<&str> = Vec::new();
+    let mut rest = pattern;
+    while let Some(start) = rest.find("{{") {
+        chunks.push(&rest[..start]);
+        match rest[start..].find("}}") {
+            Some(rel_end) => rest = &rest[start + rel_end + 2..],
+            None => return false,
+        }
+    }
+    chunks.push(rest);
+
+    let mut pos = 0usize;
+    for (i, chunk) in chunks.iter().enumerate() {
+        if chunk.is_empty() {
+            continue;
+        }
+        if i == 0 {
+            if !path.starts_with(chunk) {
+                return false;
+            }
+            pos = chunk.len();
+        } else if let Some(found) = path.get(pos..).and_then(|tail| tail.find(chunk)) {
+            pos += found + chunk.len();
+        } else {
+            return false;
+        }
+    }
+    match chunks.last() {
+        Some(last) if !last.is_empty() => path.ends_with(last),
+        _ => true,
+    }
+}
+
+/// The `orphaned_artifacts` doctor check: every output recorded in the
+/// receipt must still be producible by some template today. Static `to:`
+/// targets match exactly; templated targets (`{{ … }}` per-row expansion)
+/// match via literal-chunk pattern matching, since the concrete path
+/// depends on SPARQL row values not known statically.
+fn orphaned_artifacts_check(
+    receipt: &SyncReceipt,
+    templates: &[(std::path::PathBuf, crate::template::Template)],
+) -> serde_json::Value {
+    let mut static_tos: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
+    let mut templated_tos: Vec<&str> = Vec::new();
+    for (_, tpl) in templates {
+        let to = tpl.frontmatter.to.as_str();
+        if to.contains("{{") {
+            templated_tos.push(to);
+        } else {
+            static_tos.insert(to);
+        }
+    }
+    let orphans: Vec<String> = receipt
+        .payload
+        .outputs
+        .keys()
+        .filter(|path| {
+            !static_tos.contains(path.as_str())
+                && !templated_tos.iter().any(|p| templated_to_matches(p, path))
+        })
+        .cloned()
+        .collect();
+    if orphans.is_empty() {
+        serde_json::json!({
+            "status": "pass",
+            "detail": "every receipt output is still produced by a template",
+            "orphans": Vec::<String>::new(),
+        })
+    } else {
+        serde_json::json!({
+            "status": "fail",
+            "detail": format!(
+                "{} output(s) recorded in the receipt with no producing template: {}",
+                orphans.len(),
+                orphans.join(", ")
+            ),
+            "orphans": orphans,
+        })
+    }
+}
+
 /// `ggen doctor run` — a non-invasive health check over three independently
 /// computed conditions: lockfile/pack drift, orphaned generated artifacts
 /// (a receipt output with no template that would produce it today), and
@@ -306,32 +393,7 @@ pub fn handle_doctor() -> Result<serde_json::Value> {
         Some(receipt) => {
             let templates =
                 crate::sync::discover_templates(&root, &config, &packs).map_err(exec_err)?;
-            let producible: std::collections::BTreeSet<&str> =
-                templates.iter().map(|(_, tpl)| tpl.frontmatter.to.as_str()).collect();
-            let orphans: Vec<String> = receipt
-                .payload
-                .outputs
-                .keys()
-                .filter(|path| !producible.contains(path.as_str()))
-                .cloned()
-                .collect();
-            if orphans.is_empty() {
-                serde_json::json!({
-                    "status": "pass",
-                    "detail": "every receipt output is still produced by a template",
-                    "orphans": Vec::<String>::new(),
-                })
-            } else {
-                serde_json::json!({
-                    "status": "fail",
-                    "detail": format!(
-                        "{} output(s) recorded in the receipt with no producing template: {}",
-                        orphans.len(),
-                        orphans.join(", ")
-                    ),
-                    "orphans": orphans,
-                })
-            }
+            orphaned_artifacts_check(receipt, &templates)
         }
     };
     let orphaned_pass = orphaned_check["status"] == "pass";
