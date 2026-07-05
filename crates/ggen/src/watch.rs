@@ -11,15 +11,19 @@
 //! No SIGINT/Ctrl-C handling: the process is expected to be killed to stop
 //! watching, matching the reference implementation.
 
-use std::path::{Path, PathBuf};
-use std::sync::mpsc;
-use std::time::Duration;
+use std::{
+    path::{Path, PathBuf},
+    sync::mpsc,
+    time::Duration,
+};
 
 use notify::RecursiveMode;
 use notify_debouncer_full::new_debouncer;
 
-use crate::error::{AppError, Result};
-use crate::sync::{sync, SyncOptions, SyncReport};
+use crate::{
+    error::{AppError, Result},
+    sync::{sync, SyncOptions, SyncReport},
+};
 
 /// Directories under the project root whose own changes must never
 /// retrigger a sync (receipt/log writes and VCS bookkeeping).
@@ -53,17 +57,12 @@ pub fn watch(root: &Path, dry_run: bool) -> Result<()> {
 fn watch_loop(root: &Path, dry_run: bool, mut on_sync: impl FnMut(&SyncReport)) -> Result<()> {
     let initial = sync(root, SyncOptions { dry_run })
         .map_err(|e| AppError::fm_watch(1, format!("initial sync failed: {e}")))?;
-    eprintln!(
-        "ggen sync: {} written, {} skipped",
-        initial.written.len(),
-        initial.skipped.len()
-    );
+    eprintln!("ggen sync: {} written, {} skipped", initial.written.len(), initial.skipped.len());
     on_sync(&initial);
 
     let (tx, rx) = mpsc::channel();
-    let mut debouncer = new_debouncer(DEBOUNCE_WINDOW, None, tx).map_err(|e| {
-        AppError::fm_watch(2, format!("failed to create filesystem watcher: {e}"))
-    })?;
+    let mut debouncer = new_debouncer(DEBOUNCE_WINDOW, None, tx)
+        .map_err(|e| AppError::fm_watch(2, format!("failed to create filesystem watcher: {e}")))?;
     debouncer
         .watch(root, RecursiveMode::Recursive)
         .map_err(|e| AppError::fm_watch(2, format!("failed to watch `{}`: {e}", root.display())))?;
@@ -110,17 +109,19 @@ fn should_ignore(root: &Path, paths: &[PathBuf]) -> bool {
         return true;
     }
     let ignored: Vec<PathBuf> = IGNORED_DIRS.iter().map(|d| root.join(d)).collect();
-    paths
-        .iter()
-        .all(|p| ignored.iter().any(|dir| p.starts_with(dir)))
+    paths.iter().all(|p| ignored.iter().any(|dir| p.starts_with(dir)))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::sync::mpsc::{RecvTimeoutError, Sender};
-    use std::thread;
+    use std::{
+        sync::mpsc::{RecvTimeoutError, Sender},
+        thread,
+    };
+
     use tempfile::TempDir;
+
+    use super::*;
 
     #[test]
     fn should_ignore_true_for_receipt_and_git_paths_only() {
@@ -136,10 +137,7 @@ mod tests {
     #[test]
     fn should_ignore_false_when_a_real_path_is_present() {
         let root = PathBuf::from("/proj");
-        let paths = vec![
-            root.join(".ggen-v2/receipt.json"),
-            root.join("templates/foo.tmpl"),
-        ];
+        let paths = vec![root.join(".ggen-v2/receipt.json"), root.join("templates/foo.tmpl")];
         assert!(!should_ignore(&root, &paths));
     }
 
@@ -174,8 +172,7 @@ mod tests {
         });
 
         // Consume the initial sync's on_sync notification.
-        rx.recv_timeout(Duration::from_secs(5))
-            .expect("initial sync did not complete within 5s");
+        rx.recv_timeout(Duration::from_secs(5)).expect("initial sync did not complete within 5s");
 
         // Give the watcher time to start watching before we edit.
         thread::sleep(Duration::from_millis(300));

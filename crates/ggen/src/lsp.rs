@@ -4,14 +4,17 @@
 //! adhering to the Post-Chatman Equation A = \mu(O^*).
 
 use std::sync::Arc;
-use dashmap::DashMap;
-use parking_lot::Mutex;
 
-use lsp_max::lsp_types_max::*;
-use lsp_max::rule_pack_server::{RulePackServer, ValidatedRulePackSet, WorkspaceIndex, RulePack};
-use lsp_max::ast::AutoLspAdapter;
-use lsp_max::primitives::{SpcMonitor, RuleLatencyTracker, CircuitBreaker};
-use lsp_max::{Client, LanguageServer, async_trait};
+use dashmap::DashMap;
+use lsp_max::{
+    ast::AutoLspAdapter,
+    async_trait,
+    lsp_types_max::*,
+    primitives::{CircuitBreaker, RuleLatencyTracker, SpcMonitor},
+    rule_pack_server::{RulePack, RulePackServer, ValidatedRulePackSet, WorkspaceIndex},
+    Client, LanguageServer,
+};
+use parking_lot::Mutex;
 
 /// The `AppLspServer` structure implementing `RulePackServer` from `lsp-max`.
 ///
@@ -123,14 +126,10 @@ impl LanguageServer for AppLspServer {
         use lsp_max::rule_pack_server::RulePackServer;
         let uri = &params.text_document.uri;
         let content = if let Some(index) = self.workspace_index() {
-            index
-                .get(uri.as_str())
-                .map(|doc| doc.content.clone())
-                .unwrap_or_default()
+            index.get(uri.as_str()).map(|doc| doc.content.clone()).unwrap_or_default()
         } else {
             String::new()
         };
-        self.publish_findings_classified(uri.clone(), &content)
-            .await;
+        self.publish_findings_classified(uri.clone(), &content).await;
     }
 }

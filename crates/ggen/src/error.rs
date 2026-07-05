@@ -125,6 +125,11 @@ impl AppError {
     pub fn fm_watch(code: u16, msg: impl Into<String>) -> Self {
         Self::Validation(format!("[FM-WATCH-{code:03}] {}", msg.into()))
     }
+
+    /// FM-SHELL-* failure: frontmatter `sh_before`/`sh_after` hook refused or failed.
+    pub fn fm_shell(code: u16, msg: impl Into<String>) -> Self {
+        Self::Validation(format!("[FM-SHELL-{code:03}] {}", msg.into()))
+    }
 }
 
 // ---------------------------------------------------------------------------

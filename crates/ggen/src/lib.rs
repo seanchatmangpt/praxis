@@ -3,12 +3,12 @@
 #![deny(unsafe_code)]
 
 pub mod chain;
-pub mod cli;
 pub mod config;
 pub mod error;
 pub mod graph;
 pub mod lint;
 pub mod pack;
+pub mod shell_safety;
 pub mod sync;
 pub mod template;
 pub mod types;
@@ -28,4 +28,7 @@ pub mod verbs;
 pub mod watch;
 
 pub use error::AppError;
-pub use types::{Blake3Hash, ObjectRef, canonical_bytes, ProfileId, Evidence, Admit, Raw, Validated, Admitted, RawEvidence, ValidatedEvidence, AdmittedEvidence, AdmittedReceipt};
+pub use types::{
+    canonical_bytes, Admit, Admitted, AdmittedEvidence, AdmittedReceipt, Blake3Hash, Evidence,
+    ObjectRef, ProfileId, Raw, RawEvidence, Validated, ValidatedEvidence,
+};

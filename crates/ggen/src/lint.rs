@@ -13,11 +13,12 @@
 //! set is unknowable at author time — old GGEN-QUERY-002 semantics: the check
 //! is skipped, not failed).
 
-use std::collections::BTreeSet;
-use std::path::Path;
+use std::{collections::BTreeSet, path::Path};
 
-use crate::error::AppError;
-use crate::template::{Frontmatter, Template};
+use crate::{
+    error::AppError,
+    template::{Frontmatter, Template},
+};
 
 /// The variable set a template's SPARQL queries project into the Tera context.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -50,10 +51,8 @@ fn root_ident(expr: &str) -> Option<String> {
     if expr.is_empty() {
         return None;
     }
-    let root: String = expr
-        .chars()
-        .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
-        .collect();
+    let root: String =
+        expr.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '_').collect();
     if !is_identifier(&root) || NON_VARS.contains(&root.as_str()) {
         return None;
     }
@@ -88,10 +87,7 @@ pub fn consumed_vars(tera_source: &str) -> BTreeSet<String> {
     // `{% … %}` tags: for/set introduce locals; if/elif/for consume roots.
     for (start, _) in tera_source.match_indices("{%") {
         let Some(rel_end) = tera_source[start..].find("%}") else { continue };
-        let inner = tera_source[start + 2..start + rel_end]
-            .trim()
-            .trim_start_matches('-')
-            .trim();
+        let inner = tera_source[start + 2..start + rel_end].trim().trim_start_matches('-').trim();
         if let Some(rest) = inner.strip_prefix("for ") {
             if let Some(in_idx) = rest.find(" in ") {
                 for name in rest[..in_idx].split(',') {
@@ -116,8 +112,7 @@ pub fn consumed_vars(tera_source: &str) -> BTreeSet<String> {
                     consumed.insert(root);
                 }
             }
-        } else if let Some(rest) =
-            inner.strip_prefix("if ").or_else(|| inner.strip_prefix("elif "))
+        } else if let Some(rest) = inner.strip_prefix("if ").or_else(|| inner.strip_prefix("elif "))
         {
             let head = rest.trim().trim_start_matches("not ").trim();
             if let Some(name) = root_ident(head) {
@@ -165,11 +160,8 @@ enum SelectProjection {
 /// Extract the `?var` tokens between `SELECT` and the following `WHERE`/`{`.
 fn select_projection(query: &str) -> SelectProjection {
     // Strip comment lines first.
-    let stripped: String = query
-        .lines()
-        .filter(|l| !l.trim_start().starts_with('#'))
-        .collect::<Vec<_>>()
-        .join(" ");
+    let stripped: String =
+        query.lines().filter(|l| !l.trim_start().starts_with('#')).collect::<Vec<_>>().join(" ");
     let upper = stripped.to_uppercase();
     let Some(sel) = upper.find("SELECT") else {
         return SelectProjection::NotSelect;
@@ -201,11 +193,8 @@ fn select_projection(query: &str) -> SelectProjection {
 /// modulo whitespace (a no-op enrichment).
 #[must_use]
 pub fn is_identity_construct(query: &str) -> bool {
-    let stripped: String = query
-        .lines()
-        .filter(|l| !l.trim_start().starts_with('#'))
-        .collect::<Vec<_>>()
-        .join(" ");
+    let stripped: String =
+        query.lines().filter(|l| !l.trim_start().starts_with('#')).collect::<Vec<_>>().join(" ");
     let upper = stripped.to_uppercase();
     let Some(pos) = upper.find("CONSTRUCT") else {
         return false;

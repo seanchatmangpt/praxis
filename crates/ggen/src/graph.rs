@@ -12,10 +12,12 @@
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use oxigraph::io::RdfFormat;
-use oxigraph::model::{BlankNode, GraphName, NamedOrBlankNode, Quad, Term};
-use oxigraph::sparql::{QueryResults, SparqlEvaluator};
-use oxigraph::store::Store;
+use oxigraph::{
+    io::RdfFormat,
+    model::{BlankNode, GraphName, NamedOrBlankNode, Quad, Term},
+    sparql::{QueryResults, SparqlEvaluator},
+    store::Store,
+};
 
 use crate::error::{AppError, Result};
 
@@ -34,9 +36,8 @@ impl DeterministicGraph {
     /// # Errors
     /// Returns `[FM-GRAPH-001]` if the oxigraph store cannot be initialized.
     pub fn new() -> Result<Self> {
-        let store = Store::new().map_err(|e| {
-            AppError::fm_graph(1, format!("failed to create in-memory store: {e}"))
-        })?;
+        let store = Store::new()
+            .map_err(|e| AppError::fm_graph(1, format!("failed to create in-memory store: {e}")))?;
         Ok(Self { store })
     }
 
@@ -154,17 +155,10 @@ impl Delta {
         if !self.additions.is_empty() {
             // `Quad`'s Display form omits the terminating ` .` required by
             // the N-Quads grammar; add it per line before parsing.
-            let doc: String = self
-                .additions
-                .iter()
-                .map(|a| format!("{a} .\n"))
-                .collect();
-            graph
-                .store
-                .load_from_slice(RdfFormat::NQuads, doc.as_str())
-                .map_err(|e| {
-                    AppError::fm_graph(6, format!("failed to insert delta additions: {e}"))
-                })?;
+            let doc: String = self.additions.iter().map(|a| format!("{a} .\n")).collect();
+            graph.store.load_from_slice(RdfFormat::NQuads, doc.as_str()).map_err(|e| {
+                AppError::fm_graph(6, format!("failed to insert delta additions: {e}"))
+            })?;
         }
         Ok(())
     }
@@ -173,10 +167,7 @@ impl Delta {
     /// `self` then `self.inverse()` is a net no-op.
     #[must_use]
     pub fn inverse(&self) -> Self {
-        Self {
-            additions: self.deletions.clone(),
-            deletions: self.additions.clone(),
-        }
+        Self { additions: self.deletions.clone(), deletions: self.additions.clone() }
     }
 
     /// Compose two deltas: the result of applying `self` first, then `other`.
@@ -259,10 +250,8 @@ fn canonical_pairs(quads: &[Quad]) -> Result<Vec<(String, Quad)>> {
         canonical_blank_node_map(quads, &blank_nodes)?
     };
 
-    let mut pairs: Vec<(String, Quad)> = quads
-        .iter()
-        .map(|q| (relabel_quad(q, &relabel).to_string(), q.clone()))
-        .collect();
+    let mut pairs: Vec<(String, Quad)> =
+        quads.iter().map(|q| (relabel_quad(q, &relabel).to_string(), q.clone())).collect();
     pairs.sort_by(|a, b| a.0.cmp(&b.0));
     Ok(pairs)
 }
@@ -291,10 +280,8 @@ fn canonical_blank_node_map(
     quads: &[Quad],
     blank_nodes: &HashSet<BlankNode>,
 ) -> Result<HashMap<BlankNode, BlankNode>> {
-    let mut labels: HashMap<BlankNode, String> = blank_nodes
-        .iter()
-        .map(|b| (b.clone(), "bnode".to_string()))
-        .collect();
+    let mut labels: HashMap<BlankNode, String> =
+        blank_nodes.iter().map(|b| (b.clone(), "bnode".to_string())).collect();
 
     for _ in 0..REFINEMENT_ITERATIONS {
         let mut next: HashMap<BlankNode, String> = HashMap::new();
@@ -305,9 +292,7 @@ fn canonical_blank_node_map(
                 .map(|q| neighborhood_line(q, bnode, &labels))
                 .collect();
             neighborhood.sort();
-            let signature = blake3::hash(neighborhood.join("\n").as_bytes())
-                .to_hex()
-                .to_string();
+            let signature = blake3::hash(neighborhood.join("\n").as_bytes()).to_hex().to_string();
             next.insert(bnode.clone(), signature);
         }
         labels = next;
@@ -339,7 +324,11 @@ fn quad_touches(quad: &Quad, bnode: &BlankNode) -> bool {
 
 /// Render one neighborhood line for the signature of `bnode`, substituting
 /// `_:self` for the node itself and current labels for other blank nodes.
-fn neighborhood_line(quad: &Quad, bnode: &BlankNode, labels: &HashMap<BlankNode, String>) -> String {
+fn neighborhood_line(
+    quad: &Quad,
+    bnode: &BlankNode,
+    labels: &HashMap<BlankNode, String>,
+) -> String {
     let blank_repr = |b: &BlankNode| -> String {
         if b == bnode {
             "_:self".to_string()
@@ -367,9 +356,9 @@ fn neighborhood_line(quad: &Quad, bnode: &BlankNode, labels: &HashMap<BlankNode,
 /// Nodes absent from the map (i.e. non-blank positions) pass through.
 fn relabel_quad(quad: &Quad, map: &HashMap<BlankNode, BlankNode>) -> Quad {
     let subject = match &quad.subject {
-        NamedOrBlankNode::BlankNode(b) => NamedOrBlankNode::BlankNode(
-            map.get(b).cloned().unwrap_or_else(|| b.clone()),
-        ),
+        NamedOrBlankNode::BlankNode(b) => {
+            NamedOrBlankNode::BlankNode(map.get(b).cloned().unwrap_or_else(|| b.clone()))
+        }
         other => other.clone(),
     };
     let object = match &quad.object {
@@ -398,13 +387,14 @@ mod tests {
 
     #[test]
     fn compose_with_inverse_is_empty_and_hashes_as_empty() {
-        let d = delta(
-            &["<http://e/a> <http://e/p> \"1\""],
-            &["<http://e/b> <http://e/p> \"2\""],
-        );
+        let d = delta(&["<http://e/a> <http://e/p> \"1\""], &["<http://e/b> <http://e/p> \"2\""]);
         let net = d.compose(&d.inverse());
         assert!(net.is_empty(), "delta ∘ delta⁻¹ must cancel: {net:?}");
-        assert_eq!(net.hash(), Delta::default().hash(), "empty-composite hash must equal empty delta hash");
+        assert_eq!(
+            net.hash(),
+            Delta::default().hash(),
+            "empty-composite hash must equal empty delta hash"
+        );
     }
 
     #[test]

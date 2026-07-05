@@ -59,10 +59,7 @@ pub struct ChainAssembler<State = Unstarted> {
 impl ChainAssembler<Unstarted> {
     /// Create a new, empty assembler rooted at the genesis hash.
     pub fn new() -> Self {
-        ChainAssembler {
-            running: genesis_hash(),
-            _state: std::marker::PhantomData,
-        }
+        ChainAssembler { running: genesis_hash(), _state: std::marker::PhantomData }
     }
 
     /// Append the first event, transitioning to `NonEmpty` state.
@@ -108,10 +105,7 @@ mod tests {
     #[test]
     fn append_matches_recompute() {
         let events: &[&[u8]] = &[b"a", b"b", b"c"];
-        let asm = ChainAssembler::new()
-            .append(b"a")
-            .append(b"b")
-            .append(b"c");
+        let asm = ChainAssembler::new().append(b"a").append(b"b").append(b"c");
         assert_eq!(asm.finalize(), recompute_chain(events));
     }
 

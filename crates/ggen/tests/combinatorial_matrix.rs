@@ -8,13 +8,14 @@
 //!
 //! All filesystem work happens in `TempDir`s; real oxigraph, zero mocks.
 
-use std::collections::BTreeMap;
-use std::path::Path;
+use std::{collections::BTreeMap, path::Path};
 
-use ggen::graph::{Delta, DeterministicGraph};
-use ggen::sync::{sync, SyncOptions, SyncReceipt, RECEIPT_REL_PATH};
-use ggen::template::{Frontmatter, Template};
-use ggen::write::{plan_write, WriteOutcome};
+use ggen::{
+    graph::{Delta, DeterministicGraph},
+    sync::{sync, SyncOptions, SyncReceipt, RECEIPT_REL_PATH},
+    template::{Frontmatter, Template},
+    write::{plan_write, WriteOutcome},
+};
 use proptest::prelude::*;
 use tempfile::TempDir;
 
@@ -168,6 +169,14 @@ fn frontmatter_for(
         force,
         when: None,
         skip_empty: false,
+        from: None,
+        sh_before: None,
+        sh_after: None,
+        backup: false,
+        shape: Vec::new(),
+        determinism: None,
+        freeze_policy: None,
+        freeze_slots_dir: None,
     }
 }
 
@@ -220,8 +229,7 @@ fn exhaustive_write_decision_matrix() {
                                         .expect("seed anchored");
                                 }
                             }
-                            let fm =
-                                frontmatter_for(force, unless_exists, inject, skip_if, anchor);
+                            let fm = frontmatter_for(force, unless_exists, inject, skip_if, anchor);
                             let expected = reference_model(
                                 force,
                                 unless_exists,
@@ -419,7 +427,10 @@ fn every_closed_vocabulary_key_parses() {
     let cases: Vec<(&str, String)> = vec![
         ("to", "to: out.rs".to_string()),
         ("sparql", "to: out.rs\nsparql:\n  q: SELECT ?s WHERE { ?s ?p ?o }".to_string()),
-        ("construct", "to: out.rs\nconstruct: \"CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o }\"".to_string()),
+        (
+            "construct",
+            "to: out.rs\nconstruct: \"CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o }\"".to_string(),
+        ),
         ("inject", "to: out.rs\ninject: true".to_string()),
         ("before", "to: out.rs\ninject: true\nbefore: \"// x\"".to_string()),
         ("after", "to: out.rs\ninject: true\nafter: \"// x\"".to_string()),
@@ -439,14 +450,27 @@ fn every_closed_vocabulary_key_parses() {
 
 #[test]
 fn unknown_keys_fail_with_fm_tpl_002_naming_the_key() {
+    // `sh_before`/`backup`/`from` moved out of this list when the PROJ-302
+    // frontmatter-schema extension made them real, valid keys (see
+    // schema/frontmatter-schema.ttl); `rdf_inline`/`prefixes`/`base` are
+    // genuinely still-unknown keys from ~/ggen's schema that this crate
+    // deliberately did not adopt (docs/v26.7.4/GGEN_TOML_SCHEMA_MAPPING.md).
     let wrong = [
-        "vars", "sh_before", "backup", "from", "mode",
-        "output_file", "tera", "query", "rdf", "foo",
+        "vars",
+        "mode",
+        "output_file",
+        "tera",
+        "query",
+        "rdf",
+        "rdf_inline",
+        "prefixes",
+        "base",
+        "foo",
     ];
     for key in wrong {
         let content = format!("---\nto: out.rs\n{key}: something\n---\nbody");
-        let err = Template::parse(&content)
-            .expect_err(&format!("unknown key `{key}` must be rejected"));
+        let err =
+            Template::parse(&content).expect_err(&format!("unknown key `{key}` must be rejected"));
         let msg = err.to_string();
         assert!(msg.contains("FM-TPL-002"), "`{key}`: missing FM-TPL-002 in: {msg}");
         assert!(msg.contains(key), "`{key}`: error does not name the key: {msg}");

@@ -9,6 +9,9 @@
 //! library functions underneath it.
 
 use chicago_tdd_tools::cli_proof::CliHarness;
+use std::io::Read;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
 fn scaffold(root: &std::path::Path) {
@@ -42,6 +45,32 @@ fn root_help_exits_zero_and_lists_all_nouns() {
         .assert_stdout_contains("sync")
         .assert_stdout_contains("graph")
         .assert_stdout_contains("receipt");
+}
+
+/// Regression test: the noun-level clap `Command`s for sync/graph/receipt/
+/// doctor used to have a blank `about`, so `ggen --help` listed four bare
+/// noun names with no hint what they do. Each noun line in the top-level
+/// help must now carry real description text, not just the bare noun name
+/// followed by whitespace/newline.
+#[test]
+fn root_help_gives_each_noun_a_non_blank_description() {
+    let output = CliHarness::cargo_bin("ggen").args(["--help"]).run().expect("run --help");
+    output.assert_success();
+
+    let stdout = output.stdout.clone();
+    for (noun, expected_word) in
+        [("sync", "pipeline"), ("graph", "ontology"), ("receipt", "receipt"), ("doctor", "health")]
+    {
+        let line = stdout
+            .lines()
+            .find(|line| line.trim_start().starts_with(noun))
+            .unwrap_or_else(|| panic!("no `{noun}` line in --help output:\n{stdout}"));
+        assert!(
+            line.contains(expected_word),
+            "expected `{noun}` noun's --help line to describe what it does (mentioning \
+             `{expected_word}`), got: {line:?}\nfull output:\n{stdout}"
+        );
+    }
 }
 
 #[test]
@@ -98,6 +127,43 @@ fn sync_run_help_lists_dry_run_flag() {
         .run()
         .expect("run sync run --help");
     output.assert_success().assert_stdout_contains("dry-run");
+}
+
+#[test]
+fn sync_run_help_lists_watch_flag() {
+    let output = CliHarness::cargo_bin("ggen")
+        .args(["sync", "run", "--help"])
+        .run()
+        .expect("run sync run --help");
+    output.assert_success().assert_stdout_contains("watch");
+}
+
+/// Regression test: `sync run --dry-run` and `--watch` used to render with
+/// empty per-argument help text because the code generator only picked up
+/// the function-level doc comment, not per-parameter documentation (unlike
+/// `--format <format>`, whose help came from clap's own derive). Each flag's
+/// line in `--help` must now carry real description text, not just the bare
+/// flag name followed by whitespace/newline.
+#[test]
+fn sync_run_help_gives_each_flag_a_non_blank_description() {
+    let output = CliHarness::cargo_bin("ggen")
+        .args(["sync", "run", "--help"])
+        .run()
+        .expect("run sync run --help");
+    output.assert_success();
+
+    let stdout = output.stdout.clone();
+    for (flag, expected_word) in [("--dry-run", "disk"), ("--watch", "filesystem")] {
+        let line = stdout
+            .lines()
+            .find(|line| line.trim_start().starts_with(flag))
+            .unwrap_or_else(|| panic!("no `{flag}` line in --help output:\n{stdout}"));
+        assert!(
+            line.contains(expected_word),
+            "expected `{flag}`'s --help line to describe what it does (mentioning \
+             `{expected_word}`), got: {line:?}\nfull output:\n{stdout}"
+        );
+    }
 }
 
 // ---------------------------------------------------------------------
@@ -171,6 +237,139 @@ fn sync_run_missing_manifest_exits_nonzero() {
         .current_dir(dir.path())
         .run()
         .expect("run sync with no ggen.toml");
+    output.assert_failure();
+}
+
+// ---------------------------------------------------------------------
+// sync run --watch
+//
+// `--watch` runs one sync then blocks forever watching for filesystem
+// changes (see `watch.rs` module docs: no SIGINT handling, by design).
+// `CliHarness::run` waits for the child to exit, so it cannot be used for
+// the success path here. These tests spawn the compiled binary directly,
+// read its stderr for the expected boundary signals, then kill the child —
+// bounded by a hard deadline so a regression hangs the test suite for at
+// most a few seconds, not forever.
+// ---------------------------------------------------------------------
+
+/// Read `stderr` from a spawned child for up to `deadline`, returning as
+/// soon as `needle` appears (or whatever was captured once the deadline
+/// elapses). The child is always killed and reaped before returning.
+fn watch_for_stderr(mut child: std::process::Child, needle: &str, deadline: Duration) -> String {
+    let mut stderr = child.stderr.take().expect("piped stderr");
+    let mut buf = Vec::new();
+    let mut byte = [0u8; 1];
+    let start = Instant::now();
+    // Non-blocking-ish poll: stdlib `Read` on a pipe blocks, so run the
+    // read on the current thread but bound total wall time via the
+    // deadline check between reads is not possible without a background
+    // thread. Use a background reader thread instead.
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        loop {
+            match stderr.read(&mut byte) {
+                Ok(0) | Err(_) => break,
+                Ok(_) => {
+                    if tx.send(byte[0]).is_err() {
+                        break;
+                    }
+                }
+            }
+        }
+    });
+    while start.elapsed() < deadline {
+        match rx.recv_timeout(Duration::from_millis(100)) {
+            Ok(b) => {
+                buf.push(b);
+                if String::from_utf8_lossy(&buf).contains(needle) {
+                    break;
+                }
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+        }
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+    String::from_utf8_lossy(&buf).into_owned()
+}
+
+fn ggen_bin() -> std::path::PathBuf {
+    std::env::var("CARGO_BIN_EXE_ggen")
+        .expect("CARGO_BIN_EXE_ggen set by cargo test")
+        .into()
+}
+
+#[test]
+fn sync_run_watch_runs_initial_sync_then_blocks_watching() {
+    let dir = TempDir::new().expect("tempdir");
+    scaffold(dir.path());
+
+    let child = Command::new(ggen_bin())
+        .args(["sync", "run", "--watch"])
+        .current_dir(dir.path())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn ggen sync run --watch");
+
+    let captured =
+        watch_for_stderr(child, "watching", Duration::from_secs(10));
+
+    assert!(
+        captured.contains("written") || captured.contains("watching"),
+        "expected --watch to run an initial sync and start watching, got stderr:\n{captured}"
+    );
+    let content =
+        std::fs::read_to_string(dir.path().join("out/names.txt")).expect("initial sync output");
+    assert_eq!(content, "alice\n");
+    assert!(
+        dir.path().join(".ggen-v2/receipt.json").exists(),
+        "initial sync under --watch must still emit a receipt"
+    );
+}
+
+#[test]
+fn sync_run_watch_and_dry_run_combined_writes_nothing() {
+    let dir = TempDir::new().expect("tempdir");
+    scaffold(dir.path());
+
+    let child = Command::new(ggen_bin())
+        .args(["sync", "run", "--watch", "--dry-run"])
+        .current_dir(dir.path())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn ggen sync run --watch --dry-run");
+
+    let captured = watch_for_stderr(child, "watching", Duration::from_secs(10));
+
+    assert!(
+        captured.contains("written") || captured.contains("watching"),
+        "expected --watch --dry-run to still run and report, got stderr:\n{captured}"
+    );
+    assert!(
+        !dir.path().join("out/names.txt").exists(),
+        "--watch --dry-run must not write output from its initial sync"
+    );
+    assert!(
+        !dir.path().join(".ggen-v2/receipt.json").exists(),
+        "--watch --dry-run must not emit a receipt from its initial sync"
+    );
+}
+
+#[test]
+fn sync_run_watch_missing_manifest_exits_nonzero_without_hanging() {
+    // The unwatchable-root error path: with no `ggen.toml` present, the
+    // initial sync inside `watch()` fails before the filesystem watcher is
+    // ever constructed, so the process must exit non-zero promptly instead
+    // of hanging in the watch loop.
+    let dir = TempDir::new().expect("tempdir");
+    let output = CliHarness::cargo_bin("ggen")
+        .args(["sync", "run", "--watch"])
+        .current_dir(dir.path())
+        .run()
+        .expect("run sync run --watch with no ggen.toml");
     output.assert_failure();
 }
 

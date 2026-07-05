@@ -3,9 +3,9 @@
 //! **Rule:** This module holds data shapes only — no business logic, no I/O.
 //! Logic belongs in dedicated modules (`chain.rs`, `verifier.rs`, etc.).
 
+use std::{fmt, marker::PhantomData};
+
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::marker::PhantomData;
 
 // ─── Content Addressing ────────────────────────────────────────────────────
 
@@ -419,11 +419,7 @@ pub struct AdmittedReceipt {
 impl AdmittedReceipt {
     /// Create a new sealed receipt. Restricted to crate/module validator authority.
     pub(crate) fn new(chain_hash: [u8; 32], timestamp: u64) -> Self {
-        Self {
-            chain_hash,
-            timestamp,
-            _seal: (),
-        }
+        Self { chain_hash, timestamp, _seal: () }
     }
 }
 
@@ -504,11 +500,7 @@ pub struct PolicyConfig {
 
 impl Default for PolicyConfig {
     fn default() -> Self {
-        Self {
-            behind_threshold: 3,
-            dirty_threshold: 5,
-            evidence_staleness_secs: 3_600,
-        }
+        Self { behind_threshold: 3, dirty_threshold: 5, evidence_staleness_secs: 3_600 }
     }
 }
 
@@ -533,18 +525,25 @@ pub trait CicdPolicy {
 
 #[allow(dead_code)]
 mod layout_assertions {
-    use super::*;
     use std::mem::{align_of, size_of};
+
+    use super::*;
 
     // Blake3Hash wraps a String; on 64-bit platforms a String is 3 * usize = 24 bytes.
     const _BLAKE3_HASH_SIZE: () = {
-        assert!(size_of::<Blake3Hash>() == 24, "Blake3Hash size changed — check wire compatibility");
+        assert!(
+            size_of::<Blake3Hash>() == 24,
+            "Blake3Hash size changed — check wire compatibility"
+        );
     };
 
     // ProfileId is a fieldless enum — expected to be 1 byte (niche-optimised by the compiler).
     // If this fires after adding a variant, update the comment but leave the assert.
     const _PROFILE_ID_SIZE: () = {
-        assert!(size_of::<ProfileId>() == 1, "ProfileId size changed — may break OCEL serialization");
+        assert!(
+            size_of::<ProfileId>() == 1,
+            "ProfileId size changed — may break OCEL serialization"
+        );
     };
 
     // PolicyVerdict is a fieldless enum — 1 byte.
@@ -822,8 +821,12 @@ mod policy_runner_tests {
 
     struct Fixed(PolicyVerdict);
     impl CicdPolicy for Fixed {
-        fn name(&self) -> &'static str { "fixed" }
-        fn evaluate(&self, _: &PolicyConfig) -> PolicyVerdict { self.0.clone() }
+        fn name(&self) -> &'static str {
+            "fixed"
+        }
+        fn evaluate(&self, _: &PolicyConfig) -> PolicyVerdict {
+            self.0.clone()
+        }
     }
 
     #[test]
@@ -918,21 +921,14 @@ mod tests {
 
     #[test]
     fn object_ref_display_without_qualifier() {
-        let obj = ObjectRef {
-            id: "repo:main".to_string(),
-            type_: "git".to_string(),
-            qualifier: None,
-        };
+        let obj =
+            ObjectRef { id: "repo:main".to_string(), type_: "git".to_string(), qualifier: None };
         assert_eq!(obj.to_string(), "repo:main:git");
     }
 
     #[test]
     fn object_ref_qualifier_skipped_in_json() {
-        let obj = ObjectRef {
-            id: "x".to_string(),
-            type_: "t".to_string(),
-            qualifier: None,
-        };
+        let obj = ObjectRef { id: "x".to_string(), type_: "t".to_string(), qualifier: None };
         let json = serde_json::to_string(&obj).unwrap();
         assert!(!json.contains("qualifier"), "None qualifier should be omitted: {json}");
     }
@@ -961,8 +957,12 @@ mod tests {
     fn cicd_policy_trait_dispatch() {
         struct AlwaysWarn;
         impl CicdPolicy for AlwaysWarn {
-            fn name(&self) -> &'static str { "always-warn" }
-            fn evaluate(&self, _config: &PolicyConfig) -> PolicyVerdict { PolicyVerdict::Warn }
+            fn name(&self) -> &'static str {
+                "always-warn"
+            }
+            fn evaluate(&self, _config: &PolicyConfig) -> PolicyVerdict {
+                PolicyVerdict::Warn
+            }
         }
 
         let policy = AlwaysWarn;
@@ -990,8 +990,11 @@ mod canonical_determinism_tests {
         let p = Payload { z: "last", a: "first", m: 42 };
         let first = canonical_bytes(&p).unwrap();
         for _ in 0..99 {
-            assert_eq!(canonical_bytes(&p).unwrap(), first,
-                "canonical_bytes must be stable across repeated calls");
+            assert_eq!(
+                canonical_bytes(&p).unwrap(),
+                first,
+                "canonical_bytes must be stable across repeated calls"
+            );
         }
     }
 
@@ -1021,10 +1024,18 @@ mod canonical_determinism_tests {
         use serde::Serialize;
 
         #[derive(Serialize)]
-        struct OrderA { a: i32, b: i32, c: i32 }
+        struct OrderA {
+            a: i32,
+            b: i32,
+            c: i32,
+        }
 
         #[derive(Serialize)]
-        struct OrderB { c: i32, a: i32, b: i32 }
+        struct OrderB {
+            c: i32,
+            a: i32,
+            b: i32,
+        }
 
         let a = canonical_bytes(&OrderA { a: 1, b: 2, c: 3 }).unwrap();
         let b = canonical_bytes(&OrderB { c: 3, a: 1, b: 2 }).unwrap();
@@ -1042,7 +1053,10 @@ mod canonical_determinism_tests {
         use serde::Serialize;
 
         #[derive(Serialize)]
-        struct Event { seq: u64, payload: &'static str }
+        struct Event {
+            seq: u64,
+            payload: &'static str,
+        }
 
         let honest = canonical_bytes(&Event { seq: 1, payload: "build" }).unwrap();
         let tampered = canonical_bytes(&Event { seq: 1, payload: "build-TAMPERED" }).unwrap();

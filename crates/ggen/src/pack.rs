@@ -13,8 +13,10 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
-use crate::config::{GgenConfig, PackRef};
-use crate::error::{AppError, Result};
+use crate::{
+    config::{GgenConfig, PackRef},
+    error::{AppError, Result},
+};
 
 /// A resolved local pack, ready for the sync pipeline.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -250,11 +252,7 @@ pub fn source_string(pack_ref: &PackRef) -> String {
 pub fn lock_entries(config: &GgenConfig, packs: &[Pack]) -> Result<Vec<LockEntry>> {
     let mut entries = Vec::with_capacity(packs.len());
     for pack in packs {
-        let source = config
-            .packs
-            .get(&pack.name)
-            .map(source_string)
-            .unwrap_or_default();
+        let source = config.packs.get(&pack.name).map(source_string).unwrap_or_default();
         let hash = content_hash(pack)?;
         entries.push(LockEntry {
             name: pack.name.clone(),
@@ -356,8 +354,9 @@ fn rel_string(path: &Path, root: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tempfile::TempDir;
+
+    use super::*;
 
     fn entry(name: &str) -> LockEntry {
         LockEntry {
