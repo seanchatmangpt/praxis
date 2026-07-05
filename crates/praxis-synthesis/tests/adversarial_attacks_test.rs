@@ -31,6 +31,7 @@ fn test_surrender_boundary_bypass() {
          @prefix prx:  <{LIFE}> .\n\
          @prefix ex:   <http://seanchatmangpt.github.io/praxis/prayer#> .\n\
          @prefix pk:   <http://seanchatmangpt.github.io/praxis/prayer-kernel#> .\n\
+         @prefix prov: <http://www.w3.org/ns/prov#> .\n\
          \n\
          pk:LordPrayerKernel a pk:Kernel ;\n\
              pk:clause pk:our-father, pk:hallowed-name, pk:kingdom-come,\n\
@@ -121,6 +122,7 @@ fn test_human_only_delegability_bypass() {
          @prefix prx:  <{LIFE}> .\n\
          @prefix ex:   <http://seanchatmangpt.github.io/praxis/prayer#> .\n\
          @prefix pk:   <http://seanchatmangpt.github.io/praxis/prayer-kernel#> .\n\
+         @prefix prov: <http://www.w3.org/ns/prov#> .\n\
          \n\
          pk:LordPrayerKernel a pk:Kernel ;\n\
              pk:clause pk:our-father, pk:hallowed-name, pk:kingdom-come,\n\
@@ -165,7 +167,8 @@ fn test_human_only_delegability_bypass() {
              wf:budget 1 ;\n\
              wf:init ex:initAtom ;\n\
              wf:goal ex:goalAtom ;\n\
-             wf:capability ex:humanCap .\n\
+             wf:capability ex:humanCap ;\n\
+             prov:wasAttributedTo ex:authority .\n\
          \n\
          ex:initAtom a wf:Atom ; wf:predicate \"init\" ; wf:arg0 \"x\" .\n\
          ex:goalAtom a wf:Atom ; wf:predicate \"goal\" ; wf:arg0 \"x\" .\n\
@@ -216,6 +219,7 @@ fn test_unauthorized_agent_execution() {
          @prefix prx:  <{LIFE}> .\n\
          @prefix ex:   <http://seanchatmangpt.github.io/praxis/prayer#> .\n\
          @prefix pk:   <http://seanchatmangpt.github.io/praxis/prayer-kernel#> .\n\
+         @prefix prov: <http://www.w3.org/ns/prov#> .\n\
          \n\
          pk:LordPrayerKernel a pk:Kernel ;\n\
              pk:clause pk:our-father, pk:hallowed-name, pk:kingdom-come,\n\
@@ -260,7 +264,8 @@ fn test_unauthorized_agent_execution() {
              wf:budget 1 ;\n\
              wf:init ex:initAtom ;\n\
              wf:goal ex:goalAtom ;\n\
-             wf:capability ex:toolCap .\n\
+             wf:capability ex:toolCap ;\n\
+             prov:wasAttributedTo ex:authority .\n\
          \n\
          ex:initAtom a wf:Atom ; wf:predicate \"init\" ; wf:arg0 \"x\" .\n\
          ex:goalAtom a wf:Atom ; wf:predicate \"goal\" ; wf:arg0 \"x\" .\n\

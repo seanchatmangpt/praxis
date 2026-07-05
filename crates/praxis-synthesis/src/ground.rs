@@ -22,9 +22,9 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 use crate::graph::{execute_from_triples, Object, Triple, WorkflowReceipt, WF_NS};
+use crate::handlers::extract_bindings;
 use crate::hooks::{EffectKind, HookVerdict, HookVerdictRecord, KnowledgeHook};
 use crate::quarantine::AdmittedEvent;
-use crate::handlers::extract_bindings;
 use crate::Refusal;
 
 const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
@@ -122,7 +122,10 @@ pub fn ground_fired_action(
 ) -> Result<WorkflowReceipt, Refusal> {
     if record.verdict != HookVerdict::Fired {
         return Err(Refusal::InvalidInput {
-            detail: format!("hook '{}' did not fire; nothing to ground", record.hook_name),
+            detail: format!(
+                "hook '{}' did not fire; nothing to ground",
+                record.hook_name
+            ),
         });
     }
     if record.effect != EffectKind::GroundAction {
@@ -130,10 +133,31 @@ pub fn ground_fired_action(
             detail: format!("hook '{}' effect is not ground-action", record.hook_name),
         });
     }
-    let action_iri = record.action_iri.as_deref().ok_or_else(|| Refusal::InvalidInput {
-        detail: format!("hook '{}' has no action IRI", record.hook_name),
-    })?;
+    let action_iri = record
+        .action_iri
+        .as_deref()
+        .ok_or_else(|| Refusal::InvalidInput {
+            detail: format!("hook '{}' has no action IRI", record.hook_name),
+        })?;
     let fragment = restrict_to_fragment(event.post(), action_iri)?;
+
+    // Authority ledger (PROJ-303): a ground-action firing must bind to an
+    // admitted PROV-O authority anchor on its own action node — reusing
+    // reality.rs's provenance_anchor, not a new ledger subsystem. Zero
+    // anchors at all (bind's own refusal) and an anchor set missing
+    // specifically wasAttributedTo are both "no authority", so both collapse
+    // to the same WorkflowIllFormed refusal rather than propagating bind's
+    // RealityAddressIllFormed (which would also fire on a merely-unanchored,
+    // as opposed to un-authorized, action).
+    let has_authority = crate::reality::RealityAddressRecord::bind(&fragment, action_iri)
+        .is_ok_and(|record| record.provenance_anchor().is_some());
+    if !has_authority {
+        return Err(Refusal::WorkflowIllFormed {
+            subject: action_iri.to_string(),
+            detail: "ground-action fired with no authority anchor (prov:wasAttributedTo) on the action node".to_string(),
+        });
+    }
+
     let receipt = execute_from_triples(&fragment)?;
 
     let mut pre_state = event.post().to_vec();
@@ -151,13 +175,14 @@ pub fn ground_fired_action(
     let bindings = extract_bindings(&pre_state)?;
     let agents = crate::agent_registry::extract_agents(event.post())?;
 
-
     let tool_p = format!("{}tool", crate::agent_registry::AGENT_NS);
     let wf_tool_p = format!("{}tool", WF_NS);
 
     for step in &receipt.plan.steps {
         let cap_iri = event.post().iter().find_map(|t| {
-            if t.p == format!("{WF_NS}name") && matches!(&t.o, Object::Str(s) if s == &step.capability) {
+            if t.p == format!("{WF_NS}name")
+                && matches!(&t.o, Object::Str(s) if s == &step.capability)
+            {
                 Some(t.s.clone())
             } else {
                 None
@@ -176,9 +201,13 @@ pub fn ground_fired_action(
                         }
                     }
 
-                    let all_known_tools: Vec<String> = agents.iter().flat_map(|a| a.tools.clone()).collect();
+                    let all_known_tools: Vec<String> =
+                        agents.iter().flat_map(|a| a.tools.clone()).collect();
                     for tool in &all_known_tools {
-                        if step.capability.to_lowercase().starts_with(&tool.to_lowercase())
+                        if step
+                            .capability
+                            .to_lowercase()
+                            .starts_with(&tool.to_lowercase())
                             && !required_tools.contains(tool)
                         {
                             required_tools.push(tool.clone());
@@ -186,7 +215,11 @@ pub fn ground_fired_action(
                     }
 
                     for req_tool in required_tools {
-                        if !agent.tools.iter().any(|t| t.eq_ignore_ascii_case(&req_tool)) {
+                        if !agent
+                            .tools
+                            .iter()
+                            .any(|t| t.eq_ignore_ascii_case(&req_tool))
+                        {
                             return Err(Refusal::DelegabilityViolation {
                                 capability: step.capability.clone(),
                                 required: format!("agent tool '{}'", req_tool),
@@ -208,9 +241,12 @@ pub fn capability_task_spec(
     event: &AdmittedEvent,
     hook: &KnowledgeHook,
 ) -> Result<CapabilityTaskSpec, Refusal> {
-    let action_iri = hook.action.as_deref().ok_or_else(|| Refusal::InvalidInput {
-        detail: format!("hook '{}' has no action IRI", hook.name),
-    })?;
+    let action_iri = hook
+        .action
+        .as_deref()
+        .ok_or_else(|| Refusal::InvalidInput {
+            detail: format!("hook '{}' has no action IRI", hook.name),
+        })?;
     let goal_pred = format!("{WF_NS}goal");
     let predicate_pred = format!("{WF_NS}predicate");
     let arg0_pred = format!("{WF_NS}arg0");
@@ -220,18 +256,18 @@ pub fn capability_task_spec(
             if let Object::Iri(goal_atom) = &t.o {
                 let field = |pred: &str| {
                     event.post().iter().find_map(|u| {
-                        (u.s == *goal_atom && u.p == pred)
-                            .then(|| match &u.o {
-                                Object::Str(s) => s.clone(),
-                                Object::Iri(i) => i.clone(),
-                                Object::Int(v) => v.to_string(),
-                            })
+                        (u.s == *goal_atom && u.p == pred).then(|| match &u.o {
+                            Object::Str(s) => s.clone(),
+                            Object::Iri(i) => i.clone(),
+                            Object::Int(v) => v.to_string(),
+                        })
                     })
                 };
-                let predicate = field(&predicate_pred).ok_or_else(|| Refusal::WorkflowIllFormed {
-                    subject: goal_atom.clone(),
-                    detail: "goal atom missing wf:predicate".to_string(),
-                })?;
+                let predicate =
+                    field(&predicate_pred).ok_or_else(|| Refusal::WorkflowIllFormed {
+                        subject: goal_atom.clone(),
+                        detail: "goal atom missing wf:predicate".to_string(),
+                    })?;
                 desired_effects.push((predicate, field(&arg0_pred).unwrap_or_default()));
             }
         }

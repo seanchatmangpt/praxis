@@ -15,6 +15,7 @@
 @prefix prx:  <http://seanchatmangpt.github.io/praxis/life#> .
 @prefix ex:   <http://seanchatmangpt.github.io/praxis/prayer#> .
 @prefix pk:   <http://seanchatmangpt.github.io/praxis/prayer-kernel#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
 
 # ---------------------------------------------------------------------------
 # The prayer kernel — ALL 11 clauses as typed nodes.
@@ -221,7 +222,8 @@ ex:DailyPrayerWorkflow a wf:Workflow ;
     wf:init ex:dayOpen ;
     wf:goal ex:receiptWritten ;
     wf:capability ex:orientToFather, ex:surrenderWill,
-        ex:requestDailyBread, ex:writePrayerReceipt .
+        ex:requestDailyBread, ex:writePrayerReceipt ;
+    prov:wasAttributedTo ex:prayerAuthority .
 
 ex:dayOpen a wf:Atom ;
     wf:predicate "day-open" ;
@@ -282,7 +284,8 @@ ex:ConfessAndRepairWorkflow a wf:Workflow ;
     wf:budget 3 ;
     wf:init ex:debtSeen ;
     wf:goal ex:debtRepaired ;
-    wf:capability ex:confessDebt, ex:releaseResentment, ex:repairDebt .
+    wf:capability ex:confessDebt, ex:releaseResentment, ex:repairDebt ;
+    prov:wasAttributedTo ex:prayerAuthority .
 
 ex:debtSeen a wf:Atom ;
     wf:predicate "debt-seen" ;
@@ -329,7 +332,8 @@ ex:RepairReceiptWorkflow a wf:Workflow ;
     wf:budget 1 ;
     wf:init ex:receiptGapSeen ;
     wf:goal ex:receiptRestored ;
-    wf:capability ex:restoreReceipt .
+    wf:capability ex:restoreReceipt ;
+    prov:wasAttributedTo ex:prayerAuthority .
 
 ex:receiptGapSeen a wf:Atom ;
     wf:predicate "receipt-gap-seen" ;

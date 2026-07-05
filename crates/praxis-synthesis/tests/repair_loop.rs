@@ -38,8 +38,14 @@ fn src(adds: &str, removes: &str) -> MeaningSource {
 fn kernel_with_bindings() -> String {
     let mut base = KERNEL.to_string();
     let all_caps = [
-        "orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt",
-        "confessDebt", "releaseResentment", "repairDebt", "restoreReceipt",
+        "orientToFather",
+        "surrenderWill",
+        "requestDailyBread",
+        "writePrayerReceipt",
+        "confessDebt",
+        "releaseResentment",
+        "repairDebt",
+        "restoreReceipt",
     ];
     for cap in &all_caps {
         base.push_str(&format!(
@@ -72,20 +78,32 @@ fn rerouting_deliverance_to_ground_action_is_a_kernel_boundary_refusal() {
     let replacement = "    hook:effect \"ground-action\" ;\n    \
         hook:action ex:DailyPrayerWorkflow ;";
     let rerouted = KERNEL.replace(needle, replacement);
-    assert_ne!(rerouted, KERNEL, "the DeliveranceHook block must have been rewritten");
+    assert_ne!(
+        rerouted, KERNEL,
+        "the DeliveranceHook block must have been rewritten"
+    );
 
     let reference = Reference::genesis(&rerouted).expect("kernel admits");
     let registry = HandlerRegistry::builtin();
-    let source = src(&format!("<{LIFE}threat1> <{LIFE}hasUnboundedThreat> 1 ."), "");
+    let source = src(
+        &format!("<{LIFE}threat1> <{LIFE}hasUnboundedThreat> 1 ."),
+        "",
+    );
     let receipt = fire_hooks(&reference, &source, &registry, &[]).expect("refusal is receipted");
     match &receipt.outcome {
         FiringOutcome::Refused { stage, reason } => {
             assert_eq!(stage, "kernel-boundary");
-            assert!(reason.contains("god-receives-unbounded"), "reason: {reason}");
+            assert!(
+                reason.contains("god-receives-unbounded"),
+                "reason: {reason}"
+            );
         }
         other => panic!("expected kernel-boundary refusal, got {other:?}"),
     }
-    assert!(receipt.inner.is_empty(), "the unbounded must never reach a computed plan");
+    assert!(
+        receipt.inner.is_empty(),
+        "the unbounded must never reach a computed plan"
+    );
     // The refusal itself chains and replays.
     replay_firing(&receipt, &rerouted, &source, &registry, &[]).expect("boundary refusal replays");
 }
@@ -107,7 +125,10 @@ fn a_ground_action_hook_watching_a_surrendered_var_is_refused() {
         hook:effect \"ground-action\" ;\n    \
         hook:action ex:DailyPrayerWorkflow ;";
     let base = KERNEL.replace(needle, replacement);
-    assert_ne!(base, KERNEL, "the sponsor hook block must have been rewritten");
+    assert_ne!(
+        base, KERNEL,
+        "the sponsor hook block must have been rewritten"
+    );
     let base = format!("{base}\n<{LIFE}threat9> <{LIFE}hasUnboundedThreat> 1 .\n");
 
     let reference = Reference::genesis(&base).expect("admits");
@@ -155,10 +176,11 @@ const WF: &str = "http://seanchatmangpt.github.io/praxis/workflow#";
 fn fragment_a() -> String {
     format!(
         "@prefix wf: <{WF}> .\n@prefix hook: <{HOOK_NS}> .\n@prefix ex: <http://e/> .\n\
+         @prefix prov: <http://www.w3.org/ns/prov#> .\n\
          ex:go a hook:Hook ; hook:name \"go\" ; hook:kind \"delta\" ; \
          hook:var \"http://e/ping\" ; hook:effect \"ground-action\" ; hook:action ex:A .\n\
          ex:A a wf:Workflow ; wf:budget 2 ; wf:init ex:s0 ; wf:goal ex:g ; \
-         wf:capability ex:capA .\n\
+         wf:capability ex:capA ; prov:wasAttributedTo ex:authority .\n\
          ex:s0 a wf:Atom ; wf:predicate \"s0\" .\n\
          ex:g a wf:Atom ; wf:predicate \"g\" .\n\
          ex:capA a wf:Capability ; wf:name \"capA\" ; wf:params 0 ; wf:cost 5 ; \
@@ -211,9 +233,17 @@ fn grounding_a_is_byte_identical_with_and_without_foreign_fragments() {
         serde_json::to_string(&crowded.inner[0]).unwrap(),
         "foreign fragments leaked into A's grounded plan"
     );
-    let steps: Vec<&str> =
-        alone.inner[0].plan.steps.iter().map(|s| s.capability.as_str()).collect();
-    assert_eq!(steps, ["capA"], "A executes only capabilities it declared membership for");
+    let steps: Vec<&str> = alone.inner[0]
+        .plan
+        .steps
+        .iter()
+        .map(|s| s.capability.as_str())
+        .collect();
+    assert_eq!(
+        steps,
+        ["capA"],
+        "A executes only capabilities it declared membership for"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -238,8 +268,10 @@ fn unstratifiable_program_is_refused_at_registration_not_firing() {
     let triples = parse_ttl(&doc).expect("parses");
     match extract_hooks(&triples) {
         Err(Refusal::HookIllFormed { detail, .. }) => {
-            assert!(detail.contains("negation cycle") || detail.contains("stratif"),
-                "detail: {detail}");
+            assert!(
+                detail.contains("negation cycle") || detail.contains("stratif"),
+                "detail: {detail}"
+            );
         }
         other => panic!("expected registration-time HookIllFormed, got {other:?}"),
     }
@@ -288,15 +320,18 @@ fn replaying_a_firing_against_a_different_history_is_refused() {
     );
     let registry = HandlerRegistry::builtin();
     let source = src("<http://e/x> <http://e/tick> 1 .", "");
-    let history = vec![praxis_synthesis::GraphDelta::parse(
-        "<http://e/y> <http://e/tick> 1 .",
-        "",
-    )
-    .expect("history delta parses")];
+    let history = vec![
+        praxis_synthesis::GraphDelta::parse("<http://e/y> <http://e/tick> 1 .", "")
+            .expect("history delta parses"),
+    ];
 
     let reference = Reference::genesis(&base).expect("admits");
     let receipt = fire_hooks(&reference, &source, &registry, &history).expect("fires");
-    assert_eq!(receipt.outcome, FiringOutcome::Completed, "2 < 3: not fired");
+    assert_eq!(
+        receipt.outcome,
+        FiringOutcome::Completed,
+        "2 < 3: not fired"
+    );
 
     // Honest replay: same history.
     replay_firing(&receipt, &base, &source, &registry, &history).expect("replays");

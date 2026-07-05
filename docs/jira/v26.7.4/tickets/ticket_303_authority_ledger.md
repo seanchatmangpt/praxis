@@ -1,7 +1,7 @@
-# Ticket: Authority Ledger via Firing-Time Provenance Check
+# Ticket: Authority Ledger via Firing-Time Provenance Check — CLOSED
 
 ## Title
-Refuse ground-action firings whose action node has no admitted authority anchor (PROJ-303)
+Refuse ground-action firings whose action node has no admitted authority anchor (PROJ-303) — **STATUS: CLOSED**
 
 ## Description
 The vision doc's "AuthorityLedger" claims every proxy action must bind to admitted authority,
