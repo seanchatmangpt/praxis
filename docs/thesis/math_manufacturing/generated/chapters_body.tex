@@ -602,13 +602,68 @@ lane: \texttt{praxis-l4 l4 init} scaffolds a real Lake package (a
 \texttt{tools/paper-factory/lean-lake/}, deliberately not touching any
 of the 183 bare-\texttt{lean}-verified files. \texttt{lake build} and
 \texttt{lake env lean Praxis.lean} both succeed against the real Lean
-4.31.0/Lake 5.0.0 toolchain. Migrating the existing corpus into this
-Lake-managed lane, and closing the gap that \texttt{reconcile} and
+4.31.0/Lake 5.0.0 toolchain. Closing the gap that \texttt{reconcile} and
 \texttt{report} currently accept the pre-existing receipts schema only
 through a schema-tolerant compatibility reader (rather than the richer
 schema~v2 record this crate defines, with per-file hashes and a
-genesis-folded chain hash) remain explicit future work, not silently
+genesis-folded chain hash) remains explicit future work, not silently
 assumed done.
+
+
+This lane was then linked to Mathlib, and its prebuilt cache used
+rather than a from-source build:
+\texttt{require mathlib from git ... @ "v4.31.0"} (pinned to the one
+Mathlib git tag whose own \texttt{lean-toolchain} exactly matches the
+toolchain already installed, avoiding a second toolchain download), then
+\texttt{lake exe cache get}, which downloaded and decompressed all
+8{,}542 of Mathlib's prebuilt \texttt{.olean} files rather than
+compiling roughly a thousand Mathlib modules from source. A trivial
+\texttt{import Mathlib} file typechecked in 38 seconds wall-clock against
+that cache -- a from-source build of Mathlib takes hours, so this is
+direct evidence the cache, not a rebuild, is what made the lane usable.
+
+
+\begin{finding}
+Within this Mathlib-linked lane, four files were reformalized to compose
+pre-built content instead of declaring axioms from scratch. \texttt{Bits256}
+became the real \texttt{BitVec 256} rather than an opaque axiomatized
+type; four of \texttt{def:receipt}'s six axiomatized fields
+(\texttt{DenialWord}, \texttt{TransitionId}, \texttt{Version},
+\texttt{RefusalReason}, \texttt{Fitness}) were composed from
+\texttt{Nat}, \texttt{String}, \texttt{Prod}, and -- reusing this same
+pilot's own \texttt{Deny} type from \texttt{prop:monoid} rather than a
+second, unrelated axiom -- a dependent pair over it; \texttt{prop:monoid}'s
+five hand-proved lattice lemmas were replaced by five one-line citations
+of Mathlib's pre-built \texttt{BooleanAlgebra} instance on
+\texttt{Fin n} $\to$ \texttt{Bool}; and \texttt{thm:rice}'s bare-core
+version, which axiomatizes 13 facts about an abstract computability layer
+and then hand-proves the halting-problem reduction (confirmed by direct
+grep count), was replaced by a direct corollary of Mathlib's own
+\texttt{ComputablePred.rice\_2} (Lean's actual identifier uses a Unicode
+subscript~2, rendered here in plain ASCII) and
+\texttt{ComputablePred.halting\_problem}
+(\texttt{Mathlib.Computability.Halting}, formalizing Carneiro 2019) --
+citing an existing, published, from-first-principles Lean proof of
+Rice's theorem rather than re-deriving it. Lean's own
+\texttt{\#print axioms} confirms the resulting corollaries depend only
+on Lean's three standard foundational axioms
+(\texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}) --
+zero corpus-specific custom axioms, down from 13 in the bare-core file.
+Independently re-running \texttt{praxis-l4 l4 no-sorry} against this
+lane (Section~\ref{sec:praxis-lean}) confirms the count directly: 5
+axioms remain across all four files (\texttt{chainH}, \texttt{chainStep}
+-- the genuinely irreducible cryptographic primitives -- plus
+\texttt{Obs}, \texttt{Sim}, and one bundled \texttt{Sim\_equiv} axiom,
+down from 3 separate hand-written equivalence axioms).
+\end{finding}
+
+
+This pilot covers 4 of the corpus's 219 statements. It is evidence
+that the Mathlib lane works and that real reuse is possible, not a claim
+that the remaining 215 statements have been reformalized -- that
+migration, and closing the receipts-schema compatibility gap noted
+above, remain future work, exactly as Section~\ref{ch:limitations}
+states.
 
 \chapter{Empirical results}
 \label{ch:empirical}
@@ -1077,18 +1132,36 @@ Stated without euphemism, in the order they matter most.
 \section{Bare Lean core, no mathlib}
 
 
-Every formalization in this thesis's corpus is checked against Lean~4
-core with no mathlib installed. This bounds the pipeline to statements
-whose vocabulary can be built from scratch in a reasonable number of
-lines --- exactly why \texttt{thm:faithful} (cryptographic and
-probabilistic content) was excluded a priori rather than attempted: bare
-core has no probability or cryptographic-primitive library to build on,
-and formalizing one from scratch was out of scope. This is a genuine
-capability boundary, not a stylistic choice: a corpus leaning further
-into analysis, probability, or algebraic structures with deep existing
-mathlib support would need a different toolchain to get a fair test of
-the wave-scheduling and reject-fix-retry mechanisms this thesis actually
-contributes.
+All 219 corpus statements' primary, currently-relied-upon
+verification remains against Lean~4 core with no mathlib linked, and
+\texttt{thm:faithful} remains excluded a priori for the reason given
+below. What changed after this was first written: a second, additive
+Lake-managed lane
+(\texttt{tools/paper-factory/lean-lake/}, Section~\ref{sec:praxis-lean})
+now links Mathlib via its own prebuilt cache mechanism
+(\texttt{lake exe cache get}, 8{,}542 files, avoiding a from-source
+build), and a bounded four-file pilot within that lane demonstrates real
+reuse of Mathlib content in place of from-scratch axioms
+(Section~\ref{sec:praxis-lean}). This does not retroactively migrate the
+183 already-verified bare-core files, and it does not close the
+capability gap that excluded \texttt{thm:faithful}: the pilot's own
+cryptographic hash function (\texttt{chainH}) remains axiomatized, since
+no verified BLAKE3 implementation exists in Mathlib either. The
+capability boundary below is therefore softened, not eliminated: mathlib
+is no longer categorically absent from this thesis's toolchain, but it is
+linked in one additive lane covering four of 219 statements, not the
+whole corpus.
+
+
+The remaining capability boundary: a corpus leaning further into
+analysis, probability, or algebraic structures with deep existing
+mathlib support would still need the pilot's scope widened well past
+four statements to get a fair test of the wave-scheduling and
+reject-fix-retry mechanisms this thesis actually contributes, and
+\texttt{thm:faithful}'s cryptographic/probabilistic content specifically
+still has no pre-built Lean formalization to cite (unlike
+\texttt{thm:rice}'s Section~\ref{sec:praxis-lean} pilot, which had one
+sitting directly in \texttt{Mathlib.Computability.Halting}).
 
 \section{Single kernel, no cross-check}
 

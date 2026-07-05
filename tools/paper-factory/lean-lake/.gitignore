@@ -1,2 +1,11 @@
+# Lake build cache and dependency checkouts -- includes the full Mathlib4
+# git clone plus ~8500 downloaded prebuilt .olean cache files (~7 GiB).
+# Never commit: regenerate with `lake update && lake exe cache get`.
 .lake/
 lake-manifest.json
+
+# Lean/Lake temp and editor artifacts.
+build/
+*.olean
+*.ilean
+*.trace

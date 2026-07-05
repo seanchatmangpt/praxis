@@ -44,3 +44,10 @@ docs/thesis/*.blg
 docs/thesis/*.nav
 docs/thesis/*.snm
 docs/thesis/*.vrb
+
+# Lake (Lean 4 build tool) caches and dependency checkouts, anywhere in the
+# repo -- includes full git clones of dependencies (e.g. Mathlib4, several
+# GiB) plus downloaded prebuilt .olean cache files. Regenerate with
+# `lake update && lake exe cache get`; never commit.
+**/.lake/
+**/lake-manifest.json
