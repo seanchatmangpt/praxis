@@ -1,0 +1,684 @@
+# Instance data extracted from docs/thesis/03_planning_geometry.tex
+# ("Mission Geometry: Planning, Conformance, and Separability for Bounded
+# Receipted Execution" -- Pillar III of the Chatman Equation thesis series)
+# against the tex-math-pack ontology (packs/tex-math-pack/ontology.ttl),
+# following the extraction conventions of docs/thesis/rdf/00_foundations.ttl.
+#
+# Extraction notes:
+#  - Local names are the paper's own \label{} keys with ':' and '-' replaced
+#    by '_' (Turtle local names here are kept underscore-only for uniformity
+#    with the pilot file); math:label carries the original \label{} string
+#    verbatim so \ref{} in the generated .tex still resolves.
+#  - math:kind values follow the paper's own \newtheorem declarations:
+#    definition, theorem, proposition, corollary, lemma, construction.
+#    (This paper does not use the \newtheorem environment "axiom"; it does
+#    use "construction", as the pilot paper also did -- an extraction
+#    decision, not fabricated content, naming a real LaTeX environment.)
+#  - dependsOn/justification edges only ever target math:Statement
+#    individuals (never math:Symbol individuals), matching
+#    check_citations.py's citation-closure requirement that every
+#    dependsOn/justification IRI target be the subject of a math:kind triple.
+#  - Some statements have no \begin{proof} block in the source at all, so
+#    they contribute no math:Proof individual: def:domain, def:ground,
+#    def:balance, def:net, def:incidence, con:strips, def:conf, def:replay,
+#    def:fitness, def:powl, con:tape, con:normalize, thm:lang-correct (stated
+#    with no proof body), def:cost, thm:mrr (stated with no proof body),
+#    def:makespan, def:saturation, def:symdict, con:join.
+#  - Some proof steps have no clear in-paper justification because the proof
+#    leans on an external bibitem rather than an earlier in-paper Statement.
+#    Since math:justification is not OPTIONAL in the consuming template, each
+#    such step's justification points back at the theorem's own defining
+#    Statement (self-justification), and the step is flagged UNRESOLVED
+#    below rather than asserting a fabricated in-paper dependency:
+#      - proof_prop_cone step 2 (Petri-net insufficiency fact, \cite{murata1989})
+#      - proof_thm_farkas step 1 (Farkas' lemma itself, \cite{schrijver1986})
+#      - proof_thm_sep (attribution proof explicitly cites \cite{powl2023}
+#        and \cite{vdaalst2016} rather than reproving in-paper)
+#      - proof_prop_satcorrect step 2 ("standard Datalog fixpoint theorem",
+#        \cite{kowalski1974,lloyd1987})
+
+@prefix math: <http://seanchatmangpt.github.io/packs/tex-math#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+# ===========================================================================
+# Statements (definition/theorem/proposition/corollary/lemma/construction)
+# ===========================================================================
+
+math:def_domain
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:domain" ;
+    math:statement "A lifted domain is a tuple $\\mathcal{D}=(\\mathcal{T},\\mathcal{P},\\mathcal{F},\\mathcal{S})$: a finite type hierarchy $\\mathcal{T}$, a finite set $\\mathcal{P}$ of predicate symbols, a finite set $\\mathcal{F}$ of numeric function symbols (fluents), and a finite set $\\mathcal{S}$ of action schemas; a durative schema carries typed parameters, a duration constraint, a condition $C_s$, and an effect $E_s$." .
+
+math:def_ground
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:ground" ;
+    math:statement "Given a domain $\\mathcal{D}$ and a problem $(\\mathcal{Ob},\\bm m_{0},\\nu_{0},\\gamma)$, the grounding substitutes every type-compatible object tuple into each schema's parameters, producing a finite set of ground actions; a grounded state is a pair $(\\bm m,\\nu)$ of a set $\\bm m$ of true ground atoms and a fluent valuation $\\nu$." ;
+    math:dependsOn math:def_domain .
+
+math:thm_bounded_ground
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:bounded-ground" ;
+    math:statement "Let $\\mathcal{D}$ have schemas of maximum parameter arity $k$ over $|\\mathcal{Ob}|=N$ objects. The number of ground actions is at most $|\\mathcal{S}|\\cdot N^{k}$, a finite constant independent of the goal; consequently a forward search over grounded actions has a branching factor bounded a priori, and $\\muop$'s manufacture terminates within a fixed depth bound." ;
+    math:dependsOn math:def_ground .
+
+math:con_xorf
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:xorf" ;
+    math:statement "Let $R\\subseteq\\Obs$ be the reachability fixpoint fact set. A frozen fact store builds an 8-bit XOR filter over FNV-1a hashes of $R$, with index mapping via the fastrange reduction $\\mathrm{reduce}(x,n)=(x\\times n)/2^{32}$; membership is gated by $x\\in B$ if $F(x)=\\mathrm{true}$, else false, with false-positive rate $\\approx 0.4\\%$ and false negatives $0$." ;
+    math:dependsOn math:def_ground .
+
+math:def_balance
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:balance" ;
+    math:statement "A durative action $j$ draws on a fluent $\\phi$ if its effect decreases $\\phi$ by $r_j$ at start and increases it by $r_j$ at end for rate $r_j\\ge0$, holding $r_j$ units over $[s_j,e_j)$; the free level of $\\phi$ at time $t$ is $f_\\phi(t)=\\nu_0(\\phi)-\\sum_{j:t\\in[s_j,e_j)} r_j$." ;
+    math:dependsOn math:def_domain .
+
+math:prop_conserve
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:conserve" ;
+    math:statement "If every action drawing on $\\phi$ both decrements it by $r_j$ at start and increments it by $r_j$ at end, the net effect of each completed action on $\\phi$ is zero, and the terminal valuation equals the initial: $\\nu_{\\text{end}}(\\phi)=\\nu_0(\\phi)$; scheduling redistributes when $\\phi$ is held, never how much exists." ;
+    math:dependsOn math:def_balance .
+
+math:prop_balance
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:balance" ;
+    math:statement "A durative-action schedule is feasible with respect to $\\phi$ iff $f_\\phi(t)\\ge0$ for all $t$; for the unit-rate attention fluent this says the number of concurrently in-flight capabilities never exceeds the capacity $\\nu_0(\\code{attention})$." ;
+    math:dependsOn math:def_balance .
+
+math:def_net
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:net" ;
+    math:statement "A net has $p$ places and a finite set $T$ of transitions; a marking is a vector $\\bm m\\in\\Zplus^{p}$; a transition $t$ is a pair $(\\bm m^{-}_{t},\\bm m^{+}_{t})$ of preset and postset, enabled at $\\bm m$ iff $\\bm m\\ge\\bm m^{-}_{t}$ coordinatewise, firing to $\\bm m'=\\bm m-\\bm m^{-}_{t}+\\bm m^{+}_{t}$." .
+
+math:def_incidence
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:incidence" ;
+    math:statement "Let $\\Nmat\\in\\mathbb{Z}^{p\\times|T|}$ have column $\\bm\\delta_t=\\bm m^{+}_{t}-\\bm m^{-}_{t}$ for each transition $t$; a firing sequence with Parikh vector $\\bm x\\in\\Zplus^{|T|}$ satisfies the state equation $\\bm m=\\bm m_{0}+\\Nmat\\bm x$." ;
+    math:dependsOn math:def_net .
+
+math:prop_cone
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:cone" ;
+    math:statement "Every marking $\\bm m$ reachable from $\\bm m_{0}$ satisfies the state equation for some $\\bm x\\in\\Zplus^{|T|}$, hence lies in the integer points of $\\bm m_{0}+\\cone(\\Nmat)$ intersected with $\\Zplus^{p}$; the state equation is necessary for reachability but not sufficient." ;
+    math:dependsOn math:def_incidence .
+
+math:def_polytope
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:polytope" ;
+    math:statement "The marking polytope of a net is the relaxation $\\Poly=\\{\\bm m_{0}+\\Nmat\\bm x:\\bm x\\ge\\bm0\\}\\cap\\{\\bm m\\ge\\bm0\\}\\subseteq\\Rplus^{p}$, the continuous translated cone whose integer points over-approximate the reachable set." ;
+    math:dependsOn math:prop_cone .
+
+math:con_strips
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:strips" ;
+    math:statement "Take the places to be the ground atoms; a ground action $t$ with delete-effects $\\bm m^{-}_{t}$ and add-effects $\\bm m^{+}_{t}$ is a transition, and \\code{GroundProblem::find\\_plan} searches marking space by BFS with the successor relation exactly transition firing." ;
+    math:dependsOn math:def_net .
+
+math:prop_safe
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:safe" ;
+    math:statement "On a safe (1-bounded) net, the integer firing rule $\\bm m'=\\bm m-\\bm m^{-}_{t}+\\bm m^{+}_{t}$ coincides with the branchless bitset update $\\code{enabled\\_tokens}\\gets(\\code{enabled\\_tokens}\\ \\&\\ \\lnot\\bm m^{-}_{t})\\ |\\ \\bm m^{+}_{t}$, and the enabling test coincides with the branchless subset check $(\\code{enabled}\\ \\&\\ \\bm m^{-}_{t})\\oplus\\bm m^{-}_{t}=0$." ;
+    math:dependsOn math:def_net ;
+    math:dependsOn math:con_strips .
+
+math:def_conf
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:conf" ;
+    math:statement "A trace with final marking $\\bm m^{\\dagger}$ and transition-count vector $\\bm x$ conforms to a net with initial marking $\\bm m_{0}$ if $\\bm m^{\\dagger}\\in\\Poly$ and the $\\bm x$ witnessing it is realized by a genuine firing ordering; it fails membership if $\\bm m^{\\dagger}\\notin\\Poly$." ;
+    math:dependsOn math:def_polytope .
+
+math:thm_farkas
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:farkas" ;
+    math:statement "Fix $\\bm b=\\bm m^{\\dagger}-\\bm m_{0}$. Exactly one holds: (a) there exists $\\bm x\\ge\\bm0$ with $\\Nmat\\bm x=\\bm b$; or (b) there exists $\\bm y\\in\\mathbb{R}^{p}$ with $\\Nmat^{\\top}\\bm y\\le\\bm0$ and $\\bm y^{\\top}\\bm b>0$, a separating hyperplane certifying $\\bm m^{\\dagger}\\notin\\bm m_{0}+\\cone(\\Nmat)$, and if (b) holds no firing sequence reaches $\\bm m^{\\dagger}$." ;
+    math:dependsOn math:def_conf ;
+    math:dependsOn math:prop_cone .
+
+math:cor_cert
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:cert" ;
+    math:statement "A nonconformance certificate is a single vector $\\bm y\\in\\mathbb{R}^{p}$ together with $\\Nmat^{\\top}\\bm y\\le\\bm0$ and $\\bm y^{\\top}\\bm b>0$; checking it is a matrix product and two sign tests, independent of trace length, verifiable within a bounded context $\\CL$." ;
+    math:dependsOn math:thm_farkas .
+
+math:def_replay
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:replay" ;
+    math:statement "The verifier holds a marking $\\bm m$ (\\code{enabled\\_tokens}) initialized to the entry token, and accumulators \\code{replayed}, \\code{fitted}, \\code{enabled\\_not\\_taken}; replaying a frame rejects an invalid node bit, requires $\\bm m\\ge\\bm m^{-}$, records enabled-but-unconsumed tokens, fires $\\bm m\\gets(\\bm m\\ \\&\\ \\lnot\\bm m^{-})\\ |\\ \\bm m^{+}$, and sets the node bit in \\code{replayed} and \\code{fitted}." ;
+    math:dependsOn math:prop_safe .
+
+math:def_fitness
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:fitness" ;
+    math:statement "On finalization the verifier returns, in Q16.16 fixed point, $\\Fitness=|\\code{fitted}|/|\\code{replayed}|$ and precision $=|\\code{replayed}|/(|\\code{replayed}|+|\\code{enabled\\_not\\_taken}|)$, where $|\\cdot|$ is population count and $\\Fitness\\coloneqq1$ when the denominator is zero." ;
+    math:dependsOn math:def_replay .
+
+math:thm_fitness
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:fitness" ;
+    math:statement "Replaying a sequence of frames against the net either (i) completes with no violation, in which case it is a genuine firing sequence and $\\Fitness=1$; or (ii) halts at the first frame whose preset is not contained in the current marking, returning a coordinate-localized witness of the earliest disabled transition." ;
+    math:dependsOn math:def_replay ;
+    math:dependsOn math:prop_safe ;
+    math:dependsOn math:def_net .
+
+math:prop_honest
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:honest" ;
+    math:statement "$\\Fitness$ and precision are ratios of bit-populations of disjointly-maintained bitsets; neither can exceed $1$, and $\\Fitness=1$ is attained exactly on completed replays; \\code{enabled\\_not\\_taken} feeds precision, not fitness, so the two metrics measure orthogonal deviations." ;
+    math:dependsOn math:thm_fitness ;
+    math:dependsOn math:def_fitness .
+
+math:def_powl
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:powl" ;
+    math:statement "A POWL model over an activity alphabet $A$ is one of: an activity $a\\in A$ (a leaf); a partial order $(\\{M_1,\\dots,M_k\\},\\prec)$ executed by respecting $\\prec$ and running incomparable children concurrently; or a choice graph $(\\{M_1,\\dots,M_k\\},E)$ combined by exclusive choice (and cyclic/loop edges), taking exactly one live branch." .
+
+math:con_tape
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:tape" ;
+    math:statement "\\code{temporal\\_plan\\_to\\_powl\\_tape} converts a \\code{TemporalPlan} into a tape of \\code{PowlOpSpec}s: each step $i$ becomes an activity with a \\code{pred\\_mask} of steps $j<i$ finishing before $i$ starts and a one-hot \\code{succ\\_mask}; a second pass performs transitive reduction, clearing bits of predecessors' own predecessors, leaving only direct predecessors." ;
+    math:dependsOn math:def_powl .
+
+math:prop_hasse
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:hasse" ;
+    math:statement "Let $\\prec$ be the strict order \"$j$ finishes before $i$ starts\" on plan steps. The initialized \\code{pred\\_mask} of step $i$ is $\\{j:j\\prec i\\}$, and after transitive reduction it is the covering relation of $\\prec$; the resulting dependency graph is a DAG, and two steps are schedulable concurrently iff $\\prec$-incomparable." ;
+    math:dependsOn math:con_tape .
+
+math:prop_local
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:local" ;
+    math:statement "In a POWL model, the token marking local to a node ranges over the tokens of that node's immediate children: a node of arity $k$ has a local marking space of dimension $O(k)$, independent of the total size of the model; a node's replay is checked in a working set bounded by its arity." ;
+    math:dependsOn math:def_powl .
+
+math:thm_sep
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:sep" ;
+    math:statement "A sound, separable workflow net admits a recursive decomposition into a POWL model whose every internal node is a partial order or a choice graph and whose leaves are activities, with each node's local marking geometry dimension bounded by its arity, independent of the global net size." ;
+    math:dependsOn math:def_powl ;
+    math:dependsOn math:prop_local .
+
+math:prop_quarantine
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:quarantine" ;
+    math:statement "Let $\\text{sep}$ be the decidable predicate \"the net is sound and separable.\" It is a legitimate admission obligation: total and computable, retracting the space of arbitrary control-flow onto the decidable sub-language of POWL-expressible processes; a separable net is admitted, a non-separable net is refused with reason." ;
+    math:dependsOn math:thm_sep .
+
+math:con_normalize
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:normalize" ;
+    math:statement "Given a partition part $T'\\subseteq T$ with entry places $P_{\\text{in}}$ and exit places $P_{\\text{out}}$, the sub-net is normalized to a valid WF-net by adding fresh boundary places $p_s,p_e$ and silent transitions $\\tau_{\\text{in}},\\tau_{\\text{out}}$, redirecting boundary arcs onto a unified source and sink." ;
+    math:dependsOn math:thm_sep .
+
+math:thm_lang_correct
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:lang-correct" ;
+    math:statement "Let $N$ be a safe and sound workflow net, and let $\\psi=\\text{convert}(N)$ be its POWL 2.0 conversion. Then for any prefix trace length $k$, $\\mathcal{L}_k(N)=\\mathcal{L}_k(\\psi)=\\mathcal{L}_k(\\text{recompose}(\\psi))$." ;
+    math:dependsOn math:con_normalize .
+
+math:def_cost
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:cost" ;
+    math:statement "The router's \\code{CostVector} is the tuple $\\CostV=(c_0,\\dots,c_5)=(\\overline{\\code{admitted}},\\code{risk},\\code{attention\\_seconds},\\code{tokens},\\code{latency},\\code{switches})$; the order is lexicographic, cheapest-first, and the refused vector $\\code{refused}()=(\\text{unadmitted},255,\\infty,\\infty,\\infty,255)$ is the top element." .
+
+math:thm_lex
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:lex" ;
+    math:statement "Let secondary coordinates be bounded, $|c_i|\\le M$ for $i\\ge1$. Define $C_\\lambda(\\CostV)=\\sum_{i=0}^{5}\\lambda^{5-i}c_i$ with $\\lambda>1$. There is a threshold $\\Lambda$ such that for all $\\lambda>\\Lambda$, $\\CostV\\preceq_{\\mathrm{lex}}\\CostV' \\iff C_\\lambda(\\CostV)\\le C_\\lambda(\\CostV')$; as $\\lambda\\to\\infty$ the weight on $c_0$ diverges relative to all others." ;
+    math:dependsOn math:def_cost .
+
+math:cor_dominate
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:dominate" ;
+    math:statement "An admitted plan sorts strictly before any refused plan regardless of its secondary costs: for any finite risk, makespan, token, latency, and switch values, an admitted \\code{CostVector} is $\\prec_{\\mathrm{lex}}$ the refused top element; the price of unlawfulness is infinite in the limit that defines the order." ;
+    math:dependsOn math:thm_lex .
+
+math:thm_mrr
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:mrr" ;
+    math:statement "Let $A$ be a set of independent client accounts, $\\text{realized}(a)$ the revenue of account $a$ under a target stage, and $\\text{lawful\\_targets}(a)$ its evidence-gated target stages. The joint plan optimization decomposes linearly: $\\max_{\\text{joint plan}}\\sum_{a\\in A}\\text{realized}(a)=\\sum_{a\\in A}\\max_{t\\in\\text{lawful\\_targets}(a)}\\text{realized}(a,t)$, reducing search complexity from $\\Omega(\\prod_a|T_a|)$ to $O(|A|\\cdot|T_a|)$." ;
+    math:dependsOn math:def_cost .
+
+math:def_makespan
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:makespan" ;
+    math:statement "Given the precedence DAG with per-op durations $d_i$ and release times, the forward pass computes $\\text{es}_i=\\max(r_i,\\max_{j\\prec i}\\text{ef}_j)$, $\\text{ef}_i=\\text{es}_i+d_i$; the makespan is $T=\\max_i\\text{ef}_i$; the backward pass computes $\\text{ls}_i=\\text{lf}_i-d_i$; the slack of op $i$ is $\\text{ls}_i-\\text{es}_i$, and the critical path is the set of zero-slack ops." ;
+    math:dependsOn math:con_tape .
+
+math:prop_critical
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:critical" ;
+    math:statement "The makespan $T$ equals the length of the longest ($\\prec$-)path in the precedence DAG weighted by durations, and an op has zero slack iff it lies on some longest path; delaying a zero-slack op delays the makespan, delaying an op by less than its slack does not." ;
+    math:dependsOn math:def_makespan .
+
+math:prop_sensitivity
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:sensitivity" ;
+    math:statement "Let $T(\\phi=c)$ be the makespan the planner finds when fluent $\\phi$'s initial capacity is $c$. The capacity delta reports $(T(c-1),T(c),T(c+1))$, and $\\phi$ is binding iff $T(c-1)\\neq T(c)$ (or the problem is infeasible at $c-1$); this is a finite-difference sensitivity of the specific schedule the greedy planner produced, not a dual shadow price of an optimal scheduler." ;
+    math:dependsOn math:def_makespan ;
+    math:dependsOn math:prop_balance .
+
+math:def_saturation
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:saturation" ;
+    math:statement "Let $(\\mathcal{D},\\mathcal{Ob})$ be a grounded PDDL problem with initial atom set $\\bm m_0$ and ground action set $T$. The Nemo Datalog program $\\Pi$ has one fact per atom in $\\bm m_0$ and one rule per ground action; the saturation $\\mathrm{sat}(\\Pi)$ is the least fixpoint $\\mathrm{lfp}(T_\\Pi)$ of the immediate-consequence operator; an atom $p$ is reachable iff $p\\in\\mathrm{sat}(\\Pi)$." ;
+    math:dependsOn math:def_ground .
+
+math:prop_satcorrect
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:satcorrect" ;
+    math:statement "$p\\in\\mathrm{sat}(\\Pi)$ iff there exists a sequence of ground actions whose add-effects include $p$, i.e.\\ $p$ is reachable from $\\bm m_0$ in the Petri-net sense." ;
+    math:dependsOn math:def_saturation ;
+    math:dependsOn math:def_net .
+
+math:def_symdict
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:symdict" ;
+    math:statement "A symbol identifier $\\mathrm{SymId}\\in\\mathbb{Z}_{>0}$ is a compact integer encoding of a ground atom or object name; \\code{pddl-index} maintains a bidirectional map $\\code{SymDict}:\\{\\text{strings}\\}\\leftrightarrow\\mathbb{Z}_{>0}$, encoded forward as \\code{FxHashMap<String,u32>} and reverse as \\code{Vec<String>}; zero is reserved as undefined." .
+
+math:prop_dictcost
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:dictcost" ;
+    math:statement "With symbol dictionary encoding, a ground atom $p(o_1,\\dots,o_k)$ is a tuple of $k+1$ $\\mathrm{SymId}$ values; equality reduces to integer comparison and hash-set membership to a single hash over $4(k+1)$ bytes, so the grounding loop's cost with encoding replaces $O(|T|\\cdot k\\cdot N)$ string comparisons with $O(1)$-time integer counterparts." ;
+    math:dependsOn math:def_symdict ;
+    math:dependsOn math:thm_bounded_ground .
+
+math:con_join
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:join" ;
+    math:statement "Grounding with type constraints is a relational join: for a schema parameter $v$ of type $\\tau$, the admissible objects are $\\{o:\\code{TypeIndex::satisfies}(\\mathrm{SymId}(o),\\mathrm{SymId}(\\tau))\\}$, walking the parent chain to depth bounded by the height of $\\mathcal{T}$, reducing effective branching from $N^k$ to $\\prod_i|\\{o:\\mathrm{type}(o)\\le\\tau_i\\}|$." ;
+    math:dependsOn math:def_symdict ;
+    math:dependsOn math:def_domain .
+
+# ===========================================================================
+# Proofs
+# ===========================================================================
+
+math:proof_thm_bounded_ground
+    a math:Proof ;
+    math:proves math:thm_bounded_ground ;
+    math:step math:proof_thm_bounded_ground_s1, math:proof_thm_bounded_ground_s2 .
+
+math:proof_thm_bounded_ground_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Each schema binds at most $k$ parameters, each to one of $\\le N$ objects, so it grounds to at most $N^{k}$ actions; summing over $|\\mathcal{S}|$ schemas gives the bound." ;
+    math:justification math:def_ground .
+
+math:proof_thm_bounded_ground_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "In \\code{bcinr-pddl} the count is additionally capped by \\code{PDDL8\\_MAX\\_GROUND}, exceeding it is \\code{Pddl8Error::BoundExceeded}, so the ground action set is finite and its size is a fixed function of $(|\\mathcal{S}|,N,k)$, discharging boundedness (M2)." ;
+    math:justification math:def_ground .
+
+math:proof_prop_conserve
+    a math:Proof ;
+    math:proves math:prop_conserve ;
+    math:step math:proof_prop_conserve_s1 .
+
+math:proof_prop_conserve_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "\\code{Decrease}$(\\phi,r_j)$ then \\code{Increase}$(\\phi,r_j)$ compose to the identity on $\\nu(\\phi)$; summing over all completed actions, the total change is $\\sum_j(r_j-r_j)=0$, so $\\nu_{\\text{end}}(\\phi)=\\nu_0(\\phi)$." ;
+    math:justification math:def_balance .
+
+math:proof_prop_balance
+    a math:Proof ;
+    math:proves math:prop_balance ;
+    math:step math:proof_prop_balance_s1 .
+
+math:proof_prop_balance_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The start guard at $s_j$ requires $\\nu(\\phi)\\ge r_j$ in the state just before $j$'s at-start decrement, so the guard holds iff $f_\\phi(s_j)\\ge0$; free level changes only at action starts and ends, so nonnegativity at every start implies it everywhere, and a violated guard is an instant with $f_\\phi<0$." ;
+    math:justification math:def_balance .
+
+math:proof_prop_cone
+    a math:Proof ;
+    math:proves math:prop_cone ;
+    math:step math:proof_prop_cone_s1, math:proof_prop_cone_s2 .
+
+math:proof_prop_cone_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Firing $t$ once adds column $\\bm\\delta_t$ to the marking; a sequence firing each $t$ exactly $x_t$ times adds $\\sum_t x_t\\bm\\delta_t=\\Nmat\\bm x$, giving the state equation, and since each $x_t\\ge0$ and markings are nonnegative integers, $\\bm m$ is an integer point of $\\bm m_0+\\cone(\\Nmat)$." ;
+    math:justification math:def_net .
+
+math:proof_prop_cone_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Insufficiency is the classical Petri-net fact: the state equation ignores intermediate nonnegativity and firing order, so spurious solutions exist." ;
+    math:justification math:prop_cone .
+# UNRESOLVED: the load-bearing citation for this step is the external
+# bibitem murata1989, not an earlier in-paper Statement.
+
+math:proof_prop_safe
+    a math:Proof ;
+    math:proves math:prop_safe ;
+    math:step math:proof_prop_safe_s1, math:proof_prop_safe_s2 .
+
+math:proof_prop_safe_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "On $0/1$ markings with $\\bm m^{-}_t\\le\\bm m$, the AND-NOT clears exactly the consumed places and the OR with $\\bm m^{+}_t$ sets the produced places; when preset and postset are disjoint from the retained marking this is bit-for-bit the integer expression." ;
+    math:justification math:def_net .
+
+math:proof_prop_safe_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "The enabling identity holds because $(\\bm m\\ \\&\\ \\bm m^{-})\\oplus\\bm m^{-}=0$ iff every bit of $\\bm m^{-}$ is also set in $\\bm m$, i.e.\\ $\\bm m\\ge\\bm m^{-}$ coordinatewise on $0/1$ vectors." ;
+    math:justification math:con_strips .
+
+math:proof_thm_farkas
+    a math:Proof ;
+    math:proves math:thm_farkas ;
+    math:step math:proof_thm_farkas_s1, math:proof_thm_farkas_s2, math:proof_thm_farkas_s3 .
+
+math:proof_thm_farkas_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "This is Farkas' lemma applied to the system $\\Nmat\\bm x=\\bm b,\\ \\bm x\\ge\\bm0$: either the system has a nonnegative solution, or there is $\\bm y$ with $\\bm y^{\\top}\\Nmat\\le\\bm0^{\\top}$ and $\\bm y^{\\top}\\bm b>0$, and never both." ;
+    math:justification math:thm_farkas .
+# UNRESOLVED: the load-bearing citation for this step is the external
+# bibitem schrijver1986 (Farkas' lemma), not an earlier in-paper Statement.
+
+math:proof_thm_farkas_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "In case (b), if a firing sequence reached $\\bm m^{\\dagger}$, its Parikh vector $\\bm x^{\\star}\\ge\\bm0$ satisfies $\\Nmat\\bm x^{\\star}=\\bm b$, so $\\bm y^{\\top}\\bm b=(\\Nmat^{\\top}\\bm y)^{\\top}\\bm x^{\\star}\\le0$, contradicting $\\bm y^{\\top}\\bm b>0$; hence (b) rules out reachability." ;
+    math:justification math:prop_cone .
+
+math:proof_thm_farkas_s3
+    a math:ProofStep ;
+    math:order 3 ;
+    math:claim "Soundness is one-directional: feasibility of the relaxation (a) is necessary but not sufficient for an actual firing sequence, so (a) does not by itself certify conformance --- only (b) certifies its negation." ;
+    math:justification math:prop_cone .
+
+math:proof_cor_cert
+    a math:Proof ;
+    math:proves math:cor_cert ;
+    math:step math:proof_cor_cert_s1 .
+
+math:proof_cor_cert_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Verification reads $\\bm y$ and $\\bm b$ and evaluates $\\Nmat^{\\top}\\bm y$ and $\\bm y^{\\top}\\bm b$; the cost is $O(p\\cdot|T|)$ in the net's fixed dimensions, with no dependence on trace length or interior computation." ;
+    math:justification math:thm_farkas .
+
+math:proof_thm_fitness
+    a math:Proof ;
+    math:proves math:thm_fitness ;
+    math:step math:proof_thm_fitness_s1, math:proof_thm_fitness_s2, math:proof_thm_fitness_s3 .
+
+math:proof_thm_fitness_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Step (2) of the replay definition admits a frame iff $\\bm m\\ge\\bm m^{-}$, which is exactly the enabling condition; by induction on the prefix, if no frame is rejected then every frame fired from a marking at which it was enabled, so the whole sequence is a genuine firing sequence." ;
+    math:justification math:def_replay .
+
+math:proof_thm_fitness_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Step (4) is the firing rule of the safe-net specialization." ;
+    math:justification math:prop_safe .
+
+math:proof_thm_fitness_s3
+    a math:ProofStep ;
+    math:order 3 ;
+    math:claim "In the completing case every replayed frame also sets \\code{fitted}, so $|\\code{fitted}|=|\\code{replayed}|$ and $\\Fitness=1$; conversely the guard fails at the first frame whose required tokens are absent, returning immediately with that frame's node id, the localized witness." ;
+    math:justification math:def_fitness .
+
+math:proof_prop_honest
+    a math:Proof ;
+    math:proves math:prop_honest ;
+    math:step math:proof_prop_honest_s1, math:proof_prop_honest_s2 .
+
+math:proof_prop_honest_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Population count is monotone and bounded by the number of node bits, and \\code{fitted}$\\subseteq$\\code{replayed} by construction, so $\\Fitness\\le1$." ;
+    math:justification math:def_replay .
+
+math:proof_prop_honest_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Equality holds iff no frame was replayed-without-fitting, which is every completed replay; \\code{enabled\\_not\\_taken} is updated only in step (3) and read only by precision's denominator, so it is independent of the fitness numerator." ;
+    math:justification math:thm_fitness .
+
+math:proof_prop_hasse
+    a math:Proof ;
+    math:proves math:prop_hasse ;
+    math:step math:proof_prop_hasse_s1, math:proof_prop_hasse_s2 .
+
+math:proof_prop_hasse_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "$\\prec$ is irreflexive and transitive, induced by the total order on real finish/start times, hence a strict partial order; the first pass sets bit $j$ in $i$'s mask exactly when $j\\prec i$." ;
+    math:justification math:con_tape .
+
+math:proof_prop_hasse_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "The reduction clears bit $j$ from $i$'s mask when some retained predecessor $k$ of $i$ has $j$ in its predecessors, i.e.\\ $j\\prec k\\prec i$; what survives is precisely the covering relation (the Hasse diagram) of $\\prec$." ;
+    math:justification math:con_tape .
+
+math:proof_prop_local
+    a math:Proof ;
+    math:proves math:prop_local ;
+    math:step math:proof_prop_local_s1 .
+
+math:proof_prop_local_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "A node's execution semantics reference only its own children's tokens: a partial order gates on the $\\prec$-predecessors among its $k$ children, a choice gates on which of its $k$ branches is live, so the token bits touched by one node's firing are contained in an $O(k)$-dimensional subspace." ;
+    math:justification math:def_powl .
+
+math:proof_thm_sep
+    a math:Proof ;
+    math:proves math:thm_sep ;
+    math:step math:proof_thm_sep_s1 .
+
+math:proof_thm_sep_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "This is the decomposition established for POWL by Kourani and van der Aalst and colleagues, resting on van der Aalst's process-mining foundations; cited rather than reproved here." ;
+    math:justification math:thm_sep .
+# UNRESOLVED: this is a proof by attribution, explicitly citing the external
+# bibitems powl2023 and vdaalst2016 rather than an in-paper Statement.
+
+math:proof_prop_quarantine
+    a math:Proof ;
+    math:proves math:prop_quarantine ;
+    math:step math:proof_prop_quarantine_s1, math:proof_prop_quarantine_s2 .
+
+math:proof_prop_quarantine_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Soundness and separability are structural properties of a finite net, checkable by the decomposition procedure, which either returns a POWL tree or the node at which decomposition fails; thus $\\text{sep}$ is total and computable." ;
+    math:justification math:thm_sep .
+
+math:proof_prop_quarantine_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Admission maps the net to its POWL decomposition when $\\text{sep}=1$ and to refusal with the obstruction as refusal data otherwise, exactly the admission map specialized to processes." ;
+    math:justification math:thm_sep .
+
+math:proof_thm_lex
+    a math:Proof ;
+    math:proves math:thm_lex ;
+    math:step math:proof_thm_lex_s1 .
+
+math:proof_thm_lex_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "If $\\CostV\\prec_{\\mathrm{lex}}\\CostV'$ they first differ at coordinate $p$ with $c'_p-c_p\\ge\\epsilon>0$; then $C_\\lambda(\\CostV')-C_\\lambda(\\CostV)\\ge\\lambda^{5-p}\\epsilon-2M(\\lambda^{5-p}-1)/(\\lambda-1)$, positive once $\\lambda>\\Lambda\\coloneqq1+2M\\cdot6/\\epsilon$, so the scalarization order agrees with $\\preceq_{\\mathrm{lex}}$ for $\\lambda>\\Lambda$." ;
+    math:justification math:def_cost .
+
+math:proof_cor_dominate
+    a math:Proof ;
+    math:proves math:cor_dominate ;
+    math:step math:proof_cor_dominate_s1 .
+
+math:proof_cor_dominate_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The lead coordinate $c_0$ is $0$ for admitted and $1$ for refused, and by Theorem~\\ref{thm:lex} it dominates: any admitted vector differs from the refused element first at $c_0$, where it is strictly smaller." ;
+    math:justification math:thm_lex .
+
+math:proof_prop_critical
+    a math:Proof ;
+    math:proves math:prop_critical ;
+    math:step math:proof_prop_critical_s1 .
+
+math:proof_prop_critical_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The forward recursion $\\text{ef}_i=\\text{es}_i+d_i$ with $\\text{es}_i=\\max_{j\\prec i}\\text{ef}_j$ is the standard longest-path dynamic program over a DAG, so $T=\\max_i\\text{ef}_i$ is the overall longest path; the backward pass gives the latest each op may start without increasing $T$, and slack $0$ iff $i$ lies on a longest path." ;
+    math:justification math:def_makespan .
+
+math:proof_prop_sensitivity
+    a math:Proof ;
+    math:proves math:prop_sensitivity ;
+    math:step math:proof_prop_sensitivity_s1, math:proof_prop_sensitivity_s2 .
+
+math:proof_prop_sensitivity_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "\\code{replan\\_with\\_perturbed\\_capacity} re-solves \\code{find\\_temporal\\_plan} with $\\phi$'s initial value moved by $\\pm1$ and reads off the resulting makespan; \\code{binding\\_resource\\_mask} sets bit $i$ iff the $-1$ perturbation changed the makespan or made the problem infeasible." ;
+    math:justification math:def_makespan .
+
+math:proof_prop_sensitivity_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Infeasibility at $c-1$ is itself evidence the resource binds." ;
+    math:justification math:prop_balance .
+
+math:proof_prop_satcorrect
+    a math:Proof ;
+    math:proves math:prop_satcorrect ;
+    math:step math:proof_prop_satcorrect_s1, math:proof_prop_satcorrect_s2 .
+
+math:proof_prop_satcorrect_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Soundness: every derived atom is the add-effect of a ground action whose preconditions were derived earlier, by induction on the derivation depth; the actions form a witness firing sequence." ;
+    math:justification math:def_saturation .
+
+math:proof_prop_satcorrect_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Completeness: a reachable atom has a witness sequence; unrolling it gives a derivation in $T_\\Pi$, the standard Datalog fixpoint theorem applied to the grounded action rules." ;
+    math:justification math:prop_satcorrect .
+# UNRESOLVED: the load-bearing citation for this step is the external
+# bibitems kowalski1974 and lloyd1987 (the Datalog fixpoint theorem), not
+# an earlier in-paper Statement.
+
+math:proof_prop_dictcost
+    a math:Proof ;
+    math:proves math:prop_dictcost ;
+    math:step math:proof_prop_dictcost_s1, math:proof_prop_dictcost_s2 .
+
+math:proof_prop_dictcost_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Each parameter binding substitutes an object's $\\mathrm{SymId}$ (an $O(1)$ lookup in a \\code{Vec}) for a parameter name; forming the atom tuple is $O(k)$ integer writes, and the hash of a tuple of $32$-bit integers is computed by FxHash in $O(k)$ time independent of string lengths." ;
+    math:justification math:def_symdict .
+
+math:proof_prop_dictcost_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Summing over $|T|$ schemas and $N^k$ bindings gives the stated cost." ;
+    math:justification math:thm_bounded_ground .
+
+# ===========================================================================
+# Symbols (key notation this paper defines/introduces)
+# ===========================================================================
+
+math:sym_m
+    a math:Symbol ;
+    math:latex "\\bm m" ;
+    math:definedIn math:def_net .
+
+math:sym_Nmat
+    a math:Symbol ;
+    math:latex "\\mathbf{N}" ;
+    math:definedIn math:def_incidence .
+
+math:sym_x
+    a math:Symbol ;
+    math:latex "\\bm x" ;
+    math:definedIn math:def_incidence .
+
+math:sym_Poly
+    a math:Symbol ;
+    math:latex "\\mathcal{P}" ;
+    math:definedIn math:def_polytope .
+
+math:sym_y
+    a math:Symbol ;
+    math:latex "\\bm y" ;
+    math:definedIn math:thm_farkas .
+
+math:sym_CL
+    a math:Symbol ;
+    math:latex "\\kappa" ;
+    math:definedIn math:cor_cert .
+
+math:sym_Fitness
+    a math:Symbol ;
+    math:latex "\\varphi" ;
+    math:definedIn math:def_fitness .
+
+math:sym_T
+    a math:Symbol ;
+    math:latex "T" ;
+    math:definedIn math:def_makespan .
+
+math:sym_CostV
+    a math:Symbol ;
+    math:latex "\\bm c" ;
+    math:definedIn math:def_cost .
+
+math:sym_SymId
+    a math:Symbol ;
+    math:latex "\\mathrm{SymId}" ;
+    math:definedIn math:def_symdict .

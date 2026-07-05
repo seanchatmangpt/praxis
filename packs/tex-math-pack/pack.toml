@@ -1,0 +1,4 @@
+[pack]
+name = "tex-math-pack"
+version = "0.1.0"
+description = "Renders LaTeX theorem/proof environments from an RDF ontology of theorem/proof/citation structure (math:Statement, math:Proof, math:ProofStep, math:Symbol)."

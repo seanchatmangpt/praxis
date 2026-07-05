@@ -1,0 +1,641 @@
+# Instance data extracted from docs/thesis/01_admission_algebra.tex
+# ("The Admission Monoid: An Algebra of Refusal")
+# against the tex-math-pack ontology (packs/tex-math-pack/ontology.ttl).
+#
+# Extraction notes (mirrors 00_foundations.ttl methodology):
+#  - Local names are the paper's own \label{} keys with ':' replaced by '_'
+#    (Turtle local names cannot contain ':'); math:label carries the original
+#    \label{} string verbatim so \ref{} in the generated .tex still resolves.
+#  - math:kind values follow the paper's own \newtheorem declarations:
+#    axiom, definition, theorem, proposition, corollary, lemma. This paper
+#    uses one axiom (ax:refusal, restated from Paper 00's ax:obs vantage
+#    but declared fresh here) and no construction environments.
+#  - dependsOn/justification edges only ever target math:Statement
+#    individuals (never math:Symbol individuals), per check_citations.py's
+#    citation-closure requirement (only Statements carry math:kind).
+#  - Per the task's citation policy, every dependsOn/justification cites the
+#    nearest earlier theorem/definition in THIS SAME paper (01_admission_
+#    algebra.tex), never a cross-paper reference to 00_foundations.ttl (that
+#    file's IRIs are a separate document and out of scope for this file's
+#    closure check). Where the .tex itself cites Paper 00 or an external
+#    bibitem (\cite{chatman2025}, \cite{rice1953}, \cite{birkhoff1967},
+#    \cite{kowalski1974,lloyd1987}) as the load-bearing justification and no
+#    in-paper Statement precedes it, the step is flagged UNRESOLVED below and
+#    justification instead self-references the statement's own defining
+#    Statement (self-justification), exactly as 00_foundations.ttl's
+#    documented convention for thm_rice step 1.
+#  - Flagged UNRESOLVED steps: proof_prop_monoid step 2 (final clause rests
+#    on Birkhoff 1967, an external bibitem, for join-semilattice bottom/top
+#    facts, alongside in-paper reasoning already cited); proof_thm_trichotomy
+#    step 4 (soundness/completeness of SLD-resolution rests on Kowalski 1974
+#    / Lloyd 1987, external bibitems, not in-paper Statements).
+#  - def:denialabstract (math:def_denialabstract) has no proof in the source
+#    (it is a definition), consistent with definitions never carrying
+#    math:Proof individuals in the pilot.
+#  - Two propositions in the appendix chapter (def:obsauth/prop:boundary and
+#    def:mrr/thm:mrrsep/cor:mrrindep) sit in Chapter 6, outside the core
+#    denial-algebra chapters, but are extracted identically since the task
+#    asks for every theorem/lemma/proposition/corollary/definition in the
+#    paper.
+
+@prefix math: <http://seanchatmangpt.github.io/packs/tex-math#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+# ===========================================================================
+# Statements (axiom/definition/theorem/proposition/corollary/lemma)
+# ===========================================================================
+
+math:ax_refusal
+    a math:Statement ;
+    math:kind "axiom" ;
+    math:label "ax:refusal" ;
+    math:statement "There is a distinguished refusal value $\\Rfsl$ and a space of reasons $\\mathcal{R}_{\\!f}$; a refusal is not the absence of an output but the pair $(\\Rfsl,r)$ with $r\\in\\mathcal{R}_{\\!f}$ a machine-checkable reason, so admission is total as a map into $\\Adm\\cup(\\{\\Rfsl\\}\\times\\mathcal{R}_{\\!f})$." .
+
+math:def_denialabstract
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:denialabstract" ;
+    math:statement "Fix $n\\in\\mathbb{N}$ lanes; the abstract denial word space is $\\Deny_n=\\{0,1\\}^{n}$ with componentwise disjunction $\\lor$ and the all-zero word $\\bm 0$; lane $i$ is set in $d$ when $d_i=1$, $\\supp d=\\{i:d_i=1\\}$, and $d\\preceq d'$ means $\\forall i\\,(d_i\\le d_i')$." .
+
+math:prop_monoid
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:monoid" ;
+    math:statement "$(\\Deny_n,\\lor,\\bm 0)$ is a commutative monoid in which every element is idempotent; it is the join-semilattice of the Boolean lattice $(2^{[n]},\\subseteq)$ under $d\\mapsto\\supp d$, with $\\bm 0$ least and $\\bm 1$ greatest, so $d\\lor d'$ is the least upper bound and $\\preceq$ is exactly $d\\preceq d'\\iff d\\lor d'=d'$." ;
+    math:dependsOn math:def_denialabstract .
+
+math:def_denialcode
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:denialcode" ;
+    math:statement "In praxis the denial word is DenialPolarity, a repr(transparent) newtype over u64 carved into eight byte-lanes; the clean word is $\\Adml=$ DenialPolarity(0); seven named nonzero constants each occupy one distinct byte lane; the product is compose$(a,b)=$ DenialPolarity$(a.0\\mathbin{|}b.0)$, bitwise OR; the admission predicate is is\\_admitted$(d)\\iff d.0=0$." .
+
+math:prop_code_is_sl
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:code_is_sl" ;
+    math:statement "$\\Deny=(\\{\\text{DenialPolarity}\\},\\text{compose},\\Adml)$ is a bounded commutative idempotent monoid, is\\_admitted is exactly the predicate 'is the bottom element,' and the submonoid $\\langle L\\rangle$ generated by the seven named nonzero constants together with $\\Adml$ is isomorphic to $\\Deny_7$ via 'which named lanes are nonzero.'" ;
+    math:dependsOn math:def_denialcode ;
+    math:dependsOn math:prop_monoid .
+
+math:def_fired
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:fired" ;
+    math:statement "$\\firedmap:\\Deny\\to\\{0,1\\}^{8}$ sends a word $d$ to the bit vector whose bit $j$ equals the nonzero-indicator of byte lane $j$ of $d$: $\\firedmap(d)_j=\\mathbf 1[(d.0\\gg 8j)\\ \\&\\ \\text{0xFF}\\ne 0]$, computed branchlessly via $\\mathbf 1[x\\ne 0]=(x\\mathbin{|}(-x))\\gg 63$ on each lane." ;
+    math:dependsOn math:def_denialcode .
+
+math:thm_firedhom
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:firedhom" ;
+    math:statement "$\\firedmap$ is a homomorphism of bounded commutative idempotent monoids: $\\firedmap(\\Adml)=\\bm 0$ and $\\firedmap(\\text{compose}(a,b))=\\firedmap(a)\\lor\\firedmap(b)$ for all $a,b\\in\\Deny$; restricted to $\\langle L\\rangle$ it is a monoid isomorphism onto the seven-bit image $\\{0\\}\\times\\{0,1\\}^{7}$." ;
+    math:dependsOn math:def_fired ;
+    math:dependsOn math:prop_code_is_sl .
+
+math:def_ob
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:ob" ;
+    math:statement "An obligation is a first-class, hashable value the payload must satisfy before admission; the Obligation enum has exactly three kinds; each obligation $g$ induces a lane map $\\delta_g:\\Obs\\to\\Deny$ returning $\\Adml$ if $g$ is satisfied by $o$, else $\\ell(g)$; for a set $G$ the total denial is $d_G(o)=\\bigvee_{i=1}^{m}\\delta_{g_i}(o)$." ;
+    math:dependsOn math:def_denialcode .
+
+math:prop_bottom
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:bottom" ;
+    math:statement "$\\adm_G(o)\\ne\\Rfsl\\iff d_G(o)=\\Adml\\iff$ every $g_i\\in G$ is satisfied by $o$." ;
+    math:dependsOn math:def_ob ;
+    math:dependsOn math:prop_monoid .
+
+math:thm_mono
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:mono" ;
+    math:statement "Let $G\\subseteq G'$ be obligation sets; then $d_G(o)\\preceq d_{G'}(o)$ for every observation $o$, hence $\\Adm_{G'}\\subseteq\\Adm_G$: adding obligations can only enlarge denial and shrink admission, never admit an observation a smaller obligation set refused." ;
+    math:dependsOn math:prop_bottom ;
+    math:dependsOn math:prop_monoid .
+
+math:cor_galois
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:galois" ;
+    math:statement "The assignment $G\\mapsto\\Adm_G$ is an order-reversing map from $(2^{\\mathcal{G}},\\subseteq)$ to $(2^{\\Obs},\\subseteq)$: $G\\subseteq G'\\Rightarrow\\Adm_{G'}\\subseteq\\Adm_G$; the empty obligation set admits everything ($\\Adm_\\varnothing=\\Obs$), and enlarging obligations monotonically tightens the gate." ;
+    math:dependsOn math:thm_mono .
+
+math:prop_obtotal
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:obtotal" ;
+    math:statement "The map $\\scnop:\\text{Obligation}\\to\\Scnset$ implemented by From<\\&Obligation> for RefusalScenario is a total function realized by a wildcard-free match over the three Obligation kinds; because the match has no wildcard arm, totality is a static property of the program, not a runtime hope." ;
+    math:dependsOn math:def_ob .
+
+math:def_tax
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:tax" ;
+    math:statement "The category set $\\Catset$ is the eight-element enum Identity/Capacity/Topology/Temporal/Lifecycle/Authorization/Prerequisites/Reserved; the scenario set $\\Scnset$ is the thirteen-variant RefusalScenario enum partitioned into three obligation-driven, seven denial-lane, and three logic/andon variants; the category map $\\catop:\\Scnset\\to\\Catset$ is RefusalScenario::category." ;
+    math:dependsOn math:def_denialcode ;
+    math:dependsOn math:prop_obtotal .
+
+math:thm_total
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:total" ;
+    math:statement "The category map $\\catop:\\Scnset\\to\\Catset$ is total (every one of the thirteen scenarios has exactly one category), mechanized (compiler-certified via a wildcard-free match), and its image is $\\Catset\\setminus\\{\\text{Reserved}\\}$: exactly seven buckets are inhabited, and Reserved has empty preimage." ;
+    math:dependsOn math:def_tax .
+
+math:def_decoder
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:decoder" ;
+    math:statement "Let $L=\\{\\Adml,c_1,\\dots,c_7\\}\\subseteq\\Deny$ be the clean word together with the seven named single-lane constants; the lane decoder $\\scnop_\\ell:\\Deny\\rightharpoonup\\Scnset$ is scenario\\_for\\_denial\\_lane: it returns None on $\\Adml$, returns the matching denial-lane scenario on each $c_i$, and returns None on every word not in $L$." ;
+    math:dependsOn math:def_tax .
+
+math:prop_partial
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:partial" ;
+    math:statement "$\\scnop_\\ell$ is a partial map, definite (as Some) only on $L\\setminus\\{\\Adml\\}$; it is not realizable as a wildcard-free exhaustive match because its domain $\\Deny$ is an open value space of cardinality $2^{64}$, not a closed enum, so exhaustiveness over the seven single lanes is a runtime test obligation, not a static type obligation." ;
+    math:dependsOn math:def_decoder .
+
+math:prop_section
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:section" ;
+    math:statement "The lane encoder $\\laneop:\\Scnset\\to\\Deny$ implemented by denial\\_lane is total via a wildcard-free match over all thirteen scenarios; restricted to the seven denial-lane scenarios $\\Scnset_\\ell$, it and $\\scnop_\\ell$ form a section-retraction pair, so the seven single lanes and the seven denial-lane scenarios are in bijection; the remaining six scenarios map onto closest-fit lanes and are not in that bijection's range." ;
+    math:dependsOn math:def_decoder ;
+    math:dependsOn math:thm_total .
+
+math:cor_assembled
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:assembled" ;
+    math:statement "Composing the total maps of prop:obtotal and prop:section with the total classification of thm:total: every unmet obligation (via $\\catop\\circ\\scnop$) and every non-$\\Adml$ single denial lane (via $\\catop\\circ\\scnop_\\ell$ on $L\\setminus\\{\\Adml\\}$) maps to exactly one of the seven inhabited categories; no obligation failure and no fired single lane is left unclassified." ;
+    math:dependsOn math:prop_obtotal ;
+    math:dependsOn math:prop_section ;
+    math:dependsOn math:thm_total .
+
+math:def_pipeline
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:pipeline" ;
+    math:statement "Let Stage be the set of admission stages; fix $o$ and let $\\varphi_o:\\text{Stage}\\to\\Deny$ send a stage to the denial word it emits on $o$; a pipeline is a finite sequence $w=s_1\\cdots s_k\\in\\text{Stage}^{*}$, an element of the free monoid on Stage; its aggregate denial is $\\Phi_o(w)=\\bigvee_{i=1}^{k}\\varphi_o(s_i)$, $\\Phi_o(\\varepsilon)=\\Adml$." ;
+    math:dependsOn math:def_ob .
+
+math:thm_freehom
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:freehom" ;
+    math:statement "$\\Phi_o:(\\text{Stage}^{*},\\cdot,\\varepsilon)\\to(\\Deny,\\text{compose},\\Adml)$ is the unique monoid homomorphism extending $\\varphi_o$ along $\\text{Stage}\\hookrightarrow\\text{Stage}^{*}$; because the target is commutative and idempotent, $\\Phi_o(w)$ depends only on the set of distinct stage-denials occurring in $w$, invariant under reordering and repetition." ;
+    math:dependsOn math:def_pipeline ;
+    math:dependsOn math:prop_monoid .
+
+math:cor_allstages
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:allstages" ;
+    math:statement "$\\Phi_o(w)=\\Adml\\iff\\varphi_o(s_i)=\\Adml$ for every stage $s_i$ in $w$; a single refusing stage refuses the whole pipeline, and the aggregate word records every lane that fired anywhere along $w$." ;
+    math:dependsOn math:thm_freehom ;
+    math:dependsOn math:prop_monoid .
+
+math:prop_fleet
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:fleet" ;
+    math:statement "Let a fleet of $N$ manufactures produce aggregate words $\\Phi^{(1)},\\dots,\\Phi^{(N)}$, packed as $b^{(r)}=\\firedmap(\\Phi^{(r)})\\in\\{0,1\\}^{8}$; then $\\firedmap(\\Phi_o(w))=\\bigvee_i\\firedmap(\\varphi_o(s_i))$, and a fleet admission sweep is one linear pass computing $\\bigvee_r b^{(r)}$, returning $\\bm 0$ iff every agent is admitted." ;
+    math:dependsOn math:thm_firedhom ;
+    math:dependsOn math:thm_freehom ;
+    math:dependsOn math:cor_allstages .
+
+math:def_logicadm
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:logicadm" ;
+    math:statement "prolog8 admits a query, fact block, or rule only if it lies in a bounded, decidable Horn fragment: arity $\\le 8$, rule body $\\le 8$ atoms, $\\le 8$ variables, proof fan-in $\\le 8$; no cut, no dynamic mutation, stratified negation, bounded recursion, no runtime text parsing, no side effects, interned terms; violations are enumerated by RejectionCode." .
+
+math:def_queryresult
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:queryresult" ;
+    math:statement "Kernel::query returns QueryResult, one of Answered(Vec<Decision>), Denied(Box<Decision>), or Invalid(RejectionCode); a Decision carries a proof (a Vec<ProofNode> DAG, positive or negative) and a receipt sufficient for deterministic replay." ;
+    math:dependsOn math:def_logicadm .
+
+math:thm_trichotomy
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:trichotomy" ;
+    math:statement "For a query $q$ evaluated against an admitted kernel, exactly one of Answered (a positive proof DAG with fan-in $\\le 8$ plus receipt), Denied (a negative proof plus receipt), or Invalid (a RejectionCode, no proof) holds." ;
+    math:dependsOn math:def_queryresult ;
+    math:dependsOn math:def_logicadm .
+
+math:prop_boundedcert
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:boundedcert" ;
+    math:statement "Every proof node emitted by the kernel has fan-in $\\le 8$ and every rule body has $\\le 8$ atoms, so a proof is a bounded-degree DAG; its rolling proof\\_root is a single fixed-width hash field of the receipt, and a bounded-context verifier checks a query outcome in $O(\\CL)$ by recomputing proof\\_root." ;
+    math:dependsOn math:thm_trichotomy ;
+    math:dependsOn math:def_logicadm .
+
+math:prop_embed
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:embed" ;
+    math:statement "The refusing branches of thm:trichotomy embed into $(\\Deny,\\text{compose},\\Adml)$ via the taxonomy: run\\_kernel\\_query maps Denied to scenario KernelDenied (category Authorization) and Invalid to KernelInvalid (category Identity); by denial\\_lane both compose into lane CONFORMANCE\\_GATE\\_FAILED, so a logical refusal is subject to monotonicity, classification, pipeline composition, and fired-mask projection exactly as any obligation refusal." ;
+    math:dependsOn math:thm_trichotomy ;
+    math:dependsOn math:def_tax ;
+    math:dependsOn math:thm_total ;
+    math:dependsOn math:prop_section .
+
+math:def_obsauth
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:obsauth" ;
+    math:statement "Let $\\Obs$ be the raw observation space; an observation $o\\in\\Obs$ is authoritative ($o\\in\\Obs^{*}$) if it was produced by an admitted actuation with a chained receipt; all other observations are untrusted; the proposer's admission map $\\adm_{\\mathrm{prop}}$ retracts $\\Obs$ onto $\\Adm_{\\mathrm{prop}}$ by treating every inbound observation as untrusted until its receipt chain satisfies the obligation battery $G_{\\mathrm{prop}}$." ;
+    math:dependsOn math:ax_refusal .
+
+math:prop_boundary
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:boundary" ;
+    math:statement "Under def:obsauth, praxis-proposer enforces $\\im\\muop_{\\mathrm{prop}}\\subseteq\\Adm_{\\mathrm{prop}}$: no proposal is manufactured from an unadmitted observation; the generic Domain<D> proposer evaluates its Obligation battery on every inbound record before calling Admit::admit, and a record failing any obligation is refused and never reaches manufacturing." ;
+    math:dependsOn math:def_obsauth .
+
+math:def_mrr
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:mrr" ;
+    math:statement "Let $A$ be a set of client accounts; for each $a\\in A$ let $\\mathrm{lawful\\_targets}(a)$ be the evidence-gated target stages and $\\mathrm{realized}(a,s)$ the revenue function under stage $s$; the Maximum Reachable Revenue is $\\mathrm{MRR}=\\max_{\\text{plan}}\\sum_{a\\in A}\\mathrm{realized}(a)$." .
+
+math:thm_mrrsep
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:mrrsep" ;
+    math:statement "If the accounts in $A$ are independent, then $\\mathrm{MRR}=\\sum_{a\\in A}\\max_{s\\in\\mathrm{lawful\\_targets}(a)}\\mathrm{realized}(a,s)$, reducing the joint plan search from exponential to linear in $|\\mathrm{lawful\\_targets}(a)|$." ;
+    math:dependsOn math:def_mrr .
+
+math:cor_mrrindep
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:mrrindep" ;
+    math:statement "thm:mrrsep holds exactly when no obligation in $G_{\\mathrm{prop}}$ couples distinct accounts; if such coupling exists, the proposer's obligation battery must be extended with a BlockingConstraint on the shared resource, which by thm:mono only tightens the admitted set and preserves the denial algebra." ;
+    math:dependsOn math:thm_mrrsep ;
+    math:dependsOn math:thm_mono .
+
+# ===========================================================================
+# Proofs
+# ===========================================================================
+
+math:proof_prop_monoid
+    a math:Proof ;
+    math:proves math:prop_monoid ;
+    math:step math:proof_prop_monoid_s1, math:proof_prop_monoid_s2 .
+
+math:proof_prop_monoid_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Disjunction is associative, commutative, and idempotent per coordinate, with unit $0$ per coordinate; a finite product of such structures inherits all four laws, giving a bounded commutative idempotent monoid; the map $d\\mapsto\\supp d$ carries $\\lor$ to $\\cup$ and $\\bm 0$ to $\\varnothing$, and is a bijection $\\Deny_n\\to 2^{[n]}$, hence a monoid isomorphism onto $(2^{[n]},\\cup,\\varnothing)$." ;
+    math:justification math:def_denialabstract .
+
+math:proof_prop_monoid_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "In any join-semilattice the identity $d\\preceq d'\\iff d\\lor d'=d'$ holds by antisymmetry of $\\subseteq$; least/greatest elements are $\\varnothing$ and $[n]$, i.e.\\ $\\bm 0$ and $\\bm 1$." ;
+    math:justification math:prop_monoid .
+# UNRESOLVED: this closing clause is attributed in-text to Birkhoff's
+# Lattice Theory (\cite[Ch. I]{birkhoff1967}), an external bibitem, not an
+# earlier in-paper Statement; justification above self-references prop:monoid
+# rather than asserting a fabricated in-paper dependency.
+
+math:proof_prop_code_is_sl
+    a math:Proof ;
+    math:proves math:prop_code_is_sl ;
+    math:step math:proof_prop_code_is_sl_s1, math:proof_prop_code_is_sl_s2 .
+
+math:proof_prop_code_is_sl_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Bitwise OR on u64 is associative, commutative, idempotent, with identity the zero word; compose inherits these, so $\\Deny$ is a bounded commutative idempotent monoid whose bottom is $\\Adml$, and is\\_admitted$(d)\\iff d.0=0\\iff d=\\Adml$." ;
+    math:justification math:def_denialcode .
+
+math:proof_prop_code_is_sl_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Each named constant $c_i$ ($1\\le i\\le 7$) occupies lane $i$ alone, so for any subset $S\\subseteq\\{1,\\dots,7\\}$ the composite $\\bigvee_{i\\in S}c_i$ has byte lane $i$ nonzero iff $i\\in S$; the map $\\bigvee_{i\\in S}c_i\\mapsto\\bm 1_S\\in\\Deny_7$ is a well-defined bijection $\\langle L\\rangle\\to\\Deny_7$ carrying compose to $\\lor$ and $\\Adml$ to $\\bm 0$: a monoid isomorphism." ;
+    math:justification math:prop_monoid .
+
+math:proof_thm_firedhom
+    a math:Proof ;
+    math:proves math:thm_firedhom ;
+    math:step math:proof_thm_firedhom_s1, math:proof_thm_firedhom_s2 .
+
+math:proof_thm_firedhom_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "$\\firedmap(\\Adml)=\\bm 0$ since every lane of the zero word is zero; byte lane $j$ of compose$(a,b)=a.0\\mathbin{|}b.0$ is $a_j\\mathbin{|}b_j$, and for byte values $\\mathbf 1[a_j\\mathbin{|}b_j\\ne 0]=\\mathbf 1[a_j\\ne 0]\\lor\\mathbf 1[b_j\\ne 0]$, so $\\firedmap$ satisfies the claimed homomorphism law lane by lane." ;
+    math:justification math:def_fired .
+
+math:proof_thm_firedhom_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "On $\\langle L\\rangle$, prop:code\\_is\\_sl identifies elements with subsets $S\\subseteq\\{1,\\dots,7\\}$, and $\\firedmap$ sends such an element to the indicator of $S$ in bits $1\\ldots7$; this is a bijection onto $\\{0\\}\\times\\{0,1\\}^{7}$ preserving join and bottom." ;
+    math:justification math:prop_code_is_sl .
+
+math:proof_prop_bottom
+    a math:Proof ;
+    math:proves math:prop_bottom ;
+    math:step math:proof_prop_bottom_s1 .
+
+math:proof_prop_bottom_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "$d_G(o)=\\bigvee_i\\delta_{g_i}(o)=\\Adml$ iff every summand is $\\Adml$ (a join of elements of a join-semilattice equals the bottom iff each element is the bottom), i.e.\\ iff no obligation is unmet; admission returns non-refusal exactly in that case." ;
+    math:justification math:prop_monoid .
+
+math:proof_thm_mono
+    a math:Proof ;
+    math:proves math:thm_mono ;
+    math:step math:proof_thm_mono_s1, math:proof_thm_mono_s2 .
+
+math:proof_thm_mono_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "$d_{G'}(o)=\\bigvee_{g\\in G'}\\delta_g(o)=\\bigl(\\bigvee_{g\\in G}\\delta_g(o)\\bigr)\\lor\\bigl(\\bigvee_{g\\in G'\\setminus G}\\delta_g(o)\\bigr)=d_G(o)\\lor d_{G'\\setminus G}(o)\\succeq d_G(o)$, since in a join-semilattice $x\\preceq x\\lor y$ always." ;
+    math:justification math:prop_monoid .
+
+math:proof_thm_mono_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "If $o\\in\\Adm_{G'}$ then $d_{G'}(o)=\\Adml$, the bottom; from $d_G(o)\\preceq d_{G'}(o)=\\Adml$ and minimality of $\\Adml$ we get $d_G(o)=\\Adml$, i.e.\\ $o\\in\\Adm_G$." ;
+    math:justification math:prop_bottom .
+
+math:proof_cor_galois
+    a math:Proof ;
+    math:proves math:cor_galois ;
+    math:step math:proof_cor_galois_s1 .
+
+math:proof_cor_galois_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Order-reversal is thm:mono; with $G=\\varnothing$ the join is empty, so $d_\\varnothing(o)=\\Adml$ for all $o$ and $\\Adm_\\varnothing=\\Obs$." ;
+    math:justification math:thm_mono .
+
+math:proof_prop_obtotal
+    a math:Proof ;
+    math:proves math:prop_obtotal ;
+    math:step math:proof_prop_obtotal_s1 .
+
+math:proof_prop_obtotal_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "A Rust match on a closed enum type-checks only if every constructor is covered or a wildcard is present; the cited match covers all three constructors and uses no wildcard, so the compiler certifies exhaustiveness, and each arm returns a specific RefusalScenario, so $\\scnop$ is a total function." ;
+    math:justification math:def_ob .
+
+math:proof_thm_total
+    a math:Proof ;
+    math:proves math:thm_total ;
+    math:step math:proof_thm_total_s1, math:proof_thm_total_s2 .
+
+math:proof_thm_total_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "A Rust match on the closed RefusalScenario enum type-checks only under exhaustiveness; the category method matches all thirteen constructors with no wildcard arm, so the compiler certifies that every scenario is assigned, and each arm returns a single RefusalCategory, making $\\catop$ total and single-valued." ;
+    math:justification math:def_tax .
+
+math:proof_thm_total_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Reading the thirteen arms exhibits a preimage for each of the seven listed buckets, so all seven are in the image; and no arm returns Reserved, so $\\catop^{-1}(\\text{Reserved})=\\varnothing$, hence $\\im\\catop$ is precisely the seven-element complement of $\\{\\text{Reserved}\\}$." ;
+    math:justification math:def_tax .
+
+math:proof_prop_partial
+    a math:Proof ;
+    math:proves math:prop_partial ;
+    math:step math:proof_prop_partial_s1 .
+
+math:proof_prop_partial_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Rust's exhaustiveness checker operates on closed sum types; a newtype over u64 exposes $2^{64}$ inhabitants with no finite constructor set, so no wildcard-free match on its value is well-typed --- the implementation is necessarily an if/else chain over the eight known constants with a None fallback, returning None on $\\Adml$, Some on each $c_i$, and None on any other word, including every $c_i\\lor c_j$ with $i\\ne j$." ;
+    math:justification math:def_decoder .
+
+math:proof_prop_section
+    a math:Proof ;
+    math:proves math:prop_section ;
+    math:step math:proof_prop_section_s1, math:proof_prop_section_s2 .
+
+math:proof_prop_section_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "$\\laneop$ matches all thirteen constructors with no wildcard, hence is total, by the same mechanism as thm:total; for each of the seven denial-lane scenarios $s$, $\\laneop(s)=c_i$ is its own lane, and $\\scnop_\\ell(c_i)=s$, giving $\\scnop_\\ell(\\laneop(s))=s$; conversely $\\laneop(\\scnop_\\ell(c_i))=\\laneop(s)=c_i$." ;
+    math:justification math:thm_total .
+
+math:proof_prop_section_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Both round-trips are the identity on their respective seven-element sets; the six non-lane scenarios map by $\\laneop$ onto lanes already claimed by the seven, so $\\laneop$ is not injective overall and those six are outside the bijection." ;
+    math:justification math:def_decoder .
+
+math:proof_cor_assembled
+    a math:Proof ;
+    math:proves math:cor_assembled ;
+    math:step math:proof_cor_assembled_s1 .
+
+math:proof_cor_assembled_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Immediate by composition of the three total (respectively Some-total) maps, each single-valued into its codomain, landing in $\\im\\catop=\\Catset\\setminus\\{\\text{Reserved}\\}$." ;
+    math:justification math:thm_total .
+
+math:proof_thm_freehom
+    a math:Proof ;
+    math:proves math:thm_freehom ;
+    math:step math:proof_thm_freehom_s1, math:proof_thm_freehom_s2 .
+
+math:proof_thm_freehom_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "$\\Phi_o(\\varepsilon)=\\Adml$ and $\\Phi_o(w\\cdot w')=\\bigvee_{s\\in w}\\varphi_o(s)\\lor\\bigvee_{s\\in w'}\\varphi_o(s)=\\Phi_o(w)\\lor\\Phi_o(w')=\\text{compose}(\\Phi_o(w),\\Phi_o(w'))$ by associativity of $\\lor$; so $\\Phi_o$ is a monoid homomorphism agreeing with $\\varphi_o$ on length-one words, and uniqueness is the universal property of the free monoid." ;
+    math:justification math:def_pipeline .
+
+math:proof_thm_freehom_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Commutativity gives order-independence ($a\\lor b=b\\lor a$) and idempotence gives multiplicity-independence ($a\\lor a=a$), so $\\Phi_o(w)=\\bigvee_{s\\in\\mathrm{set}(w)}\\varphi_o(s)$ depends only on the underlying set of distinct denials." ;
+    math:justification math:prop_monoid .
+
+math:proof_cor_allstages
+    a math:Proof ;
+    math:proves math:cor_allstages ;
+    math:step math:proof_cor_allstages_s1 .
+
+math:proof_cor_allstages_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "A join in a join-semilattice equals the bottom iff every joinand is the bottom; apply to $\\Phi_o(w)=\\bigvee_i\\varphi_o(s_i)$; the support of the aggregate is $\\supp\\Phi_o(w)=\\bigcup_i\\supp\\varphi_o(s_i)$, the union of the per-stage fired lanes." ;
+    math:justification math:prop_monoid .
+
+math:proof_prop_fleet
+    a math:Proof ;
+    math:proves math:prop_fleet ;
+    math:step math:proof_prop_fleet_s1, math:proof_prop_fleet_s2 .
+
+math:proof_prop_fleet_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "$\\firedmap$ is a homomorphism and $\\Phi_o$ is a homomorphism; their composite carries compose to $\\lor$, so $\\firedmap(\\bigvee_i\\varphi_o(s_i))=\\bigvee_i\\firedmap(\\varphi_o(s_i))$." ;
+    math:justification math:thm_firedhom .
+
+math:proof_prop_fleet_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "The pass folds $\\lor$ over $N$ bytes; by cor:allstages applied fleet-wide, the fold is $\\bm 0$ iff each $b^{(r)}=\\bm 0$ iff each aggregate is $\\Adml$ iff every agent is admitted, and packing eight bytes per machine word makes the fold word-parallel." ;
+    math:justification math:cor_allstages .
+
+math:proof_thm_trichotomy
+    a math:Proof ;
+    math:proves math:thm_trichotomy ;
+    math:step math:proof_thm_trichotomy_s1, math:proof_thm_trichotomy_s2, math:proof_thm_trichotomy_s3, math:proof_thm_trichotomy_s4 .
+
+math:proof_thm_trichotomy_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Kernel::query's first action is the admission gate: if admit\\_atom$(q)$ returns Err$(c)$ the kernel returns Invalid$(c)$ immediately, before any search, establishing case (c) and its no-proof clause." ;
+    math:justification math:def_logicadm .
+
+math:proof_thm_trichotomy_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Phase 1 scans fact blocks for rows unifying with $q$; a nonempty match set is assembled into Answered decisions, each with a positive proof rooted at the matched fact hash; Phase 2, on empty Phase 1, applies each rule whose head unifies with $q$ by depth-one backward chaining, giving case (a); the fan-in bound holds because admit\\_rule rejects any node exceeding fan-in 8." ;
+    math:justification math:def_queryresult .
+
+math:proof_thm_trichotomy_s3
+    a math:ProofStep ;
+    math:order 3 ;
+    math:claim "Phase 3 is reached iff both searches are empty; the kernel then assembles a Denied decision with a negative proof recording the exhausted search, giving case (b); the three phases are mutually exclusive by construction, so exactly one branch fires." ;
+    math:justification math:def_queryresult .
+
+math:proof_thm_trichotomy_s4
+    a math:ProofStep ;
+    math:order 4 ;
+    math:claim "Soundness and completeness of the depth-bounded resolution --- that Phase 3 is reached only when $q$ is underivable within the fragment --- is SLD soundness and completeness for definite/stratified Horn programs, restricted to the finite search space the byte caps of def:logicadm guarantee." ;
+    math:justification math:def_logicadm .
+# UNRESOLVED: the load-bearing citation for this step is the external
+# bibitems kowalski1974/lloyd1987 (SLD-resolution soundness/completeness),
+# not an earlier in-paper Statement; justification above self-references
+# def:logicadm (the fragment whose boundedness the argument leans on) rather
+# than asserting a fabricated in-paper dependency.
+
+math:proof_prop_boundedcert
+    a math:Proof ;
+    math:proves math:prop_boundedcert ;
+    math:step math:proof_prop_boundedcert_s1 .
+
+math:proof_prop_boundedcert_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Fan-in and body caps are enforced by admit\\_rule, so proof nodes have bounded out-degree; the receipt commits the proof by its root hash, and replay recomputes the root from the stored decision, agreeing iff untampered; the verifier reads the fixed-width root, not the DAG, so its cost is $O(\\CL)$." ;
+    math:justification math:def_logicadm .
+
+math:proof_prop_embed
+    a math:Proof ;
+    math:proves math:prop_embed ;
+    math:step math:proof_prop_embed_s1 .
+
+math:proof_prop_embed_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "run\\_kernel\\_query constructs RefusalScenario::KernelDenied on the Denied branch and RefusalScenario::KernelInvalid on the Invalid branch; their categories are as stated by thm:total, and denial\\_lane sends both to CONFORMANCE\\_GATE\\_FAILED; being elements of $\\Deny$, they are acted on by all the structure of the preceding chapters." ;
+    math:justification math:thm_total .
+
+math:proof_prop_boundary
+    a math:Proof ;
+    math:proves math:prop_boundary ;
+    math:step math:proof_prop_boundary_s1 .
+
+math:proof_prop_boundary_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The Domain struct holds a Law<Obligation> attached to its typed domain D; proposing calls judge then admit in sequence, and an Andon::Halted on either step returns the Err branch with its denial word; the manufacturing step is unreachable from the Err branch, so $\\im\\muop_{\\mathrm{prop}}$ is contained in Admitted objects." ;
+    math:justification math:def_obsauth .
+
+math:proof_thm_mrrsep
+    a math:Proof ;
+    math:proves math:thm_mrrsep ;
+    math:step math:proof_thm_mrrsep_s1 .
+
+math:proof_thm_mrrsep_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Independence means the feasibility of account $a$'s targets is unaffected by the targets of any $b\\neq a$; hence the joint optimization $\\max_{\\text{joint}}\\sum_a r(a)$ decomposes into $\\sum_a\\max_{s_a}r(a,s_a)$ by linearity of the sum and independence of the maxima." ;
+    math:justification math:def_mrr .
+
+math:proof_cor_mrrindep
+    a math:Proof ;
+    math:proves math:cor_mrrindep ;
+    math:step math:proof_cor_mrrindep_s1 .
+
+math:proof_cor_mrrindep_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Immediate from thm:mono: adding an obligation enlarges denial and shrinks admission; with the extended battery the coupled accounts are refused by the coupling constraint and the remaining independent ones decompose additively as before." ;
+    math:justification math:thm_mono .
+
+# ===========================================================================
+# Symbols (key notation this paper defines/introduces)
+# ===========================================================================
+
+math:sym_Deny
+    a math:Symbol ;
+    math:latex "\\mathbb{D}" ;
+    math:definedIn math:def_denialcode .
+
+math:sym_Adml
+    a math:Symbol ;
+    math:latex "\\mathsf{ADMITTED}" ;
+    math:definedIn math:def_denialcode .
+
+math:sym_firedmap
+    a math:Symbol ;
+    math:latex "\\pi\\_{f}" ;
+    math:definedIn math:def_fired .
+
+math:sym_Catset
+    a math:Symbol ;
+    math:latex "\\mathcal{C}" ;
+    math:definedIn math:def_tax .
+
+math:sym_Scnset
+    a math:Symbol ;
+    math:latex "\\mathcal{S}" ;
+    math:definedIn math:def_tax .
+
+math:sym_catop
+    a math:Symbol ;
+    math:latex "\\mathrm{cat}" ;
+    math:definedIn math:def_tax .
+
+math:sym_laneop
+    a math:Symbol ;
+    math:latex "\\mathrm{lane}" ;
+    math:definedIn math:def_decoder .
+
+math:sym_scnop
+    a math:Symbol ;
+    math:latex "\\mathrm{scn}" ;
+    math:definedIn math:def_decoder .
+
+math:sym_Phi
+    a math:Symbol ;
+    math:latex "\\Phi\\_{o}" ;
+    math:definedIn math:def_pipeline .
+
+math:sym_CL
+    a math:Symbol ;
+    math:latex "\\kappa" ;
+    math:definedIn math:def_logicadm .
+
+math:sym_MRR
+    a math:Symbol ;
+    math:latex "\\mathrm{MRR}" ;
+    math:definedIn math:def_mrr .

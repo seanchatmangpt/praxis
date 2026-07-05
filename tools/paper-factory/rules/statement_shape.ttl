@@ -1,0 +1,25 @@
+@prefix math: <http://seanchatmangpt.github.io/packs/tex-math#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+math:StatementShape
+    a sh:NodeShape ;
+    sh:targetSubjectsOf math:kind ;
+    sh:property [
+        sh:path math:label ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path math:statement ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path math:fromPaper ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+    ] .

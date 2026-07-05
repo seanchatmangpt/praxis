@@ -405,13 +405,13 @@ count rather than in its members' interiors.
 Scheduling admitted actions consumes a shared conserved resource, the \emph{attention fluent}
 --- \emph{fluent} in Newton's original sense of a quantity that flows.
 
-\begin{definition}[Attention balance]
+\begin{definition}[Attention balance]\label{def:attnbalance}
 Let $c(t)\ge0$ be capacity and admitted action $j$ draw rate $r_j\ge0$ on $[s_j,e_j]$. Free
 capacity is $f(t)=c(t)-\sum_{j:\,t\in[s_j,e_j]}r_j$. A schedule is feasible iff $f(t)\ge0$
 for all $t$.
 \end{definition}
 
-\begin{proposition}[Attention is conserved; makespan is the target]
+\begin{proposition}[Attention is conserved; makespan is the target]\label{prop:attnconservation}
 Total attention $\int_0^T\!\sum_j r_j\mathbf 1_{[s_j,e_j]}(t)\,dt=\sum_j r_j(e_j-s_j)$ is
 independent of ordering. Reordering redistributes \emph{when} attention is spent, not \emph{how
 much}; the optimization target is the makespan functional $T[\cdot]$ under precedence and the
@@ -423,7 +423,7 @@ Linearity of the integral; each $r_j(e_j-s_j)$ depends only on $j$'s duration an
 
 \section{Lexicographic arbitration as an infinite-weight limit}
 
-\begin{definition}[Cost vector]
+\begin{definition}[Cost vector]\label{def:costvector}
 Assign a plan $\bm c=(c_0,c_1,\dots,c_k)$, $c_0\in\{0,1\}$ the unadmitted indicator ($0=$
 admitted), $c_1,\dots,c_k$ bounded secondary costs. Order by lexicographic $\preceq_{\mathrm{lex}}$.
 \end{definition}
@@ -451,13 +451,13 @@ Token-flow execution has a native geometry. With $p$ places, a marking is
 $\bm m\in\mathbb Z_{\ge0}^p$; a transition $t$ is $(\bm m^-_t,\bm m^+_t)$, enabled at $\bm m$
 iff $\bm m\ge\bm m^-_t$, firing to $\bm m-\bm m^-_t+\bm m^+_t$.
 
-\begin{definition}[State equation and reachability cone]
+\begin{definition}[State equation and reachability cone]\label{def:reachcone}
 Let $N\in\mathbb Z^{p\times|T|}$ have columns $\bm\delta_t=\bm m^+_t-\bm m^-_t$. A firing
 sequence with Parikh vector $\bm x\ge0$ reaches $\bm m=\bm m_0+N\bm x$. The reachable set lies
 in the integer points of $\bm m_0+\operatorname{cone}(N)$.
 \end{definition}
 
-\begin{proposition}[Conformance is membership; a fault is a separating hyperplane]
+\begin{proposition}[Conformance is membership; a fault is a separating hyperplane]\label{prop:conformembership}
 A trace with Parikh vector $\bm x$ is conformant only if its marking lies in
 $\mathcal P=\{\bm m_0+N\bm x:\bm x\ge\bm0\}\cap\{\bm m\ge\bm0\}$. If $\bm m^\dagger\notin\mathcal P$,
 Farkas' lemma~\cite{schrijver1986} yields $\bm y$ with $\bm y^\top N\le\bm0$ and $\bm y^\top(\bm m^\dagger-\bm m_0)>0$:
@@ -468,13 +468,13 @@ a certificate of nonconformance.
 Membership is the state equation with $\bm x\ge0$; Farkas applied to $N\bm x=\bm m^\dagger-
 \bm m_0,\ \bm x\ge0$ gives either a nonnegative solution or the separating $\bm y$. \end{proof}
 
-\begin{definition}[Fitness as normalized distance]
+\begin{definition}[Fitness as normalized distance]\label{def:fitnessdistance}
 $\Fitness(\sigma)=1-\dfrac{\text{tokens consumed on unenabled transitions}}{\text{tokens the
 replay attempted to consume}}\in[0,1]$; $\Fitness=1$ iff the replay never forced a disabled
 firing, and $1-\Fitness$ is a normalized $\ell^1$ excursion outside the enabled set.
 \end{definition}
 
-\begin{theorem}[Unit fitness characterizes lawful traces; the fault localizes]
+\begin{theorem}[Unit fitness characterizes lawful traces; the fault localizes]\label{thm:unitfitness}
 A trace is a firing sequence iff $\Fitness=1$. If $\Fitness<1$, the first frame forcing an
 unenabled consumption is a coordinate-localized witness $t^\star$.
 \end{theorem}
@@ -679,7 +679,7 @@ not.''
 
 \section{The antibody clause, formalized}
 
-\begin{proposition}[Self-audited scale]
+\begin{proposition}[Self-audited scale]\label{prop:selfauditedscale}
 Let a system emit claims $c$ with receipts $r(c)$, and define the overclaim set
 $\mathrm{Over}=\{c:\nexists\,r(c)\text{ with }V(\Proj)=1\}$. If the system enforces
 $\mathrm{Over}=\varnothing$ (the \textsf{docs-exceed-mechanism} defect class), the admissible

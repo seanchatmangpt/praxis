@@ -1,0 +1,324 @@
+# Instance data extracted from docs/thesis/synthesis_thesis.tex
+# ("Derived Plans, Derived Crashes: The Synthesis Substrate, Third Edition")
+# against the tex-math-pack ontology (packs/tex-math-pack/ontology.ttl).
+#
+# Extraction notes:
+#  - Local names are the paper's own \label{} keys with ':'/'-' replaced by
+#    '_' (Turtle local names cannot contain ':' or leading '-' segments);
+#    math:label carries the original \label{} string verbatim so \ref{} in
+#    the generated .tex still resolves. Most theorem-like environments in
+#    this paper carry NO \label{} at all (only thm:gap, def:fable,
+#    prop:fable-oracle, con:fablechain, def:sandbox, con:merklecell,
+#    def:walframe do); for the unlabeled ones this file mints a synthetic
+#    label string in the paper's own naming convention (kind prefix + short
+#    slug) since none exists in the source to copy verbatim. These synthetic
+#    labels are internal identifiers only -- no \ref{} in the .tex resolves
+#    against them, because none was ever written.
+#  - theorem/lemma/proposition/corollary/definition/construction environments
+#    are extracted as math:Statement individuals (following the
+#    00_foundations.ttl precedent that this paper's own \newtheorem
+#    environments outside the ontology's stated five-kind vocabulary are an
+#    extraction decision, not fabricated content). lineage/refusal/
+#    measurement/remark environments are ALSO extracted as math:Statement
+#    individuals (math:kind "lineage"/"refusal"/"measurement"/"remark"): this
+#    paper's lineage environments assert real scientific-lineage claims, its
+#    refusal environments assert real design-boundary claims, and its
+#    measurement environments report substantive empirical fault-injection
+#    results -- all are theorem-like assertions, not decoration. example
+#    environments remain excluded (none appear with load-bearing content in
+#    this paper).
+#  - dependsOn/justification edges only ever target math:Statement
+#    individuals, and only ever point to a statement appearing EARLIER in
+#    the paper's own linear order, per instructions. Several environments
+#    (def:fable, prop:fable-oracle) reference definitions that appear LATER
+#    in the source text (def:sandbox is defined after both) via forward
+#    \ref{}; those forward references are not encoded as dependsOn/
+#    justification here since the target is not yet in scope at that point
+#    in the paper.
+#  - UNRESOLVED: prop:fable-oracle's proof leans on "Definition 4.7" and
+#    "Proposition 4.4" of an external paper ("Paper 04"), not on any
+#    in-paper Statement, and secondarily on def:sandbox which is defined
+#    later in this same paper (a forward reference, not a valid earlier
+#    citation). Both proof steps self-justify against prop:fable-oracle
+#    itself (the pilot's established convention for this situation) and are
+#    flagged unresolved below rather than asserting a fabricated in-paper
+#    dependency.
+
+@prefix math: <http://seanchatmangpt.github.io/packs/tex-math#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+# ===========================================================================
+# Statements (definition/proposition/theorem/construction)
+# ===========================================================================
+
+math:lineage_armstrong
+    a math:Statement ;
+    math:kind "lineage" ;
+    math:label "lineage:armstrong" ;
+    math:statement "Erlang/OTP made three moves that survive every re-examination: processes are isolated so failure cannot spread by memory; supervisors -- not the failing code -- own the recovery decision; and restart strategies plus a restart intensity turn `let it crash' into a bounded, structured discipline. What OTP does not do is derive the tree: a human writes the supervision hierarchy, and the crash space lives in the programmer's head." .
+
+math:lineage_instruments
+    a math:Statement ;
+    math:kind "lineage" ;
+    math:label "lineage:instruments" ;
+    math:statement "The LHC does not record every collision; its trigger system encodes, in advance, the signatures of events worth keeping. The EHT did not photograph a black hole; it reconstructed one from lawful projections gathered by an instrument designed around a predicted signal. The discipline common to both: enumerate the event geometry before the event, instrument for exactly those signatures, and treat anything outside the geometry as a first-class finding -- never as noise to be discarded silently." .
+
+math:lineage_actorlineage
+    a math:Statement ;
+    math:kind "lineage" ;
+    math:label "lineage:actorlineage" ;
+    math:statement "The 8-bounded actor lineage (CNS -> BitActor -> ByteActor -> knhk): CNS fixed the doctrine 8T/8H/8M; ByteActor V3 productized it with 64-byte crystal envelopes and bounded SPSC rings; knhk carried the doctrine into Rust with a branchless TickBudget, a ChatmanBounded assertion, and an R1/W1/C1 runtime-class taxonomy. The lineage's one persistent gap never closed: classification without actuation -- nothing in the constellation restarts, re-admits, or closes the loop." .
+
+math:def_depth
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:depth" ;
+    math:statement "Let $\\Dag = (V, E)$ be the plan's data-dependency DAG (edge $u \\to v$ iff an add-effect of $u$ feeds a precondition of $v$); define $d(v) = 0$ for sources and $d(v) = 1 + \\max_{u \\to v} d(u)$ otherwise. A stage $S_k = \\{v : d(v) = k\\}$." .
+
+math:def_earned
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:earned" ;
+    math:statement "Stage $S_k$ supervises \\textsc{RestForOne} iff some $v \\in S_k$ has a nonempty transitive dependent set $D(v)$; otherwise \\textsc{OneForOne}. The cohort of $v$ is $\\{v\\} \\cup D(v)$ under \\textsc{RestForOne} and $\\{v\\}$ under \\textsc{OneForOne}." ;
+    math:dependsOn math:def_depth .
+
+math:prop_topology
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:topology" ;
+    math:statement "$\\Topo = (\\mathrm{stages}, \\mathrm{policy})$ is produced only by \\textsf{derive} (a sealed constructor: no literal construction compiles), and $\\mathrm{topology\\_hash} = \\ca(\\mathrm{stages}\\,\\Vert\\,\\mathrm{policy}\\,\\Vert\\,\\mathrm{plan\\_hash}\\,\\Vert\\,\\mathrm{problem\\_hash})$ joins the receipt lineage. Determinism is test-pinned: same plan, same hash." ;
+    math:dependsOn math:def_depth ;
+    math:dependsOn math:def_earned .
+
+math:refusal_oneforall
+    a math:Statement ;
+    math:kind "refusal" ;
+    math:label "refusal:oneforall" ;
+    math:statement "No \\textsc{OneForAll}: OTP justifies one-for-all by shared mutable fate between siblings. In an acyclic data-flow plan, same-depth siblings are independent by construction -- the coupling one-for-all encodes is inexpressible. The variant does not appear in the Strategy enum at all; an exhaustive-match test makes its future addition a compilation event, forcing the doctrine conversation." ;
+    math:dependsOn math:def_earned .
+
+math:refusal_simpleoneforone
+    a math:Statement ;
+    math:kind "refusal" ;
+    math:label "refusal:simpleoneforone" ;
+    math:statement "No \\textsc{SimpleOneForOne}; intensity $> 8$ refused, not clamped: derived plans have static step sets, and \\texttt{RestartPolicy::new(9, \\_)} returns a Refusal -- the byte governor applies to recovery itself, and silently clamping a stated policy would be the executor editing the operator's law." .
+
+math:def_classes
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:classes" ;
+    math:statement "$\\mathsf{FailureClass} = \\{$\\textsf{LogicFault}, \\textsf{BudgetBreach}, \\textsf{AuthorityVacuum}, \\textsf{TransientFault}, \\textsf{Stall}, \\textsf{StarvedInput}, \\textsf{CertifiedUnsat}, \\textsf{GeometryGap}$\\}$ -- the semantic axis, capped at eight by the doctrine." .
+
+math:def_branch
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:branch" ;
+    math:statement "A branch is $(c, \\Sigma, r)$: a class, a conjunction of signal predicates over a crash snapshot, and a lawful response $r \\in \\{\\textsf{Restart}, \\textsf{Park}(\\rho), \\textsf{Refuse}(\\mathrm{core}), \\textsf{Escalate}\\}$. The geometry $\\Geo$ maps each node to an ordered branch list; classification is first-match-wins; $\\mathrm{geometry\\_hash} = \\ca(\\Geo\\,\\Vert\\,\\mathrm{topology\\_hash})$." ;
+    math:dependsOn math:def_classes .
+
+math:thm_gap
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:gap" ;
+    math:statement "\\textsf{GeometryGap} is the value classification returns when no stored branch matches; it is never a member of any stored list. Consequently no branch ordering, addition, or deletion can capture, mask, or remove the gap outcome: the map admits its own incompleteness by construction, not by convention." ;
+    math:dependsOn math:def_branch .
+
+math:def_fragile
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:fragile" ;
+    math:statement "A precondition predicate $p$ of capability $c$ is fragile iff no capability in the problem produces $p$. The initial state is a one-time gift: if a fragile fact is lost mid-run, nothing in the plan can lawfully re-produce it -- whereas a fact with even one producer is recoverable by restarting that producer." ;
+    math:dependsOn math:def_depth .
+
+math:prop_totalaccounting
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:totalaccounting" ;
+    math:statement "Every node of every supervised run carries exactly one disposition (\\textsf{Completed}$(r)$, \\textsf{Parked}, \\textsf{SkippedBy}, \\textsf{GaveUp}); no silent rows exist (test-pinned: $|\\mathrm{dispositions}| = |V|$)." ;
+    math:dependsOn math:def_branch .
+
+math:meas_recovery_invisible
+    a math:Statement ;
+    math:kind "measurement" ;
+    math:label "meas:recoveryinvisible" ;
+    math:statement "On the lawobject plan with two injected transient crashes at judge: both crashes land in named branches (TransientFault, then Stall), the run completes, and the final root hash is byte-identical to the crash-free run's. Park-then-re-admit heals to the same identity; machine death composes: kill-9 mid-restart-loop, WAL recovery, identical receipt." ;
+    math:dependsOn math:prop_totalaccounting .
+
+math:meas_cell
+    a math:Statement ;
+    math:kind "measurement" ;
+    math:label "meas:cell" ;
+    math:statement "The supervised cell, 10,000 members, release: overhead of supervision at fault rate 0 is $-0.9\\%$ of medians over five paired runs, inside the baseline's own $\\pm 5.7\\%$ run spread -- statistical noise. Recovery counts track injected transient rates exactly: $69 / 608 / 3{,}179$ recovered at $1\\% / 10\\% / 50\\%$. Throughput is flat across all fault rates. The crash-looping template is detected at quorum and quarantined by epoch 2 in every configuration." ;
+    math:dependsOn math:prop_totalaccounting .
+
+math:remark_flatthroughput
+    a math:Statement ;
+    math:kind "remark" ;
+    math:label "remark:flatthroughput" ;
+    math:statement "What flat throughput means: the cost of a supervised fleet tracked its failure novelty, not its failure rate: recovered transients are absorbed at boundary cost, and the one genuinely novel pathology (the crash-looping class) was converted --- once, by quorum --- into a cheap standing refusal. The full novelty-curve-under-faults re-measurement is receipted as deferred, not claimed." ;
+    math:dependsOn math:meas_cell .
+
+math:def_fable
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:fable" ;
+    math:statement "A Fable harness is a test environment that constructs a prompt $P_T$ from a task ontology $T$, calls a mock model membrane $M$ that intercepts the LLM API and returns a deterministic response drawn from a test fixture indexed by $P_T$'s hash, extracts the code block $C$ from the model response $R$, and runs the verification oracle $\\mathrm{Oracle}(T,R)$ against $C$ in an isolated cargo workspace. The mock membrane ensures that harness runs are hermetic: no real LLM call is made, the response is deterministic given $P_T$, and the oracle verdict is reproducible." .
+
+math:prop_fable_oracle
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:fable-oracle" ;
+    math:statement "$\\mathrm{Oracle}(T,R)$ is a decidable oracle for the correctness question \"does $C$ implement $T$ correctly?\" on the finite test corpus generated by the harness: it is total, terminating, and labelling (pass or fail with a structured error from the failing stage)." ;
+    math:dependsOn math:def_fable .
+
+math:con_fablechain
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:fablechain" ;
+    math:statement "When $\\mathrm{Oracle}(T,R)=1$, the harness mints a receipt using the standard \\code{OcelCausalFrame} chain: $h_{+} = \\chainH(h_{-}\\,\\Vert\\,\\mathrm{body}(\\fr))$, where the frame's \\code{obj\\_refs} carry $\\dg(C)=\\chainH(\\text{canonical bytes of }C)$. The genesis seed is $\\chainH(\\text{``fable-v1-genesis''})$, domain-isolated from the plan chain so fable receipts cannot cross-verify with plan receipts even if their terminal hashes collide." ;
+    math:dependsOn math:def_fable ;
+    math:dependsOn math:prop_fable_oracle .
+
+math:remark_mockmembranes
+    a math:Statement ;
+    math:kind "remark" ;
+    math:label "remark:mockmembranes" ;
+    math:statement "Mock membranes as differential oracles: the mock membrane produces responses from test fixtures; a real-model run produces a different response. Running both and comparing (differential oracle) bounds the false-accept rate: an implementation error that passes the oracle with the mock response but fails with the real response is caught by the differential." ;
+    math:dependsOn math:def_fable ;
+    math:dependsOn math:prop_fable_oracle .
+
+math:def_sandbox
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:sandbox" ;
+    math:statement "Let $P_T$ be a prompt compiled from task ontology $T$, and let $C$ be the code block extracted from model response $R$. The sandbox verification oracle is the composite: $\\text{Oracle}(T, R) = \\text{cargo\\_build}(C) \\land \\text{cargo\\_test}(C) \\land \\text{cargo\\_clippy}(C) \\land \\text{safety\\_audit}(C)$. The outcome is receipted and chained to the ledger using rolling BLAKE3 hashes." .
+# Note: def:fable (earlier in the source) forward-references def:sandbox
+# ("Definition~\ref{def:sandbox}", defined later in this same paper) -- per
+# this file's own convention, forward references are not encoded as
+# dependsOn. There is no backward reference from def:sandbox to def:fable in
+# the source, so no dependsOn edge belongs on this statement in either
+# direction; a previous version of this file incorrectly asserted
+# def_sandbox dependsOn def_fable, which has been removed.
+
+math:con_merklecell
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:merklecell" ;
+    math:statement "Let $M_{g,i}$ be the terminal hash of member $i$ in group $g$. The Group Receipt hash is $H_g = \\chainH(\\text{sort}(\\{M_{g,i}\\}))$, and the Cell Receipt hash is the rolling fold over $G$ group hashes: $H_{\\text{cell}} = \\chainH(H_1\\,\\Vert\\,H_2\\,\\Vert\\,\\dots\\,\\Vert\\,H_G)$." .
+
+math:def_walframe
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:walframe" ;
+    math:statement "A cache frame journaling the memoized DAG nodes is serialized as a length-prefixed frame: $\\text{WAL\\_Frame} = \\langle\\,\\text{length},\\ \\chainH(\\text{payload}),\\ \\text{payload}\\,\\rangle$, allowing recovery to discard torn frames." .
+
+math:refusal_noknhkpath
+    a math:Statement ;
+    math:kind "refusal" ;
+    math:label "refusal:noknhkpath" ;
+    math:statement "No path dependencies on knhk: verified by live probes, recorded as the standing reason -- the leanest candidate crate drags tokio/reqwest/opentelemetry transitively; the mu-kernel ships property-testing libraries as regular dependencies and uses unsafe transmutes; the workspace does not build as a whole. Ports of 50--200-line designs, tagged PORT(knhk) with per-item deltas, cost less than the supply chain. Drift is greppable." .
+
+math:refusal_nomeasuredticks
+    a math:Statement ;
+    math:kind "refusal" ;
+    math:label "refusal:nomeasuredticks" ;
+    math:statement "No measured CPU ticks: knhk's own hot receipts carried dummy tick values behind a hardcoded 4 GHz assumption. Declared deterministic costs (Ticks as an abstract unit) are the honest model for a planner; rdtsc instrumentation is a bench follow-up, documented as a divergence, not smuggled in as a claim." .
+
+math:refusal_noveltycurve
+    a math:Statement ;
+    math:kind "refusal" ;
+    math:label "ref:curve" ;
+    math:statement "No novelty-curve-under-faults measurement -- yet: member-level fault injection recovers without re-running solver work, so a work-proxy re-measurement would overstate the cache dividend -- the flattering error. The claim is withheld until node-level injection is wired through the fleet path; the receipt file names this in its own deferred list." .
+
+math:refusal_v1scope
+    a math:Statement ;
+    math:kind "refusal" ;
+    math:label "refusal:v1scope" ;
+    math:statement "v1 scope: beat scheduling, full R1/W1/C1 SLO matrix, quarantine parole, supra-cell supervision. Each receipted with salvage: the enum and one tier transition ship; epoch boundaries already provide the re-admission cadence beats would refine; quarantined classes await a parole mechanism; cells supervising cells is the composition step after this one." .
+
+# ===========================================================================
+# Proofs
+# ===========================================================================
+
+math:proof_thm_gap
+    a math:Proof ;
+    math:proves math:thm_gap ;
+    math:step math:proof_thm_gap_s1, math:proof_thm_gap_s2 .
+
+math:proof_thm_gap_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "An unstorable value cannot be shadowed by stored values, and first-match-wins terminates in the implicit case exactly when all stored matches fail." ;
+    math:justification math:def_branch .
+
+math:proof_thm_gap_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "The enforcement is the derivation function's type: branch lists are built from a constructor set that excludes the gap class." ;
+    math:justification math:def_branch .
+
+math:proof_prop_fable_oracle
+    a math:Proof ;
+    math:proves math:prop_fable_oracle ;
+    math:step math:proof_prop_fable_oracle_s1, math:proof_prop_fable_oracle_s2 .
+
+math:proof_prop_fable_oracle_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Each stage of the oracle (cargo build, cargo test, cargo clippy, safety audit) terminates on every finite $C$; the codomain of each stage is $\\{0,1\\}\\times\\mathrm{ErrInfo}$, a total finite type; a failure at any stage short-circuits with the stage index and its ErrInfo, analogous to the staged validator of Paper 04's Definition 4.7." ;
+    math:justification math:prop_fable_oracle .
+# UNRESOLVED: the load-bearing analogy is "Paper 04's Definition 4.7", an
+# external paper not present in this document, and the informal notion of
+# "Oracle" this step relies on is formalized as def:sandbox only LATER in
+# this same paper (a forward reference), so no valid earlier in-paper
+# Statement licenses this step; justification above self-references
+# prop:fable-oracle rather than asserting a fabricated dependency.
+
+math:proof_prop_fable_oracle_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Hence Oracle is total and terminating, and by Proposition 4.4 of Paper 04 any observed failure is a genuine defect in $C$, not a property of the oracle." ;
+    math:justification math:prop_fable_oracle .
+# UNRESOLVED: the load-bearing citation is "Proposition 4.4 of Paper 04", an
+# external paper not present in this document; no in-paper Statement
+# licenses this step, so justification above self-references
+# prop:fable-oracle rather than asserting a fabricated dependency.
+
+# ===========================================================================
+# Symbols (key notation this paper defines/introduces)
+# ===========================================================================
+
+math:sym_Dag
+    a math:Symbol ;
+    math:latex "G" ;
+    math:definedIn math:def_depth .
+
+math:sym_Topo
+    a math:Symbol ;
+    math:latex "\\mathcal{T}" ;
+    math:definedIn math:prop_topology .
+
+math:sym_Geo
+    a math:Symbol ;
+    math:latex "\\Gamma" ;
+    math:definedIn math:def_branch .
+
+math:sym_ca
+    a math:Symbol ;
+    math:latex "\\mathsf{ca}" ;
+    math:definedIn math:prop_topology .
+
+math:sym_chainH
+    a math:Symbol ;
+    math:latex "\\mathsf{H}" ;
+    math:definedIn math:con_fablechain .
+
+math:sym_fr
+    a math:Symbol ;
+    math:latex "\\mathsf{fr}" ;
+    math:definedIn math:con_fablechain .
+
+math:sym_dg
+    a math:Symbol ;
+    math:latex "\\mathrm{dg}" ;
+    math:definedIn math:con_fablechain .

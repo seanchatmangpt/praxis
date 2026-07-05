@@ -1,0 +1,662 @@
+# Instance data extracted from docs/thesis/02_receipt_cryptography.tex
+# ("Receipt Chains: Cryptographic Conservation of Consequence")
+# against the tex-math-pack ontology (packs/tex-math-pack/ontology.ttl).
+#
+# Extraction notes:
+#  - Local names are prefixed "rc_" (receipt cryptography) followed by the
+#    paper's own \label{} key with ':' replaced by '_'. The prefix is needed
+#    because this paper reuses some \label{} strings verbatim from the
+#    00_foundations pilot (e.g. \label{cor:antibody}), and bare label-derived
+#    local names would collide with math:cor_antibody already minted in
+#    00_foundations.ttl. math:label still carries the original \label{}
+#    string verbatim so \ref{} in the generated .tex resolves.
+#  - math:kind values follow this paper's own \newtheorem declarations:
+#    axiom, construction, definition, theorem, proposition, corollary, lemma
+#    (lemma is declared but this paper does not instantiate one).
+#  - dependsOn/justification edges only target math:Statement individuals
+#    (never math:Symbol individuals), matching the pilot's convention and
+#    check_citations.py's citation-closure requirement.
+#  - Two \label{}s recur with "-op" suffixed local names because the paper
+#    itself restates Git-CAS-lock content twice under distinct labels
+#    (\label{def:gitlock} in Ch.~\ref{ch:chain} and
+#    \label{def:gitlock-op}/\label{prop:notesledger-op} in
+#    Ch.~\ref{ch:lake}); both are real, distinctly labeled environments in
+#    the source, not a duplication introduced by this extraction.
+#  - Several proof steps rely load-bearingly on statements proved in the
+#    *keystone* paper (00_foundations.tex / \cite{chatman2025}), not on any
+#    earlier Statement in THIS paper. Per instructions these are flagged
+#    UNRESOLVED rather than pointed at a fabricated in-paper dependency:
+#      * rc_proof_cor_cost_s1 (cost bound $O(\CL)$ at the boundary is the
+#        keystone's Comprehension--Verification Gap, not proved here)
+#      * rc_proof_thm_conservation_s1 (clause (i)'s typestate argument
+#        "receipt without admission is uninhabited" is the foundations
+#        paper's thm:typestate/cor:subcat, not a Statement of this paper)
+#      * rc_proof_prop_fitness_s1 (the unit-fitness characterization is
+#        "the keystone's" result, cited but not re-derived here)
+#      * rc_proof_thm_scope_s4 (negative (a): the obligation battery $G$ is
+#        defined in the foundations paper as def:adm's $g_1,\dots,g_m$, not
+#        in this paper)
+#      * rc_proof_thm_scope_s5 (negative (b): $\muop$'s determinism/
+#        boundedness is the foundations paper's def:mu / prop:mudet)
+#      * rc_proof_thm_scope_s6 (negative (c): "the series' Rice
+#        specialization" is the foundations paper's thm:rice)
+#    Each such step's math:justification below points back at the nearest
+#    in-paper Statement it is embedded in (self-justification), consistent
+#    with the pilot's handling of thm_rice step 1.
+
+@prefix math: <http://seanchatmangpt.github.io/packs/tex-math#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+# ===========================================================================
+# Statements (definition/axiom/construction/theorem/proposition/corollary)
+# ===========================================================================
+
+math:rc_def_frame
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:frame" ;
+    math:statement "A frame $\\fr$ is the record $\\langle\\code{instruction\\_id}, \\code{fired\\_mask}, \\code{denial}, \\code{obj\\_refs}[0{:}8], \\code{ts\\_ns}, \\code{activity\\_idx}, \\code{node\\_kind}, \\code{prior\\_hash}\\rangle$, laid out as a $\\code{repr(C, align(64))}$ structure occupying exactly $128$ bytes, with $5$ bytes of interior padding." .
+
+math:rc_def_body
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:body" ;
+    math:statement "The hash body $\\body(\\fr)\\in\\{0,1\\}^{8\\cdot 99}$ is the $99$-byte serialization produced by \\code{to\\_hash\\_bytes}; it is a total, injective function of the semantic fields of $\\fr$ (all fields except the structural \\code{pad})." ;
+    math:dependsOn math:rc_def_frame .
+
+math:rc_prop_bodyinj
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:bodyinj" ;
+    math:statement "$\\body$ is injective on the semantic field tuple: if $\\body(\\fr)=\\body(\\fr')$ then $\\fr$ and $\\fr'$ agree on every field of Definition~\\ref{def:frame}." ;
+    math:dependsOn math:rc_def_body .
+
+math:rc_con_commit
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:commit" ;
+    math:statement "Let $p\\in\\{0,1\\}^{*}$ be the canonical JSON bytes of an admitted payload and $\\dg(p)=\\chainH(p)\\in\\{0,1\\}^{256}$ its digest; partition $\\dg(p)$ into eight $32$-bit little-endian words $w_0,\\dots,w_7$ and set $\\code{obj\\_refs}[i]=\\code{PackedObjRef}(w_i)$ via the raw tuple constructor, preserving all $32$ bits." ;
+    math:dependsOn math:rc_def_frame .
+
+math:rc_prop_payloadcommit
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:payloadcommit" ;
+    math:statement "Under Construction~\\ref{con:commit}, $\\body(\\fr)$ determines $\\dg(p)$, and by Proposition~\\ref{prop:bodyinj} any change to $\\dg(p)$ changes $\\body(\\fr)$: a frame commits to the content of the artifact, not an opaque handle." ;
+    math:dependsOn math:rc_con_commit ;
+    math:dependsOn math:rc_prop_bodyinj .
+
+math:rc_def_genesis
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:genesis" ;
+    math:statement "The genesis chain value is $\\Genesis=\\chainH(\\bm 0_{32})$; a run may additionally bind a domain seed $\\Genesis_{\\mathrm{dom}}=\\chainH(\\text{project-version-genesis})$ so chains from distinct projects or versions cannot cross-verify." .
+
+math:rc_def_chain
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:chain" ;
+    math:statement "For a frame $\\fr$ with predecessor commitment $h_{-}$, the successor commitment is $h_{+}=\\chainH(h_{-}\\concat\\body(\\fr))$; a chain $\\Ledger=(\\fr_1,\\dots,\\fr_n)$ has $h_0=\\Genesis$ and $h_t=\\chainH(h_{t-1}\\concat\\body(\\fr_t))$, terminal value $h_n$." ;
+    math:dependsOn math:rc_def_body ;
+    math:dependsOn math:rc_def_genesis .
+
+math:rc_prop_fold
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:fold" ;
+    math:statement "$h_n$ is a deterministic function of $(\\Genesis,\\fr_1,\\dots,\\fr_n)$, computable by a single left fold; equal inputs give bit-identical $h_n$." ;
+    math:dependsOn math:rc_def_chain .
+
+math:rc_prop_nodrift
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:nodrift" ;
+    math:statement "A receipt emitted by \\code{LawObject::receipt\\_with\\_record} and later recomputed by \\code{ReceiptRecord::recompute\\_chain\\_hash} both route through \\code{build\\_admission\\_frame} and \\code{chain\\_from\\_frame}; for identical stored fields they compute identical $h_{+}$, so any disagreement is attributable to a changed stored field, never divergent code paths." ;
+    math:dependsOn math:rc_prop_fold .
+
+math:rc_prop_prefix
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:prefix" ;
+    math:statement "For each $t$, $h_t$ commits every frame $\\fr_1,\\dots,\\fr_t$ and the genesis value; the terminal $h_n$ commits the entire history." ;
+    math:dependsOn math:rc_def_chain ;
+    math:dependsOn math:rc_def_genesis .
+
+math:rc_def_gitlock
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:gitlock" ;
+    math:statement "An atomic CAS lock for resource $L$ at repository HEAD OID $H$ is acquired by \\code{git update-ref refs/locks/}$L$ $H$ $\\bm 0$, which fails if \\code{refs/locks/}$L$ already exists and succeeds atomically otherwise via POSIX rename; deletion on drop releases the lock." .
+
+math:rc_prop_notesledger
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:notesledger" ;
+    math:statement "The audit ledger is stored under \\code{refs/notes/praxis/audit}; appending entries is a commit transition writing hash-chain receipts as NDJSON notes, preserving immutability of the execution timeline." ;
+    math:dependsOn math:rc_def_gitlock .
+
+math:rc_ax_cr
+    a math:Statement ;
+    math:kind "axiom" ;
+    math:label "ax:cr" ;
+    math:statement "$\\chainH$ (BLAKE3) is collision-resistant: no PPT adversary finds $x\\ne y$ with $\\chainH(x)=\\chainH(y)$ except with negligible probability $\\varepsilon(\\lambda)$, $\\lambda=256$, birthday bound $\\sim 2^{128}$." .
+
+math:rc_thm_faithful
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:faithful" ;
+    math:statement "Let $\\Ledger=(\\fr_1,\\dots,\\fr_n)$ have terminal commitment $h_n$, and $\\Ledger'$ differ in at least one committed field of at least one frame; if $\\Ledger'$ has the same terminal $h_n$, a collision of $\\chainH$ has been exhibited. Under Axiom~\\ref{ax:cr}, altering any committed field while preserving $h_n$ succeeds only with probability $\\le\\varepsilon(\\lambda)$." ;
+    math:dependsOn math:rc_prop_bodyinj ;
+    math:dependsOn math:rc_prop_payloadcommit ;
+    math:dependsOn math:rc_prop_prefix ;
+    math:dependsOn math:rc_ax_cr .
+
+math:rc_cor_cost
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:cost" ;
+    math:statement "A verifier checking a single frame recomputes one fold and one equality test: $O(1)$ time and space, independent of $n$; checking the boundary projection of a whole run is $O(\\CL)$." ;
+    math:dependsOn math:rc_thm_faithful .
+
+math:rc_thm_conservation
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:conservation" ;
+    math:statement "Fix $\\Act=\\muop(\\Adm)$ with the receipt chain of Definition~\\ref{def:chain}. Every actuated artifact is caused by an admitted $x\\ne\\Rfsl$; each actuation is positioned by exactly one appended frame, with $\\Phi:\\text{actuation}\\mapsto h_{+}$ injective up to collision; each committed frame is attributed at least one admitted cause via bytes $[24,56)$ and $[16,24)$." ;
+    math:dependsOn math:rc_def_chain ;
+    math:dependsOn math:rc_con_commit ;
+    math:dependsOn math:rc_thm_faithful .
+
+math:rc_cor_orphan
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:orphan" ;
+    math:statement "No actuated artifact lacks a chain position (no orphan) and no chain position is shared by two actuations (no double-count); consequence is neither created without an admitted cause nor recorded without a unique receipt slot." ;
+    math:dependsOn math:rc_thm_conservation .
+
+math:rc_def_pipeline
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:pipeline" ;
+    math:statement "The validator runs five stages in fixed order over a ledger $(\\fr_t)_{t=1}^{n}$ -- \\code{schema}, \\code{chain\\_recompute}, \\code{chain\\_linkage}, \\code{monotonic}, \\code{token\\_replay} -- each returning Pass/Fail/Skip, reporting all stage outcomes rather than short-circuiting." ;
+    math:dependsOn math:rc_thm_faithful .
+
+math:rc_thm_localize
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:localize" ;
+    math:statement "Suppose a lawful ledger $\\Ledger$ is perturbed to $\\Ledger'$ with first affected record index $j$. The pipeline of Definition~\\ref{def:pipeline} reports a Fail whose named record index is $j$, and the stage identifier names the class of fault; the honest prefix $\\fr_1,\\dots,\\fr_{j-1}$ is not implicated." ;
+    math:dependsOn math:rc_def_pipeline ;
+    math:dependsOn math:rc_prop_nodrift ;
+    math:dependsOn math:rc_thm_faithful .
+
+math:rc_def_fitness
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:fitness" ;
+    math:statement "Replay fitness is $\\Fitness=1-\\frac{\\text{tokens forced on unenabled transitions}}{\\text{tokens the replay attempted}}\\in[0,1]$, represented as Q16.16 with unit $\\code{0x0001\\_0000}=65536$; the \\code{token\\_replay} stage accepts a record iff its replayed fitness equals that unit." .
+
+math:rc_prop_fitness
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:fitness" ;
+    math:statement "A record's replay attains $\\Fitness=\\code{0x0001\\_0000}$ iff its lifecycle is a genuine firing sequence of the fixed POWL token model; otherwise the first forced consumption localizes the nonconformant step, and the stage fails naming that record." ;
+    math:dependsOn math:rc_def_fitness .
+
+math:rc_def_signed
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:signed" ;
+    math:statement "A signed receipt is the triple $\\code{SignedReceipt}=\\langle h_{\\mathrm{hex}}, s, k\\rangle$ where $s=\\mathrm{Sign}_{sk}(h_{\\mathrm{hex}})$ is an Ed25519 signature and $k$ the hex verifying key; it is self-contained since $s$ and $k$ travel with $h_{\\mathrm{hex}}$." .
+
+math:rc_prop_intauth
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:intauth" ;
+    math:statement "Integrity (\\code{verify\\_chain\\_hash}) checks $s$ against the embedded key $k$; authenticity (\\code{verify\\_chain\\_hash\\_with\\_key}) checks $s$ against an externally pinned key $k^{\\star}$. The first is necessary but not sufficient for the second." ;
+    math:dependsOn math:rc_def_signed .
+
+math:rc_prop_failclosed
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:failclosed" ;
+    math:statement "When the \\code{signed} feature is enabled, a missing or unreadable signing key is a hard error (\\code{SigningFailed}), not a silent skip." ;
+    math:dependsOn math:rc_def_signed .
+
+math:rc_def_contentaddr
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:contentaddr" ;
+    math:statement "The address of a stored object $b$ is $\\code{content\\_address}(b)=\\chainH(b)$ in hex; two byte-identical objects share an address, any change yields a different address." .
+
+math:rc_prop_cas
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:cas" ;
+    math:statement "In a content-addressed lake, storing the same receipt twice is idempotent, and mutating a stored receipt changes its address, so the old address still resolves to the old bytes: history is immutable by construction." ;
+    math:dependsOn math:rc_def_contentaddr ;
+    math:dependsOn math:rc_ax_cr .
+
+math:rc_con_ocel
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:ocel" ;
+    math:statement "The map $\\Omega:\\Ledger\\to\\mathrm{OCEL2.0}$ sends each frame to an OCEL event with event id \\code{instruction\\_id}, activity the label of \\code{activity\\_idx}, timestamp \\code{ts\\_ns}, and E2O qualifiers to \\code{object\\_ids}." ;
+    math:dependsOn math:rc_def_frame .
+
+math:rc_con_provo
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:provo" ;
+    math:statement "Each receipt maps to a PROV-O shape: the admitted observation a \\code{prov:Entity}, the manufacture a \\code{prov:Activity} that used it, the artifact a \\code{prov:Entity} generated by the activity, and the chain link a \\code{prov:wasDerivedFrom} edge, SHACL-validated against \\code{sr:SharedReceiptV1}." ;
+    math:dependsOn math:rc_def_chain .
+
+math:rc_prop_mapcommit
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:mapcommit" ;
+    math:statement "$\\Omega$ and the PROV-O bridge are lossless over the committed fields: the terminal $h_n$ is recoverable from the exported log's per-event fields, so exporting does not weaken the chain guarantee." ;
+    math:dependsOn math:rc_con_ocel ;
+    math:dependsOn math:rc_con_provo ;
+    math:dependsOn math:rc_prop_nodrift ;
+    math:dependsOn math:rc_thm_faithful .
+
+math:rc_def_gitlock_op
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:gitlock-op" ;
+    math:statement "For named resource $L$ at HEAD OID $H$, the CAS lock is acquired by \\code{git update-ref refs/locks/}$L$ $H$ $\\bm 0_{20}$, atomically creating \\code{refs/locks/}$L$ pointing to $H$ iff the reference is absent; deletion on drop releases the lock." ;
+    math:dependsOn math:rc_def_gitlock .
+
+math:rc_prop_notesledger_op
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:notesledger-op" ;
+    math:statement "Under the CAS lock of Definition~\\ref{def:gitlock-op}, each append of a receipt record is a commit transition serialized as NDJSON under the annotated commit OID, immutable by Git's content-addressed object model, with concurrent appends serialized by the acquire-fail branch of the CAS." ;
+    math:dependsOn math:rc_def_gitlock_op .
+
+math:rc_thm_scope
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:scope" ;
+    math:statement "Let a receipt chain $\\Ledger$ verify and optionally be authentically signed. Then $\\Ledger$ establishes integrity, attribution, and conformance-as-checked, and no more: it does not establish obligation adequacy, world-fitness, or semantic truth." ;
+    math:dependsOn math:rc_thm_faithful ;
+    math:dependsOn math:rc_thm_conservation ;
+    math:dependsOn math:rc_prop_intauth ;
+    math:dependsOn math:rc_prop_fitness .
+
+math:rc_cor_antibody
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:antibody" ;
+    math:statement "A claim of the form \"this artifact is good because its receipt verifies\" is an overclaim: it asserts a virtue Theorem~\\ref{thm:scope} shows is not entailed. The admissible claim is the narrow conjunction of integrity, attribution, and conformance-as-checked." ;
+    math:dependsOn math:rc_thm_scope .
+
+# ===========================================================================
+# Proofs
+# ===========================================================================
+
+math:rc_proof_prop_bodyinj
+    a math:Proof ;
+    math:proves math:rc_prop_bodyinj ;
+    math:step math:rc_proof_prop_bodyinj_s1 .
+
+math:rc_proof_prop_bodyinj_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Each field occupies a disjoint, fixed byte range and each integer field's little-endian encoding is a bijection on its width; a byte-equal body forces range-wise, hence field-wise, equality. Pad bytes are absent from the body so frames differing only in padding correctly have equal bodies." ;
+    math:justification math:rc_def_body .
+
+math:rc_proof_prop_payloadcommit
+    a math:Proof ;
+    math:proves math:rc_prop_payloadcommit ;
+    math:step math:rc_proof_prop_payloadcommit_s1 .
+
+math:rc_proof_prop_payloadcommit_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Bytes $[24,56)$ of the body are the eight words $w_0\\dots w_7=\\dg(p)$ by construction; the map $\\dg(p)\\mapsto(w_0,\\dots,w_7)$ is a little-endian bijection $\\{0,1\\}^{256}\\to(\\{0,1\\}^{32})^{8}$, so injectivity of $\\body$ gives that distinct payload digests induce distinct bodies." ;
+    math:justification math:rc_prop_bodyinj .
+
+math:rc_proof_prop_fold
+    a math:Proof ;
+    math:proves math:rc_prop_fold ;
+    math:step math:rc_proof_prop_fold_s1 .
+
+math:rc_proof_prop_fold_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Each step of the chain rule is a pure function of two arguments, and composition of pure functions is pure; BLAKE3 is a fixed function, so no nondeterminism enters." ;
+    math:justification math:rc_def_chain .
+
+math:rc_proof_prop_nodrift
+    a math:Proof ;
+    math:proves math:rc_prop_nodrift ;
+    math:step math:rc_proof_prop_nodrift_s1 .
+
+math:rc_proof_prop_nodrift_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "There is a single construction site, \\code{build\\_admission\\_frame} and \\code{chain\\_from\\_frame}, invoked by both callers on the record's own fields; function purity forces equal outputs on equal inputs, so a recompute mismatch isolates a field mutation rather than a logic difference." ;
+    math:justification math:rc_prop_fold .
+
+math:rc_proof_prop_prefix
+    a math:Proof ;
+    math:proves math:rc_prop_prefix ;
+    math:step math:rc_proof_prop_prefix_s1, math:rc_proof_prop_prefix_s2 .
+
+math:rc_proof_prop_prefix_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Base case: $h_0=\\Genesis$." ;
+    math:justification math:rc_def_genesis .
+
+math:rc_proof_prop_prefix_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Inductive step: $h_t=\\chainH(h_{t-1}\\concat\\body(\\fr_t))$ depends on $h_{t-1}$, which by hypothesis commits $\\fr_1,\\dots,\\fr_{t-1}$ and $\\Genesis$, and on $\\body(\\fr_t)$; so $h_t$ depends on all of $\\Genesis,\\fr_1,\\dots,\\fr_t$. The collision clause is deferred to the Faithful Chain Theorem." ;
+    math:justification math:rc_def_chain .
+
+math:rc_proof_thm_faithful
+    a math:Proof ;
+    math:proves math:rc_thm_faithful ;
+    math:step math:rc_proof_thm_faithful_s1, math:rc_proof_thm_faithful_s2, math:rc_proof_thm_faithful_s3 .
+
+math:rc_proof_thm_faithful_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Let $j$ be the least index at which $\\Ledger,\\Ledger'$ differ in a committed field. Bodies are injective on committed fields, so $\\body(\\fr_j)\\ne\\body(\\fr'_j)$; because $j$ is least, the predecessors agree, $h_{j-1}=h'_{j-1}$." ;
+    math:justification math:rc_prop_bodyinj .
+
+math:rc_proof_thm_faithful_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "The two fold inputs $x=h_{j-1}\\concat\\body(\\fr_j)$ and $x'=h'_{j-1}\\concat\\body(\\fr'_j)$ have equal-length, equal prefixes but differing suffixes, so $x\\ne x'$; Construction~\\ref{con:commit}'s payload-digest word placement is what makes the suffix differ when only the payload changes." ;
+    math:justification math:rc_prop_payloadcommit .
+
+math:rc_proof_thm_faithful_s3
+    a math:ProofStep ;
+    math:order 3 ;
+    math:claim "If $h_j\\ne h'_j$, Proposition~\\ref{prop:prefix} propagates the divergence to the terminal, so $h_n=h'_n$ requires some later fold step to map unequal inputs to equal outputs; if instead $h_j=h'_j$ despite $x\\ne x'$, $\\chainH(x)=\\chainH(x')$ is itself a collision. Either way $h_n=h'_n$ forces a collision, contradicting the collision-resistance axiom up to $\\varepsilon(\\lambda)$." ;
+    math:justification math:rc_ax_cr .
+
+math:rc_proof_cor_cost
+    a math:Proof ;
+    math:proves math:rc_cor_cost ;
+    math:step math:rc_proof_cor_cost_s1 .
+
+math:rc_proof_cor_cost_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The fold reads two fixed-width operands and produces a $256$-bit output, constant work; equality on $256$-bit values is constant; the boundary projection has $\\le\\CL$ chunks by construction, so applying the boundary predicate is $O(\\CL)$. Neither cost references $n$ or the interior dimension." ;
+    math:justification math:rc_thm_faithful .
+# UNRESOLVED: the $O(\CL)$ boundary bound restates the keystone's (00_foundations)
+# Comprehension--Verification Gap and bounded-projection construction, not a
+# Statement proved within THIS paper; justification above self-references the
+# nearest in-paper theorem instead.
+
+math:rc_proof_thm_conservation
+    a math:Proof ;
+    math:proves math:rc_thm_conservation ;
+    math:step math:rc_proof_thm_conservation_s1, math:rc_proof_thm_conservation_s2, math:rc_proof_thm_conservation_s3 .
+
+math:rc_proof_thm_conservation_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Actuation is gated by the equation: an artifact enters $\\Act$ only as $\\muop(x)$ with $x\\ne\\Rfsl$, so $\\im\\muop$ exhausts the actuated set; \\code{receipt} is a method available only on \\code{LawObject<\\_, Admitted, \\_>}, so no artifact is receipted without an admitted antecedent." ;
+    math:justification math:rc_def_chain .
+# UNRESOLVED: "the typestate makes receipt-without-admission uninhabited" cites
+# the foundations paper's typestate theorem (thm:typestate/cor:subcat), not a
+# Statement of this paper; justification above points to this paper's own
+# Chatman-equation definition instead.
+
+math:rc_proof_thm_conservation_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Each call to \\code{chain} increments \\code{frame\\_count} by one and produces one new \\code{chain\\_hash}. Suppose two distinct actuations mapped to the same $h_{+}$: their frames differ (distinct \\code{instruction\\_id} or payload digest), so equal terminal commitments would force a collision by the Faithful Chain Theorem; hence $\\Phi$ is injective up to $\\varepsilon(\\lambda)$." ;
+    math:justification math:rc_thm_faithful .
+
+math:rc_proof_thm_conservation_s3
+    a math:ProofStep ;
+    math:order 3 ;
+    math:claim "By Construction~\\ref{con:commit}, $\\dg(x)$ occupies bytes $[24,56)$; the denial word occupies $[16,24)$ and equals ADMITTED on the accept path, so the frame commits both the identity of the cause and the verdict that admitted it." ;
+    math:justification math:rc_con_commit .
+
+math:rc_proof_thm_localize
+    a math:Proof ;
+    math:proves math:rc_thm_localize ;
+    math:step math:rc_proof_thm_localize_s1, math:rc_proof_thm_localize_s2, math:rc_proof_thm_localize_s3, math:rc_proof_thm_localize_s4, math:rc_proof_thm_localize_s5 .
+
+math:rc_proof_thm_localize_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "If the mutation malforms a hex field, \\code{schema} fails at $j$, since earlier records parse, being unperturbed." ;
+    math:justification math:rc_def_pipeline .
+
+math:rc_proof_thm_localize_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "If the mutation changes a committed field but leaves \\code{chain\\_hash\\_hex}(j) stale, \\code{chain\\_recompute} fails at $j$: the recomputation uses the perturbed fields and diverges from the stored value exactly at $j$, since records $<j$ are unperturbed and recompute equal." ;
+    math:justification math:rc_prop_nodrift .
+
+math:rc_proof_thm_localize_s3
+    a math:ProofStep ;
+    math:order 3 ;
+    math:claim "If the mutation reorders or splices records so thread continuity breaks, \\code{chain\\_linkage} fails at the least index whose \\code{prev} no longer matches its predecessor's \\code{chain\\_hash}." ;
+    math:justification math:rc_def_pipeline .
+
+math:rc_proof_thm_localize_s4
+    a math:ProofStep ;
+    math:order 4 ;
+    math:claim "If the mutation rewrites both a field and its stored chain hash consistently, either linkage breaks at $j$ unless the entire suffix is rewritten, in which case the forged terminal commitment differs from the attested $h_n$ and the Faithful Chain Theorem applies at the boundary." ;
+    math:justification math:rc_thm_faithful .
+
+math:rc_proof_thm_localize_s5
+    a math:ProofStep ;
+    math:order 5 ;
+    math:claim "If the mutation preserves hashes but produces a trace that is not a firing sequence, \\code{token\\_replay} fails at $j$ with fitness $<1$. In every class the least failing index is $j$, and the honest prefix passes every stage because each stage's predicate on records $<j$ is evaluated on unperturbed data and holds by hypothesis." ;
+    math:justification math:rc_def_pipeline .
+
+math:rc_proof_prop_fitness
+    a math:Proof ;
+    math:proves math:rc_prop_fitness ;
+    math:step math:rc_proof_prop_fitness_s1 .
+
+math:rc_proof_prop_fitness_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Enabled firings force no consumption, giving numerator $0$ and $\\Fitness=1$; a disabled event forces a consumption, making the numerator positive and $\\Fitness<1$ at the earliest offending index. The stage compares against the exact fixed-point unit." ;
+    math:justification math:rc_def_fitness .
+# UNRESOLVED: "the keystone's unit-fitness characterization" attributes the
+# core argument to the foundations paper (00_foundations, marking geometry),
+# not a Statement proved in this paper; justification above self-references
+# this paper's own fitness definition instead.
+
+math:rc_proof_prop_intauth
+    a math:Proof ;
+    math:proves math:rc_prop_intauth ;
+    math:step math:rc_proof_prop_intauth_s1, math:rc_proof_prop_intauth_s2 .
+
+math:rc_proof_prop_intauth_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "\\code{verify\\_chain\\_hash} instantiates the key argument with the embedded $k$; any adversary who re-signs a modified $h$ with a self-generated key $k'$ passes this check, so it does not establish authorship." ;
+    math:justification math:rc_def_signed .
+
+math:rc_proof_prop_intauth_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "\\code{verify\\_chain\\_hash\\_with\\_key} instantiates the key argument with $k^{\\star}$; by Ed25519's existential unforgeability, producing a valid $s$ over $h$ under $k^{\\star}$ without $sk^{\\star}$ is infeasible, so a pass attributes authorship to the holder of $sk^{\\star}$." ;
+    math:justification math:rc_def_signed .
+
+math:rc_proof_prop_failclosed
+    a math:Proof ;
+    math:proves math:rc_prop_failclosed ;
+    math:step math:rc_proof_prop_failclosed_s1 .
+
+math:rc_proof_prop_failclosed_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The \\code{signed} feature exists to guarantee a signature; silently skipping would defeat its purpose and let an unsigned receipt masquerade as covered, so key absence is treated as failure: authenticity is either present and checkable or explicitly absent, never ambiguously assumed." ;
+    math:justification math:rc_def_signed .
+
+math:rc_proof_prop_cas
+    a math:Proof ;
+    math:proves math:rc_prop_cas ;
+    math:step math:rc_proof_prop_cas_s1, math:rc_proof_prop_cas_s2 .
+
+math:rc_proof_prop_cas_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The address is $\\chainH(b)$, a function of $b$; equal $b$ gives equal address." ;
+    math:justification math:rc_def_contentaddr .
+
+math:rc_proof_prop_cas_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "A change $b\\to b'$ with $b\\ne b'$ gives $\\chainH(b')\\ne\\chainH(b)$ except on a collision, so the reference $\\chainH(b)$ cannot be made to resolve to $b'$." ;
+    math:justification math:rc_ax_cr .
+
+math:rc_proof_prop_mapcommit
+    a math:Proof ;
+    math:proves math:rc_prop_mapcommit ;
+    math:step math:rc_proof_prop_mapcommit_s1 .
+
+math:rc_proof_prop_mapcommit_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "$\\Omega$ carries each frame's committed fields into event attributes; the chain recomputation depends only on these plus \\code{payload\\_hash} and \\code{prev\\_chain\\_hash}, which the record retains, so the exported log determines $h_n$ and re-verification is the Faithful Chain Theorem applied to the reconstructed frames." ;
+    math:justification math:rc_prop_nodrift .
+
+math:rc_proof_prop_notesledger_op
+    a math:Proof ;
+    math:proves math:rc_prop_notesledger_op ;
+    math:step math:rc_proof_prop_notesledger_op_s1, math:rc_proof_prop_notesledger_op_s2 .
+
+math:rc_proof_prop_notesledger_op_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "A failing CAS (reference already exists) exits with a non-zero code before touching the notes tree; only the lock holder proceeds." ;
+    math:justification math:rc_def_gitlock_op .
+
+math:rc_proof_prop_notesledger_op_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "If the process is killed after the notes append but before lock release, the lock entry remains; the restart protocol detects a stale lock by comparing the locked OID $H$ to current HEAD, force-releasing it if they differ, since the locked OID no longer uniquely identifies a live critical section." ;
+    math:justification math:rc_def_gitlock_op .
+
+math:rc_proof_thm_scope
+    a math:Proof ;
+    math:proves math:rc_thm_scope ;
+    math:step math:rc_proof_thm_scope_s1, math:rc_proof_thm_scope_s2, math:rc_proof_thm_scope_s3, math:rc_proof_thm_scope_s4, math:rc_proof_thm_scope_s5, math:rc_proof_thm_scope_s6 .
+
+math:rc_proof_thm_scope_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "(A) Integrity is the Faithful Chain Theorem: altering a committed field forces a collision." ;
+    math:justification math:rc_thm_faithful .
+
+math:rc_proof_thm_scope_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "(B) Attribution is Conservation of Consequence clause (iii) composed with the integrity-vs-authenticity distinction: the frame commits the admitted cause and denial word, and (if signed) the signature commits a keyholder." ;
+    math:justification math:rc_thm_conservation .
+
+math:rc_proof_thm_scope_s3
+    a math:ProofStep ;
+    math:order 3 ;
+    math:claim "(C) Conformance-as-checked is the fitness proposition, scoped to the fixed model: fitness certifies conformance to the model that was replayed, not that the model is the correct model." ;
+    math:justification math:rc_prop_fitness .
+
+math:rc_proof_thm_scope_s4
+    a math:ProofStep ;
+    math:order 4 ;
+    math:claim "(a) Two ledgers with different obligation sets $G\\ne G'$ can both verify; the chain commits $\\dg(G)$ so it records which set was used, but verification returns Pass for any committed $G$, so it does not rank $G$ against $G'$." ;
+    math:justification math:rc_thm_scope .
+# UNRESOLVED: the obligation battery $G=g_1,\dots,g_m$ is defined in the
+# foundations paper (def:adm), not in this paper; justification above
+# self-references the enclosing Scope Theorem rather than a fabricated
+# in-paper definition.
+
+math:rc_proof_thm_scope_s5
+    a math:ProofStep ;
+    math:order 5 ;
+    math:claim "(b) Fix any admitted $x$; both a benign and a harmful deterministic $\\muop$ produce verifying chains, since verification never inspects the world-consequences of $a=\\muop(x)$, only that $a$'s digest is committed. Hence world-fitness is not a function of the verdict." ;
+    math:justification math:rc_thm_scope .
+# UNRESOLVED: $\muop$'s determinism/boundedness (M1/M2) is defined in the
+# foundations paper (def:mu/prop:mudet), not in this paper; justification
+# above self-references the enclosing Scope Theorem instead.
+
+math:rc_proof_thm_scope_s6
+    a math:ProofStep ;
+    math:order 6 ;
+    math:claim "(c) By the series' Rice specialization, no computable predicate decides whether $o$ means what it purports; admission is a retraction, not a decision, so a verifying receipt attests admission, provably weaker than truth." ;
+    math:justification math:rc_thm_scope .
+# UNRESOLVED: "the series' Rice specialization" is the foundations paper's
+# thm:rice, not a Statement of this paper; justification above self-references
+# the enclosing Scope Theorem instead.
+
+math:rc_proof_cor_antibody
+    a math:Proof ;
+    math:proves math:rc_cor_antibody ;
+    math:step math:rc_proof_cor_antibody_s1 .
+
+math:rc_proof_cor_antibody_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The broad claim entails world-fitness (b), which the Scope Theorem shows is independent of the verdict, so the broad claim is not supported by the receipt; the narrow claim is exactly the conjunction (A)$\\wedge$(B)$\\wedge$(C), each proven." ;
+    math:justification math:rc_thm_scope .
+
+# ===========================================================================
+# Symbols (key notation this paper defines/introduces)
+# ===========================================================================
+
+math:rc_sym_fr
+    a math:Symbol ;
+    math:latex "\\mathsf{fr}" ;
+    math:definedIn math:rc_def_frame .
+
+math:rc_sym_body
+    a math:Symbol ;
+    math:latex "\\beta" ;
+    math:definedIn math:rc_def_body .
+
+math:rc_sym_dg
+    a math:Symbol ;
+    math:latex "\\mathrm{dg}" ;
+    math:definedIn math:rc_con_commit .
+
+math:rc_sym_Genesis
+    a math:Symbol ;
+    math:latex "\\mathsf{g}" ;
+    math:definedIn math:rc_def_genesis .
+
+math:rc_sym_Ledger
+    a math:Symbol ;
+    math:latex "\\mathcal{Ldg}" ;
+    math:definedIn math:rc_def_chain .
+
+math:rc_sym_concat
+    a math:Symbol ;
+    math:latex "\\Vert" ;
+    math:definedIn math:rc_def_chain .
+
+math:rc_sym_Phi
+    a math:Symbol ;
+    math:latex "\\Phi" ;
+    math:definedIn math:rc_thm_conservation .
+
+math:rc_sym_Fitness
+    a math:Symbol ;
+    math:latex "\\varphi" ;
+    math:definedIn math:rc_def_fitness .
+
+math:rc_sym_k
+    a math:Symbol ;
+    math:latex "k" ;
+    math:definedIn math:rc_def_signed .
+
+math:rc_sym_Lake
+    a math:Symbol ;
+    math:latex "\\mathcal{L}" ;
+    math:definedIn math:rc_def_contentaddr .

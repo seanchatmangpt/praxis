@@ -1,0 +1,5 @@
+{"label": "ax:obs", "kind": "axiom", "status": "verified", "attempts": 1, "depends_on": [], "kernel_version": "4.31.0"}
+{"label": "def:denialabstract", "kind": "definition", "status": "verified", "attempts": 2, "depends_on": [], "kernel_version": "4.31.0"}
+{"label": "thm:rice", "kind": "theorem", "status": "verified", "attempts": 3, "depends_on": ["ax:obs"], "kernel_version": "4.31.0"}
+{"label": "def:adm", "kind": "definition", "status": "verified", "attempts": 2, "depends_on": ["thm:rice"], "kernel_version": "4.31.0"}
+{"label": "def:mu", "kind": "definition", "status": "verified", "attempts": 2, "depends_on": ["def:adm"], "kernel_version": "4.31.0"}

@@ -1,0 +1,585 @@
+# Instance data extracted from docs/thesis/04_projection_and_scale.tex
+# ("Beyond Cognitive Load: The Projection Principle at Planetary Scale")
+# against the tex-math-pack ontology (packs/tex-math-pack/ontology.ttl),
+# following the structural conventions of the 00_foundations.tex pilot
+# (docs/thesis/rdf/00_foundations.ttl).
+#
+# Extraction notes:
+#  - Local names are the paper's own \label{} keys with ':' replaced by '_'.
+#    math:label carries the original \label{} string verbatim.
+#  - math:kind values follow this paper's own \newtheorem declarations:
+#    definition, axiom, construction, estimate, theorem, lemma, proposition,
+#    corollary. "estimate" is a real \newtheorem environment in this paper
+#    (\newtheorem{estimate}{Estimate}[chapter]), used for Fermi/order-of-
+#    magnitude quantities the paper itself labels as estimated rather than
+#    proved -- this is an extraction decision naming a real LaTeX environment,
+#    not fabricated content, exactly as axiom/construction were kept for the
+#    00_foundations pilot.
+#  - dependsOn/justification edges only ever target math:Statement individuals
+#    defined IN THIS FILE, because check_citations.py's citation-closure check
+#    requires every dependsOn/justification IRI target to be the subject of a
+#    math:kind triple. This paper repeatedly cites external results from the
+#    keystone thesis (00_foundations.tex, cited here as \cite{keystone}) by
+#    theorem/definition/proposition number (e.g. "keystone's Thm 4.2",
+#    "Def 3.1", "Cor 3.3") -- those are NOT math:Statement individuals in
+#    this file's graph, so they cannot be used as dependsOn/justification
+#    targets. Where a proof step's *sole* license is such an external
+#    citation (or the external bibitem rice1953, Rice 1953), this file
+#    points the step's justification back at the theorem/proposition's own
+#    defining Statement (self-justification) and records the external
+#    citation as UNRESOLVED below, rather than asserting a fabricated
+#    in-paper dependency.
+#  - Some statements are pure prose corollaries/remarks with no
+#    \begin{proof}...\end{proof} block in the source (cor:diag, cor:onedenial,
+#    thm:swar-verify, cor:throughput, cor:onlybit) -- these contribute a
+#    math:Statement but no math:Proof individual, matching def:seqtoken's
+#    treatment in the 00_foundations pilot.
+#  - Flagged UNRESOLVED steps/citations:
+#      * proof_thm_instance_gap step 2: sole license is the keystone's
+#        Theorem 4.2, an external cross-paper result, not an in-paper
+#        Statement. Self-justified to thm:instance-gap.
+#      * proof_prop_necessity step 1: sole license is Rice's theorem
+#        (external bibitem rice1953, and "the keystone's Theorem 2.1",
+#        also external), not an in-paper Statement. Self-justified to
+#        prop:necessity.
+#      * def:astgate's prose references "Proposition~\ref{prop:monoid}"
+#        for the denial monoid -- no statement labelled prop:monoid exists
+#        anywhere in this paper's source (the denial monoid proposition is
+#        prop:semilattice in 00_foundations.tex, a different paper); this is
+#        either a broken \ref left over from the keystone or a citation into
+#        the other paper under the wrong label. Not resolvable within this
+#        file; omitted from dependsOn and listed as unresolved.
+
+@prefix math: <http://seanchatmangpt.github.io/packs/tex-math#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+# ===========================================================================
+# Statements
+# ===========================================================================
+
+math:def_instance_q
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:instance-q" ;
+    math:statement "For an executed manufacture $\\sigma$: $T(\\sigma)$, the interior token count (measured, a count of logged records); $\\CL$, the boundary field count of the receipt projection $\\Proj(\\sigma)$ (a design constant); $t_{\\chainH}$, the per-frame recomputation wall-time (estimated from published hash throughput, not measured here)." .
+
+math:thm_instance_gap
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:instance-gap" ;
+    math:statement "For comprehension cost $\\mathrm{Comp}(\\sigma)=\\Theta(T(\\sigma))$ and boundary-verification cost $\\mathrm{Ver}_\\partial(\\sigma)=\\Theta(\\CL)$, the instance ratio is $\\Theta(T(\\sigma)/\\CL)=\\Theta(2.5\\times10^{6}/4)\\approx 6.25\\times10^{5}$; both inputs are measured/design constants, so the ratio is a measured consequence, not an estimate." ;
+    math:dependsOn math:def_instance_q .
+
+math:prop_invariance
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:invariance" ;
+    math:statement "For manufactures $\\{\\sigma_i\\}$ sharing the frame schema with $T(\\sigma_i)\\to\\infty$, $\\mathrm{Ver}_\\partial(\\sigma_i)=\\Theta(\\CL)$ is constant in $i$, and the estimated per-message wall-time $\\CL\\cdot t_{\\text{cmp}}+c\\cdot t_{\\chainH}$ does not depend on $T(\\sigma_i)$." ;
+    math:dependsOn math:def_instance_q .
+
+math:est_wall
+    a math:Statement ;
+    math:kind "estimate" ;
+    math:label "est:wall" ;
+    math:statement "At BLAKE3 throughput $1$--$3\\,\\mathrm{GB/s}$/core and a few-hundred-byte frame, $t_{\\chainH}\\sim10^{-7}\\,\\mathrm{s}$/frame; a four-field boundary compare is $\\ll10^{-7}\\,\\mathrm{s}$; per-message verification with $c\\sim10$ spot frames costs $\\sim10^{-6}\\,\\mathrm{s}$; these are order-of-magnitude estimates, the constancy-in-$T$ point is the proved Proposition~\\ref{prop:invariance}." ;
+    math:dependsOn math:prop_invariance .
+
+math:def_oracle
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:oracle" ;
+    math:statement "For implementation $f:D\\to R$ and specification $S\\subseteq D\\times R$, the correctness question is $Q_S(f)\\equiv\\forall x\\,(x,f(x))\\in S$; a decidable oracle for $f$ on finite $X\\subseteq D$ is a total computable predicate $\\Omega:X\\to\\{0,1\\}$ intended to witness $(x,f(x))\\in S$, terminating on every $x\\in X$." .
+
+math:prop_necessity
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:necessity" ;
+    math:statement "For $S$ a non-trivial semantic property, $Q_S(f)$ is undecidable; hence no procedure decides $Q_S(f)$ for arbitrary $f$, and any mechanical trust in $f$ must be trust in some $\\Omega$ evaluated on finite $X$, plus an argument bounding residual risk on $D\\setminus X$." ;
+    math:dependsOn math:def_oracle .
+
+math:def_diff
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:diff" ;
+    math:statement "For $f,g:D\\to R$ targeting the same $S$, the differential oracle is $\\Omega_{f,g}(x)=[f(x)=g(x)]$; a test passes at $x$ iff $\\Omega_{f,g}(x)=1$." ;
+    math:dependsOn math:def_oracle .
+
+math:prop_diff-bound
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:diff-bound" ;
+    math:statement "Under independent errors at rates $p_f,p_g$ with wrong outputs drawn from $\\ge M$ distinguishable values with collision probability $\\le1/M$: $\\Pr[\\Omega_{f,g}(x)=1\\wedge(x,f(x))\\notin S]\\le p_f p_g/M$; over a corpus of size $n$ the probability some silent-agreement error survives all $n$ tests is at most $np_f p_g/M$, and a fixed silently-wrong input missed with per-input hit rate $q$ has miss probability $(1-q)^n\\to0$." ;
+    math:dependsOn math:def_diff .
+
+math:def_fuzz
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:fuzz" ;
+    math:statement "For the total admission retraction $\\adm:\\Obs\\rightharpoonup\\Adm\\cup\\{\\Rfsl\\}$, the fuzzing oracle $\\Omega_\\partial$ maps generated $o\\in\\Obs$ to $1$ iff $\\adm(o)$ terminates and yields either an admitted $x\\in\\Adm$ with well-formed artifact $\\muop(x)$ or a refusal $\\Rfsl$ carrying a category in the eight-bucket taxonomy; $\\Omega_\\partial(o)=0$ iff $\\adm$ crashes, diverges, or returns an unlabelled outcome." ;
+    math:dependsOn math:def_oracle .
+
+math:prop_fuzz
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:fuzz" ;
+    math:statement "If $\\adm$ is total and terminating with codomain $\\Adm\\cup\\{\\Rfsl\\}$ and $\\Rfsl$ is refusal-with-category, then for every $o\\in\\Obs$, $\\Omega_\\partial(o)=1$, and any observed $\\Omega_\\partial(o)=0$ is a genuine defect in the retraction, not a property of the input." ;
+    math:dependsOn math:def_fuzz .
+
+math:def_residual
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:residual" ;
+    math:statement "For environmental observations $O$ and target artifact $A$, the measurement $\\muop(O)$ returns a residual vector $R\\in\\mathbb{R}^k$ with $r_i=\\text{measured}_i-\\text{midpoint}(\\text{target}_i)$; reconciliation selects the dominant dimension $\\arg\\max_i|r_i|$ and applies a repair operator subject to \\code{RepairBand} limits." .
+
+math:def_worktree
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:worktree" ;
+    math:statement "An applier isolates modifications by spawning a decoupled working tree via \\code{git worktree add temp\\_path phase\\_branch}, running validation gates and executing the auto-rollback protocol \\code{git reset --hard baseline\\_sha} on failure to guarantee main branch cleanliness." .
+
+math:def_staged
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:staged" ;
+    math:statement "A staged validator is a pipeline $V=(V_1,\\dots,V_k)$ where each stage $V_i:\\mathcal{S}\\to\\{\\text{pass}\\}\\cup\\{\\text{reject}_i\\}$ tests a decidable invariant $I_i\\subseteq\\mathcal{S}$; the pipeline accepts $s$ iff $s\\in\\bigcap_i I_i$, reporting on rejection the least $i$ with $s\\notin I_i$. Stage $V_i$ is sound if $V_i(s)=\\text{reject}_i\\Rightarrow s\\notin I_i$ and complete if $s\\notin I_i\\Rightarrow V_i(s)=\\text{reject}_i$." .
+
+math:def_mut
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:mut" ;
+    math:statement "A mutation operator $m$ maps a valid subject $s^\\star\\in\\bigcap_i I_i$ to a mutant $m(s^\\star)$ violating a non-empty set of invariants; its correct stage is $\\stg(m)=\\min\\{i:m(s^\\star)\\notin I_i\\}$; $m$ is killed by $V$, written $\\Kill(m)=1$, iff $V$ rejects $m(s^\\star)$." ;
+    math:dependsOn math:def_staged .
+
+math:thm_kill
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:kill" ;
+    math:statement "For a staged validator $V=(V_1,\\dots,V_k)$ in which every stage is sound and complete, and a mutation operator $m$ with correct stage $\\stg(m)$: $\\Kill(m)=1\\iff V_{\\stg(m)}$ rejects $m(s^\\star)$, and the least rejecting stage reported by $V$ equals $\\stg(m)$." ;
+    math:dependsOn math:def_staged ;
+    math:dependsOn math:def_mut .
+
+math:cor_diag
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:diag" ;
+    math:statement "Under the Mutant Kill Theorem, the index of the killing stage certifies which law-bearing invariant a mutation broke; a non-empty surviving set that is not equivalent-mutants is a proof that the frame under-commits, the Faithful Projection converse." ;
+    math:dependsOn math:thm_kill .
+
+math:con_agent8
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:agent8" ;
+    math:statement "Project each agent $a$ to a status byte $\\abyte(a)\\in\\{0,1\\}^8$ whose lanes are the OK-polarity complements of the denial lanes (admitted, evidence, budget, authority, healthy, conformant, receipted, replayable); $\\mathbf1=\\code{0xFF}$ is the all-OK byte; an agent is admissible iff $\\abyte(a)=\\mathbf1$, equivalently iff its 8-lane denial restriction is $\\bm0$." .
+
+math:def_layouts
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:layouts" ;
+    math:statement "The array-of-structures (AoS) layout stores each agent's 8-bit byte contiguously, a 64-bit word holding 8 agents' bytes; the structure-of-arrays (SoA / bit-plane) layout stores each lane $\\ell$ as its own bitset $P_\\ell\\in\\{0,1\\}^N$, a 64-bit word of $P_\\ell$ holding the lane-$\\ell$ bit of 64 agents." .
+
+math:thm_branchless
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:branchless" ;
+    math:statement "Under the SoA layout, the admissibility of 64 agents is computed by the single branchless word expression $\\mathsf{adm}=P_1\\&\\cdots\\&P_8$; bit $j$ of $\\mathsf{adm}$ is 1 iff agent $j$ has all eight lanes OK; the computation uses exactly 7 AND instructions, no data-dependent branch, and processes 64 agents, cost $7/64\\approx0.11$ instructions per agent." ;
+    math:dependsOn math:con_agent8 ;
+    math:dependsOn math:def_layouts .
+
+math:cor_onedenial
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:onedenial" ;
+    math:statement "In denial polarity, with $D_\\ell=\\lnot P_\\ell$ the 64-agent word of denial lane $\\ell$, the denied set is $\\bigvee_\\ell D_\\ell$ and the admitted set its complement; fleet admission is the word-parallel join of denial lanes followed by one complement, and adding a ninth lane costs one more AND (resp. OR) per 64 agents." ;
+    math:dependsOn math:thm_branchless .
+
+math:con_swar
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:swar" ;
+    math:statement "For a denial word $w\\in\\{0,1\\}^{64}$ of eight 8-bit lanes with $L_{\\text{high}}=\\code{0x8080808080808080}$ and $L_{\\text{low7}}=\\code{0x7f7f7f7f7f7f7f7f}$, the zero-lane bitmask is $z(w)=\\lnot(((w\\&L_{\\text{low7}})+L_{\\text{low7}})\\lor w)\\&L_{\\text{high}}$; bit 7 of lane $j$ in $z(w)$ is 1 iff lane $j$ in $w$ is exactly \\code{0x00}." ;
+    math:dependsOn math:con_agent8 .
+
+math:thm_swar-verify
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:swar-verify" ;
+    math:statement "For a 64-bit word $w$ packing 8 agents gated against the broadcast required mask, the number of admitted agents is $\\text{admitted}(w)=\\code{popcount}(z(w))$, sweeping 8 agents in one CPU instruction with zero branches and no lane borrow leakage." ;
+    math:dependsOn math:con_swar .
+
+math:prop_footprint
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:footprint" ;
+    math:statement "A population of $N=10^{10}$ agents, each an 8-bit byte, occupies $N\\times8$ bits $=N$ bytes $=10^{10}$ bytes $=10\\,\\mathrm{GB}$ in either layout; this is an exact arithmetic identity, not an estimate." ;
+    math:dependsOn math:con_agent8 .
+
+math:est_sweep
+    a math:Statement ;
+    math:kind "estimate" ;
+    math:label "est:sweep" ;
+    math:statement "A full admission sweep reads all 8 planes once ($10\\,\\mathrm{GB}$) and performs $7N/64\\approx1.1\\times10^{9}$ AND instructions for $N=10^{10}$; at streaming bandwidth $\\Bw\\sim10^2$--$4\\times10^2\\,\\mathrm{GB/s}$, $t_{\\text{sweep}}\\approx10\\,\\mathrm{GB}/\\Bw\\approx25$--$100\\,\\mathrm{ms}$; the instruction count is exact, the wall-time is an order-of-magnitude estimate." ;
+    math:dependsOn math:thm_branchless .
+
+math:cor_throughput
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:throughput" ;
+    math:statement "A single commodity server admits $N=10^{10}$ agents in $\\sim25$--$100\\,\\mathrm{ms}$, i.e. at $\\sim10^{11}$--$4\\times10^{11}$ agent-admission decisions per second per server, bandwidth-bound." ;
+    math:dependsOn math:est_sweep .
+
+math:est_demand
+    a math:Statement ;
+    math:kind "estimate" ;
+    math:label "est:demand" ;
+    math:statement "For a population $N\\in[10^9,10^{12}]$ agents each re-admitted at rate $\\rho\\in[1,10^2]\\,\\mathrm{s^{-1}}$, aggregate admission demand is $\\Lambda_{\\text{demand}}=N\\rho\\in[10^9,10^{14}]$ decisions/s, central estimate $\\sim10^{11}$--$10^{12}$ decisions/s for $N\\sim10^{10}$, $\\rho\\sim10$." .
+
+math:est_comp_supply
+    a math:Statement ;
+    math:kind "estimate" ;
+    math:label "est:comp-supply" ;
+    math:statement "A comprehension-based admission decision costs $\\sim10^{-2}$--$10^0\\,\\mathrm{s}$ of accelerator time, i.e. $\\sim1$--$10^2$ decisions/s per accelerator; a planetary fleet of $\\sim10^6$--$10^7$ accelerators yields a comprehension-supply ceiling $\\Lambda_{\\text{comp}}\\lesssim10^7$--$10^9$ decisions/s, central estimate $\\sim10^8$ decisions/s." .
+
+math:est_bit_supply
+    a math:Statement ;
+    math:kind "estimate" ;
+    math:label "est:bit-supply" ;
+    math:statement "One commodity server supplies $\\sim10^{11}$ decisions/s bandwidth-bound; a rack of $\\sim10^2$ servers supplies $\\sim10^{13}$ decisions/s, $\\sim10^7\\times$ cheaper per decision than an LLM judgment, so bit-parallel supply scales into the demand band on a single facility." ;
+    math:dependsOn math:cor_throughput .
+
+math:thm_afford
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:afford" ;
+    math:statement "For demand $\\Lambda_{\\text{demand}}$ and supplies $\\Lambda_{\\text{comp}},\\Lambda_{\\text{bit}}$: $\\Lambda_{\\text{comp}}\\sim10^8\\ll\\Lambda_{\\text{demand}}\\sim10^{11}$--$10^{12}\\lesssim\\Lambda_{\\text{bit}}\\sim10^{11}$--$10^{13}$; comprehension-based admission is under-provisioned by three to four orders of magnitude for a $10^{10}$-agent fleet, while bit-parallel admission meets demand on a single facility, and the separation persists under an order-of-magnitude perturbation of any single input." ;
+    math:dependsOn math:est_demand ;
+    math:dependsOn math:est_comp_supply ;
+    math:dependsOn math:est_bit_supply .
+
+math:cor_onlybit
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:onlybit" ;
+    math:statement "A planetary control plane that re-admits its population continuously cannot be built on comprehension: no attainable accelerator fleet closes the demand gap; it can be built on the sweep, whose cost is dominated by a single pass over $10\\,\\mathrm{GB}$ of memory; comprehension is reserved for sampled audit at honest $O(n)$ replay cost." ;
+    math:dependsOn math:thm_afford .
+
+math:def_claim
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:claim" ;
+    math:statement "A claim is a pair $c=(\\phi_c,w_c)$ where $\\phi_c$ is a proposition and $w_c\\in\\mathbb{R}_{\\ge0}$ its asserted magnitude; a receipt witness for $c$ is a receipt $r(c)$ whose boundary projection is accepted, $V(\\Proj(r(c)))=1$, and whose committed fields entail an attested magnitude $\\widehat w_c$; a claim is admissible iff it has a receipt witness with $w_c\\le\\widehat w_c$." .
+
+math:def_over
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:over" ;
+    math:statement "The overclaim set of a system emitting claims $\\mathcal C$ is $\\Over=\\{c\\in\\mathcal C:\\nexists\\,r(c)\\text{ with }V(\\Proj(r(c)))=1\\text{ and }w_c\\le\\widehat w_c\\}$; the antibody invariant is $\\Over=\\varnothing$, the \\code{docs-exceed-mechanism} defect class enforced as a gate." ;
+    math:dependsOn math:def_claim .
+
+math:thm_magnitude
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:magnitude" ;
+    math:statement "If a system maintains $\\Over=\\varnothing$, then for every emitted claim $c$, $w_c\\le\\widehat w_c=\\max\\{w:\\text{the committed fields of }r(c)\\text{ entail magnitude }w\\}$, verifiable at boundary cost $O(\\CL)$ independent of the interior that produced $c$; no claim can exceed what its mechanism can receipt." ;
+    math:dependsOn math:def_over .
+
+math:cor_reflexive
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:reflexive" ;
+    math:statement "Each quantitative claim in this paper is either a theorem with a proof or an Estimate explicitly labelled with its inputs; the partition is exhaustive, so this paper's overclaim set is empty, and by the magnitude theorem the magnitude of each claim is bounded by its witness as the invariant requires." ;
+    math:dependsOn math:thm_magnitude ;
+    math:dependsOn math:thm_instance_gap ;
+    math:dependsOn math:prop_footprint ;
+    math:dependsOn math:thm_branchless .
+
+math:def_astgate
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:astgate" ;
+    math:statement "An AST gate is a syntactic predicate $g:\\mathcal T\\to\\{0,1\\}$ on an abstract syntax tree $\\mathcal T$, computable in $O(|\\mathcal T|)$ time; the retrofit applier gates every proposed change through an ordered battery $(g_1,\\dots,g_m)$: the change is admitted iff all gates pass, $\\bigwedge_i g_i(\\mathcal T)=1$; a failing gate returns a denial with the gate index and offending AST node." .
+
+math:prop_astterm
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:astterm" ;
+    math:statement "For any finite AST $\\mathcal T$ and finite gate battery $(g_1,\\dots,g_m)$ of syntactic predicates, battery evaluation terminates in $O(m\\cdot|\\mathcal T|)$ time and returns either \\code{Admitted} or a refusal carrying the first failing gate index and offending node; the retraction is total, never diverging and never returning an unlabelled outcome." ;
+    math:dependsOn math:def_astgate .
+
+math:def_worktree_ret
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:worktree-ret" ;
+    math:statement "The retrofit applier isolates each application attempt in a fresh Git worktree, applies the change, runs the CI oracle $(g_1,\\dots,g_m)$ (\\code{cargo build}, \\code{cargo test}, \\code{cargo clippy}), and on any gate failure executes \\code{git reset --hard baseline\\_sha}; on all-pass the worktree change is merged and the chain receipt for the application is minted with the worktree OID committed into the frame's \\code{obj\\_refs} payload digest." ;
+    math:dependsOn math:def_astgate .
+
+math:prop_mainclean
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:mainclean" ;
+    math:statement "Under the isolated worktree applier, the main branch is never advanced past a failing CI gate; the rollback protocol is unconditional on failure, running before the worktree is removed, restoring the branch to \\code{baseline\\_sha} regardless of which gate failed; hence the main branch satisfies all CI gates at every point in its history." ;
+    math:dependsOn math:def_worktree_ret .
+
+math:def_vizgap
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:vizgap" ;
+    math:statement "A visual gap report is the output of \\code{measure\\_gap}: for each reconcilable dimension $i\\in\\{1,\\dots,k\\}$, the residual $r_i=\\text{measured}_i-\\text{midpoint}(\\text{target}_i)$ and the dominant dimension $i^\\star=\\argmax_i|r_i|$ together with a rendered diff block; the report has $k$ residual values and one dominant index, size $O(k)$ independent of the interior." ;
+    math:dependsOn math:def_residual .
+
+math:prop_vizgap
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:vizgap" ;
+    math:statement "The visual gap report gives $\\mathrm{gap}:\\mathbb R^k\\to\\mathbb R^k\\times[k]$, a projection with the same cost structure as the receipt projection, $O(k)$ to compute and $O(k)$ to verify; the repair operator acts on the dominant dimension $i^\\star$ subject to \\code{RepairBand} bounds, producing at most one corrective actuation, a bounded deterministic manufacture." ;
+    math:dependsOn math:def_vizgap .
+
+# ===========================================================================
+# Proofs
+# ===========================================================================
+
+math:proof_thm_instance_gap
+    a math:Proof ;
+    math:proves math:thm_instance_gap ;
+    math:step math:proof_thm_instance_gap_s1, math:proof_thm_instance_gap_s2 .
+
+math:proof_thm_instance_gap_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Comprehension must ingest $\\Theta(T(\\sigma))$ tokens; boundary verification reads the $\\CL=4$ receipt fields and applies the fixed verifier." ;
+    math:justification math:def_instance_q .
+
+math:proof_thm_instance_gap_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "The quotient is $T/\\CL$; substituting $T\\approx2.5\\times10^6$, $\\CL=4$ gives $\\approx6.25\\times10^5$, immediate from the keystone's Theorem 4.2; no estimated quantity enters." ;
+    math:justification math:thm_instance_gap .
+# UNRESOLVED: the load-bearing citation for this step is the keystone's
+# Theorem 4.2 (external, cross-paper, cited as [Thm.~4.2]{keystone}), not
+# an in-paper Statement. Self-references thm:instance-gap rather than
+# asserting a fabricated in-paper dependency.
+
+math:proof_prop_invariance
+    a math:Proof ;
+    math:proves math:prop_invariance ;
+    math:step math:proof_prop_invariance_s1 .
+
+math:proof_prop_invariance_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The projection has codomain of size $\\le\\CL$ and the verifier reads only $\\Proj(\\sigma_i)$; neither the field count nor the verifier's input size is a function of $T$; a spot-check recomputes a fixed number $c$ of $O(1)$ frames, so its cost is $c\\cdot t_{\\chainH}$, independent of $T$." ;
+    math:justification math:def_instance_q .
+
+math:proof_prop_necessity
+    a math:Proof ;
+    math:proves math:prop_necessity ;
+    math:step math:proof_prop_necessity_s1 .
+
+math:proof_prop_necessity_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "$Q_S(f)$ quantifies a non-trivial semantic predicate over the language computed by $f$; by Rice's theorem it is undecidable; a total $\\Omega$ on finite $X$ always terminates and so is not a decision procedure for $Q_S$, but a retraction onto the decidable fragment ``$f$ passes $\\Omega$ on $X$''; trust in $f$ factors through $\\Omega$ and $X$." ;
+    math:justification math:prop_necessity .
+# UNRESOLVED: the load-bearing citation for this step is Rice's theorem
+# (external bibitem rice1953) and "the keystone's Theorem 2.1" (external,
+# cross-paper), not an in-paper Statement. Self-references prop:necessity
+# rather than asserting a fabricated in-paper dependency.
+
+math:proof_prop_diff-bound
+    a math:Proof ;
+    math:proves math:prop_diff-bound ;
+    math:step math:proof_prop_diff-bound_s1 .
+
+math:proof_prop_diff-bound_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "A false accept at $x$ requires $f$ wrong and $g(x)=f(x)$, probability $\\le p_f p_g/M$ by independence and the collision bound; the union bound over $n$ corpus points gives $np_f p_g/M$; the miss bound is the probability a Bernoulli-$q$ trigger never fires in $n$ draws, $(1-q)^n$." ;
+    math:justification math:def_diff .
+
+math:proof_prop_fuzz
+    a math:Proof ;
+    math:proves math:prop_fuzz ;
+    math:step math:proof_prop_fuzz_s1 .
+
+math:proof_prop_fuzz_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Totality gives termination on all $o$; the closed codomain gives, for each $o$, either $x\\in\\Adm$ with $\\muop(x)$ defined, or $\\Rfsl$ with a category, since every refusal path maps through the wildcard-free classifier; thus $\\Omega_\\partial\\equiv1$ on a correct implementation, and an observed $0$ contradicts totality or closedness, witnessing a defect." ;
+    math:justification math:def_fuzz .
+
+math:proof_thm_kill
+    a math:Proof ;
+    math:proves math:thm_kill ;
+    math:step math:proof_thm_kill_s1, math:proof_thm_kill_s2 .
+
+math:proof_thm_kill_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "($\\Leftarrow$) If $V_{\\stg(m)}$ rejects $m(s^\\star)$ then $V$ rejects, so $\\Kill(m)=1$." ;
+    math:justification math:def_mut .
+
+math:proof_thm_kill_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "($\\Rightarrow$) If $\\Kill(m)=1$, let $j$ be the least rejecting stage; by soundness of $V_j$, $m(s^\\star)\\notin I_j$; by completeness of $V_1,\\dots,V_{j-1}$, none of which rejected, $m(s^\\star)\\in I_i$ for all $i<j$; hence $j=\\stg(m)$, and $V$'s reported least rejecting index equals $\\stg(m)$." ;
+    math:justification math:def_staged .
+
+math:proof_thm_branchless
+    a math:Proof ;
+    math:proves math:thm_branchless ;
+    math:step math:proof_thm_branchless_s1, math:proof_thm_branchless_s2 .
+
+math:proof_thm_branchless_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Agent $a_j$ is admissible iff $\\bigwedge_{\\ell=1}^8\\abyte(a_j)_\\ell=1$." ;
+    math:justification math:con_agent8 .
+
+math:proof_thm_branchless_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Bit $j$ of $P_\\ell$ equals $\\abyte(a_j)_\\ell$ by the SoA definition; bitwise AND acts coordinatewise, so bit $j$ of $P_1\\&\\cdots\\&P_8$ equals $\\bigwedge_\\ell\\abyte(a_j)_\\ell$, which is 1 iff $a_j$ is admissible; a left-fold of AND over 8 operands is 7 binary ANDs, branchless, giving per-agent cost $7/64$." ;
+    math:justification math:def_layouts .
+
+math:proof_prop_footprint
+    a math:Proof ;
+    math:proves math:prop_footprint ;
+    math:step math:proof_prop_footprint_s1 .
+
+math:proof_prop_footprint_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Eight bits is one byte; $N$ agents is $N$ bytes; $10^{10}$ bytes is $10\\,\\mathrm{GB}$; both layouts store the same $8N$ bits, hence the same $N$ bytes; no estimated quantity appears." ;
+    math:justification math:con_agent8 .
+
+math:proof_thm_afford
+    a math:Proof ;
+    math:proves math:thm_afford ;
+    math:step math:proof_thm_afford_s1, math:proof_thm_afford_s2, math:proof_thm_afford_s3 .
+
+math:proof_thm_afford_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The comprehension ceiling $\\Lambda_{\\text{comp}}\\sim10^8$ falls short of demand $\\sim10^{11}$--$10^{12}$ by $10^3$--$10^4$." ;
+    math:justification math:est_comp_supply .
+
+math:proof_thm_afford_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "The bit-parallel supply meets or exceeds demand; the gap between the two supplies is the keystone's per-decision cost ratio scaled by population." ;
+    math:justification math:est_bit_supply .
+
+math:proof_thm_afford_s3
+    a math:ProofStep ;
+    math:order 3 ;
+    math:claim "A tenfold error in any one input (population, rate, per-decision cost, accelerator count) moves the inequality by at most one decade and does not reverse the three-to-four decade comprehension shortfall." ;
+    math:justification math:est_demand .
+
+math:proof_thm_magnitude
+    a math:Proof ;
+    math:proves math:thm_magnitude ;
+    math:step math:proof_thm_magnitude_s1 .
+
+math:proof_thm_magnitude_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "By $\\Over=\\varnothing$, every emitted $c$ has a receipt witness with $V(\\Proj(r(c)))=1$ and $w_c\\le\\widehat w_c$; a claim with $w_c>\\widehat w_c$ would lie in $\\Over$, contradicting the invariant; hence $w_c\\le\\widehat w_c$, a bound independent of the unread interior." ;
+    math:justification math:def_over .
+
+math:proof_cor_reflexive
+    a math:Proof ;
+    math:proves math:cor_reflexive ;
+    math:step math:proof_cor_reflexive_s1, math:proof_cor_reflexive_s2 .
+
+math:proof_cor_reflexive_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The gap ratio, the footprint, the per-word gating, and the magnitude bound itself are theorems with proofs." ;
+    math:justification math:thm_magnitude .
+
+math:proof_cor_reflexive_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "The wall-time, sweep time, demand, supplies, and affordability separation are labelled estimates carrying their inputs; every magnitude falls in one class or the other, none unlabelled, hence $\\Over=\\varnothing$ for this document." ;
+    math:justification math:def_over .
+
+math:proof_prop_astterm
+    a math:Proof ;
+    math:proves math:prop_astterm ;
+    math:step math:proof_prop_astterm_s1 .
+
+math:proof_prop_astterm_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Each $g_i$ traverses the finite tree once in $O(|\\mathcal T|)$ time; the battery evaluates gates in order, returning the structured denial on first failure or \\code{Admitted} on all-pass; each gate result composes as a denial-monoid element." ;
+    math:justification math:def_astgate .
+
+math:proof_prop_mainclean
+    a math:Proof ;
+    math:proves math:prop_mainclean ;
+    math:step math:proof_prop_mainclean_s1 .
+
+math:proof_prop_mainclean_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The applier's critical section creates the worktree, applies the change, runs the gate battery, and on failure resets to \\code{baseline\\_sha} and aborts before the worktree is deleted; the main branch pointer advances only on the pass branch, so the main branch history is a subsequence of attempts that all passed every gate." ;
+    math:justification math:def_worktree_ret .
+
+math:proof_prop_vizgap
+    a math:Proof ;
+    math:proves math:prop_vizgap ;
+    math:step math:proof_prop_vizgap_s1 .
+
+math:proof_prop_vizgap_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The residual vector is a linear map costing $O(k)$ arithmetic operations; the argmax is a single pass over $k$ values; the repair acts on that one dimension only, and since \\code{RepairBand} is a finite closed interval, the repair is a bounded projection onto that interval." ;
+    math:justification math:def_vizgap .
+
+# ===========================================================================
+# Symbols (key notation this paper defines/introduces)
+# ===========================================================================
+
+math:sym_T
+    a math:Symbol ;
+    math:latex "T" ;
+    math:definedIn math:def_instance_q .
+
+math:sym_CL04
+    a math:Symbol ;
+    math:latex "\\kappa" ;
+    math:definedIn math:def_instance_q .
+
+math:sym_tH
+    a math:Symbol ;
+    math:latex "t_{\\mathsf{H}}" ;
+    math:definedIn math:def_instance_q .
+
+math:sym_abyte
+    a math:Symbol ;
+    math:latex "\\mathbf{b}" ;
+    math:definedIn math:con_agent8 .
+
+math:sym_Plane
+    a math:Symbol ;
+    math:latex "P_\\ell" ;
+    math:definedIn math:def_layouts .
+
+math:sym_Bw
+    a math:Symbol ;
+    math:latex "B" ;
+    math:definedIn math:est_sweep .
+
+math:sym_Over
+    a math:Symbol ;
+    math:latex "\\mathsf{Over}" ;
+    math:definedIn math:def_over .
+
+math:sym_Kill
+    a math:Symbol ;
+    math:latex "\\mathrm{Kill}" ;
+    math:definedIn math:def_mut .
+
+math:sym_stg
+    a math:Symbol ;
+    math:latex "\\mathsf{s}" ;
+    math:definedIn math:def_mut .

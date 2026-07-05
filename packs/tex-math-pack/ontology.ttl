@@ -1,0 +1,119 @@
+# tex-math-pack ontology — theorem/proof/citation structure for rendering
+# LaTeX theorem-environment documents from RDF individuals.
+# Namespace is unique to this pack.
+
+@prefix math: <http://seanchatmangpt.github.io/packs/tex-math#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# ===========================================================================
+# 1. Classes
+# ===========================================================================
+
+math:Symbol a rdfs:Class ;
+    rdfs:label "Symbol" ;
+    rdfs:comment "A named piece of mathematical notation with one canonical LaTeX rendering." .
+
+math:Statement a rdfs:Class ;
+    rdfs:label "Statement" ;
+    rdfs:comment "A theorem-like assertion (theorem, lemma, proposition, corollary, or definition), distinguished by math:kind rather than by separate RDF classes." .
+
+math:Proof a rdfs:Class ;
+    rdfs:label "Proof" ;
+    rdfs:comment "A proof establishing exactly one math:Statement, composed of ordered math:ProofStep individuals." .
+
+math:ProofStep a rdfs:Class ;
+    rdfs:label "ProofStep" ;
+    rdfs:comment "One ordered step of a math:Proof, licensed by a justifying statement or symbol." .
+
+# ===========================================================================
+# 2. Properties — math:Symbol
+# ===========================================================================
+
+math:latex a rdf:Property ;
+    rdfs:label "latex" ;
+    rdfs:domain math:Symbol ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The canonical LaTeX rendering string for this symbol (single source of notation truth)." .
+
+math:definedIn a rdf:Property ;
+    rdfs:label "definedIn" ;
+    rdfs:domain math:Symbol ;
+    rdfs:range math:Statement ;
+    rdfs:comment "The IRI of the math:Statement (typically math:kind \"definition\") where this symbol is first introduced." .
+
+# ===========================================================================
+# 3. Properties — math:Statement
+# ===========================================================================
+
+math:kind a rdf:Property ;
+    rdfs:label "kind" ;
+    rdfs:domain math:Statement ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Discriminator string for a math:Statement individual. One of: theorem, lemma, proposition, corollary, definition." .
+
+math:label a rdf:Property ;
+    rdfs:label "label" ;
+    rdfs:domain math:Statement ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The LaTeX \\label{} key emitted for this statement's environment." .
+
+math:statement a rdf:Property ;
+    rdfs:label "statement" ;
+    rdfs:domain math:Statement ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The claim of the statement, a LaTeX-fragment string literal emitted verbatim into the environment body." .
+
+math:dependsOn a rdf:Property ;
+    rdfs:label "dependsOn" ;
+    rdfs:domain math:Statement ;
+    rdfs:range math:Statement ;
+    rdfs:comment "Zero or more IRIs of other math:Statement individuals this statement relies on." .
+
+# ===========================================================================
+# 4. Properties — math:Proof
+# ===========================================================================
+
+math:proves a rdf:Property ;
+    rdfs:label "proves" ;
+    rdfs:domain math:Proof ;
+    rdfs:range math:Statement ;
+    rdfs:comment "The IRI of the math:Statement this proof establishes." .
+
+math:step a rdf:Property ;
+    rdfs:label "step" ;
+    rdfs:domain math:Proof ;
+    rdfs:range math:ProofStep ;
+    rdfs:comment "Zero or more math:ProofStep individuals belonging to this proof." .
+
+# ===========================================================================
+# 5. Properties — math:ProofStep
+# ===========================================================================
+
+math:order a rdf:Property ;
+    rdfs:label "order" ;
+    rdfs:domain math:ProofStep ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "1-based position of this step within its proof's step sequence." .
+
+math:justification a rdf:Property ;
+    rdfs:label "justification" ;
+    rdfs:domain math:ProofStep ;
+    rdfs:range rdfs:Resource ;
+    rdfs:comment "The IRI of the math:Statement or math:Symbol licensing this step." .
+
+math:claim a rdf:Property ;
+    rdfs:label "claim" ;
+    rdfs:domain math:ProofStep ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The step's claim, a LaTeX-fragment string literal emitted verbatim." .
+
+# ===========================================================================
+# 6. Properties — corpus-level provenance
+# ===========================================================================
+
+math:fromPaper a rdf:Property ;
+    rdfs:label "fromPaper" ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Names which source paper (a docs/thesis/rdf/*.ttl file, by paper slug) a math:Statement or math:Symbol individual was extracted from. Needed so a combined render of the whole-corpus graph can be sectioned by paper of origin." .

@@ -1,0 +1,28 @@
+@prefix math: <http://seanchatmangpt.github.io/packs/tex-math#> .
+@prefix log:  <http://www.w3.org/2000/10/swap/log#> .
+
+# ?x is a DanglingCitation if it cites ?y via math:dependsOn or
+# math:justification, and ?y is nowhere in the graph the subject of a
+# math:kind triple (i.e. ?y does not name a math:Statement individual).
+#
+# Negation-as-failure idiom: `<> log:semantics ?G` binds ?G to this
+# document's own parsed graph (data + rules, since paper_factory_engine's
+# n3_closure concatenates them into one file before invoking eye); testing
+# `?G log:notIncludes { pattern }` against that bound graph term is the
+# form verified to give correct per-binding negation with this EYE version
+# (v11.23.1) — the more commonly documented `() log:notIncludes (...)`
+# idiom was verified BUGGY here: with more than one candidate binding for
+# the negated variable in a single rule body, it evaluates the builtin once
+# and incorrectly applies a stale result to every binding (verified via a
+# minimal 3-triple reproduction before writing this rule).
+{
+    ?x math:dependsOn ?y .
+    <> log:semantics ?G .
+    ?G log:notIncludes { ?y math:kind ?k . } .
+} => { ?x a math:DanglingCitation . } .
+
+{
+    ?x math:justification ?y .
+    <> log:semantics ?G .
+    ?G log:notIncludes { ?y math:kind ?k . } .
+} => { ?x a math:DanglingCitation . } .

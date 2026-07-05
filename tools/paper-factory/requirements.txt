@@ -1,0 +1,4 @@
+rdflib
+blake3
+owlrl
+pyshacl

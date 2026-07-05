@@ -1,0 +1,462 @@
+# Instance data extracted from docs/thesis/00_foundations.tex
+# ("The Chatman Equation: A Receipt Calculus for Reality-Addressed Agentic AI")
+# against the tex-math-pack ontology (packs/tex-math-pack/ontology.ttl).
+#
+# Extraction notes (see final report for full detail):
+#  - Local names are the paper's own \label{} keys with ':' replaced by '_'
+#    (Turtle local names cannot contain ':'); math:label carries the original
+#    \label{} string verbatim so \ref{} in the generated .tex still resolves.
+#  - math:kind values follow the paper's own \newtheorem declarations:
+#    axiom, construction, definition, theorem, proposition, corollary, lemma.
+#    (The pack ontology comment lists only theorem/lemma/proposition/
+#    corollary/definition as the "one of" set; this paper also uses axiom and
+#    construction \newtheorem environments, so those two kind strings are an
+#    extraction decision, not fabricated content — they name real LaTeX
+#    environments in the source. If the consuming template set requires the
+#    narrower five-kind vocabulary, ax:obs and con:denial would need to be
+#    re-kinded as "definition", which would be a lossy rename.)
+#  - dependsOn/justification edges only ever target math:Statement
+#    individuals (never math:Symbol individuals), because check_citations.py's
+#    citation-closure check requires every dependsOn/justification IRI target
+#    to be the subject of a math:kind triple, and only Statements carry
+#    math:kind in this ontology.
+#  - Some proof steps have no clear in-paper justification (the proof leans on
+#    Rice's theorem itself, an external citation, or informal restatement).
+#    Those steps omit math:justification's *string content* is impossible
+#    since the predicate is required by the template's SPARQL (justification
+#    is selected, not OPTIONAL) — where no earlier in-paper statement licenses
+#    a step, this file points the step's justification back at the theorem's
+#    own defining Statement (self-justification) and the note below records
+#    that as an unresolved/approximate citation rather than a real dependency.
+#    Flagged UNRESOLVED steps: thm_rice step 1 (rests on Rice 1953, an
+#    external bibitem, not an in-paper Statement); def_seqtoken has no proof
+#    in the source at all so contributes no math:Proof individual.
+
+@prefix math: <http://seanchatmangpt.github.io/packs/tex-math#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+# ===========================================================================
+# Statements (theorem/lemma/proposition/corollary/definition/axiom/construction)
+# ===========================================================================
+
+math:ax_obs
+    a math:Statement ;
+    math:kind "axiom" ;
+    math:label "ax:obs" ;
+    math:statement "There is a set $\\Obs$, the observation space, whose elements are arbitrary finite records; $\\Obs$ carries no decidable semantics." .
+
+math:def_five
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:five" ;
+    math:statement "The Chatman equation relates five objects: the observation space $\\Obs$, the admitted space $\\Adm$, the manufacturing morphism $\\muop$, the artifact/action space $\\Act$, and the receipt space $\\Rec$." .
+
+math:thm_rice
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:rice" ;
+    math:statement "Rice's theorem, specialized to observations: for any non-trivial semantic property $P$ of the function an observation denotes, the set $\\{o\\in\\Obs : P(o)\\}$ is undecidable." ;
+    math:dependsOn math:ax_obs .
+
+math:cor_noadmit
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:noadmit" ;
+    math:statement "There is no algorithm that admits an observation by deciding a non-trivial semantic property of what it denotes; any total admission procedure decides a syntactic, decidable surrogate instead." ;
+    math:dependsOn math:thm_rice .
+
+math:def_adm
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:adm" ;
+    math:statement "Fix a decidable sub-collection $\\Adm\\subseteq\\Obs$ and a finite battery of total, computable obligations $g_1,\\dots,g_m$; the admission map $\\adm$ is the partial retraction sending $o$ to $\\rho(o)\\in\\Adm$ if all $g_i(o)=1$, else to $\\Rfsl$." ;
+    math:dependsOn math:cor_noadmit .
+
+math:prop_retract
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:retract" ;
+    math:statement "$\\adm$ restricted to $\\Adm$ is the identity, and $\\adm\\circ\\adm=\\adm$ as partial maps; hence $\\Adm$ is a retract of $\\dom(\\adm)$." ;
+    math:dependsOn math:def_adm .
+
+math:con_denial
+    a math:Statement ;
+    math:kind "construction" ;
+    math:label "con:denial" ;
+    math:statement "$D=(\\{0,1\\}^n,\\lor,\\bm0)$ is the commutative idempotent monoid of denial words; the total denial of an observation is $d(o)=\\bigvee_i d_i(o)$, and $\\adm(o)\\neq\\Rfsl\\iff d(o)=\\bm0$." ;
+    math:dependsOn math:def_adm .
+
+math:prop_semilattice
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:semilattice" ;
+    math:statement "$(\\{0,1\\}^n,\\lor,\\bm0)$ is a bounded join-semilattice; consequently adding obligations can only enlarge the denial, never shrink it." ;
+    math:dependsOn math:con_denial .
+
+math:def_taxonomy
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:taxonomy" ;
+    math:statement "A refusal taxonomy is a pair $(S,\\mathrm{cat})$ where $S$ is a finite set of concrete refusal scenarios and $\\mathrm{cat}:S\\to C$ is a total map onto the eight-element category set $C$." ;
+    math:dependsOn math:con_denial .
+
+math:prop_total
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:total" ;
+    math:statement "The category map $\\mathrm{cat}:S\\to C$ is total (enforced by the host type system's exhaustive match), and the lane map's single-lane inverse is a section of the lane map over the seven named lanes." ;
+    math:dependsOn math:def_taxonomy ;
+    math:dependsOn math:con_denial .
+
+math:def_lifecat
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:lifecat" ;
+    math:statement "$\\Life$ is the free category on the linear quiver $\\Raw\\xrightarrow{j}\\Val\\xrightarrow{a}\\Admd\\xrightarrow{r}\\Rcpt$, with four objects and three generating arrows judge, admit, receipt." .
+
+math:prop_hom
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:hom" ;
+    math:statement "For stages $X,Y$ of $\\Life$, the hom-set $\\Life(X,Y)$ has exactly one element if $Y$ is reachable from $X$ along the quiver, and is empty otherwise." ;
+    math:dependsOn math:def_lifecat .
+
+math:def_seqtoken
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:seqtoken" ;
+    math:statement "The lifecycle process is modeled as a safe Petri net (3-Node SEQ POWL token game) over the marking $M=(\\code{TOK\\_START},\\code{TOK\\_JUDGED},\\code{TOK\\_ADMITTED},\\code{TOK\\_DONE})$, with fitness $\\Fitness\\in[0,1]$ in Q16.16." ;
+    math:dependsOn math:def_lifecat .
+
+math:thm_typestate
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:typestate" ;
+    math:statement "Interpreting each lifecycle stage as a LawObject type family, the exposed stage-changing operations denote exactly the generating arrows of $\\Life$; every well-typed stage-changing program is a composite of $j,a,r$, illegal transitions are uninhabited hom-sets, and no law object can be receipted twice." ;
+    math:dependsOn math:prop_hom ;
+    math:dependsOn math:def_lifecat .
+
+math:cor_subcat
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:subcat" ;
+    math:statement "The sub-category of admissible morphisms a program may actually perform is precisely $\\Life$; illegal-transition-is-a-type-error is a static fact about inhabited hom-sets, not a runtime check." ;
+    math:dependsOn math:thm_typestate .
+
+math:def_mu
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:mu" ;
+    math:statement "A manufacturing morphism is a deterministic computable map $\\muop:\\Adm\\to\\Act$ satisfying determinism/reproducibility (M1) and boundedness (M2); $\\muop$ is undefined off $\\Adm$ and $\\muop(\\Rfsl)=\\Rfsl$." ;
+    math:dependsOn math:def_adm .
+
+math:prop_mudet
+    a math:Statement ;
+    math:kind "proposition" ;
+    math:label "prop:mudet" ;
+    math:statement "Under (M1), $x\\mapsto\\muop(x)$ is single-valued, so $o\\mapsto\\muop(\\adm(o))$ is a partial function on $\\Obs$: two runs on the same admitted input agree bit-for-bit." ;
+    math:dependsOn math:def_mu .
+
+math:def_receipt
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:receipt" ;
+    math:statement "Fix a collision-resistant hash $\\chainH$; the frame is $\\mathsf{fr}=\\langle\\theta,\\chainH(b)\\rangle$ and the chained receipt is $h_{+}=\\chainH(h_{-}\\Vert\\mathsf{fr})$; the receipt is the $\\le\\CL$-chunk tuple (verdict, $h_+$, $\\Fitness$, reason)." .
+
+math:def_fit
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:fit" ;
+    math:statement "Conformance fitness $\\Fitness\\in[0,1]$ is one minus the fraction of tokens a replay was forced to consume on unenabled lifecycle transitions; $\\Fitness=1$ iff the replay never attempted a disabled firing." ;
+    math:dependsOn math:def_receipt .
+
+math:lem_commit
+    a math:Statement ;
+    math:kind "lemma" ;
+    math:label "lem:commit" ;
+    math:statement "Under collision resistance of $\\chainH$, the chain value $h_+$ is a binding commitment to $(h_-,\\mathsf{fr})$; by induction $h_+$ binds the entire causal prefix." ;
+    math:dependsOn math:def_receipt .
+
+math:def_brce
+    a math:Statement ;
+    math:kind "definition" ;
+    math:label "def:brce" ;
+    math:statement "A system satisfies the Bounded Receipted Chatman Equation if for every actuated artifact it maintains the admission gate (B1), bounded manufacture (B2), receipt totality (B3), and conformance (B4)." ;
+    math:dependsOn math:def_mu ;
+    math:dependsOn math:def_receipt ;
+    math:dependsOn math:def_fit .
+
+math:thm_conservation
+    a math:Statement ;
+    math:kind "theorem" ;
+    math:label "thm:conservation" ;
+    math:statement "Under \\BRCE, the map $a\\mapsto h_+(a)$ from actuated artifacts to receipt-chain positions is well defined and injective up to hash collision, and every actuated artifact is the image under $\\muop$ of exactly one admitted observation." ;
+    math:dependsOn math:def_brce ;
+    math:dependsOn math:prop_mudet ;
+    math:dependsOn math:lem_commit .
+
+math:cor_antibody
+    a math:Statement ;
+    math:kind "corollary" ;
+    math:label "cor:antibody" ;
+    math:statement "Under \\BRCE\\ the overclaim set (actuations lacking a valid receipt) is empty as an invariant: the admissible magnitude of any claim is bounded by what the mechanism can receipt." ;
+    math:dependsOn math:thm_conservation ;
+    math:dependsOn math:def_brce .
+
+# ===========================================================================
+# Proofs
+# ===========================================================================
+
+math:proof_thm_rice
+    a math:Proof ;
+    math:proves math:thm_rice ;
+    math:step math:proof_thm_rice_s1 .
+
+math:proof_thm_rice_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "This is Rice's theorem instantiated at $\\Obs$: a decider for $\\{o:P(o)\\}$ would decide the halting problem via the reduction $o_{M,x}$, a contradiction." ;
+    math:justification math:thm_rice .
+# UNRESOLVED: the load-bearing citation for this step is the external
+# bibitem rice1953 (Rice's 1953 theorem), not an earlier in-paper Statement.
+# No in-paper Statement precedes thm:rice, so justification above
+# self-references thm:rice rather than asserting a fabricated dependency.
+
+math:proof_cor_noadmit
+    a math:Proof ;
+    math:proves math:cor_noadmit ;
+    math:step math:proof_cor_noadmit_s1 .
+
+math:proof_cor_noadmit_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "A total admission deciding a non-trivial semantic property would be a decider for an undecidable set; a total terminating procedure exists only for decidable predicates, the largest such structure being a decidable sub-collection onto which admission maps." ;
+    math:justification math:thm_rice .
+
+math:proof_prop_retract
+    a math:Proof ;
+    math:proves math:prop_retract ;
+    math:step math:proof_prop_retract_s1, math:proof_prop_retract_s2 .
+
+math:proof_prop_retract_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "For $x\\in\\Adm$ every $g_i(x)=1$ by construction, so $\\adm(x)=\\rho(x)=x$, i.e.\\ $\\adm|_\\Adm=\\id_\\Adm$." ;
+    math:justification math:def_adm .
+
+math:proof_prop_retract_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "For general $o$ with $\\adm(o)\\neq\\Rfsl$, $\\adm(o)\\in\\Adm$, whence $\\adm(\\adm(o))=\\adm(o)$; idempotence follows on all of $\\dom(\\adm)$." ;
+    math:justification math:def_adm .
+
+math:proof_prop_semilattice
+    a math:Proof ;
+    math:proves math:prop_semilattice ;
+    math:step math:proof_prop_semilattice_s1, math:proof_prop_semilattice_s2 .
+
+math:proof_prop_semilattice_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Idempotence, commutativity, and associativity of $\\lor$ hold coordinatewise, so a product of semilattices is a semilattice with $\\bm0$ the identity." ;
+    math:justification math:con_denial .
+
+math:proof_prop_semilattice_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "If $G'\\supseteq G$ then $d_{G'}(o)\\succeq d_G(o)$ coordinatewise, and since $\\bm0$ is the unique minimum, $\\{o:d_{G'}(o)=\\bm0\\}\\subseteq\\{o:d_G(o)=\\bm0\\}$: adding obligations only shrinks the admitted set." ;
+    math:justification math:con_denial .
+
+math:proof_prop_total
+    a math:Proof ;
+    math:proves math:prop_total ;
+    math:step math:proof_prop_total_s1, math:proof_prop_total_s2 .
+
+math:proof_prop_total_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Totality of a wildcard-free exhaustive match over a closed enum is exactly the compiler's exhaustiveness guarantee, so $\\mathrm{cat}$ denotes a total function $S\\to C$." ;
+    math:justification math:def_taxonomy .
+
+math:proof_prop_total_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "The section identity is the round-trip property: for each of the seven single-lane constants $\\ell$, $\\mathrm{scn}(\\ell)$ is defined and $\\mathrm{lane}(\\mathrm{scn}(\\ell))=\\ell$; a composed multi-lane word has no single scenario, per the denial monoid's join structure." ;
+    math:justification math:con_denial .
+
+math:proof_prop_hom
+    a math:Proof ;
+    math:proves math:prop_hom ;
+    math:step math:proof_prop_hom_s1 .
+
+math:proof_prop_hom_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "In the free category on a quiver, morphisms are directed paths; the quiver here is a simple directed path with no branches or cycles, so between any two vertices there is at most one directed path, giving singleton or empty hom-sets." ;
+    math:justification math:def_lifecat .
+
+math:proof_thm_typestate
+    a math:Proof ;
+    math:proves math:thm_typestate ;
+    math:step math:proof_thm_typestate_s1, math:proof_thm_typestate_s2, math:proof_thm_typestate_s3 .
+
+math:proof_thm_typestate_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "The only public constructor produces a Raw object and the only public stage-changing operations are judge, admit, receipt, whose types are $j,a,r$; the stage-rebuilding helper is crate-private, so every externally well-typed stage-changing program is a composite of $j,a,r$, i.e.\\ a morphism of $\\Life$." ;
+    math:justification math:prop_hom .
+
+math:proof_thm_typestate_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "If $\\Life(X,Y)=\\varnothing$ there is no path $X\\to Y$ in the quiver, so no composite of $j,a,r$ has the required type; concretely receipt is impl'd only on Admitted and admit takes Validated by value, so the mismatched call is a type error." ;
+    math:justification math:prop_hom .
+
+math:proof_thm_typestate_s3
+    a math:ProofStep ;
+    math:order 3 ;
+    math:claim "receipt takes self by value, consuming the Admitted object, and the returned Receipted type has no further stage-changing method, so a second receipting is both unconstructible and unavailable." ;
+    math:justification math:def_lifecat .
+
+math:proof_cor_subcat
+    a math:Proof ;
+    math:proves math:cor_subcat ;
+    math:step math:proof_cor_subcat_s1 .
+
+math:proof_cor_subcat_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "Combining that the inhabited stage-changing types are exactly the morphisms of $\\Life$ and the uninhabited ones are exactly the empty hom-sets, the admissible sub-category is $\\Life$ itself, verified statically." ;
+    math:justification math:thm_typestate .
+
+math:proof_prop_mudet
+    a math:Proof ;
+    math:proves math:prop_mudet ;
+    math:step math:proof_prop_mudet_s1 .
+
+math:proof_prop_mudet_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "(M1) is exactly single-valuedness; composing the partial function $\\adm$ with the function $\\muop$ yields a partial function, and bit-identity of outputs on equal inputs is the contrapositive of disagreement implying differing input." ;
+    math:justification math:def_mu .
+
+math:proof_lem_commit
+    a math:Proof ;
+    math:proves math:lem_commit ;
+    math:step math:proof_lem_commit_s1, math:proof_lem_commit_s2 .
+
+math:proof_lem_commit_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "If $\\chainH(h_-\\Vert\\mathsf{fr})=\\chainH(h_-'\\Vert\\mathsf{fr}')$ for distinct arguments, the two arguments are a collision of $\\chainH$, occurring with negligible probability under collision resistance." ;
+    math:justification math:def_receipt .
+
+math:proof_lem_commit_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "Since $h_-$ is itself such a commitment to the previous frame, induction on chain length shows $h_+$ commits to every frame in the prefix." ;
+    math:justification math:def_receipt .
+
+math:proof_thm_conservation
+    a math:Proof ;
+    math:proves math:thm_conservation ;
+    math:step math:proof_thm_conservation_s1, math:proof_thm_conservation_s2, math:proof_thm_conservation_s3, math:proof_thm_conservation_s4 .
+
+math:proof_thm_conservation_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "By (B1) actuation implies $a=\\muop(x)$ with $x=\\adm(o)\\neq\\Rfsl$, so $\\im\\muop$ is the whole actuated set and its complement is never actuated." ;
+    math:justification math:def_brce .
+
+math:proof_thm_conservation_s2
+    a math:ProofStep ;
+    math:order 2 ;
+    math:claim "By (B2)/(M1), $x\\mapsto\\muop(x)$ is single-valued, so each actuated $a$ has a determined admitted preimage $x$." ;
+    math:justification math:prop_mudet .
+
+math:proof_thm_conservation_s3
+    a math:ProofStep ;
+    math:order 3 ;
+    math:claim "By (B3) the actuation appends exactly one chain position, so $a\\mapsto h_+(a)$ is a well-defined total map; injectivity up to collision follows because two distinct actuations sharing a chain value would collide under $\\chainH$." ;
+    math:justification math:lem_commit .
+
+math:proof_thm_conservation_s4
+    a math:ProofStep ;
+    math:order 4 ;
+    math:claim "Order preservation is the recursive dependence of $h_+$ on $h_-$ in the chain equation." ;
+    math:justification math:def_receipt .
+
+math:proof_cor_antibody
+    a math:Proof ;
+    math:proves math:cor_antibody ;
+    math:step math:proof_cor_antibody_s1 .
+
+math:proof_cor_antibody_s1
+    a math:ProofStep ;
+    math:order 1 ;
+    math:claim "(B3) requires a receipt per actuation; an actuation without one violates \\BRCE\\ and is, by (B1)'s gate, never emitted, so the set of receiptless actuations is empty." ;
+    math:justification math:def_brce .
+
+# ===========================================================================
+# Symbols (key notation this paper defines/introduces)
+# ===========================================================================
+
+math:sym_Obs
+    a math:Symbol ;
+    math:latex "\\mathcal{O}" ;
+    math:definedIn math:def_five .
+
+math:sym_Adm
+    a math:Symbol ;
+    math:latex "\\mathcal{O}^{*}" ;
+    math:definedIn math:def_five .
+
+math:sym_muop
+    a math:Symbol ;
+    math:latex "\\mu" ;
+    math:definedIn math:def_five .
+
+math:sym_Act
+    a math:Symbol ;
+    math:latex "\\mathcal{A}" ;
+    math:definedIn math:def_five .
+
+math:sym_Rec
+    a math:Symbol ;
+    math:latex "\\mathcal{R}" ;
+    math:definedIn math:def_five .
+
+math:sym_adm
+    a math:Symbol ;
+    math:latex "\\alpha" ;
+    math:definedIn math:def_adm .
+
+math:sym_Rfsl
+    a math:Symbol ;
+    math:latex "\\bot" ;
+    math:definedIn math:def_adm .
+
+math:sym_chainH
+    a math:Symbol ;
+    math:latex "\\mathsf{H}" ;
+    math:definedIn math:def_receipt .
+
+math:sym_Fitness
+    a math:Symbol ;
+    math:latex "\\varphi" ;
+    math:definedIn math:def_fit .
+
+math:sym_Life
+    a math:Symbol ;
+    math:latex "\\mathbf{Life}" ;
+    math:definedIn math:def_lifecat .
+
+math:sym_BRCE
+    a math:Symbol ;
+    math:latex "\\textsc{brce}" ;
+    math:definedIn math:def_brce .
+
+math:sym_D
+    a math:Symbol ;
+    math:latex "D" ;
+    math:definedIn math:con_denial .

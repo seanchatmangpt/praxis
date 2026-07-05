@@ -1,0 +1,10 @@
+@prefix math: <http://seanchatmangpt.github.io/packs/tex-math#> .
+@prefix log:  <http://www.w3.org/2000/10/swap/log#> .
+
+# Two DISTINCT math:Symbol individuals sharing the same math:latex literal
+# value are conflicting notation.
+{
+    ?a a math:Symbol ; math:latex ?l .
+    ?b a math:Symbol ; math:latex ?l .
+    ?a log:notEqualTo ?b .
+} => { ?a math:ConflictsWith ?b . } .
