@@ -1,7 +1,7 @@
-# Ticket: No-Private-Abstraction Gate
+# Ticket: No-Private-Abstraction Gate — CLOSED
 
 ## Title
-Tie private vocabulary growth to a checked public-ontology mapping doc (PROJ-302)
+Tie private vocabulary growth to a checked public-ontology mapping doc (PROJ-302) — **STATUS: CLOSED**
 
 ## Description
 The vision doc's "no private abstraction by default" doctrine currently lives only as prose
