@@ -1,0 +1,20 @@
+---
+to: "reports/praxis-lean-report.md"
+force: true
+sparql:
+  declarations: |
+    PREFIX pl4: <http://seanchatmangpt.github.io/praxis/lean#>
+    SELECT ?label ?decl ?file ?status WHERE {
+      ?decl a pl4:LeanDeclaration ;
+            pl4:statementLabel ?label ;
+            pl4:filePath ?file ;
+            pl4:status ?status .
+    } ORDER BY ?label
+---
+# Praxis Lean verification report
+
+| Statement | Lean declaration | File | Status |
+|---|---|---|---|
+{% for row in declarations -%}
+| `{{ row.label }}` | `{{ row.decl }}` | `{{ row.file }}` | `{{ row.status }}` |
+{% endfor %}

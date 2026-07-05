@@ -1,0 +1,11 @@
+{
+  "records": [
+    {
+      "statement_label": "def:receipt",
+      "lean_declaration": "Praxis.Receipt.DefReceipt",
+      "file_path": "Praxis/Receipt.lean",
+      "dependency_labels": ["def:mu"],
+      "kind": "definition"
+    }
+  ]
+}

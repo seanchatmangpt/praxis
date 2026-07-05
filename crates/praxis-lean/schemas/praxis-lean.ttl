@@ -1,0 +1,29 @@
+@prefix pl4:  <http://seanchatmangpt.github.io/praxis/lean#> .
+@prefix math: <http://seanchatmangpt.github.io/packs/tex-math#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+pl4:LeanDeclaration a rdfs:Class ;
+  rdfs:label "Lean declaration" ;
+  rdfs:comment "Cross-references a math:Statement label (from the corpus, namespace matches docs/thesis/rdf/corpus.ttl's tex-math# ontology) to its Lean file path, verification status, and receipt hash." .
+
+pl4:statementLabel a rdf:Property ;
+  rdfs:label "statement label" ;
+  rdfs:domain pl4:LeanDeclaration ;
+  rdfs:range xsd:string .
+
+pl4:filePath a rdf:Property ;
+  rdfs:label "file path" ;
+  rdfs:domain pl4:LeanDeclaration ;
+  rdfs:range xsd:string .
+
+pl4:status a rdf:Property ;
+  rdfs:label "verification status" ;
+  rdfs:domain pl4:LeanDeclaration ;
+  rdfs:range xsd:string .
+
+pl4:receiptHash a rdf:Property ;
+  rdfs:label "receipt hash" ;
+  rdfs:domain pl4:LeanDeclaration ;
+  rdfs:range xsd:string .

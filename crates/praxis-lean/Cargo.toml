@@ -1,0 +1,43 @@
+[package]
+name = "praxis-lean"
+version = "26.7.5"
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+description = "Praxis Lean 4 manufacturing wrapper: Lake replay, no-sorry gates, receipts, RDF label/declaration index, and ggen report surface."
+repository = "https://github.com/seanchatmangpt/praxis"
+
+[lib]
+name = "praxis_lean"
+path = "src/lib.rs"
+
+[[bin]]
+name = "praxis-l4"
+path = "src/main.rs"
+
+[features]
+# clap-noun-verb (this repo's real noun/verb CLI abstraction, used by
+# `crates/ggen`/`crates/praxis-retrofit`) is always available -- it's a
+# normal dependency below, not feature-gated. `standalone-cli` adds a
+# lighter-weight plain-clap entry point as an alternative, not the default.
+default = []
+standalone-cli = ["dep:clap"]
+
+[dependencies]
+anyhow = "1"
+blake3 = "1"
+camino = { version = "1", features = ["serde1"] }
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+walkdir = "2"
+
+clap = { version = "4", features = ["derive"], optional = true }
+clap-noun-verb = "26.7.4"
+clap-noun-verb-macros = "26.7.4"
+linkme = "0.3"
+
+[dev-dependencies]
+tempfile = "3"

@@ -303,3 +303,80 @@ praxis:CmdGgenDoctorRun a praxis:CliCommand ;
     praxis:handler "handle_doctor" ;
     praxis:nounAbout "Check environment health: lockfile drift, orphaned artifacts, receipt staleness." ;
     rdfs:comment "Check lockfile/pack drift, orphaned generated artifacts, and receipt-vs-disk staleness." .
+
+# ---------------------------------------------------------------------
+# praxis-lean: Lean 4 kernel admission gate (praxis:flag values here use
+# an extended "name:type::help" encoding -- backward compatible with the
+# plain "name::help" (implicit bool) encoding above, since splitting on
+# "::" first still isolates the name(:type) prefix from the help text.
+# type in {bool, string, pathbuf}.
+# ---------------------------------------------------------------------
+
+praxis:CrateLean a praxis:RustCrate ;
+    praxis:name "praxis-lean" ;
+    praxis:description "Lean 4/Lake kernel admission gate: verify, no-sorry audit, corpus reconciliation, and receipt reporting." .
+
+praxis:CmdLeanInit a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateLean ;
+    praxis:noun "l4" ;
+    praxis:verb "init" ;
+    praxis:handler "init" ;
+    praxis:flag "root:pathbuf::Directory to scaffold a fresh Lake package in." ;
+    praxis:flag "toolchain:string::Lean toolchain identifier to pin (e.g. leanprover/lean4:stable)." ;
+    praxis:nounAbout "Lean 4/Lake kernel admission gate: verify, no-sorry audit, corpus reconciliation, and receipt reporting." ;
+    rdfs:comment "Scaffold a fresh Lake package (lean-toolchain, lakefile.lean, Praxis.lean) -- does not touch any existing bare-lean-verified files." .
+
+praxis:CmdLeanVerify a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateLean ;
+    praxis:noun "l4" ;
+    praxis:verb "verify" ;
+    praxis:handler "verify" ;
+    praxis:flag "root:pathbuf::Directory containing .lean files to verify." ;
+    praxis:flag "receipts:pathbuf::Path to the receipt ledger (JSONL) to append to." ;
+    praxis:flag "lean:string::Lean binary to invoke." ;
+    praxis:flag "lake:string::Lake binary to invoke." ;
+    praxis:flag "lake_env:bool::Invoke via `lake env lean` instead of bare `lean`." ;
+    praxis:nounAbout "Lean 4/Lake kernel admission gate: verify, no-sorry audit, corpus reconciliation, and receipt reporting." ;
+    rdfs:comment "Walk a directory of .lean files, kernel-check each one, run the no-sorry audit, and append a genesis-folded receipt for every file." .
+
+praxis:CmdLeanNoSorry a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateLean ;
+    praxis:noun "l4" ;
+    praxis:verb "no-sorry" ;
+    praxis:handler "no_sorry" ;
+    praxis:flag "root:pathbuf::Directory containing .lean files to audit." ;
+    praxis:nounAbout "Lean 4/Lake kernel admission gate: verify, no-sorry audit, corpus reconciliation, and receipt reporting." ;
+    rdfs:comment "Refuse any .lean file using `sorry`, `admit`, or an unauthorized `axiom`, ignoring comments." .
+
+praxis:CmdLeanIndexBuild a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateLean ;
+    praxis:noun "l4" ;
+    praxis:verb "index-build" ;
+    praxis:handler "index_build" ;
+    praxis:flag "repo_root:pathbuf::Repository root (for locating paper_factory_engine.py)." ;
+    praxis:flag "corpus:pathbuf::Path to the corpus.ttl RDF file." ;
+    praxis:flag "lean_pilot_dir:pathbuf::Directory where per-label .lean files live." ;
+    praxis:flag "out:pathbuf::Path to write the built index JSON to." ;
+    praxis:nounAbout "Lean 4/Lake kernel admission gate: verify, no-sorry audit, corpus reconciliation, and receipt reporting." ;
+    rdfs:comment "Build a LeanDeclarationIndex from the real corpus.ttl via SPARQL, and save it as JSON." .
+
+praxis:CmdLeanReconcile a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateLean ;
+    praxis:noun "l4" ;
+    praxis:verb "reconcile" ;
+    praxis:handler "reconcile" ;
+    praxis:flag "index:pathbuf::Path to a built LeanDeclarationIndex JSON file." ;
+    praxis:flag "receipts:pathbuf::Path to the receipt ledger (JSONL) to reconcile against." ;
+    praxis:nounAbout "Lean 4/Lake kernel admission gate: verify, no-sorry audit, corpus reconciliation, and receipt reporting." ;
+    rdfs:comment "Cross-reference the corpus index against the receipt ledger: report orphan labels, orphan files, and orphan receipts as typed refusals, not silently." .
+
+praxis:CmdLeanReport a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateLean ;
+    praxis:noun "l4" ;
+    praxis:verb "report" ;
+    praxis:handler "report" ;
+    praxis:flag "index:pathbuf::Path to a built LeanDeclarationIndex JSON file." ;
+    praxis:flag "receipts:pathbuf::Path to the receipt ledger (JSONL) to report on." ;
+    praxis:flag "out:pathbuf::Path to write the verification report JSON to." ;
+    praxis:nounAbout "Lean 4/Lake kernel admission gate: verify, no-sorry audit, corpus reconciliation, and receipt reporting." ;
+    rdfs:comment "Write a VerificationReport (status counts, missing receipts, duplicate labels) as JSON for downstream ggen/LaTeX rendering." .
