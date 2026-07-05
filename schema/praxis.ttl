@@ -141,6 +141,12 @@ praxis:verb a rdf:Property ;
     rdfs:domain praxis:CliCommand ;
     rdfs:range xsd:string .
 
+praxis:nounAbout a rdf:Property ;
+    rdfs:label "nounAbout" ;
+    rdfs:comment "Human-facing description of the CLI noun this command belongs to, repeated identically across every CliCommand instance sharing the same praxis:noun value. Rendered as the generated noun file's module (//!) doc comment, which clap-noun-verb's #[verb] macro auto-registers as the noun's --help about text at runtime (no hand-written registration needed)." ;
+    rdfs:domain praxis:CliCommand ;
+    rdfs:range xsd:string .
+
 praxis:handler a rdf:Property ;
     rdfs:label "handler" ;
     rdfs:domain praxis:CliCommand ;
@@ -154,7 +160,7 @@ praxis:inCrate a rdf:Property ;
 
 praxis:flag a rdf:Property ;
     rdfs:label "flag" ;
-    rdfs:comment "An optional boolean CLI flag (snake_case name) exposed by the command and passed to its handler." ;
+    rdfs:comment "An optional boolean CLI flag exposed by the command and passed to its handler. Value is encoded as \"snake_case_name::help text\" so the generator can emit both the parameter name and its own per-argument --help text (see clap_noun_verb_macros '# Arguments' doc convention)." ;
     rdfs:domain praxis:CliCommand ;
     rdfs:range xsd:string .
 
@@ -261,8 +267,9 @@ praxis:CmdGgenSyncRun a praxis:CliCommand ;
     praxis:noun "sync" ;
     praxis:verb "run" ;
     praxis:handler "handle_sync_run" ;
-    praxis:flag "dry_run" ;
-    praxis:flag "watch" ;
+    praxis:flag "dry_run::Resolve and render but do not write any files to disk; report what would change." ;
+    praxis:flag "watch::Re-run the pipeline automatically whenever a watched file on the filesystem changes." ;
+    praxis:nounAbout "Run the ggen code-generation pipeline: resolve, enrich, extract, render, write." ;
     rdfs:comment "Run the five-stage generation pipeline: resolve, enrich, extract, render, write. --watch re-runs the pipeline on filesystem changes." .
 
 praxis:CmdGgenGraphValidate a praxis:CliCommand ;
@@ -270,6 +277,7 @@ praxis:CmdGgenGraphValidate a praxis:CliCommand ;
     praxis:noun "graph" ;
     praxis:verb "validate" ;
     praxis:handler "handle_graph_validate" ;
+    praxis:nounAbout "Validate RDF/Turtle ontology graphs against praxis vocabulary constraints." ;
     rdfs:comment "Load a Turtle ontology and report parse or constraint violations." .
 
 praxis:CmdGgenReceiptVerify a praxis:CliCommand ;
@@ -277,6 +285,7 @@ praxis:CmdGgenReceiptVerify a praxis:CliCommand ;
     praxis:noun "receipt" ;
     praxis:verb "verify" ;
     praxis:handler "handle_receipt_verify" ;
+    praxis:nounAbout "Inspect and verify sync receipt chains (BLAKE3-hashed provenance log)." ;
     rdfs:comment "Recompute and verify the BLAKE3 chain hash of a sync receipt." .
 
 praxis:CmdGgenReceiptHistory a praxis:CliCommand ;
@@ -284,6 +293,7 @@ praxis:CmdGgenReceiptHistory a praxis:CliCommand ;
     praxis:noun "receipt" ;
     praxis:verb "history" ;
     praxis:handler "handle_receipt_history" ;
+    praxis:nounAbout "Inspect and verify sync receipt chains (BLAKE3-hashed provenance log)." ;
     rdfs:comment "Verify the full chain of sync receipts in .ggen-v2/receipt-log.jsonl." .
 
 praxis:CmdGgenDoctorRun a praxis:CliCommand ;
@@ -291,4 +301,5 @@ praxis:CmdGgenDoctorRun a praxis:CliCommand ;
     praxis:noun "doctor" ;
     praxis:verb "run" ;
     praxis:handler "handle_doctor" ;
+    praxis:nounAbout "Check environment health: lockfile drift, orphaned artifacts, receipt staleness." ;
     rdfs:comment "Check lockfile/pack drift, orphaned generated artifacts, and receipt-vs-disk staleness." .

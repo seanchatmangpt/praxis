@@ -1,33 +1,36 @@
-//! C3 — Dogfood regression: the OLD installed ggen (26.7.x, the generator
-//! that produces `crates/ggen/src/verbs/*.rs` from `schema/praxis.ttl` +
-//! root `ggen.toml` + `templates/crates/ggen/*`) must still regenerate the
-//! four route files byte-for-byte.
+//! C3 — Dogfood regression: `ggen sync run`, built from this crate's own
+//! current source, must regenerate `crates/ggen/src/verbs/*.rs` from
+//! `schema/praxis.ttl` + the repo-root `ggen.toml` + `templates/crates/ggen/
+//! *.tmpl` byte-for-byte identically to what's checked in.
 //!
-//! The test copies the needed inputs into a TempDir (the real working tree
-//! is never mutated), runs the OLD binary there, and diffs the regenerated
-//! route files against the current committed ones.
+//! The test copies the needed inputs into a `TempDir` (the real working tree
+//! is never mutated), runs the current binary there, and diffs the
+//! regenerated route files against the current committed ones.
 //!
-//! Honest caveat on the assertion: the OLD binary's `sync --dry-run true`
-//! reports `"would create"` with `size_bytes: 0` for every output even when
-//! the files exist and are identical — it does not render in dry-run mode —
-//! so a dry-run "no pending changes" assertion is impossible. Instead we run
-//! a REAL sync inside the TempDir and assert byte-equality of the four
-//! regenerated route files against the repo's current files. This is the
-//! stronger check anyway: it fails if anyone breaks
-//! `templates/crates/ggen/*.tera` or the CliCommand instances in
-//! `schema/praxis.ttl`.
+//! History: this test previously drove an externally-installed OLD `ggen`
+//! binary against the legacy `[[generation.rules]]`-based `ggen.toml` +
+//! `*.tera` templates. Both the config schema (`GgenConfig` now denies
+//! unknown fields and has no `generation` field at all) and the generation
+//! mechanism itself (frontmatter `*.tmpl` files under `[templates].dir`,
+//! not declarative TOML rules) have since changed, making that check
+//! permanently unable to parse the current manifest. The self-consistency
+//! property this test protects — the generator reproduces its own checked-in
+//! output — is unaffected by which binary proves it, so it now uses the
+//! crate's own current binary via `CliHarness::cargo_bin`, matching every
+//! other test in this suite (see `cli_boundary.rs`).
 
+use chicago_tdd_tools::cli_proof::CliHarness;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
-const ROUTE_FILES: [&str; 4] = [
+const ROUTE_FILES: [&str; 5] = [
     "crates/ggen/src/verbs/mod.rs",
     "crates/ggen/src/verbs/sync.rs",
     "crates/ggen/src/verbs/graph.rs",
     "crates/ggen/src/verbs/receipt.rs",
+    "crates/ggen/src/verbs/doctor.rs",
 ];
 
-/// Walk up from CARGO_MANIFEST_DIR until a directory containing
+/// Walk up from `CARGO_MANIFEST_DIR` until a directory containing
 /// `schema/praxis.ttl` is found.
 fn find_praxis_root() -> Option<PathBuf> {
     let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -56,20 +59,11 @@ fn copy_dir_recursive(src: &Path, dst: &Path) {
 }
 
 #[test]
-fn old_ggen_regenerates_route_files_byte_identically() {
+fn ggen_regenerates_route_files_byte_identically() {
     let Some(root) = find_praxis_root() else {
         eprintln!("SKIP: praxis repo root (schema/praxis.ttl) not found above CARGO_MANIFEST_DIR");
         return;
     };
-
-    // Skip gracefully if the OLD installed generator is absent (CI).
-    match Command::new("ggen").arg("--version").output() {
-        Ok(out) if out.status.success() => {}
-        _ => {
-            eprintln!("SKIP: old `ggen` binary not on PATH; dogfood regression not run");
-            return;
-        }
-    }
 
     // Stage a temp copy of exactly the inputs the generator needs. The real
     // working tree is NEVER touched.
@@ -88,34 +82,23 @@ fn old_ggen_regenerates_route_files_byte_identically() {
         }
     }
 
-    // Sanity: dry-run must at least parse the manifest and exit 0 with the
-    // OLD binary's Option<bool> flag syntax.
-    let dry = Command::new("ggen")
-        .args(["sync", "--dry-run", "true"])
+    // Dry-run must at least parse the manifest and exit 0.
+    CliHarness::cargo_bin("ggen")
+        .args(["sync", "run", "--dry-run"])
         .current_dir(stage)
-        .output()
-        .expect("run old ggen dry-run");
-    assert!(
-        dry.status.success(),
-        "old ggen dry-run failed:\nstdout: {}\nstderr: {}",
-        String::from_utf8_lossy(&dry.stdout),
-        String::from_utf8_lossy(&dry.stderr)
-    );
+        .run()
+        .expect("run ggen dry-run")
+        .assert_success();
 
     // Real sync inside the temp copy: regenerates every output there.
-    let out = Command::new("ggen")
-        .arg("sync")
+    CliHarness::cargo_bin("ggen")
+        .args(["sync", "run"])
         .current_dir(stage)
-        .output()
-        .expect("run old ggen sync");
-    assert!(
-        out.status.success(),
-        "old ggen sync failed:\nstdout: {}\nstderr: {}",
-        String::from_utf8_lossy(&out.stdout),
-        String::from_utf8_lossy(&out.stderr)
-    );
+        .run()
+        .expect("run ggen sync")
+        .assert_success();
 
-    // The four generated route files must be byte-identical to the repo's
+    // The five generated route files must be byte-identical to the repo's
     // current committed files.
     for rel in ROUTE_FILES {
         let regenerated = std::fs::read(stage.join(rel))
@@ -124,8 +107,8 @@ fn old_ggen_regenerates_route_files_byte_identically() {
             .unwrap_or_else(|e| panic!("current {rel} unreadable: {e}"));
         assert_eq!(
             regenerated, current,
-            "dogfood drift: `{rel}` regenerated by the old ggen differs from the \
-             committed file — templates/crates/ggen/*.tera or schema/praxis.ttl \
+            "dogfood drift: `{rel}` regenerated by ggen differs from the \
+             committed file — templates/crates/ggen/*.tmpl or schema/praxis.ttl \
              no longer reproduce the checked-in route files"
         );
     }

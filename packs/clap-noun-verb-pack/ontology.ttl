@@ -28,8 +28,10 @@ cnv:doc      a rdf:Property ; rdfs:label "doc"     ; rdfs:domain cnv:Command ; r
 
 # ── Nouns ────────────────────────────────────────────────────────────
 
-cnv:SessionNoun a cnv:Noun ; rdfs:label "session" .
-cnv:UserNoun    a cnv:Noun ; rdfs:label "user" .
+cnv:SessionNoun a cnv:Noun ; rdfs:label "session" ;
+    rdfs:comment "Manage authenticated session tokens." .
+cnv:UserNoun    a cnv:Noun ; rdfs:label "user" ;
+    rdfs:comment "Manage user resources." .
 
 # ── Command individuals ──────────────────────────────────────────────
 
