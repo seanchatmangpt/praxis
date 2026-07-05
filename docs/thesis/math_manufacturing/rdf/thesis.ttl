@@ -177,7 +177,7 @@ structural-bound violation (with the exact limit and the exact value
 that exceeded it), a missing or malformed ontology fact, or a
 round-trip failure back through the downstream planner. Every one of
 these is a typed refusal in the admission-algebra sense of
-Section~1.2 above — none of them is a panic or a silent fallback.""" ;
+Section~\\ref{sec:admission-algebra} above — none of them is a panic or a silent fallback.""" ;
     doc:inSection :ch2_s3 ;
     doc:order 2 ;
     doc:register "evidence-bound" .
@@ -254,6 +254,54 @@ of the real \\texttt{lean} binary against it (Section~\\ref{sec:no-self-report})
     doc:order 2 ;
     doc:register "evidence-bound" .
 
+:ch3_s0b_p0 a doc:Paragraph ;
+    doc:body """Definition~\\ref{def:mu-pipeline} generalizes over any ($\\Obs$, admission
+map, $\\muop$, $\\Act$, defect taxonomy, receipt) tuple; Section~\\ref{sec:mfg-first}
+and Chapter~\\ref{ch:mathmfg} instantiate it twice. This document's own
+Chapters~1--7 are a third instantiation, not a new mechanism: $\\Obs$ is
+the chapter/section/paragraph RDF graph in
+\\texttt{docs/thesis/math\\_manufacturing/rdf/thesis.ttl}; the admission
+map is \\texttt{ggen sync}'s template rendering followed by a successful
+\\texttt{pdflatex} compile (a malformed paragraph or a broken cross-
+reference fails one of these two gates rather than silently producing a
+bad PDF); $\\muop$ is the \\texttt{doc-pack} template render itself; $\\Act$
+is \\texttt{thesis.pdf}; the defect taxonomy is (missing label, register
+mismatch, template render failure, LaTeX compile failure); and the
+receipt is the \\texttt{graph\\_hash\\_hex} value \\texttt{ggen sync}'s own
+JSON output already reports for every run.""" ;
+    doc:inSection :ch3_s0b ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch3_s0b_p1 a doc:Paragraph ;
+    doc:body """That receipt is deliberately not quoted here as a literal value: doing
+so would require this sentence to already contain the hash of a document
+that includes this sentence, a fixed-point dependency this thesis does
+not attempt to resolve. The receipt is instead operational rather than
+quoted -- re-running \\texttt{docs/thesis/math\\_manufacturing/regenerate.sh}
+after any edit to \\texttt{thesis.ttl} deterministically reproduces a
+\\texttt{graph\\_hash\\_hex} in its JSON output, and that value changes if
+and only if the RDF content changes, which is the property a receipt in
+the sense of Section~\\ref{sec:admission-algebra} is required to have.""" ;
+    doc:inSection :ch3_s0b ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch3_s0b_p2 a doc:Paragraph ;
+    doc:body """\\begin{finding}
+This thesis document is itself an instance of the manufacturing-morphism
+pattern it describes: its chapters are admitted RDF facts, not asserted
+prose, rendered through the same admit/render/receipt shape as
+Chapter~\\ref{ch:mathmfg}'s Lean pipeline and Section~\\ref{sec:mfg-first}'s
+PDDL pipeline. This is a structural observation checkable by re-running
+the regenerate script, not a Lean-checked or otherwise mechanically
+proved claim -- it is reported at the same evidentiary standing as
+Chapter~\\ref{ch:empirical}'s other findings, no stronger.
+\\end{finding}""" ;
+    doc:inSection :ch3_s0b ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
 :ch3_s1_p0 a doc:Paragraph ;
     doc:body """\\begin{definition}[Math manufacturing pipeline]
 Given a corpus of statement individuals $s \\in \\Obs$, each carrying a
@@ -298,7 +346,7 @@ theorem, proposition, corollary, or lemma), and a set of
 
 :ch3_s1_p2 a doc:Paragraph ;
     doc:body """A structural requirement of this pipeline, inherited from the admission-
-algebra discipline of Section~2.2, is that an agent's own claim of
+algebra discipline of Section~\\ref{sec:admission-algebra}, is that an agent's own claim of
 success is never trusted as the disposition. Every \\texttt{verified}
 disposition in Chapter~\\ref{ch:empirical} is independently re-checked by
 invoking the real \\texttt{lean} kernel directly against the \\texttt{.lean}
@@ -760,6 +808,13 @@ redundancy for anything load-bearing.""" ;
     doc:body """The wave-scheduled run covers 194 of 219 statement instances (202 unique
 labels minus the 7 already-verified pilot statements and 1 a-priori
 exclusion, doubled back through Chapter~\\ref{ch:empirical}'s accounting).
+Spelled out: 219 corpus IRIs collapse to 202 distinct labels (17
+duplicate-label IRIs deduplicated); of those 202, 201 received a
+formalization receipt line (7 already-verified pilot statements plus 194
+wave-scheduled statements) and 1 (\\texttt{thm:faithful}) was excluded a
+priori and therefore never received a receipt line at all -- the two
+tables in Chapter~\\ref{ch:empirical} agree on this chain by construction,
+not by coincidence.
 The remaining 18 blocked and 4 rejected statements are recorded honestly
 as not-yet-verified, not silently omitted, but they are also not
 verified: any claim about "the corpus" being formally checked must read
@@ -847,7 +902,9 @@ paragraphs with six explicitly \\texttt{speculative} claims, with no
 chapter boundary crossed silently. This thesis is therefore, in a
 narrow and literal sense, an instance of the pattern it argues for: its
 own structure is admitted data, rendered through a manufacturing
-morphism, not asserted prose.""" ;
+morphism, not asserted prose -- stated formally as the third
+instantiation of Definition~\\ref{def:mu-pipeline} in
+Section~\\ref{sec:doc-mfg-correspondence}, not merely asserted here.""" ;
     doc:inSection :ch8_s1 ;
     doc:order 0 ;
     doc:register "evidence-bound" .
@@ -891,6 +948,7 @@ corpus, and the Lean kernel that produced it.""" ;
 
 :ch2_s1 a doc:Section ;
     doc:inChapter :ch2 ;
+    doc:label "sec:admission-algebra" ;
     doc:order 1 ;
     doc:title "Admission algebra: refusal as data" .
 
@@ -955,6 +1013,11 @@ corpus, and the Lean kernel that produced it.""" ;
     doc:order 3 ;
     doc:title "The receipts-consolidation gap, twice" .
 
+:ch7_s4 a doc:Section ;
+    doc:inChapter :ch7 ;
+    doc:order 4 ;
+    doc:title "The correspondence in Chapter~\\ref{ch:mathmfg} is an analogy, not a proof" .
+
 :ch7_s5 a doc:Section ;
     doc:inChapter :ch7 ;
     doc:order 5 ;
@@ -980,11 +1043,6 @@ corpus, and the Lean kernel that produced it.""" ;
     doc:order 3 ;
     doc:title "Closing" .
 
-:ch3 a doc:Chapter ;
-    doc:label "ch:mathmfg" ;
-    doc:order 3 ;
-    doc:title "Math manufacturing: the second manufacturing morphism" .
-
 :ch4_s4 a doc:Section ;
     doc:inChapter :ch4 ;
     doc:label "sec:receipts-gap" ;
@@ -996,19 +1054,25 @@ corpus, and the Lean kernel that produced it.""" ;
     doc:order 0 ;
     doc:title "An anchor number, not an estimate" .
 
-:ch7_s4 a doc:Section ;
-    doc:inChapter :ch7 ;
-    doc:order 4 ;
-    doc:title "The correspondence in Chapter~\\ref{ch:mathmfg} is an analogy, not a proof" .
-
 :ch1 a doc:Chapter ;
     doc:order 1 ;
     doc:title "Introduction" .
+
+:ch3 a doc:Chapter ;
+    doc:label "ch:mathmfg" ;
+    doc:order 3 ;
+    doc:title "Math manufacturing: the second manufacturing morphism" .
 
 :ch3_s0 a doc:Section ;
     doc:inChapter :ch3 ;
     doc:order 0 ;
     doc:title "The correspondence, term for term" .
+
+:ch3_s0b a doc:Section ;
+    doc:inChapter :ch3 ;
+    doc:label "sec:doc-mfg-correspondence" ;
+    doc:order 1 ;
+    doc:title "A third instantiation: this document" .
 
 :ch4_s1 a doc:Section ;
     doc:inChapter :ch4 ;
@@ -1024,6 +1088,12 @@ corpus, and the Lean kernel that produced it.""" ;
     doc:inChapter :ch1 ;
     doc:order 0 ;
     doc:title "Thesis statement" .
+
+:ch2_s3 a doc:Section ;
+    doc:inChapter :ch2 ;
+    doc:label "sec:mfg-first" ;
+    doc:order 3 ;
+    doc:title "The first manufacturing morphism: \\texttt{src/mfg.rs}" .
 
 :ch5 a doc:Chapter ;
     doc:label "ch:civilizational" ;
@@ -1045,12 +1115,6 @@ corpus, and the Lean kernel that produced it.""" ;
     doc:order 2 ;
     doc:title "Background: the Chatman Equation and manufacturing morphisms" .
 
-:ch2_s3 a doc:Section ;
-    doc:inChapter :ch2 ;
-    doc:order 3 ;
-    doc:label "sec:mfg-first" ;
-    doc:title "The first manufacturing morphism: \\texttt{src/mfg.rs}" .
-
 :ch6 a doc:Chapter ;
     doc:label "ch:related" ;
     doc:order 6 ;
@@ -1063,7 +1127,7 @@ corpus, and the Lean kernel that produced it.""" ;
 
 :ch3_s1 a doc:Section ;
     doc:inChapter :ch3 ;
-    doc:order 1 ;
+    doc:order 2 ;
     doc:title "The pipeline in detail" .
 
 :ch7 a doc:Chapter ;
