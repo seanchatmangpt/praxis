@@ -10,15 +10,32 @@
 //! 1. path escapes root / traversal → `Err`
 //! 2. `unless_exists` && target exists → `Skipped`
 //! 3. `skip_if` substring present in existing file → `Skipped`
-//! 4. `inject` → insert into existing file (`before` / `after` / `at_line` /
-//!    append); target missing or marker missing → `Err`
-//! 5. `force` → overwrite → `Written`
-//! 6. default: absent → `Written`; identical → `Skipped`; differs → `Err`
+//! 4. `freeze_policy: always` && target exists → `Skipped`
+//! 5. `freeze_policy: checksum` && on-disk content no longer matches ggen's
+//!    last-recorded checksum → `Skipped` (human edit detected)
+//! 6. `inject` → insert into existing file (`before` / `after` / `at_line` /
+//!    append); target missing or marker missing → `Err`; `backup: true` and
+//!    a target existed → `<target>.bak` written first
+//! 7. `force` → overwrite (`backup: true` and a target existed → backup
+//!    first) → `Written`
+//! 8. default: absent → `Written`; identical → `Skipped`; differs → `Err`
+//!
+//! After any successful `Written`/`Injected` outcome under
+//! `freeze_policy: checksum`, the new content's BLAKE3 checksum is recorded
+//! under `freeze_slots_dir` for the next run to compare against.
 
 use std::path::{Component, Path, PathBuf};
 
-use crate::error::{AppError, Result};
-use crate::template::Frontmatter;
+use crate::{
+    error::{AppError, Result},
+    template::{FreezePolicy, Frontmatter},
+};
+
+/// Hard cap on one rendered template's output size. A template producing
+/// more than this is almost certainly an unbounded loop over query results
+/// or a runaway `{% for %}` — refusing loudly beats writing a
+/// multi-hundred-MB file no editor or `git diff` can handle.
+pub const MAX_OUTPUT_BYTES: usize = 10 * 1024 * 1024;
 
 /// Outcome of a planned-and-applied write.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -46,6 +63,8 @@ pub enum WriteOutcome {
 ///   `at_line` beyond end of file.
 /// - `[FM-WRITE-005]` target exists with differing content and `force` is
 ///   not set (refuse silent clobber).
+/// - `[FM-WRITE-006]` `freeze_policy: checksum` set without `freeze_slots_dir`.
+/// - `[FM-WRITE-007]` rendered body exceeds [`MAX_OUTPUT_BYTES`].
 /// - I/O errors from reading/writing the filesystem.
 pub fn plan_write(
     root: &Path,
@@ -53,6 +72,17 @@ pub fn plan_write(
     rendered_body: &str,
     frontmatter: &Frontmatter,
 ) -> Result<WriteOutcome> {
+    if rendered_body.len() > MAX_OUTPUT_BYTES {
+        return Err(AppError::fm_write(
+            7,
+            format!(
+                "rendered output for `{rel_to}` is {} bytes, over the {MAX_OUTPUT_BYTES}-byte cap. \
+                 Remediation: check the template for an unbounded loop over query results, or \
+                 split it into multiple templates/output files.",
+                rendered_body.len()
+            ),
+        ));
+    }
     let target = resolve_target(root, rel_to)?;
     let exists = target.exists();
     let existing = if exists {
@@ -76,6 +106,10 @@ pub fn plan_write(
         }
     }
 
+    if let Some(skip_reason) = check_freeze(root, rel_to, existing.as_deref(), frontmatter)? {
+        return Ok(WriteOutcome::Skipped(skip_reason));
+    }
+
     if frontmatter.inject {
         let content = existing.ok_or_else(|| {
             AppError::fm_write(
@@ -87,8 +121,10 @@ pub fn plan_write(
                 ),
             )
         })?;
+        maybe_backup(&target, &content, frontmatter)?;
         let injected = inject_into(&content, rendered_body, frontmatter)?;
-        std::fs::write(&target, injected)?;
+        std::fs::write(&target, &injected)?;
+        record_freeze_checksum(root, rel_to, &injected, frontmatter)?;
         return Ok(WriteOutcome::Injected);
     }
 
@@ -96,15 +132,18 @@ pub fn plan_write(
         None => {
             ensure_parent(&target)?;
             std::fs::write(&target, rendered_body)?;
+            record_freeze_checksum(root, rel_to, rendered_body, frontmatter)?;
             Ok(WriteOutcome::Written)
         }
-        Some(_) if frontmatter.force => {
+        Some(ref content) if frontmatter.force => {
+            maybe_backup(&target, content, frontmatter)?;
             std::fs::write(&target, rendered_body)?;
+            record_freeze_checksum(root, rel_to, rendered_body, frontmatter)?;
             Ok(WriteOutcome::Written)
         }
-        Some(ref content) if content == rendered_body => {
-            Ok(WriteOutcome::Skipped("unchanged: content identical".to_string()))
-        }
+        Some(ref content) if content == rendered_body => Ok(WriteOutcome::Skipped(
+            "unchanged: content identical".to_string(),
+        )),
         Some(_) => Err(AppError::fm_write(
             5,
             format!(
@@ -116,9 +155,108 @@ pub fn plan_write(
     }
 }
 
+/// Evaluate `frontmatter.freeze_policy` against the current on-disk state.
+/// Returns `Some(reason)` when the write must be skipped on freeze grounds.
+fn check_freeze(
+    root: &Path,
+    rel_to: &str,
+    existing: Option<&str>,
+    frontmatter: &Frontmatter,
+) -> Result<Option<String>> {
+    let Some(policy) = frontmatter.freeze_policy else {
+        return Ok(None);
+    };
+    match policy {
+        FreezePolicy::Never => Ok(None),
+        FreezePolicy::Always => {
+            if existing.is_some() {
+                Ok(Some(
+                    "frozen: freeze_policy=always, target already exists".to_string(),
+                ))
+            } else {
+                Ok(None)
+            }
+        }
+        FreezePolicy::Checksum => {
+            let Some(content) = existing else {
+                return Ok(None);
+            };
+            let slots_dir = freeze_slots_dir(frontmatter)?;
+            let checksum_path = freeze_checksum_path(root, slots_dir, rel_to);
+            match std::fs::read_to_string(&checksum_path) {
+                Ok(stored) => {
+                    let current = blake3::hash(content.as_bytes()).to_hex().to_string();
+                    if stored.trim() == current {
+                        Ok(None) // untouched since last generation; safe to regenerate
+                    } else {
+                        Ok(Some(
+                            "frozen: freeze_policy=checksum, on-disk content no longer matches \
+                             ggen's last-recorded checksum (manual edit detected)"
+                                .to_string(),
+                        ))
+                    }
+                }
+                Err(_) => Ok(None), // no prior checksum recorded yet; proceed normally
+            }
+        }
+    }
+}
+
+/// After a successful write under `freeze_policy: checksum`, record the new
+/// content's BLAKE3 checksum so the next run can detect manual edits.
+fn record_freeze_checksum(
+    root: &Path,
+    rel_to: &str,
+    written_content: &str,
+    frontmatter: &Frontmatter,
+) -> Result<()> {
+    if frontmatter.freeze_policy != Some(FreezePolicy::Checksum) {
+        return Ok(());
+    }
+    let slots_dir = freeze_slots_dir(frontmatter)?;
+    let checksum_path = freeze_checksum_path(root, slots_dir, rel_to);
+    if let Some(parent) = checksum_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let hash = blake3::hash(written_content.as_bytes())
+        .to_hex()
+        .to_string();
+    std::fs::write(&checksum_path, hash)?;
+    Ok(())
+}
+
+fn freeze_slots_dir(frontmatter: &Frontmatter) -> Result<&str> {
+    frontmatter.freeze_slots_dir.as_deref().ok_or_else(|| {
+        AppError::fm_write(
+            6,
+            "freeze_policy: checksum requires freeze_slots_dir to be set. \
+             Remediation: add `freeze_slots_dir: <dir>` to the frontmatter.",
+        )
+    })
+}
+
+fn freeze_checksum_path(root: &Path, slots_dir: &str, rel_to: &str) -> PathBuf {
+    root.join(slots_dir).join(format!("{rel_to}.blake3"))
+}
+
+/// If `frontmatter.backup` is set, copy `existing_content` to `<target>.bak`
+/// before it is overwritten.
+fn maybe_backup(target: &Path, existing_content: &str, frontmatter: &Frontmatter) -> Result<()> {
+    if !frontmatter.backup {
+        return Ok(());
+    }
+    let mut backup_path = target.as_os_str().to_owned();
+    backup_path.push(".bak");
+    std::fs::write(PathBuf::from(backup_path), existing_content)?;
+    Ok(())
+}
+
 /// Resolve `rel_to` under `root`, rejecting absolute paths, `..` components,
-/// and any resolution that escapes the canonicalized root.
-fn resolve_target(root: &Path, rel_to: &str) -> Result<PathBuf> {
+/// and any resolution that escapes the canonicalized root. Shared with
+/// `sync::parse_template_file`'s `from:` resolution — any frontmatter field
+/// that reads or writes a filesystem path relative to some base directory
+/// should route through this same check, not re-implement it.
+pub(crate) fn resolve_target(root: &Path, rel_to: &str) -> Result<PathBuf> {
     let root_c = root.canonicalize().map_err(|e| {
         AppError::fm_write(
             1,
@@ -236,8 +374,9 @@ fn find_marker_line(lines: &[&str], marker: &str, kind: &str) -> Result<usize> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tempfile::TempDir;
+
+    use super::*;
 
     fn fm(to: &str) -> Frontmatter {
         let yaml = format!("to: {to}");
@@ -250,7 +389,12 @@ mod tests {
         let f = fm("../evil.rs");
         let err = plan_write(dir.path(), "../evil.rs", "boom", &f).expect_err("must reject");
         assert!(err.to_string().contains("FM-WRITE-002"), "{err}");
-        assert!(!dir.path().parent().expect("parent").join("evil.rs").exists());
+        assert!(!dir
+            .path()
+            .parent()
+            .expect("parent")
+            .join("evil.rs")
+            .exists());
     }
 
     #[test]
@@ -264,11 +408,10 @@ mod tests {
     #[test]
     fn writes_new_file_and_creates_parents() {
         let dir = TempDir::new().expect("tempdir");
-        let out = plan_write(dir.path(), "a/b/mod.rs", "pub mod x;\n", &fm("a/b/mod.rs"))
-            .expect("write");
+        let out =
+            plan_write(dir.path(), "a/b/mod.rs", "pub mod x;\n", &fm("a/b/mod.rs")).expect("write");
         assert_eq!(out, WriteOutcome::Written);
-        let content =
-            std::fs::read_to_string(dir.path().join("a/b/mod.rs")).expect("read back");
+        let content = std::fs::read_to_string(dir.path().join("a/b/mod.rs")).expect("read back");
         assert_eq!(content, "pub mod x;\n");
     }
 

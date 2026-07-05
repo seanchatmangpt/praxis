@@ -20,21 +20,27 @@
 //! `build_admission_frame`/`chain_from_frame` construction as the live
 //! emission path.
 
-use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use oxigraph::sparql::QueryResults;
-use praxis_core::receipt_record::{ReceiptRecord, RECEIPT_RECORD_VERSION};
-use praxis_core::Andon;
+use praxis_core::{
+    receipt_record::{ReceiptRecord, RECEIPT_RECORD_VERSION},
+    Andon,
+};
 use serde::Serialize;
 use tera::Value;
 
-use crate::config::GgenConfig;
-use crate::error::{AppError, Result};
-use crate::graph::DeterministicGraph;
-use crate::template::{build_tera, sparql_to_value, Template};
-use crate::write::{plan_write, WriteOutcome};
+use crate::{
+    config::GgenConfig,
+    error::{AppError, Result},
+    graph::DeterministicGraph,
+    template::{build_tera, sparql_to_value, Template},
+    write::{plan_write, WriteOutcome},
+};
 
 /// Options controlling a [`sync`] run.
 #[derive(Debug, Clone, Copy, Default)]
@@ -61,6 +67,15 @@ pub struct SyncReport {
 
 /// Relative path of the sync receipt under the project root.
 pub const RECEIPT_REL_PATH: &str = ".ggen-v2/receipt.json";
+
+/// One fully-rendered template awaiting `apply` — the boundary between the
+/// "may fail" render pass and the write pass, which by construction only
+/// begins once every template in the run has rendered successfully.
+struct PendingWrite<'a> {
+    to: String,
+    body: String,
+    tpl: &'a Template,
+}
 
 /// Relative path of the append-only receipt history log (one JSON line per
 /// non-dry-run sync) under the project root.
@@ -145,23 +160,28 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
     let graph_hash_hex = hex32(&graph.state_hash()?);
     let graph = Arc::new(graph);
 
-    // ── Stages 3–5: Extract, Render, Write per template ─────────────────
+    // ── Stages 3–4: Extract, Render every template into memory ──────────
+    //
+    // All rendering happens before any write. A render failure on template N
+    // (a bad SPARQL query, a Tera error, a determinism mismatch) must leave
+    // NO partial result on disk from templates 1..N-1 — so writes are
+    // deferred to a second pass (below) that only starts once every
+    // template has rendered successfully.
     let mut tera = build_tera(Arc::clone(&graph));
-    let mut written: Vec<PathBuf> = Vec::new();
     let mut skipped: Vec<(PathBuf, String)> = Vec::new();
     let mut decisions: BTreeMap<String, String> = BTreeMap::new();
+    let mut pending: Vec<PendingWrite<'_>> = Vec::new();
 
     for (tpl_path, tpl) in &templates {
+        check_shape_files_exist(root, tpl_path, &tpl.frontmatter.shape)?;
+
         // Extract: ASK guard.
         if let Some(ask) = tpl.frontmatter.when.as_deref() {
             match graph.query(ask)? {
                 QueryResults::Boolean(true) => {}
                 QueryResults::Boolean(false) => {
                     let reason = format!("when guard false ({})", tpl_path.display());
-                    decisions.insert(
-                        tpl.frontmatter.to.clone(),
-                        format!("skipped: {reason}"),
-                    );
+                    decisions.insert(tpl.frontmatter.to.clone(), format!("skipped: {reason}"));
                     skipped.push((PathBuf::from(&tpl.frontmatter.to), reason));
                     continue;
                 }
@@ -202,22 +222,48 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
                 }
                 let to = render_str(&mut tera, &tpl.frontmatter.to, &ctx, tpl_path)?;
                 let body = render_str(&mut tera, &tpl.body, &ctx, tpl_path)?;
-                apply(root, &to, &body, tpl, opts, &mut written, &mut skipped, &mut decisions)?;
+                check_determinism(
+                    &mut tera,
+                    &tpl.body,
+                    &ctx,
+                    tpl_path,
+                    &tpl.frontmatter,
+                    &body,
+                )?;
+                pending.push(PendingWrite { to, body, tpl });
             }
         } else {
             let ctx = base_context(&named, &results);
             let body = render_str(&mut tera, &tpl.body, &ctx, tpl_path)?;
-            apply(
-                root,
-                &tpl.frontmatter.to,
+            check_determinism(
+                &mut tera,
+                &tpl.body,
+                &ctx,
+                tpl_path,
+                &tpl.frontmatter,
                 &body,
-                tpl,
-                opts,
-                &mut written,
-                &mut skipped,
-                &mut decisions,
             )?;
+            pending.push(PendingWrite {
+                to: tpl.frontmatter.to.clone(),
+                body,
+                tpl,
+            });
         }
+    }
+
+    // ── Stage 5: Write every already-rendered template ───────────────────
+    let mut written: Vec<PathBuf> = Vec::new();
+    for pw in &pending {
+        apply(
+            root,
+            &pw.to,
+            &pw.body,
+            pw.tpl,
+            opts,
+            &mut written,
+            &mut skipped,
+            &mut decisions,
+        )?;
     }
 
     let pack_hashes: BTreeMap<String, String> = lock_entries
@@ -230,7 +276,13 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
         })
         .collect();
 
-    let report = SyncReport { written, skipped, graph_hash_hex, decisions, packs: pack_hashes };
+    let report = SyncReport {
+        written,
+        skipped,
+        graph_hash_hex,
+        decisions,
+        packs: pack_hashes,
+    };
 
     if !opts.dry_run {
         write_receipt(root, &report)?;
@@ -261,9 +313,45 @@ fn render_str(
     tera.render_str(template, ctx).map_err(|e| {
         AppError::fm_tpl(
             5,
-            format!("render failed for {}: {e}", tpl_path.display()),
+            format!(
+                "render failed for {}: {e}. Available top-level context keys: {}.",
+                tpl_path.display(),
+                context_key_summary(ctx)
+            ),
         )
     })
+}
+
+/// Summarize a Tera context's top-level keys (and, for arrays, their
+/// length) for a render-failure error message — enough to spot a typo'd
+/// variable name (`row.nuon` vs `row.noun`) without dumping the full,
+/// potentially large, context payload.
+fn context_key_summary(ctx: &tera::Context) -> String {
+    let Value::Object(map) = ctx.clone().into_json() else {
+        return "(none)".to_string();
+    };
+    if map.is_empty() {
+        return "(none)".to_string();
+    }
+    map.iter()
+        .map(|(k, v)| match v {
+            Value::Array(items) => format!("{k} (array, {} items)", items.len()),
+            Value::Object(fields) => format!("{k} (object, {} fields)", fields.len()),
+            other => format!("{k} ({})", value_type_name(other)),
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn value_type_name(v: &Value) -> &'static str {
+    match v {
+        Value::Null => "null",
+        Value::Bool(_) => "bool",
+        Value::Number(_) => "number",
+        Value::String(_) => "string",
+        Value::Array(_) => "array",
+        Value::Object(_) => "object",
+    }
 }
 
 /// Apply (or dry-run) one write and record the outcome and its decision.
@@ -285,9 +373,10 @@ fn apply(
         return Ok(());
     }
     if opts.dry_run {
-        // Dry run: classify without touching the filesystem. Identical
-        // existing content reports Skipped(unchanged); everything else is
-        // reported as a planned write.
+        // Dry run: classify without touching the filesystem or running
+        // sh_before/sh_after (a dry run must have zero side effects).
+        // Identical existing content reports Skipped(unchanged); everything
+        // else is reported as a planned write.
         let target = root.join(rel_to);
         match std::fs::read_to_string(&target) {
             Ok(existing) if existing == body => {
@@ -302,19 +391,49 @@ fn apply(
         }
         return Ok(());
     }
+
+    if let Some(cmd) = tpl.frontmatter.sh_before.as_deref() {
+        run_shell_hook(root, cmd, "sh_before")?;
+    }
+
     match plan_write(root, rel_to, body, &tpl.frontmatter)? {
         WriteOutcome::Written => {
             decisions.insert(rel_to.to_string(), "written".to_string());
             written.push(PathBuf::from(rel_to));
+            if let Some(cmd) = tpl.frontmatter.sh_after.as_deref() {
+                run_shell_hook(root, cmd, "sh_after")?;
+            }
         }
         WriteOutcome::Injected => {
             decisions.insert(rel_to.to_string(), "injected".to_string());
             written.push(PathBuf::from(rel_to));
+            if let Some(cmd) = tpl.frontmatter.sh_after.as_deref() {
+                run_shell_hook(root, cmd, "sh_after")?;
+            }
         }
         WriteOutcome::Skipped(reason) => {
             decisions.insert(rel_to.to_string(), format!("skipped: {reason}"));
             skipped.push((PathBuf::from(rel_to), reason));
         }
+    }
+    Ok(())
+}
+
+/// Refuse `cmd` against the shell-command denylist, then run it with `root`
+/// as its working directory. Non-zero exit is a hard error.
+fn run_shell_hook(root: &Path, cmd: &str, which: &str) -> Result<()> {
+    crate::shell_safety::check_shell_command_safe(cmd)?;
+    let status = std::process::Command::new("sh")
+        .arg("-c")
+        .arg(cmd)
+        .current_dir(root)
+        .status()
+        .map_err(|e| AppError::fm_shell(2, format!("{which} failed to launch: {e}")))?;
+    if !status.success() {
+        return Err(AppError::fm_shell(
+            3,
+            format!("{which} command `{cmd}` exited with {status}. Remediation: fix the command or remove it from frontmatter."),
+        ));
     }
     Ok(())
 }
@@ -355,10 +474,91 @@ fn load_templates(dir: &Path) -> Result<Vec<(PathBuf, Template)>> {
 }
 
 /// Read and parse one `*.tmpl` file (identical frontmatter contract for
-/// project and pack templates — no special casing).
+/// project and pack templates — no special casing). If the frontmatter sets
+/// `from:`, the Tera body is replaced with the content of that path
+/// (resolved relative to this template file's own directory); frontmatter
+/// fields still come from `path` itself.
 fn parse_template_file(path: &Path) -> Result<Template> {
     let content = std::fs::read_to_string(path)?;
-    Template::parse(&content).map_err(|e| AppError::fm_tpl(6, format!("{}: {e}", path.display())))
+    let mut tpl = Template::parse(&content)
+        .map_err(|e| AppError::fm_tpl(6, format!("{}: {e}", path.display())))?;
+    if let Some(from) = tpl.frontmatter.from.clone() {
+        let base = path.parent().unwrap_or_else(|| Path::new("."));
+        let from_path = crate::write::resolve_target(base, &from).map_err(|e| {
+            AppError::fm_tpl(
+                8,
+                format!(
+                    "{}: `from: {from}` is not a safe path (must stay inside the \
+                     template's own directory): {e}",
+                    path.display()
+                ),
+            )
+        })?;
+        tpl.body = std::fs::read_to_string(&from_path).map_err(|e| {
+            AppError::fm_tpl(
+                7,
+                format!(
+                    "{}: `from: {from}` unreadable at `{}`: {e}. \
+                     Remediation: fix the `from:` path (relative to the template's own directory).",
+                    path.display(),
+                    from_path.display()
+                ),
+            )
+        })?;
+    }
+    Ok(tpl)
+}
+
+/// Refuse if any `shape:` file listed in `frontmatter` does not exist.
+/// **Existence-checked only** — no SHACL engine runs in this crate yet, so
+/// this does not evaluate the shapes against rendered output; see
+/// `docs/v26.7.4/GGEN_TOML_SCHEMA_MAPPING.md`.
+fn check_shape_files_exist(root: &Path, tpl_path: &Path, shapes: &[String]) -> Result<()> {
+    for shape in shapes {
+        let shape_path = root.join(shape);
+        if !shape_path.exists() {
+            return Err(AppError::fm_tpl(
+                8,
+                format!(
+                    "{}: `shape:` entry `{shape}` does not exist at `{}`. \
+                     Remediation: fix the path or remove the entry.",
+                    tpl_path.display(),
+                    shape_path.display()
+                ),
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// When `frontmatter.determinism == Some(true)`, render the same template
+/// body a second time with the identical context and refuse if the bytes
+/// differ from `first_render` — a real, enforced assertion rather than a
+/// declared-but-unchecked claim.
+fn check_determinism(
+    tera: &mut tera::Tera,
+    body_template: &str,
+    ctx: &tera::Context,
+    tpl_path: &Path,
+    frontmatter: &crate::template::Frontmatter,
+    first_render: &str,
+) -> Result<()> {
+    if frontmatter.determinism != Some(true) {
+        return Ok(());
+    }
+    let second_render = render_str(tera, body_template, ctx, tpl_path)?;
+    if second_render != first_render {
+        return Err(AppError::fm_tpl(
+            9,
+            format!(
+                "{}: `determinism: true` violated — re-rendering the same template with the \
+                 identical context produced different output. \
+                 Remediation: remove non-deterministic Tera functions/filters from this template.",
+                tpl_path.display()
+            ),
+        ));
+    }
+    Ok(())
 }
 
 /// Recursively collect `*.tmpl` files. A missing templates dir fails closed.
@@ -396,9 +596,8 @@ fn insert_construct(graph: &DeterministicGraph, construct: &str) -> Result<()> {
     };
     let mut doc = String::new();
     for triple in triples {
-        let triple = triple.map_err(|e| {
-            AppError::fm_graph(7, format!("CONSTRUCT iteration failed: {e}"))
-        })?;
+        let triple = triple
+            .map_err(|e| AppError::fm_graph(7, format!("CONSTRUCT iteration failed: {e}")))?;
         let _ = writeln!(doc, "{triple} .");
     }
     if !doc.is_empty() {
@@ -453,7 +652,10 @@ fn write_receipt(root: &Path, report: &SyncReport) -> Result<()> {
         Err(e) => {
             return Err(AppError::fm_chain(
                 3,
-                format!("previous receipt `{}` unreadable: {e}", receipt_path.display()),
+                format!(
+                    "previous receipt `{}` unreadable: {e}",
+                    receipt_path.display()
+                ),
             ))
         }
     };
