@@ -26,15 +26,14 @@ the one genuinely missing piece, and it's now real code, not a claim.
 [PROJ-301 reality addressing]  DONE
                |
                v
-[PROJ-302 no-private-abstraction gate]   (vocab_check extension: new wf:/praxis: predicates
-               |                          must cite a public-ontology mapping or be refused)
+[PROJ-302 no-private-abstraction gate]   DONE
+               |
                v
-[PROJ-303 authority ledger]              (bind fired actions to an admitted authority source,
-               |                          reusing reality.rs's PROV-O anchor as the authority
-               |                          predicate — not a new subsystem)
+[PROJ-303 authority ledger]              DONE
+               |
                v
-[PROJ-304 OCEL V2 event export]          (firing.rs receipts -> OCEL-shaped JSON, reusing the
-               |                          existing outer chain, no new event model)
+[PROJ-304 OCEL V2 event export]          DONE
+               |
                v
 [PROJ-305 cognitive breed registry]      (promote the v26.7.3 PROJ-206 doc mapping into a
                |                          const table so it's compiled, not just prose)
@@ -54,7 +53,7 @@ the one genuinely missing piece, and it's now real code, not a claim.
   `Refusal` enum.
 
 ### 2. [ticket_302_no_private_abstraction_gate.md](ticket_302_no_private_abstraction_gate.md)
-* **JIRA ID**: PROJ-302
+* **JIRA ID**: PROJ-302 — **STATUS: CLOSED**
 * Extend `graph::vocab_check`'s closed-world predicate table so every `wf:`/`hook:`/
   `prayer-kernel:`/`agent:` predicate addition going forward must be paired with an entry in
   a new `docs/v26.7.4/PUBLIC_ONTOLOGY_MAPPING.md`, checked by a test that greps the vocab
@@ -64,7 +63,7 @@ the one genuinely missing piece, and it's now real code, not a claim.
 * **Dependencies**: PROJ-301 (this is the doctrine PROJ-301 established, made structural).
 
 ### 3. [ticket_303_authority_ledger.md](ticket_303_authority_ledger.md)
-* **JIRA ID**: PROJ-303
+* **JIRA ID**: PROJ-303 — **STATUS: CLOSED**
 * Bind every fired action's outcome to an admitted authority source by reusing
   `RealityAddressRecord`'s `provenance_anchor` (PROV-O `wasAttributedTo`) as the authority
   predicate on the capability/action node, and refusing a `ground-action` firing whose action
@@ -73,7 +72,7 @@ the one genuinely missing piece, and it's now real code, not a claim.
 * **Dependencies**: PROJ-301.
 
 ### 4. [ticket_304_ocel_event_export.md](ticket_304_ocel_event_export.md)
-* **JIRA ID**: PROJ-304
+* **JIRA ID**: PROJ-304 — **STATUS: CLOSED**
 * A pure-function exporter, `firing::to_ocel_event`, that renders one `HookFiringReceipt` as
   an OCEL 2.0-shaped JSON event (event id = `outcome_hash`, object ids = bound capability/
   handler IRIs, timestamp = the record's `time_anchor` if a `RealityAddressRecord` was bound
