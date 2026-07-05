@@ -1,3 +1,5 @@
+{"label": "def:receipt", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "kernel_version": "4.31.0"}
+{"label": "prop:monoid", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "kernel_version": "4.31.0"}
 {"label": "ax:obs", "kind": "axiom", "status": "verified", "attempts": 1, "depends_on": [], "kernel_version": "4.31.0"}
 {"label": "def:denialabstract", "kind": "definition", "status": "verified", "attempts": 2, "depends_on": [], "kernel_version": "4.31.0"}
 {"label": "thm:rice", "kind": "theorem", "status": "verified", "attempts": 3, "depends_on": ["ax:obs"], "kernel_version": "4.31.0"}
