@@ -8,8 +8,18 @@
 //!
 //! [`content_hash`] computes a deterministic BLAKE3 over the pack's
 //! ontology and templates as sorted `(relative_path, bytes)` pairs.
+//!
+//! `PackRef::Git` packs are cloned with the system `git` binary (no git
+//! library dependency) into `<root>/.ggen-v2/git-packs/<name>/`, pinned by a
+//! `.ggen-git-pin` marker recording the exact `version` last checked out —
+//! unchanged config reuses the clone with no network call; a changed
+//! `version` (or a missing/corrupt cache) wipes and re-clones. Once cloned,
+//! a git pack is just a local directory and goes through the exact same
+//! validation (`pack.toml`, `ontology.ttl`, `templates/*.tmpl`) as a
+//! `PackRef::Path` pack.
 
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use serde::Deserialize;
 
@@ -54,7 +64,8 @@ struct PackMeta {
 /// Resolve every pack declared in `config.packs`, in name (`BTreeMap`) order.
 ///
 /// `PackRef::Path` entries resolve relative to `config_root` (the directory
-/// containing `ggen.toml`).
+/// containing `ggen.toml`); `PackRef::Git` entries are cloned/cached under
+/// `config_root` too (see the module docs).
 ///
 /// # Errors
 /// - `[FM-PACK-001]` pack directory missing
@@ -62,43 +73,148 @@ struct PackMeta {
 /// - `[FM-PACK-003]` `pack.toml` invalid TOML or unknown keys
 /// - `[FM-PACK-004]` `ontology.ttl` missing
 /// - `[FM-PACK-005]` zero templates under `templates/`
-/// - `[FM-PACK-007]` `PackRef::Git` (git packs are not implemented)
+/// - `[FM-PACK-010]` `git` not on `$PATH`, or `git clone` failed
+/// - `[FM-PACK-011]` `git checkout <version>` failed
 pub fn resolve(config: &GgenConfig, config_root: &Path) -> Result<Vec<Pack>> {
     let mut packs = Vec::with_capacity(config.packs.len());
     for (name, pack_ref) in &config.packs {
         match pack_ref {
             PackRef::Git { git, version } => {
-                return Err(AppError::fm_pack(
-                    7,
-                    format!(
-                        "pack `{name}`: git packs are not implemented \
-                         (git = `{git}`, version = `{version}`). \
-                         Remediation: vendor the pack locally and use {{ path = \"…\" }}."
-                    ),
-                ));
+                let root = resolve_git_pack_dir(name, git, version, config_root)?;
+                packs.push(resolve_pack_dir(name, &root)?);
             }
             PackRef::Path { path } => {
-                packs.push(resolve_path_pack(name, path, config_root)?);
+                let root = config_root.join(path);
+                if !root.is_dir() {
+                    return Err(AppError::fm_pack(
+                        1,
+                        format!(
+                            "pack `{name}`: directory `{}` does not exist. \
+                             Remediation: fix the [packs] path or vendor the pack.",
+                            root.display()
+                        ),
+                    ));
+                }
+                packs.push(resolve_pack_dir(name, &root)?);
             }
         }
     }
     Ok(packs)
 }
 
-/// Resolve one `{ path = … }` pack rooted at `config_root`.
-fn resolve_path_pack(name: &str, path: &Path, config_root: &Path) -> Result<Pack> {
-    let root = config_root.join(path);
-    if !root.is_dir() {
+/// Directory name (under `<config_root>/.ggen-v2/git-packs/`) a git pack's
+/// clone cache lives in — the marker file inside it, not this name, is the
+/// authority on which `version` is actually checked out.
+const GIT_PIN_FILE: &str = ".ggen-git-pin";
+
+/// Clone (or reuse a pinned cache of) a `PackRef::Git` pack, returning its
+/// local directory. Reuses the cache as-is when `<cache>/.ggen-git-pin`
+/// already records the exact `version` requested (no network call);
+/// otherwise wipes and re-clones + checks out fresh.
+///
+/// # Errors
+/// - `[FM-PACK-010]` `git` not on `$PATH`, or `git clone` failed
+/// - `[FM-PACK-011]` `git checkout <version>` failed
+fn resolve_git_pack_dir(
+    name: &str,
+    git: &str,
+    version: &str,
+    config_root: &Path,
+) -> Result<PathBuf> {
+    let cache_dir = config_root.join(".ggen-v2/git-packs").join(name);
+    let pin_path = cache_dir.join(GIT_PIN_FILE);
+    if let Ok(pinned) = std::fs::read_to_string(&pin_path) {
+        if pinned.trim() == version {
+            return Ok(cache_dir);
+        }
+    }
+
+    // Cache miss (absent, corrupt, or version changed): wipe and re-clone.
+    if cache_dir.exists() {
+        std::fs::remove_dir_all(&cache_dir).map_err(|e| {
+            AppError::fm_pack(
+                10,
+                format!(
+                    "pack `{name}`: could not clear stale git cache `{}`: {e}",
+                    cache_dir.display()
+                ),
+            )
+        })?;
+    }
+    std::fs::create_dir_all(cache_dir.parent().expect("cache_dir has a parent")).map_err(|e| {
+        AppError::fm_pack(
+            10,
+            format!("pack `{name}`: could not create git cache directory: {e}"),
+        )
+    })?;
+
+    let clone = Command::new("git")
+        .args([
+            "clone",
+            "--quiet",
+            git,
+            cache_dir.to_str().unwrap_or_default(),
+        ])
+        .output()
+        .map_err(|e| {
+            AppError::fm_pack(
+                10,
+                format!(
+                    "pack `{name}`: `git` not runnable (is it on $PATH?): {e}. \
+                     Remediation: install git, or vendor the pack locally with {{ path = \"…\" }}."
+                ),
+            )
+        })?;
+    if !clone.status.success() {
         return Err(AppError::fm_pack(
-            1,
+            10,
             format!(
-                "pack `{name}`: directory `{}` does not exist. \
-                 Remediation: fix the [packs] path or vendor the pack.",
-                root.display()
+                "pack `{name}`: `git clone {git}` failed: {}\
+                 Remediation: verify the git URL is reachable and correct.",
+                String::from_utf8_lossy(&clone.stderr)
             ),
         ));
     }
 
+    let checkout = Command::new("git")
+        .args([
+            "-C",
+            cache_dir.to_str().unwrap_or_default(),
+            "checkout",
+            "--quiet",
+            version,
+        ])
+        .output()
+        .map_err(|e| {
+            AppError::fm_pack(
+                11,
+                format!("pack `{name}`: `git checkout {version}` not runnable: {e}"),
+            )
+        })?;
+    if !checkout.status.success() {
+        return Err(AppError::fm_pack(
+            11,
+            format!(
+                "pack `{name}`: `git checkout {version}` failed: {}\
+                 Remediation: verify `version` names an existing tag, branch, or commit.",
+                String::from_utf8_lossy(&checkout.stderr)
+            ),
+        ));
+    }
+
+    std::fs::write(&pin_path, version).map_err(|e| {
+        AppError::fm_pack(
+            10,
+            format!("pack `{name}`: could not write git pin marker: {e}"),
+        )
+    })?;
+    Ok(cache_dir)
+}
+
+/// Resolve one already-on-disk pack directory (a `PackRef::Path` target or a
+/// resolved git-pack clone) into a validated [`Pack`].
+fn resolve_pack_dir(name: &str, root: &Path) -> Result<Pack> {
+    let root = root.to_path_buf();
     let manifest_path = root.join("pack.toml");
     let manifest_raw = std::fs::read_to_string(&manifest_path).map_err(|e| {
         AppError::fm_pack(
@@ -178,7 +294,10 @@ fn resolve_path_pack(name: &str, path: &Path, config_root: &Path) -> Result<Pack
 /// and hashing.
 pub fn content_hash(pack: &Pack) -> Result<[u8; 32]> {
     let mut entries: Vec<(String, PathBuf)> = Vec::with_capacity(1 + pack.template_paths.len());
-    entries.push((rel_string(&pack.ontology_path, &pack.root), pack.ontology_path.clone()));
+    entries.push((
+        rel_string(&pack.ontology_path, &pack.root),
+        pack.ontology_path.clone(),
+    ));
     for tpl in &pack.template_paths {
         entries.push((rel_string(tpl, &pack.root), tpl.clone()));
     }
@@ -252,7 +371,11 @@ pub fn source_string(pack_ref: &PackRef) -> String {
 pub fn lock_entries(config: &GgenConfig, packs: &[Pack]) -> Result<Vec<LockEntry>> {
     let mut entries = Vec::with_capacity(packs.len());
     for pack in packs {
-        let source = config.packs.get(&pack.name).map(source_string).unwrap_or_default();
+        let source = config
+            .packs
+            .get(&pack.name)
+            .map(source_string)
+            .unwrap_or_default();
         let hash = content_hash(pack)?;
         entries.push(LockEntry {
             name: pack.name.clone(),
@@ -277,7 +400,10 @@ pub fn check_lock(root: &Path, entries: &[LockEntry]) -> Result<()> {
         return Ok(());
     }
     let raw = std::fs::read_to_string(&lock_path).map_err(|e| {
-        AppError::fm_pack(9, format!("ggen.lock unreadable at `{}`: {e}", lock_path.display()))
+        AppError::fm_pack(
+            9,
+            format!("ggen.lock unreadable at `{}`: {e}", lock_path.display()),
+        )
     })?;
     let doc: LockDoc = star_toml::from_str(&raw).map_err(|e| {
         AppError::fm_pack(
@@ -388,7 +514,10 @@ mod tests {
             .modified()
             .expect("mtime");
 
-        assert_eq!(mtime_1, mtime_2, "unchanged lockfile content must not be rewritten");
+        assert_eq!(
+            mtime_1, mtime_2,
+            "unchanged lockfile content must not be rewritten"
+        );
     }
 
     #[test]
@@ -400,5 +529,129 @@ mod tests {
         let contents =
             std::fs::read_to_string(dir.path().join(LOCK_FILE_NAME)).expect("read lockfile");
         assert!(contents.contains("gadget"));
+    }
+
+    /// A local scratch git repo with one file committed and tagged `v1`,
+    /// used as the clone source — no network needed.
+    fn git(args: &[&str], cwd: &Path) {
+        let out = Command::new("git")
+            .args(args)
+            .current_dir(cwd)
+            .output()
+            .expect("run git");
+        assert!(
+            out.status.success(),
+            "git {args:?} failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+
+    fn scratch_git_source(dir: &Path) {
+        std::fs::create_dir_all(dir).expect("mkdir source");
+        git(&["init", "--quiet"], dir);
+        git(&["config", "user.email", "test@example.com"], dir);
+        git(&["config", "user.name", "Test"], dir);
+        std::fs::write(dir.join("marker.txt"), "v1\n").expect("write marker");
+        git(&["add", "."], dir);
+        git(&["commit", "--quiet", "-m", "v1"], dir);
+        git(&["tag", "v1"], dir);
+        std::fs::write(dir.join("marker.txt"), "v2\n").expect("write marker");
+        git(&["add", "."], dir);
+        git(&["commit", "--quiet", "-m", "v2"], dir);
+        git(&["tag", "v2"], dir);
+    }
+
+    #[test]
+    fn resolve_git_pack_dir_clones_and_pins_the_requested_version() {
+        let scratch = TempDir::new().expect("tempdir");
+        let source = scratch.path().join("source");
+        scratch_git_source(&source);
+        let config_root = TempDir::new().expect("tempdir");
+
+        let cache = resolve_git_pack_dir(
+            "widget",
+            source.to_str().expect("utf8 path"),
+            "v1",
+            config_root.path(),
+        )
+        .expect("clone succeeds");
+
+        assert_eq!(
+            std::fs::read_to_string(cache.join("marker.txt")).expect("marker"),
+            "v1\n"
+        );
+        assert_eq!(
+            std::fs::read_to_string(cache.join(GIT_PIN_FILE)).expect("pin"),
+            "v1"
+        );
+    }
+
+    #[test]
+    fn resolve_git_pack_dir_reuses_the_cache_when_version_is_unchanged() {
+        let scratch = TempDir::new().expect("tempdir");
+        let source = scratch.path().join("source");
+        scratch_git_source(&source);
+        let config_root = TempDir::new().expect("tempdir");
+        let url = source.to_str().expect("utf8 path");
+
+        let cache =
+            resolve_git_pack_dir("widget", url, "v1", config_root.path()).expect("first clone");
+        // Plant a sentinel: if the second call re-clones (wiping the cache
+        // dir), this file disappears. If it reuses the cache, it survives.
+        std::fs::write(cache.join("sentinel.txt"), "still here").expect("write sentinel");
+
+        let cache2 =
+            resolve_git_pack_dir("widget", url, "v1", config_root.path()).expect("second call");
+        assert!(
+            cache2.join("sentinel.txt").is_file(),
+            "unchanged version must reuse the cache, not re-clone"
+        );
+    }
+
+    #[test]
+    fn resolve_git_pack_dir_reclones_when_version_changes() {
+        let scratch = TempDir::new().expect("tempdir");
+        let source = scratch.path().join("source");
+        scratch_git_source(&source);
+        let config_root = TempDir::new().expect("tempdir");
+        let url = source.to_str().expect("utf8 path");
+
+        let cache =
+            resolve_git_pack_dir("widget", url, "v1", config_root.path()).expect("first clone");
+        std::fs::write(cache.join("sentinel.txt"), "will be wiped").expect("write sentinel");
+
+        let cache2 =
+            resolve_git_pack_dir("widget", url, "v2", config_root.path()).expect("re-clone");
+        assert!(
+            !cache2.join("sentinel.txt").exists(),
+            "a changed version must wipe and re-clone the cache"
+        );
+        assert_eq!(
+            std::fs::read_to_string(cache2.join("marker.txt")).expect("marker"),
+            "v2\n"
+        );
+        assert_eq!(
+            std::fs::read_to_string(cache2.join(GIT_PIN_FILE)).expect("pin"),
+            "v2"
+        );
+    }
+
+    #[test]
+    fn resolve_git_pack_dir_refuses_a_bad_version_with_a_typed_error() {
+        let scratch = TempDir::new().expect("tempdir");
+        let source = scratch.path().join("source");
+        scratch_git_source(&source);
+        let config_root = TempDir::new().expect("tempdir");
+
+        let err = resolve_git_pack_dir(
+            "widget",
+            source.to_str().expect("utf8 path"),
+            "does-not-exist",
+            config_root.path(),
+        )
+        .expect_err("bad version must refuse");
+        let msg = err.to_string();
+        assert!(msg.contains("FM-PACK-011"), "{msg}");
+        assert!(msg.contains("checkout"), "{msg}");
     }
 }
