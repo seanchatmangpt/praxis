@@ -525,8 +525,90 @@ Informal intended meaning without an interpretation map & not Lean-admitted \\
 \end{table}
 No reader should equate ``Lean proves this formal file'' with ``Lean
 proves every possible intended semantic interpretation of the original
-prose.'' The former is what Table~4.1 reports; the latter is not
+prose.'' The former is what Table~\ref{tab:disposition} reports; the latter is not
 claimed anywhere in this thesis.
+
+\section{Hardening the admission gate: the praxis-lean crate}
+\label{sec:praxis-lean}
+
+
+After the empirical run reported in Chapter~\ref{ch:empirical}, the
+admission principles of Section~\ref{sec:no-self-report} were hardened
+from one-off shell invocations into a compiled, workspace-integrated
+Rust crate, \texttt{praxis-lean} (binary \texttt{praxis-l4}), added to
+this repository's Cargo workspace. Its core law, stated in its own
+\texttt{lib.rs} doc comment, restates
+Section~\ref{sec:no-self-report} as a checked type-level invariant
+rather than a convention to remember:
+\[
+\mathrm{Verified}(s) \iff \mathrm{KernelAccepts}(s) \land \mathrm{NoSorry}(s) \land \mathrm{NoUnauthorizedAxiom}(s).
+\]
+Every admission or refusal outcome is a typed \texttt{LeanRefusal}
+variant (\texttt{KernelRejected}, \texttt{SorryFound},
+\texttt{UnauthorizedAxiom}, \texttt{OrphanLabel}, \texttt{OrphanFile},
+\texttt{OrphanReceipt}, among others) -- never a panic, matching the
+admission-algebra discipline of Section~\ref{sec:admission-algebra}.
+
+
+The crate's CLI itself is manufactured, not hand-written: six
+\texttt{praxis:CliCommand} instances (\texttt{init}, \texttt{verify},
+\texttt{no-sorry}, \texttt{index-build}, \texttt{reconcile},
+\texttt{report}, noun \texttt{l4}) were added to
+\texttt{schema/praxis.ttl} and rendered into
+\texttt{crates/praxis-lean/src/verbs/} by \texttt{ggen sync}, the same
+mechanism Section~\ref{sec:doc-mfg-correspondence} already documents for
+this thesis's own chapters -- a third artifact class (compiled CLI
+routing, not LaTeX or Lean) manufactured from the same admitted RDF
+graph.
+
+
+\begin{finding}
+Running \texttt{praxis-l4 l4 index-build} against the real
+\texttt{corpus.ttl} independently reproduces 202 records -- exactly the
+distinct-label count Section~\ref{sec:corpus-numbers} reports from a
+wholly separate Python/SPARQL extraction path. Running
+\texttt{praxis-l4 l4 reconcile} against that index and the real
+\texttt{formalization\_receipts.jsonl} reports 202 labels, 201 receipt
+lines, a single \texttt{missing\_receipts} entry
+(\texttt{thm:faithful}, the one a-priori exclusion), a disposition
+count of 179 verified plus 4 unformalized plus 18 blocked (summing to
+201), and zero orphan receipts -- an exact, independent reconfirmation
+of Table~\ref{tab:disposition}'s accounting invariant, produced by a compiled Rust tool
+with no code path shared with the original extraction pipeline.
+\end{finding}
+
+
+Running \texttt{praxis-l4 l4 no-sorry} against all 183 real
+\texttt{.lean} files under \texttt{tools/paper-factory/lean-pilot/}
+independently reconfirms zero uses of \texttt{sorry} across the entire
+verified set, and reports 245 real \texttt{axiom} declarations --
+expected, since bare Lean~4 core (Section~\ref{ch:limitations}) has no
+library to build primitives like \texttt{Obs} or \texttt{Halts} from
+except axioms. Building this checker surfaced one real defect before
+this reconfirmation was trustworthy: an earlier default policy also
+forbade the bare token \texttt{admit}, which is not a Lean~4 tactic at
+all (Lean~4's only real proof hole is \texttt{sorry}; \texttt{admit}
+is a Coq idiom) -- it flagged five matches that were all the corpus's
+own \texttt{LifeHom} type's constructor literally named \texttt{admit},
+a real identifier, not a proof escape hatch. The policy default was
+corrected before reporting the zero-\texttt{sorry} finding above, and
+the corrected behavior is covered by a regression test.
+
+
+The crate also proves out a second, additive Lean verification
+lane: \texttt{praxis-l4 l4 init} scaffolds a real Lake package (a
+\texttt{lean-toolchain}, \texttt{lakefile.lean}, and a
+\texttt{lean\_lib} target) in a new sibling directory,
+\texttt{tools/paper-factory/lean-lake/}, deliberately not touching any
+of the 183 bare-\texttt{lean}-verified files. \texttt{lake build} and
+\texttt{lake env lean Praxis.lean} both succeed against the real Lean
+4.31.0/Lake 5.0.0 toolchain. Migrating the existing corpus into this
+Lake-managed lane, and closing the gap that \texttt{reconcile} and
+\texttt{report} currently accept the pre-existing receipts schema only
+through a schema-tolerant compatibility reader (rather than the richer
+schema~v2 record this crate defines, with per-file hashes and a
+genesis-folded chain hash) remain explicit future work, not silently
+assumed done.
 
 \chapter{Empirical results}
 \label{ch:empirical}
@@ -580,6 +662,7 @@ Total distinct labels & 202 \\
 \caption{Disposition of all 202 distinct statement labels, re-derived
 from \texttt{formalization\_receipts.jsonl} (201 lines) plus the one
 a-priori exclusion, which by design receives no receipt line.}
+\label{tab:disposition}
 \end{table}
 
 
@@ -639,7 +722,7 @@ Only a direct, independent invocation of the command above, run after
 and outside of the agent's own report, establishes
 $\mathrm{LeanAdmitted}(s)$.
 \end{definition}
-Every \texttt{verified} disposition in Table~4.1 was established this
+Every \texttt{verified} disposition in Table~\ref{tab:disposition} was established this
 way: Lean~4 is the admission court for whether a formal file
 type-checks, not a semantic oracle for whether that file fully captures
 an author's intended meaning (Section~\ref{sec:rice-quarantine} makes
