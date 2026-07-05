@@ -1,0 +1,68 @@
+# doc-pack ontology — chapter/section/paragraph structure for rendering a
+# LaTeX document from RDF individuals, instead of hand-authored .tex prose.
+# Mirrors tex-math-pack's convention (structure-as-ontology,
+# rendering-as-template) applied to document prose rather than theorems.
+
+@prefix doc:  <http://seanchatmangpt.github.io/packs/doc#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# ===========================================================================
+# 1. Classes
+# ===========================================================================
+
+doc:Chapter a rdfs:Class ;
+    rdfs:label "Chapter" ;
+    rdfs:comment "One \\chapter{} of the document, identified by doc:order." .
+
+doc:Section a rdfs:Class ;
+    rdfs:label "Section" ;
+    rdfs:comment "One \\section{} within a doc:Chapter, identified by doc:order within that chapter." .
+
+doc:Paragraph a rdfs:Class ;
+    rdfs:label "Paragraph" ;
+    rdfs:comment "One paragraph (or LaTeX block: prose, table, list, environment) within a doc:Section, identified by doc:order within that section. doc:body is taken verbatim as LaTeX source -- it is not escaped by the renderer, since paragraphs may themselves contain LaTeX environments (tables, theorem-like blocks, itemize, etc.)." .
+
+# ===========================================================================
+# 2. Properties
+# ===========================================================================
+
+doc:order a rdf:Property ;
+    rdfs:label "order" ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "Integer ordering key, unique within the individual's parent scope (chapters ordered globally, sections within their chapter, paragraphs within their section)." .
+
+doc:title a rdf:Property ;
+    rdfs:label "title" ;
+    rdfs:domain doc:Chapter ;
+    rdfs:range xsd:string ;
+    rdfs:comment "\\chapter{} or \\section{} title text (plain, not LaTeX-escaped beyond what the author writes directly, since titles may contain math mode)." .
+
+doc:label a rdf:Property ;
+    rdfs:label "label" ;
+    rdfs:comment "Optional \\label{} key emitted immediately after \\chapter{}/\\section{}, for cross-referencing (\\ref{}) from other chapters." .
+
+doc:inChapter a rdf:Property ;
+    rdfs:label "inChapter" ;
+    rdfs:domain doc:Section ;
+    rdfs:range doc:Chapter ;
+    rdfs:comment "The doc:Chapter a doc:Section belongs to." .
+
+doc:inSection a rdf:Property ;
+    rdfs:label "inSection" ;
+    rdfs:domain doc:Paragraph ;
+    rdfs:range doc:Section ;
+    rdfs:comment "The doc:Section a doc:Paragraph belongs to." .
+
+doc:body a rdf:Property ;
+    rdfs:label "body" ;
+    rdfs:domain doc:Paragraph ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Verbatim LaTeX source for this paragraph/block, rendered as-is (not escaped)." .
+
+doc:register a rdf:Property ;
+    rdfs:label "register" ;
+    rdfs:domain doc:Paragraph ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Evidentiary standing of this paragraph's claims: \"evidence-bound\" (every quantitative/factual claim traces to a receipt, query result, or cited artifact) or \"speculative\" (motivated by evidence but not derived from or checked against it). This is a data property, not just a LaTeX environment convention -- it lets a SPARQL query mechanically verify no chapter mixes registers without a visible marker, rather than relying on a human re-reading the compiled PDF." .

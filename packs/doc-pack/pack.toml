@@ -1,0 +1,4 @@
+[pack]
+name = "doc-pack"
+version = "0.1.0"
+description = "Renders a LaTeX document (report class) from an RDF ontology of chapter/section/paragraph structure (doc:Document, doc:Chapter, doc:Section, doc:Paragraph), so document structure and prose live as ontology facts rather than hand-authored .tex."

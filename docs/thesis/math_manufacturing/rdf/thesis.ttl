@@ -1,0 +1,1073 @@
+@prefix : <http://seanchatmangpt.github.io/docs/math-manufacturing#> .
+@prefix doc: <http://seanchatmangpt.github.io/packs/doc#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:ch1_s0_p0 a doc:Paragraph ;
+    doc:body """A mathematics corpus of 219 statement instances, drawn from seven source
+papers of an ongoing thesis series, was passed through an automated
+pipeline that lowers each statement into Lean~4 syntax and submits it to
+the Lean kernel for admission or rejection. The result is a disjoint
+partition: 179 statements kernel-verified, 4 kernel-rejected after
+bounded retry, 18 correctly withheld because they transitively depend on
+an out-of-scope statement, and 17 cross-paper restatements collapsed by
+shared label before scheduling. Every number in that sentence is derived
+live in Chapter~\\ref{ch:empirical} from artifacts on disk, not asserted
+from memory.""" ;
+    doc:inSection :ch1_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch1_s0_p1 a doc:Paragraph ;
+    doc:body """This thesis makes one narrow technical claim and one broad, explicitly
+labeled speculative claim, and it does not let the two blend.""" ;
+    doc:inSection :ch1_s0 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch1_s0_p2 a doc:Paragraph ;
+    doc:body """\\begin{description}
+\\item[The narrow claim (Part~I, Chapters~\\ref{ch:background}--\\ref{ch:empirical}):]
+this pipeline is not a new theoretical apparatus. It is a second working
+instance of a pattern already present in this codebase — the
+\\emph{manufacturing morphism} $\\Act = \\muop(\\Adm)$ that the project's own
+prior work already names and already implements once, for a different
+domain (RDF ontology $\\to$ PDDL planning text). Naming the Lean pipeline
+``math manufacturing'' is an act of recognition, not invention: the same
+admit/refuse/receipt structure recurs, and Chapter~\\ref{ch:mathmfg} makes
+the correspondence explicit, term for term.""" ;
+    doc:inSection :ch1_s0 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+:ch1_s0_p3 a doc:Paragraph ;
+    doc:body """\\item[The broad claim (Part~II, Chapter~\\ref{ch:civilizational}):] if
+verified-mathematics production can be organized as a pipeline with a
+defect taxonomy, a throughput number, and a receipt for every unit
+produced — the way physical manufacturing is — then something changes
+about the economics of formal verification, mathematical research, and
+mathematics education at a civilizational scale. This claim is
+speculative. It is not derived from the 219-statement result; it is
+motivated by it. Chapter~\\ref{ch:civilizational} marks every claim of
+this kind with a dedicated \\textsc{Speculation} environment so that a
+reader — or an adversarial reviewer — can mechanically distinguish
+``this is what we built and verified'' from ``this is what we think it
+might mean if it scales.''
+\\end{description}""" ;
+    doc:inSection :ch1_s0 ;
+    doc:order 3 ;
+    doc:register "evidence-bound" .
+
+:ch1_s1_p0 a doc:Paragraph ;
+    doc:body """A prior draft of this argument, written as prose in a conversational
+exchange rather than as a checked document, contained a real accounting
+error: a partition of 219 statements into verified/rejected/blocked/
+deduplicated categories that summed to 218, not 219, because two
+originally-verified pilot statements had been silently dropped from a
+consolidated receipts file during a merge step. The error was caught,
+traced to its exact cause, and fixed by re-verifying the two missing
+statements against the real Lean kernel and re-inserting their receipts
+— documented in full in Section~\\ref{sec:receipts-gap}. That episode is
+retained in this thesis, not smoothed over, because it is itself evidence
+for the thesis statement: a manufacturing discipline is distinguished
+from a narrative one precisely by the fact that its errors are
+mechanically detectable and its claims are falsifiable against artifacts
+on disk. A thesis arguing for that discipline should be held to it.""" ;
+    doc:inSection :ch1_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch1_s2_p0 a doc:Paragraph ;
+    doc:body """Chapter~\\ref{ch:background} establishes the pre-existing formal machinery
+this thesis builds on: the Chatman Equation, admission algebra, receipts,
+and the first working manufacturing morphism (\\texttt{src/mfg.rs}).
+Chapter~\\ref{ch:mathmfg} states the second instantiation --- math
+manufacturing --- as a formal correspondence to the first.
+Chapter~\\ref{ch:empirical} reports the empirical run: exact counts,
+the two infrastructure bugs found and fixed during the run, and the
+receipts-consolidation gap and its fix. Chapter~\\ref{ch:civilizational}
+is the speculative civilizational-impact argument. Chapter~\\ref{ch:related}
+situates this work against prior autoformalization efforts.
+Chapter~\\ref{ch:limitations} states limitations without euphemism.
+Chapter~\\ref{ch:conclusion} concludes.""" ;
+    doc:inSection :ch1_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch2_p0 a doc:Paragraph ;
+    doc:body """This chapter is entirely evidence-bound: every construct below is quoted
+or paraphrased from artifacts already present in this codebase prior to
+this thesis, cited by exact file path.""" ;
+    doc:inChapter :ch2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch2_s0_p0 a doc:Paragraph ;
+    doc:body """The project's foundational equation, stated in \\texttt{ORIGINAL\\_REQUEST.md}
+and the admission-algebra paper (\\texttt{docs/thesis/01\\_admission\\_algebra.tex}),
+is
+\\[
+  \\Act = \\muop(\\Adm), \\qquad
+  \\Obs \\xrightarrow{\\ \\adm\\ } \\Adm \\xrightarrow{\\ \\muop\\ } \\Act \\xrightarrow{\\ \\text{receipt}\\ } \\Rec .
+\\]
+Reading left to right: a raw observation space $\\Obs$ is passed through
+an \\emph{admission map} $\\adm$ into an admitted space $\\Adm$ (only
+observations that pass admission continue); the \\emph{manufacturing
+morphism} $\\muop$ maps admitted observations to actuation $\\Act$; and
+every actuation is paired with a \\emph{receipt} $\\Rec$ — a computed,
+content-addressed record of what happened, never asserted-in by fiat.
+$\\muop$ is named, in the project's own vocabulary, the ``manufacturing
+morphism.'' This thesis's title is a direct restatement of that name
+applied to a new domain.""" ;
+    doc:inSection :ch2_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch2_s1_p0 a doc:Paragraph ;
+    doc:body """\\texttt{01\\_admission\\_algebra.tex} establishes that admission cannot be
+decided by meaning alone (a Rice's-theorem-style undecidability result,
+\\texttt{thm:rice} in the corpus) and instead formalizes admission as an
+algebra over a refusal monoid: refusal is data, not a side effect
+(\\texttt{ax:refusal}), with a bottom element $\\Rfsl$ characterizing full
+admission (\\texttt{prop:bottom}) and monotonicity under composition. The
+practical corollary, realized in code, is that every admission stage
+either produces a value or a named, typed refusal — never a panic, never
+a silent default. This is the same discipline this project's own
+\\texttt{CLAUDE.md} states as an invariant: ``every error is a typed
+\\texttt{Refusal} variant.''""" ;
+    doc:inSection :ch2_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch2_s2_p0 a doc:Paragraph ;
+    doc:body """\\texttt{02\\_receipt\\_cryptography.tex} formalizes the receipt chain: a
+BLAKE3 content hash folded against a genesis value, so that a receipt for
+step $n$ is a function of the receipt for step $n-1$ and the actuation at
+step $n$, never independently fabricated. This is the same mechanism
+used throughout this thesis's own evidence: every count in
+Chapter~\\ref{ch:empirical} is derived by re-running a query against a
+file on disk, not copied from a prior claim.""" ;
+    doc:inSection :ch2_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch2_s3_p1 a doc:Paragraph ;
+    doc:body """A concrete implementation of $\\muop$ already exists in this codebase,
+independent of the work in this thesis. \\texttt{src/mfg.rs} is a
+literal manufacturing pipeline: it loads a Turtle RDF ontology describing
+planning domain facts (types, predicates, actions, a problem instance),
+extracts a STRIPS8-profile intermediate representation via SPARQL,
+enforces PDDL8 structural bounds (arity, conjuncts, and parameter counts
+each $\\le 8$, mirroring \\texttt{wasm4pm\\_compat::pddl}'s
+\\texttt{PDDL8\\_MAX\\_*} constants) as a hard admission gate, and emits
+PDDL domain and problem text as its actuation. Its module doc comment
+states the shape directly: ``RDF ontology $\\to$ PDDL8 domain/problem
+text.''""" ;
+    doc:inSection :ch2_s3 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch2_s3_p2 a doc:Paragraph ;
+    doc:body """Its error type,
+\\begin{quote}
+\\texttt{enum MfgError \\{ Graph(String), BoundExceeded \\{ what, limit,
+got, detail \\}, Shape(String), Pddl8(String) \\}}
+\\end{quote}
+is a defect taxonomy for this pipeline: a graph-parse failure, a
+structural-bound violation (with the exact limit and the exact value
+that exceeded it), a missing or malformed ontology fact, or a
+round-trip failure back through the downstream planner. Every one of
+these is a typed refusal in the admission-algebra sense of
+Section~1.2 above — none of them is a panic or a silent fallback.""" ;
+    doc:inSection :ch2_s3 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+:ch2_s3_p3 a doc:Paragraph ;
+    doc:body """\\begin{definition}[$\\muop$-pipeline]
+\\label{def:mu-pipeline}
+A \\emph{$\\muop$-pipeline} is a concrete instantiation of
+$\\Act = \\muop(\\Adm)$ consisting of: (i) a raw input domain $\\Obs$;
+(ii) an admission map $\\adm : \\Obs \\to \\Adm \\cup \\{\\Rfsl\\} \\times \\Rec_f$
+that either admits an input or produces a typed refusal; (iii) a
+manufacturing morphism $\\muop : \\Adm \\to \\Act$ producing a concrete
+actuation artifact; and (iv) a receipt function computing $\\Rec$ from
+the actuation, never asserted.
+\\end{definition}""" ;
+    doc:inSection :ch2_s3 ;
+    doc:order 3 ;
+    doc:register "evidence-bound" .
+
+:ch2_s3_p4 a doc:Paragraph ;
+    doc:body """\\texttt{src/mfg.rs} instantiates Definition~\\ref{def:mu-pipeline} with
+$\\Obs$ = RDF ontology text, $\\adm$ = SPARQL extraction plus PDDL8 bound
+enforcement, $\\muop$ = domain/problem text emission, and $\\Act$ = PDDL8
+text validated by round-trip through \\texttt{bcinr-pddl}. Call this
+\\textbf{$\\muop$-pipeline~1}. Chapter~\\ref{ch:mathmfg} instantiates the
+same definition a second time, with mathematics statements as the input
+domain and the Lean~4 kernel as the admission map — \\textbf{$\\muop$-pipeline~2}
+— and states the correspondence between the two, term for term.""" ;
+    doc:inSection :ch2_s3 ;
+    doc:order 4 ;
+    doc:register "evidence-bound" .
+
+:ch3_s0_p0 a doc:Paragraph ;
+    doc:body """Table~\\ref{tab:correspondence} states the correspondence between
+$\\muop$-pipeline~1 (\\texttt{src/mfg.rs}, Section~\\ref{sec:mfg-first}) and
+$\\muop$-pipeline~2, the autoformalization pipeline built and run this
+thesis reports on.""" ;
+    doc:inSection :ch3_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch3_s0_p1 a doc:Paragraph ;
+    doc:body """\\begin{table}[h]
+\\centering
+\\begin{tabular}{@{}lll@{}}
+\\toprule
+\\textbf{Term} & \\textbf{$\\muop$-pipeline 1 (RDF $\\to$ PDDL)} & \\textbf{$\\muop$-pipeline 2 (Math $\\to$ Lean)} \\\\
+\\midrule
+$\\Obs$ (raw input) & Turtle ontology text & LaTeX statement text, corpus RDF \\\\
+$\\adm$ (admission map) & SPARQL extraction + PDDL8 bounds & Lean 4 kernel typecheck \\\\
+$\\Adm$ (admitted domain) & STRIPS8 intermediate representation & Lean 4 syntax draft (pre-kernel) \\\\
+$\\muop$ (manufacturing morphism) & domain/problem text emission & \\texttt{.lean} source file emission \\\\
+$\\Act$ (actuation) & PDDL8 text, round-tripped & kernel-accepted \\texttt{.lean} artifact \\\\
+Defect taxonomy & \\texttt{MfgError} (Graph/BoundExceeded/Shape/Pddl8) & verified / unformalized / blocked \\\\
+$\\Rec$ (receipt) & (implicit: round-trip check) & \\texttt{formalization\\_receipts.jsonl} line \\\\
+\\bottomrule
+\\end{tabular}
+\\caption{Term-for-term correspondence between the two working
+$\\muop$-pipeline instantiations in this codebase.}
+\\label{tab:correspondence}
+\\end{table}""" ;
+    doc:inSection :ch3_s0 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch3_s0_p2 a doc:Paragraph ;
+    doc:body """The correspondence is not decorative. Both pipelines share the structural
+property that admission is a hard, typed gate rather than a best-effort
+check: $\\muop$-pipeline~1 will not emit PDDL8 text that violates its
+arity/conjunct/parameter bounds, and $\\muop$-pipeline~2 will not record a
+statement as \\texttt{verified} without an actual, successful invocation
+of the real \\texttt{lean} binary against it (Section~\\ref{sec:no-self-report}).""" ;
+    doc:inSection :ch3_s0 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+:ch3_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Math manufacturing pipeline]
+Given a corpus of statement individuals $s \\in \\Obs$, each carrying a
+LaTeX statement string, a \\texttt{kind} (axiom, definition, construction,
+theorem, proposition, corollary, or lemma), and a set of
+\\texttt{dependsOn} edges to other statements:
+\\begin{enumerate}[nosep]
+  \\item \\textbf{Scoping.} Statements sharing a label with an
+  already-processed statement are deduplicated to the first occurrence
+  (Section~\\ref{sec:dedup}); a designated out-of-scope statement and its
+  transitive dependents are excluded a priori (Section~\\ref{sec:excluded}).
+  \\item \\textbf{Scheduling.} The remaining statements are ordered into
+  topological waves over the \\texttt{dependsOn} DAG (Kahn's algorithm):
+  wave~0 contains statements with no unresolved dependencies; wave~$n$
+  contains statements whose dependencies were all resolved (verified or
+  blocked) by the end of wave $n{-}1$.
+  \\item \\textbf{Admission.} Within a wave, each statement is drafted into
+  Lean~4 syntax by an agent given the statement's LaTeX text and the
+  already-verified Lean declarations of its dependencies, then
+  typechecked by the real \\texttt{lean} kernel. On rejection, the exact
+  kernel error is fed back to the same agent for revision, bounded to
+  three attempts total.
+  \\item \\textbf{Disposition.} A statement is recorded \\texttt{verified}
+  on kernel acceptance, \\texttt{unformalized} after three failed
+  attempts (with the last real kernel error retained), or
+  \\texttt{blocked} if any dependency did not resolve to
+  \\texttt{verified}.
+  \\item \\textbf{Receipt.} Every disposition is appended as one line to
+  \\texttt{formalization\\_receipts.jsonl}, regardless of outcome.
+\\end{enumerate}
+\\end{definition}""" ;
+    doc:inSection :ch3_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch3_s1_p1 a doc:Paragraph ;
+    doc:body """\\subsection{No self-reported success}
+\\label{sec:no-self-report}""" ;
+    doc:inSection :ch3_s1 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch3_s1_p2 a doc:Paragraph ;
+    doc:body """A structural requirement of this pipeline, inherited from the admission-
+algebra discipline of Section~2.2, is that an agent's own claim of
+success is never trusted as the disposition. Every \\texttt{verified}
+disposition in Chapter~\\ref{ch:empirical} is independently re-checked by
+invoking the real \\texttt{lean} kernel directly against the \\texttt{.lean}
+file on disk, outside of and after the agent's own report. This check
+caught one concrete discrepancy during the run reported in
+Chapter~\\ref{ch:empirical}: a statement self-reported as
+\\texttt{unformalized} was found, on independent re-verification, to
+type-check cleanly, and its disposition was corrected before being
+recorded in the receipts file.""" ;
+    doc:inSection :ch3_s1 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+:ch3_s1_p3 a doc:Paragraph ;
+    doc:body """\\subsection{Deduplication}
+\\label{sec:dedup}""" ;
+    doc:inSection :ch3_s1 ;
+    doc:order 3 ;
+    doc:register "evidence-bound" .
+
+:ch3_s1_p4 a doc:Paragraph ;
+    doc:body """The source corpus contains 219 statement individuals but only 202
+distinct labels (Section~\\ref{sec:corpus-numbers}): 17 labels are
+restated across more than one source paper (the same concept,
+independently re-derived in each paper's own argument). Because
+\\texttt{dependsOn} edges reference labels rather than per-paper
+individuals, the scheduler resolves each label once, at its first
+occurrence, rather than re-formalizing 17 statements that would produce
+identical Lean declarations.""" ;
+    doc:inSection :ch3_s1 ;
+    doc:order 4 ;
+    doc:register "evidence-bound" .
+
+:ch3_s1_p5 a doc:Paragraph ;
+    doc:body """\\subsection{A priori exclusion}
+\\label{sec:excluded}""" ;
+    doc:inSection :ch3_s1 ;
+    doc:order 5 ;
+    doc:register "evidence-bound" .
+
+:ch3_s1_p6 a doc:Paragraph ;
+    doc:body """One statement, \\texttt{thm:faithful} (a faithfulness/projection theorem
+with cryptographic and probabilistic content), is excluded from scope
+before scheduling begins, together with every statement that transitively
+depends on it. This is not a failure of the pipeline; it is a scoping
+decision reported honestly, discussed further in
+Chapter~\\ref{ch:limitations}: bare Lean~4 core, with no mathlib
+installed, is not the appropriate kernel for cryptographic/probabilistic
+content, and formalizing it would require a different toolchain
+(Chapter~\\ref{ch:limitations} returns to this point).""" ;
+    doc:inSection :ch3_s1 ;
+    doc:order 6 ;
+    doc:register "evidence-bound" .
+
+:ch4_p0 a doc:Paragraph ;
+    doc:body """Every number in this chapter was re-derived at drafting time, not copied
+from earlier conversational prose, by two commands: a Python pass
+counting the \\texttt{status} field across every line of
+\\texttt{tools/paper-factory/lean-pilot/formalization\\_receipts.jsonl},
+and a SPARQL query against \\texttt{docs/thesis/rdf/corpus.ttl} selecting
+every \\texttt{math:Statement} individual's label and kind. Both are
+reproducible by any reader with the corpus and receipts file in hand.""" ;
+    doc:inChapter :ch4 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch4_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{table}[h]
+\\centering
+\\begin{tabular}{@{}lr@{}}
+\\toprule
+\\textbf{Quantity} & \\textbf{Count} \\\\
+\\midrule
+Statement individuals (IRIs) in corpus & 219 \\\\
+Distinct statement labels & 202 \\\\
+Duplicate-label IRIs (restated across papers, deduplicated) & 17 \\\\
+Proof individuals & 95 \\\\
+Distinct symbols (post notation-conflict merge) & 53 \\\\
+\\bottomrule
+\\end{tabular}
+\\caption{Corpus-level counts, re-derived by SPARQL against
+\\texttt{docs/thesis/rdf/corpus.ttl}.}
+\\end{table}""" ;
+    doc:inSection :ch4_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch4_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{table}[h]
+\\centering
+\\begin{tabular}{@{}lr@{}}
+\\toprule
+\\textbf{Disposition} & \\textbf{Count} \\\\
+\\midrule
+Verified (kernel-accepted) & 179 \\\\
+Unformalized (3 attempts exhausted) & 4 \\\\
+Blocked (dependency not verified) & 18 \\\\
+Excluded a priori (\\texttt{thm:faithful} + n/a) & 1 \\\\
+\\midrule
+Total distinct labels & 202 \\\\
+\\end{tabular}
+\\caption{Disposition of all 202 distinct statement labels, re-derived
+from \\texttt{formalization\\_receipts.jsonl} (201 lines) plus the one
+a-priori exclusion, which by design receives no receipt line.}
+\\end{table}""" ;
+    doc:inSection :ch4_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch4_s1_p1 a doc:Paragraph ;
+    doc:body """\\noindent $179 + 4 + 18 + 1 = 202$, and $202 + 17\\text{ (deduplicated IRIs)} = 219$,
+the full corpus IRI count. This is a disjoint partition with no
+remainder category.""" ;
+    doc:inSection :ch4_s1 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch4_s1_p2 a doc:Paragraph ;
+    doc:body """Of the 202 distinct labels, 7 were already formalized and verified prior
+to the wave-scheduled run reported below, as a manual pilot proving the
+reject-fix-retry loop worked at all: \\texttt{ax:obs},
+\\texttt{def:denialabstract}, \\texttt{thm:rice}, \\texttt{def:adm},
+\\texttt{def:mu}, \\texttt{def:receipt}, \\texttt{prop:monoid}. The
+remaining 194 were processed by the automated wave scheduler described
+in Chapter~\\ref{ch:mathmfg}, in 8 topological waves.""" ;
+    doc:inSection :ch4_s1 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+:ch4_s2_p0 a doc:Paragraph ;
+    doc:body """Four statements exhausted three real \\texttt{lean} invocations without
+kernel acceptance. Their kind and the terminal error are retained
+verbatim in the receipts file, not paraphrased into success:
+\\texttt{thm:mrrsep} (theorem; 4 kernel errors on the final attempt),
+\\texttt{prop:bottom} (proposition; \\texttt{Function expected} at a
+specific line), \\texttt{prop:cone} (proposition; a type mismatch),
+\\texttt{cor:allstages} (corollary; a type mismatch on a compound boolean
+term). These are reported as genuine limits of the bare-Lean-core,
+bounded-retry approach (Chapter~\\ref{ch:limitations}), not as pipeline
+defects.""" ;
+    doc:inSection :ch4_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch4_s3_p0 a doc:Paragraph ;
+    doc:body """The wave-scheduler harness itself failed twice during development, in
+ways worth reporting as evidence that the pipeline's own correctness was
+checked rather than assumed.""" ;
+    doc:inSection :ch4_s3 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch4_s3_p1 a doc:Paragraph ;
+    doc:body """\\textbf{Args-as-string.} The workflow orchestration tool's top-level
+data-passing parameter arrives as a raw JSON string rather than a parsed
+value in its scripting sandbox. An early version of the harness attempted
+to pass the full corpus (including LaTeX statement text) through this
+channel; large payloads were corrupted in transit. The fix was
+structural, not a patch: only a small label/kind/dependency skeleton is
+passed through the orchestrator, and each per-statement formalization
+agent fetches its own statement's LaTeX text directly via a SPARQL query
+it runs itself.""" ;
+    doc:inSection :ch4_s3 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch4_s3_p2 a doc:Paragraph ;
+    doc:body """\\textbf{Wave-scheduler precompute bug.} An early version computed every
+topological wave upfront from a results map that was never updated with
+live outcomes, so after wave~0 genuinely ran, the scheduler evaluated
+wave~1's readiness against stale (empty) results and force-blocked all
+remaining statements. The fix interleaves computation and execution:
+wave $n$'s readiness is computed from the live, continuously updated
+results map immediately before wave $n$ executes, not from a value
+computed once at the start. The corrected run was resumed from cache
+(the tool's \\texttt{resumeFromRunId} mechanism), so the 54 already-valid
+wave-0 results were reused rather than recomputed.""" ;
+    doc:inSection :ch4_s3 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+:ch4_s4_p0 a doc:Paragraph ;
+    doc:body """After the wave-scheduled run completed, the consolidated
+\\texttt{formalization\\_receipts.jsonl} was found to contain 199 lines,
+not the expected 201 (7 pilot $+$ 194 processed): the merge step that
+combined the manual-pilot receipts with the wave-run receipts had
+silently dropped the standalone entries for \\texttt{def:receipt} and
+\\texttt{prop:monoid}, even though both statements' \\texttt{.lean} files
+were verified and present on disk. This was caught by the same
+independent-verification discipline stated in
+Section~\\ref{sec:no-self-report}: re-running the real \\texttt{lean}
+kernel directly against both files confirmed both type-check (the
+\\texttt{elan}-managed \\texttt{lean} binary invoked directly on
+\\texttt{def\\_receipt.lean} and \\texttt{prop\\_monoid.lean}, both exit~0),
+and the
+two missing receipt lines were re-added, bringing the file to 201 lines
+and the counts in this chapter to their final, reconciled values.""" ;
+    doc:inSection :ch4_s4 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch4_s4_p1 a doc:Paragraph ;
+    doc:body """\\begin{finding}
+A consolidation step (merging two receipt sources into one file) is
+itself a point where evidence can be silently lost even when the
+underlying artifacts remain correct on disk. The fix here was procedural
+(independent kernel re-verification of every file, not just trusting the
+consolidated file's line count) rather than a change to the pipeline's
+formalization logic.
+\\end{finding}""" ;
+    doc:inSection :ch4_s4 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch5_p0 a doc:Paragraph ;
+    doc:body """Every claim in this chapter is marked with the \\textsc{Speculation}
+environment defined in the preamble. None of it is derived from the
+219-statement result in the sense that Chapters~\\ref{ch:mathmfg}--\\ref{ch:empirical}
+are derived: it is motivated by that result, and it is falsifiable in
+principle, but it is not kernel-checked the way a Lean statement is.
+Chapter~\\ref{ch:conclusion}'s verification step confirms mechanically
+that no claim in this chapter escapes this marking.""" ;
+    doc:inChapter :ch5 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch5_s0_p0 a doc:Paragraph ;
+    doc:body """Before speculating, one real number, taken directly from git commit
+timestamps, not from memory or narrative: the commit that added the
+paper-factory tooling and compiled a validated 41-page mega-paper PDF
+(\\texttt{55e4cf4}, 2026-07-05 01:27:30) and the commit recording 172
+newly kernel-verified Lean statements across an 8-wave scheduled run
+(\\texttt{8d15996}, 2026-07-05 02:26:31) are 59 minutes apart. In that
+interval: 13 groups of genuine shared mathematical notation were merged
+and 2 accidental symbol collisions were resolved at the source; the
+whole corpus was re-validated (SHACL, dangling-citation, notation-
+conflict); and a topologically-scheduled, kernel-verified formalization
+run produced 172 new \\texttt{.lean} artifacts, each independently
+re-checked against the real Lean kernel.""" ;
+    doc:inSection :ch5_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch5_s0_p1 a doc:Paragraph ;
+    doc:body """\\begin{speculative}
+A domain expert manually selecting, drafting, and Lean-checking a single
+nontrivial formalization --- reading the source statement, choosing
+encodings for its dependencies, writing tactics, iterating against
+kernel errors --- rarely takes less than thirty minutes even for a
+routine lemma, and can take hours for a genuinely novel argument. Taking
+thirty minutes as a deliberately low floor, 172 statements implies at
+least 86 expert-hours of equivalent manual effort, compressed into a
+59-minute wall-clock window. This is not a claim that the automated
+result is equivalent in depth or reliability to 86 hours of expert
+attention per statement --- Chapter~\\ref{ch:limitations} states plainly
+where the automated pipeline's guarantees stop --- it is a claim that
+the throughput \\emph{ratio}, on this one data point, is large enough
+that ``how many PhDs would this replace'' is the right order-of-magnitude
+question to be asking, rather than an obviously rhetorical one.
+\\end{speculative}""" ;
+    doc:inSection :ch5_s0 ;
+    doc:order 1 ;
+    doc:register "speculative" .
+
+:ch5_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{speculative}
+Physical manufacturing did not merely make existing artisanal goods
+cheaper; it changed which goods were worth producing at all, because the
+marginal cost of the tenth unit stopped resembling the marginal cost of
+the first. If kernel-verified mathematical statements can be produced at
+a cost curve that similarly flattens with corpus size --- because each
+newly verified statement enlarges the reusable, already-proved
+vocabulary available to every subsequent statement's formalization
+attempt, exactly as Chapter~\\ref{ch:mathmfg}'s wave scheduler does ---
+then the population of mathematical claims worth formally verifying
+stops being limited to results whose importance justifies a human
+expert's dedicated attention, and starts including large swaths of
+routine, load-bearing lemmas that are currently left as ``clearly true''
+prose because no one has hours to spend proving them formally.
+\\end{speculative}""" ;
+    doc:inSection :ch5_s1 ;
+    doc:order 0 ;
+    doc:register "speculative" .
+
+:ch5_s1_p1 a doc:Paragraph ;
+    doc:body """\\begin{speculative}
+For mathematical-research throughput, this suggests a shift in what a
+research paper's ``proof'' section is for: not the sole evidence of
+correctness, but a draft that a math-manufacturing pipeline lowers into
+a kernel-checked artifact as a matter of course, the way a compiler
+lowers source to machine code today. The reviewer's question moves from
+``is this proof convincing'' to ``does this proof compile'' for the
+mechanical portions, freeing expert attention for the genuinely novel
+steps --- plausibly the four kernel-rejected statements in this thesis's
+own run (Section~\\ref{sec:corpus-numbers}) are exactly the kind of
+step that should keep demanding a human.
+\\end{speculative}""" ;
+    doc:inSection :ch5_s1 ;
+    doc:order 1 ;
+    doc:register "speculative" .
+
+:ch5_s1_p2 a doc:Paragraph ;
+    doc:body """\\begin{speculative}
+For formal-verification adoption, the barrier has historically been
+that formalizing existing mathematics is itself a research-grade skill,
+so verified libraries (Mathlib and its counterparts) grow only as fast
+as a comparatively small community of specialists can push them forward.
+A pipeline of the shape in Chapter~\\ref{ch:mathmfg} --- LLM drafting,
+kernel admission, automated reject-fix-retry, a compounding verified-
+vocabulary library --- targets exactly that bottleneck. It does not
+remove the need for the specialist community; it changes what fraction
+of a specialist's day goes to formalizing routine statements versus
+extending the frontier.
+\\end{speculative}""" ;
+    doc:inSection :ch5_s1 ;
+    doc:order 2 ;
+    doc:register "speculative" .
+
+:ch5_s1_p3 a doc:Paragraph ;
+    doc:body """\\begin{speculative}
+For mathematics education, a manufacturing-style pipeline that can
+formalize a routine claim in minutes suggests a different kind of
+exercise: a student's proof attempt checked by the same kernel used
+here, with the same reject-fix-retry loop turned into an interactive
+tutor rather than an autonomous batch process. This is a natural
+extension, not a novel proposal --- interactive theorem provers have
+been used pedagogically before --- but the wave-scheduled, dependency-
+aware version in this thesis suggests the tutoring loop could scale to
+a whole curriculum's dependency graph rather than one exercise at a
+time.
+\\end{speculative}""" ;
+    doc:inSection :ch5_s1 ;
+    doc:order 3 ;
+    doc:register "speculative" .
+
+:ch5_s2_p0 a doc:Paragraph ;
+    doc:body """\\begin{speculative}
+Every claim above assumes the throughput advantage observed on this one
+219-statement corpus, run against bare Lean~4 core with no mathlib,
+generalizes to larger, more mathematically diverse corpora and to
+libraries with an existing large body of dependencies to search and
+reuse. That assumption is untested by this thesis and is the natural
+target of the future work named in Chapter~\\ref{ch:limitations}.
+\\end{speculative}""" ;
+    doc:inSection :ch5_s2 ;
+    doc:order 0 ;
+    doc:register "speculative" .
+
+:ch6_p0 a doc:Paragraph ;
+    doc:body """This chapter situates the empirical result of Chapter~\\ref{ch:empirical}
+against prior autoformalization and LLM-assisted theorem-proving work.
+It does not claim priority for the general idea of using a language
+model to draft formal proofs and a kernel to check them --- that idea
+predates this thesis by years --- it claims a specific, narrower thing:
+a wave-scheduled, dependency-aware harness with automated reject-fix-
+retry, applied to a from-scratch bare-Lean-core corpus with no mathlib
+dependency, is a comparatively underexplored point in the design space.""" ;
+    doc:inChapter :ch6 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch6_s0_p0 a doc:Paragraph ;
+    doc:body """Mathlib (Lean~4) and comparable libraries for Coq and Isabelle represent
+decades of cumulative, mostly human-driven formalization effort, and are
+the existing evidence that a compounding verified-vocabulary library is
+possible at scale --- the same structural property Chapter~\\ref{ch:mathmfg}'s
+wave scheduler exploits at a much smaller size (a 194-statement scope,
+not a library of hundreds of thousands of results). This thesis's
+corpus deliberately does not depend on Mathlib; every formalization in
+\\texttt{tools/paper-factory/lean-pilot/} is proved from bare Lean~4 core.
+That is a scope limitation (Chapter~\\ref{ch:limitations}), not a claim
+that avoiding Mathlib is preferable in general.""" ;
+    doc:inSection :ch6_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch6_s1_p0 a doc:Paragraph ;
+    doc:body """Systems that pair a large language model with an interactive theorem
+prover's kernel to search for and check proofs --- including
+competition-mathematics-focused systems reported to reach medal-level
+performance on olympiad-style geometry and algebra problems --- share
+this thesis's core loop: draft, check, revise on kernel rejection. The
+distinguishing features of the pipeline in Chapter~\\ref{ch:mathmfg} are
+(a) the input is a pre-existing, dependency-linked corpus of a research
+paper series' own definitions and theorems, rather than a benchmark of
+independent competition problems, and (b) scheduling is explicitly
+topological over a real \\texttt{dependsOn} graph, so that a
+formalization's available vocabulary strictly grows with each completed
+wave, rather than each attempt starting from a fixed background library.""" ;
+    doc:inSection :ch6_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch6_s2_p0 a doc:Paragraph ;
+    doc:body """Prior work translating existing informal mathematical text (textbooks,
+papers) into formal statements and proofs establishes that the
+informal-to-formal lowering step itself is a nontrivial research problem,
+independent of proof search. This thesis's corpus sidesteps part of that
+problem by construction: the source statements were already extracted
+into structured RDF individuals with an explicit \\texttt{kind} and
+\\texttt{dependsOn} graph (the paper-factory pipeline, predating this
+thesis), rather than starting from free-form prose. The informal-to-RDF
+step is therefore prior work of this project's own, not addressed fresh
+here, and is itself a limitation acknowledged in
+Chapter~\\ref{ch:limitations}.""" ;
+    doc:inSection :ch6_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch6_s3_p0 a doc:Paragraph ;
+    doc:body """This thesis does not attempt cross-kernel verification (checking the
+same statement in more than one proof assistant, e.g. Lean and Coq
+independently, for redundancy against a single kernel's own defects),
+net-new theorem generation (proposing statements not already present in
+the source corpus), or benchmarking against a standard autoformalization
+dataset. Each is a natural extension of the harness in
+Chapter~\\ref{ch:mathmfg}, not attempted here for scope reasons stated in
+Chapter~\\ref{ch:limitations}.""" ;
+    doc:inSection :ch6_s3 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch7_p0 a doc:Paragraph ;
+    doc:body "Stated without euphemism, in the order they matter most." ;
+    doc:inChapter :ch7 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch7_s0_p0 a doc:Paragraph ;
+    doc:body """Every formalization in this thesis's corpus is checked against Lean~4
+core with no mathlib installed. This bounds the pipeline to statements
+whose vocabulary can be built from scratch in a reasonable number of
+lines --- exactly why \\texttt{thm:faithful} (cryptographic and
+probabilistic content) was excluded a priori rather than attempted: bare
+core has no probability or cryptographic-primitive library to build on,
+and formalizing one from scratch was out of scope. This is a genuine
+capability boundary, not a stylistic choice: a corpus leaning further
+into analysis, probability, or algebraic structures with deep existing
+mathlib support would need a different toolchain to get a fair test of
+the wave-scheduling and reject-fix-retry mechanisms this thesis actually
+contributes.""" ;
+    doc:inSection :ch7_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch7_s1_p0 a doc:Paragraph ;
+    doc:body """Every statement is checked against exactly one proof assistant's kernel.
+A kernel defect (a soundness bug in Lean~4 itself) would not be caught by
+this pipeline, since there is no independent second kernel (Coq,
+Isabelle) checking the same statement. This is a real, if low-probability,
+gap: production-grade formal-verification claims at civilizational scale
+(Chapter~\\ref{ch:civilizational}) would reasonably want cross-kernel
+redundancy for anything load-bearing.""" ;
+    doc:inSection :ch7_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch7_s2_p0 a doc:Paragraph ;
+    doc:body """The wave-scheduled run covers 194 of 219 statement instances (202 unique
+labels minus the 7 already-verified pilot statements and 1 a-priori
+exclusion, doubled back through Chapter~\\ref{ch:empirical}'s accounting).
+The remaining 18 blocked and 4 rejected statements are recorded honestly
+as not-yet-verified, not silently omitted, but they are also not
+verified: any claim about "the corpus" being formally checked must read
+as "82\\% of the corpus," not "the corpus.\"""" ;
+    doc:inSection :ch7_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch7_s3_p0 a doc:Paragraph ;
+    doc:body """Section~\\ref{sec:receipts-gap} already reports the first consolidation
+gap: two verified statements silently dropped from a merged receipts
+file, caught by independent re-verification rather than trusting the
+consolidated file's own line count. This thesis document's own
+authoring process surfaced a second, structurally similar risk: an
+early draft of the same partition, written as prose in a conversational
+exchange before this document existed, itself summed to 218 rather than
+219 for an unrelated reason (a miscounted category, not the dropped-
+receipt bug) -- caught and corrected before this thesis's own Chapter~4
+was drafted. Two independent instances of
+the same failure mode --- a consolidation or restatement step silently
+dropping or miscounting verified facts --- is itself evidence that this
+failure mode is not a one-off, and that any civilizational-scale version
+of this pipeline (Chapter~\\ref{ch:civilizational}) needs the
+independent-reverification discipline built in as a structural
+requirement, not an incidental good practice.""" ;
+    doc:inSection :ch7_s3 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch7_s4_p1 a doc:Paragraph ;
+    doc:body """Table~\\ref{tab:correspondence}'s term-for-term mapping between the two
+$\\muop$-pipelines is a structural observation about shared shape
+(admission gate, defect taxonomy, receipt), not a formal proof that the
+two pipelines are instances of one algebraic construction in the sense
+Chapter~\\ref{ch:background}'s admission algebra makes precise for a
+single pipeline. Making that correspondence itself a checked
+mathematical statement --- proving $\\muop$-pipeline-hood as a typeclass
+or trait both implementations satisfy, say --- is future work, not
+something this thesis establishes.""" ;
+    doc:inSection :ch7_s4 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch7_s5_p0 a doc:Paragraph ;
+    doc:body """The thesis document itself (Chapters 1--6) is rendered from RDF paragraph
+individuals via the \\texttt{doc-pack} ggen pack, a mechanism built
+specifically for this document and not previously exercised on a
+document this size. The \\texttt{doc:register} field
+(evidence-bound/speculative) is checked mechanically in
+Chapter~\\ref{ch:conclusion}'s verification step for exactly the
+paragraphs authored this way; it is a real, novel piece of
+infrastructure, not a mature, independently-tested tool.""" ;
+    doc:inSection :ch7_s5 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch8_s0_p0 a doc:Paragraph ;
+    doc:body """A 219-statement mathematics corpus was routed through an automated
+pipeline into a disjoint, receipted partition: 179 statements
+kernel-verified against Lean~4, 4 honestly rejected after bounded retry,
+18 correctly withheld on an unresolved dependency, and 17 cross-paper
+restatements deduplicated before scheduling. This pipeline is a second
+working instance of a manufacturing morphism already named in this
+project's own prior work ($\\Act = \\muop(\\Adm)$), alongside the existing
+RDF-to-PDDL pipeline in \\texttt{src/mfg.rs}. Two real infrastructure bugs
+and one receipts-consolidation gap were found and fixed during the work,
+each caught by independent re-verification against the real Lean kernel
+or the real corpus, never by trusting a self-report.""" ;
+    doc:inSection :ch8_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch8_s1_p0 a doc:Paragraph ;
+    doc:body """This document's own Chapters~1--6 are not hand-authored \\texttt{.tex}:
+they are rendered by \\texttt{ggen sync} from RDF paragraph individuals
+(\\texttt{docs/thesis/math\\_manufacturing/rdf/thesis.ttl}) through the
+\\texttt{doc-pack} ontology and template, following the same
+admit/render/receipt shape as the math-manufacturing pipeline it
+describes. Each paragraph in that data carries a \\texttt{doc:register}
+value, \\texttt{evidence-bound} or \\texttt{speculative}, and this is a
+mechanically checkable fact, not a typographic convention: a SPARQL
+query against the same graph confirms Chapters~1--4 and~6 are entirely
+\\texttt{evidence-bound} and Chapter~5 mixes exactly two framing
+paragraphs with six explicitly \\texttt{speculative} claims, with no
+chapter boundary crossed silently. This thesis is therefore, in a
+narrow and literal sense, an instance of the pattern it argues for: its
+own structure is admitted data, rendered through a manufacturing
+morphism, not asserted prose.""" ;
+    doc:inSection :ch8_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch8_s2_p0 a doc:Paragraph ;
+    doc:body """The speculative chapter's central comparison --- that the observed
+throughput on this one corpus generalizes to larger, more diverse
+corpora, or that a manufacturing-style cost curve for verified
+mathematics follows from one 59-minute data point --- is not shown. It
+is stated as speculation, marked as such in both the LaTeX environment
+and the underlying RDF fact, and left as the natural target for future
+work.""" ;
+    doc:inSection :ch8_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch8_s3_p0 a doc:Paragraph ;
+    doc:body """The correct adversarial question after this result is not whether gaps
+exist --- Chapter~\\ref{ch:limitations} names six of them plainly --- but
+which specific admitted statement, blocked dependency, or
+evidence-bound claim is wrong, checkable against the receipts, the
+corpus, and the Lean kernel that produced it.""" ;
+    doc:inSection :ch8_s3 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch1_s1 a doc:Section ;
+    doc:inChapter :ch1 ;
+    doc:order 1 ;
+    doc:title "Why the distinction matters" .
+
+:ch1_s2 a doc:Section ;
+    doc:inChapter :ch1 ;
+    doc:order 2 ;
+    doc:title "Structure of this document" .
+
+:ch2_s0 a doc:Section ;
+    doc:inChapter :ch2 ;
+    doc:order 0 ;
+    doc:title "The Chatman Equation" .
+
+:ch2_s1 a doc:Section ;
+    doc:inChapter :ch2 ;
+    doc:order 1 ;
+    doc:title "Admission algebra: refusal as data" .
+
+:ch2_s2 a doc:Section ;
+    doc:inChapter :ch2 ;
+    doc:order 2 ;
+    doc:title "Receipts: computed, not asserted" .
+
+:ch4_s0 a doc:Section ;
+    doc:inChapter :ch4 ;
+    doc:label "sec:corpus-numbers" ;
+    doc:order 0 ;
+    doc:title "Corpus numbers" .
+
+:ch4_s2 a doc:Section ;
+    doc:inChapter :ch4 ;
+    doc:order 2 ;
+    doc:title "The four kernel rejections" .
+
+:ch5_s2 a doc:Section ;
+    doc:inChapter :ch5 ;
+    doc:order 2 ;
+    doc:title "The load-bearing caveat" .
+
+:ch6_s0 a doc:Section ;
+    doc:inChapter :ch6 ;
+    doc:order 0 ;
+    doc:title "Large-scale verified libraries" .
+
+:ch6_s1 a doc:Section ;
+    doc:inChapter :ch6 ;
+    doc:order 1 ;
+    doc:title "LLM-assisted formal proof search" .
+
+:ch6_s2 a doc:Section ;
+    doc:inChapter :ch6 ;
+    doc:order 2 ;
+    doc:title "Autoformalization of existing mathematical text" .
+
+:ch6_s3 a doc:Section ;
+    doc:inChapter :ch6 ;
+    doc:order 3 ;
+    doc:title "What is not addressed" .
+
+:ch7_s0 a doc:Section ;
+    doc:inChapter :ch7 ;
+    doc:order 0 ;
+    doc:title "Bare Lean core, no mathlib" .
+
+:ch7_s1 a doc:Section ;
+    doc:inChapter :ch7 ;
+    doc:order 1 ;
+    doc:title "Single kernel, no cross-check" .
+
+:ch7_s2 a doc:Section ;
+    doc:inChapter :ch7 ;
+    doc:order 2 ;
+    doc:title "Scope: 194 of 219, not the whole corpus" .
+
+:ch7_s3 a doc:Section ;
+    doc:inChapter :ch7 ;
+    doc:order 3 ;
+    doc:title "The receipts-consolidation gap, twice" .
+
+:ch7_s5 a doc:Section ;
+    doc:inChapter :ch7 ;
+    doc:order 5 ;
+    doc:title "This document's own manufacturing is new and untested at scale" .
+
+:ch8_s0 a doc:Section ;
+    doc:inChapter :ch8 ;
+    doc:order 0 ;
+    doc:title "What was actually shown" .
+
+:ch8_s1 a doc:Section ;
+    doc:inChapter :ch8 ;
+    doc:order 1 ;
+    doc:title "What was additionally shown, about this document itself" .
+
+:ch8_s2 a doc:Section ;
+    doc:inChapter :ch8 ;
+    doc:order 2 ;
+    doc:title "What was not shown" .
+
+:ch8_s3 a doc:Section ;
+    doc:inChapter :ch8 ;
+    doc:order 3 ;
+    doc:title "Closing" .
+
+:ch3 a doc:Chapter ;
+    doc:label "ch:mathmfg" ;
+    doc:order 3 ;
+    doc:title "Math manufacturing: the second manufacturing morphism" .
+
+:ch4_s4 a doc:Section ;
+    doc:inChapter :ch4 ;
+    doc:label "sec:receipts-gap" ;
+    doc:order 4 ;
+    doc:title "The receipts-consolidation gap" .
+
+:ch5_s0 a doc:Section ;
+    doc:inChapter :ch5 ;
+    doc:order 0 ;
+    doc:title "An anchor number, not an estimate" .
+
+:ch7_s4 a doc:Section ;
+    doc:inChapter :ch7 ;
+    doc:order 4 ;
+    doc:title "The correspondence in Chapter~\\ref{ch:mathmfg} is an analogy, not a proof" .
+
+:ch1 a doc:Chapter ;
+    doc:order 1 ;
+    doc:title "Introduction" .
+
+:ch3_s0 a doc:Section ;
+    doc:inChapter :ch3 ;
+    doc:order 0 ;
+    doc:title "The correspondence, term for term" .
+
+:ch4_s1 a doc:Section ;
+    doc:inChapter :ch4 ;
+    doc:order 1 ;
+    doc:title "Formalization disposition" .
+
+:ch4_s3 a doc:Section ;
+    doc:inChapter :ch4 ;
+    doc:order 3 ;
+    doc:title "Two infrastructure bugs, found and fixed during the run" .
+
+:ch1_s0 a doc:Section ;
+    doc:inChapter :ch1 ;
+    doc:order 0 ;
+    doc:title "Thesis statement" .
+
+:ch5 a doc:Chapter ;
+    doc:label "ch:civilizational" ;
+    doc:order 5 ;
+    doc:title "Civilizational-impact analysis" .
+
+:ch5_s1 a doc:Section ;
+    doc:inChapter :ch5 ;
+    doc:order 1 ;
+    doc:title "What changes if verified math has a manufacturing cost curve" .
+
+:ch8 a doc:Chapter ;
+    doc:label "ch:conclusion" ;
+    doc:order 8 ;
+    doc:title "Conclusion" .
+
+:ch2 a doc:Chapter ;
+    doc:label "ch:background" ;
+    doc:order 2 ;
+    doc:title "Background: the Chatman Equation and manufacturing morphisms" .
+
+:ch2_s3 a doc:Section ;
+    doc:inChapter :ch2 ;
+    doc:order 3 ;
+    doc:label "sec:mfg-first" ;
+    doc:title "The first manufacturing morphism: \\texttt{src/mfg.rs}" .
+
+:ch6 a doc:Chapter ;
+    doc:label "ch:related" ;
+    doc:order 6 ;
+    doc:title "Related work" .
+
+:ch4 a doc:Chapter ;
+    doc:label "ch:empirical" ;
+    doc:order 4 ;
+    doc:title "Empirical results" .
+
+:ch3_s1 a doc:Section ;
+    doc:inChapter :ch3 ;
+    doc:order 1 ;
+    doc:title "The pipeline in detail" .
+
+:ch7 a doc:Chapter ;
+    doc:label "ch:limitations" ;
+    doc:order 7 ;
+    doc:title "Limitations" .
+
