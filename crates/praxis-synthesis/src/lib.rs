@@ -33,11 +33,11 @@ pub mod datalog;
 pub mod delta;
 pub mod envelope;
 pub mod fault;
-pub mod fleet;
-pub mod geometry;
-pub mod gen;
-pub mod glue;
 pub mod firing;
+pub mod fleet;
+pub mod gen;
+pub mod geometry;
+pub mod glue;
 pub mod graph;
 pub mod ground;
 pub mod handlers;
@@ -56,18 +56,24 @@ pub mod supervise;
 pub mod verify;
 pub mod wal;
 
-pub use agent_registry::{agent_canonical_form, agent_registry_hash, extract_agents, spawn_depth_law, AgentProfile};
+pub use agent_registry::{
+    agent_canonical_form, agent_registry_hash, extract_agents, spawn_depth_law, AgentProfile,
+};
 pub use dag::{Dag, DagReceipt, HashRunner, MemoCache, NodeReceipt, NodeRunner};
 pub use datalog::{Atom, DlRule, Program, SaturationReceipt, Term};
-pub use glue::{compose_workflows, execute_composed, ComposedGraph, ComposedWorkflowReceipt};
 pub use delta::GraphDelta;
-pub use envelope::{wrap_firing_receipt, wrap_workflow_receipt, verify_envelope_chain, PayloadRef, ReceiptEnvelope};
+pub use envelope::{
+    verify_envelope_chain, wrap_firing_receipt, wrap_workflow_receipt, PayloadRef, ReceiptEnvelope,
+};
+pub use firing::{
+    fire_hooks, replay_firing, to_ocel_event, window_history_hash, FiringOutcome, HookFiringReceipt,
+};
+pub use glue::{compose_workflows, execute_composed, ComposedGraph, ComposedWorkflowReceipt};
 #[deprecated(since = "26.7.2", note = "use RiceQuarantine and Admission instead")]
 pub use graph::execute_workflow;
 #[deprecated(since = "26.7.2", note = "use RiceQuarantine and Admission instead")]
 pub use graph::execute_workflow_with;
 pub use graph::{replay_workflow, WorkflowIr, WorkflowReceipt};
-pub use firing::{fire_hooks, replay_firing, window_history_hash, FiringOutcome, HookFiringReceipt};
 pub use ground::{capability_task_spec, ground_fired_action, CapabilityTaskSpec};
 pub use handlers::{Delegability, HandlerBinding, HandlerRegistry};
 pub use hooks::{
@@ -78,11 +84,11 @@ pub use kernel::{extract_kernel, kernel_hash, PrayerClause};
 pub use livelock::{
     detect, detection_program, rehearsal_exceeded, LivelockClass, ALL_CLASSES, STEPS,
 };
+pub use pipeline::{Synthesis, SynthesisReceipt};
 pub use quarantine::{
     Admission, AdmissionRecord, AdmittedEvent, MeaningSource, Origin, Reference, RiceQuarantine,
 };
-pub use reality::{RealityAddressRecord, SPACE_PREDICATE, PROVENANCE_PREDICATE, TIME_PREDICATE};
-pub use pipeline::{Synthesis, SynthesisReceipt};
+pub use reality::{RealityAddressRecord, PROVENANCE_PREDICATE, SPACE_PREDICATE, TIME_PREDICATE};
 pub use sequence::{
     BoundStep, BoundedCsp, Capability, Constraint, SequencePlan, SequenceProblem, SolveReceipt,
     Solver,
@@ -222,7 +228,9 @@ pub enum Refusal {
     },
     /// A hook declared a condition kind praxis has no bounded engine for.
     /// Refused by name — never faked — with the honest analog stated.
-    #[error("condition kind '{kind}' unsupported on {subject}; supported analog: {supported_analog}")]
+    #[error(
+        "condition kind '{kind}' unsupported on {subject}; supported analog: {supported_analog}"
+    )]
     ConditionUnsupported {
         /// The declared kind.
         kind: String,

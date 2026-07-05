@@ -27,8 +27,9 @@ use crate::delta::{delta_ttl_hash, GraphDelta};
 use crate::graph::WorkflowReceipt;
 use crate::ground::ground_fired_action;
 use crate::handlers::{extract_bindings, handler_hash, HandlerBinding, HandlerRegistry};
-use crate::hooks::{evaluate_hooks, extract_hooks, hook_hash, EffectKind, HookVerdict,
-    HookVerdictRecord};
+use crate::hooks::{
+    evaluate_hooks, extract_hooks, hook_hash, EffectKind, HookVerdict, HookVerdictRecord,
+};
 use crate::quarantine::{Admission, AdmissionRecord, MeaningSource, Reference, RiceQuarantine};
 use crate::Refusal;
 
@@ -239,39 +240,43 @@ pub fn fire_hooks(
     // Pre-evaluation lawful refusals share one receipt shape: hooks were
     // never evaluated, so the verdict list is empty and its hash covers
     // exactly that emptiness.
-    let pre_evaluation_refusal = |stage: &str, reason: String| -> Result<HookFiringReceipt, Refusal> {
-        let outcome = FiringOutcome::Refused { stage: stage.to_string(), reason };
-        let outcome_hash = json_hash(&outcome, "outcome")?;
-        let verdicts: Vec<HookVerdictRecord> = Vec::new();
-        let hook_hash_v = hook_hash(&verdicts)?;
-        let chain = fold_firing_chain(
-            &event_hash,
-            &admission_hash,
-            &handler_hash_v,
-            &agent_registry_hash_v,
-            &hook_hash_v,
-            &history_hash_v,
-            &[],
-            &outcome_hash,
-        );
-        Ok(HookFiringReceipt {
-            delta_ttl_hash: delta_ttl_hash.clone(),
-            event_hash: event_hash.clone(),
-            admission: admission.clone(),
-            admission_hash: admission_hash.clone(),
-            bindings: bindings.clone(),
-            handler_hash: handler_hash_v.clone(),
-            agents: agents.clone(),
-            agent_registry_hash: agent_registry_hash_v.clone(),
-            verdicts,
-            hook_hash: hook_hash_v,
-            history_hash: history_hash_v.clone(),
-            inner: Vec::new(),
-            outcome,
-            outcome_hash,
-            chain,
-        })
-    };
+    let pre_evaluation_refusal =
+        |stage: &str, reason: String| -> Result<HookFiringReceipt, Refusal> {
+            let outcome = FiringOutcome::Refused {
+                stage: stage.to_string(),
+                reason,
+            };
+            let outcome_hash = json_hash(&outcome, "outcome")?;
+            let verdicts: Vec<HookVerdictRecord> = Vec::new();
+            let hook_hash_v = hook_hash(&verdicts)?;
+            let chain = fold_firing_chain(
+                &event_hash,
+                &admission_hash,
+                &handler_hash_v,
+                &agent_registry_hash_v,
+                &hook_hash_v,
+                &history_hash_v,
+                &[],
+                &outcome_hash,
+            );
+            Ok(HookFiringReceipt {
+                delta_ttl_hash: delta_ttl_hash.clone(),
+                event_hash: event_hash.clone(),
+                admission: admission.clone(),
+                admission_hash: admission_hash.clone(),
+                bindings: bindings.clone(),
+                handler_hash: handler_hash_v.clone(),
+                agents: agents.clone(),
+                agent_registry_hash: agent_registry_hash_v.clone(),
+                verdicts,
+                hook_hash: hook_hash_v,
+                history_hash: history_hash_v.clone(),
+                inner: Vec::new(),
+                outcome,
+                outcome_hash,
+                chain,
+            })
+        };
 
     if let Err(refusal) = registry.judge_known(&bindings) {
         return pre_evaluation_refusal("handler", refusal.to_string());
@@ -300,15 +305,21 @@ pub fn fire_hooks(
     let hook_hash_v = hook_hash(&verdicts)?;
 
     // Declared refusal: the highest-priority fired refuse-effect hook wins.
-    let declared_refusal = verdicts.iter().find(|r| {
-        r.verdict == HookVerdict::Fired && r.effect == EffectKind::Refuse
-    });
+    let declared_refusal = verdicts
+        .iter()
+        .find(|r| r.verdict == HookVerdict::Fired && r.effect == EffectKind::Refuse);
     let (inner, outcome) = if let Some(r) = declared_refusal {
         let hook = hooks.iter().find(|h| h.iri == r.hook_iri);
         let reason = hook
             .and_then(|h| h.reason.clone())
             .unwrap_or_else(|| "declared refusal".to_string());
-        (Vec::new(), FiringOutcome::Refused { stage: "declared-refusal".to_string(), reason })
+        (
+            Vec::new(),
+            FiringOutcome::Refused {
+                stage: "declared-refusal".to_string(),
+                reason,
+            },
+        )
     } else {
         // Ground each fired action, then judge delegability SCOPED to the
         // capabilities that action's derived plan uses (grounding is a pure
@@ -321,8 +332,12 @@ pub fn fire_hooks(
         for record in &verdicts {
             if record.verdict == HookVerdict::Fired && record.effect == EffectKind::GroundAction {
                 let receipt = ground_fired_action(&event, record)?;
-                let used: std::collections::BTreeSet<String> =
-                    receipt.plan.steps.iter().map(|s| s.capability.clone()).collect();
+                let used: std::collections::BTreeSet<String> = receipt
+                    .plan
+                    .steps
+                    .iter()
+                    .map(|s| s.capability.clone())
+                    .collect();
                 if let Err(refusal) = registry.judge_delegability(&bindings, &used) {
                     violation = Some(refusal);
                     break;
@@ -388,34 +403,66 @@ pub fn replay_firing(
     let rederived = fire_hooks(&reference, source, registry, history)?;
     let stages: [(&str, &str, &str); 8] = [
         ("event_hash", &rederived.event_hash, &receipt.event_hash),
-        ("admission_hash", &rederived.admission_hash, &receipt.admission_hash),
-        ("handler_hash", &rederived.handler_hash, &receipt.handler_hash),
-        ("agent_registry_hash", &rederived.agent_registry_hash, &receipt.agent_registry_hash),
+        (
+            "admission_hash",
+            &rederived.admission_hash,
+            &receipt.admission_hash,
+        ),
+        (
+            "handler_hash",
+            &rederived.handler_hash,
+            &receipt.handler_hash,
+        ),
+        (
+            "agent_registry_hash",
+            &rederived.agent_registry_hash,
+            &receipt.agent_registry_hash,
+        ),
         ("hook_hash", &rederived.hook_hash, &receipt.hook_hash),
-        ("history_hash", &rederived.history_hash, &receipt.history_hash),
-        ("outcome_hash", &rederived.outcome_hash, &receipt.outcome_hash),
+        (
+            "history_hash",
+            &rederived.history_hash,
+            &receipt.history_hash,
+        ),
+        (
+            "outcome_hash",
+            &rederived.outcome_hash,
+            &receipt.outcome_hash,
+        ),
         ("chain", &rederived.chain, &receipt.chain),
     ];
     for (name, computed, claimed) in stages {
         if computed != claimed {
-            return Err(Refusal::VerificationFailed { failed: vec![name.to_string()] });
+            return Err(Refusal::VerificationFailed {
+                failed: vec![name.to_string()],
+            });
         }
     }
     // Payload bindings: bodies must reproduce the verified hashes.
     if receipt.admission.admission_hash()? != receipt.admission_hash {
-        return Err(Refusal::VerificationFailed { failed: vec!["admission payload".to_string()] });
+        return Err(Refusal::VerificationFailed {
+            failed: vec!["admission payload".to_string()],
+        });
     }
     if handler_hash(&receipt.bindings) != receipt.handler_hash {
-        return Err(Refusal::VerificationFailed { failed: vec!["binding payload".to_string()] });
+        return Err(Refusal::VerificationFailed {
+            failed: vec!["binding payload".to_string()],
+        });
     }
     if agent_registry_hash(&receipt.agents) != receipt.agent_registry_hash {
-        return Err(Refusal::VerificationFailed { failed: vec!["agent registry payload".to_string()] });
+        return Err(Refusal::VerificationFailed {
+            failed: vec!["agent registry payload".to_string()],
+        });
     }
     if hook_hash(&receipt.verdicts)? != receipt.hook_hash {
-        return Err(Refusal::VerificationFailed { failed: vec!["verdict payload".to_string()] });
+        return Err(Refusal::VerificationFailed {
+            failed: vec!["verdict payload".to_string()],
+        });
     }
     if json_hash(&receipt.outcome, "outcome")? != receipt.outcome_hash {
-        return Err(Refusal::VerificationFailed { failed: vec!["outcome payload".to_string()] });
+        return Err(Refusal::VerificationFailed {
+            failed: vec!["outcome payload".to_string()],
+        });
     }
     if rederived.inner.len() != receipt.inner.len()
         || rederived
@@ -424,7 +471,79 @@ pub fn replay_firing(
             .zip(receipt.inner.iter())
             .any(|(a, b)| a.chain != b.chain)
     {
-        return Err(Refusal::VerificationFailed { failed: vec!["inner chains".to_string()] });
+        return Err(Refusal::VerificationFailed {
+            failed: vec!["inner chains".to_string()],
+        });
     }
     Ok(())
+}
+
+/// Render one [`HookFiringReceipt`] as an OCEL 2.0-shaped JSON event.
+///
+/// Read-only projection of data the receipt already carries — no I/O, no new
+/// hash folded into the firing chain. `time` is populated from `reality`'s
+/// `time_anchor` only if the caller bound a [`crate::reality::RealityAddressRecord`]
+/// for this firing (typically on the fired action's IRI); a firing with no
+/// such anchor omits `time` entirely rather than inventing a wall-clock
+/// value (PROJ-301's no-invented-time doctrine, honored here).
+#[must_use]
+pub fn to_ocel_event(
+    receipt: &HookFiringReceipt,
+    reality: Option<&crate::reality::RealityAddressRecord>,
+) -> serde_json::Value {
+    let (outcome_str, mut attributes) = match &receipt.outcome {
+        FiringOutcome::Completed => ("Completed", serde_json::Map::new()),
+        FiringOutcome::Refused { stage, reason } => {
+            let mut m = serde_json::Map::new();
+            m.insert(
+                "stage".to_string(),
+                serde_json::Value::String(stage.clone()),
+            );
+            m.insert(
+                "reason".to_string(),
+                serde_json::Value::String(reason.clone()),
+            );
+            ("Refused", m)
+        }
+    };
+    attributes.insert(
+        "outcome".to_string(),
+        serde_json::Value::String(outcome_str.to_string()),
+    );
+    attributes.insert(
+        "hook_hash".to_string(),
+        serde_json::Value::String(receipt.hook_hash.clone()),
+    );
+    attributes.insert(
+        "event_hash".to_string(),
+        serde_json::Value::String(receipt.event_hash.clone()),
+    );
+
+    let relationships: Vec<serde_json::Value> = receipt
+        .bindings
+        .iter()
+        .map(|b| {
+            serde_json::json!({
+                "objectId": b.handler,
+                "qualifier": "handler-binding",
+            })
+        })
+        .collect();
+
+    let mut event = serde_json::json!({
+        "id": receipt.outcome_hash,
+        "type": "hook-firing",
+        "relationships": relationships,
+        "attributes": attributes,
+    });
+    if let Some(time) = reality.and_then(|r| r.time_anchor()) {
+        event
+            .as_object_mut()
+            .expect("event is always a JSON object")
+            .insert(
+                "time".to_string(),
+                serde_json::Value::String(time.to_string()),
+            );
+    }
+    event
 }

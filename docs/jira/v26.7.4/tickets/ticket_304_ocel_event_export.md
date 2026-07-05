@@ -1,7 +1,7 @@
-# Ticket: OCEL V2 Event Export from Existing Firing Receipts
+# Ticket: OCEL V2 Event Export from Existing Firing Receipts — CLOSED
 
 ## Title
-Add `firing::to_ocel_event` — a pure-function OCEL 2.0 JSON renderer over `HookFiringReceipt` (PROJ-304)
+Add `firing::to_ocel_event` — a pure-function OCEL 2.0 JSON renderer over `HookFiringReceipt` (PROJ-304) — **STATUS: CLOSED**
 
 ## Description
 The vision doc's "OCEL V2 = call-detail record" claim is answerable without any new event
