@@ -765,6 +765,80 @@ time.
     doc:order 3 ;
     doc:register "speculative" .
 
+:ch5_s1b_p0 a doc:Paragraph ;
+    doc:body """Section~\\ref{sec:composite-chain} separates what each layer of the
+chain does; this section separates what would need to be \\emph{paid
+for} to reproduce it, because collapsing these into one number hides
+where the real cost sits. Three things price differently: (i) the
+formalization output itself (179 verified, 4 rejected, 18 blocked, 17
+deduped Lean statements); (ii) the manufacturing system that produced
+it (the Praxis corpus, scheduler, receipts, and \\texttt{doc-pack}
+pipeline of Section~\\ref{sec:composite-chain}); and (iii) the
+onboarding burden of a team that does not yet operate inside that
+system -- learning to work \\emph{in} Praxis and Lean together is a
+different, larger cost than either sub-skill alone.""" ;
+    doc:inSection :ch5_s1b ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch5_s1b_p1 a doc:Paragraph ;
+    doc:body """\\begin{speculative}
+The following is a back-of-envelope replacement-cost estimate, not a
+quoted or audited figure: every number is a stated assumption
+(team size, duration, loaded hourly rate) multiplied out explicitly, so
+a reader can substitute their own assumptions and recompute rather than
+take the total on faith. Loaded hourly rate assumes roughly 1.4x base
+salary for benefits and overhead (a commonly cited private-industry
+benefits-load ratio), applied to a base rate in the \\$70--\\$130/hr range
+for senior technical/research staff, giving loaded rates of
+\\$100--\\$190/hr depending on seniority and scenario.
+\\end{speculative}""" ;
+    doc:inSection :ch5_s1b ;
+    doc:order 1 ;
+    doc:register "speculative" .
+
+:ch5_s1b_p2 a doc:Paragraph ;
+    doc:body """\\begin{speculative}
+\\begin{table}[h]
+\\centering
+\\small
+\\begin{tabular}{@{}p{3.4cm}p{2.8cm}p{3.4cm}p{2.4cm}@{}}
+\\toprule
+\\textbf{Scenario} & \\textbf{Team x duration} & \\textbf{Assumed loaded rate} & \\textbf{Cost range (midpoint)} \\\\
+\\midrule
+Operator + LLM, existing machinery & 1 person, 40--100 hrs & \\$100--\\$200/hr + \\textasciitilde\\$300 compute & \\$4.2k--\\$20.5k (\\textasciitilde\\$8k) \\\\
+Small team, already inside the repo & 3--5 people, 2--4 mo & \\$125--\\$165/hr & \\$120k--\\$528k (\\textasciitilde\\$325k) \\\\
+External expert team, replicating from outside & 5--8 people, 6--12 mo & \\$140--\\$180/hr & \\$672k--\\$2.76M (\\textasciitilde\\$1.15M) \\\\
+Institutional build from scratch & 8--12 people, 12--24 mo & \\$150--\\$190/hr, +10--25\\% overhead & \\$2.53M--\\$10.9M (\\textasciitilde\\$4.0M) \\\\
+\\bottomrule
+\\end{tabular}
+\\caption{Back-of-envelope replacement-cost ranges by delivery model. Midpoints computed as team~$\\times$~months~$\\times$~160~hrs/month~$\\times$~assumed loaded rate; ranges from the stated low/high assumptions, not independently derived.}
+\\label{tab:replacement-cost}
+\\end{table}
+\\end{speculative}""" ;
+    doc:inSection :ch5_s1b ;
+    doc:order 2 ;
+    doc:register "speculative" .
+
+:ch5_s1b_p3 a doc:Paragraph ;
+    doc:body """\\begin{speculative}
+Dividing the midpoint of each scenario by the 179 kernel-verified
+statements gives a rough per-statement replacement cost: about \\$45 for
+the operator-plus-LLM scenario, \\$1{,}815 for a small team already
+inside the repo, \\$6{,}436 for an external expert team, and \\$22{,}203
+for an institutional rebuild. The nearly 500x spread between the
+cheapest and most expensive scenario is not a claim about the intrinsic
+value of a verified statement; it is a claim about how much of the
+total cost is onboarding into the manufacturing system versus operating
+it once built -- almost all of that spread is explained by the 6--18
+person-months of onboarding time assumed for teams that do not already
+operate inside the Praxis/Lean/ggen stack, not by any difference in the
+formalization work itself.
+\\end{speculative}""" ;
+    doc:inSection :ch5_s1b ;
+    doc:order 3 ;
+    doc:register "speculative" .
+
 :ch5_s2_p0 a doc:Paragraph ;
     doc:body """\\begin{speculative}
 Every claim above assumes the throughput advantage observed on this one
@@ -1053,7 +1127,7 @@ corpus, and the Lean kernel that produced it.""" ;
 
 :ch5_s2 a doc:Section ;
     doc:inChapter :ch5 ;
-    doc:order 2 ;
+    doc:order 3 ;
     doc:title "The load-bearing caveat" .
 
 :ch6_s0 a doc:Section ;
@@ -1178,15 +1252,16 @@ corpus, and the Lean kernel that produced it.""" ;
     doc:order 3 ;
     doc:title "Math manufacturing: the second manufacturing morphism" .
 
-:ch5 a doc:Chapter ;
-    doc:label "ch:civilizational" ;
-    doc:order 5 ;
-    doc:title "Civilizational-impact analysis" .
-
 :ch5_s1 a doc:Section ;
     doc:inChapter :ch5 ;
     doc:order 1 ;
     doc:title "What changes if verified math has a manufacturing cost curve" .
+
+:ch5_s1b a doc:Section ;
+    doc:inChapter :ch5 ;
+    doc:label "sec:replacement-cost" ;
+    doc:order 2 ;
+    doc:title "Replacement cost: pricing the output, the system, and the onboarding separately" .
 
 :ch8 a doc:Chapter ;
     doc:label "ch:conclusion" ;
@@ -1203,6 +1278,11 @@ corpus, and the Lean kernel that produced it.""" ;
     doc:label "sec:composite-chain" ;
     doc:order 3 ;
     doc:title "The composite chain: corpus, kernel, and document" .
+
+:ch5 a doc:Chapter ;
+    doc:label "ch:civilizational" ;
+    doc:order 5 ;
+    doc:title "Civilizational-impact analysis" .
 
 :ch6 a doc:Chapter ;
     doc:label "ch:related" ;
