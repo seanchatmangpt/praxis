@@ -81,7 +81,10 @@ on disk. A thesis arguing for that discipline should be held to it.""" ;
 this thesis builds on: the Chatman Equation, admission algebra, receipts,
 and the first working manufacturing morphism (\\texttt{src/mfg.rs}).
 Chapter~\\ref{ch:mathmfg} states the second instantiation --- math
-manufacturing --- as a formal correspondence to the first.
+manufacturing --- as a formal correspondence to the first, closing with
+a synthesis section (Section~\\ref{sec:composite-chain}) naming every
+stage of the full corpus-to-PDF chain in one place, for a reader who
+wants the whole chain without reassembling it from three chapters.
 Chapter~\\ref{ch:empirical} reports the empirical run: exact counts,
 the two infrastructure bugs found and fixed during the run, and the
 receipts-consolidation gap and its fix. Chapter~\\ref{ch:civilizational}
@@ -399,6 +402,86 @@ content, and formalizing it would require a different toolchain
 (Chapter~\\ref{ch:limitations} returns to this point).""" ;
     doc:inSection :ch3_s1 ;
     doc:order 6 ;
+    doc:register "evidence-bound" .
+
+:ch3_s2_p0 a doc:Paragraph ;
+    doc:body """Chapters~\\ref{ch:background}--\\ref{ch:empirical} and
+Section~\\ref{sec:doc-mfg-correspondence} each establish one stage of a
+single chain, but no single place names all five stages together.
+Table~\\ref{tab:composite-chain} does that -- every fact in it is
+restated, not new, and each row cites the section that establishes it.""" ;
+    doc:inSection :ch3_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch3_s2_p1 a doc:Paragraph ;
+    doc:body """\\begin{table}[h]
+\\centering
+\\small
+\\begin{tabular}{@{}p{2.1cm}p{2.6cm}p{2.6cm}p{2.3cm}p{2.3cm}p{2.3cm}@{}}
+\\toprule
+\\textbf{Stage} & \\textbf{Input} & \\textbf{Admission gate} & \\textbf{Morphism} & \\textbf{Artifact} & \\textbf{Refusal mode} \\\\
+\\midrule
+Praxis corpus & raw thesis prose, 7 papers & RDF parse + SHACL/citation/notation checks (Sec.~\\ref{sec:corpus-numbers}) & \\texttt{build\\_corpus.py} extraction & \\texttt{corpus.ttl} (219 IRIs, 202 labels) & malformed fact, dangling citation \\\\
+Lean 4 & statement label + LaTeX text & kernel typecheck, no self-report (Sec.~\\ref{sec:no-self-report}) & LLM draft + \\texttt{lean} invocation & \\texttt{.lean} file & kernel rejection after 3 attempts \\\\
+Scheduler & \\texttt{dependsOn} DAG & topological wave readiness & Kahn's-algorithm wave execution & wave disposition & blocked dependency \\\\
+ggen & document RDF graph & template render + \\texttt{pdflatex} compile (Sec.~\\ref{sec:doc-mfg-correspondence}) & \\texttt{ggen sync} (SPARQL + Tera) & \\texttt{chapters\\_body.tex} & missing label, register mismatch \\\\
+LaTeX & generated \\texttt{.tex} & \\texttt{pdflatex} exit code & TeX compilation & \\texttt{thesis.pdf} & compile error \\\\
+\\bottomrule
+\\end{tabular}
+\\caption{The five stages of the corpus-to-PDF chain. Every cell restates a fact established elsewhere in this thesis; none is introduced here.}
+\\label{tab:composite-chain}
+\\end{table}""" ;
+    doc:inSection :ch3_s2 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch3_s2_p2 a doc:Paragraph ;
+    doc:body """A second table states what each layer does and, as importantly, what it
+does not do -- a lawful division worth stating plainly, since conflating
+any two of these is the most common way to overclaim this kind of
+pipeline: it is neither true that ``the LLM proves the theorem'' nor
+that ``ggen proves the math'' nor that ``LaTeX validates anything.''""" ;
+    doc:inSection :ch3_s2 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+:ch3_s2_p3 a doc:Paragraph ;
+    doc:body """\\begin{table}[h]
+\\centering
+\\small
+\\begin{tabular}{@{}p{2.1cm}p{5.3cm}p{5.3cm}@{}}
+\\toprule
+\\textbf{Layer} & \\textbf{Does} & \\textbf{Does not do} \\\\
+\\midrule
+Praxis corpus & holds the admitted semantic/document graph & does not itself kernel-verify any statement \\\\
+Lean 4 & admits or refuses statements by kernel typecheck & does not judge whether informal prose was translated faithfully \\\\
+ggen & manufactures artifacts from graph facts via SPARQL/Tera & does not invent or validate the graph's meaning \\\\
+LaTeX & typesets the rendered artifact & does not validate semantic or mathematical truth \\\\
+\\bottomrule
+\\end{tabular}
+\\caption{Lawful division of labor across the chain: each layer's guarantee, and its explicit non-guarantee.}
+\\end{table}""" ;
+    doc:inSection :ch3_s2 ;
+    doc:order 3 ;
+    doc:register "evidence-bound" .
+
+:ch3_s2_p4 a doc:Paragraph ;
+    doc:body """This composite chain is not a fourth, novel mechanism requiring its own
+definition. It is Definition~\\ref{def:mu-pipeline} applied twice from a
+shared source: the admitted Praxis corpus is the $\\Obs$ that both the
+Lean pipeline (Chapter~\\ref{ch:mathmfg}) and the document pipeline
+(Section~\\ref{sec:doc-mfg-correspondence}) separately consume as their
+own admission map's input. A single composite predicate asserting this
+whole chain as one checked logical equivalence would be new, unchecked
+formal machinery -- no SAT/SMT/Lean encoding of such a predicate exists
+in this repository -- and this thesis declines to state one, for the
+same reason Section~\\ref{sec:doc-mfg-correspondence} already declines to
+quote a literal receipt hash that would require a fixed point: an
+unearned formal claim is a worse defect than an informal but accurate
+one.""" ;
+    doc:inSection :ch3_s2 ;
+    doc:order 4 ;
     doc:register "evidence-bound" .
 
 :ch4_p0 a doc:Paragraph ;
@@ -1058,11 +1141,6 @@ corpus, and the Lean kernel that produced it.""" ;
     doc:order 1 ;
     doc:title "Introduction" .
 
-:ch3 a doc:Chapter ;
-    doc:label "ch:mathmfg" ;
-    doc:order 3 ;
-    doc:title "Math manufacturing: the second manufacturing morphism" .
-
 :ch3_s0 a doc:Section ;
     doc:inChapter :ch3 ;
     doc:order 0 ;
@@ -1095,6 +1173,11 @@ corpus, and the Lean kernel that produced it.""" ;
     doc:order 3 ;
     doc:title "The first manufacturing morphism: \\texttt{src/mfg.rs}" .
 
+:ch3 a doc:Chapter ;
+    doc:label "ch:mathmfg" ;
+    doc:order 3 ;
+    doc:title "Math manufacturing: the second manufacturing morphism" .
+
 :ch5 a doc:Chapter ;
     doc:label "ch:civilizational" ;
     doc:order 5 ;
@@ -1114,6 +1197,12 @@ corpus, and the Lean kernel that produced it.""" ;
     doc:label "ch:background" ;
     doc:order 2 ;
     doc:title "Background: the Chatman Equation and manufacturing morphisms" .
+
+:ch3_s2 a doc:Section ;
+    doc:inChapter :ch3 ;
+    doc:label "sec:composite-chain" ;
+    doc:order 3 ;
+    doc:title "The composite chain: corpus, kernel, and document" .
 
 :ch6 a doc:Chapter ;
     doc:label "ch:related" ;
