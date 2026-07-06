@@ -176,6 +176,7 @@ members = [
     "crates/pddl-index",
     "crates/praxis-synthesis",
     "crates/praxis-lean",
+    "crates/praxis-graphlaw",
 ]
 [workspace.metadata.dylint]
 libraries = [{ git = "https://github.com/seanchatmangpt/chicago-tdd-tools", pattern = "crates/chicago-lints" }]

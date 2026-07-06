@@ -1,0 +1,55 @@
+[package]
+name = "praxis-graphlaw"
+version = "26.7.5"
+edition = "2021"
+description = "Praxis GraphLaw law-state engine: native N3, Datalog, SPARQL 1.1, SHACL, ShEx (fork of pbonte/roxi)"
+license = "MIT"
+repository = "https://github.com/seanchatmangpt/praxis"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+deepmesa-collections = "0.14.0"
+bencher = "0.1.5"
+log = { version = "0.4"}
+env_logger = "0.11.11"
+spargebra = { version = "0.4.6", features = ["sparql-12"] }
+sparesults = { version = "0.3.3", features = ["sparql-12"] }
+
+
+rio_api = "0.8.6"
+rio_turtle = "0.8.6"
+pest = "2.8.7"
+pest_derive = "2.8.7"
+either = "1.16.0"
+once_cell = "1.21.4"
+oxrdf = { version = "0.3.3", features = ["rdf-12"] }
+regex = "1.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha1 = "0.11.0"
+sha2 = "0.11.0"
+md5 = "0.8.0"
+
+
+
+[lib]
+name = "praxis_graphlaw"
+
+[[bench]]
+name = "bench"
+harness = false
+
+[[bench]]
+name = "hierarchies"
+harness = false
+
+[[bench]]
+name = "dialects"
+harness = false
+
+[dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+# chicago-tdd-tools dev-dep dropped on adoption: nothing in tests/ imports it
+# (comments only), and praxis-retrofit pins =26.6.30 which conflicts with ^26.7.1.
+proptest = "1.5"
