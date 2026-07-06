@@ -1,0 +1,202 @@
+{"label": "ax:cr", "kind": "axiom", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["Adversary", "advantage", "chainH_cr", "propext", "Classical.choice", "Quot.sound"]}
+{"label": "ax:obs", "kind": "axiom", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["Obs"]}
+{"label": "ax:refusal", "kind": "axiom", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["Adm"]}
+{"label": "con:agent8", "kind": "construction", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": []}
+{"label": "con:commit", "kind": "construction", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["chainH"]}
+{"label": "con:denial", "kind": "construction", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "con:fablechain", "kind": "construction", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["chainH", "propext"]}
+{"label": "con:join", "kind": "construction", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "con:merklecell", "kind": "construction", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["chainH"]}
+{"label": "con:normalize", "kind": "construction", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "con:ocel", "kind": "construction", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "con:provo", "kind": "construction", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["body", "chainH", "propext"]}
+{"label": "con:strips", "kind": "construction", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "con:swar", "kind": "construction", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "con:tape", "kind": "construction", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext"]}
+{"label": "con:xorf", "kind": "construction", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Quot.sound", "Praxis.Corpus.ConXorf.fnv1a"]}
+{"label": "cor:allstages", "kind": "corollary", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "cor:antibody", "kind": "corollary", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "cor:assembled", "kind": "corollary", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "cor:cert", "kind": "corollary", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "cor:cost", "kind": "corollary", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "cor:diag", "kind": "corollary", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "cor:dominate", "kind": "corollary", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "cor:galois", "kind": "corollary", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "cor:mrrindep", "kind": "corollary", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "cor:noadmit", "kind": "corollary", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "cor:noncomp", "kind": "corollary", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "cor:onedenial", "kind": "corollary", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "cor:onlybit", "kind": "corollary", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "cor:orphan", "kind": "corollary", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "cor:reflexive", "kind": "corollary", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "cor:subcat", "kind": "corollary", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "cor:throughput", "kind": "corollary", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:adm", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:astgate", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "def:attnbalance", "kind": "definition", "status": "unformalized", "attempts": 3, "last_error": "Praxis/Corpus/def_attnbalance.lean:41:11: error: unexpected token 'in'; expected ','\n(Big-operator sum syntax mismatch: this Mathlib version requires `\u2211 j \u2208 s, r j`, not `\u2211 j in s, r j`; the first attempt using `\u2208` failed at :40:8 with `expected token` due to missing `LE \u211d`/`OfNat \u211d 0` instances from an incomplete import set, which was fixed by importing `Mathlib` broadly, but that then re-exposed the `\u2208` vs `in` big-operator syntax incompatibility, and the 3-attempt budget was exhausted before resolving it.)", "axioms_used": []}
+{"label": "def:balance", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "def:body", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["body", "body_injective"]}
+{"label": "def:branch", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "def:brce", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:chain", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["body", "chainH", "propext"]}
+{"label": "def:claim", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:classes", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:conf", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:contentaddr", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["chainH"]}
+{"label": "def:cost", "kind": "definition", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "def:costvector", "kind": "definition", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": []}
+{"label": "def:decoder", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "def:denialabstract", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:denialcode", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:depth", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:diff", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "def:domain", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:earned", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:fable", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:fired", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "def:fit", "kind": "definition", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:fitness", "kind": "definition", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:fitnessdistance", "kind": "definition", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "def:five", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:fragile", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["'Praxis.Corpus.DefFragile.fragile' does not depend on any axioms"]}
+{"label": "def:frame", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:fuzz", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["'Praxis.Corpus.FuzzOracle.\u03a9' does not depend on any axioms"]}
+{"label": "def:genesis", "kind": "definition", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["chainH"]}
+{"label": "def:gitlock", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:gitlock-op", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:ground", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "def:incidence", "kind": "definition", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": []}
+{"label": "def:instance-q", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:layouts", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:lifecat", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:logicadm", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:makespan", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:mrr", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:mu", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:mut", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:net", "kind": "definition", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": []}
+{"label": "def:ob", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "def:obsauth", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["Adm", "Obs", "ReasonSpace", "admProp"]}
+{"label": "def:oracle", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "def:over", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:pipeline", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "def:polytope", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:powl", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "def:queryresult", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:reachcone", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "def:receipt", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["chainH"]}
+{"label": "def:regimes", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:replay", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["Classical.choice", "Quot.sound", "propext"]}
+{"label": "def:residual", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound", "Praxis.Corpus.DefResidual.RepairBand", "Praxis.Corpus.DefResidual.repairOp"]}
+{"label": "def:sandbox", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["Praxis.Corpus.DefSandbox.blake3Chain", "Praxis.Corpus.DefSandbox.cargoBuild", "Praxis.Corpus.DefSandbox.cargoClippy", "Praxis.Corpus.DefSandbox.cargoTest", "Praxis.Corpus.DefSandbox.safetyAudit"]}
+{"label": "def:saturation", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "def:seqtoken", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:signed", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:staged", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:symdict", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:tax", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:taxonomy", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "def:vizgap", "kind": "definition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound", "Praxis.Corpus.DefVizgap.DiffBlock"]}
+{"label": "def:walframe", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["chainH"]}
+{"label": "def:worktree", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["'WorktreeApplication' does not depend on any axioms"]}
+{"label": "def:worktree-ret", "kind": "definition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "est:bit-supply", "kind": "estimate", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound", "Praxis.Corpus.EstBitSupply.llmJudgmentThroughput", "Praxis.Corpus.EstBitSupply.llmJudgmentThroughput_eq"]}
+{"label": "est:comp-supply", "kind": "estimate", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["decisionCostLowerBound", "decisionCostUpperBound", "decisionCostLowerBound_eq", "decisionCostUpperBound_eq", "decisionsPerSecPerAcceleratorLower", "decisionsPerSecPerAcceleratorUpper", "decisionsPerSecPerAcceleratorLower_eq", "decisionsPerSecPerAcceleratorUpper_eq", "fleetSizeLower", "fleetSizeUpper", "fleetSizeLower_eq", "fleetSizeUpper_eq", "lambdaCompLower", "lambdaCompUpper", "lambdaCompCentral", "lambdaCompLower_eq", "lambdaCompUpper_eq", "lambdaCompCentral_eq"]}
+{"label": "est:demand", "kind": "estimate", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "est:sweep", "kind": "estimate", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "est:wall", "kind": "estimate", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "lem:commit", "kind": "lemma", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["chainH", "propext", "Classical.choice", "Quot.sound"]}
+{"label": "lineage:actorlineage", "kind": "lineage", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "lineage:armstrong", "kind": "lineage", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["ProcessIsolationPreventsMemorySpread", "SupervisorOwnsRecoveryDecision", "RestartStrategyAndIntensityBoundCrashes", "SupervisionTreeIsHumanAuthoredNotDerived"]}
+{"label": "lineage:instruments", "kind": "lineage", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "meas:cell", "kind": "measurement", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["CellMeasurement.overhead_within_baseline_spread does not depend on any axioms"]}
+{"label": "meas:recoveryinvisible", "kind": "measurement", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["meas_recoveryinvisible.recoveryinvisible"]}
+{"label": "prop:astterm", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "prop:attnconservation", "kind": "proposition", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "prop:balance", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:bodyinj", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["body", "body_injective"]}
+{"label": "prop:bottom", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:boundary", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["Adm", "GProp", "HasChainedReceipt", "Obs", "manufactureProp"]}
+{"label": "prop:boundedcert", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "prop:cas", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["chainH"]}
+{"label": "prop:code_is_sl", "kind": "proposition", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound", "DenialPolarity.phi_sup._native.native_decide.ax_1_1", "DenialPolarity.psi_phi._native.native_decide.ax_1_1"]}
+{"label": "prop:cone", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:conformembership", "kind": "proposition", "status": "unformalized", "attempts": 3, "last_error": "Praxis/Corpus/prop_conformembership.lean:78:16: error(lean.unknownIdentifier): Unknown constant `Matrix.dotProduct` (also at 82:6, 83:10); knock-on: 79:57: unsolved goals (hgap : 0 < sorry) because `Matrix.dotProduct` does not exist in this Mathlib snapshot (it is just `dotProduct`, unqualified, re-exported at top level) \u2014 the file needs `dotProduct` in place of `Matrix.dotProduct` throughout, which was not fixed before the 3-attempt budget was exhausted.", "axioms_used": []}
+{"label": "prop:conserve", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:critical", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "prop:dictcost", "kind": "proposition", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "prop:diff-bound", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:embed", "kind": "proposition", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "prop:fable-oracle", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "prop:failclosed", "kind": "proposition", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["propext"]}
+{"label": "prop:fitness", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:fleet", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:fold", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["body", "chainH", "propext"]}
+{"label": "prop:footprint", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext"]}
+{"label": "prop:fuzz", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext"]}
+{"label": "prop:hasse", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext"]}
+{"label": "prop:hom", "kind": "proposition", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "prop:honest", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:intauth", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["Verify", "verify_key_sensitive"]}
+{"label": "prop:invariance", "kind": "proposition", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:local", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:mainclean", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "prop:mapcommit", "kind": "proposition", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "prop:monoid", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:mudet", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:necessity", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:nodrift", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "prop:notesledger", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["no axioms"]}
+{"label": "prop:notesledger-op", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:obtotal", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext"]}
+{"label": "prop:partial", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "prop:payloadcommit", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["body", "body_injective"]}
+{"label": "prop:planetary", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:prefix", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["body", "chainH", "propext", "Quot.sound"]}
+{"label": "prop:quarantine", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext"]}
+{"label": "prop:retract", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "prop:safe", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:satcorrect", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:section", "kind": "proposition", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "prop:selfauditedscale", "kind": "proposition", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "prop:semilattice", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:sensitivity", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "prop:topology", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Quot.sound", "Praxis.Corpus.PropTopology.ca"]}
+{"label": "prop:total", "kind": "proposition", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "prop:totalaccounting", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "prop:vizgap", "kind": "proposition", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound", "Praxis.Corpus.DefVizgap.DiffBlock"]}
+{"label": "ref:curve", "kind": "refusal", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["Praxis.Corpus.RefCurve.NoveltyCurveUnderFaultsWithheld (Prop, no Mathlib equivalent -- project-specific epistemic marker for a deliberately withheld empirical claim)", "Praxis.Corpus.RefCurve.noveltyCurveUnderFaultsWithheld (witness axiom, no Mathlib equivalent)"]}
+{"label": "refusal:noknhkpath", "kind": "refusal", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["knhkTransitiveDeps", "knhk_drags_disallowed_deps", "propext", "Classical.choice", "Quot.sound"]}
+{"label": "refusal:nomeasuredticks", "kind": "refusal", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["declaredTicks", "rdtscTicks"]}
+{"label": "refusal:oneforall", "kind": "refusal", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": []}
+{"label": "refusal:simpleoneforone", "kind": "refusal", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["RestartPolicy", "no_simple_one_for_one", "RestartPolicy.new"]}
+{"label": "refusal:v1scope", "kind": "refusal", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "remark:flatthroughput", "kind": "remark", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["'remark_flatthroughput_throughput' does not depend on any axioms", "'remark_flatthroughput_quarantine' does not depend on any axioms"]}
+{"label": "remark:mockmembranes", "kind": "remark", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext"]}
+{"label": "thm:afford", "kind": "theorem", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "thm:bounded-ground", "kind": "theorem", "status": "unformalized", "attempts": 3, "last_error": "Praxis/Corpus/thm_bounded_ground.lean:67:16: error(lean.unknownIdentifier): Unknown constant `Finset.sum_le_sum`\nPraxis/Corpus/thm_bounded_ground.lean:68:16: error: No goals to be solved\nPraxis/Corpus/thm_bounded_ground.lean:71:50: error(lean.unknownIdentifier): Unknown identifier `smul_eq_mul`\nPraxis/Corpus/thm_bounded_ground.lean:70:55: error: unsolved goals\nD : LiftedDomain\nOb : Type\ninst\u271d\u00b9 : Fintype Ob\ninst\u271d : Fintype D.Schema\nk : \u2115\nhk : \u2200 (s : D.Schema), (D.schemaData s).params.length \u2264 k\n\u22a2 Fintype.card D.Schema \u2022 Fintype.card Ob ^ k = Fintype.card D.Schema * Fintype.card Ob ^ k", "axioms_used": []}
+{"label": "thm:branchless", "kind": "theorem", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "thm:conservation", "kind": "theorem", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "thm:faithful", "kind": "theorem", "status": "excluded", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "thm:farkas", "kind": "theorem", "status": "unformalized", "attempts": 1, "last_error": "Praxis/Corpus/thm_farkas.lean:63:8: error(lean.unknownIdentifier): Unknown constant `PointedCone.FG.isClosed`. Mathlib's topological Farkas lemma (ProperCone.hyperplane_separation_point, Mathlib.Analysis.Convex.Cone.InnerDual) gives exactly the required alternative once cone(N) is packaged as a ProperCone, which needs IsClosed(cone(N)) \u2014 the topological half of Minkowski-Weyl (\"a finitely generated cone in a finite-dimensional real vector space is closed\"). This lemma does not exist in the current Mathlib snapshot: PointedCone.FG/PointedCone.DualFG (Mathlib/Geometry/Convex/Cone/DualFinite.lean) relate FG and DualFG only algebraically (DualFG.dual_of_fg, DualFG.dual_dual_flip give dual p (dual p.flip (dual p C)) = dual p C, i.e. the dual's double-dual, not C's own double-dual), and the file's own module doc states the FG <-> DualFG equivalence is \"by the Minkowski-Weyl theorem\" without proving it. grep -rl IsClosed across Mathlib/Analysis/Convex/Cone and Mathlib/Geometry/Convex/Cone confirms no lemma discharges finite-generation-implies-closed. Proving it from scratch (conic Caratheodory + finite union of closed simplicial cones) is an independent real-analysis development, not a composition of existing Mathlib lemmas, so it is reported unformalized rather than faked with an axiom or sorry.", "axioms_used": []}
+{"label": "thm:firedhom", "kind": "theorem", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound", "DenialPolarity.firedBit_adml._native.bv_decide.ax_1_5", "DenialPolarity.firedBit_compose._native.bv_decide.ax_1_6", "DenialPolarity.firedmap_phi_bit7._native.native_decide.ax_1_2", "DenialPolarity.firedmap_phi_getLsb._native.native_decide.ax_1_2", "DenialPolarity.lane_or_distrib._native.bv_decide.ax_1_5", "DenialPolarity.packFold_getLsbD._native.native_decide.ax_1_1", "DenialPolarity.phi_sup._native.native_decide.ax_1_1"]}
+{"label": "thm:fitness", "kind": "theorem", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "thm:freehom", "kind": "theorem", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "thm:gap", "kind": "theorem", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "thm:instance-gap", "kind": "theorem", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "thm:kill", "kind": "theorem", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "thm:lang-correct", "kind": "theorem", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": []}
+{"label": "thm:lex", "kind": "theorem", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "thm:localize", "kind": "theorem", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "thm:magnitude", "kind": "theorem", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "thm:mono", "kind": "theorem", "status": "verified", "attempts": 3, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "thm:mrr", "kind": "theorem", "status": "unformalized", "attempts": 3, "last_error": "Praxis/Corpus/thm_mrr.lean:66:10: error: Type mismatch\n  le_sup' ?m.192 hb_mem\nhas type\n  ?m.192 b \u2264 (Fintype.piFinset fun a => T \u2191a).sup' \u22ef ?m.192\nbut is expected to have type\n  \u2211 a \u2208 A.attach, realized (\u2191a) (b a) \u2264\n    (Fintype.piFinset fun a => T \u2191a).sup' \u22ef fun g => \u2211 a \u2208 A.attach, realized (\u2191a) (g a)\n(Finset.le_sup' could not unify its motive metavariable with the lambda `fun g => \u2211 a \u2208 A.attach, realized (\u2191a) (g a)` used in the goal; needs an explicit `(f := fun g => ...)` argument or a `show`/`change` to fix the motive before applying le_sup'.)", "axioms_used": []}
+{"label": "thm:mrrsep", "kind": "theorem", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "thm:rice", "kind": "theorem", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "thm:scope", "kind": "theorem", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}
+{"label": "thm:sep", "kind": "theorem", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext"]}
+{"label": "thm:swar-verify", "kind": "theorem", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext", "Classical.choice", "Quot.sound"]}
+{"label": "thm:total", "kind": "theorem", "status": "unformalized", "attempts": 3, "last_error": "Praxis/Corpus/thm_total.lean:21:23: error: unsolved goals \u2014 case logicContradiction/andonPull/andonEscalation: hs : True \u22a2 False. The verified def:tax maps RefusalScenario.logicContradiction, .andonPull, and .andonEscalation to Category.Reserved, so Reserved has a nonempty (3-element) preimage. This directly contradicts thm:total's claim that \"Reserved has empty preimage\" / image is Catset\\{Reserved} with exactly seven inhabited buckets \u2014 the actual image is all eight categories. The theorem is false against the already-verified def:tax dependency, not merely difficult to prove; no amount of tactic work can close the goal.", "axioms_used": []}
+{"label": "thm:trichotomy", "kind": "theorem", "status": "verified", "attempts": 1, "last_error": null, "axioms_used": ["propext"]}
+{"label": "thm:typestate", "kind": "theorem", "status": "verified", "attempts": 2, "last_error": null, "axioms_used": ["propext", "Quot.sound"]}
+{"label": "thm:unitfitness", "kind": "theorem", "status": "blocked", "attempts": 0, "last_error": null, "axioms_used": []}

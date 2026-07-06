@@ -750,14 +750,81 @@ down from 3 separate hand-written equivalence axioms).
     doc:register "evidence-bound" .
 
 :ch3_s4_p7 a doc:Paragraph ;
-    doc:body """This pilot covers 4 of the corpus's 219 statements. It is evidence
-that the Mathlib lane works and that real reuse is possible, not a claim
-that the remaining 215 statements have been reformalized -- that
-migration, and closing the receipts-schema compatibility gap noted
-above, remain future work, exactly as Section~\\ref{ch:limitations}
-states.""" ;
+    doc:body """That 4-file pilot was the proof of concept. It was followed, in the
+same session, by a full-corpus migration attempt: all 202 distinct
+corpus labels except \\texttt{thm:faithful} (202 minus 1 excluded, same
+exclusion reason as always) were scheduled in topological
+dependency-order waves and given to independent agents, each instructed
+to apply the same discipline as the 4-file pilot -- search Mathlib for
+an existing type or theorem before declaring an axiom, citing the
+pilot's own four files as worked examples -- and to verify with
+\\texttt{lake env lean} against this Mathlib-linked toolchain, up to
+three attempts, real kernel errors fed back on rejection.""" ;
     doc:inSection :ch3_s4 ;
     doc:order 7 ;
+    doc:register "evidence-bound" .
+
+:ch3_s4_p8 a doc:Paragraph ;
+    doc:body """\\begin{finding}
+Final disposition over all 202 labels, in 12 topological waves: 178
+verified, 6 unformalized (exhausted 3 attempts), 17 blocked (a
+dependency did not verify), 1 excluded (\\texttt{thm:faithful}) --
+$178+6+17+1=202$, a disjoint partition with no remainder, exactly the
+same accounting discipline as Chapter~\\ref{ch:empirical}'s bare-core
+run. This is not a self-report: every one of the 184 attempted files
+(178 claimed-verified plus 6 claimed-unformalized) was independently
+re-checked after the run by directly re-running
+\\texttt{lake env lean} on each file, outside of and after the agents'
+own reports. The independent re-check reproduced the self-reported
+split exactly -- 178 pass, 6 fail, zero discrepancies -- a stronger
+result than Chapter~\\ref{ch:empirical}'s bare-core run, which caught one
+self-report/kernel mismatch (\\texttt{prop:bodyinj}) under the same
+discipline.
+\\end{finding}""" ;
+    doc:inSection :ch3_s4 ;
+    doc:order 8 ;
+    doc:register "evidence-bound" .
+
+:ch3_s4_p9 a doc:Paragraph ;
+    doc:body """Independently re-running \\texttt{praxis-l4 l4 no-sorry} against all
+184 attempted files confirms zero uses of \\texttt{sorry} across the
+178 verified files. Counting literal \\texttt{axiom} declarations
+directly (\\texttt{grep -c "\\textasciicircum axiom "}, the same method
+used for the 4-file pilot and for Chapter~\\ref{ch:mathmfg}'s bare-core
+axiom counts) over the 171 of the 178 verified labels that have a
+directly comparable bare-core file in \\texttt{lean-pilot/}: those 171
+bare-core files declare 231 axioms in total; their Mathlib-lane
+reformalizations declare 71 -- a 69\\% reduction in raw axiom count for
+the same 171 statements, achieved by composing pre-built Mathlib content
+(the same kind of substitution demonstrated concretely in the 4-file
+pilot: real types standing in for opaque axioms, library typeclass
+instances standing in for hand-proved lemmas, and in \\texttt{thm:rice}'s
+case an entire hand-derived theorem standing in for a citation of an
+already-published one) rather than a re-derivation of each bare-core
+axiom by a different name.""" ;
+    doc:inSection :ch3_s4 ;
+    doc:order 9 ;
+    doc:register "evidence-bound" .
+
+:ch3_s4_p10 a doc:Paragraph ;
+    doc:body """This migration covers 178 of the corpus's 202 distinct labels (88\\%)
+against Mathlib, not all of it, and not a claim of parity with the
+183-file bare-core set's own independent standing: the two are separate,
+independently-verified lanes over overlapping but not identical scope
+(the Mathlib lane additionally covers the 7 original pilot labels the
+bare-core lane's own accounting already included). The 6 genuine
+Mathlib-lane failures (\\texttt{def:attnbalance},
+\\texttt{prop:conformembership}, \\texttt{thm:bounded\\_ground},
+\\texttt{thm:farkas}, \\texttt{thm:mrr}, \\texttt{thm:total}) each have a
+real, specific kernel error on file, not a vague timeout -- e.g.
+\\texttt{thm:farkas}'s failure names the exact missing Mathlib lemma
+(\\texttt{PointedCone.FG.isClosed}) its proof needed. Closing those, and
+the receipts-schema compatibility gap noted above, remain future work,
+exactly as Section~\\ref{ch:limitations} states -- this thesis reports
+what verified, not a claim that every statement now has a Mathlib
+formalization.""" ;
+    doc:inSection :ch3_s4 ;
+    doc:order 10 ;
     doc:register "evidence-bound" .
 
 :ch4_p0 a doc:Paragraph ;
@@ -1274,39 +1341,43 @@ Chapter~\\ref{ch:limitations}.""" ;
     doc:register "evidence-bound" .
 
 :ch7_s0_p0 a doc:Paragraph ;
-    doc:body """All 219 corpus statements' primary, currently-relied-upon
-verification remains against Lean~4 core with no mathlib linked, and
+    doc:body """Chapter~\\ref{ch:empirical}'s bare-core run (183 files, 179 verified)
+remains this corpus's original, independently-verified set, and
 \\texttt{thm:faithful} remains excluded a priori for the reason given
-below. What changed after this was first written: a second, additive
-Lake-managed lane
-(\\texttt{tools/paper-factory/lean-lake/}, Section~\\ref{sec:praxis-lean})
-now links Mathlib via its own prebuilt cache mechanism
-(\\texttt{lake exe cache get}, 8{,}542 files, avoiding a from-source
-build), and a bounded four-file pilot within that lane demonstrates real
-reuse of Mathlib content in place of from-scratch axioms
-(Section~\\ref{sec:praxis-lean}). This does not retroactively migrate the
-183 already-verified bare-core files, and it does not close the
-capability gap that excluded \\texttt{thm:faithful}: the pilot's own
-cryptographic hash function (\\texttt{chainH}) remains axiomatized, since
-no verified BLAKE3 implementation exists in Mathlib either. The
-capability boundary below is therefore softened, not eliminated: mathlib
-is no longer categorically absent from this thesis's toolchain, but it is
-linked in one additive lane covering four of 219 statements, not the
-whole corpus.""" ;
+below. What changed after this was first written: a second,
+Mathlib-linked Lake lane (\\texttt{tools/paper-factory/lean-lake/},
+Section~\\ref{sec:praxis-lean}) now covers the large majority of the
+corpus as well -- 178 of 202 distinct labels (88\\%) independently
+kernel-verified against Mathlib, up from an initial 4-file pilot,
+following the exact same wave-scheduled reject-fix-retry discipline as
+Chapter~\\ref{ch:empirical}'s original run, now preferring composed
+pre-built Mathlib content over from-scratch axioms wherever a real
+correspondence exists. This is a second, independent verification
+lane, not a replacement for the bare-core one: the 183 bare-core files
+are untouched, and the Mathlib-lane result is reported alongside them,
+not in place of them.""" ;
     doc:inSection :ch7_s0 ;
     doc:order 0 ;
     doc:register "evidence-bound" .
 
 :ch7_s0_p1 a doc:Paragraph ;
-    doc:body """The remaining capability boundary: a corpus leaning further into
-analysis, probability, or algebraic structures with deep existing
-mathlib support would still need the pilot's scope widened well past
-four statements to get a fair test of the wave-scheduling and
-reject-fix-retry mechanisms this thesis actually contributes, and
-\\texttt{thm:faithful}'s cryptographic/probabilistic content specifically
+    doc:body """The remaining capability boundary, narrower than before but not
+closed: \\texttt{thm:faithful}'s cryptographic/probabilistic content
 still has no pre-built Lean formalization to cite (unlike
-\\texttt{thm:rice}'s Section~\\ref{sec:praxis-lean} pilot, which had one
-sitting directly in \\texttt{Mathlib.Computability.Halting}).""" ;
+\\texttt{thm:rice}, which had one sitting directly in
+\\texttt{Mathlib.Computability.Halting}), so it remains excluded on the
+same grounds. The genuine cryptographic primitive (\\texttt{chainH},
+a stand-in for BLAKE3) remains axiomatized in the Mathlib lane too --
+no verified hash-function implementation exists in Mathlib either, so
+this is not a gap the migration could have closed. And 6 of the 202
+labels (\\texttt{def:attnbalance}, \\texttt{prop:conformembership},
+\\texttt{thm:bounded\\_ground}, \\texttt{thm:farkas}, \\texttt{thm:mrr},
+\\texttt{thm:total}) genuinely failed to verify against Mathlib within
+3 attempts, each with a specific, on-file kernel error -- these are
+honest failures, not silently dropped statements, and are a real target
+for future work, not evidence the migration methodology is unsound
+(zero of the 178 successes turned out to be false positives on
+independent re-check, Section~\\ref{sec:praxis-lean}).""" ;
     doc:inSection :ch7_s0 ;
     doc:order 1 ;
     doc:register "evidence-bound" .
