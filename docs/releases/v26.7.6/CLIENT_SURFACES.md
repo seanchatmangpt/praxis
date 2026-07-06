@@ -22,6 +22,26 @@ framework matches. Praxis itself contains no Next/Expo/Nuxt client.
 Runner-up (mobile): `/Users/sac/zoeapp` (@truex/membrane-client, Expo 56,
 Supabase+OpenAI, 62 pages, 2026-06-01).
 
+### Incoming prototype bundle (2026-07-06)
+
+`~/Downloads/Autonomic process intelligence platform.zip` (design-canvas handoff,
+16 files) — classification **PARTIAL (prototype, not yet a repo)**:
+
+- `TenFourApp.jsx` — WEX "10 Four" fleet/logistics console, 21 screens, 5 roles
+  (driver/dispatcher/owner/shift_manager/ml_ops), Expo-portable ("swap two
+  imports"), ships SupabaseProvider + full supabase-mock (runs with zero backend).
+  Fourth mobile-console candidate alongside `~/pcp`.
+- `AutonomicPlatform.js` + `FEATURE_SPEC.md` — gamified PI control room (deck.gl
+  globe, Three.js arena, TCG model deck, ops) with a Combinatorial-Maximalism
+  expansion spec. Browser-shell/world-interface lineage.
+- `kgc4d-integration.js` — @unrdf/kgc-4d binding projecting live state into RDF
+  named graphs per tick (spatial+temporal, SPARQL-queryable). Client-side
+  visualization pattern adjacent to GraphLaw receipt ingest; JS lineage, not a
+  core-engine candidate. API binding unverified (noted in file).
+
+Next action: adopt into version control if promoted to a role; until then it
+carries no standing.
+
 ## Declared sources (acceptance criteria)
 
 | Criterion | Status |
