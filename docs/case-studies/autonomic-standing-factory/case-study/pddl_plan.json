@@ -1,0 +1,22 @@
+{
+  "graph_hash": "780bdcf99e56b541af788190aa91f4f1ab5e255989a4564e6a80aeb71d3de814",
+  "plan": [
+    "classify-external-side-effect",
+    "demote-claim",
+    "emit-standing",
+    "materialize-n3",
+    "validate-shacl",
+    "validate-shex",
+    "compute-datalog-closure",
+    "solve-pddl-plan",
+    "compile-powl-model",
+    "attach-benchmarks",
+    "smoke-client",
+    "verify-receipts",
+    "record-ocel",
+    "validate-wasm4pm-process",
+    "promote-claim",
+    "render-final-verdict"
+  ],
+  "powl_chain_hash": "blake3:d9d50a2f561f0c54fd9e655cac6ef4c96b99b91bbb09d2148a804a68608cb658"
+}

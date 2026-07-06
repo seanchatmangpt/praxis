@@ -1,0 +1,349 @@
+# autonomic-standing-factory case study — PDDL8 repair domain (Lane 3).
+#
+# A `pdl:` ontology (PDDL8-safe: <=8 params/pre-conjuncts/effect-conjuncts/
+# arity per action schema, mirroring examples/v26_7_6_after_neon/goal.ttl's
+# exact vocabulary shape) modelling the case study's own evidence pipeline:
+# standing emission -> GraphLaw judgment (SHACL/ShEx/N3/Datalog) -> PDDL/POWL
+# process modelling -> client smoke + receipt verification + benchmarks ->
+# OCEL capture -> wasm4pm conformance -> lawful claim repair -> final verdict.
+#
+# Honest init state (2026-07-06): `target/praxis-standing/standing.json` and
+# `docs/releases/v26.7.6/ocel/*.json` already exist (Lane 1/earlier passes),
+# so `(has-evidence repo-praxis)` is true from the start. This case study's
+# OWN GraphLaw judgment, PDDL plan, POWL model, OCEL log, and wasm4pm
+# validation do not exist yet — those are exactly what this plan produces.
+#
+# Non-trivial repair scenario (not a 1-step trivial goal-satisfaction): the
+# scope's top-level claim was PREVIOUSLY marked promoted
+# (`claim-promoted`) by an earlier, evidence-less pass — an unlawful
+# promotion. Reaching the goal requires the planner to demote that claim
+# (`demote-claim`) and re-promote it lawfully (`promote-claim`) only after
+# GraphLaw closure and wasm4pm process validation both hold, and only after
+# the fleet's real external side effects (already-open cargo-cicd receipt
+# writes) are classified as non-blocking rather than silently ignored.
+#
+# Expected plan (16 actions, one ground instance each — pinned by this
+# lane's report, not asserted in code):
+#   emit-standing -> validate-shacl -> validate-shex -> materialize-n3 ->
+#   compute-datalog-closure -> solve-pddl-plan -> compile-powl-model ->
+#   smoke-client -> verify-receipts -> attach-benchmarks -> record-ocel ->
+#   validate-wasm4pm-process -> demote-claim -> classify-external-side-effect
+#   -> promote-claim -> render-final-verdict
+#
+# Consumed by `praxis plan run --goal
+# docs/case-studies/autonomic-standing-factory/case-study/pddl/goal.ttl`.
+
+@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+
+# ── Domain ────────────────────────────────────────────────────────────────
+
+pdl:domain_autonomic_standing_factory
+    a pdl:Domain ;
+    pdl:name "autonomic-standing-factory-pddl8" .
+
+# ── Types ─────────────────────────────────────────────────────────────────
+
+pdl:type_repo                a pdl:Type ; pdl:name "repo" .
+pdl:type_evidence_artifact    a pdl:Type ; pdl:name "evidence-artifact" .
+pdl:type_standing_envelope    a pdl:Type ; pdl:name "standing-envelope" .
+pdl:type_ocel_log             a pdl:Type ; pdl:name "ocel-log" .
+pdl:type_process_validation   a pdl:Type ; pdl:name "process-validation" .
+pdl:type_graphlaw_judgment    a pdl:Type ; pdl:name "graphlaw-judgment" .
+pdl:type_client_surface       a pdl:Type ; pdl:name "client-surface" .
+pdl:type_benchmark_report     a pdl:Type ; pdl:name "benchmark-report" .
+pdl:type_receipt_chain        a pdl:Type ; pdl:name "receipt-chain" .
+pdl:type_external_side_effect a pdl:Type ; pdl:name "external-side-effect" .
+pdl:type_claim                a pdl:Type ; pdl:name "claim" .
+
+# ── Predicates ────────────────────────────────────────────────────────────
+
+pdl:pred_has_evidence
+    a pdl:Predicate ;
+    pdl:name "has-evidence" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?repo" ; pdl:ofType "repo" ] .
+
+pdl:pred_standing_emitted
+    a pdl:Predicate ;
+    pdl:name "standing-emitted" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?env" ; pdl:ofType "standing-envelope" ] .
+
+pdl:pred_shacl_valid
+    a pdl:Predicate ;
+    pdl:name "shacl-valid" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] .
+
+pdl:pred_shex_valid
+    a pdl:Predicate ;
+    pdl:name "shex-valid" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] .
+
+pdl:pred_n3_materialized
+    a pdl:Predicate ;
+    pdl:name "n3-materialized" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] .
+
+pdl:pred_datalog_closed
+    a pdl:Predicate ;
+    pdl:name "datalog-closed" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] .
+
+pdl:pred_pddl_plan_generated
+    a pdl:Predicate ;
+    pdl:name "pddl-plan-generated" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?art" ; pdl:ofType "evidence-artifact" ] .
+
+pdl:pred_powl_compiled
+    a pdl:Predicate ;
+    pdl:name "powl-compiled" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] .
+
+pdl:pred_client_smoked
+    a pdl:Predicate ;
+    pdl:name "client-smoked" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?client" ; pdl:ofType "client-surface" ] .
+
+pdl:pred_receipts_verified
+    a pdl:Predicate ;
+    pdl:name "receipts-verified" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?chain" ; pdl:ofType "receipt-chain" ] .
+
+pdl:pred_benchmarks_attached
+    a pdl:Predicate ;
+    pdl:name "benchmarks-attached" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?bench" ; pdl:ofType "benchmark-report" ] .
+
+pdl:pred_ocel_recorded
+    a pdl:Predicate ;
+    pdl:name "ocel-recorded" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?log" ; pdl:ofType "ocel-log" ] .
+
+pdl:pred_wasm4pm_validated
+    a pdl:Predicate ;
+    pdl:name "wasm4pm-validated" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?val" ; pdl:ofType "process-validation" ] .
+
+pdl:pred_claim_promoted
+    a pdl:Predicate ;
+    pdl:name "claim-promoted" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?claim" ; pdl:ofType "claim" ] .
+
+pdl:pred_claim_demoted
+    a pdl:Predicate ;
+    pdl:name "claim-demoted" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?claim" ; pdl:ofType "claim" ] .
+
+pdl:pred_claim_promoted_lawfully
+    a pdl:Predicate ;
+    pdl:name "claim-promoted-lawfully" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?claim" ; pdl:ofType "claim" ] .
+
+pdl:pred_external_side_effect_open
+    a pdl:Predicate ;
+    pdl:name "external-side-effect-open" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?eff" ; pdl:ofType "external-side-effect" ] .
+
+pdl:pred_external_side_effect_classified
+    a pdl:Predicate ;
+    pdl:name "external-side-effect-classified" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?eff" ; pdl:ofType "external-side-effect" ] .
+
+pdl:pred_ready_for_scope
+    a pdl:Predicate ;
+    pdl:name "ready-for-scope" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?claim" ; pdl:ofType "claim" ] .
+
+# ── Actions (16) ──────────────────────────────────────────────────────────
+
+# 1. emit-standing(?repo, ?env): compile real workspace evidence to a
+#    standing envelope.
+pdl:action_emit_standing
+    a pdl:Action ;
+    pdl:name "emit-standing" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?repo" ; pdl:ofType "repo" ] ,
+              [ pdl:index 1 ; pdl:var "?env" ; pdl:ofType "standing-envelope" ] ;
+    pdl:pre "(has-evidence ?repo)" ;
+    pdl:add "(standing-emitted ?env)" .
+
+# 2. validate-shacl(?env, ?judg): GraphLaw shapes gate (Lane 2).
+pdl:action_validate_shacl
+    a pdl:Action ;
+    pdl:name "validate-shacl" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?env" ; pdl:ofType "standing-envelope" ] ,
+              [ pdl:index 1 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] ;
+    pdl:pre "(standing-emitted ?env)" ;
+    pdl:add "(shacl-valid ?judg)" .
+
+# 3. validate-shex(?env, ?judg): GraphLaw topology gate (Lane 2).
+pdl:action_validate_shex
+    a pdl:Action ;
+    pdl:name "validate-shex" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?env" ; pdl:ofType "standing-envelope" ] ,
+              [ pdl:index 1 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] ;
+    pdl:pre "(standing-emitted ?env)" ;
+    pdl:add "(shex-valid ?judg)" .
+
+# 4. materialize-n3(?env, ?judg): GraphLaw N3 rule materialization (Lane 2).
+pdl:action_materialize_n3
+    a pdl:Action ;
+    pdl:name "materialize-n3" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?env" ; pdl:ofType "standing-envelope" ] ,
+              [ pdl:index 1 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] ;
+    pdl:pre "(standing-emitted ?env)" ;
+    pdl:add "(n3-materialized ?judg)" .
+
+# 5. compute-datalog-closure(?judg): readiness closure over blockers/deps —
+#    requires all three GraphLaw validations to have landed on the SAME
+#    judgment object.
+pdl:action_compute_datalog_closure
+    a pdl:Action ;
+    pdl:name "compute-datalog-closure" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] ;
+    pdl:pre "(shacl-valid ?judg)" ,
+            "(shex-valid ?judg)" ,
+            "(n3-materialized ?judg)" ;
+    pdl:add "(datalog-closed ?judg)" .
+
+# 6. solve-pddl-plan(?judg, ?art): this lane's own planner invocation,
+#    gated on a closed judgment — the repair plan itself is an artifact of
+#    the case study, not a precondition of it.
+pdl:action_solve_pddl_plan
+    a pdl:Action ;
+    pdl:name "solve-pddl-plan" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] ,
+              [ pdl:index 1 ; pdl:var "?art" ; pdl:ofType "evidence-artifact" ] ;
+    pdl:pre "(datalog-closed ?judg)" ;
+    pdl:add "(pddl-plan-generated ?art)" .
+
+# 7. compile-powl-model(?art, ?judg): compile the generated plan into a POWL
+#    process model.
+pdl:action_compile_powl_model
+    a pdl:Action ;
+    pdl:name "compile-powl-model" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?art" ; pdl:ofType "evidence-artifact" ] ,
+              [ pdl:index 1 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] ;
+    pdl:pre "(pddl-plan-generated ?art)" ,
+            "(datalog-closed ?judg)" ;
+    pdl:add "(powl-compiled ?judg)" .
+
+# 8. smoke-client(?judg, ?client): Playwright smoke of the Autonomic
+#    Platform display (Lane 5).
+pdl:action_smoke_client
+    a pdl:Action ;
+    pdl:name "smoke-client" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] ,
+              [ pdl:index 1 ; pdl:var "?client" ; pdl:ofType "client-surface" ] ;
+    pdl:pre "(powl-compiled ?judg)" ;
+    pdl:add "(client-smoked ?client)" .
+
+# 9. verify-receipts(?judg, ?chain): `receipt validate --dir` over this
+#    case study's own receipts ledger.
+pdl:action_verify_receipts
+    a pdl:Action ;
+    pdl:name "verify-receipts" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] ,
+              [ pdl:index 1 ; pdl:var "?chain" ; pdl:ofType "receipt-chain" ] ;
+    pdl:pre "(powl-compiled ?judg)" ;
+    pdl:add "(receipts-verified ?chain)" .
+
+# 10. attach-benchmarks(?judg, ?bench): fold benchmark evidence onto the
+#     judgment.
+pdl:action_attach_benchmarks
+    a pdl:Action ;
+    pdl:name "attach-benchmarks" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] ,
+              [ pdl:index 1 ; pdl:var "?bench" ; pdl:ofType "benchmark-report" ] ;
+    pdl:pre "(powl-compiled ?judg)" ;
+    pdl:add "(benchmarks-attached ?bench)" .
+
+# 11. record-ocel(?client, ?chain, ?bench, ?log): this case study's own
+#     OCEL log, only once all three downstream evidence strands exist.
+pdl:action_record_ocel
+    a pdl:Action ;
+    pdl:name "record-ocel" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?client" ; pdl:ofType "client-surface" ] ,
+              [ pdl:index 1 ; pdl:var "?chain" ; pdl:ofType "receipt-chain" ] ,
+              [ pdl:index 2 ; pdl:var "?bench" ; pdl:ofType "benchmark-report" ] ,
+              [ pdl:index 3 ; pdl:var "?log" ; pdl:ofType "ocel-log" ] ;
+    pdl:pre "(client-smoked ?client)" ,
+            "(receipts-verified ?chain)" ,
+            "(benchmarks-attached ?bench)" ;
+    pdl:add "(ocel-recorded ?log)" .
+
+# 12. validate-wasm4pm-process(?log, ?val): wasm4pm conformance over the
+#     recorded OCEL log (Lane 4).
+pdl:action_validate_wasm4pm_process
+    a pdl:Action ;
+    pdl:name "validate-wasm4pm-process" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?log" ; pdl:ofType "ocel-log" ] ,
+              [ pdl:index 1 ; pdl:var "?val" ; pdl:ofType "process-validation" ] ;
+    pdl:pre "(ocel-recorded ?log)" ;
+    pdl:add "(wasm4pm-validated ?val)" .
+
+# 13. demote-claim(?claim): REPAIR — an earlier, evidence-less pass marked
+#     the scope's claim promoted; that is unlawful and must be undone
+#     before it can be re-earned.
+pdl:action_demote_claim
+    a pdl:Action ;
+    pdl:name "demote-claim" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?claim" ; pdl:ofType "claim" ] ;
+    pdl:pre "(claim-promoted ?claim)" ;
+    pdl:add "(claim-demoted ?claim)" ;
+    pdl:del "(claim-promoted ?claim)" .
+
+# 14. classify-external-side-effect(?eff): separate the fleet's real
+#     external operator side effects (open cargo-cicd receipt writes) from
+#     release blockers — non-goal per CASE_STUDY_CONTROL.md.
+pdl:action_classify_external_side_effect
+    a pdl:Action ;
+    pdl:name "classify-external-side-effect" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?eff" ; pdl:ofType "external-side-effect" ] ;
+    pdl:pre "(external-side-effect-open ?eff)" ;
+    pdl:add "(external-side-effect-classified ?eff)" .
+
+# 15. promote-claim(?claim, ?judg, ?val): lawful re-promotion — only once
+#     demoted AND backed by both a closed GraphLaw judgment and a passing
+#     wasm4pm process validation.
+pdl:action_promote_claim
+    a pdl:Action ;
+    pdl:name "promote-claim" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?claim" ; pdl:ofType "claim" ] ,
+              [ pdl:index 1 ; pdl:var "?judg" ; pdl:ofType "graphlaw-judgment" ] ,
+              [ pdl:index 2 ; pdl:var "?val" ; pdl:ofType "process-validation" ] ;
+    pdl:pre "(claim-demoted ?claim)" ,
+            "(datalog-closed ?judg)" ,
+            "(wasm4pm-validated ?val)" ;
+    pdl:add "(claim-promoted-lawfully ?claim)" .
+
+# 16. render-final-verdict(?claim, ?eff): the scope becomes ready only once
+#     the claim is lawfully promoted AND external side effects are
+#     accounted for (never silently folded into the verdict).
+pdl:action_render_final_verdict
+    a pdl:Action ;
+    pdl:name "render-final-verdict" ;
+    pdl:param [ pdl:index 0 ; pdl:var "?claim" ; pdl:ofType "claim" ] ,
+              [ pdl:index 1 ; pdl:var "?eff" ; pdl:ofType "external-side-effect" ] ;
+    pdl:pre "(claim-promoted-lawfully ?claim)" ,
+            "(external-side-effect-classified ?eff)" ;
+    pdl:add "(ready-for-scope ?claim)" .
+
+# ── Problem: autonomic-standing-factory-case-001 ─────────────────────────
+
+pdl:problem_autonomic_standing_factory_case_001
+    a pdl:Problem ;
+    pdl:name "autonomic-standing-factory-case-001" ;
+    pdl:domain "autonomic-standing-factory-pddl8" ;
+    pdl:object [ pdl:name "repo-praxis" ; pdl:ofType "repo" ] ,
+               [ pdl:name "env-case-study" ; pdl:ofType "standing-envelope" ] ,
+               [ pdl:name "judg-case-study" ; pdl:ofType "graphlaw-judgment" ] ,
+               [ pdl:name "art-pddl-plan" ; pdl:ofType "evidence-artifact" ] ,
+               [ pdl:name "client-autonomic-platform" ; pdl:ofType "client-surface" ] ,
+               [ pdl:name "chain-case-study" ; pdl:ofType "receipt-chain" ] ,
+               [ pdl:name "bench-case-study" ; pdl:ofType "benchmark-report" ] ,
+               [ pdl:name "log-case-study" ; pdl:ofType "ocel-log" ] ,
+               [ pdl:name "val-wasm4pm" ; pdl:ofType "process-validation" ] ,
+               [ pdl:name "eff-cargo-cicd-receipts" ; pdl:ofType "external-side-effect" ] ,
+               [ pdl:name "autonomic-standing-factory-local-first" ; pdl:ofType "claim" ] ;
+    pdl:init "(has-evidence repo-praxis)" ,
+             "(claim-promoted autonomic-standing-factory-local-first)" ,
+             "(external-side-effect-open eff-cargo-cicd-receipts)" ;
+    pdl:goal "(ready-for-scope autonomic-standing-factory-local-first)" .

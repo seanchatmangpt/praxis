@@ -52,6 +52,57 @@ const DEFAULT_LOG: &str = "docs/releases/v26.7.6/ocel/playwright-wasm4pm-validat
 const REPORT_PATH: &str = "docs/releases/v26.7.6/ocel/wasm4pm-process-validation.json";
 const RELEASE_ID: &str = "v26.7.6";
 
+/// Output path for the `--model case-study` process-model projection
+/// (Lane 3, autonomic-standing-factory case study). Distinct from
+/// `REPORT_PATH`: the case study's own OCEL log does not exist yet (Lane 4
+/// produces it), so this path carries the model shape only
+/// (`ModelReport{alphabet,children,order_pairs}`), not a conformance verdict.
+const CASE_STUDY_MODEL_REPORT_PATH: &str =
+    "docs/case-studies/autonomic-standing-factory/case-study/powl_model.json";
+
+/// Which process model `ocel_process_validate` selects. `Release` is the
+/// UNCHANGED default (v26.7.6 `CHILD_SPECS`/`ORDER_LABEL_PAIRS`, full
+/// integrity+conformance run against `DEFAULT_LOG` or an explicit log arg).
+/// `CaseStudy` selects the Lane 3 case-study model and only emits the model
+/// projection (no log to validate against yet).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ModelKind {
+    Release,
+    CaseStudy,
+}
+
+impl ModelKind {
+    fn parse(s: &str) -> Self {
+        match s {
+            "case-study" => ModelKind::CaseStudy,
+            _ => ModelKind::Release,
+        }
+    }
+}
+
+/// Split argv (excluding argv\[0\]) into `(--model selection, remaining
+/// positional log-path arg)`. Accepts both `--model <value>` and
+/// `--model=<value>`; any other token is treated as the positional log path
+/// (same contract as the pre-existing `args().nth(1)` read, now just
+/// filtered past the `--model` flag).
+fn parse_args(args: &[String]) -> (ModelKind, Option<String>) {
+    let mut model = ModelKind::Release;
+    let mut rest: Vec<String> = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        if a == "--model" {
+            if let Some(v) = it.next() {
+                model = ModelKind::parse(v);
+            }
+        } else if let Some(v) = a.strip_prefix("--model=") {
+            model = ModelKind::parse(v);
+        } else {
+            rest.push(a.clone());
+        }
+    }
+    (model, rest.into_iter().next())
+}
+
 /// Event types appended by this validator itself. Outside the model
 /// alphabet by construction (closure rule): the conformance projection
 /// drops them, so re-running the validator over an already-annotated log
@@ -163,6 +214,67 @@ const ORDER_LABEL_PAIRS: &[(&str, &str)] = &[
     ("ocel_log_written", "benchmark_run_started"),
 ];
 
+// ─── the case-study POWL model (Lane 3, `--model case-study`) ──────────────
+//
+// A distinct, parallel table — selected only by `--model case-study` — for
+// the autonomic-standing-factory case study's own top-level workflow (not
+// the v26.7.6 release loop above, which stays byte-for-byte unchanged).
+// Every child is a plain `Once` leaf: this model describes one pass through
+// the case study, not a release loop with retries.
+const CASE_STUDY_CHILD_SPECS: &[ChildSpec] = &[
+    ChildSpec::Once("case_study_started"),
+    ChildSpec::Once("standing_emitted"),
+    ChildSpec::Once("shacl_validated"),
+    ChildSpec::Once("shex_validated"),
+    ChildSpec::Once("n3_materialized"),
+    ChildSpec::Once("datalog_closed"),
+    ChildSpec::Once("pddl_plan_generated"),
+    ChildSpec::Once("powl_model_compiled"),
+    ChildSpec::Once("client_smoked"),
+    ChildSpec::Once("receipts_verified"),
+    ChildSpec::Once("benchmarks_attached"),
+    ChildSpec::Once("graphlaw_judgment_emitted"),
+    ChildSpec::Once("ocel_log_written"),
+    ChildSpec::Once("wasm4pm_process_validated"),
+    ChildSpec::Once("final_verdict_rendered"),
+    ChildSpec::Once("case_study_finished"),
+];
+
+/// Partial order exactly as specified by the Lane 3 ticket:
+/// `case_study_started < standing_emitted < {shacl_validated, shex_validated,
+/// n3_materialized < datalog_closed} < pddl_plan_generated <
+/// powl_model_compiled < {client_smoked, receipts_verified,
+/// benchmarks_attached} < graphlaw_judgment_emitted < ocel_log_written <
+/// wasm4pm_process_validated < final_verdict_rendered < case_study_finished`.
+///
+/// No real OCEL log exists yet for this model (Lane 4 produces it), so this
+/// order has not been contradicted by an observed trace — it is asserted
+/// from the ticket's specification, not mined. If Lane 4/6's actual capture
+/// shows `ocel_log_written` earlier than this order implies, that is a
+/// documented deviation for `PROCESS_MODEL.md` (Lane 6), not a silent edit
+/// here.
+const CASE_STUDY_ORDER_LABEL_PAIRS: &[(&str, &str)] = &[
+    ("case_study_started", "standing_emitted"),
+    ("standing_emitted", "shacl_validated"),
+    ("standing_emitted", "shex_validated"),
+    ("standing_emitted", "n3_materialized"),
+    ("shacl_validated", "datalog_closed"),
+    ("shex_validated", "datalog_closed"),
+    ("n3_materialized", "datalog_closed"),
+    ("datalog_closed", "pddl_plan_generated"),
+    ("pddl_plan_generated", "powl_model_compiled"),
+    ("powl_model_compiled", "client_smoked"),
+    ("powl_model_compiled", "receipts_verified"),
+    ("powl_model_compiled", "benchmarks_attached"),
+    ("client_smoked", "graphlaw_judgment_emitted"),
+    ("receipts_verified", "graphlaw_judgment_emitted"),
+    ("benchmarks_attached", "graphlaw_judgment_emitted"),
+    ("graphlaw_judgment_emitted", "ocel_log_written"),
+    ("ocel_log_written", "wasm4pm_process_validated"),
+    ("wasm4pm_process_validated", "final_verdict_rendered"),
+    ("final_verdict_rendered", "case_study_finished"),
+];
+
 /// Declarative child spec used to build the `Powl` value.
 #[derive(Debug, Clone, Copy)]
 enum ChildSpec {
@@ -239,10 +351,15 @@ fn close_order(
     Ok(closed)
 }
 
-/// Build the release-loop model as an actual `powl2_decompose::Powl` value.
-fn release_loop_model() -> Result<Powl, Refusal> {
+/// Build a model as an actual `powl2_decompose::Powl` value from a
+/// `ChildSpec` table and an order-pair table. Shared by both
+/// [`release_loop_model`] (v26.7.6, unchanged) and [`case_study_loop_model`]
+/// (Lane 3, `--model case-study`) — only this construction is shared; the
+/// tables themselves stay separate and neither is mutated by the other's
+/// selection.
+fn build_loop_model(specs: &[ChildSpec], pairs: &[(&str, &str)]) -> Result<Powl, Refusal> {
     let mut label_to_child: BTreeMap<&str, usize> = BTreeMap::new();
-    let children: Vec<Powl> = CHILD_SPECS
+    let children: Vec<Powl> = specs
         .iter()
         .enumerate()
         .map(|(i, spec)| match spec {
@@ -263,7 +380,7 @@ fn release_loop_model() -> Result<Powl, Refusal> {
         })
         .collect();
     let mut base = BTreeSet::new();
-    for (a, b) in ORDER_LABEL_PAIRS {
+    for (a, b) in pairs {
         let ia = label_to_child.get(a).copied().ok_or_else(|| {
             Refusal::ModelShape(format!("order pair label '{a}' not in any child"))
         })?;
@@ -274,6 +391,17 @@ fn release_loop_model() -> Result<Powl, Refusal> {
     }
     let order = close_order(children.len(), &base)?;
     Ok(Powl::PartialOrder { children, order })
+}
+
+/// Build the release-loop model (v26.7.6, unchanged). See `build_loop_model`.
+fn release_loop_model() -> Result<Powl, Refusal> {
+    build_loop_model(CHILD_SPECS, ORDER_LABEL_PAIRS)
+}
+
+/// Build the case-study model (Lane 3, `--model case-study`). See
+/// `build_loop_model`.
+fn case_study_loop_model() -> Result<Powl, Refusal> {
+    build_loop_model(CASE_STUDY_CHILD_SPECS, CASE_STUDY_ORDER_LABEL_PAIRS)
 }
 
 // ─── model view: derive the decision procedure from the Powl value ──────────
@@ -340,8 +468,7 @@ fn model_view(model: &Powl) -> Result<ModelView, Refusal> {
         .iter()
         .map(classify_child)
         .collect::<Result<_, _>>()?;
-    ModelView::new(kinds, order.clone())
-        .map_err(|e| Refusal::ModelShape(e.to_string()))
+    ModelView::new(kinds, order.clone()).map_err(|e| Refusal::ModelShape(e.to_string()))
 }
 
 // ─── UTC ordering ───────────────────────────────────────────────────────────
@@ -424,7 +551,12 @@ fn model_report(view: &ModelView) -> ModelReport {
         order_pairs: view
             .order()
             .iter()
-            .map(|&(i, j)| [child_desc(&view.children()[i]), child_desc(&view.children()[j])])
+            .map(|&(i, j)| {
+                [
+                    child_desc(&view.children()[i]),
+                    child_desc(&view.children()[j]),
+                ]
+            })
             .collect(),
     }
 }
@@ -592,10 +724,8 @@ fn append_bookkeeping(log_path: &str, report_sha256: &str, run_id: &str) -> Resu
 
 // ─── main ───────────────────────────────────────────────────────────────────
 
-fn run() -> Result<bool, Refusal> {
-    let log_path = std::env::args()
-        .nth(1)
-        .unwrap_or_else(|| DEFAULT_LOG.to_string());
+fn run(log_path_arg: Option<String>) -> Result<bool, Refusal> {
+    let log_path = log_path_arg.unwrap_or_else(|| DEFAULT_LOG.to_string());
 
     let bytes = std::fs::read(&log_path).map_err(|source| Refusal::Io {
         path: log_path.clone(),
@@ -752,8 +882,51 @@ fn hex_encode(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// `--model case-study`: build the Lane 3 case-study model and emit its
+/// `ModelReport{alphabet,children,order_pairs}` projection to
+/// `CASE_STUDY_MODEL_REPORT_PATH`. No OCEL log exists for this model yet
+/// (Lane 4 produces `case-study/ocel_*.json`), so — unlike `run()` — this
+/// does not attempt an integrity/UTC/conformance/participation pass; it is
+/// honestly scoped to "the model exists and is well-shaped," which is what
+/// Lane 3 owns. An optional positional log-path arg is accepted for
+/// forward-compatibility (a future Lane 4 log) but is only recorded, not
+/// validated, here.
+fn run_case_study(log_arg: Option<String>) -> Result<bool, Refusal> {
+    let model = case_study_loop_model()?;
+    let view = model_view(&model)?;
+    let report = model_report(&view);
+
+    let mut report_json =
+        serde_json::to_string_pretty(&report).map_err(|source| Refusal::Parse {
+            path: CASE_STUDY_MODEL_REPORT_PATH.to_string(),
+            source,
+        })?;
+    report_json.push('\n');
+    std::fs::write(CASE_STUDY_MODEL_REPORT_PATH, &report_json).map_err(|source| Refusal::Io {
+        path: CASE_STUDY_MODEL_REPORT_PATH.to_string(),
+        source,
+    })?;
+    println!("{report_json}");
+    eprintln!(
+        "[ocel_process_validate] case-study model emitted to {CASE_STUDY_MODEL_REPORT_PATH} \
+         ({} children, {} order pairs); no log validated{}",
+        report.children.len(),
+        report.order_pairs.len(),
+        log_arg
+            .map(|p| format!(" (log arg '{p}' ignored: case-study log not owned by Lane 3)"))
+            .unwrap_or_default(),
+    );
+    Ok(true)
+}
+
 fn main() -> ExitCode {
-    match run() {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let (model, log_arg) = parse_args(&args);
+    let result = match model {
+        ModelKind::Release => run(log_arg),
+        ModelKind::CaseStudy => run_case_study(log_arg),
+    };
+    match result {
         Ok(true) => ExitCode::SUCCESS,
         Ok(false) => ExitCode::from(1),
         Err(refusal) => {
