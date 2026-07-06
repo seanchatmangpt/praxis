@@ -26,7 +26,7 @@
 //! themselves rather than relying on a nonzero process exit code.
 
 use clap_noun_verb::error::{NounVerbError, Result};
-use clap_noun_verb_macros::{arg, verb};
+use clap_noun_verb_macros::verb;
 use my_conforming_project::verify_ops::run_verify_pipeline;
 use praxis_core::verify::VerifyMetrics;
 use serde_json::Value;
@@ -35,7 +35,11 @@ fn print_metrics(metrics: &VerifyMetrics, timings: bool) {
     if timings {
         for s in &metrics.stages {
             let status = if s.passed { "PASS" } else { "FAIL" };
-            eprintln!("  [{status}] {} ({:.2}ms)", s.name, s.duration.as_secs_f64() * 1_000.0);
+            eprintln!(
+                "  [{status}] {} ({:.2}ms)",
+                s.name,
+                s.duration.as_secs_f64() * 1_000.0
+            );
         }
     }
     eprintln!("{}", metrics.summary_line());

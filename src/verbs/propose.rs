@@ -30,7 +30,7 @@
 //! `Ok`" convention.
 
 use clap_noun_verb::error::{NounVerbError, Result};
-use clap_noun_verb_macros::{arg, verb};
+use clap_noun_verb_macros::verb;
 // The `revenue`/`goal` ranking implementation lives in the library `ops`
 // module so the CLI verbs and the MCP `propose_revenue`/`propose_goal` tools
 // call one implementation (AR-2, no drift). `objective_summary`/`parse_payload`
@@ -130,20 +130,28 @@ fn mission_payload(payload: &str) -> std::result::Result<Value, String> {
     let input: MissionInput = parse_payload(payload)?;
     let mission = match (&input.mission, &input.mission_file) {
         (Some(_), Some(_)) => {
-            return Err("supply exactly one of `mission` (inline) or `mission_file` (path), \
+            return Err(
+                "supply exactly one of `mission` (inline) or `mission_file` (path), \
                         not both"
-                .to_string())
+                    .to_string(),
+            )
         }
         (None, None) => {
-            return Err("no mission supplied: put a `mission` object or a `mission_file` \
+            return Err(
+                "no mission supplied: put a `mission` object or a `mission_file` \
                         path in the payload"
-                .to_string())
+                    .to_string(),
+            )
         }
         (Some(inline), None) => Mission::parse(&inline.to_string(), "json")?,
         (None, Some(path)) => {
             let text = std::fs::read_to_string(path)
                 .map_err(|e| format!("cannot read mission_file '{path}': {e}"))?;
-            let fmt = if path.ends_with(".toml") { "toml" } else { "auto" };
+            let fmt = if path.ends_with(".toml") {
+                "toml"
+            } else {
+                "auto"
+            };
             Mission::parse(&text, fmt)?
         }
     };
@@ -211,10 +219,12 @@ fn resolve_church_objective(
     }
     match sources {
         0 => {
-            return Err("no objective supplied: pass --objective <path>, or put `objective` \
+            return Err(
+                "no objective supplied: pass --objective <path>, or put `objective` \
                         (inline) or `objective_file` (path) in the payload — the objective \
                         function is domain-authored data the system never invents (Non-goal 1)"
-                .to_string())
+                    .to_string(),
+            )
         }
         1 => {}
         _ => {
@@ -226,8 +236,11 @@ fn resolve_church_objective(
     if let Some(inline) = inline {
         return church::objective_from_json_str(&inline.to_string()).map_err(|e| e.to_string());
     }
-    let path =
-        if !arg_path.is_empty() { arg_path } else { objective_file.as_deref().unwrap_or_default() };
+    let path = if !arg_path.is_empty() {
+        arg_path
+    } else {
+        objective_file.as_deref().unwrap_or_default()
+    };
     church::objective_from_path(std::path::Path::new(path)).map_err(|e| e.to_string())
 }
 
@@ -253,7 +266,11 @@ fn church_payload(payload: &str, objective_path: &str) -> std::result::Result<Va
         resolve_church_objective(objective_path, &input.objective, &input.objective_file)?;
     let proposer = ChurchProposer::new(objective);
     let proposals = proposer.propose(&input.state);
-    let status = if proposals.is_empty() { "no_lawful_candidates" } else { "proposed" };
+    let status = if proposals.is_empty() {
+        "no_lawful_candidates"
+    } else {
+        "proposed"
+    };
     Ok(json!({
         "status": status,
         "pack": "church",
@@ -377,7 +394,10 @@ mod tests {
         let revenue =
             revenue_payload(&payload_with_inline_objective(), "").expect("revenue proposals");
         let proposals = revenue["proposals"].as_array().expect("proposals array");
-        assert!(proposals.len() >= 2, "need at least two ranked proposals for this test");
+        assert!(
+            proposals.len() >= 2,
+            "need at least two ranked proposals for this test"
+        );
 
         for proposal in &proposals[..2] {
             let goal_atom = proposal["pddl_goal"].as_str().expect("pddl_goal string");
@@ -414,7 +434,10 @@ mod tests {
     fn missing_objective_is_hard_error_never_invented() {
         let payload = json!({ "state": fixture_state() }).to_string();
         let err = revenue_payload(&payload, "").unwrap_err();
-        assert!(err.contains("never invents"), "error must cite Non-goal 1: {err}");
+        assert!(
+            err.contains("never invents"),
+            "error must cite Non-goal 1: {err}"
+        );
     }
 
     #[test]
@@ -569,7 +592,10 @@ mod tests {
     fn church_missing_objective_is_hard_error_never_invented() {
         let payload = json!({ "state": church_fixture_state() }).to_string();
         let err = church_payload(&payload, "").unwrap_err();
-        assert!(err.contains("never invents"), "error must cite Non-goal 1: {err}");
+        assert!(
+            err.contains("never invents"),
+            "error must cite Non-goal 1: {err}"
+        );
     }
 
     #[test]

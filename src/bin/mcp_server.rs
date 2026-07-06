@@ -21,13 +21,15 @@ mod server {
 
     /// Shared server state (clone-cheap; extend with connection pools, config, etc.)
     #[derive(Clone)]
-    pub struct ServerState {
+    pub(crate) struct ServerState {
         tool_router: ToolRouter<Self>,
     }
 
     impl Default for ServerState {
         fn default() -> Self {
-            Self { tool_router: Self::tool_router() }
+            Self {
+                tool_router: Self::tool_router(),
+            }
         }
     }
 
@@ -39,7 +41,7 @@ mod server {
     // -------------------------------------------------------------------------
 
     #[derive(Deserialize, JsonSchema)]
-    pub struct EmitParams {
+    pub(crate) struct EmitParams {
         /// Event type label (e.g. "build", "test", "audit-log").
         pub event_type: String,
         /// Object reference in `id:type[:qualifier]` format.
@@ -50,13 +52,13 @@ mod server {
     }
 
     #[derive(Deserialize, JsonSchema)]
-    pub struct VerifyParams {
+    pub(crate) struct VerifyParams {
         /// Filesystem path to the assembled receipt JSON file.
         pub receipt_path: String,
     }
 
     #[derive(Deserialize, JsonSchema)]
-    pub struct ShowParams {
+    pub(crate) struct ShowParams {
         /// Filesystem path to the assembled receipt JSON file.
         pub receipt_path: String,
     }
@@ -82,17 +84,19 @@ mod server {
                 Ok(out) => {
                     let text = String::from_utf8_lossy(&out.stdout).into_owned();
                     if out.status.success() {
-                        Ok(CallToolResult::success(vec![rmcp::model::Content::text(text)]))
+                        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
+                            text,
+                        )]))
                     } else {
                         let err = String::from_utf8_lossy(&out.stderr).into_owned();
-                        Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                            "emit failed: {err}"
-                        ))]))
+                        Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                            format!("emit failed: {err}"),
+                        )]))
                     }
                 }
-                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                    "could not launch affi: {e}"
-                ))])),
+                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                    format!("could not launch affi: {e}"),
+                )])),
             }
         }
 
@@ -102,17 +106,24 @@ mod server {
             params: Parameters<VerifyParams>,
         ) -> Result<CallToolResult, rmcp::ErrorData> {
             let path = &params.0.receipt_path;
-            match std::process::Command::new("affi").args(["verify", path]).output() {
+            match std::process::Command::new("affi")
+                .args(["verify", path])
+                .output()
+            {
                 Ok(out) => {
-                    let verdict = if out.status.success() { "ACCEPT" } else { "REJECT" };
+                    let verdict = if out.status.success() {
+                        "ACCEPT"
+                    } else {
+                        "REJECT"
+                    };
                     let detail = String::from_utf8_lossy(&out.stdout).into_owned();
-                    Ok(CallToolResult::success(vec![rmcp::model::Content::text(format!(
-                        "{verdict}\n{detail}"
-                    ))]))
+                    Ok(CallToolResult::success(vec![rmcp::model::Content::text(
+                        format!("{verdict}\n{detail}"),
+                    )]))
                 }
-                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                    "could not launch affi: {e}"
-                ))])),
+                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                    format!("could not launch affi: {e}"),
+                )])),
             }
         }
 
@@ -122,21 +133,26 @@ mod server {
             params: Parameters<ShowParams>,
         ) -> Result<CallToolResult, rmcp::ErrorData> {
             let path = &params.0.receipt_path;
-            match std::process::Command::new("affi").args(["show", path]).output() {
+            match std::process::Command::new("affi")
+                .args(["show", path])
+                .output()
+            {
                 Ok(out) => {
                     let text = String::from_utf8_lossy(&out.stdout).into_owned();
                     if out.status.success() {
-                        Ok(CallToolResult::success(vec![rmcp::model::Content::text(text)]))
+                        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
+                            text,
+                        )]))
                     } else {
                         let err = String::from_utf8_lossy(&out.stderr).into_owned();
-                        Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                            "show failed: {err}"
-                        ))]))
+                        Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                            format!("show failed: {err}"),
+                        )]))
                     }
                 }
-                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                    "could not launch affi: {e}"
-                ))])),
+                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                    format!("could not launch affi: {e}"),
+                )])),
             }
         }
     }

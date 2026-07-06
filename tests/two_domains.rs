@@ -24,11 +24,15 @@
 //! The substrate functions named in the loop are the same for both packs.
 //! Only the ontology (`Pack` impl), the objective, and the state differ. That
 //! is the whole claim.
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
 #![cfg(feature = "proposer")]
 
-use my_conforming_project::mission::{self, Pack};
-use my_conforming_project::revenue;
-use praxis_proposer::engine::Domain;
+use my_conforming_project::{
+    mission::{self, Pack},
+    revenue,
+};
 use praxis_proposer::{ChurchDomain, ChurchState, RevenueDomain, RevenueState};
 use serde_json::{json, Value};
 
@@ -86,7 +90,8 @@ fn all_gates_agree<P: Pack>(state: &P::State) -> bool {
 fn revenue_run() -> PackRun {
     let state: RevenueState =
         serde_json::from_value(mission::revenue_fixture_state()).expect("revenue fixture");
-    let objective = RevenueDomain::load_objective(revenue::REVENUE_OBJECTIVE).expect("rev objective");
+    let objective =
+        RevenueDomain::load_objective(revenue::REVENUE_OBJECTIVE).expect("rev objective");
 
     // Forced over-reach: acct-legal-gap lacks legal_approved, so it can never
     // lawfully reach closed-won — admission must deny it.
@@ -119,7 +124,8 @@ fn revenue_run() -> PackRun {
 fn church_run() -> PackRun {
     let state: ChurchState =
         serde_json::from_value(mission::church_fixture_state()).expect("church fixture");
-    let objective = ChurchDomain::load_objective(mission::CHURCH_OBJECTIVE).expect("church objective");
+    let objective =
+        ChurchDomain::load_objective(mission::CHURCH_OBJECTIVE).expect("church objective");
 
     // Forced over-reach: visitor-fresh has no hospitality evidence, so it can
     // never lawfully reach leading — the SAME admission gate must deny it.
@@ -170,7 +176,11 @@ fn two_institutions_one_substrate() {
         assert_eq!(t["pack"], json!(run.pack), "transcript pack tag");
 
         // Determinism: same P + objective + state + ts_ns ⇒ byte-identical.
-        assert_eq!(t, &run.transcript_again, "[{}] pipe must be deterministic", run.pack);
+        assert_eq!(
+            t, &run.transcript_again,
+            "[{}] pipe must be deterministic",
+            run.pack
+        );
 
         // Step 1: several ranked proposals, each with a 64-hex proposal_hash
         // and a cited rationale.
@@ -194,20 +204,40 @@ fn two_institutions_one_substrate() {
         // Step 2/3: the top proposal drives a multi-action, evidence-gated
         // plan (both fixtures' best move needs two gated steps).
         let plan = t["step_3_plan"]["plan"].as_array().expect("plan array");
-        assert!(plan.len() >= 2, "[{}] top goal needs a multi-step plan: {plan:?}", run.pack);
+        assert!(
+            plan.len() >= 2,
+            "[{}] top goal needs a multi-step plan: {plan:?}",
+            run.pack
+        );
 
         // Step 4: every plan action was validated AND admitted — via the SAME
         // ops::judge_payload/ops::admit_payload gate for both packs.
         let admissions = t["step_4_admissions"].as_array().expect("admissions array");
-        assert!(!admissions.is_empty(), "[{}] plan produced admissions", run.pack);
+        assert!(
+            !admissions.is_empty(),
+            "[{}] plan produced admissions",
+            run.pack
+        );
         for adm in admissions {
-            assert_eq!(adm["judge_verdict"], json!("validated"), "[{}] action judged", run.pack);
-            assert_eq!(adm["admit_status"], json!("admitted"), "[{}] action admitted", run.pack);
+            assert_eq!(
+                adm["judge_verdict"],
+                json!("validated"),
+                "[{}] action judged",
+                run.pack
+            );
+            assert_eq!(
+                adm["admit_status"],
+                json!("admitted"),
+                "[{}] action admitted",
+                run.pack
+            );
         }
 
         // Step 5: the receipt binds the top proposal_hash and yields a valid
         // 64-hex chain hash (AR-9 closure), identically in both institutions.
-        let bound = t["step_5_receipt"]["binds_proposal_hash"].as_str().expect("bound hash");
+        let bound = t["step_5_receipt"]["binds_proposal_hash"]
+            .as_str()
+            .expect("bound hash");
         assert_eq!(
             bound,
             top["proposal_hash"].as_str().expect("top hash"),
@@ -241,14 +271,23 @@ fn two_institutions_one_substrate() {
         // The Maximum Reachable objective respects the gates: opportunity is
         // never negative and utilization is a proper fraction in [0,1].
         let c = &run.ceiling;
-        assert_eq!(c["status"], json!("computed"), "[{}] ceiling computed", run.pack);
+        assert_eq!(
+            c["status"],
+            json!("computed"),
+            "[{}] ceiling computed",
+            run.pack
+        );
         assert!(
             c["opportunity_value"].as_f64().expect("opportunity") >= 0.0,
             "[{}] reachable ≥ realized",
             run.pack
         );
         let util = c["utilization"].as_f64().expect("utilization");
-        assert!((0.0..=1.0).contains(&util), "[{}] utilization {util} in [0,1]", run.pack);
+        assert!(
+            (0.0..=1.0).contains(&util),
+            "[{}] utilization {util} in [0,1]",
+            run.pack
+        );
     }
 
     // Both transcripts expose the IDENTICAL step vocabulary — the substrate

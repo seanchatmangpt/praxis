@@ -56,6 +56,10 @@
 //! matching the CLI's "denial is data, not an error" convention. Only malformed
 //! input (bad JSON, bad hex, an unreadable ledger directory) is an MCP tool error.
 
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
+
 #[cfg(feature = "mcp")]
 mod server {
     use std::sync::{
@@ -92,7 +96,7 @@ mod server {
     /// (the "MCP lifecycle event → resident byte" adapter, see [`ServerState`]
     /// impl below).
     #[derive(Clone)]
-    pub struct ServerState {
+    pub(crate) struct ServerState {
         tool_router: ToolRouter<Self>,
         cache: ToolResultCache,
         /// The connected session's live [`AgentByte`]. `Arc<AtomicU8>` so every
@@ -156,7 +160,11 @@ mod server {
 
         /// Read a top-level string field from a tool's JSON result text.
         fn result_field(text: &str, field: &str) -> Option<String> {
-            serde_json::from_str::<Value>(text).ok()?.get(field)?.as_str().map(str::to_string)
+            serde_json::from_str::<Value>(text)
+                .ok()?
+                .get(field)?
+                .as_str()
+                .map(str::to_string)
         }
 
         /// Fold a `judge` outcome into the session byte.
@@ -243,7 +251,7 @@ mod server {
     /// "reason": "..."}, {"type": "evidence_required", "evidence_type":
     /// "..."}]`.
     #[derive(Deserialize, JsonSchema)]
-    pub struct InspectObligationParams {
+    pub(crate) struct InspectObligationParams {
         /// JSON array of tagged obligations to inspect (see struct doc for the wire schema).
         pub obligations_json: String,
     }
@@ -257,7 +265,7 @@ mod server {
     /// schema, so there is exactly one source of truth for what a payload
     /// means.
     #[derive(Deserialize, JsonSchema)]
-    pub struct JudgeParams {
+    pub(crate) struct JudgeParams {
         /// The `LawInput` JSON payload (see struct doc for the full shape).
         pub payload_json: String,
         /// Policy name to judge against; defaults to `"default"`.
@@ -267,7 +275,7 @@ mod server {
 
     /// Parameters for `admit`. Same `payload_json` shape as [`JudgeParams`].
     #[derive(Deserialize, JsonSchema)]
-    pub struct AdmitParams {
+    pub(crate) struct AdmitParams {
         /// The `LawInput` JSON payload — same shape as `judge`'s `payload_json`.
         pub payload_json: String,
         /// Admission policy name; defaults to `"default"`.
@@ -279,21 +287,21 @@ mod server {
     /// [`JudgeParams`], additionally read for `prev_chain_hash` (64-hex
     /// chars), `ts_ns`, `instruction_id`, `activity_idx`, `node_kind`.
     #[derive(Deserialize, JsonSchema)]
-    pub struct ReceiptParams {
+    pub(crate) struct ReceiptParams {
         /// The `LawInput`+receipt-fields JSON payload (see struct doc).
         pub payload_json: String,
     }
 
     /// Parameters for querying Andon state.
     #[derive(Deserialize, JsonSchema)]
-    pub struct ShowAndonParams {
+    pub(crate) struct ShowAndonParams {
         /// JSON representation of any LawObject-shaped value carrying an `"andon"` field.
         pub lawobject_json: String,
     }
 
     /// Parameters for `promote`.
     #[derive(Deserialize, JsonSchema)]
-    pub struct PromoteParams {
+    pub(crate) struct PromoteParams {
         /// JSON payload carrying `{"standing": "<BreedStanding registry name>"}`.
         pub payload_json: String,
         /// Auditor name endorsing the promotion; required for promotions to
@@ -304,7 +312,7 @@ mod server {
 
     /// Parameters for `receipt_validate`/`receipt_replay`.
     #[derive(Deserialize, JsonSchema)]
-    pub struct ReceiptDirParams {
+    pub(crate) struct ReceiptDirParams {
         /// Receipts ledger directory; defaults to `"receipts"`. Unlike the
         /// CLI's `receipt` noun, this tool does not consult `PraxisConfig`
         /// (no config wiring in this server yet) — a follow-up.
@@ -314,7 +322,7 @@ mod server {
 
     /// Parameters for `plan_solve`.
     #[derive(Deserialize, JsonSchema)]
-    pub struct PlanSolveParams {
+    pub(crate) struct PlanSolveParams {
         /// PDDL8 solve payload — `{domain, problem, mode}` (inline text) and/or
         /// `{domain_file, problem_file}` (paths), or a single combined
         /// domain+problem string in `domain`. `mode` is `"classical"` (default)
@@ -325,7 +333,7 @@ mod server {
     /// Parameters for `propose_revenue`/`propose_goal`. The `mcp` feature
     /// implies `proposer` (see Cargo.toml), so these tools are always present.
     #[derive(Deserialize, JsonSchema)]
-    pub struct ProposeParams {
+    pub(crate) struct ProposeParams {
         /// `{state, objective|objective_file}` — the observed revenue snapshot
         /// plus a domain-authored objective (inline object or file path).
         pub payload_json: String,
@@ -337,7 +345,7 @@ mod server {
 
     /// Parameters for `fleet_status`.
     #[derive(Deserialize, JsonSchema)]
-    pub struct FleetStatusParams {
+    pub(crate) struct FleetStatusParams {
         /// The fleet state as JSON: either a bare array of agent bytes
         /// (`[111, 255, ...]`) or an object
         /// `{"agents": [<u8>...], "required_mask": <u8?>}`. `required_mask`
@@ -355,7 +363,10 @@ mod server {
             obligations
                 .iter()
                 .map(|o| match o {
-                    Obligation::Precondition { predicate_id, params_hash } => {
+                    Obligation::Precondition {
+                        predicate_id,
+                        params_hash,
+                    } => {
                         json!({
                             "type": "Precondition",
                             "predicate_id": predicate_id,
@@ -388,9 +399,15 @@ mod server {
                     "message": "All obligations satisfied; proceed",
                 })
             }
-            Andon::Halted { unmet, refusals, at } => {
-                let categories: Vec<Value> =
-                    refusals.iter().map(|r| json!(format!("{}", r.category()))).collect();
+            Andon::Halted {
+                unmet,
+                refusals,
+                at,
+            } => {
+                let categories: Vec<Value> = refusals
+                    .iter()
+                    .map(|r| json!(format!("{}", r.category())))
+                    .collect();
                 json!({
                     "status": "Halted",
                     "unmet_obligations": format_obligations(unmet),
@@ -591,7 +608,11 @@ mod server {
             }
             .to_key_string();
 
-            let cached = if has_ts_ns { self.cache.get(&key).await } else { None };
+            let cached = if has_ts_ns {
+                self.cache.get(&key).await
+            } else {
+                None
+            };
             let text = match cached {
                 Some(c) => c,
                 None => match ops::receipt_payload(payload) {
@@ -658,12 +679,10 @@ mod server {
         /// Promotions to `Replayable`/`Certified` require a non-empty
         /// `auditor`; a missing auditor is a domain denial (successful call
         /// with `"status": "denied"`), not a tool error.
-        #[tool(
-            description = "Promote a law object's BreedStanding rung. \
+        #[tool(description = "Promote a law object's BreedStanding rung. \
                           Input: payload_json ({\"standing\": \"<registry name>\"}), auditor \
                           (required for promotions to REPLAYABLE/CERTIFIED). \
-                          Output: {status: \"promoted\"|\"denied\", from, to, ...}."
-        )]
+                          Output: {status: \"promoted\"|\"denied\", from, to, ...}.")]
         async fn promote(
             &self,
             params: Parameters<PromoteParams>,
@@ -671,7 +690,11 @@ mod server {
             let payload = &params.0.payload_json;
             let auditor = params.0.auditor.unwrap_or_default();
             let input_hash = input_hash_hex(&canonical_bytes(payload));
-            let authority_digest = if auditor.is_empty() { None } else { Some(digest_hex(&auditor)) };
+            let authority_digest = if auditor.is_empty() {
+                None
+            } else {
+                Some(digest_hex(&auditor))
+            };
             let key = ToolCacheKey {
                 tool: "promote",
                 input_hash: &input_hash,
@@ -714,15 +737,24 @@ mod server {
             &self,
             params: Parameters<ReceiptDirParams>,
         ) -> Result<CallToolResult, rmcp::ErrorData> {
-            let dir = params.0.dir.unwrap_or_else(|| DEFAULT_RECEIPTS_DIR.to_string());
+            let dir = params
+                .0
+                .dir
+                .unwrap_or_else(|| DEFAULT_RECEIPTS_DIR.to_string());
             let store = match ReceiptStore::open(&dir) {
                 Ok(s) => s,
-                Err(e) => return Ok(error_text(format!("failed to open receipts dir {dir}: {e}"))),
+                Err(e) => {
+                    return Ok(error_text(format!(
+                        "failed to open receipts dir {dir}: {e}"
+                    )))
+                }
             };
             let head_hash = match store.last_chain_hash() {
                 Ok(h) => hex::encode(h),
                 Err(e) => {
-                    return Ok(error_text(format!("failed to read receipts ledger head: {e}")))
+                    return Ok(error_text(format!(
+                        "failed to read receipts ledger head: {e}"
+                    )))
                 }
             };
             let input_hash = input_hash_hex(dir.as_bytes());
@@ -768,15 +800,24 @@ mod server {
             &self,
             params: Parameters<ReceiptDirParams>,
         ) -> Result<CallToolResult, rmcp::ErrorData> {
-            let dir = params.0.dir.unwrap_or_else(|| DEFAULT_RECEIPTS_DIR.to_string());
+            let dir = params
+                .0
+                .dir
+                .unwrap_or_else(|| DEFAULT_RECEIPTS_DIR.to_string());
             let store = match ReceiptStore::open(&dir) {
                 Ok(s) => s,
-                Err(e) => return Ok(error_text(format!("failed to open receipts dir {dir}: {e}"))),
+                Err(e) => {
+                    return Ok(error_text(format!(
+                        "failed to open receipts dir {dir}: {e}"
+                    )))
+                }
             };
             let head_hash = match store.last_chain_hash() {
                 Ok(h) => hex::encode(h),
                 Err(e) => {
-                    return Ok(error_text(format!("failed to read receipts ledger head: {e}")))
+                    return Ok(error_text(format!(
+                        "failed to read receipts ledger head: {e}"
+                    )))
                 }
             };
             let input_hash = input_hash_hex(dir.as_bytes());
@@ -806,15 +847,13 @@ mod server {
 
         /// Solve a PDDL8 problem (the Day 2 `goal → plan` step). Deterministic
         /// pure function of its input — always cached.
-        #[tool(
-            description = "Solve a classical or temporal PDDL8 problem. \
+        #[tool(description = "Solve a classical or temporal PDDL8 problem. \
                           Input: payload_json ({domain, problem, mode} inline text and/or \
                           {domain_file, problem_file} paths, or a single combined domain+problem \
                           string in `domain`; mode is \"classical\" (default) or \"temporal\"). \
                           Output: {admitted, plan_len, plan, ...} or a structured refusal \
                           {admitted: false, refusal_reason}. Calls the same ops::plan_solve_payload \
-                          the CLI `plan solve` verb runs — one implementation, no drift."
-        )]
+                          the CLI `plan solve` verb runs — one implementation, no drift.")]
         async fn plan_solve(
             &self,
             params: Parameters<PlanSolveParams>,
@@ -862,7 +901,11 @@ mod server {
             let payload = &params.0.payload_json;
             let objective = params.0.objective.unwrap_or_default();
             let input_hash = input_hash_hex(&canonical_bytes(payload));
-            let policy_digest = if objective.is_empty() { None } else { Some(digest_hex(&objective)) };
+            let policy_digest = if objective.is_empty() {
+                None
+            } else {
+                Some(digest_hex(&objective))
+            };
             let key = ToolCacheKey {
                 tool: "propose_revenue",
                 input_hash: &input_hash,
@@ -903,7 +946,11 @@ mod server {
             let payload = &params.0.payload_json;
             let objective = params.0.objective.unwrap_or_default();
             let input_hash = input_hash_hex(&canonical_bytes(payload));
-            let policy_digest = if objective.is_empty() { None } else { Some(digest_hex(&objective)) };
+            let policy_digest = if objective.is_empty() {
+                None
+            } else {
+                Some(digest_hex(&objective))
+            };
             let key = ToolCacheKey {
                 tool: "propose_goal",
                 input_hash: &input_hash,
@@ -1045,9 +1092,11 @@ mod server {
             .ok_or_else(|| "`agents` must be an array of bytes".to_string())?;
         let mut agents = Vec::with_capacity(arr.len());
         for a in arr {
-            let n =
-                a.as_u64().ok_or_else(|| "agent bytes must be integers 0..=255".to_string())?;
-            let byte = u8::try_from(n).map_err(|_| format!("agent byte {n} out of range 0..=255"))?;
+            let n = a
+                .as_u64()
+                .ok_or_else(|| "agent bytes must be integers 0..=255".to_string())?;
+            let byte =
+                u8::try_from(n).map_err(|_| format!("agent byte {n} out of range 0..=255"))?;
             agents.push(byte);
         }
         Ok((agents, mask))
@@ -1082,7 +1131,9 @@ mod server {
             use std::sync::{Mutex, MutexGuard, OnceLock};
             fn env_lock() -> MutexGuard<'static, ()> {
                 static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-                LOCK.get_or_init(|| Mutex::new(())).lock().unwrap_or_else(|e| e.into_inner())
+                LOCK.get_or_init(|| Mutex::new(()))
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
             }
             let guard = env_lock();
             std::env::set_var("PRAXIS_SIGNING_KEY", MCP_TEST_SIGNING_KEY_HEX);
@@ -1107,13 +1158,17 @@ mod server {
         async fn judge_tool_matches_ops_judge_payload() {
             let state = ServerState::default();
             let payload = r#"{"value":{"id":1}}"#.to_string();
-            let params = Parameters(JudgeParams { payload_json: payload.clone(), law: None });
+            let params = Parameters(JudgeParams {
+                payload_json: payload.clone(),
+                law: None,
+            });
             let tool_result = state.judge(params).await.expect("judge should not error");
             assert!(!tool_result.is_error.unwrap_or(false));
 
             let tool_json: Value =
                 serde_json::from_str(&text_of(&tool_result)).expect("tool output is JSON");
-            let direct_json = ops::judge_payload(&payload, "default").expect("direct judge_payload");
+            let direct_json =
+                ops::judge_payload(&payload, "default").expect("direct judge_payload");
             assert_eq!(tool_json, direct_json);
         }
 
@@ -1121,7 +1176,10 @@ mod server {
         async fn admit_tool_matches_ops_admit_payload_denial_shape() {
             let state = ServerState::default();
             let payload = r#"{"value":{"id":1},"obligations":[{"type":"blocking_constraint","reason":"stop"}]}"#.to_string();
-            let params = Parameters(AdmitParams { payload_json: payload.clone(), policy: None });
+            let params = Parameters(AdmitParams {
+                payload_json: payload.clone(),
+                policy: None,
+            });
             let tool_result = state.admit(params).await.expect("admit should not error");
             assert!(!tool_result.is_error.unwrap_or(false));
 
@@ -1138,13 +1196,19 @@ mod server {
         }
 
         #[tokio::test]
+        #[allow(clippy::await_holding_lock)] // std lock deliberately serializes env-mutating tests
         async fn receipt_tool_matches_ops_receipt_payload_with_explicit_ts_ns() {
             #[cfg(feature = "law-signed")]
             let _guard = with_mcp_test_signing_key();
             let state = ServerState::default();
             let payload = r#"{"value":{"id":1},"ts_ns":42}"#.to_string();
-            let params = Parameters(ReceiptParams { payload_json: payload.clone() });
-            let tool_result = state.receipt(params).await.expect("receipt should not error");
+            let params = Parameters(ReceiptParams {
+                payload_json: payload.clone(),
+            });
+            let tool_result = state
+                .receipt(params)
+                .await
+                .expect("receipt should not error");
             assert!(!tool_result.is_error.unwrap_or(false));
 
             let tool_json: Value =
@@ -1159,10 +1223,13 @@ mod server {
             let state = ServerState::default();
             let obligations =
                 json!([{"type": "blocking_constraint", "reason": "stop"}]).to_string();
-            let params =
-                Parameters(InspectObligationParams { obligations_json: obligations.clone() });
-            let tool_result =
-                state.inspect_obligation(params).await.expect("inspect_obligation should not error");
+            let params = Parameters(InspectObligationParams {
+                obligations_json: obligations.clone(),
+            });
+            let tool_result = state
+                .inspect_obligation(params)
+                .await
+                .expect("inspect_obligation should not error");
             let tool_json: Value =
                 serde_json::from_str(&text_of(&tool_result)).expect("tool output is JSON");
             let direct_json =
@@ -1174,9 +1241,14 @@ mod server {
         async fn promote_tool_matches_ops_promote_payload() {
             let state = ServerState::default();
             let payload = r#"{"standing":"NAMED"}"#.to_string();
-            let params =
-                Parameters(PromoteParams { payload_json: payload.clone(), auditor: None });
-            let tool_result = state.promote(params).await.expect("promote should not error");
+            let params = Parameters(PromoteParams {
+                payload_json: payload.clone(),
+                auditor: None,
+            });
+            let tool_result = state
+                .promote(params)
+                .await
+                .expect("promote should not error");
             let tool_json: Value =
                 serde_json::from_str(&text_of(&tool_result)).expect("tool output is JSON");
             let direct_json = ops::promote_payload(&payload, "").expect("direct promote_payload");
@@ -1186,9 +1258,14 @@ mod server {
         #[tokio::test]
         async fn malformed_judge_payload_is_tool_error() {
             let state = ServerState::default();
-            let params =
-                Parameters(JudgeParams { payload_json: "not json".to_string(), law: None });
-            let tool_result = state.judge(params).await.expect("call itself should not error");
+            let params = Parameters(JudgeParams {
+                payload_json: "not json".to_string(),
+                law: None,
+            });
+            let tool_result = state
+                .judge(params)
+                .await
+                .expect("call itself should not error");
             assert!(tool_result.is_error.unwrap_or(false));
         }
 
@@ -1198,8 +1275,12 @@ mod server {
         async fn identical_judge_calls_hit_cache_and_return_same_json() {
             let state = ServerState::default();
             let payload = r#"{"value":{"id":7}}"#.to_string();
-            let make_params =
-                || Parameters(JudgeParams { payload_json: payload.clone(), law: None });
+            let make_params = || {
+                Parameters(JudgeParams {
+                    payload_json: payload.clone(),
+                    law: None,
+                })
+            };
 
             let first = state.judge(make_params()).await.expect("first call");
             let second = state.judge(make_params()).await.expect("second call");
@@ -1215,12 +1296,17 @@ mod server {
         }
 
         #[tokio::test]
+        #[allow(clippy::await_holding_lock)] // std lock deliberately serializes env-mutating tests
         async fn receipt_without_ts_ns_is_never_cached() {
             #[cfg(feature = "law-signed")]
             let _guard = with_mcp_test_signing_key();
             let state = ServerState::default();
             let payload = r#"{"value":{"id":9}}"#.to_string();
-            let make_params = || Parameters(ReceiptParams { payload_json: payload.clone() });
+            let make_params = || {
+                Parameters(ReceiptParams {
+                    payload_json: payload.clone(),
+                })
+            };
 
             let first = state.receipt(make_params()).await.expect("first call");
             let second = state.receipt(make_params()).await.expect("second call");
@@ -1233,12 +1319,17 @@ mod server {
         }
 
         #[tokio::test]
+        #[allow(clippy::await_holding_lock)] // std lock deliberately serializes env-mutating tests
         async fn receipt_with_ts_ns_is_cached_and_deterministic() {
             #[cfg(feature = "law-signed")]
             let _guard = with_mcp_test_signing_key();
             let state = ServerState::default();
             let payload = r#"{"value":{"id":11},"ts_ns":123}"#.to_string();
-            let make_params = || Parameters(ReceiptParams { payload_json: payload.clone() });
+            let make_params = || {
+                Parameters(ReceiptParams {
+                    payload_json: payload.clone(),
+                })
+            };
 
             let first = state.receipt(make_params()).await.expect("first call");
             let second = state.receipt(make_params()).await.expect("second call");
@@ -1249,13 +1340,19 @@ mod server {
         async fn show_andon_round_trips_green_and_halted() {
             let state = ServerState::default();
             let green_lawobject = json!({"andon": {"status": "Green"}}).to_string();
-            let params = Parameters(ShowAndonParams { lawobject_json: green_lawobject });
-            let result = state.show_andon(params).await.expect("show_andon should not error");
+            let params = Parameters(ShowAndonParams {
+                lawobject_json: green_lawobject,
+            });
+            let result = state
+                .show_andon(params)
+                .await
+                .expect("show_andon should not error");
             let json: Value = serde_json::from_str(&text_of(&result)).expect("json");
             assert_eq!(json["andon"]["status"], json!("Green"));
         }
 
         #[tokio::test]
+        #[allow(clippy::await_holding_lock)] // std lock deliberately serializes env-mutating tests
         async fn receipt_validate_and_replay_on_fresh_ledger() {
             #[cfg(feature = "law-signed")]
             let _guard = with_mcp_test_signing_key();
@@ -1276,7 +1373,9 @@ mod server {
             // than a hand-built fixture.
             ops::receipt_issue_payload(r#"{"value":{"id":1}}"#, &dir_str).expect("seed ledger");
 
-            let validate_params = Parameters(ReceiptDirParams { dir: Some(dir_str.clone()) });
+            let validate_params = Parameters(ReceiptDirParams {
+                dir: Some(dir_str.clone()),
+            });
             let validate_result = state
                 .receipt_validate(validate_params)
                 .await
@@ -1285,9 +1384,13 @@ mod server {
                 serde_json::from_str(&text_of(&validate_result)).expect("json");
             assert_eq!(validate_json["verdict"]["ok"], json!(true));
 
-            let replay_params = Parameters(ReceiptDirParams { dir: Some(dir_str.clone()) });
-            let replay_result =
-                state.receipt_replay(replay_params).await.expect("receipt_replay should not error");
+            let replay_params = Parameters(ReceiptDirParams {
+                dir: Some(dir_str.clone()),
+            });
+            let replay_result = state
+                .receipt_replay(replay_params)
+                .await
+                .expect("receipt_replay should not error");
             let replay_json: Value = serde_json::from_str(&text_of(&replay_result)).expect("json");
             assert_eq!(replay_json["records_replayed"], json!(1));
 

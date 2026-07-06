@@ -11,7 +11,7 @@
 //! matching the rest of the CLI's "domain denial is `Ok`" convention.
 
 use clap_noun_verb::error::{NounVerbError, Result};
-use clap_noun_verb_macros::{arg, verb};
+use clap_noun_verb_macros::verb;
 use my_conforming_project::mfg;
 use serde_json::{json, Value};
 

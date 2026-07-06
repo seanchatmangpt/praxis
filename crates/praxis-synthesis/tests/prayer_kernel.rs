@@ -5,6 +5,8 @@
 //! named missing (docs/ggen_rdf_to_pddl_sketch.rs was "DO NOT IMPLEMENT";
 //! this test is the caller that did not exist).
 
+// The deprecated execute_workflow surface stays covered until removal.
+#![allow(deprecated)]
 use praxis_synthesis::graph::parse_ttl;
 use praxis_synthesis::hooks::{EffectKind, HookVerdict};
 use praxis_synthesis::{

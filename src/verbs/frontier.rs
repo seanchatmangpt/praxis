@@ -6,7 +6,7 @@
 //! drift on what counts as admitted, refused, or unevaluated.
 
 use clap_noun_verb::error::{NounVerbError, Result};
-use clap_noun_verb_macros::{arg, verb};
+use clap_noun_verb_macros::verb;
 use my_conforming_project::frontier;
 use serde_json::{json, Value};
 
@@ -17,7 +17,10 @@ use serde_json::{json, Value};
 /// parent directories); otherwise nothing is written to disk.
 #[verb]
 pub fn matrix(
-    #[arg(default_value = "", help = "Optional path to also write the full report JSON to")]
+    #[arg(
+        default_value = "",
+        help = "Optional path to also write the full report JSON to"
+    )]
     out: String,
 ) -> Result<Value> {
     let report = if out.is_empty() {

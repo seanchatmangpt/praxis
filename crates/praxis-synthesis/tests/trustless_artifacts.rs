@@ -10,6 +10,8 @@
 //! `scripts/trustless_replay.sh verify` — a second implementation in a second
 //! language (python3 + b3sum) in a bare directory.
 
+// The deprecated execute_workflow surface stays covered until removal.
+#![allow(deprecated)]
 use std::fs;
 
 const DEMO_TTL: &str = include_str!("../ontology/workflow_demo.ttl");

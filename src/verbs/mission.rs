@@ -30,7 +30,7 @@
 //! with unknown fluents or non-finite weights is a hard `Err`.
 
 use clap_noun_verb::error::{NounVerbError, Result};
-use clap_noun_verb_macros::{arg, verb};
+use clap_noun_verb_macros::verb;
 use my_conforming_project::mission::{self, Pack};
 use praxis_proposer::{ChurchDomain, ChurchState, RevenueDomain, RevenueState};
 use serde_json::Value;
@@ -65,7 +65,9 @@ fn run_for_pack(
             let objective = ChurchDomain::load_objective(&objective_text)?;
             mission::run_pipeline::<ChurchDomain>(&state, &objective, mission_name, ts_ns)
         }
-        other => Err(format!("unknown pack '{other}': expected 'revenue' or 'church'")),
+        other => Err(format!(
+            "unknown pack '{other}': expected 'revenue' or 'church'"
+        )),
     }
 }
 
@@ -84,7 +86,9 @@ fn ceiling_for_pack(pack: &str, state_path: &str) -> std::result::Result<Value, 
                 .map_err(|e| format!("invalid church state JSON: {e}"))?;
             Ok(mission::ceiling::<ChurchDomain>(&state))
         }
-        other => Err(format!("unknown pack '{other}': expected 'revenue' or 'church'")),
+        other => Err(format!(
+            "unknown pack '{other}': expected 'revenue' or 'church'"
+        )),
     }
 }
 

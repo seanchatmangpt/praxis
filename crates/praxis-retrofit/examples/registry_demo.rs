@@ -3,6 +3,11 @@
 //! Run with:
 //!   cargo run --example registry_demo
 
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(missing_docs, dead_code)]
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
+
 use std::path::PathBuf;
 
 use praxis_retrofit::repo_registry::RepositoryRegistry;

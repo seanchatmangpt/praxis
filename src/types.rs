@@ -107,7 +107,11 @@ pub struct Evidence<T, State: sealed::LifecycleState, Witness> {
 
 impl<T, Witness> Evidence<T, Raw, Witness> {
     pub fn new(inner: T) -> Self {
-        Self { inner, _state: PhantomData, _witness: PhantomData }
+        Self {
+            inner,
+            _state: PhantomData,
+            _witness: PhantomData,
+        }
     }
 
     pub fn inner(&self) -> &T {
@@ -120,8 +124,15 @@ impl<T, Witness> Evidence<T, Validated, Witness> {
         &self.inner
     }
 
+    // Crate-internal typestate constructor, kept for the admission seam;
+    // unused at HEAD across all features (recorded lint debt, v26.7.6 gate).
+    #[allow(dead_code)]
     pub(crate) fn validate_unchecked(inner: T) -> Self {
-        Self { inner, _state: PhantomData, _witness: PhantomData }
+        Self {
+            inner,
+            _state: PhantomData,
+            _witness: PhantomData,
+        }
     }
 }
 
@@ -130,8 +141,15 @@ impl<T, Witness> Evidence<T, Admitted, Witness> {
         &self.inner
     }
 
+    // Crate-internal typestate constructor, kept for the admission seam;
+    // unused at HEAD across all features (recorded lint debt, v26.7.6 gate).
+    #[allow(dead_code)]
     pub(crate) fn admit_unchecked(inner: T) -> Self {
-        Self { inner, _state: PhantomData, _witness: PhantomData }
+        Self {
+            inner,
+            _state: PhantomData,
+            _witness: PhantomData,
+        }
     }
 }
 
@@ -161,6 +179,9 @@ pub struct AdmittedReceipt {
 }
 
 impl AdmittedReceipt {
+    // Crate-internal typestate constructor, kept for the admission seam;
+    // unused at HEAD across all features (recorded lint debt, v26.7.6 gate).
+    #[allow(dead_code)]
     pub(crate) fn new(chain_hash: [u8; 32], timestamp: u64) -> Self {
         Self {
             chain_hash,
@@ -192,10 +213,19 @@ mod layout_assertions {
     use super::*;
     use std::mem::size_of;
 
-    const _RAW_IS_ZST: () = { assert!(size_of::<Raw>() == 0, "Raw marker must stay ZST"); };
-    const _VALIDATED_IS_ZST: () = { assert!(size_of::<Validated>() == 0, "Validated marker must stay ZST"); };
-    const _ADMITTED_IS_ZST: () = { assert!(size_of::<Admitted>() == 0, "Admitted marker must stay ZST"); };
-    
+    const _RAW_IS_ZST: () = {
+        assert!(size_of::<Raw>() == 0, "Raw marker must stay ZST");
+    };
+    const _VALIDATED_IS_ZST: () = {
+        assert!(
+            size_of::<Validated>() == 0,
+            "Validated marker must stay ZST"
+        );
+    };
+    const _ADMITTED_IS_ZST: () = {
+        assert!(size_of::<Admitted>() == 0, "Admitted marker must stay ZST");
+    };
+
     const _EVIDENCE_NO_OVERHEAD: () = {
         assert!(
             size_of::<Evidence<u64, Raw, Raw>>() == size_of::<u64>(),

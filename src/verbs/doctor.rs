@@ -27,7 +27,7 @@ use std::{
 };
 
 use clap_noun_verb::error::Result;
-use clap_noun_verb_macros::{arg, verb};
+use clap_noun_verb_macros::verb;
 use my_conforming_project::{config as cfg, frontier};
 use serde_json::{json, Map, Value};
 
@@ -145,7 +145,12 @@ fn run_build_check(timeout: Duration) -> BuildCheck {
 /// checks the process could be *started* at all — exit code is irrelevant,
 /// some tools use nonzero exit for `--version`).
 fn tool_on_path(tool: &str) -> bool {
-    Command::new(tool).arg("--version").stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok()
+    Command::new(tool)
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok()
 }
 
 /// Load the admitted `PraxisConfig` and report its witness hash, or the
@@ -165,7 +170,10 @@ fn check_config() -> Value {
 /// if it loads cleanly, otherwise the hardcoded default `"receipts"` (must
 /// never block the rest of `doctor` from running).
 fn receipts_dir_from_config() -> String {
-    cfg::load_config().map_or_else(|_| "receipts".to_string(), |a| a.value().receipts.dir.clone())
+    cfg::load_config().map_or_else(
+        |_| "receipts".to_string(),
+        |a| a.value().receipts.dir.clone(),
+    )
 }
 
 /// Report the receipts ledger's existence and record count. Read-only:
@@ -283,22 +291,44 @@ fn print_human_summary(
 
     println!();
     println!("{BOLD}Config{RESET}");
-    if config.get("admitted").and_then(Value::as_bool).unwrap_or(false) {
+    if config
+        .get("admitted")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
         let witness = config.get("witness").and_then(Value::as_str).unwrap_or("?");
-        let dir = config.get("receipts_dir").and_then(Value::as_str).unwrap_or("?");
+        let dir = config
+            .get("receipts_dir")
+            .and_then(Value::as_str)
+            .unwrap_or("?");
         println!("  [{GREEN} OK {RESET}] admitted; witness={witness}; receipts.dir={dir}");
     } else {
-        let err = config.get("error").and_then(Value::as_str).unwrap_or("unknown error");
+        let err = config
+            .get("error")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown error");
         println!("  [{RED}FAIL{RESET}] config not admitted: {err}");
     }
 
     println!();
     println!("{BOLD}Frontier{RESET}");
-    let pass_rate = frontier.get("pass_rate").and_then(Value::as_f64).unwrap_or(0.0);
-    let coverage = frontier.get("coverage").and_then(Value::as_f64).unwrap_or(0.0);
-    let evaluated = frontier.get("evaluated").and_then(Value::as_u64).unwrap_or(0);
+    let pass_rate = frontier
+        .get("pass_rate")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    let coverage = frontier
+        .get("coverage")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    let evaluated = frontier
+        .get("evaluated")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
     let total = frontier.get("total").and_then(Value::as_u64).unwrap_or(0);
-    let failure_count = frontier.get("failure_count").and_then(Value::as_u64).unwrap_or(0);
+    let failure_count = frontier
+        .get("failure_count")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
     let frontier_color = if failure_count == 0 { GREEN } else { RED };
     let frontier_tag = if failure_count == 0 { " OK " } else { "FAIL" };
     println!(
@@ -309,7 +339,11 @@ fn print_human_summary(
     println!();
     println!("{BOLD}Receipts{RESET}");
     let dir = receipts.get("dir").and_then(Value::as_str).unwrap_or("?");
-    if receipts.get("dir_exists").and_then(Value::as_bool).unwrap_or(false) {
+    if receipts
+        .get("dir_exists")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
         match receipts.get("record_count").and_then(Value::as_u64) {
             Some(count) => println!("  [{GREEN} OK {RESET}] {dir}/ ({count} records)"),
             None => println!("  [{YELLOW}WARN{RESET}] {dir}/ exists but ledger is unreadable"),
@@ -349,10 +383,19 @@ fn print_human_summary(
     }
 
     let hard_ok = build.is_none_or(|b| !b.ran || b.ok)
-        && config.get("admitted").and_then(Value::as_bool).unwrap_or(false);
+        && config
+            .get("admitted")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
     let soft_ok = failure_count == 0
-        && receipts.get("dir_exists").and_then(Value::as_bool).unwrap_or(false)
-        && tools.get("cicd-evidence-gen").and_then(Value::as_bool).unwrap_or(false);
+        && receipts
+            .get("dir_exists")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        && tools
+            .get("cicd-evidence-gen")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
 
     println!();
     if !hard_ok {
@@ -370,7 +413,11 @@ fn print_human_summary(
 /// `#[verb]` function itself so `check` stays a thin CLI wrapper (the
 /// `#[verb]` macro caps verb-function cyclomatic complexity at 5).
 fn run_doctor(format: &str, skip_build: bool) -> Value {
-    let build = if skip_build { None } else { Some(run_build_check(BUILD_CHECK_TIMEOUT)) };
+    let build = if skip_build {
+        None
+    } else {
+        Some(run_build_check(BUILD_CHECK_TIMEOUT))
+    };
     let config = check_config();
     let frontier = check_frontier();
     let receipts_dir = receipts_dir_from_config();
@@ -379,7 +426,14 @@ fn run_doctor(format: &str, skip_build: bool) -> Value {
     let features = feature_flags();
 
     if format == "text" {
-        print_human_summary(build.as_ref(), &config, &frontier, &receipts, &tools, &features);
+        print_human_summary(
+            build.as_ref(),
+            &config,
+            &frontier,
+            &receipts,
+            &tools,
+            &features,
+        );
         return Value::Null;
     }
 

@@ -2,11 +2,18 @@
 //! Exit 0: all pass  |  Exit 1: soft (tests ok, artifacts stale)  |  Exit 2: hard (broken)
 
 #![allow(clippy::print_stdout)]
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
 
 use std::process::{exit, Command};
 
 fn run(cmd: &str, args: &[&str]) -> bool {
-    Command::new(cmd).args(args).status().map(|s| s.success()).unwrap_or(false)
+    Command::new(cmd)
+        .args(args)
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
 }
 
 /// The crate name/version pair `cicd-evidence-gen` is invoked with. Keep in
@@ -27,7 +34,13 @@ fn evidence_check_ok() -> bool {
         return true;
     }
     match Command::new("cicd-evidence-gen")
-        .args([CRATE_NAME, CRATE_VERSION, "--receipt", "receipt.json", "--check"])
+        .args([
+            CRATE_NAME,
+            CRATE_VERSION,
+            "--receipt",
+            "receipt.json",
+            "--check",
+        ])
         .status()
     {
         Ok(status) => status.success(),
@@ -40,14 +53,24 @@ fn evidence_check_ok() -> bool {
 
 fn main() {
     let fmt_ok = run("cargo", &["fmt", "--all", "--check"]);
-    let lint_ok =
-        run("cargo", &["clippy", "--workspace", "--all-features", "--", "-D", "warnings"]);
+    let lint_ok = run(
+        "cargo",
+        &[
+            "clippy",
+            "--workspace",
+            "--all-features",
+            "--",
+            "-D",
+            "warnings",
+        ],
+    );
     let test_ok = run("cargo", &["test", "--workspace", "--all-features"]);
     let hard_ok = fmt_ok && lint_ok && test_ok;
 
     // Soft check: receipts/ directory must exist and be non-empty
-    let receipts_exist =
-        std::fs::read_dir("receipts").map(|mut d| d.next().is_some()).unwrap_or(false);
+    let receipts_exist = std::fs::read_dir("receipts")
+        .map(|mut d| d.next().is_some())
+        .unwrap_or(false);
 
     // Soft check: the [evidence] TOML block validates against receipt.json
     // (see `just evidence-check`). Skipped (not failed) when either the

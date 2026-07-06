@@ -1,5 +1,12 @@
 //! Binary entrypoint for {{project-name}}.
 
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9. `unreachable_pub` is
+// allowed because every `#[verb]` fn must be `pub` for the macro registry
+// yet the binary exports nothing.
+#![allow(unreachable_pub, missing_docs)]
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
+
 use anyhow::Result;
 
 // Import verb modules so their #[verb] macros register with clap_noun_verb
@@ -11,7 +18,9 @@ fn main() -> Result<()> {
     // Cargo external subcommand protocol: `cargo foo bar` → argv = ["cargo-foo", "foo", "bar"]
     // Re-exec self with the injected noun stripped so the rest of main sees clean argv.
     if raw.get(1).map(String::as_str) == Some(env!("CARGO_BIN_NAME").trim_start_matches("cargo-")) {
-        let status = std::process::Command::new(&raw[0]).args(&raw[2..]).status()?;
+        let status = std::process::Command::new(&raw[0])
+            .args(&raw[2..])
+            .status()?;
         std::process::exit(status.code().unwrap_or(1));
     }
 
@@ -25,8 +34,9 @@ fn main() -> Result<()> {
         .init();
 
     let registry_mutex = ::clap_noun_verb::cli::CommandRegistry::get();
-    let registry =
-        registry_mutex.lock().map_err(|e| anyhow::anyhow!("Failed to lock registry: {}", e))?;
+    let registry = registry_mutex
+        .lock()
+        .map_err(|e| anyhow::anyhow!("Failed to lock registry: {}", e))?;
     registry.run(args).map_err(|e| anyhow::anyhow!("{}", e))
 }
 

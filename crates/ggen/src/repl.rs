@@ -156,9 +156,11 @@ mod inner {
     /// Interactive REPL backed by `rustyline`.
     ///
     /// ```no_run
-    /// use ::repl::Repl;
+    /// use ggen::repl::Repl;
     ///
-    /// let repl = Repl::new(&[("emit", &["--type", "--object"]), ("verify", &["--strict"])]).unwrap();
+    /// const TABLE: &[(&str, &[&str])] =
+    ///     &[("emit", &["--type", "--object"]), ("verify", &["--strict"])];
+    /// let repl = Repl::new(TABLE).unwrap();
     /// repl.run().unwrap();
     /// ```
     pub struct Repl {

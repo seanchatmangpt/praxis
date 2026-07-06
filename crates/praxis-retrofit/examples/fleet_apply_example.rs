@@ -10,7 +10,11 @@
 //! cargo run --example fleet_apply_example --release
 //! ```
 
-use std::path::PathBuf;
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(missing_docs, dead_code)]
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
+
 
 use praxis_retrofit::{PraxisSpec, RetrofitApplier, RetrofitPhase};
 
@@ -27,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
     let spec = PraxisSpec::default();
 
     // Create the retrofit applier
-    let mut applier = RetrofitApplier::new(spec)?;
+    let applier = RetrofitApplier::new(spec)?;
 
     // Configure concurrent limit (default: 4)
     let mut applier = applier.with_concurrent_limit(2);

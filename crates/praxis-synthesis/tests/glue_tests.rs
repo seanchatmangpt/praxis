@@ -4,6 +4,8 @@
 //! and the merged graph executes through the untouched single-document
 //! pipeline — composition is invisible downstream.
 
+// The deprecated execute_workflow surface stays covered until removal.
+#![allow(deprecated)]
 use std::path::{Path, PathBuf};
 
 use praxis_synthesis::glue::{compose_workflows, execute_composed};

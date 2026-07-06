@@ -1,0 +1,109 @@
+% Math Manufacturing — civilizational-scale impact of kernel-verified math.
+% Standalone thesis, original prose. Not ggen-templated: no ontology to sync
+% from, this is argument and citation, not corpus-derived statements.
+\documentclass[11pt]{report}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{longtable}
+\usepackage[hidelinks]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{finding}[theorem]{Finding}
+
+% Speculative-register environment: EVERY civilizational-impact claim in
+% Chapter 5 must be wrapped in this, and no claim outside Chapter 5 may use
+% it. Chapter 8's verification step greps for this marker mechanically.
+\newtheorem{speculative}[theorem]{Speculation}
+
+\newcommand{\Obs}{\mathcal{O}}
+\newcommand{\Adm}{\mathcal{O}^{*}}
+\newcommand{\Act}{\mathcal{A}}
+\newcommand{\Rec}{\mathcal{R}}
+\newcommand{\muop}{\mu}
+\newcommand{\adm}{\alpha}
+\newcommand{\Rfsl}{\bot}
+
+\title{Math Manufacturing\\\large On the Civilizational-Scale Impact of Kernel-Verified Mathematics as a Production System}
+\author{Sean Chatman}
+\date{}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+This thesis examines a single empirical result — the routing of a
+219-statement mathematics corpus through automated Lean~4 kernel
+verification, yielding a disjoint, receipted partition of 179 verified,
+4 rejected, 18 dependency-blocked, and 17 deduplicated statements — as an
+instance of an existing formal pattern already present in this project's
+prior work: the Chatman Equation's manufacturing morphism
+$\Act = \muop(\Adm)$. We argue that this pipeline is not a new theoretical
+apparatus but a second working instantiation of a pattern already
+implemented once (an RDF-to-PDDL planning compiler). Part~I
+(Chapters~2--4) is evidence-bound: every quantitative claim is derived
+live from artifacts on disk and cited to the exact query or file that
+produced it. Part~II (Chapter~5) is explicitly speculative, marked
+throughout by a dedicated \emph{Speculation} environment, and addresses
+what changes at civilizational scale if verified mathematics acquires a
+manufacturing-like cost curve. Chapters~6--8 situate the work against
+prior autoformalization efforts and state its limitations without
+euphemism.
+\end{abstract}
+\tableofcontents
+
+% All chapters: rendered by `ggen sync` from `packs/doc-pack` over
+% `docs/thesis/math_manufacturing/rdf/thesis.ttl` -- source of truth is the
+% .ttl instance data, not this generated file. Do not edit generated/ by hand.
+\input{generated/chapters_body}
+
+\begin{thebibliography}{9}
+
+\bibitem{demoura2021lean4}
+Leonardo de Moura and Sebastian Ullrich.
+\newblock The Lean 4 Theorem Prover and Programming Language.
+\newblock In \emph{Automated Deduction -- CADE 28}, 2021.
+
+\bibitem{mathlib2020}
+The mathlib Community.
+\newblock The Lean Mathematical Library.
+\newblock In \emph{Proceedings of the 9th ACM SIGPLAN International Conference on Certified Programs and Proofs (CPP)}, 2020.
+
+\bibitem{coq2023}
+The Coq Development Team.
+\newblock The Coq Proof Assistant Reference Manual.
+\newblock \url{https://coq.inria.fr/}.
+
+\bibitem{nipkow2002isabelle}
+Tobias Nipkow, Lawrence C. Paulson, and Markus Wenzel.
+\newblock \emph{Isabelle/HOL: A Proof Assistant for Higher-Order Logic}.
+\newblock Lecture Notes in Computer Science, vol. 2283. Springer, 2002.
+
+\bibitem{trinh2024alphageometry}
+Trieu H. Trinh, Yuhuai Wu, Quoc V. Le, He He, and Thang Luong.
+\newblock Solving Olympiad Geometry without Human Demonstrations.
+\newblock \emph{Nature}, 625, 2024.
+
+\bibitem{szegedy2020autoformalization}
+Christian Szegedy.
+\newblock A Promising Path Towards Autoformalization and General Artificial Intelligence.
+\newblock In \emph{Intelligent Computer Mathematics (CICM)}, 2020.
+
+\end{thebibliography}
+
+\end{document}

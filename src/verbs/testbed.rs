@@ -9,7 +9,7 @@
 use std::path::{Path, PathBuf};
 
 use clap_noun_verb::error::{NounVerbError, Result};
-use clap_noun_verb_macros::{arg, verb};
+use clap_noun_verb_macros::verb;
 use rust_fable_testbed::{
     model_client::{AnthropicClient, Message, MessageRequest, ModelClient},
     pipeline, prompt,
@@ -67,7 +67,10 @@ fn run_task(task_id: &str, model_override: Option<&str>) -> std::result::Result<
         .flat_map(|s| s.blocks.iter())
         .find_map(|b| b.source_path.as_deref())
         .and_then(|p| Path::new(p).file_name())
-        .map_or_else(|| PathBuf::from("src/lib.rs"), |name| Path::new("src").join(name));
+        .map_or_else(
+            || PathBuf::from("src/lib.rs"),
+            |name| Path::new("src").join(name),
+        );
 
     apply_model_output(staged.path(), &target_rel_path, &model_output)
         .map_err(|e| e.to_string())?;
@@ -116,7 +119,10 @@ fn report_lines() -> std::result::Result<Vec<String>, String> {
         .map(|line| {
             let receipt: TestbedReceipt =
                 serde_json::from_str(line).map_err(|e| format!("invalid receipt line: {e}"))?;
-            Ok(format!("{} | {} | {}", receipt.task_id, receipt.model, receipt.metrics_summary))
+            Ok(format!(
+                "{} | {} | {}",
+                receipt.task_id, receipt.model, receipt.metrics_summary
+            ))
         })
         .collect()
 }

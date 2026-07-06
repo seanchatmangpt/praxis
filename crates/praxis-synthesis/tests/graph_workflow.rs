@@ -3,6 +3,8 @@
 //! domains do. The graph is the law: receipts are byte-identical across
 //! runs of the same bytes, and every failure path is a typed refusal.
 
+// The deprecated execute_workflow surface stays covered until removal.
+#![allow(deprecated)]
 mod common;
 
 use chatman_common::provenance::{fold_event, genesis_seed};

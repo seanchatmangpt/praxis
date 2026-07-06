@@ -18,6 +18,25 @@ const EXPECTED_PLAN: &[&str] = &[
     "fold-receipt",
 ];
 
+/// Under `--features law-signed`, the ledger receipt fails closed without a
+/// signing key. Set the fixed house test key once (same key and pattern as
+/// `tests/revenue_pipe.rs`) so the full loop stays green under
+/// `--all-features`. Signing signs *over* the chain hash and does not feed
+/// into it, so the determinism assertions are unaffected.
+fn ensure_signing_key() {
+    #[cfg(feature = "law-signed")]
+    {
+        use std::sync::Once;
+        static ONCE: Once = Once::new();
+        ONCE.call_once(|| {
+            std::env::set_var(
+                "PRAXIS_SIGNING_KEY",
+                "8bb5514c228cf4275a64aba09f3da77ef7de8b74a4424d670e71c26b0557e293",
+            );
+        });
+    }
+}
+
 /// Workflow dry-run: manufacture + solve + compile to POWL without touching
 /// the filesystem or the receipt ledger.
 #[test]
@@ -53,6 +72,7 @@ fn dry_run_solve_and_powl_compile() {
 /// ledger receipt, in one call, into a temp sandbox.
 #[test]
 fn full_loop_after_neon_fixture() {
+    ensure_signing_key();
     let tmp = tempfile::tempdir().expect("tempdir");
     let out_dir = tmp.path().join("artifact");
     let receipts_dir = tmp.path().join("receipts");
@@ -99,6 +119,7 @@ fn full_loop_after_neon_fixture() {
 /// nothing time- or environment-dependent enters the frame hash path.
 #[test]
 fn two_runs_identical_chain_hashes() {
+    ensure_signing_key();
     let hash_of_run = || {
         let tmp = tempfile::tempdir().expect("tempdir");
         let result = plan_run::plan_run_payload(

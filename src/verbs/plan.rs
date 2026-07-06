@@ -28,7 +28,7 @@ use bcinr_pddl::{
     ScheduleAnalysis64,
 };
 use clap_noun_verb::error::{NounVerbError, Result};
-use clap_noun_verb_macros::{arg, verb};
+use clap_noun_verb_macros::verb;
 #[cfg(feature = "ggen")]
 use my_conforming_project::mfg;
 // Shared PDDL helpers + the single `plan solve` implementation live in the

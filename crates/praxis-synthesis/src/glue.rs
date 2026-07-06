@@ -22,9 +22,11 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
+#[allow(deprecated)]
+use crate::graph::execute_workflow;
 use crate::graph::{
-    canonical_form, execute_workflow, graph_hash, parse_ttl, Object, Triple, WorkflowReceipt,
-    MAX_TRIPLES, MAX_TTL_BYTES, WF_NS,
+    canonical_form, graph_hash, parse_ttl, Object, Triple, WorkflowReceipt, MAX_TRIPLES,
+    MAX_TTL_BYTES, WF_NS,
 };
 use crate::Refusal;
 
@@ -32,8 +34,23 @@ use crate::Refusal;
 /// the whole composition (the single-graph cardinality rules, lifted to
 /// gluing).
 pub const FUNCTIONAL_WF_LOCALS: [&str; 17] = [
-    "budget", "name", "params", "cost", "predicate", "kind", "a", "b", "k", "arg0", "arg1",
-    "arg2", "arg3", "arg4", "arg5", "arg6", "arg7",
+    "budget",
+    "name",
+    "params",
+    "cost",
+    "predicate",
+    "kind",
+    "a",
+    "b",
+    "k",
+    "arg0",
+    "arg1",
+    "arg2",
+    "arg3",
+    "arg4",
+    "arg5",
+    "arg6",
+    "arg7",
 ];
 
 /// A lawful composition of constituent graphs.
@@ -172,6 +189,7 @@ pub fn compose_workflows(ttls: &[&str]) -> Result<ComposedGraph, Refusal> {
 /// the merged graph unchanged; refusals pass through typed.
 pub fn execute_composed(ttls: &[&str]) -> Result<ComposedWorkflowReceipt, Refusal> {
     let composed = compose_workflows(ttls)?;
+    #[allow(deprecated)]
     let workflow = execute_workflow(&composed.canonical_ttl)?;
     debug_assert_eq!(
         workflow.graph_hash, composed.merged_graph_hash,

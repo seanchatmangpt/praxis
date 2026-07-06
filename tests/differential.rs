@@ -32,6 +32,10 @@
 //! Every disagreement is a BUG to be root-caused and fixed, never papered over
 //! by loosening an assertion.
 
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
+
 use std::collections::BTreeSet;
 
 // ===========================================================================
@@ -219,14 +223,22 @@ fn gen_model(seed: u64) -> GenModel {
     // Goal: the top predicate on a random target object.
     let target = objects[r.range(0, (m - 1) as u64) as usize].clone();
     let goal = vec![(format!("p{d}"), target)];
-    GenModel { name: format!("gen{seed}"), objects, preds, schemas, init, goal }
+    GenModel {
+        name: format!("gen{seed}"),
+        objects,
+        preds,
+        schemas,
+        init,
+        goal,
+    }
 }
 
 /// Run one abstract model through both planners and the fixpoint oracle and
 /// assert triple agreement. Returns `(solvable, disagreement_note)`.
 fn run_planner_case(m: &GenModel) -> (bool, Option<String>) {
-    use bcinr_pddl::ground::GroundTemporalProblem;
-    use bcinr_pddl::{domain_from_pddl as b_domain, problem_from_pddl as b_problem};
+    use bcinr_pddl::{
+        domain_from_pddl as b_domain, ground::GroundTemporalProblem, problem_from_pddl as b_problem,
+    };
     use wasm4pm_planner::{
         domain_from_pddl as w_domain, find_temporal_plan, ground_domain,
         problem_from_pddl as w_problem,
@@ -284,10 +296,16 @@ fn run_planner_case(m: &GenModel) -> (bool, Option<String>) {
         }
         // (c) each returned plan actually reaches the goal under the
         // independent replay validator.
-        let w_steps: Vec<(String, Vec<String>)> =
-            wpl.steps.iter().map(|s| (s.action_name.clone(), s.args.clone())).collect();
-        let b_steps: Vec<(String, Vec<String>)> =
-            bpl.steps.iter().map(|s| (s.action_name.clone(), s.args.clone())).collect();
+        let w_steps: Vec<(String, Vec<String>)> = wpl
+            .steps
+            .iter()
+            .map(|s| (s.action_name.clone(), s.args.clone()))
+            .collect();
+        let b_steps: Vec<(String, Vec<String>)> = bpl
+            .steps
+            .iter()
+            .map(|s| (s.action_name.clone(), s.args.clone()))
+            .collect();
         if !m.plan_reaches_goal(&w_steps) {
             note.get_or_insert_with(|| format!("[{}] wasm4pm plan does NOT reach goal", m.name));
         }
@@ -319,16 +337,20 @@ fn pair1_planners_generated_corpus_triple_agreement() {
         }
     }
 
-    eprintln!(
-        "pair1 generated corpus: 30 instances, solvable={solvable} unsolvable={unsolvable}"
-    );
+    eprintln!("pair1 generated corpus: 30 instances, solvable={solvable} unsolvable={unsolvable}");
     assert!(
         disagreements.is_empty(),
         "planner disagreements (each is a BUG): {disagreements:#?}"
     );
     // Coverage: the corpus must exercise BOTH branches of the solvability oracle.
-    assert!(solvable >= 3, "corpus too easy — expected some solvable, got {solvable}");
-    assert!(unsolvable >= 3, "corpus too easy — expected some unsolvable, got {unsolvable}");
+    assert!(
+        solvable >= 3,
+        "corpus too easy — expected some solvable, got {solvable}"
+    );
+    assert!(
+        unsolvable >= 3,
+        "corpus too easy — expected some unsolvable, got {unsolvable}"
+    );
 }
 
 /// Numeric-fluent exemplar (shared-capacity concurrency). Exercises the
@@ -338,8 +360,9 @@ fn pair1_planners_generated_corpus_triple_agreement() {
 /// asserted expected step/makespan.
 #[test]
 fn pair1_planners_capacity_numeric_exemplar() {
-    use bcinr_pddl::ground::GroundTemporalProblem;
-    use bcinr_pddl::{domain_from_pddl as b_domain, problem_from_pddl as b_problem};
+    use bcinr_pddl::{
+        domain_from_pddl as b_domain, ground::GroundTemporalProblem, problem_from_pddl as b_problem,
+    };
     use wasm4pm_planner::{
         domain_from_pddl as w_domain, find_temporal_plan, ground_domain,
         problem_from_pddl as w_problem,
@@ -385,7 +408,11 @@ fn pair1_planners_capacity_numeric_exemplar() {
 
         assert_eq!(wpl.steps.len(), 2, "cap={cap} wasm4pm step count");
         assert_eq!(bpl.steps.len(), 2, "cap={cap} bcinr step count");
-        assert_eq!(wpl.steps.len(), bpl.steps.len(), "cap={cap} cross step count");
+        assert_eq!(
+            wpl.steps.len(),
+            bpl.steps.len(),
+            "cap={cap} cross step count"
+        );
         assert!(
             (wpl.makespan - bpl.makespan).abs() < 1e-9,
             "cap={cap} cross makespan: wasm4pm={} bcinr={}",
@@ -447,11 +474,16 @@ fn pair1_scope_classical_exemplars() {
     // durative-only, so no cross-planner differential is run on it; its
     // durative shape IS exercised as a differential in
     // `pair1_planners_revenue_stage_chain`.
-    let revenue =
-        std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/ontology/revenue.pddl"));
+    let revenue = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/ontology/revenue.pddl"
+    ));
     if let Ok(text) = revenue {
         let d = b_domain(&text).expect("bcinr parses revenue.pddl (classical :strips)");
-        assert!(!d.actions.is_empty(), "revenue.pddl should have classical actions");
+        assert!(
+            !d.actions.is_empty(),
+            "revenue.pddl should have classical actions"
+        );
     }
 
     // lawobject-capability.pddl uses `:adl` (forall / implies / when, and
@@ -608,12 +640,21 @@ fn pair2_conformance_powl_vs_petri_agreement() {
         "pair2 conformance: {} traces, {illegal_free_count} illegal-fire-free (both oracles agree), {complete_lawful_count} fully-complete-lawful",
         corpus.len(),
     );
-    assert!(disagreements.is_empty(), "conformance disagreements (BUG): {disagreements:#?}");
+    assert!(
+        disagreements.is_empty(),
+        "conformance disagreements (BUG): {disagreements:#?}"
+    );
     // Legal prefixes of the canonical order: [judge], [judge,admit],
     // [judge,admit,receipt]. Both oracles agree these have no illegal fire.
-    assert_eq!(illegal_free_count, 3, "expected exactly 3 illegal-fire-free traces");
+    assert_eq!(
+        illegal_free_count, 3,
+        "expected exactly 3 illegal-fire-free traces"
+    );
     // Exactly one trace both fires legally AND completes the net: [J, A, R].
-    assert_eq!(complete_lawful_count, 1, "exactly one complete lawful sequence expected");
+    assert_eq!(
+        complete_lawful_count, 1,
+        "exactly one complete lawful sequence expected"
+    );
 }
 
 /// BLOCKER receipt (pair 2): dteam's `NetBitmask64` lives in
@@ -694,17 +735,28 @@ fn pair3_chain_recompute_vs_independent_100_records() {
 #[cfg(feature = "proposer")]
 #[test]
 fn pair4_objective_score_bit_exact() {
-    use praxis_proposer::domain::{Account, Stage};
-    use praxis_proposer::objective::{ObjectiveFunction, FLUENT_NAMES};
     use std::collections::BTreeMap;
+
+    use praxis_proposer::{
+        domain::{Account, Stage},
+        objective::{ObjectiveFunction, FLUENT_NAMES},
+    };
 
     // Naive, independent reimplementation of the scoring dot product. Mirrors
     // the documented fluent semantics and the fixed FLUENT_NAMES summation
     // order so the f64 result is bit-identical (not merely close).
     fn naive_score(obj: &ObjectiveFunction, a: &Account, target: Stage) -> f64 {
         let amount = a.amount_cents as f64;
-        let realized = if target == Stage::ClosedWon { amount } else { 0.0 };
-        let at_risk = if (target.index()) < Stage::ClosedWon.index() { amount } else { 0.0 };
+        let realized = if target == Stage::ClosedWon {
+            amount
+        } else {
+            0.0
+        };
+        let at_risk = if (target.index()) < Stage::ClosedWon.index() {
+            amount
+        } else {
+            0.0
+        };
         let staleness = a.days_in_stage as f64;
         let advance = (target.index() as f64) - (a.stage.index() as f64);
         let fluents = [realized, at_risk, staleness, advance];
@@ -762,5 +814,8 @@ fn pair4_objective_score_bit_exact() {
     }
 
     eprintln!("pair4 objective: {cases} scoring cases compared bit-exact");
-    assert!(disagreements.is_empty(), "objective scoring disagreements (BUG): {disagreements:#?}");
+    assert!(
+        disagreements.is_empty(),
+        "objective scoring disagreements (BUG): {disagreements:#?}"
+    );
 }

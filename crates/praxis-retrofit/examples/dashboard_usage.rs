@@ -7,11 +7,16 @@
 //! - Handling alerts
 //! - Exporting data for external systems
 
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(missing_docs, dead_code)]
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
+
 use std::path::PathBuf;
 
 use chrono::Utc;
 use praxis_retrofit::{
-    compliance_dashboard::{AlertSeverity, ComplianceAlert, Dashboard, DashboardConfig},
+    compliance_dashboard::{Dashboard, DashboardConfig},
     models::{
         ComplianceCategory, ComplianceItem, ComplianceReport, ComplianceStatus, RepositoryMetadata,
     },

@@ -3,6 +3,8 @@
 //! with the Rust crate on an honest workflow receipt, agree across a lawful
 //! reformat, and name the first divergent stage on a tampered one.
 
+// The deprecated execute_workflow surface stays covered until removal.
+#![allow(deprecated)]
 use std::path::{Path, PathBuf};
 
 use praxis_synthesis::execute_workflow;

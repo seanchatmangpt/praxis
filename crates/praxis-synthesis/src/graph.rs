@@ -219,11 +219,7 @@ impl<'a> Lexer<'a> {
                 c => {
                     // Reassemble UTF-8 byte-by-byte: source was &str, so bytes are valid.
                     let mut buf = vec![c];
-                    while self
-                        .peek()
-                        .map(|n| n & 0xC0 == 0x80)
-                        .unwrap_or(false)
-                    {
+                    while self.peek().map(|n| n & 0xC0 == 0x80).unwrap_or(false) {
                         buf.push(self.bump().expect("peeked continuation byte"));
                     }
                     out.push_str(
@@ -465,7 +461,11 @@ impl Parser {
         };
         let dot = self.bump().ok_or_else(|| self.eof_err())?;
         if dot.tok != Tok::Dot {
-            return Err(malformed(dot.line, dot.column, "expected '.' after @prefix"));
+            return Err(malformed(
+                dot.line,
+                dot.column,
+                "expected '.' after @prefix",
+            ));
         }
         self.prefixes.push((pn, base));
         if self.prefixes.len() > MAX_PREFIXES {
@@ -668,9 +668,32 @@ pub const WF_NS: &str = "http://seanchatmangpt.github.io/praxis/workflow#";
 
 const WF_CLASSES: [&str; 4] = ["Workflow", "Capability", "Atom", "Constraint"];
 const WF_PREDICATES: [&str; 26] = [
-    "budget", "init", "goal", "name", "params", "cost", "pre", "add", "del", "predicate", "arg0",
-    "arg1", "arg2", "arg3", "arg4", "arg5", "arg6", "arg7", "kind", "a", "b", "k", "handler",
-    "delegability", "capability", "constraint",
+    "budget",
+    "init",
+    "goal",
+    "name",
+    "params",
+    "cost",
+    "pre",
+    "add",
+    "del",
+    "predicate",
+    "arg0",
+    "arg1",
+    "arg2",
+    "arg3",
+    "arg4",
+    "arg5",
+    "arg6",
+    "arg7",
+    "kind",
+    "a",
+    "b",
+    "k",
+    "handler",
+    "delegability",
+    "capability",
+    "constraint",
 ];
 
 fn ill(subject: &str, detail: impl Into<String>) -> Refusal {
@@ -757,7 +780,10 @@ impl<'a> NodeIndex<'a> {
         match self.objects(subject, local).as_slice() {
             [Object::Int(v)] => Ok(*v),
             [] => Err(ill(subject, format!("missing wf:{local}"))),
-            [_] => Err(ill(subject, format!("wf:{local} must be an integer literal"))),
+            [_] => Err(ill(
+                subject,
+                format!("wf:{local} must be an integer literal"),
+            )),
             _ => Err(ill(subject, format!("multiple wf:{local}"))),
         }
     }
@@ -775,7 +801,10 @@ impl<'a> NodeIndex<'a> {
         match self.objects(subject, local).as_slice() {
             [] => Ok(None),
             [Object::Int(v)] => Ok(Some(*v)),
-            [_] => Err(ill(subject, format!("wf:{local} must be an integer literal"))),
+            [_] => Err(ill(
+                subject,
+                format!("wf:{local} must be an integer literal"),
+            )),
             _ => Err(ill(subject, format!("multiple wf:{local}"))),
         }
     }
@@ -786,7 +815,10 @@ impl<'a> NodeIndex<'a> {
             .into_iter()
             .map(|o| match o {
                 Object::Iri(iri) => Ok(iri.as_str()),
-                _ => Err(ill(subject, format!("wf:{local} must reference an atom IRI"))),
+                _ => Err(ill(
+                    subject,
+                    format!("wf:{local} must reference an atom IRI"),
+                )),
             })
             .collect()
     }
@@ -900,7 +932,10 @@ fn extract_atom(idx: &NodeIndex<'_>, iri: &str) -> Result<IrAtom, Refusal> {
             Some(_) => {
                 return Err(ill(
                     iri,
-                    format!("wf:arg{i} present but wf:arg{} missing (argument gap)", i - 1),
+                    format!(
+                        "wf:arg{i} present but wf:arg{} missing (argument gap)",
+                        i - 1
+                    ),
                 ))
             }
             None => ended = true,
@@ -935,7 +970,10 @@ fn extract_constraint(
     let need_k_u8 = |k: Option<u32>| -> Result<(), Refusal> {
         match k {
             Some(v) if v <= 255 => Ok(()),
-            Some(v) => Err(ill(iri, format!("kind '{kind}' requires wf:k <= 255, got {v}"))),
+            Some(v) => Err(ill(
+                iri,
+                format!("kind '{kind}' requires wf:k <= 255, got {v}"),
+            )),
             None => Err(ill(iri, format!("kind '{kind}' requires wf:k"))),
         }
     };
@@ -1009,7 +1047,10 @@ pub fn extract_ir(triples: &[Triple]) -> Result<WorkflowIr, Refusal> {
     for iri in idx.atom_refs(wf, "init")? {
         let atom = extract_atom(&idx, iri)?;
         if let Some(v) = atom.args.iter().find(|a| var_index(a).is_some()) {
-            return Err(ill(iri, format!("wf:init atom has variable '{v}'; init must be ground")));
+            return Err(ill(
+                iri,
+                format!("wf:init atom has variable '{v}'; init must be ground"),
+            ));
         }
         init.push(atom);
     }
@@ -1032,11 +1073,17 @@ pub fn extract_ir(triples: &[Triple]) -> Result<WorkflowIr, Refusal> {
         let name = idx.one_str(subject, "name")?;
         let params = idx.one_int(subject, "params")?;
         if !(0..=8).contains(&params) {
-            return Err(ill(subject, format!("wf:params {params} out of range 0..=8")));
+            return Err(ill(
+                subject,
+                format!("wf:params {params} out of range 0..=8"),
+            ));
         }
         let cost = idx.one_int(subject, "cost")?;
         if !(0..=i64::from(u32::MAX)).contains(&cost) {
-            return Err(ill(subject, format!("wf:cost {cost} out of range 0..=u32::MAX")));
+            return Err(ill(
+                subject,
+                format!("wf:cost {cost} out of range 0..=u32::MAX"),
+            ));
         }
         let mut lists = [Vec::new(), Vec::new(), Vec::new()];
         for (slot, local) in lists.iter_mut().zip(["pre", "add", "del"]) {
@@ -1059,7 +1106,10 @@ pub fn extract_ir(triples: &[Triple]) -> Result<WorkflowIr, Refusal> {
     capabilities.sort_unstable_by(|x, y| x.name.cmp(&y.name));
     for pair in capabilities.windows(2) {
         if pair[0].name == pair[1].name {
-            return Err(ill(wf, format!("duplicate capability name '{}'", pair[0].name)));
+            return Err(ill(
+                wf,
+                format!("duplicate capability name '{}'", pair[0].name),
+            ));
         }
     }
     let cap_names: BTreeSet<&str> = capabilities.iter().map(|c| c.name.as_str()).collect();
@@ -1151,16 +1201,15 @@ pub fn lower(ir: &WorkflowIr) -> Result<(Program, SequenceProblem), Refusal> {
             cost: c.cost,
         })
         .collect();
-    let goal: Vec<DlAtom> = ir.goal.iter().map(|a| lower_atom(&mut program, a)).collect();
+    let goal: Vec<DlAtom> = ir
+        .goal
+        .iter()
+        .map(|a| lower_atom(&mut program, a))
+        .collect();
     let constraints: Vec<Constraint> = ir.constraints.iter().map(lower_constraint).collect();
     program.saturate()?;
-    let problem = SequenceProblem::with_constraints(
-        &program,
-        caps,
-        goal,
-        ir.budget as usize,
-        constraints,
-    )?;
+    let problem =
+        SequenceProblem::with_constraints(&program, caps, goal, ir.budget as usize, constraints)?;
     Ok((program, problem))
 }
 
@@ -1290,8 +1339,7 @@ fn execute_triples_with(
     let ir_hash = ir_hash(&ir)?;
     let (_program, problem) = lower(&ir)?;
     let plan = Solver8.solve(&problem)?;
-    let topology =
-        SupervisionTopology::derive(&plan, &problem, RestartPolicy::new(1, 8)?)?;
+    let topology = SupervisionTopology::derive(&plan, &problem, RestartPolicy::new(1, 8)?)?;
     let geometry = FailureGeometry::derive(&topology, &plan, &problem);
     let dag = Dag::from_plan(&plan, &problem);
     let supervised = dag.execute_supervised(
@@ -1339,13 +1387,22 @@ fn execute_triples_with(
 /// A receipt cannot vouch for itself — the bitactor asserted-spec-hash
 /// anti-pattern — so replay recomputes; it never trusts.
 pub fn replay_workflow(receipt: &WorkflowReceipt, ttl: &str) -> Result<(), Refusal> {
+    #[allow(deprecated)]
     let rederived = execute_workflow(ttl)?;
     let stages: [(&str, &str, &str); 7] = [
         ("graph_hash", &rederived.graph_hash, &receipt.graph_hash),
         ("ir_hash", &rederived.ir_hash, &receipt.ir_hash),
         ("plan_hash", &rederived.plan_hash, &receipt.plan_hash),
-        ("topology_hash", &rederived.topology_hash, &receipt.topology_hash),
-        ("geometry_hash", &rederived.geometry_hash, &receipt.geometry_hash),
+        (
+            "topology_hash",
+            &rederived.topology_hash,
+            &receipt.topology_hash,
+        ),
+        (
+            "geometry_hash",
+            &rederived.geometry_hash,
+            &receipt.geometry_hash,
+        ),
         ("exec_hash", &rederived.exec_hash, &receipt.exec_hash),
         ("chain", &rederived.chain, &receipt.chain),
     ];
@@ -1361,7 +1418,9 @@ pub fn replay_workflow(receipt: &WorkflowReceipt, ttl: &str) -> Result<(), Refus
     // forged must not pass replay (a consumer reading the bodies instead of
     // the hashes would otherwise be deceived).
     let computed_plan_hash = crate::sequence::plan_hash_of(&receipt.plan.steps);
-    if computed_plan_hash != receipt.plan_hash || receipt.plan.receipt.plan_hash != receipt.plan_hash {
+    if computed_plan_hash != receipt.plan_hash
+        || receipt.plan.receipt.plan_hash != receipt.plan_hash
+    {
         return Err(Refusal::VerificationFailed {
             failed: vec!["plan payload".to_string()],
         });
@@ -1459,15 +1518,20 @@ ex:pipeline a wf:Workflow .
 
     #[test]
     fn unterminated_string_names_line_and_column() {
-        let (line, column) =
-            expect_malformed("@prefix ex: <http://e/> .\nex:a ex:p \"oops .", "unterminated");
+        let (line, column) = expect_malformed(
+            "@prefix ex: <http://e/> .\nex:a ex:p \"oops .",
+            "unterminated",
+        );
         assert_eq!(line, 2);
         assert_eq!(column, 11);
     }
 
     #[test]
     fn missing_dot_refused() {
-        expect_malformed("@prefix ex: <http://e/> .\nex:a ex:p ex:b", "unexpected end");
+        expect_malformed(
+            "@prefix ex: <http://e/> .\nex:a ex:p ex:b",
+            "unexpected end",
+        );
     }
 
     #[test]
@@ -1565,7 +1629,10 @@ ex:pipeline a wf:Workflow .
     fn parser_never_panics_on_hostile_inputs() {
         // Empty document is valid (doc := (prefix | stmt)*): zero triples.
         assert_eq!(parse_ttl("").expect("empty doc"), Vec::new());
-        assert_eq!(parse_ttl("# only a comment").expect("comment doc"), Vec::new());
+        assert_eq!(
+            parse_ttl("# only a comment").expect("comment doc"),
+            Vec::new()
+        );
         let hostile: &[&str] = &[
             ".",
             ";;;;",
@@ -1620,11 +1687,17 @@ ex:pipeline a wf:Workflow .
         assert_eq!(ir.budget, 3);
         assert_eq!(
             ir.init,
-            vec![IrAtom { predicate: "raw".into(), args: vec!["doc".into()] }]
+            vec![IrAtom {
+                predicate: "raw".into(),
+                args: vec!["doc".into()]
+            }]
         );
         assert_eq!(
             ir.goal,
-            vec![IrAtom { predicate: "receipted".into(), args: vec!["doc".into()] }]
+            vec![IrAtom {
+                predicate: "receipted".into(),
+                args: vec!["doc".into()]
+            }]
         );
         let names: Vec<&str> = ir.capabilities.iter().map(|c| c.name.as_str()).collect();
         assert_eq!(names, ["gather", "receipt", "verify"], "sorted by name");
@@ -1671,9 +1744,7 @@ ex:pipeline a wf:Workflow .
     }
 
     fn wf_doc(body: &str) -> String {
-        format!(
-            "@prefix wf: <{WF_NS}> .\n@prefix ex: <http://example.org/> .\n{body}"
-        )
+        format!("@prefix wf: <{WF_NS}> .\n@prefix ex: <http://example.org/> .\n{body}")
     }
 
     fn expect_ill(body: &str, needle: &str) {
@@ -1737,7 +1808,12 @@ ex:pipeline a wf:Workflow .
              ex:g a wf:Atom ; wf:predicate \"done\" .\n",
         );
         match parse_ttl(&src).and_then(|t| extract_ir(&t)) {
-            Err(Refusal::BudgetExceeded { what, budget, spent, .. }) => {
+            Err(Refusal::BudgetExceeded {
+                what,
+                budget,
+                spent,
+                ..
+            }) => {
                 assert_eq!(what, "wf:budget");
                 assert_eq!(budget, 8);
                 assert_eq!(spent, 9);
@@ -1749,7 +1825,10 @@ ex:pipeline a wf:Workflow .
     #[test]
     fn workflow_shape_refusals_each_named() {
         // zero workflows
-        expect_ill("ex:g a wf:Atom ; wf:predicate \"p\" .", "no 'a wf:Workflow'");
+        expect_ill(
+            "ex:g a wf:Atom ; wf:predicate \"p\" .",
+            "no 'a wf:Workflow'",
+        );
         // two workflows
         expect_ill(
             &format!("{MIN_WF}ex:w2 a wf:Workflow ; wf:budget 1 ; wf:goal ex:g ."),
@@ -1840,31 +1919,52 @@ ex:pipeline a wf:Workflow .
         let cases: &[(&str, Constraint)] = &[
             (
                 "wf:kind \"before\" ; wf:a \"c\" ; wf:b \"c\"",
-                Constraint::Before { a: "c".into(), b: "c".into() },
+                Constraint::Before {
+                    a: "c".into(),
+                    b: "c".into(),
+                },
             ),
             (
                 "wf:kind \"after\" ; wf:a \"c\" ; wf:b \"c\"",
-                Constraint::After { a: "c".into(), b: "c".into() },
+                Constraint::After {
+                    a: "c".into(),
+                    b: "c".into(),
+                },
             ),
             (
                 "wf:kind \"excludes\" ; wf:a \"c\" ; wf:b \"c\"",
-                Constraint::Excludes { a: "c".into(), b: "c".into() },
+                Constraint::Excludes {
+                    a: "c".into(),
+                    b: "c".into(),
+                },
             ),
             (
                 "wf:kind \"requires\" ; wf:a \"c\" ; wf:b \"c\"",
-                Constraint::Requires { a: "c".into(), b: "c".into() },
+                Constraint::Requires {
+                    a: "c".into(),
+                    b: "c".into(),
+                },
             ),
             (
                 "wf:kind \"not-later\" ; wf:a \"c\" ; wf:k 2",
-                Constraint::NotLater { a: "c".into(), k: 2 },
+                Constraint::NotLater {
+                    a: "c".into(),
+                    k: 2,
+                },
             ),
             (
                 "wf:kind \"not-earlier\" ; wf:a \"c\" ; wf:k 2",
-                Constraint::NotEarlier { a: "c".into(), k: 2 },
+                Constraint::NotEarlier {
+                    a: "c".into(),
+                    k: 2,
+                },
             ),
             (
                 "wf:kind \"at-most\" ; wf:a \"c\" ; wf:k 2",
-                Constraint::AtMost { a: "c".into(), n: 2 },
+                Constraint::AtMost {
+                    a: "c".into(),
+                    n: 2,
+                },
             ),
             ("wf:kind \"budget\" ; wf:k 7", Constraint::Budget { max: 7 }),
         ];
@@ -1880,7 +1980,9 @@ ex:pipeline a wf:Workflow .
     fn constraint_shape_refusals_each_named() {
         // unknown kind
         expect_ill(
-            &format!("{MIN_WF}{ONE_CAP}ex:k a wf:Constraint ; wf:kind \"eventually\" ; wf:a \"c\" ."),
+            &format!(
+                "{MIN_WF}{ONE_CAP}ex:k a wf:Constraint ; wf:kind \"eventually\" ; wf:a \"c\" ."
+            ),
             "unknown constraint kind",
         );
         // missing required field
@@ -1914,6 +2016,7 @@ ex:pipeline a wf:Workflow .
     // -----------------------------------------------------------------------
 
     #[test]
+    #[allow(deprecated)]
     fn receipt_chain_folds_graph_hash_first_then_each_derived_stage() {
         let receipt = execute_workflow(DEMO_TTL).expect("demo executes");
         // Recompute the chain by hand from the receipt's own stage fields.
@@ -1935,10 +2038,20 @@ ex:pipeline a wf:Workflow .
         assert_eq!(receipt.plan_hash, receipt.plan.receipt.plan_hash);
         assert_eq!(receipt.topology_hash, receipt.supervised.topology_hash);
         assert_eq!(receipt.geometry_hash, receipt.supervised.geometry_hash);
-        assert_eq!(receipt.exec_hash, exec_hash_of(&receipt.supervised).expect("hash"));
-        assert_eq!(receipt.supervised.outcome, crate::dag::RunOutcome::Completed);
-        let order: Vec<&str> =
-            receipt.plan.steps.iter().map(|s| s.capability.as_str()).collect();
+        assert_eq!(
+            receipt.exec_hash,
+            exec_hash_of(&receipt.supervised).expect("hash")
+        );
+        assert_eq!(
+            receipt.supervised.outcome,
+            crate::dag::RunOutcome::Completed
+        );
+        let order: Vec<&str> = receipt
+            .plan
+            .steps
+            .iter()
+            .map(|s| s.capability.as_str())
+            .collect();
         assert_eq!(order, ["gather", "verify", "receipt"]);
     }
 }

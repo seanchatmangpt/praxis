@@ -15,18 +15,23 @@
 //!    fraction (<< all), and grounds faster than naive. The ratio and wall-clock
 //!    times are recorded to stderr (run with `--nocapture`).
 
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(clippy::pedantic)]
+
+use std::time::Instant;
+
 use bcinr_pddl::GroundProblem;
 use pddl_index::IndexedGroundProblem;
-use std::collections::BTreeSet;
-use std::time::Instant;
-use wasm4pm_compat::pddl::{
-    Pddl8ActionSchema, Pddl8Atom, Pddl8Domain, Pddl8Problem, Pddl8Tape,
-};
+use wasm4pm_compat::pddl::{Pddl8ActionSchema, Pddl8Atom, Pddl8Domain, Pddl8Problem, Pddl8Tape};
 
 // ── builders ────────────────────────────────────────────────────────────────
 
 fn atom(pred: &str, args: &[&str]) -> Pddl8Atom {
-    Pddl8Atom { pred: pred.into(), args: args.iter().map(|s| (*s).into()).collect() }
+    Pddl8Atom {
+        pred: pred.into(),
+        args: args.iter().map(|s| (*s).into()).collect(),
+    }
 }
 
 fn schema(
@@ -64,7 +69,12 @@ fn domain(name: &str, actions: Vec<Pddl8ActionSchema>) -> Pddl8Domain {
     }
 }
 
-fn problem(name: &str, objects: Vec<String>, init: Vec<Pddl8Atom>, goal: Vec<Pddl8Atom>) -> Pddl8Problem {
+fn problem(
+    name: &str,
+    objects: Vec<String>,
+    init: Vec<Pddl8Atom>,
+    goal: Vec<Pddl8Atom>,
+) -> Pddl8Problem {
     Pddl8Problem {
         name: name.into(),
         domain: name.into(),
@@ -166,7 +176,11 @@ fn differential_indexed_matches_naive_on_day3_corpus() {
         let (naive, indexed) = match (naive, indexed) {
             (Ok(n), Ok(i)) => (n, i),
             (n, i) => {
-                disagreements.push(format!("[gen{seed}] build mismatch: naive_ok={} indexed_ok={}", n.is_ok(), i.is_ok()));
+                disagreements.push(format!(
+                    "[gen{seed}] build mismatch: naive_ok={} indexed_ok={}",
+                    n.is_ok(),
+                    i.is_ok()
+                ));
                 continue;
             }
         };
@@ -182,10 +196,14 @@ fn differential_indexed_matches_naive_on_day3_corpus() {
                 solvable += 1;
                 let (a, b) = (plan_labels(&np), plan_labels(&ip));
                 if a != b {
-                    disagreements.push(format!("[gen{seed}] PLAN DIFF:\n  naive={a}\n  indexed={b}"));
+                    disagreements.push(format!(
+                        "[gen{seed}] PLAN DIFF:\n  naive={a}\n  indexed={b}"
+                    ));
                 }
-                assert!(materialized <= naive_action_count(&dom, &prob),
-                    "[gen{seed}] indexed materialized more than naive");
+                assert!(
+                    materialized <= naive_action_count(&dom, &prob),
+                    "[gen{seed}] indexed materialized more than naive"
+                );
             }
             (Err(_), Err(_)) => unsolvable += 1,
             (n, i) => disagreements.push(format!(
@@ -202,10 +220,19 @@ fn differential_indexed_matches_naive_on_day3_corpus() {
          ({:.1}%)",
         100.0 * total_materialized as f64 / total_candidate.max(1) as f64
     );
-    assert!(disagreements.is_empty(), "indexed vs naive disagreements (each is a BUG): {disagreements:#?}");
+    assert!(
+        disagreements.is_empty(),
+        "indexed vs naive disagreements (each is a BUG): {disagreements:#?}"
+    );
     // The corpus must exercise both branches, or "agreement" is vacuous.
-    assert!(solvable >= 3, "corpus too easy — expected some solvable, got {solvable}");
-    assert!(unsolvable >= 3, "corpus too hard — expected some unsolvable, got {unsolvable}");
+    assert!(
+        solvable >= 3,
+        "corpus too easy — expected some solvable, got {solvable}"
+    );
+    assert!(
+        unsolvable >= 3,
+        "corpus too hard — expected some unsolvable, got {unsolvable}"
+    );
 }
 
 /// Count what the naive grounder materializes (its full product), independent
@@ -246,7 +273,10 @@ fn benchmark_indexed_materializes_far_fewer_than_naive() {
     let n = 50; // 50 locations ⇒ 2500 candidate move groundings (> 10³).
     let (dom, prob) = transport(n);
     let candidates = naive_action_count(&dom, &prob);
-    assert!(candidates >= 1000, "benchmark must have 10³+ candidates, got {candidates}");
+    assert!(
+        candidates >= 1000,
+        "benchmark must have 10³+ candidates, got {candidates}"
+    );
 
     // Naive grounding. `GroundProblem::build` materializes the full product;
     // its own action-vec length equals `candidates` (it does no static pruning).
@@ -263,14 +293,22 @@ fn benchmark_indexed_materializes_far_fewer_than_naive() {
 
     // Pruning: naive materializes all 2500, indexed only the 49 real links.
     assert_eq!(stats.candidate_groundings, candidates);
-    assert_eq!(stats.materialized_groundings, n - 1, "one move per existing link");
+    assert_eq!(
+        stats.materialized_groundings,
+        n - 1,
+        "one move per existing link"
+    );
     let ratio = stats.materialization_ratio();
     assert!(ratio < 0.05, "materialization ratio {ratio} not << 1");
 
     // Same plan (differential agreement at scale).
     let np = naive.find_plan().expect("naive plan");
     let ip = indexed.find_plan().expect("indexed plan");
-    assert_eq!(plan_labels(&np), plan_labels(&ip), "indexed and naive plans differ at scale");
+    assert_eq!(
+        plan_labels(&np),
+        plan_labels(&ip),
+        "indexed and naive plans differ at scale"
+    );
     assert_eq!(ip.len(), n - 1);
 
     eprintln!(

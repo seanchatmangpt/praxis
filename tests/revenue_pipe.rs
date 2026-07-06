@@ -47,9 +47,12 @@ fn ensure_signing_key() {
 /// `build_admission_frame` started mixing `andon`/`object_ids` into the
 /// admission-frame hash (closing a gap where those fields could silently
 /// vary without changing the receipt's binding) — a legitimate payload
-/// change, not a determinism regression.
+/// change, not a determinism regression. Repinned again for v26.7.6 after
+/// commit 4190e71 additionally mixed `obligation_count` into
+/// `build_admission_frame` (crates/praxis-core/src/law.rs); that commit
+/// repinned the `snapshots_verbs` snapshots but missed this constant.
 const EXPECTED_CHAIN_HASH: &str =
-    "adbfb1b0b7e2b1691edd2c77e7f63ff855de7effbbe0e77e3e5ebbeb03c80bb4";
+    "bf0305802096b6bb1110677d5d06139d04b06478e10fc6c6268c38b373f0ff97";
 
 #[test]
 fn full_pipe_runs_green_and_binds_proposal_hash() {
@@ -57,25 +60,48 @@ fn full_pipe_runs_green_and_binds_proposal_hash() {
     let t = revenue::run_demo(TS_NS).expect("revenue pipe must run green end to end");
 
     // Step 1: ranked proposals with rationale + 64-hex proposal_hash.
-    let proposals = t["step_1_proposals"]["proposals"].as_array().expect("proposals array");
-    assert!(proposals.len() >= 3, "expected several ranked proposals, got {}", proposals.len());
+    let proposals = t["step_1_proposals"]["proposals"]
+        .as_array()
+        .expect("proposals array");
+    assert!(
+        proposals.len() >= 3,
+        "expected several ranked proposals, got {}",
+        proposals.len()
+    );
     let top = &proposals[0];
     assert_eq!(top["proposal_hash"].as_str().expect("hash").len(), 64);
     assert!(top["rationale"].as_array().expect("rationale").len() >= 3);
 
     // Step 2/3: the top goal drives a multi-action, evidence-gated plan.
     let plan = t["step_3_plan"]["plan"].as_array().expect("plan array");
-    assert!(plan.len() >= 2, "top proposal should need a multi-step gated plan, got {plan:?}");
+    assert!(
+        plan.len() >= 2,
+        "top proposal should need a multi-step gated plan, got {plan:?}"
+    );
 
     // Step 4: every plan action was judged validated and admitted.
     for adm in t["step_4_admissions"].as_array().expect("admissions array") {
-        assert_eq!(adm["judge_verdict"], json!("validated"), "action not validated: {adm}");
-        assert_eq!(adm["admit_status"], json!("admitted"), "action not admitted: {adm}");
+        assert_eq!(
+            adm["judge_verdict"],
+            json!("validated"),
+            "action not validated: {adm}"
+        );
+        assert_eq!(
+            adm["admit_status"],
+            json!("admitted"),
+            "action not admitted: {adm}"
+        );
     }
 
     // Step 5: the receipt binds the top proposal_hash and yields a chain hash.
-    let bound = t["step_5_receipt"]["binds_proposal_hash"].as_str().expect("bound hash");
-    assert_eq!(bound, top["proposal_hash"].as_str().expect("top hash"), "receipt must bind top proposal");
+    let bound = t["step_5_receipt"]["binds_proposal_hash"]
+        .as_str()
+        .expect("bound hash");
+    assert_eq!(
+        bound,
+        top["proposal_hash"].as_str().expect("top hash"),
+        "receipt must bind top proposal"
+    );
     assert_eq!(t["chain_hash"].as_str().expect("chain hash").len(), 64);
 }
 
@@ -84,7 +110,10 @@ fn chain_hash_is_deterministic_and_pinned() {
     ensure_signing_key();
     let a = revenue::run_demo(TS_NS).expect("run a");
     let b = revenue::run_demo(TS_NS).expect("run b");
-    assert_eq!(a["chain_hash"], b["chain_hash"], "same ts_ns must give the same chain hash");
+    assert_eq!(
+        a["chain_hash"], b["chain_hash"],
+        "same ts_ns must give the same chain hash"
+    );
 
     let got = a["chain_hash"].as_str().expect("chain hash");
     assert_eq!(
@@ -100,16 +129,16 @@ fn chain_hash_is_deterministic_and_pinned() {
 fn missing_legal_approved_is_never_proposed_past_proposal_and_refused_if_forced() {
     ensure_signing_key();
     let t = revenue::run_demo(TS_NS).expect("run");
-    let proposals = t["step_1_proposals"]["proposals"].as_array().expect("proposals");
+    let proposals = t["step_1_proposals"]["proposals"]
+        .as_array()
+        .expect("proposals");
 
     // (a) pre-filter: acct-legal-gap never appears with a target beyond proposal.
     let past_proposal = ["procurement", "closed-won"];
     let leaked: Vec<_> = proposals
         .iter()
         .filter(|p| p["target_account"] == json!("acct-legal-gap"))
-        .filter(|p| {
-            past_proposal.contains(&p["target_stage"].as_str().unwrap_or_default())
-        })
+        .filter(|p| past_proposal.contains(&p["target_stage"].as_str().unwrap_or_default()))
         .collect();
     assert!(
         leaked.is_empty(),
@@ -117,7 +146,9 @@ fn missing_legal_approved_is_never_proposed_past_proposal_and_refused_if_forced(
     );
     // Sanity: it *is* proposed up to proposal (the pre-filter isn't just empty).
     assert!(
-        proposals.iter().any(|p| p["target_account"] == json!("acct-legal-gap")),
+        proposals
+            .iter()
+            .any(|p| p["target_account"] == json!("acct-legal-gap")),
         "acct-legal-gap should still have a lawful proposal up to proposal"
     );
 
@@ -125,15 +156,25 @@ fn missing_legal_approved_is_never_proposed_past_proposal_and_refused_if_forced(
     //     for the same missing-evidence reason the pre-filter used.
     let forced = revenue::forced_admit_by_id("acct-legal-gap", "procurement")
         .expect("forced admit should not hard-error");
-    assert_eq!(forced["status"], json!("denied"), "forced move must be refused: {forced}");
+    assert_eq!(
+        forced["status"],
+        json!("denied"),
+        "forced move must be refused: {forced}"
+    );
     let unmet = forced["unmet"].as_array().expect("unmet array");
     let cites_legal = unmet.iter().any(|o| {
-        o["evidence_type"] == json!("legal_approved")
-            || o.to_string().contains("legal_approved")
+        o["evidence_type"] == json!("legal_approved") || o.to_string().contains("legal_approved")
     });
-    assert!(cites_legal, "refusal should cite the missing legal_approved evidence: {unmet:?}");
+    assert!(
+        cites_legal,
+        "refusal should cite the missing legal_approved evidence: {unmet:?}"
+    );
 
     // A fully-evidenced account, by contrast, IS admitted into procurement.
     let ok = revenue::forced_admit_by_id("acct-apex", "procurement").expect("admit apex");
-    assert_eq!(ok["status"], json!("admitted"), "apex has full evidence and must admit: {ok}");
+    assert_eq!(
+        ok["status"],
+        json!("admitted"),
+        "apex has full evidence and must admit: {ok}"
+    );
 }

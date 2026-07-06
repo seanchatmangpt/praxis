@@ -46,13 +46,13 @@
 //! ```
 
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::HashMap,
     path::PathBuf,
 };
 
 use chicago_tdd_tools::core::config::poka_yoke::{BoundedU32, PositiveUsize};
 use serde::{Deserialize, Serialize};
-use star_toml::{Validate, Validator, TrustedLoader, ConfigLifecycle};
+use star_toml::{ConfigLifecycle, TrustedLoader, Validate, Validator};
 
 use crate::models::RetrofitPhase;
 
@@ -361,7 +361,9 @@ impl RepositoryRegistry {
             .layer_file_if_exists(&resolved)
             .load_admitted::<RepositoryRegistry>()
             .map(|a| a.into_value())
-            .map_err(|e| crate::RetrofitError::ConfigError(format!("Failed to load repos.toml: {}", e)))
+            .map_err(|e| {
+                crate::RetrofitError::ConfigError(format!("Failed to load repos.toml: {}", e))
+            })
     }
 
     /// Parses the registry from a TOML string and validates invariants.
@@ -374,7 +376,9 @@ impl RepositoryRegistry {
             .layer_str(contents, "inline")
             .load_admitted::<RepositoryRegistry>()
             .map(|a| a.into_value())
-            .map_err(|e| crate::RetrofitError::ConfigError(format!("Failed to parse repos.toml: {}", e)))
+            .map_err(|e| {
+                crate::RetrofitError::ConfigError(format!("Failed to parse repos.toml: {}", e))
+            })
     }
 
     /// Returns all repositories.
@@ -389,27 +393,42 @@ impl RepositoryRegistry {
 
     /// Filters repos by retrofit readiness status.
     pub fn filter_by_readiness(&self, status: &str) -> Vec<&RepositoryEntry> {
-        self.repos.values().filter(|r| r.retrofit_readiness == status).collect()
+        self.repos
+            .values()
+            .filter(|r| r.retrofit_readiness == status)
+            .collect()
     }
 
     /// Filters repos by retrofit phase completion.
     pub fn filter_by_phase(&self, phase: u8) -> Vec<&RepositoryEntry> {
-        self.repos.values().filter(|r| r.retrofit_phase_complete == phase).collect()
+        self.repos
+            .values()
+            .filter(|r| r.retrofit_phase_complete == phase)
+            .collect()
     }
 
     /// Filters repos by risk level.
     pub fn filter_by_risk(&self, level: &str) -> Vec<&RepositoryEntry> {
-        self.repos.values().filter(|r| r.risk_level == level).collect()
+        self.repos
+            .values()
+            .filter(|r| r.risk_level == level)
+            .collect()
     }
 
     /// Filters repos by maintainer status.
     pub fn filter_by_status(&self, status: &str) -> Vec<&RepositoryEntry> {
-        self.repos.values().filter(|r| r.maintainer_status == status).collect()
+        self.repos
+            .values()
+            .filter(|r| r.maintainer_status == status)
+            .collect()
     }
 
     /// Filters repos by workspace type.
     pub fn filter_by_workspace_type(&self, wtype: &str) -> Vec<&RepositoryEntry> {
-        self.repos.values().filter(|r| r.workspace_type == wtype).collect()
+        self.repos
+            .values()
+            .filter(|r| r.workspace_type == wtype)
+            .collect()
     }
 
     /// Returns all repos sorted by priority score (highest first).
@@ -439,8 +458,11 @@ impl RepositoryRegistry {
 
     /// Returns all repos sorted by effort (ascending — easy first).
     pub fn sorted_by_effort(&self) -> Vec<(&RepositoryEntry, f32)> {
-        let mut repos: Vec<_> =
-            self.repos.values().map(|r| (r, r.estimated_effort_weeks())).collect();
+        let mut repos: Vec<_> = self
+            .repos
+            .values()
+            .map(|r| (r, r.estimated_effort_weeks()))
+            .collect();
         repos.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
         repos
     }
@@ -466,12 +488,20 @@ impl RepositoryRegistry {
 
     /// Returns repos that have no CI workflows (high priority for automation).
     pub fn no_ci_repos(&self) -> Vec<&RepositoryEntry> {
-        self.metadata.no_ci_repos.iter().filter_map(|name| self.get(name)).collect()
+        self.metadata
+            .no_ci_repos
+            .iter()
+            .filter_map(|name| self.get(name))
+            .collect()
     }
 
     /// Returns repos with missing license files (compliance issue).
     pub fn missing_license_files(&self) -> Vec<&RepositoryEntry> {
-        self.metadata.missing_license_files.iter().filter_map(|name| self.get(name)).collect()
+        self.metadata
+            .missing_license_files
+            .iter()
+            .filter_map(|name| self.get(name))
+            .collect()
     }
 
     /// Returns repos with non-standard licenses (legal coordination needed).
@@ -514,7 +544,10 @@ impl RepositoryRegistry {
             _ => vec![],
         };
 
-        consumers.into_iter().filter_map(|name| self.get(name)).collect()
+        consumers
+            .into_iter()
+            .filter_map(|name| self.get(name))
+            .collect()
     }
 
     /// Generates a summary report of ecosystem readiness.
@@ -527,7 +560,11 @@ impl RepositoryRegistry {
         let med_risk = self.filter_by_risk("medium").len();
         let high_risk = self.filter_by_risk("high").len();
 
-        let total_effort: f32 = self.repos.values().map(|r| r.estimated_effort_weeks()).sum();
+        let total_effort: f32 = self
+            .repos
+            .values()
+            .map(|r| r.estimated_effort_weeks())
+            .sum();
 
         format!(
             "Seanchatmangpt Retrofit Readiness Report\n\
@@ -625,7 +662,10 @@ impl RegistryDocument {
             missing_security_md: vec![],
         });
 
-        Ok(RepositoryRegistry { repos: fixed_repos, metadata })
+        Ok(RepositoryRegistry {
+            repos: fixed_repos,
+            metadata,
+        })
     }
 }
 
@@ -762,6 +802,7 @@ notes = ""
 "#;
 
     #[tokio::test]
+    #[allow(clippy::await_holding_lock)] // std lock deliberately serializes env-mutating tests
     async fn test_load_with_env_var_override() {
         let _guard = CWD_LOCK.lock().unwrap();
         let original_env = std::env::var("PRAXIS_REGISTRY_PATH");

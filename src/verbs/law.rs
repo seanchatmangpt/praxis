@@ -19,7 +19,7 @@
 //! MCP server).
 
 use clap_noun_verb::error::{NounVerbError, Result};
-use clap_noun_verb_macros::{arg, verb};
+use clap_noun_verb_macros::verb;
 use my_conforming_project::ops;
 use serde_json::Value;
 

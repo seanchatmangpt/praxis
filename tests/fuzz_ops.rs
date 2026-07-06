@@ -27,6 +27,9 @@
 //! forward search per case. Override with `PROPTEST_CASES=<n>`, e.g.
 //! `PROPTEST_CASES=20000 cargo test --test fuzz_ops --all-features`.
 
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
 #![cfg(feature = "proposer")]
 
 use my_conforming_project::{config::PraxisConfig, ops, revtac::Mission};
@@ -58,7 +61,10 @@ fn ensure_signing_key() {
 /// diagnostic — never an empty or whitespace-only reason.
 fn assert_reasoned(r: &Result<serde_json::Value, String>) {
     if let Err(msg) = r {
-        assert!(!msg.trim().is_empty(), "refusal must carry a non-empty reason");
+        assert!(
+            !msg.trim().is_empty(),
+            "refusal must carry a non-empty reason"
+        );
     }
 }
 

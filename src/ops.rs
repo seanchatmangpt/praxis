@@ -22,8 +22,7 @@ use prolog8::{
     admit_atom, admit_rule, Atom8, Catalog, FactBlock8, Kernel, QueryAtom8, QueryResult,
     RejectionCode, Rule8,
 };
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use wasm4pm_cognition::breeds::standing::BreedStanding;
 
@@ -146,12 +145,18 @@ fn parse_hex32(hex_str: &str) -> std::result::Result<[u8; 32], String> {
 fn parse_obligations(raw: Vec<ObligationInput>) -> std::result::Result<Vec<Obligation>, String> {
     raw.into_iter()
         .map(|o| match o {
-            ObligationInput::Precondition { predicate_id, params_hash_hex } => {
+            ObligationInput::Precondition {
+                predicate_id,
+                params_hash_hex,
+            } => {
                 let params_hash = match params_hash_hex {
                     Some(hex_str) => parse_hex32(&hex_str)?,
                     None => [0u8; 32],
                 };
-                Ok(Obligation::Precondition { predicate_id, params_hash })
+                Ok(Obligation::Precondition {
+                    predicate_id,
+                    params_hash,
+                })
             }
             ObligationInput::BlockingConstraint { reason } => {
                 Ok(Obligation::BlockingConstraint { reason })
@@ -184,7 +189,10 @@ pub fn parse_payload<T: DeserializeOwned>(payload: &str) -> std::result::Result<
 /// `default_law::now_ms`, duplicated here since that one is private to
 /// `praxis-core`).
 fn now_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 /// Extract the unmet-obligations list from an `Andon`, empty if not `Halted`.
@@ -225,7 +233,10 @@ fn halted_fields(andon: &Andon) -> Map<String, Value> {
     m.insert("andon".to_string(), to_json(andon));
     m.insert("unmet".to_string(), to_json(&unmet_from(andon)));
     m.insert("refusals".to_string(), to_json(&refusals_from(andon)));
-    m.insert("refusal_categories".to_string(), refusal_categories_json(andon));
+    m.insert(
+        "refusal_categories".to_string(),
+        refusal_categories_json(andon),
+    );
     m
 }
 
@@ -250,19 +261,25 @@ pub fn run_prolog8_checks(input: &LawInput) -> std::result::Result<Option<Value>
         .catalog
         .as_ref()
         .ok_or_else(|| "atom or rule provided without a catalog".to_string())?;
-    let catalog: Catalog =
-        serde_json::from_value(catalog_value.clone()).map_err(|e| format!("invalid catalog: {e}"))?;
+    let catalog: Catalog = serde_json::from_value(catalog_value.clone())
+        .map_err(|e| format!("invalid catalog: {e}"))?;
 
     let mut out = Map::new();
     if let Some(atom_value) = &input.atom {
         let atom: Atom8 =
             serde_json::from_value(atom_value.clone()).map_err(|e| format!("invalid atom: {e}"))?;
-        out.insert("atom".to_string(), admit_result_json(admit_atom(&atom, &catalog)));
+        out.insert(
+            "atom".to_string(),
+            admit_result_json(admit_atom(&atom, &catalog)),
+        );
     }
     if let Some(rule_value) = &input.rule {
         let rule: Rule8 =
             serde_json::from_value(rule_value.clone()).map_err(|e| format!("invalid rule: {e}"))?;
-        out.insert("rule".to_string(), admit_result_json(admit_rule(&rule, &catalog)));
+        out.insert(
+            "rule".to_string(),
+            admit_result_json(admit_rule(&rule, &catalog)),
+        );
     }
     Ok(Some(Value::Object(out)))
 }
@@ -328,7 +345,9 @@ pub fn judge_from_value(value: &Value) -> std::result::Result<JudgeContext, Stri
     let (obligation_unmet, obligation_refusals, maybe_validated) = match DefaultLaw::judge(raw) {
         Ok(validated) => (Vec::new(), Vec::new(), Some(validated)),
         Err(halted) => match halted.andon() {
-            Andon::Halted { unmet, refusals, .. } => (unmet.clone(), refusals.clone(), None),
+            Andon::Halted {
+                unmet, refusals, ..
+            } => (unmet.clone(), refusals.clone(), None),
             _ => (Vec::new(), Vec::new(), None),
         },
     };
@@ -351,10 +370,13 @@ pub fn judge_from_value(value: &Value) -> std::result::Result<JudgeContext, Stri
         None
     };
 
-    let outcome = if maybe_validated.is_none() || !refusals.is_empty() {
-        JudgeOutcome::Halted(Andon::Halted { unmet: obligation_unmet, refusals, at: now_ms() })
-    } else {
-        JudgeOutcome::Validated(maybe_validated.expect("checked is_none() above"))
+    let outcome = match maybe_validated {
+        Some(validated) if refusals.is_empty() => JudgeOutcome::Validated(validated),
+        _ => JudgeOutcome::Halted(Andon::Halted {
+            unmet: obligation_unmet,
+            refusals,
+            at: now_ms(),
+        }),
     };
 
     Ok(JudgeContext {
@@ -394,22 +416,28 @@ pub fn run_kernel_query(
         return Ok(None);
     };
 
-    let catalog_value =
-        input.catalog.as_ref().ok_or_else(|| "query provided without a catalog".to_string())?;
-    let catalog: Catalog =
-        serde_json::from_value(catalog_value.clone()).map_err(|e| format!("invalid catalog: {e}"))?;
+    let catalog_value = input
+        .catalog
+        .as_ref()
+        .ok_or_else(|| "query provided without a catalog".to_string())?;
+    let catalog: Catalog = serde_json::from_value(catalog_value.clone())
+        .map_err(|e| format!("invalid catalog: {e}"))?;
     let mut kernel = Kernel::new(catalog);
 
     for (i, fact_value) in input.facts.iter().enumerate() {
         let block: FactBlock8 = serde_json::from_value(fact_value.clone())
             .map_err(|e| format!("invalid facts[{i}]: {e}"))?;
-        kernel.load_facts(block).map_err(|code| format!("facts[{i}] rejected: {code}"))?;
+        kernel
+            .load_facts(block)
+            .map_err(|code| format!("facts[{i}] rejected: {code}"))?;
     }
 
     if let Some(rule_value) = &input.rule {
         let rule: Rule8 =
             serde_json::from_value(rule_value.clone()).map_err(|e| format!("invalid rule: {e}"))?;
-        kernel.load_rule(rule).map_err(|code| format!("rule rejected by kernel: {code}"))?;
+        kernel
+            .load_rule(rule)
+            .map_err(|code| format!("rule rejected by kernel: {code}"))?;
     }
 
     let q: QueryAtom8 =
@@ -419,16 +447,23 @@ pub fn run_kernel_query(
         match kernel.query(&q) {
             QueryResult::Answered(decisions) => ("answered", to_json(&decisions), Vec::new()),
             QueryResult::Denied(decision) => {
-                let refusal = RefusalScenario::KernelDenied { pred_id: q.atom.pred_id.0 };
+                let refusal = RefusalScenario::KernelDenied {
+                    pred_id: q.atom.pred_id.0,
+                };
                 ("denied", to_json(&decision), vec![refusal])
             }
             QueryResult::Invalid(code) => {
-                let refusal = RefusalScenario::KernelInvalid { rejection: code.to_string() };
+                let refusal = RefusalScenario::KernelInvalid {
+                    rejection: code.to_string(),
+                };
                 ("invalid", json!(code.to_string()), vec![refusal])
             }
         };
 
-    Ok(Some((json!({"verdict": verdict, "result": result}), refusals)))
+    Ok(Some((
+        json!({"verdict": verdict, "result": result}),
+        refusals,
+    )))
 }
 
 // ── Domain logic ──────────────────────────────────────────────────────────
@@ -479,8 +514,11 @@ fn andon_ring_of(_ctx: &JudgeContext) -> Option<Value> {
 pub fn judge_payload(payload: &str, law: &str) -> std::result::Result<Value, String> {
     let value = parse_value(payload)?;
     let ctx = judge_from_value(&value)?;
-    let (prolog8, prolog8_query, andon_ring) =
-        (ctx.prolog8.clone(), ctx.prolog8_query.clone(), andon_ring_of(&ctx));
+    let (prolog8, prolog8_query, andon_ring) = (
+        ctx.prolog8.clone(),
+        ctx.prolog8_query.clone(),
+        andon_ring_of(&ctx),
+    );
 
     let mut obj = Map::new();
     obj.insert("status".to_string(), json!("judged"));
@@ -497,15 +535,23 @@ pub fn judge_payload(payload: &str, law: &str) -> std::result::Result<Value, Str
             }
         }
     }
-    Ok(with_query_context(Value::Object(obj), prolog8, prolog8_query, andon_ring))
+    Ok(with_query_context(
+        Value::Object(obj),
+        prolog8,
+        prolog8_query,
+        andon_ring,
+    ))
 }
 
 /// Domain logic for `admit`: Validated → Admitted (or denied).
 pub fn admit_payload(payload: &str, policy: &str) -> std::result::Result<Value, String> {
     let value = parse_value(payload)?;
     let ctx = judge_from_value(&value)?;
-    let (prolog8, prolog8_query, andon_ring) =
-        (ctx.prolog8.clone(), ctx.prolog8_query.clone(), andon_ring_of(&ctx));
+    let (prolog8, prolog8_query, andon_ring) = (
+        ctx.prolog8.clone(),
+        ctx.prolog8_query.clone(),
+        andon_ring_of(&ctx),
+    );
 
     let result = match ctx.outcome {
         JudgeOutcome::Halted(andon) => denied_object(&andon),
@@ -518,28 +564,41 @@ pub fn admit_payload(payload: &str, policy: &str) -> std::result::Result<Value, 
             Err(andon) => denied_object(&andon),
         },
     };
-    Ok(with_query_context(result, prolog8, prolog8_query, andon_ring))
+    Ok(with_query_context(
+        result,
+        prolog8,
+        prolog8_query,
+        andon_ring,
+    ))
 }
 
 /// Domain logic for `receipt`: Admitted → Receipted, BLAKE3-chained (or denied).
 pub fn receipt_payload(payload: &str) -> std::result::Result<Value, String> {
     let value = parse_value(payload)?;
-    let fields: ReceiptFields =
-        serde_json::from_value(value.clone()).map_err(|e| format!("invalid receipt fields: {e}"))?;
+    let fields: ReceiptFields = serde_json::from_value(value.clone())
+        .map_err(|e| format!("invalid receipt fields: {e}"))?;
     let prev_chain_hash = match &fields.prev_chain_hash {
         Some(hex_str) => parse_hex32(hex_str)?,
         None => [0u8; 32],
     };
 
     let ctx = judge_from_value(&value)?;
-    let (prolog8, prolog8_query, andon_ring) =
-        (ctx.prolog8.clone(), ctx.prolog8_query.clone(), andon_ring_of(&ctx));
+    let (prolog8, prolog8_query, andon_ring) = (
+        ctx.prolog8.clone(),
+        ctx.prolog8_query.clone(),
+        andon_ring_of(&ctx),
+    );
     let ctx_value = ctx.value.clone();
 
     let validated = match ctx.outcome {
         JudgeOutcome::Halted(andon) => {
             let denied = denied_object(&andon);
-            return Ok(with_query_context(denied, prolog8, prolog8_query, andon_ring));
+            return Ok(with_query_context(
+                denied,
+                prolog8,
+                prolog8_query,
+                andon_ring,
+            ));
         }
         JudgeOutcome::Validated(validated) => validated,
     };
@@ -547,12 +606,20 @@ pub fn receipt_payload(payload: &str) -> std::result::Result<Value, String> {
         Ok(admitted) => admitted,
         Err(andon) => {
             let denied = denied_object(&andon);
-            return Ok(with_query_context(denied, prolog8, prolog8_query, andon_ring));
+            return Ok(with_query_context(
+                denied,
+                prolog8,
+                prolog8_query,
+                andon_ring,
+            ));
         }
     };
 
     let ts_ns = fields.ts_ns.unwrap_or_else(|| {
-        SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos() as u64
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64
     });
     // `denial` stays at its `ReceiptMeta::default()` value (`ADMITTED`):
     // reaching this point means `judge_from_value` observed zero refusals
@@ -569,7 +636,9 @@ pub fn receipt_payload(payload: &str) -> std::result::Result<Value, String> {
         ..Default::default()
     };
 
-    let receipted = admitted.receipt(&prev_chain_hash, meta).map_err(|e| e.to_string())?;
+    let receipted = admitted
+        .receipt(&prev_chain_hash, meta)
+        .map_err(|e| e.to_string())?;
 
     let chain_hash = receipted.chain_hash().copied().unwrap_or([0u8; 32]);
     let chain_hex = hex::encode(chain_hash);
@@ -597,7 +666,10 @@ pub fn receipt_payload(payload: &str) -> std::result::Result<Value, String> {
         if let Ok(signed_receipt) = serde_json::from_slice::<Value>(&sig_bytes) {
             if let Some(obj) = out.as_object_mut() {
                 obj.insert("signature".to_string(), signed_receipt["signature"].clone());
-                obj.insert("verifying_key".to_string(), signed_receipt["verifying_key"].clone());
+                obj.insert(
+                    "verifying_key".to_string(),
+                    signed_receipt["verifying_key"].clone(),
+                );
                 obj.insert("signed_receipt".to_string(), signed_receipt);
             }
         }
@@ -629,8 +701,8 @@ pub fn verify_signature_payload(payload: &str) -> std::result::Result<Value, Str
     let input: VerifySignatureInput = serde_json::from_value(value)
         .map_err(|e| format!("invalid verify-signature payload: {e}"))?;
     let chain_hash = parse_hex32(&input.chain_hash)?;
-    let sig_bytes =
-        serde_json::to_vec(&input.signed_receipt).map_err(|e| format!("invalid signed_receipt: {e}"))?;
+    let sig_bytes = serde_json::to_vec(&input.signed_receipt)
+        .map_err(|e| format!("invalid signed_receipt: {e}"))?;
 
     let result = match &input.verifying_key {
         Some(vk) => praxis_core::signing::verify_chain_hash_with_key(&chain_hash, &sig_bytes, vk),
@@ -781,8 +853,8 @@ use praxis_core::{
 /// receipts don't need to track the running chain hash themselves.
 pub fn receipt_issue_payload(payload: &str, dir: &str) -> std::result::Result<Value, String> {
     let value = parse_value(payload)?;
-    let fields: ReceiptFields =
-        serde_json::from_value(value.clone()).map_err(|e| format!("invalid receipt fields: {e}"))?;
+    let fields: ReceiptFields = serde_json::from_value(value.clone())
+        .map_err(|e| format!("invalid receipt fields: {e}"))?;
 
     let store = ReceiptStore::open(dir).map_err(|e| e.to_string())?;
     let prev_chain_hash = match &fields.prev_chain_hash {
@@ -801,7 +873,10 @@ pub fn receipt_issue_payload(payload: &str, dir: &str) -> std::result::Result<Va
     };
 
     let ts_ns = fields.ts_ns.unwrap_or_else(|| {
-        SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos() as u64
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64
     });
     let meta = ReceiptMeta {
         instruction_id: fields.instruction_id.unwrap_or(0),
@@ -811,8 +886,9 @@ pub fn receipt_issue_payload(payload: &str, dir: &str) -> std::result::Result<Va
         ..Default::default()
     };
 
-    let (_receipted, record) =
-        admitted.receipt_with_record(&prev_chain_hash, meta).map_err(|e| e.to_string())?;
+    let (_receipted, record) = admitted
+        .receipt_with_record(&prev_chain_hash, meta)
+        .map_err(|e| e.to_string())?;
     store.append(&record).map_err(|e| e.to_string())?;
 
     Ok(json!({
@@ -832,7 +908,10 @@ fn archive_validated_records(records: &[ReceiptRecord]) -> std::result::Result<(
     std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     for record in records {
         let short_hash = &record.chain_hash_hex[..record.chain_hash_hex.len().min(8)];
-        let file = dir.join(format!("receipt-{}-{short_hash}.json", record.instruction_id));
+        let file = dir.join(format!(
+            "receipt-{}-{short_hash}.json",
+            record.instruction_id
+        ));
         let bytes = serde_json::to_vec_pretty(record).map_err(|e| e.to_string())?;
         std::fs::write(file, bytes).map_err(|e| e.to_string())?;
     }
@@ -889,19 +968,21 @@ pub fn receipt_replay_payload(dir: &str) -> std::result::Result<Value, String> {
 
     let results: Vec<Value> = records
         .iter()
-        .map(|record| match replay_adapter::replay_receipt_lifecycle(record) {
-            Ok(metrics) => json!({
-                "instruction_id": record.instruction_id,
-                "chain_hash": record.chain_hash_hex,
-                "fitness": metrics.fitness as f64 / Q16_16_ONE,
-                "precision": metrics.precision as f64 / Q16_16_ONE,
-            }),
-            Err(violation) => json!({
-                "instruction_id": record.instruction_id,
-                "chain_hash": record.chain_hash_hex,
-                "violation": format!("{violation:?}"),
-            }),
-        })
+        .map(
+            |record| match replay_adapter::replay_receipt_lifecycle(record) {
+                Ok(metrics) => json!({
+                    "instruction_id": record.instruction_id,
+                    "chain_hash": record.chain_hash_hex,
+                    "fitness": metrics.fitness as f64 / Q16_16_ONE,
+                    "precision": metrics.precision as f64 / Q16_16_ONE,
+                }),
+                Err(violation) => json!({
+                    "instruction_id": record.instruction_id,
+                    "chain_hash": record.chain_hash_hex,
+                    "violation": format!("{violation:?}"),
+                }),
+            },
+        )
         .collect();
 
     Ok(json!({
@@ -1016,9 +1097,11 @@ pub fn resolve_pddl_source(
     match (domain_text, problem_text) {
         (Some(d), Some(p)) => Ok((d, p)),
         (Some(combined), None) | (None, Some(combined)) => split_combined(&combined),
-        (None, None) => Err("must supply `domain`/`domain_file` and `problem`/`problem_file`, or \
+        (None, None) => Err(
+            "must supply `domain`/`domain_file` and `problem`/`problem_file`, or \
                              a single combined text/file containing both"
-            .to_string()),
+                .to_string(),
+        ),
     }
 }
 
@@ -1169,12 +1252,18 @@ fn solve_temporal(domain_text: &str, problem_text: &str) -> std::result::Result<
 /// (`verbs::plan::solve`) and the MCP `plan_solve` tool.
 pub fn plan_solve_payload(payload: &str) -> std::result::Result<Value, String> {
     let input: SolveInput = parse_payload(payload)?;
-    let (domain_text, problem_text) =
-        resolve_pddl_source(input.domain, input.problem, input.domain_file, input.problem_file)?;
+    let (domain_text, problem_text) = resolve_pddl_source(
+        input.domain,
+        input.problem,
+        input.domain_file,
+        input.problem_file,
+    )?;
     match input.mode.as_str() {
         "classical" => solve_classical(&domain_text, &problem_text),
         "temporal" => solve_temporal(&domain_text, &problem_text),
-        other => Err(format!("unknown mode `{other}` (expected `classical` or `temporal`)")),
+        other => Err(format!(
+            "unknown mode `{other}` (expected `classical` or `temporal`)"
+        )),
     }
 }
 
@@ -1219,10 +1308,12 @@ fn resolve_objective(
     }
     match sources {
         0 => {
-            return Err("no objective supplied: pass --objective <path>, or put `objective` \
+            return Err(
+                "no objective supplied: pass --objective <path>, or put `objective` \
                         (inline) or `objective_file` (path) in the payload — the objective \
                         function is domain-authored data the system never invents (Non-goal 1)"
-                .to_string())
+                    .to_string(),
+            )
         }
         1 => {}
         _ => {
@@ -1277,7 +1368,11 @@ pub fn propose_revenue_payload(
     let objective = resolve_objective(objective_path, &input)?;
     let proposer = praxis_proposer::Proposer::new(objective);
     let proposals = proposer.propose(&input.state);
-    let status = if proposals.is_empty() { "no_lawful_candidates" } else { "proposed" };
+    let status = if proposals.is_empty() {
+        "no_lawful_candidates"
+    } else {
+        "proposed"
+    };
     Ok(json!({
         "status": status,
         "objective": objective_summary(proposer.objective()),
@@ -1353,7 +1448,8 @@ mod tests {
 
     #[test]
     fn judge_with_blocking_constraint_becomes_halted_with_unmet() {
-        let payload = r#"{"value":{"id":1},"obligations":[{"type":"blocking_constraint","reason":"stop"}]}"#;
+        let payload =
+            r#"{"value":{"id":1},"obligations":[{"type":"blocking_constraint","reason":"stop"}]}"#;
         let result = judge_payload(payload, "default").expect("should judge");
         assert_eq!(result["verdict"], json!("halted"));
         assert_eq!(result["unmet"].as_array().expect("unmet array").len(), 1);
@@ -1433,7 +1529,9 @@ mod tests {
         body[0] = body0;
         body[1] = body1;
         let feature_mask = if with_feature {
-            FeatureBit::Facts.mask() | FeatureBit::HornRules.mask() | FeatureBit::StratifiedNegation.mask()
+            FeatureBit::Facts.mask()
+                | FeatureBit::HornRules.mask()
+                | FeatureBit::StratifiedNegation.mask()
         } else {
             FeatureBit::Facts.mask() | FeatureBit::HornRules.mask()
         };
@@ -1456,16 +1554,42 @@ mod tests {
     fn eligible_query(term: TermId) -> QueryAtom8 {
         let mut atom = Atom8::new(PredicateId(3), 1, &[term]);
         atom.binding_mask = 0b1;
-        QueryAtom8 { atom, output_mask: 0, proof_mode: ProofMode::Both, epoch: EpochId(0) }
+        QueryAtom8 {
+            atom,
+            output_mask: 0,
+            proof_mode: ProofMode::Both,
+            epoch: EpochId(0),
+        }
     }
 
     fn naf_payload(catalog: &Catalog, term: TermId) -> String {
-        let candidate_facts =
-            FactBlock8::new(PredicateId(1), 1, vec![FactRow8::new(PredicateId(1), 1, &[catalog.term_id("a").unwrap()], SourceId(0)), FactRow8::new(PredicateId(1), 1, &[catalog.term_id("b").unwrap()], SourceId(0))]);
+        let candidate_facts = FactBlock8::new(
+            PredicateId(1),
+            1,
+            vec![
+                FactRow8::new(
+                    PredicateId(1),
+                    1,
+                    &[catalog.term_id("a").unwrap()],
+                    SourceId(0),
+                ),
+                FactRow8::new(
+                    PredicateId(1),
+                    1,
+                    &[catalog.term_id("b").unwrap()],
+                    SourceId(0),
+                ),
+            ],
+        );
         let excluded_facts = FactBlock8::new(
             PredicateId(2),
             1,
-            vec![FactRow8::new(PredicateId(2), 1, &[catalog.term_id("b").unwrap()], SourceId(0))],
+            vec![FactRow8::new(
+                PredicateId(2),
+                1,
+                &[catalog.term_id("b").unwrap()],
+                SourceId(0),
+            )],
         );
         json!({
             "value": {"id": 1},
@@ -1488,7 +1612,9 @@ mod tests {
         let denied = judge_payload(&naf_payload(&catalog, b), "default").expect("should judge");
         assert_eq!(denied["prolog8_query"]["verdict"], json!("denied"));
         assert_eq!(denied["verdict"], json!("halted"));
-        let categories = denied["refusal_categories"].as_array().expect("categories array");
+        let categories = denied["refusal_categories"]
+            .as_array()
+            .expect("categories array");
         assert!(categories.contains(&json!("authorization")));
     }
 
@@ -1509,7 +1635,8 @@ mod tests {
         })
         .to_string();
 
-        let err = judge_payload(&payload, "default").expect_err("unstratified negation must be a hard error");
+        let err = judge_payload(&payload, "default")
+            .expect_err("unstratified negation must be a hard error");
         assert!(err.to_lowercase().contains("negation"), "error was: {err}");
     }
 
@@ -1519,20 +1646,35 @@ mod tests {
         // Predicate 99 isn't in the catalog at all -> Invalid(PredicateNotInCatalog).
         let mut atom = Atom8::new(PredicateId(99), 0, &[]);
         atom.binding_mask = 0;
-        let query = QueryAtom8 { atom, output_mask: 0, proof_mode: ProofMode::Both, epoch: EpochId(0) };
+        let query = QueryAtom8 {
+            atom,
+            output_mask: 0,
+            proof_mode: ProofMode::Both,
+            epoch: EpochId(0),
+        };
         let payload = json!({"value": {"id": 1}, "catalog": catalog, "query": query}).to_string();
 
         let result = judge_payload(&payload, "default").expect("should judge");
         assert_eq!(result["verdict"], json!("halted"));
         assert_eq!(result["prolog8_query"]["verdict"], json!("invalid"));
-        let categories = result["refusal_categories"].as_array().expect("categories array");
-        assert!(categories.contains(&json!("identity")), "categories: {categories:?}");
+        let categories = result["refusal_categories"]
+            .as_array()
+            .expect("categories array");
+        assert!(
+            categories.contains(&json!("identity")),
+            "categories: {categories:?}"
+        );
     }
 
     #[test]
     fn kernel_query_without_catalog_is_hard_error() {
         let atom = Atom8::new(PredicateId(1), 0, &[]);
-        let query = QueryAtom8 { atom, output_mask: 0, proof_mode: ProofMode::Both, epoch: EpochId(0) };
+        let query = QueryAtom8 {
+            atom,
+            output_mask: 0,
+            proof_mode: ProofMode::Both,
+            epoch: EpochId(0),
+        };
         let payload = json!({"value": {"id": 1}, "query": query}).to_string();
         assert!(judge_payload(&payload, "default").is_err());
     }
@@ -1543,8 +1685,13 @@ mod tests {
         let payload = json!({"value": {"id": 1}, "andon_ring": true}).to_string();
         let result = judge_payload(&payload, "default").expect("should judge");
         assert_eq!(result["verdict"], json!("halted"));
-        let categories = result["refusal_categories"].as_array().expect("categories array");
-        assert!(categories.contains(&json!("topology")), "categories: {categories:?}");
+        let categories = result["refusal_categories"]
+            .as_array()
+            .expect("categories array");
+        assert!(
+            categories.contains(&json!("topology")),
+            "categories: {categories:?}"
+        );
         assert!(result["andon_ring"]["status"].is_string());
     }
 
@@ -1569,7 +1716,8 @@ mod tests {
 
     #[test]
     fn admit_is_denied_with_halted_andon_when_something_blocks() {
-        let payload = r#"{"value":{"id":1},"obligations":[{"type":"blocking_constraint","reason":"stop"}]}"#;
+        let payload =
+            r#"{"value":{"id":1},"obligations":[{"type":"blocking_constraint","reason":"stop"}]}"#;
         let result = admit_payload(payload, "default").expect("should admit");
         assert_eq!(result["status"], json!("denied"));
         assert_eq!(result["verdict"], json!("halted"));
@@ -1596,8 +1744,10 @@ mod tests {
     fn signing_key_env_guard() -> std::sync::MutexGuard<'static, ()> {
         use std::sync::{Mutex, MutexGuard, OnceLock};
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        let guard: MutexGuard<'static, ()> =
-            LOCK.get_or_init(|| Mutex::new(())).lock().unwrap_or_else(|e| e.into_inner());
+        let guard: MutexGuard<'static, ()> = LOCK
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         guard
     }
 
@@ -1640,9 +1790,18 @@ mod tests {
     fn receipt_includes_signature_fields_when_signed() {
         let _guard = with_test_signing_key();
         let result = receipt_payload(r#"{"value":{"id":1}}"#).expect("should receipt");
-        assert!(result["signature"].is_string(), "expected base64 signature field");
-        assert!(result["verifying_key"].is_string(), "expected hex verifying_key field");
-        assert!(result["signed_receipt"].is_object(), "expected signed_receipt object");
+        assert!(
+            result["signature"].is_string(),
+            "expected base64 signature field"
+        );
+        assert!(
+            result["verifying_key"].is_string(),
+            "expected hex verifying_key field"
+        );
+        assert!(
+            result["signed_receipt"].is_object(),
+            "expected signed_receipt object"
+        );
         assert_eq!(result["signed_receipt"]["chain_hash"], result["chain_hash"]);
     }
 
@@ -1653,7 +1812,8 @@ mod tests {
         let result = receipt_payload(r#"{"value":{"id":1}}"#).expect("should receipt");
         let chain_hash = result["chain_hash"].clone();
         let signed_receipt = result["signed_receipt"].clone();
-        let payload = json!({"chain_hash": chain_hash, "signed_receipt": signed_receipt}).to_string();
+        let payload =
+            json!({"chain_hash": chain_hash, "signed_receipt": signed_receipt}).to_string();
         let verdict = verify_signature_payload(&payload).expect("should verify");
         assert_eq!(verdict["status"], json!("valid"));
     }
@@ -1677,12 +1837,16 @@ mod tests {
         let result = receipt_payload(r#"{"value":{"id":1}}"#).expect("should receipt");
         let chain_hash = result["chain_hash"].clone();
         let mut signed_receipt = result["signed_receipt"].clone();
-        let sig = signed_receipt["signature"].as_str().expect("signature string").to_string();
+        let sig = signed_receipt["signature"]
+            .as_str()
+            .expect("signature string")
+            .to_string();
         let mut chars: Vec<char> = sig.chars().collect();
         let idx = chars.iter().position(|&c| c != 'A').unwrap_or(0);
         chars[idx] = if chars[idx] == 'B' { 'C' } else { 'B' };
         signed_receipt["signature"] = json!(chars.into_iter().collect::<String>());
-        let payload = json!({"chain_hash": chain_hash, "signed_receipt": signed_receipt}).to_string();
+        let payload =
+            json!({"chain_hash": chain_hash, "signed_receipt": signed_receipt}).to_string();
         let verdict = verify_signature_payload(&payload).expect("should verify");
         assert_eq!(verdict["status"], json!("invalid"));
     }
@@ -1719,7 +1883,8 @@ mod tests {
 
     #[test]
     fn receipt_with_halting_obligation_returns_denied_shape() {
-        let payload = r#"{"value":{"id":1},"obligations":[{"type":"blocking_constraint","reason":"stop"}]}"#;
+        let payload =
+            r#"{"value":{"id":1},"obligations":[{"type":"blocking_constraint","reason":"stop"}]}"#;
         let result = receipt_payload(payload).expect("should receipt");
         assert_eq!(result["status"], json!("denied"));
         assert_eq!(result["verdict"], json!("halted"));
@@ -1729,8 +1894,7 @@ mod tests {
 
     #[test]
     fn promote_from_lowest_rung_to_next_with_eligibility_false() {
-        let result =
-            promote_payload(r#"{"standing":"NAMED"}"#, "").expect("should promote");
+        let result = promote_payload(r#"{"standing":"NAMED"}"#, "").expect("should promote");
         assert_eq!(result["status"], json!("promoted"));
         assert_eq!(result["from"], json!("NAMED"));
         assert_eq!(result["to"], json!("REGISTERED"));
@@ -1739,23 +1903,22 @@ mod tests {
 
     #[test]
     fn promote_to_a_rung_that_makes_it_eligible() {
-        let result =
-            promote_payload(r#"{"standing":"REGISTERED"}"#, "").expect("should promote");
+        let result = promote_payload(r#"{"standing":"REGISTERED"}"#, "").expect("should promote");
         assert_eq!(result["to"], json!("DISPATCHABLE"));
         assert_eq!(result["is_partial_alive_eligible"], json!(true));
     }
 
     #[test]
     fn promote_to_rung_requiring_auditor_without_one_is_denied() {
-        let result =
-            promote_payload(r#"{"standing":"REFUSABLE"}"#, "").expect("should promote");
+        let result = promote_payload(r#"{"standing":"REFUSABLE"}"#, "").expect("should promote");
         assert_eq!(result["status"], json!("denied"));
         assert_eq!(result["to"], json!("REPLAYABLE"));
     }
 
     #[test]
     fn promote_to_that_rung_with_auditor_succeeds() {
-        let result = promote_payload(r#"{"standing":"REFUSABLE"}"#, "alice").expect("should promote");
+        let result =
+            promote_payload(r#"{"standing":"REFUSABLE"}"#, "alice").expect("should promote");
         assert_eq!(result["status"], json!("promoted"));
         assert_eq!(result["to"], json!("REPLAYABLE"));
         assert_eq!(result["auditor"], json!("alice"));
@@ -1763,8 +1926,7 @@ mod tests {
 
     #[test]
     fn promote_from_top_rung_is_denied() {
-        let result =
-            promote_payload(r#"{"standing":"CERTIFIED"}"#, "").expect("should promote");
+        let result = promote_payload(r#"{"standing":"CERTIFIED"}"#, "").expect("should promote");
         assert_eq!(result["status"], json!("denied"));
     }
 
@@ -1868,7 +2030,10 @@ mod tests {
 
         let r1 = receipt_issue_payload(r#"{"value":{"id":1}}"#, &dir_str).expect("issue r1");
         assert_eq!(r1["status"], json!("issued"));
-        let r1_chain = r1["record"]["chain_hash_hex"].as_str().expect("chain hash").to_string();
+        let r1_chain = r1["record"]["chain_hash_hex"]
+            .as_str()
+            .expect("chain hash")
+            .to_string();
         assert_eq!(r1["record"]["prev_chain_hash_hex"], json!("0".repeat(64)));
 
         let r2 = receipt_issue_payload(r#"{"value":{"id":2}}"#, &dir_str).expect("issue r2");
@@ -1879,7 +2044,8 @@ mod tests {
     fn receipt_issue_with_halting_obligation_is_denied_and_not_persisted() {
         let dir = temp_receipts_dir();
         let dir_str = dir.to_string_lossy().to_string();
-        let payload = r#"{"value":{"id":1},"obligations":[{"type":"blocking_constraint","reason":"stop"}]}"#;
+        let payload =
+            r#"{"value":{"id":1},"obligations":[{"type":"blocking_constraint","reason":"stop"}]}"#;
         let result = receipt_issue_payload(payload, &dir_str).expect("should not hard-error");
         assert_eq!(result["status"], json!("denied"));
 
@@ -1952,8 +2118,7 @@ mod tests {
         receipt_issue_payload(r#"{"value":{"id":1}}"#, &dir_str).expect("issue");
         let out_path = dir.join("out.ocel.json");
         let out_str = out_path.to_string_lossy().to_string();
-        let result =
-            receipt_export_ocel_payload(&dir_str, Some(&out_str)).expect("export-ocel");
+        let result = receipt_export_ocel_payload(&dir_str, Some(&out_str)).expect("export-ocel");
         assert_eq!(result["status"], json!("exported"));
         assert_eq!(result["event_count"], json!(1));
         assert!(out_path.exists());

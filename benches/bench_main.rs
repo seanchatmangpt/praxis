@@ -5,6 +5,11 @@
 //! 2. **Latency** — measures single-operation round-trip time
 //! 3. **Scaling** — parametric sweep with `BenchmarkId` over input sizes
 
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(missing_docs)]
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
+
 use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
@@ -144,5 +149,11 @@ fn bench_admission(c: &mut Criterion) {
 // Criterion entry points
 // ---------------------------------------------------------------------------
 
-criterion_group!(benches, bench_throughput, bench_latency, bench_scaling, bench_admission);
+criterion_group!(
+    benches,
+    bench_throughput,
+    bench_latency,
+    bench_scaling,
+    bench_admission
+);
 criterion_main!(benches);

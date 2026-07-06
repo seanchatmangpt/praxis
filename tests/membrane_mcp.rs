@@ -9,10 +9,15 @@
 //!
 //! Only compiled/run under `--features mcp,proposer` (the server binary needs
 //! both). Run: `cargo test --features mcp,proposer --test membrane_mcp`.
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
 #![cfg(all(feature = "mcp", feature = "proposer"))]
 
-use std::io::{BufRead, BufReader, Write};
-use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+use std::{
+    io::{BufRead, BufReader, Write},
+    process::{Child, ChildStdin, ChildStdout, Command, Stdio},
+};
 
 use serde_json::{json, Value};
 
@@ -44,11 +49,18 @@ impl Membrane {
             .expect("spawn mcp_lawobject_server");
         let stdin = child.stdin.take().expect("child stdin");
         let stdout = BufReader::new(child.stdout.take().expect("child stdout"));
-        Self { child, stdin, stdout, next_id: 0 }
+        Self {
+            child,
+            stdin,
+            stdout,
+            next_id: 0,
+        }
     }
 
     fn write_msg(&mut self, msg: &Value) {
-        self.stdin.write_all(msg.to_string().as_bytes()).expect("write");
+        self.stdin
+            .write_all(msg.to_string().as_bytes())
+            .expect("write");
         self.stdin.write_all(b"\n").expect("write nl");
         self.stdin.flush().expect("flush");
     }
@@ -63,7 +75,9 @@ impl Membrane {
             let mut line = String::new();
             let n = self.stdout.read_line(&mut line).expect("read_line");
             assert!(n != 0, "server closed stdout while awaiting {method}");
-            let Ok(msg) = serde_json::from_str::<Value>(line.trim()) else { continue };
+            let Ok(msg) = serde_json::from_str::<Value>(line.trim()) else {
+                continue;
+            };
             if msg.get("id").and_then(Value::as_i64) == Some(id) {
                 return msg;
             }
@@ -77,9 +91,16 @@ impl Membrane {
     /// Invoke an MCP tool; return the parsed JSON body of its text content.
     fn call_tool(&mut self, name: &str, arguments: Value) -> Value {
         let resp = self.request("tools/call", json!({"name": name, "arguments": arguments}));
-        assert!(resp.get("error").is_none(), "tool {name} JSON-RPC error: {resp}");
+        assert!(
+            resp.get("error").is_none(),
+            "tool {name} JSON-RPC error: {resp}"
+        );
         let result = &resp["result"];
-        assert_ne!(result["isError"], json!(true), "tool {name} is_error: {result}");
+        assert_ne!(
+            result["isError"],
+            json!(true),
+            "tool {name} is_error: {result}"
+        );
         let text = result["content"]
             .as_array()
             .and_then(|c| c.iter().find_map(|x| x.get("text")))
@@ -155,11 +176,13 @@ fn external_agent_completes_receipted_mission_through_membrane() {
         "whoami",
         "fleet_status",
     ] {
-        assert!(tools.iter().any(|t| t == required), "tools/list missing {required}: {tools:?}");
+        assert!(
+            tools.iter().any(|t| t == required),
+            "tools/list missing {required}: {tools:?}"
+        );
     }
 
-    let propose_payload =
-        json!({"state": fixture_state(), "objective": objective}).to_string();
+    let propose_payload = json!({"state": fixture_state(), "objective": objective}).to_string();
 
     // 1. observe → propose_revenue
     let rev = m.call_tool("propose_revenue", json!({"payload_json": propose_payload}));
@@ -170,13 +193,26 @@ fn external_agent_completes_receipted_mission_through_membrane() {
     let goal = m.call_tool("propose_goal", json!({"payload_json": propose_payload}));
     assert_eq!(goal["status"], json!("proposed"));
     let goal_atom = goal["goal"].as_str().expect("goal atom").to_string();
-    let proposal_hash = goal["proposal_hash"].as_str().expect("proposal_hash").to_string();
+    let proposal_hash = goal["proposal_hash"]
+        .as_str()
+        .expect("proposal_hash")
+        .to_string();
 
     // 3. goal → plan_solve (splice the proposer goal into the shipped domain)
-    assert!(revenue_pddl.contains(FIXTURE_GOAL), "fixture goal drifted from revenue.pddl");
+    assert!(
+        revenue_pddl.contains(FIXTURE_GOAL),
+        "fixture goal drifted from revenue.pddl"
+    );
     let spliced = revenue_pddl.replace(FIXTURE_GOAL, &goal_atom);
-    let solved = m.call_tool("plan_solve", json!({"payload_json": json!({"domain": spliced, "mode": "classical"}).to_string()}));
-    assert_eq!(solved["admitted"], json!(true), "plan_solve refused: {solved}");
+    let solved = m.call_tool(
+        "plan_solve",
+        json!({"payload_json": json!({"domain": spliced, "mode": "classical"}).to_string()}),
+    );
+    assert_eq!(
+        solved["admitted"],
+        json!(true),
+        "plan_solve refused: {solved}"
+    );
     assert!(solved["plan_len"].as_u64().unwrap_or(0) >= 1);
 
     // 4/5. judge → admit → receipt of the mission payload (evidence satisfied).
@@ -200,21 +236,38 @@ fn external_agent_completes_receipted_mission_through_membrane() {
     assert_eq!(admitted["status"], json!("admitted"), "admit: {admitted}");
 
     let receipted = m.call_tool("receipt", json!({"payload_json": law_payload}));
-    assert_eq!(receipted["status"], json!("receipted"), "receipt: {receipted}");
+    assert_eq!(
+        receipted["status"],
+        json!("receipted"),
+        "receipt: {receipted}"
+    );
     let chain_hash = receipted["chain_hash"].as_str().expect("chain_hash");
     assert_eq!(chain_hash.len(), 64, "chain_hash not 64 hex chars");
 
     // The session's resident AgentByte must now carry RECEIPTED (0x40).
     let me = m.call_tool("whoami", json!({}));
     let byte = me["byte"].as_u64().expect("byte") as u8;
-    assert_ne!(byte & 0x40, 0, "session byte {byte:#04x} ({}) lacks RECEIPTED", me["flags"]);
+    assert_ne!(
+        byte & 0x40,
+        0,
+        "session byte {byte:#04x} ({}) lacks RECEIPTED",
+        me["flags"]
+    );
     // Full pipe with satisfied evidence lands a fully-granted byte.
-    assert_eq!(me["select"], json!("Grant"), "final byte should be Grant: {me}");
+    assert_eq!(
+        me["select"],
+        json!("Grant"),
+        "final byte should be Grant: {me}"
+    );
 
     // fleet_status sweeps a fleet including this session's byte.
     let fleet = m.call_tool(
         "fleet_status",
         json!({"fleet_json": json!({"agents": [byte, 0x6F, 0x00, 0x40]}).to_string()}),
     );
-    assert_eq!(fleet["stats"]["admitted"], json!(2), "fleet_status: {fleet}");
+    assert_eq!(
+        fleet["stats"]["admitted"],
+        json!(2),
+        "fleet_status: {fleet}"
+    );
 }

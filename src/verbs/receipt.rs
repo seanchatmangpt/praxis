@@ -13,7 +13,7 @@
 //! server).
 
 use clap_noun_verb::error::{NounVerbError, Result};
-use clap_noun_verb_macros::{arg, verb};
+use clap_noun_verb_macros::verb;
 use my_conforming_project::ops;
 use serde_json::Value;
 
@@ -63,7 +63,11 @@ pub fn validate(
 /// see `plan.rs`'s `attention_capacity: u32` for the same convention.
 #[verb]
 pub fn show(
-    #[arg(default_value = "0", help = "Number of trailing receipts to show (0 = all)")] last: u32,
+    #[arg(
+        default_value = "0",
+        help = "Number of trailing receipts to show (0 = all)"
+    )]
+    last: u32,
 ) -> Result<Value> {
     ops::receipt_show_payload(&receipts_dir(), last as usize).map_err(NounVerbError::argument_error)
 }
@@ -78,9 +82,16 @@ pub fn replay() -> Result<Value> {
 /// Export the full receipt ledger as an OCEL 2.0 event log.
 #[verb("export-ocel")]
 pub fn export_ocel(
-    #[arg(default_value = "", help = "Optional output file path for the OCEL 2.0 JSON")]
+    #[arg(
+        default_value = "",
+        help = "Optional output file path for the OCEL 2.0 JSON"
+    )]
     out: String,
 ) -> Result<Value> {
-    let out = if out.is_empty() { None } else { Some(out.as_str()) };
+    let out = if out.is_empty() {
+        None
+    } else {
+        Some(out.as_str())
+    };
     ops::receipt_export_ocel_payload(&receipts_dir(), out).map_err(NounVerbError::argument_error)
 }

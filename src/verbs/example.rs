@@ -5,7 +5,7 @@
 //! becomes a sub-command under that noun.
 
 use clap_noun_verb::error::Result;
-use clap_noun_verb_macros::{arg, verb};
+use clap_noun_verb_macros::verb;
 
 /// Show an object by ID.
 #[verb]

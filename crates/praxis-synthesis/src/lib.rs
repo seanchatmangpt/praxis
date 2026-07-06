@@ -25,6 +25,7 @@
 #![warn(missing_docs)]
 
 pub mod agent_registry;
+pub mod breeds;
 pub mod budget;
 pub mod cell;
 pub mod cell_supervise;
@@ -69,8 +70,10 @@ pub use firing::{
     fire_hooks, replay_firing, to_ocel_event, window_history_hash, FiringOutcome, HookFiringReceipt,
 };
 pub use glue::{compose_workflows, execute_composed, ComposedGraph, ComposedWorkflowReceipt};
+#[allow(deprecated)]
 #[deprecated(since = "26.7.2", note = "use RiceQuarantine and Admission instead")]
 pub use graph::execute_workflow;
+#[allow(deprecated)]
 #[deprecated(since = "26.7.2", note = "use RiceQuarantine and Admission instead")]
 pub use graph::execute_workflow_with;
 pub use graph::{replay_workflow, WorkflowIr, WorkflowReceipt};

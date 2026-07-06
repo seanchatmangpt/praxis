@@ -6,10 +6,7 @@
 //! 3. Rolls back on failure with git reset --hard
 //! 4. Generates validation reports with before/after compliance scores
 
-use std::{
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{path::Path, process::Command};
 
 use chrono::Local;
 use serde::{Deserialize, Serialize};
@@ -177,12 +174,18 @@ pub struct RetrofitValidator {
 impl RetrofitValidator {
     /// Create a new retrofit validator with default configuration
     pub fn new() -> Self {
-        Self { config: ValidationConfig::default(), spec: PraxisSpec::default() }
+        Self {
+            config: ValidationConfig::default(),
+            spec: PraxisSpec::default(),
+        }
     }
 
     /// Create a new validator with custom configuration
     pub fn with_config(config: ValidationConfig) -> Self {
-        Self { config, spec: PraxisSpec::default() }
+        Self {
+            config,
+            spec: PraxisSpec::default(),
+        }
     }
 
     /// Set praxis spec for validation
@@ -336,8 +339,10 @@ impl RetrofitValidator {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-        let output_text =
-            truncate_output(&format!("{}\n{}", stdout, stderr), self.config.max_output_size);
+        let output_text = truncate_output(
+            &format!("{}\n{}", stdout, stderr),
+            self.config.max_output_size,
+        );
 
         Ok(CiGateResult {
             gate: CiGateName::Fmt,
@@ -371,8 +376,10 @@ impl RetrofitValidator {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-        let output_text =
-            truncate_output(&format!("{}\n{}", stdout, stderr), self.config.max_output_size);
+        let output_text = truncate_output(
+            &format!("{}\n{}", stdout, stderr),
+            self.config.max_output_size,
+        );
 
         Ok(CiGateResult {
             gate: CiGateName::Clippy,
@@ -402,8 +409,10 @@ impl RetrofitValidator {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-        let output_text =
-            truncate_output(&format!("{}\n{}", stdout, stderr), self.config.max_output_size);
+        let output_text = truncate_output(
+            &format!("{}\n{}", stdout, stderr),
+            self.config.max_output_size,
+        );
 
         Ok(CiGateResult {
             gate: CiGateName::Test,
@@ -433,8 +442,10 @@ impl RetrofitValidator {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-        let output_text =
-            truncate_output(&format!("{}\n{}", stdout, stderr), self.config.max_output_size);
+        let output_text = truncate_output(
+            &format!("{}\n{}", stdout, stderr),
+            self.config.max_output_size,
+        );
 
         Ok(CiGateResult {
             gate: CiGateName::Deny,
@@ -460,8 +471,10 @@ impl RetrofitValidator {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-        let output_text =
-            truncate_output(&format!("{}\n{}", stdout, stderr), self.config.max_output_size);
+        let output_text = truncate_output(
+            &format!("{}\n{}", stdout, stderr),
+            self.config.max_output_size,
+        );
 
         Ok(CiGateResult {
             gate: CiGateName::Typos,
@@ -492,12 +505,16 @@ struct GitState {
 /// Capture current git state for potential rollback
 fn capture_git_state(repo_path: &Path) -> Result<GitState> {
     // Get current commit SHA
-    let commit_output =
-        Command::new("git").arg("rev-parse").arg("HEAD").current_dir(repo_path).output().map_err(
-            |e| RetrofitError::RetrofitFailed(format!("Failed to get git commit: {}", e)),
-        )?;
+    let commit_output = Command::new("git")
+        .arg("rev-parse")
+        .arg("HEAD")
+        .current_dir(repo_path)
+        .output()
+        .map_err(|e| RetrofitError::RetrofitFailed(format!("Failed to get git commit: {}", e)))?;
 
-    let commit_sha = String::from_utf8_lossy(&commit_output.stdout).trim().to_string();
+    let commit_sha = String::from_utf8_lossy(&commit_output.stdout)
+        .trim()
+        .to_string();
 
     // Get current branch name
     let branch_output = Command::new("git")
@@ -508,7 +525,9 @@ fn capture_git_state(repo_path: &Path) -> Result<GitState> {
         .output()
         .map_err(|e| RetrofitError::RetrofitFailed(format!("Failed to get git branch: {}", e)))?;
 
-    let branch = String::from_utf8_lossy(&branch_output.stdout).trim().to_string();
+    let branch = String::from_utf8_lossy(&branch_output.stdout)
+        .trim()
+        .to_string();
 
     Ok(GitState { commit_sha, branch })
 }
@@ -526,7 +545,10 @@ fn restore_git_state(repo_path: &Path, state: &GitState) -> Result<()> {
 
     if !reset_output.status.success() {
         let stderr = String::from_utf8_lossy(&reset_output.stderr);
-        return Err(RetrofitError::RetrofitFailed(format!("Git reset --hard failed: {}", stderr)));
+        return Err(RetrofitError::RetrofitFailed(format!(
+            "Git reset --hard failed: {}",
+            stderr
+        )));
     }
 
     Ok(())
@@ -554,7 +576,11 @@ impl ValidationReport {
             RetrofitValidationStatus::Fail => "✗ FAILED",
         };
 
-        let rollback_text = if self.rolled_back { " (rolled back)" } else { "" };
+        let rollback_text = if self.rolled_back {
+            " (rolled back)"
+        } else {
+            ""
+        };
 
         format!(
             "{} {}\nCompliance: {:.1}% → {:.1}% ({:+.1}%)\nCI Gates: {}/{} passed",
@@ -592,6 +618,7 @@ impl ValidationReport {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn test_validation_config_default() {

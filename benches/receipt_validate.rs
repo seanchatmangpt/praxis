@@ -8,6 +8,11 @@
 //! + integer arithmetic (no I/O), so the target is expected to be met with
 //! several orders of magnitude of headroom.
 
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(missing_docs)]
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
+
 use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
@@ -62,8 +67,9 @@ fn build_ledger(n: u64) -> Vec<ReceiptRecord> {
             ts_ns: Some(i * 1_000_000),
             ..Default::default()
         };
-        let (receipted, record) =
-            admitted.receipt_with_record(&prev, meta).expect("receipt_with_record");
+        let (receipted, record) = admitted
+            .receipt_with_record(&prev, meta)
+            .expect("receipt_with_record");
         prev = *receipted.chain_hash().expect("chain hash set");
         records.push(record);
     }

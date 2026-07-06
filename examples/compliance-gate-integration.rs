@@ -8,11 +8,17 @@
 //! cargo run --example compliance-gate-integration -- /path/to/repo
 //! ```
 
-use praxis_retrofit::{
-    ComplianceGate, GateCheckOutput, GateResult, RemediationPriority,
-    BadgeGenerator, format_remediation_markdown, validate_compliance,
-};
+// Recorded lint debt (v26.7.6 verification gate) -- see src/lib.rs and
+// docs/releases/v26.7.6/RELEASE_CONTROL.md Sec. 9.
+#![allow(missing_docs)]
+#![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
+
 use std::path::PathBuf;
+
+use praxis_retrofit::{
+    format_remediation_markdown, validate_compliance, BadgeGenerator, ComplianceGate,
+    GateCheckOutput, GateResult, RemediationPriority,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -55,7 +61,10 @@ async fn main() -> anyhow::Result<()> {
     // Step 6: Print summary for CI output
     println!("\n=== Gate Summary ===\n");
     println!("Gate Result: {:?}", output.gate_result);
-    println!("Score: {:.1}% (threshold: {:.1}%)", output.score, output.threshold);
+    println!(
+        "Score: {:.1}% (threshold: {:.1}%)",
+        output.score, output.threshold
+    );
     println!("Message: {}\n", output.message);
 
     if !output.blocking_issues.is_empty() {
@@ -73,9 +82,17 @@ async fn main() -> anyhow::Result<()> {
     }
 
     if !output.remediation_steps.is_empty() {
-        println!("\n🔧 Remediation Steps ({}):", output.remediation_steps.len());
+        println!(
+            "\n🔧 Remediation Steps ({}):",
+            output.remediation_steps.len()
+        );
         for (i, step) in output.remediation_steps.iter().enumerate() {
-            println!("\n  {}. [{}] {}", i + 1, format!("{:?}", step.priority), step.issue);
+            println!(
+                "\n  {}. [{}] {}",
+                i + 1,
+                format!("{:?}", step.priority),
+                step.issue
+            );
             println!("     Suggestion: {}", step.suggestion);
             if let Some(cmd) = &step.command {
                 println!("     Command: {}", cmd);
@@ -136,7 +153,12 @@ fn print_gate_output(output: &GateCheckOutput) {
                 RemediationPriority::Medium => "🔧",
                 RemediationPriority::Low => "💡",
             };
-            println!("  {} {} ({})", icon, step.issue, format!("{:?}", step.priority));
+            println!(
+                "  {} {} ({})",
+                icon,
+                step.issue,
+                format!("{:?}", step.priority)
+            );
         }
     }
 }
