@@ -64,8 +64,8 @@ downstream of this case study.
 | Phase | Status | Evidence |
 |---|---|---|
 | 0 Control ledger + scaffold | DONE | this file; `case-study/{raw,shapes,shex,rules,pddl,pddl-out,pddl-receipts,ocel,screenshots,traces}/` created |
-| 1 cargo-cicd front door | PENDING | `lane-reports/lane-1-cargo-cicd.md` |
-| 2 Praxis dogfood standing | PENDING | `lane-reports/lane-1-cargo-cicd.md` (dogfood proof folded into Lane 1 handoff) |
+| 1 cargo-cicd front door | DONE | `lane-reports/lane-1-cargo-cicd.md` — dispatch/version/schema-id already fixed by a concurrent session; this lane added Shape-A OCEL emission, fixed 2 failing workspace-crate-ingestion tests, and fixed a real TTL determinism gap (Command evidence `utc` leak) found by dogfooding. One pre-existing, out-of-scope `--all-features` clippy/compile break left unfixed (documented) |
+| 2 Praxis dogfood standing | DONE | `lane-reports/lane-1-cargo-cicd.md` (dogfood proof folded into Lane 1 handoff) — `just standing` run twice with no `ggen.lock` deletion, `standing.ttl` sha256 identical both times (`4127bda9...`), `docs/standing/REALITY_INDEX.md` regenerated with 12 `RustCrate` rows |
 | 3 Case-study docs | PENDING | `CASE_STUDY.md`, `PRODUCTION_READINESS.md` |
 | 4 Evidence→RDF bridge | PENDING | `case-study/graphlaw_judgment.ttl` |
 | 5 SHACL shapes | PENDING | `case-study/shapes/*.shacl.ttl`, `case-study/shacl-report.{json,md}` |

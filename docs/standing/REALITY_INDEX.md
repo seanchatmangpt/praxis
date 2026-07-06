@@ -7,7 +7,7 @@ pure SPARQL projection of the compiled `cicd-standing.v1` index. See
 cargo-cicd's `docs/reference/standing-schema.md` for the schema and ladder
 this groups by.
 
-## Artifacts (16), grouped by kind then ladder level
+## Artifacts (28), grouped by kind then ladder level
 
 | id | kind | ladder | standing | scope | path |
 |---|---|---|---|---|---|
@@ -18,6 +18,18 @@ this groups by.
 | `doctor-report` | Doc | 1 | Builds,Discovered |  | `cargo run --quiet --bin my-conforming-project -- doctor check --format json` |
 | `claim:CLAIM_PROMOTION_TABLE` | Doc | 0 | Discovered |  | `docs/releases/v26.7.6/CLAIM_PROMOTION_TABLE.md` |
 | `receipt-ledger:receipt-log` | Doc | 0 | Discovered |  | `.ggen-v2/receipt-log.jsonl` |
+| `crate:agent8` | RustCrate | 0 | Discovered |  | `crates/agent8` |
+| `crate:chatman-common` | RustCrate | 0 | Discovered |  | `crates/chatman-common` |
+| `crate:ggen` | RustCrate | 0 | Discovered |  | `crates/ggen` |
+| `crate:pddl-index` | RustCrate | 0 | Discovered |  | `crates/pddl-index` |
+| `crate:powl2-decompose` | RustCrate | 0 | Discovered |  | `crates/powl2-decompose` |
+| `crate:praxis-core` | RustCrate | 0 | Discovered |  | `crates/praxis-core` |
+| `crate:praxis-graphlaw` | RustCrate | 0 | Discovered |  | `crates/praxis-graphlaw` |
+| `crate:praxis-lean` | RustCrate | 0 | Discovered |  | `crates/praxis-lean` |
+| `crate:praxis-proposer` | RustCrate | 0 | Discovered |  | `crates/praxis-proposer` |
+| `crate:praxis-retrofit` | RustCrate | 0 | Discovered |  | `crates/praxis-retrofit` |
+| `crate:praxis-synthesis` | RustCrate | 0 | Discovered |  | `crates/praxis-synthesis` |
+| `crate:rust-fable-testbed` | RustCrate | 0 | Discovered |  | `crates/rust-fable-testbed` |
 | `ocel:wasm4pm-process-validation` | Workflow | 4 | OcelProven,Discovered |  | `docs/releases/v26.7.6/ocel/wasm4pm-process-validation.json` |
 | `plan:after_neon_det` | Workflow | 3 | Receipted,Discovered |  | `target/plan_run/after_neon_det/plan.json` |
 | `plan:after_neon_run1` | Workflow | 3 | Receipted,Discovered |  | `target/plan_run/after_neon_run1/plan.json` |

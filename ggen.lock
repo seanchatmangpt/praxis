@@ -2,7 +2,7 @@
 
 [packs.standing-pack]
 source = "path:../cargo-cicd/plugins/cargo-cicd-kit/standing-pack"
-content_hash = "blake3:cce8d989950a3ce83cbde22a1448d51fcd881c9943f48f49b93c981c72be37cd"
+content_hash = "blake3:41bb5768951fbe9583d43df2360ae57dcaa0382bc564a6d6b7eca2bd92e8c59a"
 
 [packs.wasm4pm-facts-pack]
 source = "path:packs/wasm4pm-facts-pack"
