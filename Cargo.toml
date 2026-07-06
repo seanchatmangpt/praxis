@@ -112,6 +112,7 @@ tempfile = "3"
 insta = { version = "1", features = ["json", "redactions"] }
 proptest = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
+divan = "0.1"
 tokio = { version = "1", features = ["full"] }
 # Differential-verification oracle pair (tests/differential.rs, Pair 1 PLANNERS):
 # independent PDDL temporal planner (wasm4pm-native, greedy-tick scheduler)
@@ -145,11 +146,22 @@ harness = false
 name = "receipt_validate"
 harness = false
 
+[[bench]]
+name = "blue_river_dam"
+harness = false
+
 [profile.release]
 lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# `cargo bench` compiles the lib in bench profile; without this override it
+# inherits release's `panic = "abort"` while bench/test harness targets are
+# forced to unwind, and the two cannot link (rust-lang/cargo#6313). Pin the
+# whole bench profile to unwind so `cargo bench` builds cleanly.
+[profile.bench]
+panic = "unwind"
 
 [patch.crates-io]
 # lsp-max is published (v26.7.3, confirmed on crates.io 2026-07-03) but the

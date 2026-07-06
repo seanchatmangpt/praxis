@@ -91,6 +91,7 @@ Checked and NOT a blocker: the Lean/Lake toolchain is installed (elan, Lean
 | POWL execution chain | demo output `execution.powl_chain_hash` | YES — identical across independent runs + `tests/plan_run_e2e.rs` | `blake3:1f97313c…c677e9bb` |
 | Factory sync ledger | `.ggen/receipts/` | YES — `ggen receipt verify` + `history` valid | 8 records, head `35bc4ab0…ab04765a` |
 | Lean per-label receipts | `tools/paper-factory/lean-lake/mathlib_migration_receipts.jsonl` | YES — `lake build` replay exit 0 (826 jobs) | 202 records, commit `1ea2385` |
+| Blue River Dam bench report | `docs/releases/v26.7.6/BLUE_RIVER_DAM_BENCHMARKS.md` | YES — every number from the 2026-07-06 divan runs (Sec. 3 commands) | 11 measured control-layer benches; headline: receipt spine ≈ 327 ns/action |
 
 Full digest table: `RECEIPTS.md` Sec. 4.
 
@@ -107,6 +108,7 @@ Full digest table: `RECEIPTS.md` Sec. 4.
 | `cargo test --all-features --test command_surface` | 2026-07-06 | 2 passed | new typed-refusal surface test |
 | `cargo publish --dry-run` (praxis-graphlaw, chatman-common, powl2-decompose) | 2026-07-06 | exit 0 each | nothing published; TEST_REPORT.md Sec. 7 |
 | `latexmk -pdf thesis.tex` (+ clean-dir rebuild) | 2026-07-06 | exit 0, 30 pages | arXiv package assembled; nothing submitted |
+| `cargo bench --bench blue_river_dam` (root, ggen, praxis-graphlaw) | 2026-07-06 | exit 0 each | divan control benches measured; report `BLUE_RIVER_DAM_BENCHMARKS.md`; `[profile.bench] panic="unwind"` added (cargo#6313) |
 
 ## 9. Remaining risks
 
