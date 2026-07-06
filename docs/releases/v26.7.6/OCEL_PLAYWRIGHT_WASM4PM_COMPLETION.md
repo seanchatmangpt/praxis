@@ -134,8 +134,33 @@ command is stubbed. Instead:
 
 ## Commands run
 
-PENDING — populated by later phases; every entry cites command, exit code, and
-OCEL event ids.
+Full table with UTC windows and raw-capture hashes:
+`OCEL_V2_WASM4PM_REPORT.md` Sec. 2. Summary (all 2026-07-06, all exit 0):
+
+1. `cargo build --features ggen --bin my-conforming-project` (19:10:42.925Z).
+2. `plan run` ×2 (`ocel_pass`, `ocel_pass2`) — events `drv_e2..drv_e13`;
+   `powl_chain_hash blake3:1f97313c…c677e9bb` equal across runs.
+3. `receipt validate --dir target/plan_run/ocel_pass_receipts` — `drv_e14`.
+4. `ggen receipt verify` / `ggen receipt history` — `drv_e15`/`drv_e16`,
+   head `35bc4ab0…ab04765a`, 8 records, valid true (at evidence time).
+5. `cargo test -p ggen --test graphlaw_e2e` — `drv_e18`, 5 passed 0 failed.
+6. `ggen law derive` — `drv_e19`, 55 derived.
+7. `receipt export-ocel` — `ocel/ledger-export.ocel.json`, 3 events / 4 objects.
+8. Playwright spec `clients/autonomic-platform/tests/playwright/ocel-wasm4pm-validation.spec.ts`
+   — events `pw_e1..pw_e15` (19:10:49.311Z–19:10:50.604Z).
+9. `cargo bench --bench blue_river_dam` ×3 (root, ggen, praxis-graphlaw) —
+   events `pw_e36..pw_e44` (19:13:25Z–19:15:09Z).
+10. `cargo run --bin ocel_process_validate` — events `val_e1..val_e6`;
+    integrity valid, conformance fitness 1.0 (19:39:17.830Z).
+11. Closing phase: `cargo publish --dry-run --allow-dirty -p praxis-graphlaw`
+    — exit 0, 19:44:59Z, `ocel/raw/cargo-publish-dry-run.txt`
+    (sha256 `f562ff28…97474241`).
+12. Closing phase: `just verify-all` — first run exit 101
+    (`sync_run_help_gives_each_flag_a_non_blank_description`, ggen
+    `cli_boundary`); repaired (see the closing-phase repair under "Repairs
+    made"); rerun exit 0 — check + test (153 binaries, 1566 passed, 0
+    failed) + clippy + doctor all passed, log sha256
+    `5e87e7bb7b0458e633cdf926647ca696d57e5b589baf1f225134ff0a8990bab7`.
 
 ## Repairs made
 
@@ -156,19 +181,72 @@ OCEL event ids.
   Gate: `cd /Users/sac/pcp/apps/template-app && npx expo export --platform web`
   → exit code 0, "Exported: dist" (all routes rendered).
 
-Further repairs PENDING — each repair emits `claim_resolved_by_repair` and cites the diff.
+- **OCEL log E2O_EMPTY (5 events)** — `RESOLVED_BY_REPAIR`. `drv_e12`,
+  `drv_e13`, `pw_e1`, `pw_e2`, `pw_e15` had no qualified object reference;
+  generators fixed (`run-evidence-pass.mjs`,
+  `ocel-wasm4pm-validation.spec.ts`) and the identical fix applied in place
+  to the committed log. Details: `WASM4PM_PROCESS_VALIDATION.md` "Repairs
+  made" item 1.
+
+- **Missing object-attribute timestamps (207)** — `RESOLVED_BY_REPAIR`.
+  The OCEL 2.0 wire shape requires `time` on every object attribute;
+  recorders now stamp the observation instant; log repaired by documented
+  derivation. Details: `WASM4PM_PROCESS_VALIDATION.md` "Repairs made"
+  item 2. No validator check was weakened.
+
+- **Closing-phase verify-all red** — `RESOLVED_BY_REPAIR`, 2026-07-06.
+  `sync_run_help_gives_each_flag_a_non_blank_description` (ggen
+  `cli_boundary`) failed: clap wrapped the `--watch` help line at terminal
+  width, pushing `filesystem` onto a continuation line the test does not
+  scan. Fix at the source of truth: reworded the flag description in
+  `schema/praxis.ttl` (`praxis:CmdGgenSyncRun`, "Watch the filesystem and
+  re-run the pipeline automatically whenever a watched file changes"),
+  regenerated `crates/ggen/src/verbs/sync.rs` via `ggen sync run`
+  (generated file, "do not edit by hand"). The regeneration is itself
+  receipted: `.ggen-v2` chain extended 8 → 9 records, new head
+  `345cb056468281a5eda2d3b5af3d829c5c894071e546807a6ab39f4d40d380cb`,
+  `ggen receipt verify` valid true. Gates: `cargo test -p ggen --test
+  cli_boundary` → 28 passed 0 failed; `just verify-all` rerun → exit 0.
 
 ## Substitutions made
 
-PENDING — each local equivalent emits `claim_resolved_by_local_equivalent`.
+- **wasm4pm CLI conformance → library composition** —
+  `RESOLVED_BY_LOCAL_EQUIVALENT`. The CLI's
+  `check_conformance_token_replay` is a stub
+  (`/Users/sac/wasm4pm/crates/wasm4pm-cli/src/commands/mining.rs:25-32`);
+  substituted `wasm4pm_compat::ocel::validate` + `powl2_decompose`
+  structural language membership, executed by
+  `src/bin/ocel_process_validate.rs` (differential tests against
+  `Powl::language_upto` included). Result: integrity valid, conformance
+  `fitness: 1.0` (`ocel/wasm4pm-process-validation.json`).
+- **dashboard.bak → wasm4pm/apps/playground-web** as canonical Nuxt shell —
+  `RESOLVED_BY_EXISTING_SURFACE` (build PASS from the wasm4pm root; see
+  `NO_TERMINAL_BLOCKERS.md` and `CLIENT_SURFACES.md`).
 
 ## External operator side effects
 
-PENDING — crates.io publish, arXiv submission, repository visibility changes; each
-emits `claim_resolved_by_external_operator_side_effect` against an
-`operator_side_effect` object.
+None of these block the release; each is packaged locally and awaits an
+operator with external credentials:
+
+1. **crates.io publish** — local packaging fresh-verified in the closing
+   phase: `cargo publish --dry-run --allow-dirty -p praxis-graphlaw` exit 0
+   (`ocel/raw/cargo-publish-dry-run.txt`). Operator: `cargo login`,
+   optionally bump `praxis-graphlaw` 26.7.5 → 26.7.6, then
+   `cargo publish -p praxis-graphlaw`.
+2. **arXiv submission** — `arxiv-package/arxiv-submission.tar.gz`
+   (sha256 `67e0725f…875ad767`) built locally, latexmk exit 0
+   (`arxiv-package/MANIFEST.md`). Operator: make the artifact bundle
+   public, upload at https://arxiv.org/submit.
+3. **Repository visibility change** — operator-only access-control action.
 
 ## Final standing
 
-PENDING — updated by the closing phase; no item may stand as `TEMP_BLOCKED`
-(see `NO_TERMINAL_BLOCKERS.md`).
+Closed 2026-07-06. No item stands as `TEMP_BLOCKED`; all 15 ledger rows in
+`NO_TERMINAL_BLOCKERS.md` carry achieved terminal statuses with citations.
+The evidence log validates (integrity 0 errors) and conforms (fitness 1.0)
+under wasm4pm process validation. Claim-by-claim promotions with zero
+unevidenced promotions: `CLAIM_PROMOTION_TABLE.md`. Narrative:
+`OCEL_V2_WASM4PM_REPORT.md`. Release standing:
+**ALIVE_WITH_OCEL_AND_WASM4PM_EVIDENCE**, with the two external operator
+side effects (crates.io publish, arXiv submission) typed as
+non-blocking — see `FINAL_STATUS.md` "OCEL + wasm4pm Final Standing".

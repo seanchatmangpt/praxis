@@ -1,5 +1,67 @@
 # Final Status — Praxis v26.7.6 "After Neon"
 
+## OCEL + wasm4pm Final Standing
+
+Date: 2026-07-06 (closing phase). Earned state:
+
+**Praxis v26.7.6 After Neon is ALIVE_WITH_OCEL_AND_WASM4PM_EVIDENCE.**
+
+Every claim in `CLAIM_PROMOTION_TABLE.md` is promoted with cited evidence or
+typed to its resolution status; every row of the `NO_TERMINAL_BLOCKERS.md`
+ledger is terminal (no `TEMP_BLOCKED`); the OCEL v2 evidence log passes
+wasm4pm integrity validation (0 errors) and POWL conformance
+(`fitness: 1.0`); the closing-phase `just verify-all` rerun is green — exit
+0, check + test (153 binaries, 1566 passed, 0 failed) + clippy + doctor,
+log sha256 `5e87e7bb…90bab7` — after one receipted fix-forward repair
+(ledger row "Closing-phase `just verify-all` red"). The only remaining actions are external operator
+side effects (credentials-holding human), typed non-blocking:
+
+- crates.io publish → **ALIVE_EXCEPT_EXTERNAL_PUBLISH** for that lane.
+  Operator checklist: `cargo login`; optionally bump `praxis-graphlaw`
+  version 26.7.5 → 26.7.6 (one-line `crates/praxis-graphlaw/Cargo.toml`
+  change); `cargo publish -p praxis-graphlaw`. Local packaging
+  fresh-verified this pass: `cargo publish --dry-run --allow-dirty
+  -p praxis-graphlaw` → exit 0, 2026-07-06T19:44:59Z.
+- arXiv submission → **ALIVE_EXCEPT_EXTERNAL_SUBMISSION** for that lane.
+  Operator checklist: make the artifact bundle / repository public
+  (ARXIV_READINESS.md Sec. 11 blocker 2); upload
+  `docs/releases/v26.7.6/arxiv-package/arxiv-submission.tar.gz` at
+  https://arxiv.org/submit (cs.SE primary, cs.LO cross-list).
+
+### Evidence pointers (all paths relative to repo root)
+
+| Evidence | Path |
+|---|---|
+| OCEL v2 log (the ONE final log) | `docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json` (sha256 `628807e0…f89e61`, blake3 `4c0d8584…afca40`; 50 events / 36 objects) |
+| OCEL evidence report (narrative) | `docs/releases/v26.7.6/OCEL_V2_WASM4PM_REPORT.md` |
+| UTC window | `docs/releases/v26.7.6/ocel/utc-window.json` (run `ocel-evidence-2026-07-06T19-10-42-924Z`) |
+| Playwright test | `clients/autonomic-platform/tests/playwright/ocel-wasm4pm-validation.spec.ts` (driver: `clients/autonomic-platform/tests/run-evidence-pass.mjs`) |
+| Screenshots | `docs/releases/v26.7.6/ocel/raw/screenshot-command.png`, `screenshot-ops.png`, `screenshot-dod.png`, `screenshot-optimus.png` |
+| Trace | `clients/autonomic-platform/test-results/ocel-wasm4pm-validation-OC-5467e-idation-over-real-artifacts-chromium/trace.zip` |
+| Benchmark artifacts (this pass) | `docs/releases/v26.7.6/ocel/raw/bench-root.txt`, `bench-ggen.txt`, `bench-graphlaw.txt`; medians in `BLUE_RIVER_DAM_BENCHMARKS.md` revalidation note |
+| Receipt verification | `docs/releases/v26.7.6/RECEIPT_VERIFY_OCEL.md` (+ `docs/releases/v26.7.6/ocel/ledger-export.ocel.json`, `ocel/raw/receipt-validate.txt`, `ggen-receipt-verify.txt`, `ggen-receipt-history.txt`) |
+| GraphLaw evidence | `docs/releases/v26.7.6/ocel/raw/graphlaw-e2e.txt` (5 passed 0 failed), `ggen-law-derive.txt` (55 derived) |
+| Planner loop evidence | `docs/releases/v26.7.6/ocel/raw/full-loop.txt`, `full-loop-2.txt` (`powl_chain_hash blake3:1f97313c…c677e9bb` equal across runs) |
+| wasm4pm validation | `docs/releases/v26.7.6/ocel/wasm4pm-process-validation.json` + `docs/releases/v26.7.6/WASM4PM_PROCESS_VALIDATION.md` |
+| Claim promotion table | `docs/releases/v26.7.6/CLAIM_PROMOTION_TABLE.md` |
+| No-terminal-blockers ledger | `docs/releases/v26.7.6/NO_TERMINAL_BLOCKERS.md` |
+| Fresh publish dry-run | `docs/releases/v26.7.6/ocel/raw/cargo-publish-dry-run.txt` (sha256 `f562ff28…97474241`) |
+
+### Exact next operator commands
+
+```sh
+# crates.io lane
+cargo login                       # operator credentials
+# optional: bump crates/praxis-graphlaw/Cargo.toml version 26.7.5 -> 26.7.6
+cargo publish -p praxis-graphlaw
+
+# arXiv lane (after making the artifact bundle public)
+#   upload docs/releases/v26.7.6/arxiv-package/arxiv-submission.tar.gz
+#   at https://arxiv.org/submit  (cs.SE primary, cs.LO cross-list)
+```
+
+---
+
 Date: 2026-07-06. Verdict: **ALIVE**. All seven exit criteria
 (RELEASE_CONTROL.md Sec. 5) are met with recorded evidence; the two
 publication lanes (crates.io, arXiv) are dry-run-verified and await only the
