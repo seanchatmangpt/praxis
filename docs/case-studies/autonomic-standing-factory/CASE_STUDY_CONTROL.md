@@ -75,9 +75,9 @@ downstream of this case study.
 | 9 GraphLaw judge bin | DONE | `src/bin/case_study_judge.rs`, `case-study/final_graphlaw_verdict.json` — real verdict `NotReadyWithReasons` (10/15 criteria unsatisfied, several critical), derived only via SPARQL over materialized facts, never hand-written; 5 unit tests incl. an evidence-removal verdict-flip proof and a SHACL/ShEx-violation-blocks-derivation proof, all green |
 | 10 PDDL repair domain | DONE | `case-study/pddl/goal.ttl` (16-action repair domain incl. lawful claim demote/re-promote); `case-study/pddl-out/plan.json`, `case-study/pddl_plan.json` — `admitted:true`, 16-step plan, `powl_chain_hash` identical across two independent runs (`lane-reports/lane-3-pddl-powl.md`) |
 | 11 POWL process model | DONE | `case-study/powl_model.json` (16 children, 114 order pairs) via `ocel_process_validate --model case-study`; v26.7.6 `CHILD_SPECS`/`ORDER_LABEL_PAIRS` untouched, 8/8 release-model tests still green (`lane-reports/lane-3-pddl-powl.md`) |
-| 12 Evidence driver + OCEL capture | PENDING | `case-study/ocel_case_study.json` |
-| 13 wasm4pm process validation | PENDING | `case-study/wasm4pm_validation.json` |
-| 14 Standing-process validation payoff | PENDING | `case-study/standing_ocel_validation.json` |
+| 12 Evidence driver + OCEL capture | DONE | `case-study/run-case-study-pass.mjs` (Node driver, reuses `clients/autonomic-platform/tests/run-evidence-pass.mjs`'s raw-capture/sha256/Shape-A conventions); `case-study/ocel_case_study.json` — 20 events, 11 objects, all 16 minimum-required event types present (`standing_emitted` 5x); real command evidence in `case-study/raw/*.txt` |
+| 13 wasm4pm process validation | DONE | `case-study/wasm4pm_validation.json` — `is_conforming: true, fitness: 1.0, violations: []` (via `cargo run --bin ocel_process_validate -- case-study/ocel_case_study.json --model case-study`); required 3 Lane-3 process-model fixes first (`src/bin/ocel_process_validate.rs`: added missing `utc_clock_captured`, made `standing_emitted` `AtLeastOnce`, deferred `final_verdict_rendered` to Lane 6) — see `lane-reports/lane-4-ocel-wasm4pm.md` |
+| 14 Standing-process validation payoff | DONE | `case-study/standing_ocel_validation.json` — `{valid: true, event_count: 28, object_count: 28, parse_errors: []}` for Lane 1's `target/praxis-standing/standing.ocel.json`, via new `--model standing-integrity` mode on `ocel_process_validate` |
 | 15 Autonomic Platform screen | PENDING | `case-study/screenshots/`, `case-study/traces/`, `AUTONOMIC_PLATFORM_REPORT.md` |
 | 16 Reports + manifests | PENDING | `EVIDENCE_MANIFEST.md`, `CLAIM_PROMOTION_TABLE.md`, `FINAL_VERDICT.md` |
 | 17 Full verification matrix | PENDING | `lane-reports/lane-7-audit.md` |
@@ -106,8 +106,16 @@ list with hashes)
 — the ONLY authoritative source for the verdict sentence in `FINAL_VERDICT.md`.
 Produced by Lane 2 (`src/bin/case_study_judge.rs`): current real value
 `raw_verdict_fact: "NotReadyWithReasons"` (`verdict:
-"GRAPHLAW_JUDGED_NOT_READY_WITH_RECEIPTED_REASONS"`) — honest given Lanes
-4-5 have not yet landed OCEL/wasm4pm/client evidence; re-run
-`cargo run --bin case_study_judge` after those lanes land to see the
-verdict fact recompute. `FINAL_VERDICT.md` itself is Lane 6's output, not
-yet produced.
+"GRAPHLAW_JUDGED_NOT_READY_WITH_RECEIPTED_REASONS"`). Lane 4 re-ran
+`case_study_judge` twice (as part of `case-study/run-case-study-pass.mjs`)
+after landing real PDDL/POWL/OCEL/wasm4pm evidence — the verdict fact did
+NOT flip, because `case-study/graphlaw_judgment.ttl`'s hand-authored
+`praxis:satisfied` list (Criteria 1-5 only) is static seed data, not derived
+from live file-existence checks; Criteria 6-9 now have real evidence on disk
+(`case-study/pddl-out/plan.json`, `case-study/powl_model.json`,
+`case-study/ocel_case_study.json`, `case-study/wasm4pm_validation.json`) but
+promoting them to `praxis:satisfied` in the seed graph is Lane 6's claim-
+promotion job, not fabricated here. Client evidence (Lane 5) still pending.
+Re-run `cargo run --bin case_study_judge` again after Lane 6's promotion
+edit to see the verdict fact recompute. `FINAL_VERDICT.md` itself is Lane
+6's output, not yet produced.
