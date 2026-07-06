@@ -911,5 +911,5 @@
   },
   "method": "library composition: wasm4pm_compat::ocel::validate (OCEDO/OCPQ integrity) + powl2_decompose::Powl release-loop model with a direct membership decision procedure (exact for disjoint child alphabets; differentially validated against Powl::language_upto in unit tests). The wasm4pm CLI conformance command is stubbed (crates/wasm4pm-cli/src/commands/mining.rs:25), hence in-process composition.",
   "closure_rule": "the validator validates the log as it existed BEFORE its own val_e* bookkeeping events: ocel_sha256/ocel_blake3 are taken before the append, and the bookkeeping event types are outside the model alphabet so conformance projection drops them on re-runs.",
-  "validated_at_utc": "2026-07-06T19:39:17.830Z"
+  "validated_at_utc": "2026-07-06T21:52:25.938Z"
 }
