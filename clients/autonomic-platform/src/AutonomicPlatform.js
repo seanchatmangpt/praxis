@@ -41,6 +41,7 @@ import {
   PraxisHud,
   PraxisDeckScreen,
   PraxisOpsScreen,
+  PraxisCaseStudyScreen,
   NonStandingBanner,
 } from './praxis-mode.js';
 
@@ -68,7 +69,7 @@ export const PALETTE = {
 export const SCREENS = [
   'command', 'arena', 'deck', 'ops', 'agents', 'dod',
   'leaderboards', 'battlepass', 'prestige', 'talents',
-  'raids', 'cosmetics', 'guilds', 'roguelike',
+  'raids', 'cosmetics', 'guilds', 'roguelike', 'casestudy',
 ];
 
 export const SCREEN_META = {
@@ -86,6 +87,7 @@ export const SCREEN_META = {
   cosmetics:    { title: 'Cosmetics Shop',    tag: 'SHOP',      sub: 'Agent skins · card backs · globe themes' },
   guilds:       { title: 'Guilds',            tag: 'GUILD',     sub: 'Roster · vault · guild wars · co-op quests' },
   roguelike:    { title: 'Endless Ops',       tag: 'ROGUE',     sub: 'Procedural campaigns · escalating modifiers · run stats' },
+  casestudy:    { title: 'Standing Factory Case Study', tag: 'CASE STUDY', sub: 'GraphLaw verdict · SHACL/ShEx/N3/Datalog · PDDL/POWL · OCEL · wasm4pm' },
 };
 
 // Hub raw rows: [name, lng, lat, region, sector]
@@ -1125,6 +1127,7 @@ const SCREEN_COMPONENTS = {
 const PRAXIS_SCREEN_COMPONENTS = {
   deck: PraxisDeckScreen,
   ops: PraxisOpsScreen,
+  casestudy: PraxisCaseStudyScreen,
 };
 
 export function ScreenRouter({ dataMode = 'mock' }) {

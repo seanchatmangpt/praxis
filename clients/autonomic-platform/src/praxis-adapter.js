@@ -29,6 +29,38 @@ const REGISTRY_REF = 'docs/releases/v26.7.6/BREED_ALGORITHM_REGISTRY.md';
 const RECEIPT_LOG_REF = '.ggen-v2/receipt-log.jsonl';
 const RECEIPT_JSON_REF = '.ggen-v2/receipt.json';
 
+/* ---------------- case study (Lane 5, autonomic-standing-factory) ---------------- */
+
+const CASE_STUDY_DIR = 'docs/case-studies/autonomic-standing-factory/case-study';
+const CS_FINAL_VERDICT_URL = '/praxis-artifacts/case-study/final-verdict.json';
+const CS_OCEL_URL = '/praxis-artifacts/case-study/ocel.json';
+const CS_WASM4PM_URL = '/praxis-artifacts/case-study/wasm4pm-validation.json';
+const CS_POWL_URL = '/praxis-artifacts/case-study/powl-model.json';
+const CS_PDDL_URL = '/praxis-artifacts/case-study/pddl-plan.json';
+
+const CS_FINAL_VERDICT_REF = `${CASE_STUDY_DIR}/final_graphlaw_verdict.json`;
+const CS_OCEL_REF = `${CASE_STUDY_DIR}/ocel_case_study.json`;
+const CS_WASM4PM_REF = `${CASE_STUDY_DIR}/wasm4pm_validation.json`;
+const CS_POWL_REF = `${CASE_STUDY_DIR}/powl_model.json`;
+const CS_PDDL_REF = `${CASE_STUDY_DIR}/pddl-out/plan.json`;
+
+async function fetchJson(url) {
+  const txt = await fetchText(url);
+  if (txt == null) return null;
+  try { return JSON.parse(txt); } catch { return null; }
+}
+
+// Finds an OCEL 2.0 event of `type` and returns its attributes as a plain
+// { name: value } map (the wire shape is an array of { name, value }).
+function ocelEventAttrs(ocel, type) {
+  if (!ocel || !Array.isArray(ocel.events)) return null;
+  const ev = ocel.events.find((e) => e.type === type);
+  if (!ev) return null;
+  const attrs = {};
+  for (const a of ev.attributes || []) attrs[a.name] = a.value;
+  return attrs;
+}
+
 /** The one lawful "no source" value. Rendered as UNKNOWN, never green. */
 export const UNKNOWN = Object.freeze({ value: null, source: null, ref: null, unknown: true });
 
@@ -167,6 +199,142 @@ export async function getStanding() {
       registry: REGISTRY_REF,
       receipts: chain.unknown ? null : chain.ref,
       plan: plan.unknown ? null : plan.ref,
+    },
+  };
+}
+
+/**
+ * getCaseStudy() -> the autonomic-standing-factory case-study status rows.
+ * Every field is either UNKNOWN or { value, source, ref }. Sourced from the
+ * Lane 4 evidence artifacts served under /praxis-artifacts/case-study/* (see
+ * vite.config.js). A missing/unreachable artifact makes every field derived
+ * from it UNKNOWN — nothing here is computed client-side or defaulted.
+ */
+export async function getCaseStudy() {
+  const [verdictDoc, ocelDoc, wasm4pmDoc, powlDoc, pddlDoc] = await Promise.all([
+    fetchJson(CS_FINAL_VERDICT_URL),
+    fetchJson(CS_OCEL_URL),
+    fetchJson(CS_WASM4PM_URL),
+    fetchJson(CS_POWL_URL),
+    fetchJson(CS_PDDL_URL),
+  ]);
+
+  const v = verdictDoc == null ? UNKNOWN : known(verdictDoc, 'graphlaw', CS_FINAL_VERDICT_REF);
+  const ocel = ocelDoc == null ? UNKNOWN : known(ocelDoc, 'ocel', CS_OCEL_REF);
+  const wasm4pm = wasm4pmDoc == null ? UNKNOWN : known(wasm4pmDoc, 'wasm4pm', CS_WASM4PM_REF);
+  const powl = powlDoc == null ? UNKNOWN : known(powlDoc, 'powl', CS_POWL_REF);
+  const pddl = pddlDoc == null ? UNKNOWN : known(pddlDoc, 'plan', CS_PDDL_REF);
+
+  const caseStudyStanding = v.unknown ? UNKNOWN : known(
+    { verdict: v.value.verdict, raw_verdict_fact: v.value.raw_verdict_fact, scope: v.value.scope, generated_at_utc: v.value.generated_at_utc },
+    'graphlaw', CS_FINAL_VERDICT_REF,
+  );
+
+  const graphlawVerdict = v.unknown ? UNKNOWN : known(v.value.verdict, 'graphlaw', CS_FINAL_VERDICT_REF);
+
+  const shaclStatus = v.unknown ? UNKNOWN : known(
+    { conforms_all: (v.value.shacl_reports || []).every((r) => r.conforms), reports: v.value.shacl_reports },
+    'graphlaw', CS_FINAL_VERDICT_REF,
+  );
+
+  const shexStatus = v.unknown ? UNKNOWN : known(v.value.shex_report, 'graphlaw', CS_FINAL_VERDICT_REF);
+
+  const n3DatalogStatus = v.unknown ? UNKNOWN : known(
+    {
+      derived_triple_count: v.value.derived_triple_count,
+      unsatisfied_dependency_count: v.value.unsatisfied_dependency_count,
+      denials_count: (v.value.denials || []).length,
+    },
+    'graphlaw', CS_FINAL_VERDICT_REF,
+  );
+
+  // No "admitted" boolean is present in the wired pddl-out/plan.json artifact
+  // itself (it appears only in an ad-hoc raw command-log capture, not in the
+  // machine artifact) — reporting only what this artifact actually carries.
+  const pddlPlanStatus = pddl.unknown ? UNKNOWN : known(
+    { step_count: (pddl.value.plan || []).length, steps: pddl.value.plan, powl_chain_hash: pddl.value.powl_chain_hash, graph_hash: pddl.value.graph_hash },
+    'plan', CS_PDDL_REF,
+  );
+
+  const powlModelStatus = powl.unknown ? UNKNOWN : known(
+    { children_count: (powl.value.children || []).length, order_pairs_count: (powl.value.order_pairs || []).length, alphabet_count: (powl.value.alphabet || []).length },
+    'powl', CS_POWL_REF,
+  );
+
+  const ocelLogStatus = ocel.unknown ? UNKNOWN : known(
+    {
+      event_count: (ocel.value.events || []).length,
+      object_count: (ocel.value.objects || []).length,
+      event_type_count: (ocel.value.eventTypes || []).length,
+      object_type_count: (ocel.value.objectTypes || []).length,
+    },
+    'ocel', CS_OCEL_REF,
+  );
+
+  const wasm4pmStatus = wasm4pm.unknown ? UNKNOWN : known(
+    {
+      is_conforming: wasm4pm.value.is_conforming,
+      fitness: wasm4pm.value.fitness,
+      violations_count: (wasm4pm.value.violations || []).length,
+      model_ref: wasm4pm.value.model_ref,
+      ocel_ref: wasm4pm.value.ocel_ref,
+    },
+    'wasm4pm', CS_WASM4PM_REF,
+  );
+
+  // Benchmark/receipt status are derived from the OCEL log's own recorded
+  // events (the artifacts above carry no dedicated benchmark/receipt file) —
+  // UNKNOWN if the OCEL log is unreachable or lacks the event.
+  const benchAttrs = ocel.unknown ? null : ocelEventAttrs(ocel.value, 'benchmarks_attached');
+  const benchmarkStatus = benchAttrs == null ? UNKNOWN : known(
+    { reused: benchAttrs.reused, note: benchAttrs.note, evidence_refs: benchAttrs.evidence_refs },
+    'ocel', CS_OCEL_REF,
+  );
+
+  const receiptAttrs = ocel.unknown ? null : ocelEventAttrs(ocel.value, 'receipts_verified');
+  const receiptStatus = receiptAttrs == null ? UNKNOWN : known(
+    { verdict_ok: receiptAttrs.verdict_ok, exit_code: receiptAttrs.exit_code, evidence_refs: receiptAttrs.evidence_refs },
+    'ocel', CS_OCEL_REF,
+  );
+
+  // No wired case-study artifact carries a structured external-side-effect
+  // list (it exists only as prose in the Lane 4 report markdown) — honestly
+  // UNKNOWN rather than parsed out of free text.
+  const externalSideEffects = UNKNOWN;
+
+  const criteriaSummary = v.unknown ? UNKNOWN : known(
+    (() => {
+      const criteria = v.value.criteria || [];
+      const satisfied = criteria.filter((c) => c.satisfied);
+      const unsatisfiedCritical = criteria.filter((c) => c.critical && !c.satisfied);
+      return { total: criteria.length, satisfied_count: satisfied.length, unsatisfied_critical_count: unsatisfiedCritical.length };
+    })(),
+    'graphlaw', CS_FINAL_VERDICT_REF,
+  );
+
+  const finalVerdict = graphlawVerdict;
+
+  return {
+    case_study_standing: caseStudyStanding,
+    graphlaw_verdict: graphlawVerdict,
+    shacl_status: shaclStatus,
+    shex_status: shexStatus,
+    n3_datalog_status: n3DatalogStatus,
+    pddl_plan_status: pddlPlanStatus,
+    powl_model_status: powlModelStatus,
+    ocel_log_status: ocelLogStatus,
+    wasm4pm_status: wasm4pmStatus,
+    benchmark_status: benchmarkStatus,
+    receipt_status: receiptStatus,
+    external_side_effects: externalSideEffects,
+    criteria_summary: criteriaSummary,
+    final_verdict: finalVerdict,
+    provenance: {
+      final_verdict: v.unknown ? null : CS_FINAL_VERDICT_REF,
+      ocel: ocel.unknown ? null : CS_OCEL_REF,
+      wasm4pm: wasm4pm.unknown ? null : CS_WASM4PM_REF,
+      powl: powl.unknown ? null : CS_POWL_REF,
+      pddl_plan: pddl.unknown ? null : CS_PDDL_REF,
     },
   };
 }

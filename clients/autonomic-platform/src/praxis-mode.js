@@ -16,7 +16,7 @@
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getStanding, UNKNOWN } from './praxis-adapter.js';
+import { getStanding, getCaseStudy, UNKNOWN } from './praxis-adapter.js';
 import { PALETTE, Panel } from './AutonomicPlatform.js';
 
 const mono = "'JetBrains Mono', ui-monospace, monospace";
@@ -62,7 +62,7 @@ export function NonStandingBanner({ label = 'NON-STANDING · simulated/mock data
 /** Visually-distinct UNKNOWN chip — never green (adapter contract rule 2). */
 export function UnknownChip({ label }) {
   return (
-    <span style={{ font: `600 10px ${mono}`, color: PALETTE.dim, border: `1px dashed ${PALETTE.dim}`, borderRadius: 5, padding: '2px 7px' }}>
+    <span data-testid="unknown-chip" style={{ font: `600 10px ${mono}`, color: PALETTE.dim, border: `1px dashed ${PALETTE.dim}`, borderRadius: 5, padding: '2px 7px' }}>
       {label ? `${label} · ` : ''}UNKNOWN
     </span>
   );
@@ -73,7 +73,7 @@ export function UnknownChip({ label }) {
 // cannot have string refs"), blanking the standing HUD.
 function ProvenanceTag({ source, refPath }) {
   return (
-    <span title={refPath} style={{ font: `500 8px ${mono}`, color: PALETTE.dim, border: `1px solid ${PALETTE.line2}`, borderRadius: 5, padding: '1px 5px' }}>
+    <span data-testid="provenance-chip" title={refPath} style={{ font: `500 8px ${mono}`, color: PALETTE.dim, border: `1px solid ${PALETTE.line2}`, borderRadius: 5, padding: '1px 5px' }}>
       {source}:{refPath}
     </span>
   );
@@ -218,6 +218,146 @@ export function PraxisOpsScreen() {
             <ProvenanceTag source={plan.source} refPath={plan.ref} />
           </div>
         )}
+      </Panel>
+    </div>
+  );
+}
+
+/* ---------------- CASE STUDY — autonomic-standing-factory Lane 5 ---------------- */
+
+// True only for values that read as an unambiguous pass/positive result.
+// Used only for color; every row still renders its ProvenanceTag regardless
+// of color, so a green value is never shown without provenance next to it.
+function isPositive(value) {
+  if (value === true) return true;
+  if (typeof value === 'string') return /^(true|conforming|pass|ready)/i.test(value) && !/not[_ -]?ready/i.test(value);
+  return false;
+}
+
+function CaseStudyValue({ children, positive }) {
+  return (
+    <span data-testid="status-value" data-positive={positive ? 'true' : 'false'} style={{ font: `600 12px ${mono}`, color: positive ? PALETTE.emerald : PALETTE.hi }}>{children}</span>
+  );
+}
+
+// One status row: label + rendered value (or UNKNOWN) + provenance chip.
+// `field` is a praxis-adapter known()/UNKNOWN object; `render(value)` returns
+// the value's display node. The ProvenanceTag is always emitted alongside a
+// known value — there is no code path that renders a value without it.
+// data-testid="status-row" + data-known lets Playwright assert, over the
+// live DOM, that no positive/green value ever renders without a sibling
+// provenance-chip in the same row.
+function StatusRow({ label, field, render }) {
+  return (
+    <div data-testid="status-row" data-label={label} data-known={field.unknown ? 'false' : 'true'} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: `1px solid ${PALETTE.line}` }}>
+      <span style={{ flex: '0 0 220px', font: `600 10px ${mono}`, color: PALETTE.dim, letterSpacing: 0.4 }}>{label}</span>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {field.unknown ? (
+          <UnknownChip label={label} />
+        ) : (
+          <>
+            {render(field.value)}
+            <ProvenanceTag source={field.source} refPath={field.ref} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function PraxisCaseStudyScreen() {
+  const [cs, setCs] = useState(null);
+  useEffect(() => {
+    let live = true;
+    getCaseStudy().then((r) => { if (live) setCs(r); }).catch(() => {});
+    return () => { live = false; };
+  }, []);
+
+  if (cs == null) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: PALETTE.dim, fontFamily: mono, fontSize: 11 }}>
+        loading case-study evidence…
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ flex: 1, padding: 22, overflowY: 'auto' }}>
+      <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ font: `700 15px ${sans}`, color: PALETTE.hi }}>Standing Factory Case Study</span>
+        <span style={{ font: `500 9px ${mono}`, color: PALETTE.dim }}>scope: autonomic-standing-factory (local-first, seanchatmangpt fleet)</span>
+      </div>
+      <Panel title="GraphLaw / OCEL / wasm4pm evidence chain" tag="CASE STUDY">
+        <StatusRow
+          label="CASE-STUDY STANDING"
+          field={cs.case_study_standing}
+          render={(v) => <CaseStudyValue positive={isPositive(v.verdict)}>{v.verdict} · {v.scope}</CaseStudyValue>}
+        />
+        <StatusRow
+          label="GRAPHLAW VERDICT"
+          field={cs.graphlaw_verdict}
+          render={(v) => <CaseStudyValue positive={isPositive(v)}>{v}</CaseStudyValue>}
+        />
+        <StatusRow
+          label="SHACL"
+          field={cs.shacl_status}
+          render={(v) => <CaseStudyValue positive={v.conforms_all}>{v.conforms_all ? 'all conform' : 'violations present'} · {v.reports.length} shapes</CaseStudyValue>}
+        />
+        <StatusRow
+          label="SHEX"
+          field={cs.shex_status}
+          render={(v) => <CaseStudyValue positive={v.conforms}>{v.conforms ? 'conforms' : 'failures'} · {v.failure_count} failures</CaseStudyValue>}
+        />
+        <StatusRow
+          label="N3 / DATALOG CLOSURE"
+          field={cs.n3_datalog_status}
+          render={(v) => <CaseStudyValue positive={v.denials_count === 0}>{v.derived_triple_count} derived triples · {v.unsatisfied_dependency_count} unsatisfied deps · {v.denials_count} denials</CaseStudyValue>}
+        />
+        <StatusRow
+          label="PDDL REPAIR PLAN"
+          field={cs.pddl_plan_status}
+          render={(v) => <CaseStudyValue positive={v.step_count > 0}>{v.step_count} steps · powl_chain_hash {String(v.powl_chain_hash || '').slice(0, 20)}…</CaseStudyValue>}
+        />
+        <StatusRow
+          label="POWL PROCESS MODEL"
+          field={cs.powl_model_status}
+          render={(v) => <CaseStudyValue positive={v.children_count > 0}>{v.children_count} children · {v.order_pairs_count} order pairs</CaseStudyValue>}
+        />
+        <StatusRow
+          label="OCEL LOG"
+          field={cs.ocel_log_status}
+          render={(v) => <CaseStudyValue positive={v.event_count > 0}>{v.event_count} events · {v.object_count} objects</CaseStudyValue>}
+        />
+        <StatusRow
+          label="WASM4PM CONFORMANCE"
+          field={cs.wasm4pm_status}
+          render={(v) => <CaseStudyValue positive={v.is_conforming}>{v.is_conforming ? 'conforming' : 'non-conforming'} · fitness {v.fitness} · {v.violations_count} violations</CaseStudyValue>}
+        />
+        <StatusRow
+          label="BENCHMARKS"
+          field={cs.benchmark_status}
+          render={(v) => <CaseStudyValue positive={!!v.reused}>{v.reused ? 'reused (not re-run)' : 'attached'}</CaseStudyValue>}
+        />
+        <StatusRow
+          label="RECEIPTS"
+          field={cs.receipt_status}
+          render={(v) => <CaseStudyValue positive={!!v.verdict_ok}>{v.verdict_ok ? 'verified' : 'not verified'} · exit {v.exit_code}</CaseStudyValue>}
+        />
+        <StatusRow
+          label="CRITERIA (15-point)"
+          field={cs.criteria_summary}
+          render={(v) => <CaseStudyValue positive={v.unsatisfied_critical_count === 0}>{v.satisfied_count}/{v.total} satisfied · {v.unsatisfied_critical_count} critical unsatisfied</CaseStudyValue>}
+        />
+        <StatusRow
+          label="EXTERNAL SIDE EFFECTS"
+          field={cs.external_side_effects}
+          render={(v) => <CaseStudyValue>{JSON.stringify(v)}</CaseStudyValue>}
+        />
+        <StatusRow
+          label="FINAL VERDICT"
+          field={cs.final_verdict}
+          render={(v) => <CaseStudyValue positive={isPositive(v)}>{v}</CaseStudyValue>}
+        />
       </Panel>
     </div>
   );

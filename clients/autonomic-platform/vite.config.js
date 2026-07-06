@@ -21,11 +21,25 @@ const REPO = path.resolve(__dirname, '..', '..');
  *   /praxis-artifacts/plan.json          -> first target/plan_run/<run>/plan.json (sorted),
  *                                           wrapped as { ref, data } so the client
  *                                           knows which run it is looking at
+ *
+ * Lane 5 (autonomic-standing-factory case study) additions — all read-only,
+ * all a real repo file or a 404 (never synthesized):
+ *   /praxis-artifacts/case-study/final-verdict.json      -> case-study/final_graphlaw_verdict.json
+ *   /praxis-artifacts/case-study/ocel.json                -> case-study/ocel_case_study.json
+ *   /praxis-artifacts/case-study/wasm4pm-validation.json  -> case-study/wasm4pm_validation.json
+ *   /praxis-artifacts/case-study/powl-model.json          -> case-study/powl_model.json
+ *   /praxis-artifacts/case-study/pddl-plan.json           -> case-study/pddl-out/plan.json
  */
+const CASE_STUDY_DIR = 'docs/case-studies/autonomic-standing-factory/case-study';
 const STATIC_MAP = {
   '/praxis-artifacts/receipt.json': ['.ggen-v2/receipt.json', 'application/json'],
   '/praxis-artifacts/receipt-log.jsonl': ['.ggen-v2/receipt-log.jsonl', 'text/plain'],
   '/praxis-artifacts/registry.md': ['docs/releases/v26.7.6/BREED_ALGORITHM_REGISTRY.md', 'text/markdown'],
+  '/praxis-artifacts/case-study/final-verdict.json': [`${CASE_STUDY_DIR}/final_graphlaw_verdict.json`, 'application/json'],
+  '/praxis-artifacts/case-study/ocel.json': [`${CASE_STUDY_DIR}/ocel_case_study.json`, 'application/json'],
+  '/praxis-artifacts/case-study/wasm4pm-validation.json': [`${CASE_STUDY_DIR}/wasm4pm_validation.json`, 'application/json'],
+  '/praxis-artifacts/case-study/powl-model.json': [`${CASE_STUDY_DIR}/powl_model.json`, 'application/json'],
+  '/praxis-artifacts/case-study/pddl-plan.json': [`${CASE_STUDY_DIR}/pddl-out/plan.json`, 'application/json'],
 };
 
 function praxisArtifacts() {
