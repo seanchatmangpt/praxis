@@ -75,7 +75,10 @@ impl ApplyResult {
                 "✓ {} [{}] -> {} ({}s)",
                 self.repository_name,
                 format!("{:?}", self.phase),
-                self.commit_hash.as_ref().map(|h| &h[..8]).unwrap_or("unknown"),
+                self.commit_hash
+                    .as_ref()
+                    .map(|h| &h[..8])
+                    .unwrap_or("unknown"),
                 self.duration_secs
             )
         } else {
@@ -130,7 +133,11 @@ impl RetrofitWorktree {
             )));
         }
 
-        let name = repo_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let name = repo_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
 
         let branch_name = Self::branch_name_for_phase(phase);
 
@@ -286,7 +293,9 @@ impl RetrofitWorktree {
             }
         }
 
-        Err(RetrofitError::RetrofitFailed("Could not determine default branch".to_string()))
+        Err(RetrofitError::RetrofitFailed(
+            "Could not determine default branch".to_string(),
+        ))
     }
 
     /// Apply a retrofit plan to this worktree
@@ -302,7 +311,12 @@ impl RetrofitWorktree {
     /// Commit the changes with the given message
     pub fn commit(&self, message: &str) -> Result<String> {
         // Stage all changes
-        Command::new("git").arg("-C").arg(&self.worktree_path).arg("add").arg("-A").output()?;
+        Command::new("git")
+            .arg("-C")
+            .arg(&self.worktree_path)
+            .arg("add")
+            .arg("-A")
+            .output()?;
 
         // Create commit
         let output = Command::new("git")
@@ -315,7 +329,10 @@ impl RetrofitWorktree {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(RetrofitError::RetrofitFailed(format!("Commit failed: {}", stderr)));
+            return Err(RetrofitError::RetrofitFailed(format!(
+                "Commit failed: {}",
+                stderr
+            )));
         }
 
         // Get the commit hash
@@ -330,7 +347,9 @@ impl RetrofitWorktree {
             let hash = String::from_utf8_lossy(&output.stdout);
             Ok(hash.trim().to_string())
         } else {
-            Err(RetrofitError::RetrofitFailed("Failed to get commit hash".to_string()))
+            Err(RetrofitError::RetrofitFailed(
+                "Failed to get commit hash".to_string(),
+            ))
         }
     }
 
@@ -457,7 +476,11 @@ impl RetrofitApplier {
     /// Apply retrofit to a single repository
     async fn apply_single(&self, repo_path: &Path, phase: RetrofitPhase) -> ApplyResult {
         let start_time = std::time::Instant::now();
-        let repo_name = repo_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let repo_name = repo_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
 
         info!("Starting retrofit for {} ({:?})", repo_name, phase);
 
@@ -514,7 +537,10 @@ impl RetrofitApplier {
             }
         };
 
-        messages.push(format!("Generated retrofit plan with {} actions", plan.actions.len()));
+        messages.push(format!(
+            "Generated retrofit plan with {} actions",
+            plan.actions.len()
+        ));
 
         // Apply retrofit plan
         if let Err(e) = worktree.apply_plan(&plan).await {
@@ -562,7 +588,11 @@ impl RetrofitApplier {
             }
         };
 
-        info!("Completed retrofit for {} in {:.2}s", repo_name, start_time.elapsed().as_secs_f64());
+        info!(
+            "Completed retrofit for {} in {:.2}s",
+            repo_name,
+            start_time.elapsed().as_secs_f64()
+        );
 
         ApplyResult {
             repository_name: repo_name,
@@ -620,7 +650,11 @@ impl FleetApplyReport {
     pub fn print_summary(&self) {
         println!("\n=== Retrofit Fleet Report ===");
         println!("Total repositories: {}", self.total_repositories);
-        println!("Successful: {} ({:.1}%)", self.successful, self.success_rate());
+        println!(
+            "Successful: {} ({:.1}%)",
+            self.successful,
+            self.success_rate()
+        );
         println!("Failed: {}", self.failed);
         println!("Total warnings: {}", self.warnings_count);
         println!("\nDetails:");

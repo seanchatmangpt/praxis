@@ -100,7 +100,11 @@ impl Reference {
         triples.sort_unstable();
         triples.dedup();
         let graph_hash = graph_hash(&triples);
-        Ok(Self { triples, graph_hash, epoch: 0 })
+        Ok(Self {
+            triples,
+            graph_hash,
+            epoch: 0,
+        })
     }
 }
 
@@ -196,7 +200,11 @@ impl Admission {
             event_hash: delta.event_hash(),
             verdict: AdmissionVerdict::Admitted,
         };
-        Ok(AdmittedEvent { record, post, delta: delta.clone() })
+        Ok(AdmittedEvent {
+            record,
+            post,
+            delta: delta.clone(),
+        })
     }
 
     /// Render the refusal-path record for a delta that failed admission:
@@ -231,8 +239,7 @@ mod tests {
     #[test]
     fn quarantine_admission_computes_post_hash_and_epoch() {
         let reference = Reference::genesis(BASE).unwrap();
-        let delta =
-            RiceQuarantine::inspect(&source("<http://e/x> <http://e/q> 1 .", "")).unwrap();
+        let delta = RiceQuarantine::inspect(&source("<http://e/x> <http://e/q> 1 .", "")).unwrap();
         let admitted = Admission::admit(&reference, &delta).unwrap();
         assert_eq!(admitted.record.epoch, 1);
         assert_eq!(admitted.record.base_graph_hash, reference.graph_hash);

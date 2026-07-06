@@ -1,0 +1,65 @@
+\contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Thesis statement}{3}{section.1.1}%
+\contentsline {section}{\numberline {1.2}What is cited from the keystone, not re-derived}{3}{section.1.2}%
+\contentsline {section}{\numberline {1.3}A borrowed discipline, briefly (speculative)}{4}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Structure of this document}{4}{section.1.4}%
+\contentsline {chapter}{\numberline {2}The Comprehension--Verification Gap, Instantiated at Scale}{6}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Measured and estimated quantities}{6}{section.2.1}%
+\contentsline {section}{\numberline {2.2}The measured ratio, not an estimate}{6}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Boundary cost is invariant as the interior grows}{6}{section.2.3}%
+\contentsline {section}{\numberline {2.4}Per-message wall time: an estimate, not a measurement}{7}{section.2.4}%
+\contentsline {chapter}{\numberline {3}Manufactured Trust: Decidable Oracles}{8}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Why admission needs a decidable oracle}{8}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Differential agreement between independent implementations}{8}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Admission-boundary fuzzing}{9}{section.3.3}%
+\contentsline {section}{\numberline {3.4}The Mutant Kill Theorem}{9}{section.3.4}%
+\contentsline {chapter}{\numberline {4}The Agent8 Byte and Branchless Fleet Admission}{10}{chapter.4}%
+\contentsline {section}{\numberline {4.1}The status byte as an OK-polarity projection}{10}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Bit-plane layouts and the branchless admission word}{11}{section.4.2}%
+\contentsline {section}{\numberline {4.3}The denial-polarity dual}{11}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Borrow-safe SWAR zero-lane detection}{11}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Popcount admission in one instruction}{11}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Memory footprint: an exact identity}{12}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Sweep time: an order-of-magnitude estimate}{12}{section.4.7}%
+\contentsline {chapter}{\numberline {5}Planetary Economics of Admission (Speculative)}{13}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Demand}{13}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Comprehension-based supply ceiling}{13}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Bit-parallel supply}{13}{section.5.3}%
+\contentsline {section}{\numberline {5.4}The affordability separation theorem}{13}{section.5.4}%
+\contentsline {chapter}{\numberline {6}The Antibody Clause: Claim Magnitude Bounded by Receipting}{15}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Claims and receipt witnesses}{15}{section.6.1}%
+\contentsline {section}{\numberline {6.2}The Magnitude Theorem}{15}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Reflexive application: this paper's own overclaim set}{15}{section.6.3}%
+\contentsline {chapter}{\numberline {7}Derived Supervision Topology}{17}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Stage depth from the data-dependency DAG}{17}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Restart strategy earned from the dependent set}{17}{section.7.2}%
+\contentsline {section}{\numberline {7.3}The sealed derive constructor and topology\_hash}{17}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Refusal: no OneForAll}{18}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Refusal: no SimpleOneForOne, no clamped intensity}{18}{section.7.5}%
+\contentsline {chapter}{\numberline {8}Derived Failure Geometry}{19}{chapter.8}%
+\contentsline {section}{\numberline {8.1}The eight-member FailureClass enum}{19}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Branches and first-match classification}{19}{section.8.2}%
+\contentsline {section}{\numberline {8.3}Completeness by construction: the gap outcome}{19}{section.8.3}%
+\contentsline {section}{\numberline {8.4}Fragile preconditions}{20}{section.8.4}%
+\contentsline {section}{\numberline {8.5}Total accounting}{20}{section.8.5}%
+\contentsline {chapter}{\numberline {9}Supervised Execution: Cell Measurements}{21}{chapter.9}%
+\contentsline {section}{\numberline {9.1}Recovery is invisible in the receipt chain}{21}{section.9.1}%
+\contentsline {section}{\numberline {9.2}The 10,000-member cell}{21}{section.9.2}%
+\contentsline {section}{\numberline {9.3}What flat throughput means}{21}{section.9.3}%
+\contentsline {section}{\numberline {9.4}The deferred novelty-curve measurement}{22}{section.9.4}%
+\contentsline {chapter}{\numberline {10}Fleet Application Tooling: Retrofit and Reconciliation}{23}{chapter.10}%
+\contentsline {section}{\numberline {10.1}AST gates and the isolated worktree applier}{24}{section.10.1}%
+\contentsline {section}{\numberline {10.2}Git-worktree isolation end to end}{24}{section.10.2}%
+\contentsline {section}{\numberline {10.3}Autonomic reconciliation: residual vectors and gap reports}{24}{section.10.3}%
+\contentsline {chapter}{\numberline {11}Fable Harness: Spec-Driven LLM Evaluation}{26}{chapter.11}%
+\contentsline {section}{\numberline {11.1}Harness mechanics}{26}{section.11.1}%
+\contentsline {section}{\numberline {11.2}Receipting fable runs}{26}{section.11.2}%
+\contentsline {section}{\numberline {11.3}Speculative: decidability and differential-oracle claims}{27}{section.11.3}%
+\contentsline {chapter}{\numberline {12}Hierarchical Merkle Cell Rollups and Write-Ahead Logs}{28}{chapter.12}%
+\contentsline {section}{\numberline {12.1}Cell rollup}{28}{section.12.1}%
+\contentsline {section}{\numberline {12.2}Write-ahead log frames}{28}{section.12.2}%
+\contentsline {chapter}{\numberline {13}Scope Discipline: The Refusal Register}{29}{chapter.13}%
+\contentsline {section}{\numberline {13.1}No path dependency on knhk}{29}{section.13.1}%
+\contentsline {section}{\numberline {13.2}No measured CPU ticks}{29}{section.13.2}%
+\contentsline {section}{\numberline {13.3}v1 scope, named}{29}{section.13.3}%
+\contentsline {chapter}{\numberline {14}Conclusion}{31}{chapter.14}%

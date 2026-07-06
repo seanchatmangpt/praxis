@@ -129,8 +129,7 @@ pub fn run_member(
     let outcome: Result<String, Refusal> = (|| {
         program.saturate()?;
         byte |= lane::P_SATURATED;
-        let problem =
-            SequenceProblem::with_constraints(&program, caps, goal, 8, constraints)?;
+        let problem = SequenceProblem::with_constraints(&program, caps, goal, 8, constraints)?;
         let plan = Solver8.solve_cached(&problem, cores)?;
         byte |= lane::R_PLANNED;
         let dag = Dag::from_plan(&plan, &problem);
@@ -138,23 +137,30 @@ pub fn run_member(
         byte |= lane::C_EXECUTED;
         let verdict = admit(&mut program, &problem, &plan, &dag, &receipt);
         if !verdict.ok {
-            return Err(Refusal::VerificationFailed { failed: verdict.failed() });
+            return Err(Refusal::VerificationFailed {
+                failed: verdict.failed(),
+            });
         }
         byte |= lane::A_ADMITTED;
         // Terminal hash: fold plan + dag root (the member's whole run).
-        Ok(fold_event(&receipt.root_hash, plan.receipt.plan_hash.as_bytes()))
+        Ok(fold_event(
+            &receipt.root_hash,
+            plan.receipt.plan_hash.as_bytes(),
+        ))
     })();
     match outcome {
-        Ok(terminal_hash) => {
-            MemberRecord { agent, byte, terminal_hash, refusal: String::new(), restarts: 0 }
-        }
+        Ok(terminal_hash) => MemberRecord {
+            agent,
+            byte,
+            terminal_hash,
+            refusal: String::new(),
+            restarts: 0,
+        },
         Err(refusal) => {
             byte |= lane::H_HALTED;
             byte |= match refusal {
                 Refusal::UnsatProof { .. } => lane::U_UNSAT_CERTIFIED,
-                Refusal::BudgetExceeded { .. } | Refusal::TupleCapExceeded { .. } => {
-                    lane::B_BUDGET
-                }
+                Refusal::BudgetExceeded { .. } | Refusal::TupleCapExceeded { .. } => lane::B_BUDGET,
                 _ => lane::E_ERROR,
             };
             let rendered = refusal.to_string();
@@ -173,14 +179,16 @@ pub fn run_member(
 /// root is member-order independent).
 #[must_use]
 pub fn replay_root(members: &[MemberRecord]) -> String {
-    let mut hashes: Vec<&str> =
-        members.iter().map(|m| m.terminal_hash.as_str()).collect();
+    let mut hashes: Vec<&str> = members.iter().map(|m| m.terminal_hash.as_str()).collect();
     hashes.sort_unstable();
     content_address(hashes.join("\n").as_bytes())
 }
 
 fn roll_up(group: usize, members: Vec<MemberRecord>) -> GroupReceipt {
-    let admitted = members.iter().filter(|m| m.byte & lane::A_ADMITTED != 0).count();
+    let admitted = members
+        .iter()
+        .filter(|m| m.byte & lane::A_ADMITTED != 0)
+        .count();
     let refused = members.len() - admitted;
     let recovered = members
         .iter()
@@ -290,7 +298,11 @@ pub fn verify_cell(cell: &CellReceipt, groups: &[GroupReceipt]) -> bool {
 #[must_use]
 pub fn verify_group(group: &GroupReceipt) -> bool {
     replay_root(&group.members) == group.replay_root
-        && group.members.iter().filter(|m| m.byte & lane::A_ADMITTED != 0).count()
+        && group
+            .members
+            .iter()
+            .filter(|m| m.byte & lane::A_ADMITTED != 0)
+            .count()
             == group.admitted
 }
 

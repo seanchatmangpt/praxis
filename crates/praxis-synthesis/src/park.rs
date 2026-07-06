@@ -105,8 +105,9 @@ impl ParkManager {
         }
         if let Some(w) = wal {
             let key = format!("{PARK_KEY_PREFIX}{}", entry.node_id);
-            let payload = serde_json::to_vec(&entry)
-                .map_err(|e| Refusal::InvalidInput { detail: format!("park serialize: {e}") })?;
+            let payload = serde_json::to_vec(&entry).map_err(|e| Refusal::InvalidInput {
+                detail: format!("park serialize: {e}"),
+            })?;
             w.append(&key, &payload)?;
         }
         self.entries.insert(entry.node_id.clone(), entry);
@@ -152,13 +153,16 @@ impl ParkManager {
                 ReAdmission::AfterRuns(n) => {
                     run_index >= e.parked_at_run.saturating_add(u64::from(n))
                 }
-                ReAdmission::OnInputChange => current_fingerprint(&e.node_id)
-                    .is_some_and(|f| f != e.input_fingerprint),
+                ReAdmission::OnInputChange => {
+                    current_fingerprint(&e.node_id).is_some_and(|f| f != e.input_fingerprint)
+                }
                 ReAdmission::Manual => false,
             })
             .map(|e| e.node_id.clone())
             .collect();
-        due.iter().filter_map(|id| self.entries.remove(id)).collect()
+        due.iter()
+            .filter_map(|id| self.entries.remove(id))
+            .collect()
     }
 
     /// Manually re-admit one node (the authority path for `Manual`).
@@ -173,9 +177,10 @@ impl ParkManager {
         let mut mgr = Self::new();
         for (key, payload) in cache.iter_raw() {
             if let Some(_node) = key.strip_prefix(PARK_KEY_PREFIX) {
-                let entry: ParkedEntry = serde_json::from_slice(payload).map_err(|e| {
-                    Refusal::InvalidInput { detail: format!("park recover: {e}") }
-                })?;
+                let entry: ParkedEntry =
+                    serde_json::from_slice(payload).map_err(|e| Refusal::InvalidInput {
+                        detail: format!("park recover: {e}"),
+                    })?;
                 mgr.entries.insert(entry.node_id.clone(), entry);
             }
         }

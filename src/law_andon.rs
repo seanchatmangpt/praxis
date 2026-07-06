@@ -62,8 +62,10 @@ impl AndonRing {
     pub fn evaluate(&self, payload: &Value) -> (AdmissionStatus, Vec<AndonEvent>) {
         let mut events = AnalysisPipeline::evaluate_registry(&self.registry);
 
-        let has_receipt =
-            payload.get("receipt").map(|v| !v.is_null()).unwrap_or(false);
+        let has_receipt = payload
+            .get("receipt")
+            .map(|v| !v.is_null())
+            .unwrap_or(false);
         if !has_receipt {
             events.push(missing_probe_event(
                 "ReceiptRequired",
@@ -129,8 +131,9 @@ pub fn ring_refusals(events: &[AndonEvent]) -> Vec<RefusalScenario> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_json::json;
+
+    use super::*;
 
     #[test]
     fn standard_ring_blocks_on_missing_receipt_and_checks() {

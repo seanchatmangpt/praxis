@@ -63,7 +63,9 @@ impl Synthesis {
         // Layer 4: admit.
         let verdict = admit(program, &problem, &plan, &dag, &dag_receipt);
         if !verdict.ok {
-            return Err(Refusal::VerificationFailed { failed: verdict.failed() });
+            return Err(Refusal::VerificationFailed {
+                failed: verdict.failed(),
+            });
         }
         // Fold the run into one chain.
         let mut chain = RollingChain::new(PIPELINE_CHAIN_DOMAIN);

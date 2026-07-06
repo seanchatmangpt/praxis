@@ -1,7 +1,7 @@
-# Ticket: Human-Unavailable Execution Audit
+# Ticket: Human-Unavailable Execution Audit — CLOSED
 
 ## Title
-Prove `fire_hooks`/`replay_firing` never block on live human/interactive input (PROJ-306)
+Prove `fire_hooks`/`replay_firing` never block on live human/interactive input (PROJ-306) — **STATUS: CLOSED**
 
 ## Description
 The vision doc's "post-RQ runtime requires admitted authority, not live human interaction"
@@ -36,3 +36,12 @@ concrete — without it, "no interactive code" alone would just mean "nothing ha
 2. `grep -rn "stdin\|dialoguer\|inquire" crates/praxis-synthesis/src/ Cargo.toml` — empty
    (confirms the test's assertion by hand as well).
 3. `cargo test -p praxis-synthesis` full suite green.
+
+## Resolution
+Extended `tests/no_llm_runtime.rs` with `source_and_deps_contain_no_interactive_human_symbols`,
+reusing the existing allowlist-section-tracking and comment-stripping scan pattern rather than
+inventing a new mechanism, and checking `["stdin", "dialoguer", "inquire"]` against both the
+`Cargo.toml` `[dependencies]` section and every `src/**/*.rs` file. No code change was needed
+in `src/` — the test passed on the first run, confirming the claim by absence. Added gate 18b
+to `docs/v26.7.3/DEFINITION_OF_DONE.md` citing this test as evidence. All three verification
+commands run and green/empty; see the ticket-closing report for exact output.

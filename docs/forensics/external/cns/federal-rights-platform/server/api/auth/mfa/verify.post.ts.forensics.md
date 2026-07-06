@@ -2,7 +2,7 @@
 
 ## Verdict
 
-- classification: UNSAFE
+- classification: FAKE/UNSAFE
 - severity: CRITICAL
 - recommendation: REPLACE
 - v26.7.3 impact: Blocker

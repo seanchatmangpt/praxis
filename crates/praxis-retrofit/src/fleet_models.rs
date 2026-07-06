@@ -33,7 +33,12 @@ impl HeatmapCell {
             ComplianceStatus::Pass
         };
 
-        Self { status, pass_count, warn_count, fail_count }
+        Self {
+            status,
+            pass_count,
+            warn_count,
+            fail_count,
+        }
     }
 
     /// Total checks in this cell
@@ -66,7 +71,11 @@ pub struct ComplianceHeatmap {
 impl ComplianceHeatmap {
     /// Create a new empty heatmap
     pub fn new(repositories: Vec<String>, categories: Vec<ComplianceCategory>) -> Self {
-        Self { matrix: HashMap::new(), repositories, categories }
+        Self {
+            matrix: HashMap::new(),
+            repositories,
+            categories,
+        }
     }
 
     /// Set a cell in the heatmap
@@ -312,8 +321,11 @@ impl CategoryMetrics {
         fail_count: usize,
     ) -> Self {
         let total = pass_count + warn_count + fail_count;
-        let pass_percent =
-            if total > 0 { (pass_count as f32 / total as f32) * 100.0 } else { 100.0 };
+        let pass_percent = if total > 0 {
+            (pass_count as f32 / total as f32) * 100.0
+        } else {
+            100.0
+        };
 
         Self {
             category_name,

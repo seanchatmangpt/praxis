@@ -1,0 +1,27 @@
+@startuml 01_system_context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Praxis v26.7.6 "After Neon" - System Context
+
+Person(operator, "Operator", "Runs the factory: just verify-all, ggen sync, plan run. Owns final judgment.")
+Person(agent, "Coding agent", "Proposes code, plans, and facts. Proposals carry no standing until admitted.")
+Person(reviewer, "Adversarial reviewer", "Attacks claims; every claim must cite a test, receipt, or file (RELEASE_CONTROL.md Sec. 1).")
+
+System(praxis, "Praxis factory", "Manufactures standing for AI-generated technical work: law-state -> plan -> workflow -> hot path -> factory -> gauges -> receipts -> reports. Workspace /Users/sac/praxis.")
+
+System_Ext(lean, "Lean 4 / Lake toolchain", "Kernel admission gate for proofs (crates/praxis-lean: lean.rs, no_sorry.rs, receipt.rs).")
+System_Ext(github, "GitHub", "Remote of record for commits and published release docs.")
+System_Ext(fs, "Local filesystem", "Graph fixtures (schema/praxis.ttl, packs/), artifacts, .ggen-v2/receipt.json chain.")
+System_Ext(llm, "LLM providers", "Source of PROPOSALS ONLY. Output never enters standing directly; praxis-synthesis deps frozen (tests/no_llm_runtime.rs).")
+
+Rel(operator, praxis, "Commands", "CLI verbs / justfile")
+Rel(agent, praxis, "Submits candidate facts, plans, code", "TTL / PDDL / diffs")
+Rel(reviewer, praxis, "Audits", "receipts, tests, docs")
+Rel(praxis, lean, "Gauges proof artifacts through", "lake build, sorry-free check")
+Rel(praxis, github, "Publishes commits and reports to")
+Rel(praxis, fs, "Reads facts, writes artifacts + receipt chain")
+Rel(llm, agent, "Drafts proposals for")
+Rel_U(praxis, llm, "Never grants standing to; admits only via law + gauges", "boundary")
+
+SHOW_LEGEND()
+@enduml

@@ -1,0 +1,40 @@
+@startuml 03_planner_powl_components
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Praxis v26.7.6 - Planner / POWL Components
+
+Container_Boundary(planner, "PDDL planner + POWL workflow engine") {
+  Component(goal_api, "Goal API", "src/ops.rs", "propose_revenue_payload / propose_goal_payload - ranked candidate goal states, top proposal emitted as a PDDL goal atom (src/bin/mcp_lawobject_server.rs).")
+  Component(state_adapter, "State adapter", "src/mfg.rs::load_graph", "Loads the admitted RDF graph; graph_hash_hex pins the source state.")
+  Component(domain_builder, "Domain builder", "src/mfg.rs::extract_domain + emit_domain", "Graph facts -> PDDL8 domain; enforce_pddl8 rejects out-of-profile constructs.")
+  Component(problem_builder, "Problem builder", "src/mfg.rs::extract_problem + emit_problem", "Graph facts -> PDDL8 problem with the proposed goal.")
+  Component(solver, "Solver", "bcinr-pddl + crates/pddl-index", "GroundProblem::find_plan; pddl_index::should_use_indexed auto-selects indexed vs naive grounding (src/ops.rs::plan_solve_payload).")
+  Component(normalizer, "Plan normalizer", "src/plan_run.rs", "Solved plan -> ordered action sequence for POWL compilation.")
+  Component(powl_compiler, "POWL compiler", "bcinr-powl::compiler::compile_powl", "Sequence -> PowlTape; acyclicity + reachability enforced by the compiler.")
+  Component(runner, "Workflow runner", "bcinr-powl::scheduler::scheduler_tick", "Ticks the tape; each fired atom is receipted.")
+  Component(replanner, "Replanner", "src/verbs/plan.rs", "Temporal lane: GroundTemporalProblem, analyze_schedule, execute_temporal_plan (bcinr-pddl) - solve/analyze/execute verbs.")
+  Component(explain, "Explanation", "docs/releases/v26.7.6/PLANNER_SURFACE.md + tests/mfg_golden.rs", "Pinned 5-step lawobject plan golden; plan legality asserted in tests/plan_run_e2e.rs.")
+  Component(receipt_writer, "Receipt writer", "src/ops.rs::receipt_issue_payload", "Final ledger receipt, ts_ns=0; per-atom OcelCausalFrame chain with run id = BLAKE3 of source graph hash.")
+}
+
+Container_Ext(graphlaw, "GraphLaw engine", "crates/praxis-graphlaw")
+Container_Ext(bcinr, "bcinr hot path")
+Container_Ext(ledger, "Receipt chain", ".ggen-v2/receipt.json")
+
+Rel(graphlaw, state_adapter, "admitted facts")
+Rel(goal_api, problem_builder, "PDDL goal atom")
+Rel(state_adapter, domain_builder, "graph")
+Rel(state_adapter, problem_builder, "graph")
+Rel(domain_builder, solver, "domain.pddl")
+Rel(problem_builder, solver, "problem.pddl")
+Rel(solver, normalizer, "plan")
+Rel(normalizer, powl_compiler, "action sequence")
+Rel(powl_compiler, runner, "PowlTape")
+Rel(runner, bcinr, "fires atoms")
+Rel(runner, receipt_writer, "per-atom frames")
+Rel(solver, replanner, "temporal lane")
+Rel(receipt_writer, ledger, "append")
+Rel(explain, ledger, "cites")
+
+SHOW_LEGEND()
+@enduml

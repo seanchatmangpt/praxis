@@ -111,13 +111,12 @@ impl FailureSignal {
     pub fn fires(&self, s: &CrashSnapshot) -> bool {
         match self {
             FailureSignal::RetriesAtLeast(n) => s.attempt >= *n,
-            FailureSignal::TicksAboveBudget => {
-                s.tick_budget.is_some_and(|b| s.ticks_used > b)
-            }
+            FailureSignal::TicksAboveBudget => s.tick_budget.is_some_and(|b| s.ticks_used > b),
             FailureSignal::CrashKind(k) => s.kind == *k,
-            FailureSignal::RefusalHeadIs(h) => {
-                s.refusal_head.as_deref().is_some_and(|r| r.starts_with(h.as_str()))
-            }
+            FailureSignal::RefusalHeadIs(h) => s
+                .refusal_head
+                .as_deref()
+                .is_some_and(|r| r.starts_with(h.as_str())),
             FailureSignal::NoProgress => !s.progressed,
             FailureSignal::UpstreamParked => s.upstream_parked,
         }
@@ -218,8 +217,7 @@ impl FailureGeometry {
         let mut branches: BTreeMap<String, Vec<GeometryBranch>> = BTreeMap::new();
         for stage in &topology.stages {
             for node_id in &stage.nodes {
-                let capability =
-                    dag.nodes.get(node_id).map(|n| n.action.capability.clone());
+                let capability = dag.nodes.get(node_id).map(|n| n.action.capability.clone());
                 branches.insert(
                     node_id.clone(),
                     Self::node_branches(capability.as_deref(), problem),
@@ -232,14 +230,19 @@ impl FailureGeometry {
         });
         let geometry_hash =
             chatman_common::provenance::content_address(canon.to_string().as_bytes());
-        Self { branches, geometry_hash, _sealed: () }
+        Self {
+            branches,
+            geometry_hash,
+            _sealed: (),
+        }
     }
 
     fn node_branches(capability: Option<&str>, problem: &SequenceProblem) -> Vec<GeometryBranch> {
         let mut list = Vec::new();
         // 1. Fragile preconditions → AuthorityVacuum → Refuse{MissingFact}.
-        let fragile =
-            capability.map(|c| problem.fragile_precondition_names(c)).unwrap_or_default();
+        let fragile = capability
+            .map(|c| problem.fragile_precondition_names(c))
+            .unwrap_or_default();
         for fact in fragile {
             list.push(GeometryBranch {
                 class: FailureClass::AuthorityVacuum,
@@ -256,7 +259,9 @@ impl FailureGeometry {
                 FailureSignal::CrashKind(CrashKind::Refused),
                 FailureSignal::RefusalHeadIs("unsat (certified)".into()),
             ],
-            response: LawfulResponse::Refuse { core: vec!["runtime unsat certificate".into()] },
+            response: LawfulResponse::Refuse {
+                core: vec!["runtime unsat certificate".into()],
+            },
         });
         // 3. Budget breach (tier-dependent response; the R1 variant is the
         //    hot-path discipline: never retry over budget).

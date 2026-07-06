@@ -177,7 +177,10 @@ pub fn rehearsal_exceeded(history: &[GraphDelta], loop_iri: &str, bound: u8) -> 
     let touches = history
         .iter()
         .filter(|d| {
-            d.additions().iter().chain(d.removals().iter()).any(|t| triple_touches(t, loop_iri))
+            d.additions()
+                .iter()
+                .chain(d.removals().iter())
+                .any(|t| triple_touches(t, loop_iri))
         })
         .count();
     touches >= usize::from(bound)

@@ -148,8 +148,10 @@ impl GateValidator {
     fn validate_version(&self, toml: &toml::Table) -> Vec<ValidationResult> {
         let mut results = Vec::new();
 
-        if let Some(version) =
-            toml.get("package").and_then(|p| p.get("version")).and_then(|v| v.as_str())
+        if let Some(version) = toml
+            .get("package")
+            .and_then(|p| p.get("version"))
+            .and_then(|v| v.as_str())
         {
             if self.is_valid_calver(version) {
                 results.push(ValidationResult {
@@ -191,8 +193,10 @@ impl GateValidator {
     fn validate_license(&self, toml: &toml::Table) -> Vec<ValidationResult> {
         let mut results = Vec::new();
 
-        if let Some(license) =
-            toml.get("package").and_then(|p| p.get("license")).and_then(|l| l.as_str())
+        if let Some(license) = toml
+            .get("package")
+            .and_then(|p| p.get("license"))
+            .and_then(|l| l.as_str())
         {
             let is_preferred = license == &self.house_defaults.dual_license;
             let is_allowed = self.allowed_licenses.contains(&license.to_string());
@@ -248,8 +252,10 @@ impl GateValidator {
     fn validate_msrv(&self, toml: &toml::Table) -> Vec<ValidationResult> {
         let mut results = Vec::new();
 
-        if let Some(msrv) =
-            toml.get("package").and_then(|p| p.get("rust-version")).and_then(|v| v.as_str())
+        if let Some(msrv) = toml
+            .get("package")
+            .and_then(|p| p.get("rust-version"))
+            .and_then(|v| v.as_str())
         {
             if self.is_msrv_compatible(msrv) {
                 results.push(ValidationResult {
@@ -451,7 +457,10 @@ impl GateValidator {
 
             // Skip test/example directories (these are more lenient)
             if file_path.components().any(|c| {
-                matches!(c.as_os_str().to_string_lossy().as_ref(), "tests" | "examples" | "benches")
+                matches!(
+                    c.as_os_str().to_string_lossy().as_ref(),
+                    "tests" | "examples" | "benches"
+                )
             }) {
                 continue;
             }
@@ -525,7 +534,10 @@ impl GateValidator {
 
         // Check for backup files (should NOT exist)
         let backup_pattern = repo_root.join("**/*.rs.backup");
-        for entry in glob::glob(&backup_pattern.to_string_lossy()).into_iter().flatten() {
+        for entry in glob::glob(&backup_pattern.to_string_lossy())
+            .into_iter()
+            .flatten()
+        {
             if let Ok(path) = entry {
                 results.push(ValidationResult {
                     status: ValidationStatus::Fail,
@@ -605,19 +617,37 @@ pub struct GateReport {
 impl GateReport {
     /// Create a new report from validation results
     pub fn new(results: Vec<ValidationResult>) -> Self {
-        Self { results, timestamp: chrono::Local::now().to_rfc3339() }
+        Self {
+            results,
+            timestamp: chrono::Local::now().to_rfc3339(),
+        }
     }
 
     /// Check if all critical gates passed
     pub fn is_compliant(&self) -> bool {
-        !self.results.iter().any(|r| r.status == ValidationStatus::Fail)
+        !self
+            .results
+            .iter()
+            .any(|r| r.status == ValidationStatus::Fail)
     }
 
     /// Count results by status
     pub fn status_counts(&self) -> (usize, usize, usize) {
-        let pass = self.results.iter().filter(|r| r.status == ValidationStatus::Pass).count();
-        let warn = self.results.iter().filter(|r| r.status == ValidationStatus::Warn).count();
-        let fail = self.results.iter().filter(|r| r.status == ValidationStatus::Fail).count();
+        let pass = self
+            .results
+            .iter()
+            .filter(|r| r.status == ValidationStatus::Pass)
+            .count();
+        let warn = self
+            .results
+            .iter()
+            .filter(|r| r.status == ValidationStatus::Warn)
+            .count();
+        let fail = self
+            .results
+            .iter()
+            .filter(|r| r.status == ValidationStatus::Fail)
+            .count();
         (pass, warn, fail)
     }
 
@@ -642,7 +672,11 @@ impl GateReport {
              |--------|--------|--------|\n\
              | {} | {} | {} |\n\n",
             self.timestamp,
-            if self.is_compliant() { "✓ COMPLIANT" } else { "✗ NON-COMPLIANT" },
+            if self.is_compliant() {
+                "✓ COMPLIANT"
+            } else {
+                "✗ NON-COMPLIANT"
+            },
             pass,
             warn,
             fail
@@ -651,7 +685,10 @@ impl GateReport {
         // Group by category
         let mut categories: HashMap<ValidateCategory, Vec<&ValidationResult>> = HashMap::new();
         for result in &self.results {
-            categories.entry(result.category).or_insert_with(Vec::new).push(result);
+            categories
+                .entry(result.category)
+                .or_insert_with(Vec::new)
+                .push(result);
         }
 
         for (category, results) in &categories {

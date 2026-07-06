@@ -1,0 +1,141 @@
+% Scale and Synthesis: Fleet Execution and Derived Plans.
+% Consolidated paper -- rendered by `ggen sync` from `packs/doc-pack`
+% over `docs/thesis/consolidated/paper_c_scale/rdf/thesis.ttl`. Do not
+% edit generated/ by hand; edit the .ttl instance data and re-run
+% regenerate.sh. Adapted from docs/thesis/math_manufacturing/thesis.tex.
+\documentclass[11pt]{report}
+
+\usepackage[utf8]{inputenc}
+\DeclareUnicodeCharacter{22A5}{\ensuremath{\bot}}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{longtable}
+\usepackage[hidelinks]{hyperref}
+
+% ---- theorem environments (union of the vocabulary the two consolidated
+% sources use: 04_projection_and_scale.tex's estimate/construction, and
+% synthesis_thesis.tex's measurement/refusal/lineage) ----
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{construction}[theorem]{Construction}
+\newtheorem{estimate}[theorem]{Estimate}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{measurement}[theorem]{Measurement}
+\newtheorem{refusal}[theorem]{Refusal}
+\newtheorem{lineage}[theorem]{Lineage}
+
+% Speculative-register environment: every paragraph whose doc:register is
+% "speculative" in rdf/thesis.ttl either uses this environment directly
+% (Chapter 5; Section "Speculative: decidability and differential-oracle
+% claims" of Chapter 11) or is prefixed inline with \textbf{Speculative.}
+% No claim outside those quarantined chapters/sections may use it.
+\newtheorem{speculative}[theorem]{Speculation}
+
+% ---- notation macros, mined from what the body below actually uses;
+% source vocabulary is the union of docs/thesis/04_projection_and_scale.tex
+% and docs/thesis/synthesis_thesis.tex preambles ----
+\newcommand{\Obs}{\mathcal{O}}                 % raw observation space
+\newcommand{\Adm}{\mathcal{O}^{*}}             % admitted observation space
+\newcommand{\Act}{\mathcal{A}}                 % action / artifact space
+\newcommand{\Rec}{\mathcal{R}}                 % receipt space
+\newcommand{\muop}{\mu}                        % manufacturing morphism
+\newcommand{\adm}{\alpha}                      % admission map
+\newcommand{\Rfsl}{\bot}                       % refusal
+\newcommand{\chainH}{\mathsf{H}}               % BLAKE3 chain hash
+\newcommand{\CL}{\kappa}                       % bounded-verifier context capacity
+\newcommand{\Proj}{\pi}                        % receipt projection
+\newcommand{\dg}{\mathrm{dg}}                  % digest
+\newcommand{\code}[1]{\texttt{#1}}             % inline code
+\newcommand{\Over}{\mathsf{Over}}              % overclaim set
+\newcommand{\abyte}{\mathbf{b}}                % agent status byte
+\newcommand{\Bw}{B}                            % streaming bandwidth
+\newcommand{\Kill}{\mathrm{Kill}}              % mutant-kill predicate
+\newcommand{\stg}{\mathsf{s}}                  % correct-stage map
+\newcommand{\Dag}{G}                           % data-dependency DAG
+\newcommand{\Topo}{\mathcal{T}}                % supervision topology
+\newcommand{\Geo}{\Gamma}                      % failure geometry
+\newcommand{\fr}{\mathsf{fr}}                  % causal frame
+\newcommand{\ca}{\mathsf{ca}}                  % content-address fold
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{Scale and Synthesis: Fleet Execution and Derived Plans}
+\author{Sean Chatman \\ \small with the Praxis working system}
+\date{}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+This paper consolidates two sources in the Chatman Equation thesis
+series: \emph{04\_projection\_and\_scale}, which instantiates the
+keystone's Comprehension--Verification Gap theorem at fleet scale and
+derives a decidable-oracle discipline, a branchless byte-level
+admission construction, and a receipting invariant bounding claim
+magnitude; and \emph{synthesis\_thesis}, which derives -- rather than
+hand-authors -- the supervision topology and failure geometry that keep
+a fleet of agents running under fault, and reports the resulting
+10,000-member cell's measured fault-injection numbers. Every paragraph
+below carries a machine-checkable evidentiary register,
+\textsc{evidence-bound} or \textsc{speculative}; the planetary-scale
+economics chapter and one flagged proposition in the Fable-harness
+chapter are the only speculative material, and neither is mixed
+silently with the evidence-bound chapters around it.
+\end{abstract}
+\tableofcontents
+
+% All chapters: rendered by `ggen sync` from `packs/doc-pack` over
+% `docs/thesis/consolidated/paper_c_scale/rdf/thesis.ttl` -- source of
+% truth is the .ttl instance data, not this generated file. Do not edit
+% generated/ by hand.
+\input{generated/chapters_body}
+
+\begin{thebibliography}{9}
+
+\bibitem{keystone}
+The Praxis / Capability Physics Program.
+\newblock The Projection Principle: A First-Principles Theory of Bounded
+Receipted Execution for a Trillion Agents Beyond One Another's
+Comprehension.
+\newblock Keystone thesis of this series, 2026.
+
+\bibitem{rice1953}
+H. G. Rice.
+\newblock Classes of recursively enumerable sets and their decision
+problems.
+\newblock \emph{Transactions of the American Mathematical Society}, 2003
+(reprint of the 1953 original), pp.\ 5--51.
+
+\bibitem{blake3}
+Jack O'Connor, Jean-Philippe Aumasson, Samuel Neves, and Zooko
+Wilcox-O'Hearn.
+\newblock \emph{BLAKE3}: One function, fast everywhere.
+\newblock Preprint, 2020.
+
+\bibitem{demillo1978}
+Richard A. DeMillo, Richard J. Lipton, and Frederick G. Sayward.
+\newblock Hints on test data selection: Help for the practicing
+programmer.
+\newblock \emph{Computer}, 11(4), 1978, pp.\ 34--41.
+
+\bibitem{jia2011}
+Yue Jia and Mark Harman.
+\newblock An analysis and survey of the development of mutation testing.
+\newblock \emph{IEEE Transactions on Software Engineering}, 37(5), 2011,
+pp.\ 649--678.
+
+\end{thebibliography}
+
+\end{document}

@@ -87,7 +87,10 @@ fn law_admit_denied_halted() {
 #[cfg(not(feature = "law-signed"))]
 #[test]
 fn law_receipt_deterministic() {
-    let payload = format!(r#"{{"value":{{"id":1}},"prev_chain_hash":"{}","ts_ns":42}}"#, "11".repeat(32));
+    let payload = format!(
+        r#"{{"value":{{"id":1}},"prev_chain_hash":"{}","ts_ns":42}}"#,
+        "11".repeat(32)
+    );
     let result = ops::receipt_payload(&payload).expect("should receipt");
     insta::assert_json_snapshot!("law_receipt_deterministic", result);
 }
@@ -176,12 +179,17 @@ fn verify_verdict_accepted() {
 fn verify_verdict_reject_chain_integrity() {
     let file = write_chained_ledger(2);
     let content = std::fs::read_to_string(file.path()).expect("read ledger");
-    let mut lines: Vec<serde_json::Value> =
-        content.lines().map(|l| serde_json::from_str(l).expect("parse line")).collect();
+    let mut lines: Vec<serde_json::Value> = content
+        .lines()
+        .map(|l| serde_json::from_str(l).expect("parse line"))
+        .collect();
     // Tamper with the first record's chain_hash directly (not via recompute).
     lines[0]["chain_hash_hex"] = serde_json::json!("ff".repeat(32));
-    let tampered =
-        lines.iter().map(|v| serde_json::to_string(v).unwrap()).collect::<Vec<_>>().join("\n");
+    let tampered = lines
+        .iter()
+        .map(|v| serde_json::to_string(v).unwrap())
+        .collect::<Vec<_>>()
+        .join("\n");
     std::fs::write(file.path(), tampered).expect("write tampered ledger");
 
     let (verdict, _metrics) =
@@ -196,13 +204,18 @@ fn verify_verdict_reject_chain_integrity() {
 fn verify_verdict_reject_continuity() {
     let file = write_chained_ledger(2);
     let content = std::fs::read_to_string(file.path()).expect("read ledger");
-    let mut lines: Vec<serde_json::Value> =
-        content.lines().map(|l| serde_json::from_str(l).expect("parse line")).collect();
+    let mut lines: Vec<serde_json::Value> = content
+        .lines()
+        .map(|l| serde_json::from_str(l).expect("parse line"))
+        .collect();
     // Make the second record's instruction_id go backward.
     let first_instruction_id = lines[0]["instruction_id"].clone();
     lines[1]["instruction_id"] = first_instruction_id;
-    let tampered =
-        lines.iter().map(|v| serde_json::to_string(v).unwrap()).collect::<Vec<_>>().join("\n");
+    let tampered = lines
+        .iter()
+        .map(|v| serde_json::to_string(v).unwrap())
+        .collect::<Vec<_>>()
+        .join("\n");
     std::fs::write(file.path(), tampered).expect("write tampered ledger");
 
     let (verdict, _metrics) =

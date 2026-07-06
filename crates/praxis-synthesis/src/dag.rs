@@ -89,8 +89,7 @@ pub struct HashRunner;
 
 impl NodeRunner for HashRunner {
     fn run(&mut self, node: &DagNode, inputs: &[Vec<u8>]) -> Vec<u8> {
-        let input_hashes: Vec<String> =
-            inputs.iter().map(|b| content_address(b)).collect();
+        let input_hashes: Vec<String> = inputs.iter().map(|b| content_address(b)).collect();
         serde_json::json!({
             "capability": node.action.capability,
             "binding": node.action.binding,
@@ -164,9 +163,7 @@ impl Dag {
             .map(|s| {
                 let base = serde_json::to_string(s).unwrap_or_default();
                 let occ = seen.entry(base.clone()).or_insert(0);
-                let id = content_address(
-                    format!("{base}#{occ}").as_bytes(),
-                );
+                let id = content_address(format!("{base}#{occ}").as_bytes());
                 *occ += 1;
                 id
             })
@@ -278,11 +275,8 @@ impl Dag {
         for id in &order {
             let node = &self.nodes[id];
             let a_hash = action_hash(&node.action);
-            let mut input_hashes: Vec<String> = node
-                .inputs
-                .iter()
-                .map(|i| outputs[i].0.clone())
-                .collect();
+            let mut input_hashes: Vec<String> =
+                node.inputs.iter().map(|i| outputs[i].0.clone()).collect();
             input_hashes.sort_unstable();
             let key = memo_key(&a_hash, &input_hashes);
 
@@ -305,10 +299,19 @@ impl Dag {
             let mut map = BTreeMap::new();
             map.insert("node_id", serde_json::Value::String(id.clone()));
             map.insert("action_hash", serde_json::Value::String(a_hash.clone()));
-            map.insert("input_hashes", serde_json::Value::Array(
-                input_hashes.iter().map(|h| serde_json::Value::String(h.clone())).collect()
-            ));
-            map.insert("output_hash", serde_json::Value::String(output_hash.clone()));
+            map.insert(
+                "input_hashes",
+                serde_json::Value::Array(
+                    input_hashes
+                        .iter()
+                        .map(|h| serde_json::Value::String(h.clone()))
+                        .collect(),
+                ),
+            );
+            map.insert(
+                "output_hash",
+                serde_json::Value::String(output_hash.clone()),
+            );
             let frame = serde_json::to_string(&map).expect("serialization");
             chain = fold_event(&chain, frame.as_bytes());
             node_receipts.push(NodeReceipt {
@@ -332,7 +335,11 @@ impl Dag {
         pairs.sort_unstable();
         let root_hash = content_address(pairs.join("\n").as_bytes());
 
-        Ok(DagReceipt { root_hash, node_receipts, replayed_count })
+        Ok(DagReceipt {
+            root_hash,
+            node_receipts,
+            replayed_count,
+        })
     }
 }
 
@@ -534,8 +541,10 @@ impl Dag {
 
         let mut outputs: HashMap<String, (String, Vec<u8>)> = HashMap::new();
         let mut chain = genesis_seed(DAG_CHAIN_DOMAIN);
-        let mut crash_chain =
-            fold_event(&genesis_seed(GEOMETRY_CHAIN_DOMAIN), geometry.geometry_hash.as_bytes());
+        let mut crash_chain = fold_event(
+            &genesis_seed(GEOMETRY_CHAIN_DOMAIN),
+            geometry.geometry_hash.as_bytes(),
+        );
         let mut node_receipts = Vec::new();
         let mut crash_receipts: Vec<CrashReceipt> = Vec::new();
         let mut dispositions: BTreeMap<String, Disposition> = BTreeMap::new();
@@ -552,8 +561,12 @@ impl Dag {
             let node = &self.nodes[id];
             // Skip: already parked, or fed by a parked/skipped/given-up node.
             if parks.is_parked(id) {
-                dispositions
-                    .insert(id.clone(), Disposition::Parked { cause: ParkCause::CrashLoop });
+                dispositions.insert(
+                    id.clone(),
+                    Disposition::Parked {
+                        cause: ParkCause::CrashLoop,
+                    },
+                );
                 continue;
             }
             if let Some(bad) = node.inputs.iter().find(|i| {
@@ -569,7 +582,9 @@ impl Dag {
             }) {
                 dispositions.insert(
                     id.clone(),
-                    Disposition::SkippedBy { ancestor: bad.clone() },
+                    Disposition::SkippedBy {
+                        ancestor: bad.clone(),
+                    },
                 );
                 continue;
             }
@@ -615,8 +630,11 @@ impl Dag {
                             progressed: last_kind != Some(crash.kind()),
                         };
                         last_kind = Some(crash.kind());
-                        let Classification { class, response, matched } =
-                            geometry.classify(&snapshot);
+                        let Classification {
+                            class,
+                            response,
+                            matched,
+                        } = geometry.classify(&snapshot);
                         conformance &= matched;
                         let frame = serde_json::json!({
                             "node_id": id,
@@ -638,21 +656,20 @@ impl Dag {
                         match response {
                             LawfulResponse::Restart => {
                                 restarts_total += 1;
-                                if u32::from(attempt) + 1
-                                    >= u32::from(topology.policy.max_restarts)
+                                if u32::from(attempt) + 1 >= u32::from(topology.policy.max_restarts)
                                 {
                                     // Lawful surrender: receipt, never error.
                                     dispositions.insert(id.clone(), Disposition::GaveUp);
-                                    outcome = RunOutcome::GaveUp { node_id: id.clone() };
+                                    outcome = RunOutcome::GaveUp {
+                                        node_id: id.clone(),
+                                    };
                                     continue 'nodes;
                                 }
                                 attempt += 1;
                             }
                             LawfulResponse::Park(readmission) => {
                                 let cause = match class {
-                                    FailureClass::BudgetBreach => {
-                                        ParkCause::TickBudgetExceeded
-                                    }
+                                    FailureClass::BudgetBreach => ParkCause::TickBudgetExceeded,
                                     FailureClass::StarvedInput => ParkCause::UpstreamParked,
                                     _ => ParkCause::CrashLoop,
                                 };
@@ -671,18 +688,21 @@ impl Dag {
                                     },
                                     wal.as_deref_mut(),
                                 )?;
-                                dispositions
-                                    .insert(id.clone(), Disposition::Parked { cause });
+                                dispositions.insert(id.clone(), Disposition::Parked { cause });
                                 continue 'nodes;
                             }
                             LawfulResponse::Refuse { core } => {
-                                outcome =
-                                    RunOutcome::Refused { node_id: id.clone(), core };
+                                outcome = RunOutcome::Refused {
+                                    node_id: id.clone(),
+                                    core,
+                                };
                                 halted = true;
                                 continue 'nodes;
                             }
                             LawfulResponse::Escalate => {
-                                outcome = RunOutcome::Escalated { node_id: id.clone() };
+                                outcome = RunOutcome::Escalated {
+                                    node_id: id.clone(),
+                                };
                                 halted = true;
                                 continue 'nodes;
                             }
@@ -698,10 +718,19 @@ impl Dag {
             let mut map = std::collections::BTreeMap::new();
             map.insert("node_id", serde_json::Value::String(id.clone()));
             map.insert("action_hash", serde_json::Value::String(a_hash.clone()));
-            map.insert("input_hashes", serde_json::Value::Array(
-                input_hashes.iter().map(|h| serde_json::Value::String(h.clone())).collect()
-            ));
-            map.insert("output_hash", serde_json::Value::String(output_hash.clone()));
+            map.insert(
+                "input_hashes",
+                serde_json::Value::Array(
+                    input_hashes
+                        .iter()
+                        .map(|h| serde_json::Value::String(h.clone()))
+                        .collect(),
+                ),
+            );
+            map.insert(
+                "output_hash",
+                serde_json::Value::String(output_hash.clone()),
+            );
             let frame = serde_json::to_string(&map).expect("serialization");
             chain = fold_event(&chain, frame.as_bytes());
             node_receipts.push(NodeReceipt {
@@ -714,13 +743,14 @@ impl Dag {
                 ticks_used: ticks.0,
                 tick_budget: crate::budget::CHATMAN_CONSTANT,
             });
-            dispositions
-                .insert(id.clone(), Disposition::Completed { restarts: attempt });
+            dispositions.insert(id.clone(), Disposition::Completed { restarts: attempt });
             outputs.insert(id.clone(), (output_hash, output));
         }
 
-        let mut pairs: Vec<String> =
-            outputs.iter().map(|(id, (h, _))| format!("{id}:{h}")).collect();
+        let mut pairs: Vec<String> = outputs
+            .iter()
+            .map(|(id, (h, _))| format!("{id}:{h}"))
+            .collect();
         pairs.sort_unstable();
         let root_hash = content_address(pairs.join("\n").as_bytes());
 

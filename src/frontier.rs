@@ -33,9 +33,9 @@
 //! `frontier matrix` verb (`src/verbs/frontier.rs`) and the integration
 //! test (`tests/frontier_matrix.rs`).
 
+use std::{io, path::Path};
+
 use serde::{Deserialize, Serialize};
-use std::io;
-use std::path::Path;
 use wasm4pm_compat::dfcm::{DfCmAxis, DfCmMatrix, DfCmReport, Standing};
 
 /// `capability_source` axis variants — the sibling repos/crates explored
@@ -92,7 +92,11 @@ fn admit(matrix: &mut DfCmMatrix, source: &str, socket: &str, executed: bool, fi
     let cell = matrix
         .find_cell_mut(&[source, socket])
         .unwrap_or_else(|| panic!("cell ({source}, {socket}) not in expanded matrix"));
-    cell.expected_standing = if executed { Standing::Executed } else { Standing::Admitted };
+    cell.expected_standing = if executed {
+        Standing::Executed
+    } else {
+        Standing::Admitted
+    };
     cell.actual_standing = cell.expected_standing;
     cell.fixture = Some(fixture.to_string());
 }
@@ -425,7 +429,11 @@ pub fn evaluated_count() -> usize {
 /// The number of refused (Impossible) cells in the frontier.
 #[must_use]
 pub fn refused_count() -> usize {
-    build_frontier_matrix().cells.iter().filter(|c| c.is_impossible).count()
+    build_frontier_matrix()
+        .cells
+        .iter()
+        .filter(|c| c.is_impossible)
+        .count()
 }
 
 /// Summarise the frontier matrix into a serialisable [`DfCmReport`].
@@ -498,7 +506,10 @@ mod tests {
     #[test]
     fn matrix_expands_to_full_cartesian_product() {
         let matrix = build_frontier_matrix();
-        assert_eq!(matrix.total(), CAPABILITY_SOURCES.len() * PRAXIS_SOCKETS.len());
+        assert_eq!(
+            matrix.total(),
+            CAPABILITY_SOURCES.len() * PRAXIS_SOCKETS.len()
+        );
     }
 
     #[test]

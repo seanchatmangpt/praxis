@@ -56,11 +56,17 @@ fn defaults_alone_admit_successfully() {
 fn unknown_toml_field_is_rejected() {
     in_isolated_scratch(|dir| {
         std::fs::write(dir.join("praxis.toml"), "[law]\nbogus_key = 1\n").unwrap();
-        let err = load_config_with_gate(EvidenceGate::new())
-            .expect_err("unknown field must be rejected");
+        let err =
+            load_config_with_gate(EvidenceGate::new()).expect_err("unknown field must be rejected");
         let msg = err.to_string();
-        assert!(msg.contains("unknown_field"), "expected unknown_field in: {msg}");
-        assert!(msg.contains("law.bogus_key") || msg.contains("bogus_key"), "expected field path in: {msg}");
+        assert!(
+            msg.contains("unknown_field"),
+            "expected unknown_field in: {msg}"
+        );
+        assert!(
+            msg.contains("law.bogus_key") || msg.contains("bogus_key"),
+            "expected field path in: {msg}"
+        );
     });
 }
 
@@ -79,7 +85,11 @@ fn witness_hash_changes_when_value_changes() {
     in_isolated_scratch(|dir| {
         let baseline = load_config_with_gate(EvidenceGate::new()).unwrap();
 
-        std::fs::write(dir.join("praxis.toml"), "[planner]\nattention_capacity = 12\n").unwrap();
+        std::fs::write(
+            dir.join("praxis.toml"),
+            "[planner]\nattention_capacity = 12\n",
+        )
+        .unwrap();
         let changed = load_config_with_gate(EvidenceGate::new()).unwrap();
 
         assert_ne!(baseline.witness().hash(), changed.witness().hash());
@@ -90,7 +100,11 @@ fn witness_hash_changes_when_value_changes() {
 #[test]
 fn env_var_override_wins_over_file_and_defaults() {
     in_isolated_scratch(|dir| {
-        std::fs::write(dir.join("praxis.toml"), "[planner]\nattention_capacity = 12\n").unwrap();
+        std::fs::write(
+            dir.join("praxis.toml"),
+            "[planner]\nattention_capacity = 12\n",
+        )
+        .unwrap();
         // Nested keys use `__` as the path separator (single `_` stays inside a
         // segment name), per star-toml's env-override convention. The prefix is
         // PRAXIS_CONFIG__ so operational vars (PRAXIS_SIGNING_KEY et al.) never
@@ -132,12 +146,20 @@ fn operational_praxis_env_vars_do_not_break_admission() {
 #[test]
 fn out_of_range_attention_capacity_is_rejected() {
     in_isolated_scratch(|dir| {
-        std::fs::write(dir.join("praxis.toml"), "[planner]\nattention_capacity = 0\n").unwrap();
+        std::fs::write(
+            dir.join("praxis.toml"),
+            "[planner]\nattention_capacity = 0\n",
+        )
+        .unwrap();
         let err = load_config_with_gate(EvidenceGate::new())
             .expect_err("attention_capacity = 0 must fail validation");
         assert!(err.to_string().contains("attention_capacity"));
 
-        std::fs::write(dir.join("praxis.toml"), "[planner]\nattention_capacity = 65\n").unwrap();
+        std::fs::write(
+            dir.join("praxis.toml"),
+            "[planner]\nattention_capacity = 65\n",
+        )
+        .unwrap();
         let err = load_config_with_gate(EvidenceGate::new())
             .expect_err("attention_capacity = 65 must fail validation");
         assert!(err.to_string().contains("attention_capacity"));
@@ -198,20 +220,56 @@ fn gate_verdict_adapter_mapping_table() {
         .verdict
     };
 
-    assert_eq!(case(ValidationStatus::Pass, Severity::Info), OracleVerdict::Admit);
-    assert_eq!(case(ValidationStatus::Pass, Severity::Warning), OracleVerdict::Admit);
-    assert_eq!(case(ValidationStatus::Pass, Severity::Error), OracleVerdict::Admit);
-    assert_eq!(case(ValidationStatus::Pass, Severity::Critical), OracleVerdict::Admit);
+    assert_eq!(
+        case(ValidationStatus::Pass, Severity::Info),
+        OracleVerdict::Admit
+    );
+    assert_eq!(
+        case(ValidationStatus::Pass, Severity::Warning),
+        OracleVerdict::Admit
+    );
+    assert_eq!(
+        case(ValidationStatus::Pass, Severity::Error),
+        OracleVerdict::Admit
+    );
+    assert_eq!(
+        case(ValidationStatus::Pass, Severity::Critical),
+        OracleVerdict::Admit
+    );
 
-    assert_eq!(case(ValidationStatus::Warn, Severity::Info), OracleVerdict::Suggest);
-    assert_eq!(case(ValidationStatus::Warn, Severity::Warning), OracleVerdict::Warn);
-    assert_eq!(case(ValidationStatus::Warn, Severity::Error), OracleVerdict::Warn);
-    assert_eq!(case(ValidationStatus::Warn, Severity::Critical), OracleVerdict::Warn);
+    assert_eq!(
+        case(ValidationStatus::Warn, Severity::Info),
+        OracleVerdict::Suggest
+    );
+    assert_eq!(
+        case(ValidationStatus::Warn, Severity::Warning),
+        OracleVerdict::Warn
+    );
+    assert_eq!(
+        case(ValidationStatus::Warn, Severity::Error),
+        OracleVerdict::Warn
+    );
+    assert_eq!(
+        case(ValidationStatus::Warn, Severity::Critical),
+        OracleVerdict::Warn
+    );
 
-    assert_eq!(case(ValidationStatus::Fail, Severity::Info), OracleVerdict::Warn);
-    assert_eq!(case(ValidationStatus::Fail, Severity::Warning), OracleVerdict::Warn);
-    assert_eq!(case(ValidationStatus::Fail, Severity::Error), OracleVerdict::Warn);
-    assert_eq!(case(ValidationStatus::Fail, Severity::Critical), OracleVerdict::Fail);
+    assert_eq!(
+        case(ValidationStatus::Fail, Severity::Info),
+        OracleVerdict::Warn
+    );
+    assert_eq!(
+        case(ValidationStatus::Fail, Severity::Warning),
+        OracleVerdict::Warn
+    );
+    assert_eq!(
+        case(ValidationStatus::Fail, Severity::Error),
+        OracleVerdict::Warn
+    );
+    assert_eq!(
+        case(ValidationStatus::Fail, Severity::Critical),
+        OracleVerdict::Fail
+    );
 }
 
 #[test]

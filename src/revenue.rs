@@ -112,7 +112,9 @@ pub fn account_evidence(a: &Account) -> Vec<&'static str> {
 /// not a hope.
 pub fn evidence_gate_agrees(account: &Account, target: Stage) -> bool {
     let have = account_evidence(account);
-    let admission_ok = stage_required_evidence(target).iter().all(|e| have.contains(e));
+    let admission_ok = stage_required_evidence(target)
+        .iter()
+        .all(|e| have.contains(e));
     admission_ok == evidence_permits(account, target)
 }
 
@@ -349,7 +351,10 @@ pub fn run_demo(ts_ns: u64) -> Result<Value, String> {
     let mut plan_labels = Vec::with_capacity(tape.len());
     for op in &tape.ops {
         let (acct_id, target) = action_target(&op.action).ok_or_else(|| {
-            format!("plan action {} has no (stage ?a ?to) add effect", op.action.label)
+            format!(
+                "plan action {} has no (stage ?a ?to) add effect",
+                op.action.label
+            )
         })?;
         let account = account_by_id(&state, &acct_id)
             .ok_or_else(|| format!("plan action moves unknown account {acct_id}"))?;
@@ -381,7 +386,10 @@ pub fn run_demo(ts_ns: u64) -> Result<Value, String> {
     });
     let receipt = ops::receipt_payload(&receipt_input.to_string())?;
     if receipt["status"] != json!("receipted") {
-        return Err(format!("mission receipt was not issued: {}", receipt["status"]));
+        return Err(format!(
+            "mission receipt was not issued: {}",
+            receipt["status"]
+        ));
     }
 
     Ok(json!({

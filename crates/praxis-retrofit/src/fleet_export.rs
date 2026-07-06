@@ -71,7 +71,11 @@ fn json_to_yaml(value: &Value, depth: usize) -> String {
         Value::Number(n) => n.to_string(),
         Value::String(s) => {
             if s.contains('\n') || s.contains(':') || s.contains('"') {
-                format!("|\n{}{}", next_indent, s.replace('\n', &format!("\n{}", next_indent)))
+                format!(
+                    "|\n{}{}",
+                    next_indent,
+                    s.replace('\n', &format!("\n{}", next_indent))
+                )
             } else {
                 s.clone()
             }
@@ -125,8 +129,14 @@ fn export_as_markdown(report: &FleetComplianceReport) -> Result<String> {
         report.compliant_repos(),
         report.compliance_rate_percent()
     ));
-    lines.push(format!("| Overall Score | {:.1}% |", report.metrics.overall_score));
-    lines.push(format!("| Health Rating | {} |\n", report.metrics.health_rating.description()));
+    lines.push(format!(
+        "| Overall Score | {:.1}% |",
+        report.metrics.overall_score
+    ));
+    lines.push(format!(
+        "| Health Rating | {} |\n",
+        report.metrics.health_rating.description()
+    ));
 
     // Overall Statistics
     lines.push("## Overall Statistics\n".to_string());
@@ -144,7 +154,10 @@ fn export_as_markdown(report: &FleetComplianceReport) -> Result<String> {
         "| Failing | {} | {:.1}% |",
         report.metrics.fail_count, report.metrics.fail_percent
     ));
-    lines.push(format!("| Total | {} | 100.0% |\n", report.metrics.total_checks));
+    lines.push(format!(
+        "| Total | {} | 100.0% |\n",
+        report.metrics.total_checks
+    ));
 
     lines.push("### Score Distribution\n".to_string());
     lines.push("| Rating | Count |".to_string());
@@ -153,9 +166,18 @@ fn export_as_markdown(report: &FleetComplianceReport) -> Result<String> {
         "| Excellent (90-100%) | {} |",
         report.metrics.score_distribution.excellent_count
     ));
-    lines.push(format!("| Good (75-89%) | {} |", report.metrics.score_distribution.good_count));
-    lines.push(format!("| Fair (50-74%) | {} |", report.metrics.score_distribution.fair_count));
-    lines.push(format!("| Poor (<50%) | {} |\n", report.metrics.score_distribution.poor_count));
+    lines.push(format!(
+        "| Good (75-89%) | {} |",
+        report.metrics.score_distribution.good_count
+    ));
+    lines.push(format!(
+        "| Fair (50-74%) | {} |",
+        report.metrics.score_distribution.fair_count
+    ));
+    lines.push(format!(
+        "| Poor (<50%) | {} |\n",
+        report.metrics.score_distribution.poor_count
+    ));
 
     lines.push(format!(
         "**Score Range:** {:.1}% - {:.1}%",
@@ -260,7 +282,11 @@ fn export_as_markdown(report: &FleetComplianceReport) -> Result<String> {
         if !blocked_repos.is_empty() {
             lines.push("**Blocked Repositories:**".to_string());
             for repo in blocked_repos {
-                lines.push(format!("- {} ({})", repo.repository_name, repo.status.description()));
+                lines.push(format!(
+                    "- {} ({})",
+                    repo.repository_name,
+                    repo.status.description()
+                ));
             }
             lines.push(String::new());
         }
@@ -271,7 +297,10 @@ fn export_as_markdown(report: &FleetComplianceReport) -> Result<String> {
         lines.push("## Critical Issues\n".to_string());
         for issue in &report.critical_issues {
             lines.push(format!("### {} ({:?})", issue.issue_type, issue.severity));
-            lines.push(format!("**Affected Repositories:** {}", issue.affected_repos.join(", ")));
+            lines.push(format!(
+                "**Affected Repositories:** {}",
+                issue.affected_repos.join(", ")
+            ));
             lines.push(format!("**Remediation:** {}\n", issue.remediation));
         }
     }
@@ -283,7 +312,11 @@ fn export_as_markdown(report: &FleetComplianceReport) -> Result<String> {
         lines.push(format!("- **Score:** {:.1}%", report.score()));
         lines.push(format!(
             "- **Status:** {}",
-            if report.is_compliant() { "✓ Compliant" } else { "✗ Non-Compliant" }
+            if report.is_compliant() {
+                "✓ Compliant"
+            } else {
+                "✗ Non-Compliant"
+            }
         ));
         lines.push(format!("- **Crates:** {}", report.repository.crate_count));
         lines.push(format!("- **Timestamp:** {}\n", report.timestamp));
@@ -318,7 +351,10 @@ mod tests {
         assert_eq!(ExportFormat::from_str("json"), Some(ExportFormat::Json));
         assert_eq!(ExportFormat::from_str("yaml"), Some(ExportFormat::Yaml));
         assert_eq!(ExportFormat::from_str("yml"), Some(ExportFormat::Yaml));
-        assert_eq!(ExportFormat::from_str("markdown"), Some(ExportFormat::Markdown));
+        assert_eq!(
+            ExportFormat::from_str("markdown"),
+            Some(ExportFormat::Markdown)
+        );
         assert_eq!(ExportFormat::from_str("md"), Some(ExportFormat::Markdown));
         assert_eq!(ExportFormat::from_str("invalid"), None);
     }

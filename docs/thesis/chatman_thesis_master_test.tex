@@ -1,0 +1,65 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{pdfpages}
+\usepackage[hidelinks]{hyperref}
+
+\hypersetup{
+  pdftitle={The Chatman Equation: A Thesis Program},
+  pdfauthor={Sean Chatman},
+  bookmarksnumbered=true,
+}
+
+% Depth of the automatically generated table of contents.
+\setcounter{tocdepth}{1}
+
+\begin{document}
+
+%% ------------------------------------------------------------------
+%% Title page
+%% ------------------------------------------------------------------
+\begin{titlepage}
+  \centering
+  \vspace*{4cm}
+  {\Huge\bfseries The Chatman Equation\par}
+  \vspace{0.8cm}
+  {\LARGE A Thesis Program\par}
+  \vspace{2.5cm}
+  {\large A six-part development of admission algebra, receipt
+   cryptography, planning geometry, and projection at scale.\par}
+  \vfill
+  {\large Sean Chatman\par}
+  \vspace{0.5cm}
+  {\large 2026\par}
+\end{titlepage}
+
+%% ------------------------------------------------------------------
+%% Table of contents
+%% ------------------------------------------------------------------
+\thispagestyle{empty}
+\tableofcontents
+\clearpage
+
+%% ------------------------------------------------------------------
+%% Bound parts (reading order). addtotoc places a correctly numbered
+%% ToC entry on the first page of each included document.
+%% ------------------------------------------------------------------
+\includepdf[pages=-,addtotoc={1,section,1,Part 0. Foundations,part0}]%
+  {00_foundations.pdf}
+
+\includepdf[pages=-,addtotoc={1,section,1,Part I. Admission Algebra,part1}]%
+  {01_admission_algebra.pdf}
+
+\includepdf[pages=-,addtotoc={1,section,1,Part II. Receipt Cryptography,part2}]%
+  {02_receipt_cryptography.pdf}
+
+\includepdf[pages=-,addtotoc={1,section,1,Part III. Planning Geometry,part3}]%
+  {03_planning_geometry_rewritten.pdf}
+
+\includepdf[pages=-,addtotoc={1,section,1,Part IV. Projection (Keystone),part4}]%
+  {projection_thesis.pdf}
+
+\includepdf[pages=-,addtotoc={1,section,1,Part V. Projection and Scale,part5}]%
+  {04_projection_and_scale.pdf}
+
+\end{document}

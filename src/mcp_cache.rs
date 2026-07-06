@@ -20,8 +20,9 @@
 //! `mcp_lawobject_server.rs`'s cache-policy doc comment for which tools
 //! qualify and why.
 
-use moka::future::Cache;
 use std::time::Duration;
+
+use moka::future::Cache;
 
 /// Shared cache: key is the caller-built composite key string (see
 /// [`ToolCacheKey::to_key_string`]), value is the tool's serialized JSON
@@ -39,7 +40,12 @@ impl ToolResultCache {
     /// "same output" for as long as the entry lives.
     #[must_use]
     pub fn new(max_capacity: u64, ttl: Duration) -> Self {
-        Self { inner: Cache::builder().max_capacity(max_capacity).time_to_live(ttl).build() }
+        Self {
+            inner: Cache::builder()
+                .max_capacity(max_capacity)
+                .time_to_live(ttl)
+                .build(),
+        }
     }
 
     /// Build the plain two-field cache key for `tool` given its

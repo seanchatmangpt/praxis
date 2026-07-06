@@ -1,0 +1,799 @@
+\documentclass[11pt,oneside]{book}
+
+\usepackage[margin=1.15in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+
+% ---- theorem environments (identical to the keystone, for series coherence) ----
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{axiom}{Axiom}[chapter]
+\newtheorem{construction}{Construction}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+% ---- notation macros (shared with projection_thesis.tex and 00_foundations.tex) ----
+\newcommand{\Obs}{\mathcal{O}}                 % raw observation space
+\newcommand{\Adm}{\mathcal{O}^{*}}             % admitted observation space
+\newcommand{\Act}{\mathcal{A}}                 % action / artifact space
+\newcommand{\Rec}{\mathcal{R}}                 % receipt space
+\newcommand{\Proj}{\pi}                        % projection
+\newcommand{\muop}{\mu}                        % manufacturing morphism
+\newcommand{\adm}{\alpha}                      % admission map
+\newcommand{\chainH}{\mathsf{H}}               % hash
+\newcommand{\Rfsl}{\bot}                        % refusal (NOT \Ref: reserved by hyperref)
+\newcommand{\CL}{\kappa}                       % cognitive-load capacity
+\newcommand{\Fitness}{\varphi}
+\newcommand{\dg}{\mathrm{dg}}                   % digest
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\id}{id}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator*{\argmax}{arg\,max}
+% ---- paper-02-local macros ----
+\newcommand{\fr}{\mathsf{fr}}                   % frame
+\newcommand{\body}{\beta}                       % hash-body serialization
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\concat}{\mathbin{\Vert}}           % byte concatenation
+\newcommand{\Genesis}{\mathsf{g}}               % genesis chain value
+\newcommand{\Sig}{\Sigma}                       % execution-trace space (keystone)
+\newcommand{\Lake}{L}                 % receipt lake
+\newcommand{\Ledger}{C}               % chain / ledger
+
+\title{\bfseries Receipt Chains:\\[0.4em]
+\large Cryptographic Conservation of Consequence}
+\author{The Chatman Equation Thesis Program \\ (Praxis / Capability Physics)}
+\date{Genesis --- Receipt Cryptography, Paper 02}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+The keystone of this series established that trust among bounded agents is manufactured by a \emph{faithful projection} of an unbounded execution onto a coordinate small enough to fit a verifier's bounded context, cryptographically bound so the projection cannot lie about the interior it summarizes~\cite{chatman2025}. % [CITE]
+This paper supplies the cryptography that makes the binding real. We define the \emph{frame} --- the fixed-width, $128$-byte, cache-line-aligned \code{OcelCausalFrame} that encodes a single manufacturing step and commits the full $256$-bit payload digest into its object-reference slots --- and the \emph{chain rule} $h_{+}=\chainH(h_{-}\concat\body(\fr))$, a rolling BLAKE3 commitment that folds each frame onto its causal predecessor. % [CODE]
+We prove, from an explicit collision-resistance axiom, the \textbf{Faithful Chain Theorem}: perturbing any committed field forces a hash collision, so a bounded verifier who recomputes one link rejects the perturbation reading $O(1)$ per frame and $O(\CL)$ at the boundary. % [BOUNDARY]
+We prove the \textbf{Conservation of Consequence Theorem} in its receipt-cryptographic form: every actuated artifact occupies \emph{exactly one} chain position, the map from actuation to chain value is injective up to collision, and each artifact carries \emph{at least one} committed admitted cause. % [BOUNDARY]
+We give the \textbf{Tamper Localization Theorem} for the staged validator (\code{schema}, \code{chain\_recompute}, \code{chain\_linkage}, \code{monotonic}, \code{token\_replay}), which does not merely reject a corrupted ledger but names the first divergent frame and the stage that caught it. % [CODE]
+We formalize Ed25519 signing as \emph{self-contained authenticity}, separating integrity (what the chain alone proves) from authorship (what a signature adds), and describe the content-addressed \emph{receipt lake} with its OCEL~2.0 / PROV-O mapping and its index-scale query direction. % [TEXT]
+We close with the \textbf{Integrity--Virtue Scope Theorem}: a proof of what a receipt chain establishes and, equally rigorously, what it does not --- the guardrail that keeps a cryptographic apparatus from being mistaken for a warrant of goodness. % [TEXT]
+
+\tableofcontents
+
+\mainmatter
+
+\chapter{Introduction: The Receipt Is a Commitment, Not a Copy}
+\label{ch:intro}
+
+The keystone thesis derives the standard of trust available to a civilization of agents who cannot comprehend one another: not comprehension, but a bounded, faithful, replayable receipt~\cite{chatman2025}. % [CITE]
+That derivation leaves one thing on credit. % [TEXT]
+It \emph{assumes} a collision-resistant hash $\chainH$ and asserts that a receipt ``cannot lie about the interior it summarizes.'' This paper pays the debt. % [BOUNDARY]
+We construct the object that discharges the assumption --- the receipt chain --- and prove, rather than assert, exactly which lies it forecloses and which it does not. % [BOUNDARY]
+
+A receipt is often imagined as a \emph{copy}: a smaller transcript of what happened, trusted because it looks like the original. That picture is wrong at every scale that matters. % [TEXT]
+A copy is faithful only if the reader compares it to the original, which is precisely the comprehension cost the keystone showed we cannot pay. % [TEXT]
+The receipt in this doctrine is not a copy but a \emph{commitment}: a short value $h_{+}$ such that no adversary can exhibit a different history yielding the same $h_{+}$ without breaking a cryptographic assumption. % [BOUNDARY]
+The verifier never compares the receipt to the interior. % [BOUNDARY]
+It recomputes one arithmetic step and checks equality. % [TEXT]
+Fidelity is enforced by the algebra of the hash, not by the diligence of the reader. % [TEXT]
+
+\paragraph{The three questions.} A receipt discipline must answer three distinct questions,
+and the doctrine's discipline is to never conflate them: % [TEXT]
+\begin{enumerate}[label=(Q\arabic*),leftmargin=*]
+\item \textbf{Integrity.} Was this history altered after the fact? (Answered by the chain.)
+\item \textbf{Authenticity.} Who vouches for this history? (Answered by a signature.)
+\item \textbf{Virtue.} Was the history \emph{good} --- were the right obligations checked, is
+the artifact fit for the world? (\emph{Not} answered by cryptography at all.) % [TEXT]
+\end{enumerate}
+Chapters~\ref{ch:faithful}--\ref{ch:localize} answer (Q1); Chapter~\ref{ch:auth} answers (Q2); Chapter~\ref{ch:scope} proves the boundary of (Q3). % [BOUNDARY]
+Keeping these separate is not pedantry. % [TEXT]
+A system that answers (Q1) and pretends it has answered (Q3) is exactly the overclaim the keystone's antibody clause forbids~\cite{chatman2025}. % [CITE]
+
+\paragraph{Grounding.} Every construction here is realized in the praxis codebase, and we
+name the site so a reader can trace math to machine. % [TEXT]
+The frame is \code{bcinr\_powl\_receipt::causal\_receipt::OcelCausalFrame}; its serialization is \code{to\_hash\_bytes}; the chain rule is \code{OcelCausalReceipt::chain}; the single frame-construction site shared by emission and replay is \code{praxis\_core::law::build\_admission\_frame} with \code{chain\_from\_frame}; the persisted record is \code{praxis\_core::receipt\_record::ReceiptRecord}; the staged validator is \code{praxis\_core::receipt\_validator::ReceiptValidator}; signing is \code{praxis\_core::signing}. % [CODE]
+Where a size, a field order, or a constant appears below, it is the size, field order, or constant the code compiles with, and in several cases the code asserts it at compile time. % [TEXT]
+
+\paragraph{Notation.} We reuse the series' notation: $\Obs$ raw observations, $\Adm$ the
+admitted sub-language, $\adm$ the admission retraction with refusal $\Rfsl$, $\muop:\Adm\to \Act$ the manufacturing morphism, $\Sig$ the space of full execution traces, $\Rec$ the receipt space, $\chainH$ the collision-resistant hash, $\dg(\cdot)=\chainH(\cdot)$ a digest, and $h_{-},h_{+}$ the chain values before and after a step. % [BOUNDARY]
+The keystone's law-bearing frame is here made concrete as the byte-exact \code{OcelCausalFrame}. % [CODE]
+
+\chapter{The Frame: A Fixed-Width Encoding of One Manufacturing Step}
+\label{ch:frame}
+
+\section{Why fixed width}
+
+A commitment scheme is only as honest as its encoding. % [TEXT]
+If two distinct histories can serialize to the same bytes, the hash of those bytes commits to neither unambiguously. % [TEXT]
+The first requirement on a frame is therefore \emph{unambiguous, length-determined serialization}: the reader of the byte body must be able to parse each field without a length prefix, because the layout is fixed. % [TEXT]
+The praxis frame achieves this by being a \code{repr(C, align(64))} struct of a single compile-time-constant size. % [CODE]
+
+\begin{definition}[Frame]\label{def:frame}
+A \emph{frame} $\fr$ is the record % [DEF]
+\[
+\fr=\bigl\langle\, \code{instruction\_id},\ \code{fired\_mask},\ \code{denial},\
+\code{obj\_refs}[0{:}8],\ \code{ts\_ns},\ \code{activity\_idx},\ \code{node\_kind},\
+\code{prior\_hash}\,\bigr\rangle,
+\]
+laid out in memory as a $\code{repr(C, align(64))}$ structure occupying exactly $128$ bytes
+--- two $64$-byte cache lines --- with the field widths of Table~\ref{tab:layout}. The
+in-memory layout carries $5$ bytes of interior padding (\code{pad}) so that the $256$-bit
+\code{prior\_hash} lands aligned; the padding is structural, not semantic.
+\end{definition}
+
+\begin{remark}
+The $128$-byte size is not a description but an invariant the compiler enforces. The crate
+contains the const assertion
+\[
+\code{const \_: () = \{ assert!(size\_of::<OcelCausalFrame>() == 128) \};}
+\]
+so a change to any field width that broke the two-cache-line layout would fail to compile.
+Fixed width is thus a mechanized property (in the sense of the foundations paper's
+mechanized-totality results), not a convention a maintainer must remember.
+\end{remark}
+
+\section{The hash body: what the frame commits}
+
+The frame's in-memory image is $128$ bytes, but the bytes fed to the hash are a distinct,
+smaller, canonical serialization: the padding is excluded, and every integer is written
+little-endian in a fixed order. This is the object the chain actually commits to.
+
+\begin{definition}[Hash body]\label{def:body}
+The \emph{hash body} $\body(\fr)\in\{0,1\}^{8\cdot 99}$ is the $99$-byte serialization produced
+by \code{to\_hash\_bytes}, with the field layout of Table~\ref{tab:layout}. It is a total,
+injective function of the semantic fields of $\fr$ (all fields except the structural
+\code{pad}): distinct field tuples yield distinct bodies.
+\end{definition}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{llll}
+\toprule
+Byte range & Field & Width & Meaning\\
+\midrule
+$[0,8)$   & \code{instruction\_id} & u64 LE & monotone step identity within a run\\
+$[8,16)$  & \code{fired\_mask}     & u64 LE & scatter of active denial lanes\\
+$[16,24)$ & \code{denial.0}        & u64 LE & denial-polarity word (admission verdict)\\
+$[24,56)$ & \code{obj\_refs}       & $8\times$ u32 LE & \emph{payload digest} (\S\ref{sec:commit})\\
+$[56,64)$ & \code{ts\_ns}          & u64 LE & wall-clock nanoseconds\\
+$[64,66)$ & \code{activity\_idx}   & u16 LE & POWL activity-table index\\
+$[66,67)$ & \code{node\_kind}      & u8     & POWL node classifier (XOR/SEQ/LOOP/\dots)\\
+$[67,99)$ & \code{prior\_hash}     & 32 B   & BLAKE3 of the causal predecessor\\
+\bottomrule
+\end{tabular}
+\caption{The $99$-byte canonical hash body $\body(\fr)$ produced by \code{to\_hash\_bytes}.
+The $5$ interior \code{pad} bytes of the $128$-byte in-memory frame are \emph{not} hashed.
+Total committed width: $8+8+8+32+8+2+1+32=99$ bytes.}
+\label{tab:layout}
+\end{table}
+
+\begin{proposition}[Body injectivity]\label{prop:bodyinj}
+$\body$ is injective on the semantic field tuple: if $\body(\fr)=\body(\fr')$ then $\fr$ and
+$\fr'$ agree on every field of Definition~\ref{def:frame}.
+\end{proposition}
+
+\begin{proof}
+Each field occupies a disjoint, fixed byte range (Table~\ref{tab:layout}), and each
+integer field's little-endian encoding is a bijection on its width. A byte-equal body forces
+range-wise equality, hence field-wise equality. The \code{pad} bytes are absent from the
+body, so they do not participate; two frames differing only in padding have equal bodies,
+which is correct --- padding carries no consequence. \end{proof}
+
+\section{Committing the payload: the object-reference repurposing}
+\label{sec:commit}
+
+The single subtle move in the encoding is how the frame commits the artifact it is a receipt
+for. The frame has no dedicated ``payload'' field; instead it carries eight packed
+object-reference words \code{obj\_refs[0:8]}, each a \code{u32}, normally OCEL object handles.
+The praxis frame-builder repurposes all eight words to hold the $256$-bit BLAKE3 digest of the
+canonical payload bytes, \emph{verbatim}.
+
+\begin{construction}[Payload commitment]\label{con:commit}
+Let $p\in\{0,1\}^{*}$ be the canonical JSON bytes of an admitted payload and $\dg(p)=
+\chainH(p)\in\{0,1\}^{256}$ its digest. Partition $\dg(p)$ into eight $32$-bit little-endian
+words $w_0,\dots,w_7$ and set $\code{obj\_refs}[i]=\code{PackedObjRef}(w_i)$. Crucially the
+raw tuple constructor \code{PackedObjRef(w)} is used, \emph{not} \code{PackedObjRef::new},
+which would pack a type index into the high $8$ bits and truncate the identifier to $24$
+bits. The raw constructor preserves all $32$ bits, so the full $256$-bit digest survives
+into bytes $[24,56)$ of $\body(\fr)$ intact.
+\end{construction}
+
+\begin{proposition}[The frame commits the payload]\label{prop:payloadcommit}
+Under Construction~\ref{con:commit}, $\body(\fr)$ determines $\dg(p)$, and by
+Proposition~\ref{prop:bodyinj} any change to $\dg(p)$ changes $\body(\fr)$. Consequently a
+frame commits not to an opaque object handle but to the content of the artifact, exactly as
+the keystone's law-bearing frame requires the digest $\dg(a)$ of the artifact to appear
+inside the frame.
+\end{proposition}
+
+\begin{proof}
+Bytes $[24,56)$ of the body are the eight words $w_0\dots w_7=\dg(p)$ by construction; the
+map $\dg(p)\mapsto(w_0,\dots,w_7)$ is the little-endian bijection $\{0,1\}^{256}\to
+(\{0,1\}^{32})^{8}$. Injectivity of $\body$ (Proposition~\ref{prop:bodyinj}) then gives that
+distinct payload digests induce distinct bodies. \end{proof}
+
+\begin{remark}[Why not add a field]
+Repurposing \code{obj\_refs} rather than widening the struct keeps the frame at exactly two
+cache lines and requires no change to the downstream hashing code: \code{to\_hash\_bytes}
+already serializes all eight words verbatim. This is a recurring discipline in the codebase
+--- commit more meaning without growing the committed object --- and it is the byte-level
+instance of the projection principle: the interior (an arbitrarily large payload) is bound by
+a fixed-width coordinate (its $256$-bit digest inside a $99$-byte body).
+\end{remark}
+
+\chapter{The Chain: A Rolling Commitment}
+\label{ch:chain}
+
+\section{Genesis and the fold}
+
+A single frame commits one step. A \emph{chain} commits an ordered history by folding each
+frame's body onto the running commitment of everything before it.
+
+\begin{definition}[Genesis]\label{def:genesis}
+The \emph{genesis} chain value is $\Genesis=\chainH(\bm 0_{32})$, the BLAKE3 digest of $32$
+zero bytes. A run may additionally bind a \emph{domain seed}
+$\Genesis_{\mathrm{dom}}=\chainH(\text{``}\langle\text{project}\rangle\text{-v}\langle
+\text{version}\rangle\text{-genesis''})$ so that chains from distinct projects or crate
+versions cannot cross-verify: a receipt minted under one domain seed is not a valid link of
+another's chain.
+\end{definition}
+
+\begin{definition}[Chain rule]\label{def:chain}
+For a frame $\fr$ with predecessor commitment $h_{-}$, the successor commitment is
+\begin{equation}\label{eq:chain}
+h_{+} \;=\; \chainH\bigl(h_{-}\concat\body(\fr)\bigr),
+\end{equation}
+where $\concat$ is byte concatenation. % [PROOF]
+A \emph{chain} (ledger) $\Ledger=(\fr_1,\dots,\fr_n)$ has commitments $h_0=\Genesis$ and $h_t=\chainH(h_{t-1}\concat\body(\fr_t))$ for $1\le t\le n$; its terminal value is $h_n$. % [PROOF]
+\end{definition}
+
+\begin{remark}[The predecessor is mixed twice]
+The praxis realization mixes $h_{-}$ into $h_{+}$ at two points: once as the frame's own \code{prior\_hash} field (bytes $[67,99)$ of the body) and again as the seed of the fold in \eqref{eq:chain}. % [PROOF]
+This double-mixing predates the current construction and is retained for compatibility. % [PROOF]
+It neither strengthens nor weakens the security argument below --- $h_{+}$ remains a deterministic function of $h_{-}$ and $\fr$ --- so all theorems hold verbatim whether the predecessor is mixed once or twice. % [PROOF]
+We note it only so a reader diffing the code against \eqref{eq:chain} is not surprised. % [PROOF]
+\end{remark}
+
+\section{Determinism and the single construction site}
+
+\begin{proposition}[The chain is a deterministic fold]\label{prop:fold}
+$h_n$ is a deterministic function of $(\Genesis,\fr_1,\dots,\fr_n)$, computable by a single left fold: $h_n=\bigl(\lambda h.\,\lambda \fr.\,\chainH(h\concat\body(\fr))\bigr)^{\!\star} (\Genesis,\ (\fr_t)_t)$. % [PROOF]
+Equal inputs give bit-identical $h_n$. % [PROOF]
+\end{proposition}
+
+\begin{proof}
+Immediate from \eqref{eq:chain}: each step is a pure function of two arguments, and composition of pure functions is pure. % [PROOF]
+BLAKE3 is a fixed function, so no nondeterminism enters. % [PROOF]
+\end{proof} % [PROOF]
+
+Proposition~\ref{prop:fold} has an operational corollary that the codebase enforces structurally. % [PROOF]
+Emission (minting a receipt at manufacture time) and replay (recomputing it later from stored fields) must agree, or tamper detection would raise false positives. % [PROOF]
+The crate guarantees agreement by routing both through one function. % [PROOF]
+
+\begin{proposition}[No emission/replay drift]\label{prop:nodrift}
+Let a receipt be emitted by \code{LawObject::receipt\_with\_record} and later recomputed by \code{ReceiptRecord::recompute\_chain\_hash}. % [PROOF]
+Both call the same \code{build\_admission\_frame} and \code{chain\_from\_frame}. % [PROOF]
+Hence for identical stored fields they compute identical $h_{+}$; any disagreement between a stored \code{chain\_hash\_hex} and its recomputation is therefore attributable to a change in a stored field, never to divergent code paths. % [PROOF]
+\end{proposition}
+
+\begin{proof}
+There is a single construction site: \code{build\_admission\_frame} is the only function that assembles an \code{OcelCausalFrame} for a receipt, and \code{chain\_from\_frame} the only one that folds it. % [PROOF]
+Both callers invoke these with the record's own fields (\code{payload\_hash}, \code{prev\_chain\_hash}, \code{ReceiptMeta}, \code{ts\_ns}). % [PROOF]
+Function purity (Proposition~\ref{prop:fold}) then forces equal outputs on equal inputs, so a recompute mismatch isolates a field mutation rather than a logic difference. % [PROOF]
+\end{proof} % [PROOF]
+
+\begin{proposition}[Prefix commitment]\label{prop:prefix}
+For each $t$, $h_t$ commits every frame $\fr_1,\dots,\fr_t$ and the genesis value: $h_t$ is a function of all of them, and (under the collision-resistance axiom of the next chapter) any change to any of them changes $h_t$ except with negligible probability. % [PROOF]
+In particular the terminal $h_n$ commits the entire history. % [PROOF]
+\end{proposition}
+
+\begin{proof}
+By induction on $t$. % [PROOF]
+Base: $h_0=\Genesis$. % [PROOF]
+Step: $h_t=\chainH(h_{t-1}\concat\body(\fr_t))$ depends on $h_{t-1}$ (which by hypothesis commits $\fr_1,\dots,\fr_{t-1}$ and $\Genesis$) and on $\body(\fr_t)$. % [PROOF]
+So $h_t$ depends on all of $\Genesis,\fr_1,\dots,\fr_t$. % [PROOF]
+The collision clause is deferred to Theorem~\ref{thm:faithful}. % [PROOF]
+\end{proof} % [PROOF]
+
+\section{Git-as-a-Runtime CAS Locking and Ledgers}
+
+To prevent coordination drift in local-first, air-gapped environment execution, we rely on the host repository's reference structures to enforce atomic locks. % [PROOF]
+
+\begin{definition}[Git CAS Lock]\label{def:gitlock}
+An atomic Compare-And-Swap (CAS) lock for resource $L$ at repository HEAD OID $H$ is acquired by invoking the reference update: % [PROOF]
+\begin{equation}\label{eq:gitlock}
+\code{git update-ref refs/locks/}L\ H\ \bm 0,
+\end{equation}
+which fails with a non-zero exit code if $\code{refs/locks/}L$ already exists, and succeeds atomically otherwise via POSIX rename. % [PROOF]
+Deletion on drop releases the lock. % [PROOF]
+\end{definition}
+
+\begin{proposition}[Append-Only notes Ledger]\label{prop:notesledger}
+The audit ledger is stored under the custom namespace $\code{refs/notes/praxis/audit}$. % [PROOF]
+Appending entries is a commit transition in which the hash-chain receipts are written as NDJSON notes, preserving the immutability of the execution timeline. % [PROOF]
+\end{proposition}
+\begin{proof}
+Let the audit ledger be represented as a sequence of NDJSON receipt objects. % [PROOF]
+Under the Git Merkle DAG model, each note update is represented as a commit object pointing to a Git tree object that associates target object hashes (OIDs) with note payload blobs. % [PROOF]
+A modification of any existing audit receipt blob at OID $H_k$ changes its content, which under the cryptographic collision-resistance property of SHA-1/SHA-256 (Axiom~\ref{ax:cr}) propagates up the Merkle DAG, resulting in a distinct commit hash at the notes reference $\code{refs/notes/praxis/audit}$. % [PROOF]
+Concurrently, the acquisition of a Git CAS lock (Definition~\ref{def:gitlock}) ensures that only one writer can atomically perform the reference transition: $\code{git update-ref refs/locks/}L\ H\ \bm 0$ prevents race conditions, ensuring that concurrent writers cannot silently overwrite or split histories. % [PROOF]
+Since the parent commit reference of each note update is cryptographically tied to the prior state, any attempt to insert, delete, or modify historical records requires finding a hash collision or breaking the CAS lock concurrency guarantee. % [PROOF]
+Thus, under the assumption of hash collision resistance, the execution timeline remains cryptographically immutable and append-only. % [PROOF]
+\end{proof}
+
+\chapter{The Faithful Chain Theorem}
+\label{ch:faithful}
+
+We now discharge the keystone's standing assumption by stating it as an explicit axiom and proving what it buys. % [PROOF]
+
+\begin{axiom}[Collision resistance]\label{ax:cr}
+$\chainH$ (instantiated as BLAKE3~\cite{blake3}) is collision-resistant: no probabilistic polynomial-time adversary finds $x\ne y$ with $\chainH(x)=\chainH(y)$ except with negligible probability $\varepsilon(\lambda)$ in the security parameter $\lambda$. % [PROOF]
+For BLAKE3, $\lambda=256$ and the best generic attack is the birthday bound $\sim 2^{128}$. % [PROOF]
+\end{axiom}
+
+\begin{theorem}[Faithful Chain]\label{thm:faithful}
+Let $\Ledger=(\fr_1,\dots,\fr_n)$ be a chain with terminal commitment $h_n$, and let $\Ledger'=(\fr'_1,\dots,\fr'_n)$ differ from $\Ledger$ in at least one committed field of at least one frame (any semantic field of Table~\ref{tab:layout}, including the payload digest of Construction~\ref{con:commit}). % [PROOF]
+If $\Ledger'$ has the \emph{same} terminal commitment $h_n$, then a collision of $\chainH$ has been exhibited. % [PROOF]
+Consequently, under Axiom~\ref{ax:cr}, an adversary who alters any committed field yet preserves $h_n$ succeeds only with probability $\le \varepsilon(\lambda)$. % [PROOF]
+\end{theorem}
+
+\begin{proof}
+Let $j$ be the least index at which $\Ledger$ and $\Ledger'$ differ in a committed field. % [PROOF]
+Bodies are injective on committed fields (Propositions~\ref{prop:bodyinj}, \ref{prop:payloadcommit}), so $\body(\fr_j)\ne\body(\fr'_j)$. % [PROOF]
+Because $j$ is least, the predecessors agree: $h_{j-1}=h'_{j-1}$. % [PROOF]
+Consider the two fold inputs $x=h_{j-1}\concat\body(\fr_j)$ and $x'=h'_{j-1}\concat\body(\fr'_j)$. % [PROOF]
+Since the prefixes $h_{j-1}=h'_{j-1}$ are equal and have equal length ($32$ bytes) while the suffixes differ, $x\ne x'$. % [PROOF]
+Now examine the terminal values. % [PROOF]
+If $h_j\ne h'_j$, then by Proposition~\ref{prop:prefix} the divergence propagates: each subsequent fold takes a differing $32$-byte prefix, so equality of the terminal $h_n=h'_n$ would require some fold step $t\ge j$ to map unequal inputs to equal outputs --- a collision. % [PROOF]
+If instead $h_j=h'_j$ despite $x\ne x'$, then $\chainH(x)=\chainH(x')$ is itself a collision at step $j$. % [PROOF]
+In either case $h_n=h'_n$ forces a collision, contradicting Axiom~\ref{ax:cr} up to $\varepsilon(\lambda)$. % [PROOF]
+\end{proof}
+
+\begin{corollary}[Bounded verification cost]\label{cor:cost}
+A verifier checking a single frame recomputes one fold \eqref{eq:chain} --- one BLAKE3 of a $32+99=131$-byte input --- and one equality test: $O(1)$ time and space, independent of $n$ and of the interior dimension of the manufacture the frame receipts. % [PROOF]
+Checking the boundary projection of a whole run (verdict, terminal $h_n$, fitness scalar, refusal reason) is $O(\CL)$, matching the keystone's Comprehension--Verification Gap. % [PROOF]
+\end{corollary}
+
+\begin{proof}
+The fold reads two fixed-width operands and produces a $256$-bit output; BLAKE3 on a fixed-length input is constant work. % [PROOF]
+Equality on $256$-bit values is constant. % [PROOF]
+The boundary projection has $\le\CL$ chunks by construction (keystone, Def.\ receipt projection), so applying the boundary predicate is $O(\CL)$. % [PROOF]
+Neither cost references $n$ or $\dim\Sig$. % [PROOF]
+\end{proof}
+
+\begin{remark}[Faithful \emph{only} over committed fields]
+Theorem~\ref{thm:faithful} is deliberately scoped to committed fields. % [PROOF]
+A change confined to a field \emph{absent} from $\body$ --- the \code{pad} bytes, or the descriptive \code{activity} label and \code{duration\_ms} of \code{ReceiptRecord}, which are marked non-hashed --- does not change $h_n$ and is, correctly, \emph{not} attested. % [PROOF]
+Faithfulness is a property of the commitment, and the commitment is exactly Table~\ref{tab:layout}. % [PROOF]
+This is the byte-exact instance of the keystone's converse clause: a frame committing bytes alone would attest tamper-evidence but not lawfulness; a frame committing the denial word, the payload digest, and the transition identity attests those. % [PROOF]
+What you commit is what you can trust; no more, and no less. % [PROOF]
+\end{remark}
+
+\chapter{Conservation of Consequence}
+\label{ch:conservation}
+
+The keystone stated Conservation of Consequence abstractly. % [PROOF]
+Here it becomes a theorem about chain positions, provable directly from Definitions~\ref{def:chain} and the Chatman equation. % [PROOF]
+
+\begin{theorem}[Conservation of Consequence, receipt form]\label{thm:conservation}
+Fix the Chatman equation $\Act=\muop(\Adm)$ with the receipt chain of Definition~\ref{def:chain}. % [PROOF]
+Then: % [PROOF]
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item \textbf{Caused.} Every actuated artifact $a$ satisfies $a=\muop(x)$ for some admitted
+$x=\adm(o)\ne\Rfsl$; no artifact outside $\im\muop$ is actuated, and a receipt is minted only for an object that reached the \code{Admitted} stage. % [PROOF]
+\item \textbf{Positioned.} Each actuation appends \emph{exactly one} frame and advances the
+chain by \emph{exactly one} commitment; the map $\Psi:\text{actuation}\mapsto h_{+}$ is injective up to hash collision. % [PROOF]
+\item \textbf{Attributed.} The committed frame carries at least one admitted cause: bytes
+$[24,56)$ commit $\dg(x)$ (the admitted-payload digest, Construction~\ref{con:commit}) and bytes $[16,24)$ commit the denial word certifying $x$ passed admission. % [PROOF]
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+(i) Actuation is gated by the equation: an artifact enters $\Act$ only as $\muop(x)$ with $x\ne\Rfsl$, so $\im\muop$ exhausts the actuated set. % [PROOF]
+In the code, \code{receipt} is a method available only on \code{LawObject<\_, Admitted, \_>}; the typestate makes ``receipt without admission'' uninhabited (foundations paper), so no artifact is receipted without an admitted antecedent. % [PROOF]
+
+(ii) Each call to \code{chain} increments \code{frame\_count} by one and produces one new \code{chain\_hash}; \eqref{eq:chain} appends exactly one commitment per frame. % [PROOF]
+Suppose two distinct actuations mapped to the same $h_{+}$. % [PROOF]
+Their frames differ (distinct instruction identity in \code{instruction\_id}, or distinct payload digest), so by Theorem~\ref{thm:faithful} equal terminal commitments force a collision. % [PROOF]
+Hence $\Psi$ is injective up to $\varepsilon(\lambda)$. % [PROOF]
+
+(iii) By Construction~\ref{con:commit}, $\dg(x)$ occupies bytes $[24,56)$; the denial word \code{denial.0} occupies $[16,24)$ and equals \code{ADMITTED} on the accept path (the record persists an admitted-polarity frame). % [PROOF]
+Thus the frame commits both the identity of the cause and the verdict that admitted it. % [PROOF]
+\end{proof} % [PROOF]
+
+\begin{corollary}[No orphan and no double-spend of consequence]\label{cor:orphan}
+No actuated artifact lacks a chain position (\emph{no orphan}: by (i)+(ii)), and no chain position is shared by two actuations (\emph{no double-count}: by (ii)). % [PROOF]
+Consequence is neither created without an admitted cause nor recorded without a unique receipt slot. % [PROOF]
+\end{corollary}
+\begin{proof}
+Let $A$ be the set of actuated artifacts and $C$ be the set of chain positions represented by commitments $h_i$. % [PROOF]
+By Theorem~\ref{thm:conservation}~(i), every actuated artifact $a \in A$ has a corresponding admitted cause $x = \adm(o) \neq \Rfsl$ that triggers an actuation. % [PROOF]
+By Theorem~\ref{thm:conservation}~(ii), each such actuation maps to a new unique commitment $h_+ \in C$ under the commitment map $\Psi$, which is injective up to hash collision. % [PROOF]
+First, if there exists an actuated artifact $a$ that lacks a chain position (an orphan), this directly contradicts Theorem~\ref{thm:conservation}~(ii) which states that each actuation appends exactly one frame and advances the chain by exactly one commitment, establishing a valid position for all actuated consequences. % [PROOF]
+Second, if a chain position is shared by two distinct actuations (double-spend of consequence), then we have two distinct actuations mapping to the same commitment $h_+$. % [PROOF]
+However, because the commitment map $\Psi$ is injective up to hash collision (Theorem~\ref{thm:conservation}~(ii)), this equality of commitments implies a hash collision has been found. % [PROOF]
+Under Axiom~\ref{ax:cr}, such a collision occurs only with negligible probability $\varepsilon(\lambda)$. % [PROOF]
+Therefore, consequence is neither created without an admitted cause nor recorded without a unique, non-overlapping receipt slot. % [PROOF]
+\end{proof}
+
+\begin{remark}[Uniqueness of cause is by commitment, not by inversion]
+As the keystone stressed, $\muop$ need not be injective: two admitted observations may manufacture the same artifact. % [PROOF]
+Clause (iii) does not claim $a$ determines $x$; it claims the frame \emph{commits} $\dg(x)$, so $h_{+}$ pins the cause even where the artifact alone would not recover it. % [PROOF]
+Uniqueness of the cause is a property of the receipt, not a false property of the morphism. % [PROOF]
+\end{remark}
+
+\chapter{Tamper Localization: The Staged Validator}
+\label{ch:localize}
+
+Theorem~\ref{thm:faithful} gives a \emph{detector}: a tampered ledger fails to verify. % [PROOF]
+A production verifier must do more --- it must say \emph{where} and \emph{how} the ledger is broken, because at fleet scale ``this ledger is invalid'' is an alarm with no address. % [PROOF]
+The praxis \code{ReceiptValidator} is a staged pipeline that localizes the fault. % [PROOF]
+
+\begin{definition}[Validation pipeline]\label{def:pipeline}
+The validator runs five stages in fixed order over a ledger $(\fr_t)_{t=1}^{n}$, each returning \code{Pass}, \code{Fail}(message), or \code{Skip}(reason), and reports \emph{all} stage outcomes rather than short-circuiting: % [PROOF]
+\begin{enumerate}[label=(S\arabic*),leftmargin=*]
+\item \code{schema} --- every record has the supported version and well-formed
+$32$-byte hex fields (\code{payload\_hash}, \code{prev\_chain\_hash}, \code{chain\_hash}). % [PROOF]
+\item \code{chain\_recompute} --- for each $t$, \code{recompute\_chain\_hash} equals the stored
+\code{chain\_hash\_hex}. % [PROOF]
+This is the direct instantiation of Theorem~\ref{thm:faithful}: a mismatch is a committed-field tamper. % [PROOF]
+\item \code{chain\_linkage} --- for each $t>1$, $\code{prev\_chain\_hash\_hex}(t)=
+\code{chain\_hash\_hex}(t-1)$: the records are actually threaded, not merely individually valid. % [PROOF]
+\item \code{monotonic} --- \code{instruction\_id} is strictly increasing, \code{ts\_ns} is
+non-decreasing, and no \code{ts\_ns} exceeds the (injectable) clock's ``now''. % [PROOF]
+\item \code{token\_replay} --- each record replays through the fixed POWL token model to
+fitness exactly $\code{0x0001\_0000}$ (\S\ref{sec:fitness}). % [PROOF]
+\end{enumerate}
+\end{definition}
+
+\begin{theorem}[Tamper localization]\label{thm:localize}
+Suppose a lawful ledger $\Ledger$ is perturbed to $\Ledger'$ by a modification whose first affected record is index $j$. % [PROOF]
+Then the pipeline of Definition~\ref{def:pipeline} reports a \code{Fail} whose named record index is $j$ (equivalently, the least index whose recomputation, linkage, monotonicity, or replay breaks), and the stage identifier names the class of the fault. % [PROOF]
+The honest prefix $\fr_1,\dots,\fr_{j-1}$ is not implicated. % [PROOF]
+\end{theorem}
+
+\begin{proof}
+The stages scan records in increasing index and each returns on its \emph{first} failing record. % [PROOF]
+Consider the classes of a single-record perturbation at $j$: % [PROOF]
+\begin{itemize}[leftmargin=*]
+\item If the mutation malforms a hex field, \code{schema} fails at $j$ (earlier records parse,
+being unperturbed). % [PROOF]
+\item If the mutation changes a committed field but leaves \code{chain\_hash\_hex}(j) stale,
+\code{chain\_recompute} fails at $j$: by Proposition~\ref{prop:nodrift} the recomputation uses the perturbed fields, so it diverges from the stored value exactly at $j$; records $<j$ are unperturbed and recompute equal. % [PROOF]
+\item If the mutation reorders or splices records so that thread continuity breaks (e.g.\ a
+swap), \code{chain\_linkage} fails at the least index whose \code{prev} no longer matches its predecessor's \code{chain\_hash}. % [PROOF]
+\item If the mutation rewrites both a field \emph{and} its stored chain hash to be internally
+consistent (a coordinated forgery), then either linkage breaks at $j$ (the forged \code{chain\_hash}(j) no longer equals what record $j{+}1$ expects, unless the adversary rewrites the entire suffix), or, if the whole suffix is rewritten, the forged terminal commitment differs from the attested $h_n$ and Theorem~\ref{thm:faithful} applies at the boundary --- an anchored $h_n$ (e.g.\ a signed or externally published terminal value, see Chapter~\ref{ch:auth}) makes suffix rewriting a collision problem. % [PROOF]
+\item If the mutation preserves hashes but produces a trace that is not a firing sequence,
+\code{token\_replay} fails at $j$ with fitness $<1$ (\S\ref{sec:fitness}). % [PROOF]
+\end{itemize}
+In every class the least failing index is $j$ and the honest prefix passes every stage, because each stage's predicate on records $<j$ is evaluated on unperturbed data and holds by hypothesis. % [PROOF]
+\end{proof} % [PROOF]
+
+\begin{remark}[Report-all, not fail-fast, across stages]
+Within a stage the scan returns on the first offending record (so the \emph{record} is localized); across stages the pipeline runs every stage and reports each outcome (so the \emph{fault class} is fully characterized, and a ledger broken in two independent ways shows both). % [PROOF]
+This mirrors the affidavit-style \code{verify} pipeline's ``run every stage, report all of them'' shape and is what lets a downstream consumer act on the specific defect rather than a bare Boolean. % [PROOF]
+\end{remark}
+
+\section{Fitness as the replay coordinate}
+\label{sec:fitness}
+
+\begin{definition}[Replay fitness]\label{def:fitness}
+Replay fitness is the normalized conformance metric of the keystone's marking geometry, $\Fitness=1-\frac{\text{tokens forced on unenabled transitions}}{\text{tokens the replay attempted}}\in[0,1]$, represented in the code as a Q16.16 fixed-point integer: the value $1.0$ is the constant $\code{0x0001\_0000}=65536$. % [PROOF]
+The \code{token\_replay} stage accepts a record iff its replayed fitness equals $\code{0x0001\_0000}$. % [PROOF]
+\end{definition}
+
+\begin{proposition}[Fitness $=1$ characterizes lawful replay]\label{prop:fitness}
+A record's replay attains $\Fitness=\code{0x0001\_0000}$ iff its lifecycle is a genuine firing sequence of the fixed POWL token model; otherwise the first forced consumption localizes the nonconformant step, and the stage fails naming that record. % [PROOF]
+\end{proposition}
+
+\begin{proof}
+By the keystone's unit-fitness characterization: enabled firings force no consumption, giving numerator $0$ and $\Fitness=1$ ($=\code{0x0001\_0000}$ in Q16.16); a disabled event forces a consumption, making the numerator positive and $\Fitness<1$, at the earliest offending index. % [PROOF]
+The stage compares against the exact fixed-point unit. % [PROOF]
+\end{proof} % [PROOF]
+
+\chapter{Authenticity: Ed25519 as a Self-Contained Signature}
+\label{ch:auth}
+
+The chain answers (Q1), integrity: \emph{was this history altered?} It does not by itself answer (Q2), authenticity: \emph{who vouches for it?} An adversary who fabricates an entirely fresh but internally consistent ledger produces a valid chain --- valid chains are cheap to manufacture; what is expensive is manufacturing one that collides with a \emph{committed} prior value. % [PROOF]
+Authenticity is added by binding the terminal commitment to a keyholder. % [PROOF]
+
+\begin{definition}[Signed receipt]\label{def:signed}
+A \emph{signed receipt} is the triple $\code{SignedReceipt}=\langle h_{\mathrm{hex}},\ s,\ k\rangle$ where $h_{\mathrm{hex}}$ is the hex terminal chain value, $s=\mathrm{Sign}_{sk}(h_{\mathrm{hex}})$ is an Ed25519 signature~\cite{ed25519} over it, and $k$ is the hex verifying key. % [PROOF]
+It is \emph{self-contained}: $s$ and $k$ travel with $h_{\mathrm{hex}}$, so the object verifies without out-of-band key material. % [PROOF]
+\end{definition}
+
+\begin{proposition}[Integrity vs.\ authenticity are distinct checks]\label{prop:intauth}
+There are two verification predicates: % [PROOF]
+\begin{itemize}[leftmargin=*]
+\item \textbf{Integrity} (\code{verify\_chain\_hash}): check $s$ against the \emph{embedded}
+key $k$ and that $k$'s signature covers the presented $h$. % [PROOF]
+This proves the signed object was not altered after signing, but trusts whatever key is inside it. % [PROOF]
+\item \textbf{Authenticity} (\code{verify\_chain\_hash\_with\_key}): check $s$ against an
+\emph{externally pinned} key $k^{\star}$. % [PROOF]
+This fails if the receipt was signed by any key other than $k^{\star}$, even if internally consistent. % [PROOF]
+\end{itemize}
+The first is necessary but not sufficient for the second; a verifier who wants ``this came from the party I trust'' must use the second and supply $k^{\star}$ from an independent source. % [PROOF]
+\end{proposition}
+
+\begin{proof}
+Ed25519 verification is a function of $(\text{message},\text{signature},\text{key})$. % [PROOF]
+\code{verify\_chain\_hash} instantiates the key argument with the embedded $k$; any adversary who re-signs a modified $h$ with a self-generated key $k'$ passes this check, so it does not establish authorship. % [PROOF]
+\code{verify\_chain\_hash\_with\_key} instantiates the key argument with $k^{\star}$; by Ed25519's existential unforgeability~\cite{ed25519}, producing a valid $s$ over $h$ under $k^{\star}$ without $sk^{\star}$ is infeasible, so a pass attributes authorship to the holder of $sk^{\star}$. % [PROOF]
+The embedded-key check therefore cannot substitute for the pinned-key check. % [PROOF]
+\end{proof} % [PROOF]
+
+\begin{proposition}[Fail-closed signing]\label{prop:failclosed}
+When the \code{signed} feature is enabled, a missing or unreadable signing key (\code{PRAXIS\_SIGNING\_KEY} / \code{\_FILE}) is a hard error, not a silent skip: the signing path returns \code{SigningFailed} rather than emitting an unsigned receipt. % [PROOF]
+\end{proposition}
+
+\begin{proof}
+The \code{signed} feature exists to \emph{guarantee} a signature; silently skipping would defeat its purpose and let an unsigned receipt masquerade as covered. % [PROOF]
+The implementation therefore treats key absence as failure. % [PROOF]
+Authenticity is thus either present and checkable or explicitly absent, never ambiguously assumed. % [PROOF]
+\end{proof} % [PROOF]
+
+\begin{remark}[What a signature adds to the chain, precisely]
+Composing Theorem~\ref{thm:faithful} with Proposition~\ref{prop:intauth}: the chain makes \emph{internal} tampering a collision problem; the signature makes \emph{substituting a different history} an unforgeability problem, provided the verifier pins $k^{\star}$ and treats $h_n$ as the anchored value. % [PROOF]
+Neither alone suffices against a resourceful adversary; together they reduce forgery to breaking BLAKE3 collision resistance \emph{or} Ed25519 unforgeability. % [PROOF]
+\end{remark}
+
+\chapter{The Receipt Lake: Content-Addressed and Queryable at Index Scale}
+\label{ch:lake}
+
+Individual receipts chain into a per-run ledger. % [PROOF]
+Across a fleet, ledgers accumulate into a \emph{receipt lake} $\Lake$: a content-addressed, append-only store engineered so that the population of receipts is queryable without reading interiors. % [PROOF]
+
+\begin{definition}[Content addressing]\label{def:contentaddr}
+The address of a stored object $b$ is $\code{content\_address}(b)=\chainH(b)$ in hex. % [PROOF]
+Two byte-identical objects share an address; any change yields a different address. % [PROOF]
+A receipt's own terminal $h_n$ is such an address, so a receipt is stored under a name that is a function of its content. % [PROOF]
+\end{definition}
+
+\begin{proposition}[De-duplication and immutability are free]\label{prop:cas}
+In a content-addressed lake, (a) storing the same receipt twice is idempotent (same address), and (b) mutating a stored receipt changes its address, so the old address still resolves to the old bytes: history is immutable by construction, and references are stable. % [PROOF]
+\end{proposition}
+
+\begin{proof}
+(a) The address is $\chainH(b)$, a function of $b$; equal $b$ gives equal address. (b) A change $b\to b'$ with $b\ne b'$ gives $\chainH(b')\ne\chainH(b)$ except on a collision (Axiom~\ref{ax:cr}); the reference $\chainH(b)$ therefore cannot be made to resolve to $b'$. % [PROOF]
+\end{proof}
+
+\section{OCEL 2.0 and PROV-O mappings}
+
+A receipt is not only a hash; it carries process structure. % [PROOF]
+Each \code{ReceiptRecord} names the OCEL objects it governs via \code{object\_ids} (event-to-object links), an \code{activity\_idx} and \code{node\_kind} placing it in a POWL process, and an \code{instruction\_id} sequencing it. % [PROOF]
+This lets the ledger export as a standard event log. % [PROOF]
+
+\begin{construction}[OCEL 2.0 export]\label{con:ocel}
+The map $\Omega:\Ledger\to\mathrm{OCEL2.0}$ sends each frame to an OCEL \emph{event} with: event id $=$ \code{instruction\_id}; activity $=$ label of \code{activity\_idx}; timestamp $=$ \code{ts\_ns}; and event-to-object (E2O) qualifiers to each identifier in \code{object\_ids}. % [PROOF]
+The result is a conformant OCEL~2.0 log queryable by any process-mining tool, produced by \code{receipt export-ocel}. % [PROOF]
+\end{construction}
+
+\begin{construction}[PROV-O / SHACL bridge]\label{con:provo}
+Each receipt maps to a PROV-O~\cite{provo} shape: the admitted observation is a \code{prov:Entity}, the manufacture a \code{prov:Activity} that \code{prov:used} it, the artifact a \code{prov:Entity} that \code{prov:wasGeneratedBy} the activity, and the chain link a \code{prov:wasDerivedFrom} edge to the predecessor. % [PROOF]
+The praxis \code{receipt\_shacl} module realizes a concrete instance, validating a \code{ReceiptRecord} against the \code{sr:SharedReceiptV1} SHACL shape --- so a receipt is not merely serializable to RDF but \emph{shape-checked} against a published contract before it enters the lake. % [PROOF]
+\end{construction}
+
+\begin{proposition}[The mappings preserve the commitment]\label{prop:mapcommit}
+$\Omega$ and the PROV-O bridge are lossless over the committed fields: the terminal $h_n$ is recoverable from the exported log's per-event fields via Definition~\ref{def:chain}, so exporting to OCEL~2.0 or RDF does not weaken the chain guarantee --- a consumer can recompute and re-verify from the exported form. % [PROOF]
+\end{proposition}
+
+\begin{proof}
+$\Omega$ carries each frame's committed fields (\code{instruction\_id}, \code{activity\_idx}, \code{ts\_ns}, the object identifiers, and the hex hashes) into event attributes; the chain recomputation of Proposition~\ref{prop:nodrift} depends only on these plus \code{payload\_hash} and \code{prev\_chain\_hash}, which the record retains. % [PROOF]
+Hence the exported log determines $h_n$, and re-verification is Theorem~\ref{thm:faithful} applied to the reconstructed frames. % [PROOF]
+\end{proof}
+
+\section{Index-scale query: the QLever direction}
+
+\begin{remark}[Querying a lake without reading interiors]
+Once receipts are RDF triples (Construction~\ref{con:provo}), the population is a knowledge graph. % [PROOF]
+An engineered SPARQL index such as QLever~\cite{qlever} answers queries over $10^{11}$-scale triple stores by a join plan no engineer reconstructs --- the very ``differential agreement over a checked projection'' the keystone cites as manufactured trust. % [PROOF]
+The design direction is: the lake stores content-addressed receipts; a triple index over their committed fields answers fleet-scale questions (``which agents refused with category $c$ in window $w$?'', ``what is the pass-rate over frontier $F$?'') at index speed, touching only the $O(\CL)$-sized committed coordinates, never the interiors. % [PROOF]
+This is the projection principle at the scale of a whole civilization's audit log: the interior is a trillion manufactures; the queryable surface is their committed frames. % [PROOF]
+\end{remark}
+
+\section{Git-CAS Locking and Crash Recovery}
+
+The \code{chatman-common} crate realizes atomic receipt ledger writes by mapping the receipt lock problem onto the host Git object store. % [PROOF]
+For an air-gapped, local-first execution environment where no external coordinator is available, this is the correct level of mechanism: Git's reference-update protocol uses POSIX rename, which is atomic on POSIX-compliant filesystems. % [PROOF]
+
+\begin{definition}[Git CAS Lock, operational form]\label{def:gitlock-op}
+Let $L$ be a named resource (e.g.\ the praxis audit ledger) and let $H$ be the current HEAD OID of the local repository. % [PROOF]
+The CAS lock for $L$ is acquired by % [PROOF]
+\[
+\code{git update-ref refs/locks/}L\ H\ \bm 0_{20},
+\]
+which atomically creates \code{refs/locks/}$L$ pointing to $H$, succeeding iff the
+reference does not already exist (the old-value argument $\bm 0_{20}$ means ``require
+absent''). Deletion of the reference on drop releases the lock. The lock is therefore
+held for at most the duration of one \code{git update-ref} round-trip plus the critical
+section, without holding any OS-level file lock that could block unrelated operations.
+\end{definition}
+
+\begin{proposition}[Append-only notes ledger under CAS]
+\label{prop:notesledger-op}
+The audit ledger is stored under the custom Git notes namespace
+\code{refs/notes/praxis/audit}. Under the CAS lock of Definition~\ref{def:gitlock-op},
+each append of a receipt record is a \emph{commit transition}: the new record is serialized
+as NDJSON and appended to the notes tree under the commit OID it annotates. Because Git
+commits are content-addressed (the commit hash is the BLAKE3 of its tree plus metadata),
+the appended entry is immutable by Git's object model. The notes reference advances
+atomically under the CAS guard, so two concurrent append attempts on the same ledger are
+serialized by the acquire-fail branch of the CAS.
+\end{proposition}
+
+\begin{proof}
+A failing CAS (reference already exists) exits with a non-zero code before touching the
+notes tree; only the lock holder proceeds. Within the critical section, the notes append
+is a single \code{git notes add} followed by the reference-delete on the lock. If the
+process is killed after the notes append but before the lock release, the lock entry
+remains; the restart protocol in \code{chatman-common} detects a stale lock by comparing
+the locked OID $H$ to the current HEAD --- if they differ (a new commit has been pushed),
+the lock is stale and is force-released, because the locked OID no longer uniquely
+identifies a live critical section.
+\end{proof}
+
+\begin{remark}[Relationship to the Faithful Chain Theorem]
+The CAS lock protocol is orthogonal to the hash chain: the chain guards \emph{what was
+recorded} (no field tampered), while the CAS lock guards \emph{that only one writer
+appended at a time} (no race). Together they give a ledger that is simultaneously
+append-sequential (by the lock) and tamper-evident (by the chain). Violation of
+sequentiality (two writers appending concurrently) would not break Theorem~\ref{thm:faithful};
+it would produce a fork in the notes tree rather than a hash collision. The CAS lock
+prevents the fork; the chain prevents the tamper; neither subsumes the other.
+\end{remark}
+
+\chapter{Integrity Is Not Virtue: The Scope Theorem}
+\label{ch:scope}
+
+The most important theorem in a cryptographic doctrine is the one that says what the
+cryptography does \emph{not} prove. Without it, a receipt chain becomes a laundering device:
+tamper-evidence dressed up as a warrant of goodness. We state the boundary precisely.
+
+\begin{theorem}[Integrity--Virtue Scope]\label{thm:scope}
+Let a receipt chain $\Ledger$ verify (Theorem~\ref{thm:faithful}) and, optionally, be
+authentically signed (Proposition~\ref{prop:intauth}). Then $\Ledger$ establishes exactly the
+following, and no more:
+\begin{enumerate}[label=(\Alph*),leftmargin=*]
+\item \textbf{Integrity.} The committed fields of every frame are as they were when minted;
+no committed field was altered post hoc (up to $\varepsilon(\lambda)$).
+\item \textbf{Attribution.} Each artifact is committed to an admitted cause and a denial word,
+and (if signed) to a keyholder.
+\item \textbf{Conformance-as-checked.} Each replayed lifecycle is a firing sequence of the
+\emph{fixed} POWL model to fitness $\code{0x0001\_0000}$ (Proposition~\ref{prop:fitness}).
+\end{enumerate}
+It does \textbf{not} establish:
+\begin{enumerate}[label=(\alph*),leftmargin=*]
+\item \textbf{Obligation adequacy.} That the obligation battery $G$ was the \emph{right} set of
+checks --- the chain commits $\dg(G)$ and the denial word, not the wisdom of choosing $G$.
+\item \textbf{World-fitness.} That the artifact is correct, safe, useful, or ethical in the
+world --- $\muop$ is deterministic and bounded, not benevolent.
+\item \textbf{Semantic truth.} That the admitted observation \emph{meant} what it purported;
+admission retracted onto a decidable sub-language (Rice quarantine), it did not decide meaning.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+(A) is Theorem~\ref{thm:faithful}: altering a committed field forces a collision. (B) is
+Conservation of Consequence (iii) (Theorem~\ref{thm:conservation}) composed with
+Proposition~\ref{prop:intauth}. (C) is Proposition~\ref{prop:fitness}, and is scoped to the
+\emph{fixed} model: fitness certifies conformance to the model that was replayed, not that the
+model is the correct model.
+
+For the negatives, we exhibit that each is independent of the verifying predicate. (a) Two
+ledgers with different obligation sets $G\ne G'$ can both verify; the chain commits $\dg(G)$
+so it \emph{records} which set was used, but $\mathrm{Verify}$ returns \code{Pass} for any
+committed $G$, so verification does not rank $G$ against $G'$. (b) Fix any admitted $x$; both a
+benign and a harmful deterministic $\muop$ produce verifying chains, since verification never
+inspects the world-consequences of $a=\muop(x)$ --- only that $a$'s digest is committed. Hence
+world-fitness is not a function of the verdict. (c) By the series' Rice specialization, no
+computable predicate decides the semantic property ``$o$ means what it purports''; admission is
+a retraction, not a decision, so a verifying receipt attests admission, which is provably
+weaker than truth. Each negative is therefore not entailed by (A)--(C). \end{proof}
+
+\begin{corollary}[The antibody clause, cryptographic form]\label{cor:antibody}
+A claim of the form ``this artifact is \emph{good} because its receipt verifies'' is an
+overclaim: it asserts a virtue (b) that the verifying predicate provably does not entail
+(Theorem~\ref{thm:scope}). The admissible claim is narrower and exact: ``this artifact was
+manufactured from an admitted cause under obligation set $G$, unaltered and (optionally)
+signed by $k^{\star}$, conformant to model $M$.'' A discipline that only emits the narrow claim
+is machinery; one that emits the broad claim is grandiosity.
+\end{corollary}
+
+\begin{proof}
+The broad claim entails (b), which Theorem~\ref{thm:scope} shows is independent of the verdict;
+so the broad claim is not supported by the receipt. The narrow claim is exactly the conjunction
+(A)$\wedge$(B)$\wedge$(C), each proven. Emitting only what is entailed is the keystone's
+\code{docs-exceed-mechanism} invariant applied to cryptographic claims. \end{proof}
+
+\chapter{Conclusion}
+
+We built the cryptography the keystone assumed. A frame is a fixed-width, $128$-byte,
+cache-aligned encoding of one manufacturing step whose $99$-byte hash body commits the full
+payload digest, the denial word, and the transition identity (Chapter~\ref{ch:frame}). A chain
+folds frames by $h_{+}=\chainH(h_{-}\concat\body(\fr))$ into a rolling commitment computed by a
+single, drift-free construction site (Chapter~\ref{ch:chain}). From an explicit
+collision-resistance axiom we proved the Faithful Chain Theorem --- perturbing any committed
+field forces a collision, and a bounded verifier rejects it reading $O(1)$ per frame
+(Chapter~\ref{ch:faithful}) --- and Conservation of Consequence in receipt form: exactly one
+chain position per actuation, injective up to collision, each artifact committed to an admitted
+cause (Chapter~\ref{ch:conservation}). The staged validator does not merely detect tampering
+but localizes it to the first divergent frame and names the fault class
+(Chapter~\ref{ch:localize}). Ed25519 signatures add self-contained authenticity, kept
+distinct from integrity and made fail-closed (Chapter~\ref{ch:auth}). Receipts accumulate into
+a content-addressed lake with lossless OCEL~2.0 / PROV-O mappings and an index-scale query
+direction (Chapter~\ref{ch:lake}).
+
+The final theorem is the one a cryptographer must never omit: integrity is not virtue
+(Chapter~\ref{ch:scope}). A verifying, signed chain proves that a history is unaltered,
+attributed, and conformant-as-checked --- and proves, with equal rigor, that it says nothing
+about whether the obligations were wise, the artifact good, or the observation true. That
+boundary is not a weakness of the receipt. It is the discipline that lets a receipt be trusted
+for exactly what it commits, at a scale where trusting it for more would be the first lie a
+trillion agents tell each other.
+
+\begin{center}\itshape A receipt commits; it does not absolve.\end{center}
+
+\appendix
+\chapter{Notation and Field Layout}
+
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning\\
+\midrule
+$\fr,\ \body(\fr)$ & frame; its $99$-byte canonical hash body (Table~\ref{tab:layout})\\
+$\chainH,\ \dg(\cdot)$ & BLAKE3 hash; digest $\dg(b)=\chainH(b)$\\
+$h_{-},\ h_{+},\ h_t$ & predecessor / successor / step-$t$ chain commitment\\
+$\Genesis$ & genesis commitment $\chainH(\bm 0_{32})$, optionally domain-bound\\
+$\concat$ & byte concatenation\\
+$\Ledger,\ \Lake$ & chain (ledger); content-addressed receipt lake\\
+$\varepsilon(\lambda)$ & negligible collision/forgery probability; $\lambda=256$\\
+$\Psi$ & actuation $\mapsto$ terminal commitment map (injective up to collision)\\
+$\Fitness$ & replay fitness; unit $=\code{0x0001\_0000}$ (Q16.16)\\
+$G,\ \dg(G)$ & obligation battery; its committed digest\\
+$k,\ k^{\star},\ sk$ & embedded / pinned verifying key; signing key\\
+$\Omega$ & OCEL~2.0 export map (Construction~\ref{con:ocel})\\
+\bottomrule
+\end{tabular}
+
+\vspace{1em}
+\noindent\textbf{Code sites.} \code{OcelCausalFrame}, \code{to\_hash\_bytes},
+\code{OcelCausalReceipt::chain} (\code{bcinr-powl-receipt});
+\code{build\_admission\_frame}, \code{chain\_from\_frame}, \code{ReceiptRecord},
+\code{recompute\_chain\_hash}, \code{ReceiptValidator}, \code{signing} (\code{praxis-core});
+\code{content\_address}, \code{SignedReceipt} (\code{chatman-common}); \code{receipt\_shacl}
+(root crate).
+
+\begin{thebibliography}{9}
+\bibitem{chatman2025} The Praxis / Capability Physics Program.
+\emph{The Chatman Equation and the Industrial Revolution of Knowledge}, v1.2.0, Nov.\ 2025.
+\bibitem{blake3} J.-P.\ Aumasson, S.\ Neves, Z.\ Wilcox-O'Hearn, J.\ O'Connor.
+\emph{BLAKE3: One Function, Fast Everywhere}. 2020.
+\bibitem{ed25519} D.\ J.\ Bernstein, N.\ Duif, T.\ Lange, P.\ Schwabe, B.-Y.\ Yang.
+\emph{High-speed high-security signatures} (Ed25519). J.\ Cryptographic Engineering, 2012.
+\bibitem{provo} T.\ Lebo, S.\ Sahoo, D.\ McGuinness (eds.).
+\emph{PROV-O: The PROV Ontology}. W3C Recommendation, 2013.
+\bibitem{ocel2} A.\ Berti, I.\ Koren, J.\ N.\ Adams, et al.
+\emph{OCEL (Object-Centric Event Log) 2.0 Specification}. 2023.
+\bibitem{qlever} H.\ Bast, B.\ Buchhold.
+\emph{QLever: A Query Engine for Efficient SPARQL+Text Search}. CIKM, 2017.
+\bibitem{rice} H.\ G.\ Rice.
+\emph{Classes of recursively enumerable sets and their decision problems}.
+Trans.\ AMS, 1953.
+\end{thebibliography}
+
+\end{document}

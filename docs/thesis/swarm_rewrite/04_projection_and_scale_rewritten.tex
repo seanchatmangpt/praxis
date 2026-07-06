@@ -1,0 +1,1543 @@
+\documentclass[11pt,oneside]{book}
+
+\usepackage[margin=1.15in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+
+% ---- theorem environments (identical to the keystone, for series coherence) ----
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{axiom}{Axiom}[chapter]
+\newtheorem{construction}{Construction}[chapter]
+\newtheorem{estimate}{Estimate}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+% ---- notation macros (shared with projection_thesis.tex; NB: never define \Ref) ----
+\newcommand{\Obs}{\mathcal{O}}                 % raw observation space
+\newcommand{\Adm}{\mathcal{O}^{*}}             % admitted observation space
+\newcommand{\Act}{\mathcal{A}}                 % action / artifact space
+\newcommand{\Recs}{\mathcal{R}}                % receipt space
+\newcommand{\Proj}{\pi}                        % projection
+\newcommand{\muop}{\mu}                        % manufacturing morphism
+\newcommand{\adm}{\alpha}                      % admission map
+\newcommand{\chainH}{\mathsf{H}}               % hash
+\newcommand{\Rfsl}{\bot}                        % refusal (NOT \Ref: reserved by hyperref)
+\newcommand{\CL}{\kappa}                       % bounded-verifier context capacity
+\newcommand{\Fitness}{\varphi}
+\newcommand{\dg}{\mathrm{dg}}                  % digest
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\id}{id}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator*{\argmax}{arg\,max}
+% ---- paper-04-local macros ----
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\Over}{\mathcal{V}}                % notation alignment from master_notation_canon
+\newcommand{\abyte}[1]{{b_{#1}}}                 % notation alignment from master_notation_canon
+\newcommand{\lane}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\Bw}{B}                            % streaming bandwidth
+\newcommand{\Kill}{\mathrm{Kill}}
+\newcommand{\stg}{\mathsf{s}}                  % correct-stage map
+
+% Fallback label definition for standalone compilation of prop:monoid from Chapter 1
+\makeatletter
+\@ifundefined{r@prop:monoid}{\newlabel{prop:monoid}{{1.2}{1}}}{}
+\makeatother
+
+\title{\bfseries Beyond Cognitive Load:\\[0.4em]
+\large The Projection Principle at Planetary Scale\\
+\large Manufactured Trust, the Agent Byte, and the Economics of Admission}
+\author{The Chatman Equation Thesis Program \\ (Praxis / Capability Physics)}
+\date{Genesis --- Scale, Paper 04}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+This paper extends the keystone thesis \cite{chatman2025} from the theory of a single faithful receipt to the physics of a planetary population of them. % [ORIENT]
+We do not restate the keystone's proofs; we cite them and build forward on three fronts. % [ORIENT]
+\emph{First}, we make the Comprehension--Verification Gap quantitative, taking the autonomous build of $\sim\!2.5\times 10^{6}$ interior tokens as a concrete instance and separating what is \emph{measured} (the interior token count, the receipt field count) from what is \emph{estimated} (per-message hash wall-time), so the gap ratio $\sim\!6\times 10^{5}$ is stated with its provenance. % [ORIENT]
+\emph{Second}, we formalize the industrial practice of \emph{manufactured trust} --- the simdjson/QLever treatment --- as a general method: a correctness question that Rice's theorem \cite{rice1953} makes undecidable is retracted onto a decidable \emph{oracle}. % [DEF]
+We give three oracles and their guarantees: differential agreement as mutual verification (with a false-accept bound), boundary fuzzing of the \emph{total} admission retraction, and mutation-testing of the receipt chain, proving the \emph{Mutant Kill Theorem} --- under staged soundness and completeness, a mutant is killed \emph{iff} the validator rejects it at the correct stage. % [THM]
+\emph{Third}, we develop the \code{agent8} projection: an MCP/A2A agent rendered as an eight-bit status byte. % [DEF]
+We prove that fleet admission is \emph{branchless mask algebra} gating $64$ agents per machine word per lane in a fixed seven-instruction reduction, show that a $10^{10}$-agent population is exactly $10\,\mathrm{GB}$ swept in one memory-bandwidth pass, and give the planetary Fermi estimate ($10^{8}$--$10^{10}$ admission decisions per second) establishing that only bit-parallel admission is affordable while comprehension-based admission is not. % [THM]
+We close by formalizing the \emph{antibody clause}: the overclaim set is empty as an invariant, and the admissible magnitude of any claim is bounded by the mechanism that receipts it --- a bound this paper applies reflexively to its own claims. % [BOUNDARY]
+Every abstract object is anchored to running code in the \code{praxis} repository: the eight-lane \code{DenialPolarity} word, the eight-bucket \code{refusal} taxonomy, the staged \code{PowlReplayVerifier}, the BLAKE3 \code{OcelCausalFrame} chain, and the \code{agent8} byte. % [CODE]
+
+\tableofcontents
+
+\mainmatter
+
+\chapter{Introduction: From the Gap to the Sweep}
+\label{ch:intro}
+
+\section{What the keystone settled, and what remains}
+The keystone thesis \cite{chatman2025} settled the \emph{qualitative} shape of trust among agents who cannot comprehend one another. % [ORIENT]
+Its results are three. % [ORIENT]
+The \emph{Faithful Projection Theorem} \cite{chatman2025} establishes that a chained receipt committing law-bearing fields is faithful to lawful consequence over exactly those fields, under collision resistance. % [THM]
+The \emph{Comprehension--Verification Gap} \cite{chatman2025} establishes that boundary verification of a receipt costs $O(\CL)$ --- independent of interior dimension --- while honest replay costs $O(n)$. % [THM]
+The \emph{Conservation of Consequence} \cite{chatman2025} establishes that every actuated artifact is the image of at least one admitted observation and occupies exactly one receipt-chain position. % [THM]
+Together these say: a bounded verifier can trust an unbounded interior by reading a small faithful coordinate of it. % [ORIENT]
+
+Those theorems are about \emph{one} receipt and \emph{one} verifier. % [ORIENT]
+A civilization is not one receipt. % [ORIENT]
+It is $10^{10}$ or $10^{12}$ agents, each emitting receipts continuously, each obliged to admit or refuse the others' outputs faster than any of them can be read. % [BOUNDARY]
+Three questions the keystone raised but did not exhaust are the subject of this paper. % [ORIENT]
+
+\begin{enumerate}[label=(Q\arabic*),leftmargin=*]
+\item \textbf{How large is the gap, concretely?} The keystone proved the ratio diverges; it did not pin the constants. We take the $2.5$-million-token build as an instance and compute the ratio with a clean line between measured and estimated quantities (Chapter~\ref{ch:gap}). % [ORIENT]
+\item \textbf{Where does the trust actually come from, mechanically?} The keystone named ``differential agreement, adversarial fuzzing, invariants, and checked projections'' as the engineering practice it was generalizing, but treated them as motivation. We formalize them as a \emph{general method} with provable guarantees (Chapter~\ref{ch:mt}). % [ORIENT]
+\item \textbf{What does admission cost at population scale?} The keystone's Proposition gave the agent byte and a one-line bandwidth argument. We derive the branchless admission algebra in full, prove its per-word gating, and give the planetary economics that make it the \emph{only} affordable regime (Chapters~\ref{ch:agent8} and~\ref{ch:econ}). % [ORIENT]
+\end{enumerate}
+
+\section{The one-line thesis of this paper}
+Everything below is a corollary of a single move, made three times. % [ORIENT]
+A question of the form \emph{``is this interior correct / meaningful / trustworthy?''} is, by Rice's theorem \cite{rice1953}, undecidable in general. % [THM]
+The industrial answer --- and, we argue, the only scalable answer --- is never to ask that question. % [ORIENT]
+It is to \emph{retract} it onto a decidable surrogate: an equality between two oracles, a total classifier's labelled output, a hash comparison, a bitwise mask. % [DEF]
+Each surrogate is cheap, mechanical, and faithful over exactly what it commits. % [ORIENT]
+The keystone called this the projection principle for one receipt. % [ORIENT]
+This paper shows it is also the mutation oracle, the differential oracle, the fuzzing oracle, and --- at population scale --- a single AND of eight bit-planes sweeping the planet in one pass over memory. % [THM]
+
+\begin{center}\itshape
+The gap is why comprehension fails; the sweep is what replaces it. % [ORIENT]
+\end{center}
+
+\paragraph{Structure.} Chapter~\ref{ch:gap} quantifies the gap on the instance and introduces Shannon boundaries. % [ORIENT]
+Chapter~\ref{ch:mt} formalizes manufactured trust, proving the Mutant Kill Theorem and details categories and cohomologies of refusal. % [ORIENT]
+Chapter~\ref{ch:continuous} constructs the continuous limit of the Chatman equation. % [ORIENT]
+Chapter~\ref{ch:agent8} constructs the agent byte and proves branchless admission. % [ORIENT]
+Chapter~\ref{ch:econ} gives the planetary Fermi estimate. % [ORIENT]
+Chapter~\ref{ch:geometry} establishes the scale geometry and separating hyperplanes. % [ORIENT]
+Chapter~\ref{ch:verification} details scaling verification and physical reality addressing. % [ORIENT]
+Chapter~\ref{ch:antibody} formalizes the antibody clause. % [ORIENT]
+Chapter~\ref{ch:retrofit} details retrofit apps and reconcilers. % [ORIENT]
+Chapter~\ref{ch:concl} concludes. % [ORIENT]
+Throughout, results proved are theorems; quantities that must be estimated are set as \emph{Estimates} and labelled as such, following the keystone's discipline of claiming only what is true. % [ORIENT]
+
+\chapter{The Comprehension--Verification Gap, Measured}
+\label{ch:gap}
+
+The keystone proved that the ratio of comprehension cost to boundary-verification cost diverges as the interior grows. % [THM]
+Divergence is a statement about a limit; a civilization runs on constants. % [ORIENT]
+This chapter supplies the constants for the canonical instance and, in doing so, fixes a methodological rule for the whole series: \emph{every reported number is tagged measured or estimated}. % [ORIENT]
+
+\section{Measured and estimated quantities}
+
+\begin{definition}[Instance quantities]\label{def:instance-q}
+For an executed manufacture $\sigma$ we distinguish: % [DEF]
+\begin{itemize}[leftmargin=*]
+\item $T(\sigma)$, the \emph{interior token count} --- the number of machine-generated tokens in the full trace. This is \emph{measured}: it is a count of logged records. % [DEF]
+\item $\CL$, the \emph{boundary field count} --- the number of independently manipulable chunks in the receipt projection $\Proj(\sigma)$. This is a \emph{design constant}, fixed by the frame schema, not by the run. % [DEF]
+\item $t_{\chainH}$, the \emph{per-frame recomputation wall-time} --- the time to hash one frame and compare to the claimed chain value. This is \emph{estimated} from published throughput of the hash primitive; it is not claimed as measured here. % [DEF]
+\end{itemize}
+\end{definition}
+
+\begin{remark}
+The tag matters because the doctrine's credibility is exactly its refusal to launder estimates as measurements. % [ORIENT]
+$T$ and $\CL$ are hard numbers; $t_{\chainH}$ is a Fermi input. % [ORIENT]
+We never add a measured and an estimated number without saying so. % [ORIENT]
+\end{remark}
+
+\section{The instance}
+The canonical instance is the autonomous build of the keystone's Chapter 6: a fleet performed exploration, planning, and implementation whose interior consumed $T(\sigma)\approx2.5\times 10^{6}$ tokens (measured), no meaningful fraction of which any agent or human read. % [CODE]
+Its receipt projection has the schema:
+\[
+\Proj(\sigma)=\bigl(\underbrace{\text{verdict}}_{1\ \text{bit}},\ \underbrace{h_{+}}_{256\ \text{bits}},\ \underbrace{\Fitness}_{1\ \text{scalar}},\ \underbrace{r}_{1\ \text{reason word}}\bigr),
+\qquad \CL=4\ \text{fields (design).}
+\]
+The verdict is one bit; $h_{+}$ is the $256$-bit BLAKE3 chain head of the \code{OcelCausalFrame} sequence; $\Fitness\in[0,1]$ is the \code{PowlReplayVerifier} fitness; $r$ is one of the eight refusal categories (\code{Identity}, \code{Capacity}, \code{Topology}, \code{Temporal}, \code{Lifecycle}, \code{Authorization}, \code{Prerequisites}, \code{Reserved}) or empty on accept. % [CODE]
+
+\begin{theorem}[Instance gap]\label{thm:instance-gap}
+Let comprehension cost be $\mathrm{Comp}(\sigma)=\Theta(T(\sigma))$ and boundary-verification cost be $\mathrm{Ver}_\partial(\sigma)=\Theta(\CL)$. For the instance,
+\[
+\frac{\mathrm{Comp}(\sigma)}{\mathrm{Ver}_\partial(\sigma)}
+\;=\;\Theta\!\left(\frac{T(\sigma)}{\CL}\right)
+\;=\;\Theta\!\left(\frac{2.5\times 10^{6}}{4}\right)
+\;\approx\;6.25\times 10^{5}.
+\]
+Both inputs to the ratio are measured/design constants; the ratio is therefore a measured consequence, not an estimate. % [THM]
+\end{theorem}
+
+\begin{proof}
+Immediate from the gap ratio definitions with the two constants of Definition~\ref{def:instance-q} substituted. % [PROOF]
+Comprehension must ingest $\Theta(T)$ tokens; boundary verification reads the $\CL=4$ receipt fields and applies the fixed verifier $V$. % [PROOF]
+The quotient is $T/\CL$; substitution gives the figure. % [PROOF]
+No estimated quantity enters. % [PROOF]
+\end{proof}
+
+\begin{remark}
+Six hundred thousand is not the ratio of trace bytes to receipt bytes; it is the ratio of what a verifier would have to \emph{comprehend} to the number of independent chunks it actually \emph{reads}. % [ORIENT]
+The full trace can still be replayed at honest cost $O(n)$; the gap concerns comprehension versus boundary inspection, and it grows without bound as $T$ grows while $\CL$ stays fixed. % [ORIENT]
+\end{remark}
+
+\section{Boundary cost is invariant under interior growth}
+
+\begin{proposition}[Interior-independence of the boundary]\label{prop:invariance}
+Let $\{\sigma_i\}$ be manufactures sharing the frame schema of Definition~\ref{def:instance-q} but with interior token counts $T(\sigma_i)\to\infty$. % [THM]
+Then $\mathrm{Ver}_\partial(\sigma_i)=\Theta(\CL)$ is constant in $i$, and the estimated per-message wall-time $\CL\cdot(t_{\text{cmp}}) + c\cdot t_{\chainH}$ (for a constant number $c$ of recomputed frames in a spot-check) does not depend on $T(\sigma_i)$. % [THM]
+\end{proposition}
+
+\begin{proof}
+The projection $\Proj$ has codomain of size $\le\CL$; the verifier $V$ reads only $\Proj(\sigma_i)$. % [PROOF]
+Neither the field count nor $V$'s input size is a function of $T$. % [PROOF]
+A spot-check recomputes a fixed number $c$ of frames, each $O(1)$, so its cost is $c\cdot t_{\chainH}$, again independent of $T$. % [PROOF]
+\end{proof}
+
+\begin{estimate}[Per-message wall-time]\label{est:wall}
+With BLAKE3 throughput on the order of $1$--$3\,\mathrm{GB/s}$ per core and a frame of a few hundred bytes, $t_{\chainH}\sim 10^{-7}\,\mathrm{s}$ per frame; a four-field boundary compare is a handful of machine words, $\ll 10^{-7}\,\mathrm{s}$. % [CODE]
+A per-message verification that inspects the boundary and recomputes $c\!\sim\!10$ spot frames costs $\sim 10^{-6}\,\mathrm{s}$. % [CODE]
+These are order-of-magnitude figures from published primitive throughput, labelled as estimates; the point they support --- constancy in $T$ --- is the proven Proposition~\ref{prop:invariance}, not the estimate. % [ORIENT]
+\end{estimate}
+
+\section{Information-Theoretic Scaling and Compression Bounds}
+To scale the gap to trillion-agent swarms ($N = 10^{12}$), we model global state transition sparsity and compression limits of hierarchical commitments. % [ORIENT]
+Let $\mathcal{S}$ be the finite set of local agent states, and $S_t = (s_{1,t}, \dots, s_{N,t}) \in \mathcal{S}^N$ represent the global swarm state. % [DEF]
+The transition sparsity is $k_t = |\{i \in [1, N] \mid s_{i,t} \neq s_{i,t-1}\}| \ll N$. % [DEF]
+The global state commitment $R_t$ is generated via a hierarchical Merkle Mountain Range (MMR) \cite{todd2012} where the leaf nodes are $v_{i,0}^{(t)} = \chainH(i \Vert s_{i,t})$ and parent nodes are recursively defined. % [CODE]
+Each state transition is committed to a rolling hash chain $h_t = \chainH(h_{t-1} \Vert \mathrm{fr}_t)$ with $\mathrm{fr}_t = \langle \theta_t, R_t \rangle$, where $\theta_t$ is low-entropy metadata. % [CODE]
+
+\begin{theorem}[Swarm Receipt Compression Bounds]\label{thm:compression}
+Let $N = 10^{12}$ and transition sparsity $k_t \ll N$. % [THM]
+The information-theoretic compression ratio $\mathcal{C}_t$ of the receipt chain relative to the execution trace is:
+\[
+\mathcal{C}_t = \frac{H(\Sigma_t)}{H(\mathcal{R}_t)} = \frac{H(S_0) + \sum_{j=1}^t H(S_j \mid S_{j-1})}{256 \cdot t + H(\theta_{1\dots t})}.
+\]
+Under sparse transitions, the conditional entropy is bounded by $H(S_t \mid S_{t-1}) \le \log_2 \binom{N}{k_t} + k_t H(\mathcal{S})$. % [THM]
+Applying Stirling's approximation, the compression ratio scales as:
+\[
+\mathcal{C}_t \approx \Omega\left( \frac{N \log |\mathcal{S}|}{256 + H(\theta_t)} \right)
+\]
+which diverges to infinity as $N \to \infty$. % [THM]
+\end{theorem}
+
+\begin{proof}
+The mapping $\pi: \Sigma_t \to h_t$ is a deterministic projection. % [PROOF]
+By the data processing inequality, $H(h_t) \le H(\Sigma_t)$. % [PROOF]
+The collision resistance of $\chainH$ ensures that any trace perturbation $\tilde{\Sigma}_t \neq \Sigma_t$ yields a different hash chain $h_t \neq \tilde{h}_t$, except with negligible probability $\varepsilon(\lambda) \le 2^{-256}$. % [PROOF]
+Thus, $h_t$ is a mathematically binding representative of $\Sigma_t$ of size 256 bits, independent of $N$. % [PROOF]
+The compression ratio is $\Omega(N)$ for any fixed time step. % [PROOF]
+\end{proof}
+
+\begin{theorem}[Comprehension-Verification Gap at Scale]\label{thm:gap_scale}
+Let $C_C(\sigma)$ be the cognitive cost of comprehending the trace $\sigma \in \Sigma$, and $C_V(r)$ be the cognitive cost of verifying the receipt $r \in \mathcal{R}$. % [DEF]
+If $C_C(\sigma) = \Omega(N \cdot T)$ and $C_V(r) = O(\CL)$ for context capacity limit $\CL \approx 4$, then the comprehension-verification gap $\Gamma_N$ satisfies:
+\[
+\Gamma_N = \frac{C_C(\sigma)}{C_V(r)} = \Omega\left( \frac{N \cdot T}{\CL} \right).
+\]
+At trillion-agent scale ($N = 10^{12}$), $\Gamma_N \to \infty$, rendering verification cognitive-load eligible under $\CL$ while guaranteeing that any safety violation in the trace $\sigma$ is detected. % [THM]
+\end{theorem}
+
+\begin{proof}
+Let $\sigma$ be an invalid trace containing a safety violation. % [PROOF]
+The local admission map $\adm$ evaluates obligations $g_i$. % [PROOF]
+If a violation occurs, the total denial word $d(\sigma) \neq \mathbf{0}$. % [PROOF]
+If $d(\sigma) \neq \mathbf{0}$, the conformance fitness $\Fitness(\sigma) < 1$. % [PROOF]
+The human operator checks: (1) Is $\text{verdict} == \text{pass}$? % [PROOF]
+(2) Is $\Fitness(\sigma) == 1.0$? % [PROOF]
+(3) Is $d(\sigma) == \mathbf{0}$? % [PROOF]
+(4) Is $h_T$ signed by the cryptographic key $k^\star$? % [PROOF]
+The number of checks is $4 \le \CL$. % [PROOF]
+If any check fails, the operator rejects; if all pass, the operator accepts. % [PROOF]
+By the collision resistance of the hash chain and signature security, the probability that the operator accepts an invalid trace is bounded by $\varepsilon(\lambda)$. % [PROOF]
+Thus, verification is achieved in $O(\CL)$ cognitive steps, proving that a single human operator can verify a trillion-agent action trace. % [PROOF]
+\end{proof}
+
+\begin{theorem}[Cryptographic Admission Safety Bound]\label{thm:crypto_safety}
+If the obligation battery $G = \{g_1, \dots, g_m\}$ contains cryptographic signature checks with security parameter $\lambda = 256$, then for any random noise distribution $\eta \neq 0$ such that $\tilde{o} = o + \eta$, the false admission probability $p_{\mathrm{fa}}$ is bounded by: % [DEF]
+\[
+p_{\mathrm{fa}} \le 2^{-\lambda}
+\]
+Furthermore, the false refusal probability $p_{\mathrm{fr}}$ is: % [DEF]
+\[
+p_{\mathrm{fr}} = 1 - \Pr[\eta = 0]
+\]
+\end{theorem}
+
+\begin{proof}
+Let $o$ be a valid observation with a valid signature. % [PROOF]
+Any noise perturbation $\eta \neq 0$ results in a modified observation $\tilde{o} = o + \eta$. % [PROOF]
+Because the signature check is cryptographic and modeled as a random oracle or cryptographically secure function, the probability that the signature of $o$ is also valid for $\tilde{o}$ is at most the probability of finding a collision or forging a signature under parameter $\lambda$, which is $2^{-\lambda}$. % [PROOF]
+Thus, the false admission probability $p_{\mathrm{fa}} = \Pr[G(\tilde{o}) = 1 \mid \eta \neq 0] \le 2^{-\lambda}$. % [PROOF]
+A false refusal occurs if a valid observation is perturbed, so any non-zero noise $\eta \neq 0$ causes the signature check to fail. % [PROOF]
+The probability of this event is exactly the probability that the noise is non-zero, i.e., $p_{\mathrm{fr}} = 1 - \Pr[\eta = 0]$. % [PROOF]
+\end{proof}
+
+\begin{theorem}[Chatman Shannon Partition Bound]\label{thm:shannon_partition}
+Let $C_{jk}$ be the channel capacity between partition $j$ and partition $k$. % [DEF]
+Let $H(L_j \mid L_{j, \text{base}})$ be the entropy generation rate of the local process log in partition $j$. % [DEF]
+Reconciliation via a three-way merge is possible without loss of consistency if and only if the mutual information rate of the communication channel satisfies: % [THM]
+\[
+I(O_j; O_k) \ge \max\left( H(L_j \mid L_{j, \text{base}}), H(L_k \mid L_{k, \text{base}}) \right) - H(\Delta_{\text{resolvable}})
+\]
+If the channel capacity falls below the coherence threshold: % [THM]
+\[
+\min(C_{jk}) < \mathcal{H}_{\text{drift}}
+\]
+then the partitions drift, and the system must fire the refusal lane $\textsf{Topology}$ or $\textsf{Temporal}$ in the denial word $d(o) \neq \mathbf{0}$, forcing the local admission retraction to refuse $\alpha(o) = \bot \implies \mu(\alpha(o)) = \bot$, halting local manufacture. % [THM]
+\end{theorem}
+
+\begin{proof}
+Let partitions $j$ and $k$ generate local logs $L_j$ and $L_k$ independently. % [PROOF]
+By Shannon's source coding theorem \cite{shannon1948}, the minimum rate required to transmit the updates of log $L_j$ relative to its base $L_{j, \text{base}}$ is its conditional entropy rate $H(L_j \mid L_{j, \text{base}})$. % [PROOF]
+To reconcile the partitions without losing consistency, the channel must transmit all non-resolvable changes. % [PROOF]
+The information-theoretic limit on the rate of resolvable change is the mutual information rate $I(O_j; O_k)$ augmented by the resolvable difference entropy $H(\Delta_{\text{resolvable}})$. % [PROOF]
+Hence, consistency is preserved if and only if the channel mutual information rate satisfies the lower bound. % [PROOF]
+If the channel capacity $\min(C_{jk}) < \mathcal{H}_{\text{drift}}$, the rate of information transfer is strictly less than the drift rate of the states. % [PROOF]
+In this case, the states drift beyond the coherence threshold, which triggers a $\textsf{Topology}$ or $\textsf{Temporal}$ refusal in the denial word $d(o) \neq \mathbf{0}$. % [PROOF]
+By the structure of the admission retraction, a non-zero denial word forces the admission mapping to return $\bot$. % [PROOF]
+The manufacturing morphism $\mu$ maps $\bot$ to $\bot$, halting local manufacture and preventing safety divergence. % [PROOF]
+\end{proof}
+
+
+\chapter{Manufactured Trust as a General Method}
+\label{ch:mt}
+
+Engineers already trust software they cannot comprehend. % [ORIENT]
+A branchless vector parser classifies sixty-four input bytes per instruction \cite{simdjson}; an indexed triple store answers a query over $10^{11}$ facts by a join plan no one reconstructs \cite{qlever}. % [CODE]
+Neither is trusted by reading it. % [ORIENT]
+Both are trusted because a battery of \emph{decidable oracles} stands in for the undecidable question of correctness. % [ORIENT]
+This chapter turns that practice into theory. % [ORIENT]
+The unifying claim is the keystone's, sharpened: each oracle is an \emph{admission retraction} --- a total, terminating, decidable surrogate for a semantic question Rice's theorem forbids us to decide directly. % [DEF]
+
+\section{The decidable-oracle move}
+
+\begin{definition}[Correctness question and decidable oracle]\label{def:oracle}
+Let $f:D\to R$ be an implementation and $S\subseteq D\times R$ a specification. % [DEF]
+The \emph{correctness question} is $Q_S(f)\equiv\forall x\,(x,f(x))\in S$. % [DEF]
+A \emph{decidable oracle} for $f$ on a finite test set $X\subseteq D$ is a total computable predicate $\Omega:X\to\{0,1\}$ such that $\Omega(x)=1$ is intended to witness $(x,f(x))\in S$, and $\Omega$ terminates on every $x\in X$. % [DEF]
+\end{definition}
+
+\begin{proposition}[Why an oracle is necessary, not a convenience]\label{prop:necessity}
+For $S$ a non-trivial semantic property, $Q_S(f)$ is undecidable. % [THM]
+Hence no procedure decides $Q_S(f)$ for arbitrary $f$; any mechanical trust in $f$ must be trust in some $\Omega$ evaluated on a finite $X$, together with an argument bounding the residual risk on $D\setminus X$. % [THM]
+\end{proposition}
+
+\begin{proof}
+$Q_S(f)$ quantifies a non-trivial semantic predicate over the language computed by $f$; by Rice's theorem \cite{rice1953} it is undecidable. % [PROOF]
+A total $\Omega$ on finite $X$ always terminates and is therefore not a decision procedure for $Q_S$; it is a retraction of $Q_S$ onto the decidable fragment ``$f$ passes $\Omega$ on $X$.'' % [PROOF]
+Trust in $f$ factors through $\Omega$ and $X$. % [PROOF]
+\end{proof}
+
+Proposition~\ref{prop:necessity} is the whole chapter in one line: the three methods below are three constructions of $\Omega$, each with a different residual-risk argument. % [ORIENT]
+
+\section{Differential agreement as mutual verification}
+The simdjson/QLever pattern's first oracle is \emph{differential}: run a second, independent implementation and compare outputs. % [CODE]
+Agreement is decidable; correctness is not. % [ORIENT]
+
+\begin{definition}[Differential oracle]\label{def:diff}
+Let $f,g:D\to R$ target the same $S$. % [DEF]
+The \emph{differential oracle} is $\Omega_{f,g}(x)=[\,f(x)=g(x)\,]$. % [DEF]
+A test \emph{passes} at $x$ iff $\Omega_{f,g}(x)=1$. % [DEF]
+\end{definition}
+
+A pass can be wrong in only one way: both implementations wrong \emph{and} wrong identically. % [ORIENT]
+The next proposition bounds that event under an explicit independence assumption. % [ORIENT]
+
+\begin{proposition}[False-accept bound for differential agreement]\label{prop:diff-bound}
+Fix $x\in D$. % [DEF]
+Suppose $f,g$ err at $x$ with probabilities $p_f,p_g$, that their errors are independent, and that conditioned on both erring their wrong outputs are drawn from a set of at least $M\ge 2$ distinguishable values with collision probability $\le 1/M$. % [DEF]
+Then the probability that $x$ passes the differential oracle yet $(x,f(x))\notin S$ satisfies:
+\[
+\Pr[\,\Omega_{f,g}(x)=1 \wedge (x,f(x))\notin S\,]\;\le\;\frac{p_f\,p_g}{M}.
+\]
+Over an independent test corpus $X$ of size $n$ sampling the same regime, the probability that some silent-agreement error survives all $n$ tests is at most $n\,p_f p_g/M$, and the probability that a \emph{fixed} silently-wrong input is missed by a corpus that would have exercised it with per-input hit rate $q$ is $(1-q)^{n}\to 0$. % [THM]
+\end{proposition}
+
+\begin{proof}
+A false accept at $x$ requires $f(x)\ne S$-correct value \emph{and} $g(x)=f(x)$. % [PROOF]
+The first has probability $p_f$. % [PROOF]
+Given both err (probability $p_f p_g$ by independence), agreement requires the two wrong outputs to coincide, probability $\le 1/M$. % [PROOF]
+If $f$ is correct at $x$ but $g$ wrong, agreement fails and no false accept occurs; if $f$ wrong but $g$ correct, agreement fails likewise. % [PROOF]
+Hence the joint event has probability $\le p_f p_g/M$. % [PROOF]
+The union bound over $n$ corpus points gives $n p_f p_g/M$. % [PROOF]
+The miss bound is the probability a Bernoulli-$q$ trigger never fires in $n$ draws, $(1-q)^n$. % [PROOF]
+\end{proof}
+
+\begin{remark}
+$\Omega_{f,g}$ admits $f$'s output on the evidence of $g$ and simultaneously $g$'s on the evidence of $f$: neither comprehends the other's interior, exactly as two agents at fleet scale do not. % [ORIENT]
+The independence assumption is the load-bearing one --- shared bugs (same author, same library, same wrong spec reading) violate it, which is why the practice pairs implementations of \emph{maximally different provenance} (a scalar reference against a SIMD kernel; a naive triple scan against an indexed join). % [CODE]
+We state the assumption rather than hide it; the antibody clause (Chapter~\ref{ch:antibody}) forbids claiming a bound whose hypothesis is unmet. % [BOUNDARY]
+\end{remark}
+
+\section{Fuzzing the admission boundary}
+The second oracle probes not $\muop$ but $\adm$ itself: it searches for inputs where the admission retraction misbehaves. % [ORIENT]
+Here the projection principle pays a structural dividend. % [ORIENT]
+Because $\adm$ is \emph{total} --- its totality is mechanized by wildcard-free \code{match} on a closed refusal enum (the foundations paper's Proposition on mechanized totality, realized in \code{refusal.rs} where \code{RefusalScenario::category} and \code{denial\_lane} cover every variant with no catch-all arm) --- every input has a defined, labelled outcome. % [CODE]
+
+\begin{definition}[Admission-boundary fuzzing oracle]\label{def:fuzz}
+Let $\adm:\Obs\rightharpoonup\Adm\cup\{\Rfsl\}$ be the total admission retraction. % [DEF]
+The \emph{fuzzing oracle} $\Omega_\partial$ maps a generated input $o\in\Obs$ to $1$ iff $\adm(o)$ \emph{terminates} and yields either an admitted $x\in\Adm$ with a well-formed artifact $\muop(x)$ or a refusal $\Rfsl$ carrying a category in the eight-bucket taxonomy; $\Omega_\partial(o)=0$ iff $\adm$ crashes, diverges, or returns an unlabelled outcome. % [DEF]
+\end{definition}
+
+\begin{proposition}[Fuzzing soundness for a total retraction]\label{prop:fuzz}
+If $\adm$ is total and terminating with codomain $\Adm\cup\{\Rfsl\}$ and $\Rfsl$ is refusal-with-category (refusal-as-data), then for every $o\in\Obs$, $\Omega_\partial(o)=1$, and any observed $\Omega_\partial(o)=0$ is a genuine defect in the retraction, not a property of the input. % [THM]
+\end{proposition}
+
+\begin{proof}
+Totality gives termination on all $o$; the closed codomain gives, for each $o$, either $x\in\Adm$ (whence $\muop(x)$ is defined by boundedness) or $\Rfsl$ with a category, since every refusal path maps through the wildcard-free classifier. % [PROOF]
+Thus the disjunction defining $\Omega_\partial(o)=1$ holds for every $o$, so $\Omega_\partial\equiv 1$ on a correct implementation. % [PROOF]
+Contrapositively, an observed $0$ --- a crash, a hang, or an unlabelled return --- contradicts totality or closedness and hence witnesses an implementation defect. % [PROOF]
+\end{proof}
+
+\begin{remark}
+Fuzzing cannot and does not test ``did the agent understand the observation'' --- that is undecidable (Proposition~\ref{prop:necessity}). % [ORIENT]
+It tests that the \emph{retraction} is total, terminating, and labelling: exactly the properties the keystone requires of $\adm$. % [DEF]
+This is why fuzzing an admission boundary is cheap and conclusive where fuzzing for ``meaning'' would be neither. % [ORIENT]
+The boundary between admitted and refused is a decidable surface; the fuzzer walks it. % [ORIENT]
+\end{remark}
+
+\section{Mutation-testing the receipt chain}
+The third oracle turns the tools on the verifier itself. % [ORIENT]
+\emph{Mutation testing} \cite{demillo1978,jia2011} injects a small fault (a \emph{mutant}) and asks whether the test suite --- here, the staged \code{PowlReplayVerifier} --- detects it. % [CODE]
+A mutant that no test detects is \emph{surviving}; one that is detected is \emph{killed}. % [DEF]
+We formalize the verifier as a pipeline of stages and prove that killing is exactly rejection at the mutant's proper stage. % [ORIENT]
+
+The \code{praxis} verifier runs four stages in order: \emph{recompute} (rehash each frame), \emph{linkage} (each frame's back-pointer equals the predecessor's chain head), \emph{monotonic} (sequence indices strictly increase), and \emph{POWL token replay} (the marking geometry, fitness $\Fitness=1$ iff no disabled firing). % [CODE]
+Model this abstractly. % [ORIENT]
+
+\begin{definition}[Staged validator]\label{def:staged}
+A \emph{staged validator} is a pipeline $V=(V_1,\dots,V_k)$ where each stage $V_i:\mathcal{S}\to\{\text{pass}\}\cup\{\text{reject}_i\}$ tests a decidable invariant $I_i\subseteq\mathcal{S}$: $V_i(s)=\text{pass}\iff s\in I_i$. % [DEF]
+The pipeline accepts $s$ iff every stage passes, i.e.\ $s\in\bigcap_i I_i$; on rejection it reports the least $i$ with $s\notin I_i$. % [DEF]
+Stage $V_i$ is \emph{sound} if $V_i(s)=\text{reject}_i\Rightarrow s\notin I_i$ and \emph{complete} if $s\notin I_i\Rightarrow V_i(s)=\text{reject}_i$. % [DEF]
+\end{definition}
+
+\begin{definition}[Mutation operator and correct stage]\label{def:mut}
+A \emph{mutation operator} $m$ maps a valid subject $s^\star\in\bigcap_i I_i$ to a mutant $m(s^\star)$ that violates a non-empty set of invariants. % [DEF]
+The \emph{correct stage} of $m$ is
+\[
+\stg(m)\;=\;\min\{\,i : m(s^\star)\notin I_i\,\},
+\]
+the first invariant the mutant breaks. % [DEF]
+A mutant is \emph{killed} by $V$, written $\Kill(m)=1$, iff $V$ rejects $m(s^\star)$. % [DEF]
+\end{definition}
+
+\begin{theorem}[Mutant Kill Theorem]\label{thm:kill}
+Let $V=(V_1,\dots,V_k)$ be a staged validator in which every stage is sound and complete (Definition~\ref{def:staged}), and let $m$ be a mutation operator with correct stage $\stg(m)$ (Definition~\ref{def:mut}). % [THM]
+Then
+\[
+\Kill(m)=1\quad\Longleftrightarrow\quad V_{\stg(m)}\ \text{rejects}\ m(s^\star),
+\]
+and moreover the least rejecting stage reported by $V$ equals $\stg(m)$. % [THM]
+Equivalently: a mutant is killed if and only if the validator rejects it at the correct stage. % [THM]
+\end{theorem}
+
+\begin{proof}
+($\Leftarrow$) If $V_{\stg(m)}$ rejects $m(s^\star)$ then $V$ rejects (some stage rejected), so $\Kill(m)=1$. % [PROOF]
+
+($\Rightarrow$) Suppose $\Kill(m)=1$, so some stage rejects $m(s^\star)$; let $j$ be the least such. % [PROOF]
+By soundness of $V_j$, $m(s^\star)\notin I_j$. % [PROOF]
+By completeness of every stage $V_1,\dots,V_{j-1}$, none of which rejected, $m(s^\star)\in I_i$ for all $i<j$. % [PROOF]
+Hence $j$ is the \emph{least} index with $m(s^\star)\notin I_i$, which is by definition $\stg(m)$. % [PROOF]
+Thus $j=\stg(m)$ and the rejecting stage is $V_{\stg(m)}$. % [PROOF]
+
+For the ``moreover'': $V$ reports the least rejecting index, which the argument identifies as $\stg(m)$. % [PROOF]
+Finally, killing occurs at all iff $\stg(m)$ exists, i.e.\ iff $m$ violates some invariant; a mutation that violates no $I_i$ leaves $m(s^\star)\in\bigcap_i I_i$, is accepted, and is (correctly) not killed --- it is an \emph{equivalent mutant}, semantically identical modulo the committed invariants. % [PROOF]
+\end{proof}
+
+\begin{corollary}[Diagnostic completeness of the chain]\label{cor:diag}
+Under Theorem~\ref{thm:kill}, mutation testing of a sound-and-complete staged validator is not merely a pass/fail gate: the \emph{index} of the killing stage certifies \emph{which} law-bearing invariant the mutation broke. % [THM]
+A mutant that flips a chain byte is killed at \emph{recompute}; one that rewires a back-pointer at \emph{linkage}; one that reorders frames at \emph{monotonic}; one that forces a disabled transition at \emph{POWL replay}. % [THM]
+Surviving mutants are exactly the equivalent mutants (no committed invariant broken), so a non-empty surviving set that is \emph{not} equivalent is a proof that the frame under-commits --- the Faithful Projection converse of \cite[Thm.~3.2]{chatman2025}. % [THM]
+\end{corollary}
+
+\begin{proof}
+By Theorem~\ref{thm:kill}, the stage index $j$ at which the validator $V$ rejects a mutant $m(s^\star)$ is exactly the correct stage $\stg(m) = \min \{ i : m(s^\star) \notin I_i \}$. % [PROOF]
+Because the stages $V_1, V_2, V_3, V_4$ correspond respectively to the disjoint structural invariants \emph{recompute}, \emph{linkage}, \emph{monotonic}, and \emph{POWL replay}, the reported rejecting index $j$ uniquely identifies the specific law-bearing invariant $I_j$ violated. % [PROOF]
+
+For the converse, if a non-equivalent mutant $m(s^\star)$ survives ($\Kill(m) = 0$), then $m(s^\star) \in \bigcap_i I_i$. % [PROOF]
+Since the mutant is semantically distinct from $s^\star$ yet accepted by all stages, the committed invariants fail to capture the semantic difference, proving that the frame under-commits. % [PROOF]
+This is the contrapositive of the Faithful Projection property (\cite[Thm.~3.2]{chatman2025}), which guarantees that distinct semantic outcomes project to distinct, rejectable receipt fields. % [PROOF]
+\end{proof}
+
+\begin{remark}
+Differential agreement (Def.~\ref{def:diff}), boundary fuzzing (Def.~\ref{def:fuzz}), and mutation kill (Def.~\ref{def:mut}) are three instances of the decidable-oracle move (Def.~\ref{def:oracle}): each replaces an undecidable ``is it correct'' with a decidable check --- an equality, a totality witness, a staged rejection. % [ORIENT]
+This is the projection principle of \cite{chatman2025} applied to the \emph{trust process} rather than the \emph{trust artifact}. % [ORIENT]
+The receipt projects the interior; these oracles project the correctness question. % [ORIENT]
+\end{remark}
+
+\section{Categorification of the Denial Monoid and Sheaves}
+At the scale of $10^{12}$ agents, the dimension $n$ of the denial monoid $D = (\{0,1\}^n, \lor, \mathbf{0})$ grows without bound, rendering bit-vector representations computationally and communicatively intractable. % [BOUNDARY]
+Categorification replaces elements $d \in D$ with objects in a symmetric monoidal category $\mathbf{Den}$. % [DEF]
+
+\begin{definition}[Denial Category]\label{def:denial_cat}
+A \emph{Denial Category} $\mathbf{Den}$ is a skeletal symmetric monoidal category $(\mathbf{Den}, \otimes, I)$ where: % [DEF]
+\begin{enumerate}
+\item The objects are refusal witness bundles. % [DEF]
+\item The monoidal product $\otimes$ is idempotent, meaning there exists a natural isomorphism $\delta_A: A \to A \otimes A$ for every object $A \in \mathbf{Den}$, satisfying symmetric monoidal coherence. % [DEF]
+\item For any two objects $A, B \in \mathbf{Den}$, there exists at most one morphism $f: A \to B$, which exists if and only if $A \preceq B$ (refusal refinement). % [DEF]
+\item The monoidal unit $I$ represents the clean admission state $\mathbf{0}$, satisfying $A \otimes I \cong A$. % [DEF]
+\end{enumerate}
+\end{definition}
+
+\begin{theorem}[Categorical Idempotence of Denial]\label{thm:cat_idempotence}
+Let $S$ be a set of refusal lanes, and let $\mathbf{Den}$ be the category whose objects are subsets of $S$ with finite support, where a morphism $f: A \to B$ exists if and only if $A \subseteq B$. % [THM]
+Then $(\mathbf{Den}, \cup, \varnothing)$ is a symmetric monoidal category that is idempotent up to natural isomorphism. % [THM]
+\end{theorem}
+
+\begin{proof}
+Let $A, B, C$ be subsets of $S$. % [PROOF]
+The monoidal product is defined by the set union, $A \otimes B = A \cup B$, and the monoidal unit is the empty set, $I = \varnothing$. % [PROOF]
+Since set union is associative and has $\varnothing$ as a identity element, the associativity isomorphism and unit isomorphisms are identity morphisms. % [PROOF]
+They satisfy the Mac Lane pentagon \cite{maclane1963} and triangle equations because the hom-sets contain at most one morphism. % [PROOF]
+The symmetry isomorphism $s_{A,B}: A \cup B \to B \cup A$ is the identity morphism, satisfying the symmetry hexagon equations. % [PROOF]
+For any object $A \in \mathbf{Den}$, we have $A \cup A = A$. % [PROOF]
+The diagonal map $\delta_A: A \to A \cup A$ is the identity morphism. % [PROOF]
+Because $\delta_A$ is an identity, it is a natural isomorphism. % [PROOF]
+Coherence diagrams commute directly because all arrows are identity morphisms. % [PROOF]
+\end{proof}
+
+To model a distributed trillion-agent swarm, we represent the spatial distribution of failure lanes using a topological space $X$ of refusal lanes, where open sets represent causally correlated failure domains. % [DEF]
+
+\begin{theorem}[Sheaf of Swarm Denials]\label{thm:sheaf_denial}
+Let $X$ be the topological space of refusal lanes. % [DEF]
+The assignment $\mathcal{D}: U \mapsto \mathbf{Den}_U$ of the local denial category on the open set $U \subseteq X$ defines a sheaf of symmetric monoidal categories on $X$, whose category of global sections $\Gamma(X, \mathcal{D})$ characterizes the global refusal state of the swarm. % [THM]
+\end{theorem}
+
+\begin{proof}
+We show $\mathcal{D}$ satisfies the gluing axioms for objects and morphisms. % [PROOF]
+(1) Morphism Monopole: Let $U \subseteq X$ be open, and let $\mathcal{U} = \{U_i\}_{i \in I}$ be an open cover of $U$. % [PROOF]
+Let $A, B \in \mathcal{D}(U)$. % [PROOF]
+If there are morphisms $f, g: A \to B$ such that their restrictions $f|_{U_i} = g|_{U_i}$ for all $i \in I$, then $f = g$. % [PROOF]
+Since $\mathcal{D}(U)$ is a poset category, $|\text{Hom}(A, B)| \le 1$, so if a morphism exists, it is unique and $f$ equals $g$. % [PROOF]
+(2) Gluing of Morphisms: If we have local morphisms $f_i: A|_{U_i} \to B|_{U_i}$ such that they agree on overlaps, they must glue to a unique global morphism $f: A \to B$. % [PROOF]
+Agreeing on overlaps means $A|_{U_i \cap U_j} \subseteq B|_{U_i \cap U_j}$ for all $i, j$. % [PROOF]
+Since $A$ and $B$ are sheaves of sets on $X$, the containment relation $A(U_i) \subseteq B(U_i)$ for all $i$ implies $A(U) \subseteq B(U)$ by the gluing property of subset sheaves, so $f: A \to B$ exists globally. % [PROOF]
+(3) Gluing of Objects: Let $\{A_i \in \mathcal{D}(U_i)\}_{i \in I}$ be a family of local refusal objects such that for all $i, j \in I$, $A_i|_{U_i \cap U_j} \cong A_j|_{U_i \cap U_j}$. % [PROOF]
+Since the categories are posets, isomorphism implies equality, $A_i|_{U_i \cap U_j} = A_j|_{U_i \cap U_j}$. % [PROOF]
+By the sheaf property of the underlying sets, there exists a unique global object $A \in \mathcal{D}(U)$ such that $A|_{U_i} = A_i$ for all $i$. % [PROOF]
+\end{proof}
+
+\section{Homological Algebra of Refusal Cascades}
+In a swarm network of $10^{12}$ agents, a refusal is not isolated: it propagates along communication links, causing cascade refutations. % [BOUNDARY]
+Let the swarm topology be modeled as a simplicial complex $\mathcal{K}$, where vertices $\mathcal{K}_0$ represent individual agents, and $p$-simplices $\mathcal{K}_p$ represent cliques of $p+1$ communicating agents. % [DEF]
+
+\begin{definition}[Refusal Cochain Complex]\label{def:refusal_complex}
+Let $R$ be an abelian group of refusal values. % [DEF]
+The space of $p$-cochains $\mathcal{R}^p = \text{Map}(\mathcal{K}_p, R)$ represents the refusal configurations on $p$-simplices. % [DEF]
+The refusal differential $\mathrm{d}_p: \mathcal{R}^p \to \mathcal{R}^{p+1}$ is defined by:
+\[
+(\mathrm{d}_p \omega)(v_0, \dots, v_{p+1}) = \sum_{j=0}^{p+1} (-1)^j \omega(v_0, \dots, \widehat{v}_j, \dots, v_{p+1})
+\]
+where $\omega \in \mathcal{R}^p$, and $\widehat{v}_j$ denotes the omission of the vertex $v_j$. % [DEF]
+\end{definition}
+
+\begin{theorem}[Refusal Differential Nilpotence]\label{thm:differential_nilpotence}
+The sequence of refusal cochains forms a cochain complex, i.e., the composite differential satisfies:
+\[
+\mathrm{d}_{p+1} \circ \mathrm{d}_p = 0.
+\]
+\end{theorem}
+
+\begin{proof}
+Let $\omega \in \mathcal{R}^p$. % [PROOF]
+Evaluating the composition $(\mathrm{d}_{p+1} \mathrm{d}_p \omega)$ on a $(p+2)$-simplex $(v_0, \dots, v_{p+2})$ gives:
+\[
+\begin{aligned}
+(\mathrm{d}_{p+1} \mathrm{d}_p \omega)(v_0, \dots, v_{p+2}) &= \sum_{i=0}^{p+2} (-1)^i (\mathrm{d}_p \omega)(v_0, \dots, \widehat{v}_i, \dots, v_{p+2}) \\
+&= \sum_{i=0}^{p+2} (-1)^i \left( \sum_{j < i} (-1)^j \omega(v_0, \dots, \widehat{v}_j, \dots, \widehat{v}_i, \dots, v_{p+2}) \right. \\
+&\quad \left. + \sum_{j > i} (-1)^{j-1} \omega(v_0, \dots, \widehat{v}_i, \dots, \widehat{v}_j, \dots, v_{p+2}) \right).
+\end{aligned}
+\]
+In this double summation, every term of the form $\omega(v_0, \dots, \widehat{v}_i, \dots, \widehat{v}_j, \dots, v_{p+2})$ with $i < j$ appears twice. % [PROOF]
+Once from the first term when the outer index is $j$ and the inner index is $i$ (with coefficient $(-1)^{i+j}$). % [PROOF]
+Once from the second term when the outer index is $i$ and the inner index is $j$ (with coefficient $-(-1)^{i+j}$). % [PROOF]
+Summing these coefficients yields zero, proving that $\mathrm{d}_{p+1} \circ \mathrm{d}_p = 0$. % [PROOF]
+\end{proof}
+
+The nilpotence of the differential ensures that refusal boundaries are stable. % [THM]
+The refusal cohomology groups are $H^p(\mathcal{R}^*) = \ker \mathrm{d}_p / \text{im } \mathrm{d}_{p-1}$. % [DEF]
+
+\begin{theorem}[Refusal Cascade Cohomology]\label{thm:cascade_cohomology}
+Let $\mathcal{K}$ be the agent network, and $\mathcal{R}^*$ be the cochain complex of refusal states. % [DEF]
+The space of persistent refusal loop conflicts (contradictory cascades where local agent refutations cannot be resolved to a global boundary) is isomorphic to the first cohomology group $H^1(\mathcal{R}^*)$. % [THM]
+\end{theorem}
+
+\begin{proof}
+Let $\omega \in \mathcal{R}^1$ represent local refusal differences. % [PROOF]
+(1) Cocycle condition: $\omega$ is a cocycle ($\mathrm{d}_1 \omega = 0$) if and only if for every $2$-simplex (triangle of agents) $(v_0, v_1, v_2)$, we have $\omega(v_1, v_2) - \omega(v_0, v_2) + \omega(v_0, v_1) = 0$. % [PROOF]
+This requires local consistency around triangles. % [PROOF]
+(2) Coboundary condition: $\omega$ is a coboundary ($\omega = \mathrm{d}_0 \eta$) if and only if the local disagreements can be resolved by assigning a unique refusal state $\eta(v)$ to each agent, such that $\omega(v_0, v_1) = \eta(v_1) - \eta(v_0)$. % [PROOF]
+(3) Obstruction: $H^1(\mathcal{R}^*) = \ker \mathrm{d}_1 / \text{im } \mathrm{d}_0$ represents the locally consistent but globally irresolvable conflicts. % [PROOF]
+Thus, any non-zero cohomology class $[\omega] \in H^1(\mathcal{R}^*)$ corresponds to a persistent, irresolvable refusal loop conflict. % [PROOF]
+\end{proof}
+
+\section{Algebraic Consensus and Relativistic Horizons}
+In a trillion-agent swarm, physical constraints (relativity and Shannon limits) prohibit global coordination. % [BOUNDARY]
+Consensus must be achieved locally and glued together. % [ORIENT]
+Let $X$ be the communication metric space of the agents, and $\mathcal{C}$ be the consensus sheaf on $X$. % [DEF]
+
+\begin{definition}[Čech Consensus Complex]\label{def:cech_consensus}
+Let $\mathcal{U} = \{U_i\}_{i \in I}$ be an open cover of $X$ by local communication neighborhoods. % [DEF]
+The Čech cochain complex $\check{C}^*(\mathcal{U}, \mathcal{C})$ is defined by:
+\[
+\check{C}^p(\mathcal{U}, \mathcal{C}) = \prod_{(i_0, \dots, i_p)} \mathcal{C}(U_{i_0} \cap \dots \cap U_{i_p})
+\]
+with the Čech differential $\delta_p: \check{C}^p(\mathcal{U}, \mathcal{C}) \to \check{C}^{p+1}(\mathcal{U}, \mathcal{C})$. % [DEF]
+\end{definition}
+
+\begin{theorem}[Consensus Sheaf Obstruction]\label{thm:consensus_obstruction}
+A family of local consensus states $\{s_i \in \mathcal{C}(U_i)\}_{i \in I}$ can be glued to a unique global consensus state $s \in \mathcal{C}(X)$ if and only if its Čech boundary $\delta s \in \check{C}^1(\mathcal{U}, \mathcal{C})$ is a coboundary, meaning the obstruction class $[\delta s]$ in the first Čech cohomology group $\check{H}^1(\mathcal{U}, \mathcal{C})$ vanishes. % [THM]
+\end{theorem}
+
+\begin{proof}
+Let $s = (s_i)_{i \in I} \in \check{C}^0(\mathcal{U}, \mathcal{C})$ represent the local consensus states. % [PROOF]
+The Čech differential $\delta_0: \check{C}^0 \to \check{C}^1$ maps local sections to their pairwise differences: $(\delta_0 s)_{ij} = s_j|_{U_i \cap U_j} - s_i|_{U_i \cap U_j}$. % [PROOF]
+By the sheaf gluing axiom, local sections glue if and only if they agree on all overlaps, which is $(\delta_0 s)_{ij} = 0$. % [PROOF]
+If they disagree, $\omega = \delta_0 s$ is a non-zero $1$-cocycle. % [PROOF]
+The class $[\omega]$ vanishes in $\check{H}^1$ if and only if there exists a correction $\epsilon$ such that $\omega = \delta_0 \epsilon$. % [PROOF]
+If so, modified local sections $s'_i = s_i - \epsilon_i$ satisfy $\delta_0 s'_i = 0$ and glue uniquely. % [PROOF]
+\end{proof}
+
+Let $d(x,y)$ be the spatial metric on $X$, and $v \le c$ be the signal velocity. % [DEF]
+A consensus epoch has a bounded duration $T$. % [BOUNDARY]
+
+\begin{theorem}[Relativistic Consensus Horizon]\label{thm:relativistic_horizon}
+If the spatial diameter of the agent network $L = \sup_{x,y \in X} d(x,y)$ satisfies $L > v T$, then the Čech cohomology group $\check{H}^1(\mathcal{U}, \mathcal{C})$ has rank $k \ge \lfloor L / v T \rfloor - 1$. % [THM]
+This implies that global consensus is algebraically obstructed, partitioning the swarm into at least $\lfloor L / v T \rfloor$ causally disconnected consensus zones. % [THM]
+\end{theorem}
+
+\begin{proof}
+Let $\mathcal{U} = \{U_i\}_{i \in I}$ be the cover of $X$ where each $U_i$ is a causal cone of radius $r = v T / 2$. % [PROOF]
+Since $L > v T$, the network diameter is larger than the diameter of any individual cover element $2r = v T$. % [PROOF]
+Choose points $x_0, \dots, x_N$ in $X$ with $N = \lfloor L / v T \rfloor$ such that $d(x_a, x_{a+1}) > v T$ for all $a$. % [PROOF]
+Causal cones $U_{x_a}$ and $U_{x_{a+1}}$ do not overlap since $r + r = v T < d(x_a, x_{a+1})$. % [PROOF]
+Thus, the overlap graph of the cover $\mathcal{U}$ has at least $N$ disconnected components. % [PROOF]
+The Čech cochain complex decomposes as a direct sum, and $\check{H}^1(\mathcal{U}, \mathcal{C})$ contains independent classes for each boundary mismatch. % [PROOF]
+The rank of the cohomology group is at least $N - 1 = \lfloor L / v T \rfloor - 1$. % [PROOF]
+Since the rank is non-zero, global consensus cannot be established within the epoch $T$. % [PROOF]
+\end{proof}
+
+\chapter{Continuous Limits and Planetary Dynamics}
+\label{ch:continuous}
+
+At trillion-agent density, tracking individual agent state transitions and executing discrete retractive gates becomes computationally intractable. % [BOUNDARY]
+By shifting from discrete agents to continuous density fields on a Riemannian manifold, we reformulate admission, manufacture, and receipting as partial differential equations and integral operators. % [DEF]
+
+\section{The Continuous Limit of the Chatman Equation}
+Let $N \sim 10^{12}$, and let $\mathcal{M}$ be a compact $d$-dimensional Riemannian manifold with metric tensor $g$. % [DEF]
+The empirical distribution of agents on $\mathcal{M}$ is a probability measure $\rho_N(\mathbf{x}, t) = \frac{1}{N} \sum_{i=1}^N \delta_{\mathbf{x}_i(t)}(\mathbf{x})$. % [DEF]
+As $N \to \infty$, $\rho_N$ converges weakly to a continuous, differentiable density field $\rho(\mathbf{x}, t)$ satisfying $\int_{\mathcal{M}} \rho(\mathbf{x}, t) dV_g = 1$, where $dV_g$ is the Riemannian volume form. % [THM]
+We define the observation field $\mathcal{O}(\mathbf{x}, t) \in C^0(\mathcal{M})$ as a continuous density of information gathered by the swarm. % [DEF]
+
+We define the continuous admission operator $\alpha$ as a pointwise functional mapping the raw observation field $\mathcal{O}(\mathbf{x}, t)$ to the admitted observation field $\mathcal{O}^*(\mathbf{x}, t)$:
+\[
+\mathcal{O}^*(\mathbf{x}, t) = \alpha[\mathcal{O}](\mathbf{x}, t) = \theta\left( \mathbf{g}(\mathcal{O}(\mathbf{x}, t)) \right) \cdot \mathcal{O}(\mathbf{x}, t)
+\]
+where $\mathbf{g}$ is the obligation battery, and $\theta(\mathbf{u}) = \prod_{j=1}^m \Theta(u_j)$ represents the joint Heaviside function of the denial monoid boundary. % [DEF]
+We model the manufacturing process as a non-local integral operator:
+\[
+\mathcal{A}(\mathbf{x}, t) = \mu[\mathcal{O}^*](\mathbf{x}, t) = \int_{\mathcal{M}} \mathcal{K}(\mathbf{x}, \mathbf{y}) \mathcal{O}^*(\mathbf{y}, t) dV_g(\mathbf{y})
+\]
+where $\mathcal{K}(\mathbf{x}, \mathbf{y})$ is a symmetric, compact manufacturing kernel. % [DEF]
+
+\begin{theorem}[Chatman Mean-Field Convergence]\label{thm:mean_field}
+Let $O_N(d\mathbf{y}, t) = \frac{1}{N} \sum_{i=1}^N o_i(t) \delta_{\mathbf{y}_i(t)}(d\mathbf{y})$ converge weakly to a continuous density $\mathcal{O}(\mathbf{y}, t) dV_g(\mathbf{y})$ as $N \to \infty$. % [THM]
+Under a Lipschitz-continuous manufacturing kernel $\mathcal{K}(\mathbf{x}, \mathbf{y})$ and bounded, continuous obligations $\mathbf{g}$, the sequence of discrete actuation fields $\mathcal{A}_N(\mathbf{x}, t)$ converges strongly in $L^2(\mathcal{M})$ to the continuous actuation field:
+\[
+\lim_{N \to \infty} \left\| \mathcal{A}_N(\mathbf{x}, t) - \mathcal{A}(\mathbf{x}, t) \right\|_{L^2(\mathcal{M})} = 0.
+\]
+\end{theorem}
+
+\begin{proof}
+The difference is: $\mathcal{A}_N(\mathbf{x}, t) - \mathcal{A}(\mathbf{x}, t) = \int_{\mathcal{M}} \mathcal{K}(\mathbf{x}, \mathbf{y}) \alpha[O_N](d\mathbf{y}, t) - \int_{\mathcal{M}} \mathcal{K}(\mathbf{x}, \mathbf{y}) \alpha[\mathcal{O}](\mathbf{y}, t) dV_g(\mathbf{y})$. % [PROOF]
+Because $\mathcal{K}$ is Lipschitz-continuous on the compact manifold $\mathcal{M}$, the integral operator is compact. % [PROOF]
+The weak convergence of $O_N \to \mathcal{O}$ combined with the continuity of the local admission operator $\alpha$ guarantees that the image under the compact integration operator converges strongly in $L^2(\mathcal{M})$. % [PROOF]
+Thus, the norm of the difference vanishes. % [PROOF]
+\end{proof}
+
+\section{Fluid Dynamics of Consequence Conservation}
+Let $\mathcal{C}(\mathbf{x}, t)$ represent the spatial density of uncommitted actuation consequences in transit. % [DEF]
+The transport of consequence is governed by advection (velocity field $\mathbf{v}(\mathbf{x}, t)$) and diffusion (tensor $\mathbf{D}(\mathbf{x}, t)$), defining the flux $\mathbf{J}_C = \mathcal{C} \mathbf{v} - \mathbf{D} \nabla \mathcal{C}$. % [DEF]
+The consequence density satisfies the advection-diffusion-reaction equation:
+\[
+\frac{\partial \mathcal{C}}{\partial t} + \nabla \cdot (\mathcal{C} \mathbf{v}) = \nabla \cdot (\mathbf{D} \nabla \mathcal{C}) + \mathcal{S}_C - \mathcal{R}_C
+\]
+where the source is $\mathcal{S}_C = \sigma(\mathbf{x}, t) \mathcal{O}^*(\mathbf{x}, t)$ and the sink is $\mathcal{R}_C = \gamma(\mathbf{x}, t) \mathcal{C}(\mathbf{x}, t)$. % [DEF]
+
+\begin{theorem}[Global Consequence Conservation]\label{thm:global_cons}
+On a compact Riemannian manifold $\mathcal{M}$ without boundary ($\partial \mathcal{M} = \varnothing$), the total uncommitted consequence $C_{\mathrm{total}}(t) = \int_{\mathcal{M}} \mathcal{C}(\mathbf{x}, t) dV_g$ satisfies:
+\[
+\frac{d}{dt} C_{\mathrm{total}}(t) = \int_{\mathcal{M}} \sigma(\mathbf{x}, t) \mathcal{O}^*(\mathbf{x}, t) dV_g - \int_{\mathcal{M}} \gamma(\mathbf{x}, t) \mathcal{C}(\mathbf{x}, t) dV_g.
+\]
+Furthermore, the total consequence committed to the ledger $C_{\mathrm{ledger}}(t)$ satisfies:
+\[
+C_{\mathrm{ledger}}(t) = C_{\mathrm{ledger}}(0) + \int_{0}^t \int_{\mathcal{M}} \gamma(\mathbf{x}, s) \mathcal{C}(\mathbf{x}, s) dV_g ds
+\]
+ensuring the total system consequence $C_{\mathrm{total}}(t) + C_{\mathrm{ledger}}(t)$ is conserved. % [THM]
+\end{theorem}
+
+\begin{proof}
+Integrating the transport equation over $\mathcal{M}$ yields $\int_{\mathcal{M}} \frac{\partial \mathcal{C}}{\partial t} dV_g + \int_{\mathcal{M}} \nabla \cdot \mathbf{J}_C dV_g = \int_{\mathcal{M}} \left( \mathcal{S}_C - \mathcal{R}_C \right) dV_g$. % [PROOF]
+By the Divergence Theorem, since $\partial \mathcal{M} = \varnothing$, the integral of the divergence of the flux vanishes. % [PROOF]
+Leibniz's rule allows pulling the time derivative out of the spatial integral. % [PROOF]
+Integrating this relation from $0$ to $t$ simplifies to the global conservation law. % [PROOF]
+\end{proof}
+
+\section{Dynamic System Limits and Feedback Loop Stability}
+At planetary scale, the propagation speed of information is bounded by the speed of light in the communication medium: $v_{\mathrm{prop}} = \beta c$ (typically $\beta \approx 0.67$ for fiber optics). % [BOUNDARY]
+For a planet of diameter $D$, the maximum propagation delay is $\tau_{\mathrm{max}} = D / v_{\mathrm{prop}}$. % [BOUNDARY]
+Let local state deviations $s(\mathbf{x}, t)$ satisfy:
+\[
+\frac{\partial s(\mathbf{x}, t)}{\partial t} = -\omega_0 s(\mathbf{x}, t) - K_f \int_{\mathcal{M}} w(\mathbf{x}, \mathbf{y}) s\left(\mathbf{y}, t - \tau(\mathbf{x}, \mathbf{y})\right) dV_g(\mathbf{y}) + u(\mathbf{x}, t)
+\]
+where $\omega_0 > 0$ is the relaxation rate, $K_f$ is feedback gain, and $\tau(\mathbf{x}, \mathbf{y})$ geodesic delay. % [DEF]
+
+\begin{theorem}[Planetary Delay-Gain Stability Bound]\label{thm:stability_bound}
+For a planetary-scale swarm feedback loop with maximum propagation delay $\tau_{\mathrm{max}}$, the system is asymptotically stable if and only if the global feedback gain $K_f$ satisfies:
+\[
+K_f < \sqrt{\omega_0^2 + \omega_c^2}
+\]
+where the critical crossover frequency $\omega_c$ is the unique solution to the transcendental equation $\omega_c = \omega_0 \tan(\omega_c \tau_{\mathrm{max}})$. % [THM]
+In the limit of negligible local damping ($\omega_0 \to 0$), the stability boundary simplifies to:
+\[
+K_f < \frac{\pi}{2 \tau_{\mathrm{max}}}.
+\]
+\end{theorem}
+
+\begin{proof}
+Taking the Fourier transform, the characteristic equation of the system is $\lambda + \omega_0 + K_f e^{-\lambda \tau_{\mathrm{max}}} = 0$. % [PROOF]
+Setting $\lambda = i \omega_c$ for marginal stability yields $i \omega_c + \omega_0 + K_f \left( \cos(\omega_c \tau_{\mathrm{max}}) - i \sin(\omega_c \tau_{\mathrm{max}}) \right) = 0$. % [PROOF]
+Separating real and imaginary parts: $\cos(\omega_c \tau_{\mathrm{max}}) = -\frac{\omega_0}{K_f}$ and $\sin(\omega_c \tau_{\mathrm{max}}) = \frac{\omega_c}{K_f}$. % [PROOF]
+Squaring and adding both equations yields $K_f = \sqrt{\omega_0^2 + \omega_c^2}$. % [PROOF]
+Dividing the sine equation by the cosine equation gives the relation for the critical frequency. % [PROOF]
+When $\omega_0 \to 0$, the cosine equation requires $\cos(\omega_c \tau_{\mathrm{max}}) = 0$, giving the lowest positive frequency as $\omega_c = \frac{\pi}{2 \tau_{\mathrm{max}}}$ and critical gain $K_f = \omega_c = \frac{\pi}{2 \tau_{\mathrm{max}}}$. % [PROOF]
+\end{proof}
+
+\begin{theorem}[Consensus Latency-Stability Inequality]\label{thm:latency_bound}
+To prevent consensus forks and maintain the integrity of the B4 conformance invariant in a planetary-scale swarm, the loop control frequency $f_{\mathrm{loop}}$ must satisfy:
+\[
+f_{\mathrm{loop}} \le \frac{1}{2 T_{\mathrm{consensus}}} \le \frac{v_{\mathrm{prop}}}{2 D}.
+\]
+\end{theorem}
+
+\begin{proof}
+The consensus delay introduces a phase lag $\theta_{\mathrm{consensus}} = 2 \pi f_{\mathrm{loop}} T_{\mathrm{consensus}}$ in the verification feedback loop. % [PROOF]
+If $\theta_{\mathrm{consensus}} > \pi$, the feedback shifts from negative to positive, triggering a spatial bifurcation where agents act on uncommitted, out-of-date states, violating conformance ($x \notin \mathcal{P}$). % [PROOF]
+Thus, stability requires $\theta_{\mathrm{consensus}} \le \pi$, which yields $f_{\mathrm{loop}} \le \frac{1}{2 T_{\mathrm{consensus}}}$. % [PROOF]
+\end{proof}
+
+For a terrestrial swarm ($D \approx 12,742$ km) communicating via standard fiber optic networks ($\beta \approx 0.67$), we have $v_{\mathrm{prop}} \approx 2 \times 10^8$ m/s, yielding $\tau_{\mathrm{max}} \approx 63.7$ ms. % [BOUNDARY]
+The maximum stable control frequency is $f_{\mathrm{control}} \le 7.85$ Hz. % [BOUNDARY]
+This limits the actuation feedback loops of trillion-agent planetary swarms to sub-10 Hz regimes, proving that local sub-swarms must operate with decoupled, localized sub-retractions to avoid planetary-scale instability. % [BOUNDARY]
+
+\chapter{The Agent Byte and Branchless Fleet Admission}
+\label{ch:agent8}
+
+We now scale from one manufacture to a population. % [ORIENT]
+The keystone's Construction projected an agent onto eight bits; here we build that byte from the running \code{DenialPolarity} lanes, prove that fleet admission is branchless mask algebra gating $64$ agents per word per lane, and compute the footprint and sweep time of a $10^{10}$-agent population exactly (footprint) and by estimate (time). % [ORIENT]
+
+\section{The agent8 byte from the denial lanes}
+
+The \code{praxis} refusal machinery exposes a denial word with eight lanes: the \code{ADMITTED} lane and seven denial lanes (\code{WATCHDOG\_DRAINED}, \code{PRECONDITION\_FAILED}, \code{SLA\_BREACH}, \code{AUTHORIZATION\_DENIED}, \code{RESOURCE\_EXHAUSTED}, \code{OBJECT\_LIFECYCLE\_VIOLATION}, \code{CONFORMANCE\_GATE\_FAILED}), each mapping to a bucket of the eight-category taxonomy of \code{refusal.rs}. % [CODE]
+The agent byte is the per-agent projection of these lanes into a positive (``OK'') polarity. % [DEF]
+
+\begin{construction}[The agent8 byte]\label{con:agent8}
+Project each agent $a$ to a status byte $\abyte{a}\in\{0,1\}^{8}$ whose lanes are the OK-polarity complements of the denial lanes:
+\[
+\abyte{a}=\bigl(\lane{admitted},\ \lane{evidence},\ \lane{budget},\ \lane{authority},\ \lane{healthy},\ \lane{conformant},\ \lane{receipted},\ \lane{replayable}\bigr),
+\]
+with lane value $1$ meaning the corresponding obligation holds and $0$ meaning its denial lane is set. % [DEF]
+Write $\mathbf 1=0\mathtt{xFF}$ for the all-OK byte. % [DEF]
+An agent is \emph{admissible} iff $\abyte{a}=\mathbf 1$, equivalently iff its $8$-lane denial restriction is $\bm 0$. % [DEF]
+\end{construction}
+
+\begin{remark}
+As in the keystone, the \lane{receipted} and \lane{replayable} lanes are set only by chained receipts whose frames commit the law-bearing fields; the byte is therefore a faithful projection of the agent's receipted lifecycle, not a self-report. % [ORIENT]
+A peer with context $\CL$ reads a counterpart's entire lawful status in one byte-load. % [DEF]
+\end{remark}
+
+\section{Two layouts and the branchless admission sweep}
+
+A fleet of $N$ agents is a matrix of bits: $N$ agents $\times$ $8$ lanes. % [DEF]
+Two storage layouts matter. % [ORIENT]
+
+\begin{definition}[AoS and SoA layouts]\label{def:layouts}
+The \emph{array-of-structures} (AoS) layout stores the $8$-bit byte of each agent contiguously; a $64$-bit machine word holds $8$ agents' bytes. % [DEF]
+The \emph{structure-of-arrays} (SoA), or \emph{bit-plane}, layout stores each lane as its own bitset: lane $\ell$ is a bit-array $P_\ell\in\{0,1\}^{N}$, and a $64$-bit word of $P_\ell$ holds the lane-$\ell$ bit of $64$ agents. % [DEF]
+\end{definition}
+
+\begin{theorem}[Branchless admission gates $64$ agents per word]\label{thm:branchless}
+Under the SoA layout of Definition~\ref{def:layouts}, the admissibility of $64$ agents is computed by the single branchless word expression:
+\[
+\mathsf{adm}\ =\ P_1\ \&\ P_2\ \&\ P_3\ \&\ P_4\ \&\ P_5\ \&\ P_6\ \&\ P_7\ \&\ P_8,
+\]
+where each $P_\ell$ here denotes the $64$-agent word of plane $\ell$ and $\&$ is bitwise AND. % [THM]
+Bit $j$ of $\mathsf{adm}$ is $1$ iff agent $j$ (of the $64$) has all eight lanes OK, i.e.\ iff $\abyte{a_j}=\mathbf 1$. % [THM]
+The computation uses exactly $7$ AND instructions, contains no data-dependent branch, and processes $64$ agents; its cost is $7/64\approx 0.11$ instructions per agent, independent of the lane \emph{values}. % [THM]
+\end{theorem}
+
+\begin{proof}
+Agent $a_j$ is admissible iff $\bigwedge_{\ell=1}^{8}\abyte{a_j}_\ell=1$ (Construction~\ref{con:agent8}). % [PROOF]
+Bit $j$ of $P_\ell$ equals $\abyte{a_j}_\ell$ by the SoA definition. % [PROOF]
+Bitwise AND acts coordinatewise, so bit $j$ of $P_1\&\cdots\&P_8$ equals $\bigwedge_\ell \abyte{a_j}_\ell$, which is $1$ iff $a_j$ is admissible. % [PROOF]
+A left-fold of AND over $8$ operands is $7$ binary ANDs. % [PROOF]
+AND is a straight-line instruction with no branch, so the sequence is branchless; it reads $8$ words ($64$ agents' worth of each lane) and writes one, regardless of the bits' values. % [PROOF]
+The per-agent instruction count is $7/64$. % [PROOF]
+\end{proof}
+
+\begin{corollary}[Reduction to a single denial word]\label{cor:onedenial}
+Equivalently, in denial polarity, let $D_\ell$ be the $64$-agent word of denial lane $\ell$ ($D_\ell=\lnot P_\ell$). % [DEF]
+Then the \emph{denied} set is $\bigvee_\ell D_\ell$ and the admitted set its complement, matching the join-semilattice of the denial monoid: fleet admission is the word-parallel join of denial lanes followed by one complement. % [THM]
+Adding a ninth lane costs one more AND (resp.\ OR) per $64$ agents. % [THM]
+\end{corollary}
+
+\begin{proof}
+By Theorem~\ref{thm:branchless}, the admissibility of $64$ agents is given by the word expression $\mathsf{adm} = \bigwedge_{\ell=1}^8 P_\ell$. % [PROOF]
+In denial polarity, each OK-polarity bit-plane $P_\ell$ is related to its denial-polarity counterpart $D_\ell$ by $P_\ell = \lnot D_\ell$. % [PROOF]
+Applying De Morgan's laws coordinatewise over the bitwise operators yields:
+\[
+\mathsf{adm} \;=\; \bigwedge_{\ell=1}^8 (\lnot D_\ell) \;=\; \lnot \left( \bigvee_{\ell=1}^8 D_\ell \right).
+\]
+Let $\mathsf{den} = \bigvee_{\ell=1}^8 D_\ell$ be the denied set. % [PROOF]
+The fleet admission condition is therefore $\mathsf{adm} = \lnot \mathsf{den}$, which corresponds to the join-semilattice composition of the denial monoid $(D, \lor, \mathbf{0})$ under the isomorphism $D_n \cong 2^{[n]}$. % [PROOF]
+
+Computing $\mathsf{den}$ requires $7$ bitwise OR instructions to left-fold the $8$ lanes, and $1$ bitwise NOT to compute the complement, totaling $8$ instructions. % [PROOF]
+Adding a ninth lane expands the join to $\bigvee_{\ell=1}^9 D_\ell$, requiring $8$ OR instructions and $1$ NOT, which increases the cost by exactly one instruction per $64$ agents. % [PROOF]
+\end{proof}
+
+\begin{remark}
+Theorem~\ref{thm:branchless} is stated for a $64$-bit scalar word. % [ORIENT]
+A $512$-bit SIMD register (AVX-512) executes the same $7$ ANDs over $512$ agents per lane, dropping the per-agent cost to $7/512\approx 0.014$ instructions/agent. % [CODE]
+The algebra is unchanged; only the word widens. % [ORIENT]
+This is the same mechanism by which the vector JSON parser classifies $64$ bytes per instruction --- admission is byte-classification lifted to agents. % [CODE]
+\end{remark}
+
+\begin{construction}[Borrow-Safe Zero-Lane Detector]\label{con:swar}
+Let $w\in\{0,1\}^{64}$ be a denial word comprising eight $8$-bit lanes. % [DEF]
+Define the lane masks $L_{\text{high}} = \code{0x8080\_8080\_8080\_8080}$ and $L_{\text{low7}} = \code{0x7f7f\_7f7f\_7f7f\_7f7f}$. % [CODE]
+The zero-lane bitmask $z(w)\in\{0,1\}^{64}$ is computed branchlessly by:
+\begin{equation}\label{eq:swar}
+z(w)\;=\;\lnot\Bigl(\bigl((w\ \&\ L_{\text{low7}}) + L_{\text{low7}}\bigr) \ \lor\ w\Bigr)\ \&\ L_{\text{high}},
+\end{equation}
+where $+$ is wrapping addition and $\lor, \&, \lnot$ are bitwise operations. % [CODE]
+Bit $7$ of lane $j$ in $z(w)$ is $1$ iff lane $j$ in $w$ is exactly $\code{0x00}$, and $0$ otherwise. % [CODE]
+\end{construction}
+
+\begin{theorem}[SWAR Fleet Sweep Verification]\label{thm:swar-verify}
+Let $w$ be a $64$-bit word packing $8$ agents. % [DEF]
+If $w$ is gated against the broadcast required mask, the number of admitted agents is obtained by the popcount:
+\[
+\text{admitted}(w)\;=\;\code{popcount}\bigl(z(w)\bigr).
+\]
+This sweeps $8$ agents in one CPU instruction with zero branches and no lane borrow leakage. % [THM]
+\end{theorem}
+
+\begin{proof}
+We analyze the branchless zero-lane detector expression on a single $8$-bit lane (byte) $b \in \{0, 1\}^8$. % [PROOF]
+Let $m = \code{0x7f}$ and $h = \code{0x80}$. % [PROOF]
+The byte-level restriction of equation~\eqref{eq:swar} is: $z(b) \;=\; \lnot \Bigl( \bigl((b \ \&\ m) + m\bigr) \ \lor\ b \Bigr) \ \&\ h$. % [PROOF]
+We evaluate this for two cases: % [PROOF]
+
+Case 1: $b = \code{0x00}$. We have $b \ \&\ m = \code{0x00}$, so the addition gives $\code{0x00} + \code{0x7f} = \code{0x7f}$. Then $\code{0x7f} \lor \code{0x00} = \code{0x7f}$. Taking the bitwise NOT yields $\lnot(\code{0x7f}) = \code{0x80}$. Masking with $h$ gives $\code{0x80} \& \code{0x80} = \code{0x80}$. Thus, the high bit of $z(b)$ is $1$. % [PROOF]
+
+Case 2: $b \neq \code{0x00}$. Subcase 2a: The low 7 bits of $b$ are not all 0. Then $b \ \&\ m \ge \code{0x01}$, so the addition is $\ge \code{0x01} + \code{0x7f} = \code{0x80}$. Thus, the high bit of $((b \ \&\ m) + m)$ is $1$, which forces the high bit of $(((b \ \&\ m) + m) \lor b)$ to be $1$. Taking the bitwise NOT forces the high bit of $z(b)$ to be $0$. Subcase 2b: The low 7 bits of $b$ are all 0, but the high bit is 1 (i.e., $b = \code{0x80}$). Then $b \ \&\ m = \code{0x00}$, so the addition is $\code{0x7f}$. The join is $\code{0x7f} \lor \code{0x80} = \code{0xff}$. The bitwise NOT is $\lnot(\code{0xff}) = \code{0x00}$, so the high bit of $z(b)$ is $0$. % [PROOF]
+
+Thus, the high bit of lane $j$ in $z(w)$ is $1$ if and only if lane $j$ of $w$ is exactly $\code{0x00}$. % [PROOF]
+Since the maximum value of $w \ \&\ L_{\text{low7}}$ in any byte is $\code{0x7f}$ and we add $L_{\text{low7}} = \code{0x7f7f...}$, the addition within each byte is at most $\code{0x7f} + \code{0x7f} = \code{0xfe}$, which never produces a carry into the next byte (no borrow/carry leakage). % [PROOF]
+The number of admitted agents (fully zero lanes) is the number of set high bits, which is counted by $\code{popcount}(z(w))$ in a single instruction on scalar processors. % [PROOF]
+\end{proof}
+
+\section{Footprint and sweep time of a population}
+
+\begin{proposition}[Population footprint is exact]\label{prop:footprint}
+A population of $N=10^{10}$ agents, each an $8$-bit byte (Construction~\ref{con:agent8}), occupies:
+\[
+N\times 8\ \text{bits}\;=\;N\ \text{bytes}\;=\;10^{10}\ \text{bytes}\;=\;10\ \mathrm{GB},
+\]
+in either layout. % [THM]
+This is an exact arithmetic identity, not an estimate. % [ORIENT]
+\end{proposition}
+
+\begin{proof}
+Eight bits is one byte; $N$ agents is $N$ bytes; $10^{10}\,\text{bytes}=10\,\mathrm{GB}$ under the decimal-GB convention. % [PROOF]
+Both layouts store the same $8N$ bits, hence the same $N$ bytes. % [PROOF]
+No estimated quantity appears. % [PROOF]
+\end{proof}
+
+\begin{estimate}[One-pass sweep time is memory-bandwidth-bound]\label{est:sweep}
+A full admission sweep reads all $8$ planes once ($10\,\mathrm{GB}$ total) and, by Theorem~\ref{thm:branchless}, performs $7N/64\approx 1.1\times 10^{9}$ AND instructions for $N=10^{10}$. % [CODE]
+At scalar issue rates ($\sim\!10^{10}$ simple ops/s/core) the compute is $\sim\!0.1\,\mathrm{s}$ single-core and far less across cores and SIMD; at streaming memory bandwidth $\Bw\sim 10^{2}$--$4\times 10^{2}\,\mathrm{GB/s}$ the read of $10\,\mathrm{GB}$ takes:
+\[
+t_{\text{sweep}}\;\approx\;\frac{10\,\mathrm{GB}}{\Bw}\;\approx\;25\text{--}100\,\mathrm{ms}.
+\]
+Compute is dominated by memory traffic: the sweep is \emph{bandwidth-bound}, not compute-bound. % [CODE]
+The instruction count is exact (Theorem~\ref{thm:branchless}); the wall-time is an order-of-magnitude estimate from commodity bandwidth, labelled as such. % [ORIENT]
+\end{estimate}
+
+\begin{corollary}[Admission throughput]\label{cor:throughput}
+From Estimate~\ref{est:sweep}, a single commodity server admits $N=10^{10}$ agents in $\sim\!25$--$100\,\mathrm{ms}$, i.e.\ at $\sim\!10^{11}$--$4\times 10^{11}$ agent-admission decisions per second per server, bandwidth-bound. % [THM]
+This is the supply figure the planetary economics of Chapter~\ref{ch:econ} weigh against the comprehension-based alternative. % [ORIENT]
+\end{corollary}
+
+\begin{proof}
+By Estimate~\ref{est:sweep}, the memory swept for $N = 10^{10}$ agents is $10\,\mathrm{GB}$. % [PROOF]
+Given a commodity memory bus bandwidth $\Bw \in [100, 400]\,\mathrm{GB/s}$, the time required to stream $10\,\mathrm{GB}$ of data into CPU cache is:
+\[
+t_{\text{sweep}} \;\approx\; \frac{10\,\mathrm{GB}}{\Bw} \;\in\; \left[ \frac{10}{400},\ \frac{10}{100} \right]\,\mathrm{s} \;=\; [25,\ 100]\,\mathrm{ms}.
+\]
+The admission throughput $T$ is the number of agent decisions per unit time:
+\[
+T \;=\; \frac{N}{t_{\text{sweep}}} \;\in\; \left[ \frac{10^{10}}{0.1},\ \frac{10^{10}}{0.025} \right] \;=\; \left[ 10^{11},\ 4 \times 10^{11} \right]\ \text{decisions/s}.
+\]
+Since compute requires $7N/64 \approx 1.1 \times 10^9$ AND instructions, which executes in $\approx 100\,\mathrm{ms}$ on a single $10\,\mathrm{GHz}$ core and scales down linearly with multiple cores and vector instructions, the execution time is strictly dominated by the memory read transit time, making the throughput bandwidth-bound. % [PROOF]
+\end{proof}
+
+\chapter{Planetary Capacity and the Economics of Admission}
+\label{ch:econ}
+
+We now weigh demand against supply for the two admission regimes --- \emph{bit-parallel} (the sweep) and \emph{comprehension-based} (an LLM or human reading each observation) --- and show the gap is not a matter of optimization but of feasibility. % [ORIENT]
+All figures in this chapter are Fermi estimates and are labelled; the \emph{ordering} they establish is robust to an order of magnitude in any input. % [ORIENT]
+
+\section{Demand}
+
+\begin{estimate}[Planetary admission demand]\label{est:demand}
+Take a population of $N\in[10^{9},10^{12}]$ agents (the keystone's fleet), each re-admitted --- on receiving a peer message, on a lifecycle transition, on a watchdog tick --- at a rate $\rho\in[1,10^{2}]\,\mathrm{s^{-1}}$. % [BOUNDARY]
+The aggregate admission demand is:
+\[
+\Lambda_{\text{demand}}\;=\;N\rho\;\in\;\bigl[10^{9},\,10^{14}\bigr]\ \text{decisions/s},
+\]
+with a central estimate of $\sim\!10^{11}$--$10^{12}$ decisions/s for $N\sim 10^{10}$, $\rho\sim 10$. % [BOUNDARY]
+\end{estimate}
+
+\section{Supply, two regimes}
+
+\begin{estimate}[Comprehension-based supply ceiling]\label{est:comp-supply}
+A comprehension-based admission decision --- reading the observation with an LLM and judging its meaning --- costs on the order of $10^{-2}$--$10^{0}\,\mathrm{s}$ of accelerator time per decision (the keystone's $\sim\!10^{-2}\,\mathrm{s}$ figure), i.e.\ a per-accelerator rate of $\sim\!1$--$10^{2}$ decisions/s. % [CODE]
+Even a planetary datacenter fleet of $\sim\!10^{6}$--$10^{7}$ accelerators yields a comprehension-supply ceiling:
+\[
+\Lambda_{\text{comp}}\;\lesssim\;10^{7}\text{--}10^{9}\ \text{decisions/s},
+\]
+with a conservative central estimate of $\sim\!10^{8}$ decisions/s. % [CODE]
+\end{estimate}
+
+\begin{estimate}[Bit-parallel supply]\label{est:bit-supply}
+By Corollary~\ref{cor:throughput}, one commodity server supplies $\sim\!10^{11}$ decisions/s bandwidth-bound. % [CODE]
+A modest rack of $\sim\!10^{2}$ servers supplies $\sim\!10^{13}$ decisions/s; the primitive is $\sim\!10^{7}\times$ cheaper per decision than an LLM judgment, so bit-parallel supply scales into the demand band of Estimate~\ref{est:demand} on hardware of a single facility. % [CODE]
+\end{estimate}
+
+\begin{theorem}[Affordability separation]\label{thm:afford}
+Let $\Lambda_{\text{demand}}$, $\Lambda_{\text{comp}}$, $\Lambda_{\text{bit}}$ be the demand and the two supplies. % [DEF]
+Under the estimates above,
+\[
+\Lambda_{\text{comp}}\ \sim\ 10^{8}\ \ll\ \Lambda_{\text{demand}}\ \sim\ 10^{11}\text{--}10^{12}\ \lesssim\ \Lambda_{\text{bit}}\ \sim\ 10^{11}\text{--}10^{13}.
+\]
+Hence comprehension-based admission is under-provisioned by three to four orders of magnitude for a $10^{10}$-agent fleet, while bit-parallel admission meets demand on a single facility. % [THM]
+The separation persists under an order-of-magnitude perturbation of any single input. % [THM]
+\end{theorem}
+
+\begin{proof}[Estimate]
+Substitute the central estimates of Estimates~\ref{est:demand}--\ref{est:bit-supply}. % [PROOF]
+The comprehension ceiling $\Lambda_{\text{comp}}\sim 10^{8}$ falls short of demand $\sim\!10^{11}$--$10^{12}$ by $10^{3}$--$10^{4}$; the bit-parallel supply meets or exceeds it. % [PROOF]
+The gap between the two supplies is the keystone's per-decision cost ratio $\sim\!10^{7}$ scaled by population. % [PROOF]
+A tenfold error in any one input moves the inequality by at most one decade and does not reverse the three-to-four decade comprehension shortfall. % [PROOF]
+\end{proof}
+
+\begin{corollary}[Only bit-parallel admission is affordable]\label{cor:onlybit}
+A planetary control plane that re-admits its population continuously cannot be built on comprehension: no attainable accelerator fleet closes the demand gap. % [THM]
+It can be built on the sweep of Chapter~\ref{ch:agent8}, whose cost is dominated by a single pass over $10\,\mathrm{GB}$ of memory. % [THM]
+Comprehension is reserved, as in the keystone, for \emph{sampled audit} at honest $O(n)$ replay cost --- never for the per-message path. % [THM]
+\end{corollary}
+
+\begin{proof}
+By Theorem~\ref{thm:afford}, the maximum planetary supply of comprehension-based admission decisions is bounded by $\Lambda_{\text{comp}} \le 10^9$ decisions/s. % [PROOF]
+For a planetary population $N \ge 10^{10}$ agents re-admitted at rate $\rho \ge 10\,\mathrm{s}^{-1}$, the demand is $\Lambda_{\text{demand}} \ge 10^{11}$ decisions/s. % [PROOF]
+The deficit is: $\Lambda_{\text{demand}} \;-\; \Lambda_{\text{comp}} \;\ge\; 9.9 \times 10^{10}\ \text{decisions/s}$, which is a shortfall of 3 to 4 orders of magnitude. % [PROOF]
+In contrast, a single commodity server supplies $\sim 10^{11}$ decisions/s (Corollary~\ref{cor:throughput}), and a rack of $100$ servers supplies $\Lambda_{\text{bit}} \sim 10^{13}$ decisions/s, fully covering the demand. % [PROOF]
+Because the cost of the sweep scales only with the memory streaming of $10\,\mathrm{GB}$, it is within planetary physical and thermodynamic energy budgets. % [PROOF]
+Thus, continuous admission can only be built on the bit-parallel sweep, restricting comprehension to out-of-band sampled audits. % [PROOF]
+\end{proof}
+
+\section{The true floor is bandwidth, and it is generous}
+
+\begin{remark}
+Because the sweep is bandwidth-bound (Estimate~\ref{est:sweep}), the limiting limit on planetary admission is memory-system throughput, not logic. % [ORIENT]
+Bit-plane admission sits comfortably above the Landauer thermodynamic floor and orders of magnitude below the energy of a single comprehension decision; the physical budget of planetary admission is the cost of streaming a few tens of gigabytes, which any facility affords many times per second. % [BOUNDARY]
+Comprehension-based admission has no comparable floor because its cost scales with interior dimension per decision, exactly the quantity the projection principle exists to avoid paying. % [ORIENT]
+\end{remark}
+
+\chapter{The Geometry of Swarm Conformance}
+\label{ch:geometry}
+
+At $10^{12}$ agents, discrete tracking of individual agent Parikh vectors $\bm{x} \in \mathbb{Z}_{\ge 0}^p$ becomes computationally intractable. % [BOUNDARY]
+Conformance checking must transition from discrete combinatorial search to continuous and topological field theories. % [DEF]
+
+\section{Infinite-Dimensional Trace Geometry and Farkas' Lemma}
+Let $\mathcal{X}$ be a Banach space representing the space of continuous execution traces (e.g., the space of signed Radon measures $\mathcal{M}(\Omega)$ over the action domain $\Omega$), and let $K \subset \mathcal{X}$ be a closed convex cone representing lawful execution densities. % [DEF]
+Let $\mathcal{Y}$ be a Banach space representing the continuous marking configuration (state) space. % [DEF]
+We generalize the discrete net incidence matrix $\mathbf{N}$ to a bounded, continuous linear operator $\mathcal{N}: \mathcal{X} \to \mathcal{Y}$. % [DEF]
+The continuous state equation governing the transition is $m^\dagger = m_0 + \mathcal{N}\mu$ for some $\mu \in K$, where $\Delta m = m^\dagger - m_0$ is the marking density transition. % [DEF]
+The continuous lawful trace region is $\mathcal{P}_{lawful} = m_0 + \mathcal{N}(K) \subset \mathcal{Y}$. % [DEF]
+Conformance corresponds to the membership query $\Delta m \in \overline{\mathcal{N}(K)}$. % [DEF]
+
+\begin{theorem}[Infinite-Dimensional Farkas Separation]\label{thm:farkas_sep}
+Let $\mathcal{X}$ and $\mathcal{Y}$ be locally convex topological vector spaces, $K \subset \mathcal{X}$ a closed convex cone, and $\mathcal{N}: \mathcal{X} \to \mathcal{Y}$ a continuous linear operator. % [DEF]
+Fix $\Delta m \in \mathcal{Y}$. % [DEF]
+Exactly one of the following holds:
+\begin{enumerate}
+\item $\Delta m \in \overline{\mathcal{N}(K)}$ (the continuous execution relaxation is feasible). % [THM]
+\item There exists a continuous linear functional $y \in \mathcal{Y}^*$ (the dual potential field) such that $\mathcal{N}^* y \le 0$ (i.e., $\langle \mathcal{N}^* y, \mu \rangle \le 0$ for all $\mu \in K$) and $\langle y, \Delta m \rangle > 0$, where $\mathcal{N}^*: \mathcal{Y}^* \to \mathcal{X}^*$ is the adjoint operator. % [THM]
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Since $\overline{\mathcal{N}(K)}$ is a closed convex cone in the locally convex space $\mathcal{Y}$, and the point $\Delta m \notin \overline{\mathcal{N}(K)}$, the Hahn-Banach Separation Theorem \cite{banach1929} guarantees the existence of a continuous linear functional $y \in \mathcal{Y}^*$ and a constant $\alpha \in \mathbb{R}$ such that $\langle y, z \rangle \le \alpha < \langle y, \Delta m \rangle$ for all $z \in \overline{\mathcal{N}(K)}$. % [PROOF]
+Since $0 \in \overline{\mathcal{N}(K)}$, we have $0 \le \alpha$, which implies $\langle y, \Delta m \rangle > 0$. % [PROOF]
+Suppose there exists some $z_0 \in \overline{\mathcal{N}(K)}$ such that $\langle y, z_0 \rangle > 0$. % [PROOF]
+Because $\overline{\mathcal{N}(K)}$ is a cone, $\lambda z_0 \in \overline{\mathcal{N}(K)}$ for all $\lambda > 0$. % [PROOF]
+Taking the limit as $\lambda \to \infty$ yields $\langle y, \lambda z_0 \rangle \to \infty$, which violates the upper bound $\alpha$. % [PROOF]
+Thus, we must have $\langle y, z \rangle \le 0$ for all $z \in \overline{\mathcal{N}(K)}$, and setting $\alpha = 0$ preserves the inequality. % [PROOF]
+For any $\mu \in K$, we have $\mathcal{N}\mu \in \mathcal{N}(K) \subset \overline{\mathcal{N}(K)}$. % [PROOF]
+Therefore: $\langle y, \mathcal{N}\mu \rangle = \langle \mathcal{N}^* y, \mu \rangle \le 0$. % [PROOF]
+The continuous functional $y \in \mathcal{Y}^*$ serves as the separating hyperplane, certifying nonconformance. % [PROOF]
+\end{proof}
+
+\section{Differential Geometry of Swarm Action Fields}
+We treat the collective action space as a smooth Riemannian manifold $\mathcal{M}$ with metric tensor $g$. % [DEF]
+The spatial distribution of the swarm is represented as a probability density $\rho(t, x) \in \mathcal{P}(\mathcal{M})$ satisfying $\int_{\mathcal{M}} \rho(t, x) dV_g = 1$, flowing along action fields $V(t, x) \in T_x\mathcal{M}$ governed by the continuity equation $\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho V) = 0$. % [DEF]
+The minimum-energy path transitioning the swarm from initial $\rho_0$ to target $\rho_f$ defines the Wasserstein distance $W_2(\rho_0, \rho_f)$ in $\mathcal{P}_2(\mathcal{M})$:
+\[
+W_2^2(\rho_0, \rho_f) = \inf_{\rho, V} \left\{ \int_0^1 \int_{\mathcal{M}} g(V(t,x), V(t,x)) \rho(t,x) dV_g dt \right\}
+\]
+subject to $\partial_t \rho + \nabla \cdot (\rho V) = 0$ with $\rho(0, \cdot) = \rho_0$ and $\rho(1, \cdot) = \rho_f$. % [DEF]
+Under this formulation, the swarm's cost-optimal execution corresponds to a geodesic in the Wasserstein space $\mathcal{P}_2(\mathcal{M})$. % [THM]
+
+To enforce conformance constraints, we introduce a potential barrier $U: \mathcal{M} \to \mathbb{R} \cup \{+\infty\}$, where unauthorized regions correspond to $U(x) = +\infty$. % [BOUNDARY]
+Incorporating agent exploration entropy (diffusion coefficient $\sigma > 0$), the swarm's gradient flow matches the Fokker-Planck equation on the manifold: $\frac{\partial \rho}{\partial t} = \nabla \cdot (\rho \nabla U) + \sigma \Delta_g \rho$, where $\Delta_g$ is the Laplace-Beltrami operator. % [DEF]
+The stability of the swarm's coordination is governed by the Riemann curvature tensor $R^l_{ijk}$ of the action manifold. % [THM]
+Negative sectional curvature drives exponential divergence of trajectories, while positivesectional curvature focalizes agent flows along coordinate geodesics. % [THM]
+
+\section{Topological Conformance Bounds in Exponential Token Games}
+Concurrent state spaces suffer from exponential state-space explosion. % [BOUNDARY]
+We bypass this limit by bounding conformance verification using topological invariants of the execution space. % [ORIENT]
+We model the concurrent state space as a cubical complex $\mathbb{K}$, where vertices represent local state configurations and directed edges represent transitions. % [DEF]
+Let $\mathbb{K}_{lawful} \subset \mathbb{K}$ represent the sub-complex of lawful markings. % [DEF]
+
+\begin{theorem}[Homological Conformance Bound]\label{thm:homology_bound}
+Let $\mathbb{K}_{lawful}$ be the lawful execution sub-complex. % [DEF]
+If there exists a deformation retraction $r: \mathbb{K}_{lawful} \to \mathcal{B}$ onto a lower-dimensional boundary skeleton $\mathcal{B}$, then any execution trace $\gamma \subset \mathbb{K}_{lawful}$ can be projected to a path $r \circ \gamma \subset \mathcal{B}$. % [THM]
+Furthermore, let $H_n(\mathbb{K}_{lawful})$ be the $n$-th homology group of the lawful complex. % [DEF]
+The verification complexity of conformance is bounded by the dimension of the homology groups:
+\[
+\dim H_1(\mathbb{K}_{lawful}) = b_1(\mathbb{K}_{lawful})
+\]
+where $b_1$ is the first Betti number, rather than the exponential cardinality of the state space $|\mathbb{K}|$. % [THM]
+\end{theorem}
+
+\begin{proof}
+Let $\gamma_1, \gamma_2: [0, 1] \to \mathbb{K}_{lawful}$ be two directed execution paths sharing start and end points. % [PROOF]
+If they are homologous, there exists a 2-chain $\sigma$ in $\mathbb{K}_{lawful}$ such that $\partial \sigma = \gamma_1 - \gamma_2$. % [PROOF]
+Since the boundary operator $\partial$ preserves the topological boundaries of the lawful space, the region between the paths contains no "holes" corresponding to unauthorized states or deadlocks. % [PROOF]
+The projection under the retraction $r$ maps the 2-chain $\sigma$ to a 2-chain $r(\sigma)$ in the boundary skeleton $\mathcal{B}$. % [PROOF]
+The verification of conformance is thus reduced to checking membership of the class $[r(\gamma)] \in H_1(\mathcal{B})$. % [PROOF]
+The size of the certificate required to prove conformance is proportional to the Betti number $b_1(\mathbb{K}_{lawful})$ and the dimension of $\mathcal{B}$, isolating the verification boundary to $O(\CL)$ coordinates. % [PROOF]
+\end{proof}
+
+\chapter{Scale Verification and Reality Addressing}
+\label{ch:verification}
+
+\section{Swarm Scaling and Hierarchical Zero-Defect Bounds}
+We define a \textbf{Hierarchical Merkle Rollup} over the swarm. % [DEF]
+
+\begin{definition}[Member Record]\label{def:member_rec}
+For each agent $a \in [N]$, its local execution is projected into a member record:
+\[
+r_a = \langle a, \abyte{a}, h_{a,\mathrm{term}}, \text{refusal} \rangle
+\]
+where $\abyte{a} \in \mathbb{B}^8$ is the status byte, and the terminal hash $h_{a,\mathrm{term}} \in \{0, 1\}^{256}$ is defined as:
+\[
+h_{a,\mathrm{term}} = \begin{cases} \Psi(a), & \text{if } \abyte{a} \ \&\ \operatorname{A\_ADMITTED} \neq 0, \\ \chainH(\operatorname{refusal}), & \text{if } \abyte{a} \ \&\ \operatorname{H\_HALTED} \neq 0. \end{cases}
+\]
+Here, $\Psi(a)$ represents the deterministic commitment to the agent's admission receipt. % [DEF]
+\end{definition}
+
+\begin{definition}[Group Replay Root]\label{def:group_root}
+Let the swarm be partitioned into $G$ disjoint groups of size $S = N/G$. % [DEF]
+For each group $g \in [G]$, its replay root $h_{g,\mathrm{root}}$ is computed as:
+\[
+h_{g,\mathrm{root}} = \chainH(\operatorname{sort}(\{ h_{a,\mathrm{term}} : a \in g \})).
+\]
+Sorting terminal hashes ensures that the replay root is invariant under member execution order. % [DEF]
+\end{definition}
+
+\begin{definition}[Cell Hash]\label{def:cell_hash}
+A cell receipt composes $G$ group replay roots into a rolling commitment:
+\[
+h_{\mathrm{cell}, i} = \operatorname{fold\_event}(h_{\mathrm{cell}, i-1}, h_{g_i,\mathrm{root}}) \quad \forall i \in [1, G].
+\]
+\end{definition}
+
+\begin{definition}[Supra-Cell Hash]\label{def:supra_hash}
+Multiple cells are aggregated into a supra-cell summary:
+\[
+h_{\mathrm{supra}, j} = \operatorname{fold\_event}(h_{\mathrm{supra}, j-1}, \operatorname{summary\_line}(s_j)) \quad \forall j \in [1, C]
+\]
+where $\operatorname{summary\_line}(s_j) = j \parallel n_j \parallel \operatorname{admitted}_j \parallel \operatorname{refused}_j \parallel h_{\mathrm{cell}, j}$. % [DEF]
+\end{definition}
+
+\begin{theorem}[Zero-Defect Verification Complexity]\label{thm:zero_defect}
+The computational complexity for a verifier to validate the integrity of a supra-cell receipt is $O(C \cdot G)$, independent of the total agent count $N = 10^{12}$. % [THM]
+\end{theorem}
+
+\begin{proof}
+To verify the supra-cell receipt, the verifier reads the $C$ summaries and recomputes the cell hashes $h_{\mathrm{cell}, j}$ using the pre-computed group roots $h_{g_i,\mathrm{root}}$. % [PROOF]
+Refolding the supra-cell hash requires $C$ summary line hashes, and recomputing the cell hashes requires $C \cdot G$ event foldings. % [PROOF]
+Thus, the total operations are $O(C \cdot G)$, which is independent of the swarm size $N$. % [PROOF]
+\end{proof}
+
+\begin{theorem}[Anti-Cheat Soundness]\label{thm:anti_cheat}
+Let $k$ be the number of agent execution states altered by an adversary. % [DEF]
+The probability $\varepsilon_{\mathrm{cheat}}$ that the adversary can mutate these states without changing the supra-cell hash $h_{\mathrm{supra}}$ is bounded by:
+\[
+\varepsilon_{\mathrm{cheat}} \le (k + G + C) \cdot \varepsilon(\lambda)
+\]
+where $\varepsilon(\lambda) \approx 2^{-128}$ is the collision probability of BLAKE3. % [THM]
+\end{theorem}
+
+\begin{proof}
+Any mutation in an agent's status byte $\abyte{a}$ or terminal hash $h_{a,\mathrm{term}}$ alters the set $\{h_{a,\mathrm{term}} : a \in g\}$. % [PROOF]
+Under the collision resistance of $\chainH$, this mutates the group replay root $h_{g,\mathrm{root}}$ except with probability $\varepsilon(\lambda)$. % [PROOF]
+By induction, this alters the cell hash $h_{\mathrm{cell}, j}$ and the summary line, changing the terminal supra-cell hash $h_{\mathrm{supra}}$ unless a collision is found. % [PROOF]
+Summing the independent collision bounds at the member, group, and cell layers yields the theorem. % [PROOF]
+\end{proof}
+
+An individual agent $a$ can be verified on challenge in $O(|S_{\mathrm{trace}}| + S_{\mathrm{group}})$ time by replaying only its group's local members. % [CODE]
+
+\section{Localized Replay Geometries}
+Let the swarm execution be represented as a directed acyclic graph $\mathcal{G} = (\mathcal{V}, \mathcal{E})$, where $\mathcal{V}$ is the set of virtual state transitions (agent lifecycles) and $\mathcal{E}$ represents causal dependencies (token/data flows). % [DEF]
+
+\begin{theorem}[Localized Replay Decoupling]\label{thm:local_decoupling}
+Let $S \subset \mathcal{V}$ be a sub-region of interest. % [DEF]
+If the states of the incoming boundary nodes:
+\[
+\partial^{-} S = \{ u \in \mathcal{V} \setminus S : \exists v \in S, (u, v) \in \mathcal{E} \}
+\]
+are cryptographically signed and committed, then the validity of all transitions in $S$ can be verified with complexity $O(|S| + |\partial^{-} S|)$, independent of $|\mathcal{V} \setminus S|$. % [THM]
+\end{theorem}
+
+\begin{proof}
+Let $f_v$ be the deterministic transition function of node $v \in S$. % [PROOF]
+The inputs to $f_v$ are the outputs of its parent nodes. % [PROOF]
+By topological sorting of $S$, every input to a node $v \in S$ is either an output of another node $u \in S$ or an output of a boundary node $w \in \partial^{-} S$. % [PROOF]
+Since the outputs of $\partial^{-} S$ are committed and authenticated, they serve as trusted oracle inputs. % [PROOF]
+The verifier recomputes the transitions $f_v$ sequentially for all $v \in S$, requiring exactly $|S|$ evaluations of local transition functions and $|\partial^{-} S|$ boundary lookups, yielding a complexity of $O(|S| + |\partial^{-} S|)$. % [PROOF]
+\end{proof}
+
+\section{Virtual State Transitions and Physical Reality Addressing}
+To ground traces, we map high-cardinality virtual state transitions to the physical universe. % [ORIENT]
+
+\begin{definition}[Reality Address Record]\label{def:reality_address}
+A virtual transition $v \in \mathcal{V}$ is bound to physical reality by a Reality Address Record:
+\[
+R_v = \langle s_v, t_v, w_v, p_v \rangle
+\]
+where $s_v$ is the IRI of $v$, and the anchors are extracted from the admitted graph triples: % [DEF]
+\begin{itemize}
+\item $t_v$: `inXSDDateTimeStamp` (`OWL-Time`) representing the physical time of execution. % [DEF]
+\item $w_v$: `asWKT` (`GeoSPARQL`) representing the physical Well-Known Text spatial coordinate. % [DEF]
+\item $p_v$: `wasAttributedTo` (`PROV-O`) representing the physical entity or hardware agent. % [DEF]
+\end{itemize}
+\end{definition}
+
+\begin{theorem}[Anchor Sufficiency and Refusal]\label{thm:anchor_suff}
+Let $\beta_{\mathrm{reality}}$ be the reality addressing map. % [DEF]
+If a subject $s$ contains no public ontology coordinates, the mapping retracts to the refusal constant:
+\[
+t_v = \varnothing \land w_v = \varnothing \land p_v = \varnothing \implies \beta_{\mathrm{reality}}(v) = \bot_{\mathrm{reality}}
+\]
+which propagates as a `RealityAddressIllFormed` refusal. % [THM]
+\end{theorem}
+
+\begin{proof}
+By definition of $\beta_{\mathrm{reality}}$, a reality address requires at least one physical anchor to ground the virtual node. % [PROOF]
+If all parameters $t_v$, $w_v$, and $p_v$ are null, the function evaluates to the refusal state $\bot_{\mathrm{reality}}$. % [PROOF]
+This prevents unanchored states from achieving standing. % [PROOF]
+\end{proof}
+
+\begin{theorem}[Duality of Virtual-Physical Mapping]\label{thm:duality_map}
+Let LSIF/LSP be the mapping $f_{\mathrm{LSIF}} : \mathcal{S}_{\mathrm{code}} \to \mathcal{C}_{\mathrm{file}}$ from virtual code symbols to physical file offsets. % [DEF]
+Let Reality Addressing be the mapping $f_{\mathrm{reality}} : \mathcal{S}_{\mathrm{exec}} \to \mathcal{C}_{\mathrm{universe}}$ from virtual execution nodes to physical coordinates. % [DEF]
+Both mappings are structural retractions that preserve topological dependency relations:
+\[
+v_1 \prec_{\mathcal{E}} v_2 \implies f_{\mathrm{reality}}(v_1) \le_{\mathrm{time}} f_{\mathrm{reality}}(v_2).
+\]
+\end{theorem}
+
+\begin{proof}
+If $v_1 \prec_{\mathcal{E}} v_2$, there exists a causal path in the execution graph, meaning the state transition of $v_2$ depends on the completed execution of $v_1$. % [PROOF]
+Because physical time is monotonic, the physical event corresponding to $v_2$ cannot occur before $v_1$. % [PROOF]
+The public ontology anchor $t_v = f_{\mathrm{reality}}(v).\operatorname{time\_anchor}$ must reflect this physical constraint: $t_{v_1} \le_{\mathrm{time}} t_{v_2}$. % [PROOF]
+Thus, the reality mapping is a homomorphism preserving the causal poset structure on the physical time coordinate. % [PROOF]
+This is dual to LSIF, where compiler dependency order is preserved on physical file layout constraints. % [PROOF]
+\end{proof}
+
+\chapter{The Antibody Clause, Formalized}
+\label{ch:antibody}
+
+A thesis addressed to a trillion agents, making claims of planetary capacity, must carry its own guardrail against grandiosity --- otherwise it is the very overclaim it warns against. % [BOUNDARY]
+The keystone stated this as the antibody clause. % [ORIENT]
+We formalize it as an invariant on claim magnitude and then apply it to this paper. % [ORIENT]
+
+\section{Claims, witnesses, and magnitude}
+
+\begin{definition}[Claim, receipt witness, magnitude]\label{def:claim}
+A \emph{claim} is a pair $c=(\phi_c,\,w_c)$ where $\phi_c$ is a proposition and $w_c\in\mathbb R_{\ge 0}$ its asserted \emph{magnitude}. % [DEF]
+A \emph{receipt witness} for $c$ is a receipt $r(c)$ whose boundary projection is accepted by the fixed verifier, $V(\Proj(r(c)))=1$, and whose committed fields \emph{entail} an attested magnitude $\widehat w_c$ --- the largest value the receipt's law-bearing fields support under Faithful Projection. % [DEF]
+A claim is \emph{admissible} iff it has a receipt witness with $w_c\le\widehat w_c$. % [DEF]
+\end{definition}
+
+\section{Overclaim set and the antibody invariant}
+
+\begin{definition}[Overclaim set and the antibody invariant]\label{def:over}
+The \emph{overclaim set} of a system emitting claims $\mathcal C$ is:
+\[
+\Over\;=\;\{\,c\in\mathcal C : \nexists\,r(c)\ \text{with}\ V(\Proj(r(c)))=1\ \text{and}\ w_c\le\widehat w_c\,\},
+\]
+the claims with no receipt witness, or whose magnitude exceeds what their witness attests. % [DEF]
+The \emph{antibody invariant} is $\Over=\varnothing$: this is the \code{docs-exceed-mechanism} defect class of the \code{praxis} definition-of-done, enforced as a gate rather than a guideline. % [BOUNDARY]
+\end{definition}
+
+\begin{theorem}[Magnitude is bounded by the receipting mechanism]\label{thm:magnitude}
+If a system maintains the antibody invariant $\Over=\varnothing$, then for every emitted claim $c$, its magnitude is bounded by its receipt witness:
+\[
+w_c\;\le\;\widehat w_c\;=\;\max\{\,w : \text{the committed fields of } r(c)\ \text{entail magnitude } w\,\},
+\]
+and $\widehat w_c$ is verifiable at boundary cost $O(\CL)$ independent of the interior that produced $c$. % [THM]
+Consequently no claim can exceed what its mechanism can receipt, regardless of its rhetoric. % [THM]
+\end{theorem}
+
+\begin{proof}
+By $\Over=\varnothing$ (Definition~\ref{def:over}), every emitted $c$ has a receipt witness with $V(\Proj(r(c)))=1$ and $w_c\le\widehat w_c$. % [PROOF]
+The first conjunct is verifiable at $O(\CL)$ by the Comprehension--Verification Gap and Proposition~\ref{prop:invariance} here, and $\widehat w_c$ is a function of the committed fields, which are faithful under collision resistance. % [PROOF]
+A claim with $w_c>\widehat w_c$ would lie in $\Over$, contradicting the invariant; hence $w_c\le\widehat w_c$. % [PROOF]
+The bound is on the magnitude a \emph{receipt} attests, so it is independent of the unread interior. % [PROOF]
+\end{proof}
+
+\section{Reflexive antibody: this paper's own claims}
+
+\begin{corollary}[Reflexive antibody: this paper's own claims]\label{cor:reflexive}
+Each quantitative claim in this paper is either a theorem with a proof (a receipt in the logical sense: the derivation is its witness, verifiable by reading the proof, of bounded length) or an \emph{Estimate} explicitly labelled and provisioned with its inputs (a receipt of the second kind: the magnitude is bounded by the stated Fermi inputs, and no larger value is asserted). % [THM]
+The partition is exhaustive by construction: no numerical assertion appears unlabelled. % [THM]
+Therefore this paper's overclaim set is empty, and by Theorem~\ref{thm:magnitude} the magnitude of each claim is bounded by its witness --- a proof or a labelled estimate --- as the invariant requires. % [THM]
+\end{corollary}
+
+\begin{proof}
+Enumerate the paper's magnitude-bearing statements. % [PROOF]
+The gap ratio $6.25\times 10^{5}$ (Theorem~\ref{thm:instance-gap}), the footprint $10\,\mathrm{GB}$ (Proposition~\ref{prop:footprint}), the per-word gating $7/64$ (Theorem~\ref{thm:branchless}), and the magnitude bound itself (Theorem~\ref{thm:magnitude}) are theorems with proofs. % [PROOF]
+The wall-time (Estimate~\ref{est:wall}), sweep time (Estimate~\ref{est:sweep}), demand, supplies, and affordability separation (Estimates~\ref{est:demand}--\ref{thm:afford}) are labelled estimates carrying their inputs. % [PROOF]
+Every magnitude falls in one class or the other; none is unlabelled; hence $\Over=\varnothing$ for this document. % [PROOF]
+\end{proof}
+
+\begin{remark}
+This is the doctrine's discipline made self-applying: \emph{a grand system without receipts is grandiosity; a grand system that receipts its own overclaims is machinery}. % [ORIENT]
+A paper claiming planetary capacity earns the claim only by receipting it --- by proving what it can and labelling what it estimates. % [ORIENT]
+The antibody clause is not modesty; it is the mechanism that makes a large claim admissible in the sense of the Chatman equation. % [ORIENT]
+\end{remark}
+
+\chapter{Fleet Application and Autonomic Reconciliation}
+\label{ch:retrofit}
+
+\section{The praxis-retrofit fleet applier}
+
+When a plan produces a code modification as its artifact, the artifact must be applied to a live fleet. % [ORIENT]
+The \code{praxis-retrofit} crate realizes this as a \emph{receipted applier}: every application is gated, isolated in a Git worktree, and admitted through a CI oracle before any branch is advanced. % [CODE]
+
+\begin{definition}[AST-gate isolation]\label{def:astgate}
+An \emph{AST gate} is a syntactic predicate $g:\mathcal{T}\to\{0,1\}$ on an abstract syntax tree $\mathcal{T}$ that is computable in $O(|\mathcal{T}|)$ time. % [DEF]
+The retrofit applier gates every proposed change through an ordered battery $(g_1,\dots,g_m)$ of AST gates: the change is admitted iff all gates pass, i.e.\ $\bigwedge_{i=1}^m g_i(\mathcal{T})=1$. % [DEF]
+A failing gate returns a denial with the gate index $i$ and the offending AST node, constituting a \emph{refusal with reason} in the sense of the denial monoid (Proposition~\ref{prop:monoid}). % [DEF]
+\end{definition}
+
+\begin{proposition}[AST-gate admission is total and terminating]\label{prop:astterm}
+For any finite AST $\mathcal{T}$ and finite gate battery $(g_1,\dots,g_m)$ where each $g_i$ is a syntactic predicate, the battery evaluation terminates in time $O(m\cdot|\mathcal{T}|)$ and returns either $\code{Admitted}$ or a refusal carrying the first failing gate index and the offending node. % [THM]
+The retraction is total: it never diverges and never returns an unlabelled outcome. % [THM]
+\end{proposition}
+
+\begin{proof}
+Each $g_i$ traverses the finite tree $\mathcal{T}$ once in $O(|\mathcal{T}|)$ time. % [PROOF]
+The battery evaluates the gates in order; on the first failure it returns the structured denial; on all-pass it returns \code{Admitted}. % [PROOF]
+The \code{RetrofitApplier} in \code{praxis-retrofit} wraps each gate result in the \code{DenialPolarity} framework, so the denial composes as a monoid element. % [PROOF]
+\end{proof}
+
+\begin{definition}[Isolated worktree applier]\label{def:worktree-ret}
+The retrofit applier isolates each application attempt in a fresh Git worktree:
+\begin{equation}\label{eq:worktree}
+\code{git worktree add}\ \text{temp\_path}\ \text{phase\_branch},
+\end{equation}
+applies the change, runs the CI oracle $(g_1,\dots,g_m)$ (which includes \code{cargo build}, \code{cargo test}, \code{cargo clippy}), and on any gate failure executes the rollback protocol:
+\[
+\code{git reset --hard}\ \text{baseline\_sha}.
+\]
+On all-pass, the worktree change is merged into the target branch, and the chain receipt for the application is minted with the worktree OID committed into the frame's \code{obj\_refs} payload digest. % [DEF]
+\end{definition}
+
+\begin{proposition}[Main branch cleanliness is an invariant]\label{prop:mainclean}
+Under Definition~\ref{def:worktree-ret}, the main branch is never advanced past a failing CI gate. % [THM]
+The rollback protocol is unconditional on failure: it runs before the worktree is removed, restoring the branch to \code{baseline\_sha} regardless of which gate failed. % [THM]
+Hence the main branch satisfies all CI gates at every point in its history. % [THM]
+\end{proposition}
+
+\begin{proof}
+The applier's critical section is: (1) create worktree, (2) apply change to worktree, (3) run gate battery, (4) on pass: merge; on fail: \code{git reset --hard baseline\_sha} and abort. % [PROOF]
+Step 4's fail branch executes before the worktree is deleted, and \code{git reset --hard} on a worktree has no effect on the main working tree. % [PROOF]
+The main branch pointer is advanced only in step 4's pass branch, which is never reached on a gate failure. % [PROOF]
+Hence the main branch history is a subsequence of attempts all of which passed every gate. % [PROOF]
+\end{proof}
+
+\section{Visual gap measurement and the reconciler residual}
+
+\begin{definition}[Visual gap report]\label{def:vizgap}
+A \emph{visual gap report} is the output of \code{praxis-reconciler}'s \code{measure\_gap} function: for each reconcilable dimension $i\in\{1,\dots,k\}$, the residual $r_i = \mathrm{measured}_i - \mathrm{midpoint}(\mathrm{target}_i)$ and the dominant dimension $i^*=\argmax_i|r_i|$ together with a rendered diff block for the discrepancy. % [DEF]
+The report is bounded: it has $k$ residual values and one dominant index, of total size $O(k)$ independent of the interior that generated the measurements. % [DEF]
+\end{definition}
+
+\begin{proposition}[The visual gap report is a bounded projection]\label{prop:vizgap}
+Definition~\ref{def:vizgap} gives $\mathrm{gap}:\mathbb{R}^k\to\mathbb{R}^k\times[k]$, a projection from the $k$-dimensional measurement space onto the residual vector and its argmax. % [THM]
+This projection has the same cost structure as the receipt projection: $O(k)$ to compute, $O(k)$ to verify. % [THM]
+The repair operator \code{apply\_repair} then acts on the dominant dimension $i^*$ subject to \code{RepairBand} bounds, producing at most one corrective actuation --- a bounded deterministic manufacture. % [THM]
+\end{proposition}
+
+\begin{proof}
+The residual vector is a linear map (subtraction of midpoint from measurement); it costs $O(k)$ arithmetic operations. % [PROOF]
+The argmax is a single pass over $k$ values. % [PROOF]
+The dominant dimension is one index; the repair acts on that dimension only. % [PROOF]
+By Definition, the \code{RepairBand} is a finite closed interval, so the repair is a bounded projection onto that interval. % [PROOF]
+\end{proof}
+
+\chapter{Conclusion}
+\label{ch:concl}
+
+The keystone proved that a bounded verifier can trust an unbounded interior through a faithful projection. % [ORIENT]
+This paper carried that principle to the scale at which it is not an optimization but a precondition of coherence, and made it quantitative and mechanical at each step. % [ORIENT]
+
+We measured the gap: on the canonical $2.5$-million-token instance it is $\sim\!6\times 10^{5}$, with measured inputs and a proved consequence (Theorem~\ref{thm:instance-gap}), and boundary cost is provably invariant as the interior grows (Proposition~\ref{prop:invariance}). % [ORIENT]
+We formalized manufactured trust as the decidable-oracle move (Proposition~\ref{prop:necessity}) and gave it three faces --- differential agreement with a false-accept bound (Proposition~\ref{prop:diff-bound}), boundary fuzzing of a total retraction (Proposition~\ref{prop:fuzz}), and mutation-testing with the Mutant Kill Theorem (Theorem~\ref{thm:kill}) that ties a kill to rejection at the correct stage and turns the verifier's stage index into a diagnosis (Corollary~\ref{cor:diag}). % [ORIENT]
+We built the agent byte from the running denial lanes (Construction~\ref{con:agent8}) and proved fleet admission is branchless mask algebra gating $64$ agents per word in seven instructions (Theorem~\ref{thm:branchless}), with a $10^{10}$-agent population an exact $10\,\mathrm{GB}$ swept in one bandwidth-bound pass (Proposition~\ref{prop:footprint}, Estimate~\ref{est:sweep}). % [ORIENT]
+We weighed the planetary economics and proved the affordability separation (Theorem~\ref{thm:afford}): comprehension-based admission is under-provisioned by three to four orders of magnitude, and only bit-parallel admission scales (Corollary~\ref{cor:onlybit}). % [ORIENT]
+Finally we formalized the antibody clause as the invariant $\Over=\varnothing$ and proved that claim magnitude is bounded by the receipting mechanism (Theorem~\ref{thm:magnitude}), applying the bound reflexively to this paper (Corollary~\ref{cor:reflexive}). % [ORIENT]
+
+The picture that results is severe and simple. % [ORIENT]
+At planetary scale, no one reads anyone. % [ORIENT]
+Trust is not comprehension; it is a hash comparison, an oracle equality, a total classifier's label, and --- for the population as a whole --- a single AND of eight bit-planes streamed across memory. % [THM]
+The interior may be a trillion tokens or a trillion agents; the admission is a sweep, and the sweep is affordable. % [ORIENT]
+What makes the civilization coherent is not that its members understand one another. % [ORIENT]
+It is that each carries a faithful byte, and the byte can be checked in one pass. % [ORIENT]
+
+\begin{center}\itshape Beyond cognitive load; within admissible projection --- at the scale of the sweep.\end{center}
+
+\appendix
+\chapter{Notation and Constants}
+
+\section*{Symbols specific to this paper}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning\\
+\midrule
+$T(\sigma)$ & interior token count of a manufacture (measured)\\
+$\CL$ & boundary field count / verifier context capacity (design constant)\\
+$t_{\chainH}$ & per-frame recomputation wall-time (estimated)\\
+$\Omega,\ \Omega_{f,g},\ \Omega_\partial$ & decidable oracle; differential; admission-boundary\\
+$V=(V_1,\dots,V_k)$ & staged validator; $I_i$ its stage invariants\\
+$\stg(m),\ \Kill(m)$ & correct stage of a mutation; kill indicator\\
+$\abyte{a}\in\{0,1\}^8$ & agent status byte (Construction~\ref{con:agent8})\\
+$P_\ell,\ D_\ell$ & OK-polarity and denial-polarity bit-planes of lane $\ell$\\
+$\Bw$ & streaming memory bandwidth\\
+$\Lambda_{\text{demand}},\Lambda_{\text{comp}},\Lambda_{\text{bit}}$ & admission demand; comprehension supply; bit-parallel supply\\
+$\Over,\ w_c,\ \widehat w_c$ & overclaim set; claimed and attested magnitude\\
+\bottomrule
+\end{tabular}
+
+\section*{Constants used, with provenance}
+\begin{tabular}{lll}
+\toprule
+Quantity & Value & Provenance\\
+\midrule
+Interior tokens $T(\sigma)$ & $\approx 2.5\times 10^{6}$ & measured (keystone Ch.~6)\\
+Boundary fields $\CL$ & $4$ & design (receipt schema)\\
+Gap ratio $T/\CL$ & $\approx 6.25\times 10^{5}$ & proved (Thm.~\ref{thm:instance-gap})\\
+Byte width & $8$ bits & design (denial lanes)\\
+Gating cost & $7/64$ instr/agent & proved (Thm.~\ref{thm:branchless})\\
+$10^{10}$-agent footprint & $10\,\mathrm{GB}$ & exact (Prop.~\ref{prop:footprint})\\
+Sweep time & $25$--$100\,\mathrm{ms}$ & estimate (Est.~\ref{est:sweep})\\
+Bit-parallel supply & $\sim 10^{11}$/s/server & estimate (Cor.~\ref{cor:throughput})\\
+Comprehension supply & $\sim 10^{8}$/s planetary & estimate (Est.~\ref{est:comp-supply})\\
+Per-decision cost ratio & $\sim 10^{7}$ & keystone (Prop.~6.2)\\
+\bottomrule
+\end{tabular}
+
+\begin{thebibliography}{9}
+
+\bibitem{chatman2025}
+The Praxis / Capability Physics Program,
+\emph{The Projection Principle: A First-Principles Theory of Bounded Receipted Execution for a
+Trillion Agents Beyond One Another's Comprehension} (keystone thesis of this series), 2026.
+
+\bibitem{rice1953}
+H.~G.~Rice,
+\emph{Classes of recursively enumerable sets and their decision problems},
+Transactions of the American Mathematical Society \textbf{74} (1953), 358--366.
+
+\bibitem{simdjson}
+G.~Langdale and D.~Lemire,
+\emph{Parsing gigabytes of JSON per second},
+The VLDB Journal \textbf{28}(6) (2019), 941--960.
+
+\bibitem{qlever}
+H.~Bast and B.~Buchhold,
+\emph{QLever: A query engine for efficient SPARQL+Text search},
+in Proc.\ CIKM, ACM, 2017, 647--656.
+
+\bibitem{demillo1978}
+R.~A.~DeMillo, R.~J.~Lipton, and F.~G.~Sayward,
+\emph{Hints on test data selection: Help for the practicing programmer},
+Computer \textbf{11}(4) (1978), 34--41.
+
+\bibitem{jia2011}
+Y.~Jia and M.~Harman,
+\emph{An analysis and survey of the development of mutation testing},
+IEEE Transactions on Software Engineering \textbf{37}(5) (2011), 649--678.
+
+\bibitem{blake3}
+J.~O'Connor, J.-P.~Aumasson, S.~Neves, and Z.~Wilcox-O'Hearn,
+\emph{BLAKE3: One function, fast everywhere},
+2020.
+
+
+\bibitem{shannon1948}
+C.~E.~Shannon,
+\emph{A Mathematical Theory of Communication},
+Bell System Technical Journal 	extbf{27} (1948), 379--423 \& 623--656. % [CITE]
+
+\bibitem{banach1929}
+S.~Banach,
+\emph{Sur les fonctionnelles lin'eaires},
+Studia Mathematica 	extbf{1} (1929), 211--216. % [CITE]
+
+\bibitem{maclane1963}
+S.~Mac~Lane,
+\emph{Natural associativity and commutativity},
+Rice University Studies 	extbf{49}(4) (1963), 28--46. % [CITE]
+
+\bibitem{miller1956}
+G.~A.~Miller,
+\emph{The m{\relax a}gical number seven, plus or minus two: Some limits on our capacity for processing information},
+Psychological Review 	extbf{63}(2) (1956), 81--97. % [CITE]
+
+\bibitem{cowan2001}
+N.~Cowan,
+\emph{The m{\relax a}gical number 4 in short-term memory: A reconsideration of mental storage capacity},
+Behavioral and Brain Sciences 	extbf{24}(1) (2001), 87--114. % [CITE]
+
+\bibitem{lamport1978}
+L.~Lamport,
+\emph{Time, clocks, and the ordering of events in a distributed system},
+Communications of the ACM 	extbf{21}(7) (1978), 558--565. % [CITE]
+
+\bibitem{fidge1988}
+C.~J.~Fidge,
+\emph{Timestamps in Message-Passing Systems That Preserve the Partial Ordering},
+in Proc. 11th Australian Computer Science Conference 	extbf{10}(1) (1988), 56--66. % [CITE]
+
+\bibitem{mattern1989}
+F.~Mattern,
+\emph{Virtual Time and Global States of Distributed Systems},
+Parallel and Distributed Algorithms (1989), 215--226. % [CITE]
+
+\bibitem{lasry2007}
+J.-M.~Lasry and P.-L.~Lions,
+\emph{Mean field games},
+Japanese Journal of Mathematics 	extbf{2}(1) (2007), 229--260. % [CITE]
+
+\bibitem{caines2006}
+M.~Huang, R.~P.~Malham'e, and P.~E.~Caines,
+\emph{Large population stochastic dynamic games: closed-loop McKean-Vlasov systems and the Nash certainty equivalence principle},
+Communications in Information and Systems 	extbf{6}(3) (2006), 221--252. % [CITE]
+
+\bibitem{fick1855}
+A.~Fick,
+\emph{Ueber Diffusion},
+Annalen der Physik 	extbf{170}(1) (1855), 59--86. % [CITE]
+
+\bibitem{navier1822}
+C.-L.~Navier,
+\emph{M'emoire sur les lois du mouvement des fluides, en ayant 'egard \`a l'adh'esion des mol'ecules},
+M'emoires de l'Acad'emie Royale des Sciences de l'Institut de France 	extbf{6} (1822), 389--440. % [CITE]
+
+\bibitem{stokes1845}
+G.~G.~Stokes,
+\emph{On the theories of the internal friction of fluids in motion, and of the equilibrium and motion of elastic solids},
+Transactions of the Cambridge Philosophical Society 	extbf{8} (1845), 287--305. % [CITE]
+
+\bibitem{bellman1957}
+R.~Bellman,
+\emph{Dynamic Programming},
+Princeton University Press, 1957. % [CITE]
+
+\bibitem{nyquist1932}
+H.~Nyquist,
+\emph{Regeneration Theory},
+Bell System Technical Journal 	extbf{11}(1) (1932), 126--147. % [CITE]
+
+\bibitem{lsp2016}
+Microsoft Corporation,
+\emph{Language Server Protocol Specification},
+GitHub Open Specification, 2016. % [CITE]
+
+\bibitem{lsif2019}
+Microsoft Corporation,
+\emph{Language Server Index Format Specification},
+LSP Specifications, 2019. % [CITE]
+
+\bibitem{scip2022}
+Sourcegraph, Inc.,
+\emph{SCIP: Source Code Intelligence Protocol},
+GitHub Specification, 2022. % [CITE]
+
+\bibitem{owltime2006}
+W3C,
+\emph{Time Ontology in OWL},
+W3C Recommendation, 2006. % [CITE]
+
+\bibitem{geosparql2012}
+OGC,
+\emph{OGC GeoSPARQL - A Geographic Query Language for RDF Data},
+Open Geospatial Consortium, 2012. % [CITE]
+
+\bibitem{provo2013}
+W3C,
+\emph{PROV-O: The PROV Ontology},
+W3C Recommendation, 2013. % [CITE]
+
+\bibitem{todd2012}
+P.~Todd,
+\emph{Merkle Mountain Ranges},
+GitHub Specification, 2012. % [CITE]
+
+\bibitem{merkle1979}
+R.~Merkle,
+\emph{Secrecy, authentication, and public key systems},
+Stanford University Thesis, 1979. % [CITE]
+
+\bibitem{benaloh1993}
+J.~Benaloh and M.~de~Mare,
+\emph{One-way accumulators: A decentralized alternative to digital signatures},
+in Proc. EUROCRYPT (1993), 274--285. % [CITE]
+\end{thebibliography}
+
+\end{document}

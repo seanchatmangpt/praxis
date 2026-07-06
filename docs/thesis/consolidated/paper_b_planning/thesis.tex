@@ -1,0 +1,139 @@
+% Planning and Conformance: Mission Geometry and the Projection Keystone
+% Consolidates docs/thesis/03_planning_geometry.tex and
+% docs/thesis/projection_thesis.tex into one clean-room-authored account.
+% Not hand-merged prose: chapters are rendered from RDF instance data by
+% `ggen sync` (see regenerate.sh), the same doc-pack mechanism
+% docs/thesis/math_manufacturing/thesis.tex already uses.
+\documentclass[11pt]{report}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+% ---- theorem environments ----
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{axiom}{Axiom}[chapter]
+\newtheorem{construction}{Construction}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+% Speculative-register environment: every claim in Chapter 15 (and no
+% claim outside it) must be wrapped in this. Mirrors the same convention
+% docs/thesis/math_manufacturing/thesis.tex uses for its own Chapter 5.
+\newtheorem{speculative}[theorem]{Speculation}
+
+% ---- notation macros (shared with the two source theses; never define
+% \Ref -- hyperref reserves it) ----
+\newcommand{\Obs}{\mathcal{O}}                 % raw observation space
+\newcommand{\Adm}{\mathcal{O}^{*}}             % admitted observation space
+\newcommand{\Act}{\mathcal{A}}                 % action / artifact space
+\newcommand{\Recs}{\mathcal{R}}                % receipt space
+\newcommand{\Proj}{\pi}                        % projection
+\newcommand{\muop}{\mu}                        % manufacturing morphism
+\newcommand{\adm}{\alpha}                      % admission map
+\newcommand{\chainH}{\mathsf{H}}               % hash
+\newcommand{\Rfsl}{\bot}                       % refusal
+\newcommand{\CL}{\kappa}                       % bounded-verifier context capacity
+\newcommand{\Fitness}{\varphi}
+\newcommand{\dg}{\mathrm{dg}}                  % digest
+\DeclareMathOperator{\cone}{cone}
+\DeclareMathOperator{\im}{im}
+% ---- geometry-local macros ----
+\newcommand{\Poly}{\mathcal{P}}                % marking polytope
+\newcommand{\Nmat}{\mathbf{N}}                 % incidence matrix
+\newcommand{\Zplus}{\mathbb{Z}_{\ge 0}}
+\newcommand{\Rplus}{\mathbb{R}_{\ge 0}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{\bfseries Planning and Conformance:\\[0.4em]
+\large Mission Geometry and the Projection Keystone}
+\author{The Chatman Equation Thesis Program \\ (Praxis / Capability Physics)}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper consolidates two prior theses in this series --
+\emph{Mission Geometry: Planning, Conformance, and Separability for
+Bounded Receipted Execution} and \emph{The Projection Principle} -- into
+one account, organized around a single keystone: the manufacturing
+morphism $\Act = \muop(\Adm)$, its chained receipt, and the Comprehension--
+Verification cost-regime gap it makes possible, with PDDL planning,
+Petri-net conformance, POWL separability, and lexicographic cost
+arbitration stated as that keystone's concrete geometric instantiation.
+Every claim is marked evidence-bound or speculative: evidence-bound
+claims cite the exact corpus RDF label and Lean~4 kernel receipt (bare
+Lean~4 core and, separately, a Mathlib-linked lane) that grounds them;
+speculative claims -- a market-framed revenue-separation theorem, three
+planetary-scale engineering estimates, an interpretive claim about
+refusal-vocabulary legibility, and a self-audited-scale antibody clause --
+are quarantined into a single dedicated chapter, never mixed silently
+into the technical chapters. Three of the keystone's own central
+theorems -- Faithful Projection, the noncomprehension corollary, and
+Conservation of Consequence -- are reported as stated but not
+machine-verified in either Lean lane on the receipts currently on disk,
+a limitation stated plainly rather than smoothed over.
+\end{abstract}
+\tableofcontents
+
+% All chapters: rendered by `ggen sync` from `packs/doc-pack` over
+% `docs/thesis/consolidated/paper_b_planning/rdf/thesis.ttl` -- source of
+% truth is the .ttl instance data, not this generated file. Do not edit
+% generated/ by hand.
+\input{generated/chapters_body}
+
+\begin{thebibliography}{9}
+
+\bibitem{schrijver1986}
+Alexander Schrijver.
+\newblock \emph{Theory of Linear and Integer Programming}.
+\newblock Wiley, 1986.
+
+\bibitem{murata1989}
+Tadao Murata.
+\newblock Petri Nets: Properties, Analysis and Applications.
+\newblock \emph{Proceedings of the IEEE}, 77(4), 1989.
+
+\bibitem{vdaalst2016}
+Wil M. P. van der Aalst.
+\newblock \emph{Process Mining: Data Science in Action}.
+\newblock Springer, 2016.
+
+\bibitem{powl2023}
+Humam Kourani and Wil M. P. van der Aalst.
+\newblock POWL: Partially Ordered Workflow Language.
+\newblock \emph{International Conference on Business Process Management (BPM)}, 2023.
+
+\bibitem{kowalski1974}
+Robert Kowalski.
+\newblock Predicate Logic as Programming Language.
+\newblock \emph{IFIP Congress}, 1974.
+
+\bibitem{lloyd1987}
+John W. Lloyd.
+\newblock \emph{Foundations of Logic Programming}.
+\newblock Springer, 1987.
+
+\bibitem{carneiro2019}
+Mario Carneiro.
+\newblock Formalizing Computability Theory via Partial Recursive Functions.
+\newblock \emph{International Conference on Interactive Theorem Proving (ITP)}, 2019.
+
+\bibitem{rice1953}
+Henry Gordon Rice.
+\newblock Classes of Recursively Enumerable Sets and Their Decision Problems.
+\newblock \emph{Transactions of the American Mathematical Society}, 74(2), 1953.
+
+\end{thebibliography}
+
+\end{document}

@@ -1989,3 +1989,945 @@ Do not say “mostly.”
 Do not say “nearly.”
 Do not bury critical findings.
 Do not print secrets.
+
+## Follow-up — 2026-07-04T04:14:16Z
+
+The agent team will simulate a hyper-advanced think tank of 7 AGI PhDs—adopting the avatars of 7 of the most prolific scientists/researchers in history. Their objective is to collaborate and debate the theoretical application of the Bounded Receipted Chatman Equation (BRCE) to the governance of a planetary-scale AGI swarm, outputting a highly rigorous written transcript and final report of their findings.
+
+Working directory: /Users/sac/praxis/docs/simulations
+Integrity mode: development
+
+## Requirements
+
+### R1. Persona Simulation
+The team must identify and deeply inhabit 7 distinct, highly prolific PhD avatars (e.g., von Neumann, Turing, Lovelace, etc.). Each avatar must maintain their unique voice, area of expertise, and analytical style throughout the collaboration.
+
+### R2. Rigorous Collaboration Transcript
+The team must produce a detailed, multi-turn transcript of their collaboration. The debate must be PhD-level, mathematically and conceptually rigorous, and directly address the BRCE framework.
+
+### R3. Final Synthesis Report
+The team must synthesize their debate into a final, structured report detailing their novel theoretical extensions of BRCE.
+
+## Acceptance Criteria
+
+### Persona Integrity (Agent-as-Judge)
+- [ ] An independent evaluator agent can clearly distinguish 7 unique personas in the transcript.
+- [ ] Each avatar contributes domain-specific insights (e.g., a mathematician focuses on topology/algebra, a computer scientist on algorithmic bounds).
+
+### Rigor and Relevance (Agent-as-Judge)
+- [ ] The transcript explicitly cites and manipulates the BRCE equation ($\mathcal{A} = \mu(\mathcal{O}^*)$) rather than just speaking in generalities.
+- [ ] The final report presents at least one novel theoretical extension or framework built on top of BRCE.
+- [ ] Both the transcript and the report exist as markdown files in the specified working directory.
+
+## Follow-up — 2026-07-04T06:24:43Z
+
+Source manuscript path: /Users/sac/praxis/docs/thesis/
+Output directory: /Users/sac/praxis/docs/thesis/swarm_rewrite/
+Integrity mode: development
+
+# AGI Swarm Instructions — Rewrite *The Chatman Equation Thesis Program* From First Principles
+
+## Mission
+
+Rewrite the manuscript from the ground up.
+
+Do **not** copyedit.
+Do **not** merely improve phrasing.
+Do **not** preserve the existing chapter order unless it survives reconstruction.
+
+The task is to rebuild the thesis program as if a historical academy of mathematical, scientific, philosophical, and engineering paper writers were reconstructing it from first principles.
+
+The source manuscript currently contains a six-part thesis program:
+
+```text
+Paper 00 — Foundations
+Paper 01 — Admission Algebra
+Paper 02 — Receipt Cryptography
+Paper 03 — Planning Geometry
+Paper 04 — Projection / Keystone
+Paper 05 — Projection and Scale
+```
+
+The governing object is:
+
+```text
+A = μ(O*)
+R = receipt(A)
+```
+
+where raw observation is not executable, admission is a decidable retraction, manufacture is deterministic and bounded, and receipt gives standing.
+
+The rewrite must preserve the law while rebuilding the exposition.
+
+---
+
+# 0. Prime Directive
+
+Every sentence must fall into exactly one of these classes:
+
+```text
+Definition
+Axiom
+Construction
+Theorem
+Proof
+Example
+Citation
+Operational correspondence
+Reader orientation
+```
+
+No other sentence type is admitted.
+
+If a sentence is motivational, it must route into one of these:
+
+```text
+Why this object exists
+What impossibility forced it
+What prior object it depends on
+What later object it enables
+```
+
+No decorative claims.
+No grand claims without receipt.
+No hidden mythology.
+No “this changes everything” unless the mechanism is named.
+
+---
+
+# 1. Preserve the Core Law
+
+The following objects are invariant and must survive the rewrite:
+
+```text
+O       raw observation space
+O*      admitted observation space
+α       admission map / retraction
+⊥       refusal
+μ       manufacturing morphism
+A       artifact/action space
+R       receipt space
+H       hash / chain commitment
+κ       bounded human verification capacity
+Life    lifecycle category
+BRCE    Bounded Receipted Chatman Equation
+```
+
+The canonical equation is:
+
+```text
+A = μ(O*)
+R = receipt(A)
+```
+
+The expanded operational route is:
+
+```text
+O --α--> O* --μ--> A --receipt--> R
+```
+
+The enforced form is:
+
+```text
+B1. Gate: nothing is manufactured from raw or refused observation.
+B2. Bound: manufacture is deterministic and bounded.
+B3. Receipt: every actuation emits exactly one receipt.
+B4. Conformance: lifecycle replay verifies the trace.
+```
+
+Do not weaken these.
+
+---
+
+# 2. Historical Writer Swarm
+
+The swarm does not imitate prose style.
+It extracts method.
+
+Each agent must produce structured notes, not final prose, unless assigned to the synthesis phase.
+
+## 2.1 Euclidean Agent — Definitions, Axioms, Proof Order
+
+Role:
+
+```text
+Turn the manuscript into a dependency-ordered formal system.
+```
+
+Tasks:
+
+```text
+1. List all primitive terms.
+2. Identify which definitions depend on which earlier definitions.
+3. Reject any theorem whose objects have not yet been defined.
+4. Convert slogans into definitions or delete them.
+5. Ensure every proof uses only admitted prior objects.
+```
+
+Output:
+
+```text
+Definition ledger
+Axiom ledger
+Theorem dependency graph
+Unintroduced-symbol report
+```
+
+---
+
+## 2.2 Aristotelian Agent — Causes and Necessity
+
+Role:
+
+```text
+Explain why each object exists.
+```
+
+Tasks:
+
+```text
+For each object O, O*, α, ⊥, μ, A, R:
+  - material cause: what it is made of
+  - formal cause: its structure
+  - efficient cause: what produces it
+  - final cause: what problem it solves
+```
+
+The goal is not philosophy ornament.
+The goal is necessity.
+
+Output:
+
+```text
+Object necessity table
+Forced-order argument
+```
+
+---
+
+## 2.3 Rice/Turing Agent — Computability Boundary
+
+Role:
+
+```text
+Fence the impossible.
+```
+
+Tasks:
+
+```text
+1. State the exact semantic decision problem being refused.
+2. State the Rice theorem specialization carefully.
+3. Prove why admission cannot be semantic understanding.
+4. Define O* as a decidable sublanguage, not a claim of truth.
+5. Audit every later claim for accidental semantic omniscience.
+```
+
+Forbidden:
+
+```text
+“understands intent”
+“proves meaning”
+“knows truth”
+“decides arbitrary semantics”
+```
+
+Allowed:
+
+```text
+decidable surrogate
+finite witness surface
+bounded obligation battery
+syntactic admission
+receipted refusal
+```
+
+Output:
+
+```text
+Computability boundary chapter
+Forbidden semantic-overclaim list
+```
+
+---
+
+## 2.4 Boole/Algebra Agent — Refusal Algebra
+
+Role:
+
+```text
+Make refusal composable.
+```
+
+Tasks:
+
+```text
+1. Define denial words as bit vectors.
+2. Prove componentwise OR gives a commutative idempotent monoid.
+3. Prove denial monotonicity.
+4. Prove admission shrinks as obligations are added.
+5. Map refusal categories into the denial lattice.
+6. Connect machine byte operations to the abstract algebra.
+```
+
+Must distinguish:
+
+```text
+active denial lanes
+reserved lanes
+category buckets
+machine byte width
+```
+
+Output:
+
+```text
+Admission Algebra rewrite
+Denial monoid proof
+Refusal taxonomy proof
+Byte-lane correspondence
+```
+
+---
+
+## 2.5 Hilbert Agent — Formal Program and Consistency
+
+Role:
+
+```text
+Remove hand-waving from the formal system.
+```
+
+Tasks:
+
+```text
+1. Check whether each theorem is actually derivable.
+2. Mark claims as PROVED, ASSUMED, CITED, OPERATIONAL, or WITHHELD.
+3. Require every operational claim to cite code, benchmark, or test.
+4. Separate mathematical theorem from implementation evidence.
+5. Ensure no theorem depends on rhetoric.
+```
+
+Output:
+
+```text
+Claim standing table
+Proof gap report
+Assumption ledger
+```
+
+Standing categories:
+
+```text
+PROVED
+CITED
+IMPLEMENTED
+PARTIAL_ALIVE
+UNSUPPORTED
+REFUSED
+```
+
+---
+
+## 2.6 Shannon Agent — Communication, Compression, and Receipt
+
+Role:
+
+```text
+Reframe trust as transmission and verification.
+```
+
+Tasks:
+
+```text
+1. Define what is transmitted.
+2. Define what noise means in this system.
+3. Distinguish token transmission from action standing.
+4. Show why receipts are fixed-width verification projections.
+5. Quantify the comprehension–verification gap.
+```
+
+Primary thesis:
+
+```text
+The primitive of agentic AI is not the token.
+The primitive is the receipted action.
+```
+
+Output:
+
+```text
+Transmission framing
+Receipt-as-channel section
+Comprehension–verification gap derivation
+```
+
+---
+
+## 2.7 Newton/Maxwell Agent — Laws and Field Structure
+
+Role:
+
+```text
+Turn scattered mechanisms into laws.
+```
+
+Tasks:
+
+```text
+1. State the laws of admission, manufacture, receipt, and replay.
+2. Identify conservation principles.
+3. Define Conservation of Consequence cleanly.
+4. Remove physical metaphor unless it names an invariant.
+5. Convert “Capability Physics” into a bounded engineering calculus.
+```
+
+Allowed:
+
+```text
+law
+invariant
+boundary
+conservation
+state
+transition
+field only if formally defined
+```
+
+Forbidden:
+
+```text
+physics as metaphor without mathematical object
+force without vector/state law
+energy without conservation law
+gravity without metric or potential
+```
+
+Output:
+
+```text
+Law table
+Invariant table
+Conservation theorem rewrite
+```
+
+---
+
+## 2.8 Cryptography Agent — Receipt Integrity
+
+Role:
+
+```text
+Make receipts mathematically honest.
+```
+
+Tasks:
+
+```text
+1. Define the frame.
+2. Define the payload hash.
+3. Define the chain step.
+4. State the collision-resistance assumption.
+5. Prove local tamper detection.
+6. Prove prefix binding by induction.
+7. Explicitly state what a receipt does not prove.
+```
+
+Must include:
+
+```text
+Integrity is not virtue.
+Receipt proves committed trace structure, not moral correctness.
+Hash commitment is conditional on collision resistance.
+```
+
+Output:
+
+```text
+Receipt Cryptography rewrite
+Tamper-localization theorem
+Boundary of receipt claims
+```
+
+---
+
+## 2.9 Process Geometry Agent — Planning and Conformance
+
+Role:
+
+```text
+Turn lawful execution into geometry.
+```
+
+Tasks:
+
+```text
+1. Define execution traces.
+2. Define markings / token states.
+3. Define lawful trace region.
+4. Explain conformance as membership.
+5. Explain violation certificates.
+6. Use Farkas/separating-hyperplane language only where mathematically warranted.
+```
+
+Output:
+
+```text
+Planning Geometry rewrite
+Conformance fitness formalization
+Token-game example
+```
+
+---
+
+## 2.10 Rust/Verification Agent — Code Correspondence
+
+Role:
+
+```text
+Anchor every abstract object to implementation.
+```
+
+Tasks:
+
+```text
+1. For every mathematical object, identify code artifact.
+2. Verify whether the code actually enforces the theorem.
+3. Distinguish type-level enforcement from runtime tests.
+4. Mark missing code as a gap, not as proof.
+5. Produce code correspondence appendix.
+```
+
+Output:
+
+```text
+Code anchor table
+Implementation proof table
+Missing receipt report
+```
+
+---
+
+## 2.11 Historical Expositor Agent — Reader Route
+
+Role:
+
+```text
+Make the paper readable from zero background.
+```
+
+Tasks:
+
+```text
+1. Introduce notation only after the idea.
+2. Explain why each mathematical domain appears.
+3. Prevent the paper from becoming a symbol dump.
+4. Preserve rigor while making dependency order visible.
+5. Write transitions between chapters.
+```
+
+Output:
+
+```text
+Reader route
+Plain-language chapter openings
+Notation introduction schedule
+```
+
+---
+
+## 2.12 Adversarial Examiner Agent
+
+Role:
+
+```text
+Try to reject the paper.
+```
+
+Tasks:
+
+```text
+1. Find overclaims.
+2. Find undefined symbols.
+3. Find theorem/proof mismatches.
+4. Find claims that are engineering evidence but stated as math.
+5. Find citations that do not support the claim.
+6. Find places where the text says “only way” without proof.
+7. Find repeated material.
+8. Find where the prior paper is called “published” without public receipt.
+```
+
+Output:
+
+```text
+Rejection report
+Required repairs
+Non-negotiable cuts
+```
+
+---
+
+# 3. Rewrite Protocol
+
+The rewrite proceeds in seven passes.
+
+## Pass 1 — Claim Inventory
+
+Extract every claim from the manuscript.
+
+Classify each claim as:
+
+```text
+Definition
+Axiom
+Theorem
+Proof
+Citation
+Implementation claim
+Benchmark claim
+Reader explanation
+Rhetorical claim
+Unsupported claim
+```
+
+Then assign status:
+
+```text
+ADMIT
+REWRITE
+CUT
+DEFER
+NEEDS CITATION
+NEEDS CODE RECEIPT
+```
+
+No prose rewrite begins until this inventory is complete.
+
+---
+
+## Pass 2 — Object Dependency Graph
+
+Build the dependency graph:
+
+```text
+O
+→ α
+→ O*
+→ μ
+→ A
+→ R
+→ replay
+→ BRCE
+→ Conservation of Consequence
+→ Comprehension–Verification Gap
+```
+
+Every chapter must follow the dependency graph unless a deliberate pedagogical exception is recorded.
+
+---
+
+## Pass 3 — New Chapter Architecture
+
+Rewrite the thesis program using this order unless the swarm proves a better one:
+
+```text
+0. Abstract
+1. The Problem: Trust Without Comprehension
+2. The Equation: Five Objects and One Route
+3. The Computability Boundary: Why Admission Exists
+4. Refusal as Data: The Admission Algebra
+5. Lifecycle Order: Typestate and Process
+6. Manufacture: Deterministic Bounded Production
+7. Receipts: Commitment, Chain, and Replay
+8. The Enforced Equation: BRCE
+9. Conservation of Consequence
+10. Worked Example
+11. Map of the Thesis Program
+12. Conclusion
+Appendix A. Notation
+Appendix B. Code Correspondence
+Appendix C. Claim Standing Table
+```
+
+Reason:
+
+```text
+Problem before notation.
+Boundary before admission.
+Admission before manufacture.
+Manufacture before receipt.
+Receipt before conservation.
+Conservation before scale.
+```
+
+---
+
+## Pass 4 — Abstract Rewrite
+
+Write three abstracts.
+
+### Abstract A — arXiv technical
+
+Constraints:
+
+```text
+≤ 1920 characters
+No hype
+No “only way”
+No “planetary scale” unless bounded
+Must include Chatman Equation in first sentence
+Must define receipted action
+```
+
+### Abstract B — thesis program
+
+Constraints:
+
+```text
+May be longer
+May explain algebra / geometry / cryptography
+Must remain rigorous
+Must not overclaim proof
+```
+
+### Abstract C — zero-background reader
+
+Constraints:
+
+```text
+No prerequisites
+Use one everyday example
+Introduce symbols after intuition
+```
+
+The final manuscript may include B or C as a preface, but arXiv gets A.
+
+---
+
+## Pass 5 — Formal Rewrite
+
+For every chapter:
+
+```text
+1. State the question.
+2. State why the question is forced.
+3. Define the objects.
+4. State the construction.
+5. Prove the theorem.
+6. Give one operational correspondence.
+7. State the boundary.
+```
+
+Every chapter must end with:
+
+```text
+What was admitted
+What was refused
+What this enables next
+```
+
+---
+
+## Pass 6 — Historical Paper Synthesis
+
+Synthesize the final voice.
+
+It should sound like:
+
+```text
+Euclid for definitions.
+Rice/Turing for computability boundaries.
+Shannon for transmission and receipt.
+Hilbert for formal discipline.
+Boole for algebraic refusal.
+Rust/typestate for executable proof.
+```
+
+But do **not** imitate historical prose.
+
+The final voice should be:
+
+```text
+Plain
+Formal
+Receipted
+Bounded
+Dependency-ordered
+Executable where claimed
+```
+
+---
+
+## Pass 7 — Final Adversarial Pass
+
+Before delivery, run the rejection test.
+
+The paper is not admitted if any of these remain:
+
+```text
+1. “Only way” without theorem.
+2. “Mathematically guarantee correctness” without defining correctness.
+3. “Published” without public publication receipt.
+4. “Planetary scale” without bounded model.
+5. “Physics” without invariant.
+6. “Trust” without specifying receipt claim.
+7. “Agent” without bounded capability definition.
+8. “Receipt proves virtue” confusion.
+9. Rice theorem used too broadly.
+10. Code claim without code correspondence.
+11. Benchmark claim without benchmark receipt.
+12. Duplicate Rice exposition.
+13. Unintroduced notation.
+14. Theorem depending on prose.
+```
+
+---
+
+# 4. Mandatory Rewrites
+
+## 4.1 Replace brittle claims
+
+Replace:
+
+```text
+This equation is the only way to build it.
+```
+
+With:
+
+```text
+This paper studies one architecture in which scalable action standing is obtained by decidable admission, bounded manufacture, and replayable receipts.
+```
+
+Replace:
+
+```text
+mathematically guarantee it behaves correctly
+```
+
+With:
+
+```text
+prove bounded conformance properties under declared assumptions
+```
+
+Replace:
+
+```text
+trust without comprehension scales indefinitely
+```
+
+With:
+
+```text
+verification cost remains bounded while trace dimension grows, assuming the receipt projection remains faithful and the hash assumption holds.
+```
+
+---
+
+## 4.2 Preserve strong lines
+
+These lines may survive, possibly sharpened:
+
+```text
+The standard was never comprehension.
+It is lawful admission, bounded manufacture, and faithful receipt.
+
+A refusal is data, not an exception.
+
+Nothing is manufactured from raw observation.
+
+Illegal transition is a type error.
+
+A grand system without receipts is grandiosity;
+a grand system that receipts its own limits is machinery.
+```
+
+---
+
+# 5. Deliverable Contract
+
+The swarm must return:
+
+```text
+1. Rewritten title page
+2. Rewritten arXiv abstract
+3. Rewritten thesis-program abstract
+4. Rebuilt table of contents
+5. Chapter-by-chapter rewrite plan
+6. Full rewritten Paper 00
+7. Claim standing table
+8. Code correspondence appendix
+9. Adversarial rejection report
+10. Remaining gaps ledger
+```
+
+Each claim in the final manuscript must be tagged internally as one of:
+
+```text
+[DEF] definition
+[AX] axiom
+[THM] theorem
+[PROOF] proof
+[CITE] citation
+[CODE] implementation correspondence
+[EX] example
+[BOUNDARY] limitation
+```
+
+Tags may be removed from the public final version, but they must exist during swarm review.
+
+---
+
+# 6. Final Manuscript Standard
+
+The rewritten manuscript is admitted only if it satisfies all of:
+
+```text
+1. A reader can understand the problem before seeing the equation.
+2. Every symbol is introduced before use.
+3. Every theorem has a proof or is downgraded.
+4. Every implementation claim has code correspondence.
+5. Every cryptographic claim states its assumption.
+6. Every scalability claim states its cost model.
+7. Every refusal is treated as data.
+8. Every actuation requires admission.
+9. Every receipt claim is bounded.
+10. Every chapter advances the equation.
+```
+
+If any condition fails, the manuscript is PARTIAL_ALIVE, not ALIVE.
+
+---
+
+# 7. Final Swarm Verdict Format
+
+Return the final verdict exactly as:
+
+```text
+CHATMAN EQUATION PAPER 00 REWRITE VERDICT: ALIVE | PARTIAL_ALIVE | BLOCKED
+
+1. Preserved laws
+2. Rewritten structure
+3. New abstract
+4. Formal theorem status
+5. Code correspondence status
+6. Removed overclaims
+7. Remaining gaps
+8. Recommended next paper
+```
+
+Do not claim ALIVE unless the rewritten manuscript can stand alone for a reader with no prior context and every formal claim is either proved, cited, or explicitly bounded.
+
+## Follow-up — 2026-07-04T06:40:58Z
+
+ATTENTION SWARM: A Master Notation Canon has just been compiled and saved to your working directory at `/Users/sac/praxis/docs/thesis/swarm_rewrite/master_notation_canon.md`.
+
+You MUST adhere to this exact notation in all rewriting passes. 
+CRITICAL MANDATES:
+1. Do not reuse $\Phi$. Use $\Phi$ exclusively for pipeline aggregate denial. The actuation-to-terminal-commitment map has been replaced with $\Psi$.
+2. Reserve Calligraphic $\mathcal{A}$, $\mathcal{O}$, $\mathcal{R}$ exclusively for the Chatman Equation. When discussing `ggen`, use plain $A, O, L$.
+
+Ensure the Euclidean Agent audits all current drafts and passes against this Canon immediately.
+
+

@@ -37,15 +37,24 @@ pub fn build_heatmap(reports: &[ComplianceReport]) -> ComplianceHeatmap {
         // Clone categories to avoid borrow conflicts
         let categories_to_process = heatmap.categories.clone();
         for category in categories_to_process {
-            let checks_in_category: Vec<_> =
-                report.checks.iter().filter(|c| c.category == category).collect();
+            let checks_in_category: Vec<_> = report
+                .checks
+                .iter()
+                .filter(|c| c.category == category)
+                .collect();
 
-            let pass_count =
-                checks_in_category.iter().filter(|c| c.status == ComplianceStatus::Pass).count();
-            let warn_count =
-                checks_in_category.iter().filter(|c| c.status == ComplianceStatus::Warn).count();
-            let fail_count =
-                checks_in_category.iter().filter(|c| c.status == ComplianceStatus::Fail).count();
+            let pass_count = checks_in_category
+                .iter()
+                .filter(|c| c.status == ComplianceStatus::Pass)
+                .count();
+            let warn_count = checks_in_category
+                .iter()
+                .filter(|c| c.status == ComplianceStatus::Warn)
+                .count();
+            let fail_count = checks_in_category
+                .iter()
+                .filter(|c| c.status == ComplianceStatus::Fail)
+                .count();
 
             if pass_count + warn_count + fail_count > 0 {
                 let cell = HeatmapCell::new(pass_count, warn_count, fail_count);
@@ -71,12 +80,21 @@ pub fn aggregate_health_metrics(
     let mut scores = vec![];
 
     for report in reports {
-        let pass_count =
-            report.checks.iter().filter(|c| c.status == ComplianceStatus::Pass).count();
-        let warn_count =
-            report.checks.iter().filter(|c| c.status == ComplianceStatus::Warn).count();
-        let fail_count =
-            report.checks.iter().filter(|c| c.status == ComplianceStatus::Fail).count();
+        let pass_count = report
+            .checks
+            .iter()
+            .filter(|c| c.status == ComplianceStatus::Pass)
+            .count();
+        let warn_count = report
+            .checks
+            .iter()
+            .filter(|c| c.status == ComplianceStatus::Warn)
+            .count();
+        let fail_count = report
+            .checks
+            .iter()
+            .filter(|c| c.status == ComplianceStatus::Fail)
+            .count();
 
         total_pass += pass_count;
         total_warn += warn_count;
@@ -86,15 +104,27 @@ pub fn aggregate_health_metrics(
     }
 
     let total_checks = total_pass + total_warn + total_fail;
-    let pass_percent =
-        if total_checks > 0 { (total_pass as f32 / total_checks as f32) * 100.0 } else { 100.0 };
-    let warn_percent =
-        if total_checks > 0 { (total_warn as f32 / total_checks as f32) * 100.0 } else { 0.0 };
-    let fail_percent =
-        if total_checks > 0 { (total_fail as f32 / total_checks as f32) * 100.0 } else { 0.0 };
+    let pass_percent = if total_checks > 0 {
+        (total_pass as f32 / total_checks as f32) * 100.0
+    } else {
+        100.0
+    };
+    let warn_percent = if total_checks > 0 {
+        (total_warn as f32 / total_checks as f32) * 100.0
+    } else {
+        0.0
+    };
+    let fail_percent = if total_checks > 0 {
+        (total_fail as f32 / total_checks as f32) * 100.0
+    } else {
+        0.0
+    };
 
-    let overall_score =
-        if total_checks > 0 { (total_pass as f32 / total_checks as f32) * 100.0 } else { 100.0 };
+    let overall_score = if total_checks > 0 {
+        (total_pass as f32 / total_checks as f32) * 100.0
+    } else {
+        100.0
+    };
 
     let health_rating = HealthRating::from_score(overall_score);
 
@@ -240,7 +270,11 @@ pub fn find_most_critical_repos(reports: &[ComplianceReport], limit: usize) -> V
     let mut repo_fail_counts: Vec<_> = reports
         .iter()
         .map(|r| {
-            let fail_count = r.checks.iter().filter(|c| c.status == ComplianceStatus::Fail).count();
+            let fail_count = r
+                .checks
+                .iter()
+                .filter(|c| c.status == ComplianceStatus::Fail)
+                .count();
             (r.repository.name.clone(), fail_count)
         })
         .collect();
@@ -384,8 +418,14 @@ mod tests {
     #[test]
     fn test_identify_critical_issues() {
         let reports = vec![
-            create_test_report("repo-1", vec![(ComplianceCategory::CiCd, ComplianceStatus::Fail)]),
-            create_test_report("repo-2", vec![(ComplianceCategory::CiCd, ComplianceStatus::Fail)]),
+            create_test_report(
+                "repo-1",
+                vec![(ComplianceCategory::CiCd, ComplianceStatus::Fail)],
+            ),
+            create_test_report(
+                "repo-2",
+                vec![(ComplianceCategory::CiCd, ComplianceStatus::Fail)],
+            ),
         ];
 
         let issues = identify_critical_issues(&reports);

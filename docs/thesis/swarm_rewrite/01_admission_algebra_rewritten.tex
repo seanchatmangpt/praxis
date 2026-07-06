@@ -1,0 +1,713 @@
+\documentclass[11pt,oneside]{book}
+
+\usepackage[margin=1.15in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+
+% ---- theorem environments (identical to the keystone, for series coherence) ----
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{axiom}{Axiom}[chapter]
+\newtheorem{construction}{Construction}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+% ---- notation macros (shared with projection_thesis.tex / 00_foundations.tex) ----
+\newcommand{\Obs}{\mathcal{O}}                 % raw observation space
+\newcommand{\Adm}{\mathcal{O}^{*}}             % admitted observation space
+\newcommand{\Act}{\mathcal{A}}                 % action / artifact space
+\newcommand{\muop}{\mu}                        % manufacturing morphism
+\newcommand{\adm}{\alpha}                      % admission map
+\newcommand{\chainH}{\mathsf{H}}               % hash
+\newcommand{\Rfsl}{\bot}                        % refusal (NOT \Ref: reserved by hyperref)
+\newcommand{\CL}{\kappa}                       % bounded-verifier context capacity
+\newcommand{\Fitness}{\varphi}
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\id}{id}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator*{\argmax}{arg\,max}
+% ---- paper-01-local macros ----
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\Deny}{D}                 % denial-word space
+\newcommand{\Adml}{\operatorname{ADMITTED}}          % bottom / clean word
+\newcommand{\firedmap}{\pi_{f}}                % fired-mask projection
+\newcommand{\Catset}{C}              % refusal-category set
+\newcommand{\Scnset}{S}              % refusal-scenario set
+\DeclareMathOperator{\catop}{cat}
+\DeclareMathOperator{\laneop}{lane}
+\DeclareMathOperator{\scnop}{scn}
+
+\title{\bfseries The Admission Monoid:\\[0.4em]
+\large An Algebra of Refusal}
+\author{The Chatman Equation Thesis Program \\ (Praxis / Capability Physics)}
+\date{Genesis --- Pillar I, Paper 01}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+% [ORIENT] The foundations paper of this series established that admission cannot be a semantic decision and must be a computable retraction, with \emph{refusal} promoted from an exception to a first-class value \cite{chatman2025}. % [CITE]
+This paper develops the algebra of that value. % [ORIENT]
+We take as our object the \emph{denial word} --- the machine-checkable record of \emph{why} an observation was not admitted --- and prove that the space of denial words is a bounded, commutative, idempotent monoid (a join-semilattice) whose identity is the clean word $\Adml$ and whose product is componentwise disjunction, realized in \code{praxis} as the \code{DenialPolarity} bitfield under \code{compose}. % [DEF]
+We show that obligations are \emph{lane maps} into this monoid, that total denial is their join, and that admission is \emph{antitone} in the obligation set: adding obligations can only shrink the admitted set (monotonicity). % [DEF]
+We then formalize the eight-bucket \code{RefusalCategory} taxonomy as a total classification $\catop:\Scnset\to\Catset$ and prove a \emph{mechanized totality theorem}: $\catop$ is realized by a wildcard-free \code{match}, so it is compiler-certified total, its image is exactly the seven inhabited buckets, and the eighth (\code{Reserved}) carries an empty preimage by design --- an honest slack coordinate, not an overclaim. % [THM]
+We identify precisely where the type system's totality guarantee ends and a runtime test must continue: the lane decoder \code{scenario\_for\_denial\_lane} is a \emph{partial} map because its domain is an open $2^{64}$ newtype rather than a closed enum. % [BOUNDARY]
+We prove that admission composes across a manufacturing pipeline as the unique monoid homomorphism from the free monoid on stages into the denial monoid, and that this composition is order- and multiplicity-independent, so a pipeline admits exactly when every stage admits. % [THM]
+Finally, we refine admission at the logical layer: the \code{prolog8} kernel decides bounded Horn queries by SLD-resolution and returns a \emph{proof-carrying trichotomy} --- an \code{Answered} query ships a positive proof DAG, a \code{Denied} query ships a negative proof tree, and an \code{Invalid} query ships a \code{RejectionCode}; we prove this trichotomy and show it embeds back into the denial monoid. % [THM]
+Every object is anchored to a line of the \code{praxis} repository, so a reader can trace each theorem to the code that enforces it. % [CODE]
+
+\tableofcontents
+
+\mainmatter
+
+\chapter{Introduction: The Algebra a Refusal Needs}
+\label{ch:intro}
+% [ORIENT] This chapter introduces the algebraic motivation for refusal.
+
+\section{From ``refusal is data'' to an algebra of refusal}
+
+The prior published work \cite{chatman2025} established the governing identity $\Act=\muop(\Adm)$ and demonstrated it at enterprise scale. % [CITE]
+The foundations paper of this series (Paper~00) grounded it: it proved a specialization of Rice's theorem \cite{rice1953} to observations, concluded that admission \emph{cannot} decide meaning and \emph{must} retract onto a decidable sub-language, and promoted the \emph{refusal} $\Rfsl$ from a thrown exception to a returned value. % [CITE]
+The keystone thesis introduced, in a single Construction, the \emph{denial monoid} $D=(\{0,1\}^{n},\lor,\bm 0)$ and one proposition about it. % [CITE]
+This paper pays that Construction its full debt. % [ORIENT]
+
+The reason a refusal needs an algebra, rather than merely a name, is scale. % [ORIENT]
+Among a fleet of $\sim\!10^{12}$ agents, each with bounded context $\CL$ and none able to read another's interior, a refusal must satisfy four demands simultaneously: % [ORIENT]
+
+\begin{enumerate}[label=(D\arabic*),leftmargin=*]
+\item \textbf{Composition.} A manufacture passes through many admission stages; each may refuse; the fleet needs \emph{one} verdict that faithfully aggregates all of them. % [ORIENT]
+\item \textbf{Classification.} A refusal must land in a \emph{finite, shared, legible} vocabulary, so that a recipient who never saw the sender's interior can nonetheless act on the \emph{kind} of refusal. % [ORIENT]
+\item \textbf{Totality.} No refusal may fall through a crack: every failure mode must map to a class, and the mapping must be checkable by machine, not by hope. % [ORIENT]
+\item \textbf{Reason-carrying.} A refusal must carry \emph{why}; at the logical layer this sharpens to carrying a \emph{proof}. % [ORIENT]
+\end{enumerate}
+
+Composition (D1) wants a monoid. % [ORIENT]
+Classification (D2) wants a surjection onto a small set. % [ORIENT]
+Totality (D3) wants a mechanized exhaustiveness argument. % [ORIENT]
+Reason-carrying (D4) wants, at its limit, proof-carrying evaluation. % [ORIENT]
+This paper supplies each in turn --- Chapters~\ref{ch:sl} and~\ref{ch:pipe} for composition, Chapter~\ref{ch:tax} for classification and totality, and Chapter~\ref{ch:proof} for proof-carrying refusal --- and anchors each to running code. % [ORIENT]
+
+\section{First principle}
+
+\begin{axiom}[Refusal is data]\label{ax:refusal}
+There is a distinguished refusal value $\Rfsl$ and a space of \emph{reasons} $R_f$. % [AX]
+A refusal is not the absence of an output but the pair $(\Rfsl,r)$ with $r\in R_f$ a machine-checkable reason. % [AX]
+Admission is therefore \emph{total} as a map into $\Adm\cup(\{\Rfsl\}\times R_f)$: a correctly functioning admission always returns, either an admitted observation or a refusal-with-reason. % [AX]
+\end{axiom}
+
+Axiom~\ref{ax:refusal} is the design decision made concrete in \code{praxis} by the \code{Andon} type, whose \code{Halted} variant carries both the unmet obligations and their refusal-taxonomy classification: % [CODE]
+\[
+\code{Andon::Halted\{\ unmet:\ Vec<Obligation>,\ refusals:\ Vec<RefusalScenario>,\ at:\ u64\ \}}.
+\]
+The remainder of this paper is the study of the structure that $R_f$ carries. % [ORIENT]
+We fix, once, the code objects under study: the \code{DenialPolarity} word and its \code{compose} operation (\code{crates/praxis-core}, re-exported from \code{bcinr-powl-receipt}); the \code{Obligation} enum and the \code{Judge}/\code{Admit} traits (\code{law.rs}); the \code{RefusalScenario}/\code{RefusalCategory} taxonomy and its total maps (\code{refusal.rs}); and the \code{prolog8} \code{Kernel::query} logic gate (\code{ops.rs}). % [CODE]
+Each theorem below names the artifact it governs. % [ORIENT]
+
+\chapter{The Denial Semilattice}
+\label{ch:sl}
+% [ORIENT] This chapter formalizes the algebraic structure of the denial word.
+
+\section{The abstract denial word}
+
+\begin{definition}[Denial word space]\label{def:denialabstract}
+Fix $n\in\mathbb{N}$ \emph{lanes}. % [DEF]
+The \emph{abstract denial word space} is $\Deny_n=\{0,1\}^{n}$ with componentwise disjunction $\lor$ and the all-zero word $\bm 0$. % [DEF]
+A lane $i$ is \emph{set} in $d$ when $d_i=1$; the \emph{support} $\supp d=\{i:d_i=1\}$ names the fired lanes. % [DEF]
+Write $d\preceq d'$ for the componentwise order $\forall i\, (d_i\le d_i')$. % [DEF]
+\end{definition}
+
+\begin{proposition}[$\Deny_n$ is a bounded idempotent commutative monoid]\label{prop:monoid}
+$(\Deny_n,\lor,\bm 0)$ is a commutative monoid in which every element is idempotent ($d\lor d=d$). % [THM]
+It is the join-semilattice of the Boolean lattice $(2^{[n]},\subseteq)$ under the support isomorphism $d\mapsto\supp d$; $\bm 0$ is its least element (bottom), and the all-ones word $\bm 1$ its greatest. % [THM]
+Consequently $d\lor d'$ is the least upper bound of $d,d'$, and $\preceq$ is exactly the algebraic order $d\preceq d'\iff d\lor d'=d'$. % [THM]
+\end{proposition}
+
+\begin{proof}
+Disjunction is associative, commutative, and idempotent per coordinate, with unit $0$ per coordinate; a finite product of such structures inherits all four laws, giving a bounded commutative idempotent monoid. % [PROOF]
+The map $d\mapsto\supp d$ carries $\lor$ to $\cup$ and $\bm 0$ to $\varnothing$, and is a bijection $\Deny_n\to 2^{[n]}$, hence a monoid isomorphism onto $(2^{[n]},\cup,\varnothing)$. % [PROOF]
+In any join-semilattice the identity $d\preceq d'\iff d\lor d'=d'$ holds by antisymmetry of $\subseteq$; least/greatest elements are $\varnothing$ and $[n]$, i.e.\ $\bm 0$ and $\bm 1$ \cite[Ch.~I]{birkhoff1967}. % [CITE]
+\end{proof}
+
+Proposition~\ref{prop:monoid} is the algebra behind ``a refusal category is a join-support'' in the keystone: $\supp d(o)\subseteq[n]$ is a subset, and subsets join by union. % [ORIENT]
+We now show that the \code{praxis} implementation realizes exactly this structure. % [ORIENT]
+
+\section{The concrete word: \texttt{DenialPolarity}}
+
+\begin{definition}[The polarity word]\label{def:denialcode}
+In \code{praxis} the denial word is \code{DenialPolarity}, a \code{\#[repr(transparent)]} newtype over \code{u64} carved into eight byte-lanes. % [DEF]
+The clean word is $\Adml=\code{DenialPolarity(0)}$. % [DEF]
+Seven named nonzero constants each occupy one distinct byte lane: % [DEF]
+\[
+\begin{array}{llll}
+\code{PRECONDITION\_FAILED} & (\text{lane }1) & \code{RESOURCE\_EXHAUSTED} & (\text{lane }4)\\
+\code{SLA\_BREACH} & (\text{lane }2) & \code{OBJECT\_LIFECYCLE\_VIOLATION} & (\text{lane }5)\\
+\code{AUTHORIZATION\_DENIED} & (\text{lane }3) & \code{CONFORMANCE\_GATE\_FAILED} & (\text{lane }6)\\
+& & \code{WATCHDOG\_DRAINED} & (\text{lane }7).
+\end{array}
+\]
+The product is \code{compose}$(a,b)=\code{DenialPolarity}(a.0\mathbin{|}b.0)$, bitwise \textsc{or}; the admission predicate is \code{is\_admitted}$(d)\iff d.0=0$. % [DEF]
+\end{definition}
+
+\begin{proposition}[The polarity word is the denial semilattice]\label{prop:code_is_sl}
+Let $\Deny=(\{\code{DenialPolarity}\},\code{compose},\Adml)$. % [THM]
+Then $\Deny$ is a bounded commutative idempotent monoid, and \code{is\_admitted} is exactly the predicate ``is the bottom element.'' % [THM]
+The submonoid $\langle L\rangle$ generated by the seven named nonzero constants together with $\Adml$ is isomorphic to $\Deny_7$ of Definition~\ref{def:denialabstract} via ``which named lanes are nonzero.'' % [THM]
+\end{proposition}
+
+\begin{proof}
+Bitwise \textsc{or} on \code{u64} is associative, commutative, idempotent, with identity the zero word; \code{compose} inherits these, so $\Deny$ is a bounded commutative idempotent monoid whose bottom is $\Adml$, and \code{is\_admitted}$(d)\iff d.0=0\iff d=\Adml$. % [PROOF]
+Each named constant $c_i$ ($1\le i\le 7$) has $c_i.0=\code{0xFF}\ll 8i$ occupying lane $i$ alone, so for any subset $S\subseteq\{1,\dots,7\}$ the composite $\bigvee_{i\in S}c_i$ has byte lane $i$ nonzero iff $i\in S$. % [PROOF]
+The map $\bigvee_{i\in S}c_i\mapsto \bm 1_S\in\Deny_7$ (the indicator of $S$) is therefore a well-defined bijection $\langle L\rangle\to\Deny_7$ carrying \code{compose} to $\lor$ and $\Adml$ to $\bm 0$: a monoid isomorphism. % [PROOF]
+\end{proof}
+
+\begin{remark}
+Definition~\ref{def:denialcode} uses eight byte-lanes but only seven carry a named denial; lane $0$ is the region of the clean word and is never set by a denial constant. % [BOUNDARY]
+Thus the \emph{word} has seven informative lanes, while the \emph{category} taxonomy of Chapter~\ref{ch:tax} has eight buckets, the eighth (\code{Reserved}) being an uninhabited slack coordinate. % [BOUNDARY]
+The two ``eights'' are the byte width, not a claim of eight active denials; we are careful never to conflate them. % [BOUNDARY]
+\end{remark}
+
+\section{The fired-mask projection}
+
+The keystone's agent byte and its planetary admission sweep require collapsing a wide, possibly multi-lane word onto a fixed-width bit vector without losing \emph{which} lanes fired. % [ORIENT]
+This is \code{to\_fired\_mask}. % [ORIENT]
+
+\begin{definition}[Fired-mask]\label{def:fired}
+$\firedmap:\Deny\to\{0,1\}^{8}$ sends a word $d$ to the bit vector whose bit $j$ equals the nonzero-indicator of byte lane $j$ of $d$: $\firedmap(d)_j=\mathbf 1[(d.0\gg 8j)\ \&\ \code{0xFF}\ne 0]$. % [DEF]
+The \code{praxis} realization computes this branchlessly via the identity $\mathbf 1[x\ne 0]=(x\mathbin{|}(-x))\gg 63$ on each lane. % [CODE]
+\end{definition}
+
+\begin{theorem}[Fired-mask is a semilattice homomorphism]\label{thm:firedhom}
+$\firedmap$ is a homomorphism of bounded commutative idempotent monoids: $\firedmap(\Adml)=\bm 0$ and, for all $a,b\in\Deny$, $\firedmap\bigl(\code{compose}(a,b)\bigr)=\firedmap(a)\lor\firedmap(b).$ % [THM]
+Restricted to $\langle L\rangle$ it is a monoid isomorphism onto the seven-bit image $\{0\}\times\{0,1\}^{7}\subseteq\{0,1\}^{8}$. % [THM]
+\end{theorem}
+
+\begin{proof}
+$\firedmap(\Adml)=\bm 0$ since every lane of the zero word is zero. % [PROOF]
+Byte lane $j$ of $\code{compose}(a,b)=a.0\mathbin{|}b.0$ is $a_j\mathbin{|}b_j$ (bitwise \textsc{or} acts lane-locally), and for byte values $\mathbf 1[a_j\mathbin{|}b_j\ne 0] =\mathbf 1[a_j\ne 0]\lor\mathbf 1[b_j\ne 0]$ because a disjunction of bytes is nonzero iff some operand is; hence $\firedmap(a\mathbin{|}b)_j=\firedmap(a)_j\lor\firedmap(b)_j$ for every $j$, which is the claimed homomorphism law. % [PROOF]
+On $\langle L\rangle$, Proposition~\ref{prop:code_is_sl} identifies elements with subsets $S\subseteq\{1,\dots,7\}$, and $\firedmap$ sends such an element to the indicator of $S$ in bits $1\ldots7$ (bit $0$ always zero); this is a bijection onto $\{0\}\times\{0,1\}^{7}$ preserving join and bottom. % [PROOF]
+\end{proof}
+
+Theorem~\ref{thm:firedhom} is the projection principle at the algebra layer: an arbitrarily composed denial word --- the aggregate of an entire pipeline (Chapter~\ref{ch:pipe}) --- projects losslessly, as far as \emph{which lanes fired}, onto at most eight bits. % [ORIENT]
+This is the homomorphism that makes the keystone's word-parallel fleet-admission sweep sound (Proposition~\ref{prop:fleet}). % [ORIENT]
+
+\chapter{Obligations as Lane Maps}
+\label{ch:ob}
+% [ORIENT] This chapter maps obligations to lanes in the denial monoid.
+
+\section{Obligations and total denial}
+
+\begin{definition}[Obligation and lane map]\label{def:ob}
+An \emph{obligation} is a first-class, hashable value the payload must satisfy before admission. % [DEF]
+In \code{praxis} the \code{Obligation} enum has exactly three kinds: \code{Precondition\{predicate\_id, params\_hash\}}, \code{BlockingConstraint\{reason\}}, and \code{EvidenceRequired\{evidence\_type\}}. % [DEF]
+Each obligation $g$ induces a \emph{lane map} $\delta_g:\Obs\to\Deny$ with
+\[
+\delta_g(o)=\begin{cases}\Adml & \text{if }g\text{ is satisfied by }o,\\[2pt]
+\ell(g) & \text{otherwise,}\end{cases}
+\]
+where $\ell(g)\in\Deny$ is the lane $g$ fires on failure. % [DEF]
+For an obligation \emph{set} $G=\{g_1,\dots,g_m\}$ the \emph{total denial} is the join % [DEF]
+\[
+d_G(o)\;=\;\code{compose\_denials}\bigl(\{\delta_{g_i}(o):g_i\text{ unmet}\}\bigr)
+\;=\;\bigvee_{i=1}^{m}\delta_{g_i}(o).
+\] % [DEF]
+\end{definition}
+
+The right-hand fold is literally \code{compose\_denials} in \code{refusal.rs}: it maps each refusal scenario to its lane via \code{denial\_lane} and folds with \code{compose} from the seed $\Adml$. % [CODE]
+Because $\Adml$ is the monoid identity (Proposition~\ref{prop:code_is_sl}), an empty set of unmet obligations composes to $\Adml$ --- the admitted word --- which is exactly the documented behavior (``empty input composes to \code{ADMITTED}''). % [CODE]
+
+\begin{proposition}[Bottom characterizes admission]\label{prop:bottom}
+$\adm_G(o)\ne\Rfsl\iff d_G(o)=\Adml\iff$ every $g_i\in G$ is satisfied by $o$. % [THM]
+\end{proposition}
+
+\begin{proof}
+$d_G(o)=\bigvee_i\delta_{g_i}(o)=\Adml$ iff every summand is $\Adml$ (a join of elements of a join-semilattice equals the bottom iff each element is the bottom, by Proposition~\ref{prop:monoid}), i.e.\ iff no obligation is unmet. % [PROOF]
+Admission returns non-refusal exactly in that case (Axiom~\ref{ax:refusal}). % [PROOF]
+\end{proof}
+
+\section{Monotonicity of admission}
+
+\begin{theorem}[Admission is antitone in the obligation set]\label{thm:mono}
+Let $G\subseteq G'$ be obligation sets. % [THM]
+Then for every observation $o$, $d_G(o)\;\preceq\;d_{G'}(o)$, hence $\Adm_{G'}\;\subseteq\;\Adm_{G}$, where $\Adm_G=\{o:d_G(o)=\Adml\}$ is the admitted set under $G$. % [THM]
+Adding obligations can only enlarge denial and shrink admission; it can never admit an observation a smaller obligation set refused. % [THM]
+\end{theorem}
+
+\begin{proof}
+We have $d_{G'}(o)=\bigvee_{g\in G'}\delta_g(o)=\Bigl(\bigvee_{g\in G}\delta_g(o)\Bigr)\lor \Bigl(\bigvee_{g\in G'\setminus G}\delta_g(o)\Bigr)=d_G(o)\lor d_{G'\setminus G}(o)\succeq d_G(o)$, since in a join-semilattice $x\preceq x\lor y$ always (Proposition~\ref{prop:monoid}). % [PROOF]
+If $o\in\Adm_{G'}$ then $d_{G'}(o)=\Adml$, the bottom. % [PROOF]
+From $d_G(o)\preceq d_{G'}(o)=\Adml$ and minimality of $\Adml$ we get $d_G(o)=\Adml$, i.e.\ $o\in\Adm_G$. % [PROOF]
+\end{proof}
+
+\begin{corollary}[Admission is an antitone map of lattices]\label{cor:galois}
+The assignment $G\mapsto\Adm_G$ is an order-reversing map from the lattice of obligation sets $(2^{\mathcal{G}},\subseteq)$ to the lattice of admitted subsets $(2^{\Obs},\subseteq)$: $G\subseteq G'\Rightarrow\Adm_{G'}\subseteq\Adm_G$. % [THM]
+In particular the empty obligation set admits everything ($\Adm_\varnothing=\Obs$), and enlarging obligations monotonically tightens the gate. % [THM]
+\end{corollary}
+
+\begin{proof}
+Order-reversal is Theorem~\ref{thm:mono}. % [PROOF]
+With $G=\varnothing$ the join is empty, so $d_\varnothing(o)=\Adml$ for all $o$ and $\Adm_\varnothing=\Obs$. % [PROOF]
+\end{proof}
+
+\section{The obligation-to-scenario map is total}
+
+\begin{proposition}[Obligation classification is compiler-certified total]\label{prop:obtotal}
+The map $\scnop:\code{Obligation}\to\Scnset$ implemented by \code{From<\&Obligation> for RefusalScenario} is a total function realized by a wildcard-free \code{match} over the three \code{Obligation} kinds: % [THM]
+\[
+\code{Precondition}\mapsto\code{UnsatisfiedPrecondition},\quad
+\code{BlockingConstraint}\mapsto\code{BlockingConstraint},\quad
+\code{EvidenceRequired}\mapsto\code{MissingEvidence}.
+\]
+Because the \code{match} has no wildcard arm, adding a fourth \code{Obligation} kind without extending $\scnop$ is a compile error; totality is therefore a static property of the program, not a runtime hope. % [THM]
+\end{proposition}
+
+\begin{proof}
+A Rust \code{match} on a closed enum type-checks only if every constructor is covered or a wildcard is present; the cited \code{match} covers all three constructors and uses no wildcard, so the compiler certifies exhaustiveness. % [PROOF]
+Each arm returns a specific \code{RefusalScenario}, so $\scnop$ is a total function. % [PROOF]
+\end{proof}
+
+Proposition~\ref{prop:obtotal} is the first half of the totality argument: every obligation \emph{failure} becomes a scenario. % [ORIENT]
+The second half --- every scenario becomes a category --- is Chapter~\ref{ch:tax}. % [ORIENT]
+
+\chapter{The Eight-Bucket Taxonomy as a Surjection}
+\label{ch:tax}
+% [ORIENT] This chapter presents the refusal taxonomy and analyzes its totality.
+
+\section{Categories and scenarios}
+
+\begin{definition}[The taxonomy]\label{def:tax}
+The \emph{category set} is the eight-element enum $\Catset=\{\code{Identity},\code{Capacity},\code{Topology},\code{Temporal}, \code{Lifecycle},\code{Authorization},\code{Prerequisites},\code{Reserved}\}$. % [DEF]
+The \emph{scenario set} $\Scnset$ is the thirteen-variant \code{RefusalScenario} enum, partitioned by origin into: three \emph{obligation-driven} variants (\code{BlockingConstraint}, \code{MissingEvidence}, \code{UnsatisfiedPrecondition}); seven \emph{denial-lane} variants, one per named nonzero lane of Definition~\ref{def:denialcode} (\code{WatchdogDrained}, \code{PreconditionFailed}, \code{SlaBreach}, \code{AuthorizationDenied}, \code{ResourceExhausted}, \code{ObjectLifecycleViolation}, \code{ConformanceGateFailed}); and three \emph{logic/andon} variants (\code{KernelDenied}, \code{KernelInvalid}, \code{AndonInvariantViolated}). % [DEF]
+The \emph{category map} $\catop:\Scnset\to\Catset$ is \code{RefusalScenario::category}. % [DEF]
+\end{definition}
+
+\begin{center}
+\small
+\begin{tabular}{lll}
+\toprule
+Scenario & $\catop(\cdot)$ & origin\\
+\midrule
+\code{KernelInvalid} & \code{Identity} & logic\\
+\code{ResourceExhausted} & \code{Capacity} & denial lane\\
+\code{ConformanceGateFailed} & \code{Topology} & denial lane\\
+\code{AndonInvariantViolated} & \code{Topology} & andon\\
+\code{WatchdogDrained}, \code{SlaBreach} & \code{Temporal} & denial lanes\\
+\code{BlockingConstraint}, \code{ObjectLifecycleViolation} & \code{Lifecycle} & obligation / lane\\
+\code{AuthorizationDenied}, \code{KernelDenied} & \code{Authorization} & lane / logic\\
+\code{MissingEvidence}, \code{UnsatisfiedPrecondition}, \code{PreconditionFailed} & \code{Prerequisites} & obligation / lane\\
+\midrule
+\emph{(none)} & \code{Reserved} & ---\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{The totality theorem}
+
+\begin{theorem}[Mechanized totality of classification]\label{thm:total}
+The category map $\catop:\Scnset\to\Catset$ satisfies: % [THM]
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item \textbf{Totality.} $\catop$ is a total function: every one of the thirteen scenarios has exactly one category. % [THM]
+\item \textbf{Mechanization.} $\catop$ is realized by a wildcard-free \code{match}, so its totality is compiler-certified: adding a scenario variant without extending $\catop$ fails to compile. (The \code{praxis} test suite additionally pins each variant's value.) % [THM]
+\item \textbf{Image.} $\im\catop=\Catset\setminus\{\code{Reserved}\}$: exactly the seven buckets $\{\code{Identity},\code{Capacity},\code{Topology},\code{Temporal},\code{Lifecycle}, \code{Authorization},\code{Prerequisites}\}$ are inhabited, and \code{Reserved} has empty preimage. % [THM]
+\end{enumerate}
+Consequently $\catop$ is surjective onto the inhabited sub-taxonomy but is \emph{not} surjective onto $\Catset$; the deficiency $\{\code{Reserved}\}$ is exactly one bucket. % [THM]
+\end{theorem}
+
+\begin{proof}
+(i)--(ii) A Rust \code{match} on the closed \code{RefusalScenario} enum type-checks only under exhaustiveness; the \code{category} method matches all thirteen constructors with no wildcard arm, so the compiler certifies that every scenario is assigned, and each arm returns a single \code{RefusalCategory}, making $\catop$ total and single-valued. % [PROOF]
+(iii) Reading the thirteen arms (Definition~\ref{def:tax} table) exhibits a preimage for each of the seven listed buckets --- e.g.\ $\code{KernelInvalid}\in\catop^{-1}(\code{Identity})$, $\code{ResourceExhausted}\in\catop^{-1}(\code{Capacity})$, and so on down the table --- so all seven are in the image; and no arm returns \code{Reserved}, so $\catop^{-1}(\code{Reserved}) =\varnothing$. % [PROOF]
+Hence $\im\catop$ is precisely the seven-element complement of $\{\code{Reserved}\}$. % [PROOF]
+\end{proof}
+
+\begin{remark}[Honesty of the reserved bucket]
+Theorem~\ref{thm:total}(iii) is deliberately \emph{not} a claim of $8/8$ surjectivity. % [BOUNDARY]
+The codomain names a bucket the mechanism does not yet inhabit, and the mathematics records that faithfully rather than inflating coverage. % [BOUNDARY]
+This is the doctrine's antibody clause at the type level: a reserved coordinate is declared, unused, and provably unused, so no reader can be misled into thinking eight kinds of refusal are in force when seven are. % [BOUNDARY]
+When a future enforcement lane populates \code{Reserved}, the theorem's image statement is what must be re-verified. % [ORIENT]
+\end{remark}
+
+\section{Where the type guarantee ends: the partial lane decoder}
+
+Not every total map in this taxonomy is a wildcard-free \code{match}, and the exception is instructive: it marks the precise boundary between what the type system certifies and what a runtime test must certify. % [ORIENT]
+
+\begin{definition}[Single-lane set and the lane decoder]\label{def:decoder}
+Let $L=\{\Adml,c_1,\dots,c_7\}\subseteq\Deny$ be the clean word together with the seven named single-lane constants. % [DEF]
+The \emph{lane decoder} $\scnop_\ell:\Deny\rightharpoonup\Scnset$ is \code{scenario\_for\_denial\_lane}: it returns $\code{None}$ on $\Adml$, returns the matching denial-lane scenario on each $c_i$, and returns $\code{None}$ on every word not in $L$. % [DEF]
+\end{definition}
+
+\begin{proposition}[The lane decoder cannot be a total \texttt{match}, and why]\label{prop:partial}
+$\scnop_\ell$ is a partial map, definite (as \code{Some}) only on $L\setminus\{\Adml\}$. % [THM]
+It is \emph{not} realizable as a wildcard-free exhaustive \code{match}, because its domain $\Deny$ is a \code{\#[repr(transparent)]} newtype over \code{u64} --- an open value space of cardinality $2^{64}$, not a closed enum --- so the compiler cannot enumerate its cases. % [BOUNDARY]
+In particular any composed multi-lane word $d=c_i\lor c_j\notin L$ (a legitimate element produced by \code{compose}) has $\scnop_\ell(d)=\code{None}$: the decoder recognizes single lanes only. % [THM]
+Exhaustiveness over the seven single lanes is therefore a \emph{runtime test obligation} (discharged by the \code{category\_mapping\_is\_total\_over\_denial\_lanes} test), not a static type obligation. % [CODE]
+\end{proposition}
+
+\begin{proof}
+Rust's exhaustiveness checker operates on closed sum types; a newtype over \code{u64} exposes $2^{64}$ inhabitants with no finite constructor set, so no wildcard-free \code{match} on its value is well-typed --- the implementation is necessarily an \code{if}/\code{else} chain over the eight known constants with a \code{None} fallback. % [PROOF]
+On $\Adml$ it returns \code{None} by the first guard; on each $c_i$ it returns the corresponding \code{Some} scenario; on any other word (including every $c_i\lor c_j$ with $i\ne j$, which lies outside $L$) it falls through to \code{None}. % [PROOF]
+Thus $\dom^{+}\scnop_\ell=L\setminus\{\Adml\}$ where $\dom^{+}$ denotes the \code{Some}-domain. % [PROOF]
+\end{proof}
+
+\begin{proposition}[The lane encoder is total and a section]\label{prop:section}
+The \emph{lane encoder} $\laneop:\Scnset\to\Deny$ implemented by \code{denial\_lane} is a total function realized by a wildcard-free \code{match} over all thirteen scenarios. % [THM]
+Restricted to the seven denial-lane scenarios $\Scnset_\ell$, it and $\scnop_\ell$ form a section--retraction pair: $\scnop_\ell\circ\laneop=\id_{\Scnset_\ell}$ and $\laneop\circ\scnop_\ell=\id_{L\setminus\{\Adml\}}$, so the seven single lanes and the seven denial-lane scenarios are in bijection. % [THM]
+The remaining six scenarios (obligation-driven and logic/andon) are mapped by $\laneop$ onto \emph{closest-fit} lanes and are therefore not in the range of that bijection. % [THM]
+\end{proposition}
+
+\begin{proof}
+$\laneop$ matches all thirteen constructors with no wildcard, hence is total (same mechanism as Theorem~\ref{thm:total}). % [PROOF]
+For each of the seven denial-lane scenarios $s$, $\laneop(s)=c_i$ is its own lane, and $\scnop_\ell(c_i)=s$ by Definition~\ref{def:decoder}, giving $\scnop_\ell(\laneop(s))=s$; conversely $\laneop(\scnop_\ell(c_i))=\laneop(s)=c_i$. % [PROOF]
+Both round-trips are the identity on their respective seven-element sets, the round-trip pinned by the cited test. % [PROOF]
+The six non-lane scenarios map by $\laneop$ onto lanes already claimed by the seven (e.g.\ \code{MissingEvidence}$\mapsto\code{PRECONDITION\_FAILED}$), so $\laneop$ is not injective overall and those six are outside the bijection. % [PROOF]
+\end{proof}
+
+\begin{corollary}[The assembled totality statement]\label{cor:assembled}
+Composing the total maps of Propositions~\ref{prop:obtotal} and~\ref{prop:section} with the total classification of Theorem~\ref{thm:total}: \emph{every unmet obligation} (via $\catop\circ\scnop$) and \emph{every non-}$\Adml$\emph{ single denial lane} (via $\catop\circ\scnop_\ell$ on $L\setminus\{\Adml\}$) maps to exactly one of the seven inhabited categories. % [THM]
+No obligation failure and no fired single lane is left unclassified. % [THM]
+\end{corollary}
+
+\begin{proof}
+Immediate by composition of the three total (respectively \code{Some}-total) maps, each single-valued into its codomain, landing in $\im\catop=\Catset\setminus\{\code{Reserved}\}$ (Theorem~\ref{thm:total}). % [PROOF]
+\end{proof}
+
+Corollary~\ref{cor:assembled} is precisely the totality claim demanded of a fleet vocabulary (D3): a refusal never falls through a crack, and its class is legible to any recipient who holds the eight-element enum, regardless of the sender's interior. % [ORIENT]
+
+\chapter{Composition Across a Pipeline as a Monoid Action}
+\label{ch:pipe}
+% [ORIENT] This chapter models pipeline denial composition category-theoretically.
+
+\section{Pipelines and their aggregate denial}
+
+A manufacture rarely faces a single gate. % [ORIENT]
+It traverses a \emph{pipeline}: \code{Judge} evaluates obligations; \code{Admit} may deny; a \code{prolog8} kernel gate may refuse a logical side-condition (Chapter~\ref{ch:proof}); an optional andon second-gate ring may fire. % [ORIENT]
+Each stage emits a denial word; the fleet needs one. % [ORIENT]
+
+\begin{definition}[Pipeline and stage denial]\label{def:pipeline}
+Let $\mathsf{Stage}$ be the set of admission stages. % [DEF]
+Fix an observation $o$, and let the stage-denial map be $\delta_s(o) \in \Deny$, representing the denial word stage $s$ emits on $o$ (via its scenarios and \code{denial\_lane}). % [DEF]
+A \emph{pipeline} is a finite sequence $w=s_1 s_2\cdots s_k\in\mathsf{Stage}^{*}$, an element of the free monoid on $\mathsf{Stage}$ under concatenation with unit the empty sequence $\varepsilon$. % [DEF]
+Its \emph{aggregate denial} is % [DEF]
+\[
+\Phi_o(w)\;=\;\code{compose\_denials}\bigl(\delta_{s_1}(o),\dots,\delta_{s_k}(o)\bigr)
+\;=\;\bigvee_{i=1}^{k}\delta_{s_i}(o),\qquad \Phi_o(\varepsilon)=\Adml.
+\] % [DEF]
+\end{definition}
+
+\begin{theorem}[Pipeline denial is the free-monoid homomorphism]\label{thm:freehom}
+$\Phi_o:(\mathsf{Stage}^{*},\cdot,\varepsilon)\to(\Deny,\code{compose},\Adml)$ is the unique monoid homomorphism extending the map $s \mapsto \delta_s(o)$ along the inclusion $\mathsf{Stage}\hookrightarrow\mathsf{Stage}^{*}$. % [THM]
+Because the target is commutative and idempotent, $\Phi_o$ factors through the finite join-semilattice generated by $\{\delta_s(o):s\in\mathsf{Stage}\}$; hence $\Phi_o(w)$ depends only on the \emph{set} of distinct stage-denials occurring in $w$ --- it is invariant under reordering the stages and under repeating them. % [THM]
+\end{theorem}
+
+\begin{proof}
+We have $\Phi_o(\varepsilon)=\Adml$ and $\Phi_o(w\cdot w')=\bigvee_{s\in w}\delta_s(o)\lor \bigvee_{s\in w'}\delta_s(o)=\Phi_o(w)\lor\Phi_o(w')=\code{compose}(\Phi_o(w),\Phi_o(w'))$ by associativity of $\lor$. % [PROOF]
+Thus $\Phi_o$ is a monoid homomorphism, and it agrees with the stage-denial map $s \mapsto \delta_s(o)$ on length-one words. % [PROOF]
+Uniqueness is the universal property of the free monoid: any homomorphism agreeing with the stage-denial map on generators is determined on all of $\mathsf{Stage}^{*}$ by the homomorphism laws. % [PROOF]
+For the factorization, commutativity gives order-independence ($a\lor b=b\lor a$) and idempotence gives multiplicity-independence ($a\lor a=a$), so $\Phi_o(w)=\bigvee_{s\in\mathrm{set}(w)}\delta_s(o)$ depends only on the underlying set of distinct denials. % [PROOF]
+\end{proof}
+
+\begin{corollary}[A pipeline admits iff every stage admits]\label{cor:allstages}
+$\Phi_o(w)=\Adml\iff\delta_{s_i}(o)=\Adml$ for every stage $s_i$ in $w$. % [THM]
+A single refusing stage refuses the whole pipeline, and the aggregate word records \emph{every} lane that fired anywhere along $w$. % [THM]
+\end{corollary}
+
+\begin{proof}
+A join in a join-semilattice equals the bottom iff every joinand is the bottom (Proposition~\ref{prop:monoid}); apply to $\Phi_o(w)=\bigvee_i\delta_{s_i}(o)$. % [PROOF]
+The support of the aggregate is $\supp\Phi_o(w)=\bigcup_i\supp\delta_{s_i}(o)$, the union of the per-stage fired lanes. % [PROOF]
+\end{proof}
+
+Corollary~\ref{cor:allstages} is the correctness statement for \code{ReceiptMeta.denial}: when a manufacture is receipted, the honest denial word written into the \code{OcelCausalFrame} is the aggregate $\Phi_o(w)$, so the receipt records exactly what was waved through --- not a fiction of clean admission when a non-fatal lane fired. % [CODE]
+Composition (D1) is thereby a theorem, not a convention. % [ORIENT]
+
+\section{The fleet sweep is word-parallel}
+
+\begin{proposition}[Byte-packed fleet admission]\label{prop:fleet}
+Let a fleet of $N$ manufactures produce aggregate words $\Phi^{(1)},\dots,\Phi^{(N)}$, and pack each into a byte $b^{(r)}=\firedmap(\Phi^{(r)})\in\{0,1\}^{8}$. % [THM]
+Then:
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item $\firedmap(\Phi_o(w))=\bigvee_{i}\firedmap(\delta_{s_i}(o))$: the fleet byte of a pipeline equals the bitwise \textsc{or} of its stage bytes (fired-mask commutes with aggregation). % [THM]
+\item A fleet admission sweep --- ``are all agents clean?'' --- is one linear pass computing $\bigvee_r b^{(r)}$, eight agents per $64$-bit word, and returns $\bm 0$ iff every agent is admitted. % [THM]
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+(i) $\firedmap$ is a homomorphism (Theorem~\ref{thm:firedhom}) and $\Phi_o$ is a homomorphism (Theorem~\ref{thm:freehom}); their composite carries \code{compose} to $\lor$, so $\firedmap(\bigvee_i\delta_{s_i}(o))=\bigvee_i\firedmap(\delta_{s_i}(o))$. % [PROOF]
+(ii) The pass folds $\lor$ over $N$ bytes; by Corollary~\ref{cor:allstages} applied fleet-wide, the fold is $\bm 0$ iff each $b^{(r)}=\bm 0$ iff each aggregate is $\Adml$ iff every agent is admitted. % [PROOF]
+Packing eight bytes per machine word makes the fold word-parallel. % [PROOF]
+\end{proof}
+
+Proposition~\ref{prop:fleet} is the algebraic underpinning of the keystone's ``agent as eight bits'' construction and its memory-bandwidth-bounded planetary sweep: the reason a fleet of $10^{12}$ agents can be admission-swept by masked \textsc{or}s is that both aggregation (over stages) and projection (to bits) are semilattice homomorphisms, so the cheap bit-level operation computes the same verdict as the expensive per-stage evaluation. % [ORIENT]
+
+\chapter{Proof-Carrying Admission via SLD-Resolution}
+\label{ch:proof}
+% [ORIENT] This chapter investigates proof-carrying logic-gate admission.
+
+\section{The logical quarantine}
+
+Some admissions are not Boolean batteries but \emph{logical queries}: ``does this atom follow from the admitted facts and rules?'' % [ORIENT]
+\code{praxis} routes these to the \code{prolog8} kernel (\code{run\_kernel\_query} in \code{ops.rs}). % [CODE]
+Admission here is derivation, and --- unlike a bare Boolean gate --- it can carry a \emph{proof}. % [ORIENT]
+First the language must be quarantined. % [ORIENT]
+
+\begin{definition}[Logic admission; the Rice quarantine for Horn logic]\label{def:logicadm}
+\code{prolog8} admits a query, fact block, or rule only if it lies in a bounded, decidable Horn fragment: arity $\le 8$, rule body $\le 8$ atoms, $\le 8$ variables, proof fan-in $\le 8$; no cut, no dynamic mutation (\code{assert}/\code{retract}), stratified negation, bounded or declared recursion, no runtime text parsing, no side effects, interned (non-string) terms. % [DEF]
+Violations are enumerated by \code{RejectionCode} (a closed enum of $\sim\!30$ structured codes: \code{ArityCapExceeded}, \code{RuleBodyCapExceeded}, \code{CutNotAdmitted}, \code{UnstratifiedNegation}, \code{DynamicMutationNotAdmitted}, \dots). % [DEF]
+\code{admit\_atom} and \code{admit\_rule} run before any query touches the kernel. % [CODE]
+\end{definition}
+
+Definition~\ref{def:logicadm} is Rice's theorem \cite{rice1953} answered at the logic layer: full first-order or unrestricted Prolog derivability is undecidable, so the kernel retracts onto a fragment whose byte caps make the search space finite, and everything outside the fragment is refused with a code. % [CITE]
+This is the same move as $\adm:\Obs\to\Adm\cup\{\Rfsl\}$ (Paper~00), specialized to logic and carrying, additionally, a proof on the inside. % [ORIENT]
+
+\section{The proof-carrying trichotomy}
+
+\begin{definition}[Query result]\label{def:queryresult}
+\code{Kernel::query} returns \code{QueryResult}, one of: \code{Answered(Vec<Decision>)}, \code{Denied(Box<Decision>)}, or \code{Invalid(RejectionCode)}. % [DEF]
+A \code{Decision} carries a \emph{proof} (a \code{Vec<ProofNode>} DAG, positive or negative) and a \emph{receipt} sufficient for deterministic replay. % [DEF]
+\end{definition}
+
+\begin{theorem}[Proof-carrying admission trichotomy]\label{thm:trichotomy}
+For a query $q$ evaluated against an admitted kernel (admitted catalog, fact blocks, and rules), exactly one of the following holds: % [THM]
+\begin{enumerate}[label=(\alph*),leftmargin=*]
+\item \textbf{Answered.} $q$ passes \code{admit\_atom} and unifies with a stored fact or is derivable by a depth-one rule application; then $\code{query}(q)=\code{Answered}(D_1,\dots,D_p)$ with $p\ge 1$, each $D_j$ carrying a \emph{positive} proof DAG whose every node has fan-in $\le 8$, plus a receipt. % [THM]
+\item \textbf{Denied.} $q$ passes \code{admit\_atom} but no fact and no admitted rule derive it; then $\code{query}(q)=\code{Denied}(D)$, where $D$ carries a \emph{negative} proof --- a finite, closed witness that the depth-bounded SLD search was exhausted without success --- plus a receipt. % [THM]
+\item \textbf{Invalid.} $q$ fails \code{admit\_atom}; then $\code{query}(q)=\code{Invalid}(c)$ with $c\in\code{RejectionCode}$, and \emph{no proof is produced}. % [THM]
+\end{enumerate}
+Thus a \code{Denied} query yields a proof tree; an \code{Invalid} query yields a rejection code. % [THM]
+\end{theorem}
+
+\begin{proof}
+Trace \code{Kernel::query}. % [CODE]
+Its first action is the admission gate: if \code{admit\_atom}$(q)$ returns \code{Err}$(c)$ the kernel returns \code{Invalid}$(c)$ immediately, before any search, establishing (c) and its no-proof clause. % [PROOF]
+Otherwise the query is in the admitted fragment and the kernel runs three phases. % [PROOF]
+\emph{Phase 1} scans fact blocks for rows unifying with $q$ under its bound positions; a nonempty match set is assembled into \code{Answered} decisions, each with a positive proof rooted at the matched fact hash. % [PROOF]
+\emph{Phase 2}, on empty Phase 1, applies each rule whose head unifies with $q$ by depth-one backward chaining with backtracking over body atoms (a single SLD-resolution step against the fact base); any successful derivation is assembled into \code{Answered}, giving (a). % [PROOF]
+The fan-in bound holds because \code{admit\_rule} rejects any rule or proof node exceeding fan-in $8$ (\code{ProofFanInExceeded}), so every emitted proof node has $\le 8$ children. % [PROOF]
+\emph{Phase 3} is reached iff both searches are empty; the kernel then assembles a \code{Denied} decision with a \emph{negative} proof recording the exhausted search, giving (b). % [PROOF]
+The three phases are mutually exclusive by construction (each returns), so exactly one branch fires. % [PROOF]
+Soundness and completeness of the depth-bounded resolution --- that Phase 3 is reached \emph{only} when $q$ is underivable within the fragment --- is SLD soundness and completeness for definite/stratified Horn programs \cite{kowalski1974,lloyd1987}, restricted to the finite search space that the byte caps of Definition~\ref{def:logicadm} guarantee. % [CITE]
+\end{proof}
+
+\begin{proposition}[Boundedness gives a bounded certificate]\label{prop:boundedcert}
+Every proof node emitted by the kernel has fan-in $\le 8$ and every rule body has $\le 8$ atoms, so a proof (positive or negative) is a bounded-degree DAG; its rolling \code{proof\_root} is a single fixed-width hash field of the receipt. % [THM]
+A bounded-context verifier checks a query outcome by recomputing \code{proof\_root} and comparing --- cost $O(\CL)$, independent of the size of the fact base --- and the deterministic replay path recomputes exactly this root. % [THM]
+\end{proposition}
+
+\begin{proof}
+Fan-in and body caps are enforced by \code{admit\_rule} (\code{ProofFanInExceeded}, \code{RuleBodyCapExceeded}), so proof nodes have bounded out-degree; the receipt commits the proof by its root hash (a projection of the DAG onto one field), and replay recomputes the root from the stored decision, agreeing iff untampered --- the Faithful Projection mechanism of the keystone applied to the proof DAG. % [PROOF]
+The verifier reads the fixed-width root, not the DAG, so its cost is $O(\CL)$. % [PROOF]
+\end{proof}
+
+Proposition~\ref{prop:boundedcert} is the projection principle at the logic layer: an arbitrarily large search over facts and rules projects onto one root hash a bounded verifier can check, so proof-carrying admission scales the same way byte-level admission does. % [ORIENT]
+
+\section{Logic refusals rejoin the monoid}
+
+The logical layer does not live apart from Chapters~\ref{ch:sl}--\ref{ch:pipe}; its refusals are ordinary denial words. % [ORIENT]
+
+\begin{proposition}[Kernel outcomes embed into the denial monoid]\label{prop:embed}
+The refusing branches of Theorem~\ref{thm:trichotomy} embed into $(\Deny,\code{compose},\Adml)$ via the taxonomy: \code{run\_kernel\_query} maps a \code{Denied} outcome to the scenario \code{KernelDenied} (category \code{Authorization}) and an \code{Invalid} outcome to \code{KernelInvalid} (category \code{Identity}); by \code{denial\_lane} both compose into the lane \code{CONFORMANCE\_GATE\_FAILED}. % [THM]
+Hence a logical refusal is an element of $\Deny$ subject to monotonicity (Theorem~\ref{thm:mono}), classification (Theorem~\ref{thm:total}), pipeline composition (Theorem~\ref{thm:freehom}), and fired-mask projection (Theorem~\ref{thm:firedhom}), exactly as any obligation refusal. % [THM]
+\end{proposition}
+
+\begin{proof}
+\code{run\_kernel\_query} constructs \code{RefusalScenario::KernelDenied} on the \code{Denied} branch and \code{RefusalScenario::KernelInvalid} on the \code{Invalid} branch (Definition~\ref{def:tax}); their categories are as stated by Theorem~\ref{thm:total}, and \code{denial\_lane} sends both to \code{CONFORMANCE\_GATE\_FAILED} (Proposition~\ref{prop:section}, closest-fit clause). % [PROOF]
+Being elements of $\Deny$, they are acted on by all the structure of Chapters~\ref{ch:sl}--\ref{ch:pipe}. % [PROOF]
+\end{proof}
+
+\begin{remark}[The epistemic distinction, made precise]
+The trichotomy separates three epistemic states. % [ORIENT]
+\code{Invalid} means \emph{outside the language}: a reason (a \code{RejectionCode}) but no proof --- the query was never well-formed enough to have a truth value in the fragment. % [ORIENT]
+\code{Denied} means \emph{in the language and false}: a negative proof witnesses underivability. % [ORIENT]
+\code{Answered} means \emph{in the language and true}: a positive proof witnesses derivability. % [ORIENT]
+Only membership-in-the-language is a type-like gate (\code{admit\_atom}); truth or falsity within the language is decided by bounded search and \emph{always} ships a witness. % [BOUNDARY]
+This is the sharpest form of ``refusal is data'': at the logic layer even a denial carries its proof, so a bounded verifier can trust the ``no'' without re-running the search. % [ORIENT]
+\end{remark}
+
+\chapter{The Boundary Observation Algebra and the Domain Proposer}
+\label{ch:proposer}
+% [ORIENT] This chapter formalizes boundary observations and account-based proposers.
+
+\section{Untrusted observations and the boundary}
+
+A subtle consequence of the admission algebra is that observations arriving from outside a system boundary carry no authority by default. % [ORIENT]
+The \code{praxis-proposer} crate formalizes this by distinguishing two regimes. % [CODE]
+
+\begin{definition}[Observation authority]\label{def:obsauth}
+Let $\Obs$ be the raw observation space (Axiom~\ref{ax:refusal}). % [DEF]
+An observation $o\in\Obs$ is \emph{authoritative} ($o\in\Obs^{*}$) if it was produced by an admitted actuation with a chained receipt --- equivalently, if it carries a committed payload digest inside an \code{OcelCausalFrame}. % [DEF]
+All other observations are \emph{untrusted} ($o\in\Obs\setminus\Obs^{*}$). % [DEF]
+The proposer's admission map $\adm_{\mathrm{prop}}$ retracts $\Obs$ onto $\Adm_{\mathrm{prop}}$ by treating every inbound observation as untrusted until its receipt chain satisfies the obligation battery $G_{\mathrm{prop}}$. % [DEF]
+\end{definition}
+
+\begin{proposition}[Proposer boundary separation]\label{prop:boundary}
+Under Definition~\ref{def:obsauth}, the \code{praxis-proposer} enforces the invariant $\im\muop_{\mathrm{prop}} \subseteq \Adm_{\mathrm{prop}}$: no proposal is manufactured from an unadmitted observation. % [THM]
+Operationally, the generic \code{Domain<D>} proposer evaluates its \code{Obligation} battery on every inbound record before calling \code{Admit::admit}; a record that fails any obligation is refused with its denial word and never reaches the manufacturing step. % [CODE]
+\end{proposition}
+
+\begin{proof}
+The \code{Domain} struct holds a \code{Law<Obligation>} attached to its typed domain \code{D}. % [PROOF]
+Proposing calls \code{judge} then \code{admit} in sequence (the lifecycle arrows $j,a$ of the foundations paper). % [PROOF]
+An \code{Andon::Halted} on either step returns the \code{Err} branch with its denial word; the manufacturing step (\code{D::manufacture}) is unreachable from the \code{Err} branch. % [PROOF]
+Hence $\im\muop_{\mathrm{prop}}$ is contained in \code{Admitted} objects, elements of $\Adm_{\mathrm{prop}}$. % [PROOF]
+\end{proof}
+
+\section{Maximum Reachable Revenue: additive separation over accounts}
+
+\begin{definition}[Maximum Reachable Revenue]\label{def:mrr}
+Let $A$ be a set of client accounts. % [DEF]
+For each $a\in A$, let $\mathrm{lawful\_targets}(a)$ be the evidence-gated target stages for account $a$, and let $\mathrm{realized}(a, s)$ be the revenue function under target stage $s$. % [DEF]
+The \emph{Maximum Reachable Revenue} (MRR) of the fleet is % [DEF]
+\[
+\mathrm{MRR}\;=\;\max_{\text{plan}}\sum_{a\in A}\mathrm{realized}(a)\;.
+\] % [DEF]
+\end{definition}
+
+\begin{theorem}[MRR additively separates over independent accounts]\label{thm:mrrsep}
+If the accounts in $A$ are independent --- no account's target stages share resources or evidence with another's --- then
+\[
+\mathrm{MRR}\;=\;\sum_{a\in A}\max_{s\in\mathrm{lawful\_targets}(a)}\mathrm{realized}(a,s)\;,
+\]
+reducing the joint plan search from exponential ($\prod_{a}|\mathrm{lawful\_targets}(a)|$) to linear ($\sum_{a}|\mathrm{lawful\_targets}(a)|$). % [THM]
+\end{theorem}
+
+\begin{proof}
+Independence means the feasibility of account $a$'s targets is unaffected by the targets of any $b\neq a$. % [PROOF]
+Hence the joint optimization $\max_{\text{joint}}\sum_a r(a)$ decomposes into $\sum_a\max_{s_a} r(a, s_a)$ by linearity of the sum and independence of the maxima. % [PROOF]
+In \code{praxis-proposer} this is realized in \code{mrr.rs}: \code{compute\_mrr} iterates over accounts, calls \code{max\_realized\_revenue(a)} for each, and sums the per-account maxima. % [CODE]
+No cross-account joint optimization is performed. % [PROOF]
+\end{proof}
+
+\begin{corollary}[Boundary independence is the MRR precondition]\label{cor:mrrindep}
+Theorem~\ref{thm:mrrsep} holds exactly when no obligation in $G_{\mathrm{prop}}$ couples distinct accounts (e.g.\ a shared authority token or a mutually exclusive resource). % [THM]
+If such coupling exists, the proposer's obligation battery must be extended with a \code{BlockingConstraint} on the shared resource, which by Theorem~\ref{thm:mono} only tightens the admitted set and preserves the denial algebra. % [THM]
+\end{corollary}
+
+\begin{proof}
+Immediate from Theorem~\ref{thm:mono}: adding an obligation enlarges denial and shrinks admission. % [PROOF]
+With the extended battery the coupled accounts are refused by the coupling constraint and the remaining independent ones decompose additively as before. % [PROOF]
+\end{proof}
+
+\begin{remark}[The generic \code{Domain<D>} proposer]
+The \code{Domain} struct in \code{praxis-proposer} is a generic adapter parameterized by \code{DomainSpec}, a sealed trait that supplies the domain's typed observation schema and \code{manufacture}. % [CODE]
+Any domain (revenue, scheduling, compliance) inherits the full denial algebra of Chapters~\ref{ch:sl}--\ref{ch:proof} for free: its refusals compose under \code{DenialPolarity}, are classified by \code{RefusalCategory}, and are swept byte-parallel across a fleet. % [ORIENT]
+The MRR theorem (Theorem~\ref{thm:mrrsep}) is the domain-neutral consequence of this inheritance: account-level independence is a structural claim about the obligation battery, independent of what the domain manufactures. % [ORIENT]
+\end{remark}
+
+\chapter{Conclusion}
+\label{ch:concl}
+% [ORIENT] This chapter concludes the paper on the admission monoid.
+
+We set out to give the refusal object the algebra its role in a trillion-agent fleet demands, and we have discharged each of the four demands of Chapter~\ref{ch:intro} as a theorem anchored to \code{praxis}. % [ORIENT]
+
+\emph{Composition (D1)} is Theorem~\ref{thm:freehom}: pipeline denial is the unique monoid homomorphism from the free monoid on stages into the bounded commutative idempotent monoid $(\Deny,\code{compose},\Adml)$ (Propositions~\ref{prop:monoid}, \ref{prop:code_is_sl}), so aggregation is associative, order-independent, and multiplicity-independent, and a pipeline admits iff every stage admits (Corollary~\ref{cor:allstages}). % [THM]
+\emph{Classification (D2)} is the category map $\catop$, and its \emph{totality (D3)} is Theorem~\ref{thm:total}: a compiler-certified total classification onto exactly seven inhabited buckets plus a provably empty \code{Reserved} slack coordinate, assembled with the total obligation and lane maps into Corollary~\ref{cor:assembled} --- no refusal is unclassified. % [THM]
+We located the exact boundary of the type system's guarantee: the lane decoder is partial precisely because its domain is an open $2^{64}$ newtype, so its exhaustiveness is a test obligation, not a type obligation (Proposition~\ref{prop:partial}). % [BOUNDARY]
+And \emph{reason-carrying (D4)}, at its logical limit, is the proof-carrying trichotomy of Theorem~\ref{thm:trichotomy}: an admitted-but-false query ships a negative proof tree and an ill-formed query ships a rejection code, both bounded (Proposition~\ref{prop:boundedcert}) and both rejoining the denial monoid (Proposition~\ref{prop:embed}). % [THM]
+
+Monotonicity (Theorem~\ref{thm:mono}) ties the whole together: enlarging obligations only tightens the gate, so the algebra is safe to grow. % [THM]
+The fired-mask homomorphism (Theorem~\ref{thm:firedhom}, Proposition~\ref{prop:fleet}) is what lets the keystone's planetary admission sweep compute the true verdict with a bitwise \textsc{or}. % [THM]
+What began, in the keystone, as one Construction and one Proposition is now a complete small theory: the space of ``why not'' is a join-semilattice, its classification is a mechanized surjection, its aggregation is a free-monoid homomorphism, and its logical instance carries proof. % [ORIENT]
+
+\begin{center}\itshape A refusal is not the absence of an answer; it is an answer with an algebra.\end{center}
+
+\appendix
+\chapter{Notation and Code Anchors}
+
+\section*{Symbols}
+% [ORIENT] Reference list of symbols.
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning\\
+\midrule
+$\Deny,\ \lor,\ \Adml$ & denial-word monoid; join (\code{compose}); bottom (\code{ADMITTED})\\
+$\Deny_n,\ \supp d$ & abstract $n$-lane word space; fired-lane support\\
+$\firedmap$ & fired-mask projection $\Deny\to\{0,1\}^{8}$ (\code{to\_fired\_mask})\\
+$\delta_g,\ d_G(o)$ & obligation lane map; total denial (join over $G$)\\
+$\Adm_G$ & admitted set under obligation set $G$\\
+$\Catset,\ \Scnset$ & category set (8); scenario set (13)\\
+$\catop,\ \scnop,\ \laneop,\ \scnop_\ell$ & category map; obligation$\to$scenario; scenario$\to$lane; lane decoder\\
+$\Phi_o,\ \mathsf{Stage}^{*}$ & pipeline aggregate denial; free monoid on stages\\
+$\Rfsl,\ \CL$ & refusal value; bounded-verifier context capacity\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section*{Mathematics to code}
+% [CODE] Mapping mathematical objects to codebase structures.
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Object & Code artifact & Location\\
+\midrule
+$(\Deny,\lor,\Adml)$ & \code{DenialPolarity}, \code{compose} & \code{bcinr-powl-receipt/src/denial.rs}\\
+$\firedmap$ & \code{DenialPolarity::to\_fired\_mask} & \code{bcinr-powl-receipt/src/denial.rs}\\
+$d_G$, \code{compose\_denials} & \code{compose\_denials} & \code{crates/praxis-core/src/refusal.rs}\\
+$\catop$ (Thm~\ref{thm:total}) & \code{RefusalScenario::category} & \code{crates/praxis-core/src/refusal.rs}\\
+$\scnop$ (Prop~\ref{prop:obtotal}) & \code{From<\&Obligation>} & \code{crates/praxis-core/src/refusal.rs}\\
+$\scnop_\ell$ (Prop~\ref{prop:partial}) & \code{scenario\_for\_denial\_lane} & \code{crates/praxis-core/src/refusal.rs}\\
+$\laneop$ (Prop~\ref{prop:section}) & \code{denial\_lane} & \code{crates/praxis-core/src/refusal.rs}\\
+\code{Obligation} (3 kinds) & \code{Obligation} enum & \code{crates/praxis-core/src/law.rs}\\
+\code{Andon::Halted} & \code{Andon} enum & \code{crates/praxis-core/src/law.rs}\\
+Trichotomy (Thm~\ref{thm:trichotomy}) & \code{Kernel::query}, \code{QueryResult} & \code{prolog8/src/kernel.rs}\\
+Logic quarantine & \code{admit\_atom}, \code{RejectionCode} & \code{prolog8/src/admission.rs}\\
+Kernel refusals (Prop~\ref{prop:embed}) & \code{run\_kernel\_query} & \code{src/ops.rs}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{thebibliography}{9}
+% [CITE] Bibliography entries.
+
+\bibitem{chatman2025}
+S.~Chatman,
+\emph{The Chatman Equation and the Industrial Revolution of Knowledge:
+$A=\mu(O)$, Knowledge Hooks, and Production-Verified Enterprise Execution},
+v1.2.0, November 2025.
+
+\bibitem{rice1953}
+H.~G.~Rice,
+\emph{Classes of recursively enumerable sets and their decision problems},
+Transactions of the American Mathematical Society \textbf{74} (1953), 358--366.
+
+\bibitem{birkhoff1967}
+G.~Birkhoff,
+\emph{Lattice Theory},
+3rd ed., American Mathematical Society Colloquium Publications, vol.~25, 1967.
+
+\bibitem{kowalski1974}
+R.~A.~Kowalski,
+\emph{Predicate logic as programming language},
+Information Processing \textbf{74} (Proc.\ IFIP Congress), North-Holland, 1974, 569--574.
+
+\bibitem{lloyd1987}
+J.~W.~Lloyd,
+\emph{Foundations of Logic Programming},
+2nd ed., Springer-Verlag, 1987.
+
+\bibitem{vdaalst2003patterns}
+W.~M.~P.~van der Aalst, A.~H.~M.~ter Hofstede, B.~Kiepuszewski, and A.~P.~Barros,
+\emph{Workflow patterns},
+Distributed and Parallel Databases \textbf{14}(1) (2003), 5--51.
+
+\bibitem{blake3}
+J.~O'Connor, J.-P.~Aumasson, S.~Neves, and Z.~Wilcox-O'Hearn,
+\emph{BLAKE3: One function, fast everywhere},
+2020.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,6 @@
+\contentsline {section}{\numberline {1}\ignorespaces Part 0. Foundations}{2}{section.1}%
+\contentsline {section}{\numberline {2}\ignorespaces Part I. Admission Algebra}{29}{section.2}%
+\contentsline {section}{\numberline {3}\ignorespaces Part II. Receipt Cryptography}{52}{section.3}%
+\contentsline {section}{\numberline {4}\ignorespaces Part III. Planning Geometry}{78}{section.4}%
+\contentsline {section}{\numberline {5}\ignorespaces Part IV. Projection (Keystone)}{105}{section.5}%
+\contentsline {section}{\numberline {6}\ignorespaces Part V. Projection and Scale}{127}{section.6}%

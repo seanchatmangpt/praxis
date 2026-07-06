@@ -24,10 +24,9 @@
 //! Both payload fns are the single implementation shared by the `synth` CLI
 //! verbs and the MCP membrane tools (zero drift, like every other noun).
 
-use praxis_synthesis::datalog::Atom;
 use praxis_synthesis::{
-    BoundedCsp, Capability, Constraint, DlRule, HashRunner, MemoCache, Program, Solver, Solver8,
-    Synthesis, Term,
+    datalog::Atom, BoundedCsp, Capability, Constraint, DlRule, HashRunner, MemoCache, Program,
+    Solver, Solver8, Synthesis, Term,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -102,7 +101,10 @@ fn atom(p: &mut Program, (pred, args): &WireAtom) -> Result<Atom, String> {
         return Err(format!("atom '{pred}' arity {} > 8", args.len()));
     }
     let pred_id = p.intern(pred);
-    let terms = args.iter().map(|a| term(p, a)).collect::<Result<Vec<_>, _>>()?;
+    let terms = args
+        .iter()
+        .map(|a| term(p, a))
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(Atom::new(pred_id, terms))
 }
 
@@ -122,11 +124,24 @@ fn constraint(w: WireConstraint) -> Constraint {
 #[allow(clippy::type_complexity)]
 fn build(
     payload: &str,
-) -> Result<(Program, Vec<Capability>, Vec<Atom>, usize, Vec<Constraint>, String), String> {
+) -> Result<
+    (
+        Program,
+        Vec<Capability>,
+        Vec<Atom>,
+        usize,
+        Vec<Constraint>,
+        String,
+    ),
+    String,
+> {
     let wire: WireProblem =
         serde_json::from_str(payload).map_err(|e| format!("synth/v1 parse error: {e}"))?;
     if wire.synth != "v1" {
-        return Err(format!("unsupported synth version '{}' (this is synth/v1)", wire.synth));
+        return Err(format!(
+            "unsupported synth version '{}' (this is synth/v1)",
+            wire.synth
+        ));
     }
     let mut p = Program::new();
     for f in &wire.facts {
@@ -143,23 +158,51 @@ fn build(
     }
     for r in &wire.rules {
         let head = atom(&mut p, &r.head)?;
-        let body = r.body.iter().map(|a| atom(&mut p, a)).collect::<Result<Vec<_>, _>>()?;
-        let negative =
-            r.neg.iter().map(|a| atom(&mut p, a)).collect::<Result<Vec<_>, _>>()?;
-        p.add_rule(DlRule { head, body, negative }).map_err(|e| e.to_string())?;
+        let body = r
+            .body
+            .iter()
+            .map(|a| atom(&mut p, a))
+            .collect::<Result<Vec<_>, _>>()?;
+        let negative = r
+            .neg
+            .iter()
+            .map(|a| atom(&mut p, a))
+            .collect::<Result<Vec<_>, _>>()?;
+        p.add_rule(DlRule {
+            head,
+            body,
+            negative,
+        })
+        .map_err(|e| e.to_string())?;
     }
     let mut caps = Vec::with_capacity(wire.capabilities.len());
     for c in &wire.capabilities {
         caps.push(Capability {
             name: c.name.clone(),
             params: c.params,
-            pre: c.pre.iter().map(|a| atom(&mut p, a)).collect::<Result<Vec<_>, _>>()?,
-            add: c.add.iter().map(|a| atom(&mut p, a)).collect::<Result<Vec<_>, _>>()?,
-            del: c.del.iter().map(|a| atom(&mut p, a)).collect::<Result<Vec<_>, _>>()?,
+            pre: c
+                .pre
+                .iter()
+                .map(|a| atom(&mut p, a))
+                .collect::<Result<Vec<_>, _>>()?,
+            add: c
+                .add
+                .iter()
+                .map(|a| atom(&mut p, a))
+                .collect::<Result<Vec<_>, _>>()?,
+            del: c
+                .del
+                .iter()
+                .map(|a| atom(&mut p, a))
+                .collect::<Result<Vec<_>, _>>()?,
             cost: c.cost,
         });
     }
-    let goal = wire.goal.iter().map(|a| atom(&mut p, a)).collect::<Result<Vec<_>, _>>()?;
+    let goal = wire
+        .goal
+        .iter()
+        .map(|a| atom(&mut p, a))
+        .collect::<Result<Vec<_>, _>>()?;
     let constraints = wire.constraints.into_iter().map(constraint).collect();
     let solver = wire.solver.unwrap_or_else(|| "solver8".into());
     Ok((p, caps, goal, wire.horizon, constraints, solver))
@@ -193,9 +236,9 @@ pub fn synth_run_payload(payload: &str) -> Result<Value, String> {
             &mut MemoCache::new(),
         ) {
             Ok(receipt) => Ok(json!({"status": "admitted", "receipt": receipt})),
-            Err(refusal) => {
-                Ok(json!({"status": "refused", "refusal": refusal, "rendered": refusal.to_string()}))
-            }
+            Err(refusal) => Ok(
+                json!({"status": "refused", "refusal": refusal, "rendered": refusal.to_string()}),
+            ),
         }
     } else {
         // Constraint-bearing runs: solve + replay-verify (the DAG/verify
@@ -203,7 +246,11 @@ pub fn synth_run_payload(payload: &str) -> Result<Value, String> {
         // constraint passthrough; receipted as partial surface).
         let saturation = p.saturate().map_err(|e| e.to_string())?;
         let problem = praxis_synthesis::SequenceProblem::with_constraints(
-            &p, caps, goal, horizon, constraints,
+            &p,
+            caps,
+            goal,
+            horizon,
+            constraints,
         )
         .map_err(|e| e.to_string())?;
         match solver.solve(&problem) {
@@ -216,9 +263,9 @@ pub fn synth_run_payload(payload: &str) -> Result<Value, String> {
                     "replay_reaches_goal": replayed,
                 }))
             }
-            Err(refusal) => {
-                Ok(json!({"status": "refused", "refusal": refusal, "rendered": refusal.to_string()}))
-            }
+            Err(refusal) => Ok(
+                json!({"status": "refused", "refusal": refusal, "rendered": refusal.to_string()}),
+            ),
         }
     }
 }

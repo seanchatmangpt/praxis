@@ -37,7 +37,11 @@ impl Verdict {
     /// Names of failed checks.
     #[must_use]
     pub fn failed(&self) -> Vec<String> {
-        self.checks.iter().filter(|c| !c.ok).map(|c| c.name.clone()).collect()
+        self.checks
+            .iter()
+            .filter(|c| !c.ok)
+            .map(|c| c.name.clone())
+            .collect()
     }
 }
 
@@ -56,7 +60,11 @@ pub fn admit(
     checks.push(CheckOutcome {
         name: "PlanRespectsHorizon".into(),
         ok: plan.steps.len() <= problem.horizon(),
-        witness: format!("{} steps <= horizon {}", plan.steps.len(), problem.horizon()),
+        witness: format!(
+            "{} steps <= horizon {}",
+            plan.steps.len(),
+            problem.horizon()
+        ),
     });
 
     // PlanReachesGoal (independent replay — the differential guard)
@@ -64,7 +72,10 @@ pub fn admit(
     checks.push(CheckOutcome {
         name: "PlanReachesGoal".into(),
         ok: reaches,
-        witness: format!("independent replay of {} steps reaches goal: {reaches}", plan.steps.len()),
+        witness: format!(
+            "independent replay of {} steps reaches goal: {reaches}",
+            plan.steps.len()
+        ),
     });
 
     // DagAcyclic
@@ -94,22 +105,38 @@ pub fn admit(
     for nr in &receipt.node_receipts {
         let mut map = std::collections::BTreeMap::new();
         map.insert("node_id", serde_json::Value::String(nr.node_id.clone()));
-        map.insert("action_hash", serde_json::Value::String(nr.action_hash.clone()));
-        map.insert("input_hashes", serde_json::Value::Array(
-            nr.input_hashes.iter().map(|h| serde_json::Value::String(h.clone())).collect()
-        ));
-        map.insert("output_hash", serde_json::Value::String(nr.output_hash.clone()));
+        map.insert(
+            "action_hash",
+            serde_json::Value::String(nr.action_hash.clone()),
+        );
+        map.insert(
+            "input_hashes",
+            serde_json::Value::Array(
+                nr.input_hashes
+                    .iter()
+                    .map(|h| serde_json::Value::String(h.clone()))
+                    .collect(),
+            ),
+        );
+        map.insert(
+            "output_hash",
+            serde_json::Value::String(nr.output_hash.clone()),
+        );
         let frame = serde_json::to_string(&map).unwrap_or_default();
         chain = fold_event(&chain, frame.as_bytes());
     }
-    let recorded = receipt.node_receipts.last().map_or_else(
-        || genesis_seed(DAG_CHAIN_DOMAIN),
-        |nr| nr.chain.clone(),
-    );
+    let recorded = receipt
+        .node_receipts
+        .last()
+        .map_or_else(|| genesis_seed(DAG_CHAIN_DOMAIN), |nr| nr.chain.clone());
     checks.push(CheckOutcome {
         name: "ChainRecomputes".into(),
         ok: chain == recorded,
-        witness: format!("recomputed {} == recorded {}", &chain[..16], &recorded[..16]),
+        witness: format!(
+            "recomputed {} == recorded {}",
+            &chain[..16],
+            &recorded[..16]
+        ),
     });
 
     // FixpointClosed: one more saturation round derives nothing new.

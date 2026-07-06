@@ -162,8 +162,9 @@ impl FleetReport {
 pub fn template(t: usize) -> (Program, Vec<Capability>, Vec<Atom>, Vec<Constraint>) {
     let mut p = Program::new();
     let len = 3 + (t % 6); // 3..=8 stages, horizon cap respected
-    let preds: Vec<_> =
-        (0..=len).map(|i| p.intern(&format!("t{t}_stage{i}"))).collect();
+    let preds: Vec<_> = (0..=len)
+        .map(|i| p.intern(&format!("t{t}_stage{i}")))
+        .collect();
     let obj = p.intern(&format!("t{t}_obj"));
     p.add_fact(preds[0], &[obj]).expect("fact");
     let v0 = Term::Var(0);
@@ -182,8 +183,14 @@ pub fn template(t: usize) -> (Program, Vec<Capability>, Vec<Atom>, Vec<Constrain
         // The final step must land impossibly early while its predecessor is
         // forced late — a certified dead end.
         vec![
-            Constraint::NotLater { a: format!("t{t}_step{}", len - 1), k: 1 },
-            Constraint::NotEarlier { a: format!("t{t}_step{}", len - 2), k: 2 },
+            Constraint::NotLater {
+                a: format!("t{t}_step{}", len - 1),
+                k: 1,
+            },
+            Constraint::NotEarlier {
+                a: format!("t{t}_step{}", len - 2),
+                k: 2,
+            },
             Constraint::Before {
                 a: format!("t{t}_step{}", len - 2),
                 b: format!("t{t}_step{}", len - 1),
@@ -244,13 +251,7 @@ fn run_pipeline(
     let outcome: Result<(), Refusal> = (|| {
         program.saturate()?;
         byte |= lane::P_SATURATED;
-        let problem = SequenceProblem::with_constraints(
-            &program,
-            caps,
-            goal,
-            8,
-            constraints,
-        )?;
+        let problem = SequenceProblem::with_constraints(&program, caps, goal, 8, constraints)?;
         let plan = match fault {
             FaultHandling::None => Solver8.solve_cached(&problem, cores)?,
             FaultHandling::Evict => {
@@ -310,16 +311,11 @@ fn run_pipeline(
                     // detail and core are re-derived from the problem by
                     // propagation, so a poisoned certificate text cannot
                     // survive replay (only the unsat FACT is cached).
-                    if let Some((detail, core)) =
-                        rederive_unsat_certificate(&problem)
-                    {
+                    if let Some((detail, core)) = rederive_unsat_certificate(&problem) {
                         out.recovered_by_replay = true;
-                        out.replay_verify_cost += problem.constraints.len() as u64
-                            + core.len() as u64
-                            + 1;
-                        out.replay_fold = Some(content_address(
-                            core.join("\n").as_bytes(),
-                        ));
+                        out.replay_verify_cost +=
+                            problem.constraints.len() as u64 + core.len() as u64 + 1;
+                        out.replay_fold = Some(content_address(core.join("\n").as_bytes()));
                         return Err(Refusal::UnsatProof {
                             detail,
                             core,
@@ -344,11 +340,12 @@ fn run_pipeline(
         let dag_receipt = dag.execute(&mut HashRunner, memo)?;
         byte |= lane::C_EXECUTED;
         out.replayed_nodes += dag_receipt.replayed_count;
-        out.executed_nodes +=
-            dag_receipt.node_receipts.len() - dag_receipt.replayed_count;
+        out.executed_nodes += dag_receipt.node_receipts.len() - dag_receipt.replayed_count;
         let verdict = admit(&mut program, &problem, &plan, &dag, &dag_receipt);
         if !verdict.ok {
-            return Err(Refusal::VerificationFailed { failed: verdict.failed() });
+            return Err(Refusal::VerificationFailed {
+                failed: verdict.failed(),
+            });
         }
         byte |= lane::A_ADMITTED;
         Ok(())
@@ -359,9 +356,7 @@ fn run_pipeline(
             byte |= lane::H_HALTED;
             byte |= match refusal {
                 Refusal::UnsatProof { .. } => lane::U_UNSAT_CERTIFIED,
-                Refusal::BudgetExceeded { .. } | Refusal::TupleCapExceeded { .. } => {
-                    lane::B_BUDGET
-                }
+                Refusal::BudgetExceeded { .. } | Refusal::TupleCapExceeded { .. } => lane::B_BUDGET,
                 _ => lane::E_ERROR,
             };
         }
@@ -377,13 +372,17 @@ fn run_pipeline(
 /// Panics only if a template is internally malformed (a bug, not an input).
 #[must_use]
 #[allow(clippy::missing_panics_doc)]
-pub fn run_fleet(
-    n: usize,
-    k: usize,
-    memo: &mut MemoCache,
-    cores: &mut CoreCache,
-) -> FleetReport {
-    run_fleet_faulted(n, k, NodeFaults { seed: 0, fault_per_mille: 0 }, memo, cores)
+pub fn run_fleet(n: usize, k: usize, memo: &mut MemoCache, cores: &mut CoreCache) -> FleetReport {
+    run_fleet_faulted(
+        n,
+        k,
+        NodeFaults {
+            seed: 0,
+            fault_per_mille: 0,
+        },
+        memo,
+        cores,
+    )
 }
 
 /// [`run_fleet`] with a seed-deterministic node-fault lottery: a faulted
@@ -454,8 +453,7 @@ pub fn run_fleet_faulted_recovering(
     for i in 0..n {
         let t = i % k.max(1);
         let faulted = faults.fault_per_mille > 0
-            && splitmix64(faults.seed ^ i as u64) % 1000
-                < u64::from(faults.fault_per_mille);
+            && splitmix64(faults.seed ^ i as u64) % 1000 < u64::from(faults.fault_per_mille);
         let out = if faulted {
             report.faults_injected += 1;
             // The faulted pipeline's DAG runs against a fresh scratch memo
@@ -517,11 +515,7 @@ pub fn overlap_curve(n: usize, ks: &[usize]) -> Vec<FleetReport> {
 /// [`overlap_curve`] under the node-fault lottery: fresh caches per point,
 /// the same fault script applied at every K.
 #[must_use]
-pub fn overlap_curve_faulted(
-    n: usize,
-    ks: &[usize],
-    faults: NodeFaults,
-) -> Vec<FleetReport> {
+pub fn overlap_curve_faulted(n: usize, ks: &[usize], faults: NodeFaults) -> Vec<FleetReport> {
     ks.iter()
         .map(|&k| {
             let mut memo = MemoCache::new();

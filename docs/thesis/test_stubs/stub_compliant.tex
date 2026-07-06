@@ -1,0 +1,63 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{proposition}{Proposition}
+\newtheorem{definition}{Definition}
+\newtheorem{axiom}{Axiom}
+
+\newcommand{\Obs}{\mathcal{O}}
+\newcommand{\Adm}{\mathcal{O}^{*}}
+\newcommand{\Act}{\mathcal{A}}
+\newcommand{\Rec}{\mathcal{R}}
+\newcommand{\muop}{\mu}
+\newcommand{\adm}{\alpha}
+\newcommand{\Rfsl}{\bot}
+
+\begin{document}
+
+Here is the canonical equation:
+$$ \mathcal{A}=\mu(\mathcal{O}^{*}) $$
+
+And the mapping is:
+$$ \Psi: A \to \{0,1\}^{256} $$
+
+For local logs we discuss ggen, metadata, and $\delta$. We use plain $A$, $O^*$, $L$.
+We also have feature.ttl file.
+
+We have the morphism:
+$$ \mu: O^* \to A $$
+And the ggen morphism:
+$$ \mu_{ggen}: O^* \to A $$
+And variable type: $x: O$
+And auxiliary map: $\alpha: O \to O^* \cup \{\bot\}$
+
+This is active text. \\% revolutionary comment (should be stripped)
+This is active text. \% escaped percent sign (should not be stripped)
+
+\begin{definition}[Compliant Definition]
+This is a definition.
+\end{definition}
+
+\begin{axiom}[Compliant Axiom]
+This is an axiom.
+\end{axiom}
+
+\begin{theorem}[Compliant Theorem]
+This is a theorem.
+  \begin{lemma}[Compliant Lemma]
+  This is a lemma.
+  \end{lemma}
+  \begin{proof}
+  Proof of lemma.
+  \end{proof}
+\end{theorem}
+\begin{proof}
+Proof of theorem.
+\end{proof}
+
+\end{document}

@@ -1,0 +1,36 @@
+@startuml 05_graphlaw_components
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Praxis v26.7.6 - GraphLaw Components (crates/praxis-graphlaw + ggen seam)
+
+Container_Boundary(graphlaw, "GraphLaw engine") {
+  Component(store, "RDF store", "praxis-graphlaw (triples.rs, tripleindex.rs, encoding.rs)", "Encoded triple store; Turtle in via ggen graph.rs::GraphLawStore::insert_turtle, canonical N-Quads out.")
+  Component(n3, "N3 rules", "praxis-graphlaw (rule.rs, ruleindex.rs, reasoner/, csprite.rs)", "Forward chaining to fixed point; loaded from ggen.toml [law].rules.")
+  Component(datalog, "Datalog closure", "praxis-graphlaw/src/datalog.rs", "Stratified negation + aggregates; validate_rules strata run in TripleStore::add_rules.")
+  Component(shacl, "SHACL gate", "praxis-graphlaw/src/shacl.rs", "Pre-render conformance; refusal names focus nodes (FM-LAW-013, tests/graphlaw_e2e.rs::shacl_violation_refuses_sync_naming_focus_node).")
+  Component(shex, "ShEx validation", "praxis-graphlaw (shex.rs, shex_native.rs, shexc_parser.rs)", "GraphEngine::validate_shex wired via validate_shex_c; no sync gate consumer yet (GRAPHLAW_FEATURES.md).")
+  Component(standing, "Standing deriver", "N3 rule packs, e.g. ontology/rules/breed_standing.n3", "Standing is law-derived, never asserted (BREED_ALGORITHM_REGISTRY.md header); denial rules { body } => false. refuse sync (FM-LAW-011).")
+  Component(explain, "Explanation", "ggen law explain (crates/ggen/src/verbs/handlers.rs::handle_law_explain)", "Rules-loaded counts + full derived-triple diff; per-derivation provenance is a known gap.")
+  Component(pddl_export, "PDDL/POWL exporters", "ggen law export (handle_law_export) + src/mfg.rs", "Canonical N-Triples + BLAKE3 state hash for the planner; mfg.rs projects facts to PDDL8.")
+  Component(ingest, "Receipt ingest", "crates/ggen/src/sync.rs law stage", "Rule/shape files hashed into the receipt input closure; two-run determinism proven (tests/graphlaw_e2e.rs::two_runs_same_fixture_same_graph_hash_and_valid_chain).")
+  Component(mirror, "Deterministic mirror", "crates/ggen/src/graph.rs::GraphLawStore", "SPARQL 1.1 queryable state + canonical BLAKE3 state_hash; derived facts enter ONLY through GraphLawStore::materialize.")
+}
+
+Container_Ext(ggen, "ggen factory", "crates/ggen")
+Container_Ext(planner, "PDDL planner")
+Container_Ext(ledger, "Receipt chain")
+
+Rel(store, n3, "facts")
+Rel(n3, datalog, "rule strata")
+Rel(n3, standing, "derives standing facts")
+Rel(store, shacl, "validates")
+Rel(store, shex, "validates (unsurfaced gate)")
+Rel(n3, mirror, "materialize (sole write path for derived facts)")
+Rel(mirror, ggen, "SPARQL for templates", "template.rs sparql/ask/construct")
+Rel(standing, explain, "derivation diff")
+Rel(mirror, pddl_export, "canonical dump + state hash")
+Rel(pddl_export, planner, "facts -> PDDL8")
+Rel(ingest, ledger, "law stage bound into sync receipt")
+
+SHOW_LEGEND()
+@enduml

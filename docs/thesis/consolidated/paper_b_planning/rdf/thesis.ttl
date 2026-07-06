@@ -1,0 +1,1832 @@
+@prefix : <http://seanchatmangpt.github.io/docs/paper-b-planning#> .
+@prefix doc: <http://seanchatmangpt.github.io/packs/doc#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ===========================================================================
+# Chapter 1: Introduction
+# ===========================================================================
+
+:ch1_s0_p0 a doc:Paragraph ;
+    doc:body """This paper consolidates two source theses into one account: \\emph{Mission
+Geometry: Planning, Conformance, and Separability for Bounded Receipted
+Execution} (\\texttt{docs/thesis/03\\_planning\\_geometry.tex}), and \\emph{The
+Projection Principle: A First-Principles Theory of Bounded Receipted
+Execution for a Trillion Agents Beyond One Another's Comprehension}
+(\\texttt{docs/thesis/projection\\_thesis.tex}). Read together, the two make
+one claim: the manufacturing morphism $\\Act = \\muop(\\Adm)$ and its chained
+receipt are a single formal keystone, and PDDL planning, Petri-net
+conformance, POWL separability, and lexicographic cost arbitration are its
+concrete geometric instantiation, not a separate theory bolted alongside
+it.""" ;
+    doc:inSection :ch1_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch1_s0_p1 a doc:Paragraph ;
+    doc:body """Every claim below traces to one of two artifact classes, cited by exact
+path at the point of use: (a) the corpus RDF at
+\\texttt{docs/thesis/rdf/03\\_planning\\_geometry.ttl} and
+\\texttt{docs/thesis/rdf/projection\\_thesis.ttl}, whose \\texttt{math:statement}
+literals are the source of every definition and theorem restated here; and
+(b) the Lean~4 kernel receipts at
+\\texttt{tools/paper-factory/lean-pilot/formalization\\_receipts.jsonl} (bare
+Lean~4 core, no Mathlib) and
+\\texttt{tools/paper-factory/lean-lake/mathlib\\_migration\\_receipts.jsonl} (the
+Mathlib-linked lane), whose \\texttt{status} field is reported here exactly as
+it reads on disk, in both directions: neither upgraded past what the kernel
+accepted, nor downgraded past what it did.""" ;
+    doc:inSection :ch1_s0 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch1_s0_p2 a doc:Paragraph ;
+    doc:body """\\texttt{doc:register} marks every paragraph in this document
+\\textsc{evidence-bound} or \\textsc{speculative}. \\textsc{evidence-bound}
+means every quantitative or factual claim in the paragraph names the
+receipt line, corpus label, or source file that grounds it. Anything
+motivated by, but not derived from or checked against, an artifact is
+\\textsc{speculative} and is quarantined into Chapter~\\ref{ch:speculative},
+never mixed silently into a technical chapter -- the same discipline
+\\texttt{docs/thesis/math\\_manufacturing/thesis.tex} already applies to its
+own Chapter~5.""" ;
+    doc:inSection :ch1_s0 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+:ch1_s1_p0 a doc:Paragraph ;
+    doc:body """The two source theses divide the same subject matter along an ownership
+line stated once, here, rather than re-argued in every chapter that could
+plausibly claim a topic. \\emph{The Projection Principle} owns the keystone
+proper: the admission monoid, the manufacturing morphism $\\muop$, the
+receipt chain, and the Comprehension--Verification cost-regime gap
+(Chapters~\\ref{ch:keystone}--\\ref{ch:gap} below), plus one chapter unique
+to it, the trillion-agent instance (Chapter~\\ref{ch:instance}).
+\\emph{Mission Geometry} owns the concrete planning and conformance
+mechanics: PDDL grounding, the Petri-net marking polytope, Farkas
+certificates, token-replay fitness, POWL separability, and cost
+arbitration (Chapters~\\ref{ch:pddl}--\\ref{ch:cost} below). Where both
+source outlines flag the same concept -- attention-as-capacity, the
+Rice-quarantine rhetorical pattern, the cost vector -- this paper states
+the general form once, in the chapter that owns it, and the concrete form
+once, in the chapter that owns that, with an explicit cross-reference
+rather than a restatement.""" ;
+    doc:inSection :ch1_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch1_s1_p1 a doc:Paragraph ;
+    doc:body """\\begin{table}[h]
+\\centering
+\\small
+\\begin{tabular}{@{}p{4.2cm}p{4.2cm}p{4.2cm}@{}}
+\\toprule
+\\textbf{Shared concept} & \\textbf{General form owned by} & \\textbf{Concrete instantiation owned by} \\\\
+\\midrule
+Attention as bounded capacity & Ch.~\\ref{ch:attention}, \\S\\ref{sec:attn-general} (projection\\_thesis) & Ch.~\\ref{ch:attention}, \\S\\ref{sec:attn-pddl} (planning\\_geometry) \\\\
+Rice-quarantine retraction pattern & Ch.~\\ref{ch:keystone}, \\S\\ref{sec:rice} (observation meanings) & Ch.~\\ref{ch:separability} (workflow-net separability) \\\\
+Cost vector / lexicographic order & Ch.~\\ref{ch:cost}, \\S\\ref{sec:lex} (stated once, both sources verify it) & Ch.~\\ref{ch:cost} (6-tuple \\code{CostVector} operational form) \\\\
+Marking polytope / Farkas / fitness / separability & Ch.~\\ref{ch:petri}--\\ref{ch:separability} (\\emph{Mission Geometry} owns exposition) & \\emph{projection\\_thesis} cited only for the Rice-quarantine analogy tying separability to admission \\\\
+\\bottomrule
+\\end{tabular}
+\\caption{Ownership assignment for concepts flagged as shared by both source outlines. Stated once here; not re-argued per chapter.}
+\\end{table}""" ;
+    doc:inSection :ch1_s1 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch1_s1_p2 a doc:Paragraph ;
+    doc:body """Two corrections are carried forward from the source material rather than
+smoothed over. First, \\emph{projection\\_thesis}'s own formulation of the
+manufacturing morphism is adopted exclusively: $\\muop$ is deterministic
+(M1) and bounded (M2) but need \\emph{not} be injective, so Conservation of
+Consequence (\\S\\ref{ch:keystone}) is stated as \\emph{commitment}, not
+semantic recovery, when $\\muop$ is not injective -- fixing an earlier
+naive-uniqueness reading the source outline flags explicitly. Second,
+three of the keystone's central theorems -- Faithful Projection
+(\\texttt{thm:faithful}), the noncomprehension corollary
+(\\texttt{cor:noncomp}), and Conservation of Consequence
+(\\texttt{thm:conservation}) -- are, as of the receipts on disk, \\emph{not}
+machine-verified in either Lean lane: \\texttt{thm:faithful} carries no
+bare-core pilot receipt line at all and is recorded \\texttt{excluded} in
+the Mathlib-lane receipts; \\texttt{cor:noncomp} and \\texttt{thm:conservation}
+are recorded \\texttt{blocked} with zero attempts in both lanes. This paper
+states all three as stated-but-not-machine-verified every place they are
+used, including inside Chapter~\\ref{ch:instance}'s instance argument,
+which depends on \\texttt{thm:faithful}.""" ;
+    doc:inSection :ch1_s1 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+:ch1_s2_p0 a doc:Paragraph ;
+    doc:body """Chapter~\\ref{ch:keystone} states the admission monoid, the Chatman
+equation, and the receipt chain. Chapter~\\ref{ch:gap} states the
+verification-regime cost separation. Chapters~\\ref{ch:pddl}--\\ref{ch:cost}
+give the planning-and-conformance geometry: PDDL grounding and bounded
+branching, the attention balance law, the marking polytope, Farkas
+separation certificates, token-replay fitness, POWL separability, and
+lexicographic cost arbitration with the makespan functional.
+Chapter~\\ref{ch:instance} reports the trillion-agent status-byte instance.
+Chapter~\\ref{ch:implementation} merges the two sources' implementation-map
+tables into one. An appendix (Chapter~\\ref{ch:datalog}) reports the
+Datalog index layer, demoted from a full chapter since it does not recur
+elsewhere in either source. Chapter~\\ref{ch:speculative} quarantines every
+claim either source itself flags as an estimate, a consequence-not-theorem,
+or a business-scale extrapolation, with one stated exception:
+\\texttt{thm:mrr} is placed there by this paper's own editorial judgment,
+not by any hedge \\emph{Mission Geometry} itself applies -- the source
+states it as an unhedged theorem, verified in the bare-core Lean lane,
+alongside \\texttt{thm:lex}/\\texttt{cor:dominate}/\\texttt{def:makespan}
+in Chapter~\\ref{ch:cost}'s own source material
+(\\S\\ref{ch:speculative} states the reclassification argument and its
+receipt history in full). Chapter~\\ref{ch:limitations} states
+what is not shown, without euphemism, and Chapter~\\ref{ch:conclusion}
+closes.""" ;
+    doc:inSection :ch1_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 2 (ch:keystone): The Projection Keystone
+# ===========================================================================
+
+:ch2_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{axiom}[Observation space]\\label{ax:obs}
+There is a set $\\Obs$, the observation space, whose elements are
+arbitrary finite records: logs, agent outputs, sensor frames, claims, tool
+responses. $\\Obs$ carries no decidable semantics -- ``does this
+observation mean what it purports to mean'' is not assumed computable.
+\\end{axiom}
+\\begin{theorem}[Rice quarantine]\\label{thm:rice}
+Let $P$ be any non-trivial semantic property of the meanings observations
+may encode. Then $\\{o \\in \\Obs : P(o)\\}$ is undecidable.
+\\end{theorem}
+(\\texttt{docs/thesis/rdf/projection\\_thesis.ttl}, labels \\texttt{ax:obs}/
+\\texttt{thm:rice}.) Both are verified in the bare-core pilot lane and,
+since the migration to Mathlib, as a direct corollary of Mathlib's own
+\\texttt{ComputablePred.rice\\_2} and \\texttt{ComputablePred.halting\\_problem}
+(\\texttt{Mathlib.Computability.Halting}, formalizing Carneiro 2019) rather
+than a from-scratch hand proof -- a citation of an existing published
+result, replacing 13 corpus-specific axioms in the bare-core file with
+zero.""" ;
+    doc:inSection :ch2_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch2_s0_p1 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Admission map]\\label{def:adm}
+Fix a decidable $\\Adm \\subseteq \\Obs$ on which a finite battery of
+obligations $g_1,\\dots,g_m : \\Obs \\to \\{0,1\\}$ is computable. The
+admission map is the partial retraction $\\adm : \\Obs \\rightharpoonup
+\\Adm \\cup \\{\\Rfsl\\}$, $\\adm(o) = \\rho(o) \\in \\Adm$ if $\\bigwedge_i g_i(o)
+= 1$, else $\\Rfsl$, with $\\rho$ a computable bounding/normalization and
+$\\Rfsl$ the distinguished refusal. Admission is idempotent on its image:
+$\\adm \\circ \\adm = \\adm$.
+\\end{definition}
+Rice quarantine (Theorem~\\ref{thm:rice}) is the reason admission cannot
+decide meaning in general; \\texttt{def:adm} instead retracts onto a
+decidable sub-language, verified in both Lean lanes
+(\\texttt{docs/thesis/rdf/projection\\_thesis.ttl}, \\texttt{def:adm}).""" ;
+    doc:inSection :ch2_s0 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch2_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{construction}[Denial monoid]\\label{con:denial}
+Let $D = (\\{0,1\\}^n, \\lor, \\bm 0)$ be the commutative idempotent monoid of
+denial words over $n$ independent obligation lanes, componentwise
+\\textsc{or}, identity $\\bm 0$. Each obligation $g_i$ contributes a lane
+map $d_i : \\Obs \\to \\{0,1\\}^n$ with $d_i(o) = \\bm 0 \\iff g_i(o) = 1$. The
+total denial is $d(o) = \\bigvee_i d_i(o)$, and $\\adm(o) \\ne \\Rfsl \\iff
+d(o) = \\bm 0$.
+\\end{construction}
+\\begin{proposition}[Semilattice, monotone admission]\\label{prop:semilattice}
+$(\\{0,1\\}^n, \\lor)$ is the join-semilattice of $2^{[n]}$ with bottom
+$\\bm 0$. Adding obligations only enlarges denials: for $G' \\supseteq G$,
+$d_{G'}(o) \\succeq d_G(o)$, so the admitted set shrinks monotonically
+under $G' \\supseteq G$.
+\\end{proposition}
+Both verified in both Lean lanes (\\texttt{con:denial}/\\texttt{prop:semilattice},
+\\texttt{docs/thesis/rdf/projection\\_thesis.ttl}). Refusal is data -- a bit
+vector, not a side effect -- matching \\texttt{CLAUDE.md}'s own invariant
+that every error is a typed \\texttt{Refusal} variant.""" ;
+    doc:inSection :ch2_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch2_s1_p1 a doc:Paragraph ;
+    doc:body """One further claim about the denial monoid appears only in
+\\emph{projection\\_thesis}'s prose, in the source's own words: ``At a
+trillion agents this taxonomy is a shared vocabulary: a refusal category
+is legible to a recipient who never saw the sender's interior.'' The
+source outline itself marks this claim \\textsc{speculative} -- it is a
+legibility/interpretive claim about a fixed enumeration of refusal
+categories, not a corollary the denial-monoid construction above proves.
+It is deferred to Chapter~\\ref{ch:speculative} and is not asserted
+here.""" ;
+    doc:inSection :ch2_s1 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch2_s2_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Manufacturing morphism, the Chatman equation]\\label{def:mu}
+$\\muop : \\Adm \\to \\Act$ is a deterministic computable map subject to (M1)
+determinism/reproducibility -- $\\muop(x)$ depends only on $x$, equal
+admitted inputs give bit-identical artifacts -- and (M2) boundedness --
+$\\muop$ factors through a representation of size bounded by fixed
+structural constants, so $\\muop$ terminates with a priori bounded cost.
+The Chatman equation is $\\Act = \\muop(\\Adm)$, operationally $a =
+\\muop(\\adm(o))$ when $\\adm(o) \\ne \\Rfsl$, and $\\muop(\\Rfsl) = \\Rfsl$.
+\\end{definition}
+Verified in both Lean lanes (\\texttt{def:mu},
+\\texttt{docs/thesis/rdf/projection\\_thesis.ttl}). Determinism is not
+injectivity: distinct admitted observations may manufacture an identical
+artifact, which is exactly why Conservation of Consequence
+(Theorem~\\ref{thm:conservation}) must be stated in terms of commitment
+rather than recovery.""" ;
+    doc:inSection :ch2_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch2_s3_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Law-bearing receipt]\\label{def:receipt}
+Fix a collision-resistant hash $\\chainH : \\{0,1\\}^{*} \\to \\{0,1\\}^{256}$
+and write $\\dg(\\cdot) = \\chainH(\\cdot)$. For a manufacture with admitted
+observation $x = \\adm(o)$, obligation set $G$ with denial word $d(o)$,
+transition identity $\\tau$, artifact $a = \\muop(x)$, replay result
+$\\Fitness$, refusal reason $r$, and implementation version $v$, the frame
+is $\\mathsf{fr} = \\langle \\dg(x), \\dg(G), d(o), \\tau, \\dg(a), \\Fitness, r,
+v \\rangle$, and the chained receipt advances by $h_{+} = \\chainH(h_{-}
+\\Vert \\mathsf{fr})$. The receipt projection is $\\Proj : \\Sigma \\to
+\\Recs$, $\\Proj(\\sigma) = (\\text{verdict}, h_{+}, \\Fitness, r)$, a tuple
+of at most $\\CL$ chunks.
+\\end{definition}
+Verified in both Lean lanes (\\texttt{def:receipt}). A receipt is a chained
+commitment to named fields, never a bare byte-hash -- the same discipline
+this project's own receipt tooling implements outside this thesis series
+(\\texttt{docs/thesis/02\\_receipt\\_cryptography.tex}).""" ;
+    doc:inSection :ch2_s3 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch2_s4_p0 a doc:Paragraph ;
+    doc:body """\\begin{theorem}[Faithful projection]\\label{thm:faithful}
+The receipt is faithful to lawful consequence exactly to the extent the
+frame commits its fields: for any committed field $\\phi \\in \\{\\dg(x),
+\\dg(G), d(o), \\tau, \\dg(a), \\Fitness, r, v\\}$, producing a trace
+$\\sigma'$ that differs in $\\phi$ yet matches the claimed $h_+$ requires a
+collision of $\\chainH$. Fields not committed by the frame are not
+attested.
+\\end{theorem}
+This paper states Theorem~\\ref{thm:faithful} but does not claim it is
+machine-verified: \\texttt{tools/paper-factory/lean-pilot/formalization\\_receipts.jsonl}
+carries no receipt line for \\texttt{thm:faithful} at all (it is excluded a
+priori from the bare-core run, since bare Lean~4 core has no library
+support for its cryptographic/probabilistic content), and
+\\texttt{tools/paper-factory/lean-lake/mathlib\\_migration\\_receipts.jsonl}
+records its status as \\texttt{excluded} as well, with zero attempts. It is
+reported here as \\emph{stated, not machine-verified} in either lane, not
+downgraded further nor upgraded to a proved status it does not have on
+disk.""" ;
+    doc:inSection :ch2_s4 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch2_s4_p1 a doc:Paragraph ;
+    doc:body """\\begin{corollary}[Non-comprehension of boundary trust]\\label{cor:noncomp}
+An accepting verifier's predicate factors as $\\mathrm{Verify} = V \\circ
+\\Proj$ for a fixed $V : \\Recs \\to \\{0,1\\}$ of input size $\\le \\CL$.
+Trust in the accept is a function of the $\\CL$-sized projection and the
+soundness of $V$, not of any agent's comprehension of $\\sigma$.
+\\end{corollary}
+Recorded \\texttt{blocked} with zero attempts in both Lean lanes
+(\\texttt{cor:noncomp}). Stated, not machine-verified.""" ;
+    doc:inSection :ch2_s4 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch2_s5_p0 a doc:Paragraph ;
+    doc:body """\\begin{theorem}[Conservation of Consequence]\\label{thm:conservation}
+(i) \\emph{Causation}: every actuated artifact $a$ is the image of at
+least one admitted observation, $a \\in \\im\\muop$, and no $a \\notin
+\\im\\muop$ is actuated. (ii) \\emph{Position uniqueness}: each actuation
+appends exactly one receipt-chain position; the map $\\text{actuation}
+\\mapsto h_+$ is injective up to hash collision. (iii) \\emph{Observation
+recoverability / commitment}: if $\\muop$ is injective on $\\Adm$, the
+artifact determines the admitted observation (recoverability); otherwise,
+when the frame commits $\\dg(x)$, the receipt position uniquely commits to
+$(\\dg(x), \\dg(G), \\tau, \\dg(a))$ (commitment, not semantic recovery).
+\\end{theorem}
+Recorded \\texttt{blocked} with zero attempts in both Lean lanes
+(\\texttt{thm:conservation}). This is the corrected formulation
+(\\S\\ref{sec:thesis-statement} above): clause (iii) is deliberately weaker
+than a naive uniqueness claim would be, precisely because $\\muop$ is only
+known deterministic, not injective. Being unattempted in Lean is a scope
+gap, not a proof failure; it is reported as such, not conflated with a
+rejected kernel run.""" ;
+    doc:inSection :ch2_s5 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 3 (ch:gap): Cost Regimes and the Comprehension-Verification Gap
+# ===========================================================================
+
+:ch3_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Verification regimes]\\label{def:regimes}
+For a trace of $n$ committed frames: boundary projection inspection (any
+verifier, per message) costs $O(\\CL)$; single-frame recomputation (spot
+check) costs $O(1)$ per frame; checkpointed/indexed replay (sampled audit)
+costs $O(\\log n)$ or a bounded path; full chain replay (full audit) costs
+$O(n)$.
+\\end{definition}
+Verified in both Lean lanes (\\texttt{def:regimes},
+\\texttt{docs/thesis/rdf/projection\\_thesis.ttl}). This table is stated
+once, here; Chapters~\\ref{ch:conformance} and \\ref{ch:fitness} cite it
+rather than restate it when discussing certificate- and
+replay-verification cost.""" ;
+    doc:inSection :ch3_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch3_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{theorem}[Comprehension--Verification Gap; Fleet Trust Budget]\\label{thm:gap}
+Let $\\mathrm{Comp}(\\sigma) = \\Theta(\\dim\\Sigma)$ be the cost of
+comprehending the interior and $\\mathrm{Ver}_{\\partial}(\\sigma) =
+O(\\CL)$ the cost of boundary verification of $\\Proj(\\sigma)$. Then
+$\\mathrm{Comp}(\\sigma)/\\mathrm{Ver}_{\\partial}(\\sigma) =
+\\Omega(\\dim\\Sigma/\\CL) \\to \\infty$ as $\\dim\\Sigma \\to \\infty$, while
+boundary verification stays constant. For a fleet, boundary cost is
+$O(M \\cdot \\CL)$ for $M$ messages, $O(N \\cdot \\CL)$ per round,
+$O(N^2 \\cdot \\CL)$ all-to-all -- linear in $\\CL$, not interior dimension.
+\\end{theorem}
+Verified in both Lean lanes (\\texttt{thm:gap}). This is \\emph{not} a claim
+that all mechanical audit is $O(1)$: full replay is honestly $O(n)$
+(Definition~\\ref{def:regimes}); the constant-cost claim is confined to
+boundary inspection of an already-committed projection, a distinction
+\\emph{projection\\_thesis} itself insists on and this paper preserves.""" ;
+    doc:inSection :ch3_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 4 (ch:pddl): PDDL Action Law
+# ===========================================================================
+
+:ch4_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Lifted domain]\\label{def:domain}
+A lifted domain is a tuple $\\mathcal{D} = (\\mathcal{T}, \\mathcal{P},
+\\mathcal{F}, \\mathcal{S})$: a finite type hierarchy $\\mathcal{T}$, a
+finite set $\\mathcal{P}$ of predicate symbols, a finite set $\\mathcal{F}$
+of numeric function symbols (fluents), and a finite set $\\mathcal{S}$ of
+action schemas; a durative schema carries typed parameters, a duration
+constraint, a condition $C_s$, and an effect $E_s$.
+\\end{definition}
+Verified in both Lean lanes (\\texttt{def:domain},
+\\texttt{docs/thesis/rdf/03\\_planning\\_geometry.ttl}).""" ;
+    doc:inSection :ch4_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch4_s0_p1 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Grounding]\\label{def:ground}
+Given a domain $\\mathcal{D}$ and a problem $(\\mathcal{Ob}, \\bm m_0,
+\\nu_0, \\gamma)$, grounding substitutes every type-compatible object
+tuple into each schema's parameters, producing a finite set of ground
+actions; a grounded state is a pair $(\\bm m, \\nu)$ of a set $\\bm m$ of
+true ground atoms and a fluent valuation $\\nu$.
+\\end{definition}
+Verified in both Lean lanes (\\texttt{def:ground}).""" ;
+    doc:inSection :ch4_s0 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch4_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{theorem}[Bounded branching]\\label{thm:bounded-ground}
+Let $\\mathcal{D}$ have schemas of maximum parameter arity $k$ over
+$|\\mathcal{Ob}| = N$ objects. The number of ground actions is at most
+$|\\mathcal{S}| \\cdot N^{k}$, a finite constant independent of the goal;
+consequently a forward search over grounded actions has a branching
+factor bounded a priori, and $\\muop$'s manufacture terminates within a
+fixed depth bound.
+\\end{theorem}
+Verified in the bare-core Lean lane
+(\\texttt{tools/paper-factory/lean-pilot/formalization\\_receipts.jsonl},
+\\texttt{thm:bounded-ground}, 1 attempt). In the Mathlib-linked lane it is
+recorded \\texttt{unformalized} after 3 attempts, a regression against the
+bare-core proof: the final attempt fails on \\texttt{Unknown constant
+\\`{}Finset.sum\\_le\\_sum\\`{}} and \\texttt{Unknown identifier
+\\`{}smul\\_eq\\_mul\\`{}} against the current Mathlib snapshot
+(\\texttt{tools/paper-factory/lean-lake/mathlib\\_migration\\_receipts.jsonl})
+-- a lookup failure against a moving library target, not a defect in the
+bare-core proof, which remains verified on its own terms.""" ;
+    doc:inSection :ch4_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch4_s1_p1 a doc:Paragraph ;
+    doc:body """In \\code{bcinr-pddl} -- a sibling git repository at \\texttt{../bcinr},
+outside praxis's own \\texttt{crates/}/\\texttt{src/} trees, reached only via
+the path dependency in \\texttt{Cargo.toml}, not vendored into this
+codebase -- the ground-action count is additionally hard-capped
+by \\code{PDDL8\\_MAX\\_GROUND}; exceeding it is a typed \\code{BoundExceeded}
+refusal rather than an exception or unbounded search, and its
+\\code{GroundProblem::find\\_plan} (\\texttt{bcinr-pddl/src/ground.rs}) is
+breadth-first search over ground-atom sets whose own failure mode is a
+receipted refusal (\\code{NoAdmittedPlan}), never a divergence. Praxis's own
+in-repo \\texttt{crates/pddl-index/src/ground.rs} implements the analogous
+but distinctly named \\code{IndexedGroundProblem::find\\_plan}, over its own
+\\code{GroundError} enum; the two are separate types in separate crates and
+this paragraph cites only the former, \\code{bcinr-pddl}'s. This is a
+code-level remark, not a separate corpus statement, cited in the source
+outline against no additional Lean label.""" ;
+    doc:inSection :ch4_s1 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch4_s2_p0 a doc:Paragraph ;
+    doc:body """\\begin{construction}[Relational membership via XOR filter]\\label{con:xorf}
+Let $R \\subseteq \\Obs$ be the reachability fixpoint fact set. A frozen
+fact store builds an 8-bit XOR filter over FNV-1a hashes of $R$, with
+index mapping via the fastrange reduction $\\mathrm{reduce}(x,n) = (x
+\\times n)/2^{32}$; membership is gated by $x \\in B$ if $F(x) =
+\\mathrm{true}$, else false, with false-positive rate $\\approx 0.4\\%$ and
+false negatives $0$.
+\\end{construction}
+Verified in both Lean lanes (\\texttt{con:xorf}).""" ;
+    doc:inSection :ch4_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 5 (ch:attention): Numeric Fluents and the Attention Balance Law
+# ===========================================================================
+
+:ch5_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Attention balance, general form]\\label{def:attnbalance}
+Let $c(t) \\ge 0$ be capacity and admitted action $j$ draw rate $r_j \\ge
+0$ on $[s_j, e_j]$. Free capacity is $f(t) = c(t) - \\sum_{j : t \\in
+[s_j,e_j]} r_j$. A schedule is feasible iff $f(t) \\ge 0$ for all $t$.
+\\end{definition}
+Verified in the bare-core Lean lane
+(\\texttt{docs/thesis/rdf/projection\\_thesis.ttl}, \\texttt{def:attnbalance});
+recorded \\texttt{unformalized} in the Mathlib lane after a Mathlib
+big-operator syntax mismatch across 3 attempts (budget exhausted, per the
+source outline). This is the general statement of attention-as-bounded-
+capacity that \\S\\ref{sec:attn-pddl} below instantiates concretely for a
+single PDDL fluent.""" ;
+    doc:inSection :ch5_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch5_s0_p1 a doc:Paragraph ;
+    doc:body """\\begin{proposition}[Attention conservation, general form]\\label{prop:attnconservation}
+Total attention consumed, $\\int_0^T \\sum_j r_j \\mathbf{1}_{[s_j,e_j]}(t)\\,
+dt = \\sum_j r_j(e_j - s_j)$, is independent of schedule ordering.
+Reordering redistributes \\emph{when} attention is spent, not \\emph{how
+much}; the optimization target is the makespan functional $T[\\cdot]$
+(\\S\\ref{sec:makespan} below) under precedence and the pointwise capacity
+constraint.
+\\end{proposition}
+Verified in the bare-core Lean lane; recorded \\texttt{blocked} in the
+Mathlib lane (\\texttt{prop:attnconservation}).""" ;
+    doc:inSection :ch5_s0 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch5_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Fluent draw, PDDL instantiation]\\label{def:balance}
+A durative action $j$ draws on a fluent $\\phi$ if its effect decreases
+$\\phi$ by $r_j$ at start and increases it by $r_j$ at end for rate $r_j
+\\ge 0$, holding $r_j$ units over $[s_j, e_j)$; the free level of $\\phi$
+at time $t$ is $f_\\phi(t) = \\nu_0(\\phi) - \\sum_{j : t \\in [s_j,e_j)}
+r_j$.
+\\end{definition}
+Verified in both Lean lanes (\\texttt{def:balance},
+\\texttt{docs/thesis/rdf/03\\_planning\\_geometry.ttl}). This is
+Definition~\\ref{def:attnbalance} specialized to a single PDDL numeric
+fluent under the borrow/return action pattern.""" ;
+    doc:inSection :ch5_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch5_s1_p1 a doc:Paragraph ;
+    doc:body """\\begin{proposition}[Conservation of the borrowed fluent]\\label{prop:conserve}
+If every action drawing on $\\phi$ both decrements it by $r_j$ at start and
+increments it by $r_j$ at end, the net effect of each completed action on
+$\\phi$ is zero, and the terminal valuation equals the initial:
+$\\nu_{\\mathrm{end}}(\\phi) = \\nu_0(\\phi)$; scheduling redistributes when
+$\\phi$ is held, never how much exists.
+\\end{proposition}
+Verified in both Lean lanes (\\texttt{prop:conserve}) -- attention is
+redistributed in time, never created or destroyed.""" ;
+    doc:inSection :ch5_s1 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch5_s1_p2 a doc:Paragraph ;
+    doc:body """\\begin{proposition}[Feasibility as free-level nonnegativity]\\label{prop:balance}
+A durative-action schedule is feasible with respect to $\\phi$ iff
+$f_\\phi(t) \\ge 0$ for all $t$; for the unit-rate attention fluent this
+says the number of concurrently in-flight capabilities never exceeds the
+capacity $\\nu_0(\\code{attention})$.
+\\end{proposition}
+Verified in both Lean lanes (\\texttt{prop:balance}) -- exactly
+Definition~\\ref{def:attnbalance}'s general feasibility condition,
+restated as the PDDL fluent's own guard.""" ;
+    doc:inSection :ch5_s1 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 6 (ch:petri): The Marking Polytope
+# ===========================================================================
+
+:ch6_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Net]\\label{def:net}
+A net has $p$ places and a finite set $T$ of transitions; a marking is a
+vector $\\bm m \\in \\Zplus^{p}$; a transition $t$ is a pair
+$(\\bm m^{-}_{t}, \\bm m^{+}_{t})$ of preset and postset, enabled at
+$\\bm m$ iff $\\bm m \\ge \\bm m^{-}_{t}$ coordinatewise, firing to
+$\\bm m' = \\bm m - \\bm m^{-}_{t} + \\bm m^{+}_{t}$.
+\\end{definition}
+Verified in both Lean lanes (\\texttt{def:net},
+\\texttt{docs/thesis/rdf/03\\_planning\\_geometry.ttl}).""" ;
+    doc:inSection :ch6_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch6_s0_p1 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Incidence matrix, state equation]\\label{def:incidence}
+Let $\\Nmat \\in \\mathbb{Z}^{p \\times |T|}$ have column $\\bm\\delta_t =
+\\bm m^{+}_{t} - \\bm m^{-}_{t}$ for each transition $t$; a firing sequence
+with Parikh vector $\\bm x \\in \\Zplus^{|T|}$ satisfies the state equation
+$\\bm m = \\bm m_0 + \\Nmat\\bm x$.
+\\end{definition}
+Verified in both Lean lanes (\\texttt{def:incidence}).""" ;
+    doc:inSection :ch6_s0 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch6_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{proposition}[Cone necessity]\\label{prop:cone}
+Every marking $\\bm m$ reachable from $\\bm m_0$ satisfies the state
+equation for some $\\bm x \\in \\Zplus^{|T|}$, hence lies in the integer
+points of $\\bm m_0 + \\cone(\\Nmat)$ intersected with $\\Zplus^{p}$; the
+state equation is necessary for reachability but not sufficient.
+\\end{proposition}
+Recorded \\texttt{unformalized} in the bare-core Lean lane after 3
+attempts: the induction step fails on an index-shift mismatch in
+\\code{incidenceSumAux} and an \\code{omega} failure relating a \\code{Nat}
+truncated-subtraction expression to its \\code{Int}-cast components
+(\\texttt{tools/paper-factory/lean-pilot/formalization\\_receipts.jsonl},
+\\texttt{prop:cone}). Verified in the Mathlib-linked lane in 2 attempts
+(\\texttt{tools/paper-factory/lean-lake/mathlib\\_migration\\_receipts.jsonl}),
+depending only on Lean's three standard foundational axioms. The
+insufficiency half (spurious solutions exist) is the classical Petri-net
+fact of Murata 1989, cited rather than reproved in either lane -- an
+external-citation proof step, not an in-paper derivation.""" ;
+    doc:inSection :ch6_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch6_s1_p1 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Marking polytope]\\label{def:polytope}
+The marking polytope of a net is the relaxation $\\Poly = \\{\\bm m_0 +
+\\Nmat\\bm x : \\bm x \\ge \\bm 0\\} \\cap \\{\\bm m \\ge \\bm 0\\} \\subseteq
+\\Rplus^{p}$, the continuous translated cone whose integer points
+over-approximate the reachable set.
+\\end{definition}
+Recorded \\texttt{blocked} (not attempted) in the bare-core lane, verified
+in the Mathlib-linked lane (\\texttt{def:polytope}). \\emph{projection\\_thesis}'s
+own \\texttt{def:reachcone} states the same reachable-set-in-a-cone content
+in different notation; this paper states it once, here, as
+\\texttt{def:polytope}, and does not restate \\texttt{def:reachcone}
+separately.""" ;
+    doc:inSection :ch6_s1 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch6_s2_p0 a doc:Paragraph ;
+    doc:body """\\begin{construction}[STRIPS as a place/transition net]\\label{con:strips}
+Take the places to be the ground atoms; a ground action $t$ with
+delete-effects $\\bm m^{-}_{t}$ and add-effects $\\bm m^{+}_{t}$ is a
+transition, and \\code{GroundProblem::find\\_plan} searches marking space
+by BFS with the successor relation exactly transition firing.
+\\end{construction}
+\\begin{proposition}[Safe-net bit identity]\\label{prop:safe}
+On a safe (1-bounded) net, the integer firing rule $\\bm m' = \\bm m -
+\\bm m^{-}_{t} + \\bm m^{+}_{t}$ coincides bit-for-bit with the branchless
+bitset update \\code{enabled\\_tokens} $\\gets$ (\\code{enabled\\_tokens} \\&
+$\\lnot\\bm m^{-}_{t}$) $|$ $\\bm m^{+}_{t}$, and the enabling test coincides
+with the branchless subset check (\\code{enabled} \\& $\\bm m^{-}_{t}$)
+$\\oplus \\bm m^{-}_{t} = 0$.
+\\end{proposition}
+Both verified in both Lean lanes (\\texttt{con:strips}, \\texttt{prop:safe}).
+\\code{PowlReplayVerifier}'s branchless update is thus not an approximation
+of the Petri-net firing rule on safe nets -- it is the same integer
+operation, proved coincident.""" ;
+    doc:inSection :ch6_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 7 (ch:conformance): Farkas Separation Certificates
+# ===========================================================================
+
+:ch7_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Conformance]\\label{def:conf}
+A trace with final marking $\\bm m^{\\dagger}$ and transition-count vector
+$\\bm x$ conforms to a net with initial marking $\\bm m_0$ if $\\bm
+m^{\\dagger} \\in \\Poly$ and the $\\bm x$ witnessing it is realized by a
+genuine firing ordering; it fails membership if $\\bm m^{\\dagger} \\notin
+\\Poly$.
+\\end{definition}
+Recorded \\texttt{blocked} (not attempted) in the bare-core Lean lane;
+verified in the Mathlib lane (\\texttt{def:conf}). \\emph{projection\\_thesis}'s
+\\texttt{prop:conformembership} states the same polytope-membership
+content; it is not restated separately here.""" ;
+    doc:inSection :ch7_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch7_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{theorem}[Farkas separation]\\label{thm:farkas}
+Fix $\\bm b = \\bm m^{\\dagger} - \\bm m_0$. Exactly one holds: (a) there
+exists $\\bm x \\ge \\bm 0$ with $\\Nmat\\bm x = \\bm b$; or (b) there
+exists $\\bm y \\in \\mathbb{R}^{p}$ with $\\Nmat^{\\top}\\bm y \\le \\bm 0$
+and $\\bm y^{\\top}\\bm b > 0$, a separating hyperplane certifying
+$\\bm m^{\\dagger} \\notin \\bm m_0 + \\cone(\\Nmat)$, and if (b) holds no
+firing sequence reaches $\\bm m^{\\dagger}$.
+\\end{theorem}
+Recorded \\texttt{blocked} (not attempted) in the bare-core Lean lane.
+Recorded \\texttt{unformalized} in the Mathlib lane after 1 attempt, with
+the exact missing lemma named: \\code{PointedCone.FG.isClosed} does not
+exist in the current Mathlib snapshot. Mathlib's topological Farkas
+machinery (\\code{ProperCone.hyperplane\\_separation\\_point},
+\\texttt{Mathlib.Analysis.Convex.Cone.InnerDual}) would give the
+alternative once $\\cone(\\Nmat)$ is packaged as a \\code{ProperCone}, but
+that packaging requires \\code{IsClosed}$(\\cone(\\Nmat))$ -- the
+topological half of the Minkowski--Weyl theorem (a finitely generated cone
+in a finite-dimensional real vector space is closed) -- which the current
+Mathlib snapshot does not supply as a reusable lemma. This is reported
+\\texttt{unformalized}, not faked with \\code{sorry} or an axiom. The
+proof-in-paper itself leans on Farkas' lemma as an external citation
+(Schrijver 1986), not an in-paper derivation, for its own first step.""" ;
+    doc:inSection :ch7_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch7_s1_p1 a doc:Paragraph ;
+    doc:body """\\emph{projection\\_thesis}'s own \\texttt{prop:conformembership} states
+materially the same claim -- conformance is polytope membership,
+nonconformance yields a Farkas certificate -- and is recorded
+\\texttt{unformalized} in the Mathlib lane for a \\emph{different} reason: a
+\\code{Matrix.dotProduct} identifier mismatch against Mathlib's unqualified
+\\code{dotProduct}, budget exhausted after 3 attempts. Both labels name the
+same mathematical content under two independent Lean files with two
+independent kernel-error causes; this paper cites \\texttt{thm:farkas} as
+the canonical statement (owned by \\emph{Mission Geometry}) and records
+\\texttt{prop:conformembership}'s distinct failure mode here rather than
+silently merging the two into one reported status.""" ;
+    doc:inSection :ch7_s1 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch7_s2_p0 a doc:Paragraph ;
+    doc:body """\\begin{corollary}[Nonconformance certificate]\\label{cor:cert}
+A nonconformance certificate is a single vector $\\bm y \\in
+\\mathbb{R}^{p}$ together with $\\Nmat^{\\top}\\bm y \\le \\bm 0$ and
+$\\bm y^{\\top}\\bm b > 0$; checking it is a matrix product and two sign
+tests, independent of trace length, verifiable within a bounded context
+$\\CL$.
+\\end{corollary}
+Recorded \\texttt{blocked} (not attempted) in both Lean lanes
+(\\texttt{cor:cert}). Its cost bound, $O(p \\cdot |T|)$, is exactly the
+boundary-verification regime of Definition~\\ref{def:regimes}: a
+nonconformance certificate is checkable at the same $O(\\CL)$-shaped cost
+as any other receipted claim, independent of the trace's own length.""" ;
+    doc:inSection :ch7_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 8 (ch:fitness): Token-Replay Fitness as Normalized Distance
+# ===========================================================================
+
+:ch8_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Replay verifier]\\label{def:replay}
+These field names are quoted verbatim from the \\code{PowlReplayVerifier}
+struct (\\texttt{bcinr-powl-receipt/src/replay.rs:31--35}), an external
+crate reached only via the path dependency declared in
+\\texttt{Cargo.toml} -- a sibling git repository at \\texttt{../bcinr},
+outside praxis's own \\texttt{crates/}/\\texttt{src/} trees; praxis's own
+\\texttt{crates/praxis-core/src/replay\\_adapter.rs} only imports and wraps
+\\code{bcinr\\_powl\\_receipt::replay::PowlReplayVerifier} and does not
+itself define the type. The verifier holds a marking $\\bm m$
+(\\code{enabled\\_tokens}) initialized
+to the entry token, and accumulators \\code{replayed}, \\code{fitted},
+\\code{enabled\\_not\\_taken}; replaying a frame rejects an invalid node bit,
+requires $\\bm m \\ge \\bm m^{-}$, records enabled-but-unconsumed tokens,
+fires $\\bm m \\gets (\\bm m \\,\\&\\, \\lnot\\bm m^{-}) \\,|\\, \\bm m^{+}$, and
+sets the node bit in \\code{replayed} and \\code{fitted}.
+\\end{definition}
+Verified in both Lean lanes (\\texttt{def:replay},
+\\texttt{docs/thesis/rdf/03\\_planning\\_geometry.ttl}).""" ;
+    doc:inSection :ch8_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch8_s0_p1 a doc:Paragraph ;
+    doc:body """\\begin{theorem}[Replay dichotomy]\\label{thm:fitness}
+Replaying a sequence of frames against the net either (i) completes with
+no violation, in which case it is a genuine firing sequence and $\\Fitness
+= 1$; or (ii) halts at the first frame whose preset is not contained in
+the current marking, returning a coordinate-localized witness of the
+earliest disabled transition.
+\\end{theorem}
+Verified in both Lean lanes (\\texttt{thm:fitness}).""" ;
+    doc:inSection :ch8_s0 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch8_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Fitness and precision]\\label{def:fitness}
+On finalization the verifier returns, in Q16.16 fixed point, $\\Fitness =
+|\\code{fitted}|/|\\code{replayed}|$ and precision $=
+|\\code{replayed}|/(|\\code{replayed}| + |\\code{enabled\\_not\\_taken}|)$,
+where $|\\cdot|$ is population count and $\\Fitness \\coloneqq 1$ when the
+denominator is zero.
+\\end{definition}
+\\begin{proposition}[Honest, orthogonal ratios]\\label{prop:honest}
+$\\Fitness$ and precision are ratios of bit-populations of
+disjointly-maintained bitsets; neither can exceed $1$, and $\\Fitness = 1$
+is attained exactly on completed replays; \\code{enabled\\_not\\_taken} feeds
+precision, not fitness, so the two metrics measure orthogonal deviations
+and cannot be traded against each other.
+\\end{proposition}
+Both verified in both Lean lanes (\\texttt{def:fitness}, \\texttt{prop:honest}).
+\\emph{projection\\_thesis}'s \\texttt{def:fitnessdistance}/\\texttt{thm:unitfitness}
+restate the same fitness-as-normalized-distance content ($\\Fitness = 1 -$
+the fraction of tokens forced onto unenabled transitions) and are verified
+in the bare-core lane, blocked in the Mathlib lane; this paper treats
+\\texttt{def:fitness}/\\texttt{thm:fitness} above as the canonical statement
+and does not duplicate the definition a second time.""" ;
+    doc:inSection :ch8_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 9 (ch:powl): POWL 2.0
+# ===========================================================================
+
+:ch9_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[POWL model]\\label{def:powl}
+A POWL model over an activity alphabet $A$ is one of: an activity $a \\in
+A$ (a leaf); a partial order $(\\{M_1,\\dots,M_k\\}, \\prec)$ executed by
+respecting $\\prec$ and running incomparable children concurrently; or a
+choice graph $(\\{M_1,\\dots,M_k\\}, E)$ combined by exclusive choice (and
+cyclic/loop edges, POWL 2.0), taking exactly one live branch.
+\\end{definition}
+Verified in both Lean lanes (\\texttt{def:powl},
+\\texttt{docs/thesis/rdf/03\\_planning\\_geometry.ttl}).""" ;
+    doc:inSection :ch9_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch9_s0_p1 a doc:Paragraph ;
+    doc:body """\\begin{proposition}[Bounded local geometry]\\label{prop:local}
+In a POWL model, the token marking local to a node ranges over the tokens
+of that node's immediate children: a node of arity $k$ has a local marking
+space of dimension $O(k)$, independent of the total size of the model; a
+node's replay is checked in a working set bounded by its arity.
+\\end{proposition}
+Verified in both Lean lanes (\\texttt{prop:local}).""" ;
+    doc:inSection :ch9_s0 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch9_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{construction}[Temporal plan to POWL tape]\\label{con:tape}
+\\code{temporal\\_plan\\_to\\_powl\\_tape} (\\texttt{bcinr-pddl/src/powl\\_bridge.rs},
+a sibling git repository at \\texttt{../bcinr}, outside praxis's own
+\\texttt{crates/}/\\texttt{src/} trees, reached only via the path
+dependency declared in \\texttt{Cargo.toml} -- not the in-repo
+\\texttt{crates/powl2-decompose} crate, which has no tape/mask machinery)
+converts a \\code{TemporalPlan} into a
+tape of \\code{PowlOpSpec}s (struct also defined in that same external
+file): each step $i$ becomes an activity with a
+\\code{pred\\_mask} of steps $j<i$ finishing before $i$ starts and a one-hot
+\\code{succ\\_mask} (both fields on the tape type in
+\\texttt{bcinr-powl/src/tape.rs}, same external repository); a second pass
+performs transitive reduction, clearing
+bits of predecessors' own predecessors, leaving only direct predecessors.
+\\end{construction}
+\\begin{proposition}[Hasse diagram]\\label{prop:hasse}
+Let $\\prec$ be the strict order ``$j$ finishes before $i$ starts'' on
+plan steps. The initialized \\code{pred\\_mask} of step $i$ is $\\{j : j
+\\prec i\\}$, and after transitive reduction it is the covering relation of
+$\\prec$; the resulting dependency graph is a DAG, and two steps are
+schedulable concurrently iff $\\prec$-incomparable.
+\\end{proposition}
+Both verified in both Lean lanes (\\texttt{con:tape}, \\texttt{prop:hasse}).""" ;
+    doc:inSection :ch9_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 10 (ch:separability): Separability as a Process-Layer Rice Quarantine
+# ===========================================================================
+
+:ch10_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{theorem}[Separable decomposition]\\label{thm:sep}
+A sound, separable workflow net admits a recursive decomposition into a
+POWL model whose every internal node is a partial order or a choice
+graph and whose leaves are activities, with each node's local marking
+geometry dimension bounded by its arity, independent of the global net
+size.
+\\end{theorem}
+Verified in both Lean lanes (\\texttt{thm:sep},
+\\texttt{docs/thesis/rdf/03\\_planning\\_geometry.ttl}). The underlying
+decomposition result is attributed to Kourani and van der Aalst and
+cited, not reproved, in the source paper itself; the Lean formalization on
+record should be read as capturing the structural corollary this paper
+states -- bounded local marking dimension under decomposition -- not as an
+independent re-derivation of the cited external decomposition theorem.
+\\emph{projection\\_thesis} restates the same theorem as its own
+\\texttt{thm:sep} (verified both lanes) and additionally frames
+separability as ``a process-layer Rice quarantine''; that framing is the
+general Rice-quarantine pattern of \\S\\ref{sec:rice}, specialized to
+processes, and is stated here as the specialization, not re-derived.""" ;
+    doc:inSection :ch10_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch10_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{proposition}[Separability as a decidable admission predicate]\\label{prop:quarantine}
+Let $\\mathrm{sep}$ be the decidable predicate ``the net is sound and
+separable.'' It is a legitimate admission obligation: total and
+computable, retracting the space of arbitrary control-flow onto the
+decidable sub-language of POWL-expressible processes; a separable net is
+admitted, a non-separable net is refused with reason.
+\\end{proposition}
+Verified in both Lean lanes (\\texttt{prop:quarantine}). This is the
+process-layer instance of Definition~\\ref{def:adm}'s admission map, with
+$\\mathrm{sep}$ as the obligation and the POWL decomposition as $\\rho$.""" ;
+    doc:inSection :ch10_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch10_s2_p0 a doc:Paragraph ;
+    doc:body """\\begin{construction}[Sub-net normalization]\\label{con:normalize}
+Given a partition part $T' \\subseteq T$ with entry places
+$P_{\\mathrm{in}}$ and exit places $P_{\\mathrm{out}}$, the sub-net is
+normalized to a valid WF-net by adding fresh boundary places $p_s, p_e$
+and silent transitions $\\tau_{\\mathrm{in}}, \\tau_{\\mathrm{out}}$,
+redirecting boundary arcs onto a unified source and sink.
+\\end{construction}
+\\begin{theorem}[Language-preserving conversion]\\label{thm:lang-correct}
+Let $N$ be a safe and sound workflow net, and let $\\psi =
+\\mathrm{convert}(N)$ be its POWL~2.0 conversion. Then for any prefix
+trace length $k$, $\\mathcal{L}_k(N) = \\mathcal{L}_k(\\psi) =
+\\mathcal{L}_k(\\mathrm{recompose}(\\psi))$.
+\\end{theorem}
+\\texttt{con:normalize} is verified in both Lean lanes.
+\\texttt{thm:lang-correct} carries no proof body at all in the source
+\\texttt{.tex} -- no \\code{begin\\{proof\\}} block -- and is reported here as
+asserted, not derived, in the source paper, even though the corpus
+records a Lean formalization for it in both lanes; what exactly that Lean
+statement encodes should be checked against
+\\texttt{tools/paper-factory/lean-pilot/thm\\_lang\\_correct.lean} before
+citing it as a fully in-paper-proved result, a distinction this paper
+flags rather than smooths over.""" ;
+    doc:inSection :ch10_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 11 (ch:cost): Cost Arbitration
+# ===========================================================================
+
+:ch11_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Cost vector]\\label{def:cost}
+Assign a plan $\\bm c = (c_0, c_1, \\dots, c_k)$, with $c_0 \\in \\{0,1\\}$
+the unadmitted indicator ($0=$ admitted) and $c_1,\\dots,c_k$ bounded
+secondary costs, ordered lexicographically ($\\preceq_{\\mathrm{lex}}$),
+cheapest-first. The router's operational instance is the 6-tuple
+\\code{CostVector} $= (c_0,\\dots,c_5) = (\\code{admitted},
+\\code{unreceipted\\_mutation\\_risk}, \\code{human\\_attention\\_seconds},
+\\code{token\\_cost}, \\code{latency\\_ms}, \\code{context\\_switches})$ (field
+names verbatim from the \\code{CostVector} struct at
+\\texttt{capability\\_router.rs:107--122} in the \\code{bcinr-pddl} crate --
+a sibling git repository at \\texttt{../bcinr}, outside praxis's own
+\\texttt{crates/}/\\texttt{src/} trees, reached only via the path
+dependency declared in \\texttt{Cargo.toml}; this and the other
+\\code{bcinr-*} code loci cited in this chapter and Chapter~\\ref{ch:powl}
+(\\texttt{con:tape}) are not part of the reviewed praxis codebase itself),
+with the refused vector \\code{refused()} $=
+(\\text{unadmitted}, 255, \\infty, \\infty, \\infty, 255)$ as the top
+element.
+\\end{definition}
+Both the general form (\\texttt{def:costvector}, \\emph{projection\\_thesis})
+and the 6-tuple operational form (\\texttt{def:cost}, \\emph{Mission
+Geometry}) are verified in both Lean lanes. They are stated once here as
+one definition, general form first, operational instance second, rather
+than twice.""" ;
+    doc:inSection :ch11_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch11_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{theorem}[Lexicographic order as an infinite-weight limit]\\label{thm:lex}
+Let secondary coordinates be bounded, $|c_i| \\le M$ for $i \\ge 1$. Define
+$C_\\lambda(\\bm c) = \\sum_{i=0}^{k} \\lambda^{k-i} c_i$ with $\\lambda >
+1$. There is a threshold $\\Lambda$ such that for all $\\lambda >
+\\Lambda$, $\\bm c \\preceq_{\\mathrm{lex}} \\bm c' \\iff C_\\lambda(\\bm c)
+\\le C_\\lambda(\\bm c')$; as $\\lambda \\to \\infty$ the weight on $c_0$
+diverges relative to all others.
+\\end{theorem}
+\\begin{corollary}[Unlawfulness dominates]\\label{cor:dominate}
+An admitted plan sorts strictly before any refused plan regardless of its
+secondary costs: for any finite risk, makespan, token, latency, and switch
+values, an admitted \\code{CostVector} is $\\prec_{\\mathrm{lex}}$ the
+refused top element; the price of unlawfulness is infinite in the limit
+that defines the order.
+\\end{corollary}
+Both verified in both Lean lanes, in both source labelings
+(\\texttt{thm:lex}/\\texttt{cor:dominate}, \\emph{Mission Geometry};
+\\texttt{thm:lex}, \\emph{projection\\_thesis}). Routing determinism is
+receipted -- identical tasks produce identical BLAKE3 route chains -- a
+code-level remark citing the
+\\code{routing\\_is\\_deterministic\\_same\\_task\\_same\\_route} test
+(\\texttt{bcinr-pddl/src/capability\\_router.rs:340}, an admitted two-effect
+task asserting equal \\code{route\\_chain} across two routing calls), with
+no separate corpus label.""" ;
+    doc:inSection :ch11_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch11_s2_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Makespan functional]\\label{def:makespan}
+Given the precedence DAG with per-op durations $d_i$ and release times,
+the forward pass computes $\\mathrm{es}_i = \\max(r_i, \\max_{j \\prec i}
+\\mathrm{ef}_j)$, $\\mathrm{ef}_i = \\mathrm{es}_i + d_i$; the makespan is
+$T = \\max_i \\mathrm{ef}_i$; the backward pass computes $\\mathrm{ls}_i =
+\\mathrm{lf}_i - d_i$; the slack of op $i$ is $\\mathrm{ls}_i -
+\\mathrm{es}_i$, and the critical path is the set of zero-slack ops.
+\\end{definition}
+\\begin{proposition}[Longest path]\\label{prop:critical}
+The makespan $T$ equals the length of the longest ($\\prec$-)path in the
+precedence DAG weighted by durations, and an op has zero slack iff it lies
+on some longest path.
+\\end{proposition}
+\\begin{proposition}[Capacity sensitivity]\\label{prop:sensitivity}
+Let $T(\\phi = c)$ be the makespan the planner finds when fluent $\\phi$'s
+initial capacity is $c$. The capacity delta reports $(T(c-1), T(c),
+T(c+1))$, and $\\phi$ is binding iff $T(c-1) \\ne T(c)$ (or infeasible at
+$c-1$); this is a finite-difference sensitivity of the specific schedule
+the greedy planner produced, not a dual shadow price of an optimal
+scheduler -- the source paper explicitly disclaims the stronger reading.
+\\end{proposition}
+All three verified in both Lean lanes (\\texttt{def:makespan},
+\\texttt{prop:critical}, \\texttt{prop:sensitivity}).""" ;
+    doc:inSection :ch11_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 12 (ch:instance): An Autonomous Build and the Trillion-Agent Status Byte
+# ===========================================================================
+
+:ch12_s0_p0 a doc:Paragraph ;
+    doc:body """An autonomous build with an interior of roughly $2.5 \\times 10^6$ tokens,
+unread by any agent, is trusted entirely via boundary receipts: verdict,
+chain hash, fitness $=1.0$, receipted refusal count, pass rate, and an
+oracle-agreement flag. This claim, as \\emph{projection\\_thesis} states it,
+cites Theorem~\\ref{thm:faithful} and Theorem~\\ref{thm:gap} together with
+Proposition~\\ref{prop:semilattice}; it therefore inherits
+Theorem~\\ref{thm:faithful}'s unresolved verification status
+(Ch.~\\ref{ch:keystone} above) exactly, and this paper states the
+inheritance rather than silently upgrading the build-trust claim past what
+\\texttt{thm:faithful} itself has earned on disk.""" ;
+    doc:inSection :ch12_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch12_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{construction}[Eight-bit status byte]\\label{con:agent8}
+Project each agent to a status byte $b \\in \\{0,1\\}^8$ whose lanes name
+admitted, evidence-ok, within-budget, authority-bound, healthy,
+conformant, receipted, replayable. A fleet of $N$ agents is a bit-packed
+vector; a 64-bit word holds 8 agents; a fleet admission sweep is the
+branchless mask reduction of the denial construction (Construction~\\ref{con:denial})
+applied word-parallel.
+\\end{construction}
+Verified in both Lean lanes (\\texttt{con:agent8}). Each bit is set only by
+a named mechanism, never by self-report -- the worked numeric example in
+the source: a full status byte \\code{0xFF} when every lane passes,
+dropping to \\code{0x3F} with refusal category ``Prerequisites'' when
+ledger evidence is absent.""" ;
+    doc:inSection :ch12_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch12_s2_p0 a doc:Paragraph ;
+    doc:body """\\begin{proposition}[Fleet arithmetic, exact count]\\label{prop:planetary}
+For a fleet of $N$ agents under Construction~\\ref{con:agent8}: the status
+vector occupies exactly $N$ bytes, packed to $N/8$ 64-bit words; a full
+admission sweep is $N/8$ masked-\\textsc{or} word operations.
+\\end{proposition}
+This part of \\texttt{prop:planetary} (part (a) in the source) is exact
+counting, verified in both Lean lanes, and is the only part of
+\\texttt{prop:planetary} stated in this chapter. Parts (b)--(d) -- the
+compressed-status estimate, the affordability-ratio estimate, and the
+consequence-not-theorem about planetary control -- are engineering and
+order-of-magnitude estimates the source itself labels as such, and are
+quarantined into Chapter~\\ref{ch:speculative} rather than stated here
+alongside the exact count.""" ;
+    doc:inSection :ch12_s2 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch12_s3_p0 a doc:Paragraph ;
+    doc:body """The source instance names five adversaries -- forged self-report, broken
+replay, missing policy digest, non-separable workflow, unreceipted claim
+-- each defeated by a specific mechanism rather than by inspecting the
+interior: forged self-report by Theorem~\\ref{thm:faithful} (stated, not
+machine-verified, Ch.~\\ref{ch:keystone}), broken replay by
+Theorem~\\ref{thm:fitness} (verified, Ch.~\\ref{ch:fitness}; the
+\\emph{projection\\_thesis} corpus additionally labels the same content
+\\texttt{thm:unitfitness}), non-separable workflow by Theorem~\\ref{thm:sep}
+(verified, Ch.~\\ref{ch:separability}), and unreceipted claim by
+\\texttt{prop:selfauditedscale}, which is itself recorded \\texttt{blocked}
+with zero attempts in both Lean lanes and is quarantined to
+Chapter~\\ref{ch:speculative} below as the ``antibody clause.'' This
+chapter's adversary list therefore inherits a mixed evidentiary status
+across its five entries, stated per-entry rather than as one uniform
+``defeated'' claim.""" ;
+    doc:inSection :ch12_s3 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 13 (ch:implementation): Implementation Map
+# ===========================================================================
+
+:ch13_p0 a doc:Paragraph ;
+    doc:body """Both source theses carry their own implementation-map appendix,
+structurally identical in form (a table of formal object $\\to$ code
+locus); consolidating them into two merged tables here replaces both,
+rather than adding a third alongside them.""" ;
+    doc:inChapter :ch13 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch13_p1 a doc:Paragraph ;
+    doc:body """\\begin{table}[h]
+\\centering
+\\small
+\\begin{tabular}{@{}p{3.4cm}p{8.6cm}@{}}
+\\toprule
+\\textbf{Formal object} & \\textbf{Code locus} \\\\
+\\midrule
+Admission map $\\adm$ (Def.~\\ref{def:adm}) & admission-obligation battery evaluated per manufacture request \\\\
+Denial monoid (Con.~\\ref{con:denial}) & bit-vector refusal reasons, componentwise \\textsc{or} \\\\
+Manufacturing morphism $\\muop$ (Def.~\\ref{def:mu}) & \\code{src/mfg.rs} (RDF $\\to$ PDDL) and the Lean~4 autoformalization pipeline (Math $\\to$ Lean), the two working $\\muop$-pipeline instances documented in \\texttt{docs/thesis/math\\_manufacturing/} \\\\
+Frame / receipt chain (Def.~\\ref{def:receipt}) & BLAKE3 chained receipt, genesis-folded \\\\
+Projection $\\Proj$ (Cor.~\\ref{cor:noncomp}) & bounded verdict/hash/fitness/reason tuple \\\\
+Cost vector (Def.~\\ref{def:cost}) & router \\code{CostVector}, lexicographic comparator \\\\
+Status byte (Con.~\\ref{con:agent8}) & per-agent 8-bit lane vector, word-parallel sweep \\\\
+\\bottomrule
+\\end{tabular}
+\\caption{Merged implementation map, keystone objects (both source appendices combined; not duplicated).}
+\\end{table}""" ;
+    doc:inChapter :ch13 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch13_p2 a doc:Paragraph ;
+    doc:body """\\begin{table}[h]
+\\centering
+\\small
+\\begin{tabular}{@{}p{3.4cm}p{8.6cm}@{}}
+\\toprule
+\\textbf{Formal object} & \\textbf{Code locus} \\\\
+\\midrule
+Grounding (Def.~\\ref{def:ground}) & \\code{bcinr-pddl}\\textsuperscript{*} grounding loop, \\code{PDDL8\\_MAX\\_GROUND} bound \\\\
+Forward search (Thm.~\\ref{thm:bounded-ground}) & \\code{GroundProblem::find\\_plan}\\textsuperscript{*}, BFS over ground-atom sets \\\\
+Marking / firing (Def.~\\ref{def:net}, Prop.~\\ref{prop:safe}) & \\code{PowlReplayVerifier}\\textsuperscript{*} branchless bitset update \\\\
+Farkas certificate (Thm.~\\ref{thm:farkas}) & nonconformance witness $\\bm y$, $O(p \\cdot |T|)$ check \\\\
+Fitness/precision (Def.~\\ref{def:fitness}) & Q16.16 population-count ratios, replay accumulators \\\\
+Separable decomposition (Thm.~\\ref{thm:sep}) & POWL~2.0 conversion, \\code{temporal\\_plan\\_to\\_powl\\_tape}\\textsuperscript{*} \\\\
+Datalog saturation (App.~\\ref{ch:datalog}) & \\code{pddl-index} / Nemo reachability index \\\\
+\\bottomrule
+\\end{tabular}
+\\caption{Merged implementation map, planning/conformance geometry objects.
+\\textsuperscript{*}These four loci (\\code{bcinr-pddl}'s
+\\code{GroundProblem}, \\code{bcinr-powl-receipt}'s
+\\code{PowlReplayVerifier}, and \\code{bcinr-pddl}'s
+\\code{temporal\\_plan\\_to\\_powl\\_tape}) live in the sibling \\code{bcinr}
+git repository, outside praxis's own \\texttt{crates/}/\\texttt{src/} trees,
+reached only via path dependencies in \\texttt{Cargo.toml}; \\code{pddl-index}
+(Datalog saturation row) is praxis's own in-repo crate, and
+\\texttt{PDDL8\\_MAX\\_GROUND} is a constant from the shared
+\\code{wasm4pm-compat} dependency used by both \\code{bcinr-pddl} and
+praxis's own \\code{pddl-index}, whose own \\code{IndexedGroundProblem}
+type (distinct from \\code{bcinr-pddl}'s \\code{GroundProblem}) also
+enforces it.}
+\\end{table}""" ;
+    doc:inChapter :ch13 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 14 (ch:datalog): Appendix -- The Datalog Index Layer
+# ===========================================================================
+
+:ch14_p0 a doc:Paragraph ;
+    doc:body """This appendix reports the Datalog index layer as an implementation-level
+addendum, not a full chapter of the main argument: unlike every other
+construct in Chapters~\\ref{ch:pddl}--\\ref{ch:cost}, Datalog saturation and
+symbol-dictionary encoding do not recur in \\emph{projection\\_thesis} and
+have no cross-reference into the keystone chapters. It is retained
+because the source outline records it as evidence-bound corpus content,
+not because it is central to this paper's argument.""" ;
+    doc:inChapter :ch14 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch14_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Datalog saturation]\\label{def:saturation}
+Let $(\\mathcal{D}, \\mathcal{Ob})$ be a grounded PDDL problem with initial
+atom set $\\bm m_0$ and ground action set $T$. The Nemo Datalog program
+$\\Pi$ has one fact per atom in $\\bm m_0$ and one rule per ground action;
+the saturation $\\mathrm{sat}(\\Pi)$ is the least fixpoint
+$\\mathrm{lfp}(T_\\Pi)$ of the immediate-consequence operator; an atom $p$
+is reachable iff $p \\in \\mathrm{sat}(\\Pi)$.
+\\end{definition}
+\\begin{proposition}[Saturation correctness]\\label{prop:satcorrect}
+$p \\in \\mathrm{sat}(\\Pi)$ iff there exists a sequence of ground actions
+whose add-effects include $p$, i.e.\\ $p$ is reachable from $\\bm m_0$ in
+the Petri-net sense.
+\\end{proposition}
+Both verified in both Lean lanes (\\texttt{def:saturation},
+\\texttt{prop:satcorrect}); the completeness half of
+\\texttt{prop:satcorrect} cites the standard Datalog fixpoint theorem
+(Kowalski 1974, Lloyd 1987) as an external result, not an in-paper
+derivation.""" ;
+    doc:inSection :ch14_s0 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch14_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{definition}[Symbol dictionary]\\label{def:symdict}
+A symbol identifier $\\mathrm{SymId} \\in \\mathbb{Z}_{>0}$ is a compact
+integer encoding of a ground atom or object name; this paper's own cited
+corpus (\\texttt{docs/thesis/rdf/03\\_planning\\_geometry.ttl},
+\\texttt{math:def\\_symdict}, matching \\texttt{03\\_planning\\_geometry.tex})
+states that \\code{pddl-index} maintains a bidirectional map
+\\code{SymDict}: $\\{\\text{strings}\\} \\leftrightarrow \\mathbb{Z}_{>0}$,
+encoded forward as \\code{FxHashMap<String, u32>} and reverse as
+\\code{Vec<String>}; zero is reserved as undefined. The live
+\\texttt{crates/pddl-index/src/dict.rs} disagrees with its own declared
+corpus on two points, undisclosed until now: the struct is named
+\\code{Dict}, not \\code{SymDict} (declared \\texttt{crates/pddl-index/src/dict.rs:32}),
+and its forward map is a \\texttt{std} \\code{HashMap<String, u32>}
+(field \\texttt{index}, \\texttt{crates/pddl-index/src/dict.rs:36}), not
+\\code{FxHashMap}. This paper states that discrepancy plainly, in the
+same spirit as its disclosures for \\texttt{thm:mrr}/\\texttt{thm:total}
+elsewhere, rather than silently substituting the live-code names for the
+corpus's.
+\\end{definition}
+Verified in both Lean lanes (\\texttt{def:symdict}).
+\\begin{proposition}[Dictionary cost]\\label{prop:dictcost}
+With symbol dictionary encoding, a ground atom $p(o_1,\\dots,o_k)$ is a
+tuple of $k+1$ \\code{SymId} values; equality reduces to integer
+comparison, replacing $O(|T| \\cdot k \\cdot N)$ string comparisons with
+$O(1)$-time integer counterparts.
+\\end{proposition}
+Verified in the bare-core lane; recorded \\texttt{blocked} (not attempted)
+in the Mathlib lane (\\texttt{prop:dictcost}).
+\\begin{construction}[Typed relational join]\\label{con:join}
+Type-constrained grounding is a relational join: for a schema parameter
+$v$ of type $\\tau$, the admissible objects are $\\{o :
+\\code{TypeIndex::satisfies}(o, \\tau)\\}$. This paper's own cited corpus
+(\\texttt{docs/thesis/rdf/03\\_planning\\_geometry.ttl}, \\texttt{math:con\\_join},
+matching \\texttt{03\\_planning\\_geometry.tex}) states this as
+\\code{TypeIndex::satisfies}($\\mathrm{SymId}(o), \\mathrm{SymId}(\\tau)$),
+operating on $\\mathrm{SymId}$ values. The live method disagrees with that
+corpus, undisclosed until now: its real signature is
+\\code{fn satisfies(\\&self, obj: \\&str, required: \\&str) -> bool}
+(\\texttt{crates/pddl-index/src/ground.rs:116}), taking plain
+\\code{\\&str} values, not $\\mathrm{SymId}$, and walking a string-keyed
+parent chain to depth bounded by the height of $\\mathcal{T}$, reducing
+effective branching from $N^k$ to a product of per-parameter
+type-compatible object counts. This paper states that discrepancy
+plainly, in the same spirit as its disclosures for
+\\texttt{thm:mrr}/\\texttt{thm:total} elsewhere, rather than silently
+substituting the live-code signature for the corpus's.
+\\end{construction}
+Verified in both Lean lanes (\\texttt{con:join}).""" ;
+    doc:inSection :ch14_s1 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 15 (ch:speculative): Speculative Extension
+# ===========================================================================
+
+:ch15_p0 a doc:Paragraph ;
+    doc:body """Every claim in this chapter is motivated by, but not derived from or
+checked against, the evidence-bound chapters above, with one stated
+exception detailed below: \\texttt{thm:mrr}'s underlying
+combinatorial-optimization statement was itself checked, and passed, in
+the bare-core Lean lane, and that identical statement already appears,
+undisclosed as speculative, in \\emph{Mission Geometry}'s own corpus RDF
+(\\S\\ref{ch:speculative} below states this in full -- it is the same
+statement under one label, not a coincidental name collision between two
+different theorems). Each claim is wrapped in a dedicated
+\\texttt{speculative} environment so a reader can mechanically distinguish
+it from Chapters~\\ref{ch:keystone}--\\ref{ch:datalog}. None of these
+claims should be read at the evidentiary standing of a theorem verified
+and placed by its own source in a technical chapter.""" ;
+    doc:inChapter :ch15 ;
+    doc:order 0 ;
+    doc:register "speculative" .
+
+:ch15_s0_p0 a doc:Paragraph ;
+    doc:body """\\begin{speculative}[Maximum Reachable Revenue]\\label{thm:mrr}
+Let $A$ be a set of independent client accounts, $\\mathrm{realized}(a)$
+the revenue of account $a$ under a target stage, and
+$\\mathrm{lawful\\_targets}(a)$ its evidence-gated target stages. The joint
+plan optimization decomposes linearly: $\\max_{\\text{joint plan}}
+\\sum_{a \\in A} \\mathrm{realized}(a) = \\sum_{a \\in A}
+\\max_{t \\in \\mathrm{lawful\\_targets}(a)} \\mathrm{realized}(a,t)$, reducing
+search complexity from $\\Omega(\\prod_a |T_a|)$ to $O(|A| \\cdot |T_a|)$.
+\\end{speculative}
+This is a market/revenue-framed claim layered onto an otherwise
+mechanism-level chapter: ``independent client accounts'' and ``realized
+revenue'' are a business-scale extrapolation of a combinatorial-
+optimization fact (additive separability of a max over independent
+coordinates), not something evidenced by \\code{praxis} code the way
+Chapter~\\ref{ch:cost} and earlier are. Its placement here is this
+paper's own editorial reclassification on business-framing grounds, not a
+hedge \\emph{Mission Geometry} itself applies: the source states
+\\texttt{thm:mrr} as an unhedged theorem, formatted identically to its
+neighbors \\texttt{thm:lex}/\\texttt{cor:dominate}/\\texttt{def:makespan},
+immediately after \\texttt{cor:dominate} in Chapter~\\ref{ch:cost}'s own
+source material (\\texttt{docs/thesis/03\\_planning\\_geometry.tex}, lines
+762--772). Like Theorem~\\ref{thm:lang-correct} above, \\texttt{thm:mrr}
+carries no proof body at all in that source \\code{.tex} -- no
+\\code{begin\\{proof\\}} block -- per the corpus RDF's own extraction
+notes (\\texttt{docs/thesis/rdf/03\\_planning\\_geometry.ttl}, lines
+21--26), a gap this paper discloses here on the same standard already
+applied to \\texttt{thm:lang-correct}. \\texttt{thm:mrr} is recorded
+\\texttt{verified} in the bare-core Lean lane (3 attempts) and
+\\texttt{unformalized} in the Mathlib lane after a \\code{Finset.le\\_sup'}
+motive-unification failure (3 attempts); this same statement -- not a
+differently-scoped label that happens to share a name -- already appears,
+undisclosed as speculative, as an ordinary \\code{dependsOn}-chained
+statement in \\emph{Mission Geometry}'s own corpus RDF
+(\\texttt{docs/thesis/rdf/03\\_planning\\_geometry.ttl}, tagged
+\\code{fromPaper "03\\_planning\\_geometry"} in
+\\texttt{docs/thesis/rdf/corpus.ttl}), immediately following
+\\texttt{cor:dominate}/\\texttt{thm:lex} and depending on
+\\texttt{def:cost} -- the same technical cost-arbitration chain
+Chapter~\\ref{ch:cost} above cites as evidence-bound. This paper's own
+declared source corpus therefore does not itself separate this claim from
+its technical statement chain, in tension with
+\\S\\ref{sec:thesis-statement}'s promise that speculative material is
+never mixed silently into a technical chapter; this paper states that
+tension plainly here rather than reading it as a label collision between
+two unrelated theorems. A distinct label,
+\\texttt{thm:mrrsep}, names a separate additive-separation statement and is
+recorded the other way around -- \\texttt{unformalized} in the bare-core
+lane (3 attempts, 4 kernel errors on the final attempt including two
+\\code{omega} failures) and \\texttt{verified} in the Mathlib lane (2
+attempts). \\texttt{thm:mrrsep} belongs to
+\\texttt{docs/thesis/rdf/01\\_admission\\_algebra.ttl}, outside this paper's
+own two-source scope (\\texttt{03\\_planning\\_geometry.tex},
+\\texttt{projection\\_thesis.tex}), the same disclosure this paper makes
+for \\texttt{thm:total} in Chapter~\\ref{ch:limitations}; it is mentioned here only
+because its label sits adjacent to \\texttt{thm:mrr} in the corpus's Lean
+receipts, not because it is in scope. These are two distinct Lean files
+with two distinct, non-overlapping receipt histories; this paper does not
+conflate them under a single ``MRR is verified'' claim.""" ;
+    doc:inSection :ch15_s0 ;
+    doc:order 0 ;
+    doc:register "speculative" .
+
+:ch15_s1_p0 a doc:Paragraph ;
+    doc:body """\\begin{speculative}[Planetary arithmetic, estimates]
+For a fleet of $N$ agents (Construction~\\ref{con:agent8}): compressed
+status is $\\sim 10\\,\\mathrm{GB}$ and sweep time is $\\Theta(N/(8B))$ at
+streaming bandwidth $B$ -- labeled by the source itself as an engineering
+estimate, not a theorem. The affordability ratio between one cache-line
+mask operation and one LLM admission decision is $\\sim 10^{7}$ -- an
+order-of-magnitude estimate, explicitly not a theorem. Consequence, not
+theorem: a comprehension-based or per-agent-LLM planetary control plane
+is infeasible by roughly $N \\cdot 10^{7}$ against a feasible bit-parallel
+admission sweep; projection-based admission is the only route to
+planetary coherence the source argues for at $N = 10^{12}$ agents.
+\\end{speculative}
+The source paper's own labeling -- ``engineering estimate,''
+``order-of-magnitude estimate,'' ``consequence, not theorem'' -- is kept
+verbatim here rather than upgraded to theorem language. The receipts for
+these sub-claims (\\texttt{prop:planetary} parts (b)--(d)) are recorded
+\\texttt{verified} in both Lean lanes, but that status attaches to the
+proposition \\emph{wrapper} the source paper itself states parts (b)/(c)
+are non-theorem estimates within -- a Lean receipt on the wrapper does not
+convert an estimate into a machine-checked numeric claim, and this paper
+does not read it as doing so.""" ;
+    doc:inSection :ch15_s1 ;
+    doc:order 0 ;
+    doc:register "speculative" .
+
+:ch15_s2_p0 a doc:Paragraph ;
+    doc:body """\\begin{speculative}[A refusal vocabulary legible across agents]
+Refusal categories, drawn from Construction~\\ref{con:denial}'s $n$-lane
+denial monoid and organized under the source's fixed eight-bucket
+surjection, are claimed, in the source's own words, to form a vocabulary
+such that ``a refusal category is legible to a recipient who never saw
+the sender's interior'' at trillion-agent scale.
+\\end{speculative}
+This is an interpretive/legibility claim about a fixed enumeration of
+refusal categories, not a corollary Construction~\\ref{con:denial} or
+Proposition~\\ref{prop:semilattice} proves; those establish the algebraic
+structure of denial words, not that any particular 8-bucket enumeration is
+legible across arbitrary agents. It is recorded \\texttt{verified} in both
+Lean lanes under \\texttt{con:denial}'s own label, but that receipt
+attaches to the monoid construction, not to the legibility claim layered
+on top of it, which is why this paper states the legibility claim only
+here, quarantined, rather than in Chapter~\\ref{ch:keystone}.""" ;
+    doc:inSection :ch15_s2 ;
+    doc:order 0 ;
+    doc:register "speculative" .
+
+:ch15_s3_p0 a doc:Paragraph ;
+    doc:body """\\begin{speculative}[Self-audited-scale antibody clause]\\label{prop:selfauditedscale}
+Let a system emit claims $c$ with receipts $r(c)$, and define the
+overclaim set $\\mathrm{Over} = \\{c : \\nexists\\, r(c) \\text{ with }
+V(\\Proj) = 1\\}$. If the system enforces $\\mathrm{Over} = \\varnothing$
+(the \\textsf{docs-exceed-mechanism} defect class), the admissible
+magnitude of a claim is bounded by the mechanism that receipts its
+limits, not by rhetoric.
+\\end{speculative}
+Recorded \\texttt{blocked} with zero attempts in both Lean lanes
+(\\texttt{prop:selfauditedscale}). It is stated here as a design aspiration
+this paper itself is trying to hold to -- every claim above names its
+artifact or is marked speculative -- not as a proved property of any
+running system.""" ;
+    doc:inSection :ch15_s3 ;
+    doc:order 0 ;
+    doc:register "speculative" .
+
+# ===========================================================================
+# Chapter 16 (ch:limitations): Limitations
+# ===========================================================================
+
+:ch16_p0 a doc:Paragraph ;
+    doc:body """This chapter states what is not shown, following \\texttt{CLAUDE.md}'s
+reporting instruction to state findings, not verdicts, and without the
+quality adjectives the task does not ask for.""" ;
+    doc:inChapter :ch16 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+:ch16_p1 a doc:Paragraph ;
+    doc:body """Three central keystone theorems -- \\texttt{thm:faithful},
+\\texttt{cor:noncomp}, \\texttt{thm:conservation} -- are stated in
+Chapter~\\ref{ch:keystone} but are not machine-verified in either Lean
+lane on the receipts currently on disk: \\texttt{thm:faithful} has no
+bare-core receipt line and is recorded \\texttt{excluded} in the Mathlib
+lane; the other two are recorded \\texttt{blocked} with zero attempts in
+both lanes. Chapter~\\ref{ch:instance}'s trillion-agent instance argument
+depends on \\texttt{thm:faithful} and inherits this exact gap.""" ;
+    doc:inChapter :ch16 ;
+    doc:order 1 ;
+    doc:register "evidence-bound" .
+
+:ch16_p2 a doc:Paragraph ;
+    doc:body """Farkas separation (\\texttt{thm:farkas}) remains genuinely open in the
+Mathlib lane: the missing lemma is named precisely
+(\\code{PointedCone.FG.isClosed}, the topological half of
+Minkowski--Weyl), not a vague timeout, and is recorded
+\\texttt{blocked}/not-attempted in the bare-core lane entirely. Two related
+Petri-net propositions, \\texttt{prop:cone} (bare-core) and
+\\texttt{thm:bounded-ground} (Mathlib), each regressed against the other
+lane for reasons specific to that lane's own Mathlib-snapshot lookup
+failures (Ch.~\\ref{ch:pddl}, Ch.~\\ref{ch:petri} above) -- these are
+lane-specific library gaps, not defects shared across both formalizations
+of the same statement.""" ;
+    doc:inChapter :ch16 ;
+    doc:order 2 ;
+    doc:register "evidence-bound" .
+
+:ch16_p3 a doc:Paragraph ;
+    doc:body """The Mathlib-linked lane covers 178 of the corpus's 202 distinct labels
+(88\\%), not all of it, and not a claim of parity with the
+separately-verified bare-core lane's own scope; the two lanes are
+independently verified over overlapping but non-identical statement sets
+(\\texttt{docs/thesis/math\\_manufacturing/rdf/thesis.ttl}, Ch.~4, reports
+this same 178/202 figure for the full corpus, of which this paper's own
+planning-geometry and projection-keystone labels are a subset). Three
+further Mathlib-lane failures exist corpus-wide beyond
+\\texttt{thm:farkas} and \\texttt{thm:bounded-ground} and fall within this
+document's own two-source scope: \\texttt{def:attnbalance},
+\\texttt{prop:conformembership}, and \\texttt{thm:mrr} -- each has a
+specific, named kernel error on file (a library-lookup or motive-unification
+gap), not a generic failure; none is silently retried past the fixed
+3-attempt bound. A fourth label, \\texttt{thm:total}, is reported
+\\texttt{unformalized} in the same Mathlib-migration receipts file but is
+not the same kind of gap: its recorded \\code{last\\_error}
+(\\texttt{mathlib\\_migration\\_receipts.jsonl:199}) states plainly that the
+theorem's own claim -- \\code{Category.Reserved} has empty preimage under
+\\code{RefusalScenario.category} -- is false against the already-verified
+\\texttt{def:tax}, which maps three \\code{RefusalScenario} variants
+(\\code{logicContradiction}, \\code{andonPull}, \\code{andonEscalation}) to
+\\code{Category.Reserved}
+(\\texttt{Praxis/Corpus/def\\_tax.lean:67--69},
+\\texttt{Praxis/Corpus/thm\\_total.lean:19}); no amount of tactic work
+closes that goal because the goal itself is false against a dependency
+already on the kernel's own record, not merely difficult. This is a
+demonstrated falsification, not a tooling gap, and \\texttt{thm:total}
+belongs to \\texttt{docs/thesis/rdf/01\\_admission\\_algebra.ttl}, outside
+this paper's own two-source scope (\\texttt{03\\_planning\\_geometry.tex},
+\\texttt{projection\\_thesis.tex}). Unresolved and stated here rather than
+smoothed over: the bare-core lane
+(\\texttt{tools/paper-factory/lean-pilot/formalization\\_receipts.jsonl:192})
+records this same label \\texttt{thm:total} as \\texttt{verified} (3
+attempts, no error) against the identical falsified claim -- an
+unremarked cross-lane discrepancy of the same kind this paper flags
+elsewhere for \\texttt{thm:mrr}/\\texttt{thm:mrrsep}
+(Chapter~\\ref{ch:speculative}) and \\texttt{thm:farkas}/
+\\texttt{prop:conformembership} (Chapter~\\ref{ch:conformance}); this paper
+does not resolve that discrepancy, only reports it.""" ;
+    doc:inChapter :ch16 ;
+    doc:order 3 ;
+    doc:register "evidence-bound" .
+
+:ch16_p4 a doc:Paragraph ;
+    doc:body """This is a single-kernel result: only Lean~4's own kernel accepted or
+rejected each statement; no independent proof assistant cross-checks any
+of the \\texttt{verified} dispositions reported in this paper.
+\\texttt{thm:lang-correct} (Ch.~\\ref{ch:separability}) is flagged
+separately: its source \\texttt{.tex} carries no proof body, so its status
+here is asserted-with-a-Lean-formalization-on-record, a weaker claim than
+proved-in-paper, stated as such rather than smoothed into an unqualified
+``proved.''""" ;
+    doc:inChapter :ch16 ;
+    doc:order 4 ;
+    doc:register "evidence-bound" .
+
+:ch16_p5 a doc:Paragraph ;
+    doc:body """The specific rhetorical \\emph{device} of \\emph{projection\\_thesis}'s own
+front matter -- addressed to $10^{12}$ concurrent agents, a
+bounded-context-capacity motif citing Miller and Cowan -- is deliberately
+not carried forward as technical content anywhere in this paper outside
+the explicit disclaimer of Chapter~\\ref{ch:speculative}: the source
+outline itself marks it speculative and instructs against duplicating it
+as if it were a technical claim, and this paper follows that instruction
+rather than restating the numeric/motif device a third time across the
+thesis series. This is narrower than the chapter's own \\emph{naming}
+practice: Chapter~\\ref{ch:instance}'s title
+(``Instance: An Autonomous Build and the Trillion-Agent Status Byte'')
+and this paper's own introductory structure overview (Chapter~1) and the
+paragraph immediately above in this same chapter all use ``trillion-agent''
+as the name of that chapter's status-byte instance, not as a restatement
+of the $10^{12}$/Miller--Cowan motif; that naming usage is excepted from
+this paragraph's
+claim and is not itself disclosed as speculative, since it names an
+evidence-bound instance argument (Chapter~\\ref{ch:instance}), not the
+front-matter framing device.""" ;
+    doc:inChapter :ch16 ;
+    doc:order 5 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Chapter 17 (ch:conclusion): Conclusion
+# ===========================================================================
+
+:ch17_p0 a doc:Paragraph ;
+    doc:body """This paper states one evidence-bound keystone (Chapter~\\ref{ch:keystone})
+and its concrete planning-and-conformance geometry
+(Chapters~\\ref{ch:pddl}--\\ref{ch:cost}), one evidence-bound instance at
+declared scope (Chapter~\\ref{ch:instance}), and a clearly quarantined set
+of estimates and extrapolations (Chapter~\\ref{ch:speculative}) that this
+paper does not claim are anything more than what their own source labels
+them. The correct adversarial question after this consolidation is not
+whether gaps exist -- Chapter~\\ref{ch:limitations} names them plainly --
+but which specific admitted statement, blocked dependency, or
+evidence-bound claim above is wrong, checkable against the two receipts
+files and the corpus RDF that produced it, both cited by exact path
+throughout.""" ;
+    doc:inChapter :ch17 ;
+    doc:order 0 ;
+    doc:register "evidence-bound" .
+
+# ===========================================================================
+# Structure: Chapters and Sections
+# ===========================================================================
+
+:ch1 a doc:Chapter ;
+    doc:order 1 ;
+    doc:title "Introduction" .
+
+:ch1_s0 a doc:Section ;
+    doc:inChapter :ch1 ;
+    doc:label "sec:thesis-statement" ;
+    doc:order 0 ;
+    doc:title "Thesis statement" .
+
+:ch1_s1 a doc:Section ;
+    doc:inChapter :ch1 ;
+    doc:order 1 ;
+    doc:title "What changes when two source theses are read as one" .
+
+:ch1_s2 a doc:Section ;
+    doc:inChapter :ch1 ;
+    doc:order 2 ;
+    doc:title "Structure of this document" .
+
+:ch2 a doc:Chapter ;
+    doc:label "ch:keystone" ;
+    doc:order 2 ;
+    doc:title "The Projection Keystone: Admission, Manufacture, and Receipts" .
+
+:ch2_s0 a doc:Section ;
+    doc:inChapter :ch2 ;
+    doc:label "sec:rice" ;
+    doc:order 0 ;
+    doc:title "Rice quarantine and the admission map" .
+
+:ch2_s1 a doc:Section ;
+    doc:inChapter :ch2 ;
+    doc:order 1 ;
+    doc:title "The denial monoid" .
+
+:ch2_s2 a doc:Section ;
+    doc:inChapter :ch2 ;
+    doc:order 2 ;
+    doc:title "The Chatman equation and the manufacturing morphism" .
+
+:ch2_s3 a doc:Section ;
+    doc:inChapter :ch2 ;
+    doc:order 3 ;
+    doc:title "The law-bearing receipt" .
+
+:ch2_s4 a doc:Section ;
+    doc:inChapter :ch2 ;
+    doc:label "sec:faithful" ;
+    doc:order 4 ;
+    doc:title "Faithful projection and its verification status" .
+
+:ch2_s5 a doc:Section ;
+    doc:inChapter :ch2 ;
+    doc:order 5 ;
+    doc:title "Conservation of consequence" .
+
+:ch3 a doc:Chapter ;
+    doc:label "ch:gap" ;
+    doc:order 3 ;
+    doc:title "Cost Regimes and the Comprehension--Verification Gap" .
+
+:ch3_s0 a doc:Section ;
+    doc:inChapter :ch3 ;
+    doc:order 0 ;
+    doc:title "Verification regimes" .
+
+:ch3_s1 a doc:Section ;
+    doc:inChapter :ch3 ;
+    doc:label "sec:fleet-budget" ;
+    doc:order 1 ;
+    doc:title "The Fleet Trust Budget" .
+
+:ch4 a doc:Chapter ;
+    doc:label "ch:pddl" ;
+    doc:order 4 ;
+    doc:title "PDDL Action Law: Lifted Domains, Grounding, Bounded Branching" .
+
+:ch4_s0 a doc:Section ;
+    doc:inChapter :ch4 ;
+    doc:order 0 ;
+    doc:title "Lifted domains and grounding" .
+
+:ch4_s1 a doc:Section ;
+    doc:inChapter :ch4 ;
+    doc:label "sec:bounded-ground" ;
+    doc:order 1 ;
+    doc:title "Bounded branching" .
+
+:ch4_s2 a doc:Section ;
+    doc:inChapter :ch4 ;
+    doc:order 2 ;
+    doc:title "Relational membership via XOR filters" .
+
+:ch5 a doc:Chapter ;
+    doc:label "ch:attention" ;
+    doc:order 5 ;
+    doc:title "Numeric Fluents and the Attention Balance Law" .
+
+:ch5_s0 a doc:Section ;
+    doc:inChapter :ch5 ;
+    doc:label "sec:attn-general" ;
+    doc:order 0 ;
+    doc:title "The general attention calculus" .
+
+:ch5_s1 a doc:Section ;
+    doc:inChapter :ch5 ;
+    doc:label "sec:attn-pddl" ;
+    doc:order 1 ;
+    doc:title "The concrete PDDL fluent mechanics" .
+
+:ch6 a doc:Chapter ;
+    doc:label "ch:petri" ;
+    doc:order 6 ;
+    doc:title "The Marking Polytope: Petri Nets, State Equation, Cone Reachability" .
+
+:ch6_s0 a doc:Section ;
+    doc:inChapter :ch6 ;
+    doc:order 0 ;
+    doc:title "Nets, incidence, and the state equation" .
+
+:ch6_s1 a doc:Section ;
+    doc:inChapter :ch6 ;
+    doc:order 1 ;
+    doc:title "The reachability cone and its polytope relaxation" .
+
+:ch6_s2 a doc:Section ;
+    doc:inChapter :ch6 ;
+    doc:order 2 ;
+    doc:title "STRIPS grounding as a place/transition net" .
+
+:ch7 a doc:Chapter ;
+    doc:label "ch:conformance" ;
+    doc:order 7 ;
+    doc:title "Conformance as Cone Membership: Farkas Separation Certificates" .
+
+:ch7_s0 a doc:Section ;
+    doc:inChapter :ch7 ;
+    doc:order 0 ;
+    doc:title "Conformance as polytope membership" .
+
+:ch7_s1 a doc:Section ;
+    doc:inChapter :ch7 ;
+    doc:order 1 ;
+    doc:title "Farkas' lemma and the separating certificate" .
+
+:ch7_s2 a doc:Section ;
+    doc:inChapter :ch7 ;
+    doc:order 2 ;
+    doc:title "The certificate's verification cost" .
+
+:ch8 a doc:Chapter ;
+    doc:label "ch:fitness" ;
+    doc:order 8 ;
+    doc:title "Token-Replay Fitness as Normalized Distance" .
+
+:ch8_s0 a doc:Section ;
+    doc:inChapter :ch8 ;
+    doc:order 0 ;
+    doc:title "The replay verifier" .
+
+:ch8_s1 a doc:Section ;
+    doc:inChapter :ch8 ;
+    doc:order 1 ;
+    doc:title "Fitness and precision as population ratios" .
+
+:ch9 a doc:Chapter ;
+    doc:label "ch:powl" ;
+    doc:order 9 ;
+    doc:title "POWL 2.0: Recursive Partial Orders and Choice Graphs" .
+
+:ch9_s0 a doc:Section ;
+    doc:inChapter :ch9 ;
+    doc:order 0 ;
+    doc:title "The POWL grammar" .
+
+:ch9_s1 a doc:Section ;
+    doc:inChapter :ch9 ;
+    doc:order 1 ;
+    doc:title "Temporal plans as Hasse diagrams" .
+
+:ch10 a doc:Chapter ;
+    doc:label "ch:separability" ;
+    doc:order 10 ;
+    doc:title "Separability as a Process-Layer Rice Quarantine" .
+
+:ch10_s0 a doc:Section ;
+    doc:inChapter :ch10 ;
+    doc:order 0 ;
+    doc:title "The decomposition theorem" .
+
+:ch10_s1 a doc:Section ;
+    doc:inChapter :ch10 ;
+    doc:order 1 ;
+    doc:title "Separability as a decidable admission predicate" .
+
+:ch10_s2 a doc:Section ;
+    doc:inChapter :ch10 ;
+    doc:order 2 ;
+    doc:title "Normalization and language preservation" .
+
+:ch11 a doc:Chapter ;
+    doc:label "ch:cost" ;
+    doc:order 11 ;
+    doc:title "Cost Arbitration: Lexicographic Order and the Makespan Functional" .
+
+:ch11_s0 a doc:Section ;
+    doc:inChapter :ch11 ;
+    doc:order 0 ;
+    doc:title "The cost vector" .
+
+:ch11_s1 a doc:Section ;
+    doc:inChapter :ch11 ;
+    doc:label "sec:lex" ;
+    doc:order 1 ;
+    doc:title "Lexicographic order as an infinite-weight limit" .
+
+:ch11_s2 a doc:Section ;
+    doc:inChapter :ch11 ;
+    doc:label "sec:makespan" ;
+    doc:order 2 ;
+    doc:title "The makespan functional" .
+
+:ch12 a doc:Chapter ;
+    doc:label "ch:instance" ;
+    doc:order 12 ;
+    doc:title "Instance: An Autonomous Build and the Trillion-Agent Status Byte" .
+
+:ch12_s0 a doc:Section ;
+    doc:inChapter :ch12 ;
+    doc:order 0 ;
+    doc:title "An unread interior, trusted by boundary receipts" .
+
+:ch12_s1 a doc:Section ;
+    doc:inChapter :ch12 ;
+    doc:order 1 ;
+    doc:title "The eight-bit status byte" .
+
+:ch12_s2 a doc:Section ;
+    doc:inChapter :ch12 ;
+    doc:order 2 ;
+    doc:title "Fleet arithmetic" .
+
+:ch12_s3 a doc:Section ;
+    doc:inChapter :ch12 ;
+    doc:order 3 ;
+    doc:title "Five named adversaries" .
+
+:ch13 a doc:Chapter ;
+    doc:label "ch:implementation" ;
+    doc:order 13 ;
+    doc:title "Implementation Map" .
+
+:ch14 a doc:Chapter ;
+    doc:label "ch:datalog" ;
+    doc:order 14 ;
+    doc:title "Appendix: The Datalog Index Layer" .
+
+:ch14_s0 a doc:Section ;
+    doc:inChapter :ch14 ;
+    doc:order 0 ;
+    doc:title "Nemo saturation" .
+
+:ch14_s1 a doc:Section ;
+    doc:inChapter :ch14 ;
+    doc:order 1 ;
+    doc:title "Symbol encoding" .
+
+:ch15 a doc:Chapter ;
+    doc:label "ch:speculative" ;
+    doc:order 15 ;
+    doc:title "Speculative Extension: Planetary-Scale Projection" .
+
+:ch15_s0 a doc:Section ;
+    doc:inChapter :ch15 ;
+    doc:order 0 ;
+    doc:title "Maximum Reachable Revenue: a market-framed extrapolation" .
+
+:ch15_s1 a doc:Section ;
+    doc:inChapter :ch15 ;
+    doc:order 1 ;
+    doc:title "Planetary arithmetic beyond the exact count" .
+
+:ch15_s2 a doc:Section ;
+    doc:inChapter :ch15 ;
+    doc:order 2 ;
+    doc:title "A shared refusal vocabulary across agents" .
+
+:ch15_s3 a doc:Section ;
+    doc:inChapter :ch15 ;
+    doc:order 3 ;
+    doc:title "The self-audited-scale antibody clause" .
+
+:ch16 a doc:Chapter ;
+    doc:label "ch:limitations" ;
+    doc:order 16 ;
+    doc:title "Limitations" .
+
+:ch17 a doc:Chapter ;
+    doc:label "ch:conclusion" ;
+    doc:order 17 ;
+    doc:title "Conclusion" .

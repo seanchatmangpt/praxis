@@ -36,18 +36,18 @@
 //! was admitted" stays provable — in every pack.
 
 use bcinr_pddl::{domain_from_pddl, problem_from_pddl, GroundProblem, Pddl8GroundAction};
-use praxis_proposer::church::{self, ChurchDomain, ChurchState, Person};
-use praxis_proposer::engine::{Domain, Proposal, Proposer};
-use praxis_proposer::{Account, ObjectiveFunction, RevenueDomain, RevenueState};
+use praxis_proposer::{
+    church::{self, ChurchDomain, ChurchState, Person},
+    engine::{Domain, Proposal, Proposer},
+    Account, ObjectiveFunction, RevenueDomain, RevenueState,
+};
 use serde_json::{json, Value};
 
-use crate::ops;
-use crate::revenue;
+use crate::{ops, revenue};
 
 /// The default authored church objective shipped beside the proposer crate.
 /// Weights are authored data; the system never invents them (Non-goal 1).
-pub const CHURCH_OBJECTIVE: &str =
-    include_str!("../crates/praxis-proposer/church_objective.json");
+pub const CHURCH_OBJECTIVE: &str = include_str!("../crates/praxis-proposer/church_objective.json");
 
 /// The hand-authored PDDL8-safe church-operations planning domain (+ an
 /// illustrative problem the pipe does not use — see [`church_domain_text`]).
@@ -126,7 +126,9 @@ pub trait Pack: Domain {
 
     /// Look up an entity by id in the observed state.
     fn entity_by_id<'a>(state: &'a Self::State, id: &str) -> Option<&'a Self::Entity> {
-        Self::entities(state).iter().find(|e| Self::entity_id(e) == id)
+        Self::entities(state)
+            .iter()
+            .find(|e| Self::entity_id(e) == id)
     }
 
     /// Load + validate an authored objective from JSON text against *this*
@@ -172,7 +174,10 @@ pub fn evidence_gate_agrees<P: Pack>(entity: &P::Entity, target: P::Stage) -> bo
 /// `(stage ?e ?to)` add effect. Generic over the pack's goal predicate and
 /// stage vocabulary — the same reader serves every institution.
 fn action_target<P: Pack>(action: &Pddl8GroundAction) -> Option<(String, P::Stage)> {
-    let atom = action.add_effects.iter().find(|a| a.pred == P::goal_predicate())?;
+    let atom = action
+        .add_effects
+        .iter()
+        .find(|a| a.pred == P::goal_predicate())?;
     let id = atom.args.first()?.clone();
     let stage = P::stage_from_pddl(atom.args.get(1)?)?;
     Some((id, stage))
@@ -265,7 +270,10 @@ pub fn run_pipeline<P: Pack>(
     let proposer = Proposer::<P>::new(objective.clone());
     let proposals = proposer.propose(state);
     if proposals.is_empty() {
-        return Err(format!("no lawful proposals for the {} state", P::pack_name()));
+        return Err(format!(
+            "no lawful proposals for the {} state",
+            P::pack_name()
+        ));
     }
 
     // Seam invariant: proposer pre-filter and admission gate agree everywhere.
@@ -291,8 +299,8 @@ pub fn run_pipeline<P: Pack>(
         .map_err(|e| format!("domain parse ({}): {e}", P::pack_name()))?;
     let problem = problem_from_pddl(&P::build_problem(state, &goal_atom))
         .map_err(|e| format!("problem parse ({}): {e}", P::pack_name()))?;
-    let ground =
-        GroundProblem::build(&domain, &problem, None).map_err(|e| format!("grounding failed: {e}"))?;
+    let ground = GroundProblem::build(&domain, &problem, None)
+        .map_err(|e| format!("grounding failed: {e}"))?;
     let tape = ground
         .find_plan()
         .map_err(|e| format!("no plan reaches proposed goal {goal_atom}: {e}"))?;
@@ -305,7 +313,10 @@ pub fn run_pipeline<P: Pack>(
     let mut plan_admissions = Vec::with_capacity(tape.len());
     for op in &tape.ops {
         let (id, target) = action_target::<P>(&op.action).ok_or_else(|| {
-            format!("plan action {} has no (stage ?e ?to) add effect", op.action.label)
+            format!(
+                "plan action {} has no (stage ?e ?to) add effect",
+                op.action.label
+            )
         })?;
         let entity = P::entity_by_id(state, &id)
             .ok_or_else(|| format!("plan action moves unknown entity {id}"))?;
@@ -338,7 +349,10 @@ pub fn run_pipeline<P: Pack>(
     });
     let receipt = ops::receipt_payload(&receipt_input.to_string())?;
     if receipt["status"] != json!("receipted") {
-        return Err(format!("mission receipt was not issued: {}", receipt["status"]));
+        return Err(format!(
+            "mission receipt was not issued: {}",
+            receipt["status"]
+        ));
     }
 
     Ok(json!({
@@ -695,8 +709,7 @@ mod tests {
     fn revenue_ceiling_reproduces_mrr_exactly() {
         // The generic ceiling, with ceiling_fluents = ["realized_revenue"],
         // must reproduce the bespoke MRR headline numbers — one substrate.
-        let state: RevenueState =
-            serde_json::from_value(revenue_fixture_state()).expect("fixture");
+        let state: RevenueState = serde_json::from_value(revenue_fixture_state()).expect("fixture");
         let mrr = praxis_proposer::maximum_reachable_revenue(&state);
         let c = ceiling::<RevenueDomain>(&state);
         assert_eq!(
@@ -711,9 +724,7 @@ mod tests {
             c["opportunity_value"].as_f64().unwrap() as i64,
             mrr.revenue_opportunity_cents
         );
-        assert!(
-            (c["utilization"].as_f64().unwrap() - mrr.revenue_utilization).abs() < 1e-12
-        );
+        assert!((c["utilization"].as_f64().unwrap() - mrr.revenue_utilization).abs() < 1e-12);
     }
 
     #[test]

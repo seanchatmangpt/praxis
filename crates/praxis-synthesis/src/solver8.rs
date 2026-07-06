@@ -115,9 +115,7 @@ pub fn reverify_unsat_by_propagation(problem: &SequenceProblem) -> bool {
 /// certificate body: a cached core is a claim, and claims are recomputed,
 /// not trusted.
 #[must_use]
-pub fn rederive_unsat_certificate(
-    problem: &SequenceProblem,
-) -> Option<(String, Vec<String>)> {
+pub fn rederive_unsat_certificate(problem: &SequenceProblem) -> Option<(String, Vec<String>)> {
     let mandatory = mandatory_set(problem);
     if let Some((victim, missing)) = missing_support(problem, &mandatory) {
         return Some((
@@ -128,9 +126,7 @@ pub fn rederive_unsat_certificate(
             vec![format!("MissingFact({missing})")],
         ));
     }
-    if let Some(victim) =
-        empties_mandatory(problem, &problem.constraints, &mandatory)
-    {
+    if let Some(victim) = empties_mandatory(problem, &problem.constraints, &mandatory) {
         let core = extract_core(problem, &mandatory);
         return Some((
             format!(
@@ -184,7 +180,11 @@ fn apply(c: &Constraint, idx: &BTreeMap<&str, usize>, masks: &mut Masks) -> bool
             // earliest(b) > earliest(a): clear b's bits at or below a's earliest.
             if masks[ia] != 0 {
                 let ea = masks[ia].trailing_zeros() as u16;
-                let keep = if ea >= 15 { 0 } else { !((1u16 << (ea + 1)) - 1) };
+                let keep = if ea >= 15 {
+                    0
+                } else {
+                    !((1u16 << (ea + 1)) - 1)
+                };
                 narrow(ib, keep, masks);
             }
             // latest(a) < latest(b): clear a's bits at or above b's latest.
@@ -201,13 +201,12 @@ fn apply(c: &Constraint, idx: &BTreeMap<&str, usize>, masks: &mut Masks) -> bool
 }
 
 /// Propagate all window constraints to fixpoint. Returns final masks.
-fn propagate(
-    caps: &[Capability],
-    constraints: &[Constraint],
-    horizon: usize,
-) -> Masks {
-    let idx: BTreeMap<&str, usize> =
-        caps.iter().enumerate().map(|(i, c)| (c.name.as_str(), i)).collect();
+fn propagate(caps: &[Capability], constraints: &[Constraint], horizon: usize) -> Masks {
+    let idx: BTreeMap<&str, usize> = caps
+        .iter()
+        .enumerate()
+        .map(|(i, c)| (c.name.as_str(), i))
+        .collect();
     let mut masks = vec![full_mask(horizon); caps.len()];
     // Each productive round clears ≥ 1 bit; ≤ 16 × |caps| bits exist.
     for _ in 0..=(16 * caps.len()) {
@@ -223,7 +222,11 @@ fn propagate(
 }
 
 fn init_has(problem: &SequenceProblem, pred: u32) -> bool {
-    problem.init.by_pred.get(&pred).is_some_and(|s| !s.is_empty())
+    problem
+        .init
+        .by_pred
+        .get(&pred)
+        .is_some_and(|s| !s.is_empty())
 }
 
 fn producers_of(problem: &SequenceProblem, pred: u32) -> Vec<usize> {
@@ -341,10 +344,7 @@ fn empties_mandatory(
 
 /// Deletion-based minimal unsatisfiable core: ≤ |constraints| propagation
 /// passes (≤ 64 by the problem cap).
-fn extract_core(
-    problem: &SequenceProblem,
-    mandatory: &BTreeSet<usize>,
-) -> Vec<Constraint> {
+fn extract_core(problem: &SequenceProblem, mandatory: &BTreeSet<usize>) -> Vec<Constraint> {
     let mut core: Vec<Constraint> = problem.constraints.clone();
     let mut i = 0;
     while i < core.len() {
@@ -395,7 +395,9 @@ impl Solver8 {
                 );
             }
             Ok(plan) => {
-                cache.plans.insert(problem.problem_hash().to_string(), plan.clone());
+                cache
+                    .plans
+                    .insert(problem.problem_hash().to_string(), plan.clone());
             }
             Err(_) => {}
         }
@@ -563,8 +565,7 @@ impl Search8<'_> {
                 }
                 Constraint::AtMost { a, n } => {
                     *a == cap.name
-                        && steps.iter().filter(|s| s.capability == *a).count()
-                            >= usize::from(*n)
+                        && steps.iter().filter(|s| s.capability == *a).count() >= usize::from(*n)
                 }
                 _ => false,
             });
@@ -591,7 +592,10 @@ impl Search8<'_> {
                         added.push((p, args));
                     }
                 }
-                steps.push(BoundStep { capability: cap.name.clone(), binding: params });
+                steps.push(BoundStep {
+                    capability: cap.name.clone(),
+                    binding: params,
+                });
                 self.dfs(state, steps, next_cost)?;
                 steps.pop();
                 for (p, args) in added {

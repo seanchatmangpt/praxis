@@ -1,0 +1,41 @@
+\contentsline {chapter}{Abstract}{i}{chapter*.1}%
+\contentsline {chapter}{\numberline {1}Introduction: One Equation, Five Objects}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}The claim in one line}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Why comprehension is the wrong standard, in one paragraph}{2}{section.1.2}%
+\contentsline {section}{\numberline {1.3}What this paper proves}{2}{section.1.3}%
+\contentsline {chapter}{\numberline {2}The Computability Boundary: Rice Quarantine}{3}{chapter.2}%
+\contentsline {section}{\numberline {2.1}The observation axiom}{3}{section.2.1}%
+\contentsline {chapter}{\numberline {3}Admission Algebra: Refusal as Data}{5}{chapter.3}%
+\contentsline {section}{\numberline {3.1}The admission map and refusal as data}{5}{section.3.1}%
+\contentsline {section}{\numberline {3.2}The denial monoid and the eight-category taxonomy}{6}{section.3.2}%
+\contentsline {chapter}{\numberline {4}The BRCE Byte: Machine Algebra of Standing}{8}{chapter.4}%
+\contentsline {section}{\numberline {4.1}CPU notation for the BRCE byte}{8}{section.4.1}%
+\contentsline {section}{\numberline {4.2}The machine algebra of lawful action}{8}{section.4.2}%
+\contentsline {paragraph}{Admission and Denial.}{8}{section.4.2}%
+\contentsline {paragraph}{Policy masks and repairs.}{9}{section.4.2}%
+\contentsline {paragraph}{Completeness and Branchless Selection.}{9}{section.4.2}%
+\contentsline {paragraph}{Action selection.}{9}{section.4.2}%
+\contentsline {paragraph}{The constant-depth eligibility theorem.}{9}{section.4.2}%
+\contentsline {chapter}{\numberline {5}The Lifecycle as a Typestate Category}{10}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Stages, transitions, and the free path category}{10}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Illegal transition is a type error}{11}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Judgment carries its refusal}{12}{section.5.3}%
+\contentsline {section}{\numberline {5.4}The 3-Node SEQ Lifecycle Token Game}{12}{section.5.4}%
+\contentsline {chapter}{\numberline {6}Manufacture, Receipt, and the Enforced Equation}{13}{chapter.6}%
+\contentsline {section}{\numberline {6.1}The manufacturing morphism}{13}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Receipts}{13}{section.6.2}%
+\contentsline {section}{\numberline {6.3}The Bounded Receipted Chatman Equation}{14}{section.6.3}%
+\contentsline {chapter}{\numberline {7}A Worked Example: A Contract-Claim Law Object}{16}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Raw}{16}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Judgment and an andon halt}{16}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Evidence, re-judgment, admission}{17}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Manufacture and receipt}{17}{section.7.4}%
+\contentsline {chapter}{\numberline {8}Map of the Series}{18}{chapter.8}%
+\contentsline {paragraph}{Pillar I --- Admission Algebra.}{18}{chapter.8}%
+\contentsline {paragraph}{Pillar II --- Receipt Cryptography.}{18}{chapter.8}%
+\contentsline {paragraph}{Pillar III --- Planning and Geometry.}{18}{chapter.8}%
+\contentsline {paragraph}{Pillar IV --- The Projection Principle (keystone).}{18}{chapter.8}%
+\contentsline {paragraph}{Prior work --- \cite {chatman2025}.}{18}{chapter.8}%
+\contentsline {chapter}{\numberline {9}Conclusion}{20}{chapter.9}%
+\contentsline {chapter}{\numberline {A}Notation}{21}{appendix.A}%
+\contentsline {chapter}{\numberline {B}Code Correspondence}{22}{appendix.B}%

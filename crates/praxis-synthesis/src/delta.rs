@@ -12,8 +12,7 @@ use serde::Serialize;
 use chatman_common::provenance::content_address;
 
 use crate::graph::{
-    canonical_form, parse_ttl, render_object, Object, Triple, MAX_IRI_LEN, MAX_LIT_LEN,
-    MAX_TRIPLES,
+    canonical_form, parse_ttl, render_object, Object, Triple, MAX_IRI_LEN, MAX_LIT_LEN, MAX_TRIPLES,
 };
 use crate::Refusal;
 
@@ -26,8 +25,9 @@ pub const MAX_DELTA_TRIPLES: usize = 64;
 /// inside a real `IRIREF` token (it would already have ended the previous
 /// one) and `>` terminates it. A hand-built [`Triple`] has no such
 /// guarantee, so both are checked here explicitly.
-const IRI_FORBIDDEN_BYTES: [u8; 10] =
-    [b'<', b'>', b' ', b'\t', b'\n', b'\r', b'"', b'{', b'}', b'|'];
+const IRI_FORBIDDEN_BYTES: [u8; 10] = [
+    b'<', b'>', b' ', b'\t', b'\n', b'\r', b'"', b'{', b'}', b'|',
+];
 
 /// Re-run the decidable caps and delimiter-safety checks the lexer would
 /// have enforced on a parsed IRI/literal, against a hand-built term. This
@@ -63,7 +63,10 @@ fn validate_iri_term(iri: &str) -> Result<(), Refusal> {
             actual: iri.len() as u64,
         });
     }
-    if iri.bytes().any(|b| IRI_FORBIDDEN_BYTES.contains(&b) || b < 0x20) {
+    if iri
+        .bytes()
+        .any(|b| IRI_FORBIDDEN_BYTES.contains(&b) || b < 0x20)
+    {
         return Err(Refusal::InvalidInput {
             detail: format!(
                 "IRI term contains a delimiter-unsafe or control byte, which a parsed \
@@ -141,7 +144,10 @@ impl GraphDelta {
                 ),
             });
         }
-        Ok(Self { additions, removals })
+        Ok(Self {
+            additions,
+            removals,
+        })
     }
 
     /// Parse a delta from two Turtle-subset documents (additions, removals).

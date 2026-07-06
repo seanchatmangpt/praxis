@@ -47,7 +47,11 @@ impl Rel {
     /// Empty relation of the given arity.
     #[must_use]
     pub fn new(arity: u8) -> Self {
-        Self { arity, sorted: Vec::new(), tail: Vec::new() }
+        Self {
+            arity,
+            sorted: Vec::new(),
+            tail: Vec::new(),
+        }
     }
 
     /// Declared arity.
@@ -135,7 +139,11 @@ impl RelStore {
     /// Empty store with the given global tuple cap.
     #[must_use]
     pub fn with_cap(cap: u64) -> Self {
-        Self { rels: std::collections::BTreeMap::new(), len: 0, cap }
+        Self {
+            rels: std::collections::BTreeMap::new(),
+            len: 0,
+            cap,
+        }
     }
 
     /// Total tuples across all relations.

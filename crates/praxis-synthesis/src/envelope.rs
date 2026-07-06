@@ -131,8 +131,10 @@ pub fn wrap_firing_receipt(
 /// An empty slice verifies trivially (nothing to break).
 pub fn verify_envelope_chain(envelopes: &[ReceiptEnvelope]) -> Result<(), Refusal> {
     for (index, envelope) in envelopes.iter().enumerate() {
-        let recomputed =
-            compute_envelope_hash(&envelope.payload, envelope.previous_envelope_hash.as_deref());
+        let recomputed = compute_envelope_hash(
+            &envelope.payload,
+            envelope.previous_envelope_hash.as_deref(),
+        );
         if recomputed != envelope.envelope_hash {
             return Err(Refusal::EnvelopeChainBroken {
                 index,
@@ -197,7 +199,12 @@ mod tests {
 
     fn kernel_with_binding(delegability: &str, handler_local: &str) -> String {
         let mut base = KERNEL.to_string();
-        for cap in &["orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt"] {
+        for cap in &[
+            "orientToFather",
+            "surrenderWill",
+            "requestDailyBread",
+            "writePrayerReceipt",
+        ] {
             base.push_str(&format!(
                 "\n<http://seanchatmangpt.github.io/praxis/prayer#{cap}> \
                  <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}{handler_local}> ;\n\

@@ -346,7 +346,10 @@ pub fn format_remediation_markdown(steps: &[RemediationStep]) -> String {
     // Group by priority
     let mut by_priority: HashMap<RemediationPriority, Vec<_>> = HashMap::new();
     for step in steps {
-        by_priority.entry(step.priority).or_insert_with(Vec::new).push(step);
+        by_priority
+            .entry(step.priority)
+            .or_insert_with(Vec::new)
+            .push(step);
     }
 
     // Output critical issues first

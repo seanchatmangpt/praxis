@@ -118,7 +118,8 @@ impl ComplianceMatrix {
         let repo_name = report.repository.name.clone();
 
         // Add to repository reports
-        self.repository_reports.insert(repo_name.clone(), report.clone());
+        self.repository_reports
+            .insert(repo_name.clone(), report.clone());
 
         // Update category matrix
         for check in &report.checks {
@@ -145,7 +146,11 @@ impl ComplianceMatrix {
         }
 
         // Phase 2: Dependency unification — if supply chain audit failing
-        if let Some(check) = report.checks.iter().find(|c| c.name == "Supply Chain Audit") {
+        if let Some(check) = report
+            .checks
+            .iter()
+            .find(|c| c.name == "Supply Chain Audit")
+        {
             if check.status != ComplianceStatus::Pass {
                 phases.push(RetrofitPhase::Phase2Deps);
             }
@@ -352,20 +357,29 @@ impl FleetSummary {
     /// Generate summary from aggregated compliance matrix
     pub fn from_matrix(matrix: &ComplianceMatrix) -> Self {
         let repo_count = matrix.repository_reports.len();
-        let compliant_count =
-            matrix.repository_reports.values().filter(|r| r.is_compliant()).count();
+        let compliant_count = matrix
+            .repository_reports
+            .values()
+            .filter(|r| r.is_compliant())
+            .count();
 
         let mut repos_by_phase = BTreeMap::new();
         for (phase, repos) in &matrix.phase_requirements {
             for retrofit_phase in repos {
                 let phase_name = format!("{:?}", retrofit_phase);
-                repos_by_phase.entry(phase_name).or_insert_with(Vec::new).push(phase.clone());
+                repos_by_phase
+                    .entry(phase_name)
+                    .or_insert_with(Vec::new)
+                    .push(phase.clone());
             }
         }
 
         let mut repos_by_status = BTreeMap::new();
-        *repos_by_status.entry("Pass".to_string()).or_insert(0) =
-            matrix.repository_reports.values().filter(|r| r.is_compliant()).count();
+        *repos_by_status.entry("Pass".to_string()).or_insert(0) = matrix
+            .repository_reports
+            .values()
+            .filter(|r| r.is_compliant())
+            .count();
         *repos_by_status.entry("Warn".to_string()).or_insert(0) = matrix
             .repository_reports
             .values()
@@ -391,7 +405,11 @@ impl FleetSummary {
             let category_name = format!("{:?}", category);
             category_summary.insert(
                 category_name,
-                CategoryStatus { passing: pass, warning: warn, failing: fail },
+                CategoryStatus {
+                    passing: pass,
+                    warning: warn,
+                    failing: fail,
+                },
             );
         }
 
@@ -415,8 +433,11 @@ impl FleetSummary {
 
         critical_issues.sort_by_key(|i| i.repository.clone());
 
-        let avg_scan_time =
-            if repo_count > 0 { matrix.scan_duration_seconds / repo_count as f32 } else { 0.0 };
+        let avg_scan_time = if repo_count > 0 {
+            matrix.scan_duration_seconds / repo_count as f32
+        } else {
+            0.0
+        };
 
         Self {
             overall_compliance_score: matrix.compliance_score(),
@@ -445,8 +466,10 @@ impl FleetSummary {
         output.push_str("╚════════════════════════════════════════════════════════╝\n\n");
 
         // Overall score
-        output
-            .push_str(&format!("Overall Score:          {:.1}%\n", self.overall_compliance_score));
+        output.push_str(&format!(
+            "Overall Score:          {:.1}%\n",
+            self.overall_compliance_score
+        ));
         output.push_str(&format!(
             "Compliant Repositories: {}/{}\n",
             self.compliant_repositories, self.total_repositories
@@ -489,12 +512,18 @@ impl FleetSummary {
 
         // Critical issues
         if !self.critical_issues.is_empty() {
-            output.push_str(&format!("Critical Issues ({}):\n", self.critical_issues.len()));
+            output.push_str(&format!(
+                "Critical Issues ({}):\n",
+                self.critical_issues.len()
+            ));
             for issue in self.critical_issues.iter().take(10) {
                 output.push_str(&format!("  ✗ {}: {}\n", issue.repository, issue.issue.name));
             }
             if self.critical_issues.len() > 10 {
-                output.push_str(&format!("  ... and {} more\n", self.critical_issues.len() - 10));
+                output.push_str(&format!(
+                    "  ... and {} more\n",
+                    self.critical_issues.len() - 10
+                ));
             }
             output.push_str("\n");
         }
@@ -505,7 +534,10 @@ impl FleetSummary {
             "  Duration: {:.2}s ({} agents)\n",
             self.audit_metadata.total_duration_seconds, self.audit_metadata.agents_used
         ));
-        output.push_str(&format!("  Avg/repo: {:.2}s\n", self.audit_metadata.avg_repo_scan_time));
+        output.push_str(&format!(
+            "  Avg/repo: {:.2}s\n",
+            self.audit_metadata.avg_repo_scan_time
+        ));
 
         output
     }
@@ -564,7 +596,11 @@ impl FleetAuditCoordinator {
     /// * `spec` — Praxis standards specification
     pub fn new(max_agents: usize, spec: PraxisSpec) -> Self {
         let max_agents = max_agents.clamp(1, MAX_AGENTS_HARD_LIMIT);
-        Self { max_agents, spec, observer: None }
+        Self {
+            max_agents,
+            spec,
+            observer: None,
+        }
     }
 
     /// Set an observer for audit progress tracking
@@ -590,7 +626,10 @@ impl FleetAuditCoordinator {
             obs.on_audit_start(repo_count, agents);
         }
 
-        info!("Starting fleet audit: {} repos, {} agents", repo_count, agents);
+        info!(
+            "Starting fleet audit: {} repos, {} agents",
+            repo_count, agents
+        );
 
         let start = Instant::now();
         let (tx, mut rx) = mpsc::channel(agents);
@@ -627,7 +666,13 @@ impl FleetAuditCoordinator {
                             obs.on_repo_scan_complete(&repo_name, &report);
                         }
 
-                        let _ = tx.send(AuditResult { repo_path, report, elapsed }).await;
+                        let _ = tx
+                            .send(AuditResult {
+                                repo_path,
+                                report,
+                                elapsed,
+                            })
+                            .await;
                     }
                     Err(e) => {
                         warn!("Scan failed: {}", e);
@@ -717,13 +762,21 @@ mod tests {
 
     #[test]
     fn test_category_status_pass_rate() {
-        let status = CategoryStatus { passing: 8, warning: 1, failing: 1 };
+        let status = CategoryStatus {
+            passing: 8,
+            warning: 1,
+            failing: 1,
+        };
         assert_eq!(status.pass_rate(), 80.0);
     }
 
     #[test]
     fn test_category_status_pass_rate_empty() {
-        let status = CategoryStatus { passing: 0, warning: 0, failing: 0 };
+        let status = CategoryStatus {
+            passing: 0,
+            warning: 0,
+            failing: 0,
+        };
         assert_eq!(status.pass_rate(), 100.0);
     }
 

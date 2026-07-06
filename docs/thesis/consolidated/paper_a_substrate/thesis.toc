@@ -1,0 +1,41 @@
+\contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Reading order}{4}{section.1.1}%
+\contentsline {chapter}{\numberline {2}The Chatman Equation and the Rice Quarantine}{5}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Five objects}{5}{section.2.1}%
+\contentsline {section}{\numberline {2.2}The Rice quarantine}{5}{section.2.2}%
+\contentsline {chapter}{\numberline {3}Admission Algebra: Obligations, Denial, and Taxonomy}{7}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Refusal as data and the admission retraction}{7}{section.3.1}%
+\contentsline {section}{\numberline {3.2}The denial word algebra}{7}{section.3.2}%
+\contentsline {section}{\numberline {3.3}The fired-mask projection}{8}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Obligations and monotonicity}{8}{section.3.4}%
+\contentsline {section}{\numberline {3.5}The refusal taxonomy}{9}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Taxonomy totality: a disputed claim (speculative)}{10}{section.3.6}%
+\contentsline {section}{\numberline {3.7}Partiality at the lane-decoder boundary}{11}{section.3.7}%
+\contentsline {section}{\numberline {3.8}Assembled totality: a disputed corollary (speculative)}{11}{section.3.8}%
+\contentsline {section}{\numberline {3.9}Pipelines and fleet-wide denial}{12}{section.3.9}%
+\contentsline {section}{\numberline {3.10}Logical quarantine and proof-carrying admission}{12}{section.3.10}%
+\contentsline {section}{\numberline {3.11}The untrusted-observation boundary}{13}{section.3.11}%
+\contentsline {chapter}{\numberline {4}Lifecycle as a Typestate Category}{15}{chapter.4}%
+\contentsline {chapter}{\numberline {5}Manufacture and the Bounded Receipted Chatman Equation}{16}{chapter.5}%
+\contentsline {chapter}{\numberline {6}Receipt Cryptography: Frames, Chains, and the Faithful Chain Theorem}{18}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Frame layout and content commitment}{18}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Hash chain construction and determinism}{19}{section.6.2}%
+\contentsline {section}{\numberline {6.3}The Faithful Chain Theorem}{19}{section.6.3}%
+\contentsline {chapter}{\numberline {7}Conservation of Consequence and the Validator Pipeline}{21}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Conservation of Consequence}{21}{section.7.1}%
+\contentsline {section}{\numberline {7.2}The validator pipeline}{22}{section.7.2}%
+\contentsline {chapter}{\numberline {8}Signed Receipts, Content Addressing, and Interoperability}{23}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Integrity versus authenticity}{23}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Content-addressed storage and interoperability exports}{23}{section.8.2}%
+\contentsline {chapter}{\numberline {9}The Git-Backed Audit Ledger}{25}{chapter.9}%
+\contentsline {chapter}{\numberline {10}Scope Theorem: What a Receipt Chain Does Not Establish}{26}{chapter.10}%
+\contentsline {chapter}{\numberline {11}Worked Example: A Contract-Claim Law Object}{27}{chapter.11}%
+\contentsline {chapter}{\numberline {12}Speculative Register}{28}{chapter.12}%
+\contentsline {section}{\numberline {12.1}Cognitive-load capacity as a motivation for bounded receipts}{28}{section.12.1}%
+\contentsline {section}{\numberline {12.2}The BRCE byte: a performance narrative}{28}{section.12.2}%
+\contentsline {section}{\numberline {12.3}The agent8 byte and membrane fleets}{29}{section.12.3}%
+\contentsline {section}{\numberline {12.4}Prior enterprise-scale claims}{29}{section.12.4}%
+\contentsline {section}{\numberline {12.5}Maximum Reachable Revenue: an applied aside}{29}{section.12.5}%
+\contentsline {chapter}{\numberline {13}Notation and Code Correspondence}{31}{chapter.13}%
+\contentsline {chapter}{\numberline {14}Conclusion}{32}{chapter.14}%
+\contentsline {section}{\numberline {14.1}What would change the balance (speculative)}{33}{section.14.1}%

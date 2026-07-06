@@ -96,7 +96,10 @@ impl AppError {
 
     /// FM-VERIFY-* failure: certify pipeline stage violation.
     pub fn fm_verify(code: u16, stage: &str, msg: impl Into<String>) -> Self {
-        Self::Validation(format!("[FM-VERIFY-{code:03}] stage={stage} {}", msg.into()))
+        Self::Validation(format!(
+            "[FM-VERIFY-{code:03}] stage={stage} {}",
+            msg.into()
+        ))
     }
 }
 
@@ -199,7 +202,11 @@ mod validation_chain_tests {
         let mut c = ValidationChain::new();
         c.check(Err(AppError::fm_chain(1, "empty chain")));
         c.check(Ok(()));
-        c.check(Err(AppError::fm_verify(3, "chain_integrity", "hash mismatch")));
+        c.check(Err(AppError::fm_verify(
+            3,
+            "chain_integrity",
+            "hash mismatch",
+        )));
         let e = c.finish().unwrap_err().to_string();
         assert!(e.contains("FM-CHAIN-001"), "missing chain error: {e}");
         assert!(e.contains("FM-VERIFY-003"), "missing verify error: {e}");
@@ -222,9 +229,17 @@ mod validation_chain_tests {
 
     #[test]
     fn fm_code_constructors_embed_code() {
-        assert!(AppError::fm_cli(42, "msg").to_string().contains("FM-CLI-042"));
-        assert!(AppError::fm_chain(7, "msg").to_string().contains("FM-CHAIN-007"));
-        assert!(AppError::fm_verify(1, "decode", "msg").to_string().contains("FM-VERIFY-001"));
-        assert!(AppError::fm_verify(1, "decode", "msg").to_string().contains("stage=decode"));
+        assert!(AppError::fm_cli(42, "msg")
+            .to_string()
+            .contains("FM-CLI-042"));
+        assert!(AppError::fm_chain(7, "msg")
+            .to_string()
+            .contains("FM-CHAIN-007"));
+        assert!(AppError::fm_verify(1, "decode", "msg")
+            .to_string()
+            .contains("FM-VERIFY-001"));
+        assert!(AppError::fm_verify(1, "decode", "msg")
+            .to_string()
+            .contains("stage=decode"));
     }
 }

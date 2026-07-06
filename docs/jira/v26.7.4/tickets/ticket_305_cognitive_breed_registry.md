@@ -1,7 +1,7 @@
-# Ticket: Compile-Checked Cognitive Breed Registry
+# Ticket: Compile-Checked Cognitive Breed Registry — CLOSED
 
 ## Title
-Promote `COGNITIVE_BREED_MAPPING.md` prose into a checked const table (PROJ-305)
+Promote `COGNITIVE_BREED_MAPPING.md` prose into a checked const table (PROJ-305) — **STATUS: CLOSED**
 
 ## Description
 v26.7.3's PROJ-206 produced a documentation-only mapping of "cognitive breed" names (Guardian,

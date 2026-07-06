@@ -1,0 +1,29 @@
+@startuml 06_dynamic_loop
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+
+title Praxis v26.7.6 - Dynamic: goal -> plan -> workflow -> bcinr -> receipt -> replan
+' Grounding: src/plan_run.rs::plan_run_payload, tests/plan_run_e2e.rs,
+' examples/v26_7_6_after_neon/ (PLANNER_SURFACE.md).
+
+Container(graphlaw, "GraphLaw engine", "praxis-graphlaw via ggen")
+Container(mfg, "Manufacture", "src/mfg.rs")
+Container(solver, "Solver", "bcinr-pddl / pddl-index")
+Container(powl, "POWL compiler + scheduler", "bcinr-powl")
+Container(bcinr, "bcinr execution", "scheduler_tick")
+Container(gate, "Verifier gate", "mfg::validate")
+Container(ledger, "Receipt chain", "src/ops.rs::receipt_issue_payload")
+
+Rel(graphlaw, mfg, "1: load admitted graph + graph_hash_hex", "mfg::load_graph")
+Rel(mfg, solver, "2: manufacture domain.pddl + problem.pddl (enforce_pddl8)", "mfg::manufacture")
+Rel(solver, powl, "3: find_plan -> plan; plan -> POWL sequence", "ops::plan_solve_payload; compile_powl (acyclicity + reachability)")
+Rel(powl, bcinr, "4: tick PowlTape", "scheduler_tick")
+Rel(bcinr, ledger, "5: one OcelCausalFrame per fired atom; ts_ns=0; run id = BLAKE3(graph hash)", "genesis-folded chain")
+Rel(mfg, gate, "6: artifact write + parse/ground/solve round-trip must report solvable", "domain.pddl, problem.pddl, plan.json")
+Rel(gate, ledger, "7: final ledger receipt (ts_ns: 0)", "receipt_issue_payload")
+Rel(ledger, graphlaw, "8: replan - new facts/receipts re-enter law state; temporal lane via plan solve/analyze/execute", "src/verbs/plan.rs")
+
+' Determinism proof: tests/plan_run_e2e.rs two-run determinism -
+' identical powl_chain_hash across runs.
+
+SHOW_LEGEND()
+@enduml

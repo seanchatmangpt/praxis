@@ -38,7 +38,9 @@ use std::{
     sync::OnceLock,
 };
 
-use praxis_retrofit::preventive_gate::{GateValidator, Severity, ValidationResult, ValidationStatus};
+use praxis_retrofit::preventive_gate::{
+    GateValidator, Severity, ValidationResult, ValidationStatus,
+};
 use serde::{Deserialize, Serialize};
 use star_toml::{
     loader::{ConfigLifecycle, TrustedLoader},
@@ -122,7 +124,9 @@ pub struct ReceiptsConfig {
 
 impl Default for ReceiptsConfig {
     fn default() -> Self {
-        Self { dir: "receipts".to_string() }
+        Self {
+            dir: "receipts".to_string(),
+        }
     }
 }
 
@@ -136,7 +140,9 @@ pub struct PlannerConfig {
 
 impl Default for PlannerConfig {
     fn default() -> Self {
-        Self { attention_capacity: 7 }
+        Self {
+            attention_capacity: 7,
+        }
     }
 }
 
@@ -152,7 +158,10 @@ pub struct MfgConfig {
 
 impl Default for MfgConfig {
     fn default() -> Self {
-        Self { ontology_dir: "ontology".to_string(), template_dir: "templates".to_string() }
+        Self {
+            ontology_dir: "ontology".to_string(),
+            template_dir: "templates".to_string(),
+        }
     }
 }
 
@@ -168,7 +177,10 @@ pub struct GateConfig {
 
 impl Default for GateConfig {
     fn default() -> Self {
-        Self { preventive_checks: true, strict: false }
+        Self {
+            preventive_checks: true,
+            strict: false,
+        }
     }
 }
 
@@ -187,7 +199,11 @@ impl Validate for PraxisConfig {
             check_path_str_looks_safe(v, "dir", &self.receipts.dir);
         });
         v.field("planner", |v| {
-            v.check_range("attention_capacity", self.planner.attention_capacity, 1u32..=64u32);
+            v.check_range(
+                "attention_capacity",
+                self.planner.attention_capacity,
+                1u32..=64u32,
+            );
         });
         v.field("mfg", |v| {
             check_path_str_looks_safe(v, "ontology_dir", &self.mfg.ontology_dir);
@@ -224,7 +240,9 @@ impl ConfigLifecycle for PraxisConfig {
 /// Expand a leading `~/` to `$HOME/`. Leaves the path untouched if `HOME` is
 /// unset or the path does not start with `~/`.
 fn expand_tilde_str(value: &str) -> String {
-    expand_tilde(Path::new(value)).to_string_lossy().into_owned()
+    expand_tilde(Path::new(value))
+        .to_string_lossy()
+        .into_owned()
 }
 
 fn expand_tilde(path: &Path) -> PathBuf {
@@ -304,7 +322,8 @@ pub fn load_config() -> anyhow::Result<star_toml::loader::AdmittedConfig<PraxisC
 pub fn load_config_with_gate(
     gate: EvidenceGate,
 ) -> anyhow::Result<star_toml::loader::AdmittedConfig<PraxisConfig>> {
-    let home_config = std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".praxis/config.toml"));
+    let home_config =
+        std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".praxis/config.toml"));
 
     let mut loader = TrustedLoader::new().layer_str(DEFAULTS_TOML, "built-in defaults");
     if let Some(home_config) = home_config {
@@ -318,7 +337,9 @@ pub fn load_config_with_gate(
         .env_prefix("PRAXIS_CONFIG__")
         .with_oracle_gate(gate);
 
-    loader.load_admitted::<PraxisConfig>().map_err(|e| anyhow::anyhow!("{e}"))
+    loader
+        .load_admitted::<PraxisConfig>()
+        .map_err(|e| anyhow::anyhow!("{e}"))
 }
 
 // ── Lazy global accessor ────────────────────────────────────────────────────
@@ -367,7 +388,10 @@ mod tests {
             remediation: None,
             severity: Severity::Info,
         };
-        assert_eq!(gate_verdict_from_validation(&result).verdict, OracleVerdict::Admit);
+        assert_eq!(
+            gate_verdict_from_validation(&result).verdict,
+            OracleVerdict::Admit
+        );
     }
 
     #[test]
@@ -380,7 +404,10 @@ mod tests {
             remediation: None,
             severity: Severity::Info,
         };
-        assert_eq!(gate_verdict_from_validation(&result).verdict, OracleVerdict::Suggest);
+        assert_eq!(
+            gate_verdict_from_validation(&result).verdict,
+            OracleVerdict::Suggest
+        );
     }
 
     #[test]
@@ -393,7 +420,10 @@ mod tests {
             remediation: None,
             severity: Severity::Warning,
         };
-        assert_eq!(gate_verdict_from_validation(&result).verdict, OracleVerdict::Warn);
+        assert_eq!(
+            gate_verdict_from_validation(&result).verdict,
+            OracleVerdict::Warn
+        );
     }
 
     #[test]
@@ -406,7 +436,10 @@ mod tests {
             remediation: Some("fix it".to_string()),
             severity: Severity::Critical,
         };
-        assert_eq!(gate_verdict_from_validation(&result).verdict, OracleVerdict::Fail);
+        assert_eq!(
+            gate_verdict_from_validation(&result).verdict,
+            OracleVerdict::Fail
+        );
     }
 
     #[test]
@@ -419,6 +452,9 @@ mod tests {
             remediation: None,
             severity: Severity::Error,
         };
-        assert_eq!(gate_verdict_from_validation(&result).verdict, OracleVerdict::Warn);
+        assert_eq!(
+            gate_verdict_from_validation(&result).verdict,
+            OracleVerdict::Warn
+        );
     }
 }

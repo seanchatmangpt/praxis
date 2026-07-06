@@ -1,0 +1,39 @@
+@startuml 02_containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Praxis v26.7.6 - Containers
+
+Person(operator, "Operator")
+
+System_Boundary(praxis, "Praxis factory (/Users/sac/praxis)") {
+  Container(cli, "praxis CLI", "Rust bin", "src/main.rs, src/cli.rs, src/verbs/* - plan/mfg/receipt verbs; MCP servers in src/bin/.")
+  Container(graphlaw, "GraphLaw engine", "crates/praxis-graphlaw", "RDF store, N3 forward chaining, Datalog (stratified negation), SHACL, ShEx, SPARQL. Owns meaning and standing.")
+  Container(planner, "PDDL planner", "bcinr-pddl + crates/pddl-index", "domain_from_pddl / problem_from_pddl / GroundProblem::find_plan; indexed grounder auto-selected (pddl_index::should_use_indexed). Owns search.")
+  Container(powl, "POWL workflow engine", "bcinr-powl + crates/powl2-decompose", "compile_powl -> PowlTape, scheduler_tick; WF-net <-> POWL decompose/recompose. Owns workflow shape.")
+  Container(bcinr, "bcinr hot path", "bcinr-* crates (root Cargo.toml:96-100)", "Deterministic control-word execution; OcelCausalFrame/OcelCausalReceipt encoding. Owns execution.")
+  Container(ggen, "ggen factory", "crates/ggen", "graph.rs (GraphEngine seam), sync.rs, template.rs, verbs/. Manufactures artifacts from admitted graphs. Owns manufacturing.")
+  Container(verify, "Verifier gates", "crates/praxis-lean + cargo test + mfg::validate", "Lean/Lake kernel admission (lean.rs, no_sorry.rs), plan round-trip validation, just verify-all. Own judgment.")
+  Container(receipts, "Receipt chain", "bcinr-powl-receipt + src/ops.rs", "BLAKE3, genesis-folded, ts_ns=0; append-only JSONL ledger (.ggen-v2/receipt.json). Owns evidence.")
+  Container(reports, "Report publisher", "ggen sync projections", "docs/releases/v26.7.6/*.md generated/authored; e.g. BREED_ALGORITHM_REGISTRY.md is a pure SPARQL projection.")
+  ContainerDb(ws, "Workspace state", "filesystem", "schema/praxis.ttl, packs/, examples/v26_7_6_after_neon/, artifacts, receipt ledger.")
+}
+
+System_Ext(llm, "LLM providers", "Proposals only - never standing")
+System_Ext(github, "GitHub")
+
+Rel(operator, cli, "just verify-all / plan run / ggen verbs")
+Rel(cli, graphlaw, "loads facts, materializes law", "via ggen GraphEngine")
+Rel(graphlaw, planner, "admitted facts -> PDDL8", "src/mfg.rs manufacture; ggen law export")
+Rel(planner, powl, "plan -> POWL sequence", "src/plan_run.rs -> compile_powl")
+Rel(powl, bcinr, "scheduler_tick fires atoms")
+Rel(bcinr, receipts, "one OcelCausalFrame per fired atom, ts_ns=0")
+Rel(graphlaw, ggen, "admitted graph feeds templates", "graph.rs::GraphLawStore")
+Rel(ggen, verify, "artifacts gated before receipting", "mfg::validate solvable check")
+Rel(verify, receipts, "gauge outcomes chained")
+Rel(receipts, reports, "evidence cited in published docs")
+Rel(ggen, ws, "reads fixtures / writes artifacts")
+Rel(reports, github, "published")
+Rel(llm, cli, "proposals in; admission only through GraphLaw + gates", "dashed boundary")
+
+SHOW_LEGEND()
+@enduml

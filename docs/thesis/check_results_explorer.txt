@@ -1,0 +1,113 @@
+=== 00_foundations.tex ===
+Overclaim 'trivially' at line 523: onto the decidable (indeed, trivially decidable) language of paths in $\Life$. Both are Rice
+Hype word 'magic' at line 950: \emph{The magical number seven, plus or minus two: some limits on our capacity
+Hype word 'magic' at line 956: \emph{The magical number 4 in short-term memory: A reconsideration of mental
+Theorems/Lemmas/Props/Cors count: 12, Proofs count: 12
+=== 01_admission_algebra.tex ===
+Theorems/Lemmas/Props/Cors count: 20, Proofs count: 20
+=== 02_receipt_cryptography.tex ===
+Theorems/Lemmas/Props/Cors count: 19, Proofs count: 17
+MISMATCH in 02_receipt_cryptography.tex: 19 theorems vs 17 proofs
+Theorems at: [220, 251, 313, 329, 345, 370, 387, 412, 445, 480, 522, 577, 607, 631, 665, 702, 753, 793, 834]
+Proofs at: [225, 259, 319, 337, 352, 397, 420, 461, 530, 583, 621, 637, 671, 709, 765, 816, 843]
+=== 03_planning_geometry.tex ===
+Theorems/Lemmas/Props/Cors count: 21, Proofs count: 19
+MISMATCH in 03_planning_geometry.tex: 21 theorems vs 19 proofs
+Theorems at: [189, 258, 272, 323, 372, 410, 436, 493, 513, 583, 600, 628, 641, 678, 709, 737, 766, 792, 808, 932, 970]
+Proofs at: [196, 265, 280, 332, 384, 423, 445, 501, 522, 591, 608, 636, 651, 723, 744, 798, 816, 939, 981]
+=== 04_projection_and_scale.tex ===
+Hype word 'ultimate' at line 716: Because the sweep is bandwidth-bound (Estimate~\ref{est:sweep}), the ultimate limit on planetary
+Theorems/Lemmas/Props/Cors count: 19, Proofs count: 14
+MISMATCH in 04_projection_and_scale.tex: 19 theorems vs 14 proofs
+Theorems at: [210, 241, 288, 318, 369, 424, 452, 547, 570, 596, 606, 635, 686, 707, 755, 776, 825, 858, 890]
+Proofs at: [224, 249, 294, 332, 375, 435, 560, 615, 697, 766, 786, 833, 865, 900]
+=== projection_thesis.tex ===
+Hype word 'magic' at line 779: \bibitem{miller1956} G.~A.~Miller. The magical number seven, plus or minus two.
+Hype word 'magic' at line 781: \bibitem{cowan2001} N.~Cowan. The magical number four in short-term memory.
+Theorems/Lemmas/Props/Cors count: 14, Proofs count: 11
+MISMATCH in projection_thesis.tex: 14 theorems vs 11 proofs
+Theorems at: [160, 203, 280, 304, 310, 369, 389, 414, 431, 460, 477, 489, 596, 682]
+Proofs at: [165, 209, 292, 328, 382, 421, 437, 467, 482, 614, 689]
+=== synthesis_thesis.tex ===
+Theorems/Lemmas/Props/Cors count: 4, Proofs count: 2
+MISMATCH in synthesis_thesis.tex: 4 theorems vs 2 proofs
+Theorems at: [207, 248, 351, 473]
+Proofs at: [258, 481]
+
+=== LOG FILES ===
+00_foundations.log Warning/Error: LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
+00_foundations.log Warning/Error: LaTeX Font Warning: Font shape `OT1/cmr/m/scit' undefined
+00_foundations.log Warning/Error: LaTeX Font Warning: Font shape `OT1/cmr/m/scit' undefined
+01_admission_algebra.log Warning/Error: LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
+01_admission_algebra.log Warning/Error: LaTeX Font Warning: Font shape `OT1/cmr/m/scit' undefined
+02_receipt_cryptography.log Warning/Error: LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
+03_planning_geometry.log Warning/Error: LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
+04_projection_and_scale.log Warning/Error: LaTeX Warning: Reference `prop:monoid' on page 17 undefined on input line 822.
+04_projection_and_scale.log Warning/Error: LaTeX Warning: There were undefined references.
+projection_thesis.log Warning/Error: LaTeX Warning: Citation `miller1956' on page i undefined on input line 79.
+projection_thesis.log Warning/Error: LaTeX Warning: Citation `cowan2001' on page i undefined on input line 79.
+projection_thesis.log Warning/Error: LaTeX Warning: Citation `langdale2019simdjson' on page 1 undefined on input lin
+projection_thesis.log Warning/Error: LaTeX Warning: Citation `bast2017qlever' on page 1 undefined on input line 127.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:obs' on page 1 undefined on input line 139.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:mu' on page 1 undefined on input line 140.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:cost' on page 1 undefined on input line 142.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:calc' on page 1 undefined on input line 143.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:geo' on page 1 undefined on input line 144.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:instance' on page 1 undefined on input line 145.
+projection_thesis.log Warning/Error: LaTeX Warning: Citation `rice1953' on page 2 undefined on input line 166.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `thm:rice' on page 2 undefined on input line 171.
+projection_thesis.log Warning/Error: LaTeX Warning: Citation `oconnor2021blake3' on page 4 undefined on input line 2
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:frame' on page 5 undefined on input line 281.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:chain' on page 5 undefined on input line 286.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:frame' on page 5 undefined on input line 300.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `def:adm' on page 5 undefined on input line 311.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `def:mu' on page 5 undefined on input line 311.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `def:receipt' on page 5 undefined on input line 311.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:frame' on page 5 undefined on input line 320.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:chatman' on page 6 undefined on input line 329.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:chain' on page 6 undefined on input line 332.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `thm:faithful' on page 6 undefined on input line 333.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `thm:conservation' on page 6 undefined on input line 3
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `def:regimes' on page 7 undefined on input line 378.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `cor:noncomp' on page 7 undefined on input line 384.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `def:regimes' on page 7 undefined on input line 386.
+projection_thesis.log Warning/Error: LaTeX Warning: Citation `schrijver1986' on page 9 undefined on input line 463.
+projection_thesis.log Warning/Error: LaTeX Warning: Citation `kourani2026' on page 9 undefined on input line 489.
+projection_thesis.log Warning/Error: LaTeX Warning: Citation `vanderaalst2016' on page 9 undefined on input line 489
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `thm:sep' on page 9 undefined on input line 497.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `thm:faithful' on page 11 undefined on input line 518.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `thm:gap' on page 11 undefined on input line 519.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `prop:semilattice' on page 11 undefined on input line
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `con:denial' on page 11 undefined on input line 535.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `def:receipt' on page 11 undefined on input line 542.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `def:adm' on page 11 undefined on input line 544.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:geo' on page 11 undefined on input line 546.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:frame' on page 11 undefined on input line 548.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `con:denial' on page 11 undefined on input line 548.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `thm:faithful' on page 11 undefined on input line 549.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:chain' on page 12 undefined on input line 565.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:frame' on page 12 undefined on input line 579.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ax:obs' on page 12 undefined on input line 580.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `thm:faithful' on page 12 undefined on input line 587.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `con:agent8' on page 12 undefined on input line 597.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:cost' on page 13 undefined on input line 617.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `con:agent8' on page 13 undefined on input line 625.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:chain' on page 13 undefined on input line 640.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ax:obs' on page 13 undefined on input line 660.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:geo' on page 14 undefined on input line 663.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `thm:faithful' on page 14 undefined on input line 667.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `thm:sep' on page 14 undefined on input line 670.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `thm:gap' on page 14 undefined on input line 690.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:obs' on page 15 undefined on input line 702.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:mu' on page 15 undefined on input line 703.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:cost' on page 15 undefined on input line 707.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:mu' on page 15 undefined on input line 711.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:calc' on page 15 undefined on input line 712.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:geo' on page 15 undefined on input line 713.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `ch:instance' on page 15 undefined on input line 715.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:frame' on page 16 undefined on input line 739.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `con:agent8' on page 16 undefined on input line 744.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:frame' on page 17 undefined on input line 760.
+projection_thesis.log Warning/Error: LaTeX Warning: Reference `eq:chain' on page 17 undefined on input line 761.
+projection_thesis.log Warning/Error: LaTeX Warning: Citation `chatman2025' on page 17 undefined on input line 773.
+projection_thesis.log Warning/Error: LaTeX Warning: There were undefined references.

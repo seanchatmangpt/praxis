@@ -1,0 +1,42 @@
+@startuml 07_deployment
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Deployment.puml
+
+title Praxis v26.7.6 - Deployment
+
+Deployment_Node(mac, "Local Mac workstation", "macOS (Darwin), /Users/sac") {
+  Deployment_Node(ws, "praxis workspace", "/Users/sac/praxis") {
+    Container(cli, "praxis CLI + MCP servers", "cargo workspace bins", "src/main.rs; src/bin/mcp_lawobject_server.rs, mcp_server.rs")
+    Container(ggen, "ggen factory", "crates/ggen")
+    Container(graphlaw, "praxis-graphlaw", "crates/praxis-graphlaw")
+    Container(lean, "praxis-lean gate", "crates/praxis-lean", "wraps local Lean 4 / Lake toolchain; Mathlib via prebuilt cache (commit dab70b7)")
+    ContainerDb(ledger, "Receipt ledger", ".ggen-v2/receipt.json", "append-only JSONL, BLAKE3 genesis-folded")
+  }
+  Deployment_Node(sibling, "Sibling path deps", "/Users/sac/{bcinr,wasm4pm,wasm4pm-compat}") {
+    Container(bcinr, "bcinr crates", "path deps, root Cargo.toml:96-100")
+    Container(w4pm, "wasm4pm crates", "prolog8, wasm4pm-cognition, wasm4pm-planner (Cargo.toml:101-116)")
+  }
+  Deployment_Node(lake, "Lean toolchain", "elan/lake") {
+    Container(kernel, "Lean 4 kernel", "admission authority", "no_sorry.rs enforces sorry-free")
+  }
+}
+
+Deployment_Node(remote, "Remote", "internet") {
+  Deployment_Node(gh, "GitHub", "git remote") {
+    Container(repo, "praxis repository", "commits + published release docs")
+  }
+  Deployment_Node(llm, "LLM providers", "API") {
+    Container(prop, "Proposal drafting", "PROPOSALS ONLY", "no runtime dep in praxis-synthesis (tests/no_llm_runtime.rs)")
+  }
+}
+
+Rel(cli, ggen, "invokes")
+Rel(ggen, graphlaw, "GraphEngine seam", "crates/ggen/src/graph.rs")
+Rel(cli, bcinr, "links (path deps)")
+Rel(cli, w4pm, "links (path deps; wasm4pm-planner is the independent cross-check lane)")
+Rel(lean, kernel, "lake build")
+Rel(ggen, ledger, "appends receipts")
+Rel(mac, gh, "git push", "https/ssh")
+Rel(prop, mac, "drafts flow to operator/agent; never direct standing")
+
+SHOW_LEGEND()
+@enduml

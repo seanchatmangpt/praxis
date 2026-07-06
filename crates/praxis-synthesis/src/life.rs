@@ -25,8 +25,7 @@ pub const AMEND_CANDIDATE: &str = "http://seanchatmangpt.github.io/praxis/life#A
 /// A recognized temptation risk.
 pub const TEMPTATION_RISK: &str = "http://seanchatmangpt.github.io/praxis/life#TemptationRisk";
 /// Provision anxiety (the daily-bread deviation class).
-pub const PROVISION_ANXIETY: &str =
-    "http://seanchatmangpt.github.io/praxis/life#ProvisionAnxiety";
+pub const PROVISION_ANXIETY: &str = "http://seanchatmangpt.github.io/praxis/life#ProvisionAnxiety";
 /// A threat that cannot be bounded inside the day window — surrendered,
 /// never computed.
 pub const UNBOUNDED_THREAT: &str = "http://seanchatmangpt.github.io/praxis/life#UnboundedThreat";
@@ -59,8 +58,7 @@ pub const SURRENDERED: &str = "http://seanchatmangpt.github.io/praxis/life#surre
 /// Predicate: a guard act covers a temptation risk.
 pub const GUARDS: &str = "http://seanchatmangpt.github.io/praxis/life#guards";
 /// Predicate: a provision anxiety carries a daily-bread receipt fact.
-pub const HAS_BREAD_RECEIPT: &str =
-    "http://seanchatmangpt.github.io/praxis/life#hasBreadReceipt";
+pub const HAS_BREAD_RECEIPT: &str = "http://seanchatmangpt.github.io/praxis/life#hasBreadReceipt";
 
 /// All subjects typed as `class_iri` via `rdf:type`, byte-sorted, deduped.
 #[must_use]

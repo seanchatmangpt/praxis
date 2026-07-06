@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.10.26)  4 JUL 2026 00:06
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.10.26)  4 JUL 2026 16:49
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**00_foundations_rewritten.tex
-(./00_foundations_rewritten.tex
+**docs/thesis/projection_thesis.tex
+(./docs/thesis/projection_thesis.tex
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-02-20>
 (/usr/local/texlive/2024/texmf-dist/tex/latex/base/book.cls
@@ -725,28 +725,27 @@ File: l3backend-pdftex.def 2024-02-20 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count327
 \l__pdf_internal_box=\box68
 )
-(./00_foundations_rewritten.aux)
-\openout1 = `00_foundations_rewritten.aux'.
+No file projection_thesis.aux.
+\openout1 = `projection_thesis.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 52.
+LaTeX Font Info:    ... okay on input line 52.
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
 *geometry* verbose mode - [ preamble ] result:
@@ -781,19 +780,19 @@ LaTeX Font Info:    ... okay on input line 60.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Info: Redefining \microtypecontext on input line 60.
-Package microtype Info: Applying patch `item' on input line 60.
-Package microtype Info: Applying patch `toc' on input line 60.
-Package microtype Info: Applying patch `eqnum' on input line 60.
-Package microtype Info: Applying patch `footnote' on input line 60.
-Package microtype Info: Applying patch `verbatim' on input line 60.
+LaTeX Info: Redefining \microtypecontext on input line 52.
+Package microtype Info: Applying patch `item' on input line 52.
+Package microtype Info: Applying patch `toc' on input line 52.
+Package microtype Info: Applying patch `eqnum' on input line 52.
+Package microtype Info: Applying patch `footnote' on input line 52.
+Package microtype Info: Applying patch `verbatim' on input line 52.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
 Package microtype Info: Automatic font expansion enabled (level 2),
 (microtype)             stretch: 20, shrink: 20, step: 1, non-selected.
 Package microtype Info: Using default expansion set `alltext-nott'.
-LaTeX Info: Redefining \showhyphens on input line 60.
+LaTeX Info: Redefining \showhyphens on input line 52.
 Package microtype Info: No adjustment of tracking.
 Package microtype Info: No adjustment of interword spacing.
 Package microtype Info: No adjustment of character kerning.
@@ -823,13 +822,11 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-Package hyperref Info: Link coloring OFF on input line 60.
-
-(./00_foundations_rewritten.out) (./00_foundations_rewritten.out)
+Package hyperref Info: Link coloring OFF on input line 52.
 \@outlinefile=\write4
-\openout4 = `00_foundations_rewritten.out'.
+\openout4 = `projection_thesis.out'.
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 64.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 56.
 
 
 (/usr/local/texlive/2024/texmf-dist/tex/latex/amsfonts/umsa.fd
@@ -838,7 +835,7 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 (/usr/local/texlive/2024/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 64.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 56.
 
 
 (/usr/local/texlive/2024/texmf-dist/tex/latex/amsfonts/umsb.fd
@@ -851,243 +848,376 @@ File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 
 
 {/usr/local/texlive/2024/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-Package microtype Info: Loading generic protrusion settings for font family
-(microtype)             `cmss' (encoding: OT1).
-(microtype)             For optimal results, create family-specific settings.
-(microtype)             See the microtype manual for details.
+
+LaTeX Warning: Citation `miller1956' on page i undefined on input line 79.
+
+
+LaTeX Warning: Citation `cowan2001' on page i undefined on input line 79.
+
 
 pdfTeX warning (ext4): destination with the same identifier (name{page.i}) has 
 been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.94 \tableofcontents
-                      [1
+l.83 \chapter
+             *{Abstract} [1
 
-] (./00_foundations_rewritten.toc [2
+] [2
 
-] [3])
+]
+No file projection_thesis.toc.
 \tf@toc=\write5
-\openout5 = `00_foundations_rewritten.toc'.
+\openout5 = `projection_thesis.toc'.
 
- [4]
+[3
+
+]
 Chapter 1.
+
+LaTeX Warning: Citation `langdale2019simdjson' on page 1 undefined on input lin
+e 125.
+
+
+LaTeX Warning: Citation `bast2017qlever' on page 1 undefined on input line 127.
+
+
+
+LaTeX Warning: Reference `ch:obs' on page 1 undefined on input line 139.
+
+
+LaTeX Warning: Reference `ch:mu' on page 1 undefined on input line 140.
+
+
+LaTeX Warning: Reference `ch:cost' on page 1 undefined on input line 142.
+
+
+LaTeX Warning: Reference `ch:calc' on page 1 undefined on input line 143.
+
+
+LaTeX Warning: Reference `ch:geo' on page 1 undefined on input line 144.
+
+
+LaTeX Warning: Reference `ch:instance' on page 1 undefined on input line 145.
+
 [1
 
 
 ]
+Chapter 2.
+
+LaTeX Warning: Citation `rice1953' on page 2 undefined on input line 166.
+
+
+LaTeX Warning: Reference `thm:rice' on page 2 undefined on input line 171.
+
+[2
+
+]
+Overfull \hbox (16.20468pt too wide) has occurred while \output is active
+\OT1/cmr/m/sl/10.95 CHAPTER 2.  OBSERVATION, ADMISSION, AND THE ALGEBRA OF THE 
+QUARANTINE \OT1/cmr/m/n/10.95 3
+ []
+
+[3]
+Chapter 3.
+Package microtype Info: Loading generic protrusion settings for font family
+(microtype)             `cmss' (encoding: OT1).
+(microtype)             For optimal results, create family-specific settings.
+(microtype)             See the microtype manual for details.
+
+LaTeX Warning: Citation `oconnor2021blake3' on page 4 undefined on input line 2
+58.
+
+[4
+
+]
+
+LaTeX Warning: Reference `eq:frame' on page 5 undefined on input line 281.
+
+
+LaTeX Warning: Reference `eq:chain' on page 5 undefined on input line 286.
+
+
+LaTeX Warning: Reference `eq:frame' on page 5 undefined on input line 300.
+
+
+LaTeX Warning: Reference `def:adm' on page 5 undefined on input line 311.
+
+
+LaTeX Warning: Reference `def:mu' on page 5 undefined on input line 311.
+
+
+LaTeX Warning: Reference `def:receipt' on page 5 undefined on input line 311.
+
+
+LaTeX Warning: Reference `eq:frame' on page 5 undefined on input line 320.
+
+[5]
+
+LaTeX Warning: Reference `eq:chatman' on page 6 undefined on input line 329.
+
+
+LaTeX Warning: Reference `eq:chain' on page 6 undefined on input line 332.
+
+
+LaTeX Warning: Reference `thm:faithful' on page 6 undefined on input line 333.
+
+
+LaTeX Warning: Reference `thm:conservation' on page 6 undefined on input line 3
+41.
+
+[6]
+Chapter 4.
+
+LaTeX Warning: Reference `def:regimes' on page 7 undefined on input line 378.
+
+
+LaTeX Warning: Reference `cor:noncomp' on page 7 undefined on input line 384.
+
+
+LaTeX Warning: Reference `def:regimes' on page 7 undefined on input line 386.
+
+[7
+
+]
+Chapter 5.
+
+Overfull \hbox (40.74356pt too wide) in paragraph at lines 415--419
+[][]\OT1/cmr/bx/n/10.95 (-20) Proposition 5.1 \OT1/cmr/m/n/10.95 (-20) (At-ten-
+tion is con-served; makespan is the tar-get)\OT1/cmr/bx/n/10.95 (-20) . []\OT1/
+cmr/m/it/10.95 (-20) To-tal at-ten-tion $[][]  [][] \OML/cmm/m/it/10.95 r[]\OT1
+/cmr/bx/n/10.95 (-20) 1[]\OT1/cmr/m/n/10.95 (-20) (\OML/cmm/m/it/10.95 t\OT1/cm
+r/m/n/10.95 (-20) ) \OML/cmm/m/it/10.95 dt \OT1/cmr/m/n/10.95 (-20) =
+ []
+
+[8
+
+]
+Chapter 6.
+
+LaTeX Warning: Citation `schrijver1986' on page 9 undefined on input line 463.
+
+
+Overfull \hbox (48.40764pt too wide) in paragraph at lines 472--475
+[][]\OT1/cmr/bx/n/10.95 (-20) Definition 6.2 \OT1/cmr/m/n/10.95 (-20) (Fit-ness
+ as nor-mal-ized dis-tance)\OT1/cmr/bx/n/10.95 (-20) . []$\OML/cmm/m/it/10.95 '
+\OT1/cmr/m/n/10.95 (-20) (\OML/cmm/m/it/10.95 ^^[\OT1/cmr/m/n/10.95 (-20) ) = 1
+ \OMS/cmsy/m/n/10.95 ^^@ [] 2
+ []
+
+
+LaTeX Warning: Citation `kourani2026' on page 9 undefined on input line 489.
+
+
+LaTeX Warning: Citation `vanderaalst2016' on page 9 undefined on input line 489
+.
+
+
+LaTeX Warning: Reference `thm:sep' on page 9 undefined on input line 497.
+
+[9
+
+] [10]
+Chapter 7.
 Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `cmtt' (encoding: OT1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
- [2{/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.en
+
+LaTeX Warning: Reference `thm:faithful' on page 11 undefined on input line 518.
+
+
+
+LaTeX Warning: Reference `thm:gap' on page 11 undefined on input line 519.
+
+
+LaTeX Warning: Reference `prop:semilattice' on page 11 undefined on input line 
+520.
+
+
+LaTeX Warning: Reference `con:denial' on page 11 undefined on input line 535.
+
+
+LaTeX Warning: Reference `def:receipt' on page 11 undefined on input line 542.
+
+
+LaTeX Warning: Reference `def:adm' on page 11 undefined on input line 544.
+
+
+LaTeX Warning: Reference `ch:geo' on page 11 undefined on input line 546.
+
+
+LaTeX Warning: Reference `eq:frame' on page 11 undefined on input line 548.
+
+
+LaTeX Warning: Reference `con:denial' on page 11 undefined on input line 548.
+
+
+LaTeX Warning: Reference `thm:faithful' on page 11 undefined on input line 549.
+
+
+[11
+
+]
+
+LaTeX Warning: Reference `eq:chain' on page 12 undefined on input line 565.
+
+
+LaTeX Warning: Reference `eq:frame' on page 12 undefined on input line 579.
+
+
+LaTeX Warning: Reference `ax:obs' on page 12 undefined on input line 580.
+
+
+LaTeX Warning: Reference `thm:faithful' on page 12 undefined on input line 587.
+
+
+
+LaTeX Warning: Reference `con:agent8' on page 12 undefined on input line 597.
+
+[12{/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.en
 c}]
-Chapter 2.
-[3
 
-] [4]
-Chapter 3.
-[5
-
-]
-Overfull \hbox (30.72858pt too wide) has occurred while \output is active
-\OT1/cmr/m/sl/10.95 CHAPTER 3.  CHAPTER 3: THE COMPUTABILITY BOUNDARY: WHY ADMI
-SSION EXISTS \OT1/cmr/m/n/10.95 6
- []
-
-[6]
-Chapter 4.
-[7
-
-] [8]
-Overfull \hbox (49.12296pt too wide) in paragraph at lines 429--432
-\OT1/cmr/m/n/10.95 (-20) The de-nial monoid is im-ple-mented as the \OT1/cmtt/m
-/n/10.95 DenialPolarity \OT1/cmr/m/n/10.95 (-20) type in \OT1/cmtt/m/n/10.95 cr
-ates/praxis-core/src/refusal.rs\OT1/cmr/m/n/10.95 (-20) .
- []
-
-[9]
-Chapter 5.
-[10
-
-]
-Overfull \hbox (37.36777pt too wide) in paragraph at lines 507--510
-\OT1/cmr/m/n/10.95 (-20) state $\OML/cmm/m/it/10.95 M \OMS/cmsy/m/n/10.95 2 f\O
-T1/cmr/m/n/10.95 (-20) 0\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 (-20) 1\OMS/cm
-sy/m/n/10.95 g[]$ \OT1/cmr/m/n/10.95 (-20) and tran-si-tions $\OMS/cmsy/m/n/10.
-95 f\OML/cmm/m/it/10.95 j; a; r\OMS/cmsy/m/n/10.95 g$\OT1/cmr/m/n/10.95 (-20) .
- Let $\OML/cmm/m/it/10.95 M \OT1/cmr/m/n/10.95 (-20) = ([]\OML/cmm/m/it/10.95 ;
- []; []; []\OT1/cmr/m/n/10.95 (-20) )$.
- []
+LaTeX Warning: Reference `ch:cost' on page 13 undefined on input line 617.
 
 
-Overfull \hbox (90.31744pt too wide) in paragraph at lines 524--529
-\OT1/cmr/m/n/10.95 (-20) The type-s-tate is im-ple-mented via the sealed trait 
-\OT1/cmtt/m/n/10.95 Stage \OT1/cmr/m/n/10.95 (-20) on \OT1/cmtt/m/n/10.95 LawOb
-ject \OT1/cmr/m/n/10.95 (-20) in \OT1/cmtt/m/n/10.95 crates/praxis-core/src/lif
-ecycle.rs\OT1/cmr/m/n/10.95 (-20) .
- []
+LaTeX Warning: Reference `con:agent8' on page 13 undefined on input line 625.
 
-[11] [12]
-Chapter 6.
-[13
 
-]
-Overfull \hbox (29.6664pt too wide) has occurred while \output is active
-\OT1/cmr/m/sl/10.95 CHAPTER 6.  CHAPTER 6: MANUFACTURE: DETERMINISTIC BOUNDED P
-RODUCTION \OT1/cmr/m/n/10.95 14
- []
+LaTeX Warning: Reference `eq:chain' on page 13 undefined on input line 640.
+
+
+LaTeX Warning: Reference `ax:obs' on page 13 undefined on input line 660.
+
+[13]
+
+LaTeX Warning: Reference `ch:geo' on page 14 undefined on input line 663.
+
+
+LaTeX Warning: Reference `thm:faithful' on page 14 undefined on input line 667.
+
+
+
+LaTeX Warning: Reference `thm:sep' on page 14 undefined on input line 670.
+
+LaTeX Font Info:    Font shape `OT1/cmss/m/it' in size <10.95> not available
+(Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 685.
+
+
+LaTeX Warning: Reference `thm:gap' on page 14 undefined on input line 690.
 
 [14]
-Chapter 7.
+Chapter 8.
+
+LaTeX Warning: Reference `ch:obs' on page 15 undefined on input line 702.
+
+
+LaTeX Warning: Reference `ch:mu' on page 15 undefined on input line 703.
+
+
+LaTeX Warning: Reference `ch:cost' on page 15 undefined on input line 707.
+
+
+LaTeX Warning: Reference `ch:mu' on page 15 undefined on input line 711.
+
+
+LaTeX Warning: Reference `ch:calc' on page 15 undefined on input line 712.
+
+
+LaTeX Warning: Reference `ch:geo' on page 15 undefined on input line 713.
+
+
+LaTeX Warning: Reference `ch:instance' on page 15 undefined on input line 715.
+
 [15
 
 ]
-Overfull \hbox (56.91597pt too wide) in paragraph at lines 644--645
-\OT1/cmr/m/n/10.95 (-20) The causal frame is im-ple-mented as \OT1/cmtt/m/n/10.
-95 OcelCausalFrame \OT1/cmr/m/n/10.95 (-20) us-ing BLAKE3 in \OT1/cmtt/m/n/10.9
-5 crates/praxis-core/src/law.rs\OT1/cmr/m/n/10.95 (-20) . 
- []
-
-[16]
-Chapter 8.
-
-Overfull \hbox (15.97559pt too wide) in paragraph at lines 684--685
-\OT1/cmr/m/n/10.95 (-20) The \OT1/cmr/m/sc/10.95 (-20) brce \OT1/cmr/m/n/10.95 
-(-20) in-vari-ants are ver-i-fied by the val-i-da-tion pipeline in \OT1/cmtt/m/
-n/10.95 crates/praxis-core/src/verify.rs\OT1/cmr/m/n/10.95 (-20) . 
- []
-
-[17
-
-] [18]
-Chapter 9.
-
-Overfull \hbox (20.0805pt too wide) in paragraph at lines 712--713
-[][]\OT1/cmr/bx/n/10.95 (-20) Definition 9.1 \OT1/cmr/m/n/10.95 (-20) (Ac-tu-a-
-tion--to-Ter-mi-nal--Com-mit-ment Map)\OT1/cmr/bx/n/10.95 (-20) . []\OT1/cmr/m/
-n/10.95 (-20) The actuation-to-terminal-commitment
- []
-
-
-LaTeX Font Warning: Font shape `OT1/cmr/m/scit' undefined
-(Font)              using `OT1/cmr/m/sc' instead on input line 717.
-
-[19
-
-]
-Overfull \hbox (59.42413pt too wide) in paragraph at lines 751--753
-\OT1/cmr/m/n/10.95 (-20) The con-ser-va-tion in-vari-ants are tested in the pro
-p-erty tests un-der \OT1/cmtt/m/n/10.95 crates/praxis-core/tests/prop[]law.rs\O
-T1/cmr/m/n/10.95 (-20) .
- []
-
-[20]
-Chapter 10.
-LaTeX Font Info:    Trying to load font information for OMS+cmtt on input line 
-783.
-LaTeX Font Info:    No file OMScmtt.fd. on input line 783.
-
-LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
-(Font)              using `OMS/cmsy/m/n' instead
-(Font)              for symbol `textbraceleft' on input line 783.
-
-
-Overfull \hbox (101.59666pt too wide) detected at line 784
-\OML/cmm/m/it/10.95 o \OT1/cmr/m/n/10.95 = []\OML/cmm/m/it/10.95 :
- []
-
-
-Overfull \hbox (60.30392pt too wide) detected at line 794
-[]\OML/cmm/m/it/10.95 :
- []
-
-[21
-
-]
-Overfull \hbox (6.64478pt too wide) in paragraph at lines 812--814
-\OT1/cmr/m/n/10.95 (-20) The agent's sta-tus tran-si-tions are pro-jected into 
-the \OT1/cmtt/m/n/10.95 agent8 \OT1/cmr/m/n/10.95 (-20) byte in \OT1/cmtt/m/n/1
-0.95 crates/agent8/src/byte.rs\OT1/cmr/m/n/10.95 (-20) . 
- []
-
-
-Overfull \hbox (23.4286pt too wide) has occurred while \output is active
-\OT1/cmr/m/sl/10.95 CHAPTER 10.  CHAPTER 10: WORKED EXAMPLE: A CONTRACT-CLAIM L
-AW OBJECT \OT1/cmr/m/n/10.95 22
- []
-
-[22]
-Chapter 11.
-[23
-
-] [24]
-Chapter 12.
-[25
-
-] [26]
 Appendix A.
-[27
+
+LaTeX Warning: Reference `eq:frame' on page 16 undefined on input line 739.
+
+
+LaTeX Warning: Reference `con:agent8' on page 16 undefined on input line 744.
+
+[16
 
 ]
 Appendix B.
 
-Overfull \hbox (109.25613pt too wide) in paragraph at lines 959--976
- [][] 
+LaTeX Warning: Reference `eq:frame' on page 17 undefined on input line 760.
+
+
+LaTeX Warning: Reference `eq:chain' on page 17 undefined on input line 761.
+
+
+Overfull \hbox (63.5529pt too wide) in paragraph at lines 753--772
+ [] 
  []
 
-[28
 
-]
-Appendix C.
-[29
+LaTeX Warning: Citation `chatman2025' on page 17 undefined on input line 773.
 
-] [30
+[17
 
-] (./00_foundations_rewritten.aux)
+] [18
+
+] (docs/thesis/build/projection_thesis.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-02-20>
  ***********
 
 
-LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+LaTeX Warning: There were undefined references.
 
-Package rerunfilecheck Info: File `00_foundations_rewritten.out' has not change
-d.
-(rerunfilecheck)             Checksum: 4C70BB6DA0552E22C1A022C2CEE0863E;13895.
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+
+Package rerunfilecheck Warning: File `projection_thesis.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `projection_thesis.out':
+(rerunfilecheck)             Before: <no file>
+(rerunfilecheck)             After:  A3D97113D546C9B89C47B7452269A95B;5439.
  ) 
 Here is how much of TeX's memory you used:
- 25016 strings out of 474116
- 455819 string characters out of 5743681
- 1943187 words of memory out of 5000000
- 46552 multiletter control sequences out of 15000+600000
- 581567 words of font info for 217 fonts, out of 8000000 for 9000
+ 24918 strings out of 474116
+ 454302 string characters out of 5743681
+ 1940187 words of memory out of 5000000
+ 46472 multiletter control sequences out of 15000+600000
+ 590212 words of font info for 264 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 102i,12n,107p,1021b,706s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 102i,11n,107p,1026b,767s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 ></usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb>
-</usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb>
-</usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><
-/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></
-usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></us
-r/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/
-local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/lo
-cal/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/loca
-l/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/t
-exlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texl
-ive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl10.pfb></usr/local/texli
-ve/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texliv
-e/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive
-/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texlive/2
-024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/202
-4/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2024
-/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2024/
-texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2
-024/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on 00_foundations_rewritten.pdf (35 pages, 348927 bytes).
+</usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbxti10.pfb
+></usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb>
+</usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><
+/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></u
+sr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr
+/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/l
+ocal/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmib10.pfb></usr/l
+ocal/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/loc
+al/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local
+/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/te
+xlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl10.pfb></usr/local/tex
+live/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texl
+ive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi10.pfb></usr/local/texl
+ive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texli
+ve/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texlive
+/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2
+024/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/20
+24/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/202
+4/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive
+/2024/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/tex
+live/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
+Output written on docs/thesis/build/projection_thesis.pdf (22 pages, 356946 byt
+es).
 PDF statistics:
- 762 PDF objects out of 1000 (max. 8388607)
- 678 compressed objects within 7 object streams
- 176 named destinations out of 1000 (max. 500000)
- 53357 words of extra memory for PDF output out of 61914 (max. 10000000)
+ 320 PDF objects out of 1000 (max. 8388607)
+ 247 compressed objects within 3 object streams
+ 101 named destinations out of 1000 (max. 500000)
+ 73229 words of extra memory for PDF output out of 74296 (max. 10000000)
 

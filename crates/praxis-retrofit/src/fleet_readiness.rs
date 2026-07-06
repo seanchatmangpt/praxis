@@ -83,8 +83,10 @@ pub fn assess_fleet_phase_readiness(
     let prev_status_map = build_previous_status_map(previous_phase_results, phase);
 
     for report in reports {
-        let previous_statuses =
-            prev_status_map.get(&report.repository.name).cloned().unwrap_or_default();
+        let previous_statuses = prev_status_map
+            .get(&report.repository.name)
+            .cloned()
+            .unwrap_or_default();
 
         let readiness = assess_repo_phase_readiness(report, phase, &previous_statuses);
 
@@ -137,7 +139,10 @@ fn are_prerequisites_met(phase: RetrofitPhase, previous_statuses: &[ReadinessSta
         RetrofitPhase::Phase2Deps => {
             // Requires Phase 1 (Lints) to be completed or ready
             if let Some(phase1_status) = previous_statuses.first() {
-                matches!(phase1_status, ReadinessStatus::Ready | ReadinessStatus::Completed)
+                matches!(
+                    phase1_status,
+                    ReadinessStatus::Ready | ReadinessStatus::Completed
+                )
             } else {
                 false
             }
@@ -216,11 +221,17 @@ fn find_blocking_phase(phase: RetrofitPhase, statuses: &[ReadinessStatus]) -> Re
 /// Check if a phase is already completed for a repository
 fn is_phase_completed(report: &ComplianceReport, phase: RetrofitPhase) -> bool {
     let required_categories = get_phase_categories(phase);
-    let phase_checks: Vec<_> =
-        report.checks.iter().filter(|c| required_categories.contains(&c.category)).collect();
+    let phase_checks: Vec<_> = report
+        .checks
+        .iter()
+        .filter(|c| required_categories.contains(&c.category))
+        .collect();
 
     // Phase is completed if all required checks pass
-    !phase_checks.is_empty() && phase_checks.iter().all(|c| c.status == ComplianceStatus::Pass)
+    !phase_checks.is_empty()
+        && phase_checks
+            .iter()
+            .all(|c| c.status == ComplianceStatus::Pass)
 }
 
 /// Assess risk level for a repository in a given phase
@@ -386,7 +397,10 @@ mod tests {
 
     #[test]
     fn test_phase2_requires_phase1() {
-        assert!(are_prerequisites_met(RetrofitPhase::Phase2Deps, &[ReadinessStatus::Ready]));
+        assert!(are_prerequisites_met(
+            RetrofitPhase::Phase2Deps,
+            &[ReadinessStatus::Ready]
+        ));
         assert!(!are_prerequisites_met(
             RetrofitPhase::Phase2Deps,
             &[ReadinessStatus::BlockedOn(RetrofitPhase::Phase1Lints)]

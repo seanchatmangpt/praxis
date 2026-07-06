@@ -1,0 +1,28 @@
+\contentsline {chapter}{Abstract}{i}{chapter*.1}%
+\contentsline {chapter}{\numberline {1}Introduction: The Algebra a Refusal Needs}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}From ``refusal is data'' to an algebra of refusal}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}First principle}{2}{section.1.2}%
+\contentsline {chapter}{\numberline {2}The Denial Semilattice}{3}{chapter.2}%
+\contentsline {section}{\numberline {2.1}The abstract denial word}{3}{section.2.1}%
+\contentsline {section}{\numberline {2.2}The concrete word: \texttt {DenialPolarity}}{3}{section.2.2}%
+\contentsline {section}{\numberline {2.3}The fired-mask projection}{4}{section.2.3}%
+\contentsline {chapter}{\numberline {3}Obligations as Lane Maps}{6}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Obligations and total denial}{6}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Monotonicity of admission}{6}{section.3.2}%
+\contentsline {section}{\numberline {3.3}The obligation-to-scenario map is total}{7}{section.3.3}%
+\contentsline {chapter}{\numberline {4}The Eight-Bucket Taxonomy as a Surjection}{8}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Categories and scenarios}{8}{section.4.1}%
+\contentsline {section}{\numberline {4.2}The totality theorem}{8}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Where the type guarantee ends: the partial lane decoder}{9}{section.4.3}%
+\contentsline {chapter}{\numberline {5}Composition Across a Pipeline as a Monoid Action}{11}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Pipelines and their aggregate denial}{11}{section.5.1}%
+\contentsline {section}{\numberline {5.2}The fleet sweep is word-parallel}{12}{section.5.2}%
+\contentsline {chapter}{\numberline {6}Proof-Carrying Admission via SLD-Resolution}{13}{chapter.6}%
+\contentsline {section}{\numberline {6.1}The logical quarantine}{13}{section.6.1}%
+\contentsline {section}{\numberline {6.2}The proof-carrying trichotomy}{13}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Logic refusals rejoin the monoid}{15}{section.6.3}%
+\contentsline {chapter}{\numberline {7}The Boundary Observation Algebra and the Domain Proposer}{16}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Untrusted observations and the boundary}{16}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Maximum Reachable Revenue: additive separation over accounts}{16}{section.7.2}%
+\contentsline {chapter}{\numberline {8}Conclusion}{18}{chapter.8}%
+\contentsline {chapter}{\numberline {A}Notation and Code Anchors}{19}{appendix.A}%

@@ -1,0 +1,59 @@
+\contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Thesis statement}{3}{section.1.1}%
+\contentsline {section}{\numberline {1.2}What changes when two source theses are read as one}{3}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Structure of this document}{4}{section.1.3}%
+\contentsline {chapter}{\numberline {2}The Projection Keystone: Admission, Manufacture, and Receipts}{5}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Rice quarantine and the admission map}{5}{section.2.1}%
+\contentsline {section}{\numberline {2.2}The denial monoid}{5}{section.2.2}%
+\contentsline {section}{\numberline {2.3}The Chatman equation and the manufacturing morphism}{6}{section.2.3}%
+\contentsline {section}{\numberline {2.4}The law-bearing receipt}{6}{section.2.4}%
+\contentsline {section}{\numberline {2.5}Faithful projection and its verification status}{6}{section.2.5}%
+\contentsline {section}{\numberline {2.6}Conservation of consequence}{7}{section.2.6}%
+\contentsline {chapter}{\numberline {3}Cost Regimes and the Comprehension--Verification Gap}{8}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Verification regimes}{8}{section.3.1}%
+\contentsline {section}{\numberline {3.2}The Fleet Trust Budget}{8}{section.3.2}%
+\contentsline {chapter}{\numberline {4}PDDL Action Law: Lifted Domains, Grounding, Bounded Branching}{9}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Lifted domains and grounding}{9}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Bounded branching}{9}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Relational membership via XOR filters}{10}{section.4.3}%
+\contentsline {chapter}{\numberline {5}Numeric Fluents and the Attention Balance Law}{11}{chapter.5}%
+\contentsline {section}{\numberline {5.1}The general attention calculus}{11}{section.5.1}%
+\contentsline {section}{\numberline {5.2}The concrete PDDL fluent mechanics}{11}{section.5.2}%
+\contentsline {chapter}{\numberline {6}The Marking Polytope: Petri Nets, State Equation, Cone Reachability}{13}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Nets, incidence, and the state equation}{13}{section.6.1}%
+\contentsline {section}{\numberline {6.2}The reachability cone and its polytope relaxation}{13}{section.6.2}%
+\contentsline {section}{\numberline {6.3}STRIPS grounding as a place/transition net}{14}{section.6.3}%
+\contentsline {chapter}{\numberline {7}Conformance as Cone Membership: Farkas Separation Certificates}{15}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Conformance as polytope membership}{15}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Farkas' lemma and the separating certificate}{15}{section.7.2}%
+\contentsline {section}{\numberline {7.3}The certificate's verification cost}{16}{section.7.3}%
+\contentsline {chapter}{\numberline {8}Token-Replay Fitness as Normalized Distance}{17}{chapter.8}%
+\contentsline {section}{\numberline {8.1}The replay verifier}{17}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Fitness and precision as population ratios}{17}{section.8.2}%
+\contentsline {chapter}{\numberline {9}POWL 2.0: Recursive Partial Orders and Choice Graphs}{19}{chapter.9}%
+\contentsline {section}{\numberline {9.1}The POWL grammar}{19}{section.9.1}%
+\contentsline {section}{\numberline {9.2}Temporal plans as Hasse diagrams}{19}{section.9.2}%
+\contentsline {chapter}{\numberline {10}Separability as a Process-Layer Rice Quarantine}{20}{chapter.10}%
+\contentsline {section}{\numberline {10.1}The decomposition theorem}{20}{section.10.1}%
+\contentsline {section}{\numberline {10.2}Separability as a decidable admission predicate}{20}{section.10.2}%
+\contentsline {section}{\numberline {10.3}Normalization and language preservation}{20}{section.10.3}%
+\contentsline {chapter}{\numberline {11}Cost Arbitration: Lexicographic Order and the Makespan Functional}{22}{chapter.11}%
+\contentsline {section}{\numberline {11.1}The cost vector}{22}{section.11.1}%
+\contentsline {section}{\numberline {11.2}Lexicographic order as an infinite-weight limit}{22}{section.11.2}%
+\contentsline {section}{\numberline {11.3}The makespan functional}{23}{section.11.3}%
+\contentsline {chapter}{\numberline {12}Instance: An Autonomous Build and the Trillion-Agent Status Byte}{24}{chapter.12}%
+\contentsline {section}{\numberline {12.1}An unread interior, trusted by boundary receipts}{24}{section.12.1}%
+\contentsline {section}{\numberline {12.2}The eight-bit status byte}{24}{section.12.2}%
+\contentsline {section}{\numberline {12.3}Fleet arithmetic}{24}{section.12.3}%
+\contentsline {section}{\numberline {12.4}Five named adversaries}{25}{section.12.4}%
+\contentsline {chapter}{\numberline {13}Implementation Map}{26}{chapter.13}%
+\contentsline {chapter}{\numberline {14}Appendix: The Datalog Index Layer}{28}{chapter.14}%
+\contentsline {section}{\numberline {14.1}Nemo saturation}{28}{section.14.1}%
+\contentsline {section}{\numberline {14.2}Symbol encoding}{28}{section.14.2}%
+\contentsline {chapter}{\numberline {15}Speculative Extension: Planetary-Scale Projection}{30}{chapter.15}%
+\contentsline {section}{\numberline {15.1}Maximum Reachable Revenue: a market-framed extrapolation}{30}{section.15.1}%
+\contentsline {section}{\numberline {15.2}Planetary arithmetic beyond the exact count}{31}{section.15.2}%
+\contentsline {section}{\numberline {15.3}A shared refusal vocabulary across agents}{31}{section.15.3}%
+\contentsline {section}{\numberline {15.4}The self-audited-scale antibody clause}{32}{section.15.4}%
+\contentsline {chapter}{\numberline {16}Limitations}{33}{chapter.16}%
+\contentsline {chapter}{\numberline {17}Conclusion}{35}{chapter.17}%

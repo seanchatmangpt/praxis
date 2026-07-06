@@ -64,14 +64,20 @@ impl RestartPolicy {
                 ),
             });
         }
-        Ok(Self { max_restarts, window })
+        Ok(Self {
+            max_restarts,
+            window,
+        })
     }
 
     /// The doctrine default: 3 restarts (Erlang's customary intensity)
     /// within an 8-attempt window.
     #[must_use]
     pub fn default_policy() -> Self {
-        Self { max_restarts: 3, window: 8 }
+        Self {
+            max_restarts: 3,
+            window: 8,
+        }
     }
 }
 
@@ -144,21 +150,22 @@ impl SupervisionTopology {
         let mut direct: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
         for node in dag.nodes.values() {
             for input in &node.inputs {
-                direct.entry(input.as_str()).or_default().push(node.id.as_str());
+                direct
+                    .entry(input.as_str())
+                    .or_default()
+                    .push(node.id.as_str());
             }
         }
         let mut downstream: BTreeMap<String, Vec<String>> = BTreeMap::new();
         for id in dag.nodes.keys() {
             let mut seen: BTreeSet<&str> = BTreeSet::new();
-            let mut stack: Vec<&str> =
-                direct.get(id.as_str()).cloned().unwrap_or_default();
+            let mut stack: Vec<&str> = direct.get(id.as_str()).cloned().unwrap_or_default();
             while let Some(next) = stack.pop() {
                 if seen.insert(next) {
                     stack.extend(direct.get(next).cloned().unwrap_or_default());
                 }
             }
-            downstream
-                .insert(id.clone(), seen.into_iter().map(String::from).collect());
+            downstream.insert(id.clone(), seen.into_iter().map(String::from).collect());
         }
         // Stages: group by depth; strategy earned by having dependents.
         let mut by_depth: BTreeMap<usize, Vec<String>> = BTreeMap::new();
@@ -177,7 +184,11 @@ impl SupervisionTopology {
                 } else {
                     Strategy::OneForOne
                 };
-                Stage { depth: d, strategy, nodes }
+                Stage {
+                    depth: d,
+                    strategy,
+                    nodes,
+                }
             })
             .collect();
         // Content-address the whole derivation.
@@ -189,7 +200,13 @@ impl SupervisionTopology {
         });
         let topology_hash =
             chatman_common::provenance::content_address(canon.to_string().as_bytes());
-        Ok(Self { stages, policy, topology_hash, downstream, _sealed: () })
+        Ok(Self {
+            stages,
+            policy,
+            topology_hash,
+            downstream,
+            _sealed: (),
+        })
     }
 
     /// The restart cohort for a node under its stage's strategy: the node

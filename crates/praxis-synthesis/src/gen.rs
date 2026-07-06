@@ -115,8 +115,9 @@ pub fn generate(spec: &DomainSpec) -> (Program, Vec<Capability>, Vec<Atom>, Vec<
         .expect("chain rule is safe");
         entry_pred = d;
     }
-    let objects: Vec<_> =
-        (0..spec.objects).map(|o| p.intern(&format!("obj{o}"))).collect();
+    let objects: Vec<_> = (0..spec.objects)
+        .map(|o| p.intern(&format!("obj{o}")))
+        .collect();
     for o in &objects {
         p.add_fact(base, &[*o]).expect("base fact");
     }

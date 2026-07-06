@@ -52,8 +52,7 @@
 //! The validation test below therefore proves a *faithful* mapping conforms —
 //! not that praxis already speaks `SharedReceiptV1`.
 
-use praxis_core::law::Andon;
-use praxis_core::ReceiptRecord;
+use praxis_core::{law::Andon, ReceiptRecord};
 
 /// The `sr:` namespace the SHACL shapes target.
 const SR: &str = "urn:ontostar:shared-receipt:";
@@ -180,10 +179,10 @@ pub fn receipt_record_to_shared_receipt_turtle(record: &ReceiptRecord) -> String
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use ggen_graph::prelude::validate_shacl;
-    use praxis_core::law::Andon;
-    use praxis_core::receipt_record::RECEIPT_RECORD_VERSION;
+    use praxis_core::{law::Andon, receipt_record::RECEIPT_RECORD_VERSION};
+
+    use super::*;
 
     /// The canonical SharedReceiptV1 SHACL shapes, compiled in from the
     /// open-ontologies repo so this test validates against the *real* shapes
@@ -264,7 +263,10 @@ mod tests {
     #[test]
     fn iso8601_conversion_is_correct_for_a_known_instant() {
         // 2025-07-01T00:00:00Z in ns since epoch.
-        assert_eq!(ts_ns_to_iso8601(1_751_328_000_000_000_000), "2025-07-01T00:00:00Z");
+        assert_eq!(
+            ts_ns_to_iso8601(1_751_328_000_000_000_000),
+            "2025-07-01T00:00:00Z"
+        );
         // Unix epoch itself.
         assert_eq!(ts_ns_to_iso8601(0), "1970-01-01T00:00:00Z");
     }
@@ -274,7 +276,10 @@ mod tests {
         let id = synth_run_id(&"b".repeat(64));
         // 8-4-4-4-12 with version nibble 4 and variant in [89ab].
         let groups: Vec<&str> = id.split('-').collect();
-        assert_eq!(groups.iter().map(|g| g.len()).collect::<Vec<_>>(), vec![8, 4, 4, 4, 12]);
+        assert_eq!(
+            groups.iter().map(|g| g.len()).collect::<Vec<_>>(),
+            vec![8, 4, 4, 4, 12]
+        );
         assert!(groups[2].starts_with('4'), "version nibble must be 4: {id}");
         assert!(
             matches!(groups[3].chars().next(), Some('8' | '9' | 'a' | 'b')),

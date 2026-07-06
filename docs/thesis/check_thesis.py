@@ -7,6 +7,7 @@ tex_files = [
     "02_receipt_cryptography.tex",
     "03_planning_geometry.tex",
     "04_projection_and_scale.tex",
+    "swarm_rewrite/04_projection_and_scale_rewritten.tex",
     "projection_thesis.tex",
     "synthesis_thesis.tex",
 ]

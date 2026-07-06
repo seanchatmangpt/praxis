@@ -1,0 +1,126 @@
+% The Admission Substrate: Refusal, Algebra, and Receipts.
+% Consolidates docs/thesis/00_foundations.tex, 01_admission_algebra.tex, and
+% 02_receipt_cryptography.tex. Clean-room rewrite: chapter/section/paragraph
+% content is rendered by `ggen sync` from `packs/doc-pack` over
+% `docs/thesis/consolidated/paper_a_substrate/rdf/thesis.ttl` -- source of
+% truth is the .ttl instance data, not this generated file. Do not edit
+% generated/ by hand.
+\documentclass[11pt,oneside]{report}
+
+\usepackage[margin=1.15in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+% ---- theorem environments (consistent with the three source papers) ----
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{axiom}{Axiom}[chapter]
+\newtheorem{construction}{Construction}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+% Disputed-register environment: a claim with conflicting machine-checked
+% status across the two Lean lanes (verified in one, refuted or excluded in
+% the other). Used exactly once, in Section~\ref{sec:taxonomy-disputed}.
+\newtheorem{disputed}[theorem]{Disputed Claim}
+
+% Speculative-register environment: every claim motivated by, but not
+% derived from or checked against, the evidence-bound material must be
+% wrapped in this, confined to Chapter~\ref{ch:speculative} or to a
+% subsection explicitly titled speculative/disputed within a technical
+% chapter. A SPARQL query over doc:register can verify this mechanically
+% without re-reading the compiled PDF.
+\newtheorem{speculative}[theorem]{Speculation}
+
+% ---- notation macros, mined from the paragraphs this paper actually
+% renders (shared across 00_foundations.tex / 01_admission_algebra.tex /
+% 02_receipt_cryptography.tex; see docs/thesis/00_foundations.tex etc. for
+% the macro vocabulary this is drawn from) ----
+\newcommand{\Obs}{\mathcal{O}}                 % raw observation space
+\newcommand{\Adm}{\mathcal{O}^{*}}             % admitted observation space
+\newcommand{\Act}{\mathcal{A}}                 % action / artifact space
+\newcommand{\Rec}{\mathcal{R}}                 % receipt space
+\newcommand{\muop}{\mu}                        % manufacturing morphism
+\newcommand{\adm}{\alpha}                      % admission map
+\newcommand{\chainH}{\mathsf{H}}               % hash
+\newcommand{\Rfsl}{\bot}                        % refusal
+\newcommand{\CL}{\kappa}                       % bounded-verifier context capacity
+\newcommand{\Fitness}{\varphi}                 % conformance / replay fitness
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\supp}{supp}
+\newcommand{\code}[1]{\texttt{#1}}
+
+% -- lifecycle (Chapter: Lifecycle as a Typestate Category) --
+\newcommand{\Raw}{\mathsf{Raw}}
+\newcommand{\Val}{\mathsf{Validated}}
+\newcommand{\Admd}{\mathsf{Admitted}}
+\newcommand{\Rcpt}{\mathsf{Receipted}}
+\newcommand{\Life}{\mathbf{Life}}
+\newcommand{\BRCE}{\textsc{brce}}
+
+% -- admission algebra (Chapter: Admission Algebra) --
+\newcommand{\Deny}{\mathbb{D}}                 % denial-word space
+\newcommand{\Adml}{\mathsf{ADMITTED}}          % bottom / clean word
+\newcommand{\firedmap}{\pi_{f}}                % fired-mask projection
+\newcommand{\Catset}{\mathcal{C}}              % refusal-category set
+\newcommand{\Scnset}{\mathcal{S}}              % refusal-scenario set
+\DeclareMathOperator{\catop}{cat}
+\DeclareMathOperator{\laneop}{lane}
+\DeclareMathOperator{\scnop}{scn}
+
+% -- receipt cryptography (Chapter: Receipt Cryptography) --
+\newcommand{\fr}{\mathsf{fr}}                   % frame
+\newcommand{\body}{\beta}                       % hash-body serialization
+\newcommand{\concat}{\mathbin{\Vert}}           % byte concatenation
+\newcommand{\Genesis}{\mathsf{g}}               % genesis chain value
+\newcommand{\Ledger}{\mathcal{C}}               % chain / ledger
+\newcommand{\dg}{\mathrm{dg}}                   % digest
+
+\title{\bfseries The Admission Substrate:\\[0.4em]
+\large Refusal, Algebra, and Receipts}
+\author{Sean Chatman}
+\date{}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+This paper consolidates three papers from the Chatman Equation thesis
+series -- foundations, admission algebra, and receipt cryptography -- into
+a single, clean-room-rewritten paper. It states the five-object Chatman
+equation and the Rice-quarantine argument that admission cannot be a
+semantic decision (Chapter~\ref{sec:chatman-rice}); the full admission
+algebra of denial words, obligations, taxonomy, and pipeline composition
+(Chapter~\ref{ch:algebra}); the lifecycle typestate category
+(Chapter~\ref{ch:lifecycle}); the manufacturing morphism and the Bounded
+Receipted Chatman Equation (Chapter~\ref{ch:brce}); the receipt-chain
+cryptography and Faithful Chain Theorem (Chapter~\ref{ch:crypto});
+Conservation of Consequence and the validator pipeline
+(Chapter~\ref{sec:conservation}); signed receipts, content addressing, and
+interoperability (Chapter~\ref{ch:signed}); the git-backed audit ledger
+(Chapter~\ref{ch:ledger}); and the Scope Theorem bounding what a verifying
+receipt chain does and does not establish (Chapter~\ref{sec:scope}). Every
+paragraph below is marked evidence-bound or speculative; every
+machine-verification claim is reported per-lane (a bare-core Lean~4
+kernel lane and a Mathlib lane) rather than as a single pass/fail, and
+three reconciliation issues -- a disputed theorem, and two label
+collisions -- are reported rather than resolved by fiat.
+\end{abstract}
+\tableofcontents
+
+% All chapters: rendered by `ggen sync` from `packs/doc-pack` over
+% `docs/thesis/consolidated/paper_a_substrate/rdf/thesis.ttl` -- source of
+% truth is the .ttl instance data, not this generated file. Do not edit
+% generated/ by hand.
+\input{generated/chapters_body}
+
+\end{document}

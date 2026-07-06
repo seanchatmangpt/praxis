@@ -1,33 +1,36 @@
 # Global Forensics Index: Broken & Fake Code
 
 ## Executive Summary
-This document indexes the results of the phase 3 and phase 4 security and validation sweep across internal and external repositories, updated during Phase 6 adjudication. A total of 38 files have been flagged for containing fake validation mocks, unsafe credentials, structural syntax failures, or logical mismatches.
+This document indexes the results of the phase 3 and phase 4 security and validation sweep across internal and external repositories, updated during Phase 6 adjudication. A total of 40 files have been flagged for containing fake validation mocks, unsafe credentials, structural syntax failures, or logical mismatches (with 2 of these files now repaired, reducing blockers).
 
 ## Classification Counts
 - **FAKE**: 7
 - **UNSAFE**: 7
-- **BROKEN**: 18
-- **CLAIM-MISMATCH**: 2
+- **BROKEN**: 19
+- **CLAIM-MISMATCH**: 0
 - **THEATRE**: 1
 - **SUSPECT**: 1
 - **ORPHAN**: 0
 - **FAKE/UNSAFE**: 2
+- **PLACEHOLDER**: 1
 
 ## Severity Table
 | Severity | Count |
 |----------|-------|
 | CRITICAL | 30    |
-| HIGH     | 7     |
-| MEDIUM   | 1     |
+| HIGH     | 5     |
+| MEDIUM   | 2     |
+| LOW      | 1     |
 
 ## v26.7.3 Blocker Table
 | File | Repo | Classification | Severity | Impact |
 |------|------|----------------|----------|--------|
 | `src/migration/security/pqc_mcp_transport.py` | bytestar | FAKE | CRITICAL | Blocker |
 | `src/migration/security/pqc_certificate_manager.py` | bytestar | FAKE | CRITICAL | Blocker |
+| `src/migration/security/pqc_security_hooks.py` | bytestar | BROKEN | MEDIUM | Warning |
 | `byteactor/src/bytecore/content_addressing.py` | bytestar | FAKE | CRITICAL | Blocker |
-| `crates/praxis-synthesis/ontology/lord_prayer.ttl` | praxis | CLAIM-MISMATCH | HIGH | Blocker |
-| `crates/praxis-synthesis/src/kernel.rs` | praxis | CLAIM-MISMATCH | HIGH | Blocker |
+| `crates/praxis-synthesis/ontology/lord_prayer.ttl` | praxis | CLAIM-MISMATCH | INFO | NONE (Repaired) |
+| `crates/praxis-synthesis/src/kernel.rs` | praxis | CLAIM-MISMATCH | INFO | NONE (Repaired) |
 | `rust/genesis-construct8/src/replay.rs` | knhk | THEATRE | HIGH | Blocker |
 | `crates/wasm4pm-cli/src/commands/receipt.rs` | wasm4pm | BROKEN | HIGH | Blocker |
 | `packages/kgc-probe/src/receipt.mjs` | unrdf | BROKEN | CRITICAL | Blocker |
@@ -97,8 +100,8 @@ This document indexes the results of the phase 3 and phase 4 security and valida
 - **federal-rights-platform/server/api/auth/validate.get.ts** (cns) - Stubbed active session validation returning a hardcoded admin session.
 
 ## Repair-now List
-- **crates/praxis-synthesis/ontology/lord_prayer.ttl** (praxis) - Missing pk:action bindings for three clauses.
-- **crates/praxis-synthesis/src/kernel.rs** (praxis) - enforce_surrender_boundary skips validation if action is None.
+- **crates/praxis-synthesis/ontology/lord_prayer.ttl** (praxis) - REPAIRED: Missing pk:action bindings for three clauses.
+- **crates/praxis-synthesis/src/kernel.rs** (praxis) - REPAIRED: enforce_surrender_boundary skips validation if action is None.
 - **crates/wasm4pm-cli/src/commands/receipt.rs** (wasm4pm) - verify_challenge only checks PlaceholderEvidenceDetected, ignores nonces.
 - **packages/kgc-probe/src/receipt.mjs** (unrdf) - Flawed recursive JSON.stringify replacer.
 - **packages/kgc-swarm/src/compression.mjs** (unrdf) - Flawed recursive JSON.stringify replacer.
@@ -117,15 +120,17 @@ This document indexes the results of the phase 3 and phase 4 security and valida
 - **unrdf/unproj-ontology.ttl** (unrdf) - Syntax or namespace prefix failures in OWL/Turtle file unproj-ontology.ttl.
 - **unrdf/packages-discovered.ttl** (unrdf) - Syntax or namespace prefix failures in OWL/Turtle file packages-discovered.ttl.
 - **unrdf/unrdf-packages.ttl** (unrdf) - Syntax or namespace prefix failures in OWL/Turtle file unrdf-packages.ttl.
+- **src/migration/security/pqc_security_hooks.py** (bytestar) - Unsized/unsplit command array execution in subprocess.
 
 ## Historical Fossil List
 - **test/cli-stubs-smoke.test.mjs** (unrdf) - References non-existent CLI files, breaking suite execution.
 
 ## Claim-mismatch List
-- **crates/praxis-synthesis/ontology/lord_prayer.ttl** (praxis) - Missing pk:action bindings for three clauses.
-- **crates/praxis-synthesis/src/kernel.rs** (praxis) - enforce_surrender_boundary skips validation if action is None.
+- **crates/praxis-synthesis/ontology/lord_prayer.ttl** (praxis) - REPAIRED: Missing pk:action bindings for three clauses.
+- **crates/praxis-synthesis/src/kernel.rs** (praxis) - REPAIRED: enforce_surrender_boundary skips validation if action is None.
 
 ## Orphan List
+- **ggen/crates/ggen-cli/src/generated_commands.rs** (ggen) - classification: PLACEHOLDER, severity: LOW, impact: NONE, recommendation: KEEP.
 
 ## Next Exact Repair
 **Lord's Prayer / God Boundary**

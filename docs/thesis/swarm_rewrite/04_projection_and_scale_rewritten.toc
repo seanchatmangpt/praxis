@@ -1,0 +1,47 @@
+\contentsline {chapter}{Abstract}{i}{chapter*.1}%
+\contentsline {chapter}{\numberline {1}Introduction: From the Gap to the Sweep}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}What the keystone settled, and what remains}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}The one-line thesis of this paper}{2}{section.1.2}%
+\contentsline {paragraph}{Structure.}{2}{section.1.2}%
+\contentsline {chapter}{\numberline {2}The Comprehension--Verification Gap, Measured}{3}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Measured and estimated quantities}{3}{section.2.1}%
+\contentsline {section}{\numberline {2.2}The instance}{3}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Boundary cost is invariant under interior growth}{4}{section.2.3}%
+\contentsline {section}{\numberline {2.4}Information-Theoretic Scaling and Compression Bounds}{4}{section.2.4}%
+\contentsline {chapter}{\numberline {3}Manufactured Trust as a General Method}{7}{chapter.3}%
+\contentsline {section}{\numberline {3.1}The decidable-oracle move}{7}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Differential agreement as mutual verification}{7}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Fuzzing the admission boundary}{8}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Mutation-testing the receipt chain}{9}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Categorification of the Denial Monoid and Sheaves}{10}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Homological Algebra of Refusal Cascades}{12}{section.3.6}%
+\contentsline {section}{\numberline {3.7}Algebraic Consensus and Relativistic Horizons}{13}{section.3.7}%
+\contentsline {chapter}{\numberline {4}Continuous Limits and Planetary Dynamics}{15}{chapter.4}%
+\contentsline {section}{\numberline {4.1}The Continuous Limit of the Chatman Equation}{15}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Fluid Dynamics of Consequence Conservation}{16}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Dynamic System Limits and Feedback Loop Stability}{16}{section.4.3}%
+\contentsline {chapter}{\numberline {5}The Agent Byte and Branchless Fleet Admission}{18}{chapter.5}%
+\contentsline {section}{\numberline {5.1}The agent8 byte from the denial lanes}{18}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Two layouts and the branchless admission sweep}{18}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Footprint and sweep time of a population}{20}{section.5.3}%
+\contentsline {chapter}{\numberline {6}Planetary Capacity and the Economics of Admission}{22}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Demand}{22}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Supply, two regimes}{22}{section.6.2}%
+\contentsline {section}{\numberline {6.3}The true floor is bandwidth, and it is generous}{23}{section.6.3}%
+\contentsline {chapter}{\numberline {7}The Geometry of Swarm Conformance}{24}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Infinite-Dimensional Trace Geometry and Farkas' Lemma}{24}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Differential Geometry of Swarm Action Fields}{25}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Topological Conformance Bounds in Exponential Token Games}{25}{section.7.3}%
+\contentsline {chapter}{\numberline {8}Scale Verification and Reality Addressing}{27}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Swarm Scaling and Hierarchical Zero-Defect Bounds}{27}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Localized Replay Geometries}{28}{section.8.2}%
+\contentsline {section}{\numberline {8.3}Virtual State Transitions and Physical Reality Addressing}{28}{section.8.3}%
+\contentsline {chapter}{\numberline {9}The Antibody Clause, Formalized}{30}{chapter.9}%
+\contentsline {section}{\numberline {9.1}Claims, witnesses, and magnitude}{30}{section.9.1}%
+\contentsline {section}{\numberline {9.2}Overclaim set and the antibody invariant}{30}{section.9.2}%
+\contentsline {section}{\numberline {9.3}Reflexive antibody: this paper's own claims}{31}{section.9.3}%
+\contentsline {chapter}{\numberline {10}Fleet Application and Autonomic Reconciliation}{32}{chapter.10}%
+\contentsline {section}{\numberline {10.1}The praxis-retrofit fleet applier}{32}{section.10.1}%
+\contentsline {section}{\numberline {10.2}Visual gap measurement and the reconciler residual}{33}{section.10.2}%
+\contentsline {chapter}{\numberline {11}Conclusion}{34}{chapter.11}%
+\contentsline {chapter}{\numberline {A}Notation and Constants}{35}{appendix.A}%

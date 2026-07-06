@@ -106,7 +106,12 @@ impl RealityAddressRecord {
                     .to_string(),
             });
         }
-        Ok(Self { subject: subject.to_string(), time_anchor, space_anchor, provenance_anchor })
+        Ok(Self {
+            subject: subject.to_string(),
+            time_anchor,
+            space_anchor,
+            provenance_anchor,
+        })
     }
 }
 
@@ -134,7 +139,10 @@ mod tests {
         assert_eq!(r.space_anchor(), Some("POINT(0 0)"));
         assert_eq!(r.provenance_anchor(), Some("http://e/agentA"));
         let h1 = r.reality_hash().unwrap();
-        let h2 = RealityAddressRecord::bind(&triples, "http://e/event1").unwrap().reality_hash().unwrap();
+        let h2 = RealityAddressRecord::bind(&triples, "http://e/event1")
+            .unwrap()
+            .reality_hash()
+            .unwrap();
         assert_eq!(h1, h2);
     }
 

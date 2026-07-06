@@ -18,21 +18,21 @@
 //! `ggen-core`'s `sparql_column`/`sparql_row` Tera functions expect, so any
 //! future template pipeline can consume ontology facts directly.
 
-use ggen_graph::prelude::{parse_turtle, DeterministicGraph};
-use oxigraph::model::{Quad, Term};
-use oxigraph::sparql::QueryResults;
-use serde::{Deserialize, Serialize};
-
 use bcinr_pddl::{
     domain_from_pddl, problem_from_pddl, GroundProblem, PDDL8_MAX_ARITY, PDDL8_MAX_CONJUNCTS,
     PDDL8_MAX_PARAMS,
 };
+use ggen_graph::prelude::{parse_turtle, DeterministicGraph};
+use oxigraph::{
+    model::{Quad, Term},
+    sparql::QueryResults,
+};
+use serde::{Deserialize, Serialize};
 
 /// SPARQL `PREFIX` line for the `pdl:` instance vocabulary used by every
 /// query in this module. See `ontology/lawobject.ttl` for the vocabulary
 /// this module expects, documented inline.
-const PDL_PREFIX: &str =
-    "PREFIX pdl: <http://seanchatmangpt.github.io/praxis/pddl#>\n";
+const PDL_PREFIX: &str = "PREFIX pdl: <http://seanchatmangpt.github.io/praxis/pddl#>\n";
 
 /// All errors from the ontology → PDDL8 manufacturing pipeline.
 #[derive(Debug, thiserror::Error)]
@@ -42,7 +42,12 @@ pub enum MfgError {
     Graph(String),
     /// A PDDL8 structural bound (arity, conjuncts, params) was exceeded.
     #[error("PDDL8 bound exceeded: {what} limit={limit} got={got} ({detail})")]
-    BoundExceeded { what: &'static str, limit: usize, got: usize, detail: String },
+    BoundExceeded {
+        what: &'static str,
+        limit: usize,
+        got: usize,
+        detail: String,
+    },
     /// The ontology is missing a required `pdl:` fact or has an unexpected shape.
     #[error("ontology shape error: {0}")]
     Shape(String),
@@ -218,7 +223,10 @@ fn parse_atom_literal(s: &str) -> Result<Atom> {
 
 fn run_select(graph: &DeterministicGraph, query: &str) -> Result<Vec<Vec<(String, Term)>>> {
     let mut rows = Vec::new();
-    match graph.query(query).map_err(|e| MfgError::Graph(e.to_string()))? {
+    match graph
+        .query(query)
+        .map_err(|e| MfgError::Graph(e.to_string()))?
+    {
         QueryResults::Solutions(sols) => {
             for sol in sols {
                 let sol = sol.map_err(|e| MfgError::Shape(e.to_string()))?;
@@ -437,7 +445,13 @@ pub fn extract_problem(graph: &DeterministicGraph) -> Result<ProblemIr> {
         .map(|row| parse_atom_literal(&literal_str(row_get(row, "atom"), "goal atom")?))
         .collect::<Result<Vec<_>>>()?;
 
-    Ok(ProblemIr { name, domain, objects, init, goal })
+    Ok(ProblemIr {
+        name,
+        domain,
+        objects,
+        init,
+        goal,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -658,7 +672,11 @@ pub fn manufacture(ttl: &str, source_label: &str) -> Result<Manufactured> {
     let problem = extract_problem(&graph)?;
     let domain_text = emit_domain(&domain, source_label, &hash_hex);
     let problem_text = emit_problem(&problem);
-    Ok(Manufactured { domain_text, problem_text, graph_hash_hex: hash_hex })
+    Ok(Manufactured {
+        domain_text,
+        problem_text,
+        graph_hash_hex: hash_hex,
+    })
 }
 
 /// Round-trip manufactured (or hand-written) PDDL8 `domain_text`/
@@ -691,8 +709,11 @@ pub fn validate(domain_text: &str, problem_text: &str) -> ValidationReport {
     let grounded_actions = ground.actions.len();
     match ground.find_plan() {
         Ok(tape) => {
-            let plan_steps: Vec<String> =
-                tape.ops.iter().map(|op| op.action.schema_name.clone()).collect();
+            let plan_steps: Vec<String> = tape
+                .ops
+                .iter()
+                .map(|op| op.action.schema_name.clone())
+                .collect();
             ValidationReport {
                 parsed: true,
                 grounded_actions,
@@ -716,7 +737,10 @@ mod tests {
     fn emit_domain_omits_not_when_no_del_effects() {
         let domain = DomainIr {
             name: "d".to_string(),
-            types: vec![TypeDecl { name: "t".to_string(), parent: None }],
+            types: vec![TypeDecl {
+                name: "t".to_string(),
+                parent: None,
+            }],
             predicates: vec![PredicateDecl {
                 name: "p".to_string(),
                 params: vec![("?x".to_string(), "t".to_string())],
@@ -724,8 +748,14 @@ mod tests {
             actions: vec![ActionDecl {
                 name: "a".to_string(),
                 params: vec![("?x".to_string(), "t".to_string())],
-                pre: vec![Atom { pred: "p".to_string(), args: vec!["?x".to_string()] }],
-                add: vec![Atom { pred: "p".to_string(), args: vec!["?x".to_string()] }],
+                pre: vec![Atom {
+                    pred: "p".to_string(),
+                    args: vec!["?x".to_string()],
+                }],
+                add: vec![Atom {
+                    pred: "p".to_string(),
+                    args: vec!["?x".to_string()],
+                }],
                 del: vec![],
             }],
         };
@@ -809,7 +839,9 @@ mod tests {
         assert_eq!(domain.predicates[0].params.len(), 9);
         let err = enforce_pddl8(&domain).unwrap_err();
         match err {
-            MfgError::BoundExceeded { what, limit, got, .. } => {
+            MfgError::BoundExceeded {
+                what, limit, got, ..
+            } => {
                 assert_eq!(what, "predicate arity");
                 assert_eq!(limit, PDDL8_MAX_ARITY);
                 assert_eq!(got, 9);

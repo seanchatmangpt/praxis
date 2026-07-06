@@ -22,8 +22,7 @@
 
 use bcinr_powl_receipt::denial::DenialPolarity;
 use ggen_graph::prelude::DeterministicGraph;
-use oxigraph::model::Term;
-use oxigraph::sparql::QueryResults;
+use oxigraph::{model::Term, sparql::QueryResults};
 use praxis_core::RefusalCategory;
 use serde::{Deserialize, Serialize};
 
@@ -49,12 +48,17 @@ type Result<T> = std::result::Result<T, MfgError>;
 
 fn select(graph: &DeterministicGraph, query: &str) -> Result<Vec<Vec<(String, Term)>>> {
     let mut rows = Vec::new();
-    match graph.query(query).map_err(|e| MfgError::Graph(e.to_string()))? {
+    match graph
+        .query(query)
+        .map_err(|e| MfgError::Graph(e.to_string()))?
+    {
         QueryResults::Solutions(sols) => {
             for sol in sols {
                 let sol = sol.map_err(|e| MfgError::Shape(e.to_string()))?;
                 rows.push(
-                    sol.iter().map(|(v, t)| (v.as_str().to_string(), t.clone())).collect(),
+                    sol.iter()
+                        .map(|(v, t)| (v.as_str().to_string(), t.clone()))
+                        .collect(),
                 );
             }
         }
@@ -66,10 +70,12 @@ fn select(graph: &DeterministicGraph, query: &str) -> Result<Vec<Vec<(String, Te
 }
 
 fn literal(row: &[(String, Term)], var: &str) -> Option<String> {
-    row.iter().find(|(v, _)| v == var).and_then(|(_, t)| match t {
-        Term::Literal(l) => Some(l.value().to_string()),
-        _ => None,
-    })
+    row.iter()
+        .find(|(v, _)| v == var)
+        .and_then(|(_, t)| match t {
+            Term::Literal(l) => Some(l.value().to_string()),
+            _ => None,
+        })
 }
 
 /// Ingest the `truex:Failure` refusal conditions from the vendored corpus,
@@ -90,7 +96,10 @@ pub fn truex_failures() -> Result<Vec<CorpusTerm>> {
     Ok(select(&graph, q)?
         .iter()
         .filter_map(|row| {
-            literal(row, "label").map(|label| CorpusTerm { label, definition: literal(row, "def") })
+            literal(row, "label").map(|label| CorpusTerm {
+                label,
+                definition: literal(row, "def"),
+            })
         })
         .collect())
 }
@@ -112,7 +121,10 @@ pub fn mcpp_verdicts() -> Result<Vec<CorpusTerm>> {
     Ok(select(&graph, q)?
         .iter()
         .filter_map(|row| {
-            literal(row, "label").map(|label| CorpusTerm { label, definition: literal(row, "def") })
+            literal(row, "label").map(|label| CorpusTerm {
+                label,
+                definition: literal(row, "def"),
+            })
         })
         .collect())
 }
@@ -195,7 +207,10 @@ pub fn shared_receipt_status_values() -> Result<Vec<String>> {
         SELECT DISTINCT ?status WHERE {\n\
           ?prop sh:path sr:status ; sh:in/rdf:rest*/rdf:first ?status .\n\
         } ORDER BY ?status";
-    Ok(select(&graph, q)?.iter().filter_map(|row| literal(row, "status")).collect())
+    Ok(select(&graph, q)?
+        .iter()
+        .filter_map(|row| literal(row, "status"))
+        .collect())
 }
 
 // ── manufacture: RDF individuals -> byte-deterministic Rust enum ───────────────
@@ -242,7 +257,10 @@ mod tests {
     #[test]
     fn truex_corpus_ingests_failures() {
         let failures = truex_failures().expect("ingest truex failures");
-        assert!(failures.len() >= 9, "corpus has 9 documented Failure conditions");
+        assert!(
+            failures.len() >= 9,
+            "corpus has 9 documented Failure conditions"
+        );
         let labels: Vec<&str> = failures.iter().map(|c| c.label.as_str()).collect();
         assert!(labels.contains(&"OCELLaundering"));
         assert!(labels.contains(&"TemporalOrderingViolation"));
@@ -263,9 +281,18 @@ mod tests {
             }
         }
         // spot-check a couple of the semantic judgements
-        assert_eq!(refusal_category("SummaryOnlyProof"), Some(RefusalCategory::Prerequisites));
-        assert_eq!(refusal_category("TemporalOrderingViolation"), Some(RefusalCategory::Temporal));
-        assert_eq!(refusal_category("StateTransitionMismatch"), Some(RefusalCategory::Lifecycle));
+        assert_eq!(
+            refusal_category("SummaryOnlyProof"),
+            Some(RefusalCategory::Prerequisites)
+        );
+        assert_eq!(
+            refusal_category("TemporalOrderingViolation"),
+            Some(RefusalCategory::Temporal)
+        );
+        assert_eq!(
+            refusal_category("StateTransitionMismatch"),
+            Some(RefusalCategory::Lifecycle)
+        );
         // and the bridge to the receipt denial word
         assert_eq!(
             denial_lane_for("TemporalOrderingViolation"),
@@ -277,8 +304,11 @@ mod tests {
     /// every mapped label is present in the ingested corpus (no stale drift).
     #[test]
     fn refusal_table_has_no_stale_entries() {
-        let corpus: std::collections::BTreeSet<String> =
-            truex_failures().unwrap().into_iter().map(|c| c.label).collect();
+        let corpus: std::collections::BTreeSet<String> = truex_failures()
+            .unwrap()
+            .into_iter()
+            .map(|c| c.label)
+            .collect();
         for known in [
             "SummaryOnlyProof",
             "MissingBoundary",
@@ -290,7 +320,10 @@ mod tests {
             "TemporalOrderingViolation",
             "BoundaryProjectionFailure",
         ] {
-            assert!(corpus.contains(known), "mapped label {known} missing from corpus");
+            assert!(
+                corpus.contains(known),
+                "mapped label {known} missing from corpus"
+            );
         }
     }
 
@@ -299,7 +332,11 @@ mod tests {
     fn mcpp_verdict_model_ingests() {
         let verdicts = mcpp_verdicts().expect("ingest mcpp verdicts");
         let labels: Vec<&str> = verdicts.iter().map(|c| c.label.as_str()).collect();
-        assert_eq!(labels, vec!["Admitted", "Partial", "Refused"], "the three-verdict model");
+        assert_eq!(
+            labels,
+            vec!["Admitted", "Partial", "Refused"],
+            "the three-verdict model"
+        );
     }
 
     /// The shared-receipt `sr:status` enumeration is ingested from the third
@@ -308,10 +345,12 @@ mod tests {
     #[test]
     fn shared_receipt_status_enum_ingests_and_aligns_with_mcpp() {
         let statuses = shared_receipt_status_values().expect("ingest sr:status");
-        let expected: Vec<String> = ["accepted", "admitted", "failed", "partial", "refused", "success"]
-            .iter()
-            .map(|s| (*s).to_string())
-            .collect();
+        let expected: Vec<String> = [
+            "accepted", "admitted", "failed", "partial", "refused", "success",
+        ]
+        .iter()
+        .map(|s| (*s).to_string())
+        .collect();
         assert_eq!(statuses, expected, "the six SharedReceiptV1 status values");
 
         // every mcpp verdict (Admitted/Refused/Partial) appears, lower-cased,
@@ -331,18 +370,36 @@ mod tests {
     #[test]
     fn manufactured_enum_is_deterministic_and_roundtrips() {
         let verdicts = mcpp_verdicts().unwrap();
-        let a = emit_rust_enum("McppVerdict", "ontology/vendor/mcpp-proof-chain.ttl", &verdicts);
-        let b = emit_rust_enum("McppVerdict", "ontology/vendor/mcpp-proof-chain.ttl", &verdicts);
+        let a = emit_rust_enum(
+            "McppVerdict",
+            "ontology/vendor/mcpp-proof-chain.ttl",
+            &verdicts,
+        );
+        let b = emit_rust_enum(
+            "McppVerdict",
+            "ontology/vendor/mcpp-proof-chain.ttl",
+            &verdicts,
+        );
         assert_eq!(a, b, "manufacture must be byte-deterministic");
 
         let parsed = parse_enum_variants(&a);
         let expected: Vec<String> = verdicts.iter().map(|c| c.label.clone()).collect();
-        assert_eq!(parsed, expected, "emit -> parse must round-trip the variant set");
+        assert_eq!(
+            parsed, expected,
+            "emit -> parse must round-trip the variant set"
+        );
 
         // and the refusal-condition enum round-trips too
         let failures = truex_failures().unwrap();
-        let src = emit_rust_enum("RefusalCondition", "ontology/vendor/truex-ecosystem.ttl", &failures);
+        let src = emit_rust_enum(
+            "RefusalCondition",
+            "ontology/vendor/truex-ecosystem.ttl",
+            &failures,
+        );
         let re = parse_enum_variants(&src);
-        assert_eq!(re, failures.iter().map(|c| c.label.clone()).collect::<Vec<_>>());
+        assert_eq!(
+            re,
+            failures.iter().map(|c| c.label.clone()).collect::<Vec<_>>()
+        );
     }
 }

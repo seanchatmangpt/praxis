@@ -302,8 +302,10 @@ impl SequenceProblem {
         horizon: usize,
         before: Vec<(String, String)>,
     ) -> Result<Self, Refusal> {
-        let constraints =
-            before.into_iter().map(|(a, b)| Constraint::Before { a, b }).collect();
+        let constraints = before
+            .into_iter()
+            .map(|(a, b)| Constraint::Before { a, b })
+            .collect();
         Self::with_constraints(program, capabilities, goal, horizon, constraints)
     }
 
@@ -329,7 +331,9 @@ impl SequenceProblem {
         }
         let names: BTreeSet<&str> = capabilities.iter().map(|c| c.name.as_str()).collect();
         if names.len() != capabilities.len() {
-            return Err(Refusal::InvalidInput { detail: "duplicate capability names".into() });
+            return Err(Refusal::InvalidInput {
+                detail: "duplicate capability names".into(),
+            });
         }
         for c in &constraints {
             for n in c.names() {
@@ -344,7 +348,8 @@ impl SequenceProblem {
             for atom in cap.pre.iter().chain(cap.add.iter()).chain(cap.del.iter()) {
                 for t in &atom.args {
                     if let Term::Var(v) = t {
-                        if usize::from(*v) >= MAX_VARS || usize::from(*v) >= usize::from(cap.params) {
+                        if usize::from(*v) >= MAX_VARS || usize::from(*v) >= usize::from(cap.params)
+                        {
                             return Err(Refusal::InvalidInput {
                                 detail: format!(
                                     "capability {}: variable ?{v} is out of bounds (params={}, MAX_VARS={})",
@@ -383,7 +388,10 @@ impl SequenceProblem {
         // Snapshot the saturated database into a mutable state.
         let mut init = StateDb::default();
         for pred in program.predicates() {
-            for tuple in program.tuples_of(pred).map(|(a, t)| t[..usize::from(a)].to_vec()) {
+            for tuple in program
+                .tuples_of(pred)
+                .map(|(a, t)| t[..usize::from(a)].to_vec())
+            {
                 init.insert(pred.0, tuple.clone());
             }
         }
@@ -402,7 +410,15 @@ impl SequenceProblem {
         let pred_names: BTreeMap<u32, String> = (0..program.dict.len() as u32)
             .map(|i| (i, program.dict.resolve(SymId(i)).to_string()))
             .collect();
-        Ok(Self { caps: capabilities, init, goal, horizon, constraints, pred_names, problem_hash })
+        Ok(Self {
+            caps: capabilities,
+            init,
+            goal,
+            horizon,
+            constraints,
+            pred_names,
+            problem_hash,
+        })
     }
 
     /// Content address of this problem.
@@ -471,7 +487,10 @@ impl SequenceProblem {
     #[must_use]
     pub fn plan_respects_constraints(&self, plan: &SequencePlan) -> bool {
         let steps = &plan.steps;
-        if steps.iter().any(|s| self.capability(&s.capability).is_none()) {
+        if steps
+            .iter()
+            .any(|s| self.capability(&s.capability).is_none())
+        {
             return false;
         }
         let positions = |name: &str| -> Vec<usize> {
@@ -487,18 +506,10 @@ impl SequenceProblem {
                 let pa = positions(a);
                 positions(b).iter().all(|&j| pa.iter().any(|&i| i < j))
             }
-            Constraint::NotLater { a, k } => {
-                positions(a).iter().all(|&i| i < usize::from(*k))
-            }
-            Constraint::NotEarlier { a, k } => {
-                positions(a).iter().all(|&i| i >= usize::from(*k))
-            }
-            Constraint::Excludes { a, b } => {
-                positions(a).is_empty() || positions(b).is_empty()
-            }
-            Constraint::Requires { a, b } => {
-                positions(a).is_empty() || !positions(b).is_empty()
-            }
+            Constraint::NotLater { a, k } => positions(a).iter().all(|&i| i < usize::from(*k)),
+            Constraint::NotEarlier { a, k } => positions(a).iter().all(|&i| i >= usize::from(*k)),
+            Constraint::Excludes { a, b } => positions(a).is_empty() || positions(b).is_empty(),
+            Constraint::Requires { a, b } => positions(a).is_empty() || !positions(b).is_empty(),
             Constraint::AtMost { a, n } => positions(a).len() <= usize::from(*n),
             Constraint::Budget { max } => {
                 let cost = steps
@@ -666,7 +677,10 @@ impl Search<'_> {
                         added.push((p, args));
                     }
                 }
-                steps.push(BoundStep { capability: cap.name.clone(), binding: params });
+                steps.push(BoundStep {
+                    capability: cap.name.clone(),
+                    binding: params,
+                });
                 self.dfs(state, steps, cost.saturating_add(cap.cost))?;
                 steps.pop();
                 for (p, args) in added {
@@ -683,7 +697,12 @@ impl Search<'_> {
 
 impl Solver for BoundedCsp {
     fn solve(&self, problem: &SequenceProblem) -> Result<SequencePlan, Refusal> {
-        let mut search = Search { problem, nodes: 0, pruned: 0, best: None };
+        let mut search = Search {
+            problem,
+            nodes: 0,
+            pruned: 0,
+            best: None,
+        };
         let mut state = problem.init.clone();
         let mut steps = Vec::new();
         search.dfs(&mut state, &mut steps, 0)?;
@@ -692,7 +711,12 @@ impl Solver for BoundedCsp {
                 detail: format!(
                     "goal unreachable within horizon {} from {} initial atoms",
                     problem.horizon,
-                    problem.init.by_pred.values().map(BTreeSet::len).sum::<usize>()
+                    problem
+                        .init
+                        .by_pred
+                        .values()
+                        .map(BTreeSet::len)
+                        .sum::<usize>()
                 ),
                 nodes_explored: search.nodes,
             });

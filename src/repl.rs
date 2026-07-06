@@ -76,7 +76,9 @@ mod inner {
         /// Create a helper from a slice of `(noun, &[verb])` pairs.
         #[must_use]
         pub fn new(noun_verbs: &[(&'static str, &'static [&'static str])]) -> Self {
-            Self { noun_verbs: noun_verbs.iter().map(|(n, vs)| (*n, vs.to_vec())).collect() }
+            Self {
+                noun_verbs: noun_verbs.iter().map(|(n, vs)| (*n, vs.to_vec())).collect(),
+            }
         }
     }
 
@@ -173,7 +175,9 @@ mod inner {
         /// Returns an error if `rustyline` cannot initialise (e.g., terminal
         /// is not available).
         pub fn new(noun_verbs: &[(&'static str, &'static [&'static str])]) -> anyhow::Result<Self> {
-            let config = Config::builder().completion_type(CompletionType::List).build();
+            let config = Config::builder()
+                .completion_type(CompletionType::List)
+                .build();
             let helper = ReplHelper::new(noun_verbs);
             let mut editor = Editor::with_config(config)?;
             editor.set_helper(Some(helper));
@@ -269,7 +273,11 @@ mod tests {
     fn double_quoted_space() {
         assert_eq!(
             split_shell_words(r#"emit --payload "hello world""#),
-            Some(vec!["emit".into(), "--payload".into(), "hello world".into()])
+            Some(vec![
+                "emit".into(),
+                "--payload".into(),
+                "hello world".into()
+            ])
         );
     }
 
@@ -277,13 +285,20 @@ mod tests {
     fn single_quoted_space() {
         assert_eq!(
             split_shell_words("emit --payload 'hello world'"),
-            Some(vec!["emit".into(), "--payload".into(), "hello world".into()])
+            Some(vec![
+                "emit".into(),
+                "--payload".into(),
+                "hello world".into()
+            ])
         );
     }
 
     #[test]
     fn backslash_escape() {
-        assert_eq!(split_shell_words(r"emit\ arg"), Some(vec!["emit arg".into()]));
+        assert_eq!(
+            split_shell_words(r"emit\ arg"),
+            Some(vec!["emit arg".into()])
+        );
     }
 
     #[test]

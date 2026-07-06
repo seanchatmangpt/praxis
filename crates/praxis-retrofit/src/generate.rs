@@ -11,7 +11,11 @@ pub fn generate_retrofit_plan(
 ) -> Result<RetrofitPlan> {
     let metadata = RepositoryMetadata {
         path: repo_path.to_path_buf(),
-        name: repo_path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+        name: repo_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
         workspace_root: repo_path.to_path_buf(),
         crate_count: 1,
         has_workspace: true,
@@ -67,7 +71,11 @@ fn generate_typos_action(repo_path: &Path) -> Result<RetrofitAction> {
 }
 
 fn generate_justfile_action(repo_path: &Path) -> Result<RetrofitAction> {
-    let crate_name = repo_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let crate_name = repo_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
 
     Ok(RetrofitAction {
         action_type: RetrofitActionType::Create,

@@ -62,7 +62,10 @@ impl TickBudget {
     #[inline(always)]
     #[must_use]
     pub const fn chatman() -> Self {
-        Self { limit: CHATMAN_CONSTANT, used: 0 }
+        Self {
+            limit: CHATMAN_CONSTANT,
+            used: 0,
+        }
     }
 
     /// Custom budget.
@@ -128,7 +131,10 @@ mod tests {
         for _ in 0..8 {
             assert_eq!(b.consume(Ticks(1)), BudgetStatus::Ok);
         }
-        assert!(b.is_exhausted(), "used == limit counts as exhausted for is_exhausted");
+        assert!(
+            b.is_exhausted(),
+            "used == limit counts as exhausted for is_exhausted"
+        );
         assert_eq!(b.remaining(), 0);
         assert_eq!(b.consume(Ticks(1)), BudgetStatus::Exhausted);
     }
@@ -147,8 +153,7 @@ mod tests {
     /// proptest dependency).
     #[test]
     fn consume_matches_reference_semantics() {
-        let samples: [u64; 9] =
-            [0, 1, 7, 8, 9, 255, u64::MAX / 2, u64::MAX - 1, u64::MAX];
+        let samples: [u64; 9] = [0, 1, 7, 8, 9, 255, u64::MAX / 2, u64::MAX - 1, u64::MAX];
         for &limit in &samples {
             for &spend in &samples {
                 let mut b = TickBudget::new(limit);

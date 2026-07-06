@@ -113,8 +113,7 @@ pub fn run_member_supervised(
     }
     // Crashloop template: every attempt fails → intensity exhausts → park.
     if script.crashloop_template == Some(t) {
-        let rendered =
-            format!("crash loop: template t{t} failed every restart (parked)");
+        let rendered = format!("crash loop: template t{t} failed every restart (parked)");
         return MemberRecord {
             agent,
             byte: lane::S_PARKED, // H|B: halted on intensity, parked
@@ -138,8 +137,10 @@ pub fn run_member_supervised(
 /// Roll up supervised members (delegates to the cell's roll-up via its
 /// public pieces: recomputed here to keep `cell::roll_up` private).
 fn roll_up(group: usize, members: Vec<MemberRecord>) -> GroupReceipt {
-    let admitted =
-        members.iter().filter(|m| m.byte & lane::A_ADMITTED != 0).count();
+    let admitted = members
+        .iter()
+        .filter(|m| m.byte & lane::A_ADMITTED != 0)
+        .count();
     let refused = members.len() - admitted;
     let recovered = members
         .iter()
@@ -147,9 +148,7 @@ fn roll_up(group: usize, members: Vec<MemberRecord>) -> GroupReceipt {
         .count();
     let parked = members
         .iter()
-        .filter(|m| {
-            m.byte & lane::A_ADMITTED == 0 && m.byte & lane::S_PARKED == lane::S_PARKED
-        })
+        .filter(|m| m.byte & lane::A_ADMITTED == 0 && m.byte & lane::S_PARKED == lane::S_PARKED)
         .count();
     let geometry_gaps = members
         .iter()
@@ -205,9 +204,15 @@ pub fn analyze_epoch(epoch: u32, groups: &[GroupReceipt]) -> EpochPlan {
         })
         .collect();
     let plan_hash = content_address(
-        serde_json::to_string(&actions).unwrap_or_default().as_bytes(),
+        serde_json::to_string(&actions)
+            .unwrap_or_default()
+            .as_bytes(),
     );
-    EpochPlan { epoch, actions, plan_hash }
+    EpochPlan {
+        epoch,
+        actions,
+        plan_hash,
+    }
 }
 
 /// Run a supervised cell for `epochs` epochs. Parameters change ONLY at

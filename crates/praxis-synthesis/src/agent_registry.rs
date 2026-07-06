@@ -42,7 +42,10 @@ pub const MAX_CAN_SPAWN: usize = 8;
 pub const MAX_AGENTS: usize = 8;
 
 fn ill(subject: &str, detail: impl Into<String>) -> Refusal {
-    Refusal::AgentIllFormed { subject: subject.to_string(), detail: detail.into() }
+    Refusal::AgentIllFormed {
+        subject: subject.to_string(),
+        detail: detail.into(),
+    }
 }
 
 /// One graph-declared agent profile: an IRI, its bounded tool set, its
@@ -116,7 +119,10 @@ pub fn extract_agents(triples: &[Triple]) -> Result<Vec<AgentProfile>, Refusal> 
         tools.sort_unstable();
         tools.dedup();
         if tools.len() > MAX_TOOLS {
-            return Err(ill(subject, format!("{} agent:tool values; max {MAX_TOOLS}", tools.len())));
+            return Err(ill(
+                subject,
+                format!("{} agent:tool values; max {MAX_TOOLS}", tools.len()),
+            ));
         }
 
         let mut can_spawn: Vec<String> = triples
@@ -132,7 +138,10 @@ pub fn extract_agents(triples: &[Triple]) -> Result<Vec<AgentProfile>, Refusal> 
         if can_spawn.len() > MAX_CAN_SPAWN {
             return Err(ill(
                 subject,
-                format!("{} agent:canSpawn values; max {MAX_CAN_SPAWN}", can_spawn.len()),
+                format!(
+                    "{} agent:canSpawn values; max {MAX_CAN_SPAWN}",
+                    can_spawn.len()
+                ),
             ));
         }
 
@@ -148,14 +157,22 @@ pub fn extract_agents(triples: &[Triple]) -> Result<Vec<AgentProfile>, Refusal> 
                 (*v as u8)
             }
             [Object::Int(v)] => {
-                return Err(ill(subject, format!("agent:layerDepth {v} out of range 1..=5")))
+                return Err(ill(
+                    subject,
+                    format!("agent:layerDepth {v} out of range 1..=5"),
+                ))
             }
             [] => return Err(ill(subject, "missing agent:layerDepth")),
             [_] => return Err(ill(subject, "agent:layerDepth must be an integer literal")),
             _ => return Err(ill(subject, "multiple agent:layerDepth")),
         };
 
-        agents.push(AgentProfile { iri: subject.to_string(), tools, can_spawn, layer_depth });
+        agents.push(AgentProfile {
+            iri: subject.to_string(),
+            tools,
+            can_spawn,
+            layer_depth,
+        });
     }
     agents.sort_unstable_by(|a, b| a.iri.cmp(&b.iri));
     Ok(agents)
@@ -226,7 +243,10 @@ mod tests {
         ));
         let agents = extract_agents(&parse_ttl(&ttl).unwrap()).unwrap();
         assert_eq!(agents.len(), 1);
-        assert_eq!(agents[0].tools, vec!["Agent".to_string(), "Read".to_string()]);
+        assert_eq!(
+            agents[0].tools,
+            vec!["Agent".to_string(), "Read".to_string()]
+        );
         assert_eq!(agents[0].layer_depth, 1);
         assert_eq!(agents[0].can_spawn.len(), 2);
     }
@@ -320,7 +340,10 @@ mod tests {
         );
         let ha = agent_registry_hash(&extract_agents(&parse_ttl(&ttl_ab).unwrap()).unwrap());
         let hb = agent_registry_hash(&extract_agents(&parse_ttl(&ttl_ba).unwrap()).unwrap());
-        assert_eq!(ha, hb, "canonical form is sorted by IRI; source order must not matter");
+        assert_eq!(
+            ha, hb,
+            "canonical form is sorted by IRI; source order must not matter"
+        );
 
         let ttl_changed = doc("ex:a a agent:Agent ; agent:layerDepth 1 ; agent:tool \"Write\" .\n");
         let hc = agent_registry_hash(&extract_agents(&parse_ttl(&ttl_changed).unwrap()).unwrap());
@@ -329,9 +352,12 @@ mod tests {
 
     #[test]
     fn too_many_tools_is_refused() {
-        let tools: String =
-            (0..=MAX_TOOLS).map(|i| format!("agent:tool \"t{i}\" ; ")).collect();
-        let ttl = doc(&format!("ex:a a agent:Agent ; agent:layerDepth 1 ; {tools}.\n"));
+        let tools: String = (0..=MAX_TOOLS)
+            .map(|i| format!("agent:tool \"t{i}\" ; "))
+            .collect();
+        let ttl = doc(&format!(
+            "ex:a a agent:Agent ; agent:layerDepth 1 ; {tools}.\n"
+        ));
         match extract_agents(&parse_ttl(&ttl).unwrap()) {
             Err(Refusal::AgentIllFormed { .. }) => {}
             other => panic!("expected AgentIllFormed, got {other:?}"),

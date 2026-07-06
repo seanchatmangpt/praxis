@@ -51,12 +51,21 @@ const REFUSED_KINDS: [(&str, &str); 5] = [
     ("sparql-ask", "datalog (goal reachability)"),
     ("sparql-select", "datalog (goal reachability)"),
     ("shacl", "datalog (integrity rules)"),
-    ("n3", "datalog (no bounded N3 engine in-tree; cold-only N3 is not implemented)"),
-    ("semantic-inference", "(none — refused everywhere; unrdf itself throws unimplemented)"),
+    (
+        "n3",
+        "datalog (no bounded N3 engine in-tree; cold-only N3 is not implemented)",
+    ),
+    (
+        "semantic-inference",
+        "(none — refused everywhere; unrdf itself throws unimplemented)",
+    ),
 ];
 
 fn ill(subject: &str, detail: impl Into<String>) -> Refusal {
-    Refusal::HookIllFormed { subject: subject.to_string(), detail: detail.into() }
+    Refusal::HookIllFormed {
+        subject: subject.to_string(),
+        detail: detail.into(),
+    }
 }
 
 /// Comparison operator for counting conditions.
@@ -249,14 +258,21 @@ struct HookProps<'a> {
 impl<'a> HookProps<'a> {
     fn objects(&self, local: &str) -> Vec<&'a Object> {
         let pred = format!("{HOOK_NS}{local}");
-        self.props.iter().filter(|(p, _)| *p == pred).map(|(_, o)| *o).collect()
+        self.props
+            .iter()
+            .filter(|(p, _)| *p == pred)
+            .map(|(_, o)| *o)
+            .collect()
     }
 
     fn one_str(&self, subject: &str, local: &str) -> Result<String, Refusal> {
         match self.objects(local).as_slice() {
             [Object::Str(s)] => Ok(s.clone()),
             [] => Err(ill(subject, format!("missing hook:{local}"))),
-            [_] => Err(ill(subject, format!("hook:{local} must be a string literal"))),
+            [_] => Err(ill(
+                subject,
+                format!("hook:{local} must be a string literal"),
+            )),
             _ => Err(ill(subject, format!("multiple hook:{local}"))),
         }
     }
@@ -265,7 +281,10 @@ impl<'a> HookProps<'a> {
         match self.objects(local).as_slice() {
             [] => Ok(None),
             [Object::Str(s)] => Ok(Some(s.clone())),
-            [_] => Err(ill(subject, format!("hook:{local} must be a string literal"))),
+            [_] => Err(ill(
+                subject,
+                format!("hook:{local} must be a string literal"),
+            )),
             _ => Err(ill(subject, format!("multiple hook:{local}"))),
         }
     }
@@ -274,7 +293,10 @@ impl<'a> HookProps<'a> {
         match self.objects(local).as_slice() {
             [] => Ok(None),
             [Object::Int(v)] => Ok(Some(*v)),
-            [_] => Err(ill(subject, format!("hook:{local} must be an integer literal"))),
+            [_] => Err(ill(
+                subject,
+                format!("hook:{local} must be an integer literal"),
+            )),
             _ => Err(ill(subject, format!("multiple hook:{local}"))),
         }
     }
@@ -289,10 +311,7 @@ impl<'a> HookProps<'a> {
     }
 }
 
-fn cmp_fields(
-    props: &HookProps<'_>,
-    subject: &str,
-) -> Result<(String, CmpOp, u64), Refusal> {
+fn cmp_fields(props: &HookProps<'_>, subject: &str) -> Result<(String, CmpOp, u64), Refusal> {
     let var = props.one_str(subject, "var")?;
     let op = CmpOp::parse(&props.one_str(subject, "op")?, subject)?;
     let k = match props.opt_int(subject, "k")? {
@@ -362,9 +381,14 @@ pub fn extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHook>, Refusal> 
         if !names.insert(name.clone()) {
             return Err(ill(subject, format!("duplicate hook name '{name}'")));
         }
-        let on = props.opt_str(subject, "on")?.unwrap_or_else(|| "any".to_string());
+        let on = props
+            .opt_str(subject, "on")?
+            .unwrap_or_else(|| "any".to_string());
         if !matches!(on.as_str(), "assert" | "retract" | "any") {
-            return Err(ill(subject, format!("hook:on '{on}' not in assert|retract|any")));
+            return Err(ill(
+                subject,
+                format!("hook:on '{on}' not in assert|retract|any"),
+            ));
         }
         let kind = props.one_str(subject, "kind")?;
         let condition = match kind.as_str() {
@@ -387,11 +411,16 @@ pub fn extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHook>, Refusal> 
                 let mut scratch = Program::new();
                 add_rules(&mut scratch, &program, subject)?;
                 scratch.saturate().map_err(|e| {
-                    ill(subject, format!("datalog program rejected at registration: {e}"))
+                    ill(
+                        subject,
+                        format!("datalog program rejected at registration: {e}"),
+                    )
                 })?;
                 HookCondition::Datalog { program, goal }
             }
-            "delta" => HookCondition::Delta { var: props.one_str(subject, "var")? },
+            "delta" => HookCondition::Delta {
+                var: props.one_str(subject, "var")?,
+            },
             "threshold" => {
                 let (var, op, k) = cmp_fields(&props, subject)?;
                 HookCondition::Threshold { var, op, k }
@@ -455,7 +484,12 @@ pub fn extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHook>, Refusal> 
                 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
                 (v as u8)
             }
-            Some(v) => return Err(ill(subject, format!("hook:priority {v} out of range 0..=7"))),
+            Some(v) => {
+                return Err(ill(
+                    subject,
+                    format!("hook:priority {v} out of range 0..=7"),
+                ))
+            }
         };
         hooks.push(KnowledgeHook {
             iri: subject.to_string(),
@@ -500,13 +534,19 @@ fn parse_atom(program: &mut Program, s: &str, subject: &str) -> Result<DlAtom, R
     }
     let name = s[..open].trim();
     if name.is_empty() {
-        return Err(ill(subject, format!("datalog atom '{s}' has empty predicate")));
+        return Err(ill(
+            subject,
+            format!("datalog atom '{s}' has empty predicate"),
+        ));
     }
     let inner = &s[open + 1..s.len() - 1];
     let args: Vec<Term> = if inner.trim().is_empty() {
         Vec::new()
     } else {
-        inner.split(',').map(|t| parse_term(program, t.trim())).collect()
+        inner
+            .split(',')
+            .map(|t| parse_term(program, t.trim()))
+            .collect()
     };
     let pred = program.intern(name);
     Ok(DlAtom::new(pred, args))
@@ -579,9 +619,13 @@ fn add_rules(program: &mut Program, text: &str, subject: &str) -> Result<usize, 
                  facts cannot be asserted via program text",
             ));
         }
-        program.add_rule(DlRule { head, body, negative }).map_err(|e| {
-            ill(subject, format!("datalog rule rejected by engine: {e}"))
-        })?;
+        program
+            .add_rule(DlRule {
+                head,
+                body,
+                negative,
+            })
+            .map_err(|e| ill(subject, format!("datalog rule rejected by engine: {e}")))?;
         added += 1;
         if added > 8 {
             return Err(ill(subject, "more than 8 datalog rules in one hook"));
@@ -599,7 +643,11 @@ fn count_pred(triples: &[Triple], var: &str) -> u64 {
 }
 
 fn delta_touches(delta: &GraphDelta, var: &str) -> bool {
-    delta.additions().iter().chain(delta.removals().iter()).any(|t| t.p == var)
+    delta
+        .additions()
+        .iter()
+        .chain(delta.removals().iter())
+        .any(|t| t.p == var)
 }
 
 fn delta_count(delta: &GraphDelta, var: &str) -> u64 {
@@ -661,7 +709,9 @@ pub fn evaluate_hooks(
                 HookCondition::Threshold { var, op, k } => {
                     op.holds(count_pred(event.post(), var), *k)
                 }
-                HookCondition::Count { var, op, k } => op.holds(delta_count(event.delta(), var), *k),
+                HookCondition::Count { var, op, k } => {
+                    op.holds(delta_count(event.delta(), var), *k)
+                }
                 HookCondition::Window { var, op, k, window } => {
                     let mut total = delta_count(event.delta(), var);
                     for d in history.iter().take(usize::from(*window) - 1) {
@@ -731,20 +781,34 @@ mod tests {
         let quiet = admitted(DELTA_HOOK, "<http://e/x> <http://e/q> 1 .", "");
         let hooks = extract_hooks(quiet.post()).expect("registry extracts");
         let records = evaluate_hooks(&hooks, &quiet, &[]).expect("evaluates");
-        assert_eq!(records[0].verdict, HookVerdict::NotFired, "silence is recorded");
+        assert_eq!(
+            records[0].verdict,
+            HookVerdict::NotFired,
+            "silence is recorded"
+        );
         assert!(hook_hash(&records).unwrap().len() > 16);
     }
 
     #[test]
     fn unsupported_kinds_refused_by_name_with_analog() {
-        for kind in ["sparql-ask", "sparql-select", "shacl", "n3", "semantic-inference"] {
+        for kind in [
+            "sparql-ask",
+            "sparql-select",
+            "shacl",
+            "n3",
+            "semantic-inference",
+        ] {
             let doc = hook_doc(&format!(
                 "ex:h a hook:Hook ; hook:name \"x\" ; hook:kind \"{kind}\" ; \
                  hook:effect \"refuse\" ; hook:reason \"r\" ."
             ));
             let triples = crate::graph::parse_ttl(&doc).expect("parses");
             match extract_hooks(&triples) {
-                Err(Refusal::ConditionUnsupported { kind: k, supported_analog, .. }) => {
+                Err(Refusal::ConditionUnsupported {
+                    kind: k,
+                    supported_analog,
+                    ..
+                }) => {
                     assert_eq!(k, kind);
                     assert!(!supported_analog.is_empty());
                 }
@@ -788,10 +852,18 @@ mod tests {
         let base_extra = format!(
             "{body}ex:a <http://e/is> <http://e/thing> .\nex:root <http://e/links> ex:a .\n"
         );
-        let event = admitted(&base_extra, "<http://e/b> <http://e/is> <http://e/thing> .", "");
+        let event = admitted(
+            &base_extra,
+            "<http://e/b> <http://e/is> <http://e/thing> .",
+            "",
+        );
         let hooks = extract_hooks(event.post()).expect("extracts");
         let records = evaluate_hooks(&hooks, &event, &[]).expect("evaluates");
-        assert_eq!(records[0].verdict, HookVerdict::Fired, "unlinked b is an orphan");
+        assert_eq!(
+            records[0].verdict,
+            HookVerdict::Fired,
+            "unlinked b is an orphan"
+        );
 
         // Linking b in the same delta keeps the goal underivable.
         let event2 = admitted(

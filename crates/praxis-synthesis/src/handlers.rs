@@ -115,7 +115,11 @@ pub fn extract_bindings(triples: &[Triple]) -> Result<Vec<HandlerBinding>, Refus
     let mut bindings = Vec::new();
     for cap in caps {
         let one = |pred: &str| -> Vec<&Object> {
-            triples.iter().filter(|t| t.s == cap && t.p == *pred).map(|t| &t.o).collect()
+            triples
+                .iter()
+                .filter(|t| t.s == cap && t.p == *pred)
+                .map(|t| &t.o)
+                .collect()
         };
         let handlers = one(&handler_p);
         if handlers.is_empty() {
@@ -136,14 +140,28 @@ pub fn extract_bindings(triples: &[Triple]) -> Result<Vec<HandlerBinding>, Refus
                         .to_string(),
                 ))
             }
-            [_] => return Err(ill(cap, "wf:delegability must be a string literal".to_string())),
+            [_] => {
+                return Err(ill(
+                    cap,
+                    "wf:delegability must be a string literal".to_string(),
+                ))
+            }
             _ => return Err(ill(cap, "multiple wf:delegability".to_string())),
         };
         let capability = match one(&name_p).as_slice() {
             [Object::Str(s)] => s.clone(),
-            _ => return Err(ill(cap, "handled capability missing unique wf:name".to_string())),
+            _ => {
+                return Err(ill(
+                    cap,
+                    "handled capability missing unique wf:name".to_string(),
+                ))
+            }
         };
-        bindings.push(HandlerBinding { capability, handler, delegability });
+        bindings.push(HandlerBinding {
+            capability,
+            handler,
+            delegability,
+        });
     }
     bindings.sort_unstable_by(|a, b| a.capability.cmp(&b.capability));
     Ok(bindings)
@@ -155,7 +173,12 @@ pub fn extract_bindings(triples: &[Triple]) -> Result<Vec<HandlerBinding>, Refus
 pub fn binding_canonical_form(bindings: &[HandlerBinding]) -> String {
     let mut out = String::new();
     for b in bindings {
-        out.push_str(&format!("{}\t{}\t{}\n", b.capability, b.handler, b.delegability.render()));
+        out.push_str(&format!(
+            "{}\t{}\t{}\n",
+            b.capability,
+            b.handler,
+            b.delegability.render()
+        ));
     }
     out
 }
@@ -279,7 +302,9 @@ mod tests {
             binding_canonical_form(&bindings),
             format!("c\t{HANDLER_NS}deterministic-v1\tverifiable\n")
         );
-        HandlerRegistry::builtin().judge(&bindings).expect("known + automatable-or-above");
+        HandlerRegistry::builtin()
+            .judge(&bindings)
+            .expect("known + automatable-or-above");
     }
 
     #[test]
@@ -333,7 +358,10 @@ mod tests {
         ));
         let ha = handler_hash(&extract_bindings(&parse_ttl(&a).unwrap()).unwrap());
         let hb = handler_hash(&extract_bindings(&parse_ttl(&b).unwrap()).unwrap());
-        assert_ne!(ha, hb, "the graph decides the binding; the hash proves which graph");
+        assert_ne!(
+            ha, hb,
+            "the graph decides the binding; the hash proves which graph"
+        );
     }
 
     /// Adversarial finding: a `wf:Capability` with NO `wf:handler` at all
@@ -353,7 +381,11 @@ mod tests {
         let bindings: Vec<HandlerBinding> = Vec::new();
         let used: BTreeSet<String> = ["unbound-cap".to_string()].into_iter().collect();
         match HandlerRegistry::builtin().judge_delegability(&bindings, &used) {
-            Err(Refusal::DelegabilityViolation { capability, required, declared }) => {
+            Err(Refusal::DelegabilityViolation {
+                capability,
+                required,
+                declared,
+            }) => {
                 assert_eq!(capability, "unbound-cap");
                 assert_eq!(required, "automatable");
                 assert_eq!(declared, "human-only");

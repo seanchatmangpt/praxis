@@ -136,9 +136,7 @@ pub enum FailureAction {
 pub fn handle_r1_failure(budget_exceeded: bool) -> FailureAction {
     if budget_exceeded {
         FailureAction::Refuse {
-            reason: format!(
-                "R1 budget breach: exceeded {CHATMAN_CONSTANT} ticks on the hot path"
-            ),
+            reason: format!("R1 budget breach: exceeded {CHATMAN_CONSTANT} ticks on the hot path"),
         }
     } else {
         FailureAction::Park
@@ -151,7 +149,9 @@ pub fn handle_r1_failure(budget_exceeded: bool) -> FailureAction {
 #[must_use]
 pub fn handle_w1_failure(retry_count: u8, max_retries: u8, cache_available: bool) -> FailureAction {
     if retry_count < max_retries {
-        FailureAction::Retry { remaining: max_retries - retry_count - 1 }
+        FailureAction::Retry {
+            remaining: max_retries - retry_count - 1,
+        }
     } else if cache_available {
         FailureAction::Degrade
     } else {

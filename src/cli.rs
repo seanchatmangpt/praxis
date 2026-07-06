@@ -99,7 +99,11 @@ fn collect_recursive(cmd: &clap::Command, prefix: &[&str], out: &mut Vec<ToolDef
     let subs: Vec<_> = cmd.get_subcommands().collect();
     if subs.is_empty() {
         // Leaf — emit a ToolDefinition.
-        let parts: Vec<&str> = prefix.iter().copied().chain(std::iter::once(cmd.get_name())).collect();
+        let parts: Vec<&str> = prefix
+            .iter()
+            .copied()
+            .chain(std::iter::once(cmd.get_name()))
+            .collect();
         let name = parts.join("_");
         let description = cmd
             .get_about()
@@ -111,7 +115,10 @@ fn collect_recursive(cmd: &clap::Command, prefix: &[&str], out: &mut Vec<ToolDef
 
         for arg in cmd.get_arguments() {
             // Skip global / help / version flags that are not domain args.
-            if matches!(arg.get_id().as_str(), "help" | "version" | "format" | "color" | "verbose" | "introspect") {
+            if matches!(
+                arg.get_id().as_str(),
+                "help" | "version" | "format" | "color" | "verbose" | "introspect"
+            ) {
                 continue;
             }
             let prop_name = arg.get_id().to_string();
@@ -136,9 +143,17 @@ fn collect_recursive(cmd: &clap::Command, prefix: &[&str], out: &mut Vec<ToolDef
             "required": required,
         });
 
-        out.push(ToolDefinition { name, description, parameters });
+        out.push(ToolDefinition {
+            name,
+            description,
+            parameters,
+        });
     } else {
-        let new_prefix: Vec<&str> = prefix.iter().copied().chain(std::iter::once(cmd.get_name())).collect();
+        let new_prefix: Vec<&str> = prefix
+            .iter()
+            .copied()
+            .chain(std::iter::once(cmd.get_name()))
+            .collect();
         for sub in subs {
             collect_recursive(sub, &new_prefix, out);
         }

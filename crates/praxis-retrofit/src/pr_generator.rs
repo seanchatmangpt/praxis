@@ -151,7 +151,11 @@ impl PullRequestGenerator {
                 repo.name
             ),
             body: pr_body_phase1_lints(&repo.name, files_changed),
-            labels: vec!["retrofit".to_string(), "linting".to_string(), "praxis".to_string()],
+            labels: vec![
+                "retrofit".to_string(),
+                "linting".to_string(),
+                "praxis".to_string(),
+            ],
             assignees: vec!["@seanchatmangpt".to_string()],
         }
     }
@@ -167,7 +171,11 @@ impl PullRequestGenerator {
                 repo.name
             ),
             body: pr_body_phase2_deps(&repo.name, files_changed),
-            labels: vec!["retrofit".to_string(), "dependencies".to_string(), "praxis".to_string()],
+            labels: vec![
+                "retrofit".to_string(),
+                "dependencies".to_string(),
+                "praxis".to_string(),
+            ],
             assignees: vec!["@seanchatmangpt".to_string()],
         }
     }
@@ -178,9 +186,16 @@ impl PullRequestGenerator {
         files_changed: usize,
     ) -> PullRequestTemplate {
         PullRequestTemplate {
-            title: format!("retrofit(build): Standardize justfile task runner for {}", repo.name),
+            title: format!(
+                "retrofit(build): Standardize justfile task runner for {}",
+                repo.name
+            ),
             body: pr_body_phase3_justfile(&repo.name, files_changed),
-            labels: vec!["retrofit".to_string(), "build".to_string(), "praxis".to_string()],
+            labels: vec![
+                "retrofit".to_string(),
+                "build".to_string(),
+                "praxis".to_string(),
+            ],
             assignees: vec!["@seanchatmangpt".to_string()],
         }
     }
@@ -191,9 +206,16 @@ impl PullRequestGenerator {
         files_changed: usize,
     ) -> PullRequestTemplate {
         PullRequestTemplate {
-            title: format!("retrofit(ci): Add praxis spell-check configuration for {}", repo.name),
+            title: format!(
+                "retrofit(ci): Add praxis spell-check configuration for {}",
+                repo.name
+            ),
             body: pr_body_phase4_typos(&repo.name, files_changed),
-            labels: vec!["retrofit".to_string(), "ci".to_string(), "praxis".to_string()],
+            labels: vec![
+                "retrofit".to_string(),
+                "ci".to_string(),
+                "praxis".to_string(),
+            ],
             assignees: vec!["@seanchatmangpt".to_string()],
         }
     }
@@ -204,9 +226,16 @@ impl PullRequestGenerator {
         files_changed: usize,
     ) -> PullRequestTemplate {
         PullRequestTemplate {
-            title: format!("retrofit(docs): Add praxis documentation standards for {}", repo.name),
+            title: format!(
+                "retrofit(docs): Add praxis documentation standards for {}",
+                repo.name
+            ),
             body: pr_body_phase5_docs(&repo.name, files_changed),
-            labels: vec!["retrofit".to_string(), "documentation".to_string(), "praxis".to_string()],
+            labels: vec![
+                "retrofit".to_string(),
+                "documentation".to_string(),
+                "praxis".to_string(),
+            ],
             assignees: vec!["@seanchatmangpt".to_string()],
         }
     }
@@ -290,7 +319,10 @@ impl PullRequestGenerator {
         let pr_url = stdout.trim().to_string();
 
         // Extract PR number from URL (format: https://github.com/owner/repo/pull/123)
-        let pr_number = pr_url.split('/').last().and_then(|s| s.parse::<usize>().ok());
+        let pr_number = pr_url
+            .split('/')
+            .last()
+            .and_then(|s| s.parse::<usize>().ok());
 
         debug!("Created PR {} (URL: {})", pr_number.unwrap_or(0), pr_url);
 
@@ -298,7 +330,11 @@ impl PullRequestGenerator {
             repository: repo.clone(),
             url: Some(pr_url),
             number: pr_number,
-            status: if self.config.create_as_draft { PRStatus::Draft } else { PRStatus::Open },
+            status: if self.config.create_as_draft {
+                PRStatus::Draft
+            } else {
+                PRStatus::Open
+            },
             branch_name,
             phase,
             created_at: Some(chrono::Local::now().to_rfc3339()),

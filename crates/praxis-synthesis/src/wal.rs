@@ -34,7 +34,9 @@ impl Wal {
             .create(true)
             .append(true)
             .open(path)
-            .map_err(|e| Refusal::InvalidInput { detail: format!("wal open: {e}") })?;
+            .map_err(|e| Refusal::InvalidInput {
+                detail: format!("wal open: {e}"),
+            })?;
         Ok(Self { file })
     }
 
@@ -55,7 +57,9 @@ impl Wal {
         self.file
             .write_all(&frame)
             .and_then(|()| self.file.sync_data())
-            .map_err(|e| Refusal::InvalidInput { detail: format!("wal append: {e}") })
+            .map_err(|e| Refusal::InvalidInput {
+                detail: format!("wal append: {e}"),
+            })
     }
 
     /// Recover all intact frames from `path` into a fresh [`MemoCache`].
@@ -67,12 +71,18 @@ impl Wal {
         match File::open(path) {
             Ok(mut f) => {
                 f.read_to_end(&mut bytes)
-                    .map_err(|e| Refusal::InvalidInput { detail: format!("wal read: {e}") })?;
+                    .map_err(|e| Refusal::InvalidInput {
+                        detail: format!("wal read: {e}"),
+                    })?;
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 return Ok((MemoCache::new(), 0, false));
             }
-            Err(e) => return Err(Refusal::InvalidInput { detail: format!("wal open: {e}") }),
+            Err(e) => {
+                return Err(Refusal::InvalidInput {
+                    detail: format!("wal open: {e}"),
+                })
+            }
         }
         let mut cache = MemoCache::new();
         let mut at = 0usize;
@@ -83,8 +93,7 @@ impl Wal {
                 torn = true;
                 break;
             }
-            let len =
-                u32::from_le_bytes(bytes[at..at + 4].try_into().expect("4 bytes")) as usize;
+            let len = u32::from_le_bytes(bytes[at..at + 4].try_into().expect("4 bytes")) as usize;
             let hash: [u8; 32] = bytes[at + 4..at + 36].try_into().expect("32 bytes");
             let start = at + 36;
             if start + len > bytes.len() {
@@ -101,8 +110,7 @@ impl Wal {
                 torn = true;
                 break;
             }
-            let klen =
-                u32::from_le_bytes(payload[..4].try_into().expect("4 bytes")) as usize;
+            let klen = u32::from_le_bytes(payload[..4].try_into().expect("4 bytes")) as usize;
             if 4 + klen > payload.len() {
                 torn = true;
                 break;

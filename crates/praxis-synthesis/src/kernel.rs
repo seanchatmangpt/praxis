@@ -31,8 +31,11 @@ const KERNEL_PREDICATES: [&str; 5] = ["clause", "name", "problemClass", "boundar
 
 /// The three lawful boundary strings. `"god-receives-unbounded"` is a data
 /// marker of surrender — it never resolves to a handler.
-pub const BOUNDARIES: [&str; 3] =
-    ["human-only", "god-receives-unbounded", "automatable-support"];
+pub const BOUNDARIES: [&str; 3] = [
+    "human-only",
+    "god-receives-unbounded",
+    "automatable-support",
+];
 
 /// The 11 canonical clause names, in scriptural order. Extraction requires
 /// this set EXACTLY (order is not required in the graph; coverage is).
@@ -51,7 +54,10 @@ pub const CANONICAL_CLAUSES: [&str; 11] = [
 ];
 
 fn ill(subject: &str, detail: impl Into<String>) -> Refusal {
-    Refusal::KernelIllFormed { subject: subject.to_string(), detail: detail.into() }
+    Refusal::KernelIllFormed {
+        subject: subject.to_string(),
+        detail: detail.into(),
+    }
 }
 
 /// One extracted prayer clause.
@@ -76,14 +82,21 @@ struct Props<'a> {
 impl<'a> Props<'a> {
     fn objects(&self, local: &str) -> Vec<&'a Object> {
         let pred = format!("{KERNEL_NS}{local}");
-        self.props.iter().filter(|(p, _)| *p == pred).map(|(_, o)| *o).collect()
+        self.props
+            .iter()
+            .filter(|(p, _)| *p == pred)
+            .map(|(_, o)| *o)
+            .collect()
     }
 
     fn one_str(&self, subject: &str, local: &str) -> Result<String, Refusal> {
         match self.objects(local).as_slice() {
             [Object::Str(s)] => Ok(s.clone()),
             [] => Err(ill(subject, format!("missing prayer-kernel:{local}"))),
-            [_] => Err(ill(subject, format!("prayer-kernel:{local} must be a string literal"))),
+            [_] => Err(ill(
+                subject,
+                format!("prayer-kernel:{local} must be a string literal"),
+            )),
             _ => Err(ill(subject, format!("multiple prayer-kernel:{local}"))),
         }
     }
@@ -92,7 +105,10 @@ impl<'a> Props<'a> {
         match self.objects(local).as_slice() {
             [] => Ok(None),
             [Object::Iri(iri)] => Ok(Some(iri.clone())),
-            [_] => Err(ill(subject, format!("prayer-kernel:{local} must be an IRI"))),
+            [_] => Err(ill(
+                subject,
+                format!("prayer-kernel:{local} must be an IRI"),
+            )),
             _ => Err(ill(subject, format!("multiple prayer-kernel:{local}"))),
         }
     }
@@ -109,7 +125,10 @@ pub fn extract_kernel(triples: &[Triple]) -> Result<Vec<PrayerClause>, Refusal> 
     for t in triples {
         if let Some(local) = t.p.strip_prefix(KERNEL_NS) {
             if !KERNEL_PREDICATES.contains(&local) {
-                return Err(ill(&t.s, format!("unknown prayer-kernel: predicate '{local}'")));
+                return Err(ill(
+                    &t.s,
+                    format!("unknown prayer-kernel: predicate '{local}'"),
+                ));
             }
         }
         if t.p == RDF_TYPE {
@@ -138,7 +157,10 @@ pub fn extract_kernel(triples: &[Triple]) -> Result<Vec<PrayerClause>, Refusal> 
         _ => {
             return Err(ill(
                 "(kernel)",
-                format!("{} prayer-kernel:Kernel nodes declared; exactly 1 required", kernels.len()),
+                format!(
+                    "{} prayer-kernel:Kernel nodes declared; exactly 1 required",
+                    kernels.len()
+                ),
             ))
         }
     };
@@ -146,7 +168,10 @@ pub fn extract_kernel(triples: &[Triple]) -> Result<Vec<PrayerClause>, Refusal> 
     // The kernel's clause list (IRIs).
     let clause_pred = format!("{KERNEL_NS}clause");
     let mut listed: Vec<String> = Vec::new();
-    for t in triples.iter().filter(|t| t.s == kernel && t.p == clause_pred) {
+    for t in triples
+        .iter()
+        .filter(|t| t.s == kernel && t.p == clause_pred)
+    {
         match &t.o {
             Object::Iri(iri) => listed.push(iri.clone()),
             _ => return Err(ill(kernel, "prayer-kernel:clause must be an IRI")),
@@ -168,12 +193,18 @@ pub fn extract_kernel(triples: &[Triple]) -> Result<Vec<PrayerClause>, Refusal> 
     typed.dedup();
     for iri in &listed {
         if !typed.contains(&iri.as_str()) {
-            return Err(ill(iri, "listed by the kernel but not typed prayer-kernel:Clause"));
+            return Err(ill(
+                iri,
+                "listed by the kernel but not typed prayer-kernel:Clause",
+            ));
         }
     }
     for iri in &typed {
         if !listed.iter().any(|l| l == iri) {
-            return Err(ill(iri, "typed prayer-kernel:Clause but not listed by the kernel"));
+            return Err(ill(
+                iri,
+                "typed prayer-kernel:Clause but not listed by the kernel",
+            ));
         }
     }
 
@@ -252,13 +283,20 @@ pub fn extract_kernel(triples: &[Triple]) -> Result<Vec<PrayerClause>, Refusal> 
     if clauses.len() != CANONICAL_CLAUSES.len() {
         return Err(ill(
             "(kernel)",
-            format!("{} clauses declared; exactly {} required", clauses.len(), CANONICAL_CLAUSES.len()),
+            format!(
+                "{} clauses declared; exactly {} required",
+                clauses.len(),
+                CANONICAL_CLAUSES.len()
+            ),
         ));
     }
 
     // Canonical (scriptural) order, independent of graph surface order.
     clauses.sort_by_key(|c| {
-        CANONICAL_CLAUSES.iter().position(|n| *n == c.name).unwrap_or(usize::MAX)
+        CANONICAL_CLAUSES
+            .iter()
+            .position(|n| *n == c.name)
+            .unwrap_or(usize::MAX)
     });
     Ok(clauses)
 }
@@ -270,8 +308,7 @@ pub fn extract_kernel(triples: &[Triple]) -> Result<Vec<PrayerClause>, Refusal> 
 pub fn kernel_declared(triples: &[Triple]) -> bool {
     triples.iter().any(|t| {
         t.p.starts_with(KERNEL_NS)
-            || (t.p == RDF_TYPE
-                && matches!(&t.o, Object::Iri(c) if c.starts_with(KERNEL_NS)))
+            || (t.p == RDF_TYPE && matches!(&t.o, Object::Iri(c) if c.starts_with(KERNEL_NS)))
     })
 }
 
@@ -380,7 +417,10 @@ pub fn enforce_surrender_boundary(
     }
     let clauses = extract_kernel(triples)?;
     let mut surrendered_vars: Vec<(String, String)> = Vec::new(); // (var, clause iri)
-    for clause in clauses.iter().filter(|c| c.boundary == "god-receives-unbounded") {
+    for clause in clauses
+        .iter()
+        .filter(|c| c.boundary == "god-receives-unbounded")
+    {
         let Some(action) = clause.action.as_deref() else {
             return Err(Refusal::BoundaryViolation {
                 subject: clause.iri.clone(),
@@ -418,7 +458,10 @@ pub fn enforce_surrender_boundary(
             surrendered_vars.push((var, clause.iri.clone()));
         }
     }
-    for hook in hooks.iter().filter(|h| h.effect != crate::hooks::EffectKind::Refuse) {
+    for hook in hooks
+        .iter()
+        .filter(|h| h.effect != crate::hooks::EffectKind::Refuse)
+    {
         for var in watched_vars(hook) {
             if let Some((v, clause)) = surrendered_vars.iter().find(|(v, _)| *v == var) {
                 return Err(Refusal::BoundaryViolation {

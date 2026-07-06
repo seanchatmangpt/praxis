@@ -27,6 +27,7 @@ system is computed at run time and re-derived at verification time.
 | 16 | Foreign verification: second implementation, both chains | `scripts/foreign_verify_graph.py` (`graph` + `firing` subcommands) | `tests/foreign_graph_tests.rs` (5 tests); `tests/foreign_firing.rs :: foreign_firing_verifier_agrees_on_an_honest_completed_receipt`, `..._a_declared_refusal_receipt`, `foreign_firing_verifier_fails_a_tampered_verdict_payload`. Named limitations in RECEIPTS_REPLAY_VERIFY.md |
 | 17 | God/unbounded boundary: never agent/handler/capability; surrender not computation | `src/kernel.rs` (boundary strings), `ontology/lord_prayer.ttl` | `tests/kernel_coverage.rs :: god_is_never_typed_executable_and_deliverance_is_surrendered`; `tests/prayer_kernel.rs :: unbounded_threat_is_surrendered_not_computed`; `tests/firing_chain.rs :: declared_refusal_surrender_is_chained_with_the_graph_reason` |
 | 18 | No LLM in runtime | `Cargo.toml` (six offline deps) | `tests/no_llm_runtime.rs :: dependencies_are_exactly_the_offline_allowlist`, `source_contains_no_llm_symbols` |
+| 18b | Human-unavailable execution: no interactive/blocking-on-a-human symbol on the execution path | `Cargo.toml`, `src/**/*.rs` | `tests/no_llm_runtime.rs :: source_and_deps_contain_no_interactive_human_symbols` |
 | 19 | Docs / claim discipline | `docs/v26.7.3/*.md`, `docs/claims/WITHHELD_CLAIMS.md` | this document set; withheld claims listed explicitly |
 | 20 | Reproducibility | commands below | full suite + clippy `-D warnings` + trustless replay green at commit time |
 

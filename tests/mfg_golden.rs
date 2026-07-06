@@ -14,8 +14,13 @@
 use my_conforming_project::mfg;
 
 const LAWOBJECT_TTL: &str = include_str!("../ontology/lawobject.ttl");
-const EXPECTED_PLAN: &[&str] =
-    &["supply-evidence", "clear-obligations", "judge", "admit", "receipt"];
+const EXPECTED_PLAN: &[&str] = &[
+    "supply-evidence",
+    "clear-obligations",
+    "judge",
+    "admit",
+    "receipt",
+];
 
 #[test]
 fn golden_roundtrip_and_solve() {
@@ -23,8 +28,16 @@ fn golden_roundtrip_and_solve() {
         .expect("manufacture ontology/lawobject.ttl");
 
     let report = mfg::validate(&manufactured.domain_text, &manufactured.problem_text);
-    assert!(report.parsed, "domain/problem failed to parse: {:?}", report.error);
-    assert!(report.solvable, "domain/problem failed to solve: {:?}", report.error);
+    assert!(
+        report.parsed,
+        "domain/problem failed to parse: {:?}",
+        report.error
+    );
+    assert!(
+        report.solvable,
+        "domain/problem failed to solve: {:?}",
+        report.error
+    );
     assert_eq!(
         report.plan_steps, EXPECTED_PLAN,
         "golden plan action sequence changed"
@@ -36,9 +49,18 @@ fn golden_roundtrip_and_solve() {
 fn determinism_byte_identical_across_runs() {
     let a = mfg::manufacture(LAWOBJECT_TTL, "ontology/lawobject.ttl").expect("run a");
     let b = mfg::manufacture(LAWOBJECT_TTL, "ontology/lawobject.ttl").expect("run b");
-    assert_eq!(a.domain_text, b.domain_text, "domain text is not deterministic");
-    assert_eq!(a.problem_text, b.problem_text, "problem text is not deterministic");
-    assert_eq!(a.graph_hash_hex, b.graph_hash_hex, "graph hash is not deterministic");
+    assert_eq!(
+        a.domain_text, b.domain_text,
+        "domain text is not deterministic"
+    );
+    assert_eq!(
+        a.problem_text, b.problem_text,
+        "problem text is not deterministic"
+    );
+    assert_eq!(
+        a.graph_hash_hex, b.graph_hash_hex,
+        "graph hash is not deterministic"
+    );
 }
 
 #[test]
@@ -59,7 +81,9 @@ fn out_of_bounds_predicate_arity_rejected_before_emission() {
     "#;
     let err = mfg::manufacture(ttl, "inline-test").expect_err("9-ary predicate must be rejected");
     match err {
-        mfg::MfgError::BoundExceeded { what, limit, got, .. } => {
+        mfg::MfgError::BoundExceeded {
+            what, limit, got, ..
+        } => {
             assert_eq!(what, "predicate arity");
             assert_eq!(limit, 8);
             assert_eq!(got, 9);
@@ -78,10 +102,23 @@ fn facts_json_row_shape_matches_ggen_core_expectations() {
     assert_eq!(arr.len(), 5, "expected 5 actions in the golden ontology");
     let names: Vec<&str> = arr
         .iter()
-        .map(|row| row.as_object().unwrap().get("name").unwrap().as_str().unwrap())
+        .map(|row| {
+            row.as_object()
+                .unwrap()
+                .get("name")
+                .unwrap()
+                .as_str()
+                .unwrap()
+        })
         .collect();
     assert_eq!(
         names,
-        vec!["admit", "clear-obligations", "judge", "receipt", "supply-evidence"]
+        vec![
+            "admit",
+            "clear-obligations",
+            "judge",
+            "receipt",
+            "supply-evidence"
+        ]
     );
 }

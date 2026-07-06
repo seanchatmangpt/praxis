@@ -35,8 +35,8 @@ the one genuinely missing piece, and it's now real code, not a claim.
 [PROJ-304 OCEL V2 event export]          DONE
                |
                v
-[PROJ-305 cognitive breed registry]      (promote the v26.7.3 PROJ-206 doc mapping into a
-               |                          const table so it's compiled, not just prose)
+[PROJ-305 cognitive breed registry]      DONE
+               |
                v
 [PROJ-306 human-unavailable audit]       (prove fire_hooks never blocks on live human input;
                                           reuses no_llm_runtime.rs's existing tripwire pattern)
@@ -82,22 +82,23 @@ the one genuinely missing piece, and it's now real code, not a claim.
   attribution-adjacent fields honestly).
 
 ### 5. [ticket_305_cognitive_breed_registry.md](ticket_305_cognitive_breed_registry.md)
-* **JIRA ID**: PROJ-305
-* Promote `docs/v26.7.3/COGNITIVE_BREED_MAPPING.md` (from ticket PROJ-206) into a small
-  `pub const BREED_MODULE_MAP: &[(&str, &str)]` table in a new `src/breeds.rs`, with a test
-  asserting every cited module path actually exists as a module in `lib.rs`. This makes the
+* **JIRA ID**: PROJ-305 — **STATUS: CLOSED**
+* Promoted `docs/v26.7.3/COGNITIVE_BREED_MAPPING.md` (from ticket PROJ-206) into
+  `pub const BREED_MODULE_MAP: &[(&str, &str)]` in `crates/praxis-synthesis/src/breeds.rs`
+  (8 implemented breeds; the 6 NOT IMPLEMENTED breeds are omitted, not faked), with a test
+  asserting every cited module path is an actual `pub mod` in `lib.rs`. This makes the
   breed-to-code mapping compile-checked rather than doc-only prose that can silently drift.
   No new `Breed` trait or runtime dispatch — this is a documentation-integrity mechanism, not
   a new abstraction layer.
 * **Dependencies**: the v26.7.3 PROJ-206 doc must exist first.
 
 ### 6. [ticket_306_human_unavailable_audit.md](ticket_306_human_unavailable_audit.md)
-* **JIRA ID**: PROJ-306
-* Prove the "post-RQ execution requires admitted authority, not live human interaction" claim:
-  a test asserting `fire_hooks` and `replay_firing` contain no blocking I/O, no stdin read, no
-  interactive prompt — reusing the existing `tests/no_llm_runtime.rs` symbol-absence-tripwire
-  pattern, extended to also assert absence of `std::io::stdin`/`dialoguer`/interactive-crate
-  symbols in `crates/praxis-synthesis/src/`.
+* **JIRA ID**: PROJ-306 — **STATUS: CLOSED**
+* Extended `tests/no_llm_runtime.rs` with `source_and_deps_contain_no_interactive_human_symbols`,
+  reusing the existing symbol-absence-tripwire pattern (section-tracked `Cargo.toml` scan +
+  comment-stripped `src/**/*.rs` scan) to assert absence of `stdin`, `dialoguer`, and `inquire`.
+  No code change needed — the test passed on the first run. Added gate 18b to
+  `docs/v26.7.3/DEFINITION_OF_DONE.md` citing the test as evidence.
 * **Dependencies**: PROJ-303 (the authority-ledger check is what makes "no human needed" true
   rather than merely "no human called," so it should land first).
 

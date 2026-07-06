@@ -60,13 +60,19 @@ pub struct ChainAssembler<State = Unstarted> {
 impl ChainAssembler<Unstarted> {
     /// Create a new, empty assembler rooted at the genesis hash.
     pub fn new() -> Self {
-        ChainAssembler { running: genesis_hash(), _state: std::marker::PhantomData }
+        ChainAssembler {
+            running: genesis_hash(),
+            _state: std::marker::PhantomData,
+        }
     }
 
     /// Append the first event, transitioning to `NonEmpty` state.
     pub fn append(self, event_bytes: &[u8]) -> ChainAssembler<NonEmpty> {
         let running = fold(&self.running, event_bytes);
-        ChainAssembler { running, _state: std::marker::PhantomData }
+        ChainAssembler {
+            running,
+            _state: std::marker::PhantomData,
+        }
     }
 }
 
@@ -80,7 +86,10 @@ impl ChainAssembler<NonEmpty> {
     /// Append another event (remains in `NonEmpty` state).
     pub fn append(self, event_bytes: &[u8]) -> ChainAssembler<NonEmpty> {
         let running = fold(&self.running, event_bytes);
-        ChainAssembler { running, _state: std::marker::PhantomData }
+        ChainAssembler {
+            running,
+            _state: std::marker::PhantomData,
+        }
     }
 
     /// Consume the assembler and return the final chain hash as a hex string.

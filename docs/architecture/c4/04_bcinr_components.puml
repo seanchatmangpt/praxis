@@ -1,0 +1,39 @@
+@startuml 04_bcinr_components
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Praxis v26.7.6 - bcinr Hot-Path Components
+
+' Grounding: praxis consumes bcinr via root Cargo.toml:96-100
+' (bcinr-powl-receipt 26.6.24, bcinr-pddl 26.6.26, bcinr-powl 26.6.25);
+' source at /Users/sac/bcinr/crates/.
+
+Container_Boundary(bcinr, "bcinr hot path") {
+  Component(control_word, "Control word", "bcinr-logic (ct.rs, bitset.rs)", "Branch-free encoded state words; constant-time primitives.")
+  Component(status_algebra, "Status algebra", "bcinr-logic (fix.rs, reduce.rs)", "Lattice-style status combination without panics or defaults.")
+  Component(mask_engine, "Mask engine", "bcinr-logic/src/mask.rs", "SWAR/SIMD mask application (simd.rs, swar.rs, simd_dispatch.rs).")
+  Component(transition_tables, "Transition tables", "bcinr-logic (dfa.rs) + bcinr-powl typestate.rs", "Precomputed legal-transition tables; illegal transitions unrepresentable.")
+  Component(dispatcher, "Dispatcher", "bcinr-powl/src/dispatcher.rs", "Routes tape atoms to handlers; const_scheduler.rs for the const lane.")
+  Component(cost_model, "Cost model", "bcinr-pddl grounding costs + pddl-index", "Grounding size drives indexed vs naive selection (pddl_index::should_use_indexed).")
+  Component(kernel, "Workflow kernel", "bcinr-powl (scheduler.rs, tape.rs, admit.rs)", "PowlTape execution: scheduler_tick with acyclicity + reachability admitted at compile.")
+  Component(receipt_encoder, "Receipt encoder", "bcinr-powl-receipt/src/causal_receipt.rs", "OcelCausalFrame / OcelCausalReceipt: genesis-folded BLAKE3 chain, ts_ns caller-supplied (praxis passes 0); byte-layout tests in-crate.")
+  Component(bench, "Bench harness", "praxis benches/ (bench_main.rs, receipt_validate.rs)", "Divan benches over the receipt path in the consuming workspace.")
+  Component(fence, "Semantic fence", "praxis src/plan_run.rs + verifier gate", "bcinr executes only compiled POWL from admitted plans; it never assigns meaning or standing - mfg::validate must report solvable before receipting.")
+}
+
+Container_Ext(powl, "POWL engine", "bcinr-powl compiler")
+Container_Ext(ledger, "Receipt chain", ".ggen-v2/receipt.json")
+
+Rel(powl, dispatcher, "PowlTape")
+Rel(dispatcher, kernel, "atoms")
+Rel(kernel, control_word, "state words")
+Rel(control_word, mask_engine, "masks")
+Rel(kernel, transition_tables, "legality lookup")
+Rel(kernel, status_algebra, "combine outcomes")
+Rel(cost_model, kernel, "lane selection")
+Rel(kernel, receipt_encoder, "one frame per fired atom, ts_ns=0")
+Rel(receipt_encoder, ledger, "chained frames")
+Rel(bench, receipt_encoder, "measures")
+Rel(fence, kernel, "bounds authority: execution only")
+
+SHOW_LEGEND()
+@enduml

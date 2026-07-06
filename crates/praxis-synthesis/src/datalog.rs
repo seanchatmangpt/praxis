@@ -78,7 +78,9 @@ impl<'de> Deserialize<'de> for Term {
         if let Some(c) = map.get("c") {
             return Ok(Term::Const(SymId(*c)));
         }
-        Err(serde::de::Error::custom("expected {\"v\": _} or {\"c\": _}"))
+        Err(serde::de::Error::custom(
+            "expected {\"v\": _} or {\"c\": _}",
+        ))
     }
 }
 
@@ -109,7 +111,10 @@ impl<'de> Deserialize<'de> for Atom {
             args: Vec<Term>,
         }
         let w = Wire::deserialize(d)?;
-        Ok(Atom { pred: SymId(w.pred), args: w.args })
+        Ok(Atom {
+            pred: SymId(w.pred),
+            args: w.args,
+        })
     }
 }
 
@@ -242,7 +247,11 @@ impl Program {
             });
         }
         if rule.head.args.len() > ARITY_CAP
-            || rule.body.iter().chain(rule.negative.iter()).any(|a| a.args.len() > ARITY_CAP)
+            || rule
+                .body
+                .iter()
+                .chain(rule.negative.iter())
+                .any(|a| a.args.len() > ARITY_CAP)
         {
             return Err(Refusal::InvalidInput {
                 detail: format!("rule atom arity exceeds ARITY_CAP ({ARITY_CAP})"),
@@ -353,7 +362,9 @@ impl Program {
                 return Ok(stratum);
             }
         }
-        Err(Refusal::Unstratifiable { detail: "stratification did not converge".into() })
+        Err(Refusal::Unstratifiable {
+            detail: "stratification did not converge".into(),
+        })
     }
 
     /// Greedy join order: `first` (the delta atom) leads if given; then
@@ -447,45 +458,44 @@ impl Program {
                 prefix[i] = want[i].expect("prefix positions are bound");
             }
 
-            let try_tuple =
-                |tuple: &Tuple,
-                 binding: &mut [Option<u32>; MAX_VARS],
-                 out: &mut Vec<[Option<u32>; MAX_VARS]>| {
-                    let mut newly: [u8; ARITY_CAP] = [u8::MAX; ARITY_CAP];
-                    let mut n_new = 0;
-                    let mut ok = true;
-                    for (i, term) in atom.args.iter().enumerate() {
-                        match want[i] {
-                            Some(w) => {
-                                if tuple[i] != w {
+            let try_tuple = |tuple: &Tuple,
+                             binding: &mut [Option<u32>; MAX_VARS],
+                             out: &mut Vec<[Option<u32>; MAX_VARS]>| {
+                let mut newly: [u8; ARITY_CAP] = [u8::MAX; ARITY_CAP];
+                let mut n_new = 0;
+                let mut ok = true;
+                for (i, term) in atom.args.iter().enumerate() {
+                    match want[i] {
+                        Some(w) => {
+                            if tuple[i] != w {
+                                ok = false;
+                                break;
+                            }
+                        }
+                        None => {
+                            let Term::Var(v) = term else { unreachable!() };
+                            match binding[usize::from(*v)] {
+                                Some(b) if b != tuple[i] => {
                                     ok = false;
                                     break;
                                 }
-                            }
-                            None => {
-                                let Term::Var(v) = term else { unreachable!() };
-                                match binding[usize::from(*v)] {
-                                    Some(b) if b != tuple[i] => {
-                                        ok = false;
-                                        break;
-                                    }
-                                    Some(_) => {}
-                                    None => {
-                                        binding[usize::from(*v)] = Some(tuple[i]);
-                                        newly[n_new] = *v;
-                                        n_new += 1;
-                                    }
+                                Some(_) => {}
+                                None => {
+                                    binding[usize::from(*v)] = Some(tuple[i]);
+                                    newly[n_new] = *v;
+                                    n_new += 1;
                                 }
                             }
                         }
                     }
-                    if ok {
-                        descend(rels, body, order, depth + 1, delta_restrict, binding, out);
-                    }
-                    for &v in &newly[..n_new] {
-                        binding[usize::from(v)] = None;
-                    }
-                };
+                }
+                if ok {
+                    descend(rels, body, order, depth + 1, delta_restrict, binding, out);
+                }
+                for &v in &newly[..n_new] {
+                    binding[usize::from(v)] = None;
+                }
+            };
 
             match delta_restrict {
                 Some((at, delta)) if at == ai => {
@@ -496,7 +506,9 @@ impl Program {
                     }
                 }
                 _ => {
-                    let Some(rel) = rels.rel(atom.pred.0) else { return };
+                    let Some(rel) = rels.rel(atom.pred.0) else {
+                        return;
+                    };
                     if usize::from(rel.arity()) != arity {
                         return;
                     }
@@ -506,8 +518,7 @@ impl Program {
                             try_tuple(&prefix.clone(), binding, out);
                         }
                     } else {
-                        let tuples: Vec<Tuple> =
-                            rel.prefix_range(&prefix, k).copied().collect();
+                        let tuples: Vec<Tuple> = rel.prefix_range(&prefix, k).copied().collect();
                         for tuple in &tuples {
                             try_tuple(tuple, binding, out);
                         }
@@ -539,8 +550,10 @@ impl Program {
         let rules = self.rules.clone();
 
         for s in 0..=max_stratum {
-            let layer: Vec<&DlRule> =
-                rules.iter().filter(|r| strata[&r.head.pred.0] == s).collect();
+            let layer: Vec<&DlRule> = rules
+                .iter()
+                .filter(|r| strata[&r.head.pred.0] == s)
+                .collect();
             if layer.is_empty() {
                 continue;
             }
@@ -585,8 +598,7 @@ impl Program {
         }
 
         let fixpoint_hash = self.fixpoint_hash();
-        self.chain =
-            chatman_common::provenance::fold_event(&self.chain, fixpoint_hash.as_bytes());
+        self.chain = chatman_common::provenance::fold_event(&self.chain, fixpoint_hash.as_bytes());
         Ok(SaturationReceipt {
             derived_count: self.derived,
             iterations,
@@ -668,8 +680,7 @@ impl Program {
             iterations += 1;
         }
         let fixpoint_hash = self.fixpoint_hash();
-        self.chain =
-            chatman_common::provenance::fold_event(&self.chain, fixpoint_hash.as_bytes());
+        self.chain = chatman_common::provenance::fold_event(&self.chain, fixpoint_hash.as_bytes());
         Ok(IncrementReceipt {
             asserted,
             derived: self.derived - derived_before,
@@ -697,7 +708,9 @@ impl Program {
         }
         let head = Self::instantiate(&rule.head, binding);
         #[allow(clippy::cast_possible_truncation)]
-        let added = self.rels.insert(rule.head.pred.0, rule.head.args.len() as u8, head)?;
+        let added = self
+            .rels
+            .insert(rule.head.pred.0, rule.head.args.len() as u8, head)?;
         if added {
             self.derived += 1;
             delta.insert((rule.head.pred.0, head));
@@ -711,7 +724,9 @@ impl Program {
     pub fn fixpoint_hash(&self) -> String {
         let mut keys: Vec<Vec<u8>> = Vec::with_capacity(self.rels.len());
         for pred in self.rels.preds() {
-            let Some(rel) = self.rels.rel(pred) else { continue };
+            let Some(rel) = self.rels.rel(pred) else {
+                continue;
+            };
             let arity = usize::from(rel.arity());
             for tuple in rel.iter() {
                 let mut b = Vec::with_capacity(4 + 4 * arity);

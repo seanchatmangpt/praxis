@@ -52,8 +52,7 @@ use serde_json::{json, Value};
 /// The evidence flag names an operator may name in `min_evidence`, mapped to
 /// the `Account` field each reads. Keeping this list closed is what lets an
 /// unknown evidence name be a hard error.
-const KNOWN_EVIDENCE: [&str; 3] =
-    ["legal_approved", "security_review_done", "exec_sponsor"];
+const KNOWN_EVIDENCE: [&str; 3] = ["legal_approved", "security_review_done", "exec_sponsor"];
 
 /// Does `account` carry the named evidence flag? `None` if the name is not a
 /// known evidence field.
@@ -294,7 +293,10 @@ exclude_accounts = []
         let state = fixture_state();
         let a = compile_mission(&m_toml, &state).expect("compile toml");
         let b = compile_mission(&m_json, &state).expect("compile json");
-        assert_eq!(a, b, "TOML and JSON missions must compile to identical output");
+        assert_eq!(
+            a, b,
+            "TOML and JSON missions must compile to identical output"
+        );
     }
 
     #[test]
@@ -340,7 +342,10 @@ exclude_accounts = []
             "json",
         )
         .unwrap_err();
-        assert!(err.contains("objective") || err.contains("missing"), "got: {err}");
+        assert!(
+            err.contains("objective") || err.contains("missing"),
+            "got: {err}"
+        );
     }
 
     #[test]
@@ -356,7 +361,8 @@ exclude_accounts = []
             "json",
         )
         .expect("parse");
-        let out = compile_mission(&mission, &fixture_state()).expect("compile is Ok even when empty");
+        let out =
+            compile_mission(&mission, &fixture_state()).expect("compile is Ok even when empty");
         assert_eq!(out["status"], json!("no_lawful_candidates"));
         assert_eq!(out["planner_goal"], Value::Null);
     }

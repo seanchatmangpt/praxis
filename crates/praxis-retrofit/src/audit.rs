@@ -9,7 +9,11 @@ use crate::{models::*, PraxisSpec, Result};
 pub async fn scan_repository(repo_path: &Path, _spec: &PraxisSpec) -> Result<ComplianceReport> {
     let metadata = RepositoryMetadata {
         path: repo_path.to_path_buf(),
-        name: repo_path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+        name: repo_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
         workspace_root: repo_path.to_path_buf(),
         crate_count: count_crates(repo_path)?,
         has_workspace: has_workspace(repo_path)?,
@@ -94,12 +98,20 @@ fn has_workspace(repo_path: &Path) -> Result<bool> {
 
 fn check_cicd(repo_path: &Path) -> Result<ComplianceStatus> {
     let workflows = repo_path.join(".github/workflows");
-    Ok(if workflows.exists() { ComplianceStatus::Pass } else { ComplianceStatus::Fail })
+    Ok(if workflows.exists() {
+        ComplianceStatus::Pass
+    } else {
+        ComplianceStatus::Fail
+    })
 }
 
 fn check_deny_toml(repo_path: &Path) -> Result<ComplianceStatus> {
     let deny = repo_path.join("deny.toml");
-    Ok(if deny.exists() { ComplianceStatus::Pass } else { ComplianceStatus::Warn })
+    Ok(if deny.exists() {
+        ComplianceStatus::Pass
+    } else {
+        ComplianceStatus::Warn
+    })
 }
 
 fn check_workspace_lints(repo_path: &Path) -> Result<ComplianceStatus> {
@@ -109,22 +121,38 @@ fn check_workspace_lints(repo_path: &Path) -> Result<ComplianceStatus> {
     }
 
     let content = std::fs::read_to_string(&cargo_toml)?;
-    Ok(if content.contains("[lints") { ComplianceStatus::Pass } else { ComplianceStatus::Fail })
+    Ok(if content.contains("[lints") {
+        ComplianceStatus::Pass
+    } else {
+        ComplianceStatus::Fail
+    })
 }
 
 fn check_editorconfig(repo_path: &Path) -> Result<ComplianceStatus> {
     let editorconfig = repo_path.join(".editorconfig");
-    Ok(if editorconfig.exists() { ComplianceStatus::Pass } else { ComplianceStatus::Warn })
+    Ok(if editorconfig.exists() {
+        ComplianceStatus::Pass
+    } else {
+        ComplianceStatus::Warn
+    })
 }
 
 fn check_typos_toml(repo_path: &Path) -> Result<ComplianceStatus> {
     let typos = repo_path.join("typos.toml");
-    Ok(if typos.exists() { ComplianceStatus::Pass } else { ComplianceStatus::Warn })
+    Ok(if typos.exists() {
+        ComplianceStatus::Pass
+    } else {
+        ComplianceStatus::Warn
+    })
 }
 
 fn check_contributing_md(repo_path: &Path) -> Result<ComplianceStatus> {
     let contributing = repo_path.join("CONTRIBUTING.md");
-    Ok(if contributing.exists() { ComplianceStatus::Pass } else { ComplianceStatus::Warn })
+    Ok(if contributing.exists() {
+        ComplianceStatus::Pass
+    } else {
+        ComplianceStatus::Warn
+    })
 }
 
 #[cfg(test)]
