@@ -164,9 +164,13 @@ fn every_documented_verb_is_typed_refusal_or_behavior() {
     }
     // The surface documented in CLI.md is far larger than this floor; the
     // floor only guards against the help parser silently matching nothing.
+    // The verb count grows with enabled features (default ~20, --all-features
+    // 30+), so the floor sits below the smallest real surface rather than
+    // tracking any one feature combination.
+    let floor = 15;
     assert!(
-        probed >= 30,
-        "probed only {probed} verbs — help parsing regressed"
+        probed >= floor,
+        "probed only {probed} verbs (floor {floor}) — help parsing regressed"
     );
 }
 
