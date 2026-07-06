@@ -24,6 +24,29 @@ fn exec_err(e: impl std::fmt::Display) -> NounVerbError {
     NounVerbError::execution_error(e.to_string())
 }
 
+/// Borrow the raw `payload` bytes out of a stored receipt document.
+///
+/// Payload-hash verification hashes the payload bytes exactly as stored,
+/// never a re-serialization of the typed [`crate::sync::ReceiptPayload`] —
+/// re-serializing would inject `#[serde(default)]` fields (e.g. `packs`,
+/// `decisions`) into receipts written before those fields existed and fail
+/// legitimate old records.
+#[derive(serde::Deserialize)]
+struct RawPayloadProbe<'a> {
+    #[serde(borrow)]
+    payload: &'a serde_json::value::RawValue,
+}
+
+/// BLAKE3 hex of the raw stored payload bytes of `receipt_doc` (one full
+/// receipt JSON document).
+fn stored_payload_hash(receipt_doc: &str) -> Result<String> {
+    let probe: RawPayloadProbe<'_> = serde_json::from_str(receipt_doc)
+        .map_err(|e| exec_err(format!("receipt payload unreadable: {e}")))?;
+    Ok(blake3::hash(probe.payload.get().as_bytes())
+        .to_hex()
+        .to_string())
+}
+
 /// `ggen sync run` — the five-stage pipeline: resolve, enrich, extract,
 /// render, write. `dry_run` computes every write decision without touching
 /// the filesystem or emitting a receipt. `watch` runs one sync then blocks,
@@ -39,7 +62,7 @@ pub fn handle_sync_run(dry_run: bool, watch: bool) -> Result<serde_json::Value> 
         crate::watch::watch(&root, dry_run).map_err(exec_err)?;
         return Ok(serde_json::json!({ "watch": "stopped" }));
     }
-    let report = sync(&root, SyncOptions { dry_run }).map_err(exec_err)?;
+    let report = sync(&root, SyncOptions { dry_run, ..Default::default() }).map_err(exec_err)?;
     serde_json::to_value(report).map_err(exec_err)
 }
 
@@ -58,7 +81,10 @@ pub fn handle_graph_validate() -> Result<serde_json::Value> {
     let config = GgenConfig::load(&root.join("ggen.toml")).map_err(exec_err)?;
     let ontology_path = root.join(&config.ontology.source);
     let ttl = std::fs::read_to_string(&ontology_path).map_err(|e| {
-        exec_err(format!("ontology `{}` unreadable: {e}", ontology_path.display()))
+        exec_err(format!(
+            "ontology `{}` unreadable: {e}",
+            ontology_path.display()
+        ))
     })?;
     let graph = DeterministicGraph::new().map_err(exec_err)?;
     let quads = graph.insert_turtle(&ttl).map_err(exec_err)?;
@@ -99,14 +125,22 @@ pub fn handle_receipt_verify() -> Result<serde_json::Value> {
     let root = project_root()?;
     let receipt_path = root.join(RECEIPT_REL_PATH);
     let raw = std::fs::read_to_string(&receipt_path).map_err(|e| {
-        exec_err(format!("receipt `{}` unreadable: {e}", receipt_path.display()))
+        exec_err(format!(
+            "receipt `{}` unreadable: {e}",
+            receipt_path.display()
+        ))
     })?;
-    let receipt: SyncReceipt = serde_json::from_str(&raw)
-        .map_err(|e| exec_err(format!("receipt `{}` malformed: {e}", receipt_path.display())))?;
+    let receipt: SyncReceipt = serde_json::from_str(&raw).map_err(|e| {
+        exec_err(format!(
+            "receipt `{}` malformed: {e}",
+            receipt_path.display()
+        ))
+    })?;
 
-    // 1. Payload binding: the stored payload must hash to payload_hash_hex.
-    let payload_bytes = serde_json::to_vec(&receipt.payload).map_err(exec_err)?;
-    let payload_hash_hex = blake3::hash(&payload_bytes).to_hex().to_string();
+    // 1. Payload binding: the stored payload bytes must hash to
+    //    payload_hash_hex (raw bytes, not a re-serialization; see
+    //    `stored_payload_hash`).
+    let payload_hash_hex = stored_payload_hash(&raw)?;
     if payload_hash_hex != receipt.record.payload_hash_hex {
         return Err(exec_err(format!(
             "receipt invalid: payload hash mismatch (stored {}, recomputed {payload_hash_hex})",
@@ -160,15 +194,18 @@ pub fn handle_receipt_history() -> Result<serde_json::Value> {
         ))
     })?;
 
-    let mut receipts: Vec<SyncReceipt> = Vec::new();
+    let mut receipts: Vec<(SyncReceipt, &str)> = Vec::new();
     for (idx, line) in raw.lines().enumerate() {
         if line.trim().is_empty() {
             continue;
         }
         let receipt: SyncReceipt = serde_json::from_str(line).map_err(|e| {
-            exec_err(AppError::fm_chain(6, format!("receipt log entry {idx} malformed: {e}")))
+            exec_err(AppError::fm_chain(
+                6,
+                format!("receipt log entry {idx} malformed: {e}"),
+            ))
         })?;
-        receipts.push(receipt);
+        receipts.push((receipt, line));
     }
     if receipts.is_empty() {
         return Err(exec_err(AppError::fm_chain(
@@ -182,7 +219,7 @@ pub fn handle_receipt_history() -> Result<serde_json::Value> {
     }
 
     let genesis = "0".repeat(64);
-    if receipts[0].record.prev_chain_hash_hex != genesis {
+    if receipts[0].0.record.prev_chain_hash_hex != genesis {
         return Err(exec_err(AppError::fm_chain(
             7,
             "history invalid at index 0: \
@@ -190,10 +227,10 @@ pub fn handle_receipt_history() -> Result<serde_json::Value> {
         )));
     }
 
-    for (idx, receipt) in receipts.iter().enumerate() {
-        // 1. Payload binding.
-        let payload_bytes = serde_json::to_vec(&receipt.payload).map_err(exec_err)?;
-        let payload_hash_hex = blake3::hash(&payload_bytes).to_hex().to_string();
+    for (idx, (receipt, line)) in receipts.iter().enumerate() {
+        // 1. Payload binding: hash the raw stored payload bytes (see
+        //    `stored_payload_hash`), never a re-serialization.
+        let payload_hash_hex = stored_payload_hash(line)?;
         if payload_hash_hex != receipt.record.payload_hash_hex {
             return Err(exec_err(AppError::fm_chain(
                 7,
@@ -223,7 +260,7 @@ pub fn handle_receipt_history() -> Result<serde_json::Value> {
             )));
         }
         // 3. Adjacent link: this chain hash must be the next record's prev.
-        if let Some(next) = receipts.get(idx + 1) {
+        if let Some((next, _)) = receipts.get(idx + 1) {
             if receipt.record.chain_hash_hex != next.record.prev_chain_hash_hex {
                 return Err(exec_err(AppError::fm_chain(
                     7,
@@ -239,7 +276,7 @@ pub fn handle_receipt_history() -> Result<serde_json::Value> {
         }
     }
 
-    let last = &receipts[receipts.len() - 1];
+    let last = &receipts[receipts.len() - 1].0;
     Ok(serde_json::json!({
         "valid": true,
         "records": receipts.len(),
@@ -373,13 +410,18 @@ pub fn handle_doctor() -> Result<serde_json::Value> {
     // Load the receipt, if any. Absence is not an error for doctor.
     let receipt_path = root.join(RECEIPT_REL_PATH);
     let receipt: Option<SyncReceipt> = match std::fs::read_to_string(&receipt_path) {
-        Ok(raw) => Some(
-            serde_json::from_str(&raw)
-                .map_err(|e| exec_err(format!("receipt `{}` malformed: {e}", receipt_path.display())))?,
-        ),
+        Ok(raw) => Some(serde_json::from_str(&raw).map_err(|e| {
+            exec_err(format!(
+                "receipt `{}` malformed: {e}",
+                receipt_path.display()
+            ))
+        })?),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
         Err(e) => {
-            return Err(exec_err(format!("receipt `{}` unreadable: {e}", receipt_path.display())))
+            return Err(exec_err(format!(
+                "receipt `{}` unreadable: {e}",
+                receipt_path.display()
+            )))
         }
     };
 
@@ -437,10 +479,7 @@ pub fn handle_doctor() -> Result<serde_json::Value> {
                     "stale": Vec::<serde_json::Value>::new(),
                 })
             } else {
-                let paths: Vec<&str> = stale
-                    .iter()
-                    .filter_map(|s| s["path"].as_str())
-                    .collect();
+                let paths: Vec<&str> = stale.iter().filter_map(|s| s["path"].as_str()).collect();
                 serde_json::json!({
                     "status": "fail",
                     "detail": format!(
@@ -470,7 +509,10 @@ pub fn handle_doctor() -> Result<serde_json::Value> {
     } else {
         let mut failing: Vec<String> = Vec::new();
         if !lockfile_pass {
-            failing.push(format!("lockfile_drift: {}", lockfile_check["detail"].as_str().unwrap_or("")));
+            failing.push(format!(
+                "lockfile_drift: {}",
+                lockfile_check["detail"].as_str().unwrap_or("")
+            ));
         }
         if !orphaned_pass {
             failing.push(format!(
@@ -490,4 +532,171 @@ pub fn handle_doctor() -> Result<serde_json::Value> {
             failing.join("; ")
         )))
     }
+}
+
+// ---------------------------------------------------------------------------
+// `ggen law *` — law-state operations on the project graph (GraphLaw engine)
+// ---------------------------------------------------------------------------
+
+/// Build the GraphLaw engine over the project's law inputs: `ggen.toml`,
+/// the ontology, every resolved pack ontology, and every `[law].rules`
+/// file (loaded, not yet materialized). Shared by all `ggen law` verbs so
+/// each verb sees the identical fact/rule state a sync's law stage sees
+/// (minus template `construct:` enrichment, which is a sync concern).
+fn build_law_engine(
+    root: &std::path::Path,
+) -> Result<(GgenConfig, crate::graph::GraphLawStore, Vec<(String, usize)>)> {
+    use crate::graph::GraphEngine as _;
+    let config = GgenConfig::load(&root.join("ggen.toml")).map_err(exec_err)?;
+    let ontology_path = root.join(&config.ontology.source);
+    let ttl = std::fs::read_to_string(&ontology_path).map_err(|e| {
+        exec_err(format!(
+            "ontology `{}` unreadable: {e}",
+            ontology_path.display()
+        ))
+    })?;
+    let engine = crate::graph::GraphLawStore::new().map_err(exec_err)?;
+    engine.insert_turtle(&ttl).map_err(exec_err)?;
+    let packs = crate::pack::resolve(&config, root).map_err(exec_err)?;
+    for pack in &packs {
+        let pack_ttl = std::fs::read_to_string(&pack.ontology_path).map_err(|e| {
+            exec_err(format!(
+                "pack `{}`: ontology `{}` unreadable: {e}",
+                pack.name,
+                pack.ontology_path.display()
+            ))
+        })?;
+        engine.insert_turtle(&pack_ttl).map_err(exec_err)?;
+    }
+    let mut loaded: Vec<(String, usize)> = Vec::new();
+    for rel in &config.law.rules {
+        let rule_path = root.join(rel);
+        let src = std::fs::read_to_string(&rule_path).map_err(|e| {
+            exec_err(format!(
+                "rule file `{}` unreadable: {e}",
+                rule_path.display()
+            ))
+        })?;
+        let n = engine.load_rules(&src).map_err(exec_err)?;
+        loaded.push((rel.display().to_string(), n));
+    }
+    Ok((config, engine, loaded))
+}
+
+/// `ggen law load` — load every `[law].rules` file and report the rule
+/// count per file. Refuses (non-zero exit) on the first unparseable rule
+/// document; never materializes.
+pub fn handle_law_load() -> Result<serde_json::Value> {
+    let root = project_root()?;
+    let (_, _, loaded) = build_law_engine(&root)?;
+    let files: serde_json::Map<String, serde_json::Value> = loaded
+        .iter()
+        .map(|(f, n)| (f.clone(), serde_json::json!(n)))
+        .collect();
+    Ok(serde_json::json!({
+        "rule_files": loaded.len(),
+        "rules_per_file": files,
+    }))
+}
+
+/// `ggen law validate` — materialize, then run every `[law].shapes` SHACL
+/// gate and the denial check; any violation exits non-zero with a typed
+/// FM-LAW message.
+pub fn handle_law_validate() -> Result<serde_json::Value> {
+    use crate::graph::GraphEngine as _;
+    let root = project_root()?;
+    let (config, engine, _) = build_law_engine(&root)?;
+    let outcome = engine.materialize().map_err(exec_err)?;
+    let denials = engine.check_denials().map_err(exec_err)?;
+    if !denials.is_empty() {
+        return Err(exec_err(AppError::fm_law(
+            11,
+            format!(
+                "{} denial rule(s) violated after materialization: {}",
+                denials.len(),
+                denials.join("; ")
+            ),
+        )));
+    }
+    let mut shapes_checked = 0usize;
+    for rel in &config.law.shapes {
+        let shape_path = root.join(rel);
+        let shapes_ttl = std::fs::read_to_string(&shape_path).map_err(|e| {
+            exec_err(format!(
+                "SHACL shapes file `{}` unreadable: {e}",
+                shape_path.display()
+            ))
+        })?;
+        let report = engine.validate_shacl(&shapes_ttl).map_err(exec_err)?;
+        if !report.conforms {
+            return Err(exec_err(AppError::fm_law(
+                13,
+                format!(
+                    "SHACL shapes `{}` report {} violation(s): {}",
+                    rel.display(),
+                    report.violations.len(),
+                    report.violations.join("; ")
+                ),
+            )));
+        }
+        shapes_checked += 1;
+    }
+    Ok(serde_json::json!({
+        "conforms": true,
+        "rules_loaded": outcome.rules_loaded,
+        "derived": outcome.derived.len(),
+        "denials": 0,
+        "shapes_checked": shapes_checked,
+    }))
+}
+
+/// `ggen law derive` — materialize `[law].rules` to fixpoint and report
+/// the derived-triple count plus the post-materialization graph hash.
+pub fn handle_law_derive() -> Result<serde_json::Value> {
+    use crate::graph::GraphEngine as _;
+    let root = project_root()?;
+    let (_, engine, _) = build_law_engine(&root)?;
+    let outcome = engine.materialize().map_err(exec_err)?;
+    let hash = engine.state_hash().map_err(exec_err)?;
+    Ok(serde_json::json!({
+        "rules_loaded": outcome.rules_loaded,
+        "derived": outcome.derived.len(),
+        "graph_hash": crate::sync::hex32(&hash),
+    }))
+}
+
+/// `ggen law explain` — materialize and report which facts the rules
+/// derived: rules-loaded count and the full derived-triple diff.
+pub fn handle_law_explain() -> Result<serde_json::Value> {
+    use crate::graph::GraphEngine as _;
+    let root = project_root()?;
+    let (_, engine, loaded) = build_law_engine(&root)?;
+    let outcome = engine.materialize().map_err(exec_err)?;
+    let files: serde_json::Map<String, serde_json::Value> = loaded
+        .iter()
+        .map(|(f, n)| (f.clone(), serde_json::json!(n)))
+        .collect();
+    Ok(serde_json::json!({
+        "rules_loaded": outcome.rules_loaded,
+        "rules_per_file": files,
+        "derived": outcome.derived.len(),
+        "derived_triples": outcome.derived,
+    }))
+}
+
+/// `ggen law export` — dump the fully materialized graph as canonical
+/// N-Triples with its BLAKE3 state hash.
+pub fn handle_law_export() -> Result<serde_json::Value> {
+    use crate::graph::GraphEngine as _;
+    let root = project_root()?;
+    let (_, engine, _) = build_law_engine(&root)?;
+    engine.materialize().map_err(exec_err)?;
+    let lines = engine.canonical_quads().map_err(exec_err)?;
+    let hash = engine.state_hash().map_err(exec_err)?;
+    let ntriples: String = lines.iter().map(|l| format!("{l} .\n")).collect();
+    Ok(serde_json::json!({
+        "triples": lines.len(),
+        "graph_hash": crate::sync::hex32(&hash),
+        "ntriples": ntriples,
+    }))
 }

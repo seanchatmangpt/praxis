@@ -1853,6 +1853,7 @@ dependencies = [
  "once_cell",
  "oxigraph",
  "praxis-core",
+ "praxis-graphlaw",
  "predicates",
  "proptest",
  "rmcp 0.11.0",

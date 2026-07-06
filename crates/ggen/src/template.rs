@@ -13,14 +13,13 @@ use std::{
     sync::Arc,
 };
 
-use oxigraph::{model::Term, sparql::QueryResults};
 use schemars::JsonSchema;
 use serde::Deserialize;
 use tera::{Tera, Value};
 
 use crate::{
     error::{AppError, Result},
-    graph::DeterministicGraph,
+    graph::{EngineQueryResults, GraphEngine},
 };
 
 /// Closed frontmatter key set for a ggen template (Hygen semantics).
@@ -174,7 +173,10 @@ impl Template {
                 ),
             )
         })?;
-        Ok(Self { frontmatter, body: body.to_string() })
+        Ok(Self {
+            frontmatter,
+            body: body.to_string(),
+        })
     }
 }
 
@@ -213,14 +215,14 @@ fn split_closing_delimiter(rest: &str) -> Option<(&str, &str)> {
 /// - `snake_case`, `pascal_case`, `camel_case`, `kebab_case`,
 ///   `shouty_snake_case`, `title_case`, `pluralize`, `singularize` filters.
 #[must_use]
-pub fn build_tera(graph: Arc<DeterministicGraph>) -> Tera {
+pub fn build_tera(graph: Arc<dyn GraphEngine>) -> Tera {
     let mut tera = Tera::default();
     tera.register_function("sparql", move |args: &HashMap<String, Value>| {
         let query = args
             .get("query")
             .and_then(Value::as_str)
             .ok_or_else(|| tera::Error::msg("sparql() requires a string `query` argument"))?;
-        sparql_to_value(&graph, query).map_err(|e| tera::Error::msg(e.to_string()))
+        sparql_to_value(graph.as_ref(), query).map_err(|e| tera::Error::msg(e.to_string()))
     });
     tera.register_function("local", local_fn);
     tera.register_function("sparql_first", sparql_first_fn);
@@ -238,36 +240,36 @@ pub fn build_tera(graph: Arc<DeterministicGraph>) -> Tera {
     tera
 }
 
-/// Execute `query` and convert the results into a Tera [`Value`].
-pub(crate) fn sparql_to_value(graph: &DeterministicGraph, query: &str) -> Result<Value> {
+/// Execute `query` and convert the engine-neutral results into a Tera
+/// [`Value`] (behavior-preserving: identical JSON shapes to the previous
+/// oxigraph-typed implementation).
+pub(crate) fn sparql_to_value(graph: &dyn GraphEngine, query: &str) -> Result<Value> {
     match graph.query(query)? {
-        QueryResults::Boolean(b) => Ok(Value::Bool(b)),
-        QueryResults::Solutions(solutions) => {
-            let mut rows = Vec::new();
-            for solution in solutions {
-                let solution = solution.map_err(|e| {
-                    AppError::fm_tpl(3, format!("SELECT solution iteration failed: {e}"))
-                })?;
-                let mut row = tera::Map::new();
-                for (var, term) in solution.iter() {
-                    row.insert(var.as_str().to_string(), Value::String(term_value(term)));
-                }
-                rows.push(Value::Object(row));
-            }
+        EngineQueryResults::Boolean(b) => Ok(Value::Bool(b)),
+        EngineQueryResults::Solutions(solutions) => {
+            let rows = solutions
+                .into_iter()
+                .map(|solution| {
+                    let mut row = tera::Map::new();
+                    for (var, value) in solution {
+                        row.insert(var, Value::String(value));
+                    }
+                    Value::Object(row)
+                })
+                .collect();
             Ok(Value::Array(rows))
         }
-        QueryResults::Graph(triples) => {
-            let mut rows = Vec::new();
-            for triple in triples {
-                let triple = triple.map_err(|e| {
-                    AppError::fm_tpl(3, format!("CONSTRUCT triple iteration failed: {e}"))
-                })?;
-                let mut row = tera::Map::new();
-                row.insert("subject".to_string(), Value::String(triple.subject.to_string()));
-                row.insert("predicate".to_string(), Value::String(triple.predicate.to_string()));
-                row.insert("object".to_string(), Value::String(term_value(&triple.object)));
-                rows.push(Value::Object(row));
-            }
+        EngineQueryResults::Graph(triples) => {
+            let rows = triples
+                .into_iter()
+                .map(|triple| {
+                    let mut row = tera::Map::new();
+                    row.insert("subject".to_string(), Value::String(triple.subject));
+                    row.insert("predicate".to_string(), Value::String(triple.predicate));
+                    row.insert("object".to_string(), Value::String(triple.object_value));
+                    Value::Object(row)
+                })
+                .collect();
             Ok(Value::Array(rows))
         }
     }
@@ -313,7 +315,12 @@ fn sparql_values_fn(args: &HashMap<String, Value>) -> tera::Result<Value> {
         .ok_or_else(|| tera::Error::msg("sparql_values() requires a string `column` argument"))?;
     let values: Vec<Value> = rows
         .iter()
-        .map(|row| row.as_object().and_then(|o| o.get(column)).cloned().unwrap_or(Value::Null))
+        .map(|row| {
+            row.as_object()
+                .and_then(|o| o.get(column))
+                .cloned()
+                .unwrap_or(Value::Null)
+        })
         .collect();
     Ok(Value::Array(values))
 }
@@ -330,21 +337,12 @@ fn sparql_count_fn(args: &HashMap<String, Value>) -> tera::Result<Value> {
     Ok(Value::Number(rows.len().into()))
 }
 
-/// Render a term as a plain value string: literals as their lexical form,
-/// IRIs as the bare IRI, blank nodes / quoted triples in their N-Triples form.
-fn term_value(term: &Term) -> String {
-    match term {
-        Term::Literal(lit) => lit.value().to_string(),
-        Term::NamedNode(n) => n.as_str().to_string(),
-        other => other.to_string(),
-    }
-}
-
 /// `snake_case` filter: `FooBar`, `foo-bar`, `foo bar` → `foo_bar`.
 #[allow(clippy::unnecessary_wraps)]
 fn snake_case_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Value> {
-    let s =
-        value.as_str().ok_or_else(|| tera::Error::msg("snake_case filter requires a string"))?;
+    let s = value
+        .as_str()
+        .ok_or_else(|| tera::Error::msg("snake_case filter requires a string"))?;
     let mut out = String::with_capacity(s.len() + 4);
     let mut prev_lower = false;
     for ch in s.chars() {
@@ -370,8 +368,9 @@ fn snake_case_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Res
 /// `pascal_case` filter: `foo_bar`, `foo-bar`, `foo bar` → `FooBar`.
 #[allow(clippy::unnecessary_wraps)]
 fn pascal_case_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Value> {
-    let s =
-        value.as_str().ok_or_else(|| tera::Error::msg("pascal_case filter requires a string"))?;
+    let s = value
+        .as_str()
+        .ok_or_else(|| tera::Error::msg("pascal_case filter requires a string"))?;
     let mut out = String::with_capacity(s.len());
     let mut upper_next = true;
     for ch in s.chars() {
@@ -422,8 +421,9 @@ fn split_words(s: &str) -> Vec<String> {
 /// separators).
 #[allow(clippy::unnecessary_wraps)]
 fn camel_case_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Value> {
-    let s =
-        value.as_str().ok_or_else(|| tera::Error::msg("camel_case filter requires a string"))?;
+    let s = value
+        .as_str()
+        .ok_or_else(|| tera::Error::msg("camel_case filter requires a string"))?;
     let words = split_words(s);
     let mut out = String::with_capacity(s.len());
     for (i, word) in words.iter().enumerate() {
@@ -443,8 +443,9 @@ fn camel_case_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Res
 /// `kebab_case` filter: `foo_bar`, `FooBar`, `foo bar` → `foo-bar`.
 #[allow(clippy::unnecessary_wraps)]
 fn kebab_case_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Value> {
-    let s =
-        value.as_str().ok_or_else(|| tera::Error::msg("kebab_case filter requires a string"))?;
+    let s = value
+        .as_str()
+        .ok_or_else(|| tera::Error::msg("kebab_case filter requires a string"))?;
     Ok(Value::String(split_words(s).join("-")))
 }
 
@@ -460,8 +461,9 @@ fn shouty_snake_case_filter(value: &Value, _args: &HashMap<String, Value>) -> te
 /// `title_case` filter: `foo_bar`, `FooBar`, `foo-bar` → `Foo Bar`.
 #[allow(clippy::unnecessary_wraps)]
 fn title_case_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Value> {
-    let s =
-        value.as_str().ok_or_else(|| tera::Error::msg("title_case filter requires a string"))?;
+    let s = value
+        .as_str()
+        .ok_or_else(|| tera::Error::msg("title_case filter requires a string"))?;
     let titled: Vec<String> = split_words(s)
         .into_iter()
         .map(|word| {
@@ -481,7 +483,9 @@ fn title_case_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Res
 /// multi-word identifier.
 #[allow(clippy::unnecessary_wraps)]
 fn pluralize_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Value> {
-    let s = value.as_str().ok_or_else(|| tera::Error::msg("pluralize filter requires a string"))?;
+    let s = value
+        .as_str()
+        .ok_or_else(|| tera::Error::msg("pluralize filter requires a string"))?;
     Ok(Value::String(pluralize_word(s)))
 }
 
@@ -514,8 +518,9 @@ fn pluralize_word(s: &str) -> String {
 /// dictionary — irregular plurals (`people`, `children`) are unaffected.
 #[allow(clippy::unnecessary_wraps)]
 fn singularize_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Value> {
-    let s =
-        value.as_str().ok_or_else(|| tera::Error::msg("singularize filter requires a string"))?;
+    let s = value
+        .as_str()
+        .ok_or_else(|| tera::Error::msg("singularize filter requires a string"))?;
     let lower = s.to_ascii_lowercase();
     let out = if lower.ends_with("ies") && s.len() > 3 {
         format!("{}y", &s[..s.len() - 3])
@@ -543,8 +548,8 @@ mod tests {
         ex:bob   ex:name "bob_jones" .
     "#;
 
-    fn graph() -> Arc<DeterministicGraph> {
-        let g = DeterministicGraph::new().expect("graph");
+    fn graph() -> Arc<dyn GraphEngine> {
+        let g = crate::graph::DeterministicGraph::new().expect("graph");
         g.insert_turtle(TTL).expect("ttl");
         Arc::new(g)
     }
@@ -559,13 +564,16 @@ mod tests {
         // no `?`), so `row.name` works directly. If this test ever fails
         // after touching `sparql_to_value`, that's this exact regression.
         let value = sparql_to_value(
-            &graph(),
+            graph().as_ref(),
             "SELECT ?name WHERE { ?s <http://example.org/name> ?name } ORDER BY ?name",
         )
         .expect("query");
         let rows = value.as_array().expect("array");
         let first = rows[0].as_object().expect("object");
-        assert!(first.contains_key("name"), "row must have bare key `name`: {first:?}");
+        assert!(
+            first.contains_key("name"),
+            "row must have bare key `name`: {first:?}"
+        );
         assert!(
             !first.contains_key("?name"),
             "row must NOT have `?`-prefixed key `?name`: {first:?}"
@@ -699,8 +707,12 @@ mod tests {
     #[test]
     fn sparql_first_on_empty_rows_is_null() {
         let mut tera = build_tera(graph());
-        let rendered =
-            tera.render_str("{{ sparql_first(rows=[]) }}", &tera::Context::new()).expect("render");
-        assert_eq!(rendered, "", "Tera renders a Value::Null function result as empty output");
+        let rendered = tera
+            .render_str("{{ sparql_first(rows=[]) }}", &tera::Context::new())
+            .expect("render");
+        assert_eq!(
+            rendered, "",
+            "Tera renders a Value::Null function result as empty output"
+        );
     }
 }

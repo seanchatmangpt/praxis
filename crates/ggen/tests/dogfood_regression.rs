@@ -22,10 +22,11 @@
 use chicago_tdd_tools::cli_proof::CliHarness;
 use std::path::{Path, PathBuf};
 
-const ROUTE_FILES: [&str; 5] = [
+const ROUTE_FILES: [&str; 6] = [
     "crates/ggen/src/verbs/mod.rs",
     "crates/ggen/src/verbs/sync.rs",
     "crates/ggen/src/verbs/graph.rs",
+    "crates/ggen/src/verbs/law.rs",
     "crates/ggen/src/verbs/receipt.rs",
     "crates/ggen/src/verbs/doctor.rs",
 ];

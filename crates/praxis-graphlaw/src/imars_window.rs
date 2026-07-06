@@ -253,18 +253,11 @@ where
 
     /// Returns all `(timestamp, Rc<T>)` pairs currently in the window.
     pub fn items(&self) -> Vec<(i32, Rc<T>)> {
+        // Collect via the index (ts from get_time_stamp, item from the index
+        // keys) -- deepmesa's LinkedList exposes no forward cursor from
+        // front(), so index-based traversal is the whole implementation
+        // (a vestigial peek-then-break loop here tripped clippy::never_loop).
         let mut result = Vec::new();
-        let mut cursor = self.content.front();
-        while let Some((ts, item)) = cursor {
-            result.push((*ts, item.clone()));
-            // advance — LinkedList front after peek is the same node, we need next
-            // Since deepmesa LinkedList doesn't expose a cursor::next directly on front(),
-            // we collect via index (O(n) but correct).
-            break; // fallback: use index-based traversal below
-        }
-        // Use the index to collect all items (ts from the list, item from the index keys)
-        // The index maps Rc<T> → Node; we can get ts via get_time_stamp.
-        result.clear();
         for (item, _node) in &self.index {
             if let Some(ts) = self.get_time_stamp(item.clone()) {
                 result.push((ts, item.clone()));

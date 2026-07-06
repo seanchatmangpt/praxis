@@ -50,7 +50,7 @@ fn pack_sync_end_to_end() {
 
     // (1) First sync writes the pack's widget file in place under the
     // project — no generated/ dir anywhere.
-    let first = sync(&project, SyncOptions { dry_run: false }).expect("first sync");
+    let first = sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect("first sync");
     let widget = project.join("src/widget.rs");
     assert!(
         widget.is_file(),
@@ -121,7 +121,7 @@ fn pack_sync_end_to_end() {
     );
 
     // (4) Second sync is a no-op: skipped-unchanged, lock byte-identical.
-    let second = sync(&project, SyncOptions { dry_run: false }).expect("second sync");
+    let second = sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect("second sync");
     assert!(
         second.written.is_empty(),
         "second sync wrote: {:?}",
@@ -150,7 +150,7 @@ fn pack_sync_end_to_end() {
     // sync reproduces the second run's payload hash byte-for-byte while its
     // record chains from the second receipt's chain hash.
     let receipt2_raw = std::fs::read(project.join(RECEIPT_REL_PATH)).expect("receipt 2");
-    sync(&project, SyncOptions { dry_run: false }).expect("third sync");
+    sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect("third sync");
     let receipt3_raw = std::fs::read(project.join(RECEIPT_REL_PATH)).expect("receipt 3");
     let receipt2: SyncReceipt = serde_json::from_slice(&receipt2_raw).expect("receipt 2 parses");
     let receipt3: SyncReceipt = serde_json::from_slice(&receipt3_raw).expect("receipt 3 parses");
@@ -175,7 +175,7 @@ fn pack_sync_end_to_end() {
     std::fs::write(&pack_ontology, ttl).expect("corrupt pack");
 
     // (6) …and the next sync refuses by name with the pack-hash-mismatch code.
-    let err = sync(&project, SyncOptions { dry_run: false }).expect_err("must refuse");
+    let err = sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect_err("must refuse");
     let msg = err.to_string();
     assert!(msg.contains("FM-PACK-008"), "refusal code: {msg}");
     assert!(msg.contains("widget"), "refusal must name the pack: {msg}");
@@ -184,7 +184,7 @@ fn pack_sync_end_to_end() {
 #[test]
 fn tampered_receipt_decision_fails_verification() {
     let (_dir, project) = scaffold();
-    sync(&project, SyncOptions { dry_run: false }).expect("sync");
+    sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
 
     // (7) Tamper a decision string inside the receipt payload.
     let receipt_path = project.join(RECEIPT_REL_PATH);
@@ -217,7 +217,7 @@ fn dry_run_never_writes_or_mutates_lock() {
     let (_dir, project) = scaffold();
 
     // Dry-run on a fresh project: no lock, no receipt, no outputs.
-    let report = sync(&project, SyncOptions { dry_run: true }).expect("dry run");
+    let report = sync(&project, SyncOptions { dry_run: true, ..Default::default() }).expect("dry run");
     assert!(!report.written.is_empty(), "dry run should plan writes");
     assert!(
         !project.join("ggen.lock").exists(),
@@ -234,9 +234,9 @@ fn dry_run_never_writes_or_mutates_lock() {
 
     // After a real sync, a dry-run leaves the lock byte-identical even if
     // decisions change (nothing to write).
-    sync(&project, SyncOptions { dry_run: false }).expect("real sync");
+    sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect("real sync");
     let lock = std::fs::read(project.join("ggen.lock")).expect("lock");
-    sync(&project, SyncOptions { dry_run: true }).expect("dry run 2");
+    sync(&project, SyncOptions { dry_run: true, ..Default::default() }).expect("dry run 2");
     let lock2 = std::fs::read(project.join("ggen.lock")).expect("lock");
     assert_eq!(lock, lock2, "dry run must never mutate ggen.lock");
 }
@@ -255,7 +255,7 @@ fn unreachable_git_pack_url_fails_closed_with_a_typed_error() {
     );
     std::fs::write(&manifest, toml).expect("rewrite");
 
-    let err = sync(&project, SyncOptions { dry_run: false }).expect_err("clone must fail");
+    let err = sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect_err("clone must fail");
     let msg = err.to_string();
     assert!(msg.contains("FM-PACK-010"), "{msg}");
     assert!(msg.contains("git clone"), "{msg}");
@@ -266,7 +266,7 @@ fn broken_packs_refuse_by_name() {
     // Missing pack dir.
     let (_dir, project) = scaffold();
     std::fs::remove_dir_all(project.parent().expect("root").join("demo-pack")).expect("rm");
-    let err = sync(&project, SyncOptions { dry_run: false }).expect_err("missing dir");
+    let err = sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect_err("missing dir");
     assert!(err.to_string().contains("FM-PACK-001"), "{err}");
     assert!(err.to_string().contains("widget"), "{err}");
 
@@ -279,7 +279,7 @@ fn broken_packs_refuse_by_name() {
             .join("demo-pack/ontology.ttl"),
     )
     .expect("rm ttl");
-    let err = sync(&project, SyncOptions { dry_run: false }).expect_err("missing ontology");
+    let err = sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect_err("missing ontology");
     assert!(err.to_string().contains("FM-PACK-004"), "{err}");
 
     // Unknown key in pack.toml.
@@ -288,7 +288,7 @@ fn broken_packs_refuse_by_name() {
     let mut toml = std::fs::read_to_string(&manifest).expect("pack.toml");
     toml.push_str("sneaky = true\n");
     std::fs::write(&manifest, toml).expect("rewrite");
-    let err = sync(&project, SyncOptions { dry_run: false }).expect_err("unknown key");
+    let err = sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect_err("unknown key");
     assert!(err.to_string().contains("FM-PACK-003"), "{err}");
 
     // Zero templates.
@@ -300,7 +300,7 @@ fn broken_packs_refuse_by_name() {
             .join("demo-pack/templates/widget.rs.tmpl"),
     )
     .expect("rm tmpl");
-    let err = sync(&project, SyncOptions { dry_run: false }).expect_err("zero templates");
+    let err = sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect_err("zero templates");
     assert!(err.to_string().contains("FM-PACK-005"), "{err}");
 }
 
@@ -379,7 +379,7 @@ fn two_packs_disjoint_outputs_both_succeed() {
     );
     let project = write_two_pack_project(dir.path(), "pack-a", "pack-b");
 
-    let report = sync(&project, SyncOptions { dry_run: false }).expect("sync");
+    let report = sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
 
     let alpha = std::fs::read_to_string(project.join("src/alpha.rs")).expect("alpha.rs");
     assert_eq!(alpha, "pub const ALPHA: &str = \"a\";\n");
@@ -429,15 +429,17 @@ fn two_packs_colliding_output_aborts_sync_without_rollback_or_lock() {
     write_pack(dir.path(), "pack-b", "Beta", "src/collision.rs", "BBB");
     let project = write_two_pack_project(dir.path(), "pack-a", "pack-b");
 
-    let err = sync(&project, SyncOptions { dry_run: false }).expect_err("must refuse collision");
+    let err = sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect_err("must refuse collision");
     let msg = err.to_string();
-    assert!(msg.contains("FM-WRITE-005"), "{msg}");
+    assert!(msg.contains("FM-WRITE-008"), "{msg}");
     assert!(msg.contains("src/collision.rs"), "{msg}");
 
-    // pack-a's write (resolved first, alphabetically) survives unmodified;
-    // pack-b's conflicting write never lands.
-    let content = std::fs::read_to_string(project.join("src/collision.rs")).expect("collision.rs");
-    assert_eq!(content, "AAA\n");
+    // The collision is detected before the write stage begins, so neither
+    // pack's file lands — no partial state.
+    assert!(
+        !project.join("src/collision.rs").exists(),
+        "collision must refuse before any write"
+    );
 
     assert!(
         !project.join("ggen.lock").exists(),
@@ -498,7 +500,7 @@ fn git_resolved_pack_syncs_end_to_end_and_caches_across_runs() {
 
     // (1) First sync clones the pack and generates from it exactly like a
     // local { path = "…" } pack would.
-    sync(&project, SyncOptions { dry_run: false }).expect("first sync clones and generates");
+    sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect("first sync clones and generates");
     let widget = project.join("src/widget.rs");
     assert!(widget.is_file(), "git pack must write src/widget.rs");
     assert!(
@@ -522,7 +524,7 @@ fn git_resolved_pack_syncs_end_to_end_and_caches_across_runs() {
     // wipe-and-re-clone would remove.
     let cache_dir = project.join(".ggen-v2/git-packs/widget");
     std::fs::write(cache_dir.join("sentinel.txt"), "still here").expect("write sentinel");
-    sync(&project, SyncOptions { dry_run: false }).expect("second sync");
+    sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect("second sync");
     assert!(
         cache_dir.join("sentinel.txt").is_file(),
         "unchanged version must reuse the cached clone, not re-clone"

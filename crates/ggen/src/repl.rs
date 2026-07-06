@@ -74,7 +74,9 @@ mod inner {
         /// Create a helper from a slice of `(noun, &[verb])` pairs.
         #[must_use]
         pub fn new(noun_verbs: &[(&'static str, &'static [&'static str])]) -> Self {
-            Self { noun_verbs: noun_verbs.iter().map(|(n, vs)| (*n, vs.to_vec())).collect() }
+            Self {
+                noun_verbs: noun_verbs.iter().map(|(n, vs)| (*n, vs.to_vec())).collect(),
+            }
         }
     }
 
@@ -171,7 +173,9 @@ mod inner {
         /// Returns an error if `rustyline` cannot initialise (e.g., terminal
         /// is not available).
         pub fn new(noun_verbs: &[(&'static str, &'static [&'static str])]) -> anyhow::Result<Self> {
-            let config = Config::builder().completion_type(CompletionType::List).build();
+            let config = Config::builder()
+                .completion_type(CompletionType::List)
+                .build();
             let helper = ReplHelper::new(noun_verbs);
             let mut editor = Editor::with_config(config)?;
             editor.set_helper(Some(helper));
@@ -182,7 +186,9 @@ mod inner {
         /// `exit` / `quit`.
         ///
         /// Each non-empty line is split via [`super::split_shell_words`] and
-        /// printed as a parsed argv for now; callers can hook dispatch here.
+        /// dispatched as a `ggen` invocation (the current executable re-run
+        /// with the parsed argv, stdio inherited). A failing command reports
+        /// its exit status and the loop continues.
         ///
         /// # Errors
         ///
@@ -200,10 +206,18 @@ mod inner {
                             break;
                         }
                         match super::split_shell_words(trimmed) {
-                            Some(argv) => {
-                                // Dispatch hook — replace with real command dispatch.
-                                println!("argv: {argv:?}");
+                            Some(argv) if !argv.is_empty() => {
+                                match std::env::current_exe().and_then(|exe| {
+                                    std::process::Command::new(exe).args(&argv).status()
+                                }) {
+                                    Ok(status) if !status.success() => {
+                                        eprintln!("command exited with {status}");
+                                    }
+                                    Ok(_) => {}
+                                    Err(e) => eprintln!("error: failed to dispatch: {e}"),
+                                }
                             }
+                            Some(_) => {}
                             None => {
                                 eprintln!("error: unmatched quote");
                             }
@@ -267,7 +281,11 @@ mod tests {
     fn double_quoted_space() {
         assert_eq!(
             split_shell_words(r#"emit --payload "hello world""#),
-            Some(vec!["emit".into(), "--payload".into(), "hello world".into()])
+            Some(vec![
+                "emit".into(),
+                "--payload".into(),
+                "hello world".into()
+            ])
         );
     }
 
@@ -275,13 +293,20 @@ mod tests {
     fn single_quoted_space() {
         assert_eq!(
             split_shell_words("emit --payload 'hello world'"),
-            Some(vec!["emit".into(), "--payload".into(), "hello world".into()])
+            Some(vec![
+                "emit".into(),
+                "--payload".into(),
+                "hello world".into()
+            ])
         );
     }
 
     #[test]
     fn backslash_escape() {
-        assert_eq!(split_shell_words(r"emit\ arg"), Some(vec!["emit arg".into()]));
+        assert_eq!(
+            split_shell_words(r"emit\ arg"),
+            Some(vec!["emit arg".into()])
+        );
     }
 
     #[test]

@@ -304,6 +304,46 @@ praxis:CmdGgenDoctorRun a praxis:CliCommand ;
     praxis:nounAbout "Check environment health: lockfile drift, orphaned artifacts, receipt staleness." ;
     rdfs:comment "Check lockfile/pack drift, orphaned generated artifacts, and receipt-vs-disk staleness." .
 
+praxis:CmdGgenLawLoad a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateGgen ;
+    praxis:noun "law" ;
+    praxis:verb "load" ;
+    praxis:handler "handle_law_load" ;
+    praxis:nounAbout "Law-state operations on the project graph: load rules, materialize, validate gates, explain derivations, export." ;
+    rdfs:comment "Load every [law].rules file into the GraphLaw engine and report the rule count per file (refuses on the first unparseable rule document)." .
+
+praxis:CmdGgenLawValidate a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateGgen ;
+    praxis:noun "law" ;
+    praxis:verb "validate" ;
+    praxis:handler "handle_law_validate" ;
+    praxis:nounAbout "Law-state operations on the project graph: load rules, materialize, validate gates, explain derivations, export." ;
+    rdfs:comment "Materialize rules, then run every [law].shapes SHACL gate and the denial check; any violation is a typed FM-LAW refusal (non-zero exit)." .
+
+praxis:CmdGgenLawDerive a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateGgen ;
+    praxis:noun "law" ;
+    praxis:verb "derive" ;
+    praxis:handler "handle_law_derive" ;
+    praxis:nounAbout "Law-state operations on the project graph: load rules, materialize, validate gates, explain derivations, export." ;
+    rdfs:comment "Materialize [law].rules to fixpoint and report the derived-triple count plus the post-materialization graph hash." .
+
+praxis:CmdGgenLawExplain a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateGgen ;
+    praxis:noun "law" ;
+    praxis:verb "explain" ;
+    praxis:handler "handle_law_explain" ;
+    praxis:nounAbout "Law-state operations on the project graph: load rules, materialize, validate gates, explain derivations, export." ;
+    rdfs:comment "Materialize and report which facts the rules derived: rules-loaded count and the full derived-triple diff (canonical N-Triples lines)." .
+
+praxis:CmdGgenLawExport a praxis:CliCommand ;
+    praxis:inCrate praxis:CrateGgen ;
+    praxis:noun "law" ;
+    praxis:verb "export" ;
+    praxis:handler "handle_law_export" ;
+    praxis:nounAbout "Law-state operations on the project graph: load rules, materialize, validate gates, explain derivations, export." ;
+    rdfs:comment "Dump the fully materialized graph as canonical N-Triples (post-rule fixpoint), with its BLAKE3 state hash." .
+
 # ---------------------------------------------------------------------
 # praxis-lean: Lean 4 kernel admission gate (praxis:flag values here use
 # an extended "name:type::help" encoding -- backward compatible with the

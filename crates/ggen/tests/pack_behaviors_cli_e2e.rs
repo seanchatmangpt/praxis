@@ -179,14 +179,14 @@ fn two_packs_colliding_output_aborts_sync_over_the_cli_boundary() {
         .run()
         .expect("run sync")
         .assert_failure()
-        .assert_stderr_contains("FM-WRITE-005")
+        .assert_stderr_contains("FM-WRITE-008")
         .assert_stderr_contains("src/collision.rs");
 
-    // pack-a's write (resolved first, alphabetically) survives unmodified;
-    // pack-b's conflicting write never lands.
-    assert_eq!(
-        std::fs::read_to_string(project.join("src/collision.rs")).expect("collision.rs"),
-        "AAA\n"
+    // The collision is detected before the write stage begins, so neither
+    // pack's file lands — no partial state.
+    assert!(
+        !project.join("src/collision.rs").exists(),
+        "collision must refuse before any write"
     );
     assert!(
         !project.join("ggen.lock").exists(),

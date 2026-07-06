@@ -67,7 +67,7 @@ fn select_star_disables_projection_check() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(
         dir.path(),
-        "---\nto: out/all.txt\nsparql:\n  all: SELECT * WHERE { ?s ?p ?o }\n---\n{{ anything_at_all }}",
+        "---\nto: out/all.txt\nsparql:\n  all: SELECT * WHERE { ?s ?p ?o } ORDER BY ?s\n---\n{{ anything_at_all }}",
     );
     let path = dir.path().join("templates/one.tmpl");
     let errs = lint_template(&path, &parse_file(&path));

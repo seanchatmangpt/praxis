@@ -115,7 +115,12 @@ pub fn oxrdf_term_to_roxi_term(term: &oxrdf::Term) -> Term {
             let id = Encoder::add_literal(lexical, datatype, lang);
             Encoder::decode_to_term(id).expect("Successfully decoded just-added Literal term")
         }
-        oxrdf::Term::Triple(_) => panic!("RDF-star Triple terms are not supported by roxi"),
+        // RDF-star / RDF 1.2 triple terms (oxrdf's `rdf-12` feature, which
+        // this crate no longer enables -- it broke oxigraph 0.5.9's oxttl
+        // via feature unification). Wildcard keeps the match exhaustive
+        // whether or not another crate in the build enables that feature.
+        #[allow(unreachable_patterns)]
+        _ => panic!("RDF-star Triple terms are not supported by roxi"),
     }
 }
 

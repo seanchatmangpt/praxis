@@ -291,7 +291,7 @@ fn sort_value(value: serde_json::Value) -> serde_json::Value {
 //     pub events: Vec<OperationEvent>,
 //     pub chain_hash: Blake3Hash,
 //     #[serde(skip)]
-//     _seal: (),   // private — only constructible via ChainAssembler::finalize
+//     _seal: (),   // private — only constructible via the sealed constructor below
 // }
 //
 // impl Receipt {
@@ -341,12 +341,20 @@ pub struct Evidence<T, State: sealed::LifecycleState, Witness> {
 impl<T, Witness> Evidence<T, Raw, Witness> {
     /// Create raw (unadmitted) evidence. Available to all callers.
     pub fn raw(inner: T) -> Self {
-        Self { inner, _state: PhantomData, _witness: PhantomData }
+        Self {
+            inner,
+            _state: PhantomData,
+            _witness: PhantomData,
+        }
     }
 
     /// Create raw (unadmitted) evidence. Alternative name.
     pub fn new(inner: T) -> Self {
-        Self { inner, _state: PhantomData, _witness: PhantomData }
+        Self {
+            inner,
+            _state: PhantomData,
+            _witness: PhantomData,
+        }
     }
 
     /// Borrow the inner value of raw evidence.
@@ -363,7 +371,11 @@ impl<T, Witness> Evidence<T, Validated, Witness> {
 
     /// Private constructor — only validators within this crate may call this.
     pub(crate) fn validate_unchecked(inner: T) -> Self {
-        Self { inner, _state: PhantomData, _witness: PhantomData }
+        Self {
+            inner,
+            _state: PhantomData,
+            _witness: PhantomData,
+        }
     }
 }
 
@@ -375,7 +387,11 @@ impl<T, Witness> Evidence<T, Admitted, Witness> {
 
     /// Private constructor — only [`Admit`] impls within this crate may call this.
     pub(crate) fn admit_unchecked(inner: T) -> Self {
-        Self { inner, _state: PhantomData, _witness: PhantomData }
+        Self {
+            inner,
+            _state: PhantomData,
+            _witness: PhantomData,
+        }
     }
 }
 
@@ -419,7 +435,11 @@ pub struct AdmittedReceipt {
 impl AdmittedReceipt {
     /// Create a new sealed receipt. Restricted to crate/module validator authority.
     pub(crate) fn new(chain_hash: [u8; 32], timestamp: u64) -> Self {
-        Self { chain_hash, timestamp, _seal: () }
+        Self {
+            chain_hash,
+            timestamp,
+            _seal: (),
+        }
     }
 }
 
@@ -500,7 +520,11 @@ pub struct PolicyConfig {
 
 impl Default for PolicyConfig {
     fn default() -> Self {
-        Self { behind_threshold: 3, dirty_threshold: 5, evidence_staleness_secs: 3_600 }
+        Self {
+            behind_threshold: 3,
+            dirty_threshold: 5,
+            evidence_staleness_secs: 3_600,
+        }
     }
 }
 
@@ -548,7 +572,10 @@ mod layout_assertions {
 
     // PolicyVerdict is a fieldless enum — 1 byte.
     const _POLICY_VERDICT_SIZE: () = {
-        assert!(size_of::<PolicyVerdict>() == 1, "PolicyVerdict size changed");
+        assert!(
+            size_of::<PolicyVerdict>() == 1,
+            "PolicyVerdict size changed"
+        );
     };
 
     // Raw and Admitted are ZSTs used as PhantomData witness tags.
@@ -556,7 +583,10 @@ mod layout_assertions {
         assert!(size_of::<Raw>() == 0, "Raw marker must stay ZST");
     };
     const _VALIDATED_IS_ZST: () = {
-        assert!(size_of::<Validated>() == 0, "Validated marker must stay ZST");
+        assert!(
+            size_of::<Validated>() == 0,
+            "Validated marker must stay ZST"
+        );
     };
     const _ADMITTED_IS_ZST: () = {
         assert!(size_of::<Admitted>() == 0, "Admitted marker must stay ZST");
@@ -573,7 +603,10 @@ mod layout_assertions {
 
     // Alignment checks — ensure no surprise padding.
     const _BLAKE3_HASH_ALIGN: () = {
-        assert!(align_of::<Blake3Hash>() == align_of::<String>(), "Blake3Hash alignment changed");
+        assert!(
+            align_of::<Blake3Hash>() == align_of::<String>(),
+            "Blake3Hash alignment changed"
+        );
     };
 }
 
@@ -594,12 +627,20 @@ pub struct StageOutcome {
 impl StageOutcome {
     /// Construct a passing stage outcome.
     pub fn pass(stage: impl Into<String>) -> Self {
-        StageOutcome { stage: stage.into(), passed: true, reason: None }
+        StageOutcome {
+            stage: stage.into(),
+            passed: true,
+            reason: None,
+        }
     }
 
     /// Construct a failing stage outcome with a reason.
     pub fn fail(stage: impl Into<String>, reason: impl Into<String>) -> Self {
-        StageOutcome { stage: stage.into(), passed: false, reason: Some(reason.into()) }
+        StageOutcome {
+            stage: stage.into(),
+            passed: false,
+            reason: Some(reason.into()),
+        }
     }
 }
 
@@ -624,12 +665,18 @@ pub struct Verdict {
 impl Verdict {
     /// Construct an ACCEPT verdict from a list of all-passing stage outcomes.
     pub fn accept(stages: Vec<StageOutcome>) -> Self {
-        Verdict { accepted: true, stage_outcomes: stages }
+        Verdict {
+            accepted: true,
+            stage_outcomes: stages,
+        }
     }
 
     /// Construct a REJECT verdict. Sets `accepted = false` regardless of individual outcomes.
     pub fn reject(stages: Vec<StageOutcome>) -> Self {
-        Verdict { accepted: false, stage_outcomes: stages }
+        Verdict {
+            accepted: false,
+            stage_outcomes: stages,
+        }
     }
 
     /// Return the first failing [`StageOutcome`], if any.
@@ -697,7 +744,10 @@ mod verdict_tests {
         assert!(!v.is_accepted());
         let f = v.first_failure().unwrap();
         assert_eq!(f.stage, "chain_integrity");
-        assert_eq!(v.summary(), "REJECT at stage chain_integrity: chain hash mismatch");
+        assert_eq!(
+            v.summary(),
+            "REJECT at stage chain_integrity: chain hash mismatch"
+        );
     }
 
     #[test]
@@ -809,7 +859,10 @@ impl CicdPolicyRunner {
         for policy in &self.policies {
             let v = policy.evaluate(config);
             aggregate = aggregate.worse(v.clone());
-            findings.push(PolicyFinding { policy_name: policy.name(), verdict: v });
+            findings.push(PolicyFinding {
+                policy_name: policy.name(),
+                verdict: v,
+            });
         }
         (aggregate, findings)
     }
@@ -921,16 +974,26 @@ mod tests {
 
     #[test]
     fn object_ref_display_without_qualifier() {
-        let obj =
-            ObjectRef { id: "repo:main".to_string(), type_: "git".to_string(), qualifier: None };
+        let obj = ObjectRef {
+            id: "repo:main".to_string(),
+            type_: "git".to_string(),
+            qualifier: None,
+        };
         assert_eq!(obj.to_string(), "repo:main:git");
     }
 
     #[test]
     fn object_ref_qualifier_skipped_in_json() {
-        let obj = ObjectRef { id: "x".to_string(), type_: "t".to_string(), qualifier: None };
+        let obj = ObjectRef {
+            id: "x".to_string(),
+            type_: "t".to_string(),
+            qualifier: None,
+        };
         let json = serde_json::to_string(&obj).unwrap();
-        assert!(!json.contains("qualifier"), "None qualifier should be omitted: {json}");
+        assert!(
+            !json.contains("qualifier"),
+            "None qualifier should be omitted: {json}"
+        );
     }
 
     #[test]
@@ -967,7 +1030,10 @@ mod tests {
 
         let policy = AlwaysWarn;
         assert_eq!(policy.name(), "always-warn");
-        assert_eq!(policy.evaluate(&PolicyConfig::default()), PolicyVerdict::Warn);
+        assert_eq!(
+            policy.evaluate(&PolicyConfig::default()),
+            PolicyVerdict::Warn
+        );
     }
 }
 
@@ -987,7 +1053,11 @@ mod canonical_determinism_tests {
             m: u64,
         }
 
-        let p = Payload { z: "last", a: "first", m: 42 };
+        let p = Payload {
+            z: "last",
+            a: "first",
+            m: 42,
+        };
         let first = canonical_bytes(&p).unwrap();
         for _ in 0..99 {
             assert_eq!(
@@ -1009,7 +1079,10 @@ mod canonical_determinism_tests {
             event_type: &'static str,
         }
 
-        let e = Event { seq: 0, event_type: "build" };
+        let e = Event {
+            seq: 0,
+            event_type: "build",
+        };
         let bytes = canonical_bytes(&e).unwrap();
         let h1 = Blake3Hash::content_address(&bytes);
         let h2 = Blake3Hash::content_address(&bytes);
@@ -1058,8 +1131,16 @@ mod canonical_determinism_tests {
             payload: &'static str,
         }
 
-        let honest = canonical_bytes(&Event { seq: 1, payload: "build" }).unwrap();
-        let tampered = canonical_bytes(&Event { seq: 1, payload: "build-TAMPERED" }).unwrap();
+        let honest = canonical_bytes(&Event {
+            seq: 1,
+            payload: "build",
+        })
+        .unwrap();
+        let tampered = canonical_bytes(&Event {
+            seq: 1,
+            payload: "build-TAMPERED",
+        })
+        .unwrap();
         assert_ne!(
             Blake3Hash::content_address(&honest),
             Blake3Hash::content_address(&tampered),
@@ -1140,7 +1221,10 @@ mod hash_admit_tests {
     fn reject_wrong_length() {
         let short = Blake3Hash::from_hex("abc");
         let raw: RawEvidence<Blake3Hash, HashWitness> = Evidence::raw(short);
-        assert!(matches!(HashAdmit::admit(raw), Err(InvalidHash::WrongLength(3))));
+        assert!(matches!(
+            HashAdmit::admit(raw),
+            Err(InvalidHash::WrongLength(3))
+        ));
     }
 
     #[test]
@@ -1149,6 +1233,9 @@ mod hash_admit_tests {
             "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
         );
         let raw: RawEvidence<Blake3Hash, HashWitness> = Evidence::raw(bad);
-        assert!(matches!(HashAdmit::admit(raw), Err(InvalidHash::NonHexChar(0, 'z'))));
+        assert!(matches!(
+            HashAdmit::admit(raw),
+            Err(InvalidHash::NonHexChar(0, 'z'))
+        ));
     }
 }

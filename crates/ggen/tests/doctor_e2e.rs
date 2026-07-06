@@ -85,7 +85,7 @@ fn stderr_str(assert: &assert_cmd::assert::Assert) -> String {
 fn clean_synced_project_is_healthy() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice", "bob"]);
-    sync(dir.path(), SyncOptions { dry_run: false }).expect("sync");
+    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
 
     let assert = run_doctor(dir.path()).success();
     let json = stdout_json(&assert);
@@ -127,7 +127,7 @@ fn never_synced_project_is_healthy_by_definition() {
 #[test]
 fn corrupted_pack_content_fails_lockfile_drift() {
     let (_dir, project) = scaffold_with_pack();
-    sync(&project, SyncOptions { dry_run: false }).expect("sync");
+    sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
 
     let pack_ontology = project.parent().expect("root").join("demo-pack/ontology.ttl");
     let mut ttl = std::fs::read_to_string(&pack_ontology).expect("pack ttl");
@@ -150,7 +150,7 @@ fn corrupted_pack_content_fails_lockfile_drift() {
 fn deleted_output_fails_receipt_staleness_independently_of_other_checks() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice", "bob"]);
-    sync(dir.path(), SyncOptions { dry_run: false }).expect("sync");
+    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
 
     let missing = dir.path().join("out/names.txt");
     assert!(missing.is_file());

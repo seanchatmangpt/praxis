@@ -51,8 +51,10 @@ fn root_ident(expr: &str) -> Option<String> {
     if expr.is_empty() {
         return None;
     }
-    let root: String =
-        expr.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '_').collect();
+    let root: String = expr
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+        .collect();
     if !is_identifier(&root) || NON_VARS.contains(&root.as_str()) {
         return None;
     }
@@ -76,7 +78,9 @@ pub fn consumed_vars(tera_source: &str) -> BTreeSet<String> {
 
     // `{{ … }}` interpolations: root of the pre-filter head.
     for (start, _) in tera_source.match_indices("{{") {
-        let Some(rel_end) = tera_source[start..].find("}}") else { continue };
+        let Some(rel_end) = tera_source[start..].find("}}") else {
+            continue;
+        };
         let expr = tera_source[start + 2..start + rel_end].trim();
         let head = expr.split('|').next().unwrap_or("").trim();
         if let Some(name) = root_ident(head) {
@@ -86,8 +90,13 @@ pub fn consumed_vars(tera_source: &str) -> BTreeSet<String> {
 
     // `{% … %}` tags: for/set introduce locals; if/elif/for consume roots.
     for (start, _) in tera_source.match_indices("{%") {
-        let Some(rel_end) = tera_source[start..].find("%}") else { continue };
-        let inner = tera_source[start + 2..start + rel_end].trim().trim_start_matches('-').trim();
+        let Some(rel_end) = tera_source[start..].find("%}") else {
+            continue;
+        };
+        let inner = tera_source[start + 2..start + rel_end]
+            .trim()
+            .trim_start_matches('-')
+            .trim();
         if let Some(rest) = inner.strip_prefix("for ") {
             if let Some(in_idx) = rest.find(" in ") {
                 for name in rest[..in_idx].split(',') {
@@ -112,7 +121,9 @@ pub fn consumed_vars(tera_source: &str) -> BTreeSet<String> {
                     consumed.insert(root);
                 }
             }
-        } else if let Some(rest) = inner.strip_prefix("if ").or_else(|| inner.strip_prefix("elif "))
+        } else if let Some(rest) = inner
+            .strip_prefix("if ")
+            .or_else(|| inner.strip_prefix("elif "))
         {
             let head = rest.trim().trim_start_matches("not ").trim();
             if let Some(name) = root_ident(head) {
@@ -160,8 +171,11 @@ enum SelectProjection {
 /// Extract the `?var` tokens between `SELECT` and the following `WHERE`/`{`.
 fn select_projection(query: &str) -> SelectProjection {
     // Strip comment lines first.
-    let stripped: String =
-        query.lines().filter(|l| !l.trim_start().starts_with('#')).collect::<Vec<_>>().join(" ");
+    let stripped: String = query
+        .lines()
+        .filter(|l| !l.trim_start().starts_with('#'))
+        .collect::<Vec<_>>()
+        .join(" ");
     let upper = stripped.to_uppercase();
     let Some(sel) = upper.find("SELECT") else {
         return SelectProjection::NotSelect;
@@ -193,15 +207,21 @@ fn select_projection(query: &str) -> SelectProjection {
 /// modulo whitespace (a no-op enrichment).
 #[must_use]
 pub fn is_identity_construct(query: &str) -> bool {
-    let stripped: String =
-        query.lines().filter(|l| !l.trim_start().starts_with('#')).collect::<Vec<_>>().join(" ");
+    let stripped: String = query
+        .lines()
+        .filter(|l| !l.trim_start().starts_with('#'))
+        .collect::<Vec<_>>()
+        .join(" ");
     let upper = stripped.to_uppercase();
     let Some(pos) = upper.find("CONSTRUCT") else {
         return false;
     };
 
     // Shorthand form: `CONSTRUCT WHERE { … }` is identity by definition.
-    if upper[pos + "CONSTRUCT".len()..].trim_start().starts_with("WHERE") {
+    if upper[pos + "CONSTRUCT".len()..]
+        .trim_start()
+        .starts_with("WHERE")
+    {
         return true;
     }
 
@@ -276,6 +296,22 @@ pub fn lint_template(tpl_path: &Path, t: &Template) -> Vec<AppError> {
         }
     }
 
+    for (name, query) in &t.frontmatter.sparql {
+        let upper = query.to_uppercase();
+        if upper.contains("SELECT") && !upper.contains("ORDER BY") {
+            errors.push(AppError::fm_tpl(
+                10,
+                format!(
+                    "template `{}`: sparql `{name}` is a SELECT without ORDER BY — \
+                     row order is engine-dependent, so generated output is not \
+                     deterministic across SPARQL engine versions. \
+                     Remediation: add an ORDER BY clause over the projected variables.",
+                    tpl_path.display()
+                ),
+            ));
+        }
+    }
+
     if let Some(construct) = t.frontmatter.construct.as_deref() {
         if is_identity_construct(construct) {
             errors.push(AppError::fm_tpl(
@@ -321,19 +357,25 @@ mod tests {
     #[test]
     fn loop_bound_names_are_local_not_consumed() {
         let vars = consumed_vars("{% for row in results %}{{ row.name }}{% endfor %}");
-        assert_eq!(vars, ["results".to_string()].into_iter().collect::<BTreeSet<_>>());
+        assert_eq!(
+            vars,
+            ["results".to_string()].into_iter().collect::<BTreeSet<_>>()
+        );
     }
 
     #[test]
     fn set_binds_local_and_consumes_rhs() {
         let vars = consumed_vars("{% set y = source %}{{ y }}");
-        assert_eq!(vars, ["source".to_string()].into_iter().collect::<BTreeSet<_>>());
+        assert_eq!(
+            vars,
+            ["source".to_string()].into_iter().collect::<BTreeSet<_>>()
+        );
     }
 
     #[test]
     fn projected_vars_includes_names_columns_and_implicits() {
         let t = parse(
-            "---\nto: out.rs\nsparql:\n  people: SELECT ?name ?age WHERE { ?s ?p ?o }\n---\nbody",
+            "---\nto: out.rs\nsparql:\n  people: SELECT ?name ?age WHERE { ?s ?p ?o } ORDER BY ?name\n---\nbody",
         );
         let Projection::Vars(vars) = projected_vars(&t.frontmatter) else {
             panic!("expected Vars");
@@ -345,15 +387,18 @@ mod tests {
 
     #[test]
     fn select_star_yields_wildcard() {
-        let t = parse("---\nto: out.rs\nsparql:\n  all: SELECT * WHERE { ?s ?p ?o }\n---\n{{ anything_goes }}");
+        let t = parse("---\nto: out.rs\nsparql:\n  all: SELECT * WHERE { ?s ?p ?o } ORDER BY ?s\n---\n{{ anything_goes }}");
         assert_eq!(projected_vars(&t.frontmatter), Projection::Wildcard);
-        assert!(lint_template(Path::new("t.tmpl"), &t).is_empty(), "wildcard disables check");
+        assert!(
+            lint_template(Path::new("t.tmpl"), &t).is_empty(),
+            "wildcard disables check"
+        );
     }
 
     #[test]
     fn unbound_body_var_is_fm_tpl_003() {
         let t = parse(
-            "---\nto: out.rs\nsparql:\n  people: SELECT ?name WHERE { ?s ?p ?o }\n---\n{{ typo }}",
+            "---\nto: out.rs\nsparql:\n  people: SELECT ?name WHERE { ?s ?p ?o } ORDER BY ?name\n---\n{{ typo }}",
         );
         let errs = lint_template(Path::new("t.tmpl"), &t);
         assert_eq!(errs.len(), 1);
@@ -366,7 +411,7 @@ mod tests {
     #[test]
     fn unbound_to_path_var_is_fm_tpl_004() {
         let t = parse(
-            "---\nto: \"out/{{ missing }}.rs\"\nsparql:\n  people: SELECT ?name WHERE { ?s ?p ?o }\n---\n{{ name }}",
+            "---\nto: \"out/{{ missing }}.rs\"\nsparql:\n  people: SELECT ?name WHERE { ?s ?p ?o } ORDER BY ?name\n---\n{{ name }}",
         );
         let errs = lint_template(Path::new("t.tmpl"), &t);
         assert_eq!(errs.len(), 1);
@@ -403,5 +448,17 @@ mod tests {
             "---\nto: out.rs\nsparql:\n  people: SELECT ?name WHERE { ?s ?p ?o } ORDER BY ?name\n---\n{% for row in results %}{{ row.name }}{% endfor %}",
         );
         assert!(lint_template(Path::new("t.tmpl"), &t).is_empty());
+    }
+
+    #[test]
+    fn select_without_order_by_is_fm_tpl_010() {
+        let t = parse(
+            "---\nto: out.rs\nsparql:\n  people: SELECT ?name WHERE { ?s ?p ?o }\n---\n{{ name }}",
+        );
+        let errs = lint_template(Path::new("t.tmpl"), &t);
+        assert_eq!(errs.len(), 1);
+        let msg = errs[0].to_string();
+        assert!(msg.contains("FM-TPL-010"), "{msg}");
+        assert!(msg.contains("ORDER BY"), "{msg}");
     }
 }

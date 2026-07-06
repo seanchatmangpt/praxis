@@ -12,6 +12,7 @@ pub mod handlers;
 
 pub mod doctor;
 pub mod graph;
+pub mod law;
 pub mod receipt;
 pub mod sync;
 // ---------------------------------------------------------------------
@@ -46,6 +47,15 @@ fn register_graph_noun() {
     ::clap_noun_verb::cli::registry::CommandRegistry::register_noun(
         "graph",
         "Validate RDF/Turtle ontology graphs against praxis vocabulary constraints.",
+    );
+}
+
+#[linkme::distributed_slice(::clap_noun_verb::cli::registry::__NOUN_REGISTRY)]
+static REGISTER_LAW_NOUN: fn() = register_law_noun;
+fn register_law_noun() {
+    ::clap_noun_verb::cli::registry::CommandRegistry::register_noun(
+        "law",
+        "Law-state operations on the project graph: load rules, materialize, validate gates, explain derivations, export.",
     );
 }
 

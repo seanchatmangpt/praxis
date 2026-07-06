@@ -2,7 +2,6 @@
 #![deny(clippy::print_stdout)]
 #![deny(unsafe_code)]
 
-pub mod chain;
 pub mod config;
 pub mod error;
 pub mod graph;
@@ -13,15 +12,6 @@ pub mod sync;
 pub mod template;
 pub mod types;
 pub mod write;
-
-#[cfg(feature = "otel")]
-pub mod telemetry;
-
-#[cfg(feature = "lsp")]
-pub mod lsp;
-
-#[cfg(feature = "discovery")]
-pub mod discovery;
 
 pub mod repl;
 pub mod verbs;

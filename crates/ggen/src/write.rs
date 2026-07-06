@@ -182,7 +182,7 @@ fn check_freeze(
                 return Ok(None);
             };
             let slots_dir = freeze_slots_dir(frontmatter)?;
-            let checksum_path = freeze_checksum_path(root, slots_dir, rel_to);
+            let checksum_path = freeze_checksum_path(root, slots_dir, rel_to)?;
             match std::fs::read_to_string(&checksum_path) {
                 Ok(stored) => {
                     let current = blake3::hash(content.as_bytes()).to_hex().to_string();
@@ -214,7 +214,7 @@ fn record_freeze_checksum(
         return Ok(());
     }
     let slots_dir = freeze_slots_dir(frontmatter)?;
-    let checksum_path = freeze_checksum_path(root, slots_dir, rel_to);
+    let checksum_path = freeze_checksum_path(root, slots_dir, rel_to)?;
     if let Some(parent) = checksum_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
@@ -235,8 +235,11 @@ fn freeze_slots_dir(frontmatter: &Frontmatter) -> Result<&str> {
     })
 }
 
-fn freeze_checksum_path(root: &Path, slots_dir: &str, rel_to: &str) -> PathBuf {
-    root.join(slots_dir).join(format!("{rel_to}.blake3"))
+/// `freeze_slots_dir` is a frontmatter path field, so it goes through the
+/// same [`resolve_target`] safety check as `to:`/`from:` — an absolute or
+/// `..`-containing slots dir must not place checksum files outside the root.
+fn freeze_checksum_path(root: &Path, slots_dir: &str, rel_to: &str) -> Result<PathBuf> {
+    resolve_target(root, &format!("{slots_dir}/{rel_to}.blake3"))
 }
 
 /// If `frontmatter.backup` is set, copy `existing_content` to `<target>.bak`
@@ -534,6 +537,34 @@ mod tests {
         f.after = Some("// nowhere".to_string());
         let err = plan_write(dir.path(), "f.txt", "x", &f).expect_err("must refuse");
         assert!(err.to_string().contains("FM-WRITE-004"), "{err}");
+    }
+
+    #[test]
+    fn freeze_slots_dir_traversal_is_err() {
+        let dir = TempDir::new().expect("tempdir");
+        std::fs::write(dir.path().join("x.rs"), "old\n").expect("seed");
+        let mut f = fm("x.rs");
+        f.freeze_policy = Some(FreezePolicy::Checksum);
+        f.freeze_slots_dir = Some("../escaped-slots".to_string());
+        let err = plan_write(dir.path(), "x.rs", "old\n", &f).expect_err("must reject");
+        assert!(err.to_string().contains("FM-WRITE-002"), "{err}");
+        assert!(!dir
+            .path()
+            .parent()
+            .expect("parent")
+            .join("escaped-slots")
+            .exists());
+    }
+
+    #[test]
+    fn freeze_slots_dir_absolute_is_err() {
+        let dir = TempDir::new().expect("tempdir");
+        std::fs::write(dir.path().join("x.rs"), "old\n").expect("seed");
+        let mut f = fm("x.rs");
+        f.freeze_policy = Some(FreezePolicy::Checksum);
+        f.freeze_slots_dir = Some("/tmp/escaped-slots".to_string());
+        let err = plan_write(dir.path(), "x.rs", "old\n", &f).expect_err("must reject");
+        assert!(err.to_string().contains("FM-WRITE-002"), "{err}");
     }
 
     #[test]

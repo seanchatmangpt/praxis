@@ -34,13 +34,8 @@ unwrap_used = "warn"
 expect_used = "warn"
 
 [features]
-default = ["typestate"]
-typestate = []
-repl  = ["dep:rustyline"]                                              # interactive REPL with tab-completion
-otel  = []
-discovery = []
-lsp   = ["dep:lsp-max", "lsp-max/proposed", "dep:tree-sitter", "dep:tree-sitter-rust", "dep:dashmap", "dep:parking_lot", "dep:tokio"]  # language-server
-# wasm  = ["wasm-bindgen"]                                               # WebAssembly target
+default = []
+repl  = ["dep:rustyline"]                                            # interactive REPL with tab-completion
 mcp   = ["dep:rmcp", "dep:rmcp-macros", "dep:tokio"]                 # MCP server (LLM tool-call targets)
 
 [dependencies]
@@ -51,18 +46,13 @@ rustyline = { version = "14", optional = true }
 # chatman-common = { git = "https://github.com/seanchatmangpt/chatman-common" }
 # chatman-common = { path = "../chatman-common" }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", features = ["raw_value"] }
 thiserror = "2"
 anyhow = "1"
 blake3 = "1"
 linkme = "0.3"
 clap = { version = "4", features = ["derive", "env"] }               # CLI parsing
 tokio = { version = "1", features = ["full"], optional = true }      # async runtime (required by mcp feature)
-lsp-max = { path = "/Users/sac/lsp-max", optional = true }
-tree-sitter = { version = "0.26", optional = true }
-tree-sitter-rust = { version = "0.23", optional = true }
-dashmap = { version = "6", optional = true }
-parking_lot = { version = "0.12", optional = true }
 # Engine deps (unconditional — the whole point of this crate is the SPARQL+Tera pipeline)
 oxigraph = "0.5.9"
 tera = "1.20.0"
@@ -71,6 +61,7 @@ notify-debouncer-full = "0.4"
 serde_yaml = "0.9"
 star-toml = "26.7.3"
 praxis-core = { path = "../praxis-core" }
+praxis-graphlaw = { path = "../praxis-graphlaw" }
 clap-noun-verb = "26.7.4"
 clap-noun-verb-macros = "26.7.4"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }

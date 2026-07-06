@@ -44,7 +44,7 @@ fn sh_before_and_sh_after_run_around_the_write() {
         "---\nto: out.txt\nsh_before: \"echo before >> hooks.log\"\nsh_after: \"echo after >> hooks.log\"\n---\nbody\n",
     );
 
-    sync(dir.path(), SyncOptions { dry_run: false }).expect("sync");
+    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
 
     let log = std::fs::read_to_string(dir.path().join("hooks.log")).expect("hooks ran");
     assert_eq!(log, "before\nafter\n");
@@ -60,7 +60,7 @@ fn dangerous_sh_command_is_refused() {
         "---\nto: out.txt\nsh_before: \"rm -rf /\"\n---\nbody\n",
     );
 
-    let err = sync(dir.path(), SyncOptions { dry_run: false }).expect_err("must refuse");
+    let err = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect_err("must refuse");
     assert!(err.to_string().contains("FM-SHELL-001"), "{err}");
 }
 
@@ -74,7 +74,7 @@ fn dry_run_never_executes_shell_hooks() {
         "---\nto: out.txt\nsh_before: \"echo ran >> hooks.log\"\n---\nbody\n",
     );
 
-    sync(dir.path(), SyncOptions { dry_run: true }).expect("dry run");
+    sync(dir.path(), SyncOptions { dry_run: true, ..Default::default() }).expect("dry run");
     assert!(
         !dir.path().join("hooks.log").exists(),
         "dry run must not run sh_before"
@@ -92,7 +92,7 @@ fn backup_copies_existing_file_before_force_overwrite() {
         "---\nto: out.txt\nforce: true\nbackup: true\n---\nnew content\n",
     );
 
-    sync(dir.path(), SyncOptions { dry_run: false }).expect("sync");
+    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
 
     assert_eq!(
         std::fs::read_to_string(dir.path().join("out.txt")).expect("new"),
@@ -114,7 +114,7 @@ fn missing_shape_file_is_refused() {
         "---\nto: out.txt\nshape:\n  - shapes/missing.ttl\n---\nbody\n",
     );
 
-    let err = sync(dir.path(), SyncOptions { dry_run: false }).expect_err("must refuse");
+    let err = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect_err("must refuse");
     assert!(err.to_string().contains("FM-TPL-008"), "{err}");
 }
 
@@ -130,7 +130,7 @@ fn existing_shape_file_passes() {
         "---\nto: out.txt\nshape:\n  - shapes/present.ttl\n---\nbody\n",
     );
 
-    sync(dir.path(), SyncOptions { dry_run: false }).expect("sync must succeed");
+    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync must succeed");
 }
 
 #[test]
@@ -143,7 +143,7 @@ fn determinism_true_passes_for_a_pure_template() {
         "---\nto: out.txt\ndeterminism: true\nsparql:\n  people: SELECT ?name WHERE { ?s <http://example.org/name> ?name }\n---\n{% for row in results %}{{ row.name }}{% endfor %}",
     );
 
-    let report = sync(dir.path(), SyncOptions { dry_run: false }).expect("sync must succeed");
+    let report = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync must succeed");
     assert_eq!(report.written, vec![std::path::PathBuf::from("out.txt")]);
 }
 
@@ -158,7 +158,7 @@ fn freeze_always_skips_once_target_exists() {
         "---\nto: out.txt\nforce: true\nfreeze_policy: always\n---\ngenerated content\n",
     );
 
-    let report = sync(dir.path(), SyncOptions { dry_run: false }).expect("sync");
+    let report = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
     assert!(
         report.written.is_empty(),
         "freeze:always must skip, got: {:?}",
@@ -184,7 +184,7 @@ fn freeze_checksum_allows_regen_until_manual_edit_then_protects_it() {
     );
 
     // First sync: target absent, writes normally and records a checksum.
-    let first = sync(dir.path(), SyncOptions { dry_run: false }).expect("first sync");
+    let first = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("first sync");
     assert_eq!(first.written, vec![std::path::PathBuf::from("out.txt")]);
     assert!(
         dir.path().join(".ggen-freeze/out.txt.blake3").exists(),
@@ -194,7 +194,7 @@ fn freeze_checksum_allows_regen_until_manual_edit_then_protects_it() {
     // Second sync: on-disk content still matches the recorded checksum (no
     // human edit) and equals the rendered body, so it's a normal
     // Skipped(unchanged) — not a freeze skip.
-    let second = sync(dir.path(), SyncOptions { dry_run: false }).expect("second sync");
+    let second = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("second sync");
     assert!(second.written.is_empty());
     assert!(
         second.skipped[0].1.contains("unchanged"),
@@ -205,7 +205,7 @@ fn freeze_checksum_allows_regen_until_manual_edit_then_protects_it() {
     // Simulate a human hand-editing the generated file.
     std::fs::write(dir.path().join("out.txt"), "hand-edited by a human\n").expect("hand edit");
 
-    let third = sync(dir.path(), SyncOptions { dry_run: false }).expect("third sync");
+    let third = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("third sync");
     assert!(
         third.written.is_empty(),
         "checksum mismatch must freeze the file, got: {:?}",
@@ -229,7 +229,7 @@ fn freeze_checksum_without_slots_dir_is_refused() {
         "---\nto: out.txt\nforce: true\nfreeze_policy: checksum\n---\ngenerated\n",
     );
 
-    let err = sync(dir.path(), SyncOptions { dry_run: false }).expect_err("must refuse");
+    let err = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect_err("must refuse");
     assert!(err.to_string().contains("FM-WRITE-006"), "{err}");
 }
 
@@ -248,7 +248,7 @@ fn from_field_loads_body_from_referenced_sibling_file() {
         "---\nto: out.txt\nfrom: shared_body.tera\n---\nignored inline body\n",
     );
 
-    sync(dir.path(), SyncOptions { dry_run: false }).expect("sync");
+    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
     assert_eq!(
         std::fs::read_to_string(dir.path().join("out.txt")).expect("output"),
         "shared body content\n"
@@ -268,7 +268,7 @@ fn from_field_path_traversal_outside_template_dir_is_refused() {
         "---\nto: out.txt\nfrom: ../secret.txt\n---\nignored inline body\n",
     );
 
-    let err = sync(dir.path(), SyncOptions { dry_run: false })
+    let err = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() })
         .expect_err("traversal outside the template's own directory must be refused");
     let msg = err.to_string();
     assert!(

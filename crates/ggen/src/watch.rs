@@ -55,9 +55,13 @@ pub fn watch(root: &Path, dry_run: bool) -> Result<()> {
 /// completed sync (the initial one and every re-triggered one), so tests
 /// can observe re-sync activity without depending on stderr or timing.
 fn watch_loop(root: &Path, dry_run: bool, mut on_sync: impl FnMut(&SyncReport)) -> Result<()> {
-    let initial = sync(root, SyncOptions { dry_run })
+    let initial = sync(root, SyncOptions { dry_run, ..Default::default() })
         .map_err(|e| AppError::fm_watch(1, format!("initial sync failed: {e}")))?;
-    eprintln!("ggen sync: {} written, {} skipped", initial.written.len(), initial.skipped.len());
+    eprintln!(
+        "ggen sync: {} written, {} skipped",
+        initial.written.len(),
+        initial.skipped.len()
+    );
     on_sync(&initial);
 
     let (tx, rx) = mpsc::channel();
@@ -67,7 +71,10 @@ fn watch_loop(root: &Path, dry_run: bool, mut on_sync: impl FnMut(&SyncReport)) 
         .watch(root, RecursiveMode::Recursive)
         .map_err(|e| AppError::fm_watch(2, format!("failed to watch `{}`: {e}", root.display())))?;
 
-    eprintln!("watching {} for changes... (Ctrl-C to stop)", root.display());
+    eprintln!(
+        "watching {} for changes... (Ctrl-C to stop)",
+        root.display()
+    );
 
     for result in rx {
         let events = match result {
@@ -83,7 +90,7 @@ fn watch_loop(root: &Path, dry_run: bool, mut on_sync: impl FnMut(&SyncReport)) 
         if should_ignore(root, &paths) {
             continue;
         }
-        match sync(root, SyncOptions { dry_run }) {
+        match sync(root, SyncOptions { dry_run, ..Default::default() }) {
             Ok(report) => {
                 eprintln!(
                     "ggen sync: {} written, {} skipped",
@@ -109,7 +116,9 @@ fn should_ignore(root: &Path, paths: &[PathBuf]) -> bool {
         return true;
     }
     let ignored: Vec<PathBuf> = IGNORED_DIRS.iter().map(|d| root.join(d)).collect();
-    paths.iter().all(|p| ignored.iter().any(|dir| p.starts_with(dir)))
+    paths
+        .iter()
+        .all(|p| ignored.iter().any(|dir| p.starts_with(dir)))
 }
 
 #[cfg(test)]
@@ -137,7 +146,10 @@ mod tests {
     #[test]
     fn should_ignore_false_when_a_real_path_is_present() {
         let root = PathBuf::from("/proj");
-        let paths = vec![root.join(".ggen-v2/receipt.json"), root.join("templates/foo.tmpl")];
+        let paths = vec![
+            root.join(".ggen-v2/receipt.json"),
+            root.join("templates/foo.tmpl"),
+        ];
         assert!(!should_ignore(&root, &paths));
     }
 
@@ -172,23 +184,29 @@ mod tests {
         });
 
         // Consume the initial sync's on_sync notification.
-        rx.recv_timeout(Duration::from_secs(5)).expect("initial sync did not complete within 5s");
+        rx.recv_timeout(Duration::from_secs(5))
+            .expect("initial sync did not complete within 5s");
 
-        // Give the watcher time to start watching before we edit.
-        thread::sleep(Duration::from_millis(300));
-        std::fs::write(
-            root.join("templates/greeting.tmpl"),
-            "---\nto: out/greeting.txt\nforce: true\n---\nhello again\n",
-        )
-        .expect("edit template");
-
-        match rx.recv_timeout(Duration::from_secs(5)) {
-            Ok(()) => {}
-            Err(RecvTimeoutError::Timeout) => {
-                panic!("watch_loop did not observe the template edit and re-sync within 5s")
-            }
-            Err(RecvTimeoutError::Disconnected) => {
-                panic!("watch_loop's on_sync sender disconnected before re-sync was observed")
+        // The watcher arms asynchronously and this test runs under parallel
+        // suite load, so a single edit after a fixed sleep is a race. Keep
+        // re-touching the template until a re-sync is observed; only a full
+        // 30s of ignored edits is a real failure.
+        let deadline = std::time::Instant::now() + Duration::from_secs(30);
+        loop {
+            std::fs::write(
+                root.join("templates/greeting.tmpl"),
+                "---\nto: out/greeting.txt\nforce: true\n---\nhello again\n",
+            )
+            .expect("edit template");
+            match rx.recv_timeout(Duration::from_millis(500)) {
+                Ok(()) => break,
+                Err(RecvTimeoutError::Timeout) if std::time::Instant::now() < deadline => {}
+                Err(RecvTimeoutError::Timeout) => {
+                    panic!("watch_loop did not observe any template edit within 30s")
+                }
+                Err(RecvTimeoutError::Disconnected) => {
+                    panic!("watch_loop's on_sync sender disconnected before re-sync was observed")
+                }
             }
         }
     }

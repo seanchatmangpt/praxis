@@ -130,6 +130,13 @@ impl AppError {
     pub fn fm_shell(code: u16, msg: impl Into<String>) -> Self {
         Self::Validation(format!("[FM-SHELL-{code:03}] {}", msg.into()))
     }
+
+    /// FM-LAW-* failure: law-state engine violation (rule load/materialize,
+    /// SHACL/ShEx gate, denial check) or a law operation requested from an
+    /// engine that does not support it.
+    pub fn fm_law(code: u16, msg: impl Into<String>) -> Self {
+        Self::Validation(format!("[FM-LAW-{code:03}] {}", msg.into()))
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -254,8 +261,14 @@ mod validation_chain_tests {
 
     #[test]
     fn fm_code_constructors_embed_code() {
-        assert!(AppError::fm_cli(42, "msg").to_string().contains("FM-CLI-042"));
-        assert!(AppError::fm_chain(7, "msg").to_string().contains("FM-CHAIN-007"));
-        assert!(AppError::fm_graph(1, "msg").to_string().contains("FM-GRAPH-001"));
+        assert!(AppError::fm_cli(42, "msg")
+            .to_string()
+            .contains("FM-CLI-042"));
+        assert!(AppError::fm_chain(7, "msg")
+            .to_string()
+            .contains("FM-CHAIN-007"));
+        assert!(AppError::fm_graph(1, "msg")
+            .to_string()
+            .contains("FM-GRAPH-001"));
     }
 }

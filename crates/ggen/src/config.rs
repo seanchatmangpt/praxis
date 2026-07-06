@@ -39,6 +39,27 @@ pub struct GgenConfig {
     pub packs: BTreeMap<String, PackRef>,
     /// `[templates]` table.
     pub templates: Templates,
+    /// `[law]` table: N3/Datalog rule files and SHACL shapes gating a sync.
+    /// Optional — an absent table means no law stage runs (existing
+    /// projects unchanged).
+    #[serde(default)]
+    pub law: Law,
+}
+
+/// `[law]` — law-state inputs for the sync pipeline: rule files are
+/// materialized into the graph after the Enrich stage; shapes files gate
+/// rendering (violations are a typed refusal).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Law {
+    /// N3/Datalog rule file paths, relative to the manifest, loaded in
+    /// listed order.
+    #[serde(default)]
+    pub rules: Vec<PathBuf>,
+    /// Turtle SHACL shapes file paths, relative to the manifest, each
+    /// validated against the post-materialization graph.
+    #[serde(default)]
+    pub shapes: Vec<PathBuf>,
 }
 
 /// `[project]` — identity of the generating project.
@@ -193,11 +214,27 @@ impl Validate for PackRef {
     }
 }
 
+impl Validate for Law {
+    fn validate(&self, v: &mut Validator) {
+        for (i, rule) in self.rules.iter().enumerate() {
+            v.check_path(&format!("rules[{i}]"), &rule.to_string_lossy(), Some(false));
+        }
+        for (i, shape) in self.shapes.iter().enumerate() {
+            v.check_path(
+                &format!("shapes[{i}]"),
+                &shape.to_string_lossy(),
+                Some(false),
+            );
+        }
+    }
+}
+
 impl Validate for GgenConfig {
     fn validate(&self, v: &mut Validator) {
         v.field("project", |v| self.project.validate(v));
         v.field("ontology", |v| self.ontology.validate(v));
         v.field("templates", |v| self.templates.validate(v));
+        v.field("law", |v| self.law.validate(v));
         for (name, pack_ref) in &self.packs {
             v.field(&format!("packs.{name}"), |v| pack_ref.validate(v));
         }

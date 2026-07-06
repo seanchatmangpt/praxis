@@ -26,7 +26,6 @@ use std::{
     sync::Arc,
 };
 
-use oxigraph::sparql::QueryResults;
 use praxis_core::{
     receipt_record::{ReceiptRecord, RECEIPT_RECORD_VERSION},
     Andon,
@@ -37,16 +36,30 @@ use tera::Value;
 use crate::{
     config::GgenConfig,
     error::{AppError, Result},
-    graph::DeterministicGraph,
+    graph::{DeterministicGraph, EngineQueryResults, GraphEngine, GraphLawStore},
     template::{build_tera, sparql_to_value, Template},
     write::{plan_write, WriteOutcome},
 };
+
+/// Which [`GraphEngine`] a sync runs on.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum EngineKind {
+    /// praxis-graphlaw (the roxi fork) — the default: law-state engine with
+    /// N3/Datalog materialization, SHACL/ShEx gates, and denial checks.
+    #[default]
+    GraphLaw,
+    /// Plain oxigraph — no law-state support (typed `[FM-LAW-*]` refusal on
+    /// any law operation). Kept for A/B determinism testing.
+    Oxigraph,
+}
 
 /// Options controlling a [`sync`] run.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SyncOptions {
     /// Compute outcomes without writing any file (and without a receipt).
     pub dry_run: bool,
+    /// Which graph engine executes the run (default: GraphLaw).
+    pub engine: EngineKind,
 }
 
 /// The outcome of one [`sync`] run.
@@ -63,6 +76,12 @@ pub struct SyncReport {
     pub decisions: BTreeMap<String, String>,
     /// Pack name → BLAKE3 hex of the pack's content hash.
     pub packs: BTreeMap<String, String>,
+    /// Input-closure binding: root-relative input path (ontology, pack
+    /// ontologies, template files, `from:` bodies) → BLAKE3 hex of the file
+    /// bytes, plus an `actuator` entry naming the generator version. A
+    /// declared input that cannot be read at binding time is recorded as
+    /// `MISSING`, never dropped.
+    pub closure: BTreeMap<String, String>,
 }
 
 /// Relative path of the sync receipt under the project root.
@@ -103,6 +122,11 @@ pub struct ReceiptPayload {
     /// Root-relative output path → why the file landed (or did not).
     #[serde(default)]
     pub decisions: BTreeMap<String, String>,
+    /// Input-closure binding (see [`SyncReport::closure`]): editing a
+    /// template, ontology, pack ontology, or `from:` body changes the
+    /// receipt even when the rendered outputs happen to be byte-identical.
+    #[serde(default)]
+    pub closure: BTreeMap<String, String>,
 }
 
 /// Run the five-stage pipeline rooted at `root` (the directory containing
@@ -125,7 +149,10 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
             ),
         )
     })?;
-    let graph = DeterministicGraph::new()?;
+    let graph: Arc<dyn GraphEngine> = match opts.engine {
+        EngineKind::GraphLaw => Arc::new(GraphLawStore::new()?),
+        EngineKind::Oxigraph => Arc::new(DeterministicGraph::new()?),
+    };
     graph.insert_turtle(&ttl)?;
 
     // Resolve packs: union their ontologies into the same graph and append
@@ -150,15 +177,113 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
 
     let templates = discover_templates(root, &config, &packs)?;
 
+    // Bind the input closure: everything that determines the outputs beyond
+    // the graph itself. Hashed from disk at binding time; a declared input
+    // that has become unreadable is recorded as MISSING so a verifier sees
+    // the gap instead of a silently narrower closure.
+    let mut closure: BTreeMap<String, String> = BTreeMap::new();
+    closure.insert(
+        "actuator".to_string(),
+        concat!("ggen@", env!("CARGO_PKG_VERSION")).to_string(),
+    );
+    closure.insert(
+        rel_display(root, &ontology_path),
+        hash_file_or_missing(&ontology_path),
+    );
+    for pack in &packs {
+        closure.insert(
+            rel_display(root, &pack.ontology_path),
+            hash_file_or_missing(&pack.ontology_path),
+        );
+    }
+    for (tpl_path, tpl) in &templates {
+        closure.insert(rel_display(root, tpl_path), hash_file_or_missing(tpl_path));
+        if let Some(from) = tpl.frontmatter.from.as_deref() {
+            let base = tpl_path.parent().unwrap_or_else(|| Path::new("."));
+            if let Ok(from_path) = crate::write::resolve_target(base, from) {
+                closure.insert(
+                    rel_display(root, &from_path),
+                    hash_file_or_missing(&from_path),
+                );
+            }
+        }
+    }
+
     // ── Stage 2: Enrich (single pass; see module docs) ──────────────────
     for (_, tpl) in &templates {
         if let Some(construct) = tpl.frontmatter.construct.as_deref() {
-            insert_construct(&graph, construct)?;
+            insert_construct(graph.as_ref(), construct)?;
+        }
+    }
+
+    // ── Stage 2b: Law — materialize rules, then gate (SHACL, denials) ───
+    //
+    // All optional-when-unconfigured: an absent `[law]` table runs no law
+    // stage at all, so pre-law projects sync unchanged. With the oxigraph
+    // engine any configured law input is a typed `[FM-LAW-*]` refusal.
+    if !config.law.rules.is_empty() {
+        for rel in &config.law.rules {
+            let rule_path = root.join(rel);
+            let src = std::fs::read_to_string(&rule_path).map_err(|e| {
+                AppError::fm_law(
+                    10,
+                    format!(
+                        "rule file `{}` unreadable: {e}. Remediation: fix [law].rules.",
+                        rule_path.display()
+                    ),
+                )
+            })?;
+            closure.insert(
+                rel_display(root, &rule_path),
+                hash_file_or_missing(&rule_path),
+            );
+            graph.load_rules(&src)?;
+        }
+        graph.materialize()?;
+        let denials = graph.check_denials()?;
+        if !denials.is_empty() {
+            return Err(AppError::fm_law(
+                11,
+                format!(
+                    "{} denial rule(s) violated after materialization: {}. \
+                     Remediation: fix the facts or the denial rules in [law].rules.",
+                    denials.len(),
+                    denials.join("; ")
+                ),
+            ));
+        }
+    }
+    for rel in &config.law.shapes {
+        let shape_path = root.join(rel);
+        let shapes_ttl = std::fs::read_to_string(&shape_path).map_err(|e| {
+            AppError::fm_law(
+                12,
+                format!(
+                    "SHACL shapes file `{}` unreadable: {e}. Remediation: fix [law].shapes.",
+                    shape_path.display()
+                ),
+            )
+        })?;
+        closure.insert(
+            rel_display(root, &shape_path),
+            hash_file_or_missing(&shape_path),
+        );
+        let outcome = graph.validate_shacl(&shapes_ttl)?;
+        if !outcome.conforms {
+            return Err(AppError::fm_law(
+                13,
+                format!(
+                    "SHACL shapes `{}` report {} violation(s): {}. \
+                     Remediation: fix the offending focus nodes or the shapes.",
+                    rel.display(),
+                    outcome.violations.len(),
+                    outcome.violations.join("; ")
+                ),
+            ));
         }
     }
 
     let graph_hash_hex = hex32(&graph.state_hash()?);
-    let graph = Arc::new(graph);
 
     // ── Stages 3–4: Extract, Render every template into memory ──────────
     //
@@ -178,8 +303,8 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
         // Extract: ASK guard.
         if let Some(ask) = tpl.frontmatter.when.as_deref() {
             match graph.query(ask)? {
-                QueryResults::Boolean(true) => {}
-                QueryResults::Boolean(false) => {
+                EngineQueryResults::Boolean(true) => {}
+                EngineQueryResults::Boolean(false) => {
                     let reason = format!("when guard false ({})", tpl_path.display());
                     decisions.insert(tpl.frontmatter.to.clone(), format!("skipped: {reason}"));
                     skipped.push((PathBuf::from(&tpl.frontmatter.to), reason));
@@ -201,7 +326,7 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
         // Extract: named SELECTs → rows.
         let mut named: BTreeMap<String, Value> = BTreeMap::new();
         for (key, query) in &tpl.frontmatter.sparql {
-            named.insert(key.clone(), sparql_to_value(&graph, query)?);
+            named.insert(key.clone(), sparql_to_value(graph.as_ref(), query)?);
         }
         // Driving rows: the first named query (BTreeMap key order) with an
         // array result; empty when no SELECT produced rows.
@@ -229,6 +354,7 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
                     tpl_path,
                     &tpl.frontmatter,
                     &body,
+                    &to,
                 )?;
                 pending.push(PendingWrite { to, body, tpl });
             }
@@ -242,12 +368,33 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
                 tpl_path,
                 &tpl.frontmatter,
                 &body,
+                &tpl.frontmatter.to,
             )?;
             pending.push(PendingWrite {
                 to: tpl.frontmatter.to.clone(),
                 body,
                 tpl,
             });
+        }
+    }
+
+    // Two rendered templates (or two rows of one template) resolving to the
+    // same target would silently last-row-win on disk and in the decisions
+    // map — refuse instead.
+    {
+        let mut seen: BTreeMap<&str, usize> = BTreeMap::new();
+        for pw in &pending {
+            *seen.entry(pw.to.as_str()).or_default() += 1;
+        }
+        if let Some((to, n)) = seen.into_iter().find(|(_, n)| *n > 1) {
+            return Err(AppError::fm_write(
+                8,
+                format!(
+                    "{n} rendered templates target the same output `{to}`. \
+                     Remediation: make the `to:` pattern unique per row/template \
+                     (e.g. include a distinguishing SPARQL variable in the path)."
+                ),
+            ));
         }
     }
 
@@ -282,6 +429,7 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
         graph_hash_hex,
         decisions,
         packs: pack_hashes,
+        closure,
     };
 
     if !opts.dry_run {
@@ -291,6 +439,24 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
         }
     }
     Ok(report)
+}
+
+/// Root-relative display form of a closure input path (falls back to the
+/// full path for inputs outside the project root, e.g. absolute pack dirs).
+fn rel_display(root: &Path, path: &Path) -> String {
+    path.strip_prefix(root)
+        .unwrap_or(path)
+        .display()
+        .to_string()
+}
+
+/// BLAKE3 hex of a closure input's bytes, or the literal `MISSING` marker
+/// when the declared input cannot be read — recorded, never dropped.
+fn hash_file_or_missing(path: &Path) -> String {
+    match std::fs::read(path) {
+        Ok(bytes) => blake3::hash(&bytes).to_hex().to_string(),
+        Err(_) => "MISSING".to_string(),
+    }
 }
 
 /// Build the shared Tera context: `results` plus every named sparql key.
@@ -384,9 +550,28 @@ fn apply(
                 decisions.insert(rel_to.to_string(), format!("skipped: {reason}"));
                 skipped.push((PathBuf::from(rel_to), reason));
             }
-            _ => {
+            Ok(_) => {
                 decisions.insert(rel_to.to_string(), "planned: write (dry-run)".to_string());
                 written.push(PathBuf::from(rel_to));
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                decisions.insert(rel_to.to_string(), "planned: write (dry-run)".to_string());
+                written.push(PathBuf::from(rel_to));
+            }
+            Err(e) => {
+                // An existing target that cannot be read as UTF-8 (or at
+                // all) is not a plain "planned: write" — the real run would
+                // fail closed here, and a dry run must not classify it
+                // more optimistically than the run it predicts.
+                return Err(AppError::fm_write(
+                    9,
+                    format!(
+                        "dry-run: target `{}` exists but is unreadable as UTF-8: {e}. \
+                         A non-dry-run sync would refuse here too. \
+                         Remediation: remove or fix the target file.",
+                        target.display()
+                    ),
+                ));
             }
         }
         return Ok(());
@@ -535,6 +720,7 @@ fn check_shape_files_exist(root: &Path, tpl_path: &Path, shapes: &[String]) -> R
 /// body a second time with the identical context and refuse if the bytes
 /// differ from `first_render` — a real, enforced assertion rather than a
 /// declared-but-unchecked claim.
+#[allow(clippy::too_many_arguments)]
 fn check_determinism(
     tera: &mut tera::Tera,
     body_template: &str,
@@ -542,9 +728,24 @@ fn check_determinism(
     tpl_path: &Path,
     frontmatter: &crate::template::Frontmatter,
     first_render: &str,
+    first_to: &str,
 ) -> Result<()> {
     if frontmatter.determinism != Some(true) {
         return Ok(());
+    }
+    // The templated `to:` path is part of the output — a non-deterministic
+    // path escapes a body-only check.
+    let second_to = render_str(tera, &frontmatter.to, ctx, tpl_path)?;
+    if second_to != first_to {
+        return Err(AppError::fm_tpl(
+            9,
+            format!(
+                "{}: `determinism: true` violated — re-rendering the `to:` path with the \
+                 identical context produced `{second_to}` after `{first_to}`. \
+                 Remediation: remove non-deterministic Tera functions/filters from `to:`.",
+                tpl_path.display()
+            ),
+        ));
     }
     let second_render = render_str(tera, body_template, ctx, tpl_path)?;
     if second_render != first_render {
@@ -585,9 +786,9 @@ fn collect_tmpl_paths(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
 }
 
 /// Run a CONSTRUCT query and insert its triples back into the graph.
-fn insert_construct(graph: &DeterministicGraph, construct: &str) -> Result<()> {
+fn insert_construct(graph: &dyn GraphEngine, construct: &str) -> Result<()> {
     use std::fmt::Write as _;
-    let QueryResults::Graph(triples) = graph.query(construct)? else {
+    let EngineQueryResults::Graph(triples) = graph.query(construct)? else {
         return Err(AppError::fm_graph(
             7,
             "`construct:` frontmatter must be a CONSTRUCT/DESCRIBE query. \
@@ -596,9 +797,7 @@ fn insert_construct(graph: &DeterministicGraph, construct: &str) -> Result<()> {
     };
     let mut doc = String::new();
     for triple in triples {
-        let triple = triple
-            .map_err(|e| AppError::fm_graph(7, format!("CONSTRUCT iteration failed: {e}")))?;
-        let _ = writeln!(doc, "{triple} .");
+        let _ = writeln!(doc, "{} .", triple.ntriples);
     }
     if !doc.is_empty() {
         // N-Triples is a syntactic subset of Turtle.
@@ -607,34 +806,36 @@ fn insert_construct(graph: &DeterministicGraph, construct: &str) -> Result<()> {
     Ok(())
 }
 
-/// Chain a praxis-core [`ReceiptRecord`] over `{ graph_hash, outputs }` and
-/// write it to [`RECEIPT_REL_PATH`]. `ts_ns` is fixed to 0 (no wall clock;
-/// see module docs).
-fn write_receipt(root: &Path, report: &SyncReport) -> Result<()> {
-    use std::io::Write as _;
-
-    // Bind every decision target that exists on disk (written this run or
-    // skipped-unchanged), so a no-op re-sync produces the identical payload.
-    let mut outputs = BTreeMap::new();
-    for rel in report.decisions.keys() {
-        let target = root.join(rel);
-        if let Ok(bytes) = std::fs::read(&target) {
-            outputs.insert(rel.clone(), blake3::hash(&bytes).to_hex().to_string());
+/// Read the previous chain head, if any. The receipt log's tail is the
+/// source of truth (it is appended before the head pointer is rewritten, so
+/// a partially-failed sync leaves a re-runnable state); `receipt.json` is a
+/// fallback for pre-log projects.
+fn read_prev_head(receipt_path: &Path, log_path: &Path) -> Result<Option<SyncReceipt>> {
+    match std::fs::read_to_string(log_path) {
+        Ok(raw) => {
+            if let Some(line) = raw.lines().rev().find(|l| !l.trim().is_empty()) {
+                let prev: SyncReceipt = serde_json::from_str(line).map_err(|e| {
+                    AppError::fm_chain(
+                        3,
+                        format!(
+                            "receipt log `{}` tail malformed: {e}. \
+                             Remediation: run `ggen receipt history` and repair the log.",
+                            log_path.display()
+                        ),
+                    )
+                })?;
+                return Ok(Some(prev));
+            }
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            return Err(AppError::fm_chain(
+                3,
+                format!("receipt log `{}` unreadable: {e}", log_path.display()),
+            ))
         }
     }
-    let payload = ReceiptPayload {
-        graph_hash: report.graph_hash_hex.clone(),
-        outputs,
-        packs: report.packs.clone(),
-        decisions: report.decisions.clone(),
-    };
-    let payload_bytes = serde_json::to_vec(&payload)?;
-    let payload_hash_hex = blake3::hash(&payload_bytes).to_hex().to_string();
-
-    // Chain onto the previous sync's receipt when one exists; a genesis
-    // receipt (no prior `.ggen-v2/receipt.json`) chains from all-zeros.
-    let receipt_path = root.join(RECEIPT_REL_PATH);
-    let prev_chain_hash_hex = match std::fs::read_to_string(&receipt_path) {
+    match std::fs::read_to_string(receipt_path) {
         Ok(raw) => {
             let prev: SyncReceipt = serde_json::from_str(&raw).map_err(|e| {
                 AppError::fm_chain(
@@ -646,18 +847,93 @@ fn write_receipt(root: &Path, report: &SyncReport) -> Result<()> {
                     ),
                 )
             })?;
+            Ok(Some(prev))
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(AppError::fm_chain(
+            3,
+            format!(
+                "previous receipt `{}` unreadable: {e}",
+                receipt_path.display()
+            ),
+        )),
+    }
+}
+
+/// Chain a praxis-core [`ReceiptRecord`] over `{ graph_hash, outputs }` and
+/// write it to [`RECEIPT_REL_PATH`]. `ts_ns` is fixed to 0 (no wall clock;
+/// see module docs).
+///
+/// Both files are written compact (not pretty-printed) so the payload's
+/// on-disk bytes are exactly the bytes `payload_hash_hex` was computed
+/// over — the verifier hashes the raw stored payload rather than
+/// re-serializing it, which keeps old receipts verifiable across payload
+/// schema additions.
+fn write_receipt(root: &Path, report: &SyncReport) -> Result<()> {
+    use std::io::Write as _;
+
+    // Bind every decision target that exists on disk (written this run or
+    // skipped-unchanged), so a no-op re-sync produces the identical payload.
+    // A target that is absent is fine (e.g. a false `when` guard whose file
+    // was never generated); a target that exists but cannot be read must
+    // fail closed — silently omitting it would unbind the file from the
+    // receipt and from every later doctor/staleness check.
+    let mut outputs = BTreeMap::new();
+    for rel in report.decisions.keys() {
+        let target = root.join(rel);
+        match std::fs::read(&target) {
+            Ok(bytes) => {
+                outputs.insert(rel.clone(), blake3::hash(&bytes).to_hex().to_string());
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => {
+                return Err(AppError::fm_chain(
+                    8,
+                    format!(
+                        "output `{}` cannot be read for receipt binding: {e}. \
+                         Remediation: fix the file's permissions.",
+                        target.display()
+                    ),
+                ))
+            }
+        }
+    }
+    let payload = ReceiptPayload {
+        graph_hash: report.graph_hash_hex.clone(),
+        outputs,
+        packs: report.packs.clone(),
+        decisions: report.decisions.clone(),
+        closure: report.closure.clone(),
+    };
+    let payload_bytes = serde_json::to_vec(&payload)?;
+    let payload_hash_hex = blake3::hash(&payload_bytes).to_hex().to_string();
+
+    // Chain onto the previous sync's receipt when one exists; a genesis
+    // receipt chains from all-zeros. Never extend an unverified head: a
+    // tampered previous receipt must be refused here, not discovered later
+    // by `receipt history`.
+    let receipt_path = root.join(RECEIPT_REL_PATH);
+    let log_path = root.join(RECEIPT_LOG_REL_PATH);
+    let prev_chain_hash_hex = match read_prev_head(&receipt_path, &log_path)? {
+        Some(prev) => {
+            let recomputed = prev.record.recompute_chain_hash().map_err(|e| {
+                AppError::fm_chain(9, format!("previous receipt chain recompute failed: {e}"))
+            })?;
+            if hex32(&recomputed) != prev.record.chain_hash_hex {
+                return Err(AppError::fm_chain(
+                    9,
+                    format!(
+                        "previous receipt head is invalid: stored chain hash {} does not \
+                         match recompute {}. Refusing to extend a tampered chain. \
+                         Remediation: run `ggen receipt history` and restore the receipts.",
+                        prev.record.chain_hash_hex,
+                        hex32(&recomputed)
+                    ),
+                ));
+            }
             prev.record.chain_hash_hex
         }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => "0".repeat(64),
-        Err(e) => {
-            return Err(AppError::fm_chain(
-                3,
-                format!(
-                    "previous receipt `{}` unreadable: {e}",
-                    receipt_path.display()
-                ),
-            ))
-        }
+        None => "0".repeat(64),
     };
 
     let mut record = ReceiptRecord {
@@ -684,10 +960,10 @@ fn write_receipt(root: &Path, report: &SyncReport) -> Result<()> {
     if let Some(parent) = receipt_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    std::fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt)?)?;
 
-    // Append-only history: one compact JSON line per non-dry-run sync.
-    let log_path = root.join(RECEIPT_LOG_REL_PATH);
+    // Append-only history first (it is the chain's source of truth for the
+    // next sync), head pointer second: if the head write fails, a re-run
+    // chains from the log tail and the history stays linear.
     let mut line = serde_json::to_vec(&receipt)?;
     line.push(b'\n');
     std::fs::OpenOptions::new()
@@ -701,6 +977,7 @@ fn write_receipt(root: &Path, report: &SyncReport) -> Result<()> {
                 format!("receipt log `{}` append failed: {e}", log_path.display()),
             )
         })?;
+    std::fs::write(&receipt_path, serde_json::to_vec(&receipt)?)?;
     Ok(())
 }
 
@@ -712,4 +989,25 @@ pub(crate) fn hex32(bytes: &[u8; 32]) -> String {
         let _ = write!(s, "{b:02x}");
     }
     s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::hash_file_or_missing;
+
+    /// A declared closure input that cannot be read binds as the literal
+    /// `MISSING` marker — recorded in the receipt, never dropped.
+    #[test]
+    fn unreadable_closure_input_binds_as_missing() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let gone = dir.path().join("deleted.tmpl");
+        assert_eq!(hash_file_or_missing(&gone), "MISSING");
+
+        let real = dir.path().join("real.tmpl");
+        std::fs::write(&real, b"body").expect("write");
+        assert_eq!(
+            hash_file_or_missing(&real),
+            blake3::hash(b"body").to_hex().to_string()
+        );
+    }
 }

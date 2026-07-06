@@ -36,7 +36,8 @@ ggenspec:GgenConfig
         ggenspec:GgenConfig-project ,
         ggenspec:GgenConfig-ontology ,
         ggenspec:GgenConfig-packs ,
-        ggenspec:GgenConfig-templates .
+        ggenspec:GgenConfig-templates ,
+        ggenspec:GgenConfig-law .
 
 ggenspec:GgenConfig-project
     a ggenspec:Field ; ggenspec:name "project" ; ggenspec:type ggenspec:Project ;
@@ -53,6 +54,10 @@ ggenspec:GgenConfig-packs
 ggenspec:GgenConfig-templates
     a ggenspec:Field ; ggenspec:name "templates" ; ggenspec:type ggenspec:Templates ;
     ggenspec:required true ; rdfs:comment "`[templates]` table." .
+
+ggenspec:GgenConfig-law
+    a ggenspec:Field ; ggenspec:name "law" ; ggenspec:type ggenspec:Law ;
+    ggenspec:required false ; rdfs:comment "`[law]` table: N3/Datalog rule files and SHACL shapes gating a sync. Defaults to empty (no law stage)." .
 
 # ---------------------------------------------------------------------------
 # [project]
@@ -134,8 +139,28 @@ ggenspec:Templates-dir
     rdfs:comment "Template directory, relative to the manifest. No traversal, no null bytes (Validator::check_path)." .
 
 # ---------------------------------------------------------------------------
+# [law]
+# ---------------------------------------------------------------------------
+
+ggenspec:Law
+    a ggenspec:Section ; rdfs:label "Law" ;
+    rdfs:comment "Law-state inputs for the sync pipeline (crate::config::Law): rules are materialized after Enrich; shapes gate rendering." ;
+    ggenspec:hasField ggenspec:Law-rules , ggenspec:Law-shapes .
+
+ggenspec:Law-rules
+    a ggenspec:Field ; ggenspec:name "rules" ; ggenspec:type ggenspec:ListOfPath ;
+    ggenspec:required false ; ggenspec:pathSafe true ; ggenspec:pathMustBeRelative true ;
+    rdfs:comment "N3/Datalog rule file paths, relative to the manifest, loaded in listed order. No traversal, no null bytes (Validator::check_path)." .
+
+ggenspec:Law-shapes
+    a ggenspec:Field ; ggenspec:name "shapes" ; ggenspec:type ggenspec:ListOfPath ;
+    ggenspec:required false ; ggenspec:pathSafe true ; ggenspec:pathMustBeRelative true ;
+    rdfs:comment "Turtle SHACL shapes file paths, relative to the manifest, each validated against the post-materialization graph. No traversal, no null bytes (Validator::check_path)." .
+
+# ---------------------------------------------------------------------------
 # Shared scalar/collection type markers
 # ---------------------------------------------------------------------------
 
 ggenspec:Path        a ggenspec:ScalarType ; rdfs:comment "Filesystem path (serde PathBuf)." .
 ggenspec:MapOfString  a ggenspec:MapType ; ggenspec:valueType xsd:string .
+ggenspec:ListOfPath   a ggenspec:ListType ; ggenspec:valueType ggenspec:Path .
