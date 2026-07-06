@@ -28,7 +28,7 @@ use bcinr_pddl::{
     ScheduleAnalysis64,
 };
 use clap_noun_verb::error::{NounVerbError, Result};
-use clap_noun_verb_macros::verb;
+use clap_noun_verb_macros::{arg, verb};
 #[cfg(feature = "ggen")]
 use my_conforming_project::mfg;
 // Shared PDDL helpers + the single `plan solve` implementation live in the
@@ -62,10 +62,14 @@ fn capacity_delta_json(cd: &CapacityDelta) -> Value {
 }
 
 fn schedule_analysis_json(a: &ScheduleAnalysis64) -> Value {
-    let critical_path_ops: Vec<usize> =
-        (0..a.op_count).filter(|i| (a.critical_path_mask >> i) & 1 == 1).collect();
-    let slack_by_op: Vec<Value> =
-        a.slack_by_op[..a.op_count].iter().copied().map(finite_or_null).collect();
+    let critical_path_ops: Vec<usize> = (0..a.op_count)
+        .filter(|i| (a.critical_path_mask >> i) & 1 == 1)
+        .collect();
+    let slack_by_op: Vec<Value> = a.slack_by_op[..a.op_count]
+        .iter()
+        .copied()
+        .map(finite_or_null)
+        .collect();
     json!({
         "makespan": finite_or_null(a.makespan),
         "critical_path_mask_hex": format!("{:016x}", a.critical_path_mask),
@@ -114,8 +118,10 @@ fn route_payload(payload: &str) -> std::result::Result<Value, String> {
         };
         effects.push(effect);
     }
-    let task =
-        CapabilityTask { desired_effects: effects, attention_capacity: input.attention_capacity };
+    let task = CapabilityTask {
+        desired_effects: effects,
+        attention_capacity: input.attention_capacity,
+    };
     let receipt: CapabilityRouteReceipt =
         route_capability_plan(&task).map_err(|e| e.to_string())?;
 
@@ -157,8 +163,12 @@ struct AnalyzeInput {
 /// parallelism, and ±1 capacity sensitivity for `resource_keys[0]`.
 fn analyze_payload(payload: &str) -> std::result::Result<Value, String> {
     let input: AnalyzeInput = parse_payload(payload)?;
-    let (domain_text, problem_text) =
-        resolve_pddl_source(input.domain, input.problem, input.domain_file, input.problem_file)?;
+    let (domain_text, problem_text) = resolve_pddl_source(
+        input.domain,
+        input.problem,
+        input.domain_file,
+        input.problem_file,
+    )?;
     let domain = domain_from_pddl(&domain_text).map_err(|e| e.to_string())?;
     let problem = problem_from_pddl(&problem_text).map_err(|e| e.to_string())?;
     let gtp = match GroundTemporalProblem::build(&domain, &problem) {
@@ -206,8 +216,12 @@ struct ExecuteInput {
 /// `case_id` is malformed input (`Err`).
 fn execute_payload(payload: &str) -> std::result::Result<Value, String> {
     let input: ExecuteInput = parse_payload(payload)?;
-    let (domain_text, problem_text) =
-        resolve_pddl_source(input.domain, input.problem, input.domain_file, input.problem_file)?;
+    let (domain_text, problem_text) = resolve_pddl_source(
+        input.domain,
+        input.problem,
+        input.domain_file,
+        input.problem_file,
+    )?;
     let domain = domain_from_pddl(&domain_text).map_err(|e| e.to_string())?;
     let problem = problem_from_pddl(&problem_text).map_err(|e| e.to_string())?;
     let gtp = match GroundTemporalProblem::build(&domain, &problem) {
@@ -221,8 +235,11 @@ fn execute_payload(payload: &str) -> std::result::Result<Value, String> {
         Err(e) => return Err(e.to_string()),
     };
 
-    let policy_owned: Vec<(String, Vec<String>)> =
-        input.policy_rules.into_iter().map(|r| (r.head, r.body)).collect();
+    let policy_owned: Vec<(String, Vec<String>)> = input
+        .policy_rules
+        .into_iter()
+        .map(|r| (r.head, r.body))
+        .collect();
     let policy_refs: Vec<(&str, Vec<&str>)> = policy_owned
         .iter()
         .map(|(h, b)| (h.as_str(), b.iter().map(String::as_str).collect()))
@@ -252,8 +269,13 @@ fn execute_payload(payload: &str) -> std::result::Result<Value, String> {
 /// `manufacture_lawobject_golden_solves` test for the same assertion made
 /// against the manufacturing pipeline directly.
 #[cfg(feature = "ggen")]
-const LAWOBJECT_GOLDEN_PLAN: [&str; 5] =
-    ["supply-evidence", "clear-obligations", "judge", "admit", "receipt"];
+const LAWOBJECT_GOLDEN_PLAN: [&str; 5] = [
+    "supply-evidence",
+    "clear-obligations",
+    "judge",
+    "admit",
+    "receipt",
+];
 
 /// Self-test: manufacture `ontology/lawobject.ttl` into PDDL8 domain/problem
 /// text, solve it, and assert the golden 5-action plan. Also reports (but
@@ -278,7 +300,10 @@ fn lawobject_payload() -> std::result::Result<Value, String> {
         mfg::manufacture(ONTOLOGY, "ontology/lawobject.ttl").map_err(|e| e.to_string())?;
     let report = mfg::validate(&manufactured.domain_text, &manufactured.problem_text);
     if !report.solvable {
-        return Err(format!("lawobject self-test: golden plan not found: {:?}", report.error));
+        return Err(format!(
+            "lawobject self-test: golden plan not found: {:?}",
+            report.error
+        ));
     }
     if report.plan_steps != LAWOBJECT_GOLDEN_PLAN {
         return Err(format!(
@@ -342,6 +367,36 @@ pub fn lawobject() -> Result<Value> {
     lawobject_payload().map_err(NounVerbError::argument_error)
 }
 
+/// Run the full planner vertical slice: goal graph (`pdl:` Turtle) ->
+/// manufactured PDDL8 -> classical solve -> POWL sequence -> receipted
+/// bcinr execution -> artifact write behind the solvability verifier ->
+/// ledger receipt. See `src/plan_run.rs`.
+#[cfg(feature = "ggen")]
+#[verb]
+pub fn run(
+    #[arg(help = "Path to the pdl: Turtle goal ontology (domain + problem facts)")] goal: String,
+    #[arg(
+        default_value = "target/plan_run",
+        help = "Directory the manufactured artifact is written to"
+    )]
+    out_dir: String,
+    #[arg(
+        default_value = "",
+        help = "Receipts ledger directory (defaults to the configured receipts.dir)"
+    )]
+    receipts_dir: String,
+) -> Result<Value> {
+    let dir = if receipts_dir.is_empty() {
+        my_conforming_project::config::config()
+            .map(|admitted| admitted.value().receipts.dir.clone())
+            .unwrap_or_else(|_| "receipts".to_string())
+    } else {
+        receipts_dir
+    };
+    my_conforming_project::plan_run::plan_run_payload(&goal, &out_dir, &dir)
+        .map_err(NounVerbError::argument_error)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -396,7 +451,13 @@ mod tests {
         assert_eq!(result["admitted"], json!(true));
         assert_eq!(
             result["plan_steps"],
-            json!(["supply-evidence", "clear-obligations", "judge", "admit", "receipt"])
+            json!([
+                "supply-evidence",
+                "clear-obligations",
+                "judge",
+                "admit",
+                "receipt"
+            ])
         );
         // The ADL exemplar's parse outcome is informational only (see
         // `lawobject_payload`'s doc comment) — assert it's reported as a

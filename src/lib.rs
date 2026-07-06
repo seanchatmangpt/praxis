@@ -32,6 +32,9 @@ pub mod mfg;
 pub mod corpus;
 
 #[cfg(feature = "ggen")]
+pub mod plan_run;
+
+#[cfg(feature = "ggen")]
 pub mod receipt_shacl;
 
 #[cfg(feature = "proposer")]
@@ -49,8 +52,8 @@ pub mod synth_ops;
 pub mod verify_ops;
 
 pub use error::AppError;
+pub use praxis_core::{Andon, LawObject, Obligation};
 pub use types::{
     canonical_bytes, Admit, Admitted, AdmittedEvidence, AdmittedReceipt, Blake3Hash, Evidence,
     ObjectRef, ProfileId, Raw, RawEvidence, Validated, ValidatedEvidence,
 };
-pub use praxis_core::{Andon, LawObject, Obligation};

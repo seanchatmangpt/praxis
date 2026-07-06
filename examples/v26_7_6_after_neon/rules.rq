@@ -1,0 +1,12 @@
+# Facts projection over goal.ttl — the action vocabulary the planner is
+# closed over (invariant 4: unknown predicates refused by name).
+#
+# Run with:
+#   cargo run --features ggen --bin my-conforming-project -- mfg facts \
+#     --ontology examples/v26_7_6_after_neon/goal.ttl \
+#     --query "$(cat examples/v26_7_6_after_neon/rules.rq)"
+PREFIX pdl: <http://seanchatmangpt.github.io/praxis/pddl#>
+SELECT ?action WHERE {
+  ?a a pdl:Action ; pdl:name ?action .
+}
+ORDER BY ?action
