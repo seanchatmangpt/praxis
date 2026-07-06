@@ -1,0 +1,841 @@
+UTC_START: 2026-07-06T19:15:08Z
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/sac/praxis/crates/ggen/Cargo.toml
+workspace: /Users/sac/praxis/Cargo.toml
+warning: /Users/sac/praxis/Cargo.toml: `panic` setting is ignored for `bench` profile
+warning: unused import: `Encoder`
+ --> crates/praxis-graphlaw/src/backwardchaining.rs:2:35
+  |
+2 | use crate::{Binding, BodyLiteral, Encoder, Rule, RuleIndex, Triple, TripleIndex, TripleStore, VarOrTerm};
+  |                                   ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `info` and `trace`
+ --> crates/praxis-graphlaw/src/backwardchaining.rs:3:18
+  |
+3 | use log::{debug, info, trace, warn};
+  |                  ^^^^  ^^^^^
+
+warning: unused import: `std::path::Iter`
+ --> crates/praxis-graphlaw/src/bindings.rs:2:5
+  |
+2 | use std::path::Iter;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused imports: `info` and `warn`
+ --> crates/praxis-graphlaw/src/csprite.rs:5:11
+  |
+5 | use log::{info, trace, warn}; // Use log crate when building application
+  |           ^^^^         ^^^^
+
+warning: unused import: `std::cell::RefCell`
+  --> crates/praxis-graphlaw/src/csprite.rs:11:5
+   |
+11 | use std::cell::RefCell;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `BackwardChainer` and `Encoder`
+ --> crates/praxis-graphlaw/src/dred.rs:2:5
+  |
+2 |     BackwardChainer, Binding, Encoder, QueryEngine, Reasoner, Rule, RuleIndex, SimpleQueryEngine,
+  |     ^^^^^^^^^^^^^^^           ^^^^^^^
+
+warning: unused imports: `info` and `warn`
+ --> crates/praxis-graphlaw/src/dred.rs:5:11
+  |
+5 | use log::{info, trace, warn}; // Use log crate when building application
+  |           ^^^^         ^^^^
+
+warning: unused import: `std::fmt::Write`
+ --> crates/praxis-graphlaw/src/dred.rs:6:5
+  |
+6 | use std::fmt::Write;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::dred::DRed`
+   --> crates/praxis-graphlaw/src/dred.rs:154:9
+    |
+154 |     use crate::dred::DRed;
+    |         ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::utils::Utils`
+   --> crates/praxis-graphlaw/src/dred.rs:155:9
+    |
+155 |     use crate::utils::Utils;
+    |         ^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Triple` and `VarOrTerm`
+   --> crates/praxis-graphlaw/src/dred.rs:156:17
+    |
+156 |     use crate::{Triple, VarOrTerm};
+    |                 ^^^^^^  ^^^^^^^^^
+
+warning: unused import: `std::rc::Rc`
+   --> crates/praxis-graphlaw/src/dred.rs:157:9
+    |
+157 |     use std::rc::Rc;
+    |         ^^^^^^^^^^^
+
+warning: unused imports: `Encoder`, `Parser`, and `TripleStore`
+ --> crates/praxis-graphlaw/src/imars_reasoner.rs:3:13
+  |
+3 | use crate::{Encoder, Parser, Triple, TripleStore};
+  |             ^^^^^^^  ^^^^^^          ^^^^^^^^^^^
+
+warning: unused import: `Encoder`
+ --> crates/praxis-graphlaw/src/parser.rs:1:13
+  |
+1 | use crate::{Encoder, Rule, Triple, VarOrTerm, BodyLiteral};
+  |             ^^^^^^^
+
+warning: unused import: `rio_api::model::NamedNode`
+ --> crates/praxis-graphlaw/src/parser.rs:2:5
+  |
+2 | use rio_api::model::NamedNode;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `super::*`
+   --> crates/praxis-graphlaw/src/parser.rs:160:9
+    |
+160 |     use super::*;
+    |         ^^^^^^^^
+
+warning: unused import: `TimeWindow`
+ --> crates/praxis-graphlaw/src/pipeline.rs:2:26
+  |
+2 | use crate::time_window::{TimeWindow, TimeWindowConsumer};
+  |                          ^^^^^^^^^^
+
+warning: unused import: `Parser`
+ --> crates/praxis-graphlaw/src/pipeline.rs:3:13
+  |
+3 | use crate::{Parser, Triple};
+  |             ^^^^^^
+
+warning: unused import: `std::cell::RefCell`
+ --> crates/praxis-graphlaw/src/pipeline.rs:4:5
+  |
+4 | use std::cell::RefCell;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Aggregate`
+ --> crates/praxis-graphlaw/src/reasoner/mod.rs:1:22
+  |
+1 | use crate::triples::{Aggregate, AggregateFunction};
+  |                      ^^^^^^^^^
+
+warning: unused imports: `info`, `trace`, and `warn`
+ --> crates/praxis-graphlaw/src/rsp.rs:8:25
+  |
+8 | use log::{debug, error, info, trace, warn}; // Use log crate when building application
+  |                         ^^^^  ^^^^^  ^^^^
+
+warning: unused import: `MutexGuard`
+  --> crates/praxis-graphlaw/src/rsp.rs:13:29
+   |
+13 | use std::sync::{Arc, Mutex, MutexGuard};
+   |                             ^^^^^^^^^^
+
+warning: unused import: `crate::Triple`
+ --> crates/praxis-graphlaw/src/rsp/s2r.rs:1:5
+  |
+1 | use crate::Triple;
+  |     ^^^^^^^^^^^^^
+
+warning: unused imports: `info`, `trace`, and `warn`
+ --> crates/praxis-graphlaw/src/rsp/s2r.rs:2:18
+  |
+2 | use log::{debug, info, trace, warn}; // Use log crate when building application
+  |                  ^^^^  ^^^^^  ^^^^
+
+warning: unused import: `std::time::Duration`
+  --> crates/praxis-graphlaw/src/rsp/s2r.rs:11:5
+   |
+11 | use std::time::Duration;
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Mutex`
+ --> crates/praxis-graphlaw/src/sparql.rs:7:5
+  |
+7 | use std::sync::Mutex;
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `spargebra::Query::Select`
+ --> crates/praxis-graphlaw/src/sparql.rs:9:5
+  |
+9 | use spargebra::Query::Select;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Parser`, `Syntax`, `TermImpl`, `TripleStore`, and `VarOrTerm`
+  --> crates/praxis-graphlaw/src/sparql.rs:12:22
+   |
+12 | use crate::{Encoder, Parser, Syntax, Term, TermImpl, Triple, TripleIndex, TripleStore, VarOrTerm};
+   |                      ^^^^^^  ^^^^^^        ^^^^^^^^                       ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `crate::sparql::EncodedTerm::NamedNode`
+  --> crates/praxis-graphlaw/src/sparql.rs:13:5
+   |
+13 | use crate::sparql::EncodedTerm::NamedNode;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `once_cell::sync::Lazy`
+  --> crates/praxis-graphlaw/src/sparql.rs:16:5
+   |
+16 | use once_cell::sync::Lazy;
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> crates/praxis-graphlaw/src/time_window.rs:4:5
+  |
+4 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Encoder`, `Parser`, and `TripleStore`
+ --> crates/praxis-graphlaw/src/tripleindex.rs:1:22
+  |
+1 | use crate::{Binding, Encoder, Parser, Term, Triple, TripleStore, VarOrTerm};
+  |                      ^^^^^^^  ^^^^^^                ^^^^^^^^^^^
+
+warning: unused import: `either::*`
+ --> crates/praxis-graphlaw/src/tripleindex.rs:2:5
+  |
+2 | use either::*;
+  |     ^^^^^^^^^
+
+warning: unused import: `VarOrTerm`
+ --> crates/praxis-graphlaw/src/oxrdf_adapter.rs:3:28
+  |
+3 | use crate::triples::{Term, VarOrTerm};
+  |                            ^^^^^^^^^
+
+warning: unused import: `crate::utils::Utils`
+  --> crates/praxis-graphlaw/src/utils.rs:44:9
+   |
+44 |     use crate::utils::Utils;
+   |         ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `HashSet`
+  --> crates/praxis-graphlaw/src/lib.rs:41:33
+   |
+41 | use std::collections::{HashMap, HashSet};
+   |                                 ^^^^^^^
+
+warning: unused import: `std::fmt::Write`
+  --> crates/praxis-graphlaw/src/lib.rs:42:5
+   |
+42 | use std::fmt::Write;
+   |     ^^^^^^^^^^^^^^^
+
+warning: unused imports: `info` and `warn`
+  --> crates/praxis-graphlaw/src/lib.rs:45:11
+   |
+45 | use log::{info, trace, warn}; // Use log crate when building application
+   |           ^^^^         ^^^^
+
+warning: use of deprecated associated function `spargebra::Query::parse`: Use `SparqlParser::new().parse_query` instead
+   --> crates/praxis-graphlaw/src/rsp.rs:161:34
+    |
+161 |         let query = match Query::parse(query_str, None) {
+    |                                  ^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated associated function `spargebra::Query::parse`: Use `SparqlParser::new().parse_query` instead
+   --> crates/praxis-graphlaw/src/rsp.rs:166:24
+    |
+166 |                 Query::parse("Select * WHERE{?s ?p ?o}", None).unwrap()
+    |                        ^^^^^
+
+warning: use of deprecated associated function `spargebra::Query::parse`: Use `SparqlParser::new().parse_query` instead
+   --> crates/praxis-graphlaw/src/shacl.rs:912:35
+    |
+912 |     let query = spargebra::Query::parse(query_text, None).map_err(|e| e.to_string())?;
+    |                                   ^^^^^
+
+warning: use of deprecated associated function `spargebra::Query::parse`: Use `SparqlParser::new().parse_query` instead
+   --> crates/praxis-graphlaw/src/lib.rs:253:22
+    |
+253 |         match Query::parse(query_str, None) {
+    |                      ^^^^^
+
+warning: unused import: `Digest`
+  --> crates/praxis-graphlaw/src/builtins/crypto.rs:10:12
+   |
+10 | use sha2::{Digest as Sha2Digest, Sha256, Sha512};
+   |            ^^^^^^
+
+warning: variable does not need to be mutable
+  --> crates/praxis-graphlaw/src/bindings.rs:18:13
+   |
+18 |         let mut binding_values = self.bindings.get_mut(var_name).unwrap();
+   |             ----^^^^^^^^^^^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> crates/praxis-graphlaw/src/bindings.rs:97:17
+   |
+97 |             let mut add_vec = self.bindings.get_mut(&k).unwrap();
+   |                 ----^^^^^^^
+   |                 |
+   |                 help: remove this `mut`
+
+warning: unused variable: `old_data`
+  --> crates/praxis-graphlaw/src/csprite.rs:48:9
+   |
+48 |         old_data: Vec<(i32, Rc<Triple>)>,
+   |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_old_data`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `materialization`
+  --> crates/praxis-graphlaw/src/csprite.rs:64:13
+   |
+64 |         let materialization = self.window_reasoner.materialize(
+   |             ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_materialization`
+
+warning: unused variable: `var_subs`
+   --> crates/praxis-graphlaw/src/csprite.rs:188:24
+    |
+188 |         for (sub_rule, var_subs) in sub_rules.into_iter() {
+    |                        ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_var_subs`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/csprite.rs:396:21
+    |
+396 |                 let mut s;
+    |                     ----^
+    |                     |
+    |                     help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/csprite.rs:397:21
+    |
+397 |                 let mut p;
+    |                     ----^
+    |                     |
+    |                     help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/csprite.rs:398:21
+    |
+398 |                 let mut o;
+    |                     ----^
+    |                     |
+    |                     help: remove this `mut`
+
+warning: unused variable: `ts`
+  --> crates/praxis-graphlaw/src/imars_reasoner.rs:37:36
+   |
+37 |         old.into_iter().for_each(|(ts, t)| self.store.remove_ref(t));
+   |                                    ^^ help: if this is intentional, prefix it with an underscore: `_ts`
+
+warning: unused variable: `ts`
+  --> crates/praxis-graphlaw/src/imars_reasoner.rs:29:9
+   |
+29 |         ts: i32,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_ts`
+
+warning: unused variable: `ts`
+  --> crates/praxis-graphlaw/src/imars_window.rs:27:74
+   |
+27 |     fn update(&mut self, new: Vec<(i32, Rc<T>)>, old: Vec<(i32, Rc<T>)>, ts: i32) -> Vec<(i32, T)> {
+   |                                                                          ^^ help: if this is intentional, prefix it with an underscore: `_ts`
+
+warning: unused variable: `item`
+   --> crates/praxis-graphlaw/src/imars_window.rs:224:36
+    |
+224 |         while let Some((timestamp, item)) = peek {
+    |                                    ^^^^ help: if this is intentional, prefix it with an underscore: `_item`
+
+warning: unused variable: `content`
+   --> crates/praxis-graphlaw/src/imars_window.rs:240:30
+    |
+240 |             if let Some((ts, content)) = self.content.node(node) {
+    |                              ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_content`
+
+warning: variable does not need to be mutable
+  --> crates/praxis-graphlaw/src/parser.rs:83:13
+   |
+83 |         let mut convert_item = |item: &&str| {
+   |             ----^^^^^^^^^^^^
+   |             |
+   |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> crates/praxis-graphlaw/src/queryengine/mod.rs:77:21
+   |
+77 |                 let mut substitute = |term: &mut VarOrTerm| {
+   |                     ----^^^^^^^^^^
+   |                     |
+   |                     help: remove this `mut`
+
+warning: unused variable: `c1`
+   --> crates/praxis-graphlaw/src/rsp/s2r.rs:183:27
+    |
+183 |             .max_by(|(w1, c1), (w2, c2)| w1.close.cmp(&w2.close));
+    |                           ^^ help: if this is intentional, prefix it with an underscore: `_c1`
+
+warning: unused variable: `c2`
+   --> crates/praxis-graphlaw/src/rsp/s2r.rs:183:37
+    |
+183 |             .max_by(|(w1, c1), (w2, c2)| w1.close.cmp(&w2.close));
+    |                                     ^^ help: if this is intentional, prefix it with an underscore: `_c2`
+
+warning: unused variable: `temp`
+   --> crates/praxis-graphlaw/src/rsp/s2r.rs:209:13
+    |
+209 |         let temp = (*event_time as f64 - self.t_0 as f64).abs();
+    |             ^^^^ help: if this is intentional, prefix it with an underscore: `_temp`
+
+warning: unused variable: `temp`
+   --> crates/praxis-graphlaw/src/rsp/s2r.rs:210:13
+    |
+210 |         let temp = ((*event_time as f64 - self.t_0 as f64).abs() / (self.slide as f64)).ceil();
+    |             ^^^^ help: if this is intentional, prefix it with an underscore: `_temp`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/rsp.rs:153:13
+    |
+153 |         let mut window = CSPARQLWindow::new(width, slide, report, tick);
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/rsp.rs:179:21
+    |
+179 |                 let mut r2s_operator = engine.r2s_operator.clone();
+    |                     ----^^^^^^^^^^^^
+    |                     |
+    |                     help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/rsp.rs:207:24
+    |
+207 |                     Ok(mut content) => {
+    |                        ----^^^^^^^
+    |                        |
+    |                        help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/rsp.rs:203:13
+    |
+203 |         let mut r2s_operator = self.r2s_operator.clone();
+    |             ----^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/rsp.rs:230:9
+    |
+230 |         mut r2s_operator: Arc<Mutex<Relation2StreamOperator<O>>>,
+    |         ----^^^^^^^^^^^^
+    |         |
+    |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/rsp.rs:231:9
+    |
+231 |         mut content: ContentContainer<I>,
+    |         ----^^^^^^^
+    |         |
+    |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> crates/praxis-graphlaw/src/ruleindex.rs:61:29
+   |
+61 |                 if let Some(mut rules) = self.s.get_mut(&s.to_encoded()) {
+   |                             ----^^^^^
+   |                             |
+   |                             help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> crates/praxis-graphlaw/src/ruleindex.rs:74:29
+   |
+74 |                 if let Some(mut rules) = self.p.get_mut(&p.to_encoded()) {
+   |                             ----^^^^^
+   |                             |
+   |                             help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> crates/praxis-graphlaw/src/ruleindex.rs:86:29
+   |
+86 |                 if let Some(mut rules) = self.o.get_mut(&o.to_encoded()) {
+   |                             ----^^^^^
+   |                             |
+   |                             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/ruleindex.rs:109:29
+    |
+109 |                 if let Some(mut rules) = self
+    |                             ----^^^^^
+    |                             |
+    |                             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/ruleindex.rs:137:29
+    |
+137 |                 if let Some(mut rules) = self
+    |                             ----^^^^^
+    |                             |
+    |                             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/ruleindex.rs:165:29
+    |
+165 |                 if let Some(mut rules) = self
+    |                             ----^^^^^
+    |                             |
+    |                             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/ruleindex.rs:208:29
+    |
+208 |                 if let Some(mut rules) = self
+    |                             ----^^^^^
+    |                             |
+    |                             help: remove this `mut`
+
+warning: unused variable: `encoder`
+  --> crates/praxis-graphlaw/src/sparql.rs:20:58
+   |
+20 | fn extract_triples(triple_patterns: &Vec<TriplePattern>, encoder: &mut Encoder)-> Vec<Triple>{
+   |                                                          ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_encoder`
+
+warning: unused variable: `variables`
+   --> crates/praxis-graphlaw/src/sparql.rs:228:5
+    |
+228 |     variables: &mut Vec<Variable>,
+    |     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_variables`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/sparql.rs:460:17
+    |
+460 |             let mut grouped_accumulators = Rc::new(RefCell::new(HashMap::<
+    |                 ----^^^^^^^^^^^^^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/sparql.rs:552:21
+    |
+552 |                 let mut temp_acc = local_group.borrow_mut();
+    |                     ----^^^^^^^^
+    |                     |
+    |                     help: remove this `mut`
+
+warning: unused variable: `index`
+    --> crates/praxis-graphlaw/src/sparql.rs:1094:41
+     |
+1094 | pub fn eval_query<'a>(query: &'a Query, index: &'a TripleIndex) -> PlanNode {
+     |                                         ^^^^^ help: if this is intentional, prefix it with an underscore: `_index`
+
+warning: unused variable: `base_iri`
+    --> crates/praxis-graphlaw/src/sparql.rs:1097:22
+     |
+1097 |             pattern, base_iri, ..
+     |                      ^^^^^^^^ help: try ignoring the field: `base_iri: _`
+
+warning: variable does not need to be mutable
+  --> crates/praxis-graphlaw/src/time_window.rs:72:40
+   |
+72 |             consumers.iter().for_each(|mut item| {
+   |                                        ----^^^^
+   |                                        |
+   |                                        help: remove this `mut`
+
+warning: unused variable: `item`
+   --> crates/praxis-graphlaw/src/time_window.rs:105:36
+    |
+105 |         while let Some((timestamp, item)) = self.content.front() {
+    |                                    ^^^^ help: if this is intentional, prefix it with an underscore: `_item`
+
+warning: unused variable: `counter`
+  --> crates/praxis-graphlaw/src/tripleindex.rs:85:34
+   |
+85 |             values.retain(|(val, counter, _)| *val != triple.p.to_encoded());
+   |                                  ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_counter`
+
+warning: unused variable: `counter`
+  --> crates/praxis-graphlaw/src/tripleindex.rs:69:34
+   |
+69 |             values.retain(|(val, counter, _)| *val != triple.s.to_encoded());
+   |                                  ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_counter`
+
+warning: unused variable: `counter`
+  --> crates/praxis-graphlaw/src/tripleindex.rs:53:38
+   |
+53 |             spo_values.retain(|(val, counter, _)| *val != triple.o.to_encoded());
+   |                                      ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_counter`
+
+warning: unused variable: `counter`
+   --> crates/praxis-graphlaw/src/tripleindex.rs:180:31
+    |
+180 |                 for (encoded, counter, _) in self
+    |                               ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_counter`
+
+warning: unused variable: `counter`
+   --> crates/praxis-graphlaw/src/tripleindex.rs:564:48
+    |
+564 |                         .map(|((encoded_match, counter, graph_name), s_key)| {
+    |                                                ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_counter`
+
+warning: unused variable: `counter`
+   --> crates/praxis-graphlaw/src/tripleindex.rs:607:48
+    |
+607 |                         .map(|((encoded_match, counter, graph_name), key)| {
+    |                                                ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_counter`
+
+warning: unused variable: `counter`
+   --> crates/praxis-graphlaw/src/tripleindex.rs:650:48
+    |
+650 |                         .map(|((encoded_match, counter, graph_name), key)| {
+    |                                                ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_counter`
+
+warning: unused variable: `counter`
+   --> crates/praxis-graphlaw/src/tripleindex.rs:699:45
+    |
+699 |                     .map(|(((encoded_match, counter, graph_name), p_key), s_key)| {
+    |                                             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_counter`
+
+warning: unused variable: `counter`
+   --> crates/praxis-graphlaw/src/tripleindex.rs:740:51
+    |
+740 | ...                   .map(|(encoded_match, counter, graph_name)| {
+    |                                             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_counter`
+
+warning: unused variable: `graph_name`
+   --> crates/praxis-graphlaw/src/tripleindex.rs:740:60
+    |
+740 | ...                   .map(|(encoded_match, counter, graph_name)| {
+    |                                                      ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_graph_name`
+
+warning: unused variable: `triple_counter`
+   --> crates/praxis-graphlaw/src/tripleindex.rs:502:9
+    |
+502 |         triple_counter: Option<usize>,
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_triple_counter`
+
+warning: unused variable: `counter`
+   --> crates/praxis-graphlaw/src/tripleindex.rs:775:44
+    |
+775 |                 .map(move |(encoded_match, counter, graph_name)| {
+    |                                            ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_counter`
+
+warning: associated items `decode_triples`, `compute_sprite`, `eval_backward_csprite`, `eval_backward_csprite_helper`, `eval_backward_csprite_helper_with_stack`, and `rewrite_hierarchy` are never used
+   --> crates/praxis-graphlaw/src/csprite.rs:74:8
+    |
+ 23 | impl CSprite {
+    | ------------ associated items in this implementation
+...
+ 74 |     fn decode_triples(triples: &Vec<(i32, Rc<Triple>)>) -> String {
+    |        ^^^^^^^^^^^^^^
+...
+137 |     pub(crate) fn compute_sprite(&mut self, query: &Triple) {
+    |                   ^^^^^^^^^^^^^^
+...
+160 |     fn eval_backward_csprite(&self, rule_head: &Triple) -> (HashSet<Rc<Rule>>, Vec<Vec<Rc<Rule>>>) {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+...
+174 |     fn eval_backward_csprite_helper(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+216 |     fn eval_backward_csprite_helper_with_stack(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+273 |     fn rewrite_hierarchy(rules: &Vec<Rc<Rule>>) -> Vec<Rule> {
+    |        ^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `ImarsReasoner` is never constructed
+ --> crates/praxis-graphlaw/src/imars_reasoner.rs:7:8
+  |
+7 | struct ImarsReasoner {
+  |        ^^^^^^^^^^^^^
+
+warning: associated function `new` is never used
+  --> crates/praxis-graphlaw/src/imars_reasoner.rs:14:12
+   |
+13 | impl ImarsReasoner {
+   | ------------------ associated function in this implementation
+14 |     pub fn new() -> ImarsReasoner {
+   |            ^^^
+
+warning: field `windows` is never read
+  --> crates/praxis-graphlaw/src/imars_window.rs:13:5
+   |
+12 | pub struct SimpleWindowConsumer<T> {
+   |            -------------------- field in this struct
+13 |     windows: Vec<Box<ImarsWindow<T>>>,
+   |     ^^^^^^^
+
+warning: trait `IObserver` is never used
+ --> crates/praxis-graphlaw/src/observer.rs:3:7
+  |
+3 | trait IObserver {
+  |       ^^^^^^^^^
+
+warning: trait `ISubject` is never used
+ --> crates/praxis-graphlaw/src/observer.rs:7:7
+  |
+7 | trait ISubject<'a, T: IObserver> {
+  |       ^^^^^^^^
+
+warning: struct `Subject` is never constructed
+  --> crates/praxis-graphlaw/src/observer.rs:14:8
+   |
+14 | struct Subject<'a, T: IObserver> {
+   |        ^^^^^^^
+
+warning: associated function `new` is never used
+  --> crates/praxis-graphlaw/src/observer.rs:19:8
+   |
+18 | impl<'a, T: IObserver + PartialEq> Subject<'a, T> {
+   | ------------------------------------------------- associated function in this implementation
+19 |     fn new() -> Subject<'a, T> {
+   |        ^^^
+
+warning: struct `ConcreteObserver` is never constructed
+  --> crates/praxis-graphlaw/src/observer.rs:49:8
+   |
+49 | struct ConcreteObserver {
+   |        ^^^^^^^^^^^^^^^^
+
+warning: method `update_data` is never used
+  --> crates/praxis-graphlaw/src/observer.rs:63:8
+   |
+62 | impl ConcreteObserver {
+   | --------------------- method in this implementation
+63 |     fn update_data(&mut self, new_data: i32) {
+   |        ^^^^^^^^^^^
+
+warning: struct `ConsumerInner` is never constructed
+   --> crates/praxis-graphlaw/src/rsp/s2r.rs:252:8
+    |
+252 | struct ConsumerInner<I>
+    |        ^^^^^^^^^^^^^
+
+warning: struct `Consumer` is never constructed
+   --> crates/praxis-graphlaw/src/rsp/s2r.rs:258:8
+    |
+258 | struct Consumer<I>
+    |        ^^^^^^^^
+
+warning: associated items `new`, `start`, and `len` are never used
+   --> crates/praxis-graphlaw/src/rsp/s2r.rs:268:8
+    |
+264 | / impl<I> Consumer<I>
+265 | | where
+266 | |     I: Eq + PartialEq + Clone + Debug + Hash + Send + 'static,
+    | |______________________________________________________________- associated items in this implementation
+267 |   {
+268 |       fn new() -> Consumer<I> {
+    |          ^^^
+...
+275 |       fn start(&self, receiver: Receiver<ContentContainer<I>>) {
+    |          ^^^^^
+...
+290 |       fn len(&self) -> usize {
+    |          ^^^
+
+warning: function `eval_backward_with_history` is never used
+  --> crates/praxis-graphlaw/src/service_composition.rs:31:8
+   |
+31 | pub fn eval_backward_with_history(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `extract_triples` is never used
+  --> crates/praxis-graphlaw/src/sparql.rs:20:4
+   |
+20 | fn extract_triples(triple_patterns: &Vec<TriplePattern>, encoder: &mut Encoder)-> Vec<Triple>{
+   |    ^^^^^^^^^^^^^^^
+
+warning: field `plan` is never read
+    --> crates/praxis-graphlaw/src/sparql.rs:1084:5
+     |
+1083 | pub struct QueryResults {
+     |            ------------ field in this struct
+1084 |     plan: PlanNode,
+     |     ^^^^
+
+warning: field `windows` is never read
+  --> crates/praxis-graphlaw/src/time_window.rs:14:5
+   |
+13 | pub struct SimpleWindowConsumer<T> {
+   |            -------------------- field in this struct
+14 |     windows: Vec<Box<TimeWindow<T>>>,
+   |     ^^^^^^^
+
+warning: fields `query` and `index` are never read
+   --> crates/praxis-graphlaw/src/tripleindex.rs:832:5
+    |
+831 | pub struct QuadIterator<'a> {
+    |            ------------ fields in this struct
+832 |     query: Triple,
+    |     ^^^^^
+833 |     index: &'a TripleIndex,
+    |     ^^^^^
+
+warning: associated function `rem_first_and_last` is never used
+  --> crates/praxis-graphlaw/src/term.rs:98:8
+   |
+41 | impl VarOrTerm {
+   | -------------- associated function in this implementation
+...
+98 |     fn rem_first_and_last(value: &str) -> &str {
+   |        ^^^^^^^^^^^^^^^^^^
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> crates/praxis-graphlaw/src/parser/n3rule_parser.rs:672:37
+    |
+672 | fn bracketed_iri_text(iri_ref_pair: Pair<Rule>) -> &str {
+    |                                     ^^^^^^^^^^     ^^^^ the same lifetime is elided here
+    |                                     |
+    |                                     the lifetime is hidden here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+672 | fn bracketed_iri_text(iri_ref_pair: Pair<'_, Rule>) -> &str {
+    |                                          +++
+
+warning: unused `Result` that must be used
+   --> crates/praxis-graphlaw/src/rsp.rs:160:9
+    |
+160 |         store.load_rules(rules);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+    = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+160 |         let _ = store.load_rules(rules);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> crates/praxis-graphlaw/src/rsp/s2r.rs:193:29
+    |
+193 | ...                   sender.send(max_window.1.clone());
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+193 |                             let _ = sender.send(max_window.1.clone());
+    |                             +++++++
+
+warning: `praxis-graphlaw` (lib) generated 117 warnings (run `cargo fix --lib -p praxis-graphlaw` to apply 91 suggestions)
+    Finished `bench` profile [optimized] target(s) in 0.16s
+     Running benches/blue_river_dam.rs (target/release/deps/blue_river_dam-009fbbf70b3704ac)
+Timer precision: 41 ns
+blue_river_dam                 fastest       │ slowest       │ median        │ mean          │ samples │ iters
+╰─ graphlaw_materialize_delta  904.9 µs      │ 1.016 ms      │ 930 µs        │ 935.5 µs      │ 100     │ 100
+
+UTC_FINISH: 2026-07-06T19:15:09Z

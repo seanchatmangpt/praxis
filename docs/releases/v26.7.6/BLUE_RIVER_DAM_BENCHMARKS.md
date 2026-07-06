@@ -282,3 +282,5 @@ Bench sources: `benches/blue_river_dam.rs`,
 `crates/ggen/benches/blue_river_dam.rs`,
 `crates/praxis-graphlaw/benches/blue_river_dam.rs`.
 Snapshot function: `src/verify_ops.rs::little_law_snapshot`.
+
+Revalidated 2026-07-06 (UTC 19:13:25Z–19:15:09Z): all three benches rerun; medians within noise of Section 1 (e.g. `standing_transition` 19.98 ns, `bcinr_transition_table` 0.627 ns, `ggen_render_report_small` 17.41 µs, `graphlaw_materialize_delta` 930 µs). Raw outputs: `docs/releases/v26.7.6/ocel/raw/bench-root.txt` (sha256 34570340d1e2947e9251f5557c28c89062dedca34aa7ecaa32d0032be57c28db), `bench-ggen.txt` (258944cc86b615aa8506c4dcbd74eaf9957f024e447b30372868489ae66d726d), `bench-graphlaw.txt` (e02f221e1664edc526fddd14c43306926dc573bf4c83820201d3770a7ac0aeda); attached to `ocel/playwright-wasm4pm-validation.ocel.json` as `benchmark_run`/`benchmark_result` objects.

@@ -1,3818 +1,4769 @@
 {
-  "eventTypes": [
+ "eventTypes": [
+  {
+   "name": "validation_run_started",
+   "attributes": [
     {
-      "name": "validation_run_started",
-      "attributes": [
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        }
-      ]
+     "name": "run_id",
+     "type": "string"
     },
     {
-      "name": "utc_clock_captured",
-      "attributes": [
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "clock_source",
-          "type": "string"
-        },
-        {
-          "name": "timezone_policy",
-          "type": "string"
-        }
-      ]
+     "name": "release_id",
+     "type": "string"
     },
     {
-      "name": "playwright_browser_launched",
-      "attributes": [
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "browser_version",
-          "type": "string"
-        }
-      ]
+     "name": "actor",
+     "type": "string"
     },
     {
-      "name": "route_loaded",
-      "attributes": [
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "route",
-          "type": "string"
-        },
-        {
-          "name": "mode",
-          "type": "string"
-        }
-      ]
+     "name": "event_source",
+     "type": "string"
     },
     {
-      "name": "api_request_observed",
-      "attributes": [
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "url",
-          "type": "string"
-        },
-        {
-          "name": "status",
-          "type": "integer"
-        },
-        {
-          "name": "chain_hash_hex",
-          "type": "string"
-        },
-        {
-          "name": "records",
-          "type": "integer"
-        },
-        {
-          "name": "head_chain_hash_hex",
-          "type": "string"
-        },
-        {
-          "name": "plan_ref",
-          "type": "string"
-        }
-      ]
+     "name": "standing_effect",
+     "type": "string"
     },
     {
-      "name": "screenshot_captured",
-      "attributes": [
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "screen",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "ui_action_triggered",
-      "attributes": [
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "control",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "trace_captured",
-      "attributes": [
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "trace_path",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "verifier_gate_invoked",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "gate",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "pddl_plan_requested",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "goal",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "pddl_plan_loaded",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "plan_len",
-          "type": "integer"
-        },
-        {
-          "name": "grounder",
-          "type": "string"
-        },
-        {
-          "name": "graph_hash",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "powl_workflow_compiled",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "slots",
-          "type": "integer"
-        }
-      ]
-    },
-    {
-      "name": "powl_workflow_executed",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "powl_chain_hash",
-          "type": "string"
-        },
-        {
-          "name": "run",
-          "type": "integer"
-        },
-        {
-          "name": "determinism_check",
-          "type": "string"
-        },
-        {
-          "name": "determinism_against",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "bcinr_transition_executed",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "transition",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "ggen_artifact_generated",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "files",
-          "type": "string"
-        },
-        {
-          "name": "artifact",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "verifier_gate_completed",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "gate",
-          "type": "string"
-        },
-        {
-          "name": "solvable",
-          "type": "boolean"
-        }
-      ]
-    },
-    {
-      "name": "claim_promoted_to_standing",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "claim",
-          "type": "string"
-        },
-        {
-          "name": "powl_chain_hash",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "receipt_chain_verified",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "chain",
-          "type": "string"
-        },
-        {
-          "name": "chain_hash",
-          "type": "string"
-        },
-        {
-          "name": "payload_hash",
-          "type": "string"
-        },
-        {
-          "name": "graph_hash",
-          "type": "string"
-        },
-        {
-          "name": "records",
-          "type": "integer"
-        },
-        {
-          "name": "head_chain_hash",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "graphlaw_state_loaded",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "suite",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "graphlaw_export_requested",
-      "attributes": [
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "started_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "finished_at_utc",
-          "type": "string"
-        },
-        {
-          "name": "exit_code",
-          "type": "integer"
-        },
-        {
-          "name": "rules_loaded",
-          "type": "integer"
-        },
-        {
-          "name": "derived",
-          "type": "integer"
-        },
-        {
-          "name": "graph_hash",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "ocel_log_written",
-      "attributes": [
-        {
-          "name": "run_id",
-          "type": "string"
-        },
-        {
-          "name": "release_id",
-          "type": "string"
-        },
-        {
-          "name": "actor",
-          "type": "string"
-        },
-        {
-          "name": "event_source",
-          "type": "string"
-        },
-        {
-          "name": "standing_effect",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "path",
-          "type": "string"
-        }
-      ]
+     "name": "evidence_refs",
+     "type": "string"
     }
-  ],
-  "objectTypes": [
+   ]
+  },
+  {
+   "name": "utc_clock_captured",
+   "attributes": [
     {
-      "name": "browser_session",
-      "attributes": [
-        {
-          "name": "object_label",
-          "type": "string"
-        },
-        {
-          "name": "object_source",
-          "type": "string"
-        },
-        {
-          "name": "standing",
-          "type": "string"
-        },
-        {
-          "name": "created_or_observed_by",
-          "type": "string"
-        },
-        {
-          "name": "browser_version",
-          "type": "string"
-        },
-        {
-          "name": "base_url",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        }
-      ]
+     "name": "run_id",
+     "type": "string"
     },
     {
-      "name": "client_surface",
-      "attributes": [
-        {
-          "name": "object_label",
-          "type": "string"
-        },
-        {
-          "name": "object_source",
-          "type": "string"
-        },
-        {
-          "name": "standing",
-          "type": "string"
-        },
-        {
-          "name": "created_or_observed_by",
-          "type": "string"
-        },
-        {
-          "name": "path",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        }
-      ]
+     "name": "release_id",
+     "type": "string"
     },
     {
-      "name": "receipt_chain",
-      "attributes": [
-        {
-          "name": "object_label",
-          "type": "string"
-        },
-        {
-          "name": "object_source",
-          "type": "string"
-        },
-        {
-          "name": "standing",
-          "type": "string"
-        },
-        {
-          "name": "created_or_observed_by",
-          "type": "string"
-        },
-        {
-          "name": "path",
-          "type": "string"
-        },
-        {
-          "name": "object_hash",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "records",
-          "type": "integer"
-        }
-      ]
+     "name": "actor",
+     "type": "string"
     },
     {
-      "name": "screenshot",
-      "attributes": [
-        {
-          "name": "object_label",
-          "type": "string"
-        },
-        {
-          "name": "object_source",
-          "type": "string"
-        },
-        {
-          "name": "standing",
-          "type": "string"
-        },
-        {
-          "name": "created_or_observed_by",
-          "type": "string"
-        },
-        {
-          "name": "path",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        }
-      ]
+     "name": "event_source",
+     "type": "string"
     },
     {
-      "name": "verifier_gate",
-      "attributes": [
-        {
-          "name": "object_label",
-          "type": "string"
-        },
-        {
-          "name": "object_source",
-          "type": "string"
-        },
-        {
-          "name": "standing",
-          "type": "string"
-        },
-        {
-          "name": "created_or_observed_by",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "path",
-          "type": "string"
-        }
-      ]
+     "name": "standing_effect",
+     "type": "string"
     },
     {
-      "name": "pddl_plan",
-      "attributes": [
-        {
-          "name": "object_label",
-          "type": "string"
-        },
-        {
-          "name": "object_source",
-          "type": "string"
-        },
-        {
-          "name": "standing",
-          "type": "string"
-        },
-        {
-          "name": "created_or_observed_by",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "path",
-          "type": "string"
-        },
-        {
-          "name": "object_hash",
-          "type": "string"
-        },
-        {
-          "name": "plan_len",
-          "type": "integer"
-        },
-        {
-          "name": "plan",
-          "type": "string"
-        }
-      ]
+     "name": "evidence_refs",
+     "type": "string"
     },
     {
-      "name": "powl_workflow",
-      "attributes": [
-        {
-          "name": "object_label",
-          "type": "string"
-        },
-        {
-          "name": "object_source",
-          "type": "string"
-        },
-        {
-          "name": "standing",
-          "type": "string"
-        },
-        {
-          "name": "created_or_observed_by",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "slots",
-          "type": "integer"
-        },
-        {
-          "name": "entry_mask_hex",
-          "type": "string"
-        },
-        {
-          "name": "powl_chain_hash",
-          "type": "string"
-        }
-      ]
+     "name": "clock_source",
+     "type": "string"
     },
     {
-      "name": "bcinr_transition",
-      "attributes": [
-        {
-          "name": "object_label",
-          "type": "string"
-        },
-        {
-          "name": "object_source",
-          "type": "string"
-        },
-        {
-          "name": "standing",
-          "type": "string"
-        },
-        {
-          "name": "created_or_observed_by",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "powl_chain_hash",
-          "type": "string"
-        },
-        {
-          "name": "transition",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "ggen_artifact",
-      "attributes": [
-        {
-          "name": "object_label",
-          "type": "string"
-        },
-        {
-          "name": "object_source",
-          "type": "string"
-        },
-        {
-          "name": "standing",
-          "type": "string"
-        },
-        {
-          "name": "created_or_observed_by",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "path",
-          "type": "string"
-        },
-        {
-          "name": "files",
-          "type": "string"
-        },
-        {
-          "name": "powl_chain_hash",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "report_artifact",
-      "attributes": [
-        {
-          "name": "object_label",
-          "type": "string"
-        },
-        {
-          "name": "object_source",
-          "type": "string"
-        },
-        {
-          "name": "standing",
-          "type": "string"
-        },
-        {
-          "name": "created_or_observed_by",
-          "type": "string"
-        },
-        {
-          "name": "path",
-          "type": "string"
-        },
-        {
-          "name": "object_hash",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "graphlaw_state",
-      "attributes": [
-        {
-          "name": "object_label",
-          "type": "string"
-        },
-        {
-          "name": "object_source",
-          "type": "string"
-        },
-        {
-          "name": "standing",
-          "type": "string"
-        },
-        {
-          "name": "created_or_observed_by",
-          "type": "string"
-        },
-        {
-          "name": "evidence_refs",
-          "type": "string"
-        },
-        {
-          "name": "path",
-          "type": "string"
-        }
-      ]
+     "name": "timezone_policy",
+     "type": "string"
     }
-  ],
-  "events": [
+   ]
+  },
+  {
+   "name": "playwright_browser_launched",
+   "attributes": [
     {
-      "id": "drv_e1",
-      "type": "verifier_gate_invoked",
-      "time": "2026-07-06T19:10:43.285Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:cargo build --features ggen --bin my-conforming-project"
-        },
-        {
-          "name": "standing_effect",
-          "value": "gate_passed"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/cargo-build.txt (sha256:747f53a3da4710659567fdeecb23c44c46253badd5f5fb7dcf822410eed47dcd)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:42.925Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:43.282Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "gate",
-          "value": "compile"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "gate:compile",
-          "qualifier": "gate"
-        }
-      ]
+     "name": "run_id",
+     "type": "string"
     },
     {
-      "id": "drv_e2",
-      "type": "pddl_plan_requested",
-      "time": "2026-07-06T19:10:43.285Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:43.285Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "goal",
-          "value": "examples/v26_7_6_after_neon/goal.ttl"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "pddl_plan:ocel_pass",
-          "qualifier": "plan"
-        }
-      ]
+     "name": "release_id",
+     "type": "string"
     },
     {
-      "id": "drv_e3",
-      "type": "pddl_plan_loaded",
-      "time": "2026-07-06T19:10:44.809Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:43.285Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "plan_len",
-          "value": 4
-        },
-        {
-          "name": "grounder",
-          "value": "naive"
-        },
-        {
-          "name": "graph_hash",
-          "value": "29f4cf58d18485e5b23cdc8215a104b4b5c6d1aa6f746127e4cb3a04177c9e88"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "pddl_plan:ocel_pass",
-          "qualifier": "plan"
-        }
-      ]
+     "name": "actor",
+     "type": "string"
     },
     {
-      "id": "drv_e4",
-      "type": "powl_workflow_compiled",
-      "time": "2026-07-06T19:10:44.809Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:43.285Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "slots",
-          "value": 4
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "powl_workflow:ocel_pass",
-          "qualifier": "workflow"
-        }
-      ]
+     "name": "event_source",
+     "type": "string"
     },
     {
-      "id": "drv_e5",
-      "type": "powl_workflow_executed",
-      "time": "2026-07-06T19:10:44.809Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:43.285Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "powl_chain_hash",
-          "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
-        },
-        {
-          "name": "run",
-          "value": 1
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "powl_workflow:ocel_pass",
-          "qualifier": "workflow"
-        }
-      ]
+     "name": "standing_effect",
+     "type": "string"
     },
     {
-      "id": "drv_e6",
-      "type": "bcinr_transition_executed",
-      "time": "2026-07-06T19:10:44.809Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:43.285Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "transition",
-          "value": "grant-standing"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "bcinr_transition:grant-standing",
-          "qualifier": "transition"
-        }
-      ]
+     "name": "evidence_refs",
+     "type": "string"
     },
     {
-      "id": "drv_e7",
-      "type": "bcinr_transition_executed",
-      "time": "2026-07-06T19:10:44.809Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:43.285Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "transition",
-          "value": "ground-blueprint"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "bcinr_transition:ground-blueprint",
-          "qualifier": "transition"
-        }
-      ]
-    },
-    {
-      "id": "drv_e8",
-      "type": "bcinr_transition_executed",
-      "time": "2026-07-06T19:10:44.809Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:43.285Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "transition",
-          "value": "manufacture-artifact"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "bcinr_transition:manufacture-artifact",
-          "qualifier": "transition"
-        }
-      ]
-    },
-    {
-      "id": "drv_e9",
-      "type": "bcinr_transition_executed",
-      "time": "2026-07-06T19:10:44.809Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:43.285Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "transition",
-          "value": "fold-receipt"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "bcinr_transition:fold-receipt",
-          "qualifier": "transition"
-        }
-      ]
-    },
-    {
-      "id": "drv_e10",
-      "type": "ggen_artifact_generated",
-      "time": "2026-07-06T19:10:44.809Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:43.285Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "files",
-          "value": "domain.pddl,problem.pddl,plan.json"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "ggen_artifact:ocel_pass",
-          "qualifier": "artifact"
-        }
-      ]
-    },
-    {
-      "id": "drv_e11",
-      "type": "verifier_gate_completed",
-      "time": "2026-07-06T19:10:44.809Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "gate_passed"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:43.285Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "gate",
-          "value": "plan_run_solvability"
-        },
-        {
-          "name": "solvable",
-          "value": true
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "ggen_artifact:ocel_pass",
-          "qualifier": "artifact"
-        }
-      ]
-    },
-    {
-      "id": "drv_e12",
-      "type": "powl_workflow_executed",
-      "time": "2026-07-06T19:10:44.863Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass2 --receipts-dir target/plan_run/ocel_pass2_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop-2.txt (sha256:f96173fe591cc6b5d8f01a5ca614de4392a4a646a8fc737d05b15ca188ab0ca4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.862Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "powl_chain_hash",
-          "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
-        },
-        {
-          "name": "run",
-          "value": 2
-        },
-        {
-          "name": "determinism_check",
-          "value": "identical"
-        },
-        {
-          "name": "determinism_against",
-          "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "drv_e13",
-      "type": "claim_promoted_to_standing",
-      "time": "2026-07-06T19:10:44.863Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass2 --receipts-dir target/plan_run/ocel_pass2_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "claim_promoted"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4); docs/releases/v26.7.6/ocel/raw/full-loop-2.txt (sha256:f96173fe591cc6b5d8f01a5ca614de4392a4a646a8fc737d05b15ca188ab0ca4)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:44.809Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.862Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "claim",
-          "value": "powl_chain_hash is deterministic across independent plan runs"
-        },
-        {
-          "name": "powl_chain_hash",
-          "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "drv_e14",
-      "type": "receipt_chain_verified",
-      "time": "2026-07-06T19:10:44.892Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project receipt validate --dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "gate_passed"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/receipt-validate.txt (sha256:25c259c84aecce2e2c1bbc33b7c229d36cfa6c7a91b12e50440458919cb01290)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:44.863Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.891Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "chain",
-          "value": "plan_run_ledger"
-        },
-        {
-          "name": "chain_hash",
-          "value": "9f8e1e18f87c48e1ef696338698297b5c7906f67c7c6f0569354fe72835f1d91"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "receipt_chain:plan_run",
-          "qualifier": "chain"
-        }
-      ]
-    },
-    {
-      "id": "drv_e15",
-      "type": "receipt_chain_verified",
-      "time": "2026-07-06T19:10:44.950Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/ggen receipt verify"
-        },
-        {
-          "name": "standing_effect",
-          "value": "gate_passed"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/ggen-receipt-verify.txt (sha256:702da2b94626bb2204412fad634a5eccf1c4fa1b8504f516af3edb7a8ad682a7)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:44.892Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.921Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "chain",
-          "value": "ggen_factory"
-        },
-        {
-          "name": "chain_hash",
-          "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
-        },
-        {
-          "name": "payload_hash",
-          "value": "4faa67822e85bdc02b35540802732798a644a551072045b968cae7cbe89290d2"
-        },
-        {
-          "name": "graph_hash",
-          "value": "181850a747b21e698a35831857140b70305f38baf1c7df456275b5cb0036c1b7"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "receipt_chain:ggen_factory",
-          "qualifier": "chain"
-        }
-      ]
-    },
-    {
-      "id": "drv_e16",
-      "type": "receipt_chain_verified",
-      "time": "2026-07-06T19:10:44.950Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/ggen receipt history"
-        },
-        {
-          "name": "standing_effect",
-          "value": "gate_passed"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/ggen-receipt-history.txt (sha256:c6683d82cadd058037008d2d679875eb1ce209c7db7321e0a79405dbf4183492)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:44.921Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:44.950Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "chain",
-          "value": "ggen_factory_history"
-        },
-        {
-          "name": "records",
-          "value": 8
-        },
-        {
-          "name": "head_chain_hash",
-          "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "receipt_chain:ggen_factory",
-          "qualifier": "chain"
-        }
-      ]
-    },
-    {
-      "id": "drv_e17",
-      "type": "graphlaw_state_loaded",
-      "time": "2026-07-06T19:10:45.261Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:cargo test -p ggen --test graphlaw_e2e"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/graphlaw-e2e.txt (sha256:32953ad3251ee2957ba2d4725e2d23a5ec68b2e56a7793bbb9c91c00ccac3587)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:44.950Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:45.261Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "suite",
-          "value": "graphlaw_e2e"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "graphlaw_state:e2e",
-          "qualifier": "law_state"
-        }
-      ]
-    },
-    {
-      "id": "drv_e18",
-      "type": "verifier_gate_completed",
-      "time": "2026-07-06T19:10:45.261Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:cargo test -p ggen --test graphlaw_e2e"
-        },
-        {
-          "name": "standing_effect",
-          "value": "gate_passed"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/graphlaw-e2e.txt (sha256:32953ad3251ee2957ba2d4725e2d23a5ec68b2e56a7793bbb9c91c00ccac3587)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:44.950Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:45.261Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "gate",
-          "value": "graphlaw_e2e_tests"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "graphlaw_state:e2e",
-          "qualifier": "law_state"
-        }
-      ]
-    },
-    {
-      "id": "drv_e19",
-      "type": "graphlaw_export_requested",
-      "time": "2026-07-06T19:10:46.778Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/ggen law derive"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/ggen-law-derive.txt (sha256:caaddcdc8f1ae306634309ff75ffc4fa69c0ef1ff3480d791ab7bd9f98426877)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:45.261Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:46.777Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "rules_loaded",
-          "value": 1
-        },
-        {
-          "name": "derived",
-          "value": 55
-        },
-        {
-          "name": "graph_hash",
-          "value": "181850a747b21e698a35831857140b70305f38baf1c7df456275b5cb0036c1b7"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "graphlaw_state:e2e",
-          "qualifier": "law_state"
-        }
-      ]
-    },
-    {
-      "id": "drv_e20",
-      "type": "ggen_artifact_generated",
-      "time": "2026-07-06T19:10:46.811Z",
-      "attributes": [
-        {
-          "name": "actor",
-          "value": "driver"
-        },
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "event_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project receipt export-ocel --out docs/releases/v26.7.6/ocel/ledger-export.ocel.json"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/receipt-export-ocel.txt (sha256:97bc89d9c09f57d1824c2427969cb306c79b5a52893b7da7fe04bc406b7cd17c)"
-        },
-        {
-          "name": "started_at_utc",
-          "value": "2026-07-06T19:10:46.778Z"
-        },
-        {
-          "name": "finished_at_utc",
-          "value": "2026-07-06T19:10:46.811Z"
-        },
-        {
-          "name": "exit_code",
-          "value": 0
-        },
-        {
-          "name": "artifact",
-          "value": "docs/releases/v26.7.6/ocel/ledger-export.ocel.json"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "report:ledger_export_ocel",
-          "qualifier": "artifact"
-        }
-      ]
-    },
-    {
-      "id": "pw_e1",
-      "type": "validation_run_started",
-      "time": "2026-07-06T19:10:49.311Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:ocel-wasm4pm-validation.spec.ts"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/utc-window.json"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "pw_e2",
-      "type": "utc_clock_captured",
-      "time": "2026-07-06T19:10:49.312Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:Date.toISOString"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/utc-window.json"
-        },
-        {
-          "name": "clock_source",
-          "value": "system"
-        },
-        {
-          "name": "timezone_policy",
-          "value": "ISO-8601 UTC Z only"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "pw_e3",
-      "type": "playwright_browser_launched",
-      "time": "2026-07-06T19:10:49.312Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:chromium"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "playwright.config.ts (webServer vite --port 5173)"
-        },
-        {
-          "name": "browser_version",
-          "value": "149.0.7827.55"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "browser_session:autonomic",
-          "qualifier": "session"
-        }
-      ]
-    },
-    {
-      "id": "pw_e4",
-      "type": "route_loaded",
-      "time": "2026-07-06T19:10:49.406Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:page.goto"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "http://localhost:5173/"
-        },
-        {
-          "name": "route",
-          "value": "/"
-        },
-        {
-          "name": "mode",
-          "value": "praxis"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "browser_session:autonomic",
-          "qualifier": "session"
-        },
-        {
-          "objectId": "client_surface:autonomic",
-          "qualifier": "surface"
-        }
-      ]
-    },
-    {
-      "id": "pw_e5",
-      "type": "api_request_observed",
-      "time": "2026-07-06T19:10:49.440Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:page.request.get"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": ".ggen-v2/receipt.json served by praxisArtifacts middleware"
-        },
-        {
-          "name": "url",
-          "value": "/praxis-artifacts/receipt.json"
-        },
-        {
-          "name": "status",
-          "value": 200
-        },
-        {
-          "name": "chain_hash_hex",
-          "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "client_surface:autonomic",
-          "qualifier": "surface"
-        },
-        {
-          "objectId": "receipt_chain:served_factory",
-          "qualifier": "chain"
-        }
-      ]
-    },
-    {
-      "id": "pw_e6",
-      "type": "api_request_observed",
-      "time": "2026-07-06T19:10:49.440Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:waitForResponse"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": ".ggen-v2/receipt-log.jsonl served by praxisArtifacts middleware"
-        },
-        {
-          "name": "url",
-          "value": "/praxis-artifacts/receipt-log.jsonl"
-        },
-        {
-          "name": "status",
-          "value": 200
-        },
-        {
-          "name": "records",
-          "value": 8
-        },
-        {
-          "name": "head_chain_hash_hex",
-          "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "client_surface:autonomic",
-          "qualifier": "surface"
-        },
-        {
-          "objectId": "receipt_chain:served_factory",
-          "qualifier": "chain"
-        }
-      ]
-    },
-    {
-      "id": "pw_e7",
-      "type": "api_request_observed",
-      "time": "2026-07-06T19:10:49.440Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:waitForResponse"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "plan ref target/plan_run/after_neon_det/plan.json"
-        },
-        {
-          "name": "url",
-          "value": "/praxis-artifacts/plan.json"
-        },
-        {
-          "name": "status",
-          "value": 200
-        },
-        {
-          "name": "plan_ref",
-          "value": "target/plan_run/after_neon_det/plan.json"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "client_surface:autonomic",
-          "qualifier": "surface"
-        }
-      ]
-    },
-    {
-      "id": "pw_e8",
-      "type": "screenshot_captured",
-      "time": "2026-07-06T19:10:49.526Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:page.screenshot"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-command.png"
-        },
-        {
-          "name": "screen",
-          "value": "command"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "screenshot:command",
-          "qualifier": "capture"
-        },
-        {
-          "objectId": "client_surface:autonomic",
-          "qualifier": "surface"
-        }
-      ]
-    },
-    {
-      "id": "pw_e9",
-      "type": "ui_action_triggered",
-      "time": "2026-07-06T19:10:49.594Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:getByTitle.click"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-ops.png"
-        },
-        {
-          "name": "control",
-          "value": "NavRail:Operations"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "client_surface:autonomic",
-          "qualifier": "surface"
-        }
-      ]
-    },
-    {
-      "id": "pw_e10",
-      "type": "screenshot_captured",
-      "time": "2026-07-06T19:10:50.072Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:page.screenshot"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-ops.png"
-        },
-        {
-          "name": "screen",
-          "value": "ops"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "screenshot:ops",
-          "qualifier": "capture"
-        },
-        {
-          "objectId": "client_surface:autonomic",
-          "qualifier": "surface"
-        }
-      ]
-    },
-    {
-      "id": "pw_e11",
-      "type": "ui_action_triggered",
-      "time": "2026-07-06T19:10:50.084Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:getByTitle.click"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-dod.png"
-        },
-        {
-          "name": "control",
-          "value": "NavRail:Definition of Done"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "client_surface:autonomic",
-          "qualifier": "surface"
-        }
-      ]
-    },
-    {
-      "id": "pw_e12",
-      "type": "screenshot_captured",
-      "time": "2026-07-06T19:10:50.563Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:page.screenshot"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-dod.png"
-        },
-        {
-          "name": "screen",
-          "value": "dod"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "screenshot:dod",
-          "qualifier": "capture"
-        },
-        {
-          "objectId": "client_surface:autonomic",
-          "qualifier": "surface"
-        }
-      ]
-    },
-    {
-      "id": "pw_e13",
-      "type": "ui_action_triggered",
-      "time": "2026-07-06T19:10:50.604Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:getByTitle.click"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "trace.zip (Model Deck click)"
-        },
-        {
-          "name": "control",
-          "value": "NavRail:Model Deck"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "client_surface:autonomic",
-          "qualifier": "surface"
-        }
-      ]
-    },
-    {
-      "id": "pw_e14",
-      "type": "trace_captured",
-      "time": "2026-07-06T19:10:50.604Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:trace=on"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "clients/autonomic-platform/test-results/ocel-wasm4pm-validation-OC-5467e-idation-over-real-artifacts-chromium/trace.zip"
-        },
-        {
-          "name": "trace_path",
-          "value": "clients/autonomic-platform/test-results/ocel-wasm4pm-validation-OC-5467e-idation-over-real-artifacts-chromium/trace.zip"
-        }
-      ],
-      "relationships": [
-        {
-          "objectId": "browser_session:autonomic",
-          "qualifier": "session"
-        }
-      ]
-    },
-    {
-      "id": "pw_e15",
-      "type": "ocel_log_written",
-      "time": "2026-07-06T19:10:50.604Z",
-      "attributes": [
-        {
-          "name": "run_id",
-          "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
-        },
-        {
-          "name": "release_id",
-          "value": "v26.7.6"
-        },
-        {
-          "name": "actor",
-          "value": "playwright"
-        },
-        {
-          "name": "event_source",
-          "value": "playwright:OcelRecorder.save"
-        },
-        {
-          "name": "standing_effect",
-          "value": "none"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json"
-        },
-        {
-          "name": "path",
-          "value": "docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json"
-        }
-      ],
-      "relationships": []
+     "name": "browser_version",
+     "type": "string"
     }
-  ],
-  "objects": [
+   ]
+  },
+  {
+   "name": "route_loaded",
+   "attributes": [
     {
-      "id": "browser_session:autonomic",
-      "type": "browser_session",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "chromium session against autonomic-platform dev server"
-        },
-        {
-          "name": "object_source",
-          "value": "playwright:chromium"
-        },
-        {
-          "name": "standing",
-          "value": "evidence"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "playwright"
-        },
-        {
-          "name": "browser_version",
-          "value": "149.0.7827.55"
-        },
-        {
-          "name": "base_url",
-          "value": "http://localhost:5173"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json"
-        }
-      ],
-      "relationships": []
+     "name": "run_id",
+     "type": "string"
     },
     {
-      "id": "client_surface:autonomic",
-      "type": "client_surface",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "autonomic-platform (Vite 6 + praxisArtifacts middleware)"
-        },
-        {
-          "name": "object_source",
-          "value": "clients/autonomic-platform"
-        },
-        {
-          "name": "standing",
-          "value": "release_critical"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "playwright"
-        },
-        {
-          "name": "path",
-          "value": "clients/autonomic-platform/src/main.jsx"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-command.png"
-        }
-      ],
-      "relationships": []
+     "name": "release_id",
+     "type": "string"
     },
     {
-      "id": "receipt_chain:served_factory",
-      "type": "receipt_chain",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "factory receipt chain as served to the client"
-        },
-        {
-          "name": "object_source",
-          "value": "GET /praxis-artifacts/receipt.json (-> .ggen-v2/receipt.json)"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "playwright"
-        },
-        {
-          "name": "path",
-          "value": ".ggen-v2/receipt.json"
-        },
-        {
-          "name": "object_hash",
-          "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/ggen-receipt-verify.txt"
-        }
-      ],
-      "relationships": []
+     "name": "actor",
+     "type": "string"
     },
     {
-      "id": "screenshot:command",
-      "type": "screenshot",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "screen capture: command"
-        },
-        {
-          "name": "object_source",
-          "value": "playwright:page.screenshot"
-        },
-        {
-          "name": "standing",
-          "value": "evidence"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "playwright"
-        },
-        {
-          "name": "path",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-command.png"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-command.png"
-        }
-      ],
-      "relationships": []
+     "name": "event_source",
+     "type": "string"
     },
     {
-      "id": "screenshot:ops",
-      "type": "screenshot",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "screen capture: ops"
-        },
-        {
-          "name": "object_source",
-          "value": "playwright:page.screenshot"
-        },
-        {
-          "name": "standing",
-          "value": "evidence"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "playwright"
-        },
-        {
-          "name": "path",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-ops.png"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-ops.png"
-        }
-      ],
-      "relationships": []
+     "name": "standing_effect",
+     "type": "string"
     },
     {
-      "id": "screenshot:dod",
-      "type": "screenshot",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "screen capture: dod"
-        },
-        {
-          "name": "object_source",
-          "value": "playwright:page.screenshot"
-        },
-        {
-          "name": "standing",
-          "value": "evidence"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "playwright"
-        },
-        {
-          "name": "path",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-dod.png"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-dod.png"
-        }
-      ],
-      "relationships": []
+     "name": "evidence_refs",
+     "type": "string"
     },
     {
-      "id": "client_surface:optimus",
-      "type": "client_surface",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "optimus (Next.js) secondary surface — non-release-critical"
-        },
-        {
-          "name": "object_source",
-          "value": "/Users/sac/optimus tests/e2e/praxis-smoke.spec.ts"
-        },
-        {
-          "name": "standing",
-          "value": "secondary"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "playwright"
-        },
-        {
-          "name": "path",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-optimus.png"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-optimus.png"
-        }
-      ],
-      "relationships": []
+     "name": "route",
+     "type": "string"
     },
     {
-      "id": "browser_session:optimus",
-      "type": "browser_session",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "chromium session against optimus dev server (secondary)"
-        },
-        {
-          "name": "object_source",
-          "value": "playwright:optimus praxis-smoke"
-        },
-        {
-          "name": "standing",
-          "value": "secondary"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "playwright"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-optimus.png"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "screenshot:optimus",
-      "type": "screenshot",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "optimus landing screenshot"
-        },
-        {
-          "name": "object_source",
-          "value": "playwright:optimus praxis-smoke"
-        },
-        {
-          "name": "standing",
-          "value": "evidence"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "playwright"
-        },
-        {
-          "name": "path",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-optimus.png"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/screenshot-optimus.png"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "gate:compile",
-      "type": "verifier_gate",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "cargo build --features ggen compile gate"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:cargo build --features ggen --bin my-conforming-project"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/cargo-build.txt (sha256:747f53a3da4710659567fdeecb23c44c46253badd5f5fb7dcf822410eed47dcd)"
-        },
-        {
-          "name": "path",
-          "value": "target/debug/my-conforming-project"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "pddl_plan:ocel_pass",
-      "type": "pddl_plan",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "classical plan from goal.ttl"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "path",
-          "value": "examples/v26_7_6_after_neon/goal.ttl"
-        },
-        {
-          "name": "object_hash",
-          "value": "29f4cf58d18485e5b23cdc8215a104b4b5c6d1aa6f746127e4cb3a04177c9e88"
-        },
-        {
-          "name": "plan_len",
-          "value": 4
-        },
-        {
-          "name": "plan",
-          "value": "grant-standing -> ground-blueprint -> manufacture-artifact -> fold-receipt"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "powl_workflow:ocel_pass",
-      "type": "powl_workflow",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "POWL workflow compiled from plan"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "slots",
-          "value": 4
-        },
-        {
-          "name": "entry_mask_hex",
-          "value": "0000000000000001"
-        },
-        {
-          "name": "powl_chain_hash",
-          "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "bcinr_transition:grant-standing",
-      "type": "bcinr_transition",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "bcinr transition grant-standing"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "powl_chain_hash",
-          "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
-        },
-        {
-          "name": "transition",
-          "value": "grant-standing"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "bcinr_transition:ground-blueprint",
-      "type": "bcinr_transition",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "bcinr transition ground-blueprint"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "powl_chain_hash",
-          "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
-        },
-        {
-          "name": "transition",
-          "value": "ground-blueprint"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "bcinr_transition:manufacture-artifact",
-      "type": "bcinr_transition",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "bcinr transition manufacture-artifact"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "powl_chain_hash",
-          "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
-        },
-        {
-          "name": "transition",
-          "value": "manufacture-artifact"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "bcinr_transition:fold-receipt",
-      "type": "bcinr_transition",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "bcinr transition fold-receipt"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "powl_chain_hash",
-          "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
-        },
-        {
-          "name": "transition",
-          "value": "fold-receipt"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "ggen_artifact:ocel_pass",
-      "type": "ggen_artifact",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "manufactured artifact dir"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
-        },
-        {
-          "name": "path",
-          "value": "target/plan_run/ocel_pass"
-        },
-        {
-          "name": "files",
-          "value": "domain.pddl,problem.pddl,plan.json"
-        },
-        {
-          "name": "powl_chain_hash",
-          "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "receipt_chain:plan_run",
-      "type": "receipt_chain",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "plan-run receipt ledger"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project receipt validate --dir target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/receipt-validate.txt (sha256:25c259c84aecce2e2c1bbc33b7c229d36cfa6c7a91b12e50440458919cb01290)"
-        },
-        {
-          "name": "path",
-          "value": "target/plan_run/ocel_pass_receipts"
-        },
-        {
-          "name": "object_hash",
-          "value": "9f8e1e18f87c48e1ef696338698297b5c7906f67c7c6f0569354fe72835f1d91"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "report:receipt_verify_ocel_md",
-      "type": "report_artifact",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "RECEIPT_VERIFY_OCEL.md"
-        },
-        {
-          "name": "object_source",
-          "value": "driver:run-evidence-pass.mjs"
-        },
-        {
-          "name": "standing",
-          "value": "evidence"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "path",
-          "value": "docs/releases/v26.7.6/RECEIPT_VERIFY_OCEL.md"
-        },
-        {
-          "name": "object_hash",
-          "value": "b5becbd00ccd7b5fa7c9a0736d4fa9fc55aeb0196af6166ffaa9a489415d7681"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/receipt-validate.txt (sha256:25c259c84aecce2e2c1bbc33b7c229d36cfa6c7a91b12e50440458919cb01290)"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "receipt_chain:ggen_factory",
-      "type": "receipt_chain",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "ggen factory sync receipt chain (.ggen-v2)"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:/Users/sac/praxis/target/debug/ggen receipt history"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/ggen-receipt-history.txt (sha256:c6683d82cadd058037008d2d679875eb1ce209c7db7321e0a79405dbf4183492)"
-        },
-        {
-          "name": "path",
-          "value": ".ggen-v2/receipt-log.jsonl"
-        },
-        {
-          "name": "object_hash",
-          "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
-        },
-        {
-          "name": "records",
-          "value": 8
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "graphlaw_state:e2e",
-      "type": "graphlaw_state",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "graphlaw e2e law-state fixture"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:cargo test -p ggen --test graphlaw_e2e"
-        },
-        {
-          "name": "standing",
-          "value": "verified"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/graphlaw-e2e.txt (sha256:32953ad3251ee2957ba2d4725e2d23a5ec68b2e56a7793bbb9c91c00ccac3587)"
-        },
-        {
-          "name": "path",
-          "value": "crates/ggen/tests/graphlaw_e2e.rs"
-        }
-      ],
-      "relationships": []
-    },
-    {
-      "id": "report:ledger_export_ocel",
-      "type": "report_artifact",
-      "attributes": [
-        {
-          "name": "object_label",
-          "value": "receipt ledger exported as OCEL 2.0"
-        },
-        {
-          "name": "object_source",
-          "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project receipt export-ocel --out docs/releases/v26.7.6/ocel/ledger-export.ocel.json"
-        },
-        {
-          "name": "standing",
-          "value": "evidence"
-        },
-        {
-          "name": "created_or_observed_by",
-          "value": "driver"
-        },
-        {
-          "name": "evidence_refs",
-          "value": "docs/releases/v26.7.6/ocel/raw/receipt-export-ocel.txt (sha256:97bc89d9c09f57d1824c2427969cb306c79b5a52893b7da7fe04bc406b7cd17c)"
-        },
-        {
-          "name": "path",
-          "value": "docs/releases/v26.7.6/ocel/ledger-export.ocel.json"
-        },
-        {
-          "name": "object_hash",
-          "value": "b987f8f8b150d87ae5353cc406e57cdfe7f6a8339c460fac7065c0a9fce18a65"
-        }
-      ],
-      "relationships": []
+     "name": "mode",
+     "type": "string"
     }
-  ]
+   ]
+  },
+  {
+   "name": "api_request_observed",
+   "attributes": [
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "url",
+     "type": "string"
+    },
+    {
+     "name": "status",
+     "type": "integer"
+    },
+    {
+     "name": "chain_hash_hex",
+     "type": "string"
+    },
+    {
+     "name": "records",
+     "type": "integer"
+    },
+    {
+     "name": "head_chain_hash_hex",
+     "type": "string"
+    },
+    {
+     "name": "plan_ref",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "screenshot_captured",
+   "attributes": [
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "screen",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "ui_action_triggered",
+   "attributes": [
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "control",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "trace_captured",
+   "attributes": [
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "trace_path",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "verifier_gate_invoked",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "gate",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "pddl_plan_requested",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "goal",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "pddl_plan_loaded",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "plan_len",
+     "type": "integer"
+    },
+    {
+     "name": "grounder",
+     "type": "string"
+    },
+    {
+     "name": "graph_hash",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "powl_workflow_compiled",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "slots",
+     "type": "integer"
+    }
+   ]
+  },
+  {
+   "name": "powl_workflow_executed",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "powl_chain_hash",
+     "type": "string"
+    },
+    {
+     "name": "run",
+     "type": "integer"
+    },
+    {
+     "name": "determinism_check",
+     "type": "string"
+    },
+    {
+     "name": "determinism_against",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "bcinr_transition_executed",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "transition",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "ggen_artifact_generated",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "files",
+     "type": "string"
+    },
+    {
+     "name": "artifact",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "verifier_gate_completed",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "gate",
+     "type": "string"
+    },
+    {
+     "name": "solvable",
+     "type": "boolean"
+    }
+   ]
+  },
+  {
+   "name": "claim_promoted_to_standing",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "claim",
+     "type": "string"
+    },
+    {
+     "name": "powl_chain_hash",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "receipt_chain_verified",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "chain",
+     "type": "string"
+    },
+    {
+     "name": "chain_hash",
+     "type": "string"
+    },
+    {
+     "name": "payload_hash",
+     "type": "string"
+    },
+    {
+     "name": "graph_hash",
+     "type": "string"
+    },
+    {
+     "name": "records",
+     "type": "integer"
+    },
+    {
+     "name": "head_chain_hash",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "graphlaw_state_loaded",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "suite",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "graphlaw_export_requested",
+   "attributes": [
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "started_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "finished_at_utc",
+     "type": "string"
+    },
+    {
+     "name": "exit_code",
+     "type": "integer"
+    },
+    {
+     "name": "rules_loaded",
+     "type": "integer"
+    },
+    {
+     "name": "derived",
+     "type": "integer"
+    },
+    {
+     "name": "graph_hash",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "ocel_log_written",
+   "attributes": [
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "path",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "benchmark_run_started",
+   "attributes": [
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "command",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "benchmark_run_completed",
+   "attributes": [
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "raw_output_sha256",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "benchmark_result_attached",
+   "attributes": [
+    {
+     "name": "run_id",
+     "type": "string"
+    },
+    {
+     "name": "release_id",
+     "type": "string"
+    },
+    {
+     "name": "actor",
+     "type": "string"
+    },
+    {
+     "name": "event_source",
+     "type": "string"
+    },
+    {
+     "name": "standing_effect",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "standing_transition_median",
+     "type": "string"
+    },
+    {
+     "name": "action_precondition_mask_median",
+     "type": "string"
+    },
+    {
+     "name": "pddl_action_filter_median",
+     "type": "string"
+    },
+    {
+     "name": "bcinr_transition_table_median",
+     "type": "string"
+    },
+    {
+     "name": "powl_step_tick_median",
+     "type": "string"
+    },
+    {
+     "name": "receipt_frame_link_median",
+     "type": "string"
+    },
+    {
+     "name": "ggen_render_report_small_median",
+     "type": "string"
+    },
+    {
+     "name": "graphlaw_materialize_delta_median",
+     "type": "string"
+    }
+   ]
+  }
+ ],
+ "objectTypes": [
+  {
+   "name": "browser_session",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "created_or_observed_by",
+     "type": "string"
+    },
+    {
+     "name": "browser_version",
+     "type": "string"
+    },
+    {
+     "name": "base_url",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "client_surface",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "created_or_observed_by",
+     "type": "string"
+    },
+    {
+     "name": "path",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "receipt_chain",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "created_or_observed_by",
+     "type": "string"
+    },
+    {
+     "name": "path",
+     "type": "string"
+    },
+    {
+     "name": "object_hash",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "records",
+     "type": "integer"
+    }
+   ]
+  },
+  {
+   "name": "screenshot",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "created_or_observed_by",
+     "type": "string"
+    },
+    {
+     "name": "path",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "verifier_gate",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "created_or_observed_by",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "path",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "pddl_plan",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "created_or_observed_by",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "path",
+     "type": "string"
+    },
+    {
+     "name": "object_hash",
+     "type": "string"
+    },
+    {
+     "name": "plan_len",
+     "type": "integer"
+    },
+    {
+     "name": "plan",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "powl_workflow",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "created_or_observed_by",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "slots",
+     "type": "integer"
+    },
+    {
+     "name": "entry_mask_hex",
+     "type": "string"
+    },
+    {
+     "name": "powl_chain_hash",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "bcinr_transition",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "created_or_observed_by",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "powl_chain_hash",
+     "type": "string"
+    },
+    {
+     "name": "transition",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "ggen_artifact",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "created_or_observed_by",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "path",
+     "type": "string"
+    },
+    {
+     "name": "files",
+     "type": "string"
+    },
+    {
+     "name": "powl_chain_hash",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "report_artifact",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "created_or_observed_by",
+     "type": "string"
+    },
+    {
+     "name": "path",
+     "type": "string"
+    },
+    {
+     "name": "object_hash",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "graphlaw_state",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "created_or_observed_by",
+     "type": "string"
+    },
+    {
+     "name": "evidence_refs",
+     "type": "string"
+    },
+    {
+     "name": "path",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "benchmark_run",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "command",
+     "type": "string"
+    },
+    {
+     "name": "raw_output_path",
+     "type": "string"
+    },
+    {
+     "name": "raw_output_sha256",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "benchmark_result",
+   "attributes": [
+    {
+     "name": "object_label",
+     "type": "string"
+    },
+    {
+     "name": "object_source",
+     "type": "string"
+    },
+    {
+     "name": "standing",
+     "type": "string"
+    },
+    {
+     "name": "metric_name",
+     "type": "string"
+    },
+    {
+     "name": "median",
+     "type": "string"
+    }
+   ]
+  }
+ ],
+ "events": [
+  {
+   "id": "drv_e1",
+   "type": "verifier_gate_invoked",
+   "time": "2026-07-06T19:10:43.285Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:cargo build --features ggen --bin my-conforming-project"
+    },
+    {
+     "name": "standing_effect",
+     "value": "gate_passed"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/cargo-build.txt (sha256:747f53a3da4710659567fdeecb23c44c46253badd5f5fb7dcf822410eed47dcd)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:42.925Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:43.282Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "gate",
+     "value": "compile"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "gate:compile",
+     "qualifier": "gate"
+    }
+   ]
+  },
+  {
+   "id": "drv_e2",
+   "type": "pddl_plan_requested",
+   "time": "2026-07-06T19:10:43.285Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:43.285Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "goal",
+     "value": "examples/v26_7_6_after_neon/goal.ttl"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "pddl_plan:ocel_pass",
+     "qualifier": "plan"
+    }
+   ]
+  },
+  {
+   "id": "drv_e3",
+   "type": "pddl_plan_loaded",
+   "time": "2026-07-06T19:10:44.809Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:43.285Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "plan_len",
+     "value": 4
+    },
+    {
+     "name": "grounder",
+     "value": "naive"
+    },
+    {
+     "name": "graph_hash",
+     "value": "29f4cf58d18485e5b23cdc8215a104b4b5c6d1aa6f746127e4cb3a04177c9e88"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "pddl_plan:ocel_pass",
+     "qualifier": "plan"
+    }
+   ]
+  },
+  {
+   "id": "drv_e4",
+   "type": "powl_workflow_compiled",
+   "time": "2026-07-06T19:10:44.809Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:43.285Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "slots",
+     "value": 4
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "powl_workflow:ocel_pass",
+     "qualifier": "workflow"
+    }
+   ]
+  },
+  {
+   "id": "drv_e5",
+   "type": "powl_workflow_executed",
+   "time": "2026-07-06T19:10:44.809Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:43.285Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "powl_chain_hash",
+     "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
+    },
+    {
+     "name": "run",
+     "value": 1
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "powl_workflow:ocel_pass",
+     "qualifier": "workflow"
+    }
+   ]
+  },
+  {
+   "id": "drv_e6",
+   "type": "bcinr_transition_executed",
+   "time": "2026-07-06T19:10:44.809Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:43.285Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "transition",
+     "value": "grant-standing"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "bcinr_transition:grant-standing",
+     "qualifier": "transition"
+    }
+   ]
+  },
+  {
+   "id": "drv_e7",
+   "type": "bcinr_transition_executed",
+   "time": "2026-07-06T19:10:44.809Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:43.285Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "transition",
+     "value": "ground-blueprint"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "bcinr_transition:ground-blueprint",
+     "qualifier": "transition"
+    }
+   ]
+  },
+  {
+   "id": "drv_e8",
+   "type": "bcinr_transition_executed",
+   "time": "2026-07-06T19:10:44.809Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:43.285Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "transition",
+     "value": "manufacture-artifact"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "bcinr_transition:manufacture-artifact",
+     "qualifier": "transition"
+    }
+   ]
+  },
+  {
+   "id": "drv_e9",
+   "type": "bcinr_transition_executed",
+   "time": "2026-07-06T19:10:44.809Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:43.285Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "transition",
+     "value": "fold-receipt"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "bcinr_transition:fold-receipt",
+     "qualifier": "transition"
+    }
+   ]
+  },
+  {
+   "id": "drv_e10",
+   "type": "ggen_artifact_generated",
+   "time": "2026-07-06T19:10:44.809Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:43.285Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "files",
+     "value": "domain.pddl,problem.pddl,plan.json"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "ggen_artifact:ocel_pass",
+     "qualifier": "artifact"
+    }
+   ]
+  },
+  {
+   "id": "drv_e11",
+   "type": "verifier_gate_completed",
+   "time": "2026-07-06T19:10:44.809Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "gate_passed"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:43.285Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "gate",
+     "value": "plan_run_solvability"
+    },
+    {
+     "name": "solvable",
+     "value": true
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "ggen_artifact:ocel_pass",
+     "qualifier": "artifact"
+    }
+   ]
+  },
+  {
+   "id": "drv_e12",
+   "type": "powl_workflow_executed",
+   "time": "2026-07-06T19:10:44.863Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass2 --receipts-dir target/plan_run/ocel_pass2_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop-2.txt (sha256:f96173fe591cc6b5d8f01a5ca614de4392a4a646a8fc737d05b15ca188ab0ca4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.862Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "powl_chain_hash",
+     "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
+    },
+    {
+     "name": "run",
+     "value": 2
+    },
+    {
+     "name": "determinism_check",
+     "value": "identical"
+    },
+    {
+     "name": "determinism_against",
+     "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "drv_e13",
+   "type": "claim_promoted_to_standing",
+   "time": "2026-07-06T19:10:44.863Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass2 --receipts-dir target/plan_run/ocel_pass2_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "claim_promoted"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4); docs/releases/v26.7.6/ocel/raw/full-loop-2.txt (sha256:f96173fe591cc6b5d8f01a5ca614de4392a4a646a8fc737d05b15ca188ab0ca4)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:44.809Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.862Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "claim",
+     "value": "powl_chain_hash is deterministic across independent plan runs"
+    },
+    {
+     "name": "powl_chain_hash",
+     "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "drv_e14",
+   "type": "receipt_chain_verified",
+   "time": "2026-07-06T19:10:44.892Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project receipt validate --dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "gate_passed"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/receipt-validate.txt (sha256:25c259c84aecce2e2c1bbc33b7c229d36cfa6c7a91b12e50440458919cb01290)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:44.863Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.891Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "chain",
+     "value": "plan_run_ledger"
+    },
+    {
+     "name": "chain_hash",
+     "value": "9f8e1e18f87c48e1ef696338698297b5c7906f67c7c6f0569354fe72835f1d91"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "receipt_chain:plan_run",
+     "qualifier": "chain"
+    }
+   ]
+  },
+  {
+   "id": "drv_e15",
+   "type": "receipt_chain_verified",
+   "time": "2026-07-06T19:10:44.950Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/ggen receipt verify"
+    },
+    {
+     "name": "standing_effect",
+     "value": "gate_passed"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/ggen-receipt-verify.txt (sha256:702da2b94626bb2204412fad634a5eccf1c4fa1b8504f516af3edb7a8ad682a7)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:44.892Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.921Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "chain",
+     "value": "ggen_factory"
+    },
+    {
+     "name": "chain_hash",
+     "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
+    },
+    {
+     "name": "payload_hash",
+     "value": "4faa67822e85bdc02b35540802732798a644a551072045b968cae7cbe89290d2"
+    },
+    {
+     "name": "graph_hash",
+     "value": "181850a747b21e698a35831857140b70305f38baf1c7df456275b5cb0036c1b7"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "receipt_chain:ggen_factory",
+     "qualifier": "chain"
+    }
+   ]
+  },
+  {
+   "id": "drv_e16",
+   "type": "receipt_chain_verified",
+   "time": "2026-07-06T19:10:44.950Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/ggen receipt history"
+    },
+    {
+     "name": "standing_effect",
+     "value": "gate_passed"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/ggen-receipt-history.txt (sha256:c6683d82cadd058037008d2d679875eb1ce209c7db7321e0a79405dbf4183492)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:44.921Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:44.950Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "chain",
+     "value": "ggen_factory_history"
+    },
+    {
+     "name": "records",
+     "value": 8
+    },
+    {
+     "name": "head_chain_hash",
+     "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "receipt_chain:ggen_factory",
+     "qualifier": "chain"
+    }
+   ]
+  },
+  {
+   "id": "drv_e17",
+   "type": "graphlaw_state_loaded",
+   "time": "2026-07-06T19:10:45.261Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:cargo test -p ggen --test graphlaw_e2e"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/graphlaw-e2e.txt (sha256:32953ad3251ee2957ba2d4725e2d23a5ec68b2e56a7793bbb9c91c00ccac3587)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:44.950Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:45.261Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "suite",
+     "value": "graphlaw_e2e"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "graphlaw_state:e2e",
+     "qualifier": "law_state"
+    }
+   ]
+  },
+  {
+   "id": "drv_e18",
+   "type": "verifier_gate_completed",
+   "time": "2026-07-06T19:10:45.261Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:cargo test -p ggen --test graphlaw_e2e"
+    },
+    {
+     "name": "standing_effect",
+     "value": "gate_passed"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/graphlaw-e2e.txt (sha256:32953ad3251ee2957ba2d4725e2d23a5ec68b2e56a7793bbb9c91c00ccac3587)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:44.950Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:45.261Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "gate",
+     "value": "graphlaw_e2e_tests"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "graphlaw_state:e2e",
+     "qualifier": "law_state"
+    }
+   ]
+  },
+  {
+   "id": "drv_e19",
+   "type": "graphlaw_export_requested",
+   "time": "2026-07-06T19:10:46.778Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/ggen law derive"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/ggen-law-derive.txt (sha256:caaddcdc8f1ae306634309ff75ffc4fa69c0ef1ff3480d791ab7bd9f98426877)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:45.261Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:46.777Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "rules_loaded",
+     "value": 1
+    },
+    {
+     "name": "derived",
+     "value": 55
+    },
+    {
+     "name": "graph_hash",
+     "value": "181850a747b21e698a35831857140b70305f38baf1c7df456275b5cb0036c1b7"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "graphlaw_state:e2e",
+     "qualifier": "law_state"
+    }
+   ]
+  },
+  {
+   "id": "drv_e20",
+   "type": "ggen_artifact_generated",
+   "time": "2026-07-06T19:10:46.811Z",
+   "attributes": [
+    {
+     "name": "actor",
+     "value": "driver"
+    },
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project receipt export-ocel --out docs/releases/v26.7.6/ocel/ledger-export.ocel.json"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/receipt-export-ocel.txt (sha256:97bc89d9c09f57d1824c2427969cb306c79b5a52893b7da7fe04bc406b7cd17c)"
+    },
+    {
+     "name": "started_at_utc",
+     "value": "2026-07-06T19:10:46.778Z"
+    },
+    {
+     "name": "finished_at_utc",
+     "value": "2026-07-06T19:10:46.811Z"
+    },
+    {
+     "name": "exit_code",
+     "value": 0
+    },
+    {
+     "name": "artifact",
+     "value": "docs/releases/v26.7.6/ocel/ledger-export.ocel.json"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "report:ledger_export_ocel",
+     "qualifier": "artifact"
+    }
+   ]
+  },
+  {
+   "id": "pw_e1",
+   "type": "validation_run_started",
+   "time": "2026-07-06T19:10:49.311Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:ocel-wasm4pm-validation.spec.ts"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/utc-window.json"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "pw_e2",
+   "type": "utc_clock_captured",
+   "time": "2026-07-06T19:10:49.312Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:Date.toISOString"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/utc-window.json"
+    },
+    {
+     "name": "clock_source",
+     "value": "system"
+    },
+    {
+     "name": "timezone_policy",
+     "value": "ISO-8601 UTC Z only"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "pw_e3",
+   "type": "playwright_browser_launched",
+   "time": "2026-07-06T19:10:49.312Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:chromium"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "playwright.config.ts (webServer vite --port 5173)"
+    },
+    {
+     "name": "browser_version",
+     "value": "149.0.7827.55"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "browser_session:autonomic",
+     "qualifier": "session"
+    }
+   ]
+  },
+  {
+   "id": "pw_e4",
+   "type": "route_loaded",
+   "time": "2026-07-06T19:10:49.406Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:page.goto"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "http://localhost:5173/"
+    },
+    {
+     "name": "route",
+     "value": "/"
+    },
+    {
+     "name": "mode",
+     "value": "praxis"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "browser_session:autonomic",
+     "qualifier": "session"
+    },
+    {
+     "objectId": "client_surface:autonomic",
+     "qualifier": "surface"
+    }
+   ]
+  },
+  {
+   "id": "pw_e5",
+   "type": "api_request_observed",
+   "time": "2026-07-06T19:10:49.440Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:page.request.get"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": ".ggen-v2/receipt.json served by praxisArtifacts middleware"
+    },
+    {
+     "name": "url",
+     "value": "/praxis-artifacts/receipt.json"
+    },
+    {
+     "name": "status",
+     "value": 200
+    },
+    {
+     "name": "chain_hash_hex",
+     "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "client_surface:autonomic",
+     "qualifier": "surface"
+    },
+    {
+     "objectId": "receipt_chain:served_factory",
+     "qualifier": "chain"
+    }
+   ]
+  },
+  {
+   "id": "pw_e6",
+   "type": "api_request_observed",
+   "time": "2026-07-06T19:10:49.440Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:waitForResponse"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": ".ggen-v2/receipt-log.jsonl served by praxisArtifacts middleware"
+    },
+    {
+     "name": "url",
+     "value": "/praxis-artifacts/receipt-log.jsonl"
+    },
+    {
+     "name": "status",
+     "value": 200
+    },
+    {
+     "name": "records",
+     "value": 8
+    },
+    {
+     "name": "head_chain_hash_hex",
+     "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "client_surface:autonomic",
+     "qualifier": "surface"
+    },
+    {
+     "objectId": "receipt_chain:served_factory",
+     "qualifier": "chain"
+    }
+   ]
+  },
+  {
+   "id": "pw_e7",
+   "type": "api_request_observed",
+   "time": "2026-07-06T19:10:49.440Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:waitForResponse"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "plan ref target/plan_run/after_neon_det/plan.json"
+    },
+    {
+     "name": "url",
+     "value": "/praxis-artifacts/plan.json"
+    },
+    {
+     "name": "status",
+     "value": 200
+    },
+    {
+     "name": "plan_ref",
+     "value": "target/plan_run/after_neon_det/plan.json"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "client_surface:autonomic",
+     "qualifier": "surface"
+    }
+   ]
+  },
+  {
+   "id": "pw_e8",
+   "type": "screenshot_captured",
+   "time": "2026-07-06T19:10:49.526Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:page.screenshot"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-command.png"
+    },
+    {
+     "name": "screen",
+     "value": "command"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "screenshot:command",
+     "qualifier": "capture"
+    },
+    {
+     "objectId": "client_surface:autonomic",
+     "qualifier": "surface"
+    }
+   ]
+  },
+  {
+   "id": "pw_e9",
+   "type": "ui_action_triggered",
+   "time": "2026-07-06T19:10:49.594Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:getByTitle.click"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-ops.png"
+    },
+    {
+     "name": "control",
+     "value": "NavRail:Operations"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "client_surface:autonomic",
+     "qualifier": "surface"
+    }
+   ]
+  },
+  {
+   "id": "pw_e10",
+   "type": "screenshot_captured",
+   "time": "2026-07-06T19:10:50.072Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:page.screenshot"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-ops.png"
+    },
+    {
+     "name": "screen",
+     "value": "ops"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "screenshot:ops",
+     "qualifier": "capture"
+    },
+    {
+     "objectId": "client_surface:autonomic",
+     "qualifier": "surface"
+    }
+   ]
+  },
+  {
+   "id": "pw_e11",
+   "type": "ui_action_triggered",
+   "time": "2026-07-06T19:10:50.084Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:getByTitle.click"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-dod.png"
+    },
+    {
+     "name": "control",
+     "value": "NavRail:Definition of Done"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "client_surface:autonomic",
+     "qualifier": "surface"
+    }
+   ]
+  },
+  {
+   "id": "pw_e12",
+   "type": "screenshot_captured",
+   "time": "2026-07-06T19:10:50.563Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:page.screenshot"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-dod.png"
+    },
+    {
+     "name": "screen",
+     "value": "dod"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "screenshot:dod",
+     "qualifier": "capture"
+    },
+    {
+     "objectId": "client_surface:autonomic",
+     "qualifier": "surface"
+    }
+   ]
+  },
+  {
+   "id": "pw_e13",
+   "type": "ui_action_triggered",
+   "time": "2026-07-06T19:10:50.604Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:getByTitle.click"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "trace.zip (Model Deck click)"
+    },
+    {
+     "name": "control",
+     "value": "NavRail:Model Deck"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "client_surface:autonomic",
+     "qualifier": "surface"
+    }
+   ]
+  },
+  {
+   "id": "pw_e14",
+   "type": "trace_captured",
+   "time": "2026-07-06T19:10:50.604Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:trace=on"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "clients/autonomic-platform/test-results/ocel-wasm4pm-validation-OC-5467e-idation-over-real-artifacts-chromium/trace.zip"
+    },
+    {
+     "name": "trace_path",
+     "value": "clients/autonomic-platform/test-results/ocel-wasm4pm-validation-OC-5467e-idation-over-real-artifacts-chromium/trace.zip"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "browser_session:autonomic",
+     "qualifier": "session"
+    }
+   ]
+  },
+  {
+   "id": "pw_e15",
+   "type": "ocel_log_written",
+   "time": "2026-07-06T19:10:50.604Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "ocel-evidence-2026-07-06T19-10-42-924Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "playwright"
+    },
+    {
+     "name": "event_source",
+     "value": "playwright:OcelRecorder.save"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json"
+    },
+    {
+     "name": "path",
+     "value": "docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "pw_e36",
+   "type": "benchmark_run_started",
+   "time": "2026-07-06T19:13:25Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "bench-rerun-2026-07-06T19-13-25Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "cargo-bench"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:cargo bench"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+    },
+    {
+     "name": "command",
+     "value": "cargo bench --bench blue_river_dam -p my-conforming-project"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:root",
+     "qualifier": "started"
+    }
+   ]
+  },
+  {
+   "id": "pw_e37",
+   "type": "benchmark_run_completed",
+   "time": "2026-07-06T19:14:52Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "bench-rerun-2026-07-06T19-13-25Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "cargo-bench"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:cargo bench"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+    },
+    {
+     "name": "raw_output_sha256",
+     "value": "34570340d1e2947e9251f5557c28c89062dedca34aa7ecaa32d0032be57c28db"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:root",
+     "qualifier": "completed"
+    }
+   ]
+  },
+  {
+   "id": "pw_e38",
+   "type": "benchmark_result_attached",
+   "time": "2026-07-06T19:14:52Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "bench-rerun-2026-07-06T19-13-25Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "cargo-bench"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "event_source",
+     "value": "file:docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+    },
+    {
+     "name": "standing_transition_median",
+     "value": "19.98 ns"
+    },
+    {
+     "name": "action_precondition_mask_median",
+     "value": "56.93 ns"
+    },
+    {
+     "name": "pddl_action_filter_median",
+     "value": "6.457 \u00b5s"
+    },
+    {
+     "name": "bcinr_transition_table_median",
+     "value": "0.627 ns"
+    },
+    {
+     "name": "powl_step_tick_median",
+     "value": "3.512 ns"
+    },
+    {
+     "name": "receipt_frame_link_median",
+     "value": "245.7 ns"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:root",
+     "qualifier": "measured_by"
+    },
+    {
+     "objectId": "benchmark_result:standing_transition",
+     "qualifier": "attached"
+    },
+    {
+     "objectId": "benchmark_result:action_precondition_mask",
+     "qualifier": "attached"
+    },
+    {
+     "objectId": "benchmark_result:pddl_action_filter",
+     "qualifier": "attached"
+    },
+    {
+     "objectId": "benchmark_result:bcinr_transition_table",
+     "qualifier": "attached"
+    },
+    {
+     "objectId": "benchmark_result:powl_step_tick",
+     "qualifier": "attached"
+    },
+    {
+     "objectId": "benchmark_result:receipt_frame_link",
+     "qualifier": "attached"
+    }
+   ]
+  },
+  {
+   "id": "pw_e39",
+   "type": "benchmark_run_started",
+   "time": "2026-07-06T19:14:59Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "bench-rerun-2026-07-06T19-13-25Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "cargo-bench"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:cargo bench"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-ggen.txt"
+    },
+    {
+     "name": "command",
+     "value": "cargo bench --bench blue_river_dam -p ggen"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:ggen",
+     "qualifier": "started"
+    }
+   ]
+  },
+  {
+   "id": "pw_e40",
+   "type": "benchmark_run_completed",
+   "time": "2026-07-06T19:15:00Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "bench-rerun-2026-07-06T19-13-25Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "cargo-bench"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:cargo bench"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-ggen.txt"
+    },
+    {
+     "name": "raw_output_sha256",
+     "value": "258944cc86b615aa8506c4dcbd74eaf9957f024e447b30372868489ae66d726d"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:ggen",
+     "qualifier": "completed"
+    }
+   ]
+  },
+  {
+   "id": "pw_e41",
+   "type": "benchmark_result_attached",
+   "time": "2026-07-06T19:15:00Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "bench-rerun-2026-07-06T19-13-25Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "cargo-bench"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "event_source",
+     "value": "file:docs/releases/v26.7.6/ocel/raw/bench-ggen.txt"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-ggen.txt"
+    },
+    {
+     "name": "ggen_render_report_small_median",
+     "value": "17.41 \u00b5s"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:ggen",
+     "qualifier": "measured_by"
+    },
+    {
+     "objectId": "benchmark_result:ggen_render_report_small",
+     "qualifier": "attached"
+    }
+   ]
+  },
+  {
+   "id": "pw_e42",
+   "type": "benchmark_run_started",
+   "time": "2026-07-06T19:15:08Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "bench-rerun-2026-07-06T19-13-25Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "cargo-bench"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:cargo bench"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt"
+    },
+    {
+     "name": "command",
+     "value": "cargo bench --bench blue_river_dam -p praxis-graphlaw"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:graphlaw",
+     "qualifier": "started"
+    }
+   ]
+  },
+  {
+   "id": "pw_e43",
+   "type": "benchmark_run_completed",
+   "time": "2026-07-06T19:15:09Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "bench-rerun-2026-07-06T19-13-25Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "cargo-bench"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "event_source",
+     "value": "cli:cargo bench"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt"
+    },
+    {
+     "name": "raw_output_sha256",
+     "value": "e02f221e1664edc526fddd14c43306926dc573bf4c83820201d3770a7ac0aeda"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:graphlaw",
+     "qualifier": "completed"
+    }
+   ]
+  },
+  {
+   "id": "pw_e44",
+   "type": "benchmark_result_attached",
+   "time": "2026-07-06T19:15:09Z",
+   "attributes": [
+    {
+     "name": "run_id",
+     "value": "bench-rerun-2026-07-06T19-13-25Z"
+    },
+    {
+     "name": "release_id",
+     "value": "v26.7.6"
+    },
+    {
+     "name": "actor",
+     "value": "cargo-bench"
+    },
+    {
+     "name": "standing_effect",
+     "value": "none"
+    },
+    {
+     "name": "event_source",
+     "value": "file:docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt"
+    },
+    {
+     "name": "graphlaw_materialize_delta_median",
+     "value": "930 \u00b5s"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:graphlaw",
+     "qualifier": "measured_by"
+    },
+    {
+     "objectId": "benchmark_result:graphlaw_materialize_delta",
+     "qualifier": "attached"
+    }
+   ]
+  }
+ ],
+ "objects": [
+  {
+   "id": "browser_session:autonomic",
+   "type": "browser_session",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "chromium session against autonomic-platform dev server"
+    },
+    {
+     "name": "object_source",
+     "value": "playwright:chromium"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "playwright"
+    },
+    {
+     "name": "browser_version",
+     "value": "149.0.7827.55"
+    },
+    {
+     "name": "base_url",
+     "value": "http://localhost:5173"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "client_surface:autonomic",
+   "type": "client_surface",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "autonomic-platform (Vite 6 + praxisArtifacts middleware)"
+    },
+    {
+     "name": "object_source",
+     "value": "clients/autonomic-platform"
+    },
+    {
+     "name": "standing",
+     "value": "release_critical"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "playwright"
+    },
+    {
+     "name": "path",
+     "value": "clients/autonomic-platform/src/main.jsx"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-command.png"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "receipt_chain:served_factory",
+   "type": "receipt_chain",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "factory receipt chain as served to the client"
+    },
+    {
+     "name": "object_source",
+     "value": "GET /praxis-artifacts/receipt.json (-> .ggen-v2/receipt.json)"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "playwright"
+    },
+    {
+     "name": "path",
+     "value": ".ggen-v2/receipt.json"
+    },
+    {
+     "name": "object_hash",
+     "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/ggen-receipt-verify.txt"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "screenshot:command",
+   "type": "screenshot",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "screen capture: command"
+    },
+    {
+     "name": "object_source",
+     "value": "playwright:page.screenshot"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "playwright"
+    },
+    {
+     "name": "path",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-command.png"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-command.png"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "screenshot:ops",
+   "type": "screenshot",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "screen capture: ops"
+    },
+    {
+     "name": "object_source",
+     "value": "playwright:page.screenshot"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "playwright"
+    },
+    {
+     "name": "path",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-ops.png"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-ops.png"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "screenshot:dod",
+   "type": "screenshot",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "screen capture: dod"
+    },
+    {
+     "name": "object_source",
+     "value": "playwright:page.screenshot"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "playwright"
+    },
+    {
+     "name": "path",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-dod.png"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-dod.png"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "client_surface:optimus",
+   "type": "client_surface",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "optimus (Next.js) secondary surface \u2014 non-release-critical"
+    },
+    {
+     "name": "object_source",
+     "value": "/Users/sac/optimus tests/e2e/praxis-smoke.spec.ts"
+    },
+    {
+     "name": "standing",
+     "value": "secondary"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "playwright"
+    },
+    {
+     "name": "path",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-optimus.png"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-optimus.png"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "browser_session:optimus",
+   "type": "browser_session",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "chromium session against optimus dev server (secondary)"
+    },
+    {
+     "name": "object_source",
+     "value": "playwright:optimus praxis-smoke"
+    },
+    {
+     "name": "standing",
+     "value": "secondary"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "playwright"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-optimus.png"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "screenshot:optimus",
+   "type": "screenshot",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "optimus landing screenshot"
+    },
+    {
+     "name": "object_source",
+     "value": "playwright:optimus praxis-smoke"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "playwright"
+    },
+    {
+     "name": "path",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-optimus.png"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/screenshot-optimus.png"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "gate:compile",
+   "type": "verifier_gate",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "cargo build --features ggen compile gate"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:cargo build --features ggen --bin my-conforming-project"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/cargo-build.txt (sha256:747f53a3da4710659567fdeecb23c44c46253badd5f5fb7dcf822410eed47dcd)"
+    },
+    {
+     "name": "path",
+     "value": "target/debug/my-conforming-project"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "pddl_plan:ocel_pass",
+   "type": "pddl_plan",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "classical plan from goal.ttl"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "path",
+     "value": "examples/v26_7_6_after_neon/goal.ttl"
+    },
+    {
+     "name": "object_hash",
+     "value": "29f4cf58d18485e5b23cdc8215a104b4b5c6d1aa6f746127e4cb3a04177c9e88"
+    },
+    {
+     "name": "plan_len",
+     "value": 4
+    },
+    {
+     "name": "plan",
+     "value": "grant-standing -> ground-blueprint -> manufacture-artifact -> fold-receipt"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "powl_workflow:ocel_pass",
+   "type": "powl_workflow",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "POWL workflow compiled from plan"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "slots",
+     "value": 4
+    },
+    {
+     "name": "entry_mask_hex",
+     "value": "0000000000000001"
+    },
+    {
+     "name": "powl_chain_hash",
+     "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "bcinr_transition:grant-standing",
+   "type": "bcinr_transition",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "bcinr transition grant-standing"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "powl_chain_hash",
+     "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
+    },
+    {
+     "name": "transition",
+     "value": "grant-standing"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "bcinr_transition:ground-blueprint",
+   "type": "bcinr_transition",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "bcinr transition ground-blueprint"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "powl_chain_hash",
+     "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
+    },
+    {
+     "name": "transition",
+     "value": "ground-blueprint"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "bcinr_transition:manufacture-artifact",
+   "type": "bcinr_transition",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "bcinr transition manufacture-artifact"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "powl_chain_hash",
+     "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
+    },
+    {
+     "name": "transition",
+     "value": "manufacture-artifact"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "bcinr_transition:fold-receipt",
+   "type": "bcinr_transition",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "bcinr transition fold-receipt"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "powl_chain_hash",
+     "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
+    },
+    {
+     "name": "transition",
+     "value": "fold-receipt"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "ggen_artifact:ocel_pass",
+   "type": "ggen_artifact",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "manufactured artifact dir"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass --receipts-dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/full-loop.txt (sha256:b4106106750aef9c035976340ae55fe3aa33c940055ca81a05202702d3bf84f4)"
+    },
+    {
+     "name": "path",
+     "value": "target/plan_run/ocel_pass"
+    },
+    {
+     "name": "files",
+     "value": "domain.pddl,problem.pddl,plan.json"
+    },
+    {
+     "name": "powl_chain_hash",
+     "value": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "receipt_chain:plan_run",
+   "type": "receipt_chain",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "plan-run receipt ledger"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project receipt validate --dir target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/receipt-validate.txt (sha256:25c259c84aecce2e2c1bbc33b7c229d36cfa6c7a91b12e50440458919cb01290)"
+    },
+    {
+     "name": "path",
+     "value": "target/plan_run/ocel_pass_receipts"
+    },
+    {
+     "name": "object_hash",
+     "value": "9f8e1e18f87c48e1ef696338698297b5c7906f67c7c6f0569354fe72835f1d91"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "report:receipt_verify_ocel_md",
+   "type": "report_artifact",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "RECEIPT_VERIFY_OCEL.md"
+    },
+    {
+     "name": "object_source",
+     "value": "driver:run-evidence-pass.mjs"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "path",
+     "value": "docs/releases/v26.7.6/RECEIPT_VERIFY_OCEL.md"
+    },
+    {
+     "name": "object_hash",
+     "value": "b5becbd00ccd7b5fa7c9a0736d4fa9fc55aeb0196af6166ffaa9a489415d7681"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/receipt-validate.txt (sha256:25c259c84aecce2e2c1bbc33b7c229d36cfa6c7a91b12e50440458919cb01290)"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "receipt_chain:ggen_factory",
+   "type": "receipt_chain",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "ggen factory sync receipt chain (.ggen-v2)"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:/Users/sac/praxis/target/debug/ggen receipt history"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/ggen-receipt-history.txt (sha256:c6683d82cadd058037008d2d679875eb1ce209c7db7321e0a79405dbf4183492)"
+    },
+    {
+     "name": "path",
+     "value": ".ggen-v2/receipt-log.jsonl"
+    },
+    {
+     "name": "object_hash",
+     "value": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a"
+    },
+    {
+     "name": "records",
+     "value": 8
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "graphlaw_state:e2e",
+   "type": "graphlaw_state",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "graphlaw e2e law-state fixture"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:cargo test -p ggen --test graphlaw_e2e"
+    },
+    {
+     "name": "standing",
+     "value": "verified"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/graphlaw-e2e.txt (sha256:32953ad3251ee2957ba2d4725e2d23a5ec68b2e56a7793bbb9c91c00ccac3587)"
+    },
+    {
+     "name": "path",
+     "value": "crates/ggen/tests/graphlaw_e2e.rs"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "report:ledger_export_ocel",
+   "type": "report_artifact",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "receipt ledger exported as OCEL 2.0"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:/Users/sac/praxis/target/debug/my-conforming-project receipt export-ocel --out docs/releases/v26.7.6/ocel/ledger-export.ocel.json"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "created_or_observed_by",
+     "value": "driver"
+    },
+    {
+     "name": "evidence_refs",
+     "value": "docs/releases/v26.7.6/ocel/raw/receipt-export-ocel.txt (sha256:97bc89d9c09f57d1824c2427969cb306c79b5a52893b7da7fe04bc406b7cd17c)"
+    },
+    {
+     "name": "path",
+     "value": "docs/releases/v26.7.6/ocel/ledger-export.ocel.json"
+    },
+    {
+     "name": "object_hash",
+     "value": "b987f8f8b150d87ae5353cc406e57cdfe7f6a8339c460fac7065c0a9fce18a65"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "benchmark_run:root",
+   "type": "benchmark_run",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "Divan blue_river_dam bench rerun (root)"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:cargo bench --bench blue_river_dam -p my-conforming-project"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "command",
+     "value": "cargo bench --bench blue_river_dam -p my-conforming-project"
+    },
+    {
+     "name": "raw_output_path",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+    },
+    {
+     "name": "raw_output_sha256",
+     "value": "34570340d1e2947e9251f5557c28c89062dedca34aa7ecaa32d0032be57c28db"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "benchmark_result:standing_transition",
+   "type": "benchmark_result",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "median of standing_transition from this rerun"
+    },
+    {
+     "name": "object_source",
+     "value": "file:docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "metric_name",
+     "value": "standing_transition"
+    },
+    {
+     "name": "median",
+     "value": "19.98 ns"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:root",
+     "qualifier": "produced_by"
+    }
+   ]
+  },
+  {
+   "id": "benchmark_result:action_precondition_mask",
+   "type": "benchmark_result",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "median of action_precondition_mask from this rerun"
+    },
+    {
+     "name": "object_source",
+     "value": "file:docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "metric_name",
+     "value": "action_precondition_mask"
+    },
+    {
+     "name": "median",
+     "value": "56.93 ns"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:root",
+     "qualifier": "produced_by"
+    }
+   ]
+  },
+  {
+   "id": "benchmark_result:pddl_action_filter",
+   "type": "benchmark_result",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "median of pddl_action_filter from this rerun"
+    },
+    {
+     "name": "object_source",
+     "value": "file:docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "metric_name",
+     "value": "pddl_action_filter"
+    },
+    {
+     "name": "median",
+     "value": "6.457 \u00b5s"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:root",
+     "qualifier": "produced_by"
+    }
+   ]
+  },
+  {
+   "id": "benchmark_result:bcinr_transition_table",
+   "type": "benchmark_result",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "median of bcinr_transition_table from this rerun"
+    },
+    {
+     "name": "object_source",
+     "value": "file:docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "metric_name",
+     "value": "bcinr_transition_table"
+    },
+    {
+     "name": "median",
+     "value": "0.627 ns"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:root",
+     "qualifier": "produced_by"
+    }
+   ]
+  },
+  {
+   "id": "benchmark_result:powl_step_tick",
+   "type": "benchmark_result",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "median of powl_step_tick from this rerun"
+    },
+    {
+     "name": "object_source",
+     "value": "file:docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "metric_name",
+     "value": "powl_step_tick"
+    },
+    {
+     "name": "median",
+     "value": "3.512 ns"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:root",
+     "qualifier": "produced_by"
+    }
+   ]
+  },
+  {
+   "id": "benchmark_result:receipt_frame_link",
+   "type": "benchmark_result",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "median of receipt_frame_link from this rerun"
+    },
+    {
+     "name": "object_source",
+     "value": "file:docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "metric_name",
+     "value": "receipt_frame_link"
+    },
+    {
+     "name": "median",
+     "value": "245.7 ns"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:root",
+     "qualifier": "produced_by"
+    }
+   ]
+  },
+  {
+   "id": "benchmark_run:ggen",
+   "type": "benchmark_run",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "Divan blue_river_dam bench rerun (ggen)"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:cargo bench --bench blue_river_dam -p ggen"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "command",
+     "value": "cargo bench --bench blue_river_dam -p ggen"
+    },
+    {
+     "name": "raw_output_path",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-ggen.txt"
+    },
+    {
+     "name": "raw_output_sha256",
+     "value": "258944cc86b615aa8506c4dcbd74eaf9957f024e447b30372868489ae66d726d"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "benchmark_result:ggen_render_report_small",
+   "type": "benchmark_result",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "median of ggen_render_report_small from this rerun"
+    },
+    {
+     "name": "object_source",
+     "value": "file:docs/releases/v26.7.6/ocel/raw/bench-ggen.txt"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "metric_name",
+     "value": "ggen_render_report_small"
+    },
+    {
+     "name": "median",
+     "value": "17.41 \u00b5s"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:ggen",
+     "qualifier": "produced_by"
+    }
+   ]
+  },
+  {
+   "id": "benchmark_run:graphlaw",
+   "type": "benchmark_run",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "Divan blue_river_dam bench rerun (graphlaw)"
+    },
+    {
+     "name": "object_source",
+     "value": "cli:cargo bench --bench blue_river_dam -p praxis-graphlaw"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "command",
+     "value": "cargo bench --bench blue_river_dam -p praxis-graphlaw"
+    },
+    {
+     "name": "raw_output_path",
+     "value": "docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt"
+    },
+    {
+     "name": "raw_output_sha256",
+     "value": "e02f221e1664edc526fddd14c43306926dc573bf4c83820201d3770a7ac0aeda"
+    }
+   ],
+   "relationships": []
+  },
+  {
+   "id": "benchmark_result:graphlaw_materialize_delta",
+   "type": "benchmark_result",
+   "attributes": [
+    {
+     "name": "object_label",
+     "value": "median of graphlaw_materialize_delta from this rerun"
+    },
+    {
+     "name": "object_source",
+     "value": "file:docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt"
+    },
+    {
+     "name": "standing",
+     "value": "evidence"
+    },
+    {
+     "name": "metric_name",
+     "value": "graphlaw_materialize_delta"
+    },
+    {
+     "name": "median",
+     "value": "930 \u00b5s"
+    }
+   ],
+   "relationships": [
+    {
+     "objectId": "benchmark_run:graphlaw",
+     "qualifier": "produced_by"
+    }
+   ]
+  }
+ ]
 }
