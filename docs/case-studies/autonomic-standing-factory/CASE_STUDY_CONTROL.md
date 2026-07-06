@@ -73,8 +73,8 @@ downstream of this case study.
 | 7 N3 judgment rules | PENDING | `case-study/rules/judgment.n3`, `case-study/n3-report.md` |
 | 8 Datalog readiness closure | PENDING | `case-study/rules/readiness.dl.n3`, `case-study/datalog-report.md` |
 | 9 GraphLaw judge bin | PENDING | `src/bin/case_study_judge.rs`, `case-study/final_graphlaw_verdict.json` |
-| 10 PDDL repair domain | PENDING | `case-study/pddl/goal.ttl`, `case-study/pddl-out/plan.json` |
-| 11 POWL process model | PENDING | `case-study/powl_model.json` |
+| 10 PDDL repair domain | DONE | `case-study/pddl/goal.ttl` (16-action repair domain incl. lawful claim demote/re-promote); `case-study/pddl-out/plan.json`, `case-study/pddl_plan.json` — `admitted:true`, 16-step plan, `powl_chain_hash` identical across two independent runs (`lane-reports/lane-3-pddl-powl.md`) |
+| 11 POWL process model | DONE | `case-study/powl_model.json` (16 children, 114 order pairs) via `ocel_process_validate --model case-study`; v26.7.6 `CHILD_SPECS`/`ORDER_LABEL_PAIRS` untouched, 8/8 release-model tests still green (`lane-reports/lane-3-pddl-powl.md`) |
 | 12 Evidence driver + OCEL capture | PENDING | `case-study/ocel_case_study.json` |
 | 13 wasm4pm process validation | PENDING | `case-study/wasm4pm_validation.json` |
 | 14 Standing-process validation payoff | PENDING | `case-study/standing_ocel_validation.json` |
