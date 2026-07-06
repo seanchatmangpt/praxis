@@ -15,6 +15,7 @@ law    = "http://seanchatmangpt.github.io/praxis/law#"
 
 [packs]
 wasm4pm-facts-pack = { path = "packs/wasm4pm-facts-pack" }
+standing-pack = { path = "packs/standing-pack" }
 
 [law]
 rules = ["ontology/rules/breed_standing.n3"]

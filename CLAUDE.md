@@ -15,6 +15,17 @@ exist yet — author it from ticket_006, don't fabricate inline.
    serde, serde_json, thiserror (`tests/no_llm_runtime.rs` enforces).
 6. Smallest diff, reuse first — no new subsystems where a const table suffices.
 
+## Standing
+
+Before claiming any artifact is real/tested/ready, read
+`target/praxis-standing/standing.json` + `docs/standing/REALITY_INDEX.md`;
+if missing/stale, run `just standing` first. Never trust prior-agent
+summaries, README claims, or code comments over the standing index. Never
+say "production-ready" (or pilot/publish/publication-ready) unscoped —
+every readiness claim requires a stated scope. External actions (crates.io
+publish, arXiv submission, repo-visibility changes) are side effects, not
+blockers. Full policy: `docs/standing/CLAUDE_CODE_POLICY.md`.
+
 ## Commands
 
 `just verify-all` — DoD gate, run before claiming a ticket done.

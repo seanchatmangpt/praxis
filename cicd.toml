@@ -33,3 +33,24 @@ mode = "suggest"
 [[events]]
 kind = "status"
 verdict = "pass"
+
+[standing]
+doctor_command = "cargo run --quiet --bin my-conforming-project -- doctor check --format json"
+ocel_logs = ["docs/releases/v26.7.6/ocel/*.ocel.json"]
+process_validation = ["docs/releases/v26.7.6/ocel/wasm4pm-process-validation.json"]
+receipt_ledgers = [".ggen-v2/receipt-log.jsonl"]
+plan_runs_glob = "target/plan_run/*/plan.json"
+bench_raw_glob = "docs/releases/v26.7.6/ocel/raw/bench-*.txt"
+claim_tables = ["docs/releases/v26.7.6/CLAIM_PROMOTION_TABLE.md"]
+release_docs_dir = "docs/releases/v26.7.6"
+
+[[standing.clients]]
+id = "autonomic-platform"
+path = "clients/autonomic-platform"
+build_command = "npm run build"
+
+[standing.release_gates]
+"v26.7.6" = [
+    { artifact_id = "praxis-graphlaw", status = "PUBLISH_READY" },
+    { artifact_id = "autonomic-platform", status = "TESTED" },
+]

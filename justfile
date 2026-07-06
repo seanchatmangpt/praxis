@@ -8,6 +8,26 @@ test-changed:
 clean-stale:
     timeout 30s cargo cicd target prune
 
+# Compile the praxis-standing.v1 index (target/praxis-standing/standing.json),
+# copy it into the standing-pack for ggen, regenerate docs/standing/REALITY_INDEX.md.
+# NOTE: invoked as `cargo-cicd ...` (direct binary name), not `cargo cicd ...` —
+# the installed binary's clap parser rejects the `cicd` arg cargo's subcommand
+# dispatch prepends (same issue affects `test-changed`/`clean-stale` above with
+# this binary version; tracked separately, not fixed by this recipe).
+# `rm -f ggen.lock` is required, not optional: standing-pack's ontology.ttl is
+# regenerated fresh on every run (new generated_at_utc each time), so its
+# content hash never matches a prior lock — ggen.lock's own [FM-PACK-008]
+# error message names "delete ggen.lock to intentionally re-lock" as the
+# correct remediation for exactly this case. `ggen sync run` rewrites it
+# deterministically afterward for every pack, including unchanged ones.
+standing:
+    timeout 60s cargo-cicd standing refresh
+    cp target/praxis-standing/standing.ttl packs/standing-pack/ontology.ttl
+    rm -f ggen.lock
+    timeout 120s cargo run --quiet -p ggen --bin ggen -- sync run
+    timeout 60s cargo-cicd claude_context show
+    @echo "just standing: refreshed target/praxis-standing/standing.json, regenerated docs/standing/REALITY_INDEX.md and target/praxis-standing/CLAUDE_CODE_CONTEXT.md"
+
 # Build the workspace
 build:
     timeout 120s cargo build

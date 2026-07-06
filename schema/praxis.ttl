@@ -44,6 +44,10 @@ praxis:CliCommand a rdfs:Class ;
     rdfs:label "CliCommand" ;
     rdfs:comment "A noun-verb CLI command definition." .
 
+praxis:StandingArtifact a rdfs:Class ;
+    rdfs:label "StandingArtifact" ;
+    rdfs:comment "A tracked artifact's compiled readiness record under the praxis-standing.v1 schema (docs/standing/STANDING_SCHEMA.md): one of rust_crate/client/doc/paper/bench/workflow/ontology/binary, carrying a standing status set, a computed 0-9 ladder level, an optional scope, and evidence references." .
+
 # ===========================================================================
 # 2. Properties
 # ===========================================================================
@@ -162,6 +166,31 @@ praxis:flag a rdf:Property ;
     rdfs:label "flag" ;
     rdfs:comment "An optional boolean CLI flag exposed by the command and passed to its handler. Value is encoded as \"snake_case_name::help text\" so the generator can emit both the parameter name and its own per-argument --help text (see clap_noun_verb_macros '# Arguments' doc convention)." ;
     rdfs:domain praxis:CliCommand ;
+    rdfs:range xsd:string .
+
+# Standing Artifact Properties
+praxis:standing a rdf:Property ;
+    rdfs:label "standing" ;
+    rdfs:comment "One of the 20 praxis-standing.v1 status tags (SCREAMING_SNAKE_CASE, e.g. \"BUILDS\", \"OCEL_PROVEN\", \"PRODUCTION_READY\") held by this artifact. Repeatable: an artifact may carry multiple standing triples." ;
+    rdfs:domain praxis:StandingArtifact ;
+    rdfs:range xsd:string .
+
+praxis:ladderLevel a rdf:Property ;
+    rdfs:label "ladderLevel" ;
+    rdfs:comment "The computed 0-9 readiness ladder rung (docs/standing/PRODUCTION_READINESS.md) — the max ladder position among this artifact's praxis:standing values. Never asserted independent of the standing set; the compiler (cargo-cicd standing refresh) recomputes it." ;
+    rdfs:domain praxis:StandingArtifact ;
+    rdfs:range xsd:integer .
+
+praxis:scope a rdf:Property ;
+    rdfs:label "scope" ;
+    rdfs:comment "Non-empty scope string, required when praxis:standing includes any of PRODUCTION_READY/PILOT_READY/PUBLISH_READY/PUBLICATION_READY (the scoped-readiness validation rule). Absent otherwise." ;
+    rdfs:domain praxis:StandingArtifact ;
+    rdfs:range xsd:string .
+
+praxis:evidenceRef a rdf:Property ;
+    rdfs:label "evidenceRef" ;
+    rdfs:comment "A pointer to one piece of evidence backing this artifact's standing: a command invocation, an OCEL event, a receipt chain hash, or another artifact path/hash, per the EvidenceRef shape in docs/standing/STANDING_SCHEMA.md." ;
+    rdfs:domain praxis:StandingArtifact ;
     rdfs:range xsd:string .
 
 # Hygiene Config Properties
