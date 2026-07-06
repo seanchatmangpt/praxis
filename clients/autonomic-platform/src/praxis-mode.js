@@ -68,7 +68,10 @@ export function UnknownChip({ label }) {
   );
 }
 
-function ProvenanceTag({ source, ref: refPath }) {
+// Prop is `refPath`, not `ref`: `ref` is a reserved React prop, and passing a
+// string to it on a function component throws at render ("Function components
+// cannot have string refs"), blanking the standing HUD.
+function ProvenanceTag({ source, refPath }) {
   return (
     <span title={refPath} style={{ font: `500 8px ${mono}`, color: PALETTE.dim, border: `1px solid ${PALETTE.line2}`, borderRadius: 5, padding: '1px 5px' }}>
       {source}:{refPath}
@@ -76,12 +79,18 @@ function ProvenanceTag({ source, ref: refPath }) {
   );
 }
 
-const STANDING_COLORS = {
-  EvidenceBound: PALETTE.cyan,
-  REPLAYABLE: PALETTE.emerald,
-  Verified: PALETTE.emerald,
-  Blocked: PALETTE.magenta,
-};
+// Lazy (function, not module-level object): this module is in an import
+// cycle with AutonomicPlatform.js, so reading PALETTE during module
+// evaluation is a TDZ ReferenceError ("Cannot access 'PALETTE' before
+// initialization") that blanks the whole app. Render-time reads are safe —
+// the cycle has fully initialized by then.
+const standingColor = (standing) =>
+  ({
+    EvidenceBound: PALETTE.cyan,
+    REPLAYABLE: PALETTE.emerald,
+    Verified: PALETTE.emerald,
+    Blocked: PALETTE.magenta,
+  })[standing];
 
 /* ---------------- HUD strip (chain head + receipt count) ---------------- */
 
@@ -100,7 +109,7 @@ export function PraxisHud() {
           <span style={{ font: `600 10px ${mono}`, color: PALETTE.cyan }}>
             RECEIPTS {chain_head.value.receipt_count}
           </span>
-          <ProvenanceTag source={chain_head.source} ref={chain_head.ref} />
+          <ProvenanceTag source={chain_head.source} refPath={chain_head.ref} />
         </>
       )}
       <div style={{ flex: 1 }} />
@@ -111,7 +120,7 @@ export function PraxisHud() {
           <span style={{ font: `500 9px ${mono}`, color: PALETTE.violet }}>
             POWL {String(plan.value.powl_chain_hash || '').slice(0, 23)}…
           </span>
-          <ProvenanceTag source={plan.source} ref={plan.ref} />
+          <ProvenanceTag source={plan.source} refPath={plan.ref} />
         </>
       )}
     </div>
@@ -135,11 +144,11 @@ export function PraxisDeckScreen() {
     <div style={{ flex: 1, padding: 22, overflowY: 'auto' }}>
       <div style={{ marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
         <span style={{ font: `600 11px ${mono}`, color: PALETTE.hi }}>{cards.length} admitted breeds/algorithms</span>
-        <ProvenanceTag source={artifacts.source} ref={artifacts.ref} />
+        <ProvenanceTag source={artifacts.source} refPath={artifacts.ref} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
         {cards.map((c) => {
-          const col = STANDING_COLORS[c.standing] || PALETTE.mid;
+          const col = standingColor(c.standing) || PALETTE.mid;
           // Rarity tier comes only from speedTier/qualityTier when the registry
           // carries them; otherwise the law-derived standing is the only badge.
           const tier = c.speedTier || c.qualityTier;
@@ -156,7 +165,7 @@ export function PraxisDeckScreen() {
                 <p style={{ margin: '8px 0 0', font: `400 10px ${sans}`, color: PALETTE.mid, maxHeight: 56, overflow: 'hidden' }}>{c.citation}</p>
               )}
               <footer style={{ marginTop: 8 }}>
-                <ProvenanceTag source={c.provenance.source} ref={c.provenance.ref} />
+                <ProvenanceTag source={c.provenance.source} refPath={c.provenance.ref} />
               </footer>
             </article>
           );
@@ -178,7 +187,7 @@ export function PraxisOpsScreen() {
         ) : blockers.value.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ font: `500 11px ${mono}`, color: PALETTE.emerald }}>No non-Green receipts in the chain.</span>
-            <ProvenanceTag source={blockers.source} ref={blockers.ref} />
+            <ProvenanceTag source={blockers.source} refPath={blockers.ref} />
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -186,7 +195,7 @@ export function PraxisOpsScreen() {
               <div key={b.chain_hash} style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 8, borderBottom: `1px solid ${PALETTE.line}` }}>
                 <span style={{ font: `600 12px ${sans}`, color: PALETTE.magenta }}>{b.refusal}</span>
                 <span style={{ font: `400 10px ${mono}`, color: PALETTE.mid }}>{b.activity}</span>
-                <ProvenanceTag source="receipt" ref={b.chain_hash} />
+                <ProvenanceTag source="receipt" refPath={b.chain_hash} />
               </div>
             ))}
           </div>
@@ -206,7 +215,7 @@ export function PraxisOpsScreen() {
             <span style={{ font: `400 9px ${mono}`, color: PALETTE.dim, wordBreak: 'break-all' }}>
               powl_chain_hash: {plan.value.powl_chain_hash || 'absent'}
             </span>
-            <ProvenanceTag source={plan.source} ref={plan.ref} />
+            <ProvenanceTag source={plan.source} refPath={plan.ref} />
           </div>
         )}
       </Panel>

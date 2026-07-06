@@ -1,0 +1,39 @@
+# command: /Users/sac/praxis/target/debug/my-conforming-project receipt validate --dir target/plan_run/ocel_pass_receipts
+# cwd: /Users/sac/praxis
+# started_at_utc: 2026-07-06T19:10:44.863Z
+# finished_at_utc: 2026-07-06T19:10:44.891Z
+# exit_code: 0
+
+## stdout
+{
+  "verdict": {
+    "ok": false,
+    "stages": [
+      {
+        "stage": "schema",
+        "outcome": "Pass"
+      },
+      {
+        "stage": "chain_recompute",
+        "outcome": "Pass"
+      },
+      {
+        "stage": "chain_linkage",
+        "outcome": "Pass"
+      },
+      {
+        "stage": "monotonic",
+        "outcome": {
+          "Fail": "record 1: instruction_id (0) not strictly increasing after 0"
+        }
+      },
+      {
+        "stage": "token_replay",
+        "outcome": "Pass"
+      }
+    ],
+    "records_checked": 3
+  }
+}
+
+## stderr

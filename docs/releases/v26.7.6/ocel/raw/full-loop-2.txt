@@ -1,0 +1,67 @@
+# command: /Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass2 --receipts-dir target/plan_run/ocel_pass2_receipts
+# cwd: /Users/sac/praxis
+# started_at_utc: 2026-07-06T19:10:44.809Z
+# finished_at_utc: 2026-07-06T19:10:44.862Z
+# exit_code: 0
+
+## stdout
+{
+  "admitted": true,
+  "goal": "examples/v26_7_6_after_neon/goal.ttl",
+  "graph_hash": "29f4cf58d18485e5b23cdc8215a104b4b5c6d1aa6f746127e4cb3a04177c9e88",
+  "solve": {
+    "grounder": "naive",
+    "plan_len": 4,
+    "plan": [
+      "grant-standing",
+      "ground-blueprint",
+      "manufacture-artifact",
+      "fold-receipt"
+    ]
+  },
+  "powl": {
+    "slots": 4,
+    "entry_mask_hex": "0000000000000001"
+  },
+  "execution": {
+    "fired": [
+      "grant-standing",
+      "ground-blueprint",
+      "manufacture-artifact",
+      "fold-receipt"
+    ],
+    "powl_chain_hash": "blake3:1f97313c12be8f1f4b295970aaff506a79c1533be7a8abffb69c2ec8c677e9bb"
+  },
+  "artifact": {
+    "dir": "target/plan_run/ocel_pass2",
+    "files": [
+      "domain.pddl",
+      "problem.pddl",
+      "plan.json"
+    ],
+    "verifier": {
+      "solvable": true,
+      "plan_len": 4
+    }
+  },
+  "ledger_receipt": {
+    "status": "issued",
+    "record": {
+      "version": 1,
+      "instruction_id": 0,
+      "activity_idx": 0,
+      "node_kind": 0,
+      "ts_ns": 0,
+      "payload_hash_hex": "93a09428ab259076c1f335db55b54ae896d8193af45a418ea2d551cc73747fef",
+      "prev_chain_hash_hex": "024fab0c0aa2df2fd362469665144af1610aedede64e10ec0bdae69ce36cd13d",
+      "chain_hash_hex": "78aa2cbf7ccdd7397f39ac9812f661f518576d048142dfe0ab8e0b69213d5f0b",
+      "andon": "Green",
+      "obligation_count": 0,
+      "object_ids": [
+        "law:93a09428ab259076"
+      ]
+    }
+  }
+}
+
+## stderr

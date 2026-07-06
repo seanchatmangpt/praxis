@@ -1,0 +1,145 @@
+{
+  "eventTypes": [
+    {
+      "name": "lifecycle:receipt",
+      "attributes": []
+    }
+  ],
+  "objectTypes": [
+    {
+      "name": "LawObject",
+      "attributes": []
+    },
+    {
+      "name": "ReceiptChain",
+      "attributes": []
+    }
+  ],
+  "events": [
+    {
+      "id": "receipt:a5b48dcd5a9111ee621c35acf6d56ff33882ecb89213147baf2de9bb33741b68",
+      "type": "lifecycle:receipt",
+      "time": "1970-01-01T00:00:00Z",
+      "attributes": [
+        {
+          "name": "instruction_id",
+          "value": 0
+        },
+        {
+          "name": "payload_hash",
+          "value": "f54a16fbd8e8569e2914fe46a227f4ceb81b2fb8fa7cda665ec936a9da6a2eea"
+        },
+        {
+          "name": "chain_hash",
+          "value": "a5b48dcd5a9111ee621c35acf6d56ff33882ecb89213147baf2de9bb33741b68"
+        },
+        {
+          "name": "andon",
+          "value": "green"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "law:f54a16fbd8e8569e",
+          "qualifier": "governs"
+        },
+        {
+          "objectId": "chain:0000000000000000",
+          "qualifier": "extends"
+        }
+      ]
+    },
+    {
+      "id": "receipt:5862dd12bfbe1eb1256f9a6723d16d4baaa1a55610946451587901a788b70da9",
+      "type": "lifecycle:receipt",
+      "time": "1970-01-01T00:00:00Z",
+      "attributes": [
+        {
+          "name": "instruction_id",
+          "value": 0
+        },
+        {
+          "name": "payload_hash",
+          "value": "f54a16fbd8e8569e2914fe46a227f4ceb81b2fb8fa7cda665ec936a9da6a2eea"
+        },
+        {
+          "name": "chain_hash",
+          "value": "5862dd12bfbe1eb1256f9a6723d16d4baaa1a55610946451587901a788b70da9"
+        },
+        {
+          "name": "andon",
+          "value": "green"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "law:f54a16fbd8e8569e",
+          "qualifier": "governs"
+        },
+        {
+          "objectId": "chain:a5b48dcd5a9111ee",
+          "qualifier": "extends"
+        }
+      ]
+    },
+    {
+      "id": "receipt:9f8e1e18f87c48e1ef696338698297b5c7906f67c7c6f0569354fe72835f1d91",
+      "type": "lifecycle:receipt",
+      "time": "1970-01-01T00:00:00Z",
+      "attributes": [
+        {
+          "name": "instruction_id",
+          "value": 0
+        },
+        {
+          "name": "payload_hash",
+          "value": "f54a16fbd8e8569e2914fe46a227f4ceb81b2fb8fa7cda665ec936a9da6a2eea"
+        },
+        {
+          "name": "chain_hash",
+          "value": "9f8e1e18f87c48e1ef696338698297b5c7906f67c7c6f0569354fe72835f1d91"
+        },
+        {
+          "name": "andon",
+          "value": "green"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "law:f54a16fbd8e8569e",
+          "qualifier": "governs"
+        },
+        {
+          "objectId": "chain:5862dd12bfbe1eb1",
+          "qualifier": "extends"
+        }
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "id": "law:f54a16fbd8e8569e",
+      "type": "LawObject",
+      "attributes": [],
+      "relationships": []
+    },
+    {
+      "id": "chain:0000000000000000",
+      "type": "ReceiptChain",
+      "attributes": [],
+      "relationships": []
+    },
+    {
+      "id": "chain:5862dd12bfbe1eb1",
+      "type": "ReceiptChain",
+      "attributes": [],
+      "relationships": []
+    },
+    {
+      "id": "chain:a5b48dcd5a9111ee",
+      "type": "ReceiptChain",
+      "attributes": [],
+      "relationships": []
+    }
+  ]
+}
