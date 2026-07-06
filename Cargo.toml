@@ -103,6 +103,13 @@ praxis-synthesis = { path = "crates/praxis-synthesis", version = "26.7.2" }
 bcinr-powl = { path = "../bcinr/crates/bcinr-powl", version = "26.6.25" }
 prolog8 = { path = "../wasm4pm/crates/prolog8", version = "26.7.1" }
 wasm4pm-compat = { path = "../wasm4pm-compat", version = "26.6.29" }
+# OCEL evidence-log process validation (src/bin/ocel_process_validate.rs):
+# POWL release-loop model + membership, sha256 for the report's log digest,
+# chrono only to parse/emit the OCEL evidence timestamps (evidence time,
+# never a hash input — the no-wall-clock invariant covers receipt paths).
+powl2-decompose = { path = "crates/powl2-decompose", version = "26.6.30" }
+chrono = "0.4"
+sha2 = "0.10"
 wasm4pm-cognition = { path = "../wasm4pm/crates/wasm4pm-cognition", version = "26.7.1" }
 
 [dev-dependencies]
@@ -122,6 +129,10 @@ wasm4pm-planner = { path = "../wasm4pm/crates/wasm4pm-planner", version = "26.7.
 [[bin]]
 name = "dod"
 path = "src/bin/dod.rs"
+
+[[bin]]
+name = "ocel_process_validate"
+path = "src/bin/ocel_process_validate.rs"
 
 [[bin]]
 name = "revenue_demo"

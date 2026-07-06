@@ -39,6 +39,15 @@ interface AttrEntry {
   value: string | number | boolean;
 }
 
+/**
+ * OCEL 2.0 object attribute values are timestamped (wire shape
+ * `wasm4pm_compat::ocel::OCELObjectAttribute { name, value, time }`);
+ * event attributes are not (the event's own `time` covers them).
+ */
+interface ObjAttrEntry extends AttrEntry {
+  time: string;
+}
+
 interface TypeDecl {
   name: string;
   attributes: { name: string; type: string }[];
@@ -55,7 +64,7 @@ interface OcelEvent {
 interface OcelObject {
   id: string;
   type: string;
-  attributes: AttrEntry[];
+  attributes: ObjAttrEntry[];
   relationships: OcelRelationship[];
 }
 
@@ -76,6 +85,25 @@ function toAttrEntries(attrs: Record<string, unknown> | AttrEntry[] | undefined)
     return attrs.map((a) => ({ name: a.name, value: normalizeValue(a.value) }));
   }
   return Object.entries(attrs).map(([name, value]) => ({ name, value: normalizeValue(value) }));
+}
+
+function toObjAttrEntries(
+  attrs: Record<string, unknown> | (AttrEntry & { time?: string })[] | undefined,
+  fallbackTime: string,
+): ObjAttrEntry[] {
+  if (!attrs) return [];
+  if (Array.isArray(attrs)) {
+    return attrs.map((a) => ({
+      name: a.name,
+      value: normalizeValue(a.value),
+      time: a.time ?? fallbackTime,
+    }));
+  }
+  return Object.entries(attrs).map(([name, value]) => ({
+    name,
+    value: normalizeValue(value),
+    time: fallbackTime,
+  }));
 }
 
 export class OcelRecorder {
@@ -130,10 +158,12 @@ export class OcelRecorder {
   }
 
   addObject(input: OcelObjectInput): OcelObject {
+    // Observation instant for the OCEL-v2 timestamped object attributes.
+    const observedAt = new Date().toISOString();
     const obj: OcelObject = {
       id: input.id,
       type: input.type,
-      attributes: toAttrEntries(input.attributes),
+      attributes: toObjAttrEntries(input.attributes, observedAt),
       relationships: input.relationships ?? [],
     };
     this.addObjectType(obj.type, obj.attributes);
@@ -162,7 +192,9 @@ export class OcelRecorder {
       const entry: OcelObject = {
         id: obj.id,
         type: obj.type,
-        attributes: toAttrEntries(obj.attributes),
+        // Driver entries carry their own attribute `time`; stamp merge time
+        // only if an entry predates the driver-side fix.
+        attributes: toObjAttrEntries(obj.attributes, new Date().toISOString()),
         relationships: obj.relationships ?? [],
       };
       this.addObjectType(entry.type, entry.attributes);

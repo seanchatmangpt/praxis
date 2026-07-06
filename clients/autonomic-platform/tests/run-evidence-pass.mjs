@@ -77,7 +77,16 @@ function addEvent(type, attributes, relationships = []) {
 }
 
 function addObject(id, type, attributes, relationships = []) {
-  const obj = { id, type, attributes: attrs(attributes), relationships };
+  // OCEL 2.0: object attribute values are timestamped (wire shape
+  // `wasm4pm_compat::ocel::OCELObjectAttribute { name, value, time }`).
+  // Observation instant = when the driver recorded the object.
+  const observedAt = new Date().toISOString();
+  const obj = {
+    id,
+    type,
+    attributes: attrs(attributes).map((a) => ({ ...a, time: observedAt })),
+    relationships,
+  };
   objects.push(obj);
   return obj;
 }
@@ -274,19 +283,29 @@ if (chainHash1 !== chainHash2) {
   console.error(`[driver] FATAL determinism: ${chainHash1} != ${chainHash2}`);
   process.exit(1);
 }
-addEvent('powl_workflow_executed', {
-  ...baseEventAttrs(plan2, 'none'),
-  powl_chain_hash: chainHash2,
-  run: 2,
-  determinism_check: 'identical',
-  determinism_against: chainHash1,
-});
-addEvent('claim_promoted_to_standing', {
-  ...baseEventAttrs(plan2, 'claim_promoted'),
-  claim: 'powl_chain_hash is deterministic across independent plan runs',
-  evidence_refs: `${plan1.rawRef} (sha256:${plan1.rawSha256}); ${plan2.rawRef} (sha256:${plan2.rawSha256})`,
-  powl_chain_hash: chainHash1,
-});
+addEvent(
+  'powl_workflow_executed',
+  {
+    ...baseEventAttrs(plan2, 'none'),
+    powl_chain_hash: chainHash2,
+    run: 2,
+    determinism_check: 'identical',
+    determinism_against: chainHash1,
+  },
+  // OCPQ Def. 2: every event carries >= 1 qualified object reference
+  // (E2O_EMPTY otherwise — caught by ocel_process_validate).
+  [{ objectId: 'powl_workflow:ocel_pass', qualifier: 'workflow' }],
+);
+addEvent(
+  'claim_promoted_to_standing',
+  {
+    ...baseEventAttrs(plan2, 'claim_promoted'),
+    claim: 'powl_chain_hash is deterministic across independent plan runs',
+    evidence_refs: `${plan1.rawRef} (sha256:${plan1.rawSha256}); ${plan2.rawRef} (sha256:${plan2.rawSha256})`,
+    powl_chain_hash: chainHash1,
+  },
+  [{ objectId: 'powl_workflow:ocel_pass', qualifier: 'workflow' }],
+);
 
 // ── (d) receipt validate on the plan-run ledger ─────────────────────────────
 const rv = run('receipt-validate', MCP_BIN, [

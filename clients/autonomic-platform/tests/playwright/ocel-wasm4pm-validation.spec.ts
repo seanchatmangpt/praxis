@@ -38,6 +38,9 @@ test('OCEL v2 evidence pass: browser validation over real artifacts', async ({ p
   const evRefs = (...refs: string[]) => refs.join('; ');
 
   // ── validation_run_started + utc_clock_captured ─────────────────────────
+  // OCPQ Def. 2: every event carries >= 1 qualified object reference.
+  // The browser_session object is registered below, before save — OCEL
+  // referential integrity is set-based, not order-based.
   rec.addEvent({
     type: 'validation_run_started',
     time: startedAtUtc,
@@ -46,6 +49,7 @@ test('OCEL v2 evidence pass: browser validation over real artifacts', async ({ p
       standing_effect: 'none',
       evidence_refs: 'docs/releases/v26.7.6/ocel/utc-window.json',
     },
+    relationships: [{ objectId: 'browser_session:autonomic', qualifier: 'session' }],
   });
   const utcWindow: Record<string, unknown> = {
     run_id: driver.run_id,
@@ -67,6 +71,7 @@ test('OCEL v2 evidence pass: browser validation over real artifacts', async ({ p
       clock_source: 'system',
       timezone_policy: 'ISO-8601 UTC Z only',
     },
+    relationships: [{ objectId: 'browser_session:autonomic', qualifier: 'session' }],
   });
 
   // ── browser session ──────────────────────────────────────────────────────
@@ -335,6 +340,18 @@ test('OCEL v2 evidence pass: browser validation over real artifacts', async ({ p
   const finishedAtUtc = new Date().toISOString();
   utcWindow.finished_at_utc = finishedAtUtc;
   fs.writeFileSync(UTC_WINDOW, JSON.stringify(utcWindow, null, 2) + '\n');
+  rec.addObject({
+    id: 'report:playwright_wasm4pm_validation_ocel',
+    type: 'report_artifact',
+    attributes: {
+      object_label: 'the final OCEL 2.0 evidence log itself',
+      object_source: 'playwright:OcelRecorder.save',
+      standing: 'evidence',
+      created_or_observed_by: 'playwright',
+      path: 'docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json',
+      evidence_refs: 'docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json',
+    },
+  });
   rec.addEvent({
     type: 'ocel_log_written',
     time: finishedAtUtc,
@@ -344,6 +361,9 @@ test('OCEL v2 evidence pass: browser validation over real artifacts', async ({ p
       evidence_refs: 'docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json',
       path: 'docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json',
     },
+    relationships: [
+      { objectId: 'report:playwright_wasm4pm_validation_ocel', qualifier: 'log' },
+    ],
   });
   await rec.save(FINAL_LOG);
 
