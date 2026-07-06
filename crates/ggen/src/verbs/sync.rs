@@ -10,7 +10,7 @@ use clap_noun_verb::Result;
 ///
 /// # Arguments
 /// * `dry_run` - Resolve and render but do not write any files to disk; report what would change.
-/// * `watch` - Re-run the pipeline automatically whenever a watched file on the filesystem changes.
+/// * `watch` - Watch the filesystem and re-run the pipeline automatically whenever a watched file changes.
 #[clap_noun_verb_macros::verb("run")]
 fn sync_run(dry_run: bool, watch: bool) -> Result<serde_json::Value> {
     crate::verbs::handlers::handle_sync_run(dry_run, watch)
