@@ -1,0 +1,23 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix praxis: <https://praxis.dev/ontology/standing#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+# Every praxis:EvidenceRef must carry a path and a hash string — a
+# reference, never inline content duplication.
+praxis:EvidenceRefShape a sh:NodeShape ;
+  sh:targetClass praxis:EvidenceRef ;
+  sh:property [
+    sh:path praxis:path ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "an EvidenceRef must carry exactly one path literal" ;
+  ] ;
+  sh:property [
+    sh:path praxis:hash ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:message "an EvidenceRef must carry exactly one sha256:<64-hex> hash literal" ;
+  ] .

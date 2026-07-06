@@ -1,0 +1,26 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix praxis: <https://praxis.dev/ontology/standing#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+# Every praxis:StandingEnvelope must: exist (be its own focus subject),
+# carry a sourced (non-blank) generatedAtUtc dateTime literal, carry >=1
+# evidence reference, and carry >=1 gate verdict.
+praxis:StandingEnvelopeShape a sh:NodeShape ;
+  sh:targetClass praxis:StandingEnvelope ;
+  sh:property [
+    sh:path praxis:generatedAtUtc ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:dateTime ;
+    sh:message "a StandingEnvelope must carry exactly one sourced generatedAtUtc dateTime literal" ;
+  ] ;
+  sh:property [
+    sh:path praxis:hasEvidence ;
+    sh:minCount 1 ;
+    sh:message "a StandingEnvelope must reference at least one evidence artifact" ;
+  ] ;
+  sh:property [
+    sh:path praxis:hasVerdict ;
+    sh:minCount 1 ;
+    sh:message "a StandingEnvelope must carry at least one gate verdict" ;
+  ] .

@@ -1,0 +1,166 @@
+# ---------------------------------------------------------------------------
+# GraphLaw judgment seed graph — Autonomic Standing Factory case study.
+# Hand-authored by Lane 2. Reuses the EXACT standing namespace already
+# emitted by cargo-cicd (see target/praxis-standing/standing.ttl's own
+# @prefix line): <https://praxis.dev/ontology/standing#>. No second
+# standing vocabulary is invented here.
+#
+# No wall-clock literals: every dateTime literal in this file is copied
+# verbatim from a real evidence file's own field (cited in a comment next
+# to it), never computed as "now".
+# ---------------------------------------------------------------------------
+@prefix praxis: <https://praxis.dev/ontology/standing#> .
+@prefix prov:   <http://www.w3.org/ns/prov#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+# ─── 1. The fleet ────────────────────────────────────────────────────────────
+
+praxis:SeanchatmangptFleet a praxis:Fleet ;
+  skos:definition "The set of local repositories (praxis, cargo-cicd, wasm4pm, wasm4pm-compat, ggen, bcinr, and related crates) this case study governs release-readiness for." .
+
+# ─── 2. The case study subject ──────────────────────────────────────────────
+
+praxis:AutonomicStandingFactoryCaseStudy a praxis:CaseStudy ;
+  skos:definition "The case study that uses the fleet itself as its subject: cargo-cicd emits standing evidence, praxis-graphlaw judges it, PDDL/POWL plan and model repair/execution, OCEL records execution, wasm4pm validates conformance, Autonomic Platform displays the verdict." ;
+  praxis:hasScope "local-first autonomic release-governance for the seanchatmangpt fleet" ;
+  praxis:hasEvidence praxis:StandingEnvelope-v26_6_30 ;
+  prov:wasDerivedFrom praxis:StandingEnvelope-v26_6_30 .
+
+# ─── 3. The four role-holders ───────────────────────────────────────────────
+
+praxis:CargoCicd a praxis:Emitter ;
+  skos:definition "Standing emitter: compiles fleet artifact state into standing.json / standing.ttl / standing.ocel.json (Lane 1)." ;
+  praxis:emitsEvidence praxis:StandingEnvelope-v26_6_30 .
+
+praxis:PraxisGraphlaw a praxis:Judge ;
+  skos:definition "GraphLaw judge: validates standing evidence shape (SHACL) and structure (ShEx), derives readiness facts (N3), computes closure over blockers/dependencies (Datalog) (Lane 2)." ;
+  praxis:judgesEvidence praxis:StandingEnvelope-v26_6_30 ;
+  praxis:validatesShape praxis:StandingEnvelope-v26_6_30 ;
+  praxis:validatesStructure praxis:StandingEnvelope-v26_6_30 ;
+  praxis:derivesStanding praxis:AutonomicStandingFactoryCaseStudy ;
+  praxis:computesClosure praxis:AutonomicStandingFactoryCaseStudy .
+
+praxis:Wasm4pm a praxis:Validator ;
+  skos:definition "Process conformance validator: checks recorded OCEL execution against a POWL model (Lane 4). Not yet run for this case study." ;
+  praxis:validatesProcess praxis:ProcessValidationNotYetProduced .
+
+praxis:AutonomicPlatform a praxis:Display ;
+  skos:definition "Client surface: displays judged, sourced standing. Never computes its own verdict (Lane 5)." ;
+  praxis:displaysStanding praxis:ClientRouteNotYetProduced .
+
+# ─── 4. Standing envelope (references Lane 1's real output BY PATH) ────────
+
+praxis:StandingEnvelope-v26_6_30 a praxis:StandingEnvelope ;
+  skos:definition "The Lane-1-emitted standing evidence bundle for release v26.6.30 — referenced here by path and hash, not duplicated." ;
+  praxis:hasEvidence praxis:StandingJsonRef-v26_6_30, praxis:StandingTtlRef-v26_6_30, praxis:StandingOcelRef-v26_6_30 ;
+  prov:wasGeneratedBy praxis:CargoCicd ;
+  # copied verbatim from target/praxis-standing/standing.json's own
+  # "generated_at_utc" field — a sourced literal, not "now".
+  praxis:generatedAtUtc "2026-07-06T22:27:34.851Z"^^xsd:dateTime ;
+  praxis:hasVerdict praxis:StandingSchemaIdRecognized .
+
+praxis:StandingSchemaIdRecognized a praxis:GateVerdict ;
+  skos:definition "Gate verdict: the standing document's schema_id (cicd-standing.v1, per target/praxis-standing/standing.json) is recognized by this case study's evidence model." .
+
+praxis:StandingJsonRef-v26_6_30 a praxis:EvidenceRef ;
+  skos:definition "Reference to the JSON standing document (schema_id cicd-standing.v1, release_id v26.6.30)." ;
+  praxis:path "target/praxis-standing/standing.json" ;
+  praxis:hash "sha256:ae6a3ae4f25ed8b048e9d2f65e1318e8b95b48a2066cf3d08851b1ead574bdf9" .
+
+praxis:StandingTtlRef-v26_6_30 a praxis:EvidenceRef ;
+  skos:definition "Reference to the Turtle projection of the same standing document." ;
+  praxis:path "target/praxis-standing/standing.ttl" ;
+  praxis:hash "sha256:4127bda98f880480c79c04aa336592449f12035ab05d3efc60019429bee31d28" .
+
+praxis:StandingOcelRef-v26_6_30 a praxis:EvidenceRef ;
+  skos:definition "Reference to the Shape-A OCEL 2.0 projection of the same standing document, parseable by wasm4pm_compat::ocel::OCEL." ;
+  praxis:path "target/praxis-standing/standing.ocel.json" ;
+  praxis:hash "sha256:34f5f245a34976eec06b615b7b2dc9a561d50c1f1cb6bf4857e4f6cbbf7045e9" .
+
+# ─── 5. Promoted claims (must each carry >=1 praxis:hasEvidence) ───────────
+
+praxis:ClaimCanonicalStandingEvidenceExists a praxis:PromotedClaim ;
+  skos:definition "Promoted claim for acceptance criterion 1 (canonical standing evidence exists)." ;
+  praxis:hasEvidence praxis:StandingJsonRef-v26_6_30, praxis:StandingTtlRef-v26_6_30, praxis:StandingOcelRef-v26_6_30 .
+
+# ─── 6. Not-yet-produced placeholders (Lanes 3-7) ───────────────────────────
+# Marked honestly with praxis:NotYetProduced as a second rdf:type — no
+# fabricated path/hash, no fabricated content. Referenced now so this
+# lane's shapes/rules can validate the not-yet-tightened (>=0) cardinality
+# for these relations without silently assuming evidence that does not
+# exist yet.
+
+praxis:PlanArtifactNotYetProduced a praxis:PlanArtifactRef, praxis:NotYetProduced ;
+  skos:definition "Placeholder for Lane 3's PDDL repair/action plan (case-study/pddl-out/plan.json). Not yet produced." .
+
+praxis:ProcessModelNotYetProduced a praxis:ProcessModelRef, praxis:NotYetProduced ;
+  skos:definition "Placeholder for Lane 3's POWL execution process model (case-study/powl_model.json). Not yet produced." .
+
+praxis:OcelCaseStudyLogNotYetProduced a praxis:OCELLogRef, praxis:NotYetProduced ;
+  skos:definition "Placeholder for Lane 4's OCEL v2 case-study run log (case-study/ocel_case_study.json). Not yet produced." .
+
+praxis:ProcessValidationNotYetProduced a praxis:ProcessValidationRef, praxis:NotYetProduced ;
+  skos:definition "Placeholder for Lane 4's wasm4pm process-conformance validation (case-study/wasm4pm_validation.json). Not yet produced." .
+
+praxis:ReceiptEvidenceNotYetProduced a praxis:ReceiptRef, praxis:NotYetProduced ;
+  skos:definition "Placeholder for receipt verification evidence (criterion 10). Not yet produced." .
+
+praxis:BenchmarkEvidenceNotYetProduced a praxis:BenchmarkRef, praxis:NotYetProduced ;
+  skos:definition "Placeholder for benchmark evidence backing any performance claim (criterion 11). Not yet produced." .
+
+praxis:ClientRouteNotYetProduced a praxis:ClientRouteRef, praxis:NotYetProduced ;
+  skos:definition "Placeholder for Lane 5's Autonomic Platform case-study display route + Playwright smoke evidence (criterion 12). Not yet produced." .
+
+praxis:ExternalSideEffectPlaceholder a praxis:ExternalOperatorSideEffect, praxis:NotYetProduced ;
+  skos:definition "Placeholder: no external operator side effects have been recorded for this case study yet. Marked non-blocking by construction (an empty/not-yet-populated side-effect ledger is not itself a release blocker)." ;
+  praxis:nonBlocking "true"^^xsd:boolean .
+
+# ─── 7. Case study links to the (placeholder) outputs of later lanes ──────
+# >=0 cardinality per the control spec — these will be tightened once
+# Lanes 3-7 actually run and produce real artifacts.
+
+praxis:AutonomicStandingFactoryCaseStudy
+  praxis:plansRepair praxis:PlanArtifactNotYetProduced ;
+  praxis:modelsProcess praxis:ProcessModelNotYetProduced ;
+  praxis:recordsExecution praxis:OcelCaseStudyLogNotYetProduced ;
+  praxis:validatesProcess praxis:ProcessValidationNotYetProduced ;
+  praxis:displaysStanding praxis:ClientRouteNotYetProduced ;
+  praxis:hasExternalSideEffect praxis:ExternalSideEffectPlaceholder .
+
+# ─── 8. Acceptance-criteria dependency model ───────────────────────────────
+# Feeds case-study/rules/readiness.dl.n3's requires/satisfied/critical
+# transitive closure. Criteria 1-5 (Lanes 1-2, this session) are the only
+# ones satisfied so far — 6-15 (Lanes 3-7) are honestly recorded as
+# unsatisfied, not assumed. praxis:critical marks whether an unsatisfied
+# instance of that criterion is a hard (terminal) blocker on the
+# production-ready verdict, vs. a softer gap (10/11/13/14 — receipts,
+# benchmarks, Claude Code policy consumption, and claim-diagnosability all
+# depend on artifacts later lanes produce, but do not by themselves gate
+# the local-first scope this case study declares).
+
+praxis:AutonomicStandingFactoryCaseStudy
+  praxis:requires
+    praxis:Criterion01, praxis:Criterion02, praxis:Criterion03, praxis:Criterion04,
+    praxis:Criterion05, praxis:Criterion06, praxis:Criterion07, praxis:Criterion08,
+    praxis:Criterion09, praxis:Criterion10, praxis:Criterion11, praxis:Criterion12,
+    praxis:Criterion13, praxis:Criterion14, praxis:Criterion15 ;
+  praxis:satisfied
+    praxis:Criterion01, praxis:Criterion02, praxis:Criterion03, praxis:Criterion04,
+    praxis:Criterion05 .
+
+praxis:Criterion01 a praxis:AcceptanceCriterion ; skos:definition "canonical standing evidence exists" ; praxis:critical "true"^^xsd:boolean .
+praxis:Criterion02 a praxis:AcceptanceCriterion ; skos:definition "GraphLaw validates shapes" ; praxis:critical "true"^^xsd:boolean .
+praxis:Criterion03 a praxis:AcceptanceCriterion ; skos:definition "GraphLaw validates graph structure" ; praxis:critical "true"^^xsd:boolean .
+praxis:Criterion04 a praxis:AcceptanceCriterion ; skos:definition "GraphLaw derives readiness facts" ; praxis:critical "true"^^xsd:boolean .
+praxis:Criterion05 a praxis:AcceptanceCriterion ; skos:definition "GraphLaw computes closure over blockers/dependencies" ; praxis:critical "true"^^xsd:boolean .
+praxis:Criterion06 a praxis:AcceptanceCriterion ; skos:definition "PDDL produces/records a lawful repair/action plan" ; praxis:critical "true"^^xsd:boolean .
+praxis:Criterion07 a praxis:AcceptanceCriterion ; skos:definition "POWL models the execution process" ; praxis:critical "true"^^xsd:boolean .
+praxis:Criterion08 a praxis:AcceptanceCriterion ; skos:definition "OCEL records the case-study run" ; praxis:critical "true"^^xsd:boolean .
+praxis:Criterion09 a praxis:AcceptanceCriterion ; skos:definition "wasm4pm validates process conformance" ; praxis:critical "true"^^xsd:boolean .
+praxis:Criterion10 a praxis:AcceptanceCriterion ; skos:definition "receipts verify where applicable" ; praxis:critical "false"^^xsd:boolean .
+praxis:Criterion11 a praxis:AcceptanceCriterion ; skos:definition "benchmark evidence exists where performance claims are made" ; praxis:critical "false"^^xsd:boolean .
+praxis:Criterion12 a praxis:AcceptanceCriterion ; skos:definition "Autonomic Platform displays case-study state with provenance" ; praxis:critical "true"^^xsd:boolean .
+praxis:Criterion13 a praxis:AcceptanceCriterion ; skos:definition "Claude Code policy consumes or points to standing" ; praxis:critical "false"^^xsd:boolean .
+praxis:Criterion14 a praxis:AcceptanceCriterion ; skos:definition "unsupported claims are diagnosable" ; praxis:critical "false"^^xsd:boolean .
+praxis:Criterion15 a praxis:AcceptanceCriterion ; skos:definition "external operator side effects are separated from release blockers" ; praxis:critical "true"^^xsd:boolean .

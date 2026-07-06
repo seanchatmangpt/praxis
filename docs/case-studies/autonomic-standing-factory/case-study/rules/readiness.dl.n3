@@ -1,0 +1,85 @@
+# ---------------------------------------------------------------------------
+# Datalog readiness closure — Autonomic Standing Factory case study.
+#
+# Datalog here is the SAME forward-chaining engine as judgment.n3,
+# distinguished only by the recursive-closure + stratified-negation
+# discipline these particular rules use (transitive closure over
+# dependency/blocking relations, gated by negation-as-failure over
+# unsatisfied dependencies) — see crates/praxis-graphlaw/src/datalog.rs
+# (single stratifier/safety-checker for both .n3 files: praxis_graphlaw::
+# TripleStore::load_rules parses this file into the exact same Rule/
+# BodyLiteral structs as judgment.n3, and TripleStore::add_rules
+# re-stratifies the COMBINED rule set on every load — so these two files
+# are validated together, not as separate engines).
+#
+# Aggregation note: this file's .n3 text syntax has NO aggregate literal
+# (praxis_graphlaw's N3/ShExC parsers do not parse aggregate expressions
+# from text at all — only TripleStore::add_rule_with_aggregate, a Rust API
+# call taking a Rule + Aggregate struct, can attach a Count/Sum/Min/Max/Avg
+# accumulator to a rule). The unsatisfied-dependency COUNT fact is
+# therefore added programmatically by src/bin/case_study_judge.rs via
+# add_rule_with_aggregate, not as text here — see that file's
+# `unsatisfied_dependency_count_rule` function.
+# ---------------------------------------------------------------------------
+@prefix praxis: <https://praxis.dev/ontology/standing#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# --- transitive closure over praxis:depends_on (mirrors this crate's own
+#     {?a in ?b. ?b in ?c} => {?a in ?c} transitive-closure test pattern,
+#     see crates/praxis-graphlaw/src/lib_test.rs::test_transitive_rule) ---
+{ ?a praxis:depends_on ?b . ?b praxis:depends_on ?c } => { ?a praxis:depends_on ?c } .
+
+# --- transitive closure over praxis:blocks ---
+{ ?a praxis:blocks ?b . ?b praxis:blocks ?c } => { ?a praxis:blocks ?c } .
+
+# --- a required dependency that is not (yet) satisfied is unsatisfied ---
+{
+  ?x praxis:requires ?dep .
+  not { ?x praxis:satisfied ?dep }
+} => { ?x praxis:hasUnsatisfiedDependency ?dep } .
+
+# --- an unsatisfied dependency marked critical is a hard (terminal)
+#     blocker on its requirer ---
+{
+  ?x praxis:hasUnsatisfiedDependency ?dep .
+  ?dep praxis:critical "true"^^xsd:boolean .
+} => { ?x a praxis:HasTerminalBlocker } .
+
+# --- readiness gate: no terminal blocker => ready; a terminal blocker =>
+#     not ready. Both are derived (not asserted), and disjoint by
+#     stratified negation over the SAME HasTerminalBlocker relation. ---
+{
+  ?x a praxis:CaseStudy .
+  not { ?x a praxis:HasTerminalBlocker }
+} => { ?x a praxis:NoTerminalBlockers . ?x praxis:ready "true"^^xsd:boolean } .
+
+{
+  ?x a praxis:CaseStudy .
+  ?x a praxis:HasTerminalBlocker .
+} => { ?x praxis:not_ready "true"^^xsd:boolean } .
+
+# --- claim promotion/demotion: any claim with >=1 evidence relation is
+#     promoted; a claim recorded as promoted that turns out to have no
+#     evidence at all must be demoted, never silently left standing (this
+#     complements, rather than replaces, judgment.n3's hard `=> false.`
+#     denial over the same shape of violation). ---
+{ ?claim praxis:hasEvidence ?e } => { ?claim praxis:claim_promoted "true"^^xsd:boolean } .
+
+{
+  ?claim praxis:claim_promoted "true"^^xsd:boolean .
+  not { ?claim praxis:hasEvidence ?any }
+} => { ?claim praxis:claim_demoted "true"^^xsd:boolean } .
+
+# --- external side effects: nonBlocking true is recorded as a
+#     non-blocking external side effect; nonBlocking false is a hard
+#     BlockingSideEffect, consumed by judgment.n3's
+#     ExternalSideEffectsSeparated rule. ---
+{
+  ?e a praxis:ExternalOperatorSideEffect .
+  ?e praxis:nonBlocking "false"^^xsd:boolean .
+} => { ?e a praxis:BlockingSideEffect } .
+
+{
+  ?e a praxis:ExternalOperatorSideEffect .
+  ?e praxis:nonBlocking "true"^^xsd:boolean .
+} => { ?e praxis:external_side_effect "true"^^xsd:boolean . ?e praxis:non_blocking "true"^^xsd:boolean } .

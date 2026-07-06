@@ -1,0 +1,55 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix praxis: <https://praxis.dev/ontology/standing#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+# A praxis:FinalVerdict node (asserted by src/bin/case_study_judge.rs
+# immediately after it reads the verdict fact via SPARQL — see that file's
+# module doc for the ordering) must carry status, scope, >=1 evidence
+# reference, and a sourced generatedAtUtc literal.
+#
+# NOTE: at the point this file's validate_shacl call runs against the
+# *pre-verdict* graph (before Lane 6 exists), zero praxis:FinalVerdict
+# nodes are present, so this shape is validated a second time by the judge
+# bin AFTER it asserts the FinalVerdict node for this run — see
+# graphlaw_judgment_report.md for both passes' real conforms values.
+praxis:FinalVerdictShape a sh:NodeShape ;
+  sh:targetClass praxis:FinalVerdict ;
+  sh:property [
+    sh:path praxis:status ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "a FinalVerdict must carry exactly one status string" ;
+  ] ;
+  sh:property [
+    sh:path praxis:hasScope ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:message "a FinalVerdict must carry exactly one scope string" ;
+  ] ;
+  sh:property [
+    sh:path praxis:hasEvidence ;
+    sh:minCount 1 ;
+    sh:message "a FinalVerdict must reference >=1 evidence item" ;
+  ] ;
+  sh:property [
+    sh:path praxis:generatedAtUtc ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:dateTime ;
+    sh:message "a FinalVerdict must carry exactly one sourced generatedAtUtc literal" ;
+  ] .
+
+# External operator side effects are recorded, never treated as blockers:
+# a praxis:ExternalOperatorSideEffect must carry praxis:nonBlocking true.
+praxis:ExternalOperatorSideEffectShape a sh:NodeShape ;
+  sh:targetClass praxis:ExternalOperatorSideEffect ;
+  sh:property [
+    sh:path praxis:nonBlocking ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:boolean ;
+    sh:hasValue true ;
+    sh:message "an ExternalOperatorSideEffect must be marked praxis:nonBlocking true, never counted as a release blocker" ;
+  ] .

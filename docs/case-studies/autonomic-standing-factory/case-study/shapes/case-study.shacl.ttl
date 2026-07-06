@@ -1,0 +1,29 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix praxis: <https://praxis.dev/ontology/standing#> .
+
+# Exactly one CaseStudy subject; >=0 of envelope/OCEL/process-validation/
+# final-verdict for now (tightened once Lanes 3-7 land real evidence — see
+# CASE_STUDY_CONTROL.md phase rows 10-16).
+praxis:CaseStudyShape a sh:NodeShape ;
+  sh:targetClass praxis:CaseStudy ;
+  sh:property [
+    sh:path praxis:hasScope ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:message "a CaseStudy must declare exactly one scope string" ;
+  ] ;
+  sh:property [
+    sh:path praxis:hasEvidence ;
+    sh:minCount 0 ;
+    sh:message "a CaseStudy references >=0 standing envelopes for now" ;
+  ] ;
+  sh:property [
+    sh:path praxis:recordsExecution ;
+    sh:minCount 0 ;
+    sh:message "a CaseStudy references >=0 OCEL logs for now" ;
+  ] ;
+  sh:property [
+    sh:path praxis:validatesProcess ;
+    sh:minCount 0 ;
+    sh:message "a CaseStudy references >=0 process-validation results for now" ;
+  ] .

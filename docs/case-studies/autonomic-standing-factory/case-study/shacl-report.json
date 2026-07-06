@@ -1,0 +1,22 @@
+[
+  {
+    "file": "standing-envelope.shacl.ttl",
+    "conforms": true,
+    "violation_count": 0
+  },
+  {
+    "file": "case-study.shacl.ttl",
+    "conforms": true,
+    "violation_count": 0
+  },
+  {
+    "file": "evidence-ref.shacl.ttl",
+    "conforms": true,
+    "violation_count": 0
+  },
+  {
+    "file": "final-verdict.shacl.ttl",
+    "conforms": true,
+    "violation_count": 0
+  }
+]

@@ -1,0 +1,130 @@
+{
+  "verdict": "GRAPHLAW_JUDGED_NOT_READY_WITH_RECEIPTED_REASONS",
+  "raw_verdict_fact": "NotReadyWithReasons",
+  "scope": "local-first autonomic release-governance for the seanchatmangpt fleet",
+  "criteria": [
+    {
+      "id": "Criterion01",
+      "description": "canonical standing evidence exists",
+      "satisfied": true,
+      "critical": true
+    },
+    {
+      "id": "Criterion02",
+      "description": "GraphLaw validates shapes",
+      "satisfied": true,
+      "critical": true
+    },
+    {
+      "id": "Criterion03",
+      "description": "GraphLaw validates graph structure",
+      "satisfied": true,
+      "critical": true
+    },
+    {
+      "id": "Criterion04",
+      "description": "GraphLaw derives readiness facts",
+      "satisfied": true,
+      "critical": true
+    },
+    {
+      "id": "Criterion05",
+      "description": "GraphLaw computes closure over blockers/dependencies",
+      "satisfied": true,
+      "critical": true
+    },
+    {
+      "id": "Criterion06",
+      "description": "PDDL produces/records a lawful repair/action plan",
+      "satisfied": false,
+      "critical": true
+    },
+    {
+      "id": "Criterion07",
+      "description": "POWL models the execution process",
+      "satisfied": false,
+      "critical": true
+    },
+    {
+      "id": "Criterion08",
+      "description": "OCEL records the case-study run",
+      "satisfied": false,
+      "critical": true
+    },
+    {
+      "id": "Criterion09",
+      "description": "wasm4pm validates process conformance",
+      "satisfied": false,
+      "critical": true
+    },
+    {
+      "id": "Criterion10",
+      "description": "receipts verify where applicable",
+      "satisfied": false,
+      "critical": false
+    },
+    {
+      "id": "Criterion11",
+      "description": "benchmark evidence exists where performance claims are made",
+      "satisfied": false,
+      "critical": false
+    },
+    {
+      "id": "Criterion12",
+      "description": "Autonomic Platform displays case-study state with provenance",
+      "satisfied": false,
+      "critical": true
+    },
+    {
+      "id": "Criterion13",
+      "description": "Claude Code policy consumes or points to standing",
+      "satisfied": false,
+      "critical": false
+    },
+    {
+      "id": "Criterion14",
+      "description": "unsupported claims are diagnosable",
+      "satisfied": false,
+      "critical": false
+    },
+    {
+      "id": "Criterion15",
+      "description": "external operator side effects are separated from release blockers",
+      "satisfied": false,
+      "critical": true
+    }
+  ],
+  "shacl_reports": [
+    {
+      "file": "standing-envelope.shacl.ttl",
+      "conforms": true,
+      "violation_count": 0
+    },
+    {
+      "file": "case-study.shacl.ttl",
+      "conforms": true,
+      "violation_count": 0
+    },
+    {
+      "file": "evidence-ref.shacl.ttl",
+      "conforms": true,
+      "violation_count": 0
+    },
+    {
+      "file": "final-verdict.shacl.ttl",
+      "conforms": true,
+      "violation_count": 0
+    }
+  ],
+  "shex_report": {
+    "conforms": true,
+    "failure_count": 0,
+    "failures": []
+  },
+  "denials": [],
+  "derived_triple_count": 22,
+  "unsatisfied_dependency_count": 10,
+  "case_study_subject_count": 1,
+  "graph_hash": "blake3:c92a915409cbb8c7c0ef7421f7ef577de7f598581871fd898471fef191d2582e",
+  "generated_at_utc": "2026-07-06T22:27:34.851Z"
+}

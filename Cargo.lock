@@ -3206,6 +3206,7 @@ dependencies = [
  "pddl-index",
  "powl2-decompose",
  "praxis-core",
+ "praxis-graphlaw",
  "praxis-proposer",
  "praxis-retrofit",
  "praxis-synthesis",

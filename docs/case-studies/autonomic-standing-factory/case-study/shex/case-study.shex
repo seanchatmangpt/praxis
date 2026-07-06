@@ -1,0 +1,65 @@
+PREFIX praxis: <https://praxis.dev/ontology/standing#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+# Cardinalities below are deliberately loose (>= 0, i.e. `*`) for every
+# relation whose target artifact is produced by a lane later than Lane 2
+# (recordsExecution/plansRepair/modelsProcess/displaysStanding/
+# hasExternalSideEffect) — see graphlaw_judgment.ttl's "Not-yet-produced"
+# section. praxis:hasEvidence toward >=1 praxis:StandingEnvelopeShape is
+# the one relation this lane's own evidence (Lane 1's real standing
+# output) actually satisfies, so it is asserted as `+` (>= 1), matching
+# the control spec's ">=1 standing envelope" requirement. The "exactly one
+# CaseStudy subject in the whole graph" requirement is checked by
+# src/bin/case_study_judge.rs via an explicit SPARQL COUNT query (ShExC
+# has no global-cardinality-across-the-graph construct — only per-focus-
+# node shape conformance), recorded in graphlaw_judgment_report.md.
+praxis:CaseStudyShape {
+  praxis:hasScope xsd:string ;
+  praxis:hasEvidence @praxis:StandingEnvelopeShape + ;
+  praxis:recordsExecution . * ;
+  praxis:validatesProcess @praxis:ProcessValidationShape * ;
+  praxis:plansRepair . * ;
+  praxis:modelsProcess . * ;
+  praxis:displaysStanding . * ;
+  praxis:hasExternalSideEffect . *
+}
+
+praxis:StandingEnvelopeShape {
+  praxis:generatedAtUtc xsd:dateTime ;
+  praxis:hasEvidence @praxis:EvidenceBundleShape + ;
+  praxis:hasVerdict . +
+}
+
+praxis:EvidenceBundleShape {
+  praxis:path xsd:string ;
+  praxis:hash xsd:string
+}
+
+praxis:GraphLawJudgmentShape {
+  praxis:judgesEvidence . ;
+  praxis:validatesShape . ;
+  praxis:validatesStructure . ;
+  praxis:derivesStanding . ;
+  praxis:computesClosure .
+}
+
+# Loose on purpose: Lane 4 has not run yet, so a ProcessValidationRef node
+# may currently carry neither path nor hash (the not-yet-produced
+# placeholder case) or both (once Lane 4 lands real evidence).
+praxis:ProcessValidationShape {
+  praxis:path xsd:string ? ;
+  praxis:hash xsd:string ?
+}
+
+praxis:FinalVerdictShape {
+  praxis:status xsd:string ;
+  praxis:hasScope xsd:string ;
+  praxis:hasEvidence . + ;
+  praxis:generatedAtUtc xsd:dateTime
+}
+
+# Every promoted claim must carry >=1 evidence relation — no claim is
+# promoted to standing without a pointer to what backs it.
+praxis:PromotedClaimShape {
+  praxis:hasEvidence . +
+}

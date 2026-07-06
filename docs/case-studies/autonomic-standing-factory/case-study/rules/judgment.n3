@@ -1,0 +1,127 @@
+# ---------------------------------------------------------------------------
+# GraphLaw N3 judgment rules — Autonomic Standing Factory case study.
+#
+# Verdict facts (praxis:ProductionReadyForDeclaredScope /
+# praxis:PilotReadyWithExternalSideEffects / praxis:NotReadyWithReasons)
+# are derived as `rdf:type` class memberships on the case-study subject
+# (`?cs a praxis:<Verdict>`), never via a shared literal-valued predicate
+# like praxis:hasVerdict — this crate's Datalog stratifier
+# (crates/praxis-graphlaw/src/datalog.rs::relation_of) groups facts by
+# PREDICATE for ordinary triples but by OBJECT CLASS for `a`/rdf:type
+# triples (the standard Datalog-over-RDF heuristic its own doc comment
+# names). Three verdict facts sharing one predicate with three different
+# object constants would collapse into a single "relation" for
+# stratification purposes, and this file's mutually-exclusive verdict
+# rules negate each other's conclusions — that would create a same-
+# relation negative self-loop and be rejected as unstratifiable. Typing
+# each verdict as its own class keeps every verdict fact its own
+# stratification relation, which is what makes the negation below safe.
+#
+# The three ...Conform/...NoDenialsFound gate facts this file's rules
+# consume (praxis:ShaclShapesConform, praxis:ShexSchemaConforms,
+# praxis:NoDenialsFound) are injected as plain asserted triples by
+# src/bin/case_study_judge.rs AFTER it has actually run validate_shacl /
+# validate_shex_c / check_denials against the real merged graph, then
+# materialize() is called a second time so these rules can fire off them
+# — see that file's module doc for the exact two-pass order. No fact in
+# this file's head is ever hand-picked; every verdict is a conjunction
+# read back via SPARQL after materialization reaches fixpoint.
+# ---------------------------------------------------------------------------
+@prefix praxis: <https://praxis.dev/ontology/standing#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# --- EvidenceComplete: the case study points at a standing envelope that
+#     itself carries a sourced timestamp and >=1 evidence reference. ---
+{
+  ?cs praxis:hasEvidence ?env .
+  ?env praxis:generatedAtUtc ?t .
+  ?env praxis:hasEvidence ?ref .
+} => { ?cs a praxis:EvidenceComplete } .
+
+# --- StandingInputsValid: evidence is complete AND every externally-
+#     computed gate (SHACL/ShEx/denials — injected by the judge bin)
+#     passed. ---
+{
+  ?cs a praxis:EvidenceComplete .
+  ?cs a praxis:ShaclShapesConform .
+  ?cs a praxis:ShexSchemaConforms .
+  ?cs a praxis:NoDenialsFound .
+} => { ?cs a praxis:StandingInputsValid } .
+
+# --- ProcessEvidenceValid: a REAL (not not-yet-produced) OCEL log AND a
+#     REAL process-validation result are both recorded. ---
+{
+  ?cs praxis:recordsExecution ?ocel .
+  ?cs praxis:validatesProcess ?val .
+  not { ?ocel a praxis:NotYetProduced }
+  not { ?val a praxis:NotYetProduced }
+} => { ?cs a praxis:ProcessEvidenceValid } .
+
+# --- ClientDisplayValid: displayed via a REAL (not not-yet-produced)
+#     client route. ---
+{
+  ?cs praxis:displaysStanding ?route .
+  not { ?route a praxis:NotYetProduced }
+} => { ?cs a praxis:ClientDisplayValid } .
+
+# --- ExternalSideEffectsSeparated: universally-quantified "no side effect
+#     this case study records is a hard blocker", expressed the only way
+#     this engine's single-TP `not { ... }` grammar allows a
+#     for-all-none-match check: derive an intermediate existential
+#     (HasBlockingSideEffect, fired if ANY side effect is blocking), then
+#     negate THAT derived fact (shared var ?cs, safe per the range-
+#     restriction check) rather than negating an unbound blocking side
+#     effect directly. ---
+{
+  ?cs praxis:hasExternalSideEffect ?e .
+  ?e a praxis:BlockingSideEffect .
+} => { ?cs a praxis:HasBlockingSideEffect } .
+
+{
+  ?cs a praxis:CaseStudy .
+  not { ?cs a praxis:HasBlockingSideEffect }
+} => { ?cs a praxis:ExternalSideEffectsSeparated } .
+
+# NoTerminalBlockers is derived in readiness.dl.n3 (same engine, loaded
+# into the same rule set — see that file's header) from the
+# requires/satisfied/critical closure; reused here by reference only.
+
+# --- Verdict: full production readiness for the declared scope. ---
+{
+  ?cs a praxis:CaseStudy .
+  ?cs a praxis:StandingInputsValid .
+  ?cs a praxis:ProcessEvidenceValid .
+  ?cs a praxis:ClientDisplayValid .
+  ?cs a praxis:NoTerminalBlockers .
+  ?cs a praxis:ExternalSideEffectsSeparated .
+} => { ?cs a praxis:ProductionReadyForDeclaredScope } .
+
+# --- Verdict: pilot-ready — standing inputs valid and no terminal
+#     blockers, but not yet fully production-ready (e.g. process/client
+#     evidence lanes have not landed), with any side effects separated
+#     out as non-blocking rather than counted against readiness. ---
+{
+  ?cs a praxis:CaseStudy .
+  ?cs a praxis:StandingInputsValid .
+  ?cs a praxis:NoTerminalBlockers .
+  ?cs a praxis:ExternalSideEffectsSeparated .
+  not { ?cs a praxis:ProductionReadyForDeclaredScope }
+} => { ?cs a praxis:PilotReadyWithExternalSideEffects } .
+
+# --- Verdict: not ready, with receipted reasons (the honest default
+#     while Lanes 3-7 have not yet run, or if any hard gate fails). ---
+{
+  ?cs a praxis:CaseStudy .
+  not { ?cs a praxis:ProductionReadyForDeclaredScope }
+  not { ?cs a praxis:PilotReadyWithExternalSideEffects }
+} => { ?cs a praxis:NotReadyWithReasons } .
+
+# --- Denial: a claim promoted to standing without >=1 evidence relation
+#     is a hard integrity violation — never silently accepted. Real
+#     "not {}" N3 negation syntax (see rule.rs's DenyHead / `=> false.`
+#     head and crates/praxis-graphlaw/tests/datalog_negation.rs for the
+#     same negated-body idiom this project already tests). ---
+{
+  ?claim a praxis:PromotedClaim .
+  not { ?claim praxis:hasEvidence ?any }
+} => false .
