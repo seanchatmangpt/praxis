@@ -66,13 +66,13 @@ downstream of this case study.
 | 0 Control ledger + scaffold | DONE | this file; `case-study/{raw,shapes,shex,rules,pddl,pddl-out,pddl-receipts,ocel,screenshots,traces}/` created |
 | 1 cargo-cicd front door | DONE | `lane-reports/lane-1-cargo-cicd.md` — dispatch/version/schema-id already fixed by a concurrent session; this lane added Shape-A OCEL emission, fixed 2 failing workspace-crate-ingestion tests, and fixed a real TTL determinism gap (Command evidence `utc` leak) found by dogfooding. One pre-existing, out-of-scope `--all-features` clippy/compile break left unfixed (documented) |
 | 2 Praxis dogfood standing | DONE | `lane-reports/lane-1-cargo-cicd.md` (dogfood proof folded into Lane 1 handoff) — `just standing` run twice with no `ggen.lock` deletion, `standing.ttl` sha256 identical both times (`4127bda9...`), `docs/standing/REALITY_INDEX.md` regenerated with 12 `RustCrate` rows |
-| 3 Case-study docs | PENDING | `CASE_STUDY.md`, `PRODUCTION_READINESS.md` |
-| 4 Evidence→RDF bridge | PENDING | `case-study/graphlaw_judgment.ttl` |
-| 5 SHACL shapes | PENDING | `case-study/shapes/*.shacl.ttl`, `case-study/shacl-report.{json,md}` |
-| 6 ShEx topology | PENDING | `case-study/shex/case-study.shex`, `case-study/shex-report.{json,md}` |
-| 7 N3 judgment rules | PENDING | `case-study/rules/judgment.n3`, `case-study/n3-report.md` |
-| 8 Datalog readiness closure | PENDING | `case-study/rules/readiness.dl.n3`, `case-study/datalog-report.md` |
-| 9 GraphLaw judge bin | PENDING | `src/bin/case_study_judge.rs`, `case-study/final_graphlaw_verdict.json` |
+| 3 Case-study docs | DONE | `CASE_STUDY.md`, `PRODUCTION_READINESS.md` |
+| 4 Evidence→RDF bridge | DONE | `case-study/graphlaw_judgment.ttl` — reuses cargo-cicd's real `praxis:` namespace, references `target/praxis-standing/standing.{json,ttl,ocel.json}` by path+sha256, seeds the 15-criterion requires/satisfied/critical dependency model (1-5 satisfied, 6-15 honestly unsatisfied) |
+| 5 SHACL shapes | DONE | `case-study/shapes/*.shacl.ttl` (4 files); real run: all 4 conform, 0 violations (`case-study/shacl-report.{json,md}`) |
+| 6 ShEx topology | DONE | `case-study/shex/case-study.shex` (7 shapes); real run: conforms, 0 failures (`case-study/shex-report.{json,md}`) |
+| 7 N3 judgment rules | DONE | `case-study/rules/judgment.n3` — verdict facts typed as `rdf:type` classes (not a shared `hasVerdict` predicate) to keep the stratifier's negation safe; includes 1 `=> false.` denial rule (`case-study/n3-report.md`) |
+| 8 Datalog readiness closure | DONE | `case-study/rules/readiness.dl.n3` — transitive closure + stratified negation over requires/satisfied/critical/blocks/depends_on; real run derives `unsatisfiedDependencyCount = 10` via the Rust `add_rule_with_aggregate` API (no text-syntax aggregate exists) (`case-study/datalog-report.md`) |
+| 9 GraphLaw judge bin | DONE | `src/bin/case_study_judge.rs`, `case-study/final_graphlaw_verdict.json` — real verdict `NotReadyWithReasons` (10/15 criteria unsatisfied, several critical), derived only via SPARQL over materialized facts, never hand-written; 5 unit tests incl. an evidence-removal verdict-flip proof and a SHACL/ShEx-violation-blocks-derivation proof, all green |
 | 10 PDDL repair domain | DONE | `case-study/pddl/goal.ttl` (16-action repair domain incl. lawful claim demote/re-promote); `case-study/pddl-out/plan.json`, `case-study/pddl_plan.json` — `admitted:true`, 16-step plan, `powl_chain_hash` identical across two independent runs (`lane-reports/lane-3-pddl-powl.md`) |
 | 11 POWL process model | DONE | `case-study/powl_model.json` (16 children, 114 order pairs) via `ocel_process_validate --model case-study`; v26.7.6 `CHILD_SPECS`/`ORDER_LABEL_PAIRS` untouched, 8/8 release-model tests still green (`lane-reports/lane-3-pddl-powl.md`) |
 | 12 Evidence driver + OCEL capture | PENDING | `case-study/ocel_case_study.json` |
@@ -104,4 +104,10 @@ list with hashes)
 
 `docs/case-studies/autonomic-standing-factory/case-study/final_graphlaw_verdict.json`
 — the ONLY authoritative source for the verdict sentence in `FINAL_VERDICT.md`.
-Not yet produced.
+Produced by Lane 2 (`src/bin/case_study_judge.rs`): current real value
+`raw_verdict_fact: "NotReadyWithReasons"` (`verdict:
+"GRAPHLAW_JUDGED_NOT_READY_WITH_RECEIPTED_REASONS"`) — honest given Lanes
+4-5 have not yet landed OCEL/wasm4pm/client evidence; re-run
+`cargo run --bin case_study_judge` after those lanes land to see the
+verdict fact recompute. `FINAL_VERDICT.md` itself is Lane 6's output, not
+yet produced.
