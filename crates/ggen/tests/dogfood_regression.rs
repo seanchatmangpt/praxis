@@ -73,6 +73,10 @@ fn ggen_regenerates_route_files_byte_identically() {
     std::fs::copy(root.join("ggen.toml"), stage.join("ggen.toml")).expect("copy ggen.toml");
     copy_dir_recursive(&root.join("schema"), &stage.join("schema"));
     copy_dir_recursive(&root.join("templates"), &stage.join("templates"));
+    // Packs and law-rule inputs are part of the generator's input closure
+    // since the wasm4pm facts admission (ggen.toml `[packs]` + `[law]`).
+    copy_dir_recursive(&root.join("packs"), &stage.join("packs"));
+    copy_dir_recursive(&root.join("ontology"), &stage.join("ontology"));
     let verbs_dst = stage.join("crates/ggen/src/verbs");
     std::fs::create_dir_all(&verbs_dst).expect("mkdir verbs");
     for entry in std::fs::read_dir(root.join("crates/ggen/src/verbs")).expect("read verbs") {

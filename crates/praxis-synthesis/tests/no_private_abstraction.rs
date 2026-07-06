@@ -41,7 +41,7 @@ fn read_src(manifest_dir: &str, file: &str) -> String {
 
 /// Parse every backtick-quoted `prefix:local` token out of the mapping doc.
 fn mapped_predicates(doc: &str) -> Vec<String> {
-    const PREFIXES: [&str; 4] = ["wf:", "hook:", "prayer-kernel:", "agent:"];
+    const PREFIXES: [&str; 6] = ["wf:", "hook:", "prayer-kernel:", "agent:", "compat:", "pi:"];
     let mut out = Vec::new();
     let mut i = 0usize;
     while let Some(open) = doc[i..].find('`') {
@@ -66,11 +66,13 @@ fn every_private_predicate_has_a_public_ontology_mapping_entry() {
         .unwrap_or_else(|e| panic!("reading {}: {e}", doc_path.display()));
     let mapped = mapped_predicates(&doc);
 
-    let tables: [(&str, &str, &str); 4] = [
+    let tables: [(&str, &str, &str); 6] = [
         ("wf:", "graph.rs", "WF_PREDICATES"),
         ("hook:", "hooks.rs", "HOOK_PREDICATES"),
         ("prayer-kernel:", "kernel.rs", "KERNEL_PREDICATES"),
         ("agent:", "agent_registry.rs", "AGENT_PREDICATES"),
+        ("compat:", "breeds.rs", "COMPAT_PREDICATES"),
+        ("pi:", "breeds.rs", "PI_PREDICATES"),
     ];
 
     for (prefix, file, const_name) in tables {

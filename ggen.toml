@@ -9,6 +9,15 @@ praxis = "http://seanchatmangpt.github.io/praxis/schema#"
 rdf    = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 rdfs   = "http://www.w3.org/2000/01/rdf-schema#"
 xsd    = "http://www.w3.org/2001/XMLSchema#"
+compat = "https://wasm4pm.dev/ns#"
+pi     = "https://wasm4pm.dev/pi#"
+law    = "http://seanchatmangpt.github.io/praxis/law#"
+
+[packs]
+wasm4pm-facts-pack = { path = "packs/wasm4pm-facts-pack" }
+
+[law]
+rules = ["ontology/rules/breed_standing.n3"]
 
 [templates]
 dir = "templates/crates/ggen"

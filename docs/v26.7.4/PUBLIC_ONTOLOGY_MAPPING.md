@@ -82,3 +82,43 @@ any of those tables without a row here fails that test.
 | `agent:tool` | `prov:used` | Rejected: `prov:used` binds an activity's execution-time use of an entity; `agent:tool` is a static declared capability set on an agent profile, not an execution-time fact. |
 | `agent:canSpawn` | — | Operational: praxis-internal spawn-authorization edge to another agent type; no real-world referent. |
 | `agent:layerDepth` | — | Operational: position (1..=5) in the five-layer agent hierarchy, an internal structural index. |
+
+## `compat:` — wasm4pm cognition-breed vocabulary (`src/breeds.rs`)
+
+Namespace `https://wasm4pm.dev/ns#`, admitted facts in
+`packs/wasm4pm-facts-pack/ontology.ttl` (55 `compat:CognitionBreed`
+individuals carried verbatim from wasm4pm). `compat:breedStatus` is
+deliberately NOT admitted: status is law-derived
+(`ontology/rules/breed_standing.n3`), never asserted.
+
+| Predicate | Public analog | Justification |
+|---|---|---|
+| `compat:breedId` | — | Operational: exact-match registry key for a cognition breed; `rdfs:label` rejected because it is a display string, not a uniqueness-checked identity key. |
+| `compat:breedLabel` | `rdfs:label` | Rejected: must exactly match the wasm4pm Rust type name (PascalCase), a code identity, not a free display label. |
+| `compat:breedDoc` | `dct:description` | Rejected: bounded machine-audited doc string carrying the algorithm's defining citation shape, not open-ended prose. |
+| `compat:citation` | `dct:bibliographicCitation` | Rejected: praxis treats the citation as admission EVIDENCE feeding the EvidenceBound standing rule, a gate input with a checked presence requirement, which `dct:bibliographicCitation` does not carry. |
+| `compat:modulePath` | — | Operational: wasm4pm Rust module name when it differs from `breedId`; an internal code-location key. |
+
+## `pi:` — wasm4pm process-intelligence vocabulary (`src/breeds.rs`)
+
+Namespace `https://wasm4pm.dev/pi#`, admitted facts in
+`packs/wasm4pm-facts-pack/ontology.ttl` (60
+`pi:ProcessIntelligenceAlgorithm` individuals). `pi:algorithmStatus`,
+`pi:measuredFitness`, `pi:piAdmitted`, `pi:fitnessProvenance` are
+deliberately NOT admitted: derived-only in wasm4pm; asserting them is the
+refused anti-pattern.
+
+| Predicate | Public analog | Justification |
+|---|---|---|
+| `pi:algorithmId` | — | Operational: exact-match registry key, same rejection of `rdfs:label` as `compat:breedId`. |
+| `pi:algorithmLabel` | `rdfs:label` | Rejected: must exactly match the wasm4pm Rust type name, a code identity. |
+| `pi:algorithmDoc` | `dct:description` | Rejected for the same reason as `compat:breedDoc`. |
+| `pi:citation` | `dct:bibliographicCitation` | Rejected for the same reason as `compat:citation`. |
+| `pi:outputType` | — | Operational: closed enum tag for the artifact kind the algorithm emits (`petrinet`/...). |
+| `pi:category` | — | Operational: closed classification tag (`discovery`/`conformance`/...), an internal catalog partition. |
+| `pi:speedTier` | — | Operational: 0..=100 relative ranking integer within the catalog, not a real-world measurement. |
+| `pi:qualityTier` | — | Operational: 0..=100 relative ranking integer within the catalog, not a real-world measurement. |
+| `pi:wasmExport` | — | Operational: exact exported wasm symbol name, an ABI dispatch key. |
+| `pi:cliAlias` | — | Operational: CLI dispatch alias string; omitted (not empty) when undefined. |
+| `pi:inputFormat` | — | Operational: closed enum tag for the accepted log format (`xes`/`ocel`). |
+| `pi:standing` | — | Operational: replay-lattice classification tag (`REPLAYABLE`/...), praxis-internal standing vocabulary. |
