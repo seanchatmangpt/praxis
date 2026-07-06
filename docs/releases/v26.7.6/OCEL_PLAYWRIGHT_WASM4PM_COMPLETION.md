@@ -139,7 +139,24 @@ OCEL event ids.
 
 ## Repairs made
 
-PENDING — each repair emits `claim_resolved_by_repair` and cites the diff.
+- **pcp expo web export** — `RESOLVED_BY_REPAIR`, 2026-07-06, pcp commit
+  `7731fea` (`fix(web-export): restore avatar projection matrix + type-only
+  wasm4pm imports`). Diagnosed `PROJECTION_MATRIX` as already exported by
+  `/Users/sac/pcp/src/lib/truex/avatar/matrix.ts` (re-export of
+  `avatar-projection.ts`); actual repairs: `import type` for the type-only
+  `@wasm4pm/types` package in `apps/template-app/src/hooks/useOcelEvidence.ts`
+  and `apps/template-app/src/components/ProcessEvidenceView.tsx`; new
+  `apps/template-app/metro.config.js` mirroring the root tsconfig aliases
+  (`@/*`, `~/*`, `@pcp/framework/*`) with a workspace-`src/` fallback for
+  relative `../framework/` imports and `.wasm` added to `assetExts`
+  (expo-sqlite web worker); restored missing `global.css` and `assets/`
+  (fonts, images, proofs, validation); `lib/supabase.ts` build-time placeholder
+  fallback for `EXPO_PUBLIC_SUPABASE_URL`/`ANON_KEY` (empty URL crashed the
+  static-render pass with "supabaseUrl is required").
+  Gate: `cd /Users/sac/pcp/apps/template-app && npx expo export --platform web`
+  → exit code 0, "Exported: dist" (all routes rendered).
+
+Further repairs PENDING — each repair emits `claim_resolved_by_repair` and cites the diff.
 
 ## Substitutions made
 
