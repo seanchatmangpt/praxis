@@ -61,4 +61,4 @@ the Divan benchmark phase (`little_law_snapshot`).
 | optimus (Next) | nothing (own `/api/ggen` route is a stub for its old backend) | point API routes at receipt chain + plan artifacts |
 | pcp (Expo) | Supabase | build blocked (missing modules) before wiring is relevant |
 | dashboard.bak (Nuxt) | Supabase | build blocked (generation skew) |
-| Autonomic Platform (prototype) | supabase-mock | conversion phase (task: standing-mapped screens) |
+| Autonomic Platform (`clients/autonomic-platform/`) | receipt chain + plan.json + breed/algorithm registry via `src/praxis-adapter.js` (DECK/OPS/HUD); supabase-mock in `?mode=mock` only | GLOBE/ARENA still mock (NON-STANDING banner); command surface (verb invocation) not wired |

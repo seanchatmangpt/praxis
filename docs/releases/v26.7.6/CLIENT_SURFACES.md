@@ -34,20 +34,28 @@ Supabase+OpenAI, 62 pages, 2026-06-01).
 - `AutonomicPlatform.js` + `FEATURE_SPEC.md` — gamified PI control room (deck.gl
   globe, Three.js arena, TCG model deck, ops) with a Combinatorial-Maximalism
   expansion spec. Browser-shell/world-interface lineage.
+  **ADOPTED 2026-07-06 → `clients/autonomic-platform/` — classification
+  ALIVE-with-scope**: in version control, builds (`cd clients/autonomic-platform
+  && npm install && npm run build` — vite build PASS 2026-07-06), DECK/OPS/HUD
+  standing-mapped through `src/praxis-adapter.js` (receipt chain
+  `.ggen-v2/receipt-log.jsonl`, `target/plan_run/*/plan.json` +
+  `powl_chain_hash`, `BREED_ALGORITHM_REGISTRY.md`), GLOBE/ARENA and all other
+  screens mock-labeled with the persistent NON-STANDING banner. Absent sources
+  render UNKNOWN; nothing is fabricated in praxis mode.
 - `kgc4d-integration.js` — @unrdf/kgc-4d binding projecting live state into RDF
   named graphs per tick (spatial+temporal, SPARQL-queryable). Client-side
   visualization pattern adjacent to GraphLaw receipt ingest; JS lineage, not a
   core-engine candidate. API binding unverified (noted in file).
 
-Next action: adopt into version control if promoted to a role; until then it
-carries no standing.
+Next action (remaining bundle files): `TenFourApp.jsx`/`ios-frame.jsx` stay in
+the bundle (separate 10-Four product); adopt only if promoted to a role.
 
 ## Declared sources (acceptance criteria)
 
 | Criterion | Status |
 |---|---|
-| Standing source | **BLOCKED_TYPED** — no Praxis client adapter exists yet. Required: a read-only surface exporting GraphLaw-derived state + receipts (candidates: ggen-generated JSON reports, `law export` output, `.ggen-v2/receipt.json` chain). Clients currently expect Supabase (pcp, dashboard.bak, zoeapp) or self-hosted Next API routes (optimus). Next action: define the client adapter contract (report/receipt JSON schema) in v26.7.6 docs; wire in a follow-up release. |
-| Receipt source | **BLOCKED_TYPED** — same adapter gap. Receipt chain exists (`.ggen-v2/receipt.json`, `receipt verify` verb); no client consumes it yet. |
+| Standing source | **PARTIAL** — the adapter contract's read path is now implemented once, in `clients/autonomic-platform/src/praxis-adapter.js` (receipt chain + plan artifacts + registry report, every value carrying `{source, ref}`). The other clients remain unwired. Prior state: BLOCKED_TYPED — no Praxis client adapter exists yet. Required: a read-only surface exporting GraphLaw-derived state + receipts (candidates: ggen-generated JSON reports, `law export` output, `.ggen-v2/receipt.json` chain). Clients currently expect Supabase (pcp, dashboard.bak, zoeapp) or self-hosted Next API routes (optimus). Next action: define the client adapter contract (report/receipt JSON schema) in v26.7.6 docs; wire in a follow-up release. |
+| Receipt source | **PARTIAL** — the Autonomic Platform client consumes `.ggen-v2/receipt.json` + `receipt-log.jsonl` (chain head, receipt count, non-Green blockers). optimus/pcp/dashboard.bak still consume nothing. |
 | Build command per client (executed 2026-07-06) | **optimus: PASS** — `next build` completed (route table emitted, static+dynamic pages, middleware 35.4 kB) despite npm-install fallback noise. **pcp: BLOCKED_TYPED** — `npx expo export --platform web` fails: unresolved modules `@/src/components/AvatarRelativeProjection` (from `src/app/(auth)/_layout.tsx`) and `@/src/hooks/useOcelEvidence` (from `(tabs)/process.tsx`) — source files missing from repo; next action: restore/stub the missing modules or point imports at existing components. **dashboard.bak: BLOCKED_TYPED** — `nuxi build` fails: dependency-generation skew. `app/assets/css/main.css` is authored for Nuxt UI Pro v3 / Tailwind v4 (`@import "tailwindcss" theme(static)`, `@theme static`, `@import "@nuxt/ui-pro"`) while `package.json` declares `@nuxt/ui` ^2.21 (Tailwind v3). No git history to recover the matching pair. Next action (adoption decision, not build fix): upgrade to `@nuxt/ui` v3 + ui-pro (license required) OR re-home the 88 pages onto the in-tree `wasm4pm/apps/playground-web` shell (Nuxt 4.4.6, committed). |
 | Command surface | **PLANNED** — clients may invoke lawful actions only through declared adapters (planner/workflow verbs); no direct mutation of law-state. |
 
@@ -72,9 +80,14 @@ carries no standing.
 - [x] Expo code inventoried, classified, mapped to mobile-console role.
 - [x] Nuxt code inventoried, classified, mapped to browser-shell role (with the
       no-git caveat typed).
-- [ ] Build command executed per client (typed above as UNVERIFIED-RUN).
-- [x] Standing source declared (adapter gap typed as blocker).
-- [x] Receipt source declared (adapter gap typed as blocker).
+- [ ] Build command executed per client (typed above as UNVERIFIED-RUN;
+      autonomic-platform: PASS 2026-07-06, `npm run build` = `vite build`).
+- [x] Standing source declared (adapter implemented for autonomic-platform;
+      gap remains typed for optimus/pcp/dashboard.bak).
+- [x] Receipt source declared (consumed by autonomic-platform; others gapped).
+- [x] Autonomic Platform adopted into version control
+      (`clients/autonomic-platform/`, ALIVE-with-scope: DECK/OPS/HUD
+      standing-mapped, GLOBE/ARENA mock-labeled NON-STANDING).
 - [ ] C4 diagrams include client surfaces (pending C4.md pass).
 - [ ] FORTUNE5_READINESS includes client surfaces (pending).
 - [ ] FINAL_STATUS reports client standing (pending).
