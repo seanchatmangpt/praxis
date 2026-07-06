@@ -1,0 +1,40 @@
+# command: cargo-cicd claude_context show
+# cwd: /Users/sac/praxis
+# started_at_utc: 2026-07-06T23:40:10.182Z
+# finished_at_utc: 2026-07-06T23:40:10.189Z
+# exit_code: 0
+
+## stdout
+# CLAUDE_CODE_CONTEXT — v26.6.30 (generated 2026-07-06T23:40:07.727Z)
+
+- crate:agent8: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/agent8/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- crate:ggen: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/ggen/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- crate:chatman-common: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/chatman-common/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- crate:praxis-core: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/praxis-core/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- crate:praxis-proposer: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/praxis-proposer/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- crate:praxis-retrofit: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/praxis-retrofit/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- crate:rust-fable-testbed: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/rust-fable-testbed/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- crate:powl2-decompose: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/powl2-decompose/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- crate:pddl-index: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/pddl-index/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- crate:praxis-synthesis: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/praxis-synthesis/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- crate:praxis-lean: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/praxis-lean/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- crate:praxis-graphlaw: standing=[Discovered], ladder 0, scope=none, evidence: artifact: crates/praxis-graphlaw/Cargo.toml. next: build it (cargo build, or the configured client build_command)
+- doctor-report: standing=[Discovered,Builds], ladder 1, scope=none, evidence: command: cargo run --quiet --bin my-conforming-project -- doctor check --format json. next: get it under test (cargo test) to reach TESTED
+- ocel:ledger-export.ocel: standing=[Discovered], ladder 0, scope=none, evidence: ocel: docs/releases/v26.7.6/ocel/ledger-export.ocel.json. next: build it (cargo build, or the configured client build_command)
+- ocel:playwright-wasm4pm-validation.ocel: standing=[Discovered], ladder 0, scope=none, evidence: ocel: docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json. next: build it (cargo build, or the configured client build_command)
+- ocel:wasm4pm-process-validation: standing=[Discovered,OcelProven], ladder 4, scope=none, evidence: ocel: docs/releases/v26.7.6/ocel/wasm4pm-process-validation.json. next: produce a wasm4pm conformance proof to reach WASM4PM_PROVEN
+- receipt-ledger:receipt-log: standing=[Discovered], ladder 0, scope=none, evidence: no evidence recorded. next: build it (cargo build, or the configured client build_command)
+- plan:after_neon_det: standing=[Discovered,Receipted], ladder 3, scope=none, evidence: receipt: target/plan_run/after_neon_det/plan.json. next: produce an OCEL process-validation log with is_conforming=true to reach OCEL_PROVEN
+- plan:after_neon_run1: standing=[Discovered,Receipted], ladder 3, scope=none, evidence: receipt: target/plan_run/after_neon_run1/plan.json. next: produce an OCEL process-validation log with is_conforming=true to reach OCEL_PROVEN
+- plan:after_neon_run2: standing=[Discovered,Receipted], ladder 3, scope=none, evidence: receipt: target/plan_run/after_neon_run2/plan.json. next: produce an OCEL process-validation log with is_conforming=true to reach OCEL_PROVEN
+- plan:ocel_pass: standing=[Discovered,Receipted], ladder 3, scope=none, evidence: receipt: target/plan_run/ocel_pass/plan.json. next: produce an OCEL process-validation log with is_conforming=true to reach OCEL_PROVEN
+- plan:ocel_pass2: standing=[Discovered,Receipted], ladder 3, scope=none, evidence: receipt: target/plan_run/ocel_pass2/plan.json. next: produce an OCEL process-validation log with is_conforming=true to reach OCEL_PROVEN
+- plan:ocel_probe: standing=[Discovered,Receipted], ladder 3, scope=none, evidence: receipt: target/plan_run/ocel_probe/plan.json. next: produce an OCEL process-validation log with is_conforming=true to reach OCEL_PROVEN
+- bench:bench-ggen: standing=[Discovered,Benchmarked], ladder 0, scope=none, evidence: artifact: docs/releases/v26.7.6/ocel/raw/bench-ggen.txt. next: build it (cargo build, or the configured client build_command)
+- bench:bench-graphlaw: standing=[Discovered,Benchmarked], ladder 0, scope=none, evidence: artifact: docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt. next: build it (cargo build, or the configured client build_command)
+- bench:bench-root: standing=[Discovered,Benchmarked], ladder 0, scope=none, evidence: artifact: docs/releases/v26.7.6/ocel/raw/bench-root.txt. next: build it (cargo build, or the configured client build_command)
+- claim:CLAIM_PROMOTION_TABLE: standing=[Discovered], ladder 0, scope=none, evidence: artifact: docs/releases/v26.7.6/CLAIM_PROMOTION_TABLE.md. next: build it (cargo build, or the configured client build_command)
+- autonomic-platform: standing=[Discovered,Builds], ladder 1, scope=none, evidence: command: npm run build. next: get it under test (cargo test) to reach TESTED
+null
+
+## stderr

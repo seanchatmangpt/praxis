@@ -1,0 +1,8 @@
+{
+  "valid": true,
+  "event_count": 28,
+  "object_count": 28,
+  "parse_errors": [],
+  "log_ref": "target/praxis-standing/standing.ocel.json",
+  "validated_at_utc": "2026-07-06T23:41:01.699Z"
+}

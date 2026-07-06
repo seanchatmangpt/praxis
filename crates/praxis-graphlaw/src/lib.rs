@@ -1,36 +1,36 @@
 extern crate core;
+pub mod aggregation;
 pub mod backwardchaining;
 pub mod bindings;
 pub mod builtins;
 pub mod csprite;
+pub mod datalog;
 pub mod decode;
 pub mod dred;
 pub mod encoding;
 pub mod imars_reasoner;
 pub mod imars_window;
 pub mod observer;
+pub mod oxrdf_adapter;
 pub mod parser;
 pub mod pipeline;
 pub mod queryengine;
 pub mod reasoner;
+pub mod registry;
 pub mod rsp;
+pub mod rule;
 pub mod ruleindex;
 mod service_composition;
-pub mod sparql;
-pub mod time_window;
-pub mod tripleindex;
-pub mod oxrdf_adapter;
-pub mod registry;
-pub mod rule;
-pub mod term;
-pub mod triples;
-pub mod utils;
-pub mod aggregation;
 pub mod shacl;
 pub mod shex;
 pub mod shex_native;
 pub mod shexc_parser;
-pub mod datalog;
+pub mod sparql;
+pub mod term;
+pub mod time_window;
+pub mod tripleindex;
+pub mod triples;
+pub mod utils;
 
 extern crate pest;
 #[macro_use]
@@ -49,11 +49,12 @@ use crate::encoding::Encoder;
 use crate::parser::{Parser, Syntax};
 use spargebra::Query;
 
-
 use crate::queryengine::{QueryEngine, SimpleQueryEngine};
 use crate::reasoner::Reasoner;
 use crate::sparql::{eval_query, evaluate_plan_and_debug};
-use crate::triples::{BlankNodeImpl, LiteralImpl, Rule, Term, TermImpl, Triple, VarOrTerm, BodyLiteral, Aggregate}; // Workaround to use prinltn! for logs.
+use crate::triples::{
+    Aggregate, BlankNodeImpl, BodyLiteral, LiteralImpl, Rule, Term, TermImpl, Triple, VarOrTerm,
+}; // Workaround to use prinltn! for logs.
 
 pub struct TripleStore {
     pub rules: Vec<Rule>,
@@ -152,7 +153,11 @@ impl TripleStore {
         }
         Ok(())
     }
-    pub fn add_rule_with_aggregate(&mut self, rule: Rule, aggregate: Aggregate) -> Result<(), String> {
+    pub fn add_rule_with_aggregate(
+        &mut self,
+        rule: Rule,
+        aggregate: Aggregate,
+    ) -> Result<(), String> {
         self.aggregates.insert(rule.clone(), aggregate);
         self.add_rules(vec![rule])
     }
@@ -161,8 +166,12 @@ impl TripleStore {
     }
 
     pub fn materialize(&mut self) -> Vec<Triple> {
-        self.reasoner
-            .materialize(&mut self.triple_index, &self.rules, &self.strata, &self.aggregates)
+        self.reasoner.materialize(
+            &mut self.triple_index,
+            &self.rules,
+            &self.strata,
+            &self.aggregates,
+        )
     }
 
     /// Check every denial/consistency-check rule (`{ body } => false.`,
@@ -228,9 +237,27 @@ impl TripleStore {
 
     ////
 
+    /// Serialize every triple in this store to Turtle-ish `s p o.` lines,
+    /// one per triple, in a canonical (sorted-by-decoded-text) order.
+    ///
+    /// Lane 4 finding: `self.triple_index.triples` is a `Vec<Triple>` whose
+    /// order reflects insertion/materialization order, which is not
+    /// guaranteed stable across independent process runs (forward-chaining
+    /// rule application over internally-hashed structures can visit facts
+    /// in a different order each run even when the resulting triple SET is
+    /// identical). Confirmed by running `case_study_judge` 3x over
+    /// unchanged inputs: the derived-triple *set* was byte-identical
+    /// (`diff <(sort run_a.ttl) <(sort run_b.ttl)` empty) but the unsorted
+    /// text — and therefore any hash taken over it, e.g.
+    /// `case_study_judge`'s `graph_hash` — differed every run. Sorting here
+    /// (by each triple's own decoded text, not the store's internal
+    /// interned ids, which are themselves insertion-order-dependent) is the
+    /// minimal fix: it orders the *output*, not the reasoner, so no
+    /// materialization/rule-evaluation logic changes.
     pub fn content_to_string(&self) -> String {
-        let content = &self.triple_index.triples;
-        TripleStore::decode_triples(content)
+        let mut content = self.triple_index.triples.clone();
+        content.sort_by_cached_key(TripleStore::decode_triple);
+        TripleStore::decode_triples(&content)
     }
 
     pub fn load_triples(&mut self, data: &str, syntax: Syntax) -> Result<(), String> {
@@ -263,9 +290,15 @@ impl TripleStore {
     ///
     /// `shapes_turtle` is a Turtle-serialised SHACL shapes graph.
     /// Returns a `ValidationReport` describing conformance and any violations.
-    pub fn validate_shacl(&self, shapes_turtle: &str) -> Result<crate::shacl::ValidationReport, String> {
+    pub fn validate_shacl(
+        &self,
+        shapes_turtle: &str,
+    ) -> Result<crate::shacl::ValidationReport, String> {
         let shapes = crate::shacl::ShapesGraph::parse(shapes_turtle)?;
-        Ok(crate::shacl::Validator::validate(&self.triple_index, &shapes))
+        Ok(crate::shacl::Validator::validate(
+            &self.triple_index,
+            &shapes,
+        ))
     }
 
     /// Validate specific (focus-node, shape) pairs against a ShEx schema.

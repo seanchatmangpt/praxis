@@ -1,0 +1,39 @@
+# command: cargo-cicd standing report
+# cwd: /Users/sac/praxis
+# started_at_utc: 2026-07-06T23:40:07.767Z
+# finished_at_utc: 2026-07-06T23:40:07.772Z
+# exit_code: 0
+
+## stdout
+id                           kind       standing                                 ladder scope
+crate:agent8                 RustCrate Discovered                               0      
+crate:ggen                   RustCrate Discovered                               0      
+crate:chatman-common         RustCrate Discovered                               0      
+crate:praxis-core            RustCrate Discovered                               0      
+crate:praxis-proposer        RustCrate Discovered                               0      
+crate:praxis-retrofit        RustCrate Discovered                               0      
+crate:rust-fable-testbed     RustCrate Discovered                               0      
+crate:powl2-decompose        RustCrate Discovered                               0      
+crate:pddl-index             RustCrate Discovered                               0      
+crate:praxis-synthesis       RustCrate Discovered                               0      
+crate:praxis-lean            RustCrate Discovered                               0      
+crate:praxis-graphlaw        RustCrate Discovered                               0      
+doctor-report                Doc Discovered,Builds                        1      
+ocel:ledger-export.ocel      Workflow Discovered                               0      
+ocel:playwright-wasm4pm-validation.ocel Workflow Discovered                               0      
+ocel:wasm4pm-process-validation Workflow Discovered,OcelProven                    4      
+receipt-ledger:receipt-log   Doc Discovered                               0      
+plan:after_neon_det          Workflow Discovered,Receipted                     3      
+plan:after_neon_run1         Workflow Discovered,Receipted                     3      
+plan:after_neon_run2         Workflow Discovered,Receipted                     3      
+plan:ocel_pass               Workflow Discovered,Receipted                     3      
+plan:ocel_pass2              Workflow Discovered,Receipted                     3      
+plan:ocel_probe              Workflow Discovered,Receipted                     3      
+bench:bench-ggen             Bench Discovered,Benchmarked                   0      
+bench:bench-graphlaw         Bench Discovered,Benchmarked                   0      
+bench:bench-root             Bench Discovered,Benchmarked                   0      
+claim:CLAIM_PROMOTION_TABLE  Doc Discovered                               0      
+autonomic-platform           Client Discovered,Builds                        1      
+null
+
+## stderr

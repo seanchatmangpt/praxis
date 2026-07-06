@@ -47,6 +47,6 @@ conforms: true, failures: 0
 
 ## Graph hash
 
-`blake3:c92a915409cbb8c7c0ef7421f7ef577de7f598581871fd898471fef191d2582e`
+`blake3:b4405bf64afff70c68007d1cd9c0002a1c898200e1feda0c4d510edf4c1d5555`
 
 generated_at_utc (sourced from standing envelope): 2026-07-06T22:27:34.851Z

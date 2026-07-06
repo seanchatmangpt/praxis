@@ -1,0 +1,10 @@
+# command: date -u +%Y-%m-%dT%H:%M:%S.000Z
+# cwd: /Users/sac/praxis
+# started_at_utc: 2026-07-06T23:39:48.217Z
+# finished_at_utc: 2026-07-06T23:39:48.223Z
+# exit_code: 0
+
+## stdout
+2026-07-06T23:39:48.000Z
+
+## stderr

@@ -1,3 +1,10 @@
+# command: /tmp/lane4_bins/ocel_process_validate --model case-study
+# cwd: /Users/sac/praxis
+# started_at_utc: 2026-07-06T23:40:22.235Z
+# finished_at_utc: 2026-07-06T23:40:22.463Z
+# exit_code: 0
+
+## stdout
 {
   "alphabet": [
     "benchmarks_attached",
@@ -494,3 +501,7 @@
     ]
   ]
 }
+
+
+## stderr
+[ocel_process_validate] case-study model emitted to docs/case-studies/autonomic-standing-factory/case-study/powl_model.json (16 children, 114 order pairs); no log given, no conformance pass run

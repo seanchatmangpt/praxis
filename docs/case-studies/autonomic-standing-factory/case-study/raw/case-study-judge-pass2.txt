@@ -1,3 +1,10 @@
+# command: /tmp/lane4_bins/case_study_judge
+# cwd: /Users/sac/praxis
+# started_at_utc: 2026-07-06T23:40:23.256Z
+# finished_at_utc: 2026-07-06T23:40:23.286Z
+# exit_code: 1
+
+## stdout
 {
   "verdict": "GRAPHLAW_JUDGED_NOT_READY_WITH_RECEIPTED_REASONS",
   "raw_verdict_fact": "NotReadyWithReasons",
@@ -128,3 +135,5 @@
   "graph_hash": "blake3:b4405bf64afff70c68007d1cd9c0002a1c898200e1feda0c4d510edf4c1d5555",
   "generated_at_utc": "2026-07-06T22:27:34.851Z"
 }
+
+## stderr

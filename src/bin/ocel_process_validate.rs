@@ -60,21 +60,55 @@ const RELEASE_ID: &str = "v26.7.6";
 const CASE_STUDY_MODEL_REPORT_PATH: &str =
     "docs/case-studies/autonomic-standing-factory/case-study/powl_model.json";
 
+/// Output path for the `--model case-study <log>` conformance verdict (Lane
+/// 4: `case-study/ocel_case_study.json` validated against the Lane 3
+/// case-study process model).
+const CASE_STUDY_WASM4PM_VALIDATION_PATH: &str =
+    "docs/case-studies/autonomic-standing-factory/case-study/wasm4pm_validation.json";
+
+/// Output path for `--model standing-integrity <log>` (Lane 4, item 5: the
+/// "standing-process validation payoff" — structural integrity of Lane 1's
+/// own `standing.ocel.json`, not a conformance verdict against a process
+/// model).
+const STANDING_OCEL_VALIDATION_PATH: &str =
+    "docs/case-studies/autonomic-standing-factory/case-study/standing_ocel_validation.json";
+
+/// Object types the case-study OCEL log must carry >= 1 instance of (Lane 4
+/// driver's own object roster: the case-study run itself, the standing
+/// envelope it consumed, the OCEL/judgment/process-validation artifacts it
+/// produced, and a client-surface-style object for the client build check).
+const CASE_STUDY_REQUIRED_OBJECT_TYPES: [&str; 6] = [
+    "case_study",
+    "standing_envelope",
+    "ocel_log",
+    "graphlaw_judgment",
+    "process_validation",
+    "client_surface",
+];
+
 /// Which process model `ocel_process_validate` selects. `Release` is the
 /// UNCHANGED default (v26.7.6 `CHILD_SPECS`/`ORDER_LABEL_PAIRS`, full
 /// integrity+conformance run against `DEFAULT_LOG` or an explicit log arg).
 /// `CaseStudy` selects the Lane 3 case-study model and only emits the model
 /// projection (no log to validate against yet).
+/// `StandingIntegrity` (Lane 4): structural-only OCEDO/OCPQ integrity check
+/// (parse + `validate`) of a standing-emitted Shape-A OCEL log — e.g. Lane
+/// 1's `target/praxis-standing/standing.ocel.json`. No process model applies
+/// to a standing snapshot (it is not an execution trace), so this path never
+/// attempts conformance — just "does this log parse and satisfy the OCEDO/
+/// OCPQ structural invariants."
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ModelKind {
     Release,
     CaseStudy,
+    StandingIntegrity,
 }
 
 impl ModelKind {
     fn parse(s: &str) -> Self {
         match s {
             "case-study" => ModelKind::CaseStudy,
+            "standing-integrity" => ModelKind::StandingIntegrity,
             _ => ModelKind::Release,
         }
     }
@@ -219,11 +253,29 @@ const ORDER_LABEL_PAIRS: &[(&str, &str)] = &[
 // A distinct, parallel table — selected only by `--model case-study` — for
 // the autonomic-standing-factory case study's own top-level workflow (not
 // the v26.7.6 release loop above, which stays byte-for-byte unchanged).
-// Every child is a plain `Once` leaf: this model describes one pass through
-// the case study, not a release loop with retries.
+//
+// Lane 4 fix-forward (found while building the real driver, per the ticket's
+// "fix the generator or the Lane-3 process model, never weaken the
+// validator" instruction — both files below are the actual fix):
+// 1. `utc_clock_captured` was missing from the Lane 3 table entirely, even
+//    though the driver instructions require it as a minimum event type.
+//    Added as a `Once` leaf between `case_study_started` and
+//    `standing_emitted` (mirrors the release model's own
+//    `validation_run_started -> utc_clock_captured` placement).
+// 2. `standing_emitted` was a plain `Once` leaf, but the real driver runs
+//    multiple standing verbs (`refresh`, `report`, `verify`,
+//    `claude_context show`, `just standing`) — each a real
+//    `standing_emitted` occurrence. Changed to `AtLeastOnce`.
+// 3. `final_verdict_rendered` is dropped from this model entirely: per the
+//    ticket, that event is Lane 6's (the FINAL_VERDICT.md render, gated on
+//    Lanes 5-6 evidence this lane does not have) — a placeholder OBJECT is
+//    still recorded (see the driver script's `final_verdict` object), but no
+//    event of this type is asserted before it is real. The order chain now
+//    goes straight from `wasm4pm_process_validated` to `case_study_finished`.
 const CASE_STUDY_CHILD_SPECS: &[ChildSpec] = &[
     ChildSpec::Once("case_study_started"),
-    ChildSpec::Once("standing_emitted"),
+    ChildSpec::Once("utc_clock_captured"),
+    ChildSpec::AtLeastOnce("standing_emitted"),
     ChildSpec::Once("shacl_validated"),
     ChildSpec::Once("shex_validated"),
     ChildSpec::Once("n3_materialized"),
@@ -236,25 +288,20 @@ const CASE_STUDY_CHILD_SPECS: &[ChildSpec] = &[
     ChildSpec::Once("graphlaw_judgment_emitted"),
     ChildSpec::Once("ocel_log_written"),
     ChildSpec::Once("wasm4pm_process_validated"),
-    ChildSpec::Once("final_verdict_rendered"),
     ChildSpec::Once("case_study_finished"),
 ];
 
-/// Partial order exactly as specified by the Lane 3 ticket:
-/// `case_study_started < standing_emitted < {shacl_validated, shex_validated,
-/// n3_materialized < datalog_closed} < pddl_plan_generated <
-/// powl_model_compiled < {client_smoked, receipts_verified,
-/// benchmarks_attached} < graphlaw_judgment_emitted < ocel_log_written <
-/// wasm4pm_process_validated < final_verdict_rendered < case_study_finished`.
-///
-/// No real OCEL log exists yet for this model (Lane 4 produces it), so this
-/// order has not been contradicted by an observed trace — it is asserted
-/// from the ticket's specification, not mined. If Lane 4/6's actual capture
-/// shows `ocel_log_written` earlier than this order implies, that is a
-/// documented deviation for `PROCESS_MODEL.md` (Lane 6), not a silent edit
-/// here.
+/// Partial order, updated by Lane 4 (see the child-spec comment above for
+/// what changed and why): `case_study_started < utc_clock_captured <
+/// standing_emitted+ < {shacl_validated, shex_validated, n3_materialized <
+/// datalog_closed} < pddl_plan_generated < powl_model_compiled <
+/// {client_smoked, receipts_verified, benchmarks_attached} <
+/// graphlaw_judgment_emitted < ocel_log_written < wasm4pm_process_validated
+/// < case_study_finished`. `final_verdict_rendered` is deferred to Lane 6 and
+/// is not part of this order.
 const CASE_STUDY_ORDER_LABEL_PAIRS: &[(&str, &str)] = &[
-    ("case_study_started", "standing_emitted"),
+    ("case_study_started", "utc_clock_captured"),
+    ("utc_clock_captured", "standing_emitted"),
     ("standing_emitted", "shacl_validated"),
     ("standing_emitted", "shex_validated"),
     ("standing_emitted", "n3_materialized"),
@@ -271,8 +318,7 @@ const CASE_STUDY_ORDER_LABEL_PAIRS: &[(&str, &str)] = &[
     ("benchmarks_attached", "graphlaw_judgment_emitted"),
     ("graphlaw_judgment_emitted", "ocel_log_written"),
     ("ocel_log_written", "wasm4pm_process_validated"),
-    ("wasm4pm_process_validated", "final_verdict_rendered"),
-    ("final_verdict_rendered", "case_study_finished"),
+    ("wasm4pm_process_validated", "case_study_finished"),
 ];
 
 /// Declarative child spec used to build the `Powl` value.
@@ -537,6 +583,11 @@ struct Report {
     method: String,
     closure_rule: String,
     validated_at_utc: String,
+    /// Which process model was validated against (Lane 4 addition — additive
+    /// field, v26.7.6 report consumers that read known keys are unaffected).
+    model_ref: String,
+    /// Path to the OCEL log that was validated (Lane 4 addition).
+    ocel_ref: String,
 }
 
 fn model_report(view: &ModelView) -> ModelReport {
@@ -829,6 +880,8 @@ fn run(log_path_arg: Option<String>) -> Result<bool, Refusal> {
                        re-runs."
             .to_string(),
         validated_at_utc: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
+        model_ref: "release-v26.7.6".to_string(),
+        ocel_ref: log_path.clone(),
     };
 
     let mut report_json =
@@ -882,16 +935,11 @@ fn hex_encode(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-/// `--model case-study`: build the Lane 3 case-study model and emit its
-/// `ModelReport{alphabet,children,order_pairs}` projection to
-/// `CASE_STUDY_MODEL_REPORT_PATH`. No OCEL log exists for this model yet
-/// (Lane 4 produces `case-study/ocel_*.json`), so — unlike `run()` — this
-/// does not attempt an integrity/UTC/conformance/participation pass; it is
-/// honestly scoped to "the model exists and is well-shaped," which is what
-/// Lane 3 owns. An optional positional log-path arg is accepted for
-/// forward-compatibility (a future Lane 4 log) but is only recorded, not
-/// validated, here.
-fn run_case_study(log_arg: Option<String>) -> Result<bool, Refusal> {
+/// `--model case-study` with no positional log arg: build the Lane 3
+/// case-study model and emit its `ModelReport{alphabet,children,order_pairs}`
+/// projection to `CASE_STUDY_MODEL_REPORT_PATH`. No conformance pass — this
+/// is the model-only path Lane 3 built.
+fn run_case_study_model_only() -> Result<bool, Refusal> {
     let model = case_study_loop_model()?;
     let view = model_view(&model)?;
     let report = model_report(&view);
@@ -909,14 +957,223 @@ fn run_case_study(log_arg: Option<String>) -> Result<bool, Refusal> {
     println!("{report_json}");
     eprintln!(
         "[ocel_process_validate] case-study model emitted to {CASE_STUDY_MODEL_REPORT_PATH} \
-         ({} children, {} order pairs); no log validated{}",
+         ({} children, {} order pairs); no log given, no conformance pass run",
         report.children.len(),
         report.order_pairs.len(),
-        log_arg
-            .map(|p| format!(" (log arg '{p}' ignored: case-study log not owned by Lane 3)"))
-            .unwrap_or_default(),
     );
     Ok(true)
+}
+
+/// `--model case-study <log>` (Lane 4): parse `<log>` as OCEL 2.0 Shape A,
+/// run the same integrity + UTC-ordering + process-conformance +
+/// object-participation pipeline as the release `run()`, but against the
+/// Lane 3 case-study model and `CASE_STUDY_REQUIRED_OBJECT_TYPES`. Writes
+/// `{is_conforming, fitness, violations, model_ref, ocel_ref,
+/// validated_at_utc}` (plus the same supporting fields `run()` emits, for
+/// symmetry) to `CASE_STUDY_WASM4PM_VALIDATION_PATH`. Never appends
+/// bookkeeping events to the case-study log — that closure rule is specific
+/// to the release log's own re-validation loop.
+fn run_case_study_validate(log_path: String) -> Result<bool, Refusal> {
+    let bytes = std::fs::read(&log_path).map_err(|source| Refusal::Io {
+        path: log_path.clone(),
+        source,
+    })?;
+    let ocel_sha256 = {
+        use sha2::{Digest, Sha256};
+        let mut h = Sha256::new();
+        h.update(&bytes);
+        hex_encode(&h.finalize())
+    };
+    let ocel_blake3 = blake3::hash(&bytes).to_hex().to_string();
+
+    let text = String::from_utf8_lossy(&bytes);
+    let ocel: OCEL = serde_json::from_str(&text).map_err(|source| Refusal::Parse {
+        path: log_path.clone(),
+        source,
+    })?;
+    let raw: Value = serde_json::from_str(&text).map_err(|source| Refusal::Parse {
+        path: log_path.clone(),
+        source,
+    })?;
+
+    let mut violations: Vec<String> = Vec::new();
+
+    // 1. integrity gate
+    let cardinality: HashMap<String, ObjectTypeCardinality> = HashMap::new();
+    let integrity = validate(&ocel, &cardinality);
+    for e in &integrity.errors {
+        violations.push(format!("integrity {}: {}", e.code, e.message));
+    }
+
+    // 2. UTC ordering
+    let raw_times: Vec<(String, String)> = raw["events"]
+        .as_array()
+        .map(|evs| {
+            evs.iter()
+                .map(|e| {
+                    (
+                        e["id"].as_str().unwrap_or_default().to_string(),
+                        e["time"].as_str().unwrap_or_default().to_string(),
+                    )
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    violations.extend(utc_violations(&raw_times));
+
+    // 3. process conformance against the Lane 3 case-study model
+    let model = case_study_loop_model()?;
+    let view = model_view(&model)?;
+    let alphabet = model_alphabet(&view);
+    let types: Vec<String> = ocel.events.iter().map(|e| e.event_type.clone()).collect();
+    let projected = project_dedupe(&types, &alphabet);
+    let member_viols = membership_violations(&projected, &view);
+    let model_checks_total = view.children().len() + view.order().len();
+    let fitness = if member_viols.is_empty() {
+        1.0
+    } else {
+        let failed = member_viols.len().min(model_checks_total);
+        (model_checks_total - failed) as f64 / model_checks_total as f64
+    };
+    violations.extend(member_viols.iter().map(|v| format!("conformance: {v}")));
+
+    // 4. object participation
+    for t in CASE_STUDY_REQUIRED_OBJECT_TYPES {
+        if ocel.count_objects_of_type(t) == 0 {
+            violations.push(format!("participation: no object of type '{t}'"));
+        }
+    }
+
+    let is_conforming = violations.is_empty();
+    let report = Report {
+        is_conforming,
+        fitness,
+        violations: violations.clone(),
+        integrity_report_summary: IntegritySummary {
+            valid: integrity.valid,
+            error_count: integrity.errors.len(),
+            error_codes: integrity.errors.iter().map(|e| e.code.clone()).collect(),
+        },
+        event_count: ocel.events.len(),
+        object_count: ocel.objects.len(),
+        ocel_sha256,
+        ocel_blake3,
+        model: model_report(&view),
+        method: "library composition: wasm4pm_compat::ocel::validate (OCEDO/OCPQ \
+                 integrity) + powl2_decompose::Powl case-study model with the same direct \
+                 membership decision procedure used for the release model."
+            .to_string(),
+        closure_rule: "case-study log: no bookkeeping events are appended; this pass is a \
+                       plain validation, not a re-validated release log."
+            .to_string(),
+        validated_at_utc: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
+        model_ref: "case-study".to_string(),
+        ocel_ref: log_path.clone(),
+    };
+
+    let mut report_json =
+        serde_json::to_string_pretty(&report).map_err(|source| Refusal::Parse {
+            path: CASE_STUDY_WASM4PM_VALIDATION_PATH.to_string(),
+            source,
+        })?;
+    report_json.push('\n');
+    std::fs::write(CASE_STUDY_WASM4PM_VALIDATION_PATH, &report_json).map_err(|source| {
+        Refusal::Io {
+            path: CASE_STUDY_WASM4PM_VALIDATION_PATH.to_string(),
+            source,
+        }
+    })?;
+    println!("{report_json}");
+    if is_conforming {
+        eprintln!(
+            "[ocel_process_validate] case-study log conforming (fitness {fitness}); \
+             report written to {CASE_STUDY_WASM4PM_VALIDATION_PATH}"
+        );
+    } else {
+        eprintln!(
+            "[ocel_process_validate] case-study log NOT conforming: {} violation(s)",
+            violations.len()
+        );
+    }
+    Ok(is_conforming)
+}
+
+/// `--model case-study`: dispatches to the log-validation path when a
+/// positional log arg is given, else the model-only path (Lane 3's original
+/// behavior, still exercised with no args).
+fn run_case_study(log_arg: Option<String>) -> Result<bool, Refusal> {
+    match log_arg {
+        Some(log_path) => run_case_study_validate(log_path),
+        None => run_case_study_model_only(),
+    }
+}
+
+#[derive(Serialize)]
+struct StandingIntegrityReport {
+    valid: bool,
+    event_count: usize,
+    object_count: usize,
+    parse_errors: Vec<String>,
+    log_ref: String,
+    validated_at_utc: String,
+}
+
+/// `--model standing-integrity <log>` (Lane 4 item 5): parse `<log>` as OCEL
+/// 2.0 Shape A and run the OCEDO/OCPQ structural `validate` gate only — no
+/// process model (a standing snapshot is not an execution trace). Parse
+/// failures are captured as `parse_errors`, not a hard refusal: this report
+/// always writes (io failure aside), so a malformed log is diagnosable
+/// evidence rather than a silent tool crash.
+fn run_standing_integrity(log_path: String) -> Result<bool, Refusal> {
+    let bytes = std::fs::read(&log_path).map_err(|source| Refusal::Io {
+        path: log_path.clone(),
+        source,
+    })?;
+    let text = String::from_utf8_lossy(&bytes);
+
+    let (valid, event_count, object_count, parse_errors) = match serde_json::from_str::<OCEL>(&text)
+    {
+        Ok(ocel) => {
+            let cardinality: HashMap<String, ObjectTypeCardinality> = HashMap::new();
+            let integrity = validate(&ocel, &cardinality);
+            (
+                integrity.valid,
+                ocel.events.len(),
+                ocel.objects.len(),
+                integrity
+                    .errors
+                    .iter()
+                    .map(|e| format!("{}: {}", e.code, e.message))
+                    .collect(),
+            )
+        }
+        Err(e) => (false, 0, 0, vec![format!("parse: {e}")]),
+    };
+
+    let report = StandingIntegrityReport {
+        valid,
+        event_count,
+        object_count,
+        parse_errors,
+        log_ref: log_path,
+        validated_at_utc: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
+    };
+    let mut report_json =
+        serde_json::to_string_pretty(&report).map_err(|source| Refusal::Parse {
+            path: STANDING_OCEL_VALIDATION_PATH.to_string(),
+            source,
+        })?;
+    report_json.push('\n');
+    std::fs::write(STANDING_OCEL_VALIDATION_PATH, &report_json).map_err(|source| Refusal::Io {
+        path: STANDING_OCEL_VALIDATION_PATH.to_string(),
+        source,
+    })?;
+    println!("{report_json}");
+    eprintln!(
+        "[ocel_process_validate] standing-integrity: valid={valid}; report written to \
+         {STANDING_OCEL_VALIDATION_PATH}"
+    );
+    Ok(valid)
 }
 
 fn main() -> ExitCode {
@@ -925,6 +1182,12 @@ fn main() -> ExitCode {
     let result = match model {
         ModelKind::Release => run(log_arg),
         ModelKind::CaseStudy => run_case_study(log_arg),
+        ModelKind::StandingIntegrity => match log_arg {
+            Some(p) => run_standing_integrity(p),
+            None => Err(Refusal::ModelShape(
+                "--model standing-integrity requires a log path argument".to_string(),
+            )),
+        },
     };
     match result {
         Ok(true) => ExitCode::SUCCESS,

@@ -1,0 +1,91 @@
+# command: /tmp/lane4_bins/my-conforming-project plan run --goal docs/case-studies/autonomic-standing-factory/case-study/pddl/goal.ttl --out-dir /tmp/lane4_pddl_det_recheck --receipts-dir /tmp/lane4_pddl_det_recheck_receipts
+# cwd: /Users/sac/praxis
+# started_at_utc: 2026-07-06T23:40:21.240Z
+# finished_at_utc: 2026-07-06T23:40:22.234Z
+# exit_code: 0
+
+## stdout
+{
+  "admitted": true,
+  "goal": "docs/case-studies/autonomic-standing-factory/case-study/pddl/goal.ttl",
+  "graph_hash": "780bdcf99e56b541af788190aa91f4f1ab5e255989a4564e6a80aeb71d3de814",
+  "solve": {
+    "grounder": "naive",
+    "plan_len": 16,
+    "plan": [
+      "classify-external-side-effect",
+      "demote-claim",
+      "emit-standing",
+      "materialize-n3",
+      "validate-shacl",
+      "validate-shex",
+      "compute-datalog-closure",
+      "solve-pddl-plan",
+      "compile-powl-model",
+      "attach-benchmarks",
+      "smoke-client",
+      "verify-receipts",
+      "record-ocel",
+      "validate-wasm4pm-process",
+      "promote-claim",
+      "render-final-verdict"
+    ]
+  },
+  "powl": {
+    "slots": 16,
+    "entry_mask_hex": "0000000000000001"
+  },
+  "execution": {
+    "fired": [
+      "classify-external-side-effect",
+      "demote-claim",
+      "emit-standing",
+      "materialize-n3",
+      "validate-shacl",
+      "validate-shex",
+      "compute-datalog-closure",
+      "solve-pddl-plan",
+      "compile-powl-model",
+      "attach-benchmarks",
+      "smoke-client",
+      "verify-receipts",
+      "record-ocel",
+      "validate-wasm4pm-process",
+      "promote-claim",
+      "render-final-verdict"
+    ],
+    "powl_chain_hash": "blake3:d9d50a2f561f0c54fd9e655cac6ef4c96b99b91bbb09d2148a804a68608cb658"
+  },
+  "artifact": {
+    "dir": "/tmp/lane4_pddl_det_recheck",
+    "files": [
+      "domain.pddl",
+      "problem.pddl",
+      "plan.json"
+    ],
+    "verifier": {
+      "solvable": true,
+      "plan_len": 16
+    }
+  },
+  "ledger_receipt": {
+    "status": "issued",
+    "record": {
+      "version": 1,
+      "instruction_id": 0,
+      "activity_idx": 0,
+      "node_kind": 0,
+      "ts_ns": 0,
+      "payload_hash_hex": "75c5453dbbd38e3160412243023a048e92228cab4df989c432b814d68bcd3f3b",
+      "prev_chain_hash_hex": "00f843a92a8ff253c314d1d5b639017c2d9ec2820b85e5938f4401bc180a777a",
+      "chain_hash_hex": "c1207abd12653fae5ed658f0826f945a869416a00edbcba28a2816d0e3e039ba",
+      "andon": "Green",
+      "obligation_count": 0,
+      "object_ids": [
+        "law:75c5453dbbd38e31"
+      ]
+    }
+  }
+}
+
+## stderr

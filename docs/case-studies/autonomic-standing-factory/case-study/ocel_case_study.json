@@ -1,0 +1,2223 @@
+{
+  "eventTypes": [
+    {
+      "name": "benchmarks_attached",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "reused",
+          "type": "string"
+        },
+        {
+          "name": "note",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "case_study_finished",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "case_study_started",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "client_smoked",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "datalog_closed",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        },
+        {
+          "name": "unsatisfied_dependency_count",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "graphlaw_judgment_emitted",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        },
+        {
+          "name": "verdict",
+          "type": "string"
+        },
+        {
+          "name": "raw_verdict_fact",
+          "type": "string"
+        },
+        {
+          "name": "graph_hash",
+          "type": "string"
+        },
+        {
+          "name": "determinism_vs_pass1",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "n3_materialized",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        },
+        {
+          "name": "derived_triple_count",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "ocel_log_written",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "path",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "pddl_plan_generated",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        },
+        {
+          "name": "reused_from",
+          "type": "string"
+        },
+        {
+          "name": "reused_object_hash",
+          "type": "string"
+        },
+        {
+          "name": "powl_chain_hash",
+          "type": "string"
+        },
+        {
+          "name": "determinism_recheck",
+          "type": "string"
+        },
+        {
+          "name": "note",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "powl_model_compiled",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "receipts_verified",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        },
+        {
+          "name": "verdict_ok",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "shacl_validated",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        },
+        {
+          "name": "shacl_reports",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "shex_validated",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        },
+        {
+          "name": "shex_report",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "standing_emitted",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        },
+        {
+          "name": "verb",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "utc_clock_captured",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "wasm4pm_process_validated",
+      "attributes": [
+        {
+          "name": "actor",
+          "type": "string"
+        },
+        {
+          "name": "run_id",
+          "type": "string"
+        },
+        {
+          "name": "event_source",
+          "type": "string"
+        },
+        {
+          "name": "standing_effect",
+          "type": "string"
+        },
+        {
+          "name": "evidence_refs",
+          "type": "string"
+        },
+        {
+          "name": "started_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "finished_at_utc",
+          "type": "string"
+        },
+        {
+          "name": "exit_code",
+          "type": "string"
+        },
+        {
+          "name": "note",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "objectTypes": [
+    {
+      "name": "benchmark_result",
+      "attributes": [
+        {
+          "name": "object_label",
+          "type": "string"
+        },
+        {
+          "name": "object_source",
+          "type": "string"
+        },
+        {
+          "name": "standing",
+          "type": "string"
+        },
+        {
+          "name": "created_or_observed_by",
+          "type": "string"
+        },
+        {
+          "name": "reused",
+          "type": "string"
+        },
+        {
+          "name": "files",
+          "type": "string"
+        },
+        {
+          "name": "object_hash",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "case_study",
+      "attributes": [
+        {
+          "name": "object_label",
+          "type": "string"
+        },
+        {
+          "name": "object_source",
+          "type": "string"
+        },
+        {
+          "name": "standing",
+          "type": "string"
+        },
+        {
+          "name": "created_or_observed_by",
+          "type": "string"
+        },
+        {
+          "name": "scope",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "client_surface",
+      "attributes": [
+        {
+          "name": "object_label",
+          "type": "string"
+        },
+        {
+          "name": "object_source",
+          "type": "string"
+        },
+        {
+          "name": "standing",
+          "type": "string"
+        },
+        {
+          "name": "created_or_observed_by",
+          "type": "string"
+        },
+        {
+          "name": "path",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "final_verdict",
+      "attributes": [
+        {
+          "name": "object_label",
+          "type": "string"
+        },
+        {
+          "name": "object_source",
+          "type": "string"
+        },
+        {
+          "name": "standing",
+          "type": "string"
+        },
+        {
+          "name": "created_or_observed_by",
+          "type": "string"
+        },
+        {
+          "name": "note",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "graphlaw_judgment",
+      "attributes": [
+        {
+          "name": "object_label",
+          "type": "string"
+        },
+        {
+          "name": "object_source",
+          "type": "string"
+        },
+        {
+          "name": "standing",
+          "type": "string"
+        },
+        {
+          "name": "created_or_observed_by",
+          "type": "string"
+        },
+        {
+          "name": "path",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "ocel_log",
+      "attributes": [
+        {
+          "name": "object_label",
+          "type": "string"
+        },
+        {
+          "name": "object_source",
+          "type": "string"
+        },
+        {
+          "name": "standing",
+          "type": "string"
+        },
+        {
+          "name": "created_or_observed_by",
+          "type": "string"
+        },
+        {
+          "name": "path",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "pddl_plan",
+      "attributes": [
+        {
+          "name": "object_label",
+          "type": "string"
+        },
+        {
+          "name": "object_source",
+          "type": "string"
+        },
+        {
+          "name": "standing",
+          "type": "string"
+        },
+        {
+          "name": "created_or_observed_by",
+          "type": "string"
+        },
+        {
+          "name": "path",
+          "type": "string"
+        },
+        {
+          "name": "object_hash",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "powl_workflow",
+      "attributes": [
+        {
+          "name": "object_label",
+          "type": "string"
+        },
+        {
+          "name": "object_source",
+          "type": "string"
+        },
+        {
+          "name": "standing",
+          "type": "string"
+        },
+        {
+          "name": "created_or_observed_by",
+          "type": "string"
+        },
+        {
+          "name": "path",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "process_validation",
+      "attributes": [
+        {
+          "name": "object_label",
+          "type": "string"
+        },
+        {
+          "name": "object_source",
+          "type": "string"
+        },
+        {
+          "name": "standing",
+          "type": "string"
+        },
+        {
+          "name": "created_or_observed_by",
+          "type": "string"
+        },
+        {
+          "name": "path",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "receipt_chain",
+      "attributes": [
+        {
+          "name": "object_label",
+          "type": "string"
+        },
+        {
+          "name": "object_source",
+          "type": "string"
+        },
+        {
+          "name": "standing",
+          "type": "string"
+        },
+        {
+          "name": "created_or_observed_by",
+          "type": "string"
+        },
+        {
+          "name": "path",
+          "type": "string"
+        },
+        {
+          "name": "object_hash",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "standing_envelope",
+      "attributes": [
+        {
+          "name": "object_label",
+          "type": "string"
+        },
+        {
+          "name": "object_source",
+          "type": "string"
+        },
+        {
+          "name": "standing",
+          "type": "string"
+        },
+        {
+          "name": "created_or_observed_by",
+          "type": "string"
+        },
+        {
+          "name": "path",
+          "type": "string"
+        },
+        {
+          "name": "object_hash",
+          "type": "string"
+        },
+        {
+          "name": "object_hash_post_refresh",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "id": "cs_e1",
+      "type": "case_study_started",
+      "time": "2026-07-06T23:39:48.213Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/CASE_STUDY_CONTROL.md"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "case_study:autonomic-standing-factory",
+          "qualifier": "case_study"
+        }
+      ]
+    },
+    {
+      "id": "cs_e2",
+      "type": "utc_clock_captured",
+      "time": "2026-07-06T23:39:48.225Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:date -u +%Y-%m-%dT%H:%M:%S.000Z"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/utc-clock.txt (sha256:e7ad1a4b20e79a25602e54933620b3c7cefc8209ad3866763f6c03c6deebe0a9)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:39:48.217Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:39:48.223Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 0
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "case_study:autonomic-standing-factory",
+          "qualifier": "case_study"
+        }
+      ]
+    },
+    {
+      "id": "cs_e3",
+      "type": "standing_emitted",
+      "time": "2026-07-06T23:40:07.767Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:cargo-cicd standing refresh"
+        },
+        {
+          "name": "standing_effect",
+          "value": "standing_refreshed"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/standing-refresh.txt (sha256:cb1c969fdf57ea932b520e7130d57291f8ff32e665fbd457b4238a5e5aeaa513)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:39:48.225Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:07.767Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 0
+        },
+        {
+          "name": "verb",
+          "value": "refresh"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "standing_envelope:praxis",
+          "qualifier": "refresh"
+        }
+      ]
+    },
+    {
+      "id": "cs_e4",
+      "type": "standing_emitted",
+      "time": "2026-07-06T23:40:07.773Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:cargo-cicd standing report"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/standing-report.txt (sha256:4b9324c998d15f9f8128f408a433db3407a429030b99a302dc7ee9fbdf4307c4)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:07.767Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:07.772Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 0
+        },
+        {
+          "name": "verb",
+          "value": "report"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "standing_envelope:praxis",
+          "qualifier": "report"
+        }
+      ]
+    },
+    {
+      "id": "cs_e5",
+      "type": "standing_emitted",
+      "time": "2026-07-06T23:40:10.182Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:cargo-cicd standing verify"
+        },
+        {
+          "name": "standing_effect",
+          "value": "gate_passed"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/standing-verify.txt (sha256:b080bf2302848fe4546b23c2447f7f012066e6e90911647b8d5a5a979784734c)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:07.773Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:10.182Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 0
+        },
+        {
+          "name": "verb",
+          "value": "verify"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "standing_envelope:praxis",
+          "qualifier": "verify"
+        }
+      ]
+    },
+    {
+      "id": "cs_e6",
+      "type": "standing_emitted",
+      "time": "2026-07-06T23:40:10.189Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:cargo-cicd claude_context show"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/claude-context-show.txt (sha256:b53d8f3f2db7d8ee913a120277c38a3a0c0cf0ba14d4c3b985c5f7f81d6cc36c)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:10.182Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:10.189Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 0
+        },
+        {
+          "name": "verb",
+          "value": "claude_context_show"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "standing_envelope:praxis",
+          "qualifier": "claude_context"
+        }
+      ]
+    },
+    {
+      "id": "cs_e7",
+      "type": "standing_emitted",
+      "time": "2026-07-06T23:40:21.210Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:just standing"
+        },
+        {
+          "name": "standing_effect",
+          "value": "standing_refreshed"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/just-standing.txt (sha256:b46311a7d384b9449a62345c0fe466b2a556cb9aff471ab1811d1d0e6b872c32)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:10.189Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:21.209Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 0
+        },
+        {
+          "name": "verb",
+          "value": "just_standing"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "standing_envelope:praxis",
+          "qualifier": "just_standing"
+        }
+      ]
+    },
+    {
+      "id": "cs_e8",
+      "type": "shacl_validated",
+      "time": "2026-07-06T23:40:21.240Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:/tmp/lane4_bins/case_study_judge"
+        },
+        {
+          "name": "standing_effect",
+          "value": "gate_passed"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/case-study-judge-pass1.txt (sha256:0c18871077c0c13e9e44c0ff3704f2dff87c86cc919cabacccb6bdf935698290); case-study/shacl-report.json (sha256:bc9c3dbefe38d099ed174e5e0e974abc329d4e5287da5ab0b0b0d02d5ddaf61b)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:21.210Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:21.239Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 1
+        },
+        {
+          "name": "shacl_reports",
+          "value": "[{\"file\":\"standing-envelope.shacl.ttl\",\"conforms\":true,\"violation_count\":0},{\"file\":\"case-study.shacl.ttl\",\"conforms\":true,\"violation_count\":0},{\"file\":\"evidence-ref.shacl.ttl\",\"conforms\":true,\"violation_count\":0},{\"file\":\"final-verdict.shacl.ttl\",\"conforms\":true,\"violation_count\":0}]"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "graphlaw_judgment:case_study",
+          "qualifier": "shacl"
+        }
+      ]
+    },
+    {
+      "id": "cs_e9",
+      "type": "shex_validated",
+      "time": "2026-07-06T23:40:21.240Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:/tmp/lane4_bins/case_study_judge"
+        },
+        {
+          "name": "standing_effect",
+          "value": "gate_passed"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/case-study-judge-pass1.txt (sha256:0c18871077c0c13e9e44c0ff3704f2dff87c86cc919cabacccb6bdf935698290); case-study/shex-report.json (sha256:b02be75672b11c2806ac21f9c261d732fb386cc70998c08bd4f9797889c12714)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:21.210Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:21.239Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 1
+        },
+        {
+          "name": "shex_report",
+          "value": "{\"conforms\":true,\"failure_count\":0,\"failures\":[]}"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "graphlaw_judgment:case_study",
+          "qualifier": "shex"
+        }
+      ]
+    },
+    {
+      "id": "cs_e10",
+      "type": "n3_materialized",
+      "time": "2026-07-06T23:40:21.240Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:/tmp/lane4_bins/case_study_judge"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/case-study-judge-pass1.txt (sha256:0c18871077c0c13e9e44c0ff3704f2dff87c86cc919cabacccb6bdf935698290); case-study/graphlaw_derived.ttl (sha256:efdd153a67bc89906e2ae30c8132665fcd7ba1004e46aa2b0b6983f9866b3189)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:21.210Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:21.239Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 1
+        },
+        {
+          "name": "derived_triple_count",
+          "value": 22
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "graphlaw_judgment:case_study",
+          "qualifier": "n3"
+        }
+      ]
+    },
+    {
+      "id": "cs_e11",
+      "type": "datalog_closed",
+      "time": "2026-07-06T23:40:21.240Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:/tmp/lane4_bins/case_study_judge"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/case-study-judge-pass1.txt (sha256:0c18871077c0c13e9e44c0ff3704f2dff87c86cc919cabacccb6bdf935698290); case-study/datalog-report.md"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:21.210Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:21.239Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 1
+        },
+        {
+          "name": "unsatisfied_dependency_count",
+          "value": 10
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "graphlaw_judgment:case_study",
+          "qualifier": "datalog"
+        }
+      ]
+    },
+    {
+      "id": "cs_e12",
+      "type": "pddl_plan_generated",
+      "time": "2026-07-06T23:40:22.235Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:/tmp/lane4_bins/my-conforming-project plan run --goal docs/case-studies/autonomic-standing-factory/case-study/pddl/goal.ttl --out-dir /tmp/lane4_pddl_det_recheck --receipts-dir /tmp/lane4_pddl_det_recheck_receipts"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/pddl-plan-determinism-recheck.txt (sha256:5f5f876ed102466bbf1de664210389853a239f4288f5fb006521db16b7738d3a)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:21.240Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:22.234Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 0
+        },
+        {
+          "name": "reused_from",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/pddl-out/plan.json"
+        },
+        {
+          "name": "reused_object_hash",
+          "value": "70e86fe59bd6c50dc4c92237a5fbcc68e8b5253f21aeb615808b451e9856b0cc"
+        },
+        {
+          "name": "powl_chain_hash",
+          "value": "blake3:d9d50a2f561f0c54fd9e655cac6ef4c96b99b91bbb09d2148a804a68608cb658"
+        },
+        {
+          "name": "determinism_recheck",
+          "value": "identical"
+        },
+        {
+          "name": "note",
+          "value": "Lane 3 artifact reused (no fresh run needed); this driver additionally re-ran plan run into a throwaway dir to re-confirm determinism."
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "pddl_plan:case_study",
+          "qualifier": "plan"
+        }
+      ]
+    },
+    {
+      "id": "cs_e13",
+      "type": "powl_model_compiled",
+      "time": "2026-07-06T23:40:22.464Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:/tmp/lane4_bins/ocel_process_validate --model case-study"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/powl-model-compile.txt (sha256:e77fa7707ec9320c93799cc70ffd8c5ed3e849599714b1b7229ea43fa84403cd); case-study/powl_model.json (sha256:aafdc90fef2e57c13de4f7ae1426dd80851fd12d949f037bbba1cd497d6d75df)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:22.235Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:22.463Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 0
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "powl_workflow:case_study",
+          "qualifier": "workflow"
+        }
+      ]
+    },
+    {
+      "id": "cs_e14",
+      "type": "client_smoked",
+      "time": "2026-07-06T23:40:23.225Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:npm run build"
+        },
+        {
+          "name": "standing_effect",
+          "value": "gate_passed"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/client-build.txt (sha256:f1d701fce4dee1d76779e290f3c44ef2db88af34d86ffe6fa4918c364ea61b08)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:22.464Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:23.225Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 0
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "client_surface:autonomic-platform",
+          "qualifier": "client"
+        }
+      ]
+    },
+    {
+      "id": "cs_e15",
+      "type": "receipts_verified",
+      "time": "2026-07-06T23:40:23.256Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:/tmp/lane4_bins/my-conforming-project receipt validate --dir docs/case-studies/autonomic-standing-factory/case-study/pddl-receipts"
+        },
+        {
+          "name": "standing_effect",
+          "value": "gate_passed"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/receipt-validate-case-study.txt (sha256:4566e44da0a0d74c3985e12a3df9c435212982a4995d1f4f9bd33b38d0082f37)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:23.225Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:23.255Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 0
+        },
+        {
+          "name": "verdict_ok",
+          "value": true
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "receipt_chain:case_study_pddl",
+          "qualifier": "chain"
+        }
+      ]
+    },
+    {
+      "id": "cs_e16",
+      "type": "benchmarks_attached",
+      "time": "2026-07-06T23:40:23.256Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt; docs/releases/v26.7.6/ocel/raw/bench-ggen.txt; docs/releases/v26.7.6/ocel/raw/bench-root.txt"
+        },
+        {
+          "name": "reused",
+          "value": true
+        },
+        {
+          "name": "note",
+          "value": "reused from the v26.7.6 OCEL evidence pass; no new benchmark run was warranted for this case study, numbers not refabricated."
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "benchmark_result:v26_7_6_reused",
+          "qualifier": "benchmark"
+        }
+      ]
+    },
+    {
+      "id": "cs_e17",
+      "type": "graphlaw_judgment_emitted",
+      "time": "2026-07-06T23:40:23.286Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:/tmp/lane4_bins/case_study_judge"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/case-study-judge-pass2.txt (sha256:247b764f90490d89478de9a1e37dd6a0004da5b55ac330e299ca977f00b2864f); case-study/final_graphlaw_verdict.json (sha256:d8235d4eabdfedfdae6e061499a26e5f4b2cce38807cf8887145d3283e070be9)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:23.256Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:23.286Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 1
+        },
+        {
+          "name": "verdict",
+          "value": "GRAPHLAW_JUDGED_NOT_READY_WITH_RECEIPTED_REASONS"
+        },
+        {
+          "name": "raw_verdict_fact",
+          "value": "NotReadyWithReasons"
+        },
+        {
+          "name": "graph_hash",
+          "value": "blake3:b4405bf64afff70c68007d1cd9c0002a1c898200e1feda0c4d510edf4c1d5555"
+        },
+        {
+          "name": "determinism_vs_pass1",
+          "value": true
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "graphlaw_judgment:case_study",
+          "qualifier": "verdict"
+        }
+      ]
+    },
+    {
+      "id": "cs_e18",
+      "type": "ocel_log_written",
+      "time": "2026-07-06T23:40:23.286Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/ocel_case_study.json"
+        },
+        {
+          "name": "path",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/ocel_case_study.json"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "ocel_log:case_study",
+          "qualifier": "log"
+        }
+      ]
+    },
+    {
+      "id": "cs_e19",
+      "type": "wasm4pm_process_validated",
+      "time": "2026-07-06T23:40:23.300Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "event_source",
+          "value": "cli:/tmp/lane4_bins/ocel_process_validate docs/case-studies/autonomic-standing-factory/case-study/ocel_case_study.intermediate.json --model case-study"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/raw/wasm4pm-intermediate-check.txt (sha256:3ab54214b82024a7a6528c5a00ab553ee8fb4163e435c0ac477fc1f74b9ffdf9)"
+        },
+        {
+          "name": "started_at_utc",
+          "value": "2026-07-06T23:40:23.287Z"
+        },
+        {
+          "name": "finished_at_utc",
+          "value": "2026-07-06T23:40:23.300Z"
+        },
+        {
+          "name": "exit_code",
+          "value": 1
+        },
+        {
+          "name": "note",
+          "value": "evidences the intermediate wasm4pm_process_validate pass over the pre-final log (this event and case_study_finished are necessarily absent from that pass). The authoritative, final pass runs after this log is written (case-study/wasm4pm_validation.json)."
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "process_validation:case_study",
+          "qualifier": "validation"
+        }
+      ]
+    },
+    {
+      "id": "cs_e20",
+      "type": "case_study_finished",
+      "time": "2026-07-06T23:40:23.300Z",
+      "attributes": [
+        {
+          "name": "actor",
+          "value": "lane4-driver"
+        },
+        {
+          "name": "run_id",
+          "value": "case-study-ocel-2026-07-06T23-39-48-212Z"
+        },
+        {
+          "name": "standing_effect",
+          "value": "none"
+        },
+        {
+          "name": "evidence_refs",
+          "value": "this log"
+        }
+      ],
+      "relationships": [
+        {
+          "objectId": "case_study:autonomic-standing-factory",
+          "qualifier": "case_study"
+        }
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "id": "case_study:autonomic-standing-factory",
+      "type": "case_study",
+      "attributes": [
+        {
+          "name": "object_label",
+          "value": "Autonomic Standing Factory case study",
+          "time": "2026-07-06T23:39:48.213Z"
+        },
+        {
+          "name": "object_source",
+          "value": "docs/case-studies/autonomic-standing-factory/CASE_STUDY.md",
+          "time": "2026-07-06T23:39:48.213Z"
+        },
+        {
+          "name": "standing",
+          "value": "evidence",
+          "time": "2026-07-06T23:39:48.213Z"
+        },
+        {
+          "name": "created_or_observed_by",
+          "value": "lane4-driver",
+          "time": "2026-07-06T23:39:48.213Z"
+        },
+        {
+          "name": "scope",
+          "value": "local-first autonomic release-governance for the seanchatmangpt fleet",
+          "time": "2026-07-06T23:39:48.213Z"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "id": "standing_envelope:praxis",
+      "type": "standing_envelope",
+      "attributes": [
+        {
+          "name": "object_label",
+          "value": "praxis standing envelope (Lane 1 output)",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "object_source",
+          "value": "cargo-cicd standing refresh",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "standing",
+          "value": "verified",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "created_or_observed_by",
+          "value": "cargo-cicd",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "path",
+          "value": "target/praxis-standing/standing.json",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "object_hash",
+          "value": "a5a912b6138b0eff7d32cf9a96e82b69797999d3845222f686d8b6961d742976",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "object_hash_post_refresh",
+          "value": "5c6532cf82b18048d6e8c2dac586d45583a1bfa28a3fef8e8c0b42d6a6f5195f",
+          "time": "2026-07-06T23:40:21.210Z"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "id": "ocel_log:case_study",
+      "type": "ocel_log",
+      "attributes": [
+        {
+          "name": "object_label",
+          "value": "this case-study OCEL 2.0 Shape-A log",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "object_source",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/run-case-study-pass.mjs",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "standing",
+          "value": "evidence",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "created_or_observed_by",
+          "value": "lane4-driver",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "path",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/ocel_case_study.json",
+          "time": "2026-07-06T23:39:48.214Z"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "id": "graphlaw_judgment:case_study",
+      "type": "graphlaw_judgment",
+      "attributes": [
+        {
+          "name": "object_label",
+          "value": "case_study_judge final verdict",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "object_source",
+          "value": "src/bin/case_study_judge.rs",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "standing",
+          "value": "evidence",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "created_or_observed_by",
+          "value": "case_study_judge",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "path",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/final_graphlaw_verdict.json",
+          "time": "2026-07-06T23:39:48.214Z"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "id": "process_validation:case_study",
+      "type": "process_validation",
+      "attributes": [
+        {
+          "name": "object_label",
+          "value": "wasm4pm case-study conformance validation",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "object_source",
+          "value": "src/bin/ocel_process_validate.rs",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "standing",
+          "value": "evidence",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "created_or_observed_by",
+          "value": "ocel_process_validate",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "path",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/wasm4pm_validation.json",
+          "time": "2026-07-06T23:39:48.214Z"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "id": "client_surface:autonomic-platform",
+      "type": "client_surface",
+      "attributes": [
+        {
+          "name": "object_label",
+          "value": "Autonomic Platform client build gate",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "object_source",
+          "value": "clients/autonomic-platform",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "standing",
+          "value": "evidence",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "created_or_observed_by",
+          "value": "lane4-driver",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "path",
+          "value": "clients/autonomic-platform",
+          "time": "2026-07-06T23:39:48.214Z"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "id": "pddl_plan:case_study",
+      "type": "pddl_plan",
+      "attributes": [
+        {
+          "name": "object_label",
+          "value": "case-study PDDL repair plan (Lane 3 output, reused)",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "object_source",
+          "value": "case-study/pddl/goal.ttl",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "standing",
+          "value": "verified",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "created_or_observed_by",
+          "value": "plan_run (Lane 3)",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "path",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/pddl-out/plan.json",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "object_hash",
+          "value": "70e86fe59bd6c50dc4c92237a5fbcc68e8b5253f21aeb615808b451e9856b0cc",
+          "time": "2026-07-06T23:39:48.214Z"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "id": "powl_workflow:case_study",
+      "type": "powl_workflow",
+      "attributes": [
+        {
+          "name": "object_label",
+          "value": "case-study POWL process model",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "object_source",
+          "value": "src/bin/ocel_process_validate.rs --model case-study",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "standing",
+          "value": "verified",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "created_or_observed_by",
+          "value": "ocel_process_validate",
+          "time": "2026-07-06T23:39:48.214Z"
+        },
+        {
+          "name": "path",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/powl_model.json",
+          "time": "2026-07-06T23:39:48.214Z"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "id": "receipt_chain:case_study_pddl",
+      "type": "receipt_chain",
+      "attributes": [
+        {
+          "name": "object_label",
+          "value": "case-study PDDL plan-run receipt ledger",
+          "time": "2026-07-06T23:39:48.215Z"
+        },
+        {
+          "name": "object_source",
+          "value": "case-study/pddl-receipts/receipts.jsonl",
+          "time": "2026-07-06T23:39:48.215Z"
+        },
+        {
+          "name": "standing",
+          "value": "verified",
+          "time": "2026-07-06T23:39:48.215Z"
+        },
+        {
+          "name": "created_or_observed_by",
+          "value": "plan_run (Lane 3)",
+          "time": "2026-07-06T23:39:48.215Z"
+        },
+        {
+          "name": "path",
+          "value": "docs/case-studies/autonomic-standing-factory/case-study/pddl-receipts/receipts.jsonl",
+          "time": "2026-07-06T23:39:48.215Z"
+        },
+        {
+          "name": "object_hash",
+          "value": "74780811cf2b04c631388d543fe7303abbde34acd3f46e9da991432eb0b65523",
+          "time": "2026-07-06T23:39:48.215Z"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "id": "benchmark_result:v26_7_6_reused",
+      "type": "benchmark_result",
+      "attributes": [
+        {
+          "name": "object_label",
+          "value": "v26.7.6 benchmark evidence (reused, not re-run for this case study)",
+          "time": "2026-07-06T23:39:48.217Z"
+        },
+        {
+          "name": "object_source",
+          "value": "docs/releases/v26.7.6/ocel/raw/bench-*.txt",
+          "time": "2026-07-06T23:39:48.217Z"
+        },
+        {
+          "name": "standing",
+          "value": "evidence",
+          "time": "2026-07-06T23:39:48.217Z"
+        },
+        {
+          "name": "created_or_observed_by",
+          "value": "v26.7.6 OCEL evidence pass (reused)",
+          "time": "2026-07-06T23:39:48.217Z"
+        },
+        {
+          "name": "reused",
+          "value": true,
+          "time": "2026-07-06T23:39:48.217Z"
+        },
+        {
+          "name": "files",
+          "value": "bench-graphlaw.txt,bench-ggen.txt,bench-root.txt",
+          "time": "2026-07-06T23:39:48.217Z"
+        },
+        {
+          "name": "object_hash",
+          "value": "e02f221e1664edc526fddd14c43306926dc573bf4c83820201d3770a7ac0aeda,258944cc86b615aa8506c4dcbd74eaf9957f024e447b30372868489ae66d726d,34570340d1e2947e9251f5557c28c89062dedca34aa7ecaa32d0032be57c28db",
+          "time": "2026-07-06T23:39:48.217Z"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "id": "final_verdict:autonomic-standing-factory",
+      "type": "final_verdict",
+      "attributes": [
+        {
+          "name": "object_label",
+          "value": "FINAL_VERDICT.md (not yet produced)",
+          "time": "2026-07-06T23:39:48.217Z"
+        },
+        {
+          "name": "object_source",
+          "value": "Lane 6 (evidence manifest, claim promotion, generated verdict)",
+          "time": "2026-07-06T23:39:48.217Z"
+        },
+        {
+          "name": "standing",
+          "value": "not_yet_produced",
+          "time": "2026-07-06T23:39:48.217Z"
+        },
+        {
+          "name": "created_or_observed_by",
+          "value": "placeholder",
+          "time": "2026-07-06T23:39:48.217Z"
+        },
+        {
+          "name": "note",
+          "value": "final_verdict_rendered is deferred to Lane 6; this object exists so Lane 6 can wire its event to an already-declared object id without restructuring this log.",
+          "time": "2026-07-06T23:39:48.217Z"
+        }
+      ],
+      "relationships": []
+    }
+  ]
+}
