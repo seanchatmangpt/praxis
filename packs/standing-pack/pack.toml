@@ -1,4 +1,0 @@
-[pack]
-name = "standing-pack"
-version = "0.1.0"
-description = "Compiled praxis-standing.v1 index (target/praxis-standing/standing.ttl, copied into ontology.ttl by `just standing` before ggen sync run) plus the REALITY_INDEX.md report generated from it — a SPARQL projection over praxis:StandingArtifact instances grouped by kind then ladder level"

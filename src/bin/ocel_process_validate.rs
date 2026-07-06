@@ -40,6 +40,9 @@ use chrono::{DateTime, FixedOffset, SecondsFormat, Utc};
 use powl2_decompose::{ChoiceGraph, GNode, Powl};
 use serde::Serialize;
 use serde_json::{json, Value};
+use wasm4pm_compat::ocel::process_conformance::{
+    membership_violations, model_alphabet, project_dedupe, ChildKind, ModelView,
+};
 use wasm4pm_compat::ocel::validate::validate;
 use wasm4pm_compat::ocel::{ObjectTypeCardinality, OCEL};
 
@@ -274,38 +277,16 @@ fn release_loop_model() -> Result<Powl, Refusal> {
 }
 
 // ─── model view: derive the decision procedure from the Powl value ──────────
-
-/// What one top-level child accepts, derived from the `Powl` structure.
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum ChildKind {
-    /// exactly one occurrence of the label.
-    Once(String),
-    /// one or more occurrences of the label.
-    AtLeastOnce(String),
-    /// one or more repetitions of the label sequence.
-    SeqLoop(Vec<String>),
-}
-
-impl ChildKind {
-    fn labels(&self) -> Vec<&str> {
-        match self {
-            ChildKind::Once(l) | ChildKind::AtLeastOnce(l) => vec![l.as_str()],
-            ChildKind::SeqLoop(ls) => ls.iter().map(String::as_str).collect(),
-        }
-    }
-}
-
-/// Structural view of a top-level `PartialOrder` model whose children have
-/// pairwise-disjoint alphabets — the class for which direct language
-/// membership is exact (validated against `language_upto` in tests).
-#[derive(Debug)]
-struct ModelView {
-    children: Vec<ChildKind>,
-    /// transitively closed strict partial order over child indices.
-    order: BTreeSet<(usize, usize)>,
-    /// label -> owning child index (disjointness holds by construction).
-    label_to_child: BTreeMap<String, usize>,
-}
+//
+// `ChildKind`, `ModelView`, `model_alphabet`, `project_dedupe`, and
+// `membership_violations` are the generic, POWL-AST-agnostic conformance
+// decision procedure — they live in `wasm4pm_compat::ocel::process_conformance`
+// (promoted there so other consumers don't have to re-derive the same
+// disjoint-alphabet membership algorithm). Only the `Powl` classification
+// glue below (`classify_child`/`model_view`, which is coupled to this
+// crate's own `powl2_decompose::Powl` AST) and the release-specific model
+// (`CHILD_SPECS`, `ORDER_LABEL_PAIRS`, `release_loop_model`) stay here, since
+// they describe *this repo's own* release process, not a generic capability.
 
 fn classify_child(child: &Powl) -> Result<ChildKind, Refusal> {
     match child {
@@ -359,106 +340,8 @@ fn model_view(model: &Powl) -> Result<ModelView, Refusal> {
         .iter()
         .map(classify_child)
         .collect::<Result<_, _>>()?;
-    let mut label_to_child = BTreeMap::new();
-    for (i, k) in kinds.iter().enumerate() {
-        for l in k.labels() {
-            if label_to_child.insert(l.to_string(), i).is_some() {
-                return Err(Refusal::ModelShape(format!(
-                    "label '{l}' owned by more than one child — membership \
-                     procedure requires disjoint child alphabets"
-                )));
-            }
-        }
-    }
-    Ok(ModelView {
-        children: kinds,
-        order: order.clone(),
-        label_to_child,
-    })
-}
-
-fn model_alphabet(view: &ModelView) -> BTreeSet<String> {
-    view.label_to_child.keys().cloned().collect()
-}
-
-/// Project onto the alphabet, then collapse consecutive repeats.
-fn project_dedupe(types: &[String], alphabet: &BTreeSet<String>) -> Vec<String> {
-    let mut out: Vec<String> = Vec::new();
-    for t in types {
-        if alphabet.contains(t) && out.last().map(String::as_str) != Some(t.as_str()) {
-            out.push(t.clone());
-        }
-    }
-    out
-}
-
-/// Exact membership of `trace` in the language of the viewed model, as a
-/// violation list (empty = member). Exactness argument: child alphabets are
-/// disjoint, so every trace symbol maps to a unique child; the trace is an
-/// order-respecting interleaving of one trace per child (Def 3.8) iff
-/// (a) each child's projected subsequence is in that child's language and
-/// (b) for every order pair (i, j) all of child i's symbols precede all of
-/// child j's. Both are checked directly.
-fn membership_violations(trace: &[String], view: &ModelView) -> Vec<String> {
-    let mut violations = Vec::new();
-    // positions per child, in trace order
-    let mut child_pos: Vec<Vec<usize>> = vec![Vec::new(); view.children.len()];
-    for (idx, sym) in trace.iter().enumerate() {
-        match view.label_to_child.get(sym) {
-            Some(&c) => child_pos[c].push(idx),
-            None => violations.push(format!(
-                "trace symbol '{sym}' at {idx} is outside the model alphabet"
-            )),
-        }
-    }
-    // (a) per-child sublanguage
-    for (i, kind) in view.children.iter().enumerate() {
-        match kind {
-            ChildKind::Once(l) => {
-                let n = child_pos[i].len();
-                if n != 1 {
-                    violations.push(format!("'{l}' occurs {n} times, model requires exactly 1"));
-                }
-            }
-            ChildKind::AtLeastOnce(l) => {
-                if child_pos[i].is_empty() {
-                    violations.push(format!("'{l}' occurs 0 times, model requires >= 1"));
-                }
-            }
-            ChildKind::SeqLoop(ls) => {
-                let seq: Vec<&str> = child_pos[i]
-                    .iter()
-                    .map(|&idx| trace[idx].as_str())
-                    .collect();
-                let k = ls.len();
-                let pattern_ok = !seq.is_empty()
-                    && seq.len() % k == 0
-                    && seq.iter().enumerate().all(|(p, s)| *s == ls[p % k]);
-                if !pattern_ok {
-                    violations.push(format!(
-                        "loop-sequence ({}) not matched: observed [{}]",
-                        ls.join(" "),
-                        seq.join(" ")
-                    ));
-                }
-            }
-        }
-    }
-    // (b) strict partial order between children
-    for &(i, j) in &view.order {
-        let (Some(&last_i), Some(&first_j)) = (child_pos[i].last(), child_pos[j].first()) else {
-            continue; // absence already reported by the count checks
-        };
-        if last_i >= first_j {
-            violations.push(format!(
-                "order violated: all of '{}' must precede all of '{}' \
-                 (last at {last_i}, first at {first_j})",
-                view.children[i].labels().join(" "),
-                view.children[j].labels().join(" "),
-            ));
-        }
-    }
-    violations
+    ModelView::new(kinds, order.clone())
+        .map_err(|e| Refusal::ModelShape(e.to_string()))
 }
 
 // ─── UTC ordering ───────────────────────────────────────────────────────────
@@ -537,11 +420,11 @@ fn model_report(view: &ModelView) -> ModelReport {
     };
     ModelReport {
         alphabet: model_alphabet(view).into_iter().collect(),
-        children: view.children.iter().map(child_desc).collect(),
+        children: view.children().iter().map(child_desc).collect(),
         order_pairs: view
-            .order
+            .order()
             .iter()
-            .map(|&(i, j)| [child_desc(&view.children[i]), child_desc(&view.children[j])])
+            .map(|&(i, j)| [child_desc(&view.children()[i]), child_desc(&view.children()[j])])
             .collect(),
     }
 }
@@ -770,7 +653,7 @@ fn run() -> Result<bool, Refusal> {
     let types: Vec<String> = ocel.events.iter().map(|e| e.event_type.clone()).collect();
     let projected = project_dedupe(&types, &alphabet);
     let member_viols = membership_violations(&projected, &view);
-    let model_checks_total = view.children.len() + view.order.len();
+    let model_checks_total = view.children().len() + view.order().len();
     let fitness = if member_viols.is_empty() {
         1.0
     } else {
