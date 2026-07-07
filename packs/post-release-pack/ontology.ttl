@@ -28,14 +28,14 @@ post:Meta a post:MetaNode ;
 post:Packet_github_push a post:Packet ;
   post:packetId "github_push" ;
   post:packetIdTex "github\\_push" ;
-  post:packetStatus "BLOCKED" ;
+  post:packetStatus "ALIVE" ;
   post:publication "PENDING_EXTERNAL_ACTUATION" .
 
 post:Req_github_push_0 a post:Requirement ;
   post:reqPacket "github_push" ;
   post:reqOrder 0 ;
   post:reqName "repo_clean" ;
-  post:reqMet "false" .
+  post:reqMet "true" .
 
 post:Req_github_push_1 a post:Requirement ;
   post:reqPacket "github_push" ;
