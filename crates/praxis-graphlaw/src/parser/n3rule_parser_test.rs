@@ -1,7 +1,6 @@
 #![cfg(test)]
 
 use super::*;
-use crate::TripleStore;
 
 #[test]
 fn parse_tp() {

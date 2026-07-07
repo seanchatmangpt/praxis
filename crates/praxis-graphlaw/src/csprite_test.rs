@@ -1,12 +1,7 @@
 #![cfg(test)]
 
 use crate::csprite::CSprite;
-    use crate::reasoner::Reasoner;
-    use crate::{
-        BackwardChainer, Encoder, Parser, QueryEngine, Rule, RuleIndex, SimpleQueryEngine,
-        TermImpl, Triple, TripleIndex, TripleStore, VarOrTerm,
-    };
-    use std::collections::HashMap;
+    use crate::{Parser, Triple, VarOrTerm};
     use std::rc::Rc;
 
     #[test]

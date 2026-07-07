@@ -199,8 +199,8 @@ mod test {
     fn test_error_abox_parsing() {
         let ntriples_file = "asdfadsf";
         match Parser::parse_triples(ntriples_file, Syntax::NTriples) {
-            Ok(result) => assert_eq!(0, 1),
-            Err(err) => assert_eq!(0, 0),
+            Ok(_result) => assert_eq!(0, 1),
+            Err(_err) => assert_eq!(0, 0),
         }
     }
     #[test]
@@ -208,7 +208,7 @@ mod test {
         let ntriples_file = "<http://example2.com/a> a <http://www.test.be/test#SubClass> .";
         match Parser::parse_triples(ntriples_file, Syntax::Turtle) {
             Ok(result) => assert_eq!(1, result.len()),
-            Err(err) => assert_eq!(0, 1),
+            Err(_err) => assert_eq!(0, 1),
         }
     }
     #[test]
@@ -216,7 +216,7 @@ mod test {
         let rules = "{?source a test:Source. }=>{?source a test:NeededInput.}";
         match Parser::parse_rules(rules) {
             Ok(result) => assert_eq!(1, result.len()),
-            Err(err) => assert_eq!(0, 1),
+            Err(_err) => assert_eq!(0, 1),
         }
     }
 }

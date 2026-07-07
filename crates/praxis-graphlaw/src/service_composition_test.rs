@@ -1,13 +1,9 @@
 #![cfg(test)]
 
 use crate::bindings::Binding;
-    use crate::csprite::CSprite;
     use crate::reasoner::Reasoner;
-    use crate::{
-        BackwardChainer, Encoder, Parser, QueryEngine, Rule, RuleIndex, SimpleQueryEngine,
-        TermImpl, Triple, TripleIndex, TripleStore, VarOrTerm,
-    };
-    use log::{debug, info, trace, warn};
+    use crate::{BackwardChainer, Encoder, Rule, RuleIndex, Triple, TripleIndex, TripleStore, VarOrTerm};
+    use log::debug;
     use std::collections::HashMap;
     use std::rc::Rc; // Use log crate when building application
 
@@ -77,7 +73,7 @@ use crate::bindings::Binding;
              {?x test:hasInput ?input. ?x test:requirement ?req. ?y test:hasOutput ?input. ?y test:hasFunction ?req.}=>{?y test:hasInput ?input.}\n\
              {?source a test:Source. ?source test:hasOutput ?output. ?y test:hasInput ?output }=>{?source a test:NeededInput. }.";
 
-        let mut store = TripleStore::from(data);
+        let store = TripleStore::from(data);
         let backward_head = Triple {
             s: VarOrTerm::new_var("?newVar".to_string()),
             p: VarOrTerm::new_term("a".to_string()),
@@ -120,6 +116,6 @@ use crate::bindings::Binding;
         println!("store size {:?}", store.len());
         match store.query("Select * WHERE{?s <http://test.org/defines> ?o}") {
             Ok(result) => assert_ne!(0, result.len()),
-            Err(err) => assert_eq!(0, 1),
+            Err(_err) => assert_eq!(0, 1),
         }
     }

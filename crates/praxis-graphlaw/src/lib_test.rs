@@ -2,11 +2,10 @@
 
 use crate::reasoner::Reasoner;
     use crate::{
-        BackwardChainer, Encoder, Parser, QueryEngine, Rule, RuleIndex, SimpleQueryEngine,
-        TermImpl, Triple, TripleIndex, TripleStore, VarOrTerm, BodyLiteral,
+        QueryEngine, Rule, RuleIndex, SimpleQueryEngine,
+        Triple, TripleIndex, TripleStore, VarOrTerm, BodyLiteral,
     };
     use std::collections::HashMap;
-    use std::rc::Rc;
 
     #[test]
     fn test_parse() {

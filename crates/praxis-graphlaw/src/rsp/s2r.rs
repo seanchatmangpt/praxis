@@ -189,7 +189,8 @@ where
                     debug!("Window triggers! {:?}", max_window);
                     // multithreaded consumer using channel
                     if let Some(sender) = &self.consumer {
-                        sender.send(max_window.1.clone());
+                        // Receiver may have been dropped; window notification is best-effort.
+                        let _ = sender.send(max_window.1.clone());
                     }
                     // single threaded consumer using callback
                     if let Some(call_back) = &mut self.call_back {

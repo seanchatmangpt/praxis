@@ -2,12 +2,8 @@
 
 use super::*;
 use std::time::Duration;
-    use crate::Encoder;
     use std::cell::RefCell;
-    use std::fmt::format;
     use std::rc::Rc;
-    use std::sync::{Arc, Mutex};
-    use std::thread::Thread;
 
     #[test]
     fn test_window() {
@@ -56,7 +52,7 @@ use std::time::Duration;
             consumer: None,
             call_back: None,
         };
-        let mut recieved_data = Rc::new(RefCell::new(Vec::new()));
+        let recieved_data = Rc::new(RefCell::new(Vec::new()));
         let data_clone = recieved_data.clone();
         let call_back = move |content| {
             println!("Content: {:?}", content);

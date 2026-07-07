@@ -154,7 +154,7 @@ where
         let mut store = r2r;
 
         if let Err(parsing_error) = store.load_triples(triples, syntax) { error!("Unable to load ABox: {:?}", parsing_error.to_string()) }
-        store.load_rules(rules);
+        if let Err(rule_error) = store.load_rules(rules) { error!("Unable to load rules: {:?}", rule_error.to_string()) }
         let query = match Query::parse(query_str, None) {
             Ok(parsed_query) => parsed_query,
             Err(err) => {

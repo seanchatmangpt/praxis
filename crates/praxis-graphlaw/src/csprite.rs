@@ -410,42 +410,39 @@ impl CSpriteReasoner {
             let mut triples = Vec::new();
             for body_lit in rule.body.iter() {
                 let triple = &body_lit.pattern;
-                let s;
-                let p;
-                let o;
-                if triple.s.is_var() {
-                    s = VarOrTerm::new_encoded_term(
+                let s = if triple.s.is_var() {
+                    VarOrTerm::new_encoded_term(
                         *result_bindings
                             .get(&triple.s.as_var().name)
                             .unwrap()
                             .get(counter)
                             .unwrap(),
-                    );
+                    )
                 } else {
-                    s = triple.s.clone();
-                }
-                if triple.p.is_var() {
-                    p = VarOrTerm::new_encoded_term(
+                    triple.s.clone()
+                };
+                let p = if triple.p.is_var() {
+                    VarOrTerm::new_encoded_term(
                         *result_bindings
                             .get(&triple.p.as_var().name)
                             .unwrap()
                             .get(counter)
                             .unwrap(),
-                    );
+                    )
                 } else {
-                    p = triple.p.clone();
-                }
-                if triple.o.is_var() {
-                    o = VarOrTerm::new_encoded_term(
+                    triple.p.clone()
+                };
+                let o = if triple.o.is_var() {
+                    VarOrTerm::new_encoded_term(
                         *result_bindings
                             .get(&triple.o.as_var().name)
                             .unwrap()
                             .get(counter)
                             .unwrap(),
-                    );
+                    )
                 } else {
-                    o = triple.o.clone();
-                }
+                    triple.o.clone()
+                };
                 triples.push(Triple { s, p, o, g: None });
             }
             counter += 1;

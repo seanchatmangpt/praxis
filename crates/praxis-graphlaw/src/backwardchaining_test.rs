@@ -54,7 +54,7 @@ use crate::{BackwardChainer, Encoder, Syntax, Triple, TripleStore, VarOrTerm};
                 <http://example2.com/c> a test:SubClass.\n\
             {?s a test:SubClass.}=>{?s a test:SubClass2.}\n
             {?s a test:SubClass2.?s test:hasRef ?b.?b test:hasRef ?c.?c a test:SubClass2.}=>{?s a test:SuperType.}";
-        let mut store = TripleStore::from(data);
+        let store = TripleStore::from(data);
         let backward_head = Triple {
             s: VarOrTerm::new_var("?newVar".to_string()),
             p: VarOrTerm::new_term("a".to_string()),
