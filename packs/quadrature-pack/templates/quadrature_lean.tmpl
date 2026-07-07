@@ -1,0 +1,144 @@
+---
+to: "procint/ProcInt/Release/Quadrature.lean"
+sparql:
+  a_meta: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?releaseId ?runId ?ttlCount
+    WHERE {
+      ?r a quad:Results ;
+         quad:releaseId ?releaseId ;
+         quad:runId ?runId ;
+         quad:ttlCount ?ttlCount .
+    }
+  ttlDecls: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?declName WHERE { ?d a quad:TtlProvenDecl ; quad:declName ?declName . }
+    ORDER BY ?declName
+  manifestDecls: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?declName WHERE { ?d a quad:ManifestProvenDecl ; quad:declName ?declName . }
+    ORDER BY ?declName
+  auditDecls: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?declName WHERE { ?d a quad:AuditedDecl ; quad:declName ?declName . }
+    ORDER BY ?declName
+  claims: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?claimId ?evidenceRef ?order
+    WHERE { ?c a quad:Claim ; quad:claimId ?claimId ; quad:evidenceRef ?evidenceRef ; quad:order ?order . }
+    ORDER BY ?order
+  events: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?activity ?ord
+    WHERE { ?e a quad:RunEvent ; quad:activity ?activity ; quad:ord ?ord . }
+    ORDER BY ?ord
+  constraints: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?cid ?kind ?actA ?actB ?corder
+    WHERE { ?c a quad:RunConstraint ; quad:cid ?cid ; quad:kind ?kind ; quad:actA ?actA ; quad:actB ?actB ; quad:corder ?corder . }
+    ORDER BY ?corder
+force: true
+skip_empty: true
+---
+-- RENDERED by `ggen sync` from the quadrature graph (quadrature-pack).
+-- Candidate Lean: admitted only by `lake build Quadrature`.
+-- ggen renders; Lean admits; mfact certifies.
+import Mathlib
+import ProcInt
+
+/-! # Standing Quadrature witness — {% for m in a_meta %}{{ m.releaseId }} (run {{ m.runId }}){% endfor %}
+
+A finite, kernel-checked witness that the release's surfaces cohere:
+the TTL declaration catalog, the release manifest, and the axiom audit
+list exactly the same proven declarations (closure by `rfl` on equal
+generated lists — any orphan on either side makes the lists differ and the
+kernel refuses this file); every traced paper claim carries a non-empty
+evidence reference; and the manufacturing run itself is a monotone
+`procint` trace conforming to a declared process model. -/
+
+namespace ProcInt.Release
+
+/-- TTL-catalog surface: declarations recorded as proven (name-sorted). -/
+def ttlProvenDecls : List String := [
+{% for d in ttlDecls %}  "{{ d.declName }}"{% if not loop.last %},{% endif %}
+{% endfor %}]
+
+/-- Release-manifest surface: artifacts recorded as proven (name-sorted). -/
+def manifestProvenDecls : List String := [
+{% for d in manifestDecls %}  "{{ d.declName }}"{% if not loop.last %},{% endif %}
+{% endfor %}]
+
+/-- Axiom-audit surface: declarations with a recorded audit message (name-sorted). -/
+def auditedDecls : List String := [
+{% for d in auditDecls %}  "{{ d.declName }}"{% if not loop.last %},{% endif %}
+{% endfor %}]
+
+/-- TTL → Manifest closure: the two surfaces list exactly the same proven
+declarations. An orphan on either side falsifies this equation and the
+kernel refuses the witness. -/
+theorem ttl_manifest_closed : ttlProvenDecls = manifestProvenDecls := by rfl
+
+/-- TTL → Audit closure: every proven declaration is axiom-audited and
+every audited declaration has a TTL origin. -/
+theorem ttl_audit_closed : ttlProvenDecls = auditedDecls := by rfl
+
+/-- Cardinality of the closed proven surface. -/
+theorem provenSurface_count : ttlProvenDecls.length = {% for m in a_meta %}{{ m.ttlCount }}{% endfor %} := by rfl
+
+/-- Paper-claim surface: (claim id, evidence reference) pairs. -/
+def paperClaims : List (String × String) := [
+{% for c in claims %}  ("{{ c.claimId }}", "{{ c.evidenceRef }}"){% if not loop.last %},{% endif %}
+{% endfor %}]
+
+/-- Claim → Evidence closure: every traced paper claim carries a non-empty
+evidence reference. -/
+theorem claims_all_evidenced :
+    paperClaims.all (fun c => !c.2.isEmpty) = true := by rfl
+
+/-! ## The manufacturing run as a procint process model
+
+The run that produced this release, as a `procint` trace (ordinal
+timestamps = receipt-chain append order; no wall clock enters the
+artifact), checked against a declared process model with the corpus's own
+`DeclareConstraint` semantics. procint models the process by which mfact
+manufactured procint. -/
+
+/-- The release run trace. -/
+def runTrace : Trace String := ⟨"mfact-run", [
+{% for e in events %}  Event.simple "{{ e.activity }}" {{ e.ord }}{% if not loop.last %},{% endif %}
+{% endfor %}]⟩
+
+/-- Activity projection of the run trace, as a literal list. -/
+def runActivities : List String := [
+{% for e in events %}  "{{ e.activity }}"{% if not loop.last %},{% endif %}
+{% endfor %}]
+
+/-- The literal projection is definitionally the trace's projection. -/
+theorem runActivities_eq : runTrace.activities = runActivities := by rfl
+
+/-- The run trace is timestamp-monotone. -/
+theorem runTrace_monotone : runTrace.Monotone := by
+  unfold Trace.Monotone
+  decide
+
+{% for c in constraints %}/-- Run-model conformance: {{ c.kind }}({{ c.actA }}{% if c.actB != "-" %}, {{ c.actB }}{% endif %}) holds on the release run trace. -/
+theorem run_conforms_{{ c.cid }} :
+    (DeclareConstraint.mk .{{ c.kind }} "{{ c.actA }}" {% if c.actB != "-" %}(some "{{ c.actB }}"){% else %}none{% endif %}).Satisfies runActivities := by
+  decide
+
+{% endfor %}
+end ProcInt.Release
+
+/-! ## Self-audit: the quadrature witness is axiom-pure. -/
+
+/-- info: 'ProcInt.Release.ttl_manifest_closed' does not depend on any axioms -/
+#guard_msgs in #print axioms ProcInt.Release.ttl_manifest_closed
+
+/-- info: 'ProcInt.Release.ttl_audit_closed' does not depend on any axioms -/
+#guard_msgs in #print axioms ProcInt.Release.ttl_audit_closed
+
+/-- info: 'ProcInt.Release.claims_all_evidenced' does not depend on any axioms -/
+#guard_msgs in #print axioms ProcInt.Release.claims_all_evidenced
+
+/-- info: 'ProcInt.Release.runTrace_monotone' does not depend on any axioms -/
+#guard_msgs in #print axioms ProcInt.Release.runTrace_monotone
