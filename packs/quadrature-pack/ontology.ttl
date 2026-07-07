@@ -15,14 +15,24 @@ quad:Result a quad:Results ;
   quad:untracedArtifacts 0 ;
   quad:unclassifiedRefusals 0 ;
   quad:releaseId "v26.7.6" ;
-  quad:runId "c7d4dd0" ;
+  quad:runId "e1ddbc6" ;
   quad:ttlCount 145 ;
   quad:leanCount 145 ;
   quad:manifestCount 145 ;
   quad:auditCount 145 ;
   quad:claimCount 5 ;
   quad:evalCount 6 ;
-  quad:eventCount 10 .
+  quad:eventCount 10 ;
+  quad:releaseTag "v26.7.6-procint-certified" ;
+  quad:foldHash "ff62f3e569af99977c2e7f5eb0b96efd835d00d530a39b442551654ae385605e" ;
+  quad:sorryCount 0 ;
+  quad:admitCount 0 ;
+  quad:statedCount 2 ;
+  quad:totalDecls 309 ;
+  quad:axiomAudit "PASS" ;
+  quad:fixtures "PASS" ;
+  quad:certified "PASS" ;
+  quad:crownJewel "STATED" .
 
 quad:Edge_ttl_to_lean a quad:EdgePair ;
   quad:pairKey "ttl_to_lean" ;
