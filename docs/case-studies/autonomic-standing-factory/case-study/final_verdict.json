@@ -6,9 +6,10 @@
   "criteria_satisfied_count": 15,
   "criteria_total": 15,
   "unsatisfied_dependency_count": 0,
-  "graph_hash": "blake3:4e1843d2cf5dfc8b12e2ad30e72329ce58a77d1b8c6f7ac255101bec399a6efa",
+  "graph_hash": "blake3:e82630ce6af802d37d4a5f4e4eb5bd517cd00a07a8c3bf5062d7ec6d940fb37f",
   "generated_at_utc_source": "2026-07-06T22:27:34.851Z",
   "rendered_at_utc": "2026-07-07T00:49:39.000Z",
+  "graph_hash_note": "Lane 7 re-derivation: Criterion06-15 given real per-criterion praxis:hasEvidence links (previously zero), and case_study_judge.rs extended to emit a real criteria[].evidence field. Verdict, criteria_satisfied_count, and unsatisfied_dependency_count are unchanged; graph_hash changed because the merged graph's byte content changed. Confirmed deterministic across 2 independent case_study_judge runs.",
   "evidence_refs": {
     "graphlaw_judgment": "docs/case-studies/autonomic-standing-factory/case-study/final_graphlaw_verdict.json",
     "ocel": "docs/case-studies/autonomic-standing-factory/case-study/ocel_case_study.json",

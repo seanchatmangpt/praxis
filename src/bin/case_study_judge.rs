@@ -198,11 +198,53 @@ struct ShexReportOut {
 }
 
 #[derive(Debug, Serialize, Clone)]
+struct EvidenceItem {
+    path: String,
+    hash: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
 struct CriterionResult {
     id: String,
     description: String,
     satisfied: bool,
     critical: bool,
+    evidence: Vec<EvidenceItem>,
+}
+
+/// SPARQL-derive the `praxis:hasEvidence` evidence refs for one criterion:
+/// `<criterion> praxis:hasEvidence ?ev . ?ev praxis:path ?p . ?ev praxis:hash ?h .`
+/// Never hardcoded — reads back whatever the merged graph actually asserts.
+fn criterion_evidence(
+    store: &TripleStore,
+    criterion_id: &str,
+) -> Result<Vec<EvidenceItem>, Refusal> {
+    let evs = query_first_col(
+        store,
+        &format!("SELECT ?ev WHERE {{ <{NS}{criterion_id}> <{NS}hasEvidence> ?ev }}"),
+    )?;
+    let mut items = Vec::new();
+    for ev in evs {
+        let ev_iri = ev.trim_start_matches('<').trim_end_matches('>').to_string();
+        let path = query_first_col(
+            store,
+            &format!("SELECT ?p WHERE {{ <{ev_iri}> <{NS}path> ?p }}"),
+        )?
+        .into_iter()
+        .next()
+        .map(|s| s.trim_matches('"').to_string())
+        .unwrap_or_default();
+        let hash = query_first_col(
+            store,
+            &format!("SELECT ?h WHERE {{ <{ev_iri}> <{NS}hash> ?h }}"),
+        )?
+        .into_iter()
+        .next()
+        .map(|s| s.trim_matches('"').to_string())
+        .unwrap_or_default();
+        items.push(EvidenceItem { path, hash });
+    }
+    Ok(items)
 }
 
 #[derive(Debug, Serialize)]
@@ -471,15 +513,16 @@ fn run() -> Result<(FinalVerdict, bool), Refusal> {
         ),
     )?;
     let critical: HashSet<String> = critical_raw.into_iter().collect();
-    let criteria: Vec<CriterionResult> = CRITERIA
-        .iter()
-        .map(|(id, desc)| CriterionResult {
+    let mut criteria: Vec<CriterionResult> = Vec::with_capacity(CRITERIA.len());
+    for (id, desc) in CRITERIA {
+        criteria.push(CriterionResult {
             id: id.to_string(),
             description: desc.to_string(),
             satisfied: satisfied.iter().any(|s| s.contains(id)),
             critical: critical.iter().any(|c| c.contains(id)),
-        })
-        .collect();
+            evidence: criterion_evidence(&store, id)?,
+        });
+    }
 
     // ── 11. assert FinalVerdict node + validate final-verdict shape ─────
     let scope = "local-first autonomic release-governance for the seanchatmangpt fleet".to_string();

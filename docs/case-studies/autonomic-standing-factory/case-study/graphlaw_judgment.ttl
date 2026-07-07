@@ -147,14 +147,26 @@ praxis:ReceiptEvidenceRef-CaseStudy a praxis:EvidenceRef, praxis:ReceiptRef ;
   praxis:hash "sha256:74780811cf2b04c631388d543fe7303abbde34acd3f46e9da991432eb0b65523" .
 
 praxis:BenchmarkEvidenceRef-CaseStudy a praxis:EvidenceRef, praxis:BenchmarkRef ;
-  skos:definition "Benchmark evidence honestly REUSED (not refabricated) from the v26.7.6 OCEL evidence pass, per the case study's own OCEL event cs_e16 (benchmarks_attached, reused:true, 'no new benchmark run was warranted for this case study, numbers not refabricated'). No new performance claim is made by this case study beyond citing this real, already-benchmarked evidence." ;
+  skos:definition "Benchmark evidence honestly REUSED (not refabricated) from the v26.7.6 OCEL evidence pass, per the case study's own OCEL event cs_e16 (benchmarks_attached, reused:true, 'no new benchmark run was warranted for this case study, numbers not refabricated'). No new performance claim is made by this case study beyond citing this real, already-benchmarked evidence. Hash independently recomputed by Lane 7 with 'shasum -a 256' against the file currently on disk (the earlier hash predates a benchmark re-run whose raw capture embeds its own UTC_START line, so the file's bytes legitimately change between cargo-bench invocations; this does not affect the reused:true claim, which cites the OCEL event, not a frozen byte-identical benchmark log)." ;
   praxis:path "docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt" ;
-  praxis:hash "sha256:d015fa0fca7838262366b42c84b06a3d6f459ff09833fb280cf08f6bbe1a6baa" .
+  praxis:hash "sha256:e02f221e1664edc526fddd14c43306926dc573bf4c83820201d3770a7ac0aeda" .
+
+praxis:PddlPlanJsonRef-CaseStudy a praxis:EvidenceRef, praxis:PlanArtifactRef ;
+  skos:definition "case-study/pddl_plan.json — the canonical PDDL plan output (16 steps, identical content/hash to case-study/pddl-out/plan.json referenced by praxis:PddlPlanRef-CaseStudy above); cited here by its own graph_hash and powl_chain_hash fields as Lane 7 read them directly from the file." ;
+  praxis:path "docs/case-studies/autonomic-standing-factory/case-study/pddl_plan.json" ;
+  praxis:hash "sha256:70e86fe59bd6c50dc4c92237a5fbcc68e8b5253f21aeb615808b451e9856b0cc" ;
+  praxis:graphHash "sha256:780bdcf99e56b541af788190aa91f4f1ab5e255989a4564e6a80aeb71d3de814" ;
+  praxis:powlChainHash "blake3:d9d50a2f561f0c54fd9e655cac6ef4c96b99b91bbb09d2148a804a68608cb658" .
 
 praxis:ClientRouteRef-CaseStudy a praxis:EvidenceRef, praxis:ClientRouteRef ;
-  skos:definition "Lane 5's Autonomic Platform case-study display route (PraxisCaseStudyScreen, 14 provenance-wrapped fields) + Playwright smoke: 1/1 passed, 14 status rows (13 known + 1 UNKNOWN), 9 positive rows all provenance-chip-verified; screenshot (257,235 bytes) + trace (1,088,918 bytes) on disk." ;
+  skos:definition "Lane 5's Autonomic Platform case-study display route (PraxisCaseStudyScreen, 14 provenance-wrapped fields) + Playwright smoke: 1/1 passed, 14 status rows (13 known + 1 UNKNOWN), 9 positive rows all provenance-chip-verified. Hash independently recomputed by Lane 7 with 'shasum -a 256' against the file currently on disk (supersedes an earlier, now-stale hash recorded before the screenshot was regenerated)." ;
   praxis:path "docs/case-studies/autonomic-standing-factory/case-study/screenshots/autonomic-case-study.png" ;
-  praxis:hash "sha256:dac54c3a3e08530016e46984da76b8514e8cff366aeec71f102a3c183de3c00b" .
+  praxis:hash "sha256:4e6e6ed7c02e78f136a2f1b70838aa543151bbf033173fa01be67a409107bd3b" .
+
+praxis:ClientTraceRef-CaseStudy a praxis:EvidenceRef, praxis:ClientRouteRef ;
+  skos:definition "Playwright trace archive for the same case-study smoke run referenced by praxis:ClientRouteRef-CaseStudy above; hash independently recomputed by Lane 7 with 'shasum -a 256'." ;
+  praxis:path "docs/case-studies/autonomic-standing-factory/case-study/traces/case-study-smoke.zip" ;
+  praxis:hash "sha256:9628021d7843db6b9082ceae9cf720f2b2f2eff8a62575ce9a8e75ddbb769174" .
 
 praxis:ClaudeCodePolicyRef a praxis:EvidenceRef ;
   skos:definition "Claude Code standing-consumption policy (docs/standing/CLAUDE_CODE_POLICY.md) + root CLAUDE.md's 'Standing' section, both pointing at target/praxis-standing/standing.json + docs/standing/REALITY_INDEX.md; real 'cargo-cicd claude_context show' command output captured at case-study/raw/claude-context-show.txt (exit 0, 28 artifact lines)." ;
@@ -227,13 +239,33 @@ praxis:Criterion02 a praxis:AcceptanceCriterion ; skos:definition "GraphLaw vali
 praxis:Criterion03 a praxis:AcceptanceCriterion ; skos:definition "GraphLaw validates graph structure" ; praxis:critical "true"^^xsd:boolean .
 praxis:Criterion04 a praxis:AcceptanceCriterion ; skos:definition "GraphLaw derives readiness facts" ; praxis:critical "true"^^xsd:boolean .
 praxis:Criterion05 a praxis:AcceptanceCriterion ; skos:definition "GraphLaw computes closure over blockers/dependencies" ; praxis:critical "true"^^xsd:boolean .
-praxis:Criterion06 a praxis:AcceptanceCriterion ; skos:definition "PDDL produces/records a lawful repair/action plan" ; praxis:critical "true"^^xsd:boolean .
-praxis:Criterion07 a praxis:AcceptanceCriterion ; skos:definition "POWL models the execution process" ; praxis:critical "true"^^xsd:boolean .
-praxis:Criterion08 a praxis:AcceptanceCriterion ; skos:definition "OCEL records the case-study run" ; praxis:critical "true"^^xsd:boolean .
-praxis:Criterion09 a praxis:AcceptanceCriterion ; skos:definition "wasm4pm validates process conformance" ; praxis:critical "true"^^xsd:boolean .
-praxis:Criterion10 a praxis:AcceptanceCriterion ; skos:definition "receipts verify where applicable" ; praxis:critical "false"^^xsd:boolean .
-praxis:Criterion11 a praxis:AcceptanceCriterion ; skos:definition "benchmark evidence exists where performance claims are made" ; praxis:critical "false"^^xsd:boolean .
-praxis:Criterion12 a praxis:AcceptanceCriterion ; skos:definition "Autonomic Platform displays case-study state with provenance" ; praxis:critical "true"^^xsd:boolean .
-praxis:Criterion13 a praxis:AcceptanceCriterion ; skos:definition "Claude Code policy consumes or points to standing" ; praxis:critical "false"^^xsd:boolean .
-praxis:Criterion14 a praxis:AcceptanceCriterion ; skos:definition "unsupported claims are diagnosable" ; praxis:critical "false"^^xsd:boolean .
-praxis:Criterion15 a praxis:AcceptanceCriterion ; skos:definition "external operator side effects are separated from release blockers" ; praxis:critical "true"^^xsd:boolean .
+
+# ─── Criteria 6-15: real praxis:hasEvidence links (Lane 7 repair) ──────────
+# Each of Criterion06-15 previously carried praxis:satisfied with ZERO
+# praxis:hasEvidence triples anywhere in this file — a bare assertion,
+# backed only by prose in section 8's comments. Every link below was
+# independently verified by Lane 7 (file read, count/field checked, hash
+# recomputed with 'shasum -a 256' where a file hash is cited) before being
+# added; none is copied from prior-lane prose without re-checking the file
+# on disk.
+
+praxis:Criterion06 a praxis:AcceptanceCriterion ; skos:definition "PDDL produces/records a lawful repair/action plan" ; praxis:critical "true"^^xsd:boolean ;
+  praxis:hasEvidence praxis:PddlPlanRef-CaseStudy, praxis:PddlPlanJsonRef-CaseStudy .
+praxis:Criterion07 a praxis:AcceptanceCriterion ; skos:definition "POWL models the execution process" ; praxis:critical "true"^^xsd:boolean ;
+  praxis:hasEvidence praxis:PowlModelRef-CaseStudy .
+praxis:Criterion08 a praxis:AcceptanceCriterion ; skos:definition "OCEL records the case-study run" ; praxis:critical "true"^^xsd:boolean ;
+  praxis:hasEvidence praxis:OcelCaseStudyLogRef .
+praxis:Criterion09 a praxis:AcceptanceCriterion ; skos:definition "wasm4pm validates process conformance" ; praxis:critical "true"^^xsd:boolean ;
+  praxis:hasEvidence praxis:Wasm4pmValidationRef .
+praxis:Criterion10 a praxis:AcceptanceCriterion ; skos:definition "receipts verify where applicable" ; praxis:critical "false"^^xsd:boolean ;
+  praxis:hasEvidence praxis:ReceiptEvidenceRef-CaseStudy .
+praxis:Criterion11 a praxis:AcceptanceCriterion ; skos:definition "benchmark evidence exists where performance claims are made" ; praxis:critical "false"^^xsd:boolean ;
+  praxis:hasEvidence praxis:BenchmarkEvidenceRef-CaseStudy .
+praxis:Criterion12 a praxis:AcceptanceCriterion ; skos:definition "Autonomic Platform displays case-study state with provenance" ; praxis:critical "true"^^xsd:boolean ;
+  praxis:hasEvidence praxis:ClientRouteRef-CaseStudy, praxis:ClientTraceRef-CaseStudy .
+praxis:Criterion13 a praxis:AcceptanceCriterion ; skos:definition "Claude Code policy consumes or points to standing" ; praxis:critical "false"^^xsd:boolean ;
+  praxis:hasEvidence praxis:ClaudeCodePolicyRef .
+praxis:Criterion14 a praxis:AcceptanceCriterion ; skos:definition "unsupported claims are diagnosable" ; praxis:critical "false"^^xsd:boolean ;
+  praxis:hasEvidence praxis:ClaimDiagnosabilityRef .
+praxis:Criterion15 a praxis:AcceptanceCriterion ; skos:definition "external operator side effects are separated from release blockers" ; praxis:critical "true"^^xsd:boolean ;
+  praxis:hasEvidence praxis:ExternalSideEffectSeparationRef .

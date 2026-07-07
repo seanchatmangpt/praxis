@@ -6,7 +6,7 @@ Scope: local-first autonomic release-governance for the seanchatmangpt fleet
 
 Case-study subjects found in the merged graph: 1 (must be exactly 1)
 
-Derived triples across all materialize() passes: 15
+Derived triples across all materialize() passes: 25
 
 Unsatisfied-dependency count (aggregate rule): 0
 
@@ -47,6 +47,6 @@ conforms: true, failures: 0
 
 ## Graph hash
 
-`blake3:4e1843d2cf5dfc8b12e2ad30e72329ce58a77d1b8c6f7ac255101bec399a6efa`
+`blake3:e82630ce6af802d37d4a5f4e4eb5bd517cd00a07a8c3bf5062d7ec6d940fb37f`
 
 generated_at_utc (sourced from standing envelope): 2026-07-06T22:27:34.851Z

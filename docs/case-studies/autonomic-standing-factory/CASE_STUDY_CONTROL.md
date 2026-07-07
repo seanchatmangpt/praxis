@@ -112,8 +112,25 @@ so it always returned `false` regardless of the graph's actual derived
 facts — see `GRAPHLAW_JUDGMENT_MODEL.md`), the current real value is
 `raw_verdict_fact: "ProductionReadyForDeclaredScope"` (`verdict:
 "GRAPHLAW_JUDGED_PRODUCTION_READY_FOR_SCOPE"`), `unsatisfied_dependency_count:
-0`, all 15 criteria `satisfied: true`. Confirmed deterministic across 4
-independent `cargo run --bin case_study_judge` runs (`graph_hash`
-`blake3:4e1843d2cf5dfc8b12e2ad30e72329ce58a77d1b8c6f7ac255101bec399a6efa`
-every time). `FINAL_VERDICT.md` is Lane 6's rendered output of this exact
-field.
+0`, all 15 criteria `satisfied: true`. `FINAL_VERDICT.md` is Lane 6's
+rendered output of this exact field.
+
+Updated again by Lane 7: Criterion06-15 previously carried
+`praxis:satisfied` with ZERO `praxis:hasEvidence` triples anywhere in
+`graphlaw_judgment.ttl` (a bare assertion). Lane 7 added a real, per-
+criterion `praxis:hasEvidence` link from each of `Criterion06`-`Criterion15`
+to an `EvidenceRef` node carrying a `praxis:path` and independently
+recomputed `praxis:hash` (two stale hashes were found and corrected in the
+process: the Criterion12 screenshot hash and the Criterion11 benchmark-log
+hash, both because the underlying file had legitimately changed since the
+hash was last recorded — not fabrication). `src/bin/case_study_judge.rs`
+was extended with a real SPARQL-driven `criterion_evidence()` derivation so
+`final_graphlaw_verdict.json`'s `criteria[]` array now carries a real
+`evidence: [{path, hash}]` field per criterion (previously absent
+entirely). Re-running `case_study_judge` after this change reproduces the
+SAME verdict (`ProductionReadyForDeclaredScope`, 15/15 satisfied,
+`unsatisfied_dependency_count: 0`) with a new `graph_hash` (the graph's
+byte content changed because of the added triples), confirmed deterministic
+across 2 independent `cargo run --bin case_study_judge` runs:
+`blake3:e82630ce6af802d37d4a5f4e4eb5bd517cd00a07a8c3bf5062d7ec6d940fb37f`
+every time.

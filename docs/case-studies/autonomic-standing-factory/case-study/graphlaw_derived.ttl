@@ -66,8 +66,8 @@
 <https://praxis.dev/ontology/standing#BenchmarkEvidenceNotYetProduced> <http://www.w3.org/2004/02/skos/core#definition> "Placeholder for benchmark evidence backing any performance claim (criterion 11). Not yet produced.".
 <https://praxis.dev/ontology/standing#BenchmarkEvidenceRef-CaseStudy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#BenchmarkRef>.
 <https://praxis.dev/ontology/standing#BenchmarkEvidenceRef-CaseStudy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#EvidenceRef>.
-<https://praxis.dev/ontology/standing#BenchmarkEvidenceRef-CaseStudy> <http://www.w3.org/2004/02/skos/core#definition> "Benchmark evidence honestly REUSED (not refabricated) from the v26.7.6 OCEL evidence pass, per the case study's own OCEL event cs_e16 (benchmarks_attached, reused:true, 'no new benchmark run was warranted for this case study, numbers not refabricated'). No new performance claim is made by this case study beyond citing this real, already-benchmarked evidence.".
-<https://praxis.dev/ontology/standing#BenchmarkEvidenceRef-CaseStudy> <https://praxis.dev/ontology/standing#hash> "sha256:d015fa0fca7838262366b42c84b06a3d6f459ff09833fb280cf08f6bbe1a6baa".
+<https://praxis.dev/ontology/standing#BenchmarkEvidenceRef-CaseStudy> <http://www.w3.org/2004/02/skos/core#definition> "Benchmark evidence honestly REUSED (not refabricated) from the v26.7.6 OCEL evidence pass, per the case study's own OCEL event cs_e16 (benchmarks_attached, reused:true, 'no new benchmark run was warranted for this case study, numbers not refabricated'). No new performance claim is made by this case study beyond citing this real, already-benchmarked evidence. Hash independently recomputed by Lane 7 with 'shasum -a 256' against the file currently on disk (the earlier hash predates a benchmark re-run whose raw capture embeds its own UTC_START line, so the file's bytes legitimately change between cargo-bench invocations; this does not affect the reused:true claim, which cites the OCEL event, not a frozen byte-identical benchmark log).".
+<https://praxis.dev/ontology/standing#BenchmarkEvidenceRef-CaseStudy> <https://praxis.dev/ontology/standing#hash> "sha256:e02f221e1664edc526fddd14c43306926dc573bf4c83820201d3770a7ac0aeda".
 <https://praxis.dev/ontology/standing#BenchmarkEvidenceRef-CaseStudy> <https://praxis.dev/ontology/standing#path> "docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt".
 <https://praxis.dev/ontology/standing#CargoCicd> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#Emitter>.
 <https://praxis.dev/ontology/standing#CargoCicd> <http://www.w3.org/2004/02/skos/core#definition> "Standing emitter: compiles fleet artifact state into standing.json / standing.ttl / standing.ocel.json (Lane 1).".
@@ -91,9 +91,14 @@
 <https://praxis.dev/ontology/standing#ClientRouteNotYetProduced> <http://www.w3.org/2004/02/skos/core#definition> "Placeholder for Lane 5's Autonomic Platform case-study display route + Playwright smoke evidence (criterion 12). Not yet produced.".
 <https://praxis.dev/ontology/standing#ClientRouteRef-CaseStudy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#ClientRouteRef>.
 <https://praxis.dev/ontology/standing#ClientRouteRef-CaseStudy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#EvidenceRef>.
-<https://praxis.dev/ontology/standing#ClientRouteRef-CaseStudy> <http://www.w3.org/2004/02/skos/core#definition> "Lane 5's Autonomic Platform case-study display route (PraxisCaseStudyScreen, 14 provenance-wrapped fields) + Playwright smoke: 1/1 passed, 14 status rows (13 known + 1 UNKNOWN), 9 positive rows all provenance-chip-verified; screenshot (257,235 bytes) + trace (1,088,918 bytes) on disk.".
-<https://praxis.dev/ontology/standing#ClientRouteRef-CaseStudy> <https://praxis.dev/ontology/standing#hash> "sha256:dac54c3a3e08530016e46984da76b8514e8cff366aeec71f102a3c183de3c00b".
+<https://praxis.dev/ontology/standing#ClientRouteRef-CaseStudy> <http://www.w3.org/2004/02/skos/core#definition> "Lane 5's Autonomic Platform case-study display route (PraxisCaseStudyScreen, 14 provenance-wrapped fields) + Playwright smoke: 1/1 passed, 14 status rows (13 known + 1 UNKNOWN), 9 positive rows all provenance-chip-verified. Hash independently recomputed by Lane 7 with 'shasum -a 256' against the file currently on disk (supersedes an earlier, now-stale hash recorded before the screenshot was regenerated).".
+<https://praxis.dev/ontology/standing#ClientRouteRef-CaseStudy> <https://praxis.dev/ontology/standing#hash> "sha256:4e6e6ed7c02e78f136a2f1b70838aa543151bbf033173fa01be67a409107bd3b".
 <https://praxis.dev/ontology/standing#ClientRouteRef-CaseStudy> <https://praxis.dev/ontology/standing#path> "docs/case-studies/autonomic-standing-factory/case-study/screenshots/autonomic-case-study.png".
+<https://praxis.dev/ontology/standing#ClientTraceRef-CaseStudy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#ClientRouteRef>.
+<https://praxis.dev/ontology/standing#ClientTraceRef-CaseStudy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#EvidenceRef>.
+<https://praxis.dev/ontology/standing#ClientTraceRef-CaseStudy> <http://www.w3.org/2004/02/skos/core#definition> "Playwright trace archive for the same case-study smoke run referenced by praxis:ClientRouteRef-CaseStudy above; hash independently recomputed by Lane 7 with 'shasum -a 256'.".
+<https://praxis.dev/ontology/standing#ClientTraceRef-CaseStudy> <https://praxis.dev/ontology/standing#hash> "sha256:9628021d7843db6b9082ceae9cf720f2b2f2eff8a62575ce9a8e75ddbb769174".
+<https://praxis.dev/ontology/standing#ClientTraceRef-CaseStudy> <https://praxis.dev/ontology/standing#path> "docs/case-studies/autonomic-standing-factory/case-study/traces/case-study-smoke.zip".
 <https://praxis.dev/ontology/standing#Criterion01> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#AcceptanceCriterion>.
 <https://praxis.dev/ontology/standing#Criterion01> <http://www.w3.org/2004/02/skos/core#definition> "canonical standing evidence exists".
 <https://praxis.dev/ontology/standing#Criterion01> <https://praxis.dev/ontology/standing#critical> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
@@ -111,34 +116,56 @@
 <https://praxis.dev/ontology/standing#Criterion05> <https://praxis.dev/ontology/standing#critical> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
 <https://praxis.dev/ontology/standing#Criterion06> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#AcceptanceCriterion>.
 <https://praxis.dev/ontology/standing#Criterion06> <http://www.w3.org/2004/02/skos/core#definition> "PDDL produces/records a lawful repair/action plan".
+<https://praxis.dev/ontology/standing#Criterion06> <https://praxis.dev/ontology/standing#claim_promoted> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
 <https://praxis.dev/ontology/standing#Criterion06> <https://praxis.dev/ontology/standing#critical> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+<https://praxis.dev/ontology/standing#Criterion06> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#PddlPlanJsonRef-CaseStudy>.
+<https://praxis.dev/ontology/standing#Criterion06> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#PddlPlanRef-CaseStudy>.
 <https://praxis.dev/ontology/standing#Criterion07> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#AcceptanceCriterion>.
 <https://praxis.dev/ontology/standing#Criterion07> <http://www.w3.org/2004/02/skos/core#definition> "POWL models the execution process".
+<https://praxis.dev/ontology/standing#Criterion07> <https://praxis.dev/ontology/standing#claim_promoted> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
 <https://praxis.dev/ontology/standing#Criterion07> <https://praxis.dev/ontology/standing#critical> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+<https://praxis.dev/ontology/standing#Criterion07> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#PowlModelRef-CaseStudy>.
 <https://praxis.dev/ontology/standing#Criterion08> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#AcceptanceCriterion>.
 <https://praxis.dev/ontology/standing#Criterion08> <http://www.w3.org/2004/02/skos/core#definition> "OCEL records the case-study run".
+<https://praxis.dev/ontology/standing#Criterion08> <https://praxis.dev/ontology/standing#claim_promoted> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
 <https://praxis.dev/ontology/standing#Criterion08> <https://praxis.dev/ontology/standing#critical> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+<https://praxis.dev/ontology/standing#Criterion08> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#OcelCaseStudyLogRef>.
 <https://praxis.dev/ontology/standing#Criterion09> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#AcceptanceCriterion>.
 <https://praxis.dev/ontology/standing#Criterion09> <http://www.w3.org/2004/02/skos/core#definition> "wasm4pm validates process conformance".
+<https://praxis.dev/ontology/standing#Criterion09> <https://praxis.dev/ontology/standing#claim_promoted> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
 <https://praxis.dev/ontology/standing#Criterion09> <https://praxis.dev/ontology/standing#critical> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+<https://praxis.dev/ontology/standing#Criterion09> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#Wasm4pmValidationRef>.
 <https://praxis.dev/ontology/standing#Criterion10> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#AcceptanceCriterion>.
 <https://praxis.dev/ontology/standing#Criterion10> <http://www.w3.org/2004/02/skos/core#definition> "receipts verify where applicable".
+<https://praxis.dev/ontology/standing#Criterion10> <https://praxis.dev/ontology/standing#claim_promoted> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
 <https://praxis.dev/ontology/standing#Criterion10> <https://praxis.dev/ontology/standing#critical> "false"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+<https://praxis.dev/ontology/standing#Criterion10> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#ReceiptEvidenceRef-CaseStudy>.
 <https://praxis.dev/ontology/standing#Criterion11> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#AcceptanceCriterion>.
 <https://praxis.dev/ontology/standing#Criterion11> <http://www.w3.org/2004/02/skos/core#definition> "benchmark evidence exists where performance claims are made".
+<https://praxis.dev/ontology/standing#Criterion11> <https://praxis.dev/ontology/standing#claim_promoted> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
 <https://praxis.dev/ontology/standing#Criterion11> <https://praxis.dev/ontology/standing#critical> "false"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+<https://praxis.dev/ontology/standing#Criterion11> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#BenchmarkEvidenceRef-CaseStudy>.
 <https://praxis.dev/ontology/standing#Criterion12> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#AcceptanceCriterion>.
 <https://praxis.dev/ontology/standing#Criterion12> <http://www.w3.org/2004/02/skos/core#definition> "Autonomic Platform displays case-study state with provenance".
+<https://praxis.dev/ontology/standing#Criterion12> <https://praxis.dev/ontology/standing#claim_promoted> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
 <https://praxis.dev/ontology/standing#Criterion12> <https://praxis.dev/ontology/standing#critical> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+<https://praxis.dev/ontology/standing#Criterion12> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#ClientRouteRef-CaseStudy>.
+<https://praxis.dev/ontology/standing#Criterion12> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#ClientTraceRef-CaseStudy>.
 <https://praxis.dev/ontology/standing#Criterion13> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#AcceptanceCriterion>.
 <https://praxis.dev/ontology/standing#Criterion13> <http://www.w3.org/2004/02/skos/core#definition> "Claude Code policy consumes or points to standing".
+<https://praxis.dev/ontology/standing#Criterion13> <https://praxis.dev/ontology/standing#claim_promoted> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
 <https://praxis.dev/ontology/standing#Criterion13> <https://praxis.dev/ontology/standing#critical> "false"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+<https://praxis.dev/ontology/standing#Criterion13> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#ClaudeCodePolicyRef>.
 <https://praxis.dev/ontology/standing#Criterion14> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#AcceptanceCriterion>.
 <https://praxis.dev/ontology/standing#Criterion14> <http://www.w3.org/2004/02/skos/core#definition> "unsupported claims are diagnosable".
+<https://praxis.dev/ontology/standing#Criterion14> <https://praxis.dev/ontology/standing#claim_promoted> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
 <https://praxis.dev/ontology/standing#Criterion14> <https://praxis.dev/ontology/standing#critical> "false"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+<https://praxis.dev/ontology/standing#Criterion14> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#ClaimDiagnosabilityRef>.
 <https://praxis.dev/ontology/standing#Criterion15> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#AcceptanceCriterion>.
 <https://praxis.dev/ontology/standing#Criterion15> <http://www.w3.org/2004/02/skos/core#definition> "external operator side effects are separated from release blockers".
+<https://praxis.dev/ontology/standing#Criterion15> <https://praxis.dev/ontology/standing#claim_promoted> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
 <https://praxis.dev/ontology/standing#Criterion15> <https://praxis.dev/ontology/standing#critical> "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+<https://praxis.dev/ontology/standing#Criterion15> <https://praxis.dev/ontology/standing#hasEvidence> <https://praxis.dev/ontology/standing#ExternalSideEffectSeparationRef>.
 <https://praxis.dev/ontology/standing#ExternalSideEffectPlaceholder> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#ExternalOperatorSideEffect>.
 <https://praxis.dev/ontology/standing#ExternalSideEffectPlaceholder> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#NotYetProduced>.
 <https://praxis.dev/ontology/standing#ExternalSideEffectPlaceholder> <http://www.w3.org/2004/02/skos/core#definition> "Placeholder: no external operator side effects have been recorded for this case study yet. Marked non-blocking by construction (an empty/not-yet-populated side-effect ledger is not itself a release blocker).".
@@ -162,6 +189,13 @@
 <https://praxis.dev/ontology/standing#OcelCaseStudyLogRef> <http://www.w3.org/2004/02/skos/core#definition> "Lane 4's OCEL 2.0 Shape-A case-study run log: 20 events, 11 objects, 16 declared event types, all minimum-required event types present (standing_emitted x5).".
 <https://praxis.dev/ontology/standing#OcelCaseStudyLogRef> <https://praxis.dev/ontology/standing#hash> "sha256:5260a884bd70bb0c598843f9cfa650b67100cc4d057c352ef8adde43ebb8c8cb".
 <https://praxis.dev/ontology/standing#OcelCaseStudyLogRef> <https://praxis.dev/ontology/standing#path> "docs/case-studies/autonomic-standing-factory/case-study/ocel_case_study.json".
+<https://praxis.dev/ontology/standing#PddlPlanJsonRef-CaseStudy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#EvidenceRef>.
+<https://praxis.dev/ontology/standing#PddlPlanJsonRef-CaseStudy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#PlanArtifactRef>.
+<https://praxis.dev/ontology/standing#PddlPlanJsonRef-CaseStudy> <http://www.w3.org/2004/02/skos/core#definition> "case-study/pddl_plan.json — the canonical PDDL plan output (16 steps, identical content/hash to case-study/pddl-out/plan.json referenced by praxis:PddlPlanRef-CaseStudy above); cited here by its own graph_hash and powl_chain_hash fields as Lane 7 read them directly from the file.".
+<https://praxis.dev/ontology/standing#PddlPlanJsonRef-CaseStudy> <https://praxis.dev/ontology/standing#graphHash> "sha256:780bdcf99e56b541af788190aa91f4f1ab5e255989a4564e6a80aeb71d3de814".
+<https://praxis.dev/ontology/standing#PddlPlanJsonRef-CaseStudy> <https://praxis.dev/ontology/standing#hash> "sha256:70e86fe59bd6c50dc4c92237a5fbcc68e8b5253f21aeb615808b451e9856b0cc".
+<https://praxis.dev/ontology/standing#PddlPlanJsonRef-CaseStudy> <https://praxis.dev/ontology/standing#path> "docs/case-studies/autonomic-standing-factory/case-study/pddl_plan.json".
+<https://praxis.dev/ontology/standing#PddlPlanJsonRef-CaseStudy> <https://praxis.dev/ontology/standing#powlChainHash> "blake3:d9d50a2f561f0c54fd9e655cac6ef4c96b99b91bbb09d2148a804a68608cb658".
 <https://praxis.dev/ontology/standing#PddlPlanRef-CaseStudy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#EvidenceRef>.
 <https://praxis.dev/ontology/standing#PddlPlanRef-CaseStudy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#PlanArtifactRef>.
 <https://praxis.dev/ontology/standing#PddlPlanRef-CaseStudy> <http://www.w3.org/2004/02/skos/core#definition> "Lane 3's PDDL repair-domain plan output: 16-step plan (classify-external-side-effect .. render-final-verdict), admitted:true per case-study/raw/pddl-plan-determinism-recheck.txt, powl_chain_hash identical across 3 independent runs (2 by Lane 3, 1 by Lane 4).".

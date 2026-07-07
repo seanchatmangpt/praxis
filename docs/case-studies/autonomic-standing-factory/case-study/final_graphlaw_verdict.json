@@ -7,91 +7,164 @@
       "id": "Criterion01",
       "description": "canonical standing evidence exists",
       "satisfied": true,
-      "critical": true
+      "critical": true,
+      "evidence": []
     },
     {
       "id": "Criterion02",
       "description": "GraphLaw validates shapes",
       "satisfied": true,
-      "critical": true
+      "critical": true,
+      "evidence": []
     },
     {
       "id": "Criterion03",
       "description": "GraphLaw validates graph structure",
       "satisfied": true,
-      "critical": true
+      "critical": true,
+      "evidence": []
     },
     {
       "id": "Criterion04",
       "description": "GraphLaw derives readiness facts",
       "satisfied": true,
-      "critical": true
+      "critical": true,
+      "evidence": []
     },
     {
       "id": "Criterion05",
       "description": "GraphLaw computes closure over blockers/dependencies",
       "satisfied": true,
-      "critical": true
+      "critical": true,
+      "evidence": []
     },
     {
       "id": "Criterion06",
       "description": "PDDL produces/records a lawful repair/action plan",
       "satisfied": true,
-      "critical": true
+      "critical": true,
+      "evidence": [
+        {
+          "path": "docs/case-studies/autonomic-standing-factory/case-study/pddl-out/plan.json",
+          "hash": "sha256:70e86fe59bd6c50dc4c92237a5fbcc68e8b5253f21aeb615808b451e9856b0cc"
+        },
+        {
+          "path": "docs/case-studies/autonomic-standing-factory/case-study/pddl_plan.json",
+          "hash": "sha256:70e86fe59bd6c50dc4c92237a5fbcc68e8b5253f21aeb615808b451e9856b0cc"
+        }
+      ]
     },
     {
       "id": "Criterion07",
       "description": "POWL models the execution process",
       "satisfied": true,
-      "critical": true
+      "critical": true,
+      "evidence": [
+        {
+          "path": "docs/case-studies/autonomic-standing-factory/case-study/powl_model.json",
+          "hash": "sha256:aafdc90fef2e57c13de4f7ae1426dd80851fd12d949f037bbba1cd497d6d75df"
+        }
+      ]
     },
     {
       "id": "Criterion08",
       "description": "OCEL records the case-study run",
       "satisfied": true,
-      "critical": true
+      "critical": true,
+      "evidence": [
+        {
+          "path": "docs/case-studies/autonomic-standing-factory/case-study/ocel_case_study.json",
+          "hash": "sha256:5260a884bd70bb0c598843f9cfa650b67100cc4d057c352ef8adde43ebb8c8cb"
+        }
+      ]
     },
     {
       "id": "Criterion09",
       "description": "wasm4pm validates process conformance",
       "satisfied": true,
-      "critical": true
+      "critical": true,
+      "evidence": [
+        {
+          "path": "docs/case-studies/autonomic-standing-factory/case-study/wasm4pm_validation.json",
+          "hash": "sha256:62403c522bb610694529451d9ad6d31e328ed7c8e28b242c62505f37181c092a"
+        }
+      ]
     },
     {
       "id": "Criterion10",
       "description": "receipts verify where applicable",
       "satisfied": true,
-      "critical": false
+      "critical": false,
+      "evidence": [
+        {
+          "path": "docs/case-studies/autonomic-standing-factory/case-study/pddl-receipts/receipts.jsonl",
+          "hash": "sha256:74780811cf2b04c631388d543fe7303abbde34acd3f46e9da991432eb0b65523"
+        }
+      ]
     },
     {
       "id": "Criterion11",
       "description": "benchmark evidence exists where performance claims are made",
       "satisfied": true,
-      "critical": false
+      "critical": false,
+      "evidence": [
+        {
+          "path": "docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt",
+          "hash": "sha256:e02f221e1664edc526fddd14c43306926dc573bf4c83820201d3770a7ac0aeda"
+        }
+      ]
     },
     {
       "id": "Criterion12",
       "description": "Autonomic Platform displays case-study state with provenance",
       "satisfied": true,
-      "critical": true
+      "critical": true,
+      "evidence": [
+        {
+          "path": "docs/case-studies/autonomic-standing-factory/case-study/screenshots/autonomic-case-study.png",
+          "hash": "sha256:4e6e6ed7c02e78f136a2f1b70838aa543151bbf033173fa01be67a409107bd3b"
+        },
+        {
+          "path": "docs/case-studies/autonomic-standing-factory/case-study/traces/case-study-smoke.zip",
+          "hash": "sha256:9628021d7843db6b9082ceae9cf720f2b2f2eff8a62575ce9a8e75ddbb769174"
+        }
+      ]
     },
     {
       "id": "Criterion13",
       "description": "Claude Code policy consumes or points to standing",
       "satisfied": true,
-      "critical": false
+      "critical": false,
+      "evidence": [
+        {
+          "path": "docs/standing/CLAUDE_CODE_POLICY.md",
+          "hash": "sha256:a46a253620b4a7d76739466634524318585ff2b1e2eb9602ab3bf3dc9d1284fb"
+        }
+      ]
     },
     {
       "id": "Criterion14",
       "description": "unsupported claims are diagnosable",
       "satisfied": true,
-      "critical": false
+      "critical": false,
+      "evidence": [
+        {
+          "path": "docs/standing/CLAIM_RULES.md",
+          "hash": "sha256:79cb041cc3ca70d16555acd3b6861a450057549e4b591b09b6fbf30604d55b5f"
+        }
+      ]
     },
     {
       "id": "Criterion15",
       "description": "external operator side effects are separated from release blockers",
       "satisfied": true,
-      "critical": true
+      "critical": true,
+      "evidence": [
+        {
+          "path": "docs/standing/EXTERNAL_OPERATOR_SIDE_EFFECTS.md",
+          "hash": "sha256:bbc2d6aefbeb4b38e991f20f131ef80b036ec5028db447bd1d20a4f2af28cacf"
+        }
+      ]
     }
   ],
   "shacl_reports": [
@@ -122,9 +195,9 @@
     "failures": []
   },
   "denials": [],
-  "derived_triple_count": 15,
+  "derived_triple_count": 25,
   "unsatisfied_dependency_count": 0,
   "case_study_subject_count": 1,
-  "graph_hash": "blake3:4e1843d2cf5dfc8b12e2ad30e72329ce58a77d1b8c6f7ac255101bec399a6efa",
+  "graph_hash": "blake3:e82630ce6af802d37d4a5f4e4eb5bd517cd00a07a8c3bf5062d7ec6d940fb37f",
   "generated_at_utc": "2026-07-06T22:27:34.851Z"
 }
