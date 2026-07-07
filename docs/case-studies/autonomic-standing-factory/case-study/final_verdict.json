@@ -1,0 +1,41 @@
+{
+  "scoped_verdict_sentence": "The autonomic standing factory is PRODUCTION_READY_FOR_DECLARED_LOCAL_FIRST_SCOPE: cargo-cicd emits standing evidence; praxis-graphlaw judges it with SHACL, ShEx, N3, and Datalog; PDDL/POWL model lawful repair and process; OCEL records execution; wasm4pm validates conformance; and Autonomic Platform displays sourced standing without becoming authority.",
+  "graphlaw_verdict": "GRAPHLAW_JUDGED_PRODUCTION_READY_FOR_SCOPE",
+  "raw_verdict_fact": "ProductionReadyForDeclaredScope",
+  "scope": "local-first autonomic release-governance for the seanchatmangpt fleet",
+  "criteria_satisfied_count": 15,
+  "criteria_total": 15,
+  "unsatisfied_dependency_count": 0,
+  "graph_hash": "blake3:4e1843d2cf5dfc8b12e2ad30e72329ce58a77d1b8c6f7ac255101bec399a6efa",
+  "generated_at_utc_source": "2026-07-06T22:27:34.851Z",
+  "rendered_at_utc": "2026-07-07T00:49:39.000Z",
+  "evidence_refs": {
+    "graphlaw_judgment": "docs/case-studies/autonomic-standing-factory/case-study/final_graphlaw_verdict.json",
+    "ocel": "docs/case-studies/autonomic-standing-factory/case-study/ocel_case_study.json",
+    "wasm4pm": "docs/case-studies/autonomic-standing-factory/case-study/wasm4pm_validation.json",
+    "pddl_plan": "docs/case-studies/autonomic-standing-factory/case-study/pddl-out/plan.json",
+    "powl_model": "docs/case-studies/autonomic-standing-factory/case-study/powl_model.json",
+    "client_screenshot": "docs/case-studies/autonomic-standing-factory/case-study/screenshots/autonomic-case-study.png",
+    "client_trace": "docs/case-studies/autonomic-standing-factory/case-study/traces/case-study-smoke.zip"
+  },
+  "operator_side_effects": [
+    "crates.io publish (praxis-graphlaw) dry-run verified, real publish pending operator credentials",
+    "arXiv submission bundle built, upload pending operator action",
+    "repository visibility change pending operator action"
+  ],
+  "commits": {
+    "praxis_head_before_lane6": "9869188",
+    "cargo_cicd_head": "fc9c002"
+  },
+  "non_goals": [
+    "public adoption",
+    "stable install",
+    "GitHub Action",
+    "MCP",
+    "cross-language support",
+    "actual crates.io publish",
+    "actual arXiv submission",
+    "production SaaS deployment",
+    "enterprise production deployment"
+  ]
+}

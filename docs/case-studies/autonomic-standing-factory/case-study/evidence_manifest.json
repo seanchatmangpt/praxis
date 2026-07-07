@@ -1,0 +1,340 @@
+{
+  "schema": "autonomic-standing-factory.evidence-manifest.v1",
+  "generated_at_utc": "2026-07-07T00:49:39.000Z",
+  "generated_by": "Lane 6",
+  "artifacts": [
+    {
+      "path": "target/praxis-standing/standing.json",
+      "hash": "sha256:8c6e719fff89e536443e97a83bffa785c54de705f088f2e7ad4b06f2177e8e43",
+      "producer": "Lane 1",
+      "consumer": "Lane 2 judge, Claude Code policy",
+      "standing_role": "canonical standing evidence",
+      "deterministic": false,
+      "source_command": "cargo-cicd standing refresh"
+    },
+    {
+      "path": "target/praxis-standing/standing.ttl",
+      "hash": "sha256:4127bda98f880480c79c04aa336592449f12035ab05d3efc60019429bee31d28",
+      "producer": "Lane 1",
+      "consumer": "Lane 2 judge (merged graph)",
+      "standing_role": "canonical standing evidence (TTL)",
+      "deterministic": true,
+      "source_command": "cargo-cicd standing refresh"
+    },
+    {
+      "path": "target/praxis-standing/standing.ocel.json",
+      "hash": "sha256:27f49002abc9758535ec2111134d998f43368170bef265610c850fed3da99cbd",
+      "producer": "Lane 1",
+      "consumer": "Lane 4 standing-integrity validation",
+      "standing_role": "canonical standing evidence (Shape-A OCEL)",
+      "deterministic": false,
+      "source_command": "cargo-cicd standing refresh"
+    },
+    {
+      "path": "docs/standing/REALITY_INDEX.md",
+      "hash": "sha256:fb0c2991801daafe8f1acba45b449b94508896717dbf9fc1540da7a5b923f587",
+      "producer": "Lane 1",
+      "consumer": "human / Claude Code",
+      "standing_role": "human-readable standing summary",
+      "deterministic": false,
+      "source_command": "just standing"
+    },
+    {
+      "path": "docs/standing/CLAUDE_CODE_POLICY.md",
+      "hash": "sha256:a46a253620b4a7d76739466634524318585ff2b1e2eb9602ab3bf3dc9d1284fb",
+      "producer": "pre-existing",
+      "consumer": "Claude Code",
+      "standing_role": "Criterion13 evidence",
+      "deterministic": true,
+      "source_command": "n/a"
+    },
+    {
+      "path": "docs/standing/CLAIM_RULES.md",
+      "hash": "sha256:79cb041cc3ca70d16555acd3b6861a450057549e4b591b09b6fbf30604d55b5f",
+      "producer": "pre-existing",
+      "consumer": "anti-llm-cheat-lsp",
+      "standing_role": "Criterion14 evidence",
+      "deterministic": true,
+      "source_command": "n/a"
+    },
+    {
+      "path": "docs/standing/EXTERNAL_OPERATOR_SIDE_EFFECTS.md",
+      "hash": "sha256:bbc2d6aefbeb4b38e991f20f131ef80b036ec5028db447bd1d20a4f2af28cacf",
+      "producer": "pre-existing",
+      "consumer": "Lane 6 claim promotion",
+      "standing_role": "Criterion15 evidence",
+      "deterministic": true,
+      "source_command": "n/a"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/CASE_STUDY.md",
+      "hash": "sha256:c8ddb3719d67c120a48f974a4d18bff60ad7371fc8a3a9490862750f43bcaf82",
+      "producer": "Lane 2",
+      "consumer": "human",
+      "standing_role": "case-study narrative",
+      "deterministic": true,
+      "source_command": "n/a"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/PRODUCTION_READINESS.md",
+      "hash": "sha256:1028e520cc842b97cfa7b8141b92ba6345833477215a83cb3320bc1267cb1630",
+      "producer": "Lane 2",
+      "consumer": "Lane 6",
+      "standing_role": "criteria definition",
+      "deterministic": true,
+      "source_command": "n/a"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/graphlaw_judgment.ttl",
+      "hash": "sha256:25d2855971a3a7c1c1f6281a5e6aa3f94b978457a1e188db8613f7a0adde4c08",
+      "producer": "Lane 2 + Lane 6",
+      "consumer": "case_study_judge bin",
+      "standing_role": "GraphLaw seed graph",
+      "deterministic": true,
+      "source_command": "hand-authored"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/shapes/standing-envelope.shacl.ttl",
+      "hash": "sha256:974de6fe4a17f611d0c359a95f89ec7f95d2a98d0996f25f92879223cd8f8de4",
+      "producer": "Lane 2",
+      "consumer": "case_study_judge bin",
+      "standing_role": "SHACL shape",
+      "deterministic": true,
+      "source_command": "hand-authored"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/shapes/case-study.shacl.ttl",
+      "hash": "sha256:46d6a7ea1d57977c82c3cfb23ae396f34ca45d8923bf43974cc5d1475d44ad1b",
+      "producer": "Lane 2",
+      "consumer": "case_study_judge bin",
+      "standing_role": "SHACL shape",
+      "deterministic": true,
+      "source_command": "hand-authored"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/shapes/evidence-ref.shacl.ttl",
+      "hash": "sha256:0c1fbf3bea2c78df2fe00bb7f183f223f08cad61e85b370858d6addeb97271a5",
+      "producer": "Lane 2",
+      "consumer": "case_study_judge bin",
+      "standing_role": "SHACL shape",
+      "deterministic": true,
+      "source_command": "hand-authored"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/shapes/final-verdict.shacl.ttl",
+      "hash": "sha256:03878958115e80f0e81965ef5789f774f7ff5ece86a260a89ae02b02420bdbe3",
+      "producer": "Lane 2",
+      "consumer": "case_study_judge bin",
+      "standing_role": "SHACL shape",
+      "deterministic": true,
+      "source_command": "hand-authored"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/shex/case-study.shex",
+      "hash": "sha256:96b0bf8f78675d44c65918ca56092ebc53d12143eaf2b87f8c2fe504f6ab16ba",
+      "producer": "Lane 2",
+      "consumer": "case_study_judge bin",
+      "standing_role": "ShEx schema",
+      "deterministic": true,
+      "source_command": "hand-authored"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/rules/judgment.n3",
+      "hash": "sha256:0f7b6918d083e6034264bae104cd60bc6f3e7fdb1221df9cfecd829eb30863ef",
+      "producer": "Lane 2",
+      "consumer": "case_study_judge bin",
+      "standing_role": "N3 readiness rules",
+      "deterministic": true,
+      "source_command": "hand-authored"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/rules/readiness.dl.n3",
+      "hash": "sha256:fd3a40e52676b071329eca59b7b320ef7426a45f242505aa2944735dc2cdf346",
+      "producer": "Lane 2",
+      "consumer": "case_study_judge bin",
+      "standing_role": "Datalog closure rules",
+      "deterministic": true,
+      "source_command": "hand-authored"
+    },
+    {
+      "path": "src/bin/case_study_judge.rs",
+      "hash": "sha256:caa6b381a2dbb1e7d52da9ec804fdfe4dc89641d6fb2c87d891cb6f1fca257c5",
+      "producer": "Lane 2 + Lane 6 (bug fix)",
+      "consumer": "build",
+      "standing_role": "judge implementation",
+      "deterministic": null,
+      "source_command": "cargo build --bin case_study_judge"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/final_graphlaw_verdict.json",
+      "hash": "sha256:211d5e91e369dd7b76d75e105909bb31f88b4013cbff00032c336ccdce60d42f",
+      "producer": "case_study_judge (Lane 6 fixed run)",
+      "consumer": "Lane 6 reports, Autonomic Platform",
+      "standing_role": "GraphLaw verdict",
+      "deterministic": false,
+      "source_command": "cargo run --bin case_study_judge"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/graphlaw_derived.ttl",
+      "hash": "sha256:4c1aba350adf695e186a38213b706228ed55383f1dab5820758317579fe003a8",
+      "producer": "case_study_judge",
+      "consumer": "audit trail",
+      "standing_role": "full derived graph dump",
+      "deterministic": false,
+      "source_command": "cargo run --bin case_study_judge"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/pddl/goal.ttl",
+      "hash": "sha256:ec05c73b9a0c99c20957c14c8988f7ccd8a8ca0231ec2f88aba6e1a93f2b7108",
+      "producer": "Lane 3",
+      "consumer": "plan run",
+      "standing_role": "PDDL8 domain+problem source",
+      "deterministic": true,
+      "source_command": "hand-authored"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/pddl-out/domain.pddl",
+      "hash": "sha256:25e2cbd852dd0c11f1557f7bbb475614a28f45f8a8a68e852c390f70a49a1f8a",
+      "producer": "Lane 3 (plan run)",
+      "consumer": "audit trail",
+      "standing_role": "compiled PDDL domain",
+      "deterministic": true,
+      "source_command": "plan run"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/pddl-out/problem.pddl",
+      "hash": "sha256:a817d1a12dbc968e31da9c35ff9634a7b2939eea91e8f52a441d5785ecf64da0",
+      "producer": "Lane 3 (plan run)",
+      "consumer": "audit trail",
+      "standing_role": "compiled PDDL problem",
+      "deterministic": true,
+      "source_command": "plan run"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/pddl-out/plan.json",
+      "hash": "sha256:70e86fe59bd6c50dc4c92237a5fbcc68e8b5253f21aeb615808b451e9856b0cc",
+      "producer": "Lane 3 (plan run)",
+      "consumer": "Lane 4 driver, Lane 6",
+      "standing_role": "PDDL plan (16 steps)",
+      "deterministic": true,
+      "source_command": "plan run"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/pddl-receipts/receipts.jsonl",
+      "hash": "sha256:74780811cf2b04c631388d543fe7303abbde34acd3f46e9da991432eb0b65523",
+      "producer": "Lane 3 (plan run)",
+      "consumer": "receipt validate",
+      "standing_role": "receipt ledger",
+      "deterministic": true,
+      "source_command": "plan run"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/powl_model.json",
+      "hash": "sha256:aafdc90fef2e57c13de4f7ae1426dd80851fd12d949f037bbba1cd497d6d75df",
+      "producer": "Lane 3 (fixed by Lane 4)",
+      "consumer": "Lane 4 wasm4pm validation, Lane 6",
+      "standing_role": "POWL process model",
+      "deterministic": true,
+      "source_command": "ocel_process_validate --model case-study"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/ocel_case_study.json",
+      "hash": "sha256:5260a884bd70bb0c598843f9cfa650b67100cc4d057c352ef8adde43ebb8c8cb",
+      "producer": "Lane 4",
+      "consumer": "ocel_process_validate, Lane 6",
+      "standing_role": "OCEL 2.0 Shape-A log",
+      "deterministic": false,
+      "source_command": "node run-case-study-pass.mjs"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/wasm4pm_validation.json",
+      "hash": "sha256:62403c522bb610694529451d9ad6d31e328ed7c8e28b242c62505f37181c092a",
+      "producer": "Lane 4",
+      "consumer": "Lane 5 client route, Lane 6",
+      "standing_role": "wasm4pm conformance result",
+      "deterministic": false,
+      "source_command": "ocel_process_validate -- ocel_case_study.json --model case-study"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/standing_ocel_validation.json",
+      "hash": "sha256:843e4d6f2471679f7cb89e88d1d60545b54d5e9425ec7631dec8c8ad6f7e9772",
+      "producer": "Lane 4",
+      "consumer": "Lane 6",
+      "standing_role": "OCEDO/OCPQ structural validation",
+      "deterministic": false,
+      "source_command": "ocel_process_validate -- standing.ocel.json --model standing-integrity"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/run-case-study-pass.mjs",
+      "hash": "sha256:17c7355d5000ac7036e2daac711bb49a1342aed4bfe5e71d3d8f92576fb49dd1",
+      "producer": "Lane 4",
+      "consumer": "reproducibility",
+      "standing_role": "evidence driver script",
+      "deterministic": true,
+      "source_command": "n/a"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/screenshots/autonomic-case-study.png",
+      "hash": "sha256:4e6e6ed7c02e78f136a2f1b70838aa543151bbf033173fa01be67a409107bd3b",
+      "producer": "Lane 6 (re-run of Lane 5 spec)",
+      "consumer": "human / audit",
+      "standing_role": "client screenshot",
+      "deterministic": false,
+      "source_command": "npx playwright test case-study-smoke.spec.ts"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/case-study/traces/case-study-smoke.zip",
+      "hash": "sha256:9628021d7843db6b9082ceae9cf720f2b2f2eff8a62575ce9a8e75ddbb769174",
+      "producer": "Lane 6 (re-run of Lane 5 spec)",
+      "consumer": "human / audit",
+      "standing_role": "Playwright trace",
+      "deterministic": false,
+      "source_command": "npx playwright test case-study-smoke.spec.ts"
+    },
+    {
+      "path": "docs/case-studies/autonomic-standing-factory/AUTONOMIC_PLATFORM_REPORT.md",
+      "hash": "sha256:54843ef014be697fb8ed93e36c973c2bc4bfba4d6a78aba0fc53447e076d6c75",
+      "producer": "Lane 5",
+      "consumer": "human",
+      "standing_role": "client field/source breakdown",
+      "deterministic": true,
+      "source_command": "n/a"
+    },
+    {
+      "path": "clients/autonomic-platform/src/praxis-adapter.js",
+      "hash": "sha256:210dd067aba18123c0e777dbeb8889dc3fac1384f23367473c693934cf24b1e2",
+      "producer": "Lane 5",
+      "consumer": "Autonomic Platform build",
+      "standing_role": "client adapter source",
+      "deterministic": true,
+      "source_command": "n/a"
+    },
+    {
+      "path": "clients/autonomic-platform/src/praxis-mode.js",
+      "hash": "sha256:917cc51b29adff113fdfca4f307cb1f41218a382c892fd77666711b37d09214a",
+      "producer": "Lane 5",
+      "consumer": "Autonomic Platform build",
+      "standing_role": "client screen source",
+      "deterministic": true,
+      "source_command": "n/a"
+    },
+    {
+      "path": "clients/autonomic-platform/tests/playwright/case-study-smoke.spec.ts",
+      "hash": "sha256:fb084c3060ae59c5dea8d7b0f1e43db880e0629087a2d3bdf1df1a181308e908",
+      "producer": "Lane 5",
+      "consumer": "Playwright test runner",
+      "standing_role": "client smoke spec",
+      "deterministic": true,
+      "source_command": "n/a"
+    },
+    {
+      "path": "src/bin/ocel_process_validate.rs",
+      "hash": "sha256:42981f81f5149635c7fe0958e0e203f8ef9d0623a701f9e87ff55aabe391c21e",
+      "producer": "Lane 3 + Lane 4",
+      "consumer": "build",
+      "standing_role": "process-validation binary source",
+      "deterministic": null,
+      "source_command": "cargo build --bin ocel_process_validate"
+    }
+  ]
+}

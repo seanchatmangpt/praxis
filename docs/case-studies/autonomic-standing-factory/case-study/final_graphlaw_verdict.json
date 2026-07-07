@@ -1,6 +1,6 @@
 {
-  "verdict": "GRAPHLAW_JUDGED_NOT_READY_WITH_RECEIPTED_REASONS",
-  "raw_verdict_fact": "NotReadyWithReasons",
+  "verdict": "GRAPHLAW_JUDGED_PRODUCTION_READY_FOR_SCOPE",
+  "raw_verdict_fact": "ProductionReadyForDeclaredScope",
   "scope": "local-first autonomic release-governance for the seanchatmangpt fleet",
   "criteria": [
     {
@@ -36,61 +36,61 @@
     {
       "id": "Criterion06",
       "description": "PDDL produces/records a lawful repair/action plan",
-      "satisfied": false,
+      "satisfied": true,
       "critical": true
     },
     {
       "id": "Criterion07",
       "description": "POWL models the execution process",
-      "satisfied": false,
+      "satisfied": true,
       "critical": true
     },
     {
       "id": "Criterion08",
       "description": "OCEL records the case-study run",
-      "satisfied": false,
+      "satisfied": true,
       "critical": true
     },
     {
       "id": "Criterion09",
       "description": "wasm4pm validates process conformance",
-      "satisfied": false,
+      "satisfied": true,
       "critical": true
     },
     {
       "id": "Criterion10",
       "description": "receipts verify where applicable",
-      "satisfied": false,
+      "satisfied": true,
       "critical": false
     },
     {
       "id": "Criterion11",
       "description": "benchmark evidence exists where performance claims are made",
-      "satisfied": false,
+      "satisfied": true,
       "critical": false
     },
     {
       "id": "Criterion12",
       "description": "Autonomic Platform displays case-study state with provenance",
-      "satisfied": false,
+      "satisfied": true,
       "critical": true
     },
     {
       "id": "Criterion13",
       "description": "Claude Code policy consumes or points to standing",
-      "satisfied": false,
+      "satisfied": true,
       "critical": false
     },
     {
       "id": "Criterion14",
       "description": "unsupported claims are diagnosable",
-      "satisfied": false,
+      "satisfied": true,
       "critical": false
     },
     {
       "id": "Criterion15",
       "description": "external operator side effects are separated from release blockers",
-      "satisfied": false,
+      "satisfied": true,
       "critical": true
     }
   ],
@@ -122,9 +122,9 @@
     "failures": []
   },
   "denials": [],
-  "derived_triple_count": 22,
-  "unsatisfied_dependency_count": 10,
+  "derived_triple_count": 15,
+  "unsatisfied_dependency_count": 0,
   "case_study_subject_count": 1,
-  "graph_hash": "blake3:b4405bf64afff70c68007d1cd9c0002a1c898200e1feda0c4d510edf4c1d5555",
+  "graph_hash": "blake3:4e1843d2cf5dfc8b12e2ad30e72329ce58a77d1b8c6f7ac255101bec399a6efa",
   "generated_at_utc": "2026-07-06T22:27:34.851Z"
 }
