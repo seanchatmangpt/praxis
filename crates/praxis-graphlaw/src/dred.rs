@@ -88,14 +88,12 @@ impl DRed {
                         let substitute_rule =
                             Reasoner::substitute_rule_body_with_binding(&matched_rule, &bindings);
                         if SimpleQueryEngine::query(&self.triple_index, &substitute_rule, None).is_some()
-                        {
-                            if !self.triple_index.contains(delete_triple) {
+                            && !self.triple_index.contains(delete_triple) {
                                 self.triple_index.add(delete_triple.clone());
                                 delete_num -= 1;
                                 delete_list[i].1 = true;
                                 break;
                             }
-                        }
                     }
                 }
             }

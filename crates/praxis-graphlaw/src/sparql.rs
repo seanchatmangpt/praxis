@@ -1099,7 +1099,7 @@ pub fn eval_query<'a>(query: &'a Query, index: &'a TripleIndex) -> PlanNode {
 
             
 
-            extract_query_plan(&pattern)
+            extract_query_plan(pattern)
         }
         spargebra::Query::Ask {
             pattern, base_iri: _, ..

@@ -558,28 +558,28 @@ impl TripleIndex {
                         .flat_map(|(s_key, p_values)| {
                             p_values
                                 .iter()
-                                .zip(iter::repeat(s_key).take(p_values.len()))
+                                .zip(std::iter::repeat_n(s_key, p_values.len()))
                         })
                         .filter_map(|((encoded_match, counter, graph_name), s_key)| {
                             let mut bindings = Vec::with_capacity(3);
                             bindings.push(EncodedBinding {
-                                var: query_triple.s.to_encoded().clone(),
-                                val: s_key.clone(),
+                                var: query_triple.s.to_encoded(),
+                                val: *s_key,
                             });
                             bindings.push(EncodedBinding {
-                                var: query_triple.p.to_encoded().clone(),
-                                val: encoded_match.clone(),
+                                var: query_triple.p.to_encoded(),
+                                val: *encoded_match,
                             });
 
                             match &query_triple.g {
                                 Some(VarOrTerm::Var(var_name)) if graph_name.is_some() => {
                                     bindings.push(EncodedBinding {
-                                        var: var_name.name.clone(),
+                                        var: var_name.name,
                                         val: graph_name.clone().unwrap().id(),
                                     });
                                 }
                                 Some(VarOrTerm::Term(term))
-                                    if !graph_name.clone().map_or(false, |t| t.eq(term)) =>
+                                    if !graph_name.clone().is_some_and(|t| t.eq(term)) =>
                                 {
                                     return None
                                 }
@@ -599,28 +599,28 @@ impl TripleIndex {
                     indexes
                         .iter()
                         .flat_map(|(key, values)| {
-                            values.iter().zip(iter::repeat(key).take(values.len()))
+                            values.iter().zip(std::iter::repeat_n(key, values.len()))
                         })
                         .filter_map(|((encoded_match, counter, graph_name), key)| {
                             let mut bindings = Vec::with_capacity(3);
                             bindings.push(EncodedBinding {
-                                var: query_triple.p.to_encoded().clone(),
-                                val: key.clone(),
+                                var: query_triple.p.to_encoded(),
+                                val: *key,
                             });
                             bindings.push(EncodedBinding {
-                                var: query_triple.o.to_encoded().clone(),
-                                val: encoded_match.clone(),
+                                var: query_triple.o.to_encoded(),
+                                val: *encoded_match,
                             });
 
                             match &query_triple.g {
                                 Some(VarOrTerm::Var(var_name)) if graph_name.is_some() => {
                                     bindings.push(EncodedBinding {
-                                        var: var_name.name.clone(),
+                                        var: var_name.name,
                                         val: graph_name.clone().unwrap().id(),
                                     });
                                 }
                                 Some(VarOrTerm::Term(term))
-                                    if !graph_name.clone().map_or(false, |t| t.eq(term)) =>
+                                    if !graph_name.clone().is_some_and(|t| t.eq(term)) =>
                                 {
                                     return None
                                 }
@@ -640,28 +640,28 @@ impl TripleIndex {
                     indexes
                         .iter()
                         .flat_map(|(key, values)| {
-                            values.iter().zip(iter::repeat(key).take(values.len()))
+                            values.iter().zip(std::iter::repeat_n(key, values.len()))
                         })
                         .filter_map(|((encoded_match, counter, graph_name), key)| {
                             let mut bindings = Vec::with_capacity(3);
                             bindings.push(EncodedBinding {
-                                var: query_triple.s.to_encoded().clone(),
-                                val: encoded_match.clone(),
+                                var: query_triple.s.to_encoded(),
+                                val: *encoded_match,
                             });
                             bindings.push(EncodedBinding {
-                                var: query_triple.o.to_encoded().clone(),
-                                val: key.clone(),
+                                var: query_triple.o.to_encoded(),
+                                val: *key,
                             });
 
                             match &query_triple.g {
                                 Some(VarOrTerm::Var(var_name)) if graph_name.is_some() => {
                                     bindings.push(EncodedBinding {
-                                        var: var_name.name.clone(),
+                                        var: var_name.name,
                                         val: graph_name.clone().unwrap().id(),
                                     });
                                 }
                                 Some(VarOrTerm::Term(term))
-                                    if !graph_name.clone().map_or(false, |t| t.eq(term)) =>
+                                    if !graph_name.clone().is_some_and(|t| t.eq(term)) =>
                                 {
                                     return None
                                 }
@@ -680,38 +680,38 @@ impl TripleIndex {
                 self.spo
                     .iter()
                     .flat_map(|(s_key, p_vals)| {
-                        p_vals.iter().zip(iter::repeat(s_key).take(p_vals.len()))
+                        p_vals.iter().zip(std::iter::repeat_n(s_key, p_vals.len()))
                     })
                     .flat_map(|((p_key, o_values), s_key)| {
                         o_values
                             .iter()
-                            .zip(iter::repeat(p_key).take(o_values.len()))
-                            .zip(iter::repeat(s_key).take(o_values.len()))
+                            .zip(std::iter::repeat_n(p_key, o_values.len()))
+                            .zip(std::iter::repeat_n(s_key, o_values.len()))
                     })
                     .filter_map(|(((encoded_match, counter, graph_name), p_key), s_key)| {
                         let mut bindings = Vec::with_capacity(3);
                         bindings.push(EncodedBinding {
-                            var: query_triple.s.to_encoded().clone(),
-                            val: s_key.clone(),
+                            var: query_triple.s.to_encoded(),
+                            val: *s_key,
                         });
                         bindings.push(EncodedBinding {
-                            var: query_triple.p.to_encoded().clone(),
-                            val: p_key.clone(),
+                            var: query_triple.p.to_encoded(),
+                            val: *p_key,
                         });
                         bindings.push(EncodedBinding {
-                            var: query_triple.o.to_encoded().clone(),
-                            val: encoded_match.clone(),
+                            var: query_triple.o.to_encoded(),
+                            val: *encoded_match,
                         });
 
                         match &query_triple.g {
                             Some(VarOrTerm::Var(var_name)) if graph_name.is_some() => {
                                 bindings.push(EncodedBinding {
-                                    var: var_name.name.clone(),
+                                    var: var_name.name,
                                     val: graph_name.clone().unwrap().id(),
                                 });
                             }
                             Some(VarOrTerm::Term(term))
-                                if !graph_name.clone().map_or(false, |t| t.eq(term)) =>
+                                if !graph_name.clone().is_some_and(|t| t.eq(term)) =>
                             {
                                 return None
                             }
@@ -766,18 +766,18 @@ impl TripleIndex {
                 .filter_map(move |(encoded_match, counter, graph_name)| {
                     let mut bindings = Vec::with_capacity(2);
                     bindings.push(EncodedBinding {
-                        var: variable.to_encoded().clone(),
-                        val: encoded_match.clone(),
+                        var: variable.to_encoded(),
+                        val: *encoded_match,
                     });
                     match graph_var {
                         Some(VarOrTerm::Var(var_name)) if graph_name.is_some() => {
                             bindings.push(EncodedBinding {
-                                var: var_name.name.clone(),
+                                var: var_name.name,
                                 val: graph_name.clone().unwrap().id(),
                             });
                         }
                         Some(VarOrTerm::Term(term))
-                            if !graph_name.clone().map_or(false, |t| t.eq(term)) =>
+                            if !graph_name.clone().is_some_and(|t| t.eq(term)) =>
                         {
                             return None
                         }
