@@ -64,7 +64,7 @@ where
                 comp
             }
             ReportStrategy::OnWindowClose => window.close < ts,
-            ReportStrategy::Periodic(period) => ts % period == 0,
+            ReportStrategy::Periodic(period) => ts.is_multiple_of(*period),
         })
     }
 }
@@ -126,7 +126,7 @@ where
     tick: Tick,
     app_time: usize,
     consumer: Option<Sender<ContentContainer<I>>>,
-    call_back: Option<Box<dyn FnMut(ContentContainer<I>) -> ()>>,
+    call_back: Option<Box<dyn FnMut(ContentContainer<I>)>>,
 }
 
 impl<I> CSPARQLWindow<I>
@@ -182,23 +182,20 @@ where
             .filter(|(window, content)| self.report.report(window, content, ts))
             .max_by(|(w1, c1), (w2, c2)| w1.close.cmp(&w2.close));
         if let Some(max_window) = max {
-            match self.tick {
-                Tick::TimeDriven => {
-                    if ts > self.app_time {
-                        self.app_time = ts;
-                        // notify consumers
-                        debug!("Window triggers! {:?}", max_window);
-                        // multithreaded consumer using channel
-                        if let Some(sender) = &self.consumer {
-                            sender.send(max_window.1.clone());
-                        }
-                        // single threaded consumer using callback
-                        if let Some(call_back) = &mut self.call_back {
-                            (call_back)(max_window.1.clone());
-                        }
+            if let Tick::TimeDriven = self.tick {
+                if ts > self.app_time {
+                    self.app_time = ts;
+                    // notify consumers
+                    debug!("Window triggers! {:?}", max_window);
+                    // multithreaded consumer using channel
+                    if let Some(sender) = &self.consumer {
+                        sender.send(max_window.1.clone());
+                    }
+                    // single threaded consumer using callback
+                    if let Some(call_back) = &mut self.call_back {
+                        (call_back)(max_window.1.clone());
                     }
                 }
-                _ => (),
             };
         }
 
@@ -228,7 +225,7 @@ where
                 open: o_i as usize,
                 close: (o_i + self.width as f64) as usize,
             };
-            if let None = self.active_windows.get(&window) {
+            if self.active_windows.get(&window).is_none() {
                 self.active_windows.insert(window, ContentContainer::new());
             }
             o_i += self.slide as f64;
@@ -242,7 +239,7 @@ where
         self.consumer.replace(send);
         recv
     }
-    pub fn register_callback(&mut self, function: Box<dyn FnMut(ContentContainer<I>) -> ()>) {
+    pub fn register_callback(&mut self, function: Box<dyn FnMut(ContentContainer<I>)>) {
         self.call_back.replace(function);
     }
     pub fn stop(&mut self) {

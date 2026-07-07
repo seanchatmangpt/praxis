@@ -188,7 +188,7 @@ impl TripleIndex {
                         return true;
                     }
                 }
-                return false;
+                false
             }
         }
     }
@@ -226,7 +226,7 @@ impl TripleIndex {
                                 break;
                             }
                             matched_binding
-                                .add(&query_triple.s.to_encoded(), encoded_match.clone());
+                                .add(&query_triple.s.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -248,7 +248,7 @@ impl TripleIndex {
                                 break;
                             }
                             matched_binding
-                                .add(&query_triple.p.to_encoded(), encoded_match.clone());
+                                .add(&query_triple.p.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -270,7 +270,7 @@ impl TripleIndex {
                                 break;
                             }
                             matched_binding
-                                .add(&query_triple.o.to_encoded(), encoded_match.clone());
+                                .add(&query_triple.o.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -291,9 +291,9 @@ impl TripleIndex {
                             ) {
                                 break;
                             }
-                            matched_binding.add(&query_triple.s.to_encoded(), s_key.clone());
+                            matched_binding.add(&query_triple.s.to_encoded(), *s_key);
                             matched_binding
-                                .add(&query_triple.p.to_encoded(), encoded_match.clone());
+                                .add(&query_triple.p.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -314,9 +314,9 @@ impl TripleIndex {
                             ) {
                                 break;
                             }
-                            matched_binding.add(&query_triple.p.to_encoded(), p_key.clone());
+                            matched_binding.add(&query_triple.p.to_encoded(), *p_key);
                             matched_binding
-                                .add(&query_triple.o.to_encoded(), encoded_match.clone());
+                                .add(&query_triple.o.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -337,9 +337,9 @@ impl TripleIndex {
                             ) {
                                 break;
                             }
-                            matched_binding.add(&query_triple.o.to_encoded(), o_key.clone());
+                            matched_binding.add(&query_triple.o.to_encoded(), *o_key);
                             matched_binding
-                                .add(&query_triple.s.to_encoded(), encoded_match.clone());
+                                .add(&query_triple.s.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -360,10 +360,10 @@ impl TripleIndex {
                             ) {
                                 break;
                             }
-                            matched_binding.add(&query_triple.s.to_encoded(), s_key.clone());
-                            matched_binding.add(&query_triple.p.to_encoded(), p_key.clone());
+                            matched_binding.add(&query_triple.s.to_encoded(), *s_key);
+                            matched_binding.add(&query_triple.p.to_encoded(), *p_key);
                             matched_binding
-                                .add(&query_triple.o.to_encoded(), encoded_match.clone());
+                                .add(&query_triple.o.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -555,13 +555,12 @@ impl TripleIndex {
                 Box::new(
                     indexes
                         .iter()
-                        .map(|(s_key, p_values)| {
+                        .flat_map(|(s_key, p_values)| {
                             p_values
                                 .iter()
                                 .zip(iter::repeat(s_key).take(p_values.len()))
                         })
-                        .flatten()
-                        .map(|((encoded_match, counter, graph_name), s_key)| {
+                        .filter_map(|((encoded_match, counter, graph_name), s_key)| {
                             let mut bindings = Vec::with_capacity(3);
                             bindings.push(EncodedBinding {
                                 var: query_triple.s.to_encoded().clone(),
@@ -587,8 +586,7 @@ impl TripleIndex {
                                 _ => {}
                             }
                             Some(bindings)
-                        })
-                        .flatten(),
+                        }),
                 )
             } else {
                 Box::new(empty())
@@ -600,11 +598,10 @@ impl TripleIndex {
                 Box::new(
                     indexes
                         .iter()
-                        .map(|(key, values)| {
+                        .flat_map(|(key, values)| {
                             values.iter().zip(iter::repeat(key).take(values.len()))
                         })
-                        .flatten()
-                        .map(|((encoded_match, counter, graph_name), key)| {
+                        .filter_map(|((encoded_match, counter, graph_name), key)| {
                             let mut bindings = Vec::with_capacity(3);
                             bindings.push(EncodedBinding {
                                 var: query_triple.p.to_encoded().clone(),
@@ -630,8 +627,7 @@ impl TripleIndex {
                                 _ => {}
                             }
                             Some(bindings)
-                        })
-                        .flatten(),
+                        }),
                 )
             } else {
                 Box::new(empty())
@@ -643,11 +639,10 @@ impl TripleIndex {
                 Box::new(
                     indexes
                         .iter()
-                        .map(|(key, values)| {
+                        .flat_map(|(key, values)| {
                             values.iter().zip(iter::repeat(key).take(values.len()))
                         })
-                        .flatten()
-                        .map(|((encoded_match, counter, graph_name), key)| {
+                        .filter_map(|((encoded_match, counter, graph_name), key)| {
                             let mut bindings = Vec::with_capacity(3);
                             bindings.push(EncodedBinding {
                                 var: query_triple.s.to_encoded().clone(),
@@ -673,8 +668,7 @@ impl TripleIndex {
                                 _ => {}
                             }
                             Some(bindings)
-                        })
-                        .flatten(),
+                        }),
                 )
             } else {
                 Box::new(empty())
@@ -685,18 +679,16 @@ impl TripleIndex {
             Box::new(
                 self.spo
                     .iter()
-                    .map(|(s_key, p_vals)| {
+                    .flat_map(|(s_key, p_vals)| {
                         p_vals.iter().zip(iter::repeat(s_key).take(p_vals.len()))
                     })
-                    .flatten()
-                    .map(|((p_key, o_values), s_key)| {
+                    .flat_map(|((p_key, o_values), s_key)| {
                         o_values
                             .iter()
                             .zip(iter::repeat(p_key).take(o_values.len()))
                             .zip(iter::repeat(s_key).take(o_values.len()))
                     })
-                    .flatten()
-                    .map(|(((encoded_match, counter, graph_name), p_key), s_key)| {
+                    .filter_map(|(((encoded_match, counter, graph_name), p_key), s_key)| {
                         let mut bindings = Vec::with_capacity(3);
                         bindings.push(EncodedBinding {
                             var: query_triple.s.to_encoded().clone(),
@@ -726,8 +718,7 @@ impl TripleIndex {
                             _ => {}
                         }
                         Some(bindings)
-                    })
-                    .flatten(),
+                    }),
             )
         }
         // //s p o
@@ -772,7 +763,7 @@ impl TripleIndex {
         Box::new(
             indexes2
                 .iter()
-                .map(move |(encoded_match, counter, graph_name)| {
+                .filter_map(move |(encoded_match, counter, graph_name)| {
                     let mut bindings = Vec::with_capacity(2);
                     bindings.push(EncodedBinding {
                         var: variable.to_encoded().clone(),
@@ -793,8 +784,7 @@ impl TripleIndex {
                         _ => {}
                     }
                     Some(bindings)
-                })
-                .flatten(),
+                }),
         )
     }
     fn check_quad_match_and_add(
@@ -805,13 +795,13 @@ impl TripleIndex {
         match &query_triple.g {
             Some(VarOrTerm::Var(var_name)) if graph_name.is_some() => {
                 matched_binding.add(&var_name.name, graph_name.clone().unwrap().id());
-                return true;
+                true
             }
-            Some(VarOrTerm::Term(term)) if !graph_name.clone().map_or(false, |t| t.eq(term)) => {
-                return false;
+            Some(VarOrTerm::Term(term)) if !graph_name.clone().is_some_and(|t| t.eq(term)) => {
+                false
             }
             _ => {
-                return true;
+                true
             }
         }
     }

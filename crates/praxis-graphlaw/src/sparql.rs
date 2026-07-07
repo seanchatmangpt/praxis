@@ -205,7 +205,7 @@ fn extract_query_plan(graph_pattern: &GraphPattern) -> PlanNode {
             PlanNode::LeftJoin {
                 left: Box::new(extract_query_plan(left)),
                 right: Box::new(extract_query_plan(right)),
-                expression: expression.as_ref().map(|expr| extract_expression(expr)),
+                expression: expression.as_ref().map(extract_expression),
             }
         }
         GraphPattern::Union { left, right } => {
@@ -352,7 +352,7 @@ pub fn evaluate_plan<'a>(
     triple_index: &'a TripleIndex,
 ) -> Box<dyn Iterator<Item = Vec<EncodedBinding>> + 'a> {
     match plan_node {
-        PlanNode::QuadPattern { pattern: triple } => triple_index.query_help(&triple, None),
+        PlanNode::QuadPattern { pattern: triple } => triple_index.query_help(triple, None),
         PlanNode::Project { child, mapping } => {
             let child_it = evaluate_plan(child, triple_index);
             Box::new(child_it.map(move |binding| {
@@ -945,7 +945,7 @@ fn eval_expression<'a>(
         PlanExpression::Variable(v) => Box::new(move |bindings| {
             let var_value: Vec<&EncodedBinding> = bindings.iter().filter(|b| b.var == *v).collect();
             var_value
-                .get(0)
+                .first()
                 .and_then(|&binding| {
                     if let Some(term) = Encoder::decode_to_term(binding.val) {
                         match term {
@@ -1017,7 +1017,7 @@ fn partial_compare_helper<'a>(
         let r: Option<Ordering> = match a(bindings) {
             Some(EncodedTerm::IntegerLiteral(int_val_a)) => match b_res {
                 Some(EncodedTerm::IntegerLiteral(int_val_b)) => {
-                    int_val_a.partial_cmp(&int_val_b).into()
+                    int_val_a.partial_cmp(&int_val_b)
                 }
                 _ => None,
             },
@@ -1097,9 +1097,9 @@ pub fn eval_query<'a>(query: &'a Query, index: &'a TripleIndex) -> PlanNode {
             pattern, base_iri, ..
         } => {
 
-            let plan = extract_query_plan(&pattern);
+            
 
-            plan
+            extract_query_plan(&pattern)
         }
         spargebra::Query::Ask {
             pattern, base_iri: _, ..
