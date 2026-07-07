@@ -87,6 +87,7 @@ procint:Decl_happensBefore_irrefl a procint:Decl ;
   procint:declName "ProcInt.happensBefore_irrefl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.happensBefore_irrefl' does not depend on any axioms" ;
   procint:leanCode """/-- Happens-before is irreflexive: no event strictly precedes itself
 (temporal.rs `TemporalOrder::Before` is strict; from Nat.lt). -/
 theorem happensBefore_irrefl {α : Type*} (e : TimedEvent α) : ¬ HappensBefore e e :=
@@ -98,6 +99,7 @@ procint:Decl_happensBefore_trans a procint:Decl ;
   procint:declName "ProcInt.happensBefore_trans" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.happensBefore_trans' does not depend on any axioms" ;
   procint:leanCode """/-- Happens-before is transitive (strict-order law of temporal.rs `TemporalOrder`). -/
 theorem happensBefore_trans {α : Type*} {a b c : TimedEvent α}
     (hab : HappensBefore a b) (hbc : HappensBefore b c) : HappensBefore a c :=
@@ -109,6 +111,7 @@ procint:Decl_sojourn_self a procint:Decl ;
   procint:declName "ProcInt.sojourn_self" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.sojourn_self' does not depend on any axioms" ;
   procint:leanCode """/-- The sojourn time of an event relative to itself is zero (temporal.rs `TimeDelta`). -/
 theorem sojourn_self {α : Type*} (e : TimedEvent α) : sojourn e e = 0 :=
   Nat.sub_self e.timestamp""" .
@@ -187,6 +190,7 @@ procint:Decl_linked_nil a procint:Decl ;
   procint:declName "ProcInt.linked_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.linked_nil' does not depend on any axioms" ;
   procint:leanCode """/-- The empty chain is linked (causality.rs `CausalChain` base case). -/
 theorem linked_nil {α : Type*} : linked ([] : List (CausalLink α)) := by
   simp [linked]""" .
@@ -197,6 +201,7 @@ procint:Decl_linked_singleton a procint:Decl ;
   procint:declName "ProcInt.linked_singleton" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.linked_singleton' does not depend on any axioms" ;
   procint:leanCode """/-- A singleton chain is linked (causality.rs `CausalChain` unit case). -/
 theorem linked_singleton {α : Type*} (l : CausalLink α) : linked [l] := by
   simp [linked]""" .
@@ -207,6 +212,7 @@ procint:Decl_linked_tail a procint:Decl ;
   procint:declName "ProcInt.linked_tail" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.linked_tail' does not depend on any axioms" ;
   procint:leanCode """/-- The tail of a linked chain is linked (chain suffix closure). -/
 theorem linked_tail {α : Type*} {l1 l2 : CausalLink α} {rest : List (CausalLink α)}
     (h : linked (l1 :: l2 :: rest)) : linked (l2 :: rest) := by
@@ -278,6 +284,7 @@ procint:Decl_correlated_empty a procint:Decl ;
   procint:declName "ProcInt.correlated_empty" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.correlated_empty' does not depend on any axioms" ;
   procint:leanCode """/-- The empty correlated log is correlated (vacuous key agreement). -/
 theorem correlated_empty {α β κ : Type*} (keyA : α → κ) (keyB : β → κ) :
     CorrelatedLog.Correlated ⟨keyA, keyB, []⟩ := by
@@ -290,6 +297,7 @@ procint:Decl_correlated_cons a procint:Decl ;
   procint:declName "ProcInt.correlated_cons" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.correlated_cons' depends on axioms: [propext]" ;
   procint:leanCode """/-- Extending a correlated log with a key-agreeing pair preserves correlation. -/
 theorem correlated_cons {α β κ : Type*} {log : CorrelatedLog α β κ}
     (h : log.Correlated) {a : α} {b : β} (hab : log.keyA a = log.keyB b) :
@@ -366,6 +374,7 @@ procint:Decl_cell_subset a procint:Decl ;
   procint:declName "ProcInt.cell_subset" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.cell_subset' depends on axioms: [propext]" ;
   procint:leanCode """/-- Every event in a cell is an event of the cube (cell ⊆ cube). -/
 theorem cell_subset {α β : Type*} [DecidableEq β] {c : ProcessCube α β} {v : β} {e : α}
     (h : e ∈ c.cell v) : e ∈ c.events := by
@@ -378,6 +387,7 @@ procint:Decl_cell_dim a procint:Decl ;
   procint:declName "ProcInt.cell_dim" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.cell_dim' depends on axioms: [propext]" ;
   procint:leanCode """/-- Every event in a cell projects to the cell's dimension value (preimage law). -/
 theorem cell_dim {α β : Type*} [DecidableEq β] {c : ProcessCube α β} {v : β} {e : α}
     (h : e ∈ c.cell v) : c.dim e = v := by
@@ -390,6 +400,7 @@ procint:Decl_cell_subset_slice a procint:Decl ;
   procint:declName "ProcInt.cell_subset_slice" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.cell_subset_slice' depends on axioms: [propext]" ;
   procint:leanCode """/-- A cell is contained in any slice whose value set contains the cell's value
 (slice ⊆ cube refinement, van der Aalst 2013). -/
 theorem cell_subset_slice {α β : Type*} [DecidableEq β] {c : ProcessCube α β}
@@ -480,6 +491,7 @@ procint:Decl_wellPosed_prefixLen_pos a procint:Decl ;
   procint:declName "ProcInt.wellPosed_prefixLen_pos" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.wellPosed_prefixLen_pos' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- A well-posed prediction problem has a strictly positive prefix length. -/
 theorem wellPosed_prefixLen_pos {α : Type*} {p : PredictionProblem α}
     (h : p.WellPosed) : 0 < p.prefixLen := by
@@ -537,6 +549,7 @@ procint:Decl_push_bounded a procint:Decl ;
   procint:declName "ProcInt.push_bounded" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.push_bounded' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- The window bound is invariant under push (window length bound law). -/
 theorem push_bounded {α : Type*} {size : ℕ} (w : EventWindow α size) (e : α) :
     (w.push e).events.length ≤ size :=
@@ -548,6 +561,7 @@ procint:Decl_empty_length a procint:Decl ;
   procint:declName "ProcInt.empty_length" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.empty_length' does not depend on any axioms" ;
   procint:leanCode """/-- The empty window holds no events (streaming.rs `EventWindow::new`). -/
 theorem empty_length {α : Type*} {size : ℕ} :
     (EventWindow.empty α size).events.length = 0 := rfl""" .
@@ -558,6 +572,7 @@ procint:Decl_push_not_full a procint:Decl ;
   procint:declName "ProcInt.push_not_full" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.push_not_full' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Pushing into a non-full window keeps every prior event (no eviction;
 streaming.rs `EventWindow::push` returns None below capacity). -/
 theorem push_not_full {α : Type*} {size : ℕ} {w : EventWindow α size} {e : α}
@@ -645,6 +660,7 @@ procint:Decl_uniformWeights_normalized a procint:Decl ;
   procint:declName "ProcInt.uniformWeights_normalized" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.uniformWeights_normalized' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The uniform weights are normalized (decided on ℚ literals). -/
 theorem uniformWeights_normalized : uniformWeights.Normalized := by
   unfold PerspectiveWeights.Normalized uniformWeights
@@ -668,6 +684,7 @@ procint:Decl_combinedScore_uniform a procint:Decl ;
   procint:declName "ProcInt.combinedScore_uniform" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.combinedScore_uniform' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Under uniform weights the combined score is the arithmetic mean of the
 four perspective scores (Mannhardt et al. 2016 balanced combination). -/
 theorem combinedScore_uniform (s : ProcessPerspective → ℚ) :
@@ -736,6 +753,7 @@ procint:Decl_deleted_terminal a procint:Decl ;
   procint:declName "ProcInt.deleted_terminal" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.deleted_terminal' does not depend on any axioms" ;
   procint:leanCode """/-- Deleted is terminal: no transition leaves the deleted phase
 (object_lifecycle.rs: no impl block on Deleted). -/
 theorem deleted_terminal (p : ObjectLifecyclePhase) :
@@ -748,6 +766,7 @@ procint:Decl_no_transition_to_created a procint:Decl ;
   procint:declName "ProcInt.no_transition_to_created" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.no_transition_to_created' does not depend on any axioms" ;
   procint:leanCode """/-- No transition re-enters the created phase (creation is a one-time event). -/
 theorem no_transition_to_created (p : ObjectLifecyclePhase) :
     ¬ LifecycleTransition p .created :=
@@ -759,6 +778,7 @@ procint:Decl_archived_only_deletes a procint:Decl ;
   procint:declName "ProcInt.archived_only_deletes" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.archived_only_deletes' does not depend on any axioms" ;
   procint:leanCode """/-- From the archived phase, the only lawful successor is deleted
 (object_lifecycle.rs: Archived exposes only delete). -/
 theorem archived_only_deletes {p : ObjectLifecyclePhase}
@@ -840,6 +860,7 @@ procint:Decl_Move_cost_le_one a procint:Decl ;
   procint:declName "ProcInt.Move.cost_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Move.cost_le_one' depends on axioms: [propext]" ;
   procint:leanCode """/-- The standard cost of any single move is at most 1 (Carmona et al. 2018,
 standard cost function). -/
 theorem Move.cost_le_one {α T : Type*} (m : Move α T) : m.cost ≤ 1 := by
@@ -851,6 +872,7 @@ procint:Decl_Move_cost_eq_zero_iff a procint:Decl ;
   procint:declName "ProcInt.Move.cost_eq_zero_iff" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Move.cost_eq_zero_iff' depends on axioms: [propext]" ;
   procint:leanCode """/-- A move has zero standard cost exactly when it is synchronous or
 silent-model (Adriansyah 2011). -/
 theorem Move.cost_eq_zero_iff {α T : Type*} (m : Move α T) :
@@ -945,6 +967,7 @@ procint:Decl_alignmentCost_append a procint:Decl ;
   procint:declName "ProcInt.alignmentCost_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.alignmentCost_append' depends on axioms: [propext]" ;
   procint:leanCode """/-- Alignment cost is additive under concatenation of alignments. -/
 theorem alignmentCost_append {α T : Type*} (γ₁ γ₂ : List (Move α T)) :
     alignmentCost (γ₁ ++ γ₂) = alignmentCost γ₁ + alignmentCost γ₂ := by
@@ -956,6 +979,7 @@ procint:Decl_alignmentCost_zero_iff_all_costfree a procint:Decl ;
   procint:declName "ProcInt.alignmentCost_zero_iff_all_costfree" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.alignmentCost_zero_iff_all_costfree' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- An alignment has zero total cost iff every move in it is cost-free, i.e.
 synchronous or silent-model (Carmona et al. 2018: cost-0 alignments witness
 perfectly fitting traces). -/
@@ -969,6 +993,7 @@ procint:Decl_logProjection_length_le a procint:Decl ;
   procint:declName "ProcInt.logProjection_length_le" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.logProjection_length_le' depends on axioms: [propext]" ;
   procint:leanCode """/-- The log projection never exceeds the alignment in length: each move
 contributes at most one activity. -/
 theorem logProjection_length_le {α T : Type*} (γ : List (Move α T)) :
@@ -1010,6 +1035,7 @@ procint:Decl_oneSubRatio_nonneg a procint:Decl ;
   procint:declName "ProcInt.oneSubRatio_nonneg" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.oneSubRatio_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- If m ≤ n then 1 - m/n is nonnegative in ℚ; the n = 0 case forces m = 0 and
 uses the ℚ convention x/0 = 0. Support lemma for the Rozinat-Aalst fitness
 bounds. -/
@@ -1029,6 +1055,7 @@ procint:Decl_oneSubRatio_le_one a procint:Decl ;
   procint:declName "ProcInt.oneSubRatio_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.oneSubRatio_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- 1 - m/n never exceeds 1 in ℚ, since m/n ≥ 0 for natural m, n (with the
 x/0 = 0 convention). Support lemma for the Rozinat-Aalst fitness bounds. -/
 theorem oneSubRatio_le_one (m n : ℕ) : 1 - (m : ℚ) / n ≤ 1 := by
@@ -1055,6 +1082,7 @@ procint:Decl_fitness_nonneg a procint:Decl ;
   procint:declName "ProcInt.fitness_nonneg" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Token-replay fitness is nonnegative (Rozinat-Aalst 2008; lower bound of
 the [0,1] metric law in wasm4pm-compat docs/METRIC_LAW.md). -/
 theorem fitness_nonneg (c : ReplayCounts) : 0 ≤ fitness c := by
@@ -1069,6 +1097,7 @@ procint:Decl_fitness_le_one a procint:Decl ;
   procint:declName "ProcInt.fitness_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Token-replay fitness is at most 1 (Rozinat-Aalst 2008; upper bound of the
 [0,1] metric law in wasm4pm-compat docs/METRIC_LAW.md). -/
 theorem fitness_le_one (c : ReplayCounts) : fitness c ≤ 1 := by
@@ -1083,6 +1112,7 @@ procint:Decl_fitness_mem_unitInterval a procint:Decl ;
   procint:declName "ProcInt.fitness_mem_unitInterval" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_mem_unitInterval' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The Rozinat-Aalst token-replay fitness always lies in the unit interval:
 0 ≤ fitness ∧ fitness ≤ 1. This is the Lean form of the Between01 metric law
 of wasm4pm-compat docs/METRIC_LAW.md. -/
@@ -1096,6 +1126,7 @@ procint:Decl_fitness_perfect a procint:Decl ;
   procint:declName "ProcInt.fitness_perfect" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_perfect' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- A perfect replay — no missing and no remaining tokens — has fitness
 exactly 1 (Rozinat-Aalst 2008; mirrors calculate_fitness(4,4,0,0) = 1.0 in
 wasm4pm-compat src/conformance.rs). -/
@@ -1189,6 +1220,7 @@ procint:Decl_f1_nonneg a procint:Decl ;
   procint:declName "ProcInt.f1_nonneg" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.f1_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- F1 is nonnegative. -/
 theorem f1_nonneg (f p : UnitRat) : 0 ≤ f1 f p := by
   have hf := f.property.1
@@ -1202,6 +1234,7 @@ procint:Decl_f1_le_one a procint:Decl ;
   procint:declName "ProcInt.f1_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.f1_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- F1 is at most 1: the harmonic mean of two unit-interval quantities stays
 in the unit interval (Between01 law, wasm4pm-compat docs/METRIC_LAW.md). -/
 theorem f1_le_one (f p : UnitRat) : f1 f p ≤ 1 := by
@@ -1354,6 +1387,7 @@ procint:Decl_Event_simple_activity a procint:Decl ;
   procint:declName "ProcInt.Event.simple_activity" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_activity' does not depend on any axioms" ;
   procint:leanCode """/-- `Event.simple` records exactly the given activity. -/
 theorem Event.simple_activity {α : Type} (a : α) (t : ℕ) :
     (Event.simple a t).activity = a := rfl
@@ -1365,6 +1399,7 @@ procint:Decl_Event_simple_timestamp a procint:Decl ;
   procint:declName "ProcInt.Event.simple_timestamp" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_timestamp' does not depend on any axioms" ;
   procint:leanCode """/-- `Event.simple` records exactly the given timestamp. -/
 theorem Event.simple_timestamp {α : Type} (a : α) (t : ℕ) :
     (Event.simple a t).timestamp = t := rfl
@@ -1376,6 +1411,7 @@ procint:Decl_Event_simple_resource a procint:Decl ;
   procint:declName "ProcInt.Event.simple_resource" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_resource' does not depend on any axioms" ;
   procint:leanCode """/-- `Event.simple` carries no resource annotation — the defaulting contract of
 `Event::new` in `wasm4pm-compat/src/eventlog.rs`. -/
 theorem Event.simple_resource {α : Type} (a : α) (t : ℕ) :
@@ -1388,6 +1424,7 @@ procint:Decl_Event_simple_lifecycle a procint:Decl ;
   procint:declName "ProcInt.Event.simple_lifecycle" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_lifecycle' does not depend on any axioms" ;
   procint:leanCode """/-- `Event.simple` carries no lifecycle annotation — the defaulting contract of
 `Event::new` in `wasm4pm-compat/src/eventlog.rs`. -/
 theorem Event.simple_lifecycle {α : Type} (a : α) (t : ℕ) :
@@ -1448,6 +1485,7 @@ procint:Decl_Trace_activities_length a procint:Decl ;
   procint:declName "ProcInt.Trace.activities_length" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.activities_length' depends on axioms: [propext]" ;
   procint:leanCode """/-- The activity projection preserves length: one activity label per event. -/
 theorem Trace.activities_length {α : Type} (t : Trace α) :
     t.activities.length = t.events.length := by
@@ -1460,6 +1498,7 @@ procint:Decl_Trace_monotone_nil a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_nil' depends on axioms: [propext]" ;
   procint:leanCode """/-- The empty trace is (vacuously) monotone. -/
 theorem Trace.monotone_nil {α : Type} (c : String) :
     Trace.Monotone (α := α) ⟨c, []⟩ := by
@@ -1472,6 +1511,7 @@ procint:Decl_Trace_monotone_singleton a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_singleton" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_singleton' depends on axioms: [propext]" ;
   procint:leanCode """/-- A one-event trace is monotone. -/
 theorem Trace.monotone_singleton {α : Type} (c : String) (e : Event α) :
     Trace.Monotone ⟨c, [e]⟩ := by
@@ -1484,6 +1524,7 @@ procint:Decl_Trace_monotone_replicate a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_replicate" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_replicate' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- A constant trace (the same event replicated) is monotone, since
 timestamp order is reflexive. -/
 theorem Trace.monotone_replicate {α : Type} (c : String) (n : ℕ) (e : Event α) :
@@ -1497,6 +1538,7 @@ procint:Decl_Trace_monotone_append a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_append' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Concatenation law for monotone traces: the concatenation is monotone iff
 both halves are monotone and the seam respects timestamp order
 (last of the first half ≤ head of the second half). Direct instance of
@@ -1514,6 +1556,7 @@ procint:Decl_Trace_monotone_sublist a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_sublist" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_sublist' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Monotonicity is inherited by sublists (timestamp order is transitive), so
 any subtrace of a valid trace is valid — the sublist-stability of the
 `NonMonotonicTrace` law in `wasm4pm-compat/src/eventlog.rs`. -/
@@ -1533,6 +1576,7 @@ procint:Decl_Trace_activities_append a procint:Decl ;
   procint:declName "ProcInt.Trace.activities_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.activities_append' depends on axioms: [propext]" ;
   procint:leanCode """/-- The activity projection distributes over trace concatenation (the
 classifier projection is a list homomorphism; van der Aalst 2016, §4.2). -/
 theorem Trace.activities_append {α : Type} (c : String) (l₁ l₂ : List (Event α)) :
@@ -1547,6 +1591,7 @@ procint:Decl_Trace_monotone_iff_pairwise a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_iff_pairwise" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_iff_pairwise' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Since timestamp order is transitive, adjacent-pair monotonicity is
 equivalent to all-pairs monotonicity — the `NonMonotonicTrace` law of
 `wasm4pm-compat/src/eventlog.rs` checks adjacent pairs but guarantees global
@@ -1608,6 +1653,7 @@ procint:Decl_EventLog_wellFormed_nil a procint:Decl ;
   procint:declName "ProcInt.EventLog.wellFormed_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_nil' does not depend on any axioms" ;
   procint:leanCode """/-- The empty log is (vacuously) well-formed. -/
 theorem EventLog.wellFormed_nil {α : Type} :
     EventLog.wellFormed ([] : EventLog α) := by
@@ -1621,6 +1667,7 @@ procint:Decl_EventLog_wellFormed_cons a procint:Decl ;
   procint:declName "ProcInt.EventLog.wellFormed_cons" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_cons' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Cons law: a log with one more trace is well-formed iff the new trace is
 monotone and the rest of the log is well-formed. -/
 theorem EventLog.wellFormed_cons {α : Type} (t : Trace α) (log : EventLog α) :
@@ -1634,6 +1681,7 @@ procint:Decl_EventLog_wellFormed_append a procint:Decl ;
   procint:declName "ProcInt.EventLog.wellFormed_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_append' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Union (append) law: merging two logs preserves and reflects
 well-formedness — validation distributes over log union. -/
 theorem EventLog.wellFormed_append {α : Type} (l₁ l₂ : EventLog α) :
@@ -1648,6 +1696,7 @@ procint:Decl_EventLog_eventCount_nil a procint:Decl ;
   procint:declName "ProcInt.EventLog.eventCount_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_nil' depends on axioms: [propext]" ;
   procint:leanCode """/-- The empty log contains no events. -/
 theorem EventLog.eventCount_nil {α : Type} :
     EventLog.eventCount ([] : EventLog α) = 0 := rfl
@@ -1659,6 +1708,7 @@ procint:Decl_EventLog_eventCount_append a procint:Decl ;
   procint:declName "ProcInt.EventLog.eventCount_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_append' depends on axioms: [propext]" ;
   procint:leanCode """/-- Event counting is additive over log union. -/
 theorem EventLog.eventCount_append {α : Type} (l₁ l₂ : EventLog α) :
     EventLog.eventCount (l₁ ++ l₂) = EventLog.eventCount l₁ + EventLog.eventCount l₂ := by
@@ -1671,6 +1721,7 @@ procint:Decl_EventLog_eventCount_cons a procint:Decl ;
   procint:declName "ProcInt.EventLog.eventCount_cons" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_cons' depends on axioms: [propext]" ;
   procint:leanCode """/-- Cons law for event counting: adding a trace adds its event count. -/
 theorem EventLog.eventCount_cons {α : Type} (t : Trace α) (log : EventLog α) :
     EventLog.eventCount (t :: log) = t.events.length + EventLog.eventCount log := by
@@ -1683,6 +1734,7 @@ procint:Decl_EventLog_wellFormed_sublist a procint:Decl ;
   procint:declName "ProcInt.EventLog.wellFormed_sublist" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_sublist' does not depend on any axioms" ;
   procint:leanCode """/-- Well-formedness is inherited by sublogs: filtering a valid log (as in
 `EventLog::filter` views of `wasm4pm-compat/src/eventlog.rs`) never breaks
 validation. -/
@@ -1698,6 +1750,7 @@ procint:Decl_EventLog_eventCount_eq_zero a procint:Decl ;
   procint:declName "ProcInt.EventLog.eventCount_eq_zero" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_eq_zero' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A log has zero events iff every one of its traces is empty — the
 degenerate-log characterization behind `EventLog::event_count` in
 `wasm4pm-compat/src/eventlog.rs`. -/
@@ -1830,6 +1883,7 @@ procint:Decl_XesLifecycleTransition_parse_asString a procint:Decl ;
   procint:declName "ProcInt.XesLifecycleTransition.parse_asString" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.XesLifecycleTransition.parse_asString' does not depend on any axioms" ;
   procint:leanCode """/-- Round-trip law: parsing the canonical string of a lifecycle transition
 recovers the transition. This is the doctest contract of
 `XesLifecycleTransition::parse` in `wasm4pm-compat/src/xes.rs`. -/
@@ -1844,6 +1898,7 @@ procint:Decl_XesLifecycleTransition_asString_injective a procint:Decl ;
   procint:declName "ProcInt.XesLifecycleTransition.asString_injective" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.XesLifecycleTransition.asString_injective' depends on axioms: [propext]" ;
   procint:leanCode """/-- The canonical string encoding of lifecycle transitions is injective
 (distinct transitions have distinct `lifecycle:transition` values) — a
 corollary of the round-trip law. -/
@@ -1861,6 +1916,7 @@ procint:Decl_XesLifecycleTransition_asString_parse a procint:Decl ;
   procint:declName "ProcInt.XesLifecycleTransition.asString_parse" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.XesLifecycleTransition.asString_parse' depends on axioms: [propext]" ;
   procint:leanCode """/-- Converse round trip: `parse` succeeds only on canonical strings, and
 printing its result recovers the input — together with `parse_asString` this
 makes `asString`/`parse` a partial bijection onto the IEEE 1849-2016
@@ -1939,6 +1995,7 @@ procint:Decl_dfgOfTrace_edges_length a procint:Decl ;
   procint:declName "ProcInt.dfgOfTrace_edges_length" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dfgOfTrace_edges_length' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- A trace of length n yields exactly n - 1 directly-follows edges —
 the adjacent-pair count law of `discover_ocel_dfg` (dfg.rs windows(2)). -/
 theorem dfgOfTrace_edges_length (t : List α) :
@@ -1954,6 +2011,7 @@ procint:Decl_dfgOfTrace_nil a procint:Decl ;
   procint:declName "ProcInt.dfgOfTrace_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dfgOfTrace_nil' does not depend on any axioms" ;
   procint:leanCode """/-- The empty trace has no directly-follows edges (dfg.rs: no windows(2)
 pairs on an empty event list). -/
 theorem dfgOfTrace_nil : (dfgOfTrace ([] : List ℕ)).edges = [] := rfl""" .
@@ -1964,6 +2022,7 @@ procint:Decl_dfgOfTrace_freq_one a procint:Decl ;
   procint:declName "ProcInt.dfgOfTrace_freq_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dfgOfTrace_freq_one' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A DFG discovered from a trace assigns every edge frequency 1
 (single-case discovery, dfg.rs edge_map initialisation). -/
 theorem dfgOfTrace_freq_one (t : List α) :
@@ -2040,6 +2099,7 @@ procint:Decl_dependencyMeasure_lt_one a procint:Decl ;
   procint:declName "ProcInt.dependencyMeasure_lt_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dependencyMeasure_lt_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The dependency measure is strictly below 1: the +1 in the denominator
 keeps even a one-sided count from reaching certainty
 (Weijters and Ribeiro 2011, Section 2). -/
@@ -2055,6 +2115,7 @@ procint:Decl_neg_one_lt_dependencyMeasure a procint:Decl ;
   procint:declName "ProcInt.neg_one_lt_dependencyMeasure" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.neg_one_lt_dependencyMeasure' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The dependency measure is strictly above -1 (dual bound). -/
 theorem neg_one_lt_dependencyMeasure (ab ba : ℕ) : -1 < dependencyMeasure ab ba := by
   unfold dependencyMeasure
@@ -2068,6 +2129,7 @@ procint:Decl_dependencyMeasure_antisymm a procint:Decl ;
   procint:declName "ProcInt.dependencyMeasure_antisymm" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dependencyMeasure_antisymm' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Antisymmetry of the dependency measure: a ⇒ b = −(b ⇒ a)
 (Weijters and Ribeiro 2011, Section 2). -/
 theorem dependencyMeasure_antisymm (ab ba : ℕ) :
@@ -2082,6 +2144,7 @@ procint:Decl_dependencyMeasure_self a procint:Decl ;
   procint:declName "ProcInt.dependencyMeasure_self" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dependencyMeasure_self' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Symmetric counts give zero causal strength: a ⇒ a with equal
 directly-follows counts in both directions is 0. -/
 theorem dependencyMeasure_self (n : ℕ) : dependencyMeasure n n = 0 := by
@@ -2207,6 +2270,7 @@ procint:Decl_bpmnMinimal_wellFormed a procint:Decl ;
   procint:declName "ProcInt.bpmnMinimal_wellFormed" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.bpmnMinimal_wellFormed' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The minimal start → task → end process is wellformed — the positive
 fixture of `bpmn.rs` `BpmnProcess::validate`. -/
 theorem bpmnMinimal_wellFormed : bpmnMinimal.WellFormed := by
@@ -2221,6 +2285,7 @@ procint:Decl_bpmn_empty_not_wellFormed a procint:Decl ;
   procint:declName "ProcInt.bpmn_empty_not_wellFormed" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.bpmn_empty_not_wellFormed' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A process with no nodes has no start event, hence is not wellformed —
 the `bpmn.rs` `BpmnRefusal::EmptyProcess` law. -/
 theorem bpmn_empty_not_wellFormed : ¬ (BpmnProcess.mk [] []).WellFormed := by
@@ -2337,6 +2402,7 @@ procint:Decl_response_concrete a procint:Decl ;
   procint:declName "ProcInt.response_concrete" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.response_concrete' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Concrete kernel check: response(0, 1) holds on the trace [0, 1, 0, 1]
 (every 0 is followed by a later 1) — decided by the kernel. -/
 theorem response_concrete : Response 0 1 [0, 1, 0, 1] := by decide""" .
@@ -2347,6 +2413,7 @@ procint:Decl_precedence_concrete a procint:Decl ;
   procint:declName "ProcInt.precedence_concrete" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.precedence_concrete' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Concrete kernel check: precedence(0, 1) holds on [0, 1, 1] and
 response(1, 0) fails on it — decided by the kernel. -/
 theorem precedence_concrete : Precedence 0 1 [0, 1, 1] ∧ ¬ Response 1 0 [0, 1, 1] := by
@@ -2358,6 +2425,7 @@ procint:Decl_succession_imp_response a procint:Decl ;
   procint:declName "ProcInt.succession_imp_response" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.succession_imp_response' does not depend on any axioms" ;
   procint:leanCode """/-- Succession entails response: the succession template is the conjunction
 of response and precedence (van der Aalst and Pesic; declare.rs Succession). -/
 theorem succession_imp_response [DecidableEq α] (a b : α) (t : List α)
@@ -2370,6 +2438,7 @@ procint:Decl_existence_append a procint:Decl ;
   procint:declName "ProcInt.existence_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.existence_append' does not depend on any axioms" ;
   procint:leanCode """/-- Existence is monotone under trace extension on the right: if a occurs
 in t it occurs in t ++ s (DECLARE existence template monotonicity). -/
 theorem existence_append [DecidableEq α] (a : α) (t s : List α)
@@ -2383,6 +2452,7 @@ procint:Decl_notCoexistence_comm a procint:Decl ;
   procint:declName "ProcInt.notCoexistence_comm" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.notCoexistence_comm' does not depend on any axioms" ;
   procint:leanCode """/-- NotCoexistence is symmetric in its two activities
 (mutual-exclusion law; declare.rs NotCoExistence). -/
 theorem notCoexistence_comm [DecidableEq α] (a b : α) (t : List α) :
@@ -2396,6 +2466,7 @@ procint:Decl_arity_one_or_two a procint:Decl ;
   procint:declName "ProcInt.arity_one_or_two" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.arity_one_or_two' depends on axioms: [propext]" ;
   procint:leanCode """/-- Every template arity is 1 or 2 (declare.rs `arity` codomain law). -/
 theorem arity_one_or_two (tp : DeclareTemplate) : tp.arity = 1 ∨ tp.arity = 2 := by
   cases tp <;> simp [DeclareTemplate.arity]""" .
@@ -2470,6 +2541,7 @@ procint:Decl_OCEL_objectsOf_length_le a procint:Decl ;
   procint:declName "ProcInt.OCEL.objectsOf_length_le" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.objectsOf_length_le' depends on axioms: [propext]" ;
   procint:leanCode """/-- The E2O projection of an event never exceeds the size of the raw qualified
 relation table (filter-then-map length bound). -/
 theorem OCEL.objectsOf_length_le {E O ET OT Q V : Type} [DecidableEq E]
@@ -2483,6 +2555,7 @@ procint:Decl_OCEL_eventsOf_length_le a procint:Decl ;
   procint:declName "ProcInt.OCEL.eventsOf_length_le" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.eventsOf_length_le' depends on axioms: [propext]" ;
   procint:leanCode """/-- The dual bound for the object-side projection: eventsOf is a sublist-sized
 selection of the qualified E2O relation table. -/
 theorem OCEL.eventsOf_length_le {E O ET OT Q V : Type} [DecidableEq O]
@@ -2543,6 +2616,7 @@ procint:Decl_OCEL_interacts_symm a procint:Decl ;
   procint:declName "ProcInt.OCEL.interacts_symm" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.interacts_symm' does not depend on any axioms" ;
   procint:leanCode """/-- The interaction relation is symmetric: sharing an event is order-agnostic. -/
 theorem OCEL.interacts_symm {E O ET OT Q V : Type} [DecidableEq E]
     (L : OCEL E O ET OT Q V) {o₁ o₂ : O}
@@ -2556,6 +2630,7 @@ procint:Decl_OCEL_interacts_self a procint:Decl ;
   procint:declName "ProcInt.OCEL.interacts_self" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.interacts_self' does not depend on any axioms" ;
   procint:leanCode """/-- Any object appearing in some event's E2O projection interacts with itself. -/
 theorem OCEL.interacts_self {E O ET OT Q V : Type} [DecidableEq E]
     (L : OCEL E O ET OT Q V) {o : O} {e : E}
@@ -2568,6 +2643,7 @@ procint:Decl_OCEL_e2oProj_length a procint:Decl ;
   procint:declName "ProcInt.OCEL.e2oProj_length" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.e2oProj_length' depends on axioms: [propext]" ;
   procint:leanCode """/-- The qualified projection and the object projection of an event have equal
 length: both are maps over the same filtered relation table. -/
 theorem OCEL.e2oProj_length {E O ET OT Q V : Type} [DecidableEq E]
@@ -2581,6 +2657,7 @@ procint:Decl_OCEL_mem_objectsOf a procint:Decl ;
   procint:declName "ProcInt.OCEL.mem_objectsOf" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.mem_objectsOf' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Soundness of the E2O projection: a raw qualified triple (e, q, o) in the
 relation table puts o into objectsOf e. -/
 theorem OCEL.mem_objectsOf {E O ET OT Q V : Type} [DecidableEq E]
@@ -2633,6 +2710,7 @@ procint:Decl_lifecycleStep_irrefl a procint:Decl ;
   procint:declName "ProcInt.lifecycleStep_irrefl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.lifecycleStep_irrefl' does not depend on any axioms" ;
   procint:leanCode """/-- Lifecycle transitions are irreflexive: no phase steps to itself. -/
 theorem lifecycleStep_irrefl (p : LifecyclePhase) : ¬ LifecycleStep p p := by
   intro h
@@ -2644,6 +2722,7 @@ procint:Decl_archived_terminal a procint:Decl ;
   procint:declName "ProcInt.archived_terminal" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.archived_terminal' does not depend on any axioms" ;
   procint:leanCode """/-- The archived phase is terminal: no lifecycle step leaves it. -/
 theorem archived_terminal (p : LifecyclePhase) : ¬ LifecycleStep .archived p := by
   intro h
@@ -2680,6 +2759,7 @@ procint:Decl_OCEL_timeOrdered_nil a procint:Decl ;
   procint:declName "ProcInt.OCEL.timeOrdered_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.timeOrdered_nil' does not depend on any axioms" ;
   procint:leanCode """/-- The empty event list is trivially time-ordered. -/
 theorem OCEL.timeOrdered_nil {E O ET OT Q V : Type}
     (L : OCEL E O ET OT Q V) : L.TimeOrdered ([] : List E) :=
@@ -2691,6 +2771,7 @@ procint:Decl_OCEL_timeOrdered_singleton a procint:Decl ;
   procint:declName "ProcInt.OCEL.timeOrdered_singleton" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.timeOrdered_singleton' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Any single event is trivially time-ordered. -/
 theorem OCEL.timeOrdered_singleton {E O ET OT Q V : Type}
     (L : OCEL E O ET OT Q V) (e : E) : L.TimeOrdered [e] :=
@@ -2764,6 +2845,7 @@ procint:Decl_OcpqPredicate_sat_e2oRel_iff a procint:Decl ;
   procint:declName "ProcInt.OcpqPredicate.sat_e2oRel_iff" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OcpqPredicate.sat_e2oRel_iff' does not depend on any axioms" ;
   procint:leanCode """/-- E2O predicate satisfaction is exactly membership of the qualified triple in
 the log's E2O table (definitional characterization). -/
 theorem OcpqPredicate.sat_e2oRel_iff {E O ET OT Q V : Type} [DecidableEq E]
@@ -2777,6 +2859,7 @@ procint:Decl_OcpqPredicate_sat_e2oRel_mem a procint:Decl ;
   procint:declName "ProcInt.OcpqPredicate.sat_e2oRel_mem" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OcpqPredicate.sat_e2oRel_mem' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A satisfied E2O predicate certifies the object projection: satisfaction
 puts the related object into objectsOf of the related event. -/
 theorem OcpqPredicate.sat_e2oRel_mem {E O ET OT Q V : Type} [DecidableEq E]
@@ -2838,6 +2921,7 @@ procint:Decl_CardBound_admits_min a procint:Decl ;
   procint:declName "ProcInt.CardBound.admits_min" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.admits_min' does not depend on any axioms" ;
   procint:leanCode """/-- Every well-formed bound admits its own lower endpoint (trivial-bound
 satisfaction: uses the min ≤ max law). -/
 theorem CardBound.admits_min (b : CardBound) : b.Admits b.min :=
@@ -2849,6 +2933,7 @@ procint:Decl_CardBound_admits_max a procint:Decl ;
   procint:declName "ProcInt.CardBound.admits_max" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.admits_max' does not depend on any axioms" ;
   procint:leanCode """/-- Every well-formed bound admits its own upper endpoint. -/
 theorem CardBound.admits_max (b : CardBound) : b.Admits b.max :=
   ⟨b.le, le_refl b.max⟩""" .
@@ -2870,6 +2955,7 @@ procint:Decl_CardBound_admits_of_widens a procint:Decl ;
   procint:declName "ProcInt.CardBound.admits_of_widens" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.admits_of_widens' does not depend on any axioms" ;
   procint:leanCode """/-- Monotonicity of cardinality satisfaction in bound widening: any count
 admitted by a bound is admitted by every widening of it. -/
 theorem CardBound.admits_of_widens {b c : CardBound} (h : b.Widens c)
@@ -2882,6 +2968,7 @@ procint:Decl_CardBound_widens_refl a procint:Decl ;
   procint:declName "ProcInt.CardBound.widens_refl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.widens_refl' does not depend on any axioms" ;
   procint:leanCode """/-- Widening is reflexive: every bound widens itself. -/
 theorem CardBound.widens_refl (b : CardBound) : b.Widens b :=
   ⟨le_refl b.min, le_refl b.max⟩""" .
@@ -2892,6 +2979,7 @@ procint:Decl_CardBound_widens_trans a procint:Decl ;
   procint:declName "ProcInt.CardBound.widens_trans" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.widens_trans' does not depend on any axioms" ;
   procint:leanCode """/-- Widening is transitive, making Widens a preorder on bounds. -/
 theorem CardBound.widens_trans {a b c : CardBound}
     (hab : a.Widens b) (hbc : b.Widens c) : a.Widens c :=
@@ -2903,6 +2991,7 @@ procint:Decl_CardBound_sat_cardObjects_iff a procint:Decl ;
   procint:declName "ProcInt.CardBound.sat_cardObjects_iff" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.sat_cardObjects_iff' does not depend on any axioms" ;
   procint:leanCode """/-- The OCPQ cardObjects predicate built from a CardBound is satisfied exactly
 when the bound admits the length of the event's E2O object projection
 (definitional bridge between Ocpq.Query satisfaction and CardBound.Admits). -/
@@ -2943,6 +3032,7 @@ procint:Decl_Marking_toInt_injective a procint:Decl ;
   procint:declName "ProcInt.Marking.toInt_injective" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Marking.toInt_injective' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The marking cast is injective: distinct ℕ-markings stay distinct in ℤ^P. -/
 theorem Marking.toInt_injective {P : Type} :
     Function.Injective (Marking.toInt (P := P)) :=
@@ -2965,6 +3055,7 @@ procint:Decl_PetriNet_stateEquation_step a procint:Decl ;
   procint:declName "ProcInt.PetriNet.stateEquation_step" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.stateEquation_step' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Murata 1989, state equation (Eq. (5)) for a single firing: if M —t→ M' then
 Mʹ = M + A·eₜ over ℤ. -/
 theorem PetriNet.stateEquation_step {P T : Type} (N : PetriNet P T)
@@ -2983,6 +3074,7 @@ procint:Decl_PetriNet_stateEquation_seq a procint:Decl ;
   procint:declName "ProcInt.PetriNet.stateEquation_seq" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.stateEquation_seq' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Murata 1989, state equation (Eq. (5)) for a firing sequence: the reached marking is the
 initial marking plus the sum of incidence columns of the fired transitions, over ℤ.
 Proof by induction on the firing sequence. -/
@@ -3025,6 +3117,7 @@ procint:Decl_weighSum_add a procint:Decl ;
   procint:declName "ProcInt.weighSum_add" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.weighSum_add' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The pairing ⟪y, ·⟫ is additive in its vector argument. -/
 theorem weighSum_add {P : Type} (y : P → ℤ) (v w : P →₀ ℤ) :
     weighSum y (v + w) = weighSum y v + weighSum y w := by
@@ -3049,6 +3142,7 @@ procint:Decl_PetriNet_pInvariant_step a procint:Decl ;
   procint:declName "ProcInt.PetriNet.pInvariant_step" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.pInvariant_step' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Conservation along a single step: a P-invariant weighting is unchanged by any firing
 (Murata 1989, Theorem 15: yᵀM = yᵀM₀ for reachable M). -/
 theorem PetriNet.pInvariant_step {P T : Type} (N : PetriNet P T) {y : P → ℤ}
@@ -3062,6 +3156,7 @@ procint:Decl_PetriNet_pInvariant_reaches a procint:Decl ;
   procint:declName "ProcInt.PetriNet.pInvariant_reaches" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.pInvariant_reaches' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Conservation along reachability: a P-invariant weighting is constant on the whole
 reachability set (Murata 1989, Theorem 15). Proof by induction on ReflTransGen. -/
 theorem PetriNet.pInvariant_reaches {P T : Type} (N : PetriNet P T) {y : P → ℤ}
@@ -3090,6 +3185,7 @@ procint:Decl_PetriNet_tInvariant_reproduces a procint:Decl ;
   procint:declName "ProcInt.PetriNet.tInvariant_reproduces" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.tInvariant_reproduces' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Murata 1989, Theorem 16 (reproduction): a firing sequence whose Parikh vector is a
 T-invariant reproduces the starting marking exactly. Uses injectivity of the ℤ-cast. -/
 theorem PetriNet.tInvariant_reproduces {P T : Type} (N : PetriNet P T)
@@ -3173,6 +3269,7 @@ procint:Decl_OCPN_conforms_add a procint:Decl ;
   procint:declName "ProcInt.OCPN.conforms_add" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCPN.conforms_add' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Conformance is closed under multiset union: adding conforming tokens to a conforming
 colored marking stays conforming (needed for the OCPN firing rule, Def. 5.3). -/
 theorem OCPN.conforms_add {P T OT Obj : Type} (C : OCPN P T OT) (otyp : Obj → OT)
@@ -3190,6 +3287,7 @@ procint:Decl_OCPN_conforms_of_le a procint:Decl ;
   procint:declName "ProcInt.OCPN.conforms_of_le" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCPN.conforms_of_le' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Conformance is closed under sub-multisets: consuming tokens preserves conformance
 (the token-consumption half of the OCPN firing rule). -/
 theorem OCPN.conforms_of_le {P T OT Obj : Type} (C : OCPN P T OT) (otyp : Obj → OT)
@@ -3266,6 +3364,7 @@ procint:Decl_StochasticPetriNet_fireProb_sum a procint:Decl ;
   procint:declName "ProcInt.StochasticPetriNet.fireProb_sum" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.StochasticPetriNet.fireProb_sum' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The stochastic choice is a probability distribution: over any conflict set with nonzero
 total weight, the firing probabilities sum to 1 (Leemans 2019). -/
 theorem StochasticPetriNet.fireProb_sum {P T : Type} (S : StochasticPetriNet P T)
@@ -3281,6 +3380,7 @@ procint:Decl_StochasticPetriNet_fireProb_le_one a procint:Decl ;
   procint:declName "ProcInt.StochasticPetriNet.fireProb_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.StochasticPetriNet.fireProb_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Each firing probability is at most 1: a member's weight never exceeds the conflict set's
 total weight (Leemans 2019). -/
 theorem StochasticPetriNet.fireProb_le_one {P T : Type} (S : StochasticPetriNet P T)
@@ -3368,6 +3468,7 @@ procint:Decl_OccurrenceNet_flow_causality a procint:Decl ;
   procint:declName "ProcInt.OccurrenceNet.flow_causality" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.flow_causality' depends on axioms: [propext]" ;
   procint:leanCode """/-- Flow embeds in causality (single-step case of the transitive closure). -/
 theorem OccurrenceNet.flow_causality {C E : Type} (O : OccurrenceNet C E)
     {a b : C ⊕ E} (h : O.Flow a b) : O.Causality a b :=
@@ -3379,6 +3480,7 @@ procint:Decl_OccurrenceNet_causality_trans a procint:Decl ;
   procint:declName "ProcInt.OccurrenceNet.causality_trans" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.causality_trans' depends on axioms: [propext]" ;
   procint:leanCode """/-- Causality is transitive (transitive closures are transitive; Engelfriet 1991). -/
 theorem OccurrenceNet.causality_trans {C E : Type} (O : OccurrenceNet C E)
     {a b c : C ⊕ E} (h₁ : O.Causality a b) (h₂ : O.Causality b c) :
@@ -3391,6 +3493,7 @@ procint:Decl_OccurrenceNet_flow_irrefl a procint:Decl ;
   procint:declName "ProcInt.OccurrenceNet.flow_irrefl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.flow_irrefl' depends on axioms: [propext]" ;
   procint:leanCode """/-- The flow relation is irreflexive by bipartiteness: no node flows to itself. -/
 theorem OccurrenceNet.flow_irrefl {C E : Type} (O : OccurrenceNet C E)
     (n : C ⊕ E) : ¬ O.Flow n n := by
@@ -3402,6 +3505,7 @@ procint:Decl_OccurrenceNet_acyclic_no_self_flow a procint:Decl ;
   procint:declName "ProcInt.OccurrenceNet.acyclic_no_self_flow" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.acyclic_no_self_flow' depends on axioms: [propext]" ;
   procint:leanCode """/-- In an acyclic occurrence net there is no self-flow: acyclicity kills causal self-loops
 of any length, in particular length one. -/
 theorem OccurrenceNet.acyclic_no_self_flow {C E : Type} (O : OccurrenceNet C E)
@@ -3526,6 +3630,7 @@ procint:Decl_unitRat_nonneg a procint:Decl ;
   procint:declName "ProcInt.unitRat_nonneg" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.unitRat_nonneg' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A unit rational is nonnegative (lower metric-law bound). -/
 theorem unitRat_nonneg (q : UnitRat) : (0 : ℚ) ≤ q.val := q.property.1""" .
 
@@ -3535,6 +3640,7 @@ procint:Decl_unitRat_le_one a procint:Decl ;
   procint:declName "ProcInt.unitRat_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.unitRat_le_one' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A unit rational is at most one (upper metric-law bound). -/
 theorem unitRat_le_one (q : UnitRat) : q.val ≤ 1 := q.property.2""" .
 
@@ -3637,6 +3743,7 @@ procint:Decl_step_deterministic a procint:Decl ;
   procint:declName "ProcInt.PetriNet.step_deterministic" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.step_deterministic' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Firing is deterministic: one transition fired at one marking yields a
 unique successor marking (immediate from the firing rule, Murata 1989). -/
 theorem PetriNet.step_deterministic {P T : Type} (N : PetriNet P T)
@@ -3650,6 +3757,7 @@ procint:Decl_fire_add_pre a procint:Decl ;
   procint:declName "ProcInt.PetriNet.fire_add_pre" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.fire_add_pre' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Firing under enabledness satisfies the token-conservation identity
 fire M t + pre t = M + post t — the Finsupp form of the state-equation
 increment for a single firing (Murata 1989, section II.C). -/
@@ -3693,6 +3801,7 @@ procint:Decl_FiringSeq_snoc a procint:Decl ;
   procint:declName "ProcInt.PetriNet.FiringSeq.snoc" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.FiringSeq.snoc' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Append a final step to a firing sequence (the snoc lemma, derived by
 induction — dual of the cons constructor). -/
 theorem PetriNet.FiringSeq.snoc {P T : Type} {N : PetriNet P T}
@@ -3708,6 +3817,7 @@ procint:Decl_firingSeq_reaches a procint:Decl ;
   procint:declName "ProcInt.PetriNet.firingSeq_reaches" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.firingSeq_reaches' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Every firing sequence witnesses reachability (Murata 1989: soundness
 direction of the firing-sequence characterization of R(M0)). -/
 theorem PetriNet.firingSeq_reaches {P T : Type} {N : PetriNet P T}
@@ -3723,6 +3833,7 @@ procint:Decl_reaches_firingSeq a procint:Decl ;
   procint:declName "ProcInt.PetriNet.reaches_firingSeq" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.reaches_firingSeq' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Every reachable marking is reached by some firing sequence (Murata 1989:
 completeness direction of the firing-sequence characterization of R(M0)). -/
 theorem PetriNet.reaches_firingSeq {P T : Type} {N : PetriNet P T}
@@ -3857,6 +3968,7 @@ procint:Decl_ProcessTree_language_leaf_silent a procint:Decl ;
   procint:declName "ProcInt.ProcessTree.language_leaf_silent" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ProcessTree.language_leaf_silent' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The language of an activity leaf is exactly the singleton trace, and the
 language of the silent step is exactly the empty trace. -/
 theorem ProcessTree.language_leaf_silent {α : Type*} (a : α) :
@@ -3870,6 +3982,7 @@ procint:Decl_ProcessTree_mem_language_seq_leaf a procint:Decl ;
   procint:declName "ProcInt.ProcessTree.mem_language_seq_leaf" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ProcessTree.mem_language_seq_leaf' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The two-activity sequence seq(leaf a, leaf b) admits the trace a·b. -/
 theorem ProcessTree.mem_language_seq_leaf {α : Type*} (a b : α) :
     [a, b] ∈ ((ProcessTree.leaf a).seq (ProcessTree.leaf b)).language := by
@@ -3881,6 +3994,7 @@ procint:Decl_length_of_mem_interleavings a procint:Decl ;
   procint:declName "ProcInt.length_of_mem_interleavings" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.length_of_mem_interleavings' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Every interleaving of xs and ys has length xs.length + ys.length. -/
 theorem length_of_mem_interleavings {α : Type*} :
     ∀ (xs ys : List α), ∀ w ∈ interleavings xs ys, w.length = xs.length + ys.length
@@ -3907,6 +4021,7 @@ procint:Decl_seqLang_assoc a procint:Decl ;
   procint:declName "ProcInt.seqLang_assoc" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.seqLang_assoc' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Concatenation of languages is associative (list append associativity lifted
 to trace languages). -/
 theorem seqLang_assoc {α : Type*} (A B C : Set (List α)) :
@@ -3924,6 +4039,7 @@ procint:Decl_ProcessTree_language_seq_assoc a procint:Decl ;
   procint:declName "ProcInt.ProcessTree.language_seq_assoc" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ProcessTree.language_seq_assoc' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The sequence operator is associative at the language level:
 language(seq(seq t u, v)) = language(seq(t, seq u v)). -/
 theorem ProcessTree.language_seq_assoc {α : Type*} (t u v : ProcessTree α) :
@@ -3992,6 +4108,7 @@ procint:Decl_Powl_WellFormed_xor_length a procint:Decl ;
   procint:declName "ProcInt.Powl.WellFormed.xor_length" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.WellFormed.xor_length' does not depend on any axioms" ;
   procint:leanCode """/-- Inversion: a well-formed xor has at least two children (the arity law
 behind PowlRefusal.InvalidChoiceArity in wasm4pm-compat powl.rs). -/
 theorem Powl.WellFormed.xor_length {α : Type*} {children : List (Powl α)}
@@ -4005,6 +4122,7 @@ procint:Decl_Powl_wellFormed_xor_pair a procint:Decl ;
   procint:declName "ProcInt.Powl.wellFormed_xor_pair" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.wellFormed_xor_pair' depends on axioms: [propext]" ;
   procint:leanCode """/-- The binary choice between an atom and the silent step is well-formed. -/
 theorem Powl.wellFormed_xor_pair {α : Type*} (a : α) :
     Powl.WellFormed (Powl.xor [Powl.atom a, Powl.silent]) := by
@@ -4021,6 +4139,7 @@ procint:Decl_Powl_wellFormed_loop_atoms a procint:Decl ;
   procint:declName "ProcInt.Powl.wellFormed_loop_atoms" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.wellFormed_loop_atoms' does not depend on any axioms" ;
   procint:leanCode """/-- A loop of two atoms is well-formed (POWL loop has exactly a do-part and a
 redo-part; BPM 2023 Def 1). -/
 theorem Powl.wellFormed_loop_atoms {α : Type*} (a b : α) :
@@ -4033,6 +4152,7 @@ procint:Decl_Powl_wellFormed_po_emptyPrec a procint:Decl ;
   procint:declName "ProcInt.Powl.wellFormed_po_emptyPrec" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.wellFormed_po_emptyPrec' depends on axioms: [propext]" ;
   procint:leanCode """/-- A partial order over two atoms with the empty precedence relation is
 well-formed: the empty relation is trivially irreflexive and transitive
 (fully concurrent partial order, BPM 2023 Def 2). -/
@@ -4104,6 +4224,7 @@ procint:Decl_Reach_trans a procint:Decl ;
   procint:declName "ProcInt.Reach.trans" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Reach.trans' does not depend on any axioms" ;
   procint:leanCode """/-- Reachability is transitive. -/
 theorem Reach.trans {E : List (ℕ × ℕ)} {i j k : ℕ}
     (h1 : Reach E i j) (h2 : Reach E j k) : Reach E i k := by
@@ -4159,6 +4280,7 @@ procint:Decl_ChoiceGraph_minimal_valid a procint:Decl ;
   procint:declName "ProcInt.ChoiceGraph.minimal_valid" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ChoiceGraph.minimal_valid' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The minimal choice graph is valid per Definition 1. -/
 theorem ChoiceGraph.minimal_valid (α : Type*) : (ChoiceGraph.minimal α).Valid := by
   refine ⟨by simp [ChoiceGraph.minimal], by simp [ChoiceGraph.minimal], ?_, ?_, ?_, ?_⟩
@@ -4186,6 +4308,7 @@ procint:Decl_ChoiceGraph_minimal_hasEmptyPath a procint:Decl ;
   procint:declName "ProcInt.ChoiceGraph.minimal_hasEmptyPath" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ChoiceGraph.minimal_hasEmptyPath' depends on axioms: [propext]" ;
   procint:leanCode """/-- The minimal choice graph has the empty path (direct start-to-end edge). -/
 theorem ChoiceGraph.minimal_hasEmptyPath (α : Type*) :
     (ChoiceGraph.minimal α).HasEmptyPath := by
@@ -4233,6 +4356,7 @@ procint:Decl_PetriNet_flowEdge_inl_inr a procint:Decl ;
   procint:declName "ProcInt.PetriNet.flowEdge_inl_inr" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.flowEdge_inl_inr' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A place-to-transition flow edge is exactly a positive pre-weight
 (van der Aalst 1997, Def 6: `(p, t) ∈ F ↔ p ∈ •t`). -/
 theorem PetriNet.flowEdge_inl_inr {P T : Type} (N : PetriNet P T) (p : P) (t : T) :
@@ -4244,6 +4368,7 @@ procint:Decl_PetriNet_flowEdge_inr_inl a procint:Decl ;
   procint:declName "ProcInt.PetriNet.flowEdge_inr_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.flowEdge_inr_inl' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A transition-to-place flow edge is exactly a positive post-weight
 (van der Aalst 1997, Def 6: `(t, p) ∈ F ↔ p ∈ t•`). -/
 theorem PetriNet.flowEdge_inr_inl {P T : Type} (N : PetriNet P T) (t : T) (p : P) :
@@ -4255,6 +4380,7 @@ procint:Decl_PetriNet_not_flowEdge_inl_inl a procint:Decl ;
   procint:declName "ProcInt.PetriNet.not_flowEdge_inl_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.not_flowEdge_inl_inl' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Bipartiteness of the flow relation, place side: no flow edge connects two
 places (Murata 1989 §II; van der Aalst 1997, Def 6). -/
 theorem PetriNet.not_flowEdge_inl_inl {P T : Type} (N : PetriNet P T) (p q : P) :
@@ -4266,6 +4392,7 @@ procint:Decl_PetriNet_not_flowEdge_inr_inr a procint:Decl ;
   procint:declName "ProcInt.PetriNet.not_flowEdge_inr_inr" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.not_flowEdge_inr_inr' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Bipartiteness of the flow relation, transition side: no flow edge connects
 two transitions (Murata 1989 §II; van der Aalst 1997, Def 6). -/
 theorem PetriNet.not_flowEdge_inr_inr {P T : Type} (N : PetriNet P T) (t u : T) :
@@ -4277,6 +4404,7 @@ procint:Decl_PetriNet_flowEdge_irrefl a procint:Decl ;
   procint:declName "ProcInt.PetriNet.flowEdge_irrefl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.flowEdge_irrefl' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- The flow relation is irreflexive: bipartiteness forbids self-loops on a
 single node of `P ⊕ T` (a self-loop `p → t → p` is two distinct edges). -/
 theorem PetriNet.flowEdge_irrefl {P T : Type} (N : PetriNet P T) :
@@ -4348,6 +4476,7 @@ procint:Decl_WfNet_initialMarking_source a procint:Decl ;
   procint:declName "ProcInt.WfNet.initialMarking_source" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.initialMarking_source' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The initial marking puts exactly one token on the source place. -/
 theorem WfNet.initialMarking_source {P T : Type} [DecidableEq P] (W : WfNet P T) :
     W.initialMarking W.source = 1 := Finsupp.single_eq_same""" .
@@ -4358,6 +4487,7 @@ procint:Decl_WfNet_initialMarking_sink a procint:Decl ;
   procint:declName "ProcInt.WfNet.initialMarking_sink" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.initialMarking_sink' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The initial marking puts no token on the sink place (uses `source ≠ sink`,
 van der Aalst 1997 Def 7 clause i ≠ o). -/
 theorem WfNet.initialMarking_sink {P T : Type} [DecidableEq P] (W : WfNet P T) :
@@ -4369,6 +4499,7 @@ procint:Decl_WfNet_finalMarking_sink a procint:Decl ;
   procint:declName "ProcInt.WfNet.finalMarking_sink" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.finalMarking_sink' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The final marking puts exactly one token on the sink place. -/
 theorem WfNet.finalMarking_sink {P T : Type} [DecidableEq P] (W : WfNet P T) :
     W.finalMarking W.sink = 1 := Finsupp.single_eq_same""" .
@@ -4379,6 +4510,7 @@ procint:Decl_WfNet_finalMarking_source a procint:Decl ;
   procint:declName "ProcInt.WfNet.finalMarking_source" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.finalMarking_source' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The final marking puts no token on the source place. -/
 theorem WfNet.finalMarking_source {P T : Type} [DecidableEq P] (W : WfNet P T) :
     W.finalMarking W.source = 0 :=
@@ -4390,6 +4522,7 @@ procint:Decl_WfNet_initialMarking_ne_finalMarking a procint:Decl ;
   procint:declName "ProcInt.WfNet.initialMarking_ne_finalMarking" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.initialMarking_ne_finalMarking' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The initial and final markings of a workflow net differ (they are
 `Finsupp.single` at distinct places with weight 1). -/
 theorem WfNet.initialMarking_ne_finalMarking {P T : Type} [DecidableEq P] (W : WfNet P T) :
@@ -4405,6 +4538,7 @@ procint:Decl_WfNet_not_flowEdge_to_source a procint:Decl ;
   procint:declName "ProcInt.WfNet.not_flowEdge_to_source" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.not_flowEdge_to_source' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- No flow edge enters the source place: `•i = ∅`
 (van der Aalst 1997, Def 7 clause 2). -/
 theorem WfNet.not_flowEdge_to_source {P T : Type} (W : WfNet P T) (t : T) :
@@ -4420,6 +4554,7 @@ procint:Decl_WfNet_not_flowEdge_from_sink a procint:Decl ;
   procint:declName "ProcInt.WfNet.not_flowEdge_from_sink" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.not_flowEdge_from_sink' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- No flow edge leaves the sink place: `o• = ∅`
 (van der Aalst 1997, Def 7 clause 3). -/
 theorem WfNet.not_flowEdge_from_sink {P T : Type} (W : WfNet P T) (t : T) :
@@ -4468,6 +4603,7 @@ procint:Decl_WfNet_shortCircuit_pre_inl a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_pre_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_pre_inl' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The short-circuited net keeps the original pre-weights on original
 transitions. -/
 theorem WfNet.shortCircuit_pre_inl {P T : Type} [DecidableEq P] (W : WfNet P T) (t : T) :
@@ -4479,6 +4615,7 @@ procint:Decl_WfNet_shortCircuit_post_inl a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_post_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_post_inl' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The short-circuited net keeps the original post-weights on original
 transitions. -/
 theorem WfNet.shortCircuit_post_inl {P T : Type} [DecidableEq P] (W : WfNet P T) (t : T) :
@@ -4490,6 +4627,7 @@ procint:Decl_WfNet_shortCircuit_pre_inr a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_pre_inr" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_pre_inr' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The fresh transition `t*` consumes exactly the final marking `[o]`. -/
 theorem WfNet.shortCircuit_pre_inr {P T : Type} [DecidableEq P] (W : WfNet P T) (u : Unit) :
     W.shortCircuit.pre (Sum.inr u) = W.finalMarking := rfl""" .
@@ -4500,6 +4638,7 @@ procint:Decl_WfNet_shortCircuit_post_inr a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_post_inr" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_post_inr' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The fresh transition `t*` produces exactly the initial marking `[i]`. -/
 theorem WfNet.shortCircuit_post_inr {P T : Type} [DecidableEq P] (W : WfNet P T) (u : Unit) :
     W.shortCircuit.post (Sum.inr u) = W.initialMarking := rfl""" .
@@ -4510,6 +4649,7 @@ procint:Decl_WfNet_shortCircuit_enabled_inl a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_enabled_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_enabled_inl' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Enabledness of an original transition is unchanged by short-circuiting. -/
 theorem WfNet.shortCircuit_enabled_inl {P T : Type} [DecidableEq P] (W : WfNet P T)
     (M : Marking P) (t : T) :
@@ -4521,6 +4661,7 @@ procint:Decl_WfNet_shortCircuit_step_inl a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_step_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_step_inl' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Firing an original transition in the short-circuited net is exactly a step
 of the original net: short-circuiting is conservative over `T`
 (van der Aalst 1997, the `N̄` construction changes only `t*`). -/
@@ -4534,6 +4675,7 @@ procint:Decl_WfNet_reaches_shortCircuit a procint:Decl ;
   procint:declName "ProcInt.WfNet.reaches_shortCircuit" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.reaches_shortCircuit' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Every reachability fact of the original workflow net transfers to the
 short-circuited net (each original step is simulated by the `Sum.inl` copy of
 its transition). -/
@@ -4549,6 +4691,7 @@ procint:Decl_WfNet_shortCircuit_enabled_star a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_enabled_star" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_enabled_star' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The fresh transition `t*` is enabled at the final marking `[o]`. -/
 theorem WfNet.shortCircuit_enabled_star {P T : Type} [DecidableEq P] (W : WfNet P T) :
     W.shortCircuit.Enabled W.finalMarking (Sum.inr ()) := le_refl _""" .
@@ -4596,6 +4739,7 @@ procint:Decl_WfNet_Sound_reaches_final a procint:Decl ;
   procint:declName "ProcInt.WfNet.Sound.reaches_final" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.Sound.reaches_final' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- A sound workflow net reaches its final marking from its initial marking:
 instantiate option-to-complete at `[i]` itself. -/
 theorem WfNet.Sound.reaches_final {P T : Type} [DecidableEq P] {W : WfNet P T}
@@ -4608,6 +4752,7 @@ procint:Decl_WfNet_Sound_enabled_of_transition a procint:Decl ;
   procint:declName "ProcInt.WfNet.Sound.enabled_of_transition" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.Sound.enabled_of_transition' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- In a sound workflow net every transition has an enabling marking reachable
 from `[i]` (projection of the no-dead-transitions clause). -/
 theorem WfNet.Sound.enabled_of_transition {P T : Type} [DecidableEq P] {W : WfNet P T}

@@ -30,6 +30,7 @@ procint:Decl_Marking_toInt_injective a procint:Decl ;
   procint:declName "ProcInt.Marking.toInt_injective" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Marking.toInt_injective' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The marking cast is injective: distinct ℕ-markings stay distinct in ℤ^P. -/
 theorem Marking.toInt_injective {P : Type} :
     Function.Injective (Marking.toInt (P := P)) :=
@@ -52,6 +53,7 @@ procint:Decl_PetriNet_stateEquation_step a procint:Decl ;
   procint:declName "ProcInt.PetriNet.stateEquation_step" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.stateEquation_step' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Murata 1989, state equation (Eq. (5)) for a single firing: if M —t→ M' then
 Mʹ = M + A·eₜ over ℤ. -/
 theorem PetriNet.stateEquation_step {P T : Type} (N : PetriNet P T)
@@ -70,6 +72,7 @@ procint:Decl_PetriNet_stateEquation_seq a procint:Decl ;
   procint:declName "ProcInt.PetriNet.stateEquation_seq" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.stateEquation_seq' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Murata 1989, state equation (Eq. (5)) for a firing sequence: the reached marking is the
 initial marking plus the sum of incidence columns of the fired transitions, over ℤ.
 Proof by induction on the firing sequence. -/
@@ -112,6 +115,7 @@ procint:Decl_weighSum_add a procint:Decl ;
   procint:declName "ProcInt.weighSum_add" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.weighSum_add' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The pairing ⟪y, ·⟫ is additive in its vector argument. -/
 theorem weighSum_add {P : Type} (y : P → ℤ) (v w : P →₀ ℤ) :
     weighSum y (v + w) = weighSum y v + weighSum y w := by
@@ -136,6 +140,7 @@ procint:Decl_PetriNet_pInvariant_step a procint:Decl ;
   procint:declName "ProcInt.PetriNet.pInvariant_step" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.pInvariant_step' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Conservation along a single step: a P-invariant weighting is unchanged by any firing
 (Murata 1989, Theorem 15: yᵀM = yᵀM₀ for reachable M). -/
 theorem PetriNet.pInvariant_step {P T : Type} (N : PetriNet P T) {y : P → ℤ}
@@ -149,6 +154,7 @@ procint:Decl_PetriNet_pInvariant_reaches a procint:Decl ;
   procint:declName "ProcInt.PetriNet.pInvariant_reaches" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.pInvariant_reaches' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Conservation along reachability: a P-invariant weighting is constant on the whole
 reachability set (Murata 1989, Theorem 15). Proof by induction on ReflTransGen. -/
 theorem PetriNet.pInvariant_reaches {P T : Type} (N : PetriNet P T) {y : P → ℤ}
@@ -177,6 +183,7 @@ procint:Decl_PetriNet_tInvariant_reproduces a procint:Decl ;
   procint:declName "ProcInt.PetriNet.tInvariant_reproduces" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.tInvariant_reproduces' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Murata 1989, Theorem 16 (reproduction): a firing sequence whose Parikh vector is a
 T-invariant reproduces the starting marking exactly. Uses injectivity of the ℤ-cast. -/
 theorem PetriNet.tInvariant_reproduces {P T : Type} (N : PetriNet P T)
@@ -260,6 +267,7 @@ procint:Decl_OCPN_conforms_add a procint:Decl ;
   procint:declName "ProcInt.OCPN.conforms_add" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCPN.conforms_add' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Conformance is closed under multiset union: adding conforming tokens to a conforming
 colored marking stays conforming (needed for the OCPN firing rule, Def. 5.3). -/
 theorem OCPN.conforms_add {P T OT Obj : Type} (C : OCPN P T OT) (otyp : Obj → OT)
@@ -277,6 +285,7 @@ procint:Decl_OCPN_conforms_of_le a procint:Decl ;
   procint:declName "ProcInt.OCPN.conforms_of_le" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCPN.conforms_of_le' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Conformance is closed under sub-multisets: consuming tokens preserves conformance
 (the token-consumption half of the OCPN firing rule). -/
 theorem OCPN.conforms_of_le {P T OT Obj : Type} (C : OCPN P T OT) (otyp : Obj → OT)
@@ -353,6 +362,7 @@ procint:Decl_StochasticPetriNet_fireProb_sum a procint:Decl ;
   procint:declName "ProcInt.StochasticPetriNet.fireProb_sum" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.StochasticPetriNet.fireProb_sum' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The stochastic choice is a probability distribution: over any conflict set with nonzero
 total weight, the firing probabilities sum to 1 (Leemans 2019). -/
 theorem StochasticPetriNet.fireProb_sum {P T : Type} (S : StochasticPetriNet P T)
@@ -368,6 +378,7 @@ procint:Decl_StochasticPetriNet_fireProb_le_one a procint:Decl ;
   procint:declName "ProcInt.StochasticPetriNet.fireProb_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.StochasticPetriNet.fireProb_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Each firing probability is at most 1: a member's weight never exceeds the conflict set's
 total weight (Leemans 2019). -/
 theorem StochasticPetriNet.fireProb_le_one {P T : Type} (S : StochasticPetriNet P T)
@@ -455,6 +466,7 @@ procint:Decl_OccurrenceNet_flow_causality a procint:Decl ;
   procint:declName "ProcInt.OccurrenceNet.flow_causality" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.flow_causality' depends on axioms: [propext]" ;
   procint:leanCode """/-- Flow embeds in causality (single-step case of the transitive closure). -/
 theorem OccurrenceNet.flow_causality {C E : Type} (O : OccurrenceNet C E)
     {a b : C ⊕ E} (h : O.Flow a b) : O.Causality a b :=
@@ -466,6 +478,7 @@ procint:Decl_OccurrenceNet_causality_trans a procint:Decl ;
   procint:declName "ProcInt.OccurrenceNet.causality_trans" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.causality_trans' depends on axioms: [propext]" ;
   procint:leanCode """/-- Causality is transitive (transitive closures are transitive; Engelfriet 1991). -/
 theorem OccurrenceNet.causality_trans {C E : Type} (O : OccurrenceNet C E)
     {a b c : C ⊕ E} (h₁ : O.Causality a b) (h₂ : O.Causality b c) :
@@ -478,6 +491,7 @@ procint:Decl_OccurrenceNet_flow_irrefl a procint:Decl ;
   procint:declName "ProcInt.OccurrenceNet.flow_irrefl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.flow_irrefl' depends on axioms: [propext]" ;
   procint:leanCode """/-- The flow relation is irreflexive by bipartiteness: no node flows to itself. -/
 theorem OccurrenceNet.flow_irrefl {C E : Type} (O : OccurrenceNet C E)
     (n : C ⊕ E) : ¬ O.Flow n n := by
@@ -489,6 +503,7 @@ procint:Decl_OccurrenceNet_acyclic_no_self_flow a procint:Decl ;
   procint:declName "ProcInt.OccurrenceNet.acyclic_no_self_flow" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.acyclic_no_self_flow' depends on axioms: [propext]" ;
   procint:leanCode """/-- In an acyclic occurrence net there is no self-flow: acyclicity kills causal self-loops
 of any length, in particular length one. -/
 theorem OccurrenceNet.acyclic_no_self_flow {C E : Type} (O : OccurrenceNet C E)

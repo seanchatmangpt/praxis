@@ -41,6 +41,7 @@ procint:Decl_PetriNet_flowEdge_inl_inr a procint:Decl ;
   procint:declName "ProcInt.PetriNet.flowEdge_inl_inr" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.flowEdge_inl_inr' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A place-to-transition flow edge is exactly a positive pre-weight
 (van der Aalst 1997, Def 6: `(p, t) ∈ F ↔ p ∈ •t`). -/
 theorem PetriNet.flowEdge_inl_inr {P T : Type} (N : PetriNet P T) (p : P) (t : T) :
@@ -52,6 +53,7 @@ procint:Decl_PetriNet_flowEdge_inr_inl a procint:Decl ;
   procint:declName "ProcInt.PetriNet.flowEdge_inr_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.flowEdge_inr_inl' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A transition-to-place flow edge is exactly a positive post-weight
 (van der Aalst 1997, Def 6: `(t, p) ∈ F ↔ p ∈ t•`). -/
 theorem PetriNet.flowEdge_inr_inl {P T : Type} (N : PetriNet P T) (t : T) (p : P) :
@@ -63,6 +65,7 @@ procint:Decl_PetriNet_not_flowEdge_inl_inl a procint:Decl ;
   procint:declName "ProcInt.PetriNet.not_flowEdge_inl_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.not_flowEdge_inl_inl' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Bipartiteness of the flow relation, place side: no flow edge connects two
 places (Murata 1989 §II; van der Aalst 1997, Def 6). -/
 theorem PetriNet.not_flowEdge_inl_inl {P T : Type} (N : PetriNet P T) (p q : P) :
@@ -74,6 +77,7 @@ procint:Decl_PetriNet_not_flowEdge_inr_inr a procint:Decl ;
   procint:declName "ProcInt.PetriNet.not_flowEdge_inr_inr" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.not_flowEdge_inr_inr' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Bipartiteness of the flow relation, transition side: no flow edge connects
 two transitions (Murata 1989 §II; van der Aalst 1997, Def 6). -/
 theorem PetriNet.not_flowEdge_inr_inr {P T : Type} (N : PetriNet P T) (t u : T) :
@@ -85,6 +89,7 @@ procint:Decl_PetriNet_flowEdge_irrefl a procint:Decl ;
   procint:declName "ProcInt.PetriNet.flowEdge_irrefl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.flowEdge_irrefl' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- The flow relation is irreflexive: bipartiteness forbids self-loops on a
 single node of `P ⊕ T` (a self-loop `p → t → p` is two distinct edges). -/
 theorem PetriNet.flowEdge_irrefl {P T : Type} (N : PetriNet P T) :
@@ -156,6 +161,7 @@ procint:Decl_WfNet_initialMarking_source a procint:Decl ;
   procint:declName "ProcInt.WfNet.initialMarking_source" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.initialMarking_source' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The initial marking puts exactly one token on the source place. -/
 theorem WfNet.initialMarking_source {P T : Type} [DecidableEq P] (W : WfNet P T) :
     W.initialMarking W.source = 1 := Finsupp.single_eq_same""" .
@@ -166,6 +172,7 @@ procint:Decl_WfNet_initialMarking_sink a procint:Decl ;
   procint:declName "ProcInt.WfNet.initialMarking_sink" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.initialMarking_sink' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The initial marking puts no token on the sink place (uses `source ≠ sink`,
 van der Aalst 1997 Def 7 clause i ≠ o). -/
 theorem WfNet.initialMarking_sink {P T : Type} [DecidableEq P] (W : WfNet P T) :
@@ -177,6 +184,7 @@ procint:Decl_WfNet_finalMarking_sink a procint:Decl ;
   procint:declName "ProcInt.WfNet.finalMarking_sink" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.finalMarking_sink' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The final marking puts exactly one token on the sink place. -/
 theorem WfNet.finalMarking_sink {P T : Type} [DecidableEq P] (W : WfNet P T) :
     W.finalMarking W.sink = 1 := Finsupp.single_eq_same""" .
@@ -187,6 +195,7 @@ procint:Decl_WfNet_finalMarking_source a procint:Decl ;
   procint:declName "ProcInt.WfNet.finalMarking_source" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.finalMarking_source' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The final marking puts no token on the source place. -/
 theorem WfNet.finalMarking_source {P T : Type} [DecidableEq P] (W : WfNet P T) :
     W.finalMarking W.source = 0 :=
@@ -198,6 +207,7 @@ procint:Decl_WfNet_initialMarking_ne_finalMarking a procint:Decl ;
   procint:declName "ProcInt.WfNet.initialMarking_ne_finalMarking" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.initialMarking_ne_finalMarking' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The initial and final markings of a workflow net differ (they are
 `Finsupp.single` at distinct places with weight 1). -/
 theorem WfNet.initialMarking_ne_finalMarking {P T : Type} [DecidableEq P] (W : WfNet P T) :
@@ -213,6 +223,7 @@ procint:Decl_WfNet_not_flowEdge_to_source a procint:Decl ;
   procint:declName "ProcInt.WfNet.not_flowEdge_to_source" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.not_flowEdge_to_source' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- No flow edge enters the source place: `•i = ∅`
 (van der Aalst 1997, Def 7 clause 2). -/
 theorem WfNet.not_flowEdge_to_source {P T : Type} (W : WfNet P T) (t : T) :
@@ -228,6 +239,7 @@ procint:Decl_WfNet_not_flowEdge_from_sink a procint:Decl ;
   procint:declName "ProcInt.WfNet.not_flowEdge_from_sink" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.not_flowEdge_from_sink' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- No flow edge leaves the sink place: `o• = ∅`
 (van der Aalst 1997, Def 7 clause 3). -/
 theorem WfNet.not_flowEdge_from_sink {P T : Type} (W : WfNet P T) (t : T) :
@@ -276,6 +288,7 @@ procint:Decl_WfNet_shortCircuit_pre_inl a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_pre_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_pre_inl' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The short-circuited net keeps the original pre-weights on original
 transitions. -/
 theorem WfNet.shortCircuit_pre_inl {P T : Type} [DecidableEq P] (W : WfNet P T) (t : T) :
@@ -287,6 +300,7 @@ procint:Decl_WfNet_shortCircuit_post_inl a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_post_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_post_inl' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The short-circuited net keeps the original post-weights on original
 transitions. -/
 theorem WfNet.shortCircuit_post_inl {P T : Type} [DecidableEq P] (W : WfNet P T) (t : T) :
@@ -298,6 +312,7 @@ procint:Decl_WfNet_shortCircuit_pre_inr a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_pre_inr" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_pre_inr' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The fresh transition `t*` consumes exactly the final marking `[o]`. -/
 theorem WfNet.shortCircuit_pre_inr {P T : Type} [DecidableEq P] (W : WfNet P T) (u : Unit) :
     W.shortCircuit.pre (Sum.inr u) = W.finalMarking := rfl""" .
@@ -308,6 +323,7 @@ procint:Decl_WfNet_shortCircuit_post_inr a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_post_inr" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_post_inr' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The fresh transition `t*` produces exactly the initial marking `[i]`. -/
 theorem WfNet.shortCircuit_post_inr {P T : Type} [DecidableEq P] (W : WfNet P T) (u : Unit) :
     W.shortCircuit.post (Sum.inr u) = W.initialMarking := rfl""" .
@@ -318,6 +334,7 @@ procint:Decl_WfNet_shortCircuit_enabled_inl a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_enabled_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_enabled_inl' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Enabledness of an original transition is unchanged by short-circuiting. -/
 theorem WfNet.shortCircuit_enabled_inl {P T : Type} [DecidableEq P] (W : WfNet P T)
     (M : Marking P) (t : T) :
@@ -329,6 +346,7 @@ procint:Decl_WfNet_shortCircuit_step_inl a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_step_inl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_step_inl' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Firing an original transition in the short-circuited net is exactly a step
 of the original net: short-circuiting is conservative over `T`
 (van der Aalst 1997, the `N̄` construction changes only `t*`). -/
@@ -342,6 +360,7 @@ procint:Decl_WfNet_reaches_shortCircuit a procint:Decl ;
   procint:declName "ProcInt.WfNet.reaches_shortCircuit" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.reaches_shortCircuit' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Every reachability fact of the original workflow net transfers to the
 short-circuited net (each original step is simulated by the `Sum.inl` copy of
 its transition). -/
@@ -357,6 +376,7 @@ procint:Decl_WfNet_shortCircuit_enabled_star a procint:Decl ;
   procint:declName "ProcInt.WfNet.shortCircuit_enabled_star" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.shortCircuit_enabled_star' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The fresh transition `t*` is enabled at the final marking `[o]`. -/
 theorem WfNet.shortCircuit_enabled_star {P T : Type} [DecidableEq P] (W : WfNet P T) :
     W.shortCircuit.Enabled W.finalMarking (Sum.inr ()) := le_refl _""" .
@@ -404,6 +424,7 @@ procint:Decl_WfNet_Sound_reaches_final a procint:Decl ;
   procint:declName "ProcInt.WfNet.Sound.reaches_final" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.Sound.reaches_final' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- A sound workflow net reaches its final marking from its initial marking:
 instantiate option-to-complete at `[i]` itself. -/
 theorem WfNet.Sound.reaches_final {P T : Type} [DecidableEq P] {W : WfNet P T}
@@ -416,6 +437,7 @@ procint:Decl_WfNet_Sound_enabled_of_transition a procint:Decl ;
   procint:declName "ProcInt.WfNet.Sound.enabled_of_transition" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.WfNet.Sound.enabled_of_transition' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- In a sound workflow net every transition has an enabling marking reachable
 from `[i]` (projection of the no-dead-transitions clause). -/
 theorem WfNet.Sound.enabled_of_transition {P T : Type} [DecidableEq P] {W : WfNet P T}

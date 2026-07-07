@@ -50,6 +50,7 @@ procint:Decl_Event_simple_activity a procint:Decl ;
   procint:declName "ProcInt.Event.simple_activity" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_activity' does not depend on any axioms" ;
   procint:leanCode """/-- `Event.simple` records exactly the given activity. -/
 theorem Event.simple_activity {α : Type} (a : α) (t : ℕ) :
     (Event.simple a t).activity = a := rfl
@@ -61,6 +62,7 @@ procint:Decl_Event_simple_timestamp a procint:Decl ;
   procint:declName "ProcInt.Event.simple_timestamp" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_timestamp' does not depend on any axioms" ;
   procint:leanCode """/-- `Event.simple` records exactly the given timestamp. -/
 theorem Event.simple_timestamp {α : Type} (a : α) (t : ℕ) :
     (Event.simple a t).timestamp = t := rfl
@@ -72,6 +74,7 @@ procint:Decl_Event_simple_resource a procint:Decl ;
   procint:declName "ProcInt.Event.simple_resource" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_resource' does not depend on any axioms" ;
   procint:leanCode """/-- `Event.simple` carries no resource annotation — the defaulting contract of
 `Event::new` in `wasm4pm-compat/src/eventlog.rs`. -/
 theorem Event.simple_resource {α : Type} (a : α) (t : ℕ) :
@@ -84,6 +87,7 @@ procint:Decl_Event_simple_lifecycle a procint:Decl ;
   procint:declName "ProcInt.Event.simple_lifecycle" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_lifecycle' does not depend on any axioms" ;
   procint:leanCode """/-- `Event.simple` carries no lifecycle annotation — the defaulting contract of
 `Event::new` in `wasm4pm-compat/src/eventlog.rs`. -/
 theorem Event.simple_lifecycle {α : Type} (a : α) (t : ℕ) :
@@ -144,6 +148,7 @@ procint:Decl_Trace_activities_length a procint:Decl ;
   procint:declName "ProcInt.Trace.activities_length" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.activities_length' depends on axioms: [propext]" ;
   procint:leanCode """/-- The activity projection preserves length: one activity label per event. -/
 theorem Trace.activities_length {α : Type} (t : Trace α) :
     t.activities.length = t.events.length := by
@@ -156,6 +161,7 @@ procint:Decl_Trace_monotone_nil a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_nil' depends on axioms: [propext]" ;
   procint:leanCode """/-- The empty trace is (vacuously) monotone. -/
 theorem Trace.monotone_nil {α : Type} (c : String) :
     Trace.Monotone (α := α) ⟨c, []⟩ := by
@@ -168,6 +174,7 @@ procint:Decl_Trace_monotone_singleton a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_singleton" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_singleton' depends on axioms: [propext]" ;
   procint:leanCode """/-- A one-event trace is monotone. -/
 theorem Trace.monotone_singleton {α : Type} (c : String) (e : Event α) :
     Trace.Monotone ⟨c, [e]⟩ := by
@@ -180,6 +187,7 @@ procint:Decl_Trace_monotone_replicate a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_replicate" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_replicate' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- A constant trace (the same event replicated) is monotone, since
 timestamp order is reflexive. -/
 theorem Trace.monotone_replicate {α : Type} (c : String) (n : ℕ) (e : Event α) :
@@ -193,6 +201,7 @@ procint:Decl_Trace_monotone_append a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_append' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Concatenation law for monotone traces: the concatenation is monotone iff
 both halves are monotone and the seam respects timestamp order
 (last of the first half ≤ head of the second half). Direct instance of
@@ -210,6 +219,7 @@ procint:Decl_Trace_monotone_sublist a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_sublist" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_sublist' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Monotonicity is inherited by sublists (timestamp order is transitive), so
 any subtrace of a valid trace is valid — the sublist-stability of the
 `NonMonotonicTrace` law in `wasm4pm-compat/src/eventlog.rs`. -/
@@ -229,6 +239,7 @@ procint:Decl_Trace_activities_append a procint:Decl ;
   procint:declName "ProcInt.Trace.activities_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.activities_append' depends on axioms: [propext]" ;
   procint:leanCode """/-- The activity projection distributes over trace concatenation (the
 classifier projection is a list homomorphism; van der Aalst 2016, §4.2). -/
 theorem Trace.activities_append {α : Type} (c : String) (l₁ l₂ : List (Event α)) :
@@ -243,6 +254,7 @@ procint:Decl_Trace_monotone_iff_pairwise a procint:Decl ;
   procint:declName "ProcInt.Trace.monotone_iff_pairwise" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_iff_pairwise' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Since timestamp order is transitive, adjacent-pair monotonicity is
 equivalent to all-pairs monotonicity — the `NonMonotonicTrace` law of
 `wasm4pm-compat/src/eventlog.rs` checks adjacent pairs but guarantees global
@@ -304,6 +316,7 @@ procint:Decl_EventLog_wellFormed_nil a procint:Decl ;
   procint:declName "ProcInt.EventLog.wellFormed_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_nil' does not depend on any axioms" ;
   procint:leanCode """/-- The empty log is (vacuously) well-formed. -/
 theorem EventLog.wellFormed_nil {α : Type} :
     EventLog.wellFormed ([] : EventLog α) := by
@@ -317,6 +330,7 @@ procint:Decl_EventLog_wellFormed_cons a procint:Decl ;
   procint:declName "ProcInt.EventLog.wellFormed_cons" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_cons' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Cons law: a log with one more trace is well-formed iff the new trace is
 monotone and the rest of the log is well-formed. -/
 theorem EventLog.wellFormed_cons {α : Type} (t : Trace α) (log : EventLog α) :
@@ -330,6 +344,7 @@ procint:Decl_EventLog_wellFormed_append a procint:Decl ;
   procint:declName "ProcInt.EventLog.wellFormed_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_append' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Union (append) law: merging two logs preserves and reflects
 well-formedness — validation distributes over log union. -/
 theorem EventLog.wellFormed_append {α : Type} (l₁ l₂ : EventLog α) :
@@ -344,6 +359,7 @@ procint:Decl_EventLog_eventCount_nil a procint:Decl ;
   procint:declName "ProcInt.EventLog.eventCount_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_nil' depends on axioms: [propext]" ;
   procint:leanCode """/-- The empty log contains no events. -/
 theorem EventLog.eventCount_nil {α : Type} :
     EventLog.eventCount ([] : EventLog α) = 0 := rfl
@@ -355,6 +371,7 @@ procint:Decl_EventLog_eventCount_append a procint:Decl ;
   procint:declName "ProcInt.EventLog.eventCount_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_append' depends on axioms: [propext]" ;
   procint:leanCode """/-- Event counting is additive over log union. -/
 theorem EventLog.eventCount_append {α : Type} (l₁ l₂ : EventLog α) :
     EventLog.eventCount (l₁ ++ l₂) = EventLog.eventCount l₁ + EventLog.eventCount l₂ := by
@@ -367,6 +384,7 @@ procint:Decl_EventLog_eventCount_cons a procint:Decl ;
   procint:declName "ProcInt.EventLog.eventCount_cons" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_cons' depends on axioms: [propext]" ;
   procint:leanCode """/-- Cons law for event counting: adding a trace adds its event count. -/
 theorem EventLog.eventCount_cons {α : Type} (t : Trace α) (log : EventLog α) :
     EventLog.eventCount (t :: log) = t.events.length + EventLog.eventCount log := by
@@ -379,6 +397,7 @@ procint:Decl_EventLog_wellFormed_sublist a procint:Decl ;
   procint:declName "ProcInt.EventLog.wellFormed_sublist" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_sublist' does not depend on any axioms" ;
   procint:leanCode """/-- Well-formedness is inherited by sublogs: filtering a valid log (as in
 `EventLog::filter` views of `wasm4pm-compat/src/eventlog.rs`) never breaks
 validation. -/
@@ -394,6 +413,7 @@ procint:Decl_EventLog_eventCount_eq_zero a procint:Decl ;
   procint:declName "ProcInt.EventLog.eventCount_eq_zero" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_eq_zero' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A log has zero events iff every one of its traces is empty — the
 degenerate-log characterization behind `EventLog::event_count` in
 `wasm4pm-compat/src/eventlog.rs`. -/
@@ -526,6 +546,7 @@ procint:Decl_XesLifecycleTransition_parse_asString a procint:Decl ;
   procint:declName "ProcInt.XesLifecycleTransition.parse_asString" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.XesLifecycleTransition.parse_asString' does not depend on any axioms" ;
   procint:leanCode """/-- Round-trip law: parsing the canonical string of a lifecycle transition
 recovers the transition. This is the doctest contract of
 `XesLifecycleTransition::parse` in `wasm4pm-compat/src/xes.rs`. -/
@@ -540,6 +561,7 @@ procint:Decl_XesLifecycleTransition_asString_injective a procint:Decl ;
   procint:declName "ProcInt.XesLifecycleTransition.asString_injective" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.XesLifecycleTransition.asString_injective' depends on axioms: [propext]" ;
   procint:leanCode """/-- The canonical string encoding of lifecycle transitions is injective
 (distinct transitions have distinct `lifecycle:transition` values) — a
 corollary of the round-trip law. -/
@@ -557,6 +579,7 @@ procint:Decl_XesLifecycleTransition_asString_parse a procint:Decl ;
   procint:declName "ProcInt.XesLifecycleTransition.asString_parse" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.XesLifecycleTransition.asString_parse' depends on axioms: [propext]" ;
   procint:leanCode """/-- Converse round trip: `parse` succeeds only on canonical strings, and
 printing its result recovers the input — together with `parse_asString` this
 makes `asString`/`parse` a partial bijection onto the IEEE 1849-2016

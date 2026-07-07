@@ -69,6 +69,7 @@ procint:Decl_OCEL_objectsOf_length_le a procint:Decl ;
   procint:declName "ProcInt.OCEL.objectsOf_length_le" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.objectsOf_length_le' depends on axioms: [propext]" ;
   procint:leanCode """/-- The E2O projection of an event never exceeds the size of the raw qualified
 relation table (filter-then-map length bound). -/
 theorem OCEL.objectsOf_length_le {E O ET OT Q V : Type} [DecidableEq E]
@@ -82,6 +83,7 @@ procint:Decl_OCEL_eventsOf_length_le a procint:Decl ;
   procint:declName "ProcInt.OCEL.eventsOf_length_le" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.eventsOf_length_le' depends on axioms: [propext]" ;
   procint:leanCode """/-- The dual bound for the object-side projection: eventsOf is a sublist-sized
 selection of the qualified E2O relation table. -/
 theorem OCEL.eventsOf_length_le {E O ET OT Q V : Type} [DecidableEq O]
@@ -142,6 +144,7 @@ procint:Decl_OCEL_interacts_symm a procint:Decl ;
   procint:declName "ProcInt.OCEL.interacts_symm" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.interacts_symm' does not depend on any axioms" ;
   procint:leanCode """/-- The interaction relation is symmetric: sharing an event is order-agnostic. -/
 theorem OCEL.interacts_symm {E O ET OT Q V : Type} [DecidableEq E]
     (L : OCEL E O ET OT Q V) {o₁ o₂ : O}
@@ -155,6 +158,7 @@ procint:Decl_OCEL_interacts_self a procint:Decl ;
   procint:declName "ProcInt.OCEL.interacts_self" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.interacts_self' does not depend on any axioms" ;
   procint:leanCode """/-- Any object appearing in some event's E2O projection interacts with itself. -/
 theorem OCEL.interacts_self {E O ET OT Q V : Type} [DecidableEq E]
     (L : OCEL E O ET OT Q V) {o : O} {e : E}
@@ -167,6 +171,7 @@ procint:Decl_OCEL_e2oProj_length a procint:Decl ;
   procint:declName "ProcInt.OCEL.e2oProj_length" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.e2oProj_length' depends on axioms: [propext]" ;
   procint:leanCode """/-- The qualified projection and the object projection of an event have equal
 length: both are maps over the same filtered relation table. -/
 theorem OCEL.e2oProj_length {E O ET OT Q V : Type} [DecidableEq E]
@@ -180,6 +185,7 @@ procint:Decl_OCEL_mem_objectsOf a procint:Decl ;
   procint:declName "ProcInt.OCEL.mem_objectsOf" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.mem_objectsOf' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Soundness of the E2O projection: a raw qualified triple (e, q, o) in the
 relation table puts o into objectsOf e. -/
 theorem OCEL.mem_objectsOf {E O ET OT Q V : Type} [DecidableEq E]
@@ -232,6 +238,7 @@ procint:Decl_lifecycleStep_irrefl a procint:Decl ;
   procint:declName "ProcInt.lifecycleStep_irrefl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.lifecycleStep_irrefl' does not depend on any axioms" ;
   procint:leanCode """/-- Lifecycle transitions are irreflexive: no phase steps to itself. -/
 theorem lifecycleStep_irrefl (p : LifecyclePhase) : ¬ LifecycleStep p p := by
   intro h
@@ -243,6 +250,7 @@ procint:Decl_archived_terminal a procint:Decl ;
   procint:declName "ProcInt.archived_terminal" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.archived_terminal' does not depend on any axioms" ;
   procint:leanCode """/-- The archived phase is terminal: no lifecycle step leaves it. -/
 theorem archived_terminal (p : LifecyclePhase) : ¬ LifecycleStep .archived p := by
   intro h
@@ -279,6 +287,7 @@ procint:Decl_OCEL_timeOrdered_nil a procint:Decl ;
   procint:declName "ProcInt.OCEL.timeOrdered_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.timeOrdered_nil' does not depend on any axioms" ;
   procint:leanCode """/-- The empty event list is trivially time-ordered. -/
 theorem OCEL.timeOrdered_nil {E O ET OT Q V : Type}
     (L : OCEL E O ET OT Q V) : L.TimeOrdered ([] : List E) :=
@@ -290,6 +299,7 @@ procint:Decl_OCEL_timeOrdered_singleton a procint:Decl ;
   procint:declName "ProcInt.OCEL.timeOrdered_singleton" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.timeOrdered_singleton' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Any single event is trivially time-ordered. -/
 theorem OCEL.timeOrdered_singleton {E O ET OT Q V : Type}
     (L : OCEL E O ET OT Q V) (e : E) : L.TimeOrdered [e] :=
@@ -363,6 +373,7 @@ procint:Decl_OcpqPredicate_sat_e2oRel_iff a procint:Decl ;
   procint:declName "ProcInt.OcpqPredicate.sat_e2oRel_iff" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OcpqPredicate.sat_e2oRel_iff' does not depend on any axioms" ;
   procint:leanCode """/-- E2O predicate satisfaction is exactly membership of the qualified triple in
 the log's E2O table (definitional characterization). -/
 theorem OcpqPredicate.sat_e2oRel_iff {E O ET OT Q V : Type} [DecidableEq E]
@@ -376,6 +387,7 @@ procint:Decl_OcpqPredicate_sat_e2oRel_mem a procint:Decl ;
   procint:declName "ProcInt.OcpqPredicate.sat_e2oRel_mem" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OcpqPredicate.sat_e2oRel_mem' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A satisfied E2O predicate certifies the object projection: satisfaction
 puts the related object into objectsOf of the related event. -/
 theorem OcpqPredicate.sat_e2oRel_mem {E O ET OT Q V : Type} [DecidableEq E]
@@ -437,6 +449,7 @@ procint:Decl_CardBound_admits_min a procint:Decl ;
   procint:declName "ProcInt.CardBound.admits_min" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.admits_min' does not depend on any axioms" ;
   procint:leanCode """/-- Every well-formed bound admits its own lower endpoint (trivial-bound
 satisfaction: uses the min ≤ max law). -/
 theorem CardBound.admits_min (b : CardBound) : b.Admits b.min :=
@@ -448,6 +461,7 @@ procint:Decl_CardBound_admits_max a procint:Decl ;
   procint:declName "ProcInt.CardBound.admits_max" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.admits_max' does not depend on any axioms" ;
   procint:leanCode """/-- Every well-formed bound admits its own upper endpoint. -/
 theorem CardBound.admits_max (b : CardBound) : b.Admits b.max :=
   ⟨b.le, le_refl b.max⟩""" .
@@ -469,6 +483,7 @@ procint:Decl_CardBound_admits_of_widens a procint:Decl ;
   procint:declName "ProcInt.CardBound.admits_of_widens" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.admits_of_widens' does not depend on any axioms" ;
   procint:leanCode """/-- Monotonicity of cardinality satisfaction in bound widening: any count
 admitted by a bound is admitted by every widening of it. -/
 theorem CardBound.admits_of_widens {b c : CardBound} (h : b.Widens c)
@@ -481,6 +496,7 @@ procint:Decl_CardBound_widens_refl a procint:Decl ;
   procint:declName "ProcInt.CardBound.widens_refl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.widens_refl' does not depend on any axioms" ;
   procint:leanCode """/-- Widening is reflexive: every bound widens itself. -/
 theorem CardBound.widens_refl (b : CardBound) : b.Widens b :=
   ⟨le_refl b.min, le_refl b.max⟩""" .
@@ -491,6 +507,7 @@ procint:Decl_CardBound_widens_trans a procint:Decl ;
   procint:declName "ProcInt.CardBound.widens_trans" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.widens_trans' does not depend on any axioms" ;
   procint:leanCode """/-- Widening is transitive, making Widens a preorder on bounds. -/
 theorem CardBound.widens_trans {a b c : CardBound}
     (hab : a.Widens b) (hbc : b.Widens c) : a.Widens c :=
@@ -502,6 +519,7 @@ procint:Decl_CardBound_sat_cardObjects_iff a procint:Decl ;
   procint:declName "ProcInt.CardBound.sat_cardObjects_iff" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.sat_cardObjects_iff' does not depend on any axioms" ;
   procint:leanCode """/-- The OCPQ cardObjects predicate built from a CardBound is satisfied exactly
 when the bound admits the length of the event's E2O object projection
 (definitional bridge between Ocpq.Query satisfaction and CardBound.Admits). -/

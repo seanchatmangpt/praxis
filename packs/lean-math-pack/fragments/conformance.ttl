@@ -73,6 +73,7 @@ procint:Decl_Move_cost_le_one a procint:Decl ;
   procint:declName "ProcInt.Move.cost_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Move.cost_le_one' depends on axioms: [propext]" ;
   procint:leanCode """/-- The standard cost of any single move is at most 1 (Carmona et al. 2018,
 standard cost function). -/
 theorem Move.cost_le_one {α T : Type*} (m : Move α T) : m.cost ≤ 1 := by
@@ -84,6 +85,7 @@ procint:Decl_Move_cost_eq_zero_iff a procint:Decl ;
   procint:declName "ProcInt.Move.cost_eq_zero_iff" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Move.cost_eq_zero_iff' depends on axioms: [propext]" ;
   procint:leanCode """/-- A move has zero standard cost exactly when it is synchronous or
 silent-model (Adriansyah 2011). -/
 theorem Move.cost_eq_zero_iff {α T : Type*} (m : Move α T) :
@@ -178,6 +180,7 @@ procint:Decl_alignmentCost_append a procint:Decl ;
   procint:declName "ProcInt.alignmentCost_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.alignmentCost_append' depends on axioms: [propext]" ;
   procint:leanCode """/-- Alignment cost is additive under concatenation of alignments. -/
 theorem alignmentCost_append {α T : Type*} (γ₁ γ₂ : List (Move α T)) :
     alignmentCost (γ₁ ++ γ₂) = alignmentCost γ₁ + alignmentCost γ₂ := by
@@ -189,6 +192,7 @@ procint:Decl_alignmentCost_zero_iff_all_costfree a procint:Decl ;
   procint:declName "ProcInt.alignmentCost_zero_iff_all_costfree" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.alignmentCost_zero_iff_all_costfree' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- An alignment has zero total cost iff every move in it is cost-free, i.e.
 synchronous or silent-model (Carmona et al. 2018: cost-0 alignments witness
 perfectly fitting traces). -/
@@ -202,6 +206,7 @@ procint:Decl_logProjection_length_le a procint:Decl ;
   procint:declName "ProcInt.logProjection_length_le" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.logProjection_length_le' depends on axioms: [propext]" ;
   procint:leanCode """/-- The log projection never exceeds the alignment in length: each move
 contributes at most one activity. -/
 theorem logProjection_length_le {α T : Type*} (γ : List (Move α T)) :
@@ -243,6 +248,7 @@ procint:Decl_oneSubRatio_nonneg a procint:Decl ;
   procint:declName "ProcInt.oneSubRatio_nonneg" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.oneSubRatio_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- If m ≤ n then 1 - m/n is nonnegative in ℚ; the n = 0 case forces m = 0 and
 uses the ℚ convention x/0 = 0. Support lemma for the Rozinat-Aalst fitness
 bounds. -/
@@ -262,6 +268,7 @@ procint:Decl_oneSubRatio_le_one a procint:Decl ;
   procint:declName "ProcInt.oneSubRatio_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.oneSubRatio_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- 1 - m/n never exceeds 1 in ℚ, since m/n ≥ 0 for natural m, n (with the
 x/0 = 0 convention). Support lemma for the Rozinat-Aalst fitness bounds. -/
 theorem oneSubRatio_le_one (m n : ℕ) : 1 - (m : ℚ) / n ≤ 1 := by
@@ -288,6 +295,7 @@ procint:Decl_fitness_nonneg a procint:Decl ;
   procint:declName "ProcInt.fitness_nonneg" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Token-replay fitness is nonnegative (Rozinat-Aalst 2008; lower bound of
 the [0,1] metric law in wasm4pm-compat docs/METRIC_LAW.md). -/
 theorem fitness_nonneg (c : ReplayCounts) : 0 ≤ fitness c := by
@@ -302,6 +310,7 @@ procint:Decl_fitness_le_one a procint:Decl ;
   procint:declName "ProcInt.fitness_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Token-replay fitness is at most 1 (Rozinat-Aalst 2008; upper bound of the
 [0,1] metric law in wasm4pm-compat docs/METRIC_LAW.md). -/
 theorem fitness_le_one (c : ReplayCounts) : fitness c ≤ 1 := by
@@ -316,6 +325,7 @@ procint:Decl_fitness_mem_unitInterval a procint:Decl ;
   procint:declName "ProcInt.fitness_mem_unitInterval" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_mem_unitInterval' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The Rozinat-Aalst token-replay fitness always lies in the unit interval:
 0 ≤ fitness ∧ fitness ≤ 1. This is the Lean form of the Between01 metric law
 of wasm4pm-compat docs/METRIC_LAW.md. -/
@@ -329,6 +339,7 @@ procint:Decl_fitness_perfect a procint:Decl ;
   procint:declName "ProcInt.fitness_perfect" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_perfect' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- A perfect replay — no missing and no remaining tokens — has fitness
 exactly 1 (Rozinat-Aalst 2008; mirrors calculate_fitness(4,4,0,0) = 1.0 in
 wasm4pm-compat src/conformance.rs). -/
@@ -422,6 +433,7 @@ procint:Decl_f1_nonneg a procint:Decl ;
   procint:declName "ProcInt.f1_nonneg" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.f1_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- F1 is nonnegative. -/
 theorem f1_nonneg (f p : UnitRat) : 0 ≤ f1 f p := by
   have hf := f.property.1
@@ -435,6 +447,7 @@ procint:Decl_f1_le_one a procint:Decl ;
   procint:declName "ProcInt.f1_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.f1_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- F1 is at most 1: the harmonic mean of two unit-interval quantities stays
 in the unit interval (Between01 law, wasm4pm-compat docs/METRIC_LAW.md). -/
 theorem f1_le_one (f p : UnitRat) : f1 f p ≤ 1 := by

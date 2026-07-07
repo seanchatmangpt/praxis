@@ -66,6 +66,7 @@ procint:Decl_dfgOfTrace_edges_length a procint:Decl ;
   procint:declName "ProcInt.dfgOfTrace_edges_length" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dfgOfTrace_edges_length' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- A trace of length n yields exactly n - 1 directly-follows edges —
 the adjacent-pair count law of `discover_ocel_dfg` (dfg.rs windows(2)). -/
 theorem dfgOfTrace_edges_length (t : List α) :
@@ -81,6 +82,7 @@ procint:Decl_dfgOfTrace_nil a procint:Decl ;
   procint:declName "ProcInt.dfgOfTrace_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dfgOfTrace_nil' does not depend on any axioms" ;
   procint:leanCode """/-- The empty trace has no directly-follows edges (dfg.rs: no windows(2)
 pairs on an empty event list). -/
 theorem dfgOfTrace_nil : (dfgOfTrace ([] : List ℕ)).edges = [] := rfl""" .
@@ -91,6 +93,7 @@ procint:Decl_dfgOfTrace_freq_one a procint:Decl ;
   procint:declName "ProcInt.dfgOfTrace_freq_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dfgOfTrace_freq_one' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A DFG discovered from a trace assigns every edge frequency 1
 (single-case discovery, dfg.rs edge_map initialisation). -/
 theorem dfgOfTrace_freq_one (t : List α) :
@@ -167,6 +170,7 @@ procint:Decl_dependencyMeasure_lt_one a procint:Decl ;
   procint:declName "ProcInt.dependencyMeasure_lt_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dependencyMeasure_lt_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The dependency measure is strictly below 1: the +1 in the denominator
 keeps even a one-sided count from reaching certainty
 (Weijters and Ribeiro 2011, Section 2). -/
@@ -182,6 +186,7 @@ procint:Decl_neg_one_lt_dependencyMeasure a procint:Decl ;
   procint:declName "ProcInt.neg_one_lt_dependencyMeasure" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.neg_one_lt_dependencyMeasure' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The dependency measure is strictly above -1 (dual bound). -/
 theorem neg_one_lt_dependencyMeasure (ab ba : ℕ) : -1 < dependencyMeasure ab ba := by
   unfold dependencyMeasure
@@ -195,6 +200,7 @@ procint:Decl_dependencyMeasure_antisymm a procint:Decl ;
   procint:declName "ProcInt.dependencyMeasure_antisymm" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dependencyMeasure_antisymm' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Antisymmetry of the dependency measure: a ⇒ b = −(b ⇒ a)
 (Weijters and Ribeiro 2011, Section 2). -/
 theorem dependencyMeasure_antisymm (ab ba : ℕ) :
@@ -209,6 +215,7 @@ procint:Decl_dependencyMeasure_self a procint:Decl ;
   procint:declName "ProcInt.dependencyMeasure_self" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dependencyMeasure_self' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Symmetric counts give zero causal strength: a ⇒ a with equal
 directly-follows counts in both directions is 0. -/
 theorem dependencyMeasure_self (n : ℕ) : dependencyMeasure n n = 0 := by
@@ -334,6 +341,7 @@ procint:Decl_bpmnMinimal_wellFormed a procint:Decl ;
   procint:declName "ProcInt.bpmnMinimal_wellFormed" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.bpmnMinimal_wellFormed' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The minimal start → task → end process is wellformed — the positive
 fixture of `bpmn.rs` `BpmnProcess::validate`. -/
 theorem bpmnMinimal_wellFormed : bpmnMinimal.WellFormed := by
@@ -348,6 +356,7 @@ procint:Decl_bpmn_empty_not_wellFormed a procint:Decl ;
   procint:declName "ProcInt.bpmn_empty_not_wellFormed" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.bpmn_empty_not_wellFormed' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A process with no nodes has no start event, hence is not wellformed —
 the `bpmn.rs` `BpmnRefusal::EmptyProcess` law. -/
 theorem bpmn_empty_not_wellFormed : ¬ (BpmnProcess.mk [] []).WellFormed := by
@@ -464,6 +473,7 @@ procint:Decl_response_concrete a procint:Decl ;
   procint:declName "ProcInt.response_concrete" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.response_concrete' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Concrete kernel check: response(0, 1) holds on the trace [0, 1, 0, 1]
 (every 0 is followed by a later 1) — decided by the kernel. -/
 theorem response_concrete : Response 0 1 [0, 1, 0, 1] := by decide""" .
@@ -474,6 +484,7 @@ procint:Decl_precedence_concrete a procint:Decl ;
   procint:declName "ProcInt.precedence_concrete" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.precedence_concrete' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Concrete kernel check: precedence(0, 1) holds on [0, 1, 1] and
 response(1, 0) fails on it — decided by the kernel. -/
 theorem precedence_concrete : Precedence 0 1 [0, 1, 1] ∧ ¬ Response 1 0 [0, 1, 1] := by
@@ -485,6 +496,7 @@ procint:Decl_succession_imp_response a procint:Decl ;
   procint:declName "ProcInt.succession_imp_response" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.succession_imp_response' does not depend on any axioms" ;
   procint:leanCode """/-- Succession entails response: the succession template is the conjunction
 of response and precedence (van der Aalst and Pesic; declare.rs Succession). -/
 theorem succession_imp_response [DecidableEq α] (a b : α) (t : List α)
@@ -497,6 +509,7 @@ procint:Decl_existence_append a procint:Decl ;
   procint:declName "ProcInt.existence_append" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.existence_append' does not depend on any axioms" ;
   procint:leanCode """/-- Existence is monotone under trace extension on the right: if a occurs
 in t it occurs in t ++ s (DECLARE existence template monotonicity). -/
 theorem existence_append [DecidableEq α] (a : α) (t s : List α)
@@ -510,6 +523,7 @@ procint:Decl_notCoexistence_comm a procint:Decl ;
   procint:declName "ProcInt.notCoexistence_comm" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.notCoexistence_comm' does not depend on any axioms" ;
   procint:leanCode """/-- NotCoexistence is symmetric in its two activities
 (mutual-exclusion law; declare.rs NotCoExistence). -/
 theorem notCoexistence_comm [DecidableEq α] (a b : α) (t : List α) :
@@ -523,6 +537,7 @@ procint:Decl_arity_one_or_two a procint:Decl ;
   procint:declName "ProcInt.arity_one_or_two" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.arity_one_or_two' depends on axioms: [propext]" ;
   procint:leanCode """/-- Every template arity is 1 or 2 (declare.rs `arity` codomain law). -/
 theorem arity_one_or_two (tp : DeclareTemplate) : tp.arity = 1 ∨ tp.arity = 2 := by
   cases tp <;> simp [DeclareTemplate.arity]""" .

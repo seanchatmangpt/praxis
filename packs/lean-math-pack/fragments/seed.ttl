@@ -74,6 +74,7 @@ procint:Decl_unitRat_nonneg a procint:Decl ;
   procint:declName "ProcInt.unitRat_nonneg" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.unitRat_nonneg' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A unit rational is nonnegative (lower metric-law bound). -/
 theorem unitRat_nonneg (q : UnitRat) : (0 : ℚ) ≤ q.val := q.property.1""" .
 
@@ -83,6 +84,7 @@ procint:Decl_unitRat_le_one a procint:Decl ;
   procint:declName "ProcInt.unitRat_le_one" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.unitRat_le_one' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- A unit rational is at most one (upper metric-law bound). -/
 theorem unitRat_le_one (q : UnitRat) : q.val ≤ 1 := q.property.2""" .
 
@@ -185,6 +187,7 @@ procint:Decl_step_deterministic a procint:Decl ;
   procint:declName "ProcInt.PetriNet.step_deterministic" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.step_deterministic' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Firing is deterministic: one transition fired at one marking yields a
 unique successor marking (immediate from the firing rule, Murata 1989). -/
 theorem PetriNet.step_deterministic {P T : Type} (N : PetriNet P T)
@@ -198,6 +201,7 @@ procint:Decl_fire_add_pre a procint:Decl ;
   procint:declName "ProcInt.PetriNet.fire_add_pre" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.fire_add_pre' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Firing under enabledness satisfies the token-conservation identity
 fire M t + pre t = M + post t — the Finsupp form of the state-equation
 increment for a single firing (Murata 1989, section II.C). -/
@@ -241,6 +245,7 @@ procint:Decl_FiringSeq_snoc a procint:Decl ;
   procint:declName "ProcInt.PetriNet.FiringSeq.snoc" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.FiringSeq.snoc' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Append a final step to a firing sequence (the snoc lemma, derived by
 induction — dual of the cons constructor). -/
 theorem PetriNet.FiringSeq.snoc {P T : Type} {N : PetriNet P T}
@@ -256,6 +261,7 @@ procint:Decl_firingSeq_reaches a procint:Decl ;
   procint:declName "ProcInt.PetriNet.firingSeq_reaches" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.firingSeq_reaches' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Every firing sequence witnesses reachability (Murata 1989: soundness
 direction of the firing-sequence characterization of R(M0)). -/
 theorem PetriNet.firingSeq_reaches {P T : Type} {N : PetriNet P T}
@@ -271,6 +277,7 @@ procint:Decl_reaches_firingSeq a procint:Decl ;
   procint:declName "ProcInt.PetriNet.reaches_firingSeq" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.reaches_firingSeq' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Every reachable marking is reached by some firing sequence (Murata 1989:
 completeness direction of the firing-sequence characterization of R(M0)). -/
 theorem PetriNet.reaches_firingSeq {P T : Type} {N : PetriNet P T}

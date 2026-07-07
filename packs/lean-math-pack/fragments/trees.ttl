@@ -95,6 +95,7 @@ procint:Decl_ProcessTree_language_leaf_silent a procint:Decl ;
   procint:declName "ProcInt.ProcessTree.language_leaf_silent" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ProcessTree.language_leaf_silent' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The language of an activity leaf is exactly the singleton trace, and the
 language of the silent step is exactly the empty trace. -/
 theorem ProcessTree.language_leaf_silent {α : Type*} (a : α) :
@@ -108,6 +109,7 @@ procint:Decl_ProcessTree_mem_language_seq_leaf a procint:Decl ;
   procint:declName "ProcInt.ProcessTree.mem_language_seq_leaf" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ProcessTree.mem_language_seq_leaf' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The two-activity sequence seq(leaf a, leaf b) admits the trace a·b. -/
 theorem ProcessTree.mem_language_seq_leaf {α : Type*} (a b : α) :
     [a, b] ∈ ((ProcessTree.leaf a).seq (ProcessTree.leaf b)).language := by
@@ -119,6 +121,7 @@ procint:Decl_length_of_mem_interleavings a procint:Decl ;
   procint:declName "ProcInt.length_of_mem_interleavings" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.length_of_mem_interleavings' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Every interleaving of xs and ys has length xs.length + ys.length. -/
 theorem length_of_mem_interleavings {α : Type*} :
     ∀ (xs ys : List α), ∀ w ∈ interleavings xs ys, w.length = xs.length + ys.length
@@ -145,6 +148,7 @@ procint:Decl_seqLang_assoc a procint:Decl ;
   procint:declName "ProcInt.seqLang_assoc" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.seqLang_assoc' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Concatenation of languages is associative (list append associativity lifted
 to trace languages). -/
 theorem seqLang_assoc {α : Type*} (A B C : Set (List α)) :
@@ -162,6 +166,7 @@ procint:Decl_ProcessTree_language_seq_assoc a procint:Decl ;
   procint:declName "ProcInt.ProcessTree.language_seq_assoc" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ProcessTree.language_seq_assoc' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The sequence operator is associative at the language level:
 language(seq(seq t u, v)) = language(seq(t, seq u v)). -/
 theorem ProcessTree.language_seq_assoc {α : Type*} (t u v : ProcessTree α) :
@@ -230,6 +235,7 @@ procint:Decl_Powl_WellFormed_xor_length a procint:Decl ;
   procint:declName "ProcInt.Powl.WellFormed.xor_length" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.WellFormed.xor_length' does not depend on any axioms" ;
   procint:leanCode """/-- Inversion: a well-formed xor has at least two children (the arity law
 behind PowlRefusal.InvalidChoiceArity in wasm4pm-compat powl.rs). -/
 theorem Powl.WellFormed.xor_length {α : Type*} {children : List (Powl α)}
@@ -243,6 +249,7 @@ procint:Decl_Powl_wellFormed_xor_pair a procint:Decl ;
   procint:declName "ProcInt.Powl.wellFormed_xor_pair" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.wellFormed_xor_pair' depends on axioms: [propext]" ;
   procint:leanCode """/-- The binary choice between an atom and the silent step is well-formed. -/
 theorem Powl.wellFormed_xor_pair {α : Type*} (a : α) :
     Powl.WellFormed (Powl.xor [Powl.atom a, Powl.silent]) := by
@@ -259,6 +266,7 @@ procint:Decl_Powl_wellFormed_loop_atoms a procint:Decl ;
   procint:declName "ProcInt.Powl.wellFormed_loop_atoms" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.wellFormed_loop_atoms' does not depend on any axioms" ;
   procint:leanCode """/-- A loop of two atoms is well-formed (POWL loop has exactly a do-part and a
 redo-part; BPM 2023 Def 1). -/
 theorem Powl.wellFormed_loop_atoms {α : Type*} (a b : α) :
@@ -271,6 +279,7 @@ procint:Decl_Powl_wellFormed_po_emptyPrec a procint:Decl ;
   procint:declName "ProcInt.Powl.wellFormed_po_emptyPrec" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.wellFormed_po_emptyPrec' depends on axioms: [propext]" ;
   procint:leanCode """/-- A partial order over two atoms with the empty precedence relation is
 well-formed: the empty relation is trivially irreflexive and transitive
 (fully concurrent partial order, BPM 2023 Def 2). -/
@@ -342,6 +351,7 @@ procint:Decl_Reach_trans a procint:Decl ;
   procint:declName "ProcInt.Reach.trans" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Reach.trans' does not depend on any axioms" ;
   procint:leanCode """/-- Reachability is transitive. -/
 theorem Reach.trans {E : List (ℕ × ℕ)} {i j k : ℕ}
     (h1 : Reach E i j) (h2 : Reach E j k) : Reach E i k := by
@@ -397,6 +407,7 @@ procint:Decl_ChoiceGraph_minimal_valid a procint:Decl ;
   procint:declName "ProcInt.ChoiceGraph.minimal_valid" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ChoiceGraph.minimal_valid' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The minimal choice graph is valid per Definition 1. -/
 theorem ChoiceGraph.minimal_valid (α : Type*) : (ChoiceGraph.minimal α).Valid := by
   refine ⟨by simp [ChoiceGraph.minimal], by simp [ChoiceGraph.minimal], ?_, ?_, ?_, ?_⟩
@@ -424,6 +435,7 @@ procint:Decl_ChoiceGraph_minimal_hasEmptyPath a procint:Decl ;
   procint:declName "ProcInt.ChoiceGraph.minimal_hasEmptyPath" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ChoiceGraph.minimal_hasEmptyPath' depends on axioms: [propext]" ;
   procint:leanCode """/-- The minimal choice graph has the empty path (direct start-to-end edge). -/
 theorem ChoiceGraph.minimal_hasEmptyPath (α : Type*) :
     (ChoiceGraph.minimal α).HasEmptyPath := by

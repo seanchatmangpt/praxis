@@ -85,6 +85,7 @@ procint:Decl_happensBefore_irrefl a procint:Decl ;
   procint:declName "ProcInt.happensBefore_irrefl" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.happensBefore_irrefl' does not depend on any axioms" ;
   procint:leanCode """/-- Happens-before is irreflexive: no event strictly precedes itself
 (temporal.rs `TemporalOrder::Before` is strict; from Nat.lt). -/
 theorem happensBefore_irrefl {α : Type*} (e : TimedEvent α) : ¬ HappensBefore e e :=
@@ -96,6 +97,7 @@ procint:Decl_happensBefore_trans a procint:Decl ;
   procint:declName "ProcInt.happensBefore_trans" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.happensBefore_trans' does not depend on any axioms" ;
   procint:leanCode """/-- Happens-before is transitive (strict-order law of temporal.rs `TemporalOrder`). -/
 theorem happensBefore_trans {α : Type*} {a b c : TimedEvent α}
     (hab : HappensBefore a b) (hbc : HappensBefore b c) : HappensBefore a c :=
@@ -107,6 +109,7 @@ procint:Decl_sojourn_self a procint:Decl ;
   procint:declName "ProcInt.sojourn_self" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.sojourn_self' does not depend on any axioms" ;
   procint:leanCode """/-- The sojourn time of an event relative to itself is zero (temporal.rs `TimeDelta`). -/
 theorem sojourn_self {α : Type*} (e : TimedEvent α) : sojourn e e = 0 :=
   Nat.sub_self e.timestamp""" .
@@ -185,6 +188,7 @@ procint:Decl_linked_nil a procint:Decl ;
   procint:declName "ProcInt.linked_nil" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.linked_nil' does not depend on any axioms" ;
   procint:leanCode """/-- The empty chain is linked (causality.rs `CausalChain` base case). -/
 theorem linked_nil {α : Type*} : linked ([] : List (CausalLink α)) := by
   simp [linked]""" .
@@ -195,6 +199,7 @@ procint:Decl_linked_singleton a procint:Decl ;
   procint:declName "ProcInt.linked_singleton" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.linked_singleton' does not depend on any axioms" ;
   procint:leanCode """/-- A singleton chain is linked (causality.rs `CausalChain` unit case). -/
 theorem linked_singleton {α : Type*} (l : CausalLink α) : linked [l] := by
   simp [linked]""" .
@@ -205,6 +210,7 @@ procint:Decl_linked_tail a procint:Decl ;
   procint:declName "ProcInt.linked_tail" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.linked_tail' does not depend on any axioms" ;
   procint:leanCode """/-- The tail of a linked chain is linked (chain suffix closure). -/
 theorem linked_tail {α : Type*} {l1 l2 : CausalLink α} {rest : List (CausalLink α)}
     (h : linked (l1 :: l2 :: rest)) : linked (l2 :: rest) := by
@@ -276,6 +282,7 @@ procint:Decl_correlated_empty a procint:Decl ;
   procint:declName "ProcInt.correlated_empty" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.correlated_empty' does not depend on any axioms" ;
   procint:leanCode """/-- The empty correlated log is correlated (vacuous key agreement). -/
 theorem correlated_empty {α β κ : Type*} (keyA : α → κ) (keyB : β → κ) :
     CorrelatedLog.Correlated ⟨keyA, keyB, []⟩ := by
@@ -288,6 +295,7 @@ procint:Decl_correlated_cons a procint:Decl ;
   procint:declName "ProcInt.correlated_cons" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.correlated_cons' depends on axioms: [propext]" ;
   procint:leanCode """/-- Extending a correlated log with a key-agreeing pair preserves correlation. -/
 theorem correlated_cons {α β κ : Type*} {log : CorrelatedLog α β κ}
     (h : log.Correlated) {a : α} {b : β} (hab : log.keyA a = log.keyB b) :
@@ -364,6 +372,7 @@ procint:Decl_cell_subset a procint:Decl ;
   procint:declName "ProcInt.cell_subset" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.cell_subset' depends on axioms: [propext]" ;
   procint:leanCode """/-- Every event in a cell is an event of the cube (cell ⊆ cube). -/
 theorem cell_subset {α β : Type*} [DecidableEq β] {c : ProcessCube α β} {v : β} {e : α}
     (h : e ∈ c.cell v) : e ∈ c.events := by
@@ -376,6 +385,7 @@ procint:Decl_cell_dim a procint:Decl ;
   procint:declName "ProcInt.cell_dim" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.cell_dim' depends on axioms: [propext]" ;
   procint:leanCode """/-- Every event in a cell projects to the cell's dimension value (preimage law). -/
 theorem cell_dim {α β : Type*} [DecidableEq β] {c : ProcessCube α β} {v : β} {e : α}
     (h : e ∈ c.cell v) : c.dim e = v := by
@@ -388,6 +398,7 @@ procint:Decl_cell_subset_slice a procint:Decl ;
   procint:declName "ProcInt.cell_subset_slice" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.cell_subset_slice' depends on axioms: [propext]" ;
   procint:leanCode """/-- A cell is contained in any slice whose value set contains the cell's value
 (slice ⊆ cube refinement, van der Aalst 2013). -/
 theorem cell_subset_slice {α β : Type*} [DecidableEq β] {c : ProcessCube α β}
@@ -478,6 +489,7 @@ procint:Decl_wellPosed_prefixLen_pos a procint:Decl ;
   procint:declName "ProcInt.wellPosed_prefixLen_pos" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.wellPosed_prefixLen_pos' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- A well-posed prediction problem has a strictly positive prefix length. -/
 theorem wellPosed_prefixLen_pos {α : Type*} {p : PredictionProblem α}
     (h : p.WellPosed) : 0 < p.prefixLen := by
@@ -535,6 +547,7 @@ procint:Decl_push_bounded a procint:Decl ;
   procint:declName "ProcInt.push_bounded" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.push_bounded' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- The window bound is invariant under push (window length bound law). -/
 theorem push_bounded {α : Type*} {size : ℕ} (w : EventWindow α size) (e : α) :
     (w.push e).events.length ≤ size :=
@@ -546,6 +559,7 @@ procint:Decl_empty_length a procint:Decl ;
   procint:declName "ProcInt.empty_length" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.empty_length' does not depend on any axioms" ;
   procint:leanCode """/-- The empty window holds no events (streaming.rs `EventWindow::new`). -/
 theorem empty_length {α : Type*} {size : ℕ} :
     (EventWindow.empty α size).events.length = 0 := rfl""" .
@@ -556,6 +570,7 @@ procint:Decl_push_not_full a procint:Decl ;
   procint:declName "ProcInt.push_not_full" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.push_not_full' depends on axioms: [propext, Quot.sound]" ;
   procint:leanCode """/-- Pushing into a non-full window keeps every prior event (no eviction;
 streaming.rs `EventWindow::push` returns None below capacity). -/
 theorem push_not_full {α : Type*} {size : ℕ} {w : EventWindow α size} {e : α}
@@ -643,6 +658,7 @@ procint:Decl_uniformWeights_normalized a procint:Decl ;
   procint:declName "ProcInt.uniformWeights_normalized" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.uniformWeights_normalized' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- The uniform weights are normalized (decided on ℚ literals). -/
 theorem uniformWeights_normalized : uniformWeights.Normalized := by
   unfold PerspectiveWeights.Normalized uniformWeights
@@ -666,6 +682,7 @@ procint:Decl_combinedScore_uniform a procint:Decl ;
   procint:declName "ProcInt.combinedScore_uniform" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.combinedScore_uniform' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
   procint:leanCode """/-- Under uniform weights the combined score is the arithmetic mean of the
 four perspective scores (Mannhardt et al. 2016 balanced combination). -/
 theorem combinedScore_uniform (s : ProcessPerspective → ℚ) :
@@ -734,6 +751,7 @@ procint:Decl_deleted_terminal a procint:Decl ;
   procint:declName "ProcInt.deleted_terminal" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.deleted_terminal' does not depend on any axioms" ;
   procint:leanCode """/-- Deleted is terminal: no transition leaves the deleted phase
 (object_lifecycle.rs: no impl block on Deleted). -/
 theorem deleted_terminal (p : ObjectLifecyclePhase) :
@@ -746,6 +764,7 @@ procint:Decl_no_transition_to_created a procint:Decl ;
   procint:declName "ProcInt.no_transition_to_created" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.no_transition_to_created' does not depend on any axioms" ;
   procint:leanCode """/-- No transition re-enters the created phase (creation is a one-time event). -/
 theorem no_transition_to_created (p : ObjectLifecyclePhase) :
     ¬ LifecycleTransition p .created :=
@@ -757,6 +776,7 @@ procint:Decl_archived_only_deletes a procint:Decl ;
   procint:declName "ProcInt.archived_only_deletes" ;
   procint:declKind "theorem" ;
   procint:status "proven" ;
+  procint:auditMsg "'ProcInt.archived_only_deletes' does not depend on any axioms" ;
   procint:leanCode """/-- From the archived phase, the only lawful successor is deleted
 (object_lifecycle.rs: Archived exposes only delete). -/
 theorem archived_only_deletes {p : ObjectLifecyclePhase}
