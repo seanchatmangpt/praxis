@@ -1,0 +1,30 @@
+---
+to: "paper/replay_status.tex"
+sparql:
+  a_m: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?replayStatusTex ?coreTag
+    WHERE { ?m a post:MetaNode ; post:replayStatusTex ?replayStatusTex ;
+      post:coreTag ?coreTag . }
+  steps: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?stepCmdTex ?stepOrder
+    WHERE { ?s a post:ReplayStep ; post:stepCmdTex ?stepCmdTex ;
+      post:stepOrder ?stepOrder . }
+    ORDER BY ?stepOrder
+force: true
+skip_empty: true
+---
+% RENDERED by `ggen sync` from the post-release graph (post-release-pack) — DO NOT EDIT BY HAND
+{% for m in a_m %}\paragraph{Independent replay.}
+The replay lane is upgraded only by its own gate's report, never asserted:
+its current standing is \texttt{{ '{' }}{{ m.replayStatusTex }}{{ '}' }}. The
+gate clones the repository at tag \texttt{{ '{' }}{{ m.coreTag }}{{ '}' }}
+into a scratch tree and re-runs the manufacturing rail there:
+\begin{enumerate}
+{% for s in steps %}  \item \texttt{{ '{' }}{{ s.stepCmdTex }}{{ '}' }}
+{% endfor %}\end{enumerate}
+A replay that diverges on any ledgered artifact refuses with
+\texttt{ARTIFACT\_DRIFT\_REFUSED}; a replay that has not been run reports
+\texttt{REPLAY\_NOT\_RUN} rather than borrowing the core release's standing.
+{% endfor %}

@@ -1,0 +1,13 @@
+---
+to: "dist/github-release/title.txt"
+sparql:
+  meta: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?releaseId ?coreProven ?coreTotalDecls
+    WHERE { ?m a post:MetaNode ; post:releaseId ?releaseId ;
+      post:coreProven ?coreProven ; post:coreTotalDecls ?coreTotalDecls . }
+force: true
+skip_empty: true
+---
+{% for m in meta %}mfact {{ m.releaseId }} — procint certified ({{ m.coreProven }}/{{ m.coreTotalDecls }} proven, quadrature closed)
+{% endfor %}

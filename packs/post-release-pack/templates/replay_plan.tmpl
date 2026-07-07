@@ -1,0 +1,30 @@
+---
+to: "release/replay_plan.json"
+sparql:
+  meta: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?releaseId ?coreTag ?coreReleaseHash ?replayStatus
+    WHERE { ?m a post:MetaNode ; post:releaseId ?releaseId ;
+      post:coreTag ?coreTag ; post:coreReleaseHash ?coreReleaseHash ;
+      post:replayStatus ?replayStatus . }
+  steps: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?stepOrder ?stepCmd
+    WHERE { ?s a post:ReplayStep ; post:stepOrder ?stepOrder ;
+      post:stepCmd ?stepCmd . }
+    ORDER BY ?stepOrder
+force: true
+skip_empty: true
+---
+{% for m in meta %}{
+  "schema": "mfact.replay_plan.v1",
+  "release": "{{ m.releaseId }}",
+  "tag": "{{ m.coreTag }}",
+  "expectedCoreReleaseHash": "{{ m.coreReleaseHash }}",
+  "status": "{{ m.replayStatus }}",
+  "gate": "a replay PASSES iff every step exits 0 and the replayed manifest foldHash equals expectedCoreReleaseHash",
+  "steps": [
+{% for s in steps %}    {"order": {{ s.stepOrder }}, "cmd": "{{ s.stepCmd }}"}{% if not loop.last %},{% endif %}
+{% endfor %}  ]
+}
+{% endfor %}

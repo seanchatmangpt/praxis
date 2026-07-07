@@ -1,0 +1,171 @@
+@prefix post: <https://mfact.dev/postrelease#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+post:Meta a post:MetaNode ;
+  post:releaseId "v26.7.6" ;
+  post:coreReleaseHash "a138ee84d0c08e0e946e0d0bb805a563b8304cf268eb97e6b9784bd36279fd86" ;
+  post:coreProven 145 ;
+  post:coreTotalDecls 318 ;
+  post:statedCount 2 ;
+  post:renderedCommit "bdd8e99" ;
+  post:coreTag "v26.7.6-procint-certified" ;
+  post:tagCommit "1712d76" ;
+  post:tagGate "PASS" ;
+  post:packetHash "9c787499b845d2dcbe4212ac416f3469f0849b187bfcf80b21bf60d2313ada29" ;
+  post:arxivStatus "ALIVE" ;
+  post:arxivDetail "cold build PASS from untarred package (13 declared files)" ;
+  post:arxivFileCount 13 ;
+  post:tarballHash "ee760a19638fa0b643ce1de22ab8fc23a1f754fd06e889720b89488a817ab49c" ;
+  post:pdfHash "91a98227f5eb460dbfd4449a8307d8364458e4f0f9e4d67bccf47d45dcc73123" ;
+  post:replayStatus "REPLAY_NOT_RUN" ;
+  post:replayStatusTex "REPLAY\\_NOT\\_RUN" ;
+  post:docsLane "PLANNED" ;
+  post:crownStatus "STATED" ;
+  post:publication "PENDING_EXTERNAL_ACTUATION" ;
+  post:publicationTex "PENDING\\_EXTERNAL\\_ACTUATION" ;
+  post:postReleaseWitnesses 2 .
+
+post:Packet_github_push a post:Packet ;
+  post:packetId "github_push" ;
+  post:packetIdTex "github\\_push" ;
+  post:packetStatus "BLOCKED" ;
+  post:publication "PENDING_EXTERNAL_ACTUATION" .
+
+post:Req_github_push_0 a post:Requirement ;
+  post:reqPacket "github_push" ;
+  post:reqOrder 0 ;
+  post:reqName "repo_clean" ;
+  post:reqMet "false" .
+
+post:Req_github_push_1 a post:Requirement ;
+  post:reqPacket "github_push" ;
+  post:reqOrder 1 ;
+  post:reqName "tag_exists" ;
+  post:reqMet "true" .
+
+post:Req_github_push_2 a post:Requirement ;
+  post:reqPacket "github_push" ;
+  post:reqOrder 2 ;
+  post:reqName "tag_descends_from_rendered_commit" ;
+  post:reqMet "true" .
+
+post:Req_github_push_3 a post:Requirement ;
+  post:reqPacket "github_push" ;
+  post:reqOrder 3 ;
+  post:reqName "dry_run_push_passed" ;
+  post:reqMet "true" .
+
+post:Packet_arxiv_upload a post:Packet ;
+  post:packetId "arxiv_upload" ;
+  post:packetIdTex "arxiv\\_upload" ;
+  post:packetStatus "ALIVE" ;
+  post:publication "PENDING_EXTERNAL_ACTUATION" .
+
+post:Req_arxiv_upload_0 a post:Requirement ;
+  post:reqPacket "arxiv_upload" ;
+  post:reqOrder 0 ;
+  post:reqName "tarball_exists" ;
+  post:reqMet "true" .
+
+post:Req_arxiv_upload_1 a post:Requirement ;
+  post:reqPacket "arxiv_upload" ;
+  post:reqOrder 1 ;
+  post:reqName "cold_build_passed" ;
+  post:reqMet "true" .
+
+post:Req_arxiv_upload_2 a post:Requirement ;
+  post:reqPacket "arxiv_upload" ;
+  post:reqOrder 2 ;
+  post:reqName "pdf_exists" ;
+  post:reqMet "true" .
+
+post:Req_arxiv_upload_3 a post:Requirement ;
+  post:reqPacket "arxiv_upload" ;
+  post:reqOrder 3 ;
+  post:reqName "certified" ;
+  post:reqMet "true" .
+
+post:Packet_github_release a post:Packet ;
+  post:packetId "github_release" ;
+  post:packetIdTex "github\\_release" ;
+  post:packetStatus "ALIVE" ;
+  post:publication "PENDING_EXTERNAL_ACTUATION" .
+
+post:Req_github_release_0 a post:Requirement ;
+  post:reqPacket "github_release" ;
+  post:reqOrder 0 ;
+  post:reqName "certified" ;
+  post:reqMet "true" .
+
+post:Req_github_release_1 a post:Requirement ;
+  post:reqPacket "github_release" ;
+  post:reqOrder 1 ;
+  post:reqName "controls_refused" ;
+  post:reqMet "true" .
+
+post:Req_github_release_2 a post:Requirement ;
+  post:reqPacket "github_release" ;
+  post:reqOrder 2 ;
+  post:reqName "quadrature_pass" ;
+  post:reqMet "true" .
+
+post:Req_github_release_3 a post:Requirement ;
+  post:reqPacket "github_release" ;
+  post:reqOrder 3 ;
+  post:reqName "gates_pass" ;
+  post:reqMet "true" .
+
+post:Obl_0 a post:Obligation ;
+  post:oblOrder 0 ;
+  post:oblName "sound_iff_shortCircuit_live_bounded" ;
+  post:oblNameTex "sound\\_iff\\_shortCircuit\\_live\\_bounded" ;
+  post:oblStatus "STATED" ;
+  post:oblStatusTex "STATED" ;
+  post:oblNote "the crown equivalence itself (van der Aalst 1997, Lemma 8)" .
+
+post:Obl_1 a post:Obligation ;
+  post:oblOrder 1 ;
+  post:oblName "proper_completion_support" ;
+  post:oblNameTex "proper\\_completion\\_support" ;
+  post:oblStatus "PROVEN_SUPPORT" ;
+  post:oblStatusTex "PROVEN\\_SUPPORT" ;
+  post:oblNote "soundness implies the final marking is reachable" .
+
+post:Obl_2 a post:Obligation ;
+  post:oblOrder 2 ;
+  post:oblName "dead_transition_support" ;
+  post:oblNameTex "dead\\_transition\\_support" ;
+  post:oblStatus "PROVEN_SUPPORT" ;
+  post:oblStatusTex "PROVEN\\_SUPPORT" ;
+  post:oblNote "soundness implies every transition can fire" .
+
+post:Obl_3 a post:Obligation ;
+  post:oblOrder 3 ;
+  post:oblName "unfolding_correctness" ;
+  post:oblNameTex "unfolding\\_correctness" ;
+  post:oblStatus "STATED" ;
+  post:oblStatusTex "STATED" ;
+  post:oblNote "branching-process unfolding statement (separate stated lane)" .
+
+post:Ax_0 a post:ArxivFile ; post:fileOrder 0 ; post:fileName "README_REPRODUCIBILITY.md" .
+post:Ax_1 a post:ArxivFile ; post:fileOrder 1 ; post:fileName "main.tex" .
+post:Ax_2 a post:ArxivFile ; post:fileOrder 2 ; post:fileName "main.bbl" .
+post:Ax_3 a post:ArxivFile ; post:fileOrder 3 ; post:fileName "refs.bib" .
+post:Ax_4 a post:ArxivFile ; post:fileOrder 4 ; post:fileName "release_macros.tex" .
+post:Ax_5 a post:ArxivFile ; post:fileOrder 5 ; post:fileName "evaluation.tex" .
+post:Ax_6 a post:ArxivFile ; post:fileOrder 6 ; post:fileName "quadrature.tex" .
+post:Ax_7 a post:ArxivFile ; post:fileOrder 7 ; post:fileName "final_status.tex" .
+post:Ax_8 a post:ArxivFile ; post:fileOrder 8 ; post:fileName "availability.tex" .
+post:Ax_9 a post:ArxivFile ; post:fileOrder 9 ; post:fileName "conclusion.tex" .
+post:Ax_10 a post:ArxivFile ; post:fileOrder 10 ; post:fileName "crown_jewel_status.tex" .
+post:Ax_11 a post:ArxivFile ; post:fileOrder 11 ; post:fileName "publication_status.tex" .
+post:Ax_12 a post:ArxivFile ; post:fileOrder 12 ; post:fileName "replay_status.tex" .
+
+post:Sum_0 a post:Checksum ; post:sumOrder 0 ; post:sumFile "paper/arxiv-submission.tar.gz" ; post:sumHash "ee760a19638fa0b643ce1de22ab8fc23a1f754fd06e889720b89488a817ab49c" .
+post:Sum_1 a post:Checksum ; post:sumOrder 1 ; post:sumFile "paper/main.pdf" ; post:sumHash "91a98227f5eb460dbfd4449a8307d8364458e4f0f9e4d67bccf47d45dcc73123" .
+post:Sum_2 a post:Checksum ; post:sumOrder 2 ; post:sumFile "release/release-manifest.json" ; post:sumHash "c07897846c90d9a044176b42928876b35f5d5a84a4a85e42a891fd24b466bf2c" .
+post:Step_0 a post:ReplayStep ; post:stepOrder 0 ; post:stepCmd "git clone <stand-in>/mfact-dryrun.git at tag v26.7.6-procint-certified" ; post:stepCmdTex "git clone \\textless stand-in\\textgreater /mfact-dryrun.git at tag v26.7.6-procint-certified" .
+post:Step_1 a post:ReplayStep ; post:stepOrder 1 ; post:stepCmd "just render && just build (pinned toolchain, lake exe cache get)" ; post:stepCmdTex "just render \\&\\& just build (pinned toolchain, lake exe cache get)" .
+post:Step_2 a post:ReplayStep ; post:stepOrder 2 ; post:stepCmd "just audit && just test" ; post:stepCmdTex "just audit \\&\\& just test" .
+post:Step_3 a post:ReplayStep ; post:stepOrder 3 ; post:stepCmd "just certify (exit 0 required)" ; post:stepCmdTex "just certify (exit 0 required)" .
+post:Step_4 a post:ReplayStep ; post:stepOrder 4 ; post:stepCmd "just regen-check (ARTIFACT_DRIFT_REFUSED on any divergence)" ; post:stepCmdTex "just regen-check (ARTIFACT\\_DRIFT\\_REFUSED on any divergence)" .

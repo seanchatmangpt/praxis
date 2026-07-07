@@ -1,0 +1,25 @@
+---
+to: "dist/arxiv/arxiv_check_report.json"
+sparql:
+  meta: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?releaseId ?arxivStatus ?arxivDetail ?arxivFileCount ?tarballHash ?pdfHash
+    WHERE { ?m a post:MetaNode ; post:releaseId ?releaseId ;
+      post:arxivStatus ?arxivStatus ; post:arxivDetail ?arxivDetail ;
+      post:arxivFileCount ?arxivFileCount ; post:tarballHash ?tarballHash ;
+      post:pdfHash ?pdfHash . }
+force: true
+skip_empty: true
+---
+{% for m in meta %}{
+  "schema": "mfact.arxiv_check.v1",
+  "release": "{{ m.releaseId }}",
+  "status": "{{ m.arxivStatus }}",
+  "detail": "{{ m.arxivDetail }}",
+  "declaredFileCount": {{ m.arxivFileCount }},
+  "tarballBlake3": "{{ m.tarballHash }}",
+  "pdfBlake3": "{{ m.pdfHash }}",
+  "gates": ["declared==packed", "no absolute local paths", "cold latexmk build from untarred package"],
+  "actuation": "PENDING_EXTERNAL_ACTUATION"
+}
+{% endfor %}

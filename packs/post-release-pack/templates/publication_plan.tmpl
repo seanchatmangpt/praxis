@@ -1,0 +1,33 @@
+---
+to: "release/publication_plan.json"
+sparql:
+  packets: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?packetId ?packetStatus ?publication
+    WHERE { ?p a post:Packet ; post:packetId ?packetId ;
+      post:packetStatus ?packetStatus ; post:publication ?publication . }
+    ORDER BY ?packetId
+  reqs: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?reqPacket ?reqName ?reqMet
+    WHERE { ?r a post:Requirement ; post:reqPacket ?reqPacket ;
+      post:reqOrder ?ord ; post:reqName ?reqName ; post:reqMet ?reqMet . }
+    ORDER BY ?reqPacket ?ord
+force: true
+skip_empty: true
+---
+{
+  "schema": "mfact.publication_plan.v1",
+  "law": "packets never self-actuate; publication is always the user's action",
+  "packets": [
+{% for p in packets %}    {
+      "id": "{{ p.packetId }}",
+      "status": "{{ p.packetStatus }}",
+      "publication": "{{ p.publication }}",
+      "requires": [
+{% for r in reqs %}{% if r.reqPacket == p.packetId %}        {"name": "{{ r.reqName }}", "met": {{ r.reqMet }}},
+{% endif %}{% endfor %}        {"name": "user_actuation", "met": false}
+      ]
+    }{% if not loop.last %},{% endif %}
+{% endfor %}  ]
+}

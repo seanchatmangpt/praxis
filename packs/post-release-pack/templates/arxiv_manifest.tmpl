@@ -1,0 +1,32 @@
+---
+to: "dist/arxiv/arxiv_manifest.toml"
+sparql:
+  meta: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?releaseId ?tarballHash ?arxivStatus ?arxivFileCount
+    WHERE { ?m a post:MetaNode ; post:releaseId ?releaseId ;
+      post:tarballHash ?tarballHash ; post:arxivStatus ?arxivStatus ;
+      post:arxivFileCount ?arxivFileCount . }
+  files: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?fileOrder ?fileName
+    WHERE { ?f a post:ArxivFile ; post:fileOrder ?fileOrder ;
+      post:fileName ?fileName . }
+    ORDER BY ?fileOrder
+force: true
+skip_empty: true
+---
+# arXiv submission packet manifest — rendered from the post-release graph.
+# The declared file list originates in .mfact/arxiv.toml (single source);
+# this manifest is the packet-side attestation of what was packed.
+{% for m in meta %}[packet]
+release = "{{ m.releaseId }}"
+tarball = "paper/arxiv-submission.tar.gz"
+tarball_blake3 = "{{ m.tarballHash }}"
+status = "{{ m.arxivStatus }}"
+declared_file_count = {{ m.arxivFileCount }}
+actuation = "PENDING_EXTERNAL_ACTUATION"
+
+files = [
+{% endfor %}{% for f in files %}  "{{ f.fileName }}",
+{% endfor %}]

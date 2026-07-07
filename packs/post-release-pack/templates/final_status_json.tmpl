@@ -1,0 +1,55 @@
+---
+to: "release/final_status.json"
+sparql:
+  meta: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?releaseId ?coreReleaseHash ?coreProven ?coreTotalDecls ?statedCount
+           ?renderedCommit ?coreTag ?tagCommit ?tagGate ?packetHash ?arxivStatus
+           ?replayStatus ?docsLane ?crownStatus ?publication
+    WHERE { ?m a post:MetaNode ; post:releaseId ?releaseId ;
+      post:coreReleaseHash ?coreReleaseHash ; post:coreProven ?coreProven ;
+      post:coreTotalDecls ?coreTotalDecls ; post:statedCount ?statedCount ;
+      post:renderedCommit ?renderedCommit ; post:coreTag ?coreTag ;
+      post:tagCommit ?tagCommit ; post:tagGate ?tagGate ;
+      post:packetHash ?packetHash ; post:arxivStatus ?arxivStatus ;
+      post:replayStatus ?replayStatus ; post:docsLane ?docsLane ;
+      post:crownStatus ?crownStatus ; post:publication ?publication . }
+  packets: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?packetId ?packetStatus ?publication
+    WHERE { ?p a post:Packet ; post:packetId ?packetId ;
+      post:packetStatus ?packetStatus ; post:publication ?publication . }
+    ORDER BY ?packetId
+force: true
+skip_empty: true
+---
+{% for m in meta %}{
+  "schema": "mfact.final_status.v1",
+  "core": {
+    "status": "ALIVE",
+    "release": "{{ m.releaseId }}",
+    "coreReleaseHash": "{{ m.coreReleaseHash }}",
+    "coreProven": {{ m.coreProven }},
+    "coreTotalDecls": {{ m.coreTotalDecls }},
+    "stated": {{ m.statedCount }},
+    "renderedCommit": "{{ m.renderedCommit }}",
+    "tag": "{{ m.coreTag }}",
+    "tagCommit": "{{ m.tagCommit }}",
+    "renderedCommitIsAncestorOfTag": "{{ m.tagGate }}"
+  },
+  "publicationPacket": {
+    "packetHash": "{{ m.packetHash }}",
+    "publicationActuation": "{{ m.publication }}",
+    "arxivPacket": "{{ m.arxivStatus }}",
+    "packets": [
+{% for p in packets %}      {"id": "{{ p.packetId }}", "status": "{{ p.packetStatus }}", "publication": "{{ p.publication }}"}{% if not loop.last %},{% endif %}
+{% endfor %}    ]
+  },
+  "auxiliaryLanes": {
+    "replay": "{{ m.replayStatus }}",
+    "docsLane": "{{ m.docsLane }}",
+    "wfnetCrownTheorem": "{{ m.crownStatus }}",
+    "nextDomainFoundry": "PLANNED"
+  }
+}
+{% endfor %}
