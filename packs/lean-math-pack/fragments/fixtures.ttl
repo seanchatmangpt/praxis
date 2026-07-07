@@ -1,0 +1,89 @@
+@prefix procint: <https://mfact.dev/procint#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ═══ Module: Fixtures.Positive (order 90) ═══════════════════════════════
+
+procint:Mod_Fixtures_Positive a procint:Module ;
+  procint:moduleId "Fixtures.Positive" ;
+  procint:modPath "Fixtures/Positive" ;
+  procint:order 90 ;
+  procint:moduleDoc "Positive fixtures: concrete well-formed instances exercised by direct computation, the Lean analogue of wasm4pm-compat tests/smoke_models.rs. Each example is decidable and checked at elaboration time — there is no separate test runner." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Logs.Event
+import ProcInt.Logs.Trace
+import ProcInt.Conformance.TokenReplay""" .
+
+procint:Decl_fixture_fitness_perfect a procint:Decl ;
+  procint:inModule "Fixtures.Positive" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.example_fitness_perfect" ;
+  procint:declKind "example" ;
+  procint:status "proven" ;
+  procint:leanCode """/-- A perfect-replay `ReplayCounts` instance (produced = consumed = 4, no
+missing, no remaining) has fitness exactly 1 — mirrors
+`calculate_fitness(4,4,0,0) = 1.0` in wasm4pm-compat src/conformance.rs. -/
+example :
+    fitness ⟨4, 4, 0, 0, by decide, by decide⟩ = 1 :=
+  fitness_perfect _ rfl rfl""" .
+
+procint:Decl_fixture_trace_monotone a procint:Decl ;
+  procint:inModule "Fixtures.Positive" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.example_trace_monotone" ;
+  procint:declKind "example" ;
+  procint:status "proven" ;
+  procint:leanCode """/-- A trace of three events fired at non-decreasing timestamps 0, 5, 5 is
+monotone by direct computation. -/
+example :
+    Trace.Monotone
+      (⟨"case-1", [Event.simple "a" 0, Event.simple "b" 5, Event.simple "c" 5]⟩ :
+        Trace String) := by
+  unfold Trace.Monotone
+  decide""" .
+
+# ═══ Module: Fixtures.Negative (order 91) ═══════════════════════════════
+
+procint:Mod_Fixtures_Negative a procint:Module ;
+  procint:moduleId "Fixtures.Negative" ;
+  procint:modPath "Fixtures/Negative" ;
+  procint:order 91 ;
+  procint:moduleDoc "Negative fixtures: malformed instances that must be REJECTED, the Lean analogue of wasm4pm-compat trybuild tests/ui/compile_fail. Each is a #guard_msgs (error) block whose docstring is the exact error Lean produces — the fixture fails closed if the rejection ever stops happening (message drift) or starts happening for a different reason." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Logs.Event
+import ProcInt.Logs.Trace
+import ProcInt.Conformance.TokenReplay""" .
+
+procint:Decl_fixture_replaycounts_bad a procint:Decl ;
+  procint:inModule "Fixtures.Negative" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.example_replaycounts_missing_gt_consumed" ;
+  procint:declKind "example" ;
+  procint:status "proven" ;
+  procint:leanCode """-- A `ReplayCounts` with `missing = 5 > consumed = 4` cannot be
+-- constructed — the `missing_le` field demands a proof of `5 ≤ 4`, which
+-- `decide` correctly refutes. Negative fixture: refusal is the pass condition.
+/-- error: Tactic `decide` proved that the proposition
+  5 ≤ 4
+is false -/
+#guard_msgs in
+example : ReplayCounts := ⟨4, 4, 5, 0, by decide, by decide⟩""" .
+
+procint:Decl_fixture_trace_nonmonotone a procint:Decl ;
+  procint:inModule "Fixtures.Negative" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.example_trace_nonmonotone" ;
+  procint:declKind "example" ;
+  procint:status "proven" ;
+  procint:leanCode """-- A trace with events at timestamps 5 then 0 is not monotone —
+-- attempting to `decide` it fails to close the goal. Negative fixture:
+-- refusal is the pass condition.
+/-- error: Tactic `decide` proved that the proposition
+  List.IsChain (fun a b => a.timestamp ≤ b.timestamp)
+    { caseId := "case-2", events := [Event.simple "a" 5, Event.simple "b" 0] }.events
+is false -/
+#guard_msgs in
+example :
+    Trace.Monotone
+      (⟨"case-2", [Event.simple "a" 5, Event.simple "b" 0]⟩ : Trace String) := by
+  unfold Trace.Monotone
+  decide""" .
