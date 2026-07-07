@@ -3,9 +3,9 @@ to: "paper/publication_status.tex"
 sparql:
   a_m: |
     PREFIX post: <https://mfact.dev/postrelease#>
-    SELECT ?releaseId ?packetHash ?arxivStatus ?arxivDetail ?arxivFileCount ?publicationTex
+    SELECT ?releaseId ?arxivStatus ?arxivDetail ?arxivFileCount ?publicationTex
     WHERE { ?m a post:MetaNode ; post:releaseId ?releaseId ;
-      post:packetHash ?packetHash ; post:arxivStatus ?arxivStatus ;
+      post:arxivStatus ?arxivStatus ;
       post:arxivDetail ?arxivDetail ; post:arxivFileCount ?arxivFileCount ;
       post:publicationTex ?publicationTex . }
   packets: |
@@ -20,10 +20,11 @@ skip_empty: true
 % RENDERED by `ggen sync` from the post-release graph (post-release-pack) — DO NOT EDIT BY HAND
 {% for m in a_m %}\paragraph{Publication packet.}
 Publication of {{ m.releaseId }} is manufactured as its own identity, distinct
-from the certified core release: a packet hash
-(\texttt{\footnotesize {{ m.packetHash }}})
-folded over the packet's evidence inputs, with each actuation surface
-gated on evaluated requirements. The arXiv packet is
+from the certified core release: a packet hash folded over the packet's
+evidence inputs (recorded in \texttt{release/final\_status.json}; this
+paper is itself one of those inputs and therefore cannot embed the hash
+without self-reference), with each actuation surface gated on evaluated
+requirements. The arXiv packet is
 \texttt{{ '{' }}{{ m.arxivStatus }}{{ '}' }} ({{ m.arxivDetail }};
 {{ m.arxivFileCount }} declared files, declared $=$ packed enforced).
 Packet statuses:
