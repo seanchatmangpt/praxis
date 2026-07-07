@@ -31,6 +31,18 @@ const REPO = path.resolve(__dirname, '..', '..');
  *   /praxis-artifacts/case-study/pddl-plan.json           -> case-study/pddl-out/plan.json
  */
 const CASE_STUDY_DIR = 'docs/case-studies/autonomic-standing-factory/case-study';
+// mfact standing surfaces (the Lean/Lake manufacturing rail's certified
+// receipts; display-only — clients display standing, they never create it).
+// mfact lives outside this repo; absolute base, widened into fs.allow below.
+const MFACT = '/Users/sac/mfact';
+const MFACT_MAP = {
+  '/praxis-artifacts/mfact/final_status.json': ['release/final_status.json', 'application/json'],
+  '/praxis-artifacts/mfact/FINAL_STATUS.md': ['release/FINAL_STATUS.md', 'text/markdown'],
+  '/praxis-artifacts/mfact/standing.env': ['release/standing.env', 'text/plain'],
+  '/praxis-artifacts/mfact/quadrature.json': ['release/quadrature.json', 'application/json'],
+  '/praxis-artifacts/mfact/replay_report.json': ['release/replay_report.json', 'application/json'],
+  '/praxis-artifacts/mfact/docs_report.json': ['release/docs_report.json', 'application/json'],
+};
 const STATIC_MAP = {
   '/praxis-artifacts/receipt.json': ['.ggen-v2/receipt.json', 'application/json'],
   '/praxis-artifacts/receipt-log.jsonl': ['.ggen-v2/receipt-log.jsonl', 'text/plain'],
@@ -51,6 +63,13 @@ function praxisArtifacts() {
         if (STATIC_MAP[url]) {
           const [rel, mime] = STATIC_MAP[url];
           const abs = path.join(REPO, rel);
+          if (!fs.existsSync(abs)) { res.statusCode = 404; return res.end('absent'); }
+          res.setHeader('Content-Type', mime);
+          return res.end(fs.readFileSync(abs));
+        }
+        if (MFACT_MAP[url]) {
+          const [rel, mime] = MFACT_MAP[url];
+          const abs = path.join(MFACT, rel);
           if (!fs.existsSync(abs)) { res.statusCode = 404; return res.end('absent'); }
           res.setHeader('Content-Type', mime);
           return res.end(fs.readFileSync(abs));
@@ -93,5 +112,5 @@ export default defineConfig({
   // of src/AutonomicPlatform.js). Tell esbuild to treat src .js as JSX.
   esbuild: { loader: 'jsx', include: /\.jsx?$/, jsx: 'automatic' },
   optimizeDeps: { esbuildOptions: { loader: { '.js': 'jsx' } } },
-  server: { fs: { allow: [REPO] } },
+  server: { fs: { allow: [REPO, MFACT] } },
 });

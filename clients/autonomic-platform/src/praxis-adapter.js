@@ -204,6 +204,43 @@ export async function getStanding() {
 }
 
 /**
+ * getMfactStanding() -> the mfact (Lean/Lake manufacturing rail) standing.
+ * Every field is either UNKNOWN or { value, source, ref }. Sourced verbatim
+ * from /praxis-artifacts/mfact/* (see vite.config.js). Nothing is computed
+ * beyond parsing; the certified values live in mfact's own receipts:
+ *   final_status.json — rendered publication packet (report)
+ *   standing.env      — exit-code-backed standing keys (report)
+ *   quadrature.json   — Standing Quadrature results (report)
+ *   replay/docs       — auxiliary lane receipts (report)
+ */
+export async function getMfactStanding() {
+  const [fin, env, quad, replay, docs] = await Promise.all([
+    fetchJson('/praxis-artifacts/mfact/final_status.json'),
+    fetchText('/praxis-artifacts/mfact/standing.env'),
+    fetchJson('/praxis-artifacts/mfact/quadrature.json'),
+    fetchJson('/praxis-artifacts/mfact/replay_report.json'),
+    fetchJson('/praxis-artifacts/mfact/docs_report.json'),
+  ]);
+  const R = 'mfact:release';
+  const envMap = {};
+  if (env != null) {
+    for (const line of env.split('\n')) {
+      const i = line.indexOf('=');
+      if (i > 0 && !line.startsWith('#')) envMap[line.slice(0, i)] = line.slice(i + 1);
+    }
+  }
+  return {
+    core: fin ? known(fin.core, 'report', `${R}/final_status.json#core`) : UNKNOWN,
+    packets: fin ? known(fin.publicationPacket, 'report', `${R}/final_status.json#publicationPacket`) : UNKNOWN,
+    lanes: fin ? known(fin.auxiliaryLanes, 'report', `${R}/final_status.json#auxiliaryLanes`) : UNKNOWN,
+    standingEnv: env != null ? known(envMap, 'report', `${R}/standing.env`) : UNKNOWN,
+    quadrature: quad ? known(quad.results ?? quad, 'report', `${R}/quadrature.json`) : UNKNOWN,
+    replay: replay ? known(replay, 'report', `${R}/replay_report.json`) : UNKNOWN,
+    docs: docs ? known(docs, 'report', `${R}/docs_report.json`) : UNKNOWN,
+  };
+}
+
+/**
  * getCaseStudy() -> the autonomic-standing-factory case-study status rows.
  * Every field is either UNKNOWN or { value, source, ref }. Sourced from the
  * Lane 4 evidence artifacts served under /praxis-artifacts/case-study/* (see

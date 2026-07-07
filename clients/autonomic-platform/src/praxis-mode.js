@@ -16,7 +16,7 @@
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getStanding, getCaseStudy, UNKNOWN } from './praxis-adapter.js';
+import { getStanding, getCaseStudy, getMfactStanding, UNKNOWN } from './praxis-adapter.js';
 import { PALETTE, Panel } from './AutonomicPlatform.js';
 
 const mono = "'JetBrains Mono', ui-monospace, monospace";
@@ -26,13 +26,16 @@ const sans = "'Space Grotesk', system-ui, sans-serif";
 
 const PraxisContext = createContext(null);
 
-const EMPTY = { artifacts: UNKNOWN, blockers: UNKNOWN, plan: UNKNOWN, chain_head: UNKNOWN, provenance: {} };
+const EMPTY = { artifacts: UNKNOWN, blockers: UNKNOWN, plan: UNKNOWN, chain_head: UNKNOWN, provenance: {}, mfact: null };
 
 export function PraxisProvider({ children }) {
   const [standing, setStanding] = useState(EMPTY);
   useEffect(() => {
     let live = true;
-    const poll = () => getStanding().then((s) => { if (live) setStanding(s); }).catch(() => {});
+    const poll = () =>
+      Promise.all([getStanding(), getMfactStanding().catch(() => null)])
+        .then(([s, m]) => { if (live) setStanding({ ...s, mfact: m }); })
+        .catch(() => {});
     poll();
     // Receipts are the sync primitive: poll the chain; a changed chain head is
     // the only signal that standing moved (adapter contract rule 4).
@@ -112,6 +115,7 @@ export function PraxisHud() {
           <ProvenanceTag source={chain_head.source} refPath={chain_head.ref} />
         </>
       )}
+      <MfactHudSegment />
       <div style={{ flex: 1 }} />
       {plan.unknown ? (
         <UnknownChip label="PLAN" />
@@ -124,6 +128,42 @@ export function PraxisHud() {
         </>
       )}
     </div>
+  );
+}
+
+/* ---------------- mfact rail segment (Lean/Lake manufacturing standing) ---------------- */
+
+// Display-only projection of mfact's certified receipts (adapter contract:
+// clients display and command standing; they never create it). UNKNOWN when
+// the artifact bridge cannot reach /Users/sac/mfact/release/*.
+function MfactHudSegment() {
+  const { mfact } = usePraxis();
+  if (!mfact || mfact.core.unknown) return <UnknownChip label="MFACT" />;
+  const core = mfact.core.value;
+  const packets = mfact.packets.unknown ? null : mfact.packets.value;
+  const alive = packets ? packets.packets.filter((p) => p.status === 'ALIVE').length : 0;
+  const total = packets ? packets.packets.length : 0;
+  const lanes = mfact.lanes.unknown ? null : mfact.lanes.value;
+  return (
+    <>
+      <span style={{ font: `600 10px ${mono}`, color: PALETTE.emerald }}>
+        MFACT {core.release} {core.status}
+      </span>
+      <span style={{ font: `600 10px ${mono}`, color: PALETTE.cyan }}>
+        PROVEN {core.coreProven}/{core.coreTotalDecls}
+      </span>
+      {packets && (
+        <span style={{ font: `600 10px ${mono}`, color: alive === total ? PALETTE.emerald : PALETTE.amber }}>
+          PACKETS {alive}/{total} · {packets.publicationActuation}
+        </span>
+      )}
+      {lanes && (
+        <span style={{ font: `500 9px ${mono}`, color: PALETTE.violet }}>
+          REPLAY {lanes.replay} · DOCS {lanes.docsLane} · CROWN {lanes.wfnetCrownTheorem}
+        </span>
+      )}
+      <ProvenanceTag source={mfact.core.source} refPath={mfact.core.ref} />
+    </>
   );
 }
 
