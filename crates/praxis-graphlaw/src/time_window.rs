@@ -1,7 +1,6 @@
 use deepmesa_collections::LinkedList;
 use std::cell::RefCell;
 use std::cmp;
-use std::collections::HashMap;
 use std::hash::Hash;
 use std::rc::Rc;
 
@@ -75,7 +74,7 @@ where
 
             let consumers = self.consumers.clone();
             let last_valid_ts = self.get_last_valid_time_for(&ts);
-            consumers.iter().for_each(|mut item| {
+            consumers.iter().for_each(|item| {
                 let mut reference = item.borrow_mut();
                 reference.update(window_content.clone(), &last_valid_ts);
             });
@@ -108,7 +107,7 @@ where
     }
     fn progress_time_and_extract_content(&mut self, ts: &i32) -> Vec<(i32, Rc<T>)> {
         let mut window_content = Vec::new();
-        while let Some((timestamp, item)) = self.content.front() {
+        while let Some((timestamp, _item)) = self.content.front() {
             if *timestamp <= self.get_last_valid_time_for(ts) {
                 self.content.pop_front();
             } else {

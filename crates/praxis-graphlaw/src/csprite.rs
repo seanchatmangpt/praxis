@@ -2,13 +2,12 @@ use crate::{
     BackwardChainer, Binding, Encoder, QueryEngine, Reasoner, Rule, RuleIndex, SimpleQueryEngine,
     Triple, TripleIndex, TripleStore, VarOrTerm,
 };
-use log::{info, trace, warn}; // Use log crate when building application
+use log::trace; // Use log crate when building application
 use std::collections::HashSet;
 use std::fmt::Write;
 use std::rc::Rc;
 
 use crate::imars_window::ImarsWindow;
-use std::cell::RefCell;
 
 pub struct CSprite {
     pub rules: Vec<Rule>,
@@ -50,7 +49,7 @@ impl CSprite {
     pub fn window_update(
         &mut self,
         new_data: Vec<(i32, Rc<Triple>)>,
-        old_data: Vec<(i32, Rc<Triple>)>,
+        _old_data: Vec<(i32, Rc<Triple>)>,
         last_ts: &i32,
     ) {
         //remove expired data
@@ -66,7 +65,7 @@ impl CSprite {
             self.imars.add_without_update(triple.clone(), *ts);
             self.add_ref(triple.clone());
         });
-        let materialization = self.window_reasoner.materialize(
+        let _materialization = self.window_reasoner.materialize(
             &new_data,
             &mut self.triple_index,
             &self.rules_index,
@@ -201,7 +200,7 @@ impl CSprite {
         let sub_rules: Vec<(Rc<Rule>, Vec<(usize, usize)>)> =
             BackwardChainer::find_subrules(&self.rules_index, rule_head);
         let mut current_hierarchy = false;
-        for (sub_rule, var_subs) in sub_rules.into_iter() {
+        for (sub_rule, _var_subs) in sub_rules.into_iter() {
             if matched_rules.insert(sub_rule.clone()) {
                 if sub_rule.body.len() == 1 {
                     //hierarchy candidate
@@ -411,9 +410,9 @@ impl CSpriteReasoner {
             let mut triples = Vec::new();
             for body_lit in rule.body.iter() {
                 let triple = &body_lit.pattern;
-                let mut s;
-                let mut p;
-                let mut o;
+                let s;
+                let p;
+                let o;
                 if triple.s.is_var() {
                     s = VarOrTerm::new_encoded_term(
                         *result_bindings

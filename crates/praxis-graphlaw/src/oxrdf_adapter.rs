@@ -1,6 +1,6 @@
 use crate::encoding::Encoder;
 use crate::tripleindex::TripleIndex;
-use crate::triples::{Term, VarOrTerm};
+use crate::triples::Term;
 use oxrdf::{BlankNode, Graph, Literal, NamedNode, NamedOrBlankNode, Term as OxTerm};
 
 /// Helper to strip leading `<` and trailing `>` from IRI string representation if present.

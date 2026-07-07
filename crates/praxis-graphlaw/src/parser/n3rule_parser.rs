@@ -678,7 +678,7 @@ fn parse_formula(pair: Pair<Rule>, prefixes: &PrefixMapper) -> VarOrTerm {
 
 /// Extract the raw (unbracketed) IRI-reference text from an `IriRef`
 /// (`"<" ~ IriReference ~ ">"`, wrapped in the atomic `BracketedIri`) pair.
-fn bracketed_iri_text(iri_ref_pair: Pair<Rule>) -> &str {
+fn bracketed_iri_text(iri_ref_pair: Pair<'_, Rule>) -> &str {
     iri_ref_pair
         .into_inner()
         .next()

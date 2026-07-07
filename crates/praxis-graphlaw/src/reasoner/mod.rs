@@ -1,4 +1,4 @@
-use crate::triples::{Aggregate, AggregateFunction};
+use crate::triples::AggregateFunction;
 use crate::aggregation::{Accumulator, CountAccumulator, SumAccumulator, MinAccumulator, MaxAccumulator, AvgAccumulator, AccumulatorImpl};
 use std::collections::HashMap;
 use crate::{

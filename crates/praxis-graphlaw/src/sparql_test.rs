@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use super::*;
+use crate::{Parser, Syntax};
     fn prepare_test() -> TripleIndex{
         //load triples
         let nquads = "<http://example.com/foo> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/Person> <http://example.com/> .

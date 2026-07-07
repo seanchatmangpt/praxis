@@ -1,5 +1,4 @@
-use crate::{BodyLiteral, Encoder, Rule, Triple, VarOrTerm};
-use rio_api::model::NamedNode;
+use crate::{BodyLiteral, Rule, Triple, VarOrTerm};
 use rio_api::parser::{QuadsParser, TriplesParser};
 use rio_turtle::{NQuadsParser, NTriplesParser, TriGParser, TurtleError, TurtleParser};
 
@@ -75,7 +74,7 @@ impl Parser {
         } else {
             items.get(2).unwrap()
         };
-        let mut convert_item = |item: &&str| {
+        let convert_item = |item: &&str| {
             if item.starts_with("?") {
                 VarOrTerm::new_var(item.to_string())
             } else {
@@ -152,6 +151,7 @@ impl Parser {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::*;
     #[test]

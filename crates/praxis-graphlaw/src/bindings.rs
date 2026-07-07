@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::Iter;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Binding {
@@ -21,7 +20,7 @@ impl Binding {
         if !self.bindings.contains_key(var_name) {
             self.bindings.insert(*var_name, Vec::new());
         }
-        let mut binding_values = self.bindings.get_mut(var_name).unwrap();
+        let binding_values = self.bindings.get_mut(var_name).unwrap();
         binding_values.push(term);
     }
     pub fn len(&self) -> usize {
@@ -95,7 +94,7 @@ impl Binding {
             if !self.bindings.contains_key(&k) {
                 self.bindings.insert(k, Vec::new());
             }
-            let mut add_vec = self.bindings.get_mut(&k).unwrap();
+            let add_vec = self.bindings.get_mut(&k).unwrap();
             for value in v {
                 for _ in 0..binding_size {
                     add_vec.push(value);

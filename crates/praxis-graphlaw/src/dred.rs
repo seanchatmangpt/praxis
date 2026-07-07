@@ -1,9 +1,8 @@
 use crate::{
-    BackwardChainer, Binding, Encoder, QueryEngine, Reasoner, Rule, RuleIndex, SimpleQueryEngine,
+    Binding, QueryEngine, Reasoner, Rule, RuleIndex, SimpleQueryEngine,
     Triple, TripleIndex, TripleStore, VarOrTerm,
 };
-use log::{info, trace, warn}; // Use log crate when building application
-use std::fmt::Write;
+use log::trace; // Use log crate when building application
 
 use crate::utils::Utils;
 use std::rc::Rc;
@@ -153,11 +152,13 @@ impl DRed {
             .materialize(&mut self.triple_index, &self.rules, &strata, &aggregates)
     }
 }
+#[cfg(test)]
 mod test {
     use crate::dred::DRed;
     use crate::utils::Utils;
     use crate::{Triple, VarOrTerm};
     use std::rc::Rc;
+    
 
     #[test]
     fn test() {

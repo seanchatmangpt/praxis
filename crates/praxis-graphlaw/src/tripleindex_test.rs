@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-    use crate::Syntax;
+use crate::{Encoder, Parser, Syntax};
     #[test]
     fn test_remove() {
         let mut index = TripleIndex::new();

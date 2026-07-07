@@ -1,8 +1,10 @@
 use crate::csprite::CSprite;
 use crate::imars_window::{ImarsWindow, WindowConsumer};
-use crate::{Encoder, Parser, Triple, TripleStore};
+use crate::Triple;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
+#[cfg(test)]
+use crate::Parser;
 
 struct ImarsReasoner {
     store: CSprite,
@@ -26,7 +28,7 @@ impl WindowConsumer<Triple> for ImarsReasoner {
         &mut self,
         new: Vec<(i32, Rc<Triple>)>,
         old: Vec<(i32, Rc<Triple>)>,
-        ts: i32,
+        _ts: i32,
     ) -> Vec<(i32, Triple)> {
         println!("Received new: {:?}, old: {:?}", new.len(), old.len());
         new.iter()
@@ -34,7 +36,7 @@ impl WindowConsumer<Triple> for ImarsReasoner {
         // Pass the new items directly to avoid re-borrowing the window (which is
         // already mutably borrowed by the caller's ImarsWindow::add call).
         let mat_triples = self.store.materialize_window(new);
-        old.into_iter().for_each(|(ts, t)| self.store.remove_ref(t));
+        old.into_iter().for_each(|(_ts, t)| self.store.remove_ref(t));
         mat_triples
     }
 }

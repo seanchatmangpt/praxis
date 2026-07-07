@@ -40,6 +40,7 @@ impl Utils {
     }
 }
 
+#[cfg(test)]
 mod test {
     use crate::utils::Utils;
 

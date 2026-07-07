@@ -67,7 +67,7 @@ impl RuleIndex {
                 if !self.s.contains_key(&s.to_encoded()) {
                     self.s.insert(s.to_encoded(), Vec::new());
                 }
-                if let Some(mut rules) = self.s.get_mut(&s.to_encoded()) {
+                if let Some(rules) = self.s.get_mut(&s.to_encoded()) {
                     if !rules.contains(&rule) {
                         rules.push(rule.clone())
                     };
@@ -80,7 +80,7 @@ impl RuleIndex {
                     self.p.insert(p.to_encoded(), Vec::new());
                 }
                 //self.p.get_mut(&p.to_string()).unwrap().push(rule.clone());
-                if let Some(mut rules) = self.p.get_mut(&p.to_encoded()) {
+                if let Some(rules) = self.p.get_mut(&p.to_encoded()) {
                     if !rules.contains(&rule) {
                         rules.push(rule.clone())
                     };
@@ -92,7 +92,7 @@ impl RuleIndex {
                     self.o.insert(o.to_encoded(), Vec::new());
                 }
                 //self.o.get_mut(&o.to_string()).unwrap().push(rule.clone());
-                if let Some(mut rules) = self.o.get_mut(&o.to_encoded()) {
+                if let Some(rules) = self.o.get_mut(&o.to_encoded()) {
                     if !rules.contains(&rule) {
                         rules.push(rule.clone())
                     };
@@ -115,7 +115,7 @@ impl RuleIndex {
                         .insert(p.to_encoded(), Vec::new());
                 }
                 //self.sp.get_mut(&sp_str).unwrap().push(rule.clone());
-                if let Some(mut rules) = self
+                if let Some(rules) = self
                     .sp
                     .get_mut(&s.to_encoded())
                     .unwrap()
@@ -143,7 +143,7 @@ impl RuleIndex {
                         .insert(o.to_encoded(), Vec::new());
                 }
                 //self.sp.get_mut(&sp_str).unwrap().push(rule.clone());
-                if let Some(mut rules) = self
+                if let Some(rules) = self
                     .so
                     .get_mut(&s.to_encoded())
                     .unwrap()
@@ -171,7 +171,7 @@ impl RuleIndex {
                         .insert(o.to_encoded(), Vec::new());
                 }
                 //self.sp.get_mut(&sp_str).unwrap().push(rule.clone());
-                if let Some(mut rules) = self
+                if let Some(rules) = self
                     .po
                     .get_mut(&p.to_encoded())
                     .unwrap()
@@ -214,7 +214,7 @@ impl RuleIndex {
                         .insert(o.to_encoded(), Vec::new());
                 }
                 //self.sp.get_mut(&sp_str).unwrap().push(rule.clone());
-                if let Some(mut rules) = self
+                if let Some(rules) = self
                     .spo_all
                     .get_mut(&s.to_encoded())
                     .unwrap()

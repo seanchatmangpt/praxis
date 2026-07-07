@@ -1,22 +1,18 @@
-use crate::sparql::EncodedTerm::NamedNode;
 use crate::sparql::PlanNode::QuadPattern;
 use crate::tripleindex::EncodedBinding;
 use crate::utils::Utils;
-use crate::{Encoder, Parser, Syntax, Term, TermImpl, Triple, TripleIndex, TripleStore, VarOrTerm};
-use once_cell::sync::Lazy;
+use crate::{Encoder, Term, Triple, TripleIndex};
 use spargebra::algebra::*;
 use spargebra::term::{TriplePattern, Variable};
 use spargebra::Query;
-use spargebra::Query::Select;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Error;
 use std::iter::empty;
 use std::rc::Rc;
-use std::sync::Mutex;
 
-fn extract_triples(triple_patterns: &Vec<TriplePattern>, encoder: &mut Encoder) -> Vec<Triple> {
+fn extract_triples(triple_patterns: &Vec<TriplePattern>, _encoder: &mut Encoder) -> Vec<Triple> {
     let mut triples = Vec::new();
     for TriplePattern {
         subject: s,
@@ -224,7 +220,7 @@ fn extract_query_plan(graph_pattern: &GraphPattern) -> PlanNode {
 }
 fn build_for_aggregate(
     aggregate: &AggregateExpression,
-    variables: &mut Vec<Variable>,
+    _variables: &mut Vec<Variable>,
 ) -> Result<PlanAggregation, String> {
     match aggregate {
         AggregateExpression::CountSolutions { distinct } => Ok(PlanAggregation {
@@ -461,7 +457,7 @@ pub fn evaluate_plan<'a>(
                 })
                 .collect();
 
-            let mut grouped_accumulators = Rc::new(RefCell::new(HashMap::<
+            let grouped_accumulators = Rc::new(RefCell::new(HashMap::<
                 Vec<usize>,
                 Vec<AccumulatorImpl>,
             >::default()));
@@ -554,7 +550,7 @@ pub fn evaluate_plan<'a>(
             });
 
             {
-                let mut temp_acc = local_group.borrow_mut();
+                let temp_acc = local_group.borrow_mut();
                 let mut new_bindings = Vec::with_capacity(temp_acc.len());
                 let key_values: Vec<usize> = keys
                     .iter()
@@ -1081,10 +1077,10 @@ impl Iterator for QueryResults {
         self.iterator.next()
     }
 }
-pub fn eval_query<'a>(query: &'a Query, index: &'a TripleIndex) -> PlanNode {
+pub fn eval_query<'a>(query: &'a Query, _index: &'a TripleIndex) -> PlanNode {
     match query {
         spargebra::Query::Select {
-            pattern, base_iri, ..
+            pattern, base_iri: _, ..
         } => extract_query_plan(pattern),
         spargebra::Query::Ask {
             pattern,

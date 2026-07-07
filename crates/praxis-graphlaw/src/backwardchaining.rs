@@ -1,8 +1,8 @@
 use crate::queryengine::{QueryEngine, SimpleQueryEngine};
 use crate::{
-    Binding, BodyLiteral, Encoder, Rule, RuleIndex, Triple, TripleIndex, TripleStore, VarOrTerm,
+    Binding, BodyLiteral, Rule, RuleIndex, Triple, TripleIndex, TripleStore, VarOrTerm,
 };
-use log::{debug, info, trace, warn};
+use log::{debug, warn};
 use std::collections::HashMap;
 use std::rc::Rc; // Use log crate when building application
 

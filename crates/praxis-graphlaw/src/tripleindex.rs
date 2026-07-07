@@ -1,7 +1,5 @@
-use crate::{Binding, Encoder, Parser, Term, Triple, TripleStore, VarOrTerm};
-use either::*;
+use crate::{Binding, Term, Triple, VarOrTerm};
 use std::collections::HashMap;
-use std::iter;
 use std::iter::empty;
 use std::rc::Rc;
 
@@ -59,7 +57,7 @@ impl TripleIndex {
                 .unwrap()
                 .get_mut(&triple.p.to_encoded())
                 .unwrap();
-            spo_values.retain(|(val, counter, _)| *val != triple.o.to_encoded());
+            spo_values.retain(|(val, _counter, _)| *val != triple.o.to_encoded());
         }
         //remove pos
         if self.pos.contains_key(&triple.p.to_encoded())
@@ -75,7 +73,7 @@ impl TripleIndex {
                 .unwrap()
                 .get_mut(&triple.o.to_encoded())
                 .unwrap();
-            values.retain(|(val, counter, _)| *val != triple.s.to_encoded());
+            values.retain(|(val, _counter, _)| *val != triple.s.to_encoded());
         }
         // remove osp
         if self.osp.contains_key(&triple.o.to_encoded())
@@ -91,7 +89,7 @@ impl TripleIndex {
                 .unwrap()
                 .get_mut(&triple.s.to_encoded())
                 .unwrap();
-            values.retain(|(val, counter, _)| *val != triple.p.to_encoded());
+            values.retain(|(val, _counter, _)| *val != triple.p.to_encoded());
         }
         self.triples.retain(|t| *t != *triple);
         self.counter -= 1;
@@ -186,7 +184,7 @@ impl TripleIndex {
             {
                 false
             } else {
-                for (encoded, counter, _) in self
+                for (encoded, _counter, _) in self
                     .osp
                     .get(&triple.o.to_encoded())
                     .unwrap()
@@ -527,7 +525,7 @@ impl TripleIndex {
     pub fn query_help<'a>(
         &'a self,
         query_triple: &'a Triple,
-        triple_counter: Option<usize>,
+        _triple_counter: Option<usize>,
     ) -> Box<dyn Iterator<Item = Vec<EncodedBinding>> + 'a> {
         //?s p o
         if query_triple.s.is_var() & query_triple.p.is_term() & query_triple.o.is_term() {
@@ -588,7 +586,7 @@ impl TripleIndex {
                                 .iter()
                                 .zip(std::iter::repeat_n(s_key, p_values.len()))
                         })
-                        .filter_map(|((encoded_match, counter, graph_name), s_key)| {
+                        .filter_map(|((encoded_match, _counter, graph_name), s_key)| {
                             let mut bindings = Vec::with_capacity(3);
                             bindings.push(EncodedBinding {
                                 var: query_triple.s.to_encoded(),
@@ -629,7 +627,7 @@ impl TripleIndex {
                         .flat_map(|(key, values)| {
                             values.iter().zip(std::iter::repeat_n(key, values.len()))
                         })
-                        .filter_map(|((encoded_match, counter, graph_name), key)| {
+                        .filter_map(|((encoded_match, _counter, graph_name), key)| {
                             let mut bindings = Vec::with_capacity(3);
                             bindings.push(EncodedBinding {
                                 var: query_triple.p.to_encoded(),
@@ -670,7 +668,7 @@ impl TripleIndex {
                         .flat_map(|(key, values)| {
                             values.iter().zip(std::iter::repeat_n(key, values.len()))
                         })
-                        .filter_map(|((encoded_match, counter, graph_name), key)| {
+                        .filter_map(|((encoded_match, _counter, graph_name), key)| {
                             let mut bindings = Vec::with_capacity(3);
                             bindings.push(EncodedBinding {
                                 var: query_triple.s.to_encoded(),
@@ -716,7 +714,7 @@ impl TripleIndex {
                             .zip(std::iter::repeat_n(p_key, o_values.len()))
                             .zip(std::iter::repeat_n(s_key, o_values.len()))
                     })
-                    .filter_map(|(((encoded_match, counter, graph_name), p_key), s_key)| {
+                    .filter_map(|(((encoded_match, _counter, graph_name), p_key), s_key)| {
                         let mut bindings = Vec::with_capacity(3);
                         bindings.push(EncodedBinding {
                             var: query_triple.s.to_encoded(),
@@ -756,7 +754,7 @@ impl TripleIndex {
                     Box::new(
                         indexes2
                             .iter()
-                            .map(|(encoded_match, counter, graph_name)| {
+                            .map(|(encoded_match, _counter, _graph_name)| {
                                 if *encoded_match == query_triple.p.to_encoded() {
                                     // return when triple has been found in knowlege base
                                     Some(Vec::with_capacity(0))
@@ -791,7 +789,7 @@ impl TripleIndex {
         Box::new(
             indexes2
                 .iter()
-                .filter_map(move |(encoded_match, counter, graph_name)| {
+                .filter_map(move |(encoded_match, _counter, graph_name)| {
                     let mut bindings = Vec::with_capacity(2);
                     bindings.push(EncodedBinding {
                         var: variable.to_encoded(),

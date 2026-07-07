@@ -80,7 +80,7 @@ impl QueryEngine for SimpleQueryEngine {
             for negated_lit in &negated_lits {
                 let mut ground_pattern = negated_lit.pattern.clone();
 
-                let mut substitute = |term: &mut VarOrTerm| {
+                let substitute = |term: &mut VarOrTerm| {
                     if term.is_var() {
                         let var_id = term.to_encoded();
                         if let Some(vals) = bindings.get(&var_id) {

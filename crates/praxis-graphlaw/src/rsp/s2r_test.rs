@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use super::*;
+use std::time::Duration;
     use crate::Encoder;
     use std::cell::RefCell;
     use std::fmt::format;

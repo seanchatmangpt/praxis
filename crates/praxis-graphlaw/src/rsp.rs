@@ -5,12 +5,12 @@ use crate::rsp::s2r::{
 };
 use crate::sparql::{eval_query, evaluate_plan_and_debug, Binding};
 use crate::{Encoder, Syntax, Triple, TripleStore};
-use log::{debug, error, info, trace, warn}; // Use log crate when building application
+use log::{debug, error}; // Use log crate when building application
 use spargebra::Query;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::sync::mpsc::Receiver;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 
@@ -150,7 +150,7 @@ where
     ) -> RSPEngine<I, O> {
         let mut report = Report::new();
         report.add(report_strategy);
-        let mut window = CSPARQLWindow::new(width, slide, report, tick);
+        let window = CSPARQLWindow::new(width, slide, report, tick);
         let mut store = r2r;
 
         if let Err(parsing_error) = store.load_triples(triples, syntax) { error!("Unable to load ABox: {:?}", parsing_error.to_string()) }
@@ -173,7 +173,7 @@ where
             OperationMode::SingleThread => {
                 let consumer_temp = engine.r2r.clone();
                 let r2s_consumer = engine.r2s_consumer.function.clone();
-                let mut r2s_operator = engine.r2s_operator.clone();
+                let r2s_operator = engine.r2s_operator.clone();
                 let call_back: Box<dyn FnMut(ContentContainer<I>)> =
                     Box::new(move |content| {
                         Self::evaluate_r2r_and_call_r2s(
@@ -197,11 +197,11 @@ where
     fn register_r2r(&mut self, receiver: Receiver<ContentContainer<I>>, query: Query) {
         let consumer_temp = self.r2r.clone();
         let r2s_consumer = self.r2s_consumer.function.clone();
-        let mut r2s_operator = self.r2s_operator.clone();
+        let r2s_operator = self.r2s_operator.clone();
         thread::spawn(move || {
             loop {
                 match receiver.recv() {
-                    Ok(mut content) => {
+                    Ok(content) => {
                         Self::evaluate_r2r_and_call_r2s(
                             &query,
                             consumer_temp.clone(),
@@ -224,8 +224,8 @@ where
         query: &Query,
         consumer_temp: Arc<Mutex<Box<dyn R2ROperator<I, O>>>>,
         r2s_consumer: Arc<dyn Fn(O) + Send + Sync>,
-        mut r2s_operator: Arc<Mutex<Relation2StreamOperator<O>>>,
-        mut content: ContentContainer<I>,
+        r2s_operator: Arc<Mutex<Relation2StreamOperator<O>>>,
+        content: ContentContainer<I>,
     ) {
         debug!("R2R operator retrieved graph {:?}", content);
         let time_stamp = content.get_last_timestamp_changed();

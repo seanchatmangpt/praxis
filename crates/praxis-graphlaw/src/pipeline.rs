@@ -1,8 +1,13 @@
 use crate::csprite::CSprite;
-use crate::time_window::{TimeWindow, TimeWindowConsumer};
-use crate::{Parser, Triple};
-use std::cell::RefCell;
+use crate::time_window::TimeWindowConsumer;
+use crate::Triple;
 use std::rc::Rc;
+#[cfg(test)]
+use crate::time_window::TimeWindow;
+#[cfg(test)]
+use crate::Parser;
+#[cfg(test)]
+use std::cell::RefCell;
 
 pub struct WindowReasoner {
     pub store: CSprite,

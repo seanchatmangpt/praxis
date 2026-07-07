@@ -38,11 +38,10 @@ extern crate pest_derive;
 use crate::bindings::Binding;
 use crate::ruleindex::RuleIndex;
 use crate::tripleindex::TripleIndex;
-use std::collections::{HashMap, HashSet};
-use std::fmt::Write;
+use std::collections::HashMap;
 use std::rc::Rc;
 
-use log::{info, trace, warn}; // Use log crate when building application
+use log::trace; // Use log crate when building application
 
 use crate::backwardchaining::BackwardChainer;
 use crate::encoding::Encoder;

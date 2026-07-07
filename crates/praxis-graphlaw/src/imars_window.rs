@@ -30,7 +30,7 @@ impl<T> SimpleWindowConsumer<T> {
     }
 }
 impl<T> WindowConsumer<T> for SimpleWindowConsumer<T> {
-    fn update(&mut self, new: Vec<(i32, Rc<T>)>, old: Vec<(i32, Rc<T>)>, ts: i32) -> Vec<(i32, T)> {
+    fn update(&mut self, new: Vec<(i32, Rc<T>)>, old: Vec<(i32, Rc<T>)>, _ts: i32) -> Vec<(i32, T)> {
         //println!("Received new: {:?}, old: {:?}", new.len(), old.len());
         self.new = new;
         self.old = old;
@@ -226,7 +226,7 @@ where
 
         let mut peek = self.content.front();
 
-        while let Some((timestamp, item)) = peek {
+        while let Some((timestamp, _item)) = peek {
             if *timestamp <= *last_ts {
                 if let Some(old_val) = self.content.pop_front() {
                     //remove from index
@@ -242,7 +242,7 @@ where
     }
     pub fn get_time_stamp(&self, item: Rc<T>) -> Option<i32> {
         if let Some(node) = self.index.get(&item) {
-            if let Some((ts, content)) = self.content.node(node) {
+            if let Some((ts, _content)) = self.content.node(node) {
                 Some(*ts)
             } else {
                 None

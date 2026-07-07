@@ -1,5 +1,4 @@
-use crate::Triple;
-use log::{debug, info, trace, warn}; // Use log crate when building application
+use log::debug; // Use log crate when building application
 use std::collections::hash_set::{IntoIter, Iter};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
@@ -8,7 +7,6 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 use std::{f64, mem};
 
 #[derive(Default)]
@@ -182,7 +180,7 @@ where
             .active_windows
             .iter()
             .filter(|(window, content)| self.report.report(window, content, ts))
-            .max_by(|(w1, c1), (w2, c2)| w1.close.cmp(&w2.close));
+            .max_by(|(w1, _c1), (w2, _c2)| w1.close.cmp(&w2.close));
         if let Some(max_window) = max {
             if let Tick::TimeDriven = self.tick {
                 if ts > self.app_time {
@@ -205,8 +203,8 @@ where
     }
     fn scope(&mut self, event_time: &usize) {
         // long c_sup = (long) Math.ceil(((double) Math.abs(t_e - t0) / (double) slide)) * slide;
-        let temp = (*event_time as f64 - self.t_0 as f64).abs();
-        let temp = ((*event_time as f64 - self.t_0 as f64).abs() / (self.slide as f64)).ceil();
+        let _temp = (*event_time as f64 - self.t_0 as f64).abs();
+        let _temp = ((*event_time as f64 - self.t_0 as f64).abs() / (self.slide as f64)).ceil();
         let c_sup = ((*event_time as f64 - self.t_0 as f64).abs() / (self.slide as f64)).ceil()
             * self.slide as f64;
         // long o_i = c_sup - width;
