@@ -10,7 +10,6 @@ use std::rc::Rc;
 use crate::imars_window::ImarsWindow;
 use std::cell::RefCell;
 
-
 pub struct CSprite {
     pub rules: Vec<Rule>,
     pub rules_index: RuleIndex,
@@ -114,6 +113,9 @@ impl CSprite {
     pub fn len(&self) -> usize {
         self.triple_index.len()
     }
+    pub fn is_empty(&self) -> bool {
+        self.triple_index.is_empty()
+    }
     fn decode_triple(&self, triple: &Triple) -> String {
         let s = Encoder::decode(&triple.s.to_encoded()).unwrap();
         let p = Encoder::decode(&triple.p.to_encoded()).unwrap();
@@ -125,7 +127,12 @@ impl CSprite {
         window_items: Vec<(i32, Rc<Triple>)>,
     ) -> Vec<(i32, Triple)> {
         self.window_reasoner
-            .materialize(&window_items, &mut self.triple_index, &self.rules_index, &mut self.imars)
+            .materialize(
+                &window_items,
+                &mut self.triple_index,
+                &self.rules_index,
+                &mut self.imars,
+            )
             .into_iter()
             .map(|(ts, t)| (ts, Rc::try_unwrap(t).unwrap_or_else(|t| (*t).clone())))
             .collect()
@@ -161,7 +168,10 @@ impl CSprite {
             parsed_rules_index.add_ref(rule);
         }
         self.rules_index = parsed_rules_index;
-        self.rules = new_rules.into_iter().map(|r| Rc::try_unwrap(r).unwrap_or_else(|r| (*r).clone())).collect();
+        self.rules = new_rules
+            .into_iter()
+            .map(|r| Rc::try_unwrap(r).unwrap_or_else(|r| (*r).clone()))
+            .collect();
     }
     fn eval_backward_csprite(&self, rule_head: &Triple) -> (HashSet<Rc<Rule>>, Vec<Vec<Rc<Rule>>>) {
         let mut matched_rules = HashSet::new();
@@ -239,7 +249,10 @@ impl CSprite {
                 StackFrame::Exit { rule_head } => {
                     history.remove(&rule_head);
                 }
-                StackFrame::Enter { rule_head, hierarchy } => {
+                StackFrame::Enter {
+                    rule_head,
+                    hierarchy,
+                } => {
                     if !history.insert(rule_head.clone()) {
                         continue;
                     }
@@ -284,7 +297,6 @@ impl CSprite {
                 new_rules.push(Rule {
                     body: rule.body.clone(),
                     head: new_head.clone(),
-                    
                 })
             }
         }

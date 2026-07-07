@@ -227,7 +227,7 @@ where
                 open: o_i as usize,
                 close: (o_i + self.width as f64) as usize,
             };
-            if self.active_windows.get(&window).is_none() {
+            if !self.active_windows.contains_key(&window) {
                 self.active_windows.insert(window, ContentContainer::new());
             }
             o_i += self.slide as f64;

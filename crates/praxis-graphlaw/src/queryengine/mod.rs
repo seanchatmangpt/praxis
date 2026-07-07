@@ -4,7 +4,7 @@ use crate::{Binding, BodyLiteral, Encoder, TripleIndex, VarOrTerm};
 // / `crate::queryengine::BuiltinKind` (tests, benches, js/, server/) keep
 // compiling unchanged after the builtin registry moved to the top-level
 // `crate::builtins` module.
-pub use crate::builtins as builtins;
+pub use crate::builtins;
 pub use crate::builtins::BuiltinKind;
 
 pub trait QueryEngine {
@@ -22,8 +22,10 @@ impl QueryEngine for SimpleQueryEngine {
         query_triples: &Vec<BodyLiteral>,
         triple_counter: Option<usize>,
     ) -> Option<Binding> {
-        let positive_lits: Vec<&BodyLiteral> = query_triples.iter().filter(|lit| !lit.negated).collect();
-        let negated_lits: Vec<&BodyLiteral> = query_triples.iter().filter(|lit| lit.negated).collect();
+        let positive_lits: Vec<&BodyLiteral> =
+            query_triples.iter().filter(|lit| !lit.negated).collect();
+        let negated_lits: Vec<&BodyLiteral> =
+            query_triples.iter().filter(|lit| lit.negated).collect();
 
         let mut bindings = Binding::new();
         let mut first = true;
@@ -52,7 +54,7 @@ impl QueryEngine for SimpleQueryEngine {
                     first = false;
                 } else {
                     let joined = bindings.join(&current_bindings);
-                    if joined.len() == 0 && bindings.len() > 0 && current_bindings.len() > 0 {
+                    if joined.is_empty() && !bindings.is_empty() && !current_bindings.is_empty() {
                         return None;
                     }
                     bindings = joined;
@@ -67,7 +69,11 @@ impl QueryEngine for SimpleQueryEngine {
         }
 
         let mut filtered_bindings = Binding::new();
-        let num_rows = if positive_lits.is_empty() { 1 } else { bindings.len() };
+        let num_rows = if positive_lits.is_empty() {
+            1
+        } else {
+            bindings.len()
+        };
 
         for c in 0..num_rows {
             let mut satisfied = true;
@@ -99,15 +105,16 @@ impl QueryEngine for SimpleQueryEngine {
                 }
             }
 
-            if satisfied
-                && !positive_lits.is_empty() {
-                    for (&var_id, vals) in bindings.iter() {
-                        filtered_bindings.add(&var_id, vals[c]);
-                    }
+            if satisfied && !positive_lits.is_empty() {
+                for (&var_id, vals) in bindings.iter() {
+                    filtered_bindings.add(&var_id, vals[c]);
                 }
+            }
         }
 
-        if filtered_bindings.len() > 0 || (positive_lits.is_empty() && filtered_bindings.len() == 0 && num_rows == 1) {
+        if !filtered_bindings.is_empty()
+            || (positive_lits.is_empty() && filtered_bindings.is_empty() && num_rows == 1)
+        {
             Some(filtered_bindings)
         } else {
             None

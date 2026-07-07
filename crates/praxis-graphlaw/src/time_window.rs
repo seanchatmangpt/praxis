@@ -88,6 +88,10 @@ where
     pub fn len(&self) -> usize {
         self.content.len()
     }
+    /// Returns whether the content of the window is empty
+    pub fn is_empty(&self) -> bool {
+        self.content.len() == 0
+    }
 
     fn get_last_valid_time_for(&self, new_time: &i32) -> i32 {
         cmp::max(0, *new_time - self.width)

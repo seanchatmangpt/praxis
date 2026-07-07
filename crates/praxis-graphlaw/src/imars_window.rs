@@ -77,7 +77,6 @@ impl<T> WindowConsumer<T> for SimpleWindowConsumer<T> {
 /// let consumer = Rc::new(RefCell::new(SimpleWindowConsumer::new()));
 /// window.register_consumer(consumer.clone());
 /// ```
-
 pub struct ImarsWindow<T> {
     content: LinkedList<(i32, Rc<T>)>,
     consumers: Vec<Rc<RefCell<dyn WindowConsumer<T>>>>,
@@ -194,6 +193,10 @@ where
     /// Returns the length of the content of the window
     pub fn len(&self) -> usize {
         self.content.len()
+    }
+    /// Returns whether the content of the window is empty
+    pub fn is_empty(&self) -> bool {
+        self.content.len() == 0
     }
     fn add_to_list_and_index(&mut self, item: Rc<T>, ts: i32) {
         let node_ref = self.content.push_tail((ts, item.clone()));

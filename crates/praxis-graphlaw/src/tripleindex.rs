@@ -23,6 +23,9 @@ impl TripleIndex {
     pub fn len(&self) -> usize {
         self.triples.len()
     }
+    pub fn is_empty(&self) -> bool {
+        self.triples.is_empty()
+    }
     pub fn get(&self, index: usize) -> Option<&Triple> {
         self.triples.get(index)
     }
@@ -206,10 +209,17 @@ impl TripleIndex {
         // pattern list is never `==` to a separately-parsed, structurally
         // compatible ground list. Route those queries through a dedicated
         // structural-unification scan instead (see `VarOrTerm::unify_list_pattern`).
-        let s_is_list_pattern = query_triple.s.is_term() && VarOrTerm::is_nonground_list_pattern(query_triple.s.to_encoded());
-        let o_is_list_pattern = query_triple.o.is_term() && VarOrTerm::is_nonground_list_pattern(query_triple.o.to_encoded());
+        let s_is_list_pattern = query_triple.s.is_term()
+            && VarOrTerm::is_nonground_list_pattern(query_triple.s.to_encoded());
+        let o_is_list_pattern = query_triple.o.is_term()
+            && VarOrTerm::is_nonground_list_pattern(query_triple.o.to_encoded());
         if s_is_list_pattern || o_is_list_pattern {
-            return self.query_list_pattern(query_triple, triple_counter, s_is_list_pattern, o_is_list_pattern);
+            return self.query_list_pattern(
+                query_triple,
+                triple_counter,
+                s_is_list_pattern,
+                o_is_list_pattern,
+            );
         }
 
         let mut matched_binding = Binding::new();
@@ -231,8 +241,7 @@ impl TripleIndex {
                             ) {
                                 break;
                             }
-                            matched_binding
-                                .add(&query_triple.s.to_encoded(), *encoded_match);
+                            matched_binding.add(&query_triple.s.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -253,8 +262,7 @@ impl TripleIndex {
                             ) {
                                 break;
                             }
-                            matched_binding
-                                .add(&query_triple.p.to_encoded(), *encoded_match);
+                            matched_binding.add(&query_triple.p.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -275,8 +283,7 @@ impl TripleIndex {
                             ) {
                                 break;
                             }
-                            matched_binding
-                                .add(&query_triple.o.to_encoded(), *encoded_match);
+                            matched_binding.add(&query_triple.o.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -298,8 +305,7 @@ impl TripleIndex {
                                 break;
                             }
                             matched_binding.add(&query_triple.s.to_encoded(), *s_key);
-                            matched_binding
-                                .add(&query_triple.p.to_encoded(), *encoded_match);
+                            matched_binding.add(&query_triple.p.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -321,8 +327,7 @@ impl TripleIndex {
                                 break;
                             }
                             matched_binding.add(&query_triple.p.to_encoded(), *p_key);
-                            matched_binding
-                                .add(&query_triple.o.to_encoded(), *encoded_match);
+                            matched_binding.add(&query_triple.o.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -344,8 +349,7 @@ impl TripleIndex {
                                 break;
                             }
                             matched_binding.add(&query_triple.o.to_encoded(), *o_key);
-                            matched_binding
-                                .add(&query_triple.s.to_encoded(), *encoded_match);
+                            matched_binding.add(&query_triple.s.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -368,8 +372,7 @@ impl TripleIndex {
                             }
                             matched_binding.add(&query_triple.s.to_encoded(), *s_key);
                             matched_binding.add(&query_triple.p.to_encoded(), *p_key);
-                            matched_binding
-                                .add(&query_triple.o.to_encoded(), *encoded_match);
+                            matched_binding.add(&query_triple.o.to_encoded(), *encoded_match);
                         } else {
                             break;
                         }
@@ -409,7 +412,7 @@ impl TripleIndex {
             }
         }
 
-        if matched_binding.len() > 0 {
+        if !matched_binding.is_empty() {
             Some(matched_binding)
         } else {
             None
@@ -439,21 +442,35 @@ impl TripleIndex {
             if query_triple.p.is_term() && triple.p.to_encoded() != query_triple.p.to_encoded() {
                 continue;
             }
-            if !s_is_list_pattern && query_triple.s.is_term() && triple.s.to_encoded() != query_triple.s.to_encoded() {
+            if !s_is_list_pattern
+                && query_triple.s.is_term()
+                && triple.s.to_encoded() != query_triple.s.to_encoded()
+            {
                 continue;
             }
-            if !o_is_list_pattern && query_triple.o.is_term() && triple.o.to_encoded() != query_triple.o.to_encoded() {
+            if !o_is_list_pattern
+                && query_triple.o.is_term()
+                && triple.o.to_encoded() != query_triple.o.to_encoded()
+            {
                 continue;
             }
 
             let mut extra_bindings = Vec::new();
             if s_is_list_pattern
-                && !VarOrTerm::unify_list_pattern(query_triple.s.to_encoded(), triple.s.to_encoded(), &mut extra_bindings)
+                && !VarOrTerm::unify_list_pattern(
+                    query_triple.s.to_encoded(),
+                    triple.s.to_encoded(),
+                    &mut extra_bindings,
+                )
             {
                 continue;
             }
             if o_is_list_pattern
-                && !VarOrTerm::unify_list_pattern(query_triple.o.to_encoded(), triple.o.to_encoded(), &mut extra_bindings)
+                && !VarOrTerm::unify_list_pattern(
+                    query_triple.o.to_encoded(),
+                    triple.o.to_encoded(),
+                    &mut extra_bindings,
+                )
             {
                 continue;
             }
@@ -472,8 +489,13 @@ impl TripleIndex {
                 let mut ok = true;
                 for &(var_id, val_id) in &extra_bindings {
                     match consistent.get(&var_id) {
-                        Some(&existing) if existing != val_id => { ok = false; break; }
-                        _ => { consistent.insert(var_id, val_id); }
+                        Some(&existing) if existing != val_id => {
+                            ok = false;
+                            break;
+                        }
+                        _ => {
+                            consistent.insert(var_id, val_id);
+                        }
                     }
                 }
                 if !ok {
@@ -495,7 +517,7 @@ impl TripleIndex {
             }
         }
 
-        if matched_binding.len() > 0 {
+        if !matched_binding.is_empty() {
             Some(matched_binding)
         } else {
             None
@@ -803,12 +825,8 @@ impl TripleIndex {
                 matched_binding.add(&var_name.name, graph_name.clone().unwrap().id());
                 true
             }
-            Some(VarOrTerm::Term(term)) if !graph_name.clone().is_some_and(|t| t.eq(term)) => {
-                false
-            }
-            _ => {
-                true
-            }
+            Some(VarOrTerm::Term(term)) if !graph_name.clone().is_some_and(|t| t.eq(term)) => false,
+            _ => true,
         }
     }
     pub fn clear(&mut self) {

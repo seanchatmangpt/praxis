@@ -1,10 +1,10 @@
 use crate::queryengine::{QueryEngine, SimpleQueryEngine};
-use crate::{Binding, BodyLiteral, Encoder, Rule, RuleIndex, Triple, TripleIndex, TripleStore, VarOrTerm};
+use crate::{
+    Binding, BodyLiteral, Encoder, Rule, RuleIndex, Triple, TripleIndex, TripleStore, VarOrTerm,
+};
 use log::{debug, info, trace, warn};
 use std::collections::HashMap;
 use std::rc::Rc; // Use log crate when building application
-
-
 
 pub struct BackwardChainer;
 
@@ -57,7 +57,9 @@ impl BackwardChainer {
         };
 
         for rule in candidates {
-            let Some(subst) = Self::unify_ground(&rule.head, goal) else { continue };
+            let Some(subst) = Self::unify_ground(&rule.head, goal) else {
+                continue;
+            };
             let substituted_body: Vec<BodyLiteral> = rule
                 .body
                 .iter()
@@ -82,7 +84,9 @@ impl BackwardChainer {
                     continue;
                 }
                 let is_idb = lit.pattern.p.is_term()
-                    && rule_index.head_by_pred.contains_key(&lit.pattern.p.to_encoded());
+                    && rule_index
+                        .head_by_pred
+                        .contains_key(&lit.pattern.p.to_encoded());
                 if Self::is_ground(&lit.pattern) && is_idb {
                     // Fully ground and another rule could derive it:
                     // recurse goal-directed rather than only checking EDB
@@ -97,8 +101,11 @@ impl BackwardChainer {
                     // list:/log:) -- SimpleQueryEngine::query already
                     // dispatches both.
                     match SimpleQueryEngine::query(triple_index, &vec![lit.clone()], None) {
-                        Some(b) if b.len() > 0 || Self::is_ground(&lit.pattern) => {}
-                        _ => { body_ok = false; break; }
+                        Some(b) if !b.is_empty() || Self::is_ground(&lit.pattern) => {}
+                        _ => {
+                            body_ok = false;
+                            break;
+                        }
                     }
                 }
             }
@@ -126,7 +133,9 @@ impl BackwardChainer {
                 let goal_val = g.to_encoded();
                 match subst.get(&var_id) {
                     Some(&existing) if existing != goal_val => return None,
-                    _ => { subst.insert(var_id, goal_val); }
+                    _ => {
+                        subst.insert(var_id, goal_val);
+                    }
                 }
             } else if VarOrTerm::is_nonground_list_pattern(h.to_encoded()) {
                 // A list-structured head position (e.g. Peano arithmetic's
@@ -136,13 +145,19 @@ impl BackwardChainer {
                 // rule's own pattern list against a differently-constructed
                 // goal list, even a structurally compatible one.
                 let mut list_bindings = Vec::new();
-                if !VarOrTerm::unify_list_pattern(h.to_encoded(), g.to_encoded(), &mut list_bindings) {
+                if !VarOrTerm::unify_list_pattern(
+                    h.to_encoded(),
+                    g.to_encoded(),
+                    &mut list_bindings,
+                ) {
                     return None;
                 }
                 for (var_id, goal_val) in list_bindings {
                     match subst.get(&var_id) {
                         Some(&existing) if existing != goal_val => return None,
-                        _ => { subst.insert(var_id, goal_val); }
+                        _ => {
+                            subst.insert(var_id, goal_val);
+                        }
                     }
                 }
             } else if h.to_encoded() != g.to_encoded() {
@@ -238,7 +253,7 @@ impl BackwardChainer {
                 if !body_lit.negated {
                     let recursive_bindings =
                         Self::eval_backward_inner(triple_index, rule_index, rule_atom, history);
-                    if recursive_bindings.len() > 0 {
+                    if !recursive_bindings.is_empty() {
                         lit_bindings.combine(recursive_bindings);
                     }
                 }
@@ -248,7 +263,7 @@ impl BackwardChainer {
 
                 // Short-circuit: if neither direct nor recursive found anything,
                 // this rule body cannot be satisfied.
-                if lit_bindings.len() == 0 {
+                if lit_bindings.is_empty() {
                     rule_failed = true;
                     break;
                 }
@@ -339,9 +354,14 @@ impl BackwardChainer {
     /// representation can't express that distinction on its own
     /// (`Binding::new().len() == 0` means both "one row, no columns" and
     /// "zero rows").
-    pub fn solve(triple_index: &TripleIndex, rule_index: &RuleIndex, goal_pattern: &Triple) -> Vec<Binding> {
+    pub fn solve(
+        triple_index: &TripleIndex,
+        rule_index: &RuleIndex,
+        goal_pattern: &Triple,
+    ) -> Vec<Binding> {
         let mut history = std::collections::HashSet::new();
-        let Some(raw) = Self::solve_inner(triple_index, rule_index, goal_pattern, &mut history, 0) else {
+        let Some(raw) = Self::solve_inner(triple_index, rule_index, goal_pattern, &mut history, 0)
+        else {
             return Vec::new();
         };
         let goal_vars = Self::collect_vars(goal_pattern);
@@ -479,9 +499,13 @@ impl BackwardChainer {
                     lit_success = true;
                     lit_bindings.combine(result_bindings);
                 }
-                if let Some(recursive_bindings) =
-                    Self::solve_inner(triple_index, rule_index, &body_lit.pattern, history, depth + 1)
-                {
+                if let Some(recursive_bindings) = Self::solve_inner(
+                    triple_index,
+                    rule_index,
+                    &body_lit.pattern,
+                    history,
+                    depth + 1,
+                ) {
                     lit_success = true;
                     lit_bindings.combine(recursive_bindings);
                 }
@@ -549,9 +573,16 @@ impl BackwardChainer {
             return true;
         }
         let (a_id, b_id) = (a.to_encoded(), b.to_encoded());
-        match (VarOrTerm::list_members_typed(a_id), VarOrTerm::list_members_typed(b_id)) {
+        match (
+            VarOrTerm::list_members_typed(a_id),
+            VarOrTerm::list_members_typed(b_id),
+        ) {
             (Some(am), Some(bm)) => {
-                am.len() == bm.len() && am.iter().zip(bm.iter()).all(|(x, y)| Self::unify_term(x, y, subst))
+                am.len() == bm.len()
+                    && am
+                        .iter()
+                        .zip(bm.iter())
+                        .all(|(x, y)| Self::unify_term(x, y, subst))
             }
             _ => a_id == b_id,
         }
@@ -585,7 +616,10 @@ impl BackwardChainer {
         }
         let id = walked.to_encoded();
         if let Some(members) = VarOrTerm::list_members_typed(id) {
-            let resolved_members: Vec<VarOrTerm> = members.iter().map(|m| Self::resolve_term(m, subst)).collect();
+            let resolved_members: Vec<VarOrTerm> = members
+                .iter()
+                .map(|m| Self::resolve_term(m, subst))
+                .collect();
             if resolved_members != members {
                 return VarOrTerm::new_list(resolved_members);
             }

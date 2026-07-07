@@ -1,5 +1,8 @@
 use super::Reasoner;
-use crate::{Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex, VarOrTerm};
+use crate::{
+    Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex,
+    VarOrTerm,
+};
 
 impl Reasoner {
     /// The IRI of the `log:notIncludes` built-in predicate.
@@ -11,7 +14,8 @@ impl Reasoner {
         rule.body.iter().position(|lit| {
             !lit.negated
                 && lit.pattern.p.is_term()
-                && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref() == Some(Self::LOG_NOT_INCLUDES)
+                && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref()
+                    == Some(Self::LOG_NOT_INCLUDES)
         })
     }
 
@@ -51,7 +55,11 @@ impl Reasoner {
         let Some(outer_bindings) = outer_bindings else {
             return results;
         };
-        let num_rows = if outer_bindings.len() == 0 { 1 } else { outer_bindings.len() };
+        let num_rows = if outer_bindings.is_empty() {
+            1
+        } else {
+            outer_bindings.len()
+        };
 
         for row in 0..num_rows {
             let mut row_binding = Binding::new();
@@ -64,7 +72,11 @@ impl Reasoner {
             if VarOrTerm::formula_triples(formula_id_template).is_none() {
                 continue;
             }
-            let guard_result = Self::eval_embedded_formula_against_store(formula_id_template, &row_binding, triple_index);
+            let guard_result = Self::eval_embedded_formula_against_store(
+                formula_id_template,
+                &row_binding,
+                triple_index,
+            );
 
             if guard_result.is_none() {
                 // Zero solutions for the (row-instantiated) guard formula:

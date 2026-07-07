@@ -1,5 +1,8 @@
 use super::Reasoner;
-use crate::{Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex, VarOrTerm};
+use crate::{
+    Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex,
+    VarOrTerm,
+};
 
 impl Reasoner {
     /// The IRI of the `log:implies` built-in predicate.
@@ -27,7 +30,8 @@ impl Reasoner {
             .filter(|(_, lit)| {
                 !lit.negated
                     && lit.pattern.p.is_term()
-                    && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref() == Some(Self::LOG_IMPLIES)
+                    && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref()
+                        == Some(Self::LOG_IMPLIES)
             })
             .map(|(i, _)| i)
             .collect()
@@ -89,70 +93,85 @@ impl Reasoner {
         let Some(outer_bindings) = outer_bindings else {
             return results;
         };
-        let num_outer_rows = if outer_bindings.len() == 0 { 1 } else { outer_bindings.len() };
-
-        for &implies_idx in implies_indices {
-        let implies_lit = &rule.body[implies_idx];
-
-        // The consequent is written directly in the rule (the log:implies
-        // literal's object), so it never needs a bindings lookup.
-        let consequent_id = implies_lit.pattern.o.to_encoded();
-        let Some(consequent_triples) = VarOrTerm::formula_triples(consequent_id) else {
-            continue;
+        let num_outer_rows = if outer_bindings.is_empty() {
+            1
+        } else {
+            outer_bindings.len()
         };
 
-        for row in 0..num_outer_rows {
-            let formula_id = if implies_lit.pattern.s.is_var() {
-                match outer_bindings
-                    .get(&implies_lit.pattern.s.to_encoded())
-                    .and_then(|v| v.get(row))
-                {
-                    Some(&id) => id,
-                    None => continue,
-                }
-            } else {
-                implies_lit.pattern.s.to_encoded()
-            };
+        for &implies_idx in implies_indices {
+            let implies_lit = &rule.body[implies_idx];
 
-            let Some(antecedent_triples) = VarOrTerm::formula_triples(formula_id) else { continue };
-            if antecedent_triples.is_empty() {
-                continue;
-            }
-            let antecedent_body: Vec<BodyLiteral> = antecedent_triples
-                .into_iter()
-                .map(|pattern| BodyLiteral { negated: false, pattern })
-                .collect();
-
-            let Some(antecedent_bindings) = SimpleQueryEngine::query(triple_index, &antecedent_body, None) else {
+            // The consequent is written directly in the rule (the log:implies
+            // literal's object), so it never needs a bindings lookup.
+            let consequent_id = implies_lit.pattern.o.to_encoded();
+            let Some(consequent_triples) = VarOrTerm::formula_triples(consequent_id) else {
                 continue;
             };
-            let num_ante_rows = if antecedent_bindings.len() == 0 { 1 } else { antecedent_bindings.len() };
 
-            for a_row in 0..num_ante_rows {
-                let mut merged = Binding::new();
-                for (&k, v) in outer_bindings.iter() {
-                    if let Some(&val) = v.get(row) {
-                        merged.add(&k, val);
+            for row in 0..num_outer_rows {
+                let formula_id = if implies_lit.pattern.s.is_var() {
+                    match outer_bindings
+                        .get(&implies_lit.pattern.s.to_encoded())
+                        .and_then(|v| v.get(row))
+                    {
+                        Some(&id) => id,
+                        None => continue,
                     }
-                }
-                for (&k, v) in antecedent_bindings.iter() {
-                    if let Some(&val) = v.get(a_row) {
-                        merged.add(&k, val);
-                    }
-                }
+                } else {
+                    implies_lit.pattern.s.to_encoded()
+                };
 
-                for consequent_pattern in &consequent_triples {
-                    let t = Self::substitute_single_row(consequent_pattern, &merged);
-                    if Self::is_ground(&t) && !results.contains(&t) {
-                        results.push(t);
-                    }
+                let Some(antecedent_triples) = VarOrTerm::formula_triples(formula_id) else {
+                    continue;
+                };
+                if antecedent_triples.is_empty() {
+                    continue;
                 }
-                let head_t = Self::substitute_single_row(&rule.head, &merged);
-                if Self::is_ground(&head_t) && !results.contains(&head_t) {
-                    results.push(head_t);
+                let antecedent_body: Vec<BodyLiteral> = antecedent_triples
+                    .into_iter()
+                    .map(|pattern| BodyLiteral {
+                        negated: false,
+                        pattern,
+                    })
+                    .collect();
+
+                let Some(antecedent_bindings) =
+                    SimpleQueryEngine::query(triple_index, &antecedent_body, None)
+                else {
+                    continue;
+                };
+                let num_ante_rows = if antecedent_bindings.is_empty() {
+                    1
+                } else {
+                    antecedent_bindings.len()
+                };
+
+                for a_row in 0..num_ante_rows {
+                    let mut merged = Binding::new();
+                    for (&k, v) in outer_bindings.iter() {
+                        if let Some(&val) = v.get(row) {
+                            merged.add(&k, val);
+                        }
+                    }
+                    for (&k, v) in antecedent_bindings.iter() {
+                        if let Some(&val) = v.get(a_row) {
+                            merged.add(&k, val);
+                        }
+                    }
+
+                    for consequent_pattern in &consequent_triples {
+                        let t = Self::substitute_single_row(consequent_pattern, &merged);
+                        if Self::is_ground(&t) && !results.contains(&t) {
+                            results.push(t);
+                        }
+                    }
+                    let head_t = Self::substitute_single_row(&rule.head, &merged);
+                    if Self::is_ground(&head_t) && !results.contains(&head_t) {
+                        results.push(head_t);
+                    }
                 }
             }
-        }
         }
 
         results

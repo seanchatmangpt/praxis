@@ -24,7 +24,7 @@ use std::rc::Rc;
 /// * `rule_index`   – Set of Horn-clause rules to chain over.
 /// * `rule_head`    – The goal triple pattern to satisfy.
 /// * `history`      – Accumulator of already-visited ground triples; pass an
-///                    empty `Vec` on the first call.
+///   empty `Vec` on the first call.
 ///
 /// # Returns
 /// A [`Binding`] mapping variable IDs to their possible ground values.

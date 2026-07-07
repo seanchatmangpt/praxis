@@ -1,6 +1,8 @@
 //! `list:` namespace builtins.
 
-use super::{copy_row, eval_functional, eval_generator, intern_number, resolve_operand, subject_list_members};
+use super::{
+    copy_row, eval_functional, eval_generator, intern_number, resolve_operand, subject_list_members,
+};
 use crate::{Binding, Triple, VarOrTerm};
 
 pub(crate) const LIST_LENGTH: &str = "<http://www.w3.org/2000/10/swap/list#length>";
@@ -47,7 +49,10 @@ pub(crate) fn eval_list_append(pattern: &Triple, bindings: &Binding) -> Option<B
 }
 
 fn ids_to_list(ids: &[usize]) -> usize {
-    let members: Vec<VarOrTerm> = ids.iter().map(|&id| VarOrTerm::new_encoded_term(id)).collect();
+    let members: Vec<VarOrTerm> = ids
+        .iter()
+        .map(|&id| VarOrTerm::new_encoded_term(id))
+        .collect();
     VarOrTerm::new_list(members).to_encoded()
 }
 
@@ -87,13 +92,13 @@ pub(crate) fn eval_list_member(pattern: &Triple, bindings: &Binding) -> Option<B
         return None;
     }
     let obj_var = pattern.o.to_encoded();
-    if bindings.len() == 0 {
+    if bindings.is_empty() {
         let members = subject_list_members(&pattern.s, bindings, 0)?;
         let mut result = Binding::new();
         for m in members {
             result.add(&obj_var, m);
         }
-        return if result.len() > 0 { Some(result) } else { None };
+        return if !result.is_empty() { Some(result) } else { None };
     }
     let mut result = Binding::new();
     for row in 0..bindings.len() {
@@ -104,7 +109,7 @@ pub(crate) fn eval_list_member(pattern: &Triple, bindings: &Binding) -> Option<B
             }
         }
     }
-    if result.len() > 0 {
+    if !result.is_empty() {
         Some(result)
     } else {
         None
@@ -146,7 +151,7 @@ pub(crate) fn eval_list_first_rest(pattern: &Triple, bindings: &Binding) -> Opti
         combined.extend(rest_members);
         Some(ids_to_list(&combined))
     };
-    if bindings.len() == 0 {
+    if bindings.is_empty() {
         let value = cons_for_row(0)?;
         let mut result = Binding::new();
         result.add(&subj_var, value);
@@ -159,7 +164,7 @@ pub(crate) fn eval_list_first_rest(pattern: &Triple, bindings: &Binding) -> Opti
             result.add(&subj_var, value);
         }
     }
-    if result.len() > 0 {
+    if !result.is_empty() {
         Some(result)
     } else {
         None
@@ -204,10 +209,14 @@ pub(crate) fn eval_list_remove(pattern: &Triple, bindings: &Binding) -> Option<B
 pub(crate) fn eval_list_sort(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
     eval_functional(pattern, bindings, |pattern, bindings, row| {
         let mut members = subject_list_members(&pattern.s, bindings, row)?;
-        members.sort_by(|&a, &b| match (super::numeric_value(a), super::numeric_value(b)) {
-            (Some(x), Some(y)) => x.partial_cmp(&y).unwrap_or(std::cmp::Ordering::Equal),
-            _ => super::lexical_value(a).unwrap_or_default().cmp(&super::lexical_value(b).unwrap_or_default()),
-        });
+        members.sort_by(
+            |&a, &b| match (super::numeric_value(a), super::numeric_value(b)) {
+                (Some(x), Some(y)) => x.partial_cmp(&y).unwrap_or(std::cmp::Ordering::Equal),
+                _ => super::lexical_value(a)
+                    .unwrap_or_default()
+                    .cmp(&super::lexical_value(b).unwrap_or_default()),
+            },
+        );
         Some(ids_to_list(&members))
     })
 }
@@ -246,12 +255,12 @@ pub(crate) fn eval_list_iterate(pattern: &Triple, bindings: &Binding) -> Option<
             out.add(&obj_var, pair);
         }
     };
-    if bindings.len() == 0 {
+    if bindings.is_empty() {
         let list_id = resolve_operand(&pattern.s, bindings, 0)?;
         let members = VarOrTerm::list_members(list_id)?;
         let mut result = Binding::new();
         emit(members, &mut result);
-        return if result.len() > 0 { Some(result) } else { None };
+        return if !result.is_empty() { Some(result) } else { None };
     }
     let mut result = Binding::new();
     for row in 0..bindings.len() {
@@ -265,7 +274,7 @@ pub(crate) fn eval_list_iterate(pattern: &Triple, bindings: &Binding) -> Option<
             }
         }
     }
-    if result.len() > 0 {
+    if !result.is_empty() {
         Some(result)
     } else {
         None

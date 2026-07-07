@@ -1,5 +1,8 @@
 use super::Reasoner;
-use crate::{Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex, VarOrTerm};
+use crate::{
+    Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex,
+    VarOrTerm,
+};
 
 impl Reasoner {
     /// The IRI of the `log:forAllIn` built-in predicate.
@@ -20,7 +23,8 @@ impl Reasoner {
         rule.body.iter().position(|lit| {
             !lit.negated
                 && lit.pattern.p.is_term()
-                && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref() == Some(Self::LOG_FOR_ALL_IN)
+                && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref()
+                    == Some(Self::LOG_FOR_ALL_IN)
         })
     }
 
@@ -63,7 +67,11 @@ impl Reasoner {
         let Some(outer_bindings) = outer_bindings else {
             return results;
         };
-        let num_rows = if outer_bindings.len() == 0 { 1 } else { outer_bindings.len() };
+        let num_rows = if outer_bindings.is_empty() {
+            1
+        } else {
+            outer_bindings.len()
+        };
 
         for row in 0..num_rows {
             let mut row_binding = Binding::new();
@@ -74,7 +82,10 @@ impl Reasoner {
             }
 
             let Some(list_id) = (if row_binding.get(&list_template).is_some() {
-                row_binding.get(&list_template).and_then(|v| v.first()).copied()
+                row_binding
+                    .get(&list_template)
+                    .and_then(|v| v.first())
+                    .copied()
             } else {
                 Some(list_template)
             }) else {
@@ -96,7 +107,12 @@ impl Reasoner {
                     if let Some(lv) = loop_var {
                         member_binding.add(&lv, m);
                     }
-                    Self::eval_embedded_formula_against_store(formula_id_template, &member_binding, triple_index).is_some()
+                    Self::eval_embedded_formula_against_store(
+                        formula_id_template,
+                        &member_binding,
+                        triple_index,
+                    )
+                    .is_some()
                 })
             };
 

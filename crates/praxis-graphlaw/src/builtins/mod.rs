@@ -199,9 +199,14 @@ pub fn reject_if_unsupported_builtin(p: &VarOrTerm) {
     if !p.is_term() || classify(p).is_some() {
         return;
     }
-    let Some(decoded) = Encoder::decode(&p.to_encoded()) else { return };
+    let Some(decoded) = Encoder::decode(&p.to_encoded()) else {
+        return;
+    };
     let iri = decoded.trim_start_matches('<').trim_end_matches('>');
-    if KNOWN_BUILTIN_NAMESPACES.iter().any(|ns| iri.starts_with(ns)) {
+    if KNOWN_BUILTIN_NAMESPACES
+        .iter()
+        .any(|ns| iri.starts_with(ns))
+    {
         panic!(
             "Unsupported N3 builtin predicate: <{}> -- this is a recognized builtin \
              namespace, but this specific predicate is not implemented by this engine \
@@ -323,8 +328,8 @@ pub fn classify(p: &VarOrTerm) -> Option<BuiltinKind> {
         crypto::CRYPTO_SHA256 => BuiltinKind::CryptoSha256,
         crypto::CRYPTO_SHA512 => BuiltinKind::CryptoSha512,
         crypto::CRYPTO_MD5 => BuiltinKind::CryptoMd5,
-        LOG_IMPLIES | LOG_COLLECT_ALL_IN | LOG_NOT_INCLUDES | LOG_INCLUDES | LOG_FOR_ALL_IN | LOG_IF_THEN_ELSE_IN
-        | LOG_CONCLUSION => BuiltinKind::ReasonerLevel,
+        LOG_IMPLIES | LOG_COLLECT_ALL_IN | LOG_NOT_INCLUDES | LOG_INCLUDES | LOG_FOR_ALL_IN
+        | LOG_IF_THEN_ELSE_IN | LOG_CONCLUSION => BuiltinKind::ReasonerLevel,
         _ => return None,
     })
 }
@@ -374,7 +379,9 @@ pub fn evaluate(kind: BuiltinKind, pattern: &Triple, bindings: &Binding) -> Opti
         BuiltinKind::Logarithm => math::eval_logarithm(pattern, bindings),
         BuiltinKind::MemberCount => math::eval_member_count(pattern, bindings),
         BuiltinKind::StringContains => string::eval_string_contains(pattern, bindings),
-        BuiltinKind::StringContainsIgnoringCase => string::eval_string_contains_ignoring_case(pattern, bindings),
+        BuiltinKind::StringContainsIgnoringCase => {
+            string::eval_string_contains_ignoring_case(pattern, bindings)
+        }
         BuiltinKind::StringStartsWith => string::eval_string_starts_with(pattern, bindings),
         BuiltinKind::StringEndsWith => string::eval_string_ends_with(pattern, bindings),
         BuiltinKind::StringMatches => string::eval_string_matches(pattern, bindings),
@@ -384,8 +391,12 @@ pub fn evaluate(kind: BuiltinKind, pattern: &Triple, bindings: &Binding) -> Opti
         BuiltinKind::StringToUpperCase => string::eval_string_to_upper_case(pattern, bindings),
         BuiltinKind::StringToLowerCase => string::eval_string_to_lower_case(pattern, bindings),
         BuiltinKind::StringSplit => string::eval_string_split(pattern, bindings),
-        BuiltinKind::StringEqualIgnoringCase => string::eval_string_equal_ignoring_case(pattern, bindings),
-        BuiltinKind::StringNotEqualIgnoringCase => string::eval_string_not_equal_ignoring_case(pattern, bindings),
+        BuiltinKind::StringEqualIgnoringCase => {
+            string::eval_string_equal_ignoring_case(pattern, bindings)
+        }
+        BuiltinKind::StringNotEqualIgnoringCase => {
+            string::eval_string_not_equal_ignoring_case(pattern, bindings)
+        }
         BuiltinKind::StringGreaterThan => string::eval_string_greater_than(pattern, bindings),
         BuiltinKind::StringFormat => string::eval_string_format(pattern, bindings),
         BuiltinKind::StringScrape => string::eval_string_scrape(pattern, bindings),
@@ -413,7 +424,9 @@ pub fn evaluate(kind: BuiltinKind, pattern: &Triple, bindings: &Binding) -> Opti
         BuiltinKind::FuncNumericSubtract => func::eval_numeric_subtract(pattern, bindings),
         BuiltinKind::FuncNumericMultiply => func::eval_numeric_multiply(pattern, bindings),
         BuiltinKind::FuncNumericDivide => func::eval_numeric_divide(pattern, bindings),
-        BuiltinKind::FuncNumericIntegerDivide => func::eval_numeric_integer_divide(pattern, bindings),
+        BuiltinKind::FuncNumericIntegerDivide => {
+            func::eval_numeric_integer_divide(pattern, bindings)
+        }
         BuiltinKind::FuncNumericMod => func::eval_numeric_mod(pattern, bindings),
         BuiltinKind::FuncNumericAbs => func::eval_numeric_abs(pattern, bindings),
         BuiltinKind::FuncNumericNegate => func::eval_numeric_negate(pattern, bindings),
@@ -461,7 +474,11 @@ pub(crate) fn resolve_operand(term: &VarOrTerm, bindings: &Binding, row: usize) 
 /// themselves variables (e.g. `( ?p1 ?p2 )`) are looked up against `row`;
 /// members that are ground terms (e.g. the literal " " in
 /// `( ?fn " " ?ln )`) are used as-is.
-pub(crate) fn subject_list_members(term: &VarOrTerm, bindings: &Binding, row: usize) -> Option<Vec<usize>> {
+pub(crate) fn subject_list_members(
+    term: &VarOrTerm,
+    bindings: &Binding,
+    row: usize,
+) -> Option<Vec<usize>> {
     let list_id = resolve_operand(term, bindings, row)?;
     let member_ids = VarOrTerm::list_members(list_id)?;
     let mut resolved = Vec::with_capacity(member_ids.len());
@@ -480,7 +497,10 @@ pub(crate) fn numeric_value(id: usize) -> Option<f64> {
         Some(Term::Literal(lit)) => Encoder::decode(&lit.value)?,
         _ => Encoder::decode(&id)?,
     };
-    lex.trim().trim_matches(|c| c == '<' || c == '>').parse::<f64>().ok()
+    lex.trim()
+        .trim_matches(|c| c == '<' || c == '>')
+        .parse::<f64>()
+        .ok()
 }
 
 pub(crate) fn lexical_value(id: usize) -> Option<String> {
@@ -545,13 +565,17 @@ pub(crate) fn eval_row_constraint(
     bindings: &Binding,
     check: impl Fn(usize, usize) -> bool,
 ) -> Option<Binding> {
-    if bindings.len() == 0 {
+    if bindings.is_empty() {
         // No prior rows: treat as a single ground/implicit row. A
         // successful check yields "1 matched row with 0 columns" (same
         // convention TripleIndex::query uses for a matched ground triple).
         let s = resolve_operand(&pattern.s, bindings, 0)?;
         let o = resolve_operand(&pattern.o, bindings, 0)?;
-        return if check(s, o) { Some(Binding::new()) } else { None };
+        return if check(s, o) {
+            Some(Binding::new())
+        } else {
+            None
+        };
     }
     let mut result = Binding::new();
     for row in 0..bindings.len() {
@@ -564,7 +588,7 @@ pub(crate) fn eval_row_constraint(
             }
         }
     }
-    if result.len() > 0 {
+    if !result.is_empty() {
         Some(result)
     } else {
         None
@@ -582,7 +606,7 @@ pub(crate) fn eval_functional(
         return None;
     }
     let obj_var = pattern.o.to_encoded();
-    if bindings.len() == 0 {
+    if bindings.is_empty() {
         let value = compute(pattern, bindings, 0)?;
         let mut result = Binding::new();
         result.add(&obj_var, value);
@@ -595,7 +619,7 @@ pub(crate) fn eval_functional(
             result.add(&obj_var, value);
         }
     }
-    if result.len() > 0 {
+    if !result.is_empty() {
         Some(result)
     } else {
         None
@@ -609,14 +633,14 @@ pub(crate) fn eval_generator(pattern: &Triple, bindings: &Binding) -> Option<Bin
         return None;
     }
     let subj_var = pattern.s.to_encoded();
-    if bindings.len() == 0 {
+    if bindings.is_empty() {
         let list_id = resolve_operand(&pattern.o, bindings, 0)?;
         let members = VarOrTerm::list_members(list_id)?;
         let mut result = Binding::new();
         for m in members {
             result.add(&subj_var, m);
         }
-        return if result.len() > 0 { Some(result) } else { None };
+        return if !result.is_empty() { Some(result) } else { None };
     }
     let mut result = Binding::new();
     for row in 0..bindings.len() {
@@ -629,7 +653,7 @@ pub(crate) fn eval_generator(pattern: &Triple, bindings: &Binding) -> Option<Bin
             }
         }
     }
-    if result.len() > 0 {
+    if !result.is_empty() {
         Some(result)
     } else {
         None

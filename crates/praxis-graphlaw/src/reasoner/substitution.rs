@@ -27,7 +27,7 @@ impl Reasoner {
     }
 
     pub(crate) fn substitute_head_with_bindings(head: &Triple, binding: &Binding) -> Vec<Triple> {
-        if binding.len() == 0 {
+        if binding.is_empty() {
             return vec![head.clone()];
         }
         let mut new_heads = Vec::new();
@@ -40,10 +40,18 @@ impl Reasoner {
             // than the actually-bound value). Found via the real EYE
             // `good_cobbler` corpus case.
             let resolve = |var_id: usize| -> Option<usize> {
-                binding.get(&var_id).and_then(|v| v.get(result_counter)).copied()
+                binding
+                    .get(&var_id)
+                    .and_then(|v| v.get(result_counter))
+                    .copied()
             };
             let sub = |term: &VarOrTerm| VarOrTerm::substitute_deep(term, &resolve);
-            new_heads.push(Triple { s: sub(&head.s), p: sub(&head.p), o: sub(&head.o), g: None });
+            new_heads.push(Triple {
+                s: sub(&head.s),
+                p: sub(&head.p),
+                o: sub(&head.o),
+                g: None,
+            });
         }
 
         new_heads
@@ -75,10 +83,18 @@ impl Reasoner {
             // instead of the actually-bound value. Found via the real EYE
             // `good_cobbler` corpus case.
             let resolve = |var_id: usize| -> Option<usize> {
-                binding.get(&var_id).and_then(|v| v.get(result_counter)).copied()
+                binding
+                    .get(&var_id)
+                    .and_then(|v| v.get(result_counter))
+                    .copied()
             };
             let sub = |term: &VarOrTerm| VarOrTerm::substitute_deep(term, &resolve);
-            new_heads.push(Triple { s: sub(&head.s), p: sub(&head.p), o: sub(&head.o), g: None });
+            new_heads.push(Triple {
+                s: sub(&head.s),
+                p: sub(&head.p),
+                o: sub(&head.o),
+                g: None,
+            });
         }
 
         new_heads
@@ -88,7 +104,7 @@ impl Reasoner {
         let mut results = Vec::new();
         for body_lit in matching_rule.body.iter() {
             if let Some(bindings) = super::query(&body_lit.pattern, matching_triple) {
-                if bindings.len() == 0 {
+                if bindings.is_empty() {
                     return vec![matching_rule.clone()];
                 }
                 let new_body = Self::substitute_rule_body_with_binding(matching_rule, &bindings);
@@ -100,7 +116,6 @@ impl Reasoner {
                 results.push(Rule {
                     body: new_body,
                     head: new_head,
-
                 });
             }
         }

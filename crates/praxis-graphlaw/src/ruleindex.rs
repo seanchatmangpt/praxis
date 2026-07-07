@@ -33,6 +33,9 @@ impl RuleIndex {
             + self.po.len()
             + self.so.len()
     }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
     pub fn new() -> RuleIndex {
         RuleIndex {
             rules: Vec::new(),

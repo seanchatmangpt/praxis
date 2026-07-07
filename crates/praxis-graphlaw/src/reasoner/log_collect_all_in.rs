@@ -1,5 +1,8 @@
 use super::Reasoner;
-use crate::{Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex, VarOrTerm};
+use crate::{
+    Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex,
+    VarOrTerm,
+};
 
 impl Reasoner {
     /// The IRI of the `log:collectAllIn` built-in predicate.
@@ -11,7 +14,8 @@ impl Reasoner {
         rule.body.iter().position(|lit| {
             !lit.negated
                 && lit.pattern.p.is_term()
-                && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref() == Some(Self::LOG_COLLECT_ALL_IN)
+                && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref()
+                    == Some(Self::LOG_COLLECT_ALL_IN)
         })
     }
 
@@ -63,7 +67,11 @@ impl Reasoner {
         let Some(outer_bindings) = outer_bindings else {
             return results;
         };
-        let num_outer_rows = if outer_bindings.len() == 0 { 1 } else { outer_bindings.len() };
+        let num_outer_rows = if outer_bindings.is_empty() {
+            1
+        } else {
+            outer_bindings.len()
+        };
 
         for row in 0..num_outer_rows {
             let mut row_binding = Binding::new();
@@ -87,7 +95,8 @@ impl Reasoner {
             if VarOrTerm::formula_triples(formula_id).is_none() {
                 continue;
             }
-            let ante_bindings = Self::eval_embedded_formula_against_store(formula_id, &row_binding, triple_index);
+            let ante_bindings =
+                Self::eval_embedded_formula_against_store(formula_id, &row_binding, triple_index);
 
             // Dedup the collected variable's column across all antecedent
             // solutions, preserving first-seen order (deterministic). If
@@ -107,14 +116,21 @@ impl Reasoner {
                         }
                     }
                 } else {
-                    let num_ante_rows = if ante_bindings.len() == 0 { 1 } else { ante_bindings.len() };
+                    let num_ante_rows = if ante_bindings.is_empty() {
+                        1
+                    } else {
+                        ante_bindings.len()
+                    };
                     for _ in 0..num_ante_rows {
                         collected.push(collect_var_id);
                     }
                 }
             }
 
-            let list_members: Vec<VarOrTerm> = collected.into_iter().map(VarOrTerm::new_encoded_term).collect();
+            let list_members: Vec<VarOrTerm> = collected
+                .into_iter()
+                .map(VarOrTerm::new_encoded_term)
+                .collect();
             let list_id = VarOrTerm::new_list(list_members).to_encoded();
 
             let mut merged = row_binding.clone();
@@ -123,7 +139,8 @@ impl Reasoner {
             // Evaluate any remaining body literals (typically builtins like
             // math:sum/list:length/math:greaterThan operating on the new
             // list/its derived values) against the merged single row.
-            let Some(final_binding) = Self::eval_post_literals(&post_body, merged, triple_index) else {
+            let Some(final_binding) = Self::eval_post_literals(&post_body, merged, triple_index)
+            else {
                 continue;
             };
 
@@ -134,7 +151,11 @@ impl Reasoner {
             // column index 0) silently dropped every row past the first
             // here, e.g. deriving a fact for only the first of N members a
             // `list:in` literal produced after a `log:collectAllIn` step.
-            let num_final_rows = if final_binding.len() == 0 { 1 } else { final_binding.len() };
+            let num_final_rows = if final_binding.is_empty() {
+                1
+            } else {
+                final_binding.len()
+            };
             for final_row in 0..num_final_rows {
                 let mut single = Binding::new();
                 for (&k, v) in final_binding.iter() {

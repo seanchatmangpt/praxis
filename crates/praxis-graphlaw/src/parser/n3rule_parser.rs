@@ -506,14 +506,13 @@ fn parse_literal_pair(pair: Pair<Rule>, prefixes: &PrefixMapper) -> VarOrTerm {
                             // (Rule::Prefixed) that must be expanded via `prefixes`.
                             let dt_str = match annotation.into_inner().next() {
                                 Some(p) if p.as_rule() == Rule::BracketedIri => {
-                                    let iri = p
-                                        .into_inner()
-                                        .next()
-                                        .map(|q| q.as_str())
-                                        .unwrap_or("");
+                                    let iri =
+                                        p.into_inner().next().map(|q| q.as_str()).unwrap_or("");
                                     format!("<{}>", prefixes.resolve(iri))
                                 }
-                                Some(p) if p.as_rule() == Rule::Prefixed => prefixes.expand(p.as_str()),
+                                Some(p) if p.as_rule() == Rule::Prefixed => {
+                                    prefixes.expand(p.as_str())
+                                }
                                 _ => String::new(),
                             };
                             return VarOrTerm::new_literal(lex, Some(dt_str), None);
@@ -589,7 +588,11 @@ fn fresh_bnode() -> VarOrTerm {
 /// into `extra`. An empty "[]" (no PredicateObjectList child) yields just the
 /// fresh blank node with no additional triples -- matching Turtle/N3
 /// semantics exactly.
-fn parse_bnode_props(pair: Pair<Rule>, prefixes: &PrefixMapper, extra: &mut Vec<Triple>) -> VarOrTerm {
+fn parse_bnode_props(
+    pair: Pair<Rule>,
+    prefixes: &PrefixMapper,
+    extra: &mut Vec<Triple>,
+) -> VarOrTerm {
     let bnode = fresh_bnode();
     for child in pair.into_inner() {
         if child.as_rule() == Rule::PredicateObjectList {
@@ -611,14 +614,20 @@ fn parse_predicate_object_list(
 ) {
     let mut property_vot = VarOrTerm::new_var("p".to_string());
     let mut objects_vot: Vec<VarOrTerm> = Vec::new();
-    let flush = |property_vot: &VarOrTerm, objects_vot: &mut Vec<VarOrTerm>, triples: &mut Vec<Triple>| {
-        if objects_vot.is_empty() {
-            objects_vot.push(VarOrTerm::new_var("o".to_string()));
-        }
-        for o in objects_vot.drain(..) {
-            triples.push(Triple { s: subject_vot.clone(), p: property_vot.clone(), o, g: None });
-        }
-    };
+    let flush =
+        |property_vot: &VarOrTerm, objects_vot: &mut Vec<VarOrTerm>, triples: &mut Vec<Triple>| {
+            if objects_vot.is_empty() {
+                objects_vot.push(VarOrTerm::new_var("o".to_string()));
+            }
+            for o in objects_vot.drain(..) {
+                triples.push(Triple {
+                    s: subject_vot.clone(),
+                    p: property_vot.clone(),
+                    o,
+                    g: None,
+                });
+            }
+        };
     for pol_part in pair.into_inner() {
         match pol_part.as_rule() {
             Rule::Property => {
@@ -681,7 +690,11 @@ fn bracketed_iri_text(iri_ref_pair: Pair<Rule>) -> &str {
 /// Shared term-building logic for anything that can appear in a Subject or
 /// Object position (IRI, prefixed name, variable, blank node, literal, list,
 /// or quoted graph).
-fn term_from_pair(child: Pair<Rule>, prefixes: &PrefixMapper, extra: &mut Vec<Triple>) -> VarOrTerm {
+fn term_from_pair(
+    child: Pair<Rule>,
+    prefixes: &PrefixMapper,
+    extra: &mut Vec<Triple>,
+) -> VarOrTerm {
     match child.as_rule() {
         Rule::IriRef => {
             let iri = bracketed_iri_text(child);
@@ -731,7 +744,11 @@ fn parse_path_predicate(pair: Pair<Rule>, prefixes: &PrefixMapper) -> VarOrTerm 
 /// plus the triple `(_:v, p, x)`. Chained segments (mixing `!`/`^` freely,
 /// e.g. `x!p^q`) fold left-to-right: each segment's fresh existential
 /// becomes the base term for the next segment.
-fn parse_path_expr(pair: Pair<Rule>, prefixes: &PrefixMapper, extra: &mut Vec<Triple>) -> VarOrTerm {
+fn parse_path_expr(
+    pair: Pair<Rule>,
+    prefixes: &PrefixMapper,
+    extra: &mut Vec<Triple>,
+) -> VarOrTerm {
     let mut inner = pair.into_inner();
     let head_pair = inner.next().expect("PathExpr must have a PathHead");
     let head_child = head_pair
@@ -771,9 +788,9 @@ fn parse_path_expr(pair: Pair<Rule>, prefixes: &PrefixMapper, extra: &mut Vec<Tr
 /// string escape sequences (`\n \r \t \b \f \" \' \\ \uXXXX \UXXXXXXXX`).
 fn unescape_string(raw: &str) -> String {
     let s = raw.trim();
-    let inner = if s.starts_with("\"\"\"") && s.ends_with("\"\"\"") && s.len() >= 6 {
-        &s[3..s.len() - 3]
-    } else if s.starts_with("'''") && s.ends_with("'''") && s.len() >= 6 {
+    let inner = if (s.starts_with("\"\"\"") && s.ends_with("\"\"\"") && s.len() >= 6)
+        || (s.starts_with("'''") && s.ends_with("'''") && s.len() >= 6)
+    {
         &s[3..s.len() - 3]
     } else if (s.starts_with('"') && s.ends_with('"') && s.len() >= 2)
         || (s.starts_with('\'') && s.ends_with('\'') && s.len() >= 2)
@@ -892,7 +909,12 @@ fn parse_tp(pairs: Pairs<'_, Rule>, prefixes: &PrefixMapper) -> Vec<Triple> {
                 let object_vot = parse_object(object_pair, prefixes, &mut triples);
                 let property_vot = make_term(&expand_property(property_pair, prefixes));
                 let subject_vot2 = parse_subject(subject_pair, prefixes, &mut triples);
-                triples.push(Triple { s: subject_vot2, p: property_vot, o: object_vot, g: None });
+                triples.push(Triple {
+                    s: subject_vot2,
+                    p: property_vot,
+                    o: object_vot,
+                    g: None,
+                });
             }
             // `has` sugar: "subject has predicate object ." desugars to the
             // same ordinary triple (subject, predicate, object) -- `has` is
@@ -905,7 +927,12 @@ fn parse_tp(pairs: Pairs<'_, Rule>, prefixes: &PrefixMapper) -> Vec<Triple> {
                 let subject_vot2 = parse_subject(subject_pair, prefixes, &mut triples);
                 let property_vot = make_term(&expand_property(property_pair, prefixes));
                 let object_vot = parse_object(object_pair, prefixes, &mut triples);
-                triples.push(Triple { s: subject_vot2, p: property_vot, o: object_vot, g: None });
+                triples.push(Triple {
+                    s: subject_vot2,
+                    p: property_vot,
+                    o: object_vot,
+                    g: None,
+                });
             }
             Rule::EOI => {}
             _ => {}
@@ -968,7 +995,8 @@ fn parse_object(pair: Pair<Rule>, prefixes: &PrefixMapper, extra: &mut Vec<Tripl
 ///
 /// Returns `Err(String)` on parse failure.
 pub fn parse_document(input: &str) -> Result<(Vec<Triple>, Vec<ReasonerRule>), String> {
-    let parsed = N3Parser::parse(Rule::document, input).map_err(|e| format!("N3 parse error: {}", e))?;
+    let parsed =
+        N3Parser::parse(Rule::document, input).map_err(|e| format!("N3 parse error: {}", e))?;
 
     let document = match parsed.into_iter().next() {
         Some(p) => p,
@@ -1118,7 +1146,8 @@ fn parse_document_body(document: Pair<Rule>) -> Result<(Vec<Triple>, Vec<Reasone
                                 let mut side_triples = Vec::new();
                                 for tp_pair in part.into_inner() {
                                     if tp_pair.as_rule() == Rule::TP {
-                                        side_triples.extend(parse_tp(tp_pair.into_inner(), &prefix_mapper));
+                                        side_triples
+                                            .extend(parse_tp(tp_pair.into_inner(), &prefix_mapper));
                                     }
                                 }
                                 sides.push(side_triples);
@@ -1130,26 +1159,40 @@ fn parse_document_body(document: Pair<Rule>) -> Result<(Vec<Triple>, Vec<Reasone
                             let left_body: Vec<BodyLiteral> = left
                                 .iter()
                                 .cloned()
-                                .map(|pattern| BodyLiteral { negated: false, pattern })
+                                .map(|pattern| BodyLiteral {
+                                    negated: false,
+                                    pattern,
+                                })
                                 .collect();
                             let right_body: Vec<BodyLiteral> = right
                                 .iter()
                                 .cloned()
-                                .map(|pattern| BodyLiteral { negated: false, pattern })
+                                .map(|pattern| BodyLiteral {
+                                    negated: false,
+                                    pattern,
+                                })
                                 .collect();
                             // left => right
                             for head in right.iter().cloned() {
-                                rules.push(ReasonerRule { body: left_body.clone(), head });
+                                rules.push(ReasonerRule {
+                                    body: left_body.clone(),
+                                    head,
+                                });
                             }
                             // right => left
                             for head in left.iter().cloned() {
-                                rules.push(ReasonerRule { body: right_body.clone(), head });
+                                rules.push(ReasonerRule {
+                                    body: right_body.clone(),
+                                    head,
+                                });
                             }
                         }
                         continue;
                     }
 
-                    if variant.as_rule() != Rule::forward_rule && variant.as_rule() != Rule::backward_rule {
+                    if variant.as_rule() != Rule::forward_rule
+                        && variant.as_rule() != Rule::backward_rule
+                    {
                         continue;
                     }
 
@@ -1171,7 +1214,9 @@ fn parse_document_body(document: Pair<Rule>) -> Result<(Vec<Triple>, Vec<Reasone
                         for part in &parts {
                             if part.as_rule() == Rule::Body {
                                 for bl_pair in part.clone().into_inner() {
-                                    if bl_pair.as_rule() == Rule::ForAll || bl_pair.as_rule() == Rule::ForSome {
+                                    if bl_pair.as_rule() == Rule::ForAll
+                                        || bl_pair.as_rule() == Rule::ForSome
+                                    {
                                         register_quantifier_declarations(&bl_pair);
                                     }
                                 }
@@ -1184,7 +1229,9 @@ fn parse_document_body(document: Pair<Rule>) -> Result<(Vec<Triple>, Vec<Reasone
                                     for bl_pair in part.into_inner() {
                                         // Declarations were already registered
                                         // in the pre-pass above.
-                                        if bl_pair.as_rule() == Rule::ForAll || bl_pair.as_rule() == Rule::ForSome {
+                                        if bl_pair.as_rule() == Rule::ForAll
+                                            || bl_pair.as_rule() == Rule::ForSome
+                                        {
                                             continue;
                                         }
                                         // `true` (TrueBody) means "unconditionally
@@ -1196,22 +1243,30 @@ fn parse_document_body(document: Pair<Rule>) -> Result<(Vec<Triple>, Vec<Reasone
                                             continue;
                                         }
                                         // bl_pair is a BodyLiteral
-                                        let is_negated = bl_pair.as_str().trim_start().starts_with("not");
+                                        let is_negated =
+                                            bl_pair.as_str().trim_start().starts_with("not");
                                         // Find the TP inside the BodyLiteral
                                         let tp_pair = bl_pair
                                             .into_inner()
                                             .find(|p| p.as_rule() == Rule::TP)
                                             .expect("BodyLiteral must contain a TP");
-                                        let patterns = parse_tp(tp_pair.into_inner(), &prefix_mapper);
+                                        let patterns =
+                                            parse_tp(tp_pair.into_inner(), &prefix_mapper);
                                         for pattern in patterns {
-                                            body.push(BodyLiteral { negated: is_negated, pattern });
+                                            body.push(BodyLiteral {
+                                                negated: is_negated,
+                                                pattern,
+                                            });
                                         }
                                     }
                                 }
                                 Rule::Head => {
                                     for tp_pair in part.into_inner() {
                                         if tp_pair.as_rule() == Rule::TP {
-                                            head_triples.extend(parse_tp(tp_pair.into_inner(), &prefix_mapper));
+                                            head_triples.extend(parse_tp(
+                                                tp_pair.into_inner(),
+                                                &prefix_mapper,
+                                            ));
                                         } else if tp_pair.as_rule() == Rule::DenyHead {
                                             is_deny_head = true;
                                         }

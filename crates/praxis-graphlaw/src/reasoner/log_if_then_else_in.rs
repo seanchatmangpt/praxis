@@ -1,5 +1,8 @@
 use super::Reasoner;
-use crate::{Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex, VarOrTerm};
+use crate::{
+    Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex,
+    VarOrTerm,
+};
 
 impl Reasoner {
     /// The IRI of the `log:ifThenElseIn` built-in predicate.
@@ -17,7 +20,8 @@ impl Reasoner {
         rule.body.iter().position(|lit| {
             !lit.negated
                 && lit.pattern.p.is_term()
-                && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref() == Some(Self::LOG_IF_THEN_ELSE_IN)
+                && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref()
+                    == Some(Self::LOG_IF_THEN_ELSE_IN)
         })
     }
 
@@ -47,7 +51,11 @@ impl Reasoner {
         let Some(outer_bindings) = outer_bindings else {
             return results;
         };
-        let num_rows = if outer_bindings.len() == 0 { 1 } else { outer_bindings.len() };
+        let num_rows = if outer_bindings.is_empty() {
+            1
+        } else {
+            outer_bindings.len()
+        };
 
         for row in 0..num_rows {
             let mut row_binding = Binding::new();
@@ -68,7 +76,8 @@ impl Reasoner {
                 continue;
             }
             let cond_holds =
-                Self::eval_embedded_formula_against_store(cond_formula, &row_binding, triple_index).is_some();
+                Self::eval_embedded_formula_against_store(cond_formula, &row_binding, triple_index)
+                    .is_some();
             let chosen = if cond_holds { then_val } else { else_val };
 
             let mut row_binding_with_result = row_binding.clone();

@@ -30,6 +30,9 @@ impl Binding {
         }
         0
     }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
     pub fn iter(&self) -> std::collections::hash_map::Iter<'_, usize, Vec<usize>> {
         self.bindings.iter()
     }
@@ -39,10 +42,10 @@ impl Binding {
     pub fn join(&self, join_binding: &Binding) -> Binding {
         let mut left = self;
         let mut right = join_binding;
-        if left.len() == 0 {
+        if left.is_empty() {
             return right.clone();
         }
-        if right.len() == 0 {
+        if right.is_empty() {
             return left.clone();
         }
         let mut result = Binding::new();
@@ -71,10 +74,7 @@ impl Binding {
                 }
                 if match_keys {
                     left.bindings.keys().for_each(|k| {
-                        result.add(
-                            k,
-                            *left.bindings.get(k).unwrap().get(left_c).unwrap(),
-                        )
+                        result.add(k, *left.bindings.get(k).unwrap().get(left_c).unwrap())
                     });
                     //add right data (without the current key
                     right
@@ -82,10 +82,7 @@ impl Binding {
                         .keys()
                         .filter(|k| !left.bindings.contains_key(*k))
                         .for_each(|k| {
-                            result.add(
-                                k,
-                                *right.bindings.get(k).unwrap().get(right_c).unwrap(),
-                            )
+                            result.add(k, *right.bindings.get(k).unwrap().get(right_c).unwrap())
                         });
                 }
             }

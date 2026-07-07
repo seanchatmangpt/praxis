@@ -1,5 +1,8 @@
 use super::Reasoner;
-use crate::{Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex, VarOrTerm};
+use crate::{
+    Binding, BodyLiteral, Encoder, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex,
+    VarOrTerm,
+};
 
 impl Reasoner {
     /// The IRI of the `log:conclusion` built-in predicate.
@@ -27,7 +30,8 @@ impl Reasoner {
         rule.body.iter().position(|lit| {
             !lit.negated
                 && lit.pattern.p.is_term()
-                && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref() == Some(Self::LOG_CONCLUSION)
+                && Encoder::decode(&lit.pattern.p.to_encoded()).as_deref()
+                    == Some(Self::LOG_CONCLUSION)
         })
     }
 
@@ -41,9 +45,10 @@ impl Reasoner {
         let mut nested_rules: Vec<(Vec<Triple>, Vec<Triple>)> = Vec::new();
         for t in &triples {
             if t.p.is_term() && t.p.to_encoded() == implies_iri_id {
-                if let (Some(ante), Some(cons)) =
-                    (VarOrTerm::formula_triples(t.s.to_encoded()), VarOrTerm::formula_triples(t.o.to_encoded()))
-                {
+                if let (Some(ante), Some(cons)) = (
+                    VarOrTerm::formula_triples(t.s.to_encoded()),
+                    VarOrTerm::formula_triples(t.o.to_encoded()),
+                ) {
                     nested_rules.push((ante, cons));
                     continue;
                 }
@@ -98,7 +103,11 @@ impl Reasoner {
         let Some(outer_bindings) = outer_bindings else {
             return results;
         };
-        let num_rows = if outer_bindings.len() == 0 { 1 } else { outer_bindings.len() };
+        let num_rows = if outer_bindings.is_empty() {
+            1
+        } else {
+            outer_bindings.len()
+        };
 
         for row in 0..num_rows {
             let mut row_binding = Binding::new();
@@ -117,10 +126,15 @@ impl Reasoner {
                 merged.add(&result_var.to_encoded(), concluded);
             }
 
-            let Some(final_binding) = Self::eval_post_literals(&post_body, merged, triple_index) else {
+            let Some(final_binding) = Self::eval_post_literals(&post_body, merged, triple_index)
+            else {
                 continue;
             };
-            let num_final_rows = if final_binding.len() == 0 { 1 } else { final_binding.len() };
+            let num_final_rows = if final_binding.is_empty() {
+                1
+            } else {
+                final_binding.len()
+            };
             for final_row in 0..num_final_rows {
                 let mut single = Binding::new();
                 for (&k, v) in final_binding.iter() {

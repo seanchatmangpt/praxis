@@ -170,6 +170,9 @@ impl TripleStore {
     pub fn len(&self) -> usize {
         self.triple_index.len()
     }
+    pub fn is_empty(&self) -> bool {
+        self.triple_index.is_empty()
+    }
 
     pub fn materialize(&mut self) -> Vec<Triple> {
         self.reasoner.materialize(
@@ -195,7 +198,7 @@ impl TripleStore {
             .filter(|r| r.is_denial())
             .filter_map(|r| {
                 let bindings = SimpleQueryEngine::query(&self.triple_index, &r.body, None)?;
-                if bindings.len() == 0 {
+                if bindings.is_empty() {
                     return None;
                 }
                 let body_desc: String = r
