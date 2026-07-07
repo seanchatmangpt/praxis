@@ -79,8 +79,8 @@ downstream of this case study.
 | 13 wasm4pm process validation | DONE | `case-study/wasm4pm_validation.json` — `is_conforming: true, fitness: 1.0, violations: []` (via `cargo run --bin ocel_process_validate -- case-study/ocel_case_study.json --model case-study`); required 3 Lane-3 process-model fixes first (`src/bin/ocel_process_validate.rs`: added missing `utc_clock_captured`, made `standing_emitted` `AtLeastOnce`, deferred `final_verdict_rendered` to Lane 6) — see `lane-reports/lane-4-ocel-wasm4pm.md` |
 | 14 Standing-process validation payoff | DONE | `case-study/standing_ocel_validation.json` — `{valid: true, event_count: 28, object_count: 28, parse_errors: []}` for Lane 1's `target/praxis-standing/standing.ocel.json`, via new `--model standing-integrity` mode on `ocel_process_validate` |
 | 15 Autonomic Platform screen | DONE | `clients/autonomic-platform/src/praxis-adapter.js` (`getCaseStudy()`, 14 provenance-wrapped fields, 13 real / 1 UNKNOWN), `src/praxis-mode.js` (`PraxisCaseStudyScreen`), `src/AutonomicPlatform.js` (`casestudy` screen), `vite.config.js` (5 new `/praxis-artifacts/case-study/*` routes); `tests/playwright/case-study-smoke.spec.ts` — 1/1 passed, 14 status rows (13 known + 1 UNKNOWN), 9 positive rows all provenance-chip-verified structurally; `npm run build` passed; `case-study/screenshots/autonomic-case-study.png`, `case-study/traces/case-study-smoke.zip`; `AUTONOMIC_PLATFORM_REPORT.md`, `lane-reports/lane-5-client.md` |
-| 16 Reports + manifests | PENDING | `EVIDENCE_MANIFEST.md`, `CLAIM_PROMOTION_TABLE.md`, `FINAL_VERDICT.md` |
-| 17 Full verification matrix | PENDING | `lane-reports/lane-7-audit.md` |
+| 16 Reports + manifests | DONE | `EVIDENCE_MANIFEST.md` + `case-study/evidence_manifest.json` (37 artifacts, real sha256/blake3 recomputed by Lane 6), `GRAPHLAW_JUDGMENT_MODEL.md`, `PROCESS_MODEL.md`, `PDDL_REPAIR_PLAN.md`, `POWL_EXECUTION_MODEL.md`, `OCEL_REPLAY_REPORT.md`, `WASM4PM_VALIDATION_REPORT.md`, `CLAIM_PROMOTION_TABLE.md` (14/14 claims PROMOTED), `FINAL_VERDICT.md` + `case-study/final_verdict.json` — real verdict `GRAPHLAW_JUDGED_PRODUCTION_READY_FOR_SCOPE` (15/15 criteria, `unsatisfied_dependency_count: 0`), generated from `case-study/final_graphlaw_verdict.json` per the control ledger's own authoritative-source rule. Lane 6 promoted Criteria 6-15 in `case-study/graphlaw_judgment.ttl` with real Lane 3-5 evidence, found and fixed a real bug in `case_study_judge.rs`'s `verdict_present` (see `GRAPHLAW_JUDGMENT_MODEL.md`), and found+fixed an unrelated real bug in `crates/ggen/tests/dogfood_regression.rs` (tempdir pack-staging gap) during verification |
+| 17 Full verification matrix | PARTIAL | Lane 6 ran a broad verification pass ahead of Lane 7 (see `lane-reports/lane-6-reports.md`'s verification section): `cargo test --workspace --all-features` and `cargo check --workspace --all-features` green; `cargo clippy --all-targets --all-features -D warnings` RED (338 pre-existing, unrelated style-only lints in `crates/praxis-graphlaw` legacy modules, disclosed not fixed — see `CLAIM_PROMOTION_TABLE.md` row 12); `just doctor` green; case-study-specific commands (`plan run`, `receipt validate`, `ocel_process_validate` both models, client build + Playwright) all green and re-verified independently by Lane 6. The FULL independent audit matrix (re-deriving every lane's headline claim from a clean vantage point) remains Lane 7's own job |
 | 18 Integration Gate Auditor | PENDING | `lane-reports/lane-7-audit.md` |
 | 19 Commits | PENDING | git log, both repos |
 | 20 Final chat report | PENDING | this session's final message |
@@ -104,18 +104,16 @@ list with hashes)
 
 `docs/case-studies/autonomic-standing-factory/case-study/final_graphlaw_verdict.json`
 — the ONLY authoritative source for the verdict sentence in `FINAL_VERDICT.md`.
-Produced by Lane 2 (`src/bin/case_study_judge.rs`): current real value
-`raw_verdict_fact: "NotReadyWithReasons"` (`verdict:
-"GRAPHLAW_JUDGED_NOT_READY_WITH_RECEIPTED_REASONS"`). Lane 4 re-ran
-`case_study_judge` twice (as part of `case-study/run-case-study-pass.mjs`)
-after landing real PDDL/POWL/OCEL/wasm4pm evidence — the verdict fact did
-NOT flip, because `case-study/graphlaw_judgment.ttl`'s hand-authored
-`praxis:satisfied` list (Criteria 1-5 only) is static seed data, not derived
-from live file-existence checks; Criteria 6-9 now have real evidence on disk
-(`case-study/pddl-out/plan.json`, `case-study/powl_model.json`,
-`case-study/ocel_case_study.json`, `case-study/wasm4pm_validation.json`) but
-promoting them to `praxis:satisfied` in the seed graph is Lane 6's claim-
-promotion job, not fabricated here. Client evidence (Lane 5) still pending.
-Re-run `cargo run --bin case_study_judge` again after Lane 6's promotion
-edit to see the verdict fact recompute. `FINAL_VERDICT.md` itself is Lane
-6's output, not yet produced.
+Updated by Lane 6: after promoting Criteria 6-15 in
+`case-study/graphlaw_judgment.ttl` with real Lane 3-5 evidence (see
+`CLAIM_PROMOTION_TABLE.md`) and fixing a real bug in `case_study_judge.rs`'s
+`verdict_present` (a SPARQL query that never bound its projected variable,
+so it always returned `false` regardless of the graph's actual derived
+facts — see `GRAPHLAW_JUDGMENT_MODEL.md`), the current real value is
+`raw_verdict_fact: "ProductionReadyForDeclaredScope"` (`verdict:
+"GRAPHLAW_JUDGED_PRODUCTION_READY_FOR_SCOPE"`), `unsatisfied_dependency_count:
+0`, all 15 criteria `satisfied: true`. Confirmed deterministic across 4
+independent `cargo run --bin case_study_judge` runs (`graph_hash`
+`blake3:4e1843d2cf5dfc8b12e2ad30e72329ce58a77d1b8c6f7ac255101bec399a6efa`
+every time). `FINAL_VERDICT.md` is Lane 6's rendered output of this exact
+field.
