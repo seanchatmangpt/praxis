@@ -15,7 +15,7 @@ quad:Result a quad:Results ;
   quad:untracedArtifacts 0 ;
   quad:unclassifiedRefusals 0 ;
   quad:releaseId "v26.7.6" ;
-  quad:runId "e1ddbc6" ;
+  quad:runId "c7d4dd0" ;
   quad:ttlCount 145 ;
   quad:leanCount 145 ;
   quad:manifestCount 145 ;
@@ -103,7 +103,7 @@ quad:Claim_C3 a quad:Claim ;
 quad:Claim_C4 a quad:Claim ;
   quad:claimId "C4" ;
   quad:claimText "evaluation numbers rendered from the manifest" ;
-  quad:evidenceRef "paper/generated/evaluation.tex" ;
+  quad:evidenceRef "paper/evaluation.tex" ;
   quad:order 4 .
 
 quad:Claim_C5 a quad:Claim ;
