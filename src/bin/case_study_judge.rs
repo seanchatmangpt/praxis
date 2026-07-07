@@ -231,13 +231,39 @@ fn query_first_col(store: &TripleStore, sparql: &str) -> Result<Vec<String>, Ref
         .collect())
 }
 
+/// Real bug found and fixed forward by Lane 6: the original query here was
+/// `SELECT ?cs WHERE { <subject> a <class> }` — an all-ground WHERE
+/// pattern that never binds the projected `?cs` variable at all. This
+/// engine's `query_first_col` (correctly) extracts the FIRST BOUND
+/// BINDING per solution row; a solution row with zero bindings (because
+/// the one projected variable never appears in the pattern) yields
+/// `row.into_iter().next() == None`, which `query_first_col` filters out
+/// — so this function returned `false` unconditionally, for every verdict
+/// class, on every call, regardless of whether the pattern actually
+/// matched. `run()`'s `verdict` therefore ALWAYS fell through to its
+/// `.unwrap_or("NotReadyWithReasons")` default, never actually reading
+/// back the derived verdict fact from the graph — the exact "assert-in
+/// rather than derive" failure mode invariant 2 exists to catch, except
+/// inverted (the derivation ran, but its result was silently discarded).
+/// This coincidentally matched the true state for every case-study run to
+/// date (the graph never actually reached `ProductionReadyForDeclaredScope`
+/// before Lane 6's evidence promotion), which is why it went undetected —
+/// the existing test suite's own `present()` helper (case_study_judge.rs
+/// test module) checks `!rows.is_empty()` on the raw solution-row count
+/// directly rather than going through `query_first_col`, so it never
+/// exercised this bug either. Fixed by mirroring the working
+/// `case_study_subjects` query shape used a few lines below (`SELECT ?s
+/// WHERE { ?s a <class> }`, variable SUBJECT / ground object — the
+/// variable actually appears in the pattern), then checking membership of
+/// the specific subject IRI in the returned rows.
 fn verdict_present(
     store: &TripleStore,
     verdict_class: &str,
     subject_local: &str,
 ) -> Result<bool, Refusal> {
-    let q = format!("SELECT ?cs WHERE {{ <{NS}{subject_local}> a <{NS}{verdict_class}> }}");
-    Ok(!query_first_col(store, &q)?.is_empty())
+    let q = format!("SELECT ?s WHERE {{ ?s a <{NS}{verdict_class}> }}");
+    let rows = query_first_col(store, &q)?;
+    Ok(rows.iter().any(|s| s.contains(subject_local)))
 }
 
 fn run() -> Result<(FinalVerdict, bool), Refusal> {
@@ -663,6 +689,36 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Regression test for a real bug Lane 6 found and fixed: the original
+    /// `verdict_present` queried `SELECT ?cs WHERE { <ground-subject> a
+    /// <ground-class> }` — an all-ground pattern that never binds the
+    /// projected `?cs` variable, so `query_first_col` (which extracts the
+    /// first BOUND binding per row) silently discarded every solution row
+    /// and `verdict_present` returned `false` unconditionally, for every
+    /// class, on every call. This directly exercises the fixed function
+    /// (not the `present()` helper below, which never had the bug because
+    /// it checks the raw row count instead of going through
+    /// `query_first_col`) against a graph that genuinely has the class
+    /// asserted, proving it can actually find a match.
+    #[test]
+    fn verdict_present_finds_a_genuinely_asserted_class() {
+        let mut store = TripleStore::new();
+        store
+            .load_triples(
+                &format!("@prefix praxis: <{NS}> . praxis:X a praxis:SomeVerdictClass ."),
+                Syntax::Turtle,
+            )
+            .expect("must parse");
+        assert!(
+            verdict_present(&store, "SomeVerdictClass", "X").expect("query must succeed"),
+            "verdict_present must find a class that is genuinely asserted on the subject"
+        );
+        assert!(
+            !verdict_present(&store, "SomeOtherClass", "X").expect("query must succeed"),
+            "verdict_present must not find a class that was never asserted"
+        );
+    }
 
     /// (a) real evidence graph -> materialize derives >=1 triple;
     /// check_denials behavior reported honestly (zero denials, since the
