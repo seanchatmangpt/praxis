@@ -1,0 +1,184 @@
+@prefix procint: <https://mfact.dev/procint#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Correctness-ladder test modules (Levels 1-2 oracle fixtures) ─────────────
+# Every leanCode literal kernel-verified via lake env lean (tests_scratch.lean,
+# exit 0) before recording. Oracles cite their canonical family per the
+# process-mining literature. Tests are catalog declarations like any other:
+# ggen renders, Lean admits, the ledger records.
+
+procint:Mod_Tests_Conformance a procint:Module ;
+  procint:moduleId "Tests.Conformance" ;
+  procint:modPath "Tests/Conformance" ;
+  procint:order 95 ;
+  procint:moduleDoc "Executable conformance oracles (Level 1): perfect-alignment cost 0, log-only deviation cost 1, projection behavior, and Rozinat-Aalst token-replay fitness values, all checked by #guard at elaboration time." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Conformance.Moves
+import ProcInt.Conformance.Alignment
+import ProcInt.Conformance.TokenReplay""" .
+
+procint:Decl_test_perfect_alignment a procint:Decl ;
+  procint:inModule "Tests.Conformance" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.test_perfect_alignment" ;
+  procint:declKind "guard" ;
+  procint:status "proven" ;
+  procint:leanCode """-- Oracle: a perfect alignment (all synchronous moves) has cost 0
+-- (Carmona et al. 2018, fitness of perfectly fitting traces).
+#guard alignmentCost ([.sync "a" 1, .sync "b" 2] : List (Move String ℕ)) == 0
+-- Oracle: one log-only deviation costs exactly 1 (standard cost function).
+#guard alignmentCost ([.sync "a" 1, .logOnly "x", .silentModel 3] : List (Move String ℕ)) == 1
+-- Log projection drops model-only and silent moves.
+#guard logProjection ([.sync "a" 1, .modelOnly 2, .logOnly "b", .silentModel 3] : List (Move String ℕ)) == ["a", "b"]""" .
+
+procint:Decl_test_fitness_oracles a procint:Decl ;
+  procint:inModule "Tests.Conformance" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.test_fitness_oracles" ;
+  procint:declKind "guard" ;
+  procint:status "proven" ;
+  procint:leanCode """-- Token-replay perfect-fitness oracle: (4,4,0,0) has fitness 1
+-- (mirrors calculate_fitness(4,4,0,0) = 1.0, Rozinat-Aalst 2008).
+#guard fitness ⟨4, 4, 0, 0, by decide, by decide⟩ == 1
+-- Half-fitness oracle: (4,4,2,2) has fitness 1/2.
+#guard fitness ⟨4, 4, 2, 2, by decide, by decide⟩ == (1 : ℚ) / 2""" .
+
+procint:Mod_Tests_Logs a procint:Module ;
+  procint:moduleId "Tests.Logs" ;
+  procint:modPath "Tests/Logs" ;
+  procint:order 94 ;
+  procint:moduleDoc "Event-log oracles (Level 1): activity projection and timestamp monotonicity on concrete traces, decided by the kernel." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Logs.Event
+import ProcInt.Logs.Trace""" .
+
+procint:Decl_test_trace_oracles a procint:Decl ;
+  procint:inModule "Tests.Logs" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.test_trace_oracles" ;
+  procint:declKind "guard" ;
+  procint:status "proven" ;
+  procint:leanCode """-- Activities projection oracle.
+#guard (Trace.activities ⟨"c", [Event.simple "a" 0, Event.simple "b" 5]⟩ : List String) == ["a", "b"]
+-- Monotone oracle trace (equal timestamps allowed: non-strict order).
+example : Trace.Monotone (⟨"c", [Event.simple "a" 0, Event.simple "b" 0, Event.simple "c" 7]⟩ : Trace String) := by
+  unfold Trace.Monotone; decide""" .
+
+procint:Mod_Tests_Models a procint:Module ;
+  procint:moduleId "Tests.Models" ;
+  procint:modPath "Tests/Models" ;
+  procint:order 97 ;
+  procint:moduleDoc "Model-family oracles (Level 1): directly-follows graphs of concrete traces, Declare template satisfaction, and process-tree interleaving semantics." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Models.Dfg
+import ProcInt.Models.Declare
+import ProcInt.Models.ProcessTree""" .
+
+procint:Decl_test_model_oracles a procint:Decl ;
+  procint:inModule "Tests.Models" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.test_model_oracles" ;
+  procint:declKind "guard" ;
+  procint:status "proven" ;
+  procint:leanCode """-- DFG of a simple-sequence trace: adjacent pairs, each frequency 1.
+#guard (dfgOfTrace ["a", "b", "c"]).edges == [("a", "b", 1), ("b", "c", 1)]
+-- Declare response oracle: response(a,b) holds on [a,b,a,b].
+example : Response "a" "b" ["a", "b", "a", "b"] := by decide
+-- Declare precedence oracle.
+example : Precedence "a" "b" ["a", "b"] := by decide
+-- Parallel split/join semantics seed: interleavings of [a] and [b].
+#guard interleavings ["a"] ["b"] == [["a", "b"], ["b", "a"]]""" .
+
+procint:Mod_Tests_Ocel a procint:Module ;
+  procint:moduleId "Tests.Ocel" ;
+  procint:modPath "Tests/Ocel" ;
+  procint:order 96 ;
+  procint:moduleDoc "OCEL 2.0 oracles (Level 1-2): the order-to-items pattern (one event, two related objects), the dual event projection, and the absent-object case projecting to nothing." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Ocel.Core""" .
+
+procint:Decl_test_ocel_oracle_log a procint:Decl ;
+  procint:inModule "Tests.Ocel" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.ocelOracle" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Order-to-items oracle log (OCEL 2.0 canonical pattern): one place_order
+event relating to two item objects, with a sibling O2O relation. -/
+def ocelOracle : OCEL String String String String String String :=
+  { evtype := fun _ => "place_order", time := fun _ => 0,
+    objtype := fun _ => "item",
+    e2o := [("e1", "creates", "o1"), ("e1", "creates", "o2")],
+    o2o := [("o1", "sibling", "o2")],
+    eaval := fun _ _ => none, oaval := fun _ _ _ => none }""" .
+
+procint:Decl_test_ocel_projections a procint:Decl ;
+  procint:inModule "Tests.Ocel" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.test_ocel_projections" ;
+  procint:declKind "guard" ;
+  procint:status "proven" ;
+  procint:leanCode """-- E2O projection: the order event touches exactly its two items, in order.
+#guard ocelOracle.objectsOf "e1" == ["o1", "o2"]
+-- Dual projection: item o1 participates in exactly the order event.
+#guard ocelOracle.eventsOf "o1" == ["e1"]
+-- Absent-object case: an unknown event projects to nothing (no phantom relations).
+#guard ocelOracle.objectsOf "e_missing" == ([] : List String)""" .
+
+procint:Mod_Tests_Petri a procint:Module ;
+  procint:moduleId "Tests.Petri" ;
+  procint:modPath "Tests/Petri" ;
+  procint:order 92 ;
+  procint:moduleDoc "Petri-net oracles (Level 1, proof-style since markings are Finsupp and hence noncomputable): the one-place-one-transition sequence net — enabledness at the initial marking and the token-moving firing equation." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Petri.Net
+import ProcInt.Petri.Firing""" .
+
+procint:Decl_test_seqNet a procint:Decl ;
+  procint:inModule "Tests.Petri" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.seqNet" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Simple-sequence oracle net: one transition consuming from place 0 and
+producing into place 1 (the smallest nontrivial Petri net, Murata 1989 Fig. 1
+family). -/
+noncomputable def seqNet : PetriNet (Fin 2) (Fin 1) :=
+  { pre := fun _ => Finsupp.single 0 1, post := fun _ => Finsupp.single 1 1 }""" .
+
+procint:Decl_test_seqNet_enabled a procint:Decl ;
+  procint:inModule "Tests.Petri" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.test_seqNet_enabled" ;
+  procint:declKind "example" ;
+  procint:status "proven" ;
+  procint:leanCode """-- The single transition is enabled at the initial marking [p0].
+example : seqNet.Enabled (Finsupp.single 0 1) 0 := by
+  unfold PetriNet.Enabled seqNet; exact le_refl _
+-- Firing moves the token: fire [p0] t = [p1].
+example : seqNet.fire (Finsupp.single 0 1) 0 = Finsupp.single 1 1 := by
+  unfold PetriNet.fire seqNet
+  simp""" .
+
+procint:Mod_Tests a procint:Module ;
+  procint:moduleId "Tests" ;
+  procint:modPath "Tests" ;
+  procint:order 98 ;
+  procint:moduleDoc "Correctness-ladder umbrella: importing this module elaborates every oracle fixture, negative fixture, and law instance; lake test builds it as the test driver. A fixture failure is an elaboration failure — there is no separate test runner to disagree with the kernel." ;
+  procint:importsBlock """import ProcInt.Tests.Petri
+import ProcInt.Tests.Logs
+import ProcInt.Tests.Conformance
+import ProcInt.Tests.Ocel
+import ProcInt.Tests.Models
+import ProcInt.Fixtures.Positive
+import ProcInt.Fixtures.Negative""" .
+
+procint:Decl_tests_umbrella a procint:Decl ;
+  procint:inModule "Tests" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.testSurface" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Marker for the test surface: its elaboration means every imported
+fixture module was kernel-admitted. -/
+def testSurface : String := "correctness-ladder" """ .
