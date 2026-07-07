@@ -14,6 +14,12 @@ pub struct SimpleWindowConsumer<T> {
     windows: Vec<Box<TimeWindow<T>>>,
     data: Vec<(i32, Rc<T>)>,
 }
+impl<T> Default for SimpleWindowConsumer<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> SimpleWindowConsumer<T> {
     pub fn new() -> SimpleWindowConsumer<T> {
         SimpleWindowConsumer {

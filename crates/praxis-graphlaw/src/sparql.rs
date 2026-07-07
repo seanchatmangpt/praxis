@@ -1,3 +1,13 @@
+use crate::sparql::EncodedTerm::NamedNode;
+use crate::sparql::PlanNode::QuadPattern;
+use crate::tripleindex::EncodedBinding;
+use crate::utils::Utils;
+use crate::{Encoder, Parser, Syntax, Term, TermImpl, Triple, TripleIndex, TripleStore, VarOrTerm};
+use once_cell::sync::Lazy;
+use spargebra::algebra::*;
+use spargebra::term::{TriplePattern, Variable};
+use spargebra::Query;
+use spargebra::Query::Select;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -5,22 +15,16 @@ use std::fmt::Error;
 use std::iter::empty;
 use std::rc::Rc;
 use std::sync::Mutex;
-use spargebra::Query;
-use spargebra::Query::Select;
-use spargebra::algebra::*;
-use spargebra::term::{TriplePattern, Variable};
-use crate::{Encoder, Parser, Syntax, Term, TermImpl, Triple, TripleIndex, TripleStore, VarOrTerm};
-use crate::sparql::EncodedTerm::NamedNode;
-use crate::sparql::PlanNode::QuadPattern;
-use crate::tripleindex::EncodedBinding;
-use once_cell::sync::Lazy;
-use crate::utils::Utils;
 
-
-fn extract_triples(triple_patterns: &Vec<TriplePattern>, encoder: &mut Encoder)-> Vec<Triple>{
+fn extract_triples(triple_patterns: &Vec<TriplePattern>, encoder: &mut Encoder) -> Vec<Triple> {
     let mut triples = Vec::new();
-    for TriplePattern{subject: s , predicate: p,object:o } in triple_patterns{
-        triples.push(Triple::from(s.to_string(),p.to_string(),o.to_string()));
+    for TriplePattern {
+        subject: s,
+        predicate: p,
+        object: o,
+    } in triple_patterns
+    {
+        triples.push(Triple::from(s.to_string(), p.to_string(), o.to_string()));
     }
     triples
 }
@@ -114,10 +118,13 @@ pub enum PlanAggregationFunction {
     Sum,
     Min,
     Max,
-    Avg
+    Avg,
 }
-fn new_join(left: PlanNode, right: PlanNode) -> PlanNode{
-    PlanNode::Join {left:Box::new(left),right: Box::new(right)}
+fn new_join(left: PlanNode, right: PlanNode) -> PlanNode {
+    PlanNode::Join {
+        left: Box::new(left),
+        right: Box::new(right),
+    }
 }
 fn extract_query_plan(graph_pattern: &GraphPattern) -> PlanNode {
     match graph_pattern {
@@ -153,12 +160,10 @@ fn extract_query_plan(graph_pattern: &GraphPattern) -> PlanNode {
                 mapping: new_vars,
             }
         }
-        GraphPattern::Filter { expr, inner } => {
-            PlanNode::Filter {
-                child: Box::new(extract_query_plan(inner)),
-                expression: Box::new(extract_expression(expr)),
-            }
-        }
+        GraphPattern::Filter { expr, inner } => PlanNode::Filter {
+            child: Box::new(extract_query_plan(inner)),
+            expression: Box::new(extract_expression(expr)),
+        },
         GraphPattern::Group {
             inner,
             variables: by,
@@ -201,25 +206,19 @@ fn extract_query_plan(graph_pattern: &GraphPattern) -> PlanNode {
             left,
             right,
             expression,
-        } => {
-            PlanNode::LeftJoin {
-                left: Box::new(extract_query_plan(left)),
-                right: Box::new(extract_query_plan(right)),
-                expression: expression.as_ref().map(extract_expression),
-            }
-        }
-        GraphPattern::Union { left, right } => {
-            PlanNode::Union {
-                left: Box::new(extract_query_plan(left)),
-                right: Box::new(extract_query_plan(right)),
-            }
-        }
-        GraphPattern::Minus { left, right } => {
-            PlanNode::Minus {
-                left: Box::new(extract_query_plan(left)),
-                right: Box::new(extract_query_plan(right)),
-            }
-        }
+        } => PlanNode::LeftJoin {
+            left: Box::new(extract_query_plan(left)),
+            right: Box::new(extract_query_plan(right)),
+            expression: expression.as_ref().map(extract_expression),
+        },
+        GraphPattern::Union { left, right } => PlanNode::Union {
+            left: Box::new(extract_query_plan(left)),
+            right: Box::new(extract_query_plan(right)),
+        },
+        GraphPattern::Minus { left, right } => PlanNode::Minus {
+            left: Box::new(extract_query_plan(left)),
+            right: Box::new(extract_query_plan(right)),
+        },
         _ => PlanNode::Done,
     }
 }
@@ -290,9 +289,7 @@ fn extract_expression(expression: &Expression) -> PlanExpression {
             Box::new(extract_expression(a)),
             Box::new(extract_expression(b)),
         ),
-        Expression::Not(a) => PlanExpression::Not(
-            Box::new(extract_expression(a)),
-        ),
+        Expression::Not(a) => PlanExpression::Not(Box::new(extract_expression(a))),
         Expression::Variable(var) => {
             let var_str = var.as_str().to_string();
             let var_str = strip_variable_prefix(&var_str).to_string();
@@ -322,9 +319,9 @@ fn extract_expression(expression: &Expression) -> PlanExpression {
     }
 }
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
-pub struct Binding{
+pub struct Binding {
     pub var: String,
-    pub val: String
+    pub val: String,
 }
 
 fn decode(input: &EncodedBinding) -> Binding {
@@ -364,8 +361,10 @@ pub fn evaluate_plan<'a>(
             }))
         }
         PlanNode::Join { left, right } => {
-            let left_results: Vec<Vec<EncodedBinding>> = evaluate_plan(left, triple_index).collect();
-            let right_results: Vec<Vec<EncodedBinding>> = evaluate_plan(right, triple_index).collect();
+            let left_results: Vec<Vec<EncodedBinding>> =
+                evaluate_plan(left, triple_index).collect();
+            let right_results: Vec<Vec<EncodedBinding>> =
+                evaluate_plan(right, triple_index).collect();
 
             if left_results.is_empty() || right_results.is_empty() {
                 return Box::new(empty());
@@ -373,7 +372,11 @@ pub fn evaluate_plan<'a>(
 
             let left_vars: HashSet<usize> = left_results[0].iter().map(|b| b.var).collect();
             let right_vars: HashSet<usize> = right_results[0].iter().map(|b| b.var).collect();
-            let intersection: Vec<usize> = right_vars.iter().filter(|v| left_vars.contains(v)).cloned().collect();
+            let intersection: Vec<usize> = right_vars
+                .iter()
+                .filter(|v| left_vars.contains(v))
+                .cloned()
+                .collect();
 
             if intersection.is_empty() {
                 let mut product = Vec::new();
@@ -436,7 +439,9 @@ pub fn evaluate_plan<'a>(
             let child = evaluate_plan(child, triple_index);
             let expression = eval_expression(expression);
             Box::new(child.filter(move |bindings| {
-                expression(bindings).and_then(|term| to_bool(&term)).unwrap_or(false)
+                expression(bindings)
+                    .and_then(|term| to_bool(&term))
+                    .unwrap_or(false)
             }))
         }
         PlanNode::Aggregate {
@@ -445,7 +450,6 @@ pub fn evaluate_plan<'a>(
             aggregates,
         } => {
             let child = evaluate_plan(child, triple_index);
-
 
             let aggregate_vars: Vec<(PlanAggregation, usize)> = aggregates
                 .iter()
@@ -463,8 +467,9 @@ pub fn evaluate_plan<'a>(
             >::default()));
 
             if keys.is_empty() {
-                let default_accs: Vec<AccumulatorImpl> = aggregate_vars.iter().map(|(agg_fn, _)| {
-                    match agg_fn.function {
+                let default_accs: Vec<AccumulatorImpl> = aggregate_vars
+                    .iter()
+                    .map(|(agg_fn, _)| match agg_fn.function {
                         PlanAggregationFunction::Count => {
                             AccumulatorImpl::Count(CountAccumulator::default())
                         }
@@ -480,15 +485,16 @@ pub fn evaluate_plan<'a>(
                         PlanAggregationFunction::Avg => {
                             AccumulatorImpl::Avg(AvgAccumulator::default())
                         }
-                    }
-                }).collect();
-                grouped_accumulators.borrow_mut().insert(vec![], default_accs);
+                    })
+                    .collect();
+                grouped_accumulators
+                    .borrow_mut()
+                    .insert(vec![], default_accs);
             }
 
             let local_group = grouped_accumulators.clone();
             let aggregate_vars_for_closure = aggregate_vars.clone();
             child.for_each(move |child_binding| {
-
                 let key_values: Vec<usize> = keys
                     .iter()
                     .map(|v| {
@@ -505,11 +511,11 @@ pub fn evaluate_plan<'a>(
                     }
                 }
 
-
                 let mut temp_acc = grouped_accumulators.borrow_mut();
                 let accs = temp_acc.entry(converted_keys).or_insert_with(|| {
-                    aggregate_vars_for_closure.iter().map(|(agg_fn, _)| {
-                        match agg_fn.function {
+                    aggregate_vars_for_closure
+                        .iter()
+                        .map(|(agg_fn, _)| match agg_fn.function {
                             PlanAggregationFunction::Count => {
                                 AccumulatorImpl::Count(CountAccumulator::default())
                             }
@@ -525,8 +531,8 @@ pub fn evaluate_plan<'a>(
                             PlanAggregationFunction::Avg => {
                                 AccumulatorImpl::Avg(AvgAccumulator::default())
                             }
-                        }
-                    }).collect()
+                        })
+                        .collect()
                 });
 
                 for (i, acc) in accs.iter_mut().enumerate() {
@@ -545,7 +551,6 @@ pub fn evaluate_plan<'a>(
                     };
                     acc.add(item_to_aggregate);
                 }
-
             });
 
             {
@@ -564,10 +569,7 @@ pub fn evaluate_plan<'a>(
                     let mut new_row = Vec::with_capacity(key_values.len() + aggregate_vars.len());
                     for (i, &key_val) in key_values.iter().enumerate() {
                         if let Some(&val) = group_keys.get(i) {
-                            new_row.push(EncodedBinding {
-                                var: key_val,
-                                val,
-                            });
+                            new_row.push(EncodedBinding { var: key_val, val });
                         }
                     }
                     for (i, acc) in group_values.iter().enumerate() {
@@ -583,7 +585,11 @@ pub fn evaluate_plan<'a>(
                 Box::new(new_bindings.into_iter())
             }
         }
-        PlanNode::Extend { child, expression, to } => {
+        PlanNode::Extend {
+            child,
+            expression,
+            to,
+        } => {
             let child_it = evaluate_plan(child, triple_index);
             let expression_fn = eval_expression(expression);
             let to_str = to.as_str().to_string();
@@ -600,17 +606,23 @@ pub fn evaluate_plan<'a>(
                 binding
             }))
         }
-        PlanNode::LeftJoin { left, right, expression } => {
-            let left_results: Vec<Vec<EncodedBinding>> = evaluate_plan(left, triple_index).collect();
-            let right_results: Vec<Vec<EncodedBinding>> = evaluate_plan(right, triple_index).collect();
-            
+        PlanNode::LeftJoin {
+            left,
+            right,
+            expression,
+        } => {
+            let left_results: Vec<Vec<EncodedBinding>> =
+                evaluate_plan(left, triple_index).collect();
+            let right_results: Vec<Vec<EncodedBinding>> =
+                evaluate_plan(right, triple_index).collect();
+
             let mut joined = Vec::new();
             let filter_fn = expression.as_ref().map(|expr| eval_expression(expr));
-            
+
             for l in left_results {
                 let l_vars: HashSet<usize> = l.iter().map(|b| b.var).collect();
                 let mut matched_any = false;
-                
+
                 for r in &right_results {
                     let mut compatible = true;
                     let mut intersection = Vec::new();
@@ -624,7 +636,7 @@ pub fn evaluate_plan<'a>(
                             }
                         }
                     }
-                    
+
                     if compatible {
                         let mut merged = l.clone();
                         for b_r in r {
@@ -632,20 +644,20 @@ pub fn evaluate_plan<'a>(
                                 merged.push(b_r.clone());
                             }
                         }
-                        
+
                         let pass = if let Some(ref f) = filter_fn {
                             f(&merged).and_then(|term| to_bool(&term)).unwrap_or(false)
                         } else {
                             true
                         };
-                        
+
                         if pass {
                             joined.push(merged);
                             matched_any = true;
                         }
                     }
                 }
-                
+
                 if !matched_any {
                     joined.push(l);
                 }
@@ -658,14 +670,16 @@ pub fn evaluate_plan<'a>(
             Box::new(left_it.chain(right_it))
         }
         PlanNode::Minus { left, right } => {
-            let left_results: Vec<Vec<EncodedBinding>> = evaluate_plan(left, triple_index).collect();
-            let right_results: Vec<Vec<EncodedBinding>> = evaluate_plan(right, triple_index).collect();
-            
+            let left_results: Vec<Vec<EncodedBinding>> =
+                evaluate_plan(left, triple_index).collect();
+            let right_results: Vec<Vec<EncodedBinding>> =
+                evaluate_plan(right, triple_index).collect();
+
             let mut remaining = Vec::new();
             for l in left_results {
                 let l_vars: HashSet<usize> = l.iter().map(|b| b.var).collect();
                 let mut filter_out = false;
-                
+
                 for r in &right_results {
                     let mut compatible = true;
                     let mut shared_any = false;
@@ -679,13 +693,13 @@ pub fn evaluate_plan<'a>(
                             }
                         }
                     }
-                    
+
                     if compatible && shared_any {
                         filter_out = true;
                         break;
                     }
                 }
-                
+
                 if !filter_out {
                     remaining.push(l);
                 }
@@ -698,23 +712,17 @@ pub fn evaluate_plan<'a>(
 }
 fn encode_term(term: EncodedTerm) -> usize {
     match term {
-        EncodedTerm::BooleanLiteral(b) => {
-            Encoder::add_literal(
-                b.to_string(),
-                Some("<http://www.w3.org/2001/XMLSchema#boolean>".to_string()),
-                None
-            )
-        }
-        EncodedTerm::IntegerLiteral(i) => {
-            Encoder::add_literal(
-                i.to_string(),
-                Some("<http://www.w3.org/2001/XMLSchema#integer>".to_string()),
-                None
-            )
-        }
-        EncodedTerm::StringLiteral(s) => {
-            Encoder::add_literal(s, None, None)
-        }
+        EncodedTerm::BooleanLiteral(b) => Encoder::add_literal(
+            b.to_string(),
+            Some("<http://www.w3.org/2001/XMLSchema#boolean>".to_string()),
+            None,
+        ),
+        EncodedTerm::IntegerLiteral(i) => Encoder::add_literal(
+            i.to_string(),
+            Some("<http://www.w3.org/2001/XMLSchema#integer>".to_string()),
+            None,
+        ),
+        EncodedTerm::StringLiteral(s) => Encoder::add_literal(s, None, None),
         EncodedTerm::NamedNode { iri_id } => iri_id,
     }
 }
@@ -724,7 +732,7 @@ trait Accumulator {
     fn get(&self) -> usize;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CountAccumulator {
     count: usize,
 }
@@ -735,12 +743,6 @@ impl Accumulator for CountAccumulator {
     }
     fn get(&self) -> usize {
         Encoder::add(self.count.to_string())
-    }
-}
-
-impl Default for CountAccumulator {
-    fn default() -> Self {
-        CountAccumulator { count: 0 }
     }
 }
 
@@ -767,7 +769,7 @@ impl Default for SumAccumulator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MinAccumulator {
     min: Option<f64>,
 }
@@ -786,13 +788,7 @@ impl Accumulator for MinAccumulator {
     }
 }
 
-impl Default for MinAccumulator {
-    fn default() -> Self {
-        MinAccumulator { min: None }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MaxAccumulator {
     max: Option<f64>,
 }
@@ -808,12 +804,6 @@ impl Accumulator for MaxAccumulator {
     }
     fn get(&self) -> usize {
         Encoder::add(self.max.map_or("0".to_string(), |m| m.to_string()))
-    }
-}
-
-impl Default for MaxAccumulator {
-    fn default() -> Self {
-        MaxAccumulator { max: None }
     }
 }
 
@@ -944,32 +934,34 @@ fn eval_expression<'a>(
         }
         PlanExpression::Variable(v) => Box::new(move |bindings| {
             let var_value: Vec<&EncodedBinding> = bindings.iter().filter(|b| b.var == *v).collect();
-            var_value
-                .first()
-                .and_then(|&binding| {
-                    if let Some(term) = Encoder::decode_to_term(binding.val) {
-                        match term {
-                            Term::Iri(iri) => Some(EncodedTerm::NamedNode { iri_id: iri.iri }),
-                            Term::Literal(lit) => {
-                                let dt = lit.datatype.and_then(|dt_id| Encoder::decode(&dt_id));
-                                let val_str = Encoder::decode(&lit.value).unwrap_or_default();
-                                if let Some(dt_str) = dt {
-                                    if dt_str == "<http://www.w3.org/2001/XMLSchema#integer>" {
-                                        if let Ok(i) = val_str.parse::<i64>() {
-                                            return Some(EncodedTerm::IntegerLiteral(i));
-                                        }
-                                    } else if dt_str == "<http://www.w3.org/2001/XMLSchema#boolean>" {
-                                        return Some(EncodedTerm::BooleanLiteral(val_str == "true" || val_str == "1"));
+            var_value.first().and_then(|&binding| {
+                if let Some(term) = Encoder::decode_to_term(binding.val) {
+                    match term {
+                        Term::Iri(iri) => Some(EncodedTerm::NamedNode { iri_id: iri.iri }),
+                        Term::Literal(lit) => {
+                            let dt = lit.datatype.and_then(|dt_id| Encoder::decode(&dt_id));
+                            let val_str = Encoder::decode(&lit.value).unwrap_or_default();
+                            if let Some(dt_str) = dt {
+                                if dt_str == "<http://www.w3.org/2001/XMLSchema#integer>" {
+                                    if let Ok(i) = val_str.parse::<i64>() {
+                                        return Some(EncodedTerm::IntegerLiteral(i));
                                     }
+                                } else if dt_str == "<http://www.w3.org/2001/XMLSchema#boolean>" {
+                                    return Some(EncodedTerm::BooleanLiteral(
+                                        val_str == "true" || val_str == "1",
+                                    ));
                                 }
-                                Some(EncodedTerm::StringLiteral(val_str))
                             }
-                            Term::BlankNode(bnode) => Some(EncodedTerm::StringLiteral(format!("_:{}", bnode.id))),
+                            Some(EncodedTerm::StringLiteral(val_str))
                         }
-                    } else {
-                        Encoder::decode(&binding.val).map(EncodedTerm::StringLiteral)
+                        Term::BlankNode(bnode) => {
+                            Some(EncodedTerm::StringLiteral(format!("_:{}", bnode.id)))
+                        }
                     }
-                })
+                } else {
+                    Encoder::decode(&binding.val).map(EncodedTerm::StringLiteral)
+                }
+            })
         }),
         PlanExpression::Constant(t) => {
             let t = t.clone();
@@ -1016,9 +1008,7 @@ fn partial_compare_helper<'a>(
 
         let r: Option<Ordering> = match a(bindings) {
             Some(EncodedTerm::IntegerLiteral(int_val_a)) => match b_res {
-                Some(EncodedTerm::IntegerLiteral(int_val_b)) => {
-                    int_val_a.partial_cmp(&int_val_b)
-                }
+                Some(EncodedTerm::IntegerLiteral(int_val_b)) => int_val_a.partial_cmp(&int_val_b),
                 _ => None,
             },
             Some(EncodedTerm::StringLiteral(str_val_a)) => match b(bindings) {
@@ -1082,9 +1072,9 @@ impl From<i64> for EncodedTerm {
 }
 pub struct QueryResults {
     plan: PlanNode,
-    iterator: Box<dyn Iterator<Item=Vec<EncodedBinding>>>
+    iterator: Box<dyn Iterator<Item = Vec<EncodedBinding>>>,
 }
-impl Iterator for QueryResults{
+impl Iterator for QueryResults {
     type Item = Vec<EncodedBinding>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1095,14 +1085,11 @@ pub fn eval_query<'a>(query: &'a Query, index: &'a TripleIndex) -> PlanNode {
     match query {
         spargebra::Query::Select {
             pattern, base_iri, ..
-        } => {
-
-            
-
-            extract_query_plan(pattern)
-        }
+        } => extract_query_plan(pattern),
         spargebra::Query::Ask {
-            pattern, base_iri: _, ..
+            pattern,
+            base_iri: _,
+            ..
         } => {
             // ASK is equivalent to SELECT * WHERE { pattern } with the result clamped to boolean.
             // We return the inner plan; the caller checks whether it yields at least one result.
@@ -1144,7 +1131,9 @@ pub fn eval_query<'a>(query: &'a Query, index: &'a TripleIndex) -> PlanNode {
             }
         }
         spargebra::Query::Describe {
-            pattern, base_iri: _, ..
+            pattern,
+            base_iri: _,
+            ..
         } => {
             // DESCRIBE returns an RDF description of the matched resources.
             // We compile the WHERE clause and let the caller enumerate the matched subjects.

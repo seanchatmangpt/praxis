@@ -26,6 +26,12 @@ pub struct InternalEncoder {
     counter: usize,
 }
 
+impl Default for InternalEncoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InternalEncoder {
     pub fn new() -> InternalEncoder {
         InternalEncoder {

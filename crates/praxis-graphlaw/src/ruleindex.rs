@@ -17,6 +17,12 @@ pub struct RuleIndex {
     pub head_by_pred: HashMap<usize, Vec<Rc<Rule>>>,
 }
 
+impl Default for RuleIndex {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RuleIndex {
     pub fn len(&self) -> usize {
         self.spo.len()

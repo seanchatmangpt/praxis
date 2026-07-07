@@ -2,16 +2,12 @@ use std::collections::HashSet;
 use std::hash::Hash;
 use std::mem;
 
+#[derive(Default)]
 pub enum StreamOperator {
+    #[default]
     RSTREAM,
     ISTREAM,
     DSTREAM,
-}
-
-impl Default for StreamOperator {
-    fn default() -> Self {
-        StreamOperator::RSTREAM
-    }
 }
 pub struct Relation2StreamOperator<O> {
     stream_operator: StreamOperator,
@@ -70,7 +66,6 @@ where
         }
         new_repsonse.into_iter().for_each(|v| {
             self.new_result.insert(v);
-            
         });
     }
 }

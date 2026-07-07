@@ -20,6 +20,12 @@ pub struct CSprite {
     imars: ImarsWindow<Triple>,
 }
 
+impl Default for CSprite {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CSprite {
     pub fn new() -> CSprite {
         CSprite {

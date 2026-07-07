@@ -1,4 +1,4 @@
-use crate::{Encoder, Rule, Triple, VarOrTerm, BodyLiteral};
+use crate::{BodyLiteral, Encoder, Rule, Triple, VarOrTerm};
 use rio_api::model::NamedNode;
 use rio_api::parser::{QuadsParser, TriplesParser};
 use rio_turtle::{NQuadsParser, NTriplesParser, TriGParser, TurtleError, TurtleParser};
@@ -6,18 +6,13 @@ use rio_turtle::{NQuadsParser, NTriplesParser, TriGParser, TurtleError, TurtlePa
 mod n3rule_parser;
 
 pub struct Parser;
-#[derive(PartialEq)]
+#[derive(PartialEq, Default)]
 pub enum Syntax {
+    #[default]
     NTriples,
     Turtle,
     TriG,
     NQuads,
-}
-
-impl Default for Syntax {
-    fn default() -> Self {
-        Syntax::NTriples
-    }
 }
 
 impl Parser {
@@ -116,7 +111,9 @@ impl Parser {
                         let is_negated = body_triple_trimmed.starts_with("not");
                         let triple_str = if is_negated {
                             let open_curly = body_triple_trimmed.find('{').unwrap_or(0);
-                            let close_curly = body_triple_trimmed.rfind('}').unwrap_or(body_triple_trimmed.len());
+                            let close_curly = body_triple_trimmed
+                                .rfind('}')
+                                .unwrap_or(body_triple_trimmed.len());
                             &body_triple_trimmed[open_curly + 1..close_curly]
                         } else {
                             body_triple_trimmed
@@ -130,7 +127,6 @@ impl Parser {
                 rules.push(Rule {
                     head: head_triple,
                     body: body_triples,
-                    
                 })
             } else {
                 //process triple

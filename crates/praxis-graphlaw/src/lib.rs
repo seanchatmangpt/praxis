@@ -66,6 +66,12 @@ pub struct TripleStore {
 }
 unsafe impl Send for TripleStore {}
 
+impl Default for TripleStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TripleStore {
     pub fn new() -> TripleStore {
         TripleStore {

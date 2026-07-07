@@ -5,6 +5,12 @@ use std::path::Iter;
 pub struct Binding {
     bindings: HashMap<usize, Vec<usize>>,
 }
+impl Default for Binding {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Binding {
     pub fn new() -> Binding {
         Binding {

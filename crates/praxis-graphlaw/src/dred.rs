@@ -16,6 +16,12 @@ pub struct DRed {
     reasoner: Reasoner,
 }
 
+impl Default for DRed {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DRed {
     pub fn new() -> Self {
         Self {

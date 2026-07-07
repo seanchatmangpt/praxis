@@ -11,27 +11,20 @@ use std::thread;
 use std::time::Duration;
 use std::{f64, mem};
 
-
+#[derive(Default)]
 pub enum ReportStrategy {
     NonEmptyContent,
     OnContentChange,
+    #[default]
     OnWindowClose,
     Periodic(usize),
 }
-impl Default for ReportStrategy {
-    fn default() -> Self {
-        ReportStrategy::OnWindowClose
-    }
-}
+#[derive(Default)]
 pub enum Tick {
+    #[default]
     TimeDriven,
     TupleDriven,
     BatchDriven,
-}
-impl Default for Tick {
-    fn default() -> Self {
-        Tick::TimeDriven
-    }
 }
 
 pub struct Report<I>
@@ -66,6 +59,15 @@ where
             ReportStrategy::OnWindowClose => window.close < ts,
             ReportStrategy::Periodic(period) => ts.is_multiple_of(*period),
         })
+    }
+}
+
+impl<I> Default for Report<I>
+where
+    I: Eq + PartialEq + Clone + Debug + Hash + Send,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 

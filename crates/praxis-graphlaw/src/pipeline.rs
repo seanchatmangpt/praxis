@@ -8,6 +8,12 @@ pub struct WindowReasoner {
     pub store: CSprite,
     prev: Vec<(i32, Rc<Triple>)>,
 }
+impl Default for WindowReasoner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WindowReasoner {
     pub fn new() -> WindowReasoner {
         WindowReasoner {

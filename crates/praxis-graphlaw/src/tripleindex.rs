@@ -13,6 +13,12 @@ pub struct TripleIndex {
     counter: usize,
 }
 
+impl Default for TripleIndex {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TripleIndex {
     pub fn len(&self) -> usize {
         self.triples.len()

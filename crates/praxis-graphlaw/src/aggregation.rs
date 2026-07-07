@@ -17,7 +17,7 @@ pub trait Accumulator {
     fn get(&self) -> usize;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CountAccumulator {
     count: usize,
 }
@@ -28,12 +28,6 @@ impl Accumulator for CountAccumulator {
     }
     fn get(&self) -> usize {
         Encoder::add(self.count.to_string())
-    }
-}
-
-impl Default for CountAccumulator {
-    fn default() -> Self {
-        CountAccumulator { count: 0 }
     }
 }
 
@@ -61,7 +55,7 @@ impl Default for SumAccumulator {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct MinAccumulator {
     min: Option<f64>,
 }
@@ -81,13 +75,7 @@ impl Accumulator for MinAccumulator {
     }
 }
 
-impl Default for MinAccumulator {
-    fn default() -> Self {
-        MinAccumulator { min: None }
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct MaxAccumulator {
     max: Option<f64>,
 }
@@ -104,12 +92,6 @@ impl Accumulator for MaxAccumulator {
     }
     fn get(&self) -> usize {
         Encoder::add(self.max.map_or("0".to_string(), |m| m.to_string()))
-    }
-}
-
-impl Default for MaxAccumulator {
-    fn default() -> Self {
-        MaxAccumulator { max: None }
     }
 }
 
