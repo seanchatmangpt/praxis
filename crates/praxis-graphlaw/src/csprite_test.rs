@@ -43,7 +43,7 @@ use crate::csprite::CSprite;
 
         store.compute_sprite(&backward_head);
         store.materialize();
-        assert_eq!(true, store.triple_index.contains(&validation_triple));
+        assert!(store.triple_index.contains(&validation_triple));
         assert_eq!(7, store.len());
     }
     //todo move to benchmark
@@ -93,7 +93,7 @@ use crate::csprite::CSprite;
         let (_content, rules) = Parser::parse(data.to_string());
         println!("{:?}", rules);
 
-        let rc_rules = rules.into_iter().map(|x| Rc::new(x)).collect();
+        let rc_rules = rules.into_iter().map(Rc::new).collect();
         let rewritten_rules = CSprite::rewrite_hierarchy(&rc_rules);
         println!("{:?}", rewritten_rules);
     }

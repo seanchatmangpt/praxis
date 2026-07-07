@@ -9,7 +9,7 @@ impl Reasoner {
     /// operand as the original variable, letting `is_ground` catch it.
     pub(crate) fn substitute_single_row(pattern: &Triple, binding: &Binding) -> Triple {
         let resolve = |var_id: usize| -> Option<usize> {
-            binding.get(&var_id).and_then(|v| v.get(0)).copied()
+            binding.get(&var_id).and_then(|v| v.first()).copied()
         };
         let sub = |term: &VarOrTerm| VarOrTerm::substitute_deep(term, &resolve);
         Triple {
@@ -23,7 +23,7 @@ impl Reasoner {
     /// A triple is safe to assert as a derived fact only once every position
     /// is a concrete term (no leftover unbound variables).
     pub(crate) fn is_ground(t: &Triple) -> bool {
-        !t.s.is_var() && !t.p.is_var() && !t.o.is_var() && t.g.as_ref().map_or(true, |g| !g.is_var())
+        !t.s.is_var() && !t.p.is_var() && !t.o.is_var() && t.g.as_ref().is_none_or(|g| !g.is_var())
     }
 
     pub(crate) fn substitute_head_with_bindings(head: &Triple, binding: &Binding) -> Vec<Triple> {
@@ -56,10 +56,10 @@ impl Reasoner {
         binding_counter: &usize,
     ) -> VarOrTerm {
         if let Some(s) = binding.get(var_name) {
-            let iri = s.get(*binding_counter).unwrap().clone();
+            let iri = *s.get(*binding_counter).unwrap();
             VarOrTerm::new_encoded_term(iri)
         } else {
-            VarOrTerm::new_encoded_var(var_name.clone())
+            VarOrTerm::new_encoded_var(*var_name)
         }
     }
 
@@ -94,7 +94,7 @@ impl Reasoner {
                 let new_body = Self::substitute_rule_body_with_binding(matching_rule, &bindings);
                 let new_head =
                     Reasoner::substitute_triple_with_bindings(&matching_rule.head, &bindings)
-                        .get(0)
+                        .first()
                         .unwrap()
                         .clone();
                 results.push(Rule {
@@ -114,10 +114,10 @@ impl Reasoner {
         let mut new_body = Vec::new();
         for body_lit in matching_rule.body.iter() {
             let substituted =
-                Reasoner::substitute_triple_with_bindings(&body_lit.pattern, &bindings);
+                Reasoner::substitute_triple_with_bindings(&body_lit.pattern, bindings);
             new_body.push(BodyLiteral {
                 negated: body_lit.negated,
-                pattern: substituted.get(0).unwrap().clone(),
+                pattern: substituted.first().unwrap().clone(),
             });
         }
         new_body

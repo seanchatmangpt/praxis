@@ -26,7 +26,7 @@ impl DRed {
         }
     }
     pub fn from(data: &str) -> Self {
-        let triple_store = TripleStore::from(&data);
+        let triple_store = TripleStore::from(data);
         Self {
             rules: triple_store.rules,
             rules_index: triple_store.rules_index,
@@ -87,8 +87,7 @@ impl DRed {
                     for (matched_rule, bindings) in matched_rules {
                         let substitute_rule =
                             Reasoner::substitute_rule_body_with_binding(&matched_rule, &bindings);
-                        if let Some(_) =
-                            SimpleQueryEngine::query(&self.triple_index, &substitute_rule, None)
+                        if SimpleQueryEngine::query(&self.triple_index, &substitute_rule, None).is_some()
                         {
                             if !self.triple_index.contains(delete_triple) {
                                 self.triple_index.add(delete_triple.clone());

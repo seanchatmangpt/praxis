@@ -19,7 +19,7 @@ impl Binding {
         binding_values.push(term);
     }
     pub fn len(&self) -> usize {
-        if let Some(values) = self.bindings.values().into_iter().next() {
+        if let Some(values) = self.bindings.values().next() {
             return values.len();
         }
         0
@@ -48,7 +48,6 @@ impl Binding {
         let join_keys: Vec<&usize> = left
             .bindings
             .keys()
-            .into_iter()
             .filter(|k| right.bindings.contains_key(*k))
             .collect();
 
@@ -65,22 +64,21 @@ impl Binding {
                     }
                 }
                 if match_keys {
-                    left.bindings.keys().into_iter().for_each(|k| {
+                    left.bindings.keys().for_each(|k| {
                         result.add(
                             k,
-                            left.bindings.get(k).unwrap().get(left_c).unwrap().clone(),
+                            *left.bindings.get(k).unwrap().get(left_c).unwrap(),
                         )
                     });
                     //add right data (without the current key
                     right
                         .bindings
                         .keys()
-                        .into_iter()
                         .filter(|k| !left.bindings.contains_key(*k))
                         .for_each(|k| {
                             result.add(
                                 k,
-                                right.bindings.get(k).unwrap().get(right_c).unwrap().clone(),
+                                *right.bindings.get(k).unwrap().get(right_c).unwrap(),
                             )
                         });
                 }

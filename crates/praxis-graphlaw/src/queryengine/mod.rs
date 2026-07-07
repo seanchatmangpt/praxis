@@ -99,13 +99,12 @@ impl QueryEngine for SimpleQueryEngine {
                 }
             }
 
-            if satisfied {
-                if !positive_lits.is_empty() {
+            if satisfied
+                && !positive_lits.is_empty() {
                     for (&var_id, vals) in bindings.iter() {
                         filtered_bindings.add(&var_id, vals[c]);
                     }
                 }
-            }
         }
 
         if filtered_bindings.len() > 0 || (positive_lits.is_empty() && filtered_bindings.len() == 0 && num_rows == 1) {

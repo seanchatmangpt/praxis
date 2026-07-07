@@ -46,7 +46,7 @@ impl RuleIndex {
         // Index by head predicate for fast backward-chaining lookup
         self.head_by_pred
             .entry(rule.head.p.to_encoded())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(rule.clone());
         for body_lit in rule.body.iter() {
             if body_lit.negated {

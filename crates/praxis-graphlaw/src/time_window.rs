@@ -87,11 +87,7 @@ where
         cmp::max(0, *new_time - self.width)
     }
     fn does_window_trigger(&mut self, ts: i32) -> bool {
-        if ts > self.time + self.width {
-            true
-        } else {
-            false
-        }
+        ts > self.time + self.width
     }
     fn update_window_open_time(&mut self, ts: i32) {
         let mut residue = (ts - self.width) / self.slide;
@@ -147,27 +143,27 @@ fn test_window_shift() {
 #[test]
 fn test_window_bound_calculation() {
     let mut window: TimeWindow<i32> = TimeWindow::new(3, 2);
-    assert_eq!(false, window.does_window_trigger(2));
-    assert_eq!(false, window.does_window_trigger(3));
-    assert_eq!(true, window.does_window_trigger(4));
-    assert_eq!(true, window.does_window_trigger(5));
+    assert!(!(window.does_window_trigger(2)));
+    assert!(!(window.does_window_trigger(3)));
+    assert!(window.does_window_trigger(4));
+    assert!(window.does_window_trigger(5));
     window.update_window_open_time(5);
-    assert_eq!(false, window.does_window_trigger(5));
-    assert_eq!(true, window.does_window_trigger(6));
-    assert_eq!(true, window.does_window_trigger(7));
+    assert!(!(window.does_window_trigger(5)));
+    assert!(window.does_window_trigger(6));
+    assert!(window.does_window_trigger(7));
     window.update_window_open_time(8);
-    assert_eq!(false, window.does_window_trigger(9));
-    assert_eq!(true, window.does_window_trigger(10));
+    assert!(!(window.does_window_trigger(9)));
+    assert!(window.does_window_trigger(10));
 
     let mut window: TimeWindow<i32> = TimeWindow::new(5, 3);
-    assert_eq!(false, window.does_window_trigger(2));
-    assert_eq!(true, window.does_window_trigger(6));
+    assert!(!(window.does_window_trigger(2)));
+    assert!(window.does_window_trigger(6));
     window.update_window_open_time(6);
-    assert_eq!(false, window.does_window_trigger(7));
-    assert_eq!(true, window.does_window_trigger(9));
+    assert!(!(window.does_window_trigger(7)));
+    assert!(window.does_window_trigger(9));
     window.update_window_open_time(10);
-    assert_eq!(false, window.does_window_trigger(11));
-    assert_eq!(true, window.does_window_trigger(12));
+    assert!(!(window.does_window_trigger(11)));
+    assert!(window.does_window_trigger(12));
 }
 
 #[test]

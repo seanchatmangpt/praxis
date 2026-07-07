@@ -190,7 +190,7 @@ fn math_sum_computes_total() {
     let pattern = ground_triple(list, iri(math::MATH_SUM), v("out"));
     let out = math::eval_sum(&pattern, &Binding::new()).expect("sum should succeed");
     let out_var = pattern.o.to_encoded();
-    let val = *out.get(&out_var).unwrap().get(0).unwrap();
+    let val = *out.get(&out_var).unwrap().first().unwrap();
     assert_eq!(decoded_number(val), 9.0);
 }
 
@@ -206,7 +206,7 @@ fn math_difference_computes_result() {
     let list = VarOrTerm::new_list(vec![num(10), num(4)]);
     let pattern = ground_triple(list, iri(math::MATH_DIFFERENCE), v("out"));
     let out = math::eval_difference(&pattern, &Binding::new()).expect("difference should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_number(val), 6.0);
 }
 
@@ -223,7 +223,7 @@ fn math_product_computes_total() {
     let list = VarOrTerm::new_list(vec![num(2), num(3), num(5)]);
     let pattern = ground_triple(list, iri(math::MATH_PRODUCT), v("out"));
     let out = math::eval_product(&pattern, &Binding::new()).expect("product should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_number(val), 30.0);
 }
 
@@ -232,7 +232,7 @@ fn math_quotient_computes_result() {
     let list = VarOrTerm::new_list(vec![num(20), num(4)]);
     let pattern = ground_triple(list, iri(math::MATH_QUOTIENT), v("out"));
     let out = math::eval_quotient(&pattern, &Binding::new()).expect("quotient should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_number(val), 5.0);
 }
 
@@ -248,7 +248,7 @@ fn math_remainder_computes_result() {
     let list = VarOrTerm::new_list(vec![num(10), num(3)]);
     let pattern = ground_triple(list, iri(math::MATH_REMAINDER), v("out"));
     let out = math::eval_remainder(&pattern, &Binding::new()).expect("remainder should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_number(val), 1.0);
 }
 
@@ -265,7 +265,7 @@ fn math_remainder_rejects_division_by_zero() {
 fn string_length_counts_chars() {
     let pattern = ground_triple(s("hello"), iri(string::STRING_LENGTH), v("out"));
     let out = string::eval_string_length(&pattern, &Binding::new()).expect("length should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_number(val), 5.0);
 }
 
@@ -283,7 +283,7 @@ fn string_concat_joins_members() {
     let list = VarOrTerm::new_list(vec![s("foo"), s("bar")]);
     let pattern = ground_triple(list, iri(string::STRING_CONCAT), v("out"));
     let out = string::eval_string_concat(&pattern, &Binding::new()).expect("concat should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_string(val), "foobar");
 }
 
@@ -312,7 +312,7 @@ fn list_length_counts_members() {
     let list = VarOrTerm::new_list(vec![num(1), num(2), num(3)]);
     let pattern = ground_triple(list, iri(list::LIST_LENGTH), v("out"));
     let out = list::eval_list_length(&pattern, &Binding::new()).expect("length should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_number(val), 3.0);
 }
 
@@ -349,7 +349,7 @@ fn list_append_concatenates_lists() {
     let members_list = VarOrTerm::new_list(vec![l1, l2]);
     let pattern = ground_triple(members_list, iri(list::LIST_APPEND), v("out"));
     let out = list::eval_list_append(&pattern, &Binding::new()).expect("append should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     let members = VarOrTerm::list_members(val).expect("result should be a list");
     let vals: Vec<f64> = members.iter().map(|&id| decoded_number(id)).collect();
     assert_eq!(vals, vec![1.0, 2.0, 3.0, 4.0]);
@@ -369,7 +369,7 @@ fn list_first_returns_first_member() {
     let list = VarOrTerm::new_list(vec![num(1), num(2), num(3)]);
     let pattern = ground_triple(list, iri(list::LIST_FIRST), v("out"));
     let out = list::eval_list_first(&pattern, &Binding::new()).expect("first should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_number(val), 1.0);
 }
 
@@ -385,7 +385,7 @@ fn list_rest_drops_first_member() {
     let list = VarOrTerm::new_list(vec![num(1), num(2), num(3)]);
     let pattern = ground_triple(list, iri(list::LIST_REST), v("out"));
     let out = list::eval_list_rest(&pattern, &Binding::new()).expect("rest should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     let members = VarOrTerm::list_members(val).expect("result should be a list");
     let vals: Vec<f64> = members.iter().map(|&id| decoded_number(id)).collect();
     assert_eq!(vals, vec![2.0, 3.0]);
@@ -396,7 +396,7 @@ fn list_last_returns_last_member() {
     let list = VarOrTerm::new_list(vec![num(1), num(2), num(3)]);
     let pattern = ground_triple(list, iri(list::LIST_LAST), v("out"));
     let out = list::eval_list_last(&pattern, &Binding::new()).expect("last should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_number(val), 3.0);
 }
 
@@ -424,7 +424,7 @@ fn list_member_at_returns_indexed_value() {
     let operands = VarOrTerm::new_list(vec![list, num(2)]);
     let pattern = ground_triple(operands, iri(list::LIST_MEMBER_AT), v("out"));
     let out = list::eval_list_member_at(&pattern, &Binding::new()).expect("memberAt should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_string(val), "c");
 }
 
@@ -442,7 +442,7 @@ fn list_remove_drops_matching_items() {
     let operands = VarOrTerm::new_list(vec![list, num(1)]);
     let pattern = ground_triple(operands, iri(list::LIST_REMOVE), v("out"));
     let out = list::eval_list_remove(&pattern, &Binding::new()).expect("remove should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     let members = VarOrTerm::list_members(val).expect("result should be a list");
     let vals: Vec<f64> = members.iter().map(|&id| decoded_number(id)).collect();
     assert_eq!(vals, vec![2.0, 3.0]);
@@ -453,7 +453,7 @@ fn list_sort_orders_numerically() {
     let list = VarOrTerm::new_list(vec![num(3), num(1), num(2)]);
     let pattern = ground_triple(list, iri(list::LIST_SORT), v("out"));
     let out = list::eval_list_sort(&pattern, &Binding::new()).expect("sort should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     let members = VarOrTerm::list_members(val).expect("result should be a list");
     let vals: Vec<f64> = members.iter().map(|&id| decoded_number(id)).collect();
     assert_eq!(vals, vec![1.0, 2.0, 3.0]);
@@ -464,7 +464,7 @@ fn list_unique_dedupes_preserving_order() {
     let list = VarOrTerm::new_list(vec![num(1), num(2), num(1), num(3), num(2)]);
     let pattern = ground_triple(list, iri(list::LIST_UNIQUE), v("out"));
     let out = list::eval_list_unique(&pattern, &Binding::new()).expect("unique should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     let members = VarOrTerm::list_members(val).expect("result should be a list");
     let vals: Vec<f64> = members.iter().map(|&id| decoded_number(id)).collect();
     assert_eq!(vals, vec![1.0, 2.0, 3.0]);
@@ -475,7 +475,7 @@ fn list_reverse_reverses_members() {
     let list = VarOrTerm::new_list(vec![num(1), num(2), num(3)]);
     let pattern = ground_triple(list, iri(list::LIST_REVERSE), v("out"));
     let out = list::eval_list_reverse(&pattern, &Binding::new()).expect("reverse should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     let members = VarOrTerm::list_members(val).expect("result should be a list");
     let vals: Vec<f64> = members.iter().map(|&id| decoded_number(id)).collect();
     assert_eq!(vals, vec![3.0, 2.0, 1.0]);
@@ -509,7 +509,7 @@ fn func_lang_from_plain_literal_extracts_tag() {
     let members_list = VarOrTerm::new_list(vec![lit]);
     let pattern = ground_triple(members_list, iri(func::FUNC_LANG_FROM_PLAIN_LITERAL), v("out"));
     let out = func::eval_lang_from_plain_literal(&pattern, &Binding::new()).expect("should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_string(val), "fr");
 }
 
@@ -519,7 +519,7 @@ fn func_lang_from_plain_literal_defaults_to_empty_string() {
     let members_list = VarOrTerm::new_list(vec![lit]);
     let pattern = ground_triple(members_list, iri(func::FUNC_LANG_FROM_PLAIN_LITERAL), v("out"));
     let out = func::eval_lang_from_plain_literal(&pattern, &Binding::new()).expect("should succeed");
-    let val = *out.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_string(val), "");
 }
 
@@ -538,6 +538,6 @@ fn evaluate_dispatches_sum_same_as_direct_call() {
     let list = VarOrTerm::new_list(vec![num(1), num(1)]);
     let pattern = ground_triple(list, iri(math::MATH_SUM), v("out"));
     let via_dispatch = evaluate(BuiltinKind::Sum, &pattern, &Binding::new()).expect("dispatch should succeed");
-    let val = *via_dispatch.get(&pattern.o.to_encoded()).unwrap().get(0).unwrap();
+    let val = *via_dispatch.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_number(val), 2.0);
 }

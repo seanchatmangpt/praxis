@@ -80,7 +80,7 @@ impl Reasoner {
             // formula directly.
             let formula_id = row_binding
                 .get(&formula_id_template)
-                .and_then(|v| v.get(0))
+                .and_then(|v| v.first())
                 .copied()
                 .unwrap_or(formula_id_template);
 

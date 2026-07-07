@@ -695,7 +695,7 @@ fn get_string_representation(x: usize) -> Option<String> {
 
 pub(crate) fn get_lang_tag(x: usize) -> Option<String> {
     if let Some(Term::Literal(lit)) = Encoder::decode_to_term(x) {
-        lit.lang.as_ref().and_then(|l| Encoder::decode(l))
+        lit.lang.as_ref().and_then(Encoder::decode)
     } else {
         None
     }
@@ -735,7 +735,7 @@ fn parse_datetime(lex: &str) -> Option<(i64, bool)> {
         let (t, off) = rest.split_at(sign_pos);
         let off_fields: Vec<&str> = off[1..].splitn(2, ':').collect();
         let off_h: i64 = off_fields.first()?.parse().ok()?;
-        let off_m: i64 = off_fields.get(1).map(|s| s.parse().ok()).flatten().unwrap_or(0);
+        let off_m: i64 = off_fields.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
         let sign = if off.starts_with('-') { -1 } else { 1 };
         (t, sign * (off_h * 3600 + off_m * 60), true)
     } else {
@@ -798,7 +798,7 @@ pub(crate) fn match_regex(pattern: &str, text: &str, flags: &str) -> bool {
             _ => {}
         }
     }
-    builder.build().map_or(false, |re| re.is_match(text))
+    builder.build().is_ok_and(|re| re.is_match(text))
 }
 
 /// Parse an xsd:integer literal as i64 (allowing negative values).
@@ -808,7 +808,7 @@ pub(crate) fn get_integer_value(term_id: usize) -> Option<i64> {
 }
 
 pub(crate) fn decode_to_term(id: usize) -> Term {
-    Encoder::decode_to_term(id).unwrap_or_else(|| Term::Iri(TermImpl { iri: id }))
+    Encoder::decode_to_term(id).unwrap_or(Term::Iri(TermImpl { iri: id }))
 }
 
 fn get_severity(shapes: &TripleIndex, shape_node: usize, vocab: &Vocab) -> usize {
@@ -1340,7 +1340,7 @@ fn validate_shape(
     let char_len = get_string_representation(focus_node).map(|lex| lex.chars().count() as i64);
     for ml in get_objects(shapes, shape_node, vocab.sh_min_length) {
         if let Some(v) = get_integer_value(ml) {
-            if char_len.map_or(true, |len| len < v) {
+            if char_len.is_none_or(|len| len < v) {
                 results.push(make_result(focus_node, None, Some(focus_node),
                     vocab.sh_min_length_constraint_component, shape_node, severity, default_msg.clone()));
             }
@@ -1348,7 +1348,7 @@ fn validate_shape(
     }
     for ml in get_objects(shapes, shape_node, vocab.sh_max_length) {
         if let Some(v) = get_integer_value(ml) {
-            if char_len.map_or(true, |len| len > v) {
+            if char_len.is_none_or(|len| len > v) {
                 results.push(make_result(focus_node, None, Some(focus_node),
                     vocab.sh_max_length_constraint_component, shape_node, severity, default_msg.clone()));
             }
@@ -1475,7 +1475,7 @@ fn validate_shape(
     for lang_list in get_objects(shapes, shape_node, vocab.sh_language_in) {
         let allowed_langs: Vec<String> = get_rdf_list(shapes, lang_list)
             .into_iter()
-            .filter_map(|l| get_lexical_form(l))
+            .filter_map(get_lexical_form)
             .map(|s| s.to_lowercase())
             .collect();
         if let Some(tag) = get_lang_tag(focus_node) {
@@ -1704,7 +1704,7 @@ fn validate_property_shape(
         for lang_list in get_objects(shapes, ps, vocab.sh_language_in) {
             let allowed_langs: Vec<String> = get_rdf_list(shapes, lang_list)
                 .into_iter()
-                .filter_map(|l| get_lexical_form(l))
+                .filter_map(get_lexical_form)
                 .map(|s| s.to_lowercase())
                 .collect();
             for &v in &v_nodes {

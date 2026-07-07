@@ -122,7 +122,7 @@ impl TripleStore {
             strata = computed_strata;
         }
         TripleStore {
-            rules: rules,
+            rules,
             rules_index,
             triple_index,
             reasoner: Reasoner {},

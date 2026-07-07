@@ -32,7 +32,7 @@ impl CSprite {
         }
     }
     pub fn from(data: &str) -> CSprite {
-        let triple_store = TripleStore::from(&data);
+        let triple_store = TripleStore::from(data);
         CSprite {
             rules: triple_store.rules,
             rules_index: triple_store.rules_index,
@@ -78,9 +78,9 @@ impl CSprite {
             let decoded_p = Encoder::decode(&triple.p.to_encoded()).unwrap();
             let decoded_o = Encoder::decode(&triple.o.to_encoded()).unwrap();
 
-            write!(
+            writeln!(
                 &mut res,
-                "{} {} {} @ {}.\n",
+                "{} {} {} @ {}.",
                 decoded_s, decoded_p, decoded_o, ts
             )
             .unwrap();
@@ -272,8 +272,8 @@ impl CSprite {
     }
     fn rewrite_hierarchy(rules: &Vec<Rc<Rule>>) -> Vec<Rule> {
         let mut new_rules = Vec::new();
-        if rules.len() > 0 {
-            let new_head = &rules.get(0).unwrap().head;
+        if !rules.is_empty() {
+            let new_head = &rules.first().unwrap().head;
             for rule in rules.iter() {
                 new_rules.push(Rule {
                     body: rule.body.clone(),
@@ -300,7 +300,7 @@ impl CSpriteReasoner {
         let mut counter = 0;
         let mut pending_changes = Vec::new();
         new_data
-            .into_iter()
+            .iter()
             .for_each(|i| pending_changes.push(i.clone()));
         while counter < pending_changes.len() {
             let (_ts, process_quad) = pending_changes.get(counter).unwrap();
@@ -348,7 +348,7 @@ impl CSpriteReasoner {
                                     }
                                 },
                             );
-                        new_triples.push((min_ts.clone(), new_head.clone(), min_triple.clone()));
+                        new_triples.push((min_ts, new_head.clone(), min_triple.clone()));
                     }
                 }
             }
@@ -379,7 +379,7 @@ impl CSpriteReasoner {
         let decoded_p = Encoder::decode(&triple.p.to_encoded()).unwrap();
         let decoded_o = Encoder::decode(&triple.o.to_encoded()).unwrap();
 
-        write!(&mut res, "{} {} {}.\n", decoded_s, decoded_p, decoded_o).unwrap();
+        writeln!(&mut res, "{} {} {}.", decoded_s, decoded_p, decoded_o).unwrap();
 
         res
     }

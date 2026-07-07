@@ -10,10 +10,10 @@ use super::*;
                 <http://example2.com/b> test:hasRef <http://example2.com/c>.\n\
                 <http://example2.com/c> a test:SubClass.";
         let (content, _rules) = Parser::parse(data.to_string());
-        let rc_triples: Vec<Rc<Triple>> = content.into_iter().map(|t| Rc::new(t)).collect();
+        let rc_triples: Vec<Rc<Triple>> = content.into_iter().map(Rc::new).collect();
         rc_triples.iter().for_each(|t| index.add_ref(t.clone()));
         assert_eq!(4, index.len());
-        index.remove_ref(&rc_triples.get(0).unwrap().clone());
+        index.remove_ref(&rc_triples.first().unwrap().clone());
         assert_eq!(3, index.len());
     }
 
@@ -25,9 +25,9 @@ use super::*;
                 {:a a :C}=>{:a a :D}";
         let (content, rules) = Parser::parse(data.to_string());
         content.into_iter().for_each(|t| index.add(t));
-        let query = &rules.get(0).unwrap().body.get(0).unwrap().pattern;
+        let query = &rules.first().unwrap().body.first().unwrap().pattern;
         let result = index.query(query, None);
-        assert_eq!(true, result.is_some());
+        assert!(result.is_some());
     }
     #[test]
     fn test_quad_filter() {
@@ -68,7 +68,7 @@ use super::*;
             bindings
                 .get(&Encoder::add("g".to_string()))
                 .unwrap()
-                .get(0)
+                .first()
                 .unwrap()
         );
     }
@@ -92,7 +92,7 @@ use super::*;
             bindings
                 .get(&Encoder::add("g".to_string()))
                 .unwrap()
-                .get(0)
+                .first()
                 .unwrap()
         );
     }

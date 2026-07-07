@@ -57,11 +57,11 @@ use std::fs::{File, OpenOptions};
         //write to file
         let function = Box::new(|r| {
             let mut output = OpenOptions::new()
-                .write(true)
+                
                 .append(true)
                 .open("/tmp/rox_rsp.out")
                 .unwrap();
-            write!(output, "Bindings: {:?}\n", r).unwrap();
+            writeln!(output, "Bindings: {:?}", r).unwrap();
         });
         let result_consumer = ResultConsumer {
             function: Arc::new(function),

@@ -458,5 +458,5 @@ ex:PersonShape a sh:NodeShape ;
             )
             .unwrap();
         let new_triples = store.materialize();
-        assert!(new_triples.len() >= 1, "Expected at least one inferred triple");
+        assert!(!new_triples.is_empty(), "Expected at least one inferred triple");
     }

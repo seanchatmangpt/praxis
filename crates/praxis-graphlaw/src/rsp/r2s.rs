@@ -70,7 +70,7 @@ where
         }
         new_repsonse.into_iter().for_each(|v| {
             self.new_result.insert(v);
-            ()
+            
         });
     }
 }

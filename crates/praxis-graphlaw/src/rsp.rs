@@ -126,7 +126,7 @@ where
     r2s_operator: Arc<Mutex<Relation2StreamOperator<O>>>,
 }
 pub struct ResultConsumer<I> {
-    pub function: Arc<dyn Fn(I) -> () + Send + Sync>,
+    pub function: Arc<dyn Fn(I) + Send + Sync>,
 }
 
 impl<I, O> RSPEngine<I, O>
@@ -153,10 +153,7 @@ where
         let mut window = CSPARQLWindow::new(width, slide, report, tick);
         let mut store = r2r;
 
-        match store.load_triples(triples, syntax) {
-            Err(parsing_error) => error!("Unable to load ABox: {:?}", parsing_error.to_string()),
-            _ => (),
-        }
+        if let Err(parsing_error) = store.load_triples(triples, syntax) { error!("Unable to load ABox: {:?}", parsing_error.to_string()) }
         store.load_rules(rules);
         let query = match Query::parse(query_str, None) {
             Ok(parsed_query) => parsed_query,
@@ -177,7 +174,7 @@ where
                 let consumer_temp = engine.r2r.clone();
                 let r2s_consumer = engine.r2s_consumer.function.clone();
                 let mut r2s_operator = engine.r2s_operator.clone();
-                let call_back: Box<dyn FnMut(ContentContainer<I>) -> ()> =
+                let call_back: Box<dyn FnMut(ContentContainer<I>)> =
                     Box::new(move |content| {
                         Self::evaluate_r2r_and_call_r2s(
                             &query,
@@ -237,7 +234,7 @@ where
             store.add(t);
         });
         let inferred = store.materialize();
-        let r2r_result = store.execute_query(&query);
+        let r2r_result = store.execute_query(query);
         let r2s_result = r2s_operator.lock().unwrap().eval(r2r_result, time_stamp);
         // R2S runs synchronously in the same thread as R2R; async dispatch is left for future work
         for result in r2s_result {
@@ -304,7 +301,7 @@ impl R2ROperator<WindowTriple, Vec<Binding>> for SimpleR2R {
     }
 
     fn execute_query(&self, query: &Query) -> Vec<Vec<Binding>> {
-        let plan = eval_query(&query, &self.item.triple_index);
+        let plan = eval_query(query, &self.item.triple_index);
         let iterator = evaluate_plan_and_debug(&plan, &self.item.triple_index);
         iterator.collect()
     }

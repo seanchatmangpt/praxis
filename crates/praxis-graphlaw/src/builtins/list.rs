@@ -39,7 +39,7 @@ pub(crate) fn eval_list_append(pattern: &Triple, bindings: &Binding) -> Option<B
         let list1 = VarOrTerm::list_members(members[0])?;
         let list2 = VarOrTerm::list_members(members[1])?;
         let mut combined: Vec<VarOrTerm> = Vec::with_capacity(list1.len() + list2.len());
-        for id in list1.into_iter().chain(list2.into_iter()) {
+        for id in list1.into_iter().chain(list2) {
             combined.push(VarOrTerm::new_encoded_term(id));
         }
         Some(VarOrTerm::new_list(combined).to_encoded())

@@ -45,8 +45,8 @@ fn test_rule_substitution() {
                 {:a in :b.:b in ?c}=>{:a in ?c}\n\
                 {?a in :a.:a in :b}=>{?a in :b}";
     let (content, rules) = Parser::parse(data.to_string());
-    let matching_triple = content.get(0).unwrap();
-    let matching_rule = rules.get(0).unwrap();
+    let matching_triple = content.first().unwrap();
+    let matching_rule = rules.first().unwrap();
     let results = Reasoner::substitute_rule(matching_triple, matching_rule);
     assert_eq!(&rules[1..], results);
 }

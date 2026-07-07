@@ -177,7 +177,7 @@ where
     fn update(&mut self, item: Rc<T>, ts: i32) {
         if let Some(node) = self.index.get(&item) {
             // cut node from middle
-            if let Some(content) = self.content.pop_node(&node) {
+            if let Some(content) = self.content.pop_node(node) {
                 //add it to end with updated timestamp
                 let updated_node_ref = self.content.push_tail((ts, content.1));
                 //update the index
@@ -198,11 +198,7 @@ where
         cmp::max(0, *new_time - self.width)
     }
     fn does_window_trigger(&mut self, ts: i32) -> bool {
-        if ts > self.time + self.width {
-            true
-        } else {
-            false
-        }
+        ts > self.time + self.width
     }
     fn update_window_open_time(&mut self, ts: i32) {
         let mut residue = (ts - self.width) / self.slide;
@@ -258,7 +254,7 @@ where
         // front(), so index-based traversal is the whole implementation
         // (a vestigial peek-then-break loop here tripped clippy::never_loop).
         let mut result = Vec::new();
-        for (item, _node) in &self.index {
+        for item in self.index.keys() {
             if let Some(ts) = self.get_time_stamp(item.clone()) {
                 result.push((ts, item.clone()));
             }

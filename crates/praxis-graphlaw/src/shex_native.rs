@@ -204,7 +204,7 @@ pub fn validate_shex_schema(
         let focus_id = encode_node(node_str);
         let mut visited = std::collections::HashSet::new();
 
-        if let Err(reasons) = validate_node(data, &schema, focus_id, &decl.shape_expr, &mut visited) {
+        if let Err(reasons) = validate_node(data, schema, focus_id, &decl.shape_expr, &mut visited) {
             conforms = false;
             failures.push(ShexValidationFailure {
                 node: decode_to_term(focus_id),
@@ -506,7 +506,7 @@ fn value_matches(focus: usize, v: &ValueSetValue) -> bool {
         }
         ValueSetValue::IriStem { stem, .. } => {
             is_iri(focus)
-                && get_lexical_form(focus).map_or(false, |lex| lex.starts_with(stem.as_str()))
+                && get_lexical_form(focus).is_some_and(|lex| lex.starts_with(stem.as_str()))
         }
         ValueSetValue::LangLiteral { value, language } => {
             get_lexical_form(focus).as_deref() == Some(value.as_str())

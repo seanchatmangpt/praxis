@@ -70,7 +70,7 @@ impl Parser {
     }
     fn parse_triple(data: &str) -> Triple {
         let items: Vec<&str> = data.split(" ").collect();
-        let s = items.get(0).unwrap();
+        let s = items.first().unwrap();
         let p = items.get(1).unwrap();
 
         let o = if items.get(2).unwrap().ends_with(".") {
@@ -106,13 +106,13 @@ impl Parser {
             if line.contains("=>") {
                 //process rule
                 let rule: Vec<&str> = line.split("=>").collect();
-                let body = Self::rem_first_and_last(rule.get(0).unwrap());
+                let body = Self::rem_first_and_last(rule.first().unwrap());
                 let head = Self::rem_first_and_last(rule.get(1).unwrap());
                 let head_triple = Self::parse_triple(head);
                 let mut body_triples = Vec::new();
                 for body_triple in body.split(".") {
                     let body_triple_trimmed = body_triple.trim();
-                    if body_triple_trimmed.len() > 0 {
+                    if !body_triple_trimmed.is_empty() {
                         let is_negated = body_triple_trimmed.starts_with("not");
                         let triple_str = if is_negated {
                             let open_curly = body_triple_trimmed.find('{').unwrap_or(0);
@@ -134,7 +134,7 @@ impl Parser {
                 })
             } else {
                 //process triple
-                if line.len() > 0 {
+                if !line.is_empty() {
                     let triple = Self::parse_triple(line);
                     content.push(triple);
                 }
@@ -190,7 +190,7 @@ mod test {
 
         let parsing_error = "<http://example.com/foo> http://www.w3.org/1999/02/22-rdf-syntax-ns#typehema.org/Person";
         let triples = Parser::parse_triples(parsing_error, Syntax::NQuads);
-        assert_eq!(true, triples.is_err());
+        assert!(triples.is_err());
     }
     #[test]
     fn test_empty_abox_parsing() {

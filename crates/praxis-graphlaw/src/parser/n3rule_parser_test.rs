@@ -10,7 +10,7 @@ fn parse_tp() {
          {?VaRr0 <http://test.be/pieter> ?lastVar. ?VaRr0 log:type ?lastVar.}=>{?VaRr0 <ssn:HasValue> ?lastVar.}",
     )
     .unwrap();
-    assert_eq!(rules.get(0).unwrap().body.len(), 2);
+    assert_eq!(rules.first().unwrap().body.len(), 2);
 }
 
 #[test]
@@ -21,7 +21,7 @@ fn parse_multiple_prefixes() {
          {?VaRr0 <http://test.be/pieter> ?lastVar. ?VaRr0 log:type ?lastVar.}=>{?VaRr0 <ssn:HasValue> ?lastVar.}",
     )
     .unwrap();
-    assert_eq!(rules.get(0).unwrap().body.len(), 2);
+    assert_eq!(rules.first().unwrap().body.len(), 2);
 }
 
 #[test]
@@ -62,7 +62,7 @@ fn parse_rule_with_multiple_spaces() {
          }=>{ ?VaRr0  <ssn:HasValue>  ?lastVar .\n}.\n",
     )
     .unwrap();
-    assert!(rules.get(0).is_some());
+    assert!(!rules.is_empty());
     assert_eq!(rules[0].body.len(), 2);
 }
 
@@ -73,7 +73,7 @@ fn parse_rule_with_a_syntactic_sugar() {
         "{?VaRr0 <http://test.be/pieter> ?lastVar. ?VaRr0 a ?lastVar.}=>{?VaRr0 <ssn:HasValue> ?lastVar.}.",
     )
     .unwrap();
-    let rule = rules.get(0).unwrap();
+    let rule = rules.first().unwrap();
     // Second body literal should have rdf:type as predicate
     let second_body = &rule.body[1];
     let decoded_p = crate::encoding::Encoder::decode(&second_body.pattern.p.to_encoded())
@@ -91,7 +91,7 @@ fn parse_negated_body_literal() {
         "{?x <http://example/p> ?y. not {?x <http://example/q> ?y.}}=>{?x <http://example/r> ?y.}",
     )
     .unwrap();
-    let rule = rules.get(0).unwrap();
+    let rule = rules.first().unwrap();
     assert_eq!(rule.body.len(), 2);
     assert!(!rule.body[0].negated);
     assert!(rule.body[1].negated);

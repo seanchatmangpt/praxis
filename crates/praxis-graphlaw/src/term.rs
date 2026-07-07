@@ -50,7 +50,7 @@ impl VarOrTerm {
     }
 
     pub fn new_encoded_term(id: usize) -> VarOrTerm {
-        let term = Encoder::decode_to_term(id).unwrap_or_else(|| {
+        let term = Encoder::decode_to_term(id).unwrap_or({
             // Fallback for untracked IDs (e.g. in tests/mock setups)
             Term::Iri(TermImpl { iri: id })
         });
@@ -104,8 +104,7 @@ impl VarOrTerm {
 
     pub fn convert(var_or_term: String) -> VarOrTerm {
         let var_or_term = var_or_term.trim().to_string();
-        if var_or_term.starts_with('?') {
-            let var_name = &var_or_term[1..];
+        if let Some(var_name) = var_or_term.strip_prefix('?') {
             VarOrTerm::new_var(var_name.to_string())
         } else {
             let mut iri_prefix = var_or_term;

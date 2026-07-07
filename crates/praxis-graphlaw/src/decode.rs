@@ -26,7 +26,7 @@ impl TripleStore {
                 }
             })
             .collect();
-        write!(&mut res, "{{{}}}=>{{{}}}.\n", decoded_body, decoded_head).unwrap();
+        writeln!(&mut res, "{{{}}}=>{{{}}}.", decoded_body, decoded_head).unwrap();
         res
     }
     pub fn decode_rules(rules: &[Rule]) -> String {
@@ -45,7 +45,7 @@ impl TripleStore {
                     }
                 })
                 .collect();
-            write!(&mut res, "{{{}}}=>{{{}}}.\n", decoded_body, decoded_head).unwrap();
+            writeln!(&mut res, "{{{}}}=>{{{}}}.", decoded_body, decoded_head).unwrap();
         }
         res
     }
