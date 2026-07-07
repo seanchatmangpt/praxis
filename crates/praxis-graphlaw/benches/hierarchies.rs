@@ -2,17 +2,7 @@
 extern crate bencher;
 
 use bencher::Bencher;
-use praxis_graphlaw::encoding::Encoder;
-use std::cell::RefCell;
-use std::rc::Rc;
 
-use praxis_graphlaw::imars_window::{ImarsWindow, SimpleWindowConsumer};
-use praxis_graphlaw::parser::Parser;
-use praxis_graphlaw::pipeline::WindowReasoner;
-use praxis_graphlaw::ruleindex::RuleIndex;
-use praxis_graphlaw::time_window::TimeWindow;
-use praxis_graphlaw::tripleindex::TripleIndex;
-use praxis_graphlaw::triples::{Rule, Triple, VarOrTerm};
 use praxis_graphlaw::TripleStore;
 
 fn infer_hierarchy(max_depth: i32) {
@@ -37,6 +27,8 @@ fn infer_hierarchy_rdf_rule(max_depth: i32) {
     let mut store = TripleStore::from(data.as_str());
     store.materialize();
 }
+// Kept out of benchmark_group! (too slow for routine runs) but retained for manual use.
+#[allow(dead_code)]
 fn test_hierarchy_10000(bench: &mut Bencher) {
     bench.iter(|| {
         let max_depth = 10000;
@@ -61,6 +53,8 @@ fn test_hierarchy_10(bench: &mut Bencher) {
         infer_hierarchy(max_depth);
     });
 }
+// Kept out of benchmark_group! (too slow for routine runs) but retained for manual use.
+#[allow(dead_code)]
 fn test_rdf_hierarchy_10000(bench: &mut Bencher) {
     bench.iter(|| {
         let max_depth = 10000;

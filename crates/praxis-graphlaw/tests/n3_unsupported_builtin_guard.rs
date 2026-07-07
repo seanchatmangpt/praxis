@@ -10,7 +10,7 @@ fn exotic_builtin_predicate_panics_instead_of_silently_failing() {
 "#;
     let store = TripleStore::from(n3);
     let goal_src = "@prefix : <http://example.org/#>.\n:a :cutGuardFired \"true\".";
-    let goal = TripleStore::from(goal_src).triple_index.triples.iter().next().unwrap().clone();
+    let goal = TripleStore::from(goal_src).triple_index.triples.first().unwrap().clone();
 
     let result = panic::catch_unwind(panic::AssertUnwindSafe(|| store.prove(&goal)));
     assert!(result.is_err(), "prove() over an unregistered log:callWithCut should panic, not silently return false");
@@ -24,7 +24,7 @@ fn ordinary_unmatched_predicate_does_not_panic() {
 "#;
     let store = TripleStore::from(n3);
     let goal_src = "@prefix : <http://example.org/#>.\n:a :derived \"true\".";
-    let goal = TripleStore::from(goal_src).triple_index.triples.iter().next().unwrap().clone();
+    let goal = TripleStore::from(goal_src).triple_index.triples.first().unwrap().clone();
 
     let result = panic::catch_unwind(panic::AssertUnwindSafe(|| store.prove(&goal)));
     assert!(result.is_ok(), "an ordinary unmatched user predicate must NOT panic");

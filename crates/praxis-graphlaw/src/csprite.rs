@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::type_complexity, clippy::ptr_arg, dead_code)]
+
 use crate::{
     BackwardChainer, Binding, Encoder, QueryEngine, Reasoner, Rule, RuleIndex, SimpleQueryEngine,
     Triple, TripleIndex, TripleStore, VarOrTerm,

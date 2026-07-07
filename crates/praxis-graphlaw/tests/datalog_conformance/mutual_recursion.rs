@@ -44,7 +44,7 @@ fn test_mutual_recursion_fixpoint() {
         ]
     };
 
-    store.add_rules(vec![r1, r2]);
+    store.add_rules(vec![r1, r2]).expect("rules must load");
 
     // Evaluation
     let derived = store.materialize();
@@ -53,8 +53,8 @@ fn test_mutual_recursion_fixpoint() {
     let mut has_b = false;
     for t in derived.iter() {
         let s = TripleStore::decode_triple(t);
-        if s.contains("http://example.org/a") && s.contains("type") {
-            if s.contains("B") { has_b = true; }
+        if s.contains("http://example.org/a") && s.contains("type") && s.contains("B") {
+            has_b = true;
         }
     }
 

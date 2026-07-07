@@ -41,6 +41,8 @@ fn build_data_index(data_str: &str) -> TripleIndex {
 /// generically defined over "the set of integer values assigned to
 /// `ex:val`" so any subset can be combined into a single property shape.
 #[derive(Debug, Clone)]
+// Variant names mirror the SHACL constraint vocabulary (sh:nodeKind etc.).
+#[allow(clippy::enum_variant_names)]
 enum Kind {
     MinCount(i64),
     MaxCount(i64),

@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::type_complexity, clippy::borrowed_box, dead_code)]
+
 use crate::sparql::PlanNode::QuadPattern;
 use crate::tripleindex::EncodedBinding;
 use crate::utils::Utils;
@@ -25,11 +29,7 @@ fn extract_triples(triple_patterns: &Vec<TriplePattern>, _encoder: &mut Encoder)
     triples
 }
 fn strip_variable_prefix(var: &str) -> &str {
-    if var.starts_with('?') {
-        &var[1..]
-    } else {
-        var
-    }
+    var.strip_prefix('?').unwrap_or(var)
 }
 
 #[derive(Debug)]

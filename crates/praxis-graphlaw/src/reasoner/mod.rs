@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::ptr_arg)]
+
 use crate::triples::AggregateFunction;
 use crate::aggregation::{Accumulator, CountAccumulator, SumAccumulator, MinAccumulator, MaxAccumulator, AvgAccumulator, AccumulatorImpl};
 use std::collections::HashMap;

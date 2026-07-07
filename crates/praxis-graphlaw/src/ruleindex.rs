@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::type_complexity)]
+
 use crate::{Rule, Triple};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -64,9 +68,7 @@ impl RuleIndex {
             let Triple { s, p, o, .. } = &body_lit.pattern;
             //s match
             if s.is_term() && p.is_var() && o.is_var() {
-                if !self.s.contains_key(&s.to_encoded()) {
-                    self.s.insert(s.to_encoded(), Vec::new());
-                }
+                self.s.entry(s.to_encoded()).or_default();
                 if let Some(rules) = self.s.get_mut(&s.to_encoded()) {
                     if !rules.contains(&rule) {
                         rules.push(rule.clone())
@@ -76,9 +78,7 @@ impl RuleIndex {
             }
             //p match
             if s.is_var() && p.is_term() && o.is_var() {
-                if !self.p.contains_key(&p.to_encoded()) {
-                    self.p.insert(p.to_encoded(), Vec::new());
-                }
+                self.p.entry(p.to_encoded()).or_default();
                 //self.p.get_mut(&p.to_string()).unwrap().push(rule.clone());
                 if let Some(rules) = self.p.get_mut(&p.to_encoded()) {
                     if !rules.contains(&rule) {
@@ -88,9 +88,7 @@ impl RuleIndex {
             }
             //o match
             if s.is_var() && p.is_var() && o.is_term() {
-                if !self.o.contains_key(&o.to_encoded()) {
-                    self.o.insert(o.to_encoded(), Vec::new());
-                }
+                self.o.entry(o.to_encoded()).or_default();
                 //self.o.get_mut(&o.to_string()).unwrap().push(rule.clone());
                 if let Some(rules) = self.o.get_mut(&o.to_encoded()) {
                     if !rules.contains(&rule) {
@@ -100,9 +98,7 @@ impl RuleIndex {
             }
             //sp
             if s.is_term() && p.is_term() && o.is_var() {
-                if !self.sp.contains_key(&s.to_encoded()) {
-                    self.sp.insert(s.to_encoded(), HashMap::new());
-                }
+                self.sp.entry(s.to_encoded()).or_default();
                 if !self
                     .sp
                     .get(&s.to_encoded())
@@ -128,9 +124,7 @@ impl RuleIndex {
             }
             //so
             if s.is_term() && p.is_var() && o.is_term() {
-                if !self.so.contains_key(&s.to_encoded()) {
-                    self.so.insert(s.to_encoded(), HashMap::new());
-                }
+                self.so.entry(s.to_encoded()).or_default();
                 if !self
                     .so
                     .get(&s.to_encoded())
@@ -156,9 +150,7 @@ impl RuleIndex {
             }
             //po
             if s.is_var() && p.is_term() && o.is_term() {
-                if !self.po.contains_key(&p.to_encoded()) {
-                    self.po.insert(p.to_encoded(), HashMap::new());
-                }
+                self.po.entry(p.to_encoded()).or_default();
                 if !self
                     .po
                     .get(&p.to_encoded())
@@ -184,9 +176,7 @@ impl RuleIndex {
             }
             //spo
             if s.is_term() && p.is_term() && o.is_term() {
-                if !self.spo_all.contains_key(&s.to_encoded()) {
-                    self.spo_all.insert(s.to_encoded(), HashMap::new());
-                }
+                self.spo_all.entry(s.to_encoded()).or_default();
                 if !self
                     .spo_all
                     .get(&s.to_encoded())

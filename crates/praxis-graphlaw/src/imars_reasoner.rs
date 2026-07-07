@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(dead_code)]
+
 use crate::csprite::CSprite;
 use crate::imars_window::{ImarsWindow, WindowConsumer};
 use crate::Triple;

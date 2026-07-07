@@ -65,7 +65,7 @@ fn test_deep_taxonomy_chain_200_levels() {
     let inferred = store.materialize();
     let elapsed = start.elapsed();
 
-    let decoded: Vec<String> = inferred.iter().map(|t| TripleStore::decode_triple(t)).collect();
+    let decoded: Vec<String> = inferred.iter().map(TripleStore::decode_triple).collect();
     let top_class = format!("N{}", DEPTH);
     assert!(
         decoded.iter().any(|d| d.contains("TestVariable") && d.contains(&format!("#{}>", top_class))),
@@ -118,7 +118,7 @@ fn test_deep_taxonomy_chain_broken_link_stops_propagation() {
 
     let mut store = TripleStore::from(&doc);
     let inferred = store.materialize();
-    let decoded: Vec<String> = inferred.iter().map(|t| TripleStore::decode_triple(t)).collect();
+    let decoded: Vec<String> = inferred.iter().map(TripleStore::decode_triple).collect();
 
     // Everything up to and including the break point should still be derived...
     for i in 1..=BREAK_AT {

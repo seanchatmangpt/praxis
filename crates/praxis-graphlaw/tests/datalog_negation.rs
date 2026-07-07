@@ -1,5 +1,5 @@
 
-use praxis_graphlaw::triples::{BodyLiteral, Rule, Triple, VarOrTerm, Aggregate};
+use praxis_graphlaw::triples::{BodyLiteral, Rule, Triple, Aggregate};
 use praxis_graphlaw::datalog::validate_rules;
 use praxis_graphlaw::TripleStore;
 use std::collections::HashMap;
@@ -65,7 +65,7 @@ fn test_stratified_negation_basic() {
         ],
     };
 
-    store.add_rules(vec![rule]);
+    store.add_rules(vec![rule]).expect("rules must load");
 
     // Materialize derivations
     let derived = store.materialize();
@@ -77,7 +77,7 @@ fn test_stratified_negation_basic() {
             let decoded_p = TripleStore::decode_triple(t);
             decoded_p.contains("Childless")
         })
-        .map(|t| TripleStore::decode_triple(t))
+        .map(TripleStore::decode_triple)
         .collect();
 
     // Expecting exactly one Childless derivation: :b
@@ -180,7 +180,7 @@ fn test_rule_safety_check_rejects_unbound_negated_var() {
 /// Expected outcome:
 /// - Reachability computes: :a -> :a, :b -> :b, :c -> :c, :a -> :b, :b -> :c, :a -> :c
 /// - Disconnectedness computes: Only :c is disconnected from :c? No, :c reaches :c, so nobody is disconnected from :c except if we have another node :d.
-/// Let's add :d <http://example.org/type> <http://example.org/Node> (isolated).
+///   Let's add :d <http://example.org/type> <http://example.org/Node> (isolated).
 /// - :d should be derived as Disconnected from :c.
 #[test]
 fn test_fixpoint_terminates_on_recursive_ruleset() {
@@ -287,7 +287,7 @@ fn test_fixpoint_terminates_on_recursive_ruleset() {
         ],
     };
 
-    store.add_rules(vec![r1, r2, r3]);
+    store.add_rules(vec![r1, r2, r3]).expect("rules must load");
 
     let derived = store.materialize();
 
@@ -297,7 +297,7 @@ fn test_fixpoint_terminates_on_recursive_ruleset() {
             let s = TripleStore::decode_triple(t);
             s.contains("Disconnected")
         })
-        .map(|t| TripleStore::decode_triple(t))
+        .map(TripleStore::decode_triple)
         .collect();
 
     // Verify that ONLY :d is disconnected from :c
@@ -603,7 +603,7 @@ fn test_three_layer_stratification_chain() {
     assert!(res.is_ok(), "the rule set must be accepted end-to-end");
 
     let derived = store.materialize();
-    let decoded: Vec<String> = derived.iter().map(|t| TripleStore::decode_triple(t)).collect();
+    let decoded: Vec<String> = derived.iter().map(TripleStore::decode_triple).collect();
 
     let a_facts: Vec<&String> = decoded.iter().filter(|s| s.contains("http://example.org/A")).collect();
     let b_facts: Vec<&String> = decoded.iter().filter(|s| s.contains("http://example.org/B")).collect();
@@ -704,7 +704,7 @@ fn test_union_semantics_multiple_rules_same_head() {
     assert!(res.is_ok(), "union-by-shared-head rule pair must be accepted");
 
     let derived = store.materialize();
-    let decoded: Vec<String> = derived.iter().map(|t| TripleStore::decode_triple(t)).collect();
+    let decoded: Vec<String> = derived.iter().map(TripleStore::decode_triple).collect();
     let reaches: Vec<&String> = decoded.iter().filter(|s| s.contains("http://example.org/reaches")).collect();
 
     // Transitive closure of a->b->c is exactly {a-b, b-c, a-c} -- 3 pairs,

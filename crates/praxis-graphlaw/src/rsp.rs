@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::too_many_arguments, deprecated)]
+
 use crate::rsp::r2r::R2ROperator;
 use crate::rsp::r2s::{Relation2StreamOperator, StreamOperator};
 use crate::rsp::s2r::{

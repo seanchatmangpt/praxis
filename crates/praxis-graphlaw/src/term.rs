@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(dead_code)]
+
 use crate::registry::{FORMULA_REGISTRY, LIST_INTERN, LIST_REGISTRY, SYNTHETIC_COUNTER};
 use crate::Encoder;
 use std::sync::atomic::Ordering;

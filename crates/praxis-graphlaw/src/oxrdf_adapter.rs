@@ -14,11 +14,7 @@ fn clean_iri(s: &str) -> &str {
 
 /// Helper to strip leading `_:` from BlankNode string representation if present.
 fn clean_blank_node(s: &str) -> &str {
-    if s.starts_with("_:") {
-        &s[2..]
-    } else {
-        s
-    }
+    s.strip_prefix("_:").unwrap_or(s)
 }
 
 /// Converts a `TripleIndex` to an `oxrdf::Graph`.

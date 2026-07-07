@@ -91,10 +91,7 @@ impl Binding {
     pub fn combine(&mut self, to_combine: Binding) {
         let binding_size = self.bindings.values().map(|v| v.len()).max().unwrap_or(1);
         for (k, v) in to_combine.bindings {
-            if !self.bindings.contains_key(&k) {
-                self.bindings.insert(k, Vec::new());
-            }
-            let add_vec = self.bindings.get_mut(&k).unwrap();
+            let add_vec = self.bindings.entry(k).or_default();
             for value in v {
                 for _ in 0..binding_size {
                     add_vec.push(value);

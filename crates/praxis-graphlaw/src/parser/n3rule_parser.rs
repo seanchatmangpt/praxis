@@ -462,11 +462,11 @@ fn resolve_reference(base: &str, reference: &str) -> String {
 /// ones would silently break.
 fn make_term(raw: &str) -> VarOrTerm {
     let trimmed = raw.trim();
-    if trimmed.starts_with('?') {
+    if let Some(name) = trimmed.strip_prefix('?') {
         // Strip the leading '?' to match VarOrTerm::convert("?x") behaviour which stores "x"
-        resolve_var(&trimmed[1..])
-    } else if trimmed.starts_with("_:") {
-        VarOrTerm::new_blank_node(trimmed[2..].to_string())
+        resolve_var(name)
+    } else if let Some(label) = trimmed.strip_prefix("_:") {
+        VarOrTerm::new_blank_node(label.to_string())
     } else {
         VarOrTerm::new_term(trimmed.to_string())
     }

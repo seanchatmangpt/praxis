@@ -91,7 +91,7 @@ fn test_deep_stratification_chain_20_layers() {
     ));
     store.add_rules(rules).expect("rules already validated above");
     let derived = store.materialize();
-    let decoded: Vec<String> = derived.iter().map(|t| TripleStore::decode_triple(t)).collect();
+    let decoded: Vec<String> = derived.iter().map(TripleStore::decode_triple).collect();
 
     // P0 holds (Base holds). P1 = Base & not P0 = false. P2 = Base & not P1 = true. ...
     // So P_i holds iff i is even.
@@ -200,7 +200,7 @@ fn test_large_scale_grouped_aggregation() {
     let derived = store.materialize();
     let elapsed = start.elapsed();
 
-    let decoded: Vec<String> = derived.iter().map(|t| TripleStore::decode_triple(t)).collect();
+    let decoded: Vec<String> = derived.iter().map(TripleStore::decode_triple).collect();
     let count_facts: Vec<&String> = decoded.iter().filter(|d| d.contains("employeeCount")).collect();
 
     assert_eq!(

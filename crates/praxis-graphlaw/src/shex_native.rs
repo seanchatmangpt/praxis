@@ -29,6 +29,10 @@
 //! established convention (e.g. the N3 EYE corpus's `blocked_reason`
 //! entries).
 
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::large_enum_variant)]
+
 use crate::encoding::Encoder;
 use crate::shacl::{
     compare_numeric, decode_to_term, get_datatype, get_lang_tag, get_lexical_form, get_objects,

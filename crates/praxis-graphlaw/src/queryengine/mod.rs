@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::ptr_arg)]
+
 use crate::{Binding, BodyLiteral, Encoder, TripleIndex, VarOrTerm};
 
 // Re-exported so existing call sites using `crate::queryengine::builtins::*`

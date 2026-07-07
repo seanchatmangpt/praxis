@@ -1,17 +1,24 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(deprecated)]
+
 use praxis_graphlaw::parser::{Parser, Syntax};
 use praxis_graphlaw::sparql::{eval_query, evaluate_plan_and_debug, Binding};
 use praxis_graphlaw::tripleindex::TripleIndex;
 use spargebra::Query;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
+// Manifest fields mirror the JSON schema; unread fields kept for deserialization fidelity.
+#[allow(dead_code)]
 #[derive(serde::Deserialize, Debug)]
 struct Manifest {
     provenance: Provenance,
     conformance_suites: Vec<Suite>,
 }
 
+#[allow(dead_code)]
 #[derive(serde::Deserialize, Debug)]
 struct Provenance {
     source: String,
@@ -19,12 +26,14 @@ struct Provenance {
     last_synced: String,
 }
 
+#[allow(dead_code)]
 #[derive(serde::Deserialize, Debug)]
 struct Suite {
     suite_name: String,
     test_cases: Vec<TestCase>,
 }
 
+#[allow(dead_code)]
 #[derive(serde::Deserialize, Debug, Clone)]
 struct TestCase {
     id: String,
@@ -196,7 +205,7 @@ fn compare_results(actual: &[Vec<Binding>], expected: &[HashMap<String, String>]
     for exp in expected {
         let match_idx = actual_sets.iter().position(|act| {
             // Check that all keys in exp match act, and unbound variables in exp are also unbound in act
-            exp.iter().all(|(k, v)| act.get(k).map_or(false, |val| clean_val(val) == clean_val(v)))
+            exp.iter().all(|(k, v)| act.get(k).is_some_and(|val| clean_val(val) == clean_val(v)))
         });
 
         if let Some(idx) = match_idx {

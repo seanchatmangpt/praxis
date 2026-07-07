@@ -5,6 +5,10 @@
 //! [`eval_backward_with_history`], which performs a history-aware backward
 //! chain to avoid cycles when services form a DAG.
 
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::type_complexity, dead_code)]
+
 use crate::bindings::Binding;
 use crate::reasoner::Reasoner;
 use crate::{BackwardChainer, Rule, RuleIndex, Triple, TripleIndex, TripleStore};

@@ -48,7 +48,7 @@ fn test_aggregate_count() {
             let s = TripleStore::decode_triple(t);
             s.contains("employeeCount")
         })
-        .map(|t| TripleStore::decode_triple(t))
+        .map(TripleStore::decode_triple)
         .collect();
 
     assert_eq!(count_triples.len(), 2);
@@ -107,7 +107,7 @@ fn test_aggregate_sum() {
             let s = TripleStore::decode_triple(t);
             s.contains("totalSalary")
         })
-        .map(|t| TripleStore::decode_triple(t))
+        .map(TripleStore::decode_triple)
         .collect();
 
     assert_eq!(sum_triples.len(), 2);
@@ -185,7 +185,7 @@ fn test_aggregate_min_max() {
             let s = TripleStore::decode_triple(t);
             s.contains("minSalary")
         })
-        .map(|t| TripleStore::decode_triple(t))
+        .map(TripleStore::decode_triple)
         .collect();
 
     let max_triples: Vec<String> = derived
@@ -194,7 +194,7 @@ fn test_aggregate_min_max() {
             let s = TripleStore::decode_triple(t);
             s.contains("maxSalary")
         })
-        .map(|t| TripleStore::decode_triple(t))
+        .map(TripleStore::decode_triple)
         .collect();
 
     assert!(min_triples.iter().any(|s| s.contains("d1") && s.contains("1000")));
@@ -247,7 +247,7 @@ fn test_aggregate_avg() {
             let s = TripleStore::decode_triple(t);
             s.contains("avgSalary")
         })
-        .map(|t| TripleStore::decode_triple(t))
+        .map(TripleStore::decode_triple)
         .collect();
 
     assert!(avg_triples.iter().any(|s| s.contains("d1") && s.contains("1500")));
@@ -343,7 +343,7 @@ fn test_aggregate_recursive() {
             let s = TripleStore::decode_triple(t);
             s.contains("totalCost")
         })
-        .map(|t| TripleStore::decode_triple(t))
+        .map(TripleStore::decode_triple)
         .collect();
 
     let engine_correct = cost_triples.iter().any(|s| s.contains("engine") && s.contains("200"));
@@ -437,7 +437,7 @@ fn test_aggregate_count_multi_variable_group_by() {
             let s = TripleStore::decode_triple(t);
             s.contains("teamCount")
         })
-        .map(|t| TripleStore::decode_triple(t))
+        .map(TripleStore::decode_triple)
         .collect();
 
     // Three distinct (?d, ?t) combinations: (d1,teamA), (d1,teamB), (d2,teamA).

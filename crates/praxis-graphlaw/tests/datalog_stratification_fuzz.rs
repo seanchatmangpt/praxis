@@ -74,6 +74,8 @@ fn independent_stratifiable(num_preds: usize, edges: &[(usize, usize, bool)]) ->
     let mut lowlink = vec![0usize; num_preds];
     let mut sccs: Vec<Vec<usize>> = Vec::new();
 
+    // Tarjan helper: argument count follows the textbook algorithm state.
+    #[allow(clippy::too_many_arguments, clippy::ptr_arg)]
     fn strongconnect(
         v: usize,
         adj: &Vec<Vec<usize>>,

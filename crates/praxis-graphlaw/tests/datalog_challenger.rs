@@ -1,5 +1,5 @@
 
-use praxis_graphlaw::triples::{BodyLiteral, Rule, Triple, VarOrTerm, Aggregate, AggregateFunction};
+use praxis_graphlaw::triples::{BodyLiteral, Rule, Triple, Aggregate, AggregateFunction};
 use praxis_graphlaw::TripleStore;
 
 /// Test empty relations in negation.
@@ -51,7 +51,7 @@ fn test_empty_relations_negation() {
             let s = TripleStore::decode_triple(t);
             s.contains("Childless")
         })
-        .map(|t| TripleStore::decode_triple(t))
+        .map(TripleStore::decode_triple)
         .collect();
 
     assert_eq!(childless.len(), 1);

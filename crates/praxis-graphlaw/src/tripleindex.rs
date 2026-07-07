@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::type_complexity, clippy::ptr_arg, dead_code)]
+
 use crate::{Binding, Term, Triple, VarOrTerm};
 use std::collections::HashMap;
 use std::iter::empty;
@@ -95,9 +99,7 @@ impl TripleIndex {
         self.counter -= 1;
     }
     pub fn add(&mut self, triple: Triple) {
-        if !self.spo.contains_key(&triple.s.to_encoded()) {
-            self.spo.insert(triple.s.to_encoded(), HashMap::new());
-        }
+        self.spo.entry(triple.s.to_encoded()).or_default();
         if !self
             .spo
             .get(&triple.s.to_encoded())
@@ -120,9 +122,7 @@ impl TripleIndex {
                 triple.g.clone().map(|g| g.as_term().clone()),
             ));
         //pos
-        if !self.pos.contains_key(&triple.p.to_encoded()) {
-            self.pos.insert(triple.p.to_encoded(), HashMap::new());
-        }
+        self.pos.entry(triple.p.to_encoded()).or_default();
         if !self
             .pos
             .get(&triple.p.to_encoded())
@@ -145,9 +145,7 @@ impl TripleIndex {
                 triple.g.clone().map(|g| g.as_term().clone()),
             ));
         //osp
-        if !self.osp.contains_key(&triple.o.to_encoded()) {
-            self.osp.insert(triple.o.to_encoded(), HashMap::new());
-        }
+        self.osp.entry(triple.o.to_encoded()).or_default();
         if !self
             .osp
             .get(&triple.o.to_encoded())
@@ -754,15 +752,14 @@ impl TripleIndex {
                     Box::new(
                         indexes2
                             .iter()
-                            .map(|(encoded_match, _counter, _graph_name)| {
+                            .flat_map(|(encoded_match, _counter, _graph_name)| {
                                 if *encoded_match == query_triple.p.to_encoded() {
                                     // return when triple has been found in knowlege base
                                     Some(Vec::with_capacity(0))
                                 } else {
                                     None
                                 }
-                            })
-                            .flatten(),
+                            }),
                     )
                 } else {
                     Box::new(empty())

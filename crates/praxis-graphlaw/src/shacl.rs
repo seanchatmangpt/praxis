@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::too_many_arguments, deprecated)]
+
 use crate::encoding::Encoder;
 use crate::tripleindex::TripleIndex;
 use crate::triples::{Term, TermImpl, Triple, VarOrTerm};
@@ -674,7 +678,7 @@ pub(crate) fn get_lexical_form(x: usize) -> Option<String> {
         Term::Literal(lit) => Encoder::decode(&lit.value),
         Term::BlankNode(_) => {
             let s = Encoder::decode(&x)?;
-            Some(if s.starts_with("_:") { s[2..].to_string() } else { s })
+            Some(s.strip_prefix("_:").map(str::to_string).unwrap_or(s))
         }
     }
 }

@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::vec_box, dead_code)]
+
 use deepmesa_collections::LinkedList;
 use std::cell::RefCell;
 use std::cmp;

@@ -93,8 +93,8 @@ impl InternalEncoder {
     pub fn add(&mut self, s: String) -> usize {
         if s.starts_with('?') {
             self.add_variable(s)
-        } else if s.starts_with("_:") {
-            self.add_blank_node_label(s[2..].to_string())
+        } else if let Some(label) = s.strip_prefix("_:") {
+            self.add_blank_node_label(label.to_string())
         } else if s.starts_with('"') {
             let last_quote = s.rfind('"');
             if let Some(end_lex) = last_quote {
@@ -103,10 +103,10 @@ impl InternalEncoder {
                     let suffix = &s[end_lex + 1..];
                     let mut datatype = None;
                     let mut lang = None;
-                    if suffix.starts_with('@') {
-                        lang = Some(suffix[1..].to_string());
-                    } else if suffix.starts_with("^^") {
-                        datatype = Some(suffix[2..].to_string());
+                    if let Some(tag) = suffix.strip_prefix('@') {
+                        lang = Some(tag.to_string());
+                    } else if let Some(dt) = suffix.strip_prefix("^^") {
+                        datatype = Some(dt.to_string());
                     }
                     self.add_literal(lexical, datatype, lang)
                 } else {
@@ -130,9 +130,9 @@ impl InternalEncoder {
                 Some(id)
             } else if let Some(id) = self.encoded.get(&EncodedValue::Variable(format!("?{}", s))).copied() {
                 Some(id)
-            } else if s.starts_with("_:") {
+            } else if let Some(label) = s.strip_prefix("_:") {
                 self.encoded
-                    .get(&EncodedValue::BlankNodeLabel(s[2..].to_string()))
+                    .get(&EncodedValue::BlankNodeLabel(label.to_string()))
                     .copied()
             } else if s.starts_with('"') {
                 let last_quote = s.rfind('"');
@@ -142,10 +142,10 @@ impl InternalEncoder {
                         let suffix = &s[end_lex + 1..];
                         let mut datatype = None;
                         let mut lang = None;
-                        if suffix.starts_with('@') {
-                            lang = Some(suffix[1..].to_string());
-                        } else if suffix.starts_with("^^") {
-                            datatype = Some(suffix[2..].to_string());
+                        if let Some(tag) = suffix.strip_prefix('@') {
+                            lang = Some(tag.to_string());
+                        } else if let Some(dt) = suffix.strip_prefix("^^") {
+                            datatype = Some(dt.to_string());
                         }
                         let val_id = self.encoded.get(&EncodedValue::LiteralLexical(lexical))?;
                         let datatype_id = if let Some(dt) = datatype {

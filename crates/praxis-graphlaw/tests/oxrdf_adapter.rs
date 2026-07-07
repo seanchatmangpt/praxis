@@ -132,7 +132,7 @@ fn test_oxrdf_adapter_robustness() {
     index.add(Triple { s: s.clone(), p: p.clone(), o: o.clone(), g: None });
     let graph = triple_index_to_oxrdf_graph(&index);
     assert_eq!(graph.len(), 1);
-    let back_o = graph.iter().next().unwrap().object.clone();
+    let back_o = graph.iter().next().unwrap().object;
     assert_eq!(Term::from(back_o), ox_simple_empty);
 
     // - Language tagged empty literal
@@ -141,7 +141,7 @@ fn test_oxrdf_adapter_robustness() {
     let mut index = TripleIndex::new();
     index.add(Triple { s: s.clone(), p: p.clone(), o: VarOrTerm::Term(roxi_lang_empty), g: None });
     let graph = triple_index_to_oxrdf_graph(&index);
-    let back_o = graph.iter().next().unwrap().object.clone();
+    let back_o = graph.iter().next().unwrap().object;
     assert_eq!(Term::from(back_o), ox_lang_empty);
 
     // - Typed empty literal
@@ -150,7 +150,7 @@ fn test_oxrdf_adapter_robustness() {
     let mut index = TripleIndex::new();
     index.add(Triple { s: s.clone(), p: p.clone(), o: VarOrTerm::Term(roxi_typed_empty), g: None });
     let graph = triple_index_to_oxrdf_graph(&index);
-    let back_o = graph.iter().next().unwrap().object.clone();
+    let back_o = graph.iter().next().unwrap().object;
     assert_eq!(Term::from(back_o), ox_typed_empty);
 
     // 2. Language tags (lowercase/uppercase/subtags)
@@ -160,7 +160,7 @@ fn test_oxrdf_adapter_robustness() {
         let mut index = TripleIndex::new();
         index.add(Triple { s: s.clone(), p: p.clone(), o: VarOrTerm::Term(roxi_lit), g: None });
         let graph = triple_index_to_oxrdf_graph(&index);
-        let back_o = graph.iter().next().unwrap().object.clone();
+        let back_o = graph.iter().next().unwrap().object;
         assert_eq!(Term::from(back_o), ox_lit);
     }
 
@@ -176,7 +176,7 @@ fn test_oxrdf_adapter_robustness() {
         let mut index = TripleIndex::new();
         index.add(Triple { s: s.clone(), p: p.clone(), o: VarOrTerm::Term(roxi_lit), g: None });
         let graph = triple_index_to_oxrdf_graph(&index);
-        let back_o = graph.iter().next().unwrap().object.clone();
+        let back_o = graph.iter().next().unwrap().object;
         assert_eq!(Term::from(back_o), ox_lit);
     }
 
@@ -289,7 +289,7 @@ fn test_xsd_decimal_boolean_date_roundtrip_equality() {
         assert_eq!(graph.len(), 1, "expected exactly one triple for {} ({})", lexical, datatype);
 
         let oxrdf_triple = graph.iter().next().unwrap();
-        let ox_term = Term::from(oxrdf_triple.object.clone());
+        let ox_term = Term::from(oxrdf_triple.object);
 
         // The oxrdf side must carry the datatype through untouched.
         if let Term::Literal(lit) = &ox_term {

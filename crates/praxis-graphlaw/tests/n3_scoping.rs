@@ -35,7 +35,7 @@ use praxis_graphlaw::term::VarOrTerm;
 use praxis_graphlaw::TripleStore;
 
 fn decode_all(triples: &[praxis_graphlaw::triples::Triple]) -> Vec<String> {
-    triples.iter().map(|t| TripleStore::decode_triple(t)).collect()
+    triples.iter().map(TripleStore::decode_triple).collect()
 }
 
 /// `materialize()` only returns newly-*derived* triples, not the base facts

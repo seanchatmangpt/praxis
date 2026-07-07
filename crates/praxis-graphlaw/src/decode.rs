@@ -13,12 +13,12 @@ use std::fmt::Write;
 impl TripleStore {
     pub fn decode_rule(rule: &Rule) -> String {
         let mut res = String::new();
-        let decoded_head = Self::decode_triples(&[rule.head.clone()]);
+        let decoded_head = Self::decode_triples(std::slice::from_ref(&rule.head));
         let decoded_body: String = rule
             .body
             .iter()
             .map(|lit| {
-                let s = Self::decode_triples(&[lit.pattern.clone()]);
+                let s = Self::decode_triples(std::slice::from_ref(&lit.pattern));
                 if lit.negated {
                     format!("not {{{}}}", s.trim())
                 } else {
@@ -32,12 +32,12 @@ impl TripleStore {
     pub fn decode_rules(rules: &[Rule]) -> String {
         let mut res = String::new();
         for rule in rules {
-            let decoded_head = Self::decode_triples(&[rule.head.clone()]);
+            let decoded_head = Self::decode_triples(std::slice::from_ref(&rule.head));
             let decoded_body: String = rule
                 .body
                 .iter()
                 .map(|lit| {
-                    let s = Self::decode_triples(&[lit.pattern.clone()]);
+                    let s = Self::decode_triples(std::slice::from_ref(&lit.pattern));
                     if lit.negated {
                         format!("not {{{}}}", s.trim())
                     } else {

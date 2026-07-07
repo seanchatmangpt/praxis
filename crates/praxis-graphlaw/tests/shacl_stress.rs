@@ -355,9 +355,9 @@ fn test_three_level_nested_property_shape() {
         "expected exactly 1 violation from the deepest nesting level, got: {:?}", report_invalid.results
     );
     let violation = &report_invalid.results[0];
-    assert_eq!(
-        violation.focus_node.to_string().contains("acmeCity"), true,
+    assert!(
+        violation.focus_node.to_string().contains("acmeCity"),
         "the violation's focus_node must be anchored at the 3rd-level value (ex:acmeCity), not the top-level ex:acme, got: {}",
-        violation.focus_node.to_string()
+        violation.focus_node
     );
 }

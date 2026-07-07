@@ -8,6 +8,7 @@ use praxis_graphlaw::triples::{Rule, Triple, BodyLiteral};
 /// Rules:
 /// Stratum 0:
 /// 1) { ?x <http://example.org/type> <http://example.org/A> } => { ?x <http://example.org/type> <http://example.org/B> }
+///
 /// Stratum 1:
 /// 2) { ?x <http://example.org/type> <http://example.org/B> . not { ?x <http://example.org/type> <http://example.org/C> } } => { ?x <http://example.org/type> <http://example.org/D> }
 ///
@@ -54,7 +55,7 @@ fn test_negation_across_stratum_boundary() {
         ]
     };
 
-    store.add_rules(vec![r1, r2]);
+    store.add_rules(vec![r1, r2]).expect("rules must load");
 
     let derived = store.materialize();
 

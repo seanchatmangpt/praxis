@@ -260,7 +260,7 @@ fn string_concat_preserves_unicode() {
                 :s :b \"\u{1f600}\" .\n\
                 { ?s :a ?a . ?s :b ?b . ( ?a ?b ) string:concat ?c } => { ?s :result ?c }.\n";
     let decoded = materialize(data);
-    let expected = format!("caf\u{e9}\u{1f600}");
+    let expected = "caf\u{e9}\u{1f600}".to_string();
     assert!(
         decoded.iter().any(|d| d.contains("/result") && d.contains(&expected)),
         "expected concatenation {:?}, got: {:?}",

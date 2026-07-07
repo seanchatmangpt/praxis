@@ -84,9 +84,7 @@ fn target_builtins() -> Vec<(&'static str, &'static str)> {
     }
 
     // func: (RIF)
-    for n in ["lang-from-PlainLiteral"] {
-        v.push(("func", format!("<{}{}>", func, n)));
-    }
+    v.push(("func", format!("<{}{}>", func, "lang-from-PlainLiteral")));
 
     v.into_iter().map(|(ns, iri)| (Box::leak(format!("{ns}:{iri}").into_boxed_str()) as &'static str, Box::leak(iri.into_boxed_str()) as &'static str)).collect()
 }

@@ -1,3 +1,7 @@
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(clippy::should_implement_trait, dead_code)]
+
 use log::debug; // Use log crate when building application
 use std::collections::hash_set::{IntoIter, Iter};
 use std::collections::{HashMap, HashSet};
@@ -226,9 +230,7 @@ where
                 open: o_i as usize,
                 close: (o_i + self.width as f64) as usize,
             };
-            if !self.active_windows.contains_key(&window) {
-                self.active_windows.insert(window, ContentContainer::new());
-            }
+            self.active_windows.entry(window).or_insert_with(ContentContainer::new);
             o_i += self.slide as f64;
             if o_i > *event_time as f64 {
                 break;

@@ -6,7 +6,7 @@
 use praxis_graphlaw::TripleStore;
 
 fn goal_from(src: &str) -> praxis_graphlaw::triples::Triple {
-    TripleStore::from(src).triple_index.triples.iter().next().unwrap().clone()
+    TripleStore::from(src).triple_index.triples.first().unwrap().clone()
 }
 
 #[test]

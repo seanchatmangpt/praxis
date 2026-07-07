@@ -2,7 +2,7 @@ use praxis_graphlaw::TripleStore;
 
 /// Decode a set of derived triples into "s p o" strings for easy substring assertions.
 fn decode_all(triples: &[praxis_graphlaw::triples::Triple]) -> Vec<String> {
-    triples.iter().map(|t| TripleStore::decode_triple(t)).collect()
+    triples.iter().map(TripleStore::decode_triple).collect()
 }
 
 /// TICKET-005 (DoD): Test the log:equalTo built-in.

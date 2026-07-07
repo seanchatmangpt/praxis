@@ -1,5 +1,9 @@
 //! Observer is a behavioral design pattern that allows one objects to notify other objects about changes in their state.
 
+// Vendored research-lineage engine (RoXi lineage): API reshaping is out of scope;
+// lints below are documented scoped allows, not silent drift.
+#![allow(dead_code)]
+
 trait IObserver {
     fn update(&self, new: Vec<i32>) -> Vec<i32>;
 }

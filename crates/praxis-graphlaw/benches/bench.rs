@@ -1,3 +1,5 @@
+// Window benches are kept out of benchmark_group! (manual-use only); dead_code allowed.
+#![allow(dead_code)]
 #[macro_use]
 extern crate bencher;
 
@@ -6,9 +8,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use praxis_graphlaw::imars_window::{ImarsWindow, SimpleWindowConsumer};
-use praxis_graphlaw::parser::Parser;
-use praxis_graphlaw::pipeline::WindowReasoner;
-use praxis_graphlaw::time_window::TimeWindow;
 use praxis_graphlaw::TripleStore;
 
 fn create_window(width: i32, slide: i32) -> ImarsWindow<i32> {

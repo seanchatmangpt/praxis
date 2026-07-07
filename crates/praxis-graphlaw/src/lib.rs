@@ -204,7 +204,7 @@ impl TripleStore {
                     .body
                     .iter()
                     .map(|lit| {
-                        let s = Self::decode_triples(&[lit.pattern.clone()]);
+                        let s = Self::decode_triples(std::slice::from_ref(&lit.pattern));
                         if lit.negated {
                             format!("not {{{}}}", s.trim())
                         } else {
@@ -284,6 +284,8 @@ impl TripleStore {
         }
     }
 
+    // Vendored engine keeps the stable spargebra::Query::parse entry point.
+    #[allow(deprecated)]
     pub fn query(&self, query_str: &str) -> Result<Vec<Vec<crate::sparql::Binding>>, String> {
         match Query::parse(query_str, None) {
             Ok(query) => {
