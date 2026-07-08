@@ -2,7 +2,6 @@ use crate::encoding::Encoder;
 use crate::rule::{BodyLiteral, Rule};
 use crate::term::{Triple, VarOrTerm};
 use crate::tripleindex::TripleIndex;
-use blake3;
 
 /// OWL RL vocabulary: interned IRI ids for the daily profile features.
 pub struct OwlRlVocab {
@@ -228,6 +227,13 @@ pub fn scan_ontology(index: &TripleIndex, vocab: &OwlRlVocab) -> ScanReport {
 
     ScanReport { supported, refused }
 }
+
+// Rule compilation invariant: every vocabulary ID (e.g. vocab.rdfs_subclass_of) is
+// guaranteed to be encodable because OwlRlVocab::new() calls Encoder::add() for each
+// W3C vocabulary IRI during initialization. Therefore, Encoder::decode() will never
+// return None for these IDs. We use unwrap() in the rule functions because the
+// decode failure would indicate a corrupted vocabulary initialization, not a runtime
+// error in the ontology being reasoned over.
 
 /// {?a rdfs:subClassOf ?b. ?b rdfs:subClassOf ?c} => {?a rdfs:subClassOf ?c}
 pub fn rule_subclass_transitive(vocab: &OwlRlVocab) -> Rule {
