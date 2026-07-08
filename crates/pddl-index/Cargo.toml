@@ -13,6 +13,6 @@ doctest = false
 # Canonical PDDL8 types (Pddl8Domain/Problem/GroundAction/…). Types only —
 # the parser lives in bcinr-pddl, which this crate deliberately does NOT depend
 # on so there is no cycle with praxis's differential oracle.
-wasm4pm-compat = { path = "../../../wasm4pm-compat", version = "26.6.29" }
+wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat", version = "26.6.29" }
 
 [dev-dependencies]

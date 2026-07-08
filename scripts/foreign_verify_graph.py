@@ -1046,8 +1046,13 @@ def refold_verdicts(raw) -> str:
     if not isinstance(raw, list):
         raise FiringRefusal("receipt.verdicts is not an array")
     rebuilt = []
+    allowed_keys = set(VERDICT_KEYS)
+    allowed_keys_with_diag = allowed_keys | {"diagnostics"}
     for row in raw:
-        if not isinstance(row, dict) or set(row) != set(VERDICT_KEYS):
+        if not isinstance(row, dict):
+            raise FiringRefusal("verdict record has unexpected shape")
+        row_keys = set(row)
+        if row_keys != allowed_keys and row_keys != allowed_keys_with_diag:
             raise FiringRefusal("verdict record has unexpected shape")
         if row["verdict"] not in HOOK_VERDICTS:
             raise FiringRefusal(f"unknown verdict '{row['verdict']}'")
@@ -1058,7 +1063,11 @@ def refold_verdicts(raw) -> str:
                 raise FiringRefusal(f"verdict field '{key}' is not a string")
         if row["action_iri"] is not None and not isinstance(row["action_iri"], str):
             raise FiringRefusal("verdict field 'action_iri' is not a string or null")
-        rebuilt.append({k: row[k] for k in VERDICT_KEYS})
+        
+        rebuilt_row = {k: row[k] for k in VERDICT_KEYS}
+        if "diagnostics" in row:
+            rebuilt_row["diagnostics"] = row["diagnostics"]
+        rebuilt.append(rebuilt_row)
     return compact_json(rebuilt)
 
 

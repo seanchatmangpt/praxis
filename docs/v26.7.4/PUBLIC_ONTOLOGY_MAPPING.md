@@ -64,6 +64,7 @@ any of those tables without a row here fails that test.
 | `hook:effect` | — | Operational: reference to the graph-delta descriptor a firing applies. |
 | `hook:reason` | `dct:description` | Rejected: `dct:description` is open-ended human prose; `hook:reason` is a short machine-audited refusal/verdict string with a bounded shape. |
 | `hook:priority` | — | Operational: firing-order tiebreak integer, not a real-world priority. |
+| `hook:after` | — | Operational: specifies that this hook must be executed after the referenced hook, enabling dependency resolution. |
 
 ## `prayer-kernel:` — Lord's Prayer kernel vocabulary (`src/kernel.rs`)
 

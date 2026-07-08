@@ -36,9 +36,9 @@ pub const HOOK_NS: &str = "http://seanchatmangpt.github.io/praxis/hook#";
 const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 
 const HOOK_CLASSES: [&str; 1] = ["Hook"];
-const HOOK_PREDICATES: [&str; 13] = [
+const HOOK_PREDICATES: [&str; 14] = [
     "name", "on", "kind", "var", "op", "k", "window", "program", "goal", "action", "effect",
-    "reason", "priority",
+    "reason", "priority", "after",
 ];
 
 /// Max hooks per registry — the 8-bound.
@@ -47,14 +47,9 @@ pub const MAX_HOOKS: usize = 12;
 pub const MAX_PROGRAM_BYTES: usize = 4_096;
 
 /// Refused condition kinds mapped to their honest supported analog.
-const REFUSED_KINDS: [(&str, &str); 5] = [
+const REFUSED_KINDS: [(&str, &str); 3] = [
     ("sparql-ask", "datalog (goal reachability)"),
     ("sparql-select", "datalog (goal reachability)"),
-    ("shacl", "datalog (integrity rules)"),
-    (
-        "n3",
-        "datalog (no bounded N3 engine in-tree; cold-only N3 is not implemented)",
-    ),
     (
         "semantic-inference",
         "(none — refused everywhere; unrdf itself throws unimplemented)",
@@ -158,6 +153,23 @@ pub enum HookCondition {
         /// Number of deltas covered including the current one (1..=8).
         window: u8,
     },
+    /// SHACL policy validation trigger (FR3, FR4)
+    Shacl {
+        /// Turtle serialization of shapes.
+        shapes: String,
+    },
+    /// ShEx policy validation trigger (FR3, FR4)
+    Shex {
+        /// JSON (ShExJ) or compact (ShExC) serialization of the schema.
+        schema: String,
+        /// Shape map string (e.g. "node@shape").
+        shape_map: String,
+    },
+    /// N3 policy validation trigger (FR3, FR4)
+    N3 {
+        /// N3 rules text.
+        rules: String,
+    },
 }
 
 impl HookCondition {
@@ -170,6 +182,9 @@ impl HookCondition {
             Self::Threshold { .. } => "threshold",
             Self::Count { .. } => "count",
             Self::Window { .. } => "window",
+            Self::Shacl { .. } => "shacl",
+            Self::Shex { .. } => "shex",
+            Self::N3 { .. } => "n3",
         }
     }
 
@@ -201,6 +216,7 @@ pub struct KnowledgeHook {
     /// The hook node's IRI.
     pub iri: String,
     /// Declared unique name.
+    /// The name of the hook pack.
     pub name: String,
     /// Trigger gate: `assert` (fires only on additions), `retract`
     /// (only on removals), or `any`.
@@ -215,6 +231,8 @@ pub struct KnowledgeHook {
     pub reason: Option<String>,
     /// Evaluation priority 0..=7 (ties broken by IRI byte order).
     pub priority: u8,
+    /// Dependency IRIs (this hook evaluates after all named dependencies).
+    pub after: Vec<String>,
 }
 
 /// Verdict of one hook against one event. All verdicts are recorded.
@@ -226,6 +244,36 @@ pub enum HookVerdict {
     NotFired,
     /// The trigger gate excluded this event (e.g. `on = assert`, empty additions).
     Gated,
+}
+
+/// Typed structured diagnostic details for trigger failures or conformance checks.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TriggerDiagnostic {
+    /// The hook name or IRI.
+    pub hook_iri: String,
+    /// Conforms: true if validation passed, false if failed.
+    pub conforms: bool,
+    /// The list of specific diagnostic details.
+    pub details: Vec<DiagnosticDetail>,
+}
+
+/// A single diagnostic violation or violation detail.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DiagnosticDetail {
+    /// Focus node (e.g. subject node that failed).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub focus_node: Option<String>,
+    /// Result path (e.g. predicate that failed validation).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result_path: Option<String>,
+    /// Value that failed validation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    /// Severity: violation, warning, info, etc.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub severity: Option<String>,
+    /// Message explaining the failure.
+    pub message: String,
 }
 
 /// One row of the hook verdict record — the bytes behind `hook_hash`.
@@ -245,6 +293,9 @@ pub struct HookVerdictRecord {
     pub effect: EffectKind,
     /// Action IRI (when declared).
     pub action_iri: Option<String>,
+    /// Optional structured diagnostics associated with the verdict.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diagnostics: Option<TriggerDiagnostic>,
 }
 
 // ---------------------------------------------------------------------------
@@ -308,6 +359,31 @@ impl<'a> HookProps<'a> {
             [_] => Err(ill(subject, format!("hook:{local} must be an IRI"))),
             _ => Err(ill(subject, format!("multiple hook:{local}"))),
         }
+    }
+
+    fn all_iri(&self, subject: &str, local: &str) -> Result<Vec<String>, Refusal> {
+        let mut out = Vec::new();
+        for obj in self.objects(local) {
+            if let Object::Iri(iri) = obj {
+                out.push(iri.clone());
+            } else {
+                return Err(ill(subject, format!("hook:{local} must be an IRI")));
+            }
+        }
+        out.sort_unstable();
+        Ok(out)
+    }
+
+    #[allow(dead_code)]
+    fn iris(&self, subject: &str, local: &str) -> Result<Vec<String>, Refusal> {
+        let mut out = Vec::new();
+        for obj in self.objects(local) {
+            match obj {
+                Object::Iri(iri) => out.push(iri.clone()),
+                _ => return Err(ill(subject, format!("hook:{} must be an IRI", local))),
+            }
+        }
+        Ok(out)
     }
 }
 
@@ -444,15 +520,33 @@ pub fn extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHook>, Refusal> 
                 };
                 HookCondition::Window { var, op, k, window }
             }
-            other => {
-                if let Some((_, analog)) = REFUSED_KINDS.iter().find(|(k, _)| *k == other) {
-                    return Err(Refusal::ConditionUnsupported {
-                        kind: other.to_string(),
-                        subject: subject.to_string(),
-                        supported_analog: (*analog).to_string(),
-                    });
+            "shacl" => {
+                let program = props.one_str(subject, "program")?;
+                HookCondition::Shacl { shapes: program }
+            }
+            "shex" => {
+                let program = props.one_str(subject, "program")?;
+                let goal = props.one_str(subject, "goal")?;
+                HookCondition::Shex {
+                    schema: program,
+                    shape_map: goal,
                 }
-                return Err(ill(subject, format!("unknown hook:kind '{other}'")));
+            }
+            "n3" => {
+                let program = props.one_str(subject, "program")?;
+                HookCondition::N3 { rules: program }
+            }
+            other => {
+                let analog = if let Some((_, a)) = REFUSED_KINDS.iter().find(|(k, _)| *k == other) {
+                    (*a).to_string()
+                } else {
+                    "datalog".to_string()
+                };
+                return Err(Refusal::ConditionUnsupported {
+                    kind: other.to_string(),
+                    subject: subject.to_string(),
+                    supported_analog: analog,
+                });
             }
         };
         let effect = match props.one_str(subject, "effect")?.as_str() {
@@ -491,6 +585,7 @@ pub fn extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHook>, Refusal> 
                 ))
             }
         };
+        let after = props.all_iri(subject, "after")?;
         hooks.push(KnowledgeHook {
             iri: subject.to_string(),
             name,
@@ -500,6 +595,7 @@ pub fn extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHook>, Refusal> 
             action,
             reason,
             priority,
+            after,
         });
     }
     hooks.sort_unstable_by(|a, b| (a.priority, a.iri.as_str()).cmp(&(b.priority, b.iri.as_str())));
@@ -686,6 +782,64 @@ pub(crate) fn eval_datalog(
 /// the most-recent-first list of previously admitted deltas (used only by
 /// `window` conditions). Returns one verdict record PER REGISTERED HOOK —
 /// `NotFired` and `Gated` rows included, so absence of firing is in the hash.
+fn escape_str(s: &str) -> String {
+    let mut out = String::new();
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\t' => out.push_str("\\t"),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+fn to_graphlaw_triple(t: &crate::graph::Triple) -> praxis_graphlaw::term::Triple {
+    let s_str = if t.s.starts_with('<') || t.s.starts_with('_') {
+        t.s.clone()
+    } else {
+        format!("<{}>", t.s)
+    };
+    let p_str = if t.p.starts_with('<') {
+        t.p.clone()
+    } else {
+        format!("<{}>", t.p)
+    };
+    let o_str = match &t.o {
+        crate::graph::Object::Iri(iri) => format!("<{}>", iri),
+        crate::graph::Object::Str(s) => format!("\"{}\"", escape_str(s)),
+        crate::graph::Object::Int(v) => {
+            format!("\"{}\"^^<http://www.w3.org/2001/XMLSchema#integer>", v)
+        }
+    };
+    praxis_graphlaw::term::Triple::from(s_str, p_str, o_str)
+}
+
+fn parse_shape_map(s: &str) -> Vec<(String, String)> {
+    let mut map = Vec::new();
+    for entry in s.split(',') {
+        let entry = entry.trim();
+        if entry.is_empty() {
+            continue;
+        }
+        if let Some((node, shape)) = entry.split_once('@') {
+            let clean = |x: &str| {
+                let x = x.trim();
+                if x.starts_with('<') && x.ends_with('>') {
+                    x[1..x.len() - 1].to_string()
+                } else {
+                    x.to_string()
+                }
+            };
+            map.push((clean(node), clean(shape)));
+        }
+    }
+    map
+}
+
+/// Evaluates every registered hook condition against an event.
 pub fn evaluate_hooks(
     hooks: &[KnowledgeHook],
     event: &AdmittedEvent,
@@ -698,32 +852,255 @@ pub fn evaluate_hooks(
             "retract" => event.delta().removals().is_empty(),
             _ => false,
         };
-        let verdict = if gated {
-            HookVerdict::Gated
+        let (verdict, diagnostics) = if gated {
+            (HookVerdict::Gated, None)
         } else {
-            let fired = match &hook.condition {
+            let (fired, diagnostics) = match &hook.condition {
                 HookCondition::Datalog { program, goal } => {
-                    eval_datalog(program, goal, event.post(), &hook.iri)?
+                    let fired = eval_datalog(program, goal, event.post(), &hook.iri)?;
+                    let diag = TriggerDiagnostic {
+                        hook_iri: hook.iri.clone(),
+                        conforms: !fired,
+                        details: if fired {
+                            vec![DiagnosticDetail {
+                                focus_node: None,
+                                result_path: None,
+                                value: None,
+                                severity: Some("Fired".to_string()),
+                                message: format!(
+                                    "Datalog goal '{}' was derived in post-state",
+                                    goal
+                                ),
+                            }]
+                        } else {
+                            Vec::new()
+                        },
+                    };
+                    (fired, Some(diag))
                 }
-                HookCondition::Delta { var } => delta_touches(event.delta(), var),
+                HookCondition::Delta { var } => {
+                    let fired = delta_touches(event.delta(), var);
+                    let diag = TriggerDiagnostic {
+                        hook_iri: hook.iri.clone(),
+                        conforms: !fired,
+                        details: if fired {
+                            vec![DiagnosticDetail {
+                                focus_node: None,
+                                result_path: Some(var.clone()),
+                                value: None,
+                                severity: Some("Fired".to_string()),
+                                message: format!("Delta modified predicate '{}'", var),
+                            }]
+                        } else {
+                            Vec::new()
+                        },
+                    };
+                    (fired, Some(diag))
+                }
                 HookCondition::Threshold { var, op, k } => {
-                    op.holds(count_pred(event.post(), var), *k)
+                    let count = count_pred(event.post(), var);
+                    let fired = op.holds(count, *k);
+                    let op_str = match op {
+                        CmpOp::Eq => "=",
+                        CmpOp::Ne => "!=",
+                        CmpOp::Lt => "<",
+                        CmpOp::Le => "<=",
+                        CmpOp::Gt => ">",
+                        CmpOp::Ge => ">=",
+                    };
+                    let diag = TriggerDiagnostic {
+                        hook_iri: hook.iri.clone(),
+                        conforms: !fired,
+                        details: if fired {
+                            vec![DiagnosticDetail {
+                                focus_node: None,
+                                result_path: Some(var.clone()),
+                                value: Some(count.to_string()),
+                                severity: Some("Fired".to_string()),
+                                message: format!(
+                                    "Predicate '{}' count {} held comparison {} {}",
+                                    var, count, op_str, k
+                                ),
+                            }]
+                        } else {
+                            Vec::new()
+                        },
+                    };
+                    (fired, Some(diag))
                 }
                 HookCondition::Count { var, op, k } => {
-                    op.holds(delta_count(event.delta(), var), *k)
+                    let count = delta_count(event.delta(), var);
+                    let fired = op.holds(count, *k);
+                    let op_str = match op {
+                        CmpOp::Eq => "=",
+                        CmpOp::Ne => "!=",
+                        CmpOp::Lt => "<",
+                        CmpOp::Le => "<=",
+                        CmpOp::Gt => ">",
+                        CmpOp::Ge => ">=",
+                    };
+                    let diag = TriggerDiagnostic {
+                        hook_iri: hook.iri.clone(),
+                        conforms: !fired,
+                        details: if fired {
+                            vec![DiagnosticDetail {
+                                focus_node: None,
+                                result_path: Some(var.clone()),
+                                value: Some(count.to_string()),
+                                severity: Some("Fired".to_string()),
+                                message: format!(
+                                    "Predicate '{}' delta count {} held comparison {} {}",
+                                    var, count, op_str, k
+                                ),
+                            }]
+                        } else {
+                            Vec::new()
+                        },
+                    };
+                    (fired, Some(diag))
                 }
                 HookCondition::Window { var, op, k, window } => {
                     let mut total = delta_count(event.delta(), var);
                     for d in history.iter().take(usize::from(*window) - 1) {
                         total += delta_count(d, var);
                     }
-                    op.holds(total, *k)
+                    let fired = op.holds(total, *k);
+                    let op_str = match op {
+                        CmpOp::Eq => "=",
+                        CmpOp::Ne => "!=",
+                        CmpOp::Lt => "<",
+                        CmpOp::Le => "<=",
+                        CmpOp::Gt => ">",
+                        CmpOp::Ge => ">=",
+                    };
+                    let diag = TriggerDiagnostic {
+                        hook_iri: hook.iri.clone(),
+                        conforms: !fired,
+                        details: if fired {
+                            vec![DiagnosticDetail {
+                                focus_node: None,
+                                result_path: Some(var.clone()),
+                                value: Some(total.to_string()),
+                                severity: Some("Fired".to_string()),
+                                message: format!(
+                                    "Predicate '{}' window count {} held comparison {} {}",
+                                    var, total, op_str, k
+                                ),
+                            }]
+                        } else {
+                            Vec::new()
+                        },
+                    };
+                    (fired, Some(diag))
+                }
+                HookCondition::Shacl { shapes } => {
+                    let mut store = praxis_graphlaw::TripleStore::new();
+                    for t in event.post() {
+                        store.add(to_graphlaw_triple(t));
+                    }
+                    let report = store
+                        .validate_shacl(shapes)
+                        .map_err(|e| Refusal::InvalidInput { detail: e })?;
+                    let conforms = report.conforms;
+                    let details = report
+                        .results
+                        .iter()
+                        .map(|res| DiagnosticDetail {
+                            focus_node: Some(res.focus_node.to_string()),
+                            result_path: res.result_path.as_ref().map(|t| t.to_string()),
+                            value: res.value.as_ref().map(|t| t.to_string()),
+                            severity: Some(res.severity.to_string()),
+                            message: res
+                                .message
+                                .clone()
+                                .unwrap_or_else(|| "SHACL shape violation".to_string()),
+                        })
+                        .collect();
+                    (
+                        !conforms,
+                        Some(TriggerDiagnostic {
+                            hook_iri: hook.iri.clone(),
+                            conforms,
+                            details,
+                        }),
+                    )
+                }
+                HookCondition::Shex { schema, shape_map } => {
+                    let mut store = praxis_graphlaw::TripleStore::new();
+                    for t in event.post() {
+                        store.add(to_graphlaw_triple(t));
+                    }
+                    let shape_map_parsed = parse_shape_map(shape_map);
+                    let report = if schema.trim().starts_with('{') {
+                        praxis_graphlaw::shex::validate_shex(
+                            &store.triple_index,
+                            schema,
+                            &shape_map_parsed,
+                        )
+                        .map_err(|e| Refusal::InvalidInput {
+                            detail: e.to_string(),
+                        })?
+                    } else {
+                        store
+                            .validate_shex_c(schema, &shape_map_parsed)
+                            .map_err(|e| Refusal::InvalidInput { detail: e })?
+                    };
+                    let conforms = report.conforms;
+                    let details = report
+                        .failures
+                        .iter()
+                        .map(|fail| DiagnosticDetail {
+                            focus_node: Some(fail.node.to_string()),
+                            result_path: None,
+                            value: None,
+                            severity: Some("Violation".to_string()),
+                            message: format!(
+                                "Shape validation failed for {}: {}",
+                                fail.shape, fail.reason
+                            ),
+                        })
+                        .collect();
+                    (
+                        !conforms,
+                        Some(TriggerDiagnostic {
+                            hook_iri: hook.iri.clone(),
+                            conforms,
+                            details,
+                        }),
+                    )
+                }
+                HookCondition::N3 { rules } => {
+                    let mut store = praxis_graphlaw::TripleStore::from(rules);
+                    for t in event.post() {
+                        store.add(to_graphlaw_triple(t));
+                    }
+                    store.materialize();
+                    let violations = store.check_denials();
+                    let conforms = violations.is_empty();
+                    let details = violations
+                        .iter()
+                        .map(|message| DiagnosticDetail {
+                            focus_node: None,
+                            result_path: None,
+                            value: None,
+                            severity: Some("Denial".to_string()),
+                            message: message.clone(),
+                        })
+                        .collect();
+                    (
+                        !conforms,
+                        Some(TriggerDiagnostic {
+                            hook_iri: hook.iri.clone(),
+                            conforms,
+                            details,
+                        }),
+                    )
                 }
             };
             if fired {
-                HookVerdict::Fired
+                (HookVerdict::Fired, diagnostics)
             } else {
-                HookVerdict::NotFired
+                (HookVerdict::NotFired, diagnostics)
             }
         };
         records.push(HookVerdictRecord {
@@ -734,6 +1111,7 @@ pub fn evaluate_hooks(
             verdict,
             effect: hook.effect.clone(),
             action_iri: hook.action.clone(),
+            diagnostics,
         });
     }
     Ok(records)
@@ -791,13 +1169,7 @@ mod tests {
 
     #[test]
     fn unsupported_kinds_refused_by_name_with_analog() {
-        for kind in [
-            "sparql-ask",
-            "sparql-select",
-            "shacl",
-            "n3",
-            "semantic-inference",
-        ] {
+        for kind in ["sparql-ask", "sparql-select", "semantic-inference"] {
             let doc = hook_doc(&format!(
                 "ex:h a hook:Hook ; hook:name \"x\" ; hook:kind \"{kind}\" ; \
                  hook:effect \"refuse\" ; hook:reason \"r\" ."
@@ -918,4 +1290,291 @@ mod tests {
             other => panic!("expected registry bound refusal, got {other:?}"),
         }
     }
+}
+
+/// A parsed, validated hook pack representing a group of hooks and their metadata.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Represents a hook pack structure.
+pub struct HookPack {
+    /// The name of the hook pack.
+    pub name: String,
+    /// The version of the hook pack.
+    pub version: String,
+    /// The description of the hook pack.
+    pub description: String,
+    /// The list of required dialects.
+    pub required_dialects: Vec<String>,
+    /// The list of hooks inside the pack.
+    pub hooks: Vec<KnowledgeHook>,
+}
+
+/// Schedules the hooks in topological order of after-dependencies.
+pub fn schedule_hooks(hooks: Vec<KnowledgeHook>) -> Result<Vec<KnowledgeHook>, Refusal> {
+    let mut hook_map = std::collections::BTreeMap::new();
+    let mut in_degree = std::collections::BTreeMap::new();
+    let mut adj = std::collections::BTreeMap::new();
+
+    for h in &hooks {
+        hook_map.insert(h.iri.clone(), h.clone());
+        in_degree.insert(h.iri.clone(), 0);
+        adj.insert(h.iri.clone(), Vec::new());
+    }
+
+    for h in &hooks {
+        for dep in &h.after {
+            if !hook_map.contains_key(dep) {
+                return Err(Refusal::HookIllFormed {
+                    subject: h.iri.clone(),
+                    detail: format!("unknown after-dependency '{}'", dep),
+                });
+            }
+            adj.get_mut(dep).unwrap().push(h.iri.clone());
+            *in_degree.get_mut(&h.iri).unwrap() += 1;
+        }
+    }
+
+    let mut zero_in_degree = Vec::new();
+    for (iri, &deg) in &in_degree {
+        if deg == 0 {
+            zero_in_degree.push(hook_map.get(iri).unwrap().clone());
+        }
+    }
+
+    let mut scheduled = Vec::new();
+    while !zero_in_degree.is_empty() {
+        zero_in_degree.sort_unstable_by(|a, b| {
+            (a.priority, a.iri.as_str()).cmp(&(b.priority, b.iri.as_str()))
+        });
+        let next = zero_in_degree.remove(0);
+        scheduled.push(next.clone());
+
+        for neighbor_iri in adj.get(&next.iri).unwrap() {
+            let deg = in_degree.get_mut(neighbor_iri).unwrap();
+            *deg -= 1;
+            if *deg == 0 {
+                zero_in_degree.push(hook_map.get(neighbor_iri).unwrap().clone());
+            }
+        }
+    }
+
+    if scheduled.len() < hooks.len() {
+        return Err(Refusal::HookIllFormed {
+            subject: "(registry)".to_string(),
+            detail: "dependency cycle detected in hooks".to_string(),
+        });
+    }
+
+    Ok(scheduled)
+}
+
+struct SimplePackMeta {
+    name: String,
+    version: String,
+    description: String,
+    required_dialects: Vec<String>,
+}
+
+fn parse_simple_toml(content: &str) -> Result<SimplePackMeta, Refusal> {
+    let mut name = None;
+    let mut version = None;
+    let mut description = None;
+    let mut required_dialects = Vec::new();
+    let mut in_pack_section = false;
+
+    for (line_idx, line) in content.lines().enumerate() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if line.starts_with('[') && line.ends_with(']') {
+            let section = &line[1..line.len() - 1].trim();
+            if *section == "pack" {
+                in_pack_section = true;
+            } else {
+                return Err(Refusal::InvalidInput {
+                    detail: format!("unknown TOML section: {}", section),
+                });
+            }
+            continue;
+        }
+        if !in_pack_section {
+            continue;
+        }
+        let Some((key, val)) = line.split_once('=') else {
+            return Err(Refusal::InvalidInput {
+                detail: format!("invalid TOML line {}: {}", line_idx + 1, line),
+            });
+        };
+        let key = key.trim();
+        let val = val.trim();
+        match key {
+            "name" => {
+                name = Some(strip_quotes(val)?);
+            }
+            "version" => {
+                version = Some(strip_quotes(val)?);
+            }
+            "description" => {
+                description = Some(strip_quotes(val)?);
+            }
+            "required_dialects" => {
+                required_dialects = parse_toml_array(val)?;
+            }
+            other => {
+                return Err(Refusal::InvalidInput {
+                    detail: format!("unknown TOML key: {}", other),
+                });
+            }
+        }
+    }
+
+    let name = name.ok_or_else(|| Refusal::InvalidInput {
+        detail: "missing hook pack name".to_string(),
+    })?;
+    let version = version.ok_or_else(|| Refusal::InvalidInput {
+        detail: "missing hook pack version".to_string(),
+    })?;
+    let description = description.ok_or_else(|| Refusal::InvalidInput {
+        detail: "missing hook pack description".to_string(),
+    })?;
+
+    Ok(SimplePackMeta {
+        name,
+        version,
+        description,
+        required_dialects,
+    })
+}
+
+fn strip_quotes(s: &str) -> Result<String, Refusal> {
+    if (s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')) {
+        Ok(s[1..s.len() - 1].to_string())
+    } else {
+        Err(Refusal::InvalidInput {
+            detail: format!("expected quoted string literal, got: {}", s),
+        })
+    }
+}
+
+fn parse_toml_array(s: &str) -> Result<Vec<String>, Refusal> {
+    if !s.starts_with('[') || !s.ends_with(']') {
+        return Err(Refusal::InvalidInput {
+            detail: format!("expected TOML array, got: {}", s),
+        });
+    }
+    let inner = &s[1..s.len() - 1];
+    let mut out = Vec::new();
+    for item in inner.split(',') {
+        let item = item.trim();
+        if item.is_empty() {
+            continue;
+        }
+        out.push(strip_quotes(item)?);
+    }
+    Ok(out)
+}
+
+/// Loads and validates a hook pack from the specified directory, checking metadata,
+/// dialects, forbidden actions, duplicate hooks, and scheduling constraints.
+pub fn load_hook_pack(pack_dir: &std::path::Path) -> Result<HookPack, Refusal> {
+    let toml_path = pack_dir.join("pack.toml");
+    let toml_content = std::fs::read_to_string(&toml_path).map_err(|e| Refusal::InvalidInput {
+        detail: format!("pack.toml missing or unreadable: {e}"),
+    })?;
+    let meta = parse_simple_toml(&toml_content)?;
+
+    for dialect in &meta.required_dialects {
+        if ![
+            "datalog",
+            "delta",
+            "threshold",
+            "count",
+            "window",
+            "shacl",
+            "shex",
+            "n3",
+        ]
+        .contains(&dialect.as_str())
+        {
+            return Err(Refusal::ConditionUnsupported {
+                kind: dialect.clone(),
+                subject: "(pack)".to_string(),
+                supported_analog: "datalog, delta, threshold, count, window, shacl, shex, n3"
+                    .to_string(),
+            });
+        }
+    }
+
+    let ttl_path = pack_dir.join("ontology.ttl");
+    let ttl_content = std::fs::read_to_string(&ttl_path).map_err(|e| Refusal::InvalidInput {
+        detail: format!("ontology.ttl missing or unreadable: {e}"),
+    })?;
+    let triples = crate::graph::parse_ttl(&ttl_content)?;
+
+    let wf_handler_iri = format!("{}handler", crate::graph::WF_NS);
+    for t in &triples {
+        if t.p == wf_handler_iri {
+            if let Object::Iri(handler_iri) = &t.o {
+                let allowed = format!("{}deterministic-v1", crate::handlers::HANDLER_NS);
+                if handler_iri != &allowed {
+                    return Err(Refusal::HookIllFormed {
+                        subject: t.s.clone(),
+                        detail: format!("forbidden handler IRI: {}", handler_iri),
+                    });
+                }
+            }
+        }
+        let check_for_forbidden = |text: &str| -> bool {
+            let text = text.to_lowercase();
+            let suspicious = ["shell", "exec", "network", "curl", "socket", "fetch"];
+            suspicious.iter().any(|&keyword| {
+                text.contains(keyword)
+                    && !text.starts_with("http://seanchatmangpt.github.io/praxis/")
+                    && !text.starts_with("http://www.w3.org/")
+            })
+        };
+        if check_for_forbidden(&t.s) || check_for_forbidden(&t.p) {
+            return Err(Refusal::HookIllFormed {
+                subject: t.s.clone(),
+                detail: format!("forbidden keyword in triple: {} {}", t.s, t.p),
+            });
+        }
+        match &t.o {
+            Object::Iri(iri) if check_for_forbidden(iri) => {
+                return Err(Refusal::HookIllFormed {
+                    subject: t.s.clone(),
+                    detail: format!("forbidden keyword in object IRI: {}", iri),
+                });
+            }
+            Object::Str(s) if check_for_forbidden(s) => {
+                return Err(Refusal::HookIllFormed {
+                    subject: t.s.clone(),
+                    detail: format!("forbidden keyword in string literal: {}", s),
+                });
+            }
+            _ => {}
+        }
+    }
+
+    let hooks = extract_hooks(&triples)?;
+
+    let mut iris = std::collections::BTreeSet::new();
+    for hook in &hooks {
+        if !iris.insert(hook.iri.clone()) {
+            return Err(Refusal::HookIllFormed {
+                subject: hook.iri.clone(),
+                detail: format!("duplicate hook IRI '{}'", hook.iri),
+            });
+        }
+    }
+
+    let scheduled_hooks = schedule_hooks(hooks)?;
+
+    Ok(HookPack {
+        name: meta.name,
+        version: meta.version,
+        description: meta.description,
+        required_dialects: meta.required_dialects,
+        hooks: scheduled_hooks,
+    })
 }

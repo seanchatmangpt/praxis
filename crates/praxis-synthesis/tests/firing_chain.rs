@@ -3,8 +3,8 @@
 
 use praxis_synthesis::handlers::HANDLER_NS;
 use praxis_synthesis::{
-    fire_hooks, replay_firing, FiringOutcome, HandlerRegistry, MeaningSource, Origin, Reference,
-    Refusal,
+    fire_hooks, idempotency_key, replay_firing, FiringOutcome, HandlerRegistry, MeaningSource,
+    Origin, Reference, Refusal,
 };
 
 const KERNEL: &str = include_str!("../ontology/lord_prayer.ttl");
@@ -49,6 +49,33 @@ fn completed_firing_chains_and_replays() {
     assert_eq!(receipt.verdicts.len(), 11, "all eleven hooks receipted");
 
     replay_firing(&receipt, &base, &source, &registry, &[]).expect("replays");
+
+    // Test FR13: Stable, replayable receipt generation
+    let receipt2 = fire_hooks(&reference, &source, &registry, &[]).expect("fires");
+    assert_eq!(
+        serde_json::to_string(&receipt).unwrap(),
+        serde_json::to_string(&receipt2).unwrap(),
+        "Identical input contexts must yield byte-identical receipts (FR13)"
+    );
+
+    // Test FR11: Idempotency key generation linked to receipt hash
+    let key = receipt.idempotency_key();
+    let key2 = receipt2.idempotency_key();
+    assert_eq!(key, key2, "Idempotency keys must be stable");
+    assert_eq!(
+        key,
+        idempotency_key(&receipt.chain),
+        "Idempotency key must link to receipt hash (FR11)"
+    );
+
+    let source_diff = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 2 ."));
+    let receipt_diff = fire_hooks(&reference, &source_diff, &registry, &[]).expect("fires");
+    assert_ne!(receipt.chain, receipt_diff.chain);
+    assert_ne!(
+        key,
+        receipt_diff.idempotency_key(),
+        "Different input context must yield different idempotency key"
+    );
 }
 
 #[test]
