@@ -180,7 +180,7 @@ impl Reasoner {
         rules: &Vec<Rule>,
         strata: &Vec<usize>,
         aggregates: &std::collections::HashMap<Rule, crate::triples::Aggregate>,
-        hooks: &Vec<crate::hooks::KnowledgeHook>,
+        hooks: &Vec<crate::hooks::CompiledHook>,
         receipts: &mut Vec<crate::hooks::HookReceipt>,
         verdicts: &mut Vec<crate::hooks::HookVerdictRecord>,
     ) -> Result<Vec<Triple>, String> {
@@ -455,6 +455,7 @@ impl Reasoner {
                     };
                     if gated {
                         verdicts.push(crate::hooks::HookVerdictRecord {
+                            hook_id: hook.id,
                             hook_iri: hook.iri.clone(),
                             hook_name: hook.name.clone(),
                             condition_kind: hook.condition.kind().to_string(),
@@ -603,6 +604,7 @@ impl Reasoner {
 
                     if !fired {
                         verdicts.push(crate::hooks::HookVerdictRecord {
+                            hook_id: hook.id,
                             hook_iri: hook.iri.clone(),
                             hook_name: hook.name.clone(),
                             condition_kind: hook.condition.kind().to_string(),
@@ -638,6 +640,7 @@ impl Reasoner {
                                 }],
                             };
                             verdicts.push(crate::hooks::HookVerdictRecord {
+                                hook_id: hook.id,
                                 hook_iri: hook.iri.clone(),
                                 hook_name: hook.name.clone(),
                                 condition_kind: hook.condition.kind().to_string(),
@@ -728,6 +731,7 @@ impl Reasoner {
                             }
 
                             verdicts.push(crate::hooks::HookVerdictRecord {
+                                hook_id: hook.id,
                                 hook_iri: hook.iri.clone(),
                                 hook_name: hook.name.clone(),
                                 condition_kind: hook.condition.kind().to_string(),

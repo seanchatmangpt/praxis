@@ -181,7 +181,9 @@ impl TripleStore {
         if let Ok(computed_strata) = datalog::validate_rules(&rules, &aggregates) {
             strata = computed_strata;
         }
-        let hooks = hooks::validate_and_extract_hooks(&triple_index.triples).unwrap_or_default();
+        let hooks = hooks::validate_and_extract_hooks(&triple_index.triples)
+            .and_then(|extracted| hooks::compile_hooks(extracted))
+            .unwrap_or_default();
         TripleStore {
             rules,
             rules_index,
@@ -359,7 +361,9 @@ impl TripleStore {
                 triples.into_iter().for_each(|t| self.triple_index.add(t));
                 if let Ok(extracted) = hooks::validate_and_extract_hooks(&self.triple_index.triples)
                 {
-                    self.hooks = extracted;
+                    if let Ok(compiled) = hooks::compile_hooks(extracted) {
+                        self.hooks = compiled;
+                    }
                 }
                 Ok(())
             }

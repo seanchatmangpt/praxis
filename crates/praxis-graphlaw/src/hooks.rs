@@ -320,11 +320,14 @@ pub fn compile_condition(condition: &HookCondition) -> CompiledCondition {
             target_iri: "http://example.org/target".to_string(),
             shape_iri: shapes.clone(),
         },
-        HookCondition::Shex { schema, shape_map } => CompiledCondition::Unsupported {
-            reason: "ShEx conditions require external shape evaluation boundary",
+        HookCondition::Shex {
+            schema: _,
+            shape_map: _,
+        } => CompiledCondition::Unsupported {
+            reason: "ShEx conditions require external shape evaluation boundary".to_string(),
         },
-        HookCondition::Sparql { query } => CompiledCondition::Unsupported {
-            reason: "SPARQL conditions are evaluated via external endpoint",
+        HookCondition::Sparql { query: _ } => CompiledCondition::Unsupported {
+            reason: "SPARQL conditions are evaluated via external endpoint".to_string(),
         },
     }
 }
@@ -819,23 +822,18 @@ pub fn compile_hooks(hooks: Vec<KnowledgeHook>) -> Result<Vec<CompiledHook>, Str
     }
 
     // Determine EventId assignment strategy: all same 'on' value → shared EventId
-    let on_values: Vec<_> = hooks.iter().map(|h| h.on.as_str()).collect();
-    let all_same_on = on_values.iter().all(|&v| v == on_values[0]);
+    let all_same_on = !hooks.is_empty() && hooks.iter().all(|h| h.on == hooks[0].on);
 
-    let mut next_event_id = 0u32;
     let mut on_to_event_id = FxHashMap::default();
+    let mut next_event_id = 0u32;
 
-    // Assign EventIds
+    // Pre-assign all EventIds before moving hooks
     for hook in &hooks {
         if all_same_on {
-            if !on_to_event_id.contains_key(hook.on.as_str()) {
-                on_to_event_id.insert(hook.on.as_str(), EventId(0));
-            }
-        } else {
-            if !on_to_event_id.contains_key(hook.on.as_str()) {
-                on_to_event_id.insert(hook.on.as_str(), EventId(next_event_id));
-                next_event_id += 1;
-            }
+            on_to_event_id.insert(hook.on.clone(), EventId(0));
+        } else if !on_to_event_id.contains_key(&hook.on) {
+            on_to_event_id.insert(hook.on.clone(), EventId(next_event_id));
+            next_event_id += 1;
         }
     }
 
@@ -857,7 +855,7 @@ pub fn compile_hooks(hooks: Vec<KnowledgeHook>) -> Result<Vec<CompiledHook>, Str
         }
 
         let event_id = on_to_event_id
-            .get(hook.on.as_str())
+            .get(&hook.on)
             .copied()
             .ok_or_else(|| format!("missing EventId for on value '{}'", hook.on))?;
 

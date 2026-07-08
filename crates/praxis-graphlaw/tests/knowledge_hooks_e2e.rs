@@ -1,5 +1,5 @@
-use praxis_graphlaw::TripleStore;
 use praxis_graphlaw::parser::Syntax;
+use praxis_graphlaw::TripleStore;
 
 // Expected public HookReceipt structure defined as requested
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,7 +16,10 @@ fn assert_contains_triple(store: &TripleStore, s: &str, p: &str, o: &str) {
     assert!(
         content.contains(s) && content.contains(p) && content.contains(o),
         "Expected triple <{} {} {}> not found in store content:\n{}",
-        s, p, o, content
+        s,
+        p,
+        o,
+        content
     );
 }
 
@@ -81,7 +84,11 @@ fn test_f1_load_valid_multiple() {
             kh:priority 2 .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_ok(), "Failed to load multiple valid hooks: {:?}", res);
+    assert!(
+        res.is_ok(),
+        "Failed to load multiple valid hooks: {:?}",
+        res
+    );
 }
 
 /// Covers F1: Verifies namespace/prefix resolution within the hook pack parser.
@@ -132,7 +139,7 @@ fn test_f1_query_registered_hooks() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    
+
     // Querying the hook registration in the store's facts
     let query_str = "SELECT ?name WHERE { ?h a <http://seanchatmangpt.github.io/praxis/kh#Hook> ; <http://seanchatmangpt.github.io/praxis/kh#name> ?name }";
     let rows = store.query(query_str).unwrap();
@@ -161,7 +168,10 @@ fn test_f2_refuse_command() {
             kh:handler <http://seanchatmangpt.github.io/praxis/handler#command-exec> .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_err(), "Hook with forbidden command handler should be refused");
+    assert!(
+        res.is_err(),
+        "Hook with forbidden command handler should be refused"
+    );
     let err = res.unwrap_err();
     assert!(err.contains("forbidden") || err.contains("SHACL") || err.contains("validation"));
 }
@@ -207,7 +217,10 @@ fn test_f2_refuse_unrecognized_action() {
             kh:handler <http://example.org/handler#unknown-handler> .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_err(), "Hook with unrecognized action should be refused");
+    assert!(
+        res.is_err(),
+        "Hook with unrecognized action should be refused"
+    );
 }
 
 /// Covers F2: Verifies that hook packs violating the SHACL Law Pack schema fail gating.
@@ -225,17 +238,20 @@ fn test_f2_gating_malformed_shacl() {
             kh:effect "emit-delta" .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_err(), "Malformed hook missing mandatory field should fail SHACL gating");
+    assert!(
+        res.is_err(),
+        "Malformed hook missing mandatory field should fail SHACL gating"
+    );
 }
 
 /// Covers F2: Verifies that when a hook pack is refused, the store is rolled back and no triples remain.
 #[test]
 fn test_f2_gating_rollback_state() {
     let mut store = TripleStore::new();
-    
+
     // Record initial length
     let initial_len = store.len();
-    
+
     let hook_pack = r#"
         @prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
         @prefix ex: <http://example.org/> .
@@ -253,7 +269,7 @@ fn test_f2_gating_rollback_state() {
     "#;
     let res = store.load_hook_pack(hook_pack);
     assert!(res.is_err());
-    
+
     // Assert that no new triples were registered in the store (full transaction rollback)
     assert_eq!(store.len(), initial_len);
 }
@@ -275,16 +291,24 @@ fn test_f3_sparql_ask_trigger() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    
+
     // Assert status critical fact
-    store.load_triples("ex:Server1 <http://example.org/status> 'critical' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Server1 <http://example.org/status> 'critical' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     // Running materialize should fire the SPARQL ASK hook
     let _inferred = store.materialize();
-    
+
     // Verify receipt was generated
     let receipts = store.get_hook_receipts();
-    assert!(!receipts.is_empty(), "SPARQL ASK trigger should have generated a receipt");
+    assert!(
+        !receipts.is_empty(),
+        "SPARQL ASK trigger should have generated a receipt"
+    );
     assert_eq!(receipts[0].hook_name, "ask_hook");
 }
 
@@ -303,11 +327,19 @@ fn test_f3_sparql_select_trigger() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Sensor1 <http://example.org/value> 150 .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Sensor1 <http://example.org/value> 150 .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     let _inferred = store.materialize();
     let receipts = store.get_hook_receipts();
-    assert!(!receipts.is_empty(), "SPARQL SELECT trigger should have generated a receipt");
+    assert!(
+        !receipts.is_empty(),
+        "SPARQL SELECT trigger should have generated a receipt"
+    );
     assert_eq!(receipts[0].hook_name, "select_hook");
 }
 
@@ -328,14 +360,21 @@ fn test_f3_count_trigger() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    
+
     // Add 2 items (below limit of 3)
-    store.load_triples("ex:Order <http://example.org/item> ex:A , ex:B .", Syntax::Turtle).unwrap();
+    store
+        .load_triples(
+            "ex:Order <http://example.org/item> ex:A , ex:B .",
+            Syntax::Turtle,
+        )
+        .unwrap();
     store.materialize();
     assert!(store.get_hook_receipts().is_empty());
-    
+
     // Add 3rd item
-    store.load_triples("ex:Order <http://example.org/item> ex:C .", Syntax::Turtle).unwrap();
+    store
+        .load_triples("ex:Order <http://example.org/item> ex:C .", Syntax::Turtle)
+        .unwrap();
     store.materialize();
     assert!(!store.get_hook_receipts().is_empty());
 }
@@ -357,14 +396,24 @@ fn test_f3_threshold_trigger() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    
+
     // Temperature at 98 (does not fire)
-    store.load_triples("ex:Room <http://example.org/temperature> 98 .", Syntax::Turtle).unwrap();
+    store
+        .load_triples(
+            "ex:Room <http://example.org/temperature> 98 .",
+            Syntax::Turtle,
+        )
+        .unwrap();
     store.materialize();
     assert!(store.get_hook_receipts().is_empty());
-    
+
     // Temperature at 100 (fires)
-    store.load_triples("ex:Room <http://example.org/temperature> 100 .", Syntax::Turtle).unwrap();
+    store
+        .load_triples(
+            "ex:Room <http://example.org/temperature> 100 .",
+            Syntax::Turtle,
+        )
+        .unwrap();
     store.materialize();
     assert!(!store.get_hook_receipts().is_empty());
 }
@@ -385,8 +434,13 @@ fn test_f3_delta_trigger() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    
-    store.load_triples("ex:A <http://example.org/status> 'active' .", Syntax::Turtle).unwrap();
+
+    store
+        .load_triples(
+            "ex:A <http://example.org/status> 'active' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
     store.materialize();
     assert!(!store.get_hook_receipts().is_empty());
 }
@@ -407,7 +461,11 @@ fn test_f3_datalog_trigger_format() {
             kh:effect "emit-delta" .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_ok(), "Failed to load Datalog trigger format: {:?}", res);
+    assert!(
+        res.is_ok(),
+        "Failed to load Datalog trigger format: {:?}",
+        res
+    );
 }
 
 // --- F4: Pure Action Projections ---
@@ -416,7 +474,7 @@ fn test_f3_datalog_trigger_format() {
 #[test]
 fn test_f4_project_add_quad() {
     let mut store = TripleStore::new();
-    
+
     // Register hook that adds a VIP status triple when someone has spent > 1000
     let hook_pack = r#"
         @prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
@@ -434,10 +492,12 @@ fn test_f4_project_add_quad() {
             kh:query "CONSTRUCT { ?cust <http://example.org/status> 'VIP' } WHERE { ?cust <http://example.org/spent> ?amount . FILTER(?amount > 1000) }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Alice <http://example.org/spent> 1500 .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Alice <http://example.org/spent> 1500 .", Syntax::Turtle)
+        .unwrap();
+
     store.materialize();
-    
+
     // Verify pure projection applied the VIP status
     assert_contains_triple(&store, "Alice", "status", "VIP");
 }
@@ -446,7 +506,7 @@ fn test_f4_project_add_quad() {
 #[test]
 fn test_f4_project_delete_quad() {
     let mut store = TripleStore::new();
-    
+
     // Register hook that deletes standard status when someone becomes VIP
     let hook_pack = r#"
         @prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
@@ -466,8 +526,13 @@ fn test_f4_project_delete_quad() {
     // Wait, construct with deletion usually projects deletion quads. In graphlaw,
     // this can be mapped to kh:deleteQuad predicate.
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Alice <http://example.org/status> 'Standard' , 'VIP' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Alice <http://example.org/status> 'Standard' , 'VIP' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
     // Assuming standard status is removed by the hook
     assert_not_contains_triple(&store, "Alice", "status", "Standard");
@@ -493,10 +558,15 @@ fn test_f4_project_add_and_delete() {
             kh:query "CONSTRUCT { ?cust <http://example.org/has> 'new_val' . } WHERE { ?cust <http://example.org/has> 'old_val' }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Alice <http://example.org/has> 'old_val' ; <http://example.org/trigger> 'go' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Alice <http://example.org/has> 'old_val' ; <http://example.org/trigger> 'go' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
-    
+
     assert_contains_triple(&store, "Alice", "has", "new_val");
 }
 
@@ -519,7 +589,10 @@ fn test_f4_refuse_side_effects() {
             kh:handler <http://seanchatmangpt.github.io/praxis/handler#fetch-url> .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_err(), "Hook projecting side-effects should fail constitutional gating");
+    assert!(
+        res.is_err(),
+        "Hook projecting side-effects should fail constitutional gating"
+    );
 }
 
 /// Covers F4: Verifies that projected quads are applied to the correct named graph.
@@ -542,10 +615,12 @@ fn test_f4_project_apply_to_graph() {
             kh:query "CONSTRUCT { GRAPH <http://example.org/VIPGraph> { ?cust a <http://example.org/VIPMember> } } WHERE { ?cust <http://example.org/flag> 'vip' }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Alice <http://example.org/flag> 'vip' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Alice <http://example.org/flag> 'vip' .", Syntax::Turtle)
+        .unwrap();
+
     store.materialize();
-    
+
     // Assert target named graph contains the projected quad
     assert_contains_triple(&store, "Alice", "type", "VIPMember");
 }
@@ -567,14 +642,22 @@ fn test_f5_receipt_single_add() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Fact <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Fact <http://example.org/trigger> 'yes' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
-    
+
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
     assert_eq!(receipts[0].hook_name, "single_add_receipt");
-    assert!(!receipts[0].delta_hash.is_empty(), "Delta hash should be non-empty BLAKE3 hash");
+    assert!(
+        !receipts[0].delta_hash.is_empty(),
+        "Delta hash should be non-empty BLAKE3 hash"
+    );
 }
 
 /// Covers F5: Verifies sort determinism of canonical N-Quads before hashing.
@@ -582,7 +665,7 @@ fn test_f5_receipt_single_add() {
 fn test_f5_receipt_sort_determinism() {
     let mut store_a = TripleStore::new();
     let mut store_b = TripleStore::new();
-    
+
     let hook_pack = r#"
         @prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
         @prefix ex: <http://example.org/> .
@@ -593,22 +676,25 @@ fn test_f5_receipt_sort_determinism() {
             kh:var "http://example.org/trigger" ;
             kh:effect "emit-delta" .
     "#;
-    
+
     store_a.load_hook_pack(hook_pack).unwrap();
     store_b.load_hook_pack(hook_pack).unwrap();
-    
+
     // Add facts in order A, then B
     store_a.load_triples("ex:NodeA <http://example.org/trigger> 'yes' . ex:NodeB <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
     store_a.materialize();
-    
+
     // Add facts in order B, then A
     store_b.load_triples("ex:NodeB <http://example.org/trigger> 'yes' . ex:NodeA <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
     store_b.materialize();
-    
+
     let rec_a = store_a.get_hook_receipts();
     let rec_b = store_b.get_hook_receipts();
-    
-    assert_eq!(rec_a[0].delta_hash, rec_b[0].delta_hash, "Receipt hashes must be identical due to canonical sorting");
+
+    assert_eq!(
+        rec_a[0].delta_hash, rec_b[0].delta_hash,
+        "Receipt hashes must be identical due to canonical sorting"
+    );
 }
 
 /// Covers F5: Verifies receipt generation for quad deletions.
@@ -627,9 +713,14 @@ fn test_f5_receipt_deletion() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Fact <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
+    store
+        .load_triples(
+            "ex:Fact <http://example.org/trigger> 'yes' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
     store.materialize();
-    
+
     // Perform deletion
     store.remove_ref(&praxis_graphlaw::term::Triple {
         s: praxis_graphlaw::triples::VarOrTerm::new_term("http://example.org/Fact".to_string()),
@@ -637,11 +728,14 @@ fn test_f5_receipt_deletion() {
         o: praxis_graphlaw::triples::VarOrTerm::new_term("yes".to_string()),
         g: None,
     });
-    
+
     store.materialize();
-    
+
     let receipts = store.get_hook_receipts();
-    assert!(!receipts.is_empty(), "Deletion should trigger hook and produce a receipt");
+    assert!(
+        !receipts.is_empty(),
+        "Deletion should trigger hook and produce a receipt"
+    );
 }
 
 /// Covers F5: Verifies the public API `store.get_hook_receipts()`.
@@ -659,10 +753,12 @@ fn test_f5_get_hook_receipts_api() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Obj <http://example.org/data> 42 .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Obj <http://example.org/data> 42 .", Syntax::Turtle)
+        .unwrap();
+
     store.materialize();
-    
+
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
     assert_eq!(receipts[0].hook_name, "api_hook");
@@ -683,14 +779,16 @@ fn test_f5_receipt_format_validation() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Obj <http://example.org/input> 'test' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Obj <http://example.org/input> 'test' .", Syntax::Turtle)
+        .unwrap();
+
     store.materialize();
-    
+
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
     let receipt = &receipts[0];
-    
+
     assert_eq!(receipt.hook_name, "format_validation_hook");
     assert!(!receipt.delta_hash.is_empty());
     assert!(!receipt.idempotency_key.is_empty());
@@ -719,10 +817,12 @@ fn test_f6_single_pass_materialization() {
             kh:query "CONSTRUCT { ?s <http://example.org/derived> 'true' } WHERE { ?s <http://example.org/input> ?any }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Item1 <http://example.org/input> 1 .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Item1 <http://example.org/input> 1 .", Syntax::Turtle)
+        .unwrap();
+
     store.materialize();
-    
+
     assert_contains_triple(&store, "Item1", "derived", "true");
 }
 
@@ -760,10 +860,12 @@ fn test_f6_multi_pass_cascade() {
             kh:query "CONSTRUCT { ?s <http://example.org/output> 'cascade_done' } WHERE { ?s <http://example.org/mid> 'true' }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Item1 <http://example.org/input> 1 .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Item1 <http://example.org/input> 1 .", Syntax::Turtle)
+        .unwrap();
+
     store.materialize();
-    
+
     assert_contains_triple(&store, "Item1", "output", "cascade_done");
 }
 
@@ -787,8 +889,10 @@ fn test_f6_fixpoint_termination() {
             kh:query "CONSTRUCT { ?s <http://example.org/stable> 'yes' } WHERE { ?s <http://example.org/input> ?any }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Node <http://example.org/input> 1 .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Node <http://example.org/input> 1 .", Syntax::Turtle)
+        .unwrap();
+
     // If it terminates, this will complete quickly
     let inferred = store.materialize();
     assert!(!inferred.is_empty());
@@ -826,11 +930,16 @@ fn test_f6_refusal_rollback() {
             kh:after ex:hook_transient .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Node <http://example.org/input> 1 .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Node <http://example.org/input> 1 .", Syntax::Turtle)
+        .unwrap();
+
     // Materialization should trigger refusal, rolling back changes
     let inferred = store.materialize();
-    assert!(inferred.is_empty(), "Rollback should result in zero inferred facts");
+    assert!(
+        inferred.is_empty(),
+        "Rollback should result in zero inferred facts"
+    );
     assert_not_contains_triple(&store, "Node", "derived_transient", "true");
 }
 
@@ -854,11 +963,15 @@ fn test_f6_query_state_post_materialize() {
             kh:query "CONSTRUCT { ?s <http://example.org/val> 'derived' } WHERE { ?s <http://example.org/input> ?any }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Item <http://example.org/input> 1 .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Item <http://example.org/input> 1 .", Syntax::Turtle)
+        .unwrap();
+
     store.materialize();
-    
-    let rows = store.query("SELECT ?val WHERE { <http://example.org/Item> <http://example.org/val> ?val }").unwrap();
+
+    let rows = store
+        .query("SELECT ?val WHERE { <http://example.org/Item> <http://example.org/val> ?val }")
+        .unwrap();
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0][0].val, "\"derived\"");
 }
@@ -921,7 +1034,10 @@ fn test_b1_exceed_max_hooks() {
         ));
     }
     let res = store.load_hook_pack(&hook_pack);
-    assert!(res.is_err(), "Hook registry should reject packs with >12 hooks");
+    assert!(
+        res.is_err(),
+        "Hook registry should reject packs with >12 hooks"
+    );
 }
 
 /// Covers F1: Verifies hook pack parser handles odd but valid Turtle layout formatting (whitespace/newlines).
@@ -1004,7 +1120,10 @@ fn test_b2_hidden_side_effects() {
             kh:action <http://example.org/action#run_a_shell_script> .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_err(), "Obfuscated shell reference in Action handler should be refused");
+    assert!(
+        res.is_err(),
+        "Obfuscated shell reference in Action handler should be refused"
+    );
 }
 
 /// Covers F2: Verifies parsing and gating limits on extremely large hook pack inputs.
@@ -1023,11 +1142,16 @@ fn test_b2_huge_hook_packs() {
                 kh:effect "emit-delta" ;
                 kh:reason "{}" .
             "#,
-            i, i, "a".repeat(1000)
+            i,
+            i,
+            "a".repeat(1000)
         ));
     }
     let res = store.load_hook_pack(&hook_pack);
-    assert!(res.is_ok(), "Huge hook pack payloads within limits should succeed");
+    assert!(
+        res.is_ok(),
+        "Huge hook pack payloads within limits should succeed"
+    );
 }
 
 /// Covers F2: Verifies behavior when hook properties conflict under SHACL shape constraints.
@@ -1046,7 +1170,10 @@ fn test_b2_conflicting_shacl_constraints() {
             kh:effect "refuse" . # Duplicate kh:effect violates maxCount 1
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_err(), "Conflicting properties violating maxCount must be refused");
+    assert!(
+        res.is_err(),
+        "Conflicting properties violating maxCount must be refused"
+    );
 }
 
 /// Covers F2: Verifies registry state integrity under multiple sequential hook pack load operations.
@@ -1106,7 +1233,10 @@ fn test_b3_window_size_bounds() {
             kh:effect "emit-delta" .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_ok(), "Window size 0 boundary should be valid or handled cleanly");
+    assert!(
+        res.is_ok(),
+        "Window size 0 boundary should be valid or handled cleanly"
+    );
 }
 
 /// Covers F3: Verifies extreme threshold boundary values (k = 0 or k = Max Integer).
@@ -1167,7 +1297,10 @@ fn test_b3_sparql_syntax_error() {
             kh:effect "emit-delta" .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_err(), "Invalid SPARQL syntax must reject hook pack loading");
+    assert!(
+        res.is_err(),
+        "Invalid SPARQL syntax must reject hook pack loading"
+    );
 }
 
 // --- F4 Boundaries ---
@@ -1192,10 +1325,15 @@ fn test_b4_construct_empty_result() {
             kh:query "CONSTRUCT { ?s <http://example.org/status> 'none' } WHERE { ?s <http://example.org/nonexistent> ?o }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Node <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Node <http://example.org/trigger> 'yes' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
-    
+
     // No new triples should be created
     assert_not_contains_triple(&store, "Node", "status", "none");
 }
@@ -1220,7 +1358,10 @@ fn test_b4_construct_literal_subject() {
             kh:query "CONSTRUCT { 'subject' <http://example.org/p> ?o } WHERE { ?s <http://example.org/trigger> ?o }" .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_err() || store.materialize().is_empty(), "Should reject invalid RDF generation");
+    assert!(
+        res.is_err() || store.materialize().is_empty(),
+        "Should reject invalid RDF generation"
+    );
 }
 
 /// Covers F4: Verifies rejection/handling of unsupported clauses in SPARQL CONSTRUCT queries.
@@ -1267,8 +1408,13 @@ fn test_b4_construct_no_op_addition() {
             kh:query "CONSTRUCT { ?s <http://example.org/trigger> 'yes' } WHERE { ?s <http://example.org/trigger> 'yes' }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Node <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Node <http://example.org/trigger> 'yes' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     let before_len = store.len();
     store.materialize();
     assert_eq!(store.len(), before_len);
@@ -1295,7 +1441,10 @@ fn test_b4_construct_modify_registry() {
             kh:query "CONSTRUCT { ex:injected a kh:Hook ; kh:name 'injected' ; kh:effect 'ground-action' } WHERE { ?s <http://example.org/trigger> ?o }" .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_err(), "Hook attempting to modify system/registry namespace must be blocked");
+    assert!(
+        res.is_err(),
+        "Hook attempting to modify system/registry namespace must be blocked"
+    );
 }
 
 // --- F5 Boundaries ---
@@ -1315,10 +1464,15 @@ fn test_b5_receipt_blank_nodes() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Node <http://example.org/trigger> _:blank .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Node <http://example.org/trigger> _:blank .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
-    
+
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
     assert!(!receipts[0].delta_hash.is_empty());
@@ -1339,10 +1493,15 @@ fn test_b5_receipt_unicode_literals() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Node <http://example.org/trigger> 'こんにちは' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Node <http://example.org/trigger> 'こんにちは' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
-    
+
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
     assert!(receipts[0].delta_quads.contains("こんにちは"));
@@ -1364,10 +1523,15 @@ fn test_b5_receipt_huge_literals() {
     "#;
     store.load_hook_pack(hook_pack).unwrap();
     let huge_str = "a".repeat(10000);
-    store.load_triples(&format!("ex:Node <http://example.org/trigger> '{}' .", huge_str), Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            &format!("ex:Node <http://example.org/trigger> '{}' .", huge_str),
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
-    
+
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
 }
@@ -1377,7 +1541,7 @@ fn test_b5_receipt_huge_literals() {
 fn test_b5_stable_hash_datatypes_lang() {
     let mut store_a = TripleStore::new();
     let mut store_b = TripleStore::new();
-    
+
     let hook_pack = r#"
         @prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
         @prefix ex: <http://example.org/> .
@@ -1388,21 +1552,31 @@ fn test_b5_stable_hash_datatypes_lang() {
             kh:var "http://example.org/trigger" ;
             kh:effect "emit-delta" .
     "#;
-    
+
     store_a.load_hook_pack(hook_pack).unwrap();
     store_b.load_hook_pack(hook_pack).unwrap();
-    
+
     // Store A gets integer literal, Store B gets string representation
-    store_a.load_triples("ex:Node <http://example.org/trigger> 42 .", Syntax::Turtle).unwrap();
-    store_b.load_triples("ex:Node <http://example.org/trigger> '42' .", Syntax::Turtle).unwrap();
-    
+    store_a
+        .load_triples("ex:Node <http://example.org/trigger> 42 .", Syntax::Turtle)
+        .unwrap();
+    store_b
+        .load_triples(
+            "ex:Node <http://example.org/trigger> '42' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store_a.materialize();
     store_b.materialize();
-    
+
     let rec_a = store_a.get_hook_receipts();
     let rec_b = store_b.get_hook_receipts();
-    
-    assert_ne!(rec_a[0].delta_hash, rec_b[0].delta_hash, "Hashes of different RDF datatypes must be distinct");
+
+    assert_ne!(
+        rec_a[0].delta_hash, rec_b[0].delta_hash,
+        "Hashes of different RDF datatypes must be distinct"
+    );
 }
 
 /// Covers F5: Verifies receipt generation containing both quad additions and deletions.
@@ -1426,10 +1600,15 @@ fn test_b5_hash_both_add_and_delete() {
             kh:query "CONSTRUCT { ?cust <http://example.org/status> 'VIP' } WHERE { ?cust <http://example.org/spent> ?amount . FILTER(?amount > 1000) }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Alice <http://example.org/spent> 1500 ; <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Alice <http://example.org/spent> 1500 ; <http://example.org/trigger> 'yes' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
-    
+
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
 }
@@ -1469,8 +1648,10 @@ fn test_b6_infinite_loop_detection() {
             kh:query "CONSTRUCT { ?s <http://example.org/p_b> 'triggered' } WHERE { ?s <http://example.org/p_a> ?any }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Node <http://example.org/p_a> 'start' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Node <http://example.org/p_a> 'start' .", Syntax::Turtle)
+        .unwrap();
+
     // Materialization should terminate with limit or recursion depth error
     let inferred = store.materialize();
     // It should terminate safely without hanging
@@ -1500,7 +1681,10 @@ fn test_b6_circular_dependency() {
             kh:after ex:hook_a .
     "#;
     let res = store.load_hook_pack(hook_pack);
-    assert!(res.is_err(), "Circular static dependency should be rejected at load time");
+    assert!(
+        res.is_err(),
+        "Circular static dependency should be rejected at load time"
+    );
 }
 
 /// Covers F6: Verifies deep reasoning chain rollback integrity on a late gating refusal.
@@ -1546,8 +1730,10 @@ fn test_b6_gating_refusal_deep_rollback() {
             kh:after ex:h2 .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Node <http://example.org/start> 'go' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Node <http://example.org/start> 'go' .", Syntax::Turtle)
+        .unwrap();
+
     let inferred = store.materialize();
     assert!(inferred.is_empty());
     // Ensure both step1 and step2 are completely rolled back
@@ -1571,7 +1757,10 @@ fn test_b6_empty_base_facts() {
     "#;
     store.load_hook_pack(hook_pack).unwrap();
     let inferred = store.materialize();
-    assert!(inferred.is_empty(), "No inferences should happen on empty store");
+    assert!(
+        inferred.is_empty(),
+        "No inferences should happen on empty store"
+    );
 }
 
 /// Covers F6: Verifies multi-strata rule evaluation with stratified datalog and hooks.
@@ -1596,10 +1785,15 @@ fn test_b6_multi_strata_evaluation() {
     store.load_hook_pack(hook_pack).unwrap();
     // Add Datalog rule to stratum 2: { ?x :stratum1 'done' } => { ?x :stratum2 'complete' }
     store.load_rules("{ ?x <http://example.org/stratum1> 'done' } => { ?x <http://example.org/stratum2> 'complete' } .").unwrap();
-    store.load_triples("ex:Node <http://example.org/input> 'start' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Node <http://example.org/input> 'start' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
-    
+
     assert_contains_triple(&store, "Node", "stratum2", "complete");
 }
 
@@ -1642,10 +1836,12 @@ fn test_c3_datalog_construct_delta_cascade() {
             kh:query "CONSTRUCT { ?s <http://example.org/access> 'granted' } WHERE { ?s <http://example.org/vip_status> 'vip' }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Alice <http://example.org/spent> 1200 .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples("ex:Alice <http://example.org/spent> 1200 .", Syntax::Turtle)
+        .unwrap();
+
     store.materialize();
-    
+
     assert_contains_triple(&store, "Alice", "access", "granted");
 }
 
@@ -1670,14 +1866,19 @@ fn test_c3_gating_construct_blake3_fixpoint() {
     "#;
     // 1. Constitutional gating verified at load time
     store.load_hook_pack(hook_pack).unwrap();
-    
+
     // 2. Fixpoint loops execution
-    store.load_triples("ex:Node <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
+    store
+        .load_triples(
+            "ex:Node <http://example.org/trigger> 'yes' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
     store.materialize();
-    
+
     // 3. CONSTRUCT projection applied
     assert_contains_triple(&store, "Node", "output", "yes");
-    
+
     // 4. BLAKE3 Receipts validation
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
@@ -1718,16 +1919,18 @@ fn test_c3_threshold_count_window_concurrency() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    
+
     // Load triples that fire count & threshold hooks
-    store.load_triples(
-        "ex:Obj <http://example.org/val> 150 .
+    store
+        .load_triples(
+            "ex:Obj <http://example.org/val> 150 .
          ex:Obj <http://example.org/item> 1 , 2 , 3 .",
-        Syntax::Turtle
-    ).unwrap();
-    
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
-    
+
     let receipts = store.get_hook_receipts();
     assert!(receipts.len() >= 2);
 }
@@ -1770,13 +1973,21 @@ fn test_c3_construct_empty_no_receipt() {
             kh:query "CONSTRUCT { ?s <http://example.org/out> 'yes' } WHERE { ?s <http://example.org/nonexistent> 'yes' }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.load_triples("ex:Node <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Node <http://example.org/trigger> 'yes' .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
-    
+
     // Verify no receipts generated since the CONSTRUCT yielded no changes
     let receipts = store.get_hook_receipts();
-    assert!(receipts.is_empty(), "Empty CONSTRUCT projection must not generate any receipts");
+    assert!(
+        receipts.is_empty(),
+        "Empty CONSTRUCT projection must not generate any receipts"
+    );
 }
 
 /// Covers F3 x F4 x F6: SPARQL ASK trigger constructs a deletion, leading to early termination of materialization.
@@ -1803,9 +2014,9 @@ fn test_c3_sparql_ask_construct_delete_early_termination() {
         "ex:Flow <http://example.org/active_flow> 'yes' ; <http://example.org/terminate> 'true' .",
         Syntax::Turtle
     ).unwrap();
-    
+
     store.materialize();
-    
+
     // The active flow triple should be deleted, stopping further cascade pass evaluations
     assert_not_contains_triple(&store, "Flow", "active_flow", "yes");
 }
@@ -1849,17 +2060,20 @@ fn test_s4_automated_quarantine_and_refusal() {
             kh:after ex:quarantine_hook .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    
+
     // Simulate user attempting to write to SystemGraph
     store.load_triples(
         "GRAPH <http://example.org/SystemGraph> { <http://example.org/User1> <http://example.org/change_pass> 'admin' } .",
         Syntax::NQuads
     ).unwrap();
-    
+
     let inferred = store.materialize();
-    
+
     // Transaction must roll back, ensuring no data remains in SystemGraph
-    assert!(inferred.is_empty(), "Unauthorized write should cause complete transaction rollback");
+    assert!(
+        inferred.is_empty(),
+        "Unauthorized write should cause complete transaction rollback"
+    );
     assert_not_contains_triple(&store, "User1", "change_pass", "admin");
 }
 
@@ -1883,30 +2097,39 @@ fn test_s4_ledger_balance_enforcement_and_audit() {
             kh:reason "Balance Violation: Account balance cannot drop below zero" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    
+
     // Attempt valid transaction: Starting balance 500, deduct 200
-    store.load_triples(
-        "ex:Account1 <http://example.org/balance> 500 .",
-        Syntax::Turtle
-    ).unwrap();
+    store
+        .load_triples(
+            "ex:Account1 <http://example.org/balance> 500 .",
+            Syntax::Turtle,
+        )
+        .unwrap();
     store.materialize();
-    
+
     // Perform deduction
-    store.load_triples(
-        "ex:Account1 <http://example.org/balance> 300 .", // New state
-        Syntax::Turtle
-    ).unwrap();
+    store
+        .load_triples(
+            "ex:Account1 <http://example.org/balance> 300 .", // New state
+            Syntax::Turtle,
+        )
+        .unwrap();
     let inferred = store.materialize();
     assert_contains_triple(&store, "Account1", "balance", "300");
-    
+
     // Attempt invalid transaction: Deduct 400 (balance goes to -100)
-    store.load_triples(
-        "ex:Account1 <http://example.org/balance> -100 .",
-        Syntax::Turtle
-    ).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Account1 <http://example.org/balance> -100 .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     let res = store.materialize();
-    assert!(res.is_empty(), "Negative balance transaction should be rolled back");
+    assert!(
+        res.is_empty(),
+        "Negative balance transaction should be rolled back"
+    );
 }
 
 /// Covers S3: State Machine Transition Control Scenario.
@@ -1928,15 +2151,18 @@ fn test_s4_state_machine_transition_control() {
             kh:reason "Lifecycle Violation: Cannot skip UnderReview state" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    
+
     // Invalid transition
     store.load_triples(
         "ex:Doc1 <http://example.org/old_state> 'Draft' ; <http://example.org/new_state> 'Approved' .",
         Syntax::Turtle
     ).unwrap();
-    
+
     let inferred = store.materialize();
-    assert!(inferred.is_empty(), "Invalid state transition must be rolled back");
+    assert!(
+        inferred.is_empty(),
+        "Invalid state transition must be rolled back"
+    );
 }
 
 /// Covers S4: Access Control Policy Engine Scenario.
@@ -1961,15 +2187,15 @@ fn test_s4_access_control_policy_engine() {
             kh:query "CONSTRUCT { ?user <http://example.org/permission> 'granted' } WHERE { ?user <http://example.org/request> ?act . ?user <http://example.org/role> 'Admin' }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    
+
     // Admin user requests action
     store.load_triples(
         "ex:User1 <http://example.org/role> 'Admin' ; <http://example.org/request> 'delete_db' .",
         Syntax::Turtle
     ).unwrap();
-    
+
     store.materialize();
-    
+
     assert_contains_triple(&store, "User1", "permission", "granted");
 }
 
@@ -1995,12 +2221,17 @@ fn test_s4_materialized_view_cache_maintenance() {
             kh:query "CONSTRUCT { GRAPH <http://example.org/CachedView> { ?emp <http://example.org/tax_bracket> 'high' } } WHERE { ?emp <http://example.org/salary> ?sal . FILTER(?sal > 150000) }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    
+
     // Add base employee data
-    store.load_triples("ex:Emp1 <http://example.org/salary> 180000 .", Syntax::Turtle).unwrap();
-    
+    store
+        .load_triples(
+            "ex:Emp1 <http://example.org/salary> 180000 .",
+            Syntax::Turtle,
+        )
+        .unwrap();
+
     store.materialize();
-    
+
     // Cache graph should contain the materialized view tax bracket classification
     assert_contains_triple(&store, "Emp1", "tax_bracket", "high");
 }

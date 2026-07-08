@@ -46,7 +46,8 @@ fn shacl_hierarchy_validate(max_depth: i32) {
     let shapes = ShapesGraph::parse(&shapes_str).unwrap();
     let mut data_str = "@prefix ex: <http://example.org/> .\n\
                         @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n\
-                        ex:focus a ex:U0 .\n".to_owned();
+                        ex:focus a ex:U0 .\n"
+        .to_owned();
     for i in 0..max_depth {
         data_str += format!("ex:U{} rdfs:subClassOf ex:U{} .\n", i, i + 1).as_str();
     }

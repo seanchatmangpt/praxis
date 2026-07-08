@@ -762,7 +762,12 @@ fn test_subclass_closure_cycles_and_multiple_inheritance() {
     let violations: Vec<_> = report
         .results
         .iter()
-        .filter(|r| r.value.as_ref().map(|v| v.to_string().contains("MyBox")).unwrap_or(false))
+        .filter(|r| {
+            r.value
+                .as_ref()
+                .map(|v| v.to_string().contains("MyBox"))
+                .unwrap_or(false)
+        })
         .collect();
     assert_eq!(violations.len(), 1);
 
@@ -770,15 +775,24 @@ fn test_subclass_closure_cycles_and_multiple_inheritance() {
     let apple_violations: Vec<_> = report
         .results
         .iter()
-        .filter(|r| r.value.as_ref().map(|v| v.to_string().contains("MyApple")).unwrap_or(false))
+        .filter(|r| {
+            r.value
+                .as_ref()
+                .map(|v| v.to_string().contains("MyApple"))
+                .unwrap_or(false)
+        })
         .collect();
     assert_eq!(apple_violations.len(), 0);
 
     let a_violations: Vec<_> = report
         .results
         .iter()
-        .filter(|r| r.value.as_ref().map(|v| v.to_string().contains("MyA")).unwrap_or(false))
+        .filter(|r| {
+            r.value
+                .as_ref()
+                .map(|v| v.to_string().contains("MyA"))
+                .unwrap_or(false)
+        })
         .collect();
     assert_eq!(a_violations.len(), 0);
 }
-

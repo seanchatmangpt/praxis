@@ -1018,13 +1018,14 @@ impl ClosureMatrix {
             for from in 0..num_nodes {
                 // Collect all current reachable nodes from `from` into a vec
                 // (can't borrow matrix while modifying it)
-                let reachable: Vec<usize> = self.matrix[from].iter().collect();
+                let reachable: Vec<usize> = self.matrix[from].ones().collect();
                 for via in reachable {
                     if via < num_nodes {
                         // Union self.matrix[via] into self.matrix[from]
                         let via_reachable = self.matrix[via].clone();
-                        for target in via_reachable.iter() {
-                            if self.matrix[from].insert(target) {
+                        for target in via_reachable.ones() {
+                            if !self.matrix[from].contains(target) {
+                                self.matrix[from].insert(target);
                                 changed = true;
                             }
                         }
@@ -1040,7 +1041,7 @@ impl ClosureMatrix {
     pub fn render_canonical(&self) -> Vec<(u32, u32)> {
         let mut edges = Vec::new();
         for (from_id, bitset) in self.matrix.iter().enumerate() {
-            for to_id in bitset.iter() {
+            for to_id in bitset.ones() {
                 edges.push((from_id as u32, to_id as u32));
             }
         }
@@ -3105,106 +3106,3 @@ mod tests {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_cost_class_ordering() {
-        // Verify that CostClass enum has correct ordering
-        assert!(CostClass::Cardinality < CostClass::NodeKind);
-        assert!(CostClass::NodeKind < CostClass::Datatype);
-        assert!(CostClass::Datatype < CostClass::Class);
-        assert!(CostClass::Class < CostClass::Path);
-        assert!(CostClass::Path < CostClass::Regex);
-        assert!(CostClass::Regex < CostClass::Recursive);
-    }
-
-    #[test]
-    fn test_shacl_sparql_boundary() {
-        // Test that SHACL-SPARQL boundary is set to CORE_ONLY
-        assert_eq!(SHACL_SPARQL_BOUNDARY, "CORE_ONLY");
-    }
-
-    #[test]
-    fn test_compiled_constraint_creation() {
-        let constraint = CompiledConstraint {
-            cost_class: CostClass::Cardinality,
-            predicate: 1,
-            value: 5,
-            is_optional: false,
-        };
-        assert_eq!(constraint.cost_class, CostClass::Cardinality);
-        assert_eq!(constraint.predicate, 1);
-        assert_eq!(constraint.value, 5);
-        assert!(!constraint.is_optional);
-    }
-
-    #[test]
-    fn test_compiled_shape_creation() {
-        let shape = CompiledShape {
-            iri: 1,
-            targets: vec![],
-            constraints: vec![],
-            closed: false,
-            property_shapes: vec![],
-        };
-        assert_eq!(shape.iri, 1);
-        assert_eq!(shape.targets.len(), 0);
-        assert_eq!(shape.constraints.len(), 0);
-        assert!(!shape.closed);
-    }
-
-    #[test]
-    fn test_closure_matrix_creation() {
-        // PROJ-409: Test ClosureMatrix creation
-        let matrix = ClosureMatrix::new(10);
-        assert_eq!(matrix.max_id, 10);
-    }
-
-    #[test]
-    fn test_closure_matrix_edge_addition() {
-        // PROJ-409: Test adding edges to ClosureMatrix
-        let mut matrix = ClosureMatrix::new(5);
-        matrix.add_edge(0, 1);
-        matrix.add_edge(1, 2);
-
-        assert!(matrix.is_reachable(0, 1));
-        assert!(matrix.is_reachable(1, 2));
-        assert!(!matrix.is_reachable(0, 2)); // Not yet transitive
-    }
-
-    #[test]
-    fn test_closure_matrix_transitive_closure() {
-        // PROJ-409: Test transitive closure computation
-        let mut matrix = ClosureMatrix::new(5);
-        matrix.add_edge(0, 1);
-        matrix.add_edge(1, 2);
-
-        matrix.compute_transitive_closure();
-
-        assert!(matrix.is_reachable(0, 1));
-        assert!(matrix.is_reachable(0, 2)); // Now transitive
-        assert!(matrix.is_reachable(1, 2));
-    }
-
-    #[test]
-    fn test_closure_matrix_canonical_rendering() {
-        // PROJ-409 Step 3: Test canonical rendering for deterministic hashing
-        let mut matrix = ClosureMatrix::new(5);
-        matrix.add_edge(1, 3);
-        matrix.add_edge(0, 2);
-        matrix.add_edge(2, 4);
-
-        let edges = matrix.render_canonical();
-
-        assert_eq!(edges.len(), 3);
-        assert_eq!(edges[0], (0, 2));
-        assert_eq!(edges[1], (1, 3));
-        assert_eq!(edges[2], (2, 4));
-
-        // Should be deterministic
-        let edges2 = matrix.render_canonical();
-        assert_eq!(edges, edges2);
-    }
-}
