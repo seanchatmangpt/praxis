@@ -1,0 +1,554 @@
+@prefix procint: <https://mfact.dev/procint#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ═══════════════════════ Module: Petri.StateEquation (order 24) ═══════════════
+
+procint:Mod_Petri_StateEquation a procint:Module ;
+  procint:moduleId "Petri.StateEquation" ;
+  procint:modPath "Petri/StateEquation" ;
+  procint:order 24 ;
+  procint:moduleDoc "Murata 1989 state equation over the integers: markings P →₀ ℕ are cast into ℤ^P via Finsupp.mapRange Int.ofNat, the incidence column of a transition is post − pre, and both the single-step (Mʹ = M + A·eₜ) and firing-sequence (Mʹ = M + Σ A·eₜᵢ) forms of Murata Eq. (5) are proven by pointwise omega and induction on the firing sequence. Ported from the Marking/firing structure in wasm4pm-compat src/petri.rs." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Petri.Net
+import ProcInt.Petri.Firing
+import ProcInt.Petri.Reachability""" .
+
+procint:Decl_Marking_toInt a procint:Decl ;
+  procint:inModule "Petri.StateEquation" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.Marking.toInt" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Cast a natural-number marking to an integer-valued vector (Murata 1989, Section IV-A:
+markings are embedded in ℤ^P so that the state equation lives in an additive group). -/
+noncomputable def Marking.toInt {P : Type} (M : Marking P) : P →₀ ℤ :=
+  Finsupp.mapRange Int.ofNat rfl M""" .
+
+procint:Decl_Marking_toInt_injective a procint:Decl ;
+  procint:inModule "Petri.StateEquation" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.Marking.toInt_injective" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Marking.toInt_injective' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The marking cast is injective: distinct ℕ-markings stay distinct in ℤ^P. -/
+theorem Marking.toInt_injective {P : Type} :
+    Function.Injective (Marking.toInt (P := P)) :=
+  Finsupp.mapRange_injective Int.ofNat rfl (fun _ _ h => Int.ofNat.inj h)""" .
+
+procint:Decl_PetriNet_change a procint:Decl ;
+  procint:inModule "Petri.StateEquation" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.PetriNet.change" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The incidence column of transition t (Murata 1989, Eq. (4): A = A⁺ − A⁻, one column
+per transition): the net token change post t − pre t as an integer vector. -/
+noncomputable def PetriNet.change {P T : Type} (N : PetriNet P T) (t : T) : P →₀ ℤ :=
+  Finsupp.mapRange Int.ofNat rfl (N.post t) - Finsupp.mapRange Int.ofNat rfl (N.pre t)""" .
+
+procint:Decl_PetriNet_stateEquation_step a procint:Decl ;
+  procint:inModule "Petri.StateEquation" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.PetriNet.stateEquation_step" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.stateEquation_step' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Murata 1989, state equation (Eq. (5)) for a single firing: if M —t→ M' then
+Mʹ = M + A·eₜ over ℤ. -/
+theorem PetriNet.stateEquation_step {P T : Type} (N : PetriNet P T)
+    {M M' : Marking P} {t : T} (h : N.Step M t M') :
+    Marking.toInt M' = Marking.toInt M + N.change t := by
+  obtain ⟨hen, rfl⟩ := h
+  ext p
+  have hp : N.pre t p ≤ M p := hen p
+  simp only [Marking.toInt, PetriNet.fire, PetriNet.change, Finsupp.mapRange_apply,
+    Finsupp.add_apply, Finsupp.sub_apply, Finsupp.tsub_apply, Int.ofNat_eq_natCast]
+  omega""" .
+
+procint:Decl_PetriNet_stateEquation_seq a procint:Decl ;
+  procint:inModule "Petri.StateEquation" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.PetriNet.stateEquation_seq" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.stateEquation_seq' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Murata 1989, state equation (Eq. (5)) for a firing sequence: the reached marking is the
+initial marking plus the sum of incidence columns of the fired transitions, over ℤ.
+Proof by induction on the firing sequence. -/
+theorem PetriNet.stateEquation_seq {P T : Type} (N : PetriNet P T)
+    {M M' : Marking P} {σ : List T} (h : N.FiringSeq M σ M') :
+    Marking.toInt M' = Marking.toInt M + (σ.map N.change).sum := by
+  induction h with
+  | nil => simp
+  | cons hstep _ ih =>
+      rw [ih, N.stateEquation_step hstep]
+      simp [add_assoc]""" .
+
+# ═══════════════════════ Module: Petri.Invariants (order 25) ══════════════════
+
+procint:Mod_Petri_Invariants a procint:Module ;
+  procint:moduleId "Petri.Invariants" ;
+  procint:modPath "Petri/Invariants" ;
+  procint:order 25 ;
+  procint:moduleDoc "Murata 1989 Section IV-C place and transition invariants: a P-invariant is a place weighting y with yᵀA = 0, proven conserved along single steps and along the full reachability relation (Murata Theorem 15) by induction on ReflTransGen; a T-invariant is taken in Parikh form over a firing sequence (summed incidence columns vanish) and the reproduction property M' = M (Murata Theorem 16) is proven via injectivity of the ℤ-cast." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Petri.Net
+import ProcInt.Petri.Firing
+import ProcInt.Petri.Reachability
+import ProcInt.Petri.StateEquation""" .
+
+procint:Decl_weighSum a procint:Decl ;
+  procint:inModule "Petri.Invariants" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.weighSum" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Integer pairing ⟪y, v⟫ = Σ_p y(p)·v(p) used to evaluate place weightings against
+incidence columns (Murata 1989, Section IV-C). -/
+def weighSum {P : Type} (y : P → ℤ) (v : P →₀ ℤ) : ℤ :=
+  v.sum fun p n => y p * n""" .
+
+procint:Decl_weighSum_add a procint:Decl ;
+  procint:inModule "Petri.Invariants" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.weighSum_add" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.weighSum_add' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The pairing ⟪y, ·⟫ is additive in its vector argument. -/
+theorem weighSum_add {P : Type} (y : P → ℤ) (v w : P →₀ ℤ) :
+    weighSum y (v + w) = weighSum y v + weighSum y w := by
+  classical
+  unfold weighSum
+  exact Finsupp.sum_add_index (fun p _ => mul_zero (y p)) (fun p _ m n => mul_add (y p) m n)""" .
+
+procint:Decl_PetriNet_IsPInvariant a procint:Decl ;
+  procint:inModule "Petri.Invariants" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.PetriNet.IsPInvariant" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- P-invariant (place invariant): a weighting y with yᵀA = 0, i.e. ⟪y, A·eₜ⟫ = 0 for every
+transition t (Murata 1989, Section IV-C, Eq. (13)). -/
+def PetriNet.IsPInvariant {P T : Type} (N : PetriNet P T) (y : P → ℤ) : Prop :=
+  ∀ t, weighSum y (N.change t) = 0""" .
+
+procint:Decl_PetriNet_pInvariant_step a procint:Decl ;
+  procint:inModule "Petri.Invariants" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.PetriNet.pInvariant_step" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.pInvariant_step' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Conservation along a single step: a P-invariant weighting is unchanged by any firing
+(Murata 1989, Theorem 15: yᵀM = yᵀM₀ for reachable M). -/
+theorem PetriNet.pInvariant_step {P T : Type} (N : PetriNet P T) {y : P → ℤ}
+    (hy : N.IsPInvariant y) {M M' : Marking P} {t : T} (h : N.Step M t M') :
+    weighSum y (Marking.toInt M') = weighSum y (Marking.toInt M) := by
+  rw [N.stateEquation_step h, weighSum_add, hy t, add_zero]""" .
+
+procint:Decl_PetriNet_pInvariant_reaches a procint:Decl ;
+  procint:inModule "Petri.Invariants" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.PetriNet.pInvariant_reaches" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.pInvariant_reaches' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Conservation along reachability: a P-invariant weighting is constant on the whole
+reachability set (Murata 1989, Theorem 15). Proof by induction on ReflTransGen. -/
+theorem PetriNet.pInvariant_reaches {P T : Type} (N : PetriNet P T) {y : P → ℤ}
+    (hy : N.IsPInvariant y) {M M' : Marking P} (h : N.Reaches M M') :
+    weighSum y (Marking.toInt M') = weighSum y (Marking.toInt M) := by
+  induction h with
+  | refl => rfl
+  | tail _ hstep ih =>
+      obtain ⟨t, hstep⟩ := hstep
+      rw [N.pInvariant_step hy hstep, ih]""" .
+
+procint:Decl_PetriNet_IsTInvariantSeq a procint:Decl ;
+  procint:inModule "Petri.Invariants" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.PetriNet.IsTInvariantSeq" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- T-invariant (transition invariant) of a firing sequence, taken in Parikh form: the summed
+incidence columns of σ vanish, A·⃗σ = 0 (Murata 1989, Section IV-C, Eq. (14)). -/
+def PetriNet.IsTInvariantSeq {P T : Type} (N : PetriNet P T) (σ : List T) : Prop :=
+  (σ.map N.change).sum = 0""" .
+
+procint:Decl_PetriNet_tInvariant_reproduces a procint:Decl ;
+  procint:inModule "Petri.Invariants" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.PetriNet.tInvariant_reproduces" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.tInvariant_reproduces' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Murata 1989, Theorem 16 (reproduction): a firing sequence whose Parikh vector is a
+T-invariant reproduces the starting marking exactly. Uses injectivity of the ℤ-cast. -/
+theorem PetriNet.tInvariant_reproduces {P T : Type} (N : PetriNet P T)
+    {M M' : Marking P} {σ : List T} (h : N.FiringSeq M σ M')
+    (hσ : N.IsTInvariantSeq σ) : M' = M := by
+  apply Marking.toInt_injective
+  rw [N.stateEquation_seq h, hσ, add_zero]""" .
+
+# ═══════════════════════ Module: Petri.OCPN (order 26) ════════════════════════
+
+procint:Mod_Petri_OCPN a procint:Module ;
+  procint:moduleId "Petri.OCPN" ;
+  procint:modPath "Petri/OCPN" ;
+  procint:order 26 ;
+  procint:moduleDoc "Object-centric Petri nets (van der Aalst and Berti, Fundamenta Informaticae 2020, Def. 5.1-5.3): places typed by object types via pt : P → OT, variable arcs as a predicate on transition-place adjacencies, well-formedness as per-transition type disjointness between variable and non-variable arcs, and colored markings as multisets of (place, object) pairs with a typing conformance predicate proven closed under multiset union and sub-multisets. Ported from ObjectCentricPetriNet in wasm4pm-compat src/petri.rs." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Petri.Net""" .
+
+procint:Decl_OCPN a procint:Decl ;
+  procint:inModule "Petri.OCPN" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.OCPN" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Object-centric Petri net (van der Aalst & Berti 2020, Def. 5.1): a Petri net whose
+places are typed by object types via pt : P → OT, and whose transition/place adjacencies
+may be marked as variable arcs (Fvar). Ported from ObjectCentricPetriNet in
+wasm4pm-compat petri.rs. -/
+structure OCPN (P T OT : Type) where
+  net : PetriNet P T
+  pt : P → OT
+  varArc : T → P → Prop""" .
+
+procint:Decl_OCPN_Adjacent a procint:Decl ;
+  procint:inModule "Petri.OCPN" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.OCPN.Adjacent" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Place p is adjacent to transition t: p occurs in the pre- or post-multiset of t. -/
+def OCPN.Adjacent {P T OT : Type} (C : OCPN P T OT) (t : T) (p : P) : Prop :=
+  C.net.pre t p ≠ 0 ∨ C.net.post t p ≠ 0""" .
+
+procint:Decl_OCPN_WellFormed a procint:Decl ;
+  procint:inModule "Petri.OCPN" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.OCPN.WellFormed" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Well-formedness (van der Aalst & Berti 2020, Def. 5.3): at each transition, the object
+types consumed through variable arcs and through non-variable arcs are disjoint. -/
+def OCPN.WellFormed {P T OT : Type} (C : OCPN P T OT) : Prop :=
+  ∀ t p q, C.Adjacent t p → C.Adjacent t q → C.varArc t p → ¬ C.varArc t q →
+    C.pt p ≠ C.pt q""" .
+
+procint:Decl_ColoredMarking a procint:Decl ;
+  procint:inModule "Petri.OCPN" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.ColoredMarking" ;
+  procint:declKind "abbrev" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Colored marking (van der Aalst & Berti 2020, Def. 5.2): a multiset of (place, object)
+token pairs. -/
+abbrev ColoredMarking (P Obj : Type) := Multiset (P × Obj)""" .
+
+procint:Decl_OCPN_Conforms a procint:Decl ;
+  procint:inModule "Petri.OCPN" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.OCPN.Conforms" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A colored marking conforms to the typing: every token's object type matches the type of
+the place it sits on (van der Aalst & Berti 2020, Def. 5.2, typed token games). -/
+def OCPN.Conforms {P T OT Obj : Type} (C : OCPN P T OT) (otyp : Obj → OT)
+    (M : ColoredMarking P Obj) : Prop :=
+  ∀ pr ∈ M, otyp pr.2 = C.pt pr.1""" .
+
+procint:Decl_OCPN_conforms_add a procint:Decl ;
+  procint:inModule "Petri.OCPN" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.OCPN.conforms_add" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCPN.conforms_add' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- Conformance is closed under multiset union: adding conforming tokens to a conforming
+colored marking stays conforming (needed for the OCPN firing rule, Def. 5.3). -/
+theorem OCPN.conforms_add {P T OT Obj : Type} (C : OCPN P T OT) (otyp : Obj → OT)
+    {M₁ M₂ : ColoredMarking P Obj}
+    (h₁ : C.Conforms otyp M₁) (h₂ : C.Conforms otyp M₂) :
+    C.Conforms otyp (M₁ + M₂) := by
+  intro pr hpr
+  rcases Multiset.mem_add.mp hpr with h | h
+  · exact h₁ pr h
+  · exact h₂ pr h""" .
+
+procint:Decl_OCPN_conforms_of_le a procint:Decl ;
+  procint:inModule "Petri.OCPN" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.OCPN.conforms_of_le" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCPN.conforms_of_le' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- Conformance is closed under sub-multisets: consuming tokens preserves conformance
+(the token-consumption half of the OCPN firing rule). -/
+theorem OCPN.conforms_of_le {P T OT Obj : Type} (C : OCPN P T OT) (otyp : Obj → OT)
+    {M₁ M₂ : ColoredMarking P Obj}
+    (hle : M₁ ≤ M₂) (h₂ : C.Conforms otyp M₂) : C.Conforms otyp M₁ :=
+  fun pr hpr => h₂ pr (Multiset.mem_of_le hle hpr)""" .
+
+# ═══════════════════════ Module: Petri.Stochastic (order 27) ══════════════════
+
+procint:Mod_Petri_Stochastic a procint:Module ;
+  procint:moduleId "Petri.Stochastic" ;
+  procint:modPath "Petri/Stochastic" ;
+  procint:order 27 ;
+  procint:moduleDoc "Stochastic Petri nets (Marsan et al. 1984 GSPN; Leemans 2019 stochastic process mining): transitions carry nonnegative rational weights (NNRat, porting the compile-time NUM/DEN fractions of StochasticArcWeight in wasm4pm-compat src/petri.rs) and an immediate/timed kind marker. The stochastic choice over a finite conflict set is weight(t) divided by the total weight; it is proven to be a probability distribution (probabilities sum to 1 and are each at most 1 when the normalizer is nonzero)." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Petri.Net""" .
+
+procint:Decl_TransitionKind a procint:Decl ;
+  procint:inModule "Petri.Stochastic" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.TransitionKind" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Kind of a stochastic transition: immediate (fires instantly when enabled, weight resolves
+conflicts) or timed (fires after a stochastic delay). Ported from ImmediateTransition /
+TimedTransition markers in wasm4pm-compat petri.rs; cf. Marsan et al. 1984 GSPN and
+Leemans 2019 stochastic process mining. -/
+inductive TransitionKind where
+  | immediate : TransitionKind
+  | timed : TransitionKind
+deriving DecidableEq, Repr""" .
+
+procint:Decl_StochasticPetriNet a procint:Decl ;
+  procint:inModule "Petri.Stochastic" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.StochasticPetriNet" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Stochastic Petri net: a Petri net whose transitions carry nonnegative rational weights
+and an immediate/timed kind (Leemans 2019; GSPN of Marsan et al. 1984). Weights in ℚ≥0
+port the StochasticArcWeight NUM/DEN ∈ [0,1] compile-time fractions of wasm4pm-compat. -/
+structure StochasticPetriNet (P T : Type) where
+  net : PetriNet P T
+  weight : T → NNRat
+  kind : T → TransitionKind""" .
+
+procint:Decl_StochasticPetriNet_choiceWeight a procint:Decl ;
+  procint:inModule "Petri.Stochastic" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.StochasticPetriNet.choiceWeight" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Total weight of a finite conflict set of transitions (the normalizing constant of the
+stochastic choice, Leemans 2019). -/
+def StochasticPetriNet.choiceWeight {P T : Type} (S : StochasticPetriNet P T)
+    (E : Finset T) : NNRat :=
+  E.sum fun t => S.weight t""" .
+
+procint:Decl_StochasticPetriNet_fireProb a procint:Decl ;
+  procint:inModule "Petri.Stochastic" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.StochasticPetriNet.fireProb" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Probability that transition t wins the stochastic choice among the conflict set E:
+weight(t) / Σ over u ∈ E of weight(u) (Leemans 2019 stochastic labelled Petri nets). -/
+def StochasticPetriNet.fireProb {P T : Type} (S : StochasticPetriNet P T)
+    (E : Finset T) (t : T) : NNRat :=
+  S.weight t / S.choiceWeight E""" .
+
+procint:Decl_StochasticPetriNet_fireProb_sum a procint:Decl ;
+  procint:inModule "Petri.Stochastic" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.StochasticPetriNet.fireProb_sum" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.StochasticPetriNet.fireProb_sum' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The stochastic choice is a probability distribution: over any conflict set with nonzero
+total weight, the firing probabilities sum to 1 (Leemans 2019). -/
+theorem StochasticPetriNet.fireProb_sum {P T : Type} (S : StochasticPetriNet P T)
+    (E : Finset T) (h : S.choiceWeight E ≠ 0) :
+    (E.sum fun t => S.fireProb E t) = 1 := by
+  unfold StochasticPetriNet.fireProb
+  rw [← Finset.sum_div]
+  exact div_self h""" .
+
+procint:Decl_StochasticPetriNet_fireProb_le_one a procint:Decl ;
+  procint:inModule "Petri.Stochastic" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.StochasticPetriNet.fireProb_le_one" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.StochasticPetriNet.fireProb_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Each firing probability is at most 1: a member's weight never exceeds the conflict set's
+total weight (Leemans 2019). -/
+theorem StochasticPetriNet.fireProb_le_one {P T : Type} (S : StochasticPetriNet P T)
+    (E : Finset T) {t : T} (ht : t ∈ E)
+    (h : 0 < S.choiceWeight E) : S.fireProb E t ≤ 1 := by
+  rw [StochasticPetriNet.fireProb, div_le_one h]
+  exact Finset.single_le_sum (fun i _ => zero_le) ht""" .
+
+# ═══════════════════════ Module: Petri.Unfolding (order 28) ═══════════════════
+
+procint:Mod_Petri_Unfolding a procint:Module ;
+  procint:moduleId "Petri.Unfolding" ;
+  procint:modPath "Petri/Unfolding" ;
+  procint:order 28 ;
+  procint:moduleDoc "Petri net unfoldings (Murata 1989 Section VII; Engelfriet 1991 branching processes; McMillan 1992 finite complete prefixes): occurrence nets over condition and event types with a bipartite flow relation on C ⊕ E, causality as its transitive closure, acyclicity and no-backward-conflict axioms, branching processes as labeled occurrence nets, and unfolding prefixes with cut-off event sets. Small lemmas (flow embeds in causality, causality transitive, flow irreflexive by bipartiteness, acyclicity forbids self-flow) are proven; the full unfolding homomorphism condition is stated. Ported from Condition/Event/BranchingProcess/UnfoldingPrefix in wasm4pm-compat src/petri.rs." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Petri.Net""" .
+
+procint:Decl_OccurrenceNet a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.OccurrenceNet" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Occurrence-net shape underlying a branching process: conditions C (place instances) and
+events E (transition occurrences) with pre/post condition sets (Murata 1989 Section VII;
+McMillan 1992; Engelfriet 1991 branching processes). Ported from Condition / Event /
+BranchingProcess in wasm4pm-compat petri.rs. -/
+structure OccurrenceNet (C E : Type) where
+  preC : E → Set C
+  postC : E → Set C""" .
+
+procint:Decl_OccurrenceNet_Flow a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.OccurrenceNet.Flow" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The immediate flow relation on nodes (conditions ⊕ events): condition-to-event via preC,
+event-to-condition via postC; never condition-condition or event-event (bipartiteness of
+occurrence nets, Murata 1989 Section VII). -/
+def OccurrenceNet.Flow {C E : Type} (O : OccurrenceNet C E) :
+    (C ⊕ E) → (C ⊕ E) → Prop
+  | Sum.inl c, Sum.inr e => c ∈ O.preC e
+  | Sum.inr e, Sum.inl c => c ∈ O.postC e
+  | _, _ => False""" .
+
+procint:Decl_OccurrenceNet_Causality a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.OccurrenceNet.Causality" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Causality: the transitive closure of the flow relation (Engelfriet 1991, the strict
+causal order of an occurrence net). -/
+def OccurrenceNet.Causality {C E : Type} (O : OccurrenceNet C E) :
+    (C ⊕ E) → (C ⊕ E) → Prop :=
+  Relation.TransGen O.Flow""" .
+
+procint:Decl_OccurrenceNet_Acyclic a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.OccurrenceNet.Acyclic" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The occurrence relation is acyclic: no node causally precedes itself
+(Murata 1989 Section VII: occurrence nets are acyclic). -/
+def OccurrenceNet.Acyclic {C E : Type} (O : OccurrenceNet C E) : Prop :=
+  ∀ n, ¬ O.Causality n n""" .
+
+procint:Decl_OccurrenceNet_NoBackwardConflict a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.OccurrenceNet.NoBackwardConflict" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- No backward conflict: each condition has at most one producing event (occurrence-net
+axiom, Engelfriet 1991 Def. 2.3 / Murata 1989: conditions are unbranched on input). -/
+def OccurrenceNet.NoBackwardConflict {C E : Type} (O : OccurrenceNet C E) : Prop :=
+  ∀ c e₁ e₂, c ∈ O.postC e₁ → c ∈ O.postC e₂ → e₁ = e₂""" .
+
+procint:Decl_OccurrenceNet_flow_causality a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.OccurrenceNet.flow_causality" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.flow_causality' depends on axioms: [propext]" ;
+  procint:leanCode """/-- Flow embeds in causality (single-step case of the transitive closure). -/
+theorem OccurrenceNet.flow_causality {C E : Type} (O : OccurrenceNet C E)
+    {a b : C ⊕ E} (h : O.Flow a b) : O.Causality a b :=
+  Relation.TransGen.single h""" .
+
+procint:Decl_OccurrenceNet_causality_trans a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.OccurrenceNet.causality_trans" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.causality_trans' depends on axioms: [propext]" ;
+  procint:leanCode """/-- Causality is transitive (transitive closures are transitive; Engelfriet 1991). -/
+theorem OccurrenceNet.causality_trans {C E : Type} (O : OccurrenceNet C E)
+    {a b c : C ⊕ E} (h₁ : O.Causality a b) (h₂ : O.Causality b c) :
+    O.Causality a c :=
+  Relation.TransGen.trans h₁ h₂""" .
+
+procint:Decl_OccurrenceNet_flow_irrefl a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.OccurrenceNet.flow_irrefl" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.flow_irrefl' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The flow relation is irreflexive by bipartiteness: no node flows to itself. -/
+theorem OccurrenceNet.flow_irrefl {C E : Type} (O : OccurrenceNet C E)
+    (n : C ⊕ E) : ¬ O.Flow n n := by
+  cases n <;> simp [OccurrenceNet.Flow]""" .
+
+procint:Decl_OccurrenceNet_acyclic_no_self_flow a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 9 ;
+  procint:declName "ProcInt.OccurrenceNet.acyclic_no_self_flow" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OccurrenceNet.acyclic_no_self_flow' depends on axioms: [propext]" ;
+  procint:leanCode """/-- In an acyclic occurrence net there is no self-flow: acyclicity kills causal self-loops
+of any length, in particular length one. -/
+theorem OccurrenceNet.acyclic_no_self_flow {C E : Type} (O : OccurrenceNet C E)
+    (h : O.Acyclic) (n : C ⊕ E) : ¬ O.Flow n n :=
+  fun hf => h n (O.flow_causality hf)""" .
+
+procint:Decl_BranchingProcess a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 10 ;
+  procint:declName "ProcInt.BranchingProcess" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Branching process of a Petri net (Engelfriet 1991; Murata 1989 Section VII): an
+occurrence net together with a homomorphism labeling conditions by places and events by
+transitions of the original net. Ported from BranchingProcess in wasm4pm-compat petri.rs. -/
+structure BranchingProcess (P T C E : Type) where
+  occ : OccurrenceNet C E
+  condPlace : C → P
+  eventTrans : E → T""" .
+
+procint:Decl_UnfoldingPrefix a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 11 ;
+  procint:declName "ProcInt.UnfoldingPrefix" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Finite complete unfolding prefix (McMillan 1992): a branching process plus a designated
+set of cut-off events truncating infinite behavior. Ported from UnfoldingPrefix in
+wasm4pm-compat petri.rs. -/
+structure UnfoldingPrefix (P T C E : Type) where
+  process : BranchingProcess P T C E
+  cutoff : Set E""" .
+
+procint:Decl_BranchingProcess_isUnfoldingOf_statement a procint:Decl ;
+  procint:inModule "Petri.Unfolding" ;
+  procint:declOrder 12 ;
+  procint:declName "ProcInt.BranchingProcess.isUnfoldingOf_statement" ;
+  procint:declKind "def" ;
+  procint:status "stated" ;
+  procint:leanCode """/-- Statement (stated, not proven): a branching process is a legal unfolding of net N when
+its occurrence net is acyclic, has no backward conflict, and the labeling respects the
+pre/post structure of N on singleton arcs (Engelfriet 1991, Def. 3.1 homomorphism condition,
+specialized to ordinary nets). -/
+def BranchingProcess.isUnfoldingOf_statement {P T C E : Type}
+    (B : BranchingProcess P T C E) (N : PetriNet P T) : Prop :=
+  B.occ.Acyclic ∧ B.occ.NoBackwardConflict ∧
+  (∀ e c, c ∈ B.occ.preC e → N.pre (B.eventTrans e) (B.condPlace c) ≠ 0) ∧
+  (∀ e c, c ∈ B.occ.postC e → N.post (B.eventTrans e) (B.condPlace c) ≠ 0)""" .

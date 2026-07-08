@@ -1,0 +1,4 @@
+[pack]
+name = "lean-math-pack"
+version = "26.7.7"
+description = "Renders the ProcInt Lean 4 package (mathematical foundations of process intelligence) from the procint declaration ontology: one Lean module per procint:Module with declarations from procint:Decl leanCode literals, plus the root import index, the axiom-audit file, and algorithm/breed registries from the wasm4pm facts ontology."

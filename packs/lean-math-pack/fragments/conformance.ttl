@@ -1,0 +1,461 @@
+@prefix procint: <https://mfact.dev/procint#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Family: conformance (order band 45-49) ──────────────────────────────────
+# Ported from /Users/sac/wasm4pm-compat/src/conformance.rs and
+# /Users/sac/wasm4pm-compat/docs/METRIC_LAW.md.
+# Canon: Carmona et al. 2018 (Conformance Checking), Adriansyah 2011
+# (alignments), Rozinat and van der Aalst 2008 (token replay), van der Aalst
+# quality dimensions.
+# Kernel-verified as one scratch file (exit 0, zero sorries) via
+# lake env lean in ~/mfact/procint.
+
+# ═══ Module 45: Conformance.Moves ═══
+
+procint:Mod_Conformance_Moves a procint:Module ;
+  procint:moduleId "Conformance.Moves" ;
+  procint:modPath "Conformance/Moves" ;
+  procint:order 45 ;
+  procint:moduleDoc "Alignment moves and the standard cost function for conformance checking (Carmona, van Dongen, Solti, Weidlich, Conformance Checking, Springer 2018, ch. 7; Adriansyah, Aligning Observed and Modeled Behavior, PhD thesis TU Eindhoven 2011). Ports the SyncMove/LogOnlyMove/ModelOnlyMove witnesses of wasm4pm-compat src/conformance.rs into a single inductive with a total cost function." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_Move a procint:Decl ;
+  procint:inModule "Conformance.Moves" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.Move" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- An alignment move between an event-log trace over activities α and a
+process-model run over transitions T (Carmona, van Dongen, Solti, Weidlich,
+Conformance Checking 2018, ch. 7; Adriansyah 2011). A synchronous move pairs a
+log activity with a model transition; a log-only move is an insertion the model
+could not match; a model-only move is a skipped required step; a silent-model
+move fires an invisible (tau) transition. Ported from the SyncMove, LogOnlyMove,
+ModelOnlyMove witnesses in wasm4pm-compat src/conformance.rs. -/
+inductive Move (α T : Type*) where
+  | sync (a : α) (t : T)
+  | logOnly (a : α)
+  | modelOnly (t : T)
+  | silentModel (t : T)""" .
+
+procint:Decl_Move_cost a procint:Decl ;
+  procint:inModule "Conformance.Moves" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.Move.cost" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The standard cost function on alignment moves (Adriansyah 2011; Carmona et
+al. 2018): synchronous and silent-model moves are free, log-only and model-only
+moves cost 1. -/
+def Move.cost {α T : Type*} : Move α T → ℕ
+  | .sync _ _ => 0
+  | .logOnly _ => 1
+  | .modelOnly _ => 1
+  | .silentModel _ => 0""" .
+
+procint:Decl_Move_isCostFree a procint:Decl ;
+  procint:inModule "Conformance.Moves" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.Move.isCostFree" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Whether a move is cost-free under the standard cost function, i.e. a
+synchronous or silent-model move. -/
+def Move.isCostFree {α T : Type*} : Move α T → Bool
+  | .sync _ _ => true
+  | .logOnly _ => false
+  | .modelOnly _ => false
+  | .silentModel _ => true""" .
+
+procint:Decl_Move_cost_le_one a procint:Decl ;
+  procint:inModule "Conformance.Moves" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.Move.cost_le_one" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Move.cost_le_one' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The standard cost of any single move is at most 1 (Carmona et al. 2018,
+standard cost function). -/
+theorem Move.cost_le_one {α T : Type*} (m : Move α T) : m.cost ≤ 1 := by
+  cases m <;> simp [Move.cost]""" .
+
+procint:Decl_Move_cost_eq_zero_iff a procint:Decl ;
+  procint:inModule "Conformance.Moves" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.Move.cost_eq_zero_iff" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Move.cost_eq_zero_iff' depends on axioms: [propext]" ;
+  procint:leanCode """/-- A move has zero standard cost exactly when it is synchronous or
+silent-model (Adriansyah 2011). -/
+theorem Move.cost_eq_zero_iff {α T : Type*} (m : Move α T) :
+    m.cost = 0 ↔ m.isCostFree = true := by
+  cases m <;> simp [Move.cost, Move.isCostFree]""" .
+
+# ═══ Module 46: Conformance.Alignment ═══
+
+procint:Mod_Conformance_Alignment a procint:Module ;
+  procint:moduleId "Conformance.Alignment" ;
+  procint:modPath "Conformance/Alignment" ;
+  procint:order 46 ;
+  procint:moduleDoc "Alignments, projections, and alignment cost (Carmona et al., Conformance Checking, Springer 2018, ch. 7; Adriansyah 2011). An alignment is a sequence of moves whose log projection reproduces the observed trace; its model projection is a candidate model run, stated abstractly against a trace-language predicate. Cost is the sum of per-move standard costs; cost-0 alignments characterize perfectly fitting traces." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Conformance.Moves""" .
+
+procint:Decl_alignmentCost a procint:Decl ;
+  procint:inModule "Conformance.Alignment" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.alignmentCost" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Total standard cost of an alignment: the sum of the per-move costs
+(Carmona et al. 2018, Def. of alignment cost; Adriansyah 2011). -/
+def alignmentCost {α T : Type*} (γ : List (Move α T)) : ℕ :=
+  (γ.map Move.cost).sum""" .
+
+procint:Decl_logProjection a procint:Decl ;
+  procint:inModule "Conformance.Alignment" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.logProjection" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Log projection of an alignment: the sequence of activities contributed by
+synchronous and log-only moves, dropping model-only and silent moves (Carmona
+et al. 2018, projection onto the log component). -/
+def logProjection {α T : Type*} (γ : List (Move α T)) : List α :=
+  γ.filterMap fun m =>
+    match m with
+    | .sync a _ => some a
+    | .logOnly a => some a
+    | .modelOnly _ => none
+    | .silentModel _ => none""" .
+
+procint:Decl_modelProjection a procint:Decl ;
+  procint:inModule "Conformance.Alignment" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.modelProjection" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Model projection of an alignment: the sequence of transitions contributed
+by synchronous, model-only, and silent-model moves (Carmona et al. 2018,
+projection onto the model component; silent transitions remain in the model
+run). -/
+def modelProjection {α T : Type*} (γ : List (Move α T)) : List T :=
+  γ.filterMap fun m =>
+    match m with
+    | .sync _ t => some t
+    | .logOnly _ => none
+    | .modelOnly t => some t
+    | .silentModel t => some t""" .
+
+procint:Decl_IsAlignment a procint:Decl ;
+  procint:inModule "Conformance.Alignment" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.IsAlignment" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- γ is an alignment of the trace σ when its log projection reproduces σ
+exactly (Carmona et al. 2018, Def. 7.1 log side; the model side is stated
+against a trace-language predicate in IsCompleteAlignment). -/
+def IsAlignment {α T : Type*} (γ : List (Move α T)) (σ : List α) : Prop :=
+  logProjection γ = σ""" .
+
+procint:Decl_IsCompleteAlignment a procint:Decl ;
+  procint:inModule "Conformance.Alignment" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.IsCompleteAlignment" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- γ is a complete alignment of σ against a model whose runs are described by
+the trace-language predicate L: the log projection equals σ and the model
+projection is a run admitted by L (Carmona et al. 2018; Adriansyah 2011,
+complete alignments end in a final marking). -/
+def IsCompleteAlignment {α T : Type*} (L : List T → Prop)
+    (γ : List (Move α T)) (σ : List α) : Prop :=
+  logProjection γ = σ ∧ L (modelProjection γ)""" .
+
+procint:Decl_alignmentCost_append a procint:Decl ;
+  procint:inModule "Conformance.Alignment" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.alignmentCost_append" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.alignmentCost_append' depends on axioms: [propext]" ;
+  procint:leanCode """/-- Alignment cost is additive under concatenation of alignments. -/
+theorem alignmentCost_append {α T : Type*} (γ₁ γ₂ : List (Move α T)) :
+    alignmentCost (γ₁ ++ γ₂) = alignmentCost γ₁ + alignmentCost γ₂ := by
+  simp [alignmentCost]""" .
+
+procint:Decl_alignmentCost_zero_iff_all_costfree a procint:Decl ;
+  procint:inModule "Conformance.Alignment" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.alignmentCost_zero_iff_all_costfree" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.alignmentCost_zero_iff_all_costfree' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- An alignment has zero total cost iff every move in it is cost-free, i.e.
+synchronous or silent-model (Carmona et al. 2018: cost-0 alignments witness
+perfectly fitting traces). -/
+theorem alignmentCost_zero_iff_all_costfree {α T : Type*} (γ : List (Move α T)) :
+    alignmentCost γ = 0 ↔ ∀ m ∈ γ, m.cost = 0 := by
+  simp [alignmentCost, List.sum_eq_zero_iff]""" .
+
+procint:Decl_logProjection_length_le a procint:Decl ;
+  procint:inModule "Conformance.Alignment" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.logProjection_length_le" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.logProjection_length_le' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The log projection never exceeds the alignment in length: each move
+contributes at most one activity. -/
+theorem logProjection_length_le {α T : Type*} (γ : List (Move α T)) :
+    (logProjection γ).length ≤ γ.length :=
+  List.length_filterMap_le _ _""" .
+
+# ═══ Module 47: Conformance.TokenReplay ═══
+
+procint:Mod_Conformance_TokenReplay a procint:Module ;
+  procint:moduleId "Conformance.TokenReplay" ;
+  procint:modPath "Conformance/TokenReplay" ;
+  procint:order 47 ;
+  procint:moduleDoc "Token-based replay fitness (Rozinat and van der Aalst, Conformance Checking of Processes Based on Monitoring Real Behavior, Information Systems 33(1), 2008). ReplayCounts carries produced/consumed/missing/remaining token tallies with the structural invariants missing ≤ consumed and remaining ≤ produced as proof fields; fitness is the exact rational (1/2)(1 - missing/consumed) + (1/2)(1 - remaining/produced), proved to lie in [0,1] — the Lean form of the Between01 metric law in wasm4pm-compat docs/METRIC_LAW.md. Ports TokenReplayResult from wasm4pm-compat src/conformance.rs." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_ReplayCounts a procint:Decl ;
+  procint:inModule "Conformance.TokenReplay" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.ReplayCounts" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Token-replay counts (Rozinat and van der Aalst 2008, Conformance Checking
+of Processes Based on Monitoring Real Behavior): tokens produced, consumed,
+missing (had to be created artificially to fire), and remaining (left behind
+after replay). Missing tokens are a subset of consumed and remaining a subset
+of produced, recorded as proof fields. Ported from TokenReplayResult in
+wasm4pm-compat src/conformance.rs. -/
+structure ReplayCounts where
+  produced : ℕ
+  consumed : ℕ
+  missing : ℕ
+  remaining : ℕ
+  missing_le : missing ≤ consumed
+  remaining_le : remaining ≤ produced""" .
+
+procint:Decl_oneSubRatio_nonneg a procint:Decl ;
+  procint:inModule "Conformance.TokenReplay" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.oneSubRatio_nonneg" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.oneSubRatio_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- If m ≤ n then 1 - m/n is nonnegative in ℚ; the n = 0 case forces m = 0 and
+uses the ℚ convention x/0 = 0. Support lemma for the Rozinat-Aalst fitness
+bounds. -/
+theorem oneSubRatio_nonneg {m n : ℕ} (h : m ≤ n) : 0 ≤ 1 - (m : ℚ) / n := by
+  rcases Nat.eq_zero_or_pos n with hn | hn
+  · have hm : m = 0 := by omega
+    subst hm
+    subst hn
+    norm_num
+  · have hpos : (0 : ℚ) < n := by exact_mod_cast hn
+    have hle : (m : ℚ) / n ≤ 1 := (div_le_one hpos).mpr (by exact_mod_cast h)
+    linarith""" .
+
+procint:Decl_oneSubRatio_le_one a procint:Decl ;
+  procint:inModule "Conformance.TokenReplay" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.oneSubRatio_le_one" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.oneSubRatio_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- 1 - m/n never exceeds 1 in ℚ, since m/n ≥ 0 for natural m, n (with the
+x/0 = 0 convention). Support lemma for the Rozinat-Aalst fitness bounds. -/
+theorem oneSubRatio_le_one (m n : ℕ) : 1 - (m : ℚ) / n ≤ 1 := by
+  have hnn : (0 : ℚ) ≤ (m : ℚ) / n := by positivity
+  linarith""" .
+
+procint:Decl_fitness a procint:Decl ;
+  procint:inModule "Conformance.TokenReplay" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.fitness" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Token-replay fitness (Rozinat and van der Aalst 2008, Def. of fitness):
+f = (1/2)(1 - missing/consumed) + (1/2)(1 - remaining/produced), as an exact
+rational. The ℚ convention x/0 = 0 makes the formula total; each degenerate
+denominator forces its numerator to 0 via the ReplayCounts proof fields. -/
+def fitness (c : ReplayCounts) : ℚ :=
+  (1 - (c.missing : ℚ) / (c.consumed : ℚ)) / 2 +
+    (1 - (c.remaining : ℚ) / (c.produced : ℚ)) / 2""" .
+
+procint:Decl_fitness_nonneg a procint:Decl ;
+  procint:inModule "Conformance.TokenReplay" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.fitness_nonneg" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Token-replay fitness is nonnegative (Rozinat-Aalst 2008; lower bound of
+the [0,1] metric law in wasm4pm-compat docs/METRIC_LAW.md). -/
+theorem fitness_nonneg (c : ReplayCounts) : 0 ≤ fitness c := by
+  have h1 := oneSubRatio_nonneg c.missing_le
+  have h2 := oneSubRatio_nonneg c.remaining_le
+  unfold fitness
+  linarith""" .
+
+procint:Decl_fitness_le_one a procint:Decl ;
+  procint:inModule "Conformance.TokenReplay" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.fitness_le_one" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Token-replay fitness is at most 1 (Rozinat-Aalst 2008; upper bound of the
+[0,1] metric law in wasm4pm-compat docs/METRIC_LAW.md). -/
+theorem fitness_le_one (c : ReplayCounts) : fitness c ≤ 1 := by
+  have h1 := oneSubRatio_le_one c.missing c.consumed
+  have h2 := oneSubRatio_le_one c.remaining c.produced
+  unfold fitness
+  linarith""" .
+
+procint:Decl_fitness_mem_unitInterval a procint:Decl ;
+  procint:inModule "Conformance.TokenReplay" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.fitness_mem_unitInterval" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_mem_unitInterval' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The Rozinat-Aalst token-replay fitness always lies in the unit interval:
+0 ≤ fitness ∧ fitness ≤ 1. This is the Lean form of the Between01 metric law
+of wasm4pm-compat docs/METRIC_LAW.md. -/
+theorem fitness_mem_unitInterval (c : ReplayCounts) :
+    0 ≤ fitness c ∧ fitness c ≤ 1 :=
+  ⟨fitness_nonneg c, fitness_le_one c⟩""" .
+
+procint:Decl_fitness_perfect a procint:Decl ;
+  procint:inModule "Conformance.TokenReplay" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.fitness_perfect" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.fitness_perfect' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- A perfect replay — no missing and no remaining tokens — has fitness
+exactly 1 (Rozinat-Aalst 2008; mirrors calculate_fitness(4,4,0,0) = 1.0 in
+wasm4pm-compat src/conformance.rs). -/
+theorem fitness_perfect (c : ReplayCounts)
+    (hm : c.missing = 0) (hr : c.remaining = 0) : fitness c = 1 := by
+  unfold fitness
+  rw [hm, hr]
+  norm_num""" .
+
+# ═══ Module 48: Conformance.Quality ═══
+
+procint:Mod_Conformance_Quality a procint:Module ;
+  procint:moduleId "Conformance.Quality" ;
+  procint:modPath "Conformance/Quality" ;
+  procint:order 48 ;
+  procint:moduleDoc "Quality dimensions of process models bounded to the unit interval (van der Aalst, Process Mining: Data Science in Action, 2016, quality dimensions; wasm4pm-compat docs/METRIC_LAW.md Between01 law). UnitRat is the subtype of rationals in [0,1]; QualityProfile packages fitness, precision, generalization, and simplicity as UnitRat fields so out-of-range metrics are unrepresentable; F1 is the harmonic mean of fitness and precision, proved to stay in [0,1]. Ports QualityProfile and the metric newtypes from wasm4pm-compat src/conformance.rs." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Foundations.Metric
+import ProcInt.Conformance.TokenReplay""" .
+
+procint:Decl_UnitRat_zero a procint:Decl ;
+  procint:inModule "Conformance.Quality" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.UnitRat.zero" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The value 0 as a unit-interval rational. -/
+def UnitRat.zero : UnitRat := ⟨0, by norm_num⟩""" .
+
+procint:Decl_UnitRat_one a procint:Decl ;
+  procint:inModule "Conformance.Quality" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.UnitRat.one" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The value 1 as a unit-interval rational. -/
+def UnitRat.one : UnitRat := ⟨1, by norm_num⟩""" .
+
+procint:Decl_QualityProfile a procint:Decl ;
+  procint:inModule "Conformance.Quality" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.QualityProfile" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A quality profile over van der Aalst's four process-mining quality
+dimensions — fitness, precision, generalization, simplicity — each bounded to
+[0,1] by construction (wasm4pm-compat docs/METRIC_LAW.md; QualityProfile in
+src/conformance.rs). -/
+structure QualityProfile where
+  fitness : UnitRat
+  precision : UnitRat
+  generalization : UnitRat
+  simplicity : UnitRat""" .
+
+procint:Decl_QualityProfile_perfect a procint:Decl ;
+  procint:inModule "Conformance.Quality" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.QualityProfile.perfect" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The perfect quality profile: all four dimensions equal to 1. -/
+def QualityProfile.perfect : QualityProfile :=
+  ⟨UnitRat.one, UnitRat.one, UnitRat.one, UnitRat.one⟩""" .
+
+procint:Decl_ReplayCounts_fitnessUnit a procint:Decl ;
+  procint:inModule "Conformance.Quality" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.ReplayCounts.fitnessUnit" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The token-replay fitness of any ReplayCounts, packaged as a unit-interval
+rational via the proved bounds — the computed metric always satisfies the
+Between01 law by construction. -/
+def ReplayCounts.fitnessUnit (c : ReplayCounts) : UnitRat :=
+  ⟨fitness c, fitness_nonneg c, fitness_le_one c⟩""" .
+
+procint:Decl_f1 a procint:Decl ;
+  procint:inModule "Conformance.Quality" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.f1" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- F1: the harmonic mean 2fp/(f+p) of fitness and precision (van der Aalst
+quality dimensions; F1 in wasm4pm-compat src/conformance.rs). The ℚ convention
+x/0 = 0 makes the f = p = 0 corner total. -/
+def f1 (f p : UnitRat) : ℚ := 2 * f.val * p.val / (f.val + p.val)""" .
+
+procint:Decl_f1_nonneg a procint:Decl ;
+  procint:inModule "Conformance.Quality" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.f1_nonneg" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.f1_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- F1 is nonnegative. -/
+theorem f1_nonneg (f p : UnitRat) : 0 ≤ f1 f p := by
+  have hf := f.property.1
+  have hp := p.property.1
+  unfold f1
+  positivity""" .
+
+procint:Decl_f1_le_one a procint:Decl ;
+  procint:inModule "Conformance.Quality" ;
+  procint:declOrder 9 ;
+  procint:declName "ProcInt.f1_le_one" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.f1_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- F1 is at most 1: the harmonic mean of two unit-interval quantities stays
+in the unit interval (Between01 law, wasm4pm-compat docs/METRIC_LAW.md). -/
+theorem f1_le_one (f p : UnitRat) : f1 f p ≤ 1 := by
+  obtain ⟨hf0, hf1⟩ := f.property
+  obtain ⟨hp0, hp1⟩ := p.property
+  unfold f1
+  rcases eq_or_lt_of_le (add_nonneg hf0 hp0) with h | h
+  · rw [← h, div_zero]
+    norm_num
+  · rw [div_le_one h]
+    nlinarith [mul_nonneg (sub_nonneg.mpr hf1) hp0, mul_nonneg (sub_nonneg.mpr hp1) hf0]""" .

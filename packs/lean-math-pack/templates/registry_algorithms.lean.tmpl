@@ -1,0 +1,46 @@
+---
+to: "procint/ProcInt/Registry/Algorithms.lean"
+sparql:
+  algorithms: |
+    PREFIX pi: <https://wasm4pm.dev/pi#>
+    SELECT ?algorithmId ?algorithmLabel ?category ?outputType ?citation
+    WHERE {
+      ?a a pi:ProcessIntelligenceAlgorithm ;
+         pi:algorithmId ?algorithmId ;
+         pi:algorithmLabel ?algorithmLabel ;
+         pi:category ?category ;
+         pi:outputType ?outputType ;
+         pi:citation ?citation .
+    }
+    ORDER BY ?algorithmId
+force: true
+skip_empty: true
+---
+-- RENDERED by `ggen sync` from lean-math-pack (wasm4pm pi: algorithm facts).
+-- Do not edit by hand: rows enter through the ontology, never here.
+import Mathlib
+import ProcInt.Foundations.Metric
+
+/-! # ProcInt.Registry.Algorithms
+
+The 60 process-intelligence algorithm specifications, rendered one
+`AlgorithmSpec` per `pi:ProcessIntelligenceAlgorithm` individual in the
+wasm4pm facts ontology, ordered by algorithm id. The count theorem pins
+the registry's cardinality in the kernel. -/
+
+namespace ProcInt
+
+{% for row in algorithms %}/-- Algorithm `{{ row.algorithmId }}` ({{ row.category }} → {{ row.outputType }}). -/
+def alg_{{ row.algorithmId }} : AlgorithmSpec :=
+  ⟨"{{ row.algorithmId }}", "{{ row.algorithmLabel | replace(from='"', to="'") }}", "{{ row.category | replace(from='"', to="'") }}", "{{ row.outputType | replace(from='"', to="'") }}", "{{ row.citation | replace(from='"', to="'") }}"⟩
+
+{% endfor %}/-- Every algorithm specification, ordered by algorithm id. -/
+def allAlgorithms : List AlgorithmSpec :=
+  [ {% for row in algorithms %}alg_{{ row.algorithmId }}{% if not loop.last %},
+    {% endif %}{% endfor %} ]
+
+/-- The registry holds exactly 60 algorithms — the DfCM cross-product
+cardinality pinned in the kernel. -/
+theorem allAlgorithms_count : allAlgorithms.length = 60 := by rfl
+
+end ProcInt

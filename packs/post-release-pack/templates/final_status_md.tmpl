@@ -1,0 +1,83 @@
+---
+to: "release/FINAL_STATUS.md"
+sparql:
+  meta: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?releaseId ?coreReleaseHash ?coreProven ?coreTotalDecls ?statedCount
+           ?renderedCommit ?coreTag ?tagCommit ?tagGate ?packetHash ?arxivStatus
+           ?arxivDetail ?replayStatus ?docsLane ?crownStatus ?publication
+    WHERE { ?m a post:MetaNode ; post:releaseId ?releaseId ;
+      post:coreReleaseHash ?coreReleaseHash ; post:coreProven ?coreProven ;
+      post:coreTotalDecls ?coreTotalDecls ; post:statedCount ?statedCount ;
+      post:renderedCommit ?renderedCommit ; post:coreTag ?coreTag ;
+      post:tagCommit ?tagCommit ; post:tagGate ?tagGate ;
+      post:packetHash ?packetHash ; post:arxivStatus ?arxivStatus ;
+      post:arxivDetail ?arxivDetail ; post:replayStatus ?replayStatus ;
+      post:docsLane ?docsLane ; post:crownStatus ?crownStatus ;
+      post:publication ?publication . }
+  packets: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?packetId ?packetStatus ?publication
+    WHERE { ?p a post:Packet ; post:packetId ?packetId ;
+      post:packetStatus ?packetStatus ; post:publication ?publication . }
+    ORDER BY ?packetId
+  obligations: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?oblName ?oblStatus ?oblNote
+    WHERE { ?o a post:Obligation ; post:oblOrder ?ord ; post:oblName ?oblName ;
+      post:oblStatus ?oblStatus ; post:oblNote ?oblNote . }
+    ORDER BY ?ord
+force: true
+skip_empty: true
+---
+# FINAL STATUS — {% for m in meta %}{{ m.releaseId }}{% endfor %}
+
+Rendered view over standing (post-release-pack). Nothing here is asserted
+in prose: every value is projected from receipts. Layered standing — the
+core release, the publication packet, and the auxiliary lanes are three
+different identities and must not be flattened into one verdict.
+
+## Core certified release (frozen)
+
+```
+{% for m in meta %}CORE_RELEASE=ALIVE
+CORE_RELEASE_HASH={{ m.coreReleaseHash }}
+CORE_PROVEN={{ m.coreProven }}
+CORE_TOTAL_DECLS={{ m.coreTotalDecls }}
+CORE_STATED={{ m.statedCount }}
+RENDERED_COMMIT={{ m.renderedCommit }}
+TAG_EXPECTED={{ m.coreTag }}
+TAG_COMMIT={{ m.tagCommit }}
+RENDERED_COMMIT_IS_ANCESTOR_OF_TAG={{ m.tagGate }}
+{% endfor %}```
+
+## Publication packet (separate identity; never self-actuated)
+
+```
+{% for m in meta %}POST_RELEASE_PACKET_HASH={{ m.packetHash }}
+PUBLICATION_ACTUATION={{ m.publication }}
+ARXIV_PACKET={{ m.arxivStatus }}
+{% endfor %}{% for p in packets %}{{ p.packetId | upper }}_PACKET={{ p.packetStatus }}
+{% endfor %}```
+
+{% for m in meta %}arXiv gate: {{ m.arxivDetail }}.{% endfor %}
+Actuation packets whose requirements are all met are ALIVE; publication
+itself remains the user's action in every case.
+
+## Auxiliary lanes
+
+```
+{% for m in meta %}REPLAY={{ m.replayStatus }}
+DOCS_LANE={{ m.docsLane }}
+WFNET_CROWN_THEOREM={{ m.crownStatus }}
+NEXT_DOMAIN_FOUNDRY=PLANNED
+{% endfor %}```
+
+## Crown research lane
+
+| Obligation | Status | Note |
+|---|---|---|
+{% for o in obligations %}| `{{ o.oblName }}` | {{ o.oblStatus }} | {{ o.oblNote }} |
+{% endfor %}
+STATED is never silently promoted: `ProcInt.Release.crown_not_promoted`
+is kernel-admitted over this same list.

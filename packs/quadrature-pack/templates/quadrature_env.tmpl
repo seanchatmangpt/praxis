@@ -1,0 +1,37 @@
+---
+to: "release/quadrature.env"
+sparql:
+  results: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?standingQuadrature ?orphanTtl ?orphanLean ?orphanClaims ?orphanManifest ?orphanProcess ?unsupportedEval ?untracedArtifacts ?unclassifiedRefusals
+    WHERE {
+      ?r a quad:Results ;
+         quad:standingQuadrature ?standingQuadrature ;
+         quad:orphanTtlDecls ?orphanTtl ;
+         quad:orphanLeanDecls ?orphanLean ;
+         quad:orphanPaperClaims ?orphanClaims ;
+         quad:orphanManifestFields ?orphanManifest ;
+         quad:orphanProcessEvents ?orphanProcess ;
+         quad:unsupportedEvaluationNumbers ?unsupportedEval ;
+         quad:untracedArtifacts ?untracedArtifacts ;
+         quad:unclassifiedRefusals ?unclassifiedRefusals .
+    }
+force: true
+skip_empty: true
+---
+{% for r in results %}STANDING_QUADRATURE={{ r.standingQuadrature }}
+ORPHAN_TTL_DECLS={{ r.orphanTtl }}
+ORPHAN_LEAN_DECLS={{ r.orphanLean }}
+ORPHAN_PAPER_CLAIMS={{ r.orphanClaims }}
+ORPHAN_MANIFEST_FIELDS={{ r.orphanManifest }}
+ORPHAN_PROCESS_EVENTS={{ r.orphanProcess }}
+UNSUPPORTED_EVALUATION_NUMBERS={{ r.unsupportedEval }}
+UNTRACED_ARTIFACTS={{ r.untracedArtifacts }}
+UNCLASSIFIED_REFUSALS={{ r.unclassifiedRefusals }}
+DECLARATION_SOURCE=RDF_TTL
+LEAN_SOURCE_ORIGIN=GGEN_RENDERED_FROM_TTL
+GGEN_RENDERED_LEAN_SOURCE=TRUE
+GGEN_CERTIFIED_MATHEMATICS=FALSE
+LEAN_KERNEL_ADMITTED=TRUE
+LLM_TRUSTED_BASE=FALSE
+{% endfor %}

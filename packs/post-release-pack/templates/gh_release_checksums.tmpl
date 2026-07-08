@@ -1,0 +1,14 @@
+---
+to: "dist/github-release/checksums.txt"
+sparql:
+  sums: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?sumFile ?sumHash
+    WHERE { ?s a post:Checksum ; post:sumOrder ?ord ;
+      post:sumFile ?sumFile ; post:sumHash ?sumHash . }
+    ORDER BY ?ord
+force: true
+skip_empty: true
+---
+{% for s in sums %}{{ s.sumHash }}  {{ s.sumFile }}
+{% endfor %}

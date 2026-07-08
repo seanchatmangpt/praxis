@@ -1,0 +1,87 @@
+---
+to: "release/quadrature.json"
+sparql:
+  a_results: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?standingQuadrature ?orphanTtl ?orphanLean ?orphanClaims ?orphanManifest ?orphanProcess ?unsupportedEval ?untracedArtifacts ?unclassifiedRefusals ?releaseId ?runId ?ttlCount ?leanCount ?manifestCount ?auditCount ?claimCount ?evalCount ?eventCount
+    WHERE {
+      ?r a quad:Results ;
+         quad:standingQuadrature ?standingQuadrature ;
+         quad:orphanTtlDecls ?orphanTtl ;
+         quad:orphanLeanDecls ?orphanLean ;
+         quad:orphanPaperClaims ?orphanClaims ;
+         quad:orphanManifestFields ?orphanManifest ;
+         quad:orphanProcessEvents ?orphanProcess ;
+         quad:unsupportedEvaluationNumbers ?unsupportedEval ;
+         quad:untracedArtifacts ?untracedArtifacts ;
+         quad:unclassifiedRefusals ?unclassifiedRefusals ;
+         quad:releaseId ?releaseId ;
+         quad:runId ?runId ;
+         quad:ttlCount ?ttlCount ;
+         quad:leanCount ?leanCount ;
+         quad:manifestCount ?manifestCount ;
+         quad:auditCount ?auditCount ;
+         quad:claimCount ?claimCount ;
+         quad:evalCount ?evalCount ;
+         quad:eventCount ?eventCount .
+    }
+  edges: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?pairKey ?pairLabel ?count ?result ?order
+    WHERE {
+      ?e a quad:EdgePair ;
+         quad:pairKey ?pairKey ;
+         quad:pairLabel ?pairLabel ;
+         quad:count ?count ;
+         quad:result ?result ;
+         quad:order ?order .
+    }
+    ORDER BY ?order
+  claims: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?claimId ?claimText ?evidenceRef ?order
+    WHERE {
+      ?c a quad:Claim ;
+         quad:claimId ?claimId ;
+         quad:claimText ?claimText ;
+         quad:evidenceRef ?evidenceRef ;
+         quad:order ?order .
+    }
+    ORDER BY ?order
+force: true
+skip_empty: true
+---
+{% for r in a_results %}{
+  "schema": "mfact.quadrature.v1",
+  "release_id": {{ r.releaseId | json_encode }},
+  "run_identifier": {{ r.runId | json_encode }},
+  "slogan": "ggen renders. Lean admits. mfact certifies.",
+  "surfaces": {
+    "ttl": { "proven_decls": {{ r.ttlCount }} },
+    "lean": { "rendered_decls": {{ r.leanCount }} },
+    "manifest": { "proven_artifacts": {{ r.manifestCount }} },
+    "process": { "events": {{ r.eventCount }} },
+    "paper": { "claims": {{ r.claimCount }}, "evaluation_numbers": {{ r.evalCount }} }
+  },
+  "edges": [
+{% for e in edges %}    { "pair": {{ e.pairKey | json_encode }}, "label": {{ e.pairLabel | json_encode }}, "count": {{ e.count }}, "result": {{ e.result | json_encode }} }{% if not loop.last %},{% endif %}
+{% endfor %}  ],
+  "claims": [
+{% for c in claims %}    { "id": {{ c.claimId | json_encode }}, "text": {{ c.claimText | json_encode }}, "evidence": {{ c.evidenceRef | json_encode }} }{% if not loop.last %},{% endif %}
+{% endfor %}  ],
+  "results": {
+    "standing_quadrature": {{ r.standingQuadrature | json_encode }},
+    "orphan_ttl_decls": {{ r.orphanTtl }},
+    "orphan_lean_decls": {{ r.orphanLean }},
+    "orphan_paper_claims": {{ r.orphanClaims }},
+    "orphan_manifest_fields": {{ r.orphanManifest }},
+    "orphan_process_events": {{ r.orphanProcess }},
+    "unsupported_evaluation_numbers": {{ r.unsupportedEval }},
+    "untraced_artifacts": {{ r.untracedArtifacts }},
+    "unclassified_refusals": {{ r.unclassifiedRefusals }},
+    "llm_trusted_base": false,
+    "ggen_certified_mathematics": false,
+    "lean_kernel_admitted": true
+  }
+}
+{% endfor %}

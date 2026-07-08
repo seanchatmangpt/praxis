@@ -1,0 +1,15 @@
+---
+to: "paper/crown_jewel_status.tex"
+sparql:
+  a_r: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?crownJewel WHERE { ?r a quad:Results ; quad:crownJewel ?crownJewel . }
+force: true
+skip_empty: true
+---
+% GENERATED FILE — DO NOT EDIT BY HAND (source: quadrature graph via ProcInt.crownJewel_status)
+{% for r in a_r %}The release-time classification of the short-circuit soundness
+characterization is \textbf{\CrownJewelStatus} (ground truth:
+\texttt{ProcInt.crownJewel\_status}); this fragment is generated from the
+catalog and cannot report it as proven while the obligation is open.
+{% endfor %}

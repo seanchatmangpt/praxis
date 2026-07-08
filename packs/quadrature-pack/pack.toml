@@ -1,0 +1,4 @@
+[pack]
+name = "quadrature-pack"
+version = "26.7.7"
+description = "Renders the Standing Quadrature artifacts (quadrature.json/env/md, the kernel-checked Lean witness ProcInt.Release.Quadrature, and the paper table) from the quadrature graph produced by scripts/build_quadrature.py. ggen renders; Lean admits; mfact certifies."

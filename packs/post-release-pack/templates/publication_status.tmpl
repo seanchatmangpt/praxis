@@ -1,0 +1,36 @@
+---
+to: "paper/publication_status.tex"
+sparql:
+  a_m: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?releaseId ?arxivStatus ?arxivDetail ?arxivFileCount ?publicationTex
+    WHERE { ?m a post:MetaNode ; post:releaseId ?releaseId ;
+      post:arxivStatus ?arxivStatus ;
+      post:arxivDetail ?arxivDetail ; post:arxivFileCount ?arxivFileCount ;
+      post:publicationTex ?publicationTex . }
+  packets: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?packetIdTex ?packetStatus
+    WHERE { ?p a post:Packet ; post:packetIdTex ?packetIdTex ;
+      post:packetStatus ?packetStatus . }
+    ORDER BY ?packetIdTex
+force: true
+skip_empty: true
+---
+% RENDERED by `ggen sync` from the post-release graph (post-release-pack) — DO NOT EDIT BY HAND
+{% for m in a_m %}\paragraph{Publication packet.}
+Publication of {{ m.releaseId }} is manufactured as its own identity, distinct
+from the certified core release: a packet hash folded over the packet's
+evidence inputs (recorded in \texttt{release/final\_status.json}; this
+paper is itself one of those inputs and therefore cannot embed the hash
+without self-reference), with each actuation surface gated on evaluated
+requirements. The arXiv packet is
+\texttt{{ '{' }}{{ m.arxivStatus }}{{ '}' }} ({{ m.arxivDetail }};
+{{ m.arxivFileCount }} declared files, declared $=$ packed enforced).
+Packet statuses:
+{% for p in packets %}\texttt{{ '{' }}{{ p.packetIdTex }}{{ '}' }}$=$\texttt{{ '{' }}{{ p.packetStatus }}{{ '}' }}{% if not loop.last %}, {% endif %}{% endfor %}.
+No packet self-actuates: publication is recorded as
+\texttt{{ '{' }}{{ m.publicationTex }}{{ '}' }} in every case, and the
+kernel-admitted witness \texttt{ProcInt.Release.PostRelease} refuses any
+render in which a packet claims otherwise.
+{% endfor %}

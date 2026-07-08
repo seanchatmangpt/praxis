@@ -1,0 +1,47 @@
+---
+to: "paper/conclusion.tex"
+sparql:
+  a_r: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?releaseTag WHERE { ?r a quad:Results ; quad:releaseTag ?releaseTag . }
+force: true
+skip_empty: true
+---
+% GENERATED FILE — DO NOT EDIT BY HAND (source: quadrature graph; see release_macros.tex)
+{% for r in a_r %}We have presented \textsf{mfact} as a Lean~4 framework for receipted
+mathematical manufacturing and \textsf{procint} as its first manufactured
+process-intelligence domain. The certified release \texttt{\ReleaseTag}
+contains \KernelTheorems{} kernel-proven and axiom-audited theorems out of
+\TotalDecls{} declarations, with \SorryCount{} sorries, positive and
+negative fixture coverage, and a BLAKE3-folded release hash. The central
+claim is not that generation is trustworthy; it is the opposite:
+generation is untrusted, and therefore mathematical standing must be
+manufactured through explicit admission, refusal, audit, manifest, and
+replay.
+
+This changes the unit of formalization. A theorem is no longer treated
+merely as a local proof term. In a manufactured release, a theorem is an
+admitted artifact with provenance, hash, axiom footprint, fixture status,
+manifest position, and replay path. A failed theorem is not erased or
+softened; it is refused or downgraded to stated status. A release is not
+declared successful by prose; it is certified by a receipt-bearing
+boundary. The release also closes Standing Quadrature
+(\QuadratureStatus): the declaration catalog, manifest, and audit
+surfaces, the claim--evidence ledger, and the process-trace conformance
+theorems are connected by generated witnesses admitted by Lean.
+
+The crown-jewel workflow-net theorem remains intentionally classified as
+\emph{\CrownJewelStatus}: the short-circuit characterization of soundness
+by liveness and boundedness is preserved as a research obligation rather
+than reported as proven. This is not a release failure; it is the release
+boundary doing its job.
+
+The broader result is a bounded response to the problem of generated
+formal content. Rice-style undecidability is not denied; arbitrary
+semantic judgment is replaced by declared admission inside a replayable
+boundary. Contact is not consequence; candidate generation is not proof;
+compilation is not full standing; and prose is not receipt. A
+mathematical artifact stands only when \(R_B \vdash A = \mu(O^*_B)\).
+The release therefore does not ask for belief; it eliminates belief as a
+standing mechanism.
+{% endfor %}

@@ -1,0 +1,48 @@
+---
+to: "dist/github-release/body.md"
+sparql:
+  meta: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?releaseId ?coreReleaseHash ?coreProven ?coreTotalDecls ?statedCount
+           ?coreTag ?arxivStatus ?crownStatus
+    WHERE { ?m a post:MetaNode ; post:releaseId ?releaseId ;
+      post:coreReleaseHash ?coreReleaseHash ; post:coreProven ?coreProven ;
+      post:coreTotalDecls ?coreTotalDecls ; post:statedCount ?statedCount ;
+      post:coreTag ?coreTag ; post:arxivStatus ?arxivStatus ;
+      post:crownStatus ?crownStatus . }
+  sums: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?sumFile ?sumHash
+    WHERE { ?s a post:Checksum ; post:sumOrder ?ord ;
+      post:sumFile ?sumFile ; post:sumHash ?sumHash . }
+    ORDER BY ?ord
+force: true
+skip_empty: true
+---
+{% for m in meta %}# mfact {{ m.releaseId }} — procint certified release
+
+`mfact` manufactures `procint`: a Lean 4 process-intelligence corpus whose
+declarations live in an RDF/Turtle catalog, are rendered by `ggen`, admitted
+by the Lean kernel, and certified with computed receipts. ggen renders;
+Lean admits; mfact certifies.
+
+- **{{ m.coreTotalDecls }}** declarations recorded in the catalog
+- **{{ m.coreProven }}** theorems kernel-admitted and axiom-audited
+  (footprint within propext / Classical.choice / Quot.sound)
+- **{{ m.statedCount }}** statements formalized but honestly STATED, not proven
+  (the WF-net soundness equivalence remains {{ m.crownStatus }})
+- Standing Quadrature closed: TTL x Lean x Manifest x ProcessEvidence x
+  PaperClaims, zero orphans, kernel-admitted witness
+- Genesis-folded release hash: `{{ m.coreReleaseHash }}`
+
+Reproduce: see `README_REPRODUCIBILITY.md` and `release/replay_plan.json`
+at tag `{{ m.coreTag }}`.
+
+## Checksums (BLAKE3)
+
+```
+{% endfor %}{% for s in sums %}{{ s.sumHash }}  {{ s.sumFile }}
+{% endfor %}```
+
+This packet was manufactured; publishing it is a human action
+(PENDING_EXTERNAL_ACTUATION).

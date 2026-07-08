@@ -1,0 +1,35 @@
+---
+to: "research/wfnet/obligations.toml"
+sparql:
+  a_m: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?releaseId ?crownStatus
+    WHERE { ?m a post:MetaNode ; post:releaseId ?releaseId ;
+      post:crownStatus ?crownStatus . }
+  obligations: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?oblName ?oblStatus ?oblNote ?oblOrder
+    WHERE { ?o a post:Obligation ; post:oblOrder ?oblOrder ;
+      post:oblName ?oblName ; post:oblStatus ?oblStatus ;
+      post:oblNote ?oblNote . }
+    ORDER BY ?oblOrder
+force: true
+skip_empty: true
+---
+# RENDERED by `ggen sync` from the post-release graph (post-release-pack) — DO NOT EDIT BY HAND
+# Crown research lane: proof obligations toward the WF-net soundness
+# equivalence. Statuses are derived by grepping the TTL declaration
+# catalog, never asserted; STATED is never silently promoted
+# (ProcInt.Release.crown_not_promoted is kernel-admitted over this list).
+{% for m in a_m %}
+[crown]
+release = "{{ m.releaseId }}"
+status = "{{ m.crownStatus }}"
+{% endfor %}
+{% for o in obligations %}[[obligation]]
+order = {{ o.oblOrder }}
+name = "{{ o.oblName }}"
+status = "{{ o.oblStatus }}"
+note = "{{ o.oblNote }}"
+
+{% endfor %}

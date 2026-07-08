@@ -1,0 +1,442 @@
+@prefix procint: <https://mfact.dev/procint#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Family: trees (Models.ProcessTree / Models.Powl / Models.ChoiceGraph) ──
+# Ported from wasm4pm-compat: process_tree.rs, powl.rs, choice_graph.rs.
+# All leanCode kernel-verified via lake env lean on trees_scratch.lean (exit 0, zero sorries).
+
+# ═══ Module 60: Models.ProcessTree ═══
+
+procint:Mod_Models_ProcessTree a procint:Module ;
+  procint:moduleId "Models.ProcessTree" ;
+  procint:modPath "Models/ProcessTree" ;
+  procint:order 60 ;
+  procint:moduleDoc "Block-structured process trees (Leemans 2013 inductive miner; van der Aalst, Process Mining 2016 ch. 3): leaf, silent, seq, xor, par, loop operators with a recursively defined trace-language semantics, including an explicit interleaving function for the parallel operator and a loop-language inductive predicate. Ported from wasm4pm-compat process_tree.rs (structure-only shape canon)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_ProcessTree a procint:Decl ;
+  procint:inModule "Models.ProcessTree" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.ProcessTree" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A block-structured process tree (Leemans 2013 inductive-miner operators;
+ported from wasm4pm-compat process_tree.rs ProcessTreeOperator): activity leaf,
+silent step (tau), binary sequence, exclusive choice, parallel composition, and
+loop with a do-body and a redo-branch. -/
+inductive ProcessTree (α : Type*)
+  | leaf (a : α)
+  | silent
+  | seq (l r : ProcessTree α)
+  | xor (l r : ProcessTree α)
+  | par (l r : ProcessTree α)
+  | loop (body redo : ProcessTree α)""" .
+
+procint:Decl_interleavings a procint:Decl ;
+  procint:inModule "Models.ProcessTree" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.interleavings" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- All interleavings (shuffles) of two lists: the trace semantics of the
+parallel operator. Recursion on the sum of lengths. -/
+def interleavings {α : Type*} : List α → List α → List (List α)
+  | [], ys => [ys]
+  | xs, [] => [xs]
+  | x :: xs, y :: ys =>
+      ((interleavings xs (y :: ys)).map (fun w => x :: w)) ++
+      ((interleavings (x :: xs) ys).map (fun w => y :: w))
+  termination_by xs ys => xs.length + ys.length""" .
+
+procint:Decl_seqLang a procint:Decl ;
+  procint:inModule "Models.ProcessTree" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.seqLang" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Concatenation language: traces of a sequence operator are concatenations
+u ++ v with u from the left language and v from the right language. -/
+def seqLang {α : Type*} (A B : Set (List α)) : Set (List α) :=
+  setOf (fun w => ∃ u ∈ A, ∃ v ∈ B, w = u ++ v)""" .
+
+procint:Decl_LoopLang a procint:Decl ;
+  procint:inModule "Models.ProcessTree" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.LoopLang" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Loop language of do-language B and redo-language R: a do-trace, followed by
+zero or more (redo-trace ++ do-trace) rounds. Semantics of the loop operator
+(Leemans 2013: loop(body, redo) plays body, then optionally redo then body again). -/
+inductive LoopLang {α : Type*} (B R : Set (List α)) : List α → Prop
+  | base {w : List α} : w ∈ B → LoopLang B R w
+  | step {u v w : List α} : LoopLang B R u → v ∈ R → w ∈ B → LoopLang B R (u ++ v ++ w)""" .
+
+procint:Decl_ProcessTree_language a procint:Decl ;
+  procint:inModule "Models.ProcessTree" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.ProcessTree.language" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Trace language of a process tree (structural recursion). leaf a admits the
+singleton trace, silent the empty trace, seq concatenates, xor unions, par takes
+interleavings, loop takes LoopLang of body and redo languages. -/
+def ProcessTree.language {α : Type*} : ProcessTree α → Set (List α)
+  | .leaf a => ({[a]} : Set (List α))
+  | .silent => ({([] : List α)} : Set (List α))
+  | .seq l r => seqLang l.language r.language
+  | .xor l r => l.language ∪ r.language
+  | .par l r => setOf (fun w => ∃ u ∈ l.language, ∃ v ∈ r.language, w ∈ interleavings u v)
+  | .loop b r => setOf (fun w => LoopLang b.language r.language w)""" .
+
+procint:Decl_ProcessTree_language_leaf_silent a procint:Decl ;
+  procint:inModule "Models.ProcessTree" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.ProcessTree.language_leaf_silent" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ProcessTree.language_leaf_silent' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The language of an activity leaf is exactly the singleton trace, and the
+language of the silent step is exactly the empty trace. -/
+theorem ProcessTree.language_leaf_silent {α : Type*} (a : α) :
+    (ProcessTree.leaf a).language = ({[a]} : Set (List α)) ∧
+      (ProcessTree.silent : ProcessTree α).language = ({([] : List α)} : Set (List α)) :=
+  ⟨rfl, rfl⟩""" .
+
+procint:Decl_ProcessTree_mem_language_seq_leaf a procint:Decl ;
+  procint:inModule "Models.ProcessTree" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.ProcessTree.mem_language_seq_leaf" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ProcessTree.mem_language_seq_leaf' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The two-activity sequence seq(leaf a, leaf b) admits the trace a·b. -/
+theorem ProcessTree.mem_language_seq_leaf {α : Type*} (a b : α) :
+    [a, b] ∈ ((ProcessTree.leaf a).seq (ProcessTree.leaf b)).language := by
+  refine ⟨[a], rfl, [b], rfl, rfl⟩""" .
+
+procint:Decl_length_of_mem_interleavings a procint:Decl ;
+  procint:inModule "Models.ProcessTree" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.length_of_mem_interleavings" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.length_of_mem_interleavings' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Every interleaving of xs and ys has length xs.length + ys.length. -/
+theorem length_of_mem_interleavings {α : Type*} :
+    ∀ (xs ys : List α), ∀ w ∈ interleavings xs ys, w.length = xs.length + ys.length
+  | [], ys, w, h => by
+      simp only [interleavings, List.mem_singleton] at h
+      subst h; simp
+  | x :: xs, [], w, h => by
+      simp only [interleavings, List.mem_singleton] at h
+      subst h; simp
+  | x :: xs, y :: ys, w, h => by
+      simp only [interleavings, List.mem_append, List.mem_map] at h
+      rcases h with ⟨l, hl, rfl⟩ | ⟨l, hl, rfl⟩
+      · have := length_of_mem_interleavings xs (y :: ys) l hl
+        simp only [List.length_cons] at *
+        omega
+      · have := length_of_mem_interleavings (x :: xs) ys l hl
+        simp only [List.length_cons] at *
+        omega
+  termination_by xs ys => xs.length + ys.length""" .
+
+procint:Decl_seqLang_assoc a procint:Decl ;
+  procint:inModule "Models.ProcessTree" ;
+  procint:declOrder 9 ;
+  procint:declName "ProcInt.seqLang_assoc" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.seqLang_assoc' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- Concatenation of languages is associative (list append associativity lifted
+to trace languages). -/
+theorem seqLang_assoc {α : Type*} (A B C : Set (List α)) :
+    seqLang (seqLang A B) C = seqLang A (seqLang B C) := by
+  ext w
+  constructor
+  · rintro ⟨uv, ⟨u, hu, v, hv, rfl⟩, c, hc, rfl⟩
+    exact ⟨u, hu, v ++ c, ⟨v, hv, c, hc, rfl⟩, List.append_assoc u v c⟩
+  · rintro ⟨u, hu, vc, ⟨v, hv, c, hc, rfl⟩, rfl⟩
+    exact ⟨u ++ v, ⟨u, hu, v, hv, rfl⟩, c, hc, (List.append_assoc u v c).symm⟩""" .
+
+procint:Decl_ProcessTree_language_seq_assoc a procint:Decl ;
+  procint:inModule "Models.ProcessTree" ;
+  procint:declOrder 10 ;
+  procint:declName "ProcInt.ProcessTree.language_seq_assoc" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ProcessTree.language_seq_assoc' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The sequence operator is associative at the language level:
+language(seq(seq t u, v)) = language(seq(t, seq u v)). -/
+theorem ProcessTree.language_seq_assoc {α : Type*} (t u v : ProcessTree α) :
+    ((t.seq u).seq v).language = (t.seq (u.seq v)).language := by
+  simp only [ProcessTree.language]
+  exact seqLang_assoc _ _ _""" .
+
+# ═══ Module 61: Models.Powl ═══
+
+procint:Mod_Models_Powl a procint:Module ;
+  procint:moduleId "Models.Powl" ;
+  procint:modPath "Models/Powl" ;
+  procint:order 61 ;
+  procint:moduleDoc "POWL — Partially Ordered Workflow Language (Kourani and van Zelst, BPM 2023, Definitions 1-2): atoms, silent steps, n-ary exclusive choice, do/redo loops, and partial orders over submodels with an index-level precedence relation, plus the WellFormed predicate encoding the arity and strict-partial-order side conditions. Ported from wasm4pm-compat powl.rs (PowlNodeKind and the InvalidChoiceArity / CyclicPartialOrder refusal laws)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_Powl a procint:Decl ;
+  procint:inModule "Models.Powl" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.Powl" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- POWL model (Kourani and van Zelst, BPM 2023, Definitions 1-2): an activity
+atom, a silent step, an exclusive choice over a list of submodels, a loop with
+do-part and redo-part, and a partial order over a list of submodels whose
+precedence relation is given on child indices. Ported from wasm4pm-compat
+powl.rs. -/
+inductive Powl (α : Type*)
+  | atom (a : α)
+  | silent
+  | xor (children : List (Powl α))
+  | loop (doP redoP : Powl α)
+  | po (children : List (Powl α)) (prec : ℕ → ℕ → Prop)""" .
+
+procint:Decl_Powl_WellFormed a procint:Decl ;
+  procint:inModule "Models.Powl" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.Powl.WellFormed" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Well-formedness of a POWL model (BPM 2023 Def 1-2 side conditions, matching
+the wasm4pm-compat refusal laws InvalidChoiceArity and CyclicPartialOrder):
+an xor needs at least two children; a partial order's precedence must be
+irreflexive and transitive on indices below the children count; well-formedness
+is hereditary. -/
+inductive Powl.WellFormed {α : Type*} : Powl α → Prop
+  | atom (a : α) : Powl.WellFormed (Powl.atom a)
+  | silent : Powl.WellFormed (Powl.silent : Powl α)
+  | xor (children : List (Powl α))
+      (hlen : 2 ≤ children.length)
+      (hall : ∀ c ∈ children, Powl.WellFormed c) :
+      Powl.WellFormed (Powl.xor children)
+  | loop (doP redoP : Powl α) :
+      Powl.WellFormed doP → Powl.WellFormed redoP →
+      Powl.WellFormed (Powl.loop doP redoP)
+  | po (children : List (Powl α)) (prec : ℕ → ℕ → Prop)
+      (hirr : ∀ i, i < children.length → ¬ prec i i)
+      (htrans : ∀ i j k, i < children.length → j < children.length →
+        k < children.length → prec i j → prec j k → prec i k)
+      (hall : ∀ c ∈ children, Powl.WellFormed c) :
+      Powl.WellFormed (Powl.po children prec)""" .
+
+procint:Decl_Powl_WellFormed_xor_length a procint:Decl ;
+  procint:inModule "Models.Powl" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.Powl.WellFormed.xor_length" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.WellFormed.xor_length' does not depend on any axioms" ;
+  procint:leanCode """/-- Inversion: a well-formed xor has at least two children (the arity law
+behind PowlRefusal.InvalidChoiceArity in wasm4pm-compat powl.rs). -/
+theorem Powl.WellFormed.xor_length {α : Type*} {children : List (Powl α)}
+    (h : Powl.WellFormed (Powl.xor children)) : 2 ≤ children.length := by
+  cases h with
+  | xor _ hlen _ => exact hlen""" .
+
+procint:Decl_Powl_wellFormed_xor_pair a procint:Decl ;
+  procint:inModule "Models.Powl" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.Powl.wellFormed_xor_pair" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.wellFormed_xor_pair' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The binary choice between an atom and the silent step is well-formed. -/
+theorem Powl.wellFormed_xor_pair {α : Type*} (a : α) :
+    Powl.WellFormed (Powl.xor [Powl.atom a, Powl.silent]) := by
+  refine .xor _ (by simp) ?_
+  intro c hc
+  rcases List.mem_cons.mp hc with rfl | hc
+  · exact .atom a
+  · rcases List.mem_singleton.mp hc with rfl
+    exact .silent""" .
+
+procint:Decl_Powl_wellFormed_loop_atoms a procint:Decl ;
+  procint:inModule "Models.Powl" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.Powl.wellFormed_loop_atoms" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.wellFormed_loop_atoms' does not depend on any axioms" ;
+  procint:leanCode """/-- A loop of two atoms is well-formed (POWL loop has exactly a do-part and a
+redo-part; BPM 2023 Def 1). -/
+theorem Powl.wellFormed_loop_atoms {α : Type*} (a b : α) :
+    Powl.WellFormed (Powl.loop (Powl.atom a) (Powl.atom b)) :=
+  .loop _ _ (.atom a) (.atom b)""" .
+
+procint:Decl_Powl_wellFormed_po_emptyPrec a procint:Decl ;
+  procint:inModule "Models.Powl" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.Powl.wellFormed_po_emptyPrec" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Powl.wellFormed_po_emptyPrec' depends on axioms: [propext]" ;
+  procint:leanCode """/-- A partial order over two atoms with the empty precedence relation is
+well-formed: the empty relation is trivially irreflexive and transitive
+(fully concurrent partial order, BPM 2023 Def 2). -/
+theorem Powl.wellFormed_po_emptyPrec {α : Type*} (a b : α) :
+    Powl.WellFormed (Powl.po [Powl.atom a, Powl.atom b] (fun _ _ => False)) := by
+  refine .po _ _ (fun i _ h => h) (fun i j k _ _ _ h _ => h.elim) ?_
+  intro c hc
+  rcases List.mem_cons.mp hc with rfl | hc
+  · exact .atom a
+  · rcases List.mem_singleton.mp hc with rfl
+    exact .atom b""" .
+
+# ═══ Module 62: Models.ChoiceGraph ═══
+
+procint:Mod_Models_ChoiceGraph a procint:Module ;
+  procint:moduleId "Models.ChoiceGraph" ;
+  procint:modPath "Models/ChoiceGraph" ;
+  procint:order 62 ;
+  procint:moduleDoc "Choice graphs per Definition 1 of Kourani, Park, van der Aalst, Unlocking Non-Block-Structured Decisions: Inductive Mining with Choice Graphs (arXiv:2505.07052): a directed graph over start/end/activity/submodel nodes with a unique start (no incoming edges) and unique end (no outgoing edges) where every node lies on a start-to-end path; cycles permitted (POWL 2.0 relaxation). Ported from wasm4pm-compat choice_graph.rs (ChoiceGraph::new validation)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_ChoiceGraphNode a procint:Decl ;
+  procint:inModule "Models.ChoiceGraph" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.ChoiceGraphNode" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A node of a choice graph (Kourani, Park, van der Aalst, arXiv:2505.07052
+Definition 1; ported from wasm4pm-compat choice_graph.rs ChoiceGraphNode):
+the unique start marker, the unique end marker (named finish here since end is
+a Lean keyword), an inline activity, or a reference to a sub-model by index. -/
+inductive ChoiceGraphNode (α : Type*)
+  | start
+  | finish
+  | activity (a : α)
+  | subModel (i : ℕ)""" .
+
+procint:Decl_ChoiceGraph a procint:Decl ;
+  procint:inModule "Models.ChoiceGraph" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.ChoiceGraph" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A choice graph: a node list, directed index-pair edges, and designated
+start and end indices (choice_graph.rs ChoiceGraph fields). Validity is the
+separate predicate ChoiceGraph.Valid. -/
+structure ChoiceGraph (α : Type*) where
+  nodes : List (ChoiceGraphNode α)
+  edges : List (ℕ × ℕ)
+  startIdx : ℕ
+  endIdx : ℕ""" .
+
+procint:Decl_Reach a procint:Decl ;
+  procint:inModule "Models.ChoiceGraph" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.Reach" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Reachability along the directed edges of a choice graph: reflexive and
+closed under following one edge (the BFS reachability bfs_reach of
+choice_graph.rs, as an inductive predicate). -/
+inductive Reach (E : List (ℕ × ℕ)) : ℕ → ℕ → Prop
+  | refl (i : ℕ) : Reach E i i
+  | step {i j k : ℕ} : Reach E i j → (j, k) ∈ E → Reach E i k""" .
+
+procint:Decl_Reach_trans a procint:Decl ;
+  procint:inModule "Models.ChoiceGraph" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.Reach.trans" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Reach.trans' does not depend on any axioms" ;
+  procint:leanCode """/-- Reachability is transitive. -/
+theorem Reach.trans {E : List (ℕ × ℕ)} {i j k : ℕ}
+    (h1 : Reach E i j) (h2 : Reach E j k) : Reach E i k := by
+  induction h2 with
+  | refl => exact h1
+  | step _ e ih => exact .step ih e""" .
+
+procint:Decl_ChoiceGraph_Valid a procint:Decl ;
+  procint:inModule "Models.ChoiceGraph" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.ChoiceGraph.Valid" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Validity of a choice graph, per Definition 1 of arXiv:2505.07052 as checked
+by ChoiceGraph::new in choice_graph.rs: start and end indices in bounds, all
+edge endpoints in bounds, the start has no incoming edge, the end has no
+outgoing edge, and every node lies on some start-to-end path (is reachable from
+start and reaches end). Cycles are permitted (POWL 2.0 relaxation). -/
+def ChoiceGraph.Valid {α : Type*} (g : ChoiceGraph α) : Prop :=
+  g.startIdx < g.nodes.length ∧
+  g.endIdx < g.nodes.length ∧
+  (∀ e ∈ g.edges, e.1 < g.nodes.length ∧ e.2 < g.nodes.length) ∧
+  (∀ e ∈ g.edges, e.2 ≠ g.startIdx) ∧
+  (∀ e ∈ g.edges, e.1 ≠ g.endIdx) ∧
+  (∀ i, i < g.nodes.length →
+    Reach g.edges g.startIdx i ∧ Reach g.edges i g.endIdx)""" .
+
+procint:Decl_ChoiceGraph_HasEmptyPath a procint:Decl ;
+  procint:inModule "Models.ChoiceGraph" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.ChoiceGraph.HasEmptyPath" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The empty path: a direct start-to-end edge exists (has_empty_path in
+choice_graph.rs). -/
+def ChoiceGraph.HasEmptyPath {α : Type*} (g : ChoiceGraph α) : Prop :=
+  (g.startIdx, g.endIdx) ∈ g.edges""" .
+
+procint:Decl_ChoiceGraph_minimal a procint:Decl ;
+  procint:inModule "Models.ChoiceGraph" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.ChoiceGraph.minimal" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The minimal choice graph: just the start and end markers with the single
+edge start to end (the minimal_valid test of choice_graph.rs). -/
+def ChoiceGraph.minimal (α : Type*) : ChoiceGraph α :=
+  ⟨[ChoiceGraphNode.start, ChoiceGraphNode.finish], [(0, 1)], 0, 1⟩""" .
+
+procint:Decl_ChoiceGraph_minimal_valid a procint:Decl ;
+  procint:inModule "Models.ChoiceGraph" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.ChoiceGraph.minimal_valid" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ChoiceGraph.minimal_valid' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The minimal choice graph is valid per Definition 1. -/
+theorem ChoiceGraph.minimal_valid (α : Type*) : (ChoiceGraph.minimal α).Valid := by
+  refine ⟨by simp [ChoiceGraph.minimal], by simp [ChoiceGraph.minimal], ?_, ?_, ?_, ?_⟩
+  · intro e he
+    simp only [ChoiceGraph.minimal, List.mem_singleton] at he
+    subst he
+    simp [ChoiceGraph.minimal]
+  · intro e he
+    simp only [ChoiceGraph.minimal, List.mem_singleton] at he
+    subst he
+    simp [ChoiceGraph.minimal]
+  · intro e he
+    simp only [ChoiceGraph.minimal, List.mem_singleton] at he
+    subst he
+    simp [ChoiceGraph.minimal]
+  · intro i hi
+    simp only [ChoiceGraph.minimal, List.length_cons, List.length_nil] at hi
+    interval_cases i
+    · exact ⟨.refl 0, .step (.refl 0) (by simp [ChoiceGraph.minimal])⟩
+    · exact ⟨.step (.refl 0) (by simp [ChoiceGraph.minimal]), .refl 1⟩""" .
+
+procint:Decl_ChoiceGraph_minimal_hasEmptyPath a procint:Decl ;
+  procint:inModule "Models.ChoiceGraph" ;
+  procint:declOrder 9 ;
+  procint:declName "ProcInt.ChoiceGraph.minimal_hasEmptyPath" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.ChoiceGraph.minimal_hasEmptyPath' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The minimal choice graph has the empty path (direct start-to-end edge). -/
+theorem ChoiceGraph.minimal_hasEmptyPath (α : Type*) :
+    (ChoiceGraph.minimal α).HasEmptyPath := by
+  simp [ChoiceGraph.HasEmptyPath, ChoiceGraph.minimal]""" .

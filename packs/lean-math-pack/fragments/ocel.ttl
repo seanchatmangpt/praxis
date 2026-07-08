@@ -1,0 +1,530 @@
+@prefix procint: <https://mfact.dev/procint#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# Family: ocel — OCEL 2.0 + OCPQ process-intelligence math
+# Ported from /Users/sac/wasm4pm-compat/src/ocel.rs and src/ocpq.rs
+# Canon: OCEL 2.0 (arXiv 2403.01975 Def 1-2), OCPQ Section 4
+# Kernel-verified via scratchpad ocel_scratch.lean (lake env lean, exit 0)
+# ============================================================
+
+# ---------- Module: Ocel.Core (order 50) ----------
+
+procint:Mod_Ocel_Core a procint:Module ;
+  procint:moduleId "Ocel.Core" ;
+  procint:modPath "Ocel/Core" ;
+  procint:order 50 ;
+  procint:moduleDoc "Object-centric event logs, OCEL 2.0 (Berti, Koren, et al., arXiv 2403.01975, Def. 1-2): the OCEL structure with typed events and objects, discrete time, qualified E2O/O2O relations, time-stable event attributes and time-indexed object attributes, plus the derived object/event projections. Port of wasm4pm-compat src/ocel.rs (struct OCEL, OCEDO formal layer)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_OCEL a procint:Decl ;
+  procint:inModule "Ocel.Core" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.OCEL" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Object-centric event log, OCEL 2.0 (arXiv 2403.01975, Def. 1-2). An OCEL over
+event set E, object set O, event types ET, object types OT, qualifiers Q and
+attribute values V carries: an event-type map, a discrete timestamp map, an
+object-type map, qualified event-to-object and object-to-object relations, and
+attribute valuations — event attributes are time-stable, object attributes are
+time-indexed (oaval takes a timestamp). Port of wasm4pm-compat src/ocel.rs
+struct OCEL (OCEDO formal layer L = (E, O, eval, oaval)). -/
+structure OCEL (E O ET OT Q V : Type) where
+  evtype : E → ET
+  time : E → ℕ
+  objtype : O → OT
+  e2o : List (E × Q × O)
+  o2o : List (O × Q × O)
+  eaval : E → String → Option V
+  oaval : O → String → ℕ → Option V""" .
+
+procint:Decl_OCEL_objectsOf a procint:Decl ;
+  procint:inModule "Ocel.Core" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.OCEL.objectsOf" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Objects related to event e via the qualified E2O relation (OCEL 2.0 Def. 2;
+wasm4pm-compat src/ocel.rs fn e2o, projected to the object component). -/
+def OCEL.objectsOf {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) (e : E) : List O :=
+  (L.e2o.filter (fun t => decide (t.1 = e))).map (fun t => t.2.2)""" .
+
+procint:Decl_OCEL_eventsOf a procint:Decl ;
+  procint:inModule "Ocel.Core" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.OCEL.eventsOf" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Events related to object o via the qualified E2O relation (OCEL 2.0 Def. 2;
+the object-side projection dual to objectsOf). -/
+def OCEL.eventsOf {E O ET OT Q V : Type} [DecidableEq O]
+    (L : OCEL E O ET OT Q V) (o : O) : List E :=
+  (L.e2o.filter (fun t => decide (t.2.2 = o))).map (fun t => t.1)""" .
+
+procint:Decl_OCEL_objectsOf_length_le a procint:Decl ;
+  procint:inModule "Ocel.Core" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.OCEL.objectsOf_length_le" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.objectsOf_length_le' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The E2O projection of an event never exceeds the size of the raw qualified
+relation table (filter-then-map length bound). -/
+theorem OCEL.objectsOf_length_le {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) (e : E) :
+    (L.objectsOf e).length ≤ L.e2o.length := by
+  simpa [OCEL.objectsOf] using List.length_filter_le _ L.e2o""" .
+
+procint:Decl_OCEL_eventsOf_length_le a procint:Decl ;
+  procint:inModule "Ocel.Core" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.OCEL.eventsOf_length_le" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.eventsOf_length_le' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The dual bound for the object-side projection: eventsOf is a sublist-sized
+selection of the qualified E2O relation table. -/
+theorem OCEL.eventsOf_length_le {E O ET OT Q V : Type} [DecidableEq O]
+    (L : OCEL E O ET OT Q V) (o : O) :
+    (L.eventsOf o).length ≤ L.e2o.length := by
+  simpa [OCEL.eventsOf] using List.length_filter_le _ L.e2o""" .
+
+# ---------- Module: Ocel.Relations (order 51) ----------
+
+procint:Mod_Ocel_Relations a procint:Module ;
+  procint:moduleId "Ocel.Relations" ;
+  procint:modPath "Ocel/Relations" ;
+  procint:order 51 ;
+  procint:moduleDoc "Qualified E2O/O2O relation projections and the object interaction graph over an OCEL 2.0 log (arXiv 2403.01975 Def. 2 and Sec. 3): two objects interact iff they share an event. Includes soundness of the projection (raw triples land in objectsOf) and symmetry of interaction. Port of wasm4pm-compat src/ocel.rs fns e2o/o2o." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Ocel.Core""" .
+
+procint:Decl_OCEL_e2oProj a procint:Decl ;
+  procint:inModule "Ocel.Relations" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.OCEL.e2oProj" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Qualified E2O projection: the (qualifier, object) pairs attached to event e
+(OCEL 2.0 Def. 2; wasm4pm-compat src/ocel.rs fn e2o returns exactly these
+qualified pairs). -/
+def OCEL.e2oProj {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) (e : E) : List (Q × O) :=
+  (L.e2o.filter (fun t => decide (t.1 = e))).map (fun t => t.2)""" .
+
+procint:Decl_OCEL_o2oProj a procint:Decl ;
+  procint:inModule "Ocel.Relations" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.OCEL.o2oProj" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Qualified O2O projection: the (qualifier, target) pairs whose source is o
+(OCEL 2.0 Def. 2; wasm4pm-compat src/ocel.rs fn o2o). -/
+def OCEL.o2oProj {E O ET OT Q V : Type} [DecidableEq O]
+    (L : OCEL E O ET OT Q V) (o : O) : List (Q × O) :=
+  (L.o2o.filter (fun t => decide (t.1 = o))).map (fun t => t.2)""" .
+
+procint:Decl_OCEL_Interacts a procint:Decl ;
+  procint:inModule "Ocel.Relations" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.OCEL.Interacts" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Object interaction graph edge: two objects interact iff they share an event
+(standard object-interaction graph over an OCEL, cf. arXiv 2403.01975 Sec. 3). -/
+def OCEL.Interacts {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) (o₁ o₂ : O) : Prop :=
+  ∃ e : E, o₁ ∈ L.objectsOf e ∧ o₂ ∈ L.objectsOf e""" .
+
+procint:Decl_OCEL_interacts_symm a procint:Decl ;
+  procint:inModule "Ocel.Relations" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.OCEL.interacts_symm" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.interacts_symm' does not depend on any axioms" ;
+  procint:leanCode """/-- The interaction relation is symmetric: sharing an event is order-agnostic. -/
+theorem OCEL.interacts_symm {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) {o₁ o₂ : O}
+    (h : L.Interacts o₁ o₂) : L.Interacts o₂ o₁ := by
+  obtain ⟨e, h₁, h₂⟩ := h
+  exact ⟨e, h₂, h₁⟩""" .
+
+procint:Decl_OCEL_interacts_self a procint:Decl ;
+  procint:inModule "Ocel.Relations" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.OCEL.interacts_self" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.interacts_self' does not depend on any axioms" ;
+  procint:leanCode """/-- Any object appearing in some event's E2O projection interacts with itself. -/
+theorem OCEL.interacts_self {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) {o : O} {e : E}
+    (h : o ∈ L.objectsOf e) : L.Interacts o o :=
+  ⟨e, h, h⟩""" .
+
+procint:Decl_OCEL_e2oProj_length a procint:Decl ;
+  procint:inModule "Ocel.Relations" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.OCEL.e2oProj_length" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.e2oProj_length' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The qualified projection and the object projection of an event have equal
+length: both are maps over the same filtered relation table. -/
+theorem OCEL.e2oProj_length {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) (e : E) :
+    (L.e2oProj e).length = (L.objectsOf e).length := by
+  simp [OCEL.e2oProj, OCEL.objectsOf]""" .
+
+procint:Decl_OCEL_mem_objectsOf a procint:Decl ;
+  procint:inModule "Ocel.Relations" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.OCEL.mem_objectsOf" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.mem_objectsOf' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- Soundness of the E2O projection: a raw qualified triple (e, q, o) in the
+relation table puts o into objectsOf e. -/
+theorem OCEL.mem_objectsOf {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) {e : E} {q : Q} {o : O}
+    (h : (e, q, o) ∈ L.e2o) : o ∈ L.objectsOf e := by
+  unfold OCEL.objectsOf
+  exact List.mem_map.mpr ⟨(e, q, o), List.mem_filter.mpr ⟨h, by simp⟩, rfl⟩""" .
+
+# ---------- Module: Ocel.Lifecycle (order 52) ----------
+
+procint:Mod_Ocel_Lifecycle a procint:Module ;
+  procint:moduleId "Ocel.Lifecycle" ;
+  procint:modPath "Ocel/Lifecycle" ;
+  procint:order 52 ;
+  procint:moduleDoc "Object lifecycles over OCEL 2.0 logs: the created/active/archived phase lattice with well-formed transition relation (induced by ObjectTypeCardinality created-by/terminated-by event types, wasm4pm-compat src/ocel.rs), and the lifecycle of an object as its events sorted by time — time-orderedness stated as a Pairwise Prop (arXiv 2403.01975)." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Ocel.Core""" .
+
+procint:Decl_LifecyclePhase a procint:Decl ;
+  procint:inModule "Ocel.Lifecycle" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.LifecyclePhase" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Object lifecycle phase (wasm4pm-compat src/ocel.rs ObjectTypeCardinality:
+created-by events open a lifecycle, terminated-by events close it; the phase
+lattice is created → active → archived). -/
+inductive LifecyclePhase where
+  | created
+  | active
+  | archived
+deriving DecidableEq, Repr""" .
+
+procint:Decl_LifecycleStep a procint:Decl ;
+  procint:inModule "Ocel.Lifecycle" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.LifecycleStep" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Well-formed lifecycle transitions: an object activates once after creation
+and archives once from activity. This is the transition relation induced by the
+created-by / terminated-by event types of ObjectTypeCardinality. -/
+inductive LifecycleStep : LifecyclePhase → LifecyclePhase → Prop
+  | activate : LifecycleStep .created .active
+  | archive : LifecycleStep .active .archived""" .
+
+procint:Decl_lifecycleStep_irrefl a procint:Decl ;
+  procint:inModule "Ocel.Lifecycle" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.lifecycleStep_irrefl" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.lifecycleStep_irrefl' does not depend on any axioms" ;
+  procint:leanCode """/-- Lifecycle transitions are irreflexive: no phase steps to itself. -/
+theorem lifecycleStep_irrefl (p : LifecyclePhase) : ¬ LifecycleStep p p := by
+  intro h
+  cases h""" .
+
+procint:Decl_archived_terminal a procint:Decl ;
+  procint:inModule "Ocel.Lifecycle" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.archived_terminal" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.archived_terminal' does not depend on any axioms" ;
+  procint:leanCode """/-- The archived phase is terminal: no lifecycle step leaves it. -/
+theorem archived_terminal (p : LifecyclePhase) : ¬ LifecycleStep .archived p := by
+  intro h
+  cases h""" .
+
+procint:Decl_OCEL_TimeOrdered a procint:Decl ;
+  procint:inModule "Ocel.Lifecycle" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.OCEL.TimeOrdered" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A list of events is time-ordered when it is sorted by the OCEL timestamp
+map (OCEL 2.0: the lifecycle of an object is its events sorted by time). -/
+def OCEL.TimeOrdered {E O ET OT Q V : Type}
+    (L : OCEL E O ET OT Q V) (es : List E) : Prop :=
+  es.Pairwise (fun a b => L.time a ≤ L.time b)""" .
+
+procint:Decl_OCEL_IsLifecycle a procint:Decl ;
+  procint:inModule "Ocel.Lifecycle" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.OCEL.IsLifecycle" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- es is a lifecycle of object o when it is a permutation of the events of o
+that is time-ordered (OCEL 2.0: lifecycle = events of o sorted by time;
+wasm4pm-compat src/ocel.rs fn object_attr_timeline is the attribute analog). -/
+def OCEL.IsLifecycle {E O ET OT Q V : Type} [DecidableEq O]
+    (L : OCEL E O ET OT Q V) (o : O) (es : List E) : Prop :=
+  es.Perm (L.eventsOf o) ∧ L.TimeOrdered es""" .
+
+procint:Decl_OCEL_timeOrdered_nil a procint:Decl ;
+  procint:inModule "Ocel.Lifecycle" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.OCEL.timeOrdered_nil" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.timeOrdered_nil' does not depend on any axioms" ;
+  procint:leanCode """/-- The empty event list is trivially time-ordered. -/
+theorem OCEL.timeOrdered_nil {E O ET OT Q V : Type}
+    (L : OCEL E O ET OT Q V) : L.TimeOrdered ([] : List E) :=
+  List.Pairwise.nil""" .
+
+procint:Decl_OCEL_timeOrdered_singleton a procint:Decl ;
+  procint:inModule "Ocel.Lifecycle" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.OCEL.timeOrdered_singleton" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OCEL.timeOrdered_singleton' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- Any single event is trivially time-ordered. -/
+theorem OCEL.timeOrdered_singleton {E O ET OT Q V : Type}
+    (L : OCEL E O ET OT Q V) (e : E) : L.TimeOrdered [e] :=
+  List.pairwise_singleton (fun a b => L.time a ≤ L.time b) e""" .
+
+# ---------- Module: Ocpq.Query (order 54) ----------
+
+procint:Mod_Ocpq_Query a procint:Module ;
+  procint:moduleId "Ocpq.Query" ;
+  procint:modPath "Ocpq/Query" ;
+  procint:order 54 ;
+  procint:moduleDoc "OCPQ predicate ADT (OCPQ Section 4 BASIC_L; wasm4pm-compat src/ocpq.rs enum PredicateKind): E2O and O2O relation predicates plus an anonymous cardinality bound on an event's object projection, with satisfaction against an OCEL log as a Prop and decidable satisfaction under DecidableEq assumptions." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Ocel.Core
+import ProcInt.Ocel.Relations""" .
+
+procint:Decl_OcpqPredicate a procint:Decl ;
+  procint:inModule "Ocpq.Query" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.OcpqPredicate" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- OCPQ predicate ADT (wasm4pm-compat src/ocpq.rs enum PredicateKind, OCPQ
+Section 4 BASIC_L): an event-to-object relation predicate E2O(e, o, q), an
+object-to-object relation predicate O2O(src, q, dst), and an anonymous
+cardinality bound on the number of objects of an event, with inclusive
+[min, max] window. -/
+inductive OcpqPredicate (E O Q : Type) where
+  | e2oRel (e : E) (o : O) (q : Q)
+  | o2oRel (src : O) (q : Q) (dst : O)
+  | cardObjects (e : E) (min max : ℕ)""" .
+
+procint:Decl_OcpqPredicate_Sat a procint:Decl ;
+  procint:inModule "Ocpq.Query" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.OcpqPredicate.Sat" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Satisfaction of an OCPQ predicate against an OCEL log, as a Prop:
+E2O/O2O predicates assert membership of the qualified triple in the log's
+relation tables; cardObjects asserts the inclusive count window on the event's
+E2O projection (OCPQ Section 4 semantics; wasm4pm-compat src/ocpq.rs). -/
+def OcpqPredicate.Sat {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) : OcpqPredicate E O Q → Prop
+  | .e2oRel e o q => (e, q, o) ∈ L.e2o
+  | .o2oRel s q d => (s, q, d) ∈ L.o2o
+  | .cardObjects e mn mx =>
+      mn ≤ (L.objectsOf e).length ∧ (L.objectsOf e).length ≤ mx""" .
+
+procint:Decl_OcpqPredicate_instDecidableSat a procint:Decl ;
+  procint:inModule "Ocpq.Query" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.OcpqPredicate.instDecidableSat" ;
+  procint:declKind "instance" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Satisfaction is decidable when event, object and qualifier types have
+decidable equality: relation predicates reduce to decidable list membership,
+cardinality predicates to decidable ℕ comparisons. -/
+instance OcpqPredicate.instDecidableSat {E O ET OT Q V : Type}
+    [DecidableEq E] [DecidableEq O] [DecidableEq Q]
+    (L : OCEL E O ET OT Q V) : (p : OcpqPredicate E O Q) → Decidable (p.Sat L)
+  | .e2oRel e o q => inferInstanceAs (Decidable ((e, q, o) ∈ L.e2o))
+  | .o2oRel s q d => inferInstanceAs (Decidable ((s, q, d) ∈ L.o2o))
+  | .cardObjects e mn mx =>
+      inferInstanceAs
+        (Decidable (mn ≤ (L.objectsOf e).length ∧ (L.objectsOf e).length ≤ mx))""" .
+
+procint:Decl_OcpqPredicate_sat_e2oRel_iff a procint:Decl ;
+  procint:inModule "Ocpq.Query" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.OcpqPredicate.sat_e2oRel_iff" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OcpqPredicate.sat_e2oRel_iff' does not depend on any axioms" ;
+  procint:leanCode """/-- E2O predicate satisfaction is exactly membership of the qualified triple in
+the log's E2O table (definitional characterization). -/
+theorem OcpqPredicate.sat_e2oRel_iff {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) (e : E) (o : O) (q : Q) :
+    (OcpqPredicate.e2oRel e o q).Sat L ↔ (e, q, o) ∈ L.e2o :=
+  Iff.rfl""" .
+
+procint:Decl_OcpqPredicate_sat_e2oRel_mem a procint:Decl ;
+  procint:inModule "Ocpq.Query" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.OcpqPredicate.sat_e2oRel_mem" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.OcpqPredicate.sat_e2oRel_mem' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- A satisfied E2O predicate certifies the object projection: satisfaction
+puts the related object into objectsOf of the related event. -/
+theorem OcpqPredicate.sat_e2oRel_mem {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) {e : E} {o : O} {q : Q}
+    (h : (OcpqPredicate.e2oRel e o q).Sat L) : o ∈ L.objectsOf e :=
+  L.mem_objectsOf h""" .
+
+# ---------- Module: Ocpq.Cardinality (order 55) ----------
+
+procint:Mod_Ocpq_Cardinality a procint:Module ;
+  procint:moduleId "Ocpq.Cardinality" ;
+  procint:modPath "Ocpq/Cardinality" ;
+  procint:order 55 ;
+  procint:moduleDoc "OCPQ cardinality bounds: the CardBound structure carrying the min ≤ max well-formedness law as a proof field (port of wasm4pm-compat src/ocpq.rs CardinalityBoundConst, whose law is a const where-bound, and src/ocel.rs ObjectTypeCardinality.admits), with decidable admission, trivial-bound satisfaction at both endpoints, a widening preorder, monotonicity of satisfaction under widening, and the definitional bridge to Ocpq.Query cardObjects satisfaction." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Ocel.Core
+import ProcInt.Ocpq.Query""" .
+
+procint:Decl_CardBound a procint:Decl ;
+  procint:inModule "Ocpq.Cardinality" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.CardBound" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- An inclusive cardinality bound [min, max] with the well-formedness law
+min ≤ max carried as a proof field. Port of wasm4pm-compat src/ocpq.rs
+CardinalityBoundConst (where the law is a const where-bound) and of
+src/ocel.rs ObjectTypeCardinality's [min_count, max_count] window. -/
+structure CardBound where
+  min : ℕ
+  max : ℕ
+  le : min ≤ max""" .
+
+procint:Decl_CardBound_Admits a procint:Decl ;
+  procint:inModule "Ocpq.Cardinality" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.CardBound.Admits" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A count n satisfies a cardinality bound when it lies in the inclusive
+window (wasm4pm-compat src/ocel.rs fn ObjectTypeCardinality.admits). -/
+def CardBound.Admits (b : CardBound) (n : ℕ) : Prop :=
+  b.min ≤ n ∧ n ≤ b.max""" .
+
+procint:Decl_CardBound_instDecidableAdmits a procint:Decl ;
+  procint:inModule "Ocpq.Cardinality" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.CardBound.instDecidableAdmits" ;
+  procint:declKind "instance" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Admission is decidable: two ℕ comparisons. -/
+instance CardBound.instDecidableAdmits (b : CardBound) (n : ℕ) :
+    Decidable (b.Admits n) :=
+  inferInstanceAs (Decidable (b.min ≤ n ∧ n ≤ b.max))""" .
+
+procint:Decl_CardBound_admits_min a procint:Decl ;
+  procint:inModule "Ocpq.Cardinality" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.CardBound.admits_min" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.admits_min' does not depend on any axioms" ;
+  procint:leanCode """/-- Every well-formed bound admits its own lower endpoint (trivial-bound
+satisfaction: uses the min ≤ max law). -/
+theorem CardBound.admits_min (b : CardBound) : b.Admits b.min :=
+  ⟨le_refl b.min, b.le⟩""" .
+
+procint:Decl_CardBound_admits_max a procint:Decl ;
+  procint:inModule "Ocpq.Cardinality" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.CardBound.admits_max" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.admits_max' does not depend on any axioms" ;
+  procint:leanCode """/-- Every well-formed bound admits its own upper endpoint. -/
+theorem CardBound.admits_max (b : CardBound) : b.Admits b.max :=
+  ⟨b.le, le_refl b.max⟩""" .
+
+procint:Decl_CardBound_Widens a procint:Decl ;
+  procint:inModule "Ocpq.Cardinality" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.CardBound.Widens" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Bound widening order: c widens b when c's window contains b's window
+(lower endpoint no larger, upper endpoint no smaller). -/
+def CardBound.Widens (b c : CardBound) : Prop :=
+  c.min ≤ b.min ∧ b.max ≤ c.max""" .
+
+procint:Decl_CardBound_admits_of_widens a procint:Decl ;
+  procint:inModule "Ocpq.Cardinality" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.CardBound.admits_of_widens" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.admits_of_widens' does not depend on any axioms" ;
+  procint:leanCode """/-- Monotonicity of cardinality satisfaction in bound widening: any count
+admitted by a bound is admitted by every widening of it. -/
+theorem CardBound.admits_of_widens {b c : CardBound} (h : b.Widens c)
+    {n : ℕ} (hn : b.Admits n) : c.Admits n :=
+  ⟨le_trans h.1 hn.1, le_trans hn.2 h.2⟩""" .
+
+procint:Decl_CardBound_widens_refl a procint:Decl ;
+  procint:inModule "Ocpq.Cardinality" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.CardBound.widens_refl" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.widens_refl' does not depend on any axioms" ;
+  procint:leanCode """/-- Widening is reflexive: every bound widens itself. -/
+theorem CardBound.widens_refl (b : CardBound) : b.Widens b :=
+  ⟨le_refl b.min, le_refl b.max⟩""" .
+
+procint:Decl_CardBound_widens_trans a procint:Decl ;
+  procint:inModule "Ocpq.Cardinality" ;
+  procint:declOrder 9 ;
+  procint:declName "ProcInt.CardBound.widens_trans" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.widens_trans' does not depend on any axioms" ;
+  procint:leanCode """/-- Widening is transitive, making Widens a preorder on bounds. -/
+theorem CardBound.widens_trans {a b c : CardBound}
+    (hab : a.Widens b) (hbc : b.Widens c) : a.Widens c :=
+  ⟨le_trans hbc.1 hab.1, le_trans hab.2 hbc.2⟩""" .
+
+procint:Decl_CardBound_sat_cardObjects_iff a procint:Decl ;
+  procint:inModule "Ocpq.Cardinality" ;
+  procint:declOrder 10 ;
+  procint:declName "ProcInt.CardBound.sat_cardObjects_iff" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.CardBound.sat_cardObjects_iff' does not depend on any axioms" ;
+  procint:leanCode """/-- The OCPQ cardObjects predicate built from a CardBound is satisfied exactly
+when the bound admits the length of the event's E2O object projection
+(definitional bridge between Ocpq.Query satisfaction and CardBound.Admits). -/
+theorem CardBound.sat_cardObjects_iff {E O ET OT Q V : Type} [DecidableEq E]
+    (L : OCEL E O ET OT Q V) (e : E) (b : CardBound) :
+    (OcpqPredicate.cardObjects (O := O) (Q := Q) e b.min b.max).Sat L ↔
+      b.Admits (L.objectsOf e).length :=
+  Iff.rfl""" .

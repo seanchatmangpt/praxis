@@ -1,0 +1,37 @@
+---
+to: "paper/release_macros.tex"
+sparql:
+  a_r: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?releaseTag ?foldHash ?sorryCount ?admitCount ?statedCount ?totalDecls ?ttlCount ?axiomAudit ?fixtures ?certified ?crownJewel ?standingQuadrature ?runId
+    WHERE {
+      ?r a quad:Results ;
+         quad:releaseTag ?releaseTag ; quad:foldHash ?foldHash ;
+         quad:sorryCount ?sorryCount ; quad:admitCount ?admitCount ;
+         quad:statedCount ?statedCount ; quad:totalDecls ?totalDecls ;
+         quad:ttlCount ?ttlCount ; quad:axiomAudit ?axiomAudit ;
+         quad:fixtures ?fixtures ; quad:certified ?certified ;
+         quad:crownJewel ?crownJewel ;
+         quad:standingQuadrature ?standingQuadrature ; quad:runId ?runId .
+    }
+force: true
+skip_empty: true
+---
+% GENERATED FILE — DO NOT EDIT BY HAND
+% Source: release-manifest.json + standing.env via the quadrature graph
+% Generator: ggen (quadrature-pack) — ggen renders; Lean admits; mfact certifies.
+% Standing: GENERATED_FROM_CERTIFIED_MANIFEST
+{% for r in a_r %}\newcommand{\ReleaseTag}{{ '{' }}{{ r.releaseTag }}{{ '}' }}
+\newcommand{\ReleaseHash}{{ '{' }}{{ r.foldHash }}{{ '}' }}
+\newcommand{\ReleaseRun}{{ '{' }}{{ r.runId }}{{ '}' }}
+\newcommand{\SorryCount}{{ '{' }}{{ r.sorryCount }}{{ '}' }}
+\newcommand{\AdmitCount}{{ '{' }}{{ r.admitCount }}{{ '}' }}
+\newcommand{\KernelTheorems}{{ '{' }}{{ r.ttlCount }}{{ '}' }}
+\newcommand{\TotalDecls}{{ '{' }}{{ r.totalDecls }}{{ '}' }}
+\newcommand{\StatedCount}{{ '{' }}{{ r.statedCount }}{{ '}' }}
+\newcommand{\AxiomAuditStatus}{{ '{' }}{{ r.axiomAudit }}{{ '}' }}
+\newcommand{\FixtureStatus}{{ '{' }}{{ r.fixtures }}{{ '}' }}
+\newcommand{\CertifiedStatus}{{ '{' }}{{ r.certified }}{{ '}' }}
+\newcommand{\QuadratureStatus}{{ '{' }}{{ r.standingQuadrature }}{{ '}' }}
+\newcommand{\CrownJewelStatus}{{ '{' }}{{ r.crownJewel }}{{ '}' }}
+{% endfor %}

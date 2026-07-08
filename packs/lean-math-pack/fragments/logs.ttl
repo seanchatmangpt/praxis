@@ -1,0 +1,592 @@
+@prefix procint: <https://mfact.dev/procint#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ---------------------------------------------------------------------------
+# Family: logs — Event / Trace / EventLog / XES
+# Ported from wasm4pm-compat: src/eventlog.rs, src/event_log.rs, src/xes.rs
+# Kernel-verified via scratch file logs_scratch.lean (lake env lean, exit 0).
+# ---------------------------------------------------------------------------
+
+procint:Mod_Logs_Event a procint:Module ;
+  procint:moduleId "Logs.Event" ;
+  procint:modPath "Logs/Event" ;
+  procint:order 40 ;
+  procint:moduleDoc "Events of a process log: an activity label over an alphabet, a natural-number timestamp, and optional resource/lifecycle annotations. Port of wasm4pm-compat/src/eventlog.rs::Event; cf. van der Aalst, Process Mining: Data Science in Action (2016), Def. 4.1." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_Event a procint:Decl ;
+  procint:inModule "Logs.Event" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.Event" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A single event in a case trace: an activity label over an alphabet `α`, a
+natural-number timestamp, and optional resource/lifecycle annotations.
+Port of `wasm4pm-compat/src/eventlog.rs::Event` (activity, timestamp_ns,
+resource, lifecycle); cf. van der Aalst, Process Mining (2016), Def. 4.1. -/
+structure Event (α : Type) where
+  activity : α
+  timestamp : ℕ
+  resource : Option String := none
+  lifecycle : Option String := none
+""" .
+
+procint:Decl_Event_simple a procint:Decl ;
+  procint:inModule "Logs.Event" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.Event.simple" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The minimal event constructor: activity and timestamp only, no resource or
+lifecycle annotation. Mirrors `Event::new(activity).at_ns(t)` in
+`wasm4pm-compat/src/eventlog.rs`. -/
+def Event.simple {α : Type} (a : α) (t : ℕ) : Event α :=
+  ⟨a, t, none, none⟩
+""" .
+
+procint:Decl_Event_simple_activity a procint:Decl ;
+  procint:inModule "Logs.Event" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.Event.simple_activity" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_activity' does not depend on any axioms" ;
+  procint:leanCode """/-- `Event.simple` records exactly the given activity. -/
+theorem Event.simple_activity {α : Type} (a : α) (t : ℕ) :
+    (Event.simple a t).activity = a := rfl
+""" .
+
+procint:Decl_Event_simple_timestamp a procint:Decl ;
+  procint:inModule "Logs.Event" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.Event.simple_timestamp" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_timestamp' does not depend on any axioms" ;
+  procint:leanCode """/-- `Event.simple` records exactly the given timestamp. -/
+theorem Event.simple_timestamp {α : Type} (a : α) (t : ℕ) :
+    (Event.simple a t).timestamp = t := rfl
+""" .
+
+procint:Decl_Event_simple_resource a procint:Decl ;
+  procint:inModule "Logs.Event" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.Event.simple_resource" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_resource' does not depend on any axioms" ;
+  procint:leanCode """/-- `Event.simple` carries no resource annotation — the defaulting contract of
+`Event::new` in `wasm4pm-compat/src/eventlog.rs`. -/
+theorem Event.simple_resource {α : Type} (a : α) (t : ℕ) :
+    (Event.simple a t).resource = none := rfl
+""" .
+
+procint:Decl_Event_simple_lifecycle a procint:Decl ;
+  procint:inModule "Logs.Event" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.Event.simple_lifecycle" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Event.simple_lifecycle' does not depend on any axioms" ;
+  procint:leanCode """/-- `Event.simple` carries no lifecycle annotation — the defaulting contract of
+`Event::new` in `wasm4pm-compat/src/eventlog.rs`. -/
+theorem Event.simple_lifecycle {α : Type} (a : α) (t : ℕ) :
+    (Event.simple a t).lifecycle = none := rfl
+""" .
+
+procint:Mod_Logs_Trace a procint:Module ;
+  procint:moduleId "Logs.Trace" ;
+  procint:modPath "Logs/Trace" ;
+  procint:order 41 ;
+  procint:moduleDoc "Traces: a case identifier plus its ordered event list, with timestamp monotonicity (List.IsChain of non-decreasing timestamps) and the activity projection. Port of wasm4pm-compat/src/eventlog.rs::Trace and its NonMonotonicTrace validation law; cf. van der Aalst (2016), Def. 4.2." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Logs.Event""" .
+
+procint:Decl_Trace a procint:Decl ;
+  procint:inModule "Logs.Trace" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.Trace" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A trace: a case identifier plus the ordered list of its events.
+Port of `wasm4pm-compat/src/eventlog.rs::Trace` (case_id, events);
+cf. van der Aalst (2016), Def. 4.2 (a trace is a finite sequence of events). -/
+structure Trace (α : Type) where
+  caseId : String
+  events : List (Event α)
+""" .
+
+procint:Decl_Trace_Monotone a procint:Decl ;
+  procint:inModule "Logs.Trace" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.Trace.Monotone" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Timestamp monotonicity of a trace: adjacent events have non-decreasing
+timestamps (`List.IsChain`). This is the `NonMonotonicTrace` validation law of
+`wasm4pm-compat/src/eventlog.rs::Trace::validate`. -/
+def Trace.Monotone {α : Type} (t : Trace α) : Prop :=
+  List.IsChain (fun a b => a.timestamp ≤ b.timestamp) t.events
+""" .
+
+procint:Decl_Trace_activities a procint:Decl ;
+  procint:inModule "Logs.Trace" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.Trace.activities" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The activity projection of a trace: its event list mapped to activity
+labels. This is the classifier projection underlying control-flow discovery
+(van der Aalst 2016, §4.2). -/
+def Trace.activities {α : Type} (t : Trace α) : List α :=
+  t.events.map Event.activity
+""" .
+
+procint:Decl_Trace_activities_length a procint:Decl ;
+  procint:inModule "Logs.Trace" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.Trace.activities_length" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.activities_length' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The activity projection preserves length: one activity label per event. -/
+theorem Trace.activities_length {α : Type} (t : Trace α) :
+    t.activities.length = t.events.length := by
+  simp [Trace.activities]
+""" .
+
+procint:Decl_Trace_monotone_nil a procint:Decl ;
+  procint:inModule "Logs.Trace" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.Trace.monotone_nil" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_nil' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The empty trace is (vacuously) monotone. -/
+theorem Trace.monotone_nil {α : Type} (c : String) :
+    Trace.Monotone (α := α) ⟨c, []⟩ := by
+  simp [Trace.Monotone]
+""" .
+
+procint:Decl_Trace_monotone_singleton a procint:Decl ;
+  procint:inModule "Logs.Trace" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.Trace.monotone_singleton" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_singleton' depends on axioms: [propext]" ;
+  procint:leanCode """/-- A one-event trace is monotone. -/
+theorem Trace.monotone_singleton {α : Type} (c : String) (e : Event α) :
+    Trace.Monotone ⟨c, [e]⟩ := by
+  simp [Trace.Monotone]
+""" .
+
+procint:Decl_Trace_monotone_replicate a procint:Decl ;
+  procint:inModule "Logs.Trace" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.Trace.monotone_replicate" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_replicate' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- A constant trace (the same event replicated) is monotone, since
+timestamp order is reflexive. -/
+theorem Trace.monotone_replicate {α : Type} (c : String) (n : ℕ) (e : Event α) :
+    Trace.Monotone ⟨c, List.replicate n e⟩ :=
+  List.isChain_replicate_of_rel n (le_refl e.timestamp)
+""" .
+
+procint:Decl_Trace_monotone_append a procint:Decl ;
+  procint:inModule "Logs.Trace" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.Trace.monotone_append" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_append' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Concatenation law for monotone traces: the concatenation is monotone iff
+both halves are monotone and the seam respects timestamp order
+(last of the first half ≤ head of the second half). Direct instance of
+`List.isChain_append`. -/
+theorem Trace.monotone_append {α : Type} (c : String) (l₁ l₂ : List (Event α)) :
+    Trace.Monotone ⟨c, l₁ ++ l₂⟩ ↔
+      Trace.Monotone ⟨c, l₁⟩ ∧ Trace.Monotone ⟨c, l₂⟩ ∧
+        ∀ x ∈ l₁.getLast?, ∀ y ∈ l₂.head?, x.timestamp ≤ y.timestamp :=
+  List.isChain_append
+""" .
+
+procint:Decl_Trace_monotone_sublist a procint:Decl ;
+  procint:inModule "Logs.Trace" ;
+  procint:declOrder 9 ;
+  procint:declName "ProcInt.Trace.monotone_sublist" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_sublist' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Monotonicity is inherited by sublists (timestamp order is transitive), so
+any subtrace of a valid trace is valid — the sublist-stability of the
+`NonMonotonicTrace` law in `wasm4pm-compat/src/eventlog.rs`. -/
+theorem Trace.monotone_sublist {α : Type} {c c' : String} {l₁ l₂ : List (Event α)}
+    (h : Trace.Monotone ⟨c, l₂⟩) (hs : l₁.Sublist l₂) :
+    Trace.Monotone ⟨c', l₁⟩ := by
+  haveI : Trans (fun a b : Event α => a.timestamp ≤ b.timestamp)
+      (fun a b : Event α => a.timestamp ≤ b.timestamp)
+      (fun a b : Event α => a.timestamp ≤ b.timestamp) :=
+    ⟨fun hab hbc => le_trans hab hbc⟩
+  exact List.IsChain.sublist h hs
+""" .
+
+procint:Decl_Trace_activities_append a procint:Decl ;
+  procint:inModule "Logs.Trace" ;
+  procint:declOrder 10 ;
+  procint:declName "ProcInt.Trace.activities_append" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.activities_append' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The activity projection distributes over trace concatenation (the
+classifier projection is a list homomorphism; van der Aalst 2016, §4.2). -/
+theorem Trace.activities_append {α : Type} (c : String) (l₁ l₂ : List (Event α)) :
+    Trace.activities ⟨c, l₁ ++ l₂⟩ =
+      Trace.activities ⟨c, l₁⟩ ++ Trace.activities ⟨c, l₂⟩ := by
+  simp [Trace.activities]
+""" .
+
+procint:Decl_Trace_monotone_iff_pairwise a procint:Decl ;
+  procint:inModule "Logs.Trace" ;
+  procint:declOrder 11 ;
+  procint:declName "ProcInt.Trace.monotone_iff_pairwise" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.Trace.monotone_iff_pairwise' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Since timestamp order is transitive, adjacent-pair monotonicity is
+equivalent to all-pairs monotonicity — the `NonMonotonicTrace` law of
+`wasm4pm-compat/src/eventlog.rs` checks adjacent pairs but guarantees global
+order. -/
+theorem Trace.monotone_iff_pairwise {α : Type} (t : Trace α) :
+    Trace.Monotone t ↔ t.events.Pairwise (fun a b => a.timestamp ≤ b.timestamp) := by
+  haveI : IsTrans (Event α) (fun a b => a.timestamp ≤ b.timestamp) :=
+    ⟨fun _ _ _ hab hbc => le_trans hab hbc⟩
+  exact List.isChain_iff_pairwise
+""" .
+
+procint:Mod_Logs_EventLog a procint:Module ;
+  procint:moduleId "Logs.EventLog" ;
+  procint:modPath "Logs/EventLog" ;
+  procint:order 42 ;
+  procint:moduleDoc "Event logs as lists of traces, with the well-formedness law (every trace timestamp-monotone) and event counting. Port of wasm4pm-compat/src/eventlog.rs::EventLog (traces, event_count, validate); cf. van der Aalst (2016), Def. 4.3." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Logs.Trace""" .
+
+procint:Decl_EventLog a procint:Decl ;
+  procint:inModule "Logs.EventLog" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.EventLog" ;
+  procint:declKind "abbrev" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- An event log: a finite collection (list) of traces.
+Port of `wasm4pm-compat/src/eventlog.rs::EventLog` (traces);
+cf. van der Aalst (2016), Def. 4.3. -/
+abbrev EventLog (α : Type) := List (Trace α)
+""" .
+
+procint:Decl_EventLog_wellFormed a procint:Decl ;
+  procint:inModule "Logs.EventLog" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.EventLog.wellFormed" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A log is well-formed when every trace is timestamp-monotone: the log-level
+validation law of `wasm4pm-compat/src/eventlog.rs::EventLog::validate`. -/
+def EventLog.wellFormed {α : Type} (log : EventLog α) : Prop :=
+  ∀ t ∈ log, Trace.Monotone t
+""" .
+
+procint:Decl_EventLog_eventCount a procint:Decl ;
+  procint:inModule "Logs.EventLog" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.EventLog.eventCount" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The total number of events in a log, summed over traces. Port of
+`EventLog::event_count` in `wasm4pm-compat/src/eventlog.rs`. -/
+def EventLog.eventCount {α : Type} (log : EventLog α) : ℕ :=
+  (log.map fun t => t.events.length).sum
+""" .
+
+procint:Decl_EventLog_wellFormed_nil a procint:Decl ;
+  procint:inModule "Logs.EventLog" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.EventLog.wellFormed_nil" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_nil' does not depend on any axioms" ;
+  procint:leanCode """/-- The empty log is (vacuously) well-formed. -/
+theorem EventLog.wellFormed_nil {α : Type} :
+    EventLog.wellFormed ([] : EventLog α) := by
+  intro t ht
+  cases ht
+""" .
+
+procint:Decl_EventLog_wellFormed_cons a procint:Decl ;
+  procint:inModule "Logs.EventLog" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.EventLog.wellFormed_cons" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_cons' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- Cons law: a log with one more trace is well-formed iff the new trace is
+monotone and the rest of the log is well-formed. -/
+theorem EventLog.wellFormed_cons {α : Type} (t : Trace α) (log : EventLog α) :
+    EventLog.wellFormed (t :: log) ↔ Trace.Monotone t ∧ EventLog.wellFormed log := by
+  simp [EventLog.wellFormed]
+""" .
+
+procint:Decl_EventLog_wellFormed_append a procint:Decl ;
+  procint:inModule "Logs.EventLog" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.EventLog.wellFormed_append" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_append' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- Union (append) law: merging two logs preserves and reflects
+well-formedness — validation distributes over log union. -/
+theorem EventLog.wellFormed_append {α : Type} (l₁ l₂ : EventLog α) :
+    EventLog.wellFormed (l₁ ++ l₂) ↔
+      EventLog.wellFormed l₁ ∧ EventLog.wellFormed l₂ := by
+  simp [EventLog.wellFormed, List.mem_append, or_imp, forall_and]
+""" .
+
+procint:Decl_EventLog_eventCount_nil a procint:Decl ;
+  procint:inModule "Logs.EventLog" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.EventLog.eventCount_nil" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_nil' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The empty log contains no events. -/
+theorem EventLog.eventCount_nil {α : Type} :
+    EventLog.eventCount ([] : EventLog α) = 0 := rfl
+""" .
+
+procint:Decl_EventLog_eventCount_append a procint:Decl ;
+  procint:inModule "Logs.EventLog" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.EventLog.eventCount_append" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_append' depends on axioms: [propext]" ;
+  procint:leanCode """/-- Event counting is additive over log union. -/
+theorem EventLog.eventCount_append {α : Type} (l₁ l₂ : EventLog α) :
+    EventLog.eventCount (l₁ ++ l₂) = EventLog.eventCount l₁ + EventLog.eventCount l₂ := by
+  simp [EventLog.eventCount]
+""" .
+
+procint:Decl_EventLog_eventCount_cons a procint:Decl ;
+  procint:inModule "Logs.EventLog" ;
+  procint:declOrder 9 ;
+  procint:declName "ProcInt.EventLog.eventCount_cons" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_cons' depends on axioms: [propext]" ;
+  procint:leanCode """/-- Cons law for event counting: adding a trace adds its event count. -/
+theorem EventLog.eventCount_cons {α : Type} (t : Trace α) (log : EventLog α) :
+    EventLog.eventCount (t :: log) = t.events.length + EventLog.eventCount log := by
+  simp [EventLog.eventCount]
+""" .
+
+procint:Decl_EventLog_wellFormed_sublist a procint:Decl ;
+  procint:inModule "Logs.EventLog" ;
+  procint:declOrder 10 ;
+  procint:declName "ProcInt.EventLog.wellFormed_sublist" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.wellFormed_sublist' does not depend on any axioms" ;
+  procint:leanCode """/-- Well-formedness is inherited by sublogs: filtering a valid log (as in
+`EventLog::filter` views of `wasm4pm-compat/src/eventlog.rs`) never breaks
+validation. -/
+theorem EventLog.wellFormed_sublist {α : Type} {l₁ l₂ : EventLog α}
+    (h : EventLog.wellFormed l₂) (hs : l₁.Sublist l₂) :
+    EventLog.wellFormed l₁ :=
+  fun t ht => h t (hs.subset ht)
+""" .
+
+procint:Decl_EventLog_eventCount_eq_zero a procint:Decl ;
+  procint:inModule "Logs.EventLog" ;
+  procint:declOrder 11 ;
+  procint:declName "ProcInt.EventLog.eventCount_eq_zero" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.EventLog.eventCount_eq_zero' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- A log has zero events iff every one of its traces is empty — the
+degenerate-log characterization behind `EventLog::event_count` in
+`wasm4pm-compat/src/eventlog.rs`. -/
+theorem EventLog.eventCount_eq_zero {α : Type} (log : EventLog α) :
+    EventLog.eventCount log = 0 ↔ ∀ t ∈ log, t.events = [] := by
+  simp [EventLog.eventCount, List.sum_eq_zero_iff]
+""" .
+
+procint:Mod_Logs_Xes a procint:Module ;
+  procint:moduleId "Logs.Xes" ;
+  procint:modPath "Logs/Xes" ;
+  procint:order 43 ;
+  procint:moduleDoc "XES interchange shapes (IEEE 1849-2016): the discrete attribute-value alphabet (string/int/bool/timestamp), keyed attributes, event classifiers (named key lists), and the standard lifecycle-transition alphabet with a proven parse/print round trip. Port of wasm4pm-compat/src/event_log.rs (AttributeValue, Attribute, EventLogClassifier) and src/xes.rs (XesLifecycleTransition)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_XesValue a procint:Decl ;
+  procint:inModule "Logs.Xes" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.XesValue" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- XES attribute values (IEEE 1849-2016 attribute type alphabet, restricted to
+the discrete core): string, integer, boolean, and timestamp. Port of the
+`AttributeValue` ADT in `wasm4pm-compat/src/event_log.rs`. -/
+inductive XesValue where
+  | str : String → XesValue
+  | int : ℤ → XesValue
+  | bool : Bool → XesValue
+  | timestamp : ℕ → XesValue
+""" .
+
+procint:Decl_XesAttribute a procint:Decl ;
+  procint:inModule "Logs.Xes" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.XesAttribute" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A XES attribute: a namespaced key (e.g. `concept:name`) paired with a
+value. Port of `wasm4pm-compat/src/event_log.rs::Attribute` and the key/value
+attribute bags of `wasm4pm-compat/src/xes.rs::XesEvent`. -/
+structure XesAttribute where
+  key : String
+  value : XesValue
+""" .
+
+procint:Decl_XesClassifier a procint:Decl ;
+  procint:inModule "Logs.Xes" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.XesClassifier" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A XES event classifier: a named list of attribute keys whose combined
+values identify an event class (IEEE 1849-2016 §7.2). Port of
+`wasm4pm-compat/src/event_log.rs::EventLogClassifier` (name, keys). -/
+structure XesClassifier where
+  name : String
+  keys : List String
+""" .
+
+procint:Decl_XesLifecycleTransition a procint:Decl ;
+  procint:inModule "Logs.Xes" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.XesLifecycleTransition" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The standard `lifecycle:transition` alphabet of IEEE 1849-2016. Port of
+`wasm4pm-compat/src/xes.rs::XesLifecycleTransition` (14 variants). -/
+inductive XesLifecycleTransition where
+  | schedule | assign | start | suspend | resume | inProgress
+  | abort | withdraw | complete | unknown | autoSkip | manualSkip
+  | reassign | plan
+""" .
+
+procint:Decl_XesLifecycleTransition_asString a procint:Decl ;
+  procint:inModule "Logs.Xes" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.XesLifecycleTransition.asString" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The canonical `lifecycle:transition` attribute string of a transition
+(IEEE 1849-2016); mirrors `XesLifecycleTransition::as_str` in
+`wasm4pm-compat/src/xes.rs`. -/
+def XesLifecycleTransition.asString : XesLifecycleTransition → String
+  | .schedule => "schedule"
+  | .assign => "assign"
+  | .start => "start"
+  | .suspend => "suspend"
+  | .resume => "resume"
+  | .inProgress => "inprogress"
+  | .abort => "abort"
+  | .withdraw => "withdraw"
+  | .complete => "complete"
+  | .unknown => "unknown"
+  | .autoSkip => "autoskip"
+  | .manualSkip => "manualskip"
+  | .reassign => "reassign"
+  | .plan => "plan"
+""" .
+
+procint:Decl_XesLifecycleTransition_parse a procint:Decl ;
+  procint:inModule "Logs.Xes" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.XesLifecycleTransition.parse" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Parse a `lifecycle:transition` value into the standard alphabet, refusing
+(`none`) values outside it; mirrors `XesLifecycleTransition::parse` in
+`wasm4pm-compat/src/xes.rs`. -/
+def XesLifecycleTransition.parse : String → Option XesLifecycleTransition
+  | "schedule" => some .schedule
+  | "assign" => some .assign
+  | "start" => some .start
+  | "suspend" => some .suspend
+  | "resume" => some .resume
+  | "inprogress" => some .inProgress
+  | "abort" => some .abort
+  | "withdraw" => some .withdraw
+  | "complete" => some .complete
+  | "unknown" => some .unknown
+  | "autoskip" => some .autoSkip
+  | "manualskip" => some .manualSkip
+  | "reassign" => some .reassign
+  | "plan" => some .plan
+  | _ => none
+""" .
+
+procint:Decl_XesLifecycleTransition_parse_asString a procint:Decl ;
+  procint:inModule "Logs.Xes" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.XesLifecycleTransition.parse_asString" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.XesLifecycleTransition.parse_asString' does not depend on any axioms" ;
+  procint:leanCode """/-- Round-trip law: parsing the canonical string of a lifecycle transition
+recovers the transition. This is the doctest contract of
+`XesLifecycleTransition::parse` in `wasm4pm-compat/src/xes.rs`. -/
+theorem XesLifecycleTransition.parse_asString (t : XesLifecycleTransition) :
+    XesLifecycleTransition.parse t.asString = some t := by
+  cases t <;> rfl
+""" .
+
+procint:Decl_XesLifecycleTransition_asString_injective a procint:Decl ;
+  procint:inModule "Logs.Xes" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.XesLifecycleTransition.asString_injective" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.XesLifecycleTransition.asString_injective' depends on axioms: [propext]" ;
+  procint:leanCode """/-- The canonical string encoding of lifecycle transitions is injective
+(distinct transitions have distinct `lifecycle:transition` values) — a
+corollary of the round-trip law. -/
+theorem XesLifecycleTransition.asString_injective :
+    Function.Injective XesLifecycleTransition.asString := by
+  intro a b h
+  have ha := XesLifecycleTransition.parse_asString a
+  rw [h, XesLifecycleTransition.parse_asString b] at ha
+  exact (Option.some_inj.mp ha).symm
+""" .
+
+procint:Decl_XesLifecycleTransition_asString_parse a procint:Decl ;
+  procint:inModule "Logs.Xes" ;
+  procint:declOrder 9 ;
+  procint:declName "ProcInt.XesLifecycleTransition.asString_parse" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.XesLifecycleTransition.asString_parse' depends on axioms: [propext]" ;
+  procint:leanCode """/-- Converse round trip: `parse` succeeds only on canonical strings, and
+printing its result recovers the input — together with `parse_asString` this
+makes `asString`/`parse` a partial bijection onto the IEEE 1849-2016
+lifecycle alphabet (contract of `XesLifecycleTransition::parse` in
+`wasm4pm-compat/src/xes.rs`). -/
+theorem XesLifecycleTransition.asString_parse {s : String} {t : XesLifecycleTransition}
+    (h : XesLifecycleTransition.parse s = some t) : t.asString = s := by
+  unfold XesLifecycleTransition.parse at h
+  split at h <;> simp_all [XesLifecycleTransition.asString] <;> subst h <;> rfl
+""" .

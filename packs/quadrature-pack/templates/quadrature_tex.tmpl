@@ -1,0 +1,47 @@
+---
+to: "paper/quadrature.tex"
+sparql:
+  a_results: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?standingQuadrature ?ttlCount ?claimCount ?evalCount
+    WHERE {
+      ?r a quad:Results ;
+         quad:standingQuadrature ?standingQuadrature ;
+         quad:ttlCount ?ttlCount ;
+         quad:claimCount ?claimCount ;
+         quad:evalCount ?evalCount .
+    }
+  edges: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?pairLabel ?count ?result ?order
+    WHERE {
+      ?e a quad:EdgePair ;
+         quad:pairLabel ?pairLabel ;
+         quad:count ?count ;
+         quad:result ?result ;
+         quad:order ?order .
+    }
+    ORDER BY ?order
+force: true
+skip_empty: true
+---
+% RENDERED by ggen sync from the quadrature graph (quadrature-pack).
+% Do not edit: regenerate via `just standing-quadrature`.
+{% for r in a_results %}\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrl}
+\toprule
+Surface pair & Count & Result \\
+\midrule
+{% for e in edges %}{{ e.pairLabel }} & {{ e.count }} & {{ e.result }} \\
+{% endfor %}\bottomrule
+\end{tabular}
+\caption{Standing Quadrature: {{ r.standingQuadrature }} over
+{{ r.ttlCount }} proven declarations, {{ r.claimCount }} traced paper
+claims, and {{ r.evalCount }} evaluation numbers. The closure is
+kernel-checked by the rendered witness
+\texttt{ProcInt.Release.Quadrature}.}
+\label{tab:quadrature}
+\end{table}
+{% endfor %}

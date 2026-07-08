@@ -1,0 +1,34 @@
+---
+to: "paper/availability.tex"
+sparql:
+  a_r: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?releaseTag WHERE { ?r a quad:Results ; quad:releaseTag ?releaseTag . }
+force: true
+skip_empty: true
+---
+% GENERATED FILE — DO NOT EDIT BY HAND (source: quadrature graph; see release_macros.tex)
+{% for r in a_r %}\paragraph{Replay.}
+The release is tag \texttt{\ReleaseTag} (release hash
+\texttt{\footnotesize\ReleaseHash}). A clean replay regenerates the corpus
+and re-certifies it:
+\begin{center}
+\small
+\begin{tabular}{ll}
+\toprule
+Step & Command \\
+\midrule
+Render corpus from catalog & \texttt{just render} \\
+Build + audits (both packages) & \texttt{just build \&\& just audit} \\
+Regenerate manifest + gates & \texttt{just manifest} \\
+Certify (exit 0 required) & \texttt{just certify} \\
+Standing Quadrature & \texttt{just standing-quadrature} \\
+Quadrature negative controls & \texttt{just quadrature-negative-controls} \\
+arXiv package & \texttt{just arxiv-package} \\
+\bottomrule
+\end{tabular}
+\end{center}
+The expected result is not ``trust us''; it is a receipt: certification
+exits 0, the quadrature witness kernel-admits, and the negative controls
+refuse.
+{% endfor %}

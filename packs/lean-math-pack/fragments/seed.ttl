@@ -1,0 +1,317 @@
+@prefix procint: <https://mfact.dev/procint#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ── SEED fragment: Foundations.Metric + Petri spine ────────────────────
+# Every leanCode literal below was kernel-verified as one file via
+# `lake env lean` in ~/mfact/procint (scratch: seed_scratch.lean, exit 0,
+# zero sorries) before being recorded here.
+
+# ═══ Modules ═══════════════════════════════════════════════════════════
+
+procint:Mod_Foundations_Metric a procint:Module ;
+  procint:moduleId "Foundations.Metric" ;
+  procint:modPath "Foundations/Metric" ;
+  procint:order 10 ;
+  procint:moduleDoc "Metric-law foundations: the unit-interval rational carrier for every conformance metric (fitness, precision, generalization, simplicity all lie in [0,1] — Carmona et al. 2018, Conformance Checking; wasm4pm-compat METRIC_LAW Between01), plus the specification records targeted by the generated algorithm and breed registries (van der Aalst 2016, Process Mining 2nd ed.)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Mod_Petri_Net a procint:Module ;
+  procint:moduleId "Petri.Net" ;
+  procint:modPath "Petri/Net" ;
+  procint:order 20 ;
+  procint:moduleDoc "Place/transition Petri nets with weighted arcs encoded as finitely supported pre/post multisets, and markings as finitely supported token counts (Murata 1989, Petri Nets: Properties, Analysis and Applications, Proc. IEEE 77(4), section II; the Finsupp marking unifies weighted and colored presentations)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Mod_Petri_Firing a procint:Module ;
+  procint:moduleId "Petri.Firing" ;
+  procint:modPath "Petri/Firing" ;
+  procint:order 21 ;
+  procint:moduleDoc "The transition (firing) rule: enabledness, the fire function via truncated Finsupp subtraction, the one-step relation, determinism of firing, and the single-firing token-conservation identity underlying the state equation (Murata 1989, section II.C)." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Petri.Net""" .
+
+procint:Mod_Petri_Reachability a procint:Module ;
+  procint:moduleId "Petri.Reachability" ;
+  procint:modPath "Petri/Reachability" ;
+  procint:order 22 ;
+  procint:moduleDoc "Reachability as the reflexive-transitive closure of the firing relation, firing sequences as an inductive predicate, and the two-way correspondence between them (Murata 1989, section II.D, reachability set R(M0); van der Aalst 1997 relies on this correspondence for WF-net soundness)." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Petri.Firing""" .
+
+procint:Mod_Petri_Boundedness a procint:Module ;
+  procint:moduleId "Petri.Boundedness" ;
+  procint:modPath "Petri/Boundedness" ;
+  procint:order 23 ;
+  procint:moduleDoc "Behavioural properties over the reachability set: k-boundedness (every reachable marking carries at most k tokens per place) and L4-liveness (every transition can always eventually fire again) — Murata 1989, section IV; the two properties whose conjunction characterizes WF-net soundness (van der Aalst 1997, Lemma 8)." ;
+  procint:importsBlock """import Mathlib
+import ProcInt.Petri.Reachability""" .
+
+# ═══ Decls: Foundations.Metric ═════════════════════════════════════════
+
+procint:Decl_UnitRat a procint:Decl ;
+  procint:inModule "Foundations.Metric" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.UnitRat" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A rational number confined to the unit interval [0, 1] — the carrier of
+every conformance metric (fitness, precision, generalization, simplicity)
+per the wasm4pm-compat METRIC_LAW (Between01). -/
+def UnitRat := {q : ℚ // 0 ≤ q ∧ q ≤ 1}""" .
+
+procint:Decl_instCoeUnitRatRat a procint:Decl ;
+  procint:inModule "Foundations.Metric" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.instCoeUnitRatRat" ;
+  procint:declKind "instance" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Coerce a unit rational to its underlying rational value. -/
+instance instCoeUnitRatRat : Coe UnitRat ℚ := ⟨Subtype.val⟩""" .
+
+procint:Decl_unitRat_nonneg a procint:Decl ;
+  procint:inModule "Foundations.Metric" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.unitRat_nonneg" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.unitRat_nonneg' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- A unit rational is nonnegative (lower metric-law bound). -/
+theorem unitRat_nonneg (q : UnitRat) : (0 : ℚ) ≤ q.val := q.property.1""" .
+
+procint:Decl_unitRat_le_one a procint:Decl ;
+  procint:inModule "Foundations.Metric" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.unitRat_le_one" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.unitRat_le_one' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- A unit rational is at most one (upper metric-law bound). -/
+theorem unitRat_le_one (q : UnitRat) : q.val ≤ 1 := q.property.2""" .
+
+procint:Decl_AlgorithmSpec a procint:Decl ;
+  procint:inModule "Foundations.Metric" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.AlgorithmSpec" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Specification record for a process-intelligence algorithm — one row of
+the 60-algorithm registry (van der Aalst 2016, Process Mining 2nd ed.). -/
+structure AlgorithmSpec where
+  id : String
+  label : String
+  category : String
+  outputType : String
+  citation : String
+  deriving Repr, DecidableEq""" .
+
+procint:Decl_BreedSpec a procint:Decl ;
+  procint:inModule "Foundations.Metric" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.BreedSpec" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Specification record for a cognition breed — one row of the 55-breed
+registry mirrored from the wasm4pm compat ontology. -/
+structure BreedSpec where
+  id : String
+  label : String
+  doc : String
+  citation : String
+  deriving Repr, DecidableEq""" .
+
+# ═══ Decls: Petri.Net ══════════════════════════════════════════════════
+
+procint:Decl_PetriNet a procint:Decl ;
+  procint:inModule "Petri.Net" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.PetriNet" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A place/transition Petri net (Murata 1989, section II): places P,
+transitions T, with pre- and post-incidence given as finitely supported
+multisets of places per transition (arc weights encoded in the
+multiplicities). -/
+structure PetriNet (P : Type) (T : Type) where
+  pre  : T → (P →₀ ℕ)
+  post : T → (P →₀ ℕ)""" .
+
+procint:Decl_Marking a procint:Decl ;
+  procint:inModule "Petri.Net" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.Marking" ;
+  procint:declKind "abbrev" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A marking assigns finitely many tokens to each place (Murata 1989):
+a finitely supported function P →₀ ℕ. -/
+abbrev Marking (P : Type) := P →₀ ℕ""" .
+
+# ═══ Decls: Petri.Firing ═══════════════════════════════════════════════
+
+procint:Decl_Enabled a procint:Decl ;
+  procint:inModule "Petri.Firing" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.PetriNet.Enabled" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Transition t is enabled at marking M when every input place carries at
+least the required tokens (Murata 1989, firing rule, condition (1)). -/
+def PetriNet.Enabled {P T : Type} (N : PetriNet P T) (M : Marking P) (t : T) : Prop :=
+  N.pre t ≤ M""" .
+
+procint:Decl_fire a procint:Decl ;
+  procint:inModule "Petri.Firing" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.PetriNet.fire" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Fire transition t at marking M: consume the pre-multiset (truncated
+subtraction) and produce the post-multiset (Murata 1989, firing rule,
+condition (2)). Noncomputable because Finsupp addition is. -/
+noncomputable def PetriNet.fire {P T : Type} (N : PetriNet P T) (M : Marking P) (t : T) : Marking P :=
+  M - N.pre t + N.post t""" .
+
+procint:Decl_Step a procint:Decl ;
+  procint:inModule "Petri.Firing" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.PetriNet.Step" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- One firing step: t is enabled at M and M' is the result of firing it
+(Murata 1989, the transition (firing) rule). -/
+def PetriNet.Step {P T : Type} (N : PetriNet P T) (M : Marking P) (t : T) (M' : Marking P) : Prop :=
+  N.Enabled M t ∧ M' = N.fire M t""" .
+
+procint:Decl_step_deterministic a procint:Decl ;
+  procint:inModule "Petri.Firing" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.PetriNet.step_deterministic" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.step_deterministic' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Firing is deterministic: one transition fired at one marking yields a
+unique successor marking (immediate from the firing rule, Murata 1989). -/
+theorem PetriNet.step_deterministic {P T : Type} (N : PetriNet P T)
+    {M M₁ M₂ : Marking P} {t : T}
+    (h₁ : N.Step M t M₁) (h₂ : N.Step M t M₂) : M₁ = M₂ := by
+  rw [h₁.2, h₂.2]""" .
+
+procint:Decl_fire_add_pre a procint:Decl ;
+  procint:inModule "Petri.Firing" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.PetriNet.fire_add_pre" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.fire_add_pre' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Firing under enabledness satisfies the token-conservation identity
+fire M t + pre t = M + post t — the Finsupp form of the state-equation
+increment for a single firing (Murata 1989, section II.C). -/
+theorem PetriNet.fire_add_pre {P T : Type} (N : PetriNet P T)
+    {M : Marking P} {t : T} (h : N.Enabled M t) :
+    N.fire M t + N.pre t = M + N.post t := by
+  have h' : N.pre t ≤ M := h
+  show M - N.pre t + N.post t + N.pre t = M + N.post t
+  rw [add_right_comm, tsub_add_cancel_of_le h']""" .
+
+# ═══ Decls: Petri.Reachability ═════════════════════════════════════════
+
+procint:Decl_Reaches a procint:Decl ;
+  procint:inModule "Petri.Reachability" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.PetriNet.Reaches" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Reachability: the reflexive-transitive closure of the one-step firing
+relation (Murata 1989, section II.D, reachability set R(M0)). -/
+def PetriNet.Reaches {P T : Type} (N : PetriNet P T) : Marking P → Marking P → Prop :=
+  Relation.ReflTransGen (fun M M' => ∃ t, N.Step M t M')""" .
+
+procint:Decl_FiringSeq a procint:Decl ;
+  procint:inModule "Petri.Reachability" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.PetriNet.FiringSeq" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A firing sequence σ from M to M'' — the list of transitions fired, in
+order (Murata 1989, firing sequences). -/
+inductive PetriNet.FiringSeq {P T : Type} (N : PetriNet P T) :
+    Marking P → List T → Marking P → Prop
+  | nil (M : Marking P) : PetriNet.FiringSeq N M [] M
+  | cons {M M' M'' : Marking P} {t : T} {σ : List T} :
+      N.Step M t M' → PetriNet.FiringSeq N M' σ M'' → PetriNet.FiringSeq N M (t :: σ) M''""" .
+
+procint:Decl_FiringSeq_snoc a procint:Decl ;
+  procint:inModule "Petri.Reachability" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.PetriNet.FiringSeq.snoc" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.FiringSeq.snoc' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Append a final step to a firing sequence (the snoc lemma, derived by
+induction — dual of the cons constructor). -/
+theorem PetriNet.FiringSeq.snoc {P T : Type} {N : PetriNet P T}
+    {M M' M'' : Marking P} {σ : List T} {t : T}
+    (hσ : N.FiringSeq M σ M') (h : N.Step M' t M'') : N.FiringSeq M (σ ++ [t]) M'' := by
+  induction hσ with
+  | nil _ => exact .cons h (.nil M'')
+  | cons hstep _ ih => exact .cons hstep (ih h)""" .
+
+procint:Decl_firingSeq_reaches a procint:Decl ;
+  procint:inModule "Petri.Reachability" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.PetriNet.firingSeq_reaches" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.firingSeq_reaches' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Every firing sequence witnesses reachability (Murata 1989: soundness
+direction of the firing-sequence characterization of R(M0)). -/
+theorem PetriNet.firingSeq_reaches {P T : Type} {N : PetriNet P T}
+    {M M' : Marking P} {σ : List T}
+    (h : N.FiringSeq M σ M') : N.Reaches M M' := by
+  induction h with
+  | nil _ => exact Relation.ReflTransGen.refl
+  | cons hstep _ ih => exact Relation.ReflTransGen.head ⟨_, hstep⟩ ih""" .
+
+procint:Decl_reaches_firingSeq a procint:Decl ;
+  procint:inModule "Petri.Reachability" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.PetriNet.reaches_firingSeq" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.PetriNet.reaches_firingSeq' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Every reachable marking is reached by some firing sequence (Murata 1989:
+completeness direction of the firing-sequence characterization of R(M0)). -/
+theorem PetriNet.reaches_firingSeq {P T : Type} {N : PetriNet P T}
+    {M M' : Marking P}
+    (h : N.Reaches M M') : ∃ σ, N.FiringSeq M σ M' := by
+  induction h with
+  | refl => exact ⟨[], .nil M⟩
+  | tail _ hstep ih =>
+      obtain ⟨σ, hσ⟩ := ih
+      obtain ⟨t, ht⟩ := hstep
+      exact ⟨σ ++ [t], hσ.snoc ht⟩""" .
+
+# ═══ Decls: Petri.Boundedness ══════════════════════════════════════════
+
+procint:Decl_Bounded a procint:Decl ;
+  procint:inModule "Petri.Boundedness" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.PetriNet.Bounded" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A net is k-bounded from M₀ when every reachable marking carries at most
+k tokens in every place (Murata 1989, section IV, boundedness; k = 1 is
+safeness). -/
+def PetriNet.Bounded {P T : Type} (N : PetriNet P T) (M₀ : Marking P) (k : ℕ) : Prop :=
+  ∀ M, N.Reaches M₀ M → ∀ p, M p ≤ k""" .
+
+procint:Decl_Live a procint:Decl ;
+  procint:inModule "Petri.Boundedness" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.PetriNet.Live" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A net is live from M₀ when from every reachable marking, every transition
+can eventually be enabled again (Murata 1989, section IV, L4-liveness — the
+liveness clause of van der Aalst 1997 WF-net soundness). -/
+def PetriNet.Live {P T : Type} (N : PetriNet P T) (M₀ : Marking P) : Prop :=
+  ∀ M, N.Reaches M₀ M → ∀ t, ∃ M', N.Reaches M M' ∧ N.Enabled M' t""" .

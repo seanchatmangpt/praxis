@@ -31,6 +31,7 @@ pub mod sync;
 // registration always wins over the macro's own runtime scrape attempt.
 // ---------------------------------------------------------------------
 
+
 #[linkme::distributed_slice(::clap_noun_verb::cli::registry::__NOUN_REGISTRY)]
 static REGISTER_DOCTOR_NOUN: fn() = register_doctor_noun;
 fn register_doctor_noun() {
@@ -75,3 +76,4 @@ fn register_sync_noun() {
         "Run the ggen code-generation pipeline: resolve, enrich, extract, render, write.",
     );
 }
+

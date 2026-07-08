@@ -1,0 +1,785 @@
+@prefix procint: <https://mfact.dev/procint#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# Analytics family — ported from /Users/sac/wasm4pm-compat/src/
+# temporal.rs causality.rs correlation.rs process_cube.rs
+# prediction.rs streaming.rs multiperspective.rs object_lifecycle.rs
+# Kernel-verified as one scratch file (lake env lean, exit 0, no sorries).
+# ============================================================
+
+# ----- Module 70: Analytics.Temporal -----
+
+procint:Mod_Analytics_Temporal a procint:Module ;
+  procint:moduleId "Analytics.Temporal" ;
+  procint:modPath "Analytics/Temporal" ;
+  procint:order 70 ;
+  procint:moduleDoc "Temporal ordering law for process events: TemporalOrder relation, timed events over natural-number ticks, sojourn times as truncated Nat differences, happens-before as a strict order, and temporal profiles. Ported from wasm4pm-compat temporal.rs. Canon: Adriansyah, Munoz-Gama, Carmona, van Dongen, van der Aalst 2015 (temporal profile conformance); van der Aalst 2013 Process Cubes (time as first-class axis)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_TemporalOrder a procint:Decl ;
+  procint:inModule "Analytics.Temporal" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.TemporalOrder" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Temporal ordering relation between two events (temporal.rs `TemporalOrder`):
+before, after, concurrent (no strict order), unknown. Canon: Adriansyah et al. 2015
+temporal profile conformance; van der Aalst 2013 Process Cubes (time as cube axis). -/
+inductive TemporalOrder where
+  | before
+  | after
+  | concurrent
+  | unknown
+deriving DecidableEq, Repr""" .
+
+procint:Decl_TimedEvent a procint:Decl ;
+  procint:inModule "Analytics.Temporal" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.TimedEvent" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- An event with an activity label and a natural-number timestamp
+(temporal.rs `TimeAwareEvidence` context, discretized to ℕ ticks). -/
+structure TimedEvent (α : Type*) where
+  activity : α
+  timestamp : ℕ""" .
+
+procint:Decl_sojourn a procint:Decl ;
+  procint:inModule "Analytics.Temporal" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.sojourn" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Sojourn time between two events as truncated ℕ difference of timestamps
+(temporal.rs `TimeDelta` / `SojournTimeWitness`). -/
+def sojourn {α : Type*} (a b : TimedEvent α) : ℕ :=
+  b.timestamp - a.timestamp""" .
+
+procint:Decl_HappensBefore a procint:Decl ;
+  procint:inModule "Analytics.Temporal" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.HappensBefore" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Happens-before as a strict order on timestamps (temporal.rs `TemporalOrder::Before`). -/
+def HappensBefore {α : Type*} (a b : TimedEvent α) : Prop :=
+  a.timestamp < b.timestamp""" .
+
+procint:Decl_TemporalProfile a procint:Decl ;
+  procint:inModule "Analytics.Temporal" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.TemporalProfile" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Temporal profile for an activity pair: average and standard deviation of the
+inter-activity delay, as ℚ (temporal.rs `TemporalProfile`). -/
+structure TemporalProfile (α : Type*) where
+  pair : α × α
+  avg : ℚ
+  std : ℚ""" .
+
+procint:Decl_happensBefore_irrefl a procint:Decl ;
+  procint:inModule "Analytics.Temporal" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.happensBefore_irrefl" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.happensBefore_irrefl' does not depend on any axioms" ;
+  procint:leanCode """/-- Happens-before is irreflexive: no event strictly precedes itself
+(temporal.rs `TemporalOrder::Before` is strict; from Nat.lt). -/
+theorem happensBefore_irrefl {α : Type*} (e : TimedEvent α) : ¬ HappensBefore e e :=
+  Nat.lt_irrefl e.timestamp""" .
+
+procint:Decl_happensBefore_trans a procint:Decl ;
+  procint:inModule "Analytics.Temporal" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.happensBefore_trans" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.happensBefore_trans' does not depend on any axioms" ;
+  procint:leanCode """/-- Happens-before is transitive (strict-order law of temporal.rs `TemporalOrder`). -/
+theorem happensBefore_trans {α : Type*} {a b c : TimedEvent α}
+    (hab : HappensBefore a b) (hbc : HappensBefore b c) : HappensBefore a c :=
+  Nat.lt_trans hab hbc""" .
+
+procint:Decl_sojourn_self a procint:Decl ;
+  procint:inModule "Analytics.Temporal" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.sojourn_self" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.sojourn_self' does not depend on any axioms" ;
+  procint:leanCode """/-- The sojourn time of an event relative to itself is zero (temporal.rs `TimeDelta`). -/
+theorem sojourn_self {α : Type*} (e : TimedEvent α) : sojourn e e = 0 :=
+  Nat.sub_self e.timestamp""" .
+
+# ----- Module 71: Analytics.Causality -----
+
+procint:Mod_Analytics_Causality a procint:Module ;
+  procint:moduleId "Analytics.Causality" ;
+  procint:modPath "Analytics/Causality" ;
+  procint:order 71 ;
+  procint:moduleDoc "Cross-object causal structure: directed causal links, causal chains with an adjacent-link connectedness invariant, and the four-way causal-consistency verdict. Ported from wasm4pm-compat causality.rs (CausalLink, CausalChain, CausalConsistency). Canon: happened-before causality in object-centric event data; posets constraint (no cycles, no contradictions)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_CausalLink a procint:Decl ;
+  procint:inModule "Analytics.Causality" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.CausalLink" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A directed causal link between two items (causality.rs `CausalLink`). -/
+structure CausalLink (α : Type*) where
+  source : α
+  target : α""" .
+
+procint:Decl_CausalChain a procint:Decl ;
+  procint:inModule "Analytics.Causality" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.CausalChain" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A causal chain: a list of causal links (causality.rs `CausalChain`). -/
+structure CausalChain (α : Type*) where
+  links : List (CausalLink α)""" .
+
+procint:Decl_linked a procint:Decl ;
+  procint:inModule "Analytics.Causality" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.linked" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Adjacent links agree: each link's target is the next link's source
+(the connectedness invariant of causality.rs `CausalChain`). -/
+def linked {α : Type*} : List (CausalLink α) → Prop
+  | [] => True
+  | [_] => True
+  | l1 :: l2 :: rest => l1.target = l2.source ∧ linked (l2 :: rest)""" .
+
+procint:Decl_CausalChain_Consistent a procint:Decl ;
+  procint:inModule "Analytics.Causality" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.CausalChain.Consistent" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Chain consistency Prop (causality.rs `CausalConsistency::Consistent`). -/
+def CausalChain.Consistent {α : Type*} (c : CausalChain α) : Prop :=
+  linked c.links""" .
+
+procint:Decl_CausalConsistency a procint:Decl ;
+  procint:inModule "Analytics.Causality" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.CausalConsistency" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Verdict of a causal-consistency check (causality.rs `CausalConsistency`):
+consistent, has cycles, has contradictions, or not yet established. -/
+inductive CausalConsistency where
+  | consistent
+  | hasCycles
+  | hasContradictions
+  | unknown
+deriving DecidableEq, Repr""" .
+
+procint:Decl_linked_nil a procint:Decl ;
+  procint:inModule "Analytics.Causality" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.linked_nil" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.linked_nil' does not depend on any axioms" ;
+  procint:leanCode """/-- The empty chain is linked (causality.rs `CausalChain` base case). -/
+theorem linked_nil {α : Type*} : linked ([] : List (CausalLink α)) := by
+  simp [linked]""" .
+
+procint:Decl_linked_singleton a procint:Decl ;
+  procint:inModule "Analytics.Causality" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.linked_singleton" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.linked_singleton' does not depend on any axioms" ;
+  procint:leanCode """/-- A singleton chain is linked (causality.rs `CausalChain` unit case). -/
+theorem linked_singleton {α : Type*} (l : CausalLink α) : linked [l] := by
+  simp [linked]""" .
+
+procint:Decl_linked_tail a procint:Decl ;
+  procint:inModule "Analytics.Causality" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.linked_tail" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.linked_tail' does not depend on any axioms" ;
+  procint:leanCode """/-- The tail of a linked chain is linked (chain suffix closure). -/
+theorem linked_tail {α : Type*} {l1 l2 : CausalLink α} {rest : List (CausalLink α)}
+    (h : linked (l1 :: l2 :: rest)) : linked (l2 :: rest) := by
+  simp [linked] at h
+  exact h.2""" .
+
+# ----- Module 72: Analytics.Correlation -----
+
+procint:Mod_Analytics_Correlation a procint:Module ;
+  procint:moduleId "Analytics.Correlation" ;
+  procint:modPath "Analytics/Correlation" ;
+  procint:order 72 ;
+  procint:moduleDoc "Event correlation across logs: the four-way correlation schema (by case, by object, by timestamp, by attribute), typed correlation keys, and correlated logs whose pairing invariant is key agreement under two key projections. Ported from wasm4pm-compat correlation.rs (CorrelationSchema, CorrelationKey, CorrelatedLog)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_CorrelationSchema a procint:Decl ;
+  procint:inModule "Analytics.Correlation" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.CorrelationSchema" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Event-correlation schema (correlation.rs `CorrelationSchema`):
+by case id, by shared object, by timestamp proximity, by attribute equality. -/
+inductive CorrelationSchema where
+  | byCase
+  | byObject
+  | byTimestamp
+  | byAttribute
+deriving DecidableEq, Repr""" .
+
+procint:Decl_CorrelationKey a procint:Decl ;
+  procint:inModule "Analytics.Correlation" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.CorrelationKey" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A correlation key: a schema tag plus the key value (correlation.rs `CorrelationKey`). -/
+structure CorrelationKey (κ : Type*) where
+  schema : CorrelationSchema
+  key : κ""" .
+
+procint:Decl_CorrelatedLog a procint:Decl ;
+  procint:inModule "Analytics.Correlation" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.CorrelatedLog" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A correlated log: paired items from two logs with key projections
+(correlation.rs `CorrelatedLog`). -/
+structure CorrelatedLog (α β κ : Type*) where
+  keyA : α → κ
+  keyB : β → κ
+  pairs : List (α × β)""" .
+
+procint:Decl_CorrelatedLog_Correlated a procint:Decl ;
+  procint:inModule "Analytics.Correlation" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.CorrelatedLog.Correlated" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Correlation invariant: every pair agrees on its correlation key
+(correlation.rs `CorrelationWitness` semantics). -/
+def CorrelatedLog.Correlated {α β κ : Type*} (log : CorrelatedLog α β κ) : Prop :=
+  ∀ p ∈ log.pairs, log.keyA p.1 = log.keyB p.2""" .
+
+procint:Decl_correlated_empty a procint:Decl ;
+  procint:inModule "Analytics.Correlation" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.correlated_empty" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.correlated_empty' does not depend on any axioms" ;
+  procint:leanCode """/-- The empty correlated log is correlated (vacuous key agreement). -/
+theorem correlated_empty {α β κ : Type*} (keyA : α → κ) (keyB : β → κ) :
+    CorrelatedLog.Correlated ⟨keyA, keyB, []⟩ := by
+  intro p hp
+  cases hp""" .
+
+procint:Decl_correlated_cons a procint:Decl ;
+  procint:inModule "Analytics.Correlation" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.correlated_cons" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.correlated_cons' depends on axioms: [propext]" ;
+  procint:leanCode """/-- Extending a correlated log with a key-agreeing pair preserves correlation. -/
+theorem correlated_cons {α β κ : Type*} {log : CorrelatedLog α β κ}
+    (h : log.Correlated) {a : α} {b : β} (hab : log.keyA a = log.keyB b) :
+    CorrelatedLog.Correlated ⟨log.keyA, log.keyB, (a, b) :: log.pairs⟩ := by
+  intro p hp
+  rcases List.mem_cons.mp hp with h1 | h2
+  · subst h1
+    exact hab
+  · exact h p h2""" .
+
+# ----- Module 73: Analytics.Cube -----
+
+procint:Mod_Analytics_Cube a procint:Module ;
+  procint:moduleId "Analytics.Cube" ;
+  procint:modPath "Analytics/Cube" ;
+  procint:order 73 ;
+  procint:moduleDoc "Process cubes: dimensions as projections α → β, cube cells as preimages of a dimension value, and slices over value sets, with cell-subset and cell-in-slice containment laws. Ported from wasm4pm-compat process_cube.rs (ProcessCube, CubeDimension, CubeCell, CubeSlice, CubeDimensionKind). Canon: van der Aalst 2013, Process Cubes: Slicing, Dicing, Rolling Up and Drilling Down Event Data." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_CubeDimensionKind a procint:Decl ;
+  procint:inModule "Analytics.Cube" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.CubeDimensionKind" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Cube dimension kinds (process_cube.rs `CubeDimensionKind`):
+activity, resource, time, data attribute, object type, case attribute.
+Canon: van der Aalst 2013, Process Cubes. -/
+inductive CubeDimensionKind where
+  | activity
+  | resource
+  | time
+  | dataAttribute
+  | objectType
+  | caseAttribute
+deriving DecidableEq, Repr""" .
+
+procint:Decl_ProcessCube a procint:Decl ;
+  procint:inModule "Analytics.Cube" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.ProcessCube" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A process cube over events α with one dimension as a projection α → β
+(process_cube.rs `ProcessCube` with `CubeDimension` as projection). -/
+structure ProcessCube (α β : Type*) where
+  events : List α
+  dim : α → β""" .
+
+procint:Decl_ProcessCube_cell a procint:Decl ;
+  procint:inModule "Analytics.Cube" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.ProcessCube.cell" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A cube cell: the preimage of a dimension value (process_cube.rs `CubeCell`). -/
+def ProcessCube.cell {α β : Type*} [DecidableEq β] (c : ProcessCube α β) (v : β) : List α :=
+  c.events.filter (fun e => c.dim e = v)""" .
+
+procint:Decl_ProcessCube_slice a procint:Decl ;
+  procint:inModule "Analytics.Cube" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.ProcessCube.slice" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A cube slice: events whose dimension value lies in a chosen value set
+(process_cube.rs `CubeSlice`). -/
+def ProcessCube.slice {α β : Type*} [DecidableEq β] (c : ProcessCube α β) (vs : List β) : List α :=
+  c.events.filter (fun e => c.dim e ∈ vs)""" .
+
+procint:Decl_cell_subset a procint:Decl ;
+  procint:inModule "Analytics.Cube" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.cell_subset" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.cell_subset' depends on axioms: [propext]" ;
+  procint:leanCode """/-- Every event in a cell is an event of the cube (cell ⊆ cube). -/
+theorem cell_subset {α β : Type*} [DecidableEq β] {c : ProcessCube α β} {v : β} {e : α}
+    (h : e ∈ c.cell v) : e ∈ c.events := by
+  simp [ProcessCube.cell, List.mem_filter] at h
+  exact h.1""" .
+
+procint:Decl_cell_dim a procint:Decl ;
+  procint:inModule "Analytics.Cube" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.cell_dim" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.cell_dim' depends on axioms: [propext]" ;
+  procint:leanCode """/-- Every event in a cell projects to the cell's dimension value (preimage law). -/
+theorem cell_dim {α β : Type*} [DecidableEq β] {c : ProcessCube α β} {v : β} {e : α}
+    (h : e ∈ c.cell v) : c.dim e = v := by
+  simp [ProcessCube.cell, List.mem_filter] at h
+  exact h.2""" .
+
+procint:Decl_cell_subset_slice a procint:Decl ;
+  procint:inModule "Analytics.Cube" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.cell_subset_slice" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.cell_subset_slice' depends on axioms: [propext]" ;
+  procint:leanCode """/-- A cell is contained in any slice whose value set contains the cell's value
+(slice ⊆ cube refinement, van der Aalst 2013). -/
+theorem cell_subset_slice {α β : Type*} [DecidableEq β] {c : ProcessCube α β}
+    {v : β} {vs : List β} {e : α} (h : e ∈ c.cell v) (hv : v ∈ vs) :
+    e ∈ c.slice vs := by
+  simp [ProcessCube.cell, List.mem_filter] at h
+  simp [ProcessCube.slice, List.mem_filter]
+  exact ⟨h.1, by rw [h.2]; exact hv⟩""" .
+
+# ----- Module 74: Analytics.Prediction -----
+
+procint:Mod_Analytics_Prediction a procint:Module ;
+  procint:moduleId "Analytics.Prediction" ;
+  procint:modPath "Analytics/Prediction" ;
+  procint:order 74 ;
+  procint:moduleDoc "Predictive process monitoring shapes: prediction targets (next activity, outcome, remaining time, drift, risk, compliance constraint), horizons (full case, bounded events, bounded time units), and prediction problems over an observed case prefix with a well-posedness law. Ported from wasm4pm-compat prediction.rs (PredictionTarget, PredictionHorizon, PredictionProblem, PredictionRefusal::EmptyPrefix). Canon: De Santis et al. 2026 compliance-aware PPM." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_PredictionTarget a procint:Decl ;
+  procint:inModule "Analytics.Prediction" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.PredictionTarget" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Prediction target kinds (prediction.rs `PredictionTarget`): next activity,
+outcome label, remaining time, drift signal, risk, compliance constraint
+(De Santis et al. 2026 compliance-aware PPM). -/
+inductive PredictionTarget where
+  | nextActivity
+  | outcomeLabel
+  | remainingTime
+  | driftSignal
+  | risk
+  | complianceConstraint
+deriving DecidableEq, Repr""" .
+
+procint:Decl_PredictionHorizon a procint:Decl ;
+  procint:inModule "Analytics.Prediction" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.PredictionHorizon" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Prediction horizon (prediction.rs `PredictionHorizon`): full remaining case,
+a bounded number of future events, or a bounded number of time units. -/
+inductive PredictionHorizon where
+  | fullCase
+  | events (n : ℕ)
+  | timeUnits (n : ℕ)
+deriving DecidableEq, Repr""" .
+
+procint:Decl_PredictionProblem a procint:Decl ;
+  procint:inModule "Analytics.Prediction" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.PredictionProblem" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A prediction problem: an observed case prefix, a target, and a horizon
+(prediction.rs `PredictionProblem`). -/
+structure PredictionProblem (α : Type*) where
+  casePrefix : List α
+  target : PredictionTarget
+  horizon : PredictionHorizon""" .
+
+procint:Decl_PredictionProblem_prefixLen a procint:Decl ;
+  procint:inModule "Analytics.Prediction" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.PredictionProblem.prefixLen" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Length of the observed prefix (prediction.rs `PredictionProblem::prefix_len`). -/
+def PredictionProblem.prefixLen {α : Type*} (p : PredictionProblem α) : ℕ :=
+  p.casePrefix.length""" .
+
+procint:Decl_PredictionProblem_WellPosed a procint:Decl ;
+  procint:inModule "Analytics.Prediction" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.PredictionProblem.WellPosed" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Well-posedness: the prefix is non-empty (refuting prediction.rs
+`PredictionRefusal::EmptyPrefix`). -/
+def PredictionProblem.WellPosed {α : Type*} (p : PredictionProblem α) : Prop :=
+  p.casePrefix ≠ []""" .
+
+procint:Decl_wellPosed_prefixLen_pos a procint:Decl ;
+  procint:inModule "Analytics.Prediction" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.wellPosed_prefixLen_pos" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.wellPosed_prefixLen_pos' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- A well-posed prediction problem has a strictly positive prefix length. -/
+theorem wellPosed_prefixLen_pos {α : Type*} {p : PredictionProblem α}
+    (h : p.WellPosed) : 0 < p.prefixLen := by
+  unfold PredictionProblem.prefixLen
+  cases hp : p.casePrefix with
+  | nil => exact absurd hp h
+  | cons a l => simp""" .
+
+# ----- Module 75: Analytics.Streaming -----
+
+procint:Mod_Analytics_Streaming a procint:Module ;
+  procint:moduleId "Analytics.Streaming" ;
+  procint:modPath "Analytics/Streaming" ;
+  procint:order 75 ;
+  procint:moduleDoc "Streaming process mining shapes: a sliding event window whose size bound is a proof-carrying field (events.length ≤ size), a push operation that evicts overflow while preserving the bound, and the online/offline analysis-context distinction. Ported from wasm4pm-compat streaming.rs (EventWindow, OnlineMonitoringContext, OfflineAnalysisContext)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_EventWindow a procint:Decl ;
+  procint:inModule "Analytics.Streaming" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.EventWindow" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A sliding event window with a proof-carrying size bound
+(streaming.rs `EventWindow<T, SIZE>`): events.length ≤ size is a field proof. -/
+structure EventWindow (α : Type*) (size : ℕ) where
+  events : List α
+  bounded : events.length ≤ size""" .
+
+procint:Decl_EventWindow_empty a procint:Decl ;
+  procint:inModule "Analytics.Streaming" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.EventWindow.empty" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The empty window (streaming.rs `EventWindow::new`). -/
+def EventWindow.empty (α : Type*) (size : ℕ) : EventWindow α size :=
+  ⟨[], Nat.zero_le size⟩""" .
+
+procint:Decl_EventWindow_push a procint:Decl ;
+  procint:inModule "Analytics.Streaming" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.EventWindow.push" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Push an event: prepend and truncate to the size bound, evicting the oldest
+overflow (streaming.rs `EventWindow::push`). -/
+def EventWindow.push {α : Type*} {size : ℕ} (w : EventWindow α size) (e : α) :
+    EventWindow α size :=
+  ⟨(e :: w.events).take size, by rw [List.length_take]; omega⟩""" .
+
+procint:Decl_push_bounded a procint:Decl ;
+  procint:inModule "Analytics.Streaming" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.push_bounded" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.push_bounded' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- The window bound is invariant under push (window length bound law). -/
+theorem push_bounded {α : Type*} {size : ℕ} (w : EventWindow α size) (e : α) :
+    (w.push e).events.length ≤ size :=
+  (w.push e).bounded""" .
+
+procint:Decl_empty_length a procint:Decl ;
+  procint:inModule "Analytics.Streaming" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.empty_length" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.empty_length' does not depend on any axioms" ;
+  procint:leanCode """/-- The empty window holds no events (streaming.rs `EventWindow::new`). -/
+theorem empty_length {α : Type*} {size : ℕ} :
+    (EventWindow.empty α size).events.length = 0 := rfl""" .
+
+procint:Decl_push_not_full a procint:Decl ;
+  procint:inModule "Analytics.Streaming" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.push_not_full" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.push_not_full' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- Pushing into a non-full window keeps every prior event (no eviction;
+streaming.rs `EventWindow::push` returns None below capacity). -/
+theorem push_not_full {α : Type*} {size : ℕ} {w : EventWindow α size} {e : α}
+    (h : w.events.length < size) : (w.push e).events = e :: w.events := by
+  simp only [EventWindow.push]
+  rw [List.take_of_length_le]
+  simp only [List.length_cons]
+  omega""" .
+
+procint:Decl_AnalysisContext a procint:Decl ;
+  procint:inModule "Analytics.Streaming" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.AnalysisContext" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Analysis context (streaming.rs `OnlineMonitoringContext` / `OfflineAnalysisContext`). -/
+inductive AnalysisContext where
+  | online
+  | offline
+deriving DecidableEq, Repr""" .
+
+# ----- Module 76: Analytics.Multiperspective -----
+
+procint:Mod_Analytics_Multiperspective a procint:Module ;
+  procint:moduleId "Analytics.Multiperspective" ;
+  procint:modPath "Analytics/Multiperspective" ;
+  procint:order 76 ;
+  procint:moduleDoc "Multi-perspective process mining: the four perspectives (control-flow, data, resource, time), per-perspective ℚ weights with a normalization law (nonnegative, summing to 1), uniform weights proven normalized, and weighted score combination with the uniform-mean law. Ported from wasm4pm-compat multiperspective.rs (ProcessPerspective, PerspectiveWeight, MultiPerspectiveWeightConfig, PerspectiveCombination). Canon: Mannhardt, de Leoni, Reijers, van der Aalst 2016, Balanced Multi-Perspective Checking of Process Conformance." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_ProcessPerspective a procint:Decl ;
+  procint:inModule "Analytics.Multiperspective" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.ProcessPerspective" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The four process perspectives (multiperspective.rs `ProcessPerspective`):
+control-flow, data, resource, time. Canon: Mannhardt et al. 2016,
+balanced multi-perspective conformance checking. -/
+inductive ProcessPerspective where
+  | controlFlow
+  | data
+  | resource
+  | time
+deriving DecidableEq, Repr""" .
+
+procint:Decl_PerspectiveWeights a procint:Decl ;
+  procint:inModule "Analytics.Multiperspective" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.PerspectiveWeights" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Per-perspective ℚ weights (multiperspective.rs `MultiPerspectiveWeightConfig`). -/
+structure PerspectiveWeights where
+  controlFlow : ℚ
+  data : ℚ
+  resource : ℚ
+  time : ℚ""" .
+
+procint:Decl_PerspectiveWeights_Normalized a procint:Decl ;
+  procint:inModule "Analytics.Multiperspective" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.PerspectiveWeights.Normalized" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Weight normalization: nonnegative weights summing to 1
+(multiperspective.rs weight-sum law). -/
+def PerspectiveWeights.Normalized (w : PerspectiveWeights) : Prop :=
+  w.controlFlow + w.data + w.resource + w.time = 1 ∧
+  0 ≤ w.controlFlow ∧ 0 ≤ w.data ∧ 0 ≤ w.resource ∧ 0 ≤ w.time""" .
+
+procint:Decl_uniformWeights a procint:Decl ;
+  procint:inModule "Analytics.Multiperspective" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.uniformWeights" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The uniform weight configuration: 1/4 per perspective. -/
+def uniformWeights : PerspectiveWeights :=
+  ⟨1/4, 1/4, 1/4, 1/4⟩""" .
+
+procint:Decl_uniformWeights_normalized a procint:Decl ;
+  procint:inModule "Analytics.Multiperspective" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.uniformWeights_normalized" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.uniformWeights_normalized' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The uniform weights are normalized (decided on ℚ literals). -/
+theorem uniformWeights_normalized : uniformWeights.Normalized := by
+  unfold PerspectiveWeights.Normalized uniformWeights
+  norm_num""" .
+
+procint:Decl_combinedScore a procint:Decl ;
+  procint:inModule "Analytics.Multiperspective" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.combinedScore" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Weighted combination of per-perspective scores
+(multiperspective.rs `PerspectiveCombination`). -/
+def combinedScore (w : PerspectiveWeights) (s : ProcessPerspective → ℚ) : ℚ :=
+  w.controlFlow * s .controlFlow + w.data * s .data +
+    w.resource * s .resource + w.time * s .time""" .
+
+procint:Decl_combinedScore_uniform a procint:Decl ;
+  procint:inModule "Analytics.Multiperspective" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.combinedScore_uniform" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.combinedScore_uniform' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Under uniform weights the combined score is the arithmetic mean of the
+four perspective scores (Mannhardt et al. 2016 balanced combination). -/
+theorem combinedScore_uniform (s : ProcessPerspective → ℚ) :
+    combinedScore uniformWeights s =
+      (s .controlFlow + s .data + s .resource + s .time) / 4 := by
+  unfold combinedScore uniformWeights
+  ring""" .
+
+# ----- Module 77: Analytics.Lifecycle -----
+
+procint:Mod_Analytics_Lifecycle a procint:Module ;
+  procint:moduleId "Analytics.Lifecycle" ;
+  procint:modPath "Analytics/Lifecycle" ;
+  procint:order 77 ;
+  procint:moduleDoc "Object lifecycle law for object-centric process mining: the five phases (created, active, modified, archived, deleted), lawful transitions as an inductive Prop mirroring the Rust typestate impls, and terminality theorems (deleted is terminal, created is never re-entered, archived only deletes). Ported from wasm4pm-compat object_lifecycle.rs (ObjectLifecyclePhase, LifecycleTransition, LifecycledObject). Canon: OCEL 2.0 object lifecycles." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_ObjectLifecyclePhase a procint:Decl ;
+  procint:inModule "Analytics.Lifecycle" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.ObjectLifecyclePhase" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Object lifecycle phases (object_lifecycle.rs `ObjectLifecyclePhase`):
+created, active, modified, archived, deleted (terminal). OCEL 2.0 object lifecycle. -/
+inductive ObjectLifecyclePhase where
+  | created
+  | active
+  | modified
+  | archived
+  | deleted
+deriving DecidableEq, Repr""" .
+
+procint:Decl_LifecycleTransition a procint:Decl ;
+  procint:inModule "Analytics.Lifecycle" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.LifecycleTransition" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Lawful lifecycle transitions as an inductive Prop, mirroring the typestate
+impl blocks of object_lifecycle.rs `LifecycledObject` (activate, modify,
+re-modify, archive, delete). -/
+inductive LifecycleTransition : ObjectLifecyclePhase → ObjectLifecyclePhase → Prop where
+  | activate : LifecycleTransition .created .active
+  | modify : LifecycleTransition .active .modified
+  | remodify : LifecycleTransition .modified .modified
+  | archiveActive : LifecycleTransition .active .archived
+  | archiveModified : LifecycleTransition .modified .archived
+  | delete : LifecycleTransition .archived .deleted""" .
+
+procint:Decl_LifecycledObject a procint:Decl ;
+  procint:inModule "Analytics.Lifecycle" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.LifecycledObject" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- An object tagged with its current lifecycle phase
+(object_lifecycle.rs `LifecycledObject`). -/
+structure LifecycledObject (α : Type*) where
+  inner : α
+  phase : ObjectLifecyclePhase""" .
+
+procint:Decl_deleted_terminal a procint:Decl ;
+  procint:inModule "Analytics.Lifecycle" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.deleted_terminal" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.deleted_terminal' does not depend on any axioms" ;
+  procint:leanCode """/-- Deleted is terminal: no transition leaves the deleted phase
+(object_lifecycle.rs: no impl block on Deleted). -/
+theorem deleted_terminal (p : ObjectLifecyclePhase) :
+    ¬ LifecycleTransition .deleted p :=
+  fun h => nomatch h""" .
+
+procint:Decl_no_transition_to_created a procint:Decl ;
+  procint:inModule "Analytics.Lifecycle" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.no_transition_to_created" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.no_transition_to_created' does not depend on any axioms" ;
+  procint:leanCode """/-- No transition re-enters the created phase (creation is a one-time event). -/
+theorem no_transition_to_created (p : ObjectLifecyclePhase) :
+    ¬ LifecycleTransition p .created :=
+  fun h => nomatch h""" .
+
+procint:Decl_archived_only_deletes a procint:Decl ;
+  procint:inModule "Analytics.Lifecycle" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.archived_only_deletes" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.archived_only_deletes' does not depend on any axioms" ;
+  procint:leanCode """/-- From the archived phase, the only lawful successor is deleted
+(object_lifecycle.rs: Archived exposes only delete). -/
+theorem archived_only_deletes {p : ObjectLifecyclePhase}
+    (h : LifecycleTransition .archived p) : p = .deleted := by
+  cases h
+  rfl""" .

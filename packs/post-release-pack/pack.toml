@@ -1,0 +1,4 @@
+[pack]
+name = "post-release-pack"
+version = "26.7.7"
+description = "Renders the release publication packet: FINAL_STATUS, publication/replay plans, GitHub-release and arXiv dist surfaces, crown research lane, and the kernel-admitted PostRelease witness. Post-release artifacts never mutate the core certified release they report (RECEIPT_RECURSION_REFUSED). ggen renders; Lean admits; mfact certifies."

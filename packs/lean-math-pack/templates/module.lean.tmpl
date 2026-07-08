@@ -1,0 +1,42 @@
+---
+to: "procint/ProcInt/{{ modPath }}.lean"
+sparql:
+  a_modules: |
+    PREFIX procint: <https://mfact.dev/procint#>
+    SELECT ?moduleId ?modPath ?moduleDoc ?importsBlock
+    WHERE {
+      ?m a procint:Module ;
+         procint:moduleId ?moduleId ;
+         procint:modPath ?modPath ;
+         procint:moduleDoc ?moduleDoc ;
+         procint:importsBlock ?importsBlock .
+    }
+    ORDER BY ?moduleId
+  decls: |
+    PREFIX procint: <https://mfact.dev/procint#>
+    SELECT ?inModule ?declOrder ?leanCode
+    WHERE {
+      ?d a procint:Decl ;
+         procint:inModule ?inModule ;
+         procint:declOrder ?declOrder ;
+         procint:leanCode ?leanCode .
+    }
+    ORDER BY ?inModule ?declOrder
+force: true
+skip_empty: true
+---
+-- RENDERED by `ggen sync` from the procint TTL declaration catalog (lean-math-pack).
+-- Candidate Lean: admitted only by `lake build`. ggen renders; Lean admits.
+-- Do not edit by hand: candidates enter through the ontology, never here.
+{{ importsBlock }}
+
+/-! # ProcInt.{{ moduleId }}
+
+{{ moduleDoc }} -/
+
+namespace ProcInt
+
+{% for d in decls %}{% if d.inModule == moduleId %}{{ d.leanCode }}
+
+{% endif %}{% endfor %}
+end ProcInt

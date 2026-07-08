@@ -1,0 +1,543 @@
+@prefix procint: <https://mfact.dev/procint#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ═══ Family nets2: Models.Dfg (65), Models.CausalNet (66), Models.Bpmn (67), Models.Declare (68) ═══
+# Ported from /Users/sac/wasm4pm-compat/src/{dfg.rs, causal_net.rs, bpmn.rs, declare.rs}.
+# All leanCode kernel-verified via lake env lean on nets2_scratch.lean (exit 0, zero sorries).
+
+# ─────────────────────────── Models.Dfg ───────────────────────────
+
+procint:Mod_Models_Dfg a procint:Module ;
+  procint:moduleId "Models.Dfg" ;
+  procint:modPath "Models/Dfg" ;
+  procint:order 65 ;
+  procint:moduleDoc "Directly-Follows Graphs: activities as nodes, frequency-weighted directly-follows relations as edges, and single-trace DFG discovery by adjacent-pair counting. Port of wasm4pm-compat dfg.rs (Dfg, DfgEdge, DfgWeight, discover_ocel_dfg); canonical source: van der Aalst, Process Mining: Data Science in Action, 2016." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_Dfg a procint:Decl ;
+  procint:inModule "Models.Dfg" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.Dfg" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A Directly-Follows Graph: activities of type α connected by
+frequency-weighted directly-follows edges. Port of wasm4pm-compat
+`dfg.rs` `Dfg`/`DfgEdge`/`DfgWeight` (van der Aalst, Process Mining, 2016). -/
+structure Dfg (α : Type u) where
+  edges : List (α × α × ℕ)""" .
+
+procint:Decl_Dfg_nodes a procint:Decl ;
+  procint:inModule "Models.Dfg" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.Dfg.nodes" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The nodes of a DFG: every activity occurring as a source or target
+of some edge, deduplicated. Port of `dfg.rs` `Dfg::nodes`. -/
+def Dfg.nodes [DecidableEq α] (d : Dfg α) : List α :=
+  (d.edges.map (·.1) ++ d.edges.map (·.2.1)).dedup""" .
+
+procint:Decl_Dfg_weight a procint:Decl ;
+  procint:inModule "Models.Dfg" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.Dfg.weight" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Total observed frequency of the directly-follows relation a → b:
+sum of weights over all matching edges. Port of `dfg.rs` edge lookup. -/
+def Dfg.weight [DecidableEq α] (d : Dfg α) (a b : α) : ℕ :=
+  (d.edges.filter (fun e => e.1 = a ∧ e.2.1 = b)).foldr (fun e acc => e.2.2 + acc) 0""" .
+
+procint:Decl_dfgOfTrace a procint:Decl ;
+  procint:inModule "Models.Dfg" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.dfgOfTrace" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Discover the DFG of a single trace: each adjacent pair contributes one
+edge of frequency 1. Mirrors `discover_ocel_dfg` restricted to one case
+(dfg.rs, windows(2) pair counting). -/
+def dfgOfTrace (t : List α) : Dfg α :=
+  ⟨(t.zip t.tail).map (fun p => (p.1, p.2, 1))⟩""" .
+
+procint:Decl_dfgOfTrace_edges_length a procint:Decl ;
+  procint:inModule "Models.Dfg" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.dfgOfTrace_edges_length" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dfgOfTrace_edges_length' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- A trace of length n yields exactly n - 1 directly-follows edges —
+the adjacent-pair count law of `discover_ocel_dfg` (dfg.rs windows(2)). -/
+theorem dfgOfTrace_edges_length (t : List α) :
+    (dfgOfTrace t).edges.length = t.length - 1 := by
+  cases t with
+  | nil => rfl
+  | cons a t =>
+    simp [dfgOfTrace, List.length_zip]""" .
+
+procint:Decl_dfgOfTrace_nil a procint:Decl ;
+  procint:inModule "Models.Dfg" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.dfgOfTrace_nil" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dfgOfTrace_nil' does not depend on any axioms" ;
+  procint:leanCode """/-- The empty trace has no directly-follows edges (dfg.rs: no windows(2)
+pairs on an empty event list). -/
+theorem dfgOfTrace_nil : (dfgOfTrace ([] : List ℕ)).edges = [] := rfl""" .
+
+procint:Decl_dfgOfTrace_freq_one a procint:Decl ;
+  procint:inModule "Models.Dfg" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.dfgOfTrace_freq_one" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dfgOfTrace_freq_one' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- A DFG discovered from a trace assigns every edge frequency 1
+(single-case discovery, dfg.rs edge_map initialisation). -/
+theorem dfgOfTrace_freq_one (t : List α) :
+    ∀ e ∈ (dfgOfTrace t).edges, e.2.2 = 1 := by
+  intro e he
+  simp [dfgOfTrace] at he
+  obtain ⟨a, b, _, rfl⟩ := he
+  rfl""" .
+
+# ─────────────────────────── Models.CausalNet ───────────────────────────
+
+procint:Mod_Models_CausalNet a procint:Module ;
+  procint:moduleId "Models.CausalNet" ;
+  procint:modPath "Models/CausalNet" ;
+  procint:order 66 ;
+  procint:moduleDoc "Causal nets (C-nets): the Heuristics Miner output shape with nodes, dependency arcs scored by a rational dependency measure, and input/output binding obligations, plus the dependency-measure formula and its bounds. Port of wasm4pm-compat causal_net.rs; canonical source: Weijters and Ribeiro, Flexible Heuristics Miner, IEEE CIDM 2011." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_CausalBinding a procint:Decl ;
+  procint:inModule "Models.CausalNet" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.CausalBinding" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A causal-net binding: which combination of predecessor tasks activates
+(or successor tasks is produced by) a task. Port of `causal_net.rs`
+`CausalBinding` (Weijters and Ribeiro 2011, FHM C-net bindings). -/
+structure CausalBinding (α : Type u) where
+  sources : List α
+  targets : List α""" .
+
+procint:Decl_CausalNet a procint:Decl ;
+  procint:inModule "Models.CausalNet" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.CausalNet" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A causal net (Heuristics Miner output shape): nodes, dependency arcs
+scored by a rational measure, and input/output binding obligations.
+Port of `causal_net.rs` `CausalNet` (Weijters and Ribeiro 2011). -/
+structure CausalNet (α : Type u) where
+  nodes : List α
+  deps : List (α × α × ℚ)
+  inputs : List (CausalBinding α)
+  outputs : List (CausalBinding α)""" .
+
+procint:Decl_dependencyMeasure a procint:Decl ;
+  procint:inModule "Models.CausalNet" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.dependencyMeasure" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The Heuristics Miner dependency measure a ⇒ b = (|a>b| − |b>a|) / (|a>b| + |b>a| + 1),
+computed in ℚ from directly-follows counts. Weijters and Ribeiro (2011), Section 2;
+port of `causal_net.rs` `DependencyMeasure`. -/
+def dependencyMeasure (ab ba : ℕ) : ℚ :=
+  ((ab : ℚ) - (ba : ℚ)) / ((ab : ℚ) + (ba : ℚ) + 1)""" .
+
+procint:Decl_CausalNet_ScoresValid a procint:Decl ;
+  procint:inModule "Models.CausalNet" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.CausalNet.ScoresValid" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Structural validity of a causal net's scores: every dependency measure
+lies in [-1, 1]. Port of `causal_net.rs` `CausalNetRefusal::InvalidDependencyScore`
+(the Rust shape stores only nonnegative scores; the signed measure is bounded by 1). -/
+def CausalNet.ScoresValid (net : CausalNet α) : Prop :=
+  ∀ d ∈ net.deps, -1 ≤ d.2.2 ∧ d.2.2 ≤ 1""" .
+
+procint:Decl_dependencyMeasure_lt_one a procint:Decl ;
+  procint:inModule "Models.CausalNet" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.dependencyMeasure_lt_one" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dependencyMeasure_lt_one' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The dependency measure is strictly below 1: the +1 in the denominator
+keeps even a one-sided count from reaching certainty
+(Weijters and Ribeiro 2011, Section 2). -/
+theorem dependencyMeasure_lt_one (ab ba : ℕ) : dependencyMeasure ab ba < 1 := by
+  unfold dependencyMeasure
+  rw [div_lt_one (by positivity)]
+  have hba : (0 : ℚ) ≤ (ba : ℚ) := Nat.cast_nonneg ba
+  linarith""" .
+
+procint:Decl_neg_one_lt_dependencyMeasure a procint:Decl ;
+  procint:inModule "Models.CausalNet" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.neg_one_lt_dependencyMeasure" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.neg_one_lt_dependencyMeasure' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The dependency measure is strictly above -1 (dual bound). -/
+theorem neg_one_lt_dependencyMeasure (ab ba : ℕ) : -1 < dependencyMeasure ab ba := by
+  unfold dependencyMeasure
+  rw [lt_div_iff₀ (by positivity)]
+  have hab : (0 : ℚ) ≤ (ab : ℚ) := Nat.cast_nonneg ab
+  linarith""" .
+
+procint:Decl_dependencyMeasure_antisymm a procint:Decl ;
+  procint:inModule "Models.CausalNet" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.dependencyMeasure_antisymm" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dependencyMeasure_antisymm' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Antisymmetry of the dependency measure: a ⇒ b = −(b ⇒ a)
+(Weijters and Ribeiro 2011, Section 2). -/
+theorem dependencyMeasure_antisymm (ab ba : ℕ) :
+    dependencyMeasure ab ba = - dependencyMeasure ba ab := by
+  unfold dependencyMeasure
+  rw [← neg_div]
+  ring_nf""" .
+
+procint:Decl_dependencyMeasure_self a procint:Decl ;
+  procint:inModule "Models.CausalNet" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.dependencyMeasure_self" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.dependencyMeasure_self' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- Symmetric counts give zero causal strength: a ⇒ a with equal
+directly-follows counts in both directions is 0. -/
+theorem dependencyMeasure_self (n : ℕ) : dependencyMeasure n n = 0 := by
+  unfold dependencyMeasure
+  simp""" .
+
+# ─────────────────────────── Models.Bpmn ───────────────────────────
+
+procint:Mod_Models_Bpmn a procint:Module ;
+  procint:moduleId "Models.Bpmn" ;
+  procint:modPath "Models/Bpmn" ;
+  procint:order 67 ;
+  procint:moduleDoc "BPMN core graph shape: node kinds (task, XOR gateway, AND gateway, start event, end event), sequence-flow edges, and processes with structural wellformedness (single start, single end, no dangling edges). Port of wasm4pm-compat bpmn.rs (BpmnNodeKind, BpmnNode, BpmnEdge, BpmnProcess::validate); canonical source: OMG BPMN 2.0 specification, 2011." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_BpmnNodeKind a procint:Decl ;
+  procint:inModule "Models.Bpmn" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.BpmnNodeKind" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The kind of a BPMN flow node: a named task, an exclusive (XOR) gateway,
+a parallel (AND) gateway, a start event, or an end event. Port of
+`bpmn.rs` `BpmnNodeKind`/`BpmnGateway`/`BpmnEvent` (BPMN 2.0, OMG 2011). -/
+inductive BpmnNodeKind where
+  | task (name : String)
+  | xorGateway
+  | andGateway
+  | startEvent
+  | endEvent
+deriving DecidableEq, Repr""" .
+
+procint:Decl_BpmnNode a procint:Decl ;
+  procint:inModule "Models.Bpmn" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.BpmnNode" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A BPMN node: an identified vertex carrying its kind. Port of
+`bpmn.rs` `BpmnNode` (id keys the node in the process graph). -/
+structure BpmnNode where
+  id : String
+  kind : BpmnNodeKind
+deriving DecidableEq, Repr""" .
+
+procint:Decl_BpmnEdge a procint:Decl ;
+  procint:inModule "Models.Bpmn" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.BpmnEdge" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A BPMN sequence flow: a directed edge between node ids. Port of
+`bpmn.rs` `BpmnEdge`. -/
+structure BpmnEdge where
+  source : String
+  target : String
+deriving DecidableEq, Repr""" .
+
+procint:Decl_BpmnProcess a procint:Decl ;
+  procint:inModule "Models.Bpmn" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.BpmnProcess" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A BPMN process: a graph of nodes joined by sequence-flow edges.
+Port of `bpmn.rs` `BpmnProcess` (structure only, no token semantics). -/
+structure BpmnProcess where
+  nodes : List BpmnNode
+  edges : List BpmnEdge
+deriving Repr""" .
+
+procint:Decl_BpmnNode_isStart a procint:Decl ;
+  procint:inModule "Models.Bpmn" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.BpmnNode.isStart" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Whether a node is a start event (bpmn.rs `BpmnEvent::Start` match arm). -/
+def BpmnNode.isStart (n : BpmnNode) : Bool :=
+  n.kind = BpmnNodeKind.startEvent""" .
+
+procint:Decl_BpmnNode_isEnd a procint:Decl ;
+  procint:inModule "Models.Bpmn" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.BpmnNode.isEnd" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Whether a node is an end event (bpmn.rs `BpmnEvent::End` match arm). -/
+def BpmnNode.isEnd (n : BpmnNode) : Bool :=
+  n.kind = BpmnNodeKind.endEvent""" .
+
+procint:Decl_BpmnProcess_WellFormed a procint:Decl ;
+  procint:inModule "Models.Bpmn" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.BpmnProcess.WellFormed" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- BPMN structural wellformedness: exactly one start event, exactly one
+end event, and every edge endpoint is a declared node id. Port of
+`bpmn.rs` `BpmnProcess::validate` laws MissingStartEvent / MissingEndEvent /
+DanglingEdge, strengthened to single start/end. -/
+def BpmnProcess.WellFormed (p : BpmnProcess) : Prop :=
+  (p.nodes.filter BpmnNode.isStart).length = 1 ∧
+  (p.nodes.filter BpmnNode.isEnd).length = 1 ∧
+  ∀ e ∈ p.edges, (∃ n ∈ p.nodes, n.id = e.source) ∧ (∃ n ∈ p.nodes, n.id = e.target)""" .
+
+procint:Decl_bpmnMinimal a procint:Decl ;
+  procint:inModule "Models.Bpmn" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.bpmnMinimal" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- The minimal admissible BPMN process start → task → end
+(bpmn.rs `BpmnProcess::new` doctest instance). -/
+def bpmnMinimal : BpmnProcess :=
+  ⟨[⟨"s", BpmnNodeKind.startEvent⟩, ⟨"t", BpmnNodeKind.task "work"⟩,
+    ⟨"e", BpmnNodeKind.endEvent⟩],
+   [⟨"s", "t"⟩, ⟨"t", "e"⟩]⟩""" .
+
+procint:Decl_bpmnMinimal_wellFormed a procint:Decl ;
+  procint:inModule "Models.Bpmn" ;
+  procint:declOrder 9 ;
+  procint:declName "ProcInt.bpmnMinimal_wellFormed" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.bpmnMinimal_wellFormed' depends on axioms: [propext, Classical.choice, Quot.sound]" ;
+  procint:leanCode """/-- The minimal start → task → end process is wellformed — the positive
+fixture of `bpmn.rs` `BpmnProcess::validate`. -/
+theorem bpmnMinimal_wellFormed : bpmnMinimal.WellFormed := by
+  refine ⟨by decide, by decide, ?_⟩
+  intro e he
+  simp [bpmnMinimal] at he
+  rcases he with h | h <;> subst h <;> exact ⟨by simp [bpmnMinimal], by simp [bpmnMinimal]⟩""" .
+
+procint:Decl_bpmn_empty_not_wellFormed a procint:Decl ;
+  procint:inModule "Models.Bpmn" ;
+  procint:declOrder 10 ;
+  procint:declName "ProcInt.bpmn_empty_not_wellFormed" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.bpmn_empty_not_wellFormed' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- A process with no nodes has no start event, hence is not wellformed —
+the `bpmn.rs` `BpmnRefusal::EmptyProcess` law. -/
+theorem bpmn_empty_not_wellFormed : ¬ (BpmnProcess.mk [] []).WellFormed := by
+  intro h
+  simp [BpmnProcess.WellFormed] at h""" .
+
+# ─────────────────────────── Models.Declare ───────────────────────────
+
+procint:Mod_Models_Declare a procint:Module ;
+  procint:moduleId "Models.Declare" ;
+  procint:modPath "Models/Declare" ;
+  procint:order 68 ;
+  procint:moduleDoc "DECLARE declarative constraint templates (existence, absence, exactlyOne, response, precedence, succession, notCoexistence), constraints as template + activities, and trace-satisfaction semantics as decidable Props with kernel-decided concrete checks. Port of wasm4pm-compat declare.rs; canonical source: van der Aalst and Pesic, DecSerFlow/DECLARE (2006/2007)." ;
+  procint:importsBlock "import Mathlib" .
+
+procint:Decl_DeclareTemplate a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 1 ;
+  procint:declName "ProcInt.DeclareTemplate" ;
+  procint:declKind "inductive" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- DECLARE constraint templates (core selection of the 22 canonical
+templates of van der Aalst and Pesic, DecSerFlow/DECLARE). Port of
+`declare.rs` `DeclareTemplate`. -/
+inductive DeclareTemplate where
+  | existence
+  | absence
+  | exactlyOne
+  | response
+  | precedence
+  | succession
+  | notCoexistence
+deriving DecidableEq, Repr""" .
+
+procint:Decl_DeclareTemplate_arity a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 2 ;
+  procint:declName "ProcInt.DeclareTemplate.arity" ;
+  procint:declKind "def" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Template arity: 1 for unary (existence family), 2 for binary
+(ordering and mutual-exclusion). Port of `declare.rs` `DeclareTemplate::arity`. -/
+def DeclareTemplate.arity : DeclareTemplate → ℕ
+  | .existence => 1
+  | .absence => 1
+  | .exactlyOne => 1
+  | _ => 2""" .
+
+procint:Decl_DeclareConstraint a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 3 ;
+  procint:declName "ProcInt.DeclareConstraint" ;
+  procint:declKind "structure" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- A DECLARE constraint: a template applied to an activation activity and,
+for binary templates, a target activity. Port of `declare.rs`
+`DeclareConstraint` (scope omitted: single-trace semantics). -/
+structure DeclareConstraint (α : Type u) where
+  template : DeclareTemplate
+  activation : α
+  target : Option α
+deriving DecidableEq, Repr""" .
+
+procint:Decl_Response a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 4 ;
+  procint:declName "ProcInt.Response" ;
+  procint:declKind "abbrev" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Response semantics: every occurrence of a is eventually followed by an
+occurrence of b — ∀ i, trace(i) = a → ∃ j > i, trace(j) = b.
+Van der Aalst and Pesic, DECLARE response template; `declare.rs` `Response`. -/
+abbrev Response [DecidableEq α] (a b : α) (t : List α) : Prop :=
+  ∀ i : Fin t.length, t.get i = a → ∃ j : Fin t.length, i < j ∧ t.get j = b""" .
+
+procint:Decl_Precedence a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 5 ;
+  procint:declName "ProcInt.Precedence" ;
+  procint:declKind "abbrev" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Precedence semantics: every occurrence of b is preceded by an earlier
+occurrence of a — ∀ j, trace(j) = b → ∃ i < j, trace(i) = a.
+Van der Aalst and Pesic, DECLARE precedence template; `declare.rs` `Precedence`. -/
+abbrev Precedence [DecidableEq α] (a b : α) (t : List α) : Prop :=
+  ∀ j : Fin t.length, t.get j = b → ∃ i : Fin t.length, i < j ∧ t.get i = a""" .
+
+procint:Decl_DeclareConstraint_Satisfies a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 6 ;
+  procint:declName "ProcInt.DeclareConstraint.Satisfies" ;
+  procint:declKind "abbrev" ;
+  procint:status "definition" ;
+  procint:leanCode """/-- Satisfaction of a DECLARE constraint by a trace, per template:
+existence (a ∈ t), absence (a ∉ t), exactlyOne (count = 1), response,
+precedence, succession (response ∧ precedence), notCoexistence
+(¬(a ∈ t ∧ b ∈ t)). Binary templates without a target are unsatisfiable
+(declare.rs `DeclareRefusal::MissingTarget`). -/
+abbrev DeclareConstraint.Satisfies [DecidableEq α] (c : DeclareConstraint α)
+    (t : List α) : Prop :=
+  match c.template, c.target with
+  | .existence, _ => c.activation ∈ t
+  | .absence, _ => c.activation ∉ t
+  | .exactlyOne, _ => t.count c.activation = 1
+  | .response, some b => Response c.activation b t
+  | .precedence, some b => Precedence c.activation b t
+  | .succession, some b => Response c.activation b t ∧ Precedence c.activation b t
+  | .notCoexistence, some b => ¬(c.activation ∈ t ∧ b ∈ t)
+  | _, none => False""" .
+
+procint:Decl_response_concrete a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 7 ;
+  procint:declName "ProcInt.response_concrete" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.response_concrete' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- Concrete kernel check: response(0, 1) holds on the trace [0, 1, 0, 1]
+(every 0 is followed by a later 1) — decided by the kernel. -/
+theorem response_concrete : Response 0 1 [0, 1, 0, 1] := by decide""" .
+
+procint:Decl_precedence_concrete a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 8 ;
+  procint:declName "ProcInt.precedence_concrete" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.precedence_concrete' depends on axioms: [propext, Quot.sound]" ;
+  procint:leanCode """/-- Concrete kernel check: precedence(0, 1) holds on [0, 1, 1] and
+response(1, 0) fails on it — decided by the kernel. -/
+theorem precedence_concrete : Precedence 0 1 [0, 1, 1] ∧ ¬ Response 1 0 [0, 1, 1] := by
+  decide""" .
+
+procint:Decl_succession_imp_response a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 9 ;
+  procint:declName "ProcInt.succession_imp_response" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.succession_imp_response' does not depend on any axioms" ;
+  procint:leanCode """/-- Succession entails response: the succession template is the conjunction
+of response and precedence (van der Aalst and Pesic; declare.rs Succession). -/
+theorem succession_imp_response [DecidableEq α] (a b : α) (t : List α)
+    (h : (DeclareConstraint.mk .succession a (some b)).Satisfies t) :
+    Response a b t := h.1""" .
+
+procint:Decl_existence_append a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 10 ;
+  procint:declName "ProcInt.existence_append" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.existence_append' does not depend on any axioms" ;
+  procint:leanCode """/-- Existence is monotone under trace extension on the right: if a occurs
+in t it occurs in t ++ s (DECLARE existence template monotonicity). -/
+theorem existence_append [DecidableEq α] (a : α) (t s : List α)
+    (h : (DeclareConstraint.mk .existence a none).Satisfies t) :
+    (DeclareConstraint.mk .existence a none).Satisfies (t ++ s) :=
+  List.mem_append_left s h""" .
+
+procint:Decl_notCoexistence_comm a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 11 ;
+  procint:declName "ProcInt.notCoexistence_comm" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.notCoexistence_comm' does not depend on any axioms" ;
+  procint:leanCode """/-- NotCoexistence is symmetric in its two activities
+(mutual-exclusion law; declare.rs NotCoExistence). -/
+theorem notCoexistence_comm [DecidableEq α] (a b : α) (t : List α) :
+    (DeclareConstraint.mk .notCoexistence a (some b)).Satisfies t ↔
+    (DeclareConstraint.mk .notCoexistence b (some a)).Satisfies t := by
+  constructor <;> exact fun h hc => h ⟨hc.2, hc.1⟩""" .
+
+procint:Decl_arity_one_or_two a procint:Decl ;
+  procint:inModule "Models.Declare" ;
+  procint:declOrder 12 ;
+  procint:declName "ProcInt.arity_one_or_two" ;
+  procint:declKind "theorem" ;
+  procint:status "proven" ;
+  procint:auditMsg "'ProcInt.arity_one_or_two' depends on axioms: [propext]" ;
+  procint:leanCode """/-- Every template arity is 1 or 2 (declare.rs `arity` codomain law). -/
+theorem arity_one_or_two (tp : DeclareTemplate) : tp.arity = 1 ∨ tp.arity = 2 := by
+  cases tp <;> simp [DeclareTemplate.arity]""" .

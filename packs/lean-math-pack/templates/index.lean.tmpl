@@ -1,0 +1,22 @@
+---
+to: "procint/ProcInt.lean"
+sparql:
+  modules: |
+    PREFIX procint: <https://mfact.dev/procint#>
+    SELECT ?moduleId ?order
+    WHERE {
+      ?m a procint:Module ;
+         procint:moduleId ?moduleId ;
+         procint:order ?order .
+    }
+    ORDER BY ?order ?moduleId
+force: true
+skip_empty: true
+---
+-- RENDERED by `ggen sync` from the procint TTL declaration catalog (lean-math-pack).
+-- Candidate Lean: admitted only by `lake build`. ggen renders; Lean admits.
+-- Root import index in topological (procint:order) order.
+{% for m in modules %}import ProcInt.{{ m.moduleId }}
+{% endfor %}import ProcInt.Registry.Algorithms
+import ProcInt.Registry.Breeds
+

@@ -1,0 +1,45 @@
+---
+to: "procint/ProcInt/Registry/Breeds.lean"
+sparql:
+  breeds: |
+    PREFIX compat: <https://wasm4pm.dev/ns#>
+    SELECT ?breedId ?breedLabel ?breedDoc ?citation
+    WHERE {
+      ?b a compat:CognitionBreed ;
+         compat:breedId ?breedId ;
+         compat:breedLabel ?breedLabel ;
+         compat:breedDoc ?breedDoc ;
+         compat:citation ?citation .
+    }
+    ORDER BY ?breedId
+force: true
+skip_empty: true
+---
+-- RENDERED by `ggen sync` from lean-math-pack (wasm4pm compat: breed facts).
+-- Do not edit by hand: rows enter through the ontology, never here.
+import Mathlib
+import ProcInt.Foundations.Metric
+
+/-! # ProcInt.Registry.Breeds
+
+The 55 cognition-breed specifications, rendered one `BreedSpec` per
+`compat:CognitionBreed` individual in the wasm4pm facts ontology, ordered
+by breed id. The count theorem pins the registry's cardinality in the
+kernel. -/
+
+namespace ProcInt
+
+{% for row in breeds %}/-- Breed `{{ row.breedId }}`. -/
+def breed_{{ row.breedId }} : BreedSpec :=
+  ⟨"{{ row.breedId }}", "{{ row.breedLabel | replace(from='"', to="'") }}", "{{ row.breedDoc | replace(from='"', to="'") }}", "{{ row.citation | replace(from='"', to="'") }}"⟩
+
+{% endfor %}/-- Every breed specification, ordered by breed id. -/
+def allBreeds : List BreedSpec :=
+  [ {% for row in breeds %}breed_{{ row.breedId }}{% if not loop.last %},
+    {% endif %}{% endfor %} ]
+
+/-- The registry holds exactly 55 breeds — the DfCM cross-product
+cardinality pinned in the kernel. -/
+theorem allBreeds_count : allBreeds.length = 55 := by rfl
+
+end ProcInt

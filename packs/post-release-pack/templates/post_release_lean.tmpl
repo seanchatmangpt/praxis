@@ -1,0 +1,80 @@
+---
+to: "procint/ProcInt/Release/PostRelease.lean"
+sparql:
+  a_meta: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?releaseId ?crownStatus ?publication ?packetHash
+    WHERE { ?m a post:MetaNode ; post:releaseId ?releaseId ;
+      post:crownStatus ?crownStatus ; post:publication ?publication ;
+      post:packetHash ?packetHash . }
+  packets: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?packetId ?packetStatus ?publication
+    WHERE { ?p a post:Packet ; post:packetId ?packetId ;
+      post:packetStatus ?packetStatus ; post:publication ?publication . }
+    ORDER BY ?packetId
+  obligations: |
+    PREFIX post: <https://mfact.dev/postrelease#>
+    SELECT ?oblName ?oblStatus ?oblOrder
+    WHERE { ?o a post:Obligation ; post:oblOrder ?oblOrder ;
+      post:oblName ?oblName ; post:oblStatus ?oblStatus . }
+    ORDER BY ?oblOrder
+force: true
+skip_empty: true
+---
+-- RENDERED by `ggen sync` from the post-release graph (post-release-pack).
+-- Candidate Lean: admitted only by `lake build PostRelease`.
+-- ggen renders; Lean admits; mfact certifies.
+
+/-! # Post-release witness — {% for m in a_meta %}{{ m.releaseId }}{% endfor %}
+
+A finite, kernel-checked witness over the publication packet: no actuation
+packet self-actuates (publication is pending external actuation in every
+case, however ALIVE the packet's requirements), and the crown research
+theorem is never silently promoted past STATED. The lists below are
+rendered from the same graph as `release/FINAL_STATUS.md`; a render in
+which either law fails makes the corresponding `rfl` proof false and the
+kernel refuses this file. -/
+
+namespace ProcInt.Release
+
+/-- Packet identity of the post-release graph this witness was rendered from. -/
+def postReleasePacketHash : String :=
+  "{% for m in a_meta %}{{ m.packetHash }}{% endfor %}"
+
+/-- Actuation packets: (packet id, packet status, publication field). -/
+def actuationPackets : List (String × String × String) := [
+{% for p in packets %}  ("{{ p.packetId }}", "{{ p.packetStatus }}", "{{ p.publication }}"){% if not loop.last %},{% endif %}
+{% endfor %}]
+
+/-- No packet self-actuates: every packet's publication field is
+`PENDING_EXTERNAL_ACTUATION`, regardless of its ALIVE/BLOCKED status. -/
+theorem packets_never_self_actuate :
+    actuationPackets.all (fun p => p.2.2 == "PENDING_EXTERNAL_ACTUATION") = true := by rfl
+
+/-- Crown research lane: (obligation name, catalog-derived status). -/
+def crownObligations : List (String × String) := [
+{% for o in obligations %}  ("{{ o.oblName }}", "{{ o.oblStatus }}"){% if not loop.last %},{% endif %}
+{% endfor %}]
+
+/-- The crown lane's aggregate status as recorded in the graph. -/
+def crownStatus : String := "{% for m in a_meta %}{{ m.crownStatus }}{% endfor %}"
+
+/-- STATED is never silently promoted: the crown lane stands at STATED and
+the crown equivalence obligation itself is recorded as STATED. Promoting
+either requires the catalog to change, which re-renders this witness. -/
+theorem crown_not_promoted :
+    crownStatus = "STATED" ∧
+    (crownObligations.filter (fun o => o.1 == "sound_iff_shortCircuit_live_bounded")
+      |>.all (fun o => o.2 == "STATED")) = true := by
+  exact ⟨rfl, rfl⟩
+
+end ProcInt.Release
+
+/-! ## Self-audit: the post-release witness is axiom-pure. -/
+
+/-- info: 'ProcInt.Release.packets_never_self_actuate' does not depend on any axioms -/
+#guard_msgs in #print axioms ProcInt.Release.packets_never_self_actuate
+
+/-- info: 'ProcInt.Release.crown_not_promoted' does not depend on any axioms -/
+#guard_msgs in #print axioms ProcInt.Release.crown_not_promoted

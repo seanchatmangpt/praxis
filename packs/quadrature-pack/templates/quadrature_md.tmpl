@@ -1,0 +1,66 @@
+---
+to: "release/quadrature.md"
+sparql:
+  a_results: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?standingQuadrature ?releaseId ?runId ?ttlCount ?claimCount ?evalCount ?eventCount
+    WHERE {
+      ?r a quad:Results ;
+         quad:standingQuadrature ?standingQuadrature ;
+         quad:releaseId ?releaseId ;
+         quad:runId ?runId ;
+         quad:ttlCount ?ttlCount ;
+         quad:claimCount ?claimCount ;
+         quad:evalCount ?evalCount ;
+         quad:eventCount ?eventCount .
+    }
+  edges: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?pairLabel ?count ?result ?order
+    WHERE {
+      ?e a quad:EdgePair ;
+         quad:pairLabel ?pairLabel ;
+         quad:count ?count ;
+         quad:result ?result ;
+         quad:order ?order .
+    }
+    ORDER BY ?order
+  claims: |
+    PREFIX quad: <https://mfact.dev/quadrature#>
+    SELECT ?claimId ?claimText ?evidenceRef ?order
+    WHERE { ?c a quad:Claim ; quad:claimId ?claimId ; quad:claimText ?claimText ; quad:evidenceRef ?evidenceRef ; quad:order ?order . }
+    ORDER BY ?order
+force: true
+skip_empty: true
+---
+{% for r in a_results %}# Standing Quadrature — {{ r.releaseId }}
+
+`{{ r.standingQuadrature }}` (run `{{ r.runId }}`). ggen renders. Lean admits. mfact certifies.
+
+The release is not evaluated only by whether Lean builds. It is evaluated
+by whether the declaration catalog, admitted Lean corpus, process
+evidence, release manifest, and paper claims form a closed standing graph.
+The quadrature check rejects orphan declarations, unsupported claims,
+untraced artifacts, and manifest–paper divergence. The closure is
+kernel-checked: `procint/ProcInt/Release/Quadrature.lean` is rendered from
+the same graph and `lake build Quadrature` refuses it if any surface pair
+diverges.
+
+## Surface pairs
+
+| Surface pair | Count | Result |
+|---|---:|---|
+{% for e in edges %}| {{ e.pairLabel }} | {{ e.count }} | {{ e.result }} |
+{% endfor %}
+## Traced paper claims
+
+| Claim | Evidence |
+|---|---|
+{% for c in claims %}| {{ c.claimId }}: {{ c.claimText }} | `{{ c.evidenceRef }}` |
+{% endfor %}
+## Surfaces
+
+- TTL catalog: {{ r.ttlCount }} proven declarations
+- Paper: {{ r.claimCount }} traced claims, {{ r.evalCount }} evaluation numbers checked against the manifest
+- Process: {{ r.eventCount }} run events (receipt-chain append order; no wall clock)
+{% endfor %}

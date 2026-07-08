@@ -20,12 +20,7 @@ use clap_noun_verb::Result;
 /// * `out` - Path to write the built index JSON to.
 /// * `repo_root` - Repository root (for locating paper_factory_engine.py).
 #[clap_noun_verb_macros::verb("index-build")]
-fn l4_index_build(
-    corpus: camino::Utf8PathBuf,
-    lean_pilot_dir: camino::Utf8PathBuf,
-    out: camino::Utf8PathBuf,
-    repo_root: camino::Utf8PathBuf,
-) -> Result<serde_json::Value> {
+fn l4_index_build(corpus: camino::Utf8PathBuf, lean_pilot_dir: camino::Utf8PathBuf, out: camino::Utf8PathBuf, repo_root: camino::Utf8PathBuf) -> Result<serde_json::Value> {
     crate::cli::index_build(&corpus, &lean_pilot_dir, &out, &repo_root)
         .map_err(|e| ::clap_noun_verb::NounVerbError::Generic(e.to_string()))
 }
@@ -45,7 +40,8 @@ fn l4_init(root: camino::Utf8PathBuf, toolchain: String) -> Result<serde_json::V
 /// * `root` - Directory containing .lean files to audit.
 #[clap_noun_verb_macros::verb("no-sorry")]
 fn l4_no_sorry(root: camino::Utf8PathBuf) -> Result<serde_json::Value> {
-    crate::cli::no_sorry(&root).map_err(|e| ::clap_noun_verb::NounVerbError::Generic(e.to_string()))
+    crate::cli::no_sorry(&root)
+        .map_err(|e| ::clap_noun_verb::NounVerbError::Generic(e.to_string()))
 }
 /// Cross-reference the corpus index against the receipt ledger: report orphan labels, orphan files, and orphan receipts as typed refusals, not silently.
 ///
@@ -53,10 +49,7 @@ fn l4_no_sorry(root: camino::Utf8PathBuf) -> Result<serde_json::Value> {
 /// * `index` - Path to a built LeanDeclarationIndex JSON file.
 /// * `receipts` - Path to the receipt ledger (JSONL) to reconcile against.
 #[clap_noun_verb_macros::verb("reconcile")]
-fn l4_reconcile(
-    index: camino::Utf8PathBuf,
-    receipts: camino::Utf8PathBuf,
-) -> Result<serde_json::Value> {
+fn l4_reconcile(index: camino::Utf8PathBuf, receipts: camino::Utf8PathBuf) -> Result<serde_json::Value> {
     crate::cli::reconcile(&index, &receipts)
         .map_err(|e| ::clap_noun_verb::NounVerbError::Generic(e.to_string()))
 }
@@ -67,11 +60,7 @@ fn l4_reconcile(
 /// * `out` - Path to write the verification report JSON to.
 /// * `receipts` - Path to the receipt ledger (JSONL) to report on.
 #[clap_noun_verb_macros::verb("report")]
-fn l4_report(
-    index: camino::Utf8PathBuf,
-    out: camino::Utf8PathBuf,
-    receipts: camino::Utf8PathBuf,
-) -> Result<serde_json::Value> {
+fn l4_report(index: camino::Utf8PathBuf, out: camino::Utf8PathBuf, receipts: camino::Utf8PathBuf) -> Result<serde_json::Value> {
     crate::cli::report(&index, &out, &receipts)
         .map_err(|e| ::clap_noun_verb::NounVerbError::Generic(e.to_string()))
 }
@@ -84,13 +73,7 @@ fn l4_report(
 /// * `receipts` - Path to the receipt ledger (JSONL) to append to.
 /// * `root` - Directory containing .lean files to verify.
 #[clap_noun_verb_macros::verb("verify")]
-fn l4_verify(
-    lake: String,
-    lake_env: bool,
-    lean: String,
-    receipts: camino::Utf8PathBuf,
-    root: camino::Utf8PathBuf,
-) -> Result<serde_json::Value> {
+fn l4_verify(lake: String, lake_env: bool, lean: String, receipts: camino::Utf8PathBuf, root: camino::Utf8PathBuf) -> Result<serde_json::Value> {
     crate::cli::verify(lake, lake_env, lean, &receipts, &root)
         .map_err(|e| ::clap_noun_verb::NounVerbError::Generic(e.to_string()))
 }

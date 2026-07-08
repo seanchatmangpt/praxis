@@ -1,0 +1,31 @@
+---
+to: "procint/AxiomAudit.lean"
+sparql:
+  proven: |
+    PREFIX procint: <https://mfact.dev/procint#>
+    SELECT ?declName ?auditMsg
+    WHERE {
+      ?d a procint:Decl ;
+         procint:declName ?declName ;
+         procint:status "proven" ;
+         procint:auditMsg ?auditMsg .
+    }
+    ORDER BY ?declName
+force: true
+skip_empty: true
+---
+-- RENDERED by `ggen sync` from the procint TTL declaration catalog (lean-math-pack).
+-- Candidate Lean: admitted only by `lake build`. ggen renders; Lean admits.
+import ProcInt
+
+/-! # Axiom audit — procint package
+
+Machine-checked evidence that every declaration recorded as `proven` in the
+procint ontology rests only on the trusted axiom set
+`[propext, Classical.choice, Quot.sound]` and carries no transitive
+`sorryAx`. The build breaks on any drift between ontology and kernel. -/
+
+{% for p in proven %}/-- info: {{ p.auditMsg }} -/
+#guard_msgs in #print axioms {{ p.declName }}
+
+{% endfor %}
