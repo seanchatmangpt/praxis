@@ -12,25 +12,43 @@ pub struct HookReceipt {
 
 // Helper to assert that a triple exists in the store based on content_to_string output
 fn assert_contains_triple(store: &TripleStore, s: &str, p: &str, o: &str) {
-    let content = store.content_to_string();
+    let found = store.triple_index.triples.iter().any(|t| {
+        let s_decoded =
+            praxis_graphlaw::encoding::Encoder::decode(&t.s.to_encoded()).unwrap_or_default();
+        let p_decoded =
+            praxis_graphlaw::encoding::Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
+        let o_decoded =
+            praxis_graphlaw::encoding::Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
+        s_decoded.contains(s) && p_decoded.contains(p) && o_decoded.contains(o)
+    });
     assert!(
-        content.contains(s) && content.contains(p) && content.contains(o),
-        "Expected triple <{} {} {}> not found in store content:\n{}",
+        found,
+        "Expected triple <{} {} {}> not found in store\n{}",
         s,
         p,
         o,
-        content
+        store.content_to_string()
     );
 }
 
 // Helper to assert that a triple does not exist in the store
 fn assert_not_contains_triple(store: &TripleStore, s: &str, p: &str, o: &str) {
-    let content = store.content_to_string();
-    let found = content.contains(s) && content.contains(p) && content.contains(o);
+    let found = store.triple_index.triples.iter().any(|t| {
+        let s_decoded =
+            praxis_graphlaw::encoding::Encoder::decode(&t.s.to_encoded()).unwrap_or_default();
+        let p_decoded =
+            praxis_graphlaw::encoding::Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
+        let o_decoded =
+            praxis_graphlaw::encoding::Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
+        s_decoded.contains(s) && p_decoded.contains(p) && o_decoded.contains(o)
+    });
     assert!(
         !found,
-        "Triple <{} {} {}> was found in store content but was expected to be absent:\n{}",
-        s, p, o, content
+        "Triple <{} {} {}> was found in store but was expected to be absent:\n{}",
+        s,
+        p,
+        o,
+        store.content_to_string()
     );
 }
 
@@ -2098,8 +2116,9 @@ fn test_s4_automated_quarantine_and_refusal() {
     store.load_hook_pack(hook_pack).unwrap();
 
     // Simulate user attempting to write to SystemGraph
+    // N-Quads format: subject predicate object graph
     store.load_triples(
-        "GRAPH <http://example.org/SystemGraph> { <http://example.org/User1> <http://example.org/change_pass> 'admin' } .",
+        "<http://example.org/User1> <http://example.org/change_pass> \"admin\" <http://example.org/SystemGraph> .",
         Syntax::NQuads
     ).unwrap();
 

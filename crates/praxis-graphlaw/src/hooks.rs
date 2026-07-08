@@ -2011,6 +2011,11 @@ pub fn tokenize_triple(s: &str) -> Result<Vec<String>, String> {
                 }
                 token.push(chars.next().unwrap());
             }
+            if token.is_empty() {
+                // Lone delimiter (';', '.', or '}') — consume it so outer loop makes progress.
+                chars.next();
+                continue;
+            }
             tokens.push(token);
         }
     }

@@ -185,11 +185,13 @@ impl Reasoner {
         verdicts: &mut Vec<crate::hooks::HookVerdictRecord>,
     ) -> Result<Vec<Triple>, String> {
         let mut inferred = Vec::new();
-        if rules.is_empty() {
+        if rules.is_empty() && hooks.is_empty() {
             return Ok(inferred);
         }
 
         let max_stratum = *strata.iter().max().unwrap_or(&0);
+        let initial_snapshot: Vec<Triple> = triple_index.triples.clone();
+        let mut first_hook_round = true;
 
         for s in 0..=max_stratum {
             let stratum_rules: Vec<&Rule> = rules
@@ -203,7 +205,7 @@ impl Reasoner {
                 .map(|(_, r)| r)
                 .collect();
 
-            if stratum_rules.is_empty() {
+            if stratum_rules.is_empty() && hooks.is_empty() {
                 continue;
             }
 
@@ -439,11 +441,18 @@ impl Reasoner {
                     }
                 }
 
-                let round_additions = if next_start_counter < triple_index.len() {
+                let mut round_additions = if next_start_counter < triple_index.len() {
                     triple_index.triples[next_start_counter..].to_vec()
                 } else {
                     Vec::new()
                 };
+
+                if first_hook_round {
+                    first_hook_round = false;
+                    let mut merged = initial_snapshot.clone();
+                    merged.extend(round_additions);
+                    round_additions = merged;
+                }
 
                 let mut hook_changed = false;
 
