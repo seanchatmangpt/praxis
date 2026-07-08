@@ -36,9 +36,9 @@ use praxis_graphlaw_wasm::{
 
 /// Test Datalog stratification failure: mutual negative dependencies.
 ///
-/// Two rules with negation cycles:
-/// - rule1(X) :- rule2(X)
-/// - rule2(X) :- not { rule1(X) }
+/// Two rules with negation cycles (N3 syntax):
+/// { ?x ex:thing ?y } => { ?x ex:rule1 ?y } .
+/// { ?x ex:rule1 ?y . not { ?x ex:thing ?y } } => { ?x ex:rule2 ?y } .
 ///
 /// This creates a negative cycle that cannot be stratified.
 /// Expected: Status::Refused with stratification-specific error detail.
@@ -48,15 +48,11 @@ use praxis_graphlaw_wasm::{
 fn test_datalog_stratification_failure_negation_cycle() {
     let ttl = r#"
         @prefix ex: <http://example.org/> .
-        @prefix datalog: <http://seanchatmangpt.github.io/praxis/datalog#> .
 
-        ex:rule_a a datalog:Rule ;
-            datalog:head "rule1(?X)" ;
-            datalog:body "rule2(?X)" .
+        ex:alice ex:thing ex:bob .
 
-        ex:rule_b a datalog:Rule ;
-            datalog:head "rule2(?X)" ;
-            datalog:body "not { rule1(?X) }" .
+        { ?x ex:thing ?y } => { ?x ex:rule1 ?y } .
+        { ?x ex:rule1 ?y . not { ?x ex:thing ?y } } => { ?x ex:rule2 ?y } .
     "#;
 
     let result = validate_all_core(ttl, "", "", "", "");

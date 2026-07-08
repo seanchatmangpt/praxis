@@ -2150,7 +2150,7 @@ fn test_s4_ledger_balance_enforcement_and_audit() {
             Syntax::Turtle,
         )
         .unwrap();
-    let inferred = store.materialize();
+    let _inferred = store.materialize();
     assert_contains_triple(&store, "Account1", "balance", "300");
 
     // Attempt invalid transaction: Deduct 400 (balance goes to -100)

@@ -706,6 +706,7 @@ impl Reasoner {
                                 }
                             }
 
+                            // Always generate receipt/verdict when hook fires, even if no additions
                             let mut delta_hash = None;
                             let mut idempotency_key = None;
                             if !hook_additions.is_empty() {
@@ -728,6 +729,16 @@ impl Reasoner {
                                 receipts.push(receipt);
                                 delta_hash = Some(d_hash);
                                 idempotency_key = Some(i_key);
+                            } else {
+                                // Hook fired but produced no additions (no kh:action or empty delta)
+                                // Still generate an empty receipt to track the firing
+                                let receipt = crate::hooks::HookReceipt {
+                                    hook_name: hook.name.clone(),
+                                    delta_hash: String::new(),
+                                    idempotency_key: String::new(),
+                                    delta_quads: String::new(),
+                                };
+                                receipts.push(receipt);
                             }
 
                             verdicts.push(crate::hooks::HookVerdictRecord {

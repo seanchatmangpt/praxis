@@ -17,7 +17,6 @@
 //! - Tests verify HookRunResult status, verdicts, and schedule fields
 //! - effect type and idempotency_key fields are verified for existence
 
-use praxis_graphlaw::hooks::HookVerdict;
 use praxis_graphlaw_wasm::core::run_hooks_core;
 use praxis_graphlaw_wasm::dto::Status;
 
@@ -338,11 +337,13 @@ fn test_hooks_idempotency_key_stability() {
 
     // Verify both runs admitted
     assert_eq!(
-        run1.status, Status::Admitted,
+        run1.status,
+        Status::Admitted,
         "Run 1 status should be Admitted"
     );
     assert_eq!(
-        run2.status, Status::Admitted,
+        run2.status,
+        Status::Admitted,
         "Run 2 status should be Admitted"
     );
 
@@ -370,11 +371,7 @@ fn test_hooks_idempotency_key_stability() {
         );
 
         // Verify effects match
-        assert_eq!(
-            v1.effect, v2.effect,
-            "Verdict {} effect must match",
-            i
-        );
+        assert_eq!(v1.effect, v2.effect, "Verdict {} effect must match", i);
 
         // Verify verdicts (Fired/NotFired) match
         assert_eq!(
