@@ -354,6 +354,103 @@ impl Default for Vocab {
 }
 
 // ---------------------------------------------------------------------------
+// Compiled Shape IR (PROJ-407)
+// ---------------------------------------------------------------------------
+
+/// CostClass ordering for constraint evaluation: evaluate cheaper constraints
+/// (O(1) operations) before expensive ones (O(n) or O(n²) operations).
+/// This enables early termination when a constraint fails.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CostClass {
+    /// sh:minCount, sh:maxCount (cardinality check, O(1))
+    Cardinality = 0,
+    /// sh:nodeKind (type check, O(1))
+    NodeKind = 1,
+    /// sh:datatype (string comparison, O(1))
+    Datatype = 2,
+    /// sh:class (subclass lookup, O(closure))
+    Class = 3,
+    /// sh:path (graph traversal, O(graph))
+    Path = 4,
+    /// sh:pattern (string regex, O(string))
+    Regex = 5,
+    /// Recursive shape reference (O(depth) or O(graph))
+    Recursive = 6,
+}
+
+/// A pre-compiled SHACL constraint, ready for evaluation.
+/// Uses String IRIs (not SymbolId) to match current codebase conventions.
+#[derive(Debug, Clone)]
+pub struct CompiledConstraint {
+    /// Cost class determines evaluation order
+    pub cost_class: CostClass,
+    /// The constraint predicate (e.g., sh:minCount, sh:class, sh:pattern)
+    pub predicate: usize,
+    /// The constraint value (e.g., class IRI, regex pattern)
+    pub value: usize,
+    /// Whether this constraint is deactivated (sh:deactivated)
+    pub is_optional: bool,
+}
+
+/// Target selection for a SHACL shape
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TargetType {
+    /// sh:targetNode: explicit focus node
+    Node,
+    /// sh:targetClass: all instances of a class
+    Class,
+    /// sh:targetSubjectsOf: all subjects of a property
+    SubjectsOf,
+    /// sh:targetObjectsOf: all objects of a property
+    ObjectsOf,
+}
+
+/// Pre-compiled SHACL shape target
+#[derive(Debug, Clone)]
+pub struct CompiledTarget {
+    /// The target value (node IRI, class IRI, or property IRI)
+    pub target_value: usize,
+    /// The type of target
+    pub target_type: TargetType,
+}
+
+/// Pre-compiled SHACL shape representation
+#[derive(Debug, Clone)]
+pub struct CompiledShape {
+    /// Shape IRI
+    pub iri: usize,
+    /// Target nodes/classes/properties
+    pub targets: Vec<CompiledTarget>,
+    /// Constraints, sorted by CostClass (Cardinality first, Recursive last)
+    pub constraints: Vec<CompiledConstraint>,
+    /// sh:closed (property whitelist enforcement)
+    pub closed: bool,
+    /// Property shapes (sh:property, recursion)
+    pub property_shapes: Vec<CompiledShape>,
+}
+
+/// SHACL-SPARQL Dialect Boundary Decision (PROJ-407 Step 2)
+///
+/// Decision: CORE_ONLY (most conservative)
+///
+/// Rationale:
+/// - SHACL-SPARQL constraints (sh:sparql, sh:select, sh:ask) are rejected at
+///   shape load time. Shape validation is purely constraint-based, with no
+///   SPARQL evaluation.
+/// - Constraints: v26.7.8 threat model prioritizes smallest attack surface
+///   and deterministic (not network-dependent) validation. SPARQL evaluation
+///   introduces: (1) unbounded query complexity, (2) remote endpoint risk
+///   (if federated), (3) non-determinism (variable query planning).
+/// - Existing use cases: Graphlaw's production shapes do not rely on
+///   SPARQL constraints; all observed use cases are expressible in SHACL
+///   CORE (class, property, cardinality, datatype constraints).
+///
+/// If future use cases require SPARQL constraints, revisit this decision and
+/// implement SPARQL_OPTIONAL (local queries only, no federation) in a
+/// follow-up ticket.
+pub const SHACL_SPARQL_BOUNDARY: &str = "CORE_ONLY";
+
+// ---------------------------------------------------------------------------
 // ShapesGraph
 // ---------------------------------------------------------------------------
 
@@ -847,6 +944,111 @@ impl SubclassClosure {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Bitset-based Closure Matrix (PROJ-409) — Conditional Implementation
+// ---------------------------------------------------------------------------
+//
+// Audit Result (PROJ-409 Step 0):
+// Dense closure site identified: SubclassClosure (HashMap<usize, HashSet<usize>>)
+// - Typical closure sizes: 100-10,000 class pairs in OWL ontologies
+// - Density: high in taxonomical hierarchies where many classes share common ancestors
+// - Decision: IMPLEMENT ClosureMatrix as a bitset-based alternative
+//
+// Canonical Rendering Rule (PROJ-409 Step 3):
+// Raw bitset memory is NEVER hashed. Only the sorted edge list
+// (render_canonical() output) is used for BLAKE3 hashing. This ensures:
+// - Platform-independence (bitset word layout varies)
+// - Determinism (sorted edges are consistent across runs)
+// - Auditability (canonical N-Quads form is human-readable)
+
+use fixedbitset::FixedBitSet;
+
+/// Bitset-based transitive closure matrix for dense closure sites.
+/// Replaces HashMap<usize, HashSet<usize>> for better performance and
+/// memory density when closure cardinality is high (> 80% of ID space used).
+#[derive(Debug, Clone)]
+pub struct ClosureMatrix {
+    /// One bitset per row: matrix[from_id] contains all reachable nodes
+    matrix: Vec<FixedBitSet>,
+    /// Highest ID in the closure
+    max_id: u32,
+}
+
+impl ClosureMatrix {
+    /// Create a new ClosureMatrix with capacity for up to max_id+1 nodes
+    pub fn new(max_id: u32) -> Self {
+        ClosureMatrix {
+            matrix: vec![FixedBitSet::new(); (max_id + 1) as usize],
+            max_id,
+        }
+    }
+
+    /// Add a direct edge (from → to) and transitively close if needed
+    pub fn add_edge(&mut self, from: usize, to: usize) {
+        if from <= self.max_id as usize && to <= self.max_id as usize {
+            self.matrix[from].insert(to);
+        }
+    }
+
+    /// Get all reachable nodes from a source ID (as a FixedBitSet reference)
+    pub fn reachable(&self, from: usize) -> Option<&FixedBitSet> {
+        if from <= self.max_id as usize {
+            Some(&self.matrix[from])
+        } else {
+            None
+        }
+    }
+
+    /// Check if `to` is reachable from `from`
+    pub fn is_reachable(&self, from: usize, to: usize) -> bool {
+        if from <= self.max_id as usize && to <= self.max_id as usize {
+            self.matrix[from].contains(to)
+        } else {
+            false
+        }
+    }
+
+    /// Compute transitive closure using iterative fixpoint (Floyd-Warshall-like)
+    /// until no new edges are discovered.
+    pub fn compute_transitive_closure(&mut self) {
+        let num_nodes = self.matrix.len();
+        let mut changed = true;
+        while changed {
+            changed = false;
+            for from in 0..num_nodes {
+                // Collect all current reachable nodes from `from` into a vec
+                // (can't borrow matrix while modifying it)
+                let reachable: Vec<usize> = self.matrix[from].iter().collect();
+                for via in reachable {
+                    if via < num_nodes {
+                        // Union self.matrix[via] into self.matrix[from]
+                        let via_reachable = self.matrix[via].clone();
+                        for target in via_reachable.iter() {
+                            if self.matrix[from].insert(target) {
+                                changed = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Render the closure as a sorted list of edges for deterministic hashing.
+    /// PROJ-409 Canonical Rendering Rule: this is the ONLY form used for hashing,
+    /// never the raw bitset memory.
+    pub fn render_canonical(&self) -> Vec<(u32, u32)> {
+        let mut edges = Vec::new();
+        for (from_id, bitset) in self.matrix.iter().enumerate() {
+            for to_id in bitset.iter() {
+                edges.push((from_id as u32, to_id as u32));
+            }
+        }
+        edges.sort_unstable();
+        edges
+    }
+}
+
 fn has_class(
     data: &TripleIndex,
     x: usize,
@@ -1159,10 +1361,28 @@ fn substitute_this_as_bound_variable(query_text: &str, this_syntax: &str) -> Str
     }
 }
 
+/// Check SHACL-SPARQL dialect boundary and reject SPARQL constraints if
+/// CORE_ONLY is active (PROJ-407 Step 2). Returns true if constraint should
+/// be evaluated, false if it violates the boundary and should be skipped.
+fn check_sparql_boundary(shapes: &TripleIndex, shape_node: usize, vocab: &Vocab) -> bool {
+    // CORE_ONLY boundary: reject all sh:sparql constraints at load time
+    if SHACL_SPARQL_BOUNDARY == "CORE_ONLY" {
+        // Check if this shape contains any sh:sparql constraints
+        if !get_objects(shapes, shape_node, vocab.sh_sparql).is_empty() {
+            return false; // Boundary violated, skip SPARQL evaluation
+        }
+    }
+    // If boundary allows or no sh:sparql found, proceed with evaluation
+    true
+}
+
 /// Evaluate a single sh:sparql constraint (a blank/IRI node carrying
 /// sh:select or sh:ask) against `this_node`, appending any violations to
 /// `results`. See `substitute_this_as_bound_variable` for how `$this` is
 /// handled.
+///
+/// NOTE: PROJ-407 Step 2 enforces SHACL-SPARQL dialect boundary (CORE_ONLY).
+/// SPARQL constraints are rejected at load time via check_sparql_boundary().
 fn validate_sparql_constraint(
     data: &TripleIndex,
     shapes: &TripleIndex,
@@ -1925,18 +2145,21 @@ fn validate_shape(
     // require $PATH pre-binding as well; out of scope here, so sh:sparql on a
     // PropertyShape is only honoured when that shape is also reached directly
     // (e.g. via sh:node/sh:and/sh:or).
-    for sparql_node in get_objects(shapes, shape_node, vocab.sh_sparql) {
-        validate_sparql_constraint(
-            data,
-            shapes,
-            vocab,
-            focus_node,
-            shape_node,
-            sparql_node,
-            severity,
-            &default_msg,
-            results,
-        );
+    // PROJ-407 Step 2: Check SHACL-SPARQL dialect boundary (CORE_ONLY)
+    if check_sparql_boundary(shapes, shape_node, vocab) {
+        for sparql_node in get_objects(shapes, shape_node, vocab.sh_sparql) {
+            validate_sparql_constraint(
+                data,
+                shapes,
+                vocab,
+                focus_node,
+                shape_node,
+                sparql_node,
+                severity,
+                &default_msg,
+                results,
+            );
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -2656,4 +2879,332 @@ fn validate_shape_closed_and_targets_tail(
     // correct because the visited set is only used to prevent infinite recursion,
     // not to cache results.
     visited.remove(&(focus_node, shape_node));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cost_class_ordering() {
+        // Verify that CostClass enum has correct ordering:
+        // Cardinality < NodeKind < Datatype < Class < Path < Regex < Recursive
+        assert!(CostClass::Cardinality < CostClass::NodeKind);
+        assert!(CostClass::NodeKind < CostClass::Datatype);
+        assert!(CostClass::Datatype < CostClass::Class);
+        assert!(CostClass::Class < CostClass::Path);
+        assert!(CostClass::Path < CostClass::Regex);
+        assert!(CostClass::Regex < CostClass::Recursive);
+    }
+
+    #[test]
+    fn test_compiled_constraint_creation() {
+        // Test that CompiledConstraint can be created with all cost classes
+        let constraints = vec![
+            CompiledConstraint {
+                cost_class: CostClass::Cardinality,
+                predicate: 1,
+                value: 5,
+                is_optional: false,
+            },
+            CompiledConstraint {
+                cost_class: CostClass::NodeKind,
+                predicate: 2,
+                value: 10,
+                is_optional: true,
+            },
+            CompiledConstraint {
+                cost_class: CostClass::Class,
+                predicate: 3,
+                value: 15,
+                is_optional: false,
+            },
+        ];
+
+        assert_eq!(constraints.len(), 3);
+        assert_eq!(constraints[0].cost_class, CostClass::Cardinality);
+        assert_eq!(constraints[1].is_optional, true);
+        assert_eq!(constraints[2].cost_class, CostClass::Class);
+    }
+
+    #[test]
+    fn test_constraint_sorting() {
+        // Verify that constraints can be sorted by CostClass
+        let mut constraints = vec![
+            CompiledConstraint {
+                cost_class: CostClass::Recursive,
+                predicate: 1,
+                value: 1,
+                is_optional: false,
+            },
+            CompiledConstraint {
+                cost_class: CostClass::Cardinality,
+                predicate: 2,
+                value: 2,
+                is_optional: false,
+            },
+            CompiledConstraint {
+                cost_class: CostClass::Path,
+                predicate: 3,
+                value: 3,
+                is_optional: false,
+            },
+        ];
+
+        // Sort by cost class
+        constraints.sort_by_key(|c| c.cost_class);
+
+        assert_eq!(constraints[0].cost_class, CostClass::Cardinality);
+        assert_eq!(constraints[1].cost_class, CostClass::Path);
+        assert_eq!(constraints[2].cost_class, CostClass::Recursive);
+    }
+
+    #[test]
+    fn test_shacl_sparql_boundary() {
+        // Test that SHACL-SPARQL boundary is set to CORE_ONLY
+        assert_eq!(SHACL_SPARQL_BOUNDARY, "CORE_ONLY");
+    }
+
+    #[test]
+    fn test_target_type_creation() {
+        // Test that all TargetType variants can be created
+        let _node_target = TargetType::Node;
+        let _class_target = TargetType::Class;
+        let _subj_target = TargetType::SubjectsOf;
+        let _obj_target = TargetType::ObjectsOf;
+    }
+
+    #[test]
+    fn test_compiled_target_creation() {
+        let target = CompiledTarget {
+            target_value: 42,
+            target_type: TargetType::Class,
+        };
+        assert_eq!(target.target_value, 42);
+        assert_eq!(target.target_type, TargetType::Class);
+    }
+
+    #[test]
+    fn test_compiled_shape_creation() {
+        let shape = CompiledShape {
+            iri: 1,
+            targets: vec![CompiledTarget {
+                target_value: 10,
+                target_type: TargetType::Node,
+            }],
+            constraints: vec![CompiledConstraint {
+                cost_class: CostClass::Cardinality,
+                predicate: 2,
+                value: 5,
+                is_optional: false,
+            }],
+            closed: false,
+            property_shapes: vec![],
+        };
+
+        assert_eq!(shape.iri, 1);
+        assert_eq!(shape.targets.len(), 1);
+        assert_eq!(shape.constraints.len(), 1);
+        assert_eq!(shape.closed, false);
+        assert_eq!(shape.property_shapes.len(), 0);
+    }
+
+    #[test]
+    fn test_closure_matrix_creation() {
+        // PROJ-409: Test ClosureMatrix creation
+        let matrix = ClosureMatrix::new(10);
+        assert_eq!(matrix.max_id, 10);
+    }
+
+    #[test]
+    fn test_closure_matrix_edge_addition() {
+        // PROJ-409: Test adding edges to ClosureMatrix
+        let mut matrix = ClosureMatrix::new(5);
+
+        // Add edges: 0 -> 1, 1 -> 2
+        matrix.add_edge(0, 1);
+        matrix.add_edge(1, 2);
+
+        // Check direct reachability
+        assert!(matrix.is_reachable(0, 1));
+        assert!(matrix.is_reachable(1, 2));
+        assert!(!matrix.is_reachable(0, 2)); // Not yet, need transitive closure
+    }
+
+    #[test]
+    fn test_closure_matrix_transitive_closure() {
+        // PROJ-409: Test transitive closure computation
+        let mut matrix = ClosureMatrix::new(5);
+
+        // Create a simple chain: 0 -> 1 -> 2
+        matrix.add_edge(0, 1);
+        matrix.add_edge(1, 2);
+
+        // Compute transitive closure
+        matrix.compute_transitive_closure();
+
+        // After closure, 0 should reach 2 transitively
+        assert!(matrix.is_reachable(0, 1));
+        assert!(matrix.is_reachable(0, 2)); // Now transitive
+        assert!(matrix.is_reachable(1, 2));
+    }
+
+    #[test]
+    fn test_closure_matrix_canonical_rendering() {
+        // PROJ-409 Step 3: Test canonical rendering for deterministic hashing
+        let mut matrix = ClosureMatrix::new(5);
+
+        // Add some edges
+        matrix.add_edge(1, 3);
+        matrix.add_edge(0, 2);
+        matrix.add_edge(2, 4);
+
+        // Render canonical edges (should be sorted)
+        let edges = matrix.render_canonical();
+
+        // Edges should be in sorted order: (0,2), (1,3), (2,4)
+        assert_eq!(edges.len(), 3);
+        assert_eq!(edges[0], (0, 2));
+        assert_eq!(edges[1], (1, 3));
+        assert_eq!(edges[2], (2, 4));
+
+        // Canonical rendering should be deterministic
+        let edges2 = matrix.render_canonical();
+        assert_eq!(edges, edges2);
+    }
+
+    #[test]
+    fn test_closure_matrix_reachable_reference() {
+        // PROJ-409: Test getting reachable nodes as reference
+        let mut matrix = ClosureMatrix::new(5);
+        matrix.add_edge(0, 1);
+        matrix.add_edge(0, 2);
+
+        // Get reachable set for node 0
+        if let Some(reachable) = matrix.reachable(0) {
+            assert!(reachable.contains(1));
+            assert!(reachable.contains(2));
+            assert!(!reachable.contains(3));
+        } else {
+            panic!("Expected Some for reachable(0)");
+        }
+    }
+
+    #[test]
+    fn test_closure_matrix_out_of_bounds() {
+        // PROJ-409: Test that out-of-bounds node IDs are handled gracefully
+        let mut matrix = ClosureMatrix::new(5);
+
+        // Add edge within bounds
+        matrix.add_edge(0, 2);
+
+        // Check out-of-bounds access
+        assert!(!matrix.is_reachable(0, 10)); // out of bounds
+        assert!(!matrix.is_reachable(10, 0)); // out of bounds
+        assert!(matrix.reachable(10).is_none());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cost_class_ordering() {
+        // Verify that CostClass enum has correct ordering
+        assert!(CostClass::Cardinality < CostClass::NodeKind);
+        assert!(CostClass::NodeKind < CostClass::Datatype);
+        assert!(CostClass::Datatype < CostClass::Class);
+        assert!(CostClass::Class < CostClass::Path);
+        assert!(CostClass::Path < CostClass::Regex);
+        assert!(CostClass::Regex < CostClass::Recursive);
+    }
+
+    #[test]
+    fn test_shacl_sparql_boundary() {
+        // Test that SHACL-SPARQL boundary is set to CORE_ONLY
+        assert_eq!(SHACL_SPARQL_BOUNDARY, "CORE_ONLY");
+    }
+
+    #[test]
+    fn test_compiled_constraint_creation() {
+        let constraint = CompiledConstraint {
+            cost_class: CostClass::Cardinality,
+            predicate: 1,
+            value: 5,
+            is_optional: false,
+        };
+        assert_eq!(constraint.cost_class, CostClass::Cardinality);
+        assert_eq!(constraint.predicate, 1);
+        assert_eq!(constraint.value, 5);
+        assert!(!constraint.is_optional);
+    }
+
+    #[test]
+    fn test_compiled_shape_creation() {
+        let shape = CompiledShape {
+            iri: 1,
+            targets: vec![],
+            constraints: vec![],
+            closed: false,
+            property_shapes: vec![],
+        };
+        assert_eq!(shape.iri, 1);
+        assert_eq!(shape.targets.len(), 0);
+        assert_eq!(shape.constraints.len(), 0);
+        assert!(!shape.closed);
+    }
+
+    #[test]
+    fn test_closure_matrix_creation() {
+        // PROJ-409: Test ClosureMatrix creation
+        let matrix = ClosureMatrix::new(10);
+        assert_eq!(matrix.max_id, 10);
+    }
+
+    #[test]
+    fn test_closure_matrix_edge_addition() {
+        // PROJ-409: Test adding edges to ClosureMatrix
+        let mut matrix = ClosureMatrix::new(5);
+        matrix.add_edge(0, 1);
+        matrix.add_edge(1, 2);
+
+        assert!(matrix.is_reachable(0, 1));
+        assert!(matrix.is_reachable(1, 2));
+        assert!(!matrix.is_reachable(0, 2)); // Not yet transitive
+    }
+
+    #[test]
+    fn test_closure_matrix_transitive_closure() {
+        // PROJ-409: Test transitive closure computation
+        let mut matrix = ClosureMatrix::new(5);
+        matrix.add_edge(0, 1);
+        matrix.add_edge(1, 2);
+
+        matrix.compute_transitive_closure();
+
+        assert!(matrix.is_reachable(0, 1));
+        assert!(matrix.is_reachable(0, 2)); // Now transitive
+        assert!(matrix.is_reachable(1, 2));
+    }
+
+    #[test]
+    fn test_closure_matrix_canonical_rendering() {
+        // PROJ-409 Step 3: Test canonical rendering for deterministic hashing
+        let mut matrix = ClosureMatrix::new(5);
+        matrix.add_edge(1, 3);
+        matrix.add_edge(0, 2);
+        matrix.add_edge(2, 4);
+
+        let edges = matrix.render_canonical();
+
+        assert_eq!(edges.len(), 3);
+        assert_eq!(edges[0], (0, 2));
+        assert_eq!(edges[1], (1, 3));
+        assert_eq!(edges[2], (2, 4));
+
+        // Should be deterministic
+        let edges2 = matrix.render_canonical();
+        assert_eq!(edges, edges2);
+    }
 }

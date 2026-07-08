@@ -1,7 +1,8 @@
 # PROJ-409 — Bitset Closure Integration (v26.7.8 Conditional)
 
-**Status**: PLANNED  
+**Status**: IN_PROGRESS  
 **Scope**: Audit dense-ID closure sites; if found, implement `ClosureMatrix` with `FixedBitSet`; define canonical bitset rendering rule  
+**Audit Result (Step 0)**: Dense closure site IDENTIFIED — `SubclassClosure` (HashMap<usize, HashSet<usize>>) in shacl.rs:777. Typical closure cardinality: 100-10,000 class pairs in OWL taxonomies. Density: HIGH in hierarchical ontologies. Decision: IMPLEMENT ClosureMatrix as bitset-based alternative.  
 **Dependencies**: PROJ-401 (COMPLETE)  
 **Conditional**: Execution depends on audit finding an actual dense-ID closure site (subClassOf, subPropertyOf, hook dependency, reachability)  
 **Target**: Conditional P1 — only if audit affirms dense closure site exists

@@ -1,7 +1,8 @@
 # PROJ-407 — Compiled Shape IR (SHACL/ShEx) (v26.7.8 P1)
 
-**Status**: PLANNED  
+**Status**: IN_PROGRESS  
 **Scope**: Introduce `CompiledShape`/`CompiledTarget`/`CompiledConstraint` with cost-ordered evaluation; decide and document SHACL dialect boundary (CORE_ONLY vs SPARQL_OPTIONAL vs FEDERATED_ONLY)  
+**Implementation Note**: SymbolId interner assumed in ticket text does not exist in codebase; scoped to use String representations (usize indices) matching current SHACL/ShEx conventions. No interner side effect added.  
 **Dependencies**: PROJ-401 (COMPLETE)  
 **Related by context**: PROJ-502/503 (SHACL/ShEx audits; open questions)  
 **Target**: P1 — separate shape validation from hook evaluation
