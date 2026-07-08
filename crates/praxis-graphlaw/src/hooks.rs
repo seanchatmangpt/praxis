@@ -2020,6 +2020,89 @@ pub fn tokenize_triple(s: &str) -> Result<Vec<String>, String> {
     Ok(tokens)
 }
 
+// Expand RDF shorthand: "s p1 o1 ; p2 o2 ; p3 o3" → "s p1 o1 . s p2 o2 . s p3 o3"
+// Semicolons separate predicate-object pairs that share the same subject.
+fn expand_semicolon_predicates(text: &str) -> String {
+    let mut result = String::new();
+    let mut current_subject: Option<String> = None;
+    let mut chars = text.chars().peekable();
+    let mut in_iri = false;
+    let mut in_literal = false;
+    let mut literal_delim = ' ';
+    let mut token_buffer = String::new();
+    let mut token_count = 0;
+
+    while let Some(&c) = chars.peek() {
+        if in_literal {
+            token_buffer.push(c);
+            chars.next();
+            if c == literal_delim {
+                // Check for escaped quote
+                if chars.peek() != Some(&'\\') {
+                    in_literal = false;
+                }
+            }
+        } else if in_iri {
+            token_buffer.push(c);
+            chars.next();
+            if c == '>' {
+                in_iri = false;
+            }
+        } else if c == '<' {
+            in_iri = true;
+            token_buffer.push(c);
+            chars.next();
+        } else if c == '"' || c == '\'' {
+            in_literal = true;
+            literal_delim = c;
+            token_buffer.push(c);
+            chars.next();
+        } else if c.is_whitespace() {
+            if !token_buffer.is_empty() {
+                token_count += 1;
+                if token_count == 1 {
+                    current_subject = Some(token_buffer.clone());
+                    result.push_str(&token_buffer);
+                } else {
+                    result.push(' ');
+                    result.push_str(&token_buffer);
+                }
+                token_buffer.clear();
+            }
+            result.push(c);
+            chars.next();
+        } else if c == ';' {
+            if !token_buffer.is_empty() {
+                token_count += 1;
+                result.push(' ');
+                result.push_str(&token_buffer);
+                token_buffer.clear();
+            }
+            // Replace ; with . and reset token count to 1 (subject already output)
+            result.push('.');
+            if let Some(ref subj) = current_subject {
+                result.push(' ');
+                result.push_str(subj);
+                token_count = 1;
+            }
+            chars.next();
+        } else {
+            token_buffer.push(c);
+            chars.next();
+        }
+    }
+
+    // Output any remaining token
+    if !token_buffer.is_empty() {
+        if token_count > 0 {
+            result.push(' ');
+        }
+        result.push_str(&token_buffer);
+    }
+
+    result
+}
+
 pub fn parse_construct(query_str: &str) -> Result<ConstructQuery, String> {
     let clean_query = strip_comments(query_str);
     let const_idx = clean_query
@@ -2074,7 +2157,10 @@ pub fn parse_construct(query_str: &str) -> Result<ConstructQuery, String> {
             inner_text = template_text[first_g_brace + 1..last_g_brace].trim();
         }
 
-        for triple_part in inner_text.split('.') {
+        // Expand semicolon-joined predicates: "s p1 o1 ; p2 o2 ; p3 o3" → "s p1 o1 . s p2 o2 . s p3 o3"
+        let expanded_text = expand_semicolon_predicates(inner_text);
+
+        for triple_part in expanded_text.split('.') {
             let triple_part = triple_part.trim();
             if triple_part.is_empty() {
                 continue;
