@@ -1,6 +1,6 @@
 # Workspace-level Cargo configuration
 
-[build]
+[target.wasm32-unknown-unknown]
 # Enable wasm_js backend for getrandom when compiling to wasm32-unknown-unknown
-# This flag is required for any wasm32-unknown-unknown builds that depend on getrandom
+# This flag is required for wasm32-unknown-unknown builds that depend on getrandom
 rustflags = ["--cfg", "getrandom_backend=\"wasm_js\""]
