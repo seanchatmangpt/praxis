@@ -977,8 +977,9 @@ pub struct ClosureMatrix {
 impl ClosureMatrix {
     /// Create a new ClosureMatrix with capacity for up to max_id+1 nodes
     pub fn new(max_id: u32) -> Self {
+        let capacity = (max_id + 1) as usize;
         ClosureMatrix {
-            matrix: vec![FixedBitSet::new(); (max_id + 1) as usize],
+            matrix: vec![FixedBitSet::with_capacity(capacity); capacity],
             max_id,
         }
     }
@@ -3105,4 +3106,3 @@ mod tests {
         assert!(matrix.reachable(10).is_none());
     }
 }
-
