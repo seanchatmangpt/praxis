@@ -1,0 +1,28 @@
+[package]
+name = "praxis-graphlaw-wasm"
+version = "26.7.5"
+edition = "2021"
+description = "WASM bindings for Praxis GraphLaw law-state engine"
+license = "MIT"
+repository = "https://github.com/seanchatmangpt/praxis"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+praxis-graphlaw = { path = "../praxis-graphlaw", version = "26.7.5" }
+wasm-bindgen = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+console_error_panic_hook = "0.1"
+blake3 = "1"
+getrandom = { version = "0.3", features = ["wasm_js"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

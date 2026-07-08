@@ -116,6 +116,8 @@ wasm4pm-cognition = { path = "../wasm4pm/crates/wasm4pm-cognition", version = "2
 # (only praxis-synthesis is, per tests/no_llm_runtime.rs), so this is a
 # plain path dependency on the in-workspace SHACL/ShEx/N3/Datalog engine.
 praxis-graphlaw = { path = "crates/praxis-graphlaw", version = "26.7.5" }
+# WASM builds: getrandom must compile with wasm_js feature (pulled transitively via praxis-graphlaw deps)
+getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [dev-dependencies]
 assert_cmd = "2"
@@ -211,7 +213,9 @@ members = [
     "crates/pddl-index",
     "crates/praxis-synthesis",
     "crates/praxis-lean",
-    "crates/praxis-graphlaw", "audit-tools",
+    "crates/praxis-graphlaw",
+    "crates/praxis-graphlaw-wasm",
+    "audit-tools",
 ]
 [workspace.metadata.dylint]
 libraries = [{ git = "https://github.com/seanchatmangpt/chicago-tdd-tools", pattern = "crates/chicago-lints" }]

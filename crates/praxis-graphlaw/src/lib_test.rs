@@ -761,3 +761,26 @@ ex:h2 a kh:Hook ;
     assert!(res.unwrap_err().contains("dependency cycle"));
     let _ = std::fs::remove_dir_all(pack_dir);
 }
+
+#[test]
+fn test_fibo_blank_nodes_typed_literals_collections() {
+    let fibo_ttl = r#"
+@prefix ex: <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+ex:person1 ex:hasName _:b1 .
+_:b1 rdf:type ex:BlankNode ;
+    ex:firstName "John"@en .
+
+ex:amount "1000"^^<http://www.w3.org/2001/XMLSchema#integer> .
+
+ex:list1 rdf:value (1 2 3) .
+    "#;
+
+    let store = TripleStore::from(fibo_ttl);
+    eprintln!("Loaded {} triples from FIBO TTL", store.len());
+    for triple in store.triple_index.triples.iter().take(5) {
+        eprintln!("{:?}", triple);
+    }
+    assert!(store.len() > 0, "Should load at least some triples");
+}

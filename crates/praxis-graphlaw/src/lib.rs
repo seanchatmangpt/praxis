@@ -84,6 +84,9 @@ pub fn preprocess_turtle(s: &str) -> String {
     if !s.contains("@prefix kh:") {
         prepended.push_str("@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .\n");
     }
+    if !s.contains("@prefix hook:") {
+        prepended.push_str("@prefix hook: <http://seanchatmangpt.github.io/praxis/hook#> .\n");
+    }
     if !s.contains("@prefix ex:") {
         prepended.push_str("@prefix ex: <http://example.org/> .\n");
     }
@@ -102,6 +105,7 @@ pub fn preprocess_turtle(s: &str) -> String {
                     || clean_line.ends_with("https:")
                     || clean_line.ends_with("ex:")
                     || clean_line.ends_with("kh:")
+                    || clean_line.ends_with("hook:")
                 {
                     clean_line.push('/');
                     clean_line.push(chars.next().unwrap());
@@ -543,3 +547,4 @@ impl TripleStore {
 }
 
 mod lib_test;
+mod parser_edge_cases_test;

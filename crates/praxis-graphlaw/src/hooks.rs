@@ -1,11 +1,11 @@
 use crate::encoding::Encoder;
 use crate::fastmap::FxHashMap;
-use crate::term::Triple;
+use crate::term::{Triple, VarOrTerm};
 use crate::TripleStore;
 use serde::{Deserialize, Serialize};
-use smallvec::SmallVec;
 
 pub const KH_NS: &str = "http://seanchatmangpt.github.io/praxis/kh#";
+pub const HOOK_ALIAS_NS: &str = "http://seanchatmangpt.github.io/praxis/hook#";
 
 pub const SHACL_LAW_PACK: &str = r#"
 @prefix sh: <http://www.w3.org/ns/shacl#> .
@@ -127,6 +127,31 @@ kh:ActionShape a sh:NodeShape ;
 const ALLOWED_KH_PREDICATES: &[&str] = &[
     "name", "on", "kind", "var", "op", "k", "window", "program", "goal", "query", "effect",
     "action", "reason", "priority", "after", "handler",
+];
+
+/// Maps hook: predicates to kh: equivalents (alias → canonical).
+/// Used for rewriting hook:* triples during validation preprocessing.
+///
+/// # Determinism
+/// The mapping is immutable and position-independent; rewriting produces identical output
+/// regardless of input order.
+const HOOK_ALIAS_MAP: &[(&str, &str)] = &[
+    ("name", "name"),
+    ("on", "on"),
+    ("kind", "kind"),
+    ("var", "var"),
+    ("op", "op"),
+    ("k", "k"),
+    ("window", "window"),
+    ("program", "program"),
+    ("goal", "goal"),
+    ("query", "query"),
+    ("effect", "effect"),
+    ("action", "action"),
+    ("reason", "reason"),
+    ("priority", "priority"),
+    ("after", "after"),
+    ("handler", "handler"),
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -515,9 +540,63 @@ impl HookProps {
     }
 }
 
+/// Rewrites hook:* triples to kh:* equivalents (alias → canonical conversion).
+///
+/// # Algorithm
+/// For each triple: if the predicate URI is in the hook: namespace, lookup the
+/// local part in HOOK_ALIAS_MAP. If found, construct a new kh: URI with the mapped local part;
+/// otherwise leave the predicate unchanged (will be rejected in validation if unsupported).
+/// Subject and object are left unchanged.
+///
+/// # Determinism
+/// The mapping is immutable and position-independent. Output order matches input order.
+/// No sorting or HashMap iteration; all operations are O(1) per triple.
+///
+/// # Complexity
+/// O(|T|) where |T| is the number of input triples. Each triple is examined once.
+///
+/// # Errors
+/// Returns the rewritten triples; validation failures occur downstream in validate_and_extract_hooks.
+fn rewrite_hook_alias(triples: &[Triple]) -> Vec<Triple> {
+    triples
+        .iter()
+        .map(|t| {
+            let p_str = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
+            let cleaned_p = clean_term(&p_str);
+
+            // Check if predicate is in hook: namespace
+            if let Some(local) = cleaned_p.strip_prefix(HOOK_ALIAS_NS) {
+                // Look up the mapping
+                if let Some((_, mapped_local)) =
+                    HOOK_ALIAS_MAP.iter().find(|(alias, _)| *alias == local)
+                {
+                    // Construct kh: URI with mapped local part
+                    let new_p_uri = format!("{}{}", KH_NS, mapped_local);
+                    // Create the new predicate term using VarOrTerm::new_term
+                    let new_p = VarOrTerm::new_term(new_p_uri);
+                    Triple {
+                        s: t.s.clone(),
+                        p: new_p,
+                        o: t.o.clone(),
+                        g: t.g.clone(),
+                    }
+                } else {
+                    // Unknown hook: predicate, leave unchanged for validation to reject
+                    t.clone()
+                }
+            } else {
+                // Not a hook: predicate, leave unchanged
+                t.clone()
+            }
+        })
+        .collect()
+}
+
 pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHook>, String> {
+    // Pre-pass: rewrite hook: aliases to kh: canonical form
+    let rewritten_triples = rewrite_hook_alias(triples);
     let mut temp_store = TripleStore::new();
-    for t in triples {
+    for t in &rewritten_triples {
         temp_store.add(t.clone());
     }
     let report = temp_store.validate_shacl(SHACL_LAW_PACK)?;
@@ -532,7 +611,7 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
         return Err(err_msg);
     }
 
-    for t in triples {
+    for t in &rewritten_triples {
         let decoded_s = Encoder::decode(&t.s.to_encoded()).unwrap_or_default();
         let decoded_p = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
         let decoded_o = Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
@@ -594,7 +673,7 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
     }
 
     let mut hook_subjects = Vec::new();
-    for t in triples {
+    for t in &rewritten_triples {
         let s_str = Encoder::decode(&t.s.to_encoded()).unwrap_or_default();
         let p_str = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
         let o_str = Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
@@ -615,7 +694,7 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
 
     let mut hooks = Vec::new();
     for subj in hook_subjects {
-        let props = HookProps::new(triples, &subj);
+        let props = HookProps::new(&rewritten_triples, &subj);
         let name = props.one_str("name")?;
         let on = props.opt_str("on")?.unwrap_or_else(|| "any".to_string());
         if !matches!(on.as_str(), "assert" | "retract" | "any") {

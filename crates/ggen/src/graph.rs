@@ -448,12 +448,20 @@ impl GraphEngine for GraphLawStore {
         let mut state = self.law_state()?;
         let (mut ts, rules_loaded) = self.build_law_store(&state.rules_src)?;
         let derived = ts.materialize();
-        if let Some(refused_verdict) = ts.verdicts.iter().find(|v| v.effect == praxis_graphlaw::hooks::EffectKind::Refuse && v.verdict == praxis_graphlaw::hooks::HookVerdict::Fired) {
-            let reason = refused_verdict.diagnostics.as_ref()
+        if let Some(refused_verdict) = ts.verdicts.iter().find(|v| {
+            v.effect == praxis_graphlaw::hooks::EffectKind::Refuse
+                && v.verdict == praxis_graphlaw::hooks::HookVerdict::Fired
+        }) {
+            let reason = refused_verdict
+                .diagnostics
+                .as_ref()
                 .and_then(|d| d.details.first())
                 .map(|det| det.message.clone())
                 .unwrap_or_else(|| "refused by hook".to_string());
-            return Err(AppError::fm_law(9, format!("Reasoner materialize failed: {}", reason)));
+            return Err(AppError::fm_law(
+                9,
+                format!("Reasoner materialize failed: {}", reason),
+            ));
         }
         let derived_doc = praxis_graphlaw::TripleStore::decode_triples(&derived);
 

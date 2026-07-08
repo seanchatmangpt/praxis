@@ -1,0 +1,48 @@
+/**
+ * Fixture loader for sample Turtle files.
+ */
+
+export const sampleTurtle = `# Sample Turtle fixture for the Praxis Playground
+
+@prefix ex: <http://example.com/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+# Define a Person class and instances
+ex:Person a rdfs:Class ;
+  rdfs:label "Person" ;
+  rdfs:comment "A human being" .
+
+ex:John
+  a ex:Person ;
+  foaf:name "John Doe" ;
+  foaf:age 30 ;
+  foaf:email "john@example.com" ;
+  foaf:knows ex:Jane .
+
+ex:Jane
+  a ex:Person ;
+  foaf:name "Jane Smith" ;
+  foaf:age 28 ;
+  foaf:email "jane@example.com" ;
+  foaf:knows ex:John .
+
+# Define a Project class
+ex:Project a rdfs:Class ;
+  rdfs:label "Project" ;
+  rdfs:comment "A collaborative project" .
+
+ex:ProjectA
+  a ex:Project ;
+  rdfs:label "Project Alpha" ;
+  rdfs:comment "First research project" ;
+  ex:hasMember ex:John, ex:Jane ;
+  ex:startDate "2024-01-15"^^xsd:date ;
+  ex:status ex:Active .
+
+# Status enumeration
+ex:Active a rdf:Property ;
+  rdfs:label "Active" .
+`;

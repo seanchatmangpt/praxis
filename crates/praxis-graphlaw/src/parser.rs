@@ -143,7 +143,13 @@ impl Parser {
                 })
             } else {
                 //process triple
-                if !line.is_empty() {
+                let trimmed = line.trim();
+                if !trimmed.is_empty()
+                    && !trimmed.starts_with('@')
+                    && !trimmed.starts_with("PREFIX")
+                    && !trimmed.starts_with("BASE")
+                    && !trimmed.starts_with("#")
+                {
                     let triple = Self::parse_triple(line);
                     content.push(triple);
                 }

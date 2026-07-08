@@ -1,0 +1,49 @@
+{
+  "id": "tutorial-basic-hooks",
+  "name": "Basic Hooks Tutorial",
+  "description": "Introduction to hook triggering and fact transformation",
+  "category": "tutorial",
+  "difficulty": "beginner",
+  "tags": ["hooks", "basic", "tutorial"],
+  "created_at": "2026-07-08T00:00:00Z",
+  "facts": [
+    {
+      "subject": "ex:object1",
+      "predicate": "rdf:type",
+      "object": "ex:Document"
+    },
+    {
+      "subject": "ex:object1",
+      "predicate": "ex:status",
+      "object": "ex:draft"
+    }
+  ],
+  "expected_facts": [
+    {
+      "subject": "ex:object1",
+      "predicate": "rdf:type",
+      "object": "ex:Document"
+    },
+    {
+      "subject": "ex:object1",
+      "predicate": "ex:status",
+      "object": "ex:published"
+    }
+  ],
+  "hooks": [
+    {
+      "id": 1,
+      "name": "PublishDocument",
+      "description": "Triggers when document status changes to published",
+      "conditions": [],
+      "effects": [
+        {
+          "kind": "AddTriple",
+          "target": "ex:object1"
+        }
+      ],
+      "priority": 0,
+      "after": []
+    }
+  ]
+}
