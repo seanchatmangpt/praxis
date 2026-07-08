@@ -64,7 +64,7 @@ pub struct TripleStore {
     pub reasoner: Reasoner,
     pub aggregates: HashMap<Rule, Aggregate>,
     pub strata: Vec<usize>,
-    pub hooks: Vec<hooks::KnowledgeHook>,
+    pub hooks: Vec<hooks::CompiledHook>,
     pub receipts: Vec<hooks::HookReceipt>,
     pub verdicts: Vec<hooks::HookVerdictRecord>,
     pub additions: Vec<Triple>,
@@ -473,8 +473,11 @@ impl TripleStore {
         // Runs SHACL shapes validation & keyword/predicate sweep, and extracts the hooks.
         let extracted_hooks = hooks::validate_and_extract_hooks(&triples)?;
 
-        // Schedule them topologically
-        let scheduled_hooks = hooks::schedule_hooks(extracted_hooks)?;
+        // Compile hooks to CompiledHook with ID-based dependency tracking
+        let compiled_hooks = hooks::compile_hooks(extracted_hooks)?;
+
+        // Schedule them topologically using Kahn's algorithm on HookIds
+        let scheduled_hooks = hooks::schedule_hooks(&compiled_hooks)?;
 
         // Store them in self.hooks
         self.hooks.extend(scheduled_hooks);

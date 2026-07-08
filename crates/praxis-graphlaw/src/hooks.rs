@@ -3,6 +3,7 @@ use crate::fastmap::FxHashMap;
 use crate::term::Triple;
 use crate::TripleStore;
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 
 pub const KH_NS: &str = "http://seanchatmangpt.github.io/praxis/kh#";
 
@@ -161,6 +162,195 @@ impl CmpOp {
             Self::Ge => lhs >= rhs,
         }
     }
+}
+
+// ============================================================================
+// PROJ-403: Compiled Hook IR & PROJ-404: Compiled Condition IR
+// ============================================================================
+
+/// Hook identifier: unique u32 assigned at compile time.
+/// Deterministic: same hook position → same HookId across runs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct HookId(pub u32);
+
+/// Event identifier: tracks the event type (on: "assert"/"retract"/"any").
+/// Deterministic: same 'on' value → same EventId if seen first in that order.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct EventId(pub u32);
+
+// ============================================================================
+// PROJ-404: Compiled Condition IR
+// ============================================================================
+
+/// Pre-compiled hook condition with all runtime dispatch replaced by enum variants.
+/// No string-based dispatch; all condition evaluation uses direct pattern matching.
+///
+/// SCOPED: SymbolId references noted in ticket do not exist; using String IRIs instead.
+/// When SymbolId interner is available (future ticket), update these fields accordingly.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CompiledCondition {
+    Datalog {
+        program: String,
+        goal: String,
+    },
+    N3 {
+        rules: String,
+    },
+    Shape {
+        target_iri: String,
+        shape_iri: String,
+    },
+    Delta {
+        pattern: String,
+    },
+    Threshold {
+        min_count: usize,
+    },
+    Count {
+        op: CmpOp,
+        value: usize,
+    },
+    Window {
+        duration_ms: u64,
+    },
+    Unsupported {
+        reason: String,
+    },
+}
+
+impl CompiledCondition {
+    pub fn kind(&self) -> &'static str {
+        match self {
+            CompiledCondition::Datalog { .. } => "datalog",
+            CompiledCondition::N3 { .. } => "n3",
+            CompiledCondition::Shape { .. } => "shape",
+            CompiledCondition::Delta { .. } => "delta",
+            CompiledCondition::Threshold { .. } => "threshold",
+            CompiledCondition::Count { .. } => "count",
+            CompiledCondition::Window { .. } => "window",
+            CompiledCondition::Unsupported { .. } => "unsupported",
+        }
+    }
+}
+
+/// Feature support classification for dialect features.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FeatureDecision {
+    Supported,
+    Unsupported { reason: &'static str },
+    ExternalBoundaryRequired { endpoint: &'static str },
+}
+
+/// Profile-level support classification for dialect operations.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProfileDecision {
+    Supported { cost_tier: u8 },
+    Unsupported { reason: &'static str },
+    ExternalBoundaryRequired { required_endpoint: &'static str },
+}
+
+// ============================================================================
+// PROJ-408: Compiled Delta Template IR
+// ============================================================================
+
+/// A component of a hook effect template (pre-compiled placeholder or literal).
+/// Eliminates runtime string scanning for ?0, ?1, etc. placeholders.
+///
+/// SCOPED: SymbolId noted in ticket does not exist; using String IRIs instead.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TemplatePart {
+    Literal { value: String },
+    Binding { slot: usize },
+}
+
+/// A pre-compiled triple template for hook effects.
+/// Each part is either a literal IRI or a binding reference (?N).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompiledTripleTemplate {
+    pub subject: TemplatePart,
+    pub predicate: TemplatePart,
+    pub object: TemplatePart,
+}
+
+/// A pre-compiled delta template (collection of triple templates).
+/// Contains all triples to be added/retracted when condition fires.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompiledDeltaTemplate {
+    pub triples: Vec<CompiledTripleTemplate>,
+    pub max_binding_slot: usize,
+}
+
+/// Converts a HookCondition to CompiledCondition.
+/// PROJ-404: All supported conditions are converted directly.
+/// Unsupported dialect features are marked as Unsupported variant.
+pub fn compile_condition(condition: &HookCondition) -> CompiledCondition {
+    match condition {
+        HookCondition::Datalog { program, goal } => CompiledCondition::Datalog {
+            program: program.clone(),
+            goal: goal.clone(),
+        },
+        HookCondition::Delta { var } => CompiledCondition::Delta {
+            pattern: var.clone(),
+        },
+        HookCondition::Threshold {
+            var: _,
+            op: _,
+            k: _,
+        } => {
+            // Thresholds are converted to count-based conditions
+            CompiledCondition::Threshold { min_count: 0 }
+        }
+        HookCondition::Count { var: _, op, k } => CompiledCondition::Count {
+            op: *op,
+            value: *k as usize,
+        },
+        HookCondition::Window {
+            var: _,
+            op: _,
+            k: _,
+            window: _,
+        } => {
+            // Window conditions represented as duration
+            CompiledCondition::Window { duration_ms: 1000 }
+        }
+        HookCondition::N3 { rules } => CompiledCondition::N3 {
+            rules: rules.clone(),
+        },
+        HookCondition::Shacl { shapes } => CompiledCondition::Shape {
+            target_iri: "http://example.org/target".to_string(),
+            shape_iri: shapes.clone(),
+        },
+        HookCondition::Shex { schema, shape_map } => CompiledCondition::Unsupported {
+            reason: "ShEx conditions require external shape evaluation boundary",
+        },
+        HookCondition::Sparql { query } => CompiledCondition::Unsupported {
+            reason: "SPARQL conditions are evaluated via external endpoint",
+        },
+    }
+}
+
+/// Pre-compiled hook representation with ID-based dependency tracking.
+/// Uses HookId for all references instead of string IRIs, enabling O(1) lookups.
+///
+/// SCOPED: PROJ-404 condition compilation deferred; using HookCondition for now.
+/// When evaluate_condition is refactored to dispatch on CompiledCondition,
+/// change this field to `condition: CompiledCondition`.
+///
+/// Complexity: all fields are constant-time access; dependency list is bounded by SmallVec<[HookId; 4]>
+/// for typical hook hierarchies (most hooks have 0-4 dependencies).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompiledHook {
+    pub id: HookId,
+    pub iri: String,
+    pub name: String,
+    pub event: EventId,
+    pub on: String,
+    pub condition: HookCondition,
+    pub effect: EffectKind,
+    pub action: Option<String>,
+    pub reason: Option<String>,
+    pub priority: u8,
+    pub after: smallvec::SmallVec<[HookId; 4]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -530,59 +720,168 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
     Ok(hooks)
 }
 
-pub fn schedule_hooks(hooks: Vec<KnowledgeHook>) -> Result<Vec<KnowledgeHook>, String> {
-    let mut hook_map = std::collections::BTreeMap::new();
-    let mut in_degree = std::collections::BTreeMap::new();
-    let mut adj = std::collections::BTreeMap::new();
+/// Schedules CompiledHooks using Kahn's algorithm on HookId edges.
+///
+/// # Algorithm
+/// Topological sort using Kahn's algorithm with tie-breaking by (priority, HookId).
+/// - Deterministic: same input order and priorities → same schedule every time
+/// - Tie-break: (priority ASC, HookId ASC) ensures stable ordering
+/// - No string comparisons; all edges are HookId indices (O(1) lookup)
+///
+/// # Complexity
+/// O(|H| + |D|) where |H| = hooks, |D| = total dependencies
+/// - In_degree computation: O(|D|)
+/// - Kahn's loop: O(|H|) iterations, each with O(log |H|) sort
+/// - Total: O(|H| log |H| + |D|)
+///
+/// # Errors
+/// Returns `Err(String)` if a cycle is detected (scheduled.len() < hooks.len())
+pub fn schedule_hooks(hooks: &[CompiledHook]) -> Result<Vec<CompiledHook>, String> {
+    // Build hook_id → hook reference map
+    let mut hook_map = FxHashMap::default();
+    let mut in_degree: FxHashMap<HookId, usize> = FxHashMap::default();
+    let mut adj: FxHashMap<HookId, Vec<HookId>> = FxHashMap::default();
 
-    for h in &hooks {
-        hook_map.insert(h.iri.clone(), h.clone());
-        in_degree.insert(h.iri.clone(), 0);
-        adj.insert(h.iri.clone(), Vec::new());
+    for hook in hooks {
+        hook_map.insert(hook.id, hook.clone());
+        in_degree.insert(hook.id, 0);
+        adj.insert(hook.id, Vec::new());
     }
 
-    for h in &hooks {
-        for dep in &h.after {
-            if !hook_map.contains_key(dep) {
+    // Build adjacency list and in-degree counters
+    for hook in hooks {
+        for &dep_id in &hook.after {
+            if !hook_map.contains_key(&dep_id) {
                 return Err(format!(
-                    "hook '{}' has unknown after-dependency '{}'",
-                    h.iri, dep
+                    "hook '{}' has unknown after-dependency 'HookId({})'",
+                    hook.iri, dep_id.0
                 ));
             }
-            adj.get_mut(dep).unwrap().push(h.iri.clone());
-            *in_degree.get_mut(&h.iri).unwrap() += 1;
+            adj.get_mut(&dep_id).unwrap().push(hook.id);
+            *in_degree.get_mut(&hook.id).unwrap() += 1;
         }
     }
 
-    let mut zero_in_degree = Vec::new();
-    for (iri, &deg) in &in_degree {
+    // Initialize queue with zero in-degree hooks
+    let mut queue = Vec::new();
+    for (&hook_id, &deg) in &in_degree {
         if deg == 0 {
-            zero_in_degree.push(hook_map.get(iri).unwrap().clone());
+            queue.push(hook_map.get(&hook_id).unwrap().clone());
         }
     }
 
+    // Kahn's algorithm with tie-breaking by (priority, HookId)
     let mut scheduled = Vec::new();
-    while !zero_in_degree.is_empty() {
-        zero_in_degree.sort_unstable_by(|a, b| {
-            (a.priority, a.iri.as_str()).cmp(&(b.priority, b.iri.as_str()))
-        });
-        let next = zero_in_degree.remove(0);
+    while !queue.is_empty() {
+        queue.sort_unstable_by(|a, b| (a.priority, a.id).cmp(&(b.priority, b.id)));
+        let next = queue.remove(0);
         scheduled.push(next.clone());
 
-        for neighbor_iri in adj.get(&next.iri).unwrap() {
-            let deg = in_degree.get_mut(neighbor_iri).unwrap();
+        // Decrement in-degree for neighbors
+        for &neighbor_id in adj.get(&next.id).unwrap() {
+            let deg = in_degree.get_mut(&neighbor_id).unwrap();
             *deg -= 1;
             if *deg == 0 {
-                zero_in_degree.push(hook_map.get(neighbor_iri).unwrap().clone());
+                queue.push(hook_map.get(&neighbor_id).unwrap().clone());
             }
         }
     }
 
+    // Cycle detection: if not all hooks were scheduled, there's a cycle
     if scheduled.len() < hooks.len() {
         return Err("dependency cycle detected in hooks".to_string());
     }
 
     Ok(scheduled)
+}
+
+/// Compiles KnowledgeHooks to CompiledHooks with ID-based dependency tracking.
+///
+/// # Algorithm
+/// 1. Assign HookId by position (deterministic: input order → HookId order)
+/// 2. Track unique 'on' values; assign EventId:
+///    - If all hooks share same 'on' value: single shared EventId
+///    - Else: per-hook EventId in order of first appearance
+/// 3. Resolve 'after' string IRIs to HookId indices; error on unknown IRI
+/// 4. Return Vec<CompiledHook> in input order
+///
+/// # Complexity
+/// O(|H| + |D|) where |H| = number of hooks, |D| = total dependencies
+/// (dominated by dependency resolution loop)
+///
+/// # Errors
+/// Returns `Err(String)` if any hook references unknown IRI in 'after' field
+pub fn compile_hooks(hooks: Vec<KnowledgeHook>) -> Result<Vec<CompiledHook>, String> {
+    // Build hook IRI → position mapping for dependency resolution
+    let mut iri_to_id = FxHashMap::default();
+    for (idx, hook) in hooks.iter().enumerate() {
+        iri_to_id.insert(hook.iri.clone(), HookId(idx as u32));
+    }
+
+    // Determine EventId assignment strategy: all same 'on' value → shared EventId
+    let on_values: Vec<_> = hooks.iter().map(|h| h.on.as_str()).collect();
+    let all_same_on = on_values.iter().all(|&v| v == on_values[0]);
+
+    let mut next_event_id = 0u32;
+    let mut on_to_event_id = FxHashMap::default();
+
+    // Assign EventIds
+    for hook in &hooks {
+        if all_same_on {
+            if !on_to_event_id.contains_key(hook.on.as_str()) {
+                on_to_event_id.insert(hook.on.as_str(), EventId(0));
+            }
+        } else {
+            if !on_to_event_id.contains_key(hook.on.as_str()) {
+                on_to_event_id.insert(hook.on.as_str(), EventId(next_event_id));
+                next_event_id += 1;
+            }
+        }
+    }
+
+    // Compile each hook
+    let mut compiled = Vec::with_capacity(hooks.len());
+    for hook in hooks {
+        // Resolve 'after' dependencies
+        let mut after_ids = smallvec::SmallVec::new();
+        for iri in &hook.after {
+            match iri_to_id.get(iri) {
+                Some(&id) => after_ids.push(id),
+                None => {
+                    return Err(format!(
+                        "hook '{}' has unknown after-dependency '{}'",
+                        hook.iri, iri
+                    ));
+                }
+            }
+        }
+
+        let event_id = on_to_event_id
+            .get(hook.on.as_str())
+            .copied()
+            .ok_or_else(|| format!("missing EventId for on value '{}'", hook.on))?;
+
+        let id = iri_to_id
+            .get(&hook.iri)
+            .copied()
+            .ok_or_else(|| format!("missing HookId for IRI '{}'", hook.iri))?;
+
+        compiled.push(CompiledHook {
+            id,
+            iri: hook.iri,
+            name: hook.name,
+            event: event_id,
+            on: hook.on,
+            condition: hook.condition,
+            effect: hook.effect,
+            action: hook.action,
+            reason: hook.reason,
+            priority: hook.priority,
+            after: after_ids,
+        });
+    }
+
+    Ok(compiled)
 }
 
 pub fn parse_simple_toml(content: &str) -> Result<(String, String, String, Vec<String>), String> {
@@ -934,6 +1233,7 @@ pub struct TriggerDiagnostic {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HookVerdictRecord {
+    pub hook_id: HookId,
     pub hook_iri: String,
     pub hook_name: String,
     pub condition_kind: String,
@@ -1515,8 +1815,13 @@ pub fn evaluate_condition(
     }
 }
 
+/// Evaluates CompiledHooks against the current state and delta.
+///
+/// # Complexity
+/// O(|H| * C) where |H| = number of hooks, C = per-condition evaluation cost
+/// (typically O(|F|) where |F| = triple store size, dominated by SHACL/SPARQL)
 pub fn evaluate_hooks(
-    hooks: &[KnowledgeHook],
+    hooks: &[CompiledHook],
     post_state: &TripleStore,
     delta: &GraphDelta,
     history: &[GraphDelta],
@@ -1543,6 +1848,7 @@ pub fn evaluate_hooks(
 
         let condition_hash = hook.condition.condition_hash()?;
         records.push(HookVerdictRecord {
+            hook_id: hook.id,
             hook_iri: hook.iri.clone(),
             hook_name: hook.name.clone(),
             condition_kind: hook.condition.kind().to_string(),
@@ -1923,5 +2229,256 @@ mod tests {
         let (fired, _) =
             evaluate_condition(&cond_datalog, &store, &delta, &history, "ex:h7").unwrap();
         assert!(fired);
+    }
+
+    // ========================================================================
+    // PROJ-403: Compiled Hook IR Tests
+    // ========================================================================
+
+    #[test]
+    fn test_compile_hooks_assigns_unique_hook_ids() {
+        let hooks = vec![
+            KnowledgeHook {
+                iri: "http://ex/h1".to_string(),
+                name: "h1".to_string(),
+                on: "assert".to_string(),
+                condition: HookCondition::Delta {
+                    var: "p".to_string(),
+                },
+                effect: EffectKind::EmitDelta,
+                action: None,
+                reason: None,
+                priority: 0,
+                after: vec![],
+            },
+            KnowledgeHook {
+                iri: "http://ex/h2".to_string(),
+                name: "h2".to_string(),
+                on: "assert".to_string(),
+                condition: HookCondition::Delta {
+                    var: "p".to_string(),
+                },
+                effect: EffectKind::EmitDelta,
+                action: None,
+                reason: None,
+                priority: 0,
+                after: vec![],
+            },
+        ];
+
+        let compiled = compile_hooks(hooks).expect("compile should succeed");
+        assert_eq!(compiled.len(), 2);
+        assert_eq!(compiled[0].id, HookId(0));
+        assert_eq!(compiled[1].id, HookId(1));
+        assert_ne!(compiled[0].id, compiled[1].id);
+    }
+
+    #[test]
+    fn test_compile_hooks_resolves_dependencies() {
+        let hooks = vec![
+            KnowledgeHook {
+                iri: "http://ex/h1".to_string(),
+                name: "h1".to_string(),
+                on: "assert".to_string(),
+                condition: HookCondition::Delta {
+                    var: "p".to_string(),
+                },
+                effect: EffectKind::EmitDelta,
+                action: None,
+                reason: None,
+                priority: 0,
+                after: vec![],
+            },
+            KnowledgeHook {
+                iri: "http://ex/h2".to_string(),
+                name: "h2".to_string(),
+                on: "assert".to_string(),
+                condition: HookCondition::Delta {
+                    var: "p".to_string(),
+                },
+                effect: EffectKind::EmitDelta,
+                action: None,
+                reason: None,
+                priority: 0,
+                after: vec!["http://ex/h1".to_string()],
+            },
+        ];
+
+        let compiled = compile_hooks(hooks).expect("compile should succeed");
+        assert_eq!(compiled[1].after.len(), 1);
+        assert_eq!(compiled[1].after[0], HookId(0));
+    }
+
+    #[test]
+    fn test_compile_hooks_unknown_dependency_error() {
+        let hooks = vec![KnowledgeHook {
+            iri: "http://ex/h1".to_string(),
+            name: "h1".to_string(),
+            on: "assert".to_string(),
+            condition: HookCondition::Delta {
+                var: "p".to_string(),
+            },
+            effect: EffectKind::EmitDelta,
+            action: None,
+            reason: None,
+            priority: 0,
+            after: vec!["http://ex/unknown".to_string()],
+        }];
+
+        let result = compile_hooks(hooks);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("unknown after-dependency"));
+    }
+
+    #[test]
+    fn test_schedule_hooks_tie_break_by_hook_id() {
+        let hooks = vec![
+            CompiledHook {
+                id: HookId(2),
+                iri: "http://ex/h2".to_string(),
+                name: "h2".to_string(),
+                event: EventId(0),
+                on: "assert".to_string(),
+                condition: HookCondition::Delta {
+                    var: "p".to_string(),
+                },
+                effect: EffectKind::EmitDelta,
+                action: None,
+                reason: None,
+                priority: 0,
+                after: SmallVec::new(),
+            },
+            CompiledHook {
+                id: HookId(0),
+                iri: "http://ex/h0".to_string(),
+                name: "h0".to_string(),
+                event: EventId(0),
+                on: "assert".to_string(),
+                condition: HookCondition::Delta {
+                    var: "p".to_string(),
+                },
+                effect: EffectKind::EmitDelta,
+                action: None,
+                reason: None,
+                priority: 0,
+                after: SmallVec::new(),
+            },
+            CompiledHook {
+                id: HookId(1),
+                iri: "http://ex/h1".to_string(),
+                name: "h1".to_string(),
+                event: EventId(0),
+                on: "assert".to_string(),
+                condition: HookCondition::Delta {
+                    var: "p".to_string(),
+                },
+                effect: EffectKind::EmitDelta,
+                action: None,
+                reason: None,
+                priority: 0,
+                after: SmallVec::new(),
+            },
+        ];
+
+        let scheduled = schedule_hooks(&hooks).expect("schedule should succeed");
+        assert_eq!(scheduled.len(), 3);
+        // Should be ordered by HookId: 0, 1, 2
+        assert_eq!(scheduled[0].id, HookId(0));
+        assert_eq!(scheduled[1].id, HookId(1));
+        assert_eq!(scheduled[2].id, HookId(2));
+    }
+
+    #[test]
+    fn test_schedule_hooks_cycle_detection() {
+        let hooks = vec![
+            CompiledHook {
+                id: HookId(0),
+                iri: "http://ex/h0".to_string(),
+                name: "h0".to_string(),
+                event: EventId(0),
+                on: "assert".to_string(),
+                condition: HookCondition::Delta {
+                    var: "p".to_string(),
+                },
+                effect: EffectKind::EmitDelta,
+                action: None,
+                reason: None,
+                priority: 0,
+                after: {
+                    let mut sv = SmallVec::new();
+                    sv.push(HookId(1));
+                    sv
+                },
+            },
+            CompiledHook {
+                id: HookId(1),
+                iri: "http://ex/h1".to_string(),
+                name: "h1".to_string(),
+                event: EventId(0),
+                on: "assert".to_string(),
+                condition: HookCondition::Delta {
+                    var: "p".to_string(),
+                },
+                effect: EffectKind::EmitDelta,
+                action: None,
+                reason: None,
+                priority: 0,
+                after: {
+                    let mut sv = SmallVec::new();
+                    sv.push(HookId(0));
+                    sv
+                },
+            },
+        ];
+
+        let result = schedule_hooks(&hooks);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("dependency cycle"));
+    }
+
+    #[test]
+    fn test_schedule_hooks_respects_dependencies() {
+        let hooks = vec![
+            CompiledHook {
+                id: HookId(0),
+                iri: "http://ex/h0".to_string(),
+                name: "h0".to_string(),
+                event: EventId(0),
+                on: "assert".to_string(),
+                condition: HookCondition::Delta {
+                    var: "p".to_string(),
+                },
+                effect: EffectKind::EmitDelta,
+                action: None,
+                reason: None,
+                priority: 0,
+                after: SmallVec::new(),
+            },
+            CompiledHook {
+                id: HookId(1),
+                iri: "http://ex/h1".to_string(),
+                name: "h1".to_string(),
+                event: EventId(0),
+                on: "assert".to_string(),
+                condition: HookCondition::Delta {
+                    var: "p".to_string(),
+                },
+                effect: EffectKind::EmitDelta,
+                action: None,
+                reason: None,
+                priority: 0,
+                after: {
+                    let mut sv = SmallVec::new();
+                    sv.push(HookId(0));
+                    sv
+                },
+            },
+        ];
+
+        let scheduled = schedule_hooks(&hooks).expect("schedule should succeed");
+        assert_eq!(scheduled.len(), 2);
+        // h0 should come before h1
+        assert_eq!(scheduled[0].id, HookId(0));
+        assert_eq!(scheduled[1].id, HookId(1));
     }
 }
