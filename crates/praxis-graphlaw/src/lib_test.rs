@@ -16,7 +16,7 @@ fn test_parse() {
 
     let mut store = TripleStore::from(data);
 
-    let mat = store.materialize();
+    let mat = store.materialize().unwrap();
     println!("Length: {:?}", store.len());
     println!("Length Mat: {:?}", mat.len());
 }
@@ -80,7 +80,7 @@ fn test_store() {
         verdicts: Vec::new(),
     };
 
-    store.materialize();
+    store.materialize().unwrap();
     let elapsed = timer.elapsed();
 
     let result = SimpleQueryEngine::query(
@@ -103,7 +103,7 @@ fn test_incomplete_rule_match() {
 
     let mut store = TripleStore::from(data);
     assert_eq!(1, store.len());
-    store.materialize();
+    store.materialize().unwrap();
     assert_eq!(1, store.len());
 }
 #[test]
@@ -113,7 +113,7 @@ fn test_no_var_query() {
 
     let mut store = TripleStore::from(data);
     assert_eq!(1, store.len());
-    store.materialize();
+    store.materialize().unwrap();
     assert_eq!(2, store.len());
 }
 #[test]
@@ -123,7 +123,7 @@ fn test_single_rule() {
 
     let mut store = TripleStore::from(data);
     assert_eq!(1, store.len());
-    store.materialize();
+    store.materialize().unwrap();
     assert_eq!(2, store.len());
 }
 #[test]
@@ -134,7 +134,7 @@ fn test_multiple_rule() {
 
     let mut store = TripleStore::from(data);
     assert_eq!(1, store.len());
-    store.materialize();
+    store.materialize().unwrap();
     assert_eq!(3, store.len());
 }
 #[test]
@@ -145,7 +145,7 @@ fn test_join_rule() {
 
     let mut store = TripleStore::from(data);
     assert_eq!(2, store.len());
-    store.materialize();
+    store.materialize().unwrap();
     assert_eq!(3, store.len());
 }
 #[test]
@@ -158,7 +158,7 @@ fn test_long_join_rule() {
 
     let mut store = TripleStore::from(data);
     assert_eq!(4, store.len());
-    store.materialize();
+    store.materialize().unwrap();
     assert_eq!(5, store.len());
 }
 #[test]
@@ -169,7 +169,7 @@ fn test_transitive_rule() {
     }
     let mut store = TripleStore::from(data.as_str());
     assert_eq!(10, store.len());
-    store.materialize();
+    store.materialize().unwrap();
     assert_eq!(55, store.len());
 }
 #[test]
@@ -183,7 +183,7 @@ fn test_hierarchy() {
     }
     println!("{}", data);
     let mut store = TripleStore::from(data.as_str());
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     println!("Triples: {:?}", store.len());
     assert_eq!(3 * max_depth, inferred.len());
 }
@@ -199,7 +199,7 @@ fn test_rdf_hierarchy() {
         data += format!(":U{} :subClassOf :Q{}.\n", i, i + 1).as_str();
     }
     let mut store = TripleStore::from(data.as_str());
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     println!("Inferred: {:?}, Total: {:?}", inferred.len(), store.len());
     // The transitive closure over 3 interleaved subClassOf chains produces 135 inferred triples.
     assert_eq!(135, inferred.len());
@@ -490,7 +490,7 @@ fn test_n3_rules_forward_chaining() {
                 "{?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example/Person>.} => {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example/Agent>.}",
             )
             .unwrap();
-    let new_triples = store.materialize();
+    let new_triples = store.materialize().unwrap();
     assert!(
         !new_triples.is_empty(),
         "Expected at least one inferred triple"

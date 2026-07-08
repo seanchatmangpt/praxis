@@ -34,7 +34,7 @@ proptest! {
              {{ ?i :value ?v . ?v math:greaterThan ?v }} => {{ ?i a :Impossible }}.\n"
         );
         let mut store = TripleStore::from(&data);
-        let inferred = store.materialize();
+        let inferred = store.materialize().unwrap();
         let decoded = decode_all(&inferred);
         prop_assert!(
             !decoded.iter().any(|d| d.contains("Impossible")),
@@ -61,7 +61,7 @@ proptest! {
              {{ ?s :val ?v1 . ?t :val ?v2 . ?v1 log:equalTo ?v2 . ?v1 log:notEqualTo ?v2 }} => {{ ?s :contradictsWith ?t }}.\n"
         );
         let mut store = TripleStore::from(&data);
-        let inferred = store.materialize();
+        let inferred = store.materialize().unwrap();
         let decoded = decode_all(&inferred);
         prop_assert!(
             !decoded.iter().any(|d| d.contains("contradictsWith")),
@@ -95,7 +95,7 @@ fn test_liar_style_contradictory_log_implies_terminates_with_both_facts() {
 
     let mut store = TripleStore::from(data);
     let start = Instant::now();
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let elapsed = start.elapsed();
 
     assert!(
@@ -134,7 +134,7 @@ fn test_tautological_rule_terminates_and_adds_nothing_new() {
 
     let mut store = TripleStore::from(data);
     let start = Instant::now();
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let elapsed = start.elapsed();
 
     assert!(

@@ -59,7 +59,7 @@ fn control_flow_minimal_approval_approved_path(bencher: &mut Bencher) {
         store
             .load_triples(data, Syntax::Turtle)
             .expect("failed to load data");
-        let inferred = store.materialize();
+        let inferred = store.materialize().unwrap();
         // Setup-time sanity check (not timed, only run once per bench iteration):
         assert!(
             !store.get_hook_receipts().is_empty(),
@@ -115,7 +115,7 @@ fn control_flow_minimal_approval_refused_path(bencher: &mut Bencher) {
         store
             .load_triples(data, Syntax::Turtle)
             .expect("failed to load data");
-        let inferred = store.materialize();
+        let inferred = store.materialize().unwrap();
         // Setup-time sanity check (not timed, only run once per bench iteration):
         assert!(
             inferred.is_empty(),
@@ -190,7 +190,7 @@ fn approval_routing_single(bencher: &mut Bencher) {
         store
             .load_triples(data, Syntax::Turtle)
             .expect("failed to load data");
-        store.materialize()
+        store.materialize().unwrap()
     });
 }
 
@@ -251,7 +251,7 @@ fn approval_routing_100(bencher: &mut Bencher) {
         store
             .load_triples(&data, Syntax::Turtle)
             .expect("failed to load data");
-        store.materialize()
+        store.materialize().unwrap()
     });
 }
 
@@ -312,7 +312,7 @@ fn approval_routing_1000(bencher: &mut Bencher) {
         store
             .load_triples(&data, Syntax::Turtle)
             .expect("failed to load data");
-        store.materialize()
+        store.materialize().unwrap()
     });
 }
 
@@ -376,7 +376,7 @@ fn state_machine_transition_single(bencher: &mut Bencher) {
         store
             .load_triples(data, Syntax::Turtle)
             .expect("failed to load data");
-        store.materialize()
+        store.materialize().unwrap()
     });
 }
 
@@ -436,7 +436,7 @@ fn state_machine_transition_1k_batch(bencher: &mut Bencher) {
         store
             .load_triples(&data, Syntax::Turtle)
             .expect("failed to load data");
-        store.materialize()
+        store.materialize().unwrap()
     });
 }
 
@@ -529,7 +529,7 @@ fn sla_escalation_1k_tickets(bencher: &mut Bencher) {
         store
             .load_triples(&data, Syntax::Turtle)
             .expect("failed to load data");
-        store.materialize()
+        store.materialize().unwrap()
     });
 }
 
@@ -581,7 +581,7 @@ fn policy_conflict_refusal(bencher: &mut Bencher) {
         store
             .load_triples(data, Syntax::Turtle)
             .expect("failed to load data");
-        let inferred = store.materialize();
+        let inferred = store.materialize().unwrap();
         // Setup-time sanity check (not timed, only run once per bench iteration):
         assert!(
             inferred.is_empty(),

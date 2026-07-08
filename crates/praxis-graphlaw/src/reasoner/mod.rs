@@ -538,8 +538,9 @@ impl Reasoner {
                                 temp_store.add(t.clone());
                             }
                             let before_len = temp_store.len();
-                            let _ = temp_store.materialize();
-                            fired = temp_store.len() > before_len;
+                            if temp_store.materialize().is_ok() {
+                                fired = temp_store.len() > before_len;
+                            }
                         }
                         HookCondition::Sparql { query } => {
                             let mut temp_store = TripleStore::new();
@@ -590,7 +591,7 @@ impl Reasoner {
                             for t in &triple_index.triples {
                                 temp_store.add(t.clone());
                             }
-                            let _ = temp_store.materialize();
+                            temp_store.materialize()?;
                             let goal_type =
                                 format!("<http://seanchatmangpt.github.io/praxis/kh#{}>", goal);
                             for t in &temp_store.triple_index.triples {

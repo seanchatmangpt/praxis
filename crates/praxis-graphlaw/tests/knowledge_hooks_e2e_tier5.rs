@@ -59,8 +59,8 @@ fn test_hook_alias_vocabulary_identical_receipts() {
     store_hook.load_triples(base_facts, Syntax::Turtle).unwrap();
 
     // Materialize both stores
-    store_kh.materialize();
-    store_hook.materialize();
+    store_kh.materialize().unwrap();
+    store_hook.materialize().unwrap();
 
     // Get receipts from both stores
     let receipts_kh = store_kh.get_hook_receipts();

@@ -56,7 +56,7 @@ fn test_aggregate_count() {
     let res = store.add_rule_with_aggregate(rule, _agg);
     assert!(res.is_ok());
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
 
     let count_triples: Vec<String> = derived
         .iter()
@@ -155,7 +155,7 @@ fn test_aggregate_sum() {
     let res = store.add_rule_with_aggregate(rule, _agg);
     assert!(res.is_ok());
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
 
     let sum_triples: Vec<String> = derived
         .iter()
@@ -277,7 +277,7 @@ fn test_aggregate_min_max() {
     assert!(res1.is_ok());
     assert!(res2.is_ok());
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
 
     let min_triples: Vec<String> = derived
         .iter()
@@ -371,7 +371,7 @@ fn test_aggregate_avg() {
     let res = store.add_rule_with_aggregate(rule, _agg);
     assert!(res.is_ok());
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
 
     let avg_triples: Vec<String> = derived
         .iter()
@@ -525,7 +525,7 @@ fn test_aggregate_recursive() {
     assert!(res1.is_ok());
     assert!(res2.is_ok());
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
 
     let cost_triples: Vec<String> = derived
         .iter()
@@ -639,7 +639,7 @@ fn test_aggregate_count_multi_variable_group_by() {
     let res = store.add_rule_with_aggregate(rule_by_dept_team, agg);
     assert!(res.is_ok());
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
 
     let count_triples: Vec<String> = derived
         .iter()

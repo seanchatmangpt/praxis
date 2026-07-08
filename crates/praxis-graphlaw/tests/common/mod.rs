@@ -81,6 +81,6 @@ pub fn build_data_index(data_str: &str) -> TripleIndex {
 /// Materialize all inferred triples from a data string
 pub fn materialize(data: &str) -> Vec<String> {
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     decode_all(&inferred)
 }

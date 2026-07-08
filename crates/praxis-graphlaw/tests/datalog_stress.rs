@@ -117,7 +117,7 @@ fn test_deep_stratification_chain_20_layers() {
     store
         .add_rules(rules)
         .expect("rules already validated above");
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
     let decoded: Vec<String> = derived.iter().map(TripleStore::decode_triple).collect();
 
     // P0 holds (Base holds). P1 = Base & not P0 = false. P2 = Base & not P1 = true. ...
@@ -249,7 +249,7 @@ fn test_large_scale_grouped_aggregation() {
     store
         .add_rule_with_aggregate(rule, agg)
         .expect("valid aggregate rule over 1000 facts must be accepted");
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
     let elapsed = start.elapsed();
 
     let decoded: Vec<String> = derived.iter().map(TripleStore::decode_triple).collect();
@@ -667,7 +667,7 @@ fn test_stratified_negation_over_aggregate_derived_predicate() {
             "negation over an aggregate-derived predicate must be accepted as safely stratifiable",
         );
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
     let decoded = decode_all(&derived);
 
     assert!(

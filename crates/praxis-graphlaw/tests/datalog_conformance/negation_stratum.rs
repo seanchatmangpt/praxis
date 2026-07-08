@@ -86,7 +86,7 @@ fn test_negation_across_stratum_boundary() {
 
     store.add_rules(vec![r1, r2]).expect("rules must load");
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
 
     let mut a_has_d = false;
     let mut b_has_d = false;

@@ -114,6 +114,16 @@ fn validate_all_core_impl(
             Ok((derived, report)) => {
                 owlrl_dialect.triples_out = derived.len();
                 owlrl_dialect.detail = format_owlrl_report(&report);
+                // Bug (b) fix: OwlRlEngine::compile() now returns a real
+                // ScanReport (via owlrl::scan_ontology) instead of an always-
+                // empty stub. Surface any refused/unsupported/external-
+                // boundary-required OWL RL features (owl:sameAs, cardinality
+                // restrictions, owl:propertyChainAxiom, complex class
+                // expressions, owl:imports) as Refused rather than silently
+                // leaving the default Admitted status in place.
+                if !report.refused.is_empty() {
+                    owlrl_dialect.status = Status::Refused;
+                }
                 Some(report)
             }
             Err(e) => {
@@ -129,13 +139,19 @@ fn validate_all_core_impl(
     };
 
     // === Step 4: Datalog + Hooks Materialization ===
-    let datalog_inferred = base_store.materialize();
-
-    let datalog_dialect = DialectResult {
-        dialect: "DATALOG".to_string(),
-        status: Status::Admitted,
-        detail: format!("Materialized {} triples", datalog_inferred.len()),
-        triples_out: datalog_inferred.len(),
+    let datalog_dialect = match base_store.materialize() {
+        Ok(datalog_inferred) => DialectResult {
+            dialect: "DATALOG".to_string(),
+            status: Status::Admitted,
+            detail: format!("Materialized {} triples", datalog_inferred.len()),
+            triples_out: datalog_inferred.len(),
+        },
+        Err(e) => DialectResult {
+            dialect: "DATALOG".to_string(),
+            status: Status::Refused,
+            detail: format!("Datalog stratification/materialization failed: {}", e),
+            triples_out: 0,
+        },
     };
 
     // === Step 5: SHACL Validation ===
@@ -294,7 +310,9 @@ fn run_hooks_core_impl(base_ttl: &str, event_ttl: &str) -> Result<HookRunResult,
 
     // === Step 2: Materialize base alone ===
     let mut base_store = TripleStore::from(&preprocessed_base);
-    let _base_inferred = base_store.materialize();
+    let _base_inferred = base_store
+        .materialize()
+        .map_err(|e| format!("base materialization failed: {}", e))?;
 
     // === Step 3: Materialize post-event state ===
     let mut post_store = TripleStore::from(&preprocessed_base);
@@ -303,7 +321,9 @@ fn run_hooks_core_impl(base_ttl: &str, event_ttl: &str) -> Result<HookRunResult,
     for triple in event_triples.0 {
         post_store.add(triple);
     }
-    let _post_inferred = post_store.materialize();
+    let _post_inferred = post_store
+        .materialize()
+        .map_err(|e| format!("post-event materialization failed: {}", e))?;
 
     // === Step 4: Build GraphDelta ===
     // Compute canonical N-Quads for each store

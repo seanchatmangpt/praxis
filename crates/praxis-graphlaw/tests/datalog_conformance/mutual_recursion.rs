@@ -62,7 +62,7 @@ fn test_mutual_recursion_fixpoint() {
     store.add_rules(vec![r1, r2]).expect("rules must load");
 
     // Evaluation
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
 
     // Verify
     let mut has_b = false;

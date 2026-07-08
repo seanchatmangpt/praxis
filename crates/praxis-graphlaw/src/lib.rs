@@ -273,7 +273,7 @@ impl TripleStore {
         self.triple_index.is_empty()
     }
 
-    pub fn materialize(&mut self) -> Vec<Triple> {
+    pub fn materialize(&mut self) -> Result<Vec<Triple>, String> {
         let checkpoint = self.triple_index.clone();
 
         self.receipts.clear();
@@ -289,18 +289,18 @@ impl TripleStore {
             &mut self.verdicts,
         ) {
             Ok(inferred) => inferred,
-            Err(_e) => {
+            Err(e) => {
                 self.triple_index = checkpoint;
                 self.receipts.clear();
                 self.additions.clear();
                 self.removals.clear();
-                return Vec::new();
+                return Err(e);
             }
         };
 
         self.additions.clear();
         self.removals.clear();
-        inferred
+        Ok(inferred)
     }
 
     /// Check every denial/consistency-check rule (`{ body } => false.`,

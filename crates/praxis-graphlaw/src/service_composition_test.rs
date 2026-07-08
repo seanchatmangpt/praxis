@@ -115,7 +115,7 @@ fn test_eval_forward_rule() {
              {?source a test:Source. ?source test:hasOutput ?output. ?y test:hasInput ?output }=>{?source <http://test.org/defines> <http://test.org/NeededInput>. }.";
     let mut store = TripleStore::from(data);
     println!("store size {:?}", store.len());
-    store.materialize();
+    store.materialize().unwrap();
     println!("store size {:?}", store.len());
     match store.query("Select * WHERE{?s <http://test.org/defines> ?o}") {
         Ok(result) => assert_ne!(0, result.len()),

@@ -63,7 +63,7 @@ fn test_nested_quoted_formula_does_not_leak_into_facts() {
                 :alice :believes { :bob :says { :carol a :Dishonest } } .\n";
 
     let mut store = TripleStore::from(data);
-    let _inferred = store.materialize();
+    let _inferred = store.materialize().unwrap();
     let decoded = decode_all_stored_facts(&store);
 
     // The nested claim ":carol a :Dishonest" is buried two formula-levels
@@ -104,7 +104,7 @@ fn test_chained_implication_across_two_distinct_rules() {
                 { ?x a :Mammal } => { ?x a :Animal }.\n";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(
@@ -137,7 +137,7 @@ fn test_chained_implication_through_log_implies_then_ordinary_rule() {
                 { ?p a :TaxPayer } => { ?p :owes :Taxes }.\n";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(
@@ -172,7 +172,7 @@ fn test_chained_log_implies_through_two_independent_implies_rules() {
                 { ?speaker2 :alsoSays ?formula2 . ?formula2 log:implies { ?p :owes :Taxes } } => { ?p :owes :Taxes }.\n";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(
@@ -375,7 +375,7 @@ fn test_two_independent_log_implies_literals_in_one_rule_body() {
                   :dave :saysB ?f2 . ?f2 log:implies { ?worker a :Worker } } => { :multi :log_implies :triggered }.\n";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(

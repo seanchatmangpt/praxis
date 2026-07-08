@@ -240,7 +240,7 @@ fn test_b3_empty_trigger_results() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(store.get_hook_receipts().is_empty());
 }
 
@@ -361,7 +361,7 @@ fn test_b4_construct_empty_result() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // No new triples should be created
     assert_not_contains_triple(&store, "Node", "status", "none");
@@ -387,8 +387,9 @@ fn test_b4_construct_literal_subject() {
             kh:query "CONSTRUCT { 'subject' <http://example.org/p> ?o } WHERE { ?s <http://example.org/trigger> ?o }" .
     "#;
     let res = store.load_hook_pack(hook_pack);
+    let mat_result = store.materialize();
     assert!(
-        res.is_err() || store.materialize().is_empty(),
+        res.is_err() || mat_result.is_err() || mat_result.unwrap().is_empty(),
         "Should reject invalid RDF generation"
     );
 }
@@ -445,7 +446,7 @@ fn test_b4_construct_no_op_addition() {
         .unwrap();
 
     let before_len = store.len();
-    store.materialize();
+    store.materialize().unwrap();
     assert_eq!(store.len(), before_len);
 }
 
@@ -500,7 +501,7 @@ fn test_b5_receipt_blank_nodes() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
@@ -529,7 +530,7 @@ fn test_b5_receipt_unicode_literals() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
@@ -559,7 +560,7 @@ fn test_b5_receipt_huge_literals() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
@@ -596,8 +597,8 @@ fn test_b5_stable_hash_datatypes_lang() {
         )
         .unwrap();
 
-    store_a.materialize();
-    store_b.materialize();
+    store_a.materialize().unwrap();
+    store_b.materialize().unwrap();
 
     let rec_a = store_a.get_hook_receipts();
     let rec_b = store_b.get_hook_receipts();
@@ -636,7 +637,7 @@ fn test_b5_hash_both_add_and_delete() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
@@ -682,7 +683,7 @@ fn test_b6_infinite_loop_detection() {
         .unwrap();
 
     // Materialization should terminate with limit or recursion depth error
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     // It should terminate safely without hanging
     assert!(inferred.len() < 100);
 }
@@ -763,7 +764,7 @@ fn test_b6_gating_refusal_deep_rollback() {
         .load_triples("ex:Node <http://example.org/start> 'go' .", Syntax::Turtle)
         .unwrap();
 
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     assert!(inferred.is_empty());
     // Ensure both step1 and step2 are completely rolled back
     assert_not_contains_triple(&store, "Node", "step1", "yes");
@@ -785,7 +786,7 @@ fn test_b6_empty_base_facts() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     assert!(
         inferred.is_empty(),
         "No inferences should happen on empty store"
@@ -821,7 +822,7 @@ fn test_b6_multi_strata_evaluation() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "Node", "stratum2", "complete");
 }

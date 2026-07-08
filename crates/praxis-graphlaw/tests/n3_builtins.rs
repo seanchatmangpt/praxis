@@ -17,7 +17,7 @@ fn test_log_builtin_equal_to() {
                 { ?x :value ?val1 . ?y :value ?val2 . ?val1 log:equalTo ?val2 } => { ?x :sameValueAs ?y }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     // log:equalTo holds for every (x, y) pair since both items share the value 42,
@@ -67,7 +67,7 @@ fn test_log_builtin_implies() {
                 { ?speaker :says ?formula . ?formula log:implies { ?citizen a :TaxPayer } } => { ?citizen a :TaxPayer }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(
@@ -91,7 +91,7 @@ fn test_math_builtin_sum() {
                 { ?o :itemPrice ?p1 . ?o :taxPrice ?p2 . ( ?p1 ?p2 ) math:sum ?total } => { ?o :totalPrice ?total }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(
@@ -115,7 +115,7 @@ fn test_math_builtin_greater_than() {
                 { ?person :age ?a . ?a math:greaterThan 21 } => { ?person a :Adult }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert_eq!(
@@ -149,7 +149,7 @@ fn test_list_builtin_in() {
                 { ?s :elements ?list . ?item list:in ?list } => { ?item a :Fruit }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert_eq!(
@@ -181,7 +181,7 @@ fn test_list_builtin_length() {
                 { ?cart :items ?list . ?list list:length ?len } => { ?cart :itemCount ?len }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(
@@ -205,7 +205,7 @@ fn test_string_builtin_concat() {
                 { ?u :firstName ?fn . ?u :lastName ?ln . ( ?fn \" \" ?ln ) string:concat ?fullName } => { ?u :name ?fullName }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(
@@ -228,7 +228,7 @@ fn test_string_builtin_length() {
                 { ?u :username ?name . ?name string:length ?len } => { ?u :usernameLength ?len }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(
@@ -257,7 +257,7 @@ fn test_math_builtins_difference_product_quotient_remainder() {
                 { ?c :a ?x . ?c :b ?y . ( ?x ?y ) math:remainder ?r } => { ?c :rem ?r }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(
@@ -307,7 +307,7 @@ fn test_math_builtins_comparison_constraints() {
                 { ?x :value ?v . ?v math:equalTo 10 } => { ?x :passesEqualTo10 true }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     // notLessThan 10: both 10 and 20 pass (10 >= 10, 20 >= 10).
@@ -353,7 +353,7 @@ fn test_log_builtin_not_equal_to() {
                 { ?x :value ?v1 . ?y :value ?v2 . ?v1 log:notEqualTo ?v2 } => { ?x :differsFrom ?y }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     // A (42) differs from B (7): yes. A (42) differs from C (42): no.
@@ -380,7 +380,7 @@ fn test_list_builtin_append() {
                 { ?o :morningItems ?l1 . ?o :eveningItems ?l2 . ( ?l1 ?l2 ) list:append ?merged . ?item list:in ?merged } => { ?item :inMergedList true }.";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(

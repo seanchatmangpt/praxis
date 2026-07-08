@@ -37,7 +37,7 @@ fn graphlaw_materialize_delta(bencher: divan::Bencher) {
     bencher
         .with_inputs(|| {
             let mut store = TripleStore::from(&base);
-            store.materialize();
+            store.materialize().unwrap();
             let (delta_triples, _rules) =
                 Parser::parse_n3_document(DELTA).expect("delta parses as N3");
             (store, delta_triples)
@@ -46,6 +46,6 @@ fn graphlaw_materialize_delta(bencher: divan::Bencher) {
             for t in delta_triples {
                 store.add(t);
             }
-            store.materialize().len()
+            store.materialize().unwrap().len()
         });
 }

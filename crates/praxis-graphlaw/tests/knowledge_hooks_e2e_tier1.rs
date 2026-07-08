@@ -308,7 +308,7 @@ fn test_f3_sparql_ask_trigger() {
         .unwrap();
 
     // Running materialize should fire the SPARQL ASK hook
-    let _inferred = store.materialize();
+    let _inferred = store.materialize().unwrap();
 
     // Verify receipt was generated
     let receipts = store.get_hook_receipts();
@@ -341,7 +341,7 @@ fn test_f3_sparql_select_trigger() {
         )
         .unwrap();
 
-    let _inferred = store.materialize();
+    let _inferred = store.materialize().unwrap();
     let receipts = store.get_hook_receipts();
     assert!(
         !receipts.is_empty(),
@@ -375,14 +375,14 @@ fn test_f3_count_trigger() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(store.get_hook_receipts().is_empty());
 
     // Add 3rd item
     store
         .load_triples("ex:Order <http://example.org/item> ex:C .", Syntax::Turtle)
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(!store.get_hook_receipts().is_empty());
 }
 
@@ -411,7 +411,7 @@ fn test_f3_threshold_trigger() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(store.get_hook_receipts().is_empty());
 
     // Temperature at 100 (fires)
@@ -421,7 +421,7 @@ fn test_f3_threshold_trigger() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(!store.get_hook_receipts().is_empty());
 }
 
@@ -448,7 +448,7 @@ fn test_f3_delta_trigger() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(!store.get_hook_receipts().is_empty());
 }
 
@@ -503,7 +503,7 @@ fn test_f4_project_add_quad() {
         .load_triples("ex:Alice <http://example.org/spent> 1500 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Verify pure projection applied the VIP status
     assert_contains_triple(&store, "Alice", "status", "VIP");
@@ -540,7 +540,7 @@ fn test_f4_project_delete_quad() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
     // Assuming standard status is removed by the hook
     assert_not_contains_triple(&store, "Alice", "status", "Standard");
 }
@@ -572,7 +572,7 @@ fn test_f4_project_add_and_delete() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "Alice", "has", "new_val");
 }
@@ -626,7 +626,7 @@ fn test_f4_project_apply_to_graph() {
         .load_triples("ex:Alice <http://example.org/flag> 'vip' .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Assert target named graph contains the projected quad
     assert_contains_triple(&store, "Alice", "type", "VIPMember");
@@ -656,7 +656,7 @@ fn test_f5_receipt_single_add() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
@@ -689,11 +689,11 @@ fn test_f5_receipt_sort_determinism() {
 
     // Add facts in order A, then B
     store_a.load_triples("ex:NodeA <http://example.org/trigger> 'yes' . ex:NodeB <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
-    store_a.materialize();
+    store_a.materialize().unwrap();
 
     // Add facts in order B, then A
     store_b.load_triples("ex:NodeB <http://example.org/trigger> 'yes' . ex:NodeA <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
-    store_b.materialize();
+    store_b.materialize().unwrap();
 
     let rec_a = store_a.get_hook_receipts();
     let rec_b = store_b.get_hook_receipts();
@@ -726,7 +726,7 @@ fn test_f5_receipt_deletion() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
 
     // Perform deletion
     store.remove_ref(&praxis_graphlaw::term::Triple {
@@ -736,7 +736,7 @@ fn test_f5_receipt_deletion() {
         g: None,
     });
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(
@@ -764,7 +764,7 @@ fn test_f5_get_hook_receipts_api() {
         .load_triples("ex:Obj <http://example.org/data> 42 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
@@ -790,7 +790,7 @@ fn test_f5_receipt_format_validation() {
         .load_triples("ex:Obj <http://example.org/input> 'test' .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
@@ -828,7 +828,7 @@ fn test_f6_single_pass_materialization() {
         .load_triples("ex:Item1 <http://example.org/input> 1 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "Item1", "derived", "true");
 }
@@ -871,7 +871,7 @@ fn test_f6_multi_pass_cascade() {
         .load_triples("ex:Item1 <http://example.org/input> 1 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "Item1", "output", "cascade_done");
 }
@@ -901,7 +901,7 @@ fn test_f6_fixpoint_termination() {
         .unwrap();
 
     // If it terminates, this will complete quickly
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     assert!(!inferred.is_empty());
 }
 
@@ -942,7 +942,7 @@ fn test_f6_refusal_rollback() {
         .unwrap();
 
     // Materialization should trigger refusal, rolling back changes
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     assert!(
         inferred.is_empty(),
         "Rollback should result in zero inferred facts"
@@ -974,7 +974,7 @@ fn test_f6_query_state_post_materialize() {
         .load_triples("ex:Item <http://example.org/input> 1 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let rows = store
         .query("SELECT ?val WHERE { <http://example.org/Item> <http://example.org/val> ?val }")

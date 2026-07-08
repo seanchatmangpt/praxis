@@ -47,7 +47,7 @@ fn test_c3_datalog_construct_delta_cascade() {
         .load_triples("ex:Alice <http://example.org/spent> 1200 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "Alice", "access", "granted");
 }
@@ -81,7 +81,7 @@ fn test_c3_gating_construct_blake3_fixpoint() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
 
     // 3. CONSTRUCT projection applied
     assert_contains_triple(&store, "Node", "output", "yes");
@@ -136,7 +136,7 @@ fn test_c3_threshold_count_window_concurrency() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(receipts.len() >= 2);
@@ -187,7 +187,7 @@ fn test_c3_construct_empty_no_receipt() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Verify no receipts generated since the CONSTRUCT yielded no changes
     let receipts = store.get_hook_receipts();
@@ -222,7 +222,7 @@ fn test_c3_sparql_ask_construct_delete_early_termination() {
         Syntax::Turtle
     ).unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // The active flow triple should be deleted, stopping further cascade pass evaluations
     assert_not_contains_triple(&store, "Flow", "active_flow", "yes");

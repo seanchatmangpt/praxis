@@ -43,7 +43,7 @@ fn test_empty_relations_negation() {
     let res = store.add_rules(vec![rule]);
     assert!(res.is_ok());
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
     let childless: Vec<String> = derived
         .iter()
         .filter(|t| {
@@ -89,7 +89,7 @@ fn test_empty_relations_aggregation() {
     let res = store.add_rule_with_aggregate(rule, agg);
     assert!(res.is_ok());
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
     assert_eq!(derived.len(), 0);
 }
 
@@ -130,7 +130,7 @@ fn test_unbound_aggregate_source_var() {
 
     let res = store.add_rule_with_aggregate(rule, agg);
     if res.is_ok() {
-        let derived = store.materialize();
+        let derived = store.materialize().unwrap();
         // Since ?unbound is not in the bindings, it shouldn't produce any count fact.
         assert_eq!(derived.len(), 0);
     }
@@ -312,7 +312,7 @@ fn test_boundary_numeric_inputs_aggregation() {
     assert!(store.add_rule_with_aggregate(rule_max, agg_max).is_ok());
     assert!(store.add_rule_with_aggregate(rule_avg, agg_avg).is_ok());
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
 
     let mut sum_val = 0.0;
     let mut min_val = 0.0;
@@ -483,7 +483,7 @@ fn test_aggregate_skips_non_numeric_source_values() {
     );
     assert!(store.add_rule_with_aggregate(rule_count, agg_count).is_ok());
 
-    let derived = store.materialize();
+    let derived = store.materialize().unwrap();
 
     let mut sum_val: Option<f64> = None;
     let mut count_val: Option<f64> = None;

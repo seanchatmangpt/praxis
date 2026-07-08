@@ -90,7 +90,7 @@ fn test_transitive_rule(bench: &mut Bencher) {
             data += format!(":{} in :{}.\n", i + 1, i).as_str();
         }
         let mut store = TripleStore::from(data.as_str());
-        store.materialize();
+        store.materialize().unwrap();
     });
 }
 benchmark_group!(benches, test_transitive_rule);

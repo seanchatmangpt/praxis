@@ -37,7 +37,7 @@ fn test_sprite_compute() {
     };
 
     store.compute_sprite(&backward_head);
-    store.materialize();
+    store.materialize().unwrap();
     assert!(store.triple_index.contains(&validation_triple));
     assert_eq!(7, store.len());
 }
@@ -73,7 +73,7 @@ fn test_sprite_compute_hierarchy() {
     let csprite_time = timer_load.elapsed();
     println!("CSprite Time: {:.2?}", csprite_time);
     let timer_load = ::std::time::Instant::now();
-    store.materialize();
+    store.materialize().unwrap();
     assert_eq!(2 * size, store.len());
     let load_time = timer_load.elapsed();
     println!("Materialization Time: {:.2?}", load_time);

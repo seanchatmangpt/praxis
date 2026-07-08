@@ -29,45 +29,55 @@ pub struct OwlRlVocab {
 impl OwlRlVocab {
     pub fn new() -> Self {
         Self {
-            rdf_type: Encoder::add("http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_string()),
+            // NOTE: canonical stored form for IRIs elsewhere in this crate (see
+            // shacl.rs's SHACL_VOCAB) is the bracketed `<iri>` form, because
+            // that's what the pest-based N3/Turtle parser (make_term ->
+            // PrefixMapper::expand) interns for every parsed term. Encoder::add
+            // does *not* normalize brackets away -- `Encoder::add("<x>")` and
+            // `Encoder::add("x")` are two distinct interned values -- so this
+            // vocab must match the parser's bracketed convention or every OWL
+            // RL rule pattern below silently fails to match any real triple.
+            rdf_type: Encoder::add("<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>".to_string()),
             rdfs_subclass_of: Encoder::add(
-                "http://www.w3.org/2000/01/rdf-schema#subClassOf".to_string(),
+                "<http://www.w3.org/2000/01/rdf-schema#subClassOf>".to_string(),
             ),
             rdfs_subproperty_of: Encoder::add(
-                "http://www.w3.org/2000/01/rdf-schema#subPropertyOf".to_string(),
+                "<http://www.w3.org/2000/01/rdf-schema#subPropertyOf>".to_string(),
             ),
-            rdfs_domain: Encoder::add("http://www.w3.org/2000/01/rdf-schema#domain".to_string()),
-            rdfs_range: Encoder::add("http://www.w3.org/2000/01/rdf-schema#range".to_string()),
+            rdfs_domain: Encoder::add("<http://www.w3.org/2000/01/rdf-schema#domain>".to_string()),
+            rdfs_range: Encoder::add("<http://www.w3.org/2000/01/rdf-schema#range>".to_string()),
             owl_equivalent_class: Encoder::add(
-                "http://www.w3.org/2002/07/owl#equivalentClass".to_string(),
+                "<http://www.w3.org/2002/07/owl#equivalentClass>".to_string(),
             ),
             owl_equivalent_property: Encoder::add(
-                "http://www.w3.org/2002/07/owl#equivalentProperty".to_string(),
+                "<http://www.w3.org/2002/07/owl#equivalentProperty>".to_string(),
             ),
-            owl_inverse_of: Encoder::add("http://www.w3.org/2002/07/owl#inverseOf".to_string()),
+            owl_inverse_of: Encoder::add("<http://www.w3.org/2002/07/owl#inverseOf>".to_string()),
             owl_symmetric_property: Encoder::add(
-                "http://www.w3.org/2002/07/owl#SymmetricProperty".to_string(),
+                "<http://www.w3.org/2002/07/owl#SymmetricProperty>".to_string(),
             ),
             owl_transitive_property: Encoder::add(
-                "http://www.w3.org/2002/07/owl#TransitiveProperty".to_string(),
+                "<http://www.w3.org/2002/07/owl#TransitiveProperty>".to_string(),
             ),
-            owl_same_as: Encoder::add("http://www.w3.org/2002/07/owl#sameAs".to_string()),
+            owl_same_as: Encoder::add("<http://www.w3.org/2002/07/owl#sameAs>".to_string()),
             owl_property_chain_axiom: Encoder::add(
-                "http://www.w3.org/2002/07/owl#propertyChainAxiom".to_string(),
+                "<http://www.w3.org/2002/07/owl#propertyChainAxiom>".to_string(),
             ),
-            owl_cardinality: Encoder::add("http://www.w3.org/2002/07/owl#cardinality".to_string()),
+            owl_cardinality: Encoder::add(
+                "<http://www.w3.org/2002/07/owl#cardinality>".to_string(),
+            ),
             owl_min_cardinality: Encoder::add(
-                "http://www.w3.org/2002/07/owl#minCardinality".to_string(),
+                "<http://www.w3.org/2002/07/owl#minCardinality>".to_string(),
             ),
             owl_max_cardinality: Encoder::add(
-                "http://www.w3.org/2002/07/owl#maxCardinality".to_string(),
+                "<http://www.w3.org/2002/07/owl#maxCardinality>".to_string(),
             ),
-            owl_union_of: Encoder::add("http://www.w3.org/2002/07/owl#unionOf".to_string()),
+            owl_union_of: Encoder::add("<http://www.w3.org/2002/07/owl#unionOf>".to_string()),
             owl_intersection_of: Encoder::add(
-                "http://www.w3.org/2002/07/owl#intersectionOf".to_string(),
+                "<http://www.w3.org/2002/07/owl#intersectionOf>".to_string(),
             ),
-            owl_one_of: Encoder::add("http://www.w3.org/2002/07/owl#oneOf".to_string()),
-            owl_imports: Encoder::add("http://www.w3.org/2002/07/owl#imports".to_string()),
+            owl_one_of: Encoder::add("<http://www.w3.org/2002/07/owl#oneOf>".to_string()),
+            owl_imports: Encoder::add("<http://www.w3.org/2002/07/owl#imports>".to_string()),
         }
     }
 }
@@ -629,7 +639,7 @@ impl OwlRlEngine {
         }
     }
 
-    pub fn compile(&self, _index: &TripleIndex) -> (Vec<Rule>, ScanReport) {
+    pub fn compile(&self, index: &TripleIndex) -> (Vec<Rule>, ScanReport) {
         let mut rules = Vec::new();
 
         // Add all supported daily-profile rules unconditionally.
@@ -650,11 +660,12 @@ impl OwlRlEngine {
         rules.push(rule_symmetric_property(&self.vocab));
         rules.push(rule_transitive_property(&self.vocab));
 
-        // Scanning is deferred to future profiles; v26.7.8 uses all supported rules.
-        let report = ScanReport {
-            supported: vec![],
-            refused: vec![],
-        };
+        // Scan the actual ontology for unsupported/external-boundary features
+        // (owl:sameAs, cardinality, complex class expressions, propertyChainAxiom,
+        // owl:imports) so callers (see core.rs's status mapping) can refuse or
+        // flag them instead of silently admitting inputs the daily profile
+        // cannot correctly reason over.
+        let report = scan_ontology(index, &self.vocab);
 
         (rules, report)
     }

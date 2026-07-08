@@ -16,7 +16,7 @@ fn infer_hierarchy(max_depth: i32) {
         data += format!("{{?a a :U{}}}=>{{?a a :Q{}}}\n", i, i + 1).as_str();
     }
     let mut store = TripleStore::from(data.as_str());
-    store.materialize();
+    store.materialize().unwrap();
 }
 
 fn infer_hierarchy_rdf_rule(max_depth: i32) {
@@ -29,7 +29,7 @@ fn infer_hierarchy_rdf_rule(max_depth: i32) {
         data += format!(":U{} :subClassOf :Q{}.\n", i, i + 1).as_str();
     }
     let mut store = TripleStore::from(data.as_str());
-    store.materialize();
+    store.materialize().unwrap();
 }
 
 fn shacl_hierarchy_validate(max_depth: i32) {

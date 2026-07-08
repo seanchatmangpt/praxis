@@ -307,7 +307,7 @@ fn test_f3_sparql_ask_trigger() {
         .unwrap();
 
     // Running materialize should fire the SPARQL ASK hook
-    let _inferred = store.materialize();
+    let _inferred = store.materialize().unwrap();
 
     // Verify receipt was generated
     let receipts = store.get_hook_receipts();
@@ -340,7 +340,7 @@ fn test_f3_sparql_select_trigger() {
         )
         .unwrap();
 
-    let _inferred = store.materialize();
+    let _inferred = store.materialize().unwrap();
     let receipts = store.get_hook_receipts();
     assert!(
         !receipts.is_empty(),
@@ -374,14 +374,14 @@ fn test_f3_count_trigger() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(store.get_hook_receipts().is_empty());
 
     // Add 3rd item
     store
         .load_triples("ex:Order <http://example.org/item> ex:C .", Syntax::Turtle)
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(!store.get_hook_receipts().is_empty());
 }
 
@@ -410,7 +410,7 @@ fn test_f3_threshold_trigger() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(store.get_hook_receipts().is_empty());
 
     // Temperature at 100 (fires)
@@ -420,7 +420,7 @@ fn test_f3_threshold_trigger() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(!store.get_hook_receipts().is_empty());
 }
 
@@ -447,7 +447,7 @@ fn test_f3_delta_trigger() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(!store.get_hook_receipts().is_empty());
 }
 
@@ -502,7 +502,7 @@ fn test_f4_project_add_quad() {
         .load_triples("ex:Alice <http://example.org/spent> 1500 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Verify pure projection applied the VIP status
     assert_contains_triple(&store, "Alice", "status", "VIP");
@@ -539,7 +539,7 @@ fn test_f4_project_delete_quad() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
     // Assuming standard status is removed by the hook
     assert_not_contains_triple(&store, "Alice", "status", "Standard");
 }
@@ -571,7 +571,7 @@ fn test_f4_project_add_and_delete() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "Alice", "has", "new_val");
 }
@@ -625,7 +625,7 @@ fn test_f4_project_apply_to_graph() {
         .load_triples("ex:Alice <http://example.org/flag> 'vip' .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Assert target named graph contains the projected quad
     assert_contains_triple(&store, "Alice", "type", "VIPMember");
@@ -655,7 +655,7 @@ fn test_f5_receipt_single_add() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
@@ -688,11 +688,11 @@ fn test_f5_receipt_sort_determinism() {
 
     // Add facts in order A, then B
     store_a.load_triples("ex:NodeA <http://example.org/trigger> 'yes' . ex:NodeB <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
-    store_a.materialize();
+    store_a.materialize().unwrap();
 
     // Add facts in order B, then A
     store_b.load_triples("ex:NodeB <http://example.org/trigger> 'yes' . ex:NodeA <http://example.org/trigger> 'yes' .", Syntax::Turtle).unwrap();
-    store_b.materialize();
+    store_b.materialize().unwrap();
 
     let rec_a = store_a.get_hook_receipts();
     let rec_b = store_b.get_hook_receipts();
@@ -725,7 +725,7 @@ fn test_f5_receipt_deletion() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
 
     // Perform deletion
     store.remove_ref(&praxis_graphlaw::term::Triple {
@@ -735,7 +735,7 @@ fn test_f5_receipt_deletion() {
         g: None,
     });
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(
@@ -763,7 +763,7 @@ fn test_f5_get_hook_receipts_api() {
         .load_triples("ex:Obj <http://example.org/data> 42 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
@@ -789,7 +789,7 @@ fn test_f5_receipt_format_validation() {
         .load_triples("ex:Obj <http://example.org/input> 'test' .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
@@ -827,7 +827,7 @@ fn test_f6_single_pass_materialization() {
         .load_triples("ex:Item1 <http://example.org/input> 1 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "Item1", "derived", "true");
 }
@@ -870,7 +870,7 @@ fn test_f6_multi_pass_cascade() {
         .load_triples("ex:Item1 <http://example.org/input> 1 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "Item1", "output", "cascade_done");
 }
@@ -900,7 +900,7 @@ fn test_f6_fixpoint_termination() {
         .unwrap();
 
     // If it terminates, this will complete quickly
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     assert!(!inferred.is_empty());
 }
 
@@ -941,7 +941,7 @@ fn test_f6_refusal_rollback() {
         .unwrap();
 
     // Materialization should trigger refusal, rolling back changes
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     assert!(
         inferred.is_empty(),
         "Rollback should result in zero inferred facts"
@@ -973,7 +973,7 @@ fn test_f6_query_state_post_materialize() {
         .load_triples("ex:Item <http://example.org/input> 1 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let rows = store
         .query("SELECT ?val WHERE { <http://example.org/Item> <http://example.org/val> ?val }")
@@ -1217,7 +1217,7 @@ fn test_b3_empty_trigger_results() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(store.get_hook_receipts().is_empty());
 }
 
@@ -1338,7 +1338,7 @@ fn test_b4_construct_empty_result() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // No new triples should be created
     assert_not_contains_triple(&store, "Node", "status", "none");
@@ -1364,8 +1364,9 @@ fn test_b4_construct_literal_subject() {
             kh:query "CONSTRUCT { 'subject' <http://example.org/p> ?o } WHERE { ?s <http://example.org/trigger> ?o }" .
     "#;
     let res = store.load_hook_pack(hook_pack);
+    let mat_result = store.materialize();
     assert!(
-        res.is_err() || store.materialize().is_empty(),
+        res.is_err() || mat_result.is_err() || mat_result.unwrap().is_empty(),
         "Should reject invalid RDF generation"
     );
 }
@@ -1422,7 +1423,7 @@ fn test_b4_construct_no_op_addition() {
         .unwrap();
 
     let before_len = store.len();
-    store.materialize();
+    store.materialize().unwrap();
     assert_eq!(store.len(), before_len);
 }
 
@@ -1477,7 +1478,7 @@ fn test_b5_receipt_blank_nodes() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
@@ -1506,7 +1507,7 @@ fn test_b5_receipt_unicode_literals() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
@@ -1536,7 +1537,7 @@ fn test_b5_receipt_huge_literals() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
@@ -1573,8 +1574,8 @@ fn test_b5_stable_hash_datatypes_lang() {
         )
         .unwrap();
 
-    store_a.materialize();
-    store_b.materialize();
+    store_a.materialize().unwrap();
+    store_b.materialize().unwrap();
 
     let rec_a = store_a.get_hook_receipts();
     let rec_b = store_b.get_hook_receipts();
@@ -1613,7 +1614,7 @@ fn test_b5_hash_both_add_and_delete() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
@@ -1659,7 +1660,7 @@ fn test_b6_infinite_loop_detection() {
         .unwrap();
 
     // Materialization should terminate with limit or recursion depth error
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     // It should terminate safely without hanging
     assert!(inferred.len() < 100);
 }
@@ -1740,7 +1741,7 @@ fn test_b6_gating_refusal_deep_rollback() {
         .load_triples("ex:Node <http://example.org/start> 'go' .", Syntax::Turtle)
         .unwrap();
 
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     assert!(inferred.is_empty());
     // Ensure both step1 and step2 are completely rolled back
     assert_not_contains_triple(&store, "Node", "step1", "yes");
@@ -1762,7 +1763,7 @@ fn test_b6_empty_base_facts() {
             kh:effect "emit-delta" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     assert!(
         inferred.is_empty(),
         "No inferences should happen on empty store"
@@ -1798,7 +1799,7 @@ fn test_b6_multi_strata_evaluation() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "Node", "stratum2", "complete");
 }
@@ -1846,7 +1847,7 @@ fn test_c3_datalog_construct_delta_cascade() {
         .load_triples("ex:Alice <http://example.org/spent> 1200 .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "Alice", "access", "granted");
 }
@@ -1880,7 +1881,7 @@ fn test_c3_gating_construct_blake3_fixpoint() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
 
     // 3. CONSTRUCT projection applied
     assert_contains_triple(&store, "Node", "output", "yes");
@@ -1935,7 +1936,7 @@ fn test_c3_threshold_count_window_concurrency() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(receipts.len() >= 2);
@@ -1986,7 +1987,7 @@ fn test_c3_construct_empty_no_receipt() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Verify no receipts generated since the CONSTRUCT yielded no changes
     let receipts = store.get_hook_receipts();
@@ -2021,7 +2022,7 @@ fn test_c3_sparql_ask_construct_delete_early_termination() {
         Syntax::Turtle
     ).unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // The active flow triple should be deleted, stopping further cascade pass evaluations
     assert_not_contains_triple(&store, "Flow", "active_flow", "yes");
@@ -2074,7 +2075,7 @@ fn test_s4_automated_quarantine_and_refusal() {
         Syntax::NQuads
     ).unwrap();
 
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
 
     // Transaction must roll back, ensuring no data remains in SystemGraph
     assert!(
@@ -2112,7 +2113,7 @@ fn test_s4_ledger_balance_enforcement_and_audit() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
 
     // Perform deduction
     store
@@ -2121,7 +2122,7 @@ fn test_s4_ledger_balance_enforcement_and_audit() {
             Syntax::Turtle,
         )
         .unwrap();
-    let _inferred = store.materialize();
+    let _inferred = store.materialize().unwrap();
     assert_contains_triple(&store, "Account1", "balance", "300");
 
     // Attempt invalid transaction: Deduct 400 (balance goes to -100)
@@ -2132,7 +2133,7 @@ fn test_s4_ledger_balance_enforcement_and_audit() {
         )
         .unwrap();
 
-    let res = store.materialize();
+    let res = store.materialize().unwrap();
     assert!(
         res.is_empty(),
         "Negative balance transaction should be rolled back"
@@ -2165,7 +2166,7 @@ fn test_s4_state_machine_transition_control() {
         Syntax::Turtle
     ).unwrap();
 
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     assert!(
         inferred.is_empty(),
         "Invalid state transition must be rolled back"
@@ -2201,7 +2202,7 @@ fn test_s4_access_control_policy_engine() {
         Syntax::Turtle
     ).unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "User1", "permission", "granted");
 }
@@ -2237,7 +2238,7 @@ fn test_s4_materialized_view_cache_maintenance() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Cache graph should contain the materialized view tax bracket classification
     assert_contains_triple(&store, "Emp1", "tax_bracket", "high");
@@ -2298,8 +2299,8 @@ fn test_hook_alias_vocabulary_identical_receipts() {
     store_hook.load_triples(base_facts, Syntax::Turtle).unwrap();
 
     // Materialize both stores
-    store_kh.materialize();
-    store_hook.materialize();
+    store_kh.materialize().unwrap();
+    store_hook.materialize().unwrap();
 
     // Get receipts from both stores
     let receipts_kh = store_kh.get_hook_receipts();

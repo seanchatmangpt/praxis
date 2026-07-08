@@ -33,7 +33,7 @@ fn test_suite1_minimal_approval_positive() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Verify delta was emitted
     let receipts = store.get_hook_receipts();
@@ -66,7 +66,7 @@ fn test_suite1_minimal_refusal_surfaces_reason() {
         )
         .unwrap();
 
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
 
     // Refusal should cause rollback
     assert!(inferred.is_empty());
@@ -138,7 +138,7 @@ fn test_suite1_minimal_approval_no_trigger() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // No receipts since condition not met (priority is low, not high)
     assert!(store.get_hook_receipts().is_empty());
@@ -176,7 +176,7 @@ fn test_suite2_approval_routing_single_entity() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
@@ -212,7 +212,7 @@ fn test_suite2_approval_routing_100_entities() {
     }
     store.load_triples(&batch, Syntax::Turtle).unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
@@ -256,7 +256,7 @@ fn test_suite2_approval_routing_priority_order() {
         .load_triples("ex:E1 <http://example.org/input> 'go' .", Syntax::Turtle)
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Both steps should complete if priority ordering is correct
     let receipts = store.get_hook_receipts();
@@ -308,7 +308,7 @@ fn test_suite2_approval_routing_missing_priority() {
         store
             .load_triples("ex:E1 <http://example.org/v> 'yes' .", Syntax::Turtle)
             .unwrap();
-        let _ = store.materialize();
+        let _ = store.materialize().unwrap();
     }
 }
 
@@ -368,7 +368,7 @@ fn test_suite3_state_machine_legal_transition_single() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert_eq!(receipts.len(), 1);
@@ -393,7 +393,7 @@ fn test_suite3_state_machine_illegal_transition_single() {
     store.load_hook_pack(hook_pack).unwrap();
     store.load_triples("ex:Doc2 <http://example.org/state> 'Draft' ; <http://example.org/next_state> 'Approved' .", Syntax::Turtle).unwrap();
 
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     assert!(
         inferred.is_empty(),
         "Illegal transition should be refused and rolled back"
@@ -428,7 +428,7 @@ fn test_suite3_state_machine_1000_legal() {
     }
     store.load_triples(&docs, Syntax::Turtle).unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts = store.get_hook_receipts();
     assert!(!receipts.is_empty());
@@ -494,7 +494,7 @@ fn test_suite3_state_machine_circular_infinite_loop() {
         .load_triples("ex:Doc3 <http://example.org/state> 'A' .", Syntax::Turtle)
         .unwrap();
 
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     // Should terminate gracefully with recursion limit or detect cycle
     assert!(
         inferred.len() < 100,
@@ -540,8 +540,8 @@ fn test_suite4_idempotency_same_key_twice() {
         )
         .unwrap();
 
-    store_a.materialize();
-    store_b.materialize();
+    store_a.materialize().unwrap();
+    store_b.materialize().unwrap();
 
     let receipts_a = store_a.get_hook_receipts();
     let receipts_b = store_b.get_hook_receipts();
@@ -577,14 +577,14 @@ fn test_suite4_idempotency_no_duplicate_triple() {
         .unwrap();
 
     let count_before = store.len();
-    store.materialize();
+    store.materialize().unwrap();
     let count_after_first = store.len();
 
     // Reload same event
     store
         .load_triples("ex:E1 <http://example.org/event> 'fire' .", Syntax::Turtle)
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     let count_after_second = store.len();
 
     // No new triples should be added on second fire (idempotent)
@@ -610,7 +610,7 @@ fn test_suite4_idempotency_receipt_sharing_key() {
     store
         .load_triples("ex:Op1 <http://example.org/op> 'execute' .", Syntax::Turtle)
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
 
     let receipts_first = store.get_hook_receipts();
     assert_eq!(receipts_first.len(), 1);
@@ -620,7 +620,7 @@ fn test_suite4_idempotency_receipt_sharing_key() {
     store
         .load_triples("ex:Op1 <http://example.org/op> 'execute' .", Syntax::Turtle)
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
 
     // Check if new receipt was added or reused
     // Idempotent operations should have consistent keys
@@ -679,7 +679,7 @@ fn test_suite5_sla_escalation_threshold_crossed() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
     assert!(
         store.get_hook_receipts().is_empty(),
         "Below threshold should not fire"
@@ -692,7 +692,7 @@ fn test_suite5_sla_escalation_threshold_crossed() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
 
     // Receipt should be emitted now
     assert_eq!(store.get_hook_receipts().len(), 1);
@@ -724,7 +724,7 @@ fn test_suite5_sla_escalation_below_threshold() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
 
     // No receipt should be generated
     assert!(store.get_hook_receipts().is_empty());
@@ -755,7 +755,7 @@ fn test_suite5_sla_escalation_exact_threshold() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Should fire exactly at count 10
     assert_eq!(store.get_hook_receipts().len(), 1);
@@ -844,7 +844,7 @@ fn test_suite6_policy_conflict_approve_vs_refuse() {
         )
         .unwrap();
 
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
 
     // Should refuse deterministically (refusal takes precedence or conflict detected)
     assert!(inferred.is_empty());
@@ -892,7 +892,7 @@ fn test_suite6_policy_conflict_state_contradictions() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Conflicting transitions should be detected or deterministically ordered
     let receipts = store.get_hook_receipts();
@@ -929,7 +929,7 @@ fn test_suite6_policy_conflict_multiple_refusals() {
         .load_triples("ex:Txn <http://example.org/value> 1500 .", Syntax::Turtle)
         .unwrap();
 
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
 
     // First refusal wins (priority 1); transaction rolled back
     assert!(inferred.is_empty());
@@ -1023,7 +1023,7 @@ fn test_integration_complex_approval_workflow() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Both phases should fire in order
     let receipts = store.get_hook_receipts();

@@ -51,7 +51,7 @@ fn test_s4_automated_quarantine_and_refusal() {
         Syntax::NQuads
     ).unwrap();
 
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
 
     // Transaction must roll back, ensuring no data remains in SystemGraph
     assert!(
@@ -89,7 +89,7 @@ fn test_s4_ledger_balance_enforcement_and_audit() {
             Syntax::Turtle,
         )
         .unwrap();
-    store.materialize();
+    store.materialize().unwrap();
 
     // Perform deduction
     store
@@ -98,7 +98,7 @@ fn test_s4_ledger_balance_enforcement_and_audit() {
             Syntax::Turtle,
         )
         .unwrap();
-    let _inferred = store.materialize();
+    let _inferred = store.materialize().unwrap();
     assert_contains_triple(&store, "Account1", "balance", "300");
 
     // Attempt invalid transaction: Deduct 400 (balance goes to -100)
@@ -109,7 +109,7 @@ fn test_s4_ledger_balance_enforcement_and_audit() {
         )
         .unwrap();
 
-    let res = store.materialize();
+    let res = store.materialize().unwrap();
     assert!(
         res.is_empty(),
         "Negative balance transaction should be rolled back"
@@ -142,7 +142,7 @@ fn test_s4_state_machine_transition_control() {
         Syntax::Turtle
     ).unwrap();
 
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     assert!(
         inferred.is_empty(),
         "Invalid state transition must be rolled back"
@@ -178,7 +178,7 @@ fn test_s4_access_control_policy_engine() {
         Syntax::Turtle
     ).unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     assert_contains_triple(&store, "User1", "permission", "granted");
 }
@@ -214,7 +214,7 @@ fn test_s4_materialized_view_cache_maintenance() {
         )
         .unwrap();
 
-    store.materialize();
+    store.materialize().unwrap();
 
     // Cache graph should contain the materialized view tax bracket classification
     assert_contains_triple(&store, "Emp1", "tax_bracket", "high");

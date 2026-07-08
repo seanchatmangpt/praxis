@@ -39,7 +39,7 @@ proptest! {
         }
 
         let mut store = TripleStore::from(&data);
-        let inferred = store.materialize();
+        let inferred = store.materialize().unwrap();
         let decoded = decode_all(&inferred);
 
         let actual_matches = (0..tags.len())
@@ -73,7 +73,7 @@ fn test_log_implies_antecedent_only_variable_does_not_leak() {
                 { ?s :says ?f . ?f log:implies { ?x a :Owned } } => { ?x a :Owned }.\n";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
 
     assert!(
@@ -109,7 +109,7 @@ fn test_log_implies_zero_antecedent_matches_derives_nothing() {
                 { ?s :says ?f . ?f log:implies { ?x a :Match } } => { ?x a :Match }.\n";
 
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded = decode_all(&inferred);
     assert!(
         !decoded.iter().any(|d| d.contains("Match")),

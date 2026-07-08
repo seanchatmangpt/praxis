@@ -29,6 +29,11 @@ pub enum Status {
     /// Replay verification failed: first and second execution differed.
     ReplayMismatch,
     /// Hash mismatch detected during verification.
+    ///
+    /// Reserved: not yet constructible from core.rs's current logic. Recomputing and
+    /// comparing a second canonical graph hash after materialization would need to be
+    /// wired in core.rs's validate_all_core pipeline; tracked as a known bridge gap,
+    /// not yet implemented. UNTRACKED.
     HashMismatch,
     /// Profile was not admitted for this graph.
     ProfileNotAdmitted,

@@ -206,7 +206,7 @@ fn n3_chain_n(bench: &mut Bencher, depth: usize) {
     let doc = build_chain(depth);
     bench.iter(|| {
         let mut store = TripleStore::from(&doc);
-        store.materialize();
+        store.materialize().unwrap();
     });
 }
 
@@ -332,7 +332,7 @@ fn datalog_aggregate_n(bench: &mut Bencher, num_facts: usize) {
             group_vars: vec!["?d".to_string()],
         };
         store.add_rule_with_aggregate(rule, agg).unwrap();
-        store.materialize();
+        store.materialize().unwrap();
     });
 }
 

@@ -1637,7 +1637,9 @@ pub fn evaluate_condition(
                     .load_rules(&n3_rules)
                     .map_err(|e| format!("load rules error: {} (rules: {})", e, n3_rules))?;
             }
-            let _ = temp_store.materialize();
+            temp_store
+                .materialize()
+                .map_err(|e| format!("materialize error: {} (rules: {})", e, n3_rules))?;
             let goal_lower = goal.to_lowercase();
             let fired = temp_store.triple_index.triples.iter().any(|t| {
                 let p_str = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
@@ -1845,7 +1847,9 @@ pub fn evaluate_condition(
             for t in &post_state.triple_index.triples {
                 temp_store.add(t.clone());
             }
-            let _ = temp_store.materialize();
+            temp_store
+                .materialize()
+                .map_err(|e| format!("materialize error: {}", e))?;
             let violations = temp_store.check_denials();
             let conforms = violations.is_empty();
             let details = violations

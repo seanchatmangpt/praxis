@@ -45,7 +45,7 @@ fn escape_sequences_decode_to_expected_strings() {
     for (idx, (literal, expected_decoded)) in cases.iter().enumerate() {
         let doc = format!("@prefix : <http://example.org/> .\n:s{idx} :p{idx} {literal} .\n");
         let mut store = TripleStore::from(&doc);
-        let _inferred = store.materialize();
+        let _inferred = store.materialize().unwrap();
         let actual = decode_all_stored_facts(&store);
 
         let expected_fact = format!(
@@ -100,7 +100,7 @@ proptest! {
         }
 
         let mut store = TripleStore::from(&doc);
-        let _inferred = store.materialize(); // zero rules in doc -> derives nothing new
+        let _inferred = store.materialize().unwrap(); // zero rules in doc -> derives nothing new
         let actual = decode_all_stored_facts(&store);
 
         prop_assert_eq!(

@@ -272,14 +272,14 @@ fn event_delta_firing_small(bencher: divan::Bencher) {
             store
                 .load_triples(&base_data, Syntax::Turtle)
                 .expect("failed to load base data");
-            store.materialize();
+            store.materialize().unwrap();
             store
         })
         .bench_local_values(|mut store| {
             store
                 .load_triples(delta_data, Syntax::Turtle)
                 .expect("failed to load delta");
-            let result = store.materialize();
+            let result = store.materialize().unwrap();
             (result.len(), store.get_hook_receipts().len())
         });
 }
@@ -308,14 +308,14 @@ fn event_delta_firing_medium(bencher: divan::Bencher) {
             store
                 .load_triples(&base_data, Syntax::Turtle)
                 .expect("failed to load base data");
-            store.materialize();
+            store.materialize().unwrap();
             store
         })
         .bench_local_values(|mut store| {
             store
                 .load_triples(delta_data, Syntax::Turtle)
                 .expect("failed to load delta");
-            let result = store.materialize();
+            let result = store.materialize().unwrap();
             (result.len(), store.get_hook_receipts().len())
         });
 }
@@ -463,7 +463,7 @@ fn process_intelligence_slice(bencher: &mut Bencher) {
         store
             .load_triples(&data, Syntax::Turtle)
             .expect("failed to load data");
-        store.materialize();
+        store.materialize().unwrap();
         let _ = store.materialize_owlrl();
     });
 }

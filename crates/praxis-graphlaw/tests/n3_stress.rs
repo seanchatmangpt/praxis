@@ -62,7 +62,7 @@ fn test_deep_taxonomy_chain_200_levels() {
 
     let start = Instant::now();
     let mut store = TripleStore::from(&doc);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let elapsed = start.elapsed();
 
     let decoded: Vec<String> = inferred.iter().map(TripleStore::decode_triple).collect();
@@ -122,7 +122,7 @@ fn test_deep_taxonomy_chain_broken_link_stops_propagation() {
     doc.push_str("\n{?X a ?D} <= {?C rdfs:subClassOf ?D. ?X a ?C}.\n");
 
     let mut store = TripleStore::from(&doc);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     let decoded: Vec<String> = inferred.iter().map(TripleStore::decode_triple).collect();
 
     // Everything up to and including the break point should still be derived...

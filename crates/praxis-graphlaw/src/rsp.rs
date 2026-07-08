@@ -297,7 +297,7 @@ impl R2ROperator<WindowTriple, Vec<Binding>> for SimpleR2R {
 
     fn materialize(&mut self) -> Vec<WindowTriple> {
         println!("Store size: {:?}", self.item.triple_index.len());
-        let inferred = self.item.materialize();
+        let inferred = self.item.materialize().unwrap_or_default();
         inferred
             .into_iter()
             .map(|t| WindowTriple {

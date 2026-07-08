@@ -40,7 +40,7 @@ proptest! {
         );
 
         let mut store = TripleStore::from(&data);
-        let inferred = store.materialize();
+        let inferred = store.materialize().unwrap();
         let decoded = decode_all(&inferred);
 
         let total = item_price + tax;
@@ -83,7 +83,7 @@ proptest! {
         );
 
         let mut store = TripleStore::from(&data);
-        let inferred = store.materialize();
+        let inferred = store.materialize().unwrap();
         let decoded = decode_all(&inferred);
 
         let expected: std::collections::HashSet<i64> = values.iter().copied().filter(|&v| v > 10).collect();

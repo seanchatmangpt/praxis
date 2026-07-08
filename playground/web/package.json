@@ -16,6 +16,7 @@
     "comlink": "^4.4",
     "monaco-editor": "^0.55",
     "next": "^15",
+    "praxis-graphlaw-wasm": "file:../../crates/praxis-graphlaw-wasm/pkg",
     "react": "^18.3",
     "react-dom": "^18.3"
   },

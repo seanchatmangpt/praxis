@@ -15,28 +15,67 @@ import type {
 
 /**
  * Lazy-loaded WASM module. Initialized on first engine method call.
+ *
+ * `null` means "not yet attempted"; an object with `.ready === false` means
+ * the import/instantiate step failed and callers must surface a loud error
+ * rather than silently falling back to placeholder data (see
+ * .claude/rules/no-overclaiming-js.md: stub failures must throw, not
+ * resolve success-shaped).
  */
-let wasmModule: any = null;
+let wasmModule: {
+  ready: boolean;
+  validate_all?: (
+    ttl: string,
+    profileTtl: string,
+    shaclShapes: string,
+    shexSchema: string,
+    shexShapeMap: string
+  ) => string;
+  run_hooks?: (baseTtl: string, eventTtl: string) => string;
+  graph_hash?: (ttl: string) => string;
+} | null = null;
 
 /**
  * Initialize WASM module if not already loaded.
  *
- * This function handles the async loading of the WebAssembly module.
- * It's called once and the result is cached.
+ * This function handles the async loading and instantiation of the
+ * WebAssembly module (built via `wasm-pack build --target web`, which
+ * requires calling the default export to instantiate before the exported
+ * functions are usable).
+ *
+ * Throws if the module cannot be loaded/instantiated — callers must not
+ * swallow this into a placeholder result.
  */
 async function ensureWasmLoaded(): Promise<void> {
-  if (wasmModule) return;
+  if (wasmModule?.ready) return;
 
-  try {
-    // Dynamically import the WASM package (praxis-graphlaw-wasm)
-    // The path assumes the wasm package is built and available as a dependency
-    // @ts-expect-error - Module may not be available during development
-    wasmModule = await import('praxis-graphlaw-wasm');
-  } catch (error) {
-    // Fallback: in development, mock module won't have real functions
-    console.warn('GraphLaw WASM module not available; using mock engine');
-    wasmModule = {};
+  // Dynamically import the WASM package (praxis-graphlaw-wasm), built via
+  // `wasm-pack build --target web` from crates/praxis-graphlaw-wasm.
+  // @ts-expect-error - Module resolved via file: dependency; no ambient types
+  const mod = await import('praxis-graphlaw-wasm');
+  // wasm-bindgen `--target web` modules export a default init function that
+  // must be awaited before any other export is callable.
+  await mod.default();
+  wasmModule = {
+    ready: true,
+    validate_all: mod.validate_all,
+    run_hooks: mod.run_hooks,
+    graph_hash: mod.graph_hash,
+  };
+}
+
+/**
+ * Parses a WASM bridge JSON response, throwing if the engine returned
+ * `{ "error": "..." }` (the convention used by lib.rs's validate_all/
+ * run_hooks/graph_hash wrappers to surface Refusal-style failures across
+ * the FFI boundary without relying on WASM exception marshaling).
+ */
+function parseWasmJson<T>(raw: string): T {
+  const parsed = JSON.parse(raw);
+  if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+    throw new Error(String((parsed as { error: unknown }).error));
   }
+  return parsed as T;
 }
 
 /**

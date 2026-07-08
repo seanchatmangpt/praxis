@@ -28,7 +28,7 @@ fn decode_all(triples: &[praxis_graphlaw::triples::Triple]) -> Vec<String> {
 
 fn materialize(data: &str) -> Vec<String> {
     let mut store = TripleStore::from(data);
-    let inferred = store.materialize();
+    let inferred = store.materialize().unwrap();
     decode_all(&inferred)
 }
 
