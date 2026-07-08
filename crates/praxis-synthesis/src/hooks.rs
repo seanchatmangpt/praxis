@@ -7,13 +7,11 @@
 //! record on every event — `NotFired` is recorded, so silence is provable
 //! (knhk Covenant-2: a firing without a receipt is a violation).
 //!
-//! Condition kinds are the HONEST bounded subset praxis can evaluate with
-//! zero new dependencies: `datalog` (the crate's own stratified engine),
-//! `delta`, `threshold`, `count`, `window`. The unrdf kinds praxis has no
-//! engine for — `sparql-ask`, `sparql-select`, `shacl`, `n3`,
-//! `semantic-inference` — are refused BY NAME at registration with the
-//! supported analog stated ([`Refusal::ConditionUnsupported`]); they are
-//! never faked.
+//! Condition kinds are the bounded subset praxis can evaluate with controlled
+//! in-crate or graphlaw-backed engines: `datalog`, `delta`, `threshold`,
+//! `count`, `window`, `shacl`, `shex`, and `n3`.
+//! Unsupported external/query kinds such as `sparql-ask`, `sparql-select`,
+//! and `semantic-inference` are refused by name with a supported analog.
 //!
 //! Lineage: knhk 03-knowledge-hooks.tex hook tuple -> unrdf
 //! `define-hook.mjs`/`condition-evaluator.mjs` condition-kind contract ->

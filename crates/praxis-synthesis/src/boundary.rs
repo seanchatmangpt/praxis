@@ -45,10 +45,21 @@ impl BoundaryRequest {
 
         // Generate a deterministic idempotency key.
         let idempotency_material = format!(
-            "idempotency:{}:{}:{}",
+            "praxis:boundary-idempotency:v1\n\
+             epoch={}\n\
+             base_graph_hash={}\n\
+             hook_iri={}\n\
+             hook_name={}\n\
+             event_hash={}\n\
+             delta_ttl_hash={}\n\
+             freshness_token={}",
+            reference.epoch(),
+            reference.graph_hash(),
             hook_iri,
+            hook_name,
             event_hash,
-            reference.epoch()
+            delta_ttl_hash,
+            freshness_token
         );
         let idempotency_key = content_address(idempotency_material.as_bytes());
 
