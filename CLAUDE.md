@@ -1,18 +1,22 @@
-# Praxis — v26.7.4
+# Praxis — v26.7.8 (Rust Core Team Discipline)
 
 Milestone: v26.7.4 (PROJ-302..306) archived at `docs/jira/archive/v26.7.4/tickets/index.md`.
-v26.7.8 scaffolded at `docs/jira/v26.7.8/tickets/index.md` — awaiting ticket specification.
+v26.7.8 (PROJ-401..410, 501-505) in progress at `docs/jira/v26.7.8/tickets/index.md`.
 
-## Invariants (violation = the bug)
+This repo maintains **AGI-level Rust core-team code discipline** — every invariant,
+test, and performance assumption is binding, not aspirational. See
+`docs/CORE_TEAM_DISCIPLINE.md` for full engineering standards.
 
-1. No panics/silent defaults — every error is a typed `Refusal` variant (`lib.rs`).
-2. Receipts are computed (BLAKE3, genesis-folded), never asserted-in.
-3. No wall clock in any hash/receipt path — time only from graph OWL-Time literals.
-4. Closed vocabularies (`wf:`, `hook:`, `prayer-kernel:`, `agent:`) — unknown
-   predicates refused by name, paired with `docs/v26.7.4/PUBLIC_ONTOLOGY_MAPPING.md`.
-5. `praxis-synthesis` deps frozen to exactly: pddl-index, chatman-common, blake3,
-   serde, serde_json, thiserror (`tests/no_llm_runtime.rs` enforces).
-6. Smallest diff, reuse first — no new subsystems where a const table suffices.
+## Invariants (violation = the bug, not a code-review note)
+
+1. **No panics/silent defaults** — every error is a typed `Refusal` variant (`lib.rs`).
+2. **Receipts are computed (BLAKE3), never asserted** — all facts in canonical N-Quads order.
+3. **No wall clock in hash/receipt paths** — time only from graph OWL-Time literals.
+4. **Closed vocabularies** (`wf:`, `hook:`, `prayer-kernel:`, `agent:`) — unknown predicates refused by name.
+5. **Deterministic under fixed seed** — same inputs → byte-identical receipts, no randomness.
+6. **No algorithmic surprises** — all O(n) bounds documented; no hidden quadratic lurking.
+7. **Zero unsafe code except cryptographic verification** — every unsafe block audited.
+8. **Error paths tested as rigorously as happy paths** — Refusal variants have end-to-end tests.
 
 ## Standing
 
@@ -44,5 +48,9 @@ This file must stay ≤ 200 lines. If it needs to grow past that, split into a n
 
 ## See Also
 
-- `docs/rust-anti-patterns.md` — Project-scoped Rust anti-patterns and enforcement rules.
-- `docs/standing/SEMANTIC_PROFILE_DOCTRINE.md` — 80/20 profile strategy for semantic dialects (OWL RL, SHACL, ShEx, N3, Datalog).
+- **`docs/CORE_TEAM_DISCIPLINE.md`** — Full engineering standards for Rust core-team level code quality (performance measurement, testing discipline, review checklist, determinism guarantees, complexity documentation, invariant enforcement)
+- **`~/.claude/rules/tools.md`** — Tool usage rules (LSP-first navigation, markdown document standards, cross-document consistency)
+- `docs/rust-anti-patterns.md` — Project-scoped Rust anti-patterns and enforcement rules
+- `docs/ALGORITHM_COMPLEXITY.md` — Complexity bounds per function and data structure (to be created during v26.7.8)
+- `docs/standing/SEMANTIC_PROFILE_DOCTRINE.md` — 80/20 profile strategy for semantic dialects (OWL RL, SHACL, ShEx, N3, Datalog)
+- `docs/standing/CLAUDE_CODE_POLICY.md` — Standing index verification gates and readiness claims
