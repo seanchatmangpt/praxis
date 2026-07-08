@@ -53,6 +53,10 @@ harness = false
 name = "blue_river_dam"
 harness = false
 
+[[bench]]
+name = "owlrl"
+harness = false
+
 [dev-dependencies]
 divan = "0.1"
 serde = { version = "1.0", features = ["derive"] }

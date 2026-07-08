@@ -13,6 +13,7 @@ pub mod hooks;
 pub mod imars_reasoner;
 pub mod imars_window;
 pub mod observer;
+pub mod owlrl;
 pub mod oxrdf_adapter;
 pub mod parser;
 pub mod pipeline;
@@ -496,6 +497,48 @@ impl TripleStore {
 
     pub fn get_hook_receipts(&self) -> Vec<hooks::HookReceipt> {
         self.receipts.clone()
+    }
+
+    /// Opt-in OWL RL daily-profile materialization. Compiles supported RDFS/OWL RL
+    /// features into ordinary Datalog rules and runs them through the same
+    /// Reasoner::materialize pass as everything else. Never invoked automatically
+    /// from new()/load_triples()/materialize() — caller must opt in explicitly.
+    pub fn materialize_owlrl(&mut self) -> Result<(Vec<Triple>, owlrl::ScanReport), String> {
+        let engine = owlrl::OwlRlEngine::new();
+        let (owlrl_rules, report) = engine.compile(&self.triple_index);
+
+        let owlrl_rule_count = owlrl_rules.len();
+
+        // Append OWL RL rules to the end of the existing rule set
+        let existing_rules = self.rules.clone();
+        let mut combined_rules = existing_rules;
+        combined_rules.extend(owlrl_rules);
+
+        // Determine the stratum for OWL RL rules: use the highest existing stratum,
+        // since OWL RL rules only read base facts (rdf:type, subClassOf, etc.),
+        // never caller-derived facts from later strata.
+        let owlrl_stratum = *self.strata.iter().max().unwrap_or(&0);
+        let mut combined_strata = self.strata.clone();
+        for _ in 0..owlrl_rule_count {
+            combined_strata.push(owlrl_stratum);
+        }
+
+        // Call Reasoner::materialize with the combined rule set
+        let derived = self.reasoner.materialize(
+            &mut self.triple_index,
+            &combined_rules,
+            &combined_strata,
+            &self.aggregates,
+            &self.hooks,
+            &mut self.receipts,
+            &mut self.verdicts,
+        )?;
+
+        // Update self.rules and self.strata to reflect the OWL RL rules
+        self.rules = combined_rules;
+        self.strata = combined_strata;
+
+        Ok((derived, report))
     }
 }
 
