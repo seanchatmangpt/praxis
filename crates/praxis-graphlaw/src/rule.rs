@@ -1,7 +1,6 @@
-use crate::fastmap::{FxHashMap, FxHashSet};
+use crate::fastmap::FxHashSet;
 use crate::term::{Triple, VarOrTerm};
 use crate::Encoder;
-use std::collections::HashSet;
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -248,7 +247,7 @@ pub fn order_body_patterns(rule: &Rule) -> Result<Vec<PatternStep>, String> {
             }
         }
 
-        let (original_idx, body_lit) = remaining.remove(best_idx);
+        let (_original_idx, body_lit) = remaining.remove(best_idx);
         let new_vars: FxHashSet<usize> = extract_pattern_vars(&body_lit.pattern)
             .into_iter()
             .filter(|v| !bound_vars.contains(v))
