@@ -1,9 +1,12 @@
 # PROJ-405 — Compiled Rule IR + Join Selectivity Ordering (v26.7.8 P1)
 
-**Status**: PLANNED  
+**Status**: IN_PROGRESS  
 **Scope**: Introduce `CompiledRule` with `Selectivity` enum; reorder rule body patterns by selectivity heuristic  
 **Dependencies**: PROJ-401 (COMPLETE; provides ID-based pattern matching)  
 **Target**: P1 — foundational for semi-naive and delta materialization
+
+**SCOPED**: SymbolId assumed in ticket text does not exist; using String representations. No interner side effect added.  
+**IMPLEMENTATION STATUS**: Core structures (Selectivity enum, PatternStep, CompiledRule) and functions (order_body_patterns, classify_pattern_selectivity) implemented and tested in rule.rs. Integration into RuleIndex, backwardchaining.rs, queryengine/mod.rs, and csprite.rs pending.
 
 ---
 

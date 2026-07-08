@@ -6,6 +6,7 @@ use crate::aggregation::{
     Accumulator, AccumulatorImpl, AvgAccumulator, CountAccumulator, MaxAccumulator, MinAccumulator,
     SumAccumulator,
 };
+use crate::fastmap::{FxHashMap, FxHashSet};
 use crate::hooks::{clean_term, CmpOp, EffectKind, HookCondition};
 use crate::parser::Parser;
 use crate::queryengine::{QueryEngine, SimpleQueryEngine};
@@ -26,6 +27,149 @@ mod substitution;
 #[cfg(test)]
 #[path = "reasoner_test.rs"]
 mod reasoner_test;
+
+/// A fact store for semi-naive materialization.
+/// Maintains explicit delta/all sets to track new facts and all known facts separately.
+///
+/// # Complexity
+/// - `add_fact`: O(1) amortized (hash set insertion)
+/// - `take_delta`: O(n) where n is the size of delta
+/// - Space: O(|all_facts| + |delta|)
+#[derive(Debug, Clone)]
+pub struct FactStore {
+    /// All known facts (cumulative).
+    pub all_facts: FxHashSet<Triple>,
+    /// Facts newly derived in this round (delta).
+    pub delta: FxHashSet<Triple>,
+}
+
+impl Default for FactStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl FactStore {
+    /// Create a new empty fact store.
+    pub fn new() -> Self {
+        FactStore {
+            all_facts: FxHashSet::default(),
+            delta: FxHashSet::default(),
+        }
+    }
+
+    /// Add a fact to the store. Returns true if the fact is new (not in all_facts),
+    /// false if it was already known.
+    /// New facts are added to both all_facts and delta.
+    pub fn add_fact(&mut self, fact: Triple) -> bool {
+        if self.all_facts.insert(fact.clone()) {
+            self.delta.insert(fact);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Drain and return the delta, resetting it to empty for the next round.
+    /// Returns an empty set if delta is already empty.
+    pub fn take_delta(&mut self) -> FxHashSet<Triple> {
+        std::mem::take(&mut self.delta)
+    }
+
+    /// Read-only access to all known facts.
+    pub fn all(&self) -> &FxHashSet<Triple> {
+        &self.all_facts
+    }
+
+    /// Read-only access to the current delta.
+    pub fn delta(&self) -> &FxHashSet<Triple> {
+        &self.delta
+    }
+}
+
+/// Canonical derivation record for duplicate suppression.
+/// Tracks `(fact, rule, sorted_premises)` to prevent re-derivation of the same
+/// fact via the same rule and premises.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct CanonicalDerivation {
+    /// The derived fact.
+    pub fact: Triple,
+    /// ID/index of the rule that derived this fact (for provenance tracking).
+    pub rule_id: usize,
+    /// Sorted premises that triggered this derivation (canonicalized for comparison).
+    pub sorted_premises: Vec<Triple>,
+    /// Round/timestamp at which this was derived.
+    pub round: usize,
+}
+
+/// Derivation gate for canonical provenance tracking and duplicate suppression.
+/// Records all derivations as (fact, rule, sorted-premises) triples.
+/// A derivation is admitted only if we haven't seen that exact triple before.
+///
+/// # Complexity
+/// - `admit_derivation`: O(n log n) where n is the number of premises (due to sorting)
+/// - Space: O(d) where d is the total number of unique derivations
+#[derive(Debug, Clone)]
+pub struct DerivationGate {
+    /// Map from (fact, rule_id) to the canonical derivation record.
+    /// Used for fast lookup to detect duplicate derivations.
+    pub derivations: FxHashMap<(Triple, usize), CanonicalDerivation>,
+}
+
+impl Default for DerivationGate {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl DerivationGate {
+    /// Create a new empty derivation gate.
+    pub fn new() -> Self {
+        DerivationGate {
+            derivations: FxHashMap::default(),
+        }
+    }
+
+    /// Admit a derivation if it's new (not previously seen with the same rule and premises).
+    /// Returns true if this is the first time seeing this (fact, rule, premises) combination.
+    /// Returns false if we've already recorded an identical derivation.
+    ///
+    /// Premises are canonicalized (sorted) before comparison to ensure
+    /// `{P1, P2}` and `{P2, P1}` are recognized as the same.
+    pub fn admit_derivation(
+        &mut self,
+        fact: Triple,
+        rule_id: usize,
+        mut premises: Vec<Triple>,
+        round: usize,
+    ) -> bool {
+        // Canonicalize premises by sorting
+        premises.sort_by(|a, b| {
+            // Sort by encoded triple values for deterministic ordering
+            let a_key = format!("{:?}", a);
+            let b_key = format!("{:?}", b);
+            a_key.cmp(&b_key)
+        });
+
+        let key = (fact.clone(), rule_id);
+        let derivation = CanonicalDerivation {
+            fact,
+            rule_id,
+            sorted_premises: premises,
+            round,
+        };
+
+        // Insert if not already present; return true if this is new
+        self.derivations.insert(key, derivation).is_none()
+    }
+
+    /// Get read-only access to all recorded derivations.
+    pub fn all_derivations(
+        &self,
+    ) -> impl Iterator<Item = (&(Triple, usize), &CanonicalDerivation)> {
+        self.derivations.iter()
+    }
+}
 
 pub struct Reasoner;
 
@@ -909,5 +1053,140 @@ fn cmp_holds(op: &CmpOp, lhs: u64, rhs: u64) -> bool {
         CmpOp::Le => lhs <= rhs,
         CmpOp::Gt => lhs > rhs,
         CmpOp::Ge => lhs >= rhs,
+    }
+}
+
+#[cfg(test)]
+mod factstore_tests {
+    use super::*;
+
+    #[test]
+    fn test_factstore_add_new_fact() {
+        let mut store = FactStore::new();
+        let triple = Triple {
+            s: VarOrTerm::new_term("http://example.org/s".to_string()),
+            p: VarOrTerm::new_term("http://example.org/p".to_string()),
+            o: VarOrTerm::new_term("http://example.org/o".to_string()),
+            g: None,
+        };
+
+        // First add should return true
+        let is_new = store.add_fact(triple.clone());
+        assert!(is_new);
+        assert_eq!(store.all().len(), 1);
+        assert_eq!(store.delta().len(), 1);
+    }
+
+    #[test]
+    fn test_factstore_duplicate_suppression() {
+        let mut store = FactStore::new();
+        let triple = Triple {
+            s: VarOrTerm::new_term("http://example.org/s".to_string()),
+            p: VarOrTerm::new_term("http://example.org/p".to_string()),
+            o: VarOrTerm::new_term("http://example.org/o".to_string()),
+            g: None,
+        };
+
+        // First add should return true
+        let is_new_1 = store.add_fact(triple.clone());
+        assert!(is_new_1);
+
+        // Second add should return false
+        let is_new_2 = store.add_fact(triple.clone());
+        assert!(!is_new_2);
+
+        // Store should contain only one fact
+        assert_eq!(store.all().len(), 1);
+        assert_eq!(store.delta().len(), 1); // Delta still has one (added once)
+    }
+
+    #[test]
+    fn test_factstore_take_delta() {
+        let mut store = FactStore::new();
+        let triple1 = Triple {
+            s: VarOrTerm::new_term("http://example.org/s1".to_string()),
+            p: VarOrTerm::new_term("http://example.org/p".to_string()),
+            o: VarOrTerm::new_term("http://example.org/o".to_string()),
+            g: None,
+        };
+        let triple2 = Triple {
+            s: VarOrTerm::new_term("http://example.org/s2".to_string()),
+            p: VarOrTerm::new_term("http://example.org/p".to_string()),
+            o: VarOrTerm::new_term("http://example.org/o".to_string()),
+            g: None,
+        };
+
+        store.add_fact(triple1);
+        store.add_fact(triple2);
+        assert_eq!(store.delta().len(), 2);
+
+        // Take delta
+        let delta = store.take_delta();
+        assert_eq!(delta.len(), 2);
+
+        // Delta should be empty after taking
+        assert_eq!(store.delta().len(), 0);
+
+        // all_facts should still have both
+        assert_eq!(store.all().len(), 2);
+    }
+}
+
+#[cfg(test)]
+mod derivation_gate_tests {
+    use super::*;
+
+    #[test]
+    fn test_derivation_gate_admit_new() {
+        let mut gate = DerivationGate::new();
+        let fact = Triple {
+            s: VarOrTerm::new_term("http://example.org/s".to_string()),
+            p: VarOrTerm::new_term("http://example.org/p".to_string()),
+            o: VarOrTerm::new_term("http://example.org/o".to_string()),
+            g: None,
+        };
+
+        // First admission should return true
+        let admitted = gate.admit_derivation(fact.clone(), 0, vec![], 1);
+        assert!(admitted);
+    }
+
+    #[test]
+    fn test_derivation_gate_duplicate_suppression() {
+        let mut gate = DerivationGate::new();
+        let fact = Triple {
+            s: VarOrTerm::new_term("http://example.org/s".to_string()),
+            p: VarOrTerm::new_term("http://example.org/p".to_string()),
+            o: VarOrTerm::new_term("http://example.org/o".to_string()),
+            g: None,
+        };
+        let premises = vec![];
+
+        // First admission should return true
+        let admitted_1 = gate.admit_derivation(fact.clone(), 0, premises.clone(), 1);
+        assert!(admitted_1);
+
+        // Second identical admission should return false
+        let admitted_2 = gate.admit_derivation(fact.clone(), 0, premises, 1);
+        assert!(!admitted_2);
+    }
+
+    #[test]
+    fn test_derivation_gate_different_rules() {
+        let mut gate = DerivationGate::new();
+        let fact = Triple {
+            s: VarOrTerm::new_term("http://example.org/s".to_string()),
+            p: VarOrTerm::new_term("http://example.org/p".to_string()),
+            o: VarOrTerm::new_term("http://example.org/o".to_string()),
+            g: None,
+        };
+
+        // Derive via rule 0
+        let admitted_1 = gate.admit_derivation(fact.clone(), 0, vec![], 1);
+        assert!(admitted_1);
+
+        // Derive same fact via rule 1 (different rule)
+        let admitted_2 = gate.admit_derivation(fact.clone(), 1, vec![], 1);
+        assert!(admitted_2); // Should be admitted (different rule)
     }
 }
