@@ -7,7 +7,7 @@ v26.7.8 focuses on representation efficiency (interning, bitsets, fast hashes) a
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|--------------|--------|
 | 401 | [Quick-Win Rust Crate Optimizations](ticket_401_quick_win_crate_optimizations.md) | Symbol interning, ID triples, FixedBitSet closures, fast hashes, SmallVec, deterministic receipt surfaces; rayon/hashbrown/roaring as P1 follow-ups | PROJ-301..306 | PLANNED |
-| 402 | Datafrog Audit & Learning (PROJ-502) | Audit datafrog implementation for algorithm insights; benchmark as comparator; explore as possible future Datalog backend | PROJ-401 | PLANNED |
+| 402 | [Datafrog Audit & Learning](ticket_402_datafrog_audit_and_learning.md) | Audit datafrog implementation for algorithm insights; benchmark as comparator; explore as possible future Datalog backend | PROJ-401 | PLANNED |
 
 ---
 
