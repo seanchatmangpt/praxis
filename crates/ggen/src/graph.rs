@@ -892,8 +892,7 @@ mod tests {
         ex:rex a ex:Dog .
     "#;
 
-    const DOG_RULE: &str =
-        "@prefix ex: <http://example.org/>. {?s a ex:Dog} => {?s a ex:Animal}.";
+    const DOG_RULE: &str = "@prefix ex: <http://example.org/>. {?s a ex:Dog} => {?s a ex:Animal}.";
 
     #[test]
     fn graphlaw_materialize_derives_facts_visible_to_sparql() {
@@ -909,7 +908,12 @@ mod tests {
         assert_eq!(rules, 1, "one rule in the document");
         let outcome = store.materialize().expect("materialize");
         assert_eq!(outcome.rules_loaded, 1);
-        assert_eq!(outcome.derived.len(), 1, "one derived fact: {:?}", outcome.derived);
+        assert_eq!(
+            outcome.derived.len(),
+            1,
+            "one derived fact: {:?}",
+            outcome.derived
+        );
         assert_eq!(
             store.query(ask).expect("ask"),
             EngineQueryResults::Boolean(true),
@@ -983,8 +987,8 @@ mod tests {
     #[test]
     fn oxigraph_engine_refuses_law_ops_with_typed_fm_law() {
         let g = DeterministicGraph::new().expect("graph");
-        let err = GraphEngine::load_rules(&g, "{?s ?p ?o} => {?s ?p ?o}.")
-            .expect_err("must refuse");
+        let err =
+            GraphEngine::load_rules(&g, "{?s ?p ?o} => {?s ?p ?o}.").expect_err("must refuse");
         assert!(err.to_string().contains("FM-LAW-001"), "{err}");
         let err = GraphEngine::materialize(&g).expect_err("must refuse");
         assert!(err.to_string().contains("FM-LAW-001"), "{err}");

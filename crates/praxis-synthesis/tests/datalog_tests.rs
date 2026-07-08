@@ -37,7 +37,10 @@ fn transitive_closure_over_100_node_chain_saturates() {
     // 100-node chain: C(100,2) = 4950 path facts.
     assert_eq!(p.count_for(path), 4950);
     assert_eq!(receipt.derived_count, 4950);
-    assert!(receipt.iterations > 2, "recursive closure needs multiple rounds");
+    assert!(
+        receipt.iterations > 2,
+        "recursive closure needs multiple rounds"
+    );
     // Endpoint reachability.
     assert!(p.contains(path, &[nodes[0], nodes[99]]));
 }

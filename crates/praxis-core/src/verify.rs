@@ -35,7 +35,10 @@ pub struct VerifyMetrics {
 impl VerifyMetrics {
     /// Returns the name of the first failing stage, if any.
     pub fn first_failure_stage(&self) -> Option<&str> {
-        self.stages.iter().find(|s| !s.passed).map(|s| s.name.as_str())
+        self.stages
+            .iter()
+            .find(|s| !s.passed)
+            .map(|s| s.name.as_str())
     }
 
     /// One-line summary: `"7/7 passed in 1.23ms"` or `"REJECT at chain_integrity after 0.45ms"`.
@@ -82,7 +85,11 @@ pub struct VerifyGuard {
 impl VerifyGuard {
     /// Begin a new verify run.
     pub fn new() -> Self {
-        VerifyGuard { stages: Vec::new(), current_stage: None, overall_start: Instant::now() }
+        VerifyGuard {
+            stages: Vec::new(),
+            current_stage: None,
+            overall_start: Instant::now(),
+        }
     }
 
     /// Begin timing a named stage. Panics if a stage is already in progress
@@ -103,7 +110,11 @@ impl VerifyGuard {
             .take()
             .expect("VerifyGuard: end_stage called without a matching begin_stage");
         let duration = start.elapsed();
-        self.stages.push(StageMetric { name, passed, duration });
+        self.stages.push(StageMetric {
+            name,
+            passed,
+            duration,
+        });
         duration
     }
 
@@ -111,12 +122,21 @@ impl VerifyGuard {
     pub fn finish(mut self) -> VerifyMetrics {
         // If a stage was started but never ended, record it as failed.
         if let Some((name, start)) = self.current_stage.take() {
-            self.stages.push(StageMetric { name, passed: false, duration: start.elapsed() });
+            self.stages.push(StageMetric {
+                name,
+                passed: false,
+                duration: start.elapsed(),
+            });
         }
         let total_duration = self.overall_start.elapsed();
         let passed_count = self.stages.iter().filter(|s| s.passed).count();
         let failed_count = self.stages.iter().filter(|s| !s.passed).count();
-        VerifyMetrics { stages: self.stages, total_duration, passed_count, failed_count }
+        VerifyMetrics {
+            stages: self.stages,
+            total_duration,
+            passed_count,
+            failed_count,
+        }
     }
 }
 
@@ -153,11 +173,19 @@ pub struct CheckOutcome {
 
 impl CheckOutcome {
     fn pass(stage: &str, detail: impl Into<String>) -> Self {
-        CheckOutcome { stage: stage.to_string(), passed: true, detail: detail.into() }
+        CheckOutcome {
+            stage: stage.to_string(),
+            passed: true,
+            detail: detail.into(),
+        }
     }
 
     fn fail(stage: &str, detail: impl Into<String>) -> Self {
-        CheckOutcome { stage: stage.to_string(), passed: false, detail: detail.into() }
+        CheckOutcome {
+            stage: stage.to_string(),
+            passed: false,
+            detail: detail.into(),
+        }
     }
 }
 
@@ -264,7 +292,10 @@ pub fn check_format<R: ReceiptLike>(records: &[R]) -> CheckOutcome {
             }
         }
     }
-    CheckOutcome::pass("check_format", format!("{} record(s) well-formed", records.len()))
+    CheckOutcome::pass(
+        "check_format",
+        format!("{} record(s) well-formed", records.len()),
+    )
 }
 
 /// Stage 2: recompute each record's chain hash from its own fields and
@@ -288,7 +319,10 @@ pub fn chain_integrity<R: ReceiptLike>(records: &[R]) -> CheckOutcome {
             }
         }
     }
-    CheckOutcome::pass("chain_integrity", format!("{} record(s) recompute clean", records.len()))
+    CheckOutcome::pass(
+        "chain_integrity",
+        format!("{} record(s) recompute clean", records.len()),
+    )
 }
 
 /// Stage 3: `instruction_id` strictly increasing and `ts_ns` monotonically
@@ -312,14 +346,20 @@ pub fn continuity<R: ReceiptLike>(records: &[R]) -> CheckOutcome {
             if r.ts_ns() < prev {
                 return CheckOutcome::fail(
                     "continuity",
-                    format!("record {i}: ts_ns ({}) decreased from previous record's {prev}", r.ts_ns()),
+                    format!(
+                        "record {i}: ts_ns ({}) decreased from previous record's {prev}",
+                        r.ts_ns()
+                    ),
                 );
             }
         }
         prev_instruction = Some(r.instruction_id());
         prev_ts = Some(r.ts_ns());
     }
-    CheckOutcome::pass("continuity", format!("{} record(s) monotonic", records.len()))
+    CheckOutcome::pass(
+        "continuity",
+        format!("{} record(s) monotonic", records.len()),
+    )
 }
 
 /// Stage 4: each record's `prev_chain_hash` commits to the previous record's
@@ -343,7 +383,10 @@ pub fn verify_commitments<R: ReceiptLike>(records: &[R]) -> CheckOutcome {
             );
         }
     }
-    CheckOutcome::pass("verify_commitments", format!("{} record(s) linked", records.len()))
+    CheckOutcome::pass(
+        "verify_commitments",
+        format!("{} record(s) linked", records.len()),
+    )
 }
 
 /// Stage 5: extension point for named verification profiles. `"default"`
@@ -356,10 +399,16 @@ pub fn evaluate_profile(profile: &str, prior: &[CheckOutcome]) -> CheckOutcome {
             if prior.iter().all(|o| o.passed) {
                 CheckOutcome::pass(
                     "evaluate_profile",
-                    format!("profile 'default': all {} prior stage(s) passed", prior.len()),
+                    format!(
+                        "profile 'default': all {} prior stage(s) passed",
+                        prior.len()
+                    ),
                 )
             } else {
-                CheckOutcome::fail("evaluate_profile", "profile 'default': one or more prior stages failed")
+                CheckOutcome::fail(
+                    "evaluate_profile",
+                    "profile 'default': one or more prior stages failed",
+                )
             }
         }
         other => CheckOutcome::fail("evaluate_profile", format!("unknown profile '{other}'")),
@@ -402,8 +451,20 @@ pub fn run_pipeline<R: ReceiptLike>(records: &[R], profile: &str) -> (Verdict, V
 
     let metrics = guard.finish();
     let accepted = outcomes.iter().all(|o| o.passed);
-    let reason = if accepted { None } else { outcomes.iter().find(|o| !o.passed).map(|o| o.detail.clone()) };
-    let verdict = Verdict { accepted, profile: profile.to_string(), outcomes, reason };
+    let reason = if accepted {
+        None
+    } else {
+        outcomes
+            .iter()
+            .find(|o| !o.passed)
+            .map(|o| o.detail.clone())
+    };
+    let verdict = Verdict {
+        accepted,
+        profile: profile.to_string(),
+        outcomes,
+        reason,
+    };
     (verdict, metrics)
 }
 
@@ -505,9 +566,16 @@ mod tests {
         records[1].chain_hash_hex = "ff".repeat(32);
         let (verdict, _metrics) = run_pipeline(&records, "default");
         assert!(!verdict.accepted);
-        assert_eq!(verdict.outcomes.len(), 5, "every stage must still run after a failure");
-        let chain_integrity_outcome =
-            verdict.outcomes.iter().find(|o| o.stage == "chain_integrity").unwrap();
+        assert_eq!(
+            verdict.outcomes.len(),
+            5,
+            "every stage must still run after a failure"
+        );
+        let chain_integrity_outcome = verdict
+            .outcomes
+            .iter()
+            .find(|o| o.stage == "chain_integrity")
+            .unwrap();
         assert!(!chain_integrity_outcome.passed);
         assert!(verdict.reason.is_some());
     }
@@ -518,7 +586,11 @@ mod tests {
         records[2].instruction_id = records[1].instruction_id;
         let (verdict, _metrics) = run_pipeline(&records, "default");
         assert!(!verdict.accepted);
-        let continuity_outcome = verdict.outcomes.iter().find(|o| o.stage == "continuity").unwrap();
+        let continuity_outcome = verdict
+            .outcomes
+            .iter()
+            .find(|o| o.stage == "continuity")
+            .unwrap();
         assert!(!continuity_outcome.passed);
     }
 
@@ -528,8 +600,11 @@ mod tests {
         records.swap(1, 2);
         let (verdict, _metrics) = run_pipeline(&records, "default");
         assert!(!verdict.accepted);
-        let linkage_outcome =
-            verdict.outcomes.iter().find(|o| o.stage == "verify_commitments").unwrap();
+        let linkage_outcome = verdict
+            .outcomes
+            .iter()
+            .find(|o| o.stage == "verify_commitments")
+            .unwrap();
         assert!(!linkage_outcome.passed);
     }
 

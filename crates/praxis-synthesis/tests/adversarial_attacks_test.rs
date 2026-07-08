@@ -2,9 +2,9 @@
 //! delegation boundaries, agent registry, and capability execution.
 
 use praxis_synthesis::agent_registry::AGENT_NS;
+use praxis_synthesis::graph::WF_NS;
 use praxis_synthesis::handlers::HANDLER_NS;
 use praxis_synthesis::hooks::HOOK_NS;
-use praxis_synthesis::graph::WF_NS;
 use praxis_synthesis::{
     fire_hooks, FiringOutcome, HandlerRegistry, MeaningSource, Origin, Reference, Refusal,
 };
@@ -24,7 +24,7 @@ fn test_surrender_boundary_bypass() {
     // 1. Surrender boundary bypass attack:
     // We declare a god-receives-unbounded clause (pk:deliverance) but OMIT its pk:action.
     // We expect it to be refused with BoundaryViolation because pk:action is missing.
-    
+
     let ttl = format!(
         "@prefix wf:   <{WF_NS}> .\n\
          @prefix hook: <{HOOK_NS}> .\n\
@@ -97,8 +97,11 @@ fn test_surrender_boundary_bypass() {
     let source = src(&format!("<{LIFE}threat> <{LIFE}hasUnboundedThreat> 1 ."));
 
     let result = fire_hooks(&reference, &source, &registry, &[]);
-    
-    assert!(result.is_ok(), "Expected fire_hooks to produce a receipted refusal");
+
+    assert!(
+        result.is_ok(),
+        "Expected fire_hooks to produce a receipted refusal"
+    );
     let receipt = result.unwrap();
     match &receipt.outcome {
         FiringOutcome::Refused { stage, reason } => {
@@ -115,7 +118,7 @@ fn test_human_only_delegability_bypass() {
     // We declare a workflow with a capability (ex:dummyCap) representing a human-only action.
     // If we simply OMIT the wf:handler and wf:delegability declarations, the capability
     // bypasses judge_delegability completely and is executed by DeterministicRunner.
-    
+
     let ttl = format!(
         "@prefix wf:   <{WF_NS}> .\n\
          @prefix hook: <{HOOK_NS}> .\n\
@@ -188,12 +191,18 @@ fn test_human_only_delegability_bypass() {
     let source = src(&format!("<{LIFE}x> <{LIFE}triggerState> 1 ."));
 
     let result = fire_hooks(&reference, &source, &registry, &[]);
-    assert!(result.is_ok(), "Expected fire_hooks to succeed with a receipted refusal");
+    assert!(
+        result.is_ok(),
+        "Expected fire_hooks to succeed with a receipted refusal"
+    );
     let receipt = result.unwrap();
     match &receipt.outcome {
         FiringOutcome::Refused { stage, reason } => {
             assert_eq!(stage, "delegability");
-            assert!(reason.contains("delegability violation on 'human-cap'"), "reason: {reason}");
+            assert!(
+                reason.contains("delegability violation on 'human-cap'"),
+                "reason: {reason}"
+            );
         }
         other => panic!("expected Refused(delegability), got {other:?}"),
     }
@@ -205,7 +214,7 @@ fn test_unauthorized_agent_execution() {
     // We declare an agent profile for deterministic-v1 with NO tools.
     // The capability requires tool "Read".
     // We verify that executing it fails because the agent lacks the required tool.
-    
+
     let agent_ttl = format!(
         "@prefix agent: <{AGENT_NS}> .\n\
          <{HANDLER_NS}deterministic-v1> a agent:Agent ;\n\
@@ -289,11 +298,21 @@ fn test_unauthorized_agent_execution() {
     let source = src(&format!("<{LIFE}x> <{LIFE}triggerState> 1 ."));
 
     let result = fire_hooks(&reference, &source, &registry, &[]);
-    assert!(result.is_err(), "Expected fire_hooks to fail because agent lacks tool");
+    assert!(
+        result.is_err(),
+        "Expected fire_hooks to fail because agent lacks tool"
+    );
     match result.unwrap_err() {
-        Refusal::DelegabilityViolation { capability, required, declared } => {
+        Refusal::DelegabilityViolation {
+            capability,
+            required,
+            declared,
+        } => {
             assert_eq!(capability, "read-tool-cap");
-            assert!(required.contains("agent tool 'Read'"), "required: {required}");
+            assert!(
+                required.contains("agent tool 'Read'"),
+                "required: {required}"
+            );
             assert!(declared.contains("agent tools []"), "declared: {declared}");
         }
         other => panic!("expected DelegabilityViolation, got {other:?}"),

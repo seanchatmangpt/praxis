@@ -309,9 +309,7 @@ impl<D: Domain> Proposer<D> {
             b.score
                 .total_cmp(&a.score)
                 .then_with(|| a.target_id.cmp(&b.target_id))
-                .then_with(|| {
-                    D::stage_index(a.target_stage).cmp(&D::stage_index(b.target_stage))
-                })
+                .then_with(|| D::stage_index(a.target_stage).cmp(&D::stage_index(b.target_stage)))
         });
         proposals.truncate(MAX_PROPOSALS);
         proposals
@@ -336,7 +334,9 @@ impl<D: Domain> Proposer<D> {
             rationale,
             proposal_hash: String::new(),
         };
-        proposal.proposal_hash = blake3::hash(&proposal.canonical_bytes()).to_hex().to_string();
+        proposal.proposal_hash = blake3::hash(&proposal.canonical_bytes())
+            .to_hex()
+            .to_string();
         proposal
     }
 }

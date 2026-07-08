@@ -29,7 +29,10 @@ pub struct SystemClock;
 
 impl Clock for SystemClock {
     fn now_ns(&self) -> u64 {
-        SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos() as u64
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64
     }
 }
 
@@ -74,7 +77,10 @@ pub struct StageResult {
 
 impl StageResult {
     fn new(stage: &'static str, outcome: CheckOutcome) -> Self {
-        Self { stage: stage.to_string(), outcome }
+        Self {
+            stage: stage.to_string(),
+            outcome,
+        }
     }
 }
 
@@ -107,7 +113,11 @@ impl ReceiptValidator {
         let ok = stages
             .iter()
             .all(|s| s.outcome.is_pass() || matches!(s.outcome, CheckOutcome::Skip(_)));
-        Verdict { ok, stages, records_checked: records.len() }
+        Verdict {
+            ok,
+            stages,
+            records_checked: records.len(),
+        }
     }
 
     fn check_schema(records: &[ReceiptRecord]) -> StageResult {
@@ -315,11 +325,17 @@ mod tests {
         // Flip one hex character of the middle record's payload hash.
         let c = records[1].payload_hash_hex.chars().next().unwrap();
         let replacement = if c == 'a' { 'b' } else { 'a' };
-        records[1].payload_hash_hex.replace_range(0..1, &replacement.to_string());
+        records[1]
+            .payload_hash_hex
+            .replace_range(0..1, &replacement.to_string());
 
         let verdict = ReceiptValidator::validate(&records, &FixedClock(u64::MAX));
         assert!(!verdict.ok);
-        let stage = verdict.stages.iter().find(|s| s.stage == "chain_recompute").unwrap();
+        let stage = verdict
+            .stages
+            .iter()
+            .find(|s| s.stage == "chain_recompute")
+            .unwrap();
         assert!(matches!(stage.outcome, CheckOutcome::Fail(_)));
     }
 
@@ -329,7 +345,11 @@ mod tests {
         records.swap(1, 2);
         let verdict = ReceiptValidator::validate(&records, &FixedClock(u64::MAX));
         assert!(!verdict.ok);
-        let stage = verdict.stages.iter().find(|s| s.stage == "chain_linkage").unwrap();
+        let stage = verdict
+            .stages
+            .iter()
+            .find(|s| s.stage == "chain_linkage")
+            .unwrap();
         assert!(matches!(stage.outcome, CheckOutcome::Fail(_)));
     }
 
@@ -339,7 +359,11 @@ mod tests {
         records[2].instruction_id = records[1].instruction_id;
         let verdict = ReceiptValidator::validate(&records, &FixedClock(u64::MAX));
         assert!(!verdict.ok);
-        let stage = verdict.stages.iter().find(|s| s.stage == "monotonic").unwrap();
+        let stage = verdict
+            .stages
+            .iter()
+            .find(|s| s.stage == "monotonic")
+            .unwrap();
         assert!(matches!(stage.outcome, CheckOutcome::Fail(_)));
     }
 
@@ -349,7 +373,11 @@ mod tests {
         // FixedClock(0) means "now" is the epoch; any record's ts_ns > 0 is "in the future".
         let verdict = ReceiptValidator::validate(&records, &FixedClock(0));
         assert!(!verdict.ok);
-        let stage = verdict.stages.iter().find(|s| s.stage == "monotonic").unwrap();
+        let stage = verdict
+            .stages
+            .iter()
+            .find(|s| s.stage == "monotonic")
+            .unwrap();
         assert!(matches!(stage.outcome, CheckOutcome::Fail(_)));
     }
 
@@ -357,7 +385,11 @@ mod tests {
     fn empty_ledger_passes_with_skipped_token_replay() {
         let verdict = ReceiptValidator::validate(&[], &SystemClock);
         assert!(verdict.ok);
-        let stage = verdict.stages.iter().find(|s| s.stage == "token_replay").unwrap();
+        let stage = verdict
+            .stages
+            .iter()
+            .find(|s| s.stage == "token_replay")
+            .unwrap();
         assert!(matches!(stage.outcome, CheckOutcome::Skip(_)));
     }
 

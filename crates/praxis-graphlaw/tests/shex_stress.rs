@@ -45,12 +45,19 @@ fn test_counterfactual_length_facet_exact_boundary() {
         let data = build_data_index(&format!(
             r#"<http://example.org/n> <http://example.org/code> "{value}" ."#
         ));
-        let shape_map = vec![("http://example.org/n".to_string(), "http://example.org/CodeShape".to_string())];
+        let shape_map = vec![(
+            "http://example.org/n".to_string(),
+            "http://example.org/CodeShape".to_string(),
+        )];
         let report = validate_shex(&data, schema_json, &shape_map).unwrap();
         assert_eq!(
-            report.conforms, should_conform,
+            report.conforms,
+            should_conform,
             "value {:?} (length {}) against LENGTH 5: expected conforms={}, got {}",
-            value, value.len(), should_conform, report.conforms
+            value,
+            value.len(),
+            should_conform,
+            report.conforms
         );
     }
 }
@@ -83,11 +90,20 @@ fn test_counterfactual_numeric_range_exact_boundary() {
       ]
     }"#;
 
-    for (value, should_conform) in [(-1, false), (0, true), (50, true), (100, true), (101, false)] {
+    for (value, should_conform) in [
+        (-1, false),
+        (0, true),
+        (50, true),
+        (100, true),
+        (101, false),
+    ] {
         let data = build_data_index(&format!(
             r#"<http://example.org/n> <http://example.org/score> {value} ."#
         ));
-        let shape_map = vec![("http://example.org/n".to_string(), "http://example.org/RangeShape".to_string())];
+        let shape_map = vec![(
+            "http://example.org/n".to_string(),
+            "http://example.org/RangeShape".to_string(),
+        )];
         let report = validate_shex(&data, schema_json, &shape_map).unwrap();
         assert_eq!(
             report.conforms, should_conform,
@@ -127,18 +143,32 @@ fn test_counterfactual_closed_extra_allowlist_is_specific() {
     }"#;
 
     // Only the required predicate present -- must conform.
-    let data_minimal = build_data_index(r#"<http://example.org/n1> <http://example.org/name> "Alice" ."#);
-    let shape_map = vec![("http://example.org/n1".to_string(), "http://example.org/StrictShape".to_string())];
-    assert!(validate_shex(&data_minimal, schema_json, &shape_map).unwrap().conforms, "minimal data (only required predicate) must conform");
+    let data_minimal =
+        build_data_index(r#"<http://example.org/n1> <http://example.org/name> "Alice" ."#);
+    let shape_map = vec![(
+        "http://example.org/n1".to_string(),
+        "http://example.org/StrictShape".to_string(),
+    )];
+    assert!(
+        validate_shex(&data_minimal, schema_json, &shape_map)
+            .unwrap()
+            .conforms,
+        "minimal data (only required predicate) must conform"
+    );
 
     // Required predicate + the explicitly-allowed extra -- must conform.
     let data_allowed_extra = build_data_index(
         r#"<http://example.org/n2> <http://example.org/name> "Bob" .
            <http://example.org/n2> <http://example.org/allowedExtra> "anything" ."#,
     );
-    let shape_map2 = vec![("http://example.org/n2".to_string(), "http://example.org/StrictShape".to_string())];
+    let shape_map2 = vec![(
+        "http://example.org/n2".to_string(),
+        "http://example.org/StrictShape".to_string(),
+    )];
     assert!(
-        validate_shex(&data_allowed_extra, schema_json, &shape_map2).unwrap().conforms,
+        validate_shex(&data_allowed_extra, schema_json, &shape_map2)
+            .unwrap()
+            .conforms,
         "data with the specifically EXTRA-allowed predicate must conform"
     );
 
@@ -147,9 +177,14 @@ fn test_counterfactual_closed_extra_allowlist_is_specific() {
         r#"<http://example.org/n3> <http://example.org/name> "Carol" .
            <http://example.org/n3> <http://example.org/notAllowed> "anything" ."#,
     );
-    let shape_map3 = vec![("http://example.org/n3".to_string(), "http://example.org/StrictShape".to_string())];
+    let shape_map3 = vec![(
+        "http://example.org/n3".to_string(),
+        "http://example.org/StrictShape".to_string(),
+    )];
     assert!(
-        !validate_shex(&data_disallowed_extra, schema_json, &shape_map3).unwrap().conforms,
+        !validate_shex(&data_disallowed_extra, schema_json, &shape_map3)
+            .unwrap()
+            .conforms,
         "data with a predicate NOT in the EXTRA allowlist must be rejected by CLOSED"
     );
 }
@@ -186,7 +221,10 @@ fn test_large_scale_shex_validation_1000_nodes() {
         if i % 2 == 0 {
             data_str.push_str(&format!("<{}> <http://example.org/age> {} .\n", node, i));
         } else {
-            data_str.push_str(&format!("<{}> <http://example.org/age> \"not-a-number\" .\n", node));
+            data_str.push_str(&format!(
+                "<{}> <http://example.org/age> \"not-a-number\" .\n",
+                node
+            ));
         }
         shape_map.push((node, "http://example.org/AgeShape".to_string()));
     }
@@ -196,11 +234,16 @@ fn test_large_scale_shex_validation_1000_nodes() {
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     let elapsed = start.elapsed();
 
-    assert!(!report.conforms, "half of 1000 nodes have a non-integer age and must fail");
+    assert!(
+        !report.conforms,
+        "half of 1000 nodes have a non-integer age and must fail"
+    );
     assert_eq!(
-        report.failures.len(), N / 2,
+        report.failures.len(),
+        N / 2,
         "expected exactly {} failures (the odd-indexed nodes), got {}",
-        N / 2, report.failures.len()
+        N / 2,
+        report.failures.len()
     );
 
     assert!(
@@ -221,12 +264,42 @@ fn test_large_scale_shex_validation_1000_nodes() {
 fn test_shex_validates_decimal_boolean_date_datatypes() {
     let cases: &[(&str, &str, &str, bool)] = &[
         // (predicate-local-name, datatype IRI, value, should_conform)
-        ("price", "http://www.w3.org/2001/XMLSchema#decimal", "19.99", true),
-        ("price", "http://www.w3.org/2001/XMLSchema#decimal", "not-a-decimal", false),
-        ("active", "http://www.w3.org/2001/XMLSchema#boolean", "true", true),
-        ("active", "http://www.w3.org/2001/XMLSchema#boolean", "false", true),
-        ("active", "http://www.w3.org/2001/XMLSchema#boolean", "not-a-bool", false),
-        ("birthDate", "http://www.w3.org/2001/XMLSchema#date", "2026-07-05", true),
+        (
+            "price",
+            "http://www.w3.org/2001/XMLSchema#decimal",
+            "19.99",
+            true,
+        ),
+        (
+            "price",
+            "http://www.w3.org/2001/XMLSchema#decimal",
+            "not-a-decimal",
+            false,
+        ),
+        (
+            "active",
+            "http://www.w3.org/2001/XMLSchema#boolean",
+            "true",
+            true,
+        ),
+        (
+            "active",
+            "http://www.w3.org/2001/XMLSchema#boolean",
+            "false",
+            true,
+        ),
+        (
+            "active",
+            "http://www.w3.org/2001/XMLSchema#boolean",
+            "not-a-bool",
+            false,
+        ),
+        (
+            "birthDate",
+            "http://www.w3.org/2001/XMLSchema#date",
+            "2026-07-05",
+            true,
+        ),
         // NOTE: does NOT include an invalid-lexical xsd:date case. Verified by
         // running this test: the delegated `shex_validation`/`shex_ast` crate
         // (validation is NOT hand-rolled here, see lib/src/shex.rs) does not
@@ -263,7 +336,10 @@ fn test_shex_validates_decimal_boolean_date_datatypes() {
         let data = build_data_index(&format!(
             r#"<http://example.org/n> <http://example.org/{predicate}> "{value}"^^<{datatype}> ."#
         ));
-        let shape_map = vec![("http://example.org/n".to_string(), "http://example.org/DatatypeShape".to_string())];
+        let shape_map = vec![(
+            "http://example.org/n".to_string(),
+            "http://example.org/DatatypeShape".to_string(),
+        )];
         let report = validate_shex(&data, &schema_json, &shape_map).unwrap();
         assert_eq!(
             report.conforms, *should_conform,
@@ -300,10 +376,23 @@ fn test_shape_or_and_not_combinators_counterfactual() {
       }]
     }"#;
     for (value, should_conform) in [("ab", true), ("abcdefghijk", true), ("abcde", false)] {
-        let data = build_data_index(&format!(r#"<http://example.org/n> <http://example.org/val> "{value}" ."#));
-        let shape_map = vec![("http://example.org/n".to_string(), "http://example.org/OrShape".to_string())];
+        let data = build_data_index(&format!(
+            r#"<http://example.org/n> <http://example.org/val> "{value}" ."#
+        ));
+        let shape_map = vec![(
+            "http://example.org/n".to_string(),
+            "http://example.org/OrShape".to_string(),
+        )];
         let report = validate_shex(&data, or_schema, &shape_map).unwrap();
-        assert_eq!(report.conforms, should_conform, "ShapeOr: {:?} (len {}) expected conforms={}, got {}", value, value.len(), should_conform, report.conforms);
+        assert_eq!(
+            report.conforms,
+            should_conform,
+            "ShapeOr: {:?} (len {}) expected conforms={}, got {}",
+            value,
+            value.len(),
+            should_conform,
+            report.conforms
+        );
     }
 
     // ShapeAnd: value must satisfy BOTH minlength>=3 AND maxlength<=8. A
@@ -323,10 +412,23 @@ fn test_shape_or_and_not_combinators_counterfactual() {
       }]
     }"#;
     for (value, should_conform) in [("ab", false), ("abcde", true), ("abcdefghij", false)] {
-        let data = build_data_index(&format!(r#"<http://example.org/n> <http://example.org/val> "{value}" ."#));
-        let shape_map = vec![("http://example.org/n".to_string(), "http://example.org/AndShape".to_string())];
+        let data = build_data_index(&format!(
+            r#"<http://example.org/n> <http://example.org/val> "{value}" ."#
+        ));
+        let shape_map = vec![(
+            "http://example.org/n".to_string(),
+            "http://example.org/AndShape".to_string(),
+        )];
         let report = validate_shex(&data, and_schema, &shape_map).unwrap();
-        assert_eq!(report.conforms, should_conform, "ShapeAnd: {:?} (len {}) expected conforms={}, got {}", value, value.len(), should_conform, report.conforms);
+        assert_eq!(
+            report.conforms,
+            should_conform,
+            "ShapeAnd: {:?} (len {}) expected conforms={}, got {}",
+            value,
+            value.len(),
+            should_conform,
+            report.conforms
+        );
     }
 
     // ShapeNot: negates a maxlength<=3 inner shape. A value that fails the
@@ -344,9 +446,22 @@ fn test_shape_or_and_not_combinators_counterfactual() {
       }]
     }"#;
     for (value, should_conform) in [("ab", false), ("abcdefgh", true)] {
-        let data = build_data_index(&format!(r#"<http://example.org/n> <http://example.org/val> "{value}" ."#));
-        let shape_map = vec![("http://example.org/n".to_string(), "http://example.org/NotShape".to_string())];
+        let data = build_data_index(&format!(
+            r#"<http://example.org/n> <http://example.org/val> "{value}" ."#
+        ));
+        let shape_map = vec![(
+            "http://example.org/n".to_string(),
+            "http://example.org/NotShape".to_string(),
+        )];
         let report = validate_shex(&data, not_schema, &shape_map).unwrap();
-        assert_eq!(report.conforms, should_conform, "ShapeNot: {:?} (len {}) expected conforms={}, got {}", value, value.len(), should_conform, report.conforms);
+        assert_eq!(
+            report.conforms,
+            should_conform,
+            "ShapeNot: {:?} (len {}) expected conforms={}, got {}",
+            value,
+            value.len(),
+            should_conform,
+            report.conforms
+        );
     }
 }

@@ -7,10 +7,10 @@
 // (TICKET-001 and TICKET-007) are not yet implemented. Uncomment these tests and the imports
 // once the adapter is implemented.
 
+use oxrdf::{Literal, NamedNode, NamedOrBlankNode, NamedOrBlankNodeRef, Term, TermRef};
+use praxis_graphlaw::oxrdf_adapter::{oxrdf_term_to_roxi_term, triple_index_to_oxrdf_graph};
 use praxis_graphlaw::tripleindex::TripleIndex;
 use praxis_graphlaw::triples::{Triple, VarOrTerm};
-use praxis_graphlaw::oxrdf_adapter::{triple_index_to_oxrdf_graph, oxrdf_term_to_roxi_term};
-use oxrdf::{NamedNode, Literal, Term, NamedOrBlankNode, NamedOrBlankNodeRef, TermRef};
 
 #[test]
 fn test_triple_index_to_oxrdf_graph_roundtrip() {
@@ -20,7 +20,12 @@ fn test_triple_index_to_oxrdf_graph_roundtrip() {
     let s = VarOrTerm::convert("http://example.org/s".to_string());
     let p = VarOrTerm::convert("http://example.org/p".to_string());
     let o = VarOrTerm::convert("http://example.org/o".to_string());
-    let triple = Triple { s: s.clone(), p: p.clone(), o: o.clone(), g: None };
+    let triple = Triple {
+        s: s.clone(),
+        p: p.clone(),
+        o: o.clone(),
+        g: None,
+    };
 
     index.add(triple.clone());
 
@@ -47,18 +52,24 @@ fn test_literal_datatype_langtag_preserved_across_adapter() {
     let o_typed = VarOrTerm::new_literal(
         "42".to_string(),
         Some("http://www.w3.org/2001/XMLSchema#integer".to_string()),
-        None
+        None,
     );
 
     let p_lang = VarOrTerm::convert("http://example.org/p2".to_string());
-    let o_lang = VarOrTerm::new_literal(
-        "hello".to_string(),
-        None,
-        Some("en".to_string())
-    );
+    let o_lang = VarOrTerm::new_literal("hello".to_string(), None, Some("en".to_string()));
 
-    index.add(Triple { s: s.clone(), p: p_typed.clone(), o: o_typed.clone(), g: None });
-    index.add(Triple { s: s.clone(), p: p_lang.clone(), o: o_lang.clone(), g: None });
+    index.add(Triple {
+        s: s.clone(),
+        p: p_typed.clone(),
+        o: o_typed.clone(),
+        g: None,
+    });
+    index.add(Triple {
+        s: s.clone(),
+        p: p_lang.clone(),
+        o: o_lang.clone(),
+        g: None,
+    });
 
     let graph = triple_index_to_oxrdf_graph(&index);
     assert_eq!(graph.len(), 2);
@@ -67,7 +78,7 @@ fn test_literal_datatype_langtag_preserved_across_adapter() {
     let expected_p_typed = NamedNode::new("http://example.org/p1").unwrap();
     let expected_o_typed = Term::Literal(Literal::new_typed_literal(
         "42",
-        NamedNode::new("http://www.w3.org/2001/XMLSchema#integer").unwrap()
+        NamedNode::new("http://www.w3.org/2001/XMLSchema#integer").unwrap(),
     ));
     assert!(graph.contains(&oxrdf::Triple::new(
         NamedOrBlankNode::NamedNode(NamedNode::new("http://example.org/s").unwrap()),
@@ -77,7 +88,8 @@ fn test_literal_datatype_langtag_preserved_across_adapter() {
 
     // Verify language-tagged literal translation
     let expected_p_lang = NamedNode::new("http://example.org/p2").unwrap();
-    let expected_o_lang = Term::Literal(Literal::new_language_tagged_literal("hello", "en").unwrap());
+    let expected_o_lang =
+        Term::Literal(Literal::new_language_tagged_literal("hello", "en").unwrap());
     assert!(graph.contains(&oxrdf::Triple::new(
         NamedOrBlankNode::NamedNode(NamedNode::new("http://example.org/s").unwrap()),
         expected_p_lang,
@@ -93,7 +105,12 @@ fn test_blank_node_identity_preserved() {
     let p = VarOrTerm::convert("http://example.org/p".to_string());
     let o_bnode = VarOrTerm::new_blank_node("b1".to_string());
 
-    index.add(Triple { s: s_bnode.clone(), p: p.clone(), o: o_bnode.clone(), g: None });
+    index.add(Triple {
+        s: s_bnode.clone(),
+        p: p.clone(),
+        o: o_bnode.clone(),
+        g: None,
+    });
 
     let graph = triple_index_to_oxrdf_graph(&index);
     assert_eq!(graph.len(), 1);
@@ -129,7 +146,12 @@ fn test_oxrdf_adapter_robustness() {
     let s = VarOrTerm::convert("http://example.org/s".to_string());
     let p = VarOrTerm::convert("http://example.org/p".to_string());
     let o = VarOrTerm::Term(roxi_simple_empty);
-    index.add(Triple { s: s.clone(), p: p.clone(), o: o.clone(), g: None });
+    index.add(Triple {
+        s: s.clone(),
+        p: p.clone(),
+        o: o.clone(),
+        g: None,
+    });
     let graph = triple_index_to_oxrdf_graph(&index);
     assert_eq!(graph.len(), 1);
     let back_o = graph.iter().next().unwrap().object;
@@ -139,16 +161,29 @@ fn test_oxrdf_adapter_robustness() {
     let ox_lang_empty = Term::Literal(Literal::new_language_tagged_literal("", "en").unwrap());
     let roxi_lang_empty = oxrdf_term_to_roxi_term(&ox_lang_empty);
     let mut index = TripleIndex::new();
-    index.add(Triple { s: s.clone(), p: p.clone(), o: VarOrTerm::Term(roxi_lang_empty), g: None });
+    index.add(Triple {
+        s: s.clone(),
+        p: p.clone(),
+        o: VarOrTerm::Term(roxi_lang_empty),
+        g: None,
+    });
     let graph = triple_index_to_oxrdf_graph(&index);
     let back_o = graph.iter().next().unwrap().object;
     assert_eq!(Term::from(back_o), ox_lang_empty);
 
     // - Typed empty literal
-    let ox_typed_empty = Term::Literal(Literal::new_typed_literal("", NamedNode::new("http://example.org/dt").unwrap()));
+    let ox_typed_empty = Term::Literal(Literal::new_typed_literal(
+        "",
+        NamedNode::new("http://example.org/dt").unwrap(),
+    ));
     let roxi_typed_empty = oxrdf_term_to_roxi_term(&ox_typed_empty);
     let mut index = TripleIndex::new();
-    index.add(Triple { s: s.clone(), p: p.clone(), o: VarOrTerm::Term(roxi_typed_empty), g: None });
+    index.add(Triple {
+        s: s.clone(),
+        p: p.clone(),
+        o: VarOrTerm::Term(roxi_typed_empty),
+        g: None,
+    });
     let graph = triple_index_to_oxrdf_graph(&index);
     let back_o = graph.iter().next().unwrap().object;
     assert_eq!(Term::from(back_o), ox_typed_empty);
@@ -158,7 +193,12 @@ fn test_oxrdf_adapter_robustness() {
         let ox_lit = Term::Literal(Literal::new_language_tagged_literal("hello", *tag).unwrap());
         let roxi_lit = oxrdf_term_to_roxi_term(&ox_lit);
         let mut index = TripleIndex::new();
-        index.add(Triple { s: s.clone(), p: p.clone(), o: VarOrTerm::Term(roxi_lit), g: None });
+        index.add(Triple {
+            s: s.clone(),
+            p: p.clone(),
+            o: VarOrTerm::Term(roxi_lit),
+            g: None,
+        });
         let graph = triple_index_to_oxrdf_graph(&index);
         let back_o = graph.iter().next().unwrap().object;
         assert_eq!(Term::from(back_o), ox_lit);
@@ -168,13 +208,21 @@ fn test_oxrdf_adapter_robustness() {
     let custom_dts = &[
         "http://example.org/custom",
         "http://example.org/custom#type",
-        "urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
+        "urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
     ];
     for dt in custom_dts {
-        let ox_lit = Term::Literal(Literal::new_typed_literal("val", NamedNode::new(*dt).unwrap()));
+        let ox_lit = Term::Literal(Literal::new_typed_literal(
+            "val",
+            NamedNode::new(*dt).unwrap(),
+        ));
         let roxi_lit = oxrdf_term_to_roxi_term(&ox_lit);
         let mut index = TripleIndex::new();
-        index.add(Triple { s: s.clone(), p: p.clone(), o: VarOrTerm::Term(roxi_lit), g: None });
+        index.add(Triple {
+            s: s.clone(),
+            p: p.clone(),
+            o: VarOrTerm::Term(roxi_lit),
+            g: None,
+        });
         let graph = triple_index_to_oxrdf_graph(&index);
         let back_o = graph.iter().next().unwrap().object;
         assert_eq!(Term::from(back_o), ox_lit);
@@ -183,26 +231,30 @@ fn test_oxrdf_adapter_robustness() {
     // 4. Blank Node Prefixes and Roundtrips
     let b1 = VarOrTerm::new_blank_node("my-bnode-1".to_string());
     let b2 = VarOrTerm::new_blank_node("_:my-bnode-2".to_string());
-    
+
     let mut index = TripleIndex::new();
-    index.add(Triple { s: b1.clone(), p: p.clone(), o: b2.clone(), g: None });
+    index.add(Triple {
+        s: b1.clone(),
+        p: p.clone(),
+        o: b2.clone(),
+        g: None,
+    });
     let graph = triple_index_to_oxrdf_graph(&index);
     assert_eq!(graph.len(), 1);
     let ox_triple = graph.iter().next().unwrap();
-    
+
     if let NamedOrBlankNodeRef::BlankNode(sb) = ox_triple.subject {
         assert_eq!(sb.as_str(), "my-bnode-1");
     } else {
         panic!("Expected BlankNode subject");
     }
-    
+
     if let TermRef::BlankNode(ob) = ox_triple.object {
         assert_eq!(ob.as_str(), "_:my-bnode-2");
     } else {
         panic!("Expected BlankNode object");
     }
 }
-
 
 #[test]
 fn test_literal_lang_roundtrip_equality() {
@@ -216,7 +268,12 @@ fn test_literal_lang_roundtrip_equality() {
     let mut index = TripleIndex::new();
     let s = VarOrTerm::convert("http://example.org/s".to_string());
     let p = VarOrTerm::convert("http://example.org/p".to_string());
-    index.add(Triple { s, p, o: original.clone(), g: None });
+    index.add(Triple {
+        s,
+        p,
+        o: original.clone(),
+        g: None,
+    });
 
     let graph = triple_index_to_oxrdf_graph(&index);
     let oxrdf_triple = graph.iter().next().unwrap();
@@ -226,14 +283,18 @@ fn test_literal_lang_roundtrip_equality() {
     assert_eq!(original_term, &roundtripped_term);
 }
 
-
 #[test]
 fn test_simple_literal_roundtrip_equality() {
     let mut index = TripleIndex::new();
     let s = VarOrTerm::convert("http://example.org/s".to_string());
     let p = VarOrTerm::convert("http://example.org/p".to_string());
     let o = VarOrTerm::convert("\"hello\"".to_string());
-    index.add(Triple { s: s.clone(), p: p.clone(), o: o.clone(), g: None });
+    index.add(Triple {
+        s: s.clone(),
+        p: p.clone(),
+        o: o.clone(),
+        g: None,
+    });
 
     let graph = triple_index_to_oxrdf_graph(&index);
     assert_eq!(graph.len(), 1);
@@ -283,27 +344,52 @@ fn test_xsd_decimal_boolean_date_roundtrip_equality() {
         let mut index = TripleIndex::new();
         let s = VarOrTerm::convert("http://example.org/s".to_string());
         let p = VarOrTerm::convert("http://example.org/p".to_string());
-        index.add(Triple { s, p, o: original.clone(), g: None });
+        index.add(Triple {
+            s,
+            p,
+            o: original.clone(),
+            g: None,
+        });
 
         let graph = triple_index_to_oxrdf_graph(&index);
-        assert_eq!(graph.len(), 1, "expected exactly one triple for {} ({})", lexical, datatype);
+        assert_eq!(
+            graph.len(),
+            1,
+            "expected exactly one triple for {} ({})",
+            lexical,
+            datatype
+        );
 
         let oxrdf_triple = graph.iter().next().unwrap();
         let ox_term = Term::from(oxrdf_triple.object);
 
         // The oxrdf side must carry the datatype through untouched.
         if let Term::Literal(lit) = &ox_term {
-            assert_eq!(lit.value(), *lexical, "lexical form must survive the roxi->oxrdf conversion for {}", datatype);
-            assert_eq!(lit.datatype().as_str(), *datatype, "datatype IRI must survive the roxi->oxrdf conversion for {}", lexical);
+            assert_eq!(
+                lit.value(),
+                *lexical,
+                "lexical form must survive the roxi->oxrdf conversion for {}",
+                datatype
+            );
+            assert_eq!(
+                lit.datatype().as_str(),
+                *datatype,
+                "datatype IRI must survive the roxi->oxrdf conversion for {}",
+                lexical
+            );
         } else {
-            panic!("expected a Literal term for {} ({}), got {:?}", lexical, datatype, ox_term);
+            panic!(
+                "expected a Literal term for {} ({}), got {:?}",
+                lexical, datatype, ox_term
+            );
         }
 
         // Full round-trip: oxrdf -> roxi must reproduce the original term exactly.
         let roundtripped_term = oxrdf_term_to_roxi_term(&ox_term);
         assert_eq!(
             original_term, roundtripped_term,
-            "round-trip (roxi->oxrdf->roxi) must preserve {} ({}) exactly", lexical, datatype
+            "round-trip (roxi->oxrdf->roxi) must preserve {} ({}) exactly",
+            lexical, datatype
         );
     }
 }

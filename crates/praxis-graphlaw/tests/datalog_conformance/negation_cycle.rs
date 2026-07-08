@@ -1,6 +1,5 @@
-
+use praxis_graphlaw::triples::{BodyLiteral, Rule, Triple};
 use praxis_graphlaw::TripleStore;
-use praxis_graphlaw::triples::{Rule, Triple, BodyLiteral};
 
 /// CONFORM-006: Stratified Negation - Negation through a cycle is rejected.
 /// The ruleset is unstratifiable (A depends negatively on itself via B, or vice-versa).
@@ -16,27 +15,45 @@ fn test_negation_cycle_rejected() {
     let mut store = TripleStore::new();
 
     let r1 = Rule {
-        head: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/B".to_string()),
+        head: Triple::from(
+            "?x".to_string(),
+            "http://example.org/type".to_string(),
+            "http://example.org/B".to_string(),
+        ),
         body: vec![
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/A".to_string()),
+                pattern: Triple::from(
+                    "?x".to_string(),
+                    "http://example.org/type".to_string(),
+                    "http://example.org/A".to_string(),
+                ),
             },
             BodyLiteral {
                 negated: true,
-                pattern: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/B".to_string()),
-            }
-        ]
+                pattern: Triple::from(
+                    "?x".to_string(),
+                    "http://example.org/type".to_string(),
+                    "http://example.org/B".to_string(),
+                ),
+            },
+        ],
     };
 
     let r2 = Rule {
-        head: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/A".to_string()),
-        body: vec![
-            BodyLiteral {
-                negated: false,
-                pattern: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/B".to_string()),
-            }
-        ]
+        head: Triple::from(
+            "?x".to_string(),
+            "http://example.org/type".to_string(),
+            "http://example.org/A".to_string(),
+        ),
+        body: vec![BodyLiteral {
+            negated: false,
+            pattern: Triple::from(
+                "?x".to_string(),
+                "http://example.org/type".to_string(),
+                "http://example.org/B".to_string(),
+            ),
+        }],
     };
 
     // The load_rules or add_rules API should detect the cycle and return Err.

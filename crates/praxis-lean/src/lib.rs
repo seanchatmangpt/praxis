@@ -22,7 +22,7 @@ pub mod status;
 pub mod verbs;
 
 pub use error::{LeanRefusal, Result};
-pub use index::{LeanDeclarationIndex, LeanDeclRecord};
+pub use index::{LeanDeclRecord, LeanDeclarationIndex};
 pub use lean::{LeanCheck, LeanRunner, LeanToolchain};
 pub use no_sorry::{AuditFinding, AuditPolicy, NoSorryAudit};
 pub use receipt::{ReceiptLedger, VerificationReceipt};

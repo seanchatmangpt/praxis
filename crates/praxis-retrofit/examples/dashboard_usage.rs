@@ -24,7 +24,9 @@ use praxis_retrofit::{
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
-    tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .init();
 
     println!("=== Praxis Compliance Dashboard Example ===\n");
 
@@ -93,8 +95,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  No active alerts");
     } else {
         for alert in alerts {
-            println!("  [{:?}] {}: {}", alert.severity, alert.repository, alert.message);
-            println!("    Score: {:.1}% -> {:.1}%", alert.previous_score, alert.current_score);
+            println!(
+                "  [{:?}] {}: {}",
+                alert.severity, alert.repository, alert.message
+            );
+            println!(
+                "    Score: {:.1}% -> {:.1}%",
+                alert.previous_score, alert.current_score
+            );
             if let Some(hint) = &alert.remediation_hint {
                 println!("    Remedy: {}", hint);
             }
@@ -171,8 +179,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Step 12: Demonstrate alert acknowledgment
     println!("Step 12: Alert management:");
-    let alert_ids: Vec<String> =
-        dashboard.get_alerts().iter().map(|a| a.alert_id.clone()).collect();
+    let alert_ids: Vec<String> = dashboard
+        .get_alerts()
+        .iter()
+        .map(|a| a.alert_id.clone())
+        .collect();
     for alert_id in alert_ids {
         if dashboard.acknowledge_alert(&alert_id) {
             println!("Acknowledged alert: {}", alert_id);
@@ -183,7 +194,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Summary
     println!("=== Summary ===");
     println!("Dashboard configured and populated successfully!");
-    println!("Fleet Status: {:.1}% average compliance", fleet_status.fleet_average_score);
+    println!(
+        "Fleet Status: {:.1}% average compliance",
+        fleet_status.fleet_average_score
+    );
     println!(
         "Compliance Distribution: {} passing, {} warnings, {} failing",
         fleet_status.passing_repos, fleet_status.warning_repos, fleet_status.failing_repos
@@ -204,7 +218,11 @@ fn create_sample_report(name: &str, target_score: f32) -> ComplianceReport {
     checks.push(ComplianceItem {
         name: "CI/CD Pipeline".to_string(),
         category: ComplianceCategory::CiCd,
-        status: if pass_count > 0 { ComplianceStatus::Pass } else { ComplianceStatus::Fail },
+        status: if pass_count > 0 {
+            ComplianceStatus::Pass
+        } else {
+            ComplianceStatus::Fail
+        },
         evidence: "GitHub Actions workflows present".to_string(),
         remediation: Some("Create .github/workflows/ci.yml".to_string()),
     });
@@ -228,7 +246,11 @@ fn create_sample_report(name: &str, target_score: f32) -> ComplianceReport {
     checks.push(ComplianceItem {
         name: "Workspace Lints".to_string(),
         category: ComplianceCategory::Linting,
-        status: if pass_count > 2 { ComplianceStatus::Pass } else { ComplianceStatus::Fail },
+        status: if pass_count > 2 {
+            ComplianceStatus::Pass
+        } else {
+            ComplianceStatus::Fail
+        },
         evidence: "Cargo.toml [lints] block present".to_string(),
         remediation: Some("Add [lints] configuration".to_string()),
     });
@@ -237,7 +259,11 @@ fn create_sample_report(name: &str, target_score: f32) -> ComplianceReport {
     checks.push(ComplianceItem {
         name: "Editor Config".to_string(),
         category: ComplianceCategory::EditorConfig,
-        status: if pass_count > 3 { ComplianceStatus::Pass } else { ComplianceStatus::Warn },
+        status: if pass_count > 3 {
+            ComplianceStatus::Pass
+        } else {
+            ComplianceStatus::Warn
+        },
         evidence: ".editorconfig file".to_string(),
         remediation: Some("Create .editorconfig".to_string()),
     });
@@ -246,7 +272,11 @@ fn create_sample_report(name: &str, target_score: f32) -> ComplianceReport {
     checks.push(ComplianceItem {
         name: "Contributor Guide".to_string(),
         category: ComplianceCategory::Documentation,
-        status: if pass_count > 4 { ComplianceStatus::Pass } else { ComplianceStatus::Warn },
+        status: if pass_count > 4 {
+            ComplianceStatus::Pass
+        } else {
+            ComplianceStatus::Warn
+        },
         evidence: "CONTRIBUTING.md present".to_string(),
         remediation: Some("Create CONTRIBUTING.md".to_string()),
     });

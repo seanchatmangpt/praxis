@@ -14,10 +14,14 @@ const AGENTS: usize = 10_000_000;
 fn main() {
     // Deterministic LCG fill so lanes span the full byte space.
     let words = AGENTS / agent8::LANES_PER_WORD;
-    let mut fleet = Fleet { bytes: vec![0u64; words] };
+    let mut fleet = Fleet {
+        bytes: vec![0u64; words],
+    };
     let mut state: u64 = 0x0f0f_0f0f_0f0f_0f0f;
     for w in fleet.bytes.iter_mut() {
-        state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        state = state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         *w = state;
     }
 

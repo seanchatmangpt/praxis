@@ -3,9 +3,7 @@
 #![allow(clippy::type_complexity)]
 
 use crate::queryengine::{QueryEngine, SimpleQueryEngine};
-use crate::{
-    Binding, BodyLiteral, Rule, RuleIndex, Triple, TripleIndex, TripleStore, VarOrTerm,
-};
+use crate::{Binding, BodyLiteral, Rule, RuleIndex, Triple, TripleIndex, TripleStore, VarOrTerm};
 use log::{debug, warn};
 use std::collections::HashMap;
 use std::rc::Rc; // Use log crate when building application

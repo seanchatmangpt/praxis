@@ -14,7 +14,7 @@ mod server {
     use rmcp::{
         handler::server::{router::tool::ToolRouter, wrapper::Parameters},
         model::CallToolResult,
-        tool, tool_router, ServerHandler, tool_handler,
+        tool, tool_handler, tool_router, ServerHandler,
     };
     use schemars::JsonSchema;
     use serde::Deserialize;
@@ -84,17 +84,19 @@ mod server {
                 Ok(out) => {
                     let text = String::from_utf8_lossy(&out.stdout).into_owned();
                     if out.status.success() {
-                        Ok(CallToolResult::success(vec![rmcp::model::Content::text(text)]))
+                        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
+                            text,
+                        )]))
                     } else {
                         let err = String::from_utf8_lossy(&out.stderr).into_owned();
-                        Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                            "emit failed: {err}"
-                        ))]))
+                        Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                            format!("emit failed: {err}"),
+                        )]))
                     }
                 }
-                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                    "could not launch affi: {e}"
-                ))])),
+                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                    format!("could not launch affi: {e}"),
+                )])),
             }
         }
 
@@ -109,15 +111,19 @@ mod server {
                 .output()
             {
                 Ok(out) => {
-                    let verdict = if out.status.success() { "ACCEPT" } else { "REJECT" };
+                    let verdict = if out.status.success() {
+                        "ACCEPT"
+                    } else {
+                        "REJECT"
+                    };
                     let detail = String::from_utf8_lossy(&out.stdout).into_owned();
-                    Ok(CallToolResult::success(vec![rmcp::model::Content::text(format!(
-                        "{verdict}\n{detail}"
-                    ))]))
+                    Ok(CallToolResult::success(vec![rmcp::model::Content::text(
+                        format!("{verdict}\n{detail}"),
+                    )]))
                 }
-                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                    "could not launch affi: {e}"
-                ))])),
+                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                    format!("could not launch affi: {e}"),
+                )])),
             }
         }
 
@@ -134,17 +140,19 @@ mod server {
                 Ok(out) => {
                     let text = String::from_utf8_lossy(&out.stdout).into_owned();
                     if out.status.success() {
-                        Ok(CallToolResult::success(vec![rmcp::model::Content::text(text)]))
+                        Ok(CallToolResult::success(vec![rmcp::model::Content::text(
+                            text,
+                        )]))
                     } else {
                         let err = String::from_utf8_lossy(&out.stderr).into_owned();
-                        Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                            "show failed: {err}"
-                        ))]))
+                        Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                            format!("show failed: {err}"),
+                        )]))
                     }
                 }
-                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(format!(
-                    "could not launch affi: {e}"
-                ))])),
+                Err(e) => Ok(CallToolResult::error(vec![rmcp::model::Content::text(
+                    format!("could not launch affi: {e}"),
+                )])),
             }
         }
     }

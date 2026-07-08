@@ -40,7 +40,9 @@ impl ReceiptStore {
     pub fn open(dir: impl AsRef<Path>) -> Result<Self, CoreError> {
         let dir = dir.as_ref();
         std::fs::create_dir_all(dir).map_err(|e| CoreError::Io(e.to_string()))?;
-        Ok(Self { path: dir.join(LEDGER_FILE_NAME) })
+        Ok(Self {
+            path: dir.join(LEDGER_FILE_NAME),
+        })
     }
 
     /// Open the default store ([`DEFAULT_RECEIPTS_DIR`]`/receipts.jsonl`).
@@ -138,7 +140,10 @@ mod tests {
     fn genesis_chain_hash_when_store_is_empty() {
         let dir = tempfile::tempdir().expect("tempdir");
         let store = ReceiptStore::open(dir.path()).expect("open");
-        assert_eq!(store.last_chain_hash().expect("genesis"), GENESIS_CHAIN_HASH);
+        assert_eq!(
+            store.last_chain_hash().expect("genesis"),
+            GENESIS_CHAIN_HASH
+        );
         assert_eq!(store.load_all().expect("load_all"), Vec::new());
     }
 
@@ -167,7 +172,9 @@ mod tests {
         let nested = dir.path().join("nested/receipts");
         let store = ReceiptStore::open(&nested).expect("open");
         assert!(nested.is_dir());
-        store.append(&record(1, GENESIS_CHAIN_HASH, [3u8; 32])).expect("append");
+        store
+            .append(&record(1, GENESIS_CHAIN_HASH, [3u8; 32]))
+            .expect("append");
         assert!(store.path().exists());
     }
 }

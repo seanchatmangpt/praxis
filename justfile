@@ -35,6 +35,16 @@ standing:
 build:
     timeout 120s cargo build
 
+# Build the release ggen binary and install it to ~/.cargo/bin/ggen, so the
+# global `ggen` on PATH tracks this checkout instead of silently drifting to
+# whatever version was last `cargo install`ed. Downstream consumers that pin
+# an absolute path (e.g. mfact's justfile -> target/debug/ggen) are NOT
+# updated by this recipe on purpose — it only fixes the global command.
+# Run this after any change to crates/ggen you want reflected outside praxis.
+install-ggen:
+    timeout 180s cargo install --path crates/ggen --force
+    @ggen --version
+
 # Type-check the whole workspace with every feature enabled (what `doctor check` itself shells out to)
 check:
     timeout 180s cargo check --workspace --all-features

@@ -33,7 +33,9 @@ fn signing_guard() -> Option<std::sync::MutexGuard<'static, ()>> {
     use std::sync::{Mutex, MutexGuard, OnceLock};
     fn env_lock() -> MutexGuard<'static, ()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(())).lock().unwrap_or_else(|e| e.into_inner())
+        LOCK.get_or_init(|| Mutex::new(()))
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
     }
     let guard = env_lock();
     std::env::set_var("PRAXIS_SIGNING_KEY", TEST_SIGNING_KEY_HEX);
@@ -76,8 +78,9 @@ fn chained_records(n: u64) -> Vec<praxis_core::ReceiptRecord> {
             ts_ns: Some(i * 1_000_000),
             ..Default::default()
         };
-        let (receipted, record) =
-            admitted.receipt_with_record(&prev, meta).expect("receipt_with_record");
+        let (receipted, record) = admitted
+            .receipt_with_record(&prev, meta)
+            .expect("receipt_with_record");
         prev = *receipted.chain_hash().expect("chain hash set");
         records.push(record);
     }
@@ -94,7 +97,10 @@ fn three_chained_receipts_validate_clean() {
     for stage in &verdict.stages {
         assert!(
             stage.outcome.is_pass()
-                || matches!(stage.outcome, praxis_core::receipt_validator::CheckOutcome::Skip(_)),
+                || matches!(
+                    stage.outcome,
+                    praxis_core::receipt_validator::CheckOutcome::Skip(_)
+                ),
             "stage {} failed: {:?}",
             stage.stage,
             stage.outcome
@@ -108,12 +114,21 @@ fn tampering_payload_hash_is_caught_by_chain_recompute() {
     let mut records = chained_records(2);
     let c = records[0].payload_hash_hex.chars().next().unwrap();
     let replacement = if c == 'a' { 'b' } else { 'a' };
-    records[0].payload_hash_hex.replace_range(0..1, &replacement.to_string());
+    records[0]
+        .payload_hash_hex
+        .replace_range(0..1, &replacement.to_string());
 
     let verdict = ReceiptValidator::validate(&records, &SystemClock);
     assert!(!verdict.ok);
-    let stage = verdict.stages.iter().find(|s| s.stage == "chain_recompute").unwrap();
-    assert!(matches!(stage.outcome, praxis_core::receipt_validator::CheckOutcome::Fail(_)));
+    let stage = verdict
+        .stages
+        .iter()
+        .find(|s| s.stage == "chain_recompute")
+        .unwrap();
+    assert!(matches!(
+        stage.outcome,
+        praxis_core::receipt_validator::CheckOutcome::Fail(_)
+    ));
 }
 
 #[test]
@@ -123,8 +138,15 @@ fn broken_linkage_is_caught() {
     records.swap(0, 1);
     let verdict = ReceiptValidator::validate(&records, &SystemClock);
     assert!(!verdict.ok);
-    let stage = verdict.stages.iter().find(|s| s.stage == "chain_linkage").unwrap();
-    assert!(matches!(stage.outcome, praxis_core::receipt_validator::CheckOutcome::Fail(_)));
+    let stage = verdict
+        .stages
+        .iter()
+        .find(|s| s.stage == "chain_linkage")
+        .unwrap();
+    assert!(matches!(
+        stage.outcome,
+        praxis_core::receipt_validator::CheckOutcome::Fail(_)
+    ));
 }
 
 #[test]
@@ -134,8 +156,15 @@ fn non_monotonic_instruction_id_is_caught() {
     records[2].instruction_id = records[0].instruction_id;
     let verdict = ReceiptValidator::validate(&records, &SystemClock);
     assert!(!verdict.ok);
-    let stage = verdict.stages.iter().find(|s| s.stage == "monotonic").unwrap();
-    assert!(matches!(stage.outcome, praxis_core::receipt_validator::CheckOutcome::Fail(_)));
+    let stage = verdict
+        .stages
+        .iter()
+        .find(|s| s.stage == "monotonic")
+        .unwrap();
+    assert!(matches!(
+        stage.outcome,
+        praxis_core::receipt_validator::CheckOutcome::Fail(_)
+    ));
 }
 
 #[test]
@@ -145,8 +174,15 @@ fn fixed_clock_future_timestamp_is_caught() {
     // FixedClock(0) => "now" is the epoch; any positive ts_ns is "the future".
     let verdict = ReceiptValidator::validate(&records, &FixedClock(0));
     assert!(!verdict.ok);
-    let stage = verdict.stages.iter().find(|s| s.stage == "monotonic").unwrap();
-    assert!(matches!(stage.outcome, praxis_core::receipt_validator::CheckOutcome::Fail(_)));
+    let stage = verdict
+        .stages
+        .iter()
+        .find(|s| s.stage == "monotonic")
+        .unwrap();
+    assert!(matches!(
+        stage.outcome,
+        praxis_core::receipt_validator::CheckOutcome::Fail(_)
+    ));
 }
 
 #[test]
@@ -154,7 +190,11 @@ fn fixed_clock_present_timestamp_passes_monotonic() {
     let _guard = signing_guard();
     let records = chained_records(1);
     let verdict = ReceiptValidator::validate(&records, &FixedClock(u64::MAX));
-    let stage = verdict.stages.iter().find(|s| s.stage == "monotonic").unwrap();
+    let stage = verdict
+        .stages
+        .iter()
+        .find(|s| s.stage == "monotonic")
+        .unwrap();
     assert!(stage.outcome.is_pass());
 }
 
@@ -241,8 +281,15 @@ fn tampering_andon_is_caught_by_validator() {
     // The validator now says ok: false because chain_recompute fails!
     let verdict = ReceiptValidator::validate(&records, &SystemClock);
     assert!(!verdict.ok);
-    let stage = verdict.stages.iter().find(|s| s.stage == "chain_recompute").unwrap();
-    assert!(matches!(stage.outcome, praxis_core::receipt_validator::CheckOutcome::Fail(_)));
+    let stage = verdict
+        .stages
+        .iter()
+        .find(|s| s.stage == "chain_recompute")
+        .unwrap();
+    assert!(matches!(
+        stage.outcome,
+        praxis_core::receipt_validator::CheckOutcome::Fail(_)
+    ));
 }
 
 #[test]
@@ -254,7 +301,7 @@ fn tampering_genesis_prev_chain_hash_is_caught_by_linkage() {
     // Recompute and update first record's chain_hash_hex based on the new prev_chain_hash.
     let recomputed = records[0].recompute_chain_hash().expect("recompute");
     records[0].chain_hash_hex = hex::encode(recomputed);
-    
+
     // Also update second record's prev_chain_hash_hex to link to the new chain_hash_hex.
     records[1].prev_chain_hash_hex = records[0].chain_hash_hex.clone();
     let recomputed_2 = records[1].recompute_chain_hash().expect("recompute 2");
@@ -263,7 +310,13 @@ fn tampering_genesis_prev_chain_hash_is_caught_by_linkage() {
     // The validator fails because the genesis anchor has been changed to "3333..."!
     let verdict = ReceiptValidator::validate(&records, &SystemClock);
     assert!(!verdict.ok);
-    let stage = verdict.stages.iter().find(|s| s.stage == "chain_linkage").unwrap();
-    assert!(matches!(stage.outcome, praxis_core::receipt_validator::CheckOutcome::Fail(_)));
+    let stage = verdict
+        .stages
+        .iter()
+        .find(|s| s.stage == "chain_linkage")
+        .unwrap();
+    assert!(matches!(
+        stage.outcome,
+        praxis_core::receipt_validator::CheckOutcome::Fail(_)
+    ));
 }
-

@@ -7,9 +7,7 @@ use std::collections::BTreeMap;
 
 use common::lawobject_domain;
 use praxis_synthesis::budget::Ticks;
-use praxis_synthesis::dag::{
-    DagNode, Disposition, FallibleRunner, NodeCrash, RunOutcome,
-};
+use praxis_synthesis::dag::{DagNode, Disposition, FallibleRunner, NodeCrash, RunOutcome};
 use praxis_synthesis::geometry::{FailureClass, FailureGeometry};
 use praxis_synthesis::park::{ParkManager, ReAdmission};
 use praxis_synthesis::supervise::{RestartPolicy, SupervisionTopology};
@@ -57,7 +55,9 @@ fn setup() -> (Dag, SupervisionTopology, FailureGeometry, SequenceProblem) {
 #[test]
 fn no_crash_supervised_equals_plain_execution() {
     let (dag, topo, geometry, _) = setup();
-    let plain = dag.execute(&mut HashRunner, &mut MemoCache::new()).expect("plain");
+    let plain = dag
+        .execute(&mut HashRunner, &mut MemoCache::new())
+        .expect("plain");
     let supervised = dag
         .execute_supervised(
             &topo,
@@ -79,11 +79,15 @@ fn no_crash_supervised_equals_plain_execution() {
 #[test]
 fn transient_crash_restarts_into_the_named_branch_and_completes_identically() {
     let (dag, topo, geometry, _) = setup();
-    let clean = dag.execute(&mut HashRunner, &mut MemoCache::new()).expect("clean");
+    let clean = dag
+        .execute(&mut HashRunner, &mut MemoCache::new())
+        .expect("clean");
     let mut runner = FaultRunner {
         cap: "judge".into(),
         fail_times: 2,
-        crash: |_| NodeCrash::Io { detail: "blip".into() },
+        crash: |_| NodeCrash::Io {
+            detail: "blip".into(),
+        },
         injected: 0,
     };
     let r = dag
@@ -119,7 +123,9 @@ fn intensity_exhaustion_is_lawful_surrender_with_dependent_skips() {
     let mut runner = FaultRunner {
         cap: "judge".into(),
         fail_times: u8::MAX, // never recovers
-        crash: |_| NodeCrash::Io { detail: "forever".into() },
+        crash: |_| NodeCrash::Io {
+            detail: "forever".into(),
+        },
         injected: 0,
     };
     let r = dag
@@ -163,7 +169,15 @@ fn budget_breach_parks_and_readmission_completes_the_run_later() {
         injected: 0,
     };
     let r0 = dag
-        .execute_supervised(&topo, &geometry, &mut runner, &mut cache, &mut parks, None, 0)
+        .execute_supervised(
+            &topo,
+            &geometry,
+            &mut runner,
+            &mut cache,
+            &mut parks,
+            None,
+            0,
+        )
         .expect("run 0");
     assert!(r0
         .dispositions
@@ -190,8 +204,13 @@ fn budget_breach_parks_and_readmission_completes_the_run_later() {
     assert_eq!(r1.outcome, RunOutcome::Completed);
     // Upstream replays from memo; only judge + dependents compute cold.
     assert_eq!(r1.replayed_count, 2);
-    let clean = dag.execute(&mut HashRunner, &mut MemoCache::new()).expect("clean");
-    assert_eq!(r1.root_hash, clean.root_hash, "the healed run matches crash-free");
+    let clean = dag
+        .execute(&mut HashRunner, &mut MemoCache::new())
+        .expect("clean");
+    assert_eq!(
+        r1.root_hash, clean.root_hash,
+        "the healed run matches crash-free"
+    );
 }
 
 #[test]
@@ -210,7 +229,10 @@ fn authority_vacuum_refuses_with_the_fact_named() {
     let caps = vec![Capability {
         name: "push".into(),
         params: 1,
-        pre: vec![Atom::new(quiescent, vec![v0]), Atom::new(authorization, vec![v0])],
+        pre: vec![
+            Atom::new(quiescent, vec![v0]),
+            Atom::new(authorization, vec![v0]),
+        ],
         add: vec![Atom::new(pushed, vec![v0])],
         del: vec![],
         cost: 1,
@@ -227,7 +249,9 @@ fn authority_vacuum_refuses_with_the_fact_named() {
     let mut runner = FaultRunner {
         cap: "push".into(),
         fail_times: u8::MAX,
-        crash: |_| NodeCrash::PreconditionLost { fact: "authorization".into() },
+        crash: |_| NodeCrash::PreconditionLost {
+            fact: "authorization".into(),
+        },
         injected: 0,
     };
     let r = dag
@@ -245,7 +269,8 @@ fn authority_vacuum_refuses_with_the_fact_named() {
         panic!("expected Refused, got {:?}", r.outcome);
     };
     assert!(
-        core.iter().any(|c| c.contains("authorization") || c.contains("quiescent")),
+        core.iter()
+            .any(|c| c.contains("authorization") || c.contains("quiescent")),
         "the certificate names the lost fact: {core:?}"
     );
     assert_eq!(r.crash_receipts.len(), 1, "one crash, zero futile retries");
@@ -260,7 +285,9 @@ fn geometry_gap_is_receipted_and_the_run_still_completes() {
     let mut runner = FaultRunner {
         cap: "admit".into(),
         fail_times: 1,
-        crash: |_| NodeCrash::PreconditionLost { fact: "validated".into() },
+        crash: |_| NodeCrash::PreconditionLost {
+            fact: "validated".into(),
+        },
         injected: 0,
     };
     let r = dag
@@ -287,7 +314,9 @@ fn dispositions_cover_every_node_exactly_once() {
     let mut runner = FaultRunner {
         cap: "judge".into(),
         fail_times: u8::MAX,
-        crash: |_| NodeCrash::Io { detail: "forever".into() },
+        crash: |_| NodeCrash::Io {
+            detail: "forever".into(),
+        },
         injected: 0,
     };
     let r = dag
@@ -302,5 +331,9 @@ fn dispositions_cover_every_node_exactly_once() {
         )
         .expect("supervised");
     let ids: BTreeMap<&String, &Disposition> = r.dispositions.iter().collect();
-    assert_eq!(ids.len(), dag.nodes.len(), "total accounting: no silent nodes");
+    assert_eq!(
+        ids.len(),
+        dag.nodes.len(),
+        "total accounting: no silent nodes"
+    );
 }

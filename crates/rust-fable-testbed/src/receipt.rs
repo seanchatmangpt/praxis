@@ -60,10 +60,20 @@ pub fn genesis_chain_hash() -> String {
 /// fallible path is threaded through via `?` rather than asserted away with
 /// `.expect()`.
 pub fn chain_receipt(
-    prev_chain_hash: &str, task_id: &str, prompt_hash: &str, model: &str, metrics: &VerifyMetrics,
+    prev_chain_hash: &str,
+    task_id: &str,
+    prompt_hash: &str,
+    model: &str,
+    metrics: &VerifyMetrics,
 ) -> Result<TestbedReceipt> {
     let metrics_summary = metrics.summary_line();
-    let payload = ReceiptPayload { task_id, prompt_hash, model, metrics_summary: &metrics_summary, prev_chain_hash };
+    let payload = ReceiptPayload {
+        task_id,
+        prompt_hash,
+        model,
+        metrics_summary: &metrics_summary,
+        prev_chain_hash,
+    };
 
     let payload_json = serde_json::to_string(&payload)?;
 
@@ -134,18 +144,36 @@ mod tests {
     #[test]
     fn chain_receipt_is_deterministic_for_same_inputs() {
         let metrics = sample_metrics();
-        let a = chain_receipt(&genesis_chain_hash(), "t1", "hash1", "claude-opus-4-8", &metrics)
-            .expect("chain_receipt");
-        let b = chain_receipt(&genesis_chain_hash(), "t1", "hash1", "claude-opus-4-8", &metrics)
-            .expect("chain_receipt");
+        let a = chain_receipt(
+            &genesis_chain_hash(),
+            "t1",
+            "hash1",
+            "claude-opus-4-8",
+            &metrics,
+        )
+        .expect("chain_receipt");
+        let b = chain_receipt(
+            &genesis_chain_hash(),
+            "t1",
+            "hash1",
+            "claude-opus-4-8",
+            &metrics,
+        )
+        .expect("chain_receipt");
         assert_eq!(a.chain_hash, b.chain_hash);
     }
 
     #[test]
     fn chain_receipt_differs_when_prev_hash_differs() {
         let metrics = sample_metrics();
-        let a = chain_receipt(&genesis_chain_hash(), "t1", "hash1", "claude-opus-4-8", &metrics)
-            .expect("chain_receipt");
+        let a = chain_receipt(
+            &genesis_chain_hash(),
+            "t1",
+            "hash1",
+            "claude-opus-4-8",
+            &metrics,
+        )
+        .expect("chain_receipt");
         let b = chain_receipt("deadbeef", "t1", "hash1", "claude-opus-4-8", &metrics)
             .expect("chain_receipt");
         assert_ne!(a.chain_hash, b.chain_hash);
@@ -156,18 +184,33 @@ mod tests {
         let dir = tempfile::tempdir().expect("tempdir");
         let ledger = dir.path().join("testbed_receipts.jsonl");
 
-        assert_eq!(last_chain_hash(&ledger).expect("genesis read"), genesis_chain_hash());
+        assert_eq!(
+            last_chain_hash(&ledger).expect("genesis read"),
+            genesis_chain_hash()
+        );
 
         let metrics = sample_metrics();
-        let r1 = chain_receipt(&genesis_chain_hash(), "t1", "h1", "claude-opus-4-8", &metrics)
-            .expect("chain_receipt r1");
+        let r1 = chain_receipt(
+            &genesis_chain_hash(),
+            "t1",
+            "h1",
+            "claude-opus-4-8",
+            &metrics,
+        )
+        .expect("chain_receipt r1");
         append_receipt(&ledger, &r1).expect("append r1");
-        assert_eq!(last_chain_hash(&ledger).expect("read after r1"), r1.chain_hash);
+        assert_eq!(
+            last_chain_hash(&ledger).expect("read after r1"),
+            r1.chain_hash
+        );
 
         let r2 = chain_receipt(&r1.chain_hash, "t2", "h2", "claude-opus-4-8", &metrics)
             .expect("chain_receipt r2");
         append_receipt(&ledger, &r2).expect("append r2");
-        assert_eq!(last_chain_hash(&ledger).expect("read after r2"), r2.chain_hash);
+        assert_eq!(
+            last_chain_hash(&ledger).expect("read after r2"),
+            r2.chain_hash
+        );
         assert_ne!(r1.chain_hash, r2.chain_hash);
     }
 }

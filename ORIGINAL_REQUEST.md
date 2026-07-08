@@ -2930,4 +2930,732 @@ CRITICAL MANDATES:
 
 Ensure the Euclidean Agent audits all current drafts and passes against this Canon immediately.
 
+## Follow-up — 2026-07-08T00:16:23Z
+
+## Teamwork Project Prompt — praxis-graphlaw Benchmark Audit → rslab Readiness
+
+# Definition of Done
+
+This project is **DONE** only when the `praxis-graphlaw` benchmark surface has been audited, expanded, executed, profiled, and reported with concrete evidence.
+
+Done means **all** of the following are true:
+
+1. **Existing benchmarks are audited.**
+
+   * Current benchmark files under `crates/praxis-graphlaw/benches/` are inspected.
+   * Existing N3, Datalog, SHACL, and ShEx/ShExC coverage is documented.
+   * Missing benchmark coverage is identified before adding new code.
+
+2. **Targeted SHACL and ShEx/ShExC benchmarks exist.**
+
+   * Benchmarks include RDF dataset size scaling.
+   * Benchmarks include shape/schema complexity scaling.
+   * Benchmarks measure latency and throughput.
+   * Memory/allocation behavior is measured directly or through a documented profiling tool.
+   * Benchmarks compile and run through standard cargo benchmark commands.
+
+3. **N3 and Datalog benchmark/profile coverage is preserved or improved.**
+
+   * N3 materialization performance is measured.
+   * Datalog materialization/evaluation performance is measured.
+   * Hot paths are profiled or explicitly marked `BLOCKED` with toolchain reason.
+
+4. **Profiling evidence exists.**
+
+   * Flamegraphs, profiler summaries, allocation reports, or equivalent outputs are produced.
+   * If `cargo flamegraph`, `dhat`, `heaptrack`, Instruments, or Divan profiling cannot run in the environment, the report must state the exact blocker and use the best available fallback.
+
+5. **A comprehensive benchmark report exists at:**
+
+   ```text
+   /Users/sac/praxis/benchmark_report.md
+   ```
+
+   The report must include concrete metrics for:
+
+   * N3
+   * Datalog
+   * SHACL
+   * ShEx/ShExC
+
+6. **The report includes an rslab readiness section.**
+
+   * It explains what benchmark findings imply for creating `rslab`.
+   * It lists the minimum performance contracts `rslab` should inherit.
+   * It identifies which APIs or hot paths are ready, risky, or blocked.
+
+7. **Final terminal state is exactly one of:**
+
+   ```text
+   ALIVE
+   BLOCKED
+   BUILD_BROKEN
+   ```
+
+Use `ALIVE` only if all benchmark code compiles, benchmarks execute, profiling evidence or documented profiling fallback exists, and `benchmark_report.md` is generated with real metrics.
+
+Use `BLOCKED` only if required toolchain, benchmark dependencies, profiling permissions, missing crate features, or unavailable SHACL/ShEx implementation surfaces prevent completion.
+
+Use `BUILD_BROKEN` only if the crate/workspace cannot compile or benchmark after deterministic repair attempts.
+
+No fake numbers.
+No “should be faster.”
+No invented flamegraph claims.
+No rslab implementation before benchmark evidence.
+Benchmark first. rslab after.
+
+---
+
+# Mission
+
+Audit, run, and improve the benchmarking of the `praxis-graphlaw` engine so it becomes a world-class performance foundation for the upcoming `rslab` project.
+
+Working directory:
+
+```text
+/Users/sac/praxis
+```
+
+Integrity mode:
+
+```text
+benchmark
+```
+
+Primary crate:
+
+```text
+crates/praxis-graphlaw
+```
+
+Benchmark directory:
+
+```text
+crates/praxis-graphlaw/benches/
+```
+
+Output report:
+
+```text
+benchmark_report.md
+```
+
+---
+
+# Required First Action: Inspect Before Editing
+
+Before adding or changing benchmark code, inspect the repository.
+
+Locate and read:
+
+```text
+Cargo.toml
+crates/praxis-graphlaw/Cargo.toml
+crates/praxis-graphlaw/benches/
+crates/praxis-graphlaw/src/
+existing benchmark harnesses
+existing SHACL implementation
+existing ShEx/ShExC implementation
+existing N3 implementation
+existing Datalog implementation
+```
+
+Determine the actual benchmark framework already in use:
+
+```text
+criterion
+divan
+iai
+custom cargo bench
+other
+```
+
+Do not assume the benchmark framework.
+
+Do not invent missing APIs.
+
+If SHACL or ShEx/ShExC surfaces do not exist, terminal state is not automatically failure. Add this to the report as `BLOCKED` or implement only the benchmark fixtures that can target existing APIs.
+
+---
+
+# Phase 1 — Benchmark Audit
+
+Create a benchmark audit note in `benchmark_report.md` or an intermediate notes file that captures:
+
+```text
+existing benchmark files
+existing measured operations
+benchmark framework used
+missing benchmark dimensions
+N3 API entry points
+Datalog API entry points
+SHACL API entry points
+ShEx/ShExC API entry points
+dataset generation strategy
+shape/schema generation strategy
+memory profiling options available
+profiling tools available
+```
+
+The audit must precede benchmark expansion.
+
+---
+
+# Phase 2 — Add Targeted SHACL Benchmarks
+
+Add explicit SHACL benchmark cases under:
+
+```text
+crates/praxis-graphlaw/benches/
+```
+
+Use the repository’s actual benchmark style.
+
+SHACL benchmarks must cover at least:
+
+```text
+small RDF dataset
+medium RDF dataset
+large RDF dataset
+simple shape
+moderate shape graph
+complex shape graph
+valid dataset
+invalid dataset
+mixed valid/invalid dataset
+```
+
+Measure:
+
+```text
+validation latency
+validation throughput
+allocation or memory behavior
+scaling curve by triples/nodes
+scaling curve by shape count/constraint count
+```
+
+Recommended dimensions:
+
+```text
+triples: 100, 1_000, 10_000, 100_000 if feasible
+shape count: 1, 10, 50, 100 if feasible
+constraint complexity: property constraints, class constraints, cardinality constraints, datatype constraints
+```
+
+If any dimension is infeasible, document why and choose a smaller deterministic scale.
+
+---
+
+# Phase 3 — Add Targeted ShEx/ShExC Benchmarks
+
+Add explicit ShEx/ShExC validation benchmark cases under:
+
+```text
+crates/praxis-graphlaw/benches/
+```
+
+ShEx/ShExC benchmarks must cover at least:
+
+```text
+small RDF dataset
+medium RDF dataset
+large RDF dataset
+simple schema
+moderate schema
+complex schema
+valid focus nodes
+invalid focus nodes
+mixed valid/invalid focus nodes
+```
+
+Measure:
+
+```text
+validation latency
+validation throughput
+allocation or memory behavior
+scaling curve by triples/nodes
+scaling curve by schema complexity
+scaling curve by focus-node count
+```
+
+Recommended dimensions:
+
+```text
+triples: 100, 1_000, 10_000, 100_000 if feasible
+schema shapes: 1, 10, 50, 100 if feasible
+focus nodes: 1, 100, 1_000, 10_000 if feasible
+```
+
+If ShExC parsing exists, benchmark parsing separately from validation.
+
+If only ShEx validation exists, benchmark validation and document parser absence.
+
+---
+
+# Phase 4 — Preserve and Improve N3 / Datalog Benchmarks
+
+Audit existing N3 and Datalog benchmarks.
+
+Add or improve benchmarks only where needed.
+
+N3 benchmark coverage should include:
+
+```text
+rule parsing if applicable
+rule application
+materialization
+join-heavy rule sets
+recursive or iterative materialization if supported
+small/medium/large RDF graphs
+```
+
+Datalog benchmark coverage should include:
+
+```text
+fact loading
+rule loading
+materialization
+recursive rules
+join-heavy rules
+semi-naive evaluation if implemented
+small/medium/large fact sets
+```
+
+Measure:
+
+```text
+latency
+throughput
+memory/allocation behavior
+scaling with facts/triples
+scaling with rule count
+scaling with join complexity
+```
+
+---
+
+# Phase 5 — Profiling and Flamegraphs
+
+Run profiling for hot paths in:
+
+```text
+N3
+Datalog
+SHACL
+ShEx/ShExC
+```
+
+Try available tools in this order, adapting to the repository and machine:
+
+```text
+cargo flamegraph
+benchmark framework profiling support
+dhat
+heaptrack
+Instruments on macOS
+perf if available
+custom allocator stats if already present
+```
+
+Do not add heavyweight dependencies unless they are justified and scoped.
+
+If profiling requires elevated permissions or unavailable platform tooling, record the exact command and error, then produce the best available fallback.
+
+For every profiler run, capture:
+
+```text
+command
+target benchmark
+output file path
+top hot functions/modules
+interpretation
+optimization recommendation
+```
+
+---
+
+# Phase 6 — Generate benchmark_report.md
+
+Generate:
+
+```text
+/Users/sac/praxis/benchmark_report.md
+```
+
+The report must include exactly these sections:
+
+```text
+1. Terminal State
+2. Definition-of-Done Checklist
+3. Repository / Benchmark Audit
+4. Benchmark Harness and Commands
+5. Dataset and Shape/Schema Generation Method
+6. N3 Results
+7. Datalog Results
+8. SHACL Results
+9. ShEx / ShExC Results
+10. Memory and Allocation Findings
+11. Profiling / Flamegraph Findings
+12. Bottlenecks
+13. Optimization Recommendations
+14. rslab Readiness Assessment
+15. Files Changed
+16. Commands Run
+17. Remaining BLOCKED / UNKNOWN / UNSUPPORTED Items
+```
+
+Every metric must include:
+
+```text
+benchmark name
+input size
+operation measured
+latency
+throughput if applicable
+memory/allocation metric if available
+command used
+machine/toolchain context if available
+```
+
+The report must distinguish:
+
+```text
+measured result
+inferred bottleneck
+hypothesis
+recommendation
+blocked measurement
+```
+
+Do not blur these categories.
+
+---
+
+# Phase 7 — rslab Readiness Assessment
+
+Do **not** implement `rslab` in this project unless explicitly instructed after the benchmark report is reviewed.
+
+Instead, the report must include a section:
+
+```text
+rslab Readiness Assessment
+```
+
+It must answer:
+
+```text
+Which praxis-graphlaw APIs are ready to become rslab foundations?
+Which operations are too slow or memory-heavy?
+Which benchmark cases should become rslab regression gates?
+Which performance contracts should rslab enforce from day one?
+Which profiler findings must be fixed before rslab abstraction?
+Which SHACL/ShEx/N3/Datalog surfaces are stable enough for rslab?
+```
+
+Classify each area:
+
+```text
+READY
+RISKY
+BLOCKED
+UNKNOWN
+```
+
+---
+
+# Suggested Benchmark Commands
+
+Discover actual commands from the workspace before using these.
+
+Potential commands:
+
+```text
+cd /Users/sac/praxis
+cargo bench -p praxis-graphlaw
+cargo bench -p praxis-graphlaw --bench <bench_name>
+cargo test -p praxis-graphlaw
+cargo build -p praxis-graphlaw --benches
+```
+
+Potential profiling commands:
+
+```text
+cargo flamegraph -p praxis-graphlaw --bench <bench_name>
+cargo bench -p praxis-graphlaw --bench <bench_name> -- --profile-time 10
+```
+
+Only include commands that actually work in the final report.
+
+---
+
+# Acceptance Criteria
+
+## Benchmark Coverage
+
+* [ ] Existing benchmark suite audited.
+* [ ] SHACL benchmarks added or documented as `BLOCKED` if no implementation surface exists.
+* [ ] ShEx/ShExC benchmarks added or documented as `BLOCKED` if no implementation surface exists.
+* [ ] N3 benchmark coverage measured.
+* [ ] Datalog benchmark coverage measured.
+* [ ] Scaling behavior measured across dataset sizes.
+* [ ] Shape/schema complexity scaling measured.
+
+## Correctness and Execution
+
+* [ ] Benchmarks compile.
+* [ ] Benchmarks execute.
+* [ ] Benchmark commands are recorded.
+* [ ] No invented metrics.
+* [ ] No broken workspace state left behind.
+
+## Profiling
+
+* [ ] Profiling attempted for N3.
+* [ ] Profiling attempted for Datalog.
+* [ ] Profiling attempted for SHACL.
+* [ ] Profiling attempted for ShEx/ShExC.
+* [ ] Flamegraph/profiler outputs or exact blockers are recorded.
+* [ ] Bottlenecks and recommendations are included.
+
+## Report
+
+* [ ] `benchmark_report.md` exists in `/Users/sac/praxis`.
+* [ ] Report contains latency metrics.
+* [ ] Report contains throughput metrics where meaningful.
+* [ ] Report contains memory/allocation findings or exact blockers.
+* [ ] Report contains profiling insights or exact blockers.
+* [ ] Report contains rslab readiness assessment.
+
+---
+
+# Terminal Report Rules
+
+Final response must use one of these terminal states:
+
+```text
+ALIVE
+BLOCKED
+BUILD_BROKEN
+```
+
+## Follow-up — 2026-07-08T04:06:19Z
+
+# [P0] Optimize praxis-graphlaw Forward Reasoning: Semi-Naive Evaluation, Hash Join, and SHACL Class Closure
+
+## Type
+Engineering / Performance / Correctness-Preserving Refactor
+
+## Priority
+P0 — Blocks rslab readiness for scalable reasoning workloads
+
+## Component
+`praxis-graphlaw`
+
+## Affected Areas
+* `crates/praxis-graphlaw/src/reasoner/mod.rs`
+* `crates/praxis-graphlaw/src/queryengine/mod.rs`
+* `crates/praxis-graphlaw/src/bindings.rs`
+* `crates/praxis-graphlaw/src/shacl.rs`
+* `crates/praxis-graphlaw/benches/dialects.rs`
+* `crates/praxis-graphlaw/benches/hierarchies.rs`
+
+## Summary
+The current `praxis-graphlaw` forward reasoning implementation is correct but asymptotically unsafe for rslab-scale workloads. Benchmark evidence shows N3 transitive materialization scaling approximately cubically due to full-database re-evaluation on every fixpoint iteration, nested-loop joins in `Binding::join`, and repeated positive-literal scans in `SimpleQueryEngine::query`.
+
+This ticket implements the minimum correctness-preserving performance repair:
+1. Semi-naive delta materialization for forward reasoning.
+2. Hash-based joins for binding combination.
+3. Fact indexing for positive literal query matching.
+4. SHACL subclass closure memoization or precomputation.
+5. Regression benches proving improved scaling without reducing conformance.
+
+## Problem Statement
+The current reasoner recomputes against the entire fact database during each fixpoint iteration. This violates delta locality and causes recursive/transitive workloads to degrade rapidly as graph size grows.
+
+Current behavior:
+- Every iteration scans all facts.
+- Every rule body can be re-evaluated against the whole store.
+- Joins use nested-loop row comparison.
+- Newly derived facts are not used as the primary driver of the next iteration.
+- SHACL class checks repeatedly perform BFS over `rdfs:subClassOf`.
+
+Required behavior:
+- Each materialization round must be delta-driven.
+- At least one body literal in each fired rule must bind against the previous iteration’s delta.
+- Joins must avoid quadratic nested-loop behavior where compatible hash keys exist.
+- Positive literal matching must use indexed fact lookup.
+- SHACL class membership must use cached or precomputed subclass closure.
+
+## Implementation Scope
+
+### 1. Semi-Naive Materialization
+Modify `Reasoner::materialize` so that it tracks:
+- `known_facts`
+- `delta_facts`
+- `next_delta_facts`
+- iteration count
+- derivation count
+- duplicate-suppression count
+
+The first iteration may use base facts. Subsequent iterations must only derive facts from rule matches where at least one positive body literal is bound to a fact from `delta_facts`.
+
+Expected internal flow:
+1. Initialize `known_facts` from the store.
+2. Initialize `delta_facts` from seed/base facts or all existing facts for the first round.
+3. For each rule:
+   - evaluate rule variants where one positive literal is delta-bound;
+   - join remaining literals using indexed lookup;
+   - emit candidate derived facts.
+4. Deduplicate against `known_facts`.
+5. Add novel facts to `next_delta_facts`.
+6. Stop when `next_delta_facts` is empty.
+7. Preserve existing public API behavior.
+
+Non-goal: change rule semantics.
+
+### 2. Hash Join for Bindings
+Replace or augment `Binding::join` with hash join behavior.
+
+Current risk:
+- Nested-loop join: `O(|L| * |R|)`
+Target:
+- Hash join where shared variables exist: `O(|L| + |R|)` average case
+- Fallback nested join only when no useful key exists or for very small inputs where overhead would dominate
+
+Implementation requirements:
+- Detect shared variables between left and right binding rows.
+- Build hash keys from shared variable assignments.
+- Hash the smaller side.
+- Probe with the larger side.
+- Preserve exact compatibility semantics.
+- Preserve deterministic output ordering if existing tests depend on order; otherwise normalize tests to compare sets.
+
+### 3. Indexed Positive Literal Querying
+Add or reuse fact indexes in `SimpleQueryEngine::query`.
+
+Minimum viable indexes:
+- subject index
+- predicate index
+- object index
+- predicate-object index
+- subject-predicate index
+
+The query engine should choose the most selective available index based on which terms are bound.
+
+Examples:
+- `(?s rdf:type ex:Class)` should use predicate-object.
+- `(ex:a ?p ?o)` should use subject.
+- `(ex:a ex:p ?o)` should use subject-predicate.
+- `(?s ex:p ?o)` should use predicate.
+
+Non-goal: full cost-based query planning.
+
+### 4. SHACL Subclass Closure / Memoization
+Repair `shacl::has_class`.
+
+Current behavior:
+- Repeated BFS over `rdfs:subClassOf` hierarchy per focus node.
+Target behavior:
+Either:
+A. Precompute `rdfs:subClassOf*` closure before validation; or
+B. Memoize `(actual_class, expected_class) -> bool`.
+
+Acceptance preference:
+- Use precomputed closure if hierarchy is stable during validation.
+- Use memoization if validator architecture makes precompute intrusive.
+Must preserve current SHACL validation semantics.
+
+### 5. Benchmark Restoration and Regression Gates
+Update benchmarks to prove improvement.
+
+Required benches:
+- `n3_chain_depth_50`
+- `n3_chain_depth_150`
+- `n3_chain_depth_400`
+- `test_transitive_rule`
+- `datalog_stratify_layers_200`
+- `shacl_validate_1000`
+- `shacl_validate_complex_1000`
+- `shex_validate_1000`
+- `shex_validate_complex_1000`
+
+Restore or replace commented hierarchy benches:
+- `test_rdf_hierarchy_100`
+- `test_rdf_hierarchy_1000`
+
+If original hierarchy benches remain too slow, replace with bounded hierarchy benches that terminate reliably and measure subclass closure behavior.
+
+## Acceptance Criteria
+
+### Correctness
+- `cargo test -p praxis-graphlaw --all-features` passes.
+- Existing N3, Datalog, SHACL, ShEx, and ShExC conformance tests remain green.
+- No semantic change to `TripleStore::materialize`.
+- No semantic change to `TripleStore::validate_shacl`.
+- Duplicate derived facts are suppressed.
+- Fixpoint termination remains guaranteed for finite fact/rule sets.
+
+### Performance
+The following must improve or remain stable relative to the current benchmark report:
+
+#### N3 Materialization
+- `n3_chain_depth_150` improves by at least 3x.
+- `n3_chain_depth_400` improves by at least 5x.
+- Scaling curve must no longer match cubic growth.
+- Benchmark report must classify N3 materialization as either:
+  - `ALIVE`, if scaling is subquadratic or near-linear; or
+  - `PARTIAL_ALIVE`, if improved but still above quadratic.
+
+#### Join Layer
+- Add a targeted benchmark for `Binding::join`.
+- Hash join must outperform nested-loop join on medium/large compatible binding sets.
+- Preserve compatibility behavior.
+
+#### SHACL Hierarchy
+- Re-enabled or replacement hierarchy benchmarks must complete.
+- Repeated class checks must not perform fresh BFS per focus node.
+- `shacl_validate_complex_1000` must not regress by more than 10%.
+
+#### Non-Regression
+- ShEx and ShExC benchmarks must not regress by more than 10%.
+- Datalog stratification benchmarks must not regress by more than 10%.
+- N3 parser benchmark must not regress by more than 10%.
+
+### Receipts / Reporting
+Produce an updated benchmark report at: `/Users/sac/praxis/benchmark_report.md`
+The report must include:
+- before/after timings;
+- scaling curve interpretation;
+- whether N3 moved from `RISKY` to `PARTIAL_ALIVE` or `ALIVE`;
+- profiler comparison;
+- remaining `UNKNOWN`, `UNSUPPORTED`, or `BLOCKED` items;
+- rslab readiness update.
+
+## Definition of Done
+- [ ] Semi-naive materialization implemented.
+- [ ] Hash join implemented or added as selected fast path.
+- [ ] Positive literal fact indexing implemented.
+- [ ] SHACL subclass closure or memoization implemented.
+- [ ] Commented hierarchy benchmarks restored or replaced.
+- [ ] Existing tests pass.
+- [ ] Benchmarks run cleanly.
+- [ ] Updated benchmark report generated.
+- [ ] rslab readiness section updated.
+- [ ] No silent promotion from `RISKY` to `ALIVE`; status must be justified by measurements.
+- [ ] Commit includes implementation, benchmarks, and report.
+
+## Commands to Run
+```bash
+cargo test -p praxis-graphlaw --all-features
+cargo bench -p praxis-graphlaw --no-run
+cargo bench -p praxis-graphlaw --bench bench
+cargo bench -p praxis-graphlaw --bench blue_river_dam
+cargo bench -p praxis-graphlaw --bench dialects
+cargo bench -p praxis-graphlaw --bench hierarchies
+xctrace record --template 'Time Profiler' --output /Users/sac/praxis/.agents/reasoner_fix/dialects_after.trace --launch -- /Users/sac/praxis/target/release/deps/dialects-* --bench n3_chain_depth_150
+```
+
+
 

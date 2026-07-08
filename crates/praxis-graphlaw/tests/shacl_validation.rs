@@ -1,6 +1,6 @@
-use praxis_graphlaw::shacl::{Validator, ShapesGraph};
-use praxis_graphlaw::tripleindex::TripleIndex;
 use praxis_graphlaw::parser::{Parser, Syntax};
+use praxis_graphlaw::shacl::{ShapesGraph, Validator};
+use praxis_graphlaw::tripleindex::TripleIndex;
 
 fn build_data_index(data_str: &str) -> TripleIndex {
     let triples = Parser::parse_triples(data_str, Syntax::Turtle).unwrap();
@@ -46,13 +46,27 @@ fn test_min_max_count_violation() {
     assert!(!report.conforms);
     assert_eq!(report.results.len(), 2);
 
-    let alice_results: Vec<_> = report.results.iter().filter(|r| r.focus_node.to_string().contains("Alice")).collect();
+    let alice_results: Vec<_> = report
+        .results
+        .iter()
+        .filter(|r| r.focus_node.to_string().contains("Alice"))
+        .collect();
     assert_eq!(alice_results.len(), 1);
-    assert_eq!(alice_results[0].source_constraint_component.to_string(), "<http://www.w3.org/ns/shacl#MinCountConstraintComponent>");
+    assert_eq!(
+        alice_results[0].source_constraint_component.to_string(),
+        "<http://www.w3.org/ns/shacl#MinCountConstraintComponent>"
+    );
 
-    let bob_results: Vec<_> = report.results.iter().filter(|r| r.focus_node.to_string().contains("Bob")).collect();
+    let bob_results: Vec<_> = report
+        .results
+        .iter()
+        .filter(|r| r.focus_node.to_string().contains("Bob"))
+        .collect();
     assert_eq!(bob_results.len(), 1);
-    assert_eq!(bob_results[0].source_constraint_component.to_string(), "<http://www.w3.org/ns/shacl#MaxCountConstraintComponent>");
+    assert_eq!(
+        bob_results[0].source_constraint_component.to_string(),
+        "<http://www.w3.org/ns/shacl#MaxCountConstraintComponent>"
+    );
 }
 
 #[test]
@@ -86,9 +100,16 @@ fn test_datatype_constraint_pass_fail() {
     let report = Validator::validate(&data, &shapes);
 
     assert!(!report.conforms);
-    let bob_results: Vec<_> = report.results.iter().filter(|r| r.focus_node.to_string().contains("Bob")).collect();
+    let bob_results: Vec<_> = report
+        .results
+        .iter()
+        .filter(|r| r.focus_node.to_string().contains("Bob"))
+        .collect();
     assert_eq!(bob_results.len(), 1);
-    assert_eq!(bob_results[0].source_constraint_component.to_string(), "<http://www.w3.org/ns/shacl#DatatypeConstraintComponent>");
+    assert_eq!(
+        bob_results[0].source_constraint_component.to_string(),
+        "<http://www.w3.org/ns/shacl#DatatypeConstraintComponent>"
+    );
 }
 
 #[test]
@@ -124,9 +145,21 @@ fn test_class_constraint() {
     let report = Validator::validate(&data, &shapes);
 
     assert!(!report.conforms);
-    let rex_results: Vec<_> = report.results.iter().filter(|r| r.value.as_ref().map(|v| v.to_string().contains("Rex")).unwrap_or(false)).collect();
+    let rex_results: Vec<_> = report
+        .results
+        .iter()
+        .filter(|r| {
+            r.value
+                .as_ref()
+                .map(|v| v.to_string().contains("Rex"))
+                .unwrap_or(false)
+        })
+        .collect();
     assert_eq!(rex_results.len(), 1);
-    assert_eq!(rex_results[0].source_constraint_component.to_string(), "<http://www.w3.org/ns/shacl#ClassConstraintComponent>");
+    assert_eq!(
+        rex_results[0].source_constraint_component.to_string(),
+        "<http://www.w3.org/ns/shacl#ClassConstraintComponent>"
+    );
 }
 
 #[test]
@@ -273,8 +306,16 @@ fn test_empty_dataset() {
     let report_node = Validator::validate(&data, &shapes_node);
     assert!(!report_node.conforms);
     assert_eq!(report_node.results.len(), 1);
-    assert_eq!(report_node.results[0].focus_node.to_string(), "<http://example.org/Alice>");
-    assert_eq!(report_node.results[0].source_constraint_component.to_string(), "<http://www.w3.org/ns/shacl#MinCountConstraintComponent>");
+    assert_eq!(
+        report_node.results[0].focus_node.to_string(),
+        "<http://example.org/Alice>"
+    );
+    assert_eq!(
+        report_node.results[0]
+            .source_constraint_component
+            .to_string(),
+        "<http://www.w3.org/ns/shacl#MinCountConstraintComponent>"
+    );
 }
 
 #[test]
@@ -333,11 +374,18 @@ fn test_recursive_shapes() {
     // Bob should have a minCount violation for ex:name.
     // Let's check results.
     assert!(!report.conforms);
-    
+
     // We expect a violation for Bob missing name, and possibly Bob failing the `and` constraint for knows Alice (wait, does Alice fail anything? No, Alice conforms).
     // Let's see what focus nodes failed: Bob should have a minCount violation on name.
-    let bob_name_viol: Vec<_> = report.results.iter()
-        .filter(|r| r.focus_node.to_string().contains("Bob") && r.source_constraint_component.to_string().contains("MinCountConstraintComponent"))
+    let bob_name_viol: Vec<_> = report
+        .results
+        .iter()
+        .filter(|r| {
+            r.focus_node.to_string().contains("Bob")
+                && r.source_constraint_component
+                    .to_string()
+                    .contains("MinCountConstraintComponent")
+        })
         .collect();
     assert!(!bob_name_viol.is_empty());
 }
@@ -412,7 +460,11 @@ fn test_property_paths_comprehensive() {
     let report = Validator::validate(&data, &shapes);
 
     // Everything is designed to pass
-    assert!(report.conforms, "Expected all property path constraints to pass, but got errors: {:?}", report.results);
+    assert!(
+        report.conforms,
+        "Expected all property path constraints to pass, but got errors: {:?}",
+        report.results
+    );
 
     // Now let's test failing cases by making data insufficient
     let data_str_fail = r#"
@@ -467,11 +519,17 @@ fn test_severity_and_datatype() {
     // A prior version of this test asserted the opposite (conforms=true for
     // non-Violation severities) -- that assumption was wrong and has been
     // corrected in shacl.rs's Validator::validate accordingly.
-    assert!(!report.conforms, "conforms must be false whenever any result exists, even sh:Info severity");
+    assert!(
+        !report.conforms,
+        "conforms must be false whenever any result exists, even sh:Info severity"
+    );
     assert_eq!(report.results.len(), 1);
 
     // The violation is on the property shape, so it should carry the property's sh:severity, which is sh:Info.
-    assert_eq!(report.results[0].severity.to_string(), "<http://www.w3.org/ns/shacl#Info>");
+    assert_eq!(
+        report.results[0].severity.to_string(),
+        "<http://www.w3.org/ns/shacl#Info>"
+    );
 }
 
 // -----------------------------------------------------------------------
@@ -507,7 +565,10 @@ fn test_message_prefers_plain_literal_over_language_tagged() {
 
     assert!(!report.conforms);
     assert_eq!(report.results.len(), 1);
-    assert_eq!(report.results[0].message.as_deref(), Some("Generic error message"));
+    assert_eq!(
+        report.results[0].message.as_deref(),
+        Some("Generic error message")
+    );
 }
 
 #[test]
@@ -537,7 +598,10 @@ fn test_message_prefers_english_when_no_plain_literal() {
 
     assert!(!report.conforms);
     assert_eq!(report.results.len(), 1);
-    assert_eq!(report.results[0].message.as_deref(), Some("Error: name missing"));
+    assert_eq!(
+        report.results[0].message.as_deref(),
+        Some("Error: name missing")
+    );
 }
 
 // -----------------------------------------------------------------------
@@ -571,7 +635,10 @@ fn test_sparql_ask_constraint() {
     assert!(!report.conforms);
     assert_eq!(report.results.len(), 1);
     assert!(report.results[0].focus_node.to_string().contains("Bob"));
-    assert_eq!(report.results[0].message.as_deref(), Some("Must be an adult"));
+    assert_eq!(
+        report.results[0].message.as_deref(),
+        Some("Must be an adult")
+    );
     assert_eq!(
         report.results[0].source_constraint_component.to_string(),
         "<http://www.w3.org/ns/shacl#SPARQLConstraintComponent>"
@@ -605,8 +672,14 @@ fn test_sparql_select_constraint() {
 
     assert!(!report.conforms);
     assert!(!report.results.is_empty());
-    assert!(report.results.iter().all(|r| r.focus_node.to_string().contains("Alice")));
-    assert!(report.results.iter().all(|r| r.message.as_deref() == Some("Must have a single name")));
+    assert!(report
+        .results
+        .iter()
+        .all(|r| r.focus_node.to_string().contains("Alice")));
+    assert!(report
+        .results
+        .iter()
+        .all(|r| r.message.as_deref() == Some("Must have a single name")));
 }
 
 // -----------------------------------------------------------------------
@@ -644,3 +717,68 @@ fn test_sparql_target() {
     assert_eq!(report.results.len(), 1);
     assert!(report.results[0].focus_node.to_string().contains("Minor1"));
 }
+
+#[test]
+fn test_subclass_closure_cycles_and_multiple_inheritance() {
+    let shapes_str = r#"
+        @prefix sh: <http://www.w3.org/ns/shacl#> .
+        @prefix ex: <http://example.org/> .
+
+        ex:VehicleShape a sh:NodeShape ;
+            sh:targetClass ex:Vehicle ;
+            sh:property [
+                sh:path ex:cargo ;
+                sh:class ex:SafeCargo ;
+            ] .
+    "#;
+
+    let data_str = r#"
+        @prefix ex: <http://example.org/> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+        # Multiple inheritance and multi-level
+        ex:Fruit rdfs:subClassOf ex:Food .
+        ex:Apple rdfs:subClassOf ex:Fruit .
+        ex:Apple rdfs:subClassOf ex:SafeCargo .
+
+        # Subclass Cycle
+        ex:A rdfs:subClassOf ex:B .
+        ex:B rdfs:subClassOf ex:A .
+        ex:A rdfs:subClassOf ex:SafeCargo .
+
+        ex:Truck a ex:Vehicle ;
+            ex:cargo ex:MyApple , ex:MyA , ex:MyBox .
+
+        ex:MyApple a ex:Apple .       # is Apple -> Fruit -> Food, and Apple -> SafeCargo (conforms)
+        ex:MyA a ex:A .               # is A -> B -> A, and A -> SafeCargo (conforms)
+        ex:MyBox a ex:CardboardBox .  # not SafeCargo (violates)
+    "#;
+
+    let data = build_data_index(data_str);
+    let shapes = ShapesGraph::parse(shapes_str).unwrap();
+    let report = Validator::validate(&data, &shapes);
+
+    assert!(!report.conforms);
+    let violations: Vec<_> = report
+        .results
+        .iter()
+        .filter(|r| r.value.as_ref().map(|v| v.to_string().contains("MyBox")).unwrap_or(false))
+        .collect();
+    assert_eq!(violations.len(), 1);
+
+    // ensure Apple and A conform (don't generate violations)
+    let apple_violations: Vec<_> = report
+        .results
+        .iter()
+        .filter(|r| r.value.as_ref().map(|v| v.to_string().contains("MyApple")).unwrap_or(false))
+        .collect();
+    assert_eq!(apple_violations.len(), 0);
+
+    let a_violations: Vec<_> = report
+        .results
+        .iter()
+        .filter(|r| r.value.as_ref().map(|v| v.to_string().contains("MyA")).unwrap_or(false))
+        .collect();
+    assert_eq!(a_violations.len(), 0);
+}
+

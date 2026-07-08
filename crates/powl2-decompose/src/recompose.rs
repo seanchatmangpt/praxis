@@ -165,8 +165,15 @@ impl Builder {
     }
 
     fn finish(self, source: String, sink: String) -> WfNet {
-        WfNet::new(self.places, self.transitions, self.pt, self.tp, source, sink)
-            .expect("recomposition yields a valid safe & sound WF-net")
+        WfNet::new(
+            self.places,
+            self.transitions,
+            self.pt,
+            self.tp,
+            source,
+            sink,
+        )
+        .expect("recomposition yields a valid safe & sound WF-net")
     }
 }
 
@@ -175,7 +182,8 @@ impl Builder {
 fn cover_relation(order: &BTreeSet<(usize, usize)>, n: usize) -> BTreeSet<(usize, usize)> {
     let mut cover = BTreeSet::new();
     for &(i, j) in order {
-        let has_mid = (0..n).any(|k| k != i && k != j && order.contains(&(i, k)) && order.contains(&(k, j)));
+        let has_mid =
+            (0..n).any(|k| k != i && k != j && order.contains(&(i, k)) && order.contains(&(k, j)));
         if !has_mid {
             cover.insert((i, j));
         }

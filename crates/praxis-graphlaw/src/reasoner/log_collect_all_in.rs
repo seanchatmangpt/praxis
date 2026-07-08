@@ -42,6 +42,8 @@ impl Reasoner {
         rule: &Rule,
         collect_idx: usize,
         triple_index: &TripleIndex,
+        prev_limit: Option<usize>,
+        current_limit: usize,
     ) -> Vec<Triple> {
         let mut results = Vec::new();
         let collect_lit = &rule.body[collect_idx];
@@ -61,6 +63,13 @@ impl Reasoner {
 
         let outer_bindings = if pre_body.is_empty() {
             Some(Binding::new())
+        } else if let Some(prev_limit) = prev_limit {
+            <SimpleQueryEngine as QueryEngine>::query_semi_naive(
+                triple_index,
+                &pre_body,
+                prev_limit,
+                current_limit,
+            )
         } else {
             SimpleQueryEngine::query(triple_index, &pre_body, None)
         };

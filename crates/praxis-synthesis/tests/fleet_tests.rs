@@ -17,9 +17,15 @@ fn fleet_bytes_project_terminal_states() {
     for (i, b) in r.bytes.iter().enumerate() {
         if i % 4 == 3 {
             assert!(b & lane::H_HALTED != 0, "template {i} must halt");
-            assert!(b & lane::U_UNSAT_CERTIFIED != 0, "template {i} carries a proof");
+            assert!(
+                b & lane::U_UNSAT_CERTIFIED != 0,
+                "template {i} carries a proof"
+            );
         } else {
-            assert!(b & lane::A_ADMITTED != 0, "template {i} must admit: {b:#010b}");
+            assert!(
+                b & lane::A_ADMITTED != 0,
+                "template {i} must admit: {b:#010b}"
+            );
             assert!(b & lane::P_SATURATED != 0);
             assert!(b & lane::R_PLANNED != 0);
             assert!(b & lane::C_EXECUTED != 0);
@@ -34,7 +40,10 @@ fn shared_caches_absorb_repeated_deliberation() {
     // 40 pipelines, 4 templates → each template runs 10 times.
     let r = run_fleet(40, 4, &mut memo, &mut cores);
     // Template 3 is unsat: derived once, replayed 9 times from the core cache.
-    assert_eq!(r.core_hits, 9, "9 of 10 dead ends replay from the shared core");
+    assert_eq!(
+        r.core_hits, 9,
+        "9 of 10 dead ends replay from the shared core"
+    );
     // Solvable templates: the DAG executes cold once per template, then replays.
     assert!(
         r.replayed_nodes > r.executed_nodes * 8,
@@ -93,7 +102,10 @@ fn overlap_curve_receipt() {
         })).collect::<Vec<_>>(),
     });
     std::fs::write(
-        concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/synthesis-fleet-receipt.json"),
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../target/synthesis-fleet-receipt.json"
+        ),
         serde_json::to_string_pretty(&receipt).expect("serialize"),
     )
     .expect("write receipt");

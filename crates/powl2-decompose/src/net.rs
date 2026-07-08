@@ -76,34 +76,50 @@ impl WfNet {
                 return Err(NetError::DanglingArc(format!("({p} -> {t}): no place {p}")));
             }
             if !self.transitions.contains_key(t) {
-                return Err(NetError::DanglingArc(format!("({p} -> {t}): no transition {t}")));
+                return Err(NetError::DanglingArc(format!(
+                    "({p} -> {t}): no transition {t}"
+                )));
             }
         }
         for (t, p) in &self.tp {
             if !self.transitions.contains_key(t) {
-                return Err(NetError::DanglingArc(format!("({t} -> {p}): no transition {t}")));
+                return Err(NetError::DanglingArc(format!(
+                    "({t} -> {p}): no transition {t}"
+                )));
             }
             if !self.places.contains(p) {
                 return Err(NetError::DanglingArc(format!("({t} -> {p}): no place {p}")));
             }
         }
         if !self.places.contains(&self.source) {
-            return Err(NetError::NotWfNet(format!("declared source {} not a place", self.source)));
+            return Err(NetError::NotWfNet(format!(
+                "declared source {} not a place",
+                self.source
+            )));
         }
         if !self.places.contains(&self.sink) {
-            return Err(NetError::NotWfNet(format!("declared sink {} not a place", self.sink)));
+            return Err(NetError::NotWfNet(format!(
+                "declared sink {} not a place",
+                self.sink
+            )));
         }
         // Unique source: {source} = {p | •p = ∅}.
-        let no_in: BTreeSet<&String> =
-            self.places.iter().filter(|p| self.pre_place(p).is_empty()).collect();
+        let no_in: BTreeSet<&String> = self
+            .places
+            .iter()
+            .filter(|p| self.pre_place(p).is_empty())
+            .collect();
         if no_in.len() != 1 || !no_in.contains(&self.source) {
             return Err(NetError::NotWfNet(format!(
                 "unique-source violated: places with empty pre-set = {no_in:?}"
             )));
         }
         // Unique sink: {sink} = {p | p• = ∅}.
-        let no_out: BTreeSet<&String> =
-            self.places.iter().filter(|p| self.post_place(p).is_empty()).collect();
+        let no_out: BTreeSet<&String> = self
+            .places
+            .iter()
+            .filter(|p| self.post_place(p).is_empty())
+            .collect();
         if no_out.len() != 1 || !no_out.contains(&self.sink) {
             return Err(NetError::NotWfNet(format!(
                 "unique-sink violated: places with empty post-set = {no_out:?}"
@@ -115,7 +131,9 @@ impl WfNet {
         for p in &self.places {
             let node = format!("p:{p}");
             if !fwd.contains(&node) || !bwd.contains(&node) {
-                return Err(NetError::NotWfNet(format!("place {p} not on a source->sink path")));
+                return Err(NetError::NotWfNet(format!(
+                    "place {p} not on a source->sink path"
+                )));
             }
         }
         for t in self.transitions.keys() {
@@ -164,25 +182,41 @@ impl WfNet {
     /// `p•` — post-set of place `p`: transitions consuming from `p`.
     #[must_use]
     pub fn post_place(&self, p: &str) -> BTreeSet<String> {
-        self.pt.iter().filter(|(x, _)| x == p).map(|(_, t)| t.clone()).collect()
+        self.pt
+            .iter()
+            .filter(|(x, _)| x == p)
+            .map(|(_, t)| t.clone())
+            .collect()
     }
 
     /// `•p` — pre-set of place `p`: transitions producing into `p`.
     #[must_use]
     pub fn pre_place(&self, p: &str) -> BTreeSet<String> {
-        self.tp.iter().filter(|(_, x)| x == p).map(|(t, _)| t.clone()).collect()
+        self.tp
+            .iter()
+            .filter(|(_, x)| x == p)
+            .map(|(t, _)| t.clone())
+            .collect()
     }
 
     /// `t•` — post-set of transition `t`: places it produces into.
     #[must_use]
     pub fn post_trans(&self, t: &str) -> BTreeSet<String> {
-        self.tp.iter().filter(|(x, _)| x == t).map(|(_, p)| p.clone()).collect()
+        self.tp
+            .iter()
+            .filter(|(x, _)| x == t)
+            .map(|(_, p)| p.clone())
+            .collect()
     }
 
     /// `•t` — pre-set of transition `t`: places it consumes from.
     #[must_use]
     pub fn pre_trans(&self, t: &str) -> BTreeSet<String> {
-        self.pt.iter().filter(|(_, x)| x == t).map(|(p, _)| p.clone()).collect()
+        self.pt
+            .iter()
+            .filter(|(_, x)| x == t)
+            .map(|(p, _)| p.clone())
+            .collect()
     }
 
     // ── free-choiceness (Def 3.4) ────────────────────────────────────────────
@@ -369,9 +403,15 @@ impl WfNet {
 
     fn tagged_successors(&self, node: &str) -> Vec<String> {
         if let Some(p) = node.strip_prefix("p:") {
-            self.post_place(p).into_iter().map(|t| format!("t:{t}")).collect()
+            self.post_place(p)
+                .into_iter()
+                .map(|t| format!("t:{t}"))
+                .collect()
         } else if let Some(t) = node.strip_prefix("t:") {
-            self.post_trans(t).into_iter().map(|p| format!("p:{p}")).collect()
+            self.post_trans(t)
+                .into_iter()
+                .map(|p| format!("p:{p}"))
+                .collect()
         } else {
             Vec::new()
         }
@@ -379,9 +419,15 @@ impl WfNet {
 
     fn tagged_predecessors(&self, node: &str) -> Vec<String> {
         if let Some(p) = node.strip_prefix("p:") {
-            self.pre_place(p).into_iter().map(|t| format!("t:{t}")).collect()
+            self.pre_place(p)
+                .into_iter()
+                .map(|t| format!("t:{t}"))
+                .collect()
         } else if let Some(t) = node.strip_prefix("t:") {
-            self.pre_trans(t).into_iter().map(|p| format!("p:{p}")).collect()
+            self.pre_trans(t)
+                .into_iter()
+                .map(|p| format!("p:{p}"))
+                .collect()
         } else {
             Vec::new()
         }
@@ -398,7 +444,12 @@ impl WfNet {
             .map(|l| l.clone().unwrap_or_else(|| "\u{03c4}".to_string()))
             .collect();
         labels.sort();
-        (self.places.len(), self.transitions.len(), self.pt.len() + self.tp.len(), labels)
+        (
+            self.places.len(),
+            self.transitions.len(),
+            self.pt.len() + self.tp.len(),
+            labels,
+        )
     }
 
     /// BLAKE3 hash (hex) of the net's canonical serialization — the content

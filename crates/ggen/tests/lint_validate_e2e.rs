@@ -99,7 +99,9 @@ fn clean_demo_project_validates_via_cli() {
         .current_dir(dir.path())
         .run()
         .expect("run graph validate");
-    output.assert_success().assert_stdout_contains("templates_checked");
+    output
+        .assert_success()
+        .assert_stdout_contains("templates_checked");
 }
 
 #[test]
@@ -116,6 +118,12 @@ fn cli_graph_validate_fails_closed_on_unbound_var() {
         .expect("run graph validate");
     output.assert_failure();
     let combined = format!("{}{}", output.stdout, output.stderr);
-    assert!(combined.contains("FM-TPL-003"), "must name FM-TPL-003: {combined}");
-    assert!(combined.contains("typo"), "must name the variable: {combined}");
+    assert!(
+        combined.contains("FM-TPL-003"),
+        "must name FM-TPL-003: {combined}"
+    );
+    assert!(
+        combined.contains("typo"),
+        "must name the variable: {combined}"
+    );
 }

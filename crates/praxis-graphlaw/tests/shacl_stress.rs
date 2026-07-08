@@ -2,8 +2,8 @@
 //! W3C-suite-driven conformance checks to probe behavior at scale and check
 //! specifically for over-permissive validation (false conformance).
 
-use praxis_graphlaw::shacl::{ShapesGraph, Validator};
 use praxis_graphlaw::parser::{Parser, Syntax};
+use praxis_graphlaw::shacl::{ShapesGraph, Validator};
 use praxis_graphlaw::tripleindex::TripleIndex;
 use std::time::{Duration, Instant};
 
@@ -177,7 +177,10 @@ fn test_large_scale_validation_1000_focus_nodes() {
     let report = Validator::validate(&data, &shapes);
     let elapsed = start.elapsed();
 
-    assert!(!report.conforms, "half of 1000 focus nodes have an invalid age and must produce violations");
+    assert!(
+        !report.conforms,
+        "half of 1000 focus nodes have an invalid age and must produce violations"
+    );
 
     let violated_persons: std::collections::HashSet<String> = report
         .results
@@ -190,9 +193,11 @@ fn test_large_scale_validation_1000_focus_nodes() {
     // more (false positives on valid data) and not fewer (false negatives
     // missing real violations).
     assert_eq!(
-        violated_persons.len(), N / 2,
+        violated_persons.len(),
+        N / 2,
         "expected exactly {} violating focus nodes (the odd-indexed ones with age=-5), got {}",
-        N / 2, violated_persons.len()
+        N / 2,
+        violated_persons.len()
     );
 
     assert!(
@@ -223,7 +228,13 @@ fn test_counterfactual_numeric_range_exact_boundary() {
     "#;
     let shapes = ShapesGraph::parse(shapes_str).unwrap();
 
-    for (value, should_conform) in [(-1, false), (0, true), (50, true), (100, true), (101, false)] {
+    for (value, should_conform) in [
+        (-1, false),
+        (0, true),
+        (50, true),
+        (100, true),
+        (101, false),
+    ] {
         let data = build_data_index(&format!(
             "@prefix ex: <http://example.org/> .\nex:i a ex:InclusiveItem ; ex:value {value} .\n"
         ));
@@ -235,7 +246,14 @@ fn test_counterfactual_numeric_range_exact_boundary() {
         );
     }
 
-    for (value, should_conform) in [(-1, false), (0, false), (1, true), (99, true), (100, false), (101, false)] {
+    for (value, should_conform) in [
+        (-1, false),
+        (0, false),
+        (1, true),
+        (99, true),
+        (100, false),
+        (101, false),
+    ] {
         let data = build_data_index(&format!(
             "@prefix ex: <http://example.org/> .\nex:e a ex:ExclusiveItem ; ex:value {value} .\n"
         ));
@@ -274,24 +292,36 @@ fn test_datetime_timezone_mismatch_is_indeterminate_and_violates() {
     let data = build_data_index("@prefix ex: <http://example.org/> .\n");
     let report = Validator::validate(&data, &shapes);
 
-    let violated: std::collections::HashSet<String> =
-        report.results.iter().map(|r| r.focus_node.to_string()).collect();
+    let violated: std::collections::HashSet<String> = report
+        .results
+        .iter()
+        .map(|r| r.focus_node.to_string())
+        .collect();
 
     assert_eq!(
         violated.len(), 2,
         "expected exactly 2 violations (the earlier date, and the timezone-less indeterminate value), got: {:?}", violated
     );
     assert!(
-        !violated.iter().any(|v| v.contains("2002-10-10T12:00:00-05:00")),
-        "same-tz value equal to the bound must conform (no violation), got: {:?}", violated
+        !violated
+            .iter()
+            .any(|v| v.contains("2002-10-10T12:00:00-05:00")),
+        "same-tz value equal to the bound must conform (no violation), got: {:?}",
+        violated
     );
     assert!(
-        !violated.iter().any(|v| v.contains("2002-10-10T12:00:01-05:00")),
-        "same-tz value greater than the bound must conform (no violation), got: {:?}", violated
+        !violated
+            .iter()
+            .any(|v| v.contains("2002-10-10T12:00:01-05:00")),
+        "same-tz value greater than the bound must conform (no violation), got: {:?}",
+        violated
     );
     assert!(
-        violated.iter().any(|v| v.contains("2002-10-09T12:00:00-05:00")),
-        "same-tz value less than the bound must violate, got: {:?}", violated
+        violated
+            .iter()
+            .any(|v| v.contains("2002-10-09T12:00:00-05:00")),
+        "same-tz value less than the bound must violate, got: {:?}",
+        violated
     );
     assert!(
         violated.iter().any(|v| v == "\"2002-10-10T12:00:00\"^^<http://www.w3.org/2001/XMLSchema#dateTime>"),
@@ -337,7 +367,11 @@ fn test_three_level_nested_property_shape() {
     "#,
     );
     let report_valid = Validator::validate(&data_valid, &shapes);
-    assert!(report_valid.conforms, "a fully valid 3-level chain must conform, got violations: {:?}", report_valid.results);
+    assert!(
+        report_valid.conforms,
+        "a fully valid 3-level chain must conform, got violations: {:?}",
+        report_valid.results
+    );
 
     // Break the constraint at the deepest (3rd) level: country is not a ex:Country.
     let data_invalid = build_data_index(
@@ -349,10 +383,15 @@ fn test_three_level_nested_property_shape() {
     "#,
     );
     let report_invalid = Validator::validate(&data_invalid, &shapes);
-    assert!(!report_invalid.conforms, "a violation 3 levels deep must still be caught, not silently swallowed by the recursion");
+    assert!(
+        !report_invalid.conforms,
+        "a violation 3 levels deep must still be caught, not silently swallowed by the recursion"
+    );
     assert_eq!(
-        report_invalid.results.len(), 1,
-        "expected exactly 1 violation from the deepest nesting level, got: {:?}", report_invalid.results
+        report_invalid.results.len(),
+        1,
+        "expected exactly 1 violation from the deepest nesting level, got: {:?}",
+        report_invalid.results
     );
     let violation = &report_invalid.results[0];
     assert!(

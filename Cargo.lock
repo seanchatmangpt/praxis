@@ -3211,7 +3211,7 @@ dependencies = [
  "praxis-retrofit",
  "praxis-synthesis",
  "predicates",
- "prolog8 26.7.1",
+ "prolog8 26.7.6",
  "proptest",
  "rmcp 0.11.0",
  "rmcp-macros 0.11.0",
@@ -3231,7 +3231,7 @@ dependencies = [
  "tree-sitter",
  "tree-sitter-rust",
  "uuid",
- "wasm4pm-cognition 26.7.1",
+ "wasm4pm-cognition 26.7.6",
  "wasm4pm-compat",
  "wasm4pm-planner",
 ]
@@ -4208,7 +4208,7 @@ dependencies = [
 
 [[package]]
 name = "prolog8"
-version = "26.7.1"
+version = "26.7.6"
 dependencies = [
  "blake3",
  "serde",
@@ -6326,14 +6326,14 @@ dependencies = [
 
 [[package]]
 name = "wasm4pm-cognition"
-version = "26.7.1"
+version = "26.7.6"
 dependencies = [
  "blake3",
  "ed25519-dalek",
  "hex",
  "indexmap",
  "once_cell",
- "prolog8 26.7.1",
+ "prolog8 26.7.6",
  "rand 0.8.6",
  "rand_core 0.6.4",
  "regex",
@@ -6356,14 +6356,22 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid",
+ "wasm4pm-core",
+]
+
+[[package]]
+name = "wasm4pm-core"
+version = "26.6.29"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
 name = "wasm4pm-planner"
-version = "26.7.1"
+version = "26.7.6"
 dependencies = [
  "blake3",
- "prolog8 26.7.1",
+ "prolog8 26.7.6",
  "rmcp 2.0.0",
  "schemars 0.8.22",
  "serde",

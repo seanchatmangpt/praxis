@@ -1080,7 +1080,9 @@ impl Iterator for QueryResults {
 pub fn eval_query<'a>(query: &'a Query, _index: &'a TripleIndex) -> PlanNode {
     match query {
         spargebra::Query::Select {
-            pattern, base_iri: _, ..
+            pattern,
+            base_iri: _,
+            ..
         } => extract_query_plan(pattern),
         spargebra::Query::Ask {
             pattern,

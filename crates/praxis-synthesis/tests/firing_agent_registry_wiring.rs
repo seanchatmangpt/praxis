@@ -8,20 +8,29 @@
 use praxis_synthesis::agent_registry::AGENT_NS;
 use praxis_synthesis::handlers::HANDLER_NS;
 use praxis_synthesis::{
-    agent_registry_hash, fire_hooks, replay_firing, FiringOutcome, HandlerRegistry,
-    MeaningSource, Origin, Reference, Refusal,
+    agent_registry_hash, fire_hooks, replay_firing, FiringOutcome, HandlerRegistry, MeaningSource,
+    Origin, Reference, Refusal,
 };
 
 const KERNEL: &str = include_str!("../ontology/lord_prayer.ttl");
 const LIFE: &str = "http://seanchatmangpt.github.io/praxis/life#";
 
 fn src(adds: &str) -> MeaningSource {
-    MeaningSource { origin: Origin::Proposer, adds_ttl: adds.to_string(), removes_ttl: String::new() }
+    MeaningSource {
+        origin: Origin::Proposer,
+        adds_ttl: adds.to_string(),
+        removes_ttl: String::new(),
+    }
 }
 
 fn kernel_with_binding(delegability: &str, handler_local: &str) -> String {
     let mut base = KERNEL.to_string();
-    for cap in &["orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt"] {
+    for cap in &[
+        "orientToFather",
+        "surrenderWill",
+        "requestDailyBread",
+        "writePrayerReceipt",
+    ] {
         base.push_str(&format!(
             "\n<http://seanchatmangpt.github.io/praxis/prayer#{cap}> \
              <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}{handler_local}> ;\n\
@@ -31,8 +40,15 @@ fn kernel_with_binding(delegability: &str, handler_local: &str) -> String {
     base
 }
 
-fn kernel_with_binding_and_agent(delegability: &str, handler_local: &str, agent_ttl: &str) -> String {
-    format!("{}\n{agent_ttl}", kernel_with_binding(delegability, handler_local))
+fn kernel_with_binding_and_agent(
+    delegability: &str,
+    handler_local: &str,
+    agent_ttl: &str,
+) -> String {
+    format!(
+        "{}\n{agent_ttl}",
+        kernel_with_binding(delegability, handler_local)
+    )
 }
 
 #[test]
@@ -47,7 +63,10 @@ fn no_agent_triples_is_unchanged_regression() {
 
     let receipt = fire_hooks(&reference, &source, &registry, &[]).expect("fires");
     assert_eq!(receipt.outcome, FiringOutcome::Completed);
-    assert!(receipt.agents.is_empty(), "no agent: triples => empty registry");
+    assert!(
+        receipt.agents.is_empty(),
+        "no agent: triples => empty registry"
+    );
     assert_eq!(
         receipt.agent_registry_hash,
         agent_registry_hash(&[]),
@@ -106,8 +125,14 @@ fn depth_5_with_can_spawn_refuses_before_hook_evaluation() {
         }
         other => panic!("expected Refused(agent-spawn-depth), got {other:?}"),
     }
-    assert!(receipt.inner.is_empty(), "refused BEFORE any solving/hook evaluation");
-    assert!(receipt.verdicts.is_empty(), "hooks never evaluated once the spawn-depth law refuses");
+    assert!(
+        receipt.inner.is_empty(),
+        "refused BEFORE any solving/hook evaluation"
+    );
+    assert!(
+        receipt.verdicts.is_empty(),
+        "hooks never evaluated once the spawn-depth law refuses"
+    );
     replay_firing(&receipt, &base, &source, &registry, &[])
         .expect("agent-spawn-depth refusal replays too — refusals are chained, never silent");
 }

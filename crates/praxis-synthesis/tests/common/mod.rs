@@ -29,11 +29,31 @@ pub fn lawobject_domain() -> (Program, Vec<Capability>, Vec<Atom>) {
         cost: 1,
     };
     let caps = vec![
-        step("supply-evidence", Atom::new(raw, vec![v0]), Atom::new(evidence, vec![v0])),
-        step("clear-obligations", Atom::new(evidence, vec![v0]), Atom::new(clear, vec![v0])),
-        step("judge", Atom::new(clear, vec![v0]), Atom::new(validated, vec![v0])),
-        step("admit", Atom::new(validated, vec![v0]), Atom::new(admitted, vec![v0])),
-        step("receipt", Atom::new(admitted, vec![v0]), Atom::new(receipted, vec![v0])),
+        step(
+            "supply-evidence",
+            Atom::new(raw, vec![v0]),
+            Atom::new(evidence, vec![v0]),
+        ),
+        step(
+            "clear-obligations",
+            Atom::new(evidence, vec![v0]),
+            Atom::new(clear, vec![v0]),
+        ),
+        step(
+            "judge",
+            Atom::new(clear, vec![v0]),
+            Atom::new(validated, vec![v0]),
+        ),
+        step(
+            "admit",
+            Atom::new(validated, vec![v0]),
+            Atom::new(admitted, vec![v0]),
+        ),
+        step(
+            "receipt",
+            Atom::new(admitted, vec![v0]),
+            Atom::new(receipted, vec![v0]),
+        ),
     ];
     let goal = vec![Atom::new(receipted, vec![Term::Const(o1)])];
     (p, caps, goal)
@@ -53,7 +73,11 @@ pub mod stats {
         assert!((0.0..=100.0).contains(&p), "percentile out of range");
         samples.sort_unstable();
         // Nearest-rank: ceil(p/100 * N), 1-based.
-        #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        #[allow(
+            clippy::cast_precision_loss,
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss
+        )]
         let rank = ((p / 100.0) * samples.len() as f64).ceil() as usize;
         samples[rank.saturating_sub(1).min(samples.len() - 1)]
     }

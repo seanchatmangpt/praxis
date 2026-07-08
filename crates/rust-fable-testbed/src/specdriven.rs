@@ -36,7 +36,11 @@ pub fn render_spec_md(task: &TaskSpec) -> String {
     let _ = writeln!(
         out,
         "- Clippy deny-warnings: {}",
-        if task.pass_criteria.clippy_deny_warnings { "yes" } else { "no" }
+        if task.pass_criteria.clippy_deny_warnings {
+            "yes"
+        } else {
+            "no"
+        }
     );
     out.push('\n');
 

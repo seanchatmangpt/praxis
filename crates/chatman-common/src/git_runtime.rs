@@ -291,12 +291,7 @@ impl GitAuditLedger {
         // `git notes show` exits with code 1 when no note exists — treat that
         // as an empty ledger rather than an error.
         let output = Command::new("git")
-            .args([
-                "notes",
-                &format!("--ref={}", self.ref_name),
-                "show",
-                "HEAD",
-            ])
+            .args(["notes", &format!("--ref={}", self.ref_name), "show", "HEAD"])
             .current_dir(&self.repo_path)
             .output()
             .map_err(|e| Error::msg(format!("git subprocess error: {e}")))?;
@@ -410,10 +405,7 @@ mod tests {
 
         let _lock = GitLock::acquire(repo, "test/exclusive").expect("first acquire");
         let second = GitLock::acquire(repo, "test/exclusive");
-        assert!(
-            second.is_err(),
-            "second acquire of the same lock must fail"
-        );
+        assert!(second.is_err(), "second acquire of the same lock must fail");
     }
 
     #[test]
@@ -473,7 +465,10 @@ mod tests {
         let canonical = serde_json::to_vec(&payload).expect("serialize");
         let expected = blake3_hex(&canonical);
 
-        assert_eq!(stored_hash, &expected, "stored hash must match manual BLAKE3");
+        assert_eq!(
+            stored_hash, &expected,
+            "stored hash must match manual BLAKE3"
+        );
     }
 
     #[test]

@@ -17,7 +17,6 @@ use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-
 pub mod r2r;
 pub mod r2s;
 pub mod s2r;
@@ -157,8 +156,12 @@ where
         let window = CSPARQLWindow::new(width, slide, report, tick);
         let mut store = r2r;
 
-        if let Err(parsing_error) = store.load_triples(triples, syntax) { error!("Unable to load ABox: {:?}", parsing_error.to_string()) }
-        if let Err(rule_error) = store.load_rules(rules) { error!("Unable to load rules: {:?}", rule_error.to_string()) }
+        if let Err(parsing_error) = store.load_triples(triples, syntax) {
+            error!("Unable to load ABox: {:?}", parsing_error.to_string())
+        }
+        if let Err(rule_error) = store.load_rules(rules) {
+            error!("Unable to load rules: {:?}", rule_error.to_string())
+        }
         let query = match Query::parse(query_str, None) {
             Ok(parsed_query) => parsed_query,
             Err(err) => {
@@ -178,16 +181,15 @@ where
                 let consumer_temp = engine.r2r.clone();
                 let r2s_consumer = engine.r2s_consumer.function.clone();
                 let r2s_operator = engine.r2s_operator.clone();
-                let call_back: Box<dyn FnMut(ContentContainer<I>)> =
-                    Box::new(move |content| {
-                        Self::evaluate_r2r_and_call_r2s(
-                            &query,
-                            consumer_temp.clone(),
-                            r2s_consumer.clone(),
-                            r2s_operator.clone(),
-                            content,
-                        );
-                    });
+                let call_back: Box<dyn FnMut(ContentContainer<I>)> = Box::new(move |content| {
+                    Self::evaluate_r2r_and_call_r2s(
+                        &query,
+                        consumer_temp.clone(),
+                        r2s_consumer.clone(),
+                        r2s_operator.clone(),
+                        content,
+                    );
+                });
                 engine.s2r.register_callback(call_back);
             }
             OperationMode::MultiThread => {
@@ -275,7 +277,9 @@ impl R2ROperator<WindowTriple, Vec<Binding>> for SimpleR2R {
     }
 
     fn load_rules(&mut self, data: &str) -> Result<(), &'static str> {
-        self.item.load_rules(data).map_err(|_| "Failed to load rules")
+        self.item
+            .load_rules(data)
+            .map_err(|_| "Failed to load rules")
     }
 
     fn add(&mut self, data: WindowTriple) {

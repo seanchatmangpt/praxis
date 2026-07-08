@@ -89,8 +89,14 @@ fn test_17_infinite_rehearsal_refused_at_bound() {
         .expect("delta parses")
     };
     let history: Vec<GraphDelta> = (0..3).map(|_| touch()).collect();
-    assert!(!rehearsal_exceeded(&history[..2], "http://e/grudge", 3), "under the bound");
-    assert!(rehearsal_exceeded(&history, "http://e/grudge", 3), "fires AT the bound");
+    assert!(
+        !rehearsal_exceeded(&history[..2], "http://e/grudge", 3),
+        "under the bound"
+    );
+    assert!(
+        rehearsal_exceeded(&history, "http://e/grudge", 3),
+        "fires AT the bound"
+    );
     let unrelated = GraphDelta::parse("<http://e/x> <http://e/p> 1 .", "").expect("parses");
     assert!(
         !rehearsal_exceeded(&[unrelated], "http://e/grudge", 1),
@@ -120,7 +126,10 @@ fn test_17_infinite_rehearsal_refused_at_bound() {
     match &receipt.outcome {
         FiringOutcome::Refused { stage, reason } => {
             assert_eq!(stage, "declared-refusal");
-            assert!(reason.contains("rehearsal budget exhausted"), "reason: {reason}");
+            assert!(
+                reason.contains("rehearsal budget exhausted"),
+                "reason: {reason}"
+            );
         }
         other => panic!("expected refusal at the rehearsal bound, got {other:?}"),
     }
@@ -166,12 +175,24 @@ fn every_class_program_parses_and_evaluates() {
     assert_eq!(cases.len(), ALL_CLASSES.len(), "every class exercised");
     for (class, open_ttl, closer_ttl) in cases {
         let (program, goal) = detection_program(class);
-        assert!(program.contains(goal), "{class:?} program derives its own goal");
+        assert!(
+            program.contains(goal),
+            "{class:?} program derives its own goal"
+        );
         let open = parse_ttl(&open_ttl).expect("open doc parses");
-        assert!(detect(class, &open).expect("evaluates"), "{class:?} open instance detected");
+        assert!(
+            detect(class, &open).expect("evaluates"),
+            "{class:?} open instance detected"
+        );
         let closed = parse_ttl(&format!("{open_ttl}{closer_ttl}")).expect("closed doc parses");
-        assert!(!detect(class, &closed).expect("evaluates"), "{class:?} closing fact closes");
-        assert!(!detect(class, &[]).expect("evaluates"), "{class:?} empty graph is clean");
+        assert!(
+            !detect(class, &closed).expect("evaluates"),
+            "{class:?} closing fact closes"
+        );
+        assert!(
+            !detect(class, &[]).expect("evaluates"),
+            "{class:?} empty graph is clean"
+        );
     }
 }
 

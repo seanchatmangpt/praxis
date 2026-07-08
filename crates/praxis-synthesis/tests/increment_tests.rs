@@ -101,10 +101,7 @@ fn increments_chain() {
     assert_eq!(p.chain(), r2.chain);
     // The chain recomputes: fold the hashes in order from the batch link.
     let recomputed = chatman_common::provenance::fold_event(
-        &chatman_common::provenance::fold_event(
-            &chain_after_batch,
-            r1.fixpoint_hash.as_bytes(),
-        ),
+        &chatman_common::provenance::fold_event(&chain_after_batch, r1.fixpoint_hash.as_bytes()),
         r2.fixpoint_hash.as_bytes(),
     );
     assert_eq!(recomputed, r2.chain, "the ledger replays");
@@ -140,8 +137,13 @@ fn increment_under_negation_is_refused_as_nonmonotonic() {
     p.saturate().expect("saturation");
     // Asserting excluded(a) NOW would have to retract eligible(a) — additive
     // increments cannot do that. The engine refuses rather than lies.
-    let err = p.assert_facts(&[(excluded, vec![a])]).expect_err("must refuse");
+    let err = p
+        .assert_facts(&[(excluded, vec![a])])
+        .expect_err("must refuse");
     assert!(matches!(err, Refusal::InvalidInput { .. }));
     let msg = format!("{err}");
-    assert!(msg.contains("nonmonotonic"), "reason names the pathology: {msg}");
+    assert!(
+        msg.contains("nonmonotonic"),
+        "reason names the pathology: {msg}"
+    );
 }

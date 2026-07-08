@@ -640,7 +640,11 @@ pub(crate) fn eval_generator(pattern: &Triple, bindings: &Binding) -> Option<Bin
         for m in members {
             result.add(&subj_var, m);
         }
-        return if !result.is_empty() { Some(result) } else { None };
+        return if !result.is_empty() {
+            Some(result)
+        } else {
+            None
+        };
     }
     let mut result = Binding::new();
     for row in 0..bindings.len() {

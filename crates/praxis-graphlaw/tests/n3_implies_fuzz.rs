@@ -8,7 +8,10 @@ use praxis_graphlaw::TripleStore;
 use proptest::prelude::*;
 
 fn decode_all(triples: &[praxis_graphlaw::triples::Triple]) -> Vec<String> {
-    triples.iter().map(praxis_graphlaw::TripleStore::decode_triple).collect()
+    triples
+        .iter()
+        .map(praxis_graphlaw::TripleStore::decode_triple)
+        .collect()
 }
 
 // Vary the number of items tagged "target" vs "other"; the log:implies
@@ -78,8 +81,11 @@ fn test_log_implies_antecedent_only_variable_does_not_leak() {
         "item1 (owned by alice AND bob) must be derived as :Owned via at least one owner match. Derived: {:?}", decoded
     );
     assert!(
-        decoded.iter().any(|d| d.contains("/item2") && d.contains("Owned")),
-        "item2 (owned by carol) must be derived as :Owned. Derived: {:?}", decoded
+        decoded
+            .iter()
+            .any(|d| d.contains("/item2") && d.contains("Owned")),
+        "item2 (owned by carol) must be derived as :Owned. Derived: {:?}",
+        decoded
     );
     // The antecedent-only variable ?owner must never leak into the derived
     // facts -- no derived triple should mention alice/bob/carol as a
@@ -107,6 +113,7 @@ fn test_log_implies_zero_antecedent_matches_derives_nothing() {
     let decoded = decode_all(&inferred);
     assert!(
         !decoded.iter().any(|d| d.contains("Match")),
-        "zero antecedent matches must derive zero :Match facts, got: {:?}", decoded
+        "zero antecedent matches must derive zero :Match facts, got: {:?}",
+        decoded
     );
 }

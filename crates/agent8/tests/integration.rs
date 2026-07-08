@@ -1,8 +1,6 @@
 //! End-to-end + differential tests for `agent8`.
 
-use agent8::{
-    pulse64_from_receipt_record, AgentByte, AgentSelect, Env64, Fleet, Pulse64,
-};
+use agent8::{pulse64_from_receipt_record, AgentByte, AgentSelect, Env64, Fleet, Pulse64};
 use praxis_core::{law::Andon, receipt_record::RECEIPT_RECORD_VERSION, ReceiptRecord};
 
 #[test]
@@ -55,7 +53,10 @@ fn receipt_record_bridges_to_a_valid_pulse() {
     assert!(!pulse.has_error());
 
     // A pulse can be folded back into a fleet agent.
-    let mut fleet = Fleet::with_fill(8, AgentByte::from_raw(AgentByte::GRANT_REQUIRED & !AgentByte::RECEIPTED));
+    let mut fleet = Fleet::with_fill(
+        8,
+        AgentByte::from_raw(AgentByte::GRANT_REQUIRED & !AgentByte::RECEIPTED),
+    );
     assert_eq!(
         fleet.get(0).select(AgentByte::GRANT_REQUIRED),
         AgentSelect::Deny // missing RECEIPTED
@@ -72,14 +73,24 @@ fn receipt_record_bridges_to_a_valid_pulse() {
 #[test]
 fn fleet_sweep_matches_naive_loop_differential() {
     let words = 100_000; // 800_000 agents
-    let mut fleet = Fleet { bytes: vec![0u64; words] };
+    let mut fleet = Fleet {
+        bytes: vec![0u64; words],
+    };
     let mut state: u64 = 0xdead_beef_cafe_f00d;
     for w in fleet.bytes.iter_mut() {
-        state = state.wrapping_mul(2862933555777941757).wrapping_add(3037000493);
+        state = state
+            .wrapping_mul(2862933555777941757)
+            .wrapping_add(3037000493);
         *w = state;
     }
 
-    for &required in &[AgentByte::GRANT_REQUIRED, 0x00, 0xFF, 0x6F, AgentByte::HEALTHY] {
+    for &required in &[
+        AgentByte::GRANT_REQUIRED,
+        0x00,
+        0xFF,
+        0x6F,
+        AgentByte::HEALTHY,
+    ] {
         let fast = fleet.sweep_stats(required);
 
         // Naive oracle.
@@ -100,9 +111,18 @@ fn fleet_sweep_matches_naive_loop_differential() {
             }
         }
         assert_eq!(fast.total, total);
-        assert_eq!(fast.admitted, admitted, "admitted mismatch @ {required:#04x}");
+        assert_eq!(
+            fast.admitted, admitted,
+            "admitted mismatch @ {required:#04x}"
+        );
         assert_eq!(fast.blocked, total - admitted);
-        assert_eq!(fast.receipted, receipted, "receipted mismatch @ {required:#04x}");
-        assert_eq!(fast.replayable, replayable, "replayable mismatch @ {required:#04x}");
+        assert_eq!(
+            fast.receipted, receipted,
+            "receipted mismatch @ {required:#04x}"
+        );
+        assert_eq!(
+            fast.replayable, replayable,
+            "replayable mismatch @ {required:#04x}"
+        );
     }
 }

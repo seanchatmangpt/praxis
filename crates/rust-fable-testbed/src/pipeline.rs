@@ -205,7 +205,10 @@ mod tests {
         std::fs::write(dir.path().join("lib.rs"), "unsafe { do_thing(); }\n").expect("write");
 
         assert!(safety_audit(dir.path(), None));
-        assert!(safety_audit(dir.path(), Some(TaskType::FunctionLevelBugfix)));
+        assert!(safety_audit(
+            dir.path(),
+            Some(TaskType::FunctionLevelBugfix)
+        ));
     }
 
     #[test]

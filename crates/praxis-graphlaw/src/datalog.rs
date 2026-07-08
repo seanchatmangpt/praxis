@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet};
-use crate::triples::{Rule, Triple, Aggregate, VarOrTerm};
 use crate::encoding::Encoder;
+use crate::triples::{Aggregate, Rule, Triple, VarOrTerm};
+use std::collections::{HashMap, HashSet};
 
 /// Recursively collect the variables mentioned inside a quoted-graph
 /// ("formula") term, if `term` names one. Used so that a variable which only
@@ -18,9 +18,19 @@ fn collect_formula_vars(term: &VarOrTerm, out: &mut HashSet<usize>) {
     }
     if let Some(triples) = VarOrTerm::formula_triples(term.to_encoded()) {
         for t in &triples {
-            if t.s.is_var() { out.insert(t.s.to_encoded()); } else { collect_formula_vars(&t.s, out); }
-            if t.p.is_var() { out.insert(t.p.to_encoded()); }
-            if t.o.is_var() { out.insert(t.o.to_encoded()); } else { collect_formula_vars(&t.o, out); }
+            if t.s.is_var() {
+                out.insert(t.s.to_encoded());
+            } else {
+                collect_formula_vars(&t.s, out);
+            }
+            if t.p.is_var() {
+                out.insert(t.p.to_encoded());
+            }
+            if t.o.is_var() {
+                out.insert(t.o.to_encoded());
+            } else {
+                collect_formula_vars(&t.o, out);
+            }
         }
     }
 }
@@ -62,9 +72,19 @@ pub fn validate_rules(
         let mut positive_vars: HashSet<usize> = HashSet::new();
         for lit in &rule.body {
             if !lit.negated {
-                if lit.pattern.s.is_var() { positive_vars.insert(lit.pattern.s.to_encoded()); } else { collect_formula_vars(&lit.pattern.s, &mut positive_vars); }
-                if lit.pattern.p.is_var() { positive_vars.insert(lit.pattern.p.to_encoded()); }
-                if lit.pattern.o.is_var() { positive_vars.insert(lit.pattern.o.to_encoded()); } else { collect_formula_vars(&lit.pattern.o, &mut positive_vars); }
+                if lit.pattern.s.is_var() {
+                    positive_vars.insert(lit.pattern.s.to_encoded());
+                } else {
+                    collect_formula_vars(&lit.pattern.s, &mut positive_vars);
+                }
+                if lit.pattern.p.is_var() {
+                    positive_vars.insert(lit.pattern.p.to_encoded());
+                }
+                if lit.pattern.o.is_var() {
+                    positive_vars.insert(lit.pattern.o.to_encoded());
+                } else {
+                    collect_formula_vars(&lit.pattern.o, &mut positive_vars);
+                }
             }
         }
 
@@ -76,9 +96,15 @@ pub fn validate_rules(
 
         // Check that every head variable is bound by a positive body literal
         let mut head_vars: HashSet<usize> = HashSet::new();
-        if rule.head.s.is_var() { head_vars.insert(rule.head.s.to_encoded()); }
-        if rule.head.p.is_var() { head_vars.insert(rule.head.p.to_encoded()); }
-        if rule.head.o.is_var() { head_vars.insert(rule.head.o.to_encoded()); }
+        if rule.head.s.is_var() {
+            head_vars.insert(rule.head.s.to_encoded());
+        }
+        if rule.head.p.is_var() {
+            head_vars.insert(rule.head.p.to_encoded());
+        }
+        if rule.head.o.is_var() {
+            head_vars.insert(rule.head.o.to_encoded());
+        }
 
         for v in &head_vars {
             if !positive_vars.contains(v) {
@@ -94,9 +120,15 @@ pub fn validate_rules(
         for lit in &rule.body {
             if lit.negated {
                 let mut neg_vars: HashSet<usize> = HashSet::new();
-                if lit.pattern.s.is_var() { neg_vars.insert(lit.pattern.s.to_encoded()); }
-                if lit.pattern.p.is_var() { neg_vars.insert(lit.pattern.p.to_encoded()); }
-                if lit.pattern.o.is_var() { neg_vars.insert(lit.pattern.o.to_encoded()); }
+                if lit.pattern.s.is_var() {
+                    neg_vars.insert(lit.pattern.s.to_encoded());
+                }
+                if lit.pattern.p.is_var() {
+                    neg_vars.insert(lit.pattern.p.to_encoded());
+                }
+                if lit.pattern.o.is_var() {
+                    neg_vars.insert(lit.pattern.o.to_encoded());
+                }
 
                 if !neg_vars.is_empty() {
                     let has_shared = neg_vars.iter().any(|v| positive_vars.contains(v));
@@ -127,11 +159,15 @@ pub fn validate_rules(
         predicates.insert(hr);
         head_relations.push(hr);
 
-        let brs: Vec<usize> = rule.body.iter().map(|lit| {
-            let br = relation_of(&lit.pattern);
-            predicates.insert(br);
-            br
-        }).collect();
+        let brs: Vec<usize> = rule
+            .body
+            .iter()
+            .map(|lit| {
+                let br = relation_of(&lit.pattern);
+                predicates.insert(br);
+                br
+            })
+            .collect();
         body_relations.push(brs);
     }
 
@@ -148,26 +184,30 @@ pub fn validate_rules(
     // before that sibling ever fires -- the real EYE `nixon_diamond` corpus
     // case (Rule 1's `log:notIncludes { ?x a ex:NonPacifist }` guard must
     // be stratified strictly after Rule 2, which derives ex:NonPacifist).
-    let notincludes_inner_relations: Vec<Vec<usize>> = rules.iter().map(|rule| {
-        let mut inner = Vec::new();
-        for lit in &rule.body {
-            if lit.negated || !lit.pattern.p.is_term() {
-                continue;
-            }
-            const LOG_NOT_INCLUDES: &str = "<http://www.w3.org/2000/10/swap/log#notIncludes>";
-            if Encoder::decode(&lit.pattern.p.to_encoded()).as_deref() != Some(LOG_NOT_INCLUDES) {
-                continue;
-            }
-            if let Some(triples) = VarOrTerm::formula_triples(lit.pattern.o.to_encoded()) {
-                for t in &triples {
-                    let r = relation_of(t);
-                    predicates.insert(r);
-                    inner.push(r);
+    let notincludes_inner_relations: Vec<Vec<usize>> = rules
+        .iter()
+        .map(|rule| {
+            let mut inner = Vec::new();
+            for lit in &rule.body {
+                if lit.negated || !lit.pattern.p.is_term() {
+                    continue;
+                }
+                const LOG_NOT_INCLUDES: &str = "<http://www.w3.org/2000/10/swap/log#notIncludes>";
+                if Encoder::decode(&lit.pattern.p.to_encoded()).as_deref() != Some(LOG_NOT_INCLUDES)
+                {
+                    continue;
+                }
+                if let Some(triples) = VarOrTerm::formula_triples(lit.pattern.o.to_encoded()) {
+                    for t in &triples {
+                        let r = relation_of(t);
+                        predicates.insert(r);
+                        inner.push(r);
+                    }
                 }
             }
-        }
-        inner
-    }).collect();
+            inner
+        })
+        .collect();
 
     let predicate_list: Vec<usize> = predicates.into_iter().collect();
     let num_predicates = predicate_list.len();
@@ -185,10 +225,12 @@ pub fn validate_rules(
         let head_p = head_relations[rule_idx];
         let head_idx = match pred_to_idx.get(&head_p) {
             Some(&idx) => idx,
-            None => return Err(format!(
-                "Internal stratification error: predicate {} not found",
-                Encoder::decode(&head_p).unwrap_or_else(|| head_p.to_string())
-            )),
+            None => {
+                return Err(format!(
+                    "Internal stratification error: predicate {} not found",
+                    Encoder::decode(&head_p).unwrap_or_else(|| head_p.to_string())
+                ))
+            }
         };
         let has_agg = aggregates.contains_key(rule);
 
@@ -196,10 +238,12 @@ pub fn validate_rules(
             let body_p = body_relations[rule_idx][lit_idx];
             let body_idx = match pred_to_idx.get(&body_p) {
                 Some(&idx) => idx,
-                None => return Err(format!(
-                    "Internal stratification error: body predicate {} not found",
-                    Encoder::decode(&body_p).unwrap_or_else(|| body_p.to_string())
-                )),
+                None => {
+                    return Err(format!(
+                        "Internal stratification error: body predicate {} not found",
+                        Encoder::decode(&body_p).unwrap_or_else(|| body_p.to_string())
+                    ))
+                }
             };
             edges.push((body_idx, head_idx, lit.negated || has_agg));
         }
@@ -241,10 +285,7 @@ pub fn validate_rules(
         .iter()
         .map(|rule| {
             let hr = relation_of(&rule.head);
-            pred_to_idx
-                .get(&hr)
-                .map(|&idx| stratum[idx])
-                .unwrap_or(0)
+            pred_to_idx.get(&hr).map(|&idx| stratum[idx]).unwrap_or(0)
         })
         .collect();
 

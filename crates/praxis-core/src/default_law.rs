@@ -36,7 +36,10 @@ pub struct DefaultLaw;
 
 /// Current time in milliseconds since the UNIX epoch, used for `Andon::Halted::at`.
 fn now_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 /// True iff `payload[key]` is a JSON array containing the string `needle`.
@@ -87,7 +90,11 @@ impl Judge for DefaultLaw {
             // categorized, not just listed.
             let refusals: Vec<RefusalScenario> = unmet.iter().map(RefusalScenario::from).collect();
             let mut halted = raw;
-            halted.andon = Andon::Halted { unmet, refusals, at: now_ms() };
+            halted.andon = Andon::Halted {
+                unmet,
+                refusals,
+                at: now_ms(),
+            };
             Err(halted)
         }
     }
@@ -141,7 +148,9 @@ mod tests {
         let raw: LawObject<serde_json::Value, Raw, DefaultLaw> =
             LawObject::<serde_json::Value, Raw, DefaultLaw>::new(
                 payload,
-                vec![Obligation::EvidenceRequired { evidence_type: "lab_report".to_string() }],
+                vec![Obligation::EvidenceRequired {
+                    evidence_type: "lab_report".to_string(),
+                }],
             );
         match DefaultLaw::judge(raw) {
             Ok(validated) => assert!(matches!(validated.andon(), Andon::Green)),
@@ -155,7 +164,9 @@ mod tests {
         let raw: LawObject<serde_json::Value, Raw, DefaultLaw> =
             LawObject::<serde_json::Value, Raw, DefaultLaw>::new(
                 payload,
-                vec![Obligation::EvidenceRequired { evidence_type: "lab_report".to_string() }],
+                vec![Obligation::EvidenceRequired {
+                    evidence_type: "lab_report".to_string(),
+                }],
             );
         match DefaultLaw::judge(raw) {
             Ok(_) => panic!("missing evidence should halt"),

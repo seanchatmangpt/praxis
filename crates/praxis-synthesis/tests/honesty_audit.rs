@@ -14,9 +14,7 @@ use std::collections::BTreeSet;
 use common::stats;
 use praxis_synthesis::budget::{BudgetStatus, TickBudget, Ticks};
 use praxis_synthesis::cell::{run_cell, run_member, verify_cell, verify_group};
-use praxis_synthesis::cell_supervise::{
-    run_member_supervised, FaultScript, SupervisorPolicy,
-};
+use praxis_synthesis::cell_supervise::{run_member_supervised, FaultScript, SupervisorPolicy};
 use praxis_synthesis::dag::MemoCache;
 use praxis_synthesis::solver8::CoreCache;
 
@@ -65,20 +63,29 @@ fn work_product_is_verified_not_loop_completion() {
     let (cell, mut groups) = run_cell(64, 4, 8);
     // The work is real and mixed: admissions AND certified refusals.
     assert!(cell.admitted > 0, "no admitted work — dummy loop?");
-    assert!(cell.refused > 0, "no refusals — the t%4==3 unsat class vanished");
+    assert!(
+        cell.refused > 0,
+        "no refusals — the t%4==3 unsat class vanished"
+    );
     // Terminal hashes vary across template classes (not a constant).
     let distinct: BTreeSet<&str> = groups
         .iter()
         .flat_map(|g| &g.members)
         .map(|m| m.terminal_hash.as_str())
         .collect();
-    assert!(distinct.len() > 1, "constant hashes: work product is fictional");
+    assert!(
+        distinct.len() > 1,
+        "constant hashes: work product is fictional"
+    );
     assert!(verify_cell(&cell, &groups));
     assert!(groups.iter().all(verify_group));
     // Tamper one member's terminal hash → its group fails verification.
     groups[0].members[0].terminal_hash =
         "0000000000000000000000000000000000000000000000000000000000000000".into();
-    assert!(!verify_group(&groups[0]), "tampered interior went unnoticed");
+    assert!(
+        !verify_group(&groups[0]),
+        "tampered interior went unnoticed"
+    );
     // Tamper a group root → the cell fails verification.
     groups[1].replay_root.clear();
     assert!(!verify_cell(&cell, &groups), "tampered root went unnoticed");
@@ -118,8 +125,11 @@ fn throughput_recomputes_from_count_and_elapsed() {
 fn supervision_at_zero_faults_is_artifact_invisible() {
     let quarantine = BTreeSet::new();
     let policy = SupervisorPolicy::default();
-    let script =
-        FaultScript { seed: 99, transient_per_mille: 0, crashloop_template: None };
+    let script = FaultScript {
+        seed: 99,
+        transient_per_mille: 0,
+        crashloop_template: None,
+    };
     for agent in 0..24 {
         let mut memo = MemoCache::new();
         let mut cores = CoreCache::new();
@@ -127,7 +137,13 @@ fn supervision_at_zero_faults_is_artifact_invisible() {
         let mut memo2 = MemoCache::new();
         let mut cores2 = CoreCache::new();
         let sup = run_member_supervised(
-            agent, 8, &quarantine, policy, script, &mut memo2, &mut cores2,
+            agent,
+            8,
+            &quarantine,
+            policy,
+            script,
+            &mut memo2,
+            &mut cores2,
         );
         assert_eq!(base.byte, sup.byte, "agent {agent}: supervision leaked");
         assert_eq!(base.terminal_hash, sup.terminal_hash, "agent {agent}");

@@ -80,8 +80,13 @@ fn test_deep_taxonomy_chain_200_levels() {
     for i in 1..=DEPTH {
         let class = format!("N{}", i);
         assert!(
-            decoded.iter().any(|d| d.contains("TestVariable") && d.contains(&format!("#{}>", class))),
-            ":TestVariable should have been derived as a member of :{} (hop {} of {})", class, i, DEPTH
+            decoded
+                .iter()
+                .any(|d| d.contains("TestVariable") && d.contains(&format!("#{}>", class))),
+            ":TestVariable should have been derived as a member of :{} (hop {} of {})",
+            class,
+            i,
+            DEPTH
         );
     }
 
@@ -124,8 +129,11 @@ fn test_deep_taxonomy_chain_broken_link_stops_propagation() {
     for i in 1..=BREAK_AT {
         let class = format!("N{}", i);
         assert!(
-            decoded.iter().any(|d| d.contains("TestVariable") && d.contains(&format!("#{}>", class))),
-            ":TestVariable should still be derived as :{} (before the break)", class
+            decoded
+                .iter()
+                .any(|d| d.contains("TestVariable") && d.contains(&format!("#{}>", class))),
+            ":TestVariable should still be derived as :{} (before the break)",
+            class
         );
     }
     // ...but nothing past the break should be, since the link is missing.

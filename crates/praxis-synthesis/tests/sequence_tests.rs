@@ -15,7 +15,13 @@ fn solver_rediscovers_the_five_step_lawobject_order() {
     let order: Vec<&str> = plan.steps.iter().map(|s| s.capability.as_str()).collect();
     assert_eq!(
         order,
-        ["supply-evidence", "clear-obligations", "judge", "admit", "receipt"],
+        [
+            "supply-evidence",
+            "clear-obligations",
+            "judge",
+            "admit",
+            "receipt"
+        ],
         "the solver must discover the hand-authored Day-2 order from declarations alone"
     );
     assert_eq!(plan.cost, 5);
@@ -62,9 +68,16 @@ fn before_constraints_are_respected() {
     let before = vec![("judge".to_string(), "receipt".to_string())];
     let problem = SequenceProblem::new(&p, caps, goal, 6, before).expect("problem");
     let plan = BoundedCsp.solve(&problem).expect("solvable");
-    let judge_at = plan.steps.iter().position(|s| s.capability == "judge").expect("judge");
-    let receipt_at =
-        plan.steps.iter().position(|s| s.capability == "receipt").expect("receipt");
+    let judge_at = plan
+        .steps
+        .iter()
+        .position(|s| s.capability == "judge")
+        .expect("judge");
+    let receipt_at = plan
+        .steps
+        .iter()
+        .position(|s| s.capability == "receipt")
+        .expect("receipt");
     assert!(judge_at < receipt_at);
 }
 
@@ -81,7 +94,11 @@ fn solving_is_deterministic() {
             plan.receipt.problem_hash,
         )
     };
-    assert_eq!(solve(), solve(), "same problem, byte-identical plan and receipt");
+    assert_eq!(
+        solve(),
+        solve(),
+        "same problem, byte-identical plan and receipt"
+    );
 }
 
 #[test]
@@ -126,17 +143,18 @@ fn test_after_constraint_logic_is_reversed() {
     let (p, caps, goal) = lawobject_domain();
     // After constraint: clear-obligations (a) must occur AFTER judge (b).
     // So judge (b) must be placed before clear-obligations (a).
-    let constraints = vec![
-        praxis_synthesis::Constraint::After {
-            a: "clear-obligations".into(),
-            b: "judge".into(),
-        }
-    ];
-    let problem = SequenceProblem::with_constraints(&p, caps, goal, 6, constraints).expect("problem");
-    
+    let constraints = vec![praxis_synthesis::Constraint::After {
+        a: "clear-obligations".into(),
+        b: "judge".into(),
+    }];
+    let problem =
+        SequenceProblem::with_constraints(&p, caps, goal, 6, constraints).expect("problem");
+
     // BoundedCsp now correctly respects the After constraint during search, which contradicts
     // the causal dependency (judge requires clear-obligations), so the problem is unsatisfiable.
-    let err = BoundedCsp.solve(&problem).expect_err("BoundedCsp must refuse");
+    let err = BoundedCsp
+        .solve(&problem)
+        .expect_err("BoundedCsp must refuse");
     assert!(matches!(err, Refusal::Unsatisfiable { .. }));
 }
 
@@ -146,20 +164,27 @@ fn test_solver8_after_constraint_contradiction() {
     // After constraint: clear-obligations (a) must occur AFTER supply-evidence (b).
     // This is already true in the normal plan: supply-evidence is step 0, clear-obligations is step 1.
     // So this should be solvable, and the normal plan is valid.
-    let constraints = vec![
-        praxis_synthesis::Constraint::After {
-            a: "clear-obligations".into(),
-            b: "supply-evidence".into(),
-        }
-    ];
-    let problem = SequenceProblem::with_constraints(&p, caps, goal, 6, constraints).expect("problem");
-    
+    let constraints = vec![praxis_synthesis::Constraint::After {
+        a: "clear-obligations".into(),
+        b: "supply-evidence".into(),
+    }];
+    let problem =
+        SequenceProblem::with_constraints(&p, caps, goal, 6, constraints).expect("problem");
+
     // With both propagation and search using corrected After logic, Solver8 resolves it successfully.
-    let plan = praxis_synthesis::Solver8.solve(&problem).expect("Solver8 solves successfully");
+    let plan = praxis_synthesis::Solver8
+        .solve(&problem)
+        .expect("Solver8 solves successfully");
     let order: Vec<&str> = plan.steps.iter().map(|s| s.capability.as_str()).collect();
     assert_eq!(
         order,
-        ["supply-evidence", "clear-obligations", "judge", "admit", "receipt"]
+        [
+            "supply-evidence",
+            "clear-obligations",
+            "judge",
+            "admit",
+            "receipt"
+        ]
     );
 }
 
@@ -172,12 +197,14 @@ fn test_impossible_goal_wastes_search_budget() {
     // This goal predicate has 0 producers.
     let goal = vec![Atom::new(unreachable, vec![Term::Const(o1)])];
     let problem = SequenceProblem::new(&p, caps, goal, 6, Vec::new()).expect("problem");
-    
+
     // Solver8 now immediately detects this statically in missing_support and returns UnsatProof.
-    let err = praxis_synthesis::Solver8.solve(&problem).expect_err("must refuse");
+    let err = praxis_synthesis::Solver8
+        .solve(&problem)
+        .expect_err("must refuse");
     assert!(
         matches!(err, Refusal::UnsatProof { .. }),
-        "Expected UnsatProof, got {:?}", err
+        "Expected UnsatProof, got {:?}",
+        err
     );
 }
-

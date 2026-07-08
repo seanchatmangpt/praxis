@@ -45,10 +45,7 @@
 //! # }
 //! ```
 
-use std::{
-    collections::HashMap,
-    path::PathBuf,
-};
+use std::{collections::HashMap, path::PathBuf};
 
 use chicago_tdd_tools::core::config::poka_yoke::{BoundedU32, PositiveUsize};
 use serde::{Deserialize, Serialize};

@@ -17,7 +17,12 @@ const PART_B: &str = include_str!("../ontology/lawobject_part_b.ttl");
 const SINGLE: &str = include_str!("../ontology/lawobject_single.ttl");
 
 fn step_order(receipt: &praxis_synthesis::WorkflowReceipt) -> Vec<String> {
-    receipt.plan.steps.iter().map(|s| s.capability.clone()).collect()
+    receipt
+        .plan
+        .steps
+        .iter()
+        .map(|s| s.capability.clone())
+        .collect()
 }
 
 #[test]
@@ -31,7 +36,13 @@ fn composed_execution_equals_the_single_file_workflow() {
     assert_eq!(composed.workflow.plan_hash, single.plan_hash);
     assert_eq!(
         step_order(&composed.workflow),
-        ["supply-evidence", "clear-obligations", "judge", "admit", "receipt"]
+        [
+            "supply-evidence",
+            "clear-obligations",
+            "judge",
+            "admit",
+            "receipt"
+        ]
     );
     assert_eq!(step_order(&composed.workflow), step_order(&single));
     assert_eq!(composed.workflow.chain, single.chain);
@@ -164,9 +175,8 @@ fn overlap_agreement_is_lawful() {
     // ex:aValidated is declared identically in both parts: agreement, not
     // conflict — and the union dedups it to one canonical declaration.
     let composed = compose_workflows(&[PART_A, PART_B]).expect("overlap agrees");
-    let needle = format!(
-        "<http://example.org/lawobject/aValidated> <{WF_NS}predicate> \"validated\" ."
-    );
+    let needle =
+        format!("<http://example.org/lawobject/aValidated> <{WF_NS}predicate> \"validated\" .");
     let count = composed
         .canonical_ttl
         .lines()
@@ -293,9 +303,7 @@ fn foreign_verifier_accepts_a_composed_receipt() {
 
 /// The merged canonical form of the composition — recomposed here so the
 /// foreign test feeds exactly the document the receipt was derived from.
-fn composed_canonical_bytes(
-    receipt: &praxis_synthesis::glue::ComposedWorkflowReceipt,
-) -> Vec<u8> {
+fn composed_canonical_bytes(receipt: &praxis_synthesis::glue::ComposedWorkflowReceipt) -> Vec<u8> {
     let composed = compose_workflows(&[PART_A, PART_B]).expect("recompose");
     assert_eq!(composed.merged_graph_hash, receipt.merged_graph_hash);
     composed.canonical_ttl.clone().into_bytes()

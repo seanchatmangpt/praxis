@@ -59,33 +59,86 @@ impl Binding {
             .filter(|k| right.bindings.contains_key(*k))
             .collect();
 
-        for left_c in 0..left.len() {
-            for right_c in 0..right.len() {
-                // iterate over all join keys
-                let mut match_keys = true;
-                for join_key in &join_keys {
-                    let left_term = left.bindings.get(*join_key).unwrap().get(left_c).unwrap();
-                    let right_term = right.bindings.get(*join_key).unwrap().get(right_c).unwrap();
-                    if left_term != right_term {
-                        match_keys = false;
-                        break;
+        let mut pairs = Vec::new();
+
+        if join_keys.is_empty() {
+            // Fallback to Cartesian product if there are no join keys
+            pairs.reserve(left.len() * right.len());
+            for left_c in 0..left.len() {
+                for right_c in 0..right.len() {
+                    pairs.push((left_c, right_c));
+                }
+            }
+        } else if join_keys.len() == 1 {
+            // Optimized path for exactly one join key (no key Vec allocation)
+            let join_key = *join_keys[0];
+            let mut hash_map: HashMap<usize, Vec<usize>> = HashMap::with_capacity(right.len());
+            if let Some(right_col) = right.bindings.get(&join_key) {
+                for right_c in 0..right.len() {
+                    let val = right_col[right_c];
+                    hash_map.entry(val).or_default().push(right_c);
+                }
+            }
+            if let Some(left_col) = left.bindings.get(&join_key) {
+                for left_c in 0..left.len() {
+                    let val = left_col[left_c];
+                    if let Some(right_indices) = hash_map.get(&val) {
+                        for &right_c in right_indices {
+                            pairs.push((left_c, right_c));
+                        }
                     }
                 }
-                if match_keys {
-                    left.bindings.keys().for_each(|k| {
-                        result.add(k, *left.bindings.get(k).unwrap().get(left_c).unwrap())
-                    });
-                    //add right data (without the current key
-                    right
-                        .bindings
-                        .keys()
-                        .filter(|k| !left.bindings.contains_key(*k))
-                        .for_each(|k| {
-                            result.add(k, *right.bindings.get(k).unwrap().get(right_c).unwrap())
-                        });
+            }
+        } else {
+            // Generic path for multiple join keys
+            let mut hash_map: HashMap<Vec<usize>, Vec<usize>> = HashMap::with_capacity(right.len());
+            for right_c in 0..right.len() {
+                let mut key_vals = Vec::with_capacity(join_keys.len());
+                for &join_key in &join_keys {
+                    key_vals.push(right.bindings.get(join_key).unwrap()[right_c]);
+                }
+                hash_map.entry(key_vals).or_default().push(right_c);
+            }
+
+            let mut probe_key = Vec::with_capacity(join_keys.len());
+            for left_c in 0..left.len() {
+                probe_key.clear();
+                for &join_key in &join_keys {
+                    probe_key.push(left.bindings.get(join_key).unwrap()[left_c]);
+                }
+                if let Some(right_indices) = hash_map.get(&probe_key) {
+                    for &right_c in right_indices {
+                        pairs.push((left_c, right_c));
+                    }
                 }
             }
         }
+
+        let num_output_rows = pairs.len();
+        if num_output_rows == 0 {
+            return result;
+        }
+
+        // Populate left variables
+        for (k, left_col) in &left.bindings {
+            let mut new_col = Vec::with_capacity(num_output_rows);
+            for &(left_c, _) in &pairs {
+                new_col.push(left_col[left_c]);
+            }
+            result.bindings.insert(*k, new_col);
+        }
+
+        // Populate right-only variables
+        for (k, right_col) in &right.bindings {
+            if !left.bindings.contains_key(k) {
+                let mut new_col = Vec::with_capacity(num_output_rows);
+                for &(_, right_c) in &pairs {
+                    new_col.push(right_col[right_c]);
+                }
+                result.bindings.insert(*k, new_col);
+            }
+        }
+
         result
     }
     pub fn combine(&mut self, to_combine: Binding) {
@@ -118,5 +171,40 @@ impl Binding {
     }
     pub fn vars(&self) -> Vec<&usize> {
         self.bindings.keys().collect()
+    }
+
+    pub fn union(&mut self, other: Binding) {
+        if other.is_empty() {
+            return;
+        }
+        if self.is_empty() {
+            *self = other;
+            return;
+        }
+
+        let mut vars: Vec<usize> = self.bindings.keys().copied().collect();
+        vars.sort();
+
+        let mut existing_rows = std::collections::HashSet::new();
+        for row in 0..self.len() {
+            let row_key: Vec<usize> = vars
+                .iter()
+                .map(|&v| *self.bindings.get(&v).and_then(|vec| vec.get(row)).unwrap_or(&0))
+                .collect();
+            existing_rows.insert(row_key);
+        }
+
+        for row in 0..other.len() {
+            let row_key: Vec<usize> = vars
+                .iter()
+                .map(|&v| *other.bindings.get(&v).and_then(|vec| vec.get(row)).unwrap_or(&0))
+                .collect();
+            if !existing_rows.contains(&row_key) {
+                for &v in &vars {
+                    let val = *other.bindings.get(&v).and_then(|vec| vec.get(row)).unwrap_or(&0);
+                    self.bindings.entry(v).or_default().push(val);
+                }
+            }
+        }
     }
 }

@@ -244,14 +244,27 @@ fn test_blank_node_and_lang_tagged_values_in_shex() {
     }"#;
 
     // A language-tagged literal value must satisfy nodeKind=literal.
-    let data_lang = build_data_index(r#"<http://example.org/n> <http://example.org/val> "hello"@en ."#);
-    let shape_map = vec![("http://example.org/n".to_string(), "http://example.org/ValShape".to_string())];
+    let data_lang =
+        build_data_index(r#"<http://example.org/n> <http://example.org/val> "hello"@en ."#);
+    let shape_map = vec![(
+        "http://example.org/n".to_string(),
+        "http://example.org/ValShape".to_string(),
+    )];
     let report_lang = validate_shex(&data_lang, schema_json, &shape_map).unwrap();
-    assert!(report_lang.conforms, "a language-tagged literal value must satisfy nodeKind=literal");
+    assert!(
+        report_lang.conforms,
+        "a language-tagged literal value must satisfy nodeKind=literal"
+    );
 
     // A blank-node value must NOT satisfy nodeKind=literal.
     let data_bnode = build_data_index("<http://example.org/n2> <http://example.org/val> _:b1 .");
-    let shape_map2 = vec![("http://example.org/n2".to_string(), "http://example.org/ValShape".to_string())];
+    let shape_map2 = vec![(
+        "http://example.org/n2".to_string(),
+        "http://example.org/ValShape".to_string(),
+    )];
     let report_bnode = validate_shex(&data_bnode, schema_json, &shape_map2).unwrap();
-    assert!(!report_bnode.conforms, "a blank-node value must NOT satisfy nodeKind=literal");
+    assert!(
+        !report_bnode.conforms,
+        "a blank-node value must NOT satisfy nodeKind=literal"
+    );
 }

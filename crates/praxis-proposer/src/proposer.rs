@@ -182,7 +182,9 @@ impl Proposer {
             rationale,
             proposal_hash: String::new(),
         };
-        proposal.proposal_hash = blake3::hash(&proposal.canonical_bytes()).to_hex().to_string();
+        proposal.proposal_hash = blake3::hash(&proposal.canonical_bytes())
+            .to_hex()
+            .to_string();
         proposal
     }
 }

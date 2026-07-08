@@ -3,15 +3,15 @@
 #![allow(clippy::type_complexity, clippy::ptr_arg)]
 
 use crate::csprite::CSprite;
-use crate::time_window::TimeWindowConsumer;
-use crate::Triple;
-use std::rc::Rc;
 #[cfg(test)]
 use crate::time_window::TimeWindow;
+use crate::time_window::TimeWindowConsumer;
 #[cfg(test)]
 use crate::Parser;
+use crate::Triple;
 #[cfg(test)]
 use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct WindowReasoner {
     pub store: CSprite,

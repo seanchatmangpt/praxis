@@ -155,7 +155,10 @@ mod tests {
         let chain_hash = record.recompute_chain_hash().expect("recompute");
         record.chain_hash_hex = hex::encode(chain_hash);
         // Recomputing again from the now-filled-in record must agree.
-        assert_eq!(record.recompute_chain_hash().expect("recompute"), chain_hash);
+        assert_eq!(
+            record.recompute_chain_hash().expect("recompute"),
+            chain_hash
+        );
     }
 
     #[test]

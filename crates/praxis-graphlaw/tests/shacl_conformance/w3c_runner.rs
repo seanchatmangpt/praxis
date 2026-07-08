@@ -53,7 +53,9 @@ fn discover_cases(dir: &Path) -> Vec<Case> {
     let mut cases = Vec::new();
     for category in ["node", "property", "targets", "misc", "path"] {
         let category_dir = dir.join(category);
-        let Ok(entries) = fs::read_dir(&category_dir) else { continue };
+        let Ok(entries) = fs::read_dir(&category_dir) else {
+            continue;
+        };
         let mut file_names: Vec<String> = entries
             .filter_map(|e| e.ok())
             .filter_map(|e| e.file_name().into_string().ok())
@@ -68,11 +70,18 @@ fn discover_cases(dir: &Path) -> Vec<Case> {
             let stem = file_name.strip_suffix(".ttl").unwrap();
             let data_sibling = format!("{stem}-data.ttl");
             let shapes_sibling = format!("{stem}-shapes.ttl");
-            let (data, shapes) = if file_names.contains(&data_sibling) && file_names.contains(&shapes_sibling) {
-                (format!("{category}/{data_sibling}"), format!("{category}/{shapes_sibling}"))
-            } else {
-                (format!("{category}/{file_name}"), format!("{category}/{file_name}"))
-            };
+            let (data, shapes) =
+                if file_names.contains(&data_sibling) && file_names.contains(&shapes_sibling) {
+                    (
+                        format!("{category}/{data_sibling}"),
+                        format!("{category}/{shapes_sibling}"),
+                    )
+                } else {
+                    (
+                        format!("{category}/{file_name}"),
+                        format!("{category}/{file_name}"),
+                    )
+                };
             cases.push(Case {
                 name: format!("{category}/{stem}"),
                 meta: format!("{category}/{file_name}"),
@@ -176,7 +185,11 @@ struct CaseOutcome {
 fn test_w3c_core_constraint_component_suite() {
     let dir = suite_dir();
     let cases = discover_cases(&dir);
-    assert!(!cases.is_empty(), "no vendored SHACL conformance cases found under {}", dir.display());
+    assert!(
+        !cases.is_empty(),
+        "no vendored SHACL conformance cases found under {}",
+        dir.display()
+    );
     let mut outcomes = Vec::with_capacity(cases.len());
 
     for case in &cases {
@@ -187,14 +200,16 @@ fn test_w3c_core_constraint_component_suite() {
         let data_content = if case.data == case.meta {
             meta_content.clone()
         } else {
-            fs::read_to_string(dir.join(&case.data)).unwrap_or_else(|e| panic!("missing {}: {e}", case.data))
+            fs::read_to_string(dir.join(&case.data))
+                .unwrap_or_else(|e| panic!("missing {}: {e}", case.data))
         };
         let shapes_content = if case.shapes == case.meta {
             meta_content.clone()
         } else if case.shapes == case.data {
             data_content.clone()
         } else {
-            fs::read_to_string(dir.join(&case.shapes)).unwrap_or_else(|e| panic!("missing {}: {e}", case.shapes))
+            fs::read_to_string(dir.join(&case.shapes))
+                .unwrap_or_else(|e| panic!("missing {}: {e}", case.shapes))
         };
 
         let (expected_conforms, expected_violations) = expected_from_manifest(&meta_content);
@@ -205,7 +220,8 @@ fn test_w3c_core_constraint_component_suite() {
         let report = Validator::validate(&data_index, &shapes);
 
         let actual_violations = report.results.len();
-        let passed = report.conforms == expected_conforms && actual_violations == expected_violations;
+        let passed =
+            report.conforms == expected_conforms && actual_violations == expected_violations;
         outcomes.push(CaseOutcome {
             name: case.name.clone(),
             passed,
@@ -227,7 +243,11 @@ fn test_w3c_core_constraint_component_suite() {
         "W3C SHACL core-constraint-component suite failures ({}/{} failed):\n{}",
         failed.len(),
         total,
-        failed.iter().map(|o| format!("  {}: {}", o.name, o.detail)).collect::<Vec<_>>().join("\n")
+        failed
+            .iter()
+            .map(|o| format!("  {}: {}", o.name, o.detail))
+            .collect::<Vec<_>>()
+            .join("\n")
     );
 }
 
@@ -235,7 +255,11 @@ fn write_manifest_report(total: usize, passed: usize, outcomes: &[CaseOutcome]) 
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/jira/26.7.4/manifests");
     fs::create_dir_all(&manifest_dir).expect("Failed to create manifests directory");
 
-    let pass_rate = if total == 0 { 0.0 } else { (passed as f64) * 100.0 / (total as f64) };
+    let pass_rate = if total == 0 {
+        0.0
+    } else {
+        (passed as f64) * 100.0 / (total as f64)
+    };
     let failed = total - passed;
 
     let mut report = String::new();
@@ -256,5 +280,6 @@ fn write_manifest_report(total: usize, passed: usize, outcomes: &[CaseOutcome]) 
         report.push_str(&format!("| {} | {} | {} |\n", o.name, status, o.detail));
     }
 
-    fs::write(manifest_dir.join("shacl_manifest.md"), report).expect("Failed to write SHACL manifest report");
+    fs::write(manifest_dir.join("shacl_manifest.md"), report)
+        .expect("Failed to write SHACL manifest report");
 }

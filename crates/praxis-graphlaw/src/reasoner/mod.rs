@@ -5,8 +5,9 @@
 use crate::triples::AggregateFunction;
 use crate::aggregation::{Accumulator, CountAccumulator, SumAccumulator, MinAccumulator, MaxAccumulator, AvgAccumulator, AccumulatorImpl};
 use std::collections::HashMap;
+use crate::queryengine::{QueryEngine, SimpleQueryEngine};
 use crate::{
-    Binding, BodyLiteral, QueryEngine, Rule, SimpleQueryEngine,
+    Binding, BodyLiteral, Rule,
     Triple, TripleIndex, TripleStore, VarOrTerm,
 };
 use log::debug;
@@ -154,60 +155,70 @@ impl Reasoner {
                         let implies_indices = Self::find_log_implies_literals(rule);
                         // log:implies dynamic rule reification (see
                         // process_log_implies_rule doc comment).
-                        for new_head in Self::process_log_implies_rule(rule, &implies_indices, triple_index) {
+                        for new_head in Self::process_log_implies_rule(rule, &implies_indices, triple_index, stratum_start_counter, next_start_counter) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(collect_idx) = Self::find_log_collect_all_in_literal(rule) {
                         // log:collectAllIn (see process_log_collect_all_in_rule doc comment).
-                        for new_head in Self::process_log_collect_all_in_rule(rule, collect_idx, triple_index) {
+                        for new_head in Self::process_log_collect_all_in_rule(rule, collect_idx, triple_index, stratum_start_counter, next_start_counter) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(not_includes_idx) = Self::find_log_not_includes_literal(rule) {
                         // log:notIncludes SNAF guard (see process_log_not_includes_rule doc comment).
-                        for new_head in Self::process_log_not_includes_rule(rule, not_includes_idx, triple_index) {
+                        for new_head in Self::process_log_not_includes_rule(rule, not_includes_idx, triple_index, stratum_start_counter, next_start_counter) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(includes_idx) = Self::find_log_includes_literal(rule) {
                         // log:includes (positive counterpart of notIncludes; see process_log_includes_rule doc comment).
-                        for new_head in Self::process_log_includes_rule(rule, includes_idx, triple_index) {
+                        for new_head in Self::process_log_includes_rule(rule, includes_idx, triple_index, stratum_start_counter, next_start_counter) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(for_all_idx) = Self::find_log_for_all_in_literal(rule) {
                         // log:forAllIn (see process_log_for_all_in_rule doc comment).
-                        for new_head in Self::process_log_for_all_in_rule(rule, for_all_idx, triple_index) {
+                        for new_head in Self::process_log_for_all_in_rule(rule, for_all_idx, triple_index, stratum_start_counter, next_start_counter) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(if_then_else_idx) = Self::find_log_if_then_else_in_literal(rule) {
                         // log:ifThenElseIn (see process_log_if_then_else_in_rule doc comment).
-                        for new_head in Self::process_log_if_then_else_in_rule(rule, if_then_else_idx, triple_index) {
+                        for new_head in Self::process_log_if_then_else_in_rule(rule, if_then_else_idx, triple_index, stratum_start_counter, next_start_counter) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(conclusion_idx) = Self::find_log_conclusion_literal(rule) {
                         // log:conclusion (see process_log_conclusion_rule doc comment).
-                        for new_head in Self::process_log_conclusion_rule(rule, conclusion_idx, triple_index) {
+                        for new_head in Self::process_log_conclusion_rule(rule, conclusion_idx, triple_index, stratum_start_counter, next_start_counter) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else {
+                        let bindings_opt = if let Some(prev_limit) = stratum_start_counter {
+                            <SimpleQueryEngine as QueryEngine>::query_semi_naive(
+                                triple_index,
+                                &rule.body,
+                                prev_limit,
+                                next_start_counter,
+                            )
+                        } else {
+                            SimpleQueryEngine::query(
+                                triple_index,
+                                &rule.body,
+                                None,
+                            )
+                        };
 
-                        if let Some(bindings) = SimpleQueryEngine::query(
-                            triple_index,
-                            &rule.body,
-                            stratum_start_counter,
-                        ) {
+                        if let Some(bindings) = bindings_opt {
 
                             let new_heads = Self::substitute_head_with_bindings(&rule.head, &bindings);
 

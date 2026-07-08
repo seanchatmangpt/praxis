@@ -24,7 +24,10 @@ fn topology_derivation_is_deterministic() {
         .expect("derive");
     let b = SupervisionTopology::derive(&plan, &problem, RestartPolicy::default_policy())
         .expect("derive");
-    assert_eq!(a.topology_hash, b.topology_hash, "same plan → same topology");
+    assert_eq!(
+        a.topology_hash, b.topology_hash,
+        "same plan → same topology"
+    );
     assert_eq!(a.stages, b.stages);
 }
 
@@ -42,7 +45,11 @@ fn the_lawobject_chain_earns_rest_for_one_except_its_leaf() {
         body.iter().all(|s| s.strategy == Strategy::RestForOne),
         "producers restart with their consumers"
     );
-    assert_eq!(last.strategy, Strategy::OneForOne, "the leaf restarts alone");
+    assert_eq!(
+        last.strategy,
+        Strategy::OneForOne,
+        "the leaf restarts alone"
+    );
 }
 
 #[test]
@@ -52,7 +59,11 @@ fn cohorts_are_the_transitive_downstream_plus_self() {
         .expect("derive");
     // Root of the chain: its cohort is the whole plan.
     let root = &topo.stages[0].nodes[0];
-    assert_eq!(topo.cohort(root).len(), 5, "root failure invalidates everything");
+    assert_eq!(
+        topo.cohort(root).len(),
+        5,
+        "root failure invalidates everything"
+    );
     assert_eq!(topo.dependents(root).len(), 4);
     // Leaf: cohort is itself alone.
     let leaf = &topo.stages[4].nodes[0];

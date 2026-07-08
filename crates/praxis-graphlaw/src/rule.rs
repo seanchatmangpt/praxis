@@ -50,7 +50,12 @@ impl Rule {
         let marker = VarOrTerm::new_term(DENIAL_HEAD_MARKER.to_string());
         Rule {
             body,
-            head: Triple { s: marker.clone(), p: marker.clone(), o: marker, g: None },
+            head: Triple {
+                s: marker.clone(),
+                p: marker.clone(),
+                o: marker,
+                g: None,
+            },
         }
     }
 

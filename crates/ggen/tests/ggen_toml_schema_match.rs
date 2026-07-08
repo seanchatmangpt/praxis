@@ -45,7 +45,11 @@ fn declared_fields(graph: &DeterministicGraph, local_name: &str) -> BTreeSet<Str
     solutions
         .map(|s| {
             let s = s.expect("solution");
-            s.get("name").expect("?name bound").to_string().trim_matches('"').to_string()
+            s.get("name")
+                .expect("?name bound")
+                .to_string()
+                .trim_matches('"')
+                .to_string()
         })
         .collect()
 }
@@ -59,7 +63,10 @@ fn struct_fields<T: schemars::JsonSchema>() -> BTreeSet<String> {
     json.get("properties")
         .and_then(Json::as_object)
         .unwrap_or_else(|| {
-            panic!("schema for {} has no `properties` object", std::any::type_name::<T>())
+            panic!(
+                "schema for {} has no `properties` object",
+                std::any::type_name::<T>()
+            )
         })
         .keys()
         .cloned()

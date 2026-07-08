@@ -35,45 +35,105 @@ fn target_builtins() -> Vec<(&'static str, &'static str)> {
 
     // math:
     for n in [
-        "greaterThan", "lessThan", "notLessThan", "notGreaterThan", "equalTo", "sum",
-        "difference", "product", "quotient", "remainder", "absoluteValue", "negation",
-        "rounded", "ceiling", "floor", "exponentiation", "integerQuotient", "min", "max",
-        "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "logarithm", "memberCount",
+        "greaterThan",
+        "lessThan",
+        "notLessThan",
+        "notGreaterThan",
+        "equalTo",
+        "sum",
+        "difference",
+        "product",
+        "quotient",
+        "remainder",
+        "absoluteValue",
+        "negation",
+        "rounded",
+        "ceiling",
+        "floor",
+        "exponentiation",
+        "integerQuotient",
+        "min",
+        "max",
+        "sin",
+        "cos",
+        "tan",
+        "asin",
+        "acos",
+        "atan",
+        "atan2",
+        "logarithm",
+        "memberCount",
     ] {
         v.push(("math", format!("<{}{}>", math, n)));
     }
 
     // string:
     for n in [
-        "length", "concat", "lessThan", "contains", "containsIgnoringCase", "startsWith",
-        "endsWith", "matches", "notMatches", "replace", "substring", "toUpperCase",
-        "toLowerCase", "split", "equalIgnoringCase", "notEqualIgnoringCase", "greaterThan",
-        "format", "scrape",
+        "length",
+        "concat",
+        "lessThan",
+        "contains",
+        "containsIgnoringCase",
+        "startsWith",
+        "endsWith",
+        "matches",
+        "notMatches",
+        "replace",
+        "substring",
+        "toUpperCase",
+        "toLowerCase",
+        "split",
+        "equalIgnoringCase",
+        "notEqualIgnoringCase",
+        "greaterThan",
+        "format",
+        "scrape",
     ] {
         v.push(("string", format!("<{}{}>", string, n)));
     }
 
     // list:
     for n in [
-        "length", "in", "append", "first", "rest", "last", "member", "memberAt", "remove",
-        "sort", "unique", "reverse", "iterate",
+        "length", "in", "append", "first", "rest", "last", "member", "memberAt", "remove", "sort",
+        "unique", "reverse", "iterate",
     ] {
         v.push(("list", format!("<{}{}>", list, n)));
     }
 
     // log:
     for n in [
-        "equalTo", "notEqualTo", "implies", "collectAllIn", "notIncludes", "includes",
-        "conjunction", "dtlit", "rawType", "uri", "localName", "bound", "forAllIn",
-        "ifThenElseIn", "n3String", "parsedAsN3",
+        "equalTo",
+        "notEqualTo",
+        "implies",
+        "collectAllIn",
+        "notIncludes",
+        "includes",
+        "conjunction",
+        "dtlit",
+        "rawType",
+        "uri",
+        "localName",
+        "bound",
+        "forAllIn",
+        "ifThenElseIn",
+        "n3String",
+        "parsedAsN3",
     ] {
         v.push(("log", format!("<{}{}>", log, n)));
     }
 
     // time:
     for n in [
-        "localTime", "year", "month", "day", "hour", "minute", "second", "dayOfWeek",
-        "timeZone", "inSeconds",
+        "localTime",
+        "year",
+        "month",
+        "day",
+        "hour",
+        "minute",
+        "second",
+        "dayOfWeek",
+        "timeZone",
+        "inSeconds",
     ] {
         v.push(("time", format!("<{}{}>", time, n)));
     }
@@ -86,7 +146,14 @@ fn target_builtins() -> Vec<(&'static str, &'static str)> {
     // func: (RIF)
     v.push(("func", format!("<{}{}>", func, "lang-from-PlainLiteral")));
 
-    v.into_iter().map(|(ns, iri)| (Box::leak(format!("{ns}:{iri}").into_boxed_str()) as &'static str, Box::leak(iri.into_boxed_str()) as &'static str)).collect()
+    v.into_iter()
+        .map(|(ns, iri)| {
+            (
+                Box::leak(format!("{ns}:{iri}").into_boxed_str()) as &'static str,
+                Box::leak(iri.into_boxed_str()) as &'static str,
+            )
+        })
+        .collect()
 }
 
 #[test]

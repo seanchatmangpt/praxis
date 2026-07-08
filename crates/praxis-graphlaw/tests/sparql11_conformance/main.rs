@@ -56,8 +56,10 @@ fn test_w3c_sparql11_conformance() {
         return;
     }
 
-    let manifest_content = fs::read_to_string(&manifest_path).expect("Failed to read manifest.json");
-    let manifest: Manifest = serde_json::from_str(&manifest_content).expect("Failed to parse manifest.json");
+    let manifest_content =
+        fs::read_to_string(&manifest_path).expect("Failed to read manifest.json");
+    let manifest: Manifest =
+        serde_json::from_str(&manifest_content).expect("Failed to parse manifest.json");
 
     let mut total_tests = 0;
     let mut passed_tests = 0;
@@ -67,7 +69,11 @@ fn test_w3c_sparql11_conformance() {
     for suite in &manifest.conformance_suites {
         for test in &suite.test_cases {
             if test.status == "skipped" {
-                test_details.push((test.id.clone(), "SKIPPED", "Marked as skipped in manifest".to_string()));
+                test_details.push((
+                    test.id.clone(),
+                    "SKIPPED",
+                    "Marked as skipped in manifest".to_string(),
+                ));
                 continue;
             }
 
@@ -80,7 +86,11 @@ fn test_w3c_sparql11_conformance() {
                 Ok(c) => c,
                 Err(e) => {
                     failed_tests += 1;
-                    test_details.push((test.id.clone(), "FAILED", format!("Failed to read data file: {}", e)));
+                    test_details.push((
+                        test.id.clone(),
+                        "FAILED",
+                        format!("Failed to read data file: {}", e),
+                    ));
                     continue;
                 }
             };
@@ -89,7 +99,11 @@ fn test_w3c_sparql11_conformance() {
                 Ok(c) => c,
                 Err(e) => {
                     failed_tests += 1;
-                    test_details.push((test.id.clone(), "FAILED", format!("Failed to read query file: {}", e)));
+                    test_details.push((
+                        test.id.clone(),
+                        "FAILED",
+                        format!("Failed to read query file: {}", e),
+                    ));
                     continue;
                 }
             };
@@ -98,7 +112,11 @@ fn test_w3c_sparql11_conformance() {
                 Ok(c) => c,
                 Err(e) => {
                     failed_tests += 1;
-                    test_details.push((test.id.clone(), "FAILED", format!("Failed to read expected results file: {}", e)));
+                    test_details.push((
+                        test.id.clone(),
+                        "FAILED",
+                        format!("Failed to read expected results file: {}", e),
+                    ));
                     continue;
                 }
             };
@@ -108,7 +126,11 @@ fn test_w3c_sparql11_conformance() {
                 Ok(t) => t,
                 Err(e) => {
                     failed_tests += 1;
-                    test_details.push((test.id.clone(), "FAILED", format!("Turtle parse error: {:?}", e)));
+                    test_details.push((
+                        test.id.clone(),
+                        "FAILED",
+                        format!("Turtle parse error: {:?}", e),
+                    ));
                     continue;
                 }
             };
@@ -123,7 +145,11 @@ fn test_w3c_sparql11_conformance() {
                 Ok(q) => q,
                 Err(e) => {
                     failed_tests += 1;
-                    test_details.push((test.id.clone(), "FAILED", format!("SPARQL parse error: {:?}", e)));
+                    test_details.push((
+                        test.id.clone(),
+                        "FAILED",
+                        format!("SPARQL parse error: {:?}", e),
+                    ));
                     continue;
                 }
             };
@@ -132,22 +158,38 @@ fn test_w3c_sparql11_conformance() {
             let results: Vec<Vec<Binding>> = evaluate_plan_and_debug(&plan, &index).collect();
 
             // 3. Parse expected results (JSON array of binding objects)
-            let expected_bindings: Vec<HashMap<String, String>> = match serde_json::from_str(&expected_content) {
-                Ok(b) => b,
-                Err(e) => {
-                    failed_tests += 1;
-                    test_details.push((test.id.clone(), "FAILED", format!("Expected JSON parse error: {:?}", e)));
-                    continue;
-                }
-            };
+            let expected_bindings: Vec<HashMap<String, String>> =
+                match serde_json::from_str(&expected_content) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        failed_tests += 1;
+                        test_details.push((
+                            test.id.clone(),
+                            "FAILED",
+                            format!("Expected JSON parse error: {:?}", e),
+                        ));
+                        continue;
+                    }
+                };
 
             // 4. Compare actual vs expected
             if compare_results(&results, &expected_bindings) {
                 passed_tests += 1;
-                test_details.push((test.id.clone(), "PASSED", "Matches expected results".to_string()));
+                test_details.push((
+                    test.id.clone(),
+                    "PASSED",
+                    "Matches expected results".to_string(),
+                ));
             } else {
                 failed_tests += 1;
-                test_details.push((test.id.clone(), "FAILED", format!("Results mismatch. Got: {:?}, Expected: {:?}", results, expected_bindings)));
+                test_details.push((
+                    test.id.clone(),
+                    "FAILED",
+                    format!(
+                        "Results mismatch. Got: {:?}, Expected: {:?}",
+                        results, expected_bindings
+                    ),
+                ));
             }
         }
     }
@@ -179,7 +221,8 @@ fn test_w3c_sparql11_conformance() {
 
     let manifests_dir = manifest_dir.join("docs/jira/26.7.4/manifests");
     fs::create_dir_all(&manifests_dir).expect("Failed to create manifests directory");
-    fs::write(manifests_dir.join("sparql11_manifest.md"), report).expect("Failed to write manifest report");
+    fs::write(manifests_dir.join("sparql11_manifest.md"), report)
+        .expect("Failed to write manifest report");
 
     assert_eq!(failed_tests, 0, "Some SPARQL 1.1 conformance tests failed!");
 }
@@ -193,19 +236,26 @@ fn compare_results(actual: &[Vec<Binding>], expected: &[HashMap<String, String>]
     }
 
     // Convert actual bindings into normalized structures for comparison
-    let mut actual_sets: Vec<HashMap<String, String>> = actual.iter().map(|bindings| {
-        bindings.iter().map(|b| {
-            // Strip quotes/datatypes for basic value comparison or compare raw strings.
-            // In a full implementation, comparing RDF terms using the triple store's fidelity is preferred.
-            (b.var.clone(), b.val.clone())
-        }).collect()
-    }).collect();
+    let mut actual_sets: Vec<HashMap<String, String>> = actual
+        .iter()
+        .map(|bindings| {
+            bindings
+                .iter()
+                .map(|b| {
+                    // Strip quotes/datatypes for basic value comparison or compare raw strings.
+                    // In a full implementation, comparing RDF terms using the triple store's fidelity is preferred.
+                    (b.var.clone(), b.val.clone())
+                })
+                .collect()
+        })
+        .collect();
 
     // Check if there is a 1-to-1 match
     for exp in expected {
         let match_idx = actual_sets.iter().position(|act| {
             // Check that all keys in exp match act, and unbound variables in exp are also unbound in act
-            exp.iter().all(|(k, v)| act.get(k).is_some_and(|val| clean_val(val) == clean_val(v)))
+            exp.iter()
+                .all(|(k, v)| act.get(k).is_some_and(|val| clean_val(val) == clean_val(v)))
         });
 
         if let Some(idx) = match_idx {

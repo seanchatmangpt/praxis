@@ -4,11 +4,11 @@
 
 use crate::csprite::CSprite;
 use crate::imars_window::{ImarsWindow, WindowConsumer};
+#[cfg(test)]
+use crate::Parser;
 use crate::Triple;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
-#[cfg(test)]
-use crate::Parser;
 
 struct ImarsReasoner {
     store: CSprite,
@@ -40,7 +40,8 @@ impl WindowConsumer<Triple> for ImarsReasoner {
         // Pass the new items directly to avoid re-borrowing the window (which is
         // already mutably borrowed by the caller's ImarsWindow::add call).
         let mat_triples = self.store.materialize_window(new);
-        old.into_iter().for_each(|(_ts, t)| self.store.remove_ref(t));
+        old.into_iter()
+            .for_each(|(_ts, t)| self.store.remove_ref(t));
         mat_triples
     }
 }

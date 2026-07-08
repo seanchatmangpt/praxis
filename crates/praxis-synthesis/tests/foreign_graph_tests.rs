@@ -57,8 +57,11 @@ fn foreign_graph_verifier_agrees_on_an_honest_receipt() {
     let ttl_path = temp_path("honest.ttl");
     let receipt_path = temp_path("honest-receipt.json");
     std::fs::write(&ttl_path, DEMO_TTL.as_bytes()).expect("write ttl");
-    std::fs::write(&receipt_path, serde_json::to_string(&receipt).expect("json"))
-        .expect("write receipt");
+    std::fs::write(
+        &receipt_path,
+        serde_json::to_string(&receipt).expect("json"),
+    )
+    .expect("write receipt");
     let out = run_verifier(&ttl_path, &receipt_path);
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(
@@ -85,8 +88,11 @@ fn foreign_graph_verifier_agrees_across_a_reformat() {
     let ttl_path = temp_path("reformat.ttl");
     let receipt_path = temp_path("reformat-receipt.json");
     std::fs::write(&ttl_path, mangled.as_bytes()).expect("write ttl");
-    std::fs::write(&receipt_path, serde_json::to_string(&receipt).expect("json"))
-        .expect("write receipt");
+    std::fs::write(
+        &receipt_path,
+        serde_json::to_string(&receipt).expect("json"),
+    )
+    .expect("write receipt");
     let out = run_verifier(&ttl_path, &receipt_path);
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(
@@ -117,24 +123,23 @@ fn foreign_graph_verifier_names_the_first_divergent_stage() {
     let ttl_path = temp_path("tamper.ttl");
     std::fs::write(&ttl_path, DEMO_TTL.as_bytes()).expect("write ttl");
 
-    let expect_mismatch = |receipt: &praxis_synthesis::graph::WorkflowReceipt,
-                           stage: &str,
-                           name: &str| {
-        let receipt_path = temp_path(name);
-        std::fs::write(&receipt_path, serde_json::to_string(receipt).expect("json"))
-            .expect("write receipt");
-        let out = run_verifier(&ttl_path, &receipt_path);
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        assert!(
-            !out.status.success(),
-            "tampered receipt ({stage}) must fail: {stdout}"
-        );
-        assert!(
-            stdout.contains(&format!("MISMATCH: {stage}")),
-            "expected first divergent stage '{stage}' named, got: {stdout}"
-        );
-        let _ = std::fs::remove_file(&receipt_path);
-    };
+    let expect_mismatch =
+        |receipt: &praxis_synthesis::graph::WorkflowReceipt, stage: &str, name: &str| {
+            let receipt_path = temp_path(name);
+            std::fs::write(&receipt_path, serde_json::to_string(receipt).expect("json"))
+                .expect("write receipt");
+            let out = run_verifier(&ttl_path, &receipt_path);
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            assert!(
+                !out.status.success(),
+                "tampered receipt ({stage}) must fail: {stdout}"
+            );
+            assert!(
+                stdout.contains(&format!("MISMATCH: {stage}")),
+                "expected first divergent stage '{stage}' named, got: {stdout}"
+            );
+            let _ = std::fs::remove_file(&receipt_path);
+        };
 
     // Tamper 1: forged graph_hash — caught at the first stage.
     let mut t1 = honest.clone();
@@ -170,8 +175,14 @@ fn foreign_verifier_rederives_ir_catching_a_graph_consistent_forgery() {
         return;
     }
     let original = execute_workflow(DEMO_TTL).expect("demo executes");
-    let mutated_ttl = DEMO_TTL.replace("wf:cost 1 ;\n    wf:pre ex:preRaw", "wf:cost 2 ;\n    wf:pre ex:preRaw");
-    assert_ne!(mutated_ttl, DEMO_TTL, "mutation must change ex:gather's cost");
+    let mutated_ttl = DEMO_TTL.replace(
+        "wf:cost 1 ;\n    wf:pre ex:preRaw",
+        "wf:cost 2 ;\n    wf:pre ex:preRaw",
+    );
+    assert_ne!(
+        mutated_ttl, DEMO_TTL,
+        "mutation must change ex:gather's cost"
+    );
     let mutated = execute_workflow(&mutated_ttl).expect("mutated demo executes");
     assert_ne!(
         mutated.ir_hash, original.ir_hash,
@@ -266,8 +277,11 @@ ex:gatherEarly a wf:Constraint ;
     let ttl_path = temp_path("shapes.ttl");
     let receipt_path = temp_path("shapes-receipt.json");
     std::fs::write(&ttl_path, SHAPES_TTL.as_bytes()).expect("write ttl");
-    std::fs::write(&receipt_path, serde_json::to_string(&receipt).expect("json"))
-        .expect("write receipt");
+    std::fs::write(
+        &receipt_path,
+        serde_json::to_string(&receipt).expect("json"),
+    )
+    .expect("write receipt");
     let out = run_verifier(&ttl_path, &receipt_path);
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(

@@ -43,14 +43,20 @@ fn random_edges(seed: u64, n: u64, m: usize) -> Vec<(u64, u64)> {
 /// The cyclic pattern: the third atom is fully bound when reached — one
 /// membership probe — which is exactly where prefix-probe joins beat
 /// nested-loop scans.
-fn triangle_program(edges: &[(u64, u64)]) -> (Program, praxis_synthesis::datalog::SaturationReceipt) {
+fn triangle_program(
+    edges: &[(u64, u64)],
+) -> (Program, praxis_synthesis::datalog::SaturationReceipt) {
     let mut p = Program::new();
     let e = p.intern("e");
     let tri = p.intern("tri");
     let mut ids = std::collections::HashMap::new();
     for &(a, b) in edges {
-        let ia = *ids.entry(a).or_insert_with(|| p.dict.intern(&format!("n{a}")));
-        let ib = *ids.entry(b).or_insert_with(|| p.dict.intern(&format!("n{b}")));
+        let ia = *ids
+            .entry(a)
+            .or_insert_with(|| p.dict.intern(&format!("n{a}")));
+        let ib = *ids
+            .entry(b)
+            .or_insert_with(|| p.dict.intern(&format!("n{b}")));
         p.add_fact(e, &[ia, ib]).expect("edge");
     }
     p.add_rule(DlRule {
@@ -108,7 +114,8 @@ fn tree_closure_agrees_with_arithmetic() {
     let anc = p.intern("anc");
     let ids: Vec<_> = (0..1023u32).map(|i| p.intern(&format!("v{i}"))).collect();
     for i in 1..1023usize {
-        p.add_fact(parent, &[ids[(i - 1) / 2], ids[i]]).expect("edge");
+        p.add_fact(parent, &[ids[(i - 1) / 2], ids[i]])
+            .expect("edge");
     }
     p.add_rule(DlRule {
         head: Atom::new(anc, vec![Term::Var(0), Term::Var(1)]),
@@ -128,7 +135,9 @@ fn tree_closure_agrees_with_arithmetic() {
     p.saturate().expect("saturation");
     // Depth of node i (0-based, complete binary tree) = floor(log2(i+1));
     // TC pairs = sum of depths.
-    let expected: usize = (1..1024usize).map(|i| (usize::BITS - i.leading_zeros() - 1) as usize).sum();
+    let expected: usize = (1..1024usize)
+        .map(|i| (usize::BITS - i.leading_zeros() - 1) as usize)
+        .sum();
     assert_eq!(p.count_for(anc), expected);
 }
 
@@ -141,7 +150,11 @@ fn scale_receipt() {
     let mut points = Vec::new();
 
     // Triangle listing at rising edge counts (cyclic pattern).
-    for &(n, m) in &[(3_000u64, 100_000usize), (10_000, 400_000), (30_000, 1_000_000)] {
+    for &(n, m) in &[
+        (3_000u64, 100_000usize),
+        (10_000, 400_000),
+        (30_000, 1_000_000),
+    ] {
         let edges = random_edges(7, n, m);
         let start = std::time::Instant::now();
         let (p, receipt) = triangle_program(&edges);
@@ -166,7 +179,8 @@ fn scale_receipt() {
         let ids: Vec<_> = (0..n).map(|i| p.intern(&format!("v{i}"))).collect();
         for i in 1..n as usize {
             // 64-ary forest: depth ~ log64(n) — closure stays ~2n..3n.
-            p.add_fact(parent, &[ids[(i - 1) / 64], ids[i]]).expect("edge");
+            p.add_fact(parent, &[ids[(i - 1) / 64], ids[i]])
+                .expect("edge");
         }
         p.add_rule(DlRule {
             head: Atom::new(anc, vec![Term::Var(0), Term::Var(1)]),
@@ -205,7 +219,10 @@ fn scale_receipt() {
         "points": points,
     });
     std::fs::write(
-        concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/synthesis-scale-receipt.json"),
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../target/synthesis-scale-receipt.json"
+        ),
         serde_json::to_string_pretty(&receipt).expect("serialize"),
     )
     .expect("write receipt");

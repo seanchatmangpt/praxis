@@ -1,8 +1,8 @@
 //! `string:` namespace builtins.
 
 use super::{
-    eval_functional, eval_row_constraint, intern_number, intern_string, lexical_value, resolve_operand,
-    subject_list_members,
+    eval_functional, eval_row_constraint, intern_number, intern_string, lexical_value,
+    resolve_operand, subject_list_members,
 };
 use crate::{Binding, Triple, VarOrTerm};
 use regex::Regex;
@@ -22,7 +22,8 @@ pub(crate) const STRING_SUBSTRING: &str = "<http://www.w3.org/2000/10/swap/strin
 pub(crate) const STRING_TO_UPPER_CASE: &str = "<http://www.w3.org/2000/10/swap/string#toUpperCase>";
 pub(crate) const STRING_TO_LOWER_CASE: &str = "<http://www.w3.org/2000/10/swap/string#toLowerCase>";
 pub(crate) const STRING_SPLIT: &str = "<http://www.w3.org/2000/10/swap/string#split>";
-pub(crate) const STRING_EQUAL_IGNORING_CASE: &str = "<http://www.w3.org/2000/10/swap/string#equalIgnoringCase>";
+pub(crate) const STRING_EQUAL_IGNORING_CASE: &str =
+    "<http://www.w3.org/2000/10/swap/string#equalIgnoringCase>";
 pub(crate) const STRING_NOT_EQUAL_IGNORING_CASE: &str =
     "<http://www.w3.org/2000/10/swap/string#notEqualIgnoringCase>";
 pub(crate) const STRING_GREATER_THAN: &str = "<http://www.w3.org/2000/10/swap/string#greaterThan>";
@@ -49,51 +50,76 @@ pub(crate) fn eval_string_concat(pattern: &Triple, bindings: &Binding) -> Option
 }
 
 pub(crate) fn eval_string_less_than(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
-    eval_row_constraint(pattern, bindings, |s, o| {
-        matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a < b)
-    })
+    eval_row_constraint(
+        pattern,
+        bindings,
+        |s, o| matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a < b),
+    )
 }
 
 pub(crate) fn eval_string_greater_than(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
-    eval_row_constraint(pattern, bindings, |s, o| {
-        matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a > b)
-    })
+    eval_row_constraint(
+        pattern,
+        bindings,
+        |s, o| matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a > b),
+    )
 }
 
 pub(crate) fn eval_string_contains(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
-    eval_row_constraint(pattern, bindings, |s, o| {
-        matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.contains(&b))
-    })
+    eval_row_constraint(
+        pattern,
+        bindings,
+        |s, o| matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.contains(&b)),
+    )
 }
 
-pub(crate) fn eval_string_contains_ignoring_case(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
-    eval_row_constraint(pattern, bindings, |s, o| {
-        matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.to_lowercase().contains(&b.to_lowercase()))
-    })
+pub(crate) fn eval_string_contains_ignoring_case(
+    pattern: &Triple,
+    bindings: &Binding,
+) -> Option<Binding> {
+    eval_row_constraint(
+        pattern,
+        bindings,
+        |s, o| matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.to_lowercase().contains(&b.to_lowercase())),
+    )
 }
 
 pub(crate) fn eval_string_starts_with(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
-    eval_row_constraint(pattern, bindings, |s, o| {
-        matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.starts_with(&b))
-    })
+    eval_row_constraint(
+        pattern,
+        bindings,
+        |s, o| matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.starts_with(&b)),
+    )
 }
 
 pub(crate) fn eval_string_ends_with(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
-    eval_row_constraint(pattern, bindings, |s, o| {
-        matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.ends_with(&b))
-    })
+    eval_row_constraint(
+        pattern,
+        bindings,
+        |s, o| matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.ends_with(&b)),
+    )
 }
 
-pub(crate) fn eval_string_equal_ignoring_case(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
-    eval_row_constraint(pattern, bindings, |s, o| {
-        matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.to_lowercase() == b.to_lowercase())
-    })
+pub(crate) fn eval_string_equal_ignoring_case(
+    pattern: &Triple,
+    bindings: &Binding,
+) -> Option<Binding> {
+    eval_row_constraint(
+        pattern,
+        bindings,
+        |s, o| matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.to_lowercase() == b.to_lowercase()),
+    )
 }
 
-pub(crate) fn eval_string_not_equal_ignoring_case(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
-    eval_row_constraint(pattern, bindings, |s, o| {
-        matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.to_lowercase() != b.to_lowercase())
-    })
+pub(crate) fn eval_string_not_equal_ignoring_case(
+    pattern: &Triple,
+    bindings: &Binding,
+) -> Option<Binding> {
+    eval_row_constraint(
+        pattern,
+        bindings,
+        |s, o| matches!((lexical_value(s), lexical_value(o)), (Some(a), Some(b)) if a.to_lowercase() != b.to_lowercase()),
+    )
 }
 
 pub(crate) fn eval_string_matches(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
@@ -170,7 +196,9 @@ pub(crate) fn eval_string_split(pattern: &Triple, bindings: &Binding) -> Option<
         let s = lexical_value(members[0])?;
         let sep = lexical_value(members[1])?;
         let parts: Vec<VarOrTerm> = if sep.is_empty() {
-            s.chars().map(|c| VarOrTerm::new_encoded_term(intern_string(c.to_string()))).collect()
+            s.chars()
+                .map(|c| VarOrTerm::new_encoded_term(intern_string(c.to_string())))
+                .collect()
         } else {
             s.split(sep.as_str())
                 .map(|part| VarOrTerm::new_encoded_term(intern_string(part.to_string())))

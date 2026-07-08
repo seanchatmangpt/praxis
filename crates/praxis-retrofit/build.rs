@@ -7,8 +7,10 @@ fn main() {
     println!("cargo:rerun-if-changed=src/");
 
     let out_dir = std::env::var("OUT_DIR").unwrap();
-    let now =
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
 
     // Log build compilation event (OCEL 2.0 format)
     let build_log = format!(

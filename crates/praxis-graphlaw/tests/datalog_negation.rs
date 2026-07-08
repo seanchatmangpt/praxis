@@ -1,6 +1,5 @@
-
-use praxis_graphlaw::triples::{BodyLiteral, Rule, Triple, Aggregate};
 use praxis_graphlaw::datalog::validate_rules;
+use praxis_graphlaw::triples::{Aggregate, BodyLiteral, Rule, Triple};
 use praxis_graphlaw::TripleStore;
 use std::collections::HashMap;
 
@@ -342,7 +341,10 @@ fn test_negation_empty_relations() {
     };
     assert!(store.add_rules(vec![rule]).is_ok());
     let derived = store.materialize();
-    assert!(derived.is_empty(), "Derived set should be empty on empty relations");
+    assert!(
+        derived.is_empty(),
+        "Derived set should be empty on empty relations"
+    );
 }
 
 #[test]
@@ -605,17 +607,41 @@ fn test_three_layer_stratification_chain() {
     let derived = store.materialize();
     let decoded: Vec<String> = derived.iter().map(TripleStore::decode_triple).collect();
 
-    let a_facts: Vec<&String> = decoded.iter().filter(|s| s.contains("http://example.org/A")).collect();
-    let b_facts: Vec<&String> = decoded.iter().filter(|s| s.contains("http://example.org/B")).collect();
-    let c_facts: Vec<&String> = decoded.iter().filter(|s| s.contains("http://example.org/C")).collect();
+    let a_facts: Vec<&String> = decoded
+        .iter()
+        .filter(|s| s.contains("http://example.org/A"))
+        .collect();
+    let b_facts: Vec<&String> = decoded
+        .iter()
+        .filter(|s| s.contains("http://example.org/B"))
+        .collect();
+    let c_facts: Vec<&String> = decoded
+        .iter()
+        .filter(|s| s.contains("http://example.org/C"))
+        .collect();
 
-    assert_eq!(a_facts.len(), 1, "only :a should get :A, got: {:?}", a_facts);
+    assert_eq!(
+        a_facts.len(),
+        1,
+        "only :a should get :A, got: {:?}",
+        a_facts
+    );
     assert!(a_facts[0].contains("http://example.org/a"));
 
-    assert_eq!(b_facts.len(), 1, "only :b should get :B, got: {:?}", b_facts);
+    assert_eq!(
+        b_facts.len(),
+        1,
+        "only :b should get :B, got: {:?}",
+        b_facts
+    );
     assert!(b_facts[0].contains("http://example.org/b"));
 
-    assert_eq!(c_facts.len(), 1, "only :a should get :C, got: {:?}", c_facts);
+    assert_eq!(
+        c_facts.len(),
+        1,
+        "only :a should get :C, got: {:?}",
+        c_facts
+    );
     assert!(c_facts[0].contains("http://example.org/a"));
 }
 
@@ -701,18 +727,32 @@ fn test_union_semantics_multiple_rules_same_head() {
     };
 
     let res = store.add_rules(vec![r1, r2]);
-    assert!(res.is_ok(), "union-by-shared-head rule pair must be accepted");
+    assert!(
+        res.is_ok(),
+        "union-by-shared-head rule pair must be accepted"
+    );
 
     let derived = store.materialize();
     let decoded: Vec<String> = derived.iter().map(TripleStore::decode_triple).collect();
-    let reaches: Vec<&String> = decoded.iter().filter(|s| s.contains("http://example.org/reaches")).collect();
+    let reaches: Vec<&String> = decoded
+        .iter()
+        .filter(|s| s.contains("http://example.org/reaches"))
+        .collect();
 
     // Transitive closure of a->b->c is exactly {a-b, b-c, a-c} -- 3 pairs,
     // with a-c ONLY derivable via r2 (recursion), proving both rules'
     // contributions are unioned into one relation, and that the recursive
     // rule actually reaches its fixpoint (doesn't stop after one iteration).
-    assert_eq!(reaches.len(), 3, "expected exactly 3 reaches pairs (a-b, b-c, a-c), got: {:?}", reaches);
-    assert!(decoded.iter().any(|s| s.contains("http://example.org/a") && s.contains("http://example.org/reaches") && s.contains("http://example.org/c")),
-        "a-c must be derived transitively via the recursive rule r2, not just directly by r1");
+    assert_eq!(
+        reaches.len(),
+        3,
+        "expected exactly 3 reaches pairs (a-b, b-c, a-c), got: {:?}",
+        reaches
+    );
+    assert!(
+        decoded.iter().any(|s| s.contains("http://example.org/a")
+            && s.contains("http://example.org/reaches")
+            && s.contains("http://example.org/c")),
+        "a-c must be derived transitively via the recursive rule r2, not just directly by r1"
+    );
 }
-

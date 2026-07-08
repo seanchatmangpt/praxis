@@ -1,10 +1,8 @@
 //! Test for quarantine/admission bypass attempts.
+use praxis_synthesis::graph::WF_NS;
 use praxis_synthesis::handlers::HANDLER_NS;
 use praxis_synthesis::hooks::HOOK_NS;
-use praxis_synthesis::graph::WF_NS;
-use praxis_synthesis::{
-    fire_hooks, HandlerRegistry, MeaningSource, Origin, Reference, Refusal,
-};
+use praxis_synthesis::{fire_hooks, HandlerRegistry, MeaningSource, Origin, Reference, Refusal};
 
 const BASE: &str = "@prefix ex: <http://e/> .\nex:a ex:p ex:b .\n";
 const LIFE: &str = "http://seanchatmangpt.github.io/praxis/life#";
@@ -72,6 +70,8 @@ fn execute_custom_workflow_injected_via_delta_proposer() {
             assert_eq!(subject, "http://e/evilCap");
             assert!(detail.contains("forbidden in deltas"));
         }
-        other => panic!("expected AdmissionRefused for a delta-proposed Capability class, got {other:?}"),
+        other => {
+            panic!("expected AdmissionRefused for a delta-proposed Capability class, got {other:?}")
+        }
     }
 }

@@ -108,7 +108,11 @@ fn day_of_week(p: &DateTimeParts) -> i64 {
     rem + 1
 }
 
-fn eval_component(pattern: &Triple, bindings: &Binding, extract: impl Fn(&DateTimeParts) -> f64) -> Option<Binding> {
+fn eval_component(
+    pattern: &Triple,
+    bindings: &Binding,
+    extract: impl Fn(&DateTimeParts) -> f64,
+) -> Option<Binding> {
     eval_functional(pattern, bindings, |pattern, bindings, row| {
         let s = resolve_operand(&pattern.s, bindings, row)?;
         let lex = lexical_value(s)?;
@@ -170,7 +174,13 @@ pub(crate) fn eval_local_time(pattern: &Triple, bindings: &Binding) -> Option<Bi
         let parts = parse_datetime(&lex)?;
         let out = format!(
             "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}{}",
-            parts.year, parts.month, parts.day, parts.hour, parts.minute, parts.second as i64, parts.tz_str
+            parts.year,
+            parts.month,
+            parts.day,
+            parts.hour,
+            parts.minute,
+            parts.second as i64,
+            parts.tz_str
         );
         Some(intern_string(out))
     })

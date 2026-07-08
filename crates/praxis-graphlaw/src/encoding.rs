@@ -128,7 +128,11 @@ impl InternalEncoder {
         } else {
             if let Some(id) = self.encoded.get(&EncodedValue::Iri(s.to_string())).copied() {
                 Some(id)
-            } else if let Some(id) = self.encoded.get(&EncodedValue::Variable(format!("?{}", s))).copied() {
+            } else if let Some(id) = self
+                .encoded
+                .get(&EncodedValue::Variable(format!("?{}", s)))
+                .copied()
+            {
                 Some(id)
             } else if let Some(label) = s.strip_prefix("_:") {
                 self.encoded

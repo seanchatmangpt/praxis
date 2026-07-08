@@ -102,7 +102,11 @@ impl ChoiceGraph {
     /// Successors of `node` in the graph (deterministic order).
     #[must_use]
     pub fn successors(&self, node: GNode) -> Vec<GNode> {
-        self.edges.iter().filter(|(u, _)| *u == node).map(|(_, v)| *v).collect()
+        self.edges
+            .iter()
+            .filter(|(u, _)| *u == node)
+            .map(|(_, v)| *v)
+            .collect()
     }
 }
 
@@ -160,8 +164,10 @@ fn shuffle_language(
     max_len: usize,
 ) -> Language {
     let mut out = Language::new();
-    let choices: Vec<Vec<Trace>> =
-        child_langs.iter().map(|l| l.iter().cloned().collect()).collect();
+    let choices: Vec<Vec<Trace>> = child_langs
+        .iter()
+        .map(|l| l.iter().cloned().collect())
+        .collect();
     let mut selection: Vec<Trace> = vec![vec![]; choices.len()];
     cartesian(&choices, 0, &mut selection, &mut |sel| {
         interleave(sel, order, max_len, &mut out);
@@ -189,7 +195,12 @@ fn cartesian(
 
 /// Order-preserving shuffle (Def 3.8): child `i`'s next element may be emitted
 /// only when every predecessor `j ≺ i` has been fully emitted.
-fn interleave(seqs: &[Trace], order: &BTreeSet<(usize, usize)>, max_len: usize, out: &mut Language) {
+fn interleave(
+    seqs: &[Trace],
+    order: &BTreeSet<(usize, usize)>,
+    max_len: usize,
+    out: &mut Language,
+) {
     let n = seqs.len();
     let mut pos = vec![0usize; n];
     let mut acc = Vec::new();

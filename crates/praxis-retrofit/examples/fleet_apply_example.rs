@@ -15,7 +15,6 @@
 #![allow(missing_docs, dead_code)]
 #![allow(clippy::pedantic, clippy::style, clippy::complexity, clippy::perf)]
 
-
 use praxis_retrofit::{PraxisSpec, RetrofitApplier, RetrofitPhase};
 
 #[tokio::main]

@@ -80,7 +80,10 @@ impl Message {
     /// Build a `user` turn.
     #[must_use]
     pub fn user(content: impl Into<String>) -> Self {
-        Self { role: "user".to_string(), content: content.into() }
+        Self {
+            role: "user".to_string(),
+            content: content.into(),
+        }
     }
 }
 
@@ -185,7 +188,10 @@ impl ModelResponse {
         if self.stop_reason.as_deref() == Some("refusal") {
             return Err(ModelError::Refusal {
                 category: self.stop_details.as_ref().and_then(|d| d.category.clone()),
-                explanation: self.stop_details.as_ref().and_then(|d| d.explanation.clone()),
+                explanation: self
+                    .stop_details
+                    .as_ref()
+                    .and_then(|d| d.explanation.clone()),
             });
         }
         let joined: String = self
@@ -242,7 +248,10 @@ impl AnthropicClient {
         let http = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(600))
             .build()?;
-        Ok(Self { api_key: api_key.into(), http })
+        Ok(Self {
+            api_key: api_key.into(),
+            http,
+        })
     }
 
     /// Build a client, reading `ANTHROPIC_API_KEY` from the environment.
@@ -266,10 +275,18 @@ impl ModelClient for AnthropicClient {
             max_tokens: req.max_tokens,
             system: req.system,
             messages: &req.messages,
-            thinking: if fable5 { Some(ThinkingConfig { kind: "adaptive" }) } else { None },
-            output_config: req.effort.map(|effort| OutputConfig { effort: Some(effort) }),
+            thinking: if fable5 {
+                Some(ThinkingConfig { kind: "adaptive" })
+            } else {
+                None
+            },
+            output_config: req.effort.map(|effort| OutputConfig {
+                effort: Some(effort),
+            }),
             fallbacks: if fable5 {
-                Some(vec![FallbackTarget { model: "claude-opus-4-8" }])
+                Some(vec![FallbackTarget {
+                    model: "claude-opus-4-8",
+                }])
             } else {
                 None
             },
@@ -293,7 +310,10 @@ impl ModelClient for AnthropicClient {
         let raw = response.text()?;
 
         if !status.is_success() {
-            return Err(ModelError::BadStatus { status: status.as_u16(), body: raw });
+            return Err(ModelError::BadStatus {
+                status: status.as_u16(),
+                body: raw,
+            });
         }
 
         let parsed: ModelResponse = serde_json::from_str(&raw)?;
@@ -348,7 +368,9 @@ impl ModelClient for MockModelClient {
     fn send(&self, _req: &MessageRequest<'_>) -> ModelResult<ModelResponse> {
         match &self.response {
             Ok(resp) => Ok(resp.clone()),
-            Err(_) => Err(ModelError::UnexpectedShape("mock configured to fail".to_string())),
+            Err(_) => Err(ModelError::UnexpectedShape(
+                "mock configured to fail".to_string(),
+            )),
         }
     }
 }
@@ -359,7 +381,8 @@ mod tests {
 
     #[test]
     fn mock_client_returns_configured_text() {
-        let client = MockModelClient::ok_text("```rust\nfn add(a: i32, b: i32) -> i32 { a + b }\n```");
+        let client =
+            MockModelClient::ok_text("```rust\nfn add(a: i32, b: i32) -> i32 { a + b }\n```");
         let req = MessageRequest {
             model: "claude-opus-4-8",
             max_tokens: 1024,
@@ -383,7 +406,9 @@ mod tests {
             effort: None,
         };
         let resp = client.send(&req).expect("mock send should succeed");
-        let err = resp.text().expect_err("refusal should be reported as an error");
+        let err = resp
+            .text()
+            .expect_err("refusal should be reported as an error");
         match err {
             ModelError::Refusal { category, .. } => assert_eq!(category.as_deref(), Some("cyber")),
             other => panic!("expected Refusal, got {other:?}"),

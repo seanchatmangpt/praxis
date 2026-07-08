@@ -99,7 +99,10 @@ async fn main() -> anyhow::Result<()> {
         if !consumers.is_empty() {
             println!("{} is consumed by:", upstream);
             for consumer in consumers {
-                println!("  - {} (phase {}/5)", consumer.name, consumer.retrofit_phase_complete);
+                println!(
+                    "  - {} (phase {}/5)",
+                    consumer.name, consumer.retrofit_phase_complete
+                );
             }
         }
     }
@@ -114,7 +117,12 @@ async fn main() -> anyhow::Result<()> {
 
     // Show recommended retrofit order
     println!("=== RECOMMENDED RETROFIT ORDER ===");
-    for (i, repo) in registry.recommended_retrofit_order().iter().take(10).enumerate() {
+    for (i, repo) in registry
+        .recommended_retrofit_order()
+        .iter()
+        .take(10)
+        .enumerate()
+    {
         println!(
             "{:2}. {} (phase {}/5, readiness: {})",
             i + 1,

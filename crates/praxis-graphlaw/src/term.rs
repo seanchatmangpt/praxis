@@ -184,9 +184,9 @@ impl VarOrTerm {
     /// `VarOrTerm::Var` wrapper itself reliably says "this was a variable."
     pub fn is_nonground_list_pattern(id: usize) -> bool {
         match Self::list_members_typed(id) {
-            Some(members) => members.iter().any(|m| {
-                m.is_var() || Self::is_nonground_list_pattern(m.to_encoded())
-            }),
+            Some(members) => members
+                .iter()
+                .any(|m| m.is_var() || Self::is_nonground_list_pattern(m.to_encoded())),
             None => false,
         }
     }
@@ -211,7 +211,10 @@ impl VarOrTerm {
         data_id: usize,
         out_bindings: &mut Vec<(usize, usize)>,
     ) -> bool {
-        let (Some(p_members), Some(d_members)) = (Self::list_members_typed(pattern_id), Self::list_members_typed(data_id)) else {
+        let (Some(p_members), Some(d_members)) = (
+            Self::list_members_typed(pattern_id),
+            Self::list_members_typed(data_id),
+        ) else {
             // Neither (or only one) side is a list at all -- fall back to
             // exact-id equality (covers e.g. a plain IRI/literal member).
             return pattern_id == data_id;
@@ -243,7 +246,10 @@ impl VarOrTerm {
     /// the real EYE `good_cobbler` corpus case: without this, asserting a
     /// rule's list-valued head just copied the rule's own still-variable-
     /// containing pattern list verbatim, rather than the bound value.
-    pub fn substitute_deep(term: &VarOrTerm, resolve: &impl Fn(usize) -> Option<usize>) -> VarOrTerm {
+    pub fn substitute_deep(
+        term: &VarOrTerm,
+        resolve: &impl Fn(usize) -> Option<usize>,
+    ) -> VarOrTerm {
         if term.is_var() {
             if let Some(val) = resolve(term.to_encoded()) {
                 return VarOrTerm::new_encoded_term(val);

@@ -50,7 +50,8 @@ struct ShexCParser;
 /// shape explicitly from the caller's `shape_map`, never from a schema's
 /// `start` shape, so there is nowhere to plug a recorded start shape into.
 pub fn parse_shexc(src: &str) -> Result<Schema, String> {
-    let mut pairs = ShexCParser::parse(Rule::Schema, src).map_err(|e| format!("ShExC parse error: {e}"))?;
+    let mut pairs =
+        ShexCParser::parse(Rule::Schema, src).map_err(|e| format!("ShExC parse error: {e}"))?;
     let schema_pair = pairs.next().ok_or("ShExC parse error: empty input")?;
 
     let mut prefixes: HashMap<String, String> = HashMap::new();
@@ -91,11 +92,18 @@ pub fn parse_shexc(src: &str) -> Result<Schema, String> {
             }
             Rule::ShapeExprDecl => {
                 let mut parts = pair.into_inner();
-                let label_pair = parts.next().ok_or("malformed shape declaration: missing label")?;
+                let label_pair = parts
+                    .next()
+                    .ok_or("malformed shape declaration: missing label")?;
                 let label = resolve_iri_pair(&prefixes, &base, label_pair)?;
-                let shape_or = parts.next().ok_or("malformed shape declaration: missing body")?;
+                let shape_or = parts
+                    .next()
+                    .ok_or("malformed shape declaration: missing body")?;
                 let expr = convert_shape_or(&prefixes, &base, shape_or)?;
-                shapes.push(ShapeDecl { id: label, shape_expr: expr });
+                shapes.push(ShapeDecl {
+                    id: label,
+                    shape_expr: expr,
+                });
             }
             Rule::EOI => {}
             other => return Err(format!("unexpected top-level construct: {other:?}")),
@@ -110,7 +118,9 @@ pub fn parse_shexc(src: &str) -> Result<Schema, String> {
 // ---------------------------------------------------------------------
 
 fn strip_brackets(s: &str) -> &str {
-    s.strip_prefix('<').and_then(|s| s.strip_suffix('>')).unwrap_or(s)
+    s.strip_prefix('<')
+        .and_then(|s| s.strip_suffix('>'))
+        .unwrap_or(s)
 }
 
 /// Minimal RFC-3986-flavored relative resolution: an iri containing "://" (or
@@ -135,7 +145,11 @@ fn resolve_iri(base: &Option<String>, raw: &str) -> String {
     }
 }
 
-fn resolve_iri_pair(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<String, String> {
+fn resolve_iri_pair(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<String, String> {
     // `pair` is an `Iri` (IriRef | PrefixedName), or occasionally the raw
     // IriRef/PrefixedName pair directly when called on an already-unwrapped
     // child.
@@ -163,7 +177,11 @@ fn resolve_iri_pair(prefixes: &HashMap<String, String>, base: &Option<String>, p
 // Shape expressions
 // ---------------------------------------------------------------------
 
-fn convert_shape_or(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<ShapeExpr, String> {
+fn convert_shape_or(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<ShapeExpr, String> {
     Ok(unwrap_or_ref(convert_shape_or_ref(prefixes, base, pair)?))
 }
 
@@ -173,7 +191,11 @@ fn convert_shape_or(prefixes: &HashMap<String, String>, base: &Option<String>, p
 /// `ShapeExprOrRef` (not a bare `ShapeExpr`) is the right AST shape (e.g.
 /// inside another `ShapeAnd`/`ShapeOr`'s alternatives list, or a triple
 /// constraint's `value_expr`).
-fn convert_shape_or_ref(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<ShapeExprOrRef, String> {
+fn convert_shape_or_ref(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<ShapeExprOrRef, String> {
     let mut ands: Vec<ShapeExprOrRef> = pair
         .into_inner()
         .map(|p| convert_shape_and_ref(prefixes, base, p))
@@ -181,11 +203,17 @@ fn convert_shape_or_ref(prefixes: &HashMap<String, String>, base: &Option<String
     if ands.len() == 1 {
         Ok(ands.remove(0))
     } else {
-        Ok(ShapeExprOrRef::Expr(ShapeExpr::ShapeOr { shape_exprs: ands }))
+        Ok(ShapeExprOrRef::Expr(ShapeExpr::ShapeOr {
+            shape_exprs: ands,
+        }))
     }
 }
 
-fn convert_shape_and_ref(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<ShapeExprOrRef, String> {
+fn convert_shape_and_ref(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<ShapeExprOrRef, String> {
     let mut nots: Vec<ShapeExprOrRef> = pair
         .into_inner()
         .map(|p| convert_shape_not_ref(prefixes, base, p))
@@ -193,33 +221,53 @@ fn convert_shape_and_ref(prefixes: &HashMap<String, String>, base: &Option<Strin
     if nots.len() == 1 {
         Ok(nots.remove(0))
     } else {
-        Ok(ShapeExprOrRef::Expr(ShapeExpr::ShapeAnd { shape_exprs: nots }))
+        Ok(ShapeExprOrRef::Expr(ShapeExpr::ShapeAnd {
+            shape_exprs: nots,
+        }))
     }
 }
 
-fn convert_shape_not_ref(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<ShapeExprOrRef, String> {
+fn convert_shape_not_ref(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<ShapeExprOrRef, String> {
     let mut inner = pair.into_inner();
     let first = inner.next().ok_or("empty ShapeNot")?;
     if first.as_rule() == Rule::NotKeyword {
         let atom = inner.next().ok_or("NOT with no shape expression")?;
         let inner_ref = convert_shape_atom_ref(prefixes, base, atom)?;
-        Ok(ShapeExprOrRef::Expr(ShapeExpr::ShapeNot { shape_expr: Box::new(inner_ref) }))
+        Ok(ShapeExprOrRef::Expr(ShapeExpr::ShapeNot {
+            shape_expr: Box::new(inner_ref),
+        }))
     } else {
         convert_shape_atom_ref(prefixes, base, first)
     }
 }
 
-fn convert_shape_atom_ref(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<ShapeExprOrRef, String> {
+fn convert_shape_atom_ref(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<ShapeExprOrRef, String> {
     let atom = pair.into_inner().next().ok_or("empty ShapeAtom")?;
     match atom.as_rule() {
-        Rule::AnyNode => Ok(ShapeExprOrRef::Expr(ShapeExpr::Shape { closed: false, extra: vec![], expression: None })),
+        Rule::AnyNode => Ok(ShapeExprOrRef::Expr(ShapeExpr::Shape {
+            closed: false,
+            extra: vec![],
+            expression: None,
+        })),
         Rule::ShapeRef => {
             let label_pair = atom.into_inner().next().ok_or("empty ShapeRef")?;
             let label = resolve_iri_pair(prefixes, base, label_pair)?;
             Ok(ShapeExprOrRef::Ref(label))
         }
-        Rule::NodeConstraint => Ok(ShapeExprOrRef::Expr(convert_node_constraint(prefixes, base, atom)?)),
-        Rule::ShapeDefinition => Ok(ShapeExprOrRef::Expr(convert_shape_definition(prefixes, base, atom)?)),
+        Rule::NodeConstraint => Ok(ShapeExprOrRef::Expr(convert_node_constraint(
+            prefixes, base, atom,
+        )?)),
+        Rule::ShapeDefinition => Ok(ShapeExprOrRef::Expr(convert_shape_definition(
+            prefixes, base, atom,
+        )?)),
         Rule::ShapeOr => convert_shape_or_ref(prefixes, base, atom),
         other => Err(format!("unexpected shape atom: {other:?}")),
     }
@@ -233,11 +281,17 @@ fn unwrap_or_ref(r: ShapeExprOrRef) -> ShapeExpr {
         // `ShapeExprDecl`'s body) -- represent it as a trivial `ShapeAnd` of
         // one reference, which validates identically to the reference
         // itself (see `shex_native.rs::validate_node`'s `ShapeAnd` case).
-        ShapeExprOrRef::Ref(label) => ShapeExpr::ShapeAnd { shape_exprs: vec![ShapeExprOrRef::Ref(label)] },
+        ShapeExprOrRef::Ref(label) => ShapeExpr::ShapeAnd {
+            shape_exprs: vec![ShapeExprOrRef::Ref(label)],
+        },
     }
 }
 
-fn convert_shape_definition(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<ShapeExpr, String> {
+fn convert_shape_definition(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<ShapeExpr, String> {
     let mut closed = false;
     let mut extra = Vec::new();
     let mut expression = None;
@@ -263,10 +317,18 @@ fn convert_shape_definition(prefixes: &HashMap<String, String>, base: &Option<St
         }
     }
 
-    Ok(ShapeExpr::Shape { closed, extra, expression })
+    Ok(ShapeExpr::Shape {
+        closed,
+        extra,
+        expression,
+    })
 }
 
-fn convert_node_constraint(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<ShapeExpr, String> {
+fn convert_node_constraint(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<ShapeExpr, String> {
     let mut datatype = None;
     let mut node_kind = None;
     let mut length = None;
@@ -315,16 +377,30 @@ fn convert_node_constraint(prefixes: &HashMap<String, String>, base: &Option<Str
     }
 
     Ok(ShapeExpr::NodeConstraint {
-        datatype, node_kind, length, minlength, maxlength,
-        mininclusive, maxinclusive, minexclusive, maxexclusive,
-        pattern, flags, values,
+        datatype,
+        node_kind,
+        length,
+        minlength,
+        maxlength,
+        mininclusive,
+        maxinclusive,
+        minexclusive,
+        maxexclusive,
+        pattern,
+        flags,
+        values,
     })
 }
 
 fn parse_int(facet_pair: &Pair<Rule>) -> Result<i64, String> {
     let text = facet_pair.as_str();
-    let digits: String = text.chars().filter(|c| c.is_ascii_digit() || *c == '-' || *c == '+').collect();
-    digits.parse::<i64>().map_err(|e| format!("invalid integer facet {text:?}: {e}"))
+    let digits: String = text
+        .chars()
+        .filter(|c| c.is_ascii_digit() || *c == '-' || *c == '+')
+        .collect();
+    digits
+        .parse::<i64>()
+        .map_err(|e| format!("invalid integer facet {text:?}: {e}"))
 }
 
 fn parse_float(facet_pair: &Pair<Rule>) -> Result<f64, String> {
@@ -338,7 +414,9 @@ fn parse_float(facet_pair: &Pair<Rule>) -> Result<f64, String> {
         .split_whitespace()
         .last()
         .ok_or_else(|| format!("malformed numeric facet: {text:?}"))?;
-    numeric.parse::<f64>().map_err(|e| format!("invalid numeric facet {numeric:?}: {e}"))
+    numeric
+        .parse::<f64>()
+        .map_err(|e| format!("invalid numeric facet {numeric:?}: {e}"))
 }
 
 fn parse_regex_literal(raw: &str) -> Result<(String, String), String> {
@@ -367,7 +445,11 @@ fn find_unescaped_slash(s: &str) -> Option<usize> {
     None
 }
 
-fn convert_value_set(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<Vec<ValueSetValue>, String> {
+fn convert_value_set(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<Vec<ValueSetValue>, String> {
     let mut out = Vec::new();
     for p in pair.into_inner() {
         let v = p.into_inner().next().ok_or("empty ValueSetValue")?;
@@ -382,7 +464,10 @@ fn convert_value_set(prefixes: &HashMap<String, String>, base: &Option<String>, 
             Rule::IriStemValue => {
                 let iri_pair = v.into_inner().next().ok_or("empty IriStemValue")?;
                 let iri = resolve_iri_pair(prefixes, base, iri_pair)?;
-                ValueSetValue::IriStem { ty: "IriStem".to_string(), stem: iri }
+                ValueSetValue::IriStem {
+                    ty: "IriStem".to_string(),
+                    stem: iri,
+                }
             }
             Rule::IriValue => {
                 let iri_pair = v.into_inner().next().ok_or("empty IriValue")?;
@@ -391,8 +476,13 @@ fn convert_value_set(prefixes: &HashMap<String, String>, base: &Option<String>, 
             Rule::LiteralValue => {
                 let mut parts = v.into_inner();
                 let str_pair = parts.next().ok_or("empty LiteralValue")?;
-                let lang = parts.next().map(|l| l.as_str().trim_start_matches('@').to_string());
-                ValueSetValue::LangLiteral { value: unescape_string(str_pair.as_str()), language: lang }
+                let lang = parts
+                    .next()
+                    .map(|l| l.as_str().trim_start_matches('@').to_string());
+                ValueSetValue::LangLiteral {
+                    value: unescape_string(str_pair.as_str()),
+                    language: lang,
+                }
             }
             other => return Err(format!("unexpected value-set entry: {other:?}")),
         });
@@ -420,12 +510,20 @@ fn unescape_string(quoted: &str) -> String {
 // Triple expressions
 // ---------------------------------------------------------------------
 
-fn convert_triple_expr(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<TripleExpr, String> {
+fn convert_triple_expr(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<TripleExpr, String> {
     let one_of = pair.into_inner().next().ok_or("empty TripleExpr")?;
     convert_one_of(prefixes, base, one_of)
 }
 
-fn convert_one_of(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<TripleExpr, String> {
+fn convert_one_of(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<TripleExpr, String> {
     let mut each_ofs: Vec<TripleExpr> = pair
         .into_inner()
         .map(|p| convert_each_of(prefixes, base, p))
@@ -433,11 +531,17 @@ fn convert_one_of(prefixes: &HashMap<String, String>, base: &Option<String>, pai
     if each_ofs.len() == 1 {
         Ok(each_ofs.remove(0))
     } else {
-        Ok(TripleExpr::OneOf { expressions: each_ofs })
+        Ok(TripleExpr::OneOf {
+            expressions: each_ofs,
+        })
     }
 }
 
-fn convert_each_of(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<TripleExpr, String> {
+fn convert_each_of(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<TripleExpr, String> {
     let mut unaries: Vec<TripleExpr> = pair
         .into_inner()
         .map(|p| convert_unary(prefixes, base, p))
@@ -445,11 +549,17 @@ fn convert_each_of(prefixes: &HashMap<String, String>, base: &Option<String>, pa
     if unaries.len() == 1 {
         Ok(unaries.remove(0))
     } else {
-        Ok(TripleExpr::EachOf { expressions: unaries })
+        Ok(TripleExpr::EachOf {
+            expressions: unaries,
+        })
     }
 }
 
-fn convert_unary(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<TripleExpr, String> {
+fn convert_unary(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<TripleExpr, String> {
     let inner = pair.into_inner().next().ok_or("empty UnaryTripleExpr")?;
     match inner.as_rule() {
         Rule::TripleConstraint => convert_triple_constraint(prefixes, base, inner),
@@ -458,16 +568,24 @@ fn convert_unary(prefixes: &HashMap<String, String>, base: &Option<String>, pair
     }
 }
 
-fn convert_triple_constraint(prefixes: &HashMap<String, String>, base: &Option<String>, pair: Pair<Rule>) -> Result<TripleExpr, String> {
+fn convert_triple_constraint(
+    prefixes: &HashMap<String, String>,
+    base: &Option<String>,
+    pair: Pair<Rule>,
+) -> Result<TripleExpr, String> {
     let mut parts = pair.into_inner();
-    let predicate_pair = parts.next().ok_or("malformed triple constraint: missing predicate")?;
+    let predicate_pair = parts
+        .next()
+        .ok_or("malformed triple constraint: missing predicate")?;
     let predicate = match predicate_pair.into_inner().next() {
         Some(iri_pair) => resolve_iri_pair(prefixes, base, iri_pair)?,
         // Bare `a` shorthand.
         None => "http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_string(),
     };
 
-    let value_or_pair = parts.next().ok_or("malformed triple constraint: missing value expression")?;
+    let value_or_pair = parts
+        .next()
+        .ok_or("malformed triple constraint: missing value expression")?;
     let value_ref = convert_shape_or_ref(prefixes, base, value_or_pair)?;
     // `.` (AnyNode) means "no value constraint at all" -- represented as
     // `value_expr: None`, matching how `shex_native.rs` treats an absent
@@ -476,7 +594,11 @@ fn convert_triple_constraint(prefixes: &HashMap<String, String>, base: &Option<S
     // with no closed/extra/expression set -- the canonical "always
     // conforms" shape -- which we special-case back to `None` here so the
     // AST matches ShExJ byte-for-byte for the common `.`-as-any-node idiom.
-    let value_expr = if is_any_node_shape(&value_ref) { None } else { Some(Box::new(value_ref)) };
+    let value_expr = if is_any_node_shape(&value_ref) {
+        None
+    } else {
+        Some(Box::new(value_ref))
+    };
 
     let cardinality = parts.next();
     let (min, max) = match cardinality {
@@ -484,7 +606,12 @@ fn convert_triple_constraint(prefixes: &HashMap<String, String>, base: &Option<S
         None => (None, None),
     };
 
-    Ok(TripleExpr::TripleConstraint { predicate, value_expr, min, max })
+    Ok(TripleExpr::TripleConstraint {
+        predicate,
+        value_expr,
+        min,
+        max,
+    })
 }
 
 fn is_any_node_shape(r: &ShapeExprOrRef) -> bool {
@@ -502,7 +629,12 @@ fn convert_cardinality(pair: Pair<Rule>) -> Result<(Option<i64>, Option<i64>), S
         Rule::Question => Ok((Some(0), Some(1))),
         Rule::RepeatRange => {
             let mut nums = inner.into_inner();
-            let min = nums.next().ok_or("empty repeat range")?.as_str().parse::<i64>().map_err(|e| e.to_string())?;
+            let min = nums
+                .next()
+                .ok_or("empty repeat range")?
+                .as_str()
+                .parse::<i64>()
+                .map_err(|e| e.to_string())?;
             let max = match nums.next() {
                 Some(m) => m.as_str().parse::<i64>().map_err(|e| e.to_string())?,
                 None => -1,

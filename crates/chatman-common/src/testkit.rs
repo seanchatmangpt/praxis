@@ -125,12 +125,22 @@ pub fn deterministic_uuid(seed: &str) -> String {
         let lo = h;
         let hi = !h;
         let b = [
-            (hi >> 56) as u8, (hi >> 48) as u8, (hi >> 40) as u8, (hi >> 32) as u8,
-            (hi >> 24) as u8, (hi >> 16) as u8,
-            ((hi >> 8) as u8 & 0x0f) | 0x50, hi as u8,
-            (lo >> 56) as u8 & 0x3f | 0x80, (lo >> 48) as u8,
-            (lo >> 40) as u8, (lo >> 32) as u8, (lo >> 24) as u8, (lo >> 16) as u8,
-            (lo >> 8) as u8, lo as u8,
+            (hi >> 56) as u8,
+            (hi >> 48) as u8,
+            (hi >> 40) as u8,
+            (hi >> 32) as u8,
+            (hi >> 24) as u8,
+            (hi >> 16) as u8,
+            ((hi >> 8) as u8 & 0x0f) | 0x50,
+            hi as u8,
+            (lo >> 56) as u8 & 0x3f | 0x80,
+            (lo >> 48) as u8,
+            (lo >> 40) as u8,
+            (lo >> 32) as u8,
+            (lo >> 24) as u8,
+            (lo >> 16) as u8,
+            (lo >> 8) as u8,
+            lo as u8,
         ];
         format!(
             "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
@@ -279,11 +289,15 @@ pub struct TestState<Phase> {
 impl TestState<Arrange> {
     /// Create a new `TestState` in the `Arrange` phase.
     pub fn new() -> Self {
-        TestState { _phase: std::marker::PhantomData }
+        TestState {
+            _phase: std::marker::PhantomData,
+        }
     }
     /// Advance to the `Act` phase.
     pub fn act(self) -> TestState<Act> {
-        TestState { _phase: std::marker::PhantomData }
+        TestState {
+            _phase: std::marker::PhantomData,
+        }
     }
 }
 
@@ -296,7 +310,9 @@ impl Default for TestState<Arrange> {
 impl TestState<Act> {
     /// Advance to the `Assert` phase.
     pub fn assert(self) -> TestState<Assert> {
-        TestState { _phase: std::marker::PhantomData }
+        TestState {
+            _phase: std::marker::PhantomData,
+        }
     }
 }
 
@@ -332,7 +348,7 @@ impl TestOutput for () {
 macro_rules! assert_fail {
     ($expr:expr, $pat:pat) => {
         match $expr {
-            Err($pat) => {},
+            Err($pat) => {}
             Ok(v) => panic!("expected Err, got Ok({v:?})"),
             Err(e) => panic!("wrong error kind: {e:?}"),
         }
@@ -404,10 +420,7 @@ impl TestReceipt {
 
         #[cfg(feature = "living-docs")]
         let chain_hash = {
-            let input = format!(
-                "{test_name}|{passed}|{duration_ms}|{}",
-                env.os
-            );
+            let input = format!("{test_name}|{passed}|{duration_ms}|{}", env.os);
             Some(blake3::hash(input.as_bytes()).to_hex().to_string())
         };
         #[cfg(not(feature = "living-docs"))]
@@ -524,7 +537,12 @@ mod living_docs {
             let output_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("docs")
                 .join("test");
-            Self { name, events: Vec::new(), output_dir, finished: false }
+            Self {
+                name,
+                events: Vec::new(),
+                output_dir,
+                finished: false,
+            }
         }
 
         /// Override the output directory (useful in tests).
@@ -570,7 +588,10 @@ mod living_docs {
         /// Emit a key/value list event.
         pub fn say_key_value(&mut self, pairs: &[(&str, &str)]) {
             self.events.push(DocEvent::KeyValue(
-                pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(),
+                pairs
+                    .iter()
+                    .map(|(k, v)| (k.to_string(), v.to_string()))
+                    .collect(),
             ));
         }
 
@@ -614,12 +635,8 @@ mod living_docs {
                         let icon = if *passed { "✓" } else { "✗" };
                         out.push_str(&format!("- {icon} {label}\n\n"));
                     }
-                    DocEvent::Mermaid(dsl) => {
-                        out.push_str(&format!("```mermaid\n{dsl}\n```\n\n"))
-                    }
-                    DocEvent::ChainHash(h) => {
-                        out.push_str(&format!("*chain_hash: `{h}`*\n\n"))
-                    }
+                    DocEvent::Mermaid(dsl) => out.push_str(&format!("```mermaid\n{dsl}\n```\n\n")),
+                    DocEvent::ChainHash(h) => out.push_str(&format!("*chain_hash: `{h}`*\n\n")),
                 }
             }
             // Footer with BLAKE3 provenance
@@ -634,10 +651,9 @@ mod living_docs {
         pub fn finish(mut self) -> crate::Result<()> {
             self.finished = true;
             let bytes = self.render_markdown();
-            let path = self.output_dir.join(format!(
-                "{}.md",
-                self.name.replace(['/', '\\', ' '], "_")
-            ));
+            let path = self
+                .output_dir
+                .join(format!("{}.md", self.name.replace(['/', '\\', ' '], "_")));
             if let Some(parent) = path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
@@ -650,10 +666,9 @@ mod living_docs {
         fn drop(&mut self) {
             if !self.finished && !self.events.is_empty() && !std::thread::panicking() {
                 let bytes = self.render_markdown();
-                let path = self.output_dir.join(format!(
-                    "{}.md",
-                    self.name.replace(['/', '\\', ' '], "_")
-                ));
+                let path = self
+                    .output_dir
+                    .join(format!("{}.md", self.name.replace(['/', '\\', ' '], "_")));
                 let _ = std::fs::create_dir_all(path.parent().unwrap_or(Path::new(".")));
                 let _ = std::fs::write(&path, &bytes);
             }
@@ -891,7 +906,10 @@ mod tests {
     #[test]
     fn assert_fail_with_pattern() {
         #[derive(Debug)]
-        enum MyErr { NotFound, Other }
+        enum MyErr {
+            NotFound,
+            Other,
+        }
         let result: std::result::Result<(), MyErr> = Err(MyErr::NotFound);
         assert_fail!(result, MyErr::NotFound);
     }
@@ -908,7 +926,9 @@ mod tests {
         // Manually inject a chain_hash so we can test signing without living-docs
         r.chain_hash = Some("a".repeat(64));
         let r = r.sign_with(&kp.signing_key_hex()).unwrap();
-        let signed = r.signed.expect("signed field must be populated after sign_with");
+        let signed = r
+            .signed
+            .expect("signed field must be populated after sign_with");
         assert!(
             crate::signed_receipt::verify(&signed, &kp.verifying_key_hex()).unwrap(),
             "TestReceipt signature must be valid"
@@ -924,6 +944,9 @@ mod tests {
         let mut r = TestReceipt::record("no_key_test", true, 1);
         r.chain_hash = Some("b".repeat(64));
         let r = r.sign();
-        assert!(r.signed.is_none(), "sign() without env key should leave signed = None");
+        assert!(
+            r.signed.is_none(),
+            "sign() without env key should leave signed = None"
+        );
     }
 }

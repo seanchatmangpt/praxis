@@ -15,8 +15,8 @@
 //! mask across all eight byte-lanes of a word and gate 8 agents at once (SWAR),
 //! so a [`Fleet`] of `N` agents sweeps in `N/8` word operations.
 
-use crate::byte::AgentByte;
 use crate::abi::Pulse64;
+use crate::byte::AgentByte;
 
 /// Number of agents packed into one 64-bit word.
 pub const LANES_PER_WORD: usize = 8;
@@ -107,7 +107,9 @@ impl Fleet {
     #[must_use]
     pub fn with_fill(count: usize, fill: AgentByte) -> Self {
         let words = count.div_ceil(LANES_PER_WORD);
-        Self { bytes: vec![broadcast(fill.raw()); words] }
+        Self {
+            bytes: vec![broadcast(fill.raw()); words],
+        }
     }
 
     /// Number of agents (word count × 8).
@@ -157,7 +159,13 @@ impl Fleet {
             replayable += u64::from((word & replayable_bcast).count_ones());
         }
         let total = self.len() as u64;
-        FleetStats { total, admitted, blocked: total - admitted, receipted, replayable }
+        FleetStats {
+            total,
+            admitted,
+            blocked: total - admitted,
+            receipted,
+            replayable,
+        }
     }
 
     /// Fold an observed [`Pulse64`] back into one agent's projection, using the
@@ -189,7 +197,10 @@ mod tests {
     /// Naive per-agent oracle for the differential test (Day 3 doctrine).
     fn naive_stats(fleet: &Fleet, required: u8) -> FleetStats {
         let total = fleet.len() as u64;
-        let mut s = FleetStats { total, ..Default::default() };
+        let mut s = FleetStats {
+            total,
+            ..Default::default()
+        };
         for i in 0..fleet.len() {
             let b = fleet.get(i);
             if b.denial(required) == 0 {
@@ -222,9 +233,13 @@ mod tests {
     fn sweep_matches_naive_oracle_across_a_pseudo_random_fleet() {
         // Deterministic LCG fill so the fleet spans the full byte space.
         let mut state: u64 = 0x1234_5678_9abc_def0;
-        let mut f = Fleet { bytes: vec![0u64; 4096] }; // 32_768 agents
+        let mut f = Fleet {
+            bytes: vec![0u64; 4096],
+        }; // 32_768 agents
         for w in f.bytes.iter_mut() {
-            state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             *w = state;
         }
         for &required in &[AgentByte::GRANT_REQUIRED, 0x00, 0xFF, AgentByte::ADMITTED] {

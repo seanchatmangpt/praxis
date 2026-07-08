@@ -14,8 +14,7 @@ mod common;
 use std::time::Instant;
 
 use praxis_synthesis::cell::{
-    challenge_member, run_cell, summarize_cell, supra_hash, verify_supra,
-    CellSummary, MemberRecord,
+    challenge_member, run_cell, summarize_cell, supra_hash, verify_supra, CellSummary, MemberRecord,
 };
 
 /// splitmix64 — the crate's fault-injection mixer, reproduced locally
@@ -48,14 +47,16 @@ fn run_rung(
         if challenged / per_cell == ci {
             let local = challenged % per_cell;
             let per_group = per_cell / groups_per_cell;
-            challenged_record = Some(
-                groups[local / per_group].members[local % per_group].clone(),
-            );
+            challenged_record = Some(groups[local / per_group].members[local % per_group].clone());
         }
         summaries.push(summarize_cell(ci, elapsed, &cell, &groups));
         // groups (member interiors) dropped here — streaming at cell grain.
     }
-    (summaries, challenged_record, rung_start.elapsed().as_nanos())
+    (
+        summaries,
+        challenged_record,
+        rung_start.elapsed().as_nanos(),
+    )
 }
 
 // ── default-run correctness tests ──────────────────────────────────────────
@@ -77,8 +78,10 @@ fn supra_hash_binds_counts_and_cell_hashes() {
 
     // Tamper one group root — the level-up law catches it too.
     let mut t2 = summaries.clone();
-    t2[1].group_roots[3] =
-        format!("{}0", &t2[1].group_roots[3][..t2[1].group_roots[3].len() - 1]);
+    t2[1].group_roots[3] = format!(
+        "{}0",
+        &t2[1].group_roots[3][..t2[1].group_roots[3].len() - 1]
+    );
     assert!(!verify_supra(&supra, &t2));
 
     // Tamper the COUNTS (keep the invariant admitted+refused == n so the
@@ -108,8 +111,10 @@ fn spot_challenge_replays_one_member() {
     let record = groups[1].members[3].clone();
     assert!(challenge_member(&record, 8));
     let mut corrupt = record;
-    corrupt.terminal_hash =
-        format!("{}0", &corrupt.terminal_hash[..corrupt.terminal_hash.len() - 1]);
+    corrupt.terminal_hash = format!(
+        "{}0",
+        &corrupt.terminal_hash[..corrupt.terminal_hash.len() - 1]
+    );
     assert!(!challenge_member(&corrupt, 8));
 }
 
@@ -220,7 +225,10 @@ fn supra_scale_1e7_receipt() {
     // completed rung.
     let (spot_members, record) = spot.expect("at least one rung completed");
     let replayed_ok = challenge_member(&record, templates);
-    assert!(replayed_ok, "spot challenge must replay true — else REFUTED");
+    assert!(
+        replayed_ok,
+        "spot challenge must replay true — else REFUTED"
+    );
 
     let verdict = if anomaly {
         "WITHHELD: self-refuting — a rung's members_per_sec exceeded the \

@@ -5,11 +5,19 @@ use super::*;
 use crate::{Triple, VarOrTerm};
 
 fn num(n: i64) -> VarOrTerm {
-    VarOrTerm::new_literal(n.to_string(), Some("<http://www.w3.org/2001/XMLSchema#integer>".into()), None)
+    VarOrTerm::new_literal(
+        n.to_string(),
+        Some("<http://www.w3.org/2001/XMLSchema#integer>".into()),
+        None,
+    )
 }
 
 fn s(text: &str) -> VarOrTerm {
-    VarOrTerm::new_literal(text.to_string(), Some("<http://www.w3.org/2001/XMLSchema#string>".into()), None)
+    VarOrTerm::new_literal(
+        text.to_string(),
+        Some("<http://www.w3.org/2001/XMLSchema#string>".into()),
+        None,
+    )
 }
 
 fn v(name: &str) -> VarOrTerm {
@@ -21,7 +29,12 @@ fn iri(x: &str) -> VarOrTerm {
 }
 
 fn ground_triple(s_: VarOrTerm, p_: VarOrTerm, o_: VarOrTerm) -> Triple {
-    Triple { s: s_, p: p_, o: o_, g: None }
+    Triple {
+        s: s_,
+        p: p_,
+        o: o_,
+        g: None,
+    }
 }
 
 fn decoded_number(id: usize) -> f64 {
@@ -55,7 +68,10 @@ fn classify_recognizes_all_procedural_builtins() {
         (list::LIST_LENGTH, BuiltinKind::ListLength),
         (list::LIST_IN, BuiltinKind::ListIn),
         (list::LIST_APPEND, BuiltinKind::ListAppend),
-        (func::FUNC_LANG_FROM_PLAIN_LITERAL, BuiltinKind::LangFromPlainLiteral),
+        (
+            func::FUNC_LANG_FROM_PLAIN_LITERAL,
+            BuiltinKind::LangFromPlainLiteral,
+        ),
         (list::LIST_FIRST, BuiltinKind::ListFirst),
         (list::LIST_REST, BuiltinKind::ListRest),
         (list::LIST_LAST, BuiltinKind::ListLast),
@@ -104,7 +120,10 @@ fn evaluate_returns_none_for_reasoner_level_kind() {
     // never through `builtins::evaluate` directly.
     let pattern = ground_triple(v("x"), v("y"), v("z"));
     let bindings = Binding::new();
-    assert_eq!(evaluate(BuiltinKind::ReasonerLevel, &pattern, &bindings), None);
+    assert_eq!(
+        evaluate(BuiltinKind::ReasonerLevel, &pattern, &bindings),
+        None
+    );
 }
 
 // -- log: -----------------------------------------------------------------
@@ -302,7 +321,10 @@ fn string_less_than_holds() {
 #[test]
 fn string_less_than_rejects_wrong_order() {
     let pattern = ground_triple(s("zzz"), iri(string::STRING_LESS_THAN), s("aaa"));
-    assert_eq!(string::eval_string_less_than(&pattern, &Binding::new()), None);
+    assert_eq!(
+        string::eval_string_less_than(&pattern, &Binding::new()),
+        None
+    );
 }
 
 // -- list: ------------------------------------------------------------------
@@ -328,7 +350,12 @@ fn list_in_generates_each_member() {
     let pattern = ground_triple(v("x"), iri(list::LIST_IN), list);
     let out = list::eval_list_in(&pattern, &Binding::new()).expect("list:in should succeed");
     let x_var = pattern.s.to_encoded();
-    let vals: Vec<f64> = out.get(&x_var).unwrap().iter().map(|&id| decoded_number(id)).collect();
+    let vals: Vec<f64> = out
+        .get(&x_var)
+        .unwrap()
+        .iter()
+        .map(|&id| decoded_number(id))
+        .collect();
     assert_eq!(vals.len(), 3);
     assert!(vals.contains(&1.0) && vals.contains(&2.0) && vals.contains(&3.0));
 }
@@ -406,7 +433,12 @@ fn list_member_generates_each_value() {
     let pattern = ground_triple(list, iri(list::LIST_MEMBER), v("x"));
     let out = list::eval_list_member(&pattern, &Binding::new()).expect("member should succeed");
     let x_var = pattern.o.to_encoded();
-    let vals: Vec<f64> = out.get(&x_var).unwrap().iter().map(|&id| decoded_number(id)).collect();
+    let vals: Vec<f64> = out
+        .get(&x_var)
+        .unwrap()
+        .iter()
+        .map(|&id| decoded_number(id))
+        .collect();
     assert_eq!(vals.len(), 3);
     assert!(vals.contains(&1.0) && vals.contains(&2.0) && vals.contains(&3.0));
 }
@@ -423,7 +455,8 @@ fn list_member_at_returns_indexed_value() {
     let list = VarOrTerm::new_list(vec![s("a"), s("b"), s("c")]);
     let operands = VarOrTerm::new_list(vec![list, num(2)]);
     let pattern = ground_triple(operands, iri(list::LIST_MEMBER_AT), v("out"));
-    let out = list::eval_list_member_at(&pattern, &Binding::new()).expect("memberAt should succeed");
+    let out =
+        list::eval_list_member_at(&pattern, &Binding::new()).expect("memberAt should succeed");
     let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_string(val), "c");
 }
@@ -507,8 +540,13 @@ fn list_iterate_generates_index_item_pairs() {
 fn func_lang_from_plain_literal_extracts_tag() {
     let lit = VarOrTerm::new_literal("bonjour".to_string(), None, Some("fr".to_string()));
     let members_list = VarOrTerm::new_list(vec![lit]);
-    let pattern = ground_triple(members_list, iri(func::FUNC_LANG_FROM_PLAIN_LITERAL), v("out"));
-    let out = func::eval_lang_from_plain_literal(&pattern, &Binding::new()).expect("should succeed");
+    let pattern = ground_triple(
+        members_list,
+        iri(func::FUNC_LANG_FROM_PLAIN_LITERAL),
+        v("out"),
+    );
+    let out =
+        func::eval_lang_from_plain_literal(&pattern, &Binding::new()).expect("should succeed");
     let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_string(val), "fr");
 }
@@ -517,8 +555,13 @@ fn func_lang_from_plain_literal_extracts_tag() {
 fn func_lang_from_plain_literal_defaults_to_empty_string() {
     let lit = s("no-lang-tag");
     let members_list = VarOrTerm::new_list(vec![lit]);
-    let pattern = ground_triple(members_list, iri(func::FUNC_LANG_FROM_PLAIN_LITERAL), v("out"));
-    let out = func::eval_lang_from_plain_literal(&pattern, &Binding::new()).expect("should succeed");
+    let pattern = ground_triple(
+        members_list,
+        iri(func::FUNC_LANG_FROM_PLAIN_LITERAL),
+        v("out"),
+    );
+    let out =
+        func::eval_lang_from_plain_literal(&pattern, &Binding::new()).expect("should succeed");
     let val = *out.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
     assert_eq!(decoded_string(val), "");
 }
@@ -527,8 +570,15 @@ fn func_lang_from_plain_literal_defaults_to_empty_string() {
 fn func_lang_from_plain_literal_rejects_wrong_arity() {
     // The RIF function takes exactly one literal argument.
     let members_list = VarOrTerm::new_list(vec![s("a"), s("b")]);
-    let pattern = ground_triple(members_list, iri(func::FUNC_LANG_FROM_PLAIN_LITERAL), v("out"));
-    assert_eq!(func::eval_lang_from_plain_literal(&pattern, &Binding::new()), None);
+    let pattern = ground_triple(
+        members_list,
+        iri(func::FUNC_LANG_FROM_PLAIN_LITERAL),
+        v("out"),
+    );
+    assert_eq!(
+        func::eval_lang_from_plain_literal(&pattern, &Binding::new()),
+        None
+    );
 }
 
 // -- dispatch: evaluate() routes to the same result as the direct call -----
@@ -537,7 +587,12 @@ fn func_lang_from_plain_literal_rejects_wrong_arity() {
 fn evaluate_dispatches_sum_same_as_direct_call() {
     let list = VarOrTerm::new_list(vec![num(1), num(1)]);
     let pattern = ground_triple(list, iri(math::MATH_SUM), v("out"));
-    let via_dispatch = evaluate(BuiltinKind::Sum, &pattern, &Binding::new()).expect("dispatch should succeed");
-    let val = *via_dispatch.get(&pattern.o.to_encoded()).unwrap().first().unwrap();
+    let via_dispatch =
+        evaluate(BuiltinKind::Sum, &pattern, &Binding::new()).expect("dispatch should succeed");
+    let val = *via_dispatch
+        .get(&pattern.o.to_encoded())
+        .unwrap()
+        .first()
+        .unwrap();
     assert_eq!(decoded_number(val), 2.0);
 }

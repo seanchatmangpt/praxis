@@ -55,10 +55,7 @@ pub fn fold_event(prev_hex: &str, payload: &[u8]) -> String {
 ///
 /// Equivalent to calling [`genesis_seed`] followed by one [`fold_event`] per
 /// payload.  Returns the final chain hash.
-pub fn recompute_chain<'a>(
-    domain: &str,
-    payloads: impl IntoIterator<Item = &'a [u8]>,
-) -> String {
+pub fn recompute_chain<'a>(domain: &str, payloads: impl IntoIterator<Item = &'a [u8]>) -> String {
     let mut acc = genesis_seed(domain);
     for payload in payloads {
         acc = fold_event(&acc, payload);

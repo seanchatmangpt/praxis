@@ -426,17 +426,32 @@ proptest! {
 fn every_closed_vocabulary_key_parses() {
     let cases: Vec<(&str, String)> = vec![
         ("to", "to: out.rs".to_string()),
-        ("sparql", "to: out.rs\nsparql:\n  q: SELECT ?s WHERE { ?s ?p ?o }".to_string()),
+        (
+            "sparql",
+            "to: out.rs\nsparql:\n  q: SELECT ?s WHERE { ?s ?p ?o }".to_string(),
+        ),
         (
             "construct",
             "to: out.rs\nconstruct: \"CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o }\"".to_string(),
         ),
         ("inject", "to: out.rs\ninject: true".to_string()),
-        ("before", "to: out.rs\ninject: true\nbefore: \"// x\"".to_string()),
-        ("after", "to: out.rs\ninject: true\nafter: \"// x\"".to_string()),
-        ("at_line", "to: out.rs\ninject: true\nat_line: 3".to_string()),
+        (
+            "before",
+            "to: out.rs\ninject: true\nbefore: \"// x\"".to_string(),
+        ),
+        (
+            "after",
+            "to: out.rs\ninject: true\nafter: \"// x\"".to_string(),
+        ),
+        (
+            "at_line",
+            "to: out.rs\ninject: true\nat_line: 3".to_string(),
+        ),
         ("skip_if", "to: out.rs\nskip_if: \"marker\"".to_string()),
-        ("unless_exists", "to: out.rs\nunless_exists: true".to_string()),
+        (
+            "unless_exists",
+            "to: out.rs\nunless_exists: true".to_string(),
+        ),
         ("force", "to: out.rs\nforce: true".to_string()),
         ("when", "to: out.rs\nwhen: \"ASK { ?s ?p ?o }\"".to_string()),
         ("skip_empty", "to: out.rs\nskip_empty: true".to_string()),
@@ -444,7 +459,10 @@ fn every_closed_vocabulary_key_parses() {
     for (key, yaml) in cases {
         let content = format!("---\n{yaml}\n---\nbody");
         let parsed = Template::parse(&content);
-        assert!(parsed.is_ok(), "closed-set key `{key}` failed to parse: {parsed:?}");
+        assert!(
+            parsed.is_ok(),
+            "closed-set key `{key}` failed to parse: {parsed:?}"
+        );
     }
 }
 
@@ -472,8 +490,14 @@ fn unknown_keys_fail_with_fm_tpl_002_naming_the_key() {
         let err =
             Template::parse(&content).expect_err(&format!("unknown key `{key}` must be rejected"));
         let msg = err.to_string();
-        assert!(msg.contains("FM-TPL-002"), "`{key}`: missing FM-TPL-002 in: {msg}");
-        assert!(msg.contains(key), "`{key}`: error does not name the key: {msg}");
+        assert!(
+            msg.contains("FM-TPL-002"),
+            "`{key}`: missing FM-TPL-002 in: {msg}"
+        );
+        assert!(
+            msg.contains(key),
+            "`{key}`: error does not name the key: {msg}"
+        );
     }
 }
 

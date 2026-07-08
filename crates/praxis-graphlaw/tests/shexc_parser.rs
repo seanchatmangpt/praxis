@@ -13,8 +13,8 @@
 //! translation; only the *set* of shape declarations and their content is a
 //! meaningful correctness signal here.
 
-use praxis_graphlaw::shexc_parser::parse_shexc;
 use praxis_graphlaw::shex_native::{Schema, ShapeDecl};
+use praxis_graphlaw::shexc_parser::parse_shexc;
 use std::fs;
 use std::path::Path;
 
@@ -31,7 +31,8 @@ fn sorted_shapes(schema: Schema) -> Vec<ShapeDecl> {
 
 #[test]
 fn shexc_parser_matches_vendored_shexj_for_every_case_with_source() {
-    let cases_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/shex_conformance/w3c_suite/cases");
+    let cases_dir =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/shex_conformance/w3c_suite/cases");
     let mut case_dirs: Vec<_> = fs::read_dir(&cases_dir)
         .expect("failed to read w3c_suite/cases")
         .filter_map(|e| e.ok())
@@ -58,7 +59,9 @@ fn shexc_parser_matches_vendored_shexj_for_every_case_with_source() {
         // not parseable source) -- only exercise cases where it looks like
         // real ShExC (starts with a shape label or PREFIX/BASE directive).
         let trimmed = meta.source_shexc.trim();
-        let looks_parseable = trimmed.starts_with('<') || trimmed.starts_with("PREFIX") || trimmed.starts_with("BASE");
+        let looks_parseable = trimmed.starts_with('<')
+            || trimmed.starts_with("PREFIX")
+            || trimmed.starts_with("BASE");
         if !looks_parseable {
             continue;
         }
@@ -86,7 +89,10 @@ fn shexc_parser_matches_vendored_shexj_for_every_case_with_source() {
         }
     }
 
-    assert!(checked > 0, "no vendored case had a parseable source_shexc field");
+    assert!(
+        checked > 0,
+        "no vendored case had a parseable source_shexc field"
+    );
     assert!(
         mismatches.is_empty(),
         "{} of {} ShExC round-trip cases mismatched:\n{}",
@@ -103,7 +109,12 @@ fn shexc_parser_matches_vendored_shexj_for_every_case_with_source() {
 use praxis_graphlaw::shex_native::{ShapeExpr, ShapeExprOrRef, TripleExpr};
 
 fn one_shape(schema: &Schema) -> &ShapeDecl {
-    assert_eq!(schema.shapes.len(), 1, "expected exactly one shape decl, got {:?}", schema.shapes);
+    assert_eq!(
+        schema.shapes.len(),
+        1,
+        "expected exactly one shape decl, got {:?}",
+        schema.shapes
+    );
     &schema.shapes[0]
 }
 
@@ -113,8 +124,15 @@ fn prefix_and_base_resolution() {
     let schema = parse_shexc(src).unwrap();
     let decl = one_shape(&schema);
     assert_eq!(decl.id, "http://example.org/S");
-    let ShapeExpr::Shape { expression: Some(TripleExpr::TripleConstraint { predicate, .. }), .. } = &decl.shape_expr else {
-        panic!("expected a Shape with one TripleConstraint, got {:?}", decl.shape_expr);
+    let ShapeExpr::Shape {
+        expression: Some(TripleExpr::TripleConstraint { predicate, .. }),
+        ..
+    } = &decl.shape_expr
+    else {
+        panic!(
+            "expected a Shape with one TripleConstraint, got {:?}",
+            decl.shape_expr
+        );
     };
     assert_eq!(predicate, "http://example.org/p");
 }
@@ -130,20 +148,45 @@ fn base_relative_iri_resolution() {
 fn cardinality_of(src: &str) -> (Option<i64>, Option<i64>) {
     let schema = parse_shexc(src).unwrap();
     let decl = one_shape(&schema);
-    let ShapeExpr::Shape { expression: Some(TripleExpr::TripleConstraint { min, max, .. }), .. } = &decl.shape_expr else {
-        panic!("expected a Shape with one TripleConstraint, got {:?}", decl.shape_expr);
+    let ShapeExpr::Shape {
+        expression: Some(TripleExpr::TripleConstraint { min, max, .. }),
+        ..
+    } = &decl.shape_expr
+    else {
+        panic!(
+            "expected a Shape with one TripleConstraint, got {:?}",
+            decl.shape_expr
+        );
     };
     (*min, *max)
 }
 
 #[test]
 fn cardinality_shorthands() {
-    assert_eq!(cardinality_of("<http://a.example/S> { <http://a.example/p> . }"), (None, None));
-    assert_eq!(cardinality_of("<http://a.example/S> { <http://a.example/p> . * }"), (Some(0), Some(-1)));
-    assert_eq!(cardinality_of("<http://a.example/S> { <http://a.example/p> . + }"), (Some(1), Some(-1)));
-    assert_eq!(cardinality_of("<http://a.example/S> { <http://a.example/p> . ? }"), (Some(0), Some(1)));
-    assert_eq!(cardinality_of("<http://a.example/S> { <http://a.example/p> . {2,5} }"), (Some(2), Some(5)));
-    assert_eq!(cardinality_of("<http://a.example/S> { <http://a.example/p> . {3,} }"), (Some(3), Some(-1)));
+    assert_eq!(
+        cardinality_of("<http://a.example/S> { <http://a.example/p> . }"),
+        (None, None)
+    );
+    assert_eq!(
+        cardinality_of("<http://a.example/S> { <http://a.example/p> . * }"),
+        (Some(0), Some(-1))
+    );
+    assert_eq!(
+        cardinality_of("<http://a.example/S> { <http://a.example/p> . + }"),
+        (Some(1), Some(-1))
+    );
+    assert_eq!(
+        cardinality_of("<http://a.example/S> { <http://a.example/p> . ? }"),
+        (Some(0), Some(1))
+    );
+    assert_eq!(
+        cardinality_of("<http://a.example/S> { <http://a.example/p> . {2,5} }"),
+        (Some(2), Some(5))
+    );
+    assert_eq!(
+        cardinality_of("<http://a.example/S> { <http://a.example/p> . {3,} }"),
+        (Some(3), Some(-1))
+    );
 }
 
 #[test]
@@ -151,19 +194,44 @@ fn nested_and_or_not() {
     let src = "<http://a.example/S> { <http://a.example/p> (IRI OR BNODE) AND NOT LITERAL }";
     let schema = parse_shexc(src).unwrap();
     let decl = one_shape(&schema);
-    let ShapeExpr::Shape { expression: Some(TripleExpr::TripleConstraint { value_expr: Some(ve), .. }), .. } = &decl.shape_expr else {
-        panic!("expected a TripleConstraint with a value expression, got {:?}", decl.shape_expr);
+    let ShapeExpr::Shape {
+        expression:
+            Some(TripleExpr::TripleConstraint {
+                value_expr: Some(ve),
+                ..
+            }),
+        ..
+    } = &decl.shape_expr
+    else {
+        panic!(
+            "expected a TripleConstraint with a value expression, got {:?}",
+            decl.shape_expr
+        );
     };
     let ShapeExprOrRef::Expr(ShapeExpr::ShapeAnd { shape_exprs }) = ve.as_ref() else {
         panic!("expected a top-level ShapeAnd, got {:?}", ve);
     };
-    assert_eq!(shape_exprs.len(), 2, "expected (IRI OR BNODE) AND (NOT LITERAL), got {:?}", shape_exprs);
-    let ShapeExprOrRef::Expr(ShapeExpr::ShapeOr { shape_exprs: or_alts }) = &shape_exprs[0] else {
-        panic!("expected the first AND operand to be a ShapeOr, got {:?}", shape_exprs[0]);
+    assert_eq!(
+        shape_exprs.len(),
+        2,
+        "expected (IRI OR BNODE) AND (NOT LITERAL), got {:?}",
+        shape_exprs
+    );
+    let ShapeExprOrRef::Expr(ShapeExpr::ShapeOr {
+        shape_exprs: or_alts,
+    }) = &shape_exprs[0]
+    else {
+        panic!(
+            "expected the first AND operand to be a ShapeOr, got {:?}",
+            shape_exprs[0]
+        );
     };
     assert_eq!(or_alts.len(), 2);
     let ShapeExprOrRef::Expr(ShapeExpr::ShapeNot { .. }) = &shape_exprs[1] else {
-        panic!("expected the second AND operand to be a ShapeNot, got {:?}", shape_exprs[1]);
+        panic!(
+            "expected the second AND operand to be a ShapeNot, got {:?}",
+            shape_exprs[1]
+        );
     };
 }
 
@@ -184,13 +252,33 @@ fn value_set_with_stem_and_language_tag() {
     let src = "<http://a.example/S> { <http://a.example/p> [<http://a.example/x>~ \"hello\"@en] }";
     let schema = parse_shexc(src).unwrap();
     let decl = one_shape(&schema);
-    let ShapeExpr::Shape { expression: Some(TripleExpr::TripleConstraint { value_expr: Some(ve), .. }), .. } = &decl.shape_expr else {
-        panic!("expected a TripleConstraint with a value expression, got {:?}", decl.shape_expr);
+    let ShapeExpr::Shape {
+        expression:
+            Some(TripleExpr::TripleConstraint {
+                value_expr: Some(ve),
+                ..
+            }),
+        ..
+    } = &decl.shape_expr
+    else {
+        panic!(
+            "expected a TripleConstraint with a value expression, got {:?}",
+            decl.shape_expr
+        );
     };
-    let ShapeExprOrRef::Expr(ShapeExpr::NodeConstraint { values: Some(values), .. }) = ve.as_ref() else {
+    let ShapeExprOrRef::Expr(ShapeExpr::NodeConstraint {
+        values: Some(values),
+        ..
+    }) = ve.as_ref()
+    else {
         panic!("expected a NodeConstraint with a value set, got {:?}", ve);
     };
-    assert_eq!(values.len(), 2, "expected an IRI stem and a language-tagged literal, got {:?}", values);
+    assert_eq!(
+        values.len(),
+        2,
+        "expected an IRI stem and a language-tagged literal, got {:?}",
+        values
+    );
 }
 
 #[test]
@@ -206,14 +294,29 @@ fn end_to_end_validation_against_real_data() {
         store.triple_index.add(t);
     }
     let report = store
-        .validate_shex_c(src, &[("http://a.example/n1".to_string(), "http://a.example/S".to_string())])
+        .validate_shex_c(
+            src,
+            &[(
+                "http://a.example/n1".to_string(),
+                "http://a.example/S".to_string(),
+            )],
+        )
         .expect("validate_shex_c should succeed");
     assert!(report.conforms, "expected conformance, got {:?}", report);
 
     let bad_report = store
-        .validate_shex_c(src, &[("http://a.example/nonexistent".to_string(), "http://a.example/S".to_string())])
+        .validate_shex_c(
+            src,
+            &[(
+                "http://a.example/nonexistent".to_string(),
+                "http://a.example/S".to_string(),
+            )],
+        )
         .expect("validate_shex_c should succeed");
-    assert!(!bad_report.conforms, "a node missing the required predicate must not conform");
+    assert!(
+        !bad_report.conforms,
+        "a node missing the required predicate must not conform"
+    );
 }
 
 #[test]
@@ -223,7 +326,11 @@ fn out_of_scope_semantic_action_returns_clear_error_not_panic() {
     // never panic and never silently ignore the construct.
     let src = "<http://a.example/S> { <http://a.example/p> . %javascript{ doSomething(); }% }";
     let result = parse_shexc(src);
-    assert!(result.is_err(), "semantic actions are out of scope and must produce Err, got {:?}", result);
+    assert!(
+        result.is_err(),
+        "semantic actions are out of scope and must produce Err, got {:?}",
+        result
+    );
 }
 
 #[test]
@@ -231,5 +338,9 @@ fn out_of_scope_triple_expr_label_returns_clear_error_not_panic() {
     // `$label` triple-expression labels are explicitly out of scope.
     let src = "<http://a.example/S> { $<http://a.example/te1> <http://a.example/p> . }";
     let result = parse_shexc(src);
-    assert!(result.is_err(), "triple-expression labels are out of scope and must produce Err, got {:?}", result);
+    assert!(
+        result.is_err(),
+        "triple-expression labels are out of scope and must produce Err, got {:?}",
+        result
+    );
 }

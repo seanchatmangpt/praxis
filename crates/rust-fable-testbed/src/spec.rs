@@ -262,8 +262,18 @@ pub fn load_task(ttl_path: &Path) -> SpecResult<TaskSpec> {
 
 #[allow(clippy::type_complexity)]
 fn load_scalars(
-    store: &Store, ttl_path: &Path,
-) -> SpecResult<(String, String, Term, String, String, String, String, Option<String>)> {
+    store: &Store,
+    ttl_path: &Path,
+) -> SpecResult<(
+    String,
+    String,
+    Term,
+    String,
+    String,
+    String,
+    String,
+    Option<String>,
+)> {
     let query = format!(
         r"PREFIX tb: <{TB_NS}>
 SELECT ?task ?id ?taskType ?difficulty ?model ?description ?fixture ?targetPath WHERE {{
@@ -295,11 +305,23 @@ SELECT ?task ?id ?taskType ?difficulty ?model ?description ?fixture ?targetPath 
     let fixture = get_literal(&row, "fixture", ttl_path)?;
     let target_path = get_optional_literal(&row, "targetPath");
 
-    Ok((task, id, task_type, difficulty, model, description, fixture, target_path))
+    Ok((
+        task,
+        id,
+        task_type,
+        difficulty,
+        model,
+        description,
+        fixture,
+        target_path,
+    ))
 }
 
 fn load_prompt_sections(
-    store: &Store, task_iri: &str, base_dir: &Path, ttl_path: &Path,
+    store: &Store,
+    task_iri: &str,
+    base_dir: &Path,
+    ttl_path: &Path,
 ) -> SpecResult<Vec<PromptSectionSpec>> {
     let section_query = format!(
         r"PREFIX tb: <{TB_NS}>
@@ -350,10 +372,8 @@ SELECT ?section ?block ?blockType ?text ?lang ?path WHERE {{
                 let language = lang.unwrap_or_else(|| "rust".to_string());
                 let content = if let Some(rel) = path.clone() {
                     let full = base_dir.join(&rel);
-                    std::fs::read_to_string(&full).map_err(|source| SpecError::ReadReferenced {
-                        path: full,
-                        source,
-                    })?
+                    std::fs::read_to_string(&full)
+                        .map_err(|source| SpecError::ReadReferenced { path: full, source })?
                 } else {
                     text.unwrap_or_default()
                 };
@@ -365,7 +385,11 @@ SELECT ?section ?block ?blockType ?text ?lang ?path WHERE {{
         blocks_by_section
             .entry(section)
             .or_default()
-            .push(PromptBlockSpec { kind, content, source_path });
+            .push(PromptBlockSpec {
+                kind,
+                content,
+                source_path,
+            });
     }
 
     let mut sections: Vec<PromptSectionSpec> = section_rows
@@ -468,7 +492,10 @@ SELECT ?cargoTest ?clippyDenyWarnings WHERE {{
     let clippy_deny_warnings =
         get_optional_literal(&row, "clippyDenyWarnings").is_some_and(|v| v == "true");
     let _ = ttl_path;
-    Ok(PassCriteria { cargo_test, clippy_deny_warnings })
+    Ok(PassCriteria {
+        cargo_test,
+        clippy_deny_warnings,
+    })
 }
 
 // ── SPARQL helpers ────────────────────────────────────────────────────────
@@ -476,9 +503,11 @@ SELECT ?cargoTest ?clippyDenyWarnings WHERE {{
 type Row = oxigraph::sparql::QuerySolution;
 
 fn run_select<'a>(
-    store: &'a Store, query: &str,
-) -> SpecResult<Box<dyn Iterator<Item = std::result::Result<Row, oxigraph::sparql::QueryEvaluationError>> + 'a>>
-{
+    store: &'a Store,
+    query: &str,
+) -> SpecResult<
+    Box<dyn Iterator<Item = std::result::Result<Row, oxigraph::sparql::QueryEvaluationError>> + 'a>,
+> {
     let results = SparqlEvaluator::new()
         .parse_query(query)
         .map_err(|e| SpecError::Sparql(e.to_string()))?
@@ -545,9 +574,10 @@ fn iri_local_name(term: &Term) -> Option<String> {
         return None;
     };
     let s = n.as_str();
-    let local = s
-        .rsplit_once('#')
-        .map_or_else(|| s.rsplit_once('/').map_or(s, |(_, tail)| tail), |(_, tail)| tail);
+    let local = s.rsplit_once('#').map_or_else(
+        || s.rsplit_once('/').map_or(s, |(_, tail)| tail),
+        |(_, tail)| tail,
+    );
     Some(local.to_string())
 }
 
@@ -575,13 +605,19 @@ pub fn task_to_prompt_ir(task: &TaskSpec) -> PromptIR {
             .map(|b| {
                 let block_type = match &b.kind {
                     PromptBlockKind::Instruction => BlockType::Instruction,
-                    PromptBlockKind::Code { language } => BlockType::Code { language: language.clone() },
+                    PromptBlockKind::Code { language } => BlockType::Code {
+                        language: language.clone(),
+                    },
                 };
                 let mut metadata = BTreeMap::new();
                 if let Some(path) = &b.source_path {
                     metadata.insert("source_path".to_string(), path.clone());
                 }
-                ContentBlock { block_type, content: b.content.clone(), metadata }
+                ContentBlock {
+                    block_type,
+                    content: b.content.clone(),
+                    metadata,
+                }
             })
             .collect();
 
@@ -595,7 +631,11 @@ pub fn task_to_prompt_ir(task: &TaskSpec) -> PromptIR {
         };
         sections.insert(
             key,
-            Section { section_type, blocks, priority: i32::try_from(idx).unwrap_or(i32::MAX) },
+            Section {
+                section_type,
+                blocks,
+                priority: i32::try_from(idx).unwrap_or(i32::MAX),
+            },
         );
     }
 
@@ -678,7 +718,10 @@ tb:function_bugfix_001 a tb:Task ;
         assert_eq!(task.model, "claude-opus-4-8");
         assert!(task.description.contains("off-by-one"));
         assert_eq!(task.fixture, PathBuf::from("fixtures/function_bugfix_001/"));
-        assert_eq!(task.expected_steps, vec!["Build", "Test", "Clippy", "SafetyAudit"]);
+        assert_eq!(
+            task.expected_steps,
+            vec!["Build", "Test", "Clippy", "SafetyAudit"]
+        );
         assert_eq!(task.pass_criteria.cargo_test.as_deref(), Some("cargo test"));
         assert!(task.pass_criteria.clippy_deny_warnings);
 
@@ -691,7 +734,10 @@ tb:function_bugfix_001 a tb:Task ;
         let user = &task.prompt_sections[1];
         assert_eq!(user.role, "user");
         assert_eq!(user.blocks.len(), 2);
-        let code_block = user.blocks.iter().find(|b| matches!(b.kind, PromptBlockKind::Code { .. }));
+        let code_block = user
+            .blocks
+            .iter()
+            .find(|b| matches!(b.kind, PromptBlockKind::Code { .. }));
         let code_block = code_block.expect("expected a Code block");
         assert!(code_block.content.contains("fn add"));
     }
@@ -708,7 +754,9 @@ tb:function_bugfix_001 a tb:Task ;
         assert!(ir.sections.contains_key("user"));
 
         let compiler = ggen_core::prompt_mfg::PromptCompiler::new().expect("compiler init");
-        let compiled = compiler.compile_from_ir(ir).expect("compile_from_ir should succeed");
+        let compiled = compiler
+            .compile_from_ir(ir)
+            .expect("compile_from_ir should succeed");
         assert!(!compiled.content().is_empty());
     }
 }

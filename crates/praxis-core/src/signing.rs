@@ -117,7 +117,10 @@ mod tests {
         let hash = [1u8; 32];
         let sig = sign_chain_hash_with_key(&hash, &kp.signing_key_hex()).expect("sign");
         let other_hash = [2u8; 32];
-        assert!(matches!(verify_chain_hash(&other_hash, &sig), Err(CoreError::SignatureInvalid)));
+        assert!(matches!(
+            verify_chain_hash(&other_hash, &sig),
+            Err(CoreError::SignatureInvalid)
+        ));
     }
 
     #[test]
@@ -133,7 +136,10 @@ mod tests {
         chars[idx] = if chars[idx] == 'B' { 'C' } else { 'B' };
         sr.signature = chars.into_iter().collect();
         let tampered = serde_json::to_vec(&sr).expect("serialize");
-        assert!(matches!(verify_chain_hash(&hash, &tampered), Err(CoreError::SignatureInvalid)));
+        assert!(matches!(
+            verify_chain_hash(&hash, &tampered),
+            Err(CoreError::SignatureInvalid)
+        ));
     }
 
     #[test]
@@ -196,7 +202,9 @@ pub(crate) mod test_support {
     /// next one rather than poisoning the whole suite.
     pub(crate) fn env_lock() -> MutexGuard<'static, ()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(())).lock().unwrap_or_else(|e| e.into_inner())
+        LOCK.get_or_init(|| Mutex::new(()))
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
     }
 
     /// Set `PRAXIS_SIGNING_KEY` to [`TEST_SIGNING_KEY_HEX`] for the duration

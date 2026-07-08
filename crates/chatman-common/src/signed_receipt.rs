@@ -158,7 +158,9 @@ pub fn verify(signed_receipt: &SignedReceipt, verifying_key_hex: &str) -> Result
     sig_arr.copy_from_slice(&sig_bytes);
     let sig = ed25519_dalek::Signature::from_bytes(&sig_arr);
 
-    Ok(vk.verify(signed_receipt.chain_hash.as_bytes(), &sig).is_ok())
+    Ok(vk
+        .verify(signed_receipt.chain_hash.as_bytes(), &sig)
+        .is_ok())
 }
 
 // ---------------------------------------------------------------------------
@@ -200,11 +202,13 @@ pub fn sign_with_env_key(chain_hash: &str) -> Result<SignedReceipt> {
 // ---------------------------------------------------------------------------
 
 fn encode_hex(bytes: &[u8]) -> String {
-    bytes.iter().fold(String::with_capacity(bytes.len() * 2), |mut s, b| {
-        use std::fmt::Write as _;
-        let _ = write!(s, "{b:02x}");
-        s
-    })
+    bytes
+        .iter()
+        .fold(String::with_capacity(bytes.len() * 2), |mut s, b| {
+            use std::fmt::Write as _;
+            let _ = write!(s, "{b:02x}");
+            s
+        })
 }
 
 fn decode_hex(s: &str) -> Result<Vec<u8>> {
@@ -229,8 +233,16 @@ fn base64_encode(bytes: &[u8]) -> String {
     let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
     for chunk in bytes.chunks(3) {
         let b0 = chunk[0] as usize;
-        let b1 = if chunk.len() > 1 { chunk[1] as usize } else { 0 };
-        let b2 = if chunk.len() > 2 { chunk[2] as usize } else { 0 };
+        let b1 = if chunk.len() > 1 {
+            chunk[1] as usize
+        } else {
+            0
+        };
+        let b2 = if chunk.len() > 2 {
+            chunk[2] as usize
+        } else {
+            0
+        };
         out.push(ALPHABET[b0 >> 2] as char);
         out.push(ALPHABET[((b0 & 3) << 4) | (b1 >> 4)] as char);
         if chunk.len() > 1 {
@@ -308,8 +320,12 @@ mod tests {
         let vk = kp.verifying_key_hex();
         assert_eq!(sk.len(), 64, "signing key hex must be 64 chars");
         assert_eq!(vk.len(), 64, "verifying key hex must be 64 chars");
-        assert!(sk.chars().all(|c| c.is_ascii_hexdigit() && !c.is_uppercase()));
-        assert!(vk.chars().all(|c| c.is_ascii_hexdigit() && !c.is_uppercase()));
+        assert!(sk
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_uppercase()));
+        assert!(vk
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_uppercase()));
     }
 
     #[test]
@@ -378,8 +394,7 @@ mod tests {
     }
 
     #[test]
-    fn signing_key_from_env_reads_file(
-    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    fn signing_key_from_env_reads_file() -> std::result::Result<(), Box<dyn std::error::Error>> {
         let kp = KeyPair::generate();
         let hex = kp.signing_key_hex();
         // Write the key to a temp file and load it manually (bypasses env-var races)

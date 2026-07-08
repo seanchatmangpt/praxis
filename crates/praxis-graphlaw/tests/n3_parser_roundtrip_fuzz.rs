@@ -36,13 +36,14 @@ fn escape_sequences_decode_to_expected_strings() {
         (r#""astral\U0001F600""#, "astral\u{1F600}"),
         (r#"'single\'quote'"#, "single'quote"),
         (r#"'''triple\nsingle'''"#, "triple\nsingle"),
-        (r#""""triple\ndouble\twith\ttabs""""#, "triple\ndouble\twith\ttabs"),
+        (
+            r#""""triple\ndouble\twith\ttabs""""#,
+            "triple\ndouble\twith\ttabs",
+        ),
     ];
 
     for (idx, (literal, expected_decoded)) in cases.iter().enumerate() {
-        let doc = format!(
-            "@prefix : <http://example.org/> .\n:s{idx} :p{idx} {literal} .\n"
-        );
+        let doc = format!("@prefix : <http://example.org/> .\n:s{idx} :p{idx} {literal} .\n");
         let mut store = TripleStore::from(&doc);
         let _inferred = store.materialize();
         let actual = decode_all_stored_facts(&store);

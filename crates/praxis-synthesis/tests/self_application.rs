@@ -9,15 +9,13 @@
 //! the system proves why its own gated step cannot fire.
 
 use praxis_synthesis::{
-    Atom, BoundedCsp, Capability, Constraint, Program, Refusal, SequenceProblem, Solver,
-    Solver8, Term,
+    Atom, BoundedCsp, Capability, Constraint, Program, Refusal, SequenceProblem, Solver, Solver8,
+    Term,
 };
 
 /// The release domain. `authorized` controls whether the human go-ahead fact
 /// is asserted.
-fn release_domain(
-    authorized: bool,
-) -> (Program, Vec<Capability>, Vec<Atom>, Vec<Constraint>) {
+fn release_domain(authorized: bool) -> (Program, Vec<Capability>, Vec<Atom>, Vec<Constraint>) {
     let mut p = Program::new();
     let uncommitted = p.intern("uncommitted");
     let tested = p.intern("tested");
@@ -85,10 +83,22 @@ fn release_domain(
     // by design — doctrine should be enforced even if someone edits a
     // capability's preconditions later).
     let constraints = vec![
-        Constraint::Before { a: "run-tests".into(), b: "commit".into() },
-        Constraint::Before { a: "commit".into(), b: "push".into() },
-        Constraint::Requires { a: "push".into(), b: "gate-check".into() },
-        Constraint::AtMost { a: "push".into(), n: 1 },
+        Constraint::Before {
+            a: "run-tests".into(),
+            b: "commit".into(),
+        },
+        Constraint::Before {
+            a: "commit".into(),
+            b: "push".into(),
+        },
+        Constraint::Requires {
+            a: "push".into(),
+            b: "gate-check".into(),
+        },
+        Constraint::AtMost {
+            a: "push".into(),
+            n: 1,
+        },
     ];
     (p, caps, goal, constraints)
 }
@@ -99,16 +109,23 @@ fn with_authorization_the_release_plan_is_derived() {
     p.saturate().expect("saturation");
     let problem =
         SequenceProblem::with_constraints(&p, caps, goal, 6, constraints).expect("problem");
-    let plan = Solver8.solve(&problem).expect("authorized release is derivable");
+    let plan = Solver8
+        .solve(&problem)
+        .expect("authorized release is derivable");
     let order: Vec<&str> = plan.steps.iter().map(|s| s.capability.as_str()).collect();
     assert_eq!(
         order,
         ["run-tests", "commit", "quiesce", "gate-check", "push"],
         "the release procedure, derived — not authored"
     );
-    assert!(problem.replay_reaches_goal(&plan), "independent replay confirms");
+    assert!(
+        problem.replay_reaches_goal(&plan),
+        "independent replay confirms"
+    );
     // Differential: the brute oracle agrees.
-    let brute = BoundedCsp.solve(&problem).expect("oracle agrees it is solvable");
+    let brute = BoundedCsp
+        .solve(&problem)
+        .expect("oracle agrees it is solvable");
     assert_eq!(brute.steps, plan.steps);
 }
 
@@ -119,7 +136,12 @@ fn without_authorization_the_refusal_names_the_missing_fact() {
     let problem =
         SequenceProblem::with_constraints(&p, caps, goal, 6, constraints).expect("problem");
     let err = Solver8.solve(&problem).expect_err("must refuse");
-    let Refusal::UnsatProof { detail, core, replayed } = err else {
+    let Refusal::UnsatProof {
+        detail,
+        core,
+        replayed,
+    } = err
+    else {
         panic!("expected a certificate, got a plain refusal");
     };
     assert!(!replayed);

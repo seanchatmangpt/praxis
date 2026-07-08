@@ -16,7 +16,11 @@ const LIFE: &str = "http://seanchatmangpt.github.io/praxis/life#";
 const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 
 fn src(adds: &str) -> MeaningSource {
-    MeaningSource { origin: Origin::Proposer, adds_ttl: adds.to_string(), removes_ttl: String::new() }
+    MeaningSource {
+        origin: Origin::Proposer,
+        adds_ttl: adds.to_string(),
+        removes_ttl: String::new(),
+    }
 }
 
 /// The kernel document itself never binds handlers (a closed-world law
@@ -30,8 +34,14 @@ fn src(adds: &str) -> MeaningSource {
 fn kernel_with_bindings() -> String {
     let mut base = KERNEL.to_string();
     let all_caps = [
-        "orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt",
-        "confessDebt", "releaseResentment", "repairDebt", "restoreReceipt",
+        "orientToFather",
+        "surrenderWill",
+        "requestDailyBread",
+        "writePrayerReceipt",
+        "confessDebt",
+        "releaseResentment",
+        "repairDebt",
+        "restoreReceipt",
     ];
     for cap in &all_caps {
         base.push_str(&format!(
@@ -63,7 +73,10 @@ fn splicing_a_whole_valid_chain_from_a_different_firing_is_refused() {
     let debt = fire_hooks(&reference, &source_debt, &registry, &[]).expect("debt fires");
     assert_eq!(bread.outcome, FiringOutcome::Completed);
     assert_eq!(debt.outcome, FiringOutcome::Completed);
-    assert_ne!(bread.chain, debt.chain, "two different firings must chain differently");
+    assert_ne!(
+        bread.chain, debt.chain,
+        "two different firings must chain differently"
+    );
 
     // Confused-deputy splice: steal the whole (valid elsewhere) `chain`
     // value from `debt` and attach it to an otherwise-honest `bread`
@@ -107,7 +120,11 @@ fn replaying_an_old_receipt_against_a_since_advanced_history_is_refused() {
     let reference = Reference::genesis(&base).expect("admits");
     let receipt = fire_hooks(&reference, &source, &registry, &history_at_firing)
         .expect("fires and completes");
-    assert_eq!(receipt.outcome, FiringOutcome::Completed, "2 < 3: not fired at firing time");
+    assert_eq!(
+        receipt.outcome,
+        FiringOutcome::Completed,
+        "2 < 3: not fired at firing time"
+    );
 
     // Honest replay against the SAME (stale) history still succeeds — the
     // receipt is not simply broken, it is bound to a specific snapshot.
@@ -121,8 +138,11 @@ fn replaying_an_old_receipt_against_a_since_advanced_history_is_refused() {
     // verdict that would have REFUSED (1 + 2 = 3 >= 3) — a rollback/replay
     // of a once-valid receipt must be refused, not silently accepted.
     let history_advanced = vec![
-        GraphDelta::parse(&format!("<{LIFE}z1> <{var}> 1 .\n<{LIFE}z2> <{var}> 1 ."), "")
-            .expect("parses"),
+        GraphDelta::parse(
+            &format!("<{LIFE}z1> <{var}> 1 .\n<{LIFE}z2> <{var}> 1 ."),
+            "",
+        )
+        .expect("parses"),
         history_at_firing[0].clone(),
     ];
     match replay_firing(&receipt, &base, &source, &registry, &history_advanced) {
@@ -166,7 +186,10 @@ fn substituting_inner_receipt_from_a_different_firing_is_refused() {
     // outer chain/hook_hash/outcome_hash exactly as honestly computed.
     let mut forged = bread.clone();
     forged.inner[0] = debt.inner[0].clone();
-    assert_eq!(forged.chain, bread.chain, "outer chain field itself is untouched by the swap");
+    assert_eq!(
+        forged.chain, bread.chain,
+        "outer chain field itself is untouched by the swap"
+    );
 
     match replay_firing(&forged, &base, &source_bread, &registry, &[]) {
         Err(Refusal::VerificationFailed { failed }) => {
@@ -195,4 +218,3 @@ fn mutating_plan_steps_retains_honest_plan_hash_and_passes_replay() {
     let err = result.expect_err("replay_workflow must reject the mutated plan steps");
     assert!(matches!(err, Refusal::VerificationFailed { .. }));
 }
-

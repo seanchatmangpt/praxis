@@ -81,7 +81,11 @@ pub struct Refusal {
 
 impl std::fmt::Display for Refusal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "REFUSED (non-separable, net blake3:{}): {}", self.net_hash, self.reason)
+        write!(
+            f,
+            "REFUSED (non-separable, net blake3:{}): {}",
+            self.net_hash, self.reason
+        )
     }
 }
 
@@ -106,7 +110,9 @@ pub fn convert_with_budget(net: &WfNet, budget: usize) -> Result<Powl, Refusal> 
     // Cheap up-front witness: non-free-choice ⇒ non-separable.
     if let Some((a, b)) = non_free_choice_witness(net) {
         return Err(Refusal {
-            reason: RefusalReason::NonFreeChoice { transitions: (a, b) },
+            reason: RefusalReason::NonFreeChoice {
+                transitions: (a, b),
+            },
             net_hash: net.content_hash(),
             separable: false,
         });
@@ -203,10 +209,7 @@ fn base_case(net: &WfNet) -> Option<Powl> {
     let t = net.transitions().keys().next()?;
     let pre = net.pre_trans(t);
     let post = net.post_trans(t);
-    if pre.len() == 1
-        && post.len() == 1
-        && pre.contains(net.source())
-        && post.contains(net.sink())
+    if pre.len() == 1 && post.len() == 1 && pre.contains(net.source()) && post.contains(net.sink())
     {
         return Some(Powl::Leaf(net.label(t)));
     }
@@ -222,7 +225,9 @@ struct Groups {
 
 impl Groups {
     fn singletons<'a>(ts: impl IntoIterator<Item = &'a String>) -> Self {
-        Groups { parent: ts.into_iter().map(|t| (t.clone(), t.clone())).collect() }
+        Groups {
+            parent: ts.into_iter().map(|t| (t.clone(), t.clone())).collect(),
+        }
     }
     fn find(&mut self, x: &str) -> String {
         let p = self.parent[x].clone();
@@ -258,8 +263,11 @@ impl Groups {
 fn partition_mg(net: &WfNet) -> Vec<BTreeSet<String>> {
     let mut g = Groups::singletons(net.transitions().keys());
     // Precompute reachability once.
-    let reach: BTreeMap<String, BTreeSet<String>> =
-        net.transitions().keys().map(|t| (t.clone(), net.reaches(t))).collect();
+    let reach: BTreeMap<String, BTreeSet<String>> = net
+        .transitions()
+        .keys()
+        .map(|t| (t.clone(), net.reaches(t)))
+        .collect();
 
     // Forward analysis: XOR-splits (places with >1 outgoing transition).
     for p in net.places() {
@@ -269,8 +277,7 @@ fn partition_mg(net: &WfNet) -> Vec<BTreeSet<String>> {
         }
         let mut group = BTreeSet::new();
         for t in net.transitions().keys() {
-            let reached_by =
-                branches.iter().filter(|b| reach[*b].contains(t)).count();
+            let reached_by = branches.iter().filter(|b| reach[*b].contains(t)).count();
             if reached_by > 0 && reached_by < branches.len() {
                 group.insert(t.clone());
             }
@@ -288,8 +295,7 @@ fn partition_mg(net: &WfNet) -> Vec<BTreeSet<String>> {
         }
         let mut group = BTreeSet::new();
         for t in net.transitions().keys() {
-            let reaches_branch =
-                branches.iter().filter(|b| reach[t].contains(*b)).count();
+            let reaches_branch = branches.iter().filter(|b| reach[t].contains(*b)).count();
             if reaches_branch > 0 && reaches_branch < branches.len() {
                 group.insert(t.clone());
             }
@@ -308,11 +314,17 @@ fn partition_mg(net: &WfNet) -> Vec<BTreeSet<String>> {
 fn is_conflict_hiding(net: &WfNet, parts: &[BTreeSet<String>]) -> bool {
     // Conditions 1 & 2: each place in ≤1 part's entry set and ≤1 part's exit.
     for p in net.places() {
-        let in_entry = parts.iter().filter(|part| net.entry_places(part).contains(p)).count();
+        let in_entry = parts
+            .iter()
+            .filter(|part| net.entry_places(part).contains(p))
+            .count();
         if in_entry > 1 {
             return false;
         }
-        let in_exit = parts.iter().filter(|part| net.exit_places(part).contains(p)).count();
+        let in_exit = parts
+            .iter()
+            .filter(|part| net.exit_places(part).contains(p))
+            .count();
         if in_exit > 1 {
             return false;
         }
@@ -393,8 +405,10 @@ fn partition_sm(net: &WfNet) -> Vec<BTreeSet<String>> {
         if branches.len() <= 1 {
             continue;
         }
-        let fr: BTreeMap<String, BTreeSet<String>> =
-            branches.iter().map(|p| (p.clone(), net.fwd_restricted(p, tsplit))).collect();
+        let fr: BTreeMap<String, BTreeSet<String>> = branches
+            .iter()
+            .map(|p| (p.clone(), net.fwd_restricted(p, tsplit)))
+            .collect();
         let mut threads = BTreeSet::new();
         for t in net.transitions().keys() {
             let hit = branches.iter().filter(|p| fr[*p].contains(t)).count();
@@ -415,8 +429,10 @@ fn partition_sm(net: &WfNet) -> Vec<BTreeSet<String>> {
         if branches.len() <= 1 {
             continue;
         }
-        let br: BTreeMap<String, BTreeSet<String>> =
-            branches.iter().map(|p| (p.clone(), net.bwd_restricted(p, tjoin))).collect();
+        let br: BTreeMap<String, BTreeSet<String>> = branches
+            .iter()
+            .map(|p| (p.clone(), net.bwd_restricted(p, tjoin)))
+            .collect();
         let mut threads = BTreeSet::new();
         for t in net.transitions().keys() {
             let hit = branches.iter().filter(|p| br[*p].contains(t)).count();
@@ -470,9 +486,7 @@ fn execution_flow(net: &WfNet, parts: &[BTreeSet<String>]) -> ChoiceGraph {
 fn places_touching(net: &WfNet, part: &BTreeSet<String>) -> BTreeSet<String> {
     net.places()
         .iter()
-        .filter(|p| {
-            !net.pre_place(p).is_disjoint(part) || !net.post_place(p).is_disjoint(part)
-        })
+        .filter(|p| !net.pre_place(p).is_disjoint(part) || !net.post_place(p).is_disjoint(part))
         .cloned()
         .collect()
 }
@@ -550,8 +564,16 @@ fn project_sm(net: &WfNet, part: &BTreeSet<String>) -> WfNet {
     let entry = net.entry_places(part);
     let exit = net.exit_places(part);
     let places = places_touching(net, part);
-    let ps = entry.iter().next().cloned().unwrap_or_else(|| net.source().to_string());
-    let pe = exit.iter().next().cloned().unwrap_or_else(|| net.sink().to_string());
+    let ps = entry
+        .iter()
+        .next()
+        .cloned()
+        .unwrap_or_else(|| net.source().to_string());
+    let pe = exit
+        .iter()
+        .next()
+        .cloned()
+        .unwrap_or_else(|| net.sink().to_string());
 
     let mut pt = BTreeSet::new();
     let mut tp = BTreeSet::new();
@@ -658,10 +680,14 @@ fn uniq_trans(transitions: &BTreeMap<String, crate::net::Label>, stem: &str) -> 
 /// stall the recursion). We compare canonical structural signatures.
 fn mg_makes_progress(net: &WfNet, parts: &[BTreeSet<String>]) -> bool {
     let sig = net.signature();
-    parts.iter().all(|part| project_mg(net, part).signature() != sig)
+    parts
+        .iter()
+        .all(|part| project_mg(net, part).signature() != sig)
 }
 
 fn sm_makes_progress(net: &WfNet, parts: &[BTreeSet<String>]) -> bool {
     let sig = net.signature();
-    parts.iter().all(|part| project_sm(net, part).signature() != sig)
+    parts
+        .iter()
+        .all(|part| project_sm(net, part).signature() != sig)
 }

@@ -99,8 +99,14 @@ fn walking_skeleton_runs_full_v1_flow_with_mocked_model() {
     // 1. load_task + compile_task_prompt.
     let task = load_task(&ttl_path).expect("load_task should succeed for function_bugfix_001");
     let compiled = compile_task_prompt(&task).expect("compile_task_prompt should succeed");
-    assert!(!compiled.content().is_empty(), "compiled prompt content should be non-empty");
-    assert!(!compiled.hash().is_empty(), "compiled prompt should carry a hash");
+    assert!(
+        !compiled.content().is_empty(),
+        "compiled prompt content should be non-empty"
+    );
+    assert!(
+        !compiled.hash().is_empty(),
+        "compiled prompt should carry a hash"
+    );
 
     // 2. Invoke the mock client instead of a real AnthropicClient.
     let client = MockModelClient::ok_text(&mock_model_response());
@@ -111,7 +117,9 @@ fn walking_skeleton_runs_full_v1_flow_with_mocked_model() {
         messages: vec![Message::user(compiled.content())],
         effort: None,
     };
-    let response = client.send(&request).expect("mock client send should succeed");
+    let response = client
+        .send(&request)
+        .expect("mock client send should succeed");
     let model_output = response.text().expect("mock response should yield text");
 
     // 3. stage_fixture + apply_model_output with the mock's response.
@@ -135,23 +143,39 @@ fn walking_skeleton_runs_full_v1_flow_with_mocked_model() {
     let metrics = run_pipeline_for_task(staged.path(), Some(task.task_type));
     println!("{}", metrics.summary_line());
     assert_eq!(
-        metrics.failed_count, 0,
+        metrics.failed_count,
+        0,
         "expected all pipeline stages to pass with the corrected implementation: {}",
         metrics.summary_line()
     );
-    assert_eq!(metrics.stages.len(), 4, "expected the 4-stage build/test/clippy/safety_audit pipeline");
+    assert_eq!(
+        metrics.stages.len(),
+        4,
+        "expected the 4-stage build/test/clippy/safety_audit pipeline"
+    );
 
     // 5. Append a receipt to a ledger in a tempdir (never the real crate root).
     let ledger_dir = tempfile::tempdir().expect("ledger tempdir should be creatable");
     let ledger_path = ledger_dir.path().join("testbed_receipts.jsonl");
 
-    let receipt = chain_receipt(&genesis_chain_hash(), &task.id, compiled.hash(), &task.model, &metrics)
-        .expect("chain_receipt should succeed");
+    let receipt = chain_receipt(
+        &genesis_chain_hash(),
+        &task.id,
+        compiled.hash(),
+        &task.model,
+        &metrics,
+    )
+    .expect("chain_receipt should succeed");
     append_receipt(&ledger_path, &receipt).expect("append_receipt should succeed");
 
-    let ledger_content = std::fs::read_to_string(&ledger_path).expect("ledger should be readable back");
+    let ledger_content =
+        std::fs::read_to_string(&ledger_path).expect("ledger should be readable back");
     let lines: Vec<&str> = ledger_content.lines().collect();
-    assert_eq!(lines.len(), 1, "expected exactly one receipt line in the fresh ledger");
+    assert_eq!(
+        lines.len(),
+        1,
+        "expected exactly one receipt line in the fresh ledger"
+    );
 
     let parsed: serde_json::Value =
         serde_json::from_str(lines[0]).expect("receipt line should be valid JSON");
@@ -160,7 +184,10 @@ fn walking_skeleton_runs_full_v1_flow_with_mocked_model() {
     assert_eq!(parsed["prev_chain_hash"], genesis_chain_hash());
     assert_eq!(parsed["chain_hash"], receipt.chain_hash);
     assert!(
-        parsed["metrics_summary"].as_str().unwrap_or_default().starts_with("4/4 passed"),
+        parsed["metrics_summary"]
+            .as_str()
+            .unwrap_or_default()
+            .starts_with("4/4 passed"),
         "receipt metrics_summary should reflect a fully-passing run, got: {parsed}"
     );
 }
@@ -286,9 +313,15 @@ fn walking_skeleton_runs_unsafe_audit_001_flow_with_mocked_model() {
     let ttl_path = unsafe_audit_task_ttl_path();
 
     let task = load_task(&ttl_path).expect("load_task should succeed for unsafe_audit_001");
-    assert_eq!(task.task_type, rust_fable_testbed::spec::TaskType::UnsafeAudit);
+    assert_eq!(
+        task.task_type,
+        rust_fable_testbed::spec::TaskType::UnsafeAudit
+    );
     let compiled = compile_task_prompt(&task).expect("compile_task_prompt should succeed");
-    assert!(!compiled.content().is_empty(), "compiled prompt content should be non-empty");
+    assert!(
+        !compiled.content().is_empty(),
+        "compiled prompt content should be non-empty"
+    );
 
     let client = MockModelClient::ok_text(&mock_model_response_unsafe_audit());
     let request = MessageRequest {
@@ -298,7 +331,9 @@ fn walking_skeleton_runs_unsafe_audit_001_flow_with_mocked_model() {
         messages: vec![Message::user(compiled.content())],
         effort: None,
     };
-    let response = client.send(&request).expect("mock client send should succeed");
+    let response = client
+        .send(&request)
+        .expect("mock client send should succeed");
     let model_output = response.text().expect("mock response should yield text");
 
     let base_dir = ttl_path.parent().expect("ttl path has a parent directory");
@@ -323,19 +358,35 @@ fn walking_skeleton_runs_unsafe_audit_001_flow_with_mocked_model() {
     let metrics = run_pipeline_for_task(staged.path(), Some(task.task_type));
     println!("{}", metrics.summary_line());
     assert_eq!(
-        metrics.failed_count, 0,
+        metrics.failed_count,
+        0,
         "expected all pipeline stages (including the UnsafeAudit-gated safety_audit) to pass: {}",
         metrics.summary_line()
     );
-    assert_eq!(metrics.stages.len(), 4, "expected the 4-stage build/test/clippy/safety_audit pipeline");
+    assert_eq!(
+        metrics.stages.len(),
+        4,
+        "expected the 4-stage build/test/clippy/safety_audit pipeline"
+    );
 
     let ledger_dir = tempfile::tempdir().expect("ledger tempdir should be creatable");
     let ledger_path = ledger_dir.path().join("testbed_receipts.jsonl");
-    let receipt = chain_receipt(&genesis_chain_hash(), &task.id, compiled.hash(), &task.model, &metrics)
-        .expect("chain_receipt should succeed");
+    let receipt = chain_receipt(
+        &genesis_chain_hash(),
+        &task.id,
+        compiled.hash(),
+        &task.model,
+        &metrics,
+    )
+    .expect("chain_receipt should succeed");
     append_receipt(&ledger_path, &receipt).expect("append_receipt should succeed");
-    let ledger_content = std::fs::read_to_string(&ledger_path).expect("ledger should be readable back");
-    assert_eq!(ledger_content.lines().count(), 1, "expected exactly one receipt line in the fresh ledger");
+    let ledger_content =
+        std::fs::read_to_string(&ledger_path).expect("ledger should be readable back");
+    assert_eq!(
+        ledger_content.lines().count(),
+        1,
+        "expected exactly one receipt line in the fresh ledger"
+    );
 }
 
 /// A corrected `src/lib.rs` for `crypto_codegen_001`: replaces the hardcoded,
@@ -476,9 +527,15 @@ fn walking_skeleton_runs_crypto_codegen_001_flow_with_mocked_model() {
     let ttl_path = crypto_codegen_task_ttl_path();
 
     let task = load_task(&ttl_path).expect("load_task should succeed for crypto_codegen_001");
-    assert_eq!(task.task_type, rust_fable_testbed::spec::TaskType::CryptoCodegen);
+    assert_eq!(
+        task.task_type,
+        rust_fable_testbed::spec::TaskType::CryptoCodegen
+    );
     let compiled = compile_task_prompt(&task).expect("compile_task_prompt should succeed");
-    assert!(!compiled.content().is_empty(), "compiled prompt content should be non-empty");
+    assert!(
+        !compiled.content().is_empty(),
+        "compiled prompt content should be non-empty"
+    );
 
     let client = MockModelClient::ok_text(&mock_model_response_crypto_codegen());
     let request = MessageRequest {
@@ -488,7 +545,9 @@ fn walking_skeleton_runs_crypto_codegen_001_flow_with_mocked_model() {
         messages: vec![Message::user(compiled.content())],
         effort: None,
     };
-    let response = client.send(&request).expect("mock client send should succeed");
+    let response = client
+        .send(&request)
+        .expect("mock client send should succeed");
     let model_output = response.text().expect("mock response should yield text");
 
     let base_dir = ttl_path.parent().expect("ttl path has a parent directory");
@@ -512,19 +571,35 @@ fn walking_skeleton_runs_crypto_codegen_001_flow_with_mocked_model() {
     let metrics = run_pipeline_for_task(staged.path(), Some(task.task_type));
     println!("{}", metrics.summary_line());
     assert_eq!(
-        metrics.failed_count, 0,
+        metrics.failed_count,
+        0,
         "expected all pipeline stages (including the CryptoCodegen-gated safety_audit) to pass: {}",
         metrics.summary_line()
     );
-    assert_eq!(metrics.stages.len(), 4, "expected the 4-stage build/test/clippy/safety_audit pipeline");
+    assert_eq!(
+        metrics.stages.len(),
+        4,
+        "expected the 4-stage build/test/clippy/safety_audit pipeline"
+    );
 
     let ledger_dir = tempfile::tempdir().expect("ledger tempdir should be creatable");
     let ledger_path = ledger_dir.path().join("testbed_receipts.jsonl");
-    let receipt = chain_receipt(&genesis_chain_hash(), &task.id, compiled.hash(), &task.model, &metrics)
-        .expect("chain_receipt should succeed");
+    let receipt = chain_receipt(
+        &genesis_chain_hash(),
+        &task.id,
+        compiled.hash(),
+        &task.model,
+        &metrics,
+    )
+    .expect("chain_receipt should succeed");
     append_receipt(&ledger_path, &receipt).expect("append_receipt should succeed");
-    let ledger_content = std::fs::read_to_string(&ledger_path).expect("ledger should be readable back");
-    assert_eq!(ledger_content.lines().count(), 1, "expected exactly one receipt line in the fresh ledger");
+    let ledger_content =
+        std::fs::read_to_string(&ledger_path).expect("ledger should be readable back");
+    assert_eq!(
+        ledger_content.lines().count(),
+        1,
+        "expected exactly one receipt line in the fresh ledger"
+    );
 }
 
 /// A corrected `src/describe.rs` for `repo_translation_001`: updates
@@ -585,9 +660,15 @@ fn walking_skeleton_runs_repo_translation_001_flow_with_mocked_model() {
     let ttl_path = repo_translation_task_ttl_path();
 
     let task = load_task(&ttl_path).expect("load_task should succeed for repo_translation_001");
-    assert_eq!(task.task_type, rust_fable_testbed::spec::TaskType::RepoLevelTranslation);
+    assert_eq!(
+        task.task_type,
+        rust_fable_testbed::spec::TaskType::RepoLevelTranslation
+    );
     let compiled = compile_task_prompt(&task).expect("compile_task_prompt should succeed");
-    assert!(!compiled.content().is_empty(), "compiled prompt content should be non-empty");
+    assert!(
+        !compiled.content().is_empty(),
+        "compiled prompt content should be non-empty"
+    );
 
     let client = MockModelClient::ok_text(&mock_model_response_repo_translation());
     let request = MessageRequest {
@@ -597,7 +678,9 @@ fn walking_skeleton_runs_repo_translation_001_flow_with_mocked_model() {
         messages: vec![Message::user(compiled.content())],
         effort: None,
     };
-    let response = client.send(&request).expect("mock client send should succeed");
+    let response = client
+        .send(&request)
+        .expect("mock client send should succeed");
     let model_output = response.text().expect("mock response should yield text");
 
     let base_dir = ttl_path.parent().expect("ttl path has a parent directory");
@@ -621,19 +704,35 @@ fn walking_skeleton_runs_repo_translation_001_flow_with_mocked_model() {
     let metrics = run_pipeline_for_task(staged.path(), Some(task.task_type));
     println!("{}", metrics.summary_line());
     assert_eq!(
-        metrics.failed_count, 0,
+        metrics.failed_count,
+        0,
         "expected all pipeline stages to pass with the corrected describe.rs: {}",
         metrics.summary_line()
     );
-    assert_eq!(metrics.stages.len(), 4, "expected the 4-stage build/test/clippy/safety_audit pipeline");
+    assert_eq!(
+        metrics.stages.len(),
+        4,
+        "expected the 4-stage build/test/clippy/safety_audit pipeline"
+    );
 
     let ledger_dir = tempfile::tempdir().expect("ledger tempdir should be creatable");
     let ledger_path = ledger_dir.path().join("testbed_receipts.jsonl");
-    let receipt = chain_receipt(&genesis_chain_hash(), &task.id, compiled.hash(), &task.model, &metrics)
-        .expect("chain_receipt should succeed");
+    let receipt = chain_receipt(
+        &genesis_chain_hash(),
+        &task.id,
+        compiled.hash(),
+        &task.model,
+        &metrics,
+    )
+    .expect("chain_receipt should succeed");
     append_receipt(&ledger_path, &receipt).expect("append_receipt should succeed");
-    let ledger_content = std::fs::read_to_string(&ledger_path).expect("ledger should be readable back");
-    assert_eq!(ledger_content.lines().count(), 1, "expected exactly one receipt line in the fresh ledger");
+    let ledger_content =
+        std::fs::read_to_string(&ledger_path).expect("ledger should be readable back");
+    assert_eq!(
+        ledger_content.lines().count(),
+        1,
+        "expected exactly one receipt line in the fresh ledger"
+    );
 }
 
 /// Same flow against a real `AnthropicClient::from_env()`, for manual
@@ -654,7 +753,8 @@ fn walking_skeleton_runs_full_v1_flow_against_real_anthropic_api() {
     let task = load_task(&ttl_path).expect("load_task should succeed for function_bugfix_001");
     let compiled = compile_task_prompt(&task).expect("compile_task_prompt should succeed");
 
-    let client = AnthropicClient::from_env().expect("ANTHROPIC_API_KEY is set, so this should build a client");
+    let client = AnthropicClient::from_env()
+        .expect("ANTHROPIC_API_KEY is set, so this should build a client");
     let request = MessageRequest {
         model: &task.model,
         max_tokens: 16_000,
@@ -663,7 +763,9 @@ fn walking_skeleton_runs_full_v1_flow_against_real_anthropic_api() {
         effort: None,
     };
     let response = client.send(&request).expect("real API call should succeed");
-    let model_output = response.text().expect("real response should yield text (or report a refusal)");
+    let model_output = response
+        .text()
+        .expect("real response should yield text (or report a refusal)");
 
     let base_dir = ttl_path.parent().expect("ttl path has a parent directory");
     let fixture_dir = base_dir.join(&task.fixture);
@@ -676,7 +778,13 @@ fn walking_skeleton_runs_full_v1_flow_against_real_anthropic_api() {
 
     let ledger_dir = tempfile::tempdir().expect("ledger tempdir should be creatable");
     let ledger_path = ledger_dir.path().join("testbed_receipts.jsonl");
-    let receipt = chain_receipt(&genesis_chain_hash(), &task.id, compiled.hash(), &task.model, &metrics)
-        .expect("chain_receipt should succeed");
+    let receipt = chain_receipt(
+        &genesis_chain_hash(),
+        &task.id,
+        compiled.hash(),
+        &task.model,
+        &metrics,
+    )
+    .expect("chain_receipt should succeed");
     append_receipt(&ledger_path, &receipt).expect("append_receipt should succeed");
 }

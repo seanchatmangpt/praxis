@@ -65,7 +65,10 @@ async fn handle_audit(args: &[String], spec: &PraxisSpec) -> anyhow::Result<()> 
             println!("Score: {:.1}%", report.score());
             println!("Compliant: {}", report.is_compliant());
             for check in &report.checks {
-                println!("  {} ({}): {:?}", check.name, check.category as i32, check.status);
+                println!(
+                    "  {} ({}): {:?}",
+                    check.name, check.category as i32, check.status
+                );
             }
         }
         _ => eprintln!("Unknown audit action: {}", action),
@@ -95,7 +98,10 @@ async fn handle_apply(args: &[String], spec: &PraxisSpec) -> anyhow::Result<()> 
         }
         "validate" => {
             let valid = apply::validate_retrofit(&repo_path).await?;
-            println!("Retrofit validation: {}", if valid { "PASS" } else { "FAIL" });
+            println!(
+                "Retrofit validation: {}",
+                if valid { "PASS" } else { "FAIL" }
+            );
         }
         _ => eprintln!("Unknown apply action: {}", action),
     }
@@ -115,11 +121,17 @@ async fn handle_generate(args: &[String], spec: &PraxisSpec) -> anyhow::Result<(
         "templates" => {
             println!("# Praxis Templates\n");
             println!("## Cargo.toml [lints]");
-            println!("{}\n", praxis_retrofit::templates::cargo_lints_template(spec));
+            println!(
+                "{}\n",
+                praxis_retrofit::templates::cargo_lints_template(spec)
+            );
             println!("## typos.toml");
             println!("{}\n", praxis_retrofit::templates::typos_toml_template());
             println!("## justfile");
-            println!("{}", praxis_retrofit::templates::justfile_template("example"));
+            println!(
+                "{}",
+                praxis_retrofit::templates::justfile_template("example")
+            );
         }
         "plan" => {
             if args.len() < 4 {
@@ -150,7 +162,14 @@ async fn handle_validate(args: &[String]) -> anyhow::Result<()> {
         "compliance" => {
             let report = validate::validate_compliance(&repo_path).await?;
             println!("Compliance Score: {:.1}%", report.score());
-            println!("Status: {}", if report.is_compliant() { "PASS" } else { "FAIL" });
+            println!(
+                "Status: {}",
+                if report.is_compliant() {
+                    "PASS"
+                } else {
+                    "FAIL"
+                }
+            );
         }
         _ => eprintln!("Unknown validate action: {}", action),
     }

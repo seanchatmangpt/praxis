@@ -83,10 +83,8 @@ where
     F: FnOnce(&T) -> String,
 {
     let out = match format {
-        OutputFormat::Json => {
-            serde_json::to_string_pretty(value)
-                .map_err(|e| crate::Error::msg(format!("JSON serialization failed: {e}")))?
-        }
+        OutputFormat::Json => serde_json::to_string_pretty(value)
+            .map_err(|e| crate::Error::msg(format!("JSON serialization failed: {e}")))?,
         OutputFormat::Yaml => {
             // Lightweight YAML-ish: pretty JSON is valid YAML for our types.
             // Replace with `serde_yaml` when that dep is added.

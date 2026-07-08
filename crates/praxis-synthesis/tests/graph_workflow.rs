@@ -59,8 +59,7 @@ fn ttl_workflow_solves_the_same_plan_as_the_hand_declared_lawobject_domain() {
     // Hand-declared path: Rust-constructed program + capabilities.
     let (mut p, caps, goal) = lawobject_domain();
     p.saturate().expect("saturation");
-    let problem =
-        SequenceProblem::new(&p, caps, goal, 5, Vec::new()).expect("problem");
+    let problem = SequenceProblem::new(&p, caps, goal, 5, Vec::new()).expect("problem");
     let hand_plan = Solver8.solve(&problem).expect("hand-declared solves");
 
     // Graph path: the same domain as a TTL document.
@@ -74,7 +73,13 @@ fn ttl_workflow_solves_the_same_plan_as_the_hand_declared_lawobject_domain() {
     assert_eq!(receipt.plan.cost, hand_plan.cost);
     assert_eq!(
         capability_order(&receipt.plan.steps),
-        ["supply-evidence", "clear-obligations", "judge", "admit", "receipt"]
+        [
+            "supply-evidence",
+            "clear-obligations",
+            "judge",
+            "admit",
+            "receipt"
+        ]
     );
     assert_eq!(receipt.supervised.outcome, RunOutcome::Completed);
     assert!(receipt.supervised.geometry_conformance);
@@ -93,11 +98,16 @@ fn same_ttl_bytes_yield_byte_identical_receipt() {
 #[test]
 fn unreachable_goal_is_a_typed_refusal_not_a_panic() {
     // Same capabilities, but the goal names a predicate nothing adds.
-    let ttl = LAWOBJECT_TTL
-        .replace("wf:predicate \"receipted\" ; wf:arg0 \"o1\"", "wf:predicate \"notarized\" ; wf:arg0 \"o1\"");
+    let ttl = LAWOBJECT_TTL.replace(
+        "wf:predicate \"receipted\" ; wf:arg0 \"o1\"",
+        "wf:predicate \"notarized\" ; wf:arg0 \"o1\"",
+    );
     let err = execute_workflow(&ttl).expect_err("unreachable goal refuses");
     assert!(
-        matches!(err, Refusal::Unsatisfiable { .. } | Refusal::UnsatProof { .. }),
+        matches!(
+            err,
+            Refusal::Unsatisfiable { .. } | Refusal::UnsatProof { .. }
+        ),
         "expected a solver refusal, got: {err:?}"
     );
 }
@@ -246,8 +256,14 @@ fn mutating_one_cost_changes_graph_ir_and_chain() {
     // plan_hash covers the bound step sequence only; the optimal order is
     // unchanged here, so plan_hash legitimately stays equal — the mutation
     // is still caught upstream (graph/ir) and therefore in the chain.
-    assert_eq!(a.plan_hash, b.plan_hash, "same step sequence, same plan hash");
-    assert_ne!(a.chain, b.chain, "chain folds graph_hash first, so it moves");
+    assert_eq!(
+        a.plan_hash, b.plan_hash,
+        "same step sequence, same plan hash"
+    );
+    assert_ne!(
+        a.chain, b.chain,
+        "chain folds graph_hash first, so it moves"
+    );
     assert_eq!(b.plan.cost, 4, "one capability now costs 2");
 }
 
@@ -291,8 +307,7 @@ fn replay_detects_forged_payload_behind_honest_hashes() {
     // body. Replay must bind the payloads to the hashes it verifies.
     let mut r = execute_workflow(DEMO_TTL).expect("demo executes");
     r.supervised.dispositions.clear(); // forge the body, leave hashes alone
-    let err =
-        replay_workflow(&r, DEMO_TTL).expect_err("forged supervised body refuses");
+    let err = replay_workflow(&r, DEMO_TTL).expect_err("forged supervised body refuses");
     match err {
         Refusal::VerificationFailed { failed } => {
             assert_eq!(failed, vec!["supervised payload".to_string()])

@@ -18,8 +18,7 @@ pub fn init_tracing(service_name: &str) -> Result<()> {
     use tracing_subscriber::util::SubscriberInitExt as _;
     use tracing_subscriber::{fmt, EnvFilter};
 
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
     // Tag every span/event with the service name via a constant field.
     let fmt_layer = fmt::layer()

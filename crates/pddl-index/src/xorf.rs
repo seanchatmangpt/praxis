@@ -86,7 +86,12 @@ impl XorFilter {
         let size = deduped.len();
 
         if size == 0 {
-            return Self { seed: 0, block_length: 1, fingerprints: vec![0u8; 3], size: 0 };
+            return Self {
+                seed: 0,
+                block_length: 1,
+                fingerprints: vec![0u8; 3],
+                size: 0,
+            };
         }
 
         // capacity ≈ 1.23·n + 32, split into three equal segments.
@@ -97,7 +102,12 @@ impl XorFilter {
         // Try successive seeds until peeling fully succeeds.
         let mut seed: u64 = 0x726f_7370_616e_5f78; // "rospan_x"
         loop {
-            let mut this = Self { seed, block_length, fingerprints: vec![0u8; array_len], size };
+            let mut this = Self {
+                seed,
+                block_length,
+                fingerprints: vec![0u8; array_len],
+                size,
+            };
             if this.try_construct(&deduped) {
                 return this;
             }
@@ -190,7 +200,9 @@ mod tests {
 
     #[test]
     fn no_false_negatives() {
-        let keys: Vec<u64> = (0..5000u64).map(|i| i.wrapping_mul(0x9E37_79B9_7F4A_7C15)).collect();
+        let keys: Vec<u64> = (0..5000u64)
+            .map(|i| i.wrapping_mul(0x9E37_79B9_7F4A_7C15))
+            .collect();
         let f = XorFilter::build(&keys);
         for &k in &keys {
             assert!(f.contains(k), "member {k} must be reported present");
@@ -211,7 +223,10 @@ mod tests {
             }
         }
         let rate = fp as f64 / trials as f64;
-        assert!(rate < 0.02, "false-positive rate {rate} too high (expected ~0.004)");
+        assert!(
+            rate < 0.02,
+            "false-positive rate {rate} too high (expected ~0.004)"
+        );
     }
 
     #[test]

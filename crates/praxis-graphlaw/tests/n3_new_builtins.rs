@@ -6,7 +6,12 @@
 use praxis_graphlaw::TripleStore;
 
 fn goal_from(src: &str) -> praxis_graphlaw::triples::Triple {
-    TripleStore::from(src).triple_index.triples.first().unwrap().clone()
+    TripleStore::from(src)
+        .triple_index
+        .triples
+        .first()
+        .unwrap()
+        .clone()
 }
 
 #[test]
@@ -19,11 +24,15 @@ fn math_not_equal_to() {
 "#;
     let store = TripleStore::from(n3);
     assert!(
-        store.prove(&goal_from("@prefix : <http://example.org/#>.\n:a :notEqual \"true\".")),
+        store.prove(&goal_from(
+            "@prefix : <http://example.org/#>.\n:a :notEqual \"true\"."
+        )),
         "3 != 5 should be provable"
     );
     assert!(
-        !store.prove(&goal_from("@prefix : <http://example.org/#>.\n:b :notEqual \"true\".")),
+        !store.prove(&goal_from(
+            "@prefix : <http://example.org/#>.\n:b :notEqual \"true\"."
+        )),
         "3 != 3 should NOT be provable"
     );
 }
@@ -38,11 +47,15 @@ fn list_not_member() {
 "#;
     let store = TripleStore::from(n3);
     assert!(
-        store.prove(&goal_from("@prefix : <http://example.org/#>.\n:c :notMember \"true\".")),
+        store.prove(&goal_from(
+            "@prefix : <http://example.org/#>.\n:c :notMember \"true\"."
+        )),
         "9 is not in (1 2 3), should be provable"
     );
     assert!(
-        !store.prove(&goal_from("@prefix : <http://example.org/#>.\n:d :notMember \"true\".")),
+        !store.prove(&goal_from(
+            "@prefix : <http://example.org/#>.\n:d :notMember \"true\"."
+        )),
         "2 IS in (1 2 3), notMember should be false"
     );
 }
@@ -55,13 +68,23 @@ fn list_first_rest_cons() {
 { ?NewList list:firstRest (:a (:b :c)). } <= true.
 "#;
     let store = TripleStore::from(n3);
-    let expected_list_store =
-        TripleStore::from("@prefix : <http://example.org/#>.\n{?Dummy :dummy (:a :b :c).} <= true.");
+    let expected_list_store = TripleStore::from(
+        "@prefix : <http://example.org/#>.\n{?Dummy :dummy (:a :b :c).} <= true.",
+    );
     let expected_list = expected_list_store.rules_index.rules[0].head.o.clone();
 
     let goal = store.rules_index.rules[0].head.clone();
     let rows = store.solve(&goal);
-    assert_eq!(rows.len(), 1, "expected exactly one solution, got {:?}", rows);
+    assert_eq!(
+        rows.len(),
+        1,
+        "expected exactly one solution, got {:?}",
+        rows
+    );
     let bound = rows[0].get(&goal.s.to_encoded()).expect("?NewList bound");
-    assert_eq!(bound[0], expected_list.to_encoded(), "expected (:a :b :c) cons result");
+    assert_eq!(
+        bound[0],
+        expected_list.to_encoded(),
+        "expected (:a :b :c) cons result"
+    );
 }

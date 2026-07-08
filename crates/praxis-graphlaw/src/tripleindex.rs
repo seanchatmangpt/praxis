@@ -415,6 +415,306 @@ impl TripleIndex {
         }
     }
 
+    pub fn query_range(
+        &self,
+        query_triple: &Triple,
+        min_counter: usize,
+        max_counter: usize,
+    ) -> Option<Binding> {
+        let s_is_list_pattern = query_triple.s.is_term()
+            && VarOrTerm::is_nonground_list_pattern(query_triple.s.to_encoded());
+        let o_is_list_pattern = query_triple.o.is_term()
+            && VarOrTerm::is_nonground_list_pattern(query_triple.o.to_encoded());
+        if s_is_list_pattern || o_is_list_pattern {
+            return self.query_range_list_pattern(
+                query_triple,
+                min_counter,
+                max_counter,
+                s_is_list_pattern,
+                o_is_list_pattern,
+            );
+        }
+
+        let mut matched_binding = Binding::new();
+        //?s p o
+        if query_triple.s.is_var() & query_triple.p.is_term() & query_triple.o.is_term() {
+            if let Some(indexes) = self.pos.get(&query_triple.p.to_encoded()) {
+                if let Some(indexes2) = indexes.get(&query_triple.o.to_encoded()) {
+                    for (encoded_match, counter, graph_name) in indexes2.iter() {
+                        if *counter >= min_counter && *counter < max_counter {
+                            if !Self::check_quad_match_and_add(
+                                &query_triple,
+                                &mut matched_binding,
+                                graph_name,
+                            ) {
+                                break;
+                            }
+                            matched_binding.add(&query_triple.s.to_encoded(), *encoded_match);
+                        } else if *counter >= max_counter {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        //s ?p o
+        else if query_triple.s.is_term() & query_triple.p.is_var() & query_triple.o.is_term() {
+            if let Some(indexes) = self.osp.get(&query_triple.o.to_encoded()) {
+                if let Some(indexes2) = indexes.get(&query_triple.s.to_encoded()) {
+                    for (encoded_match, counter, graph_name) in indexes2.iter() {
+                        if *counter >= min_counter && *counter < max_counter {
+                            if !Self::check_quad_match_and_add(
+                                &query_triple,
+                                &mut matched_binding,
+                                graph_name,
+                            ) {
+                                break;
+                            }
+                            matched_binding.add(&query_triple.p.to_encoded(), *encoded_match);
+                        } else if *counter >= max_counter {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        //s p ?o
+        else if query_triple.s.is_term() & query_triple.p.is_term() & query_triple.o.is_var() {
+            if let Some(indexes) = self.spo.get(&query_triple.s.to_encoded()) {
+                if let Some(indexes2) = indexes.get(&query_triple.p.to_encoded()) {
+                    for (encoded_match, counter, graph_name) in indexes2.iter() {
+                        if *counter >= min_counter && *counter < max_counter {
+                            if !Self::check_quad_match_and_add(
+                                &query_triple,
+                                &mut matched_binding,
+                                graph_name,
+                            ) {
+                                break;
+                            }
+                            matched_binding.add(&query_triple.o.to_encoded(), *encoded_match);
+                        } else if *counter >= max_counter {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        //?s ?p o
+        else if query_triple.s.is_var() & query_triple.p.is_var() & query_triple.o.is_term() {
+            if let Some(indexes) = self.osp.get(&query_triple.o.to_encoded()) {
+                for (s_key, p_values) in indexes.iter() {
+                    for (encoded_match, counter, graph_name) in p_values.iter() {
+                        if *counter >= min_counter && *counter < max_counter {
+                            if !Self::check_quad_match_and_add(
+                                &query_triple,
+                                &mut matched_binding,
+                                graph_name,
+                            ) {
+                                break;
+                            }
+                            matched_binding.add(&query_triple.s.to_encoded(), *s_key);
+                            matched_binding.add(&query_triple.p.to_encoded(), *encoded_match);
+                        } else if *counter >= max_counter {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        //s ?p ?o
+        else if query_triple.s.is_term() & query_triple.p.is_var() & query_triple.o.is_var() {
+            if let Some(indexes) = self.spo.get(&query_triple.s.to_encoded()) {
+                for (p_key, o_values) in indexes.iter() {
+                    for (encoded_match, counter, graph_name) in o_values.iter() {
+                        if *counter >= min_counter && *counter < max_counter {
+                            if !Self::check_quad_match_and_add(
+                                &query_triple,
+                                &mut matched_binding,
+                                graph_name,
+                            ) {
+                                break;
+                            }
+                            matched_binding.add(&query_triple.p.to_encoded(), *p_key);
+                            matched_binding.add(&query_triple.o.to_encoded(), *encoded_match);
+                        } else if *counter >= max_counter {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        //?s p ?o
+        else if query_triple.s.is_var() & query_triple.p.is_term() & query_triple.o.is_var() {
+            if let Some(indexes) = self.pos.get(&query_triple.p.to_encoded()) {
+                for (o_key, s_values) in indexes.iter() {
+                    for (encoded_match, counter, graph_name) in s_values.iter() {
+                        if *counter >= min_counter && *counter < max_counter {
+                            if !Self::check_quad_match_and_add(
+                                &query_triple,
+                                &mut matched_binding,
+                                graph_name,
+                            ) {
+                                break;
+                            }
+                            matched_binding.add(&query_triple.o.to_encoded(), *o_key);
+                            matched_binding.add(&query_triple.s.to_encoded(), *encoded_match);
+                        } else if *counter >= max_counter {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        //?s ?p ?o
+        else if query_triple.s.is_var() & query_triple.p.is_var() & query_triple.o.is_var() {
+            for (s_key, p_index) in self.spo.iter() {
+                for (p_key, o_values) in p_index.iter() {
+                    for (encoded_match, counter, graph_name) in o_values.iter() {
+                        if *counter >= min_counter && *counter < max_counter {
+                            if !Self::check_quad_match_and_add(
+                                &query_triple,
+                                &mut matched_binding,
+                                graph_name,
+                            ) {
+                                break;
+                            }
+                            matched_binding.add(&query_triple.s.to_encoded(), *s_key);
+                            matched_binding.add(&query_triple.p.to_encoded(), *p_key);
+                            matched_binding.add(&query_triple.o.to_encoded(), *encoded_match);
+                        } else if *counter >= max_counter {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        //s p o
+        else if query_triple.s.is_term() & query_triple.p.is_term() & query_triple.o.is_term() {
+            if let Some(indexes) = self.osp.get(&query_triple.o.to_encoded()) {
+                if let Some(indexes2) = indexes.get(&query_triple.s.to_encoded()) {
+                    for (encoded_match, counter, graph_name) in indexes2.iter() {
+                        if *counter >= min_counter && *counter < max_counter {
+                            if *encoded_match == query_triple.p.to_encoded() {
+                                if query_triple.g.is_some() {
+                                    if !Self::check_quad_match_and_add(
+                                        &query_triple,
+                                        &mut matched_binding,
+                                        graph_name,
+                                    ) {
+                                        continue;
+                                    }
+                                } else {
+                                    return Some(matched_binding);
+                                }
+                            }
+                        } else if *counter >= max_counter {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if !matched_binding.is_empty() {
+            Some(matched_binding)
+        } else {
+            None
+        }
+    }
+
+    fn query_range_list_pattern(
+        &self,
+        query_triple: &Triple,
+        min_counter: usize,
+        max_counter: usize,
+        s_is_list_pattern: bool,
+        o_is_list_pattern: bool,
+    ) -> Option<Binding> {
+        let mut matched_binding = Binding::new();
+
+        for (idx, triple) in self.triples.iter().enumerate() {
+            if idx >= max_counter {
+                break;
+            }
+            if idx < min_counter {
+                continue;
+            }
+            if query_triple.p.is_term() && triple.p.to_encoded() != query_triple.p.to_encoded() {
+                continue;
+            }
+            if !s_is_list_pattern
+                && query_triple.s.is_term()
+                && triple.s.to_encoded() != query_triple.s.to_encoded()
+            {
+                continue;
+            }
+            if !o_is_list_pattern
+                && query_triple.o.is_term()
+                && triple.o.to_encoded() != query_triple.o.to_encoded()
+            {
+                continue;
+            }
+
+            let mut extra_bindings = Vec::new();
+            if s_is_list_pattern
+                && !VarOrTerm::unify_list_pattern(
+                    query_triple.s.to_encoded(),
+                    triple.s.to_encoded(),
+                    &mut extra_bindings,
+                )
+            {
+                continue;
+            }
+            if o_is_list_pattern
+                && !VarOrTerm::unify_list_pattern(
+                    query_triple.o.to_encoded(),
+                    triple.o.to_encoded(),
+                    &mut extra_bindings,
+                )
+            {
+                continue;
+            }
+
+            {
+                let mut consistent = HashMap::new();
+                let mut ok = true;
+                for &(var_id, val_id) in &extra_bindings {
+                    match consistent.get(&var_id) {
+                        Some(&existing) if existing != val_id => {
+                            ok = false;
+                            break;
+                        }
+                        _ => {
+                            consistent.insert(var_id, val_id);
+                        }
+                    }
+                }
+                if !ok {
+                    continue;
+                }
+            }
+
+            if query_triple.s.is_var() {
+                matched_binding.add(&query_triple.s.to_encoded(), triple.s.to_encoded());
+            }
+            if query_triple.p.is_var() {
+                matched_binding.add(&query_triple.p.to_encoded(), triple.p.to_encoded());
+            }
+            if query_triple.o.is_var() {
+                matched_binding.add(&query_triple.o.to_encoded(), triple.o.to_encoded());
+            }
+            for (var_id, val_id) in extra_bindings {
+                matched_binding.add(&var_id, val_id);
+            }
+        }
+
+        if !matched_binding.is_empty() {
+            Some(matched_binding)
+        } else {
+            None
+        }
+    }
+
     /// A linear-scan fallback for queries where the subject and/or object
     /// is a non-ground list-term pattern (see `VarOrTerm::unify_list_pattern`'s
     /// doc comment for why the ordinary indexed lookups in `query` can't

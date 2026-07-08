@@ -110,9 +110,15 @@ fn test_closed_extra_naming_required_predicate_is_redundant_not_contradictory() 
     // The required predicate present exactly once must still conform --
     // the redundant EXTRA declaration must not break normal validation.
     let data = build_data_index(r#"<http://example.org/n> <http://example.org/name> "Alice" ."#);
-    let shape_map = vec![("http://example.org/n".to_string(), "http://example.org/RedundantShape".to_string())];
+    let shape_map = vec![(
+        "http://example.org/n".to_string(),
+        "http://example.org/RedundantShape".to_string(),
+    )];
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
-    assert!(report.conforms, "a redundant (required+extra) predicate declaration must not prevent normal conformance");
+    assert!(
+        report.conforms,
+        "a redundant (required+extra) predicate declaration must not prevent normal conformance"
+    );
 
     // A genuinely disallowed extra predicate (neither required nor listed
     // in EXTRA) must still be rejected by CLOSED -- the redundant
@@ -121,7 +127,10 @@ fn test_closed_extra_naming_required_predicate_is_redundant_not_contradictory() 
         r#"<http://example.org/n2> <http://example.org/name> "Bob" .
            <http://example.org/n2> <http://example.org/notAllowed> "x" ."#,
     );
-    let shape_map2 = vec![("http://example.org/n2".to_string(), "http://example.org/RedundantShape".to_string())];
+    let shape_map2 = vec![(
+        "http://example.org/n2".to_string(),
+        "http://example.org/RedundantShape".to_string(),
+    )];
     let report2 = validate_shex(&data_bad, schema_json, &shape_map2).unwrap();
     assert!(!report2.conforms, "CLOSED must still reject a genuinely disallowed extra predicate despite the redundant EXTRA declaration");
 }

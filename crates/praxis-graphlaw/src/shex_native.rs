@@ -38,8 +38,8 @@ use crate::shacl::{
     compare_numeric, decode_to_term, get_datatype, get_lang_tag, get_lexical_form, get_objects,
     is_blank_node, is_iri, is_lexically_valid_for_datatype, is_literal, match_regex,
 };
-use crate::triples::{Term, VarOrTerm};
 use crate::tripleindex::TripleIndex;
+use crate::triples::{Term, VarOrTerm};
 use serde::Deserialize;
 
 // ---------------------------------------------------------------------
@@ -208,7 +208,8 @@ pub fn validate_shex_schema(
         let focus_id = encode_node(node_str);
         let mut visited = std::collections::HashSet::new();
 
-        if let Err(reasons) = validate_node(data, schema, focus_id, &decl.shape_expr, &mut visited) {
+        if let Err(reasons) = validate_node(data, schema, focus_id, &decl.shape_expr, &mut visited)
+        {
             conforms = false;
             failures.push(ShexValidationFailure {
                 node: decode_to_term(focus_id),
@@ -274,7 +275,11 @@ fn validate_node(
     visited: &mut std::collections::HashSet<(usize, String)>,
 ) -> Result<(), Vec<String>> {
     match se {
-        ShapeExpr::Shape { closed, extra, expression } => {
+        ShapeExpr::Shape {
+            closed,
+            extra,
+            expression,
+        } => {
             let (consumed_predicates, mut errors) = match expression {
                 Some(expr) => match_triple_expr(data, schema, focus, expr, visited),
                 None => (Default::default(), Vec::new()),
@@ -297,7 +302,11 @@ fn validate_node(
                 }
             }
 
-            if errors.is_empty() { Ok(()) } else { Err(errors) }
+            if errors.is_empty() {
+                Ok(())
+            } else {
+                Err(errors)
+            }
         }
         ShapeExpr::ShapeAnd { shape_exprs } => {
             let mut errors = Vec::new();
@@ -306,7 +315,11 @@ fn validate_node(
                     errors.extend(e);
                 }
             }
-            if errors.is_empty() { Ok(()) } else { Err(errors) }
+            if errors.is_empty() {
+                Ok(())
+            } else {
+                Err(errors)
+            }
         }
         ShapeExpr::ShapeOr { shape_exprs } => {
             let mut all_errors = Vec::new();
@@ -323,7 +336,9 @@ fn validate_node(
         }
         ShapeExpr::ShapeNot { shape_expr } => {
             match validate_ref(data, schema, focus, shape_expr, visited) {
-                Ok(()) => Err(vec!["ShapeNot: inner shape unexpectedly conformed".to_string()]),
+                Ok(()) => Err(vec![
+                    "ShapeNot: inner shape unexpectedly conformed".to_string()
+                ]),
                 Err(_) => Ok(()),
             }
         }
@@ -349,7 +364,12 @@ fn match_triple_expr(
     visited: &mut std::collections::HashSet<(usize, String)>,
 ) -> (std::collections::HashSet<usize>, Vec<String>) {
     match expr {
-        TripleExpr::TripleConstraint { predicate, value_expr, min, max } => {
+        TripleExpr::TripleConstraint {
+            predicate,
+            value_expr,
+            min,
+            max,
+        } => {
             let pred_id = VarOrTerm::convert(format!("<{predicate}>")).to_encoded();
             let values = get_objects(data, focus, pred_id);
             let min = min.unwrap_or(1);
@@ -365,7 +385,10 @@ fn match_triple_expr(
             if let Some(ve) = value_expr {
                 for &v in &values {
                     if let Err(e) = validate_ref(data, schema, v, ve, visited) {
-                        errors.push(format!("predicate {predicate} value violated its shape: {}", e.join("; ")));
+                        errors.push(format!(
+                            "predicate {predicate} value violated its shape: {}",
+                            e.join("; ")
+                        ));
                     }
                 }
             }
@@ -410,11 +433,16 @@ fn match_triple_expr(
                 1 => (matches.into_iter().next().unwrap(), Vec::new()),
                 0 => (
                     std::collections::HashSet::new(),
-                    vec![format!("OneOf: no alternative matched ({})", all_errors.join("; "))],
+                    vec![format!(
+                        "OneOf: no alternative matched ({})",
+                        all_errors.join("; ")
+                    )],
                 ),
                 n => (
                     std::collections::HashSet::new(),
-                    vec![format!("OneOf: exactly one alternative must match, but {n} alternatives matched")],
+                    vec![format!(
+                        "OneOf: exactly one alternative must match, but {n} alternatives matched"
+                    )],
                 ),
             }
         }
@@ -423,10 +451,22 @@ fn match_triple_expr(
 
 fn validate_node_constraint(focus: usize, se: &ShapeExpr) -> Result<(), Vec<String>> {
     let ShapeExpr::NodeConstraint {
-        datatype, node_kind, length, minlength, maxlength,
-        mininclusive, maxinclusive, minexclusive, maxexclusive,
-        pattern, flags, values,
-    } = se else { unreachable!() };
+        datatype,
+        node_kind,
+        length,
+        minlength,
+        maxlength,
+        mininclusive,
+        maxinclusive,
+        minexclusive,
+        maxexclusive,
+        pattern,
+        flags,
+        values,
+    } = se
+    else {
+        unreachable!()
+    };
 
     let mut errors = Vec::new();
 
@@ -447,7 +487,9 @@ fn validate_node_constraint(focus: usize, se: &ShapeExpr) -> Result<(), Vec<Stri
         let dt_id = VarOrTerm::convert(format!("<{dt}>")).to_encoded();
         match get_datatype(focus) {
             Some(actual_dt) if actual_dt == dt_id => {
-                if let (Some(lex), Some(dt_lex)) = (get_lexical_form(focus), get_lexical_form(dt_id)) {
+                if let (Some(lex), Some(dt_lex)) =
+                    (get_lexical_form(focus), get_lexical_form(dt_id))
+                {
                     if !is_lexically_valid_for_datatype(&lex, &dt_lex) {
                         errors.push(format!("value is not a lexically valid {dt}"));
                     }
@@ -460,13 +502,19 @@ fn validate_node_constraint(focus: usize, se: &ShapeExpr) -> Result<(), Vec<Stri
     if let Some(lex) = get_lexical_form(focus) {
         let char_len = lex.chars().count() as i64;
         if let Some(n) = length {
-            if char_len != *n { errors.push(format!("length {n} not satisfied (actual {char_len})")); }
+            if char_len != *n {
+                errors.push(format!("length {n} not satisfied (actual {char_len})"));
+            }
         }
         if let Some(n) = minlength {
-            if char_len < *n { errors.push(format!("minlength {n} not satisfied (actual {char_len})")); }
+            if char_len < *n {
+                errors.push(format!("minlength {n} not satisfied (actual {char_len})"));
+            }
         }
         if let Some(n) = maxlength {
-            if char_len > *n { errors.push(format!("maxlength {n} not satisfied (actual {char_len})")); }
+            if char_len > *n {
+                errors.push(format!("maxlength {n} not satisfied (actual {char_len})"));
+            }
         }
         if let Some(pat) = pattern {
             if !match_regex(pat, &lex, flags) {
@@ -478,10 +526,26 @@ fn validate_node_constraint(focus: usize, se: &ShapeExpr) -> Result<(), Vec<Stri
     }
 
     for (bound_name, bound_val, ok_orderings) in [
-        ("mininclusive", mininclusive, &[std::cmp::Ordering::Greater, std::cmp::Ordering::Equal][..]),
-        ("minexclusive", minexclusive, &[std::cmp::Ordering::Greater][..]),
-        ("maxinclusive", maxinclusive, &[std::cmp::Ordering::Less, std::cmp::Ordering::Equal][..]),
-        ("maxexclusive", maxexclusive, &[std::cmp::Ordering::Less][..]),
+        (
+            "mininclusive",
+            mininclusive,
+            &[std::cmp::Ordering::Greater, std::cmp::Ordering::Equal][..],
+        ),
+        (
+            "minexclusive",
+            minexclusive,
+            &[std::cmp::Ordering::Greater][..],
+        ),
+        (
+            "maxinclusive",
+            maxinclusive,
+            &[std::cmp::Ordering::Less, std::cmp::Ordering::Equal][..],
+        ),
+        (
+            "maxexclusive",
+            maxexclusive,
+            &[std::cmp::Ordering::Less][..],
+        ),
     ] {
         if let Some(bound) = bound_val {
             let bound_id = Encoder::add(bound.to_string());
@@ -499,7 +563,11 @@ fn validate_node_constraint(focus: usize, se: &ShapeExpr) -> Result<(), Vec<Stri
         }
     }
 
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 fn value_matches(focus: usize, v: &ValueSetValue) -> bool {
