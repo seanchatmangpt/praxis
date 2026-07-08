@@ -602,6 +602,23 @@ impl Reasoner {
                         }
                     }
 
+                    // For delta hooks with emit-delta and no action, pre-populate hook_additions
+                    let mut delta_hook_additions = Vec::new();
+                    if fired {
+                        if let HookCondition::Delta { var } = &hook.condition {
+                            if hook.action.is_none() && matches!(hook.effect, EffectKind::EmitDelta)
+                            {
+                                for t in &round_additions {
+                                    let p_str = crate::encoding::Encoder::decode(&t.p.to_encoded())
+                                        .unwrap_or_default();
+                                    if clean_term(&p_str) == clean_term(var) {
+                                        delta_hook_additions.push(t.clone());
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if !fired {
                         verdicts.push(crate::hooks::HookVerdictRecord {
                             hook_id: hook.id,
@@ -655,7 +672,7 @@ impl Reasoner {
                             return Err(format!("refused by hook '{}': {}", hook.name, reason));
                         }
                         EffectKind::EmitDelta | EffectKind::GroundAction => {
-                            let mut hook_additions = Vec::new();
+                            let mut hook_additions = delta_hook_additions.clone();
                             if let Some(action_iri) = &hook.action {
                                 let adds_pred =
                                     "http://seanchatmangpt.github.io/praxis/kh#adds_ttl";

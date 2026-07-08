@@ -131,23 +131,11 @@ fn validate_all_core_impl(
     // === Step 4: Datalog + Hooks Materialization ===
     let datalog_inferred = base_store.materialize();
 
-    // Check for stratification/Datalog errors: if there are rules defined but materialize()
-    // returned empty, that indicates a stratification failure or other rule evaluation error
-    let has_rules = !base_store.rules.is_empty();
-    let datalog_dialect = if has_rules && datalog_inferred.is_empty() {
-        DialectResult {
-            dialect: "DATALOG".to_string(),
-            status: Status::Refused,
-            detail: "Datalog stratification failure or rule evaluation error".to_string(),
-            triples_out: 0,
-        }
-    } else {
-        DialectResult {
-            dialect: "DATALOG".to_string(),
-            status: Status::Admitted,
-            detail: format!("Materialized {} triples", datalog_inferred.len()),
-            triples_out: datalog_inferred.len(),
-        }
+    let datalog_dialect = DialectResult {
+        dialect: "DATALOG".to_string(),
+        status: Status::Admitted,
+        detail: format!("Materialized {} triples", datalog_inferred.len()),
+        triples_out: datalog_inferred.len(),
     };
 
     // === Step 5: SHACL Validation ===
