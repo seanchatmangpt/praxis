@@ -12,8 +12,8 @@ use praxis_graphlaw::datalog::validate_rules;
 use praxis_graphlaw::parser::{Parser, Syntax};
 use praxis_graphlaw::shacl::{ShapesGraph, Validator as ShaclValidator};
 use praxis_graphlaw::shex::validate_shex;
-use praxis_graphlaw::triples::{Aggregate, AggregateFunction, BodyLiteral, Rule, Triple};
 use praxis_graphlaw::tripleindex::TripleIndex;
+use praxis_graphlaw::triples::{Aggregate, AggregateFunction, BodyLiteral, Rule, Triple};
 use praxis_graphlaw::TripleStore;
 use std::collections::HashMap;
 
@@ -138,23 +138,43 @@ fn n3_chain_depth_400(bench: &mut Bencher) {
 fn build_negation_chain(layers: usize) -> Vec<Rule> {
     let pred = |name: &str| format!("http://example.org/{}", name);
     let mut rules = vec![Rule {
-        head: Triple::from("?x".to_string(), pred("P0"), "http://example.org/true".to_string()),
+        head: Triple::from(
+            "?x".to_string(),
+            pred("P0"),
+            "http://example.org/true".to_string(),
+        ),
         body: vec![BodyLiteral {
             negated: false,
-            pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()),
+            pattern: Triple::from(
+                "?x".to_string(),
+                pred("Base"),
+                "http://example.org/true".to_string(),
+            ),
         }],
     }];
     for i in 1..layers {
         rules.push(Rule {
-            head: Triple::from("?x".to_string(), pred(&format!("P{}", i)), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred(&format!("P{}", i)),
+                "http://example.org/true".to_string(),
+            ),
             body: vec![
                 BodyLiteral {
                     negated: false,
-                    pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()),
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Base"),
+                        "http://example.org/true".to_string(),
+                    ),
                 },
                 BodyLiteral {
                     negated: true,
-                    pattern: Triple::from("?x".to_string(), pred(&format!("P{}", i - 1)), "http://example.org/true".to_string()),
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred(&format!("P{}", i - 1)),
+                        "http://example.org/true".to_string(),
+                    ),
                 },
             ],
         });
@@ -195,10 +215,18 @@ fn datalog_aggregate_n(bench: &mut Bencher, num_facts: usize) {
             }
         }
         let rule = Rule {
-            head: Triple::from("?d".to_string(), "http://example.org/employeeCount".to_string(), "?count".to_string()),
+            head: Triple::from(
+                "?d".to_string(),
+                "http://example.org/employeeCount".to_string(),
+                "?count".to_string(),
+            ),
             body: vec![BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?d".to_string(), "http://example.org/hasEmployee".to_string(), "?e".to_string()),
+                pattern: Triple::from(
+                    "?d".to_string(),
+                    "http://example.org/hasEmployee".to_string(),
+                    "?e".to_string(),
+                ),
             }],
         };
         let agg = Aggregate {

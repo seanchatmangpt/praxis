@@ -58,8 +58,16 @@ pub const FLUENT_NAMES: [&str; 4] = [
 /// facts about the candidate.
 pub fn compute_fluents(account: &Account, target: Stage) -> [f64; 4] {
     let amount = account.amount_cents as f64;
-    let realized = if target == Stage::ClosedWon { amount } else { 0.0 };
-    let at_risk = if target < Stage::ClosedWon { amount } else { 0.0 };
+    let realized = if target == Stage::ClosedWon {
+        amount
+    } else {
+        0.0
+    };
+    let at_risk = if target < Stage::ClosedWon {
+        amount
+    } else {
+        0.0
+    };
     let staleness = account.days_in_stage as f64;
     // Subtract in f64, not u8: a backward candidate (target < current stage)
     // is a legitimate query for this public function and yields a *negative*

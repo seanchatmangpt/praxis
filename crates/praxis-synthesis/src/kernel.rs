@@ -396,6 +396,7 @@ fn watched_vars(hook: &crate::hooks::KnowledgeHook) -> Vec<String> {
         | C::Count { var, .. }
         | C::Window { var, .. } => vec![var.clone()],
         C::Datalog { program, .. } => extract_datalog_predicates(program),
+        C::Shacl { .. } | C::Shex { .. } | C::N3 { .. } => Vec::new(),
     }
 }
 

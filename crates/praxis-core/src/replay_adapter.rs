@@ -139,9 +139,21 @@ pub fn replay_receipt_lifecycle(
     record: &ReceiptRecord,
 ) -> Result<ConformanceMetrics, ReplayViolation> {
     let steps = [
-        (LifecycleStep::Judged, record.ts_ns, record.object_ids.clone()),
-        (LifecycleStep::Admitted, record.ts_ns, record.object_ids.clone()),
-        (LifecycleStep::Receipted, record.ts_ns, record.object_ids.clone()),
+        (
+            LifecycleStep::Judged,
+            record.ts_ns,
+            record.object_ids.clone(),
+        ),
+        (
+            LifecycleStep::Admitted,
+            record.ts_ns,
+            record.object_ids.clone(),
+        ),
+        (
+            LifecycleStep::Receipted,
+            record.ts_ns,
+            record.object_ids.clone(),
+        ),
     ];
     replay_lifecycle(&steps)
 }

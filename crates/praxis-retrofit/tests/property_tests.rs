@@ -68,8 +68,10 @@ fn test_ocel_tracing_integration() {
 
     // Emit test diagnostic event
     let mut context = HashMap::new();
-    context
-        .insert("artifact_id", serde_json::Value::String("praxis-retrofit-artifact".to_string()));
+    context.insert(
+        "artifact_id",
+        serde_json::Value::String("praxis-retrofit-artifact".to_string()),
+    );
 
     let diag = Diagnostic {
         code: DiagnosticCode::new("RETRO".to_string(), DiagnosticCategory::Conformance, 100),
@@ -109,6 +111,12 @@ fn test_ocel_tracing_integration() {
     assert!(output_path.exists(), "OCEL event file was not created");
     let content = std::fs::read_to_string(&output_path).unwrap();
     assert!(!content.is_empty(), "OCEL event file is empty");
-    assert!(content.contains("praxis-run-123"), "OCEL content missing case/run ID");
-    assert!(content.contains("praxis-retrofit-artifact"), "OCEL content missing artifact ID");
+    assert!(
+        content.contains("praxis-run-123"),
+        "OCEL content missing case/run ID"
+    );
+    assert!(
+        content.contains("praxis-retrofit-artifact"),
+        "OCEL content missing artifact ID"
+    );
 }

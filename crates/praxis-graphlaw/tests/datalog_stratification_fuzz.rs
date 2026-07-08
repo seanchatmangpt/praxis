@@ -38,18 +38,30 @@ fn build_rules(num_preds: usize, edges: &[(usize, usize, bool)]) -> Vec<Rule> {
     for p in 0..num_preds {
         let mut body = vec![BodyLiteral {
             negated: false,
-            pattern: Triple::from("?x".to_string(), pred(num_preds + 100), "http://example.org/true".to_string()), // "Base"
+            pattern: Triple::from(
+                "?x".to_string(),
+                pred(num_preds + 100),
+                "http://example.org/true".to_string(),
+            ), // "Base"
         }];
         if let Some(incoming) = by_target.get(&p) {
             for &(from, negated) in incoming {
                 body.push(BodyLiteral {
                     negated,
-                    pattern: Triple::from("?x".to_string(), pred(from), "http://example.org/true".to_string()),
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred(from),
+                        "http://example.org/true".to_string(),
+                    ),
                 });
             }
         }
         rules.push(Rule {
-            head: Triple::from("?x".to_string(), pred(p), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred(p),
+                "http://example.org/true".to_string(),
+            ),
             body,
         });
     }
@@ -94,7 +106,16 @@ fn independent_stratifiable(num_preds: usize, edges: &[(usize, usize, bool)]) ->
 
         for &w in &adj[v] {
             if indices[w].is_none() {
-                strongconnect(w, adj, index_counter, stack, on_stack, indices, lowlink, sccs);
+                strongconnect(
+                    w,
+                    adj,
+                    index_counter,
+                    stack,
+                    on_stack,
+                    indices,
+                    lowlink,
+                    sccs,
+                );
                 lowlink[v] = lowlink[v].min(lowlink[w]);
             } else if on_stack[w] {
                 lowlink[v] = lowlink[v].min(indices[w].unwrap());
@@ -117,7 +138,16 @@ fn independent_stratifiable(num_preds: usize, edges: &[(usize, usize, bool)]) ->
 
     for v in 0..num_preds {
         if indices[v].is_none() {
-            strongconnect(v, &adj, &mut index_counter, &mut stack, &mut on_stack, &mut indices, &mut lowlink, &mut sccs);
+            strongconnect(
+                v,
+                &adj,
+                &mut index_counter,
+                &mut stack,
+                &mut on_stack,
+                &mut indices,
+                &mut lowlink,
+                &mut sccs,
+            );
         }
     }
 
@@ -125,7 +155,8 @@ fn independent_stratifiable(num_preds: usize, edges: &[(usize, usize, bool)]) ->
     // negative edge between two of its own members.
     for scc in &sccs {
         let members: HashSet<usize> = scc.iter().copied().collect();
-        let is_self_looped = scc.len() == 1 && edges.iter().any(|&(f, t, _)| f == scc[0] && t == scc[0]);
+        let is_self_looped =
+            scc.len() == 1 && edges.iter().any(|&(f, t, _)| f == scc[0] && t == scc[0]);
         if scc.len() > 1 || is_self_looped {
             for &(from, to, negated) in edges {
                 if negated && members.contains(&from) && members.contains(&to) {

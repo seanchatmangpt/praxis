@@ -10,7 +10,10 @@
 //! `reasoner/log_for_all_in.rs`, `reasoner/log_if_then_else_in.rs`,
 //! `reasoner/log_conclusion.rs`.
 
-use super::{eval_functional, eval_row_constraint, intern_string, lexical_value, numeric_value, resolve_operand, subject_list_members};
+use super::{
+    eval_functional, eval_row_constraint, intern_string, lexical_value, numeric_value,
+    resolve_operand, subject_list_members,
+};
 use crate::{Binding, Encoder, Term, Triple, VarOrTerm};
 
 pub(crate) const LOG_EQUAL_TO: &str = "<http://www.w3.org/2000/10/swap/log#equalTo>";
@@ -62,9 +65,13 @@ pub(crate) fn eval_raw_type(pattern: &Triple, bindings: &Binding) -> Option<Bind
                 if let Some(dt) = lit.datatype {
                     Some(dt)
                 } else if lit.lang.is_some() {
-                    Some(Encoder::add("<http://www.w3.org/1999/02/22-rdf-syntax-ns#langString>".to_string()))
+                    Some(Encoder::add(
+                        "<http://www.w3.org/1999/02/22-rdf-syntax-ns#langString>".to_string(),
+                    ))
                 } else {
-                    Some(Encoder::add("<http://www.w3.org/2001/XMLSchema#string>".to_string()))
+                    Some(Encoder::add(
+                        "<http://www.w3.org/2001/XMLSchema#string>".to_string(),
+                    ))
                 }
             }
             _ => None,

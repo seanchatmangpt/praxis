@@ -58,14 +58,20 @@ struct TypedPayload {
 /// bug even though it wouldn't panic. Checks both the `Display` text and the
 /// structured `reason` field of every variant.
 fn quarantine_error_has_reason(e: &QuarantineError) {
-    assert!(!e.to_string().is_empty(), "QuarantineError Display must be non-empty: {e:?}");
+    assert!(
+        !e.to_string().is_empty(),
+        "QuarantineError Display must be non-empty: {e:?}"
+    );
     let reason = match e {
         QuarantineError::ValidationFailed { reason }
         | QuarantineError::DeserializationFailed { reason }
         | QuarantineError::PredicateDenied { reason }
         | QuarantineError::Malformed { reason } => reason,
     };
-    assert!(!reason.trim().is_empty(), "QuarantineError reason must be non-empty: {e:?}");
+    assert!(
+        !reason.trim().is_empty(),
+        "QuarantineError reason must be non-empty: {e:?}"
+    );
 }
 
 proptest! {

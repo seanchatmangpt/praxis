@@ -18,12 +18,7 @@
 
 #[cfg(feature = "provenance")]
 pub use crate::provenance::{
-    content_address,
-    genesis_seed,
-    fold_event,
-    recompute_chain,
-    is_valid_digest,
-    RollingChain,
+    content_address, fold_event, genesis_seed, is_valid_digest, recompute_chain, RollingChain,
     RollingHash,
 };
 

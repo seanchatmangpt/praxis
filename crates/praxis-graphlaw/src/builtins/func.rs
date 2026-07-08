@@ -5,7 +5,10 @@
 //! function's argument(s), the object is the result. This mirrors how
 //! EYE/cwm surface RIF builtin-function predicates in N3 rule bodies.
 
-use super::{eval_functional, intern_number, intern_string, lang_value, lexical_value, numeric_value, subject_list_members};
+use super::{
+    eval_functional, intern_number, intern_string, lang_value, lexical_value, numeric_value,
+    subject_list_members,
+};
 use crate::{Binding, Triple, VarOrTerm};
 
 // Real EYE `skos` corpus case idiom: `(?x) func:lang-from-PlainLiteral ?lang`,
@@ -13,23 +16,36 @@ use crate::{Binding, Triple, VarOrTerm};
 pub(crate) const FUNC_LANG_FROM_PLAIN_LITERAL: &str =
     "<http://www.w3.org/2007/rif-builtin-function#lang-from-PlainLiteral>";
 
-pub(crate) const FUNC_NUMERIC_ADD: &str = "<http://www.w3.org/2007/rif-builtin-function#numeric-add>";
-pub(crate) const FUNC_NUMERIC_SUBTRACT: &str = "<http://www.w3.org/2007/rif-builtin-function#numeric-subtract>";
-pub(crate) const FUNC_NUMERIC_MULTIPLY: &str = "<http://www.w3.org/2007/rif-builtin-function#numeric-multiply>";
-pub(crate) const FUNC_NUMERIC_DIVIDE: &str = "<http://www.w3.org/2007/rif-builtin-function#numeric-divide>";
+pub(crate) const FUNC_NUMERIC_ADD: &str =
+    "<http://www.w3.org/2007/rif-builtin-function#numeric-add>";
+pub(crate) const FUNC_NUMERIC_SUBTRACT: &str =
+    "<http://www.w3.org/2007/rif-builtin-function#numeric-subtract>";
+pub(crate) const FUNC_NUMERIC_MULTIPLY: &str =
+    "<http://www.w3.org/2007/rif-builtin-function#numeric-multiply>";
+pub(crate) const FUNC_NUMERIC_DIVIDE: &str =
+    "<http://www.w3.org/2007/rif-builtin-function#numeric-divide>";
 pub(crate) const FUNC_NUMERIC_INTEGER_DIVIDE: &str =
     "<http://www.w3.org/2007/rif-builtin-function#numeric-integer-divide>";
-pub(crate) const FUNC_NUMERIC_MOD: &str = "<http://www.w3.org/2007/rif-builtin-function#numeric-mod>";
-pub(crate) const FUNC_NUMERIC_ABS: &str = "<http://www.w3.org/2007/rif-builtin-function#numeric-abs>";
-pub(crate) const FUNC_NUMERIC_NEGATE: &str = "<http://www.w3.org/2007/rif-builtin-function#numeric-negate>";
-pub(crate) const FUNC_NUMERIC_EQUAL: &str = "<http://www.w3.org/2007/rif-builtin-function#numeric-equal>";
-pub(crate) const FUNC_NUMERIC_LESS_THAN: &str = "<http://www.w3.org/2007/rif-builtin-function#numeric-less-than>";
+pub(crate) const FUNC_NUMERIC_MOD: &str =
+    "<http://www.w3.org/2007/rif-builtin-function#numeric-mod>";
+pub(crate) const FUNC_NUMERIC_ABS: &str =
+    "<http://www.w3.org/2007/rif-builtin-function#numeric-abs>";
+pub(crate) const FUNC_NUMERIC_NEGATE: &str =
+    "<http://www.w3.org/2007/rif-builtin-function#numeric-negate>";
+pub(crate) const FUNC_NUMERIC_EQUAL: &str =
+    "<http://www.w3.org/2007/rif-builtin-function#numeric-equal>";
+pub(crate) const FUNC_NUMERIC_LESS_THAN: &str =
+    "<http://www.w3.org/2007/rif-builtin-function#numeric-less-than>";
 pub(crate) const FUNC_NUMERIC_GREATER_THAN: &str =
     "<http://www.w3.org/2007/rif-builtin-function#numeric-greater-than>";
-pub(crate) const FUNC_STRING_LENGTH: &str = "<http://www.w3.org/2007/rif-builtin-function#string-length>";
+pub(crate) const FUNC_STRING_LENGTH: &str =
+    "<http://www.w3.org/2007/rif-builtin-function#string-length>";
 pub(crate) const FUNC_SUBSTRING: &str = "<http://www.w3.org/2007/rif-builtin-function#substring>";
 
-pub(crate) fn eval_lang_from_plain_literal(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
+pub(crate) fn eval_lang_from_plain_literal(
+    pattern: &Triple,
+    bindings: &Binding,
+) -> Option<Binding> {
     eval_functional(pattern, bindings, |pattern, bindings, row| {
         // RIF's `func:lang-from-PlainLiteral` extracts a literal's
         // language tag, or the empty string if it has none -- called
@@ -68,7 +84,11 @@ fn eval_numeric_binary(
     })
 }
 
-fn eval_numeric_unary(pattern: &Triple, bindings: &Binding, op: impl Fn(f64) -> f64) -> Option<Binding> {
+fn eval_numeric_unary(
+    pattern: &Triple,
+    bindings: &Binding,
+    op: impl Fn(f64) -> f64,
+) -> Option<Binding> {
     eval_functional(pattern, bindings, |pattern, bindings, row| {
         let members = subject_list_members(&pattern.s, bindings, row)?;
         if members.len() != 1 {
@@ -108,7 +128,11 @@ pub(crate) fn eval_numeric_multiply(pattern: &Triple, bindings: &Binding) -> Opt
 }
 
 pub(crate) fn eval_numeric_divide(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
-    eval_numeric_binary(pattern, bindings, |a, b| if b == 0.0 { None } else { Some(a / b) })
+    eval_numeric_binary(
+        pattern,
+        bindings,
+        |a, b| if b == 0.0 { None } else { Some(a / b) },
+    )
 }
 
 pub(crate) fn eval_numeric_integer_divide(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
@@ -122,7 +146,11 @@ pub(crate) fn eval_numeric_integer_divide(pattern: &Triple, bindings: &Binding) 
 }
 
 pub(crate) fn eval_numeric_mod(pattern: &Triple, bindings: &Binding) -> Option<Binding> {
-    eval_numeric_binary(pattern, bindings, |a, b| if b == 0.0 { None } else { Some(a % b) })
+    eval_numeric_binary(
+        pattern,
+        bindings,
+        |a, b| if b == 0.0 { None } else { Some(a % b) },
+    )
 }
 
 pub(crate) fn eval_numeric_abs(pattern: &Triple, bindings: &Binding) -> Option<Binding> {

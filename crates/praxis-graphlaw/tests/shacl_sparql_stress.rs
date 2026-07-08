@@ -36,16 +36,26 @@ fn test_sparql_constraint_combined_with_ordinary_constraints() {
     let shapes = ShapesGraph::parse(shapes_str).unwrap();
 
     // Both satisfied: has age, non-negative.
-    let data_ok = build_data_index("@prefix ex: <http://example.org/> .\nex:alice a ex:Person ; ex:age 30 .\n");
-    assert!(Validator::validate(&data_ok, &shapes).conforms, "valid non-negative age with age present must conform");
+    let data_ok = build_data_index(
+        "@prefix ex: <http://example.org/> .\nex:alice a ex:Person ; ex:age 30 .\n",
+    );
+    assert!(
+        Validator::validate(&data_ok, &shapes).conforms,
+        "valid non-negative age with age present must conform"
+    );
 
     // sh:sparql violated (negative age), sh:minCount satisfied.
-    let data_negative = build_data_index("@prefix ex: <http://example.org/> .\nex:bob a ex:Person ; ex:age -5 .\n");
+    let data_negative =
+        build_data_index("@prefix ex: <http://example.org/> .\nex:bob a ex:Person ; ex:age -5 .\n");
     let report_negative = Validator::validate(&data_negative, &shapes);
-    assert!(!report_negative.conforms, "negative age must violate the sh:sparql constraint even though minCount is satisfied");
+    assert!(
+        !report_negative.conforms,
+        "negative age must violate the sh:sparql constraint even though minCount is satisfied"
+    );
 
     // sh:minCount violated (no age at all), sh:sparql trivially has no rows to flag.
-    let data_missing = build_data_index("@prefix ex: <http://example.org/> .\nex:carol a ex:Person .\n");
+    let data_missing =
+        build_data_index("@prefix ex: <http://example.org/> .\nex:carol a ex:Person .\n");
     let report_missing = Validator::validate(&data_missing, &shapes);
     assert!(!report_missing.conforms, "missing age must violate sh:minCount even though the SPARQL constraint finds no negative-age rows to flag");
 }
@@ -69,17 +79,27 @@ fn test_sparql_target_unions_with_target_class() {
     let shapes = ShapesGraph::parse(shapes_str).unwrap();
 
     // Reached only via sh:targetClass -- must still be validated.
-    let data1 = build_data_index("@prefix ex: <http://example.org/> .\nex:alice a ex:Person ; ex:age -1 .\n");
-    assert!(!Validator::validate(&data1, &shapes).conforms, "a focus node reached via sh:targetClass alone must still be validated");
+    let data1 = build_data_index(
+        "@prefix ex: <http://example.org/> .\nex:alice a ex:Person ; ex:age -1 .\n",
+    );
+    assert!(
+        !Validator::validate(&data1, &shapes).conforms,
+        "a focus node reached via sh:targetClass alone must still be validated"
+    );
 
     // Reached ONLY via the SPARQL target (not a ex:Person at all) -- must
     // still be validated, confirming the SPARQL target isn't silently
     // ignored when sh:targetClass is also present on the same shape.
-    let data2 = build_data_index("@prefix ex: <http://example.org/> .\nex:widget ex:flaggedForReview true ; ex:age -1 .\n");
+    let data2 = build_data_index(
+        "@prefix ex: <http://example.org/> .\nex:widget ex:flaggedForReview true ; ex:age -1 .\n",
+    );
     let report2 = Validator::validate(&data2, &shapes);
     assert!(!report2.conforms, "a focus node reached ONLY via sh:SPARQLTarget must still be validated (targets union, not override)");
 
     // Neither target applies -- must conform trivially (not a focus node at all).
     let data3 = build_data_index("@prefix ex: <http://example.org/> .\nex:unrelated ex:age -1 .\n");
-    assert!(Validator::validate(&data3, &shapes).conforms, "a node reached by neither target mechanism must not be validated at all");
+    assert!(
+        Validator::validate(&data3, &shapes).conforms,
+        "a node reached by neither target mechanism must not be validated at all"
+    );
 }

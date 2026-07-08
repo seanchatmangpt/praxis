@@ -163,14 +163,16 @@ impl RefusalScenario {
 impl From<&Obligation> for RefusalScenario {
     fn from(obligation: &Obligation) -> Self {
         match obligation {
-            Obligation::BlockingConstraint { reason } => {
-                RefusalScenario::BlockingConstraint { reason: reason.clone() }
-            }
-            Obligation::EvidenceRequired { evidence_type } => {
-                RefusalScenario::MissingEvidence { evidence_type: evidence_type.clone() }
-            }
+            Obligation::BlockingConstraint { reason } => RefusalScenario::BlockingConstraint {
+                reason: reason.clone(),
+            },
+            Obligation::EvidenceRequired { evidence_type } => RefusalScenario::MissingEvidence {
+                evidence_type: evidence_type.clone(),
+            },
             Obligation::Precondition { predicate_id, .. } => {
-                RefusalScenario::UnsatisfiedPrecondition { predicate_id: predicate_id.clone() }
+                RefusalScenario::UnsatisfiedPrecondition {
+                    predicate_id: predicate_id.clone(),
+                }
             }
         }
     }
@@ -241,7 +243,10 @@ pub fn denial_lane(scenario: &RefusalScenario) -> DenialPolarity {
 pub fn compose_denials<'a>(
     scenarios: impl IntoIterator<Item = &'a RefusalScenario>,
 ) -> DenialPolarity {
-    scenarios.into_iter().map(denial_lane).fold(DenialPolarity::ADMITTED, DenialPolarity::compose)
+    scenarios
+        .into_iter()
+        .map(denial_lane)
+        .fold(DenialPolarity::ADMITTED, DenialPolarity::compose)
 }
 
 #[cfg(test)]
@@ -254,15 +259,22 @@ mod tests {
     fn category_mapping_is_total_over_obligations() {
         let cases: &[(Obligation, RefusalCategory)] = &[
             (
-                Obligation::BlockingConstraint { reason: "x".to_string() },
+                Obligation::BlockingConstraint {
+                    reason: "x".to_string(),
+                },
                 RefusalCategory::Lifecycle,
             ),
             (
-                Obligation::EvidenceRequired { evidence_type: "lab".to_string() },
+                Obligation::EvidenceRequired {
+                    evidence_type: "lab".to_string(),
+                },
                 RefusalCategory::Prerequisites,
             ),
             (
-                Obligation::Precondition { predicate_id: "p1".to_string(), params_hash: [0u8; 32] },
+                Obligation::Precondition {
+                    predicate_id: "p1".to_string(),
+                    params_hash: [0u8; 32],
+                },
                 RefusalCategory::Prerequisites,
             ),
         ];
@@ -279,12 +291,27 @@ mod tests {
     fn category_mapping_is_total_over_denial_lanes() {
         let cases: &[(DenialPolarity, RefusalCategory)] = &[
             (DenialPolarity::WATCHDOG_DRAINED, RefusalCategory::Temporal),
-            (DenialPolarity::PRECONDITION_FAILED, RefusalCategory::Prerequisites),
+            (
+                DenialPolarity::PRECONDITION_FAILED,
+                RefusalCategory::Prerequisites,
+            ),
             (DenialPolarity::SLA_BREACH, RefusalCategory::Temporal),
-            (DenialPolarity::AUTHORIZATION_DENIED, RefusalCategory::Authorization),
-            (DenialPolarity::RESOURCE_EXHAUSTED, RefusalCategory::Capacity),
-            (DenialPolarity::OBJECT_LIFECYCLE_VIOLATION, RefusalCategory::Lifecycle),
-            (DenialPolarity::CONFORMANCE_GATE_FAILED, RefusalCategory::Topology),
+            (
+                DenialPolarity::AUTHORIZATION_DENIED,
+                RefusalCategory::Authorization,
+            ),
+            (
+                DenialPolarity::RESOURCE_EXHAUSTED,
+                RefusalCategory::Capacity,
+            ),
+            (
+                DenialPolarity::OBJECT_LIFECYCLE_VIOLATION,
+                RefusalCategory::Lifecycle,
+            ),
+            (
+                DenialPolarity::CONFORMANCE_GATE_FAILED,
+                RefusalCategory::Topology,
+            ),
         ];
         for (lane, expected_category) in cases {
             let scenario = scenario_for_denial_lane(*lane)
@@ -307,18 +334,27 @@ mod tests {
             RefusalCategory::Authorization
         );
         assert_eq!(
-            RefusalScenario::KernelInvalid { rejection: "x".to_string() }.category(),
+            RefusalScenario::KernelInvalid {
+                rejection: "x".to_string()
+            }
+            .category(),
             RefusalCategory::Identity
         );
         assert_eq!(
-            RefusalScenario::AndonInvariantViolated { invariant_id: "x".to_string() }.category(),
+            RefusalScenario::AndonInvariantViolated {
+                invariant_id: "x".to_string()
+            }
+            .category(),
             RefusalCategory::Topology
         );
     }
 
     #[test]
     fn compose_denials_ors_lanes() {
-        let scenarios = vec![RefusalScenario::PreconditionFailed, RefusalScenario::WatchdogDrained];
+        let scenarios = vec![
+            RefusalScenario::PreconditionFailed,
+            RefusalScenario::WatchdogDrained,
+        ];
         let composed = compose_denials(&scenarios);
         assert_eq!(
             composed.0,

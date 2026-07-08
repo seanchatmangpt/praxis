@@ -1,6 +1,5 @@
-
+use praxis_graphlaw::triples::{BodyLiteral, Rule, Triple};
 use praxis_graphlaw::TripleStore;
-use praxis_graphlaw::triples::{Rule, Triple, BodyLiteral};
 
 /// CONFORM-004: Mutual Recursion - Two predicates each depending on the other.
 /// The fixpoint evaluation must terminate correctly.
@@ -20,28 +19,44 @@ fn test_mutual_recursion_fixpoint() {
     let mut store = TripleStore::new();
 
     // Facts
-    store.add(Triple::from("http://example.org/a".to_string(), "http://example.org/type".to_string(), "http://example.org/A".to_string()));
+    store.add(Triple::from(
+        "http://example.org/a".to_string(),
+        "http://example.org/type".to_string(),
+        "http://example.org/A".to_string(),
+    ));
 
     // Rule 1: A => B
     let r1 = Rule {
-        head: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/B".to_string()),
-        body: vec![
-            BodyLiteral {
-                negated: false,
-                pattern: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/A".to_string()),
-            }
-        ]
+        head: Triple::from(
+            "?x".to_string(),
+            "http://example.org/type".to_string(),
+            "http://example.org/B".to_string(),
+        ),
+        body: vec![BodyLiteral {
+            negated: false,
+            pattern: Triple::from(
+                "?x".to_string(),
+                "http://example.org/type".to_string(),
+                "http://example.org/A".to_string(),
+            ),
+        }],
     };
 
     // Rule 2: B => A
     let r2 = Rule {
-        head: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/A".to_string()),
-        body: vec![
-            BodyLiteral {
-                negated: false,
-                pattern: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/B".to_string()),
-            }
-        ]
+        head: Triple::from(
+            "?x".to_string(),
+            "http://example.org/type".to_string(),
+            "http://example.org/A".to_string(),
+        ),
+        body: vec![BodyLiteral {
+            negated: false,
+            pattern: Triple::from(
+                "?x".to_string(),
+                "http://example.org/type".to_string(),
+                "http://example.org/B".to_string(),
+            ),
+        }],
     };
 
     store.add_rules(vec![r1, r2]).expect("rules must load");

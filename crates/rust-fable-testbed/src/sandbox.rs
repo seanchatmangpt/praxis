@@ -81,10 +81,12 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> SandboxResult<()> {
             path: src.to_path_buf(),
             source,
         })?;
-        let file_type = entry.file_type().map_err(|source| SandboxError::FixtureUnreadable {
-            path: entry.path(),
-            source,
-        })?;
+        let file_type = entry
+            .file_type()
+            .map_err(|source| SandboxError::FixtureUnreadable {
+                path: entry.path(),
+                source,
+            })?;
         let dst_path = dst.join(entry.file_name());
 
         if file_type.is_dir() {
@@ -116,7 +118,11 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> SandboxResult<()> {
 ///
 /// Returns [`SandboxError::NoRustCodeBlock`] if no fenced block is found, or
 /// [`SandboxError::Write`] if writing the target file fails.
-pub fn apply_model_output(dir: &Path, target_rel_path: &Path, model_output: &str) -> SandboxResult<()> {
+pub fn apply_model_output(
+    dir: &Path,
+    target_rel_path: &Path,
+    model_output: &str,
+) -> SandboxResult<()> {
     let code = extract_first_rust_block(model_output).ok_or(SandboxError::NoRustCodeBlock)?;
     let target = dir.join(target_rel_path);
     if let Some(parent) = target.parent() {
@@ -125,8 +131,10 @@ pub fn apply_model_output(dir: &Path, target_rel_path: &Path, model_output: &str
             source,
         })?;
     }
-    std::fs::write(&target, code)
-        .map_err(|source| SandboxError::Write { path: target, source })
+    std::fs::write(&target, code).map_err(|source| SandboxError::Write {
+        path: target,
+        source,
+    })
 }
 
 /// Find the first `` ```rust `` fenced code block and return its inner content.
@@ -135,7 +143,9 @@ fn extract_first_rust_block(text: &str) -> Option<String> {
     // line, e.g. "```rust\n") as well as a bare "```" fence immediately followed by
     // "rust" on its own -- both are common model output shapes.
     let fence_markers = ["```rust", "``` rust"];
-    let start_idx = fence_markers.iter().find_map(|marker| text.find(marker).map(|i| (i, marker.len())));
+    let start_idx = fence_markers
+        .iter()
+        .find_map(|marker| text.find(marker).map(|i| (i, marker.len())));
     let (marker_pos, marker_len) = start_idx?;
 
     let after_marker = &text[marker_pos + marker_len..];
@@ -168,8 +178,10 @@ mod tests {
     #[test]
     fn extracts_and_writes_first_rust_block() {
         let dir = tempfile::tempdir().expect("tempdir");
-        let output = "Here is the fix:\n\n```rust\nfn add(a: i32, b: i32) -> i32 { a + b }\n```\n\nDone.";
-        apply_model_output(dir.path(), Path::new("src/lib.rs"), output).expect("apply should succeed");
+        let output =
+            "Here is the fix:\n\n```rust\nfn add(a: i32, b: i32) -> i32 { a + b }\n```\n\nDone.";
+        apply_model_output(dir.path(), Path::new("src/lib.rs"), output)
+            .expect("apply should succeed");
 
         let written = std::fs::read_to_string(dir.path().join("src/lib.rs")).expect("read back");
         assert!(written.contains("fn add"));

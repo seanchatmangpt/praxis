@@ -62,15 +62,32 @@ fn written_ordering_is_stable_and_lexicographic_regardless_of_creation_order() {
     scaffold(d1.path(), &["alpha", "beta", "gamma"]);
     scaffold(d2.path(), &["gamma", "beta", "alpha"]);
 
-    let r1 = sync(d1.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 1");
-    let r2 = sync(d2.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 2");
+    let r1 = sync(
+        d1.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 1");
+    let r2 = sync(
+        d2.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 2");
 
     let expected: Vec<PathBuf> = ["out/alpha.txt", "out/beta.txt", "out/gamma.txt"]
         .iter()
         .map(PathBuf::from)
         .collect();
     assert_eq!(r1.written, expected, "run 1 ordering");
-    assert_eq!(r2.written, expected, "run 2 ordering must not depend on creation order");
+    assert_eq!(
+        r2.written, expected,
+        "run 2 ordering must not depend on creation order"
+    );
 }
 
 #[test]
@@ -80,12 +97,29 @@ fn receipt_payload_bytes_identical_across_fresh_syncs_of_identical_input() {
     scaffold(d1.path(), &["alpha", "beta", "gamma"]);
     scaffold(d2.path(), &["gamma", "alpha", "beta"]);
 
-    sync(d1.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 1");
-    sync(d2.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 2");
+    sync(
+        d1.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 1");
+    sync(
+        d2.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 2");
 
     let p1 = serde_json::to_vec(&read_receipt(d1.path()).payload).expect("payload 1 bytes");
     let p2 = serde_json::to_vec(&read_receipt(d2.path()).payload).expect("payload 2 bytes");
-    assert_eq!(p1, p2, "receipt payload bytes must be identical across fresh syncs");
+    assert_eq!(
+        p1, p2,
+        "receipt payload bytes must be identical across fresh syncs"
+    );
 
     // ts_ns is pinned to 0, so the whole chained record is identical too.
     let raw1 = std::fs::read(d1.path().join(RECEIPT_REL_PATH)).expect("receipt 1");
@@ -98,11 +132,29 @@ fn second_sync_of_multi_template_project_is_fully_unchanged() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["gamma", "alpha", "beta"]);
 
-    let first = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("first sync");
+    let first = sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("first sync");
     assert_eq!(first.written.len(), 3);
 
-    let second = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("second sync");
-    assert!(second.written.is_empty(), "second sync wrote: {:?}", second.written);
+    let second = sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("second sync");
+    assert!(
+        second.written.is_empty(),
+        "second sync wrote: {:?}",
+        second.written
+    );
     assert_eq!(second.skipped.len(), 3);
     for (path, reason) in &second.skipped {
         assert!(reason.contains("unchanged"), "{}: {reason}", path.display());

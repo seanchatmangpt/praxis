@@ -147,8 +147,10 @@ fn emit(
     prev: &[u8; 32],
 ) -> ([u8; 32], ReceiptRecord) {
     ensure_signing_key();
-    let raw =
-        LawObject::<serde_json::Value, Raw, DefaultLaw>::new(serde_json::json!({ "i": instruction_id }), vec![]);
+    let raw = LawObject::<serde_json::Value, Raw, DefaultLaw>::new(
+        serde_json::json!({ "i": instruction_id }),
+        vec![],
+    );
     let validated = match DefaultLaw::judge(raw) {
         Ok(v) => v,
         Err(_) => panic!("no obligations must always validate"),
@@ -164,8 +166,9 @@ fn emit(
         ts_ns: Some(ts_ns),
         ..Default::default()
     };
-    let (receipted, record) =
-        admitted.receipt_with_record(prev, meta).expect("authoritative receipt_with_record");
+    let (receipted, record) = admitted
+        .receipt_with_record(prev, meta)
+        .expect("authoritative receipt_with_record");
     (*receipted.chain_hash().expect("chain hash set"), record)
 }
 
@@ -179,7 +182,9 @@ fn reseal_from(records: &mut [ReceiptRecord], start: usize) {
     let mut prev = if start == 0 {
         [0u8; 32]
     } else {
-        records[start - 1].chain_hash().expect("predecessor chain hash valid")
+        records[start - 1]
+            .chain_hash()
+            .expect("predecessor chain hash valid")
     };
     for r in &mut records[start..] {
         r.prev_chain_hash_hex = hex::encode(prev);
@@ -249,7 +254,10 @@ fn mutant_event_reorder_killed_at_monotonic_and_linkage() {
     assert_killed_at(&v, "monotonic");
     // Document the (also-firing) linkage catch so the dual coverage is explicit.
     let failed = failing_stages(&v);
-    assert!(failed.iter().any(|s| s == "chain_linkage"), "reorder also trips linkage: {failed:?}");
+    assert!(
+        failed.iter().any(|s| s == "chain_linkage"),
+        "reorder also trips linkage: {failed:?}"
+    );
 }
 
 /// FieldFlip on a preimage field (`payload_hash_hex`): recomputing the chain
@@ -317,9 +325,18 @@ fn mutant_timestamp_skew_resealed_killed_at_monotonic() {
     assert_killed_at(&v, "monotonic");
     // The re-seal must have kept the hash stages clean, proving isolation.
     let failed = failing_stages(&v);
-    assert!(!failed.iter().any(|s| s == "chain_recompute"), "reseal should keep recompute green: {failed:?}");
-    assert!(!failed.iter().any(|s| s == "schema"), "reseal should keep schema green: {failed:?}");
-    assert!(!failed.iter().any(|s| s == "chain_linkage"), "reseal should keep linkage green: {failed:?}");
+    assert!(
+        !failed.iter().any(|s| s == "chain_recompute"),
+        "reseal should keep recompute green: {failed:?}"
+    );
+    assert!(
+        !failed.iter().any(|s| s == "schema"),
+        "reseal should keep schema green: {failed:?}"
+    );
+    assert!(
+        !failed.iter().any(|s| s == "chain_linkage"),
+        "reseal should keep linkage green: {failed:?}"
+    );
 }
 
 /// TimestampSkew, clock variant: a future timestamp is caught by `monotonic`'s
@@ -334,8 +351,14 @@ fn mutant_timestamp_future_killed_at_monotonic_under_bounded_clock() {
     let v = ReceiptValidator::validate(&records, &FixedClock(4_999));
     assert!(!v.ok, "future ts must be killed: {v:?}");
     let failed = failing_stages(&v);
-    assert!(failed.iter().any(|s| s == "monotonic"), "future ts caught by monotonic: {failed:?}");
-    assert!(!failed.iter().any(|s| s == "chain_recompute"), "reseal keeps recompute green: {failed:?}");
+    assert!(
+        failed.iter().any(|s| s == "monotonic"),
+        "future ts caught by monotonic: {failed:?}"
+    );
+    assert!(
+        !failed.iter().any(|s| s == "chain_recompute"),
+        "reseal keeps recompute green: {failed:?}"
+    );
 }
 
 /// Non-increasing `instruction_id` (a distinct monotonic invariant from ts),
@@ -379,7 +402,10 @@ fn boundary_equal_consecutive_ts_is_allowed() {
     let (ch0, r0) = emit(1, 1, 1, 7_000, &[0u8; 32]);
     let (_ch1, r1) = emit(2, 2, 2, 7_000, &ch0); // same ts as r0, higher instruction_id
     let v = validate(&[r0, r1]);
-    assert!(v.ok, "equal consecutive ts_ns (non-decreasing) must be allowed: {v:?}");
+    assert!(
+        v.ok,
+        "equal consecutive ts_ns (non-decreasing) must be allowed: {v:?}"
+    );
 }
 
 // ── Documented survivors (known-uncovered classes) ─────────────────────────
@@ -388,7 +414,11 @@ fn boundary_equal_consecutive_ts_is_allowed() {
 #[test]
 fn mutant_andon_flip_killed_at_chain_recompute() {
     let mut records = lawful_chain(3);
-    records[1].andon = Andon::Halted { unmet: vec![], refusals: vec![], at: 0 };
+    records[1].andon = Andon::Halted {
+        unmet: vec![],
+        refusals: vec![],
+        at: 0,
+    };
     assert_killed_at(&validate(&records), "chain_recompute");
 }
 

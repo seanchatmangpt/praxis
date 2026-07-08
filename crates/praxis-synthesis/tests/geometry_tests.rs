@@ -10,9 +10,7 @@ use praxis_synthesis::geometry::{
 };
 use praxis_synthesis::park::ReAdmission;
 use praxis_synthesis::supervise::{RestartPolicy, SupervisionTopology};
-use praxis_synthesis::{
-    Atom, BoundedCsp, Capability, Program, SequenceProblem, Solver, Term,
-};
+use praxis_synthesis::{Atom, BoundedCsp, Capability, Program, SequenceProblem, Solver, Term};
 
 fn derived() -> (FailureGeometry, SupervisionTopology, Vec<String>) {
     let (mut p, caps, goal) = lawobject_domain();
@@ -21,8 +19,7 @@ fn derived() -> (FailureGeometry, SupervisionTopology, Vec<String>) {
     let plan = BoundedCsp.solve(&problem).expect("solvable");
     let topo = SupervisionTopology::derive(&plan, &problem, RestartPolicy::default_policy())
         .expect("topology");
-    let nodes: Vec<String> =
-        topo.stages.iter().flat_map(|s| s.nodes.clone()).collect();
+    let nodes: Vec<String> = topo.stages.iter().flat_map(|s| s.nodes.clone()).collect();
     let geometry = FailureGeometry::derive(&topo, &plan, &problem);
     (geometry, topo, nodes)
 }
@@ -79,7 +76,10 @@ fn predicted_classes_land_in_named_branches() {
     assert_eq!(c.class, FailureClass::CertifiedUnsat);
     // Bad output: first attempt restarts, second parks Manual.
     let c = g.classify(&snapshot(n, CrashKind::BadOutput));
-    assert_eq!((c.class, c.response), (FailureClass::LogicFault, LawfulResponse::Restart));
+    assert_eq!(
+        (c.class, c.response),
+        (FailureClass::LogicFault, LawfulResponse::Restart)
+    );
     let mut s = snapshot(n, CrashKind::BadOutput);
     s.attempt = 1;
     let c = g.classify(&s);
@@ -89,7 +89,11 @@ fn predicted_classes_land_in_named_branches() {
     s.attempt = 1;
     s.progressed = false;
     let c = g.classify(&s);
-    assert_eq!(c.class, FailureClass::Stall, "stall outranks transient by order");
+    assert_eq!(
+        c.class,
+        FailureClass::Stall,
+        "stall outranks transient by order"
+    );
 }
 
 #[test]
@@ -137,7 +141,8 @@ fn fragile_preconditions_are_mined_into_authority_vacuum_refusals() {
         panic!("authority vacuum must refuse, got {:?}", c.response);
     };
     assert!(
-        core.iter().any(|f| f.contains("authorization") || f.contains("quiescent")),
+        core.iter()
+            .any(|f| f.contains("authorization") || f.contains("quiescent")),
         "the certificate names the fragile fact: {core:?}"
     );
 }
@@ -154,7 +159,11 @@ fn the_gap_is_implicit_and_unshadowable() {
     let c = g.classify(&snapshot(&nodes[2], CrashKind::PreconditionLost));
     assert_eq!(c.class, FailureClass::GeometryGap);
     assert!(!c.matched, "the gap is honest");
-    assert_eq!(c.response, LawfulResponse::Restart, "safe default, receipted as gap");
+    assert_eq!(
+        c.response,
+        LawfulResponse::Restart,
+        "safe default, receipted as gap"
+    );
     // Unknown node entirely → also a gap, never a panic.
     let c = g.classify(&snapshot("no-such-node", CrashKind::Io));
     assert_eq!(c.class, FailureClass::GeometryGap);

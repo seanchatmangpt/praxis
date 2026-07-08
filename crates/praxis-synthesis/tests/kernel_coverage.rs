@@ -12,7 +12,11 @@ const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 
 fn kernel_doc(clauses: &[&str]) -> String {
     let mut doc = format!("@prefix pk: <{KERNEL_NS}> .\n@prefix ex: <http://e/> .\n");
-    let list = clauses.iter().map(|c| format!("pk:{c}")).collect::<Vec<_>>().join(", ");
+    let list = clauses
+        .iter()
+        .map(|c| format!("pk:{c}"))
+        .collect::<Vec<_>>()
+        .join(", ");
     doc.push_str(&format!("pk:K a pk:Kernel ; pk:clause {list} .\n"));
     for c in clauses {
         doc.push_str(&format!(
@@ -37,17 +41,27 @@ fn all_11_clauses_extract_and_hash_is_stable_across_reorder() {
     reversed.reverse();
     let clauses2 = extract_kernel(&reversed).expect("reordered kernel extracts");
     assert_eq!(clauses, clauses2);
-    assert_eq!(h, kernel_hash(&clauses2), "kernel_hash is surface-order independent");
+    assert_eq!(
+        h,
+        kernel_hash(&clauses2),
+        "kernel_hash is surface-order independent"
+    );
 }
 
 #[test]
 fn ten_clause_kernel_refuses_naming_the_missing_clause() {
-    let ten: Vec<&str> =
-        CANONICAL_CLAUSES.iter().copied().filter(|c| *c != "deliverance").collect();
+    let ten: Vec<&str> = CANONICAL_CLAUSES
+        .iter()
+        .copied()
+        .filter(|c| *c != "deliverance")
+        .collect();
     let triples = parse_ttl(&kernel_doc(&ten)).expect("parses");
     match extract_kernel(&triples) {
         Err(Refusal::KernelIllFormed { detail, .. }) => {
-            assert!(detail.contains("missing clause 'deliverance'"), "detail: {detail}");
+            assert!(
+                detail.contains("missing clause 'deliverance'"),
+                "detail: {detail}"
+            );
         }
         other => panic!("expected KernelIllFormed, got {other:?}"),
     }
@@ -60,7 +74,10 @@ fn unknown_clause_name_refuses() {
     let triples = parse_ttl(&kernel_doc(&names)).expect("parses");
     match extract_kernel(&triples) {
         Err(Refusal::KernelIllFormed { detail, .. }) => {
-            assert!(detail.contains("unknown clause name 'vain-repetition'"), "detail: {detail}");
+            assert!(
+                detail.contains("unknown clause name 'vain-repetition'"),
+                "detail: {detail}"
+            );
         }
         other => panic!("expected KernelIllFormed, got {other:?}"),
     }
@@ -85,8 +102,17 @@ fn god_is_never_typed_executable_and_deliverance_is_surrendered() {
                     // oriented toward God (orient-to-father) are lawful.
                     let local = t.s.rsplit('#').next().unwrap_or(&t.s).to_lowercase();
                     let god_names = [
-                        "creator", "almighty", "providence", "yahweh", "elohim",
-                        "deity", "god", "father", "ourfather", "our-father", "lord"
+                        "creator",
+                        "almighty",
+                        "providence",
+                        "yahweh",
+                        "elohim",
+                        "deity",
+                        "god",
+                        "father",
+                        "ourfather",
+                        "our-father",
+                        "lord",
                     ];
                     assert!(
                         !god_names.contains(&local.as_str()),
@@ -115,8 +141,18 @@ fn god_is_never_typed_executable_and_deliverance_is_surrendered() {
 fn clause_cross_typed_as_executable_is_refused_even_with_a_non_denoting_iri() {
     let mut doc =
         format!("@prefix pk: <{KERNEL_NS}> .\n@prefix wf: <{WF}> .\n@prefix ex: <http://e/> .\n");
-    let subject_for = |c: &str| if c == "our-father" { "pk:c1".to_string() } else { format!("pk:{c}") };
-    let list = CANONICAL_CLAUSES.iter().map(|c| subject_for(c)).collect::<Vec<_>>().join(", ");
+    let subject_for = |c: &str| {
+        if c == "our-father" {
+            "pk:c1".to_string()
+        } else {
+            format!("pk:{c}")
+        }
+    };
+    let list = CANONICAL_CLAUSES
+        .iter()
+        .map(|c| subject_for(c))
+        .collect::<Vec<_>>()
+        .join(", ");
     doc.push_str(&format!("pk:K a pk:Kernel ; pk:clause {list} .\n"));
     for c in CANONICAL_CLAUSES {
         doc.push_str(&format!(
@@ -166,7 +202,10 @@ fn life_graph_queries_return_correct_subjects() {
         life::scheduled_in_window(&triples, "http://e/w"),
         ["http://e/task1", "http://e/task2"]
     );
-    assert_eq!(life::subjects_of(&triples, life::DAY_WINDOW), ["http://e/w"]);
+    assert_eq!(
+        life::subjects_of(&triples, life::DAY_WINDOW),
+        ["http://e/w"]
+    );
 }
 
 #[test]
@@ -183,11 +222,23 @@ fn raw_scripture_is_quarantined_data_not_law() {
     .expect("delta parses");
     let event = Admission::admit(&reference, &delta).expect("admits");
 
-    assert!(event.post().iter().any(|t: &Triple| t.s == "http://e/verse"));
+    assert!(event
+        .post()
+        .iter()
+        .any(|t: &Triple| t.s == "http://e/verse"));
     assert!(
-        matches!(extract_kernel(event.post()), Err(Refusal::KernelIllFormed { .. })),
+        matches!(
+            extract_kernel(event.post()),
+            Err(Refusal::KernelIllFormed { .. })
+        ),
         "scripture text is not a kernel"
     );
-    assert!(extract_hooks(event.post()).expect("no hooks").is_empty(), "no hooks fire from prose");
-    assert!(extract_ir(event.post()).is_err(), "no workflow extracts from prose");
+    assert!(
+        extract_hooks(event.post()).expect("no hooks").is_empty(),
+        "no hooks fire from prose"
+    );
+    assert!(
+        extract_ir(event.post()).is_err(),
+        "no workflow extracts from prose"
+    );
 }

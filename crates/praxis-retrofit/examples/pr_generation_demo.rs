@@ -28,7 +28,11 @@ fn main() {
         github_owner: "seanchatmangpt".to_string(),
         create_as_draft: true,
         auto_assign_reviewers: vec!["@seanchatmangpt".to_string()],
-        labels: vec!["retrofit".to_string(), "praxis".to_string(), "automated".to_string()],
+        labels: vec![
+            "retrofit".to_string(),
+            "praxis".to_string(),
+            "automated".to_string(),
+        ],
         base_branch: "main".to_string(),
         branch_prefix: "praxis/retrofit".to_string(),
     };

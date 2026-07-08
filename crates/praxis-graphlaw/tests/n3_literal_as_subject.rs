@@ -18,7 +18,11 @@ fn bare_literal_as_subject_parses_and_is_stored() {
 "#;
     let store = TripleStore::from(n3);
     assert_eq!(store.rules.len(), 0, "this is a fact, not a rule");
-    assert_eq!(store.triple_index.len(), 1, "the literal-subject triple should be stored");
+    assert_eq!(
+        store.triple_index.len(),
+        1,
+        "the literal-subject triple should be stored"
+    );
 }
 
 #[test]

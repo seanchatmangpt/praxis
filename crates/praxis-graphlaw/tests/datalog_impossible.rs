@@ -21,15 +21,27 @@ fn pred(name: &str) -> String {
 #[test]
 fn test_unsafe_negation_wholly_unbound_variable_rejected() {
     let rule = Rule {
-        head: Triple::from("?x".to_string(), pred("Alert"), "http://example.org/true".to_string()),
+        head: Triple::from(
+            "?x".to_string(),
+            pred("Alert"),
+            "http://example.org/true".to_string(),
+        ),
         body: vec![
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()),
+                pattern: Triple::from(
+                    "?x".to_string(),
+                    pred("Base"),
+                    "http://example.org/true".to_string(),
+                ),
             },
             BodyLiteral {
                 negated: true,
-                pattern: Triple::from("?y".to_string(), pred("Unbound"), "http://example.org/true".to_string()),
+                pattern: Triple::from(
+                    "?y".to_string(),
+                    pred("Unbound"),
+                    "http://example.org/true".to_string(),
+                ),
             },
         ],
     };
@@ -42,7 +54,8 @@ fn test_unsafe_negation_wholly_unbound_variable_rejected() {
     let err = result.unwrap_err();
     assert!(
         err.contains("unsafe"),
-        "expected the error to explain the unsafe-negation reason, got: {}", err
+        "expected the error to explain the unsafe-negation reason, got: {}",
+        err
     );
 }
 
@@ -56,15 +69,27 @@ fn test_unsafe_negation_wholly_unbound_variable_rejected() {
 #[test]
 fn test_shortest_self_negation_cycle_rejected() {
     let rule = Rule {
-        head: Triple::from("?x".to_string(), pred("P"), "http://example.org/true".to_string()),
+        head: Triple::from(
+            "?x".to_string(),
+            pred("P"),
+            "http://example.org/true".to_string(),
+        ),
         body: vec![
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()),
+                pattern: Triple::from(
+                    "?x".to_string(),
+                    pred("Base"),
+                    "http://example.org/true".to_string(),
+                ),
             },
             BodyLiteral {
                 negated: true,
-                pattern: Triple::from("?x".to_string(), pred("P"), "http://example.org/true".to_string()),
+                pattern: Triple::from(
+                    "?x".to_string(),
+                    pred("P"),
+                    "http://example.org/true".to_string(),
+                ),
             },
         ],
     };

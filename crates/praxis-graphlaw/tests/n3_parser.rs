@@ -57,19 +57,29 @@ fn test_parse_literal_terms() {
     let r0 = &result[0];
     assert!(r0.head.o.is_term());
     let decoded0 = praxis_graphlaw::encoding::Encoder::decode(&r0.head.o.to_encoded()).unwrap();
-    assert_eq!(decoded0, "\"active\"^^<http://www.w3.org/2001/XMLSchema#string>");
+    assert_eq!(
+        decoded0,
+        "\"active\"^^<http://www.w3.org/2001/XMLSchema#string>"
+    );
     // And the body's numeric literal decodes as a proper xsd:integer, not an
     // opaque "<42>"-style IRI-shaped token.
     let body_obj = &r0.body[0].pattern.o;
     let decoded_num = praxis_graphlaw::encoding::Encoder::decode(&body_obj.to_encoded()).unwrap();
-    assert_eq!(decoded_num, "\"42\"^^<http://www.w3.org/2001/XMLSchema#integer>");
+    assert_eq!(
+        decoded_num,
+        "\"42\"^^<http://www.w3.org/2001/XMLSchema#integer>"
+    );
 
     // { ?s :greeting "hello"@en } => { ?s :greetingFrench "bonjour"^^xsd:string }
     let r1 = &result[1];
     let decoded1 = praxis_graphlaw::encoding::Encoder::decode(&r1.head.o.to_encoded()).unwrap();
-    assert_eq!(decoded1, "\"bonjour\"^^<http://www.w3.org/2001/XMLSchema#string>");
+    assert_eq!(
+        decoded1,
+        "\"bonjour\"^^<http://www.w3.org/2001/XMLSchema#string>"
+    );
     let greeting = &r1.body[0].pattern.o;
-    let decoded_greeting = praxis_graphlaw::encoding::Encoder::decode(&greeting.to_encoded()).unwrap();
+    let decoded_greeting =
+        praxis_graphlaw::encoding::Encoder::decode(&greeting.to_encoded()).unwrap();
     assert_eq!(decoded_greeting, "\"hello\"@en");
 }
 
@@ -88,11 +98,18 @@ fn test_parse_blank_nodes() {
     assert_eq!(1, rules.len());
     let rule = &rules[0];
 
-    let body_subject = praxis_graphlaw::encoding::Encoder::decode_to_term(rule.body[0].pattern.s.to_encoded());
-    assert!(matches!(body_subject, Some(praxis_graphlaw::triples::Term::BlankNode(_))));
+    let body_subject =
+        praxis_graphlaw::encoding::Encoder::decode_to_term(rule.body[0].pattern.s.to_encoded());
+    assert!(matches!(
+        body_subject,
+        Some(praxis_graphlaw::triples::Term::BlankNode(_))
+    ));
 
     let head_object = praxis_graphlaw::encoding::Encoder::decode_to_term(rule.head.o.to_encoded());
-    assert!(matches!(head_object, Some(praxis_graphlaw::triples::Term::BlankNode(_))));
+    assert!(matches!(
+        head_object,
+        Some(praxis_graphlaw::triples::Term::BlankNode(_))
+    ));
 }
 
 /// TICKET-005 (DoD): Test parsing RDF lists (e.g. (1 2 3)).
@@ -142,7 +159,10 @@ fn test_parse_quantifiers() {
     let rules = Parser::parse_rules(input).expect("quantifier declarations should parse");
     assert_eq!(1, rules.len());
     assert_eq!(1, rules[0].body.len());
-    assert!(rules[0].body[0].pattern.s.is_var(), "@forAll ?x stays a (renamed) variable");
+    assert!(
+        rules[0].body[0].pattern.s.is_var(),
+        "@forAll ?x stays a (renamed) variable"
+    );
     assert!(
         !rules[0].body[0].pattern.o.is_var(),
         "@forSome ?y must be skolemized to a fixed blank node, not remain a variable"

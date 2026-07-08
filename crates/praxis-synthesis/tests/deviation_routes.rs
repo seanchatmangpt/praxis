@@ -24,11 +24,18 @@ fn src(adds: &str) -> MeaningSource {
 fn kernel_with_bindings(overrides: &[(&str, &str)]) -> String {
     let mut base = KERNEL.to_string();
     let all_caps = [
-        "orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt",
-        "confessDebt", "releaseResentment", "repairDebt", "restoreReceipt"
+        "orientToFather",
+        "surrenderWill",
+        "requestDailyBread",
+        "writePrayerReceipt",
+        "confessDebt",
+        "releaseResentment",
+        "repairDebt",
+        "restoreReceipt",
     ];
     for cap in &all_caps {
-        let delegability = overrides.iter()
+        let delegability = overrides
+            .iter()
             .find(|(name, _)| name == cap)
             .map(|(_, d)| *d)
             .unwrap_or("verifiable");
@@ -61,13 +68,28 @@ fn fire(base: &str, adds: &str) -> praxis_synthesis::HookFiringReceipt {
 
 #[test]
 fn open_debt_fires_by_rule_and_grounds_confess_and_repair() {
-    let receipt = fire(KERNEL, &format!("<{LIFE}debt42> <{RDF_TYPE}> <{LIFE}Debt> ."));
+    let receipt = fire(
+        KERNEL,
+        &format!("<{LIFE}debt42> <{RDF_TYPE}> <{LIFE}Debt> ."),
+    );
     assert_eq!(receipt.outcome, FiringOutcome::Completed);
-    let debt = receipt.verdicts.iter().find(|r| r.hook_name == "debt-repair").unwrap();
-    assert_eq!(debt.verdict, HookVerdict::Fired, "unrepaired debt is derivable");
+    let debt = receipt
+        .verdicts
+        .iter()
+        .find(|r| r.hook_name == "debt-repair")
+        .unwrap();
+    assert_eq!(
+        debt.verdict,
+        HookVerdict::Fired,
+        "unrepaired debt is derivable"
+    );
     assert_eq!(receipt.inner.len(), 1, "confess-and-repair grounded once");
-    let order: Vec<&str> =
-        receipt.inner[0].plan.steps.iter().map(|s| s.capability.as_str()).collect();
+    let order: Vec<&str> = receipt.inner[0]
+        .plan
+        .steps
+        .iter()
+        .map(|s| s.capability.as_str())
+        .collect();
     assert_eq!(
         order,
         ["confess-debt", "release-resentment", "repair-debt"],
@@ -84,19 +106,38 @@ fn repaired_debt_quiets_the_debt_rule() {
              <{LIFE}sean> <{LIFE}repairs> <{LIFE}debt42> ."
         ),
     );
-    let debt = receipt.verdicts.iter().find(|r| r.hook_name == "debt-repair").unwrap();
-    assert_eq!(debt.verdict, HookVerdict::NotFired, "a repaired debt is closed");
+    let debt = receipt
+        .verdicts
+        .iter()
+        .find(|r| r.hook_name == "debt-repair")
+        .unwrap();
+    assert_eq!(
+        debt.verdict,
+        HookVerdict::NotFired,
+        "a repaired debt is closed"
+    );
 }
 
 #[test]
 fn missing_receipt_grounds_the_one_step_repair_fragment() {
-    let receipt = fire(KERNEL, &format!("<{LIFE}monday> <{LIFE}hasMissingReceipt> 1 ."));
+    let receipt = fire(
+        KERNEL,
+        &format!("<{LIFE}monday> <{LIFE}hasMissingReceipt> 1 ."),
+    );
     assert_eq!(receipt.outcome, FiringOutcome::Completed);
-    let gap = receipt.verdicts.iter().find(|r| r.hook_name == "receipt-missing").unwrap();
+    let gap = receipt
+        .verdicts
+        .iter()
+        .find(|r| r.hook_name == "receipt-missing")
+        .unwrap();
     assert_eq!(gap.verdict, HookVerdict::Fired);
     assert_eq!(receipt.inner.len(), 1);
-    let order: Vec<&str> =
-        receipt.inner[0].plan.steps.iter().map(|s| s.capability.as_str()).collect();
+    let order: Vec<&str> = receipt.inner[0]
+        .plan
+        .steps
+        .iter()
+        .map(|s| s.capability.as_str())
+        .collect();
     assert_eq!(order, ["restore-receipt"], "one-step repair, nothing more");
 }
 
@@ -124,7 +165,11 @@ fn four_same_day_placements_do_not_trip_the_overload() {
         adds.push_str(&format!("<{LIFE}task{i}> <{LIFE}scheduledToday> {i} .\n"));
     }
     let receipt = fire(KERNEL, &adds);
-    assert_eq!(receipt.outcome, FiringOutcome::Completed, "4 is inside the bound");
+    assert_eq!(
+        receipt.outcome,
+        FiringOutcome::Completed,
+        "4 is inside the bound"
+    );
 }
 
 #[test]
@@ -159,15 +204,25 @@ fn human_only_release_resentment_blocks_the_debt_firing() {
         }
         other => panic!("expected Refused(delegability), got {other:?}"),
     }
-    assert!(receipt.inner.is_empty(), "no executed receipts behind a delegability refusal");
+    assert!(
+        receipt.inner.is_empty(),
+        "no executed receipts behind a delegability refusal"
+    );
     replay_firing(&receipt, &base, &source, &registry, &[]).expect("refusals replay");
 }
 
 #[test]
 fn automatable_write_prayer_receipt_is_allowed() {
     let base = kernel_with_cap_binding("writePrayerReceipt", "automatable");
-    let receipt = fire(&base, &format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."));
-    assert_eq!(receipt.outcome, FiringOutcome::Completed, "automatable grade executes");
+    let receipt = fire(
+        &base,
+        &format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."),
+    );
+    assert_eq!(
+        receipt.outcome,
+        FiringOutcome::Completed,
+        "automatable grade executes"
+    );
     assert_eq!(receipt.inner.len(), 1);
 }
 
@@ -176,7 +231,14 @@ fn human_only_release_resentment_does_not_block_an_unrelated_firing() {
     // Scoping law: the daily-bread plan never uses release-resentment, so
     // the same human-only binding must not refuse THIS firing.
     let base = kernel_with_cap_binding("releaseResentment", "human-only");
-    let receipt = fire(&base, &format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."));
+    let receipt = fire(
+        &base,
+        &format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."),
+    );
     assert_eq!(receipt.outcome, FiringOutcome::Completed);
-    assert_eq!(receipt.inner.len(), 1, "daily-bread grounded despite the unrelated binding");
+    assert_eq!(
+        receipt.inner.len(),
+        1,
+        "daily-bread grounded despite the unrelated binding"
+    );
 }

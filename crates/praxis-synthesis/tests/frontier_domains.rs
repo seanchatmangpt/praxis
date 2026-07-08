@@ -19,13 +19,20 @@ struct Cell {
 fn run_cell(spec: &DomainSpec) -> Cell {
     let (mut p, caps, goal, constraints) = generate(spec);
     if p.saturate().is_err() {
-        return Cell { spec: *spec, outcome: "saturation-refused", discrepancy: 0.0 };
+        return Cell {
+            spec: *spec,
+            outcome: "saturation-refused",
+            discrepancy: 0.0,
+        };
     }
     let horizon = spec.horizon().min(16);
-    let Ok(problem) =
-        SequenceProblem::with_constraints(&p, caps, goal, horizon, constraints)
+    let Ok(problem) = SequenceProblem::with_constraints(&p, caps, goal, horizon, constraints)
     else {
-        return Cell { spec: *spec, outcome: "problem-refused", discrepancy: 0.0 };
+        return Cell {
+            spec: *spec,
+            outcome: "problem-refused",
+            discrepancy: 0.0,
+        };
     };
     let smart = Solver8.solve(&problem);
     let brute = BoundedCsp.solve(&problem);
@@ -44,24 +51,40 @@ fn run_cell(spec: &DomainSpec) -> Cell {
             // Fitness: node-ratio distance from 1 means the solvers worked
             // very differently — the region where bugs live.
             #[allow(clippy::cast_precision_loss)]
-            let ratio = (b.receipt.nodes_explored.max(1)) as f64
-                / (s.receipt.nodes_explored.max(1)) as f64;
-            Cell { spec: *spec, outcome: "solved-agree", discrepancy: ratio }
+            let ratio =
+                (b.receipt.nodes_explored.max(1)) as f64 / (s.receipt.nodes_explored.max(1)) as f64;
+            Cell {
+                spec: *spec,
+                outcome: "solved-agree",
+                discrepancy: ratio,
+            }
         }
         (Err(_), Err(_)) => {
             // Both refuse — agreement. (Reasons may differ lawfully: Solver8
             // may certify what brute can only exhaust.)
-            Cell { spec: *spec, outcome: "refused-agree", discrepancy: 0.5 }
+            Cell {
+                spec: *spec,
+                outcome: "refused-agree",
+                discrepancy: 0.5,
+            }
         }
         (Ok(s), Err(Refusal::BudgetExceeded { .. })) => {
             // Brute ran out of budget where Solver8 (pruned) succeeded:
             // lawful asymmetry, but verify the plan independently.
             assert!(problem.replay_reaches_goal(&s), "replay fails at {spec:?}");
-            Cell { spec: *spec, outcome: "smart-only", discrepancy: 3.0 }
+            Cell {
+                spec: *spec,
+                outcome: "smart-only",
+                discrepancy: 3.0,
+            }
         }
         (Err(Refusal::BudgetExceeded { .. }), Ok(b)) => {
             assert!(problem.replay_reaches_goal(&b), "replay fails at {spec:?}");
-            Cell { spec: *spec, outcome: "brute-only", discrepancy: 3.0 }
+            Cell {
+                spec: *spec,
+                outcome: "brute-only",
+                discrepancy: 3.0,
+            }
         }
         (Ok(_), Err(e)) => {
             panic!("SOLVER8 FOUND A PLAN WHERE ORACLE PROVED NONE at {spec:?}: {e}")
@@ -75,10 +98,10 @@ fn run_cell(spec: &DomainSpec) -> Cell {
 #[test]
 fn falsifier_sweep_holds_the_differential() {
     // Generation 0: 64 seeded specs across the space.
-    let mut population: Vec<DomainSpec> =
-        (0..64u64).map(|s| DomainSpec::from_seed(s * 0x9E37_79B9 + 1)).collect();
-    let mut counts: std::collections::BTreeMap<&str, usize> =
-        std::collections::BTreeMap::new();
+    let mut population: Vec<DomainSpec> = (0..64u64)
+        .map(|s| DomainSpec::from_seed(s * 0x9E37_79B9 + 1))
+        .collect();
+    let mut counts: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
     let mut cells_run = 0usize;
 
     const GENERATIONS: usize = 4;
@@ -103,7 +126,10 @@ fn falsifier_sweep_holds_the_differential() {
 
     // The receipt: the hunt ran and the differential never broke (any break
     // panics above). Coverage must include the interesting outcomes.
-    assert!(cells_run >= 256, "at least 256 adversarial cells: ran {cells_run}");
+    assert!(
+        cells_run >= 256,
+        "at least 256 adversarial cells: ran {cells_run}"
+    );
     assert!(counts.contains_key("solved-agree"), "outcomes: {counts:?}");
     assert!(
         counts.contains_key("refused-agree") || counts.contains_key("smart-only"),
@@ -118,7 +144,10 @@ fn falsifier_sweep_holds_the_differential() {
         "differential_held": true,
     });
     std::fs::write(
-        concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/synthesis-frontier-report.json"),
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../target/synthesis-frontier-report.json"
+        ),
         serde_json::to_string_pretty(&report).expect("serialize"),
     )
     .expect("write report");
@@ -177,11 +206,16 @@ fn derived_predicates_feed_the_solver() {
         constraints.clone(),
     )
     .expect("problem");
-    assert!(Solver8.solve(&unsat).is_err(), "underived preconditions must fail");
+    assert!(
+        Solver8.solve(&unsat).is_err(),
+        "underived preconditions must fail"
+    );
     // With saturation: the Datalog→solver stack works.
     p.saturate().expect("saturation");
     let sat = SequenceProblem::with_constraints(&p, caps, goal, spec.horizon(), constraints)
         .expect("problem");
-    let plan = Solver8.solve(&sat).expect("derived predicates feed the solver");
+    let plan = Solver8
+        .solve(&sat)
+        .expect("derived predicates feed the solver");
     assert!(sat.replay_reaches_goal(&plan));
 }

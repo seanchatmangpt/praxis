@@ -28,7 +28,9 @@ pub fn ts_ns_to_rfc3339(ts_ns: u64) -> DateTime<FixedOffset> {
     Utc.timestamp_opt(secs, nanos)
         .single()
         .unwrap_or_else(|| {
-            Utc.timestamp_opt(0, 0).single().expect("epoch is always a valid timestamp")
+            Utc.timestamp_opt(0, 0)
+                .single()
+                .expect("epoch is always a valid timestamp")
         })
         .into()
 }
@@ -65,10 +67,19 @@ fn chain_object_id(record: &ReceiptRecord) -> String {
 ///   `"governs"`) and its chain object (qualifier `"extends"`).
 #[must_use]
 pub fn to_ocel(records: &[ReceiptRecord]) -> OCEL {
-    let event_types = vec![OCELType { name: "lifecycle:receipt".to_string(), attributes: vec![] }];
+    let event_types = vec![OCELType {
+        name: "lifecycle:receipt".to_string(),
+        attributes: vec![],
+    }];
     let object_types = vec![
-        OCELType { name: "LawObject".to_string(), attributes: vec![] },
-        OCELType { name: "ReceiptChain".to_string(), attributes: vec![] },
+        OCELType {
+            name: "LawObject".to_string(),
+            attributes: vec![],
+        },
+        OCELType {
+            name: "ReceiptChain".to_string(),
+            attributes: vec![],
+        },
     ];
 
     let mut law_object_ids: BTreeSet<String> = BTreeSet::new();
@@ -88,21 +99,27 @@ pub fn to_ocel(records: &[ReceiptRecord]) -> OCEL {
 
     let mut events: Vec<OCELEvent> = Vec::new();
     for record in records {
-        let mut event =
-            OCELEvent::new(format!("receipt:{}", record.chain_hash_hex), "lifecycle:receipt");
+        let mut event = OCELEvent::new(
+            format!("receipt:{}", record.chain_hash_hex),
+            "lifecycle:receipt",
+        );
         event.time = ts_ns_to_rfc3339(record.ts_ns);
-        event
-            .attributes
-            .push(OCELEventAttribute::integer("instruction_id", record.instruction_id as i64));
-        event
-            .attributes
-            .push(OCELEventAttribute::string("payload_hash", record.payload_hash_hex.clone()));
-        event
-            .attributes
-            .push(OCELEventAttribute::string("chain_hash", record.chain_hash_hex.clone()));
-        event
-            .attributes
-            .push(OCELEventAttribute::string("andon", andon_label(&record.andon).to_string()));
+        event.attributes.push(OCELEventAttribute::integer(
+            "instruction_id",
+            record.instruction_id as i64,
+        ));
+        event.attributes.push(OCELEventAttribute::string(
+            "payload_hash",
+            record.payload_hash_hex.clone(),
+        ));
+        event.attributes.push(OCELEventAttribute::string(
+            "chain_hash",
+            record.chain_hash_hex.clone(),
+        ));
+        event.attributes.push(OCELEventAttribute::string(
+            "andon",
+            andon_label(&record.andon).to_string(),
+        ));
 
         for object_id in &record.object_ids {
             event.relationships.push(OCELRelationship {
@@ -118,7 +135,12 @@ pub fn to_ocel(records: &[ReceiptRecord]) -> OCEL {
         events.push(event);
     }
 
-    OCEL { event_types, object_types, events, objects }
+    OCEL {
+        event_types,
+        object_types,
+        events,
+        objects,
+    }
 }
 
 #[cfg(test)]
@@ -182,7 +204,11 @@ mod tests {
         let records = vec![sample_record(1, 1_000)];
         let ocel = to_ocel(&records);
         let event = &ocel.events[0];
-        let rel_ids: Vec<&str> = event.relationships.iter().map(|r| r.object_id.as_str()).collect();
+        let rel_ids: Vec<&str> = event
+            .relationships
+            .iter()
+            .map(|r| r.object_id.as_str())
+            .collect();
         assert!(rel_ids.contains(&"law:instr1"));
         assert!(rel_ids.iter().any(|id| id.starts_with("chain:")));
     }

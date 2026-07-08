@@ -4,9 +4,7 @@
 mod common;
 
 use common::lawobject_domain;
-use praxis_synthesis::{
-    BoundedCsp, Dag, HashRunner, MemoCache, Refusal, SequenceProblem, Solver,
-};
+use praxis_synthesis::{BoundedCsp, Dag, HashRunner, MemoCache, Refusal, SequenceProblem, Solver};
 
 fn solved() -> (praxis_synthesis::SequencePlan, SequenceProblem) {
     let (mut p, caps, goal) = lawobject_domain();
@@ -27,7 +25,11 @@ fn dag_derives_the_causal_chain_and_executes_in_topo_order() {
         let order = dag.topo_order().expect("acyclic");
         order.iter().map(|id| dag.nodes[id].inputs.len()).collect()
     };
-    assert_eq!(indegrees.iter().sum::<usize>(), 4, "4 data edges in a 5-node chain");
+    assert_eq!(
+        indegrees.iter().sum::<usize>(),
+        4,
+        "4 data edges in a 5-node chain"
+    );
 
     let receipt = dag
         .execute(&mut HashRunner, &mut MemoCache::new())
@@ -44,7 +46,10 @@ fn second_run_replays_entirely_from_the_memo_cache() {
     let first = dag.execute(&mut HashRunner, &mut cache).expect("run 1");
     let second = dag.execute(&mut HashRunner, &mut cache).expect("run 2");
     assert_eq!(second.replayed_count, dag.nodes.len(), "100% memoized");
-    assert_eq!(first.root_hash, second.root_hash, "content address is stable");
+    assert_eq!(
+        first.root_hash, second.root_hash,
+        "content address is stable"
+    );
 }
 
 #[test]

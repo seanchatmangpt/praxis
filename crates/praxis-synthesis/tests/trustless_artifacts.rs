@@ -20,8 +20,7 @@ const DEMO_TTL: &str = include_str!("../ontology/workflow_demo.ttl");
 #[ignore = "artifact writer; run explicitly to (re)generate receipts/trustless/"]
 fn write_trustless_artifacts() {
     let (cell, groups) = praxis_synthesis::cell::run_cell(400, 4, 8);
-    let receipt =
-        praxis_synthesis::graph::execute_workflow(DEMO_TTL).expect("demo executes");
+    let receipt = praxis_synthesis::graph::execute_workflow(DEMO_TTL).expect("demo executes");
 
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../receipts/trustless");
     fs::create_dir_all(dir).expect("create receipts/trustless");

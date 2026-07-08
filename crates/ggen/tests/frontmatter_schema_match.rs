@@ -20,7 +20,9 @@ const SCHEMA_TTL: &str = include_str!("../schema/frontmatter-schema.ttl");
 #[test]
 fn frontmatter_fields_match_struct() {
     let graph = DeterministicGraph::new().expect("graph");
-    graph.insert_turtle(SCHEMA_TTL).expect("schema ttl must parse");
+    graph
+        .insert_turtle(SCHEMA_TTL)
+        .expect("schema ttl must parse");
 
     let query = r#"
         PREFIX ggenspec: <https://praxis.dev/ggen/schema#>
@@ -35,7 +37,11 @@ fn frontmatter_fields_match_struct() {
     let declared: BTreeSet<String> = solutions
         .map(|s| {
             let s = s.expect("solution");
-            s.get("name").expect("?name bound").to_string().trim_matches('"').to_string()
+            s.get("name")
+                .expect("?name bound")
+                .to_string()
+                .trim_matches('"')
+                .to_string()
         })
         .collect();
 

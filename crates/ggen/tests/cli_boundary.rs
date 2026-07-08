@@ -39,7 +39,10 @@ fn scaffold(root: &std::path::Path) {
 
 #[test]
 fn root_help_exits_zero_and_lists_all_nouns() {
-    let output = CliHarness::cargo_bin("ggen").args(["--help"]).run().expect("run --help");
+    let output = CliHarness::cargo_bin("ggen")
+        .args(["--help"])
+        .run()
+        .expect("run --help");
     output
         .assert_success()
         .assert_stdout_contains("sync")
@@ -54,13 +57,19 @@ fn root_help_exits_zero_and_lists_all_nouns() {
 /// followed by whitespace/newline.
 #[test]
 fn root_help_gives_each_noun_a_non_blank_description() {
-    let output = CliHarness::cargo_bin("ggen").args(["--help"]).run().expect("run --help");
+    let output = CliHarness::cargo_bin("ggen")
+        .args(["--help"])
+        .run()
+        .expect("run --help");
     output.assert_success();
 
     let stdout = output.stdout.clone();
-    for (noun, expected_word) in
-        [("sync", "pipeline"), ("graph", "ontology"), ("receipt", "receipt"), ("doctor", "health")]
-    {
+    for (noun, expected_word) in [
+        ("sync", "pipeline"),
+        ("graph", "ontology"),
+        ("receipt", "receipt"),
+        ("doctor", "health"),
+    ] {
         let line = stdout
             .lines()
             .find(|line| line.trim_start().starts_with(noun))
@@ -75,7 +84,10 @@ fn root_help_gives_each_noun_a_non_blank_description() {
 
 #[test]
 fn root_version_exits_zero() {
-    let output = CliHarness::cargo_bin("ggen").args(["--version"]).run().expect("run --version");
+    let output = CliHarness::cargo_bin("ggen")
+        .args(["--version"])
+        .run()
+        .expect("run --version");
     output.assert_success();
 }
 
@@ -83,7 +95,9 @@ fn root_version_exits_zero() {
 fn root_no_args_exits_zero_or_prints_usage() {
     // clap-noun-verb with no subcommand: must not crash, must not silently
     // hang — either succeeds with a usage summary or exits nonzero cleanly.
-    let output = CliHarness::cargo_bin("ggen").run().expect("run with no args");
+    let output = CliHarness::cargo_bin("ggen")
+        .run()
+        .expect("run with no args");
     assert!(
         output.exit_code == 0 || !output.stdout.is_empty() || !output.stderr.is_empty(),
         "expected a clean exit or usage output, got exit {} with empty stdout/stderr",
@@ -115,8 +129,10 @@ fn unknown_flag_exits_nonzero() {
 
 #[test]
 fn sync_noun_help_exits_zero_and_lists_run() {
-    let output =
-        CliHarness::cargo_bin("ggen").args(["sync", "--help"]).run().expect("run sync --help");
+    let output = CliHarness::cargo_bin("ggen")
+        .args(["sync", "--help"])
+        .run()
+        .expect("run sync --help");
     output.assert_success().assert_stdout_contains("run");
 }
 
@@ -185,7 +201,10 @@ fn sync_run_generates_expected_file() {
     let content =
         std::fs::read_to_string(dir.path().join("out/names.txt")).expect("generated file");
     assert_eq!(content, "alice\n");
-    assert!(dir.path().join(".ggen-v2/receipt.json").exists(), "receipt emitted");
+    assert!(
+        dir.path().join(".ggen-v2/receipt.json").exists(),
+        "receipt emitted"
+    );
 }
 
 #[test]
@@ -200,9 +219,18 @@ fn sync_run_dry_run_writes_nothing() {
         .expect("run sync --dry-run");
     output.assert_success();
 
-    assert!(!dir.path().join("out/names.txt").exists(), "dry-run must not write output");
-    assert!(!dir.path().join(".ggen-v2/receipt.json").exists(), "dry-run must not emit a receipt");
-    assert!(!dir.path().join("ggen.lock").exists(), "dry-run must not write a lockfile");
+    assert!(
+        !dir.path().join("out/names.txt").exists(),
+        "dry-run must not write output"
+    );
+    assert!(
+        !dir.path().join(".ggen-v2/receipt.json").exists(),
+        "dry-run must not emit a receipt"
+    );
+    assert!(
+        !dir.path().join("ggen.lock").exists(),
+        "dry-run must not write a lockfile"
+    );
 }
 
 #[test]
@@ -265,14 +293,12 @@ fn watch_for_stderr(mut child: std::process::Child, needle: &str, deadline: Dura
     // deadline check between reads is not possible without a background
     // thread. Use a background reader thread instead.
     let (tx, rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        loop {
-            match stderr.read(&mut byte) {
-                Ok(0) | Err(_) => break,
-                Ok(_) => {
-                    if tx.send(byte[0]).is_err() {
-                        break;
-                    }
+    std::thread::spawn(move || loop {
+        match stderr.read(&mut byte) {
+            Ok(0) | Err(_) => break,
+            Ok(_) => {
+                if tx.send(byte[0]).is_err() {
+                    break;
                 }
             }
         }
@@ -313,8 +339,7 @@ fn sync_run_watch_runs_initial_sync_then_blocks_watching() {
         .spawn()
         .expect("spawn ggen sync run --watch");
 
-    let captured =
-        watch_for_stderr(child, "watching", Duration::from_secs(10));
+    let captured = watch_for_stderr(child, "watching", Duration::from_secs(10));
 
     assert!(
         captured.contains("written") || captured.contains("watching"),
@@ -407,7 +432,9 @@ fn graph_validate_valid_project_exits_zero() {
         .current_dir(dir.path())
         .run()
         .expect("run graph validate");
-    output.assert_success().assert_stdout_contains("templates_checked");
+    output
+        .assert_success()
+        .assert_stdout_contains("templates_checked");
 }
 
 #[test]
@@ -425,8 +452,11 @@ fn graph_validate_missing_manifest_exits_nonzero() {
 fn graph_validate_malformed_ontology_exits_nonzero() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path());
-    std::fs::write(dir.path().join("ontology.ttl"), "this is not valid turtle {{{")
-        .expect("overwrite ontology");
+    std::fs::write(
+        dir.path().join("ontology.ttl"),
+        "this is not valid turtle {{{",
+    )
+    .expect("overwrite ontology");
     let output = CliHarness::cargo_bin("ggen")
         .args(["graph", "validate"])
         .current_dir(dir.path())
@@ -524,7 +554,9 @@ fn receipt_history_after_two_syncs_exits_zero() {
         .current_dir(dir.path())
         .run()
         .expect("run receipt history");
-    output.assert_success().assert_stdout_contains("\"records\": 2");
+    output
+        .assert_success()
+        .assert_stdout_contains("\"records\": 2");
 }
 
 #[test]
@@ -547,8 +579,11 @@ fn receipt_history_tampered_middle_record_exits_nonzero() {
     }
 
     let log_path = dir.path().join(".ggen-v2/receipt-log.jsonl");
-    let lines: Vec<String> =
-        std::fs::read_to_string(&log_path).expect("read log").lines().map(String::from).collect();
+    let lines: Vec<String> = std::fs::read_to_string(&log_path)
+        .expect("read log")
+        .lines()
+        .map(String::from)
+        .collect();
     assert_eq!(lines.len(), 2, "expected two receipt-log lines");
     let tampered_first_line = lines[0].replace("\"written\"", "\"tampered\"");
     std::fs::write(&log_path, format!("{tampered_first_line}\n{}\n", lines[1]))
@@ -568,8 +603,10 @@ fn receipt_history_tampered_middle_record_exits_nonzero() {
 
 #[test]
 fn introspect_emits_json_schema_and_exits_zero() {
-    let output =
-        CliHarness::cargo_bin("ggen").args(["--introspect"]).run().expect("run --introspect");
+    let output = CliHarness::cargo_bin("ggen")
+        .args(["--introspect"])
+        .run()
+        .expect("run --introspect");
     output.assert_success();
     assert!(
         output.stdout.trim_start().starts_with('['),

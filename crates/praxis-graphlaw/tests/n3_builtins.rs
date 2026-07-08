@@ -22,11 +22,26 @@ fn test_log_builtin_equal_to() {
 
     // log:equalTo holds for every (x, y) pair since both items share the value 42,
     // so all four combinations (including the two reflexive ones) should fire.
-    assert_eq!(4, decoded.len(), "expected 4 derived sameValueAs triples, got: {:?}", decoded);
-    for (a, b) in [("itemA", "itemA"), ("itemA", "itemB"), ("itemB", "itemA"), ("itemB", "itemB")] {
+    assert_eq!(
+        4,
+        decoded.len(),
+        "expected 4 derived sameValueAs triples, got: {:?}",
+        decoded
+    );
+    for (a, b) in [
+        ("itemA", "itemA"),
+        ("itemA", "itemB"),
+        ("itemB", "itemA"),
+        ("itemB", "itemB"),
+    ] {
         assert!(
-            decoded.iter().any(|d| d.contains(&format!("/{}", a)) && d.contains("sameValueAs") && d.contains(&format!("/{}>", b))),
-            "{} sameValueAs {} should have been derived, got: {:?}", a, b, decoded
+            decoded.iter().any(|d| d.contains(&format!("/{}", a))
+                && d.contains("sameValueAs")
+                && d.contains(&format!("/{}>", b))),
+            "{} sameValueAs {} should have been derived, got: {:?}",
+            a,
+            b,
+            decoded
         );
     }
 }
@@ -56,8 +71,11 @@ fn test_log_builtin_implies() {
     let decoded = decode_all(&inferred);
 
     assert!(
-        decoded.iter().any(|d| d.contains("/bob") && d.contains("TaxPayer")),
-        "expected :bob a :TaxPayer to be derived via log:implies, got: {:?}", decoded
+        decoded
+            .iter()
+            .any(|d| d.contains("/bob") && d.contains("TaxPayer")),
+        "expected :bob a :TaxPayer to be derived via log:implies, got: {:?}",
+        decoded
     );
 }
 
@@ -77,8 +95,11 @@ fn test_math_builtin_sum() {
     let decoded = decode_all(&inferred);
 
     assert!(
-        decoded.iter().any(|d| d.contains("/order") && d.contains("totalPrice") && d.contains("\"12\"")),
-        "expected :order :totalPrice 12 to be derived, got: {:?}", decoded
+        decoded
+            .iter()
+            .any(|d| d.contains("/order") && d.contains("totalPrice") && d.contains("\"12\"")),
+        "expected :order :totalPrice 12 to be derived, got: {:?}",
+        decoded
     );
 }
 
@@ -97,14 +118,23 @@ fn test_math_builtin_greater_than() {
     let inferred = store.materialize();
     let decoded = decode_all(&inferred);
 
-    assert_eq!(1, decoded.len(), "expected exactly 1 derived triple, got: {:?}", decoded);
+    assert_eq!(
+        1,
+        decoded.len(),
+        "expected exactly 1 derived triple, got: {:?}",
+        decoded
+    );
     assert!(
-        decoded.iter().any(|d| d.contains("/alice") && d.contains("Adult")),
-        "expected :alice a :Adult (25 > 21), got: {:?}", decoded
+        decoded
+            .iter()
+            .any(|d| d.contains("/alice") && d.contains("Adult")),
+        "expected :alice a :Adult (25 > 21), got: {:?}",
+        decoded
     );
     assert!(
         !decoded.iter().any(|d| d.contains("/bob")),
-        ":bob (age 18) should not be classified as an Adult, got: {:?}", decoded
+        ":bob (age 18) should not be classified as an Adult, got: {:?}",
+        decoded
     );
 }
 
@@ -122,11 +152,20 @@ fn test_list_builtin_in() {
     let inferred = store.materialize();
     let decoded = decode_all(&inferred);
 
-    assert_eq!(3, decoded.len(), "expected 3 derived Fruit triples, got: {:?}", decoded);
+    assert_eq!(
+        3,
+        decoded.len(),
+        "expected 3 derived Fruit triples, got: {:?}",
+        decoded
+    );
     for fruit in ["/apple", "/banana", "/cherry"] {
         assert!(
-            decoded.iter().any(|d| d.contains(fruit) && d.contains("Fruit")),
-            "expected {} a :Fruit to be derived, got: {:?}", fruit, decoded
+            decoded
+                .iter()
+                .any(|d| d.contains(fruit) && d.contains("Fruit")),
+            "expected {} a :Fruit to be derived, got: {:?}",
+            fruit,
+            decoded
         );
     }
 }
@@ -146,8 +185,11 @@ fn test_list_builtin_length() {
     let decoded = decode_all(&inferred);
 
     assert!(
-        decoded.iter().any(|d| d.contains("/shoppingCart") && d.contains("itemCount") && d.contains("\"4\"")),
-        "expected :shoppingCart :itemCount 4 to be derived, got: {:?}", decoded
+        decoded
+            .iter()
+            .any(|d| d.contains("/shoppingCart") && d.contains("itemCount") && d.contains("\"4\"")),
+        "expected :shoppingCart :itemCount 4 to be derived, got: {:?}",
+        decoded
     );
 }
 
@@ -167,8 +209,11 @@ fn test_string_builtin_concat() {
     let decoded = decode_all(&inferred);
 
     assert!(
-        decoded.iter().any(|d| d.contains("/user") && d.contains("/name") && d.contains("John Doe")),
-        "expected :user :name \"John Doe\" to be derived, got: {:?}", decoded
+        decoded
+            .iter()
+            .any(|d| d.contains("/user") && d.contains("/name") && d.contains("John Doe")),
+        "expected :user :name \"John Doe\" to be derived, got: {:?}",
+        decoded
     );
 }
 
@@ -187,8 +232,11 @@ fn test_string_builtin_length() {
     let decoded = decode_all(&inferred);
 
     assert!(
-        decoded.iter().any(|d| d.contains("/user") && d.contains("usernameLength") && d.contains("\"10\"")),
-        "expected :user :usernameLength 10 to be derived, got: {:?}", decoded
+        decoded
+            .iter()
+            .any(|d| d.contains("/user") && d.contains("usernameLength") && d.contains("\"10\"")),
+        "expected :user :usernameLength 10 to be derived, got: {:?}",
+        decoded
     );
 }
 
@@ -212,10 +260,34 @@ fn test_math_builtins_difference_product_quotient_remainder() {
     let inferred = store.materialize();
     let decoded = decode_all(&inferred);
 
-    assert!(decoded.iter().any(|d| d.contains("/diff") && d.contains("\"12\"")), "expected 17-5=12, got: {:?}", decoded);
-    assert!(decoded.iter().any(|d| d.contains("/prod") && d.contains("\"85\"")), "expected 17*5=85, got: {:?}", decoded);
-    assert!(decoded.iter().any(|d| d.contains("/quot") && d.contains("\"3.4\"")), "expected 17/5=3.4, got: {:?}", decoded);
-    assert!(decoded.iter().any(|d| d.contains("/rem") && d.contains("\"2\"")), "expected 17%5=2, got: {:?}", decoded);
+    assert!(
+        decoded
+            .iter()
+            .any(|d| d.contains("/diff") && d.contains("\"12\"")),
+        "expected 17-5=12, got: {:?}",
+        decoded
+    );
+    assert!(
+        decoded
+            .iter()
+            .any(|d| d.contains("/prod") && d.contains("\"85\"")),
+        "expected 17*5=85, got: {:?}",
+        decoded
+    );
+    assert!(
+        decoded
+            .iter()
+            .any(|d| d.contains("/quot") && d.contains("\"3.4\"")),
+        "expected 17/5=3.4, got: {:?}",
+        decoded
+    );
+    assert!(
+        decoded
+            .iter()
+            .any(|d| d.contains("/rem") && d.contains("\"2\"")),
+        "expected 17%5=2, got: {:?}",
+        decoded
+    );
 }
 
 /// Test the math:notLessThan, math:notGreaterThan, math:lessThan, and
@@ -239,17 +311,33 @@ fn test_math_builtins_comparison_constraints() {
     let decoded = decode_all(&inferred);
 
     // notLessThan 10: both 10 and 20 pass (10 >= 10, 20 >= 10).
-    assert!(decoded.iter().any(|d| d.contains("/ten") && d.contains("passesNotLessThan10")));
-    assert!(decoded.iter().any(|d| d.contains("/twenty") && d.contains("passesNotLessThan10")));
+    assert!(decoded
+        .iter()
+        .any(|d| d.contains("/ten") && d.contains("passesNotLessThan10")));
+    assert!(decoded
+        .iter()
+        .any(|d| d.contains("/twenty") && d.contains("passesNotLessThan10")));
     // notGreaterThan 10: only 10 passes (10 <= 10), not 20.
-    assert!(decoded.iter().any(|d| d.contains("/ten") && d.contains("passesNotGreaterThan10")));
-    assert!(!decoded.iter().any(|d| d.contains("/twenty") && d.contains("passesNotGreaterThan10")));
+    assert!(decoded
+        .iter()
+        .any(|d| d.contains("/ten") && d.contains("passesNotGreaterThan10")));
+    assert!(!decoded
+        .iter()
+        .any(|d| d.contains("/twenty") && d.contains("passesNotGreaterThan10")));
     // lessThan 15: only 10 passes, not 20.
-    assert!(decoded.iter().any(|d| d.contains("/ten") && d.contains("passesLessThan15")));
-    assert!(!decoded.iter().any(|d| d.contains("/twenty") && d.contains("passesLessThan15")));
+    assert!(decoded
+        .iter()
+        .any(|d| d.contains("/ten") && d.contains("passesLessThan15")));
+    assert!(!decoded
+        .iter()
+        .any(|d| d.contains("/twenty") && d.contains("passesLessThan15")));
     // equalTo 10: only 10 passes.
-    assert!(decoded.iter().any(|d| d.contains("/ten") && d.contains("passesEqualTo10")));
-    assert!(!decoded.iter().any(|d| d.contains("/twenty") && d.contains("passesEqualTo10")));
+    assert!(decoded
+        .iter()
+        .any(|d| d.contains("/ten") && d.contains("passesEqualTo10")));
+    assert!(!decoded
+        .iter()
+        .any(|d| d.contains("/twenty") && d.contains("passesEqualTo10")));
 }
 
 /// Test the log:notEqualTo constraint built-in (negation of log:equalTo).
@@ -269,8 +357,12 @@ fn test_log_builtin_not_equal_to() {
     let decoded = decode_all(&inferred);
 
     // A (42) differs from B (7): yes. A (42) differs from C (42): no.
-    assert!(decoded.iter().any(|d| d.contains("/itemA") && d.contains("differsFrom") && d.contains("/itemB")));
-    assert!(!decoded.iter().any(|d| d.contains("/itemA") && d.contains("differsFrom") && d.contains("/itemC>")));
+    assert!(decoded
+        .iter()
+        .any(|d| d.contains("/itemA") && d.contains("differsFrom") && d.contains("/itemB")));
+    assert!(!decoded
+        .iter()
+        .any(|d| d.contains("/itemA") && d.contains("differsFrom") && d.contains("/itemC>")));
 }
 
 /// Test the list:append functional built-in (concatenates two list terms'
@@ -292,13 +384,20 @@ fn test_list_builtin_append() {
     let decoded = decode_all(&inferred);
 
     assert!(
-        decoded.iter().any(|d| d.contains("/order") && d.contains("totalItemCount") && d.contains("\"4\"")),
-        "expected merged list length 4 (2+2), got: {:?}", decoded
+        decoded
+            .iter()
+            .any(|d| d.contains("/order") && d.contains("totalItemCount") && d.contains("\"4\"")),
+        "expected merged list length 4 (2+2), got: {:?}",
+        decoded
     );
     for item in ["/eggs", "/bacon", "/soup", "/bread"] {
         assert!(
-            decoded.iter().any(|d| d.contains(item) && d.contains("inMergedList")),
-            "expected {} to be a member of the appended list, got: {:?}", item, decoded
+            decoded
+                .iter()
+                .any(|d| d.contains(item) && d.contains("inMergedList")),
+            "expected {} to be a member of the appended list, got: {:?}",
+            item,
+            decoded
         );
     }
 }

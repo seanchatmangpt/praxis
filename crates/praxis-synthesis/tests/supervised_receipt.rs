@@ -36,8 +36,11 @@ const RUNS: usize = 5;
 fn supervised_cell_receipt() {
     let (n, g, templates) = (10_000, 100, 8);
     let policy = SupervisorPolicy::default();
-    let zero_faults =
-        FaultScript { seed: 1, transient_per_mille: 0, crashloop_template: None };
+    let zero_faults = FaultScript {
+        seed: 1,
+        transient_per_mille: 0,
+        crashloop_template: None,
+    };
 
     // Paired multi-run overhead: alternate baseline/supervised so drift
     // (thermal, background load) hits both arms.
@@ -52,18 +55,15 @@ fn supervised_cell_receipt() {
         base_admitted = base.admitted;
 
         let t0 = Instant::now();
-        let (sup0, _, _) =
-            run_cell_supervised(n, g, templates, 1, policy, zero_faults);
+        let (sup0, _, _) = run_cell_supervised(n, g, templates, 1, policy, zero_faults);
         sup0_ns.push(t0.elapsed().as_nanos());
         sup0_admitted = sup0.admitted;
     }
     let base_med = stats::median(&mut base_ns.clone());
     let sup_med = stats::median(&mut sup0_ns.clone());
-    let base_spread = base_ns.iter().max().expect("runs")
-        - base_ns.iter().min().expect("runs");
+    let base_spread = base_ns.iter().max().expect("runs") - base_ns.iter().min().expect("runs");
     #[allow(clippy::cast_precision_loss)]
-    let overhead_pct =
-        (sup_med as f64 - base_med as f64) / (base_med as f64) * 100.0;
+    let overhead_pct = (sup_med as f64 - base_med as f64) / (base_med as f64) * 100.0;
     // Self-refutation guard: a negative overhead beyond the baseline's own
     // spread is a measurement artifact, not a result. Fail loudly.
     assert!(
@@ -76,8 +76,11 @@ fn supervised_cell_receipt() {
     // Per-member latency distribution under 10% transient faults: each
     // member timed individually (fresh caches per group, mirroring the
     // cell's sharding). Verdicts from percentiles/worst-case only.
-    let faults_10 =
-        FaultScript { seed: 42, transient_per_mille: 100, crashloop_template: None };
+    let faults_10 = FaultScript {
+        seed: 42,
+        transient_per_mille: 100,
+        crashloop_template: None,
+    };
     let quarantine = BTreeSet::new();
     let per = n / g;
     let mut member_ns: Vec<u128> = Vec::with_capacity(n);
@@ -111,8 +114,7 @@ fn supervised_cell_receipt() {
     // above ~1.0 is the priced cost of roll-ups + receipts — the 2025
     // lesson is to measure this, never to assert flatness.
     let t0 = Instant::now();
-    let (comp_cell, comp_groups, _) =
-        run_cell_supervised(n, g, templates, 1, policy, faults_10);
+    let (comp_cell, comp_groups, _) = run_cell_supervised(n, g, templates, 1, policy, faults_10);
     let composed_ns = t0.elapsed().as_nanos();
     assert!(verify_cell(&comp_cell, &comp_groups));
     #[allow(clippy::cast_precision_loss)]

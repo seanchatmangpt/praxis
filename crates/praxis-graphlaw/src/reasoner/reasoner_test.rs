@@ -33,8 +33,7 @@ fn test_reconstruct_from_bindings() {
         g: None,
     }]];
 
-    let triples =
-        CSpriteReasoner::reconstruct_triples_from_bindings(&mut result_bindings, rule);
+    let triples = CSpriteReasoner::reconstruct_triples_from_bindings(&mut result_bindings, rule);
     assert_eq!(expected, triples);
 }
 

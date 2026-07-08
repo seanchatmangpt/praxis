@@ -62,7 +62,10 @@ fn test_hasvalue_outside_in_list_never_conforms() {
             "@prefix ex: <http://example.org/> .\nex:i a ex:Item ; ex:status {candidate} .\n"
         ));
         let report = Validator::validate(&data, &shapes);
-        assert!(!report.conforms, "hasValue ex:A + in(ex:B,ex:C) with candidate {candidate} must never conform");
+        assert!(
+            !report.conforms,
+            "hasValue ex:A + in(ex:B,ex:C) with candidate {candidate} must never conform"
+        );
     }
 }
 
@@ -130,7 +133,11 @@ fn test_class_and_not_class_direct_self_negation_never_conforms() {
             if is_foo { " ; a ex:Foo" } else { "" }
         ));
         let report = Validator::validate(&data, &shapes);
-        assert!(!report.conforms, "sh:class ex:Foo + sh:not[sh:class ex:Foo] (is_foo={}) must never conform", is_foo);
+        assert!(
+            !report.conforms,
+            "sh:class ex:Foo + sh:not[sh:class ex:Foo] (is_foo={}) must never conform",
+            is_foo
+        );
     }
 }
 
@@ -307,7 +314,11 @@ fn test_languagein_and_integer_datatype_never_conforms() {
     ] {
         let data = build_data_index(data_str);
         let report = Validator::validate(&data, &shapes);
-        assert!(!report.conforms, "no real RDF literal can be both language-tagged and xsd:integer-typed, data: {:?}", data_str);
+        assert!(
+            !report.conforms,
+            "no real RDF literal can be both language-tagged and xsd:integer-typed, data: {:?}",
+            data_str
+        );
     }
 }
 

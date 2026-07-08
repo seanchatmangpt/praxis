@@ -67,7 +67,13 @@ impl Kind {
             Kind::Datatype(dt) => format!("sh:datatype xsd:{dt}"),
             Kind::Pattern(p) => format!("sh:pattern \"{p}\""),
             Kind::HasValue(v) => format!("sh:hasValue {v}"),
-            Kind::In(vs) => format!("sh:in ( {} )", vs.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(" ")),
+            Kind::In(vs) => format!(
+                "sh:in ( {} )",
+                vs.iter()
+                    .map(|v| v.to_string())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            ),
             Kind::MinLength(n) => format!("sh:minLength {n}"),
             Kind::MaxLength(n) => format!("sh:maxLength {n}"),
             Kind::NodeKind(k) => format!("sh:nodeKind sh:{k}"),

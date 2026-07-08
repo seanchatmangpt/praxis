@@ -15,7 +15,11 @@ pub(crate) const CRYPTO_SHA256: &str = "<http://www.w3.org/2000/10/swap/crypto#s
 pub(crate) const CRYPTO_SHA512: &str = "<http://www.w3.org/2000/10/swap/crypto#sha512>";
 pub(crate) const CRYPTO_MD5: &str = "<http://www.w3.org/2000/10/swap/crypto#md5>";
 
-fn eval_hash(pattern: &Triple, bindings: &Binding, digest: impl Fn(&str) -> String) -> Option<Binding> {
+fn eval_hash(
+    pattern: &Triple,
+    bindings: &Binding,
+    digest: impl Fn(&str) -> String,
+) -> Option<Binding> {
     eval_functional(pattern, bindings, |pattern, bindings, row| {
         let s = resolve_operand(&pattern.s, bindings, row)?;
         let lex = lexical_value(s)?;

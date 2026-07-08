@@ -62,15 +62,16 @@
 fn test_datalog_conformance() {
     let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let mock_dir = manifest_dir.join("tests/datalog_conformance/mock_suite");
-    
+
     assert!(mock_dir.exists(), "Mock suite directory must exist");
-    
+
     let rules_path = mock_dir.join("rules.dl");
     let expected_path = mock_dir.join("expected.ttl");
-    
+
     let _rules_content = std::fs::read_to_string(&rules_path).expect("Failed to read rules.dl");
-    let _expected_content = std::fs::read_to_string(&expected_path).expect("Failed to read expected.ttl");
-    
+    let _expected_content =
+        std::fs::read_to_string(&expected_path).expect("Failed to read expected.ttl");
+
     // Perform mock Datalog parsing + reasoning (will be updated once TICKET-004 is implemented)
     let passed = true;
     assert!(passed, "Datalog conformance test must pass");
@@ -145,13 +146,13 @@ fn test_datalog_conformance() {
         .expect("Failed to write Datalog manifest report");
 }
 
-#[path = "datalog_conformance/safe_unsafe_rejection.rs"]
-mod safe_unsafe_rejection;
-#[path = "datalog_conformance/mutual_recursion.rs"]
-mod mutual_recursion;
-#[path = "datalog_conformance/negation_stratum.rs"]
-mod negation_stratum;
-#[path = "datalog_conformance/negation_cycle.rs"]
-mod negation_cycle;
 #[path = "datalog_conformance/aggregations.rs"]
 mod aggregations;
+#[path = "datalog_conformance/mutual_recursion.rs"]
+mod mutual_recursion;
+#[path = "datalog_conformance/negation_cycle.rs"]
+mod negation_cycle;
+#[path = "datalog_conformance/negation_stratum.rs"]
+mod negation_stratum;
+#[path = "datalog_conformance/safe_unsafe_rejection.rs"]
+mod safe_unsafe_rejection;

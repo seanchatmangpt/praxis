@@ -3,8 +3,8 @@
 
 use praxis_synthesis::handlers::HANDLER_NS;
 use praxis_synthesis::{
-    fire_hooks, replay_firing, FiringOutcome, HandlerRegistry, MeaningSource, Origin, Reference,
-    Refusal,
+    fire_hooks, idempotency_key, replay_firing, FiringOutcome, HandlerRegistry, MeaningSource,
+    Origin, Reference, Refusal,
 };
 
 const KERNEL: &str = include_str!("../ontology/lord_prayer.ttl");
@@ -20,7 +20,12 @@ fn src(adds: &str) -> MeaningSource {
 
 fn kernel_with_binding(delegability: &str, handler_local: &str) -> String {
     let mut base = KERNEL.to_string();
-    for cap in &["orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt"] {
+    for cap in &[
+        "orientToFather",
+        "surrenderWill",
+        "requestDailyBread",
+        "writePrayerReceipt",
+    ] {
         base.push_str(&format!(
             "\n<http://seanchatmangpt.github.io/praxis/prayer#{cap}> \
              <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}{handler_local}> ;\n\
@@ -44,6 +49,33 @@ fn completed_firing_chains_and_replays() {
     assert_eq!(receipt.verdicts.len(), 11, "all eleven hooks receipted");
 
     replay_firing(&receipt, &base, &source, &registry, &[]).expect("replays");
+
+    // Test FR13: Stable, replayable receipt generation
+    let receipt2 = fire_hooks(&reference, &source, &registry, &[]).expect("fires");
+    assert_eq!(
+        serde_json::to_string(&receipt).unwrap(),
+        serde_json::to_string(&receipt2).unwrap(),
+        "Identical input contexts must yield byte-identical receipts (FR13)"
+    );
+
+    // Test FR11: Idempotency key generation linked to receipt hash
+    let key = receipt.idempotency_key();
+    let key2 = receipt2.idempotency_key();
+    assert_eq!(key, key2, "Idempotency keys must be stable");
+    assert_eq!(
+        key,
+        idempotency_key(&receipt.chain),
+        "Idempotency key must link to receipt hash (FR11)"
+    );
+
+    let source_diff = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 2 ."));
+    let receipt_diff = fire_hooks(&reference, &source_diff, &registry, &[]).expect("fires");
+    assert_ne!(receipt.chain, receipt_diff.chain);
+    assert_ne!(
+        key,
+        receipt_diff.idempotency_key(),
+        "Different input context must yield different idempotency key"
+    );
 }
 
 #[test]
@@ -83,7 +115,10 @@ fn human_only_binding_is_a_chained_delegability_refusal() {
         }
         other => panic!("expected Refused(delegability), got {other:?}"),
     }
-    assert!(receipt.inner.is_empty(), "no executed receipts survive a delegability refusal");
+    assert!(
+        receipt.inner.is_empty(),
+        "no executed receipts survive a delegability refusal"
+    );
 }
 
 #[test]
@@ -102,7 +137,11 @@ fn human_only_binding_on_an_unused_capability_does_not_refuse() {
     let source = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."));
 
     let receipt = fire_hooks(&reference, &source, &registry, &[]).expect("fires");
-    assert_eq!(receipt.outcome, FiringOutcome::Completed, "unrelated binding must not refuse");
+    assert_eq!(
+        receipt.outcome,
+        FiringOutcome::Completed,
+        "unrelated binding must not refuse"
+    );
     assert_eq!(receipt.inner.len(), 1, "daily-bread still grounded");
     replay_firing(&receipt, &base, &source, &registry, &[]).expect("replays");
 }
@@ -131,14 +170,19 @@ fn forged_payloads_behind_honest_hashes_are_refused_by_name() {
     let source = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."));
     let honest = fire_hooks(&reference, &source, &registry, &[]).expect("fires");
 
-    let expect_fail = |receipt: &praxis_synthesis::HookFiringReceipt, what: &str| {
-        match replay_firing(receipt, &base, &source, &registry, &[]) {
+    let expect_fail =
+        |receipt: &praxis_synthesis::HookFiringReceipt, what: &str| match replay_firing(
+            receipt,
+            &base,
+            &source,
+            &registry,
+            &[],
+        ) {
             Err(Refusal::VerificationFailed { failed }) => {
                 assert!(failed[0].contains(what), "expected {what}, got {failed:?}");
             }
             other => panic!("expected VerificationFailed({what}), got {other:?}"),
-        }
-    };
+        };
 
     // Forged verdict body behind the honest hook_hash.
     let mut forged = honest.clone();
@@ -157,7 +201,11 @@ fn forged_payloads_behind_honest_hashes_are_refused_by_name() {
 
     // Tampered chain itself.
     let mut forged = honest.clone();
-    let flip = if forged.chain.ends_with('0') { "1" } else { "0" };
+    let flip = if forged.chain.ends_with('0') {
+        "1"
+    } else {
+        "0"
+    };
     forged.chain = format!("{}{flip}", &forged.chain[..forged.chain.len() - 1]);
     expect_fail(&forged, "chain");
 }

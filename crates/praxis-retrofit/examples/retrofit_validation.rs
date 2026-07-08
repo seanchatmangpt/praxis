@@ -117,19 +117,28 @@ fn print_validation_report(report: &ValidationReport) {
     println!("\n  CI Gate Results:");
     for gate_result in &report.ci_results {
         let status_icon = if gate_result.passed { "✓" } else { "✗" };
-        println!("    {} {} ({} ms)", status_icon, gate_result.gate, gate_result.duration_ms);
+        println!(
+            "    {} {} ({} ms)",
+            status_icon, gate_result.gate, gate_result.duration_ms
+        );
 
         if !gate_result.passed {
             if let Some(error) = &gate_result.error {
-                let error_msg =
-                    if error.len() > 100 { format!("{}...", &error[..100]) } else { error.clone() };
+                let error_msg = if error.len() > 100 {
+                    format!("{}...", &error[..100])
+                } else {
+                    error.clone()
+                };
                 println!("       Error: {}", error_msg);
             }
         }
     }
 
     println!("\n  Compliance Improvement:");
-    println!("    {} → {} ({:+.1}%)", report.pre_score, report.post_score, report.delta);
+    println!(
+        "    {} → {} ({:+.1}%)",
+        report.pre_score, report.post_score, report.delta
+    );
 }
 
 /// Print individual compliance check status
@@ -169,11 +178,17 @@ async fn custom_validation_example(repo_path: &Path) -> Result<()> {
 
     // Inspect specific gates
     if let Some(fmt_result) = validation.ci_result(CiGateName::Fmt) {
-        println!("Format check: {}", if fmt_result.passed { "PASS" } else { "FAIL" });
+        println!(
+            "Format check: {}",
+            if fmt_result.passed { "PASS" } else { "FAIL" }
+        );
     }
 
     if let Some(clippy_result) = validation.ci_result(CiGateName::Clippy) {
-        println!("Clippy check: {}", if clippy_result.passed { "PASS" } else { "FAIL" });
+        println!(
+            "Clippy check: {}",
+            if clippy_result.passed { "PASS" } else { "FAIL" }
+        );
         if !clippy_result.passed {
             println!("Output: {}", clippy_result.output);
         }
@@ -194,7 +209,10 @@ async fn export_validation_results(report: &ValidationReport) -> Result<()> {
     println!("  compliance_score_pre: {}", report.pre_score);
     println!("  compliance_score_post: {}", report.post_score);
     println!("  compliance_delta: {}", report.delta);
-    println!("  ci_gates_passed: {}", report.ci_results.iter().filter(|r| r.passed).count());
+    println!(
+        "  ci_gates_passed: {}",
+        report.ci_results.iter().filter(|r| r.passed).count()
+    );
     println!("  ci_gates_total: {}", report.ci_results.len());
     println!("  rolled_back: {}", report.rolled_back);
 

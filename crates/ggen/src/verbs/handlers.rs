@@ -62,7 +62,14 @@ pub fn handle_sync_run(dry_run: bool, watch: bool) -> Result<serde_json::Value> 
         crate::watch::watch(&root, dry_run).map_err(exec_err)?;
         return Ok(serde_json::json!({ "watch": "stopped" }));
     }
-    let report = sync(&root, SyncOptions { dry_run, ..Default::default() }).map_err(exec_err)?;
+    let report = sync(
+        &root,
+        SyncOptions {
+            dry_run,
+            ..Default::default()
+        },
+    )
+    .map_err(exec_err)?;
     serde_json::to_value(report).map_err(exec_err)
 }
 
@@ -545,7 +552,11 @@ pub fn handle_doctor() -> Result<serde_json::Value> {
 /// (minus template `construct:` enrichment, which is a sync concern).
 fn build_law_engine(
     root: &std::path::Path,
-) -> Result<(GgenConfig, crate::graph::GraphLawStore, Vec<(String, usize)>)> {
+) -> Result<(
+    GgenConfig,
+    crate::graph::GraphLawStore,
+    Vec<(String, usize)>,
+)> {
     use crate::graph::GraphEngine as _;
     let config = GgenConfig::load(&root.join("ggen.toml")).map_err(exec_err)?;
     let ontology_path = root.join(&config.ontology.source);

@@ -50,11 +50,32 @@ fn read_log(root: &Path) -> Vec<SyncReceipt> {
 fn three_syncs_form_a_verifiable_chain() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 1");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 1");
     write_ontology(dir.path(), &["alice", "bob"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 2");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 2");
     write_ontology(dir.path(), &["alice", "bob", "carol"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 3");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 3");
 
     let log = read_log(dir.path());
     assert_eq!(log.len(), 3, "three syncs must append three log lines");
@@ -108,11 +129,32 @@ fn three_syncs_form_a_verifiable_chain() {
 fn tampering_middle_line_payload_fails_naming_index_1() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 1");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 1");
     write_ontology(dir.path(), &["alice", "bob"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 2");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 2");
     write_ontology(dir.path(), &["alice", "bob", "carol"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 3");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 3");
 
     let log_path = dir.path().join(RECEIPT_LOG_REL_PATH);
     let raw = std::fs::read_to_string(&log_path).expect("read log");
@@ -138,11 +180,32 @@ fn tampering_middle_line_payload_fails_naming_index_1() {
 fn removing_or_reordering_lines_fails_history_verification() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 1");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 1");
     write_ontology(dir.path(), &["alice", "bob"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 2");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 2");
     write_ontology(dir.path(), &["alice", "bob", "carol"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 3");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 3");
 
     let log_path = dir.path().join(RECEIPT_LOG_REL_PATH);
     let raw = std::fs::read_to_string(&log_path).expect("read log");
@@ -209,7 +272,14 @@ fn missing_or_empty_log_fails_closed() {
 fn sync_refuses_to_extend_a_tampered_head() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 1");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 1");
 
     let log_path = dir.path().join(RECEIPT_LOG_REL_PATH);
     let raw = std::fs::read_to_string(&log_path).expect("read log");
@@ -220,7 +290,14 @@ fn sync_refuses_to_extend_a_tampered_head() {
         .expect("write tampered");
 
     write_ontology(dir.path(), &["alice", "bob"]);
-    let err = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect_err("must refuse");
+    let err = sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect_err("must refuse");
     assert!(err.to_string().contains("FM-CHAIN-009"), "{err}");
 }
 
@@ -230,11 +307,25 @@ fn sync_refuses_to_extend_a_tampered_head() {
 fn missing_receipt_json_chains_from_log_tail() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 1");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 1");
     std::fs::remove_file(dir.path().join(RECEIPT_REL_PATH)).expect("drop head pointer");
 
     write_ontology(dir.path(), &["alice", "bob"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 2");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 2");
 
     let log = read_log(dir.path());
     assert_eq!(log.len(), 2);
@@ -303,7 +394,14 @@ fn legacy_payload_without_optional_fields_verifies() {
 fn dry_run_touches_neither_receipt_nor_log() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice"]);
-    sync(dir.path(), SyncOptions { dry_run: true, ..Default::default() }).expect("dry run");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: true,
+            ..Default::default()
+        },
+    )
+    .expect("dry run");
     assert!(!dir.path().join(RECEIPT_REL_PATH).exists());
     assert!(!dir.path().join(RECEIPT_LOG_REL_PATH).exists());
 }
@@ -315,12 +413,26 @@ fn dry_run_touches_neither_receipt_nor_log() {
 fn template_edit_changes_receipt_closure_even_with_identical_outputs() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 1");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 1");
 
     // Frontmatter-comment-only edit: rendered output is byte-identical.
     let edited = TEMPLATE.replace("force: true", "force: true # pinned");
     std::fs::write(dir.path().join("templates/one.tmpl"), edited).expect("edit template");
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync 2");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync 2");
 
     let log = read_log(dir.path());
     assert_eq!(log.len(), 2);
@@ -346,7 +458,14 @@ fn template_edit_changes_receipt_closure_even_with_identical_outputs() {
 fn closure_marks_missing_inputs_instead_of_dropping_them() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice"]);
-    let report = sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
+    let report = sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync");
     assert!(report.closure.contains_key("templates/one.tmpl"));
     assert_ne!(report.closure["templates/one.tmpl"], "MISSING");
 

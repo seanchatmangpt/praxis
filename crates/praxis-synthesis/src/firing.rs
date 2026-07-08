@@ -99,6 +99,25 @@ pub struct HookFiringReceipt {
     pub chain: String,
 }
 
+impl HookFiringReceipt {
+    /// Generate a stable idempotency key linked to this receipt's hash (the chain hash).
+    #[must_use]
+    pub fn idempotency_key(&self) -> String {
+        idempotency_key(&self.chain)
+    }
+}
+
+/// Generate a stable, replayable idempotency key linked to a hook firing receipt hash.
+///
+/// Formula: `blake3("praxis:idempotency-key:v1" || receipt_hash)`
+#[must_use]
+pub fn idempotency_key(receipt_hash: &str) -> String {
+    let mut buf = Vec::with_capacity("praxis:idempotency-key:v1".len() + receipt_hash.len());
+    buf.extend_from_slice(b"praxis:idempotency-key:v1");
+    buf.extend_from_slice(receipt_hash.as_bytes());
+    blake3::hash(&buf).to_hex().to_string()
+}
+
 fn json_hash<T: Serialize>(value: &T, what: &str) -> Result<String, Refusal> {
     let json = serde_json::to_string(value).map_err(|e| Refusal::InvalidInput {
         detail: format!("{what} failed to serialize: {e}"),

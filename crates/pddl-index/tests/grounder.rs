@@ -3,12 +3,13 @@
 //! depend on) and check the join grounder's pruning and plan-finding.
 
 use pddl_index::{candidate_estimate, IndexedGroundProblem};
-use wasm4pm_compat::pddl::{
-    Pddl8ActionSchema, Pddl8Atom, Pddl8Domain, Pddl8Problem,
-};
+use wasm4pm_compat::pddl::{Pddl8ActionSchema, Pddl8Atom, Pddl8Domain, Pddl8Problem};
 
 fn atom(pred: &str, args: &[&str]) -> Pddl8Atom {
-    Pddl8Atom { pred: pred.into(), args: args.iter().map(|s| (*s).into()).collect() }
+    Pddl8Atom {
+        pred: pred.into(),
+        args: args.iter().map(|s| (*s).into()).collect(),
+    }
 }
 
 fn schema(
@@ -46,7 +47,12 @@ fn empty_domain(name: &str, actions: Vec<Pddl8ActionSchema>) -> Pddl8Domain {
     }
 }
 
-fn problem(name: &str, objects: &[&str], init: Vec<Pddl8Atom>, goal: Vec<Pddl8Atom>) -> Pddl8Problem {
+fn problem(
+    name: &str,
+    objects: &[&str],
+    init: Vec<Pddl8Atom>,
+    goal: Vec<Pddl8Atom>,
+) -> Pddl8Problem {
     Pddl8Problem {
         name: name.into(),
         domain: name.into(),
@@ -92,14 +98,22 @@ fn prunes_dead_groundings_on_a_path() {
     let links: Vec<(usize, usize)> = (0..n - 1).map(|i| (i, i + 1)).collect();
     let (domain, prob) = transport(n, &links);
 
-    assert_eq!(candidate_estimate(&domain, &prob), n * n, "N² candidate groundings");
+    assert_eq!(
+        candidate_estimate(&domain, &prob),
+        n * n,
+        "N² candidate groundings"
+    );
 
     let gp = IndexedGroundProblem::build(&domain, &prob, None).expect("build");
     let stats = gp.stats();
     assert_eq!(stats.candidate_groundings, n * n);
     // Only the 39 real links are reachable & materialized — far below 1600.
     assert_eq!(stats.materialized_groundings, n - 1);
-    assert!(stats.materialization_ratio() < 0.05, "ratio {}", stats.materialization_ratio());
+    assert!(
+        stats.materialization_ratio() < 0.05,
+        "ratio {}",
+        stats.materialization_ratio()
+    );
 
     let tape = gp.find_plan().expect("path is solvable");
     assert_eq!(tape.len(), n - 1, "shortest plan walks every link once");
@@ -110,14 +124,23 @@ fn unreachable_goal_refuses() {
     // l0 links only to l1; goal is at l3 — unreachable.
     let (domain, prob) = transport(4, &[(0, 1)]);
     let gp = IndexedGroundProblem::build(&domain, &prob, None).expect("build");
-    assert!(matches!(gp.find_plan(), Err(pddl_index::GroundError::NoAdmittedPlan)));
+    assert!(matches!(
+        gp.find_plan(),
+        Err(pddl_index::GroundError::NoAdmittedPlan)
+    ));
 }
 
 #[test]
 fn no_precondition_schema_grounds_full_product() {
     // A parameterized no-precondition action must ground over every object,
     // exactly like the naive grounder (no pruning is possible).
-    let s = schema("touch", &["?x"], vec![], vec![atom("seen", &["?x"])], vec![]);
+    let s = schema(
+        "touch",
+        &["?x"],
+        vec![],
+        vec![atom("seen", &["?x"])],
+        vec![],
+    );
     let domain = empty_domain("d", vec![s]);
     let prob = problem("d", &["a", "b", "c"], vec![], vec![atom("seen", &["c"])]);
     let gp = IndexedGroundProblem::build(&domain, &prob, None).expect("build");

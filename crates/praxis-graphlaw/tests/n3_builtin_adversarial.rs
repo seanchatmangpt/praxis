@@ -20,7 +20,10 @@ use praxis_graphlaw::TripleStore;
 use proptest::prelude::*;
 
 fn decode_all(triples: &[praxis_graphlaw::triples::Triple]) -> Vec<String> {
-    triples.iter().map(praxis_graphlaw::TripleStore::decode_triple).collect()
+    triples
+        .iter()
+        .map(praxis_graphlaw::TripleStore::decode_triple)
+        .collect()
 }
 
 fn materialize(data: &str) -> Vec<String> {
@@ -114,7 +117,9 @@ fn math_logarithm_of_zero_yields_neg_infinity_literal_not_a_crash() {
     // "-inf". The engine must derive *some* deterministic literal (no
     // panic, no silent non-derivation), matching what f64::log produces.
     assert!(
-        decoded.iter().any(|d| d.contains("/result") && d.contains("-inf")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/result") && d.contains("-inf")),
         "log(0) must deterministically derive -inf (matching Rust's f64::log semantics), got: {:?}",
         decoded
     );
@@ -130,7 +135,9 @@ fn math_logarithm_of_negative_yields_nan_literal_not_a_crash() {
                 { ?s :v ?v . ?s :b ?b . ( ?v ?b ) math:logarithm ?l } => { ?s :result ?l }.\n";
     let decoded = materialize(data);
     assert!(
-        decoded.iter().any(|d| d.contains("/result") && d.contains("NaN")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/result") && d.contains("NaN")),
         "log(-5) must deterministically derive NaN (matching Rust's f64::log semantics), got: {:?}",
         decoded
     );
@@ -214,7 +221,9 @@ fn string_length_of_empty_string_is_zero() {
                 { ?s :v ?v . ?v string:length ?l } => { ?s :result ?l }.\n";
     let decoded = materialize(data);
     assert!(
-        decoded.iter().any(|d| d.contains("/result") && d.contains("\"0\"")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/result") && d.contains("\"0\"")),
         "empty string must have length 0, got: {:?}",
         decoded
     );
@@ -262,7 +271,9 @@ fn string_concat_preserves_unicode() {
     let decoded = materialize(data);
     let expected = "caf\u{e9}\u{1f600}".to_string();
     assert!(
-        decoded.iter().any(|d| d.contains("/result") && d.contains(&expected)),
+        decoded
+            .iter()
+            .any(|d| d.contains("/result") && d.contains(&expected)),
         "expected concatenation {:?}, got: {:?}",
         expected,
         decoded
@@ -396,7 +407,9 @@ fn list_length_of_empty_list_is_zero() {
                 { ?s :l ?l . ?l list:length ?n } => { ?s :result ?n }.\n";
     let decoded = materialize(data);
     assert!(
-        decoded.iter().any(|d| d.contains("/result") && d.contains("\"0\"")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/result") && d.contains("\"0\"")),
         "empty list must have length 0, got: {:?}",
         decoded
     );
@@ -412,7 +425,9 @@ fn list_first_and_last_of_empty_list_do_not_derive() {
                 { ?s :l ?l . ?l list:last ?x } => { ?s :lastResult ?x }.\n";
     let decoded = materialize(data);
     assert!(
-        !decoded.iter().any(|d| d.contains("/firstResult") || d.contains("/lastResult")),
+        !decoded
+            .iter()
+            .any(|d| d.contains("/firstResult") || d.contains("/lastResult")),
         "list:first/list:last on an empty list must not derive anything, got: {:?}",
         decoded
     );
@@ -428,12 +443,16 @@ fn list_first_and_last_of_single_element_list_are_the_same_element() {
                 { ?s :l ?l . ?l list:last ?x } => { ?s :lastResult ?x }.\n";
     let decoded = materialize(data);
     assert!(
-        decoded.iter().any(|d| d.contains("/firstResult") && d.contains("42")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/firstResult") && d.contains("42")),
         "single-element list: list:first must be 42, got: {:?}",
         decoded
     );
     assert!(
-        decoded.iter().any(|d| d.contains("/lastResult") && d.contains("42")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/lastResult") && d.contains("42")),
         "single-element list: list:last must be 42, got: {:?}",
         decoded
     );
@@ -448,7 +467,9 @@ fn list_rest_of_single_element_list_is_empty() {
                 { ?s :l ?l . ?l list:rest ?r . ?r list:length ?n } => { ?s :result ?n }.\n";
     let decoded = materialize(data);
     assert!(
-        decoded.iter().any(|d| d.contains("/result") && d.contains("\"0\"")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/result") && d.contains("\"0\"")),
         "list:rest of a single-element list must be an empty list (length 0), got: {:?}",
         decoded
     );
@@ -572,7 +593,8 @@ fn log_equal_to_literal_vs_iri_are_not_equal() {
                 { ?s :a ?a . ?s :b ?b . ?a log:notEqualTo ?b } => { ?s a :NotEqual }.\n";
     let decoded = materialize(data);
     assert!(
-        !decoded.iter().any(|d| d.contains("/Equal")) && decoded.iter().any(|d| d.contains("/NotEqual")),
+        !decoded.iter().any(|d| d.contains("/Equal"))
+            && decoded.iter().any(|d| d.contains("/NotEqual")),
         "a string literal and an IRI must never be log:equalTo, got: {:?}",
         decoded
     );
@@ -589,7 +611,8 @@ fn log_equal_to_iri_vs_blank_node_are_not_equal() {
                 { ?s :a ?a . ?s :b ?b . ?a log:notEqualTo ?b } => { ?s a :NotEqual }.\n";
     let decoded = materialize(data);
     assert!(
-        !decoded.iter().any(|d| d.contains("/Equal")) && decoded.iter().any(|d| d.contains("/NotEqual")),
+        !decoded.iter().any(|d| d.contains("/Equal"))
+            && decoded.iter().any(|d| d.contains("/NotEqual")),
         "a named IRI and a fresh blank node must never be log:equalTo, got: {:?}",
         decoded
     );
@@ -606,7 +629,8 @@ fn log_equal_to_literal_vs_blank_node_are_not_equal() {
                 { ?s :a ?a . ?s :b ?b . ?a log:notEqualTo ?b } => { ?s a :NotEqual }.\n";
     let decoded = materialize(data);
     assert!(
-        !decoded.iter().any(|d| d.contains("/Equal")) && decoded.iter().any(|d| d.contains("/NotEqual")),
+        !decoded.iter().any(|d| d.contains("/Equal"))
+            && decoded.iter().any(|d| d.contains("/NotEqual")),
         "a literal and a fresh blank node must never be log:equalTo, got: {:?}",
         decoded
     );
@@ -627,7 +651,8 @@ fn log_equal_to_same_iri_is_equal() {
                 { ?s :a ?a . ?s :b ?b . ?a log:notEqualTo ?b } => { ?s a :NotEqual }.\n";
     let decoded = materialize(data);
     assert!(
-        decoded.iter().any(|d| d.contains("/Equal")) && !decoded.iter().any(|d| d.contains("/NotEqual")),
+        decoded.iter().any(|d| d.contains("/Equal"))
+            && !decoded.iter().any(|d| d.contains("/NotEqual")),
         "the same IRI referenced twice must be log:equalTo and never notEqualTo, got: {:?}",
         decoded
     );

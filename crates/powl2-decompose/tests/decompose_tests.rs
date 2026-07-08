@@ -21,7 +21,11 @@ fn net(
     sink: &str,
 ) -> WfNet {
     let ts = transitions.iter().map(|t| {
-        let label = if t.starts_with("tau") { None } else { Some((*t).to_string()) };
+        let label = if t.starts_with("tau") {
+            None
+        } else {
+            Some((*t).to_string())
+        };
         ((*t).to_string(), label)
     });
     WfNet::new(
@@ -36,7 +40,10 @@ fn net(
 }
 
 fn lang(traces: &[&[&str]]) -> BTreeSet<Trace> {
-    traces.iter().map(|t| t.iter().map(|s| (*s).to_string()).collect()).collect()
+    traces
+        .iter()
+        .map(|t| t.iter().map(|s| (*s).to_string()).collect())
+        .collect()
 }
 
 /// The core differential check: decomposition admits, and all three
@@ -46,11 +53,17 @@ fn assert_admits_and_roundtrips(net: &WfNet, max_len: usize) -> Powl {
 
     let net_lang = language_upto(net, max_len);
     let powl_lang = model.language_upto(max_len);
-    assert_eq!(net_lang, powl_lang, "correctness: L(decompose(N)) must equal L(N)");
+    assert_eq!(
+        net_lang, powl_lang,
+        "correctness: L(decompose(N)) must equal L(N)"
+    );
 
     let recomposed = recompose(&model);
     let re_lang = language_upto(&recomposed, max_len);
-    assert_eq!(re_lang, net_lang, "round-trip: L(recompose(decompose(N))) must equal L(N)");
+    assert_eq!(
+        re_lang, net_lang,
+        "round-trip: L(recompose(decompose(N))) must equal L(N)"
+    );
 
     model
 }
@@ -72,7 +85,10 @@ fn sequence_net() -> WfNet {
 fn sequence_decomposes_to_partial_order() {
     let n = sequence_net();
     let model = assert_admits_and_roundtrips(&n, 8);
-    assert!(matches!(model, Powl::PartialOrder { .. }), "a total order is a partial order");
+    assert!(
+        matches!(model, Powl::PartialOrder { .. }),
+        "a total order is a partial order"
+    );
     assert_eq!(language_upto(&n, 8), lang(&[&["a", "b"]]));
 }
 
@@ -93,7 +109,10 @@ fn xor_net() -> WfNet {
 fn xor_decomposes_to_choice_graph() {
     let n = xor_net();
     let model = assert_admits_and_roundtrips(&n, 8);
-    assert!(matches!(model, Powl::Choice { .. }), "an exclusive choice is a choice graph");
+    assert!(
+        matches!(model, Powl::Choice { .. }),
+        "an exclusive choice is a choice graph"
+    );
     assert_eq!(language_upto(&n, 8), lang(&[&["a"], &["b"]]));
 }
 
@@ -148,7 +167,10 @@ fn loop_net() -> WfNet {
 fn loop_decomposes_to_cyclic_choice_graph() {
     let n = loop_net();
     let model = assert_admits_and_roundtrips(&n, 8);
-    assert!(matches!(model, Powl::Choice { .. }), "a loop is a cyclic choice graph");
+    assert!(
+        matches!(model, Powl::Choice { .. }),
+        "a loop is a cyclic choice graph"
+    );
     let expected = lang(&[
         &["a", "b"],
         &["a", "c", "b"],
@@ -195,11 +217,17 @@ fn non_separable_net() -> WfNet {
 #[test]
 fn non_separable_net_is_refused_with_receipt() {
     let n = non_separable_net();
-    assert!(!n.is_free_choice(), "the witness net is deliberately non-free-choice");
+    assert!(
+        !n.is_free_choice(),
+        "the witness net is deliberately non-free-choice"
+    );
 
     let refusal = convert(&n).expect_err("non-separable net must be refused, not approximated");
     assert!(!refusal.separable);
-    assert!(matches!(refusal.reason, RefusalReason::NonFreeChoice { .. }));
+    assert!(matches!(
+        refusal.reason,
+        RefusalReason::NonFreeChoice { .. }
+    ));
     // Receipt is the input net's content address.
     assert_eq!(refusal.net_hash, n.content_hash());
     assert_eq!(refusal.net_hash.len(), 64, "BLAKE3 hex receipt");

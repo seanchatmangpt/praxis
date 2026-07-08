@@ -14,7 +14,11 @@ use praxis_synthesis::fleet::lane;
 use praxis_synthesis::solver8::CoreCache;
 
 fn script(seed: u64, transient: u16, crashloop: Option<usize>) -> FaultScript {
-    FaultScript { seed, transient_per_mille: transient, crashloop_template: crashloop }
+    FaultScript {
+        seed,
+        transient_per_mille: transient,
+        crashloop_template: crashloop,
+    }
 }
 
 #[test]
@@ -78,17 +82,25 @@ fn crashloop_template_is_quarantined_by_epoch_two() {
         script(7, 0, Some(1)),
     );
     // Epoch 0's plan carries the quarantine action with quorum witnesses.
-    let PlanAction::QuarantineTemplate { template, witness_groups } =
-        &plans[0].actions[0];
+    let PlanAction::QuarantineTemplate {
+        template,
+        witness_groups,
+    } = &plans[0].actions[0];
     assert_eq!(*template, 1);
     assert!(*witness_groups >= 3, "cross-group quorum: {witness_groups}");
     // The cell receipt records it.
     assert_eq!(cell.quarantined_templates, vec![1]);
-    assert_eq!(cell.epoch_plan_hashes.len(), 2, "plan chain has one link per epoch");
+    assert_eq!(
+        cell.epoch_plan_hashes.len(),
+        2,
+        "plan chain has one link per epoch"
+    );
     // Final epoch: quarantine visible in the EXISTING refusal register via
     // the existing ':'-head bucketing — zero register changes.
     assert!(
-        cell.refusal_register.keys().any(|k| k == "template quarantined"),
+        cell.refusal_register
+            .keys()
+            .any(|k| k == "template quarantined"),
         "register: {:?}",
         cell.refusal_register
     );
@@ -112,7 +124,11 @@ fn parked_members_count_inside_refused_with_first_class_receipts() {
         script(7, 0, Some(1)),
     );
     assert!(cell.parked > 0);
-    assert_eq!(cell.admitted + cell.refused, 400, "parks live inside refused");
+    assert_eq!(
+        cell.admitted + cell.refused,
+        400,
+        "parks live inside refused"
+    );
     let parked = groups
         .iter()
         .flat_map(|g| &g.members)
@@ -171,10 +187,11 @@ fn cell_verification_and_the_untouched_foreign_verifier_still_pass() {
     let cell_path = dir.join(format!("sup-cell-{}.json", std::process::id()));
     let groups_path = dir.join(format!("sup-groups-{}.json", std::process::id()));
     std::fs::write(&cell_path, serde_json::to_string(&cell).expect("json")).expect("write");
-    std::fs::write(&groups_path, serde_json::to_string(&groups).expect("json"))
-        .expect("write");
-    let script_path =
-        concat!(env!("CARGO_MANIFEST_DIR"), "/../../scripts/foreign_verify.py");
+    std::fs::write(&groups_path, serde_json::to_string(&groups).expect("json")).expect("write");
+    let script_path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../scripts/foreign_verify.py"
+    );
     let out = std::process::Command::new("python3")
         .args([
             script_path,

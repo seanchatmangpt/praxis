@@ -79,7 +79,9 @@ fn test_nested_quoted_formula_does_not_leak_into_facts() {
     // The genuinely top-level, unquoted fact must still be present and
     // unaffected by the nested formula's contradictory content.
     assert!(
-        decoded.iter().any(|d| d.contains("/carol") && d.contains("Honest") && !d.contains("Dishonest")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/carol") && d.contains("Honest") && !d.contains("Dishonest")),
         "the real top-level fact ':carol a :Honest' must be preserved. Stored facts: {:?}",
         decoded
     );
@@ -106,7 +108,9 @@ fn test_chained_implication_across_two_distinct_rules() {
     let decoded = decode_all(&inferred);
 
     assert!(
-        decoded.iter().any(|d| d.contains("/fido") && d.contains("Mammal")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/fido") && d.contains("Mammal")),
         "rule 1 (Dog => Mammal) must fire directly off the base fact. Derived: {:?}",
         decoded
     );
@@ -137,7 +141,9 @@ fn test_chained_implication_through_log_implies_then_ordinary_rule() {
     let decoded = decode_all(&inferred);
 
     assert!(
-        decoded.iter().any(|d| d.contains("/bob") && d.contains("TaxPayer")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/bob") && d.contains("TaxPayer")),
         "expected :bob a :TaxPayer via log:implies. Derived: {:?}",
         decoded
     );
@@ -170,7 +176,9 @@ fn test_chained_log_implies_through_two_independent_implies_rules() {
     let decoded = decode_all(&inferred);
 
     assert!(
-        decoded.iter().any(|d| d.contains("/bob") && d.contains("TaxPayer")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/bob") && d.contains("TaxPayer")),
         "expected :bob a :TaxPayer via the FIRST log:implies rule. Derived: {:?}",
         decoded
     );
@@ -198,8 +206,14 @@ fn test_forsome_skolemizes_to_same_blank_node_within_one_scope() {
 
     let body_obj = &rules[0].body[0].pattern.o;
     let head_subj = &rules[0].head.s;
-    assert!(!body_obj.is_var(), "@forSome ?y in the body must be skolemized, not a variable");
-    assert!(!head_subj.is_var(), "@forSome ?y in the head must be skolemized, not a variable");
+    assert!(
+        !body_obj.is_var(),
+        "@forSome ?y in the body must be skolemized, not a variable"
+    );
+    assert!(
+        !head_subj.is_var(),
+        "@forSome ?y in the head must be skolemized, not a variable"
+    );
     assert_eq!(
         body_obj.to_encoded(),
         head_subj.to_encoded(),
@@ -264,8 +278,14 @@ fn test_forall_in_sibling_formulas_does_not_collide() {
 
     let var_a = &triples_a[0].s;
     let var_b = &triples_b[0].s;
-    assert!(var_a.is_var(), "@forAll ?x must remain a variable (universally quantified)");
-    assert!(var_b.is_var(), "@forAll ?x must remain a variable (universally quantified)");
+    assert!(
+        var_a.is_var(),
+        "@forAll ?x must remain a variable (universally quantified)"
+    );
+    assert!(
+        var_b.is_var(),
+        "@forAll ?x must remain a variable (universally quantified)"
+    );
     assert_ne!(
         var_a.to_encoded(),
         var_b.to_encoded(),
@@ -288,14 +308,21 @@ fn test_forall_declared_inside_rule_antecedent_braces_parses_and_scopes() {
     let input = "@prefix : <http://example.org/> .\n\
                  { @forAll ?x . ?x a :Dog } => { ?x a :Mammal }.";
 
-    let rules = Parser::parse_rules(input).expect("@forAll inside a rule's own antecedent braces must parse");
+    let rules = Parser::parse_rules(input)
+        .expect("@forAll inside a rule's own antecedent braces must parse");
     assert_eq!(1, rules.len());
     assert_eq!(1, rules[0].body.len());
 
     let body_subj = &rules[0].body[0].pattern.s;
     let head_subj = &rules[0].head.s;
-    assert!(body_subj.is_var(), "@forAll ?x must remain a variable (universally quantified)");
-    assert!(head_subj.is_var(), "@forAll ?x must remain a variable (universally quantified)");
+    assert!(
+        body_subj.is_var(),
+        "@forAll ?x must remain a variable (universally quantified)"
+    );
+    assert!(
+        head_subj.is_var(),
+        "@forAll ?x must remain a variable (universally quantified)"
+    );
     assert_eq!(
         body_subj.to_encoded(),
         head_subj.to_encoded(),
@@ -308,7 +335,8 @@ fn test_forall_declared_inside_rule_antecedent_braces_parses_and_scopes() {
     // must not collide with the first rule's variable.
     let input2 = "@prefix : <http://example.org/> .\n\
                   { @forAll ?x . ?x a :Cat } => { ?x a :Mammal }.";
-    let rules2 = Parser::parse_rules(input2).expect("second independent @forAll-in-antecedent rule should parse");
+    let rules2 = Parser::parse_rules(input2)
+        .expect("second independent @forAll-in-antecedent rule should parse");
     assert_ne!(
         rules[0].body[0].pattern.s.to_encoded(),
         rules2[0].body[0].pattern.s.to_encoded(),
@@ -351,7 +379,9 @@ fn test_two_independent_log_implies_literals_in_one_rule_body() {
     let decoded = decode_all(&inferred);
 
     assert!(
-        decoded.iter().any(|d| d.contains("/bob") && d.contains("TaxPayer")),
+        decoded
+            .iter()
+            .any(|d| d.contains("/bob") && d.contains("TaxPayer")),
         "expected :bob a :TaxPayer from the FIRST log:implies literal. Derived: {:?}",
         decoded
     );

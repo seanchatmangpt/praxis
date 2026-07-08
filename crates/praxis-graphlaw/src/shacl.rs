@@ -131,17 +131,27 @@ impl Vocab {
     pub fn new() -> Self {
         Vocab {
             rdf_type: Encoder::add("<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>".to_string()),
-            rdf_first: Encoder::add("<http://www.w3.org/1999/02/22-rdf-syntax-ns#first>".to_string()),
+            rdf_first: Encoder::add(
+                "<http://www.w3.org/1999/02/22-rdf-syntax-ns#first>".to_string(),
+            ),
             rdf_rest: Encoder::add("<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest>".to_string()),
             rdf_nil: Encoder::add("<http://www.w3.org/1999/02/22-rdf-syntax-ns#nil>".to_string()),
             rdfs_class: Encoder::add("<http://www.w3.org/2000/01/rdf-schema#Class>".to_string()),
-            rdfs_subclass_of: Encoder::add("<http://www.w3.org/2000/01/rdf-schema#subClassOf>".to_string()),
+            rdfs_subclass_of: Encoder::add(
+                "<http://www.w3.org/2000/01/rdf-schema#subClassOf>".to_string(),
+            ),
             sh_node_shape: Encoder::add("<http://www.w3.org/ns/shacl#NodeShape>".to_string()),
-            sh_property_shape: Encoder::add("<http://www.w3.org/ns/shacl#PropertyShape>".to_string()),
+            sh_property_shape: Encoder::add(
+                "<http://www.w3.org/ns/shacl#PropertyShape>".to_string(),
+            ),
             sh_target_class: Encoder::add("<http://www.w3.org/ns/shacl#targetClass>".to_string()),
             sh_target_node: Encoder::add("<http://www.w3.org/ns/shacl#targetNode>".to_string()),
-            sh_target_subjects_of: Encoder::add("<http://www.w3.org/ns/shacl#targetSubjectsOf>".to_string()),
-            sh_target_objects_of: Encoder::add("<http://www.w3.org/ns/shacl#targetObjectsOf>".to_string()),
+            sh_target_subjects_of: Encoder::add(
+                "<http://www.w3.org/ns/shacl#targetSubjectsOf>".to_string(),
+            ),
+            sh_target_objects_of: Encoder::add(
+                "<http://www.w3.org/ns/shacl#targetObjectsOf>".to_string(),
+            ),
             sh_property: Encoder::add("<http://www.w3.org/ns/shacl#property>".to_string()),
             sh_node: Encoder::add("<http://www.w3.org/ns/shacl#node>".to_string()),
             sh_path: Encoder::add("<http://www.w3.org/ns/shacl#path>".to_string()),
@@ -169,34 +179,62 @@ impl Vocab {
             sh_equals: Encoder::add("<http://www.w3.org/ns/shacl#equals>".to_string()),
             sh_disjoint: Encoder::add("<http://www.w3.org/ns/shacl#disjoint>".to_string()),
             sh_less_than: Encoder::add("<http://www.w3.org/ns/shacl#lessThan>".to_string()),
-            sh_less_than_or_equals: Encoder::add("<http://www.w3.org/ns/shacl#lessThanOrEquals>".to_string()),
-            sh_qualified_value_shape: Encoder::add("<http://www.w3.org/ns/shacl#qualifiedValueShape>".to_string()),
-            sh_qualified_min_count: Encoder::add("<http://www.w3.org/ns/shacl#qualifiedMinCount>".to_string()),
-            sh_qualified_max_count: Encoder::add("<http://www.w3.org/ns/shacl#qualifiedMaxCount>".to_string()),
+            sh_less_than_or_equals: Encoder::add(
+                "<http://www.w3.org/ns/shacl#lessThanOrEquals>".to_string(),
+            ),
+            sh_qualified_value_shape: Encoder::add(
+                "<http://www.w3.org/ns/shacl#qualifiedValueShape>".to_string(),
+            ),
+            sh_qualified_min_count: Encoder::add(
+                "<http://www.w3.org/ns/shacl#qualifiedMinCount>".to_string(),
+            ),
+            sh_qualified_max_count: Encoder::add(
+                "<http://www.w3.org/ns/shacl#qualifiedMaxCount>".to_string(),
+            ),
             sh_closed: Encoder::add("<http://www.w3.org/ns/shacl#closed>".to_string()),
-            sh_ignored_properties: Encoder::add("<http://www.w3.org/ns/shacl#ignoredProperties>".to_string()),
+            sh_ignored_properties: Encoder::add(
+                "<http://www.w3.org/ns/shacl#ignoredProperties>".to_string(),
+            ),
             sh_deactivated: Encoder::add("<http://www.w3.org/ns/shacl#deactivated>".to_string()),
             sh_message: Encoder::add("<http://www.w3.org/ns/shacl#message>".to_string()),
             sh_severity: Encoder::add("<http://www.w3.org/ns/shacl#severity>".to_string()),
             sh_violation: Encoder::add("<http://www.w3.org/ns/shacl#Violation>".to_string()),
             sh_warning: Encoder::add("<http://www.w3.org/ns/shacl#Warning>".to_string()),
             sh_info: Encoder::add("<http://www.w3.org/ns/shacl#Info>".to_string()),
-            sh_validation_report: Encoder::add("<http://www.w3.org/ns/shacl#ValidationReport>".to_string()),
+            sh_validation_report: Encoder::add(
+                "<http://www.w3.org/ns/shacl#ValidationReport>".to_string(),
+            ),
             sh_conforms: Encoder::add("<http://www.w3.org/ns/shacl#conforms>".to_string()),
             sh_result: Encoder::add("<http://www.w3.org/ns/shacl#result>".to_string()),
-            sh_validation_result: Encoder::add("<http://www.w3.org/ns/shacl#ValidationResult>".to_string()),
+            sh_validation_result: Encoder::add(
+                "<http://www.w3.org/ns/shacl#ValidationResult>".to_string(),
+            ),
             sh_focus_node: Encoder::add("<http://www.w3.org/ns/shacl#focusNode>".to_string()),
             sh_result_path: Encoder::add("<http://www.w3.org/ns/shacl#resultPath>".to_string()),
             sh_value: Encoder::add("<http://www.w3.org/ns/shacl#value>".to_string()),
-            sh_result_message: Encoder::add("<http://www.w3.org/ns/shacl#resultMessage>".to_string()),
-            sh_source_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#sourceConstraintComponent>".to_string()),
+            sh_result_message: Encoder::add(
+                "<http://www.w3.org/ns/shacl#resultMessage>".to_string(),
+            ),
+            sh_source_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#sourceConstraintComponent>".to_string(),
+            ),
             sh_source_shape: Encoder::add("<http://www.w3.org/ns/shacl#sourceShape>".to_string()),
-            sh_result_severity: Encoder::add("<http://www.w3.org/ns/shacl#resultSeverity>".to_string()),
-            sh_alternative_path: Encoder::add("<http://www.w3.org/ns/shacl#alternativePath>".to_string()),
+            sh_result_severity: Encoder::add(
+                "<http://www.w3.org/ns/shacl#resultSeverity>".to_string(),
+            ),
+            sh_alternative_path: Encoder::add(
+                "<http://www.w3.org/ns/shacl#alternativePath>".to_string(),
+            ),
             sh_inverse_path: Encoder::add("<http://www.w3.org/ns/shacl#inversePath>".to_string()),
-            sh_zero_or_more_path: Encoder::add("<http://www.w3.org/ns/shacl#zeroOrMorePath>".to_string()),
-            sh_one_or_more_path: Encoder::add("<http://www.w3.org/ns/shacl#oneOrMorePath>".to_string()),
-            sh_zero_or_one_path: Encoder::add("<http://www.w3.org/ns/shacl#zeroOrOnePath>".to_string()),
+            sh_zero_or_more_path: Encoder::add(
+                "<http://www.w3.org/ns/shacl#zeroOrMorePath>".to_string(),
+            ),
+            sh_one_or_more_path: Encoder::add(
+                "<http://www.w3.org/ns/shacl#oneOrMorePath>".to_string(),
+            ),
+            sh_zero_or_one_path: Encoder::add(
+                "<http://www.w3.org/ns/shacl#zeroOrOnePath>".to_string(),
+            ),
 
             // SPARQL-based constraints (sh:sparql / SPARQLConstraintComponent) and targets
             sh_sparql: Encoder::add("<http://www.w3.org/ns/shacl#sparql>".to_string()),
@@ -210,39 +248,101 @@ impl Vocab {
             sh_iri: Encoder::add("<http://www.w3.org/ns/shacl#IRI>".to_string()),
             sh_blank_node: Encoder::add("<http://www.w3.org/ns/shacl#BlankNode>".to_string()),
             sh_literal: Encoder::add("<http://www.w3.org/ns/shacl#Literal>".to_string()),
-            sh_blank_node_or_iri: Encoder::add("<http://www.w3.org/ns/shacl#BlankNodeOrIRI>".to_string()),
-            sh_blank_node_or_literal: Encoder::add("<http://www.w3.org/ns/shacl#BlankNodeOrLiteral>".to_string()),
-            sh_iri_or_literal: Encoder::add("<http://www.w3.org/ns/shacl#IRIOrLiteral>".to_string()),
+            sh_blank_node_or_iri: Encoder::add(
+                "<http://www.w3.org/ns/shacl#BlankNodeOrIRI>".to_string(),
+            ),
+            sh_blank_node_or_literal: Encoder::add(
+                "<http://www.w3.org/ns/shacl#BlankNodeOrLiteral>".to_string(),
+            ),
+            sh_iri_or_literal: Encoder::add(
+                "<http://www.w3.org/ns/shacl#IRIOrLiteral>".to_string(),
+            ),
 
             // Constraint Components
-            sh_min_count_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#MinCountConstraintComponent>".to_string()),
-            sh_max_count_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#MaxCountConstraintComponent>".to_string()),
-            sh_datatype_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#DatatypeConstraintComponent>".to_string()),
-            sh_class_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#ClassConstraintComponent>".to_string()),
-            sh_pattern_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#PatternConstraintComponent>".to_string()),
-            sh_in_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#InConstraintComponent>".to_string()),
-            sh_and_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#AndConstraintComponent>".to_string()),
-            sh_or_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#OrConstraintComponent>".to_string()),
-            sh_not_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#NotConstraintComponent>".to_string()),
-            sh_xone_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#XoneConstraintComponent>".to_string()),
-            sh_node_kind_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#NodeKindConstraintComponent>".to_string()),
-            sh_has_value_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#HasValueConstraintComponent>".to_string()),
-            sh_min_length_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#MinLengthConstraintComponent>".to_string()),
-            sh_max_length_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#MaxLengthConstraintComponent>".to_string()),
-            sh_min_exclusive_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#MinExclusiveConstraintComponent>".to_string()),
-            sh_min_inclusive_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#MinInclusiveConstraintComponent>".to_string()),
-            sh_max_exclusive_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#MaxExclusiveConstraintComponent>".to_string()),
-            sh_max_inclusive_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#MaxInclusiveConstraintComponent>".to_string()),
-            sh_language_in_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#LanguageInConstraintComponent>".to_string()),
-            sh_unique_lang_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#UniqueLangConstraintComponent>".to_string()),
-            sh_equals_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#EqualsConstraintComponent>".to_string()),
-            sh_disjoint_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#DisjointConstraintComponent>".to_string()),
-            sh_less_than_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#LessThanConstraintComponent>".to_string()),
-            sh_less_than_or_equals_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#LessThanOrEqualsConstraintComponent>".to_string()),
-            sh_qualified_value_shape_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#QualifiedValueShapeConstraintComponent>".to_string()),
-            sh_closed_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#ClosedConstraintComponent>".to_string()),
-            sh_node_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#NodeConstraintComponent>".to_string()),
-            sh_sparql_constraint_component: Encoder::add("<http://www.w3.org/ns/shacl#SPARQLConstraintComponent>".to_string()),
+            sh_min_count_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#MinCountConstraintComponent>".to_string(),
+            ),
+            sh_max_count_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#MaxCountConstraintComponent>".to_string(),
+            ),
+            sh_datatype_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#DatatypeConstraintComponent>".to_string(),
+            ),
+            sh_class_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#ClassConstraintComponent>".to_string(),
+            ),
+            sh_pattern_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#PatternConstraintComponent>".to_string(),
+            ),
+            sh_in_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#InConstraintComponent>".to_string(),
+            ),
+            sh_and_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#AndConstraintComponent>".to_string(),
+            ),
+            sh_or_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#OrConstraintComponent>".to_string(),
+            ),
+            sh_not_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#NotConstraintComponent>".to_string(),
+            ),
+            sh_xone_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#XoneConstraintComponent>".to_string(),
+            ),
+            sh_node_kind_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#NodeKindConstraintComponent>".to_string(),
+            ),
+            sh_has_value_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#HasValueConstraintComponent>".to_string(),
+            ),
+            sh_min_length_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#MinLengthConstraintComponent>".to_string(),
+            ),
+            sh_max_length_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#MaxLengthConstraintComponent>".to_string(),
+            ),
+            sh_min_exclusive_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#MinExclusiveConstraintComponent>".to_string(),
+            ),
+            sh_min_inclusive_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#MinInclusiveConstraintComponent>".to_string(),
+            ),
+            sh_max_exclusive_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#MaxExclusiveConstraintComponent>".to_string(),
+            ),
+            sh_max_inclusive_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#MaxInclusiveConstraintComponent>".to_string(),
+            ),
+            sh_language_in_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#LanguageInConstraintComponent>".to_string(),
+            ),
+            sh_unique_lang_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#UniqueLangConstraintComponent>".to_string(),
+            ),
+            sh_equals_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#EqualsConstraintComponent>".to_string(),
+            ),
+            sh_disjoint_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#DisjointConstraintComponent>".to_string(),
+            ),
+            sh_less_than_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#LessThanConstraintComponent>".to_string(),
+            ),
+            sh_less_than_or_equals_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#LessThanOrEqualsConstraintComponent>".to_string(),
+            ),
+            sh_qualified_value_shape_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#QualifiedValueShapeConstraintComponent>".to_string(),
+            ),
+            sh_closed_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#ClosedConstraintComponent>".to_string(),
+            ),
+            sh_node_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#NodeConstraintComponent>".to_string(),
+            ),
+            sh_sparql_constraint_component: Encoder::add(
+                "<http://www.w3.org/ns/shacl#SPARQLConstraintComponent>".to_string(),
+            ),
         }
     }
 }
@@ -263,7 +363,8 @@ pub struct ShapesGraph {
 
 impl ShapesGraph {
     pub fn parse(shapes_str: &str) -> Result<Self, String> {
-        let triples = crate::parser::Parser::parse_triples(shapes_str, crate::parser::Syntax::Turtle)?;
+        let triples =
+            crate::parser::Parser::parse_triples(shapes_str, crate::parser::Syntax::Turtle)?;
         let mut raw_index = TripleIndex::new();
         for triple in triples {
             raw_index.add(triple);
@@ -301,18 +402,26 @@ impl ValidationReport {
         let report_id = format!("report_{}", self.results.len());
         let report_term = VarOrTerm::new_blank_node(report_id);
 
-        let rdf_type = VarOrTerm::convert("http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_string());
-        let sh_validation_report = VarOrTerm::convert("http://www.w3.org/ns/shacl#ValidationReport".to_string());
+        let rdf_type =
+            VarOrTerm::convert("http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_string());
+        let sh_validation_report =
+            VarOrTerm::convert("http://www.w3.org/ns/shacl#ValidationReport".to_string());
         let sh_conforms = VarOrTerm::convert("http://www.w3.org/ns/shacl#conforms".to_string());
         let sh_result = VarOrTerm::convert("http://www.w3.org/ns/shacl#result".to_string());
         let sh_focus_node = VarOrTerm::convert("http://www.w3.org/ns/shacl#focusNode".to_string());
-        let sh_result_path = VarOrTerm::convert("http://www.w3.org/ns/shacl#resultPath".to_string());
+        let sh_result_path =
+            VarOrTerm::convert("http://www.w3.org/ns/shacl#resultPath".to_string());
         let sh_value = VarOrTerm::convert("http://www.w3.org/ns/shacl#value".to_string());
-        let sh_source_constraint_component = VarOrTerm::convert("http://www.w3.org/ns/shacl#sourceConstraintComponent".to_string());
-        let sh_source_shape = VarOrTerm::convert("http://www.w3.org/ns/shacl#sourceShape".to_string());
-        let sh_result_severity = VarOrTerm::convert("http://www.w3.org/ns/shacl#resultSeverity".to_string());
-        let sh_result_message = VarOrTerm::convert("http://www.w3.org/ns/shacl#resultMessage".to_string());
-        let sh_validation_result = VarOrTerm::convert("http://www.w3.org/ns/shacl#ValidationResult".to_string());
+        let sh_source_constraint_component =
+            VarOrTerm::convert("http://www.w3.org/ns/shacl#sourceConstraintComponent".to_string());
+        let sh_source_shape =
+            VarOrTerm::convert("http://www.w3.org/ns/shacl#sourceShape".to_string());
+        let sh_result_severity =
+            VarOrTerm::convert("http://www.w3.org/ns/shacl#resultSeverity".to_string());
+        let sh_result_message =
+            VarOrTerm::convert("http://www.w3.org/ns/shacl#resultMessage".to_string());
+        let sh_validation_result =
+            VarOrTerm::convert("http://www.w3.org/ns/shacl#ValidationResult".to_string());
 
         triples.push(Triple {
             s: report_term.clone(),
@@ -465,7 +574,15 @@ impl Validator {
             let focus_nodes = get_focus_nodes(data, shapes_index, shape, &vocab);
             for focus in focus_nodes {
                 let mut visited = HashSet::new();
-                validate_shape(data, shapes_index, &vocab, focus, shape, &mut results, &mut visited);
+                validate_shape(
+                    data,
+                    shapes_index,
+                    &vocab,
+                    focus,
+                    shape,
+                    &mut results,
+                    &mut visited,
+                );
             }
         }
 
@@ -561,15 +678,20 @@ fn get_rdf_list(shapes: &TripleIndex, list_node: usize) -> Vec<usize> {
     let mut result = Vec::new();
     let mut current = list_node;
     let nil_node = Encoder::get("<http://www.w3.org/1999/02/22-rdf-syntax-ns#nil>");
-    let first_pred = Encoder::get("<http://www.w3.org/1999/02/22-rdf-syntax-ns#first>").unwrap_or(0);
+    let first_pred =
+        Encoder::get("<http://www.w3.org/1999/02/22-rdf-syntax-ns#first>").unwrap_or(0);
     let rest_pred = Encoder::get("<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest>").unwrap_or(0);
     let mut visited = HashSet::new();
     while Some(current) != nil_node && visited.insert(current) {
         let firsts = get_objects(shapes, current, first_pred);
-        if firsts.is_empty() { break; }
+        if firsts.is_empty() {
+            break;
+        }
         result.push(firsts[0]);
         let rests = get_objects(shapes, current, rest_pred);
-        if rests.is_empty() { break; }
+        if rests.is_empty() {
+            break;
+        }
         current = rests[0];
     }
     result
@@ -581,9 +703,13 @@ pub(crate) fn get_datatype(term_id: usize) -> Option<usize> {
         if let Some(dt) = lit.datatype {
             Some(dt)
         } else if lit.lang.is_some() {
-            Some(Encoder::add("<http://www.w3.org/1999/02/22-rdf-syntax-ns#langString>".to_string()))
+            Some(Encoder::add(
+                "<http://www.w3.org/1999/02/22-rdf-syntax-ns#langString>".to_string(),
+            ))
         } else {
-            Some(Encoder::add("<http://www.w3.org/2001/XMLSchema#string>".to_string()))
+            Some(Encoder::add(
+                "<http://www.w3.org/2001/XMLSchema#string>".to_string(),
+            ))
         }
     } else {
         None
@@ -646,14 +772,22 @@ fn check_datatype(x: usize, expected_dt: usize) -> bool {
     }
 }
 
-fn has_class(data: &TripleIndex, x: usize, class: usize, rdfs_subclass_of: usize, rdf_type: usize) -> bool {
+fn has_class(
+    data: &TripleIndex,
+    x: usize,
+    class: usize,
+    rdfs_subclass_of: usize,
+    rdf_type: usize,
+) -> bool {
     let types = get_objects(data, x, rdf_type);
     for t in types {
         let mut visited = HashSet::new();
         let mut queue = vec![t];
         while !queue.is_empty() {
             let current = queue.remove(0);
-            if current == class { return true; }
+            if current == class {
+                return true;
+            }
             if visited.insert(current) {
                 for p in get_objects(data, current, rdfs_subclass_of) {
                     queue.push(p);
@@ -670,7 +804,7 @@ pub(crate) fn get_lexical_form(x: usize) -> Option<String> {
         Term::Iri(_) => {
             let s = Encoder::decode(&x)?;
             if s.starts_with('<') && s.ends_with('>') {
-                Some(s[1..s.len()-1].to_string())
+                Some(s[1..s.len() - 1].to_string())
             } else {
                 Some(s)
             }
@@ -795,10 +929,18 @@ pub(crate) fn match_regex(pattern: &str, text: &str, flags: &str) -> bool {
     let mut builder = regex::RegexBuilder::new(pattern);
     for c in flags.chars() {
         match c {
-            'i' => { builder.case_insensitive(true); }
-            'm' => { builder.multi_line(true); }
-            's' => { builder.dot_matches_new_line(true); }
-            'x' => { builder.ignore_whitespace(true); }
+            'i' => {
+                builder.case_insensitive(true);
+            }
+            'm' => {
+                builder.multi_line(true);
+            }
+            's' => {
+                builder.dot_matches_new_line(true);
+            }
+            'x' => {
+                builder.ignore_whitespace(true);
+            }
             _ => {}
         }
     }
@@ -817,12 +959,20 @@ pub(crate) fn decode_to_term(id: usize) -> Term {
 
 fn get_severity(shapes: &TripleIndex, shape_node: usize, vocab: &Vocab) -> usize {
     let sevs = get_objects(shapes, shape_node, vocab.sh_severity);
-    if sevs.is_empty() { vocab.sh_violation } else { sevs[0] }
+    if sevs.is_empty() {
+        vocab.sh_violation
+    } else {
+        sevs[0]
+    }
 }
 
 /// Returns each sh:message value on `shape_node` paired with its language tag
 /// (if any).
-fn get_shape_messages(shapes: &TripleIndex, shape_node: usize, vocab: &Vocab) -> Vec<(Option<String>, String)> {
+fn get_shape_messages(
+    shapes: &TripleIndex,
+    shape_node: usize,
+    vocab: &Vocab,
+) -> Vec<(Option<String>, String)> {
     get_objects(shapes, shape_node, vocab.sh_message)
         .into_iter()
         .filter_map(|m| get_lexical_form(m).map(|text| (get_lang_tag(m), text)))
@@ -968,8 +1118,13 @@ fn validate_sparql_constraint(
 
     let this_syntax = term_to_sparql_syntax(this_node);
 
-    if let Some(select_lit) = get_objects(shapes, sparql_node, vocab.sh_select).first().copied() {
-        let Some(query_text) = get_lexical_form(select_lit) else { return; };
+    if let Some(select_lit) = get_objects(shapes, sparql_node, vocab.sh_select)
+        .first()
+        .copied()
+    {
+        let Some(query_text) = get_lexical_form(select_lit) else {
+            return;
+        };
         let substituted = substitute_this_as_bound_variable(&query_text, &this_syntax);
         if let Ok(rows) = evaluate_sparql_text(data, &substituted) {
             // Minimal SPARQLConstraintComponent semantics: any solution row is
@@ -1008,7 +1163,10 @@ fn validate_sparql_constraint(
         // limitation): the SHACL SPARQL constraint components spec assumes a
         // pre-validated shapes graph, and surfacing a parse error as a Rust
         // panic/error would abort validation for the whole report.
-    } else if let Some(ask_lit) = get_objects(shapes, sparql_node, vocab.sh_ask).first().copied() {
+    } else if let Some(ask_lit) = get_objects(shapes, sparql_node, vocab.sh_ask)
+        .first()
+        .copied()
+    {
         if let Some(query_text) = get_lexical_form(ask_lit) {
             let substituted = substitute_this_as_bound_variable(&query_text, &this_syntax);
             if let Ok(rows) = evaluate_sparql_text(data, &substituted) {
@@ -1052,7 +1210,9 @@ fn get_focus_nodes(
     for pred in get_objects(shapes, shape_id, vocab.sh_target_subjects_of) {
         if let Some(objs) = data.pos.get(&pred) {
             for subjs in objs.values() {
-                for (s, _, _) in subjs { focus_nodes.insert(*s); }
+                for (s, _, _) in subjs {
+                    focus_nodes.insert(*s);
+                }
             }
         }
     }
@@ -1060,17 +1220,29 @@ fn get_focus_nodes(
     // 4. sh:targetObjectsOf
     for pred in get_objects(shapes, shape_id, vocab.sh_target_objects_of) {
         if let Some(objs) = data.pos.get(&pred) {
-            for o in objs.keys() { focus_nodes.insert(*o); }
+            for o in objs.keys() {
+                focus_nodes.insert(*o);
+            }
         }
     }
 
     // 5. sh:target [ a sh:SPARQLTarget ; sh:select "SELECT ?this WHERE {...}" ]
     let sparql_targets = get_objects(shapes, shape_id, vocab.sh_target);
     for target_node in &sparql_targets {
-        let is_sparql_target = contains_triple(shapes, *target_node, vocab.rdf_type, vocab.sh_sparql_target);
-        if !is_sparql_target { continue; }
-        let Some(select_lit) = get_objects(shapes, *target_node, vocab.sh_select).first().copied() else { continue; };
-        let Some(query_text) = get_lexical_form(select_lit) else { continue; };
+        let is_sparql_target =
+            contains_triple(shapes, *target_node, vocab.rdf_type, vocab.sh_sparql_target);
+        if !is_sparql_target {
+            continue;
+        }
+        let Some(select_lit) = get_objects(shapes, *target_node, vocab.sh_select)
+            .first()
+            .copied()
+        else {
+            continue;
+        };
+        let Some(query_text) = get_lexical_form(select_lit) else {
+            continue;
+        };
         if let Ok(rows) = evaluate_sparql_text(data, &query_text) {
             for row in rows {
                 for b in &row {
@@ -1085,16 +1257,14 @@ fn get_focus_nodes(
 
     // Implicit class target: only when shape is also declared as a class AND has no other targets
     if !is_blank_node(shape_id) {
-        let has_explicit_target =
-            !get_objects(shapes, shape_id, vocab.sh_target_class).is_empty()
+        let has_explicit_target = !get_objects(shapes, shape_id, vocab.sh_target_class).is_empty()
             || !get_objects(shapes, shape_id, vocab.sh_target_node).is_empty()
             || !get_objects(shapes, shape_id, vocab.sh_target_subjects_of).is_empty()
             || !get_objects(shapes, shape_id, vocab.sh_target_objects_of).is_empty()
             || !sparql_targets.is_empty();
 
         if !has_explicit_target {
-            let is_class =
-                contains_triple(shapes, shape_id, vocab.rdf_type, vocab.rdfs_class)
+            let is_class = contains_triple(shapes, shape_id, vocab.rdf_type, vocab.rdfs_class)
                 || contains_triple(data, shape_id, vocab.rdf_type, vocab.rdfs_class);
             if is_class {
                 for inst in get_subjects(data, vocab.rdf_type, shape_id) {
@@ -1124,7 +1294,9 @@ fn eval_path(
                 next.extend(eval_path(data, shapes, node, step));
             }
             current = next;
-            if current.is_empty() { break; }
+            if current.is_empty() {
+                break;
+            }
         }
         return current;
     }
@@ -1141,7 +1313,8 @@ fn eval_path(
     }
 
     // sh:alternativePath
-    let sh_alternative_path = Encoder::get("<http://www.w3.org/ns/shacl#alternativePath>").unwrap_or(0);
+    let sh_alternative_path =
+        Encoder::get("<http://www.w3.org/ns/shacl#alternativePath>").unwrap_or(0);
     let alternative = get_objects(shapes, path_node, sh_alternative_path);
     if !alternative.is_empty() {
         let mut results = Vec::new();
@@ -1165,7 +1338,10 @@ fn eval_path(
             let node = queue.remove(0);
             for target in &zero_or_more {
                 for n in eval_path(data, shapes, node, *target) {
-                    if visited.insert(n) { results.push(n); queue.push(n); }
+                    if visited.insert(n) {
+                        results.push(n);
+                        queue.push(n);
+                    }
                 }
             }
         }
@@ -1183,7 +1359,10 @@ fn eval_path(
             let node = queue.remove(0);
             for target in &one_or_more {
                 for n in eval_path(data, shapes, node, *target) {
-                    if visited.insert(n) { results.push(n); queue.push(n); }
+                    if visited.insert(n) {
+                        results.push(n);
+                        queue.push(n);
+                    }
                 }
             }
         }
@@ -1197,7 +1376,9 @@ fn eval_path(
         let mut results = vec![focus_node];
         for target in zero_or_one {
             for n in eval_path(data, shapes, focus_node, target) {
-                if !results.contains(&n) { results.push(n); }
+                if !results.contains(&n) {
+                    results.push(n);
+                }
             }
         }
         return results;
@@ -1257,7 +1438,9 @@ fn validate_shape(
     // top-level PropertyShapes with their own sh:targetNode.
     // -----------------------------------------------------------------------
     if !get_objects(shapes, shape_node, vocab.sh_path).is_empty() {
-        validate_property_shape(data, shapes, vocab, focus_node, shape_node, results, visited);
+        validate_property_shape(
+            data, shapes, vocab, focus_node, shape_node, results, visited,
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -1282,32 +1465,66 @@ fn validate_shape(
             true
         };
         if !ok {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_node_kind_constraint_component, shape_node, severity, default_msg.clone()));
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_node_kind_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
     // sh:datatype (node-level)
     for dt in get_objects(shapes, shape_node, vocab.sh_datatype) {
         if !check_datatype(focus_node, dt) {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_datatype_constraint_component, shape_node, severity, default_msg.clone()));
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_datatype_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
     // sh:class (node-level)
     for class in get_objects(shapes, shape_node, vocab.sh_class) {
-        if !has_class(data, focus_node, class, vocab.rdfs_subclass_of, vocab.rdf_type) {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_class_constraint_component, shape_node, severity, default_msg.clone()));
+        if !has_class(
+            data,
+            focus_node,
+            class,
+            vocab.rdfs_subclass_of,
+            vocab.rdf_type,
+        ) {
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_class_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
     // sh:hasValue (node-level)
     for hv in get_objects(shapes, shape_node, vocab.sh_has_value) {
         if focus_node != hv {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_has_value_constraint_component, shape_node, severity, default_msg.clone()));
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_has_value_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
@@ -1315,8 +1532,15 @@ fn validate_shape(
     for in_list in get_objects(shapes, shape_node, vocab.sh_in) {
         let allowed = get_rdf_list(shapes, in_list);
         if !allowed.contains(&focus_node) {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_in_constraint_component, shape_node, severity, default_msg.clone()));
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_in_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
@@ -1329,8 +1553,15 @@ fn validate_shape(
         if let Some(pat_str) = get_lexical_form(pat) {
             let focus_str = get_lexical_form(focus_node).unwrap_or_default();
             if !match_regex(&pat_str, &focus_str, &flags_str) {
-                results.push(make_result(focus_node, None, Some(focus_node),
-                    vocab.sh_pattern_constraint_component, shape_node, severity, default_msg.clone()));
+                results.push(make_result(
+                    focus_node,
+                    None,
+                    Some(focus_node),
+                    vocab.sh_pattern_constraint_component,
+                    shape_node,
+                    severity,
+                    default_msg.clone(),
+                ));
             }
         }
     }
@@ -1345,16 +1576,30 @@ fn validate_shape(
     for ml in get_objects(shapes, shape_node, vocab.sh_min_length) {
         if let Some(v) = get_integer_value(ml) {
             if char_len.is_none_or(|len| len < v) {
-                results.push(make_result(focus_node, None, Some(focus_node),
-                    vocab.sh_min_length_constraint_component, shape_node, severity, default_msg.clone()));
+                results.push(make_result(
+                    focus_node,
+                    None,
+                    Some(focus_node),
+                    vocab.sh_min_length_constraint_component,
+                    shape_node,
+                    severity,
+                    default_msg.clone(),
+                ));
             }
         }
     }
     for ml in get_objects(shapes, shape_node, vocab.sh_max_length) {
         if let Some(v) = get_integer_value(ml) {
             if char_len.is_none_or(|len| len > v) {
-                results.push(make_result(focus_node, None, Some(focus_node),
-                    vocab.sh_max_length_constraint_component, shape_node, severity, default_msg.clone()));
+                results.push(make_result(
+                    focus_node,
+                    None,
+                    Some(focus_node),
+                    vocab.sh_max_length_constraint_component,
+                    shape_node,
+                    severity,
+                    default_msg.clone(),
+                ));
             }
         }
     }
@@ -1363,29 +1608,65 @@ fn validate_shape(
     for bound in get_objects(shapes, shape_node, vocab.sh_min_exclusive) {
         match compare_numeric(focus_node, bound) {
             Some(std::cmp::Ordering::Greater) => {}
-            _ => { results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_min_exclusive_constraint_component, shape_node, severity, default_msg.clone())); }
+            _ => {
+                results.push(make_result(
+                    focus_node,
+                    None,
+                    Some(focus_node),
+                    vocab.sh_min_exclusive_constraint_component,
+                    shape_node,
+                    severity,
+                    default_msg.clone(),
+                ));
+            }
         }
     }
     for bound in get_objects(shapes, shape_node, vocab.sh_min_inclusive) {
         match compare_numeric(focus_node, bound) {
             Some(std::cmp::Ordering::Greater) | Some(std::cmp::Ordering::Equal) => {}
-            _ => { results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_min_inclusive_constraint_component, shape_node, severity, default_msg.clone())); }
+            _ => {
+                results.push(make_result(
+                    focus_node,
+                    None,
+                    Some(focus_node),
+                    vocab.sh_min_inclusive_constraint_component,
+                    shape_node,
+                    severity,
+                    default_msg.clone(),
+                ));
+            }
         }
     }
     for bound in get_objects(shapes, shape_node, vocab.sh_max_exclusive) {
         match compare_numeric(focus_node, bound) {
             Some(std::cmp::Ordering::Less) => {}
-            _ => { results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_max_exclusive_constraint_component, shape_node, severity, default_msg.clone())); }
+            _ => {
+                results.push(make_result(
+                    focus_node,
+                    None,
+                    Some(focus_node),
+                    vocab.sh_max_exclusive_constraint_component,
+                    shape_node,
+                    severity,
+                    default_msg.clone(),
+                ));
+            }
         }
     }
     for bound in get_objects(shapes, shape_node, vocab.sh_max_inclusive) {
         match compare_numeric(focus_node, bound) {
             Some(std::cmp::Ordering::Less) | Some(std::cmp::Ordering::Equal) => {}
-            _ => { results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_max_inclusive_constraint_component, shape_node, severity, default_msg.clone())); }
+            _ => {
+                results.push(make_result(
+                    focus_node,
+                    None,
+                    Some(focus_node),
+                    vocab.sh_max_inclusive_constraint_component,
+                    shape_node,
+                    severity,
+                    default_msg.clone(),
+                ));
+            }
         }
     }
 
@@ -1397,52 +1678,88 @@ fn validate_shape(
     // result per non-conforming focus node).
     for and_list in get_objects(shapes, shape_node, vocab.sh_and) {
         let sub_shapes = get_rdf_list(shapes, and_list);
-        let conforms = sub_shapes.iter().all(|&sub| {
-            conforms_to_shape(data, shapes, vocab, focus_node, sub, visited)
-        });
+        let conforms = sub_shapes
+            .iter()
+            .all(|&sub| conforms_to_shape(data, shapes, vocab, focus_node, sub, visited));
         if !conforms {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_and_constraint_component, shape_node, severity, default_msg.clone()));
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_and_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
     // sh:or (node-level)
     for or_list in get_objects(shapes, shape_node, vocab.sh_or) {
         let sub_shapes = get_rdf_list(shapes, or_list);
-        let conforms = sub_shapes.iter().any(|&sub| {
-            conforms_to_shape(data, shapes, vocab, focus_node, sub, visited)
-        });
+        let conforms = sub_shapes
+            .iter()
+            .any(|&sub| conforms_to_shape(data, shapes, vocab, focus_node, sub, visited));
         if !conforms {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_or_constraint_component, shape_node, severity, default_msg.clone()));
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_or_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
     // sh:xone (node-level) — exactly one sub-shape must conform
     for xone_list in get_objects(shapes, shape_node, vocab.sh_xone) {
         let sub_shapes = get_rdf_list(shapes, xone_list);
-        let count = sub_shapes.iter()
+        let count = sub_shapes
+            .iter()
             .filter(|&&sub| conforms_to_shape(data, shapes, vocab, focus_node, sub, visited))
             .count();
         if count != 1 {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_xone_constraint_component, shape_node, severity, default_msg.clone()));
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_xone_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
     // sh:not (node-level)
     for not_shape in get_objects(shapes, shape_node, vocab.sh_not) {
         if conforms_to_shape(data, shapes, vocab, focus_node, not_shape, visited) {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_not_constraint_component, shape_node, severity, default_msg.clone()));
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_not_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
     // sh:node (node-level) — the focus node itself must conform to the referenced shape
     for node_shape in get_objects(shapes, shape_node, vocab.sh_node) {
         if !conforms_to_shape(data, shapes, vocab, focus_node, node_shape, visited) {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_node_constraint_component, shape_node, severity, default_msg.clone()));
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_node_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
@@ -1450,17 +1767,33 @@ fn validate_shape(
     // components are defined in terms of a shape's value nodes, which for a
     // NodeShape/direct constraint is just the focus node itself.
     for eq_prop in get_objects(shapes, shape_node, vocab.sh_equals) {
-        let other_values: HashSet<usize> = eval_path(data, shapes, focus_node, eq_prop).into_iter().collect();
+        let other_values: HashSet<usize> = eval_path(data, shapes, focus_node, eq_prop)
+            .into_iter()
+            .collect();
         let self_values: HashSet<usize> = std::iter::once(focus_node).collect();
         if self_values != other_values {
             if !other_values.contains(&focus_node) {
-                results.push(make_result(focus_node, None, Some(focus_node),
-                    vocab.sh_equals_constraint_component, shape_node, severity, default_msg.clone()));
+                results.push(make_result(
+                    focus_node,
+                    None,
+                    Some(focus_node),
+                    vocab.sh_equals_constraint_component,
+                    shape_node,
+                    severity,
+                    default_msg.clone(),
+                ));
             }
             for &v in &other_values {
                 if v != focus_node {
-                    results.push(make_result(focus_node, None, Some(v),
-                        vocab.sh_equals_constraint_component, shape_node, severity, default_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        None,
+                        Some(v),
+                        vocab.sh_equals_constraint_component,
+                        shape_node,
+                        severity,
+                        default_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1468,10 +1801,19 @@ fn validate_shape(
 
     // sh:disjoint (node-level)
     for disj_prop in get_objects(shapes, shape_node, vocab.sh_disjoint) {
-        let other_values: HashSet<usize> = eval_path(data, shapes, focus_node, disj_prop).into_iter().collect();
+        let other_values: HashSet<usize> = eval_path(data, shapes, focus_node, disj_prop)
+            .into_iter()
+            .collect();
         if other_values.contains(&focus_node) {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_disjoint_constraint_component, shape_node, severity, default_msg.clone()));
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_disjoint_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
@@ -1483,13 +1825,30 @@ fn validate_shape(
             .map(|s| s.to_lowercase())
             .collect();
         if let Some(tag) = get_lang_tag(focus_node) {
-            if !allowed_langs.iter().any(|al| tag.to_lowercase().starts_with(al.as_str())) {
-                results.push(make_result(focus_node, None, Some(focus_node),
-                    vocab.sh_language_in_constraint_component, shape_node, severity, default_msg.clone()));
+            if !allowed_langs
+                .iter()
+                .any(|al| tag.to_lowercase().starts_with(al.as_str()))
+            {
+                results.push(make_result(
+                    focus_node,
+                    None,
+                    Some(focus_node),
+                    vocab.sh_language_in_constraint_component,
+                    shape_node,
+                    severity,
+                    default_msg.clone(),
+                ));
             }
         } else {
-            results.push(make_result(focus_node, None, Some(focus_node),
-                vocab.sh_language_in_constraint_component, shape_node, severity, default_msg.clone()));
+            results.push(make_result(
+                focus_node,
+                None,
+                Some(focus_node),
+                vocab.sh_language_in_constraint_component,
+                shape_node,
+                severity,
+                default_msg.clone(),
+            ));
         }
     }
 
@@ -1500,7 +1859,17 @@ fn validate_shape(
     // PropertyShape is only honoured when that shape is also reached directly
     // (e.g. via sh:node/sh:and/sh:or).
     for sparql_node in get_objects(shapes, shape_node, vocab.sh_sparql) {
-        validate_sparql_constraint(data, shapes, vocab, focus_node, shape_node, sparql_node, severity, &default_msg, results);
+        validate_sparql_constraint(
+            data,
+            shapes,
+            vocab,
+            focus_node,
+            shape_node,
+            sparql_node,
+            severity,
+            &default_msg,
+            results,
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -1511,7 +1880,15 @@ fn validate_shape(
     }
 
     validate_shape_closed_and_targets_tail(
-        data, shapes, vocab, focus_node, shape_node, severity, default_msg.clone(), results, visited,
+        data,
+        shapes,
+        vocab,
+        focus_node,
+        shape_node,
+        severity,
+        default_msg.clone(),
+        results,
+        visited,
     );
 }
 
@@ -1534,7 +1911,9 @@ fn validate_property_shape(
 ) {
     {
         let paths = get_objects(shapes, ps, vocab.sh_path);
-        if paths.is_empty() { return; }
+        if paths.is_empty() {
+            return;
+        }
         let path = paths[0];
         let v_nodes = eval_path(data, shapes, focus_node, path);
         let ps_severity = get_severity(shapes, ps, vocab);
@@ -1545,8 +1924,15 @@ fn validate_property_shape(
         for mc in get_objects(shapes, ps, vocab.sh_min_count) {
             if let Some(mc_val) = get_integer_value(mc) {
                 if (v_nodes.len() as i64) < mc_val {
-                    results.push(make_result(focus_node, Some(path), None,
-                        vocab.sh_min_count_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        None,
+                        vocab.sh_min_count_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1555,8 +1941,15 @@ fn validate_property_shape(
         for mc in get_objects(shapes, ps, vocab.sh_max_count) {
             if let Some(mc_val) = get_integer_value(mc) {
                 if (v_nodes.len() as i64) > mc_val {
-                    results.push(make_result(focus_node, Some(path), None,
-                        vocab.sh_max_count_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        None,
+                        vocab.sh_max_count_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1565,8 +1958,15 @@ fn validate_property_shape(
         for dt in get_objects(shapes, ps, vocab.sh_datatype) {
             for &v in &v_nodes {
                 if !check_datatype(v, dt) {
-                    results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_datatype_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        Some(v),
+                        vocab.sh_datatype_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1574,16 +1974,31 @@ fn validate_property_shape(
         // sh:nodeKind (per-value)
         for nk in get_objects(shapes, ps, vocab.sh_node_kind) {
             for &v in &v_nodes {
-                let ok = if nk == vocab.sh_iri { is_iri(v) }
-                    else if nk == vocab.sh_blank_node { is_blank_node(v) }
-                    else if nk == vocab.sh_literal { is_literal(v) }
-                    else if nk == vocab.sh_blank_node_or_iri { is_blank_node(v) || is_iri(v) }
-                    else if nk == vocab.sh_blank_node_or_literal { is_blank_node(v) || is_literal(v) }
-                    else if nk == vocab.sh_iri_or_literal { is_iri(v) || is_literal(v) }
-                    else { true };
+                let ok = if nk == vocab.sh_iri {
+                    is_iri(v)
+                } else if nk == vocab.sh_blank_node {
+                    is_blank_node(v)
+                } else if nk == vocab.sh_literal {
+                    is_literal(v)
+                } else if nk == vocab.sh_blank_node_or_iri {
+                    is_blank_node(v) || is_iri(v)
+                } else if nk == vocab.sh_blank_node_or_literal {
+                    is_blank_node(v) || is_literal(v)
+                } else if nk == vocab.sh_iri_or_literal {
+                    is_iri(v) || is_literal(v)
+                } else {
+                    true
+                };
                 if !ok {
-                    results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_node_kind_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        Some(v),
+                        vocab.sh_node_kind_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1592,8 +2007,15 @@ fn validate_property_shape(
         for class in get_objects(shapes, ps, vocab.sh_class) {
             for &v in &v_nodes {
                 if !has_class(data, v, class, vocab.rdfs_subclass_of, vocab.rdf_type) {
-                    results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_class_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        Some(v),
+                        vocab.sh_class_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1601,8 +2023,15 @@ fn validate_property_shape(
         // sh:hasValue (per-property — value must appear at least once)
         for hv in get_objects(shapes, ps, vocab.sh_has_value) {
             if !v_nodes.contains(&hv) {
-                results.push(make_result(focus_node, Some(path), None,
-                    vocab.sh_has_value_constraint_component, ps, ps_severity, ps_msg.clone()));
+                results.push(make_result(
+                    focus_node,
+                    Some(path),
+                    None,
+                    vocab.sh_has_value_constraint_component,
+                    ps,
+                    ps_severity,
+                    ps_msg.clone(),
+                ));
             }
         }
 
@@ -1611,8 +2040,15 @@ fn validate_property_shape(
             let allowed = get_rdf_list(shapes, in_list);
             for &v in &v_nodes {
                 if !allowed.contains(&v) {
-                    results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_in_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        Some(v),
+                        vocab.sh_in_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1627,8 +2063,15 @@ fn validate_property_shape(
                 for &v in &v_nodes {
                     let v_str = get_lexical_form(v).unwrap_or_default();
                     if !match_regex(&pat_str, &v_str, &ps_flags) {
-                        results.push(make_result(focus_node, Some(path), Some(v),
-                            vocab.sh_pattern_constraint_component, ps, ps_severity, ps_msg.clone()));
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            Some(v),
+                            vocab.sh_pattern_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
                     }
                 }
             }
@@ -1645,8 +2088,15 @@ fn validate_property_shape(
                         None => true,
                     };
                     if violates {
-                        results.push(make_result(focus_node, Some(path), Some(v),
-                            vocab.sh_min_length_constraint_component, ps, ps_severity, ps_msg.clone()));
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            Some(v),
+                            vocab.sh_min_length_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
                     }
                 }
             }
@@ -1659,8 +2109,15 @@ fn validate_property_shape(
                         None => true,
                     };
                     if violates {
-                        results.push(make_result(focus_node, Some(path), Some(v),
-                            vocab.sh_max_length_constraint_component, ps, ps_severity, ps_msg.clone()));
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            Some(v),
+                            vocab.sh_max_length_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
                     }
                 }
             }
@@ -1671,8 +2128,17 @@ fn validate_property_shape(
             for &v in &v_nodes {
                 match compare_numeric(v, bound) {
                     Some(std::cmp::Ordering::Greater) => {}
-                    _ => { results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_min_exclusive_constraint_component, ps, ps_severity, ps_msg.clone())); }
+                    _ => {
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            Some(v),
+                            vocab.sh_min_exclusive_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
+                    }
                 }
             }
         }
@@ -1680,8 +2146,17 @@ fn validate_property_shape(
             for &v in &v_nodes {
                 match compare_numeric(v, bound) {
                     Some(std::cmp::Ordering::Greater) | Some(std::cmp::Ordering::Equal) => {}
-                    _ => { results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_min_inclusive_constraint_component, ps, ps_severity, ps_msg.clone())); }
+                    _ => {
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            Some(v),
+                            vocab.sh_min_inclusive_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
+                    }
                 }
             }
         }
@@ -1689,8 +2164,17 @@ fn validate_property_shape(
             for &v in &v_nodes {
                 match compare_numeric(v, bound) {
                     Some(std::cmp::Ordering::Less) => {}
-                    _ => { results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_max_exclusive_constraint_component, ps, ps_severity, ps_msg.clone())); }
+                    _ => {
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            Some(v),
+                            vocab.sh_max_exclusive_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
+                    }
                 }
             }
         }
@@ -1698,8 +2182,17 @@ fn validate_property_shape(
             for &v in &v_nodes {
                 match compare_numeric(v, bound) {
                     Some(std::cmp::Ordering::Less) | Some(std::cmp::Ordering::Equal) => {}
-                    _ => { results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_max_inclusive_constraint_component, ps, ps_severity, ps_msg.clone())); }
+                    _ => {
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            Some(v),
+                            vocab.sh_max_inclusive_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
+                    }
                 }
             }
         }
@@ -1713,14 +2206,31 @@ fn validate_property_shape(
                 .collect();
             for &v in &v_nodes {
                 if let Some(tag) = get_lang_tag(v) {
-                    if !allowed_langs.iter().any(|al| tag.to_lowercase().starts_with(al.as_str())) {
-                        results.push(make_result(focus_node, Some(path), Some(v),
-                            vocab.sh_language_in_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    if !allowed_langs
+                        .iter()
+                        .any(|al| tag.to_lowercase().starts_with(al.as_str()))
+                    {
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            Some(v),
+                            vocab.sh_language_in_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
                     }
                 } else {
                     // Value has no language tag — violates sh:languageIn
-                    results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_language_in_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        Some(v),
+                        vocab.sh_language_in_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1733,7 +2243,8 @@ fn validate_property_shape(
         for ul in unique_lang_vals {
             if let Some(lex) = get_lexical_form(ul) {
                 if lex == "true" || lex == "1" {
-                    let mut lang_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+                    let mut lang_counts: std::collections::HashMap<String, usize> =
+                        std::collections::HashMap::new();
                     for &v in &v_nodes {
                         if let Some(tag) = get_lang_tag(v) {
                             *lang_counts.entry(tag.to_lowercase()).or_insert(0) += 1;
@@ -1741,8 +2252,15 @@ fn validate_property_shape(
                     }
                     for count in lang_counts.values() {
                         if *count > 1 {
-                            results.push(make_result(focus_node, Some(path), None,
-                                vocab.sh_unique_lang_constraint_component, ps, ps_severity, ps_msg.clone()));
+                            results.push(make_result(
+                                focus_node,
+                                Some(path),
+                                None,
+                                vocab.sh_unique_lang_constraint_component,
+                                ps,
+                                ps_severity,
+                                ps_msg.clone(),
+                            ));
                         }
                     }
                 }
@@ -1751,19 +2269,35 @@ fn validate_property_shape(
 
         // sh:equals (values must equal values for the given path)
         for eq_prop in get_objects(shapes, ps, vocab.sh_equals) {
-            let other_values: HashSet<usize> = eval_path(data, shapes, focus_node, eq_prop).into_iter().collect();
+            let other_values: HashSet<usize> = eval_path(data, shapes, focus_node, eq_prop)
+                .into_iter()
+                .collect();
             let self_values: HashSet<usize> = v_nodes.iter().cloned().collect();
             if self_values != other_values {
                 for &v in &v_nodes {
                     if !other_values.contains(&v) {
-                        results.push(make_result(focus_node, Some(path), Some(v),
-                            vocab.sh_equals_constraint_component, ps, ps_severity, ps_msg.clone()));
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            Some(v),
+                            vocab.sh_equals_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
                     }
                 }
                 for &v in &other_values {
                     if !self_values.contains(&v) {
-                        results.push(make_result(focus_node, Some(path), Some(v),
-                            vocab.sh_equals_constraint_component, ps, ps_severity, ps_msg.clone()));
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            Some(v),
+                            vocab.sh_equals_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
                     }
                 }
             }
@@ -1771,11 +2305,20 @@ fn validate_property_shape(
 
         // sh:disjoint (no overlap between path values and the other property's values)
         for disj_prop in get_objects(shapes, ps, vocab.sh_disjoint) {
-            let other_values: HashSet<usize> = eval_path(data, shapes, focus_node, disj_prop).into_iter().collect();
+            let other_values: HashSet<usize> = eval_path(data, shapes, focus_node, disj_prop)
+                .into_iter()
+                .collect();
             for &v in &v_nodes {
                 if other_values.contains(&v) {
-                    results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_disjoint_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        Some(v),
+                        vocab.sh_disjoint_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1788,8 +2331,15 @@ fn validate_property_shape(
                     match compare_numeric(v, ov) {
                         Some(std::cmp::Ordering::Less) => {}
                         _ => {
-                            results.push(make_result(focus_node, Some(path), Some(v),
-                                vocab.sh_less_than_constraint_component, ps, ps_severity, ps_msg.clone()));
+                            results.push(make_result(
+                                focus_node,
+                                Some(path),
+                                Some(v),
+                                vocab.sh_less_than_constraint_component,
+                                ps,
+                                ps_severity,
+                                ps_msg.clone(),
+                            ));
                         }
                     }
                 }
@@ -1804,8 +2354,15 @@ fn validate_property_shape(
                     match compare_numeric(v, ov) {
                         Some(std::cmp::Ordering::Less) | Some(std::cmp::Ordering::Equal) => {}
                         _ => {
-                            results.push(make_result(focus_node, Some(path), Some(v),
-                                vocab.sh_less_than_or_equals_constraint_component, ps, ps_severity, ps_msg.clone()));
+                            results.push(make_result(
+                                focus_node,
+                                Some(path),
+                                Some(v),
+                                vocab.sh_less_than_or_equals_constraint_component,
+                                ps,
+                                ps_severity,
+                                ps_msg.clone(),
+                            ));
                         }
                     }
                 }
@@ -1816,22 +2373,37 @@ fn validate_property_shape(
         let qvs_list = get_objects(shapes, ps, vocab.sh_qualified_value_shape);
         if !qvs_list.is_empty() {
             let qvs = qvs_list[0];
-            let conforming_count = v_nodes.iter()
+            let conforming_count = v_nodes
+                .iter()
                 .filter(|&&v| conforms_to_shape(data, shapes, vocab, v, qvs, visited))
                 .count() as i64;
             for qmin in get_objects(shapes, ps, vocab.sh_qualified_min_count) {
                 if let Some(min) = get_integer_value(qmin) {
                     if conforming_count < min {
-                        results.push(make_result(focus_node, Some(path), None,
-                            vocab.sh_qualified_value_shape_constraint_component, ps, ps_severity, ps_msg.clone()));
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            None,
+                            vocab.sh_qualified_value_shape_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
                     }
                 }
             }
             for qmax in get_objects(shapes, ps, vocab.sh_qualified_max_count) {
                 if let Some(max) = get_integer_value(qmax) {
                     if conforming_count > max {
-                        results.push(make_result(focus_node, Some(path), None,
-                            vocab.sh_qualified_value_shape_constraint_component, ps, ps_severity, ps_msg.clone()));
+                        results.push(make_result(
+                            focus_node,
+                            Some(path),
+                            None,
+                            vocab.sh_qualified_value_shape_constraint_component,
+                            ps,
+                            ps_severity,
+                            ps_msg.clone(),
+                        ));
                     }
                 }
             }
@@ -1844,12 +2416,19 @@ fn validate_property_shape(
         for and_list in get_objects(shapes, ps, vocab.sh_and) {
             let sub_shapes = get_rdf_list(shapes, and_list);
             for &v in &v_nodes {
-                let conforms = sub_shapes.iter().all(|&sub| {
-                    conforms_to_shape(data, shapes, vocab, v, sub, visited)
-                });
+                let conforms = sub_shapes
+                    .iter()
+                    .all(|&sub| conforms_to_shape(data, shapes, vocab, v, sub, visited));
                 if !conforms {
-                    results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_and_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        Some(v),
+                        vocab.sh_and_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1858,11 +2437,19 @@ fn validate_property_shape(
         for or_list in get_objects(shapes, ps, vocab.sh_or) {
             let sub_shapes = get_rdf_list(shapes, or_list);
             for &v in &v_nodes {
-                let conforms = sub_shapes.iter().any(|&sub|
-                    conforms_to_shape(data, shapes, vocab, v, sub, visited));
+                let conforms = sub_shapes
+                    .iter()
+                    .any(|&sub| conforms_to_shape(data, shapes, vocab, v, sub, visited));
                 if !conforms {
-                    results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_or_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        Some(v),
+                        vocab.sh_or_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1871,12 +2458,20 @@ fn validate_property_shape(
         for xone_list in get_objects(shapes, ps, vocab.sh_xone) {
             let sub_shapes = get_rdf_list(shapes, xone_list);
             for &v in &v_nodes {
-                let count = sub_shapes.iter()
+                let count = sub_shapes
+                    .iter()
                     .filter(|&&sub| conforms_to_shape(data, shapes, vocab, v, sub, visited))
                     .count();
                 if count != 1 {
-                    results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_xone_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        Some(v),
+                        vocab.sh_xone_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1885,8 +2480,15 @@ fn validate_property_shape(
         for not_shape in get_objects(shapes, ps, vocab.sh_not) {
             for &v in &v_nodes {
                 if conforms_to_shape(data, shapes, vocab, v, not_shape, visited) {
-                    results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_not_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        Some(v),
+                        vocab.sh_not_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1895,8 +2497,15 @@ fn validate_property_shape(
         for node_shape in get_objects(shapes, ps, vocab.sh_node) {
             for &v in &v_nodes {
                 if !conforms_to_shape(data, shapes, vocab, v, node_shape, visited) {
-                    results.push(make_result(focus_node, Some(path), Some(v),
-                        vocab.sh_node_constraint_component, ps, ps_severity, ps_msg.clone()));
+                    results.push(make_result(
+                        focus_node,
+                        Some(path),
+                        Some(v),
+                        vocab.sh_node_constraint_component,
+                        ps,
+                        ps_severity,
+                        ps_msg.clone(),
+                    ));
                 }
             }
         }
@@ -1952,8 +2561,15 @@ fn validate_shape_closed_and_targets_tail(
                 if let Some(preds) = data.spo.get(&focus_node) {
                     for &pred in preds.keys() {
                         if !allowed_preds.contains(&pred) {
-                            results.push(make_result(focus_node, Some(pred), None,
-                                vocab.sh_closed_constraint_component, shape_node, severity, default_msg.clone()));
+                            results.push(make_result(
+                                focus_node,
+                                Some(pred),
+                                None,
+                                vocab.sh_closed_constraint_component,
+                                shape_node,
+                                severity,
+                                default_msg.clone(),
+                            ));
                         }
                     }
                 }

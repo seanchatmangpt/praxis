@@ -40,7 +40,10 @@ impl Dict {
     /// Create an empty dictionary.
     #[must_use]
     pub fn new() -> Self {
-        Self { terms: Vec::new(), index: HashMap::new() }
+        Self {
+            terms: Vec::new(),
+            index: HashMap::new(),
+        }
     }
 
     /// Intern `s`, returning its stable ID. Idempotent.

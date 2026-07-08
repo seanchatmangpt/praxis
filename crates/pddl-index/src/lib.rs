@@ -54,10 +54,16 @@ pub const GROUND_INDEX_THRESHOLD: usize = 256;
 /// which grounder to run.
 #[must_use]
 pub fn candidate_estimate(domain: &Pddl8Domain, problem: &Pddl8Problem) -> usize {
-    let object_type: std::collections::HashMap<&str, &str> =
-        problem.object_types.iter().map(|(o, t)| (o.as_str(), t.as_str())).collect();
-    let parent: std::collections::HashMap<&str, &str> =
-        domain.types.iter().filter_map(|t| t.parent.as_deref().map(|p| (t.name.as_str(), p))).collect();
+    let object_type: std::collections::HashMap<&str, &str> = problem
+        .object_types
+        .iter()
+        .map(|(o, t)| (o.as_str(), t.as_str()))
+        .collect();
+    let parent: std::collections::HashMap<&str, &str> = domain
+        .types
+        .iter()
+        .filter_map(|t| t.parent.as_deref().map(|p| (t.name.as_str(), p)))
+        .collect();
     let satisfies = |obj: &str, required: &str| -> bool {
         if required == "object" {
             return true;
@@ -76,12 +82,19 @@ pub fn candidate_estimate(domain: &Pddl8Domain, problem: &Pddl8Problem) -> usize
 
     let mut total: usize = 0;
     for schema in &domain.actions {
-        let typed: std::collections::HashMap<&str, &str> =
-            schema.typed_params.iter().map(|(p, t)| (p.as_str(), t.as_str())).collect();
+        let typed: std::collections::HashMap<&str, &str> = schema
+            .typed_params
+            .iter()
+            .map(|(p, t)| (p.as_str(), t.as_str()))
+            .collect();
         let mut prod: usize = 1;
         for p in &schema.params {
             let required = typed.get(p.as_str()).copied().unwrap_or("object");
-            let count = problem.objects.iter().filter(|o| satisfies(o, required)).count();
+            let count = problem
+                .objects
+                .iter()
+                .filter(|o| satisfies(o, required))
+                .count();
             prod = prod.saturating_mul(count);
         }
         total = total.saturating_add(prod);

@@ -46,7 +46,15 @@ fn fixture_state() -> ChurchState {
             // Welcomed but never followed up: may NOT be proposed past Returning.
             person("visitor-2", Stage::FirstTime, true, false, true, true, 45),
             // Very stale first-timer, no touch at all.
-            person("visitor-3", Stage::FirstTime, false, false, false, false, 120),
+            person(
+                "visitor-3",
+                Stage::FirstTime,
+                false,
+                false,
+                false,
+                false,
+                120,
+            ),
         ],
     }
 }
@@ -148,7 +156,15 @@ fn flipping_volunteer_capacity_sign_flips_relative_order() {
     // sign on volunteer_capacity_used decides whether the Serving move beats a
     // shallower Connected move.
     let state = ChurchState {
-        people: vec![person("candidate", Stage::Returning, true, true, true, false, 3)],
+        people: vec![person(
+            "candidate",
+            Stage::Returning,
+            true,
+            true,
+            true,
+            false,
+            3,
+        )],
     };
 
     // Treat serving capacity as pure benefit: Serving (depth 3 + capacity) beats
@@ -221,7 +237,17 @@ fn per_person_enumeration_bounded_by_forward_stages() {
 fn global_output_truncates_deterministically_at_max_proposals() {
     // 40 fully-evidenced FirstTime people => 160 raw candidates > MAX_PROPOSALS.
     let people: Vec<Person> = (0..40)
-        .map(|i| person(&format!("p-{i:03}"), Stage::FirstTime, true, true, true, true, i))
+        .map(|i| {
+            person(
+                &format!("p-{i:03}"),
+                Stage::FirstTime,
+                true,
+                true,
+                true,
+                true,
+                i,
+            )
+        })
         .collect();
     let state = ChurchState { people };
     let objective = default_objective();
@@ -253,17 +279,17 @@ fn every_church_fluent_is_cited_and_contributions_sum_to_score() {
             assert!(joined.contains(name), "rationale missing fluent {name}");
         }
         // Score reproducible from the cited weights and fluents.
-        let person = state
-            .people
-            .iter()
-            .find(|a| a.id == p.target_id)
-            .unwrap();
+        let person = state.people.iter().find(|a| a.id == p.target_id).unwrap();
         let fluents = church::compute_fluents(person, p.target_stage);
         let mut expected = 0.0f64;
         for (i, name) in church::FLUENT_NAMES.iter().enumerate() {
             expected += objective.weight(name) * fluents[i];
         }
-        assert_eq!(expected.to_bits(), p.score.to_bits(), "score fully explained");
+        assert_eq!(
+            expected.to_bits(),
+            p.score.to_bits(),
+            "score fully explained"
+        );
         assert!(joined.contains("total score ="));
     }
 }
@@ -275,7 +301,15 @@ fn every_church_fluent_is_cited_and_contributions_sum_to_score() {
 #[test]
 fn pddl_goal_atom_format() {
     let state = ChurchState {
-        people: vec![person("visitor-7", Stage::Returning, true, true, false, false, 1)],
+        people: vec![person(
+            "visitor-7",
+            Stage::Returning,
+            true,
+            true,
+            false,
+            false,
+            1,
+        )],
     };
     let ranked = ChurchProposer::new(default_objective()).propose(&state);
     let connected = ranked
@@ -341,8 +375,7 @@ fn generic_engine_reproduces_concrete_revenue_ranking() {
         ],
     };
     let objective = {
-        let path =
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("revenue_objective.json");
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("revenue_objective.json");
         ObjectiveFunction::from_path(&path).expect("revenue objective loads")
     };
 
@@ -368,5 +401,8 @@ fn church_domain_self_description() {
     assert_eq!(church::ChurchDomain::pack_name(), "church");
     assert_eq!(church::ChurchDomain::goal_predicate(), "stage");
     assert_eq!(church::ChurchDomain::fluent_names().len(), 4);
-    assert_eq!(church::ChurchDomain::stage_pddl_name(Stage::Leading), "leading");
+    assert_eq!(
+        church::ChurchDomain::stage_pddl_name(Stage::Leading),
+        "leading"
+    );
 }

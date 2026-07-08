@@ -1,6 +1,6 @@
+use praxis_graphlaw::parser::{Parser, Syntax};
 use praxis_graphlaw::shex::validate_shex;
 use praxis_graphlaw::tripleindex::TripleIndex;
-use praxis_graphlaw::parser::{Parser, Syntax};
 
 fn build_data_index(data_str: &str) -> TripleIndex {
     let triples = Parser::parse_triples(data_str, Syntax::Turtle).unwrap();
@@ -42,15 +42,24 @@ fn test_node_constraint_datatype() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/AgeShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/AgeShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/AgeShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/AgeShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
 
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
     assert_eq!(report.failures[0].shape, "http://example.org/AgeShape");
 }
 
@@ -99,15 +108,24 @@ fn test_each_of_shape() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/UserShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/UserShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/UserShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/UserShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
 
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
     assert_eq!(report.failures[0].shape, "http://example.org/UserShape");
 }
 
@@ -145,9 +163,18 @@ fn test_cardinality_on_triple_constraint() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/PhoneShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/PhoneShape".to_string()),
-        ("http://example.org/Charlie".to_string(), "http://example.org/PhoneShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/PhoneShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/PhoneShape".to_string(),
+        ),
+        (
+            "http://example.org/Charlie".to_string(),
+            "http://example.org/PhoneShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
@@ -188,8 +215,14 @@ fn test_shape_ref_recursive() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/PersonShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/PersonShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/PersonShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/PersonShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
@@ -228,18 +261,20 @@ fn test_shape_map_pass_fail() {
     "#;
 
     let data = build_data_index(data_str);
-    
+
     // Check clean pass
-    let shape_map_pass = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/AgeShape".to_string()),
-    ];
+    let shape_map_pass = vec![(
+        "http://example.org/Alice".to_string(),
+        "http://example.org/AgeShape".to_string(),
+    )];
     let report_pass = validate_shex(&data, schema_json, &shape_map_pass).unwrap();
     assert!(report_pass.conforms);
 
     // Check fail
-    let shape_map_fail = vec![
-        ("http://example.org/Bob".to_string(), "http://example.org/AgeShape".to_string()),
-    ];
+    let shape_map_fail = vec![(
+        "http://example.org/Bob".to_string(),
+        "http://example.org/AgeShape".to_string(),
+    )];
     let report_fail = validate_shex(&data, schema_json, &shape_map_fail).unwrap();
     assert!(!report_fail.conforms);
 }
@@ -247,8 +282,11 @@ fn test_shape_map_pass_fail() {
 #[test]
 fn test_empty_and_invalid_schema() {
     let data = build_data_index("");
-    let shape_map = vec![("http://example.org/Alice".to_string(), "http://example.org/AgeShape".to_string())];
-    
+    let shape_map = vec![(
+        "http://example.org/Alice".to_string(),
+        "http://example.org/AgeShape".to_string(),
+    )];
+
     // Empty schema should fail parsing
     let res = validate_shex(&data, "", &shape_map);
     assert!(res.is_err());
@@ -282,7 +320,7 @@ fn test_empty_shape_map() {
       ]
     }"#;
     let data = build_data_index("<http://example.org/Alice> <http://example.org/age> 30 .");
-    
+
     // Empty shape map: should conform since nothing is validated
     let report = validate_shex(&data, schema_json, &[]).unwrap();
     assert!(report.conforms);
@@ -313,8 +351,11 @@ fn test_empty_graph() {
       ]
     }"#;
     let data = build_data_index(""); // empty graph
-    let shape_map = vec![("http://example.org/Alice".to_string(), "http://example.org/AgeShape".to_string())];
-    
+    let shape_map = vec![(
+        "http://example.org/Alice".to_string(),
+        "http://example.org/AgeShape".to_string(),
+    )];
+
     // Empty graph: should NOT conform, because the required age property is missing
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
@@ -344,12 +385,18 @@ fn test_extremely_long_string_datatype() {
         }
       ]
     }"#;
-    
+
     let long_str = "a".repeat(100_000);
-    let data_str = format!(r#"<http://example.org/Alice> <http://example.org/text> "{}" ."#, long_str);
+    let data_str = format!(
+        r#"<http://example.org/Alice> <http://example.org/text> "{}" ."#,
+        long_str
+    );
     let data = build_data_index(&data_str);
-    let shape_map = vec![("http://example.org/Alice".to_string(), "http://example.org/LongStringShape".to_string())];
-    
+    let shape_map = vec![(
+        "http://example.org/Alice".to_string(),
+        "http://example.org/LongStringShape".to_string(),
+    )];
+
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(report.conforms);
     assert_eq!(report.failures.len(), 0);
@@ -409,9 +456,18 @@ fn test_nested_recursive_references_stress() {
     "#;
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/AShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/BShape".to_string()),
-        ("http://example.org/Charlie".to_string(), "http://example.org/CShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/AShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/BShape".to_string(),
+        ),
+        (
+            "http://example.org/Charlie".to_string(),
+            "http://example.org/CShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
@@ -456,11 +512,17 @@ fn test_shape_map_failures_and_nonexistent_shape() {
     // Case A: Invalid node syntax in shape map (e.g. empty node string)
     let shape_map_invalid_node = vec![("".to_string(), "http://example.org/AgeShape".to_string())];
     let res = validate_shex(&data, schema_json, &shape_map_invalid_node);
-    assert!(res.is_err(), "Expected parsing error for empty node string, but got Ok");
+    assert!(
+        res.is_err(),
+        "Expected parsing error for empty node string, but got Ok"
+    );
 
     // Case B: Non-existent shape label in shape map
-    let shape_map_nonexistent_shape = vec![("http://example.org/Alice".to_string(), "http://example.org/NonExistentShape".to_string())];
-    
+    let shape_map_nonexistent_shape = vec![(
+        "http://example.org/Alice".to_string(),
+        "http://example.org/NonExistentShape".to_string(),
+    )];
+
     // We want to see if this returns Ok or Err, and if conforms is true or false.
     // If it succeeds with conforms: true, it means it silently ignored the non-existent shape.
     let report_res = validate_shex(&data, schema_json, &shape_map_nonexistent_shape);
@@ -476,11 +538,13 @@ fn test_shape_map_failures_and_nonexistent_shape() {
             }
         }
         Err(e) => {
-            println!("Validation returned expected error for non-existent shape: {:?}", e);
+            println!(
+                "Validation returned expected error for non-existent shape: {:?}",
+                e
+            );
         }
     }
 }
-
 
 #[test]
 fn test_stress_empty_and_invalid_inputs() {
@@ -539,9 +603,10 @@ fn test_stress_empty_and_invalid_inputs() {
     assert_eq!(report_empty_map.failures.len(), 0);
 
     // 5. Valid schema and shape map, but node is not in data
-    let shape_map = vec![
-        ("http://example.org/NonExistentNode".to_string(), "http://example.org/S".to_string())
-    ];
+    let shape_map = vec![(
+        "http://example.org/NonExistentNode".to_string(),
+        "http://example.org/S".to_string(),
+    )];
     let report_missing_node = validate_shex(&empty_data, schema_valid, &shape_map).unwrap();
     assert!(!report_missing_node.conforms);
     assert_eq!(report_missing_node.failures.len(), 1);
@@ -579,9 +644,10 @@ fn test_stress_extremely_long_strings() {
       ]
     }"#;
 
-    let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/BioShape".to_string())
-    ];
+    let shape_map = vec![(
+        "http://example.org/Alice".to_string(),
+        "http://example.org/BioShape".to_string(),
+    )];
 
     let start = std::time::Instant::now();
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
@@ -593,7 +659,8 @@ fn test_stress_extremely_long_strings() {
 
     // 2. Extremely long shape label / IRI (e.g. 1,000 chars)
     let long_shape_name = "http://example.org/Shape".to_string() + &"B".repeat(1000);
-    let schema_long_json = format!(r#"{{
+    let schema_long_json = format!(
+        r#"{{
       "@context": "http://www.w3.org/ns/shex.jsonld",
       "type": "Schema",
       "shapes": [
@@ -613,11 +680,11 @@ fn test_stress_extremely_long_strings() {
           }}
         }}
       ]
-    }}"#, long_shape_name);
+    }}"#,
+        long_shape_name
+    );
 
-    let shape_map_long = vec![
-        ("http://example.org/Alice".to_string(), long_shape_name)
-    ];
+    let shape_map_long = vec![("http://example.org/Alice".to_string(), long_shape_name)];
 
     let report_long = validate_shex(&data, &schema_long_json, &shape_map_long).unwrap();
     assert!(report_long.conforms);
@@ -663,8 +730,14 @@ fn test_stress_nested_recursive_shapes() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/PersonShape".to_string()),
-        ("http://example.org/Acme".to_string(), "http://example.org/CompanyShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/PersonShape".to_string(),
+        ),
+        (
+            "http://example.org/Acme".to_string(),
+            "http://example.org/CompanyShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
@@ -678,7 +751,8 @@ fn test_stress_deeply_nested_recursion() {
     let mut shapes_json = Vec::new();
     for i in 1..=n {
         let next_id = if i == n { 1 } else { i + 1 };
-        let shape_decl = format!(r#"{{
+        let shape_decl = format!(
+            r#"{{
           "type": "ShapeDecl",
           "id": "http://example.org/Shape{}",
           "shapeExpr": {{
@@ -689,25 +763,34 @@ fn test_stress_deeply_nested_recursion() {
               "valueExpr": "http://example.org/Shape{}"
             }}
           }}
-        }}"#, i, next_id);
+        }}"#,
+            i, next_id
+        );
         shapes_json.push(shape_decl);
     }
-    let schema_json = format!(r#"{{
+    let schema_json = format!(
+        r#"{{
       "@context": "http://www.w3.org/ns/shex.jsonld",
       "type": "Schema",
       "shapes": [{}]
-    }}"#, shapes_json.join(",\n"));
+    }}"#,
+        shapes_json.join(",\n")
+    );
 
     let mut data_str = String::new();
     for i in 1..=n {
         let next_node = if i == n { 1 } else { i + 1 };
-        data_str.push_str(&format!("<http://example.org/node{}> <http://example.org/next> <http://example.org/node{}> .\n", i, next_node));
+        data_str.push_str(&format!(
+            "<http://example.org/node{}> <http://example.org/next> <http://example.org/node{}> .\n",
+            i, next_node
+        ));
     }
 
     let data = build_data_index(&data_str);
-    let shape_map = vec![
-        ("http://example.org/node1".to_string(), "http://example.org/Shape1".to_string())
-    ];
+    let shape_map = vec![(
+        "http://example.org/node1".to_string(),
+        "http://example.org/Shape1".to_string(),
+    )];
 
     let report = validate_shex(&data, &schema_json, &shape_map).unwrap();
     assert!(report.conforms);
@@ -742,16 +825,18 @@ fn test_stress_shape_map_failures() {
     let data = build_data_index(data_str);
 
     // 1. Focus node with invalid IRI format
-    let shape_map_invalid_node = vec![
-        ("invalid_iri".to_string(), "http://example.org/S".to_string())
-    ];
+    let shape_map_invalid_node = vec![(
+        "invalid_iri".to_string(),
+        "http://example.org/S".to_string(),
+    )];
     let result_invalid_node = validate_shex(&data, schema_json, &shape_map_invalid_node);
     assert!(result_invalid_node.is_err() || !result_invalid_node.unwrap().conforms);
 
     // 2. Shape label that does not exist in the schema
-    let shape_map_invalid_shape = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/NonExistentShape".to_string())
-    ];
+    let shape_map_invalid_shape = vec![(
+        "http://example.org/Alice".to_string(),
+        "http://example.org/NonExistentShape".to_string(),
+    )];
     let report_invalid_shape = validate_shex(&data, schema_json, &shape_map_invalid_shape);
     if let Ok(rep) = report_invalid_shape {
         assert!(!rep.conforms);
@@ -761,12 +846,13 @@ fn test_stress_shape_map_failures() {
         // An Err is also acceptable — it must mention the unknown shape IRI to be informative
         let err_msg = report_invalid_shape.err().unwrap().to_string();
         assert!(
-            err_msg.contains("NonExistentShape") || err_msg.contains("unknown shape") || err_msg.contains("not found"),
+            err_msg.contains("NonExistentShape")
+                || err_msg.contains("unknown shape")
+                || err_msg.contains("not found"),
             "Error for unknown shape must reference the shape IRI; got: {err_msg}"
         );
     }
 }
-
 
 #[test]
 fn test_stress_missing_properties() {
@@ -815,17 +901,19 @@ fn test_stress_missing_properties() {
     let data = build_data_index(data_str);
 
     // 1. Required property missing -> fail
-    let shape_map_req = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/RequiredPropShape".to_string())
-    ];
+    let shape_map_req = vec![(
+        "http://example.org/Alice".to_string(),
+        "http://example.org/RequiredPropShape".to_string(),
+    )];
     let report_req = validate_shex(&data, schema_json, &shape_map_req).unwrap();
     assert!(!report_req.conforms);
     assert_eq!(report_req.failures.len(), 1);
 
     // 2. Optional property missing -> pass
-    let shape_map_opt = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/OptionalPropShape".to_string())
-    ];
+    let shape_map_opt = vec![(
+        "http://example.org/Alice".to_string(),
+        "http://example.org/OptionalPropShape".to_string(),
+    )];
     let report_opt = validate_shex(&data, schema_json, &shape_map_opt).unwrap();
     assert!(report_opt.conforms);
     assert_eq!(report_opt.failures.len(), 0);
@@ -880,24 +968,36 @@ fn test_one_of_disjunction() {
     let report_alice = validate_shex(
         &data,
         schema_json,
-        &[("http://example.org/Alice".to_string(), "http://example.org/ContactShape".to_string())],
-    ).unwrap();
+        &[(
+            "http://example.org/Alice".to_string(),
+            "http://example.org/ContactShape".to_string(),
+        )],
+    )
+    .unwrap();
     assert!(report_alice.conforms);
 
     // Pass: has phone (second branch).
     let report_bob = validate_shex(
         &data,
         schema_json,
-        &[("http://example.org/Bob".to_string(), "http://example.org/ContactShape".to_string())],
-    ).unwrap();
+        &[(
+            "http://example.org/Bob".to_string(),
+            "http://example.org/ContactShape".to_string(),
+        )],
+    )
+    .unwrap();
     assert!(report_bob.conforms);
 
     // Fail: has neither.
     let report_charlie = validate_shex(
         &data,
         schema_json,
-        &[("http://example.org/Charlie".to_string(), "http://example.org/ContactShape".to_string())],
-    ).unwrap();
+        &[(
+            "http://example.org/Charlie".to_string(),
+            "http://example.org/ContactShape".to_string(),
+        )],
+    )
+    .unwrap();
     assert!(!report_charlie.conforms);
 }
 
@@ -943,14 +1043,23 @@ fn test_shape_and() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/PersonShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/PersonShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/PersonShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/PersonShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
 }
 
 #[test]
@@ -995,15 +1104,27 @@ fn test_shape_or() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/WorkerShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/WorkerShape".to_string()),
-        ("http://example.org/Charlie".to_string(), "http://example.org/WorkerShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/WorkerShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/WorkerShape".to_string(),
+        ),
+        (
+            "http://example.org/Charlie".to_string(),
+            "http://example.org/WorkerShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Charlie>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Charlie>"
+    );
 }
 
 #[test]
@@ -1040,14 +1161,23 @@ fn test_shape_not() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/CodeShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/CodeShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/CodeShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/CodeShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
 }
 
 #[test]
@@ -1082,14 +1212,23 @@ fn test_closed_shape_with_extra() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/ClosedShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/ClosedShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/ClosedShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/ClosedShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
 }
 
 #[test]
@@ -1127,14 +1266,23 @@ fn test_value_set_iris() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/ColorShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/ColorShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/ColorShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/ColorShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
 }
 
 #[test]
@@ -1170,14 +1318,23 @@ fn test_iri_stem_value_set() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/ColorRefShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/ColorRefShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/ColorRefShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/ColorRefShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
 }
 
 #[test]
@@ -1214,14 +1371,23 @@ fn test_string_length_and_pattern_facets() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/CodeShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/CodeShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/CodeShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/CodeShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
 }
 
 #[test]
@@ -1257,14 +1423,23 @@ fn test_numeric_inclusive_facets() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/ScoreShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/ScoreShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/ScoreShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/ScoreShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
 }
 
 #[test]
@@ -1295,14 +1470,23 @@ fn test_node_kind_iri() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/KnowsIriShape".to_string()),
-        ("http://example.org/Carol".to_string(), "http://example.org/KnowsIriShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/KnowsIriShape".to_string(),
+        ),
+        (
+            "http://example.org/Carol".to_string(),
+            "http://example.org/KnowsIriShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Carol>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Carol>"
+    );
 }
 
 #[test]
@@ -1333,14 +1517,23 @@ fn test_node_kind_bnode() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/KnowsBnodeShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/KnowsBnodeShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/KnowsBnodeShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/KnowsBnodeShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
 }
 
 #[test]
@@ -1372,15 +1565,27 @@ fn test_node_kind_nonliteral() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/RefShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/RefShape".to_string()),
-        ("http://example.org/Charlie".to_string(), "http://example.org/RefShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/RefShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/RefShape".to_string(),
+        ),
+        (
+            "http://example.org/Charlie".to_string(),
+            "http://example.org/RefShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Charlie>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Charlie>"
+    );
 }
 
 #[test]
@@ -1414,16 +1619,24 @@ fn test_blank_node_as_focus_node() {
     let report_alice = validate_shex(
         &data,
         schema_json,
-        &[("_:alice".to_string(), "http://example.org/NameShape".to_string())],
-    ).unwrap();
+        &[(
+            "_:alice".to_string(),
+            "http://example.org/NameShape".to_string(),
+        )],
+    )
+    .unwrap();
     assert!(report_alice.conforms);
     assert_eq!(report_alice.failures.len(), 0);
 
     let report_bob = validate_shex(
         &data,
         schema_json,
-        &[("_:bob".to_string(), "http://example.org/NameShape".to_string())],
-    ).unwrap();
+        &[(
+            "_:bob".to_string(),
+            "http://example.org/NameShape".to_string(),
+        )],
+    )
+    .unwrap();
     assert!(!report_bob.conforms);
     assert_eq!(report_bob.failures.len(), 1);
     assert_eq!(report_bob.failures[0].node.to_string(), "_:bob");
@@ -1477,15 +1690,23 @@ fn test_blank_node_as_triple_constraint_value() {
     let report_alice = validate_shex(
         &data,
         schema_json,
-        &[("http://example.org/Alice".to_string(), "http://example.org/PersonShape".to_string())],
-    ).unwrap();
+        &[(
+            "http://example.org/Alice".to_string(),
+            "http://example.org/PersonShape".to_string(),
+        )],
+    )
+    .unwrap();
     assert!(report_alice.conforms);
 
     let report_carol = validate_shex(
         &data,
         schema_json,
-        &[("http://example.org/Carol".to_string(), "http://example.org/PersonShape".to_string())],
-    ).unwrap();
+        &[(
+            "http://example.org/Carol".to_string(),
+            "http://example.org/PersonShape".to_string(),
+        )],
+    )
+    .unwrap();
     assert!(!report_carol.conforms);
 }
 
@@ -1525,14 +1746,23 @@ fn test_language_tagged_literal_values() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/EnglishLabelShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/EnglishLabelShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/EnglishLabelShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/EnglishLabelShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
 }
 
 #[test]
@@ -1566,14 +1796,23 @@ fn test_decimal_typed_literal() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/PriceShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/PriceShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/PriceShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/PriceShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
 }
 
 #[test]
@@ -1607,13 +1846,21 @@ fn test_boolean_typed_literal() {
 
     let data = build_data_index(data_str);
     let shape_map = vec![
-        ("http://example.org/Alice".to_string(), "http://example.org/ActiveShape".to_string()),
-        ("http://example.org/Bob".to_string(), "http://example.org/ActiveShape".to_string()),
+        (
+            "http://example.org/Alice".to_string(),
+            "http://example.org/ActiveShape".to_string(),
+        ),
+        (
+            "http://example.org/Bob".to_string(),
+            "http://example.org/ActiveShape".to_string(),
+        ),
     ];
 
     let report = validate_shex(&data, schema_json, &shape_map).unwrap();
     assert!(!report.conforms);
     assert_eq!(report.failures.len(), 1);
-    assert_eq!(report.failures[0].node.to_string(), "<http://example.org/Bob>");
+    assert_eq!(
+        report.failures[0].node.to_string(),
+        "<http://example.org/Bob>"
+    );
 }
-

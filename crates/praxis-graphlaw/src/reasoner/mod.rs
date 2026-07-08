@@ -2,22 +2,25 @@
 // lints below are documented scoped allows, not silent drift.
 #![allow(clippy::ptr_arg)]
 
+use crate::aggregation::{
+    Accumulator, AccumulatorImpl, AvgAccumulator, CountAccumulator, MaxAccumulator, MinAccumulator,
+    SumAccumulator,
+};
 use crate::triples::AggregateFunction;
-use crate::aggregation::{Accumulator, CountAccumulator, SumAccumulator, MinAccumulator, MaxAccumulator, AvgAccumulator, AccumulatorImpl};
-use std::collections::HashMap;
 use crate::{
-    Binding, BodyLiteral, QueryEngine, Rule, SimpleQueryEngine,
-    Triple, TripleIndex, TripleStore, VarOrTerm,
+    Binding, BodyLiteral, QueryEngine, Rule, SimpleQueryEngine, Triple, TripleIndex, TripleStore,
+    VarOrTerm,
 };
 use log::debug;
+use std::collections::HashMap;
 
-mod log_implies;
 mod log_collect_all_in;
-mod log_not_includes;
-mod log_includes;
+mod log_conclusion;
 mod log_for_all_in;
 mod log_if_then_else_in;
-mod log_conclusion;
+mod log_implies;
+mod log_includes;
+mod log_not_includes;
 mod substitution;
 
 #[cfg(test)]
@@ -42,7 +45,6 @@ impl Reasoner {
         let max_stratum = *strata.iter().max().unwrap_or(&0);
 
         for s in 0..=max_stratum {
-
             let stratum_rules: Vec<&Rule> = rules
                 .iter()
                 .enumerate()
@@ -90,8 +92,10 @@ impl Reasoner {
                                     .iter()
                                     .map(|v| VarOrTerm::convert(v.clone()).to_encoded())
                                     .collect();
-                                let source_var_id = VarOrTerm::convert(agg.source_var.clone()).to_encoded();
-                                let target_var_id = VarOrTerm::convert(agg.target_var.clone()).to_encoded();
+                                let source_var_id =
+                                    VarOrTerm::convert(agg.source_var.clone()).to_encoded();
+                                let target_var_id =
+                                    VarOrTerm::convert(agg.target_var.clone()).to_encoded();
 
                                 let mut groups: HashMap<Vec<usize>, Vec<usize>> = HashMap::new();
                                 for c in 0..len {
@@ -110,11 +114,21 @@ impl Reasoner {
 
                                 for (group_key, source_vals) in groups {
                                     let mut acc = match agg.function {
-                                        AggregateFunction::Count => AccumulatorImpl::Count(CountAccumulator::default()),
-                                        AggregateFunction::Sum => AccumulatorImpl::Sum(SumAccumulator::default()),
-                                        AggregateFunction::Min => AccumulatorImpl::Min(MinAccumulator::default()),
-                                        AggregateFunction::Max => AccumulatorImpl::Max(MaxAccumulator::default()),
-                                        AggregateFunction::Avg => AccumulatorImpl::Avg(AvgAccumulator::default()),
+                                        AggregateFunction::Count => {
+                                            AccumulatorImpl::Count(CountAccumulator::default())
+                                        }
+                                        AggregateFunction::Sum => {
+                                            AccumulatorImpl::Sum(SumAccumulator::default())
+                                        }
+                                        AggregateFunction::Min => {
+                                            AccumulatorImpl::Min(MinAccumulator::default())
+                                        }
+                                        AggregateFunction::Max => {
+                                            AccumulatorImpl::Max(MaxAccumulator::default())
+                                        }
+                                        AggregateFunction::Avg => {
+                                            AccumulatorImpl::Avg(AvgAccumulator::default())
+                                        }
                                     };
                                     for val in source_vals {
                                         acc.add(val);
@@ -128,9 +142,12 @@ impl Reasoner {
                                             if var_id == target_var_id {
                                                 *term = VarOrTerm::new_encoded_term(target_val);
                                             } else {
-                                                for (i, &gv_id) in group_var_ids.iter().enumerate() {
+                                                for (i, &gv_id) in group_var_ids.iter().enumerate()
+                                                {
                                                     if var_id == gv_id {
-                                                        *term = VarOrTerm::new_encoded_term(group_key[i]);
+                                                        *term = VarOrTerm::new_encoded_term(
+                                                            group_key[i],
+                                                        );
                                                         break;
                                                     }
                                                 }
@@ -154,62 +171,82 @@ impl Reasoner {
                         let implies_indices = Self::find_log_implies_literals(rule);
                         // log:implies dynamic rule reification (see
                         // process_log_implies_rule doc comment).
-                        for new_head in Self::process_log_implies_rule(rule, &implies_indices, triple_index) {
+                        for new_head in
+                            Self::process_log_implies_rule(rule, &implies_indices, triple_index)
+                        {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(collect_idx) = Self::find_log_collect_all_in_literal(rule) {
                         // log:collectAllIn (see process_log_collect_all_in_rule doc comment).
-                        for new_head in Self::process_log_collect_all_in_rule(rule, collect_idx, triple_index) {
+                        for new_head in
+                            Self::process_log_collect_all_in_rule(rule, collect_idx, triple_index)
+                        {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
-                    } else if let Some(not_includes_idx) = Self::find_log_not_includes_literal(rule) {
+                    } else if let Some(not_includes_idx) = Self::find_log_not_includes_literal(rule)
+                    {
                         // log:notIncludes SNAF guard (see process_log_not_includes_rule doc comment).
-                        for new_head in Self::process_log_not_includes_rule(rule, not_includes_idx, triple_index) {
+                        for new_head in Self::process_log_not_includes_rule(
+                            rule,
+                            not_includes_idx,
+                            triple_index,
+                        ) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(includes_idx) = Self::find_log_includes_literal(rule) {
                         // log:includes (positive counterpart of notIncludes; see process_log_includes_rule doc comment).
-                        for new_head in Self::process_log_includes_rule(rule, includes_idx, triple_index) {
+                        for new_head in
+                            Self::process_log_includes_rule(rule, includes_idx, triple_index)
+                        {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(for_all_idx) = Self::find_log_for_all_in_literal(rule) {
                         // log:forAllIn (see process_log_for_all_in_rule doc comment).
-                        for new_head in Self::process_log_for_all_in_rule(rule, for_all_idx, triple_index) {
+                        for new_head in
+                            Self::process_log_for_all_in_rule(rule, for_all_idx, triple_index)
+                        {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
-                    } else if let Some(if_then_else_idx) = Self::find_log_if_then_else_in_literal(rule) {
+                    } else if let Some(if_then_else_idx) =
+                        Self::find_log_if_then_else_in_literal(rule)
+                    {
                         // log:ifThenElseIn (see process_log_if_then_else_in_rule doc comment).
-                        for new_head in Self::process_log_if_then_else_in_rule(rule, if_then_else_idx, triple_index) {
+                        for new_head in Self::process_log_if_then_else_in_rule(
+                            rule,
+                            if_then_else_idx,
+                            triple_index,
+                        ) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(conclusion_idx) = Self::find_log_conclusion_literal(rule) {
                         // log:conclusion (see process_log_conclusion_rule doc comment).
-                        for new_head in Self::process_log_conclusion_rule(rule, conclusion_idx, triple_index) {
+                        for new_head in
+                            Self::process_log_conclusion_rule(rule, conclusion_idx, triple_index)
+                        {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else {
-
                         if let Some(bindings) = SimpleQueryEngine::query(
                             triple_index,
                             &rule.body,
                             stratum_start_counter,
                         ) {
-
-                            let new_heads = Self::substitute_head_with_bindings(&rule.head, &bindings);
+                            let new_heads =
+                                Self::substitute_head_with_bindings(&rule.head, &bindings);
 
                             for new_head in new_heads {
                                 if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
@@ -239,7 +276,11 @@ impl Reasoner {
     /// same pass, so the guard correctly suppresses the Pacifist derivation.
     /// Declaration order becomes the de facto rule-priority order this
     /// needs (matching upstream EYE's textual rule order).
-    pub(crate) fn apply_new_triple(head: Triple, triple_index: &mut TripleIndex, inferred: &mut Vec<Triple>) -> bool {
+    pub(crate) fn apply_new_triple(
+        head: Triple,
+        triple_index: &mut TripleIndex,
+        inferred: &mut Vec<Triple>,
+    ) -> bool {
         if triple_index.contains(&head) {
             return false;
         }
@@ -297,7 +338,10 @@ impl Reasoner {
         }
         let body: Vec<BodyLiteral> = triples
             .iter()
-            .map(|p| BodyLiteral { negated: false, pattern: Self::substitute_single_row(p, row_binding) })
+            .map(|p| BodyLiteral {
+                negated: false,
+                pattern: Self::substitute_single_row(p, row_binding),
+            })
             .collect();
         SimpleQueryEngine::query(triple_index, &body, None)
     }

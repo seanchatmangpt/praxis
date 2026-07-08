@@ -1,5 +1,4 @@
-
-use praxis_graphlaw::triples::{BodyLiteral, Rule, Triple, Aggregate, AggregateFunction};
+use praxis_graphlaw::triples::{Aggregate, AggregateFunction, BodyLiteral, Rule, Triple};
 use praxis_graphlaw::TripleStore;
 
 /// Test empty relations in negation.
@@ -70,16 +69,14 @@ fn test_empty_relations_aggregation() {
             "http://example.org/employeeCount".to_string(),
             "?count".to_string(),
         ),
-        body: vec![
-            BodyLiteral {
-                negated: false,
-                pattern: Triple::from(
-                    "?d".to_string(),
-                    "http://example.org/hasEmployee".to_string(),
-                    "?e".to_string(),
-                ),
-            }
-        ],
+        body: vec![BodyLiteral {
+            negated: false,
+            pattern: Triple::from(
+                "?d".to_string(),
+                "http://example.org/hasEmployee".to_string(),
+                "?e".to_string(),
+            ),
+        }],
     };
 
     let agg = Aggregate {
@@ -114,16 +111,14 @@ fn test_unbound_aggregate_source_var() {
             "http://example.org/employeeCount".to_string(),
             "?count".to_string(),
         ),
-        body: vec![
-            BodyLiteral {
-                negated: false,
-                pattern: Triple::from(
-                    "?d".to_string(),
-                    "http://example.org/hasEmployee".to_string(),
-                    "?e".to_string(),
-                ),
-            }
-        ],
+        body: vec![BodyLiteral {
+            negated: false,
+            pattern: Triple::from(
+                "?d".to_string(),
+                "http://example.org/hasEmployee".to_string(),
+                "?e".to_string(),
+            ),
+        }],
     };
 
     let agg = Aggregate {
@@ -147,27 +142,63 @@ fn test_boundary_numeric_inputs_aggregation() {
     let mut store = TripleStore::new();
 
     // Facts with negative numbers, floats, large numbers, and invalid numbers.
-    store.add(Triple::from("http://example.org/d1".to_string(), "http://example.org/hasEmployee".to_string(), "http://example.org/e1".to_string()));
-    store.add(Triple::from("http://example.org/e1".to_string(), "http://example.org/salary".to_string(), "-1000.50".to_string()));
+    store.add(Triple::from(
+        "http://example.org/d1".to_string(),
+        "http://example.org/hasEmployee".to_string(),
+        "http://example.org/e1".to_string(),
+    ));
+    store.add(Triple::from(
+        "http://example.org/e1".to_string(),
+        "http://example.org/salary".to_string(),
+        "-1000.50".to_string(),
+    ));
 
-    store.add(Triple::from("http://example.org/d1".to_string(), "http://example.org/hasEmployee".to_string(), "http://example.org/e2".to_string()));
-    store.add(Triple::from("http://example.org/e2".to_string(), "http://example.org/salary".to_string(), "2000.75".to_string()));
+    store.add(Triple::from(
+        "http://example.org/d1".to_string(),
+        "http://example.org/hasEmployee".to_string(),
+        "http://example.org/e2".to_string(),
+    ));
+    store.add(Triple::from(
+        "http://example.org/e2".to_string(),
+        "http://example.org/salary".to_string(),
+        "2000.75".to_string(),
+    ));
 
-    store.add(Triple::from("http://example.org/d1".to_string(), "http://example.org/hasEmployee".to_string(), "http://example.org/e3".to_string()));
-    store.add(Triple::from("http://example.org/e3".to_string(), "http://example.org/salary".to_string(), "invalid_number".to_string()));
+    store.add(Triple::from(
+        "http://example.org/d1".to_string(),
+        "http://example.org/hasEmployee".to_string(),
+        "http://example.org/e3".to_string(),
+    ));
+    store.add(Triple::from(
+        "http://example.org/e3".to_string(),
+        "http://example.org/salary".to_string(),
+        "invalid_number".to_string(),
+    ));
 
     // Sum rule: { ?d :hasEmployee ?e . ?e :salary ?s } => { ?d :totalSalary sum(?s) }
     let rule_sum = Rule {
-        head: Triple::from("?d".to_string(), "http://example.org/totalSalary".to_string(), "?total".to_string()),
+        head: Triple::from(
+            "?d".to_string(),
+            "http://example.org/totalSalary".to_string(),
+            "?total".to_string(),
+        ),
         body: vec![
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?d".to_string(), "http://example.org/hasEmployee".to_string(), "?e".to_string()),
+                pattern: Triple::from(
+                    "?d".to_string(),
+                    "http://example.org/hasEmployee".to_string(),
+                    "?e".to_string(),
+                ),
             },
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?e".to_string(), "http://example.org/salary".to_string(), "?s".to_string()),
-            }
+                pattern: Triple::from(
+                    "?e".to_string(),
+                    "http://example.org/salary".to_string(),
+                    "?s".to_string(),
+                ),
+            },
         ],
     };
     let agg_sum = Aggregate {
@@ -179,16 +210,28 @@ fn test_boundary_numeric_inputs_aggregation() {
 
     // Min rule
     let rule_min = Rule {
-        head: Triple::from("?d".to_string(), "http://example.org/minSalary".to_string(), "?min".to_string()),
+        head: Triple::from(
+            "?d".to_string(),
+            "http://example.org/minSalary".to_string(),
+            "?min".to_string(),
+        ),
         body: vec![
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?d".to_string(), "http://example.org/hasEmployee".to_string(), "?e".to_string()),
+                pattern: Triple::from(
+                    "?d".to_string(),
+                    "http://example.org/hasEmployee".to_string(),
+                    "?e".to_string(),
+                ),
             },
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?e".to_string(), "http://example.org/salary".to_string(), "?s".to_string()),
-            }
+                pattern: Triple::from(
+                    "?e".to_string(),
+                    "http://example.org/salary".to_string(),
+                    "?s".to_string(),
+                ),
+            },
         ],
     };
     let agg_min = Aggregate {
@@ -200,16 +243,28 @@ fn test_boundary_numeric_inputs_aggregation() {
 
     // Max rule
     let rule_max = Rule {
-        head: Triple::from("?d".to_string(), "http://example.org/maxSalary".to_string(), "?max".to_string()),
+        head: Triple::from(
+            "?d".to_string(),
+            "http://example.org/maxSalary".to_string(),
+            "?max".to_string(),
+        ),
         body: vec![
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?d".to_string(), "http://example.org/hasEmployee".to_string(), "?e".to_string()),
+                pattern: Triple::from(
+                    "?d".to_string(),
+                    "http://example.org/hasEmployee".to_string(),
+                    "?e".to_string(),
+                ),
             },
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?e".to_string(), "http://example.org/salary".to_string(), "?s".to_string()),
-            }
+                pattern: Triple::from(
+                    "?e".to_string(),
+                    "http://example.org/salary".to_string(),
+                    "?s".to_string(),
+                ),
+            },
         ],
     };
     let agg_max = Aggregate {
@@ -221,16 +276,28 @@ fn test_boundary_numeric_inputs_aggregation() {
 
     // Avg rule
     let rule_avg = Rule {
-        head: Triple::from("?d".to_string(), "http://example.org/avgSalary".to_string(), "?avg".to_string()),
+        head: Triple::from(
+            "?d".to_string(),
+            "http://example.org/avgSalary".to_string(),
+            "?avg".to_string(),
+        ),
         body: vec![
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?d".to_string(), "http://example.org/hasEmployee".to_string(), "?e".to_string()),
+                pattern: Triple::from(
+                    "?d".to_string(),
+                    "http://example.org/hasEmployee".to_string(),
+                    "?e".to_string(),
+                ),
             },
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?e".to_string(), "http://example.org/salary".to_string(), "?s".to_string()),
-            }
+                pattern: Triple::from(
+                    "?e".to_string(),
+                    "http://example.org/salary".to_string(),
+                    "?s".to_string(),
+                ),
+            },
         ],
     };
     let agg_avg = Aggregate {
@@ -269,10 +336,26 @@ fn test_boundary_numeric_inputs_aggregation() {
         }
     }
 
-    assert!((sum_val - 1000.25).abs() < 1e-5, "Sum should be 1000.25 but got {}", sum_val);
-    assert!((min_val - -1000.50).abs() < 1e-5, "Min should be -1000.50 but got {}", min_val);
-    assert!((max_val - 2000.75).abs() < 1e-5, "Max should be 2000.75 but got {}", max_val);
-    assert!((avg_val - 500.125).abs() < 1e-5, "Avg should be 500.125 but got {}", avg_val);
+    assert!(
+        (sum_val - 1000.25).abs() < 1e-5,
+        "Sum should be 1000.25 but got {}",
+        sum_val
+    );
+    assert!(
+        (min_val - -1000.50).abs() < 1e-5,
+        "Min should be -1000.50 but got {}",
+        min_val
+    );
+    assert!(
+        (max_val - 2000.75).abs() < 1e-5,
+        "Max should be 2000.75 but got {}",
+        max_val
+    );
+    assert!(
+        (avg_val - 500.125).abs() < 1e-5,
+        "Avg should be 500.125 but got {}",
+        avg_val
+    );
 }
 
 /// CONTRACT: Non-numeric aggregate source values never cause an error; they
@@ -305,30 +388,66 @@ fn test_aggregate_skips_non_numeric_source_values() {
 
     // One department with three employees: two have numeric salaries, one
     // has a non-numeric salary literal.
-    store.add(Triple::from("http://example.org/d1".to_string(), "http://example.org/hasEmployee".to_string(), "http://example.org/e1".to_string()));
-    store.add(Triple::from("http://example.org/e1".to_string(), "http://example.org/salary".to_string(), "100".to_string()));
+    store.add(Triple::from(
+        "http://example.org/d1".to_string(),
+        "http://example.org/hasEmployee".to_string(),
+        "http://example.org/e1".to_string(),
+    ));
+    store.add(Triple::from(
+        "http://example.org/e1".to_string(),
+        "http://example.org/salary".to_string(),
+        "100".to_string(),
+    ));
 
-    store.add(Triple::from("http://example.org/d1".to_string(), "http://example.org/hasEmployee".to_string(), "http://example.org/e2".to_string()));
-    store.add(Triple::from("http://example.org/e2".to_string(), "http://example.org/salary".to_string(), "invalid_number".to_string()));
+    store.add(Triple::from(
+        "http://example.org/d1".to_string(),
+        "http://example.org/hasEmployee".to_string(),
+        "http://example.org/e2".to_string(),
+    ));
+    store.add(Triple::from(
+        "http://example.org/e2".to_string(),
+        "http://example.org/salary".to_string(),
+        "invalid_number".to_string(),
+    ));
 
-    store.add(Triple::from("http://example.org/d1".to_string(), "http://example.org/hasEmployee".to_string(), "http://example.org/e3".to_string()));
-    store.add(Triple::from("http://example.org/e3".to_string(), "http://example.org/salary".to_string(), "300".to_string()));
+    store.add(Triple::from(
+        "http://example.org/d1".to_string(),
+        "http://example.org/hasEmployee".to_string(),
+        "http://example.org/e3".to_string(),
+    ));
+    store.add(Triple::from(
+        "http://example.org/e3".to_string(),
+        "http://example.org/salary".to_string(),
+        "300".to_string(),
+    ));
 
     let body = vec![
         BodyLiteral {
             negated: false,
-            pattern: Triple::from("?d".to_string(), "http://example.org/hasEmployee".to_string(), "?e".to_string()),
+            pattern: Triple::from(
+                "?d".to_string(),
+                "http://example.org/hasEmployee".to_string(),
+                "?e".to_string(),
+            ),
         },
         BodyLiteral {
             negated: false,
-            pattern: Triple::from("?e".to_string(), "http://example.org/salary".to_string(), "?s".to_string()),
+            pattern: Triple::from(
+                "?e".to_string(),
+                "http://example.org/salary".to_string(),
+                "?s".to_string(),
+            ),
         },
     ];
 
     // Sum rule: if the non-numeric row were included (or errored), the sum
     // would not cleanly equal 400 (100 + 300 from the two valid rows only).
     let rule_sum = Rule {
-        head: Triple::from("?d".to_string(), "http://example.org/totalSalary2".to_string(), "?total".to_string()),
+        head: Triple::from(
+            "?d".to_string(),
+            "http://example.org/totalSalary2".to_string(),
+            "?total".to_string(),
+        ),
         body: body.clone(),
     };
     let agg_sum = Aggregate {
@@ -343,7 +462,11 @@ fn test_aggregate_skips_non_numeric_source_values() {
     // count would be 2 instead of 3. Count is expected to still see all 3
     // rows since COUNT does not need to parse the value as a number.
     let rule_count = Rule {
-        head: Triple::from("?d".to_string(), "http://example.org/employeeCount2".to_string(), "?count".to_string()),
+        head: Triple::from(
+            "?d".to_string(),
+            "http://example.org/employeeCount2".to_string(),
+            "?count".to_string(),
+        ),
         body: body.clone(),
     };
     let agg_count = Aggregate {

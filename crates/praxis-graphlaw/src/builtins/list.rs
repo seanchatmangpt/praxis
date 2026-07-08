@@ -98,7 +98,11 @@ pub(crate) fn eval_list_member(pattern: &Triple, bindings: &Binding) -> Option<B
         for m in members {
             result.add(&obj_var, m);
         }
-        return if !result.is_empty() { Some(result) } else { None };
+        return if !result.is_empty() {
+            Some(result)
+        } else {
+            None
+        };
     }
     let mut result = Binding::new();
     for row in 0..bindings.len() {
@@ -260,7 +264,11 @@ pub(crate) fn eval_list_iterate(pattern: &Triple, bindings: &Binding) -> Option<
         let members = VarOrTerm::list_members(list_id)?;
         let mut result = Binding::new();
         emit(members, &mut result);
-        return if !result.is_empty() { Some(result) } else { None };
+        return if !result.is_empty() {
+            Some(result)
+        } else {
+            None
+        };
     }
     let mut result = Binding::new();
     for row in 0..bindings.len() {

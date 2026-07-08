@@ -75,8 +75,8 @@ fn parse_rule_with_a_syntactic_sugar() {
     let rule = rules.first().unwrap();
     // Second body literal should have rdf:type as predicate
     let second_body = &rule.body[1];
-    let decoded_p = crate::encoding::Encoder::decode(&second_body.pattern.p.to_encoded())
-        .unwrap_or_default();
+    let decoded_p =
+        crate::encoding::Encoder::decode(&second_body.pattern.p.to_encoded()).unwrap_or_default();
     assert!(
         decoded_p.contains("type"),
         "Expected rdf:type expansion, got: {}",
@@ -111,25 +111,25 @@ fn parse_multi_head_rule() {
         "{?s <http://example/p> ?o.} => {?s <http://example/q> ?o. ?s <http://example/r> ?o.}",
     )
     .unwrap();
-    assert_eq!(rules.len(), 2, "Multi-head rule should desugar into 2 rules");
+    assert_eq!(
+        rules.len(),
+        2,
+        "Multi-head rule should desugar into 2 rules"
+    );
     assert_eq!(rules[0].body.len(), 1);
     assert_eq!(rules[1].body.len(), 1);
 }
 
 #[test]
 fn parse_string_literal_in_object() {
-    let rules = parse(
-        r#"{?s <http://example/hasName> "Alice".} => {?s <http://example/known> "yes".}"#,
-    )
-    .unwrap();
+    let rules =
+        parse(r#"{?s <http://example/hasName> "Alice".} => {?s <http://example/known> "yes".}"#)
+            .unwrap();
     assert_eq!(rules.len(), 1);
 }
 
 #[test]
 fn parse_blank_node_in_body() {
-    let rules = parse(
-        "{_:x <http://example/p> ?o.} => {_:x <http://example/q> ?o.}",
-    )
-    .unwrap();
+    let rules = parse("{_:x <http://example/p> ?o.} => {_:x <http://example/q> ?o.}").unwrap();
     assert_eq!(rules.len(), 1);
 }

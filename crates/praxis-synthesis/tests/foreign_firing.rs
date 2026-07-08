@@ -53,7 +53,12 @@ fn run_verifier(base: &Path, adds: &Path, removes: &Path, receipt: &Path) -> std
 
 fn kernel_with_binding(delegability: &str) -> String {
     let mut base = KERNEL.to_string();
-    for cap in &["orientToFather", "surrenderWill", "requestDailyBread", "writePrayerReceipt"] {
+    for cap in &[
+        "orientToFather",
+        "surrenderWill",
+        "requestDailyBread",
+        "writePrayerReceipt",
+    ] {
         base.push_str(&format!(
             "\n<http://seanchatmangpt.github.io/praxis/prayer#{cap}> \
              <http://seanchatmangpt.github.io/praxis/workflow#handler> <{HANDLER_NS}deterministic-v1> ;\n\
@@ -134,9 +139,18 @@ fn foreign_firing_verifier_agrees_on_an_honest_completed_receipt() {
         String::from_utf8_lossy(&out.stderr)
     );
     assert!(stdout.contains("VERIFIED firing"), "{stdout}");
-    for stage in ["event_hash", "admission_hash", "handler_hash", "hook_hash",
-                  "outcome_hash", "chain"] {
-        assert!(stdout.contains(&format!("PASS {stage}")), "{stage}: {stdout}");
+    for stage in [
+        "event_hash",
+        "admission_hash",
+        "handler_hash",
+        "hook_hash",
+        "outcome_hash",
+        "chain",
+    ] {
+        assert!(
+            stdout.contains(&format!("PASS {stage}")),
+            "{stage}: {stdout}"
+        );
     }
     assert!(stdout.contains("refolded-from-payload"), "{stdout}");
 }
@@ -257,7 +271,10 @@ fn foreign_firing_verifier_fails_a_forged_bindings_body_behind_an_honest_hash() 
     let registry = HandlerRegistry::builtin();
     let source = src(&format!("<{LIFE}sean> <{LIFE}hasProvisionAnxiety> 1 ."));
     let mut receipt = fire_hooks(&reference, &source, &registry, &[]).expect("fires");
-    assert!(!receipt.bindings.is_empty(), "must have at least one binding to forge");
+    assert!(
+        !receipt.bindings.is_empty(),
+        "must have at least one binding to forge"
+    );
 
     receipt.bindings[0].handler = "http://forged/handler".to_string();
 

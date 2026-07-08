@@ -38,10 +38,16 @@ pub trait ToOcelEvent {
 
 impl<Payload: Serialize, Law: std::fmt::Debug> ToOcelEvent for LawObject<Payload, Receipted, Law> {
     fn to_ocel_event(&self) -> OcelEvent {
-        let payload_hash =
-            blake3::hash(serde_json::to_vec(&self.payload).unwrap_or_default().as_slice());
-        let payload_hex =
-            payload_hash.as_bytes().iter().map(|b| format!("{:02x}", b)).collect::<String>();
+        let payload_hash = blake3::hash(
+            serde_json::to_vec(&self.payload)
+                .unwrap_or_default()
+                .as_slice(),
+        );
+        let payload_hex = payload_hash
+            .as_bytes()
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect::<String>();
         let event_id = format!("receipt:{}", payload_hex);
 
         let chain_hash_hex = self
@@ -121,6 +127,9 @@ mod tests {
         let event = receipted(serde_json::json!({"a": 1})).to_ocel_event();
         assert_ne!(event.time, "2026-07-01T00:00:00Z");
         // Must parse as a real RFC3339 timestamp.
-        assert!(event.time.parse::<chrono::DateTime<chrono::FixedOffset>>().is_ok());
+        assert!(event
+            .time
+            .parse::<chrono::DateTime<chrono::FixedOffset>>()
+            .is_ok());
     }
 }

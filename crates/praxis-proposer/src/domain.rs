@@ -119,11 +119,7 @@ impl RevenueState {
     /// (unknown fields included — `deny_unknown_fields` applies) is an
     /// `Err`: admission and schema conformance are separate obligations.
     pub fn from_admitted<Law>(
-        admitted: &praxis_core::LawObject<
-            serde_json::Value,
-            praxis_core::lifecycle::Admitted,
-            Law,
-        >,
+        admitted: &praxis_core::LawObject<serde_json::Value, praxis_core::lifecycle::Admitted, Law>,
     ) -> Result<RevenueState, serde_json::Error> {
         serde_json::from_value(admitted.payload().clone())
     }

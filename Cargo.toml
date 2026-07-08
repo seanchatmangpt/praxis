@@ -102,7 +102,7 @@ pddl-index = { path = "crates/pddl-index", version = "26.7.2" }
 praxis-synthesis = { path = "crates/praxis-synthesis", version = "26.7.2" }
 bcinr-powl = { path = "../bcinr/crates/bcinr-powl", version = "26.6.25" }
 prolog8 = { path = "../wasm4pm/crates/prolog8", version = "26.7.1" }
-wasm4pm-compat = { path = "../wasm4pm-compat", version = "26.6.29" }
+wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat", version = "26.6.29" }
 # OCEL evidence-log process validation (src/bin/ocel_process_validate.rs):
 # POWL release-loop model + membership, sha256 for the report's log digest,
 # chrono only to parse/emit the OCEL evidence timestamps (evidence time,
@@ -195,7 +195,7 @@ lsp-max = { path = "/Users/sac/lsp-max" }
 # without this, cargo resolves two distinct copies of wasm4pm-compat (one
 # from crates.io, one from bcinr-pddl's path dep) and type-mismatches at
 # any crate boundary crossing both (e.g. tests/indexed_grounding.rs).
-wasm4pm-compat = { path = "../wasm4pm-compat" }
+wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat" }
 
 [workspace]
 resolver = "2"

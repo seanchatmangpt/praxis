@@ -154,10 +154,12 @@ fn run_case(base_dir: &Path, suite_name: &str, case: &TestCase) -> CaseResult {
             .first()
             .unwrap_or_else(|| panic!("solve_goal for {} parsed to zero triples", case.id))
             .clone();
-        let expected_maps = case
-            .solve_expected_bindings
-            .as_ref()
-            .unwrap_or_else(|| panic!("solve_goal for {} present without solve_expected_bindings", case.id));
+        let expected_maps = case.solve_expected_bindings.as_ref().unwrap_or_else(|| {
+            panic!(
+                "solve_goal for {} present without solve_expected_bindings",
+                case.id
+            )
+        });
 
         // Resolve each expected binding row's variable->value N3 snippets
         // into (var_id, expected_value_id) pairs (the snippet's first
@@ -185,7 +187,9 @@ fn run_case(base_dir: &Path, suite_name: &str, case: &TestCase) -> CaseResult {
         let vars_of_interest: Vec<usize> = expected_maps
             .iter()
             .flat_map(|row| row.keys())
-            .map(|var_name| praxis_graphlaw::triples::VarOrTerm::new_var(var_name.clone()).to_encoded())
+            .map(|var_name| {
+                praxis_graphlaw::triples::VarOrTerm::new_var(var_name.clone()).to_encoded()
+            })
             .collect();
         let actual_rows: Vec<HashSet<(usize, usize)>> = actual_rows_full
             .iter()
@@ -197,8 +201,10 @@ fn run_case(base_dir: &Path, suite_name: &str, case: &TestCase) -> CaseResult {
             })
             .collect();
 
-        let missing: Vec<&HashSet<(usize, usize)>> =
-            expected_rows.iter().filter(|e| !actual_rows.contains(e)).collect();
+        let missing: Vec<&HashSet<(usize, usize)>> = expected_rows
+            .iter()
+            .filter(|e| !actual_rows.contains(e))
+            .collect();
         let passed = missing.is_empty() && actual_rows.len() == expected_rows.len();
         return CaseResult {
             suite_name: suite_name.to_string(),
@@ -241,7 +247,10 @@ fn run_case(base_dir: &Path, suite_name: &str, case: &TestCase) -> CaseResult {
             id: case.id.clone(),
             name: case.name.clone(),
             passed: true,
-            detail: format!("all {} expected triple(s) derived, 0 denial violations", expected.len()),
+            detail: format!(
+                "all {} expected triple(s) derived, 0 denial violations",
+                expected.len()
+            ),
         }
     } else if !violations.is_empty() {
         CaseResult {
@@ -249,7 +258,11 @@ fn run_case(base_dir: &Path, suite_name: &str, case: &TestCase) -> CaseResult {
             id: case.id.clone(),
             name: case.name.clone(),
             passed: false,
-            detail: format!("expected zero denial violations but found {}: {:?}", violations.len(), violations),
+            detail: format!(
+                "expected zero denial violations but found {}: {:?}",
+                violations.len(),
+                violations
+            ),
         }
     } else {
         CaseResult {
@@ -275,8 +288,10 @@ fn test_n3_conformance() {
     let base_dir = manifest_dir.join("tests/n3_conformance");
 
     let manifest_path = base_dir.join("manifest.json");
-    let manifest_content = fs::read_to_string(&manifest_path).expect("Failed to read manifest.json");
-    let manifest: Manifest = serde_json::from_str(&manifest_content).expect("Failed to parse manifest.json");
+    let manifest_content =
+        fs::read_to_string(&manifest_path).expect("Failed to read manifest.json");
+    let manifest: Manifest =
+        serde_json::from_str(&manifest_content).expect("Failed to parse manifest.json");
 
     // Dynamic-discovery guard (mirrors datalog_conformance.rs's directory-scan
     // pattern): every `X.n3` in syntax/builtins/vendored that has a matching
@@ -293,7 +308,9 @@ fn test_n3_conformance() {
     let mut undiscovered: Vec<String> = Vec::new();
     for dir in ["syntax", "builtins", "vendored"] {
         let dir_path = base_dir.join(dir);
-        let Ok(entries) = fs::read_dir(&dir_path) else { continue };
+        let Ok(entries) = fs::read_dir(&dir_path) else {
+            continue;
+        };
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|e| e.to_str()) != Some("n3") {
@@ -345,7 +362,10 @@ fn test_n3_conformance() {
         println!("[IGNORED] {} ({}): {}", id, name, reason);
     }
 
-    assert!(!results.is_empty(), "no active N3 conformance cases were found in manifest.json");
+    assert!(
+        !results.is_empty(),
+        "no active N3 conformance cases were found in manifest.json"
+    );
 
     let total = results.len();
     let passed = results.iter().filter(|r| r.passed).count();
@@ -381,7 +401,11 @@ fn write_manifest_report(
     let manifests_dir: PathBuf = manifest_dir.join("docs/jira/26.7.4/manifests");
     fs::create_dir_all(&manifests_dir).expect("Failed to create manifests directory");
 
-    let pass_rate = if total > 0 { (passed as f64 / total as f64) * 100.0 } else { 0.0 };
+    let pass_rate = if total > 0 {
+        (passed as f64 / total as f64) * 100.0
+    } else {
+        0.0
+    };
 
     let mut rows = String::new();
     for r in results {

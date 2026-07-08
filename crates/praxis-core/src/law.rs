@@ -43,18 +43,21 @@ impl TryFrom<Obligation> for wasm4pm_compat::pddl::Precondition {
 
     fn try_from(obligation: Obligation) -> Result<Self, Self::Error> {
         match obligation {
-            Obligation::Precondition { predicate_id, params_hash } => {
-                Ok(wasm4pm_compat::pddl::Precondition {
-                    predicate_id,
-                    params_hash: Some(params_hash),
-                })
-            }
-            Obligation::BlockingConstraint { reason } => {
-                Err(format!("Cannot convert BlockingConstraint to Precondition: {}", reason))
-            }
-            Obligation::EvidenceRequired { evidence_type } => {
-                Err(format!("Cannot convert EvidenceRequired to Precondition: {}", evidence_type))
-            }
+            Obligation::Precondition {
+                predicate_id,
+                params_hash,
+            } => Ok(wasm4pm_compat::pddl::Precondition {
+                predicate_id,
+                params_hash: Some(params_hash),
+            }),
+            Obligation::BlockingConstraint { reason } => Err(format!(
+                "Cannot convert BlockingConstraint to Precondition: {}",
+                reason
+            )),
+            Obligation::EvidenceRequired { evidence_type } => Err(format!(
+                "Cannot convert EvidenceRequired to Precondition: {}",
+                evidence_type
+            )),
         }
     }
 }
@@ -251,7 +254,8 @@ pub(crate) fn build_admission_frame(
     meta: &ReceiptMeta,
     ts_ns: u64,
 ) -> OcelCausalFrame {
-    let meta_json = serde_json::to_vec(&(&meta.andon, &meta.object_ids, &meta.obligation_count)).unwrap();
+    let meta_json =
+        serde_json::to_vec(&(&meta.andon, &meta.object_ids, &meta.obligation_count)).unwrap();
     let mut combined = Vec::with_capacity(32 + meta_json.len());
     combined.extend_from_slice(payload_hash);
     combined.extend_from_slice(&meta_json);
@@ -326,7 +330,10 @@ impl<Payload: Serialize, Law> LawObject<Payload, Admitted, Law> {
         // Get current timestamp in nanoseconds since UNIX_EPOCH, unless the
         // caller supplied a deterministic timestamp via `meta.ts_ns`.
         let ts_ns = meta.ts_ns.unwrap_or_else(|| {
-            SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos() as u64
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos() as u64
         });
 
         let frame = build_admission_frame(&payload_hash, prev_chain_hash, &meta, ts_ns);
@@ -386,7 +393,10 @@ impl<Payload: Serialize, Law> LawObject<Payload, Admitted, Law> {
         prev_chain_hash: &[u8; 32],
         meta: ReceiptMeta,
     ) -> Result<
-        (LawObject<Payload, Receipted, Law>, crate::receipt_record::ReceiptRecord),
+        (
+            LawObject<Payload, Receipted, Law>,
+            crate::receipt_record::ReceiptRecord,
+        ),
         crate::error::CoreError,
     > {
         let payload_bytes = serde_json::to_vec(&self.payload)
@@ -615,8 +625,13 @@ mod tests {
         let r = admitted(serde_json::json!({"a": 1}))
             .receipt(&prev, meta)
             .expect("receipt should succeed");
-        let sig = r.signature.as_ref().expect("signature must be set when `signed` is enabled");
-        let hash = r.chain_hash().expect("chain hash must be set on a receipted object");
+        let sig = r
+            .signature
+            .as_ref()
+            .expect("signature must be set when `signed` is enabled");
+        let hash = r
+            .chain_hash()
+            .expect("chain hash must be set on a receipted object");
         assert!(crate::signing::verify_chain_hash(hash, sig).is_ok());
     }
 
@@ -642,7 +657,10 @@ mod tests {
         }
         drop(guard);
 
-        assert!(matches!(result, Err(crate::error::CoreError::SigningFailed(_))));
+        assert!(matches!(
+            result,
+            Err(crate::error::CoreError::SigningFailed(_))
+        ));
     }
 
     /// `receipt()` must honor `meta.denial`: a non-`ADMITTED` denial must
@@ -660,8 +678,9 @@ mod tests {
         let prev = [7u8; 32];
 
         let admitted_denied = admitted(serde_json::json!({"a": 1}));
-        let receipted =
-            admitted_denied.receipt(&prev, meta).expect("receipt should succeed even when denied");
+        let receipted = admitted_denied
+            .receipt(&prev, meta)
+            .expect("receipt should succeed even when denied");
         assert!(receipted.chain_hash().is_some());
 
         // Same inputs, ADMITTED default meta, must differ in chain hash from

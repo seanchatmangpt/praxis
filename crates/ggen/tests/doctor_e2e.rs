@@ -56,8 +56,14 @@ fn copy_tree(src: &Path, dst: &Path) {
 /// Copy demo-pack and demo-project into a fresh TempDir; return (dir, project_root).
 fn scaffold_with_pack() -> (TempDir, PathBuf) {
     let dir = TempDir::new().expect("tempdir");
-    copy_tree(&examples_dir().join("demo-pack"), &dir.path().join("demo-pack"));
-    copy_tree(&examples_dir().join("demo-project"), &dir.path().join("demo-project"));
+    copy_tree(
+        &examples_dir().join("demo-pack"),
+        &dir.path().join("demo-pack"),
+    );
+    copy_tree(
+        &examples_dir().join("demo-project"),
+        &dir.path().join("demo-project"),
+    );
     let project = dir.path().join("demo-project");
     (dir, project)
 }
@@ -85,14 +91,27 @@ fn stderr_str(assert: &assert_cmd::assert::Assert) -> String {
 fn clean_synced_project_is_healthy() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice", "bob"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync");
 
     let assert = run_doctor(dir.path()).success();
     let json = stdout_json(&assert);
     assert_eq!(json["healthy"], true, "{json}");
     assert_eq!(json["checks"]["lockfile_drift"]["status"], "pass", "{json}");
-    assert_eq!(json["checks"]["orphaned_artifacts"]["status"], "pass", "{json}");
-    assert_eq!(json["checks"]["receipt_staleness"]["status"], "pass", "{json}");
+    assert_eq!(
+        json["checks"]["orphaned_artifacts"]["status"], "pass",
+        "{json}"
+    );
+    assert_eq!(
+        json["checks"]["receipt_staleness"]["status"], "pass",
+        "{json}"
+    );
 }
 
 /// (b) A fresh, never-synced project (`ggen.toml` only, no packs, no
@@ -127,9 +146,19 @@ fn never_synced_project_is_healthy_by_definition() {
 #[test]
 fn corrupted_pack_content_fails_lockfile_drift() {
     let (_dir, project) = scaffold_with_pack();
-    sync(&project, SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
+    sync(
+        &project,
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync");
 
-    let pack_ontology = project.parent().expect("root").join("demo-pack/ontology.ttl");
+    let pack_ontology = project
+        .parent()
+        .expect("root")
+        .join("demo-pack/ontology.ttl");
     let mut ttl = std::fs::read_to_string(&pack_ontology).expect("pack ttl");
     ttl.push_str(
         "\n<http://example.com/ontology#evil> <http://example.com/ontology#hasName> \"tampered\" .\n",
@@ -150,7 +179,14 @@ fn corrupted_pack_content_fails_lockfile_drift() {
 fn deleted_output_fails_receipt_staleness_independently_of_other_checks() {
     let dir = TempDir::new().expect("tempdir");
     scaffold(dir.path(), &["alice", "bob"]);
-    sync(dir.path(), SyncOptions { dry_run: false, ..Default::default() }).expect("sync");
+    sync(
+        dir.path(),
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("sync");
 
     let missing = dir.path().join("out/names.txt");
     assert!(missing.is_file());

@@ -5,7 +5,9 @@
 
 use praxis_graphlaw::datalog::validate_rules;
 use praxis_graphlaw::encoding::Encoder;
-use praxis_graphlaw::triples::{Aggregate, AggregateFunction, BodyLiteral, Rule, Triple, VarOrTerm};
+use praxis_graphlaw::triples::{
+    Aggregate, AggregateFunction, BodyLiteral, Rule, Triple, VarOrTerm,
+};
 use praxis_graphlaw::TripleStore;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -31,21 +33,37 @@ fn test_deep_stratification_chain_20_layers() {
 
     // P0(x) :- Base(x).  (stratum 0, no negation)
     rules.push(Rule {
-        head: Triple::from("?x".to_string(), pred("P0"), "http://example.org/true".to_string()),
+        head: Triple::from(
+            "?x".to_string(),
+            pred("P0"),
+            "http://example.org/true".to_string(),
+        ),
         body: vec![BodyLiteral {
             negated: false,
-            pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()),
+            pattern: Triple::from(
+                "?x".to_string(),
+                pred("Base"),
+                "http://example.org/true".to_string(),
+            ),
         }],
     });
 
     // P{i}(x) :- Base(x), not P{i-1}(x).  for i in 1..LAYERS
     for i in 1..LAYERS {
         rules.push(Rule {
-            head: Triple::from("?x".to_string(), pred(&format!("P{}", i)), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred(&format!("P{}", i)),
+                "http://example.org/true".to_string(),
+            ),
             body: vec![
                 BodyLiteral {
                     negated: false,
-                    pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()),
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Base"),
+                        "http://example.org/true".to_string(),
+                    ),
                 },
                 BodyLiteral {
                     negated: true,
@@ -64,14 +82,21 @@ fn test_deep_stratification_chain_20_layers() {
     let elapsed = start.elapsed();
 
     let strata = result.expect("a valid, acyclic 20-layer negation chain must be accepted");
-    assert_eq!(strata.len(), LAYERS, "expected one stratum assignment per rule");
+    assert_eq!(
+        strata.len(),
+        LAYERS,
+        "expected one stratum assignment per rule"
+    );
 
     // Strata must be strictly increasing along the chain: stratum(P_i) > stratum(P_{i-1}).
     for i in 1..LAYERS {
         assert!(
             strata[i] > strata[i - 1],
             "stratum(P{})={} must be strictly greater than stratum(P{})={}",
-            i, strata[i], i - 1, strata[i - 1]
+            i,
+            strata[i],
+            i - 1,
+            strata[i - 1]
         );
     }
 
@@ -89,7 +114,9 @@ fn test_deep_stratification_chain_20_layers() {
         pred("Base"),
         "http://example.org/true".to_string(),
     ));
-    store.add_rules(rules).expect("rules already validated above");
+    store
+        .add_rules(rules)
+        .expect("rules already validated above");
     let derived = store.materialize();
     let decoded: Vec<String> = derived.iter().map(TripleStore::decode_triple).collect();
 
@@ -99,9 +126,12 @@ fn test_deep_stratification_chain_20_layers() {
         let should_hold = i % 2 == 0;
         let holds = decoded.iter().any(|d| d.contains(&format!("/P{}>", i)));
         assert_eq!(
-            holds, should_hold,
+            holds,
+            should_hold,
             "P{} should {}hold (alternating negation chain), but derived facts were: {:?}",
-            i, if should_hold { "" } else { "NOT " }, decoded
+            i,
+            if should_hold { "" } else { "NOT " },
+            decoded
         );
     }
 }
@@ -117,11 +147,19 @@ fn test_deep_stratification_chain_with_far_cycle_rejected() {
     let mut rules = Vec::new();
 
     rules.push(Rule {
-        head: Triple::from("?x".to_string(), pred("P0"), "http://example.org/true".to_string()),
+        head: Triple::from(
+            "?x".to_string(),
+            pred("P0"),
+            "http://example.org/true".to_string(),
+        ),
         body: vec![
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()),
+                pattern: Triple::from(
+                    "?x".to_string(),
+                    pred("Base"),
+                    "http://example.org/true".to_string(),
+                ),
             },
             // The far cycle-closing edge: P0 negates P{LAYERS-1}.
             BodyLiteral {
@@ -136,11 +174,19 @@ fn test_deep_stratification_chain_with_far_cycle_rejected() {
     });
     for i in 1..LAYERS {
         rules.push(Rule {
-            head: Triple::from("?x".to_string(), pred(&format!("P{}", i)), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred(&format!("P{}", i)),
+                "http://example.org/true".to_string(),
+            ),
             body: vec![
                 BodyLiteral {
                     negated: false,
-                    pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()),
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Base"),
+                        "http://example.org/true".to_string(),
+                    ),
                 },
                 BodyLiteral {
                     negated: true,
@@ -182,7 +228,11 @@ fn test_large_scale_grouped_aggregation() {
     }
 
     let rule = Rule {
-        head: Triple::from("?d".to_string(), pred("employeeCount"), "?count".to_string()),
+        head: Triple::from(
+            "?d".to_string(),
+            pred("employeeCount"),
+            "?count".to_string(),
+        ),
         body: vec![BodyLiteral {
             negated: false,
             pattern: Triple::from("?d".to_string(), pred("hasEmployee"), "?e".to_string()),
@@ -196,22 +246,36 @@ fn test_large_scale_grouped_aggregation() {
     };
 
     let start = Instant::now();
-    store.add_rule_with_aggregate(rule, agg).expect("valid aggregate rule over 1000 facts must be accepted");
+    store
+        .add_rule_with_aggregate(rule, agg)
+        .expect("valid aggregate rule over 1000 facts must be accepted");
     let derived = store.materialize();
     let elapsed = start.elapsed();
 
     let decoded: Vec<String> = derived.iter().map(TripleStore::decode_triple).collect();
-    let count_facts: Vec<&String> = decoded.iter().filter(|d| d.contains("employeeCount")).collect();
+    let count_facts: Vec<&String> = decoded
+        .iter()
+        .filter(|d| d.contains("employeeCount"))
+        .collect();
 
     assert_eq!(
-        count_facts.len(), NUM_DEPTS,
+        count_facts.len(),
+        NUM_DEPTS,
         "expected exactly {} employeeCount facts (one per department), got {}: {:?}",
-        NUM_DEPTS, count_facts.len(), count_facts
+        NUM_DEPTS,
+        count_facts.len(),
+        count_facts
     );
     for d in 0..NUM_DEPTS {
         assert!(
-            count_facts.iter().any(|f| f.contains(&format!("/dept{}>", d)) && f.contains(&EMPLOYEES_PER_DEPT.to_string())),
-            "dept{} should have employeeCount={}, got: {:?}", d, EMPLOYEES_PER_DEPT, count_facts
+            count_facts
+                .iter()
+                .any(|f| f.contains(&format!("/dept{}>", d))
+                    && f.contains(&EMPLOYEES_PER_DEPT.to_string())),
+            "dept{} should have employeeCount={}, got: {:?}",
+            d,
+            EMPLOYEES_PER_DEPT,
+            count_facts
         );
     }
 
@@ -238,31 +302,103 @@ fn test_large_scale_grouped_aggregation() {
 fn test_diamond_reconvergence_rejected() {
     let rules = vec![
         Rule {
-            head: Triple::from("?x".to_string(), pred("P"), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred("P"),
+                "http://example.org/true".to_string(),
+            ),
             body: vec![
-                BodyLiteral { negated: false, pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()) },
-                BodyLiteral { negated: true, pattern: Triple::from("?x".to_string(), pred("Q"), "http://example.org/true".to_string()) },
+                BodyLiteral {
+                    negated: false,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Base"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
+                BodyLiteral {
+                    negated: true,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Q"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
             ],
         },
         Rule {
-            head: Triple::from("?x".to_string(), pred("Q"), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred("Q"),
+                "http://example.org/true".to_string(),
+            ),
             body: vec![
-                BodyLiteral { negated: false, pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()) },
-                BodyLiteral { negated: true, pattern: Triple::from("?x".to_string(), pred("R"), "http://example.org/true".to_string()) },
+                BodyLiteral {
+                    negated: false,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Base"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
+                BodyLiteral {
+                    negated: true,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("R"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
             ],
         },
         Rule {
-            head: Triple::from("?x".to_string(), pred("R"), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred("R"),
+                "http://example.org/true".to_string(),
+            ),
             body: vec![
-                BodyLiteral { negated: false, pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()) },
-                BodyLiteral { negated: true, pattern: Triple::from("?x".to_string(), pred("S"), "http://example.org/true".to_string()) },
+                BodyLiteral {
+                    negated: false,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Base"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
+                BodyLiteral {
+                    negated: true,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("S"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
             ],
         },
         Rule {
-            head: Triple::from("?x".to_string(), pred("S"), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred("S"),
+                "http://example.org/true".to_string(),
+            ),
             body: vec![
-                BodyLiteral { negated: false, pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()) },
-                BodyLiteral { negated: true, pattern: Triple::from("?x".to_string(), pred("P"), "http://example.org/true".to_string()) },
+                BodyLiteral {
+                    negated: false,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Base"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
+                BodyLiteral {
+                    negated: true,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("P"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
             ],
         },
     ];
@@ -287,40 +423,121 @@ fn test_multiple_disjoint_cycles_rejected() {
     let rules = vec![
         // Cycle 1: A <-> B via negation.
         Rule {
-            head: Triple::from("?x".to_string(), pred("A"), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred("A"),
+                "http://example.org/true".to_string(),
+            ),
             body: vec![
-                BodyLiteral { negated: false, pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()) },
-                BodyLiteral { negated: true, pattern: Triple::from("?x".to_string(), pred("B"), "http://example.org/true".to_string()) },
+                BodyLiteral {
+                    negated: false,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Base"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
+                BodyLiteral {
+                    negated: true,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("B"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
             ],
         },
         Rule {
-            head: Triple::from("?x".to_string(), pred("B"), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred("B"),
+                "http://example.org/true".to_string(),
+            ),
             body: vec![
-                BodyLiteral { negated: false, pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()) },
-                BodyLiteral { negated: true, pattern: Triple::from("?x".to_string(), pred("A"), "http://example.org/true".to_string()) },
+                BodyLiteral {
+                    negated: false,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Base"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
+                BodyLiteral {
+                    negated: true,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("A"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
             ],
         },
         // Cycle 2: X <-> Y via negation -- entirely disjoint from A/B.
         Rule {
-            head: Triple::from("?x".to_string(), pred("X"), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred("X"),
+                "http://example.org/true".to_string(),
+            ),
             body: vec![
-                BodyLiteral { negated: false, pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()) },
-                BodyLiteral { negated: true, pattern: Triple::from("?x".to_string(), pred("Y"), "http://example.org/true".to_string()) },
+                BodyLiteral {
+                    negated: false,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Base"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
+                BodyLiteral {
+                    negated: true,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Y"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
             ],
         },
         Rule {
-            head: Triple::from("?x".to_string(), pred("Y"), "http://example.org/true".to_string()),
+            head: Triple::from(
+                "?x".to_string(),
+                pred("Y"),
+                "http://example.org/true".to_string(),
+            ),
             body: vec![
-                BodyLiteral { negated: false, pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()) },
-                BodyLiteral { negated: true, pattern: Triple::from("?x".to_string(), pred("X"), "http://example.org/true".to_string()) },
+                BodyLiteral {
+                    negated: false,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("Base"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
+                BodyLiteral {
+                    negated: true,
+                    pattern: Triple::from(
+                        "?x".to_string(),
+                        pred("X"),
+                        "http://example.org/true".to_string(),
+                    ),
+                },
             ],
         },
         // An unrelated, perfectly safe rule that must not mask the rejection.
         Rule {
-            head: Triple::from("?x".to_string(), pred("Safe"), "http://example.org/true".to_string()),
-            body: vec![
-                BodyLiteral { negated: false, pattern: Triple::from("?x".to_string(), pred("Base"), "http://example.org/true".to_string()) },
-            ],
+            head: Triple::from(
+                "?x".to_string(),
+                pred("Safe"),
+                "http://example.org/true".to_string(),
+            ),
+            body: vec![BodyLiteral {
+                negated: false,
+                pattern: Triple::from(
+                    "?x".to_string(),
+                    pred("Base"),
+                    "http://example.org/true".to_string(),
+                ),
+            }],
         },
     ];
 
@@ -363,11 +580,23 @@ fn test_stratified_negation_over_aggregate_derived_predicate() {
             format!("http://example.org/emp2_{}", e),
         ));
     }
-    store.add(Triple::from("http://example.org/dept1".to_string(), pred("isDept"), "http://example.org/true".to_string()));
-    store.add(Triple::from("http://example.org/dept2".to_string(), pred("isDept"), "http://example.org/true".to_string()));
+    store.add(Triple::from(
+        "http://example.org/dept1".to_string(),
+        pred("isDept"),
+        "http://example.org/true".to_string(),
+    ));
+    store.add(Triple::from(
+        "http://example.org/dept2".to_string(),
+        pred("isDept"),
+        "http://example.org/true".to_string(),
+    ));
 
     let count_rule = Rule {
-        head: Triple::from("?d".to_string(), pred("employeeCount"), "?count".to_string()),
+        head: Triple::from(
+            "?d".to_string(),
+            pred("employeeCount"),
+            "?count".to_string(),
+        ),
         body: vec![BodyLiteral {
             negated: false,
             pattern: Triple::from("?d".to_string(), pred("hasEmployee"), "?e".to_string()),
@@ -379,7 +608,9 @@ fn test_stratified_negation_over_aggregate_derived_predicate() {
         target_var: "?count".to_string(),
         group_vars: vec!["?d".to_string()],
     };
-    store.add_rule_with_aggregate(count_rule, agg).expect("aggregate rule must be accepted");
+    store
+        .add_rule_with_aggregate(count_rule, agg)
+        .expect("aggregate rule must be accepted");
 
     // The COUNT aggregate encodes its numeric result via a raw,
     // bracket-less `Encoder::add(count.to_string())` (see aggregation.rs),
@@ -390,7 +621,11 @@ fn test_stratified_negation_over_aggregate_derived_predicate() {
     // would intern the differently-shaped string "<5>" and never match.
     let five_id = Encoder::add("5".to_string());
     let high_staff_rule = Rule {
-        head: Triple::from("?d".to_string(), pred("HighStaff"), "http://example.org/true".to_string()),
+        head: Triple::from(
+            "?d".to_string(),
+            pred("HighStaff"),
+            "http://example.org/true".to_string(),
+        ),
         body: vec![BodyLiteral {
             negated: false,
             pattern: Triple {
@@ -402,32 +637,65 @@ fn test_stratified_negation_over_aggregate_derived_predicate() {
         }],
     };
     let low_staff_alert_rule = Rule {
-        head: Triple::from("?d".to_string(), pred("LowStaffAlert"), "http://example.org/true".to_string()),
+        head: Triple::from(
+            "?d".to_string(),
+            pred("LowStaffAlert"),
+            "http://example.org/true".to_string(),
+        ),
         body: vec![
-            BodyLiteral { negated: false, pattern: Triple::from("?d".to_string(), pred("isDept"), "http://example.org/true".to_string()) },
-            BodyLiteral { negated: true, pattern: Triple::from("?d".to_string(), pred("HighStaff"), "http://example.org/true".to_string()) },
+            BodyLiteral {
+                negated: false,
+                pattern: Triple::from(
+                    "?d".to_string(),
+                    pred("isDept"),
+                    "http://example.org/true".to_string(),
+                ),
+            },
+            BodyLiteral {
+                negated: true,
+                pattern: Triple::from(
+                    "?d".to_string(),
+                    pred("HighStaff"),
+                    "http://example.org/true".to_string(),
+                ),
+            },
         ],
     };
-    store.add_rules(vec![high_staff_rule, low_staff_alert_rule])
-        .expect("negation over an aggregate-derived predicate must be accepted as safely stratifiable");
+    store
+        .add_rules(vec![high_staff_rule, low_staff_alert_rule])
+        .expect(
+            "negation over an aggregate-derived predicate must be accepted as safely stratifiable",
+        );
 
     let derived = store.materialize();
     let decoded = decode_all(&derived);
 
     assert!(
-        decoded.iter().any(|d| d.contains("/dept2") && d.contains("HighStaff")),
-        "dept2 (5 employees) must be classified HighStaff, got: {:?}", decoded
+        decoded
+            .iter()
+            .any(|d| d.contains("/dept2") && d.contains("HighStaff")),
+        "dept2 (5 employees) must be classified HighStaff, got: {:?}",
+        decoded
     );
     assert!(
-        !decoded.iter().any(|d| d.contains("/dept1") && d.contains("HighStaff")),
-        "dept1 (3 employees) must NOT be classified HighStaff, got: {:?}", decoded
+        !decoded
+            .iter()
+            .any(|d| d.contains("/dept1") && d.contains("HighStaff")),
+        "dept1 (3 employees) must NOT be classified HighStaff, got: {:?}",
+        decoded
     );
     assert!(
-        decoded.iter().any(|d| d.contains("/dept1") && d.contains("LowStaffAlert")),
-        "dept1 (not HighStaff) must be flagged LowStaffAlert, got: {:?}", decoded
+        decoded
+            .iter()
+            .any(|d| d.contains("/dept1") && d.contains("LowStaffAlert")),
+        "dept1 (not HighStaff) must be flagged LowStaffAlert, got: {:?}",
+        decoded
     );
     assert!(
-        !decoded.iter().any(|d| d.contains("/dept2") && d.contains("LowStaffAlert")),
-        "dept2 (HighStaff) must NOT be flagged LowStaffAlert, got: {:?}", decoded
+        !decoded
+            .iter()
+            .any(|d| d.contains("/dept2") && d.contains("LowStaffAlert")),
+        "dept2 (HighStaff) must NOT be flagged LowStaffAlert, got: {:?}",
+        decoded
     );
 }

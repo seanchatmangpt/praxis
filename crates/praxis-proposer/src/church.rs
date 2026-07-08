@@ -124,11 +124,7 @@ impl ChurchState {
     /// passed obligation judgment: the proposer observes admitted reality,
     /// never raw input. Exactly mirrors `RevenueState::from_admitted`.
     pub fn from_admitted<Law>(
-        admitted: &praxis_core::LawObject<
-            serde_json::Value,
-            praxis_core::lifecycle::Admitted,
-            Law,
-        >,
+        admitted: &praxis_core::LawObject<serde_json::Value, praxis_core::lifecycle::Admitted, Law>,
     ) -> Result<ChurchState, serde_json::Error> {
         serde_json::from_value(admitted.payload().clone())
     }
@@ -158,10 +154,7 @@ pub fn evidence_permits(person: &Person, target: Stage) -> bool {
         Stage::Connected => person.welcomed && person.followed_up,
         Stage::Serving => person.welcomed && person.followed_up && person.in_small_group,
         Stage::Leading => {
-            person.welcomed
-                && person.followed_up
-                && person.in_small_group
-                && person.care_assigned
+            person.welcomed && person.followed_up && person.in_small_group && person.care_assigned
         }
     }
 }

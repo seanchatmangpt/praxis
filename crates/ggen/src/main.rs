@@ -10,7 +10,9 @@ fn main() -> Result<()> {
     // Cargo external subcommand protocol: `cargo foo bar` → argv = ["cargo-foo", "foo", "bar"]
     // Re-exec self with the injected noun stripped so the rest of main sees clean argv.
     if raw.get(1).map(String::as_str) == Some(env!("CARGO_BIN_NAME").trim_start_matches("cargo-")) {
-        let status = std::process::Command::new(&raw[0]).args(&raw[2..]).status()?;
+        let status = std::process::Command::new(&raw[0])
+            .args(&raw[2..])
+            .status()?;
         std::process::exit(status.code().unwrap_or(1));
     }
 
@@ -31,8 +33,9 @@ fn main() -> Result<()> {
     );
 
     let registry_mutex = ::clap_noun_verb::cli::CommandRegistry::get();
-    let registry =
-        registry_mutex.lock().map_err(|e| anyhow::anyhow!("Failed to lock registry: {}", e))?;
+    let registry = registry_mutex
+        .lock()
+        .map_err(|e| anyhow::anyhow!("Failed to lock registry: {}", e))?;
     registry.run(args).map_err(|e| anyhow::anyhow!("{}", e))
 }
 
@@ -111,6 +114,9 @@ mod inject_default_verbs_tests {
 
     #[test]
     fn noun_without_default_verb_mapping_is_untouched() {
-        assert_eq!(inject_default_verbs(v(&["ggen", "graph"])), v(&["ggen", "graph"]));
+        assert_eq!(
+            inject_default_verbs(v(&["ggen", "graph"])),
+            v(&["ggen", "graph"])
+        );
     }
 }

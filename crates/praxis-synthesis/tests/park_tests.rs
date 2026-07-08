@@ -32,7 +32,10 @@ fn park_is_idempotent_and_typed() {
     let mut mgr = ParkManager::new();
     let e = entry("n1", ParkCause::CrashLoop, ReAdmission::Manual, 1);
     assert!(mgr.park(e.clone(), None).expect("park"));
-    assert!(!mgr.park(e, None).expect("re-park"), "second park is a no-op");
+    assert!(
+        !mgr.park(e, None).expect("re-park"),
+        "second park is a no-op"
+    );
     assert_eq!(mgr.parked_count(), 1);
     assert_eq!(
         mgr.get("n1").expect("entry").cause.description(),
@@ -43,9 +46,20 @@ fn park_is_idempotent_and_typed() {
 #[test]
 fn after_runs_readmits_at_the_boundary_not_before() {
     let mut mgr = ParkManager::new();
-    mgr.park(entry("n1", ParkCause::TickBudgetExceeded, ReAdmission::AfterRuns(3), 5), None)
-        .expect("park");
-    assert!(mgr.readmit(7, |_| None).is_empty(), "run 7 < 5+3: still parked");
+    mgr.park(
+        entry(
+            "n1",
+            ParkCause::TickBudgetExceeded,
+            ReAdmission::AfterRuns(3),
+            5,
+        ),
+        None,
+    )
+    .expect("park");
+    assert!(
+        mgr.readmit(7, |_| None).is_empty(),
+        "run 7 < 5+3: still parked"
+    );
     let back = mgr.readmit(8, |_| None);
     assert_eq!(back.len(), 1, "run 8 == 5+3: re-admitted");
     assert_eq!(mgr.parked_count(), 0);
@@ -55,7 +69,12 @@ fn after_runs_readmits_at_the_boundary_not_before() {
 fn on_input_change_readmits_only_when_the_fingerprint_moves() {
     let mut mgr = ParkManager::new();
     mgr.park(
-        entry("n1", ParkCause::UpstreamParked, ReAdmission::OnInputChange, 1),
+        entry(
+            "n1",
+            ParkCause::UpstreamParked,
+            ReAdmission::OnInputChange,
+            1,
+        ),
         None,
     )
     .expect("park");
@@ -69,10 +88,18 @@ fn on_input_change_readmits_only_when_the_fingerprint_moves() {
 #[test]
 fn manual_never_auto_readmits() {
     let mut mgr = ParkManager::new();
-    mgr.park(entry("n1", ParkCause::CrashLoop, ReAdmission::Manual, 1), None)
-        .expect("park");
-    assert!(mgr.readmit(u64::MAX, |id| Some(format!("changed-{id}"))).is_empty());
-    assert!(mgr.readmit_manual("n1").is_some(), "the authority path works");
+    mgr.park(
+        entry("n1", ParkCause::CrashLoop, ReAdmission::Manual, 1),
+        None,
+    )
+    .expect("park");
+    assert!(mgr
+        .readmit(u64::MAX, |id| Some(format!("changed-{id}")))
+        .is_empty());
+    assert!(
+        mgr.readmit_manual("n1").is_some(),
+        "the authority path works"
+    );
     assert_eq!(mgr.parked_count(), 0);
 }
 
@@ -88,15 +115,27 @@ fn quarantine_survives_kill_minus_nine() {
         )
         .expect("park");
         mgr.park(
-            entry("slow-node", ParkCause::TickBudgetExceeded, ReAdmission::AfterRuns(2), 7),
+            entry(
+                "slow-node",
+                ParkCause::TickBudgetExceeded,
+                ReAdmission::AfterRuns(2),
+                7,
+            ),
             Some(&mut wal),
         )
         .expect("park");
         // Process "dies" here: mgr dropped, only the WAL survives.
     }
     let recovered = ParkManager::recover(&wal_path).expect("recover");
-    assert_eq!(recovered.parked_count(), 2, "quarantine outlived the process");
-    assert_eq!(recovered.get("poison-node").expect("entry").cause, ParkCause::CrashLoop);
+    assert_eq!(
+        recovered.parked_count(),
+        2,
+        "quarantine outlived the process"
+    );
+    assert_eq!(
+        recovered.get("poison-node").expect("entry").cause,
+        ParkCause::CrashLoop
+    );
     assert_eq!(
         recovered.get("slow-node").expect("entry").readmission,
         ReAdmission::AfterRuns(2)
@@ -111,7 +150,8 @@ fn park_records_coexist_with_memo_records_in_one_wal() {
     let wal_path = temp_path("mixed.wal");
     {
         let mut wal = Wal::open(&wal_path).expect("wal");
-        wal.append(&"ab".repeat(32), b"memo-output").expect("memo frame");
+        wal.append(&"ab".repeat(32), b"memo-output")
+            .expect("memo frame");
         let mut mgr = ParkManager::new();
         mgr.park(
             entry("n1", ParkCause::RunLengthExceeded, ReAdmission::Manual, 1),
@@ -124,6 +164,10 @@ fn park_records_coexist_with_memo_records_in_one_wal() {
     assert!(!torn);
     assert_eq!(memo.len(), 2, "raw recovery sees both");
     let parks = ParkManager::recover(&wal_path).expect("park recover");
-    assert_eq!(parks.parked_count(), 1, "park recovery filters to its prefix");
+    assert_eq!(
+        parks.parked_count(),
+        1,
+        "park recovery filters to its prefix"
+    );
     let _ = std::fs::remove_file(&wal_path);
 }

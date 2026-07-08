@@ -9,7 +9,10 @@ use praxis_graphlaw::TripleStore;
 use proptest::prelude::*;
 
 fn decode_all(triples: &[praxis_graphlaw::triples::Triple]) -> Vec<String> {
-    triples.iter().map(praxis_graphlaw::TripleStore::decode_triple).collect()
+    triples
+        .iter()
+        .map(praxis_graphlaw::TripleStore::decode_triple)
+        .collect()
 }
 
 // Combine `math:sum` + `math:greaterThan` + `string:concat` in a single

@@ -110,14 +110,21 @@ impl TypeIndex {
             .iter()
             .filter_map(|t| t.parent.clone().map(|p| (t.name.clone(), p)))
             .collect();
-        Self { object_type, parent }
+        Self {
+            object_type,
+            parent,
+        }
     }
 
     fn satisfies(&self, obj: &str, required: &str) -> bool {
         if required == "object" {
             return true;
         }
-        let mut cur: &str = self.object_type.get(obj).map(String::as_str).unwrap_or("object");
+        let mut cur: &str = self
+            .object_type
+            .get(obj)
+            .map(String::as_str)
+            .unwrap_or("object");
         loop {
             if cur == required {
                 return true;
@@ -147,8 +154,11 @@ impl<'a> SchemaPlan<'a> {
         type_index: &TypeIndex,
         dict: &mut Dict,
     ) -> Self {
-        let typed: HashMap<&str, &str> =
-            schema.typed_params.iter().map(|(p, t)| (p.as_str(), t.as_str())).collect();
+        let typed: HashMap<&str, &str> = schema
+            .typed_params
+            .iter()
+            .map(|(p, t)| (p.as_str(), t.as_str()))
+            .collect();
         let cand_ids: Vec<Vec<u32>> = schema
             .params
             .iter()
@@ -161,9 +171,17 @@ impl<'a> SchemaPlan<'a> {
                     .collect()
             })
             .collect();
-        let param_index =
-            schema.params.iter().enumerate().map(|(i, p)| (p.clone(), i)).collect();
-        Self { schema, cand_ids, param_index }
+        let param_index = schema
+            .params
+            .iter()
+            .enumerate()
+            .map(|(i, p)| (p.clone(), i))
+            .collect();
+        Self {
+            schema,
+            cand_ids,
+            param_index,
+        }
     }
 
     /// Ground actions naive would materialize for this schema.
@@ -296,7 +314,10 @@ impl IndexedGroundProblem {
             for (_, ga) in keyed {
                 actions.push(ga);
                 if actions.len() > limit {
-                    return Err(GroundError::BoundExceeded { limit, got: actions.len() });
+                    return Err(GroundError::BoundExceeded {
+                        limit,
+                        got: actions.len(),
+                    });
                 }
             }
         }
@@ -319,12 +340,18 @@ impl IndexedGroundProblem {
         let initial_state: BTreeSet<Pddl8GroundAtom> = problem
             .init
             .iter()
-            .map(|a| Pddl8GroundAtom { pred: a.pred.clone(), args: a.args.clone() })
+            .map(|a| Pddl8GroundAtom {
+                pred: a.pred.clone(),
+                args: a.args.clone(),
+            })
             .collect();
         let goal: Vec<Pddl8GroundAtom> = problem
             .goal
             .iter()
-            .map(|a| Pddl8GroundAtom { pred: a.pred.clone(), args: a.args.clone() })
+            .map(|a| Pddl8GroundAtom {
+                pred: a.pred.clone(),
+                args: a.args.clone(),
+            })
             .collect();
 
         let stats = GroundStats {
@@ -333,7 +360,14 @@ impl IndexedGroundProblem {
             reachable_atoms: reachable.len(),
         };
 
-        Ok(Self { initial_state, goal, actions, action_index, always_applicable, stats })
+        Ok(Self {
+            initial_state,
+            goal,
+            actions,
+            action_index,
+            always_applicable,
+            stats,
+        })
     }
 
     /// BFS forward search — identical strategy to
@@ -356,8 +390,7 @@ impl IndexedGroundProblem {
                     path.into_iter().map(|i| self.actions[i].clone()).collect();
                 return Ok(Pddl8Tape::from_plan(plan));
             }
-            let mut candidates: BTreeSet<usize> =
-                self.always_applicable.iter().copied().collect();
+            let mut candidates: BTreeSet<usize> = self.always_applicable.iter().copied().collect();
             for atom in state.iter() {
                 if let Some(idxs) = self.action_index.get(atom) {
                     candidates.extend(idxs.iter().copied());
@@ -572,11 +605,16 @@ fn instantiate(plan: &SchemaPlan, binding: &[u32], dict: &Dict) -> Pddl8GroundAc
                 }
             })
             .collect();
-        Pddl8GroundAtom { pred: atom.pred.clone(), args }
+        Pddl8GroundAtom {
+            pred: atom.pred.clone(),
+            args,
+        }
     };
 
-    let bound_args: Vec<String> =
-        binding.iter().map(|&id| dict.resolve(SymId(id)).to_owned()).collect();
+    let bound_args: Vec<String> = binding
+        .iter()
+        .map(|&id| dict.resolve(SymId(id)).to_owned())
+        .collect();
     let label = if bound_args.is_empty() {
         plan.schema.name.clone()
     } else {
@@ -604,7 +642,9 @@ fn intern_atom(dict: &mut Dict, atom: &Pddl8Atom) {
 
 /// Insert a ground atom given by string predicate + string args (init facts).
 fn insert_ground(store: &mut FactStore, dict: &Dict, pred: &str, args: &[String]) {
-    let Some(pred_id) = dict.get(pred) else { return };
+    let Some(pred_id) = dict.get(pred) else {
+        return;
+    };
     let arg_ids: Option<Vec<SymId>> = args.iter().map(|a| dict.get(a)).collect();
     if let Some(ids) = arg_ids {
         store.insert(pred_id, &ids);

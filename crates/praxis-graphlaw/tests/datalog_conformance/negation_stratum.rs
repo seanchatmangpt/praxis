@@ -1,6 +1,5 @@
-
+use praxis_graphlaw::triples::{BodyLiteral, Rule, Triple};
 use praxis_graphlaw::TripleStore;
-use praxis_graphlaw::triples::{Rule, Triple, BodyLiteral};
 
 /// CONFORM-005: Stratified Negation - Negation across a single stratum boundary.
 /// Evaluated in strata order.
@@ -25,34 +24,64 @@ fn test_negation_across_stratum_boundary() {
     let mut store = TripleStore::new();
 
     // Facts
-    store.add(Triple::from("http://example.org/a".to_string(), "http://example.org/type".to_string(), "http://example.org/A".to_string()));
-    store.add(Triple::from("http://example.org/b".to_string(), "http://example.org/type".to_string(), "http://example.org/A".to_string()));
-    store.add(Triple::from("http://example.org/b".to_string(), "http://example.org/type".to_string(), "http://example.org/C".to_string()));
+    store.add(Triple::from(
+        "http://example.org/a".to_string(),
+        "http://example.org/type".to_string(),
+        "http://example.org/A".to_string(),
+    ));
+    store.add(Triple::from(
+        "http://example.org/b".to_string(),
+        "http://example.org/type".to_string(),
+        "http://example.org/A".to_string(),
+    ));
+    store.add(Triple::from(
+        "http://example.org/b".to_string(),
+        "http://example.org/type".to_string(),
+        "http://example.org/C".to_string(),
+    ));
 
     // Rule 1: A => B
     let r1 = Rule {
-        head: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/B".to_string()),
-        body: vec![
-            BodyLiteral {
-                negated: false,
-                pattern: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/A".to_string()),
-            }
-        ]
+        head: Triple::from(
+            "?x".to_string(),
+            "http://example.org/type".to_string(),
+            "http://example.org/B".to_string(),
+        ),
+        body: vec![BodyLiteral {
+            negated: false,
+            pattern: Triple::from(
+                "?x".to_string(),
+                "http://example.org/type".to_string(),
+                "http://example.org/A".to_string(),
+            ),
+        }],
     };
 
     // Rule 2: B and not C => D
     let r2 = Rule {
-        head: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/D".to_string()),
+        head: Triple::from(
+            "?x".to_string(),
+            "http://example.org/type".to_string(),
+            "http://example.org/D".to_string(),
+        ),
         body: vec![
             BodyLiteral {
                 negated: false,
-                pattern: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/B".to_string()),
+                pattern: Triple::from(
+                    "?x".to_string(),
+                    "http://example.org/type".to_string(),
+                    "http://example.org/B".to_string(),
+                ),
             },
             BodyLiteral {
                 negated: true,
-                pattern: Triple::from("?x".to_string(), "http://example.org/type".to_string(), "http://example.org/C".to_string()),
-            }
-        ]
+                pattern: Triple::from(
+                    "?x".to_string(),
+                    "http://example.org/type".to_string(),
+                    "http://example.org/C".to_string(),
+                ),
+            },
+        ],
     };
 
     store.add_rules(vec![r1, r2]).expect("rules must load");
@@ -65,8 +94,12 @@ fn test_negation_across_stratum_boundary() {
     for t in derived.iter() {
         let s = TripleStore::decode_triple(t);
         if s.contains("D") {
-            if s.contains("http://example.org/a") { a_has_d = true; }
-            if s.contains("http://example.org/b") { b_has_d = true; }
+            if s.contains("http://example.org/a") {
+                a_has_d = true;
+            }
+            if s.contains("http://example.org/b") {
+                b_has_d = true;
+            }
         }
     }
 

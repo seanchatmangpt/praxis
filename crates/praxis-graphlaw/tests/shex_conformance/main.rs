@@ -1,8 +1,8 @@
-use std::fs;
-use std::path::Path;
+use praxis_graphlaw::parser::{Parser, Syntax};
 use praxis_graphlaw::shex::validate_shex;
 use praxis_graphlaw::tripleindex::TripleIndex;
-use praxis_graphlaw::parser::{Parser, Syntax};
+use std::fs;
+use std::path::Path;
 
 #[derive(serde::Deserialize)]
 struct ShapeMapEntry {
@@ -91,7 +91,10 @@ fn test_shex_conformance() {
         !report.conforms
     };
 
-    assert!(matches_expected, "ShEx validation result does not match expected result");
+    assert!(
+        matches_expected,
+        "ShEx validation result does not match expected result"
+    );
 }
 
 /// Runs the mock suite case and every vendored W3C shexTest case, and
@@ -161,14 +164,21 @@ fn test_w3c_shex_conformance_suite() {
             name: "mock_suite/NodeConstraint literal".to_string(),
             passed: report.conforms == expected_conforms,
             expected: expected.status.clone(),
-            actual: if report.conforms { "conformant".to_string() } else { "nonconformant".to_string() },
+            actual: if report.conforms {
+                "conformant".to_string()
+            } else {
+                "nonconformant".to_string()
+            },
             detail: expected.details.clone(),
         });
     }
 
     // --- vendored W3C shexTest cases ---
     let w3c_dir = manifest_dir.join("tests/shex_conformance/w3c_suite/cases");
-    assert!(w3c_dir.exists(), "Vendored W3C shexTest suite directory must exist");
+    assert!(
+        w3c_dir.exists(),
+        "Vendored W3C shexTest suite directory must exist"
+    );
 
     let mut case_dirs: Vec<_> = fs::read_dir(&w3c_dir)
         .expect("Failed to read w3c_suite/cases")
@@ -177,7 +187,10 @@ fn test_w3c_shex_conformance_suite() {
         .filter(|p| p.is_dir())
         .collect();
     case_dirs.sort();
-    assert!(!case_dirs.is_empty(), "No vendored W3C shexTest cases found");
+    assert!(
+        !case_dirs.is_empty(),
+        "No vendored W3C shexTest cases found"
+    );
 
     for case_dir in &case_dirs {
         let name = case_dir.file_name().unwrap().to_string_lossy().to_string();
@@ -198,7 +211,11 @@ fn test_w3c_shex_conformance_suite() {
             .unwrap_or_else(|e| panic!("case '{name}': validate_shex errored: {e}"));
 
         let expected_conforms = meta.expected == "conformant";
-        let actual = if report.conforms { "conformant" } else { "nonconformant" };
+        let actual = if report.conforms {
+            "conformant"
+        } else {
+            "nonconformant"
+        };
 
         outcomes.push(TestOutcome {
             name: name.clone(),
@@ -213,7 +230,11 @@ fn test_w3c_shex_conformance_suite() {
     let total = outcomes.len();
     let passed = outcomes.iter().filter(|o| o.passed).count();
     let failed = total - passed;
-    let pass_rate = if total > 0 { (passed as f64 / total as f64) * 100.0 } else { 0.0 };
+    let pass_rate = if total > 0 {
+        (passed as f64 / total as f64) * 100.0
+    } else {
+        0.0
+    };
 
     let mut rows = String::new();
     for o in &outcomes {

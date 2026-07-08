@@ -12,4 +12,6 @@
 //! shexTest-derived cases, stress/impossible/vocabulary-fuzz tests) before
 //! this switch, with zero regressions.
 
-pub use crate::shex_native::{validate_shex_native as validate_shex, ShexValidationFailure, ShexValidationReport};
+pub use crate::shex_native::{
+    validate_shex_native as validate_shex, ShexValidationFailure, ShexValidationReport,
+};

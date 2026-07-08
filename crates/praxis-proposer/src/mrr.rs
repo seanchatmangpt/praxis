@@ -210,7 +210,14 @@ mod tests {
         RevenueState {
             accounts: vec![
                 acct("acct-apex", Stage::Proposal, 5_000_000, true, true, true),
-                acct("acct-legal-gap", Stage::Qualified, 3_000_000, false, true, true),
+                acct(
+                    "acct-legal-gap",
+                    Stage::Qualified,
+                    3_000_000,
+                    false,
+                    true,
+                    true,
+                ),
                 acct("acct-fresh", Stage::Lead, 1_000_000, false, false, false),
                 acct("acct-closed", Stage::ClosedWon, 500_000, true, true, true),
             ],
@@ -303,7 +310,10 @@ mod tests {
             .expect("legal-gap present");
         assert_eq!(gap.max_realizable_cents, 0);
         assert!(!gap.closeable);
-        assert_eq!(gap.blocked_on.as_deref(), Some(&["legal_approved".to_string()][..]));
+        assert_eq!(
+            gap.blocked_on.as_deref(),
+            Some(&["legal_approved".to_string()][..])
+        );
     }
 
     #[test]

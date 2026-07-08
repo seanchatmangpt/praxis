@@ -9,13 +9,11 @@ use std::path::PathBuf;
 
 use common::lawobject_domain;
 use praxis_synthesis::cell::{challenge_member, run_cell, verify_cell, verify_group};
+use praxis_synthesis::dag::DagNode;
 use praxis_synthesis::dag::MemoCache;
 use praxis_synthesis::fleet::lane;
 use praxis_synthesis::wal::Wal;
-use praxis_synthesis::dag::DagNode;
-use praxis_synthesis::{
-    BoundedCsp, Dag, HashRunner, NodeRunner, SequenceProblem, Solver,
-};
+use praxis_synthesis::{BoundedCsp, Dag, HashRunner, NodeRunner, SequenceProblem, Solver};
 
 fn temp_path(name: &str) -> PathBuf {
     std::env::temp_dir().join(format!(
@@ -89,7 +87,10 @@ fn kill_dash_nine_mid_dag_then_replay_yields_the_identical_receipt() {
 
     // Recover: rehydrate the memo cache from the surviving WAL frames.
     let (mut cache, frames, _torn) = Wal::recover(&wal_path).expect("recover");
-    assert!(frames > 0, "the child journaled at least one node before dying");
+    assert!(
+        frames > 0,
+        "the child journaled at least one node before dying"
+    );
     assert!(
         frames < dag.nodes.len(),
         "the kill landed mid-DAG ({frames}/{} nodes) — else the test proved nothing",
@@ -102,12 +103,18 @@ fn kill_dash_nine_mid_dag_then_replay_yields_the_identical_receipt() {
     let resumed = dag
         .execute_journaled(&mut HashRunner, &mut cache, &mut wal)
         .expect("resumed run");
-    assert_eq!(resumed.root_hash, clean.root_hash, "the chain survived machine death");
+    assert_eq!(
+        resumed.root_hash, clean.root_hash,
+        "the chain survived machine death"
+    );
     assert_eq!(
         resumed.node_receipts.last().map(|n| &n.chain),
         clean.node_receipts.last().map(|n| &n.chain)
     );
-    assert_eq!(resumed.replayed_count, frames, "exactly the journaled nodes replayed");
+    assert_eq!(
+        resumed.replayed_count, frames,
+        "exactly the journaled nodes replayed"
+    );
     let _ = std::fs::remove_file(&wal_path);
 }
 
@@ -121,7 +128,10 @@ fn torn_tail_is_detected_and_dropped() {
     }
     // Simulate a crash mid-write: truncate the file into frame 2.
     let len = std::fs::metadata(&wal_path).expect("meta").len();
-    let f = std::fs::OpenOptions::new().write(true).open(&wal_path).expect("open");
+    let f = std::fs::OpenOptions::new()
+        .write(true)
+        .open(&wal_path)
+        .expect("open");
     f.set_len(len - 5).expect("truncate");
     drop(f);
     let (cache, frames, torn) = Wal::recover(&wal_path).expect("recover");
@@ -140,7 +150,10 @@ fn the_cell_composes_and_verifies_from_rollups_alone() {
     assert_eq!(cell.n, 10_000);
     assert_eq!(cell.g, 100);
     assert_eq!(cell.admitted + cell.refused, 10_000);
-    assert!(cell.refused > 0, "the template mix includes certified-unsat members");
+    assert!(
+        cell.refused > 0,
+        "the template mix includes certified-unsat members"
+    );
     // The composition law: the cell verifies from 100 roll-ups, zero
     // interiors read.
     assert!(verify_cell(&cell, &groups));
@@ -160,10 +173,16 @@ fn tampered_rollup_fails_cell_verification() {
     assert!(verify_cell(&cell, &groups));
     // An adversarial group forges one member's terminal hash.
     groups[2].members[0].terminal_hash = "0".repeat(64);
-    assert!(!verify_group(&groups[2]), "the group's replay root catches it");
+    assert!(
+        !verify_group(&groups[2]),
+        "the group's replay root catches it"
+    );
     // And forging the replay root itself breaks the cell hash.
     groups[2].replay_root = "0".repeat(64);
-    assert!(!verify_cell(&cell, &groups), "the cell hash catches the forged root");
+    assert!(
+        !verify_cell(&cell, &groups),
+        "the cell hash catches the forged root"
+    );
 }
 
 #[test]
@@ -212,7 +231,10 @@ fn foreign_verifier_agrees_on_the_dag_receipt() {
         .expect("run");
     let path = temp_path("dag-receipt.json");
     std::fs::write(&path, serde_json::to_string(&receipt).expect("json")).expect("write");
-    let script = concat!(env!("CARGO_MANIFEST_DIR"), "/../../scripts/foreign_verify.py");
+    let script = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../scripts/foreign_verify.py"
+    );
     let out = std::process::Command::new("python3")
         .args([script, "dag", path.to_str().expect("utf8 path")])
         .output()
@@ -237,9 +259,11 @@ fn foreign_verifier_agrees_on_the_cell_and_catches_tampering() {
     let cell_path = temp_path("cell.json");
     let groups_path = temp_path("groups.json");
     std::fs::write(&cell_path, serde_json::to_string(&cell).expect("json")).expect("write");
-    std::fs::write(&groups_path, serde_json::to_string(&groups).expect("json"))
-        .expect("write");
-    let script = concat!(env!("CARGO_MANIFEST_DIR"), "/../../scripts/foreign_verify.py");
+    std::fs::write(&groups_path, serde_json::to_string(&groups).expect("json")).expect("write");
+    let script = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../scripts/foreign_verify.py"
+    );
     let run = |c: &std::path::Path, g: &std::path::Path| {
         std::process::Command::new("python3")
             .args([
@@ -252,14 +276,24 @@ fn foreign_verifier_agrees_on_the_cell_and_catches_tampering() {
             .expect("run foreign verifier")
     };
     let ok = run(&cell_path, &groups_path);
-    assert!(ok.status.success(), "{}", String::from_utf8_lossy(&ok.stdout));
+    assert!(
+        ok.status.success(),
+        "{}",
+        String::from_utf8_lossy(&ok.stdout)
+    );
     // Tamper with one roll-up; the foreign verifier must catch it too.
     let mut tampered = groups.clone();
     tampered[1].replay_root = "0".repeat(64);
-    std::fs::write(&groups_path, serde_json::to_string(&tampered).expect("json"))
-        .expect("write");
+    std::fs::write(
+        &groups_path,
+        serde_json::to_string(&tampered).expect("json"),
+    )
+    .expect("write");
     let bad = run(&cell_path, &groups_path);
-    assert!(!bad.status.success(), "tampering must fail foreign verification");
+    assert!(
+        !bad.status.success(),
+        "tampering must fail foreign verification"
+    );
     assert!(String::from_utf8_lossy(&bad.stdout).contains("MISMATCH"));
     let _ = std::fs::remove_file(&cell_path);
     let _ = std::fs::remove_file(&groups_path);

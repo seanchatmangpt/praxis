@@ -21,12 +21,18 @@ pub fn strict_config() -> DashboardConfig {
 
     // High weights for critical categories
     config.category_weights.insert("ci-cd".to_string(), 1.5);
-    config.category_weights.insert("supply-chain".to_string(), 1.5);
+    config
+        .category_weights
+        .insert("supply-chain".to_string(), 1.5);
     config.category_weights.insert("licensing".to_string(), 1.3);
 
     // Lower weights for less critical areas
-    config.category_weights.insert("editor-config".to_string(), 0.3);
-    config.category_weights.insert("versioning".to_string(), 0.3);
+    config
+        .category_weights
+        .insert("editor-config".to_string(), 0.3);
+    config
+        .category_weights
+        .insert("versioning".to_string(), 0.3);
 
     config
 }
@@ -66,13 +72,21 @@ pub fn production_config() -> DashboardConfig {
     config.history_retention_days = 90;
 
     // Balanced weights with slight emphasis on supply chain
-    config.category_weights.insert("supply-chain".to_string(), 1.1);
+    config
+        .category_weights
+        .insert("supply-chain".to_string(), 1.1);
     config.category_weights.insert("ci-cd".to_string(), 1.1);
     config.category_weights.insert("licensing".to_string(), 1.0);
     config.category_weights.insert("linting".to_string(), 0.9);
-    config.category_weights.insert("documentation".to_string(), 0.8);
-    config.category_weights.insert("editor-config".to_string(), 0.4);
-    config.category_weights.insert("versioning".to_string(), 0.5);
+    config
+        .category_weights
+        .insert("documentation".to_string(), 0.8);
+    config
+        .category_weights
+        .insert("editor-config".to_string(), 0.4);
+    config
+        .category_weights
+        .insert("versioning".to_string(), 0.5);
 
     config
 }
@@ -121,13 +135,21 @@ pub fn security_focused_config() -> DashboardConfig {
 
     // Heavy emphasis on security-related categories
     config.category_weights.clear();
-    config.category_weights.insert("supply-chain".to_string(), 2.0); // Critical
+    config
+        .category_weights
+        .insert("supply-chain".to_string(), 2.0); // Critical
     config.category_weights.insert("ci-cd".to_string(), 2.0); // Critical
     config.category_weights.insert("licensing".to_string(), 1.5); // Important
     config.category_weights.insert("linting".to_string(), 1.0); // Moderate
-    config.category_weights.insert("documentation".to_string(), 0.8); // Nice to have
-    config.category_weights.insert("editor-config".to_string(), 0.2); // Minor
-    config.category_weights.insert("versioning".to_string(), 0.5); // Low
+    config
+        .category_weights
+        .insert("documentation".to_string(), 0.8); // Nice to have
+    config
+        .category_weights
+        .insert("editor-config".to_string(), 0.2); // Minor
+    config
+        .category_weights
+        .insert("versioning".to_string(), 0.5); // Low
 
     // Keep 1 year for security audit trails
     config.history_retention_days = 365;
@@ -211,8 +233,12 @@ mod tests {
 
     #[test]
     fn test_config_weights_sum() {
-        let configs =
-            vec![strict_config(), dev_config(), production_config(), security_focused_config()];
+        let configs = vec![
+            strict_config(),
+            dev_config(),
+            production_config(),
+            security_focused_config(),
+        ];
 
         for config in configs {
             // Weights should be positive
@@ -244,7 +270,10 @@ fn main() {
         println!("{}:", name);
         println!("  Alert Threshold: {:.1}%", config.alert_threshold);
         println!("  Enable Alerts: {}", config.enable_alerts);
-        println!("  History Retention: {} days", config.history_retention_days);
+        println!(
+            "  History Retention: {} days",
+            config.history_retention_days
+        );
         println!("  Dashboard ID: {}", config.dashboard_id);
         println!("  Category Weights:");
 

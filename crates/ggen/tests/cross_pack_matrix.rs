@@ -16,7 +16,10 @@ use tempfile::TempDir;
 /// distinctive output file (only that pack's ontology/templates can
 /// produce it).
 const PACKS: &[(&str, &str)] = &[
-    ("chicago-tdd-tools-pack", "tests/chicago_tdd_tools_boundary.rs"),
+    (
+        "chicago-tdd-tools-pack",
+        "tests/chicago_tdd_tools_boundary.rs",
+    ),
     ("clap-noun-verb-pack", "src/clap_noun_verb_routes.rs"),
     ("lsp-max-pack", "rules/lsp_max_lspmax_unwrap_001.toml"),
     ("praxis-core-pack", "src/praxis_core_refusal_table.rs"),
@@ -58,9 +61,8 @@ fn scaffold_multi_pack_project(pack_order: &[&str]) -> (TempDir, PathBuf) {
     let project = dir.path().join("consumer");
     std::fs::create_dir_all(project.join("templates")).expect("mkdir templates");
     std::fs::write(project.join("ontology.ttl"), "").expect("write ontology.ttl");
-    let mut toml = String::from(
-        "[project]\nname = \"consumer\"\n\n[ontology]\nsource = \"ontology.ttl\"\n\n",
-    );
+    let mut toml =
+        String::from("[project]\nname = \"consumer\"\n\n[ontology]\nsource = \"ontology.ttl\"\n\n");
     for name in pack_order {
         toml.push_str(&format!("[packs.{name}]\npath = \"../{name}\"\n\n"));
     }
@@ -82,8 +84,14 @@ fn all_eight_framework_packs_exist_on_disk() {
     for (name, _) in PACKS {
         let root = packs_dir().join(name);
         assert!(root.is_dir(), "pack missing: {}", root.display());
-        assert!(root.join("pack.toml").is_file(), "{name}: pack.toml missing");
-        assert!(root.join("ontology.ttl").is_file(), "{name}: ontology.ttl missing");
+        assert!(
+            root.join("pack.toml").is_file(),
+            "{name}: pack.toml missing"
+        );
+        assert!(
+            root.join("ontology.ttl").is_file(),
+            "{name}: ontology.ttl missing"
+        );
         let has_tmpl = std::fs::read_dir(root.join("templates"))
             .expect("templates dir")
             .filter_map(|e| e.ok())
@@ -122,8 +130,13 @@ fn mega_project_all_packs_sync() {
     let mut last_pos = 0usize;
     for (name, _) in PACKS {
         let header = format!("[packs.{name}]");
-        let pos = lock.find(&header).unwrap_or_else(|| panic!("lock missing {header}: {lock}"));
-        assert!(pos >= last_pos, "lock entries out of alphabetical order at {header}: {lock}");
+        let pos = lock
+            .find(&header)
+            .unwrap_or_else(|| panic!("lock missing {header}: {lock}"));
+        assert!(
+            pos >= last_pos,
+            "lock entries out of alphabetical order at {header}: {lock}"
+        );
         last_pos = pos;
     }
     assert_eq!(
@@ -188,7 +201,10 @@ fn mega_project_all_packs_sync() {
         "second receipt must chain onto the first"
     );
     let lock_2 = std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock 2");
-    assert_eq!(lock_1, lock_2, "ggen.lock must be byte-identical across identical runs");
+    assert_eq!(
+        lock_1, lock_2,
+        "ggen.lock must be byte-identical across identical runs"
+    );
 }
 
 /// (2) PAIRWISE SUBSETS: all C(8,2) = 28 pairs in one test, each in a fresh
@@ -221,8 +237,7 @@ fn pairwise_pack_matrix_syncs() {
             }
 
             // Lock has exactly these two pack names.
-            let lock =
-                std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock");
+            let lock = std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock");
             let locked: Vec<&str> = lock
                 .lines()
                 .filter_map(|l| l.strip_prefix("[packs.").and_then(|l| l.strip_suffix(']')))
@@ -230,14 +245,20 @@ fn pairwise_pack_matrix_syncs() {
             let mut expected = vec![name_a, name_b];
             expected.sort_unstable();
             if locked != expected {
-                failures.push(format!("{pair}: lock has {locked:?}, expected {expected:?}"));
+                failures.push(format!(
+                    "{pair}: lock has {locked:?}, expected {expected:?}"
+                ));
             }
             if report.packs.len() != 2 {
                 failures.push(format!("{pair}: report packs map {:?}", report.packs));
             }
         }
     }
-    assert!(failures.is_empty(), "pairwise matrix failures:\n{}", failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "pairwise matrix failures:\n{}",
+        failures.join("\n")
+    );
 }
 
 /// (3) ONTOLOGY UNION SANITY: the mega-project graph hash differs from
@@ -376,8 +397,9 @@ fn wasm4pm_algorithms_and_cognition_packs_full_coverage() {
         .expect("run graph validate")
         .assert_success();
 
-    let algorithms_catalog = std::fs::read_to_string(project.join("src/w4pm_algorithms_catalog.rs"))
-        .expect("algorithms catalog");
+    let algorithms_catalog =
+        std::fs::read_to_string(project.join("src/w4pm_algorithms_catalog.rs"))
+            .expect("algorithms catalog");
     let algorithm_entries = algorithms_catalog.matches("algorithm_id: \"").count();
     assert_eq!(
         algorithm_entries, 60,
@@ -386,7 +408,9 @@ fn wasm4pm_algorithms_and_cognition_packs_full_coverage() {
 
     let cognition_catalog = std::fs::read_to_string(project.join("src/w4pm_cognition_catalog.rs"))
         .expect("cognition catalog");
-    let breed_entries = cognition_catalog.matches("=> Some(CognitionBreedId::").count();
+    let breed_entries = cognition_catalog
+        .matches("=> Some(CognitionBreedId::")
+        .count();
     assert_eq!(
         breed_entries, 55,
         "expected 55 breed entries in generated cognition catalog, found {breed_entries}"
@@ -421,8 +445,20 @@ fn wasm4pm_algorithms_and_cognition_packs_full_coverage() {
         .expect("cognition dispatch 2");
     let lock_2 = std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock 2");
 
-    assert_eq!(algorithms_1, algorithms_2, "algorithms catalog must be byte-identical");
-    assert_eq!(cognition_1, cognition_2, "cognition catalog must be byte-identical");
-    assert_eq!(dispatch_1, dispatch_2, "cognition dispatch must be byte-identical");
-    assert_eq!(lock_1, lock_2, "ggen.lock must be byte-identical across identical runs");
+    assert_eq!(
+        algorithms_1, algorithms_2,
+        "algorithms catalog must be byte-identical"
+    );
+    assert_eq!(
+        cognition_1, cognition_2,
+        "cognition catalog must be byte-identical"
+    );
+    assert_eq!(
+        dispatch_1, dispatch_2,
+        "cognition dispatch must be byte-identical"
+    );
+    assert_eq!(
+        lock_1, lock_2,
+        "ggen.lock must be byte-identical across identical runs"
+    );
 }

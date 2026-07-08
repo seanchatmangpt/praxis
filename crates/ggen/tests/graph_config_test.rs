@@ -27,7 +27,8 @@ fn state_hash_deterministic_under_insertion_order() {
     g1.insert_turtle(GROUND_TTL_A).expect("insert a");
 
     let g2 = DeterministicGraph::new().expect("store");
-    g2.insert_turtle(GROUND_TTL_A_PERMUTED).expect("insert permuted");
+    g2.insert_turtle(GROUND_TTL_A_PERMUTED)
+        .expect("insert permuted");
 
     assert_eq!(
         g1.state_hash().expect("hash g1"),
@@ -84,7 +85,9 @@ fn blank_node_graphs_hash_equal_under_renaming() {
 #[test]
 fn delta_compute_apply_round_trip_restores_target_hash() {
     let baseline = DeterministicGraph::new().expect("store");
-    baseline.insert_turtle(GROUND_TTL_A).expect("insert baseline");
+    baseline
+        .insert_turtle(GROUND_TTL_A)
+        .expect("insert baseline");
 
     let target = DeterministicGraph::new().expect("store");
     target
@@ -109,7 +112,10 @@ fn delta_compute_apply_round_trip_restores_target_hash() {
 
     // Delta hash is a pure function of its sorted content.
     assert_eq!(delta.hash(), delta.hash());
-    let empty = Delta { additions: vec![], deletions: vec![] };
+    let empty = Delta {
+        additions: vec![],
+        deletions: vec![],
+    };
     assert_ne!(delta.hash(), empty.hash());
 }
 
@@ -158,14 +164,19 @@ dir = "templates"
 
     let cfg = GgenConfig::load(&path).expect("load config");
     assert_eq!(cfg.project.name, "demo");
-    assert_eq!(cfg.ontology.source, std::path::PathBuf::from("schema/demo.ttl"));
+    assert_eq!(
+        cfg.ontology.source,
+        std::path::PathBuf::from("schema/demo.ttl")
+    );
     assert_eq!(
         cfg.ontology.prefixes.get("ex").map(String::as_str),
         Some("http://example.com/")
     );
     assert_eq!(
         cfg.packs.get("local_pack"),
-        Some(&PackRef::Path { path: "packs/local".into() })
+        Some(&PackRef::Path {
+            path: "packs/local".into()
+        })
     );
     assert_eq!(
         cfg.packs.get("remote_pack"),
@@ -199,7 +210,10 @@ dir = "templates"
 
     let err = GgenConfig::load(&path).expect_err("unknown key must fail");
     let msg = err.to_string();
-    assert!(msg.contains("FM-CONFIG-002"), "expected FM-CONFIG-002, got: {msg}");
+    assert!(
+        msg.contains("FM-CONFIG-002"),
+        "expected FM-CONFIG-002, got: {msg}"
+    );
 }
 
 #[test]

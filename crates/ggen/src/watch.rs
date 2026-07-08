@@ -55,8 +55,14 @@ pub fn watch(root: &Path, dry_run: bool) -> Result<()> {
 /// completed sync (the initial one and every re-triggered one), so tests
 /// can observe re-sync activity without depending on stderr or timing.
 fn watch_loop(root: &Path, dry_run: bool, mut on_sync: impl FnMut(&SyncReport)) -> Result<()> {
-    let initial = sync(root, SyncOptions { dry_run, ..Default::default() })
-        .map_err(|e| AppError::fm_watch(1, format!("initial sync failed: {e}")))?;
+    let initial = sync(
+        root,
+        SyncOptions {
+            dry_run,
+            ..Default::default()
+        },
+    )
+    .map_err(|e| AppError::fm_watch(1, format!("initial sync failed: {e}")))?;
     eprintln!(
         "ggen sync: {} written, {} skipped",
         initial.written.len(),
@@ -90,7 +96,13 @@ fn watch_loop(root: &Path, dry_run: bool, mut on_sync: impl FnMut(&SyncReport)) 
         if should_ignore(root, &paths) {
             continue;
         }
-        match sync(root, SyncOptions { dry_run, ..Default::default() }) {
+        match sync(
+            root,
+            SyncOptions {
+                dry_run,
+                ..Default::default()
+            },
+        ) {
             Ok(report) => {
                 eprintln!(
                     "ggen sync: {} written, {} skipped",

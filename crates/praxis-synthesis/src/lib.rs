@@ -25,6 +25,7 @@
 #![warn(missing_docs)]
 
 pub mod agent_registry;
+pub mod boundary;
 pub mod breeds;
 pub mod budget;
 pub mod cell;
@@ -60,6 +61,9 @@ pub mod wal;
 pub use agent_registry::{
     agent_canonical_form, agent_registry_hash, extract_agents, spawn_depth_law, AgentProfile,
 };
+pub use boundary::{
+    execute_emit_delta, get_delta_template, project_delta_template, BoundaryRequest,
+};
 pub use dag::{Dag, DagReceipt, HashRunner, MemoCache, NodeReceipt, NodeRunner};
 pub use datalog::{Atom, DlRule, Program, SaturationReceipt, Term};
 pub use delta::GraphDelta;
@@ -67,7 +71,8 @@ pub use envelope::{
     verify_envelope_chain, wrap_firing_receipt, wrap_workflow_receipt, PayloadRef, ReceiptEnvelope,
 };
 pub use firing::{
-    fire_hooks, replay_firing, to_ocel_event, window_history_hash, FiringOutcome, HookFiringReceipt,
+    fire_hooks, idempotency_key, replay_firing, to_ocel_event, window_history_hash, FiringOutcome,
+    HookFiringReceipt,
 };
 pub use glue::{compose_workflows, execute_composed, ComposedGraph, ComposedWorkflowReceipt};
 #[allow(deprecated)]
@@ -80,8 +85,8 @@ pub use graph::{replay_workflow, WorkflowIr, WorkflowReceipt};
 pub use ground::{capability_task_spec, ground_fired_action, CapabilityTaskSpec};
 pub use handlers::{Delegability, HandlerBinding, HandlerRegistry};
 pub use hooks::{
-    evaluate_hooks, extract_hooks, hook_hash, HookCondition, HookVerdict, HookVerdictRecord,
-    KnowledgeHook,
+    evaluate_hooks, extract_hooks, hook_hash, load_hook_pack, schedule_hooks, DiagnosticDetail,
+    HookCondition, HookPack, HookVerdict, HookVerdictRecord, KnowledgeHook, TriggerDiagnostic,
 };
 pub use kernel::{extract_kernel, kernel_hash, PrayerClause};
 pub use livelock::{

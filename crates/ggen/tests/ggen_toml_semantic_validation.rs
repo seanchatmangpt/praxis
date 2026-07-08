@@ -32,12 +32,18 @@ fn empty_project_name_is_rejected() {
     let toml = VALID.replace(r#"name = "demo""#, r#"name = """#);
     let err = GgenConfig::from_toml_str(&toml).expect_err("empty project.name must fail");
     assert!(err.to_string().contains("FM-CONFIG-003"), "{err}");
-    assert!(err.to_string().contains("project.name") || err.to_string().contains("name"), "{err}");
+    assert!(
+        err.to_string().contains("project.name") || err.to_string().contains("name"),
+        "{err}"
+    );
 }
 
 #[test]
 fn ontology_source_path_traversal_is_rejected() {
-    let toml = VALID.replace(r#"source = "ontology/domain.ttl""#, r#"source = "../escape.ttl""#);
+    let toml = VALID.replace(
+        r#"source = "ontology/domain.ttl""#,
+        r#"source = "../escape.ttl""#,
+    );
     let err =
         GgenConfig::from_toml_str(&toml).expect_err("path traversal in ontology.source must fail");
     assert!(err.to_string().contains("FM-CONFIG-003"), "{err}");

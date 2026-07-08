@@ -69,8 +69,14 @@ pub struct Env64 {
 
 // Prior art: OcelCausalFrame's `const _: () = { assert!(size_of == N) }`.
 const _: () = {
-    assert!(core::mem::size_of::<Env64>() == 64, "Env64 must be exactly 64 bytes");
-    assert!(core::mem::align_of::<Env64>() == 64, "Env64 must be 64-byte aligned");
+    assert!(
+        core::mem::size_of::<Env64>() == 64,
+        "Env64 must be exactly 64 bytes"
+    );
+    assert!(
+        core::mem::align_of::<Env64>() == 64,
+        "Env64 must be 64-byte aligned"
+    );
 };
 
 impl Env64 {
@@ -169,8 +175,14 @@ pub struct Pulse64 {
 }
 
 const _: () = {
-    assert!(core::mem::size_of::<Pulse64>() == 64, "Pulse64 must be exactly 64 bytes");
-    assert!(core::mem::align_of::<Pulse64>() == 64, "Pulse64 must be 64-byte aligned");
+    assert!(
+        core::mem::size_of::<Pulse64>() == 64,
+        "Pulse64 must be exactly 64 bytes"
+    );
+    assert!(
+        core::mem::align_of::<Pulse64>() == 64,
+        "Pulse64 must be 64-byte aligned"
+    );
 };
 
 impl Pulse64 {
@@ -357,7 +369,11 @@ mod tests {
 
         // Over-cap values clamp to 8, and non-Green raises the error flag.
         let rec = sample_record(
-            Andon::Halted { unmet: vec![], refusals: vec![], at: 0 },
+            Andon::Halted {
+                unmet: vec![],
+                refusals: vec![],
+                at: 0,
+            },
             100,
             999,
         );

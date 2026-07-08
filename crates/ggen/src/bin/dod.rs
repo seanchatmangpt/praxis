@@ -35,9 +35,7 @@ fn main() {
         .unwrap_or(false);
 
     if !hard_ok {
-        eprintln!(
-            "[DOD] HARD FAILURE: fmt={fmt_ok} lint={lint_ok} test={test_ok}"
-        );
+        eprintln!("[DOD] HARD FAILURE: fmt={fmt_ok} lint={lint_ok} test={test_ok}");
         exit(2);
     }
     if !receipts_exist {

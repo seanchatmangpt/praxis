@@ -99,7 +99,10 @@ impl FactStore {
     /// Sorted iterator over the argument tuples stored for `pred` (empty if the
     /// predicate has no facts). The order is the merge-join order.
     pub fn tuples_for(&self, pred: SymId) -> impl Iterator<Item = &Vec<u32>> {
-        self.by_pred.get(&pred.0).into_iter().flat_map(BTreeSet::iter)
+        self.by_pred
+            .get(&pred.0)
+            .into_iter()
+            .flat_map(BTreeSet::iter)
     }
 
     /// Number of facts stored for `pred`.

@@ -11,7 +11,10 @@ use proptest::prelude::*;
 use std::time::{Duration, Instant};
 
 fn decode_all(triples: &[praxis_graphlaw::triples::Triple]) -> Vec<String> {
-    triples.iter().map(praxis_graphlaw::TripleStore::decode_triple).collect()
+    triples
+        .iter()
+        .map(praxis_graphlaw::TripleStore::decode_triple)
+        .collect()
 }
 
 // ---------------------------------------------------------------------
@@ -103,8 +106,11 @@ fn test_liar_style_contradictory_log_implies_terminates_with_both_facts() {
 
     let decoded = decode_all(&inferred);
     assert!(
-        decoded.iter().any(|d| d.contains("/bob") && d.contains("TaxPayer") && !d.contains("Not")),
-        "expected :bob a :TaxPayer to be derived. Derived: {:?}", decoded
+        decoded
+            .iter()
+            .any(|d| d.contains("/bob") && d.contains("TaxPayer") && !d.contains("Not")),
+        "expected :bob a :TaxPayer to be derived. Derived: {:?}",
+        decoded
     );
     assert!(
         decoded.iter().any(|d| d.contains("/bob") && d.contains("NotTaxPayer")),

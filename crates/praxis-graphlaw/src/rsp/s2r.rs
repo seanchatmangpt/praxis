@@ -230,7 +230,9 @@ where
                 open: o_i as usize,
                 close: (o_i + self.width as f64) as usize,
             };
-            self.active_windows.entry(window).or_insert_with(ContentContainer::new);
+            self.active_windows
+                .entry(window)
+                .or_insert_with(ContentContainer::new);
             o_i += self.slide as f64;
             if o_i > *event_time as f64 {
                 break;

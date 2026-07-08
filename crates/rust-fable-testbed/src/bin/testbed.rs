@@ -35,11 +35,17 @@ fn resolve_target_path(task: &TaskSpec) -> PathBuf {
         .filter_map(|b| b.source_path.as_deref())
         .next_back()
         .and_then(|p| Path::new(p).file_name())
-        .map_or_else(|| PathBuf::from("src/lib.rs"), |name| Path::new("src").join(name))
+        .map_or_else(
+            || PathBuf::from("src/lib.rs"),
+            |name| Path::new("src").join(name),
+        )
 }
 
 #[derive(Parser)]
-#[command(name = "testbed", about = "Rust/Claude testbed: eval-harness + spec-driven-dev CLI")]
+#[command(
+    name = "testbed",
+    about = "Rust/Claude testbed: eval-harness + spec-driven-dev CLI"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -74,20 +80,28 @@ enum Commands {
 fn main() -> std::process::ExitCode {
     let cli = Cli::parse();
     match &cli.command {
-        Commands::Run { task_id, tasks_dir, model, ledger, max_tokens } => {
-            match run(task_id, tasks_dir, model.as_deref(), ledger, *max_tokens) {
-                Ok(()) => std::process::ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("testbed run {task_id}: {err}");
-                    std::process::ExitCode::FAILURE
-                }
+        Commands::Run {
+            task_id,
+            tasks_dir,
+            model,
+            ledger,
+            max_tokens,
+        } => match run(task_id, tasks_dir, model.as_deref(), ledger, *max_tokens) {
+            Ok(()) => std::process::ExitCode::SUCCESS,
+            Err(err) => {
+                eprintln!("testbed run {task_id}: {err}");
+                std::process::ExitCode::FAILURE
             }
-        }
+        },
     }
 }
 
 fn run(
-    task_id: &str, tasks_dir: &Path, model_override: Option<&str>, ledger_path: &Path, max_tokens: u32,
+    task_id: &str,
+    tasks_dir: &Path,
+    model_override: Option<&str>,
+    ledger_path: &Path,
+    max_tokens: u32,
 ) -> Result<()> {
     let ttl_path = tasks_dir.join(format!("{task_id}.ttl"));
     let task = load_task(&ttl_path).map_err(|e| Error::Spec(e.to_string()))?;
@@ -103,7 +117,9 @@ fn run(
         messages: vec![Message::user(compiled.content())],
         effort: None,
     };
-    let response = client.send(&request).map_err(|e| Error::Model(e.to_string()))?;
+    let response = client
+        .send(&request)
+        .map_err(|e| Error::Model(e.to_string()))?;
     let model_output = response.text().map_err(|e| Error::Model(e.to_string()))?;
 
     // Fixture path in the task spec is relative to the .ttl file's directory.
@@ -116,7 +132,8 @@ fn run(
     apply_model_output(staged.path(), &target_rel_path, &model_output)
         .map_err(|e| Error::Sandbox(e.to_string()))?;
 
-    let metrics = rust_fable_testbed::pipeline::run_pipeline_for_task(staged.path(), Some(task.task_type));
+    let metrics =
+        rust_fable_testbed::pipeline::run_pipeline_for_task(staged.path(), Some(task.task_type));
     println!("{}", metrics.summary_line());
 
     let prev = last_chain_hash(ledger_path)?;

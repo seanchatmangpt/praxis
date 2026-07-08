@@ -93,7 +93,10 @@ where
 {
     /// Create a new quarantine with the given schema.
     pub fn new(schema: S) -> Self {
-        RiceQuarantine { schema, _payload: std::marker::PhantomData }
+        RiceQuarantine {
+            schema,
+            _payload: std::marker::PhantomData,
+        }
     }
 
     /// Admit an observation: validate it against the schema and return the quarantined payload.
@@ -116,7 +119,9 @@ where
     /// ```
     pub fn admit(&self, observation: &str) -> Result<P, QuarantineError> {
         if observation.trim().is_empty() {
-            return Err(QuarantineError::Malformed { reason: "observation is empty".to_string() });
+            return Err(QuarantineError::Malformed {
+                reason: "observation is empty".to_string(),
+            });
         }
         self.schema.validate(observation)
     }
@@ -156,7 +161,10 @@ where
 {
     /// Create a new JSON schema validator with no predicate (accept all valid JSON).
     pub fn new() -> Self {
-        JsonBoundarySchema { predicate: None, _payload: std::marker::PhantomData }
+        JsonBoundarySchema {
+            predicate: None,
+            _payload: std::marker::PhantomData,
+        }
     }
 }
 
@@ -176,7 +184,10 @@ where
 {
     /// Create a JSON schema validator with a predicate function.
     pub fn with_predicate(predicate: F) -> Self {
-        JsonBoundarySchema { predicate: Some(predicate), _payload: std::marker::PhantomData }
+        JsonBoundarySchema {
+            predicate: Some(predicate),
+            _payload: std::marker::PhantomData,
+        }
     }
 }
 
@@ -189,7 +200,11 @@ where
         // Step 1: Parse to Value first, then deserialize
         let value: serde_json::Value = match serde_json::from_str(observation) {
             Ok(v) => v,
-            Err(e) => return Err(QuarantineError::DeserializationFailed { reason: e.to_string() }),
+            Err(e) => {
+                return Err(QuarantineError::DeserializationFailed {
+                    reason: e.to_string(),
+                })
+            }
         };
 
         // Step 2: Convert Value to target type T

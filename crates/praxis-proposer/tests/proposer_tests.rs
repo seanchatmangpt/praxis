@@ -3,11 +3,10 @@
 
 use std::collections::BTreeMap;
 
-use praxis_proposer::{
-    compute_fluents, ObjectiveFunction, Proposer, RevenueState, Stage, FLUENT_NAMES,
-    MAX_PROPOSALS,
-};
 use praxis_proposer::domain::Account;
+use praxis_proposer::{
+    compute_fluents, ObjectiveFunction, Proposer, RevenueState, Stage, FLUENT_NAMES, MAX_PROPOSALS,
+};
 
 fn account(
     id: &str,
@@ -34,7 +33,15 @@ fn fixture_state() -> RevenueState {
     RevenueState {
         accounts: vec![
             // Big deal ($25,000.00), fully evidenced, one step from close.
-            account("acct-1", Stage::Procurement, 2_500_000, true, true, true, 12),
+            account(
+                "acct-1",
+                Stage::Procurement,
+                2_500_000,
+                true,
+                true,
+                true,
+                12,
+            ),
             // Mid deal ($8,000.00), missing legal approval: may not be proposed past Proposal.
             account("acct-2", Stage::Qualified, 800_000, false, true, true, 45),
             // Small ($1,500.00), very stale early-stage deal, no evidence at all.
@@ -174,7 +181,17 @@ fn per_account_enumeration_bounded_by_forward_stages() {
 fn global_output_truncates_deterministically_at_max_proposals() {
     // 40 fully-evidenced Lead accounts => 160 raw candidates > MAX_PROPOSALS.
     let accounts: Vec<Account> = (0..40)
-        .map(|i| account(&format!("acct-{i:03}"), Stage::Lead, 1000 + i, true, true, true, i as u32))
+        .map(|i| {
+            account(
+                &format!("acct-{i:03}"),
+                Stage::Lead,
+                1000 + i,
+                true,
+                true,
+                true,
+                i as u32,
+            )
+        })
         .collect();
     let state = RevenueState { accounts };
     let objective = default_objective();
@@ -221,7 +238,11 @@ fn every_nonzero_weight_is_cited_and_contributions_sum_to_score() {
         for (i, name) in FLUENT_NAMES.iter().enumerate() {
             expected += objective.weight(name) * fluents[i];
         }
-        assert_eq!(expected.to_bits(), p.score.to_bits(), "score fully explained");
+        assert_eq!(
+            expected.to_bits(),
+            p.score.to_bits(),
+            "score fully explained"
+        );
         // And the total is stated in the rationale.
         assert!(joined.contains("total score ="));
     }
@@ -234,7 +255,15 @@ fn every_nonzero_weight_is_cited_and_contributions_sum_to_score() {
 #[test]
 fn pddl_goal_atom_format() {
     let state = RevenueState {
-        accounts: vec![account("acct-7", Stage::Proposal, 1000, true, true, false, 1)],
+        accounts: vec![account(
+            "acct-7",
+            Stage::Proposal,
+            1000,
+            true,
+            true,
+            false,
+            1,
+        )],
     };
     let ranked = Proposer::new(default_objective()).propose(&state);
     let procurement = ranked
