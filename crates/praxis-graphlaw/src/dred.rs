@@ -9,6 +9,7 @@ use crate::{
 use log::trace; // Use log crate when building application
 
 use crate::utils::Utils;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 pub struct DRed {
@@ -150,7 +151,7 @@ impl DRed {
     }
 
     pub fn materialize(&mut self) -> Result<Vec<Triple>, String> {
-        let aggregates = std::collections::HashMap::new();
+        let aggregates = HashMap::new();
         let strata = crate::datalog::validate_rules(&self.rules, &aggregates)
             .unwrap_or_else(|_| vec![0; self.rules.len()]);
         self.reasoner.materialize(
@@ -182,9 +183,11 @@ mod test {
             {?s a :Person.?s :teaches ?y.?y a :Course.}=>{?s a :TA.}";
         let mut dred = DRed::from(data);
         let inferred = dred.materialize();
-        inferred
-            .iter()
-            .for_each(|t| println!("{:?}", Utils::decode_triple(t)));
+        if let Ok(ref triples) = inferred {
+            triples
+                .iter()
+                .for_each(|t| println!("{:?}", Utils::decode_triple(t)));
+        }
         println!("{:?}", inferred);
         assert_eq!(9, dred.triple_index.len());
 

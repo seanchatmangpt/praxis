@@ -8,14 +8,14 @@
 //! module only relocates the statics verbatim from their prior home in
 //! `triples.rs`.
 
+use crate::fastmap::FxHashMap;
 use crate::term::{Triple, VarOrTerm};
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Mutex;
 
-pub(crate) static LIST_REGISTRY: Lazy<Mutex<HashMap<usize, Vec<VarOrTerm>>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+pub(crate) static LIST_REGISTRY: Lazy<Mutex<FxHashMap<usize, Vec<VarOrTerm>>>> =
+    Lazy::new(|| Mutex::new(FxHashMap::default()));
 // Reverse index for `new_list`: structurally-identical member sequences
 // must always resolve to the SAME list id, not a fresh one each call --
 // otherwise a rule that reconstructs a list term in its head (e.g.
@@ -24,8 +24,8 @@ pub(crate) static LIST_REGISTRY: Lazy<Mutex<HashMap<usize, Vec<VarOrTerm>>>> =
 // never converges (each iteration "derives" a structurally-identical but
 // id-different fact forever). Found the hard way: a real infinite loop
 // while closing the EYE `good_cobbler` corpus case's list-substitution gap.
-pub(crate) static LIST_INTERN: Lazy<Mutex<HashMap<Vec<VarOrTerm>, usize>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
-pub(crate) static FORMULA_REGISTRY: Lazy<Mutex<HashMap<usize, Vec<Triple>>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+pub(crate) static LIST_INTERN: Lazy<Mutex<FxHashMap<Vec<VarOrTerm>, usize>>> =
+    Lazy::new(|| Mutex::new(FxHashMap::default()));
+pub(crate) static FORMULA_REGISTRY: Lazy<Mutex<FxHashMap<usize, Vec<Triple>>>> =
+    Lazy::new(|| Mutex::new(FxHashMap::default()));
 pub(crate) static SYNTHETIC_COUNTER: AtomicUsize = AtomicUsize::new(0);

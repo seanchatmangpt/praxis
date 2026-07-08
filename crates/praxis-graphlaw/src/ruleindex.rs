@@ -2,23 +2,23 @@
 // lints below are documented scoped allows, not silent drift.
 #![allow(clippy::type_complexity)]
 
+use crate::fastmap::FxHashMap;
 use crate::{Rule, Triple};
-use std::collections::HashMap;
 use std::rc::Rc;
 
 pub struct RuleIndex {
     pub rules: Vec<Rc<Rule>>,
     spo: Vec<Rc<Rule>>,
-    s: HashMap<usize, Vec<Rc<Rule>>>,
-    p: HashMap<usize, Vec<Rc<Rule>>>,
-    o: HashMap<usize, Vec<Rc<Rule>>>,
-    sp: HashMap<usize, HashMap<usize, Vec<Rc<Rule>>>>,
-    po: HashMap<usize, HashMap<usize, Vec<Rc<Rule>>>>,
-    so: HashMap<usize, HashMap<usize, Vec<Rc<Rule>>>>,
-    spo_all: HashMap<usize, HashMap<usize, HashMap<usize, Vec<Rc<Rule>>>>>,
+    s: FxHashMap<usize, Vec<Rc<Rule>>>,
+    p: FxHashMap<usize, Vec<Rc<Rule>>>,
+    o: FxHashMap<usize, Vec<Rc<Rule>>>,
+    sp: FxHashMap<usize, FxHashMap<usize, Vec<Rc<Rule>>>>,
+    po: FxHashMap<usize, FxHashMap<usize, Vec<Rc<Rule>>>>,
+    so: FxHashMap<usize, FxHashMap<usize, Vec<Rc<Rule>>>>,
+    spo_all: FxHashMap<usize, FxHashMap<usize, FxHashMap<usize, Vec<Rc<Rule>>>>>,
     /// Index from head predicate encoding -> rules whose head has that predicate.
     /// Used for fast backward-chaining rule lookup.
-    pub head_by_pred: HashMap<usize, Vec<Rc<Rule>>>,
+    pub head_by_pred: FxHashMap<usize, Vec<Rc<Rule>>>,
 }
 
 impl Default for RuleIndex {
@@ -43,15 +43,15 @@ impl RuleIndex {
     pub fn new() -> RuleIndex {
         RuleIndex {
             rules: Vec::new(),
-            s: HashMap::new(),
-            p: HashMap::new(),
-            o: HashMap::new(),
-            so: HashMap::new(),
-            po: HashMap::new(),
-            sp: HashMap::new(),
+            s: FxHashMap::default(),
+            p: FxHashMap::default(),
+            o: FxHashMap::default(),
+            so: FxHashMap::default(),
+            po: FxHashMap::default(),
+            sp: FxHashMap::default(),
             spo: Vec::new(),
-            spo_all: HashMap::new(),
-            head_by_pred: HashMap::new(),
+            spo_all: FxHashMap::default(),
+            head_by_pred: FxHashMap::default(),
         }
     }
     fn add_rc(&mut self, rule: Rc<Rule>) {
@@ -186,7 +186,7 @@ impl RuleIndex {
                     self.spo_all
                         .get_mut(&s.to_encoded())
                         .unwrap()
-                        .insert(p.to_encoded(), HashMap::new());
+                        .insert(p.to_encoded(), FxHashMap::default());
                 }
                 if !self
                     .spo_all

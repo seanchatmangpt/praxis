@@ -2,10 +2,10 @@
 // lints below are documented scoped allows, not silent drift.
 #![allow(clippy::type_complexity)]
 
+use crate::fastmap::{FxHashMap, FxHashSet};
 use crate::queryengine::{QueryEngine, SimpleQueryEngine};
 use crate::{Binding, BodyLiteral, Rule, RuleIndex, Triple, TripleIndex, TripleStore, VarOrTerm};
 use log::{debug, warn};
-use std::collections::HashMap;
 use std::rc::Rc; // Use log crate when building application
 
 pub struct BackwardChainer;
@@ -31,7 +31,7 @@ impl BackwardChainer {
     /// materialization can never do (there are no facts to iterate `?X`/`?Y`
     /// candidates over).
     pub fn prove(triple_index: &TripleIndex, rule_index: &RuleIndex, goal: &Triple) -> bool {
-        let mut history = std::collections::HashSet::new();
+        let mut history = FxHashSet::default();
         Self::prove_inner(triple_index, rule_index, goal, &mut history)
     }
 
@@ -39,7 +39,7 @@ impl BackwardChainer {
         triple_index: &TripleIndex,
         rule_index: &RuleIndex,
         goal: &Triple,
-        history: &mut std::collections::HashSet<Triple>,
+        history: &mut FxHashSet<Triple>,
     ) -> bool {
         if triple_index.contains(goal) {
             return true;
@@ -127,8 +127,8 @@ impl BackwardChainer {
     /// substitution map if every position is consistent (a rule variable
     /// used twice must bind to the same value both times; a rule constant
     /// must equal the goal's value at that position exactly).
-    fn unify_ground(head: &Triple, goal: &Triple) -> Option<HashMap<usize, usize>> {
-        let mut subst = HashMap::new();
+    fn unify_ground(head: &Triple, goal: &Triple) -> Option<FxHashMap<usize, usize>> {
+        let mut subst = FxHashMap::default();
         for (h, g) in [(&head.s, &goal.s), (&head.p, &goal.p), (&head.o, &goal.o)] {
             if h.is_var() {
                 let var_id = h.to_encoded();
@@ -173,7 +173,7 @@ impl BackwardChainer {
     /// variable absent from `subst` (not bound by the head unification) as
     /// itself -- `SimpleQueryEngine::query` still handles genuinely-unbound
     /// variables via its normal EDB/builtin matching.
-    fn substitute(pattern: &Triple, subst: &HashMap<usize, usize>) -> Triple {
+    fn substitute(pattern: &Triple, subst: &FxHashMap<usize, usize>) -> Triple {
         // Recurses INSIDE list-term structures via `VarOrTerm::substitute_deep`
         // (same fix as `reasoner.rs`'s three substitution paths) -- Peano
         // arithmetic's body literals are themselves list-headed (e.g.
@@ -205,7 +205,7 @@ impl BackwardChainer {
         rule_index: &RuleIndex,
         rule_head: &Triple,
     ) -> Binding {
-        let mut history = std::collections::HashSet::new();
+        let mut history = FxHashSet::default();
         Self::eval_backward_inner(triple_index, rule_index, rule_head, &mut history)
     }
 
@@ -213,7 +213,7 @@ impl BackwardChainer {
         triple_index: &TripleIndex,
         rule_index: &RuleIndex,
         rule_head: &Triple,
-        history: &mut std::collections::HashSet<Triple>,
+        history: &mut FxHashSet<Triple>,
     ) -> Binding {
         if !history.insert(rule_head.clone()) {
             return Binding::new();
@@ -361,7 +361,7 @@ impl BackwardChainer {
         rule_index: &RuleIndex,
         goal_pattern: &Triple,
     ) -> Vec<Binding> {
-        let mut history = std::collections::HashSet::new();
+        let mut history = FxHashSet::default();
         let Some(raw) = Self::solve_inner(triple_index, rule_index, goal_pattern, &mut history, 0)
         else {
             return Vec::new();
@@ -418,7 +418,7 @@ impl BackwardChainer {
         triple_index: &TripleIndex,
         rule_index: &RuleIndex,
         goal: &Triple,
-        history: &mut std::collections::HashSet<Triple>,
+        history: &mut FxHashSet<Triple>,
         depth: usize,
     ) -> Option<Binding> {
         if depth > Self::MAX_SOLVE_DEPTH {
@@ -464,7 +464,7 @@ impl BackwardChainer {
         };
 
         for rule in candidates {
-            let mut subst: HashMap<usize, VarOrTerm> = HashMap::new();
+            let mut subst: FxHashMap<usize, VarOrTerm> = FxHashMap::default();
             let head_matches = Self::unify_term(&rule.head.s, &goal.s, &mut subst)
                 && Self::unify_term(&rule.head.p, &goal.p, &mut subst)
                 && Self::unify_term(&rule.head.o, &goal.o, &mut subst);
@@ -560,7 +560,7 @@ impl BackwardChainer {
     /// unifying with another, so a rule variable can transitively force a
     /// goal variable to a concrete value discovered later in the very same
     /// head (see `solve_inner`'s doc comment).
-    fn unify_term(a: &VarOrTerm, b: &VarOrTerm, subst: &mut HashMap<usize, VarOrTerm>) -> bool {
+    fn unify_term(a: &VarOrTerm, b: &VarOrTerm, subst: &mut FxHashMap<usize, VarOrTerm>) -> bool {
         let a = Self::walk(a, subst);
         let b = Self::walk(b, subst);
         if a == b {
@@ -593,7 +593,7 @@ impl BackwardChainer {
     /// Follow a variable through `subst` until reaching either a
     /// non-variable term or a variable with no binding yet. Bounded to
     /// guard against a pathological/cyclic substitution.
-    fn walk(term: &VarOrTerm, subst: &HashMap<usize, VarOrTerm>) -> VarOrTerm {
+    fn walk(term: &VarOrTerm, subst: &FxHashMap<usize, VarOrTerm>) -> VarOrTerm {
         let mut current = term.clone();
         for _ in 0..1000 {
             if !current.is_var() {
@@ -611,7 +611,7 @@ impl BackwardChainer {
     /// structure with substituted members (mirroring `substitute`'s use of
     /// `VarOrTerm::substitute_deep`, but chase-based so it also follows
     /// var-to-var chains).
-    fn resolve_term(term: &VarOrTerm, subst: &HashMap<usize, VarOrTerm>) -> VarOrTerm {
+    fn resolve_term(term: &VarOrTerm, subst: &FxHashMap<usize, VarOrTerm>) -> VarOrTerm {
         let walked = Self::walk(term, subst);
         if walked.is_var() {
             return walked;
@@ -629,7 +629,7 @@ impl BackwardChainer {
         walked
     }
 
-    fn resolve_triple(pattern: &Triple, subst: &HashMap<usize, VarOrTerm>) -> Triple {
+    fn resolve_triple(pattern: &Triple, subst: &FxHashMap<usize, VarOrTerm>) -> Triple {
         Triple {
             s: Self::resolve_term(&pattern.s, subst),
             p: Self::resolve_term(&pattern.p, subst),

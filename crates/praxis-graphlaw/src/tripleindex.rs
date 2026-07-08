@@ -2,17 +2,17 @@
 // lints below are documented scoped allows, not silent drift.
 #![allow(clippy::type_complexity, clippy::ptr_arg, dead_code)]
 
+use crate::fastmap::FxHashMap;
 use crate::{Binding, Term, Triple, VarOrTerm};
-use std::collections::HashMap;
 use std::iter::empty;
 use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct TripleIndex {
     pub triples: Vec<Triple>,
-    pub spo: HashMap<usize, HashMap<usize, Vec<(usize, usize, Option<Term>)>>>,
-    pub pos: HashMap<usize, HashMap<usize, Vec<(usize, usize, Option<Term>)>>>,
-    pub osp: HashMap<usize, HashMap<usize, Vec<(usize, usize, Option<Term>)>>>,
+    pub spo: FxHashMap<usize, FxHashMap<usize, Vec<(usize, usize, Option<Term>)>>>,
+    pub pos: FxHashMap<usize, FxHashMap<usize, Vec<(usize, usize, Option<Term>)>>>,
+    pub osp: FxHashMap<usize, FxHashMap<usize, Vec<(usize, usize, Option<Term>)>>>,
     counter: usize,
 }
 
@@ -35,9 +35,9 @@ impl TripleIndex {
     pub fn new() -> TripleIndex {
         TripleIndex {
             triples: Vec::new(),
-            spo: HashMap::new(),
-            pos: HashMap::new(),
-            osp: HashMap::new(),
+            spo: FxHashMap::default(),
+            pos: FxHashMap::default(),
+            osp: FxHashMap::default(),
             counter: 0,
         }
     }
@@ -677,7 +677,7 @@ impl TripleIndex {
             }
 
             {
-                let mut consistent = HashMap::new();
+                let mut consistent = FxHashMap::default();
                 let mut ok = true;
                 for &(var_id, val_id) in &extra_bindings {
                     match consistent.get(&var_id) {
@@ -782,7 +782,7 @@ impl TripleIndex {
             // candidate triple if any variable is bound to two different
             // values within the same match.
             {
-                let mut consistent = HashMap::new();
+                let mut consistent = FxHashMap::default();
                 let mut ok = true;
                 for &(var_id, val_id) in &extra_bindings {
                     match consistent.get(&var_id) {

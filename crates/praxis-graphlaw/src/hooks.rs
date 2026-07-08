@@ -1,8 +1,8 @@
 use crate::encoding::Encoder;
+use crate::fastmap::FxHashMap;
 use crate::term::Triple;
 use crate::TripleStore;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 pub const KH_NS: &str = "http://seanchatmangpt.github.io/praxis/kh#";
 
@@ -278,12 +278,12 @@ fn is_kh_hook(s: &str) -> bool {
 }
 
 struct HookProps {
-    map: HashMap<String, Vec<String>>,
+    map: FxHashMap<String, Vec<String>>,
 }
 
 impl HookProps {
     fn new(triples: &[Triple], subject: &str) -> Self {
-        let mut map = HashMap::new();
+        let mut map = FxHashMap::default();
         for t in triples {
             let s_str = Encoder::decode(&t.s.to_encoded()).unwrap_or_default();
             if clean_term(&s_str) == subject {

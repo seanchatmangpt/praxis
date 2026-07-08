@@ -1,6 +1,5 @@
-use crate::{BlankNodeImpl, LiteralImpl, Term, TermImpl};
+use crate::{fastmap::FxHashMap, BlankNodeImpl, LiteralImpl, Term, TermImpl};
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
 use std::sync::Mutex;
 
 static GLOBAL_ENCODER: Lazy<Mutex<InternalEncoder>> =
@@ -21,8 +20,8 @@ pub enum EncodedValue {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InternalEncoder {
-    encoded: HashMap<EncodedValue, usize>,
-    decoded: HashMap<usize, EncodedValue>,
+    encoded: FxHashMap<EncodedValue, usize>,
+    decoded: FxHashMap<usize, EncodedValue>,
     counter: usize,
 }
 
@@ -35,8 +34,8 @@ impl Default for InternalEncoder {
 impl InternalEncoder {
     pub fn new() -> InternalEncoder {
         InternalEncoder {
-            encoded: HashMap::new(),
-            decoded: HashMap::new(),
+            encoded: FxHashMap::default(),
+            decoded: FxHashMap::default(),
             counter: 0,
         }
     }

@@ -2,12 +2,13 @@
 // lints below are documented scoped allows, not silent drift.
 #![allow(clippy::type_complexity, clippy::ptr_arg, dead_code)]
 
+use crate::fastmap::FxHashSet;
 use crate::{
     BackwardChainer, Binding, Encoder, QueryEngine, Reasoner, Rule, RuleIndex, SimpleQueryEngine,
     Triple, TripleIndex, TripleStore, VarOrTerm,
 };
 use log::trace; // Use log crate when building application
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::fmt::Write;
 use std::rc::Rc;
 
@@ -141,7 +142,7 @@ impl CSprite {
             .collect()
     }
     pub fn materialize(&mut self) -> Result<Vec<Triple>, String> {
-        let aggregates = std::collections::HashMap::new();
+        let aggregates = HashMap::new();
         let strata = crate::datalog::validate_rules(&self.rules, &aggregates)
             .unwrap_or_else(|_| vec![0; self.rules.len()]);
         self.reasoner.materialize(
@@ -183,10 +184,13 @@ impl CSprite {
             .map(|r| Rc::try_unwrap(r).unwrap_or_else(|r| (*r).clone()))
             .collect();
     }
-    fn eval_backward_csprite(&self, rule_head: &Triple) -> (HashSet<Rc<Rule>>, Vec<Vec<Rc<Rule>>>) {
-        let mut matched_rules = HashSet::new();
+    fn eval_backward_csprite(
+        &self,
+        rule_head: &Triple,
+    ) -> (FxHashSet<Rc<Rule>>, Vec<Vec<Rc<Rule>>>) {
+        let mut matched_rules = FxHashSet::default();
         let mut hierarchies = Vec::new();
-        let mut history = HashSet::new();
+        let mut history = FxHashSet::default();
         self.eval_backward_csprite_helper(
             rule_head,
             &mut matched_rules,
@@ -200,10 +204,10 @@ impl CSprite {
     fn eval_backward_csprite_helper(
         &self,
         rule_head: &Triple,
-        matched_rules: &mut HashSet<Rc<Rule>>,
+        matched_rules: &mut FxHashSet<Rc<Rule>>,
         hierarchy: bool,
         hierarchies: &mut Vec<Vec<Rc<Rule>>>,
-        history: &mut HashSet<Triple>,
+        history: &mut FxHashSet<Triple>,
     ) {
         if !history.insert(rule_head.clone()) {
             return;
@@ -242,7 +246,7 @@ impl CSprite {
     fn eval_backward_csprite_helper_with_stack(
         &self,
         rule_head: &Triple,
-    ) -> (HashSet<Rc<Rule>>, Vec<Vec<Rc<Rule>>>) {
+    ) -> (FxHashSet<Rc<Rule>>, Vec<Vec<Rc<Rule>>>) {
         enum StackFrame {
             Enter { rule_head: Triple, hierarchy: bool },
             Exit { rule_head: Triple },
@@ -251,9 +255,9 @@ impl CSprite {
             rule_head: rule_head.clone(),
             hierarchy: false,
         }];
-        let mut matched_rules = HashSet::new();
+        let mut matched_rules = FxHashSet::default();
         let mut hierarchies: Vec<Vec<Rc<Rule>>> = Vec::new();
-        let mut history = HashSet::new();
+        let mut history = FxHashSet::default();
         while let Some(frame) = stack.pop() {
             match frame {
                 StackFrame::Exit { rule_head } => {

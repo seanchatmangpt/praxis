@@ -8,6 +8,7 @@ pub mod datalog;
 pub mod decode;
 pub mod dred;
 pub mod encoding;
+pub mod fastmap;
 pub mod hooks;
 pub mod imars_reasoner;
 pub mod imars_window;
