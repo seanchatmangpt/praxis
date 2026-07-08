@@ -73,6 +73,11 @@ fn test_store() {
         reasoner: Reasoner {},
         aggregates: HashMap::new(),
         strata: Vec::new(),
+        hooks: Vec::new(),
+        receipts: Vec::new(),
+        additions: Vec::new(),
+        removals: Vec::new(),
+        verdicts: Vec::new(),
     };
 
     store.materialize();
@@ -490,4 +495,269 @@ fn test_n3_rules_forward_chaining() {
         !new_triples.is_empty(),
         "Expected at least one inferred triple"
     );
+}
+
+// -----------------------------------------------------------------------
+// Knowledge Hook Pack & Registry / Gating Tests (Milestone M1)
+// -----------------------------------------------------------------------
+
+fn create_temp_pack_dir(name: &str, toml: &str, ttl: &str) -> std::path::PathBuf {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    static COUNTER: AtomicUsize = AtomicUsize::new(0);
+    let id = COUNTER.fetch_add(1, Ordering::SeqCst);
+    let dir = std::env::temp_dir().join(format!("praxis_test_pack_{}_{}", name, id));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("pack.toml"), toml).unwrap();
+    std::fs::write(dir.join("ontology.ttl"), ttl).unwrap();
+    dir
+}
+
+#[test]
+fn test_load_hook_pack_valid() {
+    let toml = r#"[pack]
+name = "valid-pack"
+version = "1.0.0"
+description = "A valid test pack"
+required_dialects = ["delta"]
+"#;
+    let ttl = r#"
+@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix ex: <http://example.org/> .
+
+ex:h1 a kh:Hook ;
+    kh:name "h1" ;
+    kh:on "assert" ;
+    kh:kind "delta" ;
+    kh:var "v" ;
+    kh:effect "refuse" ;
+    kh:reason "refused by test" ;
+    kh:priority 3 .
+"#;
+    let pack_dir = create_temp_pack_dir("valid", toml, ttl);
+    let mut store = TripleStore::new();
+    let res = store.load_hook_pack(&pack_dir);
+    assert!(res.is_ok(), "Failed to load valid hook pack: {:?}", res);
+    assert_eq!(store.hooks.len(), 1);
+    assert_eq!(store.hooks[0].name, "h1");
+    assert_eq!(store.hooks[0].priority, 3);
+
+    // Cleanup
+    let _ = std::fs::remove_dir_all(pack_dir);
+}
+
+#[test]
+fn test_load_hook_pack_unsupported_dialect() {
+    let toml = r#"[pack]
+name = "unsupported-dialect"
+version = "1.0.0"
+description = "Dialect test"
+required_dialects = ["unsupported-dialect"]
+"#;
+    let ttl = "";
+    let pack_dir = create_temp_pack_dir("dialect", toml, ttl);
+    let mut store = TripleStore::new();
+    let res = store.load_hook_pack(&pack_dir);
+    assert!(res.is_err());
+    assert!(res.unwrap_err().contains("unsupported dialect"));
+    let _ = std::fs::remove_dir_all(pack_dir);
+}
+
+#[test]
+fn test_load_hook_pack_forbidden_keyword() {
+    let toml = r#"[pack]
+name = "forbidden-keyword"
+version = "1.0.0"
+description = "test"
+required_dialects = ["delta"]
+"#;
+    // Tries to sneak a command/shell execution via reason string
+    let ttl = r#"
+@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix ex: <http://example.org/> .
+
+ex:h1 a kh:Hook ;
+    kh:name "h1" ;
+    kh:on "assert" ;
+    kh:kind "delta" ;
+    kh:var "v" ;
+    kh:effect "refuse" ;
+    kh:reason "let us run exec or curl shell" .
+"#;
+    let pack_dir = create_temp_pack_dir("forbidden", toml, ttl);
+    let mut store = TripleStore::new();
+    let res = store.load_hook_pack(&pack_dir);
+    assert!(res.is_err());
+    assert!(res.unwrap_err().contains("forbidden keyword"));
+    let _ = std::fs::remove_dir_all(pack_dir);
+}
+
+#[test]
+fn test_load_hook_pack_forbidden_predicate() {
+    let toml = r#"[pack]
+name = "forbidden-predicate"
+version = "1.0.0"
+description = "test"
+required_dialects = ["delta"]
+"#;
+    let ttl = r#"
+@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix ex: <http://example.org/> .
+
+ex:h1 a kh:Hook ;
+    kh:name "h1" ;
+    kh:kind "delta" ;
+    kh:var "v" ;
+    kh:effect "refuse" ;
+    kh:reason "r" ;
+    kh:forbiddenField "malicious" .
+"#;
+    let pack_dir = create_temp_pack_dir("forbidden_pred", toml, ttl);
+    let mut store = TripleStore::new();
+    let res = store.load_hook_pack(&pack_dir);
+    assert!(
+        res.is_err(),
+        "Should have failed due to forbidden predicate or SHACL violation"
+    );
+    let _ = std::fs::remove_dir_all(pack_dir);
+}
+
+#[test]
+fn test_load_hook_pack_closed_shape_violation() {
+    let toml = r#"[pack]
+name = "closed-violation"
+version = "1.0.0"
+description = "test"
+required_dialects = ["delta"]
+"#;
+    // Uses kh:command which is forbidden by the closed shape validation
+    let ttl = r#"
+@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix ex: <http://example.org/> .
+
+ex:h1 a kh:Hook ;
+    kh:name "h1" ;
+    kh:kind "delta" ;
+    kh:var "v" ;
+    kh:effect "refuse" ;
+    kh:reason "r" ;
+    kh:command "malicious_command" .
+"#;
+    let pack_dir = create_temp_pack_dir("closed_viol", toml, ttl);
+    let mut store = TripleStore::new();
+    let res = store.load_hook_pack(&pack_dir);
+    assert!(
+        res.is_err(),
+        "Should have failed SHACL validation due to sh:closed"
+    );
+    assert!(res.unwrap_err().contains("SHACL validation failed"));
+    let _ = std::fs::remove_dir_all(pack_dir);
+}
+
+#[test]
+fn test_load_hook_pack_action_closed_shape_violation() {
+    let toml = r#"[pack]
+name = "action-violation"
+version = "1.0.0"
+description = "test"
+required_dialects = ["delta"]
+"#;
+    // Action has kh:shell property which is not allowed
+    let ttl = r#"
+@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix ex: <http://example.org/> .
+
+ex:h1 a kh:Hook ;
+    kh:name "h1" ;
+    kh:kind "delta" ;
+    kh:var "v" ;
+    kh:effect "ground-action" ;
+    kh:action ex:act1 .
+
+ex:act1 a kh:Action ;
+    kh:handler ex:hnd1 ;
+    kh:shell "malicious_shell" .
+"#;
+    let pack_dir = create_temp_pack_dir("action_viol", toml, ttl);
+    let mut store = TripleStore::new();
+    let res = store.load_hook_pack(&pack_dir);
+    assert!(
+        res.is_err(),
+        "Should have failed SHACL validation due to closed Action shape"
+    );
+    assert!(res.unwrap_err().contains("SHACL validation failed"));
+    let _ = std::fs::remove_dir_all(pack_dir);
+}
+
+#[test]
+fn test_hook_pack_topological_sorting() {
+    let toml = r#"[pack]
+name = "sorting"
+version = "1.0.0"
+description = "test"
+required_dialects = ["delta"]
+"#;
+    let ttl = r#"
+@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix ex: <http://example.org/> .
+
+ex:h1 a kh:Hook ;
+    kh:name "h1" ;
+    kh:kind "delta" ;
+    kh:var "v" ;
+    kh:effect "refuse" ;
+    kh:reason "r" ;
+    kh:priority 5 ;
+    kh:after ex:h2 .
+
+ex:h2 a kh:Hook ;
+    kh:name "h2" ;
+    kh:kind "delta" ;
+    kh:var "v" ;
+    kh:effect "refuse" ;
+    kh:reason "r" ;
+    kh:priority 2 .
+"#;
+    let pack_dir = create_temp_pack_dir("sorting", toml, ttl);
+    let mut store = TripleStore::new();
+    store.load_hook_pack(&pack_dir).unwrap();
+    assert_eq!(store.hooks.len(), 2);
+    assert_eq!(store.hooks[0].name, "h2");
+    assert_eq!(store.hooks[1].name, "h1");
+    let _ = std::fs::remove_dir_all(pack_dir);
+}
+
+#[test]
+fn test_hook_pack_cycle_detection() {
+    let toml = r#"[pack]
+name = "cycle"
+version = "1.0.0"
+description = "test"
+required_dialects = ["delta"]
+"#;
+    let ttl = r#"
+@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix ex: <http://example.org/> .
+
+ex:h1 a kh:Hook ;
+    kh:name "h1" ;
+    kh:kind "delta" ;
+    kh:var "v" ;
+    kh:effect "refuse" ;
+    kh:reason "r" ;
+    kh:after ex:h2 .
+
+ex:h2 a kh:Hook ;
+    kh:name "h2" ;
+    kh:kind "delta" ;
+    kh:var "v" ;
+    kh:effect "refuse" ;
+    kh:reason "r" ;
+    kh:after ex:h1 .
+"#;
+    let pack_dir = create_temp_pack_dir("cycle", toml, ttl);
+    let mut store = TripleStore::new();
+    let res = store.load_hook_pack(&pack_dir);
+    assert!(res.is_err());
+    assert!(res.unwrap_err().contains("dependency cycle"));
+    let _ = std::fs::remove_dir_all(pack_dir);
 }

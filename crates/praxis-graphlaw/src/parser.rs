@@ -15,14 +15,28 @@ pub enum Syntax {
 }
 
 impl Parser {
+    fn preprocess_turtle(data: &str) -> String {
+        crate::preprocess_turtle(data)
+    }
+
     pub fn parse_triples(data: &str, syntax: Syntax) -> Result<Vec<Triple>, String> {
-        if syntax == Syntax::Turtle || syntax == Syntax::NTriples {
-            Self::parse_triples_helper(data, syntax)
+        let preprocessed = if syntax == Syntax::Turtle {
+            Self::preprocess_turtle(data)
         } else {
-            Self::parse_quads_helper(data, syntax)
+            data.to_string()
+        };
+        if syntax == Syntax::Turtle || syntax == Syntax::NTriples {
+            Self::parse_triples_helper(&preprocessed, syntax)
+        } else {
+            Self::parse_quads_helper(&preprocessed, syntax)
         }
     }
     fn parse_quads_helper(data: &str, syntax: Syntax) -> Result<Vec<Triple>, String> {
+        let preprocessed = if syntax == Syntax::TriG {
+            Self::preprocess_turtle(data)
+        } else {
+            data.to_string()
+        };
         let mut triples = Vec::new();
         let closure_quad = &mut |t: rio_api::model::Quad| {
             let s = VarOrTerm::new_term(t.subject.to_string());
@@ -34,9 +48,9 @@ impl Parser {
         };
 
         let result = match syntax {
-            Syntax::TriG => TriGParser::new(data.as_ref(), None).parse_all(closure_quad),
-            Syntax::NQuads => NQuadsParser::new(data.as_ref()).parse_all(closure_quad),
-            _ => NQuadsParser::new(data.as_ref()).parse_all(closure_quad),
+            Syntax::TriG => TriGParser::new(preprocessed.as_ref(), None).parse_all(closure_quad),
+            Syntax::NQuads => NQuadsParser::new(preprocessed.as_ref()).parse_all(closure_quad),
+            _ => NQuadsParser::new(preprocessed.as_ref()).parse_all(closure_quad),
         };
         match result {
             Ok(_) => Ok(triples),

@@ -1,8 +1,7 @@
 # Praxis — v26.7.4
 
-Milestone: PROJ-302..306, `docs/jira/v26.7.4/tickets/index.md` (dependency graph).
-PROJ-301 done. PROJ-305 blocked: `docs/v26.7.3/COGNITIVE_BREED_MAPPING.md` doesn't
-exist yet — author it from ticket_006, don't fabricate inline.
+Milestone: v26.7.4 (PROJ-302..306) archived at `docs/jira/archive/v26.7.4/tickets/index.md`.
+v26.7.8 scaffolded at `docs/jira/v26.7.8/tickets/index.md` — awaiting ticket specification.
 
 ## Invariants (violation = the bug)
 
@@ -37,3 +36,12 @@ State findings, not verdicts. No unearned hedges, no ranking docs by assumed
 authority, no quality adjectives ("messy," "stale") the task didn't ask for.
 Explore mines requirements; exploit rewrites clean-room from the invariant, never
 ports the explored source.
+
+## Size
+
+This file must stay ≤ 200 lines. If it needs to grow past that, split into a new
+`docs/` doc and link it rather than expanding CLAUDE.md itself.
+
+## See Also
+
+- `docs/rust-anti-patterns.md` — Project-scoped Rust anti-patterns and enforcement rules.

@@ -8,6 +8,7 @@ pub mod datalog;
 pub mod decode;
 pub mod dred;
 pub mod encoding;
+pub mod hooks;
 pub mod imars_reasoner;
 pub mod imars_window;
 pub mod observer;
@@ -62,6 +63,11 @@ pub struct TripleStore {
     pub reasoner: Reasoner,
     pub aggregates: HashMap<Rule, Aggregate>,
     pub strata: Vec<usize>,
+    pub hooks: Vec<hooks::KnowledgeHook>,
+    pub receipts: Vec<hooks::HookReceipt>,
+    pub verdicts: Vec<hooks::HookVerdictRecord>,
+    pub additions: Vec<Triple>,
+    pub removals: Vec<Triple>,
 }
 unsafe impl Send for TripleStore {}
 
@@ -69,6 +75,49 @@ impl Default for TripleStore {
     fn default() -> Self {
         Self::new()
     }
+}
+
+pub fn preprocess_turtle(s: &str) -> String {
+    let mut prepended = String::new();
+    if !s.contains("@prefix kh:") {
+        prepended.push_str("@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .\n");
+    }
+    if !s.contains("@prefix ex:") {
+        prepended.push_str("@prefix ex: <http://example.org/> .\n");
+    }
+    if !s.contains("@prefix rdf:") {
+        prepended.push_str("@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n");
+    }
+    prepended.push_str(s);
+
+    let mut out = String::new();
+    for line in prepended.lines() {
+        let mut clean_line = String::new();
+        let mut chars = line.chars().peekable();
+        while let Some(c) = chars.next() {
+            if c == '/' && chars.peek() == Some(&'/') {
+                if clean_line.ends_with("http:")
+                    || clean_line.ends_with("https:")
+                    || clean_line.ends_with("ex:")
+                    || clean_line.ends_with("kh:")
+                {
+                    clean_line.push('/');
+                    clean_line.push(chars.next().unwrap());
+                } else {
+                    clean_line.push('#');
+                    while let Some(next_c) = chars.next() {
+                        clean_line.push(next_c);
+                    }
+                    break;
+                }
+            } else {
+                clean_line.push(c);
+            }
+        }
+        out.push_str(&clean_line);
+        out.push('\n');
+    }
+    out
 }
 
 impl TripleStore {
@@ -80,6 +129,11 @@ impl TripleStore {
             reasoner: Reasoner {},
             aggregates: HashMap::new(),
             strata: Vec::new(),
+            hooks: Vec::new(),
+            receipts: Vec::new(),
+            verdicts: Vec::new(),
+            additions: Vec::new(),
+            removals: Vec::new(),
         }
     }
     pub fn from(data: &str) -> TripleStore {
@@ -126,6 +180,7 @@ impl TripleStore {
         if let Ok(computed_strata) = datalog::validate_rules(&rules, &aggregates) {
             strata = computed_strata;
         }
+        let hooks = hooks::validate_and_extract_hooks(&triple_index.triples).unwrap_or_default();
         TripleStore {
             rules,
             rules_index,
@@ -133,18 +188,26 @@ impl TripleStore {
             reasoner: Reasoner {},
             aggregates,
             strata,
+            hooks,
+            receipts: Vec::new(),
+            verdicts: Vec::new(),
+            additions: Vec::new(),
+            removals: Vec::new(),
         }
     }
     pub fn add(&mut self, triple: Triple) {
         trace! {"Adding triple: {:?}", Self::decode_triple(&triple) }
+        self.additions.push(triple.clone());
         self.triple_index.add(triple);
     }
     pub fn add_ref(&mut self, triple: Rc<Triple>) {
         trace! {"Adding triple: {:?}", Self::decode_triple(triple.as_ref()) }
+        self.additions.push((*triple).clone());
         self.triple_index.add_ref(triple);
     }
     pub fn remove_ref(&mut self, triple: &Triple) {
         trace! {"Removing triple: {:?}", Self::decode_triple(triple) }
+        self.removals.push(triple.clone());
         self.triple_index.remove_ref(triple);
     }
     pub fn add_rules(&mut self, rules: Vec<Rule>) -> Result<(), String> {
@@ -174,12 +237,33 @@ impl TripleStore {
     }
 
     pub fn materialize(&mut self) -> Vec<Triple> {
-        self.reasoner.materialize(
+        let checkpoint = self.triple_index.clone();
+
+        self.receipts.clear();
+        self.verdicts.clear();
+
+        let inferred = match self.reasoner.materialize(
             &mut self.triple_index,
             &self.rules,
             &self.strata,
             &self.aggregates,
-        )
+            &self.hooks,
+            &mut self.receipts,
+            &mut self.verdicts,
+        ) {
+            Ok(inferred) => inferred,
+            Err(_e) => {
+                self.triple_index = checkpoint;
+                self.receipts.clear();
+                self.additions.clear();
+                self.removals.clear();
+                return Vec::new();
+            }
+        };
+
+        self.additions.clear();
+        self.removals.clear();
+        inferred
     }
 
     /// Check every denial/consistency-check rule (`{ body } => false.`,
@@ -272,6 +356,10 @@ impl TripleStore {
         match Parser::parse_triples(data, syntax) {
             Ok(triples) => {
                 triples.into_iter().for_each(|t| self.triple_index.add(t));
+                if let Ok(extracted) = hooks::validate_and_extract_hooks(&self.triple_index.triples)
+                {
+                    self.hooks = extracted;
+                }
                 Ok(())
             }
             Err(err) => Err(err),
@@ -336,6 +424,70 @@ impl TripleStore {
     ) -> Result<crate::shex_native::ShexValidationReport, String> {
         let schema = crate::shexc_parser::parse_shexc(schema_shexc)?;
         crate::shex_native::validate_shex_schema(&self.triple_index, &schema, shape_map)
+    }
+
+    pub fn load_hook_pack<P: AsRef<std::path::Path>>(&mut self, pack_ref: P) -> Result<(), String> {
+        let path = pack_ref.as_ref();
+
+        let triples = if path.is_dir() {
+            // Treat as directory containing pack.toml and ontology.ttl
+            let toml_path = path.join("pack.toml");
+            let toml_content = std::fs::read_to_string(&toml_path)
+                .map_err(|e| format!("pack.toml missing or unreadable: {}", e))?;
+
+            let (_name, _version, _description, required_dialects) =
+                hooks::parse_simple_toml(&toml_content)?;
+
+            for dialect in &required_dialects {
+                if ![
+                    "datalog",
+                    "delta",
+                    "threshold",
+                    "count",
+                    "window",
+                    "shacl",
+                    "shex",
+                    "n3",
+                    "sparql",
+                ]
+                .contains(&dialect.as_str())
+                {
+                    return Err(format!("unsupported dialect: {}", dialect));
+                }
+            }
+
+            let ttl_path = path.join("ontology.ttl");
+            let ttl_content = std::fs::read_to_string(&ttl_path)
+                .map_err(|e| format!("ontology.ttl missing or unreadable: {}", e))?;
+
+            Parser::parse_triples(&preprocess_turtle(&ttl_content), Syntax::Turtle)?
+        } else {
+            // Treat as inline Turtle content
+            let content_str = path
+                .to_str()
+                .ok_or_else(|| "invalid path representation".to_string())?;
+            Parser::parse_triples(&preprocess_turtle(content_str), Syntax::Turtle)?
+        };
+
+        // Runs SHACL shapes validation & keyword/predicate sweep, and extracts the hooks.
+        let extracted_hooks = hooks::validate_and_extract_hooks(&triples)?;
+
+        // Schedule them topologically
+        let scheduled_hooks = hooks::schedule_hooks(extracted_hooks)?;
+
+        // Store them in self.hooks
+        self.hooks.extend(scheduled_hooks);
+
+        // Also add parsed triples to self.triple_index
+        for t in triples {
+            self.triple_index.add(t);
+        }
+
+        Ok(())
+    }
+
+    pub fn get_hook_receipts(&self) -> Vec<hooks::HookReceipt> {
+        self.receipts.clone()
     }
 }
 

@@ -149,12 +149,19 @@ impl DRed {
         }
     }
 
-    pub fn materialize(&mut self) -> Vec<Triple> {
+    pub fn materialize(&mut self) -> Result<Vec<Triple>, String> {
         let aggregates = std::collections::HashMap::new();
         let strata = crate::datalog::validate_rules(&self.rules, &aggregates)
             .unwrap_or_else(|_| vec![0; self.rules.len()]);
-        self.reasoner
-            .materialize(&mut self.triple_index, &self.rules, &strata, &aggregates)
+        self.reasoner.materialize(
+            &mut self.triple_index,
+            &self.rules,
+            &strata,
+            &aggregates,
+            &Vec::new(),
+            &mut Vec::new(),
+            &mut Vec::new(),
+        )
     }
 }
 #[cfg(test)]

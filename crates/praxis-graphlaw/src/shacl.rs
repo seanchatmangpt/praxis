@@ -782,12 +782,13 @@ impl SubclassClosure {
     pub fn new(data: &TripleIndex, rdfs_subclass_of: usize) -> Self {
         let mut ancestors = std::collections::HashMap::new();
         let subclass_triples = get_triples_by_predicate(data, rdfs_subclass_of);
-        
-        let mut direct_parents: std::collections::HashMap<usize, Vec<usize>> = std::collections::HashMap::new();
+
+        let mut direct_parents: std::collections::HashMap<usize, Vec<usize>> =
+            std::collections::HashMap::new();
         for (sub, parent) in subclass_triples {
             direct_parents.entry(sub).or_default().push(parent);
         }
-        
+
         let mut keys_to_compute: Vec<usize> = direct_parents.keys().cloned().collect();
         for parents in direct_parents.values() {
             for &p in parents {
@@ -796,14 +797,14 @@ impl SubclassClosure {
         }
         keys_to_compute.sort_unstable();
         keys_to_compute.dedup();
-        
+
         for &class in &keys_to_compute {
             Self::compute_ancestors(class, &direct_parents, &mut ancestors);
         }
-        
+
         SubclassClosure { ancestors }
     }
-    
+
     fn compute_ancestors(
         class: usize,
         direct_parents: &std::collections::HashMap<usize, Vec<usize>>,
@@ -812,11 +813,11 @@ impl SubclassClosure {
         if let Some(cached) = ancestors.get(&class) {
             return cached.clone();
         }
-        
+
         let mut visited = HashSet::new();
         let mut queue = vec![class];
         visited.insert(class);
-        
+
         let mut i = 0;
         while i < queue.len() {
             let curr = queue[i];
@@ -829,11 +830,11 @@ impl SubclassClosure {
                 }
             }
         }
-        
+
         ancestors.insert(class, visited.clone());
         visited
     }
-    
+
     pub fn is_subclass(&self, sub: usize, parent: usize) -> bool {
         if sub == parent {
             return true;
@@ -1463,7 +1464,9 @@ fn conforms_to_shape(
     closure: &SubclassClosure,
 ) -> bool {
     let mut temp = Vec::new();
-    validate_shape(data, shapes, vocab, node, shape_node, &mut temp, visited, closure);
+    validate_shape(
+        data, shapes, vocab, node, shape_node, &mut temp, visited, closure,
+    );
     temp.is_empty()
 }
 
@@ -1560,13 +1563,7 @@ fn validate_shape(
 
     // sh:class (node-level)
     for class in get_objects(shapes, shape_node, vocab.sh_class) {
-        if !has_class(
-            data,
-            focus_node,
-            class,
-            vocab.rdf_type,
-            closure,
-        ) {
+        if !has_class(data, focus_node, class, vocab.rdf_type, closure) {
             results.push(make_result(
                 focus_node,
                 None,
@@ -1784,7 +1781,9 @@ fn validate_shape(
         let sub_shapes = get_rdf_list(shapes, xone_list);
         let count = sub_shapes
             .iter()
-            .filter(|&&sub| conforms_to_shape(data, shapes, vocab, focus_node, sub, visited, closure))
+            .filter(|&&sub| {
+                conforms_to_shape(data, shapes, vocab, focus_node, sub, visited, closure)
+            })
             .count();
         if count != 1 {
             results.push(make_result(
@@ -1816,7 +1815,9 @@ fn validate_shape(
 
     // sh:node (node-level) — the focus node itself must conform to the referenced shape
     for node_shape in get_objects(shapes, shape_node, vocab.sh_node) {
-        if !conforms_to_shape(data, shapes, vocab, focus_node, node_shape, visited, closure) {
+        if !conforms_to_shape(
+            data, shapes, vocab, focus_node, node_shape, visited, closure,
+        ) {
             results.push(make_result(
                 focus_node,
                 None,
@@ -1942,7 +1943,9 @@ fn validate_shape(
     // sh:property — property shape constraints
     // -----------------------------------------------------------------------
     for ps in get_objects(shapes, shape_node, vocab.sh_property) {
-        validate_property_shape(data, shapes, vocab, focus_node, ps, results, visited, closure);
+        validate_property_shape(
+            data, shapes, vocab, focus_node, ps, results, visited, closure,
+        );
     }
 
     validate_shape_closed_and_targets_tail(
@@ -2527,7 +2530,9 @@ fn validate_property_shape(
             for &v in &v_nodes {
                 let count = sub_shapes
                     .iter()
-                    .filter(|&&sub| conforms_to_shape(data, shapes, vocab, v, sub, visited, closure))
+                    .filter(|&&sub| {
+                        conforms_to_shape(data, shapes, vocab, v, sub, visited, closure)
+                    })
                     .count();
                 if count != 1 {
                     results.push(make_result(
@@ -2589,7 +2594,9 @@ fn validate_property_shape(
         // sh:property loop process the nested shape's constraints.
         for ps_nested in get_objects(shapes, ps, vocab.sh_property) {
             for &v in &v_nodes {
-                validate_property_shape(data, shapes, vocab, v, ps_nested, results, visited, closure);
+                validate_property_shape(
+                    data, shapes, vocab, v, ps_nested, results, visited, closure,
+                );
             }
         }
     }

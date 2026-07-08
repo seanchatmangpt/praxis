@@ -189,7 +189,13 @@ impl Binding {
         for row in 0..self.len() {
             let row_key: Vec<usize> = vars
                 .iter()
-                .map(|&v| *self.bindings.get(&v).and_then(|vec| vec.get(row)).unwrap_or(&0))
+                .map(|&v| {
+                    *self
+                        .bindings
+                        .get(&v)
+                        .and_then(|vec| vec.get(row))
+                        .unwrap_or(&0)
+                })
                 .collect();
             existing_rows.insert(row_key);
         }
@@ -197,11 +203,21 @@ impl Binding {
         for row in 0..other.len() {
             let row_key: Vec<usize> = vars
                 .iter()
-                .map(|&v| *other.bindings.get(&v).and_then(|vec| vec.get(row)).unwrap_or(&0))
+                .map(|&v| {
+                    *other
+                        .bindings
+                        .get(&v)
+                        .and_then(|vec| vec.get(row))
+                        .unwrap_or(&0)
+                })
                 .collect();
             if !existing_rows.contains(&row_key) {
                 for &v in &vars {
-                    let val = *other.bindings.get(&v).and_then(|vec| vec.get(row)).unwrap_or(&0);
+                    let val = *other
+                        .bindings
+                        .get(&v)
+                        .and_then(|vec| vec.get(row))
+                        .unwrap_or(&0);
                     self.bindings.entry(v).or_default().push(val);
                 }
             }

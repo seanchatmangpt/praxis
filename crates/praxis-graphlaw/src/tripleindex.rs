@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::iter::empty;
 use std::rc::Rc;
 
+#[derive(Clone)]
 pub struct TripleIndex {
     pub triples: Vec<Triple>,
     pub spo: HashMap<usize, HashMap<usize, Vec<(usize, usize, Option<Term>)>>>,

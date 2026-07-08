@@ -1,42 +1,30 @@
-# Project: Chatman Equation PhD Thesis Program Rewrite
+# Project: praxis-graphlaw Knowledge Hooks
 
 ## Architecture
-The Chatman Equation PhD thesis program is a six-paper series plus a synthesis paper. The foundations (Paper 00) and the Synthesis Paper have already been rewritten to establish canonical notation, definitions, and proof completeness. This project focuses on rewriting the remaining four papers (01, 02, 03, and 04) to align with those established standards, ensure complete proofs for all mathematical statements, eliminate hype and overclaims, and ensure clean PDF compilation under `docs/thesis/swarm_rewrite/`.
+This project implements first-class Knowledge Hook capabilities directly inside the low-level `praxis-graphlaw` reasoner.
 
-### Code Layout
-All rewritten files must be saved under `docs/thesis/swarm_rewrite/` as:
-- `01_admission_algebra_rewritten.tex`
-- `02_receipt_cryptography_rewritten.tex`
-- `03_planning_geometry_rewritten.tex`
-- `04_projection_and_scale_rewritten.tex`
+1. **Parser & Registry**: Parsed natively from loaded graph triples matching `?s rdf:type kh:Hook`. Validates hook packs against a core SHACL Law Pack at load time (constitutional gating).
+2. **First-Class Triggers**: Evaluates condition kinds including Datalog, Delta, Threshold, Count, Window, SHACL, ShEx, N3, and SPARQL (ASK/SELECT).
+3. **Pure Action Projections**: Evaluates declarative SPARQL CONSTRUCT actions projecting into `kh:addQuad` / `kh:deleteQuad` graph deltas. Prevents/refuses host-level side-effects.
+4. **BLAKE3 Receipts**: Serializes projected deltas to a sorted canonical N-Quads format and hashes them using BLAKE3 to generate deterministic receipts.
+5. **Fixpoint Integration**: Hook evaluation runs inside the `Reasoner::materialize` stratum fixpoint loop, feeding projected additions back into the current reasoning cycle and rolling back on refusal.
 
-Verification scripts and validation assets reside in `docs/thesis/`.
+## Code Layout
+- `crates/praxis-graphlaw/src/hooks.rs`: Knowledge hooks representation, registry, extraction, validation, trigger evaluation, delta projection, and receipt generation.
+- `crates/praxis-graphlaw/src/reasoner/mod.rs`: Fixpoint integration of hook evaluations.
+- `crates/praxis-graphlaw/src/lib.rs`: Expose hook registration and gating on `TripleStore`.
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| 1 | Exploration & Triage (M1) | Analyze papers 01-04 for notation mismatches, hype/overclaims, and missing proofs | None | DONE |
-| 2 | E2E Testing Suite (M2) | Setup opaque-box test runner for compilation and thesis validation checks | None | IN_PROGRESS (Conv: dc9bef1a-098a-464f-ab04-9bf2911e7fd7) |
-| 3 | Paper 01 Rewrite (M3) | Rewrite 01_admission_algebra.tex to 01_admission_algebra_rewritten.tex | M1, M2 | DONE |
-| 4 | Paper 02 Rewrite (M4) | Rewrite 02_receipt_cryptography.tex to 02_receipt_cryptography_rewritten.tex | M1, M2 | IN_PROGRESS (Conv: 15193345-8e92-4387-b4ee-05fdad0f03f3) |
-| 5 | Paper 03 Rewrite (M5) | Rewrite 03_planning_geometry.tex to 03_planning_geometry_rewritten.tex | M1, M2 | IN_PROGRESS (Conv: d6dc4a74-29c2-4cb9-8628-e96243e8d881) |
-| 6 | Paper 04 Rewrite (M6) | Rewrite 04_projection_and_scale.tex to 04_projection_and_scale_rewritten.tex | M1, M2 | DONE |
-| 7 | Final Integration (M7) | Compile all PDFs, pass all E2E validation tests, perform adversarial review and forensic audit | M3, M4, M5, M6 | PLANNED |
+| 1 | M1: Hook Registry & Gating | Parse `kh:Hook` from triples, validate against SHACL Law Pack, refuse side-effects | none | COMPLETE |
+| 2 | M2: Trigger Dialects & SPARQL | Implement condition evaluators, add SPARQL ASK / SELECT support | M1 | COMPLETE |
+| 3 | M3: Pure Actions & CONSTRUCT | SPARQL CONSTRUCT actions projecting `kh:addQuad` / `kh:deleteQuad` | M2 | COMPLETE |
+| 4 | M4: Canonical N-Quads & BLAKE3 | Sorted N-Quads serialization and BLAKE3 receipt generation | M3 | COMPLETE |
+| 5 | M5: Reasoner Fixpoint Integration | Integrate hook evaluation & delta feedback loop in `Reasoner::materialize` | M4 | COMPLETE |
+| 6 | M6: E2E Verification & Hardening | Opaque-box E2E tests, boundary checks, and adversarial hardening | M5 | IN_PROGRESS |
 
-## Interface Contracts & Shared Standards
-All papers must strictly adhere to `docs/thesis/swarm_rewrite/master_notation_canon.md`.
-
-### Core Notation Rules:
-1. **Calligraphic Reservation**: $\mathcal{O}$, $\mathcal{A}$, and $\mathcal{R}$ are reserved exclusively for Chatman Equation macro spaces.
-2. **Denial Vector**: $\Phi$ (or $\Phi_o$) is reserved for pipeline/fleet aggregate denial.
-3. **Commitment Mapping**: Actuation-to-terminal commitment map is strictly $\Psi$.
-4. **Namespace Fencing**: Local execution event logs utilize plain font $A, O^*, L$.
-5. **Manufacturing Morphism**: Global manufacturing morphism is strictly $\mu$.
-6. **Local ggen Morphism**: Plain Spec Gen morphism is $\mu_{\text{ggen}}$.
-
-### Proof Completeness:
-Every mathematical statement (definition, theorem, lemma, proposition, corollary, axiom) must have a complete, formal proof environment. No sketches, placeholders, or rhetorical assertions are allowed.
-Reviewers must internally tag every sentence class as: `[DEF]`, `[AX]`, `[THM]`, `[PROOF]`, `[CITE]`, `[CODE]`, or `[BOUNDARY]`.
-
-### Anti-Hype & Integrity Checks:
-No hype words (e.g. `revolutionary`, `groundbreaking`, `paradigm shift`) or overclaims (e.g. `perfectly`, `infinitely`, `absolute guarantee`, `100%`). The number of theorem-like environments must exactly match the number of proof environments.
+## Interface Contracts
+### `TripleStore` ↔ `Reasoner`
+- `TripleStore::load_hook_pack` -> parses, validates, and stores hooks.
+- `Reasoner::materialize` evaluates triggers in-loop and returns/asserts projected deltas.
