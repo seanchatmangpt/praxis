@@ -7,25 +7,30 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "playwright test",
-    "test:ui": "playwright test --ui"
+    "test:unit": "vitest run",
+    "test:ui": "vitest --ui",
+    "test": "npm run test:unit && playwright test"
   },
   "dependencies": {
-    "react": "^18.3",
-    "react-dom": "^18.3",
-    "next": "^15",
-    "monaco-editor": "^0.55",
     "@monaco-editor/react": "^4.7",
-    "comlink": "^4.4"
+    "comlink": "^4.4",
+    "monaco-editor": "^0.55",
+    "next": "^15",
+    "react": "^18.3",
+    "react-dom": "^18.3"
   },
   "devDependencies": {
-    "typescript": "^5.0",
+    "@playwright/test": "^1.40",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^14",
+    "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "@types/node": "^20",
-    "typescript": "^5.0",
-    "@playwright/test": "^1.40",
+    "@vitejs/plugin-react": "^4",
     "eslint": "^8",
-    "eslint-config-next": "^15"
+    "eslint-config-next": "^15",
+    "jsdom": "^24",
+    "typescript": "^5.0",
+    "vitest": "^3.2.7"
   }
 }

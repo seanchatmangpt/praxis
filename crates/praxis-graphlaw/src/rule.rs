@@ -294,7 +294,7 @@ mod tests {
             o: VarOrTerm::new_term("http://example.org/obj".to_string()),
             g: None,
         };
-        let mut bound_vars = FxHashSet::default();
+        let bound_vars = FxHashSet::default();
         let selectivity = classify_pattern_selectivity(&pattern, &bound_vars);
         assert!(matches!(selectivity, Selectivity::Exact { .. }));
     }

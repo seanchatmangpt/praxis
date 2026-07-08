@@ -1050,6 +1050,7 @@ pub struct HookReceipt {
 
 use crate::sparql::Binding;
 use spargebra::term::{NamedNodePattern, TermPattern};
+use spargebra::SparqlParser;
 
 fn collect_triple_patterns(
     gp: &spargebra::algebra::GraphPattern,
@@ -1115,7 +1116,6 @@ fn instantiate_term_pattern(tp: &TermPattern, bindings: &[Binding]) -> Option<St
             }
             Some(s)
         }
-        _ => None,
     }
 }
 
@@ -1146,7 +1146,8 @@ pub fn evaluate_construct(
     query_str: &str,
     triple_index: &crate::tripleindex::TripleIndex,
 ) -> Result<(Vec<Triple>, Vec<Triple>), String> {
-    let query = spargebra::Query::parse(query_str, None)
+    let query = SparqlParser::new()
+        .parse_query(query_str)
         .map_err(|e| format!("SPARQL parse error: {}", e))?;
 
     if let spargebra::Query::Construct {
@@ -2225,6 +2226,7 @@ pub fn canonicalize_quads(quads: &[Triple]) -> Vec<String> {
 mod tests {
     use super::*;
     use crate::Parser;
+    use smallvec::SmallVec;
 
     #[test]
     fn test_trigger_dialects() {

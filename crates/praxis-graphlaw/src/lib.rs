@@ -143,41 +143,70 @@ impl TripleStore {
         }
     }
     pub fn from(data: &str) -> TripleStore {
-        // Route through the unified pest-based N3 parser only for documents
-        // that actually declare `@prefix` -- i.e. that opt in to real N3/
-        // Turtle-style prefix semantics. That parser understands @prefix
-        // declarations, RDF lists ("(...)"), and quoted graphs ("{...}" used
-        // as a term), none of which the legacy line-splitting parser can
-        // represent at all.
-        //
-        // We do NOT unconditionally prefer the pest parser whenever it
-        // happens to also accept a `@prefix`-less document, because the two
-        // parsers intentionally disagree on two long-standing legacy
-        // conventions that pre-date @prefix support and that other tests
-        // depend on:
-        //   - the pest grammar expands bare "a" to the full rdf:type IRI
-        //     (required by parse_rule_with_a_syntactic_sugar), whereas the
-        //     legacy parser keeps "a" as a literal, unexpanded token;
-        //   - an undeclared "prefix:local" name is left as opaque raw text
-        //     by both parsers, but only once neither one further wraps it.
-        // Some existing tests (e.g. CSprite's) build comparison triples by
-        // hand using the legacy convention (raw "a", raw "prefix:local")
-        // against `@prefix`-free input; silently switching those documents
-        // to pest's rdf:type-expanding behavior would desync the two. Since
-        // every document that actually needs list/formula/@prefix support
-        // (this crate's own N3 built-in tests included) declares `@prefix`,
-        // gating on its presence is a precise, low-risk way to opt in.
-        let (content, rules) = if data.contains("@prefix") {
+        // Detect RDF/XML first: if the data starts with XML declaration or rdf:RDF element,
+        // parse it via rio_xml. This prevents RDF/XML content from being misrouted to the
+        // legacy line-based parser (which panics on malformed input).
+        let data_trimmed = data.trim_start();
+        let content = if data_trimmed.starts_with("<?xml") || data_trimmed.contains("<rdf:RDF") {
+            match Parser::parse_triples(data, crate::parser::Syntax::RdfXml) {
+                Ok(triples) => triples,
+                Err(_) => Vec::new(),
+            }
+        } else if data.contains("@prefix") {
+            // Route through the unified pest-based N3 parser only for documents
+            // that actually declare `@prefix` -- i.e. that opt in to real N3/
+            // Turtle-style prefix semantics. That parser understands @prefix
+            // declarations, RDF lists ("(...)"), and quoted graphs ("{...}" used
+            // as a term), none of which the legacy line-splitting parser can
+            // represent at all.
+            //
+            // We do NOT unconditionally prefer the pest parser whenever it
+            // happens to also accept a `@prefix`-less document, because the two
+            // parsers intentionally disagree on two long-standing legacy
+            // conventions that pre-date @prefix support and that other tests
+            // depend on:
+            //   - the pest grammar expands bare "a" to the full rdf:type IRI
+            //     (required by parse_rule_with_a_syntactic_sugar), whereas the
+            //     legacy parser keeps "a" as a literal, unexpanded token;
+            //   - an undeclared "prefix:local" name is left as opaque raw text
+            //     by both parsers, but only once neither one further wraps it.
+            // Some existing tests (e.g. CSprite's) build comparison triples by
+            // hand using the legacy convention (raw "a", raw "prefix:local")
+            // against `@prefix`-free input; silently switching those documents
+            // to pest's rdf:type-expanding behavior would desync the two. Since
+            // every document that actually needs list/formula/@prefix support
+            // (this crate's own N3 built-in tests included) declares `@prefix`,
+            // gating on its presence is a precise, low-risk way to opt in.
             match Parser::parse_n3_document(data) {
-                Ok(result) => result,
-                Err(_) => Parser::parse(data.to_string()),
+                Ok((triples, _)) => triples,
+                Err(_) => {
+                    let (triples, _) = Parser::parse(data.to_string());
+                    triples
+                }
             }
         } else {
-            Parser::parse(data.to_string())
+            let (triples, _) = Parser::parse(data.to_string());
+            triples
         };
+
         let mut triple_index = TripleIndex::new();
         content.into_iter().for_each(|t| triple_index.add(t));
         let mut rules_index = RuleIndex::new();
+        // Rules are only extracted from legacy parse path; preserve that behavior
+        let rules = if data_trimmed.starts_with("<?xml") || data_trimmed.contains("<rdf:RDF") {
+            Vec::new() // RDF/XML doesn't support rules
+        } else if data.contains("@prefix") {
+            match Parser::parse_n3_document(data) {
+                Ok((_, rules)) => rules,
+                Err(_) => {
+                    let (_, rules) = Parser::parse(data.to_string());
+                    rules
+                }
+            }
+        } else {
+            let (_, rules) = Parser::parse(data.to_string());
+            rules
+        };
         for rule in rules.iter() {
             rules_index.add_ref(rule);
         }

@@ -1,6 +1,7 @@
 use crate::{BodyLiteral, Rule, Triple, VarOrTerm};
 use rio_api::parser::{QuadsParser, TriplesParser};
 use rio_turtle::{NQuadsParser, NTriplesParser, TriGParser, TurtleError, TurtleParser};
+use rio_xml::RdfXmlParser;
 
 mod n3rule_parser;
 
@@ -12,6 +13,7 @@ pub enum Syntax {
     Turtle,
     TriG,
     NQuads,
+    RdfXml,
 }
 
 impl Parser {
@@ -25,7 +27,7 @@ impl Parser {
         } else {
             data.to_string()
         };
-        if syntax == Syntax::Turtle || syntax == Syntax::NTriples {
+        if syntax == Syntax::Turtle || syntax == Syntax::NTriples || syntax == Syntax::RdfXml {
             Self::parse_triples_helper(&preprocessed, syntax)
         } else {
             Self::parse_quads_helper(&preprocessed, syntax)
@@ -66,20 +68,54 @@ impl Parser {
             triples.push(Triple { s, p, o, g: None });
             Ok(()) as Result<(), TurtleError>
         };
-        let result = match syntax {
-            Syntax::NTriples => NTriplesParser::new(data.as_ref()).parse_all(closure_triple),
-            Syntax::Turtle => TurtleParser::new(data.as_ref(), None).parse_all(closure_triple),
-            _ => NTriplesParser::new(data.as_ref()).parse_all(closure_triple),
-        };
-        match result {
-            Ok(_) => Ok(triples),
-            Err(parsing_error) => Err(format!("Parsing error! {:?}", parsing_error.to_string())),
+        match syntax {
+            Syntax::NTriples => {
+                let result = NTriplesParser::new(data.as_ref()).parse_all(closure_triple);
+                result
+                    .map(|_| triples)
+                    .map_err(|e| format!("Parsing error! {}", e))
+            }
+            Syntax::Turtle => {
+                let result = TurtleParser::new(data.as_ref(), None).parse_all(closure_triple);
+                result
+                    .map(|_| triples)
+                    .map_err(|e| format!("Parsing error! {}", e))
+            }
+            Syntax::RdfXml => {
+                let mut local_triples = Vec::new();
+                let result = RdfXmlParser::new(data.as_ref(), None).parse_all(
+                    &mut |t: rio_api::model::Triple| {
+                        let s = VarOrTerm::new_term(t.subject.to_string());
+                        let p = VarOrTerm::new_term(t.predicate.to_string());
+                        let o = VarOrTerm::new_term(t.object.to_string());
+                        local_triples.push(Triple { s, p, o, g: None });
+                        Ok::<(), rio_xml::RdfXmlError>(())
+                    },
+                );
+                result
+                    .map(|_| local_triples)
+                    .map_err(|e| format!("Parsing error! {}", e))
+            }
+            _ => {
+                let result = NTriplesParser::new(data.as_ref()).parse_all(closure_triple);
+                result
+                    .map(|_| triples)
+                    .map_err(|e| format!("Parsing error! {}", e))
+            }
         }
     }
-    fn parse_triple(data: &str) -> Triple {
+    fn parse_triple(data: &str) -> Result<Triple, String> {
         let items: Vec<&str> = data.split(" ").collect();
-        let s = items.first().unwrap();
-        let p = items.get(1).unwrap();
+        if items.len() < 3 {
+            return Err(format!(
+                "Malformed triple: expected at least 3 tokens, got {}",
+                items.len()
+            ));
+        }
+        let s = items.first().ok_or_else(|| "Missing subject".to_string())?;
+        let p = items
+            .get(1)
+            .ok_or_else(|| "Missing predicate".to_string())?;
 
         let o = if items.get(2).unwrap().ends_with(".") {
             let mut o_chars = items.get(2).unwrap().chars();
@@ -98,7 +134,7 @@ impl Parser {
         let s = convert_item(s);
         let p = convert_item(p);
         let o = convert_item(&o);
-        Triple { s, p, o, g: None }
+        Ok(Triple { s, p, o, g: None })
     }
     fn rem_first_and_last(value: &str) -> &str {
         let mut chars = value.chars();
@@ -116,31 +152,34 @@ impl Parser {
                 let rule: Vec<&str> = line.split("=>").collect();
                 let body = Self::rem_first_and_last(rule.first().unwrap());
                 let head = Self::rem_first_and_last(rule.get(1).unwrap());
-                let head_triple = Self::parse_triple(head);
-                let mut body_triples = Vec::new();
-                for body_triple in body.split(".") {
-                    let body_triple_trimmed = body_triple.trim();
-                    if !body_triple_trimmed.is_empty() {
-                        let is_negated = body_triple_trimmed.starts_with("not");
-                        let triple_str = if is_negated {
-                            let open_curly = body_triple_trimmed.find('{').unwrap_or(0);
-                            let close_curly = body_triple_trimmed
-                                .rfind('}')
-                                .unwrap_or(body_triple_trimmed.len());
-                            &body_triple_trimmed[open_curly + 1..close_curly]
-                        } else {
-                            body_triple_trimmed
-                        };
-                        body_triples.push(BodyLiteral {
-                            negated: is_negated,
-                            pattern: Self::parse_triple(triple_str.trim()),
-                        });
+                if let Ok(head_triple) = Self::parse_triple(head) {
+                    let mut body_triples = Vec::new();
+                    for body_triple in body.split(".") {
+                        let body_triple_trimmed = body_triple.trim();
+                        if !body_triple_trimmed.is_empty() {
+                            let is_negated = body_triple_trimmed.starts_with("not");
+                            let triple_str = if is_negated {
+                                let open_curly = body_triple_trimmed.find('{').unwrap_or(0);
+                                let close_curly = body_triple_trimmed
+                                    .rfind('}')
+                                    .unwrap_or(body_triple_trimmed.len());
+                                &body_triple_trimmed[open_curly + 1..close_curly]
+                            } else {
+                                body_triple_trimmed
+                            };
+                            if let Ok(pattern) = Self::parse_triple(triple_str.trim()) {
+                                body_triples.push(BodyLiteral {
+                                    negated: is_negated,
+                                    pattern,
+                                });
+                            }
+                        }
                     }
+                    rules.push(Rule {
+                        head: head_triple,
+                        body: body_triples,
+                    })
                 }
-                rules.push(Rule {
-                    head: head_triple,
-                    body: body_triples,
-                })
             } else {
                 //process triple
                 let trimmed = line.trim();
@@ -150,8 +189,9 @@ impl Parser {
                     && !trimmed.starts_with("BASE")
                     && !trimmed.starts_with("#")
                 {
-                    let triple = Self::parse_triple(line);
-                    content.push(triple);
+                    if let Ok(triple) = Self::parse_triple(line) {
+                        content.push(triple);
+                    }
                 }
             }
         }

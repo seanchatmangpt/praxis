@@ -18,6 +18,7 @@ sparesults = "0.3.3"
 
 rio_api = "0.8.6"
 rio_turtle = "0.8.6"
+rio_xml = "0.8.6"
 pest = "2.8.7"
 pest_derive = "2.8.7"
 either = "1.16.0"
