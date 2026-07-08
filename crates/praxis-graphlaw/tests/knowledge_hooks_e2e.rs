@@ -1,56 +1,8 @@
+mod common;
+
+use common::{assert_contains_triple, assert_not_contains_triple};
 use praxis_graphlaw::parser::Syntax;
 use praxis_graphlaw::TripleStore;
-
-// Expected public HookReceipt structure defined as requested
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HookReceipt {
-    pub hook_name: String,
-    pub delta_hash: String,
-    pub idempotency_key: String,
-    pub delta_quads: String,
-}
-
-// Helper to assert that a triple exists in the store based on content_to_string output
-fn assert_contains_triple(store: &TripleStore, s: &str, p: &str, o: &str) {
-    let found = store.triple_index.triples.iter().any(|t| {
-        let s_decoded =
-            praxis_graphlaw::encoding::Encoder::decode(&t.s.to_encoded()).unwrap_or_default();
-        let p_decoded =
-            praxis_graphlaw::encoding::Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
-        let o_decoded =
-            praxis_graphlaw::encoding::Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
-        s_decoded.contains(s) && p_decoded.contains(p) && o_decoded.contains(o)
-    });
-    assert!(
-        found,
-        "Expected triple <{} {} {}> not found in store\n{}",
-        s,
-        p,
-        o,
-        store.content_to_string()
-    );
-}
-
-// Helper to assert that a triple does not exist in the store
-fn assert_not_contains_triple(store: &TripleStore, s: &str, p: &str, o: &str) {
-    let found = store.triple_index.triples.iter().any(|t| {
-        let s_decoded =
-            praxis_graphlaw::encoding::Encoder::decode(&t.s.to_encoded()).unwrap_or_default();
-        let p_decoded =
-            praxis_graphlaw::encoding::Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
-        let o_decoded =
-            praxis_graphlaw::encoding::Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
-        s_decoded.contains(s) && p_decoded.contains(p) && o_decoded.contains(o)
-    });
-    assert!(
-        !found,
-        "Triple <{} {} {}> was found in store but was expected to be absent:\n{}",
-        s,
-        p,
-        o,
-        store.content_to_string()
-    );
-}
 
 // =========================================================================
 // TIER 1: FEATURE COVERAGE

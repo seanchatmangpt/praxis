@@ -51,6 +51,8 @@ This file must stay ≤ 200 lines. If it needs to grow past that, split into a n
 - **`docs/CORE_TEAM_DISCIPLINE.md`** — Full engineering standards for Rust core-team level code quality (performance measurement, testing discipline, review checklist, determinism guarantees, complexity documentation, invariant enforcement)
 - **`~/.claude/rules/tools.md`** — Tool usage rules (LSP-first navigation, markdown document standards, cross-document consistency)
 - `docs/rust-anti-patterns.md` — Project-scoped Rust anti-patterns and enforcement rules
+- `.claude/rules/no-overclaiming.md` — required status vocabulary; forbidden completion
+  phrases; applies repo-wide (Rust + JS/TS)
 - `docs/ALGORITHM_COMPLEXITY.md` — Complexity bounds per function and data structure (to be created during v26.7.8)
 - `docs/standing/SEMANTIC_PROFILE_DOCTRINE.md` — 80/20 profile strategy for semantic dialects (OWL RL, SHACL, ShEx, N3, Datalog)
 - `docs/standing/CLAUDE_CODE_POLICY.md` — Standing index verification gates and readiness claims

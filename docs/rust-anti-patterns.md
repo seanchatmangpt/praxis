@@ -38,9 +38,13 @@ Project-scoped rules derived from Knowledge Hooks implementation patterns observ
    - Always verify against `git log`, passing tests, and actual code before treating a "done" claim as real.
    - **Source**: Recurring pattern across praxis `PROJECT.md:18-25` (all milestones marked `PLANNED` despite M1-M5 code existing), wasm4pm, knhk's optimization track.
    - **Invariant**: #6 (know your actual state).
+   - **See**: `.claude/rules/no-overclaiming.md` for the required status vocabulary and
+     forbidden-phrase list (applies to Rust and JS/TS alike).
 
 7. **No stub functions returning success-shaped output**
    - Never return a success-shaped result (empty vec, `count = 0`, default object) when a dependency is missing or input is unsupported.
    - Must return a typed `Refusal` to make failure visible to the caller.
    - **Source**: knhk `c/src/rdf.c::knhk_rdf_load()` — returns `count = 0` with a warning when raptor2 is unavailable, masking the missing dependency from callers.
    - **Invariant**: #1 (no silent defaults).
+   - **See**: `.claude/rules/no-overclaiming.md` for the repo-wide (Rust + JS/TS) no-silent-stub
+     rule this generalizes to.
