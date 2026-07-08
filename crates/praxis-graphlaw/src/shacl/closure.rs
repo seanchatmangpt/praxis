@@ -95,7 +95,7 @@ pub struct ClosureMatrix {
     /// One bitset per row: matrix[from_id] contains all reachable nodes
     matrix: Vec<FixedBitSet>,
     /// Highest ID in the closure
-    max_id: u32,
+    pub max_id: u32,
 }
 
 impl ClosureMatrix {

@@ -4,8 +4,9 @@
 
 #[cfg(test)]
 mod tests {
+    use super::super::closure::ClosureMatrix;
     use super::super::model::{
-        ClosureMatrix, CompiledConstraint, CompiledShape, CompiledTarget, CostClass, TargetType,
+        CompiledConstraint, CompiledShape, CompiledTarget, CostClass, TargetType,
         SHACL_SPARQL_BOUNDARY,
     };
 
