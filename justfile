@@ -96,6 +96,19 @@ membrane-demo:
 membrane-test:
     cargo test --features mcp,proposer --test membrane_mcp
 
+# Build the GraphLaw WASM bridge for the browser playground: Rust
+# (crates/praxis-graphlaw-wasm) -> wasm32 -> wasm-bindgen JS/TS glue, output
+# to crates/praxis-graphlaw-wasm/pkg/ (gitignored). This is the Rust->WASM
+# half of the end-to-end chain; playground/web/justfile's `wasm`/`build-e2e`
+# recipes call this one, then re-link pkg/ into playground/web/node_modules
+# and build the Next.js app on top of it. wasm-opt is disabled (see
+# crates/praxis-graphlaw-wasm/Cargo.toml's [package.metadata.wasm-pack]) --
+# the emitted bulk-memory ops aren't accepted by the installed wasm-opt, and
+# skipping it doesn't affect correctness, only binary size.
+wasm-playground:
+    cd crates/praxis-graphlaw-wasm && wasm-pack build --target web --out-dir pkg --release
+    @echo "just wasm-playground: built crates/praxis-graphlaw-wasm/pkg (consumed by playground/web via a file: dependency -- see playground/web/justfile)"
+
 # Append/refresh the [evidence] TOML block in Cargo.toml from a receipt file (requires cicd-evidence-gen on PATH; run manually, never in CI)
 evidence:
     timeout 60s cicd-evidence-gen my-conforming-project 26.6.30 --receipt receipt.json --append Cargo.toml

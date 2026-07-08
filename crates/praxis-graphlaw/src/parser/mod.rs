@@ -3,6 +3,8 @@ use rio_api::parser::{QuadsParser, TriplesParser};
 use rio_turtle::{NQuadsParser, NTriplesParser, TriGParser, TurtleError, TurtleParser};
 use rio_xml::RdfXmlParser;
 
+mod iri_resolve;
+mod n3_terms;
 mod n3rule_parser;
 
 pub struct Parser;

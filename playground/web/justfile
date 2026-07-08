@@ -1,0 +1,39 @@
+set shell := ["bash", "-uc"]
+
+# Rebuild the GraphLaw WASM bridge (via the root justfile's `wasm-playground`
+# recipe: crates/praxis-graphlaw-wasm -> wasm32 -> pkg/), then re-link it
+# into node_modules/praxis-graphlaw-wasm (package.json's `file:` dependency
+# needs `npm install` re-run after pkg/'s contents change -- npm does not
+# watch file: deps). This is the Rust->WASM->JS chain's middle+JS-linking
+# step; run it whenever crates/praxis-graphlaw-wasm/src changes and you want
+# the playground to pick up the new build.
+wasm:
+    just --justfile ../../justfile wasm-playground
+    npm install
+    @echo "just wasm: crates/praxis-graphlaw-wasm/pkg linked into node_modules/praxis-graphlaw-wasm"
+
+# Full end-to-end build: Rust -> WASM -> JS. Rebuilds the wasm bridge, links
+# it, then produces the static Next.js export (next.config.mjs's
+# output:'export'). Fails loudly (via `set -e` semantics from `just`) if any
+# stage breaks -- there is no fallback to the lib/engine.ts mock path, since
+# that mock no longer exists (see .claude/rules/no-overclaiming-js.md).
+build-e2e: wasm
+    npm run build
+    @echo "just build-e2e: real Rust->WASM->JS chain built end-to-end"
+
+# Same chain, but starts the dev server instead of a static build -- for
+# iterating in the browser against a freshly rebuilt wasm-pkg.
+dev-e2e: wasm
+    npm run dev
+
+# Full test pyramid across the chain: native Rust wasm-bridge tests
+# (crates/praxis-graphlaw-wasm/tests/*.rs, no wasm32 build required for
+# these), then Vitest unit/component tests, then Playwright specs driven
+# against the real compiled wasm-pkg (not a mock) -- matches
+# ~/.claude/plans/yes-make-playground-a-lovely-moonbeam.md Part E's
+# sequencing (E1 native Rust / E2+E3 Vitest / E4 Playwright, E4 gated on a
+# real pkg/ build).
+test-e2e: wasm
+    cd ../../ && cargo test -p praxis-graphlaw-wasm
+    npm run test:unit
+    npm run test

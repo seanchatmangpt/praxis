@@ -46,7 +46,6 @@ use praxis_graphlaw_wasm::{
 /// should trigger Status::Refused, but today does not.
 ///
 /// Reference: praxis-graphlaw/tests/datalog_stratification_fuzz.rs
-/// TODO: Fix core.rs to surface stratification errors (not just swallow them).
 #[test]
 #[ignore = "Known limitation: stratification errors not surfaced through bridge"]
 fn test_datalog_stratification_failure_negation_cycle() {

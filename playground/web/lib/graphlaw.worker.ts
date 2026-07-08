@@ -33,6 +33,7 @@ let wasmModule: {
   ) => string;
   run_hooks?: (baseTtl: string, eventTtl: string) => string;
   graph_hash?: (ttl: string) => string;
+  blake3_hex?: (data: string) => string;
 } | null = null;
 
 /**
@@ -51,7 +52,6 @@ async function ensureWasmLoaded(): Promise<void> {
 
   // Dynamically import the WASM package (praxis-graphlaw-wasm), built via
   // `wasm-pack build --target web` from crates/praxis-graphlaw-wasm.
-  // @ts-expect-error - Module resolved via file: dependency; no ambient types
   const mod = await import('praxis-graphlaw-wasm');
   // wasm-bindgen `--target web` modules export a default init function that
   // must be awaited before any other export is callable.
@@ -61,7 +61,48 @@ async function ensureWasmLoaded(): Promise<void> {
     validate_all: mod.validate_all,
     run_hooks: mod.run_hooks,
     graph_hash: mod.graph_hash,
+    blake3_hex: mod.blake3_hex,
   };
+}
+
+/** DTO shapes matching crates/praxis-graphlaw-wasm/src/dto.rs (snake_case, as serialized). */
+interface DialectResultDto {
+  dialect: string;
+  status: string;
+  detail: string;
+  triples_out: number;
+}
+interface HookReceiptDto {
+  hook_name: string;
+  delta_hash: string;
+  idempotency_key: string;
+  delta_quads: string;
+}
+interface HookVerdictRecordDto {
+  hook_id: number;
+  hook_iri: string;
+  hook_name: string;
+  condition_kind: string;
+  condition_hash: string;
+  verdict: string;
+  effect: string;
+  action_iri?: string;
+  delta_hash?: string;
+  idempotency_key?: string;
+}
+interface HookRunResultDto {
+  status: string;
+  verdicts: HookVerdictRecordDto[];
+  receipts: HookReceiptDto[];
+  schedule: string[];
+}
+interface PlaygroundResultDto {
+  graph_hash: string;
+  profile_hash: string;
+  dialects: DialectResultDto[];
+  hooks: HookRunResultDto;
+  replay: { status: string; first_hash: string; second_hash: string };
+  hash_algorithms: Record<string, string>;
 }
 
 /**
@@ -83,91 +124,98 @@ function parseWasmJson<T>(raw: string): T {
  * All methods are async to support WASM blocking operations.
  */
 const engine: GraphlawEngineInterface = {
-  async validateAll(_turtleSource: string): Promise<ValidationResult> {
+  async validateAll(turtleSource: string): Promise<ValidationResult> {
+    // Jidoka: no try/catch here. A thrown WASM/parse error must stop the
+    // line and surface to the caller as a rejected promise (Comlink
+    // re-throws across the worker boundary) — never get re-packaged into a
+    // conforms:false ValidationResult, which would let a real engine
+    // failure look identical to a normal SHACL refusal.
     await ensureWasmLoaded();
-
-    try {
-      // TODO: integrate with WASM engine
-      // preprocessTurtle(_turtleSource);
-
-      // Call WASM engine to load and validate
-      // For now, we create a TripleStore and validate against loaded shapes
-      // This assumes we have WASM methods: load_triples, validate_shacl, validate_shex
-      // TODO: Expose these methods from praxis-graphlaw-wasm/lib.rs
-
-      return {
-        timestamp: new Date().toISOString(),
-        conforms: true, // Placeholder: will be computed by WASM
-        violations: [],
-        detail: 'Validation result placeholder',
-      };
-    } catch (error) {
-      return {
-        timestamp: new Date().toISOString(),
-        conforms: false,
-        violations: [
-          {
-            focusNode: 'example:root',
-            resultPath: 'example:property',
-            resultMessage:
-              error instanceof Error
-                ? error.message
-                : 'Unknown validation error',
-            severity: 'Violation',
-          },
-        ],
-      };
+    if (!wasmModule?.validate_all) {
+      throw new Error('GraphLaw WASM module not loaded: validate_all unavailable');
     }
+
+    // No profile/SHACL/ShEx inputs are wired at this call site (single
+    // turtleSource argument only) — OWL RL, SHACL, and ShEx dialects will
+    // report PROFILE_NOT_ADMITTED / UNSUPPORTED, which is correct given
+    // the inputs, not a placeholder result.
+    const raw = wasmModule.validate_all(turtleSource, '', '', '', '');
+    const result = parseWasmJson<PlaygroundResultDto>(raw);
+
+    const shaclDialect = result.dialects.find((d) => d.dialect === 'SHACL');
+    const n3Dialect = result.dialects.find((d) => d.dialect === 'N3_DENIAL');
+    const conforms = result.dialects.every((d) => d.status !== 'REFUSED');
+
+    return {
+      timestamp: new Date().toISOString(),
+      conforms,
+      violations: !conforms && shaclDialect
+        ? [
+            {
+              focusNode: 'graph',
+              resultPath: 'SHACL',
+              resultMessage: shaclDialect.detail,
+              severity: 'Violation',
+            },
+          ]
+        : [],
+      detail: [n3Dialect?.detail, shaclDialect?.detail]
+        .filter(Boolean)
+        .join('; ') || 'Validated',
+    };
   },
 
-  async runHooks(_turtleSource: string): Promise<HookExecutionResult> {
+  async runHooks(turtleSource: string): Promise<HookExecutionResult> {
+    // Jidoka: no try/catch. A hook-pack refusal or engine error must throw
+    // and stop the line, not be laundered into an `errors: [...]` field on
+    // an otherwise success-shaped HookExecutionResult.
     await ensureWasmLoaded();
-
-    try {
-      // TODO: integrate with WASM engine
-      // preprocessTurtle(_turtleSource);
-
-      // Call WASM engine to run hooks
-      // This assumes we have a WASM method: load_triples, compile_hooks, evaluate_hooks, get_hook_receipts
-      // TODO: Expose these methods from praxis-graphlaw-wasm/lib.rs
-
-      return {
-        receiptHash: 'blake3-hash-placeholder',
-        receipts: [],
-        errors: [],
-      };
-    } catch (error) {
-      return {
-        receiptHash: '',
-        receipts: [],
-        errors: [
-          error instanceof Error
-            ? error.message
-            : 'Unknown hook execution error',
-        ],
-      };
+    if (!wasmModule?.run_hooks || !wasmModule.blake3_hex) {
+      throw new Error('GraphLaw WASM module not loaded: run_hooks unavailable');
     }
+
+    // Single-argument interface: treat turtleSource as the base graph with
+    // an empty event delta (no incremental facts asserted this call).
+    const raw = wasmModule.run_hooks(turtleSource, '');
+    const result = parseWasmJson<HookRunResultDto>(raw);
+
+    const receipts = result.receipts.map((r) => ({
+      hookName: r.hook_name,
+      deltaQuads: r.delta_quads,
+      deltaHash: r.delta_hash,
+      idempotencyKey: r.idempotency_key,
+    }));
+
+    // Canonical order (by hook_name) before hashing, per the determinism
+    // invariant: no relying on incidental Vec ordering as canonical.
+    const canonical = [...receipts]
+      .sort((a, b) => a.hookName.localeCompare(b.hookName))
+      .map((r) => `${r.hookName}|${r.deltaHash}|${r.idempotencyKey}`)
+      .join('\n');
+    const receiptHash = wasmModule.blake3_hex(canonical);
+
+    return { receiptHash, receipts, errors: [] };
   },
 
-  async graphHash(_turtleSource: string): Promise<string> {
+  async graphHash(turtleSource: string): Promise<string> {
     await ensureWasmLoaded();
-
-    try {
-      // TODO: integrate with WASM engine
-      // preprocessTurtle(_turtleSource);
-
-      // Call WASM engine to compute hash
-      // This assumes we have a WASM method: load_triples, compute_hash
-      // TODO: Expose these methods from praxis-graphlaw-wasm/lib.rs
-
-      return 'blake3-placeholder-hash';
-    } catch (error) {
-      throw new Error(
-        `Failed to compute graph hash: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+    if (!wasmModule?.graph_hash) {
+      throw new Error('GraphLaw WASM module not loaded: graph_hash unavailable');
     }
+
+    const raw = wasmModule.graph_hash(turtleSource);
+    // graph_hash returns a bare hex digest on success (not JSON) or
+    // `{ "error": "..." }` on failure; only attempt JSON parsing to detect
+    // the error case.
+    if (raw.startsWith('{')) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+        throw new Error(
+          `Failed to compute graph hash: ${String((parsed as { error: unknown }).error)}`
+        );
+      }
+    }
+    return raw;
   },
 
   async extractMetadata(

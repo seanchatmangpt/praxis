@@ -9,6 +9,8 @@ use wasm_bindgen::prelude::*;
 pub mod core;
 pub mod dto;
 
+extern crate blake3;
+
 /// Initialize panic hook for better error messages in WASM environments.
 ///
 /// Call this at startup to enable browser console panic traces.
