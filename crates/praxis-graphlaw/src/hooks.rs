@@ -563,31 +563,29 @@ fn rewrite_hook_alias(triples: &[Triple]) -> Vec<Triple> {
         .map(|t| {
             let p_str = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
             let cleaned_p = clean_term(&p_str);
+            let o_str = Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
+            let cleaned_o = clean_term(&o_str);
 
-            // Check if predicate is in hook: namespace
+            let mut new_t = t.clone();
+
+            // Rewrite predicates in hook: namespace
             if let Some(local) = cleaned_p.strip_prefix(HOOK_ALIAS_NS) {
-                // Look up the mapping
                 if let Some((_, mapped_local)) =
                     HOOK_ALIAS_MAP.iter().find(|(alias, _)| *alias == local)
                 {
-                    // Construct kh: URI with mapped local part
                     let new_p_uri = format!("{}{}", KH_NS, mapped_local);
-                    // Create the new predicate term using VarOrTerm::new_term
-                    let new_p = VarOrTerm::new_term(new_p_uri);
-                    Triple {
-                        s: t.s.clone(),
-                        p: new_p,
-                        o: t.o.clone(),
-                        g: t.g.clone(),
-                    }
-                } else {
-                    // Unknown hook: predicate, leave unchanged for validation to reject
-                    t.clone()
+                    new_t.p = VarOrTerm::new_term(new_p_uri);
                 }
-            } else {
-                // Not a hook: predicate, leave unchanged
-                t.clone()
             }
+
+            // Rewrite object in rdf:type triples for hook:Hook (kh:Hook)
+            if cleaned_p == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                && cleaned_o == format!("{}Hook", HOOK_ALIAS_NS)
+            {
+                new_t.o = VarOrTerm::new_term(format!("{}Hook", KH_NS));
+            }
+
+            new_t
         })
         .collect()
 }
