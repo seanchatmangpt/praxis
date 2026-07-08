@@ -96,11 +96,13 @@ impl QueryEngine for SimpleQueryEngine {
         let negated_lits: Vec<&BodyLiteral> =
             query_triples.iter().filter(|lit| lit.negated).collect();
 
-        let mut rdf_lits: Vec<BodyLiteral> = positive_lits.iter()
+        let mut rdf_lits: Vec<BodyLiteral> = positive_lits
+            .iter()
             .filter(|lit| crate::builtins::classify(&lit.pattern.p).is_none())
             .map(|&lit| lit.clone())
             .collect();
-        let mut builtin_lits: Vec<BodyLiteral> = positive_lits.iter()
+        let mut builtin_lits: Vec<BodyLiteral> = positive_lits
+            .iter()
             .filter(|lit| crate::builtins::classify(&lit.pattern.p).is_some())
             .map(|&lit| lit.clone())
             .collect();
@@ -146,12 +148,21 @@ impl QueryEngine for SimpleQueryEngine {
                 let mut best_score = -1;
                 for (idx, lit) in rdf_lits.iter().enumerate() {
                     let mut score = 0;
-                    let is_bound = |t: &VarOrTerm| t.is_term() || bound_vars.contains(&t.to_encoded());
-                    if is_bound(&lit.pattern.s) { score += 1; }
-                    if is_bound(&lit.pattern.p) { score += 1; }
-                    if is_bound(&lit.pattern.o) { score += 1; }
+                    let is_bound =
+                        |t: &VarOrTerm| t.is_term() || bound_vars.contains(&t.to_encoded());
+                    if is_bound(&lit.pattern.s) {
+                        score += 1;
+                    }
+                    if is_bound(&lit.pattern.p) {
+                        score += 1;
+                    }
+                    if is_bound(&lit.pattern.o) {
+                        score += 1;
+                    }
                     if let Some(ref g) = lit.pattern.g {
-                        if is_bound(g) { score += 1; }
+                        if is_bound(g) {
+                            score += 1;
+                        }
                     }
                     if score > best_score {
                         best_score = score;
@@ -176,11 +187,14 @@ impl QueryEngine for SimpleQueryEngine {
                 } else {
                     let mut next_bindings = Binding::new();
                     let mut matched_any_row = false;
-                    let num_rows = if bindings.is_empty() { 1 } else { bindings.len() };
+                    let num_rows = if bindings.is_empty() {
+                        1
+                    } else {
+                        bindings.len()
+                    };
                     for c in 0..num_rows {
-                        let resolve = |v_id: usize| {
-                            bindings.get(&v_id).and_then(|vals| vals.get(c).copied())
-                        };
+                        let resolve =
+                            |v_id: usize| bindings.get(&v_id).and_then(|vals| vals.get(c).copied());
                         let mut ground_pattern = next_lit.pattern.clone();
                         ground_pattern.s = VarOrTerm::substitute_deep(&ground_pattern.s, &resolve);
                         ground_pattern.p = VarOrTerm::substitute_deep(&ground_pattern.p, &resolve);
@@ -189,7 +203,8 @@ impl QueryEngine for SimpleQueryEngine {
                             *g = VarOrTerm::substitute_deep(g, &resolve);
                         }
 
-                        if let Some(current_bindings) = data.query(&ground_pattern, triple_counter) {
+                        if let Some(current_bindings) = data.query(&ground_pattern, triple_counter)
+                        {
                             matched_any_row = true;
                             if current_bindings.is_empty() {
                                 for (&var_id, vals) in bindings.iter() {
@@ -243,9 +258,8 @@ impl QueryEngine for SimpleQueryEngine {
         for c in 0..num_rows {
             let mut satisfied = true;
             for negated_lit in &negated_lits {
-                let resolve = |v_id: usize| {
-                    bindings.get(&v_id).and_then(|vals| vals.get(c).copied())
-                };
+                let resolve =
+                    |v_id: usize| bindings.get(&v_id).and_then(|vals| vals.get(c).copied());
                 let mut ground_pattern = negated_lit.pattern.clone();
                 ground_pattern.s = VarOrTerm::substitute_deep(&ground_pattern.s, &resolve);
                 ground_pattern.p = VarOrTerm::substitute_deep(&ground_pattern.p, &resolve);
@@ -268,9 +282,7 @@ impl QueryEngine for SimpleQueryEngine {
             }
         }
 
-        if !filtered_bindings.is_empty()
-            || (bindings.is_empty() && num_rows == 1)
-        {
+        if !filtered_bindings.is_empty() || (bindings.is_empty() && num_rows == 1) {
             Some(filtered_bindings)
         } else {
             None
@@ -303,22 +315,27 @@ impl QueryEngine for SimpleQueryEngine {
             }
 
             // Set up ranges for each positive literal in the j-th sub-query
-            let mut rdf_lits: Vec<(BodyLiteral, usize, usize)> = positive_lits.iter().enumerate().filter_map(|(i, lit)| {
-                if crate::builtins::classify(&lit.pattern.p).is_some() {
-                    None
-                } else {
-                    let (min_c, max_c) = if i < j {
-                        (0, current_limit)
-                    } else if i == j {
-                        (prev_limit, current_limit)
+            let mut rdf_lits: Vec<(BodyLiteral, usize, usize)> = positive_lits
+                .iter()
+                .enumerate()
+                .filter_map(|(i, lit)| {
+                    if crate::builtins::classify(&lit.pattern.p).is_some() {
+                        None
                     } else {
-                        (0, prev_limit)
-                    };
-                    Some(((*lit).clone(), min_c, max_c))
-                }
-            }).collect();
+                        let (min_c, max_c) = if i < j {
+                            (0, current_limit)
+                        } else if i == j {
+                            (prev_limit, current_limit)
+                        } else {
+                            (0, prev_limit)
+                        };
+                        Some(((*lit).clone(), min_c, max_c))
+                    }
+                })
+                .collect();
 
-            let mut builtin_lits: Vec<BodyLiteral> = positive_lits.iter()
+            let mut builtin_lits: Vec<BodyLiteral> = positive_lits
+                .iter()
                 .filter(|lit| crate::builtins::classify(&lit.pattern.p).is_some())
                 .map(|&lit| lit.clone())
                 .collect();
@@ -374,12 +391,21 @@ impl QueryEngine for SimpleQueryEngine {
                     let mut best_score = -1;
                     for (idx, (lit, _, _)) in rdf_lits.iter().enumerate() {
                         let mut score = 0;
-                        let is_bound = |t: &VarOrTerm| t.is_term() || bound_vars.contains(&t.to_encoded());
-                        if is_bound(&lit.pattern.s) { score += 1; }
-                        if is_bound(&lit.pattern.p) { score += 1; }
-                        if is_bound(&lit.pattern.o) { score += 1; }
+                        let is_bound =
+                            |t: &VarOrTerm| t.is_term() || bound_vars.contains(&t.to_encoded());
+                        if is_bound(&lit.pattern.s) {
+                            score += 1;
+                        }
+                        if is_bound(&lit.pattern.p) {
+                            score += 1;
+                        }
+                        if is_bound(&lit.pattern.o) {
+                            score += 1;
+                        }
                         if let Some(ref g) = lit.pattern.g {
-                            if is_bound(g) { score += 1; }
+                            if is_bound(g) {
+                                score += 1;
+                            }
                         }
                         if score > best_score {
                             best_score = score;
@@ -393,7 +419,9 @@ impl QueryEngine for SimpleQueryEngine {
                     // println!("    best lit idx={}: {:?} range=[{}, {})", best_idx, next_lit.pattern, min_c, max_c);
 
                     if first {
-                        if let Some(current_bindings) = data.query_range(&next_lit.pattern, min_c, max_c) {
+                        if let Some(current_bindings) =
+                            data.query_range(&next_lit.pattern, min_c, max_c)
+                        {
                             sub_bindings = current_bindings;
                             for &var in sub_bindings.vars() {
                                 bound_vars.insert(var);
@@ -409,20 +437,31 @@ impl QueryEngine for SimpleQueryEngine {
                     } else {
                         let mut next_bindings = Binding::new();
                         let mut matched_any_row = false;
-                        let num_rows = if sub_bindings.is_empty() { 1 } else { sub_bindings.len() };
+                        let num_rows = if sub_bindings.is_empty() {
+                            1
+                        } else {
+                            sub_bindings.len()
+                        };
                         for c in 0..num_rows {
                             let resolve = |v_id: usize| {
-                                sub_bindings.get(&v_id).and_then(|vals| vals.get(c).copied())
+                                sub_bindings
+                                    .get(&v_id)
+                                    .and_then(|vals| vals.get(c).copied())
                             };
                             let mut ground_pattern = next_lit.pattern.clone();
-                            ground_pattern.s = VarOrTerm::substitute_deep(&ground_pattern.s, &resolve);
-                            ground_pattern.p = VarOrTerm::substitute_deep(&ground_pattern.p, &resolve);
-                            ground_pattern.o = VarOrTerm::substitute_deep(&ground_pattern.o, &resolve);
+                            ground_pattern.s =
+                                VarOrTerm::substitute_deep(&ground_pattern.s, &resolve);
+                            ground_pattern.p =
+                                VarOrTerm::substitute_deep(&ground_pattern.p, &resolve);
+                            ground_pattern.o =
+                                VarOrTerm::substitute_deep(&ground_pattern.o, &resolve);
                             if let Some(ref mut g) = ground_pattern.g {
                                 *g = VarOrTerm::substitute_deep(g, &resolve);
                             }
 
-                            if let Some(current_bindings) = data.query_range(&ground_pattern, min_c, max_c) {
+                            if let Some(current_bindings) =
+                                data.query_range(&ground_pattern, min_c, max_c)
+                            {
                                 matched_any_row = true;
                                 if current_bindings.is_empty() {
                                     for (&var_id, vals) in sub_bindings.iter() {
@@ -462,7 +501,11 @@ impl QueryEngine for SimpleQueryEngine {
                 }
             }
 
-            if progress && rdf_lits.is_empty() && builtin_lits.is_empty() && !sub_bindings.is_empty() {
+            if progress
+                && rdf_lits.is_empty()
+                && builtin_lits.is_empty()
+                && !sub_bindings.is_empty()
+            {
                 // println!("    Sub-query j={} SUCCESS!", j);
                 union_bindings.union(sub_bindings);
             } else {
@@ -481,12 +524,18 @@ impl QueryEngine for SimpleQueryEngine {
         }
 
         let mut filtered_bindings = Binding::new();
-        let num_rows = if union_bindings.is_empty() { 1 } else { union_bindings.len() };
+        let num_rows = if union_bindings.is_empty() {
+            1
+        } else {
+            union_bindings.len()
+        };
         for c in 0..num_rows {
             let mut satisfied = true;
             for negated_lit in &negated_lits {
                 let resolve = |v_id: usize| {
-                    union_bindings.get(&v_id).and_then(|vals| vals.get(c).copied())
+                    union_bindings
+                        .get(&v_id)
+                        .and_then(|vals| vals.get(c).copied())
                 };
                 let mut ground_pattern = negated_lit.pattern.clone();
                 ground_pattern.s = VarOrTerm::substitute_deep(&ground_pattern.s, &resolve);

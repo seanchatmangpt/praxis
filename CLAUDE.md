@@ -45,3 +45,4 @@ This file must stay ≤ 200 lines. If it needs to grow past that, split into a n
 ## See Also
 
 - `docs/rust-anti-patterns.md` — Project-scoped Rust anti-patterns and enforcement rules.
+- `docs/standing/SEMANTIC_PROFILE_DOCTRINE.md` — 80/20 profile strategy for semantic dialects (OWL RL, SHACL, ShEx, N3, Datalog).

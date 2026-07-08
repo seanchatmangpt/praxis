@@ -51,3 +51,7 @@ docs/thesis/*.vrb
 # `lake update && lake exe cache get`; never commit.
 **/.lake/
 **/lake-manifest.json
+
+# Vendored external crates and cloned repositories for auditing (cargo vendor)
+/vendors/
+

@@ -2,23 +2,25 @@
 // lints below are documented scoped allows, not silent drift.
 #![allow(clippy::ptr_arg)]
 
-use crate::triples::AggregateFunction;
-use crate::aggregation::{Accumulator, CountAccumulator, SumAccumulator, MinAccumulator, MaxAccumulator, AvgAccumulator, AccumulatorImpl};
-use std::collections::HashMap;
-use crate::queryengine::{QueryEngine, SimpleQueryEngine};
-use crate::{
-    Binding, BodyLiteral, Rule,
-    Triple, TripleIndex, TripleStore, VarOrTerm,
+use crate::aggregation::{
+    Accumulator, AccumulatorImpl, AvgAccumulator, CountAccumulator, MaxAccumulator, MinAccumulator,
+    SumAccumulator,
 };
+use crate::hooks::{clean_term, CmpOp, EffectKind, HookCondition};
+use crate::parser::Parser;
+use crate::queryengine::{QueryEngine, SimpleQueryEngine};
+use crate::triples::AggregateFunction;
+use crate::{Binding, BodyLiteral, Rule, Triple, TripleIndex, TripleStore, VarOrTerm};
 use log::debug;
+use std::collections::HashMap;
 
-mod log_implies;
 mod log_collect_all_in;
-mod log_not_includes;
-mod log_includes;
+mod log_conclusion;
 mod log_for_all_in;
 mod log_if_then_else_in;
-mod log_conclusion;
+mod log_implies;
+mod log_includes;
+mod log_not_includes;
 mod substitution;
 
 #[cfg(test)]
@@ -29,21 +31,23 @@ pub struct Reasoner;
 
 impl Reasoner {
     pub fn materialize(
-        &mut self,
+        &self,
         triple_index: &mut TripleIndex,
         rules: &Vec<Rule>,
         strata: &Vec<usize>,
         aggregates: &std::collections::HashMap<Rule, crate::triples::Aggregate>,
-    ) -> Vec<Triple> {
+        hooks: &Vec<crate::hooks::KnowledgeHook>,
+        receipts: &mut Vec<crate::hooks::HookReceipt>,
+        verdicts: &mut Vec<crate::hooks::HookVerdictRecord>,
+    ) -> Result<Vec<Triple>, String> {
         let mut inferred = Vec::new();
         if rules.is_empty() {
-            return inferred;
+            return Ok(inferred);
         }
 
         let max_stratum = *strata.iter().max().unwrap_or(&0);
 
         for s in 0..=max_stratum {
-
             let stratum_rules: Vec<&Rule> = rules
                 .iter()
                 .enumerate()
@@ -61,6 +65,10 @@ impl Reasoner {
 
             let mut stratum_start_counter = None;
             let mut changed = true;
+
+            let stratum_rollback_len = triple_index.len();
+            let stratum_rollback_inferred_len = inferred.len();
+            let mut stratum_history: Vec<Vec<Triple>> = Vec::new();
 
             while changed {
                 changed = false;
@@ -91,8 +99,10 @@ impl Reasoner {
                                     .iter()
                                     .map(|v| VarOrTerm::convert(v.clone()).to_encoded())
                                     .collect();
-                                let source_var_id = VarOrTerm::convert(agg.source_var.clone()).to_encoded();
-                                let target_var_id = VarOrTerm::convert(agg.target_var.clone()).to_encoded();
+                                let source_var_id =
+                                    VarOrTerm::convert(agg.source_var.clone()).to_encoded();
+                                let target_var_id =
+                                    VarOrTerm::convert(agg.target_var.clone()).to_encoded();
 
                                 let mut groups: HashMap<Vec<usize>, Vec<usize>> = HashMap::new();
                                 for c in 0..len {
@@ -111,11 +121,21 @@ impl Reasoner {
 
                                 for (group_key, source_vals) in groups {
                                     let mut acc = match agg.function {
-                                        AggregateFunction::Count => AccumulatorImpl::Count(CountAccumulator::default()),
-                                        AggregateFunction::Sum => AccumulatorImpl::Sum(SumAccumulator::default()),
-                                        AggregateFunction::Min => AccumulatorImpl::Min(MinAccumulator::default()),
-                                        AggregateFunction::Max => AccumulatorImpl::Max(MaxAccumulator::default()),
-                                        AggregateFunction::Avg => AccumulatorImpl::Avg(AvgAccumulator::default()),
+                                        AggregateFunction::Count => {
+                                            AccumulatorImpl::Count(CountAccumulator::default())
+                                        }
+                                        AggregateFunction::Sum => {
+                                            AccumulatorImpl::Sum(SumAccumulator::default())
+                                        }
+                                        AggregateFunction::Min => {
+                                            AccumulatorImpl::Min(MinAccumulator::default())
+                                        }
+                                        AggregateFunction::Max => {
+                                            AccumulatorImpl::Max(MaxAccumulator::default())
+                                        }
+                                        AggregateFunction::Avg => {
+                                            AccumulatorImpl::Avg(AvgAccumulator::default())
+                                        }
                                     };
                                     for val in source_vals {
                                         acc.add(val);
@@ -129,9 +149,12 @@ impl Reasoner {
                                             if var_id == target_var_id {
                                                 *term = VarOrTerm::new_encoded_term(target_val);
                                             } else {
-                                                for (i, &gv_id) in group_var_ids.iter().enumerate() {
+                                                for (i, &gv_id) in group_var_ids.iter().enumerate()
+                                                {
                                                     if var_id == gv_id {
-                                                        *term = VarOrTerm::new_encoded_term(group_key[i]);
+                                                        *term = VarOrTerm::new_encoded_term(
+                                                            group_key[i],
+                                                        );
                                                         break;
                                                     }
                                                 }
@@ -155,49 +178,94 @@ impl Reasoner {
                         let implies_indices = Self::find_log_implies_literals(rule);
                         // log:implies dynamic rule reification (see
                         // process_log_implies_rule doc comment).
-                        for new_head in Self::process_log_implies_rule(rule, &implies_indices, triple_index, stratum_start_counter, next_start_counter) {
+                        for new_head in Self::process_log_implies_rule(
+                            rule,
+                            &implies_indices,
+                            triple_index,
+                            stratum_start_counter,
+                            next_start_counter,
+                        ) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(collect_idx) = Self::find_log_collect_all_in_literal(rule) {
                         // log:collectAllIn (see process_log_collect_all_in_rule doc comment).
-                        for new_head in Self::process_log_collect_all_in_rule(rule, collect_idx, triple_index, stratum_start_counter, next_start_counter) {
+                        for new_head in Self::process_log_collect_all_in_rule(
+                            rule,
+                            collect_idx,
+                            triple_index,
+                            stratum_start_counter,
+                            next_start_counter,
+                        ) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
-                    } else if let Some(not_includes_idx) = Self::find_log_not_includes_literal(rule) {
+                    } else if let Some(not_includes_idx) = Self::find_log_not_includes_literal(rule)
+                    {
                         // log:notIncludes SNAF guard (see process_log_not_includes_rule doc comment).
-                        for new_head in Self::process_log_not_includes_rule(rule, not_includes_idx, triple_index, stratum_start_counter, next_start_counter) {
+                        for new_head in Self::process_log_not_includes_rule(
+                            rule,
+                            not_includes_idx,
+                            triple_index,
+                            stratum_start_counter,
+                            next_start_counter,
+                        ) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(includes_idx) = Self::find_log_includes_literal(rule) {
                         // log:includes (positive counterpart of notIncludes; see process_log_includes_rule doc comment).
-                        for new_head in Self::process_log_includes_rule(rule, includes_idx, triple_index, stratum_start_counter, next_start_counter) {
+                        for new_head in Self::process_log_includes_rule(
+                            rule,
+                            includes_idx,
+                            triple_index,
+                            stratum_start_counter,
+                            next_start_counter,
+                        ) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(for_all_idx) = Self::find_log_for_all_in_literal(rule) {
                         // log:forAllIn (see process_log_for_all_in_rule doc comment).
-                        for new_head in Self::process_log_for_all_in_rule(rule, for_all_idx, triple_index, stratum_start_counter, next_start_counter) {
+                        for new_head in Self::process_log_for_all_in_rule(
+                            rule,
+                            for_all_idx,
+                            triple_index,
+                            stratum_start_counter,
+                            next_start_counter,
+                        ) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
-                    } else if let Some(if_then_else_idx) = Self::find_log_if_then_else_in_literal(rule) {
+                    } else if let Some(if_then_else_idx) =
+                        Self::find_log_if_then_else_in_literal(rule)
+                    {
                         // log:ifThenElseIn (see process_log_if_then_else_in_rule doc comment).
-                        for new_head in Self::process_log_if_then_else_in_rule(rule, if_then_else_idx, triple_index, stratum_start_counter, next_start_counter) {
+                        for new_head in Self::process_log_if_then_else_in_rule(
+                            rule,
+                            if_then_else_idx,
+                            triple_index,
+                            stratum_start_counter,
+                            next_start_counter,
+                        ) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
                         }
                     } else if let Some(conclusion_idx) = Self::find_log_conclusion_literal(rule) {
                         // log:conclusion (see process_log_conclusion_rule doc comment).
-                        for new_head in Self::process_log_conclusion_rule(rule, conclusion_idx, triple_index, stratum_start_counter, next_start_counter) {
+                        for new_head in Self::process_log_conclusion_rule(
+                            rule,
+                            conclusion_idx,
+                            triple_index,
+                            stratum_start_counter,
+                            next_start_counter,
+                        ) {
                             if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
                                 changed = true;
                             }
@@ -211,16 +279,12 @@ impl Reasoner {
                                 next_start_counter,
                             )
                         } else {
-                            SimpleQueryEngine::query(
-                                triple_index,
-                                &rule.body,
-                                None,
-                            )
+                            SimpleQueryEngine::query(triple_index, &rule.body, None)
                         };
 
                         if let Some(bindings) = bindings_opt {
-
-                            let new_heads = Self::substitute_head_with_bindings(&rule.head, &bindings);
+                            let new_heads =
+                                Self::substitute_head_with_bindings(&rule.head, &bindings);
 
                             for new_head in new_heads {
                                 if Self::apply_new_triple(new_head, triple_index, &mut inferred) {
@@ -231,11 +295,320 @@ impl Reasoner {
                     }
                 }
 
+                let round_additions = if next_start_counter < triple_index.len() {
+                    triple_index.triples[next_start_counter..].to_vec()
+                } else {
+                    Vec::new()
+                };
+
+                let mut hook_changed = false;
+
+                for hook in hooks {
+                    let gated = match hook.on.as_str() {
+                        "assert" => round_additions.is_empty(),
+                        "retract" => true,
+                        _ => false,
+                    };
+                    if gated {
+                        verdicts.push(crate::hooks::HookVerdictRecord {
+                            hook_iri: hook.iri.clone(),
+                            hook_name: hook.name.clone(),
+                            condition_kind: hook.condition.kind().to_string(),
+                            condition_hash: hook.condition.condition_hash().unwrap_or_default(),
+                            verdict: crate::hooks::HookVerdict::Gated,
+                            effect: hook.effect.clone(),
+                            action_iri: hook.action.clone(),
+                            diagnostics: None,
+                            delta_hash: None,
+                            idempotency_key: None,
+                        });
+                        continue;
+                    }
+
+                    let mut fired = false;
+                    let mut bindings = Vec::new();
+
+                    match &hook.condition {
+                        HookCondition::Delta { var } => {
+                            fired = delta_touches(&round_additions, var);
+                        }
+                        HookCondition::Threshold { var, op, k } => {
+                            let count = count_pred(triple_index, var);
+                            fired = cmp_holds(op, count, *k);
+                        }
+                        HookCondition::Count { var, op, k } => {
+                            let count = delta_count(&round_additions, var);
+                            fired = cmp_holds(op, count, *k);
+                        }
+                        HookCondition::Window { var, op, k, window } => {
+                            let mut total = delta_count(&round_additions, var);
+                            for past_adds in
+                                stratum_history.iter().rev().take(usize::from(*window) - 1)
+                            {
+                                total += delta_count(past_adds, var);
+                            }
+                            fired = cmp_holds(op, total, *k);
+                        }
+                        HookCondition::Shacl { shapes } => {
+                            let mut temp_store = TripleStore::new();
+                            for t in &triple_index.triples {
+                                temp_store.add(t.clone());
+                            }
+                            if let Ok(report) = temp_store.validate_shacl(shapes) {
+                                fired = !report.conforms;
+                            }
+                        }
+                        HookCondition::Shex { schema, shape_map } => {
+                            let shape_map_parsed = parse_shape_map(shape_map);
+                            let report = if schema.trim().starts_with('{') {
+                                crate::shex::validate_shex(&triple_index, schema, &shape_map_parsed)
+                            } else {
+                                let mut temp_store = TripleStore::new();
+                                for t in &triple_index.triples {
+                                    temp_store.add(t.clone());
+                                }
+                                temp_store
+                                    .validate_shex_c(schema, &shape_map_parsed)
+                                    .map_err(|e| {
+                                        Box::new(std::io::Error::new(std::io::ErrorKind::Other, e))
+                                            as Box<dyn std::error::Error>
+                                    })
+                            };
+                            if let Ok(rep) = report {
+                                fired = !rep.conforms;
+                            }
+                        }
+                        HookCondition::N3 { rules } => {
+                            let mut temp_store = TripleStore::from(rules);
+                            for t in &triple_index.triples {
+                                temp_store.add(t.clone());
+                            }
+                            let before_len = temp_store.len();
+                            let _ = temp_store.materialize();
+                            fired = temp_store.len() > before_len;
+                        }
+                        HookCondition::Sparql { query } => {
+                            let mut temp_store = TripleStore::new();
+                            for t in &triple_index.triples {
+                                temp_store.add(t.clone());
+                            }
+                            if let Ok(rows) = temp_store.query(query) {
+                                if !rows.is_empty() {
+                                    fired = true;
+                                    for row in rows {
+                                        let mut row_vars = Vec::new();
+                                        let mut has_digit_vars = false;
+                                        for b in &row {
+                                            if b.var.chars().all(|c| c.is_ascii_digit()) {
+                                                has_digit_vars = true;
+                                                break;
+                                            }
+                                        }
+                                        if has_digit_vars {
+                                            let mut digit_vars: Vec<(usize, String)> = row
+                                                .iter()
+                                                .filter_map(|b| {
+                                                    b.var
+                                                        .parse::<usize>()
+                                                        .ok()
+                                                        .map(|idx| (idx, b.val.clone()))
+                                                })
+                                                .collect();
+                                            digit_vars.sort_by_key(|(idx, _)| *idx);
+                                            for (_idx, val) in digit_vars {
+                                                row_vars.push(val);
+                                            }
+                                        } else {
+                                            let mut sorted_row = row.clone();
+                                            sorted_row.sort_by(|a, b| a.var.cmp(&b.var));
+                                            for b in sorted_row {
+                                                row_vars.push(b.val);
+                                            }
+                                        }
+                                        bindings.push(row_vars);
+                                    }
+                                }
+                            }
+                        }
+                        HookCondition::Datalog { program, goal } => {
+                            let translated = translate_datalog_program(program)?;
+                            let mut temp_store = TripleStore::from(&translated);
+                            for t in &triple_index.triples {
+                                temp_store.add(t.clone());
+                            }
+                            let _ = temp_store.materialize();
+                            let goal_type =
+                                format!("<http://seanchatmangpt.github.io/praxis/kh#{}>", goal);
+                            for t in &temp_store.triple_index.triples {
+                                let p_str = crate::encoding::Encoder::decode(&t.p.to_encoded())
+                                    .unwrap_or_default();
+                                let o_str = crate::encoding::Encoder::decode(&t.o.to_encoded())
+                                    .unwrap_or_default();
+                                if clean_term(&p_str)
+                                    == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                                    && clean_term(&o_str) == clean_term(&goal_type)
+                                {
+                                    let s_str = crate::encoding::Encoder::decode(&t.s.to_encoded())
+                                        .unwrap_or_default();
+                                    bindings.push(vec![s_str]);
+                                }
+                            }
+                            fired = !bindings.is_empty();
+                        }
+                    }
+
+                    if !fired {
+                        verdicts.push(crate::hooks::HookVerdictRecord {
+                            hook_iri: hook.iri.clone(),
+                            hook_name: hook.name.clone(),
+                            condition_kind: hook.condition.kind().to_string(),
+                            condition_hash: hook.condition.condition_hash().unwrap_or_default(),
+                            verdict: crate::hooks::HookVerdict::NotFired,
+                            effect: hook.effect.clone(),
+                            action_iri: hook.action.clone(),
+                            diagnostics: None,
+                            delta_hash: None,
+                            idempotency_key: None,
+                        });
+                        continue;
+                    }
+
+                    match hook.effect {
+                        EffectKind::Refuse => {
+                            let added_triples: Vec<Triple> =
+                                triple_index.triples[stratum_rollback_len..].to_vec();
+                            for t in added_triples {
+                                triple_index.remove_ref(&t);
+                            }
+                            inferred.truncate(stratum_rollback_inferred_len);
+                            let reason = hook.reason.as_deref().unwrap_or("no reason").to_string();
+                            let diag = crate::hooks::TriggerDiagnostic {
+                                hook_iri: hook.iri.clone(),
+                                conforms: false,
+                                details: vec![crate::hooks::DiagnosticDetail {
+                                    focus_node: None,
+                                    result_path: None,
+                                    value: None,
+                                    severity: Some("Violation".to_string()),
+                                    message: reason.clone(),
+                                }],
+                            };
+                            verdicts.push(crate::hooks::HookVerdictRecord {
+                                hook_iri: hook.iri.clone(),
+                                hook_name: hook.name.clone(),
+                                condition_kind: hook.condition.kind().to_string(),
+                                condition_hash: hook.condition.condition_hash().unwrap_or_default(),
+                                verdict: crate::hooks::HookVerdict::Fired,
+                                effect: hook.effect.clone(),
+                                action_iri: hook.action.clone(),
+                                diagnostics: Some(diag),
+                                delta_hash: None,
+                                idempotency_key: None,
+                            });
+                            return Err(format!("refused by hook '{}': {}", hook.name, reason));
+                        }
+                        EffectKind::EmitDelta | EffectKind::GroundAction => {
+                            let mut hook_additions = Vec::new();
+                            if let Some(action_iri) = &hook.action {
+                                let adds_pred =
+                                    "http://seanchatmangpt.github.io/praxis/kh#adds_ttl";
+                                let mut adds_ttl = String::new();
+                                for t in &triple_index.triples {
+                                    let s_str = crate::encoding::Encoder::decode(&t.s.to_encoded())
+                                        .unwrap_or_default();
+                                    let p_str = crate::encoding::Encoder::decode(&t.p.to_encoded())
+                                        .unwrap_or_default();
+                                    if clean_term(&s_str) == clean_term(action_iri)
+                                        && clean_term(&p_str) == adds_pred
+                                    {
+                                        if let Some(s) =
+                                            crate::encoding::Encoder::decode(&t.o.to_encoded())
+                                        {
+                                            adds_ttl = clean_term(&s).to_string();
+                                            break;
+                                        }
+                                    }
+                                }
+                                if !adds_ttl.is_empty() {
+                                    let mut projected_adds_list = Vec::new();
+                                    if bindings.is_empty() {
+                                        projected_adds_list.push(adds_ttl);
+                                    } else {
+                                        for vars in &bindings {
+                                            projected_adds_list
+                                                .push(project_delta_template(&adds_ttl, vars));
+                                        }
+                                    }
+                                    for projected_adds in projected_adds_list {
+                                        if let Ok(parsed_triples) = Parser::parse_triples(
+                                            &projected_adds,
+                                            crate::parser::Syntax::Turtle,
+                                        ) {
+                                            for t in parsed_triples {
+                                                if Self::apply_new_triple(
+                                                    t.clone(),
+                                                    triple_index,
+                                                    &mut inferred,
+                                                ) {
+                                                    hook_changed = true;
+                                                    hook_additions.push(t);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            let mut delta_hash = None;
+                            let mut idempotency_key = None;
+                            if !hook_additions.is_empty() {
+                                let lines = crate::hooks::canonicalize_quads(&hook_additions);
+                                let delta_quads = lines.join("\n");
+                                let d_hash =
+                                    blake3::hash(delta_quads.as_bytes()).to_hex().to_string();
+                                let i_key = blake3::hash(
+                                    format!("praxis:idempotency-key:v1{}", d_hash).as_bytes(),
+                                )
+                                .to_hex()
+                                .to_string();
+
+                                let receipt = crate::hooks::HookReceipt {
+                                    hook_name: hook.name.clone(),
+                                    delta_hash: d_hash.clone(),
+                                    idempotency_key: i_key.clone(),
+                                    delta_quads,
+                                };
+                                receipts.push(receipt);
+                                delta_hash = Some(d_hash);
+                                idempotency_key = Some(i_key);
+                            }
+
+                            verdicts.push(crate::hooks::HookVerdictRecord {
+                                hook_iri: hook.iri.clone(),
+                                hook_name: hook.name.clone(),
+                                condition_kind: hook.condition.kind().to_string(),
+                                condition_hash: hook.condition.condition_hash().unwrap_or_default(),
+                                verdict: crate::hooks::HookVerdict::Fired,
+                                effect: hook.effect.clone(),
+                                action_iri: hook.action.clone(),
+                                diagnostics: None,
+                                delta_hash,
+                                idempotency_key,
+                            });
+                        }
+                    }
+                }
+
+                if hook_changed {
+                    changed = true;
+                }
+
+                stratum_history.push(round_additions);
                 stratum_start_counter = Some(next_start_counter);
             }
         }
 
-        inferred
+        Ok(inferred)
     }
 
     /// Add `head` to `triple_index` (and `inferred`) immediately if it's not
@@ -250,7 +623,11 @@ impl Reasoner {
     /// same pass, so the guard correctly suppresses the Pacifist derivation.
     /// Declaration order becomes the de facto rule-priority order this
     /// needs (matching upstream EYE's textual rule order).
-    pub(crate) fn apply_new_triple(head: Triple, triple_index: &mut TripleIndex, inferred: &mut Vec<Triple>) -> bool {
+    pub(crate) fn apply_new_triple(
+        head: Triple,
+        triple_index: &mut TripleIndex,
+        inferred: &mut Vec<Triple>,
+    ) -> bool {
         if triple_index.contains(&head) {
             return false;
         }
@@ -308,7 +685,10 @@ impl Reasoner {
         }
         let body: Vec<BodyLiteral> = triples
             .iter()
-            .map(|p| BodyLiteral { negated: false, pattern: Self::substitute_single_row(p, row_binding) })
+            .map(|p| BodyLiteral {
+                negated: false,
+                pattern: Self::substitute_single_row(p, row_binding),
+            })
             .collect();
         SimpleQueryEngine::query(triple_index, &body, None)
     }
@@ -362,4 +742,172 @@ pub(crate) fn query(query_triple: &Triple, match_triple: &Triple) -> Option<Bind
     }
 
     Some(bindings)
+}
+
+fn translate_datalog_program(program: &str) -> Result<String, String> {
+    let mut n3 = String::new();
+    for rule_str in program.split('.') {
+        let rule_str = rule_str.trim();
+        if rule_str.is_empty() {
+            continue;
+        }
+        if let Some((head_part, body_part)) = rule_str.split_once(":-") {
+            let head_part = head_part.trim();
+            let body_part = body_part.trim();
+
+            let head_name = head_part
+                .split('(')
+                .next()
+                .ok_or_else(|| "Datalog rule head missing '(' delimiter".to_string())?
+                .trim();
+            let head_var = head_part
+                .split('(')
+                .nth(1)
+                .ok_or_else(|| "Datalog rule head missing argument".to_string())?
+                .split(')')
+                .next()
+                .ok_or_else(|| "Datalog rule head missing ')' delimiter".to_string())?
+                .trim();
+
+            let mut body_literals = Vec::new();
+            for lit in body_part.split(',') {
+                let lit = lit.trim();
+                if lit.starts_with('!') {
+                    let pred_part = &lit[1..];
+                    let pred_name = pred_part
+                        .split('(')
+                        .next()
+                        .ok_or_else(|| {
+                            "Datalog negated predicate missing '(' delimiter".to_string()
+                        })?
+                        .trim();
+                    let pred_var = pred_part
+                        .split('(')
+                        .nth(1)
+                        .ok_or_else(|| "Datalog negated predicate missing argument".to_string())?
+                        .split(')')
+                        .next()
+                        .ok_or_else(|| {
+                            "Datalog negated predicate missing ')' delimiter".to_string()
+                        })?
+                        .trim();
+                    body_literals.push(format!(
+                        "log:notIncludes {{ {} a <http://seanchatmangpt.github.io/praxis/kh#{}> }}",
+                        pred_var, pred_name
+                    ));
+                } else if lit.starts_with("t(") && lit.ends_with(')') {
+                    let args_str = &lit[2..lit.len() - 1];
+                    let args: Vec<&str> = args_str.split(',').map(|s| s.trim()).collect();
+                    if args.len() == 3 {
+                        body_literals.push(format!("{} {} {} .", args[0], args[1], args[2]));
+                    }
+                } else {
+                    let pred_name = lit
+                        .split('(')
+                        .next()
+                        .ok_or_else(|| "Datalog predicate missing '(' delimiter".to_string())?
+                        .trim();
+                    let pred_var = lit
+                        .split('(')
+                        .nth(1)
+                        .ok_or_else(|| "Datalog predicate missing argument".to_string())?
+                        .split(')')
+                        .next()
+                        .ok_or_else(|| "Datalog predicate missing ')' delimiter".to_string())?
+                        .trim();
+                    body_literals.push(format!(
+                        "{} a <http://seanchatmangpt.github.io/praxis/kh#{}> .",
+                        pred_var, pred_name
+                    ));
+                }
+            }
+
+            n3.push_str(&format!(
+                "{{ {} }} => {{ {} a <http://seanchatmangpt.github.io/praxis/kh#{}> . }} .\n",
+                body_literals.join(" "),
+                head_var,
+                head_name
+            ));
+        }
+    }
+    Ok(n3)
+}
+
+fn project_delta_template(adds_template: &str, vars: &[String]) -> String {
+    let mut adds = adds_template.to_string();
+    for (i, val) in vars.iter().enumerate() {
+        let placeholder = format!("?{}", i);
+        let formatted = if val.starts_with("http://") || val.starts_with("https://") {
+            format!("<{}>", val)
+        } else {
+            val.clone()
+        };
+        adds = adds.replace(&placeholder, &formatted);
+    }
+    adds
+}
+
+fn parse_shape_map(s: &str) -> Vec<(String, String)> {
+    let mut map = Vec::new();
+    for entry in s.split(',') {
+        let entry = entry.trim();
+        if entry.is_empty() {
+            continue;
+        }
+        if let Some((node, shape)) = entry.split_once('@') {
+            let clean = |x: &str| {
+                let x = x.trim();
+                if x.starts_with('<') && x.ends_with('>') {
+                    x[1..x.len() - 1].to_string()
+                } else {
+                    x.to_string()
+                }
+            };
+            map.push((clean(node), clean(shape)));
+        }
+    }
+    map
+}
+
+fn count_pred(triple_index: &TripleIndex, var: &str) -> u64 {
+    let mut count = 0;
+    for t in &triple_index.triples {
+        let p_str = crate::encoding::Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
+        if clean_term(&p_str) == clean_term(var) {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn delta_count(additions: &[Triple], var: &str) -> u64 {
+    let mut count = 0;
+    for t in additions {
+        let p_str = crate::encoding::Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
+        if clean_term(&p_str) == clean_term(var) {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn delta_touches(additions: &[Triple], var: &str) -> bool {
+    for t in additions {
+        let p_str = crate::encoding::Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
+        if clean_term(&p_str) == clean_term(var) {
+            return true;
+        }
+    }
+    false
+}
+
+fn cmp_holds(op: &CmpOp, lhs: u64, rhs: u64) -> bool {
+    match op {
+        CmpOp::Eq => lhs == rhs,
+        CmpOp::Ne => lhs != rhs,
+        CmpOp::Lt => lhs < rhs,
+        CmpOp::Le => lhs <= rhs,
+        CmpOp::Gt => lhs > rhs,
+        CmpOp::Ge => lhs >= rhs,
+    }
 }

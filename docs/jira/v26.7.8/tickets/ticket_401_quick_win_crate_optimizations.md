@@ -87,125 +87,196 @@ The fastest GL optimization is not "faster Rust" in the abstract. It is: `String
 - **Win**: Compressed bitmap set operations for sparse data.
 - **Risk**: Medium; profile first.
 
-### Do Not Add
+### Do Not Add (or Gate Strictly)
 
+- **`rayon`** — REFUSED_BY_DEFAULT. Add only after profiling proves independent batches dominate runtime. Overhead risks: scheduling, nondeterministic accumulation, cache contention, replay debugging cost.
+- **`dashmap`** — REFUSED_BY_DEFAULT. Add only if benchmark proves concurrent write contention (unlikely in Phase 0-1). All outputs must be canonicalized before hashing.
+- **`petgraph`** — OPTIONAL_P1. A small Kahn topological sort may suffice for the 80/20 daily profile's hook/shape dependency ordering. Don't add speculatively.
+- **`roaring`** — OPTIONAL_SCALE_GATE. Add only if FixedBitSet becomes too dense or memory-heavy at scale. Profile first.
 - **`datafrog`** — Useful as benchmark comparator and algorithm reference, not a mainline rewrite. (See separate audit ticket.)
+- **Semantic-web library imports** — REFUSED. All semantic dialect implementations must be from audit learnings, clean-room reimplemented, never wholesale imports of reasoners/validators.
 - Full RDF store replacement, SPARQL engine rewrite, async/concurrency in hot paths, persistence before in-memory stabilization.
 
 ---
 
-## Implementation Roadmap
+## Implementation Ladder (Ordered, Each Step Depends on Prior)
 
-### Sub-Task 1: Symbol Interning (MUST COMPLETE FIRST)
+### Step 1: Symbol Interning (MUST COMPLETE FIRST)
 
 **Deliverables:**
-- Introduce `SymbolId` type and `SymbolInterner` (via `lasso` or `string-interner`)
-- Wrap IRIs, predicates, classes, hook names, Datalog symbols, RDF object strings
-- Keep canonical string rendering for receipts/diagnostics
-- Add regression tests verifying interning transparency
+- Introduce `SymbolId` (u32 or u64) type and interner (via `lasso`)
+- Wrap IRIs, predicates, classes, hook names, Datalog symbols, RDF object strings at parse boundary
+- Keep canonical `SymbolId → string` rendering for receipts/diagnostics
+- Add type aliases: `type SymbolId = u32;` (or u64 if > 4B symbols needed)
 
 **Tests:**
 - Existing hook trigger/receipt tests pass unchanged
-- New: interning round-trip (symbol → ID → string == original)
+- New: interning round-trip (string → SymbolId → canonical string == original)
 - New: receipt hash stability before/after interning
+- New: SymbolId(1) == SymbolId(1) for same symbol, != for different symbols
 
-**Acceptance:** All 79 existing tests pass; receipt hashes match baseline.
+**Acceptance:** All 79 existing tests pass; receipt hashes match baseline; Symbol round-trip verified.
 
-### Sub-Task 2: Convert Triple Indexes to ID Triples
+---
+
+### Step 2: Convert Triple Representation to ID-Based (Depends on Step 1)
 
 **Deliverables:**
-- Change internal triple representation from `(String, String, String)` to `(SymbolId, SymbolId, SymbolId)`
-- Update TripleStore, TripleIndex, query engine to use ID triples
-- Update benchmarks to measure join/query performance
+- Change internal triple from `Triple<String>` to `TripleId { s: SymbolId, p: SymbolId, o: TermId }`
+- Update TripleStore, TripleIndex, query engine to use ID triples throughout
+- Update join/index operations to work on IDs (integer comparison, not string equality)
+- Render back to canonical RDF (TTL/N-Triples) from IDs for output/receipts
 
 **Tests:**
 - Existing triple-store tests pass
 - Benchmarks: `n3_chain_depth_50/150/400` (baseline: 33.85 ms for depth 400)
+- New: ID triple lookup performance matches or beats string triples
 
-**Acceptance:** Tests pass; benchmarks do not regress.
+**Acceptance:** Tests pass; benchmarks do not regress; hot-path uses ID comparison, not string.
 
-### Sub-Task 3: Fast Hash Maps (Behind Aliases)
+---
+
+### Step 3: Compile Hooks/Shapes to IR (Depends on Step 2)
 
 **Deliverables:**
-- Add `type internal::FastMap<K,V> = rustc_hash::FxHashMap<K,V>`
-- Replace post-admission internal maps with FastMap
-- Verify all receipt surfaces remain deterministic (sort before hashing)
+- Convert `KnowledgeHook<String>` → `CompiledHook<SymbolId>` at load time
+- Convert `Shape<String>` → `CompiledShape<SymbolId>` at load time
+- Pre-index all condition/action/constraint references (no repeated string lookup during evaluation)
+- Order constraints by selectivity (cardinality checks before regex/pattern checks)
+
+**Tests:**
+- Existing hook trigger tests pass unchanged
+- New: compiled hook condition evaluation has no string lookups in hot path
+- New: constraint ordering produces earlier failures for invalid nodes (perf via short-circuit)
+
+**Acceptance:** Hook firing semantics unchanged; no repeated string lookup during condition evaluation; hook receipts stable.
+
+---
+
+### Step 4: Closure Representation as Bitsets (Depends on Step 1)
+
+**Deliverables:**
+- Convert `subClassOf`/`subPropertyOf` closure from `HashSet<SymbolId>` → `FixedBitSet`
+- Convert hook dependency, OWL RL type propagation, reachability sets to bitsets
+- Bitwise union/intersection where multiple closures are combined
+- Document bitset size (max SymbolId determines allocation)
+
+**Tests:**
+- Existing closure semantics tests pass unchanged
+- New: FixedBitSet closure membership matches prior HashSet behavior exactly
+- New: bitwise union produces same closure as iterative add
+
+**Acceptance:** Closure facts unchanged; bitset operations deterministic and reproducible; OWL RL closure benchmarks pass.
+
+---
+
+### Step 5: Fast Hash Maps (Behind Type Aliases, Depends on Step 1-4)
+
+**Deliverables:**
+- Add type aliases:
+  - `type internal::FastMap<K,V> = rustc_hash::FxHashMap<K,V>` (for internal state, order-independent)
+  - `type internal::CanonicalMap<K,V> = indexmap::IndexMap<K,V>` (for receipt surfaces only, insertion-order-stable)
+- Replace all post-admission internal maps with `FastMap<SymbolId, ...>` 
+- For receipt/manifest surfaces, use `CanonicalMap` + explicit sort before hashing (do NOT rely on insertion order for receipt stability)
+- Document: "Fast internal maps can iterate in any order; receipt material MUST be sorted or canonicalized before hashing."
 
 **Tests:**
 - Datalog fact map tests
 - Join index tests
-- Receipt hash stability
+- Receipt hash stability (verify sort-before-hash is applied)
 
-**Acceptance:** Tests pass; receipts unchanged.
-
-### Sub-Task 4: Closure Representation (FixedBitSet)
-
-**Deliverables:**
-- Convert `subClassOf`/`subPropertyOf` closure to `FixedBitSet` (after interning)
-- Convert hook dependency, OWL RL type propagation, reachability to bitsets
-- Benchmark OWL/RDFS closure computation
-
-**Tests:**
-- Existing closure semantics tests pass
-- New: FixedBitSet closure membership tests
-- SHACL/OWL RL tests
-
-**Acceptance:** Tests pass; closure performance improves or maintains baseline.
-
-### Sub-Task 5: Small Vector Allocation
-
-**Deliverables:**
-- Replace `Vec<Term>` → `SmallVec<[Term; 3]>` in Datalog atoms
-- Replace `Vec<String>` → `SmallVec<[SymbolId; 4]>` in hook dependencies
-- Profile allocation reduction
-
-**Tests:**
-- Existing tests pass
-- Allocation profile before/after
-
-**Acceptance:** Tests pass; no logic changes.
-
-### Sub-Task 6: Deterministic Receipt Surfaces
-
-**Deliverables:**
-- Use `IndexMap` for receipt payload, manifest, verdict records
-- Verify byte-identical replay
-- Document where insertion order matters
-
-**Tests:**
-- Receipt round-trip: receipt → JSON → canonical parse == receipt
-- Replay validation tests
-
-**Acceptance:** Replay tests pass unchanged.
-
-### Sub-Task 7: Post-Measurement Phases (P1)
-
-- Hashbrown raw-entry APIs (after profiling)
-- Rayon parallelism (independent batches only, output sorted before hashing)
-- Roaring sparse sets (if graph scale increases)
+**Acceptance:** Tests pass; receipts unchanged; FxHashMap latency verified; no nondeterministic iteration in receipt material.
 
 ---
 
-## Benchmark Targets (Before/After)
+### Step 6: Deterministic Receipt Boundaries
 
-Run all benchmarks with optimizations and report:
+**Deliverables:**
+- At receipt serialization boundary: sort all maps/sets before hashing
+- Use `indexmap` only where insertion order directly maps to output order (rare)
+- Document receipt canonicalization: "All receipt material is sorted lexicographically before BLAKE3 hashing"
+- Verify byte-identical replay
 
-| Benchmark | Baseline | Target | Measurement |
-|-----------|----------|--------|-------------|
-| `n3_chain_depth_50` | TBD | -20% | semi-naive + ID triples |
-| `n3_chain_depth_150` | TBD | -20% | ID triples + bitset closure |
-| `n3_chain_depth_400` | 33.85 ms | -15% | fast hashes + FixedBitSet |
-| Transitive rule | TBD | -15% | closure bitset ops |
-| RDF hierarchy | TBD | -20% | ID interning + FastMap |
-| Hook trigger (Datalog small) | TBD | -10% | SmallVec + ID terms |
-| Hook receipt/replay path | TBD | 0% ± 1% | deterministic, no regression |
-| OWL/RDFS closure (if present) | TBD | -25% | FixedBitSet + FastMap |
+**Tests:**
+- Receipt round-trip: receipt → JSON → canonical parse == receipt
+- Replay validation tests: same input always produces same receipt hash
 
-**Success criteria:**
-- No benchmark regresses >5%
-- Receipt/replay hashes remain stable
-- All 79 tests pass
-- Negative fixtures still refuse correctly
+**Acceptance:** Replay tests pass unchanged; receipt hashes stable across runs.
+
+---
+
+### Step 7: Post-Measurement (P1 — Only After Profiling)
+
+**Hashbrown** (raw-entry APIs):
+- Add only after profiling shows double hashing or lookup/insert bottlenecks
+- Use for intern-or-get pattern if contention is proven
+
+**Rayon** (parallelism):
+- Add only after profiling proves independent hook/constraint batches dominate runtime
+- Constraint: parallel output MUST be sorted/canonicalized before hashing
+- Monitor: scheduling overhead, cache contention, replay debugging cost
+
+**Roaring** (sparse bitmaps):
+- Add only if FixedBitSet becomes too dense or memory-heavy at scale
+- Profile first to justify
+
+**Constraint on all P1 additions**: Do not add speculatively. Profile, measure, prove gain, then add.
+
+---
+
+## Benchmark Targets (Three-Tier Structure)
+
+### Must-Pass Regression (Existing Tests — All Must Pass Unchanged)
+
+| Benchmark | Baseline | Constraint |
+|-----------|----------|-----------|
+| `n3_chain_depth_50` | TBD | No regression >5% |
+| `n3_chain_depth_150` | TBD | No regression >5% |
+| `n3_chain_depth_400` | 33.85 ms | No regression >5% |
+| `test_transitive_rule` | TBD | No regression >5% |
+| `test_rdf_hierarchy_10` | TBD | No regression >5% |
+| `test_rdf_hierarchy_100` | TBD | No regression >5% |
+| `hook_trigger_datalog_small` | TBD | No regression >5% |
+| `hook_trigger_datalog_medium` | TBD | No regression >5% |
+| `hook_receipt_replay_stability` | TBD | Receipt hash matches baseline |
+
+**Success**: All must pass; receipt/replay hashes stable; all 79 tests pass.
+
+### New Representation Benchmarks (Phase 0 Baseline)
+
+| Benchmark | Goal | Measures |
+|-----------|------|----------|
+| `symbol_intern_10k` | Establish baseline | Interning 10K unique symbols |
+| `symbol_intern_100k` | Establish baseline | Interning 100K unique symbols |
+| `triple_insert_string_vs_id` | Baseline for Step 2 | Triple insert cost (string vs SymbolId) |
+| `triple_lookup_string_vs_id` | Baseline for Step 2 | Triple lookup cost (string vs SymbolId) |
+| `closure_bitset_vs_hashset` | Baseline for Step 4 | Membership/union operations (bitset vs HashSet) |
+| `canonical_receipt_sort_cost` | Baseline for Step 6 | Sorting overhead at receipt boundary |
+
+**Success**: Establishes Phase 0 baseline; subsequent improvements measured against this.
+
+### OWL RL Conditional (Phase 1+, Only If OWL RL Implemented)
+
+| Benchmark | Goal | Measures |
+|-----------|------|----------|
+| `owl_rl_subclass_1k` | Hot-path perf | Subclass closure for 1K classes |
+| `owl_rl_domain_range_1k` | Hot-path perf | Domain/range inference for 1K properties |
+| `owl_rl_inverse_property_1k` | Hot-path perf | Inverse property closure for 1K properties |
+| `owl_rl_same_as_refused` | Correctness | Unsupported sameAs feature properly refused |
+| `owl_rl_unsupported_feature_refused` | Correctness | Other unsupported features properly refused |
+
+**Success**: If OWL RL is added, these benchmarks establish performance and verify refusal behavior.
+
+---
+
+## Success Criteria (Final)
+
+- [ ] All must-pass regression tests pass with <5% regression
+- [ ] Receipt/replay hashes stable across all runs
+- [ ] All 79 existing tests pass
+- [ ] Negative fixtures still refuse correctly
+- [ ] Phase 0 benchmarks establish baseline
+- [ ] No nondeterministic iteration in receipt material
 
 ---
 
