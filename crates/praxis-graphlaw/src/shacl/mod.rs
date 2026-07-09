@@ -5,7 +5,9 @@
 use crate::encoding::Encoder;
 
 // Module declarations
+pub mod canonicalization;
 pub mod closure;
+pub mod equivalence;
 pub mod index_utils;
 pub mod messages;
 pub mod model;
@@ -17,10 +19,12 @@ pub mod validate;
 pub mod values;
 
 // Re-exports
+pub use canonicalization::UnionFind;
 pub use closure::{ClosureMatrix, SubclassClosure};
+pub use equivalence::{canonicalize_equivalences, EquivalenceCanonical};
 pub use model::{
-    CompiledConstraint, CompiledShape, CompiledTarget, CostClass, ShapesGraph, TargetType,
-    SHACL_SPARQL_BOUNDARY,
+    CompiledConstraint, CompiledShape, CompiledTarget, CostClass, PropertyMask, ShapesGraph,
+    TargetType, SHACL_SPARQL_BOUNDARY,
 };
 pub use report::{ValidationReport, ValidationResult, Validator};
 
@@ -41,6 +45,10 @@ pub struct Vocab {
     pub rdf_nil: usize,
     pub rdfs_class: usize,
     pub rdfs_subclass_of: usize,
+    pub rdfs_sub_property_of: usize,
+    pub owl_same_as: usize,
+    pub owl_equivalent_class: usize,
+    pub owl_equivalent_property: usize,
     pub sh_node_shape: usize,
     pub sh_property_shape: usize,
     pub sh_target_class: usize,
@@ -162,6 +170,16 @@ impl Vocab {
             rdfs_class: Encoder::add("<http://www.w3.org/2000/01/rdf-schema#Class>".to_string()),
             rdfs_subclass_of: Encoder::add(
                 "<http://www.w3.org/2000/01/rdf-schema#subClassOf>".to_string(),
+            ),
+            rdfs_sub_property_of: Encoder::add(
+                "<http://www.w3.org/2000/01/rdf-schema#subPropertyOf>".to_string(),
+            ),
+            owl_same_as: Encoder::add("<http://www.w3.org/2002/07/owl#sameAs>".to_string()),
+            owl_equivalent_class: Encoder::add(
+                "<http://www.w3.org/2002/07/owl#equivalentClass>".to_string(),
+            ),
+            owl_equivalent_property: Encoder::add(
+                "<http://www.w3.org/2002/07/owl#equivalentProperty>".to_string(),
             ),
             sh_node_shape: Encoder::add("<http://www.w3.org/ns/shacl#NodeShape>".to_string()),
             sh_property_shape: Encoder::add(

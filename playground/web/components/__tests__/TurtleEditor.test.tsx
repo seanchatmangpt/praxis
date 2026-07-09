@@ -10,7 +10,11 @@ import TurtleEditor from '../TurtleEditor';
 
 // Mock @monaco-editor/react
 vi.mock('@monaco-editor/react', () => ({
-  default: ({
+  // Named (capitalized) function, not an anonymous arrow, so ESLint's
+  // react-hooks/rules-of-hooks recognizes this as a component and allows
+  // the useEffect below -- an anonymous arrow assigned to `default` reads
+  // as a plain callback to the rule, not a component.
+  default: function MockMonacoEditor({
     value,
     onChange,
     onMount,
@@ -18,7 +22,7 @@ vi.mock('@monaco-editor/react', () => ({
     value?: string;
     onChange?: (value?: string) => void;
     onMount?: (editor: any, monaco: any) => void;
-  }) => {
+  }) {
     // Trigger onMount callback with mock editor and monaco
     React.useEffect(() => {
       const mockEditor = {

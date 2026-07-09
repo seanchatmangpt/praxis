@@ -10,7 +10,6 @@ export {
 
 export {
   TurtleVocabulary,
-  TurtleCompletionProvider,
   registerTurtleCompletions,
 } from './turtle-completions';
 

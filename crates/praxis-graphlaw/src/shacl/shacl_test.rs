@@ -6,7 +6,7 @@
 mod tests {
     use super::super::closure::ClosureMatrix;
     use super::super::model::{
-        CompiledConstraint, CompiledShape, CompiledTarget, CostClass, TargetType,
+        CompiledConstraint, CompiledShape, CompiledTarget, CostClass, PropertyMask, TargetType,
         SHACL_SPARQL_BOUNDARY,
     };
 
@@ -125,6 +125,8 @@ mod tests {
             }],
             closed: false,
             property_shapes: vec![],
+            allowed_predicates: vec![],
+            required_properties_mask: PropertyMask(0),
         };
 
         assert_eq!(shape.iri, 1);

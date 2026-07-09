@@ -265,7 +265,11 @@ impl Reasoner {
                                     }
                                 }
 
-                                for (group_key, source_vals) in groups {
+                                // Determinism: sort group keys before iteration (HashMap order unspecified).
+                                let mut sorted_groups: Vec<_> = groups.into_iter().collect();
+                                sorted_groups.sort_by(|a, b| a.0.cmp(&b.0));
+
+                                for (group_key, source_vals) in sorted_groups {
                                     let mut acc = match agg.function {
                                         AggregateFunction::Count => {
                                             AccumulatorImpl::Count(CountAccumulator::default())

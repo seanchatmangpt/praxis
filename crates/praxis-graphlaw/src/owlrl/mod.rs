@@ -1,5 +1,6 @@
 use crate::encoding::Encoder;
 use crate::tripleindex::TripleIndex;
+use std::sync::Arc;
 
 mod rules;
 pub use rules::*;
@@ -154,6 +155,11 @@ pub struct ScanReport {
     pub refused: Vec<(OwlRlFeature, usize, &'static str)>,
 }
 
+/// Scan ontology for OWL RL features, supporting both Arc and reference patterns.
+///
+/// # Pattern 5 (v26.7.8)
+/// Accepts both Arc<TripleIndex> (immutable snapshots) and &TripleIndex (references)
+/// for flexible zero-copy sharing across multiple consumers.
 pub fn scan_ontology(index: &TripleIndex, vocab: &OwlRlVocab) -> ScanReport {
     let mut supported = Vec::new();
     let mut refused = Vec::new();
@@ -253,6 +259,12 @@ impl OwlRlEngine {
         }
     }
 
+    /// Compile OWL RL rules from an ontology index.
+    ///
+    /// # Pattern 5 (v26.7.8)
+    /// Accepts &TripleIndex references to support both Arc<TripleIndex> snapshots
+    /// (via Arc::as_ref()) and mutable TripleStore indexes without copying.
+    /// Multiple compile() calls on the same snapshot share zero-copy read-only access.
     pub fn compile(&self, index: &TripleIndex) -> (Vec<crate::rule::Rule>, ScanReport) {
         let mut rules = Vec::new();
 

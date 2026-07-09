@@ -63,6 +63,7 @@ all-features = ["typestate", "repl", "otel", "discovery", "lsp", "andon", "mcp",
 
 [dependencies]
 once_cell = "1"
+oxrdf = "=0.3.2"
 rustyline = { version = "14", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -198,6 +199,8 @@ lsp-max = { path = "/Users/sac/lsp-max" }
 # from crates.io, one from bcinr-pddl's path dep) and type-mismatches at
 # any crate boundary crossing both (e.g. tests/indexed_grounding.rs).
 wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat" }
+oxigraph = { path = "/Users/sac/oxigraph-local/lib/oxigraph" }
+oxrdf = { path = "/Users/sac/oxrdf-patched" }
 
 [workspace]
 resolver = "2"

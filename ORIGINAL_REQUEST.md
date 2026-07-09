@@ -3657,5 +3657,393 @@ cargo bench -p praxis-graphlaw --bench hierarchies
 xctrace record --template 'Time Profiler' --output /Users/sac/praxis/.agents/reasoner_fix/dialects_after.trace --launch -- /Users/sac/praxis/target/release/deps/dialects-* --bench n3_chain_depth_150
 ```
 
+## Follow-up — 2026-07-08T16:21:54-07:00
+
+# Gemini Agent Team Project Prompt — Dialect Shared Optimization Abstractions
+
+> Status: Launched
+> Goal: Analyze planned v26.7.8 optimization tickets and dialect implementations, then design shared Graphlaw optimization abstractions as concrete JIRA tickets.
+> Working directory: `/Users/sac/praxis`
+> Integrity mode: development
+> Scope discipline: abstraction design only; do not modify production code or fix unrelated tests.
+
+## Mission
+
+Design shared optimization abstractions for `crates/praxis-graphlaw` so Datalog, N3, SHACL, and ShEx can reuse common performance structures instead of each dialect growing isolated optimization machinery.
+
+The target outcome is a new JIRA planning file:
+
+`/Users/sac/praxis/docs/jira/v26.7.8/tickets/dialect_shared_optimizations.md`
+
+This file must propose concrete tickets for shared abstractions that allow the planned v26.7.8 optimizations to be reused across dialects.
+
+## Core Framing
+
+Graphlaw 1000× depends on collapsing duplicated rule interpretation surfaces.
+
+The same principle applies internally:
+
+Do not optimize Datalog, N3, SHACL, and ShEx as four unrelated engines if they share common graph-law execution shapes.
+
+Find the shared substrate.
+
+Extract the reusable abstraction.
+
+Preserve dialect-specific admission/refusal semantics.
+
+Do not erase boundaries.
+
+The abstraction must improve reuse without silently changing standing behavior.
+
+## Explicit Non-Goals
+
+Do not fix existing failing tests.
+
+Do not change Rust source files.
+
+Do not update Cargo configuration.
+
+Do not rewrite dialect implementations.
+
+Do not add new dependencies.
+
+Do not claim an abstraction is ALIVE unless it already exists and passes tests.
+
+Do not call planned work complete.
+
+This is a design and planning pass only.
+
+## Inputs to Analyze
+
+### Planned v26.7.8 Tickets
+
+Analyze the planned tickets under:
+
+`/Users/sac/praxis/docs/jira/v26.7.8/tickets/`
+
+Especially:
+
+* `PROJ-402` through `PROJ-410`
+* `PROJ-501` through `PROJ-505`
+
+Identify the optimization themes already planned, including but not limited to:
+
+* Symbol interning
+* FixedBitSet closures
+* FactStore / DerivationGate
+* Selectivity ordering
+* Cost-class ordering
+* Join optimization
+* Treefrog leapjoin-style execution
+* Semi-naive delta loops
+* Query caching
+* Scratch arenas
+* Canonical indexes
+* Shared diagnostic surfaces
+
+### Dialect Implementations
+
+Analyze these files and directories:
+
+* `crates/praxis-graphlaw/src/datalog.rs`
+* `crates/praxis-graphlaw/src/rule.rs`
+* `crates/praxis-graphlaw/src/shacl/`
+* `crates/praxis-graphlaw/src/shex.rs`
+* `crates/praxis-graphlaw/src/shex_native.rs`
+
+Identify common execution shapes across:
+
+* Datalog materialization
+* N3 rule and denial handling
+* SHACL validation
+* ShEx structural validation
+* Hook-facing graph-law execution where relevant
+* Receipt/replay-facing standing material where relevant
+
+## Required Analysis
+
+The team must produce a design-oriented analysis answering:
+
+1. Where do Datalog, N3, SHACL, and ShEx currently duplicate graph traversal, lookup, matching, or validation logic?
+2. Which planned v26.7.8 optimizations are dialect-specific, and which should be lifted into shared infrastructure?
+3. What common data structures can safely serve multiple dialects?
+4. What common solver/query abstractions can be shared without weakening dialect semantics?
+5. What caching or closure machinery can be shared without creating stale or unsound standing?
+6. What abstractions require explicit admission/refusal boundaries?
+7. What diagnostics must remain dialect-specific?
+8. What receipts, hashes, or replay surfaces would be affected by shared optimization layers?
+
+## Required Output File
+
+Create:
+
+`/Users/sac/praxis/docs/jira/v26.7.8/tickets/dialect_shared_optimizations.md`
+
+The file must contain concrete JIRA-style tickets.
+
+Each ticket must include:
+
+* Title
+* Status: `PLANNED`
+* Scope
+* Context / Description
+* Requirements
+* Acceptance Criteria
+* Dialects affected
+* Standing risks
+* Verification plan
+
+## Required Ticket Categories
+
+The output must include tickets in at least these categories.
+
+### Category 1 — Common Index and Storage Structures
+
+Design shared structures such as:
+
+* `SymbolId` interning
+* canonical term/string pools
+* `TripleIndex`
+* `FactStore`
+* predicate/object/subject indexes
+* typed value storage
+* graph snapshot views
+* derivation material storage
+
+The tickets must explain how Datalog, N3, SHACL, and ShEx can share these structures while preserving their distinct semantics.
+
+### Category 2 — Unified Join and Query Solvers
+
+Design shared solver abstractions such as:
+
+* selectivity-based join ordering
+* cost-class ordering
+* Treefrog leapjoin-style plans
+* semi-naive delta loops
+* predicate scans
+* constraint-aware query execution
+* reusable matcher interfaces
+
+The tickets must distinguish between:
+
+* shared query execution mechanics
+* dialect-specific rule semantics
+* dialect-specific refusal conditions
+
+### Category 3 — Common Caching and Closures
+
+Design shared caching and closure abstractions such as:
+
+* `ClosureMatrix`
+* FixedBitSet reachability
+* query plan cache
+* shape validation cache
+* rule materialization cache
+* profile-scoped cache keys
+* graph-hash/profile-hash invalidation
+
+The tickets must specify how cache validity is tied to graph hash, profile hash, dialect profile, and engine version.
+
+### Category 4 — Shared Diagnostics and Standing Surfaces
+
+Design shared diagnostic structures for:
+
+* admitted
+* refused
+* unsupported
+* replay mismatch
+* hash mismatch
+* profile not admitted
+* stratification errors
+* unsafe rules
+* unsupported dialect constructs
+* validation violations
+
+Diagnostics must be structured enough to feed the Playground dialect matrix and deterministic reports.
+
+### Category 5 — Shared Verification Harness
+
+Design shared test/fixture generation abstractions for:
+
+* Datalog derivation and refusal cases
+* N3 denial and unsafe cases
+* SHACL conforming and violating cases
+* ShEx conforming and violating cases
+* cache invalidation cases
+* join planner equivalence cases
+* closure matrix equivalence cases
+
+The verification plan must preserve Graphlaw standing discipline:
+
+No silent promotion.
+Unknown does not become proven.
+Unsupported does not become admitted.
+Refused does not become accepted.
+
+## Required Standing Discipline
+
+Every proposed abstraction must be classified using standing language:
+
+* `ALIVE` only if already implemented and passing.
+* `PARTIAL_ALIVE` if implemented but incomplete or partially covered.
+* `BLOCKED` if planned but prevented by known failing tests or missing bridge behavior.
+* `REFUSED` if intentionally disallowed.
+* `UNSUPPORTED` if out of current dialect/profile scope.
+* `DECLARED_UNREACHABLE` if a status or case cannot currently be reached and is intentionally reserved or must be removed.
+
+Do not use vague completion language such as:
+
+* substantially complete
+* mostly done
+* should work
+* probably shared
+* easy optimization
+* simple refactor
+
+Replace vague language with standing status and acceptance criteria.
+
+## Required Optimization Sharing Lens
+
+For each proposed abstraction, explicitly state:
+
+1. What is shared?
+2. Which dialects use it?
+3. What remains dialect-specific?
+4. What standing risks does sharing introduce?
+5. What acceptance criteria prove the abstraction is valid?
+6. What fixture families must be generated?
+7. What report or receipt surfaces are affected?
+8. What benchmark or correctness ladder proves the optimization?
+
+## Correctness Ladder
+
+Each ticket should include a verification ladder where applicable:
+
+1. Unit tests
+2. Integration tests
+3. Cross-dialect equivalence tests
+4. Generated fixture tests
+5. Red-team mutation tests
+6. Replay/hash stability tests
+7. Benchmark comparison
+8. Verifier report
+
+Benchmarks are not sufficient without correctness standing.
+
+Performance without admission is not standing.
+
+## Deliverable Structure
+
+The output file should use this structure:
+
+# Dialect Shared Optimization Abstractions — v26.7.8
+
+## Executive Summary
+
+Summarize the shared optimization opportunity across Datalog, N3, SHACL, and ShEx.
+
+## Current Duplication Map
+
+List duplicated patterns found across the dialect implementations.
+
+## Shared Abstraction Map
+
+Table with columns:
+
+* Abstraction
+* Category
+* Dialects
+* Current duplication
+* Proposed shared module
+* Standing status
+* Risks
+* Verification
+
+## Tickets
+
+Write the concrete JIRA tickets.
+
+Use ticket identifiers such as:
+
+* `PROJ-520`
+* `PROJ-521`
+* `PROJ-522`
+* `PROJ-523`
+* `PROJ-524`
+* `PROJ-525`
+
+or the next available project numbering convention if the repository already defines one.
+
+Each ticket must follow the required ticket format.
+
+## Recommended Implementation Sequence
+
+Give a dependency-aware order for the tickets.
+
+Prefer foundation first:
+
+1. Shared symbols and indexes
+2. Shared fact store
+3. Shared query planner
+4. Shared closure/cache layer
+5. Shared diagnostics
+6. Shared verification harness
+7. Benchmarks only after correctness standing
+
+## Explicit Exclusions
+
+List optimizations that should not be shared yet and explain why.
+
+## Final Standing Assessment
+
+Classify the proposed abstraction plan as one of:
+
+* `DECLARED`
+* `PARTIAL_ALIVE`
+* `BLOCKED`
+* `READY_FOR_IMPLEMENTATION`
+
+Use `READY_FOR_IMPLEMENTATION` only if the tickets are concrete enough for a future implementation agent to execute without redoing the analysis.
+
+## Agent Team Roles
+
+Use a small coordinated team.
+
+### Agent 1 — Ticket Analyst
+
+Reads planned v26.7.8 tickets and extracts optimization themes, dependencies, and implied abstractions.
+
+### Agent 2 — Dialect Implementation Analyst
+
+Reads Datalog, N3, SHACL, and ShEx implementations and identifies duplicated execution structures.
+
+### Agent 3 — Abstraction Architect
+
+Designs shared structures, solver interfaces, cache/closure layers, and diagnostics.
+
+### Agent 4 — Verification Architect
+
+Defines acceptance criteria, fixture families, correctness ladder, red-team cases, and replay/hash checks.
+
+### Agent 5 — Editor / Integrator
+
+Writes the final `dialect_shared_optimizations.md` file in project ticket format and removes vague completion language.
+
+## Final Instruction
+
+Focus only on shared optimization abstractions.
+
+Do not fix tests.
+
+Do not modify implementation files.
+
+Do not perform broad refactors.
+
+Do not claim completion beyond evidence.
+
+The success condition is a high-quality JIRA planning file that makes Datalog, N3, SHACL, and ShEx optimization sharing concrete, bounded, and executable.
+
+Launch boundary: **this is a planning/admission design mission**, not a repair mission. The key scope sentence is: **“Focus only on shared optimization abstractions. Do not fix tests.”**
+
 
 

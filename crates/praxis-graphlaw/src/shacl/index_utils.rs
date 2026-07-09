@@ -8,6 +8,92 @@ use crate::tripleindex::TripleIndex;
 use crate::triples::Term;
 use std::collections::HashSet;
 
+/// Datatype opcode for recognized XSD datatypes.
+/// Enables O(1) dispatch for lexical validation instead of string matching.
+/// Unknown datatypes fall through to dynamic path, never panic.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum XsdDatatypeOpcode {
+    Integer,
+    Int,
+    Long,
+    Short,
+    Byte,
+    NonNegativeInteger,
+    PositiveInteger,
+    NonPositiveInteger,
+    NegativeInteger,
+    UnsignedLong,
+    UnsignedInt,
+    UnsignedShort,
+    UnsignedByte,
+    Decimal,
+    Double,
+    Float,
+    Boolean,
+    Unknown,
+}
+
+impl XsdDatatypeOpcode {
+    /// Build opcode from datatype IRI string.
+    pub fn from_iri(iri: &str) -> Self {
+        match iri {
+            "http://www.w3.org/2001/XMLSchema#integer" => Self::Integer,
+            "http://www.w3.org/2001/XMLSchema#int" => Self::Int,
+            "http://www.w3.org/2001/XMLSchema#long" => Self::Long,
+            "http://www.w3.org/2001/XMLSchema#short" => Self::Short,
+            "http://www.w3.org/2001/XMLSchema#byte" => Self::Byte,
+            "http://www.w3.org/2001/XMLSchema#nonNegativeInteger" => Self::NonNegativeInteger,
+            "http://www.w3.org/2001/XMLSchema#positiveInteger" => Self::PositiveInteger,
+            "http://www.w3.org/2001/XMLSchema#nonPositiveInteger" => Self::NonPositiveInteger,
+            "http://www.w3.org/2001/XMLSchema#negativeInteger" => Self::NegativeInteger,
+            "http://www.w3.org/2001/XMLSchema#unsignedLong" => Self::UnsignedLong,
+            "http://www.w3.org/2001/XMLSchema#unsignedInt" => Self::UnsignedInt,
+            "http://www.w3.org/2001/XMLSchema#unsignedShort" => Self::UnsignedShort,
+            "http://www.w3.org/2001/XMLSchema#unsignedByte" => Self::UnsignedByte,
+            "http://www.w3.org/2001/XMLSchema#decimal" => Self::Decimal,
+            "http://www.w3.org/2001/XMLSchema#double" => Self::Double,
+            "http://www.w3.org/2001/XMLSchema#float" => Self::Float,
+            "http://www.w3.org/2001/XMLSchema#boolean" => Self::Boolean,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// Validate lexical form for this opcode. Unknown types return true (defer to caller).
+    pub fn validate_lexical(&self, lexical: &str) -> bool {
+        let t = lexical.trim();
+        match self {
+            Self::Integer
+            | Self::Int
+            | Self::Long
+            | Self::Short
+            | Self::Byte
+            | Self::NonNegativeInteger
+            | Self::PositiveInteger
+            | Self::NonPositiveInteger
+            | Self::NegativeInteger
+            | Self::UnsignedLong
+            | Self::UnsignedInt
+            | Self::UnsignedShort
+            | Self::UnsignedByte => {
+                let digits = t.strip_prefix(['+', '-']).unwrap_or(t);
+                !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit())
+            }
+            Self::Decimal => {
+                let body = t.strip_prefix(['+', '-']).unwrap_or(t);
+                !body.is_empty()
+                    && body.chars().all(|c| c.is_ascii_digit() || c == '.')
+                    && body.matches('.').count() <= 1
+                    && body.chars().any(|c| c.is_ascii_digit())
+            }
+            Self::Double | Self::Float => {
+                t == "INF" || t == "-INF" || t == "NaN" || t.parse::<f64>().is_ok()
+            }
+            Self::Boolean => matches!(t, "true" | "false" | "1" | "0"),
+            Self::Unknown => true,
+        }
+    }
+}
+
 /// Check if a shape is deactivated (sh:deactivated true)
 pub fn is_shape_deactivated(shapes: &TripleIndex, shape_node: usize, vocab: &Vocab) -> bool {
     let deactivated_vals = get_objects(shapes, shape_node, vocab.sh_deactivated);
@@ -140,40 +226,10 @@ pub fn get_datatype(term_id: usize) -> Option<usize> {
 /// lexically validated -- a literal declared with such a datatype conforms
 /// based on the declared datatype IRI alone, per spec's fallback rule for
 /// unrecognized datatypes.
+/// O(1) dispatch via XsdDatatypeOpcode instead of string matching per call.
 pub fn is_lexically_valid_for_datatype(lexical: &str, datatype_iri: &str) -> bool {
-    let t = lexical.trim();
-    match datatype_iri {
-        "http://www.w3.org/2001/XMLSchema#integer"
-        | "http://www.w3.org/2001/XMLSchema#int"
-        | "http://www.w3.org/2001/XMLSchema#long"
-        | "http://www.w3.org/2001/XMLSchema#short"
-        | "http://www.w3.org/2001/XMLSchema#byte"
-        | "http://www.w3.org/2001/XMLSchema#nonNegativeInteger"
-        | "http://www.w3.org/2001/XMLSchema#positiveInteger"
-        | "http://www.w3.org/2001/XMLSchema#nonPositiveInteger"
-        | "http://www.w3.org/2001/XMLSchema#negativeInteger"
-        | "http://www.w3.org/2001/XMLSchema#unsignedLong"
-        | "http://www.w3.org/2001/XMLSchema#unsignedInt"
-        | "http://www.w3.org/2001/XMLSchema#unsignedShort"
-        | "http://www.w3.org/2001/XMLSchema#unsignedByte" => {
-            let digits = t.strip_prefix(['+', '-']).unwrap_or(t);
-            !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit())
-        }
-        "http://www.w3.org/2001/XMLSchema#decimal" => {
-            let body = t.strip_prefix(['+', '-']).unwrap_or(t);
-            !body.is_empty()
-                && body.chars().all(|c| c.is_ascii_digit() || c == '.')
-                && body.matches('.').count() <= 1
-                && body.chars().any(|c| c.is_ascii_digit())
-        }
-        "http://www.w3.org/2001/XMLSchema#double" | "http://www.w3.org/2001/XMLSchema#float" => {
-            t == "INF" || t == "-INF" || t == "NaN" || t.parse::<f64>().is_ok()
-        }
-        "http://www.w3.org/2001/XMLSchema#boolean" => {
-            matches!(t, "true" | "false" | "1" | "0")
-        }
-        _ => true,
-    }
+    let opcode = XsdDatatypeOpcode::from_iri(datatype_iri);
+    opcode.validate_lexical(lexical)
 }
 
 /// Check if a literal has the expected datatype and is lexically valid

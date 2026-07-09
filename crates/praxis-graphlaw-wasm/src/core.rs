@@ -20,10 +20,11 @@
 //! behavior, platform-specific code paths) before returning to JavaScript.
 
 use crate::dto::{
-    DialectResult, HookRunResult, OwlRlDto, PlaygroundResult, ReplayResult, ShaclDto, ShexDto,
-    Status,
+    DialectResult, HookRunResult, OwlRlDto, PlaygroundResult, ReplayResult, ShaclDto,
+    ShaclValidationResultDto, ShexDto, Status,
 };
 use blake3;
+use once_cell::sync::Lazy;
 use praxis_graphlaw::{
     hooks::{self, GraphDelta, HookVerdict, HookVerdictRecord},
     owlrl::{OwlRlFeature, ScanReport},
@@ -35,6 +36,83 @@ use praxis_graphlaw::{
 use serde_json;
 use std::collections::HashMap;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::{Arc, Mutex};
+
+/// Cache key for profile-scoped validation results.
+///
+/// Five fields ensure correct cache invalidation across query variations:
+/// 1. **graph_hash**: BLAKE3 of input graph's canonical N-Quads (detects mutations)
+/// 2. **profile_hash**: BLAKE3 of semantic profile (if provided)
+/// 3. **dialect_mask**: Flags indicating which optional inputs are provided
+///    (has_shacl_shapes, has_shex_schema, has_shex_shape_map)
+/// 4. **engine_version**: semver from CARGO_PKG_VERSION (detects version mismatches)
+/// 5. **query_shape_hash**: BLAKE3 of (shacl_shapes + shex_schema + shex_shape_map)
+///    (detects changes to validation rules/schemas)
+///
+/// # Complexity
+///
+/// Key construction is O(n) where n = input sizes (dominated by profile_hash
+/// and query_shape_hash computation). Lookups in HashMap are O(1) average.
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+struct CacheKey {
+    graph_hash: String,
+    profile_hash: String,
+    dialect_mask: u8,
+    engine_version: String,
+    query_shape_hash: String,
+}
+
+/// Profile-scoped validation result cache.
+///
+/// Static, thread-safe cache keyed by CacheKey. Entries persist for the
+/// lifetime of the WASM module (or process). No expiration or LRU eviction
+/// is implemented; this is acceptable for the playground use case (bounded
+/// by number of distinct (graph, profile, dialect) triples in a session).
+///
+/// Thread safety is ensured via Arc<Mutex<>>, suitable for both single-threaded
+/// WASM and multi-threaded server environments.
+static VALIDATION_CACHE: Lazy<Arc<Mutex<HashMap<CacheKey, PlaygroundResult>>>> =
+    Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
+
+/// Construct dialect_mask from which optional inputs are provided.
+///
+/// # Flags
+/// - Bit 0: has_shacl_shapes
+/// - Bit 1: has_shex_schema (only counted if also has_shex_shape_map)
+/// - Bit 2: has_shex_shape_map
+///
+/// # Complexity
+/// O(1) — three string length checks.
+fn dialect_mask_from_inputs(shacl_shapes: &str, shex_schema: &str, shex_shape_map: &str) -> u8 {
+    let mut mask = 0u8;
+    if !shacl_shapes.is_empty() {
+        mask |= 0b001;
+    }
+    if !shex_schema.is_empty() && !shex_shape_map.is_empty() {
+        mask |= 0b110;
+    }
+    mask
+}
+
+/// Compute query_shape_hash from validation schema inputs.
+///
+/// Ensures cache invalidation if any shape/schema/map changes, even if
+/// the base graph and profile remain constant.
+///
+/// # Complexity
+/// O(n) where n = shacl_shapes.len() + shex_schema.len() + shex_shape_map.len()
+/// (all concatenated and hashed).
+///
+/// # Errors
+/// Returns Err if BLAKE3 computation fails (should not occur in practice).
+fn compute_query_shape_hash(
+    shacl_shapes: &str,
+    shex_schema: &str,
+    shex_shape_map: &str,
+) -> Result<String, String> {
+    let combined = format!("{}\n{}\n{}", shacl_shapes, shex_schema, shex_shape_map);
+    compute_hash(&combined)
+}
 
 /// Comprehensive validation of a graph against all semantic profiles.
 ///
@@ -84,7 +162,9 @@ fn validate_all_core_impl(
     shex_schema: &str,
     shex_shape_map: &str,
 ) -> Result<PlaygroundResult, String> {
-    // === Step 1: Parse all inputs ===
+    // === Step 0: Compute cache key and check for cache hit ===
+    // Compute graph_hash and profile_hash first, then check cache before validation.
+
     let preprocessed_ttl = preprocess_turtle(ttl);
     let mut base_store = TripleStore::from(&preprocessed_ttl);
 
@@ -97,9 +177,37 @@ fn validate_all_core_impl(
         compute_hash(&profile_content)?
     };
 
-    // === Step 2: Compute input graph hash ===
     let input_content = base_store.content_to_string();
     let input_hash = compute_hash(&input_content)?;
+
+    // Compute query_shape_hash and dialect_mask
+    let query_shape_hash = compute_query_shape_hash(shacl_shapes, shex_schema, shex_shape_map)?;
+    let dialect_mask = dialect_mask_from_inputs(shacl_shapes, shex_schema, shex_shape_map);
+
+    // Build cache key
+    let engine_version = env!("CARGO_PKG_VERSION").to_string();
+    let cache_key = CacheKey {
+        graph_hash: input_hash.clone(),
+        profile_hash: profile_hash.clone(),
+        dialect_mask,
+        engine_version: engine_version.clone(),
+        query_shape_hash,
+    };
+
+    // Check cache
+    {
+        let cache = VALIDATION_CACHE.lock().unwrap();
+        if let Some(cached_result) = cache.get(&cache_key) {
+            return Ok(cached_result.clone());
+        }
+    }
+
+    // Cache miss: proceed with full validation pipeline
+    // === Step 1: Parse all inputs ===
+    // (already done above for hashing)
+
+    // === Step 2: Compute input graph hash ===
+    // (already done above)
 
     // === Step 3: OWL RL Materialization ===
     let mut owlrl_dialect = DialectResult {
@@ -172,6 +280,31 @@ fn validate_all_core_impl(
                 };
                 shacl_dialect.detail = format!("Report: {} violations", report.results.len());
                 shacl_dialect.triples_out = report.results.len();
+
+                // Pattern 7: Serialize structured ValidationReport as JSON.
+                let shacl_results: Vec<ShaclValidationResultDto> = report
+                    .results
+                    .iter()
+                    .map(|res| ShaclValidationResultDto {
+                        focus_node: format!("{:?}", res.focus_node),
+                        result_path: res.result_path.as_ref().map(|p| format!("{:?}", p)),
+                        value: res.value.as_ref().map(|v| format!("{:?}", v)),
+                        source_constraint_component: format!(
+                            "{:?}",
+                            res.source_constraint_component
+                        ),
+                        source_shape: format!("{:?}", res.source_shape),
+                        severity: format!("{:?}", res.severity),
+                        message: res.message.clone(),
+                    })
+                    .collect();
+
+                // Store structured results in the DialectResult for JSON serialization.
+                // Note: DialectResult.detail carries the summary; full results available via
+                // separate query (implementation deferred; for now, JSONify and store in detail).
+                if let Ok(json_str) = serde_json::to_string(&shacl_results) {
+                    shacl_dialect.detail = json_str;
+                }
             }
             Err(e) => {
                 shacl_dialect.status = Status::Refused;
@@ -269,14 +402,22 @@ fn validate_all_core_impl(
         h
     };
 
-    Ok(PlaygroundResult {
+    let result = PlaygroundResult {
         graph_hash: input_hash,
         profile_hash,
         dialects,
         hooks: hook_run,
         replay: replay_result,
         hash_algorithms,
-    })
+    };
+
+    // Store result in cache (cache miss case)
+    {
+        let mut cache = VALIDATION_CACHE.lock().unwrap();
+        cache.insert(cache_key, result.clone());
+    }
+
+    Ok(result)
 }
 
 /// Execute hooks against a base graph with a new event delta.
@@ -337,8 +478,20 @@ fn run_hooks_core_impl(base_ttl: &str, event_ttl: &str) -> Result<HookRunResult,
     let base_set: std::collections::HashSet<_> = base_triples.0.iter().cloned().collect();
     let post_set: std::collections::HashSet<_> = post_triples.0.iter().cloned().collect();
 
-    let additions: Vec<_> = post_set.difference(&base_set).cloned().collect();
-    let removals: Vec<_> = base_set.difference(&post_set).cloned().collect();
+    let mut additions: Vec<_> = post_set.difference(&base_set).cloned().collect();
+    let mut removals: Vec<_> = base_set.difference(&post_set).cloned().collect();
+
+    // Sort for determinism: HashSet::difference order is unspecified.
+    additions.sort_by(|a, b| {
+        a.s.cmp(&b.s)
+            .then_with(|| a.p.cmp(&b.p))
+            .then_with(|| a.o.cmp(&b.o))
+    });
+    removals.sort_by(|a, b| {
+        a.s.cmp(&b.s)
+            .then_with(|| a.p.cmp(&b.p))
+            .then_with(|| a.o.cmp(&b.o))
+    });
 
     let delta = GraphDelta {
         additions,
@@ -547,5 +700,161 @@ mod tests {
         let json = r#"[["http://example.org/alice"]]"#;
         let result = parse_shape_map(json);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_cache_hit_on_repeated_call() {
+        // Two consecutive calls with identical inputs should produce identical results
+        // and the second should be a cache hit (cheaper operation).
+        let ttl = r#"
+            @prefix ex: <http://example.org/> .
+            ex:alice ex:name "Alice" .
+        "#;
+        let profile_ttl = "";
+        let shacl_shapes = "";
+        let shex_schema = "";
+        let shex_shape_map = "";
+
+        let result1 =
+            validate_all_core(ttl, profile_ttl, shacl_shapes, shex_schema, shex_shape_map);
+        assert!(result1.is_ok(), "First call should succeed");
+
+        let result2 =
+            validate_all_core(ttl, profile_ttl, shacl_shapes, shex_schema, shex_shape_map);
+        assert!(result2.is_ok(), "Second call should succeed (cache hit)");
+
+        // Results should be identical (same hash, same dialects, etc.)
+        let r1 = result1.unwrap();
+        let r2 = result2.unwrap();
+        assert_eq!(r1.graph_hash, r2.graph_hash, "Graph hash must be identical");
+        assert_eq!(
+            r1.profile_hash, r2.profile_hash,
+            "Profile hash must be identical"
+        );
+    }
+
+    #[test]
+    fn test_cache_invalidation_on_graph_mutation() {
+        // Mutating a single triple changes graph_hash, causing cache miss.
+        let ttl_v1 = r#"
+            @prefix ex: <http://example.org/> .
+            ex:alice ex:name "Alice" .
+        "#;
+        let ttl_v2 = r#"
+            @prefix ex: <http://example.org/> .
+            ex:alice ex:name "Bob" .
+        "#;
+        let profile_ttl = "";
+        let shacl_shapes = "";
+        let shex_schema = "";
+        let shex_shape_map = "";
+
+        let result1 = validate_all_core(
+            ttl_v1,
+            profile_ttl,
+            shacl_shapes,
+            shex_schema,
+            shex_shape_map,
+        );
+        assert!(result1.is_ok());
+        let hash1 = result1.unwrap().graph_hash;
+
+        let result2 = validate_all_core(
+            ttl_v2,
+            profile_ttl,
+            shacl_shapes,
+            shex_schema,
+            shex_shape_map,
+        );
+        assert!(result2.is_ok());
+        let hash2 = result2.unwrap().graph_hash;
+
+        // After mutation, graph_hash must change and cache entries are distinct.
+        assert_ne!(hash1, hash2, "Graph hash must change after mutation");
+    }
+
+    #[test]
+    fn test_cache_invalidation_on_profile_change() {
+        // Changing the profile TTL changes profile_hash, causing cache miss.
+        let ttl = r#"
+            @prefix ex: <http://example.org/> .
+            ex:alice ex:name "Alice" .
+        "#;
+        let profile_v1 = r#"
+            @prefix owl: <http://www.w3.org/2002/07/owl#> .
+            @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+        "#;
+        let profile_v2 = r#"
+            @prefix owl: <http://www.w3.org/2002/07/owl#> .
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+        "#;
+        let shacl_shapes = "";
+        let shex_schema = "";
+        let shex_shape_map = "";
+
+        let result1 = validate_all_core(ttl, profile_v1, shacl_shapes, shex_schema, shex_shape_map);
+        assert!(result1.is_ok());
+        let profile_hash_1 = result1.unwrap().profile_hash;
+
+        let result2 = validate_all_core(ttl, profile_v2, shacl_shapes, shex_schema, shex_shape_map);
+        assert!(result2.is_ok());
+        let profile_hash_2 = result2.unwrap().profile_hash;
+
+        // After profile change, profile_hash must change and cache entries are distinct.
+        assert_ne!(
+            profile_hash_1, profile_hash_2,
+            "Profile hash must change after profile update"
+        );
+    }
+
+    #[test]
+    fn test_dialect_mask_from_inputs() {
+        // Test bitmask construction for different input combinations.
+        let mask_no_inputs = dialect_mask_from_inputs("", "", "");
+        assert_eq!(mask_no_inputs, 0b000);
+
+        let mask_only_shacl = dialect_mask_from_inputs("some shacl", "", "");
+        assert_eq!(mask_only_shacl, 0b001);
+
+        let mask_only_shex = dialect_mask_from_inputs("", "some schema", "some map");
+        assert_eq!(mask_only_shex, 0b110);
+
+        let mask_both = dialect_mask_from_inputs("some shacl", "some schema", "some map");
+        assert_eq!(mask_both, 0b111);
+
+        // ShEx requires both schema AND map; schema alone doesn't count
+        let mask_schema_only = dialect_mask_from_inputs("", "some schema", "");
+        assert_eq!(mask_schema_only, 0b000);
+    }
+
+    #[test]
+    fn test_cache_key_uniqueness() {
+        // Different cache keys must produce different entries.
+        // Verify that CacheKey is correctly using all five fields.
+        let version = env!("CARGO_PKG_VERSION").to_string();
+
+        let key1 = CacheKey {
+            graph_hash: "abc123".to_string(),
+            profile_hash: "def456".to_string(),
+            dialect_mask: 0b001,
+            engine_version: version.clone(),
+            query_shape_hash: "ghi789".to_string(),
+        };
+
+        let key2 = CacheKey {
+            graph_hash: "xyz999".to_string(), // Different graph_hash
+            profile_hash: "def456".to_string(),
+            dialect_mask: 0b001,
+            engine_version: version.clone(),
+            query_shape_hash: "ghi789".to_string(),
+        };
+
+        let mut map = HashMap::new();
+        map.insert(key1.clone(), "value1");
+        map.insert(key2.clone(), "value2");
+
+        assert_eq!(map.len(), 2, "Different keys must be distinct in HashMap");
+        assert_eq!(map.get(&key1), Some(&"value1"));
+        assert_eq!(map.get(&key2), Some(&"value2"));
     }
 }

@@ -21,6 +21,12 @@ v26.7.8 focuses on representation efficiency (interning, bitsets, fast hashes) a
 | 503 | [SHACL Validation Audit & Adaptation](ticket_503_shacl_audit.md) | Audit `shacl`, `shacl_validation`, `oxirs-shacl` for test harness, validation traits, report rendering; SHACL-SPARQL boundary | PROJ-401 | PLANNED |
 | 504 | [N3 Reasoning Audit & Adaptation](ticket_504_n3_audit.md) | Audit `oxirs-ttl::n3`, `eyeron` for parsing, proof traces, denial handling, built-ins; forward/backward chaining separation | PROJ-401 | PLANNED |
 | 505 | [OWL AST & Ontology Audit](ticket_505_owl_ast_audit.md) | Audit `horned-owl` for typed OWL AST, profile detection, axiom normalization; conditional on PROJ-501 findings (P1, optional) | PROJ-501 | PLANNED |
+| 520 | [Centralized SharedVocab & SymbolId Alignment](dialect_shared_optimizations.md) | Standardize SymbolId type, implement SharedVocab pre-interning, resolve Cargo version mismatch & case_study_judge compiler errors | PROJ-401, PROJ-403 | PLANNED |
+| 521 | [ShEx Static Interning and Schema Compilation](dialect_shared_optimizations.md) | Compile ShEx schemas into static SymbolId-based CompiledShexSchema IR, eliminate dynamic string formatting in validation loops | PROJ-520 | PLANNED |
+| 522 | [Zero-Allocation TripleQuery & Shared Selectivity](dialect_shared_optimizations.md) | Introduce TripleQuery iterators on TripleIndex, extract and share selectivity heuristics for rules/N3/SHACL paths | PROJ-405 | PLANNED |
+| 523 | [Coinductive Cycle-Resolution Unification](dialect_shared_optimizations.md) | Unify SHACL and ShEx visited sets into a generic SymbolId CoinductiveCycleGuard, enforce cyclic shape conformance | PROJ-520, PROJ-407 | PLANNED |
+| 524 | [Generic ClosureMatrix & Stable Receipts](dialect_shared_optimizations.md) | Move ClosureMatrix to generic index module for TBox/RDFS, implement CanonicalReceiptMaterial with canonical sort rendering rule | PROJ-409, PROJ-410 | PLANNED |
+| 525 | [Uniform DiagnosticBuffer & Decoupled Report Builder](dialect_shared_optimizations.md) | Define DiagnosticRecord and DiagnosticBuffer, decouple validation logic from dialect-specific RDF/flat report building | PROJ-410 | PLANNED |
 
 ---
 
@@ -44,6 +50,14 @@ v26.7.8 focuses on representation efficiency (interning, bitsets, fast hashes) a
 **Phase 3 (Post-measurement, P1 follow-ups):**
 - PROJ-401 follow-ups: hashbrown, rayon, roaring (after profiling)
 - PROJ-505: OWL AST audit (conditional, only if PROJ-501 determines it's needed)
+
+**Phase 4 (Shared Optimizations, P1.5):**
+- PROJ-520: Centralized SharedVocab & SymbolId Alignment (dependencies: PROJ-401, PROJ-403)
+- PROJ-521: ShEx Static Interning and Schema Compilation (dependencies: PROJ-520)
+- PROJ-522: Zero-Allocation TripleQuery & Shared Selectivity (dependencies: PROJ-405)
+- PROJ-523: Coinductive Cycle-Resolution Unification (dependencies: PROJ-520, PROJ-407)
+- PROJ-524: Generic ClosureMatrix & Stable Receipts (dependencies: PROJ-409, PROJ-410)
+- PROJ-525: Uniform DiagnosticBuffer & Decoupled Report Builder (dependencies: PROJ-410)
 
 **Adaptation Policy:**
 - **Compatible licenses** (MIT/Apache-2.0/BSD): ADAPT_CODE with attribution and module isolation (non-hot-path only)

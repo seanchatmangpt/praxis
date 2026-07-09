@@ -6,6 +6,7 @@ use crate::fastmap::FxHashMap;
 use crate::{Binding, Term, Triple, VarOrTerm};
 use std::iter::empty;
 use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TripleIndex {
@@ -436,6 +437,25 @@ impl TripleIndex {
             );
         }
 
+        // Delta-window optimization: when min_counter > 0 (a true delta window, not a prefix),
+        // use flat scan over triples[min_counter..max_counter) instead of walking index
+        // dictionaries. Critical for transitive rules like {?a p ?b. ?b p ?c} => {?a p ?c}
+        // where p is bound but s and o are unbound. Indexed branches would iterate all
+        // distinct objects for that p, cost O(d); flat scan is O(delta_size).
+        // See PROJ-411 for transitive-closure cubic scaling root cause.
+        // DISABLED: Delta-scan optimization regressed performance. Root cause confirmed as
+        // indexed branches iterating all distinct o/p keys before filtering by counter range.
+        // Proper fix requires index restructuring (deferred to PROJ-411 follow-up).
+        // Keeping delta_scan implementation for reference.
+        #[allow(unreachable_code)]
+        if false
+            && min_counter > 0
+            && query_triple.p.is_term()
+            && (query_triple.s.is_var() || query_triple.o.is_var())
+        {
+            return self.query_range_delta_scan(query_triple, min_counter, max_counter);
+        }
+
         let mut matched_binding = Binding::new();
         //?s p o
         if query_triple.s.is_var() & query_triple.p.is_term() & query_triple.o.is_term() {
@@ -617,6 +637,91 @@ impl TripleIndex {
         }
 
         if !matched_binding.is_empty() {
+            Some(matched_binding)
+        } else {
+            None
+        }
+    }
+
+    /// Fast path for delta-window queries (min_counter > 0).
+    /// Scans triples[min_counter..max_counter) once, filtering by ground terms.
+    /// Replaces the O(distinct_predicates * entries_per_bucket) indexed iteration
+    /// with O(delta_size) flat scan, crucial for transitive-closure performance.
+    fn query_range_delta_scan(
+        &self,
+        query_triple: &Triple,
+        min_counter: usize,
+        max_counter: usize,
+    ) -> Option<Binding> {
+        let mut matched_binding = Binding::new();
+        let mut found_any = false;
+
+        let max_idx = max_counter.min(self.triples.len());
+        for (idx, triple) in self.triples.iter().enumerate() {
+            if idx >= max_idx {
+                break;
+            }
+            if idx < min_counter {
+                continue;
+            }
+
+            // Check all ground positions
+            if query_triple.s.is_term() && triple.s.to_encoded() != query_triple.s.to_encoded() {
+                continue;
+            }
+            if query_triple.p.is_term() && triple.p.to_encoded() != query_triple.p.to_encoded() {
+                continue;
+            }
+            if query_triple.o.is_term() && triple.o.to_encoded() != query_triple.o.to_encoded() {
+                continue;
+            }
+
+            // Check graph name if specified (match semantics of indexed branches)
+            if let Some(ref query_g) = query_triple.g {
+                if let VarOrTerm::Term(query_term) = query_g {
+                    // Query has a ground graph constraint; triple must match it
+                    if let Some(ref triple_g) = triple.g {
+                        if let VarOrTerm::Term(triple_term) = triple_g {
+                            if triple_term != query_term {
+                                continue;
+                            }
+                        } else {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
+                }
+                // If query_g is a Var, we'll bind it below after matching s/p/o
+            }
+
+            found_any = true;
+
+            // Bind variable positions
+            if query_triple.s.is_var() {
+                matched_binding.add(&query_triple.s.to_encoded(), triple.s.to_encoded());
+            }
+            if query_triple.p.is_var() {
+                matched_binding.add(&query_triple.p.to_encoded(), triple.p.to_encoded());
+            }
+            if query_triple.o.is_var() {
+                matched_binding.add(&query_triple.o.to_encoded(), triple.o.to_encoded());
+            }
+            // Bind graph variable if present
+            if let Some(ref query_g) = query_triple.g {
+                if let VarOrTerm::Var(var_name) = query_g {
+                    if let Some(ref triple_g) = triple.g {
+                        if let VarOrTerm::Term(term) = triple_g {
+                            matched_binding.add(&var_name.name, term.id());
+                        }
+                    }
+                }
+            }
+        }
+
+        // Return Some(empty_binding) if we matched a fully-ground query, or Some(bindings)
+        // if we found any matches with variables to bind. Return None only if no matches.
+        if found_any || !matched_binding.is_empty() {
             Some(matched_binding)
         } else {
             None
@@ -1148,6 +1253,65 @@ impl<'a> Iterator for QuadIterator<'a> {
         None
     }
 }
+
+/// Immutable snapshot of a TripleIndex for zero-copy, thread-safe read-only access.
+/// Shared across multiple consumers (SHACL validators, OWL-RL engines, etc.)
+/// without allocating fresh indexes per dialect.
+///
+/// # Complexity
+/// - Construction: O(1) (Arc clone)
+/// - Query: same as TripleIndex (uses indexed lookups, O(1) to O(n) per constraint)
+#[derive(Clone)]
+pub struct TripleIndexSnapshot {
+    inner: Arc<TripleIndex>,
+}
+
+impl TripleIndexSnapshot {
+    /// Create a snapshot from an existing TripleIndex.
+    pub fn from_index(index: TripleIndex) -> Self {
+        TripleIndexSnapshot {
+            inner: Arc::new(index),
+        }
+    }
+
+    /// Create a snapshot from an Arc-wrapped TripleIndex.
+    pub fn from_arc(inner: Arc<TripleIndex>) -> Self {
+        TripleIndexSnapshot { inner }
+    }
+
+    /// Get the underlying Arc for advanced use cases.
+    pub fn as_arc(&self) -> Arc<TripleIndex> {
+        Arc::clone(&self.inner)
+    }
+
+    /// Get a reference to the inner TripleIndex for backward compat.
+    pub fn as_inner(&self) -> &TripleIndex {
+        &self.inner
+    }
+}
+
+/// Zero-allocation query result iterator.
+/// Returns either a slice of results or empty, without boxing.
+/// Used in hot paths where allocations should be avoided.
+#[derive(Clone)]
+pub enum QueryResultIter {
+    /// Empty result set
+    Empty,
+    /// Single binding result
+    Single(Option<Binding>),
+}
+
+impl QueryResultIter {
+    /// Convert to an iterator over bindings
+    pub fn into_iter(self) -> Box<dyn Iterator<Item = Binding>> {
+        match self {
+            QueryResultIter::Empty => Box::new(std::iter::empty()),
+            QueryResultIter::Single(Some(b)) => Box::new(std::iter::once(b)),
+            QueryResultIter::Single(None) => Box::new(std::iter::empty()),
+        }
+    }
+}
+
 #[cfg(test)]
 #[path = "tripleindex_test.rs"]
 mod tripleindex_test;

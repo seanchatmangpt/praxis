@@ -163,7 +163,7 @@ impl Validator {
         use super::Vocab;
 
         let vocab = Vocab::new();
-        let shapes_index = &shapes.raw_index;
+        let shapes_index = shapes.raw_index.as_ref();
         let closure = SubclassClosure::new(data, vocab.rdfs_subclass_of);
 
         let mut shape_nodes = HashSet::new();

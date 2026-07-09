@@ -7,7 +7,12 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Editor, { Monaco } from '@monaco-editor/react';
-import * as monaco from 'monaco-editor';
+// Type-only: never import monaco-editor as a value in Next.js/webpack code
+// paths -- it statically pulls the full editor bundle in, which fails to
+// resolve monaco's internal AMD loader chunk (`vs/nls.messages-loader`).
+// @monaco-editor/react's `Editor` component loads and instantiates monaco
+// itself and hands back a live, working instance via `onMount` below.
+import type * as monaco from 'monaco-editor';
 
 import { initGraphlawEngine, type GraphlawEngineInterface } from '@/lib/graphlaw-wasm';
 import { registerTurtleLanguage, configureTurtleLanguage } from '@/monaco/turtle-language';
@@ -93,15 +98,15 @@ export default function TurtleEditor({
 
     // Register Turtle language features if needed
     if (language === 'turtle') {
-      registerTurtleLanguage();
-      configureTurtleLanguage();
-      registerTurtleCompletions();
+      registerTurtleLanguage(monacoInstance);
+      configureTurtleLanguage(monacoInstance);
+      registerTurtleCompletions(monacoInstance);
 
       // Set up diagnostics if engine is ready
       if (engine) {
         const model = editor.getModel();
         if (model) {
-          cleanupWatchRef.current = watchTurtleDiagnostics(model, engine);
+          cleanupWatchRef.current = watchTurtleDiagnostics(monacoInstance, model, engine);
         }
       }
     }
@@ -119,13 +124,13 @@ export default function TurtleEditor({
    * Validate the current content.
    */
   const handleValidate = async () => {
-    if (!engine || !editorRef.current) return;
+    if (!engine || !editorRef.current || !monacoRef.current) return;
 
     const model = editorRef.current.getModel();
     if (!model) return;
 
     try {
-      const result = await validateTurtleOnce(model, engine);
+      const result = await validateTurtleOnce(monacoRef.current, model, engine);
       setLastValidation(result);
       onValidationChange?.(result);
     } catch (err) {

@@ -12,8 +12,8 @@ deepmesa-collections = "0.14.0"
 bencher = "0.1.5"
 log = { version = "0.4"}
 env_logger = "0.11.11"
-spargebra = "0.4.6"
-sparesults = "0.3.3"
+spargebra = "=0.4.4"
+sparesults = "=0.3.2"
 
 
 rio_api = "0.8.6"
@@ -23,7 +23,7 @@ pest = "2.8.7"
 pest_derive = "2.8.7"
 either = "1.16.0"
 once_cell = "1.21.4"
-oxrdf = "0.3.3"
+oxrdf = "=0.3.2"
 regex = "1.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

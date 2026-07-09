@@ -149,6 +149,8 @@ enum Refusal {
     Serialize(#[from] serde_json::Error),
     #[error("no praxis:StandingEnvelope subject found in the merged graph")]
     NoStandingEnvelope,
+    #[error("rule materialization refusal: {0}")]
+    RuleMaterialization(String),
 }
 
 fn read(path: &str) -> Result<String, Refusal> {
@@ -480,7 +482,9 @@ fn run() -> Result<(FinalVerdict, bool), Refusal> {
     .and_then(|s| s.trim().trim_start_matches('"').split('"').next().unwrap_or(s).parse::<usize>().ok())
     .unwrap_or(0);
 
-    let derived_triple_count = derived_pass1.len() + derived_pass2.len() + derived_pass3.len();
+    let derived_triple_count = derived_pass1.map_err(Refusal::RuleMaterialization)?.len()
+        + derived_pass2.map_err(Refusal::RuleMaterialization)?.len()
+        + derived_pass3.map_err(Refusal::RuleMaterialization)?.len();
 
     // ── 10. which verdict fired? + exactly-one-CaseStudy-subject check ──
     let mut verdict: Option<&str> = None;

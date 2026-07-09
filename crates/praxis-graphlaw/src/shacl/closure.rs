@@ -5,79 +5,100 @@ use super::index_utils::get_triples_by_predicate;
 /// for subclass relationships in RDF ontologies.
 use crate::tripleindex::TripleIndex;
 use fixedbitset::FixedBitSet;
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 /// Compute and cache the transitive closure of rdfs:subClassOf relationships
+/// using a bitset-based ClosureMatrix internally.
+///
+/// # Complexity
+/// O(|C|²) for closure computation where |C| is the number of classes,
+/// using iterative fixpoint. Query is O(1) after construction.
+///
+/// # Design
+/// Dense ID remapping: Since global Encoder IDs are sparse, we build a
+/// bidirectional mapping (global_id ↔ dense_index) to enable efficient
+/// bitset indexing. The ClosureMatrix uses dense indices internally;
+/// public is_subclass() queries remap on demand.
 pub struct SubclassClosure {
-    ancestors: std::collections::HashMap<usize, HashSet<usize>>,
+    /// Bitset-based closure matrix using dense local indices
+    matrix: ClosureMatrix,
+    /// Maps global Encoder ID → dense index (0..num_classes)
+    global_to_dense: HashMap<usize, usize>,
+    /// Maps dense index → global Encoder ID (for render_canonical)
+    dense_to_global: Vec<usize>,
 }
 
 impl SubclassClosure {
-    /// Create a new SubclassClosure from a data graph
+    /// Create a new SubclassClosure from a data graph.
+    ///
+    /// Constructs a dense-index ClosureMatrix and maintains bidirectional
+    /// ID remapping for transparent query semantics.
     pub fn new(data: &TripleIndex, rdfs_subclass_of: usize) -> Self {
-        let mut ancestors = std::collections::HashMap::new();
         let subclass_triples = get_triples_by_predicate(data, rdfs_subclass_of);
 
-        let mut direct_parents: std::collections::HashMap<usize, Vec<usize>> =
-            std::collections::HashMap::new();
+        let mut direct_parents: HashMap<usize, Vec<usize>> = HashMap::new();
         for (sub, parent) in subclass_triples {
             direct_parents.entry(sub).or_default().push(parent);
         }
 
-        let mut keys_to_compute: Vec<usize> = direct_parents.keys().cloned().collect();
+        // Step 1: Collect all class IDs that appear in the closure
+        let mut all_classes: Vec<usize> = direct_parents.keys().cloned().collect();
         for parents in direct_parents.values() {
             for &p in parents {
-                keys_to_compute.push(p);
+                all_classes.push(p);
             }
         }
-        keys_to_compute.sort_unstable();
-        keys_to_compute.dedup();
+        all_classes.sort_unstable();
+        all_classes.dedup();
 
-        for &class in &keys_to_compute {
-            Self::compute_ancestors(class, &direct_parents, &mut ancestors);
+        // Step 2: Build dense ID remap (global_id → dense_index)
+        let mut global_to_dense = HashMap::new();
+        let dense_to_global = all_classes.clone();
+        for (dense_idx, &global_id) in all_classes.iter().enumerate() {
+            global_to_dense.insert(global_id, dense_idx);
         }
 
-        SubclassClosure { ancestors }
-    }
+        // Step 3: Create and populate ClosureMatrix using dense indices
+        let num_classes = all_classes.len() as u32;
+        let mut matrix = ClosureMatrix::new(num_classes.saturating_sub(1));
 
-    fn compute_ancestors(
-        class: usize,
-        direct_parents: &std::collections::HashMap<usize, Vec<usize>>,
-        ancestors: &mut std::collections::HashMap<usize, HashSet<usize>>,
-    ) -> HashSet<usize> {
-        if let Some(cached) = ancestors.get(&class) {
-            return cached.clone();
-        }
-
-        let mut visited = HashSet::new();
-        let mut queue = vec![class];
-        visited.insert(class);
-
-        let mut i = 0;
-        while i < queue.len() {
-            let curr = queue[i];
-            i += 1;
-            if let Some(parents) = direct_parents.get(&curr) {
-                for &p in parents {
-                    if visited.insert(p) {
-                        queue.push(p);
+        // Add direct edges using dense indices
+        for (sub, parents) in &direct_parents {
+            if let Some(&sub_dense) = global_to_dense.get(sub) {
+                for &parent in parents {
+                    if let Some(&parent_dense) = global_to_dense.get(&parent) {
+                        matrix.add_edge(sub_dense, parent_dense);
                     }
                 }
             }
         }
 
-        ancestors.insert(class, visited.clone());
-        visited
+        // Step 4: Compute transitive closure
+        matrix.compute_transitive_closure();
+
+        SubclassClosure {
+            matrix,
+            global_to_dense,
+            dense_to_global,
+        }
     }
 
     /// Check if `sub` is a subclass of `parent` (including reflexive case)
+    ///
+    /// Remaps global Encoder IDs to dense indices for bitset lookup.
     pub fn is_subclass(&self, sub: usize, parent: usize) -> bool {
         if sub == parent {
             return true;
         }
-        if let Some(ancestors) = self.ancestors.get(&sub) {
-            ancestors.contains(&parent)
+
+        // Remap to dense indices
+        if let (Some(&sub_dense), Some(&parent_dense)) = (
+            self.global_to_dense.get(&sub),
+            self.global_to_dense.get(&parent),
+        ) {
+            self.matrix.is_reachable(sub_dense, parent_dense)
         } else {
+            // If either ID is not in the closure graph, not a subclass
             false
         }
     }

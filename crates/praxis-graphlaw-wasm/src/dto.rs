@@ -95,13 +95,33 @@ pub struct PlaygroundResult {
     pub hash_algorithms: HashMap<String, String>,
 }
 
-/// SHACL validation result.
+/// SHACL validation result: structured and JSON-serializable.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShaclDto {
     /// Whether the graph conforms to all shapes
     pub conforms: bool,
-    /// Validation result messages (human-readable)
-    pub results: Vec<String>,
+    /// Validation results: each includes focus_node, result_path, severity, message.
+    /// Serializes to JSON for wire transmission across WASM boundary.
+    pub results: Vec<ShaclValidationResultDto>,
+}
+
+/// A single SHACL validation result as a DTO.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShaclValidationResultDto {
+    /// Focus node (IRI or blank node)
+    pub focus_node: String,
+    /// Property path (if applicable)
+    pub result_path: Option<String>,
+    /// Offending value (if applicable)
+    pub value: Option<String>,
+    /// Source constraint component (e.g., sh:DatatypeConstraintComponent)
+    pub source_constraint_component: String,
+    /// Source shape (which shape violated)
+    pub source_shape: String,
+    /// Severity (sh:Violation, sh:Warning, sh:Info)
+    pub severity: String,
+    /// Human-readable message
+    pub message: Option<String>,
 }
 
 /// ShEx validation result.

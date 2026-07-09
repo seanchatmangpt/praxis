@@ -9,12 +9,18 @@
  * - Keywords (@prefix, @base, @import, a)
  * - Comments (# comment to end-of-line)
  * - Bracket pairs for structure navigation
+ *
+ * This module never imports `monaco-editor` as a value — doing so statically
+ * pulls the full editor bundle into the webpack/Next.js graph, which fails
+ * to resolve monaco's internal AMD loader chunks (`vs/nls.messages-loader`)
+ * outside a dedicated monaco webpack plugin. `@monaco-editor/react`'s own
+ * loader already provides a working, already-instantiated `monaco` object
+ * via its `onMount`/`beforeMount` callbacks — every function here takes
+ * that instance as a parameter instead of importing the package itself.
  */
+import type * as Monaco from 'monaco-editor';
 
-// Lazy import to avoid SSR issues
-let monaco: any = null;
-
-function getTurtleLanguageDefinition(): any {
+function getTurtleLanguageDefinition(): Monaco.languages.IMonarchLanguage {
   return {
   defaultToken: '',
 
@@ -111,20 +117,9 @@ function getTurtleLanguageDefinition(): any {
  * Registers the Turtle language in Monaco.
  * Call this once at initialization to make Turtle available as a language option.
  */
-export function registerTurtleLanguage(): void {
-  if (!monaco) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    monaco = require('monaco-editor');
-  }
-
+export function registerTurtleLanguage(monaco: typeof Monaco): void {
   monaco.languages.register({ id: 'turtle' });
   monaco.languages.setMonarchTokensProvider('turtle', getTurtleLanguageDefinition());
-
-  // Define theme colors for Turtle tokens
-  if (!monaco) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    monaco = require('monaco-editor');
-  }
 
   monaco.editor.defineTheme('turtle-light', {
     base: 'vs',
@@ -173,8 +168,15 @@ export function registerTurtleLanguage(): void {
 
 /**
  * Language configuration: bracket pairs, comments, etc.
+ *
+ * `indentAction` is monaco's `languages.IndentAction.Indent`, a stable
+ * numeric enum member (value `1`) documented at
+ * https://microsoft.github.io/monaco-editor/typedoc/enums/languages.IndentAction.html
+ * -- hardcoded here (rather than threading a monaco instance through this
+ * static config object) since it's a plain constant, not a call into the
+ * live editor API.
  */
-const TurtleLanguageConfig: any = {
+const TurtleLanguageConfig = {
   comments: {
     lineComment: '#',
   },
@@ -183,7 +185,7 @@ const TurtleLanguageConfig: any = {
     ['[', ']'],
     ['(', ')'],
     ['<', '>'],
-  ],
+  ] as [string, string][],
   autoClosingPairs: [
     { open: '{', close: '}' },
     { open: '[', close: ']' },
@@ -212,7 +214,7 @@ const TurtleLanguageConfig: any = {
       beforeText: /.*[;,]$/,
       afterText: /^\s*/,
       action: {
-        indentAction: monaco.languages.IndentAction.Indent,
+        indentAction: 1, // Monaco.languages.IndentAction.Indent
       },
     },
   ],
@@ -228,15 +230,9 @@ const TurtleLanguageConfig: any = {
 /**
  * Installs language configuration for Turtle.
  */
-export function configureTurtleLanguage(): void {
-  if (!monaco) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    monaco = require('monaco-editor');
-  }
-
-  monaco.languages.setLanguageConfiguration('turtle', getTurtleLanguageConfig());
-}
-
-function getTurtleLanguageConfig(): any {
-  return TurtleLanguageConfig;
+export function configureTurtleLanguage(monaco: typeof Monaco): void {
+  monaco.languages.setLanguageConfiguration(
+    'turtle',
+    TurtleLanguageConfig as Monaco.languages.LanguageConfiguration
+  );
 }

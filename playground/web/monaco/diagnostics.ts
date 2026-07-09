@@ -5,7 +5,14 @@
  * Maps violations to (line, column) positions for inline error display.
  */
 
-import * as monaco from 'monaco-editor';
+// Type-only: importing monaco-editor as a value here would statically pull
+// the full editor bundle into the webpack/Next.js graph, which fails to
+// resolve monaco's internal AMD loader chunk (`vs/nls.messages-loader`)
+// outside a dedicated monaco webpack plugin. `@monaco-editor/react`'s own
+// loader already supplies a working, already-instantiated monaco object via
+// `onMount`/`beforeMount`; every function here that needs the live API
+// takes that instance as a parameter instead of importing the package.
+import type * as Monaco from 'monaco-editor';
 import type { ValidationResult, ShaclViolation } from '../lib/graphlaw-wasm';
 
 export type { ValidationResult, ShaclViolation };
@@ -38,8 +45,9 @@ export enum DiagnosticSeverity {
  * - Hint: 1
  */
 export function convertDiagnosticToMarkerSeverity(
+  monaco: typeof Monaco,
   diagnostic: DiagnosticSeverity
-): monaco.MarkerSeverity {
+): Monaco.MarkerSeverity {
   switch (diagnostic) {
     case DiagnosticSeverity.Error:
       return monaco.MarkerSeverity.Error;
@@ -105,9 +113,10 @@ export function parseDetailLocation(detail: string): { line: number; column: num
  * - source: "Turtle/SHACL" for filtering
  */
 export function validationResultToMarkers(
+  monaco: typeof Monaco,
   result: ValidationResult
-): monaco.editor.IMarker[] {
-  const markers: monaco.editor.IMarker[] = [];
+): Monaco.editor.IMarker[] {
+  const markers: Monaco.editor.IMarker[] = [];
 
   // Convert SHACL violations
   if (result.violations) {
@@ -132,7 +141,7 @@ export function validationResultToMarkers(
         endLineNumber: location.line,
         endColumn: Math.max(location.column + 10, location.column + 1),
         message: `${violation.resultMessage} (at ${violation.focusNode})`,
-        severity: convertDiagnosticToMarkerSeverity(severity),
+        severity: convertDiagnosticToMarkerSeverity(monaco, severity),
         source: 'SHACL Validation',
         code: violation.resultPath,
       });
@@ -151,7 +160,7 @@ export function validationResultToMarkers(
         endLineNumber: 1 + index,
         endColumn: 80,
         message: `Denial rule violated: ${denial.ruleId} (${denial.triggeredFacts.join(', ')})`,
-        severity: convertDiagnosticToMarkerSeverity(DiagnosticSeverity.Error),
+        severity: convertDiagnosticToMarkerSeverity(monaco, DiagnosticSeverity.Error),
         source: 'Datalog Denial',
         code: denial.ruleId,
       });
@@ -171,7 +180,7 @@ export function validationResultToMarkers(
         endLineNumber: location.line,
         endColumn: location.column + 20,
         message: `ShEx validation failed: ${failure.reason} (expected ${failure.shapeLabel})`,
-        severity: convertDiagnosticToMarkerSeverity(DiagnosticSeverity.Warning),
+        severity: convertDiagnosticToMarkerSeverity(monaco, DiagnosticSeverity.Warning),
         source: 'ShEx Validation',
         code: failure.shapeLabel,
       });
@@ -189,7 +198,7 @@ export function validationResultToMarkers(
       endLineNumber: location.line,
       endColumn: location.column + 20,
       message: result.detail,
-      severity: convertDiagnosticToMarkerSeverity(DiagnosticSeverity.Error),
+      severity: convertDiagnosticToMarkerSeverity(monaco, DiagnosticSeverity.Error),
       source: 'Validation',
     });
   }
@@ -209,7 +218,8 @@ export function validationResultToMarkers(
  *   cleanup(); // Stop watching
  */
 export function watchTurtleDiagnostics(
-  model: monaco.editor.ITextModel,
+  monaco: typeof Monaco,
+  model: Monaco.editor.ITextModel,
   engine: any, // GraphlawEngineInterface from graphlaw-wasm.ts
   debounceMs: number = 1000
 ): () => void {
@@ -230,7 +240,7 @@ export function watchTurtleDiagnostics(
       // Ignore results from stale validation calls
       if (validationId !== lastValidationId) return;
 
-      const markers = validationResultToMarkers(result);
+      const markers = validationResultToMarkers(monaco, result);
       monaco.editor.setModelMarkers(model, 'turtle-validator', markers);
     } catch (error) {
       console.error('Validation error:', error);
@@ -245,7 +255,7 @@ export function watchTurtleDiagnostics(
             error instanceof Error
               ? error.message
               : 'Validation failed (see console)',
-          severity: convertDiagnosticToMarkerSeverity(DiagnosticSeverity.Error),
+          severity: convertDiagnosticToMarkerSeverity(monaco, DiagnosticSeverity.Error),
           source: 'Validation Engine',
         },
       ]);
@@ -287,14 +297,15 @@ export function watchTurtleDiagnostics(
  *   const result = await validateTurtleOnce(model, engine);
  */
 export async function validateTurtleOnce(
-  model: monaco.editor.ITextModel,
+  monaco: typeof Monaco,
+  model: Monaco.editor.ITextModel,
   engine: any // GraphlawEngineInterface
 ): Promise<ValidationResult | null> {
   const source = model.getValue();
 
   try {
     const result = await engine.validateAll(source);
-    const markers = validationResultToMarkers(result);
+    const markers = validationResultToMarkers(monaco, result);
     monaco.editor.setModelMarkers(model, 'turtle-validator', markers);
     return result;
   } catch (error) {
@@ -306,6 +317,6 @@ export async function validateTurtleOnce(
 /**
  * Clears all validation markers from a model.
  */
-export function clearDiagnostics(model: monaco.editor.ITextModel): void {
+export function clearDiagnostics(monaco: typeof Monaco, model: Monaco.editor.ITextModel): void {
   monaco.editor.setModelMarkers(model, 'turtle-validator', []);
 }
