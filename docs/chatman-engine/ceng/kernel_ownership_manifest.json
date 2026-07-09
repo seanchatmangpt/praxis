@@ -1,0 +1,135 @@
+{
+  "manifest_version": "26.7.8",
+  "audit_target": "CENG-410",
+  "symbols": {
+    "ConditionCell": {
+      "crate": "wasm4pm-compat",
+      "file": "/Users/sac/wasm4pm-compat/src/law.rs",
+      "start_line": 92,
+      "end_line": 102,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "Compile-time law kernel constraining condition cell bits (BITS <= 8)."
+    },
+    "Between01": {
+      "crate": "wasm4pm-compat",
+      "file": "/Users/sac/wasm4pm-compat/src/law.rs",
+      "start_line": 159,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "Compile-time rational metric bound in [0, 1]."
+    },
+    "Evidence": {
+      "crate": "wasm4pm-compat",
+      "file": "/Users/sac/wasm4pm-compat/src/evidence.rs",
+      "start_line": 56,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "Universal process-evidence carrier with state and witness tags."
+    },
+    "Pddl8Tape": {
+      "crate": "wasm4pm-core",
+      "file": "/Users/sac/wasm4pm-compat/wasm4pm-core/src/pddl.rs",
+      "start_line": 235,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "PDDL8 sequential plan tape representation (re-exported by wasm4pm-compat and bcinr-pddl)."
+    },
+    "Pddl8ExecutionReceipt": {
+      "crate": "wasm4pm-core",
+      "file": "/Users/sac/wasm4pm-compat/wasm4pm-core/src/pddl.rs",
+      "start_line": 293,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "Execution verification receipt for PDDL8 plans."
+    },
+    "TemporalExecutionReceipt": {
+      "crate": "wasm4pm-core",
+      "file": "/Users/sac/wasm4pm-compat/wasm4pm-core/src/pddl.rs",
+      "start_line": 709,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "Execution verification receipt for durative-STRIPS plans."
+    },
+    "PowlTape": {
+      "crate": "bcinr-powl",
+      "file": "/Users/sac/bcinr/crates/bcinr-powl/src/tape.rs",
+      "start_line": 63,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "Compiled POWL v1 workflow tape (flat 64-slot op array)."
+    },
+    "PowlTapeV2": {
+      "crate": "bcinr-powl",
+      "file": "/Users/sac/bcinr/crates/bcinr-powl/src/tape.rs",
+      "start_line": 321,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "Compiled POWL v2 workflow tape (aligned flat array with LabelSlab)."
+    },
+    "PowlTapeLarge": {
+      "crate": "bcinr-powl",
+      "file": "/Users/sac/bcinr/crates/bcinr-powl/src/tape.rs",
+      "start_line": 391,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "Compiled POWL v2 large workflow tape (up to 512 slots)."
+    },
+    "OcelCausalReceipt": {
+      "crate": "bcinr-powl-receipt",
+      "file": "/Users/sac/bcinr/crates/bcinr-powl-receipt/src/causal_receipt.rs",
+      "start_line": 161,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "OCEL event emission and causal receipt generator for POWL runs."
+    },
+    "Receipt": {
+      "crate": "bcinr-powl",
+      "file": "/Users/sac/bcinr/crates/bcinr-powl/src/typestate.rs",
+      "start_line": 349,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "Immutable POWL execution receipt issued after runner completes."
+    },
+    "C8Receipt": {
+      "crate": "wasm4pm-compat",
+      "file": "/Users/sac/wasm4pm-compat/c8-receipts/src/receipt.rs",
+      "start_line": 17,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "Proven process-evidence receipt with pre/post state hash."
+    },
+    "HookReceipt": {
+      "crate": "praxis-graphlaw",
+      "file": "/Users/sac/praxis/crates/praxis-graphlaw/src/hooks/construct.rs",
+      "start_line": 12,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "SPARQL CONSTRUCT query-based graph delta hook execution receipt."
+    },
+    "TripleStore": {
+      "crate": "praxis-graphlaw",
+      "file": "/Users/sac/praxis/crates/praxis-graphlaw/src/lib.rs",
+      "start_line": 63,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "In-memory / Oxigraph-backed RDF store executing SPARQL/Datalog rules."
+    },
+    "ChatmanEngine": {
+      "crate": "praxis-graphlaw",
+      "file": "/Users/sac/praxis/crates/praxis-graphlaw/src/engine.rs",
+      "start_line": 10,
+      "kind": "struct",
+      "status": "ALIVE",
+      "role": "Top-level orchestrator executing the full bottom-up manufacture stack."
+    },
+    "ProcessReceipt": {
+      "crate": "missing",
+      "file": "N/A",
+      "start_line": 0,
+      "kind": "N/A",
+      "status": "PARTIAL",
+      "role": "Unified orchestration receipt integrating PDDL, POWL, and Hooks (Missing orchestration type)."
+    }
+  }
+}

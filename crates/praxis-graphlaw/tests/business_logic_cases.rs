@@ -66,10 +66,8 @@ fn test_suite1_minimal_refusal_surfaces_reason() {
         )
         .unwrap();
 
-    let inferred = store.materialize().unwrap();
-
-    // Refusal should cause rollback
-    assert!(inferred.is_empty());
+    let res = store.materialize();
+    assert!(res.is_err());
 }
 
 /// Negative: Malformed hook missing mandatory kh:kind field
@@ -393,11 +391,8 @@ fn test_suite3_state_machine_illegal_transition_single() {
     store.load_hook_pack(hook_pack).unwrap();
     store.load_triples("ex:Doc2 <http://example.org/state> 'Draft' ; <http://example.org/next_state> 'Approved' .", Syntax::Turtle).unwrap();
 
-    let inferred = store.materialize().unwrap();
-    assert!(
-        inferred.is_empty(),
-        "Illegal transition should be refused and rolled back"
-    );
+    let res = store.materialize();
+    assert!(res.is_err());
 }
 
 /// Positive: Legal transitions applied to 1000 documents
@@ -844,10 +839,8 @@ fn test_suite6_policy_conflict_approve_vs_refuse() {
         )
         .unwrap();
 
-    let inferred = store.materialize().unwrap();
-
-    // Should refuse deterministically (refusal takes precedence or conflict detected)
-    assert!(inferred.is_empty());
+    let res = store.materialize();
+    assert!(res.is_err());
 }
 
 /// Negative: Contradicting state transitions are caught and refused
@@ -929,10 +922,8 @@ fn test_suite6_policy_conflict_multiple_refusals() {
         .load_triples("ex:Txn <http://example.org/value> 1500 .", Syntax::Turtle)
         .unwrap();
 
-    let inferred = store.materialize().unwrap();
-
-    // First refusal wins (priority 1); transaction rolled back
-    assert!(inferred.is_empty());
+    let res = store.materialize();
+    assert!(res.is_err());
 }
 
 /// Negative: Malformed hook with conflicting effect types

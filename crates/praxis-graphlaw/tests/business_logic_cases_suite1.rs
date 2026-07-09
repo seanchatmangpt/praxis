@@ -66,10 +66,8 @@ fn test_suite1_minimal_refusal_surfaces_reason() {
         )
         .unwrap();
 
-    let inferred = store.materialize().unwrap();
-
-    // Refusal should cause rollback
-    assert!(inferred.is_empty());
+    let res = store.materialize();
+    assert!(res.is_err());
 }
 
 /// Negative: Malformed hook missing mandatory kh:kind field

@@ -443,7 +443,8 @@ impl TripleIndex {
         // where p is bound but s and o are unbound. Indexed branches would iterate all
         // distinct objects for that p, cost O(d); flat scan is O(delta_size).
         // See PROJ-411 for transitive-closure cubic scaling root cause.
-        // DISABLED: Delta-scan optimization regressed performance. Root cause confirmed as
+        // DISABLED(PROJ-411): pending root-cause discrimination. Delta-scan optimization
+        // regressed performance. Root cause confirmed as
         // indexed branches iterating all distinct o/p keys before filtering by counter range.
         // Proper fix requires index restructuring (deferred to PROJ-411 follow-up).
         // Keeping delta_scan implementation for reference.

@@ -1,0 +1,4 @@
+[pack]
+name = "chatman-engine-pack"
+version = "26.7.9"
+description = "Chatman Engine acceptance surface: ontology-driven test harnesses, fixtures, and GWT docs with paired acceptance/falsification cases per typed Refusal"

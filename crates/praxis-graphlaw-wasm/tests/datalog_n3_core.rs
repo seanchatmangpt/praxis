@@ -135,7 +135,7 @@ fn test_datalog_recursive_positive_cycle() {
             .dialects
             .iter()
             .find(|d| d.dialect == "DATALOG")
-            .map(|d| d.status.clone()),
+            .map(|d| d.status),
         Some(Status::Admitted),
         "Positive recursion should be admitted"
     );

@@ -47,7 +47,7 @@ pub struct CompiledConstraint {
 /// Bits are indexed by property position in the compiled shape's properties.
 /// Used for fast O(1) presence checking during validation.
 /// Currently limited to 64 properties per shape; shapes with >64 properties
-/// will require Vec<u64> extension (future work).
+/// will require Vec<u64> extension (TODO(PROJ-415)).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PropertyMask(pub u64);
 
@@ -243,17 +243,17 @@ impl ShapesGraph {
         allowed_preds_vec.sort();
 
         // Build required-property mask (currently simplified: all zeros)
-        // Full implementation will scan sh:minCount constraints in property shapes
+        // TODO(PROJ-415): full implementation will scan sh:minCount constraints in property shapes
         let required_properties_mask = PropertyMask(0);
 
         CompiledShape {
             iri: shape_node,
-            targets: Vec::new(),     // TODO: populate from target declarations
-            constraints: Vec::new(), // TODO: populate from constraint declarations
+            targets: Vec::new(), // TODO(PROJ-415): populate from target declarations
+            constraints: Vec::new(), // TODO(PROJ-415): populate from constraint declarations
             closed: !get_objects(raw_index, shape_node, vocab.sh_closed).is_empty(),
             allowed_predicates: allowed_preds_vec,
             required_properties_mask,
-            property_shapes: Vec::new(), // TODO: populate from sh:property
+            property_shapes: Vec::new(), // TODO(PROJ-415): populate from sh:property
         }
     }
 }

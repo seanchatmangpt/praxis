@@ -58,11 +58,8 @@ fn test_suite3_state_machine_illegal_transition_single() {
     store.load_hook_pack(hook_pack).unwrap();
     store.load_triples("ex:Doc2 <http://example.org/state> 'Draft' ; <http://example.org/next_state> 'Approved' .", Syntax::Turtle).unwrap();
 
-    let inferred = store.materialize().unwrap();
-    assert!(
-        inferred.is_empty(),
-        "Illegal transition should be refused and rolled back"
-    );
+    let res = store.materialize();
+    assert!(res.is_err());
 }
 
 /// Positive: Legal transitions applied to 1000 documents

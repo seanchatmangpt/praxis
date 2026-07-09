@@ -80,6 +80,7 @@ fn instantiate_term_pattern(tp: &TermPattern, bindings: &[Binding]) -> Option<St
             }
             Some(s)
         }
+        _ => None,
     }
 }
 

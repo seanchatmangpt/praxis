@@ -16,7 +16,7 @@ extern crate blake3;
 /// Call this at startup to enable browser console panic traces.
 #[wasm_bindgen(start)]
 pub fn init_panic_hook() {
-    #[cfg(feature = "console_error_panic_hook")]
+    #[cfg(target_arch = "wasm32")]
     console_error_panic_hook::set_once();
 }
 

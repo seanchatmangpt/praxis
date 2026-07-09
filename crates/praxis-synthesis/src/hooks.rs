@@ -1072,7 +1072,9 @@ pub fn evaluate_hooks(
                     for t in event.post() {
                         store.add(to_graphlaw_triple(t));
                     }
-                    store.materialize();
+                    store.materialize().map_err(|e| Refusal::InvalidInput {
+                        detail: format!("N3 materialization failed: {e}"),
+                    })?;
                     let violations = store.check_denials();
                     let conforms = violations.is_empty();
                     let details = violations

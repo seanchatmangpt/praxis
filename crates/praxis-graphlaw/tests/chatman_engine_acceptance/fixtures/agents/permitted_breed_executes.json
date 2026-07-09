@@ -1,0 +1,7 @@
+{
+  "case": "Accept_PermittedBreedExecutes",
+  "kind": "acceptance",
+  "seed": 16627586002664850844,
+  "expected_behavior": "breed_execution_permitted",
+  "input": {"agent_id":"urn:chatman:agent:5","operator_id":"urn:chatman:operator:5"}
+}

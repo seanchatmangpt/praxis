@@ -1,5 +1,13 @@
 set shell := ["bash", "-uc"]
 
+# NOTE: cargo takes an exclusive lock on `target/.cargo-lock` per invocation, scoped to
+# CARGO_TARGET_DIR. Concurrent `just` invocations (e.g. multiple agents/terminals) against
+# the same target dir serialize on that lock rather than running in parallel — this looks
+# like a hang but is Cargo's own build-directory mutex, not a justfile bug. To run build/
+# check/test/clippy recipes concurrently without queuing, override the target dir per
+# invocation: `CARGO_TARGET_DIR=target/agent-2 just check`. Isolated dirs trade a slower
+# first build (no shared incremental cache) for true concurrency.
+
 # Run only tests affected by changes
 test-changed:
     timeout 30s cargo cicd test changed
@@ -8,22 +16,9 @@ test-changed:
 clean-stale:
     timeout 30s cargo cicd target prune
 
-# Compile the praxis-standing.v1 index (target/praxis-standing/standing.json),
-# copy it into the standing-pack for ggen, regenerate docs/standing/REALITY_INDEX.md.
-# NOTE: invoked as `cargo-cicd ...` (direct binary name), not `cargo cicd ...` —
-# the installed binary's clap parser rejects the `cicd` arg cargo's subcommand
-# dispatch prepends (same issue affects `test-changed`/`clean-stale` above with
-# this binary version; tracked separately, not fixed by this recipe).
-# NOTE: `cargo-cicd standing refresh` used to embed a fresh `generated_at_utc`
-# timestamp directly in standing.ttl on every run, so its content hash never
-# matched a prior ggen.lock entry (ggen.lock's own [FM-PACK-008] error names
-# "delete ggen.lock to intentionally re-lock" as the remediation for exactly
-# this case) — forcing an `rm -f ggen.lock` before every invocation just to
-# avoid a spurious lock mismatch. Fixed upstream in cargo-cicd
-# (crates/cargo-cicd-core/src/standing/emit.rs::render_standing_ttl no longer
-# includes generated_at_utc; the timestamp still lives in standing.json), so
-# standing.ttl is now byte-identical across runs with unchanged artifact
-# state and the `rm -f ggen.lock` workaround is no longer needed.
+# NOTE: must invoke `cargo-cicd` (direct binary), not `cargo cicd` — the installed
+# binary's clap parser rejects cargo's prepended arg.
+# Refresh the praxis-standing.v1 index, standing-pack ontology, and docs/standing/REALITY_INDEX.md
 standing:
     timeout 60s cargo-cicd standing refresh
     cp target/praxis-standing/standing.ttl ../cargo-cicd/plugins/cargo-cicd-kit/standing-pack/ontology.ttl
@@ -35,12 +30,9 @@ standing:
 build:
     timeout 120s cargo build
 
-# Build the release ggen binary and install it to ~/.cargo/bin/ggen, so the
-# global `ggen` on PATH tracks this checkout instead of silently drifting to
-# whatever version was last `cargo install`ed. Downstream consumers that pin
-# an absolute path (e.g. mfact's justfile -> target/debug/ggen) are NOT
-# updated by this recipe on purpose — it only fixes the global command.
-# Run this after any change to crates/ggen you want reflected outside praxis.
+# NOTE: consumers pinning absolute paths (e.g. mfact -> target/debug/ggen) are
+# intentionally not updated by this recipe.
+# Install the release ggen binary to ~/.cargo/bin so the global `ggen` tracks this checkout
 install-ggen:
     timeout 180s cargo install --path crates/ggen --force
     @ggen --version
@@ -85,10 +77,7 @@ revenue-demo:
 revenue-test:
     cargo test --features proposer --test revenue_pipe
 
-# Membrane demo: drive the COMPLETE Day 2 revenue pipe through the MCP server over
-# raw JSON-RPC (propose_revenue -> propose_goal -> plan_solve -> judge -> admit ->
-# receipt -> whoami), proving an external agent completes a receipted mission with
-# only membrane access. Ends with the receipt chain_hash + RECEIPTED AgentByte.
+# Drive the full Day 2 revenue pipe through the MCP server over raw JSON-RPC (membrane-only access)
 membrane-demo:
     ./scripts/membrane_demo.sh
 
@@ -96,15 +85,9 @@ membrane-demo:
 membrane-test:
     cargo test --features mcp,proposer --test membrane_mcp
 
-# Build the GraphLaw WASM bridge for the browser playground: Rust
-# (crates/praxis-graphlaw-wasm) -> wasm32 -> wasm-bindgen JS/TS glue, output
-# to crates/praxis-graphlaw-wasm/pkg/ (gitignored). This is the Rust->WASM
-# half of the end-to-end chain; playground/web/justfile's `wasm`/`build-e2e`
-# recipes call this one, then re-link pkg/ into playground/web/node_modules
-# and build the Next.js app on top of it. wasm-opt is disabled (see
-# crates/praxis-graphlaw-wasm/Cargo.toml's [package.metadata.wasm-pack]) --
-# the emitted bulk-memory ops aren't accepted by the installed wasm-opt, and
-# skipping it doesn't affect correctness, only binary size.
+# NOTE: wasm-opt is disabled in the crate's [package.metadata.wasm-pack] — the emitted
+# bulk-memory ops aren't accepted by the installed wasm-opt (size cost only).
+# Build the GraphLaw WASM bridge to crates/praxis-graphlaw-wasm/pkg/ (consumed by playground/web)
 wasm-playground:
     cd crates/praxis-graphlaw-wasm && wasm-pack build --target web --out-dir pkg --release
     @echo "just wasm-playground: built crates/praxis-graphlaw-wasm/pkg (consumed by playground/web via a file: dependency -- see playground/web/justfile)"
@@ -116,3 +99,27 @@ evidence:
 # CI-mode: validate the existing [evidence] block against receipt.json, writing nothing (what `dod`'s soft evidence-check calls)
 evidence-check:
     timeout 60s cicd-evidence-gen my-conforming-project 26.6.30 --receipt receipt.json --check
+
+# --- Chatman Engine v26.7.9 ---
+
+# Fast chatman verification: tests (incl. static gates) + diagram atlas
+chatman-verify:
+    if command -v cargo-nextest >/dev/null 2>&1; then \
+        timeout 600s cargo nextest run -p praxis-graphlaw -E 'test(chatman)'; \
+    else \
+        timeout 600s cargo test -p praxis-graphlaw chatman; \
+    fi
+    timeout 300s cargo test -p praxis-graphlaw --test chatman_static_gates
+    python3 docs/chatman-engine/diagrams/atlas/verify_atlas.py
+
+# Slow quality gates: mutation score, line coverage, dylint (requires cargo-mutants/llvm-cov/dylint)
+chatman-quality:
+    cargo mutants -p praxis-graphlaw --file 'src/chatman/*'
+    cargo llvm-cov nextest -p praxis-graphlaw --fail-under-lines 85
+    cargo dylint --all --workspace
+
+# Idempotence check: ggen sync twice must leave generated chatman paths unchanged
+chatman-sync-verify:
+    timeout 120s cargo run --quiet -p ggen --bin ggen -- sync run
+    timeout 120s cargo run --quiet -p ggen --bin ggen -- sync run
+    git diff --exit-code -- 'crates/praxis-graphlaw/src/chatman' 'docs/chatman-engine'

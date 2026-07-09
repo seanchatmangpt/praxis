@@ -3,6 +3,7 @@ pub mod aggregation;
 pub mod backwardchaining;
 pub mod bindings;
 pub mod builtins;
+pub mod chatman;
 pub mod csprite;
 pub mod datalog;
 pub mod decode;
@@ -392,7 +393,11 @@ impl TripleStore {
     pub fn load_triples(&mut self, data: &str, syntax: Syntax) -> Result<(), String> {
         match Parser::parse_triples(data, syntax) {
             Ok(triples) => {
-                triples.into_iter().for_each(|t| self.triple_index.add(t));
+                triples.into_iter().for_each(|t| {
+                    if !self.triple_index.contains(&t) {
+                        self.triple_index.add(t);
+                    }
+                });
                 if let Ok(extracted) = hooks::validate_and_extract_hooks(&self.triple_index.triples)
                 {
                     if let Ok(compiled) = hooks::compile_hooks(extracted) {

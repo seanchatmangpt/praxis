@@ -16,9 +16,9 @@ fn make_triple(s_iri: &str, p_iri: &str, o_iri: &str) -> Triple {
     let o_id = Encoder::add(o_iri.to_string());
 
     Triple {
-        s: VarOrTerm::from_iri(s_id),
-        p: VarOrTerm::from_iri(p_id),
-        o: VarOrTerm::from_iri(o_id),
+        s: VarOrTerm::new_encoded_term(s_id),
+        p: VarOrTerm::new_encoded_term(p_id),
+        o: VarOrTerm::new_encoded_term(o_id),
         g: None,
     }
 }
@@ -63,7 +63,7 @@ fn test_pattern4_same_as_equivalence() {
         "<http://example.org/b>",
     );
 
-    data.add(&triple);
+    data.add(triple);
 
     let result = canonicalize_equivalences(&data, &vocab);
     assert!(result.is_ok(), "Canonicalization should succeed");
@@ -88,7 +88,7 @@ fn test_pattern4_equivalent_class_equivalence() {
         "<http://example.org/ClassB>",
     );
 
-    data.add(&triple);
+    data.add(triple);
 
     let result = canonicalize_equivalences(&data, &vocab);
     assert!(result.is_ok(), "Canonicalization should succeed");
@@ -112,7 +112,7 @@ fn test_pattern4_equivalent_property_equivalence() {
         "<http://example.org/propB>",
     );
 
-    data.add(&triple);
+    data.add(triple);
 
     let result = canonicalize_equivalences(&data, &vocab);
     assert!(result.is_ok(), "Canonicalization should succeed");
@@ -130,12 +130,12 @@ fn test_pattern4_canonical_edges_sorted() {
     let vocab = praxis_graphlaw::shacl::Vocab::new();
 
     // Add multiple owl:sameAs triples
-    data.add_triple(&make_triple(
+    data.add(make_triple(
         "<http://example.org/a>",
         "<http://www.w3.org/2002/07/owl#sameAs>",
         "<http://example.org/b>",
     ));
-    data.add_triple(&make_triple(
+    data.add(make_triple(
         "<http://example.org/c>",
         "<http://www.w3.org/2002/07/owl#sameAs>",
         "<http://example.org/d>",
@@ -166,12 +166,12 @@ fn test_pattern4_transitive_equivalence() {
 
     // Create a chain: a owl:sameAs b, b owl:sameAs c
     // Should result in all three being in the same equivalence class
-    data.add_triple(&make_triple(
+    data.add(make_triple(
         "<http://example.org/a>",
         "<http://www.w3.org/2002/07/owl#sameAs>",
         "<http://example.org/b>",
     ));
-    data.add_triple(&make_triple(
+    data.add(make_triple(
         "<http://example.org/b>",
         "<http://www.w3.org/2002/07/owl#sameAs>",
         "<http://example.org/c>",
@@ -194,12 +194,12 @@ fn test_pattern4_determinism_five_runs() {
     let vocab = praxis_graphlaw::shacl::Vocab::new();
 
     // Add some equivalence triples
-    data.add_triple(&make_triple(
+    data.add(make_triple(
         "<http://example.org/x1>",
         "<http://www.w3.org/2002/07/owl#sameAs>",
         "<http://example.org/x2>",
     ));
-    data.add_triple(&make_triple(
+    data.add(make_triple(
         "<http://example.org/y1>",
         "<http://www.w3.org/2002/07/owl#equivalentClass>",
         "<http://example.org/y2>",

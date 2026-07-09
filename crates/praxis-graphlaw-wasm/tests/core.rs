@@ -21,7 +21,6 @@ use praxis_graphlaw_wasm::{
     core::{graph_hash_core, run_hooks_core, validate_all_core},
     dto::{HookRunResult, PlaygroundResult, Status},
 };
-use serde_json;
 
 // ============================================================================
 // Test 1: validate_all_core happy path
@@ -343,8 +342,7 @@ fn test_run_hooks_core_hook_not_fired() {
 /// Some systems cap the number of hooks. If limit is 12, 13 should refuse.
 ///
 /// Assertions:
-/// - result.status == Status::Refused (if limit exceeded)
-/// OR result.is_ok() with Status::Admitted (if limit is higher)
+/// - result.status == Status::Refused (if limit exceeded) or result.status == Status::Admitted (if limit is higher)
 #[test]
 fn test_run_hooks_core_13_hooks_refused() {
     // Create 13 unique hooks

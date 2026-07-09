@@ -1,0 +1,37 @@
+---
+to: "crates/praxis-graphlaw/tests/chatman_engine_acceptance/{{ fixture_path }}"
+force: true
+determinism: true
+sparql:
+  cases: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case_name ?fixture_path ?kind ?seed ?mutation ?expected_refusal ?expected_behavior ?input WHERE {
+      {
+        ?case a ceng:AcceptanceCase ;
+              ceng:testFixturePath ?fixture_path ;
+              ceng:caseSeed ?seed ;
+              ceng:inputJson ?input ;
+              ceng:expectedBehavior ?expected_behavior .
+        BIND("acceptance" AS ?kind)
+      } UNION {
+        ?case a ceng:FalsificationCase ;
+              ceng:testFixturePath ?fixture_path ;
+              ceng:caseSeed ?seed ;
+              ceng:inputJson ?input ;
+              ceng:falsificationMutation ?mutation ;
+              ceng:expectedRefusal ?refusal .
+        ?refusal ceng:rustVariant ?expected_refusal .
+        BIND("falsification" AS ?kind)
+      }
+      BIND(REPLACE(STR(?case), "^.*#", "") AS ?case_name)
+    } ORDER BY ?fixture_path
+---
+{
+  "case": "{{ case_name }}",
+  "kind": "{{ kind }}",
+  "seed": {{ seed | hex_to_u64 }}{% if kind == "falsification" %},
+  "mutation": "{{ mutation }}",
+  "expected_refusal": "{{ expected_refusal }}"{% else %},
+  "expected_behavior": "{{ expected_behavior }}"{% endif %},
+  "input": {{ input }}
+}

@@ -117,7 +117,8 @@ impl UnionFind {
     }
 
     /// Render the equivalence relation as a canonical sorted edge list.
-    /// PROJ-409 Canonical Rendering Rule: this is the ONLY form used for hashing.
+    /// PROJ-409 Canonical Rendering Rule: this is the intended canonical form
+    /// for future BLAKE3 hashing (PROJ-416); no hash consumer exists yet.
     ///
     /// Returns a sorted Vec<(u32, u32)> of (canonical_id, equivalent_id) pairs
     /// where canonical_id is the root representative.

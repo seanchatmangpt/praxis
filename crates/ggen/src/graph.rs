@@ -447,7 +447,9 @@ impl GraphEngine for GraphLawStore {
     fn materialize(&self) -> Result<MaterializeOutcome> {
         let mut state = self.law_state()?;
         let (mut ts, rules_loaded) = self.build_law_store(&state.rules_src)?;
-        let derived = ts.materialize();
+        let derived = ts
+            .materialize()
+            .map_err(|e| AppError::fm_law(9, format!("Reasoner materialize failed: {e}")))?;
         if let Some(refused_verdict) = ts.verdicts.iter().find(|v| {
             v.effect == praxis_graphlaw::hooks::EffectKind::Refuse
                 && v.verdict == praxis_graphlaw::hooks::HookVerdict::Fired
@@ -553,7 +555,8 @@ impl GraphEngine for GraphLawStore {
                 // reasoner state. Build one so `law validate` can be called
                 // without an explicit prior derive.
                 let (mut ts, _) = self.build_law_store(&state.rules_src)?;
-                ts.materialize();
+                ts.materialize()
+                    .map_err(|e| crate::AppError::fm_law(9, format!("Materialize failed: {e}")))?;
                 Ok(ts.check_denials())
             }
         }

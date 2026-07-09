@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 //! Comprehensive SHACL constraint and ShEx construct tests for WASM bridge.
 //!
 //! This file provides extensive coverage of:

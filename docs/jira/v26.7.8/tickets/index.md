@@ -16,6 +16,13 @@ v26.7.8 focuses on representation efficiency (interning, bitsets, fast hashes) a
 | 408 | [Compiled Delta Template IR](ticket_408_compiled_delta_template_ir.md) | TemplatePart/CompiledTripleTemplate/CompiledDeltaTemplate (replace runtime placeholder-string scanning with slot-lookup) | PROJ-403 | PLANNED |
 | 409 | [Bitset Closure Integration](ticket_409_bitset_closure_integration.md) | Audit dense-ID closure sites; if found, ClosureMatrix with FixedBitSet + canonical rendering rule | PROJ-401 | PLANNED |
 | 410 | [Canonical Standing Boundary Hardening](ticket_410_canonical_standing_boundary_hardening.md) | RuntimeState/StandingState separation, DiagnosticBuffer/CanonicalReceiptMaterial builders, Scratch arena, canonical-sort parallelism gate (docs-only) | PROJ-401, PROJ-406 | PLANNED |
+| 411 | [CE-ABI Boundary & Typed Refusals](PROJ-411.md) | Chatman Engine ABI envelopes (`src/chatman/abi.rs`), typed Refusal variants at the engine boundary | — | IN PROGRESS (workflow wf_255e0807) |
+| 412 | [Chatman Engine Dependency Chain](PROJ-412.md) | Absolute-path bcinr-pddl/bcinr-powl/bcinr-powl-receipt deps, upstream oxigraph 0.5.9, nightly-2026-06-22 | PROJ-411 | IN PROGRESS (workflow wf_255e0807) |
+| 413 | [ChatmanEngine Core Pipeline](PROJ-413.md) | `src/chatman/engine.rs` RDFState → OWLClosure → PDDLPlan → POWLAdmission → KnowledgeHook → Receipt | PROJ-411, PROJ-412 | IN PROGRESS (workflow wf_255e0807) |
+| 414 | [BLAKE3 Receipt Evidence](PROJ-414.md) | Canonical N-Quads receipt generation in `src/chatman/engine.rs`, no wall clock in receipt path | PROJ-413 | IN PROGRESS (workflow wf_255e0807) |
+| 415 | [Implement CompiledShape Compilation](PROJ-415.md) | Populate `CompiledShape` targets/constraints/property shapes/required-property mask in `shacl/model.rs`; resolve PropertyMask 64-property limit | PROJ-407 | OPEN |
+| 416 | [Wire Pattern-4 Canonical Renders to BLAKE3 Receipts](PROJ-416.md) | Give `canonicalize_equivalences`, `ClosureMatrix::render_canonical`, `SubclassClosure.dense_to_global`, `TripleIndexSnapshot`, `QueryResultIter` a receipt-hash consumer or gate behind `pattern4-canonical` | PROJ-409 | OPEN |
+| 417 | [Surface Status::HashMismatch in verify_replay](PROJ-417.md) | Full-pipeline replay comparison in `praxis-graphlaw-wasm` emitting `Status::HashMismatch` (dto.rs) instead of parse-only re-hash | — | OPEN |
 | 501 | [OWL RL Audit & Adaptation](ticket_501_owl_rl_audit.md) | Audit `reasonable` crate for OWL RL rule encoding, profile scanning, relation layout, diagnostics; hot/non-hot-path adaptation | PROJ-401 | PLANNED |
 | 502 | [ShEx/DCTAP Audit & Adaptation](ticket_502_shex_audit.md) | Audit `rudof` crate for ShEx/SHACL ASTs, shape maps, validation reports, conversions; hot/non-hot-path adaptation | PROJ-401 | PLANNED |
 | 503 | [SHACL Validation Audit & Adaptation](ticket_503_shacl_audit.md) | Audit `shacl`, `shacl_validation`, `oxirs-shacl` for test harness, validation traits, report rendering; SHACL-SPARQL boundary | PROJ-401 | PLANNED |
@@ -31,6 +38,9 @@ v26.7.8 focuses on representation efficiency (interning, bitsets, fast hashes) a
 ---
 
 ## Notes
+
+PROJ-411..414 are superseded-in-path-details by
+[docs/chatman-engine/DEFINITION_OF_DONE.md](../../../chatman-engine/DEFINITION_OF_DONE.md).
 
 **Phase 1 (Immediate, P0):**
 - PROJ-401: Quick-Win crates for symbol interning, bitsets, fast hashes, SmallVec, deterministic receipt surfaces (COMPLETE)

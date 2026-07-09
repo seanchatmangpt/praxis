@@ -59,6 +59,10 @@ Before submitting/finalizing, ensure you verify:
 - [ ] **Test coverage**: Line coverage ≥ 90% and branch coverage ≥ 85% on critical paths (hooks, rules, shapes, receipts).
 - [ ] **Errors**: Every new Refusal variant has ≥ 1 test; no `.ok()` swallowing errors.
 
+### C. Implementation & Test Generation
+- **No Boilerplate**: Every test file, implementation module, and architectural doc must contain explicit, distinct logic tailored to its specific invariants.
+- **No Script-Driven File Creation**: You cannot use automated shell/python scripts to bulk-create or bulk-populate files. They must be written and reasoned about explicitly by agents.
+
 ---
 
 ## 5. Post-Tool Hooks & Formatting

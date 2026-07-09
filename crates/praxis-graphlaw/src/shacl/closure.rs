@@ -108,9 +108,10 @@ impl SubclassClosure {
 /// Replaces HashMap<usize, HashSet<usize>> for better performance and
 /// memory density when closure cardinality is high (> 80% of ID space used).
 ///
-/// PROJ-409 Canonical Rendering Rule: Raw bitset memory is NEVER hashed.
-/// Only the sorted edge list (render_canonical() output) is used for BLAKE3
-/// hashing. This ensures platform-independence and determinism.
+/// PROJ-409 Canonical Rendering Rule: Raw bitset memory is never hashed.
+/// The sorted edge list (render_canonical() output) is the intended canonical
+/// form for future BLAKE3 hashing (PROJ-416); no hash consumer exists yet.
+/// This ensures platform-independence and determinism.
 #[derive(Debug, Clone)]
 pub struct ClosureMatrix {
     /// One bitset per row: matrix[from_id] contains all reachable nodes
@@ -182,8 +183,9 @@ impl ClosureMatrix {
     }
 
     /// Render the closure as a sorted list of edges for deterministic hashing.
-    /// PROJ-409 Canonical Rendering Rule: this is the ONLY form used for hashing,
-    /// never the raw bitset memory.
+    /// PROJ-409 Canonical Rendering Rule: this is the intended canonical form
+    /// for future BLAKE3 hashing (PROJ-416) — never the raw bitset memory.
+    /// No hash consumer exists yet.
     pub fn render_canonical(&self) -> Vec<(u32, u32)> {
         let mut edges = Vec::new();
         for (from_id, bitset) in self.matrix.iter().enumerate() {

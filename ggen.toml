@@ -16,6 +16,7 @@ law    = "http://seanchatmangpt.github.io/praxis/law#"
 [packs]
 wasm4pm-facts-pack = { path = "packs/wasm4pm-facts-pack" }
 standing-pack = { path = "../cargo-cicd/plugins/cargo-cicd-kit/standing-pack" }
+chatman-engine-pack = { path = "packs/chatman-engine-pack" }
 
 [law]
 rules = ["ontology/rules/breed_standing.n3"]

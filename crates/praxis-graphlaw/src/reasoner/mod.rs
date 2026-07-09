@@ -212,13 +212,15 @@ impl Reasoner {
             let mut stratum_start_counter = None;
             let mut changed = true;
 
-            let stratum_rollback_len = triple_index.len();
+            let mut stratum_rollback_len = triple_index.len();
             let stratum_rollback_inferred_len = inferred.len();
             let mut stratum_history: Vec<Vec<Triple>> = Vec::new();
+            let mut previous_round_hook_additions = Vec::new();
 
             while changed {
                 changed = false;
                 let next_start_counter = triple_index.len();
+                let mut current_round_hook_additions = Vec::new();
 
                 for rule in &stratum_rules {
                     if rule.is_denial() {
@@ -450,6 +452,7 @@ impl Reasoner {
                 } else {
                     Vec::new()
                 };
+                round_additions.extend(previous_round_hook_additions);
 
                 if first_hook_round {
                     first_hook_round = false;
@@ -729,7 +732,49 @@ impl Reasoner {
                                                     &mut inferred,
                                                 ) {
                                                     hook_changed = true;
-                                                    hook_additions.push(t);
+                                                    hook_additions.push(t.clone());
+                                                    current_round_hook_additions.push(t);
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    // Check for SPARQL CONSTRUCT query action
+                                    let query_pred =
+                                        "http://seanchatmangpt.github.io/praxis/kh#query";
+                                    let mut action_query = String::new();
+                                    for t in &triple_index.triples {
+                                        let s_str =
+                                            crate::encoding::Encoder::decode(&t.s.to_encoded())
+                                                .unwrap_or_default();
+                                        let p_str =
+                                            crate::encoding::Encoder::decode(&t.p.to_encoded())
+                                                .unwrap_or_default();
+                                        if clean_term(&s_str) == clean_term(action_iri)
+                                            && clean_term(&p_str) == query_pred
+                                        {
+                                            if let Some(s) =
+                                                crate::encoding::Encoder::decode(&t.o.to_encoded())
+                                            {
+                                                action_query = clean_term(&s).to_string();
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if !action_query.is_empty() {
+                                        if let Ok((adds, _dels)) = crate::hooks::evaluate_construct(
+                                            &action_query,
+                                            triple_index,
+                                        ) {
+                                            for t in adds {
+                                                if Self::apply_new_triple(
+                                                    t.clone(),
+                                                    triple_index,
+                                                    &mut inferred,
+                                                ) {
+                                                    hook_changed = true;
+                                                    hook_additions.push(t.clone());
+                                                    current_round_hook_additions.push(t);
                                                 }
                                             }
                                         }
@@ -740,6 +785,7 @@ impl Reasoner {
                             // Always generate receipt/verdict when hook fires, even if no additions
                             let mut delta_hash = None;
                             let mut idempotency_key = None;
+                            let mut verdict_pushed = false;
                             if !hook_additions.is_empty() {
                                 let lines = crate::hooks::canonicalize_quads(&hook_additions);
                                 let delta_quads = lines.join("\n");
@@ -760,31 +806,40 @@ impl Reasoner {
                                 receipts.push(receipt);
                                 delta_hash = Some(d_hash);
                                 idempotency_key = Some(i_key);
+                                verdict_pushed = true;
                             } else {
                                 // Hook fired but produced no additions (no kh:action or empty delta)
                                 // Still generate an empty receipt to track the firing
-                                let receipt = crate::hooks::HookReceipt {
-                                    hook_name: hook.name.clone(),
-                                    delta_hash: String::new(),
-                                    idempotency_key: String::new(),
-                                    delta_quads: String::new(),
-                                };
-                                receipts.push(receipt);
+                                if !receipts.iter().any(|r| r.hook_name == hook.name) {
+                                    let receipt = crate::hooks::HookReceipt {
+                                        hook_name: hook.name.clone(),
+                                        delta_hash: String::new(),
+                                        idempotency_key: String::new(),
+                                        delta_quads: String::new(),
+                                    };
+                                    receipts.push(receipt);
+                                    verdict_pushed = true;
+                                }
                             }
 
-                            verdicts.push(crate::hooks::HookVerdictRecord {
-                                hook_id: hook.id,
-                                hook_iri: hook.iri.clone(),
-                                hook_name: hook.name.clone(),
-                                condition_kind: hook.condition.kind().to_string(),
-                                condition_hash: hook.condition.condition_hash().unwrap_or_default(),
-                                verdict: crate::hooks::HookVerdict::Fired,
-                                effect: hook.effect.clone(),
-                                action_iri: hook.action.clone(),
-                                diagnostics: None,
-                                delta_hash,
-                                idempotency_key,
-                            });
+                            if verdict_pushed {
+                                verdicts.push(crate::hooks::HookVerdictRecord {
+                                    hook_id: hook.id,
+                                    hook_iri: hook.iri.clone(),
+                                    hook_name: hook.name.clone(),
+                                    condition_kind: hook.condition.kind().to_string(),
+                                    condition_hash: hook
+                                        .condition
+                                        .condition_hash()
+                                        .unwrap_or_default(),
+                                    verdict: crate::hooks::HookVerdict::Fired,
+                                    effect: hook.effect.clone(),
+                                    action_iri: hook.action.clone(),
+                                    diagnostics: None,
+                                    delta_hash,
+                                    idempotency_key,
+                                });
+                            }
                         }
                     }
                 }
@@ -793,6 +848,7 @@ impl Reasoner {
                     changed = true;
                 }
 
+                previous_round_hook_additions = current_round_hook_additions;
                 stratum_history.push(round_additions);
                 stratum_start_counter = Some(next_start_counter);
             }

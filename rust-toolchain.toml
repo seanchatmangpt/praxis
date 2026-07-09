@@ -5,7 +5,9 @@
 # something. Crates that genuinely need `#![feature(...)]` (e.g. specgen /
 # certain WASM crates) may override this file with `channel = "nightly-YYYY-MM-DD"`
 # (pinned, never bare "nightly").
+#
+# nightly-2026-06-22 matches the wasm4pm-compat pin.
 [toolchain]
-channel = "nightly-2026-04-15"
+channel = "nightly-2026-06-22"
 components = ["rustfmt", "clippy", "llvm-tools-preview"]
 profile = "minimal"

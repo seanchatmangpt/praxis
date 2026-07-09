@@ -132,13 +132,13 @@ fn test_ontology_corpus_comprehensive() {
                 continue;
             }
 
-            let mut store = crate::TripleStore::new();
-            for triple in triples {
+            let mut store = praxis_graphlaw::TripleStore::new();
+            for triple in triples.clone() {
                 store.add(triple);
             }
 
             match store.materialize_owlrl() {
-                Ok(()) => {
+                Ok(_) => {
                     let derived_count = store.len() as u64 - triples.len() as u64;
                     total_derived += derived_count;
                     let derived_pct = if triples.is_empty() {

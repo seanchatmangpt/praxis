@@ -237,6 +237,7 @@ pub fn build_tera(graph: Arc<dyn GraphEngine>) -> Tera {
     tera.register_filter("title_case", title_case_filter);
     tera.register_filter("pluralize", pluralize_filter);
     tera.register_filter("singularize", singularize_filter);
+    tera.register_filter("hex_to_u64", hex_to_u64_filter);
     tera
 }
 
@@ -335,6 +336,26 @@ fn sparql_empty_fn(args: &HashMap<String, Value>) -> tera::Result<Value> {
 fn sparql_count_fn(args: &HashMap<String, Value>) -> tera::Result<Value> {
     let rows = rows_arg(args, "sparql_count")?;
     Ok(Value::Number(rows.len().into()))
+}
+
+/// `hex_to_u64` filter: `"0x560b48233d2e635f"` (or `"560b48233d2e635f"`,
+/// case-insensitive, optional `0x` prefix) → the JSON number `6197033906917782879`.
+///
+/// For emitting hex-encoded ontology literals (e.g. `ceng:caseSeed`) as a
+/// plain integer where the consuming Rust type is numeric (`u64`), not a
+/// string — the template layer converts once here instead of asking every
+/// numeric-seed consumer to accept a hex-string encoding.
+fn hex_to_u64_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Value> {
+    let s = value
+        .as_str()
+        .ok_or_else(|| tera::Error::msg("hex_to_u64 filter requires a string"))?;
+    let trimmed = s
+        .strip_prefix("0x")
+        .or_else(|| s.strip_prefix("0X"))
+        .unwrap_or(s);
+    let n = u64::from_str_radix(trimmed, 16)
+        .map_err(|e| tera::Error::msg(format!("hex_to_u64: {s:?} is not valid hex: {e}")))?;
+    Ok(Value::Number(n.into()))
 }
 
 /// `snake_case` filter: `FooBar`, `foo-bar`, `foo bar` → `foo_bar`.

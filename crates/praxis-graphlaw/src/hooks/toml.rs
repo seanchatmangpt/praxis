@@ -2,7 +2,7 @@
 
 /// Parse a minimal TOML document for HookPack metadata.
 /// Expected format:
-/// ```
+/// ```text
 /// [pack]
 /// name = "pack name"
 /// version = "1.0.0"

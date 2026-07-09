@@ -1,0 +1,1310 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+@prefix ceng: <https://praxis.chatman.io/ontology/ceng#> .
+@prefix ggen: <https://praxis.chatman.io/ontology/ggen#> .
+
+#################################################################
+# Ontology Declaration
+#################################################################
+
+ceng:ChatmanEngineOntology a owl:Ontology ;
+    rdfs:label "Chatman Engine Semantic Architecture"@en ;
+    rdfs:comment "A governed process CPU that preserves RDF authority while lowering admitted bounded work into deterministic execution surfaces."@en .
+
+#################################################################
+# Core Classes
+#################################################################
+
+ceng:Component a owl:Class ;
+    rdfs:label "Component"@en .
+
+ceng:ExecutionRoute a owl:Class ;
+    rdfs:label "Execution Route"@en .
+
+ceng:Dialect a owl:Class ;
+    rdfs:label "Semantic Dialect"@en .
+
+ceng:Crate a owl:Class ;
+    rdfs:label "Rust Crate"@en .
+
+ceng:CanonicalType a owl:Class ;
+    rdfs:label "Canonical Type"@en .
+
+ceng:GeneratedArtifact a owl:Class ;
+    rdfs:label "Generated Artifact"@en .
+
+ceng:GenerationDirective a owl:Class ;
+    rdfs:label "Generation Directive"@en .
+
+ceng:AcceptanceCase a owl:Class ;
+    rdfs:label "Acceptance Case"@en .
+
+ceng:FalsificationCase a owl:Class ;
+    rdfs:label "Falsification Case"@en .
+
+ceng:Refusal a owl:Class ;
+    rdfs:label "Typed Refusal"@en .
+
+ceng:Invariant a owl:Class ;
+    rdfs:label "Invariant"@en .
+
+ceng:ProjectionLens a owl:Class ;
+    rdfs:label "Projection Lens"@en .
+
+ceng:BoundaryRequest a owl:Class ;
+    rdfs:label "Boundary Request"@en .
+
+ceng:ActuationAttempt a owl:Class ;
+    rdfs:label "Actuation Attempt"@en .
+
+ceng:ReceiptEnvelope a owl:Class ;
+    rdfs:label "Receipt Envelope"@en .
+
+ceng:ForbiddenCapability a owl:Class ;
+    rdfs:label "Forbidden Capability"@en .
+
+ceng:LifecycleStage a owl:Class ;
+    rdfs:label "Lifecycle Stage"@en .
+
+ceng:RouteDecision a owl:Class ;
+    rdfs:label "Route Decision"@en .
+
+ceng:FixtureSchema a owl:Class ;
+    rdfs:label "Fixture Schema"@en .
+
+ceng:TestHarness a owl:Class ;
+    rdfs:label "Test Harness"@en .
+
+ceng:PropertyTest a owl:Class ;
+    rdfs:label "Property Test"@en .
+
+ceng:MetamorphicTest a owl:Class ;
+    rdfs:label "Metamorphic Test"@en .
+
+#################################################################
+# ggen Classes
+#################################################################
+
+ggen:Template a owl:Class ;
+    rdfs:label "ggen Template"@en .
+
+ggen:OutputFile a owl:Class ;
+    rdfs:label "ggen Output File"@en .
+
+ggen:Fixture a owl:Class ;
+    rdfs:label "ggen Fixture"@en .
+
+ggen:GeneratorRun a owl:Class ;
+    rdfs:label "ggen Generator Run"@en .
+
+#################################################################
+# Core Object Properties
+#################################################################
+
+ceng:executesIn a owl:ObjectProperty ;
+    rdfs:label "executes in"@en .
+
+ceng:routesWorkloadTo a owl:ObjectProperty ;
+    rdfs:label "routes workload to"@en .
+
+ceng:ownedBy a owl:ObjectProperty ;
+    rdfs:label "owned by"@en .
+
+ceng:wrapsCanonicalType a owl:ObjectProperty ;
+    rdfs:label "wraps canonical type"@en .
+
+ceng:bridgesCanonicalType a owl:ObjectProperty ;
+    rdfs:label "bridges canonical type"@en .
+
+ceng:forbidsDefinitionOf a owl:ObjectProperty ;
+    rdfs:label "forbids definition of"@en .
+
+ceng:forbidsCapability a owl:ObjectProperty ;
+    rdfs:label "forbids capability"@en .
+
+ceng:requiresReceipt a owl:ObjectProperty ;
+    rdfs:label "requires receipt"@en .
+
+ceng:expectedRefusal a owl:ObjectProperty ;
+    rdfs:label "expected refusal"@en .
+
+ceng:protectsInvariant a owl:ObjectProperty ;
+    rdfs:label "protects invariant"@en .
+
+ceng:violatesInvariant a owl:ObjectProperty ;
+    rdfs:label "violates invariant"@en .
+
+ceng:generatesArtifact a owl:ObjectProperty ;
+    rdfs:label "generates artifact"@en .
+
+ceng:targetCrate a owl:ObjectProperty ;
+    rdfs:label "target crate"@en .
+
+ceng:usesFixtureSchema a owl:ObjectProperty ;
+    rdfs:label "uses fixture schema"@en .
+
+ceng:usesProjectionLens a owl:ObjectProperty ;
+    rdfs:label "uses projection lens"@en .
+
+ceng:nextStage a owl:ObjectProperty ;
+    rdfs:label "next stage"@en .
+
+ceng:precedesStage a owl:ObjectProperty ;
+    rdfs:label "precedes stage"@en .
+
+ceng:mustRefuse a owl:ObjectProperty ;
+    rdfs:label "must refuse"@en .
+
+ceng:mustAdmit a owl:ObjectProperty ;
+    rdfs:label "must admit"@en .
+
+ceng:hasSuccessCase a owl:ObjectProperty ;
+    rdfs:label "has success case"@en .
+
+ceng:hasFalsificationCase a owl:ObjectProperty ;
+    rdfs:label "has falsification case"@en .
+
+ceng:hasPropertyTest a owl:ObjectProperty ;
+    rdfs:label "has property test"@en .
+
+ceng:hasMetamorphicTest a owl:ObjectProperty ;
+    rdfs:label "has metamorphic test"@en .
+
+ggen:usesTemplate a owl:ObjectProperty ;
+    rdfs:label "uses template"@en .
+
+ggen:writesFile a owl:ObjectProperty ;
+    rdfs:label "writes file"@en .
+
+ggen:loadsFixture a owl:ObjectProperty ;
+    rdfs:label "loads fixture"@en .
+
+ggen:manufacturesFrom a owl:ObjectProperty ;
+    rdfs:label "manufactures from"@en .
+
+#################################################################
+# Core Datatype Properties
+#################################################################
+
+ceng:maxConstraints a owl:DatatypeProperty ;
+    rdfs:label "max constraints"@en ;
+    rdfs:range xsd:integer .
+
+ceng:defaultEnabled a owl:DatatypeProperty ;
+    rdfs:label "default enabled"@en ;
+    rdfs:range xsd:boolean .
+
+ceng:mayActuate a owl:DatatypeProperty ;
+    rdfs:label "may actuate"@en ;
+    rdfs:range xsd:boolean .
+
+ceng:crateName a owl:DatatypeProperty ;
+    rdfs:label "crate name"@en ;
+    rdfs:range xsd:string .
+
+ceng:modulePath a owl:DatatypeProperty ;
+    rdfs:label "module path"@en ;
+    rdfs:range xsd:string .
+
+ceng:filePath a owl:DatatypeProperty ;
+    rdfs:label "file path"@en ;
+    rdfs:range xsd:string .
+
+ceng:testFixturePath a owl:DatatypeProperty ;
+    rdfs:label "test fixture path"@en ;
+    rdfs:range xsd:string .
+
+ceng:schemaPath a owl:DatatypeProperty ;
+    rdfs:label "schema path"@en ;
+    rdfs:range xsd:string .
+
+ceng:rustPath a owl:DatatypeProperty ;
+    rdfs:label "Rust path"@en ;
+    rdfs:range xsd:string .
+
+ceng:rustVariant a owl:DatatypeProperty ;
+    rdfs:label "Rust variant"@en ;
+    rdfs:range xsd:string .
+
+ceng:mayDuplicate a owl:DatatypeProperty ;
+    rdfs:label "may duplicate"@en ;
+    rdfs:range xsd:boolean .
+
+ceng:wrapperAllowed a owl:DatatypeProperty ;
+    rdfs:label "wrapper allowed"@en ;
+    rdfs:range xsd:boolean .
+
+ceng:adapterAllowed a owl:DatatypeProperty ;
+    rdfs:label "adapter allowed"@en ;
+    rdfs:range xsd:boolean .
+
+ceng:expectedBehavior a owl:DatatypeProperty ;
+    rdfs:label "expected behavior"@en ;
+    rdfs:range xsd:string .
+
+ceng:antiHardcodeProperty a owl:DatatypeProperty ;
+    rdfs:label "anti-hardcode property"@en ;
+    rdfs:range xsd:string .
+
+ceng:falsificationMutation a owl:DatatypeProperty ;
+    rdfs:label "falsification mutation"@en ;
+    rdfs:range xsd:string .
+
+ceng:generatedDataStrategy a owl:DatatypeProperty ;
+    rdfs:label "generated data strategy"@en ;
+    rdfs:range xsd:string .
+
+ceng:expectedRoute a owl:DatatypeProperty ;
+    rdfs:label "expected route"@en ;
+    rdfs:range xsd:string .
+
+ceng:expectedExitCode a owl:DatatypeProperty ;
+    rdfs:label "expected exit code"@en ;
+    rdfs:range xsd:integer .
+
+ceng:status a owl:DatatypeProperty ;
+    rdfs:label "status"@en ;
+    rdfs:range xsd:string .
+
+#################################################################
+# Projection Lenses
+#################################################################
+
+ceng:SemanticAuthority a ceng:ProjectionLens ;
+    rdfs:label "Lens 1 — Semantic Authority"@en ;
+    rdfs:comment "Preserves RDF/Oxigraph as source of truth and forbids semantic shadow copies."@en .
+
+ceng:RoutingConstitution a ceng:ProjectionLens ;
+    rdfs:label "Lens 2 — Routing Constitution"@en ;
+    rdfs:comment "Preserves least-expressive-power routing across hot, warm, and cold paths."@en .
+
+ceng:TypeKernelOwnership a ceng:ProjectionLens ;
+    rdfs:label "Lens 3 — Type Kernel Ownership"@en ;
+    rdfs:comment "Preserves canonical type ownership and prevents duplicate constitutional types."@en .
+
+ceng:TransitionLifecycle a ceng:ProjectionLens ;
+    rdfs:label "Lens 4 — Transition Lifecycle"@en ;
+    rdfs:comment "Preserves invocation-to-replay lifecycle admissibility."@en .
+
+ceng:EventHookActuation a ceng:ProjectionLens ;
+    rdfs:label "Lens 5 — Event / Hook / Actuation"@en ;
+    rdfs:comment "Preserves OCEL event ingestion, Knowledge Hook matching, and receipted boundary actuation."@en .
+
+ceng:HotPathPerformance a ceng:ProjectionLens ;
+    rdfs:label "Lens 6 — Performance / 8-Constraint Hot Path"@en ;
+    rdfs:comment "Preserves RDFTriple8, ConditionCell, 256-state tables, and branchless admission."@en .
+
+ceng:RefusalGovernance a ceng:ProjectionLens ;
+    rdfs:label "Lens 7 — Refusal / Risk / Governance"@en ;
+    rdfs:comment "Preserves typed refusal taxonomy, N3 quarantine, profile denial, and board governance."@en .
+
+ceng:TpsDflssContinuousImprovement a ceng:ProjectionLens ;
+    rdfs:label "Lens 8 — TPS / DfLSS / Continuous Improvement"@en ;
+    rdfs:comment "Preserves flow, waste removal, CTQ mapping, falsification, benchmark feedback, and kaizen loops."@en .
+
+#################################################################
+# Execution Routes
+#################################################################
+
+ceng:HotPath a ceng:ExecutionRoute ;
+    rdfs:label "Hot Path"@en ;
+    rdfs:comment "O(1) bounded local admission route for no more than eight local constraints."@en ;
+    ceng:maxConstraints 8 .
+
+ceng:WarmPath a ceng:ExecutionRoute ;
+    rdfs:label "Warm Path"@en ;
+    rdfs:comment "Structured graph, validation, derivation, planning, workflow, and event route."@en .
+
+ceng:ColdPath a ceng:ExecutionRoute ;
+    rdfs:label "Cold Path"@en ;
+    rdfs:comment "Permissioned expressive route for bounded N3 or external engines."@en .
+
+#################################################################
+# Dialects
+#################################################################
+
+ceng:RDFTriple8 a ceng:Dialect ;
+    rdfs:label "RDFTriple8"@en ;
+    rdfs:comment "Profile-local hot-path RDF projection. It is not semantic authority."@en ;
+    ceng:executesIn ceng:HotPath ;
+    ceng:defaultEnabled true ;
+    ceng:mayActuate false .
+
+ceng:BitMaskAdmission a ceng:Dialect ;
+    rdfs:label "Bit Mask Admission"@en ;
+    rdfs:comment "Byte-mask and table-based admission over bounded local constraints."@en ;
+    ceng:executesIn ceng:HotPath ;
+    ceng:defaultEnabled true ;
+    ceng:mayActuate false .
+
+ceng:SHACL a ceng:Dialect ;
+    rdfs:label "SHACL"@en ;
+    ceng:executesIn ceng:WarmPath ;
+    ceng:defaultEnabled true ;
+    ceng:mayActuate false .
+
+ceng:ShEx a ceng:Dialect ;
+    rdfs:label "ShEx"@en ;
+    ceng:executesIn ceng:WarmPath ;
+    ceng:defaultEnabled true ;
+    ceng:mayActuate false .
+
+ceng:SPARQL a ceng:Dialect ;
+    rdfs:label "SPARQL"@en ;
+    ceng:executesIn ceng:WarmPath ;
+    ceng:defaultEnabled true ;
+    ceng:mayActuate false .
+
+ceng:OwlRl a ceng:Dialect ;
+    rdfs:label "OWL-RL"@en ;
+    ceng:executesIn ceng:WarmPath ;
+    ceng:defaultEnabled true ;
+    ceng:mayActuate false .
+
+ceng:Datalog a ceng:Dialect ;
+    rdfs:label "Datalog"@en ;
+    ceng:executesIn ceng:WarmPath ;
+    ceng:defaultEnabled true ;
+    ceng:mayActuate false .
+
+ceng:PDDL a ceng:Dialect ;
+    rdfs:label "PDDL"@en ;
+    rdfs:comment "Feasibility planning dialect. It cannot actuate directly."@en ;
+    ceng:executesIn ceng:WarmPath ;
+    ceng:defaultEnabled true ;
+    ceng:mayActuate false .
+
+ceng:POWL a ceng:Dialect ;
+    rdfs:label "POWL"@en ;
+    rdfs:comment "Workflow legality dialect. It admits or refuses traces but cannot actuate directly."@en ;
+    ceng:executesIn ceng:WarmPath ;
+    ceng:defaultEnabled true ;
+    ceng:mayActuate false .
+
+ceng:OCEL a ceng:Dialect ;
+    rdfs:label "OCEL"@en ;
+    rdfs:comment "Object-centric event log representation used as observed execution material."@en ;
+    ceng:executesIn ceng:WarmPath ;
+    ceng:defaultEnabled true ;
+    ceng:mayActuate false .
+
+ceng:N3 a ceng:Dialect ;
+    rdfs:label "N3"@en ;
+    rdfs:comment "Cold-path expressive dialect. Disabled by default. No direct actuation."@en ;
+    ceng:executesIn ceng:ColdPath ;
+    ceng:defaultEnabled false ;
+    ceng:mayActuate false .
+
+#################################################################
+# Forbidden Capabilities
+#################################################################
+
+ceng:DefaultEnablement a ceng:ForbiddenCapability ;
+    rdfs:label "Default enablement"@en .
+
+ceng:DirectActuation a ceng:ForbiddenCapability ;
+    rdfs:label "Direct actuation"@en .
+
+ceng:AgentProfileOverride a ceng:ForbiddenCapability ;
+    rdfs:label "Agent profile override"@en .
+
+ceng:SemanticShadowCopy a ceng:ForbiddenCapability ;
+    rdfs:label "Semantic shadow copy"@en .
+
+ceng:UntypedPanic a ceng:ForbiddenCapability ;
+    rdfs:label "Untyped panic"@en .
+
+ceng:SilentFallback a ceng:ForbiddenCapability ;
+    rdfs:label "Silent fallback"@en .
+
+ceng:ColdPath ceng:forbidsCapability ceng:DefaultEnablement .
+ceng:N3 ceng:forbidsCapability ceng:DefaultEnablement, ceng:DirectActuation .
+ceng:DialectRouter ceng:forbidsCapability ceng:UntypedPanic, ceng:SilentFallback .
+ceng:RDFTriple8 ceng:forbidsCapability ceng:SemanticShadowCopy .
+
+#################################################################
+# Crates
+#################################################################
+
+ceng:Wasm4pmCompat a ceng:Crate ;
+    rdfs:label "wasm4pm-compat"@en ;
+    ceng:crateName "wasm4pm-compat" .
+
+ceng:Wasm4pmCognition a ceng:Crate ;
+    rdfs:label "wasm4pm-cognition"@en ;
+    ceng:crateName "wasm4pm-cognition" .
+
+ceng:BcinrPddl a ceng:Crate ;
+    rdfs:label "bcinr-pddl"@en ;
+    ceng:crateName "bcinr-pddl" .
+
+ceng:BcinrPowl a ceng:Crate ;
+    rdfs:label "bcinr-powl"@en ;
+    ceng:crateName "bcinr-powl" .
+
+ceng:PraxisGraphlaw a ceng:Crate ;
+    rdfs:label "praxis-graphlaw"@en ;
+    ceng:crateName "praxis-graphlaw" .
+
+#################################################################
+# Canonical Type Ownership
+#################################################################
+
+ceng:ProcessReceipt a ceng:CanonicalType ;
+    rdfs:label "ProcessReceipt"@en ;
+    ceng:ownedBy ceng:Wasm4pmCompat ;
+    ceng:rustPath "wasm4pm_compat::receipt::ProcessReceipt" ;
+    ceng:mayDuplicate false ;
+    ceng:wrapperAllowed true ;
+    ceng:adapterAllowed true .
+
+ceng:Pddl8Tape a ceng:CanonicalType ;
+    rdfs:label "Pddl8Tape"@en ;
+    ceng:ownedBy ceng:BcinrPddl ;
+    ceng:rustPath "bcinr_pddl::Pddl8Tape" ;
+    ceng:mayDuplicate false ;
+    ceng:wrapperAllowed true ;
+    ceng:adapterAllowed true .
+
+ceng:PowlTape a ceng:CanonicalType ;
+    rdfs:label "PowlTape"@en ;
+    ceng:ownedBy ceng:BcinrPowl ;
+    ceng:rustPath "bcinr_powl::tape::v2::PowlTape" ;
+    ceng:mayDuplicate false ;
+    ceng:wrapperAllowed true ;
+    ceng:adapterAllowed true .
+
+ceng:OcelEvent a ceng:CanonicalType ;
+    rdfs:label "OcelEvent"@en ;
+    ceng:ownedBy ceng:Wasm4pmCompat ;
+    ceng:rustPath "wasm4pm_compat::ocel::OcelEvent" ;
+    ceng:mayDuplicate false ;
+    ceng:wrapperAllowed true ;
+    ceng:adapterAllowed true .
+
+ceng:PowlModel a ceng:CanonicalType ;
+    rdfs:label "Powl"@en ;
+    ceng:ownedBy ceng:Wasm4pmCompat ;
+    ceng:rustPath "wasm4pm_compat::powl::Powl" ;
+    ceng:mayDuplicate false ;
+    ceng:wrapperAllowed true ;
+    ceng:adapterAllowed true .
+
+ceng:DfgModel a ceng:CanonicalType ;
+    rdfs:label "Dfg"@en ;
+    ceng:ownedBy ceng:Wasm4pmCompat ;
+    ceng:rustPath "wasm4pm_compat::dfg::Dfg" ;
+    ceng:mayDuplicate false ;
+    ceng:wrapperAllowed true ;
+    ceng:adapterAllowed true .
+
+ceng:WfNetModel a ceng:CanonicalType ;
+    rdfs:label "WfNet"@en ;
+    ceng:ownedBy ceng:Wasm4pmCompat ;
+    ceng:rustPath "wasm4pm_compat::petri::WfNet" ;
+    ceng:mayDuplicate false ;
+    ceng:wrapperAllowed true ;
+    ceng:adapterAllowed true .
+
+ceng:CausalChain a ceng:CanonicalType ;
+    rdfs:label "CausalChain"@en ;
+    ceng:ownedBy ceng:Wasm4pmCompat ;
+    ceng:rustPath "wasm4pm_compat::causality::CausalChain" ;
+    ceng:mayDuplicate false ;
+    ceng:wrapperAllowed true ;
+    ceng:adapterAllowed true .
+
+ceng:ConditionCell a ceng:CanonicalType ;
+    rdfs:label "ConditionCell<BITS>"@en ;
+    ceng:ownedBy ceng:Wasm4pmCompat ;
+    ceng:rustPath "wasm4pm_compat::law::ConditionCell" ;
+    ceng:mayDuplicate false ;
+    ceng:wrapperAllowed true ;
+    ceng:adapterAllowed true .
+
+#################################################################
+# Components
+#################################################################
+
+ceng:OxigraphStore a ceng:Component ;
+    rdfs:label "Oxigraph RDF Store"@en ;
+    rdfs:comment "The semantic source of truth for admitted graph state."@en ;
+    ceng:usesProjectionLens ceng:SemanticAuthority .
+
+ceng:DialectRouter a ceng:Component ;
+    rdfs:label "Dialect Router"@en ;
+    rdfs:comment "Routes workloads by least expressive admitted power."@en ;
+    ceng:routesWorkloadTo ceng:HotPath, ceng:WarmPath, ceng:ColdPath ;
+    ceng:usesProjectionLens ceng:RoutingConstitution .
+
+ceng:ReceiptEnvelope a ceng:Component ;
+    rdfs:label "Receipt Envelope"@en ;
+    rdfs:comment "Graphlaw-owned envelope that references canonical receipt material without redefining ProcessReceipt."@en ;
+    ceng:wrapsCanonicalType ceng:ProcessReceipt ;
+    ceng:forbidsDefinitionOf ceng:ProcessReceipt ;
+    ceng:usesProjectionLens ceng:TypeKernelOwnership .
+
+ceng:TapeBridge a ceng:Component ;
+    rdfs:label "Tape Bridge"@en ;
+    rdfs:comment "Orchestration bridge over canonical planning and workflow tapes."@en ;
+    ceng:wrapsCanonicalType ceng:Pddl8Tape, ceng:PowlTape ;
+    ceng:forbidsDefinitionOf ceng:Pddl8Tape, ceng:PowlTape ;
+    ceng:usesProjectionLens ceng:TypeKernelOwnership .
+
+ceng:OcelIngestion a ceng:Component ;
+    rdfs:label "OCEL Ingestion"@en ;
+    ceng:wrapsCanonicalType ceng:OcelEvent ;
+    ceng:forbidsDefinitionOf ceng:OcelEvent ;
+    ceng:usesProjectionLens ceng:EventHookActuation .
+
+ceng:KnowledgeHookBoundary a ceng:Component ;
+    rdfs:label "Knowledge Hook Boundary"@en ;
+    rdfs:comment "Matches admitted graph/event constellations and emits boundary requests only under receipt control."@en ;
+    ceng:usesProjectionLens ceng:EventHookActuation .
+
+ceng:AgentWitnessBoundary a ceng:Component ;
+    rdfs:label "Agent Witness Boundary"@en ;
+    rdfs:comment "Constrains agents and LLMs as governed witnesses/operators, not authorities."@en ;
+    ceng:usesProjectionLens ceng:RefusalGovernance .
+
+ceng:TelemetryCollector a ceng:Component ;
+    rdfs:label "Benchmark Telemetry Collector"@en ;
+    ceng:usesProjectionLens ceng:TpsDflssContinuousImprovement .
+
+ceng:KaizenLoop a ceng:Component ;
+    rdfs:label "Kaizen Optimization Loop"@en ;
+    ceng:usesProjectionLens ceng:TpsDflssContinuousImprovement .
+
+#################################################################
+# Lifecycle Stages
+#################################################################
+
+ceng:InvocationStage a ceng:LifecycleStage ;
+    rdfs:label "Invocation"@en .
+
+ceng:ValidationStage a ceng:LifecycleStage ;
+    rdfs:label "Validation"@en .
+
+ceng:PlanningStage a ceng:LifecycleStage ;
+    rdfs:label "Planning"@en .
+
+ceng:WorkflowAdmissionStage a ceng:LifecycleStage ;
+    rdfs:label "Workflow Admission"@en .
+
+ceng:HookBoundaryStage a ceng:LifecycleStage ;
+    rdfs:label "Hook Boundary"@en .
+
+ceng:ReceiptingStage a ceng:LifecycleStage ;
+    rdfs:label "Receipting"@en .
+
+ceng:ReplayStage a ceng:LifecycleStage ;
+    rdfs:label "Replay"@en .
+
+ceng:InvocationStage ceng:nextStage ceng:ValidationStage .
+ceng:ValidationStage ceng:nextStage ceng:PlanningStage .
+ceng:PlanningStage ceng:nextStage ceng:WorkflowAdmissionStage .
+ceng:WorkflowAdmissionStage ceng:nextStage ceng:HookBoundaryStage .
+ceng:HookBoundaryStage ceng:nextStage ceng:ReceiptingStage .
+ceng:ReceiptingStage ceng:nextStage ceng:ReplayStage .
+
+#################################################################
+# Invariants
+#################################################################
+
+ceng:NoReceiptShadowType a ceng:Invariant ;
+    rdfs:label "No receipt shadow type"@en ;
+    rdfs:comment "praxis-graphlaw must not define a standalone ProcessReceipt."@en ;
+    ceng:usesProjectionLens ceng:TypeKernelOwnership .
+
+ceng:RDFTriple8ProjectionOnly a ceng:Invariant ;
+    rdfs:label "RDFTriple8 is projection only"@en ;
+    rdfs:comment "RDFTriple8 may accelerate admitted local checks but cannot replace RDF/Oxigraph authority."@en ;
+    ceng:usesProjectionLens ceng:SemanticAuthority, ceng:HotPathPerformance .
+
+ceng:NoDefaultN3 a ceng:Invariant ;
+    rdfs:label "N3 disabled by default"@en ;
+    ceng:usesProjectionLens ceng:RoutingConstitution, ceng:RefusalGovernance .
+
+ceng:NoUnreceiptedActuation a ceng:Invariant ;
+    rdfs:label "No unreceipted actuation"@en ;
+    ceng:usesProjectionLens ceng:EventHookActuation, ceng:RefusalGovernance .
+
+ceng:AgentCannotOverrideProfile a ceng:Invariant ;
+    rdfs:label "Agent cannot override profile"@en ;
+    ceng:usesProjectionLens ceng:RefusalGovernance .
+
+ceng:NoSilentFallback a ceng:Invariant ;
+    rdfs:label "No silent fallback"@en ;
+    ceng:usesProjectionLens ceng:RoutingConstitution, ceng:RefusalGovernance .
+
+ceng:NoDuplicateCanonicalTypes a ceng:Invariant ;
+    rdfs:label "No duplicate canonical types"@en ;
+    ceng:usesProjectionLens ceng:TypeKernelOwnership .
+
+ceng:AdmissionTableHas256States a ceng:Invariant ;
+    rdfs:label "Admission table has 256 states"@en ;
+    ceng:usesProjectionLens ceng:HotPathPerformance .
+
+ceng:ReplayIsInputSpecific a ceng:Invariant ;
+    rdfs:label "Replay is input-specific"@en ;
+    ceng:usesProjectionLens ceng:TransitionLifecycle, ceng:RefusalGovernance .
+
+ceng:DistinctInputsProduceDistinctReceipts a ceng:Invariant ;
+    rdfs:label "Distinct inputs produce distinct receipts"@en ;
+    ceng:usesProjectionLens ceng:TransitionLifecycle, ceng:TpsDflssContinuousImprovement .
+
+#################################################################
+# Refusals
+#################################################################
+
+ceng:ProcessReceiptShadowType a ceng:Refusal ;
+    rdfs:label "Process receipt shadow type"@en ;
+    rdfs:comment "Raised when praxis-graphlaw defines a standalone ProcessReceipt instead of wrapping canonical receipt material."@en ;
+    ceng:rustVariant "ProcessReceiptShadowType" .
+
+ceng:Triple8UniverseOverflow a ceng:Refusal ;
+    rdfs:label "Triple8 universe overflow"@en ;
+    ceng:rustVariant "Triple8UniverseOverflow" .
+
+ceng:TermNotInTriple8Universe a ceng:Refusal ;
+    rdfs:label "Term not in Triple8 universe"@en ;
+    ceng:rustVariant "TermNotInTriple8Universe" .
+
+ceng:WarmPathRequired a ceng:Refusal ;
+    rdfs:label "Warm path required"@en ;
+    ceng:rustVariant "WarmPathRequired" .
+
+ceng:ProfileSymbolTableMismatch a ceng:Refusal ;
+    rdfs:label "Profile symbol table mismatch"@en ;
+    ceng:rustVariant "ProfileSymbolTableMismatch" .
+
+ceng:ProjectionHashMismatch a ceng:Refusal ;
+    rdfs:label "Projection hash mismatch"@en ;
+    ceng:rustVariant "ProjectionHashMismatch" .
+
+ceng:AdmissionTableMismatch a ceng:Refusal ;
+    rdfs:label "Admission table mismatch"@en ;
+    ceng:rustVariant "AdmissionTableMismatch" .
+
+ceng:GraphSnapshotMismatch a ceng:Refusal ;
+    rdfs:label "Graph snapshot mismatch"@en ;
+    ceng:rustVariant "GraphSnapshotMismatch" .
+
+ceng:ProfileHashMismatch a ceng:Refusal ;
+    rdfs:label "Profile hash mismatch"@en ;
+    ceng:rustVariant "ProfileHashMismatch" .
+
+ceng:RouteDecisionMismatch a ceng:Refusal ;
+    rdfs:label "Route decision mismatch"@en ;
+    ceng:rustVariant "RouteDecisionMismatch" .
+
+ceng:N3UnavailableByProfile a ceng:Refusal ;
+    rdfs:label "N3 unavailable by profile"@en ;
+    ceng:rustVariant "N3UnavailableByProfile" .
+
+ceng:N3ActuationRefused a ceng:Refusal ;
+    rdfs:label "N3 actuation refused"@en ;
+    ceng:rustVariant "N3ActuationRefused" .
+
+ceng:LeastExpressiveRouteViolation a ceng:Refusal ;
+    rdfs:label "Least expressive route violation"@en ;
+    ceng:rustVariant "LeastExpressiveRouteViolation" .
+
+ceng:UnsupportedDialect a ceng:Refusal ;
+    rdfs:label "Unsupported dialect"@en ;
+    ceng:rustVariant "UnsupportedDialect" .
+
+ceng:AgentOverrideDenied a ceng:Refusal ;
+    rdfs:label "Agent override denied"@en ;
+    ceng:rustVariant "AgentOverrideDenied" .
+
+ceng:WitnessNotAuthority a ceng:Refusal ;
+    rdfs:label "Witness not authority"@en ;
+    ceng:rustVariant "WitnessNotAuthority" .
+
+ceng:BreedUnpermitted a ceng:Refusal ;
+    rdfs:label "Breed unpermitted"@en ;
+    ceng:rustVariant "BreedUnpermitted" .
+
+ceng:NondeterministicOperatorRequiresReceipt a ceng:Refusal ;
+    rdfs:label "Nondeterministic operator requires receipt"@en ;
+    ceng:rustVariant "NondeterministicOperatorRequiresReceipt" .
+
+ceng:BreedReplayUnsupported a ceng:Refusal ;
+    rdfs:label "Breed replay unsupported"@en ;
+    ceng:rustVariant "BreedReplayUnsupported" .
+
+ceng:BoundaryRequestMissingReceipt a ceng:Refusal ;
+    rdfs:label "Boundary request missing receipt"@en ;
+    ceng:rustVariant "BoundaryRequestMissingReceipt" .
+
+ceng:HookPatternNotAdmitted a ceng:Refusal ;
+    rdfs:label "Hook pattern not admitted"@en ;
+    ceng:rustVariant "HookPatternNotAdmitted" .
+
+ceng:OcelEventNotAdmitted a ceng:Refusal ;
+    rdfs:label "OCEL event not admitted"@en ;
+    ceng:rustVariant "OcelEventNotAdmitted" .
+
+ceng:DuplicateCanonicalTapeType a ceng:Refusal ;
+    rdfs:label "Duplicate canonical tape type"@en ;
+    ceng:rustVariant "DuplicateCanonicalTapeType" .
+
+#################################################################
+# Generation Artifacts
+#################################################################
+
+ceng:ReceiptEnvelopeArtifact a ceng:GeneratedArtifact ;
+    rdfs:label "Receipt Envelope Artifact"@en ;
+    ceng:targetCrate ceng:PraxisGraphlaw ;
+    ceng:modulePath "crates/praxis-graphlaw/src/abi.rs" ;
+    ceng:wrapsCanonicalType ceng:ProcessReceipt ;
+    ceng:forbidsDefinitionOf ceng:ProcessReceipt ;
+    ceng:protectsInvariant ceng:NoReceiptShadowType .
+
+ceng:RDFTriple8Artifact a ceng:GeneratedArtifact ;
+    rdfs:label "RDFTriple8 Projection Artifact"@en ;
+    ceng:targetCrate ceng:PraxisGraphlaw ;
+    ceng:modulePath "crates/praxis-graphlaw/src/triple8.rs" ;
+    ceng:protectsInvariant ceng:RDFTriple8ProjectionOnly .
+
+ceng:DialectRouterArtifact a ceng:GeneratedArtifact ;
+    rdfs:label "Dialect Router Artifact"@en ;
+    ceng:targetCrate ceng:PraxisGraphlaw ;
+    ceng:modulePath "crates/praxis-graphlaw/src/router.rs" ;
+    ceng:protectsInvariant ceng:NoDefaultN3, ceng:NoSilentFallback .
+
+ceng:TapeBridgeArtifact a ceng:GeneratedArtifact ;
+    rdfs:label "Tape Bridge Artifact"@en ;
+    ceng:targetCrate ceng:PraxisGraphlaw ;
+    ceng:modulePath "crates/praxis-graphlaw/src/bridge.rs" ;
+    ceng:wrapsCanonicalType ceng:Pddl8Tape, ceng:PowlTape ;
+    ceng:forbidsDefinitionOf ceng:Pddl8Tape, ceng:PowlTape ;
+    ceng:protectsInvariant ceng:NoDuplicateCanonicalTypes .
+
+ceng:EngineBoundaryArtifact a ceng:GeneratedArtifact ;
+    rdfs:label "Engine Boundary Artifact"@en ;
+    ceng:targetCrate ceng:PraxisGraphlaw ;
+    ceng:modulePath "crates/praxis-graphlaw/src/engine.rs" ;
+    ceng:protectsInvariant ceng:NoUnreceiptedActuation, ceng:AgentCannotOverrideProfile .
+
+#################################################################
+# Generation Directives
+#################################################################
+
+ceng:GenerateReceiptEnvelope a ceng:GenerationDirective ;
+    rdfs:label "Generate Receipt Envelope"@en ;
+    ceng:targetCrate ceng:PraxisGraphlaw ;
+    ceng:generatesArtifact ceng:ReceiptEnvelopeArtifact ;
+    ceng:protectsInvariant ceng:NoReceiptShadowType .
+
+ceng:GenerateRDFTriple8Projection a ceng:GenerationDirective ;
+    rdfs:label "Generate RDFTriple8 Projection"@en ;
+    ceng:targetCrate ceng:PraxisGraphlaw ;
+    ceng:generatesArtifact ceng:RDFTriple8Artifact ;
+    ceng:protectsInvariant ceng:RDFTriple8ProjectionOnly .
+
+ceng:GenerateDialectRouter a ceng:GenerationDirective ;
+    rdfs:label "Generate Dialect Router"@en ;
+    ceng:targetCrate ceng:PraxisGraphlaw ;
+    ceng:generatesArtifact ceng:DialectRouterArtifact ;
+    ceng:protectsInvariant ceng:NoDefaultN3, ceng:NoSilentFallback .
+
+ceng:GenerateTapeBridge a ceng:GenerationDirective ;
+    rdfs:label "Generate Tape Bridge"@en ;
+    ceng:targetCrate ceng:PraxisGraphlaw ;
+    ceng:generatesArtifact ceng:TapeBridgeArtifact ;
+    ceng:protectsInvariant ceng:NoDuplicateCanonicalTypes .
+
+ceng:GenerateEngineBoundary a ceng:GenerationDirective ;
+    rdfs:label "Generate Engine Boundary"@en ;
+    ceng:targetCrate ceng:PraxisGraphlaw ;
+    ceng:generatesArtifact ceng:EngineBoundaryArtifact ;
+    ceng:protectsInvariant ceng:NoUnreceiptedActuation, ceng:AgentCannotOverrideProfile .
+
+#################################################################
+# Fixture Schemas
+#################################################################
+
+ceng:ReceiptScenarioSchema a ceng:FixtureSchema ;
+    rdfs:label "Receipt scenario schema"@en ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/schemas/receipt_scenario.schema.json" .
+
+ceng:RoutingScenarioSchema a ceng:FixtureSchema ;
+    rdfs:label "Routing scenario schema"@en ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/schemas/routing_scenario.schema.json" .
+
+ceng:Triple8ScenarioSchema a ceng:FixtureSchema ;
+    rdfs:label "Triple8 scenario schema"@en ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/schemas/triple8_scenario.schema.json" .
+
+ceng:AdmissionTableScenarioSchema a ceng:FixtureSchema ;
+    rdfs:label "Admission table scenario schema"@en ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/schemas/admission_table_scenario.schema.json" .
+
+ceng:HookScenarioSchema a ceng:FixtureSchema ;
+    rdfs:label "Hook scenario schema"@en ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/schemas/hook_scenario.schema.json" .
+
+ceng:AgentScenarioSchema a ceng:FixtureSchema ;
+    rdfs:label "Agent scenario schema"@en ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/schemas/agent_scenario.schema.json" .
+
+ceng:ReplayScenarioSchema a ceng:FixtureSchema ;
+    rdfs:label "Replay scenario schema"@en ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/schemas/replay_scenario.schema.json" .
+
+ceng:StaticGateScenarioSchema a ceng:FixtureSchema ;
+    rdfs:label "Static gate scenario schema"@en ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/schemas/static_gate_scenario.schema.json" .
+
+#################################################################
+# Test Harnesses
+#################################################################
+
+ceng:ReceiptAcceptanceHarness a ceng:TestHarness ;
+    rdfs:label "Receipt acceptance harness"@en ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_receipts.rs" ;
+    ceng:usesFixtureSchema ceng:ReceiptScenarioSchema .
+
+ceng:RoutingAcceptanceHarness a ceng:TestHarness ;
+    rdfs:label "Routing acceptance harness"@en ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_routing.rs" ;
+    ceng:usesFixtureSchema ceng:RoutingScenarioSchema .
+
+ceng:Triple8AcceptanceHarness a ceng:TestHarness ;
+    rdfs:label "Triple8 acceptance harness"@en ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_triple8.rs" ;
+    ceng:usesFixtureSchema ceng:Triple8ScenarioSchema .
+
+ceng:AdmissionAcceptanceHarness a ceng:TestHarness ;
+    rdfs:label "Admission acceptance harness"@en ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_admission.rs" ;
+    ceng:usesFixtureSchema ceng:AdmissionTableScenarioSchema .
+
+ceng:HookAcceptanceHarness a ceng:TestHarness ;
+    rdfs:label "Hook acceptance harness"@en ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_hooks.rs" ;
+    ceng:usesFixtureSchema ceng:HookScenarioSchema .
+
+ceng:AgentAcceptanceHarness a ceng:TestHarness ;
+    rdfs:label "Agent acceptance harness"@en ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_agents.rs" ;
+    ceng:usesFixtureSchema ceng:AgentScenarioSchema .
+
+ceng:ReplayAcceptanceHarness a ceng:TestHarness ;
+    rdfs:label "Replay acceptance harness"@en ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_replay.rs" ;
+    ceng:usesFixtureSchema ceng:ReplayScenarioSchema .
+
+ceng:StaticGateAcceptanceHarness a ceng:TestHarness ;
+    rdfs:label "Static gate acceptance harness"@en ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_static.rs" ;
+    ceng:usesFixtureSchema ceng:StaticGateScenarioSchema .
+
+#################################################################
+# Anti-Hardcode Property Tests
+#################################################################
+
+ceng:DistinctInputsProduceDistinctReceiptsProperty a ceng:PropertyTest ;
+    rdfs:label "Distinct inputs produce distinct receipts"@en ;
+    ceng:protectsInvariant ceng:DistinctInputsProduceDistinctReceipts ;
+    ceng:generatedDataStrategy "Generate two different valid graph/profile/symbol/admission input sets. Both must admit. Their receipt material must differ unless canonical material is identical." ;
+    ceng:antiHardcodeProperty "Reject constant receipt, constant hash, constant run id, constant ok response." .
+
+ceng:ReplayIsInputSpecificProperty a ceng:PropertyTest ;
+    rdfs:label "Replay is input-specific"@en ;
+    ceng:protectsInvariant ceng:ReplayIsInputSpecific ;
+    ceng:generatedDataStrategy "Generate valid scenario A and valid scenario B, then swap receipt material." ;
+    ceng:antiHardcodeProperty "Reject replay implementation that always returns true or ignores graph/profile/symbol/admission hashes." .
+
+ceng:RefusalsAreSpecificProperty a ceng:PropertyTest ;
+    rdfs:label "Refusals are specific"@en ;
+    ceng:protectsInvariant ceng:NoSilentFallback ;
+    ceng:generatedDataStrategy "Generate distinct invalid cases with distinct expected refusals." ;
+    ceng:antiHardcodeProperty "Reject generic error, constant unsupported, constant success, or return zero." .
+
+ceng:RouteDependsOnInputShapeProperty a ceng:PropertyTest ;
+    rdfs:label "Route depends on input shape"@en ;
+    ceng:protectsInvariant ceng:NoSilentFallback ;
+    ceng:generatedDataStrategy "Generate hot-path, warm-path, and cold-path workloads with materially different shapes." ;
+    ceng:antiHardcodeProperty "Reject always-hot, always-warm, always-cold, always-N3 route decisions." .
+
+ceng:OverflowChangesOutcomeProperty a ceng:PropertyTest ;
+    rdfs:label "Overflow changes outcome"@en ;
+    ceng:protectsInvariant ceng:RDFTriple8ProjectionOnly ;
+    ceng:generatedDataStrategy "Generate profile dictionaries at 256 terms and 257 terms." ;
+    ceng:antiHardcodeProperty "Reject silent truncation, clamping, or success with corrupted projection." .
+
+ceng:RequiredAndForbiddenMasksMatterProperty a ceng:PropertyTest ;
+    rdfs:label "Required and forbidden masks matter"@en ;
+    ceng:protectsInvariant ceng:AdmissionTableHas256States ;
+    ceng:generatedDataStrategy "Generate varying required masks, forbidden masks, and state masks." ;
+    ceng:antiHardcodeProperty "Reject constant zero mask, always admit, always refuse, or ignoring forbidden bits." .
+
+ceng:BoundaryActuationRequiresReceiptProperty a ceng:PropertyTest ;
+    rdfs:label "Boundary actuation requires receipt"@en ;
+    ceng:protectsInvariant ceng:NoUnreceiptedActuation ;
+    ceng:generatedDataStrategy "Generate the same boundary request with missing, invalid, and valid receipt material." ;
+    ceng:antiHardcodeProperty "Reject hooks that actuate without valid receipt material or treat any string as a receipt." .
+
+ceng:AgentCannotOverrideProfileProperty a ceng:PropertyTest ;
+    rdfs:label "Agent cannot override profile"@en ;
+    ceng:protectsInvariant ceng:AgentCannotOverrideProfile ;
+    ceng:generatedDataStrategy "Generate valid payloads with and without agent override attempts." ;
+    ceng:antiHardcodeProperty "Reject prompt text or witness material that changes profile governance." .
+
+#################################################################
+# Acceptance Cases
+#################################################################
+
+ceng:ReceiptEnvelopeAdmitted a ceng:AcceptanceCase ;
+    rdfs:label "Receipt envelope admitted"@en ;
+    ceng:protectsInvariant ceng:NoReceiptShadowType ;
+    ceng:usesFixtureSchema ceng:ReceiptScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/receipt_boundary/canonical_receipt_envelope_admitted.json" ;
+    ceng:expectedBehavior "Graphlaw envelope references canonical receipt material and does not define standalone ProcessReceipt." .
+
+ceng:Triple8ProfileWithinBoundAdmitted a ceng:AcceptanceCase ;
+    rdfs:label "Triple8 profile within bound admitted"@en ;
+    ceng:protectsInvariant ceng:RDFTriple8ProjectionOnly ;
+    ceng:usesFixtureSchema ceng:Triple8ScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/triple8/profile_256_terms_admitted.json" ;
+    ceng:expectedBehavior "Projection succeeds when the profile-local symbol universe contains no more than 256 admitted terms." .
+
+ceng:AdmissionTableValidMaskAdmitted a ceng:AcceptanceCase ;
+    rdfs:label "Admission table valid mask admitted"@en ;
+    ceng:protectsInvariant ceng:AdmissionTableHas256States ;
+    ceng:usesFixtureSchema ceng:AdmissionTableScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/admission_tables/all_required_no_forbidden_admitted.json" ;
+    ceng:expectedBehavior "Admission succeeds when all required bits are present and no forbidden bits are present." .
+
+ceng:HotPathRouteAdmitted a ceng:AcceptanceCase ;
+    rdfs:label "Hot path route admitted"@en ;
+    ceng:protectsInvariant ceng:NoSilentFallback ;
+    ceng:usesFixtureSchema ceng:RoutingScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/routing/hot_path_local_constraints_admitted.json" ;
+    ceng:expectedRoute "HotPath" ;
+    ceng:expectedBehavior "A workload with no more than eight admitted local constraints routes to the hot path." .
+
+ceng:HookWithReceiptAdmitted a ceng:AcceptanceCase ;
+    rdfs:label "Hook with receipt admitted"@en ;
+    ceng:protectsInvariant ceng:NoUnreceiptedActuation ;
+    ceng:usesFixtureSchema ceng:HookScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/hooks/hook_with_valid_receipt_admitted.json" ;
+    ceng:expectedBehavior "Boundary request is permitted only when admitted constellation and valid receipt material are present." .
+
+ceng:AgentWitnessAdmitted a ceng:AcceptanceCase ;
+    rdfs:label "Agent witness admitted"@en ;
+    ceng:protectsInvariant ceng:AgentCannotOverrideProfile ;
+    ceng:usesFixtureSchema ceng:AgentScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/agents/agent_witness_without_override_admitted.json" ;
+    ceng:expectedBehavior "Agent output is accepted only as witness or candidate material under an allowed profile." .
+
+#################################################################
+# Falsification Cases
+#################################################################
+
+ceng:DuplicateProcessReceiptRefused a ceng:FalsificationCase ;
+    rdfs:label "Duplicate ProcessReceipt refused"@en ;
+    ceng:protectsInvariant ceng:NoReceiptShadowType ;
+    ceng:violatesInvariant ceng:NoDuplicateCanonicalTypes ;
+    ceng:usesFixtureSchema ceng:ReceiptScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/receipt_boundary/duplicate_process_receipt_refused.json" ;
+    ceng:expectedRefusal ceng:ProcessReceiptShadowType ;
+    ceng:falsificationMutation "Define a standalone ProcessReceipt in praxis-graphlaw production code." .
+
+ceng:Triple8UniverseOverflowRefused a ceng:FalsificationCase ;
+    rdfs:label "Triple8 universe overflow refused"@en ;
+    ceng:protectsInvariant ceng:RDFTriple8ProjectionOnly ;
+    ceng:usesFixtureSchema ceng:Triple8ScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/triple8/profile_257_terms_refused.json" ;
+    ceng:expectedRefusal ceng:Triple8UniverseOverflow ;
+    ceng:falsificationMutation "Increase profile-local term universe from 256 to 257 terms." .
+
+ceng:UnknownTriple8TermRefused a ceng:FalsificationCase ;
+    rdfs:label "Unknown Triple8 term refused"@en ;
+    ceng:protectsInvariant ceng:RDFTriple8ProjectionOnly ;
+    ceng:usesFixtureSchema ceng:Triple8ScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/triple8/unknown_term_refused.json" ;
+    ceng:expectedRefusal ceng:TermNotInTriple8Universe ;
+    ceng:falsificationMutation "Reference a subject, predicate, or object not admitted by the profile-local symbol table." .
+
+ceng:TooManyLocalConstraintsWarmPathRequired a ceng:FalsificationCase ;
+    rdfs:label "Too many local constraints require warm path"@en ;
+    ceng:protectsInvariant ceng:RDFTriple8ProjectionOnly ;
+    ceng:usesFixtureSchema ceng:Triple8ScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/triple8/more_than_8_constraints_warm_path_required.json" ;
+    ceng:expectedRefusal ceng:WarmPathRequired ;
+    ceng:falsificationMutation "Increase local constraint count beyond eight." .
+
+ceng:MissingRequiredBitRefused a ceng:FalsificationCase ;
+    rdfs:label "Missing required bit refused"@en ;
+    ceng:protectsInvariant ceng:AdmissionTableHas256States ;
+    ceng:usesFixtureSchema ceng:AdmissionTableScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/admission_tables/missing_required_bit_refused.json" ;
+    ceng:expectedRefusal ceng:AdmissionTableMismatch ;
+    ceng:falsificationMutation "Clear one required bit from the state mask." .
+
+ceng:ForbiddenBitPresentRefused a ceng:FalsificationCase ;
+    rdfs:label "Forbidden bit present refused"@en ;
+    ceng:protectsInvariant ceng:AdmissionTableHas256States ;
+    ceng:usesFixtureSchema ceng:AdmissionTableScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/admission_tables/forbidden_bit_present_refused.json" ;
+    ceng:expectedRefusal ceng:AdmissionTableMismatch ;
+    ceng:falsificationMutation "Set one forbidden bit in the state mask." .
+
+ceng:N3DefaultProfileRefused a ceng:FalsificationCase ;
+    rdfs:label "N3 default profile refused"@en ;
+    ceng:protectsInvariant ceng:NoDefaultN3 ;
+    ceng:usesFixtureSchema ceng:RoutingScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/routing/n3_default_profile_refused.json" ;
+    ceng:expectedRefusal ceng:N3UnavailableByProfile ;
+    ceng:falsificationMutation "Request N3 under the default profile." .
+
+ceng:N3ActuationRefused a ceng:FalsificationCase ;
+    rdfs:label "N3 actuation refused"@en ;
+    ceng:protectsInvariant ceng:NoDefaultN3, ceng:NoUnreceiptedActuation ;
+    ceng:usesFixtureSchema ceng:RoutingScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/routing/n3_actuation_refused.json" ;
+    ceng:expectedRefusal ceng:N3ActuationRefused ;
+    ceng:falsificationMutation "Permit N3 profile but ask it to emit or perform direct actuation." .
+
+ceng:SparqlEscalatesToN3Refused a ceng:FalsificationCase ;
+    rdfs:label "SPARQL escalation to N3 refused"@en ;
+    ceng:protectsInvariant ceng:NoSilentFallback ;
+    ceng:usesFixtureSchema ceng:RoutingScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/routing/sparql_escalates_to_n3_refused.json" ;
+    ceng:expectedRefusal ceng:LeastExpressiveRouteViolation ;
+    ceng:falsificationMutation "Escalate a SPARQL-sufficient workload to N3 without admitted need." .
+
+ceng:UnsupportedDialectRefused a ceng:FalsificationCase ;
+    rdfs:label "Unsupported dialect refused"@en ;
+    ceng:protectsInvariant ceng:NoSilentFallback ;
+    ceng:usesFixtureSchema ceng:RoutingScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/routing/unsupported_dialect_refused.json" ;
+    ceng:expectedRefusal ceng:UnsupportedDialect ;
+    ceng:falsificationMutation "Request a dialect not admitted by the profile or router." .
+
+ceng:HookWithoutReceiptRefused a ceng:FalsificationCase ;
+    rdfs:label "Hook without receipt refused"@en ;
+    ceng:protectsInvariant ceng:NoUnreceiptedActuation ;
+    ceng:usesFixtureSchema ceng:HookScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/hooks/unreceipted_actuation_refused.json" ;
+    ceng:expectedRefusal ceng:BoundaryRequestMissingReceipt ;
+    ceng:falsificationMutation "Remove receipt material from a boundary request that otherwise matches an admitted hook pattern." .
+
+ceng:HookPatternNotAdmittedRefused a ceng:FalsificationCase ;
+    rdfs:label "Hook pattern not admitted refused"@en ;
+    ceng:protectsInvariant ceng:NoUnreceiptedActuation ;
+    ceng:usesFixtureSchema ceng:HookScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/hooks/hook_pattern_not_admitted_refused.json" ;
+    ceng:expectedRefusal ceng:HookPatternNotAdmitted ;
+    ceng:falsificationMutation "Submit an OCEL event that lacks the admitted constellation required by the hook." .
+
+ceng:OcelEventNotAdmittedRefused a ceng:FalsificationCase ;
+    rdfs:label "OCEL event not admitted refused"@en ;
+    ceng:protectsInvariant ceng:NoUnreceiptedActuation ;
+    ceng:usesFixtureSchema ceng:HookScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/hooks/ocel_event_not_admitted_refused.json" ;
+    ceng:expectedRefusal ceng:OcelEventNotAdmitted ;
+    ceng:falsificationMutation "Use an event that has not passed the OCEL admission gate." .
+
+ceng:AgentOverrideDeniedCase a ceng:FalsificationCase ;
+    rdfs:label "Agent override denied"@en ;
+    ceng:protectsInvariant ceng:AgentCannotOverrideProfile ;
+    ceng:usesFixtureSchema ceng:AgentScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/agents/agent_override_denied.json" ;
+    ceng:expectedRefusal ceng:AgentOverrideDenied ;
+    ceng:falsificationMutation "Add agent-provided profile override instructions to an otherwise valid request." .
+
+ceng:WitnessTreatedAsAuthorityRefused a ceng:FalsificationCase ;
+    rdfs:label "Witness treated as authority refused"@en ;
+    ceng:protectsInvariant ceng:AgentCannotOverrideProfile ;
+    ceng:usesFixtureSchema ceng:AgentScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/agents/witness_treated_as_authority_refused.json" ;
+    ceng:expectedRefusal ceng:WitnessNotAuthority ;
+    ceng:falsificationMutation "Treat LLM or agent witness output as admitted authority." .
+
+ceng:DisabledBreedRefused a ceng:FalsificationCase ;
+    rdfs:label "Disabled breed refused"@en ;
+    ceng:protectsInvariant ceng:AgentCannotOverrideProfile ;
+    ceng:usesFixtureSchema ceng:AgentScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/agents/disabled_breed_refused.json" ;
+    ceng:expectedRefusal ceng:BreedUnpermitted ;
+    ceng:falsificationMutation "Invoke a breed that is not enabled by the active profile." .
+
+ceng:NondeterministicBreedWithoutReceiptRefused a ceng:FalsificationCase ;
+    rdfs:label "Nondeterministic breed without receipt refused"@en ;
+    ceng:protectsInvariant ceng:AgentCannotOverrideProfile ;
+    ceng:usesFixtureSchema ceng:AgentScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/agents/nondeterministic_breed_without_receipt_refused.json" ;
+    ceng:expectedRefusal ceng:NondeterministicOperatorRequiresReceipt ;
+    ceng:falsificationMutation "Invoke nondeterministic breed without receipt/replay metadata." .
+
+ceng:Pddl8TapeDuplicateRefused a ceng:FalsificationCase ;
+    rdfs:label "Pddl8Tape duplicate refused"@en ;
+    ceng:protectsInvariant ceng:NoDuplicateCanonicalTypes ;
+    ceng:usesFixtureSchema ceng:StaticGateScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/tape_bridge/pddl8_tape_duplicate_refused.json" ;
+    ceng:expectedRefusal ceng:DuplicateCanonicalTapeType ;
+    ceng:falsificationMutation "Define standalone Pddl8Tape in praxis-graphlaw." .
+
+ceng:PowlTapeDuplicateRefused a ceng:FalsificationCase ;
+    rdfs:label "PowlTape duplicate refused"@en ;
+    ceng:protectsInvariant ceng:NoDuplicateCanonicalTypes ;
+    ceng:usesFixtureSchema ceng:StaticGateScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/tape_bridge/powl_tape_duplicate_refused.json" ;
+    ceng:expectedRefusal ceng:DuplicateCanonicalTapeType ;
+    ceng:falsificationMutation "Define standalone PowlTape in praxis-graphlaw." .
+
+ceng:ReplayGraphMismatchRefused a ceng:FalsificationCase ;
+    rdfs:label "Replay graph mismatch refused"@en ;
+    ceng:protectsInvariant ceng:ReplayIsInputSpecific ;
+    ceng:usesFixtureSchema ceng:ReplayScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/replay/graph_hash_mismatch_refused.json" ;
+    ceng:expectedRefusal ceng:GraphSnapshotMismatch ;
+    ceng:falsificationMutation "Replay valid receipt material against a different graph snapshot hash." .
+
+ceng:ReplayProfileMismatchRefused a ceng:FalsificationCase ;
+    rdfs:label "Replay profile mismatch refused"@en ;
+    ceng:protectsInvariant ceng:ReplayIsInputSpecific ;
+    ceng:usesFixtureSchema ceng:ReplayScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/replay/profile_hash_mismatch_refused.json" ;
+    ceng:expectedRefusal ceng:ProfileHashMismatch ;
+    ceng:falsificationMutation "Replay valid receipt material against a different profile hash." .
+
+ceng:ReplaySymbolTableMismatchRefused a ceng:FalsificationCase ;
+    rdfs:label "Replay symbol table mismatch refused"@en ;
+    ceng:protectsInvariant ceng:ReplayIsInputSpecific ;
+    ceng:usesFixtureSchema ceng:ReplayScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/replay/symbol_table_hash_mismatch_refused.json" ;
+    ceng:expectedRefusal ceng:ProfileSymbolTableMismatch ;
+    ceng:falsificationMutation "Replay valid receipt material against a different profile symbol table hash." .
+
+ceng:ReplayAdmissionTableMismatchRefused a ceng:FalsificationCase ;
+    rdfs:label "Replay admission table mismatch refused"@en ;
+    ceng:protectsInvariant ceng:ReplayIsInputSpecific ;
+    ceng:usesFixtureSchema ceng:ReplayScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/replay/admission_table_hash_mismatch_refused.json" ;
+    ceng:expectedRefusal ceng:AdmissionTableMismatch ;
+    ceng:falsificationMutation "Replay valid receipt material against a different admission table hash." .
+
+ceng:ReplayRouteDecisionMismatchRefused a ceng:FalsificationCase ;
+    rdfs:label "Replay route decision mismatch refused"@en ;
+    ceng:protectsInvariant ceng:ReplayIsInputSpecific ;
+    ceng:usesFixtureSchema ceng:ReplayScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/replay/route_decision_mismatch_refused.json" ;
+    ceng:expectedRefusal ceng:RouteDecisionMismatch ;
+    ceng:falsificationMutation "Replay valid receipt material against a different route decision." .
+
+#################################################################
+# Static Gate Cases
+#################################################################
+
+ceng:NoForbiddenProductionTokens a ceng:AcceptanceCase ;
+    rdfs:label "No forbidden production tokens"@en ;
+    ceng:protectsInvariant ceng:NoSilentFallback ;
+    ceng:usesFixtureSchema ceng:StaticGateScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/static_gates/no_forbidden_production_tokens.json" ;
+    ceng:expectedBehavior "New and modified production paths contain no unadjudicated panic, unwrap, expect, todo, unimplemented, placeholder, or same-as-above tokens." .
+
+ceng:NoBroadWarningsAllow a ceng:AcceptanceCase ;
+    rdfs:label "No broad warnings allow"@en ;
+    ceng:protectsInvariant ceng:NoSilentFallback ;
+    ceng:usesFixtureSchema ceng:StaticGateScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/static_gates/no_broad_warnings_allow.json" ;
+    ceng:expectedBehavior "Production code does not add broad crate-level warning suppression." .
+
+ceng:NoDuplicateCanonicalDefinitions a ceng:AcceptanceCase ;
+    rdfs:label "No duplicate canonical definitions"@en ;
+    ceng:protectsInvariant ceng:NoDuplicateCanonicalTypes ;
+    ceng:usesFixtureSchema ceng:StaticGateScenarioSchema ;
+    ceng:testFixturePath "crates/praxis-graphlaw/tests/fixtures/chatman_engine_acceptance/static_gates/no_duplicate_canonical_definitions.json" ;
+    ceng:expectedBehavior "praxis-graphlaw contains wrappers or adapters only, not duplicate canonical structs." .
+
+#################################################################
+# ggen Manufacturing Run
+#################################################################
+
+ceng:ChicagoTddAcceptanceSurfaceRun a ggen:GeneratorRun ;
+    rdfs:label "Chicago TDD Acceptance Surface Run"@en ;
+    rdfs:comment "Manufactures external fixtures, schemas, harnesses, property tests, falsification tests, and static gates before production implementation."@en ;
+    ggen:manufacturesFrom ceng:ChatmanEngineOntology ;
+    ggen:writesFile ceng:ReceiptAcceptanceHarness,
+                    ceng:RoutingAcceptanceHarness,
+                    ceng:Triple8AcceptanceHarness,
+                    ceng:AdmissionAcceptanceHarness,
+                    ceng:HookAcceptanceHarness,
+                    ceng:AgentAcceptanceHarness,
+                    ceng:ReplayAcceptanceHarness,
+                    ceng:StaticGateAcceptanceHarness ;
+    ceng:hasPropertyTest ceng:DistinctInputsProduceDistinctReceiptsProperty,
+                         ceng:ReplayIsInputSpecificProperty,
+                         ceng:RefusalsAreSpecificProperty,
+                         ceng:RouteDependsOnInputShapeProperty,
+                         ceng:OverflowChangesOutcomeProperty,
+                         ceng:RequiredAndForbiddenMasksMatterProperty,
+                         ceng:BoundaryActuationRequiresReceiptProperty,
+                         ceng:AgentCannotOverrideProfileProperty ;
+    ceng:hasSuccessCase ceng:ReceiptEnvelopeAdmitted,
+                        ceng:Triple8ProfileWithinBoundAdmitted,
+                        ceng:AdmissionTableValidMaskAdmitted,
+                        ceng:HotPathRouteAdmitted,
+                        ceng:HookWithReceiptAdmitted,
+                        ceng:AgentWitnessAdmitted ;
+    ceng:hasFalsificationCase ceng:DuplicateProcessReceiptRefused,
+                              ceng:Triple8UniverseOverflowRefused,
+                              ceng:UnknownTriple8TermRefused,
+                              ceng:TooManyLocalConstraintsWarmPathRequired,
+                              ceng:MissingRequiredBitRefused,
+                              ceng:ForbiddenBitPresentRefused,
+                              ceng:N3DefaultProfileRefused,
+                              ceng:N3ActuationRefused,
+                              ceng:SparqlEscalatesToN3Refused,
+                              ceng:UnsupportedDialectRefused,
+                              ceng:HookWithoutReceiptRefused,
+                              ceng:HookPatternNotAdmittedRefused,
+                              ceng:OcelEventNotAdmittedRefused,
+                              ceng:AgentOverrideDeniedCase,
+                              ceng:WitnessTreatedAsAuthorityRefused,
+                              ceng:DisabledBreedRefused,
+                              ceng:NondeterministicBreedWithoutReceiptRefused,
+                              ceng:Pddl8TapeDuplicateRefused,
+                              ceng:PowlTapeDuplicateRefused,
+                              ceng:ReplayGraphMismatchRefused,
+                              ceng:ReplayProfileMismatchRefused,
+                              ceng:ReplaySymbolTableMismatchRefused,
+                              ceng:ReplayAdmissionTableMismatchRefused,
+                              ceng:ReplayRouteDecisionMismatchRefused .
+
+#################################################################
+# Governance Status
+#################################################################
+
+ceng:Ceng410M1 a ceng:Component ;
+    rdfs:label "CENG-410-M1"@en ;
+    ceng:status "ACCEPTED" .
+
+ceng:Ceng410Final a ceng:Component ;
+    rdfs:label "CENG-410-FINAL"@en ;
+    ceng:status "IN_PROGRESS" .
+
+ceng:Ceng411 a ceng:Component ;
+    rdfs:label "CENG-411"@en ;
+    ceng:status "DESIGN_ONLY_UNBLOCKED" .
+
+ceng:Ceng412 a ceng:Component ;
+    rdfs:label "CENG-412"@en ;
+    ceng:status "DESIGN_ONLY_UNBLOCKED" .
+
+ceng:Ceng416AtoF a ceng:Component ;
+    rdfs:label "CENG-416A-F"@en ;
+    ceng:status "DESIGN_ONLY_UNBLOCKED" .
+
+ceng:ImplementationGate a ceng:Governance ;
+    rdfs:label "Implementation Gate"@en ;
+    ceng:status "BLOCKED_UNTIL_ACCEPTANCE_SURFACE_AND_REMEDIATION_PASS" .

@@ -43,10 +43,8 @@ fn test_suite6_policy_conflict_approve_vs_refuse() {
         )
         .unwrap();
 
-    let inferred = store.materialize().unwrap();
-
-    // Should refuse deterministically (refusal takes precedence or conflict detected)
-    assert!(inferred.is_empty());
+    let res = store.materialize();
+    assert!(res.is_err());
 }
 
 /// Negative: Contradicting state transitions are caught and refused
@@ -128,10 +126,8 @@ fn test_suite6_policy_conflict_multiple_refusals() {
         .load_triples("ex:Txn <http://example.org/value> 1500 .", Syntax::Turtle)
         .unwrap();
 
-    let inferred = store.materialize().unwrap();
-
-    // First refusal wins (priority 1); transaction rolled back
-    assert!(inferred.is_empty());
+    let res = store.materialize();
+    assert!(res.is_err());
 }
 
 /// Negative: Malformed hook with conflicting effect types

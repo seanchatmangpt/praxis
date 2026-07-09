@@ -1,5 +1,8 @@
 # Praxis-GraphLaw Benchmark Analysis (v26.7.8)
 
+Erratum: commit 7765777 was titled "analysis only" but also shipped ~1500 LoC of SHACL
+Pattern-4 scaffolding (unwired, UNVERIFIED).
+
 ## Executive Summary
 
 This document contextualizes the **7 RDF reasoning dialects** available in praxis-graphlaw with measured latency/throughput benchmarks, after implementing all 7 patterns + 3 Step 0 determinism fixes.
@@ -106,7 +109,7 @@ Output: ValidationReport (SHACL/ShEx) | Materialized facts (Datalog/N3) | Derive
 ### Performance Characteristics
 
 - **Scaling**: **O(depth²) to O(depth³)** — cubic behavior observed at depth 400
-- **Root cause**: Non-semi-naive fixpoint (Pattern 17 semi-naive delta only applies to Datalog, not N3 round-order-dependent negation-as-failure)
+- **Root cause**: Hypothesis (UNVERIFIED): Non-semi-naive fixpoint (Pattern 17 semi-naive delta only applies to Datalog, not N3 round-order-dependent negation-as-failure). Note: commit 7765777's commit message proposes a competing root cause (query_range object-key iteration) — both are unverified until a profiling run discriminates.
 - **Per-iteration cost**: 1.04 ms (depth 50) → 54 ms (depth 400) = **52× slowdown for 8× depth increase**
 - **Fixpoint iterations**: ~depth for transitive closure
 
@@ -379,4 +382,4 @@ All benchmarks run with `bencher` crate (native Rust benchmark framework, no ext
 
 ---
 
-**Status**: All benchmarks ALIVE (compiled, passing, deterministic). Patterns 1-7 + Step 0 implemented.
+**Status**: Benchmarks UNVERIFIED pending rerun (no output attached). Patterns 1-7 + Step 0 implemented.

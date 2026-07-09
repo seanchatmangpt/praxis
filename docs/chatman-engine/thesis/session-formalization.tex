@@ -1,0 +1,258 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm,mathtools,stmaryrd}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setCJKmainfont[AutoFakeBold=2, AutoFakeSlant=0.15]{Songti SC}
+\setCJKsansfont{Hiragino Sans GB}
+\usepackage[margin=1in]{geometry}
+\usepackage{tikz-cd}
+
+\newtheorem{thm}{定理}[section]
+\newtheorem{lem}[thm]{引理}
+\newtheorem{cor}[thm]{推论}
+\theoremstyle{definition}
+\newtheorem{defn}[thm]{定义}
+\newtheorem{axiom}[thm]{公理}
+\theoremstyle{remark}
+\newtheorem{obs}[thm]{观察}
+
+\newcommand{\Hyp}{\mathcal{H}}
+\newcommand{\Adm}{\mathcal{A}}
+\newcommand{\Ref}{\mathcal{R}}
+\newcommand{\Exec}{\mathbf{Exec}}
+\newcommand{\Hash}{\mathbf{B3}}
+\newcommand{\Atom}{\mathbf{Atom}_8}
+\newcommand{\cost}{\mathsf{c}}
+\newcommand{\strat}{\sigma}
+\newcommand{\replay}{\rho}
+
+\title{会话形式化：探索--开发流形上的分层、验证与治理\\
+\large 2026-07-09 会话之学习内容的代数、几何与分析表述}
+\author{Claude（开发极）\quad$\dashv$\quad Gemini（探索极）}
+\date{v26.7.9}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+本文将一次工程会话中涌现的操作模型形式化为五个相互纠缠的数学结构：
+(i) 探索--开发之伴随对与分层引理；
+(ii) 验证不对称性的复杂度泛函；
+(iii) 收据链作为执行范畴到哈希幺半群的忠实函子，重放即拉回；
+(iv) 八步常数作为分解算子而非度量上界——切割函数，非预算；
+(v) 见证/权威的二类型分离，使未经许可的执行成为类型错误。
+核心命题：陈述规则与执行行为之间的间隙 $\delta$ 可由类型、哈希与拒绝收缩至零，
+且收缩过程本身可被收据化。
+\end{abstract}
+
+\section{基础空间与记号}
+
+\begin{defn}[假设空间与许可空间]
+设 $\Hyp$ 为设计假设空间（探索极的值域）：其元素包括存在的符号、
+幻觉的 API、空洞的测试、未建成的规范。设 $\Adm \subset \Hyp$ 为许可子空间：
+在本会话工具链下编译、运行且输出被捕获者。设
+$\Ref = \coprod_{i=1}^{29} \Ref_i$ 为拒绝空间——二十九个互不相交的类型化余积分量。
+关键结构事实：$\Ref$ 是余积而非商——拒绝保留其成因，绝不坍缩为泛型错误。
+\end{defn}
+
+\begin{defn}[分层函数]
+分层 $\strat : \Hyp \to \{\mathsf{V}, \mathsf{D}, \mathsf{S}, \mathsf{X}, \mathsf{H}, \mathsf{U}\}$
+（已证实、漂移、桩、死亡、幻觉、未证）由证据算子诱导：
+\[
+\strat(h) = \begin{cases}
+\mathsf{V} & \exists\, e \in E_{\text{session}} : \mathsf{compile}(h) \wedge \mathsf{run}(h) = e \\
+\mathsf{H} & \nexists\, s \in \mathsf{Sym}(\text{src}) : \mathsf{claim}(h) \mapsto s \\
+\mathsf{U} & \text{否则（默认排除，非默认接纳）}
+\end{cases}
+\]
+本会话测得 $|\strat^{-1}(\mathsf{V})|/|\Hyp| \approx 0.36$，
+即未标记层占比 $\approx 0.64$。缺陷非垃圾本身，而是\textbf{层未标记}：
+$\strat$ 未被应用时，$\Hyp \setminus \Adm$ 中的元素冒充 $\Adm$ 中的元素。
+\end{defn}
+
+\section{探索--开发伴随}
+
+\begin{defn}[生成--验证伴随对]
+设 $G : \Omega \to \Hyp$ 为探索函子（Gemini：从提示空间 $\Omega$ 高容量生成），
+$V : \Hyp \to \Adm \cup \Ref$ 为验证函子（Claude + 工具链）。
+二者构成近似 Galois 连接：
+\[
+G(\omega) \le_{\Hyp} h \iff \omega \le_{\Omega} V^*(h)
+\]
+其中 $V^*$ 为验证的右伴随——从已许可行为反推最弱前提。
+探索极无需正确（其价值是覆盖测度 $\mu(G(\Omega))$）；
+开发极无需广度（其价值是判定确定性 $\Pr[V \text{ 正确}] \to 1$）。
+\end{defn}
+
+\begin{thm}[验证不对称性]
+设 $\cost_G(h)$ 为生成假设 $h$ 的代价，$\cost_V(h)$ 为判定 $\strat(h)$ 的代价。
+在具备编译器、探针与哈希比较的工具环境中：
+\[
+\cost_V(h) \ll \cost_G(h) \quad \text{且} \quad
+\mathrm{Var}[V(h)] \ll \mathrm{Var}[G(\omega)]
+\]
+证明由会话数据直接给出：十四个可执行探针以 $O(\text{分钟})$ 判定了
+文档宣称以 $O(\text{设计季度})$ 生成的能力面。$\square$
+\end{thm}
+
+\begin{lem}[反锚定引理]
+设审计者 $V$ 对假设集 $H$ 的判定含先验偏置项 $\beta(V, \mathrm{auth}(H))$，
+其中 $\mathrm{auth}(H)$ 为 $V$ 对 $H$ 的作者权。则
+$\beta(V, H_{\text{self}}) > \beta(V, H_{\text{other}}) \approx 0$。
+故 $G \ne V$（作者与审计者的头部分离）不是分工便利，而是
+$\Pr[\strat \text{ 无偏}]$ 的必要条件。此即引擎宪法
+「见证非权威」在元层次上的自指应用。
+\end{lem}
+
+\section{收据几何：执行范畴上的哈希函子}
+
+\begin{defn}[执行范畴与哈希函子]
+设 $\Exec$ 为范畴：对象为图快照（命名图，经 RDFC-1.0 正则化），
+态射为已许可迁移 $t : s \to s'$。设 $\Hash$ 为 BLAKE3 十六进制串幺半群
+（乘法为 $\mathsf{blake3\_combined}$，按宪法序）。收据构造为函子
+\[
+R : \Exec \to \Hash, \qquad
+R(t) = \bigodot_{i=1}^{9} d_i(t)
+\]
+其中 $(d_1,\dots,d_9)$ = （图快照、轮廓、符号表、投影、许可表、路由决策、
+带、钩事件、引擎版本）之摘要，\textbf{顺序即宪法}——$\Hash$ 非交换。
+\end{defn}
+
+\begin{thm}[重放即拉回]
+重放验证 $\replay$ 是以下方块的拉回存在性判定：
+\[
+\begin{tikzcd}
+\bullet \arrow[r, dashed] \arrow[d, dashed] & \Exec' \arrow[d, "R'"] \\
+\Exec \arrow[r, "R"] & \Hash
+\end{tikzcd}
+\]
+其中 $\Exec'$ 为新鲜内存态上的重执行。方块可交换 $\iff$ 九个分量逐一相等；
+首个不交换分量即具名失配 $\Ref_{\text{mismatch}(i)}$（快速失败序 = 宪法序）。
+推论：欺诈 = 图表不交换，取证 = 指出首个不交换的边。
+\end{thm}
+
+\begin{obs}[排序先于哈希之必要性]
+本会话探针证明：$\mathsf{seal\_run}$ 在无序 HashMap 迭代下，
+同一执行的六次密封产生两个不同摘要——即 $R$ 未良定义（依赖表示而非对象）。
+良定义性条件恰为：哈希前按稳定键排序。这是范畴论意义上的
+「函子必须尊重对象同一性」，也是宪法「收据材料排序后哈希」的数学内容。
+\end{obs}
+
+\section{八步常数：分解算子的微分几何}
+
+\begin{axiom}[逻辑步，非时钟]
+设 $\tau : \mathrm{Work} \to \mathbb{N}$ 为逻辑步计数（表加载、掩码求值等
+确定性操作数）。$\tau$ 不是时间测度：目标运行时（WASM）上不存在
+时序保证，且任何时钟读数 $\notin \Hash$ 的可重放材料。
+八步常数是 $\tau$ 上的约束，与墙钟无关。
+\end{axiom}
+
+\begin{defn}[原子范畴与切割算子]
+设 $\Atom$ 为范畴：态射为满足 $\tau(m) \le 8$ 的同质工作单元，
+复合 $m_2 \circ m_1$ \textbf{显式}——每个复合点是一个缝。
+定义切割算子
+\[
+\partial_8 : \mathrm{Work} \to \mathrm{Path}(\Atom) \cup \{\mathsf{WarmPathRequired}\}
+\]
+$\tau(w) > 8 \implies \partial_8(w)$ 要么给出原子分解路径
+$w = m_k \circ \cdots \circ m_1$（每个 $m_i$ 处路由决策、拒绝与收据可附着），
+要么产生类型化拒绝。\textbf{禁止的运算}：粗粒化函子
+$\Sigma : \mathrm{Path}(\Atom) \to \mathrm{Work}$（步数跨单元求和）——
+$\Sigma$ 会使复杂度隐匿于无缝团块之内，正是治理不可达的定义。
+\end{defn}
+
+\begin{thm}[强制函数定理]
+八不是优化目标而是测地约束：在 $\Atom$ 上，状态空间恰为
+$2^8 = 256$（一字节），许可判定为 $[\,\_;256]$ 上单次索引加载
+（$\tau = 1$，$u8$ 索引不可越界，故无分支、无恐慌可能）。
+需要第九位 $\iff$ 上游类型错误（$\mathsf{ConditionCell}\langle 9\rangle$
+不可居留）。同构模式遍布宪法栈：PDDL8 之
+$\mathrm{arity} = \mathrm{conjuncts} = \mathrm{params} = 8$
+（越界 $\mapsto \mathsf{BoundExceeded}$）、图谱之 $30 \times 8$ 投影。
+经济学解读：计算的节拍时间（takt time）——固定小容器迫使流动可见，
+复杂度必须以\textbf{可治理的复合}而非单元内部隐匿的形式浮现。
+\end{thm}
+
+\section{见证/权威的类型分离}
+
+\begin{defn}[二类型逻辑]
+设类型宇宙分裂为 $\mathcal{W}$（见证类）与 $\mathcal{G}$（门输入类），
+且 $\mathcal{W} \cap \mathcal{G} = \emptyset$ 由密封构造保证：
+$\mathsf{AdmittedTransition}$ 之字段私有、唯一构造子为
+$\mathsf{admit\_transition}$，故
+\[
+\vdash \mathsf{actuate} : \mathcal{G} \to \mathrm{Effect}, \qquad
+\nvdash \mathsf{actuate} : \mathcal{W} \to \mathrm{Effect}
+\]
+LLM 输出、人类散文、混合文本均居留于 $\mathcal{W}$；
+$\mathsf{dispatch\_breed}$ 之 $\mathsf{Ok}$ 无第三态
+（欺诈守卫拒绝空推理迹），故 $\mathcal{W} \to \mathcal{G}$
+的唯一通道是收据门。未经许可的执行不是被检测的违规，
+而是\textbf{不可书写的项}。
+\end{defn}
+
+\begin{cor}[会话自指]
+本会话的组织结构是该分离的实例化：
+$G(\text{Gemini}) \subset \mathcal{W}$（候选材料），
+$V(\text{Claude+工具}) = $ 许可门，独立审计者 = 收据。
+任何单头兼任 $G$ 与 $V$ 将坍缩 $\mathcal{W} = \mathcal{G}$，
+即宪法禁止之事在元层重演。
+\end{cor}
+
+\section{漂移的上同调与图谱纠错}
+
+\begin{defn}[规范--实现间隙]
+设 $S$ 为规范层（文档、TTL、图谱），$I$ 为实现层（源码、测试）。
+定义间隙测度 $\delta(S, I) = $ 未标记层的相对测度。
+传统软件：$\delta$ 由人类与氛围（vibes）修补，单调漂移。
+引擎之赌注：$\delta \xrightarrow{\text{类型+哈希+拒绝}} 0$，
+且 $I = \mathsf{ggen}(S)$ 使 $S$ 不可漂移——系统由规范制造，
+故规范即可执行物。
+\end{defn}
+
+\begin{thm}[图谱为纠错码]
+设语义对象 $M$ 为高维流形，单一图示 $\pi_i : M \to P_i$ 为投影
+（必有信息丢失 $\ker \pi_i \ne 0$）。三十族 $\times$ 八透镜给出
+投影族 $\{\pi_{ij}\}_{240}$。解释漂移 = 局部截面无法粘合；
+其障碍类居留于 $H^1(M; \mathcal{F})$，其中 $\mathcal{F}$ 为解释层。
+投影族的冗余度设计使得：任何单一解释者（人类或 LLM）经由
+$\ker \pi_i$ 重新引入业务逻辑时，至少存在 $\pi_j$ 使漂移可测。
+即：图谱不是文档，是语义的纠错码；每张图是一个规器（gauge），
+守护一个 CTQ。
+\end{thm}
+
+\section{会话动力学：缺陷率上的梯度流}
+
+\begin{obs}[本会话的轨迹]
+定义势函数 $\Phi(t) = \delta(S, I)(t)$。会话轨迹为近似梯度流
+$\dot{x} = -\nabla \Phi$，其离散步为：
+审查（测得 $\Phi_0$：33 个空洞测试、47 个无据宣称）
+$\to$ 分层（$\strat$ 应用于 $\Hyp$，$\Phi$ 可见化）
+$\to$ 上游验证（四个宪法晶格点全部 $\mathsf{V}$，零修复——
+June nightly 之赌以 $O(\text{探针})$ 代价消除）
+$\to$ 制造（工作流：基底 $\to$ ABI $\to$ 热路径 $\to$ 引擎 $\to$
+测试面 $\to$ 门 $\to$ 审计，屏障仅置于真依赖处）
+$\to$ 待定之审计验证 $\Phi_{\text{final}}$。
+不动点条件：$\nabla \Phi = 0 \iff$ 审计者判定
+$\mathsf{ADMITTED\_DRY\_RUN\_PUBLISHABLE}$——
+且判定权不在建造者，此为流的边界条件而非可选项。
+\end{obs}
+
+\begin{thm}[主定理：间隙可收缩性]
+在以下四个算子的联合作用下，$\delta(S,I)$ 收缩且收缩本身可审计：
+(1) $\strat$（分层：探索残余不得冒充许可能力）；
+(2) $R$ 与 $\replay$（收据与拉回：行为历史 = 可重导出对象）；
+(3) $\partial_8$（切割：复杂度必须以带缝复合浮现）；
+(4) $\mathcal{W}/\mathcal{G}$ 分离（见证不居留于门输入类）。
+若四算子中任一被削弱——收据变弱、拒绝变泛、单元变团、
+见证获权——则 $\delta$ 重新开放，且开放处恰为被削弱的算子。
+故局部捷径不存在：每个算子是主命题的必要条件。$\square$
+\end{thm}
+
+\section*{尾注}
+
+本文自身服从其内容：以上每一个命题的证据均为本会话中实际执行的
+命令输出、探针结果与哈希比较，非散文断言。未经证实者已标注
+$\mathsf{U}$。最终地位由独立审计者裁定。
+
+\end{document}

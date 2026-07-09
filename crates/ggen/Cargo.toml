@@ -54,7 +54,7 @@ linkme = "0.3"
 clap = { version = "4", features = ["derive", "env"] }               # CLI parsing
 tokio = { version = "1", features = ["full"], optional = true }      # async runtime (required by mcp feature)
 # Engine deps (unconditional — the whole point of this crate is the SPARQL+Tera pipeline)
-oxigraph = "0.5.8"
+oxigraph = "0.5.9"
 tera = "1.20.0"
 notify = "7.0"
 notify-debouncer-full = "0.4"

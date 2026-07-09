@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 //! Pure Rust core logic for WASM bridge (no wasm-bindgen decorators).
 //!
 //! These functions wrap the praxis-graphlaw reasoning engine, providing:
@@ -370,7 +371,7 @@ fn validate_all_core_impl(
         {
             Status::Admitted
         } else {
-            Status::Admitted
+            Status::Refused
         },
         verdicts: hook_verdicts_records,
         receipts: hook_verdicts,
@@ -483,14 +484,16 @@ fn run_hooks_core_impl(base_ttl: &str, event_ttl: &str) -> Result<HookRunResult,
 
     // Sort for determinism: HashSet::difference order is unspecified.
     additions.sort_by(|a, b| {
-        a.s.cmp(&b.s)
-            .then_with(|| a.p.cmp(&b.p))
-            .then_with(|| a.o.cmp(&b.o))
+        a.s.to_encoded()
+            .cmp(&b.s.to_encoded())
+            .then_with(|| a.p.to_encoded().cmp(&b.p.to_encoded()))
+            .then_with(|| a.o.to_encoded().cmp(&b.o.to_encoded()))
     });
     removals.sort_by(|a, b| {
-        a.s.cmp(&b.s)
-            .then_with(|| a.p.cmp(&b.p))
-            .then_with(|| a.o.cmp(&b.o))
+        a.s.to_encoded()
+            .cmp(&b.s.to_encoded())
+            .then_with(|| a.p.to_encoded().cmp(&b.p.to_encoded()))
+            .then_with(|| a.o.to_encoded().cmp(&b.o.to_encoded()))
     });
 
     let delta = GraphDelta {
@@ -783,10 +786,12 @@ mod tests {
         let profile_v1 = r#"
             @prefix owl: <http://www.w3.org/2002/07/owl#> .
             @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+            owl:Thing rdf:type owl:Class .
         "#;
         let profile_v2 = r#"
             @prefix owl: <http://www.w3.org/2002/07/owl#> .
             @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+            owl:Nothing rdf:type owl:Class .
         "#;
         let shacl_shapes = "";
         let shex_schema = "";

@@ -1,0 +1,745 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix ceng: <https://praxis.chatman.io/ontology/ceng#> .
+
+ceng:ChatmanEngineOntology a owl:Ontology ;
+    rdfs:label "Chatman Engine Acceptance Surface"@en ;
+    rdfs:comment "Ontology driving generation of the Chatman Engine acceptance test harnesses, fixtures, and GWT documentation. Version 26.7.9."@en .
+
+#################################################################
+# L1 — Vocabulary (classes and properties)
+#################################################################
+
+ceng:ExecutionRoute a owl:Class ;
+    rdfs:label "Execution Route"@en .
+
+ceng:Dialect a owl:Class ;
+    rdfs:label "Semantic Dialect"@en .
+
+ceng:CanonicalType a owl:Class ;
+    rdfs:label "Canonical Type"@en .
+
+ceng:GeneratedArtifact a owl:Class ;
+    rdfs:label "Generated Artifact"@en .
+
+ceng:GenerationDirective a owl:Class ;
+    rdfs:label "Generation Directive"@en .
+
+ceng:AcceptanceCase a owl:Class ;
+    rdfs:label "Acceptance Case"@en ;
+    rdfs:comment "A success-path case: the engine must accept the fixture and report the expected behavior tag."@en .
+
+ceng:FalsificationCase a owl:Class ;
+    rdfs:label "Falsification Case"@en ;
+    rdfs:comment "A single-condition mutation of a paired acceptance case; the engine must refuse with the named typed Refusal."@en .
+
+ceng:PropertyTest a owl:Class ;
+    rdfs:label "Property Test"@en .
+
+ceng:Refusal a owl:Class ;
+    rdfs:label "Typed Refusal"@en .
+
+ceng:Invariant a owl:Class ;
+    rdfs:label "Invariant"@en .
+
+ceng:TestHarness a owl:Class ;
+    rdfs:label "Test Harness"@en ;
+    rdfs:comment "One generated Rust integration-test file; fan-out target of the harness template."@en .
+
+ceng:FixtureSchema a owl:Class ;
+    rdfs:label "Fixture Schema"@en .
+
+ceng:Component a owl:Class ;
+    rdfs:label "Component"@en .
+
+ceng:filePath a owl:DatatypeProperty ;
+    rdfs:label "file path"@en ;
+    rdfs:domain ceng:TestHarness .
+
+ceng:schemaPath a owl:DatatypeProperty ;
+    rdfs:label "schema path"@en ;
+    rdfs:domain ceng:FixtureSchema .
+
+ceng:testFixturePath a owl:DatatypeProperty ;
+    rdfs:label "test fixture path"@en ;
+    rdfs:comment "Path relative to crates/praxis-graphlaw/tests/chatman_engine_acceptance/."@en .
+
+ceng:expectedBehavior a owl:DatatypeProperty ;
+    rdfs:label "expected behavior tag"@en ;
+    rdfs:domain ceng:AcceptanceCase .
+
+ceng:expectedRefusal a owl:ObjectProperty ;
+    rdfs:label "expected refusal"@en ;
+    rdfs:domain ceng:FalsificationCase ;
+    rdfs:range ceng:Refusal .
+
+ceng:rustVariant a owl:DatatypeProperty ;
+    rdfs:label "Rust Refusal variant name"@en ;
+    rdfs:domain ceng:Refusal .
+
+ceng:falsificationMutation a owl:DatatypeProperty ;
+    rdfs:label "falsification mutation"@en ;
+    rdfs:comment "One-sentence, single-condition mutation applied to the paired acceptance fixture."@en .
+
+ceng:usesFixtureSchema a owl:ObjectProperty ;
+    rdfs:label "uses fixture schema"@en ;
+    rdfs:range ceng:FixtureSchema .
+
+ceng:protectsInvariant a owl:ObjectProperty ;
+    rdfs:label "protects invariant"@en ;
+    rdfs:range ceng:Invariant .
+
+ceng:antiHardcodeProperty a owl:DatatypeProperty ;
+    rdfs:label "anti-hardcode property"@en .
+
+ceng:generatedDataStrategy a owl:DatatypeProperty ;
+    rdfs:label "generated data strategy"@en ;
+    rdfs:domain ceng:PropertyTest .
+
+ceng:inputJson a owl:DatatypeProperty ;
+    rdfs:label "input JSON payload"@en ;
+    rdfs:comment "Compact JSON object matching this case's harness scenario-input struct; embedded verbatim (unquoted) as the fixture's top-level \"input\" property."@en .
+
+ceng:caseSeed a owl:DatatypeProperty ;
+    rdfs:label "case seed"@en ;
+    rdfs:comment "Stable hex seed derived deterministically from the case local name (blake2b digest prefix)."@en .
+
+ceng:ownedBy a owl:ObjectProperty ;
+    rdfs:label "owned by"@en ;
+    rdfs:domain ceng:CanonicalType ;
+    rdfs:range ceng:Component .
+
+ceng:harness a owl:ObjectProperty ;
+    rdfs:label "harness"@en ;
+    rdfs:comment "Binds a case to the TestHarness file its generated test lives in."@en ;
+    rdfs:range ceng:TestHarness .
+
+ceng:falsifies a owl:ObjectProperty ;
+    rdfs:label "falsifies"@en ;
+    rdfs:domain ceng:FalsificationCase ;
+    rdfs:range ceng:AcceptanceCase .
+
+ceng:maxConstraints a owl:DatatypeProperty ;
+    rdfs:label "max constraints"@en ;
+    rdfs:domain ceng:ExecutionRoute .
+
+ceng:defaultEnabled a owl:DatatypeProperty ;
+    rdfs:label "default enabled"@en ;
+    rdfs:domain ceng:Dialect .
+
+ceng:mayActuate a owl:DatatypeProperty ;
+    rdfs:label "may actuate"@en ;
+    rdfs:domain ceng:Dialect .
+
+#################################################################
+# L2 — Instances (routes, dialects, canonical types, harnesses,
+#      fixture schemas)
+#################################################################
+
+ceng:HotPath a ceng:ExecutionRoute ;
+    rdfs:label "Hot Path"@en ;
+    ceng:maxConstraints "8"^^xsd:integer .
+
+ceng:WarmPath a ceng:ExecutionRoute ;
+    rdfs:label "Warm Path"@en .
+
+ceng:ColdPath a ceng:ExecutionRoute ;
+    rdfs:label "Cold Path"@en .
+
+ceng:RDFTriple8 a ceng:Dialect ;
+    ceng:defaultEnabled "true"^^xsd:boolean ;
+    ceng:mayActuate "false"^^xsd:boolean .
+
+ceng:SHACL a ceng:Dialect ;
+    ceng:defaultEnabled "true"^^xsd:boolean ;
+    ceng:mayActuate "false"^^xsd:boolean .
+
+ceng:SPARQL a ceng:Dialect ;
+    ceng:defaultEnabled "true"^^xsd:boolean ;
+    ceng:mayActuate "false"^^xsd:boolean .
+
+ceng:OwlRl a ceng:Dialect ;
+    ceng:defaultEnabled "true"^^xsd:boolean ;
+    ceng:mayActuate "false"^^xsd:boolean .
+
+ceng:Datalog a ceng:Dialect ;
+    ceng:defaultEnabled "true"^^xsd:boolean ;
+    ceng:mayActuate "false"^^xsd:boolean .
+
+ceng:PDDL a ceng:Dialect ;
+    ceng:defaultEnabled "true"^^xsd:boolean ;
+    ceng:mayActuate "false"^^xsd:boolean .
+
+ceng:POWL a ceng:Dialect ;
+    ceng:defaultEnabled "true"^^xsd:boolean ;
+    ceng:mayActuate "false"^^xsd:boolean .
+
+ceng:N3 a ceng:Dialect ;
+    ceng:defaultEnabled "false"^^xsd:boolean ;
+    ceng:mayActuate "false"^^xsd:boolean .
+
+ceng:Wasm4pmCompat a ceng:Component ;
+    rdfs:label "wasm4pm compatibility layer"@en .
+
+ceng:GraphlawCore a ceng:Component ;
+    rdfs:label "praxis-graphlaw core"@en .
+
+ceng:ProcessReceipt a ceng:CanonicalType ;
+    ceng:ownedBy ceng:Wasm4pmCompat .
+
+ceng:CanonicalTape a ceng:CanonicalType ;
+    ceng:ownedBy ceng:GraphlawCore .
+
+ceng:GraphSnapshot a ceng:CanonicalType ;
+    ceng:ownedBy ceng:GraphlawCore .
+
+ceng:ProfileHash a ceng:CanonicalType ;
+    ceng:ownedBy ceng:GraphlawCore .
+
+ceng:ReceiptsHarness a ceng:TestHarness ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_receipts.rs" ;
+    ceng:usesFixtureSchema ceng:ReceiptsFixtureSchema .
+
+ceng:RoutingHarness a ceng:TestHarness ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_routing.rs" ;
+    ceng:usesFixtureSchema ceng:RoutingFixtureSchema .
+
+ceng:Triple8Harness a ceng:TestHarness ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_triple8.rs" ;
+    ceng:usesFixtureSchema ceng:Triple8FixtureSchema .
+
+ceng:AdmissionHarness a ceng:TestHarness ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_admission.rs" ;
+    ceng:usesFixtureSchema ceng:AdmissionFixtureSchema .
+
+ceng:HooksHarness a ceng:TestHarness ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_hooks.rs" ;
+    ceng:usesFixtureSchema ceng:HooksFixtureSchema .
+
+ceng:AgentsHarness a ceng:TestHarness ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_agents.rs" ;
+    ceng:usesFixtureSchema ceng:AgentsFixtureSchema .
+
+ceng:ReplayHarness a ceng:TestHarness ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_replay.rs" ;
+    ceng:usesFixtureSchema ceng:ReplayFixtureSchema .
+
+ceng:StaticHarness a ceng:TestHarness ;
+    ceng:filePath "crates/praxis-graphlaw/tests/chatman_acceptance_static.rs" ;
+    ceng:usesFixtureSchema ceng:StaticFixtureSchema .
+
+ceng:ReceiptsFixtureSchema a ceng:FixtureSchema ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/chatman_engine_acceptance/schemas/receipts_fixture.schema.json" .
+
+ceng:RoutingFixtureSchema a ceng:FixtureSchema ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/chatman_engine_acceptance/schemas/routing_fixture.schema.json" .
+
+ceng:Triple8FixtureSchema a ceng:FixtureSchema ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/chatman_engine_acceptance/schemas/triple8_fixture.schema.json" .
+
+ceng:AdmissionFixtureSchema a ceng:FixtureSchema ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/chatman_engine_acceptance/schemas/admission_fixture.schema.json" .
+
+ceng:HooksFixtureSchema a ceng:FixtureSchema ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/chatman_engine_acceptance/schemas/hooks_fixture.schema.json" .
+
+ceng:AgentsFixtureSchema a ceng:FixtureSchema ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/chatman_engine_acceptance/schemas/agents_fixture.schema.json" .
+
+ceng:ReplayFixtureSchema a ceng:FixtureSchema ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/chatman_engine_acceptance/schemas/replay_fixture.schema.json" .
+
+ceng:StaticFixtureSchema a ceng:FixtureSchema ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/chatman_engine_acceptance/schemas/static_fixture.schema.json" .
+
+ceng:CommonEnvelopeSchema a ceng:FixtureSchema ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/chatman_engine_acceptance/schemas/common_envelope.schema.json" .
+
+ceng:SeedManifestSchema a ceng:FixtureSchema ;
+    ceng:schemaPath "crates/praxis-graphlaw/tests/chatman_engine_acceptance/schemas/seed_manifest.schema.json" .
+
+#################################################################
+# L3 — Generation directives and laws
+#################################################################
+
+ceng:GenerateAcceptanceHarnesses a ceng:GenerationDirective ;
+    rdfs:comment "Fan out one Rust integration-test file per TestHarness individual from templates/chatman_acceptance_harness.rs.tmpl."@en .
+
+ceng:GenerateAcceptanceFixtures a ceng:GenerationDirective ;
+    rdfs:comment "Fan out one JSON fixture per case from templates/acceptance_fixture.json.tmpl."@en .
+
+ceng:GenerateGwtDoc a ceng:GenerationDirective ;
+    rdfs:comment "Render the Given/When/Then acceptance document from templates/chatman_gwt.md.tmpl."@en .
+
+ceng:NoVacuousTest a ceng:Invariant ;
+    ceng:antiHardcodeProperty "every generated test contains >=1 uncommented assertion" ;
+    rdfs:comment "The fail-loud law: template assertion lines are unconditional literal text, so no case row can render an assert-free test."@en .
+
+#################################################################
+# L4 — Refusal individuals and paired acceptance/falsification
+#      cases (seeds are blake2b(case name) hex prefixes)
+#################################################################
+
+ceng:Triple8UniverseOverflowRefusal a ceng:Refusal ;
+    ceng:rustVariant "Triple8UniverseOverflow" .
+
+ceng:TermNotInTriple8UniverseRefusal a ceng:Refusal ;
+    ceng:rustVariant "TermNotInTriple8Universe" .
+
+ceng:WarmPathRequiredRefusal a ceng:Refusal ;
+    ceng:rustVariant "WarmPathRequired" .
+
+ceng:ProfileSymbolTableMismatchRefusal a ceng:Refusal ;
+    ceng:rustVariant "ProfileSymbolTableMismatch" .
+
+ceng:ProjectionHashMismatchRefusal a ceng:Refusal ;
+    ceng:rustVariant "ProjectionHashMismatch" .
+
+ceng:AdmissionTableMismatchRefusal a ceng:Refusal ;
+    ceng:rustVariant "AdmissionTableMismatch" .
+
+ceng:LeastExpressiveRouteViolationRefusal a ceng:Refusal ;
+    ceng:rustVariant "LeastExpressiveRouteViolation" .
+
+ceng:UnsupportedDialectRefusal a ceng:Refusal ;
+    ceng:rustVariant "UnsupportedDialect" .
+
+ceng:N3UnavailableByProfileRefusal a ceng:Refusal ;
+    ceng:rustVariant "N3UnavailableByProfile" .
+
+ceng:N3ActuationRefusedRefusal a ceng:Refusal ;
+    ceng:rustVariant "N3ActuationRefused" .
+
+ceng:RouteDecisionMismatchRefusal a ceng:Refusal ;
+    ceng:rustVariant "RouteDecisionMismatch" .
+
+ceng:GraphSnapshotMismatchRefusal a ceng:Refusal ;
+    ceng:rustVariant "GraphSnapshotMismatch" .
+
+ceng:ProfileHashMismatchRefusal a ceng:Refusal ;
+    ceng:rustVariant "ProfileHashMismatch" .
+
+ceng:HookPatternNotAdmittedRefusal a ceng:Refusal ;
+    ceng:rustVariant "HookPatternNotAdmitted" .
+
+ceng:OcelEventNotAdmittedRefusal a ceng:Refusal ;
+    ceng:rustVariant "OcelEventNotAdmitted" .
+
+ceng:BoundaryRequestMissingReceiptRefusal a ceng:Refusal ;
+    ceng:rustVariant "BoundaryRequestMissingReceipt" .
+
+ceng:AgentOverrideDeniedRefusal a ceng:Refusal ;
+    ceng:rustVariant "AgentOverrideDenied" .
+
+ceng:WitnessNotAuthorityRefusal a ceng:Refusal ;
+    ceng:rustVariant "WitnessNotAuthority" .
+
+ceng:BreedUnpermittedRefusal a ceng:Refusal ;
+    ceng:rustVariant "BreedUnpermitted" .
+
+ceng:NondeterministicOperatorRequiresReceiptRefusal a ceng:Refusal ;
+    ceng:rustVariant "NondeterministicOperatorRequiresReceipt" .
+
+ceng:ProcessReceiptShadowTypeRefusal a ceng:Refusal ;
+    ceng:rustVariant "ProcessReceiptShadowType" .
+
+ceng:DuplicateCanonicalTapeTypeRefusal a ceng:Refusal ;
+    ceng:rustVariant "DuplicateCanonicalTapeType" .
+
+ceng:TripleTermInSnapshotRefusal a ceng:Refusal ;
+    ceng:rustVariant "TripleTermInSnapshot" .
+
+ceng:Accept_Triple8UniverseWithinBounds a ceng:AcceptanceCase ;
+    ceng:harness ceng:Triple8Harness ;
+    ceng:usesFixtureSchema ceng:Triple8FixtureSchema ;
+    ceng:testFixturePath "fixtures/triple8/triple8_universe_within_bounds.json" ;
+    ceng:expectedBehavior "triple8_universe_admitted" ;
+    ceng:inputJson "{\"universe\":[\"<urn:chatman:triple8:t1>\",\"<urn:chatman:triple8:t2>\",\"<urn:chatman:triple8:t3>\",\"<urn:chatman:triple8:t4>\",\"<urn:chatman:triple8:t5>\"],\"terms\":[\"<urn:chatman:triple8:t1>\",\"<urn:chatman:triple8:t2>\",\"<urn:chatman:triple8:t3>\"]}" ;
+    ceng:caseSeed "0x6074b224d3c0ca9e" .
+
+ceng:Falsify_Triple8UniverseOverflow a ceng:FalsificationCase ;
+    ceng:harness ceng:Triple8Harness ;
+    ceng:falsifies ceng:Accept_Triple8UniverseWithinBounds ;
+    ceng:usesFixtureSchema ceng:Triple8FixtureSchema ;
+    ceng:testFixturePath "fixtures/triple8/triple8_universe_overflow.json" ;
+    ceng:expectedRefusal ceng:Triple8UniverseOverflowRefusal ;
+    ceng:falsificationMutation "Add a ninth distinct term so the universe exceeds the Triple8 bound of eight." ;
+    ceng:inputJson "{\"universe\":[\"<urn:chatman:triple8:base1>\",\"<urn:chatman:triple8:base2>\",\"<urn:chatman:triple8:base3>\",\"<urn:chatman:triple8:base4>\",\"<urn:chatman:triple8:base5>\",\"<urn:chatman:triple8:base6>\",\"<urn:chatman:triple8:base7>\",\"<urn:chatman:triple8:base8>\"],\"terms\":[\"<urn:chatman:triple8:base1>\",\"<urn:chatman:triple8:base2>\"],\"overflow_terms\":[\"<urn:chatman:triple8:overflow1>\",\"<urn:chatman:triple8:overflow2>\",\"<urn:chatman:triple8:overflow3>\",\"<urn:chatman:triple8:overflow4>\",\"<urn:chatman:triple8:overflow5>\",\"<urn:chatman:triple8:overflow6>\",\"<urn:chatman:triple8:overflow7>\",\"<urn:chatman:triple8:overflow8>\",\"<urn:chatman:triple8:overflow9>\",\"<urn:chatman:triple8:overflow10>\",\"<urn:chatman:triple8:overflow11>\",\"<urn:chatman:triple8:overflow12>\",\"<urn:chatman:triple8:overflow13>\",\"<urn:chatman:triple8:overflow14>\",\"<urn:chatman:triple8:overflow15>\",\"<urn:chatman:triple8:overflow16>\",\"<urn:chatman:triple8:overflow17>\",\"<urn:chatman:triple8:overflow18>\",\"<urn:chatman:triple8:overflow19>\",\"<urn:chatman:triple8:overflow20>\",\"<urn:chatman:triple8:overflow21>\",\"<urn:chatman:triple8:overflow22>\",\"<urn:chatman:triple8:overflow23>\",\"<urn:chatman:triple8:overflow24>\",\"<urn:chatman:triple8:overflow25>\",\"<urn:chatman:triple8:overflow26>\",\"<urn:chatman:triple8:overflow27>\",\"<urn:chatman:triple8:overflow28>\",\"<urn:chatman:triple8:overflow29>\",\"<urn:chatman:triple8:overflow30>\",\"<urn:chatman:triple8:overflow31>\",\"<urn:chatman:triple8:overflow32>\",\"<urn:chatman:triple8:overflow33>\",\"<urn:chatman:triple8:overflow34>\",\"<urn:chatman:triple8:overflow35>\",\"<urn:chatman:triple8:overflow36>\",\"<urn:chatman:triple8:overflow37>\",\"<urn:chatman:triple8:overflow38>\",\"<urn:chatman:triple8:overflow39>\",\"<urn:chatman:triple8:overflow40>\",\"<urn:chatman:triple8:overflow41>\",\"<urn:chatman:triple8:overflow42>\",\"<urn:chatman:triple8:overflow43>\",\"<urn:chatman:triple8:overflow44>\",\"<urn:chatman:triple8:overflow45>\",\"<urn:chatman:triple8:overflow46>\",\"<urn:chatman:triple8:overflow47>\",\"<urn:chatman:triple8:overflow48>\",\"<urn:chatman:triple8:overflow49>\",\"<urn:chatman:triple8:overflow50>\",\"<urn:chatman:triple8:overflow51>\",\"<urn:chatman:triple8:overflow52>\",\"<urn:chatman:triple8:overflow53>\",\"<urn:chatman:triple8:overflow54>\",\"<urn:chatman:triple8:overflow55>\",\"<urn:chatman:triple8:overflow56>\",\"<urn:chatman:triple8:overflow57>\",\"<urn:chatman:triple8:overflow58>\",\"<urn:chatman:triple8:overflow59>\",\"<urn:chatman:triple8:overflow60>\",\"<urn:chatman:triple8:overflow61>\",\"<urn:chatman:triple8:overflow62>\",\"<urn:chatman:triple8:overflow63>\",\"<urn:chatman:triple8:overflow64>\",\"<urn:chatman:triple8:overflow65>\",\"<urn:chatman:triple8:overflow66>\",\"<urn:chatman:triple8:overflow67>\",\"<urn:chatman:triple8:overflow68>\",\"<urn:chatman:triple8:overflow69>\",\"<urn:chatman:triple8:overflow70>\",\"<urn:chatman:triple8:overflow71>\",\"<urn:chatman:triple8:overflow72>\",\"<urn:chatman:triple8:overflow73>\",\"<urn:chatman:triple8:overflow74>\",\"<urn:chatman:triple8:overflow75>\",\"<urn:chatman:triple8:overflow76>\",\"<urn:chatman:triple8:overflow77>\",\"<urn:chatman:triple8:overflow78>\",\"<urn:chatman:triple8:overflow79>\",\"<urn:chatman:triple8:overflow80>\",\"<urn:chatman:triple8:overflow81>\",\"<urn:chatman:triple8:overflow82>\",\"<urn:chatman:triple8:overflow83>\",\"<urn:chatman:triple8:overflow84>\",\"<urn:chatman:triple8:overflow85>\",\"<urn:chatman:triple8:overflow86>\",\"<urn:chatman:triple8:overflow87>\",\"<urn:chatman:triple8:overflow88>\",\"<urn:chatman:triple8:overflow89>\",\"<urn:chatman:triple8:overflow90>\",\"<urn:chatman:triple8:overflow91>\",\"<urn:chatman:triple8:overflow92>\",\"<urn:chatman:triple8:overflow93>\",\"<urn:chatman:triple8:overflow94>\",\"<urn:chatman:triple8:overflow95>\",\"<urn:chatman:triple8:overflow96>\",\"<urn:chatman:triple8:overflow97>\",\"<urn:chatman:triple8:overflow98>\",\"<urn:chatman:triple8:overflow99>\",\"<urn:chatman:triple8:overflow100>\",\"<urn:chatman:triple8:overflow101>\",\"<urn:chatman:triple8:overflow102>\",\"<urn:chatman:triple8:overflow103>\",\"<urn:chatman:triple8:overflow104>\",\"<urn:chatman:triple8:overflow105>\",\"<urn:chatman:triple8:overflow106>\",\"<urn:chatman:triple8:overflow107>\",\"<urn:chatman:triple8:overflow108>\",\"<urn:chatman:triple8:overflow109>\",\"<urn:chatman:triple8:overflow110>\",\"<urn:chatman:triple8:overflow111>\",\"<urn:chatman:triple8:overflow112>\",\"<urn:chatman:triple8:overflow113>\",\"<urn:chatman:triple8:overflow114>\",\"<urn:chatman:triple8:overflow115>\",\"<urn:chatman:triple8:overflow116>\",\"<urn:chatman:triple8:overflow117>\",\"<urn:chatman:triple8:overflow118>\",\"<urn:chatman:triple8:overflow119>\",\"<urn:chatman:triple8:overflow120>\",\"<urn:chatman:triple8:overflow121>\",\"<urn:chatman:triple8:overflow122>\",\"<urn:chatman:triple8:overflow123>\",\"<urn:chatman:triple8:overflow124>\",\"<urn:chatman:triple8:overflow125>\",\"<urn:chatman:triple8:overflow126>\",\"<urn:chatman:triple8:overflow127>\",\"<urn:chatman:triple8:overflow128>\",\"<urn:chatman:triple8:overflow129>\",\"<urn:chatman:triple8:overflow130>\",\"<urn:chatman:triple8:overflow131>\",\"<urn:chatman:triple8:overflow132>\",\"<urn:chatman:triple8:overflow133>\",\"<urn:chatman:triple8:overflow134>\",\"<urn:chatman:triple8:overflow135>\",\"<urn:chatman:triple8:overflow136>\",\"<urn:chatman:triple8:overflow137>\",\"<urn:chatman:triple8:overflow138>\",\"<urn:chatman:triple8:overflow139>\",\"<urn:chatman:triple8:overflow140>\",\"<urn:chatman:triple8:overflow141>\",\"<urn:chatman:triple8:overflow142>\",\"<urn:chatman:triple8:overflow143>\",\"<urn:chatman:triple8:overflow144>\",\"<urn:chatman:triple8:overflow145>\",\"<urn:chatman:triple8:overflow146>\",\"<urn:chatman:triple8:overflow147>\",\"<urn:chatman:triple8:overflow148>\",\"<urn:chatman:triple8:overflow149>\",\"<urn:chatman:triple8:overflow150>\",\"<urn:chatman:triple8:overflow151>\",\"<urn:chatman:triple8:overflow152>\",\"<urn:chatman:triple8:overflow153>\",\"<urn:chatman:triple8:overflow154>\",\"<urn:chatman:triple8:overflow155>\",\"<urn:chatman:triple8:overflow156>\",\"<urn:chatman:triple8:overflow157>\",\"<urn:chatman:triple8:overflow158>\",\"<urn:chatman:triple8:overflow159>\",\"<urn:chatman:triple8:overflow160>\",\"<urn:chatman:triple8:overflow161>\",\"<urn:chatman:triple8:overflow162>\",\"<urn:chatman:triple8:overflow163>\",\"<urn:chatman:triple8:overflow164>\",\"<urn:chatman:triple8:overflow165>\",\"<urn:chatman:triple8:overflow166>\",\"<urn:chatman:triple8:overflow167>\",\"<urn:chatman:triple8:overflow168>\",\"<urn:chatman:triple8:overflow169>\",\"<urn:chatman:triple8:overflow170>\",\"<urn:chatman:triple8:overflow171>\",\"<urn:chatman:triple8:overflow172>\",\"<urn:chatman:triple8:overflow173>\",\"<urn:chatman:triple8:overflow174>\",\"<urn:chatman:triple8:overflow175>\",\"<urn:chatman:triple8:overflow176>\",\"<urn:chatman:triple8:overflow177>\",\"<urn:chatman:triple8:overflow178>\",\"<urn:chatman:triple8:overflow179>\",\"<urn:chatman:triple8:overflow180>\",\"<urn:chatman:triple8:overflow181>\",\"<urn:chatman:triple8:overflow182>\",\"<urn:chatman:triple8:overflow183>\",\"<urn:chatman:triple8:overflow184>\",\"<urn:chatman:triple8:overflow185>\",\"<urn:chatman:triple8:overflow186>\",\"<urn:chatman:triple8:overflow187>\",\"<urn:chatman:triple8:overflow188>\",\"<urn:chatman:triple8:overflow189>\",\"<urn:chatman:triple8:overflow190>\",\"<urn:chatman:triple8:overflow191>\",\"<urn:chatman:triple8:overflow192>\",\"<urn:chatman:triple8:overflow193>\",\"<urn:chatman:triple8:overflow194>\",\"<urn:chatman:triple8:overflow195>\",\"<urn:chatman:triple8:overflow196>\",\"<urn:chatman:triple8:overflow197>\",\"<urn:chatman:triple8:overflow198>\",\"<urn:chatman:triple8:overflow199>\",\"<urn:chatman:triple8:overflow200>\",\"<urn:chatman:triple8:overflow201>\",\"<urn:chatman:triple8:overflow202>\",\"<urn:chatman:triple8:overflow203>\",\"<urn:chatman:triple8:overflow204>\",\"<urn:chatman:triple8:overflow205>\",\"<urn:chatman:triple8:overflow206>\",\"<urn:chatman:triple8:overflow207>\",\"<urn:chatman:triple8:overflow208>\",\"<urn:chatman:triple8:overflow209>\",\"<urn:chatman:triple8:overflow210>\",\"<urn:chatman:triple8:overflow211>\",\"<urn:chatman:triple8:overflow212>\",\"<urn:chatman:triple8:overflow213>\",\"<urn:chatman:triple8:overflow214>\",\"<urn:chatman:triple8:overflow215>\",\"<urn:chatman:triple8:overflow216>\",\"<urn:chatman:triple8:overflow217>\",\"<urn:chatman:triple8:overflow218>\",\"<urn:chatman:triple8:overflow219>\",\"<urn:chatman:triple8:overflow220>\",\"<urn:chatman:triple8:overflow221>\",\"<urn:chatman:triple8:overflow222>\",\"<urn:chatman:triple8:overflow223>\",\"<urn:chatman:triple8:overflow224>\",\"<urn:chatman:triple8:overflow225>\",\"<urn:chatman:triple8:overflow226>\",\"<urn:chatman:triple8:overflow227>\",\"<urn:chatman:triple8:overflow228>\",\"<urn:chatman:triple8:overflow229>\",\"<urn:chatman:triple8:overflow230>\",\"<urn:chatman:triple8:overflow231>\",\"<urn:chatman:triple8:overflow232>\",\"<urn:chatman:triple8:overflow233>\",\"<urn:chatman:triple8:overflow234>\",\"<urn:chatman:triple8:overflow235>\",\"<urn:chatman:triple8:overflow236>\",\"<urn:chatman:triple8:overflow237>\",\"<urn:chatman:triple8:overflow238>\",\"<urn:chatman:triple8:overflow239>\",\"<urn:chatman:triple8:overflow240>\",\"<urn:chatman:triple8:overflow241>\",\"<urn:chatman:triple8:overflow242>\",\"<urn:chatman:triple8:overflow243>\",\"<urn:chatman:triple8:overflow244>\",\"<urn:chatman:triple8:overflow245>\",\"<urn:chatman:triple8:overflow246>\",\"<urn:chatman:triple8:overflow247>\",\"<urn:chatman:triple8:overflow248>\",\"<urn:chatman:triple8:overflow249>\",\"<urn:chatman:triple8:overflow250>\",\"<urn:chatman:triple8:overflow251>\",\"<urn:chatman:triple8:overflow252>\",\"<urn:chatman:triple8:overflow253>\",\"<urn:chatman:triple8:overflow254>\",\"<urn:chatman:triple8:overflow255>\",\"<urn:chatman:triple8:overflow256>\",\"<urn:chatman:triple8:overflow257>\",\"<urn:chatman:triple8:overflow258>\",\"<urn:chatman:triple8:overflow259>\",\"<urn:chatman:triple8:overflow260>\",\"<urn:chatman:triple8:overflow261>\",\"<urn:chatman:triple8:overflow262>\",\"<urn:chatman:triple8:overflow263>\",\"<urn:chatman:triple8:overflow264>\",\"<urn:chatman:triple8:overflow265>\",\"<urn:chatman:triple8:overflow266>\",\"<urn:chatman:triple8:overflow267>\",\"<urn:chatman:triple8:overflow268>\",\"<urn:chatman:triple8:overflow269>\",\"<urn:chatman:triple8:overflow270>\",\"<urn:chatman:triple8:overflow271>\",\"<urn:chatman:triple8:overflow272>\",\"<urn:chatman:triple8:overflow273>\",\"<urn:chatman:triple8:overflow274>\",\"<urn:chatman:triple8:overflow275>\",\"<urn:chatman:triple8:overflow276>\",\"<urn:chatman:triple8:overflow277>\",\"<urn:chatman:triple8:overflow278>\",\"<urn:chatman:triple8:overflow279>\",\"<urn:chatman:triple8:overflow280>\",\"<urn:chatman:triple8:overflow281>\",\"<urn:chatman:triple8:overflow282>\",\"<urn:chatman:triple8:overflow283>\",\"<urn:chatman:triple8:overflow284>\",\"<urn:chatman:triple8:overflow285>\",\"<urn:chatman:triple8:overflow286>\",\"<urn:chatman:triple8:overflow287>\",\"<urn:chatman:triple8:overflow288>\",\"<urn:chatman:triple8:overflow289>\",\"<urn:chatman:triple8:overflow290>\",\"<urn:chatman:triple8:overflow291>\",\"<urn:chatman:triple8:overflow292>\",\"<urn:chatman:triple8:overflow293>\",\"<urn:chatman:triple8:overflow294>\",\"<urn:chatman:triple8:overflow295>\",\"<urn:chatman:triple8:overflow296>\",\"<urn:chatman:triple8:overflow297>\",\"<urn:chatman:triple8:overflow298>\",\"<urn:chatman:triple8:overflow299>\",\"<urn:chatman:triple8:overflow300>\"]}" ;
+    ceng:caseSeed "0x5ea120d5fa03ad02" .
+
+ceng:Falsify_Triple8UniverseOverflowByOne a ceng:FalsificationCase ;
+    ceng:harness ceng:Triple8Harness ;
+    ceng:falsifies ceng:Accept_Triple8UniverseWithinBounds ;
+    ceng:usesFixtureSchema ceng:Triple8FixtureSchema ;
+    ceng:testFixturePath "fixtures/triple8/triple8_universe_overflow_by_one.json" ;
+    ceng:expectedRefusal ceng:Triple8UniverseOverflowRefusal ;
+    ceng:falsificationMutation "Duplicate one admitted term under a fresh IRI so the universe count becomes nine." ;
+    ceng:inputJson "{\"universe\":[\"<urn:chatman:triple8:base1>\",\"<urn:chatman:triple8:base2>\",\"<urn:chatman:triple8:base3>\",\"<urn:chatman:triple8:base4>\",\"<urn:chatman:triple8:base5>\",\"<urn:chatman:triple8:base6>\",\"<urn:chatman:triple8:base7>\",\"<urn:chatman:triple8:base8>\"],\"terms\":[\"<urn:chatman:triple8:base1>\",\"<urn:chatman:triple8:base2>\"],\"overflow_terms\":[\"<urn:chatman:triple8:overflowbyone1>\",\"<urn:chatman:triple8:overflowbyone2>\",\"<urn:chatman:triple8:overflowbyone3>\",\"<urn:chatman:triple8:overflowbyone4>\",\"<urn:chatman:triple8:overflowbyone5>\",\"<urn:chatman:triple8:overflowbyone6>\",\"<urn:chatman:triple8:overflowbyone7>\",\"<urn:chatman:triple8:overflowbyone8>\",\"<urn:chatman:triple8:overflowbyone9>\",\"<urn:chatman:triple8:overflowbyone10>\",\"<urn:chatman:triple8:overflowbyone11>\",\"<urn:chatman:triple8:overflowbyone12>\",\"<urn:chatman:triple8:overflowbyone13>\",\"<urn:chatman:triple8:overflowbyone14>\",\"<urn:chatman:triple8:overflowbyone15>\",\"<urn:chatman:triple8:overflowbyone16>\",\"<urn:chatman:triple8:overflowbyone17>\",\"<urn:chatman:triple8:overflowbyone18>\",\"<urn:chatman:triple8:overflowbyone19>\",\"<urn:chatman:triple8:overflowbyone20>\",\"<urn:chatman:triple8:overflowbyone21>\",\"<urn:chatman:triple8:overflowbyone22>\",\"<urn:chatman:triple8:overflowbyone23>\",\"<urn:chatman:triple8:overflowbyone24>\",\"<urn:chatman:triple8:overflowbyone25>\",\"<urn:chatman:triple8:overflowbyone26>\",\"<urn:chatman:triple8:overflowbyone27>\",\"<urn:chatman:triple8:overflowbyone28>\",\"<urn:chatman:triple8:overflowbyone29>\",\"<urn:chatman:triple8:overflowbyone30>\",\"<urn:chatman:triple8:overflowbyone31>\",\"<urn:chatman:triple8:overflowbyone32>\",\"<urn:chatman:triple8:overflowbyone33>\",\"<urn:chatman:triple8:overflowbyone34>\",\"<urn:chatman:triple8:overflowbyone35>\",\"<urn:chatman:triple8:overflowbyone36>\",\"<urn:chatman:triple8:overflowbyone37>\",\"<urn:chatman:triple8:overflowbyone38>\",\"<urn:chatman:triple8:overflowbyone39>\",\"<urn:chatman:triple8:overflowbyone40>\",\"<urn:chatman:triple8:overflowbyone41>\",\"<urn:chatman:triple8:overflowbyone42>\",\"<urn:chatman:triple8:overflowbyone43>\",\"<urn:chatman:triple8:overflowbyone44>\",\"<urn:chatman:triple8:overflowbyone45>\",\"<urn:chatman:triple8:overflowbyone46>\",\"<urn:chatman:triple8:overflowbyone47>\",\"<urn:chatman:triple8:overflowbyone48>\",\"<urn:chatman:triple8:overflowbyone49>\",\"<urn:chatman:triple8:overflowbyone50>\",\"<urn:chatman:triple8:overflowbyone51>\",\"<urn:chatman:triple8:overflowbyone52>\",\"<urn:chatman:triple8:overflowbyone53>\",\"<urn:chatman:triple8:overflowbyone54>\",\"<urn:chatman:triple8:overflowbyone55>\",\"<urn:chatman:triple8:overflowbyone56>\",\"<urn:chatman:triple8:overflowbyone57>\",\"<urn:chatman:triple8:overflowbyone58>\",\"<urn:chatman:triple8:overflowbyone59>\",\"<urn:chatman:triple8:overflowbyone60>\",\"<urn:chatman:triple8:overflowbyone61>\",\"<urn:chatman:triple8:overflowbyone62>\",\"<urn:chatman:triple8:overflowbyone63>\",\"<urn:chatman:triple8:overflowbyone64>\",\"<urn:chatman:triple8:overflowbyone65>\",\"<urn:chatman:triple8:overflowbyone66>\",\"<urn:chatman:triple8:overflowbyone67>\",\"<urn:chatman:triple8:overflowbyone68>\",\"<urn:chatman:triple8:overflowbyone69>\",\"<urn:chatman:triple8:overflowbyone70>\",\"<urn:chatman:triple8:overflowbyone71>\",\"<urn:chatman:triple8:overflowbyone72>\",\"<urn:chatman:triple8:overflowbyone73>\",\"<urn:chatman:triple8:overflowbyone74>\",\"<urn:chatman:triple8:overflowbyone75>\",\"<urn:chatman:triple8:overflowbyone76>\",\"<urn:chatman:triple8:overflowbyone77>\",\"<urn:chatman:triple8:overflowbyone78>\",\"<urn:chatman:triple8:overflowbyone79>\",\"<urn:chatman:triple8:overflowbyone80>\",\"<urn:chatman:triple8:overflowbyone81>\",\"<urn:chatman:triple8:overflowbyone82>\",\"<urn:chatman:triple8:overflowbyone83>\",\"<urn:chatman:triple8:overflowbyone84>\",\"<urn:chatman:triple8:overflowbyone85>\",\"<urn:chatman:triple8:overflowbyone86>\",\"<urn:chatman:triple8:overflowbyone87>\",\"<urn:chatman:triple8:overflowbyone88>\",\"<urn:chatman:triple8:overflowbyone89>\",\"<urn:chatman:triple8:overflowbyone90>\",\"<urn:chatman:triple8:overflowbyone91>\",\"<urn:chatman:triple8:overflowbyone92>\",\"<urn:chatman:triple8:overflowbyone93>\",\"<urn:chatman:triple8:overflowbyone94>\",\"<urn:chatman:triple8:overflowbyone95>\",\"<urn:chatman:triple8:overflowbyone96>\",\"<urn:chatman:triple8:overflowbyone97>\",\"<urn:chatman:triple8:overflowbyone98>\",\"<urn:chatman:triple8:overflowbyone99>\",\"<urn:chatman:triple8:overflowbyone100>\",\"<urn:chatman:triple8:overflowbyone101>\",\"<urn:chatman:triple8:overflowbyone102>\",\"<urn:chatman:triple8:overflowbyone103>\",\"<urn:chatman:triple8:overflowbyone104>\",\"<urn:chatman:triple8:overflowbyone105>\",\"<urn:chatman:triple8:overflowbyone106>\",\"<urn:chatman:triple8:overflowbyone107>\",\"<urn:chatman:triple8:overflowbyone108>\",\"<urn:chatman:triple8:overflowbyone109>\",\"<urn:chatman:triple8:overflowbyone110>\",\"<urn:chatman:triple8:overflowbyone111>\",\"<urn:chatman:triple8:overflowbyone112>\",\"<urn:chatman:triple8:overflowbyone113>\",\"<urn:chatman:triple8:overflowbyone114>\",\"<urn:chatman:triple8:overflowbyone115>\",\"<urn:chatman:triple8:overflowbyone116>\",\"<urn:chatman:triple8:overflowbyone117>\",\"<urn:chatman:triple8:overflowbyone118>\",\"<urn:chatman:triple8:overflowbyone119>\",\"<urn:chatman:triple8:overflowbyone120>\",\"<urn:chatman:triple8:overflowbyone121>\",\"<urn:chatman:triple8:overflowbyone122>\",\"<urn:chatman:triple8:overflowbyone123>\",\"<urn:chatman:triple8:overflowbyone124>\",\"<urn:chatman:triple8:overflowbyone125>\",\"<urn:chatman:triple8:overflowbyone126>\",\"<urn:chatman:triple8:overflowbyone127>\",\"<urn:chatman:triple8:overflowbyone128>\",\"<urn:chatman:triple8:overflowbyone129>\",\"<urn:chatman:triple8:overflowbyone130>\",\"<urn:chatman:triple8:overflowbyone131>\",\"<urn:chatman:triple8:overflowbyone132>\",\"<urn:chatman:triple8:overflowbyone133>\",\"<urn:chatman:triple8:overflowbyone134>\",\"<urn:chatman:triple8:overflowbyone135>\",\"<urn:chatman:triple8:overflowbyone136>\",\"<urn:chatman:triple8:overflowbyone137>\",\"<urn:chatman:triple8:overflowbyone138>\",\"<urn:chatman:triple8:overflowbyone139>\",\"<urn:chatman:triple8:overflowbyone140>\",\"<urn:chatman:triple8:overflowbyone141>\",\"<urn:chatman:triple8:overflowbyone142>\",\"<urn:chatman:triple8:overflowbyone143>\",\"<urn:chatman:triple8:overflowbyone144>\",\"<urn:chatman:triple8:overflowbyone145>\",\"<urn:chatman:triple8:overflowbyone146>\",\"<urn:chatman:triple8:overflowbyone147>\",\"<urn:chatman:triple8:overflowbyone148>\",\"<urn:chatman:triple8:overflowbyone149>\",\"<urn:chatman:triple8:overflowbyone150>\",\"<urn:chatman:triple8:overflowbyone151>\",\"<urn:chatman:triple8:overflowbyone152>\",\"<urn:chatman:triple8:overflowbyone153>\",\"<urn:chatman:triple8:overflowbyone154>\",\"<urn:chatman:triple8:overflowbyone155>\",\"<urn:chatman:triple8:overflowbyone156>\",\"<urn:chatman:triple8:overflowbyone157>\",\"<urn:chatman:triple8:overflowbyone158>\",\"<urn:chatman:triple8:overflowbyone159>\",\"<urn:chatman:triple8:overflowbyone160>\",\"<urn:chatman:triple8:overflowbyone161>\",\"<urn:chatman:triple8:overflowbyone162>\",\"<urn:chatman:triple8:overflowbyone163>\",\"<urn:chatman:triple8:overflowbyone164>\",\"<urn:chatman:triple8:overflowbyone165>\",\"<urn:chatman:triple8:overflowbyone166>\",\"<urn:chatman:triple8:overflowbyone167>\",\"<urn:chatman:triple8:overflowbyone168>\",\"<urn:chatman:triple8:overflowbyone169>\",\"<urn:chatman:triple8:overflowbyone170>\",\"<urn:chatman:triple8:overflowbyone171>\",\"<urn:chatman:triple8:overflowbyone172>\",\"<urn:chatman:triple8:overflowbyone173>\",\"<urn:chatman:triple8:overflowbyone174>\",\"<urn:chatman:triple8:overflowbyone175>\",\"<urn:chatman:triple8:overflowbyone176>\",\"<urn:chatman:triple8:overflowbyone177>\",\"<urn:chatman:triple8:overflowbyone178>\",\"<urn:chatman:triple8:overflowbyone179>\",\"<urn:chatman:triple8:overflowbyone180>\",\"<urn:chatman:triple8:overflowbyone181>\",\"<urn:chatman:triple8:overflowbyone182>\",\"<urn:chatman:triple8:overflowbyone183>\",\"<urn:chatman:triple8:overflowbyone184>\",\"<urn:chatman:triple8:overflowbyone185>\",\"<urn:chatman:triple8:overflowbyone186>\",\"<urn:chatman:triple8:overflowbyone187>\",\"<urn:chatman:triple8:overflowbyone188>\",\"<urn:chatman:triple8:overflowbyone189>\",\"<urn:chatman:triple8:overflowbyone190>\",\"<urn:chatman:triple8:overflowbyone191>\",\"<urn:chatman:triple8:overflowbyone192>\",\"<urn:chatman:triple8:overflowbyone193>\",\"<urn:chatman:triple8:overflowbyone194>\",\"<urn:chatman:triple8:overflowbyone195>\",\"<urn:chatman:triple8:overflowbyone196>\",\"<urn:chatman:triple8:overflowbyone197>\",\"<urn:chatman:triple8:overflowbyone198>\",\"<urn:chatman:triple8:overflowbyone199>\",\"<urn:chatman:triple8:overflowbyone200>\",\"<urn:chatman:triple8:overflowbyone201>\",\"<urn:chatman:triple8:overflowbyone202>\",\"<urn:chatman:triple8:overflowbyone203>\",\"<urn:chatman:triple8:overflowbyone204>\",\"<urn:chatman:triple8:overflowbyone205>\",\"<urn:chatman:triple8:overflowbyone206>\",\"<urn:chatman:triple8:overflowbyone207>\",\"<urn:chatman:triple8:overflowbyone208>\",\"<urn:chatman:triple8:overflowbyone209>\",\"<urn:chatman:triple8:overflowbyone210>\",\"<urn:chatman:triple8:overflowbyone211>\",\"<urn:chatman:triple8:overflowbyone212>\",\"<urn:chatman:triple8:overflowbyone213>\",\"<urn:chatman:triple8:overflowbyone214>\",\"<urn:chatman:triple8:overflowbyone215>\",\"<urn:chatman:triple8:overflowbyone216>\",\"<urn:chatman:triple8:overflowbyone217>\",\"<urn:chatman:triple8:overflowbyone218>\",\"<urn:chatman:triple8:overflowbyone219>\",\"<urn:chatman:triple8:overflowbyone220>\",\"<urn:chatman:triple8:overflowbyone221>\",\"<urn:chatman:triple8:overflowbyone222>\",\"<urn:chatman:triple8:overflowbyone223>\",\"<urn:chatman:triple8:overflowbyone224>\",\"<urn:chatman:triple8:overflowbyone225>\",\"<urn:chatman:triple8:overflowbyone226>\",\"<urn:chatman:triple8:overflowbyone227>\",\"<urn:chatman:triple8:overflowbyone228>\",\"<urn:chatman:triple8:overflowbyone229>\",\"<urn:chatman:triple8:overflowbyone230>\",\"<urn:chatman:triple8:overflowbyone231>\",\"<urn:chatman:triple8:overflowbyone232>\",\"<urn:chatman:triple8:overflowbyone233>\",\"<urn:chatman:triple8:overflowbyone234>\",\"<urn:chatman:triple8:overflowbyone235>\",\"<urn:chatman:triple8:overflowbyone236>\",\"<urn:chatman:triple8:overflowbyone237>\",\"<urn:chatman:triple8:overflowbyone238>\",\"<urn:chatman:triple8:overflowbyone239>\",\"<urn:chatman:triple8:overflowbyone240>\",\"<urn:chatman:triple8:overflowbyone241>\",\"<urn:chatman:triple8:overflowbyone242>\",\"<urn:chatman:triple8:overflowbyone243>\",\"<urn:chatman:triple8:overflowbyone244>\",\"<urn:chatman:triple8:overflowbyone245>\",\"<urn:chatman:triple8:overflowbyone246>\",\"<urn:chatman:triple8:overflowbyone247>\",\"<urn:chatman:triple8:overflowbyone248>\",\"<urn:chatman:triple8:overflowbyone249>\"]}" ;
+    ceng:caseSeed "0x1ca565bd892d1269" .
+
+ceng:Accept_TermsResolveInTriple8Universe a ceng:AcceptanceCase ;
+    ceng:harness ceng:Triple8Harness ;
+    ceng:usesFixtureSchema ceng:Triple8FixtureSchema ;
+    ceng:testFixturePath "fixtures/triple8/terms_resolve_in_triple8_universe.json" ;
+    ceng:expectedBehavior "triple8_terms_resolved" ;
+    ceng:inputJson "{\"universe\":[\"<urn:chatman:triple8:u1>\",\"<urn:chatman:triple8:u2>\",\"<urn:chatman:triple8:u3>\",\"<urn:chatman:triple8:u4>\",\"<urn:chatman:triple8:u5>\"],\"terms\":[\"<urn:chatman:triple8:u1>\",\"<urn:chatman:triple8:u2>\",\"<urn:chatman:triple8:u3>\",\"<urn:chatman:triple8:u4>\",\"<urn:chatman:triple8:u5>\"]}" ;
+    ceng:caseSeed "0xa1d4ff8073ad44ea" .
+
+ceng:Falsify_TermNotInTriple8Universe a ceng:FalsificationCase ;
+    ceng:harness ceng:Triple8Harness ;
+    ceng:falsifies ceng:Accept_TermsResolveInTriple8Universe ;
+    ceng:usesFixtureSchema ceng:Triple8FixtureSchema ;
+    ceng:testFixturePath "fixtures/triple8/term_not_in_triple8_universe.json" ;
+    ceng:expectedRefusal ceng:TermNotInTriple8UniverseRefusal ;
+    ceng:falsificationMutation "Reference one term IRI that was never interned into the Triple8 universe." ;
+    ceng:inputJson "{\"universe\":[\"<urn:chatman:triple8:u1>\",\"<urn:chatman:triple8:u2>\",\"<urn:chatman:triple8:u3>\",\"<urn:chatman:triple8:u4>\"],\"terms\":[\"<urn:chatman:triple8:u1>\",\"<urn:chatman:triple8:not-in-universe>\"]}" ;
+    ceng:caseSeed "0x59c2c103ac8520d1" .
+
+ceng:Accept_SnapshotContainsOnlyAtomicTerms a ceng:AcceptanceCase ;
+    ceng:harness ceng:Triple8Harness ;
+    ceng:usesFixtureSchema ceng:Triple8FixtureSchema ;
+    ceng:testFixturePath "fixtures/triple8/snapshot_contains_only_atomic_terms.json" ;
+    ceng:expectedBehavior "snapshot_atomic_terms_only" ;
+    ceng:inputJson "{\"universe\":[\"<urn:chatman:triple8:atomic1>\",\"<urn:chatman:triple8:atomic2>\",\"<urn:chatman:triple8:atomic3>\",\"<urn:chatman:triple8:atomic4>\"],\"terms\":[\"<urn:chatman:triple8:atomic1>\",\"<urn:chatman:triple8:atomic2>\",\"<urn:chatman:triple8:atomic3>\",\"<urn:chatman:triple8:atomic4>\"]}" ;
+    ceng:caseSeed "0xd00fb13dc7ab96dd" .
+
+ceng:Falsify_TripleTermInSnapshot a ceng:FalsificationCase ;
+    ceng:harness ceng:Triple8Harness ;
+    ceng:falsifies ceng:Accept_SnapshotContainsOnlyAtomicTerms ;
+    ceng:usesFixtureSchema ceng:Triple8FixtureSchema ;
+    ceng:testFixturePath "fixtures/triple8/triple_term_in_snapshot.json" ;
+    ceng:expectedRefusal ceng:TripleTermInSnapshotRefusal ;
+    ceng:falsificationMutation "Embed one RDF-star triple term inside the snapshot term list." ;
+    ceng:inputJson "{\"universe\":[\"<urn:chatman:triple8:atomic1>\",\"<urn:chatman:triple8:atomic2>\",\"<urn:chatman:triple8:atomic3>\"],\"terms\":[\"<<<urn:chatman:triple8:atomic1> <urn:chatman:triple8:atomic2> <urn:chatman:triple8:atomic3>>>\"]}" ;
+    ceng:caseSeed "0xdf678267c43b51c7" .
+
+ceng:Accept_HotPathRouteForBoundedPattern a ceng:AcceptanceCase ;
+    ceng:harness ceng:RoutingHarness ;
+    ceng:usesFixtureSchema ceng:RoutingFixtureSchema ;
+    ceng:testFixturePath "fixtures/routing/hot_path_route_for_bounded_pattern.json" ;
+    ceng:expectedBehavior "hot_path_routed" ;
+    ceng:inputJson "{\"profile_id\":\"profile-hot-path\",\"requested_dialect\":\"triple8-pattern\",\"admitted_dialects\":[\"triple8-pattern\"]}" ;
+    ceng:caseSeed "0xa3f5fb1c8836023f" .
+
+ceng:Falsify_WarmPathRequired a ceng:FalsificationCase ;
+    ceng:harness ceng:RoutingHarness ;
+    ceng:falsifies ceng:Accept_HotPathRouteForBoundedPattern ;
+    ceng:usesFixtureSchema ceng:RoutingFixtureSchema ;
+    ceng:testFixturePath "fixtures/routing/warm_path_required.json" ;
+    ceng:expectedRefusal ceng:WarmPathRequiredRefusal ;
+    ceng:falsificationMutation "Raise the pattern constraint count above the HotPath maxConstraints of eight." ;
+    ceng:inputJson "{\"profile_id\":\"profile-warm-path-required\",\"requested_dialect\":\"triple8-pattern\",\"admitted_dialects\":[]}" ;
+    ceng:caseSeed "0x598db1f9ab55eae8" .
+
+ceng:Falsify_LeastExpressiveRouteViolation a ceng:FalsificationCase ;
+    ceng:harness ceng:RoutingHarness ;
+    ceng:falsifies ceng:Accept_HotPathRouteForBoundedPattern ;
+    ceng:usesFixtureSchema ceng:RoutingFixtureSchema ;
+    ceng:testFixturePath "fixtures/routing/least_expressive_route_violation.json" ;
+    ceng:expectedRefusal ceng:LeastExpressiveRouteViolationRefusal ;
+    ceng:falsificationMutation "Request the ColdPath route for a pattern the HotPath already admits." ;
+    ceng:inputJson "{\"profile_id\":\"profile-hot-path\",\"requested_dialect\":\"triple8-pattern\",\"admitted_dialects\":[\"triple8-pattern\",\"sparql-construct\"],\"recorded_route\":\"sparql-construct\"}" ;
+    ceng:caseSeed "0x029045b9ec24c7ec" .
+
+ceng:Falsify_RouteDecisionMismatch a ceng:FalsificationCase ;
+    ceng:harness ceng:RoutingHarness ;
+    ceng:falsifies ceng:Accept_HotPathRouteForBoundedPattern ;
+    ceng:usesFixtureSchema ceng:RoutingFixtureSchema ;
+    ceng:testFixturePath "fixtures/routing/route_decision_mismatch.json" ;
+    ceng:expectedRefusal ceng:RouteDecisionMismatchRefusal ;
+    ceng:falsificationMutation "Alter the recorded route decision literal so it disagrees with the recomputed route." ;
+    ceng:inputJson "{\"profile_id\":\"profile-route-mismatch\",\"requested_dialect\":\"sparql-select\",\"admitted_dialects\":[\"sparql-select\"],\"recorded_route\":\"shacl-core\"}" ;
+    ceng:caseSeed "0x878f3798b11ecdfe" .
+
+ceng:Accept_SupportedDialectRoute a ceng:AcceptanceCase ;
+    ceng:harness ceng:RoutingHarness ;
+    ceng:usesFixtureSchema ceng:RoutingFixtureSchema ;
+    ceng:testFixturePath "fixtures/routing/supported_dialect_route.json" ;
+    ceng:expectedBehavior "supported_dialect_routed" ;
+    ceng:inputJson "{\"profile_id\":\"profile-supported-dialect\",\"requested_dialect\":\"triple8-pattern\",\"admitted_dialects\":[\"triple8-pattern\"]}" ;
+    ceng:caseSeed "0xab5f9398d4826c20" .
+
+ceng:Falsify_UnsupportedDialect a ceng:FalsificationCase ;
+    ceng:harness ceng:RoutingHarness ;
+    ceng:falsifies ceng:Accept_SupportedDialectRoute ;
+    ceng:usesFixtureSchema ceng:RoutingFixtureSchema ;
+    ceng:testFixturePath "fixtures/routing/unsupported_dialect.json" ;
+    ceng:expectedRefusal ceng:UnsupportedDialectRefusal ;
+    ceng:falsificationMutation "Name a dialect outside the closed dialect vocabulary." ;
+    ceng:inputJson "{\"profile_id\":\"profile-unsupported-dialect\",\"requested_dialect\":\"triple8-pattern\",\"admitted_dialects\":[]}" ;
+    ceng:caseSeed "0x55408d2712f12f9c" .
+
+ceng:Falsify_N3UnavailableByProfile a ceng:FalsificationCase ;
+    ceng:harness ceng:RoutingHarness ;
+    ceng:falsifies ceng:Accept_SupportedDialectRoute ;
+    ceng:usesFixtureSchema ceng:RoutingFixtureSchema ;
+    ceng:testFixturePath "fixtures/routing/n3_unavailable_by_profile.json" ;
+    ceng:expectedRefusal ceng:N3UnavailableByProfileRefusal ;
+    ceng:falsificationMutation "Route through the N3 dialect while the profile keeps defaultEnabled false." ;
+    ceng:inputJson "{\"profile_id\":\"profile-n3-unavailable\",\"requested_dialect\":\"n3\",\"admitted_dialects\":[\"triple8-pattern\"]}" ;
+    ceng:caseSeed "0xb49fe542f2196cb6" .
+
+ceng:Falsify_N3ActuationRefused a ceng:FalsificationCase ;
+    ceng:harness ceng:RoutingHarness ;
+    ceng:falsifies ceng:Accept_SupportedDialectRoute ;
+    ceng:usesFixtureSchema ceng:RoutingFixtureSchema ;
+    ceng:testFixturePath "fixtures/routing/n3_actuation_refused.json" ;
+    ceng:expectedRefusal ceng:N3ActuationRefusedRefusal ;
+    ceng:falsificationMutation "Mark the N3 request as an actuation attempt, which no profile may actuate." ;
+    ceng:inputJson "{\"profile_id\":\"profile-n3-actuation\",\"requested_dialect\":\"n3\",\"admitted_dialects\":[\"triple8-pattern\"]}" ;
+    ceng:caseSeed "0x882b1fd46d59fc7c" .
+
+ceng:Accept_ProjectionHashMatches a ceng:AcceptanceCase ;
+    ceng:harness ceng:ReceiptsHarness ;
+    ceng:usesFixtureSchema ceng:ReceiptsFixtureSchema ;
+    ceng:testFixturePath "fixtures/receipts/projection_hash_matches.json" ;
+    ceng:expectedBehavior "projection_hash_verified" ;
+    ceng:inputJson "{\"subject\":\"urn:chatman:subject:receipt-1\",\"witness\":\"urn:chatman:witness:receipt-1\",\"replay_hint\":\"replay-hint-receipt-1\",\"canon_nquads\":\"<urn:chatman:s1> <urn:chatman:p1> \\\"v1\\\" .\\n<urn:chatman:s2> <urn:chatman:p2> \\\"v2\\\" .\",\"carried_digest\":\"853f86a0e79d737a84df0cd75c0f355b7ba2583bf51277083b68201d122906ed\"}" ;
+    ceng:caseSeed "0x3353fc450639e53a" .
+
+ceng:Falsify_ProjectionHashMismatch a ceng:FalsificationCase ;
+    ceng:harness ceng:ReceiptsHarness ;
+    ceng:falsifies ceng:Accept_ProjectionHashMatches ;
+    ceng:usesFixtureSchema ceng:ReceiptsFixtureSchema ;
+    ceng:testFixturePath "fixtures/receipts/projection_hash_mismatch.json" ;
+    ceng:expectedRefusal ceng:ProjectionHashMismatchRefusal ;
+    ceng:falsificationMutation "Flip one byte of the projection payload after its hash was recorded." ;
+    ceng:inputJson "{\"subject\":\"urn:chatman:subject:receipt-1\",\"witness\":\"urn:chatman:witness:receipt-1\",\"replay_hint\":\"replay-hint-receipt-1\",\"canon_nquads\":\"<urn:chatman:s1> <urn:chatman:p1> \\\"v1\\\" .\\n<urn:chatman:s2> <urn:chatman:p2> \\\"v2\\\" .\",\"carried_digest\":\"853f86a0e79d737a84df0cd75c0f355b7ba2583bf51277083b68201d122906e0\"}" ;
+    ceng:caseSeed "0x76f9f1fecc1d09c1" .
+
+ceng:Accept_ProfileHashMatches a ceng:AcceptanceCase ;
+    ceng:harness ceng:ReceiptsHarness ;
+    ceng:usesFixtureSchema ceng:ReceiptsFixtureSchema ;
+    ceng:testFixturePath "fixtures/receipts/profile_hash_matches.json" ;
+    ceng:expectedBehavior "profile_hash_verified" ;
+    ceng:inputJson "{\"subject\":\"urn:chatman:subject:receipt-2\",\"witness\":\"urn:chatman:witness:receipt-2\",\"replay_hint\":\"replay-hint-receipt-2\",\"canon_nquads\":\"<urn:chatman:s1> <urn:chatman:p1> \\\"v1\\\" .\",\"carried_digest\":\"0b755f498d4d0613ca6584a4126381239594f04e553dc7c6c2d4d4ba4777fa1d\"}" ;
+    ceng:caseSeed "0x446f959a2bdcf781" .
+
+ceng:Falsify_ProfileHashMismatch a ceng:FalsificationCase ;
+    ceng:harness ceng:ReceiptsHarness ;
+    ceng:falsifies ceng:Accept_ProfileHashMatches ;
+    ceng:usesFixtureSchema ceng:ReceiptsFixtureSchema ;
+    ceng:testFixturePath "fixtures/receipts/profile_hash_mismatch.json" ;
+    ceng:expectedRefusal ceng:ProfileHashMismatchRefusal ;
+    ceng:falsificationMutation "Substitute a different profile document behind an unchanged profile hash claim." ;
+    ceng:inputJson "{\"subject\":\"urn:chatman:subject:receipt-2\",\"witness\":\"urn:chatman:witness:receipt-2\",\"replay_hint\":\"replay-hint-receipt-2\",\"canon_nquads\":\"<urn:chatman:s1> <urn:chatman:p1> \\\"v1\\\" .\",\"carried_digest\":\"0b755f498d4d0613ca6584a4126381239594f04e553dc7c6c2d4d4ba4777fa10\"}" ;
+    ceng:caseSeed "0xa5ce6af1f4de702a" .
+
+ceng:Accept_BoundaryRequestCarriesReceipt a ceng:AcceptanceCase ;
+    ceng:harness ceng:ReceiptsHarness ;
+    ceng:usesFixtureSchema ceng:ReceiptsFixtureSchema ;
+    ceng:testFixturePath "fixtures/receipts/boundary_request_carries_receipt.json" ;
+    ceng:expectedBehavior "boundary_receipt_present" ;
+    ceng:inputJson "{\"subject\":\"urn:chatman:subject:boundary-1\",\"witness\":\"urn:chatman:witness:boundary-1\",\"replay_hint\":\"replay-hint-boundary-1\",\"canon_nquads\":\"<urn:chatman:s3> <urn:chatman:p3> \\\"v3\\\" .\",\"carried_digest\":\"a55727e5481faa3afdb44c4bc15c5d7feaabc39925c2a5ba0480fa9be37babca\"}" ;
+    ceng:caseSeed "0x6ddc1ab9261df174" .
+
+ceng:Falsify_BoundaryRequestMissingReceipt a ceng:FalsificationCase ;
+    ceng:harness ceng:ReceiptsHarness ;
+    ceng:falsifies ceng:Accept_BoundaryRequestCarriesReceipt ;
+    ceng:usesFixtureSchema ceng:ReceiptsFixtureSchema ;
+    ceng:testFixturePath "fixtures/receipts/boundary_request_missing_receipt.json" ;
+    ceng:expectedRefusal ceng:BoundaryRequestMissingReceiptRefusal ;
+    ceng:falsificationMutation "Strip the receipt field from an otherwise well-formed boundary request." ;
+    ceng:inputJson "{\"subject\":\"urn:chatman:subject:boundary-missing\",\"witness\":\"urn:chatman:witness:boundary-missing\",\"replay_hint\":\"replay-hint-boundary-missing\",\"canon_nquads\":\"\"}" ;
+    ceng:caseSeed "0x4efc41498de7d515" .
+
+ceng:Accept_AdmissionTableMatches a ceng:AcceptanceCase ;
+    ceng:harness ceng:AdmissionHarness ;
+    ceng:usesFixtureSchema ceng:AdmissionFixtureSchema ;
+    ceng:testFixturePath "fixtures/admission/admission_table_matches.json" ;
+    ceng:expectedBehavior "admission_table_verified" ;
+    ceng:inputJson "{\"table_hash\":\"c0fdc5182038b711cd0149711ff70d9ee7201f57bc55abff0e3f769f6fa7ad7e\",\"entries\":[{\"pattern\":\"pattern-a\",\"admitted\":true},{\"pattern\":\"pattern-b\",\"admitted\":true},{\"pattern\":\"pattern-c\",\"admitted\":false}]}" ;
+    ceng:caseSeed "0x560b48233d2e635f" .
+
+ceng:Falsify_AdmissionTableMismatch a ceng:FalsificationCase ;
+    ceng:harness ceng:AdmissionHarness ;
+    ceng:falsifies ceng:Accept_AdmissionTableMatches ;
+    ceng:usesFixtureSchema ceng:AdmissionFixtureSchema ;
+    ceng:testFixturePath "fixtures/admission/admission_table_mismatch.json" ;
+    ceng:expectedRefusal ceng:AdmissionTableMismatchRefusal ;
+    ceng:falsificationMutation "Remove one row from the admission table after its digest was pinned." ;
+    ceng:inputJson "{\"table_hash\":\"c0fdc5182038b711cd0149711ff70d9ee7201f57bc55abff0e3f769f6fa7ad70\",\"entries\":[{\"pattern\":\"pattern-a\",\"admitted\":true},{\"pattern\":\"pattern-b\",\"admitted\":true},{\"pattern\":\"pattern-c\",\"admitted\":false}]}" ;
+    ceng:caseSeed "0xec14195a7e4dfd6b" .
+
+ceng:Accept_OcelEventAdmitted a ceng:AcceptanceCase ;
+    ceng:harness ceng:AdmissionHarness ;
+    ceng:usesFixtureSchema ceng:AdmissionFixtureSchema ;
+    ceng:testFixturePath "fixtures/admission/ocel_event_admitted.json" ;
+    ceng:expectedBehavior "ocel_event_admitted" ;
+    ceng:inputJson "{\"table_hash\":\"0edfb0856638e5556934c094ad4c0a5efde9cff24c8a989fa959af1fae1345fc\",\"entries\":[{\"pattern\":\"ocel-event-a\",\"admitted\":true},{\"pattern\":\"ocel-event-b\",\"admitted\":false}]}" ;
+    ceng:caseSeed "0x4c590dd916e04b96" .
+
+ceng:Falsify_OcelEventNotAdmitted a ceng:FalsificationCase ;
+    ceng:harness ceng:AdmissionHarness ;
+    ceng:falsifies ceng:Accept_OcelEventAdmitted ;
+    ceng:usesFixtureSchema ceng:AdmissionFixtureSchema ;
+    ceng:testFixturePath "fixtures/admission/ocel_event_not_admitted.json" ;
+    ceng:expectedRefusal ceng:OcelEventNotAdmittedRefusal ;
+    ceng:falsificationMutation "Submit an OCEL event whose activity name is absent from the admission table." ;
+    ceng:inputJson "{\"table_hash\":\"0edfb0856638e5556934c094ad4c0a5efde9cff24c8a989fa959af1fae1345f0\",\"entries\":[{\"pattern\":\"ocel-event-a\",\"admitted\":true},{\"pattern\":\"ocel-event-b\",\"admitted\":false}]}" ;
+    ceng:caseSeed "0x2d16ea5c9f7f103b" .
+
+ceng:Accept_HookPatternAdmitted a ceng:AcceptanceCase ;
+    ceng:harness ceng:HooksHarness ;
+    ceng:usesFixtureSchema ceng:HooksFixtureSchema ;
+    ceng:testFixturePath "fixtures/hooks/hook_pattern_admitted.json" ;
+    ceng:expectedBehavior "hook_pattern_admitted" ;
+    ceng:inputJson "{\"hook_iri\":\"urn:chatman:hook:1\",\"pattern\":\"pattern-a\",\"admitted_patterns\":[\"pattern-a\",\"pattern-b\"]}" ;
+    ceng:caseSeed "0x55c06b610228c866" .
+
+ceng:Falsify_HookPatternNotAdmitted a ceng:FalsificationCase ;
+    ceng:harness ceng:HooksHarness ;
+    ceng:falsifies ceng:Accept_HookPatternAdmitted ;
+    ceng:usesFixtureSchema ceng:HooksFixtureSchema ;
+    ceng:testFixturePath "fixtures/hooks/hook_pattern_not_admitted.json" ;
+    ceng:expectedRefusal ceng:HookPatternNotAdmittedRefusal ;
+    ceng:falsificationMutation "Register a hook whose trigger pattern uses a predicate outside the admitted set." ;
+    ceng:inputJson "{\"hook_iri\":\"urn:chatman:hook:1\",\"pattern\":\"pattern-z\",\"admitted_patterns\":[\"pattern-a\",\"pattern-b\"]}" ;
+    ceng:caseSeed "0xda141d51a7c86396" .
+
+ceng:Accept_DeterministicOperatorWithoutReceipt a ceng:AcceptanceCase ;
+    ceng:harness ceng:HooksHarness ;
+    ceng:usesFixtureSchema ceng:HooksFixtureSchema ;
+    ceng:testFixturePath "fixtures/hooks/deterministic_operator_without_receipt.json" ;
+    ceng:expectedBehavior "deterministic_operator_admitted" ;
+    ceng:inputJson "{\"hook_iri\":\"urn:chatman:hook:2\",\"pattern\":\"pattern-c\",\"admitted_patterns\":[\"pattern-c\"]}" ;
+    ceng:caseSeed "0xbfac432cda0a980f" .
+
+ceng:Falsify_NondeterministicOperatorRequiresReceipt a ceng:FalsificationCase ;
+    ceng:harness ceng:HooksHarness ;
+    ceng:falsifies ceng:Accept_DeterministicOperatorWithoutReceipt ;
+    ceng:usesFixtureSchema ceng:HooksFixtureSchema ;
+    ceng:testFixturePath "fixtures/hooks/nondeterministic_operator_requires_receipt.json" ;
+    ceng:expectedRefusal ceng:NondeterministicOperatorRequiresReceiptRefusal ;
+    ceng:falsificationMutation "Invoke a nondeterministic operator without attaching the required receipt." ;
+    ceng:inputJson "{\"hook_iri\":\"urn:chatman:hook:3\",\"pattern\":\"pattern-nondeterministic\",\"admitted_patterns\":[\"pattern-c\"]}" ;
+    ceng:caseSeed "0x3e6ba406290c8077" .
+
+ceng:Accept_AgentActsWithinPermits a ceng:AcceptanceCase ;
+    ceng:harness ceng:AgentsHarness ;
+    ceng:usesFixtureSchema ceng:AgentsFixtureSchema ;
+    ceng:testFixturePath "fixtures/agents/agent_acts_within_permits.json" ;
+    ceng:expectedBehavior "agent_action_permitted" ;
+    ceng:inputJson "{\"agent_id\":\"urn:chatman:agent:1\",\"operator_id\":\"urn:chatman:operator:1\"}" ;
+    ceng:caseSeed "0xfe30f53542641ae8" .
+
+ceng:Falsify_AgentOverrideDenied a ceng:FalsificationCase ;
+    ceng:harness ceng:AgentsHarness ;
+    ceng:falsifies ceng:Accept_AgentActsWithinPermits ;
+    ceng:usesFixtureSchema ceng:AgentsFixtureSchema ;
+    ceng:testFixturePath "fixtures/agents/agent_override_denied.json" ;
+    ceng:expectedRefusal ceng:AgentOverrideDeniedRefusal ;
+    ceng:falsificationMutation "Have the agent claim an override flag on a decision it holds no permit for." ;
+    ceng:inputJson "{\"agent_id\":\"urn:chatman:agent:2\",\"operator_id\":\"urn:chatman:operator:2\",\"override_requested\":true}" ;
+    ceng:caseSeed "0x9222fcd0ce2d60c9" .
+
+ceng:Accept_WitnessObservesOnly a ceng:AcceptanceCase ;
+    ceng:harness ceng:AgentsHarness ;
+    ceng:usesFixtureSchema ceng:AgentsFixtureSchema ;
+    ceng:testFixturePath "fixtures/agents/witness_observes_only.json" ;
+    ceng:expectedBehavior "witness_observation_recorded" ;
+    ceng:inputJson "{\"agent_id\":\"urn:chatman:agent:3\",\"operator_id\":\"urn:chatman:operator:3\"}" ;
+    ceng:caseSeed "0x2357ba85700c0b18" .
+
+ceng:Falsify_WitnessNotAuthority a ceng:FalsificationCase ;
+    ceng:harness ceng:AgentsHarness ;
+    ceng:falsifies ceng:Accept_WitnessObservesOnly ;
+    ceng:usesFixtureSchema ceng:AgentsFixtureSchema ;
+    ceng:testFixturePath "fixtures/agents/witness_not_authority.json" ;
+    ceng:expectedRefusal ceng:WitnessNotAuthorityRefusal ;
+    ceng:falsificationMutation "Have a witness role attempt to author an authoritative decision triple." ;
+    ceng:inputJson "{\"agent_id\":\"urn:chatman:agent:4\",\"operator_id\":\"urn:chatman:operator:4\",\"witness_presented_as_authority\":true}" ;
+    ceng:caseSeed "0x743429670e9acd64" .
+
+ceng:Accept_PermittedBreedExecutes a ceng:AcceptanceCase ;
+    ceng:harness ceng:AgentsHarness ;
+    ceng:usesFixtureSchema ceng:AgentsFixtureSchema ;
+    ceng:testFixturePath "fixtures/agents/permitted_breed_executes.json" ;
+    ceng:expectedBehavior "breed_execution_permitted" ;
+    ceng:inputJson "{\"agent_id\":\"urn:chatman:agent:5\",\"operator_id\":\"urn:chatman:operator:5\"}" ;
+    ceng:caseSeed "0xe6c10d5f6918859c" .
+
+ceng:Falsify_BreedUnpermitted a ceng:FalsificationCase ;
+    ceng:harness ceng:AgentsHarness ;
+    ceng:falsifies ceng:Accept_PermittedBreedExecutes ;
+    ceng:usesFixtureSchema ceng:AgentsFixtureSchema ;
+    ceng:testFixturePath "fixtures/agents/breed_unpermitted.json" ;
+    ceng:expectedRefusal ceng:BreedUnpermittedRefusal ;
+    ceng:falsificationMutation "Dispatch work to an agent breed absent from the permit list." ;
+    ceng:inputJson "{\"agent_id\":\"urn:chatman:agent:6\",\"operator_id\":\"urn:chatman:operator:6\",\"breed_requested\":true}" ;
+    ceng:caseSeed "0x7bf47dd7a8fde810" .
+
+ceng:Accept_GraphSnapshotReplaysByteIdentical a ceng:AcceptanceCase ;
+    ceng:harness ceng:ReplayHarness ;
+    ceng:usesFixtureSchema ceng:ReplayFixtureSchema ;
+    ceng:testFixturePath "fixtures/replay/graph_snapshot_replays_byte_identical.json" ;
+    ceng:expectedBehavior "snapshot_replay_verified" ;
+    ceng:inputJson "{\"envelope\":{\"invocation_id\":\"urn:chatman:invocation:replay-1\",\"snapshot_id\":\"urn:chatman:snapshot:replay-1\",\"profile_id\":\"urn:chatman:profile:replay-1\",\"operator_id\":\"urn:chatman:operator:replay-1\",\"input_handles\":{\"nodes\":[\"urn:chatman:node:1\",\"urn:chatman:node:2\"],\"events\":[\"urn:chatman:event:1\"],\"plan_steps\":[\"urn:chatman:plan-step:1\"]}},\"receipts\":[{\"subject\":\"urn:chatman:subject:boundary-1\",\"digest\":\"a55727e5481faa3afdb44c4bc15c5d7feaabc39925c2a5ba0480fa9be37babca\"}],\"recorded_envelope_hash\":\"d42a67b3de5041b94d40ea04b1aa5d3d8750621c9425d6b25459a07601017c3b\"}" ;
+    ceng:caseSeed "0x677f3b1e044de661" .
+
+ceng:Falsify_GraphSnapshotMismatch a ceng:FalsificationCase ;
+    ceng:harness ceng:ReplayHarness ;
+    ceng:falsifies ceng:Accept_GraphSnapshotReplaysByteIdentical ;
+    ceng:usesFixtureSchema ceng:ReplayFixtureSchema ;
+    ceng:testFixturePath "fixtures/replay/graph_snapshot_mismatch.json" ;
+    ceng:expectedRefusal ceng:GraphSnapshotMismatchRefusal ;
+    ceng:falsificationMutation "Reorder two quads in the stored snapshot so the replay hash diverges." ;
+    ceng:inputJson "{\"envelope\":{\"invocation_id\":\"urn:chatman:invocation:replay-1\",\"snapshot_id\":\"urn:chatman:snapshot:replay-1\",\"profile_id\":\"urn:chatman:profile:replay-1\",\"operator_id\":\"urn:chatman:operator:replay-1\",\"input_handles\":{\"nodes\":[\"urn:chatman:node:1\",\"urn:chatman:node:2\"],\"events\":[\"urn:chatman:event:1\"],\"plan_steps\":[\"urn:chatman:plan-step:1\"]}},\"receipts\":[{\"subject\":\"urn:chatman:subject:boundary-1\",\"digest\":\"a55727e5481faa3afdb44c4bc15c5d7feaabc39925c2a5ba0480fa9be37babca\"}],\"recorded_envelope_hash\":\"d42a67b3de5041b94d40ea04b1aa5d3d8750621c9425d6b25459a07601017c30\"}" ;
+    ceng:caseSeed "0x667952c0178f26c0" .
+
+ceng:Accept_ProfileSymbolTableAligned a ceng:AcceptanceCase ;
+    ceng:harness ceng:ReplayHarness ;
+    ceng:usesFixtureSchema ceng:ReplayFixtureSchema ;
+    ceng:testFixturePath "fixtures/replay/profile_symbol_table_aligned.json" ;
+    ceng:expectedBehavior "symbol_table_aligned" ;
+    ceng:inputJson "{\"envelope\":{\"invocation_id\":\"urn:chatman:invocation:symtab-1\",\"snapshot_id\":\"urn:chatman:snapshot:symtab-1\",\"profile_id\":\"urn:chatman:profile:symtab-1\",\"operator_id\":\"urn:chatman:operator:symtab-1\",\"input_handles\":{\"nodes\":[\"urn:chatman:node:a\"],\"events\":[],\"plan_steps\":[]}},\"receipts\":[],\"recorded_envelope_hash\":\"fc166bfd24f97f25ad9f96c4074290f8b98defc5730e2edaac26af4e3d0c834f\"}" ;
+    ceng:caseSeed "0x3a1a41b9ac7f676c" .
+
+ceng:Falsify_ProfileSymbolTableMismatch a ceng:FalsificationCase ;
+    ceng:harness ceng:ReplayHarness ;
+    ceng:falsifies ceng:Accept_ProfileSymbolTableAligned ;
+    ceng:usesFixtureSchema ceng:ReplayFixtureSchema ;
+    ceng:testFixturePath "fixtures/replay/profile_symbol_table_mismatch.json" ;
+    ceng:expectedRefusal ceng:ProfileSymbolTableMismatchRefusal ;
+    ceng:falsificationMutation "Swap two symbol ids in the profile symbol table against the pinned interning." ;
+    ceng:inputJson "{\"envelope\":{\"invocation_id\":\"urn:chatman:invocation:symtab-1\",\"snapshot_id\":\"urn:chatman:snapshot:symtab-1\",\"profile_id\":\"urn:chatman:profile:symtab-1\",\"operator_id\":\"urn:chatman:operator:symtab-1\",\"input_handles\":{\"nodes\":[\"urn:chatman:node:a\"],\"events\":[],\"plan_steps\":[]}},\"receipts\":[],\"recorded_envelope_hash\":\"fc166bfd24f97f25ad9f96c4074290f8b98defc5730e2edaac26af4e3d0c8340\"}" ;
+    ceng:caseSeed "0x5315aabc8318a5fa" .
+
+ceng:Accept_SingleProcessReceiptType a ceng:AcceptanceCase ;
+    ceng:harness ceng:StaticHarness ;
+    ceng:usesFixtureSchema ceng:StaticFixtureSchema ;
+    ceng:testFixturePath "fixtures/static/single_process_receipt_type.json" ;
+    ceng:expectedBehavior "process_receipt_type_unique" ;
+    ceng:inputJson "{\"gate\":\"duplicate_canonical_types\",\"source\":\"pub struct Foo { pub x: u8 }\\npub struct Bar { pub y: u8 }\\n\"}" ;
+    ceng:caseSeed "0x5343f67519070d5e" .
+
+ceng:Falsify_ProcessReceiptShadowType a ceng:FalsificationCase ;
+    ceng:harness ceng:StaticHarness ;
+    ceng:falsifies ceng:Accept_SingleProcessReceiptType ;
+    ceng:usesFixtureSchema ceng:StaticFixtureSchema ;
+    ceng:testFixturePath "fixtures/static/process_receipt_shadow_type.json" ;
+    ceng:expectedRefusal ceng:ProcessReceiptShadowTypeRefusal ;
+    ceng:falsificationMutation "Declare a second struct named ProcessReceipt shadowing the canonical type." ;
+    ceng:inputJson "{\"gate\":\"duplicate_canonical_types\",\"source\":\"pub struct ProcessReceipt { pub x: u8 }\\n\"}" ;
+    ceng:caseSeed "0x4cb0d55d5ae6ae6f" .
+
+ceng:Accept_UniqueCanonicalTapeType a ceng:AcceptanceCase ;
+    ceng:harness ceng:StaticHarness ;
+    ceng:usesFixtureSchema ceng:StaticFixtureSchema ;
+    ceng:testFixturePath "fixtures/static/unique_canonical_tape_type.json" ;
+    ceng:expectedBehavior "canonical_tape_type_unique" ;
+    ceng:inputJson "{\"gate\":\"duplicate_canonical_types\",\"source\":\"pub struct CanonicalTape { pub bytes: Vec<u8> }\\n\"}" ;
+    ceng:caseSeed "0x1f879ff3e0d6554f" .
+
+ceng:Falsify_DuplicateCanonicalTapeType a ceng:FalsificationCase ;
+    ceng:harness ceng:StaticHarness ;
+    ceng:falsifies ceng:Accept_UniqueCanonicalTapeType ;
+    ceng:usesFixtureSchema ceng:StaticFixtureSchema ;
+    ceng:testFixturePath "fixtures/static/duplicate_canonical_tape_type.json" ;
+    ceng:expectedRefusal ceng:DuplicateCanonicalTapeTypeRefusal ;
+    ceng:falsificationMutation "Register the CanonicalTape type identifier twice in the type registry." ;
+    ceng:inputJson "{\"gate\":\"duplicate_canonical_types\",\"source\":\"pub struct CanonicalTape { pub bytes: Vec<u8> }\\npub struct CanonicalTape { pub other: u8 }\\n\"}" ;
+    ceng:caseSeed "0xfd88f769116c7de9" .
+
