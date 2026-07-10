@@ -1,0 +1,12 @@
+# metric-receipts.rq
+# Inputs: materialized OCEL graph (output of ocel-receipts.construct.rq).
+# Outputs: single row: ?count = COUNT(DISTINCT events having a receipt.digest attribute).
+# Determinism: aggregate over a fixed graph.
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+
+SELECT (COUNT(DISTINCT ?ev) AS ?count)
+WHERE {
+  ?ev ocel:hasAttribute ?a .
+  ?a ocel:attributeKey "receipt.digest" .
+}
+ORDER BY ?count

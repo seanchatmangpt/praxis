@@ -212,6 +212,13 @@ lsp-max = { path = "/Users/sac/lsp-max" }
 # any crate boundary crossing both (e.g. tests/indexed_grounding.rs).
 wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat" }
 affidavit = { path = "/Users/sac/affidavit" }
+# Required for unification with praxis-graphlaw's hardcoded path dependency on
+# bcinr-powl (which depends on bcinr-logic by path): without this, a binary
+# linking BOTH praxis-graphlaw (path bcinr-logic) and a registry bcinr-powl
+# (registry bcinr-logic) — e.g. cng --features bench — carries two copies of
+# bcinr-logic whose #[no_mangle] symbols (aabb_intersect_branchless, ...)
+# collide under the release profile's fat LTO.
+bcinr-logic = { path = "/Users/sac/bcinr/crates/bcinr-logic" }
 
 [workspace]
 resolver = "2"

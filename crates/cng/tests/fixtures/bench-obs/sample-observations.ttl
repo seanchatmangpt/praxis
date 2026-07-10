@@ -1,0 +1,51 @@
+# Hand-made observation fixture for smoke-testing the ocel-bench-pack
+# CONSTRUCT/SELECT queries. Covers every obsKind at least once. Logical
+# sequence only (obsSeq); set id "fx1". No wall-clock time.
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+
+ex:obs1 a obs:Observation ;
+  obs:obsKind "imported" ; obs:obsSeq 1 ; obs:obsSetId "fx1" ;
+  obs:obsWorkflowId "wf-A" .
+
+ex:obs2 a obs:Observation ;
+  obs:obsKind "roster_admitted" ; obs:obsSeq 2 ; obs:obsSetId "fx1" ;
+  obs:obsWorkerId "w-001" ; obs:obsRole "planner" ;
+  obs:obsDepartment "ops" ; obs:obsStanding "good" .
+
+ex:obs3 a obs:Observation ;
+  obs:obsKind "planned" ; obs:obsSeq 3 ; obs:obsSetId "fx1" ;
+  obs:obsWorkflowId "wf-A" ; obs:obsPlanId "plan-1" ; obs:obsTapeOps 8 .
+
+ex:obs4 a obs:Observation ;
+  obs:obsKind "projected" ; obs:obsSeq 4 ; obs:obsSetId "fx1" ;
+  obs:obsWorkflowId "wf-A" ; obs:obsPlanId "plan-1" .
+
+ex:obs5 a obs:Observation ;
+  obs:obsKind "shape_validated" ; obs:obsSeq 5 ; obs:obsSetId "fx1" ;
+  obs:obsWorkflowId "wf-A" .
+
+ex:obs6 a obs:Observation ;
+  obs:obsKind "transition_fired" ; obs:obsSeq 6 ; obs:obsSetId "fx1" ;
+  obs:obsWorkflowId "wf-A" ; obs:obsWorkerId "w-001" ;
+  obs:obsActivityLabel "execute-step-1" .
+
+ex:obs7 a obs:Observation ;
+  obs:obsKind "socket_attached" ; obs:obsSeq 7 ; obs:obsSetId "fx1" ;
+  obs:obsWorkflowId "wf-A" ;
+  obs:obsParentActivity ex:activity-step-1 ;
+  obs:obsChildWorkflow ex:wf-B .
+
+ex:obs8 a obs:Observation ;
+  obs:obsKind "role_derived" ; obs:obsSeq 8 ; obs:obsSetId "fx1" ;
+  obs:obsWorkerId "w-001" ; obs:obsRole "executor" .
+
+ex:obs9 a obs:Observation ;
+  obs:obsKind "receipted" ; obs:obsSeq 9 ; obs:obsSetId "fx1" ;
+  obs:obsWorkflowId "wf-A" ; obs:obsActivityLabel "execute-step-1" ;
+  obs:obsDigest "b3f00d00000000000000000000000000000000000000000000000000000000aa" ;
+  obs:obsTapeOps 8 ; obs:obsExecutedOps 8 .
+
+ex:obs10 a obs:Observation ;
+  obs:obsKind "refused" ; obs:obsSeq 10 ; obs:obsSetId "fx1" ;
+  obs:obsWorkflowId "wf-C" ; obs:obsRefusalCode "UnknownVocabulary" .

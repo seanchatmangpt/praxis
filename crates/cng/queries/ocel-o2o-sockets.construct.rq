@@ -1,0 +1,28 @@
+# ocel-o2o-sockets.construct.rq
+# Inputs: obs graph (socket_attached facts with obsParentActivity/obsChildWorkflow IRIs).
+# Outputs: ocel:O2ORelationship qualifier 'attachesWorkflow' from parent-activity object to child-workflow object.
+# The parent activity IRI and child workflow IRI from the obs graph are
+# used directly as the source/target ocel:Object nodes (typed here).
+# Determinism: relationship IRI is a pure function of seq+setId; ORDER BY.
+PREFIX obs:  <https://ggen.io/ontology/bench-obs#>
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ?parent a ocel:Object .
+  ?child a ocel:Object .
+  ?parent ocel:hasO2ORelationship ?rel .
+  ?rel a ocel:O2ORelationship ;
+       ocel:o2oSourceObject ?parent ;
+       ocel:o2oTargetObject ?child ;
+       ocel:qualifier "attachesWorkflow" .
+}
+WHERE {
+  ?o obs:obsKind "socket_attached" ;
+     obs:obsSeq ?seq ;
+     obs:obsSetId ?setId ;
+     obs:obsParentActivity ?parent ;
+     obs:obsChildWorkflow ?child .
+  BIND(IRI(CONCAT("https://ggen.io/bench/o2o/", ENCODE_FOR_URI(?setId), "-", STR(?seq))) AS ?rel)
+}
+ORDER BY ?setId ?seq

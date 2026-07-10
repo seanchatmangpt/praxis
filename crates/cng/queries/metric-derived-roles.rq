@@ -1,0 +1,19 @@
+# metric-derived-roles.rq
+# Inputs: the OBSERVATION graph (not the OCEL graph): role_derived obs facts
+#         emitted by the graphlaw Datalog layer (obsSetId "datalog"). Mycin's
+#         per-workflow inferred-role observations share the obsKind but carry
+#         their workflow's set id and are deliberately excluded — this metric
+#         counts stable Datalog role derivations only.
+# Outputs: single row: ?count = COUNT of Datalog role_derived observations.
+# Determinism: aggregate over a fixed graph; single row needs no ORDER BY,
+# one is present for uniformity.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+
+SELECT (COUNT(?o) AS ?count)
+WHERE {
+  ?o a obs:Observation ;
+     obs:obsKind "role_derived" ;
+     obs:obsSetId "datalog" ;
+     obs:obsRole ?role .
+}
+ORDER BY ?count

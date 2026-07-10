@@ -441,9 +441,51 @@ fn escape_turtle_literal(value: &str) -> String {
 mod tests {
     use super::*;
     use bcinr_pddl::Pddl8Tape;
+    use chicago_tdd_tools::prelude::*;
+    use oxigraph::model::NamedNode;
+    use oxigraph::store::Store;
 
-    #[test]
-    fn empty_tape_refuses_plan_unsolvable() {
+    /// Parses serializer output into an in-memory store so assertions run
+    /// over the parsed graph via `crate::shape::validate_powl_store` and the
+    /// typed `quads_for_pattern` API — never substring matching on Turtle
+    /// and never inline SPARQL strings.
+    fn store_from_turtle(turtle: &str) -> Store {
+        let store = Store::new().expect("in-memory store must construct");
+        store
+            .load_from_slice(
+                oxigraph::io::RdfParser::from_format(oxigraph::io::RdfFormat::Turtle),
+                turtle.as_bytes(),
+            )
+            .expect("serializer output must be valid Turtle");
+        store
+    }
+
+    /// Objects of `<subject_iri> <predicate_iri> ?o` in the default graph,
+    /// via the typed pattern API. O(matches).
+    fn objects_of(store: &Store, subject_iri: &str, predicate_iri: &str) -> Vec<String> {
+        let subject = NamedNode::new(subject_iri).expect("test subject IRI must parse");
+        let predicate = NamedNode::new(predicate_iri).expect("test predicate IRI must parse");
+        store
+            .quads_for_pattern(
+                Some(subject.as_ref().into()),
+                Some(predicate.as_ref()),
+                None,
+                None,
+            )
+            .map(|quad| quad.expect("quad must decode").object.to_string())
+            .collect()
+    }
+
+    /// Count of quads carrying `<predicate_iri>` anywhere in the store, via
+    /// the typed pattern API. O(matches).
+    fn predicate_count(store: &Store, predicate_iri: &str) -> usize {
+        let predicate = NamedNode::new(predicate_iri).expect("test predicate IRI must parse");
+        store
+            .quads_for_pattern(None, Some(predicate.as_ref()), None, None)
+            .count()
+    }
+
+    test!(empty_tape_refuses_plan_unsolvable, {
         let empty = Pddl8Tape { ops: vec![] };
         match project_tape_to_powl(&empty) {
             Err(refusal @ CngRefusal::PlanUnsolvable(_)) => {
@@ -452,10 +494,9 @@ mod tests {
             }
             other => panic!("expected PlanUnsolvable, got {other:?}"),
         }
-    }
+    });
 
-    #[test]
-    fn provenance_serializer_emits_one_source_per_leaf() {
+    test!(provenance_serializer_emits_one_source_per_leaf, {
         let model = Powl::PartialOrder {
             children: vec![
                 Powl::Leaf(Some("a(x)".to_string())),
@@ -466,25 +507,24 @@ mod tests {
         let sources = vec!["urn:blake3:aa".to_string(), "urn:blake3:bb".to_string()];
         let turtle = powl_to_turtle_with_provenance(&model, "urn:t", Some("urn:src"), &sources)
             .expect("aligned provenance must serialize");
-        let store = parse_turtle_store(&turtle);
+        let store = store_from_turtle(&turtle);
+        let prov_iri = format!("{PROV_PREFIX}wasDerivedFrom");
         for (idx, expected_source) in sources.iter().enumerate() {
-            let derived = sparql_terms(
-                &store,
-                &format!(
-                    "SELECT ?o WHERE {{ <urn:t/n0/c{idx}> <{PROV_PREFIX}wasDerivedFrom> ?o }}"
-                ),
+            assert_eq!(
+                objects_of(&store, &format!("urn:t/n0/c{idx}"), &prov_iri),
+                vec![format!("<{expected_source}>")],
+                "leaf {idx} must carry exactly its own source's provenance"
             );
-            assert_eq!(derived, vec![format!("<{expected_source}>")]);
         }
+        assert_eq!(predicate_count(&store, &prov_iri), sources.len());
         // Misaligned provenance refuses (UnsupportedConstruct, CNG_R05).
         match powl_to_turtle_with_provenance(&model, "urn:t", None, &sources[..1]) {
             Err(r @ CngRefusal::UnsupportedConstruct(_)) => assert_eq!(r.code(), "CNG_R05"),
             other => panic!("expected UnsupportedConstruct, got {other:?}"),
         }
-    }
+    });
 
-    #[test]
-    fn turtle_is_deterministic_and_derived_from_is_root_only() {
+    test!(turtle_is_deterministic_and_derived_from_is_root_only, {
         let model = Powl::PartialOrder {
             children: vec![
                 Powl::Leaf(Some("a(x)".to_string())),
@@ -492,12 +532,21 @@ mod tests {
             ],
             order: [(0usize, 1usize)].into_iter().collect(),
         };
+        // Determinism: whole-output byte equality (String equality, not
+        // substring matching).
         let a = powl_to_turtle(&model, "urn:t", Some("urn:src"));
         let b = powl_to_turtle(&model, "urn:t", Some("urn:src"));
-        assert_eq!(a, b);
-        assert_eq!(a.matches("powl2:derivedFrom").count(), 1);
-        assert!(a.contains("<urn:t/n0> powl2:derivedFrom <urn:src> ."));
-    }
+        assert_eq!(a, b, "same inputs must serialize byte-identically");
+        // Root-only provenance, asserted over the parsed graph.
+        let store = store_from_turtle(&a);
+        let derived_iri = format!("{POWL2_PREFIX}derivedFrom");
+        assert_eq!(predicate_count(&store, &derived_iri), 1);
+        assert_eq!(
+            objects_of(&store, "urn:t/n0", &derived_iri),
+            vec!["<urn:src>".to_string()],
+            "the single powl2:derivedFrom triple must sit on the root"
+        );
+    });
 
     /// Builds a synthetic tape op with a given `(schema_name, label)`; the
     /// action's preconditions/effects are irrelevant to projection.
@@ -535,46 +584,47 @@ mod tests {
         (tape, sources)
     }
 
-    #[test]
-    fn hierarchical_projection_groups_consecutive_same_source_runs() {
-        let (tape, sources) = three_phase_tape_and_sources();
-        let (model, phase_sources) =
-            project_tape_to_powl_hierarchical(&tape, &sources).expect("must project");
+    test!(
+        hierarchical_projection_groups_consecutive_same_source_runs,
+        {
+            let (tape, sources) = three_phase_tape_and_sources();
+            let (model, phase_sources) =
+                project_tape_to_powl_hierarchical(&tape, &sources).expect("must project");
 
-        assert_eq!(
-            phase_sources,
-            vec![
-                "urn:blake3:aa".to_string(),
-                "urn:blake3:bb".to_string(),
-                "urn:blake3:cc".to_string(),
-            ]
-        );
-        let Powl::PartialOrder { children, order } = &model else {
-            panic!("expected root PartialOrder");
-        };
-        assert_eq!(children.len(), 3, "3 phases: [a1,a2], [b1], [c1]");
-        assert_eq!(order.len(), 3, "C(3,2) root-level precedence pairs");
-        let Powl::PartialOrder {
-            children: phase0_leaves,
-            order: phase0_order,
-        } = &children[0]
-        else {
-            panic!("expected phase 0 to be a PartialOrder");
-        };
-        assert_eq!(phase0_leaves.len(), 2, "phase 0 groups act_a1 and act_a2");
-        assert_eq!(phase0_order.len(), 1, "C(2,2) intra-phase precedence pair");
-        let Powl::PartialOrder {
-            children: phase1_leaves,
-            ..
-        } = &children[1]
-        else {
-            panic!("expected phase 1 to be a PartialOrder");
-        };
-        assert_eq!(phase1_leaves.len(), 1, "phase 1 is the lone act_b1 op");
-    }
+            assert_eq!(
+                phase_sources,
+                vec![
+                    "urn:blake3:aa".to_string(),
+                    "urn:blake3:bb".to_string(),
+                    "urn:blake3:cc".to_string(),
+                ]
+            );
+            let Powl::PartialOrder { children, order } = &model else {
+                panic!("expected root PartialOrder");
+            };
+            assert_eq!(children.len(), 3, "3 phases: [a1,a2], [b1], [c1]");
+            assert_eq!(order.len(), 3, "C(3,2) root-level precedence pairs");
+            let Powl::PartialOrder {
+                children: phase0_leaves,
+                order: phase0_order,
+            } = &children[0]
+            else {
+                panic!("expected phase 0 to be a PartialOrder");
+            };
+            assert_eq!(phase0_leaves.len(), 2, "phase 0 groups act_a1 and act_a2");
+            assert_eq!(phase0_order.len(), 1, "C(2,2) intra-phase precedence pair");
+            let Powl::PartialOrder {
+                children: phase1_leaves,
+                ..
+            } = &children[1]
+            else {
+                panic!("expected phase 1 to be a PartialOrder");
+            };
+            assert_eq!(phase1_leaves.len(), 1, "phase 1 is the lone act_b1 op");
+        }
+    );
 
-    #[test]
-    fn hierarchical_projection_refuses_empty_tape() {
+    test!(hierarchical_projection_refuses_empty_tape, {
         let empty = Pddl8Tape { ops: vec![] };
         match project_tape_to_powl_hierarchical(&empty, &BTreeMap::new()) {
             Err(refusal @ CngRefusal::PlanUnsolvable(_)) => {
@@ -582,10 +632,9 @@ mod tests {
             }
             other => panic!("expected PlanUnsolvable, got {other:?}"),
         }
-    }
+    });
 
-    #[test]
-    fn hierarchical_projection_refuses_untracked_action() {
+    test!(hierarchical_projection_refuses_untracked_action, {
         let tape = Pddl8Tape {
             ops: vec![tape_op(0, 0, "act_unknown")],
         };
@@ -595,10 +644,9 @@ mod tests {
             }
             other => panic!("expected HardcodingSuspicion, got {other:?}"),
         }
-    }
+    });
 
-    #[test]
-    fn phase_provenance_serializer_emits_one_source_per_phase() {
+    test!(phase_provenance_serializer_emits_one_source_per_phase, {
         let (tape, sources) = three_phase_tape_and_sources();
         let (model, phase_sources) =
             project_tape_to_powl_hierarchical(&tape, &sources).expect("must project");
@@ -606,47 +654,42 @@ mod tests {
         let turtle =
             powl_to_turtle_with_phase_provenance(&model, "urn:t", Some("urn:src"), &phase_sources)
                 .expect("aligned phase provenance must serialize");
-        let store = parse_turtle_store(&turtle);
+        let store = store_from_turtle(&turtle);
+
+        // The nested model passes the crate's own structural validator —
+        // this doubles as the shape.rs regression test for hierarchical
+        // output (root Model + 4 PartialOrders + 4 labelled leaves + 7
+        // bindings: 3 root-level, 4 leaf-level).
+        let report =
+            crate::shape::validate_powl_store(&store, true).expect("nested model must validate");
+        assert_eq!(report.models, 1);
+        assert_eq!(report.partial_orders, 4, "root + 3 phase PartialOrders");
+        assert_eq!(report.activity_leaves, 4, "all 4 tape ops are leaves");
+        assert_eq!(
+            report.child_bindings, 7,
+            "3 phase bindings + 4 leaf bindings"
+        );
+        assert_eq!(report.derived_from, 1);
 
         // One prov:wasDerivedFrom per phase node (n0/c0, n0/c1, n0/c2), each
-        // pointing at that phase's contributing source IRI — queried via
-        // SPARQL over the parsed graph, not string matching on the Turtle.
+        // pointing at that phase's contributing source IRI — asserted with
+        // the typed pattern API over the parsed graph.
+        let prov_iri = format!("{PROV_PREFIX}wasDerivedFrom");
         for (phase_idx, expected_source) in phase_sources.iter().enumerate() {
-            let subject = format!("urn:t/n0/c{phase_idx}");
-            let derived = sparql_terms(
-                &store,
-                &format!("SELECT ?o WHERE {{ <{subject}> <{PROV_PREFIX}wasDerivedFrom> ?o }}"),
-            );
             assert_eq!(
-                derived,
+                objects_of(&store, &format!("urn:t/n0/c{phase_idx}"), &prov_iri),
                 vec![format!("<{expected_source}>")],
                 "phase {phase_idx} must carry exactly its own source's provenance"
             );
         }
         assert_eq!(
-            sparql_count(
-                &store,
-                &format!("SELECT ?s WHERE {{ ?s <{PROV_PREFIX}wasDerivedFrom> ?o }}")
-            ),
-            3
+            predicate_count(&store, &prov_iri),
+            3,
+            "exactly one prov:wasDerivedFrom triple per phase"
         );
+    });
 
-        // Leaves inside phase 0 still serialize as ordinary ActivityLeaf nodes.
-        assert_eq!(
-            sparql_count(
-                &store,
-                &format!(
-                    "SELECT ?s WHERE {{ ?s a <{POWL2_PREFIX}ActivityLeaf> ; \
-                     <{POWL2_PREFIX}activityLabel> ?l }}"
-                ),
-            ),
-            4,
-            "all 4 tape ops must serialize as labelled ActivityLeafs"
-        );
-    }
-
-    #[test]
-    fn phase_provenance_serializer_refuses_flat_model() {
+    test!(phase_provenance_serializer_refuses_flat_model, {
         // A flat model (top-level children are Leaf, not PartialOrder) is not
         // a hierarchical shape — refuses CNG_R05, points callers at the flat
         // provenance function instead.
@@ -662,105 +705,51 @@ mod tests {
             Err(r @ CngRefusal::UnsupportedConstruct(_)) => assert_eq!(r.code(), "CNG_R05"),
             other => panic!("expected UnsupportedConstruct, got {other:?}"),
         }
-    }
+    });
 
-    #[test]
-    fn phase_provenance_serializer_refuses_misaligned_source_count() {
-        let (tape, sources) = three_phase_tape_and_sources();
-        let (model, phase_sources) =
-            project_tape_to_powl_hierarchical(&tape, &sources).expect("must project");
-        match powl_to_turtle_with_phase_provenance(
-            &model,
-            "urn:t",
-            None,
-            &phase_sources[..phase_sources.len() - 1],
-        ) {
-            Err(r @ CngRefusal::UnsupportedConstruct(_)) => assert_eq!(r.code(), "CNG_R05"),
-            other => panic!("expected UnsupportedConstruct, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn existing_flat_functions_are_unaffected_by_hierarchical_additions() {
-        // Regression guard: the pre-existing flat projection/serialization
-        // shape is unchanged after adding the hierarchical siblings, verified
-        // by parsing the output rather than matching Turtle substrings.
-        let tape = Pddl8Tape {
-            ops: vec![tape_op(0, 0, "a"), tape_op(1, 1, "b")],
-        };
-        let model = project_tape_to_powl(&tape).expect("flat projection");
-        let turtle = powl_to_turtle(&model, "urn:t", Some("urn:src"));
-        let store = parse_turtle_store(&turtle);
-
-        assert_eq!(
-            sparql_count(
-                &store,
-                &format!("SELECT ?s WHERE {{ ?s a <{POWL2_PREFIX}PartialOrder> }}")
-            ),
-            1
-        );
-        assert_eq!(
-            sparql_count(
-                &store,
-                &format!(
-                    "SELECT ?s WHERE {{ ?s a <{POWL2_PREFIX}ActivityLeaf> ; \
-                     <{POWL2_PREFIX}activityLabel> ?l }}"
-                ),
-            ),
-            2,
-            "both flat tape ops must serialize as labelled ActivityLeafs"
-        );
-    }
-
-    /// Parses `turtle` into an in-memory oxigraph store for structural
-    /// (SPARQL-based) test assertions — never matched as a raw string.
-    fn parse_turtle_store(turtle: &str) -> oxigraph::store::Store {
-        let store = oxigraph::store::Store::new().expect("in-memory store must construct");
-        store
-            .load_from_slice(
-                oxigraph::io::RdfParser::from_format(oxigraph::io::RdfFormat::Turtle),
-                turtle.as_bytes(),
-            )
-            .expect("serializer output must be valid Turtle");
-        store
-    }
-
-    /// Runs a SPARQL SELECT and returns the number of solutions.
-    fn sparql_count(store: &oxigraph::store::Store, query: &str) -> usize {
-        match oxigraph::sparql::SparqlEvaluator::new()
-            .parse_query(query)
-            .expect("test query must parse")
-            .on_store(store)
-            .execute()
-            .expect("test query must execute")
+    test!(
+        phase_provenance_serializer_refuses_misaligned_source_count,
         {
-            oxigraph::sparql::QueryResults::Solutions(solutions) => solutions.count(),
-            _ => panic!("expected Solutions from test query"),
+            let (tape, sources) = three_phase_tape_and_sources();
+            let (model, phase_sources) =
+                project_tape_to_powl_hierarchical(&tape, &sources).expect("must project");
+            match powl_to_turtle_with_phase_provenance(
+                &model,
+                "urn:t",
+                None,
+                &phase_sources[..phase_sources.len() - 1],
+            ) {
+                Err(r @ CngRefusal::UnsupportedConstruct(_)) => assert_eq!(r.code(), "CNG_R05"),
+                other => panic!("expected UnsupportedConstruct, got {other:?}"),
+            }
         }
-    }
+    );
 
-    /// Runs a single-variable SPARQL SELECT (`?o` or `?s`) and returns each
-    /// solution's bound term rendered as Turtle (`<iri>` / `"literal"`).
-    fn sparql_terms(store: &oxigraph::store::Store, query: &str) -> Vec<String> {
-        match oxigraph::sparql::SparqlEvaluator::new()
-            .parse_query(query)
-            .expect("test query must parse")
-            .on_store(store)
-            .execute()
-            .expect("test query must execute")
+    test!(
+        existing_flat_functions_are_unaffected_by_hierarchical_additions,
         {
-            oxigraph::sparql::QueryResults::Solutions(solutions) => solutions
-                .map(|solution| {
-                    let solution = solution.expect("solution must decode");
-                    let term = solution
-                        .iter()
-                        .next()
-                        .map(|(_, term)| term.to_string())
-                        .expect("solution must bind its variable");
-                    term
-                })
-                .collect(),
-            _ => panic!("expected Solutions from test query"),
+            // Regression guard: the pre-existing flat projection/serialization
+            // shape is unchanged after adding the hierarchical siblings, verified
+            // by the crate's own structural validator over the parsed output —
+            // no substring matching, no inline query strings.
+            let tape = Pddl8Tape {
+                ops: vec![tape_op(0, 0, "a"), tape_op(1, 1, "b")],
+            };
+            let model = project_tape_to_powl(&tape).expect("flat projection");
+            let turtle = powl_to_turtle(&model, "urn:t", Some("urn:src"));
+            let store = store_from_turtle(&turtle);
+
+            let report =
+                crate::shape::validate_powl_store(&store, true).expect("flat model must validate");
+            assert_eq!(report.models, 1);
+            assert_eq!(report.partial_orders, 1, "flat model has one PartialOrder");
+            assert_eq!(
+                report.activity_leaves, 2,
+                "both flat tape ops must serialize as labelled ActivityLeafs"
+            );
+            assert_eq!(report.child_bindings, 2);
+            assert_eq!(report.precedes, 1, "C(2,2) = 1 closed order pair");
+            assert_eq!(report.derived_from, 1);
         }
-    }
+    );
 }

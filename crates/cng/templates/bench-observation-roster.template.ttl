@@ -1,0 +1,15 @@
+# rwai-bench roster template: replaces the inline roster Turtle. One
+# roster_admitted observation per worker; the harness repeats this fragment
+# per worker with deterministic seeded values. No wall-clock time.
+# Vocabulary: crates/praxis-graphlaw/ontologies/core/bench-obs.ttl
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "roster_admitted" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:obsWorkerId "{{WORKER_ID}}" ;
+  obs:obsRole "{{ROLE}}" ;
+  obs:obsDepartment "{{DEPARTMENT}}" ;
+  obs:obsStanding "{{STANDING}}" .

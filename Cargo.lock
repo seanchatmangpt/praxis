@@ -353,12 +353,6 @@ name = "bcinr-logic"
 version = "26.6.24"
 
 [[package]]
-name = "bcinr-logic"
-version = "26.6.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f27f4bba1bbe5c5a5930ed0add9312a7f836eb29a5050e72f7c93184dd83ff59"
-
-[[package]]
 name = "bcinr-pddl"
 version = "26.6.26"
 dependencies = [
@@ -390,7 +384,7 @@ dependencies = [
 name = "bcinr-powl"
 version = "26.6.25"
 dependencies = [
- "bcinr-logic 26.6.24",
+ "bcinr-logic",
  "blake3",
  "wasm4pm-compat",
 ]
@@ -401,7 +395,7 @@ version = "26.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6793aa6aee267c7f8c17e8b39dfd4c8536c08c3adcbcb1c7fe10f1dc73f8afb6"
 dependencies = [
- "bcinr-logic 26.6.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bcinr-logic",
  "blake3",
  "wasm4pm-compat",
 ]
@@ -410,7 +404,7 @@ dependencies = [
 name = "bcinr-powl-receipt"
 version = "26.6.24"
 dependencies = [
- "bcinr-logic 26.6.24",
+ "bcinr-logic",
  "bcinr-powl 26.6.25",
  "blake3",
  "serde",
@@ -920,6 +914,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "oxigraph",
+ "praxis-graphlaw",
  "serde",
  "serde_json",
  "tokio",

@@ -96,30 +96,55 @@ fn load_store(turtle: &str) -> Store {
     store
 }
 
-/// Counts SELECT solutions for a query against the store.
-fn count_solutions(store: &Store, query: &str) -> usize {
+/// Runs a two-column (?term, ?count) grouping query loaded from a fixture
+/// `.rq` file and returns term-IRI → count. No SPARQL text lives in Rust
+/// sources — queries are fixture files (query-authority boundary).
+fn fixture_counts(store: &Store, query_file: &str) -> std::collections::BTreeMap<String, u64> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/queries")
+        .join(query_file);
+    let query = fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("read fixture query {}: {e}", path.display()));
     let results = SparqlEvaluator::new()
-        .parse_query(query)
-        .expect("parse SPARQL query")
+        .parse_query(&query)
+        .expect("parse fixture query")
         .on_store(store)
         .execute()
-        .expect("execute SPARQL query");
-    match results {
-        QueryResults::Solutions(solutions) => solutions.map(|s| s.expect("solution")).count(),
-        _ => panic!("expected SELECT solutions for query: {query}"),
+        .expect("execute fixture query");
+    let QueryResults::Solutions(solutions) = results else {
+        panic!("expected SELECT solutions from fixture query {query_file}");
+    };
+    let mut counts = std::collections::BTreeMap::new();
+    for solution in solutions {
+        let solution = solution.expect("solution");
+        let term = solution
+            .get("type")
+            .or_else(|| solution.get("p"))
+            .map(ToString::to_string)
+            .expect("grouping term bound");
+        let count = solution
+            .get("count")
+            .map(ToString::to_string)
+            .and_then(|s| s.split('"').nth(1).map(str::to_string))
+            .and_then(|s| s.parse::<u64>().ok())
+            .expect("count literal bound");
+        counts.insert(term, count);
     }
+    counts
 }
 
 fn count_type(store: &Store, class: &str) -> usize {
-    let q = format!(
-        "SELECT ?s WHERE {{ ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{POWL2_PREFIX}{class}> }}"
-    );
-    count_solutions(store, &q)
+    fixture_counts(store, "type-counts.rq")
+        .get(&format!("<{POWL2_PREFIX}{class}>"))
+        .copied()
+        .unwrap_or(0) as usize
 }
 
 fn count_predicate(store: &Store, predicate: &str) -> usize {
-    let q = format!("SELECT ?s ?o WHERE {{ ?s <{POWL2_PREFIX}{predicate}> ?o }}");
-    count_solutions(store, &q)
+    fixture_counts(store, "predicate-counts.rq")
+        .get(&format!("<{POWL2_PREFIX}{predicate}>"))
+        .copied()
+        .unwrap_or(0) as usize
 }
 
 #[test]

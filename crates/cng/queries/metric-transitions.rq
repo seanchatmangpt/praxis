@@ -1,0 +1,14 @@
+# metric-transitions.rq
+# Inputs: materialized OCEL graph (output of ocel-events.construct.rq).
+# Outputs: rows (?type ?count): event count per eventTypeName, ORDER BY ?type.
+# Determinism: grouped aggregate with explicit ORDER BY ?type.
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+
+SELECT ?type (COUNT(DISTINCT ?ev) AS ?count)
+WHERE {
+  ?ev a ocel:Event ;
+      ocel:hasEventType ?et .
+  ?et ocel:eventTypeName ?type .
+}
+GROUP BY ?type
+ORDER BY ?type

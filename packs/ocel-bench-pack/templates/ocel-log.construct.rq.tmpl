@@ -1,0 +1,46 @@
+---
+to: "crates/cng/queries/ocel-log.construct.rq"
+force: true
+determinism: true
+---
+# ocel-log.construct.rq
+# Inputs: obs graph (all facts; re-derives event/object/type IRIs with the same pure functions as ocel-events / ocel-objects).
+# Outputs: one ocel:EventLog containing all events, objects, event types, object types via contains*.
+# Log IRI is the fixed constant https://ggen.io/bench/log/rwai-bench.
+# Determinism: all membership derived from obs facts; ORDER BY.
+PREFIX obs:  <https://ggen.io/ontology/bench-obs#>
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  <https://ggen.io/bench/log/rwai-bench> a ocel:EventLog ;
+      ocel:containsEvent ?ev ;
+      ocel:containsEventType ?etype ;
+      ocel:containsObject ?obj ;
+      ocel:containsObjectType ?otype .
+}
+WHERE {
+  {
+    ?o obs:obsKind ?kind ;
+       obs:obsSeq ?seq ;
+       obs:obsSetId ?setId .
+    FILTER(?kind IN ("transition_fired", "receipted", "refused"))
+    BIND(IRI(CONCAT("https://ggen.io/bench/event/",
+         ENCODE_FOR_URI(CONCAT(?setId, "-", STR(?seq))))) AS ?ev)
+    BIND(IRI(CONCAT("https://ggen.io/bench/event-type/", ENCODE_FOR_URI(?kind))) AS ?etype)
+  }
+  UNION
+  {
+    ?o obs:obsKind "roster_admitted" ;
+       obs:obsWorkerId ?oid .
+    BIND(IRI(CONCAT("https://ggen.io/bench/object/worker/", ENCODE_FOR_URI(?oid))) AS ?obj)
+    BIND(IRI("https://ggen.io/bench/object-type/Worker") AS ?otype)
+  }
+  UNION
+  {
+    ?o obs:obsWorkflowId ?wid .
+    BIND(IRI(CONCAT("https://ggen.io/bench/object/workflow/", ENCODE_FOR_URI(?wid))) AS ?obj)
+    BIND(IRI("https://ggen.io/bench/object-type/WorkflowExecution") AS ?otype)
+  }
+}
+ORDER BY ?ev ?obj

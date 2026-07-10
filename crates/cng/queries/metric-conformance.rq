@@ -1,0 +1,15 @@
+# metric-conformance.rq
+# Inputs: materialized OCEL graph (output of ocel-receipts.construct.rq).
+# Outputs: single row: ?count = COUNT(DISTINCT events carrying Attribute conformant=true).
+# Representation: conformance is the Attribute{attributeKey 'conformant',
+# attributeValue 'true'} that ocel-receipts.construct.rq attaches to every
+# receipted event (receipt = proof of conformant execution).
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+
+SELECT (COUNT(DISTINCT ?ev) AS ?count)
+WHERE {
+  ?ev ocel:hasAttribute ?a .
+  ?a ocel:attributeKey "conformant" ;
+     ocel:attributeValue "true" .
+}
+ORDER BY ?count

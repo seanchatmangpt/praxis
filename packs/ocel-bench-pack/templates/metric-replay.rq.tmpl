@@ -1,0 +1,19 @@
+---
+to: "crates/cng/queries/metric-replay.rq"
+force: true
+determinism: true
+---
+# metric-replay.rq
+# Inputs: materialized OCEL graph.
+# Outputs: single row: ?count = COUNT(DISTINCT events with attributeKey 'replay.verified').
+# No CONSTRUCT in this pack emits 'replay.verified' yet; the replay
+# verifier is expected to attach it post-hoc. Until then this metric
+# deterministically returns 0 on pack-constructed graphs.
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+
+SELECT (COUNT(DISTINCT ?ev) AS ?count)
+WHERE {
+  ?ev ocel:hasAttribute ?a .
+  ?a ocel:attributeKey "replay.verified" .
+}
+ORDER BY ?count

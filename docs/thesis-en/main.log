@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.10.26)  10 JUL 2026 10:12
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.10.26)  10 JUL 2026 10:28
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -674,7 +674,7 @@ File: l3backend-pdftex.def 2024-02-20 L3 backend support: PDF output (pdfTeX)
 (./chapters/04_pullbacks_replay.aux) (./chapters/05_discrete_morse_theory.aux)
 (./chapters/06_computational_complexity.aux) (./chapters/07_fsm_cohomology.aux)
 (./chapters/08_error_correcting_codes.aux) (./chapters/09_two_type_logic.aux)
-(./chapters/10_conclusion.aux))
+(./chapters/10_conclusion.aux) (./chapters/11_autonomic_benchmark.aux))
 \openout1 = `main.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 37.
@@ -782,6 +782,12 @@ been already used, duplicate ignored
                    \relax 
 l.47 \begin{abstract}
                       [1]
+Overfull \hbox (19.57303pt too wide) in paragraph at lines 48--49
+\OT1/cmr/m/n/12 work lays the math-e-mat-i-cal bedrock for au-to-nomic re-cur-s
+ive work-flows and hyper-dimensional
+ []
+
+
 pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has 
 been already used, duplicate ignored
 <to be read again> 
@@ -807,34 +813,29 @@ l.57 \tableofcontents
 
 (./chapters/01_combinatorial_maximalism.tex
 Chapter 1.
-LaTeX Font Info:    Trying to load font information for U+euf on input line 22.
+[5
 
-(/usr/local/texlive/2024/texmf-dist/tex/latex/amsfonts/ueuf.fd
+
+]
+LaTeX Font Info:    Trying to load font information for U+euf on input line 38.
+
+ (/usr/local/texlive/2024/texmf-dist/tex/latex/amsfonts/ueuf.fd
 File: ueuf.fd 2013/01/14 v3.01 Euler Fraktur
-) [5
-
-
-] [6]
-Overfull \hbox (10.9479pt too wide) in paragraph at lines 64--64
+) [6{/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.e
+nc}] [7]
+Overfull \hbox (10.9479pt too wide) in paragraph at lines 101--101
 []\OT1/cmr/bx/n/17.28 Exact Se-quences and the Mayer-Vietoris Se-quence
  []
 
-[7]
-Overfull \hbox (5.13223pt too wide) in paragraph at lines 102--104
-\OML/cmm/m/it/12 E[]$ \OT1/cmr/m/it/12 rep-re-sent the im-pos-si-bil-ity of de-
-ter-min-is-tic sym-me-try break-ing in $\OML/cmm/m/it/12 r$ \OT1/cmr/m/it/12 as
-yn-chronous
- []
-
-[8] [9]
-Overfull \hbox (7.79181pt too wide) in paragraph at lines 173--173
+[8] [9] [10] [11] [12]
+Overfull \hbox (7.79181pt too wide) in paragraph at lines 248--248
 []\OT1/cmr/bx/n/17.28 Sheaf-Theoretic Ap-proach to Com-bi-na-to-rial Max-
  []
 
 ! Undefined control sequence.
 <recently read> \mathscr 
                          
-l.177 ...alist Sheaf $\mathscr{F}_{\mathfrak{M}}$]
+l.252 ...alist Sheaf $\mathscr{F}_{\mathfrak{M}}$]
                                                   
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
@@ -845,7 +846,7 @@ and I'll forget about whatever was undefined.
 ! Undefined control sequence.
 <recently read> \mathscr 
                          
-l.178 ...thcal{P}$. The Maximalist Sheaf $\mathscr
+l.253 ...thcal{P}$. The Maximalist Sheaf $\mathscr
                                                   {F}_{\mathfrak{M}}$ is a s...
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
@@ -856,8 +857,8 @@ and I'll forget about whatever was undefined.
 ! Undefined control sequence.
 <recently read> \mathscr 
                          
-l.178 ...for any open set $U \subset X$, $\mathscr
-                                                  {F}_{\mathfrak{M}}(U)$ is ...
+l.255 For any open set $U \subset X$, $\mathscr
+                                               {F}_{\mathfrak{M}}(U)$ is def...
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
 misspelled it (e.g., `\hobx'), type `I' and the correct
@@ -865,7 +866,7 @@ spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
 ! Undefined control sequence.
-l.178 ...he restriction maps $\rho_{V,U}: \mathscr
+l.255 ...he restriction maps $\rho_{V,U}: \mathscr
                                                   {F}_{\mathfrak{M}}(U) \to ...
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
@@ -874,7 +875,7 @@ spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
 ! Undefined control sequence.
-l.178 ...mathscr{F}_{\mathfrak{M}}(U) \to \mathscr
+l.255 ...mathscr{F}_{\mathfrak{M}}(U) \to \mathscr
                                                   {F}_{\mathfrak{M}}(V)$ for...
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
@@ -883,7 +884,7 @@ spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
 ! Undefined control sequence.
-l.182 ...lobal section functor $\Gamma(X, \mathscr
+l.259 ...lobal section functor $\Gamma(X, \mathscr
                                                   {F}_{\mathfrak{M}})$ is su...
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
@@ -892,7 +893,7 @@ spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
 ! Undefined control sequence.
-l.184 H^1(X, \mathscr
+l.261 H^1(X, \mathscr
                      {F}_{\mathfrak{M}}) = 0
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
@@ -901,8 +902,8 @@ spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
 ! Undefined control sequence.
-l.189 A global section $s \in \Gamma(X, \mathscr
-                                                {F}_{\mathfrak{M}})$ corresp...
+l.266 ...global section} $s \in \Gamma(X, \mathscr
+                                                  {F}_{\mathfrak{M}})$ corre...
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
 misspelled it (e.g., `\hobx'), type `I' and the correct
@@ -910,8 +911,8 @@ spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
 ! Undefined control sequence.
-l.191 If $H^1(X, \mathscr
-                         {F}_{\mathfrak{M}}) \neq 0$, then by the definition...
+l.269 If $H^1(X, \mathscr
+                         {F}_{\mathfrak{M}}) \neq 0$, then by the fundamenta...
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
 misspelled it (e.g., `\hobx'), type `I' and the correct
@@ -919,7 +920,7 @@ spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
 ! Undefined control sequence.
-l.191 ...i\}$ and local sections $s_i \in \mathscr
+l.269 ... $X$ and local sections $s_i \in \mathscr
                                                   {F}_{\mathfrak{M}}(U_i)$ s...
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
@@ -928,7 +929,7 @@ spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
 ! Undefined control sequence.
-l.191 ...o a single global section $s \in \mathscr
+l.269 ...e unifying global section $s \in \mathscr
                                                   {F}_{\mathfrak{M}}(X)$.
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
@@ -936,52 +937,269 @@ misspelled it (e.g., `\hobx'), type `I' and the correct
 spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
-
-Overfull \hbox (8.97789pt too wide) in paragraph at lines 196--196
+[13]
+Overfull \hbox (8.97789pt too wide) in paragraph at lines 276--276
 []\OT1/cmr/bx/n/17.28 Asymptotic Bounds and the Com-bi-na-to-rial Max-
  []
 
-[10]) [11]
+
+Overfull \hbox (10.69118pt too wide) in paragraph at lines 291--292
+[]\OT1/cmr/m/n/12 In each round of com-mu-ni-ca-tion, a pro-cess gath-ers in-fo
+r-ma-tion from its $^^A$-neighborhood.
+ []
+
+[14]) [15]
 \openout2 = `chapters/02_discrete_topology.aux'.
 
  (./chapters/02_discrete_topology.tex
 Chapter 2.
-[12
+[16
 
 
 
 
-]
-Overfull \hbox (14.24976pt too wide) in paragraph at lines 41--41
+] [17]
+Overfull \hbox (14.24976pt too wide) in paragraph at lines 67--67
 []\OT1/cmr/bx/n/17.28 The Reach-a-bil-ity Topol-ogy and Alexan-drov Spaces 
  []
 
-[13] [14] [15]) [16]
+[18] [19] [20] [21] [22]
+Overfull \hbox (0.7281pt too wide) in paragraph at lines 263--264
+[]\OT1/cmr/m/n/12 In con-tin-u-ous math-e-mat-ics, the Borel $\OML/cmm/m/it/12 
+^^[$\OT1/cmr/m/n/12 -algebra is in-finitely com-plex and vastly smaller
+ []
+
+[23] [24]) [25]
 \openout2 = `chapters/03_galois_connections.aux'.
 
  (./chapters/03_galois_connections.tex
 Chapter 3.
-[17
+[26
 
 
 
 
-] [18]
-Overfull \hbox (6.6539pt too wide) in paragraph at lines 77--77
+] [27]
+! Undefined control sequence.
+l.92 From the unit inequality (\Cref
+                                    {eq:unit_inequality}), we have:
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.92 From the unit inequality (\Cref{eq:unit_
+                                             inequality}), we have:
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+l.92 ...unit inequality (\Cref{eq:unit_inequality}
+                                                  ), we have:
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+
+! LaTeX Error: Bad math environment delimiter.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.93 \[
+        p \leq_P G(F(p)) \]
+Your command was ignored.
+Type  I <command> <return>  to replace it with another command,
+or  <return>  to continue without it.
+
+! Missing \endgroup inserted.
+<inserted text> 
+                \endgroup 
+l.93 \[ p \leq_P G(F(p)) \]
+                           
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+
+! LaTeX Error: \begin{proof} on input line 90 ended by \end{equation*}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.93 \[ p \leq_P G(F(p)) \]
+                           
+Your command was ignored.
+Type  I <command> <return>  to replace it with another command,
+or  <return>  to continue without it.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.93 \[ p \leq_P G(F(p)) \]
+                           
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.93 \[ p \leq_P G(F(p)) \]
+                           
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Undefined control sequence.
+l.96 Next, we invoke the counit inequality (\Cref
+                                                 {eq:counit_inequality}), su...
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.96 ...ke the counit inequality (\Cref{eq:counit_
+                                                  inequality}), substituting...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+l.96 ...it inequality (\Cref{eq:counit_inequality}
+                                                  ), substituting $q$ with t...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.96 ...ubstituting $q$ with the element $F(p) \in
+                                                   Q$. This immediately yields:
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+
+Overfull \hbox (23.83138pt too wide) in paragraph at lines 95--97
+\OT1/cmr/m/n/12 Next, we in-voke the counit in-equal-ity (eq:counit$[]\OML/cmm/
+m/it/12 nequality\OT1/cmr/m/n/12 )\OML/cmm/m/it/12 ; substituting$\OT1/cmr/m/n/
+12 q$\OML/cmm/m/it/12 withtheelement$\OT1/cmr/m/n/12 F(p)
+ []
+
+
+! LaTeX Error: \begin{document} ended by \end{proof}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.103 \end{proof}
+                 
+Your command was ignored.
+Type  I <command> <return>  to replace it with another command,
+or  <return>  to continue without it.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.103 \end{proof}
+                 
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Extra \endgroup.
+<recently read> \endgroup 
+                          
+l.103 \end{proof}
+                 
+Things are pretty mixed up, but I think the worst is over.
+
+[28]
+! Undefined control sequence.
+l.136 ... the Adjoint Stabilization Theorem (\Cref
+                                                  {thm:adjoint_stabilization...
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.136 ...Stabilization Theorem (\Cref{thm:adjoint_
+                                                  stabilization}), we know t...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+l.136 ...Theorem (\Cref{thm:adjoint_stabilization}
+                                                  ), we know that $F \circ G...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.136 ...nt_stabilization}), we know that $F \circ
+                                                   G \circ F = F$. Substitut...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.139 \end{enumerate}
+                     
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+[29]
+Overfull \hbox (6.6539pt too wide) in paragraph at lines 157--157
 []\OT1/cmr/bx/n/17.28 Eilenberg-Moore and Kleisli Cat-e-gories for Posets 
  []
 
+[30]
 
 ! Package pgf Error: No shape named `2-2' is known.
 
 See the pgf package documentation for explanation.
 Type  H <return>  for immediate help
 ...
-l.95 I think the culprit is a tikzcd arrow in cell 2-1.
+l.185 I think the culprit is a tikzcd arrow in cell 2-1.
 \errmessage ...currentrow -\tikzcd@currentcolumn }
                                                   
-l.96 \end{tikzcd}
-                 \]
+l.186 \end{tikzcd}
+                  \]
 This error message was generated by an \errmessage
 command, so I can't give any explicit help.
 Pretend that you're Hercule Poirot: Examine all clues,
@@ -993,110 +1211,375 @@ and deduce the truth by order and method.
 See the pgf package documentation for explanation.
 Type  H <return>  for immediate help
 ...
-l.95 I think the culprit is a tikzcd arrow in cell 2-1.
+l.185 I think the culprit is a tikzcd arrow in cell 2-1.
 \errmessage ...currentrow -\tikzcd@currentcolumn }
                                                   
-l.96 \end{tikzcd}
-                 \]
+l.186 \end{tikzcd}
+                  \]
 (That was another \errmessage.)
 
-[19]
-Overfull \hbox (4.11784pt too wide) in paragraph at lines 134--134
+[31]
+! Undefined control sequence.
+l.235 ... the Adjoint Stabilization Theorem (\Cref
+                                                  {thm:adjoint_stabilization...
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.235 ...Stabilization Theorem (\Cref{thm:adjoint_
+                                                  stabilization}), $F \circ ...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+l.235 ...Theorem (\Cref{thm:adjoint_stabilization}
+                                                  ), $F \circ G \circ F = F$...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.235 ...ref{thm:adjoint_stabilization}), $F \circ
+                                                   G \circ F = F$. Applying ...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.244 \end{proof}
+                 
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+
+Overfull \hbox (4.11784pt too wide) in paragraph at lines 246--246
 []\OT1/cmr/bx/n/17.28 Antitone Ga-lois Con-nec-tions and Cat-e-gor-i-cal Du-
  []
 
-[20] [21]
-Overfull \hbox (17.14381pt too wide) in paragraph at lines 200--200
+[32]
+Overfull \hbox (2.5306pt too wide) in paragraph at lines 255--257
+\OT1/cmr/m/n/12 Note the sym-me-try in the equiv-a-lence, con-trast-ing with th
+e asym-met-ric con-di-tion $\OML/cmm/m/it/12 F\OT1/cmr/m/n/12 (\OML/cmm/m/it/12
+ p\OT1/cmr/m/n/12 ) \OMS/cmsy/m/n/12 ^^T[]
+ []
+
+! Undefined control sequence.
+l.267 ...ate the core equivalence condition (\Cref
+                                                  {eq:antitone_galois}) usin...
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.267 ...equivalence condition (\Cref{eq:antitone_
+                                                  galois}) using the inverte...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+l.267 ...ence condition (\Cref{eq:antitone_galois}
+                                                  ) using the inverted relat...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.267 ... inverted relation. The statement $q \leq
+                                                  _Q F(p)$ is strictly equiv...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+
+Overfull \hbox (82.98482pt too wide) in paragraph at lines 267--268
+\OT1/cmr/m/n/12 us re-evaluate the core equiv-a-lence con-di-tion (eq:antitone$
+[]\OML/cmm/m/it/12 alois\OT1/cmr/m/n/12 )\OML/cmm/m/it/12 usingtheinvertedrelat
+ion:Thestatement$\OT1/cmr/m/n/12 q
+ []
+
+! Undefined control sequence.
+l.269 ...lois connection $F' \dashv G'$ (cf. \Cref
+                                                  {def:monotone_galois}).
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.269 ...n $F' \dashv G'$ (cf. \Cref{def:monotone_
+                                                  galois}).
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+l.269 ...dashv G'$ (cf. \Cref{def:monotone_galois}
+                                                  ).
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+
+! LaTeX Error: Command \end{proof} invalid in math mode.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.270 \end{proof}
+                 
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+! LaTeX Error: Something's wrong--perhaps a missing \item.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.270 \end{proof}
+                 
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+! LaTeX Error: Something's wrong--perhaps a missing \item.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.270 \end{proof}
+                 
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.270 \end{proof}
+                 
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.270 \end{proof}
+                 
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.270 \end{proof}
+                 
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+[33] [34] [35]
+Overfull \hbox (17.14381pt too wide) in paragraph at lines 364--364
 []\OT1/cmr/bx/n/17.28 Continuous Func-tors and the Tarski-Knaster The-
  []
 
+[36]
+Overfull \hbox (10.46997pt too wide) in paragraph at lines 393--395
+[]\OT1/cmr/m/n/12 A per-fectly sym-met-ric dual ar-gu-ment, op-er-at-ing on the
+ set of \OT1/cmr/m/it/12 post-fixed points $\OML/cmm/m/it/12 Post\OT1/cmr/m/n/1
+2 (\OML/cmm/m/it/12 f\OT1/cmr/m/n/12 ) =
+ []
 
-Overfull \hbox (16.6378pt too wide) in paragraph at lines 216--216
+
+Overfull \hbox (16.6378pt too wide) in paragraph at lines 397--397
 []\OT1/cmr/bx/n/17.28 Grothendieck Fi-bra-tions and In-dexed Ga-lois Con-
  []
 
-[22]) [23] [24]
+[37]
+Overfull \hbox (0.33157pt too wide) in paragraph at lines 413--414
+[]\OT1/cmr/m/n/12 This el-e-gantly for-mal-ized in-dexed struc-ture nat-u-rally
+ in-te-grates with the Grothendieck
+ []
+
+! Undefined control sequence.
+l.436 ... critical Beck-Chevalley condition (\Cref
+                                                  {eq:beck_chevalley_1}), wh...
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.436 ... Beck-Chevalley condition (\Cref{eq:beck_
+                                                  chevalley_1}), which dicta...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+l.436 ...ley condition (\Cref{eq:beck_chevalley_1}
+                                                  ), which dictates $G_I \ci...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.436 ...eq:beck_chevalley_1}), which dictates $G_
+                                                  I \circ \mathbf{Q}(u) = \m...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+
+Overfull \hbox (8.42332pt too wide) in paragraph at lines 435--437
+\OT1/cmr/m/n/12 We now in-voke the crit-i-cal Beck-Chevalley con-di-tion (eq:be
+ck$[]\OML/cmm/m/it/12 hevalley[]\OT1/cmr/m/n/12 )\OML/cmm/m/it/12 ; whichdictat
+es$\OT1/cmr/m/n/12 G$[] \OMS/cmsy/m/n/12 ^^N
+ []
+
+[38]
+! Missing } inserted.
+<inserted text> 
+                }
+l.440 \end{proof}
+                 
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+) [39]
 \openout2 = `chapters/04_pullbacks_replay.aux'.
 
  (./chapters/04_pullbacks_replay.tex
 Chapter 4.
-[25
+[40
 
 
 
 
-]
-Overfull \hbox (6.37784pt too wide) in paragraph at lines 53--53
+] [41]
+Overfull \hbox (6.37784pt too wide) in paragraph at lines 74--74
 []\OT1/cmr/bx/n/17.28 The Pull-back Lemma and Com-po-si-tion of Squares 
  []
 
-[26] [27] [28] [29]) [30]
+[42] [43] [44] [45] [46] [47]) [48]
 \openout2 = `chapters/05_discrete_morse_theory.aux'.
 
  (./chapters/05_discrete_morse_theory.tex
 Chapter 5.
 
-LaTeX Warning: Citation `forman1998morse' on page 31 undefined on input line 5.
+LaTeX Warning: Citation `forman1998morse' on page 49 undefined on input line 6.
+
+
+[49
 
 
 
-Overfull \hbox (13.92981pt too wide) in paragraph at lines 11--11
+
+]
+Overfull \hbox (13.92981pt too wide) in paragraph at lines 16--16
 []\OT1/cmr/bx/n/17.28 Simplicial Com-plexes and Al-ge-braic Topol-ogy Pre-
  []
 
-[31
-
-
-
-
-] [32] [33] [34]
-Overfull \hbox (23.61278pt too wide) in paragraph at lines 185--186
-[][]\OT1/cmr/bx/n/12 Theorem 5.15 \OT1/cmr/m/n/12 (Iso-mor-phism of Ho-mol-ogy)
-\OT1/cmr/bx/n/12 . []\OT1/cmr/m/it/12 The ho-mol-ogy of the Morse com-plex $\OM
-S/cmsy/m/n/12 M[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 K; f\OT1/cmr/m/n/12 ) =
+[50] [51] [52] [53]
+Overfull \hbox (3.08768pt too wide) in paragraph at lines 133--134
+[]\OT1/cmr/m/n/12 From Lemma []5.4[], the reg-u-lar sim-plices par-ti-tion en-t
+irely into dis-joint pairs $(\OML/cmm/m/it/12 ^^[[]; ^^][]\OT1/cmr/m/n/12 )$
  []
 
-[35]) [36]
+[54] [55] [56] [57] [58]) [59]
 \openout2 = `chapters/06_computational_complexity.aux'.
 
  (./chapters/06_computational_complexity.tex
 Chapter 6.
-[37
+
+Overfull \hbox (2.58435pt too wide) in paragraph at lines 6--7
+[]\OT1/cmr/m/n/12 The ad-vent of Large Lan-guage Mod-els (LLMs) and agen-tic lo
+ops in-tro-duces a paradigm
+ []
+
+[60
 
 
 
 
-{/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
- [38] [39] [40]
-Overfull \hbox (0.37595pt too wide) in paragraph at lines 173--173
+] [61]
+Overfull \hbox (5.99356pt too wide) in paragraph at lines 56--57
+[][]\OT1/cmr/bx/n/12 Theorem 6.3 \OT1/cmr/m/n/12 (De-cid-abil-ity of CBTM Halt-
+ing)\OT1/cmr/bx/n/12 . []\OT1/cmr/m/it/12 The halt-ing lan-guage for Context-Bo
+unded
+ []
+
+[62] [63] [64] [65] [66] [67]
+Overfull \hbox (0.37595pt too wide) in paragraph at lines 272--272
 []\OT1/cmr/bx/n/17.28 Space Com-plex-ity of Er-ror Paths vs Happy Paths 
  []
 
-[41]) [42]
+[68]) [69]
 \openout2 = `chapters/07_fsm_cohomology.aux'.
 
  (./chapters/07_fsm_cohomology.tex
 Chapter 7.
-
-Overfull \hbox (17.80986pt too wide) in paragraph at lines 19--20
-[]\OT1/cmr/m/n/12 We de-fine the cel-lu-lar chain com-plex $\OML/cmm/m/it/12 C[
-]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 X[]\OT1/cmr/m/n/12 ; \U/msb/m/n/12 Z\OT1/cmr
-/m/n/12 )$ and its dual cochain com-plex $\OML/cmm/m/it/12 C[]\OT1/cmr/m/n/12 (
-\OML/cmm/m/it/12 X[]\OT1/cmr/m/n/12 ; \U/msb/m/n/12 Z\OT1/cmr/m/n/12 ) =
- []
-
-[43
+[70
 
 
 
 
-] [44] [45]
-Overfull \hbox (14.6879pt too wide) in paragraph at lines 106--106
+] [71] [72] [73] [74]
+Overfull \hbox (14.6879pt too wide) in paragraph at lines 150--150
 []\OT1/cmr/bx/n/17.28 Applications to Non-de-ter-min-is-tic Fi-nite Au-tomata
  []
 
-[46]
-Overfull \hbox (62.65863pt too wide) detected at line 145
+
+Overfull \hbox (17.8902pt too wide) in paragraph at lines 164--165
+[]\OT1/cmr/m/n/12 To com-pute the co-ho-mol-ogy, we con-struct the []Cech-to-de
+rived dou-ble com-plex $\OML/cmm/m/it/12 C[]\OT1/cmr/m/n/12 (\OMS/cmsy/m/n/12 U
+\OML/cmm/m/it/12 ; \OMS/cmsy/m/n/12 F\OT1/cmr/m/n/12 )$,
+ []
+
+[75] [76]
+Overfull \hbox (62.65863pt too wide) detected at line 203
 \OT1/cmr/m/n/12 0 \OMS/cmsy/m/n/12 ! [] \OML/cmm/m/it/12 H[]\OT1/cmr/m/n/12 (\O
 ML/cmm/m/it/12 X[]\OT1/cmr/m/n/12 ; \U/msb/m/n/12 Z\OT1/cmr/m/n/12 ) \OMS/cmsy/
 m/n/12 
@@ -1109,44 +1592,51 @@ m/it/12 ; H[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 X[]\OT1/cmr/m/n/12 ; \U/msb/m/n/
 12 Z\OT1/cmr/m/n/12 )) \OMS/cmsy/m/n/12 ! \OT1/cmr/m/n/12 0
  []
 
-[47] [48]) [49]
+[77] [78] [79]) [80]
 \openout2 = `chapters/08_error_correcting_codes.aux'.
 
  (./chapters/08_error_correcting_codes.tex
 Chapter 8.
-[50
+[81
 
 
 
 
-] [51]
-Overfull \hbox (24.41785pt too wide) in paragraph at lines 103--103
+]
+Overfull \hbox (14.67989pt too wide) in paragraph at lines 61--63
+\OT1/cmr/m/n/12 To link this to the weight enu-mer-a-tor, we ju-di-ciously se-l
+ect the func-tion $\OML/cmm/m/it/12 f\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 v\OT1/cm
+r/m/n/12 ) = \OML/cmm/m/it/12 x[]y[]$\OT1/cmr/m/n/12 .
+ []
+
+[82] [83] [84] [85] [86]
+Overfull \hbox (24.41785pt too wide) in paragraph at lines 192--192
 []\OT1/cmr/bx/n/17.28 Density Evo-lu-tion and Prob-a-bilis-tic De-cod-ing Anal-
 
  []
 
-[52]
-Overfull \hbox (24.88782pt too wide) in paragraph at lines 130--130
+
+Overfull \hbox (4.5593pt too wide) in paragraph at lines 196--197
+[]\OT1/cmr/m/n/12 To an-a-lyze the asymp-totic con-ver-gence of these al-go-rit
+hms over in-fi-nite graphs, Thomas
+ []
+
+[87]
+Overfull \hbox (24.88782pt too wide) in paragraph at lines 238--238
 []\OT1/cmr/bx/n/17.28 Expander Codes and Linear-Time De-cod-ing Bounds 
  []
 
-[53] [54]
-Overfull \hbox (13.3717pt too wide) in paragraph at lines 198--199
-[]\OT1/cmr/m/n/12 This the-o-rem acts as a crit-i-cal con-straint, bound-ing th
-e ex-is-tence of capacity-approaching
- []
-
-
-Overfull \hbox (27.67984pt too wide) in paragraph at lines 200--200
+[88] [89] [90]
+Overfull \hbox (27.67984pt too wide) in paragraph at lines 335--335
 []\OT1/cmr/bx/n/17.28 Quantum Error-Correcting Graph Codes (Q-LDPC) 
  []
 
-) [55] [56]
+[91]) [92]
 \openout2 = `chapters/09_two_type_logic.aux'.
 
  (./chapters/09_two_type_logic.tex
 Chapter 9.
-[57
+[93
 
 
 
@@ -1154,76 +1644,95 @@ Chapter 9.
 ]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 39.
+(hyperref)                removing `math shift' on input line 43.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\Pi' on input line 39.
+(hyperref)                removing `\Pi' on input line 43.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 39.
+(hyperref)                removing `math shift' on input line 43.
+
+[94]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 82.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 70.
+(hyperref)                removing `\Sigma' on input line 82.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\Sigma' on input line 70.
+(hyperref)                removing `math shift' on input line 82.
+
+[95] [96] [97]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 213.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 70.
-
-[58] [59]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 185.
+(hyperref)                removing `math shift' on input line 213.
 
 
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 185.
-
-
-Overfull \hbox (36.64975pt too wide) in paragraph at lines 198--203
+Overfull \hbox (36.64975pt too wide) in paragraph at lines 226--231
  $[]$ 
  []
 
-[60] [61]
-Overfull \hbox (1.00975pt too wide) in paragraph at lines 257--257
-[]\OT1/cmr/bx/n/17.28 Advanced Typ-ing Deriva-tions in Two-Type Logic 
+[98]
+Overfull \hbox (6.99171pt too wide) in paragraph at lines 241--241
+[]\OT1/cmr/bx/n/17.28 The Core In-no-va-tion: Two-Type Logic and Modal
  []
 
-[62]) [63]
+[99] [100] [101]) [102]
 \openout2 = `chapters/10_conclusion.aux'.
 
  (./chapters/10_conclusion.tex
 Chapter 10.
-[64
+[103
 
 
 
 
-] [65] [66]
-Overfull \hbox (2.71765pt too wide) in paragraph at lines 104--105
-[][]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 M\OT1/cmr/m/n/12 )$ \OT1/cmr/m/it/12 be t
-he sub-cat-e-gory of dy-nam-i-cal sys-tems equifibered to $\OT1/cmr/m/n/12 (\OM
-L/cmm/m/it/12 M; \OT1/cmr/m/n/12 ^^H)$\OT1/cmr/m/it/12 . Let $[][]\OT1/cmr/m/n/
-12 (\OML/cmm/m/it/12 M; \OT1/cmr/m/n/12 
-[])$
+] [104]
+Overfull \hbox (2.32626pt too wide) in paragraph at lines 48--49
+[]\OT1/cmr/m/n/12 To fully uti-lize sheaf the-ory on the cat-e-gory $[]$, we mu
+st equip it with a Grothendieck
  []
 
-
-Overfull \hbox (2.08252pt too wide) in paragraph at lines 112--114
-[]\OT1/cmr/bx/n/12 Step 1: Con-struc-tion of $\OMS/cmsy/m/n/12 F$\OT1/cmr/bx/n/
-12 . \OT1/cmr/m/n/12 We con-struct a func-tor $\OMS/cmsy/m/n/12 F \OT1/cmr/m/n/
-12 : [][](\OML/cmm/m/it/12 M\OT1/cmr/m/n/12 ) \OMS/cmsy/m/n/12 ! [][]\OT1/cmr/m
-/n/12 (\OML/cmm/m/it/12 M; \OT1/cmr/m/n/12 
-[])$.
+[105] [106] [107] [108] [109]
+Overfull \hbox (24.94104pt too wide) in paragraph at lines 207--208
+[]\OT1/cmr/m/n/12 To com-pute the hy-per-co-ho-mol-ogy of the sheaf com-plex gl
+ob-ally, we uti-lize the Grothendieck
  []
 
-[67] [68]) [69] (./main.bbl) [70
+[110] [111]) [112]
+\openout2 = `chapters/11_autonomic_benchmark.aux'.
+
+ (./chapters/11_autonomic_benchmark.tex
+Chapter 11.
+
+Overfull \hbox (14.81584pt too wide) in paragraph at lines 7--7
+[]\OT1/cmr/bx/n/17.28 Recursive Work-flow: The Miss-ing Stand-ing Layer
+ []
+
+[113
+
+
+
+
+] [114]
+LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <12> not available
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 58.
+ [115] [116]
+Overfull \hbox (68.96748pt too wide) detected at line 106
+[][][][] \OMS/cmsy/m/n/12 ! [] ! [] ! [] ! \OT1/cmr/m/n/12 8[][] \OMS/cmsy/m/n/
+12 ! [] ! [] ! [] ! []
+ []
+
+) [117] [118] (./main.bbl) [119
 
 
 
@@ -1233,7 +1742,7 @@ Overfull \hbox (2.08252pt too wide) in paragraph at lines 112--114
 (./chapters/04_pullbacks_replay.aux) (./chapters/05_discrete_morse_theory.aux)
 (./chapters/06_computational_complexity.aux) (./chapters/07_fsm_cohomology.aux)
 (./chapters/08_error_correcting_codes.aux) (./chapters/09_two_type_logic.aux)
-(./chapters/10_conclusion.aux))
+(./chapters/10_conclusion.aux) (./chapters/11_autonomic_benchmark.aux))
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-02-20>
@@ -1243,50 +1752,55 @@ L3 programming layer <2024-02-20>
 LaTeX Warning: There were undefined references.
 
 
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+Package rerunfilecheck Warning: File `main.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
 
-Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: B9E9C8964344DFF7B667ED9F521A6883;26474.
+Package rerunfilecheck Info: Checksums for `main.out':
+(rerunfilecheck)             Before: 09551DC26B4B9C5ED32170D18912ECFA;31440
+(rerunfilecheck)             After:  2CC6A2E4B8675C31AC24392787FA011B;31483.
  ) 
 Here is how much of TeX's memory you used:
- 24089 strings out of 474116
- 460106 string characters out of 5743681
- 1950187 words of memory out of 5000000
- 45627 multiletter control sequences out of 15000+600000
- 578503 words of font info for 114 fonts, out of 8000000 for 9000
+ 24305 strings out of 474116
+ 463547 string characters out of 5743681
+ 1952187 words of memory out of 5000000
+ 45705 multiletter control sequences out of 15000+600000
+ 581061 words of font info for 125 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 116i,42n,121p,998b,1137s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 116i,42n,121p,1204b,1224s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb
 ></usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx6.pfb><
 /usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx8.pfb></u
-sr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb></u
-sr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></us
-r/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr
-/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/
-local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/lo
-cal/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/loca
-l/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/
-texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/te
-xlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texl
-ive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive
-/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/20
-24/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/202
-4/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2024
-/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texlive/2024/t
-exmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2024/tex
-mf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local/texlive/2024/texm
-f-dist/fonts/type1/public/amsfonts/cm/cmti7.pfb></usr/local/texlive/2024/texmf-
-dist/fonts/type1/public/amsfonts/cm/cmti8.pfb></usr/local/texlive/2024/texmf-di
-st/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive/2024/texmf-dis
-t/fonts/type1/public/amsfonts/euler/eufm10.pfb></usr/local/texlive/2024/texmf-d
-ist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2024/tex
-mf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2024
-/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb></usr/local/texlive/2024/t
-exmf-dist/fonts/type1/public/stmaryrd/stmary10.pfb>
-Output written on main.pdf (73 pages, 596662 bytes).
+sr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmbxti10.pfb></
+usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb></
+usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></u
+sr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmitt10.pfb></u
+sr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></us
+r/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr
+/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/l
+ocal/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/loc
+al/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local
+/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/t
+exlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/tex
+live/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texliv
+e/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2
+024/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/20
+24/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/202
+4/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texlive/2024/
+texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2024/te
+xmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local/texlive/2024/tex
+mf-dist/fonts/type1/public/amsfonts/cm/cmti7.pfb></usr/local/texlive/2024/texmf
+-dist/fonts/type1/public/amsfonts/cm/cmti8.pfb></usr/local/texlive/2024/texmf-d
+ist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive/2024/texmf-di
+st/fonts/type1/public/amsfonts/euler/eufm10.pfb></usr/local/texlive/2024/texmf-
+dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2024/te
+xmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/202
+4/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb></usr/local/texlive/2024/
+texmf-dist/fonts/type1/public/stmaryrd/stmary10.pfb>
+Output written on main.pdf (122 pages, 818801 bytes).
 PDF statistics:
- 1234 PDF objects out of 1440 (max. 8388607)
- 1094 compressed objects within 11 object streams
- 356 named destinations out of 1000 (max. 500000)
- 789 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1629 PDF objects out of 1728 (max. 8388607)
+ 1432 compressed objects within 15 object streams
+ 479 named destinations out of 1000 (max. 500000)
+ 917 words of extra memory for PDF output out of 10000 (max. 10000000)
 

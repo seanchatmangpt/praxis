@@ -1,0 +1,18 @@
+---
+to: "crates/cng/queries/metric-workflow-instances.rq"
+force: true
+determinism: true
+---
+# metric-workflow-instances.rq
+# Inputs: materialized OCEL graph (output of ocel-objects.construct.rq).
+# Outputs: single row: ?count = COUNT(DISTINCT WorkflowExecution objects).
+# Determinism: aggregate over a fixed graph.
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+
+SELECT (COUNT(DISTINCT ?obj) AS ?count)
+WHERE {
+  ?obj a ocel:Object ;
+       ocel:hasObjectType ?t .
+  ?t ocel:objectTypeName "WorkflowExecution" .
+}
+ORDER BY ?count

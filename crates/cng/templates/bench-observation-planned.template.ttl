@@ -1,0 +1,13 @@
+# rwai-bench observation template (planned): rendered with deterministic seeded
+# values by the benchmark harness. Logical ordering only ({{SEQ}} counter);
+# no wall-clock time. Vocabulary: crates/praxis-graphlaw/ontologies/core/bench-obs.ttl
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "planned" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:obsWorkflowId "{{WORKFLOW_ID}}" ;
+  obs:obsPlanId "{{PLAN_ID}}" ;
+  obs:obsTapeOps {{TAPE_OPS}} .

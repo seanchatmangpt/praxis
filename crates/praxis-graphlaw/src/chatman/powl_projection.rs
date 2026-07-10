@@ -50,6 +50,114 @@ pub fn project_pddl_tape_to_powl(tape: &Pddl8Tape) -> Result<Powl, Refusal> {
     Ok(Powl::PartialOrder { children, order })
 }
 
+/// Projects a bounded, sequential Chatman Engine PDDL plan tape into a
+/// *hierarchical* (2-level) POWL 2.0 model: tape ops are grouped into
+/// phases, a phase being a maximal run of tape-adjacent ops whose action
+/// schemas share the same contributing source artifact per
+/// `action_sources` (schema name → source artifact IRI). Each phase becomes
+/// a `Powl::PartialOrder` over `Leaf(Some(label))` children with the
+/// transitively closed intra-phase order; the root is a `PartialOrder` over
+/// the phase children with the transitively closed inter-phase order. A
+/// single-source tape still yields this uniform 2-level shape (one phase).
+///
+/// Sibling to [`project_pddl_tape_to_powl`], which stays flat. No new
+/// semantic authority is introduced: nesting is derived purely from the
+/// supplied provenance mapping.
+///
+/// Returns the model plus `phase_sources`: one source artifact IRI per
+/// top-level phase child, in phase order.
+///
+/// Deterministic: grouping is driven solely by tape order and `BTreeMap`
+/// lookups — no hash-map iteration, no wall clock, no randomness.
+///
+/// # Errors
+/// - [`Refusal::PlanInfeasible`] for an empty tape (same refusal as the
+///   flat projection).
+/// - [`Refusal::ValidationFailed`] if a tape op's action schema has no
+///   contributing source artifact in `action_sources` — the hierarchical
+///   model would be detached from its admitted inputs.
+///
+/// # Complexity
+/// O(n log n) to group n = tape.ops.len() ops into phases (one BTreeMap
+/// lookup per op), plus O(n^2) total across all levels to store the
+/// transitively closed order relations — the same asymptotic bound as the
+/// flat projection, split across the phase and root levels, and bounded by
+/// the 8-bit tape width (n <= 256) enforced upstream by [`Pddl8Tape`].
+pub fn project_pddl_tape_to_powl_hierarchical(
+    tape: &Pddl8Tape,
+    action_sources: &std::collections::BTreeMap<String, String>,
+) -> Result<(Powl, Vec<String>), Refusal> {
+    if tape.ops.is_empty() {
+        return Err(Refusal::PlanInfeasible(
+            "cannot project an empty PDDL plan tape to a POWL model".to_string(),
+        ));
+    }
+
+    // Group into maximal tape-adjacent runs sharing the same source
+    // artifact. O(n log n): one BTreeMap lookup per op, tape order only.
+    let mut phases: Vec<(String, Vec<usize>)> = Vec::new();
+    for (i, op) in tape.ops.iter().enumerate() {
+        let source = action_sources
+            .get(&op.action.schema_name)
+            .cloned()
+            .ok_or_else(|| {
+                Refusal::ValidationFailed(format!(
+                    "plan op {:?} has no contributing source artifact in action_sources; \
+                     hierarchical POWL output would be detached from its inputs",
+                    op.action.schema_name
+                ))
+            })?;
+        match phases.last_mut() {
+            Some((last_source, indices)) if *last_source == source => indices.push(i),
+            _ => phases.push((source, vec![i])),
+        }
+    }
+
+    let phase_sources: Vec<String> = phases.iter().map(|(source, _)| source.clone()).collect();
+
+    // Each phase: leaves in tape order with the transitively closed
+    // intra-phase total order (O(k^2) pairs per phase of k ops — see the
+    // flat projection's rationale: the closed relation is itself quadratic).
+    let phase_children: Vec<Powl> = phases
+        .into_iter()
+        .map(|(_, indices)| {
+            let leaves: Vec<Powl> = indices
+                .iter()
+                .map(|&i| Powl::Leaf(Some(tape.ops[i].label.clone())))
+                .collect();
+            let k = leaves.len();
+            let mut order = std::collections::BTreeSet::new();
+            for a in 0..k {
+                for b in (a + 1)..k {
+                    order.insert((a, b));
+                }
+            }
+            Powl::PartialOrder {
+                children: leaves,
+                order,
+            }
+        })
+        .collect();
+
+    // Root: phases in tape order with the transitively closed inter-phase
+    // total order (O(p^2) pairs for p phases).
+    let p = phase_children.len();
+    let mut root_order = std::collections::BTreeSet::new();
+    for a in 0..p {
+        for b in (a + 1)..p {
+            root_order.insert((a, b));
+        }
+    }
+
+    Ok((
+        Powl::PartialOrder {
+            children: phase_children,
+            order: root_order,
+        },
+        phase_sources,
+    ))
+}
+
 const POWL2_PREFIX: &str = "https://truex.io/ontology/powl2#";
 
 /// Escapes a string literal for safe embedding in a Turtle `"..."` literal.

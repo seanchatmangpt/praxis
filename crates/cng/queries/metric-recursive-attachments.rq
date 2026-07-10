@@ -1,0 +1,12 @@
+# metric-recursive-attachments.rq
+# Inputs: materialized OCEL graph (output of ocel-o2o-sockets.construct.rq).
+# Outputs: single row: ?count = COUNT(DISTINCT O2ORelationship with qualifier 'attachesWorkflow').
+# Determinism: aggregate over a fixed graph.
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+
+SELECT (COUNT(DISTINCT ?rel) AS ?count)
+WHERE {
+  ?rel a ocel:O2ORelationship ;
+       ocel:qualifier "attachesWorkflow" .
+}
+ORDER BY ?count

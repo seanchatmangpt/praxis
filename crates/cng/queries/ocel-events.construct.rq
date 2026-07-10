@@ -1,0 +1,37 @@
+# ocel-events.construct.rq
+# Inputs: obs graph (obs:obsKind in transition_fired|receipted|refused).
+# Outputs: ocel:Event + ocel:EventType triples.
+# eventId = obsSetId + '-' + obsSeq. activityName = obsActivityLabel,
+# or 'refused:<obsRefusalCode>' when the fact is a refusal without a label.
+# Determinism: all values derived from obs facts; ORDER BY for stable emit.
+# Timestamp encoding: logical, deterministic. xsd:dateTime = epoch
+# 2000-01-01T00:00:00Z + obs:obsSeq seconds (dayTimeDuration add).
+# No wall clock anywhere; obsSeq is a logical sequence counter.
+PREFIX obs:  <https://ggen.io/ontology/bench-obs#>
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ?ev a ocel:Event ;
+      ocel:eventId ?eid ;
+      ocel:activityName ?label ;
+      ocel:timestamp ?ts ;
+      ocel:hasEventType ?etype .
+  ?etype a ocel:EventType ;
+      ocel:eventTypeName ?kind .
+}
+WHERE {
+  ?o obs:obsKind ?kind ;
+     obs:obsSeq ?seq ;
+     obs:obsSetId ?setId .
+  FILTER(?kind IN ("transition_fired", "receipted", "refused"))
+  OPTIONAL { ?o obs:obsActivityLabel ?al }
+  OPTIONAL { ?o obs:obsRefusalCode ?rc }
+  BIND(COALESCE(?al, CONCAT("refused:", COALESCE(?rc, "unknown"))) AS ?label)
+  BIND(CONCAT(?setId, "-", STR(?seq)) AS ?eid)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event/", ENCODE_FOR_URI(?eid))) AS ?ev)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event-type/", ENCODE_FOR_URI(?kind))) AS ?etype)
+  BIND("2000-01-01T00:00:00Z"^^xsd:dateTime
+       + STRDT(CONCAT("PT", STR(?seq), "S"), xsd:dayTimeDuration) AS ?ts)
+}
+ORDER BY ?setId ?seq

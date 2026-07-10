@@ -228,6 +228,26 @@ pub fn merge_imported(artifacts: &[ImportedArtifact]) -> Result<AdmittedSurface,
     merge_fragments(domains, problems)
 }
 
+/// Increment-1 entry point for the hierarchical (8→8²) projection: thin
+/// wrapper over `powl::project_tape_to_powl_hierarchical`, feeding it the
+/// admitted surface's `action_sources` provenance map. Returns the nested
+/// two-level POWL model plus one source IRI per phase for
+/// `powl_to_turtle_with_phase_provenance`.
+///
+/// # Errors
+/// See `project_tape_to_powl_hierarchical` (`CNG_R04` empty tape, `CNG_R09`
+/// untracked action).
+///
+/// # Complexity
+/// O(n log a) grouping over n ops and a admitted actions, plus O(n²) for
+/// the closed order relations.
+pub fn hierarchical_projection(
+    tape: &Pddl8Tape,
+    surface: &AdmittedSurface,
+) -> Result<(crate::powl::Powl, Vec<String>), CngRefusal> {
+    crate::powl::project_tape_to_powl_hierarchical(tape, &surface.action_sources)
+}
+
 /// BLAKE3 plan identifier over the ordered plan-step labels.
 ///
 /// # Complexity

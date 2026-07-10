@@ -1,0 +1,13 @@
+# bench-roles.dl — Datalog role/obligation/custody/closure layer for the
+# rwai benchmark. Format: praxis-graphlaw legacy line rules `{body}=>{head}`
+# (crates/praxis-graphlaw/src/parser/mod.rs Parser::parse). Facts are fed by
+# the harness as `:wN :declaredRole :ROLE.` / `:wN :department :DEPT.` lines
+# built from roster_admitted observation facts. Deterministic; no wall clock.
+{?w :declaredRole ?r}=>{?w :derivedRole ?r}
+{?w :derivedRole ?r. ?w :department ?d}=>{?w :custodyOf ?d}
+{?w :derivedRole :reviewer}=>{?w :obligation :review-then-escalate-to-approver}
+{?w :derivedRole :approver}=>{?w :obligation :authorize-transition}
+{?w :derivedRole :operator}=>{?w :obligation :execute-standard-procedure}
+{?w :derivedRole :auditor}=>{?w :obligation :verify-evidence-chain}
+{?w :derivedRole :coordinator}=>{?w :obligation :route-and-schedule}
+{?w :obligation ?o. ?w :custodyOf ?d}=>{?w :closure :accounted}

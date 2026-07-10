@@ -1,0 +1,19 @@
+---
+to: "crates/cng/queries/metric-workers.rq"
+force: true
+determinism: true
+---
+# metric-workers.rq
+# Inputs: materialized OCEL graph (output of ocel-objects.construct.rq).
+# Outputs: single row: ?count = COUNT(DISTINCT Worker objects).
+# Determinism: aggregate over a fixed graph; single row needs no ORDER BY,
+# one is present for uniformity.
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+
+SELECT (COUNT(DISTINCT ?obj) AS ?count)
+WHERE {
+  ?obj a ocel:Object ;
+       ocel:hasObjectType ?t .
+  ?t ocel:objectTypeName "Worker" .
+}
+ORDER BY ?count

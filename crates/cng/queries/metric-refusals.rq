@@ -1,0 +1,16 @@
+# metric-refusals.rq
+# Inputs: materialized OCEL graph (output of ocel-events.construct.rq).
+# Outputs: single row: ?count = COUNT(DISTINCT events whose activityName starts with 'refused').
+# Aligned with ocel-events.construct.rq: refusal facts get activityName
+# 'refused:<obsRefusalCode>' when no obsActivityLabel is present; a
+# labelled refusal is still typed by eventTypeName 'refused', so the
+# UNION arm on eventTypeName catches it.
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+
+SELECT (COUNT(DISTINCT ?ev) AS ?count)
+WHERE {
+  { ?ev a ocel:Event ; ocel:activityName ?an . FILTER(STRSTARTS(?an, "refused")) }
+  UNION
+  { ?ev a ocel:Event ; ocel:hasEventType ?et . ?et ocel:eventTypeName "refused" . }
+}
+ORDER BY ?count

@@ -1,0 +1,19 @@
+---
+to: "crates/cng/queries/attachments-with-parent.rq"
+force: true
+determinism: true
+---
+# attachments-with-parent.rq
+# Inputs: obs graph (NOT the OCEL graph): socket_attached observation facts.
+# Outputs: rows (?parentActivity ?childWorkflow), ORDER BY ?childWorkflow.
+# Used at generation time over the observation store to preserve the
+# parent-activity binding before OCEL materialization.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+
+SELECT ?parentActivity ?childWorkflow
+WHERE {
+  ?o obs:obsKind "socket_attached" ;
+     obs:obsParentActivity ?parentActivity ;
+     obs:obsChildWorkflow ?childWorkflow .
+}
+ORDER BY ?childWorkflow

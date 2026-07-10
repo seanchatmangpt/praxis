@@ -16,7 +16,9 @@
 //! 4. every `powl2:ActivityLeaf` has exactly one non-empty
 //!    `powl2:activityLabel`;
 //! 5. every `powl2:precedes` triple connects two `powl2:ChildBinding`s;
-//! 6. leaf/binding counts agree.
+//! 6. binding count equals node count minus the root (every non-root
+//!    PartialOrder/leaf is reached through exactly one binding, at any
+//!    nesting depth).
 
 use oxigraph::sparql::{QueryResults, SparqlEvaluator};
 use oxigraph::store::Store;
@@ -90,6 +92,7 @@ pub fn validate_powl_store(
     let partial_orders = class_count("PartialOrder")?;
     let activity_leaves = class_count("ActivityLeaf")?;
     let child_bindings = class_count("ChildBinding")?;
+    let silent_leaves = class_count("SilentLeaf")?;
     let precedes = pred_count("precedes")?;
     let derived_from = pred_count("derivedFrom")?;
     if require_provenance && derived_from != 1 {
@@ -97,9 +100,18 @@ pub fn validate_powl_store(
             "shape violation: expected exactly 1 powl2:derivedFrom on the root, found {derived_from}"
         )));
     }
-    if activity_leaves != child_bindings {
+    // Node/binding accounting for arbitrary nesting depth: every non-root
+    // node (PartialOrder, ActivityLeaf, or SilentLeaf) is reached through
+    // exactly one ChildBinding, so bindings == total nodes - 1 (the root).
+    // For the flat linear shape this reduces to the old leaf == binding
+    // equality; for the hierarchical projection it also counts the phase
+    // PartialOrders. O(1) arithmetic over the class counts.
+    let total_nodes = partial_orders + activity_leaves + silent_leaves;
+    if total_nodes == 0 || child_bindings != total_nodes - 1 {
         return Err(CngRefusal::InvalidPowl(format!(
-            "shape violation: {activity_leaves} ActivityLeafs vs {child_bindings} ChildBindings"
+            "shape violation: {child_bindings} ChildBindings vs {total_nodes} POWL nodes \
+             ({partial_orders} PartialOrders, {activity_leaves} ActivityLeafs, \
+             {silent_leaves} SilentLeafs); bindings must equal nodes minus the root"
         )));
     }
 

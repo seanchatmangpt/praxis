@@ -539,53 +539,72 @@ fn benchmark_run(
     dir: String,
     threads: Option<usize>,
     replay_per_mille: Option<usize>,
+    queries_dir: Option<String>,
 ) -> Result<cng::bench::RunReport> {
     let threads = threads.unwrap_or_else(|| {
         std::thread::available_parallelism()
             .map(|n| n.get())
             .unwrap_or(8)
     });
-    let report = cng::bench::run(Path::new(&dir), threads, replay_per_mille.unwrap_or(20))
-        .map_err(to_cli_error)?;
-    println!("WORKERS_REPRESENTED={}", report.sparql.workers_represented);
-    println!("INPUT_TTL_ARTIFACTS={}", report.input_ttl_artifacts);
-    println!("INPUT_TRIPLES={}", report.roster_triples);
+    let queries_dir = queries_dir.map(PathBuf::from);
+    let report = cng::bench::run(
+        Path::new(&dir),
+        threads,
+        replay_per_mille.unwrap_or(20),
+        queries_dir.as_deref(),
+    )
+    .map_err(to_cli_error)?;
+    println!("MEASUREMENT_CLASS={}", report.measurement_class);
+    println!("WORKERS_REPRESENTED={}", report.workers_represented);
+    println!(
+        "INPUT_TTL_ARTIFACTS={}",
+        report.telemetry.input_ttl_artifacts
+    );
+    println!("INPUT_TRIPLES={}", report.telemetry.roster_triples);
     println!("RECURSION_DEPTH={}", report.recursion_depth);
-    println!("LOGICAL_WORKFLOW_NODES={}", report.logical_workflow_nodes);
-    println!("MATERIALIZED_POWL_NODES={}", report.materialized_powl_nodes);
+    println!(
+        "LOGICAL_WORKFLOW_NODES={}",
+        report.telemetry.logical_workflow_nodes
+    );
+    println!(
+        "MATERIALIZED_POWL_NODES={}",
+        report.telemetry.materialized_powl_nodes
+    );
     println!("EXECUTED_TRANSITIONS={}", report.executed_transitions);
     println!(
         "VALIDATION_RESULT=shape-valid:{}/{}",
-        report.validation_passes, report.materialized_powl_nodes
+        report.telemetry.validation_passes, report.telemetry.materialized_powl_nodes
     );
     println!(
         "CONFORMANCE_RESULT=conformant:{}/{}",
-        report.conformance_passes, report.materialized_powl_nodes
+        report.telemetry.conformance_passes, report.telemetry.materialized_powl_nodes
     );
-    println!("RECEIPTS_GENERATED={}", report.receipts_generated);
+    println!("RECEIPTS_GENERATED={}", report.receipts);
     println!(
         "REPLAY_RESULT={}/{}",
-        report.replay_passes, report.replay_checked
+        report.telemetry.replay_passes, report.telemetry.replay_checked
     );
     println!("POWL_DIGEST={}", report.evidence_chain_digest);
-    println!("OCEL_OBJECTS={}", report.sparql.ocel_objects);
-    println!("OCEL_EVENTS={}", report.sparql.ocel_events);
-    println!("WORKFLOW_INSTANCES={}", report.sparql.workflow_runs);
+    println!("WORKFLOW_INSTANCES={}", report.workflow_instances);
+    println!("RECURSIVE_ATTACHMENTS={}", report.recursive_attachments);
+    println!("CONFORMANT_TRANSITIONS={}", report.conformance);
+    println!("REFUSED_TRANSITIONS={}", report.refusals);
     println!(
-        "RECURSIVE_ATTACHMENTS={}",
-        report.sparql.recursive_attachments
+        "DATALOG_DERIVED_ROLES={}",
+        report.telemetry.datalog_derived_roles
     );
-    println!(
-        "CONFORMANT_TRANSITIONS={}",
-        report.sparql.conformant_transitions
-    );
-    println!("REFUSED_TRANSITIONS={}", report.sparql.refused_runs);
-    println!("MAX_RECURSION_DEPTH={}", report.sparql.max_recursion_depth);
-    println!("SPARQL_COUNTED_RUNS={}", report.sparql.workflow_runs);
     println!("OCEL_GRAPH_DIGEST={}", report.ocel_graph_digest);
     println!("SPARQL_RESULT_DIGEST={}", report.sparql_result_digest);
     println!(
         "BENCHMARK_RESULT_PATH={}/results/results.json",
+        report.bench_dir
+    );
+    println!(
+        "MODELED_LLM_COMPARISON_PATH={}/results/modeled-llm-comparison.json",
+        report.bench_dir
+    );
+    println!(
+        "DERIVED_SCALE_PATH={}/results/derived-scale.json",
         report.bench_dir
     );
     Ok(report)

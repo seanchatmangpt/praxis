@@ -3,109 +3,201 @@
 
 \section{Introduction and Abstract Mathematical Foundations}
 
-The theory of error-correcting codes is fundamentally intertwined with the geometry of vector spaces over finite fields and the combinatorial structures of sparse graphs. In this chapter, we establish a rigorous framework for analyzing bounded-distance and capacity-approaching codes. The classical paradigm—relying heavily on linear algebra and finite field arithmetic—has recently converged with graph theory, giving rise to Low-Density Parity-Check (LDPC) codes and their quantum analogs.
+The theory of error-correcting codes is fundamentally intertwined with the geometry of vector spaces over finite fields and the combinatorial structures of sparse graphs. In 1948, Claude Shannon laid the groundwork for information theory, proving that it is possible to transmit information reliably over a noisy channel provided the transmission rate is below the channel's capacity. However, Shannon's proof was largely non-constructive, utilizing probabilistic ensembles of random codes. Over the ensuing decades, the quest to find explicit, computable families of codes that approach this theoretical limit has driven monumental advances in discrete mathematics. In this chapter, we establish a rigorous framework for analyzing bounded-distance and capacity-approaching codes. The classical paradigm---relying heavily on linear algebra, polynomial evaluation, and finite field arithmetic---has recently converged with graph theory, giving rise to Low-Density Parity-Check (LDPC) codes, expander codes, and their profound quantum analogs.
 
-Let $\mathbb{F}_q$ denote the finite field of order $q$, where $q = p^m$ for some prime $p$ and integer $m \ge 1$. An $[n, k, d]_q$ linear block code $\mathcal{C}$ is a $k$-dimensional subspace of the vector space $\mathbb{F}_q^n$, equipped with the Hamming metric defined by the distance function $d_H(x, y) = |\{i : x_i \neq y_i \}|$. The minimum distance of the code is given by $d = \min_{x, y \in \mathcal{C}, x \neq y} d_H(x, y)$.
+Let $\mathbb{F}_q$ denote the finite field of order $q$, where $q = p^m$ for some prime $p$ and integer $m \ge 1$. The fundamental object of study is an $[n, k, d]_q$ linear block code.
+
+\begin{definition}[Linear Block Code]
+An $[n, k, d]_q$ linear block code $\mathcal{C}$ is a $k$-dimensional subspace of the $n$-dimensional vector space $\mathbb{F}_q^n$. The parameter $n$ is termed the block length, and $k$ is the message length (or dimension) of the code. The rate of the code is given by $R = k/n$, which represents the amount of information transmitted per channel use.
+\end{definition}
+
+The space $\mathbb{F}_q^n$ is equipped with the Hamming metric, which measures the structural difference between vectors. The Hamming distance function $d_H : \mathbb{F}_q^n \times \mathbb{F}_q^n \to \mathbb{Z}_{\ge 0}$ is defined as $d_H(x, y) = |\{i \in \{1, \dots, n\} : x_i \neq y_i \}|$. It is straightforward to verify that $d_H$ satisfies the axioms of a metric space (non-negativity, identity of indiscernibles, symmetry, and the triangle inequality).
+
+The minimum distance of the code is the minimum distance between any two distinct codewords:
+\[
+d = \min_{x, y \in \mathcal{C}, x \neq y} d_H(x, y).
+\]
+Because $\mathcal{C}$ is a linear subspace, it is closed under vector subtraction. Thus, the minimum distance is equivalent to the minimum Hamming weight (number of non-zero coordinates) of any non-zero codeword in $\mathcal{C}$:
+\[
+d = \min_{c \in \mathcal{C} \setminus \{0\}} wt(c).
+\]
+A code with minimum distance $d$ is capable of correcting up to $t = \lfloor (d-1)/2 \rfloor$ errors. If a transmitted codeword undergoes up to $t$ localized coordinate errors, the resulting vector remains strictly closer to the original codeword than to any other codeword in the space, guaranteeing successful Maximum Likelihood (ML) decoding.
 
 \begin{definition}[Weight Enumerator]
-Let $A_w$ denote the number of codewords $c \in \mathcal{C}$ of Hamming weight $w$. The weight enumerator polynomial of $\mathcal{C}$ is defined as
+Let $A_w$ denote the number of codewords $c \in \mathcal{C}$ of Hamming weight $w$. The sequence $(A_0, A_1, \dots, A_n)$ is called the weight spectrum of $\mathcal{C}$. The weight enumerator polynomial of $\mathcal{C}$ is a homogeneous polynomial in two variables defined as:
 \[
 W_{\mathcal{C}}(x, y) = \sum_{w=0}^n A_w x^{n-w} y^w.
 \]
 \end{definition}
 
+The weight enumerator captures deep structural information about the code, including its error detection and correction probabilities over symmetric channels. One of the most celebrated results in classical coding theory relates the weight spectrum of a code to that of its dual.
+
+\begin{definition}[Dual Code]
+Let $\mathcal{C}$ be an $[n, k]_q$ code. The dual code $\mathcal{C}^\perp$ is the orthogonal complement of $\mathcal{C}$ with respect to the standard inner product on $\mathbb{F}_q^n$, defined as:
+\[
+\mathcal{C}^\perp = \{v \in \mathbb{F}_q^n \mid \langle u, v \rangle = \sum_{i=1}^n u_i v_i = 0 \text{ for all } u \in \mathcal{C}\}.
+\]
+By standard linear algebra, $\dim(\mathcal{C}^\perp) = n - k$. Thus, $\mathcal{C}^\perp$ is an $[n, n-k]_q$ linear code.
+\end{definition}
+
 \begin{theorem}[MacWilliams Identity]
-Let $\mathcal{C}^\perp = \{v \in \mathbb{F}_q^n : \langle u, v \rangle = 0 \text{ for all } u \in \mathcal{C}\}$ be the dual code of an $[n, k]_q$ code $\mathcal{C}$ under the standard inner product. Then the weight enumerator of the dual code is related to that of the primal code by the linear transformation
+\label{thm:macwilliams}
+The weight enumerator of the dual code $\mathcal{C}^\perp$ is completely determined by the weight enumerator of the primal code $\mathcal{C}$ via the linear transformation:
 \[
 W_{\mathcal{C}^\perp}(x, y) = \frac{1}{|\mathcal{C}|} W_{\mathcal{C}}(x + (q-1)y, x - y).
 \]
 \end{theorem}
 
 \begin{proof}
-Let $\chi : \mathbb{F}_q \to \mathbb{C}^\times$ be a non-trivial additive character of $\mathbb{F}_q$. For a vector $u \in \mathbb{F}_q^n$, define the discrete Fourier transform of a function $f : \mathbb{F}_q^n \to \mathbb{C}$ as $\widehat{f}(u) = \sum_{v \in \mathbb{F}_q^n} f(v) \chi(u \cdot v)$. By the Poisson summation formula for the finite abelian group $(\mathbb{F}_q^n, +)$, we obtain
+The proof rests upon the harmonic analysis of finite abelian groups, specifically the application of the discrete Poisson summation formula. Let $\chi : \mathbb{F}_q \to \mathbb{C}^\times$ be a non-trivial additive character of $\mathbb{F}_q$. For $q=p$, one simply chooses $\chi(a) = \exp(2\pi i a / p)$. For general finite fields, one uses the absolute trace map $\operatorname{Tr}: \mathbb{F}_q \to \mathbb{F}_p$, setting $\chi(a) = \exp(2\pi i \operatorname{Tr}(a) / p)$.
+
+For a function $f : \mathbb{F}_q^n \to \mathbb{C}$, its discrete Fourier transform $\widehat{f} : \mathbb{F}_q^n \to \mathbb{C}$ is defined as:
+\[
+\widehat{f}(u) = \sum_{v \in \mathbb{F}_q^n} f(v) \chi(u \cdot v).
+\]
+Because $\mathcal{C}$ is a linear subspace, it forms an additive subgroup of $\mathbb{F}_q^n$. By the Poisson summation formula for the finite abelian group $(\mathbb{F}_q^n, +)$ over the subgroup $\mathcal{C}$ and its annihilator $\mathcal{C}^\perp$, we obtain the fundamental relation:
 \[
 \sum_{v \in \mathcal{C}^\perp} f(v) = \frac{1}{|\mathcal{C}|} \sum_{u \in \mathcal{C}} \widehat{f}(u).
 \]
-Let us choose the function $f(v) = x^{n-wt(v)} y^{wt(v)}$. To compute its Fourier transform $\widehat{f}(u)$, we utilize the multiplicative separability over the $n$ coordinates:
+To link this to the weight enumerator, we judiciously select the function $f(v) = x^{n-wt(v)} y^{wt(v)}$. Because the Hamming weight functional is separable across coordinates, i.e., $wt(v) = \sum_{i=1}^n wt(v_i)$, the function $f$ factors as a product:
 \[
-\widehat{f}(u) = \prod_{i=1}^n \left( \sum_{v_i \in \mathbb{F}_q} f_0(v_i) \chi(u_i v_i) \right),
+f(v) = \prod_{i=1}^n f_0(v_i),
 \]
-where $f_0(0) = x$ and $f_0(a) = y$ for $a \neq 0$. If $u_i = 0$, the sum evaluates to $x + (q-1)y$. If $u_i \neq 0$, the sum evaluates to $x + y \sum_{a \in \mathbb{F}_q^*} \chi(u_i a) = x - y$, relying on the character sum identity $\sum_{a \in \mathbb{F}_q} \chi(a) = 0$. Therefore,
+where $f_0(0) = x$ and $f_0(a) = y$ for any $a \in \mathbb{F}_q^*$. We can compute the Fourier transform $\widehat{f}(u)$ coordinate-wise due to this multiplicative separability:
+\[
+\widehat{f}(u) = \prod_{i=1}^n \left( \sum_{v_i \in \mathbb{F}_q} f_0(v_i) \chi(u_i v_i) \right).
+\]
+We evaluate the inner sum depending on the value of $u_i \in \mathbb{F}_q$:
+\begin{itemize}
+    \item \textbf{Case 1 ($u_i = 0$):} Since $\chi(0) = 1$, the sum is simply $\sum_{v_i \in \mathbb{F}_q} f_0(v_i) = f_0(0) + \sum_{v_i \neq 0} f_0(v_i) = x + (q-1)y$.
+    \item \textbf{Case 2 ($u_i \neq 0$):} Here, we leverage the fundamental orthogonality property of non-trivial characters: $\sum_{a \in \mathbb{F}_q} \chi(a) = 0$. This implies $\sum_{a \in \mathbb{F}_q^*} \chi(a) = -1$. As $u_i \neq 0$, the map $v_i \mapsto u_i v_i$ is a permutation of $\mathbb{F}_q$. Thus:
+    \[
+    \sum_{v_i \in \mathbb{F}_q} f_0(v_i) \chi(u_i v_i) = f_0(0)\chi(0) + y \sum_{v_i \neq 0} \chi(u_i v_i) = x + y(-1) = x - y.
+    \]
+\end{itemize}
+Gathering the components, we find that for a vector $u$ with weight $wt(u)$, there are $n-wt(u)$ coordinates where $u_i=0$ and $wt(u)$ coordinates where $u_i \neq 0$. Therefore:
 \[
 \widehat{f}(u) = (x + (q-1)y)^{n-wt(u)} (x - y)^{wt(u)}.
 \]
-Substituting this expression back into the Poisson summation yields the theorem.
+Substituting $f(v)$ and $\widehat{f}(u)$ back into the Poisson summation yields:
+\[
+\sum_{v \in \mathcal{C}^\perp} x^{n-wt(v)} y^{wt(v)} = \frac{1}{|\mathcal{C}|} \sum_{u \in \mathcal{C}} (x + (q-1)y)^{n-wt(u)} (x - y)^{wt(u)}.
+\]
+The left side is precisely $W_{\mathcal{C}^\perp}(x, y)$. The right side is derived by evaluating $W_{\mathcal{C}}$ at the specified transformed arguments. This establishes the MacWilliams identity.
 \end{proof}
 
 \section{Generalized Reed-Solomon and Algebraic Geometry Codes}
 
-Before extending to graph topologies, it is imperative to establish the limits of algebraic constructions.
+Before extending our analysis to the probabilistic and combinatorial domains of graph topologies, it is imperative to establish the theoretical limits of algebraic code constructions. The most prominent example of an algebraic code is the Reed-Solomon code, which relies on polynomial evaluations.
 
 \begin{definition}[Generalized Reed-Solomon Codes]
-Let $\alpha_1, \dots, \alpha_n \in \mathbb{F}_q$ be distinct non-zero elements, and let $v_1, \dots, v_n \in \mathbb{F}_q^*$ be non-zero scaling factors. For $k \le n$, the Generalized Reed-Solomon (GRS) code is defined as
+Let $\alpha_1, \dots, \alpha_n \in \mathbb{F}_q$ be a set of $n$ distinct field elements (called evaluation points). Let $v_1, \dots, v_n \in \mathbb{F}_q^*$ be non-zero scaling factors (often called column multipliers). For a chosen dimension $k \le n$, the Generalized Reed-Solomon (GRS) code is the linear subspace defined as:
 \[
-GRS_k(\alpha, v) = \{(v_1 P(\alpha_1), \dots, v_n P(\alpha_n)) \mid P(x) \in \mathbb{F}_q[x], \deg(P) < k \}.
+GRS_k(\alpha, v) = \{(v_1 P(\alpha_1), v_2 P(\alpha_2), \dots, v_n P(\alpha_n)) \mid P(x) \in \mathbb{F}_q[x], \deg(P) < k \}.
 \]
 \end{definition}
 
-GRS codes achieve the Singleton bound $d = n - k + 1$ with equality, classifying them as Maximum Distance Separable (MDS). However, the length of a GRS code is bounded by $n \le q$. Algebraic geometry codes bypass this limitation by replacing the rational function field $\mathbb{F}_q(x)$ with the function field of a curve of higher genus.
+The power of GRS codes lies in the fundamental theorem of algebra: a non-zero polynomial $P(x)$ over a field $\mathbb{F}_q$ of degree strictly less than $k$ can have at most $k-1$ distinct roots. Consequently, the evaluation vector $(P(\alpha_1), \dots, P(\alpha_n))$ can possess at most $k-1$ coordinates equal to zero. This implies that the Hamming weight of any non-zero codeword is at least $n - (k - 1) = n - k + 1$. 
+
+By the Singleton bound, the minimum distance of any $[n, k]_q$ code is bounded by $d \le n - k + 1$. Codes achieving this upper bound are termed Maximum Distance Separable (MDS). GRS codes achieve $d = n - k + 1$ with equality, placing them in this optimal class.
+
+However, GRS codes suffer from a severe limitation regarding block length. Because the evaluation points $\alpha_i$ must be distinct elements of $\mathbb{F}_q$, the block length $n$ is strictly bounded by the field size: $n \le q$. To construct longer codes without exponentially increasing the field size $q$, mathematicians turned to algebraic geometry, replacing the one-dimensional affine line (and its rational function field $\mathbb{F}_q(x)$) with algebraic curves of higher genus.
 
 \begin{definition}[Algebraic Geometry Codes]
-Let $\mathcal{X}$ be a smooth projective algebraic curve over $\mathbb{F}_q$. Let $D = P_1 + \dots + P_n$ be a divisor consisting of $n$ distinct rational points, and let $G$ be another divisor with support disjoint from $D$. The algebraic geometry code $C_L(D, G)$ is the image of the evaluation map
+Let $\mathcal{X}$ be a absolutely irreducible, smooth, projective algebraic curve defined over $\mathbb{F}_q$. Let $D = P_1 + P_2 + \dots + P_n$ be a divisor consisting of a formal sum of $n$ distinct $\mathbb{F}_q$-rational points on $\mathcal{X}$. Let $G$ be another divisor on $\mathcal{X}$ with support disjoint from $D$ (meaning $P_i \notin \operatorname{supp}(G)$ for all $i$). The algebraic geometry (AG) code, or Goppa code, $C_L(D, G)$ is defined as the image of the linear evaluation map:
 \[
-\operatorname{ev}_D : \mathcal{L}(G) \to \mathbb{F}_q^n, \quad f \mapsto (f(P_1), \dots, f(P_n)),
+\operatorname{ev}_D : \mathcal{L}(G) \to \mathbb{F}_q^n, \quad f \mapsto (f(P_1), f(P_2), \dots, f(P_n)),
 \]
-where $\mathcal{L}(G) = \{f \in \mathbb{F}_q(\mathcal{X})^* : \operatorname{div}(f) + G \ge 0\} \cup \{0\}$ is the Riemann-Roch space associated with $G$.
+where $\mathcal{L}(G)$ is the Riemann-Roch space associated with the divisor $G$, defined by:
+\[
+\mathcal{L}(G) = \{f \in \mathbb{F}_q(\mathcal{X})^* \mid \operatorname{div}(f) + G \ge 0\} \cup \{0\}.
+\]
 \end{definition}
 
+The space $\mathcal{L}(G)$ consists of rational functions on the curve $\mathcal{X}$ whose poles are constrained by the positive coefficients of $G$, and whose zeros are forced by the negative coefficients of $G$. The profound structure of AG codes emerges from the interaction between the degree of the divisor and the genus $g$ of the curve, as dictated by the Riemann-Roch theorem.
+
 \begin{theorem}[Parameters of Algebraic Geometry Codes]
-Suppose $2g - 2 < \deg(G) < n$, where $g$ is the genus of $\mathcal{X}$. Then $C_L(D, G)$ is an $[n, k, d]_q$ code with parameters satisfying
+\label{thm:ag_codes}
+Suppose $2g - 2 < \deg(G) < n$, where $g$ is the genus of the algebraic curve $\mathcal{X}$. Then $C_L(D, G)$ is an $[n, k, d]_q$ linear code with parameters satisfying:
 \[
 k = \deg(G) - g + 1 \quad \text{and} \quad d \ge n - \deg(G).
 \]
 \end{theorem}
 
 \begin{proof}
-By the Riemann-Roch theorem, $\dim \mathcal{L}(G) - \dim \mathcal{L}(K_{\mathcal{X}} - G) = \deg(G) - g + 1$. Because $\deg(G) > 2g - 2 = \deg(K_{\mathcal{X}})$, the divisor $K_{\mathcal{X}} - G$ has strictly negative degree, rendering $\mathcal{L}(K_{\mathcal{X}} - G)$ trivial. Thus, $k = \deg(G) - g + 1$.
-The kernel of the evaluation map comprises functions $f \in \mathcal{L}(G)$ such that $f(P_i) = 0$ for all $1 \le i \le n$. Such functions reside in $\mathcal{L}(G - D)$. Since $\deg(G - D) = \deg(G) - n < 0$, the kernel is trivial, guaranteeing injectivity. 
-For any non-zero $f \in \mathcal{L}(G)$, $f$ can possess at most $\deg(G)$ zeros on $\mathcal{X}$. Therefore, the resulting codeword vector has at most $\deg(G)$ components equal to zero, establishing the minimum Hamming weight $d \ge n - \deg(G)$.
+To determine the dimension $k$, we apply the Riemann-Roch theorem to the divisor $G$:
+\[
+\dim \mathcal{L}(G) - \dim \mathcal{L}(K_{\mathcal{X}} - G) = \deg(G) - g + 1,
+\]
+where $K_{\mathcal{X}}$ is the canonical divisor of the curve, known to have degree $\deg(K_{\mathcal{X}}) = 2g - 2$. Because we assumed $\deg(G) > 2g - 2$, the divisor $K_{\mathcal{X}} - G$ has strictly negative degree. A fundamental property of Riemann-Roch spaces dictates that any divisor with negative degree has an empty set of conforming functions, rendering $\mathcal{L}(K_{\mathcal{X}} - G)$ trivial (dimension zero). Thus, the dimension of the message space is exactly $\dim \mathcal{L}(G) = \deg(G) - g + 1$.
+
+We must ensure the evaluation map $\operatorname{ev}_D$ is injective. The kernel of this map comprises functions $f \in \mathcal{L}(G)$ such that $f(P_i) = 0$ for all $1 \le i \le n$. Such functions must lie in the restricted space $\mathcal{L}(G - D)$. However, the degree of this new divisor is $\deg(G - D) = \deg(G) - n$. By our assumption, $\deg(G) < n$, meaning $\deg(G - D) < 0$. Therefore, $\mathcal{L}(G - D)$ is trivial, the kernel is strictly $\{0\}$, and the evaluation map is injective. This confirms $k = \deg(G) - g + 1$.
+
+To establish the minimum distance, consider any non-zero codeword $c \in C_L(D, G)$, generated by some non-zero function $f \in \mathcal{L}(G)$. A standard result from algebraic geometry asserts that the number of zeros of a rational function $f$ on $\mathcal{X}$ cannot exceed the number of its poles (counted with multiplicity). By definition of $\mathcal{L}(G)$, the poles of $f$ are constrained by the divisor $G$, meaning $f$ possesses at most $\deg(G)$ poles. Consequently, $f$ can have at most $\deg(G)$ zeros across the entire curve $\mathcal{X}$. Therefore, within the specific evaluation set $\{P_1, \dots, P_n\}$, the resulting codeword vector has at most $\deg(G)$ components equal to zero. The minimum Hamming weight is thus bounded below by the number of non-zero coordinates:
+\[
+d = wt(c) \ge n - \deg(G).
+\]
 \end{proof}
+
+The true brilliance of AG codes is realized by families of curves with many rational points relative to their genus (e.g., modular curves, Hermitian curves). The Tsfasman-Vladut-Zink (TVZ) bound proved that for $q \ge 49$ being a square, sequences of AG codes can asymptotically strictly exceed the classical Gilbert-Varshamov bound, marking a seminal milestone in algebraic coding theory.
 
 \section{Low-Density Parity-Check (LDPC) Codes and Tanner Graphs}
 
-The breakthrough in approaching the Shannon capacity emerged through randomized sparse graph architectures. 
+While algebraic constructions exhibit excellent minimum distance properties, their decoding algorithms (such as the Berlekamp-Massey algorithm for GRS codes) often scale non-linearly and struggle to approach Shannon capacity computationally. The breakthrough in approaching capacity emerged not from deep algebra, but from randomized sparse graph architectures. Originally proposed by Robert Gallager in 1960 and rediscovered in the late 1990s, Low-Density Parity-Check (LDPC) codes now dominate modern communication standards (e.g., 5G NR, Wi-Fi 802.11n/ac).
 
 \begin{definition}[Tanner Graph]
-Let $H \in \mathbb{F}_2^{m \times n}$ be the parity-check matrix of a binary linear code $\mathcal{C}$. The Tanner graph $\mathcal{G} = (V \cup C, E)$ is a bipartite graph comprising variable nodes $V = \{v_1, \dots, v_n\}$ and check nodes $C = \{c_1, \dots, c_m\}$. An undirected edge $(v_j, c_i) \in E$ is formed if and only if $H_{i,j} = 1$.
+An LDPC code is defined by a sparse parity-check matrix $H \in \mathbb{F}_2^{m \times n}$. The code is best represented by its Tanner graph, a bipartite graph $\mathcal{G} = (V \cup C, E)$.
+The set $V = \{v_1, \dots, v_n\}$ represents the variable nodes (corresponding to the $n$ columns of $H$, or the bits of the codeword). The set $C = \{c_1, \dots, c_m\}$ represents the check nodes (corresponding to the $m$ rows of $H$, or the parity-check constraints). An undirected edge $(v_j, c_i) \in E$ is formed if and only if the matrix entry $H_{i,j} = 1$.
 \end{definition}
 
+A regular $(d_v, d_c)$-LDPC code possesses a Tanner graph where every variable node has exactly degree $d_v$ and every check node has exactly degree $d_c$. For capacity-approaching performance, irregular LDPC codes are required, characterized by non-uniform degree distributions.
+
 \begin{definition}[Irregular Degree Ensembles]
-Let $\lambda_i$ and $\rho_j$ denote the fraction of edges connected to variable nodes of degree $i$ and check nodes of degree $j$, respectively. The edge-perspective degree distribution polynomials are
+The structure of an irregular LDPC ensemble is parameterized from an edge-perspective. Let $\lambda_i$ denote the fraction of total edges connected to variable nodes of degree $i$, and let $\rho_j$ denote the fraction of edges connected to check nodes of degree $j$. The edge-perspective degree distribution polynomials are formally defined as:
 \[
 \lambda(x) = \sum_{i=2}^{d_{v,\text{max}}} \lambda_i x^{i-1}, \quad \rho(x) = \sum_{j=2}^{d_{c,\text{max}}} \rho_j x^{j-1}.
 \]
+The exponent is conventionally shifted by $-1$ because, during iterative message passing, an outgoing message along an edge is computed using incoming information from the \textit{other} edges incident to the node.
 \end{definition}
+
+Despite being defined via sparse matrices, typical LDPC codes exhibit excellent distance properties scaling linearly with block length.
 
 \begin{lemma}[Gallager's Lower Bound on Minimum Distance]
 \label{lem:gallager_bound}
-For any regular parameter $d_v \ge 3$, there exists a constant $c > 0$ such that, with high probability, a random $(d_v, d_c)$-regular LDPC code of length $n$ exhibits a minimum distance scaling linearly with the block length, i.e., $d \ge c n$.
+For any regular parameter $d_v \ge 3$, there exists a constant $c > 0$ such that, with high probability, a randomly constructed $(d_v, d_c)$-regular LDPC code of length $n$ exhibits a minimum distance bounded away from zero asymptotically. Specifically, $d \ge c n$ almost surely as $n \to \infty$.
 \end{lemma}
 
 \begin{proof}
-Let $A_w$ denote the expected number of codewords of weight $w$. Following Gallager's classical analysis, the ensemble is generated via random permutations of the bipartite edges. The probability that a uniformly chosen permutation fulfills the parity-check constraints for a weight-$w$ assignment is evaluated by expanding the moment generating function of the check equations.
-For an isolated check node of degree $d_c$, the probability of an even parity assignment (a valid local codeword) is $\frac{1 + (1-2p)^{d_c}}{2}$. When extrapolated over the entire graph through combinatorics, one obtains
+Let us evaluate the expected number of codewords of a given Hamming weight $w$, denoted $\mathbb{E}[A_w]$, over the ensemble of regular LDPC codes. Following Gallager's classical analysis, the ensemble is generated via random bipartite matchings. We possess $n \cdot d_v$ "sockets" on the variable node side, and $m \cdot d_c$ "sockets" on the check node side (note $n d_v = m d_c$). We uniformly randomly permute the edges connecting these two sets.
+
+Consider a fixed assignment of weight $w$ to the variable nodes. This assignment activates exactly $w d_v$ edges. For this assignment to be a valid codeword, the parity check constraints must be satisfied; equivalently, every check node must connect to an even number of active edges. We evaluate the probability that a uniformly chosen permutation fulfills this condition.
+
+For an isolated check node of degree $d_c$, suppose we assign active edges independently with probability $p$. The probability of an even parity assignment (a valid local codeword constraint) can be derived via binomial expansions as:
+\[
+P_{even} = \sum_{k \text{ even}} \binom{d_c}{k} p^k (1-p)^{d_c-k} = \frac{1 + (1-2p)^{d_c}}{2}.
+\]
+To adapt this local probabilistic view to the global exact combinatorics over the graph, we expand the moment generating function of the check equations. Over the entire graph of $m = nd_v/d_c$ check nodes, the expectation takes the exact form:
 \[
 \mathbb{E}[A_w] = \binom{n}{w} \frac{\text{coeff}\left( \left(\frac{(1+x)^{d_c} + (1-x)^{d_c}}{2}\right)^{nd_v/d_c}, x^{w d_v} \right)}{\binom{nd_v}{w d_v}}.
 \]
-Employing Stirling's approximation to study the asymptotic behavior $n \to \infty$ for $w = \alpha n$ with $\alpha \in (0, c)$, one deduces that the exponential growth rate of $\mathbb{E}[A_w]$ remains strictly negative provided $d_v \ge 3$ and $c$ is sufficiently small. Consequently, the expectation vanishes exponentially, and by Markov's inequality, the probability of containing any codeword of relative weight smaller than $c$ approaches zero.
+To analyze the asymptotic behavior as $n \to \infty$, we parameterize the fractional weight as $w = \alpha n$ for some relative density $\alpha \in (0, 1)$. We employ Stirling's approximation ($n! \approx \sqrt{2\pi n} (n/e)^n$) and tools from large deviation theory to approximate the exponential growth rate:
+\[
+\lim_{n \to \infty} \frac{1}{n} \ln \mathbb{E}[A_{\alpha n}] = f(\alpha, d_v, d_c).
+\]
+Through careful analytic bounding of the coefficient extraction using saddle-point approximations, it is rigorously demonstrable that for any $d_v \ge 3$, the function $f(\alpha, d_v, d_c)$ is strictly negative for all $\alpha \in (0, c]$, where $c > 0$ is a determinable constant dependent on the degrees. (Notably, for $d_v = 2$, the expectation does not vanish exponentially, leading to logarithmically growing distances).
+
+Because the exponential growth rate is strictly negative, the expected number of low-weight codewords $\sum_{w=1}^{cn} \mathbb{E}[A_w]$ vanishes exponentially as $n \to \infty$. By Markov's inequality, the probability of the graph containing \textit{any} valid codeword of relative weight smaller than $c$ approaches zero. Hence, $d \ge c n$ with high probability.
 \end{proof}
 
 \section{Density Evolution and Probabilistic Decoding Analysis}
 
-The exceptional performance of LDPC codes is realized not under Maximum Likelihood (ML) decoding, but under iterative Message-Passing (Belief Propagation) algorithms. Density Evolution formally characterizes the performance of BP over infinite trees.
+The exceptional, capacity-approaching performance of LDPC codes is realized not under intractable Maximum Likelihood (ML) decoding, but under highly parallel, iterative Message-Passing algorithms, primarily Belief Propagation (BP). In BP, variable nodes and check nodes exchange probabilistic "beliefs" iteratively along the edges of the Tanner graph. 
+
+To analyze the asymptotic convergence of these algorithms over infinite graphs, Thomas Richardson and Rüdiger Urbanke introduced the framework of Density Evolution. Under the assumption that the graph is locally tree-like, the messages arriving at any node are statistically independent, allowing precise tracking of the probability density functions of the messages. We illustrate this framework over the simplest non-trivial channel.
 
 \begin{theorem}[Density Evolution for the Binary Erasure Channel]
-Consider transmission over a Binary Erasure Channel (BEC) with erasure probability $\epsilon$. Let $x^{(\ell)}$ be the probability that a message traversing from a variable node to a check node at iteration $\ell$ constitutes an erasure. Under the independent tree assumption, $x^{(\ell)}$ recursively satisfies:
+\label{thm:density_evolution}
+Consider transmission over a Binary Erasure Channel (BEC) with erasure probability $\epsilon$. Let $x^{(\ell)}$ be the probability that a message traversing from an arbitrary variable node to a check node at iteration $\ell$ constitutes an erasure. Under the independent tree assumption, the evolution of $x^{(\ell)}$ rigorously follows the deterministic recursion:
 \[
 x^{(\ell+1)} = \epsilon \lambda\left( 1 - \rho(1 - x^{(\ell)}) \right),
 \]
@@ -113,106 +205,154 @@ with initialization $x^{(0)} = \epsilon$.
 \end{theorem}
 
 \begin{proof}
-Assume the neighborhood topology surrounding an arbitrary variable node extending to depth $2\ell$ forms a tree structure. Under this assumption, all messages flowing into a node are probabilistically independent. 
-A check node transmits an erasure to a connected variable node if and only if it receives at least one erasure from its other $d_c - 1$ incident edges. The probability of an edge carrying a non-erased message is $1 - x^{(\ell)}$. Hence, the check-to-variable erasure probability evaluates to $1 - \rho(1 - x^{(\ell)})$.
-Conversely, a variable node transmits an erasure back to a check node if and only if the intrinsic channel observation was erased (occurring with probability $\epsilon$) AND all its other incident check nodes transmitted erasures. Due to independence, multiplying these probabilities yields the recursive step $x^{(\ell+1)} = \epsilon \lambda(1 - \rho(1 - x^{(\ell)}))$.
+Because the channel only erases bits without flipping them, a message is either entirely known (correct) or completely erased. We assume the local neighborhood topology surrounding an arbitrary variable node extending to depth $2\ell$ contains no cycles, forming a perfect tree structure. This fundamental assumption ensures that all messages flowing up from the leaves toward the root node are strictly probabilistically independent.
+
+We track the traversal in two phases: check-to-variable, and variable-to-check.
+First, analyze a check node of degree $j$. It computes a parity sum constraint and transmits a message to a connected target variable node. Because it operates over $\mathbb{F}_2$, the check node can deduce the value of the target edge if and only if \textit{all} incoming messages from its other $j - 1$ incident edges are known (not erased). If even a single incoming message is erased, the parity sum cannot be resolved, and the check node must transmit an erasure.
+The probability that an incoming edge carries a known (non-erased) message is $1 - x^{(\ell)}$. Due to independence, the probability that all $j-1$ edges are known is $(1 - x^{(\ell)})^{j-1}$. Averaging over the edge-perspective degree distribution $\rho(x)$, the probability that an average check-to-variable message is known is:
+\[
+\sum_j \rho_j (1 - x^{(\ell)})^{j-1} = \rho(1 - x^{(\ell)}).
+\]
+Consequently, the probability that the check node transmits an erasure is $1 - \rho(1 - x^{(\ell)})$.
+
+Second, analyze a variable node of degree $i$. It receives extrinsic messages from $i-1$ check nodes and intrinsic information directly from the channel. A variable node transmits an erasure back to a target check node if and only if its intrinsic channel observation was erased (occurring with fixed probability $\epsilon$) AND all incoming extrinsic messages from the $i-1$ check nodes were also erasures. Due to the tree independence assumption, we can multiply these probabilities. Using the check-to-variable erasure probability derived above, the outgoing probability for a degree-$i$ node is:
+\[
+\epsilon \left[ 1 - \rho(1 - x^{(\ell)}) \right]^{i-1}.
+\]
+Averaging over the variable node edge-perspective degree distribution $\lambda(x)$, we recover the unified recursive step for the next iteration:
+\[
+x^{(\ell+1)} = \sum_i \lambda_i \epsilon \left[ 1 - \rho(1 - x^{(\ell)}) \right]^{i-1} = \epsilon \lambda\left( 1 - \rho(1 - x^{(\ell)}) \right).
+\]
+The initial message $x^{(0)}$ depends solely on the channel, so $x^{(0)} = \epsilon$. This completes the proof.
 \end{proof}
 
 \begin{definition}[Belief Propagation Threshold]
-The BP threshold $\epsilon^*$ associated with a degree sequence $(\lambda, \rho)$ is defined as the supremum of channel parameters permitting convergence to zero error:
+The BP threshold $\epsilon^*$ associated with an irregular degree sequence pair $(\lambda, \rho)$ over the BEC is defined as the supremum of channel erasure parameters permitting the decoder's error probability to converge to zero in the limit of infinite iterations:
 \[
 \epsilon^* = \sup \left\{ \epsilon \in [0, 1] \mid \lim_{\ell \to \infty} x^{(\ell)} = 0 \right\}.
 \]
 \end{definition}
 
-By rigorously optimizing the polynomial coefficient sequences $\lambda_i, \rho_j$, sequences of codes can be identified where $\epsilon^* \to 1 - R$, theoretically resolving Shannon's capacity limit under computationally efficient decoding constraints.
+Algebraically, this threshold represents the largest $\epsilon$ such that the function $f(x, \epsilon) = \epsilon \lambda(1 - \rho(1-x))$ satisfies $f(x, \epsilon) < x$ for all $x \in (0, \epsilon]$. By rigorously optimizing the polynomial coefficient sequences $\lambda_i, \rho_j$ using linear programming and numerical methods, code sequences can be constructed where $\epsilon^* \to 1 - R$. This provides a constructive, computationally efficient proof of Shannon's capacity theorem.
 
 \section{Expander Codes and Linear-Time Decoding Bounds}
 
-While LDPC codes thrive under probabilistic assumptions, Expander Codes leverage hard combinatorial properties—specifically spectral expansion—to strictly guarantee error correction in $O(n)$ time.
+While LDPC codes thrive under probabilistic assumptions and infinite-block-length limits, practical deployments require strict deterministic guarantees on minimum distance and decoding failure rates. Expander Codes abandon purely random graphs, instead leveraging deep combinatorial and spectral properties---specifically spectral expansion---to rigorously guarantee bounded-distance error correction in strict $O(n)$ deterministic time.
 
 \begin{definition}[Ramanujan Graph Expansion]
-A $d$-regular graph $\mathcal{G} = (V, E)$ exhibits Ramanujan expansion if the second largest absolute eigenvalue of its adjacency matrix, denoted $\lambda$, satisfies $\lambda \le 2\sqrt{d-1}$. This spectral bound tightly controls the pseudorandom mixing properties of the graph.
+Let $\mathcal{G} = (V, E)$ be a $d$-regular undirected graph. Let $A$ be its adjacency matrix. Because $\mathcal{G}$ is $d$-regular, its largest eigenvalue is exactly $\lambda_1 = d$. The graph exhibits spectral expansion if there is a significant gap between $d$ and the second largest eigenvalue in absolute value, denoted $\lambda = \max_{i \ge 2} |\lambda_i|$. A graph is termed a Ramanujan graph if it achieves the theoretical optimum for this gap: $\lambda \le 2\sqrt{d-1}$. This spectral bound tightly controls the pseudorandom mixing properties of the graph, ensuring edges are uniformly distributed without bottleneck cuts.
 \end{definition}
 
 \begin{theorem}[Alon-Boppana Bound]
-For any family of $d$-regular graphs with the number of vertices $|V| \to \infty$, the asymptotic spectral gap is constrained by $\liminf \lambda \ge 2\sqrt{d-1}$.
+The Ramanujan bound represents an absolute geometric limit. For any family of $d$-regular graphs where the number of vertices $|V| \to \infty$, the asymptotic spectral gap is strictly constrained by $\liminf_{|V| \to \infty} \lambda \ge 2\sqrt{d-1}$.
 \end{theorem}
 
 \begin{theorem}[Sipser-Spielman Decoding Bounds]
 \label{thm:sipser_spielman}
-Let $\mathcal{G}$ be a $d$-regular bipartite expander graph serving as a generalized Tanner graph. Suppose an inner code $\mathcal{C}_0$ of length $d$ and relative minimum distance $\delta$ is enforced at every vertex. If the spectral eigenvalue bound satisfies $\frac{\lambda}{d} < \frac{\delta}{2}$, then the resulting expander code architecture can deterministically correct any fractional error weight up to $\alpha = \frac{\delta}{2} \left( \delta - \frac{\lambda}{d} \right)$ strictly in linear time.
+Let $\mathcal{G}$ be a $d$-regular bipartite expander graph serving as a generalized Tanner graph. Suppose an inner code $\mathcal{C}_0$ of length $d$ and relative minimum distance $\delta$ is enforced at every vertex. If the spectral eigenvalue bound satisfies $\frac{\lambda}{d} < \frac{\delta}{2}$, then the resulting expander code architecture can deterministically correct any fractional error weight up to $\alpha = \frac{\delta}{2} \left( \delta - \frac{\lambda}{d} \right)$ strictly in linear time $O(n)$.
 \end{theorem}
 
 \begin{proof}
-Consider a transmitted codeword corrupted over an error set $E$, with relative error weight $|E|/n \le \alpha$. We analyze the parallel bit-flipping algorithm, which iteratively toggles bits that locally reduce the total number of unsatisfied check constraints.
-Let $S$ denote the set of variable nodes currently causing a decoding stalemate (i.e., failing to progress). By the Expander Mixing Lemma, the number of internal edges among any set $S$ within the graph is bounded above by $\frac{d}{n}|S|^2 + \lambda |S|$.
-Because $\mathcal{C}_0$ possesses minimum relative distance $\delta$, any isolated non-zero codeword in $\mathcal{C}_0$ must disrupt at least $\delta d$ constraints. Rapid expansion forces $S$ to project heavily into the parity check domain, rendering it impossible for $S$ to contain a dense, localized cluster of errors without significantly increasing the number of unsatisfied checks.
-By setting up a constraint inequality balancing the Expander Mixing upper bound against the structural distance lower bound, it is proven that no non-empty set $S$ can remain stagnant if bounded below $\alpha$. Consequently, every parallel iteration monotonically and strictly reduces the number of failed checks. As the total constraints are finite and proportional to $n$, the algorithm terminates in $O(n)$ deterministic steps.
+Consider a transmitted codeword corrupted over a set of error coordinates $E$, where the relative error weight is bounded: $|E|/n \le \alpha$. We analyze the deterministic parallel bit-flipping algorithm, which iteratively toggles bits that locally reduce the total number of unsatisfied check constraints.
+
+Let $S$ denote the set of variable nodes currently causing a decoding stalemate (i.e., failing to progress, producing incorrect or conflicting messages). To prove the algorithm succeeds, we must prove $S$ must be empty.
+By the Expander Mixing Lemma, the number of internal edges $E(S, S)$ among any arbitrary subset of vertices $S$ within the graph is rigorously bounded above by:
+\[
+|E(S, S)| \le \frac{d}{n}|S|^2 + \lambda |S|.
+\]
+Because the inner code $\mathcal{C}_0$ possesses a relative minimum distance $\delta$, any localized non-zero error pattern in $\mathcal{C}_0$ must disrupt at least $\delta d$ constraints. Rapid expansion forces the set $S$ to project heavily into the parity check domain, ensuring edges disperse outward rather than remaining concentrated. This dispersal renders it topologically impossible for $S$ to contain a dense, localized cluster of errors without significantly inflating the number of globally unsatisfied check nodes.
+
+By setting up a constraint inequality balancing the Expander Mixing upper bound (which limits how tightly clustered the errors can be) against the structural distance lower bound (which mandates a minimum number of disruptions per error node), we arrive at a contradiction if we assume a non-empty set $S$ remains stagnant while bounded below size $\alpha$. Specifically, if $\alpha = \frac{\delta}{2} (\delta - \frac{\lambda}{d})$, any set of errors smaller than this threshold will always present a subset of nodes whose flipping strictly reduces the total number of unsatisfied checks.
+
+Consequently, every parallel iteration of the decoder monotonically and strictly reduces the number of failed checks. Because the total number of constraints is finite and proportional to $n$, the algorithm must terminate, resolving all errors in $O(n)$ deterministic operations.
 \end{proof}
 
 \section{Asymptotic Bounds on Arbitrary Code Ensembles}
 
-Evaluating the efficiency of new code architectures necessitates comparison against fundamental mathematical bounds across the rate vs. minimum-distance $(R, \delta)$ domain as block length $n \to \infty$. Let $R = k/n$ and relative distance $\delta = d/n$.
+Evaluating the fundamental efficiency of both algebraic and graph-based architectures necessitates comparison against rigid mathematical bounds across the two-dimensional design space: code rate $R = k/n$ versus relative minimum distance $\delta = d/n$, specifically evaluated in the asymptotic limit as block length $n \to \infty$.
 
 \begin{definition}[Entropy Function]
-For the interval $0 \le x \le 1$ over a $q$-ary alphabet, the normalized entropy function evaluates to
+For a fractional parameter $0 \le x \le \frac{q-1}{q}$ over a $q$-ary alphabet, the normalized $q$-ary entropy function quantifies the combinatorics of high-dimensional spheres, evaluated as:
 \[
 H_q(x) = x \log_q(q-1) - x \log_q x - (1-x) \log_q(1-x).
 \]
 \end{definition}
 
 \begin{theorem}[Gilbert-Varshamov Lower Bound]
-There exists a sequence of linear codes whose asymptotic parameters satisfy
+\label{thm:gv_bound}
+The Gilbert-Varshamov (GV) bound establishes the existence of "good" codes. There exists an infinite sequence of linear codes whose asymptotic parameters satisfy:
 \[
 R \ge 1 - H_q(\delta).
 \]
 \end{theorem}
 
 \begin{proof}
-We execute a probabilistic greedy algorithm to construct the $(n-k) \times n$ parity-check matrix $H$ with entries in $\mathbb{F}_q$. The requirement for a minimum distance of $d$ is mathematically equivalent to demanding that any sequence of $d-1$ columns of $H$ constitutes a linearly independent set.
-Assume we have successfully selected $j-1$ columns fulfilling this criterion. The total number of linear combinations generated by selecting $d-2$ elements from this pool is $\sum_{i=0}^{d-2} \binom{j-1}{i} (q-1)^i$.
-A valid $j$-th column can be dynamically appended so long as the vector space is not entirely exhausted by the span of these combinations. The maximum volume of the space is $q^{n-k} - 1$.
-The construction succeeds if $\sum_{i=0}^{d-2} \binom{n-1}{i} (q-1)^i < q^{n-k}$. Employing Stirling's approximation to reformulate the combinatorial sum in the logarithmic domain as $n \to \infty$, we recover the limit $1 - R \ge H_q(\delta)$, thus verifying the claim.
+The proof relies on a probabilistic greedy construction. We aim to construct the $(n-k) \times n$ parity-check matrix $H$ with entries drawn from $\mathbb{F}_q$. The requirement for a linear code to maintain a minimum distance of $d$ is mathematically equivalent to demanding that any sequence of $d-1$ columns drawn from $H$ constitutes a linearly independent set. If any $d-1$ columns were linearly dependent, there would exist a non-zero vector of weight $\le d-1$ in the null space of $H$, violating the distance constraint.
+
+Assume we have iteratively and successfully selected $j-1$ columns fulfilling this criterion. The total number of linear combinations generated by selecting up to $d-2$ elements from this existing pool is equivalent to the volume of a Hamming sphere of radius $d-2$ in $j-1$ dimensions:
+\[
+V_{j-1}(d-2) = \sum_{i=0}^{d-2} \binom{j-1}{i} (q-1)^i.
+\]
+A valid $j$-th column can be dynamically appended to $H$ so long as the overall ambient vector space of dimension $n-k$ is not completely exhausted by the span of these combinations. The maximum number of non-zero vectors in the space is $q^{n-k} - 1$.
+The construction succeeds up to column $n$ if the volume requirement holds even at the final step:
+\[
+\sum_{i=0}^{d-2} \binom{n-1}{i} (q-1)^i < q^{n-k}.
+\]
+Employing Stirling's approximation to reformulate the combinatorial sum into the logarithmic domain as $n \to \infty$, the volume of the Hamming sphere is asymptotically bounded by $q^{n H_q(d/n)}$. Taking the base-$q$ logarithm of the strict inequality yields $n H_q(\delta) < n - k$, which rearranges directly to the GV limit limit $1 - R \ge H_q(\delta)$, thus verifying the claim.
 \end{proof}
 
 \begin{theorem}[Plotkin Asymptotic Upper Bound]
-For any generic code family over $\mathbb{F}_q$, if $\delta \ge \frac{q-1}{q}$, the rate $R$ must asymptotically vanish to $0$. In general, the number of codewords is strictly bounded by $M \le \frac{qd}{qd - (q-1)n}$.
+For any generic code family over $\mathbb{F}_q$, if the relative distance is excessively large, $\delta \ge \frac{q-1}{q}$, the rate $R$ must asymptotically vanish to $0$. In general, the absolute number of codewords $M$ is strictly bounded by $M \le \frac{qd}{qd - (q-1)n}$.
 \end{theorem}
 
 \begin{proof}
-Let an $M \times n$ matrix encapsulate all valid codewords. We assess the sum of pairwise Hamming distances.
-A direct combinatorial summation over all $\binom{M}{2}$ pairs, bounded below by the minimum distance $d$, yields a lower bound of $d M(M-1)$.
-Conversely, analyzing column-by-column: within any column $j$, assume symbol $i \in \mathbb{F}_q$ occurs $n_{i,j}$ times. This column contributes $\sum_{i < k} n_{i,j} n_{k,j}$ to the total distance sum. Subject to the summation constraint $\sum_i n_{i,j} = M$, application of the Cauchy-Schwarz inequality reveals the maximum is attained under a uniform distribution $n_{i,j} = M/q$. The maximized contribution per column is thus $\frac{1}{2} M^2 \left(1 - \frac{1}{q}\right)$.
-Summing across all $n$ columns forms the upper bound $n \frac{1}{2} M^2 \frac{q-1}{q}$.
-Bridging these bounds generates the inequality $d M(M-1) \le n M^2 \frac{q-1}{q}$, which algebraically solves to the Plotkin limitation.
+Let an $M \times n$ matrix encapsulate all $M$ valid codewords of a code $\mathcal{C}$ as row vectors. We assess the aggregate sum of pairwise Hamming distances between all possible rows.
+A direct combinatorial summation over all $\binom{M}{2}$ pairs, bounded below by the minimum distance $d$, yields a global lower bound of:
+\[
+\sum_{u \neq v} d_H(u, v) \ge d \cdot \binom{M}{2} \cdot 2 = d M(M-1).
+\]
+Conversely, we analyze the distance sum column-by-column. Within any arbitrary column $j$, assume symbol $i \in \mathbb{F}_q$ occurs exactly $n_{i,j}$ times. The number of mismatched pairs generated exclusively within this column is $\sum_{i \neq k} n_{i,j} n_{k,j}$. Subject to the rigid summation constraint $\sum_{i=0}^{q-1} n_{i,j} = M$, application of the Cauchy-Schwarz inequality reveals the quadratic form is maximized under a perfectly uniform distribution $n_{i,j} = M/q$. The maximized mismatch contribution per column is thus:
+\[
+\sum_{i \neq k} (M/q)^2 = q(q-1)(M/q)^2 = M^2 \frac{q-1}{q}.
+\]
+Summing this maximum contribution across all $n$ columns forms an absolute upper bound on the distance sum: $n M^2 \frac{q-1}{q}$.
+Bridging these macroscopic and microscopic bounds generates the central inequality:
+\[
+d M(M-1) \le n M^2 \frac{q-1}{q}.
+\]
+Dividing by $M$ and rearranging algebraically solves exactly to the Plotkin limitation. For asymptotic rates, if $\delta \ge (q-1)/q$, $M$ cannot scale exponentially, forcing $R = (\log_q M)/n \to 0$.
 \end{proof}
 
 \begin{theorem}[Elias-Bassalygo Sphere-Packing Bound]
-The asymptotic rate $R$ of any family of sequences over $\mathbb{F}_q$ is rigorously bounded by
+By analyzing the geometric intersection of Hamming spheres and the Plotkin limits, the asymptotic rate $R$ of any family of sequences over $\mathbb{F}_q$ is rigorously bounded by:
 \[
 R \le 1 - H_q\left( \frac{q-1}{q} \left(1 - \sqrt{1 - \frac{q}{q-1} \delta} \right) \right).
 \]
 \end{theorem}
 
-This theorem acts as a critical constraint, bounding the existence of capacity-approaching codes with extreme local distances.
+This theorem acts as a critical constraint, heavily bounding the existence of capacity-approaching codes when extreme local distances are enforced, bridging the gap between classical sphere-packing constraints and Plotkin limits.
 
 \section{Quantum Error-Correcting Graph Codes (Q-LDPC)}
 
-Modern coding theory extends these geometric properties to quantum Hilbert spaces, utilizing topological graphs to stabilize quantum entanglement matrices.
+Modern coding theory has aggressively extended these classical geometric and combinatorial properties into complex quantum Hilbert spaces. Because quantum states suffer from continuous drift and no-cloning constraints, quantum error correction utilizes topological graphs to stabilize quantum entanglement matrices without collapsing superpositions.
 
 \begin{definition}[Calderbank-Shor-Steane (CSS) Operators]
-Let $\mathcal{Q}$ form a quantum stabilizer subspace. CSS codes isolate the error domains by invoking two interrelated classical codes, $C_1$ and $C_2$, with the containment constraint $C_2 \subseteq C_1$. Their respective parity checks, $H_X$ and $H_Z$, stabilize independent Pauli string disruptions, mandated strictly by the symplectic orthogonality requirement $H_X H_Z^T = 0$.
+Let $\mathcal{Q}$ form a quantum stabilizer subspace defined over $n$ qubits. The CSS framework isolates the quantum error domains (bit-flips and phase-flips) by invoking two interrelated classical binary linear codes, $C_1$ and $C_2$, subject to the strict structural containment constraint $C_2 \subseteq C_1$. 
+Their respective parity check matrices, $H_X$ and $H_Z$, stabilize independent Pauli string disruptions. The containment constraint mandates a strict symplectic orthogonality requirement between the checks:
+\[
+H_X H_Z^T = 0 \pmod 2.
+\]
+This orthogonality is a fundamental physics requirement ensuring that the $X$-stabilizers and $Z$-stabilizers commute, allowing simultaneous measurement of error syndromes without disturbing the encoded logical quantum state.
 \end{definition}
 
-Quantum LDPC theory struggles uniquely with balancing the strict requirements of sparse graph edges (finite vertex degrees) alongside the topological necessity of $H_X H_Z^T = 0$.
+Quantum LDPC theory struggles uniquely with balancing the strict decoding requirements of sparse graph edges (finite vertex degrees, necessary for low-weight physical parity checks) alongside the topological necessity of $H_X H_Z^T = 0$. For decades, the only known solutions were topologically mapped to two-dimensional planar manifolds (e.g., Kitaev's Toric code, Surface codes). However, these planar codes suffer from the Bekenstein bound analog, restricting their parameter scaling such that $k d^2 \le O(n)$, implying that any code with constant rate $R > 0$ must have abysmal minimum distance bounded by $O(\sqrt{n})$.
 
 \begin{theorem}[Bravyi-Hastings-Zémor Product Complexes]
-There exist sophisticated structural families of Q-LDPC codes constructed from the homological hypergraph products of classical Sipser-Spielman expanders, achieving strictly non-zero asymptotic rate $R > 0$ with an unprecedented minimum topological distance scaling uniformly as $\Theta(n)$.
+Shattering this historical barrier, recent monumental breakthroughs established sophisticated structural families of Q-LDPC codes constructed from the homological hypergraph products of classical Sipser-Spielman expanders. These expander-based constructions achieve strictly non-zero asymptotic rate $R > 0$ while simultaneously maintaining an unprecedented minimum topological distance scaling uniformly as $\Theta(n)$.
 \end{theorem}
 
-This recent framework permanently shatters previous square-root bounds bounded by the Bekenstein bound analog for planar geometries, bridging representation theory, algebraic topology, and modern classical code theory into a unified fault-tolerant quantum operating layer.
+This framework permanently bypasses the square-root planar bounds by projecting the Tanner graphs into high-dimensional expander manifolds. It elegantly bridges classical representation theory, homological algebraic topology, and modern bounded-degree expander graphs into a unified, mathematically sublime fault-tolerant quantum operating layer.
 
 \section{Conclusion and Further Applications}
 
-Through rigorous probabilistic proofs, eigenvalue gap expansions, and finite field constructions, this chapter has mapped out the boundary limitations and breakthrough constructions defining modern coding theory. The pivot from dense linear algebra representations to sparse graph approximations underpins both linear-time terrestrial decoding and the scaling constraints of future topological quantum architectures. The results codified herein define the absolute perimeter of what algebraic structure and topological spacing can functionally preserve against entropic decay.
+Through rigorous probabilistic proofs, deep eigenvalue gap spectral expansions, and classical finite field constructions, this chapter has comprehensively mapped out the boundary limitations and breakthrough constructions defining modern coding theory. The paradigm shift from dense linear algebraic representations (like Reed-Solomon and algebraic geometry codes) to probabilistically bounded sparse graph approximations (LDPC and Expander codes) underpins both classical linear-time terrestrial decoding in modern 5G networks and the stringent scaling constraints of future topological quantum computing architectures. The mathematical results codified herein define the absolute perimeter of what algebraic structure, spectral graphs, and topological spacing can functionally preserve against entropic decay and environmental noise.

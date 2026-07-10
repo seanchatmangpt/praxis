@@ -13,6 +13,16 @@
 //! Determinism: the scheduler is branchless integer arithmetic over fixed
 //! bitmasks; no wall clock, no randomness, no I/O. Same inputs produce the
 //! same `RunnerReport` bytes.
+//!
+//! Hierarchical models (increment 1): the two-level PartialOrder-of-
+//! PartialOrders shape is real in the serialized POWL artifact — phases and
+//! their provenance survive in the Turtle. Execution against the published
+//! bcinr-powl 26.6.25 runtime, however, goes through *lawful flattening*
+//! ([`linearize_hierarchical`]), not native nested `PowlAstNode`
+//! composition: the phase structure is depth-first linearized into the
+//! exact label sequence and transitively closed edge set the equivalent
+//! flat projection would produce, and that flat form is what
+//! `compile_powl`/`scheduler_tick` admit and run.
 
 use crate::powl::{CngRefusal, Powl};
 use bcinr_pddl::Pddl8Tape;
@@ -140,9 +150,28 @@ pub fn validate_run(tape: &Pddl8Tape, model: &Powl) -> Result<RunnerReport, CngR
             "empty PDDL plan tape: nothing to execute on the bcinr-powl runtime".to_string(),
         ));
     }
-
     let (labels, edges) = model_to_labels_and_edges(model)?;
+    run_labels_and_edges(tape, labels, edges)
+}
 
+/// Shared post-extraction runner path for both the flat and the
+/// hierarchical entry points: bind labels to the source tape, cap at the
+/// 64-slot PowlTape, lower to bcinr-powl's AST, compile (admission), drive
+/// the scheduler to completion, and compute the conformance verdict.
+///
+/// # Errors
+/// `CNG_R07 RunnerMismatch` when the labels/tape disagree, compile refuses,
+/// or execution does not conform; `CNG_R05 UnsupportedConstruct` past the
+/// 64-slot tape cap.
+///
+/// # Complexity
+/// O(n²) in activity count n: the closed order relation has O(n²) pairs and
+/// the bounded scheduler loop is O(n) ticks of O(n) work each.
+fn run_labels_and_edges(
+    tape: &Pddl8Tape,
+    labels: Vec<&str>,
+    edges: Vec<(usize, usize)>,
+) -> Result<RunnerReport, CngRefusal> {
     // Bind the model to its source tape: same op count, same labels in order.
     if labels.len() != tape.ops.len() {
         return Err(CngRefusal::RunnerMismatch(format!(
@@ -268,4 +297,163 @@ pub fn validate_run(tape: &Pddl8Tape, model: &Powl) -> Result<RunnerReport, CngR
              the source Pddl8Tape"
         ),
     })
+}
+
+/// Lawfully flattens a two-level hierarchical POWL model (a root
+/// `PartialOrder` whose every child is a phase `PartialOrder`, as produced
+/// by `project_tape_to_powl_hierarchical`) into the flat label sequence and
+/// transitively closed edge set the equivalent flat projection would
+/// produce: phases are walked depth-first in root child-index order, leaves
+/// within each phase in index order; edges are the intra-phase pairs plus
+/// all cross-phase pairs — exactly what `model_to_labels_and_edges` yields
+/// for the equivalent flat model.
+///
+/// Both order relations must be the full transitive closure of their total
+/// order (all `(i, j)` with `i < j`); anything else would make flattening a
+/// semantic choice rather than a lawful projection, so it is refused.
+///
+/// # Errors
+/// `CNG_R05 UnsupportedConstruct` when the root is not a PartialOrder, a
+/// top-level child is not a phase PartialOrder (naming the offending
+/// shape), a phase contains a nested composite or a Silent/unlabelled leaf,
+/// an order relation is not the full closure of its total order, or the
+/// flattened leaf count exceeds bcinr-powl 26.6.25's 64-slot PowlTape.
+///
+/// # Complexity
+/// O(n²) in flattened leaf count n (the emitted edge set is the full
+/// closure, C(n, 2) pairs), plus O(p²) root-order verification over p
+/// phases.
+pub fn linearize_hierarchical(
+    model: &Powl,
+) -> Result<(Vec<&str>, Vec<(usize, usize)>), CngRefusal> {
+    let Powl::PartialOrder {
+        children: phases,
+        order: root_order,
+    } = model
+    else {
+        return Err(CngRefusal::UnsupportedConstruct(
+            "hierarchical linearization requires a root PartialOrder of phase \
+             PartialOrders; found a bare Leaf model"
+                .to_string(),
+        ));
+    };
+
+    // Root order must be the transitive closure of the phase total order:
+    // exactly the C(p, 2) pairs (i, j) with i < j. O(p²).
+    let p = phases.len();
+    let full_root = p * p.saturating_sub(1) / 2;
+    if root_order.len() != full_root
+        || !(0..p).all(|i| ((i + 1)..p).all(|j| root_order.contains(&(i, j))))
+    {
+        return Err(CngRefusal::UnsupportedConstruct(format!(
+            "hierarchical linearization requires the root order to be the full \
+             transitive closure of the phase total order ({full_root} pairs over \
+             {p} phases); found {} pairs",
+            root_order.len()
+        )));
+    }
+
+    let mut labels: Vec<&str> = Vec::new();
+    let mut phase_ranges: Vec<(usize, usize)> = Vec::with_capacity(p);
+    let mut edges: Vec<(usize, usize)> = Vec::new();
+    for (phase_idx, phase) in phases.iter().enumerate() {
+        let Powl::PartialOrder {
+            children: leaves,
+            order: phase_order,
+        } = phase
+        else {
+            return Err(CngRefusal::UnsupportedConstruct(format!(
+                "hierarchical linearization requires every top-level child to be a \
+                 phase PartialOrder; child {phase_idx} is a Leaf"
+            )));
+        };
+        let start = labels.len();
+        for (leaf_idx, leaf) in leaves.iter().enumerate() {
+            match leaf {
+                Powl::Leaf(Some(label)) => labels.push(label.as_str()),
+                Powl::Leaf(None) => {
+                    return Err(CngRefusal::UnsupportedConstruct(format!(
+                        "hierarchical linearization requires named activity leaves; \
+                         phase {phase_idx} leaf {leaf_idx} is a silent leaf"
+                    )));
+                }
+                Powl::PartialOrder { .. } => {
+                    return Err(CngRefusal::UnsupportedConstruct(format!(
+                        "hierarchical linearization covers the two-level shape only; \
+                         phase {phase_idx} child {leaf_idx} is a nested PartialOrder"
+                    )));
+                }
+            }
+        }
+        // Phase order must be the full closure of the leaf total order.
+        let n = leaves.len();
+        let full_phase = n * n.saturating_sub(1) / 2;
+        if phase_order.len() != full_phase
+            || !(0..n).all(|i| ((i + 1)..n).all(|j| phase_order.contains(&(i, j))))
+        {
+            return Err(CngRefusal::UnsupportedConstruct(format!(
+                "hierarchical linearization requires phase {phase_idx}'s order to be \
+                 the full transitive closure of its leaf total order ({full_phase} \
+                 pairs over {n} leaves); found {} pairs",
+                phase_order.len()
+            )));
+        }
+        // Intra-phase pairs at flat offsets. O(n²) per phase.
+        for i in 0..n {
+            for j in (i + 1)..n {
+                edges.push((start + i, start + j));
+            }
+        }
+        phase_ranges.push((start, n));
+    }
+
+    // bcinr-powl 26.6.25's PowlTape is a fixed 64-slot bitmask tape.
+    if labels.len() > 64 {
+        return Err(CngRefusal::UnsupportedConstruct(format!(
+            "bcinr-powl 26.6.25 PowlTape holds at most 64 ops; hierarchical POWL v2 \
+             model flattens to {} activities",
+            labels.len()
+        )));
+    }
+
+    // Cross-phase pairs: every op of an earlier phase precedes every op of
+    // every later phase (the closure of the concatenated total order). O(n²).
+    for a in 0..phase_ranges.len() {
+        let (a_start, a_len) = phase_ranges[a];
+        for &(b_start, b_len) in &phase_ranges[(a + 1)..] {
+            for i in a_start..(a_start + a_len) {
+                for j in b_start..(b_start + b_len) {
+                    edges.push((i, j));
+                }
+            }
+        }
+    }
+    edges.sort_unstable();
+
+    Ok((labels, edges))
+}
+
+/// Runs a hierarchical POWL model on the bcinr-powl runtime by lawful
+/// flattening: [`linearize_hierarchical`] produces the flat labels/edges,
+/// then the exact same compile/schedule/conformance path as
+/// [`validate_run`] executes them (shared via `run_labels_and_edges`).
+///
+/// # Errors
+/// `CNG_R04 PlanUnsolvable` for an empty tape; the refusals of
+/// [`linearize_hierarchical`] and the shared runner path otherwise.
+///
+/// # Complexity
+/// O(n²) in flattened activity count n (linearization plus the bounded
+/// scheduler loop).
+pub fn validate_run_hierarchical(
+    tape: &Pddl8Tape,
+    model: &Powl,
+) -> Result<RunnerReport, CngRefusal> {
+    if tape.ops.is_empty() {
+        return Err(CngRefusal::PlanUnsolvable(
+            "empty PDDL plan tape: nothing to execute on the bcinr-powl runtime".to_string(),
+        ));
+    }
+    let (labels, edges) = linearize_hierarchical(model)?;
+    run_labels_and_edges(tape, labels, edges)
 }

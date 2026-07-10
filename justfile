@@ -184,7 +184,12 @@ cng-bench-build:
     timeout 900s cargo build --release -p cng --features bench
 
 cng-bench *args:
-    timeout 3600s cargo run -q --release -p cng --features bench -- {{args}}
+    timeout 3600s cargo run -q --release -p cng --features bench --bin cng -- {{args}}
+
+# Replay/verify leg of the benchmark campaign: re-manufactures against
+# digests.json and re-validates exported POWL (see bench.rs verify()).
+cng-bench-verify dir:
+    timeout 3600s cargo run -q --release -p cng --features bench --bin cng -- benchmark verify --dir {{dir}}
 
 # Run the cng test suite
 cng-test:

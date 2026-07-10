@@ -1,0 +1,4 @@
+[pack]
+name = "ocel-bench-pack"
+version = "26.7.9"
+description = "OCEL 2.0 projection queries and metric queries for the Recursive Workflow benchmark, generated from the bench-obs observation vocabulary (ontology.ttl is a committed union of crates/praxis-graphlaw/ontologies/core/ocel2.ttl and bench-obs.ttl because ggen sync loads exactly one pack ontology file via insert_turtle and does not follow owl:imports; regenerate with packs/ocel-bench-pack/make-ontology.sh)"

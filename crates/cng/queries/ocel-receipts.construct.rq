@@ -1,0 +1,32 @@
+# ocel-receipts.construct.rq
+# Inputs: obs graph (receipted facts carrying obs:obsDigest).
+# Outputs: ocel:hasAttribute Attribute{attributeKey 'receipt.digest', attributeValue <digest>} on the event, plus Attribute{'conformant','true'}.
+# A receipted fact is the engine's proof of conformant execution, so the
+# 'conformant'='true' attribute is emitted alongside the digest attribute
+# (this is the representation metric-conformance.rq counts).
+# Determinism: attribute node IRIs are pure functions of the event id.
+PREFIX obs:  <https://ggen.io/ontology/bench-obs#>
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ?ev ocel:hasAttribute ?attr .
+  ?attr a ocel:Attribute ;
+        ocel:attributeKey "receipt.digest" ;
+        ocel:attributeValue ?digest .
+  ?ev ocel:hasAttribute ?cattr .
+  ?cattr a ocel:Attribute ;
+        ocel:attributeKey "conformant" ;
+        ocel:attributeValue "true" .
+}
+WHERE {
+  ?o obs:obsKind "receipted" ;
+     obs:obsSeq ?seq ;
+     obs:obsSetId ?setId ;
+     obs:obsDigest ?digest .
+  BIND(CONCAT(?setId, "-", STR(?seq)) AS ?eid)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event/", ENCODE_FOR_URI(?eid))) AS ?ev)
+  BIND(IRI(CONCAT("https://ggen.io/bench/attr/", ENCODE_FOR_URI(?eid), "/receipt.digest")) AS ?attr)
+  BIND(IRI(CONCAT("https://ggen.io/bench/attr/", ENCODE_FOR_URI(?eid), "/conformant")) AS ?cattr)
+}
+ORDER BY ?setId ?seq

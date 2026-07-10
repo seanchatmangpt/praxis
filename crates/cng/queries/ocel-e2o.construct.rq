@@ -1,0 +1,37 @@
+# ocel-e2o.construct.rq
+# Inputs: obs graph (event-kind facts carrying obsWorkflowId and/or obsWorkerId).
+# Outputs: qualified ocel:Relationship (E2O): event->workflow 'execution', event->worker 'participant'.
+# Event/object IRIs use the same pure-function scheme as ocel-events /
+# ocel-objects, so the graphs join. Determinism: ORDER BY; no blank nodes.
+PREFIX obs:  <https://ggen.io/ontology/bench-obs#>
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ?ev ocel:hasRelationship ?rel .
+  ?rel a ocel:Relationship ;
+       ocel:relationshipEvent ?ev ;
+       ocel:relationshipObject ?obj ;
+       ocel:qualifier ?q .
+}
+WHERE {
+  ?o obs:obsKind ?kind ;
+     obs:obsSeq ?seq ;
+     obs:obsSetId ?setId .
+  FILTER(?kind IN ("transition_fired", "receipted", "refused"))
+  {
+    ?o obs:obsWorkflowId ?wf .
+    BIND("execution" AS ?q)
+    BIND(IRI(CONCAT("https://ggen.io/bench/object/workflow/", ENCODE_FOR_URI(?wf))) AS ?obj)
+  }
+  UNION
+  {
+    ?o obs:obsWorkerId ?wk .
+    BIND("participant" AS ?q)
+    BIND(IRI(CONCAT("https://ggen.io/bench/object/worker/", ENCODE_FOR_URI(?wk))) AS ?obj)
+  }
+  BIND(CONCAT(?setId, "-", STR(?seq)) AS ?eid)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event/", ENCODE_FOR_URI(?eid))) AS ?ev)
+  BIND(IRI(CONCAT("https://ggen.io/bench/e2o/", ENCODE_FOR_URI(?eid), "/", ?q)) AS ?rel)
+}
+ORDER BY ?setId ?seq ?q
