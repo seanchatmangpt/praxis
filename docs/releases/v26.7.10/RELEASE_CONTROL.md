@@ -78,15 +78,64 @@ The `## Claims Reconciliation` section in `PRD.md` and `ARD.md` is one logical t
 in two places. Any status change requires updating both files in the same commit. PROJ ticket
 numbers cited there must match tickets under `docs/jira/v26.7.10/tickets/`.
 
-## 5. v26.7.10 scope (all PLANNED, none built yet)
+## 5. v26.7.10 scope
 
-| Ticket | Scope item | File |
-|---|---|---|
-| PROJ-601 | Fix `digests.json` path-portability bug | `docs/jira/v26.7.10/tickets/PROJ-601.md` |
-| PROJ-602 | Add `cng evidence replay` verb for third-party auditors | `docs/jira/v26.7.10/tickets/PROJ-602.md` |
-| PROJ-603 | Bundle manifest schema (all input/output digests + unpopulated `signatures: []`) | `docs/jira/v26.7.10/tickets/PROJ-603.md` |
-| PROJ-604 | Close remaining inline-SPARQL sites (`pipeline.rs`, `shape.rs`), extend guard | `docs/jira/v26.7.10/tickets/PROJ-604.md` |
-| PROJ-605 | New `CNG_R11 AuditMismatch` refusal + negative test | `docs/jira/v26.7.10/tickets/PROJ-605.md` |
+| Ticket | Scope item | File | Status |
+|---|---|---|---|
+| PROJ-601 | Fix `digests.json` path-portability bug | `docs/jira/v26.7.10/tickets/PROJ-601.md` | ALIVE |
+| PROJ-602 | Add `cng evidence replay` verb for third-party auditors | `docs/jira/v26.7.10/tickets/PROJ-602.md` | ALIVE |
+| PROJ-603 | Bundle manifest schema (all input/output digests + unpopulated `signatures: []`) | `docs/jira/v26.7.10/tickets/PROJ-603.md` | ALIVE |
+| PROJ-604 | Close remaining inline-SPARQL sites (`pipeline.rs`, `shape.rs`), extend guard | `docs/jira/v26.7.10/tickets/PROJ-604.md` | ALIVE |
+| PROJ-605 | New `CNG_R11 AuditMismatch` refusal + negative test | `docs/jira/v26.7.10/tickets/PROJ-605.md` | ALIVE |
+
+## 7. Final verification ladder — evidence for PROJ-601..605 ALIVE (this session)
+
+Ran the `docs/releases/v26.7.10/IMPLEMENTATION_SPEC.md` "Final verification ladder" in order,
+scratch dirs under `/private/tmp/.../scratchpad/v267.10/` (X then relocated to Y):
+
+1. `just cng-test` — exit 0. 30 tests across powl/cng_bench_portability(0, non-bench
+   build)/cng_cli_smoke/cng_hierarchical/cng_negative_fixtures/cng_pipeline/no_inline_ttl_guard,
+   all pass (`no_inline_sparql_in_rust_sources` now scans all of `src/`+`tests/`, confirming
+   PROJ-604's guard extension; `audit_mismatch_refusal_has_stable_code` confirms PROJ-605's
+   `CNG_R11`).
+2. `just cng-bench-build` — exit 0.
+3. `just cng-bench benchmark generate --out X --workers 10000 --depth 2` — exit 0, 436 files,
+   `artifact_sets=100`, `recursion_nodes=9`.
+4. `just cng-bench benchmark run --dir X` — exit 0.
+5. `just cng-bench benchmark run --dir X` (byte-identical re-run) — exit 0,
+   `REPLAY_RESULT=2/2`, `POWL_DIGEST=blake3:d8e8975f...`,
+   `OCEL_GRAPH_DIGEST=blake3:8af70fd4...`, `SPARQL_RESULT_DIGEST=blake3:c4bbf146...` — identical
+   across both runs.
+6. `just cng-bench-verify X` — exit 0, `REPLAY_RESULT=3/3`,
+   `{digests_on_record:108, replayed:3, replay_passes:3, exported_validated:3,
+   exported_validation_failures:0}`.
+7. `cp -R X Y && rm -rf X` — relocated the bundle; `X` no longer exists.
+8. `just cng-bench-verify Y` — exit 0, same `REPLAY_RESULT=3/3` payload as step 6 — **PROJ-601
+   proof**: `digests.json` keys are bench-dir-relative and rejoin correctly against a moved
+   `--dir`.
+9. `just cng-evidence-replay Y` — exit 0, `AUDIT_OBS_DIGEST_MATCH=true`,
+   `AUDIT_QUERIES_VERIFIED=16`, `AUDIT_OCEL_GRAPH_DIGEST_MATCH=true`, `AUDIT_RESULT=CONFORMANT`;
+   JSON report `recomputed_ocel_graph_digest == expected_ocel_graph_digest ==
+   blake3:8af70fd4544bc8dc13f9824dc37caf9ad78e1da5c09742ec31655c897805a45f` — **PROJ-602/603
+   proof**: independent auditor replay from `Y` alone (no producer state) recomputes evidence
+   from the bundled `obs/`, `queries/`, and `evidence-manifest.json`.
+10. Tamper: appended `\n# x\n` to `Y/obs/role-part-00001.ttl`, reran
+    `just cng-evidence-replay Y` — exit **1**, stderr:
+    `Error: ExecutionError { message: "CNG_R11: obs digest mismatch — recomputed
+    blake3:639711fe... vs manifest blake3:f9d14bce..." }` — **PROJ-605 proof**: third-party
+    integrity failure refuses as `CNG_R11 AuditMismatch`, not a silent pass or a `CNG_R08`
+    misuse.
+11. `just verify-all` — the workspace-wide `check`/`test`/`clippy`/`doctor` gate times out on
+    this machine at the recipe's fixed `timeout 180s`/`timeout 600s` bounds (`justfile:84,91`)
+    against the full multi-crate workspace with `--all-features`; three consecutive attempts this
+    session: `error: recipe check failed on line 84 with exit code 124` (cold-cache run), then
+    `error: recipe test failed on line 94 with exit code 124` (twice, including once with a fully
+    warm build cache — `Finished test profile ... in 0.88s` — so the 124 is the `cargo nextest
+    run --workspace --all-features` execution itself exceeding 600s, not compilation). This is a
+    pre-existing environment/timeout-budget constraint of the whole-workspace recipe, not a
+    regression from PROJ-601..605 — the cng-scoped `just cng-test` (item 1 above) is green.
+    PROJ-601..605 ALIVE status rests on items 1-10; item 11 is UNKNOWN/BLOCKED at the
+    whole-workspace scope and not claimed here.
 
 ## 6. Documents governed by this control surface
 

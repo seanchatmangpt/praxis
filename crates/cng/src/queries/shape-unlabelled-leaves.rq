@@ -1,0 +1,3 @@
+# shape-unlabelled-leaves.rq — structural validator query (compiled in via include_str!).
+# Placeholders: {PREFIX} = POWL2 vocabulary IRI prefix.
+SELECT ?l WHERE { ?l <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{PREFIX}ActivityLeaf> . FILTER NOT EXISTS { ?l <{PREFIX}activityLabel> ?a . FILTER(STRLEN(STR(?a)) > 0) } }

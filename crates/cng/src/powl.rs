@@ -60,6 +60,12 @@ pub enum CngRefusal {
     HardcodingSuspicion(String),
     /// `CNG_R10` — filesystem input/output was refused by the OS.
     IoRefused(String),
+    /// `CNG_R11` — an independent audit replay recomputed a digest that does
+    /// not match the recorded one, or a bundle input named by the manifest is
+    /// missing/altered. Distinct from `CNG_R08 Nondeterminism` (same-producer
+    /// re-manufacture drift): R11 is third-party integrity failure detected
+    /// against recorded evidence.
+    AuditMismatch(String),
 }
 
 impl CngRefusal {
@@ -79,6 +85,7 @@ impl CngRefusal {
             CngRefusal::Nondeterminism(_) => "CNG_R08",
             CngRefusal::HardcodingSuspicion(_) => "CNG_R09",
             CngRefusal::IoRefused(_) => "CNG_R10",
+            CngRefusal::AuditMismatch(_) => "CNG_R11",
         }
     }
 
@@ -97,7 +104,8 @@ impl CngRefusal {
             | CngRefusal::RunnerMismatch(m)
             | CngRefusal::Nondeterminism(m)
             | CngRefusal::HardcodingSuspicion(m)
-            | CngRefusal::IoRefused(m) => m,
+            | CngRefusal::IoRefused(m)
+            | CngRefusal::AuditMismatch(m) => m,
         }
     }
 }
@@ -494,6 +502,13 @@ mod tests {
             }
             other => panic!("expected PlanUnsolvable, got {other:?}"),
         }
+    });
+
+    test!(audit_mismatch_refusal_has_stable_code, {
+        let refusal = CngRefusal::AuditMismatch("digest drift".to_string());
+        assert_eq!(refusal.code(), "CNG_R11");
+        assert_eq!(refusal.message(), "digest drift");
+        assert_eq!(format!("{refusal}"), "CNG_R11: digest drift");
     });
 
     test!(provenance_serializer_emits_one_source_per_leaf, {

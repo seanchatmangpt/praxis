@@ -83,6 +83,7 @@ validator); `workflow inspect`/`export`/`evidence` all run it.
 | `CNG_R08` | Nondeterminism        | repeated manufacture produced different bytes      |
 | `CNG_R09` | HardcodingSuspicion   | output detached from the admitted plan             |
 | `CNG_R10` | IoRefused             | filesystem input/output refused                    |
+| `CNG_R11` | AuditMismatch         | independent audit replay digest mismatch, or bundle input missing/altered |
 
 Negative fixtures under `tests/fixtures/negative/` prove `CNG_R01/R04/R05/R06`
 from real artifacts; `tests/no_inline_ttl_guard.rs` statically enforces the

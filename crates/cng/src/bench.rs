@@ -210,6 +210,22 @@ impl QuerySet {
     pub fn default_dir() -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("queries")
     }
+
+    /// BLAKE3 digest per loaded query, keyed by stem.
+    ///
+    /// # Complexity
+    /// O(total bytes) across all loaded query texts.
+    pub fn digests(&self) -> BTreeMap<String, String> {
+        self.queries
+            .iter()
+            .map(|(k, v)| {
+                (
+                    k.clone(),
+                    format!("blake3:{}", blake3::hash(v.as_bytes()).to_hex()),
+                )
+            })
+            .collect()
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -625,6 +641,39 @@ pub struct RunReport {
 impl RunReport {
     /// The one measurement class this struct may carry.
     pub const MEASUREMENT_CLASS: &'static str = "MEASURED_CNG_RESULT";
+}
+
+/// Evidence bundle manifest: every input and output digest an independent
+/// auditor needs to replay this run from the bundle directory alone.
+/// All digests are `blake3:<hex>`. No timestamps, no absolute paths.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct EvidenceManifest {
+    /// Always "MEASURED_CNG_RESULT"; the manifest describes a measured run.
+    pub measurement_class: String,
+    /// Schema version for forward compatibility. This release: 1.
+    pub schema_version: u32,
+    /// BLAKE3 over the sorted concatenation of every obs/*.ttl file's bytes
+    /// (sort by bench_dir-relative path, concatenate path + NUL + bytes).
+    pub obs_digest: String,
+    /// Per-query digests, keyed by file stem (e.g. "ocel-events.construct").
+    pub query_digests: BTreeMap<String, String>,
+    /// Digests of the ontology inputs the queries were generated from.
+    /// Keys: "ocel2.ttl", "bench-obs.ttl" (file names only, no paths).
+    pub ontology_digests: BTreeMap<String, String>,
+    /// BLAKE3 of crates/cng/rules/bench-roles.dl as loaded for this run.
+    pub rules_digest: String,
+    /// Copied from RunReport: digest of the sorted OCEL N-Triples evidence.
+    pub ocel_graph_digest: String,
+    /// Copied from RunReport: digest of the ordered SELECT result rows.
+    pub sparql_result_digest: String,
+    /// Copied from RunReport: chained per-set POWL evidence digest.
+    pub evidence_chain_digest: String,
+    /// Exact command an auditor runs from the bundle's parent directory.
+    pub replay_command: String,
+    /// Reserved for a future signing decision (ed25519 exists in
+    /// praxis-core/src/signing.rs but is deliberately unwired here).
+    /// MUST be emitted as an empty array; never fabricate a signature.
+    pub signatures: Vec<String>,
 }
 
 /// MODELED LLM-agent cost comparison. Never merged into `RunReport`: the
@@ -1398,6 +1447,101 @@ fn derive_roles_datalog(
 // run
 // ---------------------------------------------------------------------------
 
+/// Recursively collects `.ttl` file paths under `dir`, appending to `out`.
+///
+/// # Complexity
+/// O(entries under dir).
+fn collect_ttl_paths_recursive(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), CngRefusal> {
+    let entries = fs::read_dir(dir)
+        .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", dir.display())))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| CngRefusal::IoRefused(format!("read dir entry: {e}")))?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_ttl_paths_recursive(&path, out)?;
+        } else if path.extension().and_then(|x| x.to_str()) == Some("ttl") {
+            out.push(path);
+        }
+    }
+    Ok(())
+}
+
+/// The six OCEL CONSTRUCT query stems, in the fixed order `run()` and
+/// `audit_replay()` both materialize them — order is part of the contract
+/// only insofar as it's identical between producer and auditor (the final
+/// serialization is sorted, so materialization order does not affect the
+/// digest, but a fixed list keeps both paths byte-for-byte the same code).
+const OCEL_CONSTRUCT_STEMS: [&str; 6] = [
+    "ocel-events.construct",
+    "ocel-objects.construct",
+    "ocel-e2o.construct",
+    "ocel-o2o-sockets.construct",
+    "ocel-receipts.construct",
+    "ocel-log.construct",
+];
+
+/// Serializes an evidence store as sorted, deduplicated N-Triples and
+/// BLAKE3-hashes the result. Shared by `run()` (which computes
+/// `ocel_graph_digest`) and `audit_replay()` (which recomputes it from a
+/// bundle to compare against the manifest) — one implementation, zero drift.
+///
+/// # Complexity
+/// O(t log t) in evidence triples for the sort.
+fn evidence_digest(store: &Store) -> Result<(String, String), CngRefusal> {
+    let mut lines: Vec<String> = Vec::new();
+    for quad in store.iter() {
+        let quad = quad.map_err(|e| CngRefusal::IoRefused(format!("evidence iteration: {e}")))?;
+        lines.push(format!(
+            "{} {} {} .",
+            quad.subject, quad.predicate, quad.object
+        ));
+    }
+    lines.sort();
+    lines.dedup();
+    let nt = lines.join("\n");
+    let digest = format!("blake3:{}", blake3::hash(nt.as_bytes()).to_hex());
+    Ok((nt, digest))
+}
+
+/// BLAKE3 digest over every `.ttl` file under `<bench_dir>/obs/`, sorted by
+/// bench-dir-relative path. Feeds the digest with, per file: the relative
+/// path bytes, a single `0u8` separator, then the file bytes.
+///
+/// # Complexity
+/// O(obs bytes log(files)) for the sort.
+fn obs_dir_digest(bench_dir: &Path) -> Result<String, CngRefusal> {
+    let obs_dir = bench_dir.join("obs");
+    let mut paths = Vec::new();
+    collect_ttl_paths_recursive(&obs_dir, &mut paths)?;
+    let mut rel_paths: Vec<(String, PathBuf)> = paths
+        .into_iter()
+        .map(|p| {
+            let rel = p
+                .strip_prefix(bench_dir)
+                .map_err(|_| {
+                    CngRefusal::IoRefused(format!(
+                        "obs file {} is not under bench dir {}",
+                        p.display(),
+                        bench_dir.display()
+                    ))
+                })?
+                .display()
+                .to_string();
+            Ok((rel, p))
+        })
+        .collect::<Result<_, CngRefusal>>()?;
+    rel_paths.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut hasher = blake3::Hasher::new();
+    for (rel, path) in &rel_paths {
+        hasher.update(rel.as_bytes());
+        hasher.update(&[0u8]);
+        let bytes = fs::read(path)
+            .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", path.display())))?;
+        hasher.update(&bytes);
+    }
+    Ok(format!("blake3:{}", hasher.finalize().to_hex()))
+}
+
 /// Runs the benchmark over a generated corpus. All manufacture is the real
 /// cng chain; parallelism is plain `std::thread` over disjoint set chunks.
 /// `queries_dir` overrides the default on-disk query set location.
@@ -1562,14 +1706,31 @@ pub fn run(
     let replay_every = usize::max(1, 1000 / usize::max(1, replay_per_mille));
     let replay_dirs: Vec<PathBuf> = set_dirs.iter().step_by(replay_every).cloned().collect();
     let replay_passes = AtomicUsize::new(0);
+    // Per-set digest map keyed RELATIVE to bench_dir so the whole directory
+    // is relocatable: `benchmark verify` rejoins keys against its own --dir.
+    // Sets outside bench_dir would be a generator bug; refuse loudly.
     let replay_digests: BTreeMap<String, String> = outcomes
         .iter()
         .filter(|r| r.outcome.refusal_code.is_none())
-        .map(|r| (r.dir.display().to_string(), r.outcome.powl_digest.clone()))
-        .collect();
+        .map(|r| {
+            let rel = r.dir.strip_prefix(bench_dir).map_err(|_| {
+                CngRefusal::HardcodingSuspicion(format!(
+                    "set dir {} is not under bench dir {}; digests.json keys must be \
+                     bench-dir-relative for portable replay",
+                    r.dir.display(),
+                    bench_dir.display()
+                ))
+            })?;
+            Ok((rel.display().to_string(), r.outcome.powl_digest.clone()))
+        })
+        .collect::<Result<_, CngRefusal>>()?;
     parallel_chunks(&replay_dirs, threads, |dir| {
         let replay = manufacture_set(dir, None);
-        if let Some(expected) = replay_digests.get(&dir.display().to_string()) {
+        let rel_key = dir
+            .strip_prefix(bench_dir)
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|_| dir.display().to_string());
+        if let Some(expected) = replay_digests.get(&rel_key) {
             if &replay.powl_digest == expected {
                 replay_passes.fetch_add(1, Ordering::Relaxed);
             }
@@ -1752,33 +1913,15 @@ pub fn run(
     // ocel_graph_digest hashes.
     let evidence_store = Store::new()
         .map_err(|e| CngRefusal::IoRefused(format!("evidence store construction: {e}")))?;
-    for construct in [
-        "ocel-events.construct",
-        "ocel-objects.construct",
-        "ocel-e2o.construct",
-        "ocel-o2o-sockets.construct",
-        "ocel-receipts.construct",
-        "ocel-log.construct",
-    ] {
+    for construct in OCEL_CONSTRUCT_STEMS {
         run_construct(&obs_store, queries.get(construct)?, &evidence_store)?;
     }
-    let mut evidence_lines: Vec<String> = Vec::new();
-    for quad in evidence_store.iter() {
-        let quad = quad.map_err(|e| CngRefusal::IoRefused(format!("evidence iteration: {e}")))?;
-        evidence_lines.push(format!(
-            "{} {} {} .",
-            quad.subject, quad.predicate, quad.object
-        ));
-    }
-    evidence_lines.sort();
-    evidence_lines.dedup();
-    let evidence_nt = evidence_lines.join("\n");
+    let (evidence_nt, ocel_graph_digest) = evidence_digest(&evidence_store)?;
     let evidence_dir = bench_dir.join("evidence");
     fs::create_dir_all(&evidence_dir)
         .map_err(|e| CngRefusal::IoRefused(format!("mkdir evidence: {e}")))?;
     fs::write(evidence_dir.join("ocel.nt"), &evidence_nt)
         .map_err(|e| CngRefusal::IoRefused(format!("write ocel.nt: {e}")))?;
-    let ocel_graph_digest = format!("blake3:{}", blake3::hash(evidence_nt.as_bytes()).to_hex());
 
     // --- Graph-derived metrics (G-C): the on-disk metric SELECTs are the
     // authority for every headline number.
@@ -1961,6 +2104,72 @@ pub fn run(
     fs::write(results_dir.join("digests.json"), &digests_json)
         .map_err(|e| CngRefusal::IoRefused(format!("write digests.json: {e}")))?;
 
+    // --- Evidence bundle manifest (PROJ-603): self-contained copies of
+    // every query, ontology, and rule file the run consumed, plus their
+    // digests, so an independent auditor can replay from `bench_dir` alone.
+    let obs_digest = obs_dir_digest(bench_dir)?;
+    let query_digests = queries.digests();
+    let bundled_queries_dir = bench_dir.join("queries");
+    fs::create_dir_all(&bundled_queries_dir).map_err(|e| {
+        CngRefusal::IoRefused(format!("mkdir {}: {e}", bundled_queries_dir.display()))
+    })?;
+    for (stem, text) in &queries.queries {
+        let path = bundled_queries_dir.join(format!("{stem}.rq"));
+        fs::write(&path, text)
+            .map_err(|e| CngRefusal::IoRefused(format!("write {}: {e}", path.display())))?;
+    }
+
+    let ontology_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("praxis-graphlaw")
+        .join("ontologies")
+        .join("core");
+    let bundled_ontology_dir = bench_dir.join("ontology");
+    fs::create_dir_all(&bundled_ontology_dir).map_err(|e| {
+        CngRefusal::IoRefused(format!("mkdir {}: {e}", bundled_ontology_dir.display()))
+    })?;
+    let mut ontology_digests: BTreeMap<String, String> = BTreeMap::new();
+    for name in ["ocel2.ttl", "bench-obs.ttl"] {
+        let src = ontology_dir.join(name);
+        let bytes = fs::read(&src)
+            .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", src.display())))?;
+        ontology_digests.insert(
+            name.to_string(),
+            format!("blake3:{}", blake3::hash(&bytes).to_hex()),
+        );
+        let dst = bundled_ontology_dir.join(name);
+        fs::write(&dst, &bytes)
+            .map_err(|e| CngRefusal::IoRefused(format!("write {}: {e}", dst.display())))?;
+    }
+
+    let rules_digest = format!("blake3:{}", blake3::hash(rules_text.as_bytes()).to_hex());
+    let bundled_rules_dir = bench_dir.join("rules");
+    fs::create_dir_all(&bundled_rules_dir).map_err(|e| {
+        CngRefusal::IoRefused(format!("mkdir {}: {e}", bundled_rules_dir.display()))
+    })?;
+    let bundled_rules_path = bundled_rules_dir.join("bench-roles.dl");
+    fs::write(&bundled_rules_path, &rules_text).map_err(|e| {
+        CngRefusal::IoRefused(format!("write {}: {e}", bundled_rules_path.display()))
+    })?;
+
+    let manifest = EvidenceManifest {
+        measurement_class: RunReport::MEASUREMENT_CLASS.to_string(),
+        schema_version: 1,
+        obs_digest,
+        query_digests,
+        ontology_digests,
+        rules_digest,
+        ocel_graph_digest: report.ocel_graph_digest.clone(),
+        sparql_result_digest: report.sparql_result_digest.clone(),
+        evidence_chain_digest: report.evidence_chain_digest.clone(),
+        replay_command: "cng evidence replay --bundle <this directory>".to_string(),
+        signatures: Vec::new(),
+    };
+    let manifest_json = serde_json::to_string_pretty(&manifest)
+        .map_err(|e| CngRefusal::IoRefused(format!("evidence manifest serialize: {e}")))?;
+    fs::write(results_dir.join("evidence-manifest.json"), &manifest_json)
+        .map_err(|e| CngRefusal::IoRefused(format!("write evidence-manifest.json: {e}")))?;
+
     // --- MODELED_LLM_COMPARISON (G-B): assumptions + arithmetic ported
     // from BENCHMARK.md prose into machine-readable data. Calls are the
     // SELECT-sourced transition count; never merged into RunReport.
@@ -2031,6 +2240,165 @@ pub fn run(
     Ok(report)
 }
 
+/// Report of an independent auditor replay from a self-contained bundle.
+#[derive(Debug, serde::Serialize)]
+pub struct AuditReplayReport {
+    pub bundle_dir: String,
+    pub obs_files_hashed: usize,
+    pub obs_digest_match: bool,
+    pub queries_verified: usize,
+    pub ocel_graph_digest_match: bool,
+    pub recomputed_ocel_graph_digest: String,
+    pub expected_ocel_graph_digest: String,
+}
+
+/// Independent auditor replay: recomputes evidence from bundle files only.
+///
+/// A party holding ONLY a copied bundle directory (produced by `run()`)
+/// re-derives the OCEL evidence graph from the bundled observations and
+/// bundled queries and compares digests against the bundled manifest. No
+/// repo checkout state, no producer memory is consulted.
+///
+/// Steps: (1) parse `results/evidence-manifest.json`; (2) re-hash
+/// `obs/*.ttl` and compare `obs_digest`; (3) re-hash `queries/*.rq` against
+/// `manifest.query_digests`; (4) load `obs/*.ttl` into a fresh store, run
+/// the six bundled `ocel-*.construct` queries, serialize sorted N-Triples,
+/// BLAKE3, compare to `ocel_graph_digest`. Any disagreement or missing
+/// input refuses `CNG_R11 AuditMismatch`.
+///
+/// # Complexity
+/// O(obs bytes + evidence triples log-sorted).
+pub fn audit_replay(bundle_dir: &Path) -> Result<AuditReplayReport, CngRefusal> {
+    let manifest_path = bundle_dir.join("results").join("evidence-manifest.json");
+    let manifest_text = fs::read_to_string(&manifest_path).map_err(|_| {
+        CngRefusal::AuditMismatch(format!(
+            "bundle is not auditable — expected manifest at {}",
+            manifest_path.display()
+        ))
+    })?;
+    let manifest: EvidenceManifest = serde_json::from_str(&manifest_text).map_err(|e| {
+        CngRefusal::AuditMismatch(format!(
+            "bundle is not auditable — cannot parse manifest {}: {e}",
+            manifest_path.display()
+        ))
+    })?;
+
+    // Step 2: obs digest.
+    let recomputed_obs_digest = obs_dir_digest(bundle_dir)?;
+    if recomputed_obs_digest != manifest.obs_digest {
+        return Err(CngRefusal::AuditMismatch(format!(
+            "obs digest mismatch — recomputed {recomputed_obs_digest} vs manifest {}",
+            manifest.obs_digest
+        )));
+    }
+    let mut obs_paths = Vec::new();
+    collect_ttl_paths_recursive(&bundle_dir.join("obs"), &mut obs_paths)?;
+    let obs_files_hashed = obs_paths.len();
+
+    // Step 3: query digests.
+    let bundled_queries_dir = bundle_dir.join("queries");
+    let queries = QuerySet::load(&bundled_queries_dir)?;
+    let query_digests = queries.digests();
+    for (stem, expected_digest) in &manifest.query_digests {
+        let actual_digest = query_digests.get(stem).ok_or_else(|| {
+            CngRefusal::AuditMismatch(format!(
+                "query {stem}.rq is present in the manifest but missing from the bundle"
+            ))
+        })?;
+        if actual_digest != expected_digest {
+            return Err(CngRefusal::AuditMismatch(format!(
+                "query {stem}.rq digest mismatch — recomputed {actual_digest} vs manifest {expected_digest}"
+            )));
+        }
+    }
+    let queries_verified = manifest.query_digests.len();
+
+    // Step 4: rebuild the observation store from the bundled obs files.
+    let mut rel_obs_paths: Vec<(String, PathBuf)> = obs_paths
+        .into_iter()
+        .map(|p| {
+            let rel = p
+                .strip_prefix(bundle_dir)
+                .map_err(|_| {
+                    CngRefusal::AuditMismatch(format!(
+                        "obs file {} is not under bundle dir {}",
+                        p.display(),
+                        bundle_dir.display()
+                    ))
+                })?
+                .display()
+                .to_string();
+            Ok((rel, p))
+        })
+        .collect::<Result<_, CngRefusal>>()?;
+    rel_obs_paths.sort_by(|a, b| a.0.cmp(&b.0));
+    let obs_store = Store::new()
+        .map_err(|e| CngRefusal::IoRefused(format!("observation store construction: {e}")))?;
+    // `run()` builds its observation store from roster admission facts
+    // (`<bench_dir>/roster/*.ttl`, loaded first) plus the obs/ partitions
+    // (obs_dir_digest covers only obs/, matching PROJ-603's manifest, but
+    // OCEL materialization needs both — mirror run()'s exact construction
+    // so the replayed evidence graph is comparable at all).
+    let mut roster_paths: Vec<PathBuf> = fs::read_dir(bundle_dir.join("roster"))
+        .map_err(|e| CngRefusal::IoRefused(format!("read roster: {e}")))?
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("ttl"))
+        .collect();
+    roster_paths.sort();
+    for path in &roster_paths {
+        let turtle = fs::read_to_string(path)
+            .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", path.display())))?;
+        obs_store
+            .load_from_slice(RdfParser::from_format(RdfFormat::Turtle), turtle.as_bytes())
+            .map_err(|e| {
+                CngRefusal::AuditMismatch(format!(
+                    "tampered bundle — cannot parse {}: {e}",
+                    path.display()
+                ))
+            })?;
+    }
+    for (_, path) in &rel_obs_paths {
+        let turtle = fs::read_to_string(path)
+            .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", path.display())))?;
+        obs_store
+            .load_from_slice(RdfParser::from_format(RdfFormat::Turtle), turtle.as_bytes())
+            .map_err(|e| {
+                CngRefusal::AuditMismatch(format!(
+                    "tampered bundle — cannot parse {}: {e}",
+                    path.display()
+                ))
+            })?;
+    }
+
+    // Step 5: materialize OCEL from the bundled queries, in fixed order.
+    let evidence_store = Store::new()
+        .map_err(|e| CngRefusal::IoRefused(format!("evidence store construction: {e}")))?;
+    for construct in OCEL_CONSTRUCT_STEMS {
+        run_construct(&obs_store, queries.get(construct)?, &evidence_store)?;
+    }
+
+    // Step 6/7: serialize and compare.
+    let (_, recomputed_ocel_graph_digest) = evidence_digest(&evidence_store)?;
+    let ocel_graph_digest_match = recomputed_ocel_graph_digest == manifest.ocel_graph_digest;
+    if !ocel_graph_digest_match {
+        return Err(CngRefusal::AuditMismatch(format!(
+            "OCEL graph digest mismatch — recomputed {recomputed_ocel_graph_digest} vs manifest {}",
+            manifest.ocel_graph_digest
+        )));
+    }
+
+    Ok(AuditReplayReport {
+        bundle_dir: bundle_dir.display().to_string(),
+        obs_files_hashed,
+        obs_digest_match: true,
+        queries_verified,
+        ocel_graph_digest_match,
+        recomputed_ocel_graph_digest,
+        expected_ocel_graph_digest: manifest.ocel_graph_digest,
+    })
+}
+
 #[derive(Debug, serde::Serialize)]
 pub struct VerifyReport {
     pub bench_dir: String,
@@ -2061,8 +2429,32 @@ pub fn verify(
         .iter()
         .enumerate()
         .filter(|(i, _)| i % usize::max(1, sample_every) == 0)
-        .map(|(_, (path, digest))| (PathBuf::from(path), digest.clone()))
+        .map(|(_, (path, digest))| {
+            let candidate = PathBuf::from(path);
+            // v26.7.10 digests are bench_dir-relative; pre-v26.7.10 files may
+            // hold absolute or CWD-relative keys. Rejoin relative keys against
+            // bench_dir; leave absolute keys as-is (legacy compatibility).
+            let resolved = if candidate.is_absolute() {
+                candidate
+            } else {
+                bench_dir.join(&candidate)
+            };
+            (resolved, digest.clone())
+        })
         .collect();
+    let missing: Vec<String> = sample
+        .iter()
+        .filter(|(dir, _)| !dir.is_dir())
+        .map(|(dir, _)| dir.display().to_string())
+        .collect();
+    if !missing.is_empty() {
+        return Err(CngRefusal::AuditMismatch(format!(
+            "digest keys resolve to {} missing set dir(s) under {}; first: {}",
+            missing.len(),
+            bench_dir.display(),
+            missing[0]
+        )));
+    }
     let replay_passes = AtomicUsize::new(0);
     parallel_chunks(&sample, threads, |(dir, expected)| {
         let outcome = manufacture_set(dir, None);

@@ -1,0 +1,3 @@
+# select-literal.rq — pipeline::select_literal (compiled in via include_str!).
+# Placeholders: {PREDICATE} = full predicate IRI.
+SELECT ?v WHERE { ?s <{PREDICATE}> ?v }

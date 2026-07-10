@@ -191,9 +191,17 @@ cng-bench *args:
 cng-bench-verify dir:
     timeout 3600s cargo run -q --release -p cng --features bench --bin cng -- benchmark verify --dir {{dir}}
 
+# Independent auditor replay from a self-contained bundle (no producer state).
+cng-evidence-replay bundle:
+    timeout 3600s cargo run -q --release -p cng --features bench --bin cng -- evidence replay --bundle {{bundle}}
+
 # Run the cng test suite
 cng-test:
     timeout 600s cargo test -p cng
+
+# Run the cng test suite with the bench feature (portability/audit tests)
+cng-test-bench:
+    timeout 900s cargo test -p cng --features bench
 
 # Package-surface smoke: install the cng binary from the crate and invoke it
 cng-install-smoke:

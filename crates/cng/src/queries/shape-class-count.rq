@@ -1,0 +1,3 @@
+# shape-class-count.rq — structural validator query (compiled in via include_str!).
+# Placeholders: {PREFIX} = POWL2 vocabulary IRI prefix, {CLASS} = local class name.
+SELECT ?s WHERE { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{PREFIX}{CLASS}> }

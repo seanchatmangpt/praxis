@@ -68,18 +68,22 @@ pub fn validate_powl_store(
     store: &Store,
     require_provenance: bool,
 ) -> Result<ShapeReport, CngRefusal> {
+    const Q_CLASS_COUNT: &str = include_str!("queries/shape-class-count.rq");
+    const Q_PRED_COUNT: &str = include_str!("queries/shape-pred-count.rq");
     let class_count = |class: &str| -> Result<usize, CngRefusal> {
         solution_count(
             store,
-            &format!(
-                "SELECT ?s WHERE {{ ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{POWL2_PREFIX}{class}> }}"
-            ),
+            &Q_CLASS_COUNT
+                .replace("{PREFIX}", POWL2_PREFIX)
+                .replace("{CLASS}", class),
         )
     };
     let pred_count = |pred: &str| -> Result<usize, CngRefusal> {
         solution_count(
             store,
-            &format!("SELECT ?s WHERE {{ ?s <{POWL2_PREFIX}{pred}> ?o }}"),
+            &Q_PRED_COUNT
+                .replace("{PREFIX}", POWL2_PREFIX)
+                .replace("{PRED}", pred),
         )
     };
 
@@ -116,22 +120,20 @@ pub fn validate_powl_store(
     }
 
     // Every ChildBinding must carry exactly one childIndex and one childModel.
+    const Q_BINDING_MISSING_INDEX: &str = include_str!("queries/shape-binding-missing-index.rq");
     let bindings_missing_index = solution_count(
         store,
-        &format!(
-            "SELECT ?b WHERE {{ ?b <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{POWL2_PREFIX}ChildBinding> . FILTER NOT EXISTS {{ ?b <{POWL2_PREFIX}childIndex> ?i }} }}"
-        ),
+        &Q_BINDING_MISSING_INDEX.replace("{PREFIX}", POWL2_PREFIX),
     )?;
     if bindings_missing_index != 0 {
         return Err(CngRefusal::InvalidPowl(format!(
             "shape violation: {bindings_missing_index} ChildBinding(s) lack powl2:childIndex"
         )));
     }
+    const Q_BINDING_MISSING_MODEL: &str = include_str!("queries/shape-binding-missing-model.rq");
     let bindings_missing_model = solution_count(
         store,
-        &format!(
-            "SELECT ?b WHERE {{ ?b <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{POWL2_PREFIX}ChildBinding> . FILTER NOT EXISTS {{ ?b <{POWL2_PREFIX}childModel> ?m }} }}"
-        ),
+        &Q_BINDING_MISSING_MODEL.replace("{PREFIX}", POWL2_PREFIX),
     )?;
     if bindings_missing_model != 0 {
         return Err(CngRefusal::InvalidPowl(format!(
@@ -140,11 +142,10 @@ pub fn validate_powl_store(
     }
 
     // Every ActivityLeaf must carry a non-empty label.
+    const Q_UNLABELLED_LEAVES: &str = include_str!("queries/shape-unlabelled-leaves.rq");
     let unlabelled_leaves = solution_count(
         store,
-        &format!(
-            "SELECT ?l WHERE {{ ?l <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{POWL2_PREFIX}ActivityLeaf> . FILTER NOT EXISTS {{ ?l <{POWL2_PREFIX}activityLabel> ?a . FILTER(STRLEN(STR(?a)) > 0) }} }}"
-        ),
+        &Q_UNLABELLED_LEAVES.replace("{PREFIX}", POWL2_PREFIX),
     )?;
     if unlabelled_leaves != 0 {
         return Err(CngRefusal::InvalidPowl(format!(
@@ -153,12 +154,8 @@ pub fn validate_powl_store(
     }
 
     // Every precedes edge must connect two ChildBindings.
-    let bad_precedes = solution_count(
-        store,
-        &format!(
-            "SELECT ?s WHERE {{ ?s <{POWL2_PREFIX}precedes> ?o . FILTER(NOT EXISTS {{ ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{POWL2_PREFIX}ChildBinding> }} || NOT EXISTS {{ ?o <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <{POWL2_PREFIX}ChildBinding> }}) }}"
-        ),
-    )?;
+    const Q_BAD_PRECEDES: &str = include_str!("queries/shape-bad-precedes.rq");
+    let bad_precedes = solution_count(store, &Q_BAD_PRECEDES.replace("{PREFIX}", POWL2_PREFIX))?;
     if bad_precedes != 0 {
         return Err(CngRefusal::InvalidPowl(format!(
             "shape violation: {bad_precedes} powl2:precedes triple(s) do not connect ChildBindings"

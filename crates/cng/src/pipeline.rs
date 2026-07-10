@@ -132,7 +132,8 @@ fn select_literal(
     predicate: &str,
     path: &Path,
 ) -> Result<Option<String>, CngRefusal> {
-    let query = format!("SELECT ?v WHERE {{ ?s <{predicate}> ?v }}");
+    const Q_SELECT_LITERAL: &str = include_str!("queries/select-literal.rq");
+    let query = Q_SELECT_LITERAL.replace("{PREDICATE}", predicate);
     let prepared = SparqlEvaluator::new().parse_query(&query).map_err(|e| {
         CngRefusal::MalformedTtl(format!("SELECT parse failed for <{predicate}>: {e}"))
     })?;

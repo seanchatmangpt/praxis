@@ -607,6 +607,10 @@ fn benchmark_run(
         "DERIVED_SCALE_PATH={}/results/derived-scale.json",
         report.bench_dir
     );
+    println!(
+        "EVIDENCE_MANIFEST_PATH={}/results/evidence-manifest.json",
+        report.bench_dir
+    );
     Ok(report)
 }
 
@@ -627,6 +631,21 @@ fn benchmark_verify(
     let report = cng::bench::verify(Path::new(&dir), sample_every.unwrap_or(50), threads)
         .map_err(to_cli_error)?;
     println!("REPLAY_RESULT={}/{}", report.replay_passes, report.replayed);
+    Ok(report)
+}
+
+/// Independent auditor replay from a self-contained evidence bundle.
+#[cfg(feature = "bench")]
+#[verb("replay", "evidence")]
+fn evidence_replay(bundle: String) -> Result<cng::bench::AuditReplayReport> {
+    let report = cng::bench::audit_replay(Path::new(&bundle)).map_err(to_cli_error)?;
+    println!("AUDIT_OBS_DIGEST_MATCH={}", report.obs_digest_match);
+    println!("AUDIT_QUERIES_VERIFIED={}", report.queries_verified);
+    println!(
+        "AUDIT_OCEL_GRAPH_DIGEST_MATCH={}",
+        report.ocel_graph_digest_match
+    );
+    println!("AUDIT_RESULT=CONFORMANT");
     Ok(report)
 }
 

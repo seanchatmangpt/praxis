@@ -122,10 +122,41 @@ arithmetic, not measurements.
 Determinism: same corpus → byte-identical POWL digests; independent replay via
 `just cng-bench-verify <dir>`. Seeded names propagate into every generated POWL,
 so changing the seed changes every digest. Refusals are typed
-(`CNG_R01`–`CNG_R10`). Known-by-design gap: the `replay_verified` headline
+(`CNG_R01`–`CNG_R11`). Known-by-design gap: the `replay_verified` headline
 (`metric-replay.rq`) is 0 until a CONSTRUCT emits `replay.verified` attributes
 into the evidence graph; replay evidence currently lives in telemetry
 (`replay_checked` / `replay_passes`).
+
+### Two replay paths: producer verify vs. independent auditor replay
+
+`run()` writes a self-contained evidence bundle under `<bench_dir>/`: `obs/*.ttl`
+(observations), `queries/*.rq` (the exact loaded query text, copied — not the repo checkout's
+copy), `ontology/*.ttl` (`ocel2.ttl`, `bench-obs.ttl`), `rules/bench-roles.dl`, and
+`results/evidence-manifest.json` (BLAKE3 digest of every input/output an auditor needs:
+`obs_digest`, per-query `query_digests`, `ontology_digests`, `rules_digest`,
+`ocel_graph_digest`, `sparql_result_digest`, `evidence_chain_digest`, an unpopulated
+`signatures: []`). `digests.json` keys are bench-dir-relative (not absolute paths captured at
+`run` time), so the whole `<bench_dir>` is relocatable — `cp -R` it anywhere and both replay
+paths below still resolve.
+
+1. **Producer verify** — `just cng-bench-verify <dir>`: re-manufactures a sample of sets against
+   `digests.json` and re-validates exported POWL against `crates/cng/shape.rs`'s structural
+   validator. Assumes the caller trusts the local checkout's queries/rules/ontologies; it
+   re-derives the POWL manufacture digest, not the OCEL/SPARQL evidence digests.
+2. **Independent auditor replay** — `just cng-evidence-replay <dir>` (`cng evidence replay
+   --bundle <dir>`): a party holding ONLY a copied bundle directory, no repo checkout and no
+   producer memory, re-derives evidence from the bundle alone. Steps: parse
+   `results/evidence-manifest.json`; re-hash `obs/*.ttl` and compare to `obs_digest`; re-hash
+   `queries/*.rq` against `query_digests`; load the bundled observations into a fresh store; run
+   the six bundled `ocel-*.construct` queries in fixed order; serialize the resulting evidence as
+   sorted N-Triples and BLAKE3 it; compare to `ocel_graph_digest`. Any disagreement or missing
+   input refuses `CNG_R11 AuditMismatch` (distinct from `CNG_R08 Nondeterminism`, which is
+   same-producer re-manufacture drift, not third-party integrity failure) and the process exits
+   nonzero — verified this session: appending a comment line to one `obs/*.ttl` file after
+   relocating a bundle produces `Error: ExecutionError { message: "CNG_R11: obs digest mismatch —
+   recomputed <hash> vs manifest <hash>" }` with exit code 1, while an untampered relocated bundle
+   prints `AUDIT_RESULT=CONFORMANT` with exit 0 and
+   `recomputed_ocel_graph_digest == expected_ocel_graph_digest`.
 
 ## References
 

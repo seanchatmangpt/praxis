@@ -1,0 +1,3 @@
+# shape-pred-count.rq — structural validator query (compiled in via include_str!).
+# Placeholders: {PREFIX} = POWL2 vocabulary IRI prefix, {PRED} = local predicate name.
+SELECT ?s WHERE { ?s <{PREFIX}{PRED}> ?o }
