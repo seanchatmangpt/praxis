@@ -1,0 +1,18 @@
+# rwai-bench problem fragment template: one phase goal of an 8-step workflow,
+# rendered with deterministic seeded names by `cng bench generate`. Goals
+# compose conjunctively across all problem fragments in the artifact set.
+@prefix ex: <http://example.org/rwai#> .
+@prefix ceng: <urn:chatman:engine#> .
+
+ex:{{SUBJECT}} a ex:WorkloadArtifact ;
+  ex:category "{{CATEGORY}}" ;
+  ex:worker "{{WORKER}}" .
+
+ex:{{SUBJECT}} ceng:pddlProblem """
+(define (problem {{PROBLEM}})
+  (:domain {{DOMAIN}})
+  (:objects {{OBJ}})
+  (:init ({{INIT}} {{OBJ}}))
+  (:goal ({{GOAL}} {{OBJ}}))
+)
+""" .

@@ -3,8 +3,51 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
+    "evt_002": {
+      "event_id": "35ec8a6b-9610-408e-a25c-f19f226b00b1",
+      "case_id": "chatman-agent",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 3,
+      "objects": [
+        [
+          "Falsify_BreedUnpermitted",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Falsify_BreedUnpermitted",
+        "refusal": "BreedUnpermitted",
+        "outcome": "refused"
+      }
+    },
+    "evt_003": {
+      "event_id": "857a5418-80c8-405d-8bb8-8adc250fe7de",
+      "case_id": "chatman-agent",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 4,
+      "objects": [
+        [
+          "Accept_PermittedBreedExecutes",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Accept_PermittedBreedExecutes",
+        "outcome": "admitted"
+      }
+    },
     "evt_004": {
-      "event_id": "7c62fcef-ba9d-421b-8fb3-09c03854b38c",
+      "event_id": "9c4e5789-a6d9-49b4-8ddc-03deb505813b",
       "case_id": "chatman-agent",
       "activity": {
         "DiagnosticEmitted": {
@@ -20,13 +63,34 @@
         ]
       ],
       "attributes": {
-        "outcome": "refused",
         "fixture_id": "Falsify_WitnessNotAuthority",
+        "outcome": "refused",
         "refusal": "WitnessNotAuthority"
       }
     },
+    "evt_005": {
+      "event_id": "df7c4282-1f49-4e5b-9364-cf4aeef0bf07",
+      "case_id": "chatman-agent",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 6,
+      "objects": [
+        [
+          "Accept_WitnessObservesOnly",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "admitted",
+        "fixture_id": "Accept_WitnessObservesOnly"
+      }
+    },
     "evt_001": {
-      "event_id": "1500c19f-a5de-4a34-a47e-cb1638ef7cd8",
+      "event_id": "ec84e188-85e1-4fb5-8611-233fa7e2bd2e",
       "case_id": "chatman-agent",
       "activity": {
         "DiagnosticEmitted": {
@@ -48,7 +112,7 @@
       }
     },
     "evt_000": {
-      "event_id": "0b1beb6e-6e08-4145-807b-d381fee13ce2",
+      "event_id": "c699b7fd-cd38-4acc-bf8f-f07c64096772",
       "case_id": "chatman-agent",
       "activity": {
         "DiagnosticEmitted": {
@@ -66,70 +130,6 @@
       "attributes": {
         "outcome": "admitted",
         "fixture_id": "Accept_AgentActsWithinPermits"
-      }
-    },
-    "evt_002": {
-      "event_id": "9c81a263-c816-48de-80b0-6acfe3af10b2",
-      "case_id": "chatman-agent",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 3,
-      "objects": [
-        [
-          "Falsify_BreedUnpermitted",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "outcome": "refused",
-        "fixture_id": "Falsify_BreedUnpermitted",
-        "refusal": "BreedUnpermitted"
-      }
-    },
-    "evt_005": {
-      "event_id": "b01cc4ff-76cf-434d-a5d4-c38d8c1ef942",
-      "case_id": "chatman-agent",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Info"
-        }
-      },
-      "timestamp_ns": 6,
-      "objects": [
-        [
-          "Accept_WitnessObservesOnly",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "outcome": "admitted",
-        "fixture_id": "Accept_WitnessObservesOnly"
-      }
-    },
-    "evt_003": {
-      "event_id": "1786e001-308e-41ee-b2f3-9319d8f06746",
-      "case_id": "chatman-agent",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Info"
-        }
-      },
-      "timestamp_ns": 4,
-      "objects": [
-        [
-          "Accept_PermittedBreedExecutes",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "outcome": "admitted",
-        "fixture_id": "Accept_PermittedBreedExecutes"
       }
     }
   },

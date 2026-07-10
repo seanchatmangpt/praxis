@@ -12,6 +12,7 @@ pub mod abi;
 pub mod admission8;
 pub mod bridge;
 pub mod engine;
+pub mod powl_projection;
 pub mod router;
 pub mod triple8;
 

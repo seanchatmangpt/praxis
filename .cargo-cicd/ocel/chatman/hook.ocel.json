@@ -3,29 +3,8 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
-    "evt_000": {
-      "event_id": "7d1f15cb-7999-446e-858b-6cc62d5510de",
-      "case_id": "chatman-hook",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Info"
-        }
-      },
-      "timestamp_ns": 1,
-      "objects": [
-        [
-          "Accept_DeterministicOperatorWithoutReceipt",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Accept_DeterministicOperatorWithoutReceipt",
-        "outcome": "admitted"
-      }
-    },
     "evt_001": {
-      "event_id": "27110121-f438-495d-bf41-fe9840755777",
+      "event_id": "8f781050-944e-4682-9521-6fb14ef1e624",
       "case_id": "chatman-hook",
       "activity": {
         "DiagnosticEmitted": {
@@ -41,12 +20,33 @@
         ]
       ],
       "attributes": {
+        "fixture_id": "Accept_HookPatternAdmitted",
+        "outcome": "admitted"
+      }
+    },
+    "evt_000": {
+      "event_id": "4d7a288b-c7c8-4a82-baf0-a9e85c3f2a96",
+      "case_id": "chatman-hook",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 1,
+      "objects": [
+        [
+          "Accept_DeterministicOperatorWithoutReceipt",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
         "outcome": "admitted",
-        "fixture_id": "Accept_HookPatternAdmitted"
+        "fixture_id": "Accept_DeterministicOperatorWithoutReceipt"
       }
     },
     "evt_003": {
-      "event_id": "9db0a0c3-d1c2-414c-a504-4039b1f44b3a",
+      "event_id": "491adfa9-1679-44ec-9d44-542a923fb7e9",
       "case_id": "chatman-hook",
       "activity": {
         "DiagnosticEmitted": {
@@ -62,13 +62,13 @@
         ]
       ],
       "attributes": {
-        "outcome": "refused",
         "fixture_id": "Falsify_NondeterministicOperatorRequiresReceipt",
-        "refusal": "NondeterministicOperatorRequiresReceipt"
+        "refusal": "NondeterministicOperatorRequiresReceipt",
+        "outcome": "refused"
       }
     },
     "evt_002": {
-      "event_id": "19a1ff32-7de5-42f6-a95e-78de8a3dfa94",
+      "event_id": "c4711518-7222-473d-ae29-5806895e2c22",
       "case_id": "chatman-hook",
       "activity": {
         "DiagnosticEmitted": {
@@ -84,9 +84,9 @@
         ]
       ],
       "attributes": {
-        "refusal": "HookPatternNotAdmitted",
+        "fixture_id": "Falsify_HookPatternNotAdmitted",
         "outcome": "refused",
-        "fixture_id": "Falsify_HookPatternNotAdmitted"
+        "refusal": "HookPatternNotAdmitted"
       }
     }
   },

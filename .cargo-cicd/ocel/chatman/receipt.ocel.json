@@ -3,30 +3,8 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
-    "evt_005": {
-      "event_id": "5704c3f1-fb9c-4c8a-bef2-cdc20fd0931d",
-      "case_id": "chatman-receipt",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 6,
-      "objects": [
-        [
-          "Falsify_ProjectionHashMismatch",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Falsify_ProjectionHashMismatch",
-        "outcome": "refused",
-        "refusal": "ProjectionHashMismatch"
-      }
-    },
     "evt_001": {
-      "event_id": "9e379631-58da-42e3-86cb-7de972690d9b",
+      "event_id": "12da4f9c-f7aa-4608-9a1c-c2a710e7df51",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {
@@ -43,12 +21,12 @@
       ],
       "attributes": {
         "outcome": "refused",
-        "refusal": "BoundaryRequestMissingReceipt",
-        "fixture_id": "Falsify_BoundaryRequestMissingReceipt"
+        "fixture_id": "Falsify_BoundaryRequestMissingReceipt",
+        "refusal": "BoundaryRequestMissingReceipt"
       }
     },
     "evt_003": {
-      "event_id": "1da09a10-e82b-4faf-83a0-af3bb060577b",
+      "event_id": "6b092150-4569-4968-a666-27c2c70a8ca1",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {
@@ -64,34 +42,13 @@
         ]
       ],
       "attributes": {
+        "outcome": "refused",
         "refusal": "ProfileHashMismatch",
-        "fixture_id": "Falsify_ProfileHashMismatch",
-        "outcome": "refused"
-      }
-    },
-    "evt_004": {
-      "event_id": "3b6786d6-138d-4c7b-9f60-6fca650e73d8",
-      "case_id": "chatman-receipt",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Info"
-        }
-      },
-      "timestamp_ns": 5,
-      "objects": [
-        [
-          "Accept_ProjectionHashMatches",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Accept_ProjectionHashMatches",
-        "outcome": "admitted"
+        "fixture_id": "Falsify_ProfileHashMismatch"
       }
     },
     "evt_000": {
-      "event_id": "24ef5e83-ac80-458a-9ff3-2b185d8423a9",
+      "event_id": "9331e213-8754-4e74-96c8-2f6a84c9e532",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {
@@ -107,12 +64,12 @@
         ]
       ],
       "attributes": {
-        "fixture_id": "Accept_BoundaryRequestCarriesReceipt",
-        "outcome": "admitted"
+        "outcome": "admitted",
+        "fixture_id": "Accept_BoundaryRequestCarriesReceipt"
       }
     },
     "evt_002": {
-      "event_id": "85f16eac-b185-4114-afde-cf0e9397c1c5",
+      "event_id": "7fb33b2b-578d-474e-8534-0d9cda252219",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {
@@ -130,6 +87,49 @@
       "attributes": {
         "fixture_id": "Accept_ProfileHashMatches",
         "outcome": "admitted"
+      }
+    },
+    "evt_004": {
+      "event_id": "9ddace4d-eaed-4e74-8418-6205ad2a9f62",
+      "case_id": "chatman-receipt",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 5,
+      "objects": [
+        [
+          "Accept_ProjectionHashMatches",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "admitted",
+        "fixture_id": "Accept_ProjectionHashMatches"
+      }
+    },
+    "evt_005": {
+      "event_id": "312b8614-e769-4d63-b548-bd765b728edb",
+      "case_id": "chatman-receipt",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 6,
+      "objects": [
+        [
+          "Falsify_ProjectionHashMismatch",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Falsify_ProjectionHashMismatch",
+        "refusal": "ProjectionHashMismatch",
+        "outcome": "refused"
       }
     }
   },

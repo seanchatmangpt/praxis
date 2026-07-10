@@ -56,7 +56,7 @@ use serde::{Deserialize, Serialize};
 use bcinr_pddl::error::Pddl8Error;
 use bcinr_pddl::ground::GroundProblem;
 use bcinr_pddl::parse::{domain_from_pddl, problem_from_pddl};
-use bcinr_pddl::Pddl8Tape;
+use bcinr_pddl::{Pddl8Domain, Pddl8Problem, Pddl8Tape};
 use bcinr_powl::ocel::{validate_against_tape, ConformanceResult, OcelLog as PowlOcelLog};
 use bcinr_powl::tape::{OpKind, PowlTape};
 use bcinr_powl_receipt::causal_receipt::{OcelCausalFrame, OcelCausalReceipt, PackedObjRef};
@@ -952,6 +952,111 @@ impl ChatmanEngine {
         &self,
         snapshot_id: &GraphSnapshotId,
     ) -> Result<(Pddl8Tape, Digest), Refusal> {
+        self.compute_pddl_plan(snapshot_id)
+    }
+
+    /// Side-door accessor: computes the [`Pddl8Tape`] S3 (`generate_pddl_plan`)
+    /// would produce for `snapshot_id`, without going through the sealed
+    /// S1-S6 [`ChatmanEngine::admit_transition`] pipeline.
+    ///
+    /// This exists for downstream projection consumers (e.g. PDDL to POWL v2
+    /// projection via `chatman::powl_projection`) that need the plan tape for
+    /// an already-loaded snapshot without admitting a full transition. It
+    /// duplicates S1's presence check and S3's read/ground/plan logic rather
+    /// than sharing state with an in-flight `admit_transition` call, and it
+    /// does not participate in receipt sealing: calling this method has no
+    /// effect on any [`AdmittedTransition`] or [`EngineProcessReceipt`], and
+    /// it performs no store mutation (read-only, same as S1/S3).
+    ///
+    /// # Errors
+    /// [`Refusal::SnapshotNotFound`] if the snapshot graph is absent; the S3
+    /// taxonomy ([`Refusal::PlanInfeasible`], [`Refusal::ValidationFailed`],
+    /// etc., see [`ChatmanEngine::generate_pddl_plan`]) for planning failures.
+    ///
+    /// # Complexity
+    /// Same as S3 (`generate_pddl_plan`): grounding bounded by
+    /// `PDDL8_MAX_GROUND`, plan search bounded BFS
+    /// (`PDDL8_MAX_PLAN_DEPTH`), digest O(tape bytes).
+    pub fn plan_tape_for_snapshot(
+        &self,
+        snapshot_id: &GraphSnapshotId,
+    ) -> Result<Pddl8Tape, Refusal> {
+        // Re-run S1's presence check (read-only); the plan computation below
+        // re-reads the snapshot's PDDL literals directly by snapshot_id, so
+        // no other part of S1's canonicalization output is needed here.
+        let _ = self.fetch_snapshot(snapshot_id)?;
+        let (tape, _digest) = self.compute_pddl_plan(snapshot_id)?;
+        Ok(tape)
+    }
+
+    /// Read-only side-door, many-to-one form of
+    /// [`ChatmanEngine::plan_tape_for_snapshot`]: composes the PDDL planning
+    /// surface admitted across `snapshot_ids` (in caller order) and plans it
+    /// once, yielding one combined [`Pddl8Tape`].
+    ///
+    /// Each snapshot may carry a PDDL domain fragment literal
+    /// (`ceng:pddlDomain`), a problem fragment literal (`ceng:pddlProblem`),
+    /// or both. Fragments are parsed individually and merged structurally
+    /// (never by text concatenation): all domain fragments must declare the
+    /// same domain name; predicates, objects, init atoms, and goal atoms are
+    /// deduplicated unions in first-seen order; actions are appended in
+    /// caller order with duplicate action names refused. The merged goal is
+    /// the conjunction of every problem fragment's goal, so every problem
+    /// artifact is load-bearing. Like the single-snapshot side-door this
+    /// performs no store mutation and never participates in receipt sealing.
+    ///
+    /// # Errors
+    /// [`Refusal::PlanInfeasible`] for an empty `snapshot_ids`, a fragment
+    /// set with no domain or no problem literal, or an unsolvable merged
+    /// problem; [`Refusal::SnapshotNotFound`] for an absent snapshot graph;
+    /// [`Refusal::ValidationFailed`] for parse failures, mismatched domain
+    /// names, or duplicate action names.
+    ///
+    /// # Complexity
+    /// O(n) literal selection over n snapshots plus O(a log a) merge over a
+    /// total actions/predicates/atoms; grounding bounded by
+    /// `PDDL8_MAX_GROUND`; plan search bounded BFS (`PDDL8_MAX_PLAN_DEPTH`).
+    pub fn plan_tape_for_snapshots(
+        &self,
+        snapshot_ids: &[GraphSnapshotId],
+    ) -> Result<Pddl8Tape, Refusal> {
+        if snapshot_ids.is_empty() {
+            return Err(Refusal::PlanInfeasible(
+                "plan_tape_for_snapshots: empty snapshot set; nothing to plan".to_string(),
+            ));
+        }
+        let mut domains: Vec<Pddl8Domain> = Vec::new();
+        let mut problems: Vec<Pddl8Problem> = Vec::new();
+        for snapshot_id in snapshot_ids {
+            // Re-run S1's presence check (read-only) per snapshot.
+            let _ = self.fetch_snapshot(snapshot_id)?;
+            let graph = snapshot_graph(snapshot_id)?;
+            if let Some(domain_text) = self.select_literal(&graph, PDDL_DOMAIN_PREDICATE)? {
+                domains.push(domain_from_pddl(&domain_text)?);
+            }
+            if let Some(problem_text) = self.select_literal(&graph, PDDL_PROBLEM_PREDICATE)? {
+                problems.push(problem_from_pddl(&problem_text)?);
+            }
+        }
+        let (domain, problem) = merge_pddl_fragments(domains, problems)?;
+        let ground = GroundProblem::build(&domain, &problem, None)?;
+        let tape = ground.find_plan()?;
+        Ok(tape)
+    }
+
+    /// Shared S3 body: reads the PDDL domain/problem literals from the
+    /// snapshot, grounds and plans through `bcinr_pddl`, and returns the tape
+    /// plus its canonical digest. Called by both the sealed S3 pipeline step
+    /// ([`ChatmanEngine::generate_pddl_plan`]) and the read-only side-door
+    /// accessor ([`ChatmanEngine::plan_tape_for_snapshot`]).
+    ///
+    /// # Complexity
+    /// Grounding is bounded by `PDDL8_MAX_GROUND`; plan search is bounded
+    /// BFS (`PDDL8_MAX_PLAN_DEPTH`); the digest is O(tape bytes).
+    fn compute_pddl_plan(
+        &self,
+        snapshot_id: &GraphSnapshotId,
+    ) -> Result<(Pddl8Tape, Digest), Refusal> {
         let graph = snapshot_graph(snapshot_id)?;
         let domain_text = self
             .select_literal(&graph, PDDL_DOMAIN_PREDICATE)?
@@ -1253,6 +1358,139 @@ impl ChatmanEngine {
         values.sort();
         Ok(values.into_iter().next())
     }
+}
+
+/// Structurally merges parsed PDDL domain and problem fragments (in caller
+/// order) into one combined domain/problem pair — admitted graph composition
+/// at the parsed-artifact level, never text concatenation.
+///
+/// Merge law: all domain fragments must declare the same domain name and all
+/// problem fragments must target it; predicates, objects, init atoms, and
+/// goal atoms are deduplicated unions preserving first-seen order; actions
+/// are appended in fragment order with duplicate action names refused;
+/// PDDL 3.1 extended fields (types, functions, durative actions, derived
+/// predicates, constraints) are concatenated in fragment order. The merged
+/// problem's goal is the conjunction of every fragment goal. Deterministic:
+/// output depends only on fragment content and order.
+///
+/// # Errors
+/// [`Refusal::PlanInfeasible`] when no domain or no problem fragment exists;
+/// [`Refusal::ValidationFailed`] for mismatched domain names, problems
+/// targeting a different domain, or duplicate action names.
+///
+/// # Complexity
+/// O(a log a) over the total count a of actions, predicates, objects, and
+/// atoms (BTreeSet dedup lookups).
+fn merge_pddl_fragments(
+    domains: Vec<Pddl8Domain>,
+    problems: Vec<Pddl8Problem>,
+) -> Result<(Pddl8Domain, Pddl8Problem), Refusal> {
+    let Some(first_domain) = domains.first() else {
+        return Err(Refusal::PlanInfeasible(format!(
+            "no PDDL domain fragment literal at <{PDDL_DOMAIN_PREDICATE}> in any snapshot"
+        )));
+    };
+    if problems.is_empty() {
+        return Err(Refusal::PlanInfeasible(format!(
+            "no PDDL problem fragment literal at <{PDDL_PROBLEM_PREDICATE}> in any snapshot"
+        )));
+    }
+    let domain_name = first_domain.name.clone();
+
+    let mut merged_domain = Pddl8Domain {
+        name: domain_name.clone(),
+        predicates: Vec::new(),
+        actions: Vec::new(),
+        types: Vec::new(),
+        functions: Vec::new(),
+        durative_actions: Vec::new(),
+        derived: Vec::new(),
+        constraints: Vec::new(),
+        events: Vec::new(),
+        processes: Vec::new(),
+    };
+    let mut seen_predicates: std::collections::BTreeSet<(String, u8)> = Default::default();
+    let mut seen_actions: std::collections::BTreeSet<String> = Default::default();
+    for fragment in domains {
+        if fragment.name != domain_name {
+            return Err(Refusal::ValidationFailed(format!(
+                "domain fragment name mismatch: expected {domain_name:?}, found {:?}; \
+                 every fragment must declare the same combined domain",
+                fragment.name
+            )));
+        }
+        // O(p log p): dedup union preserving first-seen order.
+        for predicate in fragment.predicates {
+            if seen_predicates.insert(predicate.clone()) {
+                merged_domain.predicates.push(predicate);
+            }
+        }
+        // O(a log a): append in fragment order; duplicate names refused.
+        for action in fragment.actions {
+            if !seen_actions.insert(action.name.clone()) {
+                return Err(Refusal::ValidationFailed(format!(
+                    "duplicate PDDL action name {:?} across domain fragments",
+                    action.name
+                )));
+            }
+            merged_domain.actions.push(action);
+        }
+        merged_domain.types.extend(fragment.types);
+        merged_domain.functions.extend(fragment.functions);
+        merged_domain
+            .durative_actions
+            .extend(fragment.durative_actions);
+        merged_domain.derived.extend(fragment.derived);
+        merged_domain.constraints.extend(fragment.constraints);
+        merged_domain.events.extend(fragment.events);
+        merged_domain.processes.extend(fragment.processes);
+    }
+
+    let mut merged_problem = Pddl8Problem {
+        name: format!("{domain_name}-combined"),
+        domain: domain_name.clone(),
+        objects: Vec::new(),
+        init: Vec::new(),
+        goal: Vec::new(),
+        object_types: Vec::new(),
+        fn_values: Vec::new(),
+        metric: None,
+        timed_inits: Vec::new(),
+        preferences: Vec::new(),
+    };
+    let mut seen_objects: std::collections::BTreeSet<String> = Default::default();
+    let mut seen_init: std::collections::BTreeSet<String> = Default::default();
+    let mut seen_goal: std::collections::BTreeSet<String> = Default::default();
+    for fragment in problems {
+        if fragment.domain != domain_name {
+            return Err(Refusal::ValidationFailed(format!(
+                "problem fragment {:?} targets domain {:?}, expected {domain_name:?}",
+                fragment.name, fragment.domain
+            )));
+        }
+        for object in fragment.objects {
+            if seen_objects.insert(object.clone()) {
+                merged_problem.objects.push(object);
+            }
+        }
+        // Atoms keyed by debug rendering: Pddl8Atom is not Ord; the rendered
+        // key is total and injective over (predicate, args).
+        for atom in fragment.init {
+            if seen_init.insert(format!("{atom:?}")) {
+                merged_problem.init.push(atom);
+            }
+        }
+        for atom in fragment.goal {
+            if seen_goal.insert(format!("{atom:?}")) {
+                merged_problem.goal.push(atom);
+            }
+        }
+        merged_problem.object_types.extend(fragment.object_types);
+        merged_problem.fn_values.extend(fragment.fn_values);
+        merged_problem.timed_inits.extend(fragment.timed_inits);
+        merged_problem.preferences.extend(fragment.preferences);
+    }
+    Ok((merged_domain, merged_problem))
 }
 
 /// S5: seals hook receipts into [`BoundaryRequest`]s and computes digest #8

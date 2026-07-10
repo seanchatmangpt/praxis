@@ -1,0 +1,14 @@
+# Negative fixture: parses as valid Turtle but violates the declared POWL v2
+# shape (a ChildBinding with no childIndex/childModel, an ActivityLeaf with
+# an empty label, and a precedes edge from a non-binding) — proving CNG_R06
+# InvalidPowl in `cng workflow inspect`. This is a hand-authored NEGATIVE
+# input artifact, not generated POWL.
+@prefix powl2: <https://truex.io/ontology/powl2#> .
+@prefix ex: <urn:cng:negative#> .
+
+ex:m a powl2:Model .
+ex:m a powl2:PartialOrder .
+ex:b0 a powl2:ChildBinding .
+ex:leaf a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "" .
+ex:not-a-binding powl2:precedes ex:b0 .

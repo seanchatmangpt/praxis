@@ -1,0 +1,26 @@
+# Negative fixture: valid Turtle and valid PDDL whose goal predicate is
+# never produced by any action — proving CNG_R04 PlanUnsolvable. Input
+# artifact, not generated POWL.
+@prefix ex: <http://example.org/negative#> .
+@prefix ceng: <urn:chatman:engine#> .
+
+ex:unsolvable ceng:pddlDomain """
+(define (domain dead-end)
+  (:requirements :strips)
+  (:predicates
+    (start-state ?x)
+    (middle-state ?x)
+    (unreachable-state ?x))
+  (:action advance
+    :parameters (?x)
+    :precondition (and (start-state ?x))
+    :effect (and (middle-state ?x))))
+""" .
+ex:unsolvable ceng:pddlProblem """
+(define (problem dead-end-p)
+  (:domain dead-end)
+  (:objects widget)
+  (:init (start-state widget))
+  (:goal (unreachable-state widget))
+)
+""" .

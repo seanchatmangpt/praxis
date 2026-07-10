@@ -28,8 +28,30 @@ setup-sccache:
     @echo "Then open a new shell and re-run your build; verify with: sccache --show-stats"
 
 # Run only tests affected by changes
+# cargo-cicd only plans (prints "would run"); this recipe extracts the affected file paths from
+# that plan, derives the owning crate package(s) (crates/<pkg>/...), and actually executes
+# nextest (falling back to cargo test) scoped to those packages — same nextest/fallback pattern
+# as the `test` recipe above.
 test-changed:
-    timeout 30s cargo cicd test changed
+    #!/usr/bin/env bash
+    set -euo pipefail
+    plan=$(timeout 30s cargo-cicd test changed --format plain)
+    echo "$plan"
+    pkgs=$(echo "$plan" | grep -oE 'crates/[^/]+/' | sed 's#crates/##; s#/##' | sort -u)
+    if [ -z "$pkgs" ]; then
+        echo "just test-changed: no affected crate packages parsed from plan; nothing to run"
+        exit 0
+    fi
+    pkg_args=""
+    for p in $pkgs; do pkg_args="$pkg_args -p $p"; done
+    echo "just test-changed: running affected packages:$pkg_args"
+    # 1800s, not 600s: a cold build of an affected crate (e.g. praxis-graphlaw with a new
+    # dependency) can spend 8-9 minutes on compilation alone before any test executes.
+    if command -v cargo-nextest >/dev/null 2>&1; then
+        timeout 1800s cargo nextest run $pkg_args --all-features
+    else
+        timeout 1800s cargo test $pkg_args --all-features
+    fi
 
 # Check target directory size and prune
 clean-stale:
@@ -39,9 +61,10 @@ clean-stale:
 # binary's clap parser rejects cargo's prepended arg.
 # Refresh the praxis-standing.v1 index, standing-pack ontology, and docs/standing/REALITY_INDEX.md
 standing:
+    command -v ggen >/dev/null || (echo "ggen not found on PATH — run: cargo install --path crates/ggen --locked" && exit 1)
     timeout 60s cargo-cicd standing refresh
     cp target/praxis-standing/standing.ttl ../cargo-cicd/plugins/cargo-cicd-kit/standing-pack/ontology.ttl
-    timeout 120s cargo run --quiet -p ggen --bin ggen -- sync run
+    timeout 120s ggen sync run
     timeout 60s cargo-cicd claude_context show
     @echo "just standing: refreshed target/praxis-standing/standing.json, regenerated docs/standing/REALITY_INDEX.md and target/praxis-standing/CLAUDE_CODE_CONTEXT.md"
 
@@ -94,6 +117,15 @@ frontier:
 verify-all: check test clippy doctor
     @echo "verify-all: check + test + clippy + doctor all passed"
 
+# Run workspace benchmarks. `just bench filter="bench_name"` to scope to one benchmark target
+bench filter="":
+    timeout 600s cargo bench {{ if filter != "" { "--bench " + filter } else { "" } }}
+
+# Line/branch coverage report via tarpaulin (installs it if missing). `just coverage out="Html"` for other tarpaulin --out formats
+coverage out="Html":
+    command -v cargo-tarpaulin >/dev/null 2>&1 || cargo install cargo-tarpaulin --locked
+    timeout 600s cargo tarpaulin --out {{out}} --output-dir coverage --exclude-files "tests/*"
+
 # Genesis Day 2 Revenue Physics pipe end to end: observation -> proposals -> goal -> plan -> admit -> receipt
 revenue-demo:
     cargo run --quiet --features proposer --bin revenue_demo
@@ -137,6 +169,45 @@ chatman-verify:
     timeout 300s cargo test -p praxis-graphlaw --test chatman_static_gates
     python3 docs/chatman-engine/diagrams/atlas/verify_atlas.py
 
+# --- cng CLI (crates/cng) ---
+
+# Build the cng CLI binary
+cng-build:
+    timeout 600s cargo build -p cng
+
+# Run the cng CLI with arguments (e.g. `just cng-run plan generate --dir plans/`)
+cng-run *args:
+    timeout 300s cargo run -q -p cng -- {{args}}
+
+# Build/run the cng CLI with the bench feature (Fortune-5 benchmark verbs)
+cng-bench-build:
+    timeout 900s cargo build --release -p cng --features bench
+
+cng-bench *args:
+    timeout 3600s cargo run -q --release -p cng --features bench -- {{args}}
+
+# Run the cng test suite
+cng-test:
+    timeout 600s cargo test -p cng
+
+# Package-surface smoke: install the cng binary from the crate and invoke it
+cng-install-smoke:
+    timeout 600s cargo install --path crates/cng --debug --root target/install-smoke --force
+    target/install-smoke/bin/cng workflow doctor
+
+# Search crates.io for a crate name (publishability checks)
+crates-search name:
+    timeout 60s cargo search {{name}} --limit 3
+
+# Dry-run publish one workspace crate (no upload; packaging + verify build)
+publish-dry-run crate:
+    timeout 600s cargo publish -p {{crate}} --dry-run --allow-dirty
+
+# Run one exact praxis-graphlaw integration-test binary (e.g. `just test-bin chatman_pddl_to_powl_projection`).
+# --nocapture so artifact-path markers (GENERATED_POWL_TTL_PATH=, IMPORTED_PDDL_TTL_PATH=) stay visible.
+test-bin binary:
+    timeout 600s cargo test -p praxis-graphlaw --test {{binary}} -- --nocapture
+
 # Slow quality gates: mutation score, line coverage, dylint (requires cargo-mutants/llvm-cov/dylint)
 chatman-quality:
     cargo mutants -p praxis-graphlaw --file 'src/chatman/*'
@@ -145,6 +216,7 @@ chatman-quality:
 
 # Idempotence check: ggen sync twice must leave generated chatman paths unchanged
 chatman-sync-verify:
-    timeout 120s cargo run --quiet -p ggen --bin ggen -- sync run
-    timeout 120s cargo run --quiet -p ggen --bin ggen -- sync run
+    command -v ggen >/dev/null || (echo "ggen not found on PATH — run: cargo install --path crates/ggen --locked" && exit 1)
+    timeout 120s ggen sync run
+    timeout 120s ggen sync run
     git diff --exit-code -- 'crates/praxis-graphlaw/src/chatman' 'docs/chatman-engine'

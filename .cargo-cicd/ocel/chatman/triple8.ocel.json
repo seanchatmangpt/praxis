@@ -4,7 +4,7 @@
   },
   "ocel:events": {
     "evt_006": {
-      "event_id": "747e0fd2-88ac-4b64-8fa4-0b1df3f443c3",
+      "event_id": "69377338-7f4f-4ba4-96d2-8e399a820ae9",
       "case_id": "chatman-triple8",
       "activity": {
         "DiagnosticEmitted": {
@@ -21,12 +21,12 @@
       ],
       "attributes": {
         "refusal": "TripleTermInSnapshot",
-        "fixture_id": "Falsify_TripleTermInSnapshot",
-        "outcome": "refused"
+        "outcome": "refused",
+        "fixture_id": "Falsify_TripleTermInSnapshot"
       }
     },
-    "evt_001": {
-      "event_id": "8c871cec-c50d-4adc-8325-f2ecab65eef2",
+    "evt_004": {
+      "event_id": "99338eb6-86b1-4790-8549-5981f89a96c7",
       "case_id": "chatman-triple8",
       "activity": {
         "DiagnosticEmitted": {
@@ -34,21 +34,21 @@
           "severity": "Andon"
         }
       },
-      "timestamp_ns": 2,
+      "timestamp_ns": 5,
       "objects": [
         [
-          "Falsify_TermNotInTriple8Universe",
+          "Falsify_Triple8UniverseOverflowByOne",
           "Fixture"
         ]
       ],
       "attributes": {
-        "fixture_id": "Falsify_TermNotInTriple8Universe",
         "outcome": "refused",
-        "refusal": "TermNotInTriple8Universe"
+        "fixture_id": "Falsify_Triple8UniverseOverflowByOne",
+        "refusal": "Triple8UniverseOverflow"
       }
     },
     "evt_002": {
-      "event_id": "0cadb9e5-7f92-40fd-b48a-c2470b9effae",
+      "event_id": "a3907c8a-560b-403a-904a-ca2ec4a0bb90",
       "case_id": "chatman-triple8",
       "activity": {
         "DiagnosticEmitted": {
@@ -64,12 +64,12 @@
         ]
       ],
       "attributes": {
-        "outcome": "admitted",
-        "fixture_id": "Accept_TermsResolveInTriple8Universe"
+        "fixture_id": "Accept_TermsResolveInTriple8Universe",
+        "outcome": "admitted"
       }
     },
     "evt_003": {
-      "event_id": "a63574f7-f966-438e-82cd-58890d05f756",
+      "event_id": "b02ba85c-c713-4fae-95fa-aa2eae190cfa",
       "case_id": "chatman-triple8",
       "activity": {
         "DiagnosticEmitted": {
@@ -90,30 +90,29 @@
         "refusal": "Triple8UniverseOverflow"
       }
     },
-    "evt_004": {
-      "event_id": "b9b27776-2b7f-4f55-be35-944d0752b9c5",
+    "evt_000": {
+      "event_id": "0f46e310-141e-4df4-8f93-4a608ad07280",
       "case_id": "chatman-triple8",
       "activity": {
         "DiagnosticEmitted": {
           "category": "Admission",
-          "severity": "Andon"
+          "severity": "Info"
         }
       },
-      "timestamp_ns": 5,
+      "timestamp_ns": 1,
       "objects": [
         [
-          "Falsify_Triple8UniverseOverflowByOne",
+          "Accept_SnapshotContainsOnlyAtomicTerms",
           "Fixture"
         ]
       ],
       "attributes": {
-        "refusal": "Triple8UniverseOverflow",
-        "fixture_id": "Falsify_Triple8UniverseOverflowByOne",
-        "outcome": "refused"
+        "fixture_id": "Accept_SnapshotContainsOnlyAtomicTerms",
+        "outcome": "admitted"
       }
     },
     "evt_005": {
-      "event_id": "b1adb389-d4e5-4be8-ae77-728112f4104e",
+      "event_id": "5e93d7d9-551a-443e-bfdc-311a492a25a7",
       "case_id": "chatman-triple8",
       "activity": {
         "DiagnosticEmitted": {
@@ -133,25 +132,26 @@
         "outcome": "admitted"
       }
     },
-    "evt_000": {
-      "event_id": "51fb8ddb-aa59-4706-af89-137b0a036866",
+    "evt_001": {
+      "event_id": "ab00d375-a151-433a-aaa5-a11f3b29892d",
       "case_id": "chatman-triple8",
       "activity": {
         "DiagnosticEmitted": {
           "category": "Admission",
-          "severity": "Info"
+          "severity": "Andon"
         }
       },
-      "timestamp_ns": 1,
+      "timestamp_ns": 2,
       "objects": [
         [
-          "Accept_SnapshotContainsOnlyAtomicTerms",
+          "Falsify_TermNotInTriple8Universe",
           "Fixture"
         ]
       ],
       "attributes": {
-        "outcome": "admitted",
-        "fixture_id": "Accept_SnapshotContainsOnlyAtomicTerms"
+        "fixture_id": "Falsify_TermNotInTriple8Universe",
+        "refusal": "TermNotInTriple8Universe",
+        "outcome": "refused"
       }
     }
   },

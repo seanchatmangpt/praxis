@@ -1,0 +1,38 @@
+# rwai-bench domain fragment template: one half of an 8-step workflow's
+# planning surface (4 actions over a 5-predicate chain segment), rendered
+# with deterministic seeded names by `cng bench generate`. Real imported
+# artifact; PDDL never lives in Rust strings. Effects are non-destructive so
+# fragment goals compose conjunctively across the merged problem.
+@prefix ex: <http://example.org/rwai#> .
+@prefix ceng: <urn:chatman:engine#> .
+
+ex:{{SUBJECT}} a ex:WorkloadArtifact ;
+  ex:category "{{CATEGORY}}" ;
+  ex:worker "{{WORKER}}" .
+
+ex:{{SUBJECT}} ceng:pddlDomain """
+(define (domain {{DOMAIN}})
+  (:requirements :strips)
+  (:predicates
+    ({{P0}} ?x)
+    ({{P1}} ?x)
+    ({{P2}} ?x)
+    ({{P3}} ?x)
+    ({{P4}} ?x))
+  (:action {{A0}}
+    :parameters (?x)
+    :precondition (and ({{P0}} ?x))
+    :effect (and ({{P1}} ?x)))
+  (:action {{A1}}
+    :parameters (?x)
+    :precondition (and ({{P1}} ?x))
+    :effect (and ({{P2}} ?x)))
+  (:action {{A2}}
+    :parameters (?x)
+    :precondition (and ({{P2}} ?x))
+    :effect (and ({{P3}} ?x)))
+  (:action {{A3}}
+    :parameters (?x)
+    :precondition (and ({{P3}} ?x))
+    :effect (and ({{P4}} ?x))))
+""" .

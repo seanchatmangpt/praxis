@@ -217,6 +217,7 @@ affidavit = { path = "/Users/sac/affidavit" }
 resolver = "2"
 members = [
     "crates/agent8",
+    "crates/cng",
     "crates/ggen",
     "crates/chatman-common",
     "crates/praxis-core",

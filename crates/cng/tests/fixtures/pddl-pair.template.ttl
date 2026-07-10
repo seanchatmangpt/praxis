@@ -1,0 +1,34 @@
+# Seeded fixture template for cng integration tests.
+# One admitted PDDL Turtle planning artifact carrying both a domain and a
+# problem literal for a tiny 2-action linear STRIPS chain. Placeholder
+# tokens ({{DOMAIN_NAME}}, {{OBJ}}, {{ACTION_0}}, {{ACTION_1}}, {{PRED_0}},
+# {{PRED_1}}, {{PRED_2}}) are substituted deterministically from a u64 seed
+# by the test harness; Turtle never lives in Rust strings.
+@prefix ex: <http://example.org/seeded#> .
+@prefix ceng: <urn:chatman:engine#> .
+
+ex:artifact ceng:pddlDomain """
+(define (domain {{DOMAIN_NAME}})
+  (:requirements :strips)
+  (:predicates
+    ({{PRED_0}} ?x)
+    ({{PRED_1}} ?x)
+    ({{PRED_2}} ?x))
+  (:action {{ACTION_0}}
+    :parameters (?x)
+    :precondition (and ({{PRED_0}} ?x))
+    :effect (and ({{PRED_1}} ?x)))
+  (:action {{ACTION_1}}
+    :parameters (?x)
+    :precondition (and ({{PRED_1}} ?x))
+    :effect (and ({{PRED_2}} ?x))))
+""" .
+
+ex:artifact ceng:pddlProblem """
+(define (problem {{DOMAIN_NAME}}-p)
+  (:domain {{DOMAIN_NAME}})
+  (:objects {{OBJ}})
+  (:init ({{PRED_0}} {{OBJ}}))
+  (:goal ({{PRED_2}} {{OBJ}}))
+)
+""" .

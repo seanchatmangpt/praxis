@@ -7,6 +7,10 @@ This repo maintains **AGI-level Rust core-team code discipline** — every invar
 test, and performance assumption is binding, not aspirational. See
 `docs/CORE_TEAM_DISCIPLINE.md` for full engineering standards.
 
+Chatman Engine is the concrete realization of μ (`A = μ(O*)`) — not workflow
+automation, document generation, or an ontology project; see
+`docs/CHATMAN_EQUATION.md` for the full formulation.
+
 ## Invariants (violation = the bug, not a code-review note)
 
 1. **No panics/silent defaults** — every error is a typed `Refusal` variant (`lib.rs`).
@@ -34,12 +38,24 @@ blockers. Full policy: `docs/standing/CLAUDE_CODE_POLICY.md`.
 `just verify-all` — DoD gate, run before claiming a ticket done.
 `just test-changed` — fast inner loop.
 
+## Custom agents — use these, don't reinvent their briefing
+
+Three project agents in `.claude/agents/` carry this repo's recurring constraints so they don't
+need restating per-prompt: `chatman-rust` (any `crates/praxis-graphlaw/src/chatman/` change —
+sealed-receipt invariants, just-only build discipline), `ttl-ontology` (RDF/Turtle vocabulary or
+instance-data work — public-ontology-first doctrine, STRIPS8 boundary), `release-doc`
+(`docs/releases/vX.Y.Z/` PRD/ARD/RELEASE_CONTROL work — house template, shared Claims
+Reconciliation table). Prefer dispatching to the matching agent over a bare `general-purpose`
+one for these three areas.
+
 ## Build hygiene
 
-Never run two `cargo test`/`cargo build` invocations concurrently (they serialize on the
-`target/` lock and silently double wall-clock time — check `ps aux | grep cargo` first). Avoid
-`--release` (full LTO, codegen-units=1) for iteration; scope by exact `--test <binary>`, not
-substring match. Details: `docs/BUILD_CACHING.md`.
+Never invoke `cargo` directly — use `just <recipe>`. If a needed cargo invocation has no
+matching recipe, add one to `justfile` rather than running cargo ad hoc; do not work around
+this by shelling out. Never run two `just` invocations that both build/test/check concurrently
+(they serialize on the `target/` lock and silently double wall-clock time — check
+`ps aux | grep cargo` first). Avoid `--release` (full LTO, codegen-units=1) for iteration; scope
+by exact `--test <binary>`, not substring match. Details: `docs/BUILD_CACHING.md`.
 
 ## Reporting
 
@@ -56,6 +72,7 @@ This file must stay ≤ 200 lines. If it needs to grow past that, split into a n
 ## See Also
 
 - **`docs/CORE_TEAM_DISCIPLINE.md`** — Full engineering standards for Rust core-team level code quality (performance measurement, testing discipline, review checklist, determinism guarantees, complexity documentation, invariant enforcement)
+- `docs/CHATMAN_EQUATION.md` — Chatman Engine as the concrete realization of μ in `A = μ(O*)`
 - **`~/.claude/rules/tools.md`** — Tool usage rules (LSP-first navigation, markdown document standards, cross-document consistency)
 - `docs/rust-anti-patterns.md` — Project-scoped Rust anti-patterns and enforcement rules
 - `.claude/rules/no-overclaiming.md` — required status vocabulary; forbidden completion

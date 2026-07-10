@@ -1,0 +1,50 @@
+# Declared shape for cng-generated POWL v2 workflow graphs.
+# The executable form of these constraints is cng::shape::validate_powl_store
+# (a SPARQL structural validator); this artifact is the declarative SHACL
+# statement of the same law, shipped with the crate so the shape travels
+# with the tool rather than living as private code knowledge.
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix powl2: <https://truex.io/ontology/powl2#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <urn:cng:shapes#> .
+
+ex:ModelShape a sh:NodeShape ;
+  sh:targetClass powl2:Model ;
+  sh:property [
+    sh:path powl2:derivedFrom ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+  ] .
+
+ex:ChildBindingShape a sh:NodeShape ;
+  sh:targetClass powl2:ChildBinding ;
+  sh:property [
+    sh:path powl2:childIndex ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:integer ;
+  ] ;
+  sh:property [
+    sh:path powl2:childModel ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+  ] .
+
+ex:ActivityLeafShape a sh:NodeShape ;
+  sh:targetClass powl2:ActivityLeaf ;
+  sh:property [
+    sh:path powl2:activityLabel ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:minLength 1 ;
+  ] .
+
+ex:PrecedesShape a sh:NodeShape ;
+  sh:targetSubjectsOf powl2:precedes ;
+  sh:class powl2:ChildBinding ;
+  sh:property [
+    sh:path powl2:precedes ;
+    sh:class powl2:ChildBinding ;
+  ] .

@@ -347,8 +347,29 @@ name = "bcinr-logic"
 version = "26.6.24"
 
 [[package]]
+name = "bcinr-logic"
+version = "26.6.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f27f4bba1bbe5c5a5930ed0add9312a7f836eb29a5050e72f7c93184dd83ff59"
+
+[[package]]
 name = "bcinr-pddl"
 version = "26.6.26"
+dependencies = [
+ "blake3",
+ "chrono",
+ "pddl",
+ "prolog8 26.7.1",
+ "serde",
+ "serde_json",
+ "wasm4pm-compat",
+]
+
+[[package]]
+name = "bcinr-pddl"
+version = "26.6.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61eb2c4fde97a8dd6ffc9cb9bfc4b80591b7ee41814b4e7cb5990e895b9279c1"
 dependencies = [
  "blake3",
  "chrono",
@@ -363,7 +384,18 @@ dependencies = [
 name = "bcinr-powl"
 version = "26.6.25"
 dependencies = [
- "bcinr-logic",
+ "bcinr-logic 26.6.24",
+ "blake3",
+ "wasm4pm-compat",
+]
+
+[[package]]
+name = "bcinr-powl"
+version = "26.6.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6793aa6aee267c7f8c17e8b39dfd4c8536c08c3adcbcb1c7fe10f1dc73f8afb6"
+dependencies = [
+ "bcinr-logic 26.6.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "blake3",
  "wasm4pm-compat",
 ]
@@ -372,8 +404,8 @@ dependencies = [
 name = "bcinr-powl-receipt"
 version = "26.6.24"
 dependencies = [
- "bcinr-logic",
- "bcinr-powl",
+ "bcinr-logic 26.6.24",
+ "bcinr-powl 26.6.25",
  "blake3",
  "serde",
  "serde_json",
@@ -861,6 +893,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bde03770d3df201d4fb868f2c9c59e66a3e4e2bd06692a0fe701e7103c7e84d4"
 dependencies = [
  "error-code",
+]
+
+[[package]]
+name = "cng"
+version = "26.9.10"
+dependencies = [
+ "bcinr-pddl 26.6.26 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bcinr-powl 26.6.25 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blake3",
+ "clap-noun-verb",
+ "clap-noun-verb-macros",
+ "linkme",
+ "oxigraph",
+ "serde",
+ "serde_json",
+ "wasm4pm-cognition 26.7.1",
 ]
 
 [[package]]
@@ -1621,6 +1669,17 @@ checksum = "8be9f3dfaaffdae2972880079a491a1a8bb7cbed0b8dd7a347f668b4150a3b93"
 dependencies = [
  "event-listener",
  "pin-project-lite",
+]
+
+[[package]]
+name = "fake"
+version = "4.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2b0902eb36fbab51c14eda1c186bda119fcff91e5e4e7fc2dd2077298197ce8"
+dependencies = [
+ "deunicode",
+ "either",
+ "rand 0.9.4",
 ]
 
 [[package]]
@@ -3271,8 +3330,8 @@ dependencies = [
  "agent8",
  "anyhow",
  "assert_cmd",
- "bcinr-pddl",
- "bcinr-powl",
+ "bcinr-pddl 26.6.26",
+ "bcinr-powl 26.6.25",
  "bcinr-powl-receipt",
  "blake3",
  "chrono",
@@ -4117,8 +4176,8 @@ dependencies = [
 name = "praxis-graphlaw"
 version = "26.7.9"
 dependencies = [
- "bcinr-pddl",
- "bcinr-powl",
+ "bcinr-pddl 26.6.26",
+ "bcinr-powl 26.6.25",
  "bcinr-powl-receipt",
  "bencher",
  "blake3",
@@ -4127,6 +4186,7 @@ dependencies = [
  "divan",
  "either",
  "env_logger",
+ "fake",
  "fixedbitset",
  "log",
  "md5",
@@ -4135,7 +4195,9 @@ dependencies = [
  "oxrdf",
  "pest",
  "pest_derive",
+ "powl2-decompose",
  "proptest",
+ "rand 0.9.4",
  "regex",
  "rio_api",
  "rio_turtle",

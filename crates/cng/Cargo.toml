@@ -1,0 +1,42 @@
+[package]
+name = "cng"
+version = "26.9.10"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT OR Apache-2.0"
+description = "Chatman Engine noun-verb CLI: import admitted PDDL Turtle planning artifacts, generate one combined plan, and project/export it as a POWL v2 Turtle workflow artifact (A = mu(O*))."
+repository = "https://github.com/seanchatmangpt/praxis"
+readme = "README.md"
+keywords = ["pddl", "powl", "rdf", "workflow", "planning"]
+categories = ["command-line-utilities"]
+
+# Registry-only dependencies: every dependency below is published on
+# crates.io, so `cargo publish --dry-run` can package and verify this crate.
+[dependencies]
+clap-noun-verb = "26.7.4"
+clap-noun-verb-macros = "26.7.4"
+# The #[verb] macro expands to linkme distributed-slice registrations that
+# reference `linkme` from the consuming crate.
+linkme = "0.3"
+bcinr-pddl = "26.6.26"
+# Runner connection (workflow validate/evidence): executes the projected
+# workflow on the bcinr-powl branchless scheduler. bcinr-powl 26.6.25 needs a
+# nightly toolchain (adt_const_params, generic_const_exprs) — stable
+# consumers can build with --no-default-features.
+bcinr-powl = { version = "26.6.25", optional = true }
+oxigraph = "0.5"
+blake3 = "1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+# Old-AI cognition breeds (wasm4pm): role inference / lawful-next-action
+# derivation inside the benchmark's autonomic chain. Registry version, so
+# publishability is preserved; pulled only by the bench feature.
+wasm4pm-cognition = { version = "26.7.1", optional = true }
+
+[features]
+default = ["runner"]
+runner = ["dep:bcinr-powl"]
+# Fortune-5 scale benchmark verbs (cng benchmark generate/run/verify/report).
+# Off by default: benchmark instrumentation (wall-clock timing, corpus
+# generation) stays out of the published default surface. Requires runner.
+bench = ["runner", "dep:wasm4pm-cognition"]

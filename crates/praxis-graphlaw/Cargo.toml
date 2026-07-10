@@ -35,6 +35,7 @@ rustc-hash = "2"
 smallvec = { version = "1", features = ["serde"] }
 fixedbitset = "0.5"
 oxigraph = { version = "0.5.9", features = ["rdf-12"] }
+powl2-decompose = { path = "../powl2-decompose" }
 bcinr-pddl = { path = "/Users/sac/bcinr/crates/bcinr-pddl" }
 bcinr-powl = { path = "/Users/sac/bcinr/crates/bcinr-powl" }
 bcinr-powl-receipt = { path = "/Users/sac/bcinr/crates/bcinr-powl-receipt" }
@@ -79,6 +80,10 @@ harness = false
 
 [dev-dependencies]
 divan = "0.1"
+# Seeded fake-data generation for test fixtures only (anti-hardcoding proof in
+# chatman_pddl_to_powl_projection); never a production dependency.
+fake = "4"
+rand = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 proptest = "1.5"

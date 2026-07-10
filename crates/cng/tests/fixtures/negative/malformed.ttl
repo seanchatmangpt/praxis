@@ -1,0 +1,4 @@
+# Negative fixture: intentionally invalid Turtle (unterminated IRI) proving
+# CNG_R01 MalformedTtl. This is an input artifact, not generated POWL.
+@prefix ex: <http://example.org/negative#> .
+ex:broken ex:points <urn:unterminated
