@@ -1,9 +1,11 @@
-# metric-replay.rq
+# metric-replay.rq (PROJ-614)
 # Inputs: materialized OCEL graph.
 # Outputs: single row: ?count = COUNT(DISTINCT events with attributeKey 'replay.verified').
-# No CONSTRUCT in this pack emits 'replay.verified' yet; the replay
-# verifier is expected to attach it post-hoc. Until then this metric
-# deterministically returns 0 on pack-constructed graphs.
+# ocel-replays.construct.rq projects replay_verified observations (emitted
+# by the run/workday replay re-manufacture pass) into events carrying this
+# attribute, so this metric is nonzero (== replayed-and-passed sets) after
+# any replayed run; the reconcile gate compares it against the replay
+# telemetry counter (the graph is the authority).
 PREFIX ocel: <https://www.ocel-standard.org/2.0/>
 
 SELECT (COUNT(DISTINCT ?ev) AS ?count)

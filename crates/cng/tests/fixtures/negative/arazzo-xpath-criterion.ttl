@@ -1,0 +1,20 @@
+# Negative fixture (PROJ-621): a minimal Arazzo description whose criterion
+# uses criterionType "xpath" — a named REFUSED feature of the 80/20 profile
+# (shapes/arazzo-shapes.ttl CriterionShape sh:in). Admission must refuse
+# CNG_R18 ArazzoProfileRefused naming the feature.
+@prefix arz: <https://truex.io/ontology/arazzo#> .
+@prefix ex:  <urn:cng:fixture:arazzo:xpath#> .
+
+ex:wf a arz:Workflow ;
+    arz:workflowId "xpath-fixture" ;
+    arz:hasStep ex:step0 .
+
+ex:step0 a arz:Step ;
+    arz:stepId "step0" ;
+    arz:stepIndex 0 ;
+    arz:operationId "doThing" ;
+    arz:successCriterion ex:crit .
+
+ex:crit a arz:Criterion ;
+    arz:condition "//status = 'ok'" ;
+    arz:criterionType "xpath" .

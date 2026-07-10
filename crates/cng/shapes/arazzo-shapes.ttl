@@ -1,0 +1,163 @@
+# SHACL shapes for admitted Arazzo-as-RDF instances (80/20 profile).
+#
+# Validates instance data written against crates/cng/ontologies/arazzo.ttl.
+# All shapes are CLOSED: any predicate not enumerated here — including the
+# REFUSED 20% features (xpath criteria, Reusable Object references,
+# components, requestBody, specification extensions, 'function' failure
+# actions) — makes the node non-conforming, and refused features additionally
+# get named sh:not violations so the report cites the feature by name.
+# Doctrine: docs/standing/SEMANTIC_PROFILE_DOCTRINE.md.
+
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix arz:  <https://truex.io/ontology/arazzo#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix shp:  <urn:cng:shapes:arazzo#> .
+
+shp:WorkflowShape a sh:NodeShape ;
+    sh:targetClass arz:Workflow ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [
+        sh:path arz:workflowId ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[A-Za-z0-9_-]+$" ;
+    ] ;
+    sh:property [ sh:path arz:summary ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dcterms:description ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:inputs ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:hasStep ; sh:minCount 1 ; sh:nodeKind sh:IRI ; sh:class arz:Step ] ;
+    sh:property [ sh:path arz:dependsOn ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:hasOutput ; sh:nodeKind sh:IRI ; sh:class arz:Output ] .
+
+shp:StepShape a sh:NodeShape ;
+    sh:targetClass arz:Step ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [
+        sh:path arz:stepId ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[A-Za-z0-9_-]+$" ;
+    ] ;
+    sh:property [ sh:path arz:stepIndex ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ] ;
+    sh:property [ sh:path dcterms:description ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:operationId ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:operationPath ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:workflowRef ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:hasParameter ; sh:nodeKind sh:IRI ; sh:class arz:Parameter ] ;
+    sh:property [ sh:path arz:successCriterion ; sh:nodeKind sh:IRI ; sh:class arz:Criterion ] ;
+    sh:property [ sh:path arz:onSuccess ; sh:nodeKind sh:IRI ; sh:class arz:SuccessAction ] ;
+    sh:property [ sh:path arz:onFailure ; sh:nodeKind sh:IRI ; sh:class arz:FailureAction ] ;
+    sh:property [ sh:path arz:hasOutput ; sh:nodeKind sh:IRI ; sh:class arz:Output ] ;
+    sh:property [ sh:path arz:dependsOn ; sh:nodeKind sh:IRI ; sh:class arz:Step ] ;
+    # Exactly one operation target: operationId XOR operationPath XOR workflowRef.
+    sh:xone (
+        [ sh:property [ sh:path arz:operationId ; sh:minCount 1 ] ;
+          sh:property [ sh:path arz:operationPath ; sh:maxCount 0 ] ;
+          sh:property [ sh:path arz:workflowRef ; sh:maxCount 0 ] ]
+        [ sh:property [ sh:path arz:operationPath ; sh:minCount 1 ] ;
+          sh:property [ sh:path arz:operationId ; sh:maxCount 0 ] ;
+          sh:property [ sh:path arz:workflowRef ; sh:maxCount 0 ] ]
+        [ sh:property [ sh:path arz:workflowRef ; sh:minCount 1 ] ;
+          sh:property [ sh:path arz:operationId ; sh:maxCount 0 ] ;
+          sh:property [ sh:path arz:operationPath ; sh:maxCount 0 ] ]
+    ) .
+
+shp:SourceDescriptionShape a sh:NodeShape ;
+    sh:targetClass arz:SourceDescription ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [
+        sh:path arz:name ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[A-Za-z0-9_-]+$" ;
+    ] ;
+    sh:property [ sh:path arz:url ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:anyURI ] ;
+    sh:property [
+        sh:path arz:sourceType ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ( "arazzo" "openapi" ) ;
+    ] .
+
+shp:ParameterShape a sh:NodeShape ;
+    sh:targetClass arz:Parameter ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path arz:name ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [
+        sh:path arz:in ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ( "path" "query" "header" "cookie" "body" ) ;
+    ] ;
+    sh:property [ sh:path arz:value ; sh:maxCount 1 ; sh:datatype xsd:string ] .
+
+# REFUSED by name: criterionType "xpath" (and any Criterion Expression Type
+# Object variant). Closed shape also rejects unknown criterion predicates.
+shp:CriterionShape a sh:NodeShape ;
+    sh:targetClass arz:Criterion ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path arz:context ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:condition ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [
+        sh:path arz:criterionType ;
+        sh:maxCount 1 ;
+        sh:in ( "simple" "regex" "jsonpath" ) ;
+        sh:message "REFUSED feature: criterion type outside {simple, regex, jsonpath} — 'xpath' and Criterion Expression Type Object variants are not in the 80/20 profile." ;
+    ] .
+
+shp:SuccessActionShape a sh:NodeShape ;
+    sh:targetClass arz:SuccessAction ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path arz:name ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [
+        sh:path arz:actionType ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ( "end" "goto" ) ;
+        sh:message "REFUSED feature: success action type outside {end, goto}." ;
+    ] ;
+    sh:property [ sh:path arz:targetStep ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:targetWorkflow ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:criteria ; sh:nodeKind sh:IRI ; sh:class arz:Criterion ] ;
+    # targetStep and targetWorkflow are mutually exclusive.
+    sh:not [
+        sh:property [ sh:path arz:targetStep ; sh:minCount 1 ] ;
+        sh:property [ sh:path arz:targetWorkflow ; sh:minCount 1 ] ;
+        sh:message "targetStep and targetWorkflow are mutually exclusive." ;
+    ] .
+
+# REFUSED by name: failure action type "function" (retryAfter with function
+# semantics is likewise out of profile).
+shp:FailureActionShape a sh:NodeShape ;
+    sh:targetClass arz:FailureAction ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path arz:name ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [
+        sh:path arz:actionType ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ( "end" "goto" "retry" ) ;
+        sh:message "REFUSED feature: failure action type outside {end, goto, retry} — 'function' is not in the 80/20 profile." ;
+    ] ;
+    sh:property [ sh:path arz:targetStep ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:targetWorkflow ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path arz:retryAfter ; sh:maxCount 1 ; sh:datatype xsd:decimal ; sh:minInclusive 0.0 ] ;
+    sh:property [ sh:path arz:retryLimit ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ] ;
+    sh:property [ sh:path arz:criteria ; sh:nodeKind sh:IRI ; sh:class arz:Criterion ] ;
+    sh:not [
+        sh:property [ sh:path arz:targetStep ; sh:minCount 1 ] ;
+        sh:property [ sh:path arz:targetWorkflow ; sh:minCount 1 ] ;
+        sh:message "targetStep and targetWorkflow are mutually exclusive." ;
+    ] .
+
+shp:OutputShape a sh:NodeShape ;
+    sh:targetClass arz:Output ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path arz:name ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[a-zA-Z0-9.\\-_]+$" ] ;
+    sh:property [ sh:path arz:value ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] .

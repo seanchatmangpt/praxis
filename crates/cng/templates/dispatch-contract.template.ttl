@@ -1,0 +1,45 @@
+# PROJ-618 external dispatch contract template: one DispatchContract instance,
+# rendered with deterministic values by the harness (UPPER_SNAKE placeholders
+# in double braces, same convention as bench fill_template). Conforms to
+# crates/cng/shapes/dispatch-shapes.ttl (DispatchContractShape, sh:closed).
+# disp: is a bridge vocabulary: PROV-O covers provenance of *consequences*
+# (see dispatch-consequence.template.ttl) but no public ontology (checked
+# PROV-O, W3C ORG, schema.org Action, Dublin Core) models a sealed dispatch
+# contract with logical-tick deadlines, refusal conditions, and replay
+# requirements — hence the private terms below.
+# deadlineTicks is logical Chatman ticks (integer), never wall-clock time.
+@prefix ex:   <http://example.org/rwai#> .
+@prefix disp: <https://truex.io/ontology/dispatch#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{DISPATCH_ID}} a disp:DispatchContract ;
+  disp:dispatchId "{{DISPATCH_ID}}" ;
+  disp:workflowInstance ex:{{WORKFLOW_INSTANCE}} ;
+  disp:parentWorkflow ex:{{PARENT_WORKFLOW}} ;
+  disp:recursiveDepth {{RECURSIVE_DEPTH}} ;
+  disp:targetActor ex:{{TARGET_ACTOR}} ;
+  disp:requiredRole "{{REQUIRED_ROLE}}" ;
+  disp:declaredAuthority "{{DECLARED_AUTHORITY}}" ;
+  disp:inputArtifactSet ex:{{INPUT_ARTIFACT_SET}} ;
+  disp:expectedOutputArtifactSet ex:{{EXPECTED_OUTPUT_ARTIFACT_SET}} ;
+  disp:activityIdentity "{{ACTIVITY_IDENTITY}}" ;
+  disp:deadlineTicks {{DEADLINE_TICKS}} ;
+  disp:idempotencyKey "{{IDEMPOTENCY_KEY}}" ;
+  disp:correlationId "{{CORRELATION_ID}}" ;
+  disp:collectionSurface "{{COLLECTION_SURFACE}}" ;
+  disp:retryLaw "{{RETRY_LAW}}" ;
+  disp:escalationLaw "{{ESCALATION_LAW}}" ;
+  disp:compensationLaw "{{COMPENSATION_LAW}}" ;
+  disp:refusalConditions "{{REFUSAL_CONDITIONS}}" ;
+  disp:receiptRequirements "{{RECEIPT_REQUIREMENTS}}" ;
+  disp:replayRequirements "{{REPLAY_REQUIREMENTS}}" ;
+  disp:dispatchState disp:{{DISPATCH_STATE}} ;
+  disp:executionClass disp:{{EXECUTION_CLASS}} .
+
+# {{DISPATCH_STATE}} must be one of the 13 machine states declared in
+# crates/cng/shapes/dispatch-shapes.ttl:
+#   MANUFACTURED | DISPATCH_READY | DISPATCHED | ACKNOWLEDGED | IN_PROGRESS |
+#   RESULT_RETURNED | ADMITTED | COMPLETED | REFUSED | TIMED_OUT |
+#   COMPENSATING | BLOCKED | UNKNOWN
+# {{EXECUTION_CLASS}} must be one of:
+#   LOCAL_ACTUATION | EXTERNAL_MACHINE_DISPATCH | EXTERNAL_HUMAN_DISPATCH

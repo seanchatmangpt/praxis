@@ -13,6 +13,63 @@ use wasm4pm_compat::receipt::{ReceiptEnvelope, ReplayHint};
 
 pub use wasm4pm_compat::receipt::Digest;
 
+/// Version tag mixed into every stage seal so a seal can never collide with
+/// the [`Digest`] it seals or with any other hash scheme in this module.
+const STAGE_SEAL_TAG: &str = "chatman/engine/stage-seal/v1";
+
+/// A per-transition integrity seal threaded between adjacent S1-S6 pipeline
+/// stages (PROJ-SEC-01).
+///
+/// Distinct from the nine [`Digest`]s composed into the final
+/// `receipt_root` at the end of a run: those are asserted once, at S6. A
+/// `StageSeal` is checked *before* the next stage runs — it proves the
+/// value handed from stage N to stage N+1 is exactly what stage N produced,
+/// closing the gap where corruption or tampering between two stage calls
+/// would otherwise go undetected until (or unless) the end-of-run receipt
+/// happened to catch it.
+///
+/// Wraps the same [`Digest`] representation compat already uses for receipt
+/// identity; no parallel hashing scheme is invented.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StageSeal(pub Digest);
+
+impl StageSeal {
+    /// Computes the seal of a stage's output digest, tagged by stage name so
+    /// a seal computed for `"S1"` can never collide with one computed for
+    /// `"S2"` over the same digest bytes.
+    ///
+    /// # Complexity
+    /// O(len(stage_name) + len(prior.0)) — one BLAKE3 hash over
+    /// tag-length-prefixed material; no iteration.
+    pub fn of(stage_name: &str, prior: &Digest) -> Self {
+        StageSeal(Digest::new(blake3_combined(&[
+            STAGE_SEAL_TAG,
+            stage_name,
+            &prior.0,
+        ])))
+    }
+
+    /// Verifies this seal against a freshly recomputed one over
+    /// `(stage_name, prior)`. Refuses with [`Refusal::StageSealMismatch`] on
+    /// any mismatch — a real digest recomputation and comparison, not a
+    /// no-op check.
+    ///
+    /// # Complexity
+    /// O(len(stage_name) + len(prior.0)) — one BLAKE3 hash plus one string
+    /// comparison.
+    pub fn verify(&self, stage_name: &str, prior: &Digest) -> Result<(), Refusal> {
+        let recomputed = StageSeal::of(stage_name, prior);
+        if recomputed.0 .0 != self.0 .0 {
+            return Err(Refusal::StageSealMismatch(format!(
+                "stage {stage_name} recomputed seal {} does not match seal {} threaded from \
+                 the prior stage",
+                recomputed.0 .0, self.0 .0
+            )));
+        }
+        Ok(())
+    }
+}
+
 /// Defines a string-backed identity newtype with ordered, hashable semantics.
 macro_rules! chatman_id {
     ($(#[$doc:meta])* $name:ident) => {
@@ -332,12 +389,24 @@ pub enum Refusal {
     /// universe does not admit.
     #[error("triple term in snapshot: {0}")]
     TripleTermInSnapshot(String),
+    /// A stage's re-computed digest at entry to the next pipeline stage does
+    /// not match the seal threaded from the prior stage — distinct from the
+    /// final receipt-root mismatch; this is a per-transition integrity
+    /// failure, not an end-of-run one.
+    #[error("stage seal mismatch: {0}")]
+    StageSealMismatch(String),
+    /// Actuation was attempted at the machine-state boundary without a
+    /// receipt-verified, sealed admitted transition — the general case,
+    /// distinct from [`Refusal::N3ActuationRefused`] (N3-specific) and
+    /// [`Refusal::BoundaryRequestMissingReceipt`] (boundary-specific).
+    #[error("unlawful actuation: {0}")]
+    UnlawfulActuation(String),
 }
 
 /// Every [`Refusal`] name, in declaration order. This is the cross-lane
 /// contract mirrored by the `expected_refusal` enum in each acceptance
 /// schema; `tests/chatman_static_gates.rs` asserts set-equality.
-pub const ALL_REFUSAL_NAMES: [&str; 29] = [
+pub const ALL_REFUSAL_NAMES: [&str; 31] = [
     "ValidationFailed",
     "PlanInfeasible",
     "TraceUnlawful",
@@ -367,6 +436,8 @@ pub const ALL_REFUSAL_NAMES: [&str; 29] = [
     "ProcessReceiptShadowType",
     "DuplicateCanonicalTapeType",
     "TripleTermInSnapshot",
+    "StageSealMismatch",
+    "UnlawfulActuation",
 ];
 
 impl Refusal {
@@ -409,6 +480,12 @@ impl Refusal {
             Refusal::ProcessReceiptShadowType(_) => "ProcessReceiptShadowType",
             Refusal::DuplicateCanonicalTapeType(_) => "DuplicateCanonicalTapeType",
             Refusal::TripleTermInSnapshot(_) => "TripleTermInSnapshot",
+            Refusal::StageSealMismatch(_) => "StageSealMismatch",
+            Refusal::UnlawfulActuation(_) => "UnlawfulActuation",
         }
     }
 }
+
+#[cfg(test)]
+#[path = "abi_test.rs"]
+mod refusal_variant_tests;

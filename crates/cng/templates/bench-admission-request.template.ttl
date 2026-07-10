@@ -1,0 +1,13 @@
+# rwai-bench admission-request artifact template (PROJ-611): manufactured
+# when a workday tick's manufacture refuses. Names EXACTLY the minimal
+# missing admission — never a blanket request. Written under
+# <workday>/admissions/, never into the artifact-set directory (it is not a
+# planning input). {{TICK}} is a logic counter typed xsd:integer.
+@prefix ex:  <http://example.org/rwai#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{SUBJECT}} a ex:AdmissionRequest ;
+  ex:requestedFor ex:{{SET_ID}} ;
+  ex:missingAdmission "{{MISSING}}" ;
+  ex:refusalCode "{{REFUSAL_CODE}}" ;
+  ex:logicalTick "{{TICK}}"^^xsd:integer .

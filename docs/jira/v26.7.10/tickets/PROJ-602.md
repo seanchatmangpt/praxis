@@ -1,6 +1,11 @@
 # PROJ-602 — Add `cng evidence replay` verb for third-party auditors
 
-Status: PLANNED
+Status: CLOSED
+
+Closed by commit `40f6020`. Verification evidence recorded in
+`docs/releases/v26.7.10/RELEASE_CONTROL.md` Sec. 7 (ladder item 9: `just cng-evidence-replay Y`
+on a relocated bundle, exit 0, `AUDIT_RESULT=CONFORMANT`, recomputed OCEL digest equal to the
+manifest digest) — this ticket cites that record rather than re-asserting it.
 
 Add a new CLI verb usable by a party who did not produce the original run: takes an observation
 graph, a queries directory, and an expected digest, independently re-derives the OCEL evidence

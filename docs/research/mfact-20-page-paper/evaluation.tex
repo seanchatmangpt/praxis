@@ -1,0 +1,98 @@
+% GENERATED from release/release-manifest.json,
+% release/gates.json, and `git log` on this repository.
+% Extraction commands:
+%   jq '.artifacts | length' release-manifest.json
+%   jq '[.artifacts[] | select(.proven)] | length' release-manifest.json
+%   jq '.statedNotProven' release-manifest.json
+%   jq -r '.artifacts[] | select(.proven) | .axioms | sort | join(",")' release-manifest.json | sort | uniq -c
+%   jq '.foldHash' release-manifest.json
+%   find procint/ProcInt -name '*.lean' | xargs wc -l | tail -1
+%   git log --format='%aI %s'
+% Do not edit by hand. If this file is stale relative to release-manifest.json,
+% regenerate before submission.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lr}
+\toprule
+Metric & Value \\
+\midrule
+Lines of Lean (\texttt{ProcInt/}) & 11{,}269 \\
+Declarations recorded in the ontology & 397 \\
+Modules & 53 \\
+Theorems kernel-admitted and axiom-audited (\emph{proven}) & 197 \\
+Statements formalized but not discharged (\emph{stated}) & 7 \\
+Definitions, structures, and test oracles & 193 \\
+\bottomrule
+\end{tabular}
+\caption{Corpus size and the proven/stated/definition split, as recorded
+in the release manifest.}
+\label{tab:corpus}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lr}
+\toprule
+Axiom footprint of proven theorems & Count \\
+\midrule
+No axioms & 37 \\
+\texttt{propext} & 28 \\
+\texttt{Quot.sound}, \texttt{propext} & 26 \\
+\texttt{Classical.choice}, \texttt{Quot.sound}, \texttt{propext} & 106 \\
+\midrule
+Total proven & 197 \\
+Unauthorized axioms found & 0 \\
+Transitive \texttt{sorryAx} found & 0 \\
+\bottomrule
+\end{tabular}
+\caption{Axiom-audit result over all 197 proven theorems. Every set is a
+subset of the trusted \{\texttt{propext}, \texttt{Classical.choice},
+\texttt{Quot.sound}\}; \texttt{no\_valid\_objection}
+(Section~\ref{sec:mfact}) is the strongest case, depending on none of them.}
+\label{tab:axioms}
+\end{table}
+
+\paragraph{The two stated (unproven) declarations.} Both are formal
+statements, not theorems: \texttt{WfNet.sound\_iff\_short\-Circuit\_live\_bounded\_statement}
+(the crown-jewel target, Section~\ref{sec:procint}) and
+\texttt{BranchingProcess.isUnfoldingOf\_statement} (an unfolding-correctness
+statement in the Petri-net seed lane). Per
+\texttt{crownJewel\_status}, the crown-jewel target's release-time status
+is \texttt{"stated"}: neither direction of the iff is discharged in this
+release. Two supporting lemmas about \texttt{WfNet.Sound}
+(\texttt{reaches\_final}, \texttt{enabled\_of\_transition}) \emph{are}
+proven and audited (Table~\ref{tab:axioms}).
+
+\paragraph{Fixtures.} \texttt{ProcInt.Fixtures.Positive} and
+\texttt{ProcInt.Fixtures.Negative} both build; the negative fixtures are
+\texttt{\#guard\_msgs (error)} blocks whose docstring is the exact error
+Lean produces for a malformed \texttt{ReplayCounts} (missing token count
+exceeding consumed) and a non-monotone trace, so the corpus fails to build
+if either rejection ever silently stops happening.
+
+\paragraph{Certification.} \texttt{mfact certify release-manifest.json
+gates.json} exits 0 with \texttt{sorryFree}, \texttt{axiomsClean},
+\texttt{fixturesPass}, and \texttt{evidenceComplete} all true. The
+genesis-folded release hash (BLAKE3, folded over all 397 artifact hashes
+in name order, seed \texttt{"mfact-v26.7.7-genesis"}) is
+\texttt{942facf3...f2d434} (truncated; full value in
+\texttt{release-manifest.json}). Both negative controls behaved as
+required: flipping \texttt{sorryFree} to false in a copy of the gates
+file causes \texttt{mfact certify} to exit 1 with an explicit gate-failure
+message; a syntactically corrupted manifest causes it to exit 2 with a
+typed refusal, not a crash.
+
+\paragraph{Wall-clock.} This section reports what the repository's git
+history actually timestamps: from the paper-scaffold commit to the
+certified-release commit, six commits span
+\texttt{2026-07-06T20:41:32-07:00} to \texttt{2026-07-06T21:09:48-07:00}
+(28 minutes), covering discovery and repair of three cross-family
+import/duplicate-declaration bugs, addition of the fixture pair, the
+axiom-audit reconciliation pass over 145 theorems, and certification. The
+ontology authoring and initial corpus rendering that preceded the first
+commit in this span are not independently timestamped in this
+repository's history; we report the receipted span only and do not
+extrapolate a total-run duration from it.

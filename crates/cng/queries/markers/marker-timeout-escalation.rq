@@ -1,0 +1,33 @@
+# marker-timeout-escalation.rq (PROJ-622)
+# Markers: TIMEOUT_ESCALATION_PROVEN + COMPENSATION_WORKFLOW_PROVEN.
+# Inputs: OBSERVATION graph — stated explicitly (vocab gap (b)):
+# ex:remedy / ex:remedyDispatch are deliberately NOT projected into the
+# OCEL constructs; remediation lineage lives on obs facts. The marker store
+# loads the obs graph alongside the evidence graph, so this query resolves
+# there.
+# Predicate sources: obs:obsKind "dispatch_timed_out" + ex:dispatchId
+# (templates/bench-observation-dispatch-timed-out.template.ttl);
+# obs:obsKind "remediation_manufactured" + ex:dispatchId + ex:remedy in
+# {"escalation","compensation"} + ex:remedyDispatch
+# (templates/bench-observation-remediation-manufactured.template.ttl).
+# Output: single row ?value = TIMED_OUT dispatches with NO manufactured
+# escalation/compensation follow-up (a remediation_manufactured obs for the
+# same ex:dispatchId carrying an ex:remedyDispatch that routes back through
+# the broker). Expectation: 0. Universally quantified: vacuously 0 on a
+# corpus without timeouts (timeouts are exercised by the dispatch tests).
+# Determinism: aggregate + NOT EXISTS over a fixed graph.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+PREFIX ex:  <http://example.org/rwai#>
+
+SELECT (COUNT(DISTINCT ?d) AS ?value)
+WHERE {
+  ?t obs:obsKind "dispatch_timed_out" ;
+     ex:dispatchId ?d .
+  FILTER NOT EXISTS {
+    ?r obs:obsKind "remediation_manufactured" ;
+       ex:dispatchId ?d ;
+       ex:remedy ?remedy ;
+       ex:remedyDispatch ?rd .
+    FILTER(?remedy IN ("escalation", "compensation"))
+  }
+}

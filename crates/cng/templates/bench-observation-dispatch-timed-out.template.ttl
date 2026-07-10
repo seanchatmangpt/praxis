@@ -1,0 +1,15 @@
+# rwai-bench observation template (dispatch_timed_out, PROJ-620): the
+# dispatch's deadlineTicks (logical ticks, never wall clock) expired without
+# an admissible consequence. The state machine moved to TIMED_OUT; the
+# contract's declared escalation law is manufactured next
+# (remediation_manufactured observation).
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "dispatch_timed_out" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  ex:dispatchId "{{DISPATCH_ID}}" ;
+  ex:deadlineTicks "{{DEADLINE_TICKS}}"^^xsd:integer .

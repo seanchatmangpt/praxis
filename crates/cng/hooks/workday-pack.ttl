@@ -1,0 +1,126 @@
+# workday-pack.ttl — PROJ-612 workday hook pack (kh:/hook: vocabulary,
+# praxis-graphlaw src/hooks/mod.rs SHACL kh:HookShape law).
+#
+# One hook per benchmark category (crates/cng/src/bench/mod.rs CATEGORIES,
+# 14 entries). Hook names ARE the category slugs — the broker resolves a
+# transition's receipt by exact hook-name == category match, so naming is
+# part of the actuation contract, never decorative.
+#
+# Pack split: graphlaw's hook-pack gate admits at most 12 hooks per pack
+# (praxis-graphlaw src/hooks/parsing.rs "max 12"), so the 14 category hooks
+# ship as TWO packs — this file (12 hooks, priorities 1..12) and
+# workday-pack-2.ttl (interruption + planning, priorities 13..14) — both
+# admitted through the same lawful load_hook_pack gate, in that fixed order.
+#
+# Kind: "delta" for every hook (spike-verified: delta hooks fire through
+# TripleStore::materialize when a triple with the kh:var predicate is in the
+# store snapshot, and each firing yields a HookReceipt whose delta_quads /
+# delta_hash / idempotency_key are content-derived and byte-deterministic —
+# see crates/cng/src/bench/hooks_test.rs). No "n3" kinds: N3 is quarantined
+# to the cold route (dialect-registry.ttl dreg:n3 quarantineBoundary).
+#
+# kh:var is the full actuation-fact predicate IRI
+# (http://example.org/rwai#actuates-<category>); the broker inserts exactly
+# one such fact per transition, so the receipt's delta covers exactly that
+# transition. kh:effect "emit-delta"; kh:on "assert". Priorities 1..14 pin
+# the Kahn schedule order explicitly (determinism belt-and-braces; the
+# scheduler already tie-breaks by id).
+
+@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix ex: <http://example.org/rwai#> .
+
+ex:hook-email-routing a kh:Hook ;
+  kh:name "email-routing" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-email-routing" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 1 .
+
+ex:hook-calendar-change a kh:Hook ;
+  kh:name "calendar-change" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-calendar-change" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 2 .
+
+ex:hook-invoice-matching a kh:Hook ;
+  kh:name "invoice-matching" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-invoice-matching" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 3 .
+
+ex:hook-purchase-order-approval a kh:Hook ;
+  kh:name "purchase-order-approval" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-purchase-order-approval" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 4 .
+
+ex:hook-expense-review a kh:Hook ;
+  kh:name "expense-review" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-expense-review" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 5 .
+
+ex:hook-hr-notice a kh:Hook ;
+  kh:name "hr-notice" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-hr-notice" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 6 .
+
+ex:hook-customer-request a kh:Hook ;
+  kh:name "customer-request" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-customer-request" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 7 .
+
+ex:hook-logistics-event a kh:Hook ;
+  kh:name "logistics-event" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-logistics-event" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 8 .
+
+ex:hook-compliance-check a kh:Hook ;
+  kh:name "compliance-check" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-compliance-check" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 9 .
+
+ex:hook-document-request a kh:Hook ;
+  kh:name "document-request" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-document-request" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 10 .
+
+ex:hook-software-delivery a kh:Hook ;
+  kh:name "software-delivery" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-software-delivery" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 11 .
+
+ex:hook-admission-request a kh:Hook ;
+  kh:name "admission-request" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-admission-request" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 12 .

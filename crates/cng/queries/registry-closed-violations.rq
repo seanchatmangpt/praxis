@@ -1,0 +1,22 @@
+# registry-closed-violations.rq (PROJ-613)
+# Inputs: ONE oxigraph store holding both dialect-registry.ttl and
+# dialect-registry.shape.ttl. Enforces the sh:closed law of the shape:
+# every property on a targeted entry must be rdf:type or a declared
+# sh:property/sh:path of the shape.
+# Outputs: rows (?entry ?field) — one per (entry, undeclared property)
+# pair. A non-empty result is CNG_R14 DialectRegistryRefused naming the
+# entry and the unexpected property.
+# Determinism: ORDER BY ?entry ?field over a fixed graph.
+PREFIX sh:  <http://www.w3.org/ns/shacl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?entry ?field
+WHERE {
+  ?shape sh:targetClass ?class ;
+         sh:closed true .
+  ?entry a ?class ;
+         ?field ?value .
+  FILTER(?field != rdf:type)
+  FILTER NOT EXISTS { ?shape sh:property ?ps . ?ps sh:path ?field }
+}
+ORDER BY ?entry ?field

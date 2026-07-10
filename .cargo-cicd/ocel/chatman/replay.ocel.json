@@ -3,8 +3,8 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
-    "evt_000": {
-      "event_id": "d246a3c5-cbb4-4b53-83c9-3ba8745f32ee",
+    "evt_003": {
+      "event_id": "f955899f-84ac-4f68-9f7f-f43f6ed42202",
       "case_id": "chatman-replay",
       "activity": {
         "DiagnosticEmitted": {
@@ -12,21 +12,42 @@
           "severity": "Andon"
         }
       },
-      "timestamp_ns": 1,
+      "timestamp_ns": 4,
       "objects": [
         [
-          "Falsify_GraphSnapshotMismatch",
+          "Falsify_ProfileSymbolTableMismatch",
           "Fixture"
         ]
       ],
       "attributes": {
-        "refusal": "GraphSnapshotMismatch",
-        "fixture_id": "Falsify_GraphSnapshotMismatch",
-        "outcome": "refused"
+        "outcome": "refused",
+        "refusal": "ProfileSymbolTableMismatch",
+        "fixture_id": "Falsify_ProfileSymbolTableMismatch"
+      }
+    },
+    "evt_002": {
+      "event_id": "030dfb51-84a9-494d-af00-ec04a92faac6",
+      "case_id": "chatman-replay",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 3,
+      "objects": [
+        [
+          "Accept_ProfileSymbolTableAligned",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "admitted",
+        "fixture_id": "Accept_ProfileSymbolTableAligned"
       }
     },
     "evt_001": {
-      "event_id": "36a5eff9-7a87-4b83-aab8-bd463abaa02e",
+      "event_id": "21b0407e-ae10-4258-a63d-b576363e20cb",
       "case_id": "chatman-replay",
       "activity": {
         "DiagnosticEmitted": {
@@ -46,8 +67,8 @@
         "outcome": "admitted"
       }
     },
-    "evt_003": {
-      "event_id": "f3ee5996-dc21-4c5b-beba-6f76854f37b5",
+    "evt_000": {
+      "event_id": "1093764c-8aa9-4844-8ed5-c1f1e500f6d0",
       "case_id": "chatman-replay",
       "activity": {
         "DiagnosticEmitted": {
@@ -55,38 +76,17 @@
           "severity": "Andon"
         }
       },
-      "timestamp_ns": 4,
+      "timestamp_ns": 1,
       "objects": [
         [
-          "Falsify_ProfileSymbolTableMismatch",
+          "Falsify_GraphSnapshotMismatch",
           "Fixture"
         ]
       ],
       "attributes": {
-        "refusal": "ProfileSymbolTableMismatch",
-        "fixture_id": "Falsify_ProfileSymbolTableMismatch",
-        "outcome": "refused"
-      }
-    },
-    "evt_002": {
-      "event_id": "01b4ea80-6767-420a-a9f1-be2d8bd83657",
-      "case_id": "chatman-replay",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Info"
-        }
-      },
-      "timestamp_ns": 3,
-      "objects": [
-        [
-          "Accept_ProfileSymbolTableAligned",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "outcome": "admitted",
-        "fixture_id": "Accept_ProfileSymbolTableAligned"
+        "refusal": "GraphSnapshotMismatch",
+        "outcome": "refused",
+        "fixture_id": "Falsify_GraphSnapshotMismatch"
       }
     }
   },

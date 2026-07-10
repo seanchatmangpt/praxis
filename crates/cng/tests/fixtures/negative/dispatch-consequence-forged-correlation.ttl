@@ -1,0 +1,19 @@
+# Negative fixture (PROJ-619): a consequence whose disp:consequenceOf names
+# a FORGED correlation id. The producing actor and derivation are correct,
+# so the re-entry pipeline passes the provenance stage and must refuse at
+# the identity/correlation stage (CNG_R17, stage "correlation").
+# Matches the contract built by dispatch_test::fixture_contract
+# (dispatch id "disp-fixture", target actor "external-machine-executor").
+@prefix ex:   <http://example.org/rwai#> .
+@prefix disp: <https://truex.io/ontology/dispatch#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+ex:cons-disp-fixture a disp:DispatchConsequence ;
+  disp:consequenceOf "corr-FORGED-000000" ;
+  disp:producingActor ex:external-machine-executor ;
+  disp:provenance ex:prov-disp-fixture ;
+  disp:returnedArtifact ex:outputs-disp-fixture ;
+  disp:conformanceVerdict "PENDING" ;
+  disp:admissionVerdict "PENDING" ;
+  prov:wasAttributedTo ex:external-machine-executor ;
+  prov:wasDerivedFrom ex:disp-fixture .

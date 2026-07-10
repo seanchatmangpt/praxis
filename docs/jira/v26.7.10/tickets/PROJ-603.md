@@ -1,6 +1,12 @@
 # PROJ-603 — Bundle manifest schema naming every input/output digest
 
-Status: PLANNED
+Status: CLOSED
+
+Closed by commit `40f6020` (`EvidenceManifest` written to
+`<bench_dir>/results/evidence-manifest.json`, `signatures: []` emitted empty). Verification
+evidence recorded in `docs/releases/v26.7.10/RELEASE_CONTROL.md` Sec. 7 (ladder item 9: auditor
+replay consumed the manifest from the relocated bundle alone) — this ticket cites that record
+rather than re-asserting it.
 
 Define a single JSON manifest schema naming every digest currently scattered across
 `digests.json` (`{set_dir_path: powl_digest}` only) and separate `RunReport` fields

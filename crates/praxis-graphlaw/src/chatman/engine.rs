@@ -69,7 +69,7 @@ use crate::hooks::{canonicalize_quads, HookReceipt};
 use crate::parser::Syntax;
 use crate::TripleStore;
 
-use super::abi::{Digest, GraphSnapshotId, InvocationEnvelope, Refusal};
+use super::abi::{Digest, GraphSnapshotId, InvocationEnvelope, Refusal, StageSeal};
 use super::admission8::{AdmissionTable8, ConstraintMask};
 use super::router::{DialectRouter, ProfileGates, QueryShape, RouteDecision};
 use super::triple8::ProfileSymbolTable;
@@ -427,6 +427,12 @@ struct StageOutputs {
     tape: Digest,
     hook_event: Digest,
     boundary_requests: Vec<BoundaryRequest>,
+    /// Test-only: the four PROJ-SEC-01 per-transition seals computed during
+    /// this run, in stage order (S1→S2, S2→S3, S3→S4, S4→S5). Not part of
+    /// the receipt-facing shape; kept out of the non-test build so this
+    /// struct's production surface is unchanged.
+    #[cfg(test)]
+    stage_seals: [StageSeal; 4],
 }
 
 /// The chatman engine: an oxigraph store, a dialect router over validated
@@ -768,18 +774,35 @@ impl ChatmanEngine {
     ///
     /// # Complexity
     /// Sum of the per-stage bounds documented on each stage method.
+    ///
+    /// # PROJ-SEC-01: per-transition sealing
+    /// Each stage's real output digest is sealed (`StageSeal::of`)
+    /// immediately after it is produced, and the seal is threaded — along
+    /// with the digest it covers — into the next stage's call, which
+    /// recomputes and compares it *before* doing any of its own work
+    /// ([`Refusal::StageSealMismatch`] on mismatch). This closes the gap
+    /// where the prior nine-digest `receipt_root` (computed once, at S6 in
+    /// [`ChatmanEngine::admit_transition`]) only asserted integrity at the
+    /// very end of a run; the per-stage seals check it at every boundary.
     fn run_stages(&mut self, envelope: &InvocationEnvelope) -> Result<StageOutputs, Refusal> {
         // S1
         let (canon_nquads, graph_snapshot) = self.fetch_snapshot(&envelope.snapshot_id)?;
+        let seal1 = StageSeal::of("S1", &graph_snapshot);
         // S2
         let (route_decision, projection, hook_receipts) =
-            self.apply_owl_closure(&envelope.snapshot_id)?;
+            self.apply_owl_closure(&envelope.snapshot_id, &seal1, &graph_snapshot)?;
+        let seal2 = StageSeal::of("S2", &projection);
         // S3
-        let (plan_tape, tape) = self.generate_pddl_plan(&envelope.snapshot_id)?;
+        let (plan_tape, tape) =
+            self.generate_pddl_plan(&envelope.snapshot_id, &seal2, &projection)?;
+        let seal3 = StageSeal::of("S3", &tape);
         // S4
-        let chain_hash = self.admit_powl_trace(&envelope.snapshot_id, &plan_tape)?;
+        let chain_hash = self.admit_powl_trace(&envelope.snapshot_id, &plan_tape, &seal3, &tape)?;
+        let chain_digest = Digest::new(chain_hash.clone());
+        let seal4 = StageSeal::of("S4", &chain_digest);
         // S5
-        let (boundary_requests, hook_event) = trigger_knowledge_hooks(hook_receipts, &chain_hash);
+        let (boundary_requests, hook_event) =
+            trigger_knowledge_hooks(hook_receipts, &chain_hash, &seal4, &chain_digest)?;
 
         let profile = self.profile_digest();
         let symbol_table = Digest::new(self.profile.symbol_table.hash().to_string());
@@ -795,6 +818,8 @@ impl ChatmanEngine {
             tape,
             hook_event,
             boundary_requests,
+            #[cfg(test)]
+            stage_seals: [seal1, seal2, seal3, seal4],
         })
     }
 
@@ -868,10 +893,18 @@ impl ChatmanEngine {
     /// O(q) projection + the materializer's own bound (semi-naive fixpoint,
     /// see `TripleStore::materialize_owlrl`) + O(d log d) for the delta
     /// canonicalization.
+    ///
+    /// # Errors
+    /// [`Refusal::StageSealMismatch`] (PROJ-SEC-01) if `prior_seal` does not
+    /// verify against `prior_digest` — a real recompute-and-compare against
+    /// the S1 output this stage was handed, checked before any S2 work runs.
     fn apply_owl_closure(
         &mut self,
         snapshot_id: &GraphSnapshotId,
+        prior_seal: &StageSeal,
+        prior_digest: &Digest,
     ) -> Result<(RouteDecision, Digest, Vec<HookReceipt>), Refusal> {
+        prior_seal.verify("S1", prior_digest)?;
         let shape = QueryShape {
             constraint_count: 0,
             requires_construct: false,
@@ -948,10 +981,20 @@ impl ChatmanEngine {
     /// # Complexity
     /// Grounding is bounded by `PDDL8_MAX_GROUND`; plan search is bounded
     /// BFS (`PDDL8_MAX_PLAN_DEPTH`); the digest is O(tape bytes).
+    ///
+    /// # Errors
+    /// [`Refusal::StageSealMismatch`] (PROJ-SEC-01) if `prior_seal` does not
+    /// verify against `prior_digest` — checked before grounding/planning
+    /// runs. The shared [`ChatmanEngine::compute_pddl_plan`] helper (also
+    /// used by the unsealed [`ChatmanEngine::plan_tape_for_snapshot`] side
+    /// door) is unchanged; sealing is layered only at this S3 entry point.
     fn generate_pddl_plan(
         &self,
         snapshot_id: &GraphSnapshotId,
+        prior_seal: &StageSeal,
+        prior_digest: &Digest,
     ) -> Result<(Pddl8Tape, Digest), Refusal> {
+        prior_seal.verify("S2", prior_digest)?;
         self.compute_pddl_plan(snapshot_id)
     }
 
@@ -1092,11 +1135,19 @@ impl ChatmanEngine {
     /// # Complexity
     /// O(e) over trace events for log building, chaining and replay;
     /// conformance is O(e + runs * ops) inside `bcinr_powl`.
+    ///
+    /// # Errors
+    /// [`Refusal::StageSealMismatch`] (PROJ-SEC-01) if `prior_seal` does not
+    /// verify against `prior_digest` — checked before the OCEL trace is even
+    /// read.
     fn admit_powl_trace(
         &self,
         snapshot_id: &GraphSnapshotId,
         tape: &Pddl8Tape,
+        prior_seal: &StageSeal,
+        prior_digest: &Digest,
     ) -> Result<String, Refusal> {
+        prior_seal.verify("S3", prior_digest)?;
         let graph = snapshot_graph(snapshot_id)?;
         let text = self
             .select_literal(&graph, OCEL_LOG_PREDICATE)?
@@ -1497,12 +1548,20 @@ fn merge_pddl_fragments(
 /// over the S4 causal chain hash plus every receipt's identity triple, in
 /// canonical `(hook_name, idempotency_key)` order.
 ///
+/// # Errors
+/// [`Refusal::StageSealMismatch`] (PROJ-SEC-01) if `prior_seal` does not
+/// verify against `prior_digest` — checked before any hook receipt is
+/// sealed into a [`BoundaryRequest`].
+///
 /// # Complexity
 /// O(h log h) over hook receipts (canonical sort before hashing).
 fn trigger_knowledge_hooks(
     hook_receipts: Vec<HookReceipt>,
     trace_chain_hash: &str,
-) -> (Vec<BoundaryRequest>, Digest) {
+    prior_seal: &StageSeal,
+    prior_digest: &Digest,
+) -> Result<(Vec<BoundaryRequest>, Digest), Refusal> {
+    prior_seal.verify("S4", prior_digest)?;
     let mut receipts = hook_receipts;
     receipts.sort_by(|a, b| {
         (&a.hook_name, &a.idempotency_key).cmp(&(&b.hook_name, &b.idempotency_key))
@@ -1524,7 +1583,7 @@ fn trigger_knowledge_hooks(
         });
     }
     let refs: Vec<&str> = parts.iter().map(String::as_str).collect();
-    (requests, Digest::new(blake3_combined(&refs)))
+    Ok((requests, Digest::new(blake3_combined(&refs))))
 }
 
 /// Canonical, injective tape digest: ops hashed in tape order (order is the
@@ -1742,415 +1801,5 @@ impl ChatmanEngine {
 }
 
 #[cfg(test)]
-mod tests {
-    //! Chicago-style state-based tests over a real in-memory store: one
-    //! happy path, one refusal per stage, determinism (byte-identical
-    //! receipt roots across independent engines), actuation, and replay.
-
-    use super::*;
-    use crate::chatman::abi::{InputHandles, InvocationId, OperatorId, ProfileId};
-
-    const SNAPSHOT_IRI: &str = "urn:chatman:snapshot:test";
-    const PROFILE_IRI: &str = "profile:engine-test";
-
-    /// Snapshot fixture: a tiny RDFS hierarchy (so OWL RL derives a fact),
-    /// a one-step PDDL world, and a conforming one-event OCEL trace.
-    const SNAPSHOT_TTL: &str = r#"
-@prefix ex: <http://example.org/> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix ceng: <urn:chatman:engine#> .
-
-ex:Employee rdfs:subClassOf ex:Person .
-ex:alice a ex:Employee .
-
-ex:world ceng:pddlDomain """
-(define (domain chatman-min)
-  (:requirements :strips)
-  (:predicates (ready ?x) (done ?x))
-  (:action finish
-    :parameters (?x)
-    :precondition (and (ready ?x))
-    :effect (and (done ?x) (not (ready ?x)))))
-""" .
-ex:world ceng:pddlProblem """
-(define (problem chatman-min-p)
-  (:domain chatman-min)
-  (:objects a)
-  (:init (ready a))
-  (:goal (done a))
-)
-""" .
-ex:world ceng:ocelLog """{"run_id":1,"sealed":true,"objects":[{"id":"case-1","otype":"case"}],"events":[{"id":"e1","activity":"finish(a)","op_index":0,"at_ns":1,"objects":["case-1"]}]}""" .
-"#;
-
-    /// Same world, but the trace fires op 0 twice (DuplicateFire).
-    const SNAPSHOT_TTL_DUPLICATE_FIRE: &str = r#"
-@prefix ex: <http://example.org/> .
-@prefix ceng: <urn:chatman:engine#> .
-ex:world ceng:pddlDomain """
-(define (domain chatman-min)
-  (:requirements :strips)
-  (:predicates (ready ?x) (done ?x))
-  (:action finish
-    :parameters (?x)
-    :precondition (and (ready ?x))
-    :effect (and (done ?x) (not (ready ?x)))))
-""" .
-ex:world ceng:pddlProblem """
-(define (problem chatman-min-p)
-  (:domain chatman-min)
-  (:objects a)
-  (:init (ready a))
-  (:goal (done a))
-)
-""" .
-ex:world ceng:ocelLog """{"run_id":1,"sealed":true,"objects":[{"id":"case-1","otype":"case"}],"events":[{"id":"e1","activity":"finish(a)","op_index":0,"at_ns":1,"objects":["case-1"]},{"id":"e2","activity":"finish(a)","op_index":0,"at_ns":2,"objects":["case-1"]}]}""" .
-"#;
-
-    /// Same world, but the goal is unreachable (no action derives it).
-    const SNAPSHOT_TTL_INFEASIBLE: &str = r#"
-@prefix ex: <http://example.org/> .
-@prefix ceng: <urn:chatman:engine#> .
-ex:world ceng:pddlDomain """
-(define (domain chatman-min)
-  (:requirements :strips)
-  (:predicates (ready ?x) (done ?x) (never ?x))
-  (:action finish
-    :parameters (?x)
-    :precondition (and (ready ?x))
-    :effect (and (done ?x) (not (ready ?x)))))
-""" .
-ex:world ceng:pddlProblem """
-(define (problem chatman-min-p)
-  (:domain chatman-min)
-  (:objects a)
-  (:init (ready a))
-  (:goal (never a))
-)
-""" .
-ex:world ceng:ocelLog """{"run_id":1,"sealed":true,"objects":[{"id":"case-1","otype":"case"}],"events":[{"id":"e1","activity":"finish(a)","op_index":0,"at_ns":1,"objects":["case-1"]}]}""" .
-"#;
-
-    fn test_profile() -> Result<EngineProfile, Refusal> {
-        let profile_id = ProfileId::new(PROFILE_IRI);
-        let gates =
-            ProfileGates::new(profile_id.clone(), ProfileGates::DEFAULT_ENABLED_MASK, 0, 8)?;
-        let symbol_table = ProfileSymbolTable::build(
-            profile_id,
-            vec![
-                "<urn:chatman:t0>".to_string(),
-                "<urn:chatman:t1>".to_string(),
-            ],
-        )?;
-        Ok(EngineProfile {
-            gates,
-            symbol_table,
-            admission: AdmissionSpec {
-                constraint_names: vec!["c0".to_string()],
-                required_mask: 0,
-                forbidden_mask: 0,
-                set_on_admit: 0,
-                clear_on_admit: 0,
-            },
-            breed_permits: Vec::new(),
-        })
-    }
-
-    fn envelope() -> InvocationEnvelope {
-        InvocationEnvelope {
-            invocation_id: InvocationId::new("inv-1"),
-            snapshot_id: GraphSnapshotId::new(SNAPSHOT_IRI),
-            profile_id: ProfileId::new(PROFILE_IRI),
-            operator_id: OperatorId::new("op-1"),
-            input_handles: InputHandles::default(),
-        }
-    }
-
-    fn engine_with(turtle: &str) -> Result<ChatmanEngine, Refusal> {
-        let mut engine = ChatmanEngine::in_memory(test_profile()?)?;
-        engine.load_snapshot(&GraphSnapshotId::new(SNAPSHOT_IRI), turtle)?;
-        Ok(engine)
-    }
-
-    fn admit(turtle: &str) -> Result<AdmittedTransition, Refusal> {
-        let mut engine = engine_with(turtle)?;
-        engine.admit_transition(envelope())
-    }
-
-    fn refusal_check(
-        result: Result<AdmittedTransition, Refusal>,
-        want: &str,
-    ) -> Result<(), Refusal> {
-        match result {
-            Err(refusal) if refusal.name() == want => Ok(()),
-            other => Err(Refusal::ValidationFailed(format!(
-                "wanted refusal {want}, got {other:?}"
-            ))),
-        }
-    }
-
-    #[test]
-    fn happy_path_admits_and_seals_nine_digests() -> Result<(), Refusal> {
-        // Arrange + Act
-        let transition = admit(SNAPSHOT_TTL)?;
-        let receipt = transition.receipt();
-
-        // Assert: every digest is non-empty 64-hex material and the root
-        // recomputes over the nine carried digests.
-        for digest in [
-            &receipt.graph_snapshot,
-            &receipt.profile,
-            &receipt.symbol_table,
-            &receipt.projection,
-            &receipt.admission_table,
-            &receipt.route_decision,
-            &receipt.tape,
-            &receipt.hook_event,
-            &receipt.engine_version,
-        ] {
-            assert_eq!(digest.0.len(), 64, "digest must be 64 hex chars");
-        }
-        assert_eq!(receipt.recompute_root(), receipt.receipt_root);
-        // Canonical material is sorted (receipt law).
-        let lines: Vec<&str> = receipt.canon_nquads.lines().collect();
-        let mut sorted = lines.clone();
-        sorted.sort_unstable();
-        assert_eq!(lines, sorted, "canonical N-Quads must be sorted");
-        assert!(!receipt.canon_nquads.is_empty());
-        // The hookless fixture yields no boundary requests.
-        assert!(transition.boundary_requests().is_empty());
-        Ok(())
-    }
-
-    #[test]
-    fn owl_closure_lands_in_sibling_graph_not_snapshot() -> Result<(), Refusal> {
-        // Arrange
-        let mut engine = engine_with(SNAPSHOT_TTL)?;
-        let (_, before) = engine.fetch_snapshot(&GraphSnapshotId::new(SNAPSHOT_IRI))?;
-
-        // Act
-        let transition = engine.admit_transition(envelope())?;
-
-        // Assert: the derived alice-is-a-Person fact exists in the closure
-        // graph and the snapshot graph is byte-identical to before.
-        let closure = NamedNode::new(format!("{SNAPSHOT_IRI}#closure"))
-            .map_err(|e| Refusal::ValidationFailed(format!("closure IRI: {e}")))?;
-        let mut derived_lines = Vec::new();
-        for quad in engine
-            .store
-            .quads_for_pattern(None, None, None, Some(closure.as_ref().into()))
-        {
-            let quad = quad.map_err(|e| Refusal::ValidationFailed(format!("storage: {e}")))?;
-            derived_lines.push(format!(
-                "{} {} {}",
-                quad.subject, quad.predicate, quad.object
-            ));
-        }
-        assert!(
-            derived_lines
-                .iter()
-                .any(|l| l.contains("alice") && l.contains("Person")),
-            "OWL RL closure must derive alice rdf:type Person, got {derived_lines:?}"
-        );
-        let (_, after) = engine.fetch_snapshot(&GraphSnapshotId::new(SNAPSHOT_IRI))?;
-        assert_eq!(before, after, "the input snapshot graph is immutable");
-        assert_eq!(
-            transition.receipt().recompute_root(),
-            transition.receipt().receipt_root
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn double_run_is_byte_identical() -> Result<(), Refusal> {
-        // Arrange + Act: two independent engines over the same snapshot.
-        let first = admit(SNAPSHOT_TTL)?;
-        let second = admit(SNAPSHOT_TTL)?;
-
-        // Assert: receipts agree byte for byte.
-        assert_eq!(first.receipt(), second.receipt());
-        assert_eq!(
-            first.receipt().receipt_root.0,
-            second.receipt().receipt_root.0
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn s1_unknown_snapshot_refuses_snapshot_not_found() -> Result<(), Refusal> {
-        // Arrange: engine with no snapshot loaded.
-        let mut engine = ChatmanEngine::in_memory(test_profile()?)?;
-        // Act
-        let result = engine.admit_transition(envelope());
-        // Assert
-        refusal_check(result, "SnapshotNotFound")
-    }
-
-    #[test]
-    fn s1_quoted_triple_text_refuses_triple_term() -> Result<(), Refusal> {
-        // Arrange
-        let mut engine = ChatmanEngine::in_memory(test_profile()?)?;
-        // Act: RDF 1.2 quoted-triple syntax at the load boundary.
-        let result = engine.load_snapshot(
-            &GraphSnapshotId::new(SNAPSHOT_IRI),
-            "<< <urn:s> <urn:p> <urn:o> >> <urn:q> <urn:r> .",
-        );
-        // Assert
-        match result {
-            Err(Refusal::TripleTermInSnapshot(_)) => Ok(()),
-            other => Err(Refusal::ValidationFailed(format!(
-                "wanted TripleTermInSnapshot, got {other:?}"
-            ))),
-        }
-    }
-
-    #[test]
-    fn s2_owl_disabled_refuses_via_router() -> Result<(), Refusal> {
-        // Arrange: profile whose gates never enable OwlRl.
-        let profile_id = ProfileId::new(PROFILE_IRI);
-        let hot_only = ProfileGates::new(
-            profile_id.clone(),
-            crate::chatman::router::Dialect::Triple8Pattern.mask_bit(),
-            0,
-            8,
-        )?;
-        let base = test_profile()?;
-        let profile = EngineProfile {
-            gates: hot_only,
-            symbol_table: base.symbol_table,
-            admission: base.admission,
-            breed_permits: base.breed_permits,
-        };
-        let mut engine = ChatmanEngine::in_memory(profile)?;
-        engine.load_snapshot(&GraphSnapshotId::new(SNAPSHOT_IRI), SNAPSHOT_TTL)?;
-        // Act
-        let result = engine.admit_transition(envelope());
-        // Assert: the OWL RL shape has no enabled dialect >= its floor.
-        refusal_check(result, "UnsupportedDialect")
-    }
-
-    #[test]
-    fn s3_missing_pddl_refuses_plan_infeasible() -> Result<(), Refusal> {
-        // Arrange: snapshot with graph data but no PDDL literals.
-        let result = admit(
-            r#"@prefix ex: <http://example.org/> .
-ex:a ex:knows ex:b ."#,
-        );
-        // Assert
-        refusal_check(result, "PlanInfeasible")
-    }
-
-    #[test]
-    fn s3_unreachable_goal_refuses_plan_infeasible() -> Result<(), Refusal> {
-        refusal_check(admit(SNAPSHOT_TTL_INFEASIBLE), "PlanInfeasible")
-    }
-
-    #[test]
-    fn s4_duplicate_fire_refuses_trace_unlawful() -> Result<(), Refusal> {
-        refusal_check(admit(SNAPSHOT_TTL_DUPLICATE_FIRE), "TraceUnlawful")
-    }
-
-    #[test]
-    fn s4_missing_trace_refuses_trace_unlawful() -> Result<(), Refusal> {
-        // Arrange: PDDL present, OCEL literal absent.
-        let ttl = r#"
-@prefix ex: <http://example.org/> .
-@prefix ceng: <urn:chatman:engine#> .
-ex:world ceng:pddlDomain """
-(define (domain chatman-min)
-  (:requirements :strips)
-  (:predicates (ready ?x) (done ?x))
-  (:action finish
-    :parameters (?x)
-    :precondition (and (ready ?x))
-    :effect (and (done ?x) (not (ready ?x)))))
-""" .
-ex:world ceng:pddlProblem """
-(define (problem chatman-min-p)
-  (:domain chatman-min)
-  (:objects a)
-  (:init (ready a))
-  (:goal (done a))
-)
-""" .
-"#;
-        refusal_check(admit(ttl), "TraceUnlawful")
-    }
-
-    #[test]
-    fn envelope_naming_wrong_profile_refuses_profile_hash_mismatch() -> Result<(), Refusal> {
-        // Arrange
-        let mut engine = engine_with(SNAPSHOT_TTL)?;
-        let mut env = envelope();
-        env.profile_id = ProfileId::new("profile:someone-else");
-        // Act + Assert
-        refusal_check(engine.admit_transition(env), "ProfileHashMismatch")
-    }
-
-    #[test]
-    fn actuate_registers_post_graph_and_dedups() -> Result<(), Refusal> {
-        // Arrange
-        let mut engine = engine_with(SNAPSHOT_TTL)?;
-        let transition = engine.admit_transition(envelope())?;
-        let root = transition.receipt().receipt_root.0.clone();
-
-        // Act
-        let record = engine.actuate(transition)?;
-
-        // Assert: the post graph is named by the receipt root and exists.
-        assert!(record.post_graph.contains(&root));
-        assert_eq!(record.duplicates_skipped, 0);
-        let post = NamedNode::new(&record.post_graph)
-            .map_err(|e| Refusal::ValidationFailed(format!("post IRI: {e}")))?;
-        let present = engine
-            .store
-            .contains_named_graph(post.as_ref())
-            .map_err(|e| Refusal::ValidationFailed(format!("storage: {e}")))?;
-        assert!(present, "actuation must register the post graph");
-        Ok(())
-    }
-
-    #[test]
-    fn verify_replay_accepts_faithful_and_refuses_tampered() -> Result<(), Refusal> {
-        // Arrange
-        let transition = admit(SNAPSHOT_TTL)?;
-        let inputs = ReplayInputs {
-            envelope: envelope(),
-            snapshot_turtle: SNAPSHOT_TTL.to_string(),
-            profile: test_profile()?,
-        };
-
-        // Act + Assert: the faithful receipt replays clean.
-        match ChatmanEngine::verify_replay(transition.receipt(), &inputs) {
-            Ok(()) => {}
-            Err(mismatch) => {
-                return Err(Refusal::ValidationFailed(format!(
-                    "faithful replay must verify, got {mismatch}"
-                )))
-            }
-        }
-
-        // Tamper with digest #7: the fail-fast enum names the tape field.
-        let mut tampered = transition.receipt().clone();
-        tampered.tape = Digest::new("0".repeat(64));
-        match ChatmanEngine::verify_replay(&tampered, &inputs) {
-            Err(ReplayMismatch::Tape { .. }) => {}
-            other => {
-                return Err(Refusal::ValidationFailed(format!(
-                    "tampered tape digest must fail as ReplayMismatch::Tape, got {other:?}"
-                )))
-            }
-        }
-
-        // Tamper with the root only: every field matches, the root recompute
-        // catches the drift.
-        let mut root_tampered = transition.receipt().clone();
-        root_tampered.receipt_root = Digest::new("f".repeat(64));
-        match ChatmanEngine::verify_replay(&root_tampered, &inputs) {
-            Err(ReplayMismatch::ReceiptRoot { .. }) => Ok(()),
-            other => Err(Refusal::ValidationFailed(format!(
-                "tampered root must fail as ReplayMismatch::ReceiptRoot, got {other:?}"
-            ))),
-        }
-    }
-}
+#[path = "engine_test.rs"]
+mod tests;

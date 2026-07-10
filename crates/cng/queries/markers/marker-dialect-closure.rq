@@ -1,0 +1,28 @@
+# marker-dialect-closure.rq (PROJ-622)
+# Marker: GRAPHLAW_DIALECT_CLOSURE.
+# Inputs: OBSERVATION graph UNION hooks/dialect-registry.ttl (the marker
+# store loads the registry TTL alongside the obs + evidence graphs — vocab
+# gap (e) resolved: hook_standing and hook_receipt observations now carry
+# ex:dialect, whose value is the dreg: DialectEntry IRI of the dialect the
+# graphlaw hooks engine actually executed — dreg:delta for the workday
+# packs, whose hooks are all kind "delta").
+# Closure direction — deliberately governance-shaped: every dialect
+# OBSERVED in hook evidence must be REGISTERED (no unregistered dialect
+# ever executes). The inverse claim ("every registered dialect was
+# exercised") is NOT made: the registry deliberately registers dialects
+# (n3, shex, owl-rl, ...) that the workday broker does not route, and a
+# marker may only claim what is emitted.
+# Output: single row ?value = COUNT(DISTINCT observed dialects that are not
+# a registered dreg:DialectEntry). Expectation: 0.
+# Determinism: aggregate + NOT EXISTS over a fixed graph.
+PREFIX obs:  <https://ggen.io/ontology/bench-obs#>
+PREFIX ex:   <http://example.org/rwai#>
+PREFIX dreg: <http://seanchatmangpt.github.io/praxis/dreg#>
+
+SELECT (COUNT(DISTINCT ?dialect) AS ?value)
+WHERE {
+  ?o obs:obsKind ?kind ;
+     ex:dialect ?dialect .
+  FILTER(?kind IN ("hook_standing", "hook_receipt"))
+  FILTER NOT EXISTS { ?dialect a dreg:DialectEntry . }
+}

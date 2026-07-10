@@ -1,0 +1,958 @@
+\documentclass[11pt]{article}
+
+% arXiv cs.MS (cross-list cs.LO) submission.
+\usepackage[margin=1.1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstdefinelanguage{lean}{
+  keywords={structure, inductive, theorem, def, lemma, instance, namespace,
+            end, import, where, by, fun, match, with, deriving},
+  sensitive=true,
+  comment=[l]{--},
+  morestring=[b]",
+}
+\lstset{
+  language=lean,
+  basicstyle=\small\ttfamily,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{gray},
+  columns=fullflexible,
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  xleftmargin=1em,
+}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
+% Release-mode guard: release builds hard-fail on missing rendered
+% fragments; draft builds show placeholders. There are no generated files —
+% only artifacts with receipts: authority comes from the .mfact/artifacts.toml
+% ledger, not from paths or headers. Volatile standing claims live only in
+% ledgered, ggen-rendered fragments.
+\newif\ifreleasebuild
+\releasebuildtrue
+\input{release_macros}
+
+\title{MathProofOps:\\Receipted Mathematical Manufacturing for Process Intelligence\\
+\large From Public Ontology to Lean-Checked Standing}
+\author{Sean Chatman}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We present \textsf{MathProofOps}, a discipline for lawful mathematical
+artifact manufacture, and \textsf{mfact}, its Lean~4 manufacturing
+framework. The governing law is \(A = \mu_B(O^*_B)\) and \(R_B =
+\mathrm{receipt}(A)\): inside a declared boundary \(B\), raw observations
+and generated candidates have no standing. Only admitted observations
+\(O^*_B\) may participate in manufacture; only replayable receipts \(R_B\)
+prove consequence. This separates contact from consequence. Humans,
+templates, and LLM agents may produce candidates; only the Lean kernel,
+Lake build, axiom audit, sorry census, negative fixtures, and release
+manifest can confer standing.
+
+As the first manufactured vertical we introduce \textsf{procint}, a Lean~4
+library for process intelligence: Petri nets with finitely supported
+markings, workflow nets with soundness split into independent clauses,
+event logs and alignment-based conformance, and object-centric event logs
+following OCEL~2.0. The library is manufactured from a declared obligation
+graph: an RDF/Turtle catalog of structures, theorem surfaces, module
+dependencies, fixtures, citations, and registry surfaces is projected
+through SPARQL-in-Tera templates by \textsf{ggen}, then admitted or
+refused by Lean/Lake. Every failed admission is a typed refusal rather
+than a silent downgrade; every admitted declaration is recorded with its
+hash, axiom footprint, fixture status, and proven/stated standing. The
+contribution is not merely that \textsf{procint} exists; it is that
+\textsf{procint} is the first manufactured vertical of MathProofOps, and
+\textsf{mfact} is the Lean/Lake manufacturing apparatus that makes this
+vertical receiptable.
+
+A second rail extends the manufacturing graph from domain semantics to
+implementation correspondence. Using Aeneas/Charon, bounded Rust cores from
+\textsf{wasm4pm}-style process execution can be extracted into
+proof-facing semantic images. These images do not prove Rust correct by
+extraction alone; rather, they create correspondence obligations between
+implementation objects and admitted \textsf{procint} semantics under
+declared abstraction functions. This gives process intelligence a proof
+class it otherwise lacks: kernel-checked implementation-correspondent
+process law, not merely ``model proved, implementation tested.''
+
+The result is not a claim that arbitrary generated mathematics is
+automatically correct. Rice-style undecidability is respected rather than
+ignored: MathProofOps replaces the impossible question ``is this arbitrary
+generated artifact semantically correct?'' with the bounded, replayable
+question ``did this candidate pass the declared admission gate inside
+boundary \(B\)?'' More generally, public ontologies supply a domain's
+nouns; MathProofOps supplies standing. The method generalizes from process
+intelligence to any ontology-bearing field whose artifacts can be
+projected, admitted, receipted, and replayed. The evaluation section of
+this paper is generated from the release manifest rather than written by
+hand, and a kernel-checked \emph{Standing Quadrature} witness closes the
+cross-product between the declaration catalog, the admitted corpus, the
+release manifest, the process evidence, and this paper's claims. We report
+exactly what was proven, what remains stated, what was refused, and what
+the release boundary excludes.
+\end{abstract}
+
+\section{Introduction}
+
+Formalization today often resembles hand-fitted manufacturing: every
+theorem, lemma, import, and repair is shaped locally by expert craft. The
+result can be excellent, but it is not yet industrial. Mathematical
+manufacturing asks a different question: what must be standardized so that
+formal domains can be produced as interchangeable parts? In
+\textsf{mfact}, the interchangeable part is not merely a Lean declaration.
+It is a declaration plus provenance, admission status, axiom footprint,
+refusal mode, hash, manifest position, and replay path. A theorem without
+this surrounding receipt is hand-fitted metal; an admitted declaration
+with its release evidence is an interchangeable mathematical part. The
+manufactured object is not syntax --- it is \emph{standing}.
+
+Recent work uses LLMs to draft formal content, which raises a question
+the kernel alone does not settle: what standing does generated material
+have? Kernel acceptance establishes that a term inhabits its stated type;
+it does not establish that the stated type is the intended one, that the
+statement is not vacuously weakened, or that the artifact as a whole is a
+faithful rendering of a target theory. Meek et
+al.~\cite{meek2026formalizing} document these failure modes in detail:
+compilation masks incomplete multi-part statements, added weakening
+hypotheses, and parameter restrictions. Our position is compressed by one
+rule: \emph{contact is not consequence}. LLM contact with a theorem is
+not consequence. A model may propose a proof term, a definition, or a
+module, but the proposal has no standing until admitted. \textsf{mfact}
+formalizes this separation: contact produces a candidate; admission
+produces consequence; the manifest records the receipt.
+
+Our position is that the two concerns should be mechanically separated:
+
+\begin{itemize}
+\item \textbf{Generation is unprivileged.} Anything --- a template engine, a
+  human, an LLM --- may produce a \emph{candidate}. Candidates carry
+  provenance and a content hash but no standing.
+\item \textbf{Standing is admission.} A candidate acquires standing only by
+  passing a fail-closed gate: the Lean kernel accepts it, it contains no
+  \texttt{sorry}, and its axiom footprint is pinned to an authorized set.
+  Every failure is a typed refusal, enumerated in a closed inductive type.
+\item \textbf{Claims are scoped.} A release manifest records, per
+  declaration, whether it is \emph{proven} (kernel-admitted, axiom-audited)
+  or merely \emph{stated} (the formal statement exists; the proof
+  obligation is open). The paper's own evaluation is rendered from the
+  manifest, not asserted in prose.
+\end{itemize}
+
+We call this discipline \emph{mathematical manufacturing}: the pipeline is
+the product as much as the library is. The statement--proof split, the typed
+refusals, and the manifest are what make an overnight, largely unattended
+run reportable at all.
+
+\paragraph{Scope.} This paper does not claim to formalize all of process
+intelligence completely, nor does it claim the manufacturing pipeline is
+applicable beyond the case study reported here. It introduces a
+mathematical manufacturing pipeline and demonstrates it by generating a
+first Lean~4 process-intelligence foundation from an existing typed
+implementation inventory. Table~\ref{tab:stages} makes the pipeline
+concrete: each stage names the artifact it produces, not a metaphor.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+Manufacturing stage & Concrete artifact \\
+\midrule
+Source inventory & typed Rust implementation (wasm4pm-compat) \\
+Rendering & \textsf{ggen} SPARQL-in-Tera templates (render Lean modules from the TTL catalog) \\
+Admission & Lean module creation (\texttt{lake env lean}) \\
+Inspection & \texttt{lake build} \\
+Refusal & typed \texttt{Refusal}, negative fixtures \\
+Evidence & process trace, release manifest \\
+Certification & \texttt{CertifiedRelease} object, axiom audit \\
+Publication & generated paper evaluation section \\
+\bottomrule
+\end{tabular}
+\caption{Mathematical manufacturing stages and their artifacts.}
+\label{tab:stages}
+\end{table}
+
+This paper makes four bounded contributions.
+
+First, it defines \emph{mathematical manufacturing} as a typed admission
+discipline for formal artifacts. Generated output, human patches,
+templates, and agent proposals are treated uniformly as candidates.
+Standing is acquired only through admission: kernel acceptance, no-sorry
+census, axiom audit, negative fixtures, manifest completeness, and
+replayable receipt (Section~\ref{sec:law}).
+
+Second, it introduces \textsf{mfact}, a Lean~4 framework that makes this
+discipline explicit through candidate, refusal, admission, manifest,
+certified-release, and valid-objection types (Section~\ref{sec:mfact}).
+The framework is intentionally small: it does not attempt to replace the
+Lean kernel, but to make the pre-kernel and post-kernel standing surface
+explicit.
+
+Third, it introduces \textsf{procint}, the first manufactured vertical of
+MathProofOps, produced by \textsf{mfact}: a process-intelligence library
+covering Petri nets, workflow nets, event logs, conformance, and
+OCEL-style object-centric logs (Section~\ref{sec:procint}). The novelty is
+not only the domain coverage --- to our knowledge, based on a bounded
+search of the Lean, Coq, and Isabelle/AFP library indexes at the time of
+the run, we found no prior public mechanization of workflow-net soundness
+or OCEL in these systems, a negative search result rather than a proof of
+absence --- it is the coupling of domain formalization with an explicit
+manufacturing receipt. A prior hand-written mechanization, if found, would
+be adjacent but not equivalent unless it provides the same admission,
+refusal, manifest, axiom, fixture, and replay surfaces.
+
+Fourth, it reports a manifest-generated evaluation
+(Section~\ref{sec:eval}) closed by a kernel-checked Standing Quadrature
+witness. The paper's evaluation numbers are not prose claims; they are
+rendered from the release manifest, and a generated Lean module
+(\texttt{ProcInt.Release.Quadrature}) is refused by the kernel if the
+declaration catalog, the audited corpus, and the manifest ever diverge.
+This closes the loop from declaration to admission to receipt to replay,
+and makes the paper itself an artifact of the manufacturing pipeline it
+describes.
+
+\section{The Receipted Manufacturing Law}
+\label{sec:law}
+
+The governing law of the pipeline is
+\[
+A = \mu_B(O^*_B), \qquad R_B = \mathrm{receipt}(A)
+\]
+where \(B\) is the declared boundary (the Lean packages, the declaration
+catalog, the manifest schema, the source inventory, the audited theorem
+set); \(O\) is raw observation --- candidate output from a human, an LLM,
+a template, a repository, or an ontology fragment; \(O^*_B\) is admitted
+observation inside \(B\): typed, checked, bounded, replayable; \(\mu_B\) is
+the lawful manufacturing transform (\textsf{ggen} rendering, Lean
+admission, Lake build, audit), parameterized by the boundary it operates
+inside; \(A\) is an artifact with standing (an admitted theorem, module,
+manifest entry, or release); and \(R_B\) is the receipt (build log,
+manifest hash, axiom audit, negative fixture, replay evidence) that proves
+\(A\) is a genuine consequence of \(\mu_B\), not an assertion about it.
+Raw generated output is \(O\), not \(O^*\). Manufacture produces the
+artifact; the receipt proves consequence; replay proves the receipt is
+non-ornamental. \emph{The pipeline exists to refuse the gap.}
+
+\paragraph{The Four Evidence Kinds.} We distinguish four classes of evidence within the manufacturing graph: (1) Formal evidence (Lean theorems and axiom audits); (2) Operational evidence (praxis-graphlaw benchmark and execution validation via rslab); (3) Correspondence evidence (Aeneas-extracted image to procint semantic equivalence proofs); and (4) Publication evidence (generated paper fragments and manifests).
+
+In this architecture, \textsf{ggen} is not a code generator in the usual
+sense. It is the projection half of the manufacturing function \(\mu\):
+it maps a declared obligation graph into candidate Lean surfaces. Lean
+supplies the admission half. Projection without admission is not
+standing; admission without projection does not scale.
+
+\paragraph{Rice boundary and manufactured decidability.}
+Rice's theorem bars nontrivial semantic decision procedures over
+arbitrary programs. The manufacturing response is not to evade this
+boundary, but to change the object of judgment. MathProofOps does not
+decide arbitrary semantic truth of arbitrary generated code. It decides
+whether a bounded candidate has been admitted by a specific kernel, under
+a declared axiom policy, with a complete manifest receipt. The
+undecidable question ``is this arbitrary generated artifact
+mathematically correct?'' is replaced by the decidable question ``did
+this candidate pass the declared admission gate inside boundary \(B\)?''
+Undecidability is not defeated; it is fenced, and bounded standing is
+manufactured inside the fence.
+
+\paragraph{Status is algebra, not prose.}
+The release distinguishes a closed vocabulary of standing values:
+\textsc{Declared}, \textsc{Extracted}, \textsc{Stated}, \textsc{Proven},
+\textsc{Refused}, \textsc{Blocked}, \textsc{BuildBroken}, \textsc{Unknown},
+\textsc{Unsupported}, and \textsc{Alive}. No transition from
+\textsc{Stated} to \textsc{Proven} is implicit or inferred from prose;
+\textsc{Extracted} is not proof; \textsc{Unknown} is not admitted;
+\textsc{Unsupported} is not the same as \textsc{Refused}. A generated
+artifact remains a candidate, whatever its origin, until an explicit
+admission step assigns it one of these values.
+
+\section{From Public Ontology to Domain Standing}
+\label{sec:ontology-generalization}
+
+The method is not specific to process intelligence. Process intelligence
+is the first vertical because its public objects --- events, traces,
+objects, transitions, guards, effects, conformance obligations, and
+object-centric logs --- already carry close mathematical structure. The
+underlying pattern is field-independent. Public ontologies supply a
+domain's nouns; they do not supply standing. \textsf{ggen} projects those
+nouns into candidate artifacts; Lean/Lake admits or refuses them;
+manifests record algebraic status; receipts and replay preserve
+consequence across time.
+
+For a field \(F\) with public object language \(\mathcal{O}_F\), raw
+observations \(O_F\), admitted observations \(O^*_F\), lawful
+manufacturing transform \(\mu_F\), artifact \(A_F\), and receipt \(R_F\),
+the MathProofOps law specializes exactly as in Section~\ref{sec:law}:
+\[
+A_F = \mu_F(O^*_F), \qquad R_F = \mathrm{receipt}(A_F).
+\]
+Public ontology supplies the field's nouns; MathProofOps supplies
+standing. Finance has FIBO/XBRL/LEI; healthcare has FHIR/SNOMED/LOINC;
+supply chain has GS1/EPCIS/PROV-O; manufacturing has SOSA/QUDT/ISA-95;
+software has SPDX/SBOM and extracted implementation images. In each case
+the platform claim is not that the ontology is new, but that
+ontology-grounded artifacts become admitted, receipted, replayable objects
+with standing. \textsf{procint} is this paper's demonstration vertical,
+not the boundary of the method.
+
+\section{Architecture: The Standing-Manufacturing Graph}
+\label{sec:architecture}
+
+The standing-manufacturing graph is organized around a five-rail architecture. Table~\ref{tab:rails} details each rail's source, admission boundary, and receipt form.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llll}
+\toprule
+Rail & Source & Admission Boundary & Receipt Form \\
+\midrule
+Formal & Lean catalog, corpus & Lean kernel, axiom policy & Audit log, print axioms \\
+Process-law & mfact core definitions & Conformance obligs. & covers proof, ValidObjection \\
+Benchmark & praxis execution & rslab schemas & JSON/TOML result receipt \\
+Correspondence & Rust crate source & Aeneas extraction & build\_verif.py check \\
+Paper & Manifest status & ggen sync & Manifest foldHash, regen-check \\
+\bottomrule
+\end{tabular}
+\caption{The Five-Rail standing-manufacturing architecture.}
+\label{tab:rails}
+\end{table}
+
+\section{Related Work}
+
+\paragraph{Formal libraries and their pipelines.}
+Mathlib~\cite{mathlib2020} is the reference point for large-scale
+collaborative formalization in Lean; its quality regime is human review plus
+continuous integration. CSLib~\cite{cslib2026} extends the Lean ecosystem
+toward computer science, including labeled transition systems, traces, and
+bisimulation, which \textsf{procint} builds on for its semantics layer. Lean~4
+itself is described by de Moura and Ullrich~\cite{moura2021lean4}. The
+closest neighbor to \textsf{mfact} is the agent pipeline of Meek et
+al.~\cite{meek2026formalizing}, which formalizes numerical analysis with
+coding agents and audits quality beyond kernel acceptance. We differ in
+mechanism rather than diagnosis: where their audit is a post-hoc quality
+assessment over agent output, \textsf{mfact} is a \emph{typed pipeline} ---
+candidates, refusals, and admissions are Lean data types, the statement
+corpus lives in an RDF catalog curated by LLM-assisted lanes (each
+candidate kernel-verified before being recorded, rather than accepted on
+the strength of agent output alone), and the proven/stated split is
+enforced by the release gate rather than estimated afterward. The two
+approaches are complementary: their semantic audits address exactly the
+residual risk our pipeline does not eliminate, namely that a curated
+statement, though kernel-admitted, is itself a faithless or vacuous
+rendering of the intended theorem.
+
+\paragraph{Lean 4 automation infrastructure.} \textsf{mfact}'s trust
+boundary sits above an already-scrutinized kernel: Lean4Lean provides an
+independent, kernel-in-Lean typechecker whose verification effort has
+already located and fixed a soundness bug in the reference
+implementation~\cite{lean4lean2024}. The two dominant patterns for wiring
+language-model or solver automation into Lean~4 are in-process integration,
+as in Lean Copilot's LLM inference over an FFI boundary~\cite{leancopilot2024},
+and external bridging to automated theorem provers, as in
+Lean-auto~\cite{leanauto2025}. \textsf{mfact} adopts neither: candidates from
+any producer, language model or otherwise, are untrusted data admitted only
+through the gate of Section~\ref{sec:mfact}, so no automation tool sits on
+the trusted path regardless of how it is wired in. Infrastructure for
+premise and declaration search~\cite{leanexplore2025} and for large
+synthetic theorem corpora~\cite{mathlib4dataset2025} addresses problems
+\textsf{procint} does not currently have, since its statement corpus is
+curated from the RDF catalog rather than mined or synthesized.
+
+\paragraph{Process intelligence.}
+The mathematical canon \textsf{procint} formalizes is due to a small number
+of primary sources. Petri-net structure theory --- state equation,
+invariants, boundedness, liveness --- follows Murata's
+survey~\cite{murata1989}. Workflow nets and their soundness are van der
+Aalst's~\cite{vanderaalst1997}; the decidability and classification
+landscape is surveyed in~\cite{vanderaalst2011soundness}, and the process
+mining setting in~\cite{vanderaalst2011pm}. Alignment-based conformance
+checking follows Carmona et al.~\cite{carmona2018}. Object-centric event
+data follows the OCEL~2.0 specification~\cite{ocel2} and object-centric
+Petri nets~\cite{ocpn2020}; partially ordered workflow models follow
+POWL~\cite{powl2023}. None of these, to the best of our search, had a prior
+mechanization in a proof assistant.
+
+\paragraph{Code-to-proof extraction.} The correspondence rail of
+Section~\ref{sec:correspondence} extracts an external Rust crate into Lean
+via Aeneas~\cite{ho2022aeneas}, whose Charon front end~\cite{protzenko2024charon}
+separates syntax recovery from semantic translation. Aeneas targets whole
+Rust programs with a full memory model; our pilot uses it far more
+narrowly, on a single dependency-free arithmetic module, and treats its
+output the same way as any other candidate in this paper's pipeline ---
+extraction produces a Lean statement, never a proof, and standing still
+requires kernel admission of a hand-authored correspondence theorem
+against that extraction. This rail addresses a proof class ordinary
+process intelligence lacks: without it, a Lean process model may be proven
+and a Rust executor may be tested, but their relationship remains prose,
+naming, convention, and examples. Extraction changes the object class, so
+that implementation and semantics can be related by a kernel-checked
+theorem rather than by documentation.
+
+\section{The mfact Framework}
+\label{sec:mfact}
+
+\textsf{mfact} is deliberately small: seven modules and a CLI. Its job is to make the pipeline's epistemics first-class Lean objects. mfact is not the whole system: it is the Lean/Lake standing apparatus inside a larger standing-manufacturing graph.
+
+\paragraph{Candidates and refusals.}
+A \texttt{Candidate} is content plus provenance (producer identity, content
+hash); producers are untrusted by construction. \texttt{Refusal} is a closed
+inductive type --- \texttt{kernelRejected}, \texttt{sorryPresent},
+\texttt{unauthorizedAxiom}, \texttt{missingEvidence},
+\texttt{malformedModel}, \texttt{invalidFixture} --- so a failed admission is
+always a value that can be logged, hashed, and re-queued, never an untyped
+error string. There is no default case: an unrecognized failure mode is
+itself a refusal to classify, not a silent pass.
+
+\paragraph{Admission with a covers proof.}
+An \texttt{Admission} bundles the evidence for one candidate: the kernel
+acceptance record, the sorry census, the axiom audit output, and a
+\texttt{covers} field --- a proof term witnessing that the evidence entries
+cover the obligations the gate imposes, so an admission cannot be assembled
+with a missing check. The gate function \texttt{admit} is total: it returns
+either an \texttt{Admission} or a \texttt{Refusal}, with no third outcome.
+
+\paragraph{Manifest, release, objections.}
+A \texttt{Manifest} (JSON-serializable via \texttt{ToJson}) lists artifacts
+with hashes, axiom sets, fixture results, and the proven/stated status of
+each declaration. A \texttt{CertifiedRelease} pairs a manifest with its
+audit obligations. \texttt{ValidObjection R} is a closed inductive family
+whose constructors are the only admissible objection forms against a
+release \texttt{R} (an unaudited theorem, a missing hash, an unauthorized
+axiom, a failing fixture); each constructor demands evidence. The
+per-release theorem
+\begin{center}
+\texttt{theorem no\_valid\_objection : IsEmpty (ValidObjection R)}
+\end{center}
+is discharged by refuting each constructor against the corresponding checked
+field of \texttt{R}. For the release described in this paper the theorem is
+proven and, per \texttt{\#print axioms}, depends on no axioms at all --- not
+even the three standard Lean/Mathlib axioms. The theorem's scope is exactly
+its constructors: it says the \emph{enumerated} objection forms are refuted,
+not that the release is beyond all criticism.
+
+\section{procint: Process Intelligence as Process Law}
+\label{sec:procint}
+
+In this paper, process intelligence does not mean dashboarding over event
+logs. It means a mathematical substrate for deciding, replaying, and
+explaining process standing: what happened, what was admitted, what was
+refused, which object relations were involved, which conformance
+obligations passed, and which receipts authorize the resulting claim.
+\textsf{procint} depends on Mathlib and CSLib and is organized as follows
+(module map abridged):
+
+\begin{center}
+\small
+\begin{tabular}{ll}
+\toprule
+Namespace & Content \\
+\midrule
+\texttt{ProcInt.Foundations} & metrics as \(\{q : \mathbb{Q} \mathrel{/\!/} 0 \le q \land q \le 1\}\), identifiers, LTS \\
+\texttt{ProcInt.Petri} & nets, firing, reachability, state equation, invariants, \\
+ & boundedness, liveness, OCPN, stochastic nets, unfoldings \\
+\texttt{ProcInt.Workflow} & WF-nets, short-circuit construction, soundness \\
+\texttt{ProcInt.Logs} & events, traces (monotone timestamps), event logs, XES \\
+\texttt{ProcInt.Models} & process trees, POWL, DFGs, causal nets, BPMN, Declare \\
+\texttt{ProcInt.Conformance} & moves, alignments, cost, fitness, token replay \\
+\texttt{ProcInt.Ocel} & OCEL~2.0, E2O/O2O relations, flattening, lifecycles \\
+\texttt{ProcInt.Ocpq} & object-centric process queries \\
+\texttt{ProcInt.Analytics} & temporal, causality, correlation, cubes, streaming \\
+\texttt{ProcInt.Registry} & algorithm and breed registries (cross-product tables) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Petri nets.}
+A net is places, transitions, and weighted flow over finite types; a marking
+is a finitely supported function \(M : P \to_{f} \mathbb{N}\), which unifies
+the weighted and (via richer codomains) colored cases and gives the marking
+algebra of Murata~\cite{murata1989} --- firing, the state equation
+\(M' = M + A^{\mathsf T} u\), and place/transition invariants --- as
+\(\mathsf{Finsupp}\) lemmas with truncated subtraction.
+
+\paragraph{Workflow nets and soundness.}
+A \texttt{WfNet} carries a Petri net as a field (composition, not
+extension) together with the source-place, sink-place, and connectivity
+conditions of van der Aalst's Definition~6--7~\cite{vanderaalst1997}.
+Following the observation that the classical soundness clauses are logically
+independent, soundness is \emph{not} a single conjunction-shaped definition
+but three separately named predicates --- option to complete, proper
+completion, and no dead transitions --- with \texttt{Sound} as their
+explicit conjunction. This keeps partial results honest: a lemma about one
+clause is stated about that clause.
+
+The crown-jewel target of the run is van der Aalst's soundness
+characterization (Lemma~8~\cite{vanderaalst1997}): soundness of a workflow net
+iff liveness and boundedness of its short-circuited net. The finite transition
+hypothesis is necessary: the repository includes a Lean-admitted
+infinite-transition countermodel, \verb|WfNet.infinite_transition_countermodel_sound_not_bounded|,
+showing that the unbounded statement fails under infinite transitions. The
+repaired crown theorem therefore states the equivalence under \([Finite T]\).
+
+\paragraph{Conformance.}
+Alignments follow Carmona et al.~\cite{carmona2018}: moves are synchronous,
+log-only, model-only, or silent; costs induce optimal alignments; fitness is
+a \(\mathsf{Between01}\) value by construction, so boundedness of the metric
+is a type-level fact rather than a theorem obligation.
+
+\paragraph{OCEL 2.0.}
+Object-centric event logs follow the OCEL~2.0
+specification~\cite{ocel2} (Definitions~1--2): typed events and objects,
+event-to-object and object-to-object relations with qualifiers, and
+attribute maps; flattening onto a classical log and object lifecycles are
+derived operations. Object-centric Petri nets follow~\cite{ocpn2020}.
+
+\paragraph{Canon status.} Table~\ref{tab:canon} states, per area, whether
+\textsf{procint} v1 formalizes it, formalizes a seed instance of it, or
+leaves it to future work. The claim of this paper is a first combinatorial
+process-intelligence foundation, not a complete formalization of process
+intelligence; per-declaration status (proven/stated) within each formalized
+area is in the generated evaluation (Section~\ref{sec:eval}).
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+Area & v1 status \\
+\midrule
+Transition systems, traces, reachability & formalized (Foundations, Petri) \\
+Petri nets (marking, firing, invariants) & formalized \\
+Workflow nets and soundness & formalized; short-circuit theorem partial (Sec.~\ref{sec:eval}) \\
+Alignment-based conformance & formalized (moves, cost, fitness) \\
+OCEL~2.0 event/object relations & formalized \\
+Object-centric Petri nets & seed instance \\
+Process trees, POWL, DFGs, BPMN, Declare & seed instances \\
+Object-centric process queries (OCPQ) & seed instance \\
+Temporal/causal/streaming analytics & seed instances \\
+\bottomrule
+\end{tabular}
+\caption{Process-intelligence canon coverage in \textsf{procint} v1.}
+\label{tab:canon}
+\end{table}
+
+\section{The Manufacturing Run}
+\label{sec:run}
+
+The run that produced \textsf{procint} has five moving parts.
+
+\paragraph{The TTL catalog as canonical source.}
+The canonical source of \textsf{procint} is not a tree of \texttt{.lean}
+files but an RDF/Turtle declaration catalog (\texttt{procint:} vocabulary):
+one record per declaration, carrying its Lean body (\texttt{leanCode}),
+its module, its proof status, its axiom-audit expectation, and citations
+back to the primary literature. Declaration bodies enter the catalog by
+curation --- LLM-assisted lanes draft them and each candidate is
+kernel-tested before being recorded --- so the catalog holds verified
+candidates, not free-form generation. The cross-product surfaces
+(registries of algorithms and model breeds) are fully data-driven rows of
+the same graph.
+
+\paragraph{SPARQL-in-Tera rendering.}
+The \textsf{ggen} engine renders Lean modules from templates whose
+frontmatter carries SPARQL \texttt{SELECT} queries against the catalog and
+whose bodies are Tera templates over the result bindings. One template
+yields one \texttt{.lean} file per \texttt{procint:Module}; separate
+templates render the root import index, the registry tables, and the
+axiom-audit file --- for every audited theorem, a \texttt{\#guard\_msgs in
+\#print axioms} block pinned to \texttt{[propext, Classical.choice,
+Quot.sound]}, so any transitive \texttt{sorryAx} or unauthorized axiom
+breaks the build. The rendered corpus is a \emph{candidate artifact}: it is
+not trusted because it was rendered, and \textsf{ggen} certifies nothing.
+It acquires standing only through kernel admission. In one line:
+\textsf{ggen} renders, Lean admits, \textsf{mfact} certifies.
+
+\paragraph{LLM lanes as untrusted producers.}
+Module families (Petri core, workflow, logs and conformance, OCEL,
+models, analytics, fixtures) run as independent lanes with no barriers
+between them. Each lane's agent hand-drafts the actual structures,
+definitions, and proofs for its module family, but writes nothing directly
+into the library: every piece of Lean code it proposes is first
+kernel-tested via \texttt{lake env lean} on a scratch file, and only a
+declaration that passes this check is recorded --- as a \texttt{leanCode}
+string literal, together with its proof status --- in the lane's catalog
+fragment. The catalog records what the lane authored and what the kernel
+confirmed; it authors nothing itself. Statements the lane cannot prove ship
+as \texttt{sorry}-bearing stubs marked \emph{stated} in the fragment.
+
+\paragraph{Admission and the repair loop.}
+An integrator loop repeatedly merges fragments, re-renders, and runs
+\texttt{lake build}. Build errors are parsed and returned to the owning
+lane as repair context, with bounded retries per stub and per lane;
+exhausted stubs are downgraded --- the statement stays in the library, the
+claim drops to \emph{stated}, and the declaration leaves the audited set.
+Nothing is deleted and nothing passes silently: the terminal state of every
+stub is either kernel-admitted or an explicit downgrade receipt.
+
+\paragraph{Certification.}
+The release gate rebuilds both packages, builds the axiom-audit files,
+runs the negative fixtures (\texttt{\#guard\_msgs (error)} blocks, the Lean
+analog of compile-fail tests), and emits the release manifest with content
+hashes. A negative control --- injecting a \texttt{sorry} into a scratch
+copy of an audited theorem --- must cause the gate to refuse; a gate that
+cannot fail certifies nothing.
+
+\section{praxis-graphlaw: Executable Law-State Evaluation}
+\label{sec:praxis-graphlaw}
+
+The \textsf{praxis-graphlaw} engine (version v26.7.5) is an executable law-state engine that evaluates the operational conformance of transition systems and process models. Rather than operating as a custom verification engine built from scratch, \textsf{praxis-graphlaw} is a derivative work extending the RDF/N3 reasoner \textsf{roxi} (originally developed by Bonte et al.). It is integrated into the generation and validation lifecycle of \textsf{ggen} through the \texttt{GraphEngine} abstraction boundary, specifically concrete implementations of the \texttt{GraphLawStore}.
+
+The engine models law-states directly as Resource Description Framework (RDF) triple graphs, using Turtle (.ttl) format serialization. Operational logic and state transitions are defined using Notation3 (N3) rules and stratified Datalog, allowing for deterministic materialization, solution generation, and query evaluation via the reasoner's \texttt{materialize}, \texttt{prove}, and \texttt{solve} interfaces.
+
+State conformance and safety properties are enforced via W3C SHACL (Shapes Constraint Language) and ShEx (Shape Expressions) constraint schemas, which operate as executable transaction-path admission gates. The engine exposes these gates via the \texttt{validate\_shacl} and \texttt{validate\_shex} functions. Safety violations and negative conditions are captured as N3 logical denials of the form \texttt{\{ body \} => false.}, where any deduction of falsity immediately triggers a transaction refusal.
+
+At the integration layer with \textsf{ggen}, graphlaw's validation results are translated into a structured, typed refusal vocabulary ranging from \texttt{FM-LAW-001} through \texttt{FM-LAW-013}. For example, an N3 logical denial violation produces an \texttt{FM-LAW-011} refusal, while a SHACL shapes non-conformance results in an \texttt{FM-LAW-013} refusal. This structured failure reporting constitutes an independent, executable instance of the MathProofOps law-state pattern.
+
+Fast evaluation is a critical design requirement for these gates, as they sit directly on the transaction-path execution loop of the process engine. High latency during validation would directly degrade transaction throughput. While the primary objective is low latency, we measure and record these performance characteristics empirically in Section~\ref{sec:rslab_benchmark} to verify that the overhead of validation remains within acceptable limits.
+
+\section{rslab: Empirical Evidence Rail}
+\label{sec:rslab}
+
+The \textsf{rslab} framework acts as the empirical evidence rail for MathProofOps. It sits in parallel with the formal proof and correspondence rails, ensuring that measured performance and test execution data are receipted and ledgered deterministically. The governance of this rail is defined by the following doctrine:
+
+\begin{quote}
+\itshape
+praxis executes. \\
+rslab measures and receipts. \\
+mfact admits formal standing. \\
+paper renders admitted/receipted claims.
+
+rslab is not a proof engine. \\
+rslab is an empirical evidence rail.
+\end{quote}
+
+Within this rail, raw telemetry and outputs from execution are treated as unadmitted observations ($O$). Once these observations are processed by validation scripts, checked against JSON schemas, and bound to a cryptographic content receipt, they become schema-validated admitted observations ($O^*$). Downstream LaTeX paper fragments are then generated directly from these receipts to produce the final paper artifacts with standing ($A$).
+
+Every experiment is declared in the central experiment manifest (\texttt{rslab/manifest.toml}) using the status ladder pattern. Telemetry outputs are validated against JSON schemas, such as \texttt{benchmark\_result.schema.json}. The resulting TOML receipts mirror the metadata structure of \texttt{verif-receipt.json}, containing the execution builder, toolchain specifications (e.g. pinned compiler versions), git commits, and BLAKE3 hashes of raw captures. Crucially, in accordance with the determinism requirements, these receipts contain no wall-clock timestamps in their body.
+
+The fragment generation pipeline is strictly fail-closed: if the processed results file or the validating TOML receipt is missing or has a hash mismatch, the builder script exits non-zero with an \texttt{RSLAB\_EVIDENCE\_MISSING} refusal, halting the build rather than allowing blank or stale placeholders to be compiled.
+
+Currently, \textsf{rslab} defines a readiness contract capturing throughput and latency metrics for core graphlaw operations. However, profiling data is not available. This limitation is a direct reflection of the development environment: no profiling or flamegraph tooling exists in the \textsf{praxis} workspace. This absence is explicitly declared in the receipt caveats rather than silently ignored.
+
+We explicitly distinguish \textsf{rslab}'s role from formal verification. Where the correspondence rail (Section~\ref{sec:correspondence}) proves a bounded relationship between an implementation and admitted semantics, the \textsf{rslab} rail records what a system measurably does, without claiming that measurement constitutes proof of anything beyond itself.
+
+
+\section{Use of Generative AI Tools}
+\label{sec:ai-disclosure}
+
+Claude Code and related language-model tooling were used to generate
+candidate patches, proof sketches, ontology fragments, documentation
+drafts, and release metadata during the run described in
+Section~\ref{sec:run}. These outputs were treated throughout as untrusted
+candidate artifacts, per the separation in Section~\ref{sec:mfact}: they
+were admitted into \textsf{procint} only when accepted by the Lean kernel,
+the sorry census, the axiom audit, schema validation against the
+\texttt{procint:} ontology, and the negative-fixture and release-gate
+checks of Section~\ref{sec:run}. No language-model output is part of the
+trusted base (Table~\ref{tab:stages}); the trusted base is the Lean kernel,
+Mathlib and CSLib at their pinned revisions, and the \texttt{lake}/\texttt{ggen}
+toolchain. The author reviewed and accepts responsibility for all submitted
+content, code, citations, and claims in this paper and in the accompanying
+repository.
+
+This separation is not precautionary in the abstract: general-purpose
+language models have a documented Lean~3/Lean~4 syntax-confusion failure
+mode, generating deprecated Lean~3 constructs despite explicit Lean~4
+instructions, and GPT-4-class and substantially smaller models have been
+reported at comparable, low accuracy on the MiniF2F-Valid
+benchmark~\cite{langconfusion2025}. Approaches that fine-tune a
+general-purpose model toward Lean~4 specifically~\cite{theoremllama2024} or
+pair a language model with solver-guided refinement~\cite{apollo2025} trade
+some of this untrusted-candidate distance for higher raw acceptance rates;
+\textsf{mfact} does not take that trade in the run reported here, since every
+candidate --- however produced --- passes through the same kernel-and-audit
+gate regardless of its source's measured reliability.
+
+\section{Implementation Correspondence with Aeneas}
+\label{sec:correspondence}
+
+Beyond \textsf{procint}'s own catalog, \textsf{mfact} opens a second
+manufacturing rail: implementation correspondence. Where
+Section~\ref{sec:procint} manufactures domain semantics from a declared
+obligation graph, this rail manufactures obligations that relate a Lean
+declaration to code extracted from an \emph{external}, unverified Rust
+crate (\texttt{wasm4pm-core}) via Aeneas~\cite{ho2022aeneas} and its
+Charon front end~\cite{protzenko2024charon}. The first instance of this
+rail is deliberately scoped to one obligation --- token-replay counts
+correspondence, ``D1'' --- not because the rail is narrow in principle,
+but because a single bounded instance is what standing requires before the
+rail generalizes. It follows the same status ladder as the rest of this
+paper's standing (declared, extracted, stated, proven), computed by a
+dedicated builder (\texttt{scripts/build\_verif.py}) from observed
+evidence: a charon/aeneas pipeline receipt, a \texttt{lake build} of the
+extracted module against \textsf{procint}, and an axiom-print check on the
+resulting theorem. The
+crate's \texttt{ReplayCounts}\allowbreak\texttt{\{produced, consumed,
+missing, remaining\}} counts and its integer
+\texttt{fitness\_num}/\texttt{fitness\_den} functions are extracted
+verbatim; an abstraction function lifts the extracted (proof-free) struct
+into \textsf{procint}'s \texttt{ReplayCounts} (which carries
+\texttt{missing} $\le$ \texttt{consumed} and \texttt{remaining} $\le$
+\texttt{produced} as proof fields) given those two inequalities as
+hypotheses. The correspondence theorem does not assert that the crate's
+integer ratio and \textsf{procint}'s exact-rational fitness are equal ---
+they are structurally different formulas (a single integer fraction versus
+an average of two ratios) --- only that each computes correctly from the
+same underlying counts; forcing a false numeric equality between them was
+rejected in favor of this honest, weaker, but PROVEN statement.
+Table~\ref{tab:correspondence} is rendered by that same builder from its
+own receipt; it is not written by hand.
+
+\ifreleasebuild
+  \input{correspondence_status}
+\else
+  \InputIfFileExists{correspondence_status}{}{%
+  \begin{center}\itshape Draft build: correspondence\_status.tex missing.\end{center}}
+\fi
+
+\section{Evaluation}
+\label{sec:eval}
+
+\subsection{Formal Standing Evaluation}
+\label{sec:formal_eval}
+
+Every number in this section is rendered from the release manifest
+(\texttt{release-manifest.json}) of the run; none is written by hand. The
+generation pipeline fails closed: if the manifest is absent or stale, this
+section does not render and the paper does not build for release.
+
+\ifreleasebuild
+  \input{evaluation}
+\else
+  \InputIfFileExists{evaluation}{}{%
+  \begin{center}\fbox{\itshape Draft build: evaluation.tex missing.}\end{center}}
+\fi
+
+\paragraph{Final status.} The table below is generated from the
+release manifest and standing records; no cell is hand-authored.
+\ifreleasebuild
+  \input{final_status}
+\else
+  \InputIfFileExists{final_status}{}{%
+  \begin{center}\fbox{\itshape Draft build: final\_status.tex missing.}\end{center}}
+\fi
+
+\subsection{Standing Quadrature}
+\label{sec:quadrature}
+
+The release is not evaluated only by whether Lean builds. It is evaluated
+by whether the declaration catalog, admitted Lean corpus, process
+evidence, release manifest, and paper claims form a \emph{closed standing
+graph}. The quadrature check rejects orphan declarations, unsupported
+claims, untraced artifacts, and manifest--paper divergence. Closure is
+itself kernel-checked: a generated witness module
+(\texttt{ProcInt.Release.Quadrature}) carries the name-sorted proven
+surfaces of the catalog, the manifest, and the axiom audit as literal
+lists, and proves their pairwise equality by \texttt{rfl} --- any orphan
+on any side makes the lists differ and the kernel refuses the witness.
+The same module encodes the manufacturing run as a \textsf{procint}
+process trace and proves, with the corpus's own \texttt{DeclareConstraint}
+semantics, that the run conforms to its declared process model:
+\textsf{procint} models the process by which \textsf{mfact} manufactured
+\textsf{procint}. Table~\ref{tab:quadrature} is generated from
+\texttt{quadrature.json}; three negative controls (a corrupted evaluation
+number, a claim with no evidence, a catalog declaration with no rendered
+symbol) each cause a typed refusal.
+
+\ifreleasebuild
+  \input{quadrature}
+\else
+  \InputIfFileExists{quadrature}{}{%
+  \begin{center}\itshape Draft build: quadrature.tex missing.\end{center}}
+\fi
+
+\subsection{praxis/rslab Benchmark Evidence}
+\label{sec:rslab_benchmark}
+
+\ifreleasebuild
+  \input{../rslab/paper_fragments/rslab_praxis_graphlaw_summary}
+\else
+  \InputIfFileExists{../rslab/paper_fragments/rslab_praxis_graphlaw_summary}{}{%
+  \begin{center}\itshape Draft build: rslab\_praxis\_graphlaw\_summary.tex missing.\end{center}}
+\fi
+
+\ifreleasebuild
+  \input{../rslab/paper_fragments/rslab_praxis_graphlaw_benchmarks}
+\else
+  \InputIfFileExists{../rslab/paper_fragments/rslab_praxis_graphlaw_benchmarks}{}{%
+  \begin{center}\itshape Draft build: rslab\_praxis\_graphlaw\_benchmarks.tex missing.\end{center}}
+\fi
+
+\ifreleasebuild
+  \input{../rslab/paper_fragments/rslab_praxis_graphlaw_profiles}
+\else
+  \InputIfFileExists{../rslab/paper_fragments/rslab_praxis_graphlaw_profiles}{}{%
+  \begin{center}\itshape Draft build: rslab\_praxis\_graphlaw\_profiles.tex missing.\end{center}}
+\fi
+
+\ifreleasebuild
+  \input{../rslab/paper_fragments/rslab_readiness}
+\else
+  \InputIfFileExists{../rslab/paper_fragments/rslab_readiness}{}{%
+  \begin{center}\itshape Draft build: rslab\_readiness.tex missing.\end{center}}
+\fi
+
+\section{Falsifier and Valid Objection Surface}
+\label{sec:falsifier}
+
+A valid objection to this release must exhibit at least one of:
+(1) a declared admitted theorem contains \texttt{sorry};
+(2) a theorem depends on unauthorized axioms;
+(3) a manifest hash does not match the artifact;
+(4) a negative fixture passes when it should fail;
+(5) a generated evaluation number does not match the manifest;
+(6) a stated declaration is described as proven;
+(7) the catalog-to-Lean rendering changes the intended theorem statement;
+(8) the release cannot be replayed under pinned dependencies.
+These are \emph{closed failure classes}, not open attack surfaces: each
+is engineered into a gate, a typed refusal, or a non-admitted state, and
+the release gate is designed so that any occurrence of such a case
+prevents admission or produces a typed refusal. After certification, no
+constructor of the valid-objection surface is inhabited inside the
+declared boundary; the negative controls demonstrate each class refusing
+on a poisoned copy. A local objection to one proof, citation, or template
+is not automatically a refutation of mathematical manufacturing. It
+becomes a refutation only if it crosses the admission boundary and
+invalidates a claimed receipt --- and the enumeration above is exactly
+the set of ways to do so.
+
+\section{Limitations and Standing}
+\label{sec:limitations}
+
+\paragraph{Proven versus stated.}
+The library's standing is exactly the manifest's proven/stated split; prose
+in this paper adds nothing to it. \emph{Stated} declarations are formal
+statements whose proof obligations are open --- they compile, they are
+citable as definitions of the intended property, and they carry no more
+authority than that.
+
+\paragraph{Crown-jewel scope.}
+The short-circuit soundness characterization is reported per direction. If
+only one direction is admitted at release time, the claim is that direction
+and nothing more; the converse remains a stated obligation in the manifest.
+\ifreleasebuild
+  \input{crown_jewel_status}
+\else
+  \InputIfFileExists{crown_jewel_status}{}{}
+\fi
+
+\paragraph{What admission does not check.}
+Kernel admission plus the axiom audit establishes that admitted terms prove
+the stated theorems under the pinned axioms. It does not establish that
+the catalog-curated statements faithfully render the informal canon; that
+correspondence rests on citation-annotated statement curation against the
+primary sources and is exactly the kind of residual risk the semantic
+audits of~\cite{meek2026formalizing} target. Fidelity of statements is a
+review obligation, not a theorem.
+
+\paragraph{Scope of the novelty claim.}
+``First mechanization'' claims are scoped to a search of the Lean
+(Mathlib/CSLib), Coq, and Isabelle (AFP) ecosystems at run time; we claim a
+negative search result, not a proof of absence.
+
+\paragraph{Standing at submission.}
+The standing of the system is intentionally not inferred from this paper.
+At release time, the crown theorem rail, countermodel rail, correspondence
+rail, product/DX rail, and paper rail each carry independent manifest
+status. The paper is a publication surface, not a source of truth; if
+paper prose and manifest status ever diverge, the manifest and receipts
+govern, not the prose.
+
+\paragraph{Exclusions.}
+This paper does \emph{not} claim any of the following.
+
+\begin{center}
+\small
+\begin{tabular}{ll}
+\toprule
+Exclusion & Reason \\
+\midrule
+LLMs prove mathematics autonomously & LLMs are untrusted producers \\
+\textsf{procint} formalizes all of process intelligence & v1 boundary is manifest-scoped \\
+Kernel admission proves informal intent & statement fidelity is a review obligation \\
+Rice's theorem is violated & arbitrary semantic correctness is not decided \\
+External opinion enters the standing calculus & only receipted artifacts are parsed \\
+Criticism outside the boundary is refuted & the empty-objection-surface claim is scoped to the declared boundary \\
+\textsf{ggen} output has standing by generation & only admitted output has standing \\
+A stated theorem is proven & stated means the obligation remains open \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Availability}
+\label{sec:availability}
+
+The \textsf{mfact} and \textsf{procint} packages, the ontology, the
+templates, the release manifest, and the source of this paper (including
+the generated evaluation) will be made available in the \texttt{mfact}
+repository at the certified release tag accompanying this submission,
+pinned to Lean~4 v4.31.0 with Mathlib and CSLib at fixed revisions. The
+negative-control script that demonstrates the gate refusing a
+\texttt{sorry}-injected artifact ships with the release.
+
+\paragraph{Reproducibility appendix.}
+\begin{itemize}
+\item \textbf{Lean:} \texttt{leanprover/lean4:v4.31.0}.
+\item \textbf{Mathlib:} \texttt{leanprover-community/mathlib4} at the commit
+  tagged \texttt{v4.31.0}.
+\item \textbf{CSLib:} \texttt{leanprover/cslib}, pinned to its last commit
+  on the \texttt{v4.31.0} toolchain.
+\item \textbf{Build:} \texttt{lake build} in \texttt{mfact/} and
+  \texttt{procint/}.
+\item \textbf{Rendering:} \texttt{ggen sync run} against
+  \texttt{packs/lean-math-pack} and the merged \texttt{procint:} catalog.
+  This renders the candidate Lean corpus (modules, index, axiom audit,
+  registry tables) from the TTL catalog; the rendered corpus is admitted
+  only by the subsequent \texttt{lake build}.
+\item \textbf{Certification:} \texttt{lake exe mfact certify
+  release-manifest.json gates.json}.
+\item \textbf{Artifact and manifest hashes:} recorded per-declaration
+  (BLAKE3) and as a genesis-folded release hash in
+  \texttt{release-manifest.json}; reproduced in the generated evaluation
+  (Section~\ref{sec:eval}).
+\item \textbf{Expected output:} \texttt{CERTIFIED\_RELEASE=PASS} with
+  \texttt{SORRY\_COUNT=0} and \texttt{AXIOM\_AUDIT=PASS}; a negative control
+  with an injected \texttt{sorry} must instead exit refused.
+\end{itemize}
+
+\ifreleasebuild
+  \input{availability}
+\else
+  \InputIfFileExists{availability}{}{}
+\fi
+
+\ifreleasebuild
+  \input{publication_status}
+  \input{replay_status}
+\else
+  \InputIfFileExists{publication_status}{}{}
+  \InputIfFileExists{replay_status}{}{}
+\fi
+
+\section{Conclusion}
+
+\ifreleasebuild
+  \input{conclusion}
+\else
+  \InputIfFileExists{conclusion}{}{%
+  \begin{center}\fbox{\itshape Draft build: conclusion.tex missing.}\end{center}}
+\fi
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}

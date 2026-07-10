@@ -1,9 +1,10 @@
 //! Refusal-taxonomy governance tests.
 //!
-//! Ground truth read this session: `src/chatman/abi.rs:244-335` (the
-//! `Refusal` enum, 29 variants) and `src/chatman/abi.rs:340-370`
-//! (`ALL_REFUSAL_NAMES: [&str; 29]`, declaration order) and
-//! `src/chatman/abi.rs:372-414` (`Refusal::name()`, exhaustive match).
+//! Ground truth read this session: `src/chatman/abi.rs:244-349` (the
+//! `Refusal` enum, 31 variants, including PROJ-SEC-04's `StageSealMismatch`
+//! and `UnlawfulActuation`) and `src/chatman/abi.rs:354-386`
+//! (`ALL_REFUSAL_NAMES: [&str; 31]`, declaration order) and
+//! `src/chatman/abi.rs:388-432` (`Refusal::name()`, exhaustive match).
 //!
 //! `chicago_tdd_tools::prelude` (verified this session in
 //! `/Users/sac/chicago-tdd-tools/src/lib.rs:262-320`) exports no
@@ -61,21 +62,23 @@ const GOVERNED_REFUSAL_NAMES: &[&str] = &[
     "ProcessReceiptShadowType",
     "DuplicateCanonicalTapeType",
     "TripleTermInSnapshot",
+    "StageSealMismatch",
+    "UnlawfulActuation",
 ];
 
-/// `ALL_REFUSAL_NAMES` is a hard-coded `[&str; 29]` array
+/// `ALL_REFUSAL_NAMES` is a hard-coded `[&str; 31]` array
 /// (`abi.rs:340`); this asserts the exact count read from the source.
 #[test]
-fn all_refusal_names_has_exactly_twenty_nine_entries() {
+fn all_refusal_names_has_exactly_thirty_one_entries() {
     assert_eq_msg!(
         ALL_REFUSAL_NAMES.len(),
-        29,
-        "abi.rs:340 declares ALL_REFUSAL_NAMES: [&str; 29]; count drifted"
+        31,
+        "abi.rs:340 declares ALL_REFUSAL_NAMES: [&str; 31]; count drifted"
     );
     assert_eq_msg!(
         GOVERNED_REFUSAL_NAMES.len(),
-        29,
-        "independently-transcribed governed list must also have 29 entries"
+        31,
+        "independently-transcribed governed list must also have 31 entries"
     );
 }
 

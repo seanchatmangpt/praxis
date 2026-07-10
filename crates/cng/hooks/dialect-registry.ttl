@@ -1,0 +1,284 @@
+# dialect-registry.ttl — PROJ-613 Dialect Registry (vocabulary + entries).
+# The Dialect Registry Invariant: every registered dialect entry carries exactly
+# eight properties (admittedInputs, manufacturedOutputs, authorityBoundary,
+# quarantineBoundary, refusalVocabulary, receiptSchema, replaySemantics,
+# executableRouting). Conformance is enforced by dialect-registry.shape.ttl
+# (sh:closed NodeShape); the Rust side maps a SHACL violation to
+# CngRefusal::DialectRegistryRefused (wiring is a separate ticket portion).
+#
+# Bridge-vocabulary note: FOAF, vCard, ORG, PROV-O, OWL-Time, GeoSPARQL,
+# DC Terms, schema.org, and SKOS were checked; none model an execution-dialect
+# registry with admission/authority/quarantine/receipt/replay/routing facets,
+# so the dreg: terms below are minted under the praxis namespace family
+# (same family as kh:/hook: in praxis-graphlaw src/hooks/mod.rs).
+
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix dreg: <http://seanchatmangpt.github.io/praxis/dreg#> .
+
+#################################################################
+# Vocabulary
+#################################################################
+
+dreg: a owl:Ontology ;
+  rdfs:label "Praxis Dialect Registry vocabulary" ;
+  rdfs:comment "Registry of semantic/execution dialects admitted by the cng/Chatman toolchain. Every dreg:DialectEntry must carry exactly the eight registry properties; see dialect-registry.shape.ttl for the closed SHACL law." .
+
+dreg:DialectEntry a rdfs:Class ;
+  rdfs:label "Dialect registry entry" ;
+  rdfs:comment "A registered dialect. Must carry exactly the eight properties: admittedInputs, manufacturedOutputs, authorityBoundary, quarantineBoundary, refusalVocabulary, receiptSchema, replaySemantics, executableRouting." .
+
+dreg:admittedInputs a rdf:Property ;
+  rdfs:domain dreg:DialectEntry ;
+  rdfs:label "admitted inputs" ;
+  rdfs:comment "What input artifacts this dialect admits into the engine." .
+
+dreg:manufacturedOutputs a rdf:Property ;
+  rdfs:domain dreg:DialectEntry ;
+  rdfs:label "manufactured outputs" ;
+  rdfs:comment "What artifacts execution of this dialect manufactures." .
+
+dreg:authorityBoundary a rdf:Property ;
+  rdfs:domain dreg:DialectEntry ;
+  rdfs:label "authority boundary" ;
+  rdfs:comment "The extent of authority this dialect's results carry (what they are allowed to decide or actuate)." .
+
+dreg:quarantineBoundary a rdf:Property ;
+  rdfs:domain dreg:DialectEntry ;
+  rdfs:label "quarantine boundary" ;
+  rdfs:comment "Where this dialect's results must stay quarantined (e.g. cold route only; never actuation)." .
+
+dreg:refusalVocabulary a rdf:Property ;
+  rdfs:domain dreg:DialectEntry ;
+  rdfs:label "refusal vocabulary" ;
+  rdfs:comment "The typed refusal variants this dialect can raise." .
+
+dreg:receiptSchema a rdf:Property ;
+  rdfs:domain dreg:DialectEntry ;
+  rdfs:label "receipt schema" ;
+  rdfs:comment "The receipt evidence schema produced for executions of this dialect." .
+
+dreg:replaySemantics a rdf:Property ;
+  rdfs:domain dreg:DialectEntry ;
+  rdfs:label "replay semantics" ;
+  rdfs:comment "How executions of this dialect are deterministically replayed and verified." .
+
+dreg:executableRouting a rdf:Property ;
+  rdfs:domain dreg:DialectEntry ;
+  rdfs:label "executable routing" ;
+  rdfs:comment "Which engine route/adapter executes this dialect." .
+
+#################################################################
+# Registry entries
+#################################################################
+
+dreg:datalog a dreg:DialectEntry ;
+  rdfs:label "Datalog" ;
+  rdfs:comment "Stratified Datalog rule dialect for deterministic fact materialization to fixpoint." ;
+  dreg:admittedInputs "Stratified Datalog rules over the closed kh:/hook: vocabularies plus admitted RDF facts" ;
+  dreg:manufacturedOutputs "Derived facts materialized to fixpoint via semi-naive evaluation" ;
+  dreg:authorityBoundary "Derived facts are authoritative inside the admitted graph; no external actuation" ;
+  dreg:quarantineBoundary "None beyond graph admission; rules with unsupported constructs are refused at compile" ;
+  dreg:refusalVocabulary "Refusal::UnsupportedFeature, Refusal::UnknownVocabulary, stratification-cycle refusals" ;
+  dreg:receiptSchema "BLAKE3 receipt over canonical sorted N-Quads of the materialized closure" ;
+  dreg:replaySemantics "Deterministic re-materialization from admitted inputs; byte-identical receipt required" ;
+  dreg:executableRouting "graphlaw reasoner materialization route (hot path)" .
+
+dreg:shacl a dreg:DialectEntry ;
+  rdfs:label "SHACL" ;
+  rdfs:comment "SHACL shape validation dialect; closed-shape law packs gate admission." ;
+  dreg:admittedInputs "SHACL NodeShapes/PropertyShapes (closed-shape law packs) plus data graphs to validate" ;
+  dreg:manufacturedOutputs "Validation reports (conforms flag plus violation results as facts)" ;
+  dreg:authorityBoundary "Validation verdicts gate admission; a violation blocks the gated operation" ;
+  dreg:quarantineBoundary "Shapes cannot mutate data; validation is read-only over the target graph" ;
+  dreg:refusalVocabulary "Shape-violation refusals (e.g. CngRefusal::DialectRegistryRefused for registry shapes)" ;
+  dreg:receiptSchema "BLAKE3 receipt over the canonical validation report facts" ;
+  dreg:replaySemantics "Re-validation of the same data and shapes graphs yields an identical report" ;
+  dreg:executableRouting "SHACL validation route (static gate adapter)" .
+
+dreg:shex a dreg:DialectEntry ;
+  rdfs:label "ShEx" ;
+  rdfs:comment "Shape Expressions schema-conformance dialect." ;
+  dreg:admittedInputs "ShEx schemas plus node/shape maps over admitted RDF graphs" ;
+  dreg:manufacturedOutputs "Conformance results per (node, shape) association" ;
+  dreg:authorityBoundary "Conformance results inform admission; no data mutation or actuation" ;
+  dreg:quarantineBoundary "Read-only over the target graph; nonconforming nodes are reported, not repaired" ;
+  dreg:refusalVocabulary "Schema-parse and nonconformance refusals, typed per profile" ;
+  dreg:receiptSchema "BLAKE3 receipt over sorted conformance-result facts" ;
+  dreg:replaySemantics "Deterministic re-check of the same schema and graph reproduces results" ;
+  dreg:executableRouting "ShEx conformance route (validation adapter)" .
+
+dreg:sparql-select a dreg:DialectEntry ;
+  rdfs:label "SPARQL SELECT" ;
+  rdfs:comment "Read-only SPARQL SELECT query dialect with deterministic ordering discipline." ;
+  dreg:admittedInputs "SPARQL SELECT queries (file-shipped .rq, never inline) over admitted graphs" ;
+  dreg:manufacturedOutputs "Solution bindings (rows), deterministically ordered via explicit ORDER BY" ;
+  dreg:authorityBoundary "Read-only; results feed metrics and gates but never mutate the graph" ;
+  dreg:quarantineBoundary "Queries without deterministic ordering are nonconforming to house style" ;
+  dreg:refusalVocabulary "Query-parse and unknown-vocabulary refusals" ;
+  dreg:receiptSchema "BLAKE3 receipt over the ordered result rows in canonical serialization" ;
+  dreg:replaySemantics "Re-execution over the same fixed graph yields byte-identical ordered rows" ;
+  dreg:executableRouting "SPARQL query route (read adapter)" .
+
+dreg:sparql-construct a dreg:DialectEntry ;
+  rdfs:label "SPARQL CONSTRUCT" ;
+  rdfs:comment "SPARQL CONSTRUCT dialect; the authority mechanism for OCEL materialization from observation graphs." ;
+  dreg:admittedInputs "SPARQL CONSTRUCT templates (file-shipped .rq) over admitted observation graphs" ;
+  dreg:manufacturedOutputs "Materialized RDF graphs (e.g. OCEL 2.0 event/object graphs from observations)" ;
+  dreg:authorityBoundary "Constructed graphs are the authoritative evidence graphs (OCEL-from-CONSTRUCT authority)" ;
+  dreg:quarantineBoundary "Constructs write into designated output graphs only, never back into inputs" ;
+  dreg:refusalVocabulary "Template-parse and vocabulary refusals" ;
+  dreg:receiptSchema "BLAKE3 receipt over canonical sorted N-Quads of the constructed graph" ;
+  dreg:replaySemantics "Re-construction from the same input graph is byte-identical" ;
+  dreg:executableRouting "SPARQL construct route (materialization adapter)" .
+
+dreg:owl-rl a dreg:DialectEntry ;
+  rdfs:label "OWL RL" ;
+  rdfs:comment "OWL 2 RL profile entailment dialect; materialization is opt-in, never implicit." ;
+  dreg:admittedInputs "OWL 2 RL profile ontologies and instance graphs" ;
+  dreg:manufacturedOutputs "RL entailment closure facts, materialized to fixpoint" ;
+  dreg:authorityBoundary "Opt-in materialization only; entailments carry no authority unless explicitly requested and admitted" ;
+  dreg:quarantineBoundary "Constructs outside the RL profile are refused, not silently approximated" ;
+  dreg:refusalVocabulary "Profile-violation refusals (non-RL axioms) and unknown-vocabulary refusals" ;
+  dreg:receiptSchema "BLAKE3 receipt over the canonical sorted RL closure" ;
+  dreg:replaySemantics "Deterministic re-materialization of the RL closure; byte-identical receipt" ;
+  dreg:executableRouting "OWL RL materialization route (opt-in reasoner adapter)" .
+
+dreg:n3 a dreg:DialectEntry ;
+  rdfs:label "N3" ;
+  rdfs:comment "Notation3 rule dialect. Quarantined to the cold route; mirrors the praxis-graphlaw chatman router's N3ActuationRefused law." ;
+  dreg:admittedInputs "N3 rules and formulas over admitted graphs" ;
+  dreg:manufacturedOutputs "Derived facts in a quarantined cold-route graph" ;
+  dreg:authorityBoundary "Advisory only; N3 derivations never carry actuation authority" ;
+  dreg:quarantineBoundary "cold route only; never actuation" ;
+  dreg:refusalVocabulary "N3ActuationRefused (chatman router), unsupported-builtin refusals" ;
+  dreg:receiptSchema "BLAKE3 receipt over sorted cold-route derivations" ;
+  dreg:replaySemantics "Deterministic cold-route re-derivation from the same inputs" ;
+  dreg:executableRouting "cold route only (chatman router quarantine lane)" .
+
+dreg:delta a dreg:DialectEntry ;
+  rdfs:label "delta (hook condition)" ;
+  rdfs:comment "Hook condition dialect firing on change between graph states." ;
+  dreg:admittedInputs "Hook condition specs over the closed kh:/hook: vocabularies plus before/after graph states" ;
+  dreg:manufacturedOutputs "Boolean fire/no-fire decisions with the delta facts that justified them" ;
+  dreg:authorityBoundary "Decides hook firing only; the fired hook's own dialect governs downstream effects" ;
+  dreg:quarantineBoundary "Evaluates admitted graph states only; no external observation" ;
+  dreg:refusalVocabulary "Unknown-predicate and malformed-condition refusals from hook compilation" ;
+  dreg:receiptSchema "Hook receipt (BLAKE3) covering the evaluated delta facts and decision" ;
+  dreg:replaySemantics "Deterministic re-evaluation over the same pair of graph states" ;
+  dreg:executableRouting "hook condition evaluation route (graphlaw hooks engine)" .
+
+dreg:threshold a dreg:DialectEntry ;
+  rdfs:label "threshold (hook condition)" ;
+  rdfs:comment "Hook condition dialect firing when a queried value crosses a declared threshold." ;
+  dreg:admittedInputs "Hook condition specs with a declared comparison operator and threshold literal" ;
+  dreg:manufacturedOutputs "Boolean fire/no-fire decisions with the compared value as evidence" ;
+  dreg:authorityBoundary "Decides hook firing only; no direct actuation" ;
+  dreg:quarantineBoundary "Comparisons over admitted graph literals only; no wall-clock or external values" ;
+  dreg:refusalVocabulary "Type-mismatch and malformed-threshold refusals from hook compilation" ;
+  dreg:receiptSchema "Hook receipt (BLAKE3) covering compared value, threshold, and decision" ;
+  dreg:replaySemantics "Deterministic re-comparison over the same graph state" ;
+  dreg:executableRouting "hook condition evaluation route (graphlaw hooks engine)" .
+
+dreg:count a dreg:DialectEntry ;
+  rdfs:label "count (hook condition)" ;
+  rdfs:comment "Hook condition dialect firing on match cardinality of a pattern." ;
+  dreg:admittedInputs "Hook condition specs with a graph pattern and a cardinality bound" ;
+  dreg:manufacturedOutputs "Boolean fire/no-fire decisions with the observed match count" ;
+  dreg:authorityBoundary "Decides hook firing only; no direct actuation" ;
+  dreg:quarantineBoundary "Counts matches in the admitted graph only" ;
+  dreg:refusalVocabulary "Malformed-pattern and unknown-vocabulary refusals from hook compilation" ;
+  dreg:receiptSchema "Hook receipt (BLAKE3) covering the count and decision" ;
+  dreg:replaySemantics "Deterministic re-count over the same graph state" ;
+  dreg:executableRouting "hook condition evaluation route (graphlaw hooks engine)" .
+
+dreg:window a dreg:DialectEntry ;
+  rdfs:label "window (hook condition)" ;
+  rdfs:comment "Hook condition dialect evaluating over a bounded window of graph-time (OWL-Time literals, never wall clock)." ;
+  dreg:admittedInputs "Hook condition specs with a window bound over OWL-Time literals in the graph" ;
+  dreg:manufacturedOutputs "Boolean fire/no-fire decisions with the in-window facts as evidence" ;
+  dreg:authorityBoundary "Decides hook firing only; no direct actuation" ;
+  dreg:quarantineBoundary "Window boundaries come from graph time literals only; wall clock is refused" ;
+  dreg:refusalVocabulary "Malformed-window and wall-clock-source refusals from hook compilation" ;
+  dreg:receiptSchema "Hook receipt (BLAKE3) covering the window bounds and decision" ;
+  dreg:replaySemantics "Deterministic re-evaluation: same graph time literals yield the same window" ;
+  dreg:executableRouting "hook condition evaluation route (graphlaw hooks engine)" .
+
+dreg:powl a dreg:DialectEntry ;
+  rdfs:label "POWL" ;
+  rdfs:comment "Partially Ordered Workflow Language v2; the canonical manufactured workflow model of the cng pipeline." ;
+  dreg:admittedInputs "POWL v2 model graphs (powl2: vocabulary) or PDDL-derived decomposition inputs" ;
+  dreg:manufacturedOutputs "Manufactured role-execution: canonical POWL v2 workflow model graphs" ;
+  dreg:authorityBoundary "The canonical workflow model; execution semantics for role manufacture derive from it" ;
+  dreg:quarantineBoundary "Models failing powl2 shape validation are refused, not repaired" ;
+  dreg:refusalVocabulary "CngRefusal variants from powl validation and decomposition" ;
+  dreg:receiptSchema "BLAKE3 receipt over the canonical sorted POWL model graph" ;
+  dreg:replaySemantics "Deterministic regeneration from the same PDDL/decomposition inputs" ;
+  dreg:executableRouting "cng PDDL-to-POWL manufacture route" .
+
+dreg:pddl a dreg:DialectEntry ;
+  rdfs:label "PDDL" ;
+  rdfs:comment "PDDL 3.1 planning dialect within the bounded STRIPS8 subset; admits role possibilities into the pipeline." ;
+  dreg:admittedInputs "Admitted role-possibility: PDDL 3.1 domain/problem graphs within the STRIPS8 subset (arity, conjuncts, params all bounded at 8; no ADL/derived predicates/quantifiers/durative actions)" ;
+  dreg:manufacturedOutputs "Grounded action possibility spaces and plans consumable by POWL manufacture" ;
+  dreg:authorityBoundary "Describes possibility, not execution; authority begins only after POWL manufacture" ;
+  dreg:quarantineBoundary "PDDL beyond the STRIPS8 subset is refused by the grounder, never silently approximated" ;
+  dreg:refusalVocabulary "STRIPS8 boundary refusals (arity/conjunct/param over 8, unsupported ADL features)" ;
+  dreg:receiptSchema "BLAKE3 receipt over the canonical grounded action set" ;
+  dreg:replaySemantics "Deterministic re-grounding from the same domain/problem inputs" ;
+  dreg:executableRouting "bcinr_pddl STRIPS8 grounder route" .
+
+dreg:ocel a dreg:DialectEntry ;
+  rdfs:label "OCEL" ;
+  rdfs:comment "OCEL 2.0 object-centric event log dialect; the execution history and evidence graph of the pipeline." ;
+  dreg:admittedInputs "Observation graphs plus OCEL construct templates (ocel-*.construct.rq)" ;
+  dreg:manufacturedOutputs "Execution history/evidence: OCEL 2.0 event, object, E2O, and O2O graphs" ;
+  dreg:authorityBoundary "Evidence graph is the authority for what executed; metrics derive from it, never from summaries" ;
+  dreg:quarantineBoundary "Evidence is append-only history; OCEL graphs never feed back as actuation inputs" ;
+  dreg:refusalVocabulary "Malformed-observation and vocabulary refusals during materialization" ;
+  dreg:receiptSchema "Receipt attributes attached to events (receipt.digest, conformant flags) plus a graph-level BLAKE3 receipt" ;
+  dreg:replaySemantics "Deterministic re-materialization from the observation graph; replay conformance checked against receipts" ;
+  dreg:executableRouting "OCEL materialization route (sparql-construct adapter over observation store)" .
+
+dreg:arazzo a dreg:DialectEntry ;
+  rdfs:label "Arazzo" ;
+  rdfs:comment "OpenAPI Arazzo workflow-description dialect for external API orchestration. Complements POWL; does NOT replace POWL as the canonical workflow model." ;
+  dreg:admittedInputs "OpenAPI/Arazzo workflow descriptions admitted as RDF" ;
+  dreg:manufacturedOutputs "Dispatch contracts for external API calls" ;
+  dreg:authorityBoundary "External API workflow orchestration; does not replace POWL as the canonical workflow model" ;
+  dreg:quarantineBoundary "External effects flow only through dispatch contracts; no direct graph mutation from API responses" ;
+  dreg:refusalVocabulary "Malformed-description and unadmitted-endpoint refusals" ;
+  dreg:receiptSchema "API execution evidence receipts per dispatched contract" ;
+  dreg:replaySemantics "deterministic loopback replay" ;
+  dreg:executableRouting "broker dispatch adapter" .
+
+#################################################################
+# HookStanding lifecycle
+#################################################################
+
+dreg:HookStanding a rdfs:Class ;
+  rdfs:label "Hook standing" ;
+  rdfs:comment "Lifecycle state of a hook. Ordered states (via dreg:standingOrder): DECLARED < REGISTERED < ADMITTED < AUTHORIZED < READY < EXECUTED < RECEIPTED < REPLAYABLE; REFUSED is the terminal off-ladder state." .
+
+dreg:hookStanding a rdf:Property ;
+  rdfs:range dreg:HookStanding ;
+  rdfs:label "hook standing" ;
+  rdfs:comment "Attaches a HookStanding lifecycle state to a hook IRI." .
+
+dreg:standingOrder a rdf:Property ;
+  rdfs:domain dreg:HookStanding ;
+  rdfs:range xsd:integer ;
+  rdfs:label "standing order" ;
+  rdfs:comment "Position of the state in the lifecycle ladder; REFUSED carries -1 (off-ladder terminal)." .
+
+dreg:DECLARED   a dreg:HookStanding ; rdfs:label "DECLARED" ;   dreg:standingOrder 0 ; rdfs:comment "Hook exists as a declaration only." .
+dreg:REGISTERED a dreg:HookStanding ; rdfs:label "REGISTERED" ; dreg:standingOrder 1 ; rdfs:comment "Hook is entered in the registry." .
+dreg:ADMITTED   a dreg:HookStanding ; rdfs:label "ADMITTED" ;   dreg:standingOrder 2 ; rdfs:comment "Hook passed admission (vocabulary and shape gates)." .
+dreg:AUTHORIZED a dreg:HookStanding ; rdfs:label "AUTHORIZED" ; dreg:standingOrder 3 ; rdfs:comment "Hook granted authority within its dialect's authority boundary." .
+dreg:READY      a dreg:HookStanding ; rdfs:label "READY" ;      dreg:standingOrder 4 ; rdfs:comment "Hook compiled and scheduled, awaiting its trigger." .
+dreg:EXECUTED   a dreg:HookStanding ; rdfs:label "EXECUTED" ;   dreg:standingOrder 5 ; rdfs:comment "Hook fired and its effect ran." .
+dreg:RECEIPTED  a dreg:HookStanding ; rdfs:label "RECEIPTED" ;  dreg:standingOrder 6 ; rdfs:comment "Execution sealed by a computed BLAKE3 receipt." .
+dreg:REPLAYABLE a dreg:HookStanding ; rdfs:label "REPLAYABLE" ; dreg:standingOrder 7 ; rdfs:comment "Replay reproduced the receipt byte-identically." .
+dreg:REFUSED    a dreg:HookStanding ; rdfs:label "REFUSED" ;    dreg:standingOrder -1 ; rdfs:comment "Terminal off-ladder state: a typed refusal was raised at some gate." .

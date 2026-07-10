@@ -1,0 +1,49 @@
+# marker-autonomic-loop.rq (PROJ-622)
+# Markers: AUTONOMIC_LOOP_CLOSED + ONE_PERSON_RECURSIVE_WORKFLOW_PROVEN.
+# Inputs: OBSERVATION graph (the loop-stage predicates live on obs facts;
+# this query names its graph explicitly — the marker store loads obs +
+# OCEL evidence + dialect registry together).
+# Loop law, per workday tick set (obsKind "workday_tick" defines the set):
+# admit (the workday_tick observation itself receipts the workload
+# admission; the bounded-admission leg is separately receipted as
+# admission_requested/admission_granted when injected) → role (at least one
+# role_derived observation from the Datalog layer exists for the run) →
+# manufacture ("planned") → actuate ("transition_fired" AND its
+# "hook_receipt") → receipt ("receipted"). Since PROJ-622, role_derived/
+# planned/transition_fired/receipted observations also carry
+# ex:logicalTick, so tick-level correlation is available; the chain is
+# keyed on obs:obsSetId, which is tick-derived and unique per tick.
+# Output: single row ?value = (tick sets missing a chain stage)
+# + (distinct operators observed − 1)
+# + (1 if no Datalog role_derived observation exists at all).
+# Expectation: 0 — every tick closes the loop and ONE operator did it all.
+# Determinism: aggregates + EXISTS filters over a fixed graph.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+PREFIX ex:  <http://example.org/rwai#>
+
+SELECT ((?brokenChains + ?extraOperators + IF(?roleObs = 0, 1, 0)) AS ?value)
+WHERE {
+  {
+    SELECT (COUNT(DISTINCT ?setId) AS ?brokenChains)
+    WHERE {
+      ?w obs:obsKind "workday_tick" ; obs:obsSetId ?setId .
+      FILTER(
+        NOT EXISTS { ?m obs:obsKind "planned" ; obs:obsSetId ?setId . } ||
+        NOT EXISTS { ?t obs:obsKind "transition_fired" ; obs:obsSetId ?setId . } ||
+        NOT EXISTS { ?h obs:obsKind "hook_receipt" ; obs:obsSetId ?setId . } ||
+        NOT EXISTS { ?c obs:obsKind "receipted" ; obs:obsSetId ?setId . }
+      )
+    }
+  }
+  {
+    SELECT ((COUNT(DISTINCT ?op) - 1) AS ?extraOperators)
+    WHERE {
+      ?w obs:obsKind "workday_tick" ;
+         ex:operator ?op .
+    }
+  }
+  {
+    SELECT (COUNT(DISTINCT ?r) AS ?roleObs)
+    WHERE { ?r obs:obsKind "role_derived" ; obs:obsSetId "datalog" . }
+  }
+}

@@ -1,0 +1,43 @@
+# ocel-hook-receipts.construct.rq (PROJ-612/613)
+# Inputs: obs graph (obs:obsKind in hook_receipt|hook_standing — the
+# workday hook actuation and HookStanding lifecycle observations).
+# Outputs: ocel:Event + ocel:EventType triples; hook_receipt events also
+# carry ex:hookDeltaHash, ex:hookIdempotencyKey, and ex:hookName so the
+# zero-unreceipted-actuation law is checkable BY SPARQL over the evidence
+# graph. Yields zero triples on a Fortune-5 corpus (no such obs kinds), so
+# existing run/audit digests are unchanged.
+# eventId = obsSetId + '-' + obsSeq. Timestamp encoding: logical,
+# deterministic — epoch 2000-01-01T00:00:00Z + obs:obsSeq seconds,
+# identical to ocel-events.construct.rq. No wall clock.
+PREFIX obs:  <https://ggen.io/ontology/bench-obs#>
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX ex:   <http://example.org/rwai#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ?ev a ocel:Event ;
+      ocel:eventId ?eid ;
+      ocel:activityName ?kind ;
+      ocel:timestamp ?ts ;
+      ocel:hasEventType ?etype ;
+      ex:hookName ?hookName ;
+      ex:hookDeltaHash ?deltaHash ;
+      ex:hookIdempotencyKey ?ikey .
+  ?etype a ocel:EventType ;
+      ocel:eventTypeName ?kind .
+}
+WHERE {
+  ?o obs:obsKind ?kind ;
+     obs:obsSeq ?seq ;
+     obs:obsSetId ?setId ;
+     ex:hookName ?hookName .
+  FILTER(?kind IN ("hook_receipt", "hook_standing"))
+  OPTIONAL { ?o ex:hookDeltaHash ?deltaHash }
+  OPTIONAL { ?o ex:hookIdempotencyKey ?ikey }
+  BIND(CONCAT(?setId, "-", STR(?seq)) AS ?eid)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event/", ENCODE_FOR_URI(?eid))) AS ?ev)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event-type/", ENCODE_FOR_URI(?kind))) AS ?etype)
+  BIND("2000-01-01T00:00:00Z"^^xsd:dateTime
+       + STRDT(CONCAT("PT", STR(?seq), "S"), xsd:dayTimeDuration) AS ?ts)
+}
+ORDER BY ?setId ?seq

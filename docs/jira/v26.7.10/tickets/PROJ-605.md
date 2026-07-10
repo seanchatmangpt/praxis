@@ -1,6 +1,12 @@
 # PROJ-605 — New `CNG_R11 AuditMismatch` refusal variant
 
-Status: PLANNED
+Status: CLOSED
+
+Closed by commit `40f6020` (`CngRefusal::AuditMismatch`, code `CNG_R11`). Verification evidence
+recorded in `docs/releases/v26.7.10/RELEASE_CONTROL.md` Sec. 7 (ladder items 1 and 10:
+`audit_mismatch_refusal_has_stable_code` passes; tampering one `obs/*.ttl` byte → replay exits 1
+with `CNG_R11: obs digest mismatch`) — this ticket cites that record rather than re-asserting
+it.
 
 `CngRefusal` (`crates/cng/src/powl.rs:37-111`, `CNG_R01`-`CNG_R10`) has no exhaustiveness
 registry and is open for extension. `CNG_R08 Nondeterminism` ("repeated manufacture produced

@@ -1,0 +1,11 @@
+# rwai-bench content-bearing category fragment (api-orchestration, PROJ-621):
+# the artifact set orchestrates an external API workflow — its workday ticks
+# additionally project the admitted Arazzo description (examples/
+# arazzo-api-orchestration.ttl) into dispatch contracts executed
+# EXTERNAL_MACHINE_DISPATCH through the broker loopback adapter.
+# Appended to the first domain fragment by generate::write_set, exactly like
+# the interruption/planning fragments (PROJ-609).
+@prefix ex: <http://example.org/rwai#> .
+
+ex:{{SUBJECT}} ex:orchestratesApi ex:{{TARGET}} ;
+  ex:orchestrationDialect "arazzo" .

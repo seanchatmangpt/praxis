@@ -1,0 +1,86 @@
+# dialect-registry.shape.ttl — PROJ-613 closed SHACL law for the Dialect Registry.
+# Targets dreg:DialectEntry (see dialect-registry.ttl). sh:closed true means
+# any property outside the eight registry fields (plus rdf:type, rdfs:label,
+# rdfs:comment) is a violation; every registry field is sh:minCount 1
+# sh:maxCount 1, so a missing field yields a SHACL violation which the Rust
+# side maps to CngRefusal::DialectRegistryRefused.
+
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix dreg: <http://seanchatmangpt.github.io/praxis/dreg#> .
+@prefix ex:   <urn:cng:shapes#> .
+
+ex:DialectEntryShape a sh:NodeShape ;
+  sh:targetClass dreg:DialectEntry ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path rdfs:label ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:minLength 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:comment ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:minLength 1 ;
+  ] ;
+  sh:property [
+    sh:path dreg:admittedInputs ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path dreg:manufacturedOutputs ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path dreg:authorityBoundary ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path dreg:quarantineBoundary ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path dreg:refusalVocabulary ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path dreg:receiptSchema ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path dreg:replaySemantics ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path dreg:executableRouting ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] .
+
+ex:HookStandingShape a sh:NodeShape ;
+  sh:targetObjectsOf dreg:hookStanding ;
+  sh:class dreg:HookStanding ;
+  sh:in ( dreg:DECLARED dreg:REGISTERED dreg:ADMITTED dreg:AUTHORIZED
+          dreg:READY dreg:EXECUTED dreg:RECEIPTED dreg:REPLAYABLE dreg:REFUSED ) .

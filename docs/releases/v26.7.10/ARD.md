@@ -10,8 +10,9 @@ Sec. 4. See `PRD.md` for the full 12-row table and status vocabulary.)
 
 ## 1. Architecture summary
 
-`cng`'s `bench` feature (`crates/cng/src/bench.rs`, 2,229 lines) manufactures a Recursive
-Workflow standing benchmark. Baseline this release: commit `e763f44`, 10,000-worker/depth-2
+`cng`'s `bench` feature (`crates/cng/src/bench/`, split from the former single-file `bench.rs`
+in commit `40f6020` — pre-`40f6020` `bench.rs` line citations in this document refer to that
+single file) manufactures a Recursive Workflow standing benchmark. Baseline this release: commit `e763f44`, 10,000-worker/depth-2
 campaign, `MEASUREMENT_CLASS=MEASURED_CNG_RESULT`, byte-identical across two runs (`PRD.md` row
 1). Chain: disk-template observation store → SPARQL CONSTRUCT evidence graph → SELECT-derived
 `RunReport` fields → Datalog role layer → hierarchical POWL manufacture → bcinr-powl scheduler
@@ -95,16 +96,19 @@ inherited from the existing `cng` pipeline (`pipeline::hierarchical_projection`,
 
 `cng benchmark generate|run|verify|report` verbs, gated behind the `bench` cargo feature
 (`crates/cng/Cargo.toml`: `bench = ["runner", "dep:wasm4pm-cognition", "dep:praxis-graphlaw"]`).
-Built via `just cng-bench-build` (exit 0, this session). This release's PROJ-602 scope item adds
-a new verb, `cng evidence replay`, PLANNED only — no code exists yet (`PRD.md` Sec. 12/(b)).
+Built via `just cng-bench-build` (exit 0, this session). This release's PROJ-602 scope item
+landed a new verb, `cng evidence replay --bundle <dir>` (`crates/cng/src/bench/audit_replay.rs`,
+commit `40f6020`); status and verification per `RELEASE_CONTROL.md` Sec. 5/7.
 
 ## 9. File architecture
 
 ```
 crates/cng/
-├── src/bench.rs             (2,229 lines) benchmark generate/run/verify/report
-├── src/pipeline.rs          hierarchical_projection (line 244); 1 inline SELECT at line 135
-├── src/shape.rs             validate_powl_store; 6 inline SELECTs at lines 75,82,122,133,146,159
+├── src/bench/               module dir (split from bench.rs in 40f6020): generate/run/verify/
+│                            report/manufacture/roles/templates/audit_replay
+├── src/pipeline.rs          hierarchical_projection (line 244); inline SELECT removed (PROJ-604)
+├── src/shape.rs             validate_powl_store; inline SELECTs removed (PROJ-604)
+├── src/queries/*.rq         disk-resident queries formerly inline in pipeline.rs/shape.rs
 ├── src/runner.rs            validate_run_hierarchical (line 448)
 ├── src/powl.rs              CngRefusal enum (CNG_R01-R10, lines 37-111); serializer exemption
 │                            for inline-Turtle-prefix guard (crate's lawful Turtle emitter)
@@ -113,8 +117,9 @@ crates/cng/
 ├── queries/metric-*.rq      RunReport headline SELECTs
 ├── queries/attachments-with-parent.rq
 ├── templates/bench-observation-*.template.ttl
-└── tests/no_inline_ttl_guard.rs   scans all src/+tests/ .rs files for Turtle/PDDL markers
-                                    (2 tests, pass); does NOT check for inline SPARQL text
+└── tests/no_inline_ttl_guard.rs   scans all src/+tests/ .rs files for Turtle/PDDL markers AND
+                                    inline SELECT/CONSTRUCT/ASK text
+                                    (no_inline_sparql_in_rust_sources, PROJ-604)
 
 crates/praxis-graphlaw/ontologies/core/
 ├── bench-obs.ttl            obs: observation vocabulary
@@ -125,7 +130,7 @@ packs/ocel-bench-pack/
 └── ontology.ttl             GENERATED union of source ontologies
 
 docs/releases/v26.7.10/       this directory: PRD.md, ARD.md, RELEASE_CONTROL.md
-docs/jira/v26.7.10/tickets/   PROJ-601..505 stubs, PLANNED
+docs/jira/v26.7.10/tickets/   PROJ-601..605, CLOSED (commit 40f6020; RELEASE_CONTROL.md Sec. 5/7)
 ```
 
 ## 10. Dataflow
@@ -136,13 +141,16 @@ docs/jira/v26.7.10/tickets/   PROJ-601..505 stubs, PLANNED
    `sparql_result_digest`, runs the Datalog role layer (Sec. 6), manufactures hierarchical POWL
    (Sec. 7), executes via `runner::validate_run_hierarchical`, and applies the reconcile gate
    (Sec. 3/Component table) before returning a `MEASURED_CNG_RESULT` `RunReport`.
-3. `verify` (`bench.rs` ~2050-2115) re-derives and checks the POWL manufacture digest only for a
-   sampled subset of sets, and re-parses/shape-validates a sampled subset of exported `.ttl`
-   artifacts from disk. It does **not** recompute or compare `ocel_graph_digest` or
-   `sparql_result_digest` — `PRD.md` row 4, PARTIAL not ALIVE.
-4. Bundle path portability bug: `digests.json` keys are `dir.display().to_string()` captured at
-   `run` time; `verify()` (`bench.rs:2064`) reads them back verbatim without rejoining against
-   its own `--dir` argument — `PRD.md` row 3, BLOCKED for any third-party-auditor-replay claim.
+3. `verify` (`crates/cng/src/bench/verify.rs`) re-derives and checks the POWL manufacture digest
+   only for a sampled subset of sets, and re-parses/shape-validates a sampled subset of exported
+   `.ttl` artifacts from disk. It does **not** recompute `ocel_graph_digest` or
+   `sparql_result_digest` — by design (`PRD.md` row 4, PARTIAL); that re-derivation is the
+   independent `cng evidence replay` path (`crates/cng/src/bench/audit_replay.rs`, `PRD.md`
+   row 13, PROJ-602).
+4. Bundle path portability: fixed by PROJ-601 (commit `40f6020`) — `digests.json` keys are now
+   bench-dir-relative and `verify()` rejoins relative keys against its own `--dir`, refusing
+   `CNG_R11` on unresolvable paths — `PRD.md` row 3 ALIVE; relocation proof in
+   `RELEASE_CONTROL.md` Sec. 7 items 7-8.
 
 ## 11. Design system
 
@@ -181,8 +189,10 @@ prior summary.
 registry — open for extension. `CNG_R08 Nondeterminism` ("repeated manufacture produced
 different bytes") is the wrong reuse target for an auditor-digest-mismatch refusal: that is
 same-producer re-manufacture drift, semantically distinct from a third-party integrity mismatch
-against a previously recorded digest. This release recommends a genuine new `CNG_R11
-AuditMismatch` variant as PLANNED work (PROJ-605), not implemented yet.
+against a previously recorded digest. This release landed the genuine new `CNG_R11
+AuditMismatch` variant (PROJ-605, commit `40f6020`, `crates/cng/src/powl.rs`
+`CngRefusal::AuditMismatch`) with the negative tamper test recorded in `RELEASE_CONTROL.md`
+Sec. 7 item 10.
 
 ## 15. Final-day outputs
 
@@ -192,12 +202,12 @@ AuditMismatch` variant as PLANNED work (PROJ-605), not implemented yet.
 | Sample replay | `cng benchmark verify` output, this session | ALIVE, `replayed:3, replay_passes:3` |
 | Test suites | `just cng-test`, `just test-bin chatman_pddl_to_powl_joseph_famine_hierarchical` | ALIVE, all pass this session |
 | `docs/releases/v26.7.10/` doc pair | this directory | PRD.md, ARD.md, RELEASE_CONTROL.md present |
-| `docs/jira/v26.7.10/tickets/` stubs | PROJ-601..505 | PLANNED, stubs created this pass |
-| Bundle manifest schema (obs/query/ontology/rules/OCEL/SPARQL digests, `signatures: []` unpopulated placeholder) | none yet | PLANNED (PROJ-603) |
-| `cng evidence replay` verb | none yet | PLANNED (PROJ-602) |
-| `digests.json` path-portability fix | none yet | PLANNED (PROJ-601) |
-| Inline-SPARQL closure (`pipeline.rs`, `shape.rs`) + extended guard | none yet | PLANNED (PROJ-604) |
-| `CNG_R11 AuditMismatch` + negative test | none yet | PLANNED (PROJ-605) |
+| `docs/jira/v26.7.10/tickets/` | PROJ-601..605 | CLOSED, commit `40f6020` (`RELEASE_CONTROL.md` Sec. 5/7) |
+| Bundle manifest schema (obs/query/ontology/rules/OCEL/SPARQL digests, `signatures: []` unpopulated placeholder) | `crates/cng/src/bench/report.rs` `EvidenceManifest` → `<bench_dir>/results/evidence-manifest.json` | ALIVE (PROJ-603, `RELEASE_CONTROL.md` Sec. 7 item 9) |
+| `cng evidence replay` verb | `crates/cng/src/bench/audit_replay.rs` | ALIVE (PROJ-602, `RELEASE_CONTROL.md` Sec. 7 items 9-10) |
+| `digests.json` path-portability fix | `crates/cng/src/bench/run.rs`/`verify.rs` relative digest keys | ALIVE (PROJ-601, `RELEASE_CONTROL.md` Sec. 7 items 7-8) |
+| Inline-SPARQL closure (`pipeline.rs`, `shape.rs`) + extended guard | `crates/cng/src/queries/*.rq`; `no_inline_sparql_in_rust_sources` | ALIVE (PROJ-604, `RELEASE_CONTROL.md` Sec. 7 item 1) |
+| `CNG_R11 AuditMismatch` + negative test | `crates/cng/src/powl.rs` `CngRefusal::AuditMismatch` | ALIVE (PROJ-605, `RELEASE_CONTROL.md` Sec. 7 items 1, 10) |
 
 ## 16. Definition of done
 
@@ -207,7 +217,8 @@ AuditMismatch` variant as PLANNED work (PROJ-605), not implemented yet.
    `Read`/grep this session for all line-numbered citations above.
 3. Ten verified corrections (Claims Reconciliation table) captured precisely, not softened —
    done (`PRD.md` rows 2-11).
-4. Five PLANNED ticket stubs staged under `docs/jira/v26.7.10/tickets/` — done, this pass.
+4. Five tickets staged under `docs/jira/v26.7.10/tickets/`, then implemented and CLOSED
+   (commit `40f6020`; verification evidence `RELEASE_CONTROL.md` Sec. 7).
 5. No claim of depth-5/4,680-attachment execution, PQC, or verify-digest completeness beyond
    what was actually run/found this session.
 

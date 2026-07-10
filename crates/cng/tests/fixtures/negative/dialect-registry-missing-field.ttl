@@ -1,0 +1,20 @@
+# Negative fixture (PROJ-613): a dialect registry with ONE entry that is
+# missing the dreg:receiptSchema field. Validation against
+# dialect-registry.shape.ttl (all eight registry fields sh:minCount 1) must
+# refuse CNG_R14 DialectRegistryRefused naming the entry and the missing
+# field. Every other field of the entry is present so exactly one violation
+# row is produced.
+
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dreg: <http://seanchatmangpt.github.io/praxis/dreg#> .
+
+dreg:broken-entry a dreg:DialectEntry ;
+  rdfs:label "Broken" ;
+  rdfs:comment "Registry entry deliberately missing its receipt schema." ;
+  dreg:admittedInputs "test inputs" ;
+  dreg:manufacturedOutputs "test outputs" ;
+  dreg:authorityBoundary "none" ;
+  dreg:quarantineBoundary "none" ;
+  dreg:refusalVocabulary "none" ;
+  dreg:replaySemantics "deterministic" ;
+  dreg:executableRouting "test route" .

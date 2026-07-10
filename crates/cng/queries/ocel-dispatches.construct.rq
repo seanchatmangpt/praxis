@@ -1,0 +1,50 @@
+# ocel-dispatches.construct.rq (PROJ-619/620)
+# Inputs: obs graph (obs:obsKind in dispatch_sent|dispatch_acknowledged|
+# dispatch_poll|consequence_returned|consequence_admitted|
+# consequence_refused|dispatch_timed_out|remediation_manufactured — the
+# external-dispatch broker surface and its lawful re-entry pipeline).
+# Outputs: ocel:Event + ocel:EventType triples; dispatch events carry
+# ex:dispatchId, ex:correlationId where present (PROJ-622 vocab gap (a):
+# correlation is projected into the OCEL graph, not obs-only), and
+# ex:refusalStage where present, so the dispatch-closure corpus is
+# queryable BY SPARQL over the evidence graph. Yields zero triples
+# on a Fortune-5 corpus (no such obs kinds), so existing run/audit digests
+# are unchanged.
+# eventId = obsSetId + '-' + obsSeq. Timestamp encoding: logical,
+# deterministic — epoch 2000-01-01T00:00:00Z + obs:obsSeq seconds, identical
+# to ocel-events.construct.rq. No wall clock; obsSeq is a logical counter.
+PREFIX obs:  <https://ggen.io/ontology/bench-obs#>
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX ex:   <http://example.org/rwai#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ?ev a ocel:Event ;
+      ocel:eventId ?eid ;
+      ocel:activityName ?kind ;
+      ocel:timestamp ?ts ;
+      ocel:hasEventType ?etype ;
+      ex:dispatchId ?dispatchId ;
+      ex:correlationId ?correlationId ;
+      ex:refusalStage ?stage .
+  ?etype a ocel:EventType ;
+      ocel:eventTypeName ?kind .
+}
+WHERE {
+  ?o obs:obsKind ?kind ;
+     obs:obsSeq ?seq ;
+     obs:obsSetId ?setId ;
+     ex:dispatchId ?dispatchId .
+  FILTER(?kind IN ("dispatch_sent", "dispatch_acknowledged", "dispatch_poll",
+                   "consequence_returned", "consequence_admitted",
+                   "consequence_refused", "dispatch_timed_out",
+                   "remediation_manufactured"))
+  OPTIONAL { ?o ex:correlationId ?correlationId }
+  OPTIONAL { ?o ex:refusalStage ?stage }
+  BIND(CONCAT(?setId, "-", STR(?seq)) AS ?eid)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event/", ENCODE_FOR_URI(?eid))) AS ?ev)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event-type/", ENCODE_FOR_URI(?kind))) AS ?etype)
+  BIND("2000-01-01T00:00:00Z"^^xsd:dateTime
+       + STRDT(CONCAT("PT", STR(?seq), "S"), xsd:dayTimeDuration) AS ?ts)
+}
+ORDER BY ?setId ?seq

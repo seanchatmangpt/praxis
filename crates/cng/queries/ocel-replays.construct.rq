@@ -1,0 +1,43 @@
+# ocel-replays.construct.rq (PROJ-614/616)
+# Inputs: obs graph (obs:obsKind "replay_verified" — one observation per
+# workflow set whose replay re-manufacture reproduced the recorded POWL
+# digest byte-identically).
+# Outputs: ocel:Event + ocel:EventType triples; each replay event carries an
+# IRI-minted ocel attribute node with attributeKey "replay.verified" and
+# attributeValue "true" — exactly the pattern metric-replay.rq counts, so
+# the replay headline is graph-derived, never a Rust counter. Attribute
+# nodes are IRIs (never blank nodes) so the sorted N-Triples serialization
+# stays byte-deterministic across producer and auditor. Yields zero triples
+# on corpora without replay_verified obs, so pre-existing digests are
+# unchanged.
+# eventId = obsSetId + '-' + obsSeq. Timestamp encoding: logical,
+# deterministic — epoch 2000-01-01T00:00:00Z + obs:obsSeq seconds, identical
+# to ocel-events.construct.rq. No wall clock; obsSeq is a logical counter.
+PREFIX obs:  <https://ggen.io/ontology/bench-obs#>
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ?ev a ocel:Event ;
+      ocel:eventId ?eid ;
+      ocel:activityName "replay_verified" ;
+      ocel:timestamp ?ts ;
+      ocel:hasEventType ?etype ;
+      ocel:hasAttribute ?attr .
+  ?attr ocel:attributeKey "replay.verified" ;
+      ocel:attributeValue "true" .
+  ?etype a ocel:EventType ;
+      ocel:eventTypeName "replay_verified" .
+}
+WHERE {
+  ?o obs:obsKind "replay_verified" ;
+     obs:obsSeq ?seq ;
+     obs:obsSetId ?setId .
+  BIND(CONCAT(?setId, "-", STR(?seq)) AS ?eid)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event/", ENCODE_FOR_URI(?eid))) AS ?ev)
+  BIND(IRI(CONCAT("https://ggen.io/bench/attr/replay/", ENCODE_FOR_URI(?eid))) AS ?attr)
+  BIND(IRI("https://ggen.io/bench/event-type/replay_verified") AS ?etype)
+  BIND("2000-01-01T00:00:00Z"^^xsd:dateTime
+       + STRDT(CONCAT("PT", STR(?seq), "S"), xsd:dayTimeDuration) AS ?ts)
+}
+ORDER BY ?setId ?seq

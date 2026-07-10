@@ -63,7 +63,9 @@
         "NondeterministicOperatorRequiresReceipt",
         "ProcessReceiptShadowType",
         "DuplicateCanonicalTapeType",
-        "TripleTermInSnapshot"
+        "TripleTermInSnapshot",
+        "StageSealMismatch",
+        "UnlawfulActuation"
       ],
       "description": "Required for kind=falsification: the Refusal::name() value the engine must return."
     },

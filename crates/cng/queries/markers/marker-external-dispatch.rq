@@ -1,0 +1,32 @@
+# marker-external-dispatch.rq (PROJ-622)
+# Markers: EXTERNAL_WORKFLOW_DISPATCH_PROVEN +
+# EXTERNAL_RESULT_READMISSION_PROVEN.
+# Inputs: materialized OCEL graph (ocel-dispatches.construct.rq output;
+# since PROJ-622 that construct also projects ex:correlationId — vocab gap
+# (a) resolved by emission, not by weakening this query. Correlation here
+# stays on ex:dispatchId, the dispatch's primary key).
+# Output: single row ?value = dispatch_sent events with NO
+# consequence_admitted event sharing the same ex:dispatchId, EXCLUDING
+# dispatches that timed out (vocab gap (c): TIMED_OUT dispatches are
+# covered by marker-timeout-escalation.rq, not counted un-closed here).
+# Semantics: a universally quantified closure law — every dispatched
+# external workflow that did not time out was readmitted. Vacuously 0 on a
+# corpus without dispatches; existence of dispatches is exercised by the
+# seeded benchmark corpus, not asserted by this marker.
+# Determinism: aggregate + NOT EXISTS over a fixed graph.
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX ex:   <http://example.org/rwai#>
+
+SELECT (COUNT(DISTINCT ?d) AS ?value)
+WHERE {
+  ?ev ocel:activityName "dispatch_sent" ;
+      ex:dispatchId ?d .
+  FILTER NOT EXISTS {
+    ?adm ocel:activityName "consequence_admitted" ;
+         ex:dispatchId ?d .
+  }
+  FILTER NOT EXISTS {
+    ?to ocel:activityName "dispatch_timed_out" ;
+        ex:dispatchId ?d .
+  }
+}

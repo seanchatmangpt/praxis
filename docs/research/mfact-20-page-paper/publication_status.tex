@@ -1,0 +1,17 @@
+% RENDERED by `ggen sync` from the post-release graph (post-release-pack) — DO NOT EDIT BY HAND
+\paragraph{Publication packet.}
+Publication of v26.7.7 is manufactured as its own identity, distinct
+from the certified core release: a packet hash folded over the packet's
+evidence inputs (recorded in \texttt{release/final\_status.json}; this
+paper is itself one of those inputs and therefore cannot embed the hash
+without self-reference), with each actuation surface gated on evaluated
+requirements. The arXiv packet is
+\texttt{PENDING} (first pass (--plan): fragments not yet rendered;
+13 declared files, declared $=$ packed enforced).
+Packet statuses:
+\texttt{arxiv\_upload}$=$\texttt{BLOCKED}, \texttt{github\_push}$=$\texttt{BLOCKED}, \texttt{github\_release}$=$\texttt{ALIVE}.
+No packet self-actuates: publication is recorded as
+\texttt{PENDING\_EXTERNAL\_ACTUATION} in every case, and the
+kernel-admitted witness \texttt{ProcInt.Release.PostRelease} refuses any
+render in which a packet claims otherwise.
+

@@ -11,3 +11,12 @@
 {?w :derivedRole :auditor}=>{?w :obligation :verify-evidence-chain}
 {?w :derivedRole :coordinator}=>{?w :obligation :route-and-schedule}
 {?w :obligation ?o. ?w :custodyOf ?d}=>{?w :closure :accounted}
+# PROJ-609: coordinators absorb interruption workloads and plan the next
+# tick's standing (the two content-bearing categories both route to the
+# coordinator role in the Mycin layer; these facts mirror that capacity).
+{?w :derivedRole :coordinator}=>{?w :canAbsorb :interruption}
+{?w :derivedRole :coordinator}=>{?w :canPlan :next-tick-standing}
+# PROJ-621: operators execute external-API orchestration dispatches through
+# the broker's machine surface (api-orchestration routes to the operator
+# role in the Mycin layer; this fact mirrors that capacity).
+{?w :derivedRole :operator}=>{?w :canOrchestrate :external-api}

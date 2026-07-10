@@ -1,0 +1,54 @@
+# standing-next-action.rq (PROJ-610)
+# Inputs: OBSERVATION graph (workday obs stream, bench-obs vocabulary).
+# Outputs: rows (?action ?setId): every lawful next action derivable from
+# standing right now. Two candidate classes:
+#   1. "manufacture" — an open workday tick (workday_tick observation whose
+#      set is neither receipted nor refused yet).
+#   2. "admit" — a pending admission request (admission_requested
+#      observation with no matching admission_granted).
+#   3. "collect" — an awaited dispatch (PROJ-619: dispatch_sent observation
+#      with no admitted/refused consequence and no expired deadline yet).
+#   4. "remediate" — an expired deadline (PROJ-620: dispatch_timed_out
+#      observation whose declared escalation/compensation workflow has not
+#      been manufactured yet).
+# The workday loop runs this every tick; while work remains the result must
+# be EXACTLY one row, otherwise the run refuses CNG_R12 StandingAmbiguous.
+# Determinism: ORDER BY ?action ?setId; all values from admitted obs facts;
+# obsSeq/logicalTick are logic counters, never wall clock.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+PREFIX ex:  <http://example.org/rwai#>
+
+SELECT ?action ?setId
+WHERE {
+  {
+    ?o obs:obsKind "workday_tick" ;
+       obs:obsSetId ?setId .
+    FILTER NOT EXISTS { ?r obs:obsKind "receipted" ; obs:obsSetId ?setId }
+    FILTER NOT EXISTS { ?f obs:obsKind "refused" ; obs:obsSetId ?setId }
+    BIND("manufacture" AS ?action)
+  }
+  UNION
+  {
+    ?a obs:obsKind "admission_requested" ;
+       obs:obsSetId ?setId .
+    FILTER NOT EXISTS { ?g obs:obsKind "admission_granted" ; obs:obsSetId ?setId }
+    BIND("admit" AS ?action)
+  }
+  UNION
+  {
+    ?d obs:obsKind "dispatch_sent" ;
+       ex:dispatchId ?setId .
+    FILTER NOT EXISTS { ?x obs:obsKind "consequence_admitted" ; ex:dispatchId ?setId }
+    FILTER NOT EXISTS { ?y obs:obsKind "consequence_refused" ; ex:dispatchId ?setId }
+    FILTER NOT EXISTS { ?z obs:obsKind "dispatch_timed_out" ; ex:dispatchId ?setId }
+    BIND("collect" AS ?action)
+  }
+  UNION
+  {
+    ?t obs:obsKind "dispatch_timed_out" ;
+       ex:dispatchId ?setId .
+    FILTER NOT EXISTS { ?m obs:obsKind "remediation_manufactured" ; ex:dispatchId ?setId }
+    BIND("remediate" AS ?action)
+  }
+}
+ORDER BY ?action ?setId

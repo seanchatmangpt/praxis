@@ -1,0 +1,105 @@
+# metric-dispatch-closure.rq (PROJ-614)
+# AUTHORITY NOTE: this is the DEFINITION_OF_DONE-named metrics query and the
+# single source of truth for dispatch-closure HEADLINE numbers. The earlier
+# dispatch-closure.rq remains on disk as the broker's OPERATIONAL closure-law
+# evaluator (per-parent satisfaction rows consumed mid-lifecycle by
+# dispatch.rs); it is not a metrics source — its header says so.
+# Inputs: OBSERVATION graph (the closure/remediation predicates
+# ex:closureLaw / ex:parentDispatch / ex:remedy live only on obs facts;
+# the OCEL constructs deliberately do not project them — this query names
+# its graph explicitly instead of weakening the vocabulary).
+# Outputs: rows (?facet ?count), one per facet:
+#   open_external        — dispatch_sent with no admitted/refused
+#                          consequence and no timeout (still in flight or
+#                          lawfully BLOCKED-open parents).
+#   unacknowledged       — dispatch_sent with no dispatch_acknowledged
+#                          (unreceipted dispatch; gate: must be 0).
+#   returned_unadmitted  — consequence_returned with neither admitted nor
+#                          refused verdict (unadmitted-accepted consequence;
+#                          gate: must be 0).
+#   refused_consequences — consequence_refused count (informational).
+#   compensating         — remediation_manufactured count (compensation/
+#                          escalation workflows; informational).
+#   completed_trees      — parent dispatches declaring a closure law whose
+#                          own consequence admitted AND whose declared law
+#                          (ALL_CHILDREN_REQUIRED / ANY_CHILD_SUFFICIENT —
+#                          the two broker-evaluated laws; the other four are
+#                          declared-only) is satisfied by admitted child
+#                          consequences.
+# Determinism: aggregates over a fixed graph; ORDER BY ?facet.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+PREFIX ex:  <http://example.org/rwai#>
+
+SELECT ?facet ?count
+WHERE {
+  {
+    SELECT ("open_external" AS ?facet) (COUNT(DISTINCT ?d) AS ?count)
+    WHERE {
+      ?s obs:obsKind "dispatch_sent" ; ex:dispatchId ?d .
+      FILTER NOT EXISTS { ?a obs:obsKind "consequence_admitted" ; ex:dispatchId ?d . }
+      FILTER NOT EXISTS { ?r obs:obsKind "consequence_refused" ; ex:dispatchId ?d . }
+      FILTER NOT EXISTS { ?t obs:obsKind "dispatch_timed_out" ; ex:dispatchId ?d . }
+    }
+  }
+  UNION
+  {
+    SELECT ("unacknowledged" AS ?facet) (COUNT(DISTINCT ?d) AS ?count)
+    WHERE {
+      ?s obs:obsKind "dispatch_sent" ; ex:dispatchId ?d .
+      FILTER NOT EXISTS { ?k obs:obsKind "dispatch_acknowledged" ; ex:dispatchId ?d . }
+    }
+  }
+  UNION
+  {
+    SELECT ("returned_unadmitted" AS ?facet) (COUNT(DISTINCT ?d) AS ?count)
+    WHERE {
+      ?s obs:obsKind "consequence_returned" ; ex:dispatchId ?d .
+      FILTER NOT EXISTS { ?a obs:obsKind "consequence_admitted" ; ex:dispatchId ?d . }
+      FILTER NOT EXISTS { ?r obs:obsKind "consequence_refused" ; ex:dispatchId ?d . }
+    }
+  }
+  UNION
+  {
+    SELECT ("refused_consequences" AS ?facet) (COUNT(DISTINCT ?d) AS ?count)
+    WHERE { ?s obs:obsKind "consequence_refused" ; ex:dispatchId ?d . }
+  }
+  UNION
+  {
+    SELECT ("compensating" AS ?facet) (COUNT(DISTINCT ?d) AS ?count)
+    WHERE { ?s obs:obsKind "remediation_manufactured" ; ex:remedyDispatch ?d . }
+  }
+  UNION
+  {
+    SELECT ("completed_trees" AS ?facet) (COUNT(DISTINCT ?d) AS ?count)
+    WHERE {
+      ?p obs:obsKind "dispatch_sent" ;
+         ex:dispatchId ?d ;
+         ex:closureLaw ?law .
+      FILTER(?law != "NONE")
+      ?a0 obs:obsKind "consequence_admitted" ; ex:dispatchId ?d .
+      {
+        FILTER(?law = "ALL_CHILDREN_REQUIRED")
+        FILTER EXISTS {
+          ?c obs:obsKind "dispatch_sent" ; ex:parentDispatch ?d .
+        }
+        FILTER NOT EXISTS {
+          ?c2 obs:obsKind "dispatch_sent" ;
+              ex:parentDispatch ?d ;
+              ex:dispatchId ?cid .
+          FILTER NOT EXISTS {
+            ?ca obs:obsKind "consequence_admitted" ; ex:dispatchId ?cid .
+          }
+        }
+      }
+      UNION
+      {
+        FILTER(?law = "ANY_CHILD_SUFFICIENT")
+        ?c obs:obsKind "dispatch_sent" ;
+           ex:parentDispatch ?d ;
+           ex:dispatchId ?cid .
+        ?ca obs:obsKind "consequence_admitted" ; ex:dispatchId ?cid .
+      }
+    }
+  }
+}
+ORDER BY ?facet

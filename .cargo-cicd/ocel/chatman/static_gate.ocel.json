@@ -3,51 +3,8 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
-    "evt_003": {
-      "event_id": "d88538fb-1dc8-467e-9fc0-98bdca4b9ee6",
-      "case_id": "chatman-static_gate",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Info"
-        }
-      },
-      "timestamp_ns": 4,
-      "objects": [
-        [
-          "Accept_UniqueCanonicalTapeType",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Accept_UniqueCanonicalTapeType",
-        "outcome": "admitted"
-      }
-    },
-    "evt_001": {
-      "event_id": "600a4f98-8c3c-4cab-a0d5-63504c01544d",
-      "case_id": "chatman-static_gate",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 2,
-      "objects": [
-        [
-          "Falsify_ProcessReceiptShadowType",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "refusal": "ProcessReceiptShadowType",
-        "outcome": "refused",
-        "fixture_id": "Falsify_ProcessReceiptShadowType"
-      }
-    },
     "evt_000": {
-      "event_id": "4f5fbe24-80fc-40a1-b0ee-fa8bc853d120",
+      "event_id": "395cabeb-5e83-479e-8ad7-6b498a6852f9",
       "case_id": "chatman-static_gate",
       "activity": {
         "DiagnosticEmitted": {
@@ -64,12 +21,34 @@
       ],
       "attributes": {
         "refusal": "DuplicateCanonicalTapeType",
-        "outcome": "refused",
-        "fixture_id": "Falsify_DuplicateCanonicalTapeType"
+        "fixture_id": "Falsify_DuplicateCanonicalTapeType",
+        "outcome": "refused"
+      }
+    },
+    "evt_001": {
+      "event_id": "69b1f301-f649-4d2c-ae99-8a4e69d505cb",
+      "case_id": "chatman-static_gate",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 2,
+      "objects": [
+        [
+          "Falsify_ProcessReceiptShadowType",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Falsify_ProcessReceiptShadowType",
+        "refusal": "ProcessReceiptShadowType",
+        "outcome": "refused"
       }
     },
     "evt_002": {
-      "event_id": "500a1ff3-6ce3-477f-8254-181a63a15d42",
+      "event_id": "58099ac3-17b7-487a-b7c4-46688a88e5b8",
       "case_id": "chatman-static_gate",
       "activity": {
         "DiagnosticEmitted": {
@@ -85,7 +64,28 @@
         ]
       ],
       "attributes": {
-        "fixture_id": "Accept_SingleProcessReceiptType",
+        "outcome": "admitted",
+        "fixture_id": "Accept_SingleProcessReceiptType"
+      }
+    },
+    "evt_003": {
+      "event_id": "51ab592e-0ae0-4f82-819c-aca78d1661cb",
+      "case_id": "chatman-static_gate",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 4,
+      "objects": [
+        [
+          "Accept_UniqueCanonicalTapeType",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Accept_UniqueCanonicalTapeType",
         "outcome": "admitted"
       }
     }

@@ -381,6 +381,8 @@ fn gate_refusal_name_matches_const_list() {
         Refusal::ProcessReceiptShadowType(ctx()),
         Refusal::DuplicateCanonicalTapeType(ctx()),
         Refusal::TripleTermInSnapshot(ctx()),
+        Refusal::StageSealMismatch(ctx()),
+        Refusal::UnlawfulActuation(ctx()),
     ];
     assert_eq!(all.len(), ALL_REFUSAL_NAMES.len());
     for (refusal, expected) in all.iter().zip(ALL_REFUSAL_NAMES) {

@@ -1,6 +1,6 @@
 //! Coverage theorem over the chatman refusal taxonomy.
 //!
-//! Maps each of the 29 `Refusal` variant names (`src/chatman/abi.rs:340-370`)
+//! Maps each of the 31 `Refusal` variant names (`src/chatman/abi.rs:354-386`)
 //! to the test(s) that provoke it, across this file's own corpus plus the
 //! three sibling `chatman_*` test files (referenced here only as string test
 //! names — this file does not call into them, since Rust integration test
@@ -17,10 +17,13 @@
 //! `WarmPathRequired` — those are `#[cfg(test)]` unit tests inside the crate,
 //! not this integration-test corpus, so they are NOT counted as "provoked by
 //! a test named in this table" per the strict per-file corpus this theorem
-//! governs). The remaining variants are UNVERIFIED by this test corpus and
-//! are listed with `covered: false`. Full 29/29 coverage is NOT claimed; the
-//! coverage assertion below is scoped to what this session's corpus proves,
-//! not to the full taxonomy.
+//! governs). PROJ-SEC-04's `StageSealMismatch` and `UnlawfulActuation` are
+//! likewise `#[cfg(test)]` unit-tested in `src/chatman/abi.rs` only (no
+//! triggering plumbing exists yet), so they are also listed with
+//! `covered: false` here. The remaining variants are UNVERIFIED by this test
+//! corpus and are listed with `covered: false`. Full 31/31 coverage is NOT
+//! claimed; the coverage assertion below is scoped to what this session's
+//! corpus proves, not to the full taxonomy.
 
 use std::collections::BTreeSet;
 
@@ -82,6 +85,13 @@ const PROVOCATION_TABLE: &[(&str, &[&str])] = &[
     ("NondeterministicOperatorRequiresReceipt", &[]),
     ("ProcessReceiptShadowType", &[]),
     ("DuplicateCanonicalTapeType", &[]),
+    // PROJ-SEC-04: StageSealMismatch and UnlawfulActuation are unit-tested in
+    // src/chatman/abi.rs's own `#[cfg(test)] mod refusal_variant_tests` (not
+    // this integration-test corpus, so not counted as "provoked" per this
+    // table's strict per-file corpus scope, same convention as
+    // HookPatternNotAdmitted et al. above).
+    ("StageSealMismatch", &[]),
+    ("UnlawfulActuation", &[]),
 ];
 
 /// The table's key set must be exactly `ALL_REFUSAL_NAMES` — every variant
@@ -98,13 +108,13 @@ fn provocation_table_has_a_row_for_every_refusal_variant() {
     );
     assert_eq_msg!(
         table_keys.len(),
-        29,
-        "expected 29 rows, matching the 29 Refusal variants read from abi.rs"
+        31,
+        "expected 31 rows, matching the 31 Refusal variants read from abi.rs"
     );
 }
 
-/// Honest coverage count: how many of the 29 variants have at least one
-/// provoking test in this session's corpus. This is NOT asserted to equal 29
+/// Honest coverage count: how many of the 31 variants have at least one
+/// provoking test in this session's corpus. This is NOT asserted to equal 31
 /// — that would overclaim per `.claude/rules/no-overclaiming.md`. It is
 /// asserted to equal the exact count this session actually wired (6), so a
 /// regression (a row silently losing its test reference) fails loudly, and
@@ -118,7 +128,7 @@ fn covered_variant_count_matches_this_sessions_honest_total() {
     assert_eq_msg!(
         covered_count,
         6,
-        "this session's corpus provokes exactly 6 of 29 Refusal variants by exact name; \
+        "this session's corpus provokes exactly 6 of 31 Refusal variants by exact name; \
          see tests/chatman_refusal_governance.rs for the provoking tests and this file's \
          module doc for the honest scope of what 'covered' means here"
     );

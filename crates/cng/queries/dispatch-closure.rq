@@ -1,0 +1,53 @@
+# dispatch-closure.rq (PROJ-620)
+# ROLE NOTE: this is the broker's OPERATIONAL closure-law evaluator,
+# consumed mid-lifecycle by dispatch.rs. It is NOT a metrics source — the
+# DEFINITION_OF_DONE-named metric-dispatch-closure.rq (PROJ-614) is the
+# single authority for dispatch-closure headline numbers.
+# Inputs: OBSERVATION graph (dispatch_sent / consequence_admitted
+# observations, bench-obs vocabulary + ex: dispatch predicates).
+# Outputs: rows (?dispatch) — every PARENT dispatch whose declared
+# parent-child closure law is SATISFIED by its admitted child consequences:
+#   ALL_CHILDREN_REQUIRED — at least one child exists and every child
+#     dispatch has an admitted consequence.
+#   ANY_CHILD_SUFFICIENT  — at least one child dispatch has an admitted
+#     consequence.
+# The other four laws (QUORUM_REQUIRED, ORDERED_SUBSET_REQUIRED,
+# POLICY_DECIDES, FIRST_CONFORMANT_RESULT) are declared in
+# shapes/dispatch-shapes.ttl but not yet emitted by the workday broker; a
+# parent declaring one of them yields no row here, so it stays open —
+# closure is NEVER inferred in Rust control flow, only read from this
+# query's result.
+# Determinism: DISTINCT + ORDER BY ?dispatch over admitted obs facts.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+PREFIX ex:  <http://example.org/rwai#>
+
+SELECT DISTINCT ?dispatch
+WHERE {
+  {
+    ?p obs:obsKind "dispatch_sent" ;
+       ex:dispatchId ?dispatch ;
+       ex:closureLaw "ALL_CHILDREN_REQUIRED" .
+    FILTER EXISTS {
+      ?c obs:obsKind "dispatch_sent" ; ex:parentDispatch ?dispatch .
+    }
+    FILTER NOT EXISTS {
+      ?c2 obs:obsKind "dispatch_sent" ;
+          ex:parentDispatch ?dispatch ;
+          ex:dispatchId ?cid .
+      FILTER NOT EXISTS {
+        ?a obs:obsKind "consequence_admitted" ; ex:dispatchId ?cid .
+      }
+    }
+  }
+  UNION
+  {
+    ?p obs:obsKind "dispatch_sent" ;
+       ex:dispatchId ?dispatch ;
+       ex:closureLaw "ANY_CHILD_SUFFICIENT" .
+    ?c obs:obsKind "dispatch_sent" ;
+       ex:parentDispatch ?dispatch ;
+       ex:dispatchId ?cid .
+    ?a obs:obsKind "consequence_admitted" ; ex:dispatchId ?cid .
+  }
+}
+ORDER BY ?dispatch

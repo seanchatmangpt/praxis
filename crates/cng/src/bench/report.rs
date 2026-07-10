@@ -1,0 +1,223 @@
+//! Report/metrics types: `SparqlMetrics`/`TelemetryCounters`/`RunReport`
+//! (measured), `EvidenceManifest` (replay manifest), and the
+//! `ModeledLlmComparison`/`DerivedScaleExtrapolation` measurement-class-
+//! separated artifacts (never merged into `RunReport`).
+
+use std::collections::BTreeMap;
+
+#[derive(Debug, Default, Clone, serde::Serialize)]
+pub struct LatencyStats {
+    pub count: usize,
+    pub mean_us: f64,
+    pub p50_us: f64,
+    pub p95_us: f64,
+    pub p99_us: f64,
+    pub max_us: f64,
+}
+
+pub(super) fn latency_stats(mut samples_ns: Vec<u64>) -> LatencyStats {
+    if samples_ns.is_empty() {
+        return LatencyStats::default();
+    }
+    samples_ns.sort_unstable();
+    let count = samples_ns.len();
+    let pick = |q: f64| -> f64 {
+        let idx = ((count as f64 - 1.0) * q).round() as usize;
+        samples_ns[idx] as f64 / 1000.0
+    };
+    let sum: u128 = samples_ns.iter().map(|&v| v as u128).sum();
+    LatencyStats {
+        count,
+        mean_us: sum as f64 / count as f64 / 1000.0,
+        p50_us: pick(0.50),
+        p95_us: pick(0.95),
+        p99_us: pick(0.99),
+        max_us: samples_ns[count - 1] as f64 / 1000.0,
+    }
+}
+
+/// Authoritative totals: results of the on-disk `metric-*.rq` SELECTs over
+/// the materialized OCEL evidence graph (plus the two obs-graph SELECTs).
+/// These ASSIGN the `RunReport` headline numbers; the Rust counters are
+/// telemetry only.
+#[derive(Debug, serde::Serialize)]
+pub struct SparqlMetrics {
+    /// metric-workers.rq: DISTINCT Worker objects.
+    pub workers: u64,
+    /// metric-workflow-instances.rq: DISTINCT WorkflowExecution objects.
+    pub workflow_instances: u64,
+    /// metric-recursive-attachments.rq: DISTINCT attachesWorkflow O2O rels.
+    pub recursive_attachments: u64,
+    /// metric-transitions.rq: event count per eventTypeName.
+    pub transitions_by_type: BTreeMap<String, u64>,
+    /// metric-conformance.rq: DISTINCT events with conformant=true.
+    pub conformance: u64,
+    /// metric-refusals.rq: DISTINCT refused events.
+    pub refusals: u64,
+    /// metric-receipts.rq: DISTINCT events carrying a receipt.digest.
+    pub receipts: u64,
+    /// metric-replay.rq: DISTINCT events carrying replay.verified. The pack
+    /// emits no such attribute yet, so this is deterministically 0 (see the
+    /// query header); replay telemetry lives in `TelemetryCounters`.
+    pub replay_verified: u64,
+    /// Datalog-derived role count. `None` when the pack provides no
+    /// metric-derived-roles.rq (the query file is pack-generated; absent at
+    /// HEAD — see the reported seam). The graph-side facts exist either way
+    /// as role_derived observations; the telemetry counter is
+    /// `datalog_derived_roles`.
+    pub derived_roles: Option<u64>,
+}
+
+/// In-process Rust counters. NOT authoritative: cross-checked against
+/// `SparqlMetrics` (mismatch = typed refusal) and reported for latency /
+/// storage / replay context only.
+#[derive(Debug, serde::Serialize)]
+pub struct TelemetryCounters {
+    pub workers_represented: usize,
+    pub roster_partitions: usize,
+    pub roster_triples: usize,
+    pub input_ttl_artifacts: usize,
+    pub input_bytes: u64,
+    pub datalog_derived_roles: usize,
+    pub datalog_derived_facts: usize,
+    pub classification_lookups: usize,
+    pub classified_graph_triples: usize,
+    pub workflows_manufactured: usize,
+    pub logical_workflow_nodes: usize,
+    pub materialized_powl_nodes: usize,
+    pub executed_transitions: usize,
+    pub validated_transitions: usize,
+    pub receipted_transitions: usize,
+    pub socket_attachments: usize,
+    pub autonomic_completions: usize,
+    pub bounded_admissions_requested: usize,
+    pub typed_refusals: BTreeMap<String, usize>,
+    pub validation_passes: usize,
+    pub conformance_passes: usize,
+    pub replay_checked: usize,
+    pub replay_passes: usize,
+    pub recursion_nodes_by_level: Vec<usize>,
+    pub receipts_generated: usize,
+    pub storage_written_bytes: u64,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct RunReport {
+    /// Measurement class marker: every headline number in this struct was
+    /// measured by executing the real cng chain and read back from the
+    /// evidence graph via SELECT.
+    pub measurement_class: &'static str,
+    pub bench_dir: String,
+    // --- Headline numbers: ASSIGNED FROM SparqlMetrics (graph authority).
+    pub workers_represented: u64,
+    pub workflow_instances: u64,
+    pub recursive_attachments: u64,
+    pub executed_transitions: u64,
+    pub validated_transitions: u64,
+    pub receipted_transitions: u64,
+    pub conformance: u64,
+    pub refusals: u64,
+    pub receipts: u64,
+    pub replay_verified: u64,
+    // --- Structure and digests.
+    pub recursion_depth: usize,
+    pub evidence_chain_digest: String,
+    pub ocel_graph_digest: String,
+    pub sparql_result_digest: String,
+    pub sparql: SparqlMetrics,
+    pub telemetry: TelemetryCounters,
+    // --- Wall-clock instrumentation (benchmark harness only).
+    pub wall_seconds: f64,
+    pub manufacture_seconds: f64,
+    pub threads: usize,
+    pub sets_per_second: f64,
+    pub transitions_per_second: f64,
+    pub blake3_gib_per_second: f64,
+    pub stage_latency: BTreeMap<String, LatencyStats>,
+    pub total_latency: LatencyStats,
+}
+
+impl RunReport {
+    /// The one measurement class this struct may carry.
+    pub const MEASUREMENT_CLASS: &'static str = "MEASURED_CNG_RESULT";
+}
+
+/// Evidence bundle manifest: every input and output digest an independent
+/// auditor needs to replay this run from the bundle directory alone.
+/// All digests are `blake3:<hex>`. No timestamps, no absolute paths.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct EvidenceManifest {
+    /// Always "MEASURED_CNG_RESULT"; the manifest describes a measured run.
+    pub measurement_class: String,
+    /// Schema version for forward compatibility. This release: 1.
+    pub schema_version: u32,
+    /// BLAKE3 over the sorted concatenation of every obs/*.ttl file's bytes
+    /// (sort by bench_dir-relative path, concatenate path + NUL + bytes).
+    pub obs_digest: String,
+    /// Per-query digests, keyed by file stem (e.g. "ocel-events.construct").
+    pub query_digests: BTreeMap<String, String>,
+    /// Digests of the ontology inputs the queries were generated from.
+    /// Keys: "ocel2.ttl", "bench-obs.ttl" (file names only, no paths).
+    pub ontology_digests: BTreeMap<String, String>,
+    /// BLAKE3 of crates/cng/rules/bench-roles.dl as loaded for this run.
+    pub rules_digest: String,
+    /// Copied from RunReport: digest of the sorted OCEL N-Triples evidence.
+    pub ocel_graph_digest: String,
+    /// Copied from RunReport: digest of the ordered SELECT result rows.
+    pub sparql_result_digest: String,
+    /// Copied from RunReport: chained per-set POWL evidence digest.
+    pub evidence_chain_digest: String,
+    /// Exact command an auditor runs from the bundle's parent directory.
+    pub replay_command: String,
+    /// Reserved for a future signing decision (ed25519 exists in
+    /// praxis-core/src/signing.rs but is deliberately unwired here).
+    /// MUST be emitted as an empty array; never fabricate a signature.
+    pub signatures: Vec<String>,
+}
+
+/// MODELED LLM-agent cost comparison. Never merged into `RunReport`: the
+/// only measured inputs are the SELECT-sourced node counts; everything else
+/// is a declared assumption (ported from BENCHMARK.md prose into data).
+#[derive(Debug, serde::Serialize)]
+pub struct ModeledLlmComparison {
+    pub measurement_class: &'static str,
+    pub assumptions: ModeledLlmAssumptions,
+    /// calls * (tokens_in*usd_in + tokens_out*usd_out) / 1e6.
+    pub modeled_llm_usd_total: f64,
+    pub modeled_llm_usd_per_million_workflows: f64,
+    /// measured manufacture CPU-seconds (wall * threads) at usd_per_vcpu_hour.
+    pub rwai_measured_cpu_usd_total: f64,
+    pub rwai_measured_cpu_usd_per_million_workflows: f64,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct ModeledLlmAssumptions {
+    pub llm_calls_per_workflow_step: u64,
+    pub tokens_per_call_in: u64,
+    pub tokens_per_call_out: u64,
+    pub usd_per_mtok_in: f64,
+    pub usd_per_mtok_out: f64,
+    pub usd_per_vcpu_hour: f64,
+    /// SELECT-sourced: metric-transitions transition_fired count × calls-per-step.
+    pub calls: u64,
+    /// SELECT-sourced: metric-workflow-instances count.
+    pub workflow_instances: u64,
+}
+
+/// DERIVED arithmetic extrapolation past the generation cap. Never merged
+/// into `RunReport`; the cap logic itself (main.rs benchmark_generate)
+/// is unchanged.
+#[derive(Debug, serde::Serialize)]
+pub struct DerivedScaleExtrapolation {
+    pub measurement_class: &'static str,
+    pub set_cap: usize,
+    pub requested_sets: usize,
+    pub capped_sets: usize,
+    /// Measured sets actually present in this corpus.
+    pub measured_sets: usize,
+    pub extrapolated_workflow_instances: f64,
+    pub extrapolated_transitions: f64,
+}
+
+/// Generation-cap constant (mirrors main.rs benchmark_generate clamp).
+pub const SET_CAP: usize = 50_000;

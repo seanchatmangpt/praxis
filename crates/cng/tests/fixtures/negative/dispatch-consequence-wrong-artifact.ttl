@@ -1,0 +1,19 @@
+# Negative fixture (PROJ-620): a consequence that passes provenance,
+# correlation, authority, and structural validation but returns the WRONG
+# artifact — the semantic-conformance stage must refuse (CNG_R17, stage
+# "semantic") and the contract's declared compensation workflow must be
+# manufactured. Matches dispatch_test::fixture_contract (dispatch id
+# "disp-fixture", correlation id content-derived from that id).
+@prefix ex:   <http://example.org/rwai#> .
+@prefix disp: <https://truex.io/ontology/dispatch#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+ex:cons-disp-fixture a disp:DispatchConsequence ;
+  disp:consequenceOf "{{CORRELATION_ID}}" ;
+  disp:producingActor ex:external-machine-executor ;
+  disp:provenance ex:prov-disp-fixture ;
+  disp:returnedArtifact ex:outputs-SOMETHING-ELSE ;
+  disp:conformanceVerdict "PENDING" ;
+  disp:admissionVerdict "PENDING" ;
+  prov:wasAttributedTo ex:external-machine-executor ;
+  prov:wasDerivedFrom ex:disp-fixture .

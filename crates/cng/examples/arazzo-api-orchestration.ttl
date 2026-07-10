@@ -1,0 +1,115 @@
+# Example Arazzo-as-RDF instance: deterministic 4-step API-orchestration
+# workflow (create order -> authorize payment -> capture payment -> confirm),
+# conforming to crates/cng/ontologies/arazzo.ttl (80/20 profile) and
+# crates/cng/shapes/arazzo-shapes.ttl. Hand-authored fixture, not generated
+# output. Uses only supported features: operationId targets, path/body
+# parameters, simple criteria, goto/end/retry actions, dependsOn step chain.
+#
+# Dispatch projection note: each arz:Step is projectable onto a disp:
+# dispatch contract (crates/cng/shapes/dispatch-shapes.ttl, minted in
+# parallel): arz:operationId -> dispatch target, arz:hasParameter ->
+# dispatch arguments, arz:successCriterion -> post-condition gate,
+# arz:dependsOn -> dispatch ordering edge. Conceptual mapping only; no disp:
+# triples are asserted here.
+
+@prefix arz: <https://truex.io/ontology/arazzo#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:  <urn:cng:example:arazzo:order-fulfillment#> .
+
+ex:ordersApi a arz:SourceDescription ;
+    arz:name "ordersApi" ;
+    arz:url "https://example.com/openapi/orders.yaml"^^xsd:anyURI ;
+    arz:sourceType "openapi" .
+
+ex:orderFulfillment a arz:Workflow ;
+    arz:workflowId "order-fulfillment" ;
+    arz:summary "Create an order, authorize and capture payment, confirm." ;
+    arz:inputs "{\"type\":\"object\",\"properties\":{\"customerId\":{\"type\":\"string\"},\"sku\":{\"type\":\"string\"}}}" ;
+    arz:hasStep ex:createOrder , ex:authorizePayment , ex:capturePayment , ex:confirmOrder ;
+    arz:hasOutput ex:wfOutConfirmation .
+
+ex:wfOutConfirmation a arz:Output ;
+    arz:name "confirmationId" ;
+    arz:value "$steps.confirmOrder.outputs.confirmationId" .
+
+ex:createOrder a arz:Step ;
+    arz:stepId "createOrder" ;
+    arz:stepIndex 0 ;
+    dcterms:description "Create the order from customer and SKU inputs." ;
+    arz:operationId "createOrder" ;
+    arz:hasParameter ex:pCustomer , ex:pSku ;
+    arz:successCriterion ex:cCreated ;
+    arz:hasOutput ex:outOrderId .
+
+ex:pCustomer a arz:Parameter ;
+    arz:name "customerId" ; arz:in "body" ; arz:value "$inputs.customerId" .
+ex:pSku a arz:Parameter ;
+    arz:name "sku" ; arz:in "body" ; arz:value "$inputs.sku" .
+ex:cCreated a arz:Criterion ;
+    arz:condition "$statusCode == 201" ; arz:criterionType "simple" .
+ex:outOrderId a arz:Output ;
+    arz:name "orderId" ; arz:value "$response.body#/id" .
+
+ex:authorizePayment a arz:Step ;
+    arz:stepId "authorizePayment" ;
+    arz:stepIndex 1 ;
+    arz:dependsOn ex:createOrder ;
+    arz:operationId "authorizePayment" ;
+    arz:hasParameter ex:pOrderIdAuth ;
+    arz:successCriterion ex:cAuthorized ;
+    arz:onFailure ex:retryAuth ;
+    arz:hasOutput ex:outAuthId .
+
+ex:pOrderIdAuth a arz:Parameter ;
+    arz:name "orderId" ; arz:in "path" ; arz:value "$steps.createOrder.outputs.orderId" .
+ex:cAuthorized a arz:Criterion ;
+    arz:condition "$statusCode == 200" ; arz:criterionType "simple" .
+ex:retryAuth a arz:FailureAction ;
+    arz:name "retryAuthorization" ;
+    arz:actionType "retry" ;
+    arz:retryAfter 1.0 ;
+    arz:retryLimit 3 ;
+    arz:criteria ex:cAuthRetryable .
+ex:cAuthRetryable a arz:Criterion ;
+    arz:condition "$statusCode == 503" ; arz:criterionType "simple" .
+ex:outAuthId a arz:Output ;
+    arz:name "authorizationId" ; arz:value "$response.body#/authorizationId" .
+
+ex:capturePayment a arz:Step ;
+    arz:stepId "capturePayment" ;
+    arz:stepIndex 2 ;
+    arz:dependsOn ex:authorizePayment ;
+    arz:operationId "capturePayment" ;
+    arz:hasParameter ex:pAuthId ;
+    arz:successCriterion ex:cCaptured ;
+    arz:onSuccess ex:gotoConfirm .
+
+ex:pAuthId a arz:Parameter ;
+    arz:name "authorizationId" ; arz:in "path" ; arz:value "$steps.authorizePayment.outputs.authorizationId" .
+ex:cCaptured a arz:Criterion ;
+    arz:condition "$statusCode == 200" ; arz:criterionType "simple" .
+ex:gotoConfirm a arz:SuccessAction ;
+    arz:name "proceedToConfirmation" ;
+    arz:actionType "goto" ;
+    arz:targetStep "confirmOrder" .
+
+ex:confirmOrder a arz:Step ;
+    arz:stepId "confirmOrder" ;
+    arz:stepIndex 3 ;
+    arz:dependsOn ex:capturePayment ;
+    arz:operationId "confirmOrder" ;
+    arz:hasParameter ex:pOrderIdConfirm ;
+    arz:successCriterion ex:cConfirmed ;
+    arz:onSuccess ex:endOk ;
+    arz:hasOutput ex:outConfirmationId .
+
+ex:pOrderIdConfirm a arz:Parameter ;
+    arz:name "orderId" ; arz:in "path" ; arz:value "$steps.createOrder.outputs.orderId" .
+ex:cConfirmed a arz:Criterion ;
+    arz:condition "$statusCode == 200" ; arz:criterionType "simple" .
+ex:endOk a arz:SuccessAction ;
+    arz:name "finish" ;
+    arz:actionType "end" .
+ex:outConfirmationId a arz:Output ;
+    arz:name "confirmationId" ; arz:value "$response.body#/confirmationId" .

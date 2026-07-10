@@ -1,0 +1,34 @@
+# metric-hook-actuations.rq (PROJ-614)
+# AUTHORITY NOTE: this is the DEFINITION_OF_DONE-named file and it is the
+# single source of truth for the hook-actuation headline numbers. It
+# supersedes and folds in the earlier metric-hook-receipts.rq (PROJ-612),
+# which has been removed — the ?receipted column below is that query's
+# count, verbatim semantics.
+# Inputs: materialized OCEL graph (union of ocel-events.construct.rq and
+# ocel-hook-receipts.construct.rq outputs).
+# Outputs: single row:
+#   ?transitions — COUNT(DISTINCT transition_fired events)
+#   ?receipted   — COUNT(DISTINCT hook_receipt events carrying
+#                  ex:hookDeltaHash)
+#   ?mismatches  — ?transitions - ?receipted (zero-unreceipted-actuation
+#                  law: every executed transition has exactly one receipted
+#                  actuation; nonzero refuses CNG_R19 in the workday
+#                  reconcile gate).
+# Determinism: aggregates over a fixed graph; scalar subtraction.
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX ex:   <http://example.org/rwai#>
+
+SELECT ?transitions ?receipted ((?transitions - ?receipted) AS ?mismatches)
+WHERE {
+  {
+    SELECT (COUNT(DISTINCT ?t) AS ?transitions)
+    WHERE { ?t ocel:activityName "transition_fired" . }
+  }
+  {
+    SELECT (COUNT(DISTINCT ?r) AS ?receipted)
+    WHERE {
+      ?r ocel:activityName "hook_receipt" ;
+         ex:hookDeltaHash ?dh .
+    }
+  }
+}

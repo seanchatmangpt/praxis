@@ -1,0 +1,17 @@
+% RENDERED by `ggen sync` from the post-release graph (post-release-pack) — DO NOT EDIT BY HAND
+\paragraph{Independent replay.}
+The replay lane is upgraded only by its own gate's report, never asserted:
+its current standing is \texttt{REPLAY\_PASS}. The
+gate clones the repository at tag \texttt{v26.7.7-procint-certified}
+into a scratch tree and re-runs the manufacturing rail there:
+\begin{enumerate}
+  \item \texttt{git clone \textless stand-in\textgreater /mfact-dryrun.git at tag v26.7.7-procint-certified}
+  \item \texttt{just render \&\& just build (pinned toolchain, lake exe cache get)}
+  \item \texttt{just audit \&\& just test}
+  \item \texttt{just certify (exit 0 required)}
+  \item \texttt{just regen-check (ARTIFACT\_DRIFT\_REFUSED on any divergence)}
+\end{enumerate}
+A replay that diverges on any ledgered artifact refuses with
+\texttt{ARTIFACT\_DRIFT\_REFUSED}; a replay that has not been run reports
+\texttt{REPLAY\_NOT\_RUN} rather than borrowing the core release's standing.
+

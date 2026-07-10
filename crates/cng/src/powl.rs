@@ -66,6 +66,107 @@ pub enum CngRefusal {
     /// re-manufacture drift): R11 is third-party integrity failure detected
     /// against recorded evidence.
     AuditMismatch(String),
+    /// `CNG_R12` — the standing next-action query returned a number of
+    /// lawful candidate actions other than exactly one while work remains
+    /// at the given logical tick. The single-operator workday loop must
+    /// always be able to derive ONE lawful next action from standing; zero
+    /// candidates with open work, or more than one, is a governance
+    /// failure, never a heuristic choice.
+    StandingAmbiguous {
+        /// Logical tick at which the standing query was evaluated.
+        tick: usize,
+        /// Number of candidate rows the standing query returned.
+        candidate_count: usize,
+    },
+    /// `CNG_R13` — an executed workflow transition produced no matching
+    /// hook receipt (zero-unreceipted-actuation law: `actuate(c) ⟹ ∃R
+    /// (R⊢c)`). The workday hook broker must obtain exactly one graphlaw
+    /// `HookReceipt` (hook name == workload category) per transition; a
+    /// missing receipt means the actuation was unlawful, never a warning.
+    UnreceiptedActuation {
+        /// The workflow instance (tick set id) whose transition actuated.
+        workflow: String,
+        /// The workload category whose hook failed to receipt.
+        category: String,
+    },
+    /// `CNG_R14` — the Dialect Registry failed its closed-shape law
+    /// (dialect-registry.shape.ttl: all eight registry fields mandatory,
+    /// sh:closed) BEFORE any tick executed. `missing` names either the
+    /// absent required field or the undeclared (closedness-violating)
+    /// property on `entry`.
+    DialectRegistryRefused {
+        /// The registry entry IRI that violated the shape.
+        entry: String,
+        /// The missing required field, or the unexpected property.
+        missing: String,
+    },
+    /// `CNG_R15` — a dispatch contract is incomplete: one or more of the 20
+    /// required contract fields (dispatch-shapes.ttl DispatchContractShape)
+    /// is missing or empty. Refused BEFORE the contract leaves the broker —
+    /// an incomplete contract is never written to the outbox.
+    DispatchContractIncomplete {
+        /// The dispatch id (or contract IRI) of the incomplete contract.
+        dispatch: String,
+        /// Comma-separated names of the missing/empty required fields.
+        missing: String,
+    },
+    /// `CNG_R16` — a dispatch state transition outside the lawful 13-state
+    /// machine (dispatch-shapes.ttl disp:DispatchState individuals; the
+    /// transition table is documented on `bench::dispatch::DispatchState`).
+    /// An unlawful transition is a broker bug surfacing as a typed refusal,
+    /// never a silent state overwrite.
+    DispatchStateUnlawful {
+        /// The dispatch id whose state machine was violated.
+        dispatch: String,
+        /// The current state name.
+        from: String,
+        /// The requested (unlawful) target state name.
+        to: String,
+    },
+    /// `CNG_R17` — an externally produced consequence failed the lawful
+    /// re-entry pipeline at the named stage (in enforced order: provenance →
+    /// correlation → authority → structural → semantic). The external result
+    /// never touches standing before admission; a refused consequence is
+    /// evidence, never input.
+    ExternalConsequenceRefused {
+        /// The dispatch id the consequence claims to answer.
+        dispatch: String,
+        /// The re-entry stage that refused (provenance | correlation |
+        /// authority | structural | semantic).
+        stage: String,
+    },
+    /// `CNG_R18` — an admitted Arazzo description uses a feature outside the
+    /// 80/20 profile (arazzo-shapes.ttl), named explicitly. Refusing by name
+    /// is the profile doctrine: unsupported spec surface is REFUSED, never
+    /// silently skipped.
+    ArazzoProfileRefused {
+        /// The refused feature, named (e.g. `criterionType=xpath`).
+        feature: String,
+    },
+    /// `CNG_R19` — a graph-derived closure gate (PROJ-614) found unclosed
+    /// evidence at end of run: unreceipted actuations (transitions without a
+    /// matching hook receipt in the OCEL evidence graph), unreceipted
+    /// dispatches (dispatch_sent without acknowledgement), or
+    /// returned-but-unadmitted consequences. The SPARQL evidence graph is
+    /// the authority; Rust counters are telemetry only.
+    EvidenceGateFailed {
+        /// The gate that refused (`unreceipted-actuations` |
+        /// `unreceipted-dispatches` | `unadmitted-consequences`).
+        gate: String,
+        /// The offending graph-derived count (nonzero).
+        count: i64,
+    },
+    /// `CNG_R20` — a v26.7.10 success marker (PROJ-622) evaluated FALSE over
+    /// the emitted OCEL/evidence graph. Markers are derived from the on-disk
+    /// `queries/markers/*.rq` SELECTs only — never from Rust counters — and
+    /// a false marker is a typed refusal with a nonzero exit, never a
+    /// warning.
+    MarkerFalse {
+        /// The marker name (e.g. `AUTONOMIC_LOOP_CLOSED`).
+        marker: String,
+        /// The marker query's `?value` (0 = proven; anything else refuses).
+        value: i64,
+    },
 }
 
 impl CngRefusal {
@@ -86,6 +187,15 @@ impl CngRefusal {
             CngRefusal::HardcodingSuspicion(_) => "CNG_R09",
             CngRefusal::IoRefused(_) => "CNG_R10",
             CngRefusal::AuditMismatch(_) => "CNG_R11",
+            CngRefusal::StandingAmbiguous { .. } => "CNG_R12",
+            CngRefusal::UnreceiptedActuation { .. } => "CNG_R13",
+            CngRefusal::DialectRegistryRefused { .. } => "CNG_R14",
+            CngRefusal::DispatchContractIncomplete { .. } => "CNG_R15",
+            CngRefusal::DispatchStateUnlawful { .. } => "CNG_R16",
+            CngRefusal::ExternalConsequenceRefused { .. } => "CNG_R17",
+            CngRefusal::ArazzoProfileRefused { .. } => "CNG_R18",
+            CngRefusal::EvidenceGateFailed { .. } => "CNG_R19",
+            CngRefusal::MarkerFalse { .. } => "CNG_R20",
         }
     }
 
@@ -106,13 +216,104 @@ impl CngRefusal {
             | CngRefusal::HardcodingSuspicion(m)
             | CngRefusal::IoRefused(m)
             | CngRefusal::AuditMismatch(m) => m,
+            CngRefusal::StandingAmbiguous { .. } => {
+                "standing next-action query returned an ambiguous candidate set; \
+                 exactly one lawful action is required while work remains"
+            }
+            CngRefusal::UnreceiptedActuation { .. } => {
+                "executed transition produced no matching hook receipt; \
+                 zero-unreceipted-actuation law violated"
+            }
+            CngRefusal::DialectRegistryRefused { .. } => {
+                "dialect registry entry violates the closed registry shape; \
+                 all eight registry fields are mandatory and no others are lawful"
+            }
+            CngRefusal::DispatchContractIncomplete { .. } => {
+                "dispatch contract is missing required fields; all 20 contract \
+                 fields are mandatory before the contract may leave the broker"
+            }
+            CngRefusal::DispatchStateUnlawful { .. } => {
+                "dispatch state transition is outside the lawful 13-state machine"
+            }
+            CngRefusal::ExternalConsequenceRefused { .. } => {
+                "external consequence refused during lawful re-entry; the result \
+                 never touches standing before admission"
+            }
+            CngRefusal::ArazzoProfileRefused { .. } => {
+                "arazzo description uses a feature outside the 80/20 profile; \
+                 unsupported features are refused by name"
+            }
+            CngRefusal::EvidenceGateFailed { .. } => {
+                "graph-derived closure gate found unclosed evidence; the SPARQL \
+                 evidence graph refutes end-of-run closure"
+            }
+            CngRefusal::MarkerFalse { .. } => {
+                "success marker evaluated false over the evidence graph; markers \
+                 are SPARQL-derived and a false marker refuses the run"
+            }
         }
     }
 }
 
 impl std::fmt::Display for CngRefusal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.code(), self.message())
+        match self {
+            CngRefusal::StandingAmbiguous {
+                tick,
+                candidate_count,
+            } => write!(
+                f,
+                "{}: {} (tick {tick}, {candidate_count} candidates)",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::UnreceiptedActuation { workflow, category } => write!(
+                f,
+                "{}: {} (workflow {workflow}, category {category})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::DialectRegistryRefused { entry, missing } => write!(
+                f,
+                "{}: {} (entry {entry}, field {missing})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::DispatchContractIncomplete { dispatch, missing } => write!(
+                f,
+                "{}: {} (dispatch {dispatch}, missing {missing})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::DispatchStateUnlawful { dispatch, from, to } => write!(
+                f,
+                "{}: {} (dispatch {dispatch}, {from} -> {to})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::ExternalConsequenceRefused { dispatch, stage } => write!(
+                f,
+                "{}: {} (dispatch {dispatch}, stage {stage})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::ArazzoProfileRefused { feature } => {
+                write!(f, "{}: {} (feature {feature})", self.code(), self.message())
+            }
+            CngRefusal::EvidenceGateFailed { gate, count } => write!(
+                f,
+                "{}: {} (gate {gate}, count {count})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::MarkerFalse { marker, value } => write!(
+                f,
+                "{}: {} (marker {marker}, value {value})",
+                self.code(),
+                self.message()
+            ),
+            _ => write!(f, "{}: {}", self.code(), self.message()),
+        }
     }
 }
 
@@ -446,325 +647,5 @@ fn escape_turtle_literal(value: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use bcinr_pddl::Pddl8Tape;
-    use chicago_tdd_tools::prelude::*;
-    use oxigraph::model::NamedNode;
-    use oxigraph::store::Store;
-
-    /// Parses serializer output into an in-memory store so assertions run
-    /// over the parsed graph via `crate::shape::validate_powl_store` and the
-    /// typed `quads_for_pattern` API — never substring matching on Turtle
-    /// and never inline SPARQL strings.
-    fn store_from_turtle(turtle: &str) -> Store {
-        let store = Store::new().expect("in-memory store must construct");
-        store
-            .load_from_slice(
-                oxigraph::io::RdfParser::from_format(oxigraph::io::RdfFormat::Turtle),
-                turtle.as_bytes(),
-            )
-            .expect("serializer output must be valid Turtle");
-        store
-    }
-
-    /// Objects of `<subject_iri> <predicate_iri> ?o` in the default graph,
-    /// via the typed pattern API. O(matches).
-    fn objects_of(store: &Store, subject_iri: &str, predicate_iri: &str) -> Vec<String> {
-        let subject = NamedNode::new(subject_iri).expect("test subject IRI must parse");
-        let predicate = NamedNode::new(predicate_iri).expect("test predicate IRI must parse");
-        store
-            .quads_for_pattern(
-                Some(subject.as_ref().into()),
-                Some(predicate.as_ref()),
-                None,
-                None,
-            )
-            .map(|quad| quad.expect("quad must decode").object.to_string())
-            .collect()
-    }
-
-    /// Count of quads carrying `<predicate_iri>` anywhere in the store, via
-    /// the typed pattern API. O(matches).
-    fn predicate_count(store: &Store, predicate_iri: &str) -> usize {
-        let predicate = NamedNode::new(predicate_iri).expect("test predicate IRI must parse");
-        store
-            .quads_for_pattern(None, Some(predicate.as_ref()), None, None)
-            .count()
-    }
-
-    test!(empty_tape_refuses_plan_unsolvable, {
-        let empty = Pddl8Tape { ops: vec![] };
-        match project_tape_to_powl(&empty) {
-            Err(refusal @ CngRefusal::PlanUnsolvable(_)) => {
-                assert_eq!(refusal.code(), "CNG_R04");
-                assert!(!refusal.message().is_empty());
-            }
-            other => panic!("expected PlanUnsolvable, got {other:?}"),
-        }
-    });
-
-    test!(audit_mismatch_refusal_has_stable_code, {
-        let refusal = CngRefusal::AuditMismatch("digest drift".to_string());
-        assert_eq!(refusal.code(), "CNG_R11");
-        assert_eq!(refusal.message(), "digest drift");
-        assert_eq!(format!("{refusal}"), "CNG_R11: digest drift");
-    });
-
-    test!(provenance_serializer_emits_one_source_per_leaf, {
-        let model = Powl::PartialOrder {
-            children: vec![
-                Powl::Leaf(Some("a(x)".to_string())),
-                Powl::Leaf(Some("b(x)".to_string())),
-            ],
-            order: [(0usize, 1usize)].into_iter().collect(),
-        };
-        let sources = vec!["urn:blake3:aa".to_string(), "urn:blake3:bb".to_string()];
-        let turtle = powl_to_turtle_with_provenance(&model, "urn:t", Some("urn:src"), &sources)
-            .expect("aligned provenance must serialize");
-        let store = store_from_turtle(&turtle);
-        let prov_iri = format!("{PROV_PREFIX}wasDerivedFrom");
-        for (idx, expected_source) in sources.iter().enumerate() {
-            assert_eq!(
-                objects_of(&store, &format!("urn:t/n0/c{idx}"), &prov_iri),
-                vec![format!("<{expected_source}>")],
-                "leaf {idx} must carry exactly its own source's provenance"
-            );
-        }
-        assert_eq!(predicate_count(&store, &prov_iri), sources.len());
-        // Misaligned provenance refuses (UnsupportedConstruct, CNG_R05).
-        match powl_to_turtle_with_provenance(&model, "urn:t", None, &sources[..1]) {
-            Err(r @ CngRefusal::UnsupportedConstruct(_)) => assert_eq!(r.code(), "CNG_R05"),
-            other => panic!("expected UnsupportedConstruct, got {other:?}"),
-        }
-    });
-
-    test!(turtle_is_deterministic_and_derived_from_is_root_only, {
-        let model = Powl::PartialOrder {
-            children: vec![
-                Powl::Leaf(Some("a(x)".to_string())),
-                Powl::Leaf(Some("b(x)".to_string())),
-            ],
-            order: [(0usize, 1usize)].into_iter().collect(),
-        };
-        // Determinism: whole-output byte equality (String equality, not
-        // substring matching).
-        let a = powl_to_turtle(&model, "urn:t", Some("urn:src"));
-        let b = powl_to_turtle(&model, "urn:t", Some("urn:src"));
-        assert_eq!(a, b, "same inputs must serialize byte-identically");
-        // Root-only provenance, asserted over the parsed graph.
-        let store = store_from_turtle(&a);
-        let derived_iri = format!("{POWL2_PREFIX}derivedFrom");
-        assert_eq!(predicate_count(&store, &derived_iri), 1);
-        assert_eq!(
-            objects_of(&store, "urn:t/n0", &derived_iri),
-            vec!["<urn:src>".to_string()],
-            "the single powl2:derivedFrom triple must sit on the root"
-        );
-    });
-
-    /// Builds a synthetic tape op with a given `(schema_name, label)`; the
-    /// action's preconditions/effects are irrelevant to projection.
-    fn tape_op(index: u8, pred_mask: u64, schema_name: &str) -> bcinr_pddl::Pddl8TapeOp {
-        bcinr_pddl::Pddl8TapeOp {
-            index,
-            label: format!("{schema_name}()"),
-            pred_mask,
-            action: bcinr_pddl::Pddl8GroundAction {
-                schema_name: schema_name.to_string(),
-                label: format!("{schema_name}()"),
-                preconditions: vec![],
-                add_effects: vec![],
-                del_effects: vec![],
-            },
-        }
-    }
-
-    /// Three artifacts, tape order A,A,B,C — a run of consecutive same-source
-    /// ops followed by two single-op phases from distinct artifacts.
-    fn three_phase_tape_and_sources() -> (Pddl8Tape, BTreeMap<String, String>) {
-        let tape = Pddl8Tape {
-            ops: vec![
-                tape_op(0, 0, "act_a1"),
-                tape_op(1, 1, "act_a2"),
-                tape_op(2, 2, "act_b1"),
-                tape_op(3, 4, "act_c1"),
-            ],
-        };
-        let mut sources = BTreeMap::new();
-        sources.insert("act_a1".to_string(), "urn:blake3:aa".to_string());
-        sources.insert("act_a2".to_string(), "urn:blake3:aa".to_string());
-        sources.insert("act_b1".to_string(), "urn:blake3:bb".to_string());
-        sources.insert("act_c1".to_string(), "urn:blake3:cc".to_string());
-        (tape, sources)
-    }
-
-    test!(
-        hierarchical_projection_groups_consecutive_same_source_runs,
-        {
-            let (tape, sources) = three_phase_tape_and_sources();
-            let (model, phase_sources) =
-                project_tape_to_powl_hierarchical(&tape, &sources).expect("must project");
-
-            assert_eq!(
-                phase_sources,
-                vec![
-                    "urn:blake3:aa".to_string(),
-                    "urn:blake3:bb".to_string(),
-                    "urn:blake3:cc".to_string(),
-                ]
-            );
-            let Powl::PartialOrder { children, order } = &model else {
-                panic!("expected root PartialOrder");
-            };
-            assert_eq!(children.len(), 3, "3 phases: [a1,a2], [b1], [c1]");
-            assert_eq!(order.len(), 3, "C(3,2) root-level precedence pairs");
-            let Powl::PartialOrder {
-                children: phase0_leaves,
-                order: phase0_order,
-            } = &children[0]
-            else {
-                panic!("expected phase 0 to be a PartialOrder");
-            };
-            assert_eq!(phase0_leaves.len(), 2, "phase 0 groups act_a1 and act_a2");
-            assert_eq!(phase0_order.len(), 1, "C(2,2) intra-phase precedence pair");
-            let Powl::PartialOrder {
-                children: phase1_leaves,
-                ..
-            } = &children[1]
-            else {
-                panic!("expected phase 1 to be a PartialOrder");
-            };
-            assert_eq!(phase1_leaves.len(), 1, "phase 1 is the lone act_b1 op");
-        }
-    );
-
-    test!(hierarchical_projection_refuses_empty_tape, {
-        let empty = Pddl8Tape { ops: vec![] };
-        match project_tape_to_powl_hierarchical(&empty, &BTreeMap::new()) {
-            Err(refusal @ CngRefusal::PlanUnsolvable(_)) => {
-                assert_eq!(refusal.code(), "CNG_R04");
-            }
-            other => panic!("expected PlanUnsolvable, got {other:?}"),
-        }
-    });
-
-    test!(hierarchical_projection_refuses_untracked_action, {
-        let tape = Pddl8Tape {
-            ops: vec![tape_op(0, 0, "act_unknown")],
-        };
-        match project_tape_to_powl_hierarchical(&tape, &BTreeMap::new()) {
-            Err(refusal @ CngRefusal::HardcodingSuspicion(_)) => {
-                assert_eq!(refusal.code(), "CNG_R09");
-            }
-            other => panic!("expected HardcodingSuspicion, got {other:?}"),
-        }
-    });
-
-    test!(phase_provenance_serializer_emits_one_source_per_phase, {
-        let (tape, sources) = three_phase_tape_and_sources();
-        let (model, phase_sources) =
-            project_tape_to_powl_hierarchical(&tape, &sources).expect("must project");
-
-        let turtle =
-            powl_to_turtle_with_phase_provenance(&model, "urn:t", Some("urn:src"), &phase_sources)
-                .expect("aligned phase provenance must serialize");
-        let store = store_from_turtle(&turtle);
-
-        // The nested model passes the crate's own structural validator —
-        // this doubles as the shape.rs regression test for hierarchical
-        // output (root Model + 4 PartialOrders + 4 labelled leaves + 7
-        // bindings: 3 root-level, 4 leaf-level).
-        let report =
-            crate::shape::validate_powl_store(&store, true).expect("nested model must validate");
-        assert_eq!(report.models, 1);
-        assert_eq!(report.partial_orders, 4, "root + 3 phase PartialOrders");
-        assert_eq!(report.activity_leaves, 4, "all 4 tape ops are leaves");
-        assert_eq!(
-            report.child_bindings, 7,
-            "3 phase bindings + 4 leaf bindings"
-        );
-        assert_eq!(report.derived_from, 1);
-
-        // One prov:wasDerivedFrom per phase node (n0/c0, n0/c1, n0/c2), each
-        // pointing at that phase's contributing source IRI — asserted with
-        // the typed pattern API over the parsed graph.
-        let prov_iri = format!("{PROV_PREFIX}wasDerivedFrom");
-        for (phase_idx, expected_source) in phase_sources.iter().enumerate() {
-            assert_eq!(
-                objects_of(&store, &format!("urn:t/n0/c{phase_idx}"), &prov_iri),
-                vec![format!("<{expected_source}>")],
-                "phase {phase_idx} must carry exactly its own source's provenance"
-            );
-        }
-        assert_eq!(
-            predicate_count(&store, &prov_iri),
-            3,
-            "exactly one prov:wasDerivedFrom triple per phase"
-        );
-    });
-
-    test!(phase_provenance_serializer_refuses_flat_model, {
-        // A flat model (top-level children are Leaf, not PartialOrder) is not
-        // a hierarchical shape — refuses CNG_R05, points callers at the flat
-        // provenance function instead.
-        let flat_model = Powl::PartialOrder {
-            children: vec![
-                Powl::Leaf(Some("a(x)".to_string())),
-                Powl::Leaf(Some("b(x)".to_string())),
-            ],
-            order: [(0usize, 1usize)].into_iter().collect(),
-        };
-        let sources = vec!["urn:blake3:aa".to_string(), "urn:blake3:bb".to_string()];
-        match powl_to_turtle_with_phase_provenance(&flat_model, "urn:t", None, &sources) {
-            Err(r @ CngRefusal::UnsupportedConstruct(_)) => assert_eq!(r.code(), "CNG_R05"),
-            other => panic!("expected UnsupportedConstruct, got {other:?}"),
-        }
-    });
-
-    test!(
-        phase_provenance_serializer_refuses_misaligned_source_count,
-        {
-            let (tape, sources) = three_phase_tape_and_sources();
-            let (model, phase_sources) =
-                project_tape_to_powl_hierarchical(&tape, &sources).expect("must project");
-            match powl_to_turtle_with_phase_provenance(
-                &model,
-                "urn:t",
-                None,
-                &phase_sources[..phase_sources.len() - 1],
-            ) {
-                Err(r @ CngRefusal::UnsupportedConstruct(_)) => assert_eq!(r.code(), "CNG_R05"),
-                other => panic!("expected UnsupportedConstruct, got {other:?}"),
-            }
-        }
-    );
-
-    test!(
-        existing_flat_functions_are_unaffected_by_hierarchical_additions,
-        {
-            // Regression guard: the pre-existing flat projection/serialization
-            // shape is unchanged after adding the hierarchical siblings, verified
-            // by the crate's own structural validator over the parsed output —
-            // no substring matching, no inline query strings.
-            let tape = Pddl8Tape {
-                ops: vec![tape_op(0, 0, "a"), tape_op(1, 1, "b")],
-            };
-            let model = project_tape_to_powl(&tape).expect("flat projection");
-            let turtle = powl_to_turtle(&model, "urn:t", Some("urn:src"));
-            let store = store_from_turtle(&turtle);
-
-            let report =
-                crate::shape::validate_powl_store(&store, true).expect("flat model must validate");
-            assert_eq!(report.models, 1);
-            assert_eq!(report.partial_orders, 1, "flat model has one PartialOrder");
-            assert_eq!(
-                report.activity_leaves, 2,
-                "both flat tape ops must serialize as labelled ActivityLeafs"
-            );
-            assert_eq!(report.child_bindings, 2);
-            assert_eq!(report.precedes, 1, "C(2,2) = 1 closed order pair");
-            assert_eq!(report.derived_from, 1);
-        }
-    );
-}
+#[path = "powl_test.rs"]
+mod powl_test;

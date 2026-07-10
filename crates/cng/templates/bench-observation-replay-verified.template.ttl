@@ -1,0 +1,16 @@
+# rwai-bench observation template (replay_verified, PROJ-614/616): one per
+# workflow set whose replay re-manufacture reproduced the recorded POWL
+# digest byte-identically (or refused identically for refused sets).
+# {{DIGEST}} is the content-derived BLAKE3 digest the replay reproduced —
+# nothing time-based enters any digest. The ocel-replays.construct.rq
+# CONSTRUCT projects this fact into the OCEL evidence graph as an event
+# carrying the `replay.verified` attribute that metric-replay.rq counts.
+# Vocabulary: crates/praxis-graphlaw/ontologies/core/bench-obs.ttl + ex:.
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "replay_verified" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:obsDigest "{{DIGEST}}" .

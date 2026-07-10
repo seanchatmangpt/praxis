@@ -66,10 +66,11 @@ asserted.
 
 ## 4. Product position
 
-**A measured 10,000-worker/depth-2 campaign plus a set of PLANNED hardening tickets — explicitly
-not more.** No depth-5/4,680-attachment campaign has been run (row 7); no PQC signing exists or
-is planned this release (row 11); `verify` does not re-check OCEL/SPARQL digests (row 4); the
-bundle is not portable across machines/directories without a fix (row 3).
+**A measured 10,000-worker/depth-2 campaign plus five landed hardening tickets (PROJ-601..605,
+commit `40f6020`) — explicitly not more.** No depth-5/4,680-attachment campaign has been run
+(row 7); no PQC signing exists or is planned this release (row 11); `benchmark verify` still
+re-derives the POWL manufacture digest only, by design — full evidence re-derivation is the
+separate `cng evidence replay` path (rows 4/13); bundle portability is fixed (row 3, CLOSED).
 
 ## 5. Core equation
 
@@ -95,26 +96,28 @@ deliberately self-documented in `crates/cng/Cargo.toml:35-50,80-85`, not hidden.
 ## 7. Primary release goal
 
 Establish the e763f44 10,000-worker/depth-2 campaign as the ALIVE evidentiary floor for this
-release, and stage five hardening tickets (PROJ-601..505, `docs/jira/v26.7.10/tickets/`) as
-PLANNED work closing the gaps found this session (auditor-replay portability, verify-digest
-completeness, bundle-manifest schema, inline-SPARQL closure, a new `CNG_R11 AuditMismatch`
-refusal). None of PROJ-601..505 is implemented in this release.
+release, and close five hardening tickets (PROJ-601..605, `docs/jira/v26.7.10/tickets/`) fixing
+the gaps found during reconciliation (auditor-replay portability, the `cng evidence replay`
+auditor verb, bundle-manifest schema, inline-SPARQL closure, a new `CNG_R11 AuditMismatch`
+refusal). All five landed in commit `40f6020`; verification evidence in `RELEASE_CONTROL.md`
+Sec. 7.
 
 ## 8. MVP definition
 
-The MVP for this release is the reconciled baseline itself, not new code:
+The MVP for this release is the reconciled baseline plus the five hardening tickets:
 
 1. Baseline campaign measured and byte-identical across 2 runs (row 1).
 2. Sample replay verified via `cng benchmark verify` (row 2).
 3. All ten corrections (Claims Reconciliation rows above) captured accurately, not softened.
-4. Five PLANNED ticket stubs staged under `docs/jira/v26.7.10/tickets/` for the next increment.
+4. Five tickets (PROJ-601..605) under `docs/jira/v26.7.10/tickets/` implemented and CLOSED
+   (commit `40f6020`; evidence in `RELEASE_CONTROL.md` Sec. 7).
 
 ## 9. Personas
 
 - **Benchmark operator.** Runs `cng benchmark generate`/`run`/`verify` and needs to know exactly
   what `verify` does and does not check (row 4) before trusting a "verified" claim.
-- **Third-party auditor.** Currently blocked from relocating a bundle directory and replaying it
-  (row 3) — PROJ-601 is the fix.
+- **Third-party auditor.** Can relocate a bundle directory and independently replay its evidence
+  from bundle files alone (`cng evidence replay`, rows 3/13) — PROJ-601/602 closed this gap.
 - **AI agent / Datalog role consumer.** Depends on `crates/cng/rules/bench-roles.dl` via the real
   `praxis-graphlaw` engine (row 9), with a typed refusal on any role/roster mismatch.
 - **Enterprise buyer.** Must be told, not left to discover, that the depth-5/4,680-attachment
@@ -155,14 +158,16 @@ The MVP for this release is the reconciled baseline itself, not new code:
 3. **Workflow sockets** beyond the existing `attachesWorkflow` parent-child mechanism — future
    increment per `crates/cng/BENCHMARK.md`.
 4. **Bounded-question/resume loop** — future increment, not in this release.
-5. Any verify-time re-derivation of `ocel_graph_digest`/`sparql_result_digest` (row 4) — deferred
-   to PROJ-602.
+5. Any re-derivation of `ocel_graph_digest`/`sparql_result_digest` inside `benchmark verify`
+   itself (row 4, unchanged by design) — delivered instead as the separate `cng evidence replay`
+   path (PROJ-602, row 13).
 
 ## 13. Day-one finish plan
 
 1. Confirm `docs/releases/v26.7.10/{PRD.md,ARD.md,RELEASE_CONTROL.md}` and
-   `docs/jira/v26.7.10/tickets/{PROJ-601..505}.md` are all present and consistent (this pass).
-2. File PROJ-601..505 as tracked tickets when the next increment begins implementation.
+   `docs/jira/v26.7.10/tickets/{PROJ-601..605}.md` are all present and consistent (this pass).
+2. PROJ-601..605 implemented and CLOSED (commit `40f6020`; verification evidence in
+   `RELEASE_CONTROL.md` Sec. 7).
 3. Re-run the baseline campaign fresh before any future claim upgrades a PARTIAL/UNKNOWN row
    above to ALIVE.
 
@@ -174,5 +179,5 @@ The MVP for this release is the reconciled baseline itself, not new code:
 | 2 | Sample replay | `cng benchmark verify` exit 0, `replayed:3, replay_passes:3` | PASS (row 2) |
 | 3 | Test suites green | `just cng-test` all pass; `just test-bin chatman_pddl_to_powl_joseph_famine_hierarchical` 3 passed | PASS (row 12) |
 | 4 | All 10 corrections captured without softening | Claims Reconciliation table rows 2-11 | PASS (this document) |
-| 5 | v26.7.10 scope items staged as PLANNED tickets | `docs/jira/v26.7.10/tickets/PROJ-601..505.md` | PASS (stubs created) |
+| 5 | v26.7.10 scope items implemented and verified | `docs/jira/v26.7.10/tickets/PROJ-601..605.md`; `RELEASE_CONTROL.md` Sec. 5/7 | PASS (CLOSED, commit `40f6020`) |
 | 6 | No overclaim of depth-5 scale or PQC | Sec. 12 non-goals | PASS (explicit) |

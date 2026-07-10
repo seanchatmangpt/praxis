@@ -1,0 +1,7 @@
+# rwai-bench category-content fragment (PROJ-609): appended to the domain
+# fragment of an `interruption` artifact set. Content-bearing RDF: the
+# artifact interrupts the named in-flight workflow instance (workday: the
+# current tick's instance; Fortune-5: the neighbouring set's case).
+@prefix ex: <http://example.org/rwai#> .
+
+ex:{{SUBJECT}} ex:interrupts ex:{{TARGET}} .

@@ -210,6 +210,8 @@ fn make_refusal(index: usize, ctx: &str) -> Refusal {
         26 => Refusal::ProcessReceiptShadowType(c),
         27 => Refusal::DuplicateCanonicalTapeType(c),
         28 => Refusal::TripleTermInSnapshot(c),
+        29 => Refusal::StageSealMismatch(c),
+        30 => Refusal::UnlawfulActuation(c),
         _ => unreachable!("index bounded by ALL_REFUSAL_NAMES.len() in the strategy"),
     }
 }

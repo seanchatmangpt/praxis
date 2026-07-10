@@ -1,0 +1,7 @@
+# rwai-bench category-content fragment (PROJ-609): appended to the domain
+# fragment of a `planning` artifact set. Content-bearing RDF: the artifact
+# plans for the named next-tick standing (workday: standing-tick-<t+1>;
+# Fortune-5: the next set's case).
+@prefix ex: <http://example.org/rwai#> .
+
+ex:{{SUBJECT}} ex:plansFor ex:{{TARGET}} .

@@ -1,0 +1,29 @@
+# shape-closed-violations.rq (PROJ-618/621)
+# Inputs: ONE oxigraph store holding a shapes graph (SHACL NodeShapes with
+# sh:targetClass + sh:closed true) and instance data. Generalization of
+# registry-closed-violations.rq that additionally honors
+# sh:ignoredProperties (an RDF list), so shapes like DispatchContractShape
+# (ignores rdf:type + disp:closureLaw) and the closed Arazzo shapes
+# validate without duplicating the ignore list in Rust.
+# Outputs: rows (?entry ?field) — one per (targeted node, undeclared
+# non-ignored property) pair. Non-empty means the instance violates its
+# closed shape; the caller maps rows to its typed refusal (CNG_R15 for
+# dispatch contracts, CNG_R18 for Arazzo descriptions).
+# Determinism: ORDER BY ?entry ?field over a fixed graph.
+PREFIX sh:  <http://www.w3.org/ns/shacl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?entry ?field
+WHERE {
+  ?shape sh:targetClass ?class ;
+         sh:closed true .
+  ?entry a ?class ;
+         ?field ?value .
+  FILTER(?field != rdf:type)
+  FILTER NOT EXISTS { ?shape sh:property ?ps . ?ps sh:path ?field }
+  FILTER NOT EXISTS {
+    ?shape sh:ignoredProperties ?list .
+    ?list rdf:rest*/rdf:first ?field .
+  }
+}
+ORDER BY ?entry ?field

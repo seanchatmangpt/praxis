@@ -1,0 +1,21 @@
+# rwai-bench observation template (hook_receipt, PROJ-612): one per executed
+# transition, carrying the graphlaw HookReceipt evidence for that
+# transition's actuation hook. {{TICK}} is a logic counter; {{DELTA_HASH}}
+# and {{IDEMPOTENCY_KEY}} are content-derived BLAKE3 values from the
+# graphlaw hooks engine — nothing time-based enters any digest.
+# Vocabulary: crates/praxis-graphlaw/ontologies/core/bench-obs.ttl + ex:.
+@prefix ex:   <http://example.org/rwai#> .
+@prefix obs:  <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix dreg: <http://seanchatmangpt.github.io/praxis/dreg#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "hook_receipt" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:obsWorkflowId "{{WORKFLOW_ID}}" ;
+  ex:logicalTick "{{TICK}}"^^xsd:integer ;
+  ex:hookName "{{HOOK_NAME}}" ;
+  ex:dialect dreg:{{DIALECT}} ;
+  ex:hookDeltaHash "{{DELTA_HASH}}" ;
+  ex:hookIdempotencyKey "{{IDEMPOTENCY_KEY}}" .

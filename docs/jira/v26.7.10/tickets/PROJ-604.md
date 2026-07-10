@@ -1,6 +1,11 @@
 # PROJ-604 — Close remaining inline-SPARQL sites and extend the guard test
 
-Status: PLANNED
+Status: CLOSED
+
+Closed by commit `40f6020` (7 inline sites moved to disk `.rq` files; guard extended to
+`no_inline_sparql_in_rust_sources` over all of `src/`+`tests/`). Verification evidence recorded
+in `docs/releases/v26.7.10/RELEASE_CONTROL.md` Sec. 7 (ladder item 1: `just cng-test` exit 0, 30
+tests including the extended guard) — this ticket cites that record rather than re-asserting it.
 
 `crates/cng/tests/no_inline_ttl_guard.rs` scans all `.rs` files under `src/` and `tests/` but
 its needles check for inline Turtle-prefix/PDDL markers, not inline SPARQL text, and only

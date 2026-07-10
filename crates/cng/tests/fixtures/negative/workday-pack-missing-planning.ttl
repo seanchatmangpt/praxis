@@ -1,0 +1,15 @@
+# Negative fixture (PROJ-612): a workday hook pack whose "planning" category
+# hook has been removed. A transition in the planning category actuated
+# against this pack yields NO matching HookReceipt, so the broker must
+# refuse CNG_R13 UnreceiptedActuation naming the workflow and category.
+
+@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix ex: <http://example.org/rwai#> .
+
+ex:hook-email-routing a kh:Hook ;
+  kh:name "email-routing" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-email-routing" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 1 .

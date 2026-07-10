@@ -1,0 +1,64 @@
+# marker-child-closure.rq (PROJ-622)
+# Marker: RECURSIVE_CHILD_CLOSURE_PROVEN.
+# Inputs: OBSERVATION graph — stated explicitly (vocab gap (b)):
+# ex:closureLaw / ex:parentDispatch are deliberately NOT projected into the
+# OCEL constructs; the closure corpus lives on obs facts, same source as
+# the broker's operational dispatch-closure.rq. The marker store loads the
+# obs graph alongside the evidence graph, so this query resolves there.
+# Closure-law scope: only ALL_CHILDREN_REQUIRED and ANY_CHILD_SUFFICIENT
+# are broker-evaluated; the other four laws (QUORUM_REQUIRED,
+# ORDERED_SUBSET_REQUIRED, POLICY_DECIDES, FIRST_CONFORMANT_RESULT) are
+# declared-only in shapes/dispatch-shapes.ttl — a parent declaring one of
+# them counts as unsatisfied here BY DESIGN (this marker only claims what
+# the broker actually emits and evaluates).
+# Output: single row ?value = completed parents (closure law != "NONE",
+# own consequence admitted) MINUS parents whose declared law is satisfied
+# by admitted child consequences. Expectation: 0.
+# Determinism: aggregates + EXISTS filters over a fixed graph.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+PREFIX ex:  <http://example.org/rwai#>
+
+SELECT ((?completedParents - ?satisfiedParents) AS ?value)
+WHERE {
+  {
+    SELECT (COUNT(DISTINCT ?dispatch) AS ?completedParents)
+    WHERE {
+      ?p obs:obsKind "dispatch_sent" ;
+         ex:dispatchId ?dispatch ;
+         ex:closureLaw ?law .
+      FILTER(?law != "NONE")
+      ?a obs:obsKind "consequence_admitted" ; ex:dispatchId ?dispatch .
+    }
+  }
+  {
+    SELECT (COUNT(DISTINCT ?dispatch) AS ?satisfiedParents)
+    WHERE {
+      ?p obs:obsKind "dispatch_sent" ;
+         ex:dispatchId ?dispatch ;
+         ex:closureLaw ?law .
+      ?a0 obs:obsKind "consequence_admitted" ; ex:dispatchId ?dispatch .
+      {
+        FILTER(?law = "ALL_CHILDREN_REQUIRED")
+        FILTER EXISTS {
+          ?c obs:obsKind "dispatch_sent" ; ex:parentDispatch ?dispatch .
+        }
+        FILTER NOT EXISTS {
+          ?c2 obs:obsKind "dispatch_sent" ;
+              ex:parentDispatch ?dispatch ;
+              ex:dispatchId ?cid .
+          FILTER NOT EXISTS {
+            ?ca obs:obsKind "consequence_admitted" ; ex:dispatchId ?cid .
+          }
+        }
+      }
+      UNION
+      {
+        FILTER(?law = "ANY_CHILD_SUFFICIENT")
+        ?c obs:obsKind "dispatch_sent" ;
+           ex:parentDispatch ?dispatch ;
+           ex:dispatchId ?cid .
+        ?ca obs:obsKind "consequence_admitted" ; ex:dispatchId ?cid .
+      }
+    }
+  }
+}

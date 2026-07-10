@@ -3,10 +3,12 @@
 # no wall-clock time. Vocabulary: crates/praxis-graphlaw/ontologies/core/bench-obs.ttl
 @prefix ex:  <http://example.org/rwai#> .
 @prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 ex:{{SUBJECT}} a obs:Observation ;
   obs:obsKind "planned" ;
   obs:obsSeq {{SEQ}} ;
+  ex:logicalTick "{{TICK}}"^^xsd:integer ;
   obs:obsSetId "{{SET_ID}}" ;
   obs:obsWorkflowId "{{WORKFLOW_ID}}" ;
   obs:obsPlanId "{{PLAN_ID}}" ;

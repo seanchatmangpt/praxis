@@ -6,7 +6,7 @@ back out of that graph. Rust counters are telemetry, never authority.
 
 ## Evidence authority chain
 
-1. **Observation facts.** `bench.rs` renders primitive observations from disk
+1. **Observation facts.** `src/bench/` renders primitive observations from disk
    templates (`crates/cng/templates/bench-observation-*.template.ttl`, `obs:`
    vocabulary in `crates/praxis-graphlaw/ontologies/core/bench-obs.ttl`) into an
    observation store. No inline `format!` Turtle, no inline SPARQL.
@@ -109,13 +109,24 @@ not claimed here.
 ## LLM comparison (MODELED_LLM_COMPARISON)
 
 The LLM-agent comparison is a MODEL, not a benchmark result, emitted as
-`modeled-llm-comparison.json` with `measurement_class =
-"MODELED_LLM_COMPARISON"`. Declared assumptions: ≥3 LLM calls per workflow step
-(plan/act/verify), ~2,000 input + 500 output tokens per call at published API
-prices ($3/M input, $15/M output — Claude Sonnet class); recursion multiplies
-calls by the same 8ⁿ node counts. RWAI cost converts measured CPU-seconds to
-dollars at $0.05/vCPU-hour. Annual 5M-worker totals in this file are modeled
-arithmetic, not measurements.
+`modeled-llm-comparison.json` with `measurement_class = "MODELED_LLM_COMPARISON"`.
+The assumptions below are hard-coded in `src/bench/run.rs` (`ModeledLlmAssumptions`,
+serialized verbatim into the artifact so the model is auditable, never implicit):
+
+- `llm_calls_per_workflow_step = 3` (plan/act/verify)
+- `tokens_per_call_in = 2,000`, `tokens_per_call_out = 500`
+- `usd_per_mtok_in = 3.0`, `usd_per_mtok_out = 15.0` (published API prices,
+  Claude Sonnet class)
+- `usd_per_vcpu_hour = 0.05` (RWAI CPU-cost conversion)
+- `calls` = SELECT-sourced executed-transition count × 3 (measured input to the
+  model — the only measured quantities are `calls`'s transition count and
+  `workflow_instances`, both from `metric-*.rq` SELECTs)
+
+Arithmetic (also in `run.rs`): `modeled_llm_usd_total = calls × (tokens_in ×
+usd_in + tokens_out × usd_out) / 1e6`; RWAI cost = measured manufacture
+CPU-seconds (wall × threads) at `usd_per_vcpu_hour`; both normalized per
+million workflow instances. Any annual 5M-worker totals derived from these are
+modeled arithmetic, not measurements.
 
 ## Integrity and replay
 
@@ -165,4 +176,5 @@ paths below still resolve.
 - `packs/ocel-bench-pack/` — pack generating the `ocel-*.construct.rq` queries
 - `crates/cng/queries/` — CONSTRUCT + `metric-*.rq` + `attachments-with-parent.rq`
 - `crates/cng/rules/bench-roles.dl` — Datalog role/obligation/custody/closure rules
-- `crates/cng/src/bench.rs` — top-of-file evidence-discipline docs
+- `crates/cng/src/bench/mod.rs` — module-level evidence-discipline docs (module split from
+  the former single-file `bench.rs` in commit `40f6020`)

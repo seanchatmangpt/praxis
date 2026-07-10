@@ -1,0 +1,26 @@
+# PROJ-618 inbound dispatch consequence template: the artifact an external
+# actor returns against a DispatchContract, rendered with deterministic values
+# (UPPER_SNAKE placeholders in double braces, same convention as bench
+# fill_template).
+# Conforms to crates/cng/shapes/dispatch-shapes.ttl (DispatchConsequenceShape).
+# Provenance reuses W3C PROV-O (prov:wasAttributedTo, prov:wasDerivedFrom)
+# rather than minting private terms; disp:consequenceOf and the verdict
+# placeholders are bridge terms because PROV-O has no notion of correlation to
+# a sealed dispatch contract or of conformance/admission verdicts.
+@prefix ex:   <http://example.org/rwai#> .
+@prefix disp: <https://truex.io/ontology/dispatch#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+ex:{{CONSEQUENCE_ID}} a disp:DispatchConsequence ;
+  disp:consequenceOf "{{CORRELATION_ID}}" ;
+  disp:producingActor ex:{{PRODUCING_ACTOR}} ;
+  disp:provenance ex:{{PROVENANCE_BUNDLE}} ;
+  disp:returnedArtifact ex:{{RETURNED_ARTIFACT}} ;
+  disp:conformanceVerdict "{{CONFORMANCE_VERDICT}}" ;
+  disp:admissionVerdict "{{ADMISSION_VERDICT}}" ;
+  prov:wasAttributedTo ex:{{PRODUCING_ACTOR}} ;
+  prov:wasDerivedFrom ex:{{DISPATCH_ID}} .
+
+# {{CONFORMANCE_VERDICT}} and {{ADMISSION_VERDICT}} are placeholders filled by
+# the shape-validation / admission stages (PROJ-620); until admitted they carry
+# the literal "PENDING".

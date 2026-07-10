@@ -614,6 +614,51 @@ fn benchmark_run(
     Ok(report)
 }
 
+/// Runs the single-operator workday benchmark: a roster of ONE operator
+/// executes a deterministic logical-tick day (splitmix64-seeded, no wall
+/// clock in any digest) through the real cng chain, with the
+/// standing-next-action law (exactly one lawful action per tick, else
+/// CNG_R12) and the bounded admission → resume loop.
+#[cfg(feature = "bench")]
+#[verb("workday", "benchmark")]
+fn benchmark_workday(
+    out: String,
+    seed: Option<u64>,
+    ticks: Option<usize>,
+    refusal_per_mille: Option<usize>,
+) -> Result<cng::bench::WorkdayReport> {
+    let cfg = cng::bench::WorkdayConfig {
+        seed: seed.unwrap_or(42),
+        ticks: ticks.unwrap_or(32),
+        refusal_per_mille: refusal_per_mille.unwrap_or(125),
+    };
+    let report = cng::bench::workday(Path::new(&out), &cfg, None).map_err(to_cli_error)?;
+    println!("MEASUREMENT_CLASS={}", report.measurement_class);
+    println!("WORKDAY_SEED={}", report.seed);
+    println!("WORKDAY_TICKS={}", report.ticks);
+    println!("WORKERS_REPRESENTED={}", report.workers_represented);
+    println!("WORKFLOW_INSTANCES={}", report.workflow_instances);
+    println!("EXECUTED_TRANSITIONS={}", report.executed_transitions);
+    println!("RECEIPTS_GENERATED={}", report.receipts);
+    println!("REFUSED_TRANSITIONS={}", report.refusals);
+    println!("ADMISSION_REQUESTS={}", report.admission_requests);
+    println!("ADMISSIONS_GRANTED={}", report.admissions_granted);
+    println!("RESUMED_WORKFLOWS={}", report.resumes);
+    println!("DISPATCHES_SENT={}", report.dispatches_sent);
+    println!("CONSEQUENCES_ADMITTED={}", report.consequences_admitted);
+    println!("CONSEQUENCES_REFUSED={}", report.consequences_refused);
+    println!("DISPATCH_TIMEOUTS={}", report.dispatch_timeouts);
+    println!("REMEDIATIONS_MANUFACTURED={}", report.remediations);
+    println!("POWL_DIGEST={}", report.evidence_chain_digest);
+    println!("OCEL_GRAPH_DIGEST={}", report.ocel_graph_digest);
+    println!("OBS_DIGEST={}", report.obs_digest);
+    println!(
+        "WORKDAY_RESULT_PATH={}/results/workday-report.json",
+        report.out_dir
+    );
+    Ok(report)
+}
+
 /// Independent verification: replays a deterministic sample against the
 /// recorded digests and re-validates exported POWL artifacts from disk.
 #[cfg(feature = "bench")]

@@ -1,0 +1,65 @@
+{
+  "2501.18639": {
+    "meta": {
+      "title": "A Comprehensive Survey of the Lean 4 Theorem Prover: Architecture, Applications, and Advances",
+      "authors": "Xichen Tang",
+      "year": 2025
+    },
+    "abstract": "This comprehensive survey examines Lean 4, a state-of-the-art interactive theorem prover and functional programming language. We analyze its architectural design, type system, metaprogramming capabilities, and practical applications in formal verification and mathematics. Through detailed comparisons with other proof assistants and extensive case studies, we demonstrate Lean 4\u2019s unique advantages",
+    "key_quote": "We analyze its architectural design, type system,\nmetaprogramming capabilities, and practical applications in formal verification and mathematics"
+  },
+  "2403.14064": {
+    "meta": {
+      "title": "Lean4Lean: Verifying a Typechecker for Lean, in Lean",
+      "authors": "Mario Carneiro",
+      "year": 2025
+    },
+    "abstract": "most of the power of the system. This was in particular informed by periodic news of unsoundnesses in Rocq2 due to complications of the many interacting features in the kernel. So from the beginning, Lean advertised its simpler foundations and multiple external checkers [11, 21] as reasons that it would not suffer from the same troubles. These hopes were broadly upheld: for the entire release hist",
+    "key_quote": "Lean4Lean: Verifying a Typechecker for Lean, in Lean\nMario Carneiro\nmarioc@chalmers"
+  },
+  "2505.15796": {
+    "meta": {
+      "title": "lean-smt: An SMT tactic for discharging proof goals in Lean",
+      "authors": "Abdalrhman Mohamed et al.",
+      "year": 2025
+    },
+    "abstract": "Lean is an increasingly popular proof assistant based on dependent type theory. Despite its success, it still lacks important automation features present in more seasoned proof assistants, such as the Sledgehammer tactic in Isabelle/HOL. A key aspect of Sledgehammer is the use of proof-producing SMT solvers to prove a translated proof goal and the reconstruction of the resulting proof into valid j",
+    "key_quote": "lean-smt: An SMT tactic for discharging proof\ngoals in Lean\n\narXiv:2505"
+  },
+  "2306.15626": {
+    "meta": {
+      "title": "LeanDojo: Theorem Proving with Retrieval-Augmented Language Models",
+      "authors": "Kaiyu Yang et al.",
+      "year": 2023
+    },
+    "abstract": "Large language models (LLMs) have shown promise in proving formal theorems using proof assistants such as Lean. However, existing methods are difficult to reproduce or build on, due to private code, data, and large compute requirements. This has created substantial barriers to research on machine learning methods for theorem proving. This paper removes these barriers by introducing LeanDojo: an op",
+    "key_quote": "LG] 27 Oct 2023\n\nLeanDojo: Theorem Proving with\nRetrieval-Augmented Language Models\n\nKaiyu Yang1 , Aidan M"
+  },
+  "2206.02606": {
+    "meta": {
+      "title": "Verifying generalised and structural soundness of workflow nets via relaxations",
+      "authors": "Michael Blondin et al.",
+      "year": 2022
+    },
+    "abstract": "Workflow nets are a well-established mathematical formalism for the analysis of business processes arising from either modeling tools or process mining. The central decision problems for workflow nets are k-soundness, generalised soundness and structural soundness. Most existing tools focus on k-soundness. In this work, we propose novel scalable semi-procedures for generalised and structural sound",
+    "key_quote": "Verifying generalised and structural soundness\nof workflow nets via relaxations\n\narXiv:2206"
+  },
+  "2112.14994": {
+    "meta": {
+      "title": "Soundness in Object-centric Workflow Petri Nets",
+      "authors": "Irina A. Lomazova et al.",
+      "year": 2021
+    },
+    "abstract": "Recently introduced Petri net-based formalisms advocate the importance of proper representation and management of case objects as well as their co-evolution. In this work we build on top of one of such formalisms and introduce the notion of soundness for it. We demonstrate that for nets with nondeterministic synchronization between case objects, the soundness problem is decidable. 1",
+    "key_quote": "Soundness in Object-centric Workflow Petri Nets\nIrina A"
+  },
+  "2312.08537": {
+    "meta": {
+      "title": "Object-Centric Conformance Alignments with Synchronization",
+      "authors": "Alessandro Gianola et al.",
+      "year": 2024
+    },
+    "abstract": "Real-world processes operate on objects that are inter-dependent. To accurately reflect the nature of such processes, object-centric process mining techniques are needed, notably conformance checking. However, while the object-centric perspective has recently gained traction, few concrete process mining techniques have been presented so far. Moreover, existing approaches are severely limited in th",
+    "key_quote": "Object-Centric Conformance Alignments\nwith Synchronization (Extended Version)\u22c6\nAlessandro Gianola1 , Marco Montali2 , and Sarah Winkler2\n\narXiv:2312"
+  }
+}

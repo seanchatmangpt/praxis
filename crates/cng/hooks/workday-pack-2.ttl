@@ -1,0 +1,35 @@
+# workday-pack-2.ttl — PROJ-612 workday hook pack, part 2 of 2.
+# See workday-pack.ttl for the full pack doctrine. graphlaw's hook-pack
+# gate admits at most 12 hooks per pack (praxis-graphlaw
+# src/hooks/parsing.rs "max 12"), so the interruption and planning category
+# hooks (PROJ-609 content-bearing categories) live here; the broker admits
+# both packs through the same lawful load_hook_pack gate, in fixed order
+# (workday-pack.ttl first, this file second).
+
+@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix ex: <http://example.org/rwai#> .
+
+ex:hook-interruption a kh:Hook ;
+  kh:name "interruption" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-interruption" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 13 .
+
+ex:hook-planning a kh:Hook ;
+  kh:name "planning" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-planning" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 14 .
+
+# PROJ-621: api-orchestration category hook (category 15).
+ex:hook-api-orchestration a kh:Hook ;
+  kh:name "api-orchestration" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-api-orchestration" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 15 .

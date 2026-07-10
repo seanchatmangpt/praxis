@@ -3,30 +3,8 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
-    "evt_002": {
-      "event_id": "35ec8a6b-9610-408e-a25c-f19f226b00b1",
-      "case_id": "chatman-agent",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 3,
-      "objects": [
-        [
-          "Falsify_BreedUnpermitted",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Falsify_BreedUnpermitted",
-        "refusal": "BreedUnpermitted",
-        "outcome": "refused"
-      }
-    },
     "evt_003": {
-      "event_id": "857a5418-80c8-405d-8bb8-8adc250fe7de",
+      "event_id": "adc5b1bb-3628-4ab3-ae88-da878eaaee2f",
       "case_id": "chatman-agent",
       "activity": {
         "DiagnosticEmitted": {
@@ -46,8 +24,51 @@
         "outcome": "admitted"
       }
     },
+    "evt_002": {
+      "event_id": "9b684f64-a01e-4139-9a99-a01111f55aa6",
+      "case_id": "chatman-agent",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 3,
+      "objects": [
+        [
+          "Falsify_BreedUnpermitted",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "refused",
+        "refusal": "BreedUnpermitted",
+        "fixture_id": "Falsify_BreedUnpermitted"
+      }
+    },
+    "evt_000": {
+      "event_id": "29588029-2e7e-4d99-9a29-0a2b52614dad",
+      "case_id": "chatman-agent",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 1,
+      "objects": [
+        [
+          "Accept_AgentActsWithinPermits",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Accept_AgentActsWithinPermits",
+        "outcome": "admitted"
+      }
+    },
     "evt_004": {
-      "event_id": "9c4e5789-a6d9-49b4-8ddc-03deb505813b",
+      "event_id": "6e645f55-5470-4fdd-aca3-145ef03c1a38",
       "case_id": "chatman-agent",
       "activity": {
         "DiagnosticEmitted": {
@@ -63,13 +84,13 @@
         ]
       ],
       "attributes": {
-        "fixture_id": "Falsify_WitnessNotAuthority",
+        "refusal": "WitnessNotAuthority",
         "outcome": "refused",
-        "refusal": "WitnessNotAuthority"
+        "fixture_id": "Falsify_WitnessNotAuthority"
       }
     },
     "evt_005": {
-      "event_id": "df7c4282-1f49-4e5b-9364-cf4aeef0bf07",
+      "event_id": "714edd99-1f9b-43b7-a366-04f45b534ae4",
       "case_id": "chatman-agent",
       "activity": {
         "DiagnosticEmitted": {
@@ -90,7 +111,7 @@
       }
     },
     "evt_001": {
-      "event_id": "ec84e188-85e1-4fb5-8611-233fa7e2bd2e",
+      "event_id": "d2f14e35-d3a1-4922-9e2f-a37388a5d904",
       "case_id": "chatman-agent",
       "activity": {
         "DiagnosticEmitted": {
@@ -106,30 +127,9 @@
         ]
       ],
       "attributes": {
-        "fixture_id": "Falsify_AgentOverrideDenied",
         "outcome": "refused",
+        "fixture_id": "Falsify_AgentOverrideDenied",
         "refusal": "AgentOverrideDenied"
-      }
-    },
-    "evt_000": {
-      "event_id": "c699b7fd-cd38-4acc-bf8f-f07c64096772",
-      "case_id": "chatman-agent",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Info"
-        }
-      },
-      "timestamp_ns": 1,
-      "objects": [
-        [
-          "Accept_AgentActsWithinPermits",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "outcome": "admitted",
-        "fixture_id": "Accept_AgentActsWithinPermits"
       }
     }
   },

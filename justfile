@@ -157,6 +157,11 @@ evidence:
 evidence-check:
     timeout 60s cicd-evidence-gen my-conforming-project 26.6.30 --receipt receipt.json --check
 
+# List test names for a given package/test-binary pattern without running them, e.g.
+# `just nextest-list -p praxis-graphlaw --test 'shex_validation_*'`
+nextest-list *args:
+    timeout 120s cargo nextest list {{args}}
+
 # --- Chatman Engine v26.7.9 ---
 
 # Fast chatman verification: tests (incl. static gates) + diagram atlas
@@ -194,6 +199,32 @@ cng-bench-verify dir:
 # Independent auditor replay from a self-contained bundle (no producer state).
 cng-evidence-replay bundle:
     timeout 3600s cargo run -q --release -p cng --features bench --bin cng -- evidence replay --bundle {{bundle}}
+
+# Single-operator workday benchmark (PROJ-608): deterministic logical-tick
+# day with the standing-next-action law and bounded admission → resume.
+cng-workday *args:
+    timeout 3600s cargo run -q --release -p cng --features bench --bin cng -- benchmark workday {{args}}
+
+# PROJ-616 verification harness: run the SAME-SEED workday twice into two
+# fresh directories and byte-compare the full evidence bundles — every file
+# under both output trees (obs/, roster/, evidence/ocel.nt, admissions/,
+# dispatch/, generated/, ticks/, results/) except workday-report.json, which
+# is compared after removing its path-derived "out_dir" line. Any drift
+# exits nonzero. Debug profile on purpose (no --release): this is a
+# correctness gate, not a throughput benchmark (see docs/BUILD_CACHING.md).
+cng-workday-verify seed="616" ticks="8" rpm="125":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="target/cng-workday-verify"
+    rm -rf "$root/a" "$root/b"
+    timeout 3600s cargo run -q -p cng --features bench --bin cng -- \
+        benchmark workday --out "$root/a" --seed {{seed}} --ticks {{ticks}} --refusal-per-mille {{rpm}}
+    timeout 3600s cargo run -q -p cng --features bench --bin cng -- \
+        benchmark workday --out "$root/b" --seed {{seed}} --ticks {{ticks}} --refusal-per-mille {{rpm}}
+    diff -r --exclude=workday-report.json "$root/a" "$root/b"
+    diff <(grep -v '"out_dir"' "$root/a/results/workday-report.json") \
+         <(grep -v '"out_dir"' "$root/b/results/workday-report.json")
+    echo "cng-workday-verify: byte-identical evidence bundles (seed={{seed}}, ticks={{ticks}}, rpm={{rpm}})"
 
 # Run the cng test suite
 cng-test:

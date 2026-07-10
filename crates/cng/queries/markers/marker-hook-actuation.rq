@@ -1,0 +1,32 @@
+# marker-hook-actuation.rq (PROJ-622)
+# Markers: HOOK_ACTUATION_PROVEN + ZERO_UNRECEIPTED_ACTUATION.
+# Inputs: materialized OCEL graph (union of ocel-events.construct.rq and
+# ocel-hook-receipts.construct.rq outputs).
+# Predicate sources: ocel:activityName ("transition_fired" from
+# templates/bench-observation-transition-fired.template.ttl; "hook_receipt"
+# from templates/bench-observation-hook-receipt.template.ttl),
+# ex:hookDeltaHash (carried onto hook_receipt events by
+# ocel-hook-receipts.construct.rq). Same law as the reconcile-gate
+# metric-hook-actuations.rq (?mismatches column) — the marker restates it
+# as a single ?value for the marker protocol.
+# Output: single row ?value = (total transition_fired events) -
+# (hook_receipt events carrying a hook delta hash). Expectation: 0
+# (every executed transition has exactly one receipted actuation).
+# Determinism: aggregates over a fixed graph; scalar subtraction.
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX ex:   <http://example.org/rwai#>
+
+SELECT ((?total - ?receipted) AS ?value)
+WHERE {
+  {
+    SELECT (COUNT(DISTINCT ?t) AS ?total)
+    WHERE { ?t ocel:activityName "transition_fired" . }
+  }
+  {
+    SELECT (COUNT(DISTINCT ?r) AS ?receipted)
+    WHERE {
+      ?r ocel:activityName "hook_receipt" ;
+         ex:hookDeltaHash ?dh .
+    }
+  }
+}

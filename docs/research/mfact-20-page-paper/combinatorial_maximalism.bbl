@@ -1,0 +1,123 @@
+\begin{thebibliography}{10}
+
+\bibitem{leanexplore2025}
+Justin Asher.
+\newblock {LeanExplore}: A search engine for {Lean} 4 declarations, 2025.
+
+\bibitem{cslib2026}
+Clark Barrett, Swarat Chaudhuri, Fabrizio Montesi, Jim Grundy, Pushmeet Kohli,
+  Leonardo de~Moura, Alexandre Rademaker, and Sorrachai Yingchareonthawornchai.
+\newblock {CSLib}: The lean computer science library, 2026.
+
+\bibitem{ocel2}
+Alessandro Berti, Istvan Koren, Jan~Niklas Adams, Gyunam Park, Benedikt Knopp,
+  Nina Graves, Majid Rafiei, Lukas Liss, Leah Tacke~genannt Unterberg, Yisong
+  Zhang, Christopher Schwanen, Marco Pegoraro, and Wil M.~P. van~der Aalst.
+\newblock {OCEL} ({O}bject-{C}entric {E}vent {L}og) 2.0 specification, 2024.
+
+\bibitem{carmona2018}
+Josep Carmona, Boudewijn van Dongen, Andreas Solti, and Matthias Weidlich.
+\newblock {\em Conformance Checking: Relating Processes and Models}.
+\newblock Springer, 2018.
+
+\bibitem{lean4lean2024}
+Mario Carneiro.
+\newblock Lean4lean: Verifying a typechecker for lean, in lean, 2024.
+
+\bibitem{moura2021lean4}
+Leonardo de~Moura and Sebastian Ullrich.
+\newblock The lean 4 theorem prover and programming language.
+\newblock In {\em Automated Deduction -- {CADE} 28}, volume 12699 of {\em
+  Lecture Notes in Computer Science}, pages 625--635. Springer, 2021.
+
+\bibitem{ho2022aeneas}
+Son Ho and Jonathan Protzenko.
+\newblock Aeneas: Rust verification by functional translation, 2022.
+
+\bibitem{powl2023}
+Humam Kourani and Sebastiaan~J. van Zelst.
+\newblock {POWL}: Partially ordered workflow language.
+\newblock In {\em Business Process Management ({BPM} 2023)}, volume 14159 of
+  {\em Lecture Notes in Computer Science}, pages 92--108. Springer, 2023.
+
+\bibitem{meek2026formalizing}
+Theodore Meek, Siyuan Ge, Di~Qiu Xiang, Simon Chess, and Vasily Ilin.
+\newblock Formalizing numerical analysis: An agent pipeline and quality audit
+  beyond kernel acceptance, 2026.
+
+\bibitem{langconfusion2025}
+Micheline~B\'{e}n\'{e}dicte Moumoula, Serge~Lionel Nikiema, Abdoul~Kader
+  Kabore, Jacques Klein, and Tegawend\'{e}~F. Bissyande.
+\newblock Programming language confusion: When code {LLMs} can't keep their
+  languages straight, 2025.
+
+\bibitem{murata1989}
+Tadao Murata.
+\newblock Petri nets: Properties, analysis and applications.
+\newblock {\em Proceedings of the {IEEE}}, 77(4):541--580, 1989.
+
+\bibitem{apollo2025}
+Azim Ospanov, Farzan Farnia, and Roozbeh Yousefzadeh.
+\newblock {APOLLO}: Automated {LLM} and {Lean} collaboration for advanced
+  formal reasoning, 2025.
+
+\bibitem{protzenko2024charon}
+Jonathan Protzenko and Son Ho.
+\newblock Charon: A frontend for rust formal verification tools, 2024.
+
+\bibitem{leanauto2025}
+Yicheng Qian, Joshua Clune, Clark Barrett, and Jeremy Avigad.
+\newblock Lean-auto: An interface between {Lean} 4 and automated theorem
+  provers, 2025.
+
+\bibitem{leancopilot2024}
+Peiyang Song, Kaiyu Yang, and Anima Anandkumar.
+\newblock Lean copilot: Large language models as copilots for theorem proving
+  in {Lean}, 2024.
+
+\bibitem{mathlib2020}
+{The mathlib Community}.
+\newblock The lean mathematical library.
+\newblock In {\em Proceedings of the 9th {ACM} {SIGPLAN} International
+  Conference on Certified Programs and Proofs ({CPP} 2020)}, pages 367--381.
+  ACM, 2020.
+\newblock arXiv:1910.09336.
+
+\bibitem{vanderaalst1997}
+Wil M.~P. van~der Aalst.
+\newblock Verification of workflow nets.
+\newblock In {\em Application and Theory of Petri Nets 1997 ({ICATPN} 1997)},
+  volume 1248 of {\em Lecture Notes in Computer Science}, pages 407--426.
+  Springer, 1997.
+
+\bibitem{vanderaalst2011pm}
+Wil M.~P. van~der Aalst.
+\newblock {\em Process Mining: Discovery, Conformance and Enhancement of
+  Business Processes}.
+\newblock Springer, 2011.
+
+\bibitem{ocpn2020}
+Wil M.~P. van~der Aalst and Alessandro Berti.
+\newblock Discovering object-centric {P}etri nets.
+\newblock {\em Fundamenta Informaticae}, 175(1--4):1--40, 2020.
+\newblock arXiv:2010.02047.
+
+\bibitem{vanderaalst2011soundness}
+Wil M.~P. van~der Aalst, Kees~M. van Hee, Arthur H.~M. ter Hofstede, Natalia
+  Sidorova, H.~M.~W. Verbeek, Marc Voorhoeve, and Moe~Thandar Wynn.
+\newblock Soundness of workflow nets: Classification, decidability, and
+  analysis.
+\newblock {\em Formal Aspects of Computing}, 23(3):333--363, 2011.
+
+\bibitem{theoremllama2024}
+Ruida Wang, Jipeng Zhang, Yizhen Jia, Rui Pan, Shizhe Diao, Renjie Pi, and Tong
+  Zhang.
+\newblock {TheoremLlama}: Transforming general-purpose {LLMs} into {Lean4}
+  experts, 2024.
+
+\bibitem{mathlib4dataset2025}
+David Yin and Jing Gao.
+\newblock Generating millions of {Lean} theorems with proofs by exploring state
+  transition graphs, 2025.
+
+\end{thebibliography}

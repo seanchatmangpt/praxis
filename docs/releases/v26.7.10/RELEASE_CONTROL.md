@@ -87,6 +87,11 @@ numbers cited there must match tickets under `docs/jira/v26.7.10/tickets/`.
 | PROJ-603 | Bundle manifest schema (all input/output digests + unpopulated `signatures: []`) | `docs/jira/v26.7.10/tickets/PROJ-603.md` | ALIVE |
 | PROJ-604 | Close remaining inline-SPARQL sites (`pipeline.rs`, `shape.rs`), extend guard | `docs/jira/v26.7.10/tickets/PROJ-604.md` | ALIVE |
 | PROJ-605 | New `CNG_R11 AuditMismatch` refusal + negative test | `docs/jira/v26.7.10/tickets/PROJ-605.md` | ALIVE |
+| PROJ-606 | Definition of Done doctrine | `docs/releases/v26.7.10/DEFINITION_OF_DONE.md` | ALIVE (doc) |
+
+`DEFINITION_OF_DONE.md` is doctrine this control surface points to; it does not compete with
+this file. If it and this file disagree, this file wins. Its ALIVE status covers only the
+document's existence — the behaviors it codifies are UNVERIFIED/PLANNED (PROJ-608..622).
 
 ## 7. Final verification ladder — evidence for PROJ-601..605 ALIVE (this session)
 
@@ -142,3 +147,62 @@ scratch dirs under `/private/tmp/.../scratchpad/v267.10/` (X then relocated to Y
 - `docs/releases/v26.7.10/PRD.md`
 - `docs/releases/v26.7.10/ARD.md`
 - `docs/jira/v26.7.10/tickets/PROJ-601.md` .. `PROJ-605.md`
+- `docs/releases/v26.7.10/DEFINITION_OF_DONE.md` (PROJ-606 — doctrine pointed to by this file)
+- `docs/releases/v26.7.10/DOD_EVIDENCE_MAP.md` (evidence index for the DoD)
+- `docs/releases/v26.7.10/DOD_SIGNOFF.md` (PROJ-617 — clause-by-clause sign-off)
+- `docs/jira/v26.7.10/tickets/PROJ-606.md` .. `PROJ-622.md` (Sec. 8 table counterparts)
+
+## 8. PROJ-606..622 closure table (PROJ-617, 2026-07-10)
+
+Statuses below reflect the closing session. ALIVE rows cite this session's green
+`just cng-test-bench` run (31 lib tests + integration suites passing, recorded in the session
+logs for the PROJ-608..613 and PROJ-618..621 waves). IN_PROGRESS rows are UNVERIFIED pending
+the consolidated final build — the orchestrator flips them to ALIVE only after that build runs
+green; no such build has run at the time of this writing, and this table does not claim it.
+
+| Ticket | Scope item | Status | Evidence |
+|---|---|---|---|
+| PROJ-606 | `DEFINITION_OF_DONE.md` document | ALIVE (doc) | file exists; `tickets/PROJ-606.md` CLOSED |
+| PROJ-607 | Doc reconciliation pass | ALIVE (doc) | `tickets/PROJ-607.md` CLOSED this session |
+| PROJ-608 | `workday` verb | ALIVE | `just cng-test-bench` green this session (session log) |
+| PROJ-609 | Interruption + planning categories | ALIVE | same `just cng-test-bench` run |
+| PROJ-610 | Standing-next-action query | ALIVE | same run; `standing-next-action.rq` on disk |
+| PROJ-611 | Bounded admission resume | ALIVE | same run |
+| PROJ-612 | graphlaw hook pack actuation | ALIVE | same run — hook actuations 64/64 receipted |
+| PROJ-613 | Dialect registry + `HookStanding` | ALIVE | same run — `CNG_R14` registry gate green |
+| PROJ-618 | Dispatch contract / state machine | ALIVE | same run (dispatch wave suites green) |
+| PROJ-619 | Broker dispatch + re-admission (loopback) | ALIVE | same run; loopback-real only, see boundary below |
+| PROJ-620 | Recursive dispatch / closure / compensation | ALIVE | same run |
+| PROJ-621 | Arazzo dialect | ALIVE | same run |
+| PROJ-614 | Graph-authoritative metrics closure | IN_PROGRESS — UNVERIFIED pending final build | agent wave running; no green build cited yet |
+| PROJ-615 | Optional ed25519 signatures | CUT | optional cut line exercised — see below |
+| PROJ-616 | Verification harness | IN_PROGRESS — UNVERIFIED pending final build | agent wave running; no green build cited yet |
+| PROJ-622 | SPARQL success markers | IN_PROGRESS — UNVERIFIED pending final build | agent wave running; no green build cited yet |
+| PROJ-617 | Closure (this pass) | ALIVE (doc) | this section + `DOD_SIGNOFF.md` |
+
+ChatmanEngine adoption is DEFERRED to a future increment — v26.7.10 uses the `TripleStore` hook
+surface, not `ChatmanEngine`.
+
+### 8.1 PROJ-615 cut record
+
+The optional cut line was exercised: ed25519 signatures on workday evidence manifests are
+deferred out of v26.7.10. `EvidenceManifest.signatures` remains a deliberately empty
+`signatures: []` field — PARTIAL by design, named here so no future session reads the empty
+array as an omission or a bug. The near-term seam remains
+`crates/praxis-core/src/signing.rs`, unwired into `cng` (Sec. 3 item 6).
+
+### 8.2 Loopback-vs-network boundary (binding honesty note)
+
+External dispatch in v26.7.10 is **loopback-real**: a deterministic filesystem outbox/inbox
+that fully exercises the dispatch contract, the 13-state machine, correlation, admission,
+timeout, escalation, and compensation paths. The dispatch **mechanism** is ALIVE per the
+`just cng-test-bench` evidence above. Live network endpoints are declared out of scope:
+**third-party endpoints are UNVERIFIED** and may not be claimed. Synthesized human
+consequences are labeled MOCKED-HUMAN wherever they appear.
+
+### 8.3 DoD sign-off
+
+Clause-by-clause sign-off against `DEFINITION_OF_DONE.md`'s 15 sections lives in
+`DOD_SIGNOFF.md` (this directory), indexed through `DOD_EVIDENCE_MAP.md`. Per that sign-off,
+`V26_7_10_PRODUCTION_READY` is **not** claimed: its conjunction depends on PROJ-614/616/622,
+which are UNVERIFIED pending the consolidated final build.
