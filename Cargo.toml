@@ -173,6 +173,18 @@ harness = false
 name = "blue_river_dam"
 harness = false
 
+# Iteration profile for `cargo build`/`cargo test`/`cargo check` (no LTO — see release below).
+# debug = 1 (line tables only, no full variable info) cuts link time and object size across
+# the ~30+ separate integration-test binaries under crates/praxis-graphlaw/tests/*.rs, which
+# otherwise each pay full debuginfo cost for the same shared deps (oxigraph, praxis_graphlaw).
+# incremental = false: sccache (docs/BUILD_CACHING.md) cannot cache incremental compilation
+# artifacts, and this repo's win from sccache is specifically cross-binary object-level reuse
+# of shared deps -- incremental defeats that. Trade-off: slower single-file edit/recheck loop
+# in exchange for cache hits shared across the ~30+ test binaries.
+[profile.dev]
+debug = 1
+incremental = false
+
 [profile.release]
 lto = true
 codegen-units = 1

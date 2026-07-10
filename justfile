@@ -1,5 +1,10 @@
 set shell := ["bash", "-uc"]
 
+# just recipes don't source ~/.zshrc, so RUSTC_WRAPPER=sccache (set there per docs/BUILD_CACHING.md)
+# wouldn't reach cargo invocations run via `just` otherwise. `export` makes this an env var for
+# every recipe below.
+export RUSTC_WRAPPER := "sccache"
+
 # NOTE: cargo takes an exclusive lock on `target/.cargo-lock` per invocation, scoped to
 # CARGO_TARGET_DIR. Concurrent `just` invocations (e.g. multiple agents/terminals) against
 # the same target dir serialize on that lock rather than running in parallel — this looks
@@ -56,8 +61,14 @@ check:
     timeout 180s cargo check --workspace --all-features
 
 # Run the full test suite across the workspace with every feature enabled (matches CI's `test` job)
+# nextest runs test binaries in parallel (vs. cargo test's serial-by-binary execution); falls
+# back to cargo test if nextest isn't on PATH (see chatman-verify for the same pattern)
 test:
-    timeout 600s cargo test --workspace --all-features
+    if command -v cargo-nextest >/dev/null 2>&1; then \
+        timeout 600s cargo nextest run --workspace --all-features; \
+    else \
+        timeout 600s cargo test --workspace --all-features; \
+    fi
 
 # Lint with the exact flags CI's `clippy` job uses — fails on any warning (.github/workflows/ci.yml)
 clippy:
