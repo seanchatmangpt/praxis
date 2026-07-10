@@ -40,13 +40,16 @@ blockers. Full policy: `docs/standing/CLAUDE_CODE_POLICY.md`.
 
 ## Custom agents — use these, don't reinvent their briefing
 
-Three project agents in `.claude/agents/` carry this repo's recurring constraints so they don't
+Five project agents in `.claude/agents/` carry this repo's recurring constraints so they don't
 need restating per-prompt: `chatman-rust` (any `crates/praxis-graphlaw/src/chatman/` change —
-sealed-receipt invariants, just-only build discipline), `ttl-ontology` (RDF/Turtle vocabulary or
-instance-data work — public-ontology-first doctrine, STRIPS8 boundary), `release-doc`
-(`docs/releases/vX.Y.Z/` PRD/ARD/RELEASE_CONTROL work — house template, shared Claims
-Reconciliation table). Prefer dispatching to the matching agent over a bare `general-purpose`
-one for these three areas.
+sealed-receipt invariants, just-only build discipline), `cng-rust` (any `crates/cng/` change —
+typed `CngRefusal`, no inline SPARQL/Turtle, chicago-tdd-tools test law, no-wall-clock digests,
+evidence-graph-is-authority discipline), `ggen-pack` (`packs/*/pack.toml`/`ontology.ttl`/
+`templates/*.tmpl` work — frontmatter schema, determinism double-render, ontology-union
+convention), `ttl-ontology` (RDF/Turtle vocabulary or instance-data work — public-ontology-first
+doctrine, STRIPS8 boundary), `release-doc` (`docs/releases/vX.Y.Z/` PRD/ARD/RELEASE_CONTROL work
+— house template, shared Claims Reconciliation table). Prefer dispatching to the matching agent
+over a bare `general-purpose` one for these five areas.
 
 ## Build hygiene
 
