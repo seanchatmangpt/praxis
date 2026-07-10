@@ -14,7 +14,7 @@ this groups by.
 | `bench:bench-ggen` | Bench | 0 | Benchmarked,Discovered |  | `docs/releases/v26.7.6/ocel/raw/bench-ggen.txt` |
 | `bench:bench-graphlaw` | Bench | 0 | Benchmarked,Discovered |  | `docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt` |
 | `bench:bench-root` | Bench | 0 | Benchmarked,Discovered |  | `docs/releases/v26.7.6/ocel/raw/bench-root.txt` |
-| `autonomic-platform` | Client | 1 | Builds,Discovered |  | `clients/autonomic-platform` |
+| `autonomic-platform` | Client | 0 | Discovered |  | `clients/autonomic-platform` |
 | `doctor-report` | Doc | 1 | Builds,Discovered |  | `cargo run --quiet --bin my-conforming-project -- doctor check --format json` |
 | `claim:CLAIM_PROMOTION_TABLE` | Doc | 0 | Discovered |  | `docs/releases/v26.7.6/CLAIM_PROMOTION_TABLE.md` |
 | `receipt-ledger:receipt-log` | Doc | 0 | Discovered |  | `.ggen-v2/receipt-log.jsonl` |

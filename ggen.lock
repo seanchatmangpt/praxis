@@ -6,7 +6,7 @@ content_hash = "blake3:05e32f71cfcabe0b46daeb503d0b907fb2b186d7f8e32d7b9d8f50a26
 
 [packs.standing-pack]
 source = "path:../cargo-cicd/plugins/cargo-cicd-kit/standing-pack"
-content_hash = "blake3:b148a858e8e557ea0944ed6946c3bdd455bb3864734419e16d6eb37d48e1cd2b"
+content_hash = "blake3:542bb6e9b7a37b65df92591143c96d6caa4386c8c615168a680899a47667594f"
 
 [packs.wasm4pm-facts-pack]
 source = "path:packs/wasm4pm-facts-pack"
