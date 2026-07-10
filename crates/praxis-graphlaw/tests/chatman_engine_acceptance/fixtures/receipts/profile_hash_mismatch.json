@@ -4,5 +4,5 @@
   "seed": 11947604448888385578,
   "mutation": "Substitute a different profile document behind an unchanged profile hash claim.",
   "expected_refusal": "ProfileHashMismatch",
-  "input": {"subject":"urn:chatman:subject:receipt-2","witness":"urn:chatman:witness:receipt-2","replay_hint":"replay-hint-receipt-2","canon_nquads":"<urn:chatman:s1> <urn:chatman:p1> \"v1\" .","carried_digest":"0b755f498d4d0613ca6584a4126381239594f04e553dc7c6c2d4d4ba4777fa10"}
+  "input": {"subject": "urn:chatman:subject:receipt-2", "witness": "urn:chatman:witness:receipt-2", "replay_hint": "replay-hint-receipt-2", "canon_nquads": "<urn:chatman:s1> <urn:chatman:p1> \"v1\" .", "profile_hash_check": {"claimed_profile_id": "urn:chatman:profile:claimed", "engine_profile_id": "urn:chatman:profile:actual"}}
 }

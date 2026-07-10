@@ -52,7 +52,6 @@ fn acceptance_accept_supported_dialect_route() {
     );
 }
 
-
 #[test]
 fn falsification_falsify_least_expressive_route_violation() {
     let fixture = concat!(
@@ -131,3 +130,21 @@ fn falsification_falsify_warm_path_required() {
     );
 }
 
+/// Deterministic OCEL evidence seal: replays every fixture of this suite
+/// sequentially in sorted order on one thread and seals the suite's
+/// `.cargo-cicd/ocel/chatman/<suite>.{ocel,receipt}.json` exactly once —
+/// the only OCEL emission path (per-case tests above are assertion-only,
+/// because their parallel interleaving would make event order racy).
+#[test]
+fn zz_ocel_evidence_sealed() {
+    harness::seal_suite_evidence(&[
+        "fixtures/routing/hot_path_route_for_bounded_pattern.json",
+        "fixtures/routing/least_expressive_route_violation.json",
+        "fixtures/routing/n3_actuation_refused.json",
+        "fixtures/routing/n3_unavailable_by_profile.json",
+        "fixtures/routing/route_decision_mismatch.json",
+        "fixtures/routing/supported_dialect_route.json",
+        "fixtures/routing/unsupported_dialect.json",
+        "fixtures/routing/warm_path_required.json",
+    ]);
+}

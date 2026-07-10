@@ -25,7 +25,7 @@ mod tests {
     #[test]
     fn test_compiled_constraint_creation() {
         // Test that CompiledConstraint can be created with all cost classes
-        let constraints = vec![
+        let constraints = [
             CompiledConstraint {
                 cost_class: CostClass::Cardinality,
                 predicate: 1,
@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn test_constraint_sorting() {
         // Verify that constraints can be sorted by CostClass
-        let mut constraints = vec![
+        let mut constraints = [
             CompiledConstraint {
                 cost_class: CostClass::Recursive,
                 predicate: 1,

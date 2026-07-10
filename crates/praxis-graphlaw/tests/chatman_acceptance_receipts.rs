@@ -74,7 +74,6 @@ fn acceptance_accept_projection_hash_matches() {
     );
 }
 
-
 #[test]
 fn falsification_falsify_boundary_request_missing_receipt() {
     let fixture = concat!(
@@ -114,3 +113,19 @@ fn falsification_falsify_projection_hash_mismatch() {
     );
 }
 
+/// Deterministic OCEL evidence seal: replays every fixture of this suite
+/// sequentially in sorted order on one thread and seals the suite's
+/// `.cargo-cicd/ocel/chatman/<suite>.{ocel,receipt}.json` exactly once —
+/// the only OCEL emission path (per-case tests above are assertion-only,
+/// because their parallel interleaving would make event order racy).
+#[test]
+fn zz_ocel_evidence_sealed() {
+    harness::seal_suite_evidence(&[
+        "fixtures/receipts/boundary_request_carries_receipt.json",
+        "fixtures/receipts/boundary_request_missing_receipt.json",
+        "fixtures/receipts/profile_hash_matches.json",
+        "fixtures/receipts/profile_hash_mismatch.json",
+        "fixtures/receipts/projection_hash_matches.json",
+        "fixtures/receipts/projection_hash_mismatch.json",
+    ]);
+}

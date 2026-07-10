@@ -52,7 +52,6 @@ fn acceptance_accept_unique_canonical_tape_type() {
     );
 }
 
-
 #[test]
 fn falsification_falsify_duplicate_canonical_tape_type() {
     let fixture = concat!(
@@ -79,3 +78,17 @@ fn falsification_falsify_process_receipt_shadow_type() {
     );
 }
 
+/// Deterministic OCEL evidence seal: replays every fixture of this suite
+/// sequentially in sorted order on one thread and seals the suite's
+/// `.cargo-cicd/ocel/chatman/<suite>.{ocel,receipt}.json` exactly once —
+/// the only OCEL emission path (per-case tests above are assertion-only,
+/// because their parallel interleaving would make event order racy).
+#[test]
+fn zz_ocel_evidence_sealed() {
+    harness::seal_suite_evidence(&[
+        "fixtures/static/duplicate_canonical_tape_type.json",
+        "fixtures/static/process_receipt_shadow_type.json",
+        "fixtures/static/single_process_receipt_type.json",
+        "fixtures/static/unique_canonical_tape_type.json",
+    ]);
+}

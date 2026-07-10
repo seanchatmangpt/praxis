@@ -96,6 +96,16 @@
             "minLength": 1
           },
           "description": "Patterns admitted by the active admission table; the hook's pattern must be present."
+        },
+        "nondeterministic": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the hook invokes a nondeterministic operator (mirrors ChatmanEngine::consult_breed's covering-receipt precondition). Defaults to false for existing fixtures."
+        },
+        "has_receipt": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether a covering receipt is attached for this invocation. Only meaningful when nondeterministic=true; a nondeterministic operator without an attached receipt is refused with NondeterministicOperatorRequiresReceipt. Defaults to false."
         }
       }
     }

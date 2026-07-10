@@ -44,7 +44,7 @@ use praxis_graphlaw::chatman::abi::{
 use praxis_graphlaw::chatman::admission8::{AdmissionTable8, ConstraintMask};
 use praxis_graphlaw::chatman::router;
 use praxis_graphlaw::chatman::router::{Dialect, DialectRouter, ProfileGates, QueryShape};
-use praxis_graphlaw::chatman::triple8::ProfileSymbolTable;
+use praxis_graphlaw::chatman::triple8::{ProfileSymbolTable, RDFTriple8};
 
 pub use praxis_graphlaw::chatman::abi::Refusal;
 
@@ -86,6 +86,43 @@ pub struct Scenario {
     pub input: ScenarioInput,
 }
 
+/// Profile-identity check mirroring `ChatmanEngine::admit_transition`
+/// (engine.rs:571-581): the envelope's claimed profile is checked against
+/// the engine's routed profile; mismatch is `Refusal::ProfileHashMismatch`.
+/// This is a `ProfileId` string identity check, not a digest-over-bytes
+/// comparison — the engine names it `ProfileHashMismatch` but the mechanism
+/// is profile-identity equality, distinct from a receipt digest.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProfileHashCheck {
+    /// Profile id claimed by the invocation envelope (`envelope.profile_id`).
+    pub claimed_profile_id: String,
+    /// Profile id this engine instance actually runs
+    /// (`router.gates().profile_id`).
+    pub engine_profile_id: String,
+}
+
+/// Triple8 projection-hash check mirroring
+/// [`praxis_graphlaw::chatman::triple8::ProfileSymbolTable::verify_projection`]
+/// (triple8.rs:278-295): triples are resolved against a bounded closed-world
+/// symbol universe, hashed via `projection_hash`, and compared against
+/// `recorded_hash`; mismatch is `Refusal::ProjectionHashMismatch`.
+/// Structurally distinct from a receipt digest: it hashes resolved `Term8`
+/// triples, not canonical N-Quads bytes.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProjectionHashCheck {
+    /// Graph snapshot id the projection is scoped to.
+    pub snapshot_id: String,
+    /// Bounded closed-world term universe (`ProfileSymbolTable::build`).
+    pub universe: Vec<String>,
+    /// Triples as `[subject, predicate, object]`; each term must be a
+    /// member of `universe`.
+    pub triples: Vec<[String; 3]>,
+    /// The recorded projection hash to verify against the recomputed one.
+    pub recorded_hash: String,
+}
+
 /// Receipt scenario input (`receipt_scenario.schema.json`).
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -96,6 +133,10 @@ pub struct ReceiptInput {
     pub canon_nquads: String,
     #[serde(default)]
     pub carried_digest: Option<String>,
+    #[serde(default)]
+    pub profile_hash_check: Option<ProfileHashCheck>,
+    #[serde(default)]
+    pub projection_hash_check: Option<ProjectionHashCheck>,
 }
 
 /// Routing scenario input (`routing_scenario.schema.json`).
@@ -108,6 +149,14 @@ pub struct RoutingInput {
     pub admitted_dialects: Vec<String>,
     #[serde(default)]
     pub recorded_route: Option<String>,
+    /// Whether the requested query intends to drive actuation (side
+    /// effects). Absent => `false`, matching the prior hardcoded shape.
+    #[serde(default)]
+    pub wants_actuation: Option<bool>,
+    /// Number of triple constraints in the requested query. Absent => `1`,
+    /// matching the prior hardcoded shape.
+    #[serde(default)]
+    pub constraint_count: Option<u8>,
 }
 
 /// Triple8 scenario input (`triple8_scenario.schema.json`).
@@ -136,6 +185,11 @@ pub struct AdmissionTableInput {
     /// Carried table identity; the engine recomputes and refuses on mismatch.
     pub table_hash: String,
     pub entries: Vec<AdmissionEntry>,
+    /// An incoming OCEL event's activity name to check against the table's
+    /// known constraint names. Absent from `entries` entirely (not merely
+    /// `admitted: false`) => Refusal::OcelEventNotAdmitted.
+    #[serde(default)]
+    pub ocel_event: Option<String>,
 }
 
 /// Hook scenario input (`hook_scenario.schema.json`).
@@ -145,6 +199,10 @@ pub struct HookInput {
     pub hook_iri: String,
     pub pattern: String,
     pub admitted_patterns: Vec<String>,
+    #[serde(default)]
+    pub nondeterministic: bool,
+    #[serde(default)]
+    pub has_receipt: bool,
 }
 
 /// Agent scenario input (`agent_scenario.schema.json`).
@@ -197,6 +255,10 @@ pub struct ReplayInput {
     pub receipts: Vec<ReplayReceiptRef>,
     #[serde(default)]
     pub recorded_envelope_hash: Option<String>,
+    #[serde(default)]
+    pub symbol_universe: Option<Vec<String>>,
+    #[serde(default)]
+    pub recorded_symbol_table_hash: Option<String>,
 }
 
 /// Static-gate scenario input (`static_gate_scenario.schema.json`).
@@ -298,6 +360,25 @@ pub struct AdmittedOutcome {
 /// O(bytes) to read and parse the fixture, plus the dispatched module's own
 /// bound (documented at each `dispatch_*` function).
 pub fn run_fixture(path: &Path) -> Result<AdmittedOutcome, Refusal> {
+    // Assertion-only path: per-case `#[test]`s run in parallel, so OCEL
+    // evidence is NOT recorded here — evidence emission must be
+    // deterministic and therefore happens only in `seal_suite_evidence`,
+    // which replays every fixture sequentially in sorted order.
+    let (scenario, result) = dispatch_scenario(path)?;
+    let suite = scenario.input.suite();
+    result.map(|detail| AdmittedOutcome {
+        case: scenario.case,
+        suite,
+        detail,
+    })
+}
+
+/// Parses and dispatches one fixture without recording OCEL evidence.
+///
+/// # Complexity
+/// O(bytes) to read and parse the fixture, plus the dispatched module's own
+/// bound (documented at each `dispatch_*` function).
+fn dispatch_scenario(path: &Path) -> Result<(Scenario, Result<String, Refusal>), Refusal> {
     let text = std::fs::read_to_string(path).map_err(|e| {
         Refusal::ValidationFailed(format!("fixture {} unreadable: {e}", path.display()))
     })?;
@@ -307,7 +388,6 @@ pub fn run_fixture(path: &Path) -> Result<AdmittedOutcome, Refusal> {
             path.display()
         ))
     })?;
-    let suite = scenario.input.suite();
     let result = match &scenario.input {
         ScenarioInput::Receipt(input) => dispatch_receipt(input),
         ScenarioInput::Routing(input) => dispatch_routing(input),
@@ -318,20 +398,43 @@ pub fn run_fixture(path: &Path) -> Result<AdmittedOutcome, Refusal> {
         ScenarioInput::Replay(input) => dispatch_replay(input),
         ScenarioInput::StaticGate(input) => dispatch_static_gate(input),
     };
-    match result {
-        Ok(detail) => {
-            record_admitted(suite, &scenario.case);
-            Ok(AdmittedOutcome {
-                case: scenario.case,
-                suite,
-                detail,
-            })
+    Ok((scenario, result))
+}
+
+/// Replays every fixture of one suite sequentially in the given (already
+/// sorted, generator-emitted) order, recording one admitted/refused OCEL
+/// event per case, then seals `<suite>.{ocel,receipt}.json` exactly once.
+///
+/// This is the ONLY OCEL emission path: emission order and the ordinal
+/// clock are deterministic because a single test thread drives the loop in
+/// a fixed fixture order — never the parallel per-case `#[test]`s, whose
+/// interleaving would make positional event ids and ordinals racy.
+///
+/// # Complexity
+/// O(sum of fixture bytes) + O(n log n) sealing (n = event count).
+pub fn seal_suite_evidence(fixture_paths: &[&str]) {
+    let mut guard: Option<SealGuard> = None; // created once the suite is known
+    for rel in fixture_paths {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/chatman_engine_acceptance")
+            .join(rel);
+        let (scenario, result) = match dispatch_scenario(&path) {
+            Ok(pair) => pair,
+            Err(refusal) => panic!(
+                "seal_suite_evidence: fixture {} failed to dispatch: {refusal:?}",
+                path.display()
+            ),
+        };
+        let suite = scenario.input.suite();
+        if guard.is_none() {
+            guard = Some(SealGuard::new(suite));
         }
-        Err(refusal) => {
-            record_refused(suite, &scenario.case, refusal.name());
-            Err(refusal)
+        match result {
+            Ok(_) => record_admitted(suite, &scenario.case),
+            Err(refusal) => record_refused(suite, &scenario.case, refusal.name()),
         }
     }
+    drop(guard); // seals once, after all events are recorded
 }
 
 /// Receipt suite: hashes the canonical material through
@@ -344,12 +447,45 @@ pub fn run_fixture(path: &Path) -> Result<AdmittedOutcome, Refusal> {
 /// # Complexity
 /// O(bytes) of `canon_nquads` (one sortedness scan plus one BLAKE3 pass).
 fn dispatch_receipt(input: &ReceiptInput) -> Result<String, Refusal> {
+    if input.canon_nquads.is_empty() {
+        return Err(Refusal::BoundaryRequestMissingReceipt(format!(
+            "subject {:?}: boundary request carries no receipt material",
+            input.subject
+        )));
+    }
     let receipt = Receipt::from_canonical_nquads(
         &input.subject,
         &input.witness,
         &input.replay_hint,
         &input.canon_nquads,
     )?;
+
+    if let Some(profile_check) = &input.profile_hash_check {
+        if profile_check.claimed_profile_id != profile_check.engine_profile_id {
+            return Err(Refusal::ProfileHashMismatch(format!(
+                "subject {:?}: envelope names profile {} but this engine runs profile {}",
+                input.subject, profile_check.claimed_profile_id, profile_check.engine_profile_id
+            )));
+        }
+        return Ok(receipt.envelope.digest.as_inner().to_string());
+    }
+
+    if let Some(projection_check) = &input.projection_hash_check {
+        let profile_id = ProfileId::new("receipt-projection-scenario");
+        let table = ProfileSymbolTable::build(profile_id, projection_check.universe.clone())?;
+        let mut resolved = Vec::with_capacity(projection_check.triples.len());
+        for [s, p, o] in &projection_check.triples {
+            resolved.push(RDFTriple8 {
+                s: table.resolve(s)?,
+                p: table.resolve(p)?,
+                o: table.resolve(o)?,
+            });
+        }
+        let snapshot_id = GraphSnapshotId::new(projection_check.snapshot_id.clone());
+        table.verify_projection(&snapshot_id, &resolved, &projection_check.recorded_hash)?;
+        return Ok(receipt.envelope.digest.as_inner().to_string());
+    }
+
     if let Some(carried) = &input.carried_digest {
         if carried != receipt.envelope.digest.as_inner() {
             return Err(Refusal::ValidationFailed(format!(
@@ -395,13 +531,13 @@ fn dialect_from_name(name: &str) -> Dialect {
 ///
 /// # Complexity
 /// O(1).
-fn shape_for_dialect(dialect: Dialect) -> QueryShape {
+fn shape_for_dialect(dialect: Dialect, constraint_count: u8, wants_actuation: bool) -> QueryShape {
     QueryShape {
-        constraint_count: 1,
+        constraint_count,
         requires_construct: dialect >= Dialect::SparqlConstruct,
         requires_owl: dialect == Dialect::OwlRl,
         requires_n3_builtins: dialect == Dialect::N3,
-        wants_actuation: false,
+        wants_actuation,
     }
 }
 
@@ -423,7 +559,9 @@ fn dispatch_routing(input: &RoutingInput) -> Result<String, Refusal> {
     let gates = ProfileGates::new(profile_id, enabled_mask, 0, 8)?;
     let router = DialectRouter::new(gates);
     let requested = dialect_from_name(&input.requested_dialect);
-    let shape = shape_for_dialect(requested);
+    let constraint_count = input.constraint_count.unwrap_or(1);
+    let wants_actuation = input.wants_actuation.unwrap_or(false);
+    let shape = shape_for_dialect(requested, constraint_count, wants_actuation);
     let decision = router.decide(&shape)?;
     if let Some(recorded) = &input.recorded_route {
         let recorded_dialect = dialect_from_name(recorded);
@@ -449,6 +587,18 @@ fn dispatch_routing(input: &RoutingInput) -> Result<String, Refusal> {
 /// O(n log n) building the table (n = universe size) + O(log n) per resolved
 /// term.
 fn dispatch_triple8(input: &Triple8Input) -> Result<String, Refusal> {
+    // Mirrors ChatmanEngine::load_snapshot's boundary check (engine.rs): the
+    // RDF 1.2 quoted-triple token `<<` is refused at the snapshot boundary
+    // before any term resolution is attempted, never smuggled through as a
+    // plain (and then merely unresolved) Triple8 term.
+    for term in &input.terms {
+        if term.contains("<<") {
+            return Err(Refusal::TripleTermInSnapshot(format!(
+                "term {term:?}: input contains the RDF 1.2 quoted-triple token `<<`; triple \
+                 terms are refused at the receipt boundary"
+            )));
+        }
+    }
     let mut universe = input.universe.clone();
     if let Some(overflow) = &input.overflow_terms {
         universe.extend(overflow.iter().cloned());
@@ -497,6 +647,14 @@ fn dispatch_admission_table(input: &AdmissionTableInput) -> Result<String, Refus
         ConstraintMask(0),
     )?;
     table.verify_hash(&input.table_hash)?;
+    if let Some(event) = &input.ocel_event {
+        if !table.constraint_names().iter().any(|n| n == event) {
+            return Err(Refusal::OcelEventNotAdmitted(format!(
+                "event {event:?}: activity name is absent from admission table {}",
+                table.hash()
+            )));
+        }
+    }
     Ok(table.hash().to_string())
 }
 
@@ -509,6 +667,13 @@ fn dispatch_admission_table(input: &AdmissionTableInput) -> Result<String, Refus
 /// # Complexity
 /// O(p) membership scan over `admitted_patterns`.
 fn dispatch_hook(input: &HookInput) -> Result<String, Refusal> {
+    if input.nondeterministic && !input.has_receipt {
+        return Err(Refusal::NondeterministicOperatorRequiresReceipt(format!(
+            "hook {}: invokes a nondeterministic operator without an attached \
+             covering receipt",
+            input.hook_iri
+        )));
+    }
     if !input.admitted_patterns.iter().any(|p| p == &input.pattern) {
         return Err(Refusal::HookPatternNotAdmitted(format!(
             "hook {}: pattern {:?} is not in the admitted pattern set {:?}",
@@ -560,6 +725,22 @@ fn dispatch_agent(input: &AgentInput) -> Result<String, Refusal> {
 /// O(h log h) over input handles (three canonical sorts inside
 /// `envelope_hash`).
 fn dispatch_replay(input: &ReplayInput) -> Result<String, Refusal> {
+    // Symbol-table check runs first and independently: when symbol_universe
+    // is absent this is a no-op, so existing replay fixtures are unaffected.
+    if let Some(universe) = &input.symbol_universe {
+        let profile_id = ProfileId::new(input.envelope.profile_id.clone());
+        let table = ProfileSymbolTable::build(profile_id, universe.clone())?;
+        if let Some(recorded) = &input.recorded_symbol_table_hash {
+            if recorded != table.hash() {
+                return Err(Refusal::ProfileSymbolTableMismatch(format!(
+                    "envelope {}: recorded symbol table hash {recorded} does not match \
+                     recomputed hash {}",
+                    input.envelope.invocation_id,
+                    table.hash()
+                )));
+            }
+        }
+    }
     let envelope = InvocationEnvelope {
         invocation_id: InvocationId::new(input.envelope.invocation_id.clone()),
         snapshot_id: GraphSnapshotId::new(input.envelope.snapshot_id.clone()),

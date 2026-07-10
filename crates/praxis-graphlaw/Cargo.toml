@@ -34,7 +34,7 @@ md5 = "0.8.0"
 rustc-hash = "2"
 smallvec = { version = "1", features = ["serde"] }
 fixedbitset = "0.5"
-oxigraph = "0.5.9"
+oxigraph = { version = "0.5.9", features = ["rdf-12"] }
 bcinr-pddl = { path = "/Users/sac/bcinr/crates/bcinr-pddl" }
 bcinr-powl = { path = "/Users/sac/bcinr/crates/bcinr-powl" }
 bcinr-powl-receipt = { path = "/Users/sac/bcinr/crates/bcinr-powl-receipt" }

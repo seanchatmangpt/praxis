@@ -1,0 +1,60 @@
+=== Gate D — captured 2026-07-10T01:07:12Z at commit 2dd4f04 ===
+
+## 1. S1-S6 receipt_root byte-identity across 5 runs
+$ for i in 1..5: cargo test -p praxis-graphlaw --test chatman_e2e_pipeline
+(the test s1_through_s6_pipeline_is_byte_identical_across_five_independent_runs itself
+ asserts 5 independent engines produce byte-identical receipt_root; 5 binary runs below)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+## 2. OCEL reseal determinism (two full 8-suite runs, digests compared)
+$ sha256sum .cargo-cicd/ocel/chatman/*.receipt.json (run 1 vs run 2)
+run1:
+af69d1cf824559d8b31cd0c4d87dd092a6fa4ad410167174a9b9ae82fb934e26  .cargo-cicd/ocel/chatman/admission_table.receipt.json
+08be9c7a70dab1e108368379a1c1b3c16943e97921b549206cdd8a45a546f12f  .cargo-cicd/ocel/chatman/agent.receipt.json
+b74d420b8cf8ee9acc9ae619f203e9cae6c4a1afddd91ed9cabc656c339bf874  .cargo-cicd/ocel/chatman/hook.receipt.json
+22ac5a3f930db5844be47eba156e4dc5abb4b4ffa3c0a6cb91524707fdff2b00  .cargo-cicd/ocel/chatman/receipt.receipt.json
+1d002383b9574c15302a3633d4c460573446803619a634ec3490725c9e9460f3  .cargo-cicd/ocel/chatman/replay.receipt.json
+1cf57862d6c651a8a316f9ad2e4122eca91f8dce3ccf91863b4f9f55db754c93  .cargo-cicd/ocel/chatman/routing.receipt.json
+f7ee85cc0f267a72c71c89cf489005adbabae843bf408c3dbdd2b205d7070615  .cargo-cicd/ocel/chatman/static_gate.receipt.json
+0daa777414fba51788420b5c919c6a9b2c1e56a0c9d7c8386861702011f4ccea  .cargo-cicd/ocel/chatman/triple8.receipt.json
+run2:
+af69d1cf824559d8b31cd0c4d87dd092a6fa4ad410167174a9b9ae82fb934e26  .cargo-cicd/ocel/chatman/admission_table.receipt.json
+08be9c7a70dab1e108368379a1c1b3c16943e97921b549206cdd8a45a546f12f  .cargo-cicd/ocel/chatman/agent.receipt.json
+b74d420b8cf8ee9acc9ae619f203e9cae6c4a1afddd91ed9cabc656c339bf874  .cargo-cicd/ocel/chatman/hook.receipt.json
+22ac5a3f930db5844be47eba156e4dc5abb4b4ffa3c0a6cb91524707fdff2b00  .cargo-cicd/ocel/chatman/receipt.receipt.json
+1d002383b9574c15302a3633d4c460573446803619a634ec3490725c9e9460f3  .cargo-cicd/ocel/chatman/replay.receipt.json
+1cf57862d6c651a8a316f9ad2e4122eca91f8dce3ccf91863b4f9f55db754c93  .cargo-cicd/ocel/chatman/routing.receipt.json
+f7ee85cc0f267a72c71c89cf489005adbabae843bf408c3dbdd2b205d7070615  .cargo-cicd/ocel/chatman/static_gate.receipt.json
+0daa777414fba51788420b5c919c6a9b2c1e56a0c9d7c8386861702011f4ccea  .cargo-cicd/ocel/chatman/triple8.receipt.json
+diff: (empty = byte-identical)
+OCEL-DETERMINISTIC
+
+NOTE: determinism required a harness fix this session. Root cause (confirmed): per-case
+#[test]s emitted OCEL events into a shared process-wide sink from parallel test threads;
+positional evt_ ids + racing ordinal timestamps made the sealed digest run-dependent.
+Fix (praxis-local, harness/mod.rs + harness template): per-case tests are assertion-only;
+one generated zz_ocel_evidence_sealed test per suite replays all fixtures sequentially in
+sorted order and seals exactly once. No chicago-tdd-tools change required.
+
+## 3. Double ggen sync byte-identity
+$ ggen sync run (x2); git diff sha256 before == after
+GGEN-IDEMPOTENT (tree diff hash unchanged across two syncs)
+
+## 4. One event per fixture per suite (post-seal counts)
+admission_table events: 4 expected: 4
+agent events: 6 expected: 6
+hook events: 4 expected: 4
+receipt events: 6 expected: 6
+replay events: 4 expected: 4
+routing events: 8 expected: 8
+static_gate events: 4 expected: 4
+triple8 events: 7 expected: 7
+
+## 5. Fixture non-vacuity after regeneration
+All 43 fixtures regenerate from typed RDF in packs/chatman-engine-pack/ontology.ttl
+(ceng:inputJson blobs eliminated this session); all 43 acceptance cases pass:
+admission 4, agents 6, hooks 4, receipts 6, replay 4, routing 8, static 4, triple8 7.

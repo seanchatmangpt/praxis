@@ -52,7 +52,6 @@ fn acceptance_accept_profile_symbol_table_aligned() {
     );
 }
 
-
 #[test]
 fn falsification_falsify_graph_snapshot_mismatch() {
     let fixture = concat!(
@@ -79,3 +78,17 @@ fn falsification_falsify_profile_symbol_table_mismatch() {
     );
 }
 
+/// Deterministic OCEL evidence seal: replays every fixture of this suite
+/// sequentially in sorted order on one thread and seals the suite's
+/// `.cargo-cicd/ocel/chatman/<suite>.{ocel,receipt}.json` exactly once —
+/// the only OCEL emission path (per-case tests above are assertion-only,
+/// because their parallel interleaving would make event order racy).
+#[test]
+fn zz_ocel_evidence_sealed() {
+    harness::seal_suite_evidence(&[
+        "fixtures/replay/graph_snapshot_mismatch.json",
+        "fixtures/replay/graph_snapshot_replays_byte_identical.json",
+        "fixtures/replay/profile_symbol_table_aligned.json",
+        "fixtures/replay/profile_symbol_table_mismatch.json",
+    ]);
+}

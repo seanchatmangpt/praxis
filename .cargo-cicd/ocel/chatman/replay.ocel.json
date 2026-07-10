@@ -1,0 +1,94 @@
+{
+  "ocel:global-log": {
+    "ocel:version": "2.0"
+  },
+  "ocel:events": {
+    "evt_001": {
+      "event_id": "0dd62fdf-f6c2-4294-933f-ac9d22cdea9b",
+      "case_id": "chatman-replay",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 2,
+      "objects": [
+        [
+          "Accept_GraphSnapshotReplaysByteIdentical",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Accept_GraphSnapshotReplaysByteIdentical",
+        "outcome": "admitted"
+      }
+    },
+    "evt_002": {
+      "event_id": "5023c0ef-b127-4039-8f16-62b68964d8f1",
+      "case_id": "chatman-replay",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 3,
+      "objects": [
+        [
+          "Accept_ProfileSymbolTableAligned",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Accept_ProfileSymbolTableAligned",
+        "outcome": "admitted"
+      }
+    },
+    "evt_000": {
+      "event_id": "6fd981e1-819f-4bb4-a97a-e55c8f46cdce",
+      "case_id": "chatman-replay",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 1,
+      "objects": [
+        [
+          "Falsify_GraphSnapshotMismatch",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "refusal": "GraphSnapshotMismatch",
+        "fixture_id": "Falsify_GraphSnapshotMismatch",
+        "outcome": "refused"
+      }
+    },
+    "evt_003": {
+      "event_id": "c12adb1d-a4db-4a2a-b19e-bf02893e9684",
+      "case_id": "chatman-replay",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 4,
+      "objects": [
+        [
+          "Falsify_ProfileSymbolTableMismatch",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Falsify_ProfileSymbolTableMismatch",
+        "refusal": "ProfileSymbolTableMismatch",
+        "outcome": "refused"
+      }
+    }
+  },
+  "ocel:objects": {}
+}

@@ -34,6 +34,13 @@ blockers. Full policy: `docs/standing/CLAUDE_CODE_POLICY.md`.
 `just verify-all` — DoD gate, run before claiming a ticket done.
 `just test-changed` — fast inner loop.
 
+## Build hygiene
+
+Never run two `cargo test`/`cargo build` invocations concurrently (they serialize on the
+`target/` lock and silently double wall-clock time — check `ps aux | grep cargo` first). Avoid
+`--release` (full LTO, codegen-units=1) for iteration; scope by exact `--test <binary>`, not
+substring match. Details: `docs/BUILD_CACHING.md`.
+
 ## Reporting
 
 State findings, not verdicts. No unearned hedges, no ranking docs by assumed
@@ -56,3 +63,4 @@ This file must stay ≤ 200 lines. If it needs to grow past that, split into a n
 - `docs/ALGORITHM_COMPLEXITY.md` — Complexity bounds per function and data structure (to be created during v26.7.8)
 - `docs/standing/SEMANTIC_PROFILE_DOCTRINE.md` — 80/20 profile strategy for semantic dialects (OWL RL, SHACL, ShEx, N3, Datalog)
 - `docs/standing/CLAUDE_CODE_POLICY.md` — Standing index verification gates and readiness claims
+- `docs/BUILD_CACHING.md` — cargo lock contention, LTO/release-profile cost, sccache setup

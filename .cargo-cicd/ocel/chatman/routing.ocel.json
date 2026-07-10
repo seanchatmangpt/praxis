@@ -1,0 +1,182 @@
+{
+  "ocel:global-log": {
+    "ocel:version": "2.0"
+  },
+  "ocel:events": {
+    "evt_007": {
+      "event_id": "9ad6ecdb-a952-428a-b7f0-1510f6760f92",
+      "case_id": "chatman-routing",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 8,
+      "objects": [
+        [
+          "Falsify_WarmPathRequired",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Falsify_WarmPathRequired",
+        "outcome": "refused",
+        "refusal": "WarmPathRequired"
+      }
+    },
+    "evt_005": {
+      "event_id": "192fa17f-2bbc-4922-91fa-7a8d7adfa6f8",
+      "case_id": "chatman-routing",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 6,
+      "objects": [
+        [
+          "Accept_SupportedDialectRoute",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "admitted",
+        "fixture_id": "Accept_SupportedDialectRoute"
+      }
+    },
+    "evt_002": {
+      "event_id": "83da8f2d-a6bd-4d38-8311-1975a9787baf",
+      "case_id": "chatman-routing",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 3,
+      "objects": [
+        [
+          "Falsify_N3ActuationRefused",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "refusal": "N3ActuationRefused",
+        "fixture_id": "Falsify_N3ActuationRefused",
+        "outcome": "refused"
+      }
+    },
+    "evt_001": {
+      "event_id": "722a1457-0a0f-4384-81d0-afe12e63d0b9",
+      "case_id": "chatman-routing",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 2,
+      "objects": [
+        [
+          "Falsify_LeastExpressiveRouteViolation",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Falsify_LeastExpressiveRouteViolation",
+        "outcome": "refused",
+        "refusal": "LeastExpressiveRouteViolation"
+      }
+    },
+    "evt_000": {
+      "event_id": "87d0fdc0-810c-4777-9d13-654bc3ba6cc3",
+      "case_id": "chatman-routing",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 1,
+      "objects": [
+        [
+          "Accept_HotPathRouteForBoundedPattern",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Accept_HotPathRouteForBoundedPattern",
+        "outcome": "admitted"
+      }
+    },
+    "evt_003": {
+      "event_id": "4951c37e-3f66-4370-8ad8-917f918d8d15",
+      "case_id": "chatman-routing",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 4,
+      "objects": [
+        [
+          "Falsify_N3UnavailableByProfile",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Falsify_N3UnavailableByProfile",
+        "refusal": "N3UnavailableByProfile",
+        "outcome": "refused"
+      }
+    },
+    "evt_004": {
+      "event_id": "a0717086-e1ac-462d-ad86-930094e2e424",
+      "case_id": "chatman-routing",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 5,
+      "objects": [
+        [
+          "Falsify_RouteDecisionMismatch",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "refusal": "RouteDecisionMismatch",
+        "outcome": "refused",
+        "fixture_id": "Falsify_RouteDecisionMismatch"
+      }
+    },
+    "evt_006": {
+      "event_id": "b5ef8928-e4ec-4fde-9e5a-ccc05fdd7094",
+      "case_id": "chatman-routing",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 7,
+      "objects": [
+        [
+          "Falsify_UnsupportedDialect",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Falsify_UnsupportedDialect",
+        "outcome": "refused",
+        "refusal": "UnsupportedDialect"
+      }
+    }
+  },
+  "ocel:objects": {}
+}

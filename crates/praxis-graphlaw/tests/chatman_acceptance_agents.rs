@@ -74,7 +74,6 @@ fn acceptance_accept_witness_observes_only() {
     );
 }
 
-
 #[test]
 fn falsification_falsify_agent_override_denied() {
     let fixture = concat!(
@@ -114,3 +113,19 @@ fn falsification_falsify_witness_not_authority() {
     );
 }
 
+/// Deterministic OCEL evidence seal: replays every fixture of this suite
+/// sequentially in sorted order on one thread and seals the suite's
+/// `.cargo-cicd/ocel/chatman/<suite>.{ocel,receipt}.json` exactly once —
+/// the only OCEL emission path (per-case tests above are assertion-only,
+/// because their parallel interleaving would make event order racy).
+#[test]
+fn zz_ocel_evidence_sealed() {
+    harness::seal_suite_evidence(&[
+        "fixtures/agents/agent_acts_within_permits.json",
+        "fixtures/agents/agent_override_denied.json",
+        "fixtures/agents/breed_unpermitted.json",
+        "fixtures/agents/permitted_breed_executes.json",
+        "fixtures/agents/witness_not_authority.json",
+        "fixtures/agents/witness_observes_only.json",
+    ]);
+}

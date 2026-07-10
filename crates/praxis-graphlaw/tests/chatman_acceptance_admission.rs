@@ -52,7 +52,6 @@ fn acceptance_accept_ocel_event_admitted() {
     );
 }
 
-
 #[test]
 fn falsification_falsify_admission_table_mismatch() {
     let fixture = concat!(
@@ -79,3 +78,17 @@ fn falsification_falsify_ocel_event_not_admitted() {
     );
 }
 
+/// Deterministic OCEL evidence seal: replays every fixture of this suite
+/// sequentially in sorted order on one thread and seals the suite's
+/// `.cargo-cicd/ocel/chatman/<suite>.{ocel,receipt}.json` exactly once —
+/// the only OCEL emission path (per-case tests above are assertion-only,
+/// because their parallel interleaving would make event order racy).
+#[test]
+fn zz_ocel_evidence_sealed() {
+    harness::seal_suite_evidence(&[
+        "fixtures/admission/admission_table_matches.json",
+        "fixtures/admission/admission_table_mismatch.json",
+        "fixtures/admission/ocel_event_admitted.json",
+        "fixtures/admission/ocel_event_not_admitted.json",
+    ]);
+}

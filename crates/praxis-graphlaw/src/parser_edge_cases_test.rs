@@ -80,9 +80,9 @@ ex:list4 rdf:value ("a" "b" "c") .
 ex:list5 rdf:value (ex:a ex:b ex:c) .
         "#;
 
-        let store = TripleStore::from(ttl);
-        // Collections should parse without error; desugaring may vary
-        assert!(store.len() >= 0, "Should parse collections");
+        // Collections should parse without error; desugaring may vary, so
+        // completing construction (rather than a length bound) is the assertion.
+        let _store = TripleStore::from(ttl);
     }
 
     /// Nested collections
@@ -96,8 +96,7 @@ ex:nested2 ex:value (ex:a (ex:b ex:c) ex:d) .
 ex:nested3 ex:value ((("x"))) .
         "#;
 
-        let store = TripleStore::from(ttl);
-        assert!(store.len() >= 0, "Should parse nested collections");
+        let _store = TripleStore::from(ttl);
     }
 
     /// Blank node property lists
@@ -111,8 +110,7 @@ ex:company [ ex:name "Acme" ; ex:employees [ ex:name "Bob" ] ] .
 [ ex:orphan "no parent" ] .
         "#;
 
-        let store = TripleStore::from(ttl);
-        assert!(store.len() >= 0, "Should parse blank node property lists");
+        let _store = TripleStore::from(ttl);
     }
 
     /// Multiple objects (comma operator)
@@ -161,11 +159,7 @@ ex:alice ex:knows ex:bob, ex:charlie ;
          ex:lives ex:chicago .
         "#;
 
-        let store = TripleStore::from(ttl);
-        assert!(
-            store.len() >= 0,
-            "Should parse mixed comma/semicolon syntax"
-        );
+        let _store = TripleStore::from(ttl);
     }
 
     /// Bare "a" (rdf:type shorthand)

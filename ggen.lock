@@ -2,7 +2,7 @@
 
 [packs.chatman-engine-pack]
 source = "path:packs/chatman-engine-pack"
-content_hash = "blake3:f45ed43bcb88707b81ea0696a9574205de5725463f67f241c5a99beb910cba43"
+content_hash = "blake3:05e32f71cfcabe0b46daeb503d0b907fb2b186d7f8e32d7b9d8f50a26f6d5946"
 
 [packs.standing-pack]
 source = "path:../cargo-cicd/plugins/cargo-cicd-kit/standing-pack"

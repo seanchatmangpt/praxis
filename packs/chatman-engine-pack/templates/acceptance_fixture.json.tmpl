@@ -3,28 +3,158 @@ to: "crates/praxis-graphlaw/tests/chatman_engine_acceptance/{{ fixture_path }}"
 force: true
 determinism: true
 sparql:
-  cases: |
+  a_cases: |
     PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
-    SELECT ?case_name ?fixture_path ?kind ?seed ?mutation ?expected_refusal ?expected_behavior ?input WHERE {
+    SELECT ?case ?case_name ?fixture_path ?kind ?seed ?mutation ?expected_refusal ?expected_behavior ?harness
+           ?receiptSubject ?receiptWitness ?replayHint ?canonNquads ?carriedDigest
+           ?claimedProfileId ?engineProfileId ?projectionSnapshotId ?projectionRecordedHash
+           ?routeProfileId ?requestedDialectName ?recordedRoute ?wantsActuation ?constraintCount
+           ?tableHash ?ocelEvent
+           ?hookIri ?hookPattern ?hookNondeterministic ?hookHasReceipt
+           ?agentId ?agentOperatorId ?overrideRequested ?witnessPresentedAsAuthority ?breedRequested
+           ?invocationId ?envelopeSnapshotId ?envelopeProfileId ?envelopeOperatorId
+           ?recordedEnvelopeHash ?recordedSymbolTableHash ?hasSymbolUniverse ?hasOverflowTerms
+           ?gateName ?gateSource
+    WHERE {
       {
         ?case a ceng:AcceptanceCase ;
               ceng:testFixturePath ?fixture_path ;
               ceng:caseSeed ?seed ;
-              ceng:inputJson ?input ;
+              ceng:harness ?harness ;
               ceng:expectedBehavior ?expected_behavior .
         BIND("acceptance" AS ?kind)
       } UNION {
         ?case a ceng:FalsificationCase ;
               ceng:testFixturePath ?fixture_path ;
               ceng:caseSeed ?seed ;
-              ceng:inputJson ?input ;
+              ceng:harness ?harness ;
               ceng:falsificationMutation ?mutation ;
               ceng:expectedRefusal ?refusal .
         ?refusal ceng:rustVariant ?expected_refusal .
         BIND("falsification" AS ?kind)
       }
+      OPTIONAL { ?case ceng:receiptSubject ?receiptSubject }
+      OPTIONAL { ?case ceng:receiptWitness ?receiptWitness }
+      OPTIONAL { ?case ceng:replayHint ?replayHint }
+      OPTIONAL { ?case ceng:canonNquads ?canonNquads }
+      OPTIONAL { ?case ceng:carriedDigest ?carriedDigest }
+      OPTIONAL { ?case ceng:claimedProfileId ?claimedProfileId }
+      OPTIONAL { ?case ceng:engineProfileId ?engineProfileId }
+      OPTIONAL { ?case ceng:projectionSnapshotId ?projectionSnapshotId }
+      OPTIONAL { ?case ceng:projectionRecordedHash ?projectionRecordedHash }
+      OPTIONAL { ?case ceng:routeProfileId ?routeProfileId }
+      OPTIONAL { ?case ceng:requestedDialectName ?requestedDialectName }
+      OPTIONAL { ?case ceng:recordedRoute ?recordedRoute }
+      OPTIONAL { ?case ceng:wantsActuation ?wantsActuation }
+      OPTIONAL { ?case ceng:constraintCount ?constraintCount }
+      OPTIONAL { ?case ceng:tableHash ?tableHash }
+      OPTIONAL { ?case ceng:ocelEvent ?ocelEvent }
+      OPTIONAL { ?case ceng:hookIri ?hookIri }
+      OPTIONAL { ?case ceng:hookPattern ?hookPattern }
+      OPTIONAL { ?case ceng:hookNondeterministic ?hookNondeterministic }
+      OPTIONAL { ?case ceng:hookHasReceipt ?hookHasReceipt }
+      OPTIONAL { ?case ceng:agentId ?agentId }
+      OPTIONAL { ?case ceng:agentOperatorId ?agentOperatorId }
+      OPTIONAL { ?case ceng:overrideRequested ?overrideRequested }
+      OPTIONAL { ?case ceng:witnessPresentedAsAuthority ?witnessPresentedAsAuthority }
+      OPTIONAL { ?case ceng:breedRequested ?breedRequested }
+      OPTIONAL { ?case ceng:invocationId ?invocationId }
+      OPTIONAL { ?case ceng:envelopeSnapshotId ?envelopeSnapshotId }
+      OPTIONAL { ?case ceng:envelopeProfileId ?envelopeProfileId }
+      OPTIONAL { ?case ceng:envelopeOperatorId ?envelopeOperatorId }
+      OPTIONAL { ?case ceng:recordedEnvelopeHash ?recordedEnvelopeHash }
+      OPTIONAL { ?case ceng:recordedSymbolTableHash ?recordedSymbolTableHash }
+      OPTIONAL { ?case ceng:hasOverflowTerms ?hasOverflowTerms }
+      OPTIONAL { ?case ceng:gateName ?gateName }
+      OPTIONAL { ?case ceng:gateSource ?gateSource }
+      OPTIONAL {
+        SELECT ?case (COUNT(?sut) AS ?hasSymbolUniverse) WHERE {
+          ?sut a ceng:SymbolUniverseTerm ; ceng:forCase ?case .
+        } GROUP BY ?case
+      }
       BIND(REPLACE(STR(?case), "^.*#", "") AS ?case_name)
     } ORDER BY ?fixture_path
+  b_admission_entries: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?entryPattern ?entryAdmitted ?itemOrder WHERE {
+      ?item a ceng:AdmissionEntry ; ceng:forCase ?case ;
+            ceng:entryPattern ?entryPattern ; ceng:entryAdmitted ?entryAdmitted ;
+            ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  c_admitted_dialects: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?itemValue ?itemOrder WHERE {
+      ?item a ceng:AdmittedDialect ; ceng:forCase ?case ;
+            ceng:itemValue ?itemValue ; ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  d_admitted_patterns: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?itemValue ?itemOrder WHERE {
+      ?item a ceng:AdmittedPattern ; ceng:forCase ?case ;
+            ceng:itemValue ?itemValue ; ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  e_universe_terms: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?itemValue ?itemOrder WHERE {
+      ?item a ceng:UniverseTerm ; ceng:forCase ?case ;
+            ceng:itemValue ?itemValue ; ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  f_query_terms: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?itemValue ?itemOrder WHERE {
+      ?item a ceng:QueryTerm ; ceng:forCase ?case ;
+            ceng:itemValue ?itemValue ; ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  g_overflow_terms: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?itemValue ?itemOrder WHERE {
+      ?item a ceng:OverflowTerm ; ceng:forCase ?case ;
+            ceng:itemValue ?itemValue ; ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  h_projection_universe_terms: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?itemValue ?itemOrder WHERE {
+      ?item a ceng:ProjectionUniverseTerm ; ceng:forCase ?case ;
+            ceng:itemValue ?itemValue ; ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  i_projection_triples: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?tripleS ?tripleP ?tripleO ?itemOrder WHERE {
+      ?item a ceng:ProjectionTriple ; ceng:forCase ?case ;
+            ceng:tripleS ?tripleS ; ceng:tripleP ?tripleP ; ceng:tripleO ?tripleO ;
+            ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  j_handle_nodes: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?itemValue ?itemOrder WHERE {
+      ?item a ceng:HandleNode ; ceng:forCase ?case ;
+            ceng:itemValue ?itemValue ; ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  k_handle_events: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?itemValue ?itemOrder WHERE {
+      ?item a ceng:HandleEvent ; ceng:forCase ?case ;
+            ceng:itemValue ?itemValue ; ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  l_handle_plansteps: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?itemValue ?itemOrder WHERE {
+      ?item a ceng:HandlePlanStep ; ceng:forCase ?case ;
+            ceng:itemValue ?itemValue ; ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  m_receipt_refs: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?refSubject ?refDigest ?itemOrder WHERE {
+      ?item a ceng:ReceiptRef ; ceng:forCase ?case ;
+            ceng:refSubject ?refSubject ; ceng:refDigest ?refDigest ;
+            ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
+  n_symbol_universe_terms: |
+    PREFIX ceng: <https://praxis.chatman.io/ontology/ceng#>
+    SELECT ?case ?itemValue ?itemOrder WHERE {
+      ?item a ceng:SymbolUniverseTerm ; ceng:forCase ?case ;
+            ceng:itemValue ?itemValue ; ceng:itemOrder ?itemOrder .
+    } ORDER BY ?case ?itemOrder
 ---
 {
   "case": "{{ case_name }}",
@@ -33,5 +163,40 @@ sparql:
   "mutation": "{{ mutation }}",
   "expected_refusal": "{{ expected_refusal }}"{% else %},
   "expected_behavior": "{{ expected_behavior }}"{% endif %},
-  "input": {{ input }}
+  {%- set suite = local(iri=harness) -%}
+  {%- if suite == "ReceiptsHarness" %}
+  "input": {"subject": {{ receiptSubject | json_encode }}, "witness": {{ receiptWitness | json_encode }}, "replay_hint": {{ replayHint | json_encode }}, "canon_nquads": {{ canonNquads | json_encode }}
+    {%- if carriedDigest is defined %}, "carried_digest": {{ carriedDigest | json_encode }}{% endif %}
+    {%- if claimedProfileId is defined %}, "profile_hash_check": {"claimed_profile_id": {{ claimedProfileId | json_encode }}, "engine_profile_id": {{ engineProfileId | json_encode }}}{% endif %}
+    {%- if projectionSnapshotId is defined %}, "projection_hash_check": {"snapshot_id": {{ projectionSnapshotId | json_encode }}, "universe": [{% for r in h_projection_universe_terms %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{{ r.itemValue | json_encode }}{% endif %}{% endfor %}], "triples": [{% for r in i_projection_triples %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}[{{ r.tripleS | json_encode }}, {{ r.tripleP | json_encode }}, {{ r.tripleO | json_encode }}]{% endif %}{% endfor %}], "recorded_hash": {{ projectionRecordedHash | json_encode }}}{% endif %}}
+  {%- elif suite == "RoutingHarness" %}
+  "input": {"profile_id": {{ routeProfileId | json_encode }}, "requested_dialect": {{ requestedDialectName | json_encode }}, "admitted_dialects": [{% for r in c_admitted_dialects %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{{ r.itemValue | json_encode }}{% endif %}{% endfor %}]
+    {%- if recordedRoute is defined %}, "recorded_route": {{ recordedRoute | json_encode }}{% endif %}
+    {%- if wantsActuation is defined %}, "wants_actuation": {{ wantsActuation }}{% endif %}
+    {%- if constraintCount is defined %}, "constraint_count": {{ constraintCount }}{% endif %}}
+  {%- elif suite == "Triple8Harness" %}
+  "input": {"universe": [{% for r in e_universe_terms %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{{ r.itemValue | json_encode }}{% endif %}{% endfor %}], "terms": [{% for r in f_query_terms %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{{ r.itemValue | json_encode }}{% endif %}{% endfor %}]
+    {%- if hasOverflowTerms is defined %}, "overflow_terms": [{% for r in g_overflow_terms %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{{ r.itemValue | json_encode }}{% endif %}{% endfor %}]{% endif %}}
+  {%- elif suite == "AdmissionHarness" %}
+  "input": {"table_hash": {{ tableHash | json_encode }}, "entries": [{% for r in b_admission_entries %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{"pattern": {{ r.entryPattern | json_encode }}, "admitted": {{ r.entryAdmitted }}}{% endif %}{% endfor %}]
+    {%- if ocelEvent is defined %}, "ocel_event": {{ ocelEvent | json_encode }}{% endif %}}
+  {%- elif suite == "HooksHarness" %}
+  "input": {"hook_iri": {{ hookIri | json_encode }}, "pattern": {{ hookPattern | json_encode }}, "admitted_patterns": [{% for r in d_admitted_patterns %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{{ r.itemValue | json_encode }}{% endif %}{% endfor %}]
+    {%- if hookNondeterministic is defined %}, "nondeterministic": {{ hookNondeterministic }}{% endif %}
+    {%- if hookHasReceipt is defined %}, "has_receipt": {{ hookHasReceipt }}{% endif %}}
+  {%- elif suite == "AgentsHarness" %}
+  "input": {"agent_id": {{ agentId | json_encode }}, "operator_id": {{ agentOperatorId | json_encode }}
+    {%- if overrideRequested is defined %}, "override_requested": {{ overrideRequested }}{% endif %}
+    {%- if witnessPresentedAsAuthority is defined %}, "witness_presented_as_authority": {{ witnessPresentedAsAuthority }}{% endif %}
+    {%- if breedRequested is defined %}, "breed_requested": {{ breedRequested }}{% endif %}}
+  {%- elif suite == "ReplayHarness" %}
+  "input": {"envelope": {"invocation_id": {{ invocationId | json_encode }}, "snapshot_id": {{ envelopeSnapshotId | json_encode }}, "profile_id": {{ envelopeProfileId | json_encode }}, "operator_id": {{ envelopeOperatorId | json_encode }}, "input_handles": {"nodes": [{% for r in j_handle_nodes %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{{ r.itemValue | json_encode }}{% endif %}{% endfor %}], "events": [{% for r in k_handle_events %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{{ r.itemValue | json_encode }}{% endif %}{% endfor %}], "plan_steps": [{% for r in l_handle_plansteps %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{{ r.itemValue | json_encode }}{% endif %}{% endfor %}]}}, "receipts": [{% for r in m_receipt_refs %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{"subject": {{ r.refSubject | json_encode }}, "digest": {{ r.refDigest | json_encode }}}{% endif %}{% endfor %}]
+    {%- if recordedEnvelopeHash is defined %}, "recorded_envelope_hash": {{ recordedEnvelopeHash | json_encode }}{% endif %}
+    {%- if hasSymbolUniverse is defined %}, "symbol_universe": [{% for r in n_symbol_universe_terms %}{% if r.case == case %}{% if r.itemOrder != "0" %}, {% endif %}{{ r.itemValue | json_encode }}{% endif %}{% endfor %}]{% endif %}
+    {%- if recordedSymbolTableHash is defined %}, "recorded_symbol_table_hash": {{ recordedSymbolTableHash | json_encode }}{% endif %}}
+  {%- elif suite == "StaticHarness" %}
+  "input": {"gate": {{ gateName | json_encode }}, "source": {{ gateSource | json_encode }}}
+  {%- else %}
+  "input": {"UNSUPPORTED_HARNESS": {{ harness | json_encode }}}
+  {%- endif %}
 }

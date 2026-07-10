@@ -52,7 +52,6 @@ fn acceptance_accept_hook_pattern_admitted() {
     );
 }
 
-
 #[test]
 fn falsification_falsify_hook_pattern_not_admitted() {
     let fixture = concat!(
@@ -79,3 +78,17 @@ fn falsification_falsify_nondeterministic_operator_requires_receipt() {
     );
 }
 
+/// Deterministic OCEL evidence seal: replays every fixture of this suite
+/// sequentially in sorted order on one thread and seals the suite's
+/// `.cargo-cicd/ocel/chatman/<suite>.{ocel,receipt}.json` exactly once —
+/// the only OCEL emission path (per-case tests above are assertion-only,
+/// because their parallel interleaving would make event order racy).
+#[test]
+fn zz_ocel_evidence_sealed() {
+    harness::seal_suite_evidence(&[
+        "fixtures/hooks/deterministic_operator_without_receipt.json",
+        "fixtures/hooks/hook_pattern_admitted.json",
+        "fixtures/hooks/hook_pattern_not_admitted.json",
+        "fixtures/hooks/nondeterministic_operator_requires_receipt.json",
+    ]);
+}

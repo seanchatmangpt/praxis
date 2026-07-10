@@ -3,5 +3,5 @@
   "kind": "acceptance",
   "seed": 2546709196574559000,
   "expected_behavior": "witness_observation_recorded",
-  "input": {"agent_id":"urn:chatman:agent:3","operator_id":"urn:chatman:operator:3"}
+  "input": {"agent_id": "urn:chatman:agent:3", "operator_id": "urn:chatman:operator:3"}
 }

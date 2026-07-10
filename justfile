@@ -8,6 +8,20 @@ set shell := ["bash", "-uc"]
 # invocation: `CARGO_TARGET_DIR=target/agent-2 just check`. Isolated dirs trade a slower
 # first build (no shared incremental cache) for true concurrency.
 
+# Check for a stray concurrent cargo build/test/check holding the target/ lock before
+# starting a new one -- concurrent invocations serialize and silently double wall-clock time
+check-lock:
+    @ps aux | grep -E "cargo (test|build|check)" | grep -v grep || echo "no cargo build/test/check currently running"
+
+# One-time: install sccache and print the shell-profile line to wire it up. Speeds up
+# repeated compiles across this crate's many separate test binaries (shared deps like
+# oxigraph/praxis_graphlaw get cached at the object level instead of recompiled per binary).
+setup-sccache:
+    command -v sccache >/dev/null 2>&1 || brew install sccache
+    @echo "sccache installed. Add this to your shell profile (~/.zshrc):"
+    @echo '    export RUSTC_WRAPPER=sccache'
+    @echo "Then open a new shell and re-run your build; verify with: sccache --show-stats"
+
 # Run only tests affected by changes
 test-changed:
     timeout 30s cargo cicd test changed

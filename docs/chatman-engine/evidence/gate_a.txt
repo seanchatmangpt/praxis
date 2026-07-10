@@ -1,0 +1,24 @@
+=== Gate A — recaptured 2026-07-10T00:44:03Z at commit 2dd4f04 (Cargo.toml rdf-12 change in working tree) ===
+
+$ grep -n nightly-2026-06-22 rust-toolchain.toml
+9:# nightly-2026-06-22 matches the wasm4pm-compat pin.
+11:channel = "nightly-2026-06-22"
+
+$ grep -nE 'oxigraph-local|oxrdf-patched' Cargo.toml
+(no local patches)
+
+$ cargo tree -e normal | grep -c 'oxrdf v0.3.3'
+11
+
+$ cargo tree -e normal | grep 'oxigraph v0.5.9' | head -3
+│   ├── oxigraph v0.5.9
+
+$ cargo tree -e features -p praxis-graphlaw | grep 'oxigraph.*rdf-12'
+├── oxigraph feature "rdf-12"
+
+$ grep -rn TripleTermInSnapshot crates/praxis-graphlaw/src/chatman/ | head -5
+crates/praxis-graphlaw/src/chatman/abi.rs:334:    TripleTermInSnapshot(String),
+crates/praxis-graphlaw/src/chatman/abi.rs:369:    "TripleTermInSnapshot",
+crates/praxis-graphlaw/src/chatman/abi.rs:411:            Refusal::TripleTermInSnapshot(_) => "TripleTermInSnapshot",
+crates/praxis-graphlaw/src/chatman/engine.rs:34://!   [`Refusal::TripleTermInSnapshot`] law is therefore enforced at the text
+crates/praxis-graphlaw/src/chatman/engine.rs:512:    /// token is refused with [`Refusal::TripleTermInSnapshot`] (the `rdf-12`

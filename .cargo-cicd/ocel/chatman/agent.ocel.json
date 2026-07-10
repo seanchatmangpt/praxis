@@ -1,0 +1,137 @@
+{
+  "ocel:global-log": {
+    "ocel:version": "2.0"
+  },
+  "ocel:events": {
+    "evt_004": {
+      "event_id": "7c62fcef-ba9d-421b-8fb3-09c03854b38c",
+      "case_id": "chatman-agent",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 5,
+      "objects": [
+        [
+          "Falsify_WitnessNotAuthority",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "refused",
+        "fixture_id": "Falsify_WitnessNotAuthority",
+        "refusal": "WitnessNotAuthority"
+      }
+    },
+    "evt_001": {
+      "event_id": "1500c19f-a5de-4a34-a47e-cb1638ef7cd8",
+      "case_id": "chatman-agent",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 2,
+      "objects": [
+        [
+          "Falsify_AgentOverrideDenied",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Falsify_AgentOverrideDenied",
+        "outcome": "refused",
+        "refusal": "AgentOverrideDenied"
+      }
+    },
+    "evt_000": {
+      "event_id": "0b1beb6e-6e08-4145-807b-d381fee13ce2",
+      "case_id": "chatman-agent",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 1,
+      "objects": [
+        [
+          "Accept_AgentActsWithinPermits",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "admitted",
+        "fixture_id": "Accept_AgentActsWithinPermits"
+      }
+    },
+    "evt_002": {
+      "event_id": "9c81a263-c816-48de-80b0-6acfe3af10b2",
+      "case_id": "chatman-agent",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 3,
+      "objects": [
+        [
+          "Falsify_BreedUnpermitted",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "refused",
+        "fixture_id": "Falsify_BreedUnpermitted",
+        "refusal": "BreedUnpermitted"
+      }
+    },
+    "evt_005": {
+      "event_id": "b01cc4ff-76cf-434d-a5d4-c38d8c1ef942",
+      "case_id": "chatman-agent",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 6,
+      "objects": [
+        [
+          "Accept_WitnessObservesOnly",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "admitted",
+        "fixture_id": "Accept_WitnessObservesOnly"
+      }
+    },
+    "evt_003": {
+      "event_id": "1786e001-308e-41ee-b2f3-9319d8f06746",
+      "case_id": "chatman-agent",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 4,
+      "objects": [
+        [
+          "Accept_PermittedBreedExecutes",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "admitted",
+        "fixture_id": "Accept_PermittedBreedExecutes"
+      }
+    }
+  },
+  "ocel:objects": {}
+}

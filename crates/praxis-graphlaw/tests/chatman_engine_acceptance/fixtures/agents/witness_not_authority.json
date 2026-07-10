@@ -4,5 +4,5 @@
   "seed": 8373363129791991140,
   "mutation": "Have a witness role attempt to author an authoritative decision triple.",
   "expected_refusal": "WitnessNotAuthority",
-  "input": {"agent_id":"urn:chatman:agent:4","operator_id":"urn:chatman:operator:4","witness_presented_as_authority":true}
+  "input": {"agent_id": "urn:chatman:agent:4", "operator_id": "urn:chatman:operator:4", "witness_presented_as_authority": true}
 }

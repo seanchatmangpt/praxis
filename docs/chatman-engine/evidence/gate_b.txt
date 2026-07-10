@@ -1,0 +1,29 @@
+=== Gate B — recaptured 2dd4f04 with clean working tree on src/chatman/ ===
+
+=== Command 1: ls module set ===
+src/chatman/abi.rs
+src/chatman/admission8.rs
+src/chatman/bridge.rs
+src/chatman/engine.rs
+src/chatman/mod.rs
+src/chatman/router.rs
+src/chatman/triple8.rs
+
+=== Command 2: enum-scoped Refusal variant count (awk /pub enum Refusal/,/^}/) ===
+29
+
+=== Command 3: sealed AdmittedTransition (single definition, no public constructor) ===
+284:pub struct AdmittedTransition {
+
+=== Command 4: verify_replay grep ===
+687:    pub fn verify_replay(
+1876:    fn verify_replay_accepts_faithful_and_refuses_tampered() -> Result<(), Refusal> {
+1886:        match ChatmanEngine::verify_replay(transition.receipt(), &inputs) {
+1898:        match ChatmanEngine::verify_replay(&tampered, &inputs) {
+1911:        match ChatmanEngine::verify_replay(&root_tampered, &inputs) {
+
+=== Command 5: OrchestratedPlan/TapeBridge exclusion check — working tree diff on src/chatman/ ===
+(empty — no uncommitted diff)
+grep orchestrated_plan in engine.rs:
+0
+0 (absent — S3->S4 projection not present in engine.rs; exclusion holds)

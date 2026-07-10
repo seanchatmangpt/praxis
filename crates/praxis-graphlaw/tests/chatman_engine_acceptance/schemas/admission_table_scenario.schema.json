@@ -104,6 +104,11 @@
               }
             }
           }
+        },
+        "ocel_event": {
+          "type": "string",
+          "minLength": 1,
+          "description": "An incoming OCEL event's activity name, checked against the table's known constraint names; absent from entries entirely => Refusal::OcelEventNotAdmitted."
         }
       }
     }

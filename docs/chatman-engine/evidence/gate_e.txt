@@ -1,0 +1,25 @@
+=== Gate E (Chatman-scoped) — captured 2026-07-10T01:14:43Z at commit 2dd4f04 ===
+
+## fmt
+$ cargo fmt -p praxis-graphlaw --check
+PASS (whole package, includes all chatman surface)
+
+## clippy (full package scan; gate = zero chatman-surface findings)
+$ cargo clippy -p praxis-graphlaw --all-targets -- -D warnings > /tmp/clippy_full2.txt
+total errors: 63 (all in pre-2dd4f04 non-chatman code: hooks/, owlrl/, shacl/, sparql/, reasoner/, queryengine/, tripleindex.rs, bindings.rs, lib.rs, rule.rs, lib_test.rs, parser_edge_cases_test.rs)
+chatman-surface findings: 0 — GATE PASS
+Out-of-surface errors are the named preexisting-debt exclusion (DEFINITION_OF_DONE.md).
+
+## forbidden production tokens in src/chatman/
+$ grep -rnE '.unwrap()|.expect(|panic!(|todo!(|unimplemented!(|unwrap_or_default|SystemTime|Instant::now|unsafe ' crates/praxis-graphlaw/src/chatman/*.rs
+0 hits (production and test) — PASS
+
+## duplicate canonical pub types across src/chatman/*.rs
+$ grep -hE '^pub (struct|enum) ' crates/praxis-graphlaw/src/chatman/*.rs | sort | uniq -d
+(none) — PASS
+
+## full chatman test surface
+$ cargo nextest run -p praxis-graphlaw -E 'binary(~chatman)'
+123 tests run: 123 passed, 5 skipped
+(43 acceptance cases + 8 zz_ocel_evidence_sealed + snapshot 3/3 + static gates 11 + the
+ hand-written structural/receipt/replay/router/spec/lifecycle/kernel/e2e binaries)

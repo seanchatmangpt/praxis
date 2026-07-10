@@ -1,0 +1,94 @@
+{
+  "ocel:global-log": {
+    "ocel:version": "2.0"
+  },
+  "ocel:events": {
+    "evt_001": {
+      "event_id": "3b404bdd-b9b6-4883-b94d-5e71c7a30e95",
+      "case_id": "chatman-static_gate",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 2,
+      "objects": [
+        [
+          "Falsify_ProcessReceiptShadowType",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "refused",
+        "refusal": "ProcessReceiptShadowType",
+        "fixture_id": "Falsify_ProcessReceiptShadowType"
+      }
+    },
+    "evt_000": {
+      "event_id": "fce0fecc-7a94-45cd-ab47-c799242236ec",
+      "case_id": "chatman-static_gate",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 1,
+      "objects": [
+        [
+          "Falsify_DuplicateCanonicalTapeType",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "refused",
+        "fixture_id": "Falsify_DuplicateCanonicalTapeType",
+        "refusal": "DuplicateCanonicalTapeType"
+      }
+    },
+    "evt_002": {
+      "event_id": "1043199b-1e45-4077-8d7a-e051951be2c4",
+      "case_id": "chatman-static_gate",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 3,
+      "objects": [
+        [
+          "Accept_SingleProcessReceiptType",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Accept_SingleProcessReceiptType",
+        "outcome": "admitted"
+      }
+    },
+    "evt_003": {
+      "event_id": "e082236c-952c-48be-93c7-7dfb6c12cba6",
+      "case_id": "chatman-static_gate",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 4,
+      "objects": [
+        [
+          "Accept_UniqueCanonicalTapeType",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Accept_UniqueCanonicalTapeType",
+        "outcome": "admitted"
+      }
+    }
+  },
+  "ocel:objects": {}
+}

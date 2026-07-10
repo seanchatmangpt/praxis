@@ -166,6 +166,19 @@
           "type": "string",
           "pattern": "^[0-9a-f]{64}$",
           "description": "Optional recorded envelope hash; replay recomputes and refuses on mismatch."
+        },
+        "symbol_universe": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Optional ordered term universe; when present, replay builds a ProfileSymbolTable from it and verifies recorded_symbol_table_hash before the envelope-hash check."
+        },
+        "recorded_symbol_table_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Optional recorded ProfileSymbolTable hash; required alongside symbol_universe, refuses with ProfileSymbolTableMismatch on drift."
         }
       }
     }

@@ -144,7 +144,19 @@ test!(s1_canonical_nquads_snapshot_is_pinned, {
             ("receipt_root", receipt.receipt_root.0.len()),
         ],
     );
-    SnapshotAssert::assert_matches(&shape, "chatman_s1_receipt_shape");
+    // Anchor the snapshot inside THIS crate: `SnapshotAssert::assert_matches`
+    // expands insta's macro inside chicago-tdd-tools, so without an explicit
+    // path insta would write the baseline into the dependency's repo (a
+    // cross-repo mutation). An absolute CARGO_MANIFEST_DIR-based path pins
+    // the baseline to crates/praxis-graphlaw/tests/snapshots/.
+    SnapshotAssert::with_settings(
+        |settings| {
+            settings.set_snapshot_path(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots"));
+        },
+        || {
+            SnapshotAssert::assert_matches(&shape, "chatman_s1_receipt_shape");
+        },
+    );
     Ok::<(), Refusal>(())
 });
 

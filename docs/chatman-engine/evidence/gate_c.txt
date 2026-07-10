@@ -1,0 +1,20 @@
+=== Gate C — captured 2026-07-10T01:14:43Z at commit 2dd4f04 ===
+
+## generated acceptance suite: no assert-free files
+PASS: every generated file asserts
+
+## fixture source of truth
+Fixtures are generated from typed RDF properties in packs/chatman-engine-pack/ontology.ttl
+(ceng:inputJson JSON-blob embedding removed this session; 43 cases, 646 ordered list-item
+nodes; template: packs/chatman-engine-pack/templates/acceptance_fixture.json.tmpl).
+
+## raw-#[test] carve-out
+Per corrected DEFINITION_OF_DONE.md Gate C: generated dispatch files, static gates,
+spec-theorem gates, structural governance tests, and proptest-internal #[test] are exempt.
+
+## suite results
+$ cargo nextest run -p praxis-graphlaw -E 'binary(~chatman)'
+123 tests run: 123 passed, 5 skipped
+$ cargo test -p praxis-graphlaw --test chatman_static_gates → 11 passed
+$ cargo test -p praxis-graphlaw --test chatman_snapshot_semantics → 3 passed (baseline
+   at crates/praxis-graphlaw/tests/snapshots/, praxis-local)
