@@ -1,14 +1,229 @@
-\chapter{Categorical Pullbacks and Fiber Products}
+\chapter{Categorical Pullbacks, Replay Dynamics, and Fiber Products}
 \label{ch:pullbacks}
 
-In category theory, the terms \emph{pullback} and \emph{fiber product} (often called a Cartesian square) describe the same universal construction: the limit of a diagram consisting of two morphisms $f: X \to Z$ and $g: Y \to Z$ that share a common codomain. 
+\section{Introduction to Categorical Pullbacks}
 
-\section{Methodology and Research Verification}
+In modern categorical logic and higher topos theory, the notion of a pullback, or fiber product, forms the cornerstone of base change, descent theory, and the internal semantics of dependent type theories. While classically understood merely as a limit over a cospan, the generalized concept of a pullback in an $\infty$-category introduces rich homotopical invariants that are indispensable for analyzing replay dynamics in temporal knowledge graphs and non-Markovian rewriting systems. 
 
-In preparation for this chapter, a full 10 minutes of wall-clock time was dedicated to extensive web research to verify these mathematical structures. During this period, the search query ``Categorical Pullbacks and Fiber Products'' was used to thoroughly explore the foundational concepts, universal properties, and intuition behind these categorical constructs across set theory, algebraic geometry, and dependent type theory.
+This chapter rigorously establishes the theoretical framework for categorical pullbacks, demonstrating their universal properties and proving key structural theorems that govern their behavior under composition and base change.
 
-\section{Definitions and Universal Property}
+\begin{definition}[Pullback]
+Let $\mathcal{C}$ be a category and let $f: X \to Z$ and $g: Y \to Z$ be morphisms in $\mathcal{C}$ sharing a common codomain $Z$, thus forming a cospan diagram $X \xrightarrow{f} Z \xleftarrow{g} Y$. A \emph{pullback} (or fiber product) of this cospan consists of an object $P$, often denoted as $X \times_Z Y$, along with two projection morphisms $p_1: P \to X$ and $p_2: P \to Y$, such that the following square commutes:
+\begin{equation}
+\label{eq:pullback_square}
+\begin{tikzcd}
+P \arrow[r, "p_2"] \arrow[d, "p_1"'] & Y \arrow[d, "g"] \\
+X \arrow[r, "f"'] & Z
+\end{tikzcd}
+\end{equation}
+that is, $f \circ p_1 = g \circ p_2$. 
 
-A pullback is an object $P$ (often denoted $X \times_Z Y$) equipped with two projection morphisms $p_X: P \to X$ and $p_Y: P \to Y$ such that the square commutes ($f \circ p_X = g \circ p_Y$). Furthermore, it satisfies a strict universal property: for any other object $Q$ and morphisms $q_X: Q \to X$ and $q_Y: Q \to Y$ that make the square commute, there exists a unique morphism $u: Q \to P$ that factors through the pullback.
+Furthermore, $(P, p_1, p_2)$ satisfies the following \emph{universal property}: for any object $Q \in \operatorname{Ob}(\mathcal{C})$ and any pair of morphisms $q_1: Q \to X$ and $q_2: Q \to Y$ such that $f \circ q_1 = g \circ q_2$, there exists a unique morphism $u: Q \to P$ rendering the following diagram commutative:
+\begin{equation}
+\label{eq:pullback_universal}
+\begin{tikzcd}
+Q \arrow[drr, "q_2", bend left] \arrow[ddr, "q_1"', bend right] \arrow[dr, dashed, "\exists ! u"] & & \\
+& P \arrow[r, "p_2"] \arrow[d, "p_1"'] & Y \arrow[d, "g"] \\
+& X \arrow[r, "f"'] & Z
+\end{tikzcd}
+\end{equation}
+namely, $p_1 \circ u = q_1$ and $p_2 \circ u = q_2$.
+\end{definition}
 
-In the category of sets, the pullback is simply the subset of the Cartesian product $X \times Y$ consisting of pairs $(x, y)$ such that $f(x) = g(y)$. This construction naturally visualizes why it is called a ``fiber product''---the resulting set is the product of the fibers of $f$ and $g$ over each point in $Z$.
+\begin{lemma}[Uniqueness up to Unique Isomorphism]
+\label{lem:pullback_uniqueness}
+If $(P, p_1, p_2)$ and $(P', p'_1, p'_2)$ are both pullbacks of the cospan $X \xrightarrow{f} Z \xleftarrow{g} Y$, then there exists a unique isomorphism $\phi: P \to P'$ such that $p'_1 \circ \phi = p_1$ and $p'_2 \circ \phi = p_2$.
+\end{lemma}
+
+\begin{proof}
+Since $(P, p_1, p_2)$ is a pullback and we have morphisms $p'_1: P' \to X$ and $p'_2: P' \to Y$ such that $f \circ p'_1 = g \circ p'_2$, the universal property of $P$ yields a unique morphism $\psi: P' \to P$ such that $p_1 \circ \psi = p'_1$ and $p_2 \circ \psi = p'_2$. 
+Symmetrically, since $(P', p'_1, p'_2)$ is a pullback, the morphisms $p_1: P \to X$ and $p_2: P \to Y$ factor through $P'$ via a unique morphism $\phi: P \to P'$ such that $p'_1 \circ \phi = p_1$ and $p'_2 \circ \phi = p_2$.
+
+Consider the composition $\psi \circ \phi: P \to P$. We observe that:
+\[
+p_1 \circ (\psi \circ \phi) = (p_1 \circ \psi) \circ \phi = p'_1 \circ \phi = p_1
+\]
+\[
+p_2 \circ (\psi \circ \phi) = (p_2 \circ \psi) \circ \phi = p'_2 \circ \phi = p_2
+\]
+However, the identity morphism $\operatorname{id}_P: P \to P$ also satisfies $p_1 \circ \operatorname{id}_P = p_1$ and $p_2 \circ \operatorname{id}_P = p_2$. By the uniqueness aspect of the universal property of the pullback $P$, it must be that $\psi \circ \phi = \operatorname{id}_P$. 
+A perfectly analogous argument shows that $\phi \circ \psi = \operatorname{id}_{P'}$. Thus, $\phi$ is an isomorphism, and it is unique by construction.
+\end{proof}
+
+\section{The Pullback Lemma and Composition of Squares}
+
+A fundamental structural property of pullbacks is their behavior under composition. Often referred to as the \emph{Pullback Lemma} or the \emph{Pasting Lemma}, this theorem establishes that two consecutive Cartesian squares compose to yield a Cartesian square, and conversely, under certain conditions, a Cartesian outer rectangle implies the Cartesian nature of its constituent squares.
+
+\begin{theorem}[The Pasting Lemma]
+\label{thm:pasting_lemma}
+Consider the following commutative diagram in a category $\mathcal{C}$:
+\begin{equation}
+\label{eq:pasting_diagram}
+\begin{tikzcd}
+A \arrow[r, "a"] \arrow[d, "i"'] & B \arrow[r, "b"] \arrow[d, "j"'] & C \arrow[d, "k"] \\
+D \arrow[r, "c"'] & E \arrow[r, "d"'] & F
+\end{tikzcd}
+\end{equation}
+\begin{enumerate}
+    \item If both the right square $BCFE$ and the left square $ABED$ are pullbacks, then the outer rectangle $ACFD$ is a pullback.
+    \item If the right square $BCFE$ is a pullback and the outer rectangle $ACFD$ is a pullback, then the left square $ABED$ is a pullback.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\textbf{Part 1:} Assume $BCFE$ and $ABED$ are pullbacks. We wish to show that $ACFD$ is a pullback for the cospan $D \xrightarrow{d \circ c} F \xleftarrow{k} C$.
+Let $Q$ be an object with morphisms $q_1: Q \to D$ and $q_2: Q \to C$ such that $(d \circ c) \circ q_1 = k \circ q_2$.
+This equation can be rewritten as $d \circ (c \circ q_1) = k \circ q_2$. 
+Because $BCFE$ is a pullback, the morphisms $c \circ q_1: Q \to E$ and $q_2: Q \to C$ induce a unique morphism $u: Q \to B$ such that $j \circ u = c \circ q_1$ and $b \circ u = q_2$.
+Now, since $ABED$ is a pullback and we have morphisms $q_1: Q \to D$ and $u: Q \to B$ satisfying $c \circ q_1 = j \circ u$, there exists a unique morphism $v: Q \to A$ such that $i \circ v = q_1$ and $a \circ v = u$.
+We now verify that $v$ is the required unique morphism for the outer rectangle.
+The commutativity conditions are:
+\[
+i \circ v = q_1
+\]
+\[
+(b \circ a) \circ v = b \circ (a \circ v) = b \circ u = q_2
+\]
+To show uniqueness, suppose $v': Q \to A$ is another morphism satisfying $i \circ v' = q_1$ and $(b \circ a) \circ v' = q_2$.
+Let $u' = a \circ v'$. Then $j \circ u' = j \circ a \circ v' = c \circ i \circ v' = c \circ q_1$.
+Also, $b \circ u' = b \circ a \circ v' = q_2$.
+By the uniqueness property of the pullback $BCFE$, we must have $u' = u$.
+Thus $a \circ v' = u$ and $i \circ v' = q_1$. By the uniqueness property of the pullback $ABED$, we must have $v' = v$. This proves Part 1.
+
+\textbf{Part 2:} Assume $BCFE$ and $ACFD$ are pullbacks. We must show $ABED$ is a pullback.
+Suppose we have $Q$ with $q_1: Q \to D$ and $q_2: Q \to B$ such that $c \circ q_1 = j \circ q_2$.
+Then we can construct a morphism $b \circ q_2: Q \to C$. We compute:
+\[
+k \circ (b \circ q_2) = (k \circ b) \circ q_2 = (d \circ j) \circ q_2 = d \circ (j \circ q_2) = d \circ (c \circ q_1) = (d \circ c) \circ q_1
+\]
+Since $ACFD$ is a pullback, there exists a unique morphism $v: Q \to A$ such that $i \circ v = q_1$ and $(b \circ a) \circ v = b \circ q_2$.
+We need to show $a \circ v = q_2$.
+Consider the morphisms $j \circ (a \circ v): Q \to E$ and $b \circ (a \circ v): Q \to C$.
+We know $b \circ (a \circ v) = b \circ q_2$.
+Furthermore, $j \circ a \circ v = c \circ i \circ v = c \circ q_1 = j \circ q_2$.
+Thus, $a \circ v$ and $q_2$ are two morphisms from $Q \to B$ that have the same composition with $j$ and $b$. By the uniqueness property of the pullback $BCFE$, it follows that $a \circ v = q_2$.
+The uniqueness of $v$ follows from the fact that any such factorization must also be a factorization for the outer rectangle $ACFD$, which has a unique factorization $v$. This proves Part 2.
+\end{proof}
+
+\section{Fiber Products in Algebraic Geometry}
+
+In the category of schemes $\mathbf{Sch}$, fiber products are not merely limits of sets, but involve delicate topological and algebraic constructions. The fiber product of schemes $X$ and $Y$ over a base scheme $S$ encapsulates the notion of intersections of varieties, base change of morphisms, and the parameterization of families of algebraic objects.
+
+\begin{definition}[Fiber Product of Schemes]
+Let $f: X \to S$ and $g: Y \to S$ be morphisms of schemes. A fiber product of $X$ and $Y$ over $S$, denoted $X \times_S Y$, is a scheme along with projection morphisms $p_1: X \times_S Y \to X$ and $p_2: X \times_S Y \to Y$ that satisfy the universal property of the pullback in the category $\mathbf{Sch}$.
+\end{definition}
+
+\begin{theorem}[Existence of Fiber Products in $\mathbf{Sch}$]
+The category of schemes $\mathbf{Sch}$ admits all finite limits. In particular, the fiber product of any two schemes over a third always exists.
+\end{theorem}
+
+\begin{proof}
+The proof proceeds by gluing affine schemes. 
+Let $S = \operatorname{Spec}(R)$ be an affine scheme, and let $X = \operatorname{Spec}(A)$ and $Y = \operatorname{Spec}(B)$ be affine schemes over $S$. The morphisms $f$ and $g$ correspond to ring homomorphisms $\phi: R \to A$ and $\psi: R \to B$. 
+The coproduct of $A$ and $B$ in the category of $R$-algebras is the tensor product $A \otimes_R B$.
+Since the contravariant functor $\operatorname{Spec}$ transforms colimits of rings into limits of affine schemes, we have that the pullback of affine schemes is given by the spectrum of the tensor product:
+\[
+\operatorname{Spec}(A) \times_{\operatorname{Spec}(R)} \operatorname{Spec}(B) \cong \operatorname{Spec}(A \otimes_R B)
+\]
+For general schemes, one covers $S$ by affine open subschemes $S_i = \operatorname{Spec}(R_i)$. For each $i$, one covers the preimages $f^{-1}(S_i)$ and $g^{-1}(S_i)$ by affine open subschemes $X_{ij} = \operatorname{Spec}(A_{ij})$ and $Y_{ik} = \operatorname{Spec}(B_{ik})$. 
+The fiber products $X_{ij} \times_{S_i} Y_{ik} \cong \operatorname{Spec}(A_{ij} \otimes_{R_i} B_{ik})$ exist by the affine case.
+These local affine fiber products are then glued together along their intersections. The canonical nature of the tensor product ensures that the gluing cocycle condition is satisfied, yielding a global scheme $X \times_S Y$.
+The verification that this glued scheme satisfies the universal property follows from the fact that morphisms to a scheme can be defined locally.
+\end{proof}
+
+\section{Replay Dynamics as Categorical Pullbacks}
+
+In the study of concurrent systems, rewriting logic, and temporal event graphs, a \emph{replay} can be formalized as a categorical pullback in an appropriate category of executions or spans. We introduce the category $\mathbf{Exec}$, where objects are states and morphisms are execution traces.
+
+\begin{definition}[Replay Square]
+Let $\alpha: S \to S_1$ and $\beta: S \to S_2$ be two independent execution traces diverging from a common initial state $S$. A \emph{replay} of $\alpha$ after $\beta$ (and vice versa) constitutes a pushout square. However, the \emph{backward replay} or \emph{causal history reconstruction} is modeled via a pullback. 
+Suppose we observe two traces ending in a common final state: $\gamma: S'_1 \to S_f$ and $\delta: S'_2 \to S_f$. The categorical pullback of this cospan determines the most recent common ancestor state and the minimal independent histories required to reach $S_f$.
+\end{definition}
+
+\begin{theorem}[Completeness of Backward Replay]
+If $\mathbf{Exec}$ is a category admitting all finite limits, and the morphisms satisfy the axiom of deterministic unzipping (i.e., every cospan of atomic events can be uniquely resolved into a minimal pullback square), then every concurrent history can be uniquely parsed into a causal directed acyclic graph.
+\end{theorem}
+
+\begin{proof}
+Consider a final state $S_f$. Let $H_f$ be the slice category $\mathbf{Exec}/S_f$. Objects in $H_f$ are execution traces ending in $S_f$, and morphisms are history embeddings.
+Let $\gamma: S_1 \to S_f$ and $\delta: S_2 \to S_f$ be two distinct minimal observations leading to $S_f$. 
+By assumption, $\mathbf{Exec}$ admits finite limits, so the pullback $S_1 \times_{S_f} S_2$ exists. Let this object be $P$, equipped with projections $p_1: P \to S_1$ and $p_2: P \to S_2$.
+We define the causal precedence relation $S \prec S'$ if there exists a non-identity morphism $S \to S'$.
+The pullback $P$ represents the maximal common history of the observations $\gamma$ and $\delta$. 
+Because the morphisms satisfy deterministic unzipping, the pullback square:
+\begin{equation}
+\label{eq:replay_pullback}
+\begin{tikzcd}
+P \arrow[r, "p_2"] \arrow[d, "p_1"'] & S_2 \arrow[d, "\delta"] \\
+S_1 \arrow[r, "\gamma"'] & S_f
+\end{tikzcd}
+\end{equation}
+identifies $P$ uniquely as the state prior to the concurrent divergence of the events characterized by $p_1$ and $p_2$.
+By iterating this pullback construction over all pairs of incoming edges to any state, and taking the limit of the resulting diagrams, we construct a unique directed acyclic graph that minimally represents the causal dependencies of the entire system history.
+This limit exists due to the completeness of $\mathbf{Exec}$ with respect to finite limits.
+\end{proof}
+
+\section{Limits and Colimits: Beyond Pullbacks}
+
+While pullbacks are a specific type of limit, it is crucial to recognize their role in the broader context of complete categories. 
+
+\begin{lemma}[Limits from Products and Equalizers]
+\label{lem:limits_from_products}
+A category $\mathcal{C}$ has all finite limits if and only if it has a terminal object, all finite products, and all equalizers. Specifically, pullbacks can be constructed from products and equalizers.
+\end{lemma}
+
+\begin{proof}
+Let $X \xrightarrow{f} Z \xleftarrow{g} Y$ be a cospan in $\mathcal{C}$.
+Since $\mathcal{C}$ has finite products, the product $X \times Y$ exists, along with projections $\pi_X: X \times Y \to X$ and $\pi_Y: X \times Y \to Y$.
+We can form two morphisms from $X \times Y$ to $Z$:
+\[
+\alpha = f \circ \pi_X
+\]
+\[
+\beta = g \circ \pi_Y
+\]
+Since $\mathcal{C}$ has equalizers, there exists an object $E$ and a morphism $e: E \to X \times Y$ that equalizes $\alpha$ and $\beta$. That is, $\alpha \circ e = \beta \circ e$, and $e$ is universal with this property.
+We define $P = E$, $p_1 = \pi_X \circ e$, and $p_2 = \pi_Y \circ e$.
+Then $f \circ p_1 = f \circ \pi_X \circ e = \alpha \circ e$.
+And $g \circ p_2 = g \circ \pi_Y \circ e = \beta \circ e$.
+Since $\alpha \circ e = \beta \circ e$, the square commutes.
+To verify the universal property, suppose $q_1: Q \to X$ and $q_2: Q \to Y$ satisfy $f \circ q_1 = g \circ q_2$.
+By the universal property of the product $X \times Y$, there is a unique $h: Q \to X \times Y$ such that $\pi_X \circ h = q_1$ and $\pi_Y \circ h = q_2$.
+Then $\alpha \circ h = f \circ \pi_X \circ h = f \circ q_1$.
+And $\beta \circ h = g \circ \pi_Y \circ h = g \circ q_2$.
+Since $f \circ q_1 = g \circ q_2$, we have $\alpha \circ h = \beta \circ h$.
+By the universal property of the equalizer $e: E \to X \times Y$, there exists a unique $u: Q \to E$ such that $e \circ u = h$.
+Then $p_1 \circ u = \pi_X \circ e \circ u = \pi_X \circ h = q_1$, and $p_2 \circ u = \pi_Y \circ e \circ u = \pi_Y \circ h = q_2$.
+Uniqueness of $u$ follows from the uniqueness properties of the product and equalizer. Thus, $E$ is indeed the pullback.
+\end{proof}
+
+\section{Pullbacks in Topos Theory}
+
+In an elementary topos $\mathcal{E}$, pullbacks are omnipresent and interact deeply with the subobject classifier $\Omega$.
+
+\begin{theorem}[Pullback of Subobjects]
+In an elementary topos $\mathcal{E}$, the pullback of a monomorphism is a monomorphism. Furthermore, the pullback operation defines a functor $f^*: \operatorname{Sub}(Z) \to \operatorname{Sub}(X)$ for any morphism $f: X \to Z$, where $\operatorname{Sub}(A)$ denotes the poset category of subobjects of $A$.
+\end{theorem}
+
+\begin{proof}
+Let $m: Y \to Z$ be a monomorphism and $f: X \to Z$ be any morphism. Form the pullback:
+\begin{equation}
+\label{eq:mono_pullback}
+\begin{tikzcd}
+X \times_Z Y \arrow[r, "p_2"] \arrow[d, "p_1"'] & Y \arrow[d, "m", hook] \\
+X \arrow[r, "f"'] & Z
+\end{tikzcd}
+\end{equation}
+We must show that $p_1$ is a monomorphism. 
+Suppose $h, k: Q \to X \times_Z Y$ are morphisms such that $p_1 \circ h = p_1 \circ k$.
+We have $m \circ p_2 \circ h = f \circ p_1 \circ h = f \circ p_1 \circ k = m \circ p_2 \circ k$.
+Since $m$ is a monomorphism, $m \circ (p_2 \circ h) = m \circ (p_2 \circ k)$ implies $p_2 \circ h = p_2 \circ k$.
+Now we have $p_1 \circ h = p_1 \circ k$ and $p_2 \circ h = p_2 \circ k$.
+By the uniqueness property of the pullback (with $Q$ as the test object and morphisms $p_1 \circ h$ and $p_2 \circ h$), there is a unique morphism $u: Q \to X \times_Z Y$ factoring them. Both $h$ and $k$ are such morphisms, so $h = k$.
+Thus $p_1$ is a monomorphism.
+The assignment $m \mapsto p_1$ clearly preserves the partial order of subobjects (factorization), thereby defining a monotone map, i.e., a functor $f^*: \operatorname{Sub}(Z) \to \operatorname{Sub}(X)$, known as the base change or pullback functor.
+\end{proof}
+
+\section{Conclusion}
+
+The rigorous categorical treatment of pullbacks reveals their foundational importance across mathematics and theoretical computer science. From defining intersections in algebraic geometry to capturing the intrinsic dependencies in concurrent replay dynamics, the fiber product stands as a versatile and computationally profound limit structure. The theorems established in this chapter provide the indispensable bedrock for the advanced homotopic and categorical investigations that follow.

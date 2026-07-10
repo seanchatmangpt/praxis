@@ -1054,7 +1054,11 @@ pub fn run(
         }
     }
     if part_body.len() > header.len() {
-        partition_digests.push(write_evidence_partition(&evidence_dir, part_idx, &part_body)?);
+        partition_digests.push(write_evidence_partition(
+            &evidence_dir,
+            part_idx,
+            &part_body,
+        )?);
     }
     let mut ocel_hasher = blake3::Hasher::new();
     for digest in &partition_digests {
@@ -1309,11 +1313,7 @@ fn dir_bytes_recursive(dir: &Path) -> usize {
 }
 
 /// Writes one OCEL evidence partition and returns its BLAKE3 digest.
-fn write_evidence_partition(
-    dir: &Path,
-    idx: usize,
-    body: &str,
-) -> Result<String, CngRefusal> {
+fn write_evidence_partition(dir: &Path, idx: usize, body: &str) -> Result<String, CngRefusal> {
     let path = dir.join(format!("part-{idx:05}.ttl"));
     fs::write(&path, body)
         .map_err(|e| CngRefusal::IoRefused(format!("write {}: {e}", path.display())))?;

@@ -1,0 +1,56 @@
+This is BibTeX, Version 0.99d (TeX Live 2024)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+A level-1 auxiliary file: chapters/01_combinatorial_maximalism.aux
+A level-1 auxiliary file: chapters/02_discrete_topology.aux
+A level-1 auxiliary file: chapters/03_galois_connections.aux
+A level-1 auxiliary file: chapters/04_pullbacks_replay.aux
+A level-1 auxiliary file: chapters/05_discrete_morse_theory.aux
+A level-1 auxiliary file: chapters/06_computational_complexity.aux
+A level-1 auxiliary file: chapters/07_fsm_cohomology.aux
+A level-1 auxiliary file: chapters/08_error_correcting_codes.aux
+A level-1 auxiliary file: chapters/09_two_type_logic.aux
+A level-1 auxiliary file: chapters/10_conclusion.aux
+The style file: alpha.bst
+Database file #1: references.bib
+You've used 12 entries,
+            2543 wiz_defined-function locations,
+            635 strings with 6005 characters,
+and the built_in function-call counts, 3662 in all, are:
+= -- 332
+> -- 135
+< -- 12
++ -- 42
+- -- 39
+* -- 220
+:= -- 626
+add.period$ -- 36
+call.type$ -- 12
+change.case$ -- 55
+chr.to.int$ -- 12
+cite$ -- 12
+duplicate$ -- 186
+empty$ -- 306
+format.name$ -- 59
+if$ -- 737
+int.to.chr$ -- 1
+int.to.str$ -- 0
+missing$ -- 21
+newline$ -- 63
+num.names$ -- 36
+pop$ -- 87
+preamble$ -- 1
+purify$ -- 76
+quote$ -- 0
+skip$ -- 131
+stack$ -- 0
+substring$ -- 131
+swap$ -- 15
+text.length$ -- 12
+text.prefix$ -- 8
+top$ -- 0
+type$ -- 60
+warning$ -- 0
+while$ -- 32
+width$ -- 15
+write$ -- 152

@@ -1,0 +1,4 @@
+[pack]
+name = "otel-weaver-pack"
+version = "26.7.9"
+description = "OTEL Weaver semantic-convention registry and Rust telemetry bindings generated from the otel-bridge ontology (ontology.ttl is a symlink to crates/praxis-graphlaw/ontologies/core/otel-bridge.ttl)"

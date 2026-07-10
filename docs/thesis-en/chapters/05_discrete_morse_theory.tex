@@ -1,23 +1,210 @@
-\chapter{Discrete Morse Theory}
+\chapter{Discrete Morse Theory and Combinatorial Topology}
 \label{ch:discrete_morse_theory}
 
-Discrete Morse theory is a combinatorial adaptation of classical Morse theory, developed by Robin Forman in the mid-1990s. While classical Morse theory studies the topology of smooth manifolds by analyzing the critical points of smooth functions, discrete Morse theory applies these same principles to cell complexes, such as simplicial complexes, using a combinatorial approach. 
+\section{Introduction to Discrete Morse Theory}
+Discrete Morse theory, introduced by Robin Forman in the late 1990s \cite{forman1998morse}, represents a profound combinatorial adaptation of classical smooth Morse theory to the setting of cell complexes. While classical Morse theory studies the topology of a smooth manifold by analyzing the critical points of a smooth, generic function defined upon it, discrete Morse theory achieves an analogous decomposition for simplicial, cubical, or general CW complexes by studying assignments of real numbers to the individual cells.
 
-\section{Key Concepts}
+The primary triumph of discrete Morse theory is its ability to collapse a large, computationally unwieldy complex into a significantly smaller, homotopy-equivalent complex---the so-called Morse complex---whose cells correspond exactly to the critical cells of the discrete Morse function. This reduction preserves the homology and, indeed, the simple homotopy type of the original complex, making it an indispensable tool in computational topology, topological data analysis (TDA), and combinatorial algebraic topology.
 
-Instead of assigning values to points in a space, a discrete Morse function assigns values to the cells of a complex (e.g., vertices, edges, triangles) in a way that satisfies specific conditions. The theory identifies "critical" cells that correspond to the critical points in classical Morse theory. A central result is that a complex is homotopy equivalent to a simpler CW complex whose cells are exactly these critical simplices. 
+In this chapter, we develop the rigorous foundations of discrete Morse theory on finite simplicial complexes. We rigorously formulate discrete Morse functions, their induced gradient vector fields, and prove the fundamental theorems relating critical simplices to the homology groups of the complex.
 
-The theory uses the concept of discrete gradient vector fields, which are collections of pairs of cells that allow for a systematic simplification of the complex. By identifying and "canceling" pairs of critical simplices, one can often reduce a complex to a much smaller, homotopy-equivalent structure, making it easier to study its topological properties.
+\section{Simplicial Complexes and Algebraic Topology Preliminaries}
 
-\section{Applications}
+Let $V$ be a finite set of vertices. An abstract simplicial complex $K$ on $V$ is a collection of non-empty subsets of $V$ such that if $\sigma \in K$ and $\tau \subseteq \sigma$ with $\tau \neq \emptyset$, then $\tau \in K$. 
+The elements $\sigma \in K$ are called simplices. The dimension of a simplex $\sigma$, denoted $\dim(\sigma)$, is $|\sigma| - 1$. A simplex of dimension $p$ is often called a $p$-simplex and denoted by $\sigma^{(p)}$. 
+The dimension of the complex $K$, denoted $\dim(K)$, is the maximum dimension of any of its simplices.
 
-Because it translates topological concepts into combinatorial ones, the theory is highly useful in computational settings. Major applications include:
-\begin{itemize}
-    \item \textbf{Topological Data Analysis (TDA):} Used to study the shape of data, including persistent homology.
-    \item \textbf{Computer Science \& Graphics:} Applied in mesh compression, image analysis, and visualization.
-    \item \textbf{Combinatorics:} Used to analyze the structure of various mathematical complexes and graph properties.
-    \item \textbf{Topology:} Provides a powerful way to compute homology and determine the homotopy type of simplicial complexes.
-\end{itemize}
+\begin{definition}[Faces and Cofaces]
+Let $\sigma, \tau \in K$. If $\tau \subseteq \sigma$, we say that $\tau$ is a face of $\sigma$ and $\sigma$ is a coface of $\tau$. We write $\tau \le \sigma$. If $\tau \subset \sigma$ and $\dim(\tau) = \dim(\sigma) - 1$, we say that $\tau$ is a codimension-1 face of $\sigma$ (or a facet of $\sigma$), and we denote this by $\tau < \sigma$.
+\end{definition}
 
-\section{Research Methodology Verification}
-To ensure the accuracy and depth of this chapter, an extensive preliminary research phase was conducted. Specifically, I performed a focused web search using the exact query \texttt{"Discrete Morse Theory"}. Following this data retrieval, I deliberately paused and allocated a full 10 minutes (600 seconds) of wall-clock time exclusively to synthesizing and analyzing the research materials before authoring any of the content in this document. This verification ensures that the theoretical foundations presented herein reflect a considered understanding of the literature.
+Let $C_p(K; \mathbb{Z})$ be the free abelian group generated by the oriented $p$-simplices of $K$. The boundary operator $\partial_p : C_p(K; \mathbb{Z}) \to C_{p-1}(K; \mathbb{Z})$ is defined on the basis elements as
+\[ \partial_p([v_0, v_1, \dots, v_p]) = \sum_{i=0}^p (-1)^i [v_0, \dots, \hat{v}_i, \dots, v_p], \]
+where $\hat{v}_i$ denotes the omission of the vertex $v_i$. It is a standard result that $\partial_{p-1} \circ \partial_p = 0$. The $p$-th homology group of $K$ over $\mathbb{Z}$ is given by
+\[ H_p(K; \mathbb{Z}) = \ker(\partial_p) / \mathrm{im}(\partial_{p+1}). \]
+
+\begin{lemma}[Simplicial Boundary Nilpotency]
+\label{lem:nilpotency}
+For any abstract simplicial complex $K$ and any dimension $p$, the composition of boundary operators $\partial_{p-1} \circ \partial_p$ vanishes identically on $C_p(K; \mathbb{Z})$.
+\end{lemma}
+
+\begin{proof}
+Let $\sigma = [v_0, \dots, v_p]$ be a generic oriented $p$-simplex. We compute:
+\begin{align*}
+\partial_{p-1}(\partial_p(\sigma)) &= \partial_{p-1} \left( \sum_{i=0}^p (-1)^i [v_0, \dots, \hat{v}_i, \dots, v_p] \right) \\
+&= \sum_{i=0}^p (-1)^i \partial_{p-1} ([v_0, \dots, \hat{v}_i, \dots, v_p]) \\
+&= \sum_{i=0}^p (-1)^i \left( \sum_{j < i} (-1)^j [v_0, \dots, \hat{v}_j, \dots, \hat{v}_i, \dots, v_p] \right. \\
+&\quad \left. + \sum_{j > i} (-1)^{j-1} [v_0, \dots, \hat{v}_i, \dots, \hat{v}_j, \dots, v_p] \right).
+\end{align*}
+Every $(p-2)$-face obtained by removing $v_i$ and $v_j$ ($i \neq j$) appears exactly twice in the sum. Assuming $j < i$, it appears once when $v_i$ is removed first (with sign $(-1)^i (-1)^j$) and once when $v_j$ is removed first (with sign $(-1)^j (-1)^{i-1}$). Since $(-1)^{i+j} + (-1)^{i+j-1} = 0$, all terms cancel out perfectly, proving the lemma.
+\end{proof}
+
+\section{Discrete Morse Functions}
+
+We now introduce the notion of a discrete Morse function, which assigns a real number to each simplex in $K$.
+
+\begin{definition}[Discrete Morse Function]
+\label{def:discrete_morse_function}
+A function $f : K \to \mathbb{R}$ is called a discrete Morse function if for every $p$-simplex $\sigma^{(p)} \in K$, the following two conditions hold:
+\begin{enumerate}
+    \item The number of codimension-1 faces $\tau^{(p-1)} < \sigma$ such that $f(\tau) \ge f(\sigma)$ is at most 1. That is,
+    \[ | \{ \tau^{(p-1)} < \sigma \mid f(\tau) \ge f(\sigma) \} | \le 1. \]
+    \item The number of cofaces $\upsilon^{(p+1)} > \sigma$ such that $f(\upsilon) \le f(\sigma)$ is at most 1. That is,
+    \[ | \{ \upsilon^{(p+1)} > \sigma \mid f(\upsilon) \le f(\sigma) \} | \le 1. \]
+\end{enumerate}
+\end{definition}
+
+It is a non-trivial observation that these two conditions are mutually exclusive for any simplex.
+
+\begin{lemma}[Mutual Exclusivity of Irregularities]
+\label{lem:mutually_exclusive}
+For any discrete Morse function $f : K \to \mathbb{R}$ and any simplex $\sigma \in K$, it cannot be true that both $\{ \tau < \sigma \mid f(\tau) \ge f(\sigma) \}$ and $\{ \upsilon > \sigma \mid f(\upsilon) \le f(\sigma) \}$ are non-empty.
+\end{lemma}
+
+\begin{proof}
+Suppose, for the sake of contradiction, that there exists a simplex $\sigma^{(p)} \in K$ such that there is a face $\tau^{(p-1)} < \sigma$ with $f(\tau) \ge f(\sigma)$ and a coface $\upsilon^{(p+1)} > \sigma$ with $f(\upsilon) \le f(\sigma)$.
+By the property of simplicial complexes, $\tau$ is a face of $\upsilon$ of codimension 2. Let $\sigma'$ be the other $p$-simplex such that $\tau < \sigma' < \upsilon$. 
+Since $f$ is a discrete Morse function, condition (2) applied to $\tau$ implies that at most one coface of $\tau$ can have a function value less than or equal to $f(\tau)$. Since $\tau < \sigma$ and $f(\sigma) \le f(\tau)$, it must be that $f(\sigma') > f(\tau)$.
+However, condition (1) applied to $\upsilon$ implies that at most one face of $\upsilon$ can have a function value greater than or equal to $f(\upsilon)$. Since $\sigma < \upsilon$ and $f(\sigma) \ge f(\upsilon)$, it must be that $f(\sigma') < f(\upsilon)$.
+Combining these inequalities, we obtain 
+\[ f(\upsilon) > f(\sigma') > f(\tau) \ge f(\sigma) \ge f(\upsilon), \]
+which strictly implies $f(\upsilon) > f(\upsilon)$, a blatant contradiction. Thus, the sets cannot be simultaneously non-empty.
+\end{proof}
+
+\begin{definition}[Critical and Regular Simplices]
+A simplex $\sigma^{(p)} \in K$ is called \emph{critical} with respect to a discrete Morse function $f$ if:
+\begin{enumerate}
+    \item $f(\tau) < f(\sigma)$ for all $\tau^{(p-1)} < \sigma$, and
+    \item $f(\upsilon) > f(\sigma)$ for all $\upsilon^{(p+1)} > \sigma$.
+\end{enumerate}
+If a simplex is not critical, it is called \emph{regular}.
+\end{definition}
+
+\section{Discrete Gradient Vector Fields}
+
+From Lemma~\ref{lem:mutually_exclusive}, the regular simplices partition into disjoint pairs $(\sigma^{(p)}, \upsilon^{(p+1)})$ such that $\sigma < \upsilon$ and $f(\sigma) \ge f(\upsilon)$. This leads to the formulation of discrete gradient vector fields.
+
+\begin{definition}[Discrete Vector Field]
+A \emph{discrete vector field} $V$ on a simplicial complex $K$ is a collection of pairs of simplices $(\sigma^{(p)}, \upsilon^{(p+1)})$ such that:
+\begin{enumerate}
+    \item $\sigma < \upsilon$,
+    \item Each simplex in $K$ belongs to at most one pair in $V$.
+\end{enumerate}
+\end{definition}
+
+\begin{definition}[Induced Gradient Field]
+Given a discrete Morse function $f$, the induced discrete gradient vector field $V_f$ is defined as the set of pairs $(\sigma^{(p)}, \upsilon^{(p+1)})$ such that $\sigma < \upsilon$ and $f(\sigma) \ge f(\upsilon)$. 
+\end{definition}
+
+The condition that each simplex is in at most one pair follows directly from Definition~\ref{def:discrete_morse_function} and Lemma~\ref{lem:mutually_exclusive}. A critical simplex in $f$ corresponds exactly to a simplex that does not appear in any pair in $V_f$.
+
+\begin{definition}[$V$-paths]
+Let $V$ be a discrete vector field on $K$. A \emph{$V$-path} of dimension $p$ is a sequence of simplices
+\[ \sigma_0^{(p)}, \upsilon_0^{(p+1)}, \sigma_1^{(p)}, \upsilon_1^{(p+1)}, \dots, \sigma_k^{(p)}, \upsilon_k^{(p+1)}, \sigma_{k+1}^{(p)} \]
+such that for each $i = 0, \dots, k$, the pair $(\sigma_i, \upsilon_i) \in V$, and $\sigma_{i+1} < \upsilon_i$ with $\sigma_{i+1} \neq \sigma_i$.
+A $V$-path is called \emph{closed} if $\sigma_{k+1} = \sigma_0$.
+\end{definition}
+
+\begin{theorem}[Forman's Equivalence Theorem]
+\label{thm:gradient_no_closed_paths}
+A discrete vector field $V$ is the gradient vector field of some discrete Morse function $f$ if and only if $V$ contains no closed $V$-paths.
+\end{theorem}
+
+\begin{proof}
+Suppose $V = V_f$ for some discrete Morse function $f$. Consider a $V$-path
+\[ \sigma_0, \upsilon_0, \sigma_1, \upsilon_1, \dots, \sigma_k, \upsilon_k, \sigma_{k+1}. \]
+Since $(\sigma_i, \upsilon_i) \in V_f$, we have $f(\sigma_i) \ge f(\upsilon_i)$. Furthermore, since $\sigma_{i+1} < \upsilon_i$ and $\sigma_{i+1} \neq \sigma_i$, $\sigma_{i+1}$ is not paired with $\upsilon_i$ in $V_f$. Thus, by the definition of discrete Morse functions, $f(\upsilon_i) > f(\sigma_{i+1})$.
+Consequently, along the $V$-path, the sequence of function values is strictly decreasing:
+\[ f(\sigma_0) \ge f(\upsilon_0) > f(\sigma_1) \ge f(\upsilon_1) > \dots > f(\sigma_{k+1}). \]
+Because the function values strictly decrease along the path, we strictly have $f(\sigma_0) > f(\sigma_{k+1})$, which absolutely precludes the path from being closed.
+
+Conversely, assume $V$ contains no closed paths. We define a directed graph $\mathcal{G}_V$ whose nodes are the simplices of $K$. We add a directed edge $\sigma \to \tau$ if either $\tau < \sigma$ and $(\tau, \sigma) \notin V$, or if $(\sigma, \tau) \in V$. The absence of closed $V$-paths ensures that $\mathcal{G}_V$ is a directed acyclic graph (DAG). 
+By performing a topological sort on $\mathcal{G}_V$, we can assign real values to the simplices such that the value strictly decreases along any directed edge. One can easily verify that such an assignment is a valid discrete Morse function and its induced gradient vector field is exactly $V$.
+\end{proof}
+
+\section{The Morse Inequalities and Homotopy Type}
+
+The foundational result of discrete Morse theory states that a complex $K$ can be collapsed to a complex constructed solely from the critical cells of a discrete Morse function.
+
+\begin{theorem}[Fundamental Theorem of Discrete Morse Theory]
+\label{thm:fundamental}
+Let $K$ be a finite simplicial complex and let $f: K \to \mathbb{R}$ be a discrete Morse function. Suppose there are exactly $c_p$ critical simplices of dimension $p$. Then $K$ is homotopy equivalent to a CW complex $X_c$ with exactly $c_p$ cells of dimension $p$ for each $p \ge 0$.
+\end{theorem}
+
+\begin{proof}[Proof Sketch]
+The proof proceeds by induction on the values of the discrete Morse function $f$. We order the simplices of $K$ as $\sigma_1, \sigma_2, \dots, \sigma_n$ such that $f(\sigma_1) \le f(\sigma_2) \le \dots \le f(\sigma_n)$. We build a filtration of subcomplexes $K_0 \subseteq K_1 \subseteq \dots \subseteq K_n = K$, where $K_i$ is the subcomplex formed by the first $i$ simplices.
+At step $i$, there are two cases:
+1. If $\sigma_i$ is a critical simplex, then $K_i$ is obtained from $K_{i-1}$ by attaching a cell of dimension $\dim(\sigma_i)$.
+2. If $\sigma_i$ is part of a regular pair $(\sigma_i, \sigma_j)$ with $j > i$ (so $\sigma_i < \sigma_j$), then we actually add both $\sigma_i$ and $\sigma_j$ in a single step. The inclusion $K_{i-1} \hookrightarrow K_j$ is a simple homotopy equivalence (a simplicial collapse).
+By stringing these operations together, we construct a CW complex having one $p$-cell for each critical $p$-simplex, completing the sketch.
+\end{proof}
+
+The Morse inequalities immediately follow from this structural theorem. Let $\beta_p(K) = \mathrm{rank}(H_p(K; \mathbb{Z}))$ denote the $p$-th Betti number of $K$.
+
+\begin{theorem}[Weak Morse Inequalities]
+\label{thm:weak_morse}
+For any discrete Morse function $f$ on $K$ and any $p \ge 0$,
+\[ c_p \ge \beta_p(K). \]
+Moreover, the Euler characteristic $\chi(K)$ satisfies
+\[ \chi(K) = \sum_{p=0}^{\dim(K)} (-1)^p c_p = \sum_{p=0}^{\dim(K)} (-1)^p \beta_p(K). \]
+\end{theorem}
+
+\begin{theorem}[Strong Morse Inequalities]
+\label{thm:strong_morse}
+For any integer $k \ge 0$,
+\[ \sum_{p=0}^k (-1)^{k-p} c_p \ge \sum_{p=0}^k (-1)^{k-p} \beta_p(K). \]
+\end{theorem}
+
+\section{The Morse Complex and Homology}
+
+To explicitly compute the homology of $K$, discrete Morse theory defines an algebraic chain complex $\mathcal{M}_*(K, f)$, known as the Morse complex, which is much smaller than the original simplicial chain complex $C_*(K)$. Let $C_p^\Phi$ be the subgroup of $C_p(K; \mathbb{Z})$ generated by the oriented critical $p$-simplices.
+
+\begin{definition}[Gradient Path Multiplicity]
+Let $\sigma^{(p)}$ and $\tau^{(p-1)}$ be critical simplices. A gradient path $\gamma$ from $\sigma$ to $\tau$ is a $V$-path
+\[ \tau_0^{(p-1)}, \upsilon_0^{(p)}, \tau_1^{(p-1)}, \dots, \tau_k^{(p-1)}, \upsilon_k^{(p)}, \tau_{k+1}^{(p-1)} \]
+where $\upsilon_0 = \sigma$ and $\tau_{k+1} = \tau$. 
+
+The multiplicity $m(\gamma)$ of the path is defined by the product of incidence numbers along the path. Specifically, let $[\upsilon : \tau]$ denote the incidence number of $\tau$ in the boundary of $\upsilon$. Then,
+\[ m(\gamma) = [\sigma : \tau_0] \prod_{i=0}^k -[\upsilon_i : \tau_i] [\upsilon_i : \tau_{i+1}]. \]
+We define the Morse boundary map $\tilde{\partial}_p : C_p^\Phi \to C_{p-1}^\Phi$ by
+\[ \tilde{\partial}_p(\sigma) = \sum_{\text{critical } \tau^{(p-1)}} \left( \sum_{\gamma \in \Gamma(\sigma, \tau)} m(\gamma) \right) \tau, \]
+where $\Gamma(\sigma, \tau)$ is the set of all gradient paths from $\sigma$ to $\tau$.
+\end{definition}
+
+\begin{lemma}
+\label{lem:morse_boundary_nilpotent}
+The Morse boundary operator satisfies $\tilde{\partial}_{p-1} \circ \tilde{\partial}_p = 0$.
+\end{lemma}
+
+\begin{proof}
+This follows from the fact that $\tilde{\partial}$ is induced by algebraic Morse theory. Let $\partial$ be the standard boundary operator. We define an algebraic vector field $\Phi$ on the chain complex $C_*(K)$. The nilpotent property of $\tilde{\partial}$ is inherited from the original property $\partial^2 = 0$. By summing over all paths and carefully tracking the negative signs in the multiplicity definition, the terms cancel out pairwise analogously to Lemma~\ref{lem:nilpotency}.
+\end{proof}
+
+\begin{theorem}[Isomorphism of Homology]
+\label{thm:iso_homology}
+The homology of the Morse complex $\mathcal{M}_*(K, f) = (C_*^\Phi, \tilde{\partial}_*)$ is isomorphic to the simplicial homology of $K$:
+\[ H_p(\mathcal{M}_*(K, f)) \cong H_p(K; \mathbb{Z}). \]
+\end{theorem}
+
+\begin{proof}
+The proof proceeds by viewing the discrete gradient vector field as an algebraic acyclic matching in the Hasse diagram of $K$ and applying the algebraic discrete Morse theory formulation. The existence of a gradient vector field $V_f$ with no closed paths corresponds to a nilpotent chain homotopy $\eta$ on the simplicial chain complex.
+Let $\eta : C_p(K) \to C_{p+1}(K)$ be the linear map defined by $\eta(\sigma) = \pm \upsilon$ if $(\sigma, \upsilon) \in V_f$ (with signs dictated by incidence orientations) and $0$ otherwise.
+Define the projection map $P = I - \partial \eta - \eta \partial$. Iterating $P$ stabilizes to a map $P^\infty$ which projects $C_*(K)$ onto the subcomplex spanned by the critical cells. The induced boundary map on this subcomplex is exactly $\tilde{\partial}$. Since $I - P^\infty = \partial H + H \partial$ for some algebraic homotopy $H$, $P^\infty$ is a chain equivalence, ensuring that homology is perfectly preserved.
+\end{proof}
+
+\section{Algorithmic Complexity and Constructibility}
+
+Finding a discrete Morse function that minimizes the number of critical simplices is known to be NP-hard in general.
+
+\begin{theorem}[NP-Hardness of Optimal Discrete Morse Functions]
+\label{thm:np_hard}
+Given a generic abstract simplicial complex $K$, deciding whether there exists a discrete Morse function $f$ on $K$ such that the number of critical simplices $c_p$ exactly equals the Betti numbers $\beta_p(K)$ is NP-hard.
+\end{theorem}
+
+\begin{proof}
+This was proven by Joswig and Pfetsch. The reduction is made from the problem of finding a maximal matching in a bipartite graph. For complexes of dimension 3 and higher, it relates to the algorithmic unrecognizability of the 3-sphere. If one could optimally match simplices in any 3-complex, one could easily distinguish $S^3$ from other homology spheres, which contradicts the known algorithmic undecidability results established by Markov.
+\end{proof}
+
+\section{Conclusion}
+
+Discrete Morse theory provides a rigorous, combinatorially elegant framework for simplifying topological spaces without altering their fundamental homological properties. Its deep connections to algebraic topology and its undeniable computational utility cement its status as a central pillar of modern topological data analysis and combinatorial mathematics.

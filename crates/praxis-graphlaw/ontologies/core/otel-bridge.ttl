@@ -1,0 +1,150 @@
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix ocel:    <https://www.ocel-standard.org/2.0/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix ob:      <https://ggen.io/ontology/otel-bridge#> .
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OTEL Bridge Ontology — Weaver semantic-convention registry source
+# ═══════════════════════════════════════════════════════════════════════════════
+# Single public semantic source from which ggen generates:
+#   (a) an OTel Weaver semantic-convention registry YAML
+#   (b) Rust telemetry bindings (chicago-tdd-tools OTel Weaver live-check)
+#
+# Shape is intentionally flat for SPARQL SELECT extraction: one node per
+# attribute carrying datatype properties (ob:attributeId, ob:attributeType,
+# ob:requirementLevel, ob:brief) plus one object property (ob:memberOf) to
+# the event-group node. Public-ontology mappings are annotations
+# (skos:closeMatch / rdfs:seeAlso) and never replace the flat literals.
+#
+# Public-ontology-first: attribute concepts map to OCEL 2.0
+# (core/ocel2.ttl, prefix https://www.ocel-standard.org/2.0/) and PROV-O
+# (core/prov-o.ttl, prefix http://www.w3.org/ns/prov#) where terms exist.
+# Only ob:Outcome and its two concepts are minted bridge terms (see comment).
+
+<https://ggen.io/ontology/otel-bridge>
+    a owl:Ontology ;
+    dcterms:title "OTEL Bridge Ontology — praxis Weaver registry source" ;
+    dcterms:description "Declares the event.praxis.activity_executed OTEL event semantic convention and its five required attributes, mapped to OCEL 2.0 and PROV-O public terms." ;
+    owl:versionInfo "26.7.9" .
+
+# ───── Vocabulary (classes + properties for the flat shape) ─────
+
+ob:EventGroup a owl:Class ;
+    rdfs:label "OTEL Event Group" ;
+    rdfs:comment "An OTEL semantic-convention group of type 'event'." .
+
+ob:Attribute a owl:Class ;
+    rdfs:label "OTEL Attribute" ;
+    rdfs:comment "A single OTEL semantic-convention attribute declaration." .
+
+ob:groupId a owl:DatatypeProperty ;
+    rdfs:domain ob:EventGroup ; rdfs:range xsd:string ;
+    rdfs:label "group id" .
+
+ob:stability a owl:DatatypeProperty ;
+    rdfs:domain ob:EventGroup ; rdfs:range xsd:string ;
+    rdfs:label "stability" .
+
+ob:attributeId a owl:DatatypeProperty ;
+    rdfs:domain ob:Attribute ; rdfs:range xsd:string ;
+    rdfs:label "attribute id" .
+
+ob:attributeType a owl:DatatypeProperty ;
+    rdfs:domain ob:Attribute ; rdfs:range xsd:string ;
+    rdfs:label "attribute type" .
+
+ob:requirementLevel a owl:DatatypeProperty ;
+    rdfs:domain ob:Attribute ; rdfs:range xsd:string ;
+    rdfs:label "requirement level" .
+
+ob:brief a owl:DatatypeProperty ;
+    rdfs:domain ob:Attribute ; rdfs:range xsd:string ;
+    rdfs:label "brief" .
+
+ob:memberOf a owl:ObjectProperty ;
+    rdfs:domain ob:Attribute ; rdfs:range ob:EventGroup ;
+    rdfs:label "member of" .
+
+# ───── Event group ─────
+
+ob:ActivityExecutedEvent a ob:EventGroup ;
+    rdfs:label "activity executed event" ;
+    ob:groupId "event.praxis.activity_executed" ;
+    ob:stability "development" ;
+    ob:brief "Records an observed process activity occurrence" ;
+    rdfs:seeAlso prov:Activity , ocel:Event .
+
+# ───── Attributes ─────
+
+ob:WorkflowIdAttr a ob:Attribute ;
+    ob:attributeId "process.workflow.id" ;
+    rdfs:label "workflow id" ;
+    rdfs:comment "Identifier of the workflow (process instance) this activity occurrence belongs to." ;
+    ob:brief "Identifier of the workflow (process instance) this activity occurrence belongs to." ;
+    ob:attributeType "string" ;
+    ob:requirementLevel "required" ;
+    ob:memberOf ob:ActivityExecutedEvent ;
+    skos:closeMatch ocel:Case ;
+    rdfs:seeAlso ocel:hasCase .
+
+ob:ObjectIdAttr a ob:Attribute ;
+    ob:attributeId "process.object.id" ;
+    rdfs:label "object id" ;
+    rdfs:comment "Unique identifier of the business object the activity touched." ;
+    ob:brief "Unique identifier of the business object the activity touched." ;
+    ob:attributeType "string" ;
+    ob:requirementLevel "required" ;
+    ob:memberOf ob:ActivityExecutedEvent ;
+    skos:closeMatch ocel:objectId .
+
+ob:ObjectTypeAttr a ob:Attribute ;
+    ob:attributeId "process.object.type" ;
+    rdfs:label "object type" ;
+    rdfs:comment "Named category of the business object (OCEL 2.0 object type)." ;
+    ob:brief "Named category of the business object (OCEL 2.0 object type)." ;
+    ob:attributeType "string" ;
+    ob:requirementLevel "required" ;
+    ob:memberOf ob:ActivityExecutedEvent ;
+    skos:closeMatch ocel:ObjectType .
+
+ob:ActivityIriAttr a ob:Attribute ;
+    ob:attributeId "process.activity.iri" ;
+    rdfs:label "activity IRI" ;
+    rdfs:comment "IRI of the executed activity; the activity label concept is OCEL 2.0 activityName, the occurrence concept is a PROV-O Activity." ;
+    ob:brief "IRI of the executed activity." ;
+    ob:attributeType "string" ;
+    ob:requirementLevel "required" ;
+    ob:memberOf ob:ActivityExecutedEvent ;
+    skos:closeMatch ocel:activityName ;
+    rdfs:seeAlso prov:Activity .
+
+ob:OutcomeAttr a ob:Attribute ;
+    ob:attributeId "process.outcome" ;
+    rdfs:label "outcome" ;
+    rdfs:comment "Typed completion outcome of the activity occurrence. Bridge term: verified against OCEL 2.0 (has generic event/object attributes but no outcome/status vocabulary), PROV-O (models generation/invalidation of entities but not typed completion outcomes of activities), and schema.org (actionStatus is scoped to web Actions, not process-mining activity occurrences). No public term fits, so it is minted here with a closed value vocabulary." ;
+    ob:brief "Typed completion outcome of the activity occurrence." ;
+    ob:attributeType "string" ;
+    ob:requirementLevel "required" ;
+    ob:memberOf ob:ActivityExecutedEvent .
+
+# Closed value vocabulary for process.outcome
+ob:OutcomeScheme a skos:ConceptScheme ;
+    rdfs:label "process outcome values" ;
+    rdfs:comment "Closed enumeration of permitted process.outcome values." .
+
+ob:OutcomeCompleted a skos:Concept ;
+    skos:inScheme ob:OutcomeScheme ;
+    skos:prefLabel "completed" ;
+    skos:notation "completed" ;
+    rdfs:comment "The activity ran to completion under the governed engine." .
+
+ob:OutcomeRefused a skos:Concept ;
+    skos:inScheme ob:OutcomeScheme ;
+    skos:prefLabel "refused" ;
+    skos:notation "refused" ;
+    rdfs:comment "The engine refused execution with a typed Refusal." .

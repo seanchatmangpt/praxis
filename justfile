@@ -220,3 +220,199 @@ chatman-sync-verify:
     timeout 120s ggen sync run
     timeout 120s ggen sync run
     git diff --exit-code -- 'crates/praxis-graphlaw/src/chatman' 'docs/chatman-engine'
+
+# --- OTel Weaver live-check ---
+# Campaign contracts: registry/otel/*.yaml (weaver 0.22.1 registry), cng --features otel-live
+# --bin otel-live (positive prints OTEL_SPANS_EMITTED=1 / exit 0; negative omits process.outcome,
+# exits nonzero, prints NEGATIVE_REFUSAL_CODE=WEAVER_SEMANTIC_CONVENTION_REFUSED).
+# Ports overridable: OTEL_GRPC_PORT (default 4317), OTEL_ADMIN_PORT (default 4320).
+# Handoff boundary after admission: docs/otel-rdf-handoff.md (G10 doc-only, G11 BLOCKED).
+
+# Regenerate via ggen (same command `just standing` uses), then print a combined registry digest
+otel-weaver-generate:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    command -v ggen >/dev/null || { echo "ggen not found on PATH — run: cargo install --path crates/ggen --locked"; exit 1; }
+    timeout 120s ggen sync run
+    files=$(ls registry/otel/*.yaml 2>/dev/null | sort) || true
+    if [ -z "${files:-}" ]; then
+        echo "otel-weaver-generate: no registry/otel/*.yaml files found (registry agent not landed yet)"; exit 1
+    fi
+    if command -v b3sum >/dev/null 2>&1; then
+        digest=$(cat $files | b3sum | awk '{print $1}')
+    else
+        digest=$(cat $files | shasum -a 256 | awk '{print $1}')
+    fi
+    echo "WEAVER_REGISTRY_DIGEST=$digest"
+
+# Static registry check against weaver 0.22.1 semantic-convention schema
+otel-weaver-check:
+    timeout 120s weaver registry check -r registry/otel --future
+
+# Build the feature-gated otel-live emitter binary
+otel-weaver-build:
+    timeout 900s cargo build -p cng --features otel-live --bin otel-live
+
+# Start weaver live-check backgrounded; PID in target/weaver-live/weaver.pid; TCP-poll readiness
+otel-weaver-live-start outdir="target/weaver-live":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    grpc_port="${OTEL_GRPC_PORT:-4317}"; admin_port="${OTEL_ADMIN_PORT:-4320}"
+    for p in "$grpc_port" "$admin_port"; do
+        if nc -z 127.0.0.1 "$p" 2>/dev/null; then
+            echo "otel-weaver-live-start: port $p already occupied on 127.0.0.1 — stop the holder or override OTEL_GRPC_PORT/OTEL_ADMIN_PORT"; exit 1
+        fi
+    done
+    mkdir -p "{{outdir}}"
+    weaver registry live-check -r registry/otel \
+        --otlp-grpc-address 127.0.0.1 --otlp-grpc-port "$grpc_port" \
+        --admin-port "$admin_port" --inactivity-timeout 60 \
+        --format json --output "{{outdir}}/" > "{{outdir}}/weaver.stdout.log" 2>&1 &
+    pid=$!
+    echo "$pid" > "{{outdir}}/weaver.pid"
+    # Readiness = admin port accepting TCP, not a bare sleep (max ~15s @ 0.5s steps)
+    for _ in $(seq 1 30); do
+        if nc -z 127.0.0.1 "$admin_port" 2>/dev/null; then
+            echo "otel-weaver-live-start: weaver ready (pid $pid, grpc $grpc_port, admin $admin_port)"; exit 0
+        fi
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "otel-weaver-live-start: weaver exited before becoming ready; log follows:"; cat "{{outdir}}/weaver.stdout.log"; exit 1
+        fi
+        sleep 0.5
+    done
+    echo "otel-weaver-live-start: admin port $admin_port never opened within 15s"; kill "$pid" 2>/dev/null || true; exit 1
+
+# Emit one positive ActivityExecuted batch at the running live-check endpoint
+otel-weaver-production-run:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    grpc_port="${OTEL_GRPC_PORT:-4317}"
+    timeout 300s cargo run -p cng --features otel-live --bin otel-live -- \
+        --endpoint "http://127.0.0.1:$grpc_port" --mode positive
+
+# Stop live-check via admin POST /stop, pidfile kill fallback, wait for exit
+otel-weaver-live-stop outdir="target/weaver-live":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    admin_port="${OTEL_ADMIN_PORT:-4320}"
+    curl -s -X POST "http://127.0.0.1:$admin_port/stop" >/dev/null 2>&1 || true
+    pidfile="{{outdir}}/weaver.pid"
+    if [ -f "$pidfile" ]; then
+        pid=$(cat "$pidfile")
+        # Wait up to 15s for graceful exit after /stop before escalating
+        for _ in $(seq 1 30); do
+            kill -0 "$pid" 2>/dev/null || { echo "otel-weaver-live-stop: weaver (pid $pid) exited"; rm -f "$pidfile"; exit 0; }
+            sleep 0.5
+        done
+        echo "otel-weaver-live-stop: /stop did not terminate pid $pid; sending SIGTERM"
+        kill "$pid" 2>/dev/null || true
+        for _ in $(seq 1 10); do
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 0.5
+        done
+        kill -0 "$pid" 2>/dev/null && { echo "otel-weaver-live-stop: pid $pid survived SIGTERM"; exit 1; }
+        rm -f "$pidfile"
+    else
+        echo "otel-weaver-live-stop: no pidfile at $pidfile (nothing to stop)"
+    fi
+
+# Assert the live-check report: >0 received signals, 0 violations. Fails loudly with the
+# report head if the weaver 0.22 schema fields are absent — never silently passes.
+otel-weaver-live-verify outdir="target/weaver-live":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    report="{{outdir}}/live_check.json"
+    [ -f "$report" ] || { echo "otel-weaver-live-verify: $report missing"; ls -la "{{outdir}}" || true; exit 1; }
+    # Weaver 0.22 report: one JSON object { samples: [...], statistics: {...} }.
+    # statistics.total_entities counts received entities; each policy finding
+    # inside samples carries "level": "violation" when non-conformant.
+    received=$(jq '.statistics.total_entities // empty' "$report" 2>/dev/null || true)
+    if [ -z "${received:-}" ] || [ "$received" = "null" ]; then
+        # Fallback: count sample entries
+        received=$(jq '.samples | length' "$report" 2>/dev/null || true)
+    fi
+    if [ -z "${received:-}" ] || [ "$received" = "null" ]; then
+        echo "otel-weaver-live-verify: no recognizable count field (statistics.total_entities/samples) in report; head follows:"
+        head -c 2000 "$report"; echo; exit 1
+    fi
+    violations=$(jq '[.. | objects | select(.level? == "violation")] | length' "$report")
+    echo "WEAVER_LIVE_CHECK_RECEIVED_SIGNALS=$received"
+    echo "WEAVER_LIVE_CHECK_VIOLATIONS=$violations"
+    if [ "$received" -gt 0 ] && [ "$violations" -eq 0 ]; then
+        echo "WEAVER_LIVE_CHECK_CONFORMS=true"
+    else
+        echo "WEAVER_LIVE_CHECK_CONFORMS=false"
+        echo "otel-weaver-live-verify: FAILED (received=$received violations=$violations); report head:"
+        head -c 2000 "$report"; echo; exit 1
+    fi
+
+# Negative campaign leg: emit telemetry missing process.outcome, expect >=1 violation
+otel-weaver-live-negative:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    outdir="target/weaver-live-negative"
+    grpc_port="${OTEL_GRPC_PORT:-4317}"
+    just otel-weaver-live-start "$outdir"
+    # Negative mode is REQUIRED to exit nonzero (NEGATIVE_REFUSAL_CODE line) — capture, don't abort
+    neg_rc=0
+    timeout 300s cargo run -p cng --features otel-live --bin otel-live -- \
+        --endpoint "http://127.0.0.1:$grpc_port" --mode negative || neg_rc=$?
+    echo "otel-weaver-live-negative: otel-live --mode negative exit code = $neg_rc (nonzero expected)"
+    just otel-weaver-live-stop "$outdir"
+    report="$outdir/live_check.json"
+    [ -f "$report" ] || { echo "otel-weaver-live-negative: $report missing"; exit 1; }
+    violations=$(jq '[.. | objects | select(.level? == "violation")] | length' "$report")
+    outcome_violations=$(jq '[.. | objects | select(.level? == "violation") | select(((.message // "") | test("process\\.outcome")) or ((.context.attribute_name // "") == "process.outcome"))] | length' "$report")
+    echo "NEGATIVE_LIVE_CHECK_VIOLATIONS=$violations"
+    if [ "$violations" -ge 1 ] && [ "$outcome_violations" -ge 1 ] && [ "$neg_rc" -ne 0 ]; then
+        echo "NEGATIVE_LIVE_CHECK_CONFORMS=false"
+        echo "NEGATIVE_REFUSAL_CODE=WEAVER_SEMANTIC_CONVENTION_REFUSED"
+    else
+        echo "otel-weaver-live-negative: FAILED (violations=$violations process.outcome-violations=$outcome_violations emitter_rc=$neg_rc); report head:"
+        head -c 2000 "$report"; echo; exit 1
+    fi
+
+# Full campaign: generate -> check -> build -> 3x (digest-stable live loop) -> negative -> markers
+otel-weaver-live:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cleanup() {
+        for d in target/weaver-live target/weaver-live-negative; do
+            if [ -f "$d/weaver.pid" ]; then
+                kill "$(cat "$d/weaver.pid")" 2>/dev/null || true
+            fi
+        done
+    }
+    trap cleanup EXIT INT ERR
+    just otel-weaver-generate
+    just otel-weaver-check
+    just otel-weaver-build
+    digests=()
+    for i in 1 2 3; do
+        echo "--- otel-weaver-live loop $i/3 ---"
+        d=$(just otel-weaver-generate | grep '^WEAVER_REGISTRY_DIGEST=' | cut -d= -f2)
+        digests+=("$d")
+        just otel-weaver-live-start
+        just otel-weaver-production-run
+        just otel-weaver-live-stop
+        just otel-weaver-live-verify
+    done
+    if [ "${digests[0]}" != "${digests[1]}" ] || [ "${digests[1]}" != "${digests[2]}" ]; then
+        echo "otel-weaver-live: registry digest NOT stable across 3 generations: ${digests[*]}"; exit 1
+    fi
+    just otel-weaver-live-negative
+    echo "=== OTel Weaver campaign markers ==="
+    echo "WEAVER_VERSION=$(weaver --version)"
+    echo "WEAVER_REGISTRY_DIGEST=${digests[0]}"
+    echo "G0_REGISTRY_GENERATED=PASS"
+    echo "G1_REGISTRY_CHECK=PASS"
+    echo "G2_BINARY_BUILD=PASS"
+    echo "G3_LIVE_RUN_1=PASS"
+    echo "G4_LIVE_RUN_2=PASS"
+    echo "G5_LIVE_RUN_3=PASS"
+    echo "G6_DIGEST_STABLE=PASS"
+    echo "G7_POSITIVE_CONFORMS=PASS"
+    echo "G8_NEGATIVE_REFUSED=PASS"
+    echo "G9_RECEIPT_MARKERS=PASS"
+    echo "G10_OTEL_RDF_BOUNDARY=ALIVE_AS_DOC (docs/otel-rdf-handoff.md)"
+    echo "G11_OTEL_TO_RDF_MAPPER=BLOCKED (not implemented; see docs/otel-rdf-handoff.md)"

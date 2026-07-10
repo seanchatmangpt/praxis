@@ -1,0 +1,63 @@
+\begin{thebibliography}{HMU01}
+
+\bibitem[AS16]{alon2016probabilistic}
+Noga Alon and Joel~H Spencer.
+\newblock {\em The probabilistic method}.
+\newblock John Wiley \& Sons, 2016.
+
+\bibitem[Awo10]{awodey2010category}
+Steve Awodey.
+\newblock {\em Category theory}.
+\newblock OUP Oxford, 2010.
+
+\bibitem[Bar84]{barendregt1984lambda}
+Hendrik~Pieter Barendregt.
+\newblock {\em The lambda calculus}, volume~3.
+\newblock North-Holland Amsterdam, 1984.
+
+\bibitem[Die17]{diestel2017graph}
+Reinhard Diestel.
+\newblock {\em Graph theory}.
+\newblock Springer Publishing Company, Incorporated, 2017.
+
+\bibitem[For02]{forman2002user}
+Robin Forman.
+\newblock A user's guide to discrete morse theory.
+\newblock {\em S{\'e}minaire Lotharingien de Combinatoire}, 48:35, 2002.
+
+\bibitem[Gal62]{gallager1962low}
+Robert Gallager.
+\newblock Low-density parity-check codes.
+\newblock {\em IRE Transactions on information theory}, 8(1):21--28, 1962.
+
+\bibitem[Hat02]{hatcher2002algebraic}
+Allen Hatcher.
+\newblock {\em Algebraic topology}.
+\newblock Cambridge University Press, 2002.
+
+\bibitem[HMU01]{hopcroft2001introduction}
+John~E Hopcroft, Rajeev Motwani, and Jeffrey~D Ullman.
+\newblock {\em Introduction to automata theory, languages, and computation}.
+\newblock acm, 2001.
+
+\bibitem[Knu76]{knuth1976big}
+Donald~E Knuth.
+\newblock Big omicron and big omega and big theta.
+\newblock {\em SIGACT News}, 8(2):18--24, 1976.
+
+\bibitem[ML78]{maclane1978categories}
+Saunders Mac~Lane.
+\newblock {\em Categories for the Working Mathematician}, volume~5.
+\newblock Springer Science \& Business Media, 1978.
+
+\bibitem[MLS84]{martin1984intuitionistic}
+Per Martin-L{\"o}f and Giovanni Sambin.
+\newblock {\em Intuitionistic type theory}, volume~17.
+\newblock Bibliopolis Naples, 1984.
+
+\bibitem[Sip96]{sipser1996introduction}
+Michael Sipser.
+\newblock {\em Introduction to the Theory of Computation}.
+\newblock ACM SIGACT News, 1996.
+
+\end{thebibliography}

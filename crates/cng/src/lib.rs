@@ -9,3 +9,6 @@ pub mod powl;
 #[cfg(feature = "runner")]
 pub mod runner;
 pub mod shape;
+/// Generated Weaver semantic-convention bindings (ggen; see file header).
+#[cfg(feature = "otel-live")]
+pub mod telemetry_gen;

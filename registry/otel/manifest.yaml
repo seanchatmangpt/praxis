@@ -1,0 +1,3 @@
+name: praxis
+description: Declares the event.praxis.activity_executed OTEL event semantic convention and its five required attributes, mapped to OCEL 2.0 and PROV-O public terms.
+schema_url: https://ggen.io/schemas/26.7.9

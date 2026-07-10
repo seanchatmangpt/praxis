@@ -735,7 +735,7 @@ mod tests {
             .expect("test query must execute")
         {
             oxigraph::sparql::QueryResults::Solutions(solutions) => solutions.count(),
-            other => panic!("expected Solutions, got {other:?}"),
+            _ => panic!("expected Solutions from test query"),
         }
     }
 
@@ -752,14 +752,15 @@ mod tests {
             oxigraph::sparql::QueryResults::Solutions(solutions) => solutions
                 .map(|solution| {
                     let solution = solution.expect("solution must decode");
-                    solution
+                    let term = solution
                         .iter()
                         .next()
                         .map(|(_, term)| term.to_string())
-                        .expect("solution must bind its variable")
+                        .expect("solution must bind its variable");
+                    term
                 })
                 .collect(),
-            other => panic!("expected Solutions, got {other:?}"),
+            _ => panic!("expected Solutions from test query"),
         }
     }
 }

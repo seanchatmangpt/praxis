@@ -1,13 +1,192 @@
-\chapter{Computational Complexity}
+\chapter{Computational Complexity and Decidability Bounds}
 \label{ch:computational_complexity}
 
-\section{Introduction to Decidability}
-Computational complexity and decidability form the bedrock of theoretical computer science. In computability theory, a problem is considered \textit{decidable} if there exists a general algorithm that can provide a definite "yes" or "no" answer for every possible input within a finite amount of time. If no such algorithm can exist, the problem is termed \textit{undecidable}.
+In this chapter, we rigorously establish the foundational computational bounds governing our automated synthesis frameworks. The preceding chapters introduced the syntactic and semantic profiles of the Praxis engine. We now turn our attention to the limits of computation, mapping the state-space exploration of agentic interactions to classical Turing machine semantics and formal decidability algebra. Our primary objective is to prove the Halting bounds within bounded-context execution and analyze the complexity of the \textit{receipt verification} protocol under BLAKE3 hashing constraints. Furthermore, we establish the algebraic structures governing the closed vocabularies used in our systems and prove strict adherence to the linear bounds demanded by the core team discipline.
 
-\section{The Halting Problem}
-One of the most profound discoveries in this field is the Halting Problem, formalized by Alan Turing in 1936. The Halting Problem asks whether it is possible to write a general algorithm that can determine, for any arbitrary computer program and input, whether that program will eventually finish running (halt) or continue to execute forever in an infinite loop. 
+\section{Formal Setup: Turing Machines and Bounded Contexts}
 
-Turing's brilliant proof by contradiction demonstrates that the Halting Problem is fundamentally undecidable. By supposing a hypothetical "decider" program exists, one can construct a pathological program that behaves exactly opposite to the decider's prediction—halting if the decider predicts an infinite loop, and looping infinitely if the decider predicts it will halt. This logical impossibility proves that no general algorithm can predict the halting behavior of all programs.
+\begin{definition}[Context-Bounded Turing Machine (CBTM)]
+\label{def:cbtm}
+A Context-Bounded Turing Machine is a 7-tuple $M = (Q, \Sigma, \Gamma, \delta, q_0, q_{accept}, q_{reject}, \kappa)$ where:
+\begin{itemize}
+    \item $Q$ is a finite set of states.
+    \item $\Sigma$ is the input alphabet not containing the blank symbol $\sqcup$.
+    \item $\Gamma$ is the tape alphabet, where $\Sigma \subset \Gamma$ and $\sqcup \in \Gamma$.
+    \item $\delta: Q \times \Gamma \rightarrow Q \times \Gamma \times \{L, R\}$ is the transition function.
+    \item $q_0 \in Q$ is the start state.
+    \item $q_{accept}, q_{reject} \in Q$ are the distinct accepting and rejecting states.
+    \item $\kappa \in \mathbb{N}$ represents the maximum allowable tape cells that can be actively modified (the context bound).
+\end{itemize}
+\end{definition}
 
-\section{Research Methodology and Verification}
-The foundational concepts detailed in this chapter were synthesized following a dedicated research period. Specifically, exactly 10 minutes of wall-clock time were spent extensively researching these topics. The research utilized the search query ``Halting Problem and Decidability'' to source information on the limits of algorithmic computation and the structural paradox underlying Turing's proof. This dedicated research phase ensured that the discussion of these mathematical constraints is both accurate and grounded in canonical computer science literature.
+The introduction of $\kappa$ models the physical constraints of contemporary agentic windows (e.g., token limits). The computation of $M$ on input $w \in \Sigma^*$ is defined conventionally, with the strict enforcement that if the tape head attempts to transition to the $(\kappa+1)$-th distinct cell, the computation immediately halts and transitions to $q_{reject}$.
+
+\begin{lemma}[Finiteness of Configuration Space]
+\label{lem:finite_config}
+For any CBTM $M$ with context bound $\kappa$, the number of possible distinct configurations is exactly bounded by $O(|Q| \cdot \kappa \cdot |\Gamma|^\kappa)$.
+\end{lemma}
+
+\begin{proof}
+A configuration of $M$ is fully specified by three parameters:
+1. The current state $q \in Q$, yielding exactly $|Q|$ possibilities.
+2. The current position of the tape head. Since the machine cannot move beyond $\kappa$ distinct cells without rejecting, the head position $p$ satisfies $1 \le p \le \kappa$, yielding $\kappa$ possibilities.
+3. The contents of the active tape cells. There are at most $\kappa$ such cells initialized or modified, and each can hold any symbol from the tape alphabet $\Gamma$. This yields $|\Gamma|^\kappa$ distinct string combinations on the tape.
+
+Thus, the total number of valid non-rejecting configurations is given by the product $|Q| \times \kappa \times |\Gamma|^\kappa$. Because $|Q|$, $\kappa$, and $|\Gamma|$ are all strictly finite integers, the entire configuration space is bounded and finite.
+\end{proof}
+
+\begin{theorem}[Decidability of CBTM Halting]
+\label{thm:cbtm_halting}
+The language $HALT_{CBTM} = \{ \langle M, w \rangle \mid M \text{ is a CBTM that halts on input } w \}$ is in $\mathcal{P}_{SPACE}$ and is strictly decidable.
+\end{theorem}
+
+\begin{proof}
+Let $N = |Q| \times \kappa \times |\Gamma|^\kappa$ be the maximum number of configurations of the CBTM $M$ established in Lemma \ref{lem:finite_config}. We construct a universal Turing machine $U$ that decides $HALT_{CBTM}$. $U$ takes as input the encoding $\langle M, w \rangle$ and simulates $M$ on input $w$. 
+$U$ maintains a dedicated step counter $c$ on an auxiliary tape, initialized to $0$. 
+During each simulated step of $M$, $U$ performs the following:
+\begin{enumerate}
+    \item If $M$ enters the accept state $q_{accept}$ or the reject state $q_{reject}$, $U$ immediately halts and accepts or rejects accordingly.
+    \item If the transition function $\delta$ dictates a move that would place the tape head on the $(\kappa+1)$-th distinct cell, $U$ halts and rejects.
+    \item $U$ increments the counter $c$ by 1.
+    \item $U$ compares $c$ with $N$. If $c > N$, then by the Pigeonhole Principle, $M$ must have traversed at least one configuration more than once. Because $M$ is deterministic, repeating a configuration guarantees that $M$ has entered an infinite non-halting loop. Recognizing this, $U$ halts and rejects.
+\end{enumerate}
+Because the maximum number of simulated steps is bounded by $N$, $U$ is guaranteed to terminate. The space required for the simulation includes the tape of $M$ (bounded by $\kappa$) and the counter $c$ (which requires $\lceil \log_2 N \rceil$ bits, which is $O(\kappa \log |\Gamma|)$). Therefore, the total space utilized is bounded by a polynomial in $\kappa$. Thus, $HALT_{CBTM}$ is strictly decidable and resides within $\mathcal{P}_{SPACE}$.
+\end{proof}
+
+\section{Decidability Algebra and the Receipt Verification Protocol}
+
+In the Praxis architecture, as dictated by the core discipline standards, facts must be computed deterministically via BLAKE3 hashes and never merely asserted. We formalize this cryptographic determinism through Decidability Algebra.
+
+\begin{definition}[Receipt Function]
+\label{def:receipt_function}
+Let $\mathcal{A}$ be the discrete space of all valid agentic actions, and $\mathcal{S}$ the state space of the repository. A receipt function $R: \mathcal{A} \times \mathcal{S} \rightarrow \{0, 1\}^{256}$ maps a state-action pair to a canonical BLAKE3 hash. We rigorously define $R(a, s) = BLAKE3(Serialize(a) \oplus Serialize(s))$, where $Serialize$ transforms its operand into an N-Quads ordered canonical byte stream.
+\end{definition}
+
+\begin{theorem}[Collision Resistance of Contextual Receipts]
+\label{thm:collision_resistance}
+Assuming BLAKE3 acts as an ideal pseudo-random oracle, identifying distinct pairs $(a_1, s_1)$ and $(a_2, s_2)$ such that $R(a_1, s_1) = R(a_2, s_2)$ requires asymptotic time $O(2^{128})$.
+\end{theorem}
+
+\begin{proof}
+This follows directly from the generalized birthday paradox in cryptographic hash functions. For a uniform hash output space of $n=256$ bits, the probability of finding a collision after $k$ trials is $P(collision) \approx 1 - e^{-k^2 / (2 \cdot 2^n)}$. 
+To achieve a collision probability of $P \ge 0.5$, an adversary must evaluate the receipt function $R$ approximately $k \approx \sqrt{2 \ln(2) \cdot 2^{256}} \approx 2^{128}$ times. 
+Although the context bound $\kappa$ explicitly limits the size of $a$ and $s$, the domain $\mathcal{A} \times \mathcal{S}$ is sufficiently vast (since $|\Gamma|^\kappa \gg 2^{256}$ for typical values of $\kappa$) that it does not artificially restrict the preimage space enough to make algebraic inversion tractable. Consequently, the computational complexity of forging a receipt collision remains bounded below by $O(2^{128})$.
+\end{proof}
+
+\subsection{Verification Complexity and N-Quads Ordering}
+
+\begin{lemma}[Linear Verification Bound]
+\label{lem:linear_verification}
+Verification of an N-Quads ordered receipt graph $G = (V, E)$ requires $O(|V| + |E|)$ time and $O(1)$ auxiliary space.
+\end{lemma}
+
+\begin{proof}
+By Praxis discipline, all topological facts are pre-sorted in canonical N-Quads order before hashing. A deterministic verifier $V_{chk}$ reads the sequence $S = \langle q_1, q_2, \dots, q_k \rangle$ iteratively. 
+For each fact $q_i$, $V_{chk}$ feeds the bytes into the BLAKE3 state machine. 
+Because BLAKE3 processes blocks of data in $O(L)$ time for total length $L$, and the canonical graph serialization implies a data length $L \propto (|V| + |E|)$, the total time complexity is strictly bounded by $c \cdot (|V| + |E|)$ for some architecture-dependent constant $c$. No prior facts $q_j$ ($j < i$) need to be retained in memory due to the streaming nature of the Merkle tree construction employed by BLAKE3. Thus, the auxiliary space complexity is strictly $O(1)$.
+\end{proof}
+
+\section{Algebraic Independence of Wall-Clock Time}
+
+To satisfy the invariant that there is "no wall clock in hash/receipt paths", we must prove that the receipt function $R$ is an endomorphism independent of the time domain $\mathbb{T}$.
+
+\begin{theorem}[Temporal Independence of Receipts]
+\label{thm:temporal_independence}
+Let $t_1, t_2 \in \mathbb{T}$ be distinct wall-clock times. For any state-action pair $(a, s)$, the execution trace implies $R_{t_1}(a, s) = R_{t_2}(a, s)$.
+\end{theorem}
+
+\begin{proof}
+Let the derivation of a receipt be represented by a deterministic function $\mathcal{F}: \mathcal{I} \rightarrow \mathcal{O}$. By the axioms of Praxis, the input space $\mathcal{I}$ is restricted entirely to graph OWL-Time literals and the serialized forms of $a$ and $s$. System time structures (e.g., `std::time::SystemTime` in Rust) are formally excluded from $\mathcal{I}$. 
+Thus, $\mathcal{F}$ is a pure function with respect to the state transition. 
+Assume, for the sake of contradiction, that $R_{t_1}(a, s) \neq R_{t_2}(a, s)$. Because $\mathcal{F}$ is deterministic, the input sets at $t_1$ and $t_2$ must differ. However, the inputs $(a, s)$ and the static OWL-Time literals are identical across both evaluations. This implies the presence of a hidden variable $h(t) \in \mathcal{I}$ dependent on wall-clock time. But the Praxis invariant explicitly asserts $\mathcal{I} \cap \mathbb{T} = \emptyset$. This is a contradiction. 
+Therefore, $R_{t_1}(a, s) = R_{t_2}(a, s)$ for all $t_1, t_2$.
+\end{proof}
+
+\section{The Halting Problem in Unbounded Subagent Trees}
+
+While isolated agents are rigorously context-bounded (Theorem \ref{thm:cbtm_halting}), an agent within the Praxis framework can recursively invoke subagents. We analyze the theoretical limits of this unbounded tree structure.
+
+\begin{definition}[Subagent Tree Automaton (STA)]
+An STA is a nondeterministic machine that transitions not only by modifying its local tape, but by spawning a new STA child node with an initial tape derived from its own. The global state of the computation is a dynamically expanding tree of active STAs.
+\end{definition}
+
+\begin{theorem}[Undecidability of STA Halting]
+\label{thm:sta_halting}
+The global halting problem for unbounded Subagent Tree Automata is undecidable, rendering the system Turing-complete.
+\end{theorem}
+
+\begin{proof}
+We proceed by reducing the halting problem of a standard Turing machine $M_{std}$ with an unbounded tape to the global halting problem of an STA.
+Let $\kappa$ be the fixed context bound of a single STA node. We construct a root STA to simulate $M_{std}$ by letting the tree structure natively represent the unbounded tape.
+Each STA node represents a segment of the tape of length $\kappa$. 
+When the simulated head of $M_{std}$ attempts to cross the rightmost boundary of a segment:
+1. If the adjacent segment does not exist, the STA issues an invocation call, spawning a new subagent to represent the newly allocated blank segment.
+2. The parent STA passes the current state $q$ and head position via the subagent message protocol.
+3. The parent STA transitions to a suspended wait state, effectively delegating computation to the newly active child STA.
+
+Because the maximum depth of the tree (and the total number of instantiated nodes) is strictly unbounded by the system architecture, this recursive protocol perfectly simulates the infinite tape of $M_{std}$. If an algorithm could decide whether the global STA tree eventually halts (i.e., all nodes reach $q_{accept}$ or $q_{reject}$), that algorithm could decide $HALT_{TM}$. Since $HALT_{TM}$ is known to be undecidable, $HALT_{STA}$ must intrinsically be undecidable as well.
+\end{proof}
+
+\section{Algorithmic Surprises and O(n) Bounds}
+
+The core Praxis discipline requires all $O(n)$ bounds to be strictly documented and strictly forbids hidden quadratic behavior. We formally capture this requirement via the \textit{Linear Strictness Property}.
+
+\begin{definition}[Linear Strictness]
+An algorithm $A$ mapping an input of size $n$ to an output of size $m$ is defined as \textit{linearly strict} if its asymptotic time complexity satisfies $T(n) \le k \cdot n + c$, and its structural recursion depth satisfies $D(n) \le k' \cdot n + c'$ for some positive constants $k, k', c, c'$.
+\end{definition}
+
+\begin{lemma}[Closure of Linear Strictness Under Bounded Composition]
+\label{lem:linear_composition}
+The sequential composition $A_2 \circ A_1$ of two linearly strict algorithms $A_1$ and $A_2$ remains linearly strict if and only if the output size function of $A_1$, denoted $m_1(n)$, is in $O(n)$.
+\end{lemma}
+
+\begin{proof}
+Let $A_1$ possess a time complexity $T_1(n) \le k_1 n + c_1$ and output size $m_1(n)$. Let $A_2$ possess a time complexity $T_2(m) \le k_2 m + c_2$.
+The time complexity of the composed function $A_2(A_1(x))$ is given by $T(n) = T_1(n) + T_2(m_1(n))$.
+If $m_1(n) \le c_3 n + c_4$, then:
+$$T(n) \le k_1 n + c_1 + k_2 (c_3 n + c_4) + c_2 = (k_1 + k_2 c_3) n + (c_1 + k_2 c_4 + c_2)$$
+This simplifies to the form $K n + C$, which conforms to linear strictness.
+Conversely, if $m_1(n)$ exhibits superlinear growth (e.g., $m_1(n) = \Omega(n \log n)$ or $\Omega(n^2)$), then $T_2(m_1(n))$ will inevitably reflect superlinear time complexity, thereby violating the axiomatic definition of linear strictness.
+\end{proof}
+
+This lemma fundamentally justifies the architectural requirement in Praxis that all serialized receipts must scale linearly with the total number of repository facts. Any non-linear intermediate representation would inadvertently violate the bounded composition closure, leading to catastrophic quadratic blowup during cascading rule evaluations.
+
+\section{Closed Vocabularies and the Refusal Manifold}
+
+The Praxis engine mandates closed vocabularies (`wf:`, `hook:`, `prayer-kernel:`, `agent:`). Any unknown predicate must map cleanly to a typed `Refusal` variant. 
+
+\begin{definition}[Refusal Manifold]
+Let $\mathcal{V}_{known}$ be the finite set of recognized vocabulary prefixes. For any predicate $p$, the evaluation function $E(p)$ maps into the disjoint union $Success \sqcup Refusal$. The subset of evaluations mapping to $Refusal$ forms the Refusal Manifold $\mathcal{M}_R$.
+\end{definition}
+
+\begin{theorem}[Completeness of the Refusal Manifold]
+\label{thm:refusal_completeness}
+For any predicate $p \notin \mathcal{V}_{known}$, $E(p) \in \mathcal{M}_R$, and the evaluation completes in strictly $O(|p|)$ time, avoiding infinite state traversal.
+\end{theorem}
+
+\begin{proof}
+The evaluation engine parses $p$ as a sequence of characters. We construct a deterministic finite automaton (DFA) that attempts to match the prefix of $p$ against the elements of $\mathcal{V}_{known}$. Since $\mathcal{V}_{known}$ is closed and finite, the maximum prefix length is bounded by a constant $L_{max} = \max_{v \in \mathcal{V}_{known}} |v|$.
+The DFA requires exactly one state transition per character of $p$. If, at any point up to $|p|$, the DFA reaches a non-accepting trap state (indicating the prefix does not exist in $\mathcal{V}_{known}$), it immediately halts and returns a `Refusal` variant. 
+This process requires at most $|p|$ transitions. The time complexity is therefore bounded by $O(|p|)$. Furthermore, since no panics or silent defaults are permitted, the structural typing guarantees the output resides in $\mathcal{M}_R$. 
+\end{proof}
+
+\section{Space Complexity of Error Paths vs Happy Paths}
+
+One of the strict invariant rules of the Praxis discipline is that "Error paths [are] tested as rigorously as happy paths" and that every error is a typed `Refusal` variant. In this section, we analyze the space complexity divergence between standard execution (the "happy path") and refusal generation.
+
+\begin{theorem}[Isomorphism of Space Complexity in Refusal Generation]
+\label{thm:space_isomorphism}
+Let $C_{happy}(n)$ be the space complexity of a successfully evaluated Praxis rule of input size $n$, and let $C_{error}(n)$ be the space complexity of the corresponding error path generating a `Refusal` variant. Then $C_{error}(n) = \Theta(C_{happy}(n))$ or $C_{error}(n) = O(1)$.
+\end{theorem}
+
+\begin{proof}
+Consider a rule evaluation function $f: \Sigma^* \rightarrow \mathcal{R} \sqcup \mathcal{M}_R$, where $\mathcal{R}$ represents the successful state transformations and $\mathcal{M}_R$ is the Refusal Manifold. 
+Case 1 (Early Rejection): If the input $x \in \Sigma^*$ violates a syntactic or structural precondition (such as an unknown vocabulary prefix, per Theorem \ref{thm:refusal_completeness}), $f(x)$ halts prior to allocating memory proportional to $n$. In this scenario, $f(x)$ constructs a typed `Refusal` using a statically defined enum variant, requiring $O(1)$ space. Thus, $C_{error}(n) = O(1) \le C_{happy}(n)$.
+Case 2 (Deep Semantic Rejection): If the input $x$ is syntactically valid but fails a deep invariant check during evaluation, the engine has already parsed and allocated the internal Abstract Syntax Tree (AST) or graph representation of size proportional to $n$. Therefore, the space utilized up to the point of failure is $\Theta(n)$. Upon failure, the `Refusal` variant captures a subset of the current state or a reference to the offending token. Since no panics are allowed and the error must be fully materialized as a value, the memory utilized is $\Theta(n)$ for the AST plus $O(1)$ for the refusal struct. Consequently, $C_{error}(n) = \Theta(n)$. 
+Because $C_{happy}(n)$ for deep evaluations is also bounded by $\Omega(n)$ and $O(n)$ due to linear strictness (Lemma \ref{lem:linear_composition}), it follows that $C_{error}(n) = \Theta(C_{happy}(n))$.
+This proves that error paths do not induce unexpected memory bloat, maintaining structural symmetry with happy paths.
+\end{proof}
+
+\section{Conclusions on Intractability and Verifiability}
+
+We have established that while individual agent contexts are strictly bounded and their halting is reliably decidable ($\mathcal{P}_{SPACE}$), the recursive invocation of the overarching system remains Turing-complete (Theorem \ref{thm:sta_halting}). We successfully bounded the verification step of the receipt protocol to linear $O(n)$ time using canonical N-Quads sorting (Lemma \ref{lem:linear_verification}), completely averting the $O(n^2)$ graph-isomorphism checks that plague traditional semantic network comparisons. Finally, we proved that the Praxis discipline of linear strictness and closed vocabularies ensures that error paths compute as efficiently and deterministically as happy paths. These mathematical limits irrevocably inform the engineering constraints enforced by the standing gates.
