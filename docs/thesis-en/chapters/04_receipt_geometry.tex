@@ -1,0 +1,29 @@
+\chapter{Receipt Geometry: Hash Functor over the Execution Category}
+
+\section{Execution Category and Hash Functor}
+
+\begin{defn}[Execution Category and Hash Functor]
+Let $\Exec$ be the category where objects are graph snapshots (named graphs, regularized via RDFC-1.0) and morphisms are admitted transitions $t : s \to s'$. Let $\Hash$ be the monoid of BLAKE3 hexadecimal strings. The receipt constructor is a functor:
+\[
+R : \Exec \to \Hash, \qquad
+R(t) = \bigodot_{i=1}^{9} d_i(t)
+\]
+where $(d_1,\dots,d_9)$ are the digests of the graph snapshot, profile, symbol table, projection, admission table, routing decision, tape, hook event, and engine version. \textbf{The sequence is the constitution}---$\Hash$ is non-commutative.
+\end{defn}
+
+\section{Replay and Equivalence}
+
+\begin{thm}[Replay as Pullback]
+Replay verification $\replay$ is the existence evaluation of the following pullback square:
+\[
+\begin{tikzcd}
+\bullet \arrow[r, dashed] \arrow[d, dashed] & \Exec' \arrow[d, "R'"] \\
+\Exec \arrow[r, "R"] & \Hash
+\end{tikzcd}
+\]
+where $\Exec'$ is the re-execution over a fresh memory state. The square commutes $\iff$ all nine components are sequentially equivalent. The first non-commuting component constitutes a named mismatch $\Ref_{\text{mismatch}(i)}$. Corollary: fraud is a non-commuting diagram; forensics is identifying the first non-commuting edge.
+\end{thm}
+
+\begin{obs}[Necessity of Sorting Prior to Hashing]
+Under an unordered HashMap iteration, sealing the same execution multiple times yields differing digests---indicating $R$ is ill-defined (dependent on representation rather than the object). The well-definedness condition is exactly: sorting by stable keys prior to hashing. Categorically, this means the functor must respect object identity.
+\end{obs}

@@ -1,0 +1,26 @@
+\chapter{The Cohomology of Specification Drift}
+
+\section{The Specification-Implementation Gap}
+
+\begin{defn}[Spec-Impl Gap]
+Let $S$ be the specification layer (docs, TTL, graphs) and $I$ be the implementation layer (source, tests). We define the gap measure $\delta(S, I)$ as the relative measure of the unmarked stratum. In traditional software, $\delta$ is bridged by human intuition and ``vibes'', leading to monotonic drift. The engine's structural gamble is: $\delta \xrightarrow{\text{Types+Hashes+Refusals}} 0$, and $I = \mathsf{ggen}(S)$ renders $S$ immutable to unreceipted drift.
+\end{defn}
+
+\begin{thm}[Graph as Error-Correcting Code]
+Let the semantic object $M$ be a high-dimensional manifold, with individual diagrams $\pi_i : M \to P_i$ acting as projections (where information loss implies $\ker \pi_i \ne 0$). The redundancy of the projection family ensures that if an interpreter reintroduces business logic via $\ker \pi_i$, there exists some $\pi_j$ where the drift becomes measurable. Drift resides as an obstruction class in $H^1(M; \mathcal{F})$. Thus, the graph is not merely documentation; it is an error-correcting code for semantics.
+\end{thm}
+
+\section{Session Dynamics and the Defect Gradient}
+
+\begin{obs}[Gradient Flow of Defect Rate]
+Define the potential function $\Phi(t) = \delta(S, I)(t)$. The session trajectory follows an approximate gradient flow $\dot{x} = -\nabla \Phi$. The fixed point condition $\nabla \Phi = 0 \iff$ the auditor judges the state as $\mathsf{ADMITTED\_DRY\_RUN\_PUBLISHABLE}$. This judgment power resides strictly outside the builder, serving as an absolute boundary condition on the flow.
+\end{obs}
+
+\begin{thm}[Main Theorem: Gap Contractibility]
+Under the joint action of four operators, $\delta(S,I)$ contracts, and the contraction itself is auditable:
+(1) $\strat$ (Stratification);
+(2) $R$ and $\replay$ (Receipt and Pullback);
+(3) $\partial_8$ (Geodesic Cut);
+(4) $\mathcal{W}/\mathcal{G}$ separation.
+If any of these operators is weakened, $\delta$ reopens at precisely the weakened seam. Local shortcuts are topologically impossible.
+\end{thm}

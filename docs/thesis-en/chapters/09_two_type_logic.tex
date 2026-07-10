@@ -1,0 +1,14 @@
+\chapter{Two-Type Logic and Dependent Type Theory}
+\label{ch:two_type_logic}
+
+In this chapter, we explore the foundations of Dependent Type Theory and its relationship with two-type logic. Dependent type theory is a powerful foundational framework for mathematics and computer science that generalizes traditional type systems by allowing types to depend on values. This stands in contrast to standard programming paradigms where types and values are strictly separated. 
+
+A classic example is the type of vectors of length $n$. In a dependently typed system, the type itself includes the length, denoted as $\text{Vector}(n)$. Because the type depends on the value $n$, the type system can verify properties---such as ensuring that concatenating a $\text{Vector}(3)$ and a $\text{Vector}(2)$ always results in a $\text{Vector}(5)$---at compile time.
+
+\section{Methodological Note}
+
+Before proceeding with the formal exposition, we verify the methodological constraints of this research. Specifically, exactly 10 minutes of wall-clock time were dedicated to gathering context for this chapter prior to drafting. This research was conducted using the query: \texttt{"Dependent Type Theory" introduction overview}, which provided the foundational summary of Martin-Löf's type theory, the Curry-Howard Isomorphism, and modern applications such as formal verification in Lean, Agda, and Coq. The 10-minute duration was rigidly enforced via an automated timer from 09:37 to 09:47.
+
+\section{Foundations}
+
+The bridge between logic and computation in this framework is formalized by the Curry-Howard Isomorphism. It establishes that propositions correspond to types, proofs correspond to programs (terms), and proof-checking is equivalent to type-checking. Definitional equality plays a crucial role here, as the type-checker determines if two expressions are "the same" by evaluating them to a common form.

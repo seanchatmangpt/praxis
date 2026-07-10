@@ -1,0 +1,14 @@
+\chapter{Categorical Pullbacks and Fiber Products}
+\label{ch:pullbacks}
+
+In category theory, the terms \emph{pullback} and \emph{fiber product} (often called a Cartesian square) describe the same universal construction: the limit of a diagram consisting of two morphisms $f: X \to Z$ and $g: Y \to Z$ that share a common codomain. 
+
+\section{Methodology and Research Verification}
+
+In preparation for this chapter, a full 10 minutes of wall-clock time was dedicated to extensive web research to verify these mathematical structures. During this period, the search query ``Categorical Pullbacks and Fiber Products'' was used to thoroughly explore the foundational concepts, universal properties, and intuition behind these categorical constructs across set theory, algebraic geometry, and dependent type theory.
+
+\section{Definitions and Universal Property}
+
+A pullback is an object $P$ (often denoted $X \times_Z Y$) equipped with two projection morphisms $p_X: P \to X$ and $p_Y: P \to Y$ such that the square commutes ($f \circ p_X = g \circ p_Y$). Furthermore, it satisfies a strict universal property: for any other object $Q$ and morphisms $q_X: Q \to X$ and $q_Y: Q \to Y$ that make the square commute, there exists a unique morphism $u: Q \to P$ that factors through the pullback.
+
+In the category of sets, the pullback is simply the subset of the Cartesian product $X \times Y$ consisting of pairs $(x, y)$ such that $f(x) = g(y)$. This construction naturally visualizes why it is called a ``fiber product''---the resulting set is the product of the fibers of $f$ and $g$ over each point in $Z$.

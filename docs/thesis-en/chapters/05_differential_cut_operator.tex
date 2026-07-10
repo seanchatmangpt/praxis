@@ -1,0 +1,32 @@
+\chapter{The Eight-Step Constant: Differential Geometry of Cut Operators}
+
+\section{Logical Steps vs Time}
+
+\begin{axiom}[Logical Steps, Not Clocks]
+Let $\tau : \mathrm{Work} \to \mathbb{N}$ be the logical step count (deterministic operations like table loads or mask evaluations). $\tau$ is not a measure of time: there are no temporal guarantees on the target runtime, and clock readings $\notin \Hash$ replayable materials. The eight-step constant is a strict bound on $\tau$, completely decoupled from wall-clock time.
+\end{axiom}
+
+\section{Atomic Categories and Cut Operators}
+
+\begin{defn}[Atomic Category and Cut Operator]
+Let $\Atom$ be the category whose morphisms are homogeneous work units satisfying $\tau(m) \le 8$, where composition $m_2 \circ m_1$ is \textbf{explicit}---each point of composition is a seam. Define the cut operator:
+\[
+\partial_8 : \mathrm{Work} \to \mathrm{Path}(\Atom) \cup \{\mathsf{WarmPathRequired}\}
+\]
+$\tau(w) > 8 \implies \partial_8(w)$ either yields an atomic decomposition path $w = m_k \circ \cdots \circ m_1$ (where routing decisions, refusals, and receipts can attach at each $m_i$), or yields a typed refusal. \textbf{Forbidden operation:} A coarse-graining functor $\Sigma : \mathrm{Path}(\Atom) \to \mathrm{Work}$ (summing steps across units) is prohibited, as it conceals complexity within seamless blobs, defying governance.
+\end{defn}
+
+\begin{thm}[Forcing Function Theorem]
+Eight is not an optimization target but a geodesic constraint. On $\Atom$, the state space is exactly $2^8 = 256$ (one byte), and admission decisions resolve as a single index load on $[\,\_;256]$ ($\tau=1$, $u8$ indexing cannot exceed bounds, guaranteeing branchless and panic-free execution).
+\end{thm}
+
+\section{Bipartite Type Separation of Witness and Authority}
+
+\begin{defn}[Two-Type Logic]
+Let the type universe split into $\mathcal{W}$ (witness class) and $\mathcal{G}$ (gate input class), enforcing $\mathcal{W} \cap \mathcal{G} = \emptyset$ via sealed construction. The $\mathsf{AdmittedTransition}$ type possesses private fields and a unique constructor $\mathsf{admit\_transition}$, ensuring:
+\[
+\vdash \mathsf{actuate} : \mathcal{G} \to \mathrm{Effect}, \qquad
+\nvdash \mathsf{actuate} : \mathcal{W} \to \mathrm{Effect}
+\]
+LLM outputs, human prose, and hybrid texts inhabit $\mathcal{W}$. Unpermitted execution is not a detected violation, but rather an \textbf{unwritable term} in the type system.
+\end{defn}
