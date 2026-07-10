@@ -9,3 +9,6 @@ bundle to a different machine or directory silently fails to resolve files inste
 cleanly. Fix: store paths relative to `bench_dir` at write time, or rejoin recorded keys against
 the `--dir` argument passed to `verify`. Links back to `docs/releases/v26.7.10/PRD.md` (Claims
 Reconciliation row 3) and `RELEASE_CONTROL.md` Sec. 5.
+
+Implementation detail: `docs/releases/v26.7.10/IMPLEMENTATION_SPEC.md` (exact edits,
+anchors, tests, and acceptance commands for this ticket).

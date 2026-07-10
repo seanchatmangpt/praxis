@@ -11,3 +11,6 @@ case). Add a genuine new `CNG_R11 AuditMismatch` variant with an end-to-end nega
 one observation triple, run replay, confirm it refuses with `CNG_R11`. Links back to
 `docs/releases/v26.7.10/PRD.md` (Claims Reconciliation row 7 discussion in `ARD.md` Sec. 14) and
 `RELEASE_CONTROL.md` Sec. 5.
+
+Implementation detail: `docs/releases/v26.7.10/IMPLEMENTATION_SPEC.md` (exact edits,
+anchors, tests, and acceptance commands for this ticket).

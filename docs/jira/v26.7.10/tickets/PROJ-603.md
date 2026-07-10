@@ -11,3 +11,6 @@ unpopulated pending a signing decision — never a fake signature. No ontology-d
 rules-digest field exists anywhere in the codebase today; this ticket creates them. Links back
 to `docs/releases/v26.7.10/PRD.md` (Claims Reconciliation row 8) and `RELEASE_CONTROL.md` Sec.
 5.
+
+Implementation detail: `docs/releases/v26.7.10/IMPLEMENTATION_SPEC.md` (exact edits,
+anchors, tests, and acceptance commands for this ticket).

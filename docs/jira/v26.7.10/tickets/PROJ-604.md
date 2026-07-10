@@ -10,3 +10,6 @@ inline SPARQL strings. Move these queries to disk `.rq` files (matching the `ben
 and extend the guard test to detect inline `SELECT`/`CONSTRUCT`/`ASK` text so regressions fail
 loud. Links back to `docs/releases/v26.7.10/PRD.md` (Claims Reconciliation row 5) and
 `RELEASE_CONTROL.md` Sec. 5.
+
+Implementation detail: `docs/releases/v26.7.10/IMPLEMENTATION_SPEC.md` (exact edits,
+anchors, tests, and acceptance commands for this ticket).

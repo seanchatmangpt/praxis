@@ -10,3 +10,6 @@ from the existing `cng benchmark verify`, which only re-derives the POWL manufac
 (`crates/cng/src/bench.rs` `verify()`, ~2050-2115) and never checks OCEL/SPARQL digests. Links
 back to `docs/releases/v26.7.10/PRD.md` (Claims Reconciliation row 4) and `RELEASE_CONTROL.md`
 Sec. 5.
+
+Implementation detail: `docs/releases/v26.7.10/IMPLEMENTATION_SPEC.md` (exact edits,
+anchors, tests, and acceptance commands for this ticket).
