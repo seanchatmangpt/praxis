@@ -248,8 +248,8 @@ test!(powl_turtle_output_parses_and_is_deterministic, {
     // Act: serialize twice with provenance pointing at the imported snapshot,
     // then export the Turtle as an on-disk artifact.
     let derived_from = Some(fixture.snapshot_iri.as_str());
-    let turtle_a = powl_to_turtle(&model, &fixture.base_iri, derived_from);
-    let turtle_b = powl_to_turtle(&model, &fixture.base_iri, derived_from);
+    let turtle_a = powl_to_turtle(&model, &fixture.base_iri, derived_from)?;
+    let turtle_b = powl_to_turtle(&model, &fixture.base_iri, derived_from)?;
     let exported = export_powl(
         &format!("pddl-to-powl-projection.seed-{:03}.ttl", fixture.seed),
         &turtle_a,
@@ -377,8 +377,8 @@ test!(different_fake_seeds_produce_different_powl, {
     let tape_b = plan_tape_for_fixture(&fixture_b)?;
     let model_a = project_pddl_tape_to_powl(&tape_a)?;
     let model_b = project_pddl_tape_to_powl(&tape_b)?;
-    let turtle_a = powl_to_turtle(&model_a, &fixture_a.base_iri, Some(&fixture_a.snapshot_iri));
-    let turtle_b = powl_to_turtle(&model_b, &fixture_b.base_iri, Some(&fixture_b.snapshot_iri));
+    let turtle_a = powl_to_turtle(&model_a, &fixture_a.base_iri, Some(&fixture_a.snapshot_iri))?;
+    let turtle_b = powl_to_turtle(&model_b, &fixture_b.base_iri, Some(&fixture_b.snapshot_iri))?;
     let path_a = export_powl(
         &format!("pddl-to-powl-projection.seed-{:03}.ttl", fixture_a.seed),
         &turtle_a,

@@ -44,5 +44,8 @@ pub mod external_cut;
 pub use decompose::{convert, convert_with_budget, Refusal, RefusalReason, DEFAULT_DEPTH_BUDGET};
 pub use external_cut::{validate_external_cut, ExternalCutRefusal};
 pub use net::{NetError, WfNet};
-pub use powl::{ChoiceGraph, GNode, Language, Powl, Trace};
+pub use powl::{
+    ChoiceGraph, GNode, Language, ParentChildClosure, ParentChildEdge, Powl, SocketKind,
+    SocketPath, Trace, WorkflowSocketId,
+};
 pub use recompose::recompose;

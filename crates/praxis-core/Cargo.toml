@@ -21,7 +21,27 @@ bcinr-powl-receipt = { path = "../../../bcinr/crates/bcinr-powl-receipt" }
 wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat" }
 hex = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
+# PROJ-752 (PRD.md sec.7.4-7.5, A_z = T(Q(W))): real Tera template engine for
+# the T stage. Already a real workspace dependency via crates/ggen (see
+# root Cargo.toml `tera = { version = "1.20.0", optional = true }`) -- same
+# version pinned here, not a new crate evaluation.
+tera = "1.20.0"
+# Consumes ProjectionRow / run_render_model_projection (PROJ-751's real
+# Q-stage SPARQL execution) as the T stage's input; praxis-graphlaw does not
+# depend on praxis-core (checked: no path back-edge), so this is a one-way
+# addition, not a cycle.
+praxis-graphlaw = { path = "../praxis-graphlaw", version = "26.7.9" }
 
 [dev-dependencies]
 tempfile = "3"
 proptest = "1"
+# Round-trip test fixture construction (Powl::ExternalCut) for the
+# PROJ-752 manufactured-Arazzo test.
+powl2-decompose = { path = "../powl2-decompose" }
+# Round-trip re-parse: proves the manufactured Arazzo JSON is real Arazzo
+# 1.1.x, not just JSON shaped like it, via the crate's own parser.
+wasm4pm-arazzo = { path = "../wasm4pm-arazzo" }
+# PROJ-753: allocator for wasm4pm-arazzo's bumpalo-arena-typed AirProgram,
+# needed to drive lower::lower_description/AirCompiler from this crate's
+# Rail A/B seam test. Same version pinned as crates/wasm4pm-arazzo itself.
+bumpalo = "3.20.3"

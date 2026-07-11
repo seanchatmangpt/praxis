@@ -36,4 +36,24 @@ pub enum CoreError {
     /// Filesystem I/O failed while reading or writing the receipt ledger.
     #[error("io error: {0}")]
     Io(String),
+
+    /// PROJ-752 (PRD.md sec.7.4-7.5, `A_z = T(Q(W))`): the Tera template
+    /// engine refused to parse or render the Rail A Arazzo-manufacture
+    /// template. Carries Tera's own error text (formatted with `{e:?}` at
+    /// the call site so the underlying cause -- e.g. a malformed template
+    /// expression or a JSON-encoding failure on a projected value -- is not
+    /// silently dropped).
+    #[error("arazzo template render failed: {0}")]
+    TemplateRenderFailed(String),
+
+    /// PROJ-752: a Q-stage `ProjectionRow` referenced a `childModel`/region
+    /// element IRI that does not appear as the `elementId` of any row in
+    /// the same projection result set -- an internal-consistency violation
+    /// of the row set being rendered. PROJ-751's own tests cover round-trip
+    /// consistency of the real `run_render_model_projection` output; this
+    /// variant exists so a malformed/hand-built row set fails loud here
+    /// too, rather than silently manufacturing an incomplete Arazzo
+    /// document.
+    #[error("arazzo projection: unresolved projected element {0}")]
+    UnresolvedProjectionElement(String),
 }

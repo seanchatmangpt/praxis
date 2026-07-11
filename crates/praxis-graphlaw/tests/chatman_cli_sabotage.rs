@@ -235,6 +235,11 @@ fn receipt_from_json(value: &serde_json::Value) -> EngineProcessReceipt {
         engine_version: Digest::new(get("engine_version")),
         receipt_root: Digest::new(get("receipt_root")),
         canon_nquads: get("canon_nquads"),
+        // This fixture only round-trips the nine constitutional digests
+        // (see `receipt_to_json` above); the source receipt always came
+        // from a plain `admit_transition` call, which always sets this to
+        // `None` (PROJ-796).
+        external_cut: None,
     }
 }
 

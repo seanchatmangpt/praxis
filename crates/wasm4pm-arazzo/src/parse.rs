@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use rayon::prelude::*;
 use memmap2::MmapOptions;
+use rayon::prelude::*;
+use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
 use wasm4pm_compat::arazzo::ArazzoDescription;
@@ -54,8 +54,9 @@ impl DocumentIndex {
         let parsed_results: Result<Vec<(String, ArazzoDescription)>, Refusal> = docs
             .par_iter()
             .map(|(content, fallback_base_uri)| {
-                let doc: ArazzoDescription = serde_json::from_str(content)
-                    .map_err(|e| Refusal::Parse(format!("Failed to parse Arazzo document: {}", e)))?;
+                let doc: ArazzoDescription = serde_json::from_str(content).map_err(|e| {
+                    Refusal::Parse(format!("Failed to parse Arazzo document: {}", e))
+                })?;
 
                 if !doc.arazzo.starts_with("1.1.") {
                     return Err(Refusal::InvalidVersion(doc.arazzo.clone()));
@@ -72,9 +73,9 @@ impl DocumentIndex {
             .collect();
 
         let parsed = parsed_results?;
-        
+
         self.documents.reserve(parsed.len());
-        
+
         for (base_uri, doc) in parsed {
             if self.documents.contains_key(&base_uri) {
                 return Err(Refusal::Parse(format!(
@@ -89,15 +90,20 @@ impl DocumentIndex {
     }
 
     /// Loads and parses an Arazzo document using memory-mapped I/O (zero-copy bypass).
-    pub fn add_document_from_file(&mut self, path: &Path, fallback_base_uri: &str) -> Result<(), Refusal> {
-        let file = File::open(path)
-            .map_err(|e| Refusal::Parse(format!("Failed to open file: {}", e)))?;
-        
+    pub fn add_document_from_file(
+        &mut self,
+        path: &Path,
+        fallback_base_uri: &str,
+    ) -> Result<(), Refusal> {
+        let file =
+            File::open(path).map_err(|e| Refusal::Parse(format!("Failed to open file: {}", e)))?;
+
         let mmap = unsafe { MmapOptions::new().map(&file) }
             .map_err(|e| Refusal::Parse(format!("Failed to mmap file: {}", e)))?;
-            
-        let doc: ArazzoDescription = serde_json::from_slice(&mmap)
-            .map_err(|e| Refusal::Parse(format!("Failed to parse Arazzo document from mmap: {}", e)))?;
+
+        let doc: ArazzoDescription = serde_json::from_slice(&mmap).map_err(|e| {
+            Refusal::Parse(format!("Failed to parse Arazzo document from mmap: {}", e))
+        })?;
 
         if !doc.arazzo.starts_with("1.1.") {
             return Err(Refusal::InvalidVersion(doc.arazzo.clone()));
@@ -110,7 +116,10 @@ impl DocumentIndex {
         };
 
         if self.documents.contains_key(&base_uri) {
-            return Err(Refusal::Parse(format!("Duplicate document base URI: {}", base_uri)));
+            return Err(Refusal::Parse(format!(
+                "Duplicate document base URI: {}",
+                base_uri
+            )));
         }
 
         self.documents.insert(base_uri, doc);
@@ -124,12 +133,13 @@ impl DocumentIndex {
             .map(|(path, fallback_base_uri)| {
                 let file = File::open(path)
                     .map_err(|e| Refusal::Parse(format!("Failed to open file: {}", e)))?;
-                
+
                 let mmap = unsafe { MmapOptions::new().map(&file) }
                     .map_err(|e| Refusal::Parse(format!("Failed to mmap file: {}", e)))?;
-                    
-                let doc: ArazzoDescription = serde_json::from_slice(&mmap)
-                    .map_err(|e| Refusal::Parse(format!("Failed to parse Arazzo document from mmap: {}", e)))?;
+
+                let doc: ArazzoDescription = serde_json::from_slice(&mmap).map_err(|e| {
+                    Refusal::Parse(format!("Failed to parse Arazzo document from mmap: {}", e))
+                })?;
 
                 if !doc.arazzo.starts_with("1.1.") {
                     return Err(Refusal::InvalidVersion(doc.arazzo.clone()));
@@ -147,10 +157,13 @@ impl DocumentIndex {
 
         let parsed = parsed_results?;
         self.documents.reserve(parsed.len());
-        
+
         for (base_uri, doc) in parsed {
             if self.documents.contains_key(&base_uri) {
-                return Err(Refusal::Parse(format!("Duplicate document base URI: {}", base_uri)));
+                return Err(Refusal::Parse(format!(
+                    "Duplicate document base URI: {}",
+                    base_uri
+                )));
             }
             self.documents.insert(base_uri, doc);
         }

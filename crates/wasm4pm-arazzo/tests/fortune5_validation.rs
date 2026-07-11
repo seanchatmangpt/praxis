@@ -1,8 +1,9 @@
-use wasm4pm_arazzo::air::{AirProgram, AirWorkflow, AirStep, AirTarget, AirAction, AirExpr};
-use wasm4pm_arazzo::compile::AirCompiler;
-use bumpalo::Bump;
-use bumpalo::collections::{String as BumpString, Vec as BumpVec};
+use bumpalo::collections::String as BumpString;
+use bumpalo::collections::Vec as BumpVec;
 use bumpalo::vec;
+use bumpalo::Bump;
+use wasm4pm_arazzo::air::{AirAction, AirExpr, AirProgram, AirStep, AirTarget, AirWorkflow};
+use wasm4pm_arazzo::compile::AirCompiler;
 
 #[test]
 fn test_fortune5_workflow_compilation() {
@@ -22,6 +23,8 @@ fn test_fortune5_workflow_compilation() {
                             inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("order_payload", &bump))],
                             outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("order_valid", &bump))],
                         },
+                        on_success: BumpVec::new_in(&bump),
+                        on_failure: BumpVec::new_in(&bump),
                     },
                     AirStep {
                         name: BumpString::from_str_in("check_inventory", &bump),
@@ -33,6 +36,8 @@ fn test_fortune5_workflow_compilation() {
                             inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("order_id", &bump))],
                             outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("inventory_reserved", &bump))],
                         },
+                        on_success: BumpVec::new_in(&bump),
+                        on_failure: BumpVec::new_in(&bump),
                     },
                     AirStep {
                         name: BumpString::from_str_in("dispatch_freight", &bump),
@@ -47,6 +52,8 @@ fn test_fortune5_workflow_compilation() {
                             ],
                             outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("freight_id", &bump))],
                         },
+                        on_success: BumpVec::new_in(&bump),
+                        on_failure: BumpVec::new_in(&bump),
                     },
                     AirStep {
                         name: BumpString::from_str_in("finalize_invoice", &bump),
@@ -58,6 +65,8 @@ fn test_fortune5_workflow_compilation() {
                             inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("freight_id", &bump))],
                             outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("invoice_status", &bump))],
                         },
+                        on_success: BumpVec::new_in(&bump),
+                        on_failure: BumpVec::new_in(&bump),
                     },
                 ],
             }
@@ -65,5 +74,9 @@ fn test_fortune5_workflow_compilation() {
     };
 
     let result = AirCompiler::compile(&program);
-    assert!(result.is_ok(), "Fortune 5 workflow compilation failed: {:?}", result.unwrap_err());
+    assert!(
+        result.is_ok(),
+        "Fortune 5 workflow compilation failed: {:?}",
+        result.unwrap_err()
+    );
 }

@@ -309,8 +309,8 @@ test!(hierarchical_powl_exports_parses_and_is_deterministic, {
 
     // Act: serialize twice with provenance pointing at the combined plan,
     // then export the one national hierarchical workflow artifact.
-    let turtle_a = powl_to_turtle(&model, BASE_IRI, Some(PLAN_SOURCE_IRI));
-    let turtle_b = powl_to_turtle(&model, BASE_IRI, Some(PLAN_SOURCE_IRI));
+    let turtle_a = powl_to_turtle(&model, BASE_IRI, Some(PLAN_SOURCE_IRI))?;
+    let turtle_b = powl_to_turtle(&model, BASE_IRI, Some(PLAN_SOURCE_IRI))?;
     let exported = export_powl(EXPORT_FILE, &turtle_a);
 
     // Assert: exported bytes equal the serialized Turtle; serialization is

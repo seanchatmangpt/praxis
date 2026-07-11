@@ -268,8 +268,8 @@ test!(joseph_powl_exports_parses_and_is_deterministic, {
 
     // Act: serialize twice with provenance pointing at the combined plan,
     // then export the one national workflow artifact.
-    let turtle_a = powl_to_turtle(&model, BASE_IRI, Some(PLAN_SOURCE_IRI));
-    let turtle_b = powl_to_turtle(&model, BASE_IRI, Some(PLAN_SOURCE_IRI));
+    let turtle_a = powl_to_turtle(&model, BASE_IRI, Some(PLAN_SOURCE_IRI))?;
+    let turtle_b = powl_to_turtle(&model, BASE_IRI, Some(PLAN_SOURCE_IRI))?;
     let exported = export_powl(EXPORT_FILE, &turtle_a);
 
     // Assert: exported bytes equal the serialized Turtle; serialization is
@@ -372,12 +372,12 @@ test!(changing_one_source_artifact_changes_the_powl, {
         &project_pddl_tape_to_powl(&tape_a)?,
         BASE_IRI,
         Some(PLAN_SOURCE_IRI),
-    );
+    )?;
     let turtle_b = powl_to_turtle(
         &project_pddl_tape_to_powl(&tape_b)?,
         BASE_IRI,
         Some(PLAN_SOURCE_IRI),
-    );
+    )?;
 
     // Assert: changing one source artifact changes the generated POWL — a
     // hardcoded canned document would be identical for both inputs.

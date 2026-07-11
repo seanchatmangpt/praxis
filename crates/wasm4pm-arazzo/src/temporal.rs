@@ -1,142 +1,59 @@
-use crate::air::{AirProgram, AirExpr};
+use crate::air::{AirExpr, AirProgram};
+use crate::Refusal;
 use bumpalo::Bump;
 use std::collections::HashMap;
 
-/// Predictive Temporal Parsing Engine
-///
-/// Implements "retrocausal" pre-collapsing and Closed Timelike Curves (CTCs).
-/// Simulates relativistic frame dragging by iterating the workflow graph until
-/// a fixed point is reached, allowing steps to fetch deterministic states that
-/// technically have not been computed yet (backward-in-time propagation).
-pub struct TemporalPredictor;
+/// Resolves `Variable` step-input references within a workflow.
+pub struct ReferenceResolver;
 
-impl TemporalPredictor {
-    /// Phase 8: Retro-Causal Time-Loop Normalization
-    /// Resolves states backwards in time, computing dependencies in a retrograde frame
-    /// so they are solved before the workflow theoretically begins.
-    pub fn retro_causal_normalization<'bump>(
+impl ReferenceResolver {
+    /// Resolves each step's `Variable` inputs against the literal outputs declared by *earlier*
+    /// steps in the same workflow, in declaration order.
+    ///
+    /// A step may only reference an output declared by a step before it: forward references (a
+    /// step referencing a later step's output), self-references, and unknown references are all
+    /// refused with `Refusal::UnresolvableReference`. This matches the constraint that a step
+    /// can only observe the outputs of steps that have already run.
+    ///
+    /// # Complexity
+    /// O(total step count) time and space, single forward pass — no fixed-point iteration is
+    /// needed because a single order-respecting scan already resolves every valid multi-hop
+    /// dependency chain by construction (each step's own outputs become visible to later steps
+    /// as soon as it is processed).
+    pub fn resolve<'bump>(
         program: &mut AirProgram<'bump>,
         bump: &'bump Bump,
-    ) -> Result<(), crate::Refusal> {
-        // Collect all variable references and literals first across the entire timeline
-        let mut retro_state: HashMap<String, String> = HashMap::new();
-        
-        for wf in program.workflows.iter() {
-            for step in wf.steps.iter() {
-                // If it's a literal output, it's a fixed point in the timeline
-                for output in step.action.outputs.iter() {
-                    if let AirExpr::Literal(val) = output {
-                        retro_state.insert(val.as_str().to_string(), val.as_str().to_string());
-                    }
-                }
-            }
-        }
-
-        // Apply them in a retrograde pass (backwards traversal) to simulate temporal normalization
+    ) -> Result<(), Refusal> {
         for wf in program.workflows.iter_mut() {
-            for step in wf.steps.iter_mut().rev() {
-                for input in step.action.inputs.iter_mut() {
-                    if let AirExpr::Variable(var_name) = input {
-                        if let Some(collapsed_val) = retro_state.get(var_name.as_str()) {
-                            *input = AirExpr::Literal(bumpalo::collections::String::from_str_in(collapsed_val, bump));
-                        }
-                    }
-                }
-            }
-        }
+            let mut resolved: HashMap<String, String> = HashMap::new();
 
-        Ok(())
-    }
-
-    /// Pre-collapses references in the AIR program using closed timelike curves.
-    pub fn pre_collapse<'bump>(program: &mut AirProgram<'bump>, _bump: &'bump Bump) {
-        for wf in program.workflows.iter_mut() {
-            // Tachyonic state map holding future and past inevitabilities
-            let mut retro_state: HashMap<String, String> = HashMap::new();
-
-            // Simulate closed timelike curves (CTCs) via fixed-point frame dragging
-            let mut stabilized = false;
-            let mut iterations = 0;
-
-            while !stabilized && iterations < 100 {
-                stabilized = true;
-
-                // First pass: accumulate all known deterministic outputs across the entire timeline
-                for step in wf.steps.iter() {
-                    for output in step.action.outputs.iter() {
-                        if let AirExpr::Literal(val) = output {
-                            if !retro_state.contains_key(val.as_str()) {
-                                retro_state.insert(val.as_str().to_string(), val.as_str().to_string());
-                                stabilized = false; // The timeline has shifted
-                            }
-                        }
-                    }
-                }
-
-                // Second pass: apply causality bypass to inputs regardless of temporal position
-                for step in wf.steps.iter_mut() {
-                    for input in step.action.inputs.iter_mut() {
-                        if let AirExpr::Variable(var_name) = input {
-                            if let Some(collapsed_val) = retro_state.get(var_name.as_str()) {
-                                // The state is fetched from the future/past
-                                *input = AirExpr::Literal(bumpalo::collections::String::from_str_in(collapsed_val, _bump));
-                                stabilized = false; // A collapse occurred, timeline must be re-verified
-                            }
-                        }
-                    }
-                }
-
-                iterations += 1;
-            }
-        }
-    }
-
-    /// Phase 7: Omniscient Timeline Collapse
-    /// Resolves Arazzo 1.1 workflow references by collapsing the wavefunction of all possible futures simultaneously.
-    pub fn omniscient_timeline_collapse<'bump>(
-        program: &mut AirProgram<'bump>,
-        bump: &'bump Bump,
-    ) -> Result<(), crate::Refusal> {
-        for wf in program.workflows.iter_mut() {
-            // Superposition state mapping variables to their quantum eigenstates
-            let mut wavefunction: HashMap<String, Vec<String>> = HashMap::new();
-            
-            // Superposition pass: Collect all possible futures simultaneously (Schrödinger equations)
-            for step in wf.steps.iter() {
-                for output in step.action.outputs.iter() {
-                    if let AirExpr::Literal(val) = output {
-                        // In a real Schrödinger evaluation this would be a complex amplitude
-                        // Here we just map the deterministically observable state
-                        wavefunction.entry(val.as_str().to_string())
-                            .or_default()
-                            .push(val.as_str().to_string());
-                    }
-                }
-            }
-
-            // Collapse pass: Resolve Arazzo 1.1 workflow references
             for step in wf.steps.iter_mut() {
                 for input in step.action.inputs.iter_mut() {
                     if let AirExpr::Variable(var_name) = input {
-                        if let Some(states) = wavefunction.get(var_name.as_str()) {
-                            if states.is_empty() {
-                                return Err(crate::Refusal::UnresolvableReference(
-                                    format!("Dead wavefunction for variable: {}", var_name)
-                                ));
+                        match resolved.get(var_name.as_str()) {
+                            Some(value) => {
+                                *input = AirExpr::Literal(
+                                    bumpalo::collections::String::from_str_in(value, bump),
+                                );
                             }
-                            // Deterministic collapse to fixed first observed state to maintain 
-                            // zero-randomness invariant (Fixed seed equivalent)
-                            let collapsed_val = &states[0];
-                            *input = AirExpr::Literal(bumpalo::collections::String::from_str_in(collapsed_val, bump));
-                        } else {
-                             return Err(crate::Refusal::UnresolvableReference(
-                                 format!("Variable not in timeline superposition: {}", var_name)
-                             ));
+                            None => {
+                                return Err(Refusal::UnresolvableReference(format!(
+                                    "Step '{}' in workflow '{}' references '{}', which is not an output of any earlier step",
+                                    step.name, wf.name, var_name
+                                )));
+                            }
                         }
+                    }
+                }
+
+                for output in step.action.outputs.iter() {
+                    if let AirExpr::Literal(val) = output {
+                        resolved.insert(val.as_str().to_string(), val.as_str().to_string());
                     }
                 }
             }
         }
+
         Ok(())
     }
 }
@@ -144,31 +61,33 @@ impl TemporalPredictor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::air::{AirWorkflow, AirStep, AirTarget, AirAction};
+    use crate::air::{AirAction, AirStep, AirTarget, AirWorkflow};
     use bumpalo::collections::{String as BumpString, Vec as BumpVec};
     use bumpalo::vec;
 
     #[test]
-    fn test_temporal_retrocausality() {
+    fn test_forward_reference_resolves() {
         let bump = Bump::new();
         let mut program = AirProgram {
             workflows: vec![in &bump;
                 AirWorkflow {
-                    name: BumpString::from_str_in("retro_wf", &bump),
+                    name: BumpString::from_str_in("wf", &bump),
                     steps: vec![in &bump;
                         AirStep {
-                            name: BumpString::from_str_in("step_1", &bump),
+                            name: BumpString::from_str_in("step_1_producer", &bump),
                             target: AirTarget {
-                                url: BumpString::from_str_in("http://example.com", &bump),
+                                url: BumpString::from_str_in("http://example.com/1", &bump),
                                 method: BumpString::from_str_in("POST", &bump),
                             },
                             action: AirAction {
                                 inputs: BumpVec::new_in(&bump),
                                 outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("order_id", &bump))],
-                            }
+                            },
+                            on_success: BumpVec::new_in(&bump),
+                            on_failure: BumpVec::new_in(&bump),
                         },
                         AirStep {
-                            name: BumpString::from_str_in("step_2", &bump),
+                            name: BumpString::from_str_in("step_2_consumer", &bump),
                             target: AirTarget {
                                 url: BumpString::from_str_in("http://example.com/2", &bump),
                                 method: BumpString::from_str_in("POST", &bump),
@@ -176,126 +95,32 @@ mod tests {
                             action: AirAction {
                                 inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("order_id", &bump))],
                                 outputs: BumpVec::new_in(&bump),
-                            }
+                            },
+                            on_success: BumpVec::new_in(&bump),
+                            on_failure: BumpVec::new_in(&bump),
                         }
                     ],
                 }
-            ]
+            ],
         };
 
-        TemporalPredictor::pre_collapse(&mut program, &bump);
+        ReferenceResolver::resolve(&mut program, &bump).expect("should resolve");
 
         let step2_input = &program.workflows[0].steps[1].action.inputs[0];
         match step2_input {
             AirExpr::Literal(val) => assert_eq!(val, "order_id"),
-            _ => panic!("Temporal predictor failed to pre-collapse!"),
+            _ => panic!("Reference to an earlier step's output should have resolved"),
         }
     }
 
     #[test]
-    fn test_closed_timelike_curve() {
+    fn test_backward_reference_refused() {
         let bump = Bump::new();
-        // Step 1 requires an input that is generated by Step 2 in the future
+        // step_1 references an output that only step_2 (declared after it) produces.
         let mut program = AirProgram {
             workflows: vec![in &bump;
                 AirWorkflow {
-                    name: BumpString::from_str_in("ctc_wf", &bump),
-                    steps: vec![in &bump;
-                        AirStep {
-                            name: BumpString::from_str_in("step_1_past", &bump),
-                            target: AirTarget {
-                                url: BumpString::from_str_in("http://example.com/past", &bump),
-                                method: BumpString::from_str_in("POST", &bump),
-                            },
-                            action: AirAction {
-                                // Depends on the future!
-                                inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("future_artifact", &bump))],
-                                outputs: BumpVec::new_in(&bump),
-                            }
-                        },
-                        AirStep {
-                            name: BumpString::from_str_in("step_2_future", &bump),
-                            target: AirTarget {
-                                url: BumpString::from_str_in("http://example.com/future", &bump),
-                                method: BumpString::from_str_in("POST", &bump),
-                            },
-                            action: AirAction {
-                                inputs: BumpVec::new_in(&bump),
-                                // Generates the artifact for the past
-                                outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("future_artifact", &bump))],
-                            }
-                        }
-                    ],
-                }
-            ]
-        };
-
-        TemporalPredictor::pre_collapse(&mut program, &bump);
-
-        // Verify Step 1 input collapsed from Variable to Literal using future data
-        let step1_input = &program.workflows[0].steps[0].action.inputs[0];
-        match step1_input {
-            AirExpr::Literal(val) => assert_eq!(val, "future_artifact"),
-            _ => panic!("Causality bypass failed! The past did not receive the future artifact."),
-        }
-    }
-
-    #[test]
-    fn test_retro_causal_normalization() {
-        let bump = Bump::new();
-        // Step 1 requires an input that is generated by Step 2 in the future
-        let mut program = AirProgram {
-            workflows: vec![in &bump;
-                AirWorkflow {
-                    name: BumpString::from_str_in("retro_norm_wf", &bump),
-                    steps: vec![in &bump;
-                        AirStep {
-                            name: BumpString::from_str_in("step_1_past", &bump),
-                            target: AirTarget {
-                                url: BumpString::from_str_in("http://example.com/past", &bump),
-                                method: BumpString::from_str_in("POST", &bump),
-                            },
-                            action: AirAction {
-                                // Depends on the future!
-                                inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("retro_artifact", &bump))],
-                                outputs: BumpVec::new_in(&bump),
-                            }
-                        },
-                        AirStep {
-                            name: BumpString::from_str_in("step_2_future", &bump),
-                            target: AirTarget {
-                                url: BumpString::from_str_in("http://example.com/future", &bump),
-                                method: BumpString::from_str_in("POST", &bump),
-                            },
-                            action: AirAction {
-                                inputs: BumpVec::new_in(&bump),
-                                // Generates the artifact for the past
-                                outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("retro_artifact", &bump))],
-                            }
-                        }
-                    ],
-                }
-            ]
-        };
-
-        let result = TemporalPredictor::retro_causal_normalization(&mut program, &bump);
-        assert!(result.is_ok());
-
-        // Verify Step 1 input collapsed from Variable to Literal using future data
-        let step1_input = &program.workflows[0].steps[0].action.inputs[0];
-        match step1_input {
-            AirExpr::Literal(val) => assert_eq!(val, "retro_artifact"),
-            _ => panic!("Retro-causal normalization failed! The past did not receive the future artifact."),
-        }
-    }
-
-    #[test]
-    fn test_omniscient_timeline_collapse() {
-        let bump = Bump::new();
-        let mut program = AirProgram {
-            workflows: vec![in &bump;
-                AirWorkflow {
-                    name: BumpString::from_str_in("quantum_wf", &bump),
+                    name: BumpString::from_str_in("wf", &bump),
                     steps: vec![in &bump;
                         AirStep {
                             name: BumpString::from_str_in("step_1", &bump),
@@ -304,9 +129,11 @@ mod tests {
                                 method: BumpString::from_str_in("POST", &bump),
                             },
                             action: AirAction {
-                                inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("superposition_var", &bump))],
+                                inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("later_artifact", &bump))],
                                 outputs: BumpVec::new_in(&bump),
-                            }
+                            },
+                            on_success: BumpVec::new_in(&bump),
+                            on_failure: BumpVec::new_in(&bump),
                         },
                         AirStep {
                             name: BumpString::from_str_in("step_2", &bump),
@@ -316,31 +143,30 @@ mod tests {
                             },
                             action: AirAction {
                                 inputs: BumpVec::new_in(&bump),
-                                outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("superposition_var", &bump))],
-                            }
+                                outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("later_artifact", &bump))],
+                            },
+                            on_success: BumpVec::new_in(&bump),
+                            on_failure: BumpVec::new_in(&bump),
                         }
                     ],
                 }
-            ]
+            ],
         };
 
-        let result = TemporalPredictor::omniscient_timeline_collapse(&mut program, &bump);
-        assert!(result.is_ok());
-
-        let step1_input = &program.workflows[0].steps[0].action.inputs[0];
-        match step1_input {
-            AirExpr::Literal(val) => assert_eq!(val, "superposition_var"),
-            _ => panic!("Wavefunction did not collapse!"),
-        }
+        let result = ReferenceResolver::resolve(&mut program, &bump);
+        assert!(
+            matches!(result, Err(Refusal::UnresolvableReference(_))),
+            "a step must not be able to resolve a reference to a later step's output"
+        );
     }
 
     #[test]
-    fn test_omniscient_timeline_collapse_missing_ref() {
+    fn test_unknown_reference_refused() {
         let bump = Bump::new();
         let mut program = AirProgram {
             workflows: vec![in &bump;
                 AirWorkflow {
-                    name: BumpString::from_str_in("quantum_wf_err", &bump),
+                    name: BumpString::from_str_in("wf", &bump),
                     steps: vec![in &bump;
                         AirStep {
                             name: BumpString::from_str_in("step_1", &bump),
@@ -351,19 +177,89 @@ mod tests {
                             action: AirAction {
                                 inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("missing_var", &bump))],
                                 outputs: BumpVec::new_in(&bump),
-                            }
+                            },
+                            on_success: BumpVec::new_in(&bump),
+                            on_failure: BumpVec::new_in(&bump),
                         }
                     ],
                 }
-            ]
+            ],
         };
 
-        let result = TemporalPredictor::omniscient_timeline_collapse(&mut program, &bump);
+        let result = ReferenceResolver::resolve(&mut program, &bump);
         match result {
-            Err(crate::Refusal::UnresolvableReference(msg)) => {
-                assert_eq!(msg, "Variable not in timeline superposition: missing_var");
+            Err(Refusal::UnresolvableReference(msg)) => {
+                assert_eq!(
+                    msg,
+                    "Step 'step_1' in workflow 'wf' references 'missing_var', which is not an output of any earlier step"
+                );
             }
-            _ => panic!("Expected UnresolvableReference Refusal for unresolvable variable!"),
+            _ => panic!("Expected UnresolvableReference Refusal for an unknown variable"),
+        }
+    }
+
+    #[test]
+    fn test_multi_hop_chain_resolves_in_a_single_pass() {
+        let bump = Bump::new();
+        // step_1 produces x; step_2 consumes x and produces y; step_3 consumes y.
+        let mut program = AirProgram {
+            workflows: vec![in &bump;
+                AirWorkflow {
+                    name: BumpString::from_str_in("wf", &bump),
+                    steps: vec![in &bump;
+                        AirStep {
+                            name: BumpString::from_str_in("step_1", &bump),
+                            target: AirTarget {
+                                url: BumpString::from_str_in("http://example.com/1", &bump),
+                                method: BumpString::from_str_in("POST", &bump),
+                            },
+                            action: AirAction {
+                                inputs: BumpVec::new_in(&bump),
+                                outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("x", &bump))],
+                            },
+                            on_success: BumpVec::new_in(&bump),
+                            on_failure: BumpVec::new_in(&bump),
+                        },
+                        AirStep {
+                            name: BumpString::from_str_in("step_2", &bump),
+                            target: AirTarget {
+                                url: BumpString::from_str_in("http://example.com/2", &bump),
+                                method: BumpString::from_str_in("POST", &bump),
+                            },
+                            action: AirAction {
+                                inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("x", &bump))],
+                                outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("y", &bump))],
+                            },
+                            on_success: BumpVec::new_in(&bump),
+                            on_failure: BumpVec::new_in(&bump),
+                        },
+                        AirStep {
+                            name: BumpString::from_str_in("step_3", &bump),
+                            target: AirTarget {
+                                url: BumpString::from_str_in("http://example.com/3", &bump),
+                                method: BumpString::from_str_in("POST", &bump),
+                            },
+                            action: AirAction {
+                                inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("y", &bump))],
+                                outputs: BumpVec::new_in(&bump),
+                            },
+                            on_success: BumpVec::new_in(&bump),
+                            on_failure: BumpVec::new_in(&bump),
+                        }
+                    ],
+                }
+            ],
+        };
+
+        ReferenceResolver::resolve(&mut program, &bump).expect("should resolve the whole chain");
+
+        match &program.workflows[0].steps[1].action.inputs[0] {
+            AirExpr::Literal(val) => assert_eq!(val, "x"),
+            _ => panic!("step_2 should have resolved x"),
+        }
+        match &program.workflows[0].steps[2].action.inputs[0] {
+            AirExpr::Literal(val) => assert_eq!(val, "y"),
+            _ => panic!("step_3 should have resolved y"),
         }
     }
 }

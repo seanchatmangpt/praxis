@@ -51,6 +51,7 @@ use oxigraph::sparql::{QueryResults, SparqlEvaluator};
 use oxigraph::store::Store;
 use oxrdf::dataset::{CanonicalizationAlgorithm, CanonicalizationHashAlgorithm};
 use oxrdf::{Dataset, NamedNode, Term};
+use powl2_decompose::Powl;
 use serde::{Deserialize, Serialize};
 
 use bcinr_pddl::error::Pddl8Error;
@@ -71,6 +72,10 @@ use crate::TripleStore;
 
 use super::abi::{Digest, GraphSnapshotId, InvocationEnvelope, Refusal, StageSeal};
 use super::admission8::{AdmissionTable8, ConstraintMask};
+use super::powl_projection::{
+    model_declares_external_cut, powl_to_turtle, ExternalCutCompilationOutcome,
+    ExternalCutCompilationRequest, ExternalCutCompiler,
+};
 use super::router::{DialectRouter, ProfileGates, QueryShape, RouteDecision};
 use super::triple8::ProfileSymbolTable;
 
@@ -93,6 +98,11 @@ const HOOK_EVENT_DIGEST_TAG: &str = "chatman/engine/hook-event/v1";
 const ENGINE_VERSION_DIGEST_TAG: &str = "chatman/engine/version/v1";
 const SNAPSHOT_DIGEST_TAG: &str = "chatman/engine/graph-snapshot/v1";
 const CHAIN_RUN_TAG: &str = "chatman/engine/causal-run/v1";
+/// PROJ-796: digest #10, folded over an [`ExternalCutCompilationOutcome`]'s
+/// materials by [`ChatmanEngine::admit_transition_with_external_cut`].
+/// Deliberately excluded from [`receipt_root`]'s nine-term formula (see
+/// [`EngineProcessReceipt::external_cut`]'s doc comment).
+const EXTERNAL_CUT_DIGEST_TAG: &str = "chatman/engine/external-cut/v1";
 
 /// Maps every [`Pddl8Error`] variant onto the chatman refusal taxonomy,
 /// carrying the variant name verbatim in the context so the offender is
@@ -238,6 +248,23 @@ pub struct EngineProcessReceipt {
     pub receipt_root: Digest,
     /// Canonical N-Quads material digest #1 covers, lines sorted.
     pub canon_nquads: String,
+    /// #10 (optional, PROJ-796) — Rail A/B external-cut compilation digest,
+    /// folded from an [`ExternalCutCompilationOutcome`] by
+    /// [`ChatmanEngine::admit_transition_with_external_cut`]. `None` for
+    /// every plain [`ChatmanEngine::admit_transition`] run, including a
+    /// POWL region with no declared [`Powl::ExternalCut`] anywhere (PRD.md
+    /// sec.19.1, "local POWL remains local").
+    ///
+    /// Deliberately **not** folded into digests #1-#9 or `receipt_root`:
+    /// those nine are computed by the exact same code whether or not this
+    /// field is populated, so admitting a transition with no external cut
+    /// produces byte-identical digests #1-#9 and `receipt_root` to what
+    /// this engine produced before this field existed. This field is its
+    /// own independently verifiable digest instead of perturbing the
+    /// existing nine-term root. Not yet covered by
+    /// [`ChatmanEngine::verify_replay`] (a disclosed PROJ-796 gap: replay
+    /// verification recomputes and compares only digests #1-#9 today).
+    pub external_cut: Option<Digest>,
 }
 
 /// Lane-sketch name for [`EngineProcessReceipt`].
@@ -277,9 +304,32 @@ fn receipt_root(digests: &[&Digest; 9]) -> Digest {
     Digest::new(blake3_combined(&parts))
 }
 
-/// An admitted transition: the only constructor is
-/// [`ChatmanEngine::admit_transition`]. All fields are private; accessors
-/// expose read-only views, and [`ChatmanEngine::actuate`] consumes the value.
+/// Digest #10 (PROJ-796, optional): folds one
+/// [`ExternalCutCompilationOutcome`] plus the compiled region's root
+/// element IRI into a single BLAKE3 digest, tagged and field-ordered like
+/// every other digest in this module (never a `HashMap`, always a fixed
+/// argument order).
+///
+/// # Complexity
+/// O(1) — seven fixed-size parts hashed once.
+fn external_cut_digest(outcome: &ExternalCutCompilationOutcome, root_element_id: &str) -> Digest {
+    Digest::new(blake3_combined(&[
+        EXTERNAL_CUT_DIGEST_TAG,
+        root_element_id,
+        &outcome.source_powl_digest_hex,
+        &outcome.sparql_projection_digest_hex,
+        &outcome.tera_template_digest_hex,
+        &outcome.arazzo_digest_hex,
+        &outcome.compiler_version,
+        &outcome.air_digest_hex,
+    ]))
+}
+
+/// An admitted transition: the only constructors are
+/// [`ChatmanEngine::admit_transition`] and
+/// [`ChatmanEngine::admit_transition_with_external_cut`] (both defined in
+/// this module). All fields are private; accessors expose read-only views,
+/// and [`ChatmanEngine::actuate`] consumes the value.
 #[derive(Debug, Clone)]
 pub struct AdmittedTransition {
     envelope: InvocationEnvelope,
@@ -612,12 +662,86 @@ impl ChatmanEngine {
             engine_version: engine_version_digest,
             receipt_root,
             canon_nquads: stages.canon_nquads,
+            external_cut: None,
         };
         Ok(AdmittedTransition {
             envelope,
             receipt,
             boundary_requests: stages.boundary_requests,
         })
+    }
+
+    /// Opt-in extension of [`ChatmanEngine::admit_transition`] (PROJ-796):
+    /// when `powl_region` declares at least one [`Powl::ExternalCut`]
+    /// anywhere in its tree, this additionally runs Rail A's real
+    /// `A_z = T(Q(W))` projection (PRD.md sec.7.4) plus Rail B's
+    /// Arazzo -> AIR lowering and WASM compilation over the admitted
+    /// region, through the injected `compiler`, and seals the result as
+    /// digest #10 (`external_cut`) on the returned receipt.
+    ///
+    /// `ChatmanEngine` (this crate, `praxis-graphlaw`) cannot depend on the
+    /// crate that owns the real Tera renderer / AIR compiler
+    /// (`praxis-core`, which already depends on `praxis-graphlaw` — the
+    /// reverse edge would be a cyclic crate dependency), so the real Rail
+    /// A/B computation is injected via [`ExternalCutCompiler`] rather than
+    /// called directly. `praxis_core::arazzo::ChatmanRailAbCompiler` is the
+    /// one real implementation this workspace ships.
+    ///
+    /// # "local POWL remains local" (PRD.md sec.19.1)
+    /// This method's body starts by calling
+    /// [`ChatmanEngine::admit_transition`] unchanged and verbatim — every
+    /// one of digests #1-#9 and `receipt_root` is computed by the exact
+    /// same code path as a plain `admit_transition` call, so a POWL region
+    /// with **no** external cut anywhere produces a receipt whose first
+    /// nine digests and root are byte-identical to what `admit_transition`
+    /// alone would have produced; only `external_cut` differs (`None`,
+    /// same as the plain call). The Rail A/B pipeline runs **only** when
+    /// [`model_declares_external_cut`] returns true for `powl_region`.
+    ///
+    /// # Errors
+    /// Every [`ChatmanEngine::admit_transition`] refusal, unchanged; plus
+    /// whatever [`Refusal`] the injected `compiler` returns when a declared
+    /// external cut fails to compile, or [`Refusal::ValidationFailed`] if
+    /// `powl_region` itself fails admission ([`powl_to_turtle`]'s own
+    /// `ExternalCutRefusal` wrapping). Either failure is a hard refusal of
+    /// the **whole** admission: the already-computed S1-S6 transition is
+    /// discarded, never returned partially populated — a declared cut this
+    /// engine cannot compile is not a lawfully admitted transition.
+    ///
+    /// # Complexity
+    /// [`ChatmanEngine::admit_transition`]'s own bound, plus O(n) to scan
+    /// `powl_region` for a declared cut ([`model_declares_external_cut`]),
+    /// plus (only when a cut is present) the admission/Turtle-emission cost
+    /// of [`powl_to_turtle`] and the injected compiler's own bound.
+    pub fn admit_transition_with_external_cut(
+        &mut self,
+        envelope: InvocationEnvelope,
+        powl_region: &Powl,
+        compiler: &dyn ExternalCutCompiler,
+    ) -> Result<AdmittedTransition, Refusal> {
+        let invocation_id = envelope.invocation_id.as_str().to_string();
+        let snapshot_id = envelope.snapshot_id.as_str().to_string();
+        let mut transition = self.admit_transition(envelope)?;
+
+        if !model_declares_external_cut(powl_region) {
+            return Ok(transition);
+        }
+
+        let base_iri = snapshot_id.trim_end_matches('/');
+        let turtle = powl_to_turtle(powl_region, base_iri, Some(&snapshot_id))?;
+        let root_element_id = format!("{base_iri}/n0");
+        let workflow_id = format!("chatman-external-cut/{invocation_id}");
+        let title = format!("Chatman Rail A/B external cut for invocation {invocation_id}");
+
+        let request = ExternalCutCompilationRequest {
+            region_turtle: &turtle,
+            root_element_id: &root_element_id,
+            workflow_id: &workflow_id,
+            title: &title,
+        };
+        let outcome = compiler.compile(&request)?;
+        transition.receipt.external_cut = Some(external_cut_digest(&outcome, &root_element_id));
+        Ok(transition)
     }
 
     /// Applies an admitted transition's boundary requests as SPARQL UPDATE

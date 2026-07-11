@@ -380,6 +380,64 @@ publish-dry-run crate:
 test-bin binary:
     timeout 600s cargo test -p praxis-graphlaw --test {{binary}} -- --nocapture
 
+# Type-check the praxis-graphlaw crate + its tests, scoped (the workspace-wide `just check`
+# pulls in every crate; this isolates praxis-graphlaw from unrelated in-flight breakage
+# elsewhere in the workspace)
+praxis-graphlaw-check:
+    timeout 180s cargo check -p praxis-graphlaw --all-targets --all-features
+
+# Lint the praxis-graphlaw crate with the same flags CI's clippy job uses, scoped (same
+# isolation rationale as praxis-graphlaw-check)
+praxis-graphlaw-clippy:
+    timeout 180s cargo clippy -p praxis-graphlaw --all-targets --all-features -- -D warnings
+
+# Type-check the wasm4pm-arazzo crate + its tests
+wasm4pm-arazzo-check:
+    timeout 180s cargo check -p wasm4pm-arazzo --tests
+
+# Run the wasm4pm-arazzo crate's unit + integration tests
+wasm4pm-arazzo-test *args:
+    timeout 600s cargo test -p wasm4pm-arazzo {{args}}
+
+# Type-check + test the praxis-core crate (isolate with CARGO_TARGET_DIR=target/agent-<name>
+# when running alongside other concurrent cargo work -- see the lock-contention NOTE above)
+praxis-core-test *args:
+    timeout 300s cargo test -p praxis-core {{args}}
+
+# Type-check the praxis-core crate + its tests, scoped (same isolation rationale as
+# praxis-graphlaw-check: praxis-core now depends on praxis-graphlaw for PROJ-752's
+# render_arazzo_document, so a workspace-wide `just check` would conflate the two)
+praxis-core-check:
+    timeout 180s cargo check -p praxis-core --all-targets
+
+# Lint the praxis-core crate with the same flags CI's clippy job uses
+praxis-core-clippy:
+    timeout 180s cargo clippy -p praxis-core --all-targets -- -D warnings
+
+# Lint the wasm4pm-arazzo crate with the same flags CI's clippy job uses
+wasm4pm-arazzo-clippy:
+    timeout 180s cargo clippy -p wasm4pm-arazzo --all-targets -- -D warnings
+
+# Type-check the powl2-decompose crate + its tests
+powl2-decompose-check:
+    timeout 180s cargo check -p powl2-decompose --tests
+
+# Run the powl2-decompose crate's unit + integration tests
+powl2-decompose-test *args:
+    timeout 600s cargo test -p powl2-decompose {{args}}
+
+# Lint the powl2-decompose crate with the same flags CI's clippy job uses
+powl2-decompose-clippy:
+    timeout 180s cargo clippy -p powl2-decompose --all-targets -- -D warnings
+
+# Type-check the air_core Erlang NIF (apps/air_core/native/air_core_nif)
+air-core-nif-check:
+    timeout 180s cargo check -p air_core_nif
+
+# Release-build the air_core Erlang NIF (air_core.erl's -on_load loads from target/release)
+air-core-nif-build:
+    timeout 300s cargo build -p air_core_nif --release
+
 # Slow quality gates: mutation score, line coverage, dylint (requires cargo-mutants/llvm-cov/dylint)
 chatman-quality:
     cargo mutants -p praxis-graphlaw --file 'src/chatman/*'

@@ -18,7 +18,7 @@ use crate::{receipt_record::ReceiptRecord, replay_adapter};
 
 /// Injectable wall-clock so "timestamp not in the future" checks are
 /// deterministic in tests.
-pub trait Clock {
+pub trait Clock: Sync {
     /// Current time in nanoseconds since the UNIX epoch.
     fn now_ns(&self) -> u64;
 }
@@ -103,13 +103,21 @@ impl ReceiptValidator {
     /// `monotonic` stage's "not in the future" check.
     #[must_use]
     pub fn validate(records: &[ReceiptRecord], clock: &dyn Clock) -> Verdict {
-        let stages = vec![
-            Self::check_schema(records),
-            Self::check_chain_recompute(records),
-            Self::check_chain_linkage(records),
-            Self::check_monotonic(records, clock),
-            Self::check_token_replay(records),
-        ];
+        let (s1, s2, s3, s4, s5) = std::thread::scope(|s| {
+            let t1 = s.spawn(|| Self::check_schema(records));
+            let t2 = s.spawn(|| Self::check_chain_recompute(records));
+            let t3 = s.spawn(|| Self::check_chain_linkage(records));
+            let t4 = s.spawn(|| Self::check_monotonic(records, clock));
+            let t5 = s.spawn(|| Self::check_token_replay(records));
+            (
+                t1.join().unwrap(),
+                t2.join().unwrap(),
+                t3.join().unwrap(),
+                t4.join().unwrap(),
+                t5.join().unwrap(),
+            )
+        });
+        let stages = vec![s1, s2, s3, s4, s5];
         let ok = stages
             .iter()
             .all(|s| s.outcome.is_pass() || matches!(s.outcome, CheckOutcome::Skip(_)));

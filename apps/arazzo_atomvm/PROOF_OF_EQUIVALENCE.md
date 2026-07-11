@@ -1,5 +1,15 @@
 # Proof of Equivalence: AtomVM Actor Loop vs. OTP gen_statem Runner
 
+> **UNVERIFIED — this is a design sketch, not a proof.** It has no machine-checked backing
+> (see PROJ-769, docs/jira/v26.7.11/tickets/index.md, for the real Lean formalization target).
+> Its own premise does not currently match the codebase: the actual OTP runner
+> (`apps/arazzo_runner/src/arazzo_runner_workflow.erl`) is a hand-rolled `receive` loop, not
+> `gen_statem` as assumed throughout section 2.1 below. `air_core:transition/2` also does not
+> currently return the `{ok, S'}` / `{io_request, Req, S'}` result shape this document assumes
+> (see `apps/air_core/src/air_core.erl`) — that is PROJ-755/756 scope, not yet landed. Treat the
+> structural argument below as a target design, not a verified claim, until PROJ-761 (the real
+> differential conformance corpus) exists and actually compares the two runners.
+
 ## 1. Theorem
 
 Let $S$ be the pure state of an Arazzo workflow, defined as `context()` in `air_core`.

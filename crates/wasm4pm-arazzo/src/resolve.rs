@@ -1,11 +1,11 @@
 use crate::{parse::DocumentIndex, Refusal};
+use phf::phf_set;
+use rayon::prelude::*;
 use url::Url;
 use wasm4pm_compat::arazzo::{
     ArazzoDescription, FailureActionOrReference, ParameterOrReference, ReusableObject,
     SuccessActionOrReference,
 };
-use rayon::prelude::*;
-use phf::phf_set;
 
 static PREDEFINED_REFS: phf::Set<&'static str> = phf_set! {
     "$url",
@@ -22,16 +22,14 @@ static PREDEFINED_REFS: phf::Set<&'static str> = phf_set! {
     "#/sourceDescriptions",
 };
 
-
 /// Normalizes all URIs in the given index. Resolves relative references to
 /// absolute URIs based on the document's base URI. This does not follow or
 /// resolve the cross-references, it only makes them absolute.
 pub fn normalize_uris(index: &mut DocumentIndex) -> Result<(), Refusal> {
-    index.documents
+    index
+        .documents
         .par_iter_mut()
-        .try_for_each(|(base_uri_str, doc)| {
-            normalize_document_uris(doc, base_uri_str)
-        })
+        .try_for_each(|(base_uri_str, doc)| normalize_document_uris(doc, base_uri_str))
 }
 
 fn normalize_document_uris(doc: &mut ArazzoDescription, base_uri_str: &str) -> Result<(), Refusal> {
@@ -40,32 +38,40 @@ fn normalize_document_uris(doc: &mut ArazzoDescription, base_uri_str: &str) -> R
     })?;
 
     // 1. Resolve sourceDescription URLs
-    doc.source_descriptions.par_iter_mut().try_for_each(|source| {
-        let resolved = base_uri.join(&source.url).map_err(|e| {
-            Refusal::UriResolution(format!(
-                "Failed to resolve source URL '{}': {}",
-                source.url, e
-            ))
+    doc.source_descriptions
+        .par_iter_mut()
+        .try_for_each(|source| {
+            let resolved = base_uri.join(&source.url).map_err(|e| {
+                Refusal::UriResolution(format!(
+                    "Failed to resolve source URL '{}': {}",
+                    source.url, e
+                ))
+            })?;
+            source.url = resolved.to_string();
+            Ok::<(), Refusal>(())
         })?;
-        source.url = resolved.to_string();
-        Ok::<(), Refusal>(())
-    })?;
 
     // 2. Resolve references in workflows
     doc.workflows.par_iter_mut().try_for_each(|workflow| {
-        workflow.success_actions.par_iter_mut().try_for_each(|action| {
-            if let SuccessActionOrReference::Reference(r) = action {
-                resolve_reusable_object(r, &base_uri)?;
-            }
-            Ok::<(), Refusal>(())
-        })?;
+        workflow
+            .success_actions
+            .par_iter_mut()
+            .try_for_each(|action| {
+                if let SuccessActionOrReference::Reference(r) = action {
+                    resolve_reusable_object(r, &base_uri)?;
+                }
+                Ok::<(), Refusal>(())
+            })?;
 
-        workflow.failure_actions.par_iter_mut().try_for_each(|action| {
-            if let FailureActionOrReference::Reference(r) = action {
-                resolve_reusable_object(r, &base_uri)?;
-            }
-            Ok::<(), Refusal>(())
-        })?;
+        workflow
+            .failure_actions
+            .par_iter_mut()
+            .try_for_each(|action| {
+                if let FailureActionOrReference::Reference(r) = action {
+                    resolve_reusable_object(r, &base_uri)?;
+                }
+                Ok::<(), Refusal>(())
+            })?;
 
         workflow.steps.par_iter_mut().try_for_each(|step| {
             step.parameters.par_iter_mut().try_for_each(|param| {
@@ -95,23 +101,29 @@ fn normalize_document_uris(doc: &mut ArazzoDescription, base_uri_str: &str) -> R
 
     // 3. Resolve references in components
     if let Some(components) = &mut doc.components {
-        components.success_actions.par_iter_mut().try_for_each(|(_, action)| {
-            action.parameters.par_iter_mut().try_for_each(|param| {
-                if let ParameterOrReference::Reference(r) = param {
-                    resolve_reusable_object(r, &base_uri)?;
-                }
-                Ok::<(), Refusal>(())
-            })
-        })?;
+        components
+            .success_actions
+            .par_iter_mut()
+            .try_for_each(|(_, action)| {
+                action.parameters.par_iter_mut().try_for_each(|param| {
+                    if let ParameterOrReference::Reference(r) = param {
+                        resolve_reusable_object(r, &base_uri)?;
+                    }
+                    Ok::<(), Refusal>(())
+                })
+            })?;
 
-        components.failure_actions.par_iter_mut().try_for_each(|(_, action)| {
-            action.parameters.par_iter_mut().try_for_each(|param| {
-                if let ParameterOrReference::Reference(r) = param {
-                    resolve_reusable_object(r, &base_uri)?;
-                }
-                Ok::<(), Refusal>(())
-            })
-        })?;
+        components
+            .failure_actions
+            .par_iter_mut()
+            .try_for_each(|(_, action)| {
+                action.parameters.par_iter_mut().try_for_each(|param| {
+                    if let ParameterOrReference::Reference(r) = param {
+                        resolve_reusable_object(r, &base_uri)?;
+                    }
+                    Ok::<(), Refusal>(())
+                })
+            })?;
     }
 
     Ok(())
@@ -130,10 +142,13 @@ fn resolve_reusable_object(r: &mut ReusableObject, base: &Url) -> Result<(), Ref
     } else if r.reference.starts_with("#/") {
         let mut parts = r.reference.split('/');
         let _ = parts.next(); // #
-        if let Some(second) = parts.next() {
+        if parts.next().is_some() {
             // We just need to check if the prefix "#/second" is known
             // However, it's easier to check by string slicing
-            let end_idx = r.reference[2..].find('/').map(|i| i + 2).unwrap_or(r.reference.len());
+            let end_idx = r.reference[2..]
+                .find('/')
+                .map(|i| i + 2)
+                .unwrap_or(r.reference.len());
             &r.reference[..end_idx]
         } else {
             &r.reference
@@ -153,7 +168,7 @@ fn resolve_reusable_object(r: &mut ReusableObject, base: &Url) -> Result<(), Ref
             r.reference, e
         ))
     })?;
-    
+
     // Instead of allocating a new string via to_string() and potentially dropping the old,
     // we just replace it directly.
     r.reference = resolved.into();
