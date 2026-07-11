@@ -1,7 +1,7 @@
 # PROJ-711 — IPC corpus generators (5 domains x 20 seeded problems)
 
 Status: ALIVE (full 5x20 corpus scale independently run) — evidenced this session (uncommitted;
-HEAD `40f6020`, Phase 6 commit not run)
+HEAD `1f3f9bc`, Phase 6 commit not run)
 
 Track: P (planning/decomposition).
 Milestone: v26.7.10-revised (No-LLM Multi-Actor Planning + Multi-Engine Execution).

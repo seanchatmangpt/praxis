@@ -234,6 +234,85 @@ test!(deadline_expiry_times_out_and_manufactures_escalation, {
     assert_eq!(adapter.telemetry.remediations, 1);
 });
 
+test!(
+    deadline_expiry_with_zero_remediation_budget_reaches_blocked,
+    {
+        // Arrange: the SAME forced-timeout setup as
+        // deadline_expiry_times_out_and_manufactures_escalation above
+        // (deadline_ticks = 0, so no loopback consequence can arrive
+        // before the deadline expires), but with remediation_budget = 0 —
+        // the coordinator has nothing left to spend on this timeout. This
+        // is one of the 4 ->BLOCKED edges in the 16-state transition table
+        // (REMOTE_IN_PROGRESS/REFUSED/TIMED_OUT/COMPENSATING -> BLOCKED)
+        // that no prior test drove with real data: TIMED_OUT -> BLOCKED,
+        // the terminal "stuck, needs operator intervention" state.
+        let out_dir = scratch_dir("timeout_blocked_zero_budget");
+        let queries = QuerySet::load(&QuerySet::default_dir()).expect("query set loads");
+        let templates = load_templates().expect("templates load");
+        let store = Store::new().expect("store");
+        let mut writer =
+            ObsWriter::new(&templates, &store, &out_dir.join("obs"), "test").expect("writer");
+        let mut adapter = DispatchAdapter::new(&out_dir, &queries).expect("adapter constructs");
+        let mut contract = fixture_contract();
+        contract.deadline_ticks = 0;
+        let dispatch_id = contract.dispatch_id.clone();
+
+        // Act: remediation_budget = 0 forces the coordinator-timeout branch
+        // that skips COMPENSATING/escalation entirely.
+        let outcome = adapter
+            .dispatch(
+                &mut writer,
+                &store,
+                contract,
+                2,
+                false,
+                SynthesisMode::LoopbackDeterministic,
+                0,
+            )
+            .expect("lifecycle completes (timeout is evidence, not an error)");
+
+        // Assert: TIMED_OUT is still the reported outcome, but with zero
+        // remediation budget NO escalation workflow was manufactured — the
+        // load-bearing difference from the remediation_budget=1 sibling
+        // test above.
+        assert_eq!(outcome, DispatchOutcome::TimedOut);
+        assert_eq!(kind_count(&store, "dispatch_timed_out"), 1);
+        assert_eq!(kind_count(&store, "remediation_manufactured"), 0);
+        assert_eq!(kind_count(&store, "consequence_admitted"), 0);
+        assert_eq!(adapter.telemetry.timeouts, 1);
+        assert_eq!(adapter.telemetry.remediations, 0);
+
+        // Assert: the durable ledger proves the state machine actually
+        // crossed TIMED_OUT -> BLOCKED, not TIMED_OUT -> COMPENSATING ->
+        // COMPLETED — BLOCKED is a genuinely distinct terminal, reached by
+        // a real code path (dispatch.rs's `remediation_budget > 0` guard),
+        // not merely declared lawful in the transition table.
+        let entries = adapter.ledger.entries(&dispatch_id).expect("entries read");
+        let trajectory: Vec<(&str, &str)> = entries
+            .iter()
+            .map(|e| (e.from_state.as_str(), e.to_state.as_str()))
+            .collect();
+        assert_eq!(
+            trajectory,
+            vec![
+                ("MANUFACTURED", "ARAZZO_RENDERED"),
+                ("ARAZZO_RENDERED", "DISPATCH_READY"),
+                ("DISPATCH_READY", "DISPATCHED"),
+                ("DISPATCHED", "ACKNOWLEDGED"),
+                ("ACKNOWLEDGED", "REMOTE_STARTED"),
+                ("REMOTE_STARTED", "REMOTE_IN_PROGRESS"),
+                ("REMOTE_IN_PROGRESS", "TIMED_OUT"),
+                ("TIMED_OUT", "BLOCKED"),
+            ]
+        );
+        assert_eq!(
+            trajectory.last(),
+            Some(&("TIMED_OUT", "BLOCKED")),
+            "must reach the terminal BLOCKED state, not COMPENSATING/COMPLETED"
+        );
+    }
+);
+
 /// Loads one dispatch_sent observation (template-rendered) into `store`.
 /// O(|template|).
 fn emit_sent(

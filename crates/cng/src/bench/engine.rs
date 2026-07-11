@@ -554,11 +554,25 @@ fn make_wait(poll_wait_ms: Option<u64>) -> Box<dyn RealTimeWait> {
 /// manufacture chain and its consequence is written atomically to the
 /// outbox; a SHACL-validated `control/quiesce.ttl` ends the loop.
 ///
+/// Before entering the poll loop, verifies the arazzo-pack's rendered
+/// OpenAPI/AsyncAPI capability documents (this engine's declared
+/// capability/event contract; `packs/arazzo-pack/templates/
+/// {engine-openapi,engine-asyncapi}.yaml.tmpl`) against their ggen sync
+/// receipt digests — `api_docs::verify_api_docs_render_digest_if_present`.
+/// A stale or tampered capability description is a real correctness
+/// problem, exactly parallel to why Arazzo's render is verified before
+/// dispatch (`arazzo::verify_arazzo_render_digest`, PROJ-745). Engines
+/// whose `root` has no pre-generated capability docs (the common case
+/// today; arazzo-pack has not been synced against every engine root) skip
+/// the check — absence is not a refusal.
+///
 /// # Errors
-/// See [`run_serve_loop`].
+/// `CNG_R11 AuditMismatch` when the capability documents ARE present but
+/// stale/tampered/unreceipted; then see [`run_serve_loop`].
 ///
 /// # Complexity
-/// O(max_polls × inbox files) + O(executed) manufactures.
+/// O(max_polls × inbox files) + O(executed) manufactures + O(1) capability-
+/// doc presence check (O(rendered bytes) x2 when present).
 pub fn engine_serve(
     root: &Path,
     engine_id: &str,
@@ -570,6 +584,7 @@ pub fn engine_serve(
     let queries = QuerySet::load(&QuerySet::default_dir())?;
     let identity = EngineIdentity::new(engine_id, seed);
     let bundle = EngineBundle::new(root, engine_id)?;
+    super::api_docs::verify_api_docs_render_digest_if_present(root)?;
     let ledger = FileLedgerSink::new(&bundle.ledger_dir())?;
     run_serve_loop(
         &bundle,

@@ -16,7 +16,7 @@ ticket — including PROJ-749's own dedicated test binary
 and not folded into it; PROJ-714 remains PLANNED as a genuinely never-built, declared cut line
 (`RELEASE_CONTROL.md` §9.2); PROJ-730/731/746/747/748 are doc-track tickets, statused
 individually below. Nothing flips without a cited command + output in `RELEASE_CONTROL.md`
-§9/§9.1. Work is uncommitted this session — HEAD is still `40f6020`.
+§9/§9.1. Work is uncommitted this session — HEAD is still `1f3f9bc`.
 
 ## Phase 1 — PROJ-601..622 (interim milestone, CLOSED)
 
@@ -117,7 +117,7 @@ Phase 2 (isolated verification): cng_decomp -> cng_ipc_corpus -> cng_multi_engin
 Phase 3 (markers, parallel): 739, 740, 741, 742, 743.
 Phase 4 (arazzo wiring, parallel): 744, 745.
 Phase 5 (doc closure, sequential): 746 -> 747 -> 748.
-Phase 6 (commit): NOT run this session — HEAD still `40f6020`, `git status` not clean.
+Phase 6 (commit): NOT run this session — HEAD still `1f3f9bc`, `git status` not clean.
 ```
 
 A follow-up verification round (4 targeted agents, isolated `CARGO_TARGET_DIR=target/agent-7xx`
@@ -172,7 +172,7 @@ and what it does not (no PDDL-payload-carrying contract yet, PROJ-710 -> PROJ-72
   subworkflow's actual plan — no payload-carrying contract exists yet (PROJ-710 -> PROJ-723).
   It also does not cover the potato scenario itself, which selects single-actor and has
   nothing to dispatch — see `DOD_SIGNOFF.md` §2/§8.
-- This session's work is uncommitted — `git status` is not clean, HEAD is still `40f6020`.
+- This session's work is uncommitted — `git status` is not clean, HEAD is still `1f3f9bc`.
   Nothing in this index or `RELEASE_CONTROL.md` claims the increment is committed.
 
 ## See Also

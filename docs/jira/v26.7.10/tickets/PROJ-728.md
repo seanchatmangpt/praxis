@@ -1,7 +1,7 @@
 # PROJ-728 — Multi-process harness + isolation falsifiers
 
 Status: ALIVE, scoped to the CARGO_BIN_EXE test harness — evidenced this session (uncommitted;
-HEAD `40f6020`, Phase 6 commit not run)
+HEAD `1f3f9bc`, Phase 6 commit not run)
 
 Track: E (multi-engine execution).
 Milestone: v26.7.10-revised (No-LLM Multi-Actor Planning + Multi-Engine Execution).

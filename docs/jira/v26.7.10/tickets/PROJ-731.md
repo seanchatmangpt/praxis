@@ -43,7 +43,7 @@ What remains UNVERIFIED after all three waves: `full_production_ready`'s real TH
 composition (+ a real distributed bundle, needs `cng_multi_engine.rs`'s private harness
 helpers); a dispatched contract carrying its subworkflow's actual PDDL payload; potato itself
 dispatched across H/M (it has no split); PROJ-714's long-horizon scenarios (declared cut);
-any live-repo `ggen sync run`; and Phase 6 (commit — `git status` not clean, HEAD `40f6020`).
+any live-repo `ggen sync run`; and Phase 6 (commit — `git status` not clean, HEAD `1f3f9bc`).
 G0-G16 status: G0-G13 have code-level evidence (see PROJ-701..729, PROJ-749); G14 is ALIVE at
 full scale (PROJ-711 follow-up); G15 is the declared cut (PROJ-714, `RELEASE_CONTROL.md`
 §9.2, PROJ-747); G16's SPARQL-derived conjunction is ALIVE for the two-bundle composition,

@@ -35,6 +35,7 @@
 //! layer), [`run`] (top-level orchestration), [`audit_replay`]
 //! (independent bundle auditor), [`verify`] (replay/export verification).
 
+mod api_docs;
 mod arazzo;
 mod audit_replay;
 pub mod decomp;

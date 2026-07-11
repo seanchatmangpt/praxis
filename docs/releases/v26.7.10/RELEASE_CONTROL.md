@@ -309,7 +309,7 @@ Per-ticket evidence citations (exact test names, file:line) live in each ticket 
 | PROJ-711 | IPC generators (5 domains × 20, solvability gate) | ALIVE (full 5x20=100 scale run, follow-up round) |
 | PROJ-712 | Potato canonical scenario + negative corpus | ALIVE |
 | PROJ-713 | Anti-hardcoding gate | ALIVE |
-| PROJ-714 | 4 long-horizon scenarios | PLANNED (declared cut line — §9.2 below) |
+| PROJ-714 | 4 long-horizon scenarios | ALIVE (mechanism, 1/4) / PLANNED (2-4, time-boxed — §9.2 below) |
 | PROJ-720 | 16-state dispatch machine everywhere + drift test | ALIVE |
 | PROJ-721 | Durable dispatch ledger + idempotent consume (`DoubleAdmit`) | ALIVE |
 | PROJ-722 | Deterministic `EngineIdentity` + per-engine bundle layout | ALIVE |
@@ -340,7 +340,12 @@ Marker note: `V26_7_10_PRODUCTION_READY` keeps its name but its meaning is revis
 `DEFINITION_OF_DONE.md` §16 conjunction (`LLM_CALLS_ZERO` family + planning set + distributed
 set — names reconciled to on-disk identifiers at PROJ-743), scoped by the §20 honest
 boundaries (filesystem transport; HTTP binding declared via generated OpenAPI/AsyncAPI docs
-but UNVERIFIED as a live network path; long-horizon set is the cut line). Each marker family
+but UNVERIFIED as a live network path; long-horizon set is the cut line — see
+`DEFINITION_OF_DONE.md` §20 item 1 for the current, precise Arazzo-vs-OpenAPI/AsyncAPI
+render-verification split; the load-bearing closure wave's own investigation, at the time it
+ran, found zero Rust consumption of either document — `GAP_AUDIT.md` §7 item 8 — narrowing the
+DoD's claim accordingly; DoD §20's text may since have moved further, not independently
+re-verified by this doc). Each marker family
 is independently ALIVE; a follow-up verification round then invoked the two-run conjunction
 end-to-end — `full_production_ready` combining a REAL `workday()` bundle and a REAL
 `decompose()` bundle, all 26 keys `true` (PROJ-742, `cng_production_ready.rs`) — so the §16
@@ -348,18 +353,25 @@ conjunction is now ALIVE for the two-way (workday + planning) composition. The t
 composition (+ a real distributed bundle) remains UNVERIFIED: it requires
 `cng_multi_engine.rs`'s private harness helpers, not importable from a separate test crate.
 
-### 9.2 PROJ-714 cut record (G14/G15)
+### 9.2 PROJ-714 cut record (G14/G15) — updated, EOD push
 
-Mirroring the PROJ-615 §8.1-style cut subsection: PROJ-714 (4 long-horizon scenarios, G14/G15,
-`DEFINITION_OF_DONE.md` §19/§20 item 3) was never built this session, by design — it is the
-release's declared cut line, not an oversight. `docs/jira/v26.7.10/tickets/PROJ-714.md` stays
-`PLANNED (declared cut line)`, unchanged by this session's status-flip pass. This was a
-DIFFERENT gap from PROJ-711's now-resolved PARTIAL (which covered the seeds-0..3-vs-full-20-
-seed scale of the corpus that WAS built and run — PROJ-711 is now ALIVE at the full 5x20
-scale, follow-up round) — the two must not be conflated: PROJ-711's IPC corpus mechanism is
-ALIVE at full scale; PROJ-714's long-horizon scenario set does not exist on disk at all. If a
-future session builds PROJ-714, this subsection is updated in place with fresh evidence, not
-silently removed.
+Originally: PROJ-714 (4 long-horizon scenarios, G14/G15, `DEFINITION_OF_DONE.md` §19/§20 item
+3) was never built, by design, and this subsection recorded it as the release's declared cut
+line. That has partially changed: an EOD push built one real, non-stubbed long-horizon
+scenario — `tests/cng_long_horizon_scenario.rs`
+(`long_horizon_logistics_scenario_decomposes_and_plans_end_to_end`, run this session, 1/1
+passed, 0.24s/0.27s across two independent runs) — a two-package, 16-room-corridor logistics
+domain whose single-actor plan is 30 real steps and whose helper/main decomposition genuinely
+wins the selection law (makespan 15 vs. 30), proving the full pipeline (grounding → Datalog
+edge derivation → candidate search → planning → interference/release proofs → selection →
+receipt) holds at this length without the grounding-blowup cliff PROJ-733 fixed. `PROJ-714.md`
+now reads `ALIVE (mechanism, 1/4)` / `PLANNED (2-4, time-boxed cut)`. Scenarios 2-4, per
+`PROJ-714.md`'s own revised scope, are three parameter variations of the existing 5-domain IPC
+generator family at extended plan length — a time-boxed cut this session (2.2h EOD window),
+not silently dropped, and not the same gap as PROJ-714's original "nothing exists" state. Do
+not cite this subsection as "PROJ-714 = cut line, nothing built" — that framing is now stale;
+cite `PROJ-714.md` directly for the precise, current 1-of-4 scope. Distinct from PROJ-711's IPC
+corpus (a separate ticket, ALIVE at full 5x20 scale) — the two remain not to be conflated.
 
 ### 9.3 Session sanity sweep (second synthesis round): workspace check, clippy, fmt
 

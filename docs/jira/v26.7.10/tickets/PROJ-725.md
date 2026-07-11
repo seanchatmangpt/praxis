@@ -1,6 +1,6 @@
 # PROJ-725 — Arazzo 1.1 vocab/shape delta + REMOTE_* projection
 
-Status: ALIVE — evidenced this session (uncommitted; HEAD `40f6020`, Phase 6 commit not run)
+Status: ALIVE — evidenced this session (uncommitted; HEAD `1f3f9bc`, Phase 6 commit not run)
 
 Track: E (multi-engine execution).
 Milestone: v26.7.10-revised (No-LLM Multi-Actor Planning + Multi-Engine Execution).

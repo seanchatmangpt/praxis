@@ -1,6 +1,6 @@
 # PROJ-748 — Revised DOD_SIGNOFF.md + DOD_EVIDENCE_MAP.md for v26.7.10-revised
 
-Status: DONE (doc) — evidenced this session (uncommitted; HEAD `40f6020`, Phase 6 commit not
+Status: DONE (doc) — evidenced this session (uncommitted; HEAD `1f3f9bc`, Phase 6 commit not
 run)
 
 Track: D (doc closure wave, Phase 5 of the closure plan; agent: release-doc).
@@ -34,7 +34,7 @@ complete and honest — not on every underlying claim being unscoped ALIVE.
    whole-workspace `just verify-all` gate remain out of scope / not re-attempted, carried
    forward from the interim DoD's own honest-boundary language.
 6. Phase 6 (commit) was not run this session — `git status` is not clean; HEAD is still
-   `40f6020`. Nothing in this sign-off claims the increment is committed.
+   `1f3f9bc`. Nothing in this sign-off claims the increment is committed.
 
 ## Verification
 

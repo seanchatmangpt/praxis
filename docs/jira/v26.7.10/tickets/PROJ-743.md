@@ -1,6 +1,6 @@
 # PROJ-743 — DoD §16 prose reconciled to exact on-disk marker names
 
-Status: DONE (doc) — evidenced this session (uncommitted; HEAD `40f6020`, Phase 6 commit not
+Status: DONE (doc) — evidenced this session (uncommitted; HEAD `1f3f9bc`, Phase 6 commit not
 run)
 
 Track: D (doc closure wave, Phase 5 of the closure plan; agent: release-doc).

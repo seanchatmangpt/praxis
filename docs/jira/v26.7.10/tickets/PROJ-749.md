@@ -1,7 +1,7 @@
 # PROJ-749 — Decompose-to-dispatch bridge (Track P / Track E integration)
 
 Status: ALIVE (mechanism, on a non-potato fixture) — evidenced this session (uncommitted;
-HEAD `40f6020`, Phase 6 commit not run)
+HEAD `1f3f9bc`, Phase 6 commit not run)
 
 Track: closure (beyond the original v26.7.10-revised plan's PROJ-701..731 range and beyond
 the first closure round's PROJ-733/734/739..748; filed this session, second synthesis pass).

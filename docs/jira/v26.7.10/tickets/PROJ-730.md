@@ -2,7 +2,7 @@
 
 Status: IN PROGRESS — DoD §16 reconciled to on-disk names this session (PROJ-743); ticket set
 (PROJ-733/734/739..748) filed this session; closes when committed (Phase 6, not run this
-session, uncommitted; HEAD `40f6020`)
+session, uncommitted; HEAD `1f3f9bc`)
 
 Track: D (doctrine + closure).
 Milestone: v26.7.10-revised (No-LLM Multi-Actor Planning + Multi-Engine Execution).

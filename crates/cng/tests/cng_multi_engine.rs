@@ -93,6 +93,69 @@ fn spawn_engine(root: &Path, engine_id: &str, max_polls: &str, poll_wait_ms: &st
         .expect("spawn engine serve")
 }
 
+/// Kill-on-drop guard around a spawned engine `serve` child process, closing
+/// the process-leak gap between `spawn_engine` and its reap: if any
+/// `.expect()`/`assert!()` on the path from spawn to `wait()`/
+/// `wait_with_output()` panics, `Drop` issues a best-effort `kill()` during
+/// unwind instead of orphaning a live engine process (otherwise bounded but
+/// real, up to `--max-polls * --poll-wait-ms`). The guard is a no-op on the
+/// happy path: `wait_with_output` below takes the child out of `self.0`
+/// before waiting, so `Drop` finds `None`; and killing an already-`wait()`-
+/// ed child is itself a no-op (`Child::kill` on Unix returns `Ok(())` once a
+/// prior successful `wait()` has cached the exit status), so a guard that
+/// still holds `Some` after an explicit kill+wait (as in the G13 crash-
+/// resume test) costs nothing extra when it drops. Derefs to `Child` for
+/// `kill()`/`wait()`; `wait_with_output()` is reimplemented here because
+/// `Child::wait_with_output` consumes `self` by value, which `Deref` cannot
+/// provide. O(1) per operation, excluding the wait itself which blocks on
+/// child exit.
+struct EngineGuard(Option<Child>);
+
+impl EngineGuard {
+    /// Wraps a freshly spawned child. O(1).
+    fn new(child: Child) -> Self {
+        EngineGuard(Some(child))
+    }
+
+    /// Consumes the guard, waits for the child to exit, and collects its
+    /// output — mirrors `Child::wait_with_output`. Takes the child out of
+    /// the `Option` first so `Drop` becomes a no-op immediately (the wait
+    /// itself is the reap). O(child runtime).
+    fn wait_with_output(mut self) -> std::io::Result<std::process::Output> {
+        self.0
+            .take()
+            .expect("engine guard child already taken")
+            .wait_with_output()
+    }
+}
+
+impl std::ops::Deref for EngineGuard {
+    type Target = Child;
+    fn deref(&self) -> &Child {
+        self.0.as_ref().expect("engine guard child already taken")
+    }
+}
+
+impl std::ops::DerefMut for EngineGuard {
+    fn deref_mut(&mut self) -> &mut Child {
+        self.0.as_mut().expect("engine guard child already taken")
+    }
+}
+
+impl Drop for EngineGuard {
+    /// Best-effort kill on drop (e.g. an intervening panic between spawn and
+    /// reap). Ignores the result: the child may already have been taken by
+    /// `wait_with_output` (no-op), or may have already exited under an
+    /// explicit `wait()` elsewhere (`Child::kill` returns `Ok(())` in that
+    /// case on Unix), and there is nothing actionable to do with a kill
+    /// failure during unwind regardless. O(1).
+    fn drop(&mut self) {
+        if let Some(child) = self.0.as_mut() {
+            let _ = child.kill();
+        }
+    }
+}
+
 /// Runs one serialized engine serve to completion (NoWait: no
 /// --poll-wait-ms), returning stdout. O(child runtime).
 fn serve_to_budget(root: &Path, engine_id: &str, max_polls: &str) -> String {
@@ -213,8 +276,8 @@ test!(multi_engine_concurrent_dispatch_execute_readmit, {
     // collect loop (which writes their quiescence files at its end) even on
     // a slow machine — 3000 polls × 20 ms = a 60 s ceiling, normally ended
     // by quiescence within a second or two.
-    let child_h = spawn_engine(&root, "H", "3000", "20");
-    let child_m = spawn_engine(&root, "M", "3000", "20");
+    let child_h = EngineGuard::new(spawn_engine(&root, "H", "3000", "20"));
+    let child_m = EngineGuard::new(spawn_engine(&root, "M", "3000", "20"));
 
     // Act: the coordinator collects concurrently (real inter-poll waits
     // behind the seam; poll COUNTS are receipted logical facts and are
@@ -333,7 +396,7 @@ test!(g13_crash_resume_verifies_chain_and_completes, {
     // durable work (a ledger file) exists — a mid-serve crash. The exact
     // kill point is honestly nondeterministic; every durable artifact is
     // atomically written, so any prefix is lawful.
-    let mut child = spawn_engine(&root, "H", "10000", "50");
+    let mut child = EngineGuard::new(spawn_engine(&root, "H", "10000", "50"));
     let ledger_dir = root.join("engines/H/ledger");
     // Bounded watch loop: O(attempts). Filters to committed `.ttl` entries
     // only — `FileLedgerSink::append` writes `<id>.tmp` then atomically

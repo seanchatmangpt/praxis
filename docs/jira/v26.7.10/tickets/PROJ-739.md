@@ -1,6 +1,6 @@
 # PROJ-739 — 6 SPARQL-derivable planning marker queries + MARKER_MAP wiring
 
-Status: ALIVE — evidenced this session (uncommitted; HEAD `40f6020`, Phase 6 commit not run)
+Status: ALIVE — evidenced this session (uncommitted; HEAD `1f3f9bc`, Phase 6 commit not run)
 
 Track: D (doctrine — marker/evidence reconciliation, Phase 3 of the closure plan).
 Milestone: v26.7.10-revised (No-LLM Multi-Actor Planning + Multi-Engine Execution).

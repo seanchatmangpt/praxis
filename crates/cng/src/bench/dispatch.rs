@@ -108,7 +108,8 @@ pub(super) fn route_category(category: &str) -> ExecutionClass {
 /// Lawful transition table (anything else is `CNG_R16`):
 /// - MANUFACTURED → ARAZZO_RENDERED
 /// - ARAZZO_RENDERED → DISPATCH_READY
-/// - DISPATCH_READY → DISPATCHED | REFUSED
+/// - DISPATCH_READY → DISPATCHED | REFUSED (REFUSED: declared, currently
+///   unreached — see note below)
 /// - DISPATCHED → ACKNOWLEDGED | TIMED_OUT
 /// - ACKNOWLEDGED → REMOTE_STARTED | TIMED_OUT
 /// - REMOTE_STARTED → REMOTE_IN_PROGRESS
@@ -120,6 +121,44 @@ pub(super) fn route_category(category: &str) -> ExecutionClass {
 /// - TIMED_OUT → COMPENSATING | BLOCKED
 /// - COMPENSATING → COMPLETED | BLOCKED
 /// - COMPLETED, BLOCKED, UNKNOWN → (terminal; no lawful exits)
+///
+/// # DISPATCH_READY → REFUSED: declared-but-unreached (investigated,
+/// not forced)
+///
+/// This edge stays in the lawful table (and in the drift test
+/// `sixteen_state_transition_law_is_exact`) because it mirrors the
+/// declared `disp:DispatchState` vocabulary, but no production code path
+/// in [`DispatchAdapter::dispatch`] currently drives it — investigated as
+/// part of the v26.7.10 GAP_AUDIT.md closure pass rather than left
+/// silently misleading.
+///
+/// The only check that refuses a contract BEFORE it leaves the broker is
+/// `CNG_R15 DispatchContractIncomplete` (`shape_violations` over the
+/// rendered contract, checked in `dispatch()` right after rendering). That
+/// check runs, and can already fail, BEFORE the ARAZZO_RENDERED →
+/// DISPATCH_READY transition happens — a structurally incomplete contract
+/// never reaches DISPATCH_READY at all, so there is nothing left to refuse
+/// once DISPATCH_READY is actually entered. CNG_R15 is also a hard `Err`
+/// propagated with `?`, not a soft `DispatchState::Refused` /
+/// `DispatchOutcome::Refused` outcome — unlike the RESULT_RECEIVED →
+/// REFUSED staged re-entry pipeline (`collect_consequence`, CNG_R17),
+/// where a refusal is receipted evidence about an external actor's
+/// response and a legitimate remediation/compensation candidate, a
+/// missing contract field is a broker-internal defect. Routing it through
+/// `remediation_budget`/compensation like a semantic consequence refusal
+/// would misclassify a structural bug as something retriable, so it is
+/// deliberately NOT modeled that way.
+///
+/// No other pre-dispatch check exists to give this edge a distinct real
+/// trigger either: `declared_authority`/`required_role` are validated for
+/// non-emptiness only, by that same CNG_R15 shape check
+/// (`shapes/dispatch-shapes.ttl` `DispatchContractShape`); there is no
+/// authority/policy/budget/engine-registry check anywhere in this module
+/// that operates on an already shape-complete contract. Wiring a
+/// fabricated caller to "close" this edge would be forcing a fit the
+/// system does not actually have; this note plus the drift test are the
+/// honest record until a genuine pre-dispatch policy check is designed
+/// and this note is superseded by a real caller and a negative test.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum DispatchState {
     Manufactured,

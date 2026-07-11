@@ -307,7 +307,7 @@ checkpoints are primary; planning checkpoints are folded in where they gate exec
 | G12 | `engine serve` loop + Arazzo/API projection on the lawful path | 723/725/726 | PLANNED |
 | G13 | Crash-restart-resume; chain-prefix verified after kill/restart | 724/729 | PLANNED |
 | G14 | IPC corpus runs, or honest PARTIAL at the solvability bound | 711 | PLANNED |
-| G15 | 4 long-horizon scenarios (may be CUT, never faked) | 714 | PLANNED (cut line) |
+| G15 | 4 long-horizon scenarios (may be CUT, never faked) | 714 | ALIVE (mechanism, 1/4 real scenarios) / PLANNED (2-4, time-boxed) — see PROJ-714.md |
 | G16 | Revised marker conjunction TRUE via SPARQL; closure + sign-off | PROJ-727/731 | PLANNED |
 
 ## 16. Required result markers
@@ -439,38 +439,35 @@ distributed bundle) and pass all of them through `full_production_ready`. This i
 most important correction in this reconciliation pass: earlier prose read as if `workday()`
 alone proved the whole conjunction, and by design it does not.
 
-### Two-bundle composition: ALIVE (follow-up round); three-bundle composition: UNVERIFIED
+### Three-bundle composition: ALIVE (EOD push) — workday + planning + distributed, all real
 
 `full_production_ready` was initially exercised only by two unit tests
 (`crates/cng/src/bench/workday_test.rs:332-383` and `:385-405`) that combined REAL planning
 markers with a HAND-FABRICATED `workday_markers` half, or hand-fabricated both sides. A
-follow-up verification round closed that gap: new file
-`crates/cng/tests/cng_production_ready.rs::full_production_ready_holds_on_real_dual_bundle_evidence`
-runs a REAL `workday()` bundle (seed 742, 4 ticks) and a REAL `cng::bench::decomp::decompose()`
-bundle (potato fixture) end-to-end, evaluates both with the real `evaluate_markers`/
-`evaluate_planning_markers` functions, and invokes `full_production_ready(&workday_markers,
-&planning_markers, None)` — all 26 combined keys assert `true`. A companion negative test
-(`full_production_ready_goes_false_when_a_real_marker_is_forced_false`) forces a real marker
-false on each side independently and confirms `V26_7_10_PRODUCTION_READY` goes `false` in both
-cases, plus a control run confirming the unmodified real pair stays `true`. Both green:
-`CARGO_TARGET_DIR=target/agent-742 cargo test -p cng --features bench --test
-cng_production_ready -- --nocapture` → 2 passed, 0 failed, ~1.15s.
+follow-up round closed the two-way gap (`cng_production_ready.rs`, real `workday()` +
+`decompose()` bundles, `full_production_ready_holds_on_real_dual_bundle_evidence`). A further
+EOD push closed the remaining third leg: new, independent file
+`crates/cng/tests/cng_production_ready_three_way.rs` runs a REAL `workday()` bundle, a REAL
+`decompose()` bundle, AND a REAL two-engine (`H`/`M`) coordinate round —
+`engine_dispatch_remote` then two real `cng engine serve` OS processes then
+`engine_collect_remote`, whose `EngineCoordinateReport.markers` field is the real, already-
+evaluated `DISTRIBUTED_MARKER_MAP` output (no new marker-evaluation machinery needed —
+`engine_collect_remote`/`EngineCoordinateReport` were already `pub`). All three real maps feed
+`full_production_ready(&workday_markers, &planning_markers, Some(&distributed_markers))`; the
+combined 29-key map's `V26_7_10_PRODUCTION_READY` asserts `true`
+(`full_production_ready_holds_on_real_triple_bundle_evidence`), with a companion negative test
+forcing a real distributed marker false and confirming the conjunction goes `false`
+(`full_production_ready_goes_false_when_a_real_distributed_marker_is_forced_false`). Command:
+`CARGO_TARGET_DIR=target/agent-threeway just cng-test-one cng_production_ready_three_way --
+--test-threads=1 --nocapture` → 2 passed, 0 failed, 5.62s.
 
-**What remains UNVERIFIED**: the three-way composition — `full_production_ready` invoked with
-a REAL `workday_markers` bundle, a REAL `planning_markers` bundle, AND a REAL
-`distributed_markers` bundle together in one run. Wiring a real third multi-engine bundle needs
-`cng_multi_engine.rs`'s own harness helpers (`spawn_engine`, `serialized_run`, etc.), which are
-private to that test binary and not importable from a separate `tests/` integration crate — the
-two-way composition is the honest minimum achieved so far. This is the honest state `PROJ-731`
-inherits.
-
-Status: planning set + `LLM_CALLS_ZERO` family ALIVE (PROJ-739/740, evidence above);
-distributed set ALIVE scoped to the CARGO_BIN_EXE test harness (PROJ-727/728, evidence above);
-`full_production_ready` combinator ALIVE as a pure function (unit-tested, PROJ-742) AND ALIVE
-for the real two-bundle (workday + planning) invocation (PROJ-742 follow-up); its real
-three-bundle invocation (+distributed) is UNVERIFIED. `V26_7_10_PRODUCTION_READY` in its FULL
-§16 meaning may be claimed for the two-way composition; the three-way composition remains
-scoped as UNVERIFIED.
+Status: planning set + `LLM_CALLS_ZERO` family ALIVE (PROJ-739/740); distributed set ALIVE
+scoped to the CARGO_BIN_EXE test harness (PROJ-727/728); `full_production_ready` combinator
+ALIVE as a pure function AND ALIVE for both the real two-bundle and the real three-bundle
+invocation (PROJ-742, closed EOD push). `V26_7_10_PRODUCTION_READY` in its FULL §16 meaning
+may now be claimed for the three-way composition — every constituent leg (workday, planning,
+distributed) has been independently proven true on real evidence, and the combinator itself
+has been proven to correctly propagate a forced-false on each leg.
 
 ## 17. Anti-hardcoding requirements
 
@@ -516,20 +513,53 @@ toward completion; only silent fallback or an unreceipted candidate ledger fails
 If mid-size problems exceed the blind-BFS solvability bound, the result is an honest PARTIAL
 at the declared bound, not heuristic-planner scope creep.
 
-Status: PLANNED (PROJ-711/714). Long-horizon set is the declared cut line (G15).
+Status: ALIVE, full scale (PROJ-711 — 5x20=100, `cng_ipc_corpus_full_scale.rs`, 2/2 runs
+green, 11.66s/11.79s). Long-horizon set (PROJ-714): ALIVE mechanism, 1/4 real scenarios
+(`long_horizon_logistics_scenario_decomposes_and_plans_end_to_end`, a genuine 2-actor
+30-step logistics split, real helper/main benefit at makespan 15 vs. single-actor 30) —
+scenarios 2-4 (drawing from the existing IPC generator family at extended plan length, per
+PROJ-714.md's own revised scope) remain a time-boxed cut this session, not silently dropped.
 
 ## 20. Honest boundaries
 
 1. **Filesystem-as-transport.** Separate OS processes are proven (multi-process harness);
    transport between them is a deterministic filesystem inbox/outbox. HTTP binding is
-   **declared** via generated, digest-recorded OpenAPI/AsyncAPI documents but is UNVERIFIED
-   as a live network path — no claim of network execution may be made. Rationale: tokio/
-   async + wall clock would enter the digest path and break byte-identical replay. Label:
-   "mechanism ALIVE (once proven) / HTTP binding UNVERIFIED".
+   **declared** via generated OpenAPI/AsyncAPI documents but is UNVERIFIED as a live network
+   path — no claim of network execution may be made. Rationale: tokio/async + wall clock
+   would enter the digest path and break byte-identical replay. Label: "mechanism ALIVE
+   / HTTP binding UNVERIFIED".
+   Render-verification granularity (updated this session — both legs now digest-verified,
+   neither leg claims a live network path):
+   **Arazzo** is generated by `packs/arazzo-pack/templates/arazzo.yaml.tmpl` AND
+   digest-verified before dispatch — `run_arazzo_projection` calls
+   `verify_arazzo_render_digest` (PROJ-745, `crates/cng/src/bench/arazzo.rs`), recomputing
+   BLAKE3 over the on-disk render and comparing it to the ggen sync receipt
+   (`.ggen-v2/receipt.json`) before any step reaches `DispatchState::ArazzoRendered`; a
+   stale/tampered render refuses `CNG_R11 AuditMismatch`. **OpenAPI/AsyncAPI**
+   (`packs/arazzo-pack/templates/engine-openapi.yaml.tmpl`,
+   `engine-asyncapi.yaml.tmpl` → `generated/engine-openapi.yaml`,
+   `generated/engine-asyncapi.yaml`) are now ALSO digest-verified, at engine startup rather
+   than at dispatch time: `crates/cng/src/bench/api_docs.rs`'s
+   `verify_api_docs_render_digest_if_present` is called from `engine_serve`
+   (`crates/cng/src/bench/engine.rs:589`) before the poll loop begins, recomputing BLAKE3
+   over both rendered documents and comparing against the same `.ggen-v2/receipt.json`
+   shape Arazzo uses; a tampered document refuses `CNG_R11 AuditMismatch` before the engine
+   starts serving. Absence is handled honestly, not as a false refusal: an engine root
+   without pre-generated `generated/`/`.ggen-v2/` proceeds normally (`Ok(None)`) — the check
+   only enforces when the documents are actually present, matching the filesystem-as-
+   transport boundary (not every engine root has been through a `ggen sync run`). Verified
+   this session: 6 new tests in `crates/cng/src/bench/api_docs_test.rs`
+   (`engine_serve_proceeds_when_api_docs_present_and_matching`,
+   `engine_serve_refuses_cng_r11_when_api_doc_render_tampered`,
+   `engine_serve_proceeds_when_api_docs_absent`, plus 3 function-level tests), full
+   `cargo test -p cng --features bench --lib` 77/77 passed. What remains UNVERIFIED for
+   both legs, unchanged: no live network transport exists or is claimed — this is
+   digest-integrity of a generated document, not a running HTTP/AsyncAPI server.
 2. **Real time.** The single real-time element (inter-poll sleep) sits behind a
    `RealTimeWait` seam and never enters digests; logical poll counts do.
-3. **Long-horizon scenarios** (4, G15/PROJ-714) are the declared cut line: they may be CUT
-   with a record, never quietly dropped or faked.
+3. **Long-horizon scenarios** (4, G15/PROJ-714): the mechanism is proven real on 1 scenario
+   this session (`tests/cng_long_horizon_scenario.rs`, not faked or stubbed); scenarios 2-4
+   are a time-boxed cut, recorded honestly (PROJ-714.md), not silently dropped.
 4. **Synthesized human consequences** remain MOCKED-HUMAN wherever they appear (carried
    forward from the interim DoD).
 5. **8³ recursion** is doctrine, not a required demonstration (§9) — UNVERIFIED.

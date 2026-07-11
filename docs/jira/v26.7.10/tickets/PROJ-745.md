@@ -1,7 +1,7 @@
 # PROJ-745 — Rust digest-verify seam: digest(render(graph)) check
 
 Status: ALIVE (function, unit-tested, and now wired into the Arazzo-sourced dispatch call
-site) — evidenced this session (uncommitted; HEAD `40f6020`, Phase 6 commit not run)
+site) — evidenced this session (uncommitted; HEAD `1f3f9bc`, Phase 6 commit not run)
 
 Track: E (multi-engine execution — arazzo-pack wiring, Phase 4 of the closure plan).
 Milestone: v26.7.10-revised (No-LLM Multi-Actor Planning + Multi-Engine Execution).
@@ -84,11 +84,46 @@ Files touched: `crates/cng/src/bench/dispatch.rs`, `crates/cng/src/bench/arazzo.
 `crates/cng/src/bench/arazzo_test.rs`, `crates/cng/src/bench/dispatch_test.rs`. No changes to
 `workday.rs`, `main.rs`, `ipc/`, or `ggen.toml`.
 
-**Remaining honest boundary**: no OpenAPI/AsyncAPI schema validation, no HTTP/broker binding —
-this stays the declared, honest cut per the existing "mechanism ALIVE / HTTP binding
-UNVERIFIED" boundary language already in `DEFINITION_OF_DONE.md` §20. `dispatch.rs`'s own
-generic `ArazzoRendered` transition (rendering `DispatchContract`) remains correctly unwired to
-this gate, since it renders an unrelated artifact.
+**Remaining honest boundary**: no OpenAPI/AsyncAPI *schema validation* (structural conformance
+of the YAML content itself), no HTTP/broker binding — these stay the declared, honest cut per
+the existing "mechanism ALIVE / HTTP binding UNVERIFIED" boundary language in
+`DEFINITION_OF_DONE.md` §20. `dispatch.rs`'s own generic `ArazzoRendered` transition (rendering
+`DispatchContract`) remains correctly unwired to this gate, since it renders an unrelated
+artifact.
+
+## Evidence (EOD push) — OpenAPI/AsyncAPI digest-verify closed too, real support not a stub
+
+A dedicated override agent (dispatched after the user explicitly rejected a sibling workflow's
+"narrow the doc claim" fallback for OpenAPI/AsyncAPI) built the same digest-verify pattern for
+the other two generated documents, closing what had been an open boundary in this ticket's own
+"remaining honest boundary" note above (that note is now scoped correctly to *schema
+validation*, not digest-integrity, which is closed):
+
+- New `crates/cng/src/bench/api_docs.rs`: `verify_api_docs_render_digest`/
+  `verify_api_docs_render_digest_if_present(project_root: &Path)` — verifies both
+  `generated/engine-openapi.yaml` and `generated/engine-asyncapi.yaml` against the same
+  `.ggen-v2/receipt.json` shape `verify_arazzo_render_digest` uses; reuses `CNG_R11
+  AuditMismatch`, no new refusal code. Locally re-declares the receipt-shape structs (same
+  no-`ggen`-crate-dependency rationale `arazzo.rs` states) rather than importing arazzo's
+  private types — zero edits to `arazzo.rs`/`dispatch.rs`, zero collision surface with this
+  ticket's own Part A wiring.
+- Wired at `crates/cng/src/bench/engine.rs:589`, inside `engine_serve`, right after
+  `EngineBundle::new` and before the poll loop begins — an engine refuses to start serving if
+  its own advertised capability documents are stale/tampered relative to their generation
+  receipt. The `_if_present` gate means an engine root without pre-generated
+  `generated/`/`.ggen-v2/` starts normally (`Ok(None)`) — no false refusal, matching the
+  filesystem-as-transport honesty boundary (not every engine root has been through a `ggen
+  sync run`).
+- 6 new tests in `crates/cng/src/bench/api_docs_test.rs`, including
+  `engine_serve_proceeds_when_api_docs_present_and_matching`,
+  `engine_serve_refuses_cng_r11_when_api_doc_render_tampered`,
+  `engine_serve_proceeds_when_api_docs_absent` — proving `engine_serve` itself (not just the
+  helper function in isolation) returns the refusal.
+- Verification (`CARGO_TARGET_DIR=target/agent-openapi-override`): `cargo check -p cng
+  --features bench --lib` clean; `cargo test -p cng --features bench --lib` → **77 passed, 0
+  failed** (includes all 6 new tests plus every pre-existing `bench::engine`/`bench::arazzo`/
+  `bench::dispatch` test unchanged); `cargo test -p cng --test no_inline_ttl_guard` → 2 passed;
+  default (non-`bench`) build unaffected (module is entirely feature-gated).
 
 ## Links
 

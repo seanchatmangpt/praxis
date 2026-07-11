@@ -1,8 +1,8 @@
 # PROJ-742 — Extend V26_7_10_PRODUCTION_READY's conjunction
 
 Status: ALIVE (combinator, pure-function unit-tested) / ALIVE (real two-bundle invocation:
-workday + planning) / UNVERIFIED (real three-bundle invocation, +distributed) — evidenced this
-session (uncommitted; HEAD `40f6020`, Phase 6 commit not run)
+workday + planning) / ALIVE (real three-bundle invocation: workday + planning + distributed,
+closed EOD push) — evidenced this session
 
 Track: D (doctrine — marker/evidence reconciliation, Phase 3 of the closure plan).
 Milestone: v26.7.10-revised (No-LLM Multi-Actor Planning + Multi-Engine Execution).
@@ -75,24 +75,44 @@ extended to carry the three new names. No other files touched; `MARKER_MAP`,
 `WorkdayReport.markers` is already fully `pub` and supplies the real workday-side map
 directly).
 
-**Three-way (distributed) coverage: still UNVERIFIED, omitted per the honest-minimum cut
-line.** Wiring a real third multi-engine bundle requires spawning real OS `cng engine serve`
-processes through `cng_multi_engine.rs`'s own harness helpers (`spawn_engine`,
-`serialized_run`, etc.), which are private to that test binary and not importable from a
-separate `tests/` integration crate. Two-way (workday + planning) is the honest minimum
-achieved this round, matching this ticket's own cut line — `full_production_ready`'s real
-THREE-bundle invocation remains UNVERIFIED. See DoD §16's "Honest gap" subsection (updated to
-match).
+## Evidence (EOD push) — real three-way invocation, gap closed
 
-**Claim for a doc-closure agent to cite**: ALIVE — `full_production_ready` has now been
-invoked end-to-end against a real `workday()` bundle's marker map and a real
-`cng::bench::decomp::decompose` bundle's marker map together, in
-`crates/cng/tests/cng_production_ready.rs::full_production_ready_holds_on_real_dual_bundle_evidence`,
-run this session. The combined `V26_7_10_PRODUCTION_READY` conjunction genuinely holds `true`
-on that healthy real dual-bundle pair, and a companion test confirms it genuinely goes `false`
-when either side's real evidence is forced false — this is two-way (workday + planning)
-coverage; the three-way distributed extension remains UNVERIFIED by this test, so any DoD
-claim about the three-way combination should stay scoped accordingly.
+New, independent, additive-only file `crates/cng/tests/cng_production_ready_three_way.rs`
+closes the previously-UNVERIFIED third leg. Investigation finding: no visibility bump was
+needed — `EngineCoordinateReport` (`crates/cng/src/bench/engine.rs:787`) already has a `pub
+markers: BTreeMap<String, bool>` field, populated internally by `engine_collect_remote` from
+`evaluate_marker_map(&marker_store, &marker_queries, &DISTRIBUTED_MARKER_MAP)`
+(`engine.rs:1222`); `engine_collect_remote`/`engine_dispatch_remote`/`EngineCoordinateReport`
+were already `pub` and re-exported from `cng::bench`.
+
+The new test:
+1. Runs a real `workday()` bundle (17-entry marker map).
+2. Runs a real `decompose()` bundle over the potato fixture (9-entry planning marker map).
+3. Runs a real two-engine coordinate round — `engine_dispatch_remote` then two real `cng
+   engine serve` OS processes spawned via `CARGO_BIN_EXE_cng` (a local, independent
+   `run_cng`/`serve_to_budget` reimplementation — NOT imported from `cng_multi_engine.rs`,
+   keeping this file collision-free from concurrent work on that file) — then
+   `engine_collect_remote`, whose `report.markers` IS the real, already-evaluated
+   `DISTRIBUTED_MARKER_MAP` output; no new marker-evaluation machinery was built.
+4. Calls `full_production_ready(&workday_markers, &planning_markers,
+   Some(&distributed_markers))` and asserts `V26_7_10_PRODUCTION_READY == true` on the
+   combined 29-key map (16 workday + 9 planning + 3 distributed-only + the recomputed
+   conjunction) — `full_production_ready_holds_on_real_triple_bundle_evidence`. A companion
+   negative test forces `ENGINE_INSTANCES_PROVEN` false and asserts the conjunction goes
+   `false` — `full_production_ready_goes_false_when_a_real_distributed_marker_is_forced_false`.
+
+Command: `CARGO_TARGET_DIR=target/agent-threeway just cng-test-one
+cng_production_ready_three_way -- --test-threads=1 --nocapture` → 2 passed, 0 failed, 5.62s.
+Also re-ran `no_inline_ttl_guard` (2 passed) and the existing two-way `cng_production_ready`
+(2 passed) to confirm no regression.
+
+**Claim, updated**: ALIVE for all three legs. `full_production_ready` has now been invoked
+end-to-end against REAL `workday()`, `decompose()`, AND a real two-engine coordinate round's
+marker maps together, in `cng_production_ready_three_way.rs`. The combined
+`V26_7_10_PRODUCTION_READY` conjunction genuinely holds `true` on healthy real triple-bundle
+evidence, and genuinely goes `false` when any one leg's real evidence is forced false (proven
+independently for the workday leg, the planning leg, and now the distributed leg). No DoD
+claim about the three-way combination needs to stay scoped down any longer.
 
 ## Links
 

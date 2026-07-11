@@ -1,6 +1,6 @@
 # PROJ-708 — Non-interference proof (CNG_R22) + release closure (CNG_R24)
 
-Status: ALIVE — evidenced this session (uncommitted; HEAD `40f6020`, Phase 6 commit not run)
+Status: ALIVE — evidenced this session (uncommitted; HEAD `1f3f9bc`, Phase 6 commit not run)
 
 Track: P (planning/decomposition).
 Milestone: v26.7.10-revised (No-LLM Multi-Actor Planning + Multi-Engine Execution).

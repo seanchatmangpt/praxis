@@ -29,14 +29,17 @@ within these runs; the full citation chain (file:line) lives in each
 `docs/jira/v26.7.10/tickets/PROJ-7xx.md`'s own "Evidence" section — not restated in full here
 to avoid drift between three copies.
 
-**Not run, and not claimed anywhere below, even after both rounds**: Phase 6 commit
-(HEAD is still `40f6020`, `git status` not clean); any live-repo `ggen sync run` against the
-real `ggen.toml` (PROJ-745's follow-up explicitly declined — no pack-scoped CLI flag exists to
-bound the blast radius); `full_production_ready`'s real THREE-bundle invocation (workday +
-planning + distributed together — only the two-bundle case is now ALIVE); PROJ-714's
-long-horizon scenarios (never built, declared cut); a dispatched contract carrying an actual
-PDDL payload so a remote engine executes the specific plan it was sent (PROJ-710 -> PROJ-723,
-the honest boundary PROJ-749 states explicitly).
+**Not run, and not claimed anywhere below**: Phase 6 commit is now DONE (pushed as `1f3f9bc`);
+this document's remaining claims are current as of that commit plus uncommitted EOD-push work
+on top of it (`git status` not clean as of this writing). Any live-repo `ggen sync run` against
+the real `ggen.toml` (PROJ-745's follow-up explicitly declined — no pack-scoped CLI flag exists
+to bound the blast radius); a dispatched contract carrying an actual PDDL payload so a remote
+engine executes the specific plan it was sent (PROJ-710 -> PROJ-723, the honest boundary
+PROJ-749 states explicitly); live network transport for OpenAPI/AsyncAPI/Arazzo (digest-verify
+is proven for all three documents — see below — but no HTTP/broker binding exists or is
+claimed). `full_production_ready`'s real THREE-bundle invocation and PROJ-714's long-horizon
+scenarios were EOD-push targets — see the "EOD push" section below for their resolved status;
+do not rely on the "three waves" framing immediately below for either, it predates that push.
 
 ## Final state (this session, all rounds combined)
 
@@ -70,17 +73,93 @@ together close the original problem's global goal — no payload-carrying contra
 (PROJ-710 -> PROJ-723 remains open work, named explicitly in PROJ-749's own module doc and
 ticket file).
 
-Combining all three waves: every mechanism named in the DoD's 20 sections has now been
-independently exercised and evidenced (every Track P/E ticket is ALIVE except PROJ-714, the
-declared cut line), the marker doctrine matches on-disk names and code, the two-bundle
-`full_production_ready` composition is real, the 8² fan-out and full IPC corpus scale are at
-their literal targets, and the two tracks (P and E) are bridged at the mechanism level for the
-first time. What remains genuinely open, honestly scoped, and not claimed anywhere in this
-document: `full_production_ready`'s real THREE-bundle composition (+ distributed);
+Combining all three waves plus the EOD push documented below: every mechanism named in the
+DoD's 20 sections has now been independently exercised and evidenced (every Track P/E ticket
+is ALIVE except PROJ-714, whose 80/20-rescoped 1-of-4 scenario is IN PROGRESS — command+output
+pending, do not cite as closed until PROJ-714.md itself says so), the marker doctrine matches
+on-disk names and code, `full_production_ready`'s real THREE-bundle composition (workday +
+planning + distributed) is proven (`cng_production_ready_three_way.rs`, EOD push —
+superseding the "two-bundle only" framing three paragraphs above, which is left unedited as a
+historical record of that wave's own scope, not a live claim), the 8² fan-out and full IPC
+corpus scale are at their literal targets, OpenAPI/AsyncAPI digest-verify is proven alongside
+Arazzo's (EOD push, superseding this wave's own "narrowed the claim" framing — see the
+"EOD push" section below), and the two tracks (P and E) are bridged at the mechanism level.
+What remains genuinely open, honestly scoped, and not claimed anywhere in this document:
 potato itself dispatched across H/M (it has no split to dispatch); a dispatched contract
-carrying its subworkflow's actual PDDL payload; any live-repo `ggen sync run`; PROJ-714's
-long-horizon scenarios (declared cut); live network transport; and Phase 6 — nothing in this
-document is committed. `git status` is not clean; HEAD is still `40f6020`.
+carrying its subworkflow's actual PDDL payload; any live-repo `ggen sync run`; live network
+transport (digest-verify ≠ a running HTTP/AsyncAPI server); PROJ-714's exact closure state
+(check `PROJ-714.md` directly, not this paragraph, for the current number); and Phase 6 push
+of the EOD-push commits specifically (the prior `1f3f9bc` commit IS pushed; this round's work
+sits uncommitted on top of it as of this writing).
+
+## Load-bearing closure pass (`GAP_AUDIT.md`, 8-agent wave)
+
+A separate, later wave — 7 parallel agents + this synthesis agent sequential — closed
+`docs/releases/v26.7.10/GAP_AUDIT.md`'s top-10 prioritized punch-list items (its §7). Full
+per-item detail, including every command+output, lives in `GAP_AUDIT.md` §7 itself; this is the
+summary required at this document's own closure boundary.
+
+**CLOSED, this wave** (5 items):
+- **CNG_R10 `IoRefused`**: one representative call site (`pipeline.rs:74`,
+  `cng::pipeline::import_artifacts`) now has a negative test —
+  `crates/cng/tests/cng_io_refused_negative.rs`, 1/1 passed. PARTIAL in scope: the other ~129
+  construction sites remain UNVERIFIED individually; the mechanism (not each site) is proven.
+- **Process-leak windows in `cng_multi_engine.rs`**: all 3 `spawn_engine()` call sites now
+  wrapped in a kill-on-drop `EngineGuard`; 7/7 tests still pass, zero orphaned `cng engine
+  serve` processes confirmed post-run.
+- **`DispatchState::Blocked` reachability**: the `TIMED_OUT→BLOCKED` edge is now live-walked
+  by a dedicated test (`remediation_budget=0`); PARTIAL — 3 of the 4 originally-flagged
+  `→BLOCKED` edges remain undriven.
+- **CNG_R07 `RunnerMismatch`**: 2 of 5 construction sites now have negative tests through the
+  real `validate_run` path, one of them (a cyclic order relation) caught by the actual
+  published `bcinr-powl` runtime's own Kahn check, not a mock.
+- **Stale HEAD citation (`40f6020`→`1f3f9bc`)**: 40 files corrected; 9 files (+ part of
+  `index.md`) correctly left with `40f6020` as legitimate historical citation, not a live-HEAD
+  claim; spot-checked this session.
+
+**INVESTIGATED, correctly not forced** (3 items — each produced a doc correction instead of a
+fabricated fixture or invented business semantics, per this wave's own explicit instruction not
+to force a fit):
+- **CNG_R08 `Nondeterminism`**: both construction sites are unreachable-by-design through the
+  current public API (no external seam between the two internal manufacture calls each guards).
+  Remains UNVERIFIED (dedicated negative test) — but as a now-evidenced reachability finding,
+  not an untried gap.
+- **`DISPATCH_READY→REFUSED`**: confirmed dead-by-construction (the only pre-dispatch check,
+  `CNG_R15`, fires before this state is ever entered). `DispatchState`'s own type doc in
+  `dispatch.rs` now says so explicitly instead of silently implying a caller exists.
+- **OpenAPI/AsyncAPI consumption**: this wave's own investigation (zero grep hits at the time)
+  concluded the honest action was narrowing `DEFINITION_OF_DONE.md` §20 item 1's claim, not
+  building a symmetric digest-verify seam — `packs/arazzo-pack/README.md`'s own seam note names
+  only Arazzo. **Superseded since, independently confirmed**: a dedicated agent (dispatched
+  after the user explicitly rejected the narrow-the-claim fallback) built real support —
+  `crates/cng/src/bench/api_docs.rs`'s `verify_api_docs_render_digest`/
+  `verify_api_docs_render_digest_if_present`, wired into `engine_serve` (`engine.rs:589`,
+  before the poll loop), verifying both `generated/engine-openapi.yaml` and
+  `generated/engine-asyncapi.yaml` against the same `.ggen-v2/receipt.json` shape Arazzo uses;
+  reuses `CNG_R11 AuditMismatch`, absence handled honestly (`Ok(None)`, no false refusal). 6
+  new tests in `api_docs_test.rs`. Verified: `cargo test -p cng --features bench --lib` → 77
+  passed, 0 failed (`CARGO_TARGET_DIR=target/agent-openapi-override`). `DEFINITION_OF_DONE.md`
+  §20 item 1 and this document's §5 row now state the ALIVE claim for both Arazzo and
+  OpenAPI/AsyncAPI. `GAP_AUDIT.md` §7 item 8 should be updated to match this closure, not left
+  at "superseded, unverified."
+
+**STALE findings corrected, predating this wave** (2 items — GAP_AUDIT.md's own text was
+written concurrently with an earlier closure round and had not caught up; no Phase-1 agent
+touched either):
+- `dispatch_bridge.rs`'s cited test file (`cng_decompose_to_dispatch_integration.rs`) exists
+  (PROJ-749, prior round).
+- `DecompositionOutcome::NoBeneficialDecomposition` is forced+asserted by exact value
+  (`cng_decomp_negative_corpus_completeness.rs:188-195`, prior round).
+
+**Remains open, out of this wave's scope** (`GAP_AUDIT.md` §7 items 11-20): the mutex-saturated-
+goals sub-part of negative-corpus item 5; the CLI/process-exit half of §14 item 4; and the 29
+non-load-bearing cosmetic/doc-polish items (status-vocabulary drift, ticket-number gap,
+`tyreworld.rs` clean-room note, etc.) — none were assigned to any of the 8 agents and none are
+claimed closed here.
+
+Vocabulary used above follows `.claude/rules/no-overclaiming.md`: ALIVE (verified this session,
+cited command+output), PARTIAL (gap named explicitly), UNVERIFIED (default, not claimed),
+INVESTIGATED (a real finding, not a fix, backed by the agent's own reasoning and read evidence).
 
 ## Clause-by-clause sign-off
 
@@ -92,14 +171,14 @@ One line per `DEFINITION_OF_DONE.md` section (1-20).
 | 2 | Governing claim (full narrative: admit -> decompose -> dispatch -> close) | ALIVE (decompose-to-dispatch bridge, mechanism) / PARTIAL (payload fidelity + global-goal closure) | `decompose()` end-to-end ALIVE (PROJ-701..713); multi-engine dispatch ALIVE (PROJ-720..729); PROJ-749 (second synthesis round) now stitches a real `decompose()` output into a real cross-engine dispatch run — `dispatch_subworkflow_to_engine`/`collect_subworkflow_consequence` (`decomp/dispatch_bridge.rs`) convert each subworkflow into a shape-conformant `DispatchContract`, write it into a REAL second OS process's inbox, run `cng engine serve` to completion, and admit the consequence from the real outbox (`cng_decompose_to_dispatch_integration.rs`, 2/2 passed); NOT proven: the remote engine executes the subworkflow's OWN PDDL plan (`engine.rs::run_serve_loop` derives its own synthetic artifact set from `blake3(dispatch_id)`, confirmed against on-disk evidence) or that combining the two engines' outputs closes the original problem's global goal — no payload-carrying contract exists yet (PROJ-710 -> PROJ-723 open) |
 | 3 | TWOSTEP-replacement table (7 rows) | ALIVE | each row's replacement mechanism evidenced under its own PROJ ticket (704/705, 703/706, 707, 708, 710, 710, 740) — see `DOD_EVIDENCE_MAP.md` |
 | 4 | Formal planning target + 6 proof obligations | ALIVE | goal coverage/helper reachability (PROJ-705/710), interface-state (`CNG_R23`, PROJ-707), main reachability (PROJ-710), non-interference (`CNG_R22`, PROJ-708), release closure (`CNG_R24`, PROJ-708) — all negative-tested |
-| 5 | No-LLM decomposition mechanism per dialect (7 rows) | ALIVE | PDDL/pddl-strips/CONSTRUCT/Datalog/POWL/OCEL rows ALIVE (PROJ-701..710/727); Arazzo/OpenAPI/AsyncAPI row now ALIVE — the `digest(render(graph))` gate is wired into `arazzo::run_arazzo_projection` (PROJ-745 follow-up), refusing `CNG_R11` before any step dispatches on a missing/mismatched render; `dispatch.rs`'s own generic `ArazzoRendered` transition renders the `DispatchContract` itself (unrelated to arazzo-pack's YAML) and was correctly left unwired. OpenAPI/AsyncAPI schema validation and HTTP/broker binding remain a declared, separate boundary (§20), not a gap in this row |
+| 5 | No-LLM decomposition mechanism per dialect (7 rows) | ALIVE | PDDL/pddl-strips/CONSTRUCT/Datalog/POWL/OCEL rows ALIVE (PROJ-701..710/727); Arazzo row ALIVE — `digest(render(graph))` wired into `arazzo::run_arazzo_projection` (PROJ-745), refusing `CNG_R11` before any step dispatches on a missing/mismatched render; `dispatch.rs`'s own generic `ArazzoRendered` transition renders the `DispatchContract` itself (unrelated to arazzo-pack's YAML) and was correctly left unwired. OpenAPI/AsyncAPI row now ALSO ALIVE (closed this session, EOD push) — `verify_api_docs_render_digest_if_present` (`crates/cng/src/bench/api_docs.rs`) wired into `engine_serve` (`engine.rs:589`), verifying both `generated/engine-openapi.yaml` and `generated/engine-asyncapi.yaml` against the same ggen receipt shape before the poll loop begins; tampered render refuses `CNG_R11`, absent docs proceed honestly (no false refusal). 77/77 `cargo test -p cng --features bench --lib` passed, 6 new tests. OpenAPI/AsyncAPI *schema validation* (structural conformance of the YAML content itself, distinct from digest integrity) and any live HTTP/broker binding remain a declared, separate boundary (§20) — not a gap in this row, which is scoped to digest-integrity |
 | 6 | Bounded decomposition algorithm (15 steps) | ALIVE | exercised end-to-end by every `decompose()` test (potato, IPC corpus, permutation); bounds declared and receipted (`search.rs`, `select.rs`) |
 | 7 | Single-actor route — typed results, never fallback | ALIVE | `single_actor_is_always_candidate_zero`, `single_atom_goal_yields_no_admissible_decomposition` |
 | 8 | Potato canonical scenario | ALIVE (single-process) / UNVERIFIED (potato itself dispatched cross-engine) | `potato_decomposition_is_typed_receipted_and_replayable` ALIVE (single-process). Potato's real `decompose()` output selects `DecompositionOutcome::NoAdmissibleDecomposition` (single-actor; `decomp:subworkflowCount "1"`, verified against the emitted graph before PROJ-749 was written), so it has no multi-subworkflow split to dispatch — the DoD's own text claims potato is "executed across the H and M engines of §10", which stays UNVERIFIED for potato specifically. The general decompose-to-dispatch MECHANISM is now ALIVE (PROJ-749, §2 row above), proven on a different fixture (kitchen two-chain) that does split |
 | 9 | Recursive generalization 8^1 -> 8^2 -> 8^3 | ALIVE (8^1) / ALIVE (8^2, full 64-leaf fan-out) / UNVERIFIED (8^3, out of scope) | 8^1: potato, single level, ALIVE. 8^2: `recursion_crosses_engines_full_8x2_fanout` (`cng_multi_engine.rs`, follow-up round) exercises the literal fan_out=8/depth=2 target — 73 dispatches per root (1 root + 8 first-level + 64 second-level leaves), 146 total across the two roots (H, M), 64 of them depth-2 leaves — matching the section's own "8²" framing exactly; 2/2 runs green, 37.19s and 32.50s. `recursion_crosses_engines_depth_two` (fan_out=2) remains in the suite as a faster smoke test. 8^3: doctrine only, unchanged, UNVERIFIED |
 | 10 | Multi-engine topology (6 forbidden items) | ALIVE, scoped to CARGO_BIN_EXE harness | separate OS processes confirmed; `SHARED_MEMORY_CROSSINGS_ZERO`/`DIRECT_ENGINE_BYPASSES_ZERO` true in `cng_multi_engine.rs:232-236` |
 | 11 | Authority partition table (8 rows) | ALIVE (structural) | exercised transitively by every `cng_multi_engine` test (coordinator/H/M roles enforced by construction); no per-row dedicated test cited individually |
-| 12 | 16-state cross-engine dispatch machine | ALIVE | `sixteen_state_transition_law_is_exact`, `shapes_ttl_state_individuals_match_the_enum` (drift test) |
+| 12 | 16-state cross-engine dispatch machine | ALIVE (transition table, exhaustive); ALIVE (`TIMED_OUT→BLOCKED` live-walk, load-bearing closure wave); PARTIAL (3 of 4 `→BLOCKED` edges still never driven); `DISPATCH_READY→REFUSED` declared-but-unreached (doc-corrected, load-bearing closure wave) | `sixteen_state_transition_law_is_exact`, `shapes_ttl_state_individuals_match_the_enum` (drift test, all 256 pairs) prove the table; `deadline_expiry_with_zero_remediation_budget_reaches_blocked` (`dispatch_test.rs`, new) proves `TIMED_OUT→BLOCKED` reachable with `remediation_budget=0`, asserting the ledger trajectory ends `("TIMED_OUT","BLOCKED")` — `cargo test -p cng --features bench --lib bench::dispatch::dispatch_test -- --test-threads=4` → 15 passed, 0 failed; `REMOTE_IN_PROGRESS→BLOCKED`/`REFUSED→BLOCKED`/`COMPENSATING→BLOCKED` remain untested. `DISPATCH_READY→REFUSED`'s type doc (`dispatch.rs` ~104-150) now states explicitly it is declared-lawful with no production caller (both `Refused` construction sites fire only from `RESULT_RECEIVED`) — investigated, correctly left unwired rather than forcing a fit; see `GAP_AUDIT.md` §7 items 5/7 |
 | 13 | Distributed broker law (5 items) | ALIVE | ledger (PROJ-721), `CNG_R25 DoubleAdmit` (PROJ-721, also `cng_multi_engine.rs` falsifier), `EngineIdentity` (PROJ-722), G13 resume (PROJ-724/729) |
 | 14 | Isolation falsifiers (5 items) | ALIVE, scoped to CARGO_BIN_EXE harness | items 1-3 structural (process/marker/filesystem); item 4 `isolation_falsifier_hostile_graph_is_refuted_by_markers`; item 5 `distributed_determinism_two_serialized_runs_byte_identical` |
 | 15 | Gall checkpoints G0-G16 | see per-gate row below | — |
@@ -122,14 +201,14 @@ One line per `DEFINITION_OF_DONE.md` section (1-20).
 | G6 | ALIVE | non-interference + release-closure tests (PROJ-708) |
 | G7 | ALIVE | composition + selection tests (PROJ-709/710) |
 | G8 | ALIVE (single-process, potato) / ALIVE (cross-engine mechanism, different fixture) | potato tests (PROJ-712); decompose-to-dispatch bridge test (PROJ-749) — potato itself not dispatched cross-engine (see §8 row) |
-| G9 | ALIVE | drift test (PROJ-720) |
+| G9 | ALIVE (transition table); ALIVE (`TIMED_OUT→BLOCKED` live-walk, load-bearing closure wave) | drift test (PROJ-720); `deadline_expiry_with_zero_remediation_budget_reaches_blocked` (`dispatch_test.rs`, new) — see §12 row above for the full 4-edge breakdown |
 | G10 | ALIVE | ledger + `DoubleAdmit` tests (PROJ-721) |
 | G11 | ALIVE | `EngineIdentity` test (PROJ-722) |
 | G12 | ALIVE | `engine serve` + Arazzo projection tests (PROJ-723/725/726); digest-verify gate now wired into `run_arazzo_projection` (PROJ-745 follow-up) |
 | G13 | ALIVE, scoped to test harness | `g13_crash_resume_verifies_chain_and_completes` (PROJ-724/729, the direct target of PROJ-734's fix) |
 | G14 | ALIVE (full scale) | full 5x20=100 domain x seed corpus (PROJ-711 follow-up, `cng_ipc_corpus_full_scale.rs`), 2/2 runs green, 11.66s/11.79s |
 | G15 | PLANNED (cut line) | PROJ-714 never built, by design; `RELEASE_CONTROL.md` §9.2 |
-| G16 | ALIVE (constituent) / ALIVE (composed, two-bundle: workday+planning) / UNVERIFIED (three-bundle, +distributed) | each marker family true separately; `full_production_ready`'s real two-bundle invocation now exercised (`full_production_ready_holds_on_real_dual_bundle_evidence`, PROJ-742 follow-up); three-bundle (+distributed) still not exercised |
+| G16 | ALIVE (constituent) / ALIVE (composed, three-bundle: workday+planning+distributed) | each marker family true separately; `full_production_ready`'s real three-bundle invocation now exercised end-to-end (`full_production_ready_holds_on_real_triple_bundle_evidence`, PROJ-742 EOD push, `cng_production_ready_three_way.rs`) |
 
 ### §18 Negative proof corpus detail (8 items)
 
@@ -174,18 +253,24 @@ re-run). This required a smallest-possible visibility bump — `build_decomp_mar
 `crates/cng/src/bench/workday.rs`, re-exported from `crates/cng/src/bench/mod.rs` — no logic
 changes.
 
-**What remains UNVERIFIED**: the three-way composition — `full_production_ready` invoked with
-a REAL `workday_markers` bundle, a REAL `planning_markers` bundle, AND a REAL
-`distributed_markers` bundle together in one run. Wiring a real third multi-engine bundle
-requires spawning real OS `cng engine serve` processes through `cng_multi_engine.rs`'s own
-harness helpers (`spawn_engine`, `serialized_run`, etc.), which are private to that test
-binary and not importable from a separate `tests/` integration crate — the two-way
-(workday + planning) composition is the honest minimum achieved this round. **The full
+**Three-way composition — closed (EOD push).** `full_production_ready` has now been invoked
+with a REAL `workday_markers` bundle, a REAL `planning_markers` bundle, AND a REAL
+`distributed_markers` bundle together, in one run: new file
+`crates/cng/tests/cng_production_ready_three_way.rs` runs `engine_dispatch_remote` then two
+real `cng engine serve` OS processes (its own independent `run_cng`/`serve_to_budget`
+reimplementation, not imported from `cng_multi_engine.rs` — collision-free by construction)
+then `engine_collect_remote`, whose `EngineCoordinateReport.markers` field carries the real,
+already-evaluated `DISTRIBUTED_MARKER_MAP` output (no visibility bump or new marker-evaluation
+machinery needed — the field was already `pub`). `full_production_ready(&workday_markers,
+&planning_markers, Some(&distributed_markers))` asserts `true` on the combined 29-key map
+(`full_production_ready_holds_on_real_triple_bundle_evidence`), with a companion negative test
+forcing a real distributed marker false confirming the conjunction goes `false`
+(`full_production_ready_goes_false_when_a_real_distributed_marker_is_forced_false`). Command:
+`CARGO_TARGET_DIR=target/agent-threeway just cng-test-one cng_production_ready_three_way --
+--test-threads=1 --nocapture` → 2 passed, 0 failed, 5.62s. **The full
 `V26_7_10_PRODUCTION_READY` claim, in the meaning `DEFINITION_OF_DONE.md` §16 defines, is
-therefore: ALIVE for the two-way (workday + planning) real composition; UNVERIFIED for the
-three-way (+ distributed) composition.** This is the single most important scoping statement
-in this sign-off; do not round either direction up or down in any future citation of this
-document.
+therefore: ALIVE for the three-way (workday + planning + distributed) real composition** — no
+scoping-down qualifier remains on this claim.
 
 ## What changed in the follow-up verification round
 
@@ -293,7 +378,7 @@ following, each with its own cited command+output:
 6. Live third-party network dispatch, real (non-synthesized) human consequences, and the
    whole-workspace `just verify-all` gate — carried forward unchanged from the interim DoD's
    own honest-boundary language (`DOD_SIGNOFF_INTERIM.md`).
-7. Phase 6 commit — not run; `git status` is not clean; HEAD is still `40f6020`. Nothing in
+7. Phase 6 commit — not run; `git status` is not clean; HEAD is still `1f3f9bc`. Nothing in
    this document claims the increment is committed or closed in git history.
 8. A newly-discovered behavioral tightening from item 3 above, carried forward as a
    deployment note: any `workday()` run (test or real) whose seed-derived category cycle lands
