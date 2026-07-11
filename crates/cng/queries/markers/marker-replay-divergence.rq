@@ -1,0 +1,20 @@
+# marker-replay-divergence.rq (PROJ-727/729)
+# Marker: REPLAY_DIVERGENCES_ZERO.
+# Inputs: OBSERVATION graph (bench-obs vocabulary; the marker store union).
+# Output: single row ?value = resume_verified observations carrying
+# ex:divergence "true".
+# Semantics: 0 = proven. On the production path a divergent ledger chain
+# refuses CNG_R11 AuditMismatch BEFORE the resume_verified observation is
+# ever emitted (engine.rs), so every lawful observation carries
+# ex:divergence "false" — this marker is the graph-side restatement of that
+# law, falsifiable by fixtures that inject a "true" value. Vacuously 0 on
+# corpora without resumes.
+# Determinism: aggregate over a fixed graph.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+PREFIX ex:  <http://example.org/rwai#>
+
+SELECT (COUNT(?s) AS ?value)
+WHERE {
+  ?s obs:obsKind "resume_verified" ;
+     ex:divergence "true" .
+}

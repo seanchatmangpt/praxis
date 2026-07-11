@@ -1,0 +1,44 @@
+# marker-remote-execution.rq (PROJ-727)
+# Markers: REMOTE_WORKFLOWS_ACKNOWLEDGED + REMOTE_WORKFLOWS_COMPLETED.
+# Inputs: OBSERVATION graph (bench-obs vocabulary; the marker store union).
+# Output: single row ?value = the sum of two universally quantified
+# coverage gaps over remote dispatches:
+#   (a) remote_dispatch_sent with NO dispatch_acknowledged for the same
+#       ex:dispatchId (unacknowledged remote workflow),
+#   (b) remote_dispatch_sent with NO terminal verdict — neither
+#       consequence_admitted nor consequence_refused nor dispatch_timed_out
+#       (remote workflow that never completed its lifecycle).
+# Semantics: 0 = proven (universal law). Vacuously 0 on corpora without
+# remote dispatches; existence of remote execution is asserted by the
+# INVERTED existence markers (marker-multi-engine-execution.rq), not here.
+# Determinism: aggregates + NOT EXISTS over a fixed graph.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+PREFIX ex:  <http://example.org/rwai#>
+
+SELECT ((?unacked + ?uncompleted) AS ?value)
+WHERE {
+  {
+    SELECT (COUNT(DISTINCT ?d) AS ?unacked)
+    WHERE {
+      ?s obs:obsKind "remote_dispatch_sent" ; ex:dispatchId ?d .
+      FILTER NOT EXISTS {
+        ?k obs:obsKind "dispatch_acknowledged" ; ex:dispatchId ?d .
+      }
+    }
+  }
+  {
+    SELECT (COUNT(DISTINCT ?d) AS ?uncompleted)
+    WHERE {
+      ?s obs:obsKind "remote_dispatch_sent" ; ex:dispatchId ?d .
+      FILTER NOT EXISTS {
+        ?a obs:obsKind "consequence_admitted" ; ex:dispatchId ?d .
+      }
+      FILTER NOT EXISTS {
+        ?r obs:obsKind "consequence_refused" ; ex:dispatchId ?d .
+      }
+      FILTER NOT EXISTS {
+        ?t obs:obsKind "dispatch_timed_out" ; ex:dispatchId ?d .
+      }
+    }
+  }
+}

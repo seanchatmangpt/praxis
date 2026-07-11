@@ -122,16 +122,6 @@ pub fn is_literal(id: usize) -> bool {
     matches!(Encoder::decode_to_term(id), Some(Term::Literal(_)))
 }
 
-/// Check if triple (s, p, o) exists in index
-fn contains_triple(index: &TripleIndex, s: usize, p: usize, o: usize) -> bool {
-    if let Some(preds) = index.spo.get(&s) {
-        if let Some(objs) = preds.get(&p) {
-            return objs.iter().any(|(obj_val, _, _)| *obj_val == o);
-        }
-    }
-    false
-}
-
 /// Get all objects for subject and predicate (S-P-O indexed)
 pub fn get_objects(index: &TripleIndex, subject: usize, predicate: usize) -> Vec<usize> {
     let mut result = Vec::new();

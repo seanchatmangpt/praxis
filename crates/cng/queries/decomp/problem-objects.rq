@@ -1,0 +1,10 @@
+# problem-objects.rq — the object names of a given Problem (PROJ-703).
+# Placeholder {PROBLEM} substituted via str::replace.
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+SELECT ?name
+WHERE {
+  <{PROBLEM}> pddl:hasObject ?obj .
+  ?obj pddl:objectName ?name .
+}
+ORDER BY ?name

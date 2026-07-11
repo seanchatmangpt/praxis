@@ -1,0 +1,26 @@
+# marker-multi-engine-execution.rq (PROJ-727)
+# Markers: MULTI_ENGINE_EXECUTION_PROVEN + ENGINE_INSTANCES_PROVEN.
+# Inputs: OBSERVATION graph (bench-obs vocabulary; the marker store union
+# of coordinator + every engine bundle's ticks partitions).
+# Output: single row ?value.
+# *** INVERTED EXISTENCE MARKER (0 = proven convention preserved) ***
+# Unlike the universal =0 markers, this marker asserts an EXISTENTIAL: at
+# least TWO distinct engine identities receipted an engine_started
+# observation. The 0-iff-proven convention of evaluate_markers is kept by
+# INVERSION: ?value = 0 when >= 2 distinct engines exist, 1 otherwise.
+# It therefore belongs ONLY to DISTRIBUTED_MARKER_MAP (multi-engine runs);
+# putting it in the single-operator workday MARKER_MAP would refuse every
+# lawful single-engine run.
+# Determinism: aggregate + IF over a fixed graph.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+
+SELECT (IF(?engines >= 2, 0, 1) AS ?value)
+WHERE {
+  {
+    SELECT (COUNT(DISTINCT ?e) AS ?engines)
+    WHERE {
+      ?s obs:obsKind "engine_started" ;
+         obs:producedByEngine ?e .
+    }
+  }
+}

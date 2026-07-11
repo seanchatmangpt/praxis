@@ -1,0 +1,39 @@
+# marker-decomposition-receipted.rq (PROJ-739)
+# Marker: DECOMPOSITION_CANDIDATES_RECEIPTED.
+# Inputs: decomp:DecompositionResult / decomp:CandidateReceipt evidence
+# (decomp/mod.rs::decompose_with + emit_result_graph, PROJ-710,
+# templates/decomp-candidate-receipt.template.ttl — every examined
+# candidate, ACCEPTED AND REJECTED, receipts a decomp:CandidateReceipt;
+# rejected candidates are recorded evidence, never dropped).
+# Output: single row ?value = count of DecompositionResult instances that
+# violate the receipting law:
+#   (a) zero decomp:CandidateReceipt triples point at the result via
+#       decomp:receiptOf — no candidate was ever receipted, or
+#   (b) the result's own decomp:rejectedCandidateCount is > 0 but no
+#       candidate receipt carries decomp:candidateStatus "Inadmissible" —
+#       a rejection was claimed in the summary but is not itself evidenced.
+# Semantics: 0 = proven (every result has >= 1 receipt, and every claimed
+# rejection is independently receipted).
+# Determinism: aggregate + NOT EXISTS/FILTER over a fixed graph.
+PREFIX decomp: <https://truex.io/ontology/decomp#>
+
+SELECT (COUNT(DISTINCT ?result) AS ?value)
+WHERE {
+  ?result a decomp:DecompositionResult ;
+          decomp:rejectedCandidateCount ?rejectedCount .
+  FILTER (
+    NOT EXISTS {
+      ?receipt a decomp:CandidateReceipt ;
+               decomp:receiptOf ?result .
+    }
+    ||
+    (
+      ?rejectedCount > 0 &&
+      NOT EXISTS {
+        ?rejected a decomp:CandidateReceipt ;
+                  decomp:receiptOf ?result ;
+                  decomp:candidateStatus "Inadmissible" .
+      }
+    )
+  )
+}

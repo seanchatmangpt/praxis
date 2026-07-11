@@ -1,0 +1,10 @@
+# PROJ-723 engine quiescence control file: written to
+# <root>/engines/<id>/control/quiesce.ttl to end a `cng engine serve` loop.
+# Conforms to crates/cng/shapes/dispatch-shapes.ttl (QuiescenceShape,
+# sh:closed) — the serve loop shape-validates this file before obeying it.
+@prefix ex:   <http://example.org/rwai#> .
+@prefix disp: <https://truex.io/ontology/dispatch#> .
+
+ex:{{SUBJECT}} a disp:Quiescence ;
+  disp:engineId "{{ENGINE_ID}}" ;
+  disp:reason "{{REASON}}" .

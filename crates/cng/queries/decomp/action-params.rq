@@ -1,0 +1,11 @@
+# action-params.rq — ordered parameters of a given Action schema (PROJ-703
+# domain renderer). Placeholder {ACTION} substituted via str::replace.
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+SELECT ?idx ?name
+WHERE {
+  <{ACTION}> pddl:parameter ?p .
+  ?p pddl:paramIndex ?idx ;
+     pddl:parameterName ?name .
+}
+ORDER BY ?idx

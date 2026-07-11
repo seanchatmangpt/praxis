@@ -1,0 +1,17 @@
+# rwai-bench observation template (engine_executed, PROJ-723): a serve loop
+# admitted one inbox dispatch contract, executed it through the REAL cng
+# manufacture chain, and wrote the consequence Turtle to its outbox
+# (atomic tmp+rename). {{POWL_DIGEST}} and {{CONSEQUENCE_DIGEST}} are
+# content-derived BLAKE3 digests — no wall clock.
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "engine_executed" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:producedByEngine "{{ENGINE_ID}}" ;
+  ex:dispatchId "{{DISPATCH_ID}}" ;
+  ex:powlDigest "{{POWL_DIGEST}}" ;
+  ex:consequenceDigest "{{CONSEQUENCE_DIGEST}}" .

@@ -1,0 +1,149 @@
+# SHACL shapes for admitted PDDL-STRIPS-as-RDF instances (80/20 profile).
+# v26.7.10-revised (PROJ-701).
+#
+# Validates instance data written against crates/cng/ontologies/
+# pddl-strips.ttl. All shapes are CLOSED: any predicate not enumerated here
+# makes the node non-conforming, and the four REFUSED feature classes
+# (pddl:DerivedPredicate, pddl:ConditionalEffect, pddl:NumericFluent,
+# pddl:DurativeAction) get named always-fail shapes so the report cites the
+# feature by name. Doctrine: docs/standing/SEMANTIC_PROFILE_DOCTRINE.md;
+# style follows crates/cng/shapes/arazzo-shapes.ttl.
+
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix pddl: <https://truex.io/ontology/pddl-strips#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix shp:  <urn:cng:shapes:pddl-strips#> .
+
+shp:DomainShape a sh:NodeShape ;
+    sh:targetClass pddl:Domain ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [
+        sh:path pddl:domainName ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[a-z][a-z0-9-]*$" ;
+    ] ;
+    sh:property [ sh:path pddl:hasAction ; sh:minCount 1 ; sh:nodeKind sh:IRI ; sh:class pddl:Action ] .
+
+shp:ActionShape a sh:NodeShape ;
+    sh:targetClass pddl:Action ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [
+        sh:path pddl:actionName ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[a-z][a-z0-9-]*$" ;
+    ] ;
+    # STRIPS8 bounds: params <= 8, precondition conjuncts <= 8, effects <= 8.
+    sh:property [ sh:path pddl:parameter ; sh:maxCount 8 ; sh:nodeKind sh:IRI ; sh:class pddl:Parameter ] ;
+    sh:property [ sh:path pddl:precondition ; sh:minCount 1 ; sh:maxCount 8 ; sh:nodeKind sh:IRI ; sh:class pddl:Atom ] ;
+    sh:property [
+        sh:path pddl:effect ;
+        sh:minCount 1 ; sh:maxCount 8 ;
+        sh:nodeKind sh:IRI ;
+        sh:or ( [ sh:class pddl:AddEffect ] [ sh:class pddl:DelEffect ] ) ;
+        sh:message "Every effect must be typed pddl:AddEffect or pddl:DelEffect (a bare pddl:Atom effect is non-conforming)." ;
+    ] .
+
+shp:ProblemShape a sh:NodeShape ;
+    sh:targetClass pddl:Problem ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [
+        sh:path pddl:problemName ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[a-z][a-z0-9-]*$" ;
+    ] ;
+    sh:property [ sh:path pddl:fromDomain ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class pddl:Domain ] ;
+    sh:property [ sh:path pddl:hasObject ; sh:minCount 1 ; sh:nodeKind sh:IRI ; sh:class pddl:Object ] ;
+    sh:property [ sh:path pddl:initAtom ; sh:minCount 1 ; sh:nodeKind sh:IRI ; sh:class pddl:Atom ] ;
+    sh:property [ sh:path pddl:goalAtom ; sh:minCount 1 ; sh:nodeKind sh:IRI ; sh:class pddl:Atom ] .
+
+# Shared property constraints for atom-shaped nodes (Atom, AddEffect,
+# DelEffect). SHACL targetClass does not follow rdfs:subClassOf unless the
+# subclass triples are in the data graph, so effects get their own targets.
+shp:AtomShape a sh:NodeShape ;
+    sh:targetClass pddl:Atom , pddl:AddEffect , pddl:DelEffect ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [
+        sh:path pddl:predicateName ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[a-z][a-z0-9-]*$" ;
+    ] ;
+    # STRIPS8 arity bound: <= 8 positional arguments.
+    sh:property [ sh:path pddl:argument ; sh:maxCount 8 ; sh:nodeKind sh:IRI ; sh:class pddl:Argument ] .
+
+shp:ArgumentShape a sh:NodeShape ;
+    sh:targetClass pddl:Argument ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path pddl:argIndex ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ; sh:maxInclusive 7 ] ;
+    sh:property [
+        sh:path pddl:argValue ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^\\??[a-z][a-z0-9-]*$" ;
+    ] .
+
+shp:ParameterShape a sh:NodeShape ;
+    sh:targetClass pddl:Parameter ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path pddl:paramIndex ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ; sh:maxInclusive 7 ] ;
+    sh:property [
+        sh:path pddl:parameterName ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^\\?[a-z][a-z0-9-]*$" ;
+    ] .
+
+shp:ObjectShape a sh:NodeShape ;
+    sh:targetClass pddl:Object ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [
+        sh:path pddl:objectName ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[a-z][a-z0-9-]*$" ;
+    ] ;
+    sh:property [ sh:path pddl:actor ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path pddl:capability ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path pddl:resource ; sh:maxCount 1 ; sh:datatype xsd:boolean ] .
+
+# REFUSED by name: any instance of an UNSUPPORTED feature class is a named
+# violation. rdf:type has minCount >= 1 on any typed node, so maxCount 0 on
+# rdf:type always fails for targets of these shapes.
+shp:RefusedConditionalEffectShape a sh:NodeShape ;
+    sh:targetClass pddl:ConditionalEffect ;
+    sh:property [
+        sh:path rdf:type ; sh:maxCount 0 ;
+        sh:message "REFUSED feature: conditional (when ...) effects (:conditional-effects, ADL) are not in the STRIPS 80/20 profile." ;
+    ] .
+
+shp:RefusedDerivedPredicateShape a sh:NodeShape ;
+    sh:targetClass pddl:DerivedPredicate ;
+    sh:property [
+        sh:path rdf:type ; sh:maxCount 0 ;
+        sh:message "REFUSED feature: (:derived ...) predicates (PDDL2.2 :derived-predicates) are not in the STRIPS 80/20 profile." ;
+    ] .
+
+shp:RefusedDurativeActionShape a sh:NodeShape ;
+    sh:targetClass pddl:DurativeAction ;
+    sh:property [
+        sh:path rdf:type ; sh:maxCount 0 ;
+        sh:message "REFUSED feature: durative actions (PDDL2.1 :durative-actions) are not in the STRIPS 80/20 profile." ;
+    ] .
+
+shp:RefusedNumericFluentShape a sh:NodeShape ;
+    sh:targetClass pddl:NumericFluent ;
+    sh:property [
+        sh:path rdf:type ; sh:maxCount 0 ;
+        sh:message "REFUSED feature: numeric fluents/metrics (:numeric-fluents, :action-costs) are not in the STRIPS 80/20 profile." ;
+    ] .

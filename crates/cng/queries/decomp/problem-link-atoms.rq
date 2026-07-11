@@ -1,0 +1,10 @@
+# problem-link-atoms.rq — the atoms a given Problem links via a given
+# property (PROJ-703). Placeholders substituted via str::replace (never
+# format!): {PROBLEM} = the Problem IRI, {LINK} = initAtom | goalAtom.
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+SELECT ?atom
+WHERE {
+  <{PROBLEM}> <https://truex.io/ontology/pddl-strips#{LINK}> ?atom .
+}
+ORDER BY ?atom

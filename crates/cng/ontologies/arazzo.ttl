@@ -1,7 +1,10 @@
-# arz: — 80/20 RDF vocabulary for OpenAPI Arazzo 1.0.0 workflow descriptions.
+# arz: — 80/20 RDF vocabulary for OpenAPI Arazzo 1.1.0 workflow descriptions.
+# v26.7.10-revised (PROJ-725): vocabulary now targets the Arazzo 1.1.0
+# profile (80/20). Delta over 1.0.0: sourceType enumeration extended with
+# "asyncapi" (single arz:SourceDescription class, no AsyncAPI subclass).
 #
 # What this is: a clean-room vocabulary written from the invariants of the
-# Arazzo Specification 1.0.0 object model (Workflow, Step, SourceDescription,
+# Arazzo Specification 1.1.0 object model (Workflow, Step, SourceDescription,
 # Parameter, Criterion, SuccessAction, FailureAction, outputs, dependsOn).
 # It is NOT a port of any schema code; it models only the 80/20 supported
 # profile per docs/standing/SEMANTIC_PROFILE_DOCTRINE.md. Unsupported (20%)
@@ -21,7 +24,8 @@
 #   operationId | operationPath | workflowId reference, parameters
 #   (name/in/value), successCriteria, onSuccess/onFailure with action types
 #   end|goto|retry, outputs), SourceDescription (name, url, type
-#   arazzo|openapi), Criterion (context, condition, type simple|regex|jsonpath).
+#   arazzo|openapi|asyncapi), Criterion (context, condition, type
+#   simple|regex|jsonpath).
 # REFUSED by name (20%):
 #   - xpath criterion type (Criterion Expression Type Object variants too)
 #   - Reusable Object references (components/* indirection beyond inline defs)
@@ -34,6 +38,8 @@
 #   - runtime expressions beyond simple $-prefixed references embedded in
 #     condition/context/value literals (no expression evaluation semantics
 #     are claimed by this vocabulary)
+#   - Arazzo 1.1 features beyond the asyncapi sourceType: refused by name
+#     pending need (no new step mechanics are admitted by this delta)
 
 @prefix arz:     <https://truex.io/ontology/arazzo#> .
 @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
@@ -43,8 +49,8 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
 
 <https://truex.io/ontology/arazzo#> a owl:Ontology ;
-    rdfs:label "Arazzo 1.0.0 workflow vocabulary (80/20 profile)" ;
-    dcterms:description "Clean-room RDF vocabulary for the supported subset of the OpenAPI Arazzo 1.0.0 specification. Unsupported features are refused by name; see header comment and arazzo-shapes.ttl." .
+    rdfs:label "Arazzo 1.1.0 workflow vocabulary (80/20 profile)" ;
+    dcterms:description "Clean-room RDF vocabulary for the supported subset of the OpenAPI Arazzo 1.1.0 specification. Unsupported features are refused by name; see header comment and arazzo-shapes.ttl." .
 
 ### Classes
 
@@ -58,7 +64,7 @@ arz:Step a rdfs:Class ;
 
 arz:SourceDescription a rdfs:Class ;
     rdfs:label "SourceDescription" ;
-    rdfs:comment "A source document (arazzo or openapi) that steps resolve operations against." .
+    rdfs:comment "A source document (arazzo, openapi, or asyncapi) that steps resolve operations against. Arazzo 1.1: asyncapi sources are admitted with the same class and properties — no AsyncAPI-specific subclass or step mechanics." .
 
 arz:Parameter a rdfs:Class ;
     rdfs:label "Parameter" ;
@@ -150,7 +156,7 @@ arz:url a rdf:Property ;
 
 arz:sourceType a rdf:Property ;
     rdfs:domain arz:SourceDescription ; rdfs:range xsd:string ;
-    rdfs:comment "One of: arazzo, openapi." .
+    rdfs:comment "One of: arazzo, openapi, asyncapi (asyncapi added by the Arazzo 1.1.0 profile delta)." .
 
 ### Parameter properties
 

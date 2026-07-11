@@ -1,0 +1,12 @@
+# action-effect-atoms.rq — effect atoms of a given Action with their
+# add/del polarity (PROJ-703 domain renderer). Placeholder {ACTION}
+# substituted via str::replace. ?kind is the effect class IRI.
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+SELECT ?atom ?kind
+WHERE {
+  <{ACTION}> pddl:effect ?atom .
+  ?atom a ?kind .
+  FILTER(?kind IN (pddl:AddEffect, pddl:DelEffect))
+}
+ORDER BY ?atom

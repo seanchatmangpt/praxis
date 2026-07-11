@@ -1,0 +1,11 @@
+# PROJ-721 idempotent-consume processed-set entry: one
+# disp:ProcessedConsequence appended per admitted consequence. A consequence
+# whose idempotency key is already present refuses CNG_R25 DoubleAdmit.
+# Conforms to crates/cng/shapes/dispatch-shapes.ttl
+# (ProcessedConsequenceShape, sh:closed).
+@prefix ex:   <http://example.org/rwai#> .
+@prefix disp: <https://truex.io/ontology/dispatch#> .
+
+ex:{{SUBJECT}} a disp:ProcessedConsequence ;
+  disp:idempotencyKey "{{IDEMPOTENCY_KEY}}" ;
+  disp:dispatchId "{{DISPATCH_ID}}" .

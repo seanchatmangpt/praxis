@@ -1,0 +1,17 @@
+# atom-args.rq — atom content rows (PROJ-703/704): every node carrying a
+# pddl:predicateName (plain Atoms AND AddEffect/DelEffect nodes) with its
+# ordered argument values. Zero-arity atoms yield one row with unbound
+# ?idx/?val. Callers assemble the canonical key `pred(v0,v1,...)` in Rust,
+# sorting rows by (?atom, ?idx).
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+SELECT ?atom ?pred ?idx ?val
+WHERE {
+  ?atom pddl:predicateName ?pred .
+  OPTIONAL {
+    ?atom pddl:argument ?arg .
+    ?arg pddl:argIndex ?idx ;
+         pddl:argValue ?val .
+  }
+}
+ORDER BY ?atom ?idx

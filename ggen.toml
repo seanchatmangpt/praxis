@@ -19,6 +19,7 @@ standing-pack = { path = "../cargo-cicd/plugins/cargo-cicd-kit/standing-pack" }
 chatman-engine-pack = { path = "packs/chatman-engine-pack" }
 otel-weaver-pack = { path = "packs/otel-weaver-pack" }
 ocel-bench-pack = { path = "packs/ocel-bench-pack" }
+arazzo-pack = { path = "packs/arazzo-pack" }
 
 [law]
 rules = ["ontology/rules/breed_standing.n3"]

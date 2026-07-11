@@ -1,107 +1,114 @@
-# DOD_EVIDENCE_MAP — Clause-by-Clause Evidence Map for v26.7.10
+# DOD_EVIDENCE_MAP — Clause-by-Clause Evidence Map for v26.7.10-revised (PROJ-748)
 
-Version: v26.7.10. Consumed by PROJ-617 (closure) and PROJ-622 (SPARQL success markers).
-Status: DRAFT, tied to `RELEASE_CONTROL.md`. Every claim cites a file, test, or receipt. Rows
-without evidence are marked PLANNED or UNKNOWN, never asserted. If this file and
-`RELEASE_CONTROL.md` disagree, `RELEASE_CONTROL.md` wins. This file does not upgrade any
-marker's verdict on its own. Final marker verdicts live in `RELEASE_CONTROL.md` §8 and
-`DOD_SIGNOFF.md` (PROJ-617): per the consolidated final build cited there, all 11 success
-markers derived TRUE via SPARQL. PLANNED rows below are the pre-build planning record, kept
-for traceability; where they disagree with `DOD_SIGNOFF.md`, the sign-off wins.
+Version: v26.7.10-revised. Consumed by PROJ-731 (final closure) and PROJ-748 (this map).
+Status: FINAL (doc), tied to `RELEASE_CONTROL.md`. Every claim cites a file, test, or receipt.
+Rows without evidence are marked PLANNED, PARTIAL, or UNVERIFIED, never asserted. If this file
+and `RELEASE_CONTROL.md` disagree, `RELEASE_CONTROL.md` wins. This file does not upgrade any
+marker's verdict on its own — final verdicts live in `DOD_SIGNOFF.md`. The interim evidence
+map is preserved verbatim at `DOD_EVIDENCE_MAP_INTERIM.md` (fix-forward, not deleted).
 
-## How to read this map
+For the marker-family-level detail (which query proves which marker name, and the
+`PLANNING_MARKER_MAP`/`DISTRIBUTED_MARKER_MAP`/`MARKER_MAP` structure), see
+`DEFINITION_OF_DONE.md` §16 directly — it is already the authoritative, exhaustively-cited
+reconciliation (PROJ-743) and is not duplicated here. This file instead maps each ticket to
+its primary test evidence and lists the full refusal-variant coverage ledger (`CNG_R01`-`R25`).
 
-- **Query** — the SPARQL file under `crates/cng/queries/` expected to prove the marker over the
-  emitted OCEL graph. `(exists)` = file present on disk this session (`ls` verified).
-  `(PLANNED)` = named by `DEFINITION_OF_DONE.md` or ticket scope but not yet real evidence.
-- **Refusal** — the `CngRefusal` variant guarding the clause. Variant doc comments and stable
-  codes for `CNG_R12`..`CNG_R18` are present in `crates/cng/src/powl.rs:69-172` (read this
-  session), plus `CNG_R19 EvidenceGateFailed` (`powl.rs:146-158`, graph-derived closure gate
-  unclosed, PROJ-614) and `CNG_R20 MarkerFalse` (`powl.rs:159-171`, false success marker,
-  PROJ-622). R12..R20 all exercised by `just cng-test-bench` this session (40 lib tests
-  green, incl. `unreceipted_actuation_gate_refuses_cng_r19` and
-  `forced_false_marker_refuses_cng_r20`); final verdicts live in `DOD_SIGNOFF.md`.
-- **Test/recipe** — the `just` recipe or test binary expected to exercise the marker.
-- **Status** — no-overclaiming vocabulary; nothing exceeds `RELEASE_CONTROL.md`.
+## Ticket -> primary evidence (summary; full citations in each ticket file)
 
-Note on naming (resolved at PROJ-617 closure): the `DEFINITION_OF_DONE.md` §4 names are now
-authoritative and on disk — `metric-hook-actuations.rq` and `metric-dispatch-closure.rq`
-(`ls` verified). The old `metric-hook-receipts.rq` was folded and deleted under PROJ-614;
-`dispatch-closure.rq` remains as a separate broader query. This map uses the new names.
+| Ticket | Primary test(s) | Status |
+|---|---|---|
+| PROJ-701 | pddl-strips.ttl/shapes on disk, exercised transitively | ALIVE |
+| PROJ-702 | `lift_render_round_trip_preserves_atom_sets` | ALIVE |
+| PROJ-703 | `lift_render_round_trip_preserves_atom_sets` | ALIVE |
+| PROJ-704 | exercised by every `decompose()` call; perf fixed by PROJ-733 | ALIVE |
+| PROJ-705 | `single_actor_is_always_candidate_zero` | ALIVE |
+| PROJ-706 | `potato_decomposition_is_typed_receipted_and_replayable` | ALIVE |
+| PROJ-707 | `tampered_tape_refuses_cng_r23_interface_state_mismatch` | ALIVE |
+| PROJ-708 | `concurrent_clobber_refuses_cng_r22_interference`, `unreleased_resource_refuses_cng_r24` | ALIVE |
+| PROJ-709 | `cyclic_composed_order_refuses_cng_r21`; powl2 read by every marker test | ALIVE |
+| PROJ-710 | `forced_inadmissible_candidate_refuses_cng_r21`, `decompose_is_deterministic_across_runs` | ALIVE |
+| PROJ-711 | `ipc_corpus_seeds_plan_decompose_and_regenerate_byte_identically` (seeds 0-3) + `ipc_corpus_full_20_seeds_...` (`cng_ipc_corpus_full_scale.rs`, full 5x20) | ALIVE (full scale) |
+| PROJ-712 | `potato_graph_bridges_to_a_parsed_surface`, negative corpus tests; §18 item 6 closed by `splits_admissible_but_not_beneficial_forces_no_beneficial_decomposition` (`cng_decomp_negative_corpus_completeness.rs`, second synthesis round) | ALIVE |
+| PROJ-713 | `permuted_goal_identities_change_plans_and_receipts_causally`; §18 item 7 additionally confirmed by `canned_subgoal_detection_catches_identical_goal_labels_with_different_achiever_structure` (same new file, second synthesis round) | ALIVE |
+| PROJ-714 | none — never built | PLANNED (cut line) |
+| PROJ-720 | `sixteen_state_transition_law_is_exact`, drift test | ALIVE |
+| PROJ-721 | `ledger_records_every_advance_and_replays_chain_verified`, `CNG_R25` test | ALIVE |
+| PROJ-722 | `engine_identity_is_deterministic_and_engine_distinct` | ALIVE |
+| PROJ-723 | `serve_executes_inbox_contract_and_writes_consequence` | ALIVE |
+| PROJ-724 | `resume_verifies_ledger_prefix_and_skips_processed_contracts` | ALIVE |
+| PROJ-725 | `xpath_criterion_fixture_refuses_cng_r18_naming_the_feature` | ALIVE |
+| PROJ-726 | isolated scratch `ggen sync run`, byte-identical, digest-matched | ALIVE |
+| PROJ-727 | `isolation_falsifier_hostile_graph_is_refuted_by_markers` + marker asserts | ALIVE |
+| PROJ-728 | `multi_engine_concurrent_dispatch_execute_readmit` (6/6 suite); harness also holds under `recursion_crosses_engines_full_8x2_fanout`'s 146-dispatch load (PROJ-729 follow-up) | ALIVE (harness) |
+| PROJ-729 | `g13_crash_resume_verifies_chain_and_completes`, `recursion_crosses_engines_depth_two`, `recursion_crosses_engines_full_8x2_fanout` (literal 8²=64-leaf fan-out, `cng_multi_engine.rs`, follow-up round) | ALIVE (harness, full 8² fan-out) |
+| PROJ-733 | `cng_decomp` 3/3 @ 0.18s, `cng_ipc_corpus` 10/10 @ 1.79s | ALIVE |
+| PROJ-734 | `g13_crash_resume_verifies_chain_and_completes` holds | ALIVE |
+| PROJ-739 | `planning_markers_prove_true_on_a_healthy_decompose_run` | ALIVE |
+| PROJ-740 | same test, `LLM_CALLS_ZERO`/`ENGLISH_SUBGOALS_ZERO`/`CANNED_SUBGOALS_ZERO` | ALIVE |
+| PROJ-741 | `main.rs:258-324` verb; `cargo check -p cng` 0-warning after gate fix | ALIVE |
+| PROJ-742 | `full_production_ready_refuses_when_a_planning_marker_is_false` (pure fn); `full_production_ready_holds_on_real_dual_bundle_evidence` + `..._goes_false_when_a_real_marker_is_forced_false` (`cng_production_ready.rs`, real workday+decompose bundles, follow-up round) | ALIVE (fn) / ALIVE (real 2-bundle) / UNVERIFIED (3-bundle, +distributed) |
+| PROJ-743 | `DEFINITION_OF_DONE.md` §16 rewrite, this session | DONE (doc) |
+| PROJ-744 | `ggen.toml:22`, isolated scratch verification | ALIVE |
+| PROJ-745 | `arazzo_test.rs:148,179`; wired into `arazzo::run_arazzo_projection` (`arazzo.rs:337`) + `dispatch_test.rs`'s `arazzo_projection_gate_admits_when_render_digest_matches_receipt`/`..._refuses_cng_r11_before_any_step_dispatches` (follow-up round) | ALIVE (wired at the Arazzo-sourced call site) |
+| PROJ-746 | ticket status flips, this session | DONE (doc) |
+| PROJ-747 | `RELEASE_CONTROL.md` §9.2, this session | DONE (doc) |
+| PROJ-748 | this file + `DOD_SIGNOFF.md`, this session | DONE (doc) |
+| PROJ-749 | `kitchen_decomposition_splits_into_helper_and_main`, `decomposed_subworkflows_dispatch_to_real_engines_and_are_admitted` (`cng_decompose_to_dispatch_integration.rs`, 2/2, second synthesis round) | ALIVE (mechanism, non-potato fixture) |
 
-## Success-marker evidence map
+## Refusal-variant coverage ledger (CNG_R01-R25)
 
-| Marker | Query | Refusal | Test/recipe | Status |
-|---|---|---|---|---|
-| `HOOK_ACTUATION_PROVEN` | `metric-hook-actuations.rq` (exists) | `CNG_R13 UnreceiptedActuation` (code present, untested) | `just cng-workday` (PLANNED, PROJ-608); `just cng-test-bench` | PLANNED (PROJ-612) |
-| `ZERO_UNRECEIPTED_ACTUATION` | `metric-hook-actuations.rq` (exists; zero-gap check vs `metric-transitions.rq`) | `CNG_R13 UnreceiptedActuation` | tamper negatives (PLANNED, PROJ-616) | PLANNED (PROJ-614) |
-| `EXTERNAL_WORKFLOW_DISPATCH_PROVEN` | `metric-dispatch-closure.rq`, `dispatch-closure.rq` (exist); `ocel-dispatches.construct.rq` (exists) | `CNG_R15 DispatchContractIncomplete`, `CNG_R16 DispatchStateUnlawful` | loopback outbox/inbox run under `just cng-workday` (PLANNED) | PLANNED (PROJ-618/619; loopback-real, no live network) |
-| `EXTERNAL_RESULT_READMISSION_PROVEN` | `ocel-admissions.construct.rq` (exists) + admission SELECT (PLANNED, PROJ-614) | `CNG_R17 ExternalConsequenceRefused` | admission-refusal negative tests (PLANNED, PROJ-616) | PLANNED (PROJ-619) |
-| `RECURSIVE_CHILD_CLOSURE_PROVEN` | `attachments-with-parent.rq` (exists); `metric-recursive-attachments.rq` (exists) | `CNG_R16 DispatchStateUnlawful` (unlawful parent close) | closure-law scenarios (PLANNED, PROJ-620) | PLANNED (attachment substrate ALIVE at depth 2: `RECURSIVE_ATTACHMENTS=8`, `RELEASE_CONTROL.md` §1) |
-| `TIMEOUT_ESCALATION_PROVEN` | timeout-escalation SELECT (PLANNED, PROJ-614) | `CNG_R16 DispatchStateUnlawful` (`TIMED_OUT` path) | deterministic-tick timeout scenario (PLANNED, PROJ-620) | PLANNED |
-| `COMPENSATION_WORKFLOW_PROVEN` | compensation SELECT over OCEL (PLANNED, PROJ-614) | `CNG_R17 ExternalConsequenceRefused` triggering compensation | compensation scenario (PLANNED, PROJ-620) | PLANNED |
-| `AUTONOMIC_LOOP_CLOSED` | `standing-next-action.rq` (exists) + `metric-transitions.rq` (exists) | `CNG_R12 StandingAmbiguous` (code present, untested) | full `just cng-workday` loop run (PLANNED, PROJ-608) | PLANNED (manufacture→receipt→replay arc ALIVE per `RELEASE_CONTROL.md` §1/§7) |
-| `ONE_PERSON_RECURSIVE_WORKFLOW_PROVEN` | conjunction of all workday SELECTs (PROJ-622) | all of R12..R17 | `just cng-workday` end-to-end (PLANNED, PROJ-608) | PLANNED |
-| `GRAPHLAW_DIALECT_CLOSURE` | `registry-closed-violations.rq`, `registry-missing-fields.rq` (both exist) | `CNG_R14 DialectRegistryRefused`; `CNG_R18 ArazzoProfileRefused` | registry negative fixtures (PLANNED, PROJ-613/621) | PLANNED |
-| `V26_7_10_PRODUCTION_READY` | conjunction of every row above (PROJ-622 marker query set) | n/a (derived) | PROJ-617 closure checklist | UNVERIFIED — conjunction; may not be claimed until every row is ALIVE |
-
-## Baseline evidence already ALIVE (floor, not markers)
-
-These rows are the `RELEASE_CONTROL.md` §1/§7 floor the markers build on. They are ALIVE for
-the baseline benchmark only, not for any v26.7.10 marker.
-
-| Clause | Query | Test/recipe | Status |
+| Code | Variant | Guards | Test evidence |
 |---|---|---|---|
-| OCEL authority, receipts | `metric-receipts.rq` (exists) | `just cng-bench-verify` — `replay_passes:3` | ALIVE (`RELEASE_CONTROL.md` §7 items 4-8) |
-| Replay | `metric-replay.rq` (exists; made real under PROJ-614) | `just cng-evidence-replay` — `AUDIT_RESULT=CONFORMANT` | ALIVE for evidence replay (§7 item 9); metric query realness PLANNED (PROJ-614) |
-| Datalog roles | `metric-derived-roles.rq` (exists) | benchmark run — `DATALOG_DERIVED_ROLES=10000` | ALIVE (§1) |
-| Conformance/refusals | `metric-conformance.rq`, `metric-refusals.rq` (exist) | benchmark run — `REFUSED_TRANSITIONS=1` | ALIVE (§1) |
-| Audit-integrity refusal | n/a | tamper test — exit 1, `CNG_R11 AuditMismatch` (§7 item 10) | ALIVE |
+| `CNG_R01` | `MalformedTtl` | RDF/Turtle parse failures | ALIVE — `malformed_ttl_refuses_cng_r01` (`cng_negative_fixtures.rs:41`) |
+| `CNG_R02` | `MissingDomain` | PDDL domain fragment required | UNVERIFIED this session — no test by this name found via grep this pass |
+| `CNG_R03` | `MissingProblem` | PDDL problem fragment required | UNVERIFIED this session — no test by this name found via grep this pass |
+| `CNG_R04` | `PlanUnsolvable` | no classical plan exists | ALIVE — `unsolvable_goal_refuses_cng_r04` (`cng_negative_fixtures.rs:58`), `helper_unreachable_refuses_cng_r04` |
+| `CNG_R05` | `UnsupportedConstruct` | unsupported PDDL/grounding feature | ALIVE — `duplicate_actions_refuse_cng_r05` (`cng_negative_fixtures.rs:75`), `actor_lacks_capability_refuses_cng_r05`, `depth_or_cost_bound_exceeded_refuses_cng_r05` |
+| `CNG_R06` | `InvalidPowl` | malformed POWL graph | ALIVE — `invalid_powl_refuses_cng_r06_via_shape_validation` (`cng_negative_fixtures.rs:101`) |
+| `CNG_R07` | `RunnerMismatch` | runner/plan mismatch | UNVERIFIED this session — no test by this name found via grep this pass |
+| `CNG_R08` | `Nondeterminism` | non-reproducible output detected | UNVERIFIED this session (refusal path) — determinism is separately PROVEN positive (`decompose_is_deterministic_across_runs`, `distributed_determinism_two_serialized_runs_byte_identical`) but no test this session forces this specific refusal to fire |
+| `CNG_R09` | `HardcodingSuspicion` | canned artifact suspected | ALIVE — `detached_graph_action_refuses_cng_r09_hardcoding_suspicion` (`decomp/decomp_test.rs`, follow-up round) injects a fabricated action IRI absent from `ground.actions` into the lifted graph and asserts `derive_edges` returns `Err` with `.code() == "CNG_R09"`; confirms the refusal already wired in `rules.rs::append_pair_facts` (lines 96, 102) genuinely fires. `no_canned_helper_subgoal_across_incompatible_variants` (PROJ-713) remains the correct, distinct closure for a different concern (candidate-id purity in `search.rs`) — the two guard different code paths, not the same one twice; see `DOD_SIGNOFF.md` §18 item 7 |
+| `CNG_R10` | `IoRefused` | filesystem I/O failure | UNVERIFIED this session (dedicated negative test) — code path read this session in `arazzo.rs`'s digest-verify seam, no test by this name found via grep |
+| `CNG_R11` | `AuditMismatch` | evidence-bundle integrity | ALIVE — `mutated_ocel_evidence_refuses_cng_r11`, `mutated_obs_partition_refuses_cng_r11` (`workday_verify_test.rs:96,120`) + `arazzo_test.rs:179` mismatch case (PROJ-745) + `torn_ledger_tail_refuses_cng_r11_on_resume` (PROJ-724) + `arazzo_projection_gate_refuses_cng_r11_before_any_step_dispatches` (`dispatch_test.rs`, follow-up round — fires through the now-wired `run_arazzo_projection` call site, zero steps dispatched, empty outbox) |
+| `CNG_R12` | `StandingAmbiguous` | exactly-one next action | UNVERIFIED this session — no test by this name found via grep this pass |
+| `CNG_R13` | `UnreceiptedActuation` | zero unreceipted actuation | ALIVE — `missing_category_hook_refuses_cng_r13` (`hooks_test.rs:89`), `stripped_hook_delta_hash_refuses_cng_r13` (`workday_verify_test.rs:150`) |
+| `CNG_R14` | `DialectRegistryRefused` | registry closed-shape law | ALIVE — `registry_missing_field_refuses_cng_r14` (`hooks_test.rs:119`), `stripped_dialect_registry_field_refuses_cng_r14` (`workday_verify_test.rs:196`) |
+| `CNG_R15` | `DispatchContractIncomplete` | 20-field dispatch contract | ALIVE — `contract_missing_field_refuses_cng_r15` (`dispatch_test.rs:65`) |
+| `CNG_R16` | `DispatchStateUnlawful` | state-machine transition law | ALIVE — `unlawful_state_transition_refuses_cng_r16` (`dispatch_test.rs:91`) |
+| `CNG_R17` | `ExternalConsequenceRefused` | admission pipeline | ALIVE — `forged_inbox_correlation_refuses_cng_r17` (`workday_verify_test.rs:223`) |
+| `CNG_R18` | `ArazzoProfileRefused` | Arazzo bounded profile | ALIVE — `xpath_criterion_fixture_refuses_cng_r18_naming_the_feature` (`arazzo_test.rs:34`) |
+| `CNG_R19` | `EvidenceGateFailed` | graph-derived closure gate unclosed | ALIVE — `unreceipted_actuation_gate_refuses_cng_r19` (`workday_test.rs:159`) |
+| `CNG_R20` | `MarkerFalse` | false success marker | ALIVE — `forced_false_marker_refuses_cng_r20` (`workday_test.rs:113`), `fabricated_decomp_result_without_receipts_refuses_cng_r20` (`workday_test.rs:407`) |
+| `CNG_R21` | `DecompositionInadmissible` | a specific candidate failed a proof obligation | ALIVE — `forcing_an_unknown_candidate_refuses_cng_r21`, `forced_inadmissible_candidate_refuses_cng_r21`, `cyclic_composed_order_refuses_cng_r21`, `subgoal_not_contributing_refuses_cng_r21` |
+| `CNG_R22` | `InterferenceDetected` | non-interference proof failed | ALIVE — `concurrent_clobber_refuses_cng_r22_interference`, `interfering_parallel_actions_refuse_cng_r22` |
+| `CNG_R23` | `InterfaceStateMismatch` | helper-tape replay precondition violation | ALIVE — `tampered_tape_refuses_cng_r23_interface_state_mismatch`, `main_unreachable_after_helper_refuses_cng_r23` |
+| `CNG_R24` | `ResourceUnreleased` | resource-release closure failed | ALIVE — `unreleased_resource_refuses_cng_r24`, `helper_retains_resource_refuses_cng_r24` |
+| `CNG_R25` | `DoubleAdmit` | idempotency key already admitted | ALIVE — `replayed_consequence_refuses_cng_r25_double_admit`, `double_admit_falsifier_replayed_collect_refuses_cng_r25` |
 
-## Behavioral "operator never..." clauses → mechanisms
+20 of 25 refusal variants have a grep-confirmed end-to-end test cited above (19 from the
+initial closure round, `CNG_R09` closed by the follow-up round below); 5 (`CNG_R02`, `R03`,
+`R07`, `R08`'s refusal path specifically, `R10`'s dedicated negative test) remain UNVERIFIED —
+not confirmed absent, simply not found by grep this pass and not asserted without that
+confirmation (per `.claude/rules/rust-agi-core-team.md` §5's "no test, no ALIVE" rule). A
+future session should grep for these five specifically before citing them as covered.
 
-`DEFINITION_OF_DONE.md` §2, clauses 1-12. All PLANNED as behaviors (PROJ-608..622); mechanism
-column names the intended enforcement, not achieved state.
+## Interim-vs-revised marker family cross-reference
 
-| # | Operator never... | Mechanism | Status |
-|---|---|---|---|
-| 1 | Wonders what to do next | `standing-next-action.rq` (exists) + `CNG_R12 StandingAmbiguous` | PLANNED (PROJ-610) |
-| 2 | Manually connects plans to tasks | graph-derived `attachesWorkflow` attachments (`attachments-with-parent.rq`) | PLANNED as behavior; attachment substrate ALIVE (§1) |
-| 3 | Reconstructs provenance | OCEL CONSTRUCT chain (`ocel-*.construct.rq`) + receipts | PLANNED as behavior; receipt/replay floor ALIVE (§7) |
-| 4 | Redraws workflows | POWL manufacture from PDDL (deterministic re-manufacture) | PLANNED as behavior; manufacture digest ALIVE (§7) |
-| 5 | Determines ownership | Datalog role derivation (`metric-derived-roles.rq`) | PLANNED as behavior; role derivation ALIVE (§1) |
-| 6 | Routes evidence | broker exclusivity + admission pipeline (`ocel-admissions.construct.rq`) | PLANNED (PROJ-619) |
-| 7 | Reconciles completed work | parent-child closure laws + `metric-dispatch-closure.rq` | PLANNED (PROJ-620) |
-| 8 | Loses replay | evidence bundle + `just cng-evidence-replay` + `CNG_R11` | ALIVE for baseline bundle (§7); workday-mode PLANNED |
-| 9 | Performs semantic glue | SPARQL CONSTRUCT materialization, no inline SPARQL (guard test) | PARTIAL — guard ALIVE (§7 item 1); workday-mode PLANNED |
-| 10 | Remembers open loops | dispatch state machine, no implicit completion (`CNG_R16`) | PLANNED (PROJ-618) |
-| 11 | Polls without declared workflow | polling as registered workflow activity, bounded, receipted | PLANNED (PROJ-618/619) |
-| 12 | Decides which compensation follows | declared compensation law in graph, evaluated via dialect | PLANNED (PROJ-620) |
-
-Bounded admission ("resume loop") is the admission-resume mechanism of PROJ-611 — PLANNED;
-`RELEASE_CONTROL.md` §2 item 4 records the bounded-question/resume loop as a future increment.
-
-## Refusal-variant coverage ledger
-
-| Code | Variant | Guards | Test evidence this session |
-|---|---|---|---|
-| `CNG_R11` | `AuditMismatch` | evidence-bundle integrity | ALIVE — tamper test, exit 1 (§7 item 10); `powl_test.rs:62-64` |
-| `CNG_R12` | `StandingAmbiguous` | exactly-one next action | code present (`powl.rs:69`); PLANNED, no test cited |
-| `CNG_R13` | `UnreceiptedActuation` | zero unreceipted actuation | code present (`powl.rs:81`); PLANNED, no test cited |
-| `CNG_R14` | `DialectRegistryRefused` | registry closed-shape law | code present (`powl.rs:92`); PLANNED, no test cited |
-| `CNG_R15` | `DispatchContractIncomplete` | 20-field dispatch contract | code present (`powl.rs:103`); PLANNED, no test cited |
-| `CNG_R16` | `DispatchStateUnlawful` | 13-state dispatch machine | code present (`powl.rs:113`); PLANNED, no test cited |
-| `CNG_R17` | `ExternalConsequenceRefused` | admission pipeline | code present (`powl.rs:126`); PLANNED, no test cited |
-| `CNG_R18` | `ArazzoProfileRefused` | Arazzo bounded profile | code present (`powl.rs:138`); PLANNED, no test cited |
-
-Per repo law, every variant needs ≥ 1 end-to-end negative test before its row can go ALIVE
-(PROJ-616 harness; see `.claude/rules/rust-agi-core-team.md` §5).
+| Family | Interim (`DOD_EVIDENCE_MAP_INTERIM.md`) | Revised (`DEFINITION_OF_DONE.md` §16) |
+|---|---|---|
+| Single-operator `MARKER_MAP` (10 stems, 16 names) | ALIVE, `31c236f` closure | unchanged, still true for its own scope |
+| Planning set (6) + `LLM_CALLS_ZERO` family (3) | did not exist | ALIVE this session (PROJ-739/740) |
+| Distributed set (9, `DISTRIBUTED_MARKER_MAP`) | did not exist as coded (named differently in doctrine) | ALIVE this session, scoped to test harness (PROJ-727/728/729) |
+| `V26_7_10_PRODUCTION_READY` (interim meaning) | ALIVE, `31c236f` closure | unchanged; still means the interim 16-marker conjunction when computed by `evaluate_markers()` alone |
+| `V26_7_10_PRODUCTION_READY` (revised §16 meaning, via `full_production_ready`) | n/a | ALIVE for the real two-bundle case (workday + planning) — follow-up round's `cng_production_ready.rs`; UNVERIFIED for the three-bundle case (+ distributed), which needs `cng_multi_engine.rs`'s private harness helpers |
 
 ## See Also
 
 - `docs/releases/v26.7.10/RELEASE_CONTROL.md` — single control surface; wins on disagreement
-- `docs/releases/v26.7.10/DEFINITION_OF_DONE.md` — the doctrine this map indexes (PROJ-606)
-- `docs/releases/v26.7.10/PRD.md` — authoritative Claims Reconciliation table
-- `docs/releases/v26.7.10/ARD.md` — architecture requirements
-- `crates/cng/queries/` — on-disk SPARQL evidence sources named above
+- `docs/releases/v26.7.10/DEFINITION_OF_DONE.md` — the doctrine this map indexes (§16 detail
+  lives there directly, PROJ-743)
+- `docs/releases/v26.7.10/DOD_SIGNOFF.md` — clause-by-clause sign-off this map supports
+- `docs/releases/v26.7.10/DOD_EVIDENCE_MAP_INTERIM.md` — superseded interim evidence map
+- `docs/jira/v26.7.10/tickets/` — per-ticket "Evidence (this session)" sections (full detail)
+- `crates/cng/queries/` — on-disk SPARQL evidence sources
 - `.claude/rules/no-overclaiming.md` — status vocabulary used throughout

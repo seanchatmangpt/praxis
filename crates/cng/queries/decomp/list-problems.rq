@@ -1,0 +1,10 @@
+# list-problems.rq — every Problem and its Domain in a pddl-strips graph
+# (PROJ-703 graph→surface bridge). Deterministic ORDER BY.
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+SELECT ?problem ?domain
+WHERE {
+  ?problem a pddl:Problem ;
+           pddl:fromDomain ?domain .
+}
+ORDER BY ?problem

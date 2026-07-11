@@ -1,0 +1,6 @@
+(define (problem {{PROBLEM_NAME}})
+  (:domain {{DOMAIN_NAME}})
+  (:objects {{OBJECTS}})
+  (:init {{INIT}})
+  (:goal (and {{GOAL}}))
+)

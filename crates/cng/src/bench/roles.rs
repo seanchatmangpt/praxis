@@ -278,6 +278,10 @@ pub(super) struct ObsWriter<'a> {
     buf: String,
     in_buf: usize,
     part_idx: usize,
+    /// Emissions buffered before an automatic partition flush (PROJ-721):
+    /// defaults to [`OBS_PER_PARTITION`]; durable serve loops set 1 (eager
+    /// per-emit flush) via [`Self::with_flush_threshold`].
+    flush_threshold: usize,
 }
 
 impl<'a> ObsWriter<'a> {
@@ -298,7 +302,15 @@ impl<'a> ObsWriter<'a> {
             buf: String::new(),
             in_buf: 0,
             part_idx: 0,
+            flush_threshold: OBS_PER_PARTITION,
         })
+    }
+
+    /// Overrides the automatic flush threshold (PROJ-721 eager-flush
+    /// option; a threshold of 1 flushes every emission durably). O(1).
+    pub(super) fn with_flush_threshold(mut self, flush_threshold: usize) -> Self {
+        self.flush_threshold = flush_threshold.max(1);
+        self
     }
 
     /// Emits one observation of `kind` with the extra placeholder pairs;
@@ -327,7 +339,7 @@ impl<'a> ObsWriter<'a> {
         self.buf.push_str(&body);
         self.buf.push('\n');
         self.in_buf += 1;
-        if self.in_buf >= OBS_PER_PARTITION {
+        if self.in_buf >= self.flush_threshold {
             self.flush()?;
         }
         Ok(())

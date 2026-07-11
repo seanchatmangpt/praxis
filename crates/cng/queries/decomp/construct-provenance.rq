@@ -1,0 +1,23 @@
+# construct-provenance.rq — decomposition provenance triples (PROJ-706),
+# PROV-O style (precedent: templates/dispatch-consequence.template.ttl):
+# the candidate is a prov:Activity deriving both subproblems from the
+# admitted source problem. Placeholders substituted via str::replace:
+#   {CANDIDATE_IRI} {HELPER_IRI} {MAIN_IRI} {SOURCE_PROBLEM} {CANDIDATE_ID}
+PREFIX pddl:   <https://truex.io/ontology/pddl-strips#>
+PREFIX prov:   <http://www.w3.org/ns/prov#>
+PREFIX decomp: <https://truex.io/ontology/decomp#>
+
+CONSTRUCT {
+  <{CANDIDATE_IRI}> a decomp:Candidate, prov:Activity ;
+      decomp:candidateId "{CANDIDATE_ID}" ;
+      prov:used <{SOURCE_PROBLEM}> .
+  <{HELPER_IRI}> prov:wasGeneratedBy <{CANDIDATE_IRI}> ;
+      prov:wasDerivedFrom <{SOURCE_PROBLEM}> ;
+      decomp:subworkflowRole "helper" .
+  <{MAIN_IRI}> prov:wasGeneratedBy <{CANDIDATE_IRI}> ;
+      prov:wasDerivedFrom <{SOURCE_PROBLEM}> ;
+      decomp:subworkflowRole "main" .
+}
+WHERE {
+  <{SOURCE_PROBLEM}> a pddl:Problem .
+}

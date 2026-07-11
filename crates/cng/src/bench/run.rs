@@ -32,7 +32,7 @@ use super::{parallel_chunks, rwai_local, splitmix64};
 /// only insofar as it's identical between producer and auditor (the final
 /// serialization is sorted, so materialization order does not affect the
 /// digest, but a fixed list keeps both paths byte-for-byte the same code).
-pub(super) const OCEL_CONSTRUCT_STEMS: [&str; 10] = [
+pub(super) const OCEL_CONSTRUCT_STEMS: [&str; 12] = [
     "ocel-events.construct",
     "ocel-objects.construct",
     "ocel-e2o.construct",
@@ -59,6 +59,16 @@ pub(super) const OCEL_CONSTRUCT_STEMS: [&str; 10] = [
     // attribute metric-replay.rq counts. Zero triples on corpora without
     // replay_verified obs, so pre-existing digests stay consistent.
     "ocel-replays.construct",
+    // PROJ-727: engine_started/poll/executed/quiesced + resume_verified
+    // events from the multi-engine serve/resume surface, each carrying
+    // ex:engineId (from obs:producedByEngine). Zero triples on a Fortune-5
+    // corpus, so existing digests stay producer/auditor-consistent.
+    "ocel-engines.construct",
+    // PROJ-727: remote_dispatch_sent/remote_consequence_received (+ the
+    // forbidden direct_engine_bypass/shared_memory_crossing kinds) and the
+    // arazzo_workflow_generated/dispatched pair from the distributed
+    // dispatch surface. Zero triples on a Fortune-5 corpus.
+    "ocel-remote-engine.construct",
 ];
 
 /// Serializes an evidence store as sorted, deduplicated N-Triples and

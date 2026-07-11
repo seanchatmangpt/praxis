@@ -1,0 +1,30 @@
+# construct-helper-problem.rq — manufactures the helper subproblem graph
+# (PROJ-706): a new pddl:Problem sharing the source Problem's domain,
+# objects, and full initial state, with the candidate's helper goal atoms
+# (plus release-closure augmentation atoms) as its goal. Placeholders
+# substituted via str::replace (never format!):
+#   {HELPER_IRI}      new Problem IRI
+#   {HELPER_NAME}     new problemName (canonical, kebab)
+#   {SOURCE_PROBLEM}  source Problem IRI
+#   {GOAL_ATOM_VALUES} space-separated <atom-IRI> list (VALUES injection)
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+
+CONSTRUCT {
+  <{HELPER_IRI}> a pddl:Problem ;
+      pddl:problemName "{HELPER_NAME}" ;
+      pddl:fromDomain ?dom ;
+      pddl:hasObject ?obj ;
+      pddl:initAtom ?init ;
+      pddl:goalAtom ?goal ;
+      prov:wasDerivedFrom <{SOURCE_PROBLEM}> .
+}
+WHERE {
+  <{SOURCE_PROBLEM}> a pddl:Problem ;
+      pddl:fromDomain ?dom .
+  { <{SOURCE_PROBLEM}> pddl:hasObject ?obj . }
+  UNION
+  { <{SOURCE_PROBLEM}> pddl:initAtom ?init . }
+  UNION
+  { VALUES ?goal { {GOAL_ATOM_VALUES} } }
+}

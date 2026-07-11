@@ -1,0 +1,253 @@
+# Example PDDL-STRIPS-as-RDF instance: the potato domain (slice AND boil a
+# potato), conforming to crates/cng/ontologies/pddl-strips.ttl (80/20
+# profile) and crates/cng/shapes/pddl-strips-shapes.ttl.
+# v26.7.10-revised (PROJ-701). Hand-authored fixture, NOT generated output
+# of the lifter — the canonical decomposition scenario (PROJ-712) consumes
+# this graph.
+#
+# STRIPS-clean encoding notes:
+#   - Negation only via explicit not-X predicate pairs maintained by add/del
+#     pairs: unsliced/sliced, unboiled/boiled, pot-empty/pot-filled,
+#     stovetop-off/stovetop-on, hands-free/holding, resource-free/holding.
+#   - heat-water is an environment action (no actor parameter): the stovetop
+#     does the boiling once the potato slices are in the filled pot on the
+#     lit stovetop.
+#   - "at(knife, sink)" is an init location fact only (no action reads it);
+#     kept because the scenario declares the knife starts in the sink.
+#   - Decomposition annotations: pddl:resource true on pot/knife/stovetop
+#     (custody/release-closure), pddl:actor + pddl:capability on
+#     helper-actor/main-actor (role assignment) — admitted facts consumed by
+#     rules/decomp.dl, never Rust constants.
+
+@prefix pddl: <https://truex.io/ontology/pddl-strips#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:   <urn:cng:example:pddl-strips:potato#> .
+
+### Domain
+
+ex:potatoKitchen a pddl:Domain ;
+    pddl:domainName "potato-kitchen" ;
+    pddl:hasAction ex:acquire , ex:fillPot , ex:release , ex:activateStovetop ,
+        ex:slice , ex:placeSlices , ex:heatWater .
+
+## acquire(?a ?r): take custody of a free resource.
+ex:acquire a pddl:Action ;
+    pddl:actionName "acquire" ;
+    pddl:parameter ex:acquire-v0 , ex:acquire-v1 ;
+    pddl:precondition ex:acquire-p0 , ex:acquire-p1 ;
+    pddl:effect ex:acquire-e0 , ex:acquire-e1 , ex:acquire-e2 .
+
+ex:acquire-v0 a pddl:Parameter ; pddl:paramIndex 0 ; pddl:parameterName "?a" .
+ex:acquire-v1 a pddl:Parameter ; pddl:paramIndex 1 ; pddl:parameterName "?r" .
+ex:acquire-p0 a pddl:Atom ; pddl:predicateName "hands-free" ; pddl:argument ex:acquire-p0-0 .
+ex:acquire-p0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?a" .
+ex:acquire-p1 a pddl:Atom ; pddl:predicateName "resource-free" ; pddl:argument ex:acquire-p1-0 .
+ex:acquire-p1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?r" .
+ex:acquire-e0 a pddl:AddEffect ; pddl:predicateName "holding" ; pddl:argument ex:acquire-e0-0 , ex:acquire-e0-1 .
+ex:acquire-e0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?a" .
+ex:acquire-e0-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "?r" .
+ex:acquire-e1 a pddl:DelEffect ; pddl:predicateName "hands-free" ; pddl:argument ex:acquire-e1-0 .
+ex:acquire-e1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?a" .
+ex:acquire-e2 a pddl:DelEffect ; pddl:predicateName "resource-free" ; pddl:argument ex:acquire-e2-0 .
+ex:acquire-e2-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?r" .
+
+## fill-pot(?a ?pot ?f ?w): fill a held, empty pot from a water source.
+ex:fillPot a pddl:Action ;
+    pddl:actionName "fill-pot" ;
+    pddl:parameter ex:fillPot-v0 , ex:fillPot-v1 , ex:fillPot-v2 , ex:fillPot-v3 ;
+    pddl:precondition ex:fillPot-p0 , ex:fillPot-p1 , ex:fillPot-p2 ;
+    pddl:effect ex:fillPot-e0 , ex:fillPot-e1 .
+
+ex:fillPot-v0 a pddl:Parameter ; pddl:paramIndex 0 ; pddl:parameterName "?a" .
+ex:fillPot-v1 a pddl:Parameter ; pddl:paramIndex 1 ; pddl:parameterName "?pot" .
+ex:fillPot-v2 a pddl:Parameter ; pddl:paramIndex 2 ; pddl:parameterName "?f" .
+ex:fillPot-v3 a pddl:Parameter ; pddl:paramIndex 3 ; pddl:parameterName "?w" .
+ex:fillPot-p0 a pddl:Atom ; pddl:predicateName "holding" ; pddl:argument ex:fillPot-p0-0 , ex:fillPot-p0-1 .
+ex:fillPot-p0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?a" .
+ex:fillPot-p0-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "?pot" .
+ex:fillPot-p1 a pddl:Atom ; pddl:predicateName "pot-empty" ; pddl:argument ex:fillPot-p1-0 .
+ex:fillPot-p1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?pot" .
+ex:fillPot-p2 a pddl:Atom ; pddl:predicateName "water-source" ; pddl:argument ex:fillPot-p2-0 , ex:fillPot-p2-1 .
+ex:fillPot-p2-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?f" .
+ex:fillPot-p2-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "?w" .
+ex:fillPot-e0 a pddl:AddEffect ; pddl:predicateName "pot-filled" ; pddl:argument ex:fillPot-e0-0 .
+ex:fillPot-e0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?pot" .
+ex:fillPot-e1 a pddl:DelEffect ; pddl:predicateName "pot-empty" ; pddl:argument ex:fillPot-e1-0 .
+ex:fillPot-e1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?pot" .
+
+## release(?a ?r): give up custody of a held resource.
+ex:release a pddl:Action ;
+    pddl:actionName "release" ;
+    pddl:parameter ex:release-v0 , ex:release-v1 ;
+    pddl:precondition ex:release-p0 ;
+    pddl:effect ex:release-e0 , ex:release-e1 , ex:release-e2 .
+
+ex:release-v0 a pddl:Parameter ; pddl:paramIndex 0 ; pddl:parameterName "?a" .
+ex:release-v1 a pddl:Parameter ; pddl:paramIndex 1 ; pddl:parameterName "?r" .
+ex:release-p0 a pddl:Atom ; pddl:predicateName "holding" ; pddl:argument ex:release-p0-0 , ex:release-p0-1 .
+ex:release-p0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?a" .
+ex:release-p0-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "?r" .
+ex:release-e0 a pddl:AddEffect ; pddl:predicateName "hands-free" ; pddl:argument ex:release-e0-0 .
+ex:release-e0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?a" .
+ex:release-e1 a pddl:AddEffect ; pddl:predicateName "resource-free" ; pddl:argument ex:release-e1-0 .
+ex:release-e1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?r" .
+ex:release-e2 a pddl:DelEffect ; pddl:predicateName "holding" ; pddl:argument ex:release-e2-0 , ex:release-e2-1 .
+ex:release-e2-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?a" .
+ex:release-e2-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "?r" .
+
+## activate-stovetop(?a ?s): turn a stovetop on (hands must be free).
+ex:activateStovetop a pddl:Action ;
+    pddl:actionName "activate-stovetop" ;
+    pddl:parameter ex:activateStovetop-v0 , ex:activateStovetop-v1 ;
+    pddl:precondition ex:activateStovetop-p0 , ex:activateStovetop-p1 ;
+    pddl:effect ex:activateStovetop-e0 , ex:activateStovetop-e1 .
+
+ex:activateStovetop-v0 a pddl:Parameter ; pddl:paramIndex 0 ; pddl:parameterName "?a" .
+ex:activateStovetop-v1 a pddl:Parameter ; pddl:paramIndex 1 ; pddl:parameterName "?s" .
+ex:activateStovetop-p0 a pddl:Atom ; pddl:predicateName "hands-free" ; pddl:argument ex:activateStovetop-p0-0 .
+ex:activateStovetop-p0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?a" .
+ex:activateStovetop-p1 a pddl:Atom ; pddl:predicateName "stovetop-off" ; pddl:argument ex:activateStovetop-p1-0 .
+ex:activateStovetop-p1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?s" .
+ex:activateStovetop-e0 a pddl:AddEffect ; pddl:predicateName "stovetop-on" ; pddl:argument ex:activateStovetop-e0-0 .
+ex:activateStovetop-e0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?s" .
+ex:activateStovetop-e1 a pddl:DelEffect ; pddl:predicateName "stovetop-off" ; pddl:argument ex:activateStovetop-e1-0 .
+ex:activateStovetop-e1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?s" .
+
+## slice(?a ?k ?p): slice an unsliced potato with a held cutting tool.
+ex:slice a pddl:Action ;
+    pddl:actionName "slice" ;
+    pddl:parameter ex:slice-v0 , ex:slice-v1 , ex:slice-v2 ;
+    pddl:precondition ex:slice-p0 , ex:slice-p1 , ex:slice-p2 ;
+    pddl:effect ex:slice-e0 , ex:slice-e1 .
+
+ex:slice-v0 a pddl:Parameter ; pddl:paramIndex 0 ; pddl:parameterName "?a" .
+ex:slice-v1 a pddl:Parameter ; pddl:paramIndex 1 ; pddl:parameterName "?k" .
+ex:slice-v2 a pddl:Parameter ; pddl:paramIndex 2 ; pddl:parameterName "?p" .
+ex:slice-p0 a pddl:Atom ; pddl:predicateName "holding" ; pddl:argument ex:slice-p0-0 , ex:slice-p0-1 .
+ex:slice-p0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?a" .
+ex:slice-p0-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "?k" .
+ex:slice-p1 a pddl:Atom ; pddl:predicateName "can-slice" ; pddl:argument ex:slice-p1-0 .
+ex:slice-p1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?k" .
+ex:slice-p2 a pddl:Atom ; pddl:predicateName "unsliced" ; pddl:argument ex:slice-p2-0 .
+ex:slice-p2-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?p" .
+ex:slice-e0 a pddl:AddEffect ; pddl:predicateName "sliced" ; pddl:argument ex:slice-e0-0 .
+ex:slice-e0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?p" .
+ex:slice-e1 a pddl:DelEffect ; pddl:predicateName "unsliced" ; pddl:argument ex:slice-e1-0 .
+ex:slice-e1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?p" .
+
+## place-slices(?a ?p ?pot): put the sliced potato into the filled pot.
+ex:placeSlices a pddl:Action ;
+    pddl:actionName "place-slices" ;
+    pddl:parameter ex:placeSlices-v0 , ex:placeSlices-v1 , ex:placeSlices-v2 ;
+    pddl:precondition ex:placeSlices-p0 , ex:placeSlices-p1 , ex:placeSlices-p2 ;
+    pddl:effect ex:placeSlices-e0 .
+
+ex:placeSlices-v0 a pddl:Parameter ; pddl:paramIndex 0 ; pddl:parameterName "?a" .
+ex:placeSlices-v1 a pddl:Parameter ; pddl:paramIndex 1 ; pddl:parameterName "?p" .
+ex:placeSlices-v2 a pddl:Parameter ; pddl:paramIndex 2 ; pddl:parameterName "?pot" .
+ex:placeSlices-p0 a pddl:Atom ; pddl:predicateName "hands-free" ; pddl:argument ex:placeSlices-p0-0 .
+ex:placeSlices-p0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?a" .
+ex:placeSlices-p1 a pddl:Atom ; pddl:predicateName "sliced" ; pddl:argument ex:placeSlices-p1-0 .
+ex:placeSlices-p1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?p" .
+ex:placeSlices-p2 a pddl:Atom ; pddl:predicateName "pot-filled" ; pddl:argument ex:placeSlices-p2-0 .
+ex:placeSlices-p2-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?pot" .
+ex:placeSlices-e0 a pddl:AddEffect ; pddl:predicateName "in-pot" ; pddl:argument ex:placeSlices-e0-0 , ex:placeSlices-e0-1 .
+ex:placeSlices-e0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?p" .
+ex:placeSlices-e0-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "?pot" .
+
+## heat-water(?s ?pot ?p): environment action — the lit stovetop boils the
+## potato slices sitting in the filled pot on it.
+ex:heatWater a pddl:Action ;
+    pddl:actionName "heat-water" ;
+    pddl:parameter ex:heatWater-v0 , ex:heatWater-v1 , ex:heatWater-v2 ;
+    pddl:precondition ex:heatWater-p0 , ex:heatWater-p1 , ex:heatWater-p2 , ex:heatWater-p3 , ex:heatWater-p4 ;
+    pddl:effect ex:heatWater-e0 , ex:heatWater-e1 .
+
+ex:heatWater-v0 a pddl:Parameter ; pddl:paramIndex 0 ; pddl:parameterName "?s" .
+ex:heatWater-v1 a pddl:Parameter ; pddl:paramIndex 1 ; pddl:parameterName "?pot" .
+ex:heatWater-v2 a pddl:Parameter ; pddl:paramIndex 2 ; pddl:parameterName "?p" .
+ex:heatWater-p0 a pddl:Atom ; pddl:predicateName "stovetop-on" ; pddl:argument ex:heatWater-p0-0 .
+ex:heatWater-p0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?s" .
+ex:heatWater-p1 a pddl:Atom ; pddl:predicateName "pot-on-stovetop" ; pddl:argument ex:heatWater-p1-0 , ex:heatWater-p1-1 .
+ex:heatWater-p1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?pot" .
+ex:heatWater-p1-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "?s" .
+ex:heatWater-p2 a pddl:Atom ; pddl:predicateName "pot-filled" ; pddl:argument ex:heatWater-p2-0 .
+ex:heatWater-p2-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?pot" .
+ex:heatWater-p3 a pddl:Atom ; pddl:predicateName "in-pot" ; pddl:argument ex:heatWater-p3-0 , ex:heatWater-p3-1 .
+ex:heatWater-p3-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?p" .
+ex:heatWater-p3-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "?pot" .
+ex:heatWater-p4 a pddl:Atom ; pddl:predicateName "unboiled" ; pddl:argument ex:heatWater-p4-0 .
+ex:heatWater-p4-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?p" .
+ex:heatWater-e0 a pddl:AddEffect ; pddl:predicateName "boiled" ; pddl:argument ex:heatWater-e0-0 .
+ex:heatWater-e0-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?p" .
+ex:heatWater-e1 a pddl:DelEffect ; pddl:predicateName "unboiled" ; pddl:argument ex:heatWater-e1-0 .
+ex:heatWater-e1-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "?p" .
+
+### Problem
+
+ex:potatoProblem a pddl:Problem ;
+    pddl:problemName "potato-slice-and-boil" ;
+    pddl:fromDomain ex:potatoKitchen ;
+    pddl:hasObject ex:potato , ex:pot , ex:knife , ex:stovetop , ex:sink ,
+        ex:faucet , ex:water , ex:helperActor , ex:mainActor ;
+    pddl:initAtom ex:i-unsliced-potato , ex:i-unboiled-potato ,
+        ex:i-pot-empty-pot , ex:i-pot-on-stovetop , ex:i-stovetop-off ,
+        ex:i-at-knife-sink , ex:i-resource-free-pot , ex:i-resource-free-knife ,
+        ex:i-resource-free-stovetop , ex:i-hands-free-helper ,
+        ex:i-hands-free-main , ex:i-water-source , ex:i-can-slice-knife ;
+    pddl:goalAtom ex:g-sliced-potato , ex:g-boiled-potato .
+
+## Objects with decomposition annotations.
+ex:potato a pddl:Object ; pddl:objectName "potato" .
+ex:pot a pddl:Object ; pddl:objectName "pot" ; pddl:resource true .
+ex:knife a pddl:Object ; pddl:objectName "knife" ; pddl:resource true .
+ex:stovetop a pddl:Object ; pddl:objectName "stovetop" ; pddl:resource true .
+ex:sink a pddl:Object ; pddl:objectName "sink" .
+ex:faucet a pddl:Object ; pddl:objectName "faucet" .
+ex:water a pddl:Object ; pddl:objectName "water" .
+ex:helperActor a pddl:Object ; pddl:objectName "helper-actor" ;
+    pddl:actor true ;
+    pddl:capability "acquire" , "activate-stovetop" , "fill-pot" ,
+        "place-slices" , "release" , "slice" .
+ex:mainActor a pddl:Object ; pddl:objectName "main-actor" ;
+    pddl:actor true ;
+    pddl:capability "acquire" , "activate-stovetop" , "fill-pot" ,
+        "place-slices" , "release" , "slice" .
+
+## Init: potato not sliced/boiled, pot empty on stovetop, stovetop off,
+## knife in sink, water source, actors empty-handed, resources free.
+ex:i-unsliced-potato a pddl:Atom ; pddl:predicateName "unsliced" ; pddl:argument ex:i-unsliced-potato-0 .
+ex:i-unsliced-potato-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "potato" .
+ex:i-unboiled-potato a pddl:Atom ; pddl:predicateName "unboiled" ; pddl:argument ex:i-unboiled-potato-0 .
+ex:i-unboiled-potato-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "potato" .
+ex:i-pot-empty-pot a pddl:Atom ; pddl:predicateName "pot-empty" ; pddl:argument ex:i-pot-empty-pot-0 .
+ex:i-pot-empty-pot-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "pot" .
+ex:i-pot-on-stovetop a pddl:Atom ; pddl:predicateName "pot-on-stovetop" ; pddl:argument ex:i-pot-on-stovetop-0 , ex:i-pot-on-stovetop-1 .
+ex:i-pot-on-stovetop-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "pot" .
+ex:i-pot-on-stovetop-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "stovetop" .
+ex:i-stovetop-off a pddl:Atom ; pddl:predicateName "stovetop-off" ; pddl:argument ex:i-stovetop-off-0 .
+ex:i-stovetop-off-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "stovetop" .
+ex:i-at-knife-sink a pddl:Atom ; pddl:predicateName "at" ; pddl:argument ex:i-at-knife-sink-0 , ex:i-at-knife-sink-1 .
+ex:i-at-knife-sink-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "knife" .
+ex:i-at-knife-sink-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "sink" .
+ex:i-resource-free-pot a pddl:Atom ; pddl:predicateName "resource-free" ; pddl:argument ex:i-resource-free-pot-0 .
+ex:i-resource-free-pot-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "pot" .
+ex:i-resource-free-knife a pddl:Atom ; pddl:predicateName "resource-free" ; pddl:argument ex:i-resource-free-knife-0 .
+ex:i-resource-free-knife-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "knife" .
+ex:i-resource-free-stovetop a pddl:Atom ; pddl:predicateName "resource-free" ; pddl:argument ex:i-resource-free-stovetop-0 .
+ex:i-resource-free-stovetop-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "stovetop" .
+ex:i-hands-free-helper a pddl:Atom ; pddl:predicateName "hands-free" ; pddl:argument ex:i-hands-free-helper-0 .
+ex:i-hands-free-helper-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "helper-actor" .
+ex:i-hands-free-main a pddl:Atom ; pddl:predicateName "hands-free" ; pddl:argument ex:i-hands-free-main-0 .
+ex:i-hands-free-main-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "main-actor" .
+ex:i-water-source a pddl:Atom ; pddl:predicateName "water-source" ; pddl:argument ex:i-water-source-0 , ex:i-water-source-1 .
+ex:i-water-source-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "faucet" .
+ex:i-water-source-1 a pddl:Argument ; pddl:argIndex 1 ; pddl:argValue "water" .
+ex:i-can-slice-knife a pddl:Atom ; pddl:predicateName "can-slice" ; pddl:argument ex:i-can-slice-knife-0 .
+ex:i-can-slice-knife-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "knife" .
+
+## Goal: potato sliced AND boiled.
+ex:g-sliced-potato a pddl:Atom ; pddl:predicateName "sliced" ; pddl:argument ex:g-sliced-potato-0 .
+ex:g-sliced-potato-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "potato" .
+ex:g-boiled-potato a pddl:Atom ; pddl:predicateName "boiled" ; pddl:argument ex:g-boiled-potato-0 .
+ex:g-boiled-potato-0 a pddl:Argument ; pddl:argIndex 0 ; pddl:argValue "potato" .

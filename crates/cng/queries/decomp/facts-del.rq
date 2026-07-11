@@ -1,0 +1,10 @@
+# facts-del.rq — EDB projection (PROJ-704): (action, del-effect node) pairs.
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+SELECT ?action ?atom
+WHERE {
+  ?action a pddl:Action ;
+          pddl:effect ?atom .
+  ?atom a pddl:DelEffect .
+}
+ORDER BY ?action ?atom

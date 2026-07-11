@@ -1,0 +1,18 @@
+# decomp candidate receipt template (PROJ-710): one receipt graph per
+# examined decomposition candidate — accepted AND rejected candidates are
+# evidence, never dropped. Rendered with deterministic values via
+# fill_template ({{KEY}} placeholders); status is Selected | Admissible |
+# Inadmissible, and REASON names the failed proof obligation (or "selected"
+# / "admissible"). Scores are graph-replayable integers (audit_replay
+# recomputes the lexicographic argmin from these receipts).
+@prefix decomp: <https://truex.io/ontology/decomp#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+<{{RESULT_IRI}}/candidate/{{CANDIDATE_SLUG}}> a decomp:CandidateReceipt ;
+  decomp:candidateId "{{CANDIDATE_ID}}" ;
+  decomp:candidateStatus "{{STATUS}}" ;
+  decomp:reason "{{REASON}}" ;
+  decomp:makespan "{{MAKESPAN}}"^^xsd:integer ;
+  decomp:dispatchCost "{{DISPATCH_COST}}"^^xsd:integer ;
+  decomp:risk "{{RISK}}"^^xsd:integer ;
+  decomp:receiptOf <{{RESULT_IRI}}> .

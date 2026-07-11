@@ -18,6 +18,7 @@ ex:{{DISPATCH_ID}} a disp:DispatchContract ;
   disp:parentWorkflow ex:{{PARENT_WORKFLOW}} ;
   disp:recursiveDepth {{RECURSIVE_DEPTH}} ;
   disp:targetActor ex:{{TARGET_ACTOR}} ;
+  disp:targetEngine "{{TARGET_ENGINE}}" ;
   disp:requiredRole "{{REQUIRED_ROLE}}" ;
   disp:declaredAuthority "{{DECLARED_AUTHORITY}}" ;
   disp:inputArtifactSet ex:{{INPUT_ARTIFACT_SET}} ;
@@ -36,10 +37,11 @@ ex:{{DISPATCH_ID}} a disp:DispatchContract ;
   disp:dispatchState disp:{{DISPATCH_STATE}} ;
   disp:executionClass disp:{{EXECUTION_CLASS}} .
 
-# {{DISPATCH_STATE}} must be one of the 13 machine states declared in
-# crates/cng/shapes/dispatch-shapes.ttl:
-#   MANUFACTURED | DISPATCH_READY | DISPATCHED | ACKNOWLEDGED | IN_PROGRESS |
-#   RESULT_RETURNED | ADMITTED | COMPLETED | REFUSED | TIMED_OUT |
+# {{DISPATCH_STATE}} must be one of the 16 machine states declared in
+# crates/cng/shapes/dispatch-shapes.ttl (PROJ-720):
+#   MANUFACTURED | ARAZZO_RENDERED | DISPATCH_READY | DISPATCHED |
+#   ACKNOWLEDGED | REMOTE_STARTED | REMOTE_IN_PROGRESS | RESULT_AVAILABLE |
+#   RESULT_RECEIVED | RESULT_ADMITTED | COMPLETED | REFUSED | TIMED_OUT |
 #   COMPENSATING | BLOCKED | UNKNOWN
 # {{EXECUTION_CLASS}} must be one of:
 #   LOCAL_ACTUATION | EXTERNAL_MACHINE_DISPATCH | EXTERNAL_HUMAN_DISPATCH

@@ -1,0 +1,14 @@
+# rwai-bench observation template (engine_poll, PROJ-723): one bounded
+# receipted inbox poll of a serve loop. {{POLL_NO}} is a logical counter —
+# the ONLY real-time element (inter-poll sleep) sits behind the
+# RealTimeWait seam and is never serialized here.
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "engine_poll" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:producedByEngine "{{ENGINE_ID}}" ;
+  ex:pollNo "{{POLL_NO}}"^^xsd:integer .

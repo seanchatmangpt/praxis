@@ -1,0 +1,30 @@
+# construct-main-problem.rq — manufactures the main subproblem graph
+# (PROJ-706/707): a new pddl:Problem sharing the source Problem's domain and
+# objects, whose initial state is the proven interface state s' (VALUES of
+# content-addressed atom IRIs) and whose goal is the full original goal set
+# (helper-achieved atoms are trivially true in s' and protected from
+# destruction by the goal). Placeholders substituted via str::replace:
+#   {MAIN_IRI} {MAIN_NAME} {SOURCE_PROBLEM}
+#   {INIT_ATOM_VALUES}  s' atoms as space-separated <atom-IRI> list
+#   {GOAL_ATOM_VALUES}  goal atoms as space-separated <atom-IRI> list
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+
+CONSTRUCT {
+  <{MAIN_IRI}> a pddl:Problem ;
+      pddl:problemName "{MAIN_NAME}" ;
+      pddl:fromDomain ?dom ;
+      pddl:hasObject ?obj ;
+      pddl:initAtom ?init ;
+      pddl:goalAtom ?goal ;
+      prov:wasDerivedFrom <{SOURCE_PROBLEM}> .
+}
+WHERE {
+  <{SOURCE_PROBLEM}> a pddl:Problem ;
+      pddl:fromDomain ?dom .
+  { <{SOURCE_PROBLEM}> pddl:hasObject ?obj . }
+  UNION
+  { VALUES ?init { {INIT_ATOM_VALUES} } }
+  UNION
+  { VALUES ?goal { {GOAL_ATOM_VALUES} } }
+}

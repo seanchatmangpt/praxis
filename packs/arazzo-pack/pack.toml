@@ -1,0 +1,4 @@
+[pack]
+name = "arazzo-pack"
+version = "26.7.10"
+description = "Arazzo 1.1.0 workflow YAML and per-engine OpenAPI 3.1 / AsyncAPI 3.0 capability documents projected from the arz: RDF graph (ontology.ttl is a committed union of crates/cng/ontologies/arazzo.ttl, crates/cng/examples/arazzo-api-orchestration.ttl, and pack-local engines-local.ttl because ggen sync loads exactly one pack ontology file via insert_turtle and does not follow owl:imports; regenerate with packs/arazzo-pack/make-ontology.sh). RDF stays authoritative; the YAML files are projection artifacts whose digests cng verifies downstream (PROJ-726)."

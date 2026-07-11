@@ -1,0 +1,22 @@
+# decomp-resources.dl — admitted resource-predicate facts for the
+# decomposition layer (PROJ-704). These are ADMITTED FACTS, never Rust
+# constants: a domain author extends this file (or ships object-level
+# pddl:resource annotations in the pddl-strips graph) to declare which
+# predicate symbols denote contended-resource custody state. Consumed by
+# rules/decomp.dl (`:n :isResource :true.` joins).
+#
+# Same line-fact syntax as the roster facts fed to bench-roles.dl.
+
+# potato-kitchen (examples/pddl-strips-potato.ttl): custody + free markers.
+:holding :isResource :true.
+:resource-free :isResource :true.
+:hands-free :isResource :true.
+
+# two-chain kitchen test fixture (decomp_test.rs typed-struct domain).
+:held :isResource :true.
+
+# gripper-family domains.
+:carry :isResource :true.
+
+# barman-family domains.
+:holds :isResource :true.

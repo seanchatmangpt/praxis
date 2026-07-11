@@ -84,10 +84,14 @@ use super::{fill_template, splitmix64, CATEGORIES, RWAI_PREFIX};
 const WORKDAY_HOOK_DIALECT: &str = "delta";
 
 /// Marker query file stem → the v26.7.10 success markers it proves
-/// (PROJ-622). Each `queries/markers/<stem>.rq` returns one row whose
+/// (PROJ-622/727). Each `queries/markers/<stem>.rq` returns one row whose
 /// `?value` is 0 iff the marker holds; `V26_7_10_PRODUCTION_READY` is the
-/// conjunction of all ten and carries no query of its own.
-const MARKER_MAP: [(&str, &[&str]); 6] = [
+/// conjunction of all sixteen named markers and carries no query of its
+/// own. Every stem here is a UNIVERSAL (=0) law that holds — vacuously
+/// where its obs kinds are absent — on a lawful single-operator workday;
+/// the INVERTED existence markers live in [`DISTRIBUTED_MARKER_MAP`]
+/// instead (adding them here would refuse every single-engine run).
+const MARKER_MAP: [(&str, &[&str]); 10] = [
     (
         "marker-autonomic-loop",
         &[
@@ -111,6 +115,106 @@ const MARKER_MAP: [(&str, &[&str]); 6] = [
     (
         "marker-timeout-escalation",
         &["TIMEOUT_ESCALATION_PROVEN", "COMPENSATION_WORKFLOW_PROVEN"],
+    ),
+    // PROJ-727 distributed-evidence universal markers. On a single-operator
+    // workday the isolation/remote/divergence laws hold VACUOUSLY (no such
+    // obs kinds); the arazzo pair law is exercised by every dispatch.
+    (
+        "marker-engine-isolation",
+        &[
+            "SHARED_MEMORY_CROSSINGS_ZERO",
+            "DIRECT_ENGINE_BYPASSES_ZERO",
+        ],
+    ),
+    (
+        "marker-remote-execution",
+        &[
+            "REMOTE_WORKFLOWS_ACKNOWLEDGED",
+            "REMOTE_WORKFLOWS_COMPLETED",
+        ],
+    ),
+    ("marker-replay-divergence", &["REPLAY_DIVERGENCES_ZERO"]),
+    ("marker-arazzo-dispatch", &["ARAZZO_WORKFLOWS_DISPATCHED"]),
+];
+
+/// Marker map for DISTRIBUTED (multi-engine) runs only (PROJ-727):
+/// the universal =0 laws from [`MARKER_MAP`]'s distributed rows plus the
+/// INVERTED existence markers, whose queries return 0 when the existential
+/// holds (e.g. `IF(?engines >= 2, 0, 1)`) — see each query header for the
+/// inversion note. Evaluated by the multi-engine coordinator
+/// (`engine_collect_remote`) over the coordinator ∪ engine-bundle
+/// observation union; never by the single-operator workday (a lawful
+/// single-engine run would refuse the existence markers).
+pub(super) const DISTRIBUTED_MARKER_MAP: [(&str, &[&str]); 6] = [
+    (
+        "marker-engine-isolation",
+        &[
+            "SHARED_MEMORY_CROSSINGS_ZERO",
+            "DIRECT_ENGINE_BYPASSES_ZERO",
+        ],
+    ),
+    (
+        "marker-remote-execution",
+        &[
+            "REMOTE_WORKFLOWS_ACKNOWLEDGED",
+            "REMOTE_WORKFLOWS_COMPLETED",
+        ],
+    ),
+    ("marker-replay-divergence", &["REPLAY_DIVERGENCES_ZERO"]),
+    ("marker-arazzo-dispatch", &["ARAZZO_WORKFLOWS_DISPATCHED"]),
+    // Inverted existence markers (0 = the existential holds).
+    (
+        "marker-multi-engine-execution",
+        &["MULTI_ENGINE_EXECUTION_PROVEN", "ENGINE_INSTANCES_PROVEN"],
+    ),
+    (
+        "marker-arazzo-inter-engine",
+        &["ARAZZO_INTER_ENGINE_WORKFLOW_PROVEN"],
+    ),
+];
+
+/// Marker map for the PLANNING surface (PROJ-739/740): the six no-LLM
+/// decomposition proof markers plus the three structural/absence markers,
+/// evaluated over a dedicated `decomposition-result.ttl` evidence graph
+/// (`build_decomp_marker_store`) from a real `cng plan decompose` run
+/// (`bench::decomp::decompose`/`decompose_with`, PROJ-741) — never the
+/// obs/evidence union `build_marker_store` loads, since a plain
+/// single-operator workday never produces `decomp:` facts and a plain
+/// `cng plan decompose` run never produces `obs:` facts. This mirrors the
+/// [`DISTRIBUTED_MARKER_MAP`] precedent: a marker family that owns its own
+/// store construction rather than being folded into `MARKER_MAP`.
+pub(super) const PLANNING_MARKER_MAP: [(&str, &[&str]); 7] = [
+    (
+        "marker-decomposition-derived",
+        &["DECOMPOSITION_DERIVED_PROVEN"],
+    ),
+    (
+        "marker-decomposition-receipted",
+        &["DECOMPOSITION_CANDIDATES_RECEIPTED"],
+    ),
+    (
+        "marker-decomposition-interface-state",
+        &["INTERFACE_STATE_PROVEN"],
+    ),
+    (
+        "marker-decomposition-non-interference",
+        &["NON_INTERFERENCE_PROVEN"],
+    ),
+    (
+        "marker-decomposition-release-closure",
+        &["RESOURCE_RELEASE_CLOSED"],
+    ),
+    (
+        "marker-decomposition-single-actor-typed",
+        &["SINGLE_ACTOR_TYPED_RESULT"],
+    ),
+    (
+        "marker-no-llm-authoring",
+        &[
+            "LLM_CALLS_ZERO",
+            "ENGLISH_SUBGOALS_ZERO",
+            "CANNED_SUBGOALS_ZERO",
+        ],
     ),
 ];
 
@@ -165,13 +269,32 @@ pub struct WorkdayReport {
     pub dispatch_timeouts: u64,
     /// remediation_manufactured events in the evidence graph (PROJ-620).
     pub remediations: u64,
+    /// DISTINCT engine identities with an engine_started event in the
+    /// evidence graph (metric-engine-instances.rq authority; PROJ-727).
+    /// 0 on a single-operator workday — the serve loops that emit
+    /// engine_started run in their own processes/bundles. No Rust twin
+    /// exists on this path, so this number is graph-only (not gated).
+    pub engine_instances: u64,
+    /// remote_dispatch_sent events in the evidence graph (PROJ-727;
+    /// 0 on the loopback-only workday, reconciled against the adapter).
+    pub remote_dispatches: u64,
+    /// remote_consequence_received events in the evidence graph (PROJ-727;
+    /// 0 on the loopback-only workday, reconciled against the adapter).
+    pub remote_consequences_received: u64,
+    /// arazzo_workflow_generated events in the evidence graph (PROJ-727;
+    /// one per broker dispatch lifecycle, reconciled).
+    pub arazzo_workflows_generated: u64,
+    /// arazzo_workflow_dispatched events in the evidence graph (PROJ-727;
+    /// the dispatched twin of every generated projection, reconciled).
+    pub arazzo_workflows_dispatched: u64,
     /// metric-dispatch-closure.rq facet counts over the observation graph
     /// (PROJ-614): open_external / unacknowledged / returned_unadmitted /
     /// refused_consequences / compensating / completed_trees. The
     /// unacknowledged and returned_unadmitted facets are CNG_R19-gated to 0
     /// before this struct exists.
     pub dispatch_closure: BTreeMap<String, u64>,
-    /// The eleven v26.7.10 success markers (PROJ-622), each derived from a
+    /// The seventeen v26.7.10 success markers (PROJ-622/727: sixteen named
+    /// markers + the conjunction), each derived from a
     /// `queries/markers/*.rq` SELECT over the obs ∪ evidence ∪ registry
     /// union store. All `true` by construction: a false marker refused
     /// (`CNG_R20 MarkerFalse`) before this struct exists; carried so JSON
@@ -189,6 +312,18 @@ pub struct WorkdayReport {
     pub telemetry_dispatches_sent: usize,
     /// Adapter-counted admitted consequences (telemetry; reconciled).
     pub telemetry_consequences_admitted: usize,
+    /// Adapter-counted rendered Arazzo projections (telemetry; reconciled
+    /// against the graph-derived `arazzo_workflows_generated`).
+    pub telemetry_arazzo_generated: usize,
+    /// Adapter-counted dispatched Arazzo projections (telemetry;
+    /// reconciled against `arazzo_workflows_dispatched`).
+    pub telemetry_arazzo_dispatched: usize,
+    /// Adapter-counted remote dispatches (telemetry; reconciled against
+    /// `remote_dispatches` — 0 on the loopback-only workday).
+    pub telemetry_remote_dispatches: usize,
+    /// Adapter-counted remote consequences received (telemetry; reconciled
+    /// against `remote_consequences_received`).
+    pub telemetry_remote_consequences_received: usize,
     // --- Digests (no wall clock anywhere in their inputs).
     pub evidence_chain_digest: String,
     pub ocel_graph_digest: String,
@@ -370,7 +505,7 @@ pub(super) fn build_marker_store(
 /// store. Markers are SPARQL-derived ONLY: each `queries/markers/*.rq`
 /// returns one `?value` row where 0 = proven; any other value is a typed
 /// refusal (nonzero process exit), never a warning.
-/// `V26_7_10_PRODUCTION_READY` is the conjunction of the other ten.
+/// `V26_7_10_PRODUCTION_READY` is the conjunction of the other sixteen.
 ///
 /// # Errors
 /// `CNG_R20 MarkerFalse` naming the first false marker and its value;
@@ -382,8 +517,35 @@ pub(super) fn evaluate_markers(
     marker_store: &Store,
     marker_queries: &QuerySet,
 ) -> Result<BTreeMap<String, bool>, CngRefusal> {
+    let mut markers = evaluate_marker_map(marker_store, marker_queries, &MARKER_MAP)?;
+    // Conjunction marker: reachable only when all sixteen above are true (a
+    // false marker refused above), so this is `true` by construction — it
+    // is still computed as the fold, not asserted.
+    let all = markers.values().all(|v| *v);
+    markers.insert("V26_7_10_PRODUCTION_READY".to_string(), all);
+    Ok(markers)
+}
+
+/// Evaluates one marker map (stem → marker names) over `marker_store`.
+/// Shared by [`evaluate_markers`] (workday, [`MARKER_MAP`]) and the
+/// multi-engine coordinator ([`DISTRIBUTED_MARKER_MAP`]). Each query
+/// returns one `?value` row where 0 = proven (inverted existence queries
+/// keep that convention — see their headers); any other value is a typed
+/// refusal, never a warning.
+///
+/// # Errors
+/// `CNG_R20 MarkerFalse` naming the first false marker and its value;
+/// `CNG_R01/R05` for missing/malformed marker queries.
+///
+/// # Complexity
+/// O(|map|) SELECTs, each over O(union-store facts).
+pub(super) fn evaluate_marker_map(
+    marker_store: &Store,
+    marker_queries: &QuerySet,
+    map: &[(&str, &[&str])],
+) -> Result<BTreeMap<String, bool>, CngRefusal> {
     let mut markers: BTreeMap<String, bool> = BTreeMap::new();
-    for (stem, names) in MARKER_MAP {
+    for (stem, names) in map.iter().copied() {
         let rows = select_rows(marker_store, marker_queries.get(stem)?)?;
         let value = rows
             .first()
@@ -401,12 +563,105 @@ pub(super) fn evaluate_markers(
             markers.insert((*name).to_string(), true);
         }
     }
-    // Conjunction marker: reachable only when all ten above are true (a
-    // false marker refused above), so this is `true` by construction — it
-    // is still computed as the fold, not asserted.
-    let all = markers.values().all(|v| *v);
-    markers.insert("V26_7_10_PRODUCTION_READY".to_string(), all);
     Ok(markers)
+}
+
+/// Builds the PLANNING marker evaluation store (PROJ-739/740/742) from a
+/// `decomposition-result.ttl` evidence graph written by a real
+/// `cng plan decompose` run (`bench::decomp::decompose`/`decompose_with`,
+/// PROJ-741). Unlike [`build_marker_store`] (the obs ∪ evidence ∪ registry
+/// union), this graph is self-contained (`decomp:`/`prov:`/`xsd:`/`powl2:`
+/// vocabulary only, already parse-validated by
+/// `decomp::mod::emit_result_graph` before it was written) — a dedicated
+/// loader, not the obs/evidence union, matching the
+/// [`DISTRIBUTED_MARKER_MAP`] precedent of a marker family owning its own
+/// store construction.
+///
+/// # Errors
+/// `CNG_R10 IoRefused` for an unreadable file; `CNG_R01 MalformedTtl` if
+/// the graph does not parse (should not occur for a graph
+/// `emit_result_graph` already parse-validated once).
+///
+/// # Complexity
+/// O(bytes) read + O(triples) parse.
+pub fn build_decomp_marker_store(result_graph_path: &Path) -> Result<Store, CngRefusal> {
+    let turtle = fs::read_to_string(result_graph_path)
+        .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", result_graph_path.display())))?;
+    let store = Store::new()
+        .map_err(|e| CngRefusal::IoRefused(format!("decomp marker store construction: {e}")))?;
+    store
+        .load_from_slice(RdfParser::from_format(RdfFormat::Turtle), turtle.as_bytes())
+        .map_err(|e| {
+            CngRefusal::MalformedTtl(format!(
+                "decomp result graph {} does not parse: {e}",
+                result_graph_path.display()
+            ))
+        })?;
+    Ok(store)
+}
+
+/// Evaluates the nine v26.7.10 planning markers (PROJ-739/740,
+/// [`PLANNING_MARKER_MAP`]) over a [`build_decomp_marker_store`] store.
+/// SPARQL-derived only, same law as [`evaluate_markers`]: a false marker is
+/// `CNG_R20 MarkerFalse`, never a warning.
+///
+/// # Errors
+/// `CNG_R20 MarkerFalse` naming the first false planning marker; `CNG_R01/
+/// R05` for missing/malformed marker queries.
+///
+/// # Complexity
+/// O(|PLANNING_MARKER_MAP|) SELECTs, each over O(decomp graph facts).
+pub fn evaluate_planning_markers(
+    marker_store: &Store,
+    marker_queries: &QuerySet,
+) -> Result<BTreeMap<String, bool>, CngRefusal> {
+    evaluate_marker_map(marker_store, marker_queries, &PLANNING_MARKER_MAP)
+}
+
+/// Full v26.7.10 production-readiness conjunction (PROJ-742). Folds the
+/// interim single-operator [`evaluate_markers`] output (the [`MARKER_MAP`]
+/// markers, computed by a `workday()` run that never invokes `decompose()`
+/// and therefore cannot honestly claim the planning surface on its own)
+/// with the nine planning markers ([`evaluate_planning_markers`],
+/// PROJ-739/740, SPARQL-derived over a real `cng plan decompose` evidence
+/// graph — PROJ-741) and, when a distributed bundle was also run, the six
+/// [`DISTRIBUTED_MARKER_MAP`] markers. Returns the merged marker map with
+/// `V26_7_10_PRODUCTION_READY` RECOMPUTED as the conjunction over every
+/// entry supplied — the SAME marker name [`evaluate_markers`] emits, now
+/// meaning what DEFINITION_OF_DONE §16 actually claims (the full planning
+/// + distributed evidence surface), not merely the interim single-operator
+/// gate. This is purely additive: [`evaluate_markers`]'s own signature and
+/// the `workday()` call site are UNCHANGED (the interim-16 computation is
+/// unmodified — "do not break the existing interim-16 computation," PROJ-
+/// 742), as is `engine_collect_remote`'s own [`DISTRIBUTED_MARKER_MAP`]
+/// evaluation; a release-verification step that has run a `workday()`
+/// bundle AND a `cng plan decompose` bundle (and optionally a distributed
+/// bundle) calls this function to get the DoD-accurate value.
+///
+/// # Complexity
+/// O(|workday_markers| + |planning_markers| + |distributed_markers|) map
+/// merges.
+pub fn full_production_ready(
+    workday_markers: &BTreeMap<String, bool>,
+    planning_markers: &BTreeMap<String, bool>,
+    distributed_markers: Option<&BTreeMap<String, bool>>,
+) -> BTreeMap<String, bool> {
+    let mut merged: BTreeMap<String, bool> = workday_markers
+        .iter()
+        .filter(|(name, _)| name.as_str() != "V26_7_10_PRODUCTION_READY")
+        .map(|(name, value)| (name.clone(), *value))
+        .collect();
+    for (name, value) in planning_markers {
+        merged.insert(name.clone(), *value);
+    }
+    if let Some(distributed) = distributed_markers {
+        for (name, value) in distributed {
+            merged.insert(name.clone(), *value);
+        }
+    }
+    let all = merged.values().all(|v| *v);
+    merged.insert("V26_7_10_PRODUCTION_READY".to_string(), all);
+    merged
 }
 
 /// Actuates every executed transition of a manufactured outcome through
@@ -921,6 +1176,10 @@ pub fn workday(
                 });
             }
         }
+        // PROJ-721 eager per-tick obs flush: every tick's observations are
+        // durable on disk before the next tick begins (crash-resume input;
+        // partition layout stays deterministic — one partition per tick).
+        writer.flush()?;
     }
     // The epilogue iteration (tick == cfg.ticks) resolved any final pending
     // admission before breaking; the day is complete.
@@ -1034,6 +1293,20 @@ pub fn workday(
     let consequences_refused_g = count_of_type("consequence_refused")?;
     let dispatch_timeouts_g = count_of_type("dispatch_timed_out")?;
     let remediations_g = count_of_type("remediation_manufactured")?;
+    // PROJ-727 distributed-evidence headline numbers: the arazzo pair flows
+    // through ocel-remote-engine.construct.rq into the same evidence graph;
+    // the remote kinds are 0 on this loopback-only path (the adapter's
+    // remote counters agree, gated below). engine_instances is graph-only
+    // (metric-engine-instances.rq; no Rust twin exists on this path).
+    let arazzo_generated_g = count_of_type("arazzo_workflow_generated")?;
+    let arazzo_dispatched_g = count_of_type("arazzo_workflow_dispatched")?;
+    let remote_dispatches_g = count_of_type("remote_dispatch_sent")?;
+    let remote_received_g = count_of_type("remote_consequence_received")?;
+    let engine_instances_g = super::roles::metric_count(
+        &evidence_store,
+        queries.get("metric-engine-instances")?,
+        "metric-engine-instances",
+    )?;
 
     // --- Reconcile gate (CNG_R09 on disagreement): every headline number
     // must be independently derivable from the evidence graph.
@@ -1067,6 +1340,13 @@ pub fn workday(
         || consequences_refused_g as usize != adapter.telemetry.refused
         || dispatch_timeouts_g as usize != adapter.telemetry.timeouts
         || remediations_g as usize != adapter.telemetry.remediations
+        // PROJ-727: every rendered Arazzo projection and its dispatched
+        // twin, and every remote boundary crossing (0 on loopback), is
+        // independently derivable from the evidence graph.
+        || arazzo_generated_g as usize != adapter.telemetry.arazzo_generated
+        || arazzo_dispatched_g as usize != adapter.telemetry.arazzo_dispatched
+        || remote_dispatches_g as usize != adapter.telemetry.remote_sent
+        || remote_received_g as usize != adapter.telemetry.remote_received
     {
         return Err(CngRefusal::HardcodingSuspicion(format!(
             "workday telemetry/evidence mismatch — the SPARQL evidence graph is the \
@@ -1149,6 +1429,11 @@ pub fn workday(
         consequences_refused: consequences_refused_g,
         dispatch_timeouts: dispatch_timeouts_g,
         remediations: remediations_g,
+        engine_instances: engine_instances_g,
+        remote_dispatches: remote_dispatches_g,
+        remote_consequences_received: remote_received_g,
+        arazzo_workflows_generated: arazzo_generated_g,
+        arazzo_workflows_dispatched: arazzo_dispatched_g,
         dispatch_closure,
         markers,
         telemetry_refusals,
@@ -1157,6 +1442,10 @@ pub fn workday(
         telemetry_hook_actuations: broker.actuations(),
         telemetry_dispatches_sent: adapter.telemetry.sent,
         telemetry_consequences_admitted: adapter.telemetry.admitted,
+        telemetry_arazzo_generated: adapter.telemetry.arazzo_generated,
+        telemetry_arazzo_dispatched: adapter.telemetry.arazzo_dispatched,
+        telemetry_remote_dispatches: adapter.telemetry.remote_sent,
+        telemetry_remote_consequences_received: adapter.telemetry.remote_received,
         evidence_chain_digest: format!("blake3:{}", receipt_chain.finalize().to_hex()),
         ocel_graph_digest,
         obs_digest,

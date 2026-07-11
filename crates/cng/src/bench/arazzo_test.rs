@@ -12,7 +12,10 @@ use std::path::PathBuf;
 use chicago_tdd_tools::prelude::*;
 use oxigraph::store::Store;
 
-use super::{admit_arazzo, default_description_path, project_steps, run_arazzo_projection};
+use super::{
+    admit_arazzo, default_description_path, project_steps, run_arazzo_projection,
+    verify_arazzo_render_digest,
+};
 use crate::bench::dispatch::DispatchAdapter;
 use crate::bench::roles::ObsWriter;
 use crate::bench::templates::{load_templates, QuerySet};
@@ -103,6 +106,23 @@ test!(
         let mut writer =
             ObsWriter::new(&templates, &store, &out_dir.join("obs"), "test").expect("writer");
         let mut adapter = DispatchAdapter::new(&out_dir, &queries).expect("adapter constructs");
+        // PROJ-745: run_arazzo_projection now gates on
+        // verify_arazzo_render_digest(adapter.project_root()) before any
+        // step dispatches — seed the scratch out_dir with a rendered YAML
+        // and a matching ggen receipt so this unit test exercises the
+        // dispatch-side wiring, not just the admit/project path.
+        fs::create_dir_all(out_dir.join("generated")).expect("generated dir");
+        fs::create_dir_all(out_dir.join(".ggen-v2")).expect(".ggen-v2 dir");
+        let rendered_yaml: &[u8] = b"arazzo: \"1.1.0\"\ninfo:\n  title: projection_e2e\n";
+        fs::write(out_dir.join("generated/arazzo.yaml"), rendered_yaml).expect("write yaml");
+        let rendered_digest = blake3::hash(rendered_yaml).to_hex().to_string();
+        fs::write(
+            out_dir.join(".ggen-v2/receipt.json"),
+            format!(
+                "{{\"payload\":{{\"outputs\":{{\"generated/arazzo.yaml\":\"{rendered_digest}\"}}}}}}"
+            ),
+        )
+        .expect("write receipt");
 
         // Act: admit + validate + project + dispatch, dependsOn enforced.
         let dispatched = run_arazzo_projection(
@@ -123,5 +143,72 @@ test!(
         assert_eq!(adapter.telemetry.refused, 0);
         assert_eq!(adapter.telemetry.timeouts, 0);
         assert_eq!(adapter.receipt_digests.len(), 4);
+    }
+);
+
+test!(arazzo_render_digest_match_verifies_against_ggen_receipt, {
+    // Arrange: a scratch ggen project root with a rendered YAML and a
+    // .ggen-v2/receipt.json recording that file's true BLAKE3 digest
+    // (the exact seam: packs/arazzo-pack/README.md "Downstream
+    // verification seam", per PROJ-745).
+    let root = scratch_dir("render_digest_match");
+    fs::create_dir_all(root.join("generated")).expect("generated dir");
+    fs::create_dir_all(root.join(".ggen-v2")).expect(".ggen-v2 dir");
+    let yaml_bytes: &[u8] = b"arazzo: \"1.1.0\"\ninfo:\n  title: test\n";
+    fs::write(root.join("generated/arazzo.yaml"), yaml_bytes).expect("write yaml");
+    let digest = blake3::hash(yaml_bytes).to_hex().to_string();
+    let receipt =
+        format!("{{\"payload\":{{\"outputs\":{{\"generated/arazzo.yaml\":\"{digest}\"}}}}}}");
+    fs::write(root.join(".ggen-v2/receipt.json"), receipt).expect("write receipt");
+
+    // Act.
+    let result = verify_arazzo_render_digest(&root);
+
+    // Assert: matching digest verifies Ok, carrying the recomputed
+    // digest the caller uses to advance to DispatchState::ArazzoRendered.
+    let verification = result.expect("matching digest verifies");
+    assert_eq!(verification.output_path, "generated/arazzo.yaml");
+    assert_eq!(verification.digest, digest);
+});
+
+test!(
+    arazzo_render_digest_mismatch_refuses_cng_r11_audit_mismatch,
+    {
+        // Arrange: same shape as the matching case, but the rendered file
+        // on disk is corrupted (one byte flipped) after the receipt
+        // recorded the original digest — simulating a tampered/stale
+        // render.
+        let root = scratch_dir("render_digest_mismatch");
+        fs::create_dir_all(root.join("generated")).expect("generated dir");
+        fs::create_dir_all(root.join(".ggen-v2")).expect(".ggen-v2 dir");
+        let original_bytes: &[u8] = b"arazzo: \"1.1.0\"\ninfo:\n  title: test\n";
+        let recorded_digest = blake3::hash(original_bytes).to_hex().to_string();
+        let receipt = format!(
+            "{{\"payload\":{{\"outputs\":{{\"generated/arazzo.yaml\":\"{recorded_digest}\"}}}}}}"
+        );
+        fs::write(root.join(".ggen-v2/receipt.json"), receipt).expect("write receipt");
+        let mut corrupted_bytes = original_bytes.to_vec();
+        corrupted_bytes[0] ^= 0xFF; // flip a byte: no longer matches the receipt digest
+        fs::write(root.join("generated/arazzo.yaml"), &corrupted_bytes)
+            .expect("write corrupted yaml");
+
+        // Act.
+        let result = verify_arazzo_render_digest(&root);
+
+        // Assert: typed CNG_R11 refusal naming the mismatch — never a
+        // silent pass-through, never a panic.
+        match result {
+            Err(CngRefusal::AuditMismatch(msg)) => {
+                assert!(
+                    msg.contains("digest mismatch"),
+                    "message names the mismatch, got {msg}"
+                );
+                assert_eq!(CngRefusal::AuditMismatch(msg).code(), "CNG_R11");
+            }
+            Err(other) => panic!("expected AuditMismatch, got {other:?}"),
+            Ok(_) => {
+                panic!("expected AuditMismatch for a corrupted rendered file, but verification succeeded")
+            }
+        }
     }
 );

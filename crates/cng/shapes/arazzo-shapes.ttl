@@ -7,6 +7,8 @@
 # actions) — makes the node non-conforming, and refused features additionally
 # get named sh:not violations so the report cites the feature by name.
 # Doctrine: docs/standing/SEMANTIC_PROFILE_DOCTRINE.md.
+# v26.7.10-revised (PROJ-725): Arazzo 1.1.0 profile — sourceType enumeration
+# extended with "asyncapi"; all other 1.1 features remain refused by name.
 
 @prefix sh:   <http://www.w3.org/ns/shacl#> .
 @prefix arz:  <https://truex.io/ontology/arazzo#> .
@@ -80,7 +82,8 @@ shp:SourceDescriptionShape a sh:NodeShape ;
     sh:property [
         sh:path arz:sourceType ;
         sh:minCount 1 ; sh:maxCount 1 ;
-        sh:in ( "arazzo" "openapi" ) ;
+        sh:in ( "arazzo" "openapi" "asyncapi" ) ;
+        sh:message "REFUSED feature: sourceType outside {arazzo, openapi, asyncapi} — the Arazzo 1.1.0 (80/20) profile admits no other source types." ;
     ] .
 
 shp:ParameterShape a sh:NodeShape ;

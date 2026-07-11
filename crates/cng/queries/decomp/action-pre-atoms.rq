@@ -1,0 +1,9 @@
+# action-pre-atoms.rq — precondition atoms of a given Action (PROJ-703
+# domain renderer). Placeholder {ACTION} substituted via str::replace.
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+SELECT ?atom
+WHERE {
+  <{ACTION}> pddl:precondition ?atom .
+}
+ORDER BY ?atom

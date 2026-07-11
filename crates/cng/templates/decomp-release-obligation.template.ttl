@@ -1,0 +1,6 @@
+# decomp release-obligation template (PROJ-708/710, one instance per
+# resource-release obligation discharged by the helper): evidence that the
+# release-closure gate held on the selected candidate.
+@prefix decomp: <https://truex.io/ontology/decomp#> .
+
+<{{RESULT_IRI}}> decomp:releasesResource "{{RESOURCE_LABEL}}" .

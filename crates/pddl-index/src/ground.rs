@@ -200,10 +200,19 @@ impl<'a> SchemaPlan<'a> {
 }
 
 /// A dictionary-encoded, XOR-pruned, lazily-grounded PDDL8 problem.
+///
+/// `initial_state`/`goal`/`actions` are `pub` to mirror
+/// `bcinr_pddl::ground::GroundProblem`'s field visibility exactly — callers
+/// that alias `IndexedGroundProblem` in place of `GroundProblem` (e.g.
+/// `use pddl_index::ground::IndexedGroundProblem as GroundProblem;`) need no
+/// call-site changes beyond the import.
 pub struct IndexedGroundProblem {
-    initial_state: BTreeSet<Pddl8GroundAtom>,
-    goal: Vec<Pddl8GroundAtom>,
-    actions: Vec<Pddl8GroundAction>,
+    /// The problem's initial-state ground atoms.
+    pub initial_state: BTreeSet<Pddl8GroundAtom>,
+    /// The problem's goal condition as a conjunction of ground atoms.
+    pub goal: Vec<Pddl8GroundAtom>,
+    /// All materialized (reachable) ground actions, indexed by position.
+    pub actions: Vec<Pddl8GroundAction>,
     action_index: HashMap<Pddl8GroundAtom, Vec<usize>>,
     always_applicable: Vec<usize>,
     stats: GroundStats,

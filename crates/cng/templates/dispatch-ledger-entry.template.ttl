@@ -1,0 +1,18 @@
+# PROJ-721 durable dispatch ledger entry: one disp:StateEntry appended per
+# broker advance() (UPPER_SNAKE placeholders in double braces, same
+# convention as bench fill_template). Conforms to
+# crates/cng/shapes/dispatch-shapes.ttl (StateEntryShape, sh:closed).
+# {{ENTRY_SEQ}} and {{TICK}} are logic counters, never wall-clock time;
+# {{CHAIN_HASH}} is blake3(prev_chain | from | to | tick | seq) — the
+# prefix chain `cng engine resume` verifies.
+@prefix ex:   <http://example.org/rwai#> .
+@prefix disp: <https://truex.io/ontology/dispatch#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{SUBJECT}} a disp:StateEntry ;
+  disp:dispatchId "{{DISPATCH_ID}}" ;
+  disp:entrySeq "{{ENTRY_SEQ}}"^^xsd:integer ;
+  disp:fromState disp:{{FROM_STATE}} ;
+  disp:toState disp:{{TO_STATE}} ;
+  disp:logicalTick "{{TICK}}"^^xsd:integer ;
+  disp:chainHash "{{CHAIN_HASH}}" .

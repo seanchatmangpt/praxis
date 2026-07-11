@@ -25,6 +25,11 @@ pub struct SubclassClosure {
     /// Maps global Encoder ID → dense index (0..num_classes)
     global_to_dense: HashMap<usize, usize>,
     /// Maps dense index → global Encoder ID (for render_canonical)
+    // Reserved seam: written by `new()` but not yet read. Intended for a future
+    // `SubclassClosure::render_canonical()` (PROJ-416 BLAKE3 hash consumer,
+    // mirroring `ClosureMatrix::render_canonical`) that remaps dense edges back
+    // to global IDs before canonical hashing. No consumer exists yet.
+    #[allow(dead_code)]
     dense_to_global: Vec<usize>,
 }
 

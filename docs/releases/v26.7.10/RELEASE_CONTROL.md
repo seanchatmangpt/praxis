@@ -147,10 +147,18 @@ scratch dirs under `/private/tmp/.../scratchpad/v267.10/` (X then relocated to Y
 - `docs/releases/v26.7.10/PRD.md`
 - `docs/releases/v26.7.10/ARD.md`
 - `docs/jira/v26.7.10/tickets/PROJ-601.md` .. `PROJ-605.md`
-- `docs/releases/v26.7.10/DEFINITION_OF_DONE.md` (PROJ-606 — doctrine pointed to by this file)
-- `docs/releases/v26.7.10/DOD_EVIDENCE_MAP.md` (evidence index for the DoD)
-- `docs/releases/v26.7.10/DOD_SIGNOFF.md` (PROJ-617 — clause-by-clause sign-off)
+- `docs/releases/v26.7.10/DEFINITION_OF_DONE.md` (PROJ-730 — governing v26.7.10-revised
+  doctrine pointed to by this file)
+- `docs/releases/v26.7.10/DEFINITION_OF_DONE_INTERIM.md` (PROJ-606 — superseded interim DoD,
+  preserved fix-forward)
+- `docs/releases/v26.7.10/DOD_EVIDENCE_MAP.md` (PROJ-748 — governing evidence index for
+  v26.7.10-revised)
+- `docs/releases/v26.7.10/DOD_SIGNOFF.md` (PROJ-748 — governing clause-by-clause sign-off for
+  v26.7.10-revised)
+- `docs/releases/v26.7.10/DOD_EVIDENCE_MAP_INTERIM.md`, `DOD_SIGNOFF_INTERIM.md` (PROJ-617 —
+  superseded interim evidence map + sign-off, preserved fix-forward, PROJ-748)
 - `docs/jira/v26.7.10/tickets/PROJ-606.md` .. `PROJ-622.md` (Sec. 8 table counterparts)
+- `docs/jira/v26.7.10/tickets/PROJ-701.md` .. `PROJ-749.md` (Sec. 9 scope; 715-719 skipped)
 
 ## 8. PROJ-606..622 closure table (PROJ-617, 2026-07-10)
 
@@ -223,3 +231,192 @@ Clause-by-clause sign-off against `DEFINITION_OF_DONE.md`'s 15 sections lives in
 marker conjunction TRUE on the `just cng-workday-verify` run above, with loopback-real external
 dispatch, MOCKED-HUMAN synthesized consequences, and live network endpoints out of scope
 (Sec. 8.2). No unscoped production-ready claim is made.
+
+## 9. v26.7.10-revised scope (PROJ-701..731) — No-LLM planning + multi-engine execution
+
+The v26.7.10 DoD is superseded in place (2026-07-10): governing doctrine is the rewritten
+`DEFINITION_OF_DONE.md` (PROJ-730); the prior DoD is preserved at
+`DEFINITION_OF_DONE_INTERIM.md`. The interim closure of PROJ-606..622 (Sec. 8, commit
+`31c236f`, all 11 markers derived TRUE) **stands as evidence of the substrate** — the
+single-process autonomic loop, loopback dispatch, 13-state machine, hooks, receipts, replay,
+and marker machinery the revised scope builds on. Nothing in Sec. 8 is reopened or downgraded.
+
+Prior wording here read "all rows below are PLANNED — ticket files exist, no code exists."
+That header is now FALSE and corrected: Wave 1 + wave 2 landed ~4k LOC across Tracks P and E
+plus arazzo-pack, but it had never compiled or run until this session's Phase 1-2 fixes
+(PROJ-733/734). Rows below reflect what actually ran green this session (`cargo test -p cng
+--features bench`: 107 tests total, 0 failures — see the ladder below); PROJ-714 remains
+PLANNED as a genuinely never-built, declared cut line (§9.2). No row flips to ALIVE without a
+fresh command + output cited here or in the ticket file it points to. Ticket numbers
+PROJ-715..719 are deliberately skipped (track separator; no tickets ever existed there); this
+session added PROJ-733/734 (Phase 1 fixes, beyond the original plan's ticket range),
+PROJ-739..748 (Phase 3-5), a follow-up verification round (closing the literal 8² fan-out,
+the real two-bundle `full_production_ready` composition, the arazzo digest-verify wiring, the
+full 5x20 IPC corpus scale, and `CNG_R09`'s negative test), and a second, separate synthesis
+round that added PROJ-749 (the decompose-to-dispatch bridge, closing the Track P/Track E
+integration gap at the mechanism level) plus a workspace-wide sanity sweep and the two
+remaining §18 negative-corpus items — see §9.1 items 7-8 and §9.3 below.
+
+### 9.1 Verification ladder — evidence for PROJ-701..713/720..729/733/734/739..742/749 ALIVE
+
+Commands run this session (cited exactly; not re-derived):
+
+1. `cargo test -p cng --features bench --test cng_decomp`: 3/3 passed, 0.18s (was 60s+ hang
+   before PROJ-733's grounder swap).
+2. `cargo test -p cng --features bench --test cng_ipc_corpus`: 10/10 passed, 1.79s (was
+   minutes/OOM-risk; two negative fixtures corrected — see PROJ-712).
+3. `cargo test -p cng --features bench --test cng_multi_engine -- --test-threads=1`: 6/6
+   passed, including `g13_crash_resume_verifies_chain_and_completes` (confirms PROJ-734's
+   watch-loop race fix holds).
+4. `cargo test -p cng --features bench` (full suite): 107 tests total, 0 failures (67 lib + 6
+   cng_bench_portability + 1 cng_cli_smoke + 3 cng_decomp + 1 cng_hierarchical + 10
+   cng_ipc_corpus + 6 cng_multi_engine + 5 cng_negative_fixtures + 4 cng_pipeline + 2
+   cng_workday_verify + 2 no_inline_ttl_guard), ~109s wall time (was `exit 124` timeout at
+   900s before PROJ-733's fix). Predates the follow-up round's and second synthesis round's
+   new test binaries (`cng_production_ready.rs`, `cng_ipc_corpus_full_scale.rs`,
+   `cng_decompose_to_dispatch_integration.rs`, `cng_decomp_negative_corpus_completeness.rs`)
+   — this figure is not re-stated as a new combined total anywhere in this document; each new
+   binary's own count is cited separately (items 7-8 below and §9's PROJ-742/711/749 rows).
+5. `cargo check -p cng` (no `--features bench`, the default/publishable surface): compiles
+   clean, 0 warnings — confirms `pddl-index` (bench-only optional path dependency,
+   `Cargo.toml:42-50`) does not participate in the default build.
+6. `cargo test -p cng --features bench --lib`: 67/67 passing, re-confirmed after gating two
+   dead-code warnings (`DEFINITION_OF_DONE.md` §16 verb-related consts) `#[cfg(feature =
+   "bench")]`.
+7. (Second synthesis round) `cargo test -p cng --features bench --test
+   cng_decompose_to_dispatch_integration`: 2/2 passed, 1.76s — PROJ-749, the decompose-to-
+   dispatch bridge; see §2/§8 of `DOD_SIGNOFF.md` for the reconciled clause status and the
+   honest boundary (no PDDL-payload-carrying contract yet).
+8. (Second synthesis round) `just cng-test-one cng_decomp_negative_corpus_completeness --
+   --nocapture`: 2/2 passed, run twice, 0.05s — closes DoD §18 negative-corpus items 6 and 7
+   (item 7 additionally, alongside the follow-up round's own `CNG_R09` test); see PROJ-712/713.
+
+Per-ticket evidence citations (exact test names, file:line) live in each ticket file's own
+"Evidence (this session)" section — not restated here to avoid drift between two copies.
+
+| Ticket | Scope item | Status |
+|---|---|---|
+| PROJ-701 | `pddl-strips.ttl` ontology + closed shapes | ALIVE |
+| PROJ-702 | Lifter: PDDL string literal → pddl-strips triples | ALIVE |
+| PROJ-703 | Deterministic PDDL renderer + round-trip property test | ALIVE |
+| PROJ-704 | `rules/decomp.dl` + `decomp-resources.dl` edge derivation | ALIVE |
+| PROJ-705 | Bounded canonical candidate enumeration (single-actor = #0) | ALIVE |
+| PROJ-706 | CONSTRUCT manufacture of helper/main problem graphs | ALIVE |
+| PROJ-707 | Interface state `s′` replay + `CNG_R23 InterfaceStateMismatch` | ALIVE |
+| PROJ-708 | Non-interference `CNG_R22` + release closure `CNG_R24` | ALIVE |
+| PROJ-709 | POWL nested-PartialOrder composition + powl2 emission | ALIVE |
+| PROJ-710 | Selection law, candidate receipts, typed `DecompositionOutcome` | ALIVE |
+| PROJ-711 | IPC generators (5 domains × 20, solvability gate) | ALIVE (full 5x20=100 scale run, follow-up round) |
+| PROJ-712 | Potato canonical scenario + negative corpus | ALIVE |
+| PROJ-713 | Anti-hardcoding gate | ALIVE |
+| PROJ-714 | 4 long-horizon scenarios | PLANNED (declared cut line — §9.2 below) |
+| PROJ-720 | 16-state dispatch machine everywhere + drift test | ALIVE |
+| PROJ-721 | Durable dispatch ledger + idempotent consume (`DoubleAdmit`) | ALIVE |
+| PROJ-722 | Deterministic `EngineIdentity` + per-engine bundle layout | ALIVE |
+| PROJ-723 | `cng engine serve` verb (bounded receipted poll loop) | ALIVE |
+| PROJ-724 | `cng engine resume` + `--partial` prefix replay | ALIVE |
+| PROJ-725 | Arazzo 1.1 vocab/shape delta + REMOTE_* projection | ALIVE |
+| PROJ-726 | `packs/arazzo-pack/`: graph → arazzo/openapi/asyncapi YAML | ALIVE |
+| PROJ-727 | Distributed evidence: OBS_KINDS, OCEL construct, markers | ALIVE |
+| PROJ-728 | Multi-process harness + isolation falsifiers | ALIVE, scoped to CARGO_BIN_EXE test harness |
+| PROJ-729 | G13 crash-resume, byte-identity, 8² across engines | ALIVE, scoped to CARGO_BIN_EXE test harness (literal 8²=64-leaf fan-out achieved, follow-up round) |
+| PROJ-730 | Revised DoD doctrine + ticket set | IN PROGRESS (§16 reconciled this session; closes when committed) |
+| PROJ-731 | Final v26.7.10-revised closure + sign-off | CLOSED (doc) — see DOD_SIGNOFF.md; two-way (workday+planning) full-conjunction claim ALIVE, follow-up round; three-way (+distributed) UNVERIFIED |
+| PROJ-733 | `pddl-index` grounder swap (performance fix) | ALIVE |
+| PROJ-734 | G13 watch-loop race fix (`.ttl`-only filter) | ALIVE |
+| PROJ-739 | 6 planning marker queries + `PLANNING_MARKER_MAP` | ALIVE |
+| PROJ-740 | 3 `LLM_CALLS_ZERO` family markers | ALIVE |
+| PROJ-741 | `cng plan decompose` verb | ALIVE |
+| PROJ-742 | `full_production_ready` conjunction combinator | ALIVE (pure function) / ALIVE (real two-bundle invocation, follow-up round) / UNVERIFIED (real three-bundle, +distributed) |
+| PROJ-743 | DoD §16 marker-name reconciliation | DONE (doc) |
+| PROJ-744 | `arazzo-pack` registered in `ggen.toml` | ALIVE |
+| PROJ-745 | `verify_arazzo_render_digest` seam | ALIVE (function, wired into `arazzo::run_arazzo_projection`, follow-up round) |
+| PROJ-746 | Ticket status flips + this table + `index.md` sync | DONE (doc) |
+| PROJ-747 | PROJ-714 cut-line record (this subsection) | DONE (doc) |
+| PROJ-748 | Revised `DOD_SIGNOFF.md`/`DOD_EVIDENCE_MAP.md` | DONE (doc) |
+| PROJ-749 | Decompose-to-dispatch bridge (Track P/E integration, second synthesis round) | ALIVE (mechanism, non-potato fixture) |
+
+Marker note: `V26_7_10_PRODUCTION_READY` keeps its name but its meaning is revised to the
+`DEFINITION_OF_DONE.md` §16 conjunction (`LLM_CALLS_ZERO` family + planning set + distributed
+set — names reconciled to on-disk identifiers at PROJ-743), scoped by the §20 honest
+boundaries (filesystem transport; HTTP binding declared via generated OpenAPI/AsyncAPI docs
+but UNVERIFIED as a live network path; long-horizon set is the cut line). Each marker family
+is independently ALIVE; a follow-up verification round then invoked the two-run conjunction
+end-to-end — `full_production_ready` combining a REAL `workday()` bundle and a REAL
+`decompose()` bundle, all 26 keys `true` (PROJ-742, `cng_production_ready.rs`) — so the §16
+conjunction is now ALIVE for the two-way (workday + planning) composition. The three-way
+composition (+ a real distributed bundle) remains UNVERIFIED: it requires
+`cng_multi_engine.rs`'s private harness helpers, not importable from a separate test crate.
+
+### 9.2 PROJ-714 cut record (G14/G15)
+
+Mirroring the PROJ-615 §8.1-style cut subsection: PROJ-714 (4 long-horizon scenarios, G14/G15,
+`DEFINITION_OF_DONE.md` §19/§20 item 3) was never built this session, by design — it is the
+release's declared cut line, not an oversight. `docs/jira/v26.7.10/tickets/PROJ-714.md` stays
+`PLANNED (declared cut line)`, unchanged by this session's status-flip pass. This was a
+DIFFERENT gap from PROJ-711's now-resolved PARTIAL (which covered the seeds-0..3-vs-full-20-
+seed scale of the corpus that WAS built and run — PROJ-711 is now ALIVE at the full 5x20
+scale, follow-up round) — the two must not be conflated: PROJ-711's IPC corpus mechanism is
+ALIVE at full scale; PROJ-714's long-horizon scenario set does not exist on disk at all. If a
+future session builds PROJ-714, this subsection is updated in place with fresh evidence, not
+silently removed.
+
+### 9.3 Session sanity sweep (second synthesis round): workspace check, clippy, fmt
+
+Three of this session's second-round agents ran read-only-scoped sanity passes over the
+touched crates, not directly named in the §9 table above (no code changes to Track P/E
+tickets resulted; two of the three found and fixed unrelated pre-existing lint debt).
+
+1. **Workspace-wide build — clean.**
+   `CARGO_TARGET_DIR=target/agent-workspace-check cargo check --workspace --all-features`:
+   `Finished` in 5m 38s, zero errors; only pre-existing warnings unrelated to this session
+   (`ggen`, `cng/src/bench/{dispatch,engine}.rs`, `ggen/src/bin/mcp_server.rs`).
+   `cargo test --workspace --all-features --no-run`: exit 0, every workspace test binary
+   compiled. Confirms `pddl-index`'s addition to `cng`'s bench-only feature surface
+   (`crates/cng/Cargo.toml`) does not affect `praxis-synthesis` (the other consumer of
+   `pddl-index`) or any other workspace member.
+2. **Scoped clippy sweep (`praxis-graphlaw` + `pddl-index`) — 6 real items fixed, ~60
+   pre-existing unrelated errors named and left untouched.** Removed two unused private
+   functions (`hooks/delta_query.rs::delta_touches`, `shacl/index_utils.rs::contains_triple`,
+   both exact duplicates of actively-used code elsewhere), added a documented
+   `#[allow(dead_code)]` to `shacl/closure.rs`'s `dense_to_global` (a deliberately-reserved
+   PROJ-416 seam per its own doc comment, not vestigial code), and added missing `///` doc
+   comments to `pddl-index/src/ground.rs`'s `IndexedGroundProblem` public fields (satisfying
+   `#![warn(missing_docs)]`). Confirmation command:
+   `CARGO_TARGET_DIR=target/agent-clippy cargo clippy -p praxis-graphlaw -p pddl-index
+   --all-targets --all-features -- -D warnings` — exit 101, NOT a clean pass and not claimed
+   as one. All 6 assigned items are confirmed gone by grep; `pddl-index` alone lints clean;
+   the remaining ~60 errors span 22 OTHER `praxis-graphlaw` files (`tripleindex.rs`,
+   `hooks/quads.rs`, `reasoner/mod.rs`, `sparql/mod.rs`, `owlrl/mod.rs`, and others),
+   last touched at commit `2dd4f04` ("PROJ-411..417: Chatman Engine v26.7.9"), predating this
+   session — explicitly out of the assigned scope and not fixed here. A future session should
+   file this pre-existing backlog as its own ticket if it is to be closed.
+3. **`cargo fmt --all --check` — clean, zero files flagged.** Run via `just fmt-check`
+   (direct `cargo fmt` is blocked by `.claude/hooks/block-direct-cargo.sh`); confirmed the
+   toolchain (`nightly-2026-06-22`, pinned in `rust-toolchain.toml`) is actually active, not a
+   silent no-op. Exit 0 across all 17 workspace members, including every file in this
+   session's "hot" concurrently-edited set (`crates/cng/src/bench/{dispatch,arazzo,workday,
+   decomp,engine}*`, `crates/pddl-index/src/ground.rs`, `crates/praxis-graphlaw/src/{hooks/
+   delta_query.rs,shacl/closure.rs,shacl/index_utils.rs}`). Point-in-time caveat, stated by
+   the checking agent itself and repeated here honestly: the negative-corpus completeness
+   file and the PROJ-749 bridge/test files landed after this check ran, so their formatting
+   was not directly confirmed by this specific pass — a final `just fmt-check` immediately
+   before any release gate is prudent, not because a problem is known or expected, but
+   because those specific files predate this check by only minutes and were not re-verified.
+
+## 10. Roadmap — deferred deployment increments (not in v26.7.10-revised scope)
+
+1. **AtomVM-wrapped Chatman Engine deployments.** Target: run the Chatman Engine's WASM build
+   under AtomVM (the lightweight BEAM implementation that compiles to WebAssembly), so engine
+   instances deploy as BEAM-supervised WASM nodes — browser, Node.js, or microcontroller-class
+   hosts — with Erlang/OTP supervision as the fault-tolerance layer around the deterministic
+   core. Fit notes recorded now, unverified: the engine's logical-tick discipline (Chatman
+   Constant, no wall clock) and WASM target were designed for exactly this class of host; OTP
+   supervision would wrap, never replace, typed refusals — a crashed engine process restarts
+   from its receipt chain/ledger (the v26.7.10-revised G13 resume machinery is the intended
+   substrate). Status: UNVERIFIED research direction; no AtomVM artifact exists in this repo.
+   Prereqs: ChatmanEngine adoption in `cng` (itself deferred, Sec. 8), a wasm32 build gate,
+   and a transport binding beyond the filesystem loopback (Sec. 8.2 boundary).
+2. **ChatmanEngine adoption in `cng`** (carried from Sec. 8) — precedes item 1.
+3. **Live network transport binding** for the generated OpenAPI/AsyncAPI contracts (Sec. 8.2 /
+   DoD §20 boundary) — precedes any distributed AtomVM fleet claim.

@@ -1,0 +1,54 @@
+# marker-decomposition-single-actor-typed.rq (PROJ-739)
+# Marker: SINGLE_ACTOR_TYPED_RESULT.
+# Inputs: decomp:DecompositionResult / decomp:Subworkflow evidence
+# (decomp/mod.rs::decompose_with, step 8 — DecompositionOutcome is an
+# exhaustive 3-variant Rust enum; a non-Selected outcome always carries the
+# single-actor POWL as ONE decomp:Subworkflow with decomp:assignedRole
+# "single", never a silent gap; a Selected outcome always carries exactly
+# TWO, roles "helper" and "main").
+# Output: single row ?value = count of DecompositionResult instances whose
+# outcome/subworkflow typing disagrees with that exhaustive law:
+#   - decomp:outcome "Selected"                                => must
+#     have exactly 2 decomp:Subworkflow facts, one "helper" + one "main".
+#   - decomp:outcome "NoAdmissibleDecomposition" or
+#     "NoBeneficialDecomposition"                               => must
+#     have exactly 1 decomp:Subworkflow fact, role "single".
+#   - any other value, or zero decomp:Subworkflow facts at all           =>
+#     always counted as a violation (malformed or absent).
+# Semantics: 0 = proven — the outcome is always one of the three named
+# typed values and its carried subworkflow(s) are typed consistently.
+# Determinism: aggregate + OPTIONAL/BOUND/FILTER over a fixed graph
+# (SUM/COUNT aggregates are order-independent — no GROUP_CONCAT ordering
+# nondeterminism).
+PREFIX decomp: <https://truex.io/ontology/decomp#>
+
+SELECT (COUNT(DISTINCT ?result) AS ?value)
+WHERE {
+  ?result a decomp:DecompositionResult ;
+          decomp:outcome ?outcome .
+  OPTIONAL {
+    SELECT ?result
+           (COUNT(DISTINCT ?sub) AS ?subCount)
+           (SUM(IF(?role = "helper", 1, 0)) AS ?helperCount)
+           (SUM(IF(?role = "main", 1, 0)) AS ?mainCount)
+           (SUM(IF(?role = "single", 1, 0)) AS ?singleCount)
+    WHERE {
+      ?sub a decomp:Subworkflow ;
+           decomp:partOf ?result ;
+           decomp:assignedRole ?role .
+    }
+    GROUP BY ?result
+  }
+  FILTER (
+    !BOUND(?subCount)
+    ||
+    !(
+      (?outcome = "Selected" && ?subCount = 2 && ?helperCount = 1 && ?mainCount = 1)
+      ||
+      (
+        (?outcome = "NoAdmissibleDecomposition" || ?outcome = "NoBeneficialDecomposition")
+        && ?subCount = 1 && ?singleCount = 1
+      )
+    )
+  )
+}

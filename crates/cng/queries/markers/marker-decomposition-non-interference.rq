@@ -1,0 +1,36 @@
+# marker-decomposition-non-interference.rq (PROJ-739)
+# Marker: NON_INTERFERENCE_PROVEN.
+# Inputs: decomp:DecompositionResult / decomp:CandidateReceipt evidence
+# (interference.rs::check_interference — the non-interference proof
+# obligation, CNG_R22 InterferenceDetected; PROJ-708/710).
+# Output: single row ?value = count of Selected-outcome results whose
+# SELECTED candidate's own receipt is not decomp:candidateStatus
+# "Selected" (or is entirely absent), or whose reason names CNG_R22 — a
+# residual, unresolved non-interference failure on the WINNING candidate.
+# Semantics: 0 = proven — decomp/mod.rs::decompose_with re-runs
+# check_interference on the selected candidate (step 8, belt-and-braces)
+# before emit_result_graph is ever called, making a Selected outcome with
+# a residual CNG_R22 on its own receipt structurally impossible; this
+# query proves the emitted evidence agrees with that structural law rather
+# than merely trusting Rust control flow.
+# Determinism: aggregate + OPTIONAL/FILTER over a fixed graph.
+PREFIX decomp: <https://truex.io/ontology/decomp#>
+
+SELECT (COUNT(DISTINCT ?result) AS ?value)
+WHERE {
+  ?result a decomp:DecompositionResult ;
+          decomp:outcome "Selected" ;
+          decomp:selectedCandidateId ?selectedId .
+  OPTIONAL {
+    ?receipt a decomp:CandidateReceipt ;
+             decomp:receiptOf ?result ;
+             decomp:candidateId ?selectedId ;
+             decomp:candidateStatus ?status ;
+             decomp:reason ?reason .
+  }
+  FILTER (
+    !BOUND(?status)
+    || ?status != "Selected"
+    || CONTAINS(?reason, "CNG_R22")
+  )
+}

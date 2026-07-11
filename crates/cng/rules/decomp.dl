@@ -1,0 +1,44 @@
+# decomp.dl — Datalog decomposition-edge layer for the no-LLM multi-actor
+# planning increment (PROJ-704). Format: praxis-graphlaw legacy line rules
+# `{body}=>{head}` (crates/praxis-graphlaw/src/parser/mod.rs Parser::parse).
+#
+# EDB facts are fed by src/bench/decomp/rules.rs, assembled from the on-disk
+# queries/decomp/facts-*.rq SELECTs over the lifted pddl-strips graph:
+#   :a :pre :p.        action a has ground precondition atom p
+#   :a :preOpen :p.    as :pre, but p is NOT an initial-state atom (the
+#                      not-init condition is resolved at the SPARQL EDB
+#                      level via FILTER NOT EXISTS, keeping this rule set
+#                      negation-free and trivially stratified)
+#   :a :addEff :p.     action a adds atom p
+#   :a :delEff :p.     action a deletes atom p
+#   :p :predName :n.   atom p's predicate symbol is n
+#   :p :hasArgVal :o.  atom p has argument symbol o
+#   :n :isResource :true.        admitted fact (rules/decomp-resources.dl)
+#   :o :isResourceObject :true.  admitted fact (pddl:resource annotations)
+# Deterministic; no wall clock; recursion (mustPrecede closure) is handled
+# by the semi-naive materializer.
+
+{?a :addEff ?p}=>{?a :achieves ?p}
+{?a :delEff ?p}=>{?a :threatens ?p}
+
+# mutex: a deletes something b needs, or a adds what b deletes; symmetric.
+{?a :threatens ?p. ?b :pre ?p}=>{?a :mutex ?b}
+{?a :addEff ?p. ?b :delEff ?p}=>{?a :mutex ?b}
+{?a :mutex ?b}=>{?b :mutex ?a}
+
+# causal predecessor: a needs p, p is not initially true, b achieves p.
+{?a :preOpen ?p. ?b :achieves ?p}=>{?a :dependsOn ?b}
+{?a :dependsOn ?b}=>{?b :mustPrecede ?a}
+{?a :mustPrecede ?b. ?b :mustPrecede ?c}=>{?a :mustPrecede ?c}
+
+# resource classification: predicate-level (admitted decomp-resources.dl
+# facts) or object-level (admitted pddl:resource object annotations).
+{?p :predName ?n. ?n :isResource :true}=>{?p :resourceAtom :true}
+{?p :hasArgVal ?o. ?o :isResourceObject :true}=>{?p :resourceAtom :true}
+
+{?a :delEff ?p. ?p :resourceAtom :true}=>{?a :releasesResource ?p}
+{?a :addEff ?p. ?p :resourceAtom :true}=>{?a :acquiresResource ?p}
+
+# custody conflict: a takes custody of a resource atom b needs; symmetric.
+{?a :acquiresResource ?p. ?b :pre ?p}=>{?a :custodyConflict ?b}
+{?a :custodyConflict ?b}=>{?b :custodyConflict ?a}

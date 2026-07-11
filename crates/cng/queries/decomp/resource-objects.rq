@@ -1,0 +1,11 @@
+# resource-objects.rq — admitted object-level resource annotations
+# (PROJ-704): object names carrying pddl:resource true in the source graph.
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+SELECT ?name
+WHERE {
+  ?obj a pddl:Object ;
+       pddl:objectName ?name ;
+       pddl:resource true .
+}
+ORDER BY ?name

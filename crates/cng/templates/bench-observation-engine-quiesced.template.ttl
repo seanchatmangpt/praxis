@@ -1,0 +1,14 @@
+# rwai-bench observation template (engine_quiesced, PROJ-723): the serve
+# loop ended on a SHACL-validated quiescence control file
+# (<root>/engines/<id>/control/quiesce.ttl, QuiescenceShape).
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "engine_quiesced" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:producedByEngine "{{ENGINE_ID}}" ;
+  ex:pollNo "{{POLL_NO}}"^^xsd:integer ;
+  ex:quiesceReason "{{REASON}}" .

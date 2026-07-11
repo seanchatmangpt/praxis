@@ -1,0 +1,19 @@
+# rwai-bench observation template (remote_dispatch_sent, PROJ-727): a
+# dispatch contract addressed to a REMOTE Chatman Engine instance
+# ({{TARGET_ENGINE}} != loopback-local) was written atomically into that
+# engine's inbox. Emitted by the coordinator ({{ENGINE_ID}} =
+# obs:producedByEngine) beside the ordinary dispatch_sent receipt; the
+# isolation and remote-execution markers are derived from this fact by
+# SPARQL, never from Rust counters.
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "remote_dispatch_sent" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:producedByEngine "{{ENGINE_ID}}" ;
+  ex:dispatchId "{{DISPATCH_ID}}" ;
+  ex:targetEngine "{{TARGET_ENGINE}}" ;
+  ex:correlationId "{{CORRELATION_ID}}" .

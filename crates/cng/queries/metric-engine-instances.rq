@@ -1,0 +1,16 @@
+# metric-engine-instances.rq (PROJ-727)
+# Inputs: materialized OCEL graph (ocel-engines.construct.rq output).
+# Outputs: single row ?count = DISTINCT engine identities that receipted an
+# engine_started event. 0 on any corpus without a multi-engine serve
+# surface (Fortune-5, single-operator workday) — the coordinator's
+# remote_* events deliberately do NOT count as engine instances (only a
+# serve/resume loop's own engine_started does).
+# Determinism: aggregate over a fixed graph.
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX ex:   <http://example.org/rwai#>
+
+SELECT (COUNT(DISTINCT ?engine) AS ?count)
+WHERE {
+  ?ev ocel:activityName "engine_started" ;
+      ex:engineId ?engine .
+}

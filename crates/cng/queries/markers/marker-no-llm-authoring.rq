@@ -1,0 +1,55 @@
+# marker-no-llm-authoring.rq (PROJ-740)
+# Markers: LLM_CALLS_ZERO + ENGLISH_SUBGOALS_ZERO + CANNED_SUBGOALS_ZERO.
+# Inputs: whichever store is evaluated against (the decomp planning marker
+# store, PROJ-742's build_decomp_marker_store, or any obs/evidence union) —
+# see semantics below for what this query can and cannot prove.
+# *** STRUCTURAL FACT + NEGATIVE-OBS EVIDENCE (decision 3 of the release
+# plan; same honest framing as marker-engine-isolation.rq's
+# SHARED_MEMORY_CROSSINGS_ZERO/DIRECT_ENGINE_BYPASSES_ZERO) ***
+# The PRIMARY proof is structural, not this query: `cng`'s Cargo.toml
+# dependency tree carries no LLM/inference-API crate (grep-verifiable —
+# `crates/cng/Cargo.toml`'s [dependencies]/[features] surface is
+# bcinr-pddl/pddl-index/oxigraph/blake3/serde/praxis-graphlaw/
+# wasm4pm-cognition/chicago-tdd-tools class dependencies only), and
+# `crates/cng/src/bench/decomp/` has no natural-language generation code
+# path: every rendered artifact (PDDL problem text, POWL Turtle, receipt
+# Turtle) comes from an on-disk `.template.pddl`/`.template.ttl` file with
+# typed `{{PLACEHOLDER}}` substitution (`crate::bench::fill_template`) over
+# admitted/derived facts (search.rs's candidate enumeration is a bounded
+# union-find over ground atoms, never free text). This query is the
+# SECONDARY, negative-obs half: it would go nonzero if any production code
+# path ever emitted one of the three forbidden observation kinds below —
+# none does. Vacuously 0 on a store that carries no obs: (bench-obs)
+# vocabulary at all (e.g. a decomp evidence graph, which is decomp:/prov:/
+# xsd:/powl2 only) — that vacuity is honest, not omniscience; the
+# structural dependency/code-path audit above is the load-bearing claim.
+#   LLM_CALLS_ZERO: no obs:obsKind "llm_call" observation is ever emitted.
+#   ENGLISH_SUBGOALS_ZERO: no obs:obsKind "english_subgoal_authored"
+#     observation is ever emitted — every candidate's helper/main goal is a
+#     Pddl8GroundAtom set (search.rs::partition_goals/enumerate_candidates),
+#     never authored English text.
+#   CANNED_SUBGOALS_ZERO: no obs:obsKind "canned_subgoal_reused"
+#     observation is ever emitted — every candidate is enumerated fresh
+#     from the admitted goal/edge graph each run; search.rs has no static
+#     or canned candidate table.
+# Output: single row ?value = sum of the three counts.
+# Semantics: 0 = proven for all three names (same multi-name-per-query
+# convention as e.g. marker-hook-actuation.rq).
+# Determinism: aggregates over a fixed graph.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+
+SELECT ((?llmCalls + ?englishSubgoals + ?cannedSubgoals) AS ?value)
+WHERE {
+  {
+    SELECT (COUNT(?s) AS ?llmCalls)
+    WHERE { ?s obs:obsKind "llm_call" . }
+  }
+  {
+    SELECT (COUNT(?s) AS ?englishSubgoals)
+    WHERE { ?s obs:obsKind "english_subgoal_authored" . }
+  }
+  {
+    SELECT (COUNT(?s) AS ?cannedSubgoals)
+    WHERE { ?s obs:obsKind "canned_subgoal_reused" . }
+  }
+}

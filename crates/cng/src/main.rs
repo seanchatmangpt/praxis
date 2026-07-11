@@ -27,6 +27,8 @@ use pipeline::{generate_plan, import_artifacts, leaf_sources, plan_id, ImportedA
 use powl::{powl_to_turtle_with_provenance, project_tape_to_powl, Powl};
 
 const DEFAULT_BASE_IRI: &str = "urn:chatman:powl:cng";
+#[cfg(feature = "bench")]
+const DEFAULT_DECOMP_BASE_IRI: &str = "urn:chatman:decomp:cng";
 
 #[derive(Debug, Serialize)]
 struct ImportReport {
@@ -51,6 +53,28 @@ struct PlanReport {
     imported_pddl_ttl_paths: Vec<String>,
     generated_plan_id: String,
     steps: Vec<String>,
+}
+
+/// Report of one real (non-test) no-LLM decomposition run (PROJ-741): the
+/// PLANNING marker set (`queries/markers/marker-decomposition-*.rq`,
+/// `marker-no-llm-authoring.rq`) is provable ONLY against evidence a real
+/// run like this one produces on disk — never from in-process test state.
+#[cfg(feature = "bench")]
+#[derive(Debug, Serialize)]
+struct DecomposeReport {
+    domain_pddl_path: String,
+    problem_pddl_path: String,
+    out_dir: String,
+    /// One of the three typed `DecompositionOutcome` values, never absent.
+    outcome: String,
+    selected_candidate_id: String,
+    subworkflow_count: usize,
+    candidate_receipt_count: usize,
+    rejected_candidate_count: usize,
+    interface_atom_count: usize,
+    release_obligation_count: usize,
+    cross_edge_count: usize,
+    result_graph_path: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -215,6 +239,90 @@ fn plan_generate(dir: String) -> Result<PlanReport> {
         generated_plan_id: plan_id(&tape),
         steps: tape.ops.iter().map(|op| op.label.clone()).collect(),
     })
+}
+
+/// Runs the no-LLM multi-actor goal decomposition (PROJ-741,
+/// `cng::bench::decomp::decompose`) on an admitted PDDL domain/problem file
+/// pair (raw `.pddl` text, parsed via the unchanged `bcinr_pddl` parser —
+/// the same two-file convention `tests/cng_ipc_corpus.rs`'s negative
+/// fixtures use) and writes the full `decomposition-result.ttl` evidence
+/// bundle under `out`. This is the ONLY non-test entrypoint that produces
+/// the evidence the PROJ-739/740 planning markers
+/// (`queries/markers/marker-decomposition-*.rq`,
+/// `marker-no-llm-authoring.rq`) are provable against — everything else
+/// this command does is a thin CLI wrapper over what
+/// `bench::decomp::mod` already exposes; no new decomposition machinery.
+/// `decompose()` is fully deterministic (no seed): the outcome depends only
+/// on the admitted domain/problem content.
+#[cfg(feature = "bench")]
+#[verb("decompose", "plan")]
+fn plan_decompose(
+    domain: String,
+    problem: String,
+    out: String,
+    base_iri: Option<String>,
+) -> Result<DecomposeReport> {
+    let domain_text = fs::read_to_string(&domain)
+        .map_err(|e| to_cli_error_msg(format!("cannot read {domain}: {e}")))?;
+    let problem_text = fs::read_to_string(&problem)
+        .map_err(|e| to_cli_error_msg(format!("cannot read {problem}: {e}")))?;
+    let parsed_domain = bcinr_pddl::parse::domain_from_pddl(&domain_text).map_err(|e| {
+        to_cli_error(powl::CngRefusal::MalformedTtl(format!(
+            "domain PDDL failed to parse: {e:?}"
+        )))
+    })?;
+    let parsed_problem = bcinr_pddl::parse::problem_from_pddl(&problem_text).map_err(|e| {
+        to_cli_error(powl::CngRefusal::MalformedTtl(format!(
+            "problem PDDL failed to parse: {e:?}"
+        )))
+    })?;
+    let base = base_iri.unwrap_or_else(|| DEFAULT_DECOMP_BASE_IRI.to_string());
+    let result =
+        cng::bench::decomp::decompose(&parsed_domain, &parsed_problem, Path::new(&out), &base)
+            .map_err(to_cli_error)?;
+    let rejected_candidate_count = result
+        .candidate_receipts
+        .iter()
+        .filter(|r| r.status == cng::bench::decomp::CandidateStatus::Inadmissible)
+        .count();
+    let selected_candidate_id = match &result.outcome {
+        cng::bench::decomp::DecompositionOutcome::Selected { candidate_id, .. } => {
+            candidate_id.clone()
+        }
+        cng::bench::decomp::DecompositionOutcome::NoAdmissibleDecomposition { .. }
+        | cng::bench::decomp::DecompositionOutcome::NoBeneficialDecomposition { .. } => {
+            cng::bench::decomp::SINGLE_ACTOR_CANDIDATE_ID.to_string()
+        }
+    };
+    let report = DecomposeReport {
+        domain_pddl_path: domain,
+        problem_pddl_path: problem,
+        out_dir: out,
+        outcome: result.outcome.as_str().to_string(),
+        selected_candidate_id,
+        subworkflow_count: result.subworkflows.len(),
+        candidate_receipt_count: result.candidate_receipts.len(),
+        rejected_candidate_count,
+        interface_atom_count: result.interface_atoms.len(),
+        release_obligation_count: result.release_obligations.len(),
+        cross_edge_count: result.cross_edges.len(),
+        result_graph_path: result.result_graph_path.display().to_string(),
+    };
+    println!("OUTCOME={}", report.outcome);
+    println!("SELECTED_CANDIDATE_ID={}", report.selected_candidate_id);
+    println!("SUBWORKFLOW_COUNT={}", report.subworkflow_count);
+    println!("CANDIDATE_RECEIPT_COUNT={}", report.candidate_receipt_count);
+    println!(
+        "REJECTED_CANDIDATE_COUNT={}",
+        report.rejected_candidate_count
+    );
+    println!("INTERFACE_ATOM_COUNT={}", report.interface_atom_count);
+    println!(
+        "RELEASE_OBLIGATION_COUNT={}",
+        report.release_obligation_count
+    );
+    println!("RESULT_GRAPH_PATH={}", report.result_graph_path);
+    Ok(report)
 }
 
 /// Projects the combined plan into a POWL v2 model and returns its
@@ -682,6 +790,74 @@ fn benchmark_verify(
     let report = cng::bench::verify(Path::new(&dir), sample_every.unwrap_or(50), threads)
         .map_err(to_cli_error)?;
     println!("REPLAY_RESULT={}/{}", report.replay_passes, report.replayed);
+    Ok(report)
+}
+
+/// Prints the standard engine serve/resume marker lines. O(1).
+#[cfg(feature = "bench")]
+fn print_engine_report(report: &cng::bench::EngineServeReport) {
+    println!("MEASUREMENT_CLASS={}", report.measurement_class);
+    println!("ENGINE_ID={}", report.engine_id);
+    println!("ENGINE_VERSION={}", report.engine_version);
+    println!("ENGINE_INSTANCE_NONCE={}", report.instance_nonce);
+    println!("ENGINE_RESUMED={}", report.resumed);
+    println!("LEDGER_ENTRIES_VERIFIED={}", report.ledger_entries_verified);
+    println!("ENGINE_POLLS={}", report.polls);
+    println!("CONTRACTS_EXECUTED={}", report.contracts_executed);
+    println!("ENGINE_QUIESCED={}", report.quiesced);
+    println!("RECEIPT_CHAIN_DIGEST={}", report.receipt_chain_digest);
+}
+
+/// Runs one Chatman Engine worker process (PROJ-723): a bounded receipted
+/// poll loop over `<root>/engines/<engine-id>/inbox/`; each admitted
+/// dispatch contract executes through the real cng manufacture chain and
+/// its consequence Turtle is written atomically to the engine's outbox;
+/// the SHACL-validated `control/quiesce.ttl` ends the loop. Poll counts
+/// are logical; the inter-poll sleep sits behind the RealTimeWait seam and
+/// never enters any digest.
+#[cfg(feature = "bench")]
+#[verb("serve", "engine")]
+fn engine_serve(
+    root: String,
+    engine_id: String,
+    seed: Option<u64>,
+    max_polls: Option<u64>,
+    poll_wait_ms: Option<u64>,
+) -> Result<cng::bench::EngineServeReport> {
+    let report = cng::bench::engine_serve(
+        Path::new(&root),
+        &engine_id,
+        seed.unwrap_or(42),
+        max_polls.unwrap_or(64),
+        poll_wait_ms,
+    )
+    .map_err(to_cli_error)?;
+    print_engine_report(&report);
+    Ok(report)
+}
+
+/// Resumes a Chatman Engine worker after a crash/kill (PROJ-724): reloads
+/// the durable dispatch ledger tail + processed idempotency set, verifies
+/// every per-dispatch receipt-chain prefix (a torn ledger tail refuses
+/// CNG_R11), receipts the verification, and continues the serve loop.
+#[cfg(feature = "bench")]
+#[verb("resume", "engine")]
+fn engine_resume(
+    root: String,
+    engine_id: String,
+    seed: Option<u64>,
+    max_polls: Option<u64>,
+    poll_wait_ms: Option<u64>,
+) -> Result<cng::bench::EngineServeReport> {
+    let report = cng::bench::engine_resume(
+        Path::new(&root),
+        &engine_id,
+        seed.unwrap_or(42),
+        max_polls.unwrap_or(64),
+        poll_wait_ms,
+    )
+    .map_err(to_cli_error)?;
+    print_engine_report(&report);
     Ok(report)
 }
 

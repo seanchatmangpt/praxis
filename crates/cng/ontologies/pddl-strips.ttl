@@ -1,0 +1,212 @@
+# pddl: — 80/20 RDF vocabulary for STRIPS-subset PDDL domains and problems.
+# v26.7.10-revised (PROJ-701).
+#
+# What this is: a clean-room vocabulary for the bounded STRIPS subset of PDDL
+# consumed by the cng decomposition pipeline (lifter: admitted PDDL string ->
+# these triples; renderer: Problem graph -> deterministic PDDL text for the
+# unchanged bcinr_pddl::GroundProblem::find_plan path). It is written from
+# the invariants of STRIPS planning (ground/schematic atoms, positive
+# preconditions, add/delete effects, init/goal atom sets), NOT ported from
+# any existing schema or file. Naming is deliberately compatible with the
+# external reference vocabulary /Users/sac/wasm4pm-compat/ontologies/
+# pddlv3.1.ttl (Domain, Action, Atom, AddEffect, DelEffect, Problem, Object;
+# precondition, effect, hasObject, initAtom) so a later import/alignment is a
+# rename-free operation; no text was copied from that file.
+#
+# Public-ontology check (bridge-term justification): PROV-O models provenance
+# of past activity, not action schemas with preconditions/effects; schema.org
+# Action lacks STRIPS add/delete semantics and positional argument lists;
+# SKOS/DCTERMS cover labeling only. No public ontology models the STRIPS
+# planning object model, so pddl: terms are minted.
+#
+# SUPPORTED (80%, mirroring the Arazzo 80/20 profile doctrine —
+# docs/standing/SEMANTIC_PROFILE_DOCTRINE.md):
+#   Domain (domainName, hasAction), Action (actionName, ordered parameters,
+#   >=1 positive precondition Atom, >=1 AddEffect/DelEffect), Atom as a
+#   structured node (predicateName + ordered arguments via argIndex), Problem
+#   (problemName, fromDomain, hasObject, >=1 initAtom, >=1 goalAtom), Object
+#   (objectName, plus decomposition annotations: resource, actor, capability).
+#   STRIPS8 bounds apply downstream (arity <= 8, conjuncts <= 8, params <= 8).
+# REFUSED by name (20%) — typed below as UNSUPPORTED marker classes so any
+# instance of them is a named SHACL violation (pddl-strips-shapes.ttl):
+#   - pddl:DerivedPredicate  ((:derived ...) axioms / PDDL2.2)
+#   - pddl:ConditionalEffect ((when ...) effects / :conditional-effects, ADL)
+#   - pddl:NumericFluent     ((:functions ...) / :numeric-fluents, metrics)
+#   - pddl:DurativeAction    ((:durative-action ...) / PDDL2.1 temporal)
+#   Also out of profile (no classes minted; closed shapes refuse unknown
+#   predicates): negative preconditions, disjunctive/quantified conditions,
+#   typing hierarchies, preferences/constraints, PDDL+ processes/events.
+
+@prefix pddl:    <https://truex.io/ontology/pddl-strips#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+<https://truex.io/ontology/pddl-strips#> a owl:Ontology ;
+    rdfs:label "PDDL STRIPS vocabulary (80/20 profile)" ;
+    dcterms:description "Clean-room RDF vocabulary for the STRIPS subset of PDDL used by cng decomposition (lift/manufacture/render). ADL, derived predicates, conditional effects, numeric fluents, and durative actions are refused by name; see header comment and pddl-strips-shapes.ttl." .
+
+### Classes (alphabetical)
+
+pddl:Action a rdfs:Class ;
+    rdfs:label "Action" ;
+    rdfs:comment "A STRIPS action schema: actionName, ordered Parameter list, >=1 positive precondition Atom, >=1 effect (AddEffect or DelEffect). No conditional, quantified, or numeric effects (REFUSED by name)." .
+
+pddl:AddEffect a rdfs:Class ;
+    rdfs:subClassOf pddl:Atom ;
+    rdfs:label "AddEffect" ;
+    rdfs:comment "An atom asserted true by an action: subclass of Atom carrying predicateName + ordered arguments directly. Negation is modelled by explicit not-X predicates with add/del pairs (e.g. sliced/unsliced), never by a NOT operator." .
+
+pddl:Argument a rdfs:Class ;
+    rdfs:label "Argument" ;
+    rdfs:comment "One positional argument of an Atom: argIndex (0-based) + argValue (an object name, or a ?-prefixed variable inside an action schema). Reified because PDDL application is positional and RDF links are unordered." .
+
+pddl:Atom a rdfs:Class ;
+    rdfs:label "Atom" ;
+    rdfs:comment "A predicate application (pred arg0 ... argN) as a structured node: exactly one predicateName plus ordered Arguments. Ground when every argValue names an Object; schematic when any argValue is a ?-variable. Arity <= 8 (STRIPS8 bound)." .
+
+pddl:ConditionalEffect a rdfs:Class ;
+    rdfs:label "ConditionalEffect (UNSUPPORTED)" ;
+    rdfs:comment "REFUSED by name: (when ...) conditional effects (:conditional-effects, ADL) are outside the STRIPS 80/20 profile. Any instance of this class is a named SHACL violation." .
+
+pddl:DelEffect a rdfs:Class ;
+    rdfs:subClassOf pddl:Atom ;
+    rdfs:label "DelEffect" ;
+    rdfs:comment "An atom asserted false by an action: subclass of Atom carrying predicateName + ordered arguments directly." .
+
+pddl:DerivedPredicate a rdfs:Class ;
+    rdfs:label "DerivedPredicate (UNSUPPORTED)" ;
+    rdfs:comment "REFUSED by name: (:derived ...) axioms (PDDL2.2 :derived-predicates) are outside the STRIPS 80/20 profile. Any instance of this class is a named SHACL violation." .
+
+pddl:Domain a rdfs:Class ;
+    rdfs:label "Domain" ;
+    rdfs:comment "A (define (domain NAME) ...) block restricted to the STRIPS profile: name + action schemas. Requirements are implicitly (:requirements :strips); typing hierarchies are out of profile." .
+
+pddl:DurativeAction a rdfs:Class ;
+    rdfs:label "DurativeAction (UNSUPPORTED)" ;
+    rdfs:comment "REFUSED by name: (:durative-action ...) temporal actions (PDDL2.1 :durative-actions) are outside the STRIPS 80/20 profile. Any instance of this class is a named SHACL violation." .
+
+pddl:NumericFluent a rdfs:Class ;
+    rdfs:label "NumericFluent (UNSUPPORTED)" ;
+    rdfs:comment "REFUSED by name: (:functions ...) numeric fluents, comparisons, and metrics (:numeric-fluents / :action-costs) are outside the STRIPS 80/20 profile. Any instance of this class is a named SHACL violation." .
+
+pddl:Object a rdfs:Class ;
+    rdfs:label "Object" ;
+    rdfs:comment "A (:objects ...) entry scoped to one Problem: objectName plus optional decomposition annotations (resource, actor, capability) consumed by rules/decomp.dl. Untyped (typing is out of profile)." .
+
+pddl:Parameter a rdfs:Class ;
+    rdfs:label "Parameter" ;
+    rdfs:comment "One positional parameter of an Action schema: paramIndex (0-based) + parameterName (?-prefixed variable). Params <= 8 (STRIPS8 bound)." .
+
+pddl:Problem a rdfs:Class ;
+    rdfs:label "Problem" ;
+    rdfs:comment "A (define (problem NAME) (:domain D) (:objects ...) (:init ...) (:goal (and ...))) block: fromDomain, hasObject, initAtom set (ground), goalAtom set (ground, conjunctive-positive only — the STRIPS goal shape)." .
+
+### Properties (alphabetical)
+
+pddl:actionName a rdf:Property ;
+    rdfs:domain pddl:Action ; rdfs:range xsd:string ;
+    rdfs:label "action name" ;
+    rdfs:comment "PDDL action-schema name; must match ^[a-z][a-z0-9-]*$ (lowercase kebab, the deterministic renderer's canonical form)." .
+
+pddl:actor a rdf:Property ;
+    rdfs:domain pddl:Object ; rdfs:range xsd:boolean ;
+    rdfs:label "actor" ;
+    rdfs:comment "Decomposition annotation: true iff this Object is an acting agent to which a subworkflow may be assigned (helper/main partitioning). Admitted fact, never a Rust constant." .
+
+pddl:argIndex a rdf:Property ;
+    rdfs:domain pddl:Argument ; rdfs:range xsd:integer ;
+    rdfs:label "argument index" ;
+    rdfs:comment "0-based position of this Argument within its Atom; 0 <= argIndex <= 7 (STRIPS8 arity bound)." .
+
+pddl:argument a rdf:Property ;
+    rdfs:domain pddl:Atom ; rdfs:range pddl:Argument ;
+    rdfs:label "argument" ;
+    rdfs:comment "Links an Atom (or AddEffect/DelEffect) to one positional Argument; ordering is carried by argIndex, not by link order." .
+
+pddl:argValue a rdf:Property ;
+    rdfs:domain pddl:Argument ; rdfs:range xsd:string ;
+    rdfs:label "argument value" ;
+    rdfs:comment "The argument symbol: an object name (ground) or a ?-prefixed variable (schematic, action schemas only). Problem init/goal atoms must be ground." .
+
+pddl:capability a rdf:Property ;
+    rdfs:domain pddl:Object ; rdfs:range xsd:string ;
+    rdfs:label "capability" ;
+    rdfs:comment "Decomposition annotation: the actionName of an action schema this actor Object may perform. Multi-valued; consumed by rules/decomp.dl role assignment. Admitted fact, never a Rust constant." .
+
+pddl:domainName a rdf:Property ;
+    rdfs:domain pddl:Domain ; rdfs:range xsd:string ;
+    rdfs:label "domain name" ;
+    rdfs:comment "PDDL domain name; must match ^[a-z][a-z0-9-]*$." .
+
+pddl:effect a rdf:Property ;
+    rdfs:domain pddl:Action ; rdfs:range pddl:Atom ;
+    rdfs:label "effect" ;
+    rdfs:comment "Links an Action to one effect atom, which must be typed pddl:AddEffect or pddl:DelEffect (a bare pddl:Atom effect is non-conforming). Conjuncts <= 8 (STRIPS8 bound)." .
+
+pddl:fromDomain a rdf:Property ;
+    rdfs:domain pddl:Problem ; rdfs:range pddl:Domain ;
+    rdfs:label "from domain" ;
+    rdfs:comment "The Domain this Problem instantiates ((:domain D)). Exactly one." .
+
+pddl:goalAtom a rdf:Property ;
+    rdfs:domain pddl:Problem ; rdfs:range pddl:Atom ;
+    rdfs:label "goal atom" ;
+    rdfs:comment "One ground conjunct of the (:goal (and ...)) condition. Positive atoms only — negative goals are expressed via explicit not-X predicates." .
+
+pddl:hasAction a rdf:Property ;
+    rdfs:domain pddl:Domain ; rdfs:range pddl:Action ;
+    rdfs:label "has action" ;
+    rdfs:comment "Membership of an action schema in a domain." .
+
+pddl:hasObject a rdf:Property ;
+    rdfs:domain pddl:Problem ; rdfs:range pddl:Object ;
+    rdfs:label "has object" ;
+    rdfs:comment "Membership of an Object in a Problem's (:objects ...) set." .
+
+pddl:initAtom a rdf:Property ;
+    rdfs:domain pddl:Problem ; rdfs:range pddl:Atom ;
+    rdfs:label "init atom" ;
+    rdfs:comment "A ground atom true in the initial state ((:init ...)). Closed-world: atoms absent from init are false." .
+
+pddl:objectName a rdf:Property ;
+    rdfs:domain pddl:Object ; rdfs:range xsd:string ;
+    rdfs:label "object name" ;
+    rdfs:comment "PDDL object symbol; must match ^[a-z][a-z0-9-]*$." .
+
+pddl:parameter a rdf:Property ;
+    rdfs:domain pddl:Action ; rdfs:range pddl:Parameter ;
+    rdfs:label "parameter" ;
+    rdfs:comment "Links an Action schema to one positional Parameter; ordering is carried by paramIndex." .
+
+pddl:parameterName a rdf:Property ;
+    rdfs:domain pddl:Parameter ; rdfs:range xsd:string ;
+    rdfs:label "parameter name" ;
+    rdfs:comment "?-prefixed variable name; must match ^\\?[a-z][a-z0-9-]*$." .
+
+pddl:paramIndex a rdf:Property ;
+    rdfs:domain pddl:Parameter ; rdfs:range xsd:integer ;
+    rdfs:label "parameter index" ;
+    rdfs:comment "0-based position of this Parameter in the action schema; 0 <= paramIndex <= 7 (STRIPS8 params bound)." .
+
+pddl:precondition a rdf:Property ;
+    rdfs:domain pddl:Action ; rdfs:range pddl:Atom ;
+    rdfs:label "precondition" ;
+    rdfs:comment "One positive precondition conjunct of an Action. STRIPS-only: no negation, disjunction, or quantification (REFUSED by name). Conjuncts <= 8 (STRIPS8 bound)." .
+
+pddl:predicateName a rdf:Property ;
+    rdfs:domain pddl:Atom ; rdfs:range xsd:string ;
+    rdfs:label "predicate name" ;
+    rdfs:comment "The predicate symbol of an Atom; must match ^[a-z][a-z0-9-]*$. Explicit not-X predicates (e.g. unsliced vs sliced) are ordinary predicates maintained by add/del pairs." .
+
+pddl:problemName a rdf:Property ;
+    rdfs:domain pddl:Problem ; rdfs:range xsd:string ;
+    rdfs:label "problem name" ;
+    rdfs:comment "PDDL problem name; must match ^[a-z][a-z0-9-]*$." .
+
+pddl:resource a rdf:Property ;
+    rdfs:domain pddl:Object ; rdfs:range xsd:boolean ;
+    rdfs:label "resource" ;
+    rdfs:comment "Decomposition annotation: true iff this Object is a contended resource subject to custody/release-closure rules (rules/decomp.dl, decomp-resources.dl). Admitted fact, never a Rust constant." .

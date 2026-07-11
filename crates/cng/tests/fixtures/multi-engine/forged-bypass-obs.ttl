@@ -1,0 +1,44 @@
+# PROJ-728 isolation falsifier fixture: a HOSTILE observation graph that a
+# lawful producer can never emit. Loaded by tests/cng_multi_engine.rs to
+# prove the auditing marker queries REFUTE it:
+#   - one shared_memory_crossing observation      (+1 to isolation ?value)
+#   - one direct_engine_bypass observation        (+1 to isolation ?value)
+#   - one remote_consequence_received WITHOUT a matching remote_dispatch_sent
+#     for the same ex:dispatchId — the derived-bypass arm (+1)
+#   - one resume_verified carrying ex:divergence "true" (replay-divergence
+#     marker ?value = 1)
+# marker-engine-isolation.rq must yield ?value = 3 and
+# marker-replay-divergence.rq must yield ?value = 1 over this graph.
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:obs-forged-0 a obs:Observation ;
+  obs:obsKind "shared_memory_crossing" ;
+  obs:obsSeq 0 ;
+  obs:obsSetId "forged" ;
+  obs:producedByEngine "H" ;
+  ex:detail "in-memory state shared between H and M" .
+
+ex:obs-forged-1 a obs:Observation ;
+  obs:obsKind "direct_engine_bypass" ;
+  obs:obsSeq 1 ;
+  obs:obsSetId "forged" ;
+  obs:producedByEngine "M" ;
+  ex:dispatchId "disp-forged-0001" .
+
+ex:obs-forged-2 a obs:Observation ;
+  obs:obsKind "remote_consequence_received" ;
+  obs:obsSeq 2 ;
+  obs:obsSetId "forged" ;
+  obs:producedByEngine "C" ;
+  ex:dispatchId "disp-forged-0002" ;
+  ex:sourceEngine "H" .
+
+ex:obs-forged-3 a obs:Observation ;
+  obs:obsKind "resume_verified" ;
+  obs:obsSeq 3 ;
+  obs:obsSetId "H" ;
+  obs:producedByEngine "H" ;
+  ex:ledgerEntriesVerified "3"^^xsd:integer ;
+  ex:divergence "true" .

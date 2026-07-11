@@ -1,0 +1,47 @@
+# ocel-engines.construct.rq (PROJ-727)
+# Inputs: obs graph (obs:obsKind in engine_started|engine_poll|
+# engine_executed|engine_quiesced|resume_verified — the multi-engine
+# serve/resume surface, PROJ-722/723/724). Every such observation carries
+# obs:producedByEngine (the deterministic EngineIdentity).
+# Outputs: ocel:Event + ocel:EventType triples; every engine event carries
+# ex:engineId (projected from obs:producedByEngine) so
+# metric-engine-instances.rq and the multi-engine markers are graph-derived,
+# and ex:dispatchId where present (engine_executed). Yields zero triples on
+# a Fortune-5 or single-operator workday corpus (no such obs kinds), so
+# existing run/audit digests are unchanged.
+# eventId = obsSetId + '-' + obsSeq. Timestamp encoding: logical,
+# deterministic — epoch 2000-01-01T00:00:00Z + obs:obsSeq seconds, identical
+# to ocel-events.construct.rq. No wall clock; obsSeq is a logical counter.
+# Subjects are IRI-minted (never blank nodes) so the sorted N-Triples
+# serialization stays byte-deterministic across producer and auditor.
+PREFIX obs:  <https://ggen.io/ontology/bench-obs#>
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX ex:   <http://example.org/rwai#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ?ev a ocel:Event ;
+      ocel:eventId ?eid ;
+      ocel:activityName ?kind ;
+      ocel:timestamp ?ts ;
+      ocel:hasEventType ?etype ;
+      ex:engineId ?engine ;
+      ex:dispatchId ?dispatchId .
+  ?etype a ocel:EventType ;
+      ocel:eventTypeName ?kind .
+}
+WHERE {
+  ?o obs:obsKind ?kind ;
+     obs:obsSeq ?seq ;
+     obs:obsSetId ?setId ;
+     obs:producedByEngine ?engine .
+  FILTER(?kind IN ("engine_started", "engine_poll", "engine_executed",
+                   "engine_quiesced", "resume_verified"))
+  OPTIONAL { ?o ex:dispatchId ?dispatchId }
+  BIND(CONCAT(?setId, "-", STR(?seq)) AS ?eid)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event/", ENCODE_FOR_URI(?eid))) AS ?ev)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event-type/", ENCODE_FOR_URI(?kind))) AS ?etype)
+  BIND("2000-01-01T00:00:00Z"^^xsd:dateTime
+       + STRDT(CONCAT("PT", STR(?seq), "S"), xsd:dayTimeDuration) AS ?ts)
+}
+ORDER BY ?setId ?seq

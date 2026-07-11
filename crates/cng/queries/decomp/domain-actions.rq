@@ -1,0 +1,10 @@
+# domain-actions.rq — the action schemas of a given Domain (PROJ-703
+# domain renderer). Placeholder {DOMAIN} substituted via str::replace.
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+SELECT ?action ?name
+WHERE {
+  <{DOMAIN}> pddl:hasAction ?action .
+  ?action pddl:actionName ?name .
+}
+ORDER BY ?name ?action

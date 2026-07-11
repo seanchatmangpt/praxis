@@ -1,0 +1,15 @@
+# decomp result core template (PROJ-710): the DecompositionResult identity,
+# typed outcome, and selected-candidate pointer. Rendered via fill_template;
+# per-atom / per-edge / per-obligation triples are appended from their own
+# templates (templates cannot iterate — one instance per fact, the ObsWriter
+# precedent).
+@prefix decomp: <https://truex.io/ontology/decomp#> .
+@prefix prov:   <http://www.w3.org/ns/prov#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+<{{RESULT_IRI}}> a decomp:DecompositionResult ;
+  decomp:outcome "{{OUTCOME}}" ;
+  decomp:selectedCandidateId "{{SELECTED_CANDIDATE_ID}}" ;
+  decomp:subworkflowCount "{{SUBWORKFLOW_COUNT}}"^^xsd:integer ;
+  decomp:rejectedCandidateCount "{{REJECTED_COUNT}}"^^xsd:integer ;
+  prov:wasDerivedFrom <{{SOURCE_PROBLEM}}> .

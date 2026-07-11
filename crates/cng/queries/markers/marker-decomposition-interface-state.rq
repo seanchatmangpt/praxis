@@ -1,0 +1,42 @@
+# marker-decomposition-interface-state.rq (PROJ-739)
+# Marker: INTERFACE_STATE_PROVEN.
+# Inputs: decomp:DecompositionResult / decomp:CandidateReceipt /
+# decomp:interfaceAtom evidence (interface.rs::replay_to_interface_state —
+# the interface state s' = E(s, helper tape) proof obligation,
+# CNG_R23 InterfaceStateMismatch; PROJ-707/710).
+# Output: single row ?value = count of Selected-outcome results carrying an
+# unresolved interface-state condition: the SELECTED candidate's own
+# receipt is not decomp:candidateStatus "Selected" (or is entirely absent),
+# its reason names CNG_R23, or the result carries zero decomp:interfaceAtom
+# facts (s' was never captured for a split outcome).
+# Semantics: 0 = proven. Note on scope: decomp/mod.rs::decompose_with
+# re-runs the interface/interference/release-closure gates on the SELECTED
+# candidate (step 8, belt-and-braces) before emit_result_graph is ever
+# called — a residual CNG_R23 on the winner makes the whole run refuse
+# before any result graph exists. Proving this query's count is 0 is
+# therefore both a graph self-consistency check (the receipted evidence is
+# not self-contradictory) and, by that structural law, a guarantee that no
+# such graph can exist otherwise — honest about which, not omniscience
+# about candidates the search never examined.
+# Determinism: aggregate + OPTIONAL/FILTER over a fixed graph.
+PREFIX decomp: <https://truex.io/ontology/decomp#>
+
+SELECT (COUNT(DISTINCT ?result) AS ?value)
+WHERE {
+  ?result a decomp:DecompositionResult ;
+          decomp:outcome "Selected" ;
+          decomp:selectedCandidateId ?selectedId .
+  OPTIONAL {
+    ?receipt a decomp:CandidateReceipt ;
+             decomp:receiptOf ?result ;
+             decomp:candidateId ?selectedId ;
+             decomp:candidateStatus ?status ;
+             decomp:reason ?reason .
+  }
+  FILTER (
+    !BOUND(?status)
+    || ?status != "Selected"
+    || CONTAINS(?reason, "CNG_R23")
+    || NOT EXISTS { ?result decomp:interfaceAtom ?atom . }
+  )
+}

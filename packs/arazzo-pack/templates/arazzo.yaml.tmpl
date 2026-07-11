@@ -1,0 +1,268 @@
+---
+to: "generated/arazzo.yaml"
+force: true
+determinism: true
+sparql:
+  a_info: |
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT ?label ?description WHERE {
+      <https://truex.io/ontology/arazzo#> rdfs:label ?label ;
+                                          dcterms:description ?description .
+    } ORDER BY ?label ?description
+  b_sources: |
+    PREFIX arz: <https://truex.io/ontology/arazzo#>
+    SELECT ?name ?url ?stype WHERE {
+      ?s a arz:SourceDescription ;
+         arz:name ?name ;
+         arz:url ?url ;
+         arz:sourceType ?stype .
+    } ORDER BY ?name ?url ?stype
+  c_workflows: |
+    PREFIX arz: <https://truex.io/ontology/arazzo#>
+    SELECT ?workflow_id ?summary ?inputs WHERE {
+      ?w a arz:Workflow ;
+         arz:workflowId ?workflow_id ;
+         arz:summary ?summary ;
+         arz:inputs ?inputs .
+    } ORDER BY ?workflow_id ?summary ?inputs
+  d_wf_depends: |
+    PREFIX arz: <https://truex.io/ontology/arazzo#>
+    SELECT ?workflow_id ?dep WHERE {
+      ?w a arz:Workflow ;
+         arz:workflowId ?workflow_id ;
+         arz:dependsOn ?dep .
+      FILTER(isLiteral(?dep))
+    } ORDER BY ?workflow_id ?dep
+  e_steps: |
+    PREFIX arz: <https://truex.io/ontology/arazzo#>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT ?workflow_id ?step_index ?step_id ?operation_id ?description WHERE {
+      ?w a arz:Workflow ;
+         arz:workflowId ?workflow_id ;
+         arz:hasStep ?s .
+      ?s arz:stepId ?step_id ;
+         arz:stepIndex ?step_index .
+      OPTIONAL { ?s arz:operationId ?op }
+      OPTIONAL { ?s dcterms:description ?d }
+      BIND(COALESCE(?op, "") AS ?operation_id)
+      BIND(COALESCE(?d, "") AS ?description)
+    } ORDER BY ?workflow_id ?step_index ?step_id ?operation_id ?description
+  f_parameters: |
+    PREFIX arz: <https://truex.io/ontology/arazzo#>
+    SELECT ?workflow_id ?step_id ?pname ?pin ?pvalue WHERE {
+      ?w a arz:Workflow ;
+         arz:workflowId ?workflow_id ;
+         arz:hasStep ?s .
+      ?s arz:stepId ?step_id ;
+         arz:hasParameter ?p .
+      ?p arz:name ?pname ;
+         arz:in ?pin ;
+         arz:value ?pvalue .
+    } ORDER BY ?workflow_id ?step_id ?pname ?pin ?pvalue
+  g_criteria: |
+    PREFIX arz: <https://truex.io/ontology/arazzo#>
+    SELECT ?workflow_id ?step_id ?condition ?ctype ?ctx WHERE {
+      ?w a arz:Workflow ;
+         arz:workflowId ?workflow_id ;
+         arz:hasStep ?s .
+      ?s arz:stepId ?step_id ;
+         arz:successCriterion ?c .
+      ?c arz:condition ?condition .
+      OPTIONAL { ?c arz:criterionType ?t }
+      OPTIONAL { ?c arz:context ?x }
+      BIND(COALESCE(?t, "simple") AS ?ctype)
+      BIND(COALESCE(?x, "") AS ?ctx)
+    } ORDER BY ?workflow_id ?step_id ?condition ?ctype ?ctx
+  h_on_success: |
+    PREFIX arz: <https://truex.io/ontology/arazzo#>
+    SELECT ?workflow_id ?step_id ?aname ?atype ?target_step ?target_workflow WHERE {
+      ?w a arz:Workflow ;
+         arz:workflowId ?workflow_id ;
+         arz:hasStep ?s .
+      ?s arz:stepId ?step_id ;
+         arz:onSuccess ?a .
+      ?a arz:name ?aname ;
+         arz:actionType ?atype .
+      OPTIONAL { ?a arz:targetStep ?ts }
+      OPTIONAL { ?a arz:targetWorkflow ?tw }
+      BIND(COALESCE(?ts, "") AS ?target_step)
+      BIND(COALESCE(?tw, "") AS ?target_workflow)
+    } ORDER BY ?workflow_id ?step_id ?aname ?atype ?target_step ?target_workflow
+  i_on_failure: |
+    PREFIX arz: <https://truex.io/ontology/arazzo#>
+    SELECT ?workflow_id ?step_id ?aname ?atype ?target_step ?target_workflow ?retry_after ?retry_limit WHERE {
+      ?w a arz:Workflow ;
+         arz:workflowId ?workflow_id ;
+         arz:hasStep ?s .
+      ?s arz:stepId ?step_id ;
+         arz:onFailure ?a .
+      ?a arz:name ?aname ;
+         arz:actionType ?atype .
+      OPTIONAL { ?a arz:targetStep ?ts }
+      OPTIONAL { ?a arz:targetWorkflow ?tw }
+      OPTIONAL { ?a arz:retryAfter ?ra }
+      OPTIONAL { ?a arz:retryLimit ?rl }
+      BIND(COALESCE(?ts, "") AS ?target_step)
+      BIND(COALESCE(?tw, "") AS ?target_workflow)
+      BIND(COALESCE(STR(?ra), "") AS ?retry_after)
+      BIND(COALESCE(STR(?rl), "") AS ?retry_limit)
+    } ORDER BY ?workflow_id ?step_id ?aname ?atype ?target_step ?target_workflow ?retry_after ?retry_limit
+  j_action_criteria: |
+    PREFIX arz: <https://truex.io/ontology/arazzo#>
+    SELECT ?workflow_id ?step_id ?aname ?condition ?ctype WHERE {
+      ?w a arz:Workflow ;
+         arz:workflowId ?workflow_id ;
+         arz:hasStep ?s .
+      ?s arz:stepId ?step_id .
+      { ?s arz:onSuccess ?a } UNION { ?s arz:onFailure ?a }
+      ?a arz:name ?aname ;
+         arz:criteria ?c .
+      ?c arz:condition ?condition .
+      OPTIONAL { ?c arz:criterionType ?t }
+      BIND(COALESCE(?t, "simple") AS ?ctype)
+    } ORDER BY ?workflow_id ?step_id ?aname ?condition ?ctype
+  k_step_outputs: |
+    PREFIX arz: <https://truex.io/ontology/arazzo#>
+    SELECT ?workflow_id ?step_id ?oname ?ovalue WHERE {
+      ?w a arz:Workflow ;
+         arz:workflowId ?workflow_id ;
+         arz:hasStep ?s .
+      ?s arz:stepId ?step_id ;
+         arz:hasOutput ?o .
+      ?o arz:name ?oname ;
+         arz:value ?ovalue .
+    } ORDER BY ?workflow_id ?step_id ?oname ?ovalue
+  l_wf_outputs: |
+    PREFIX arz: <https://truex.io/ontology/arazzo#>
+    SELECT ?workflow_id ?oname ?ovalue WHERE {
+      ?w a arz:Workflow ;
+         arz:workflowId ?workflow_id ;
+         arz:hasOutput ?o .
+      ?o arz:name ?oname ;
+         arz:value ?ovalue .
+    } ORDER BY ?workflow_id ?oname ?ovalue
+---
+# GENERATED BY ggen — do not edit. Source: packs/arazzo-pack/ontology.ttl
+# (union of crates/cng/ontologies/arazzo.ttl + crates/cng/examples/
+# arazzo-api-orchestration.ttl + packs/arazzo-pack/engines-local.ttl).
+# RDF is authoritative; this YAML is a projection artifact (PROJ-726).
+{% set info = sparql_first(rows=a_info) -%}
+arazzo: 1.1.0
+info:
+  title: "{{ info.label }}"
+  description: "{{ info.description }}"
+  version: 26.7.10
+sourceDescriptions:
+{%- for src in b_sources %}
+  - name: {{ src.name }}
+    url: "{{ src.url }}"
+    type: {{ src.stype }}
+{%- endfor %}
+workflows:
+{%- for wf in c_workflows %}
+  - workflowId: {{ wf.workflow_id }}
+    summary: "{{ wf.summary }}"
+{%- set wf_deps = d_wf_depends | filter(attribute="workflow_id", value=wf.workflow_id) %}
+{%- if wf_deps %}
+    dependsOn:
+{%- for dep in wf_deps %}
+      - {{ dep.dep }}
+{%- endfor %}
+{%- endif %}
+    inputs: {{ wf.inputs }}
+    steps:
+{%- for step in e_steps | filter(attribute="workflow_id", value=wf.workflow_id) %}
+      - stepId: {{ step.step_id }}
+{%- if step.description != "" %}
+        description: "{{ step.description }}"
+{%- endif %}
+{%- if step.operation_id != "" %}
+        operationId: {{ step.operation_id }}
+{%- endif %}
+{%- set params = f_parameters | filter(attribute="workflow_id", value=wf.workflow_id) | filter(attribute="step_id", value=step.step_id) %}
+{%- if params %}
+        parameters:
+{%- for p in params %}
+          - name: {{ p.pname }}
+            in: {{ p.pin }}
+            value: "{{ p.pvalue }}"
+{%- endfor %}
+{%- endif %}
+{%- set crits = g_criteria | filter(attribute="workflow_id", value=wf.workflow_id) | filter(attribute="step_id", value=step.step_id) %}
+{%- if crits %}
+        successCriteria:
+{%- for c in crits %}
+          - condition: "{{ c.condition }}"
+{%- if c.ctx != "" %}
+            context: "{{ c.ctx }}"
+{%- endif %}
+            type: {{ c.ctype }}
+{%- endfor %}
+{%- endif %}
+{%- set oks = h_on_success | filter(attribute="workflow_id", value=wf.workflow_id) | filter(attribute="step_id", value=step.step_id) %}
+{%- if oks %}
+        onSuccess:
+{%- for a in oks %}
+          - name: {{ a.aname }}
+            type: {{ a.atype }}
+{%- if a.target_step != "" %}
+            stepId: {{ a.target_step }}
+{%- endif %}
+{%- if a.target_workflow != "" %}
+            workflowId: {{ a.target_workflow }}
+{%- endif %}
+{%- set acs = j_action_criteria | filter(attribute="workflow_id", value=wf.workflow_id) | filter(attribute="step_id", value=step.step_id) | filter(attribute="aname", value=a.aname) %}
+{%- if acs %}
+            criteria:
+{%- for c in acs %}
+              - condition: "{{ c.condition }}"
+                type: {{ c.ctype }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- set fails = i_on_failure | filter(attribute="workflow_id", value=wf.workflow_id) | filter(attribute="step_id", value=step.step_id) %}
+{%- if fails %}
+        onFailure:
+{%- for a in fails %}
+          - name: {{ a.aname }}
+            type: {{ a.atype }}
+{%- if a.target_step != "" %}
+            stepId: {{ a.target_step }}
+{%- endif %}
+{%- if a.target_workflow != "" %}
+            workflowId: {{ a.target_workflow }}
+{%- endif %}
+{%- if a.retry_after != "" %}
+            retryAfter: {{ a.retry_after }}
+{%- endif %}
+{%- if a.retry_limit != "" %}
+            retryLimit: {{ a.retry_limit }}
+{%- endif %}
+{%- set acs = j_action_criteria | filter(attribute="workflow_id", value=wf.workflow_id) | filter(attribute="step_id", value=step.step_id) | filter(attribute="aname", value=a.aname) %}
+{%- if acs %}
+            criteria:
+{%- for c in acs %}
+              - condition: "{{ c.condition }}"
+                type: {{ c.ctype }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- set outs = k_step_outputs | filter(attribute="workflow_id", value=wf.workflow_id) | filter(attribute="step_id", value=step.step_id) %}
+{%- if outs %}
+        outputs:
+{%- for o in outs %}
+          {{ o.oname }}: "{{ o.ovalue }}"
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{%- set wfouts = l_wf_outputs | filter(attribute="workflow_id", value=wf.workflow_id) %}
+{%- if wfouts %}
+    outputs:
+{%- for o in wfouts %}
+      {{ o.oname }}: "{{ o.ovalue }}"
+{%- endfor %}
+{%- endif %}
+{%- endfor %}

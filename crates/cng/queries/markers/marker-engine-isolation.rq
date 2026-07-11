@@ -1,0 +1,41 @@
+# marker-engine-isolation.rq (PROJ-727)
+# Markers: SHARED_MEMORY_CROSSINGS_ZERO + DIRECT_ENGINE_BYPASSES_ZERO.
+# Inputs: OBSERVATION graph (bench-obs vocabulary; the marker store union).
+# Output: single row ?value = the sum of three isolation violations:
+#   (a) shared_memory_crossing observations (FORBIDDEN kind; no production
+#       path emits it — negative-obs evidence),
+#   (b) direct_engine_bypass observations (FORBIDDEN kind; minted only by
+#       fixtures/audits, never by production Rust),
+#   (c) DERIVED bypasses: any remote_consequence_received whose
+#       ex:dispatchId has NO matching remote_dispatch_sent — a consequence
+#       crossed the engine boundary without the lawful outbound
+#       dispatch/ledger record. (This is a superset of "admitted without a
+#       sent record": admission requires reception first.)
+# Semantics: 0 = proven. This is "structural + negative-obs evidence"
+# (decision 11 of the release plan), not omniscience: separate OS processes
+# plus the fs-inventory assertion in tests/cng_multi_engine.rs carry the
+# structural half. Vacuously 0 on single-engine corpora.
+# Determinism: aggregates over a fixed graph.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+PREFIX ex:  <http://example.org/rwai#>
+
+SELECT ((?crossings + ?bypasses + ?derived) AS ?value)
+WHERE {
+  {
+    SELECT (COUNT(?s) AS ?crossings)
+    WHERE { ?s obs:obsKind "shared_memory_crossing" . }
+  }
+  {
+    SELECT (COUNT(?s) AS ?bypasses)
+    WHERE { ?s obs:obsKind "direct_engine_bypass" . }
+  }
+  {
+    SELECT (COUNT(DISTINCT ?d) AS ?derived)
+    WHERE {
+      ?r obs:obsKind "remote_consequence_received" ; ex:dispatchId ?d .
+      FILTER NOT EXISTS {
+        ?snt obs:obsKind "remote_dispatch_sent" ; ex:dispatchId ?d .
+      }
+    }
+  }
+}

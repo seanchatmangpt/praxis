@@ -914,6 +914,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "oxigraph",
+ "pddl-index",
  "praxis-graphlaw",
  "serde",
  "serde_json",

@@ -287,6 +287,125 @@ pub fn workday_replay(
     })
 }
 
+/// Report of one PARTIAL (prefix) workday replay pass (PROJ-724, G13
+/// machinery): an UNFINISHED bundle — no recorded report, no serialized
+/// OCEL — is lawful input; only observed INCONSISTENCY refuses. The
+/// `*_compared` flags say which recorded artifacts existed and were
+/// checked (`false` = absent, honestly skipped, never inferred).
+#[derive(Debug, serde::Serialize)]
+pub struct WorkdayPartialReplayReport {
+    pub out_dir: String,
+    /// `hook_receipt` observations reconciled against the actuation law.
+    pub hook_receipt_observations: usize,
+    /// Whether `results/workday-report.json` existed and its digests were
+    /// compared (a mismatch refused before this struct existed).
+    pub report_compared: bool,
+    /// Whether `evidence/ocel.nt` existed and was byte-compared.
+    pub ocel_serialization_compared: bool,
+    pub recomputed_obs_digest: String,
+    pub recomputed_ocel_graph_digest: String,
+}
+
+/// Partial (prefix) workday replay (PROJ-724): verifies whatever prefix of
+/// a workday bundle exists — obs partitions parse, the actuation-receipt
+/// law holds, and the OCEL evidence graph rematerializes — WITHOUT
+/// requiring the finished-bundle artifacts (`results/workday-report.json`,
+/// `evidence/ocel.nt`). Where a recorded artifact IS present it must agree
+/// (same refusals as [`workday_replay`]); absence is skipped and reported,
+/// never refused. This is the crash-resume falsifier's verification entry:
+/// a killed producer leaves a lawful prefix, not a tamper.
+///
+/// # Errors
+/// `CNG_R13 UnreceiptedActuation` (stripped receipt); `CNG_R11
+/// AuditMismatch` on any disagreement with a PRESENT recorded artifact or
+/// an unparseable bundle input; `CNG_R10` for plain I/O failures.
+///
+/// # Complexity
+/// O(obs bytes) parse + O(t log t) evidence serialization + fixed CONSTRUCT
+/// set over O(obs facts).
+pub fn workday_replay_partial(
+    out_dir: &Path,
+    queries_dir: Option<&Path>,
+) -> Result<WorkdayPartialReplayReport, CngRefusal> {
+    // 1. Rebuild the observation store from whatever prefix exists.
+    let obs_store = load_workday_obs_store(out_dir)?;
+
+    // 2. Actuation-receipt law over the recorded prefix.
+    let hook_receipt_observations = reconcile_hook_receipts(&obs_store)?;
+
+    // 3. Recompute digests; compare only against artifacts that exist.
+    let recomputed_obs_digest = obs_dir_digest(out_dir)?;
+    let query_dir_owned;
+    let query_dir = match queries_dir {
+        Some(dir) => dir,
+        None => {
+            query_dir_owned = QuerySet::default_dir();
+            &query_dir_owned
+        }
+    };
+    let queries = QuerySet::load(query_dir)?;
+    let evidence_store = Store::new()
+        .map_err(|e| CngRefusal::IoRefused(format!("evidence store construction: {e}")))?;
+    for construct in OCEL_CONSTRUCT_STEMS {
+        run_construct(&obs_store, queries.get(construct)?, &evidence_store)?;
+    }
+    let (recomputed_nt, recomputed_ocel_digest) = evidence_digest(&evidence_store)?;
+
+    // 4. Recorded report, IF present: its digests must agree.
+    let report_path = out_dir.join("results").join("workday-report.json");
+    let report_compared = if report_path.is_file() {
+        let report_text = fs::read_to_string(&report_path)
+            .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", report_path.display())))?;
+        let report: serde_json::Value = serde_json::from_str(&report_text).map_err(|e| {
+            CngRefusal::AuditMismatch(format!("cannot parse {}: {e}", report_path.display()))
+        })?;
+        let recorded_obs = report_field(&report, "obs_digest")?;
+        let recorded_ocel = report_field(&report, "ocel_graph_digest")?;
+        if recomputed_obs_digest != recorded_obs {
+            return Err(CngRefusal::AuditMismatch(format!(
+                "obs digest mismatch — recomputed {recomputed_obs_digest} vs recorded \
+                 {recorded_obs}"
+            )));
+        }
+        if recomputed_ocel_digest != recorded_ocel {
+            return Err(CngRefusal::AuditMismatch(format!(
+                "OCEL graph digest mismatch — recomputed {recomputed_ocel_digest} vs \
+                 recorded {recorded_ocel}"
+            )));
+        }
+        true
+    } else {
+        false
+    };
+
+    // 5. Serialized OCEL, IF present: must be byte-identical.
+    let ocel_path = out_dir.join("evidence").join("ocel.nt");
+    let ocel_serialization_compared = if ocel_path.is_file() {
+        let recorded_nt = fs::read_to_string(&ocel_path)
+            .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", ocel_path.display())))?;
+        if recorded_nt != recomputed_nt {
+            return Err(CngRefusal::AuditMismatch(format!(
+                "evidence/ocel.nt does not match the recomputed OCEL serialization \
+                 ({} recorded bytes vs {} recomputed bytes)",
+                recorded_nt.len(),
+                recomputed_nt.len()
+            )));
+        }
+        true
+    } else {
+        false
+    };
+
+    Ok(WorkdayPartialReplayReport {
+        out_dir: out_dir.display().to_string(),
+        hook_receipt_observations,
+        report_compared,
+        ocel_serialization_compared,
+        recomputed_obs_digest,
+        recomputed_ocel_graph_digest: recomputed_ocel_digest,
+    })
+}
+
 /// Collects every file under `dir`, recursively, as bundle-relative paths.
 ///
 /// # Complexity

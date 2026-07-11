@@ -1,0 +1,43 @@
+# construct-atom-closure.rq — copies the content triples (predicateName +
+# reified Arguments) of every atom and the objectName of every Object
+# reachable from a manufactured Problem, plus the Domain identity, so the
+# manufactured graph is self-contained for rendering and shape validation
+# (PROJ-706). Run over the lifted source store with the manufactured
+# problem's triples already inserted into it; results land in the
+# manufactured store. Placeholder {PROBLEM} substituted via str::replace.
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+CONSTRUCT {
+  ?atom pddl:predicateName ?pred ;
+        pddl:argument ?arg .
+  ?arg a pddl:Argument ;
+       pddl:argIndex ?idx ;
+       pddl:argValue ?val .
+  ?obj a pddl:Object ;
+       pddl:objectName ?oname .
+  ?dom a pddl:Domain ;
+       pddl:domainName ?dname .
+}
+WHERE {
+  {
+    { <{PROBLEM}> pddl:initAtom ?atom . }
+    UNION
+    { <{PROBLEM}> pddl:goalAtom ?atom . }
+    ?atom pddl:predicateName ?pred .
+    OPTIONAL {
+      ?atom pddl:argument ?arg .
+      ?arg pddl:argIndex ?idx ;
+           pddl:argValue ?val .
+    }
+  }
+  UNION
+  {
+    <{PROBLEM}> pddl:hasObject ?obj .
+    ?obj pddl:objectName ?oname .
+  }
+  UNION
+  {
+    <{PROBLEM}> pddl:fromDomain ?dom .
+    ?dom pddl:domainName ?dname .
+  }
+}

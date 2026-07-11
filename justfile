@@ -226,6 +226,17 @@ cng-workday-verify seed="616" ticks="8" rpm="125":
          <(grep -v '"out_dir"' "$root/b/results/workday-report.json")
     echo "cng-workday-verify: byte-identical evidence bundles (seed={{seed}}, ticks={{ticks}}, rpm={{rpm}})"
 
+# Multi-engine worker process (PROJ-723): bounded receipted poll loop over
+# <root>/engines/<id>/inbox; consequences to its outbox; quiesce.ttl ends it.
+# e.g. `just cng-engine-serve --root target/engines --engine-id H --seed 42 --max-polls 64`
+cng-engine-serve *args:
+    timeout 3600s cargo run -q -p cng --features bench --bin cng -- engine serve {{args}}
+
+# Crash-resume (PROJ-724): reload ledger tail + processed set, verify the
+# receipt-chain prefix (torn tail refuses CNG_R11), continue the serve loop.
+cng-engine-resume *args:
+    timeout 3600s cargo run -q -p cng --features bench --bin cng -- engine resume {{args}}
+
 # Run the cng test suite
 cng-test:
     timeout 600s cargo test -p cng
@@ -233,6 +244,18 @@ cng-test:
 # Run the cng test suite with the bench feature (portability/audit tests)
 cng-test-bench:
     timeout 900s cargo test -p cng --features bench
+
+# Run ONE cng integration-test binary by exact name (scoped inner loop; avoids
+# rebuilding/running the whole bench suite when investigating a single binary)
+cng-test-one binary *args:
+    timeout 1200s cargo test -p cng --features bench --test {{binary}} {{args}}
+
+# PROJ-728/729 multi-engine harness: coordinator + REAL engine OS processes
+# over the filesystem transport — isolation falsifiers, G13 crash-resume,
+# distributed determinism, cross-engine recursion. Exact --test scope;
+# single-threaded because each test spawns its own engine processes.
+cng-multi-engine:
+    timeout 1800s cargo test -p cng --features bench --test cng_multi_engine -- --test-threads=1
 
 # Package-surface smoke: install the cng binary from the crate and invoke it
 cng-install-smoke:

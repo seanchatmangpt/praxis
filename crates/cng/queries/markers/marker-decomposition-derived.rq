@@ -1,0 +1,32 @@
+# marker-decomposition-derived.rq (PROJ-739)
+# Marker: DECOMPOSITION_DERIVED_PROVEN.
+# Inputs: the decomp:DecompositionResult evidence graph emitted by a real
+# `cng plan decompose` run (decomp/mod.rs::emit_result_graph, PROJ-710,
+# templates/decomp-result.template.ttl) — a dedicated store built by
+# build_decomp_marker_store (PROJ-742), never the obs/evidence union.
+# Output: single row ?value.
+# *** INVERTED EXISTENCE MARKER (0 = proven convention preserved) ***
+# Asserts an EXISTENTIAL: at least one decomp:DecompositionResult exists
+# and is typed with a lawful decomp:outcome value — one of the exhaustive
+# DecompositionOutcome enum's three variants (decomp/mod.rs): "Selected",
+# "NoAdmissibleDecomposition", "NoBeneficialDecomposition" — and carries a
+# decomp:selectedCandidateId. This is the SPARQL proof that the
+# decomposition outcome is graph-derived, not merely asserted by a Rust
+# test or trusted from `DecompositionResult`'s in-process struct: ?value =
+# 0 iff such a typed result exists in the emitted graph, 1 otherwise (no
+# result graph, or one whose outcome is absent/malformed).
+# Determinism: EXISTS-style COUNT + IF over a fixed graph.
+PREFIX decomp: <https://truex.io/ontology/decomp#>
+
+SELECT (IF(?typed >= 1, 0, 1) AS ?value)
+WHERE {
+  {
+    SELECT (COUNT(DISTINCT ?result) AS ?typed)
+    WHERE {
+      ?result a decomp:DecompositionResult ;
+              decomp:outcome ?outcome ;
+              decomp:selectedCandidateId ?selected .
+      FILTER(?outcome IN ("Selected", "NoAdmissibleDecomposition", "NoBeneficialDecomposition"))
+    }
+  }
+}

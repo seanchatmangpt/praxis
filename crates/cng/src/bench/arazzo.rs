@@ -324,6 +324,17 @@ pub(super) fn run_arazzo_projection(
 ) -> Result<usize, CngRefusal> {
     let store = admit_arazzo(description_path, adapter_queries(adapter))?;
     let steps = project_steps(&store)?;
+    // PROJ-745: before any step of this projection can reach
+    // DispatchState::ArazzoRendered (inside adapter.dispatch(), below),
+    // verify that the arazzo-pack's ggen-rendered YAML backing this
+    // projection is receipted — recomputed BLAKE3 over the on-disk render
+    // matches the ggen sync receipt's recorded digest for that output. The
+    // RDF admitted above (`description_path`) is the source of truth for
+    // step semantics; this check only confirms the projection artifact a
+    // ggen sync run produced from that graph was not silently altered or
+    // never rendered. A missing/mismatched render refuses CNG_R11
+    // AuditMismatch before any step dispatches.
+    verify_arazzo_render_digest(adapter.project_root())?;
     let mut admitted: BTreeSet<String> = BTreeSet::new();
     for step in &steps {
         for dep in &step.depends_on {
@@ -368,6 +379,104 @@ pub(super) fn default_description_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("examples")
         .join("arazzo-api-orchestration.ttl")
+}
+
+/// Relative path (from a ggen project root) of the arazzo-pack's rendered
+/// Arazzo YAML — the `to:` target of
+/// `packs/arazzo-pack/templates/arazzo.yaml.tmpl`.
+const ARAZZO_RENDERED_YAML_REL_PATH: &str = "generated/arazzo.yaml";
+
+/// One verified ggen-pack render: the output path checked and the BLAKE3
+/// digest that was recomputed and confirmed to match the ggen sync receipt.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub(super) struct ArazzoRenderVerification {
+    /// Rendered output path, relative to the ggen project root.
+    pub(super) output_path: String,
+    /// Recomputed BLAKE3 hex digest of the rendered file's bytes.
+    pub(super) digest: String,
+}
+
+/// Minimal shape of a ggen `.ggen-v2/receipt.json` document — only the
+/// `payload.outputs` map this seam reads. `cng` does not depend on the
+/// `ggen` crate; re-deriving its full `ReceiptPayload` schema here for one
+/// field lookup would be scope this seam does not need.
+#[derive(Debug, serde::Deserialize)]
+struct GgenReceiptDocument {
+    payload: GgenReceiptPayload,
+}
+
+/// See [`GgenReceiptDocument`].
+#[derive(Debug, serde::Deserialize)]
+struct GgenReceiptPayload {
+    outputs: BTreeMap<String, String>,
+}
+
+/// Verifies the arazzo-pack's rendered Arazzo YAML (`generated/arazzo.yaml`)
+/// against the ggen sync receipt's recorded digest for that output
+/// (`.ggen-v2/receipt.json`, `payload.outputs["generated/arazzo.yaml"]` —
+/// see `packs/arazzo-pack/README.md`'s "Downstream verification seam").
+/// Recomputes BLAKE3 over the on-disk file's bytes; never re-admits or
+/// re-parses the YAML as truth. This is a byte-digest integrity check only
+/// — the caller performs the actual `DispatchState::ArazzoRendered`
+/// (`bench::dispatch`) transition once this returns `Ok`.
+///
+/// # Errors
+/// `CNG_R11 AuditMismatch` when: the rendered file is missing/unreadable,
+/// the receipt is missing/unreadable/unparseable, the receipt has no entry
+/// for `generated/arazzo.yaml`, or the recomputed digest disagrees with the
+/// recorded one.
+///
+/// # Complexity
+/// O(rendered file bytes) BLAKE3 hash + O(receipt bytes) JSON parse.
+///
+/// Wired call site: `run_arazzo_projection` (PROJ-745), before any step of
+/// the projection reaches `DispatchState::ArazzoRendered`.
+pub(super) fn verify_arazzo_render_digest(
+    project_root: &Path,
+) -> Result<ArazzoRenderVerification, CngRefusal> {
+    let output_path = project_root.join(ARAZZO_RENDERED_YAML_REL_PATH);
+    let bytes = fs::read(&output_path).map_err(|e| {
+        CngRefusal::AuditMismatch(format!(
+            "arazzo render not auditable — cannot read {}: {e}",
+            output_path.display()
+        ))
+    })?;
+    let recomputed = blake3::hash(&bytes).to_hex().to_string();
+
+    let receipt_path = project_root.join(".ggen-v2").join("receipt.json");
+    let receipt_text = fs::read_to_string(&receipt_path).map_err(|e| {
+        CngRefusal::AuditMismatch(format!(
+            "arazzo render not auditable — cannot read ggen receipt {}: {e}",
+            receipt_path.display()
+        ))
+    })?;
+    let receipt: GgenReceiptDocument = serde_json::from_str(&receipt_text).map_err(|e| {
+        CngRefusal::AuditMismatch(format!(
+            "arazzo render not auditable — cannot parse ggen receipt {}: {e}",
+            receipt_path.display()
+        ))
+    })?;
+    let recorded = receipt
+        .payload
+        .outputs
+        .get(ARAZZO_RENDERED_YAML_REL_PATH)
+        .ok_or_else(|| {
+            CngRefusal::AuditMismatch(format!(
+                "ggen receipt {} has no digest recorded for {ARAZZO_RENDERED_YAML_REL_PATH}",
+                receipt_path.display()
+            ))
+        })?;
+    if &recomputed != recorded {
+        return Err(CngRefusal::AuditMismatch(format!(
+            "arazzo render digest mismatch for {ARAZZO_RENDERED_YAML_REL_PATH} — \
+             recomputed {recomputed} vs receipt {recorded}"
+        )));
+    }
+
+    Ok(ArazzoRenderVerification {
+        output_path: ARAZZO_RENDERED_YAML_REL_PATH.to_string(),
+        digest: recomputed,
+    })
 }
 
 #[cfg(test)]

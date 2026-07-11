@@ -1,0 +1,19 @@
+# rwai-bench observation template (resume_verified, PROJ-724): a
+# `cng engine resume` reloaded the durable ledger tail + processed set and
+# verified every per-dispatch receipt-chain prefix before continuing the
+# serve loop. {{ENTRIES}} is the count of chain-verified ledger entries.
+# {{DIVERGENCE}} is "false" on the production path (a divergent chain
+# refuses CNG_R11 BEFORE this observation exists); the value exists so
+# marker-replay-divergence.rq (REPLAY_DIVERGENCES_ZERO) counts a defined
+# property and negative fixtures can falsify it with "true".
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "resume_verified" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:producedByEngine "{{ENGINE_ID}}" ;
+  ex:ledgerEntriesVerified "{{ENTRIES}}"^^xsd:integer ;
+  ex:divergence "{{DIVERGENCE}}" .

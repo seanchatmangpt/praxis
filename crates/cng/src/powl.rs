@@ -100,7 +100,7 @@ pub enum CngRefusal {
         /// The missing required field, or the unexpected property.
         missing: String,
     },
-    /// `CNG_R15` — a dispatch contract is incomplete: one or more of the 20
+    /// `CNG_R15` — a dispatch contract is incomplete: one or more of the 21
     /// required contract fields (dispatch-shapes.ttl DispatchContractShape)
     /// is missing or empty. Refused BEFORE the contract leaves the broker —
     /// an incomplete contract is never written to the outbox.
@@ -110,7 +110,7 @@ pub enum CngRefusal {
         /// Comma-separated names of the missing/empty required fields.
         missing: String,
     },
-    /// `CNG_R16` — a dispatch state transition outside the lawful 13-state
+    /// `CNG_R16` — a dispatch state transition outside the lawful 16-state
     /// machine (dispatch-shapes.ttl disp:DispatchState individuals; the
     /// transition table is documented on `bench::dispatch::DispatchState`).
     /// An unlawful transition is a broker bug surfacing as a typed refusal,
@@ -167,6 +167,66 @@ pub enum CngRefusal {
         /// The marker query's `?value` (0 = proven; anything else refuses).
         value: i64,
     },
+    /// `CNG_R21` — a specific decomposition candidate failed a proof
+    /// obligation (unsolvable subproblem, interference, unreleased resource,
+    /// cyclic composed order) while the caller demanded exactly that
+    /// candidate. Ordinary candidate rejection during bounded search is a
+    /// typed RESULT (`bench::decomp::DecompositionOutcome` /
+    /// `CandidateStatus::Inadmissible` receipts), never this refusal; R21
+    /// fires only when an inadmissible candidate would otherwise be selected
+    /// or was explicitly forced.
+    DecompositionInadmissible {
+        /// Canonical candidate id (e.g. `0-single`, or the sorted helper
+        /// goal-atom key list).
+        candidate: String,
+        /// The proof obligation that failed, named.
+        reason: String,
+    },
+    /// `CNG_R22` — the non-interference proof failed on a SELECTED
+    /// decomposition: a helper action and a main action with no derived
+    /// ordering path between them clobber each other (one's delete effects
+    /// intersect the other's protected preconditions). Search must have
+    /// filtered such candidates; this is the belt-and-braces gate at
+    /// composition/selection time.
+    InterferenceDetected {
+        /// Ground label of the helper-side action.
+        helper_action: String,
+        /// Ground label of the main-side action.
+        main_action: String,
+        /// The clobbered atom (ground label).
+        atom: String,
+    },
+    /// `CNG_R23` — the helper-tape replay found a step whose preconditions
+    /// do not hold in the replayed state. The interface state s′ = E(s, π_h)
+    /// is a proof obligation, not trust in the planner: a tape that does not
+    /// replay lawfully never yields an interface state.
+    InterfaceStateMismatch {
+        /// 0-based tape step whose precondition failed.
+        step: usize,
+        /// The missing precondition atom (ground label).
+        atom: String,
+    },
+    /// `CNG_R24` — the resource-release closure gate failed on a selected
+    /// decomposition: a resource-classified atom acquired by the helper
+    /// remains held in the interface state s′ without any main-side
+    /// precondition consuming it. Helpers must release what they acquire.
+    ResourceUnreleased {
+        /// The unreleased resource atom (ground label).
+        resource: String,
+        /// The holding side (e.g. `helper`).
+        holder: String,
+    },
+    /// `CNG_R25` — a consequence whose idempotency key was ALREADY admitted
+    /// was presented for admission again (replayed/duplicated consequence,
+    /// PROJ-721). The durable processed set (`ledger/processed.ttl`) is
+    /// checked before every admission; a double admission is a typed
+    /// refusal, never a silent re-apply.
+    DoubleAdmit {
+        /// The dispatch id whose consequence was replayed.
+        dispatch: String,
+        /// The already-processed idempotency key.
+        idempotency_key: String,
+    },
 }
 
 impl CngRefusal {
@@ -196,6 +256,11 @@ impl CngRefusal {
             CngRefusal::ArazzoProfileRefused { .. } => "CNG_R18",
             CngRefusal::EvidenceGateFailed { .. } => "CNG_R19",
             CngRefusal::MarkerFalse { .. } => "CNG_R20",
+            CngRefusal::DecompositionInadmissible { .. } => "CNG_R21",
+            CngRefusal::InterferenceDetected { .. } => "CNG_R22",
+            CngRefusal::InterfaceStateMismatch { .. } => "CNG_R23",
+            CngRefusal::ResourceUnreleased { .. } => "CNG_R24",
+            CngRefusal::DoubleAdmit { .. } => "CNG_R25",
         }
     }
 
@@ -229,11 +294,11 @@ impl CngRefusal {
                  all eight registry fields are mandatory and no others are lawful"
             }
             CngRefusal::DispatchContractIncomplete { .. } => {
-                "dispatch contract is missing required fields; all 20 contract \
+                "dispatch contract is missing required fields; all 21 contract \
                  fields are mandatory before the contract may leave the broker"
             }
             CngRefusal::DispatchStateUnlawful { .. } => {
-                "dispatch state transition is outside the lawful 13-state machine"
+                "dispatch state transition is outside the lawful 16-state machine"
             }
             CngRefusal::ExternalConsequenceRefused { .. } => {
                 "external consequence refused during lawful re-entry; the result \
@@ -250,6 +315,28 @@ impl CngRefusal {
             CngRefusal::MarkerFalse { .. } => {
                 "success marker evaluated false over the evidence graph; markers \
                  are SPARQL-derived and a false marker refuses the run"
+            }
+            CngRefusal::DecompositionInadmissible { .. } => {
+                "demanded decomposition candidate failed a proof obligation; an \
+                 inadmissible candidate is never selected or forced"
+            }
+            CngRefusal::InterferenceDetected { .. } => {
+                "non-interference proof failed on the selected decomposition; \
+                 concurrent segments must not clobber each other's protected \
+                 preconditions"
+            }
+            CngRefusal::InterfaceStateMismatch { .. } => {
+                "helper-tape replay found a step whose preconditions do not hold; \
+                 the interface state s' is a proof obligation, never trusted"
+            }
+            CngRefusal::ResourceUnreleased { .. } => {
+                "resource-release closure failed: a resource acquired by the \
+                 helper remains held in the interface state without a consuming \
+                 main precondition"
+            }
+            CngRefusal::DoubleAdmit { .. } => {
+                "consequence idempotency key was already admitted; a replayed \
+                 consequence is refused, never silently re-applied"
             }
         }
     }
@@ -309,6 +396,43 @@ impl std::fmt::Display for CngRefusal {
             CngRefusal::MarkerFalse { marker, value } => write!(
                 f,
                 "{}: {} (marker {marker}, value {value})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::DecompositionInadmissible { candidate, reason } => write!(
+                f,
+                "{}: {} (candidate {candidate}, reason {reason})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::InterferenceDetected {
+                helper_action,
+                main_action,
+                atom,
+            } => write!(
+                f,
+                "{}: {} (helper {helper_action}, main {main_action}, atom {atom})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::InterfaceStateMismatch { step, atom } => write!(
+                f,
+                "{}: {} (step {step}, atom {atom})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::ResourceUnreleased { resource, holder } => write!(
+                f,
+                "{}: {} (resource {resource}, holder {holder})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::DoubleAdmit {
+                dispatch,
+                idempotency_key,
+            } => write!(
+                f,
+                "{}: {} (dispatch {dispatch}, key {idempotency_key})",
                 self.code(),
                 self.message()
             ),

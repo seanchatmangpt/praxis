@@ -1,0 +1,5 @@
+# decomp interface-atom template (PROJ-707/710, one instance per s' atom):
+# the proven interface state s' = E(s, helper tape), ledgered in RDF.
+@prefix decomp: <https://truex.io/ontology/decomp#> .
+
+<{{RESULT_IRI}}> decomp:interfaceAtom "{{ATOM_LABEL}}" .

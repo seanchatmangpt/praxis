@@ -1,0 +1,9 @@
+# decomp cross-workflow order-edge template (PROJ-709/710, one instance per
+# derived mustPrecede edge between subworkflows): the constraints graph the
+# dispatch side consumes. Absent pair = parallel.
+@prefix decomp: <https://truex.io/ontology/decomp#> .
+
+<{{RESULT_IRI}}/edge/{{INDEX}}> a decomp:CrossWorkflowEdge ;
+  decomp:fromAction "{{FROM_LABEL}}" ;
+  decomp:toAction "{{TO_LABEL}}" ;
+  decomp:constraintOf <{{RESULT_IRI}}> .

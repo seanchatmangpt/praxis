@@ -440,3 +440,315 @@ test!(recursive_dispatch_receipts_are_byte_deterministic, {
     assert_eq!(digests_a, digests_b);
     assert_eq!(digests_a.len(), 3);
 });
+
+test!(sixteen_state_transition_law_is_exact, {
+    // Arrange: the full lawful transition set from the PROJ-720 table.
+    use std::collections::BTreeSet;
+    let expected: BTreeSet<(&str, &str)> = [
+        ("MANUFACTURED", "ARAZZO_RENDERED"),
+        ("ARAZZO_RENDERED", "DISPATCH_READY"),
+        ("DISPATCH_READY", "DISPATCHED"),
+        ("DISPATCH_READY", "REFUSED"),
+        ("DISPATCHED", "ACKNOWLEDGED"),
+        ("DISPATCHED", "TIMED_OUT"),
+        ("ACKNOWLEDGED", "REMOTE_STARTED"),
+        ("ACKNOWLEDGED", "TIMED_OUT"),
+        ("REMOTE_STARTED", "REMOTE_IN_PROGRESS"),
+        ("REMOTE_IN_PROGRESS", "RESULT_AVAILABLE"),
+        ("REMOTE_IN_PROGRESS", "TIMED_OUT"),
+        ("REMOTE_IN_PROGRESS", "BLOCKED"),
+        ("RESULT_AVAILABLE", "RESULT_RECEIVED"),
+        ("RESULT_RECEIVED", "RESULT_ADMITTED"),
+        ("RESULT_RECEIVED", "REFUSED"),
+        ("RESULT_ADMITTED", "COMPLETED"),
+        ("REFUSED", "COMPENSATING"),
+        ("REFUSED", "BLOCKED"),
+        ("TIMED_OUT", "COMPENSATING"),
+        ("TIMED_OUT", "BLOCKED"),
+        ("COMPENSATING", "COMPLETED"),
+        ("COMPENSATING", "BLOCKED"),
+    ]
+    .into_iter()
+    .collect();
+
+    // Act: enumerate ALL 16×16 pairs against lawful_to.
+    let mut lawful: BTreeSet<(&str, &str)> = BTreeSet::new();
+    for from in DispatchState::ALL {
+        for to in DispatchState::ALL {
+            if from.lawful_to(to) {
+                lawful.insert((from.as_str(), to.as_str()));
+            }
+        }
+    }
+
+    // Assert: the lawful set is EXACTLY the documented table — no extra
+    // lawful transition, no missing one; terminals have no exits.
+    assert_eq!(lawful, expected);
+    assert_eq!(DispatchState::ALL.len(), 16);
+    for terminal in ["COMPLETED", "BLOCKED", "UNKNOWN"] {
+        assert!(
+            !lawful.iter().any(|(from, _)| *from == terminal),
+            "{terminal} must be terminal"
+        );
+    }
+});
+
+test!(shapes_ttl_state_individuals_match_the_enum, {
+    // Arrange: parse the on-disk shapes law (the declarative authority).
+    use std::collections::BTreeSet;
+    let shapes_ttl =
+        fs::read_to_string(crate_path("shapes/dispatch-shapes.ttl")).expect("shapes file reads");
+    let store = Store::new().expect("store");
+    store
+        .load_from_slice(
+            RdfParser::from_format(RdfFormat::Turtle),
+            shapes_ttl.as_bytes(),
+        )
+        .expect("shapes parse");
+    let type_pred =
+        NamedNodeRef::new("http://www.w3.org/1999/02/22-rdf-syntax-ns#type").expect("rdf:type IRI");
+    let state_class = NamedNodeRef::new("https://truex.io/ontology/dispatch#DispatchState")
+        .expect("DispatchState IRI");
+
+    // Act: collect the disp:DispatchState individuals' local names.
+    let mut declared: BTreeSet<String> = BTreeSet::new();
+    for quad in store.quads_for_pattern(
+        None,
+        Some(type_pred),
+        Some(TermRef::from(state_class)),
+        None,
+    ) {
+        let quad = quad.expect("shape scan");
+        let iri = quad.subject.to_string();
+        let local = iri
+            .trim_start_matches("<https://truex.io/ontology/dispatch#")
+            .trim_end_matches('>')
+            .to_string();
+        declared.insert(local);
+    }
+    let in_rust: BTreeSet<String> = DispatchState::ALL
+        .iter()
+        .map(|s| s.as_str().to_string())
+        .collect();
+
+    // Assert: drift test — the TTL individual set IS the as_str set.
+    assert_eq!(declared, in_rust);
+});
+
+test!(ledger_records_every_advance_and_replays_chain_verified, {
+    // Arrange: one full admitted lifecycle through the adapter.
+    let out_dir = scratch_dir("ledger_lifecycle");
+    let queries = QuerySet::load(&QuerySet::default_dir()).expect("query set loads");
+    let templates = load_templates().expect("templates load");
+    let store = Store::new().expect("store");
+    let mut writer =
+        ObsWriter::new(&templates, &store, &out_dir.join("obs"), "test").expect("writer");
+    let mut adapter = DispatchAdapter::new(&out_dir, &queries).expect("adapter constructs");
+    let contract = fixture_contract();
+    let dispatch_id = contract.dispatch_id.clone();
+
+    // Act.
+    let outcome = adapter
+        .dispatch(
+            &mut writer,
+            &store,
+            contract,
+            1,
+            false,
+            SynthesisMode::LoopbackDeterministic,
+            0,
+        )
+        .expect("lifecycle admits");
+    assert_eq!(outcome, DispatchOutcome::Admitted);
+
+    // Assert: the durable ledger holds the exact state trajectory (one
+    // StateEntry per advance, seq-ordered).
+    let entries = adapter.ledger.entries(&dispatch_id).expect("entries read");
+    let trajectory: Vec<(&str, &str)> = entries
+        .iter()
+        .map(|e| (e.from_state.as_str(), e.to_state.as_str()))
+        .collect();
+    assert_eq!(
+        trajectory,
+        vec![
+            ("MANUFACTURED", "ARAZZO_RENDERED"),
+            ("ARAZZO_RENDERED", "DISPATCH_READY"),
+            ("DISPATCH_READY", "DISPATCHED"),
+            ("DISPATCHED", "ACKNOWLEDGED"),
+            ("ACKNOWLEDGED", "REMOTE_STARTED"),
+            ("REMOTE_STARTED", "REMOTE_IN_PROGRESS"),
+            ("REMOTE_IN_PROGRESS", "RESULT_AVAILABLE"),
+            ("RESULT_AVAILABLE", "RESULT_RECEIVED"),
+            ("RESULT_RECEIVED", "RESULT_ADMITTED"),
+            ("RESULT_ADMITTED", "COMPLETED"),
+        ]
+    );
+
+    // Assert 2: a fresh sink over the same directory replays and
+    // chain-verifies every entry (resume machinery, PROJ-724).
+    let reloaded = super::FileLedgerSink::new(&out_dir.join("dispatch").join("ledger"))
+        .expect("ledger reloads chain-verified");
+    assert_eq!(reloaded.total_entries(), entries.len() as u64);
+});
+
+test!(replayed_consequence_refuses_cng_r25_double_admit, {
+    // Arrange: one admitted lifecycle, then the SAME contract (same
+    // idempotency key) presented again through the same adapter.
+    let out_dir = scratch_dir("double_admit");
+    let queries = QuerySet::load(&QuerySet::default_dir()).expect("query set loads");
+    let templates = load_templates().expect("templates load");
+    let store = Store::new().expect("store");
+    let mut writer =
+        ObsWriter::new(&templates, &store, &out_dir.join("obs"), "test").expect("writer");
+    let mut adapter = DispatchAdapter::new(&out_dir, &queries).expect("adapter constructs");
+    let first = adapter
+        .dispatch(
+            &mut writer,
+            &store,
+            fixture_contract(),
+            1,
+            false,
+            SynthesisMode::LoopbackDeterministic,
+            0,
+        )
+        .expect("first lifecycle admits");
+    assert_eq!(first, DispatchOutcome::Admitted);
+
+    // Act: the replay reaches the admission gate and must refuse there.
+    let result = adapter.dispatch(
+        &mut writer,
+        &store,
+        fixture_contract(),
+        2,
+        false,
+        SynthesisMode::LoopbackDeterministic,
+        0,
+    );
+
+    // Assert: typed CNG_R25 naming the dispatch and the processed key.
+    match result {
+        Err(CngRefusal::DoubleAdmit {
+            dispatch,
+            idempotency_key,
+        }) => {
+            assert_eq!(dispatch, "disp-fixture");
+            assert_eq!(idempotency_key, fixture_contract().idempotency_key);
+            assert_eq!(
+                CngRefusal::DoubleAdmit {
+                    dispatch,
+                    idempotency_key
+                }
+                .code(),
+                "CNG_R25"
+            );
+        }
+        other => panic!("expected DoubleAdmit, got {other:?}"),
+    }
+});
+
+test!(
+    arazzo_projection_gate_admits_when_render_digest_matches_receipt,
+    {
+        // Arrange: a scratch project_root doubling as both the workday
+        // out_dir (DispatchAdapter::new) AND the ggen sync project root
+        // (PROJ-745) — a rendered arazzo.yaml and a receipt recording its
+        // true digest, exactly the shape a real `ggen sync run` of
+        // arazzo-pack leaves behind.
+        let out_dir = scratch_dir("arazzo_gate_match");
+        fs::create_dir_all(out_dir.join("generated")).expect("generated dir");
+        fs::create_dir_all(out_dir.join(".ggen-v2")).expect(".ggen-v2 dir");
+        let rendered_yaml: &[u8] = b"arazzo: \"1.1.0\"\ninfo:\n  title: gate_match\n";
+        fs::write(out_dir.join("generated/arazzo.yaml"), rendered_yaml).expect("write yaml");
+        let digest = blake3::hash(rendered_yaml).to_hex().to_string();
+        fs::write(
+            out_dir.join(".ggen-v2/receipt.json"),
+            format!("{{\"payload\":{{\"outputs\":{{\"generated/arazzo.yaml\":\"{digest}\"}}}}}}"),
+        )
+        .expect("write receipt");
+        let queries = QuerySet::load(&QuerySet::default_dir()).expect("query set loads");
+        let templates = load_templates().expect("templates load");
+        let store = Store::new().expect("store");
+        let mut writer =
+            ObsWriter::new(&templates, &store, &out_dir.join("obs"), "test").expect("writer");
+        let mut adapter = DispatchAdapter::new(&out_dir, &queries).expect("adapter constructs");
+
+        // Act: run_arazzo_projection's wired gate (verify_arazzo_render_
+        // digest(adapter.project_root())) must pass before any step's
+        // dispatch reaches DispatchState::ArazzoRendered/DispatchReady.
+        let dispatched = crate::bench::arazzo::run_arazzo_projection(
+            &mut adapter,
+            &mut writer,
+            &store,
+            &crate::bench::arazzo::default_description_path(),
+            "gate-match",
+            "api-orchestration",
+            0,
+        )
+        .expect("digest matches receipt: projection dispatches end-to-end");
+
+        // Assert: every step of the shipped example reached DISPATCH_READY
+        // and admitted through the loopback — the gate did not block a
+        // correctly-receipted render.
+        assert_eq!(dispatched, 4);
+        assert_eq!(adapter.telemetry.sent, 4);
+        assert_eq!(adapter.telemetry.admitted, 4);
+        assert_eq!(adapter.telemetry.refused, 0);
+    }
+);
+
+test!(
+    arazzo_projection_gate_refuses_cng_r11_before_any_step_dispatches,
+    {
+        // Arrange: a scratch project_root with NO rendered arazzo.yaml and
+        // NO ggen receipt — the honest state of a project where a `ggen
+        // sync run` was never performed (or was performed against a
+        // different pack). run_arazzo_projection must refuse before any
+        // step's dispatch transitions the state machine.
+        let out_dir = scratch_dir("arazzo_gate_missing_render");
+        let queries = QuerySet::load(&QuerySet::default_dir()).expect("query set loads");
+        let templates = load_templates().expect("templates load");
+        let store = Store::new().expect("store");
+        let mut writer =
+            ObsWriter::new(&templates, &store, &out_dir.join("obs"), "test").expect("writer");
+        let mut adapter = DispatchAdapter::new(&out_dir, &queries).expect("adapter constructs");
+
+        // Act.
+        let result = crate::bench::arazzo::run_arazzo_projection(
+            &mut adapter,
+            &mut writer,
+            &store,
+            &crate::bench::arazzo::default_description_path(),
+            "gate-missing",
+            "api-orchestration",
+            0,
+        );
+
+        // Assert: typed CNG_R11 AuditMismatch, and — the load-bearing
+        // assertion — zero steps were sent. The gate runs before the
+        // per-step loop, so a missing/mismatched render blocks the whole
+        // projection, not just the step that would have used it.
+        match result {
+            Err(CngRefusal::AuditMismatch(msg)) => {
+                assert!(
+                    msg.contains("not auditable"),
+                    "message names the missing render, got {msg}"
+                );
+                assert_eq!(CngRefusal::AuditMismatch(msg).code(), "CNG_R11");
+            }
+            Err(other) => panic!("expected AuditMismatch, got {other:?}"),
+            Ok(_) => panic!("expected AuditMismatch for a missing render, but projection ran"),
+        }
+        assert_eq!(
+            adapter.telemetry.sent, 0,
+            "the render-digest gate must run before any step dispatches"
+        );
+        let outbox = out_dir.join("dispatch").join("outbox");
+        let outbox_entries = fs::read_dir(&outbox)
+            .expect("outbox dir exists (created by DispatchAdapter::new)")
+            .count();
+        assert_eq!(
+            outbox_entries, 0,
+            "no contract should have been written to the outbox before the gate"
+        );
+    }
+);

@@ -1,0 +1,18 @@
+# rwai-bench observation template (remote_consequence_received, PROJ-727):
+# a consequence file produced by a REMOTE Chatman Engine instance
+# ({{SOURCE_ENGINE}}) was read off the collection surface by the
+# coordinator ({{ENGINE_ID}} = obs:producedByEngine) BEFORE the lawful
+# re-entry pipeline ran. A remote_consequence_received without a matching
+# remote_dispatch_sent for the same ex:dispatchId is counted as a bypass by
+# marker-engine-isolation.rq.
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "remote_consequence_received" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:producedByEngine "{{ENGINE_ID}}" ;
+  ex:dispatchId "{{DISPATCH_ID}}" ;
+  ex:sourceEngine "{{SOURCE_ENGINE}}" .

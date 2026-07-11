@@ -1,0 +1,410 @@
+# GENERATED union — do not edit. Sources:
+#   crates/cng/ontologies/arazzo.ttl
+#   crates/cng/examples/arazzo-api-orchestration.ttl
+#   packs/arazzo-pack/engines-local.ttl
+# Regenerate: packs/arazzo-pack/make-ontology.sh
+# arz: — 80/20 RDF vocabulary for OpenAPI Arazzo 1.1.0 workflow descriptions.
+# v26.7.10-revised (PROJ-725): vocabulary now targets the Arazzo 1.1.0
+# profile (80/20). Delta over 1.0.0: sourceType enumeration extended with
+# "asyncapi" (single arz:SourceDescription class, no AsyncAPI subclass).
+#
+# What this is: a clean-room vocabulary written from the invariants of the
+# Arazzo Specification 1.1.0 object model (Workflow, Step, SourceDescription,
+# Parameter, Criterion, SuccessAction, FailureAction, outputs, dependsOn).
+# It is NOT a port of any schema code; it models only the 80/20 supported
+# profile per docs/standing/SEMANTIC_PROFILE_DOCTRINE.md. Unsupported (20%)
+# features are REFUSED by name — enumerated in rdfs:comments below and
+# enforced by crates/cng/shapes/arazzo-shapes.ttl (closed SHACL shapes).
+#
+# Public-ontology check (bridge-term justification): PROV-O models provenance
+# of past activity, not declarative control-flow plans with goto/retry
+# semantics; schema.org HowTo/Action lacks step-transfer actions, success
+# criteria, and mutually-exclusive operation targets; SKOS/DCTERMS cover
+# labeling/annotation only (dcterms:description IS reused here). No public
+# ontology covers Arazzo's step/action/criterion contract, so arz: terms are
+# minted. dcterms:description is reused for free-text descriptions.
+#
+# SUPPORTED (80%): Workflow (workflowId, summary, inputs as opaque JSON
+#   schema literal, dependsOn, outputs), Step (stepId, exactly one of
+#   operationId | operationPath | workflowId reference, parameters
+#   (name/in/value), successCriteria, onSuccess/onFailure with action types
+#   end|goto|retry, outputs), SourceDescription (name, url, type
+#   arazzo|openapi|asyncapi), Criterion (context, condition, type
+#   simple|regex|jsonpath).
+# REFUSED by name (20%):
+#   - xpath criterion type (Criterion Expression Type Object variants too)
+#   - Reusable Object references (components/* indirection beyond inline defs)
+#   - Components Object (reusable inputs/parameters/successActions/
+#     failureActions/criteria)
+#   - Specification Extensions (x-* properties)
+#   - requestBody / payload templating on steps
+#   - "function" failure-action type and workflow-level defaults
+#     (workflow.successActions / workflow.failureActions)
+#   - runtime expressions beyond simple $-prefixed references embedded in
+#     condition/context/value literals (no expression evaluation semantics
+#     are claimed by this vocabulary)
+#   - Arazzo 1.1 features beyond the asyncapi sourceType: refused by name
+#     pending need (no new step mechanics are admitted by this delta)
+
+@prefix arz:     <https://truex.io/ontology/arazzo#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+<https://truex.io/ontology/arazzo#> a owl:Ontology ;
+    rdfs:label "Arazzo 1.1.0 workflow vocabulary (80/20 profile)" ;
+    dcterms:description "Clean-room RDF vocabulary for the supported subset of the OpenAPI Arazzo 1.1.0 specification. Unsupported features are refused by name; see header comment and arazzo-shapes.ttl." .
+
+### Classes
+
+arz:Workflow a rdfs:Class ;
+    rdfs:label "Workflow" ;
+    rdfs:comment "An Arazzo workflow: an ordered set of steps with declared inputs, outputs, and dependencies. REFUSED here: workflow-level successActions/failureActions defaults and Reusable Object references." .
+
+arz:Step a rdfs:Class ;
+    rdfs:label "Step" ;
+    rdfs:comment "A single workflow step. Exactly one of arz:operationId, arz:operationPath, arz:workflowRef must be present (mutually exclusive operation target). REFUSED here: requestBody, Reusable Object parameters/actions, Specification Extensions." .
+
+arz:SourceDescription a rdfs:Class ;
+    rdfs:label "SourceDescription" ;
+    rdfs:comment "A source document (arazzo, openapi, or asyncapi) that steps resolve operations against. Arazzo 1.1: asyncapi sources are admitted with the same class and properties — no AsyncAPI-specific subclass or step mechanics." .
+
+arz:Parameter a rdfs:Class ;
+    rdfs:label "Parameter" ;
+    rdfs:comment "A step parameter with name, location (in), and literal value. Values carrying runtime expressions are kept as opaque literals; no evaluation semantics." .
+
+arz:Criterion a rdfs:Class ;
+    rdfs:label "Criterion" ;
+    rdfs:comment "An assertion used in successCriteria or action criteria. Supported types: simple (default), regex, jsonpath. REFUSED by name: xpath, and the Criterion Expression Type Object (versioned jsonpath/xpath variants)." .
+
+arz:SuccessAction a rdfs:Class ;
+    rdfs:label "SuccessAction" ;
+    rdfs:comment "Action taken on step success. Supported types: end, goto (with exactly one of arz:targetStep or arz:targetWorkflow when goto)." .
+
+arz:FailureAction a rdfs:Class ;
+    rdfs:label "FailureAction" ;
+    rdfs:comment "Action taken on step failure. Supported types: end, goto, retry (retryAfter seconds, retryLimit attempts). REFUSED by name: the non-normative 'function' type." .
+
+arz:Output a rdfs:Class ;
+    rdfs:label "Output" ;
+    rdfs:comment "A named output binding of a step or workflow: a friendly name mapped to a runtime-expression literal (kept opaque, not evaluated)." .
+
+### Workflow properties
+
+arz:workflowId a rdf:Property ;
+    rdfs:domain arz:Workflow ; rdfs:range xsd:string ;
+    rdfs:comment "Unique workflow identifier; must match ^[A-Za-z0-9_-]+$." .
+
+arz:summary a rdf:Property ;
+    rdfs:domain arz:Workflow ; rdfs:range xsd:string .
+
+arz:inputs a rdf:Property ;
+    rdfs:domain arz:Workflow ; rdfs:range xsd:string ;
+    rdfs:comment "Workflow input contract carried as an opaque JSON Schema literal (string). Schema interpretation is out of profile scope." .
+
+arz:hasStep a rdf:Property ;
+    rdfs:domain arz:Workflow ; rdfs:range arz:Step ;
+    rdfs:comment "Membership of a step in a workflow. Sequential default order is given by arz:stepIndex." .
+
+arz:dependsOn a rdf:Property ;
+    rdfs:comment "Dependency edge: on a Workflow, the workflowId (string) of a workflow that must complete first; on a Step (profile extension of intent, used by cng admission), the prior Step resource in the chain. Cross-document $sourceDescriptions.* runtime-expression references are REFUSED." .
+
+arz:hasOutput a rdf:Property ;
+    rdfs:range arz:Output ;
+    rdfs:comment "Links a Workflow or Step to a named Output binding." .
+
+### Step properties
+
+arz:stepId a rdf:Property ;
+    rdfs:domain arz:Step ; rdfs:range xsd:string ;
+    rdfs:comment "Unique step identifier within its workflow; must match ^[A-Za-z0-9_-]+$." .
+
+arz:stepIndex a rdf:Property ;
+    rdfs:domain arz:Step ; rdfs:range xsd:integer ;
+    rdfs:comment "0-based position of the step in its workflow's sequential order (deterministic ordering for admission and projection)." .
+
+arz:operationId a rdf:Property ;
+    rdfs:domain arz:Step ; rdfs:range xsd:string ;
+    rdfs:comment "Resolvable operationId within a sourceDescription. Mutually exclusive with arz:operationPath and arz:workflowRef." .
+
+arz:operationPath a rdf:Property ;
+    rdfs:domain arz:Step ; rdfs:range xsd:string ;
+    rdfs:comment "Source + JSON Pointer operation reference. Mutually exclusive with arz:operationId and arz:workflowRef." .
+
+arz:workflowRef a rdf:Property ;
+    rdfs:domain arz:Step ; rdfs:range xsd:string ;
+    rdfs:comment "workflowId of another workflow invoked by this step. Mutually exclusive with arz:operationId and arz:operationPath. Named workflowRef (not workflowId) to keep the Workflow identifier property unambiguous in RDF." .
+
+arz:hasParameter a rdf:Property ;
+    rdfs:domain arz:Step ; rdfs:range arz:Parameter .
+
+arz:successCriterion a rdf:Property ;
+    rdfs:domain arz:Step ; rdfs:range arz:Criterion ;
+    rdfs:comment "All success criteria must be satisfied for the step to be considered successful." .
+
+arz:onSuccess a rdf:Property ;
+    rdfs:domain arz:Step ; rdfs:range arz:SuccessAction .
+
+arz:onFailure a rdf:Property ;
+    rdfs:domain arz:Step ; rdfs:range arz:FailureAction .
+
+### SourceDescription properties
+
+arz:name a rdf:Property ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Case-sensitive name of a SourceDescription, Parameter, action, or Output binding; must match ^[A-Za-z0-9_-]+$ for sources." .
+
+arz:url a rdf:Property ;
+    rdfs:domain arz:SourceDescription ; rdfs:range xsd:anyURI .
+
+arz:sourceType a rdf:Property ;
+    rdfs:domain arz:SourceDescription ; rdfs:range xsd:string ;
+    rdfs:comment "One of: arazzo, openapi, asyncapi (asyncapi added by the Arazzo 1.1.0 profile delta)." .
+
+### Parameter properties
+
+arz:in a rdf:Property ;
+    rdfs:domain arz:Parameter ; rdfs:range xsd:string ;
+    rdfs:comment "Parameter location: one of path, query, header, cookie, body." .
+
+arz:value a rdf:Property ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Literal parameter or output value. Runtime expressions (e.g. $response.body#/id) are carried as opaque strings; evaluation is out of profile scope." .
+
+### Criterion properties
+
+arz:context a rdf:Property ;
+    rdfs:domain arz:Criterion ; rdfs:range xsd:string ;
+    rdfs:comment "Runtime-expression context literal (e.g. $response.body). Required when arz:criterionType is regex or jsonpath." .
+
+arz:condition a rdf:Property ;
+    rdfs:domain arz:Criterion ; rdfs:range xsd:string ;
+    rdfs:comment "Required condition literal (e.g. $statusCode == 200)." .
+
+arz:criterionType a rdf:Property ;
+    rdfs:domain arz:Criterion ; rdfs:range xsd:string ;
+    rdfs:comment "One of: simple (default when absent), regex, jsonpath. REFUSED by name: xpath; Criterion Expression Type Object." .
+
+### Action properties
+
+arz:actionType a rdf:Property ;
+    rdfs:range xsd:string ;
+    rdfs:comment "SuccessAction: end | goto. FailureAction: end | goto | retry. REFUSED by name: function." .
+
+arz:targetStep a rdf:Property ;
+    rdfs:range xsd:string ;
+    rdfs:comment "stepId to transfer to when actionType is goto (or retry, for failure). Mutually exclusive with arz:targetWorkflow." .
+
+arz:targetWorkflow a rdf:Property ;
+    rdfs:range xsd:string ;
+    rdfs:comment "workflowId to transfer to when actionType is goto (or retry, for failure). Mutually exclusive with arz:targetStep." .
+
+arz:criteria a rdf:Property ;
+    rdfs:range arz:Criterion ;
+    rdfs:comment "Assertions gating whether a Success/Failure action executes." .
+
+arz:retryAfter a rdf:Property ;
+    rdfs:domain arz:FailureAction ; rdfs:range xsd:decimal ;
+    rdfs:comment "Non-negative seconds to delay before retry. Only meaningful when actionType is retry. Note: declarative delay only — cng execution counts logic ticks, never wall time." .
+
+arz:retryLimit a rdf:Property ;
+    rdfs:domain arz:FailureAction ; rdfs:range xsd:integer ;
+    rdfs:comment "Non-negative retry attempt cap; default is a single retry when absent. Only meaningful when actionType is retry." .
+
+# Example Arazzo-as-RDF instance: deterministic 4-step API-orchestration
+# workflow (create order -> authorize payment -> capture payment -> confirm),
+# conforming to crates/cng/ontologies/arazzo.ttl (80/20 profile) and
+# crates/cng/shapes/arazzo-shapes.ttl. Hand-authored fixture, not generated
+# output. Uses only supported features: operationId targets, path/body
+# parameters, simple criteria, goto/end/retry actions, dependsOn step chain.
+#
+# Dispatch projection note: each arz:Step is projectable onto a disp:
+# dispatch contract (crates/cng/shapes/dispatch-shapes.ttl, minted in
+# parallel): arz:operationId -> dispatch target, arz:hasParameter ->
+# dispatch arguments, arz:successCriterion -> post-condition gate,
+# arz:dependsOn -> dispatch ordering edge. Conceptual mapping only; no disp:
+# triples are asserted here.
+
+@prefix arz: <https://truex.io/ontology/arazzo#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:  <urn:cng:example:arazzo:order-fulfillment#> .
+
+ex:ordersApi a arz:SourceDescription ;
+    arz:name "ordersApi" ;
+    arz:url "https://example.com/openapi/orders.yaml"^^xsd:anyURI ;
+    arz:sourceType "openapi" .
+
+ex:orderFulfillment a arz:Workflow ;
+    arz:workflowId "order-fulfillment" ;
+    arz:summary "Create an order, authorize and capture payment, confirm." ;
+    arz:inputs "{\"type\":\"object\",\"properties\":{\"customerId\":{\"type\":\"string\"},\"sku\":{\"type\":\"string\"}}}" ;
+    arz:hasStep ex:createOrder , ex:authorizePayment , ex:capturePayment , ex:confirmOrder ;
+    arz:hasOutput ex:wfOutConfirmation .
+
+ex:wfOutConfirmation a arz:Output ;
+    arz:name "confirmationId" ;
+    arz:value "$steps.confirmOrder.outputs.confirmationId" .
+
+ex:createOrder a arz:Step ;
+    arz:stepId "createOrder" ;
+    arz:stepIndex 0 ;
+    dcterms:description "Create the order from customer and SKU inputs." ;
+    arz:operationId "createOrder" ;
+    arz:hasParameter ex:pCustomer , ex:pSku ;
+    arz:successCriterion ex:cCreated ;
+    arz:hasOutput ex:outOrderId .
+
+ex:pCustomer a arz:Parameter ;
+    arz:name "customerId" ; arz:in "body" ; arz:value "$inputs.customerId" .
+ex:pSku a arz:Parameter ;
+    arz:name "sku" ; arz:in "body" ; arz:value "$inputs.sku" .
+ex:cCreated a arz:Criterion ;
+    arz:condition "$statusCode == 201" ; arz:criterionType "simple" .
+ex:outOrderId a arz:Output ;
+    arz:name "orderId" ; arz:value "$response.body#/id" .
+
+ex:authorizePayment a arz:Step ;
+    arz:stepId "authorizePayment" ;
+    arz:stepIndex 1 ;
+    arz:dependsOn ex:createOrder ;
+    arz:operationId "authorizePayment" ;
+    arz:hasParameter ex:pOrderIdAuth ;
+    arz:successCriterion ex:cAuthorized ;
+    arz:onFailure ex:retryAuth ;
+    arz:hasOutput ex:outAuthId .
+
+ex:pOrderIdAuth a arz:Parameter ;
+    arz:name "orderId" ; arz:in "path" ; arz:value "$steps.createOrder.outputs.orderId" .
+ex:cAuthorized a arz:Criterion ;
+    arz:condition "$statusCode == 200" ; arz:criterionType "simple" .
+ex:retryAuth a arz:FailureAction ;
+    arz:name "retryAuthorization" ;
+    arz:actionType "retry" ;
+    arz:retryAfter 1.0 ;
+    arz:retryLimit 3 ;
+    arz:criteria ex:cAuthRetryable .
+ex:cAuthRetryable a arz:Criterion ;
+    arz:condition "$statusCode == 503" ; arz:criterionType "simple" .
+ex:outAuthId a arz:Output ;
+    arz:name "authorizationId" ; arz:value "$response.body#/authorizationId" .
+
+ex:capturePayment a arz:Step ;
+    arz:stepId "capturePayment" ;
+    arz:stepIndex 2 ;
+    arz:dependsOn ex:authorizePayment ;
+    arz:operationId "capturePayment" ;
+    arz:hasParameter ex:pAuthId ;
+    arz:successCriterion ex:cCaptured ;
+    arz:onSuccess ex:gotoConfirm .
+
+ex:pAuthId a arz:Parameter ;
+    arz:name "authorizationId" ; arz:in "path" ; arz:value "$steps.authorizePayment.outputs.authorizationId" .
+ex:cCaptured a arz:Criterion ;
+    arz:condition "$statusCode == 200" ; arz:criterionType "simple" .
+ex:gotoConfirm a arz:SuccessAction ;
+    arz:name "proceedToConfirmation" ;
+    arz:actionType "goto" ;
+    arz:targetStep "confirmOrder" .
+
+ex:confirmOrder a arz:Step ;
+    arz:stepId "confirmOrder" ;
+    arz:stepIndex 3 ;
+    arz:dependsOn ex:capturePayment ;
+    arz:operationId "confirmOrder" ;
+    arz:hasParameter ex:pOrderIdConfirm ;
+    arz:successCriterion ex:cConfirmed ;
+    arz:onSuccess ex:endOk ;
+    arz:hasOutput ex:outConfirmationId .
+
+ex:pOrderIdConfirm a arz:Parameter ;
+    arz:name "orderId" ; arz:in "path" ; arz:value "$steps.createOrder.outputs.orderId" .
+ex:cConfirmed a arz:Criterion ;
+    arz:condition "$statusCode == 200" ; arz:criterionType "simple" .
+ex:endOk a arz:SuccessAction ;
+    arz:name "finish" ;
+    arz:actionType "end" .
+ex:outConfirmationId a arz:Output ;
+    arz:name "confirmationId" ; arz:value "$response.body#/confirmationId" .
+
+# engines-local.ttl — pack-local instance data for packs/arazzo-pack (PROJ-726).
+#
+# What this is: the declared capability surface of the three Chatman Engine
+# OS processes in the v26.7.10-revised multi-engine execution model —
+# coordinator (C), helper (H), main (M). No engine-description instances
+# exist in the project graph yet (PROJ-722/723 mint EngineIdentity in Rust);
+# until they land, this file is the pack-local declared contract that the
+# engine-openapi / engine-asyncapi templates render from. It is instance
+# data, not generated output: hand-authored, reviewed, and unioned into
+# ontology.ttl by make-ontology.sh.
+#
+# Honesty boundary: these documents DECLARE the operation/channel contract.
+# The transport binding actually implemented this increment is filesystem
+# (engines/<id>/{inbox,outbox} Turtle exchange — plan decision 6). The
+# declared contract mechanism is ALIVE (rendered, digest-recorded); any HTTP
+# binding is UNVERIFIED and intentionally absent.
+#
+# Public-ontology check (bridge-term justification): no public vocabulary
+# describes "an engine process capability surface bound to a filesystem
+# inbox/outbox with a quiescence control file". Checked: OpenAPI/AsyncAPI
+# themselves (JSON documents, not RDF); hydra: (HTTP-only affordances, no
+# filesystem binding or engine identity); prov:SoftwareAgent (provenance
+# actor, no capability/transport contract); schema:SoftwareApplication
+# (distribution metadata, not operation surfaces). arzeng: terms are minted
+# as documented bridge terms pending a public fit.
+
+@prefix arzeng:  <https://truex.io/ontology/arazzo-engine#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix exeng:   <urn:cng:example:arazzo:engines#> .
+
+### Bridge vocabulary (minimal, only what the templates project)
+
+arzeng:Engine a rdfs:Class ;
+    rdfs:label "Engine" ;
+    rdfs:comment "A Chatman Engine OS process participating in multi-engine execution. Identity semantics (instance_nonce, receipts) are PROJ-722; this class carries only the declared capability surface." .
+
+arzeng:engineId a rdf:Property ;
+    rdfs:domain arzeng:Engine ; rdfs:range xsd:string ;
+    rdfs:comment "Stable engine identifier (C | H | M). Deterministic; never a PID or wall-clock value." .
+
+arzeng:role a rdf:Property ;
+    rdfs:domain arzeng:Engine ; rdfs:range xsd:string ;
+    rdfs:comment "One of: coordinator, helper, main." .
+
+arzeng:summary a rdf:Property ;
+    rdfs:domain arzeng:Engine ; rdfs:range xsd:string .
+
+arzeng:inboxPath a rdf:Property ;
+    rdfs:domain arzeng:Engine ; rdfs:range xsd:string ;
+    rdfs:comment "Filesystem transport binding: directory this engine polls for admitted dispatch contracts (Turtle)." .
+
+arzeng:outboxPath a rdf:Property ;
+    rdfs:domain arzeng:Engine ; rdfs:range xsd:string ;
+    rdfs:comment "Filesystem transport binding: directory this engine writes consequence Turtle to." .
+
+### Declared engine instances
+
+exeng:coordinator a arzeng:Engine ;
+    arzeng:engineId "C" ;
+    arzeng:role "coordinator" ;
+    arzeng:summary "Coordinator engine: renders Arazzo projection, dispatches subworkflows to H and M, re-admits consequences, links child receipt digests." ;
+    arzeng:inboxPath "engines/C/inbox" ;
+    arzeng:outboxPath "engines/C/outbox" .
+
+exeng:helper a arzeng:Engine ;
+    arzeng:engineId "H" ;
+    arzeng:role "helper" ;
+    arzeng:summary "Helper engine: executes the helper subworkflow tape to the interface state s-prime under its own receipt chain." ;
+    arzeng:inboxPath "engines/H/inbox" ;
+    arzeng:outboxPath "engines/H/outbox" .
+
+exeng:main a arzeng:Engine ;
+    arzeng:engineId "M" ;
+    arzeng:role "main" ;
+    arzeng:summary "Main engine: executes the main subworkflow from the admitted interface state under its own receipt chain." ;
+    arzeng:inboxPath "engines/M/inbox" ;
+    arzeng:outboxPath "engines/M/outbox" .

@@ -2,8 +2,10 @@
 # Companion to crates/cng/templates/dispatch-contract.template.ttl and
 # dispatch-consequence.template.ttl; style follows powl2-shapes.ttl (the
 # declarative SHACL statement of the law travels with the crate).
-# Also declares the 13 dispatch machine states, the 3 execution classes,
-# and the 6 parent-child closure laws (disp:closureLaw, used by PROJ-620).
+# Also declares the 16 dispatch machine states (PROJ-720), the 3 execution
+# classes, the 6 parent-child closure laws (disp:closureLaw, used by
+# PROJ-620), the durable ledger StateEntry/ProcessedConsequence shapes
+# (PROJ-721), and the engine quiescence control-file shape (PROJ-723).
 @prefix sh:   <http://www.w3.org/ns/shacl#> .
 @prefix disp: <https://truex.io/ontology/dispatch#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
@@ -11,21 +13,24 @@
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix ex:   <urn:cng:shapes#> .
 
-# --- The 13 dispatch machine states ------------------------------------------
+# --- The 16 dispatch machine states (PROJ-720) --------------------------------
 
-disp:MANUFACTURED    a disp:DispatchState .
-disp:DISPATCH_READY  a disp:DispatchState .
-disp:DISPATCHED      a disp:DispatchState .
-disp:ACKNOWLEDGED    a disp:DispatchState .
-disp:IN_PROGRESS     a disp:DispatchState .
-disp:RESULT_RETURNED a disp:DispatchState .
-disp:ADMITTED        a disp:DispatchState .
-disp:COMPLETED       a disp:DispatchState .
-disp:REFUSED         a disp:DispatchState .
-disp:TIMED_OUT       a disp:DispatchState .
-disp:COMPENSATING    a disp:DispatchState .
-disp:BLOCKED         a disp:DispatchState .
-disp:UNKNOWN         a disp:DispatchState .
+disp:MANUFACTURED       a disp:DispatchState .
+disp:ARAZZO_RENDERED    a disp:DispatchState .
+disp:DISPATCH_READY     a disp:DispatchState .
+disp:DISPATCHED         a disp:DispatchState .
+disp:ACKNOWLEDGED       a disp:DispatchState .
+disp:REMOTE_STARTED     a disp:DispatchState .
+disp:REMOTE_IN_PROGRESS a disp:DispatchState .
+disp:RESULT_AVAILABLE   a disp:DispatchState .
+disp:RESULT_RECEIVED    a disp:DispatchState .
+disp:RESULT_ADMITTED    a disp:DispatchState .
+disp:COMPLETED          a disp:DispatchState .
+disp:REFUSED            a disp:DispatchState .
+disp:TIMED_OUT          a disp:DispatchState .
+disp:COMPENSATING       a disp:DispatchState .
+disp:BLOCKED            a disp:DispatchState .
+disp:UNKNOWN            a disp:DispatchState .
 
 # --- The 3 execution classes --------------------------------------------------
 
@@ -52,7 +57,7 @@ ex:ClosureLawShape a sh:NodeShape ;
             disp:POLICY_DECIDES disp:FIRST_CONFORMANT_RESULT ) ;
   ] .
 
-# --- DispatchContractShape (closed; all 20 fields mandatory) -------------------
+# --- DispatchContractShape (closed; all 21 fields mandatory) -------------------
 
 ex:DispatchContractShape a sh:NodeShape ;
   sh:targetClass disp:DispatchContract ;
@@ -67,6 +72,9 @@ ex:DispatchContractShape a sh:NodeShape ;
                 sh:datatype xsd:integer ] ;
   sh:property [ sh:path disp:targetActor ; sh:minCount 1 ; sh:maxCount 1 ;
                 sh:nodeKind sh:IRI ] ;
+  # PROJ-722: which Chatman Engine instance the contract is addressed to
+  # ("loopback-local" for the in-process loopback adapter).
+  sh:property [ sh:path disp:targetEngine ; sh:minCount 1 ; sh:maxCount 1 ] ;
   sh:property [ sh:path disp:requiredRole ; sh:minCount 1 ; sh:maxCount 1 ] ;
   sh:property [ sh:path disp:declaredAuthority ; sh:minCount 1 ; sh:maxCount 1 ] ;
   sh:property [ sh:path disp:inputArtifactSet ; sh:minCount 1 ] ;
@@ -86,10 +94,12 @@ ex:DispatchContractShape a sh:NodeShape ;
   sh:property [ sh:path disp:replayRequirements ; sh:minCount 1 ] ;
   sh:property [
     sh:path disp:dispatchState ; sh:minCount 1 ; sh:maxCount 1 ;
-    sh:in ( disp:MANUFACTURED disp:DISPATCH_READY disp:DISPATCHED
-            disp:ACKNOWLEDGED disp:IN_PROGRESS disp:RESULT_RETURNED
-            disp:ADMITTED disp:COMPLETED disp:REFUSED disp:TIMED_OUT
-            disp:COMPENSATING disp:BLOCKED disp:UNKNOWN ) ;
+    sh:in ( disp:MANUFACTURED disp:ARAZZO_RENDERED disp:DISPATCH_READY
+            disp:DISPATCHED disp:ACKNOWLEDGED disp:REMOTE_STARTED
+            disp:REMOTE_IN_PROGRESS disp:RESULT_AVAILABLE
+            disp:RESULT_RECEIVED disp:RESULT_ADMITTED disp:COMPLETED
+            disp:REFUSED disp:TIMED_OUT disp:COMPENSATING disp:BLOCKED
+            disp:UNKNOWN ) ;
   ] ;
   sh:property [
     sh:path disp:executionClass ; sh:minCount 1 ; sh:maxCount 1 ;
@@ -108,3 +118,44 @@ ex:DispatchConsequenceShape a sh:NodeShape ;
   sh:property [ sh:path disp:returnedArtifact ; sh:minCount 1 ] ;
   sh:property [ sh:path disp:conformanceVerdict ; sh:maxCount 1 ] ;
   sh:property [ sh:path disp:admissionVerdict ; sh:maxCount 1 ] .
+
+# --- StateEntryShape (PROJ-721 durable dispatch ledger) -------------------------
+# One entry is appended per broker advance(); disp:logicalTick and
+# disp:entrySeq are logic counters, never wall-clock time; disp:chainHash is
+# the BLAKE3 prefix chain resume verifies.
+
+ex:StateEntryShape a sh:NodeShape ;
+  sh:targetClass disp:StateEntry ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [ sh:path disp:dispatchId ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path disp:entrySeq ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:datatype xsd:integer ] ;
+  sh:property [ sh:path disp:fromState ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:nodeKind sh:IRI ] ;
+  sh:property [ sh:path disp:toState ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:nodeKind sh:IRI ] ;
+  sh:property [ sh:path disp:logicalTick ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:datatype xsd:integer ] ;
+  sh:property [ sh:path disp:chainHash ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+# --- ProcessedConsequenceShape (PROJ-721 idempotent consume) --------------------
+
+ex:ProcessedConsequenceShape a sh:NodeShape ;
+  sh:targetClass disp:ProcessedConsequence ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [ sh:path disp:idempotencyKey ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path disp:dispatchId ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+# --- QuiescenceShape (PROJ-723 engine serve control file) -----------------------
+# <root>/engines/<id>/control/quiesce.ttl must conform to this shape before
+# the serve loop may end; a malformed quiescence file is refused, never
+# silently obeyed.
+
+ex:QuiescenceShape a sh:NodeShape ;
+  sh:targetClass disp:Quiescence ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [ sh:path disp:engineId ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path disp:reason ; sh:minCount 1 ; sh:maxCount 1 ] .

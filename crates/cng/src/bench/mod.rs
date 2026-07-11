@@ -37,9 +37,12 @@
 
 mod arazzo;
 mod audit_replay;
+pub mod decomp;
 mod dispatch;
+mod engine;
 mod generate;
 mod hooks;
+pub mod ipc;
 mod manufacture;
 mod report;
 mod roles;
@@ -50,12 +53,19 @@ mod workday;
 pub mod workday_verify;
 
 pub use audit_replay::{audit_replay, AuditReplayReport};
+pub use engine::{
+    engine_collect_remote, engine_dispatch_remote, engine_resume, engine_serve,
+    EngineCoordinateReport, EngineIdentity, EngineServeReport, ENGINE_VERSION,
+};
 pub use generate::generate;
 pub use report::{EvidenceManifest, RunReport};
 pub use run::run;
-pub use templates::{BenchConfig, GenerateReport};
+pub use templates::{BenchConfig, GenerateReport, QuerySet};
 pub use verify::{verify, VerifyReport};
-pub use workday::{workday, WorkdayConfig, WorkdayReport};
+pub use workday::{
+    build_decomp_marker_store, evaluate_planning_markers, full_production_ready, workday,
+    WorkdayConfig, WorkdayReport,
+};
 
 pub(crate) const WORKERS_PER_ROSTER_PARTITION: usize = 5_000;
 pub(crate) const OBS_PER_PARTITION: usize = 4_000;
@@ -112,8 +122,19 @@ pub(crate) const STEP_VERBS: [&str; 8] = [
 /// (PROJ-614/616) records a replay re-manufacture that reproduced the
 /// recorded POWL digest byte-identically; it is projected into the OCEL
 /// evidence graph by `ocel-replays.construct.rq` and counted by
-/// `metric-replay.rq`.
-pub(crate) const OBS_KINDS: [&str; 27] = [
+/// `metric-replay.rq`. The `engine-*` and `resume-verified` kinds belong to
+/// the multi-engine serve/resume surface (PROJ-722/723/724): every serve
+/// observation carries `obs:producedByEngine` (the deterministic
+/// EngineIdentity), poll counts are logical, and `resume-verified` records
+/// a chain-prefix-verified ledger reload. The `remote-dispatch-sent`/
+/// `remote-consequence-received` and `arazzo-workflow-*` kinds belong to
+/// the distributed dispatch surface (PROJ-727): remote kinds are emitted
+/// only when a contract targets a non-loopback engine, arazzo kinds on
+/// every broker lifecycle (rendered projection + its dispatched twin).
+/// `direct-engine-bypass` and `shared-memory-crossing` are FORBIDDEN
+/// kinds: no production path emits them — they exist so the isolation
+/// markers have defined referents and negative fixtures can falsify them.
+pub(crate) const OBS_KINDS: [&str; 38] = [
     "imported",
     "planned",
     "projected",
@@ -141,6 +162,17 @@ pub(crate) const OBS_KINDS: [&str; 27] = [
     "dispatch-timed-out",
     "remediation-manufactured",
     "replay-verified",
+    "engine-started",
+    "engine-poll",
+    "engine-executed",
+    "engine-quiesced",
+    "resume-verified",
+    "remote-dispatch-sent",
+    "remote-consequence-received",
+    "direct-engine-bypass",
+    "shared-memory-crossing",
+    "arazzo-workflow-generated",
+    "arazzo-workflow-dispatched",
 ];
 
 /// splitmix64: deterministic, seedable, dependency-free.

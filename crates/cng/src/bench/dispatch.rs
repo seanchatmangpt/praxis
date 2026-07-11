@@ -101,17 +101,21 @@ pub(super) fn route_category(category: &str) -> ExecutionClass {
     }
 }
 
-/// The 13-state dispatch machine (mirrors the `disp:DispatchState`
-/// individuals in `shapes/dispatch-shapes.ttl`).
+/// The 16-state dispatch machine (mirrors the `disp:DispatchState`
+/// individuals in `shapes/dispatch-shapes.ttl`; PROJ-720 supersedes the
+/// 13-state machine — one law, no back-compat shim).
 ///
 /// Lawful transition table (anything else is `CNG_R16`):
-/// - MANUFACTURED → DISPATCH_READY
+/// - MANUFACTURED → ARAZZO_RENDERED
+/// - ARAZZO_RENDERED → DISPATCH_READY
 /// - DISPATCH_READY → DISPATCHED | REFUSED
 /// - DISPATCHED → ACKNOWLEDGED | TIMED_OUT
-/// - ACKNOWLEDGED → IN_PROGRESS | TIMED_OUT
-/// - IN_PROGRESS → RESULT_RETURNED | TIMED_OUT | BLOCKED
-/// - RESULT_RETURNED → ADMITTED | REFUSED
-/// - ADMITTED → COMPLETED
+/// - ACKNOWLEDGED → REMOTE_STARTED | TIMED_OUT
+/// - REMOTE_STARTED → REMOTE_IN_PROGRESS
+/// - REMOTE_IN_PROGRESS → RESULT_AVAILABLE | TIMED_OUT | BLOCKED
+/// - RESULT_AVAILABLE → RESULT_RECEIVED
+/// - RESULT_RECEIVED → RESULT_ADMITTED | REFUSED
+/// - RESULT_ADMITTED → COMPLETED
 /// - REFUSED → COMPENSATING | BLOCKED
 /// - TIMED_OUT → COMPENSATING | BLOCKED
 /// - COMPENSATING → COMPLETED | BLOCKED
@@ -119,18 +123,28 @@ pub(super) fn route_category(category: &str) -> ExecutionClass {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum DispatchState {
     Manufactured,
+    /// The contract's Arazzo/contract projection has been rendered
+    /// (MANUFACTURED → ARAZZO_RENDERED → DISPATCH_READY).
+    ArazzoRendered,
     DispatchReady,
     Dispatched,
     Acknowledged,
-    InProgress,
-    ResultReturned,
-    Admitted,
+    /// The remote engine has started the dispatched workflow
+    /// (ACKNOWLEDGED → REMOTE_STARTED → REMOTE_IN_PROGRESS).
+    RemoteStarted,
+    RemoteInProgress,
+    /// The consequence file exists on the collection surface.
+    ResultAvailable,
+    /// The consequence file was read and correlation-verified.
+    ResultReceived,
+    /// The lawful re-entry pipeline admitted the consequence.
+    ResultAdmitted,
     Completed,
     Refused,
     TimedOut,
     Compensating,
     Blocked,
-    /// Declared to mirror the 13th `disp:DispatchState` individual
+    /// Declared to mirror the 16th `disp:DispatchState` individual
     /// (dispatch-shapes.ttl); the broker never constructs it — an unknowable
     /// state is a refusal, not a value — but the vocabulary mirror is total.
     #[allow(dead_code)]
@@ -138,16 +152,41 @@ pub(super) enum DispatchState {
 }
 
 impl DispatchState {
+    /// Every machine state, in declaration order (drift test: this set must
+    /// equal the `disp:DispatchState` individuals in
+    /// `shapes/dispatch-shapes.ttl`).
+    pub(super) const ALL: [DispatchState; 16] = [
+        DispatchState::Manufactured,
+        DispatchState::ArazzoRendered,
+        DispatchState::DispatchReady,
+        DispatchState::Dispatched,
+        DispatchState::Acknowledged,
+        DispatchState::RemoteStarted,
+        DispatchState::RemoteInProgress,
+        DispatchState::ResultAvailable,
+        DispatchState::ResultReceived,
+        DispatchState::ResultAdmitted,
+        DispatchState::Completed,
+        DispatchState::Refused,
+        DispatchState::TimedOut,
+        DispatchState::Compensating,
+        DispatchState::Blocked,
+        DispatchState::Unknown,
+    ];
+
     /// Shape-vocabulary name (dispatch-shapes.ttl individual local name).
     pub(super) fn as_str(self) -> &'static str {
         match self {
             DispatchState::Manufactured => "MANUFACTURED",
+            DispatchState::ArazzoRendered => "ARAZZO_RENDERED",
             DispatchState::DispatchReady => "DISPATCH_READY",
             DispatchState::Dispatched => "DISPATCHED",
             DispatchState::Acknowledged => "ACKNOWLEDGED",
-            DispatchState::InProgress => "IN_PROGRESS",
-            DispatchState::ResultReturned => "RESULT_RETURNED",
-            DispatchState::Admitted => "ADMITTED",
+            DispatchState::RemoteStarted => "REMOTE_STARTED",
+            DispatchState::RemoteInProgress => "REMOTE_IN_PROGRESS",
+            DispatchState::ResultAvailable => "RESULT_AVAILABLE",
+            DispatchState::ResultReceived => "RESULT_RECEIVED",
+            DispatchState::ResultAdmitted => "RESULT_ADMITTED",
             DispatchState::Completed => "COMPLETED",
             DispatchState::Refused => "REFUSED",
             DispatchState::TimedOut => "TIMED_OUT",
@@ -159,17 +198,23 @@ impl DispatchState {
 
     /// Whether `self → to` is in the lawful transition table (see type
     /// docs). O(1).
-    fn lawful_to(self, to: DispatchState) -> bool {
+    pub(super) fn lawful_to(self, to: DispatchState) -> bool {
         use DispatchState as S;
         matches!(
             (self, to),
-            (S::Manufactured, S::DispatchReady)
+            (S::Manufactured, S::ArazzoRendered)
+                | (S::ArazzoRendered, S::DispatchReady)
                 | (S::DispatchReady, S::Dispatched | S::Refused)
                 | (S::Dispatched, S::Acknowledged | S::TimedOut)
-                | (S::Acknowledged, S::InProgress | S::TimedOut)
-                | (S::InProgress, S::ResultReturned | S::TimedOut | S::Blocked)
-                | (S::ResultReturned, S::Admitted | S::Refused)
-                | (S::Admitted, S::Completed)
+                | (S::Acknowledged, S::RemoteStarted | S::TimedOut)
+                | (S::RemoteStarted, S::RemoteInProgress)
+                | (
+                    S::RemoteInProgress,
+                    S::ResultAvailable | S::TimedOut | S::Blocked
+                )
+                | (S::ResultAvailable, S::ResultReceived)
+                | (S::ResultReceived, S::ResultAdmitted | S::Refused)
+                | (S::ResultAdmitted, S::Completed)
                 | (S::Refused, S::Compensating | S::Blocked)
                 | (S::TimedOut, S::Compensating | S::Blocked)
                 | (S::Compensating, S::Completed | S::Blocked)
@@ -177,7 +222,7 @@ impl DispatchState {
     }
 }
 
-/// A typed dispatch contract: the 20 required fields of
+/// A typed dispatch contract: the 21 required fields of
 /// `DispatchContractShape` (dispatch-shapes.ttl) plus the state-machine
 /// cursor, execution class, optional closure law, and the parent dispatch
 /// id (observation lineage; "none" at top level). Deadlines are LOGICAL
@@ -189,6 +234,11 @@ pub(super) struct DispatchContract {
     pub(super) parent_workflow: String,
     pub(super) recursive_depth: u32,
     pub(super) target_actor: String,
+    /// Target engine identity (PROJ-722, `disp:targetEngine`): which
+    /// Chatman Engine instance the contract is addressed to. The loopback
+    /// adapter uses `"loopback-local"`; multi-engine dispatch names the
+    /// remote engine's `engine_id`.
+    pub(super) target_engine: String,
     pub(super) required_role: String,
     pub(super) declared_authority: String,
     pub(super) input_artifact_set: String,
@@ -228,14 +278,15 @@ impl DispatchContract {
         Ok(())
     }
 
-    /// The 18 string-valued required fields as (template placeholder,
+    /// The 19 string-valued required fields as (template placeholder,
     /// value) pairs, in template order. O(1).
-    fn string_fields(&self) -> [(&'static str, &str); 18] {
+    fn string_fields(&self) -> [(&'static str, &str); 19] {
         [
             ("DISPATCH_ID", &self.dispatch_id),
             ("WORKFLOW_INSTANCE", &self.workflow_instance),
             ("PARENT_WORKFLOW", &self.parent_workflow),
             ("TARGET_ACTOR", &self.target_actor),
+            ("TARGET_ENGINE", &self.target_engine),
             ("REQUIRED_ROLE", &self.required_role),
             ("DECLARED_AUTHORITY", &self.declared_authority),
             ("INPUT_ARTIFACT_SET", &self.input_artifact_set),
@@ -292,6 +343,431 @@ fn content_key(text: &str) -> String {
     blake3::hash(text.as_bytes()).to_hex()[..12].to_string()
 }
 
+// ---------------------------------------------------------------------------
+// Real-time wait seam (PROJ-723)
+// ---------------------------------------------------------------------------
+
+/// The ONLY lawful real-time element in the dispatch surface: the bounded
+/// inter-poll wait while a remote engine produces a consequence file. Wall
+/// time NEVER enters any digest, receipt, or observation — poll COUNTS
+/// (logical) do. The default adapter wait is [`NoWait`] (loopback synthesis
+/// needs no real time); `cng engine serve` and remote-engine coordinators
+/// install [`ThreadSleepWait`].
+pub trait RealTimeWait {
+    /// Blocks the calling thread between polls (or not at all).
+    fn wait(&self);
+}
+
+/// No-op wait: loopback/deterministic synthesis and unit tests.
+pub struct NoWait;
+
+impl RealTimeWait for NoWait {
+    fn wait(&self) {}
+}
+
+/// Real inter-poll sleep behind the seam (`std::thread::sleep`); the slept
+/// duration is never serialized, digested, or observed.
+pub struct ThreadSleepWait {
+    /// Sleep per poll, milliseconds.
+    pub millis: u64,
+}
+
+impl RealTimeWait for ThreadSleepWait {
+    fn wait(&self) {
+        std::thread::sleep(std::time::Duration::from_millis(self.millis));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Durable dispatch ledger (PROJ-721)
+// ---------------------------------------------------------------------------
+
+/// Append-only dispatch state ledger + idempotent-consume processed set.
+/// Every `advance()` the broker performs is appended as one
+/// `disp:StateEntry` BEFORE the new state has any further effect; the
+/// processed set is checked before any consequence admission
+/// (`CNG_R25 DoubleAdmit` on a replayed idempotency key).
+pub(super) trait LedgerSink {
+    /// Appends one state entry `(from → to)` at logical `tick`.
+    fn append(
+        &mut self,
+        dispatch_id: &str,
+        from: &str,
+        to: &str,
+        tick: usize,
+    ) -> Result<(), CngRefusal>;
+    /// Whether `idempotency_key` was already admitted.
+    fn is_processed(&self, idempotency_key: &str) -> bool;
+    /// Marks `idempotency_key` admitted (durably).
+    fn mark_processed(
+        &mut self,
+        idempotency_key: &str,
+        dispatch_id: &str,
+    ) -> Result<(), CngRefusal>;
+}
+
+/// One replayed ledger state entry (resume/verification input).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct LedgerEntry {
+    pub(super) dispatch_id: String,
+    pub(super) entry_seq: u64,
+    pub(super) from_state: String,
+    pub(super) to_state: String,
+    pub(super) tick: u64,
+    pub(super) chain_hash: String,
+}
+
+/// Filesystem [`LedgerSink`]: one append-only Turtle file per dispatch id
+/// under `ledger_dir` (`<dispatch_id>.ttl`), plus `processed.ttl` for the
+/// idempotency set. Every write is atomic (`*.tmp` + `fs::rename`); every
+/// entry is template-rendered (never inline Turtle); the per-dispatch chain
+/// hash is `blake3(prev_chain | from | to | tick | seq)` — content-derived,
+/// no wall clock.
+pub(super) struct FileLedgerSink {
+    ledger_dir: PathBuf,
+    entry_template: String,
+    processed_template: String,
+    /// dispatch id → next entry seq (BTreeMap: canonical order).
+    seqs: BTreeMap<String, u64>,
+    /// dispatch id → chain hash so far.
+    chains: BTreeMap<String, String>,
+    /// Admitted idempotency keys.
+    processed: std::collections::BTreeSet<String>,
+    /// Monotone counter for processed-entry subjects.
+    processed_seq: u64,
+}
+
+/// Folds one ledger link: `blake3(prev | from | to | tick | seq)`, hex.
+/// O(1).
+fn ledger_chain_hash(prev: &str, from: &str, to: &str, tick: u64, seq: u64) -> String {
+    let mut h = blake3::Hasher::new();
+    h.update(prev.as_bytes());
+    h.update(from.as_bytes());
+    h.update(to.as_bytes());
+    h.update(tick.to_string().as_bytes());
+    h.update(seq.to_string().as_bytes());
+    h.finalize().to_hex().to_string()
+}
+
+/// Atomic file write: `<path>.tmp` then `fs::rename` (readers never see a
+/// torn file; a crash mid-rename leaves the previous version intact).
+/// O(|body|).
+pub(super) fn write_atomic(path: &Path, body: &str) -> Result<(), CngRefusal> {
+    let tmp = path.with_extension("tmp");
+    fs::write(&tmp, body)
+        .map_err(|e| CngRefusal::IoRefused(format!("write {}: {e}", tmp.display())))?;
+    fs::rename(&tmp, path).map_err(|e| {
+        CngRefusal::IoRefused(format!(
+            "rename {} -> {}: {e}",
+            tmp.display(),
+            path.display()
+        ))
+    })
+}
+
+impl FileLedgerSink {
+    /// Constructs the sink over `ledger_dir` (created if absent), reading
+    /// both ledger templates from the crate's `templates/` directory and
+    /// reloading any existing `processed.ttl` set + per-dispatch chain
+    /// tails (resume path). A ledger file that fails to parse or whose
+    /// recorded chain hashes do not recompute is a torn/tampered ledger —
+    /// `CNG_R11 AuditMismatch`.
+    ///
+    /// # Complexity
+    /// O(ledger bytes) parse + O(entries log entries) ordering.
+    pub(super) fn new(ledger_dir: &Path) -> Result<Self, CngRefusal> {
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let read = |name: &str| -> Result<String, CngRefusal> {
+            let path = manifest.join("templates").join(name);
+            fs::read_to_string(&path)
+                .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", path.display())))
+        };
+        fs::create_dir_all(ledger_dir)
+            .map_err(|e| CngRefusal::IoRefused(format!("mkdir {}: {e}", ledger_dir.display())))?;
+        let mut sink = FileLedgerSink {
+            ledger_dir: ledger_dir.to_path_buf(),
+            entry_template: read("dispatch-ledger-entry.template.ttl")?,
+            processed_template: read("dispatch-processed-entry.template.ttl")?,
+            seqs: BTreeMap::new(),
+            chains: BTreeMap::new(),
+            processed: std::collections::BTreeSet::new(),
+            processed_seq: 0,
+        };
+        sink.reload()?;
+        Ok(sink)
+    }
+
+    /// Reloads chain tails + processed set from the ledger directory,
+    /// verifying every per-dispatch chain prefix. Torn tail (unparseable
+    /// file, missing field, or chain-hash mismatch) refuses `CNG_R11`.
+    ///
+    /// # Complexity
+    /// O(ledger bytes) parse + O(entries log entries).
+    fn reload(&mut self) -> Result<(), CngRefusal> {
+        let mut paths: Vec<PathBuf> = fs::read_dir(&self.ledger_dir)
+            .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", self.ledger_dir.display())))?
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.extension().and_then(|x| x.to_str()) == Some("ttl"))
+            .collect();
+        paths.sort();
+        for path in paths {
+            let name = path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .ok_or_else(|| {
+                    CngRefusal::IoRefused(format!("non-UTF8 ledger filename: {}", path.display()))
+                })?
+                .to_string();
+            if name == "processed" {
+                self.reload_processed(&path)?;
+                continue;
+            }
+            let entries = read_ledger_entries(&path)?;
+            let mut chain = String::new();
+            for (i, entry) in entries.iter().enumerate() {
+                if entry.entry_seq != i as u64 {
+                    return Err(CngRefusal::AuditMismatch(format!(
+                        "torn ledger {} — entry seq {} at position {i}",
+                        path.display(),
+                        entry.entry_seq
+                    )));
+                }
+                let expected = ledger_chain_hash(
+                    &chain,
+                    &entry.from_state,
+                    &entry.to_state,
+                    entry.tick,
+                    entry.entry_seq,
+                );
+                if entry.chain_hash != expected {
+                    return Err(CngRefusal::AuditMismatch(format!(
+                        "torn/tampered ledger {} — chain hash at entry {} does not \
+                         recompute (recorded {}, recomputed {expected})",
+                        path.display(),
+                        entry.entry_seq,
+                        entry.chain_hash
+                    )));
+                }
+                chain = expected;
+            }
+            self.seqs.insert(name.clone(), entries.len() as u64);
+            self.chains.insert(name, chain);
+        }
+        Ok(())
+    }
+
+    /// Reloads the processed idempotency set from `processed.ttl`.
+    ///
+    /// # Complexity
+    /// O(file bytes) parse + O(keys) scan.
+    fn reload_processed(&mut self, path: &Path) -> Result<(), CngRefusal> {
+        let text = fs::read_to_string(path)
+            .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", path.display())))?;
+        let store = Store::new()
+            .map_err(|e| CngRefusal::IoRefused(format!("processed store construction: {e}")))?;
+        store
+            .load_from_slice(RdfParser::from_format(RdfFormat::Turtle), text.as_bytes())
+            .map_err(|e| {
+                CngRefusal::AuditMismatch(format!("torn ledger {} — {e}", path.display()))
+            })?;
+        let pred_iri = format!("{DISP_PREFIX}idempotencyKey");
+        let pred = NamedNodeRef::new(&pred_iri)
+            .map_err(|e| CngRefusal::MalformedTtl(format!("{pred_iri}: {e}")))?;
+        let mut n = 0u64;
+        for quad in store.quads_for_pattern(None, Some(pred), None, None) {
+            let quad =
+                quad.map_err(|e| CngRefusal::MalformedTtl(format!("processed scan: {e}")))?;
+            self.processed
+                .insert(super::manufacture::term_value(&quad.object));
+            n += 1;
+        }
+        self.processed_seq = n;
+        Ok(())
+    }
+
+    /// Per-dispatch ledger entries replayed in seq order (resume/tests).
+    ///
+    /// # Complexity
+    /// O(file bytes) parse + O(entries log entries) sort.
+    pub(super) fn entries(&self, dispatch_id: &str) -> Result<Vec<LedgerEntry>, CngRefusal> {
+        read_ledger_entries(&self.ledger_dir.join(format!("{dispatch_id}.ttl")))
+    }
+
+    /// Total verified entries across every dispatch ledger file. O(files).
+    pub(super) fn total_entries(&self) -> u64 {
+        self.seqs.values().sum()
+    }
+}
+
+/// Parses one per-dispatch ledger file into entries ordered by
+/// `disp:entrySeq`. Unparseable Turtle or a missing required field is a
+/// torn ledger (`CNG_R11`); a missing file yields an empty vector.
+///
+/// # Complexity
+/// O(file bytes) parse + O(entries log entries) sort.
+pub(super) fn read_ledger_entries(path: &Path) -> Result<Vec<LedgerEntry>, CngRefusal> {
+    if !path.is_file() {
+        return Ok(Vec::new());
+    }
+    let text = fs::read_to_string(path)
+        .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", path.display())))?;
+    let store = Store::new()
+        .map_err(|e| CngRefusal::IoRefused(format!("ledger store construction: {e}")))?;
+    store
+        .load_from_slice(RdfParser::from_format(RdfFormat::Turtle), text.as_bytes())
+        .map_err(|e| CngRefusal::AuditMismatch(format!("torn ledger {} — {e}", path.display())))?;
+    let pred = |local: &str| -> Result<oxigraph::model::NamedNode, CngRefusal> {
+        oxigraph::model::NamedNode::new(format!("{DISP_PREFIX}{local}"))
+            .map_err(|e| CngRefusal::MalformedTtl(format!("{local}: {e}")))
+    };
+    let type_pred = oxigraph::model::NamedNode::new(
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_string(),
+    )
+    .map_err(|e| CngRefusal::MalformedTtl(format!("rdf:type: {e}")))?;
+    let entry_class = pred("StateEntry")?;
+    let preds = [
+        pred("dispatchId")?,
+        pred("entrySeq")?,
+        pred("fromState")?,
+        pred("toState")?,
+        pred("logicalTick")?,
+        pred("chainHash")?,
+    ];
+    let mut entries = Vec::new();
+    for quad in store.quads_for_pattern(
+        None,
+        Some(type_pred.as_ref()),
+        Some(entry_class.as_ref().into()),
+        None,
+    ) {
+        let quad = quad.map_err(|e| CngRefusal::MalformedTtl(format!("ledger scan: {e}")))?;
+        let subject = quad.subject;
+        let field = |i: usize| -> Result<String, CngRefusal> {
+            store
+                .quads_for_pattern(Some(subject.as_ref()), Some(preds[i].as_ref()), None, None)
+                .next()
+                .transpose()
+                .map_err(|e| CngRefusal::MalformedTtl(format!("ledger field scan: {e}")))?
+                .map(|q| super::manufacture::term_value(&q.object))
+                .ok_or_else(|| {
+                    CngRefusal::AuditMismatch(format!(
+                        "torn ledger {} — entry {subject} missing a required field",
+                        path.display()
+                    ))
+                })
+        };
+        let parse_u64 = |v: String| -> Result<u64, CngRefusal> {
+            v.parse::<u64>().map_err(|e| {
+                CngRefusal::AuditMismatch(format!("torn ledger {} — {e}", path.display()))
+            })
+        };
+        // State names come back as full disp: IRIs; strip to local names.
+        let local = |v: String| -> String {
+            if let Some(s) = v.strip_prefix(DISP_PREFIX) {
+                return s.to_string();
+            }
+            v
+        };
+        entries.push(LedgerEntry {
+            dispatch_id: field(0)?,
+            entry_seq: parse_u64(field(1)?)?,
+            from_state: local(field(2)?),
+            to_state: local(field(3)?),
+            tick: parse_u64(field(4)?)?,
+            chain_hash: field(5)?,
+        });
+    }
+    entries.sort_by_key(|e| e.entry_seq);
+    Ok(entries)
+}
+
+impl LedgerSink for FileLedgerSink {
+    /// Appends one template-rendered `disp:StateEntry` to the dispatch's
+    /// ledger file (whole-file rewrite via atomic tmp+rename — entries are
+    /// tiny and files are per-dispatch).
+    ///
+    /// # Complexity
+    /// O(file bytes) rewrite per append.
+    fn append(
+        &mut self,
+        dispatch_id: &str,
+        from: &str,
+        to: &str,
+        tick: usize,
+    ) -> Result<(), CngRefusal> {
+        let seq = self.seqs.get(dispatch_id).copied().unwrap_or(0);
+        let prev = self.chains.get(dispatch_id).cloned().unwrap_or_default();
+        let chain = ledger_chain_hash(&prev, from, to, tick as u64, seq);
+        let seq_text = seq.to_string();
+        let tick_text = tick.to_string();
+        let subject = format!("ledger-{dispatch_id}-{seq}");
+        let body = fill_template(
+            &self.entry_template,
+            &[
+                ("SUBJECT", subject.as_str()),
+                ("DISPATCH_ID", dispatch_id),
+                ("ENTRY_SEQ", seq_text.as_str()),
+                ("FROM_STATE", from),
+                ("TO_STATE", to),
+                ("TICK", tick_text.as_str()),
+                ("CHAIN_HASH", chain.as_str()),
+            ],
+        );
+        let path = self.ledger_dir.join(format!("{dispatch_id}.ttl"));
+        let mut existing = if path.is_file() {
+            fs::read_to_string(&path)
+                .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", path.display())))?
+        } else {
+            String::new()
+        };
+        existing.push_str(&body);
+        existing.push('\n');
+        write_atomic(&path, &existing)?;
+        self.seqs.insert(dispatch_id.to_string(), seq + 1);
+        self.chains.insert(dispatch_id.to_string(), chain);
+        Ok(())
+    }
+
+    fn is_processed(&self, idempotency_key: &str) -> bool {
+        self.processed.contains(idempotency_key)
+    }
+
+    /// Durably appends the key to `processed.ttl` (atomic rewrite).
+    ///
+    /// # Complexity
+    /// O(file bytes) rewrite per admission.
+    fn mark_processed(
+        &mut self,
+        idempotency_key: &str,
+        dispatch_id: &str,
+    ) -> Result<(), CngRefusal> {
+        let seq = self.processed_seq;
+        let subject = format!("processed-{seq}");
+        let body = fill_template(
+            &self.processed_template,
+            &[
+                ("SUBJECT", subject.as_str()),
+                ("IDEMPOTENCY_KEY", idempotency_key),
+                ("DISPATCH_ID", dispatch_id),
+            ],
+        );
+        let path = self.ledger_dir.join("processed.ttl");
+        let mut existing = if path.is_file() {
+            fs::read_to_string(&path)
+                .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", path.display())))?
+        } else {
+            String::new()
+        };
+        existing.push_str(&body);
+        existing.push('\n');
+        write_atomic(&path, &existing)?;
+        self.processed.insert(idempotency_key.to_string());
+        self.processed_seq = seq + 1;
+        Ok(())
+    }
+}
+
 /// Builds the standard workday dispatch contract for one manufactured set.
 /// Every field is content-derived from `(set_id, category, tick)` — never
 /// path- or time-derived — so two same-seed runs render byte-identical
@@ -325,6 +801,7 @@ pub(super) fn workday_contract(
         parent_workflow: set_id.to_string(),
         recursive_depth: depth,
         target_actor: target_actor.to_string(),
+        target_engine: "loopback-local".to_string(),
         required_role: required_role.to_string(),
         declared_authority: format!("workday-operator-authority-{category}"),
         input_artifact_set: format!("inputs-{set_id}"),
@@ -409,13 +886,13 @@ pub(super) fn shape_violations(
 }
 
 /// The disp: vocabulary prefix (templates/dispatch-*.template.ttl).
-const DISP_PREFIX: &str = "https://truex.io/ontology/dispatch#";
+pub(super) const DISP_PREFIX: &str = "https://truex.io/ontology/dispatch#";
 /// PROV-O prefix (consequence provenance layering).
 const PROV_PREFIX: &str = "http://www.w3.org/ns/prov#";
 
 /// First object value of `(?, <DISP_PREFIX+local>, ?o)` in `store`, plain.
 /// O(1) pattern lookup.
-fn disp_object(
+pub(super) fn disp_object(
     store: &Store,
     local: &str,
     full_prefix: &str,
@@ -518,6 +995,18 @@ pub(super) enum SynthesisMode<'p> {
     /// candidates); the production loopback never reads fixtures.
     #[allow(dead_code)]
     FixtureFile(&'p Path),
+    /// PROJ-723: the consequence is produced by a REAL second engine
+    /// process; each bounded poll checks `inbox_dir/<dispatch_id>.ttl`
+    /// (the remote engine's outbox is this coordinator's inbox) and the
+    /// adapter's `RealTimeWait` seam sleeps between empty polls. Nothing
+    /// is synthesized; nothing real-time enters any digest. (Constructed
+    /// by the PROJ-728 multi-process coordinator; the variant + poll logic
+    /// land here so the seam is one match arm, not a fork.)
+    #[allow(dead_code)]
+    RemoteEngine {
+        /// Directory the remote engine writes consequences into.
+        inbox_dir: &'p Path,
+    },
 }
 
 /// Terminal outcome of one dispatch lifecycle (never a silent state).
@@ -548,6 +1037,18 @@ pub(super) struct DispatchTelemetry {
     pub(super) refused: usize,
     pub(super) timeouts: usize,
     pub(super) remediations: usize,
+    /// Arazzo/contract projections rendered (arazzo_workflow_generated
+    /// observations; PROJ-727).
+    pub(super) arazzo_generated: usize,
+    /// Rendered projections that left the broker
+    /// (arazzo_workflow_dispatched observations; PROJ-727).
+    pub(super) arazzo_dispatched: usize,
+    /// Contracts dispatched to a non-loopback engine
+    /// (remote_dispatch_sent observations; PROJ-727).
+    pub(super) remote_sent: usize,
+    /// Consequences read off a remote engine's collection surface
+    /// (remote_consequence_received observations; PROJ-727).
+    pub(super) remote_received: usize,
 }
 
 /// The broker's dispatch adapter: owns the loopback surface directories,
@@ -556,11 +1057,29 @@ pub(super) struct DispatchTelemetry {
 pub(super) struct DispatchAdapter<'a> {
     outbox_dir: PathBuf,
     inbox_dir: PathBuf,
+    /// The workday/engine `out_dir` this adapter was constructed over
+    /// (PROJ-745): the root a ggen sync run would have rendered
+    /// arazzo-pack's outputs into (`<project_root>/generated/arazzo.yaml`,
+    /// `<project_root>/.ggen-v2/receipt.json`). Used by
+    /// `arazzo::verify_arazzo_render_digest` as the seam's `project_root`
+    /// argument — never re-derived per call, always the same root the
+    /// adapter's own outbox/inbox live under.
+    project_root: PathBuf,
     contract_template: String,
     consequence_template: String,
     shapes_path: PathBuf,
     standing_query: String,
     queries: &'a QuerySet,
+    /// Durable state ledger + processed set (PROJ-721): one StateEntry per
+    /// `advance()`, checked/marked at admission.
+    pub(super) ledger: FileLedgerSink,
+    /// Inter-poll wait seam (PROJ-723); `NoWait` for loopback synthesis.
+    wait: Box<dyn RealTimeWait>,
+    /// The engine identity stamped as `obs:producedByEngine` on the
+    /// adapter's remote observations (PROJ-727). `"local"` for the
+    /// single-process workday adapter; a coordinator sets its own id via
+    /// [`Self::set_producer_engine`].
+    producer_engine: String,
     pub(super) telemetry: DispatchTelemetry,
     /// dispatch id → (contract digest, consequence digest or "refused"/
     /// "timed-out"). BTreeMap: canonical fold order for the chain.
@@ -568,41 +1087,135 @@ pub(super) struct DispatchAdapter<'a> {
 }
 
 impl<'a> DispatchAdapter<'a> {
-    /// Constructs the adapter: creates `<out_dir>/dispatch/{outbox,inbox}`,
-    /// reads both dispatch templates and the standing query from disk.
+    /// Constructs the adapter: creates
+    /// `<out_dir>/dispatch/{outbox,inbox,ledger}`, reads both dispatch
+    /// templates and the standing query from disk.
     ///
     /// # Complexity
-    /// O(template bytes) reads; two mkdirs.
+    /// O(template bytes) reads; three mkdirs.
     pub(super) fn new(out_dir: &Path, queries: &'a QuerySet) -> Result<Self, CngRefusal> {
+        let dispatch_dir = out_dir.join("dispatch");
+        Self::new_with_dirs(
+            &dispatch_dir.join("outbox"),
+            &dispatch_dir.join("inbox"),
+            &dispatch_dir.join("ledger"),
+            out_dir,
+            queries,
+        )
+    }
+
+    /// Constructs the adapter over explicit surface directories (PROJ-722/
+    /// 723): a coordinator dispatching to a remote engine points `outbox`
+    /// at that engine's inbox and `inbox` at that engine's outbox.
+    /// `project_root` is the ggen sync project root this adapter's Arazzo
+    /// projections are verified against (PROJ-745); a remote-engine
+    /// coordinator not running Arazzo projections may pass any stable path
+    /// here (`verify_arazzo_render_digest` is only invoked from
+    /// `arazzo::run_arazzo_projection`).
+    ///
+    /// # Complexity
+    /// O(template + ledger bytes) reads; three mkdirs.
+    pub(super) fn new_with_dirs(
+        outbox_dir: &Path,
+        inbox_dir: &Path,
+        ledger_dir: &Path,
+        project_root: &Path,
+        queries: &'a QuerySet,
+    ) -> Result<Self, CngRefusal> {
         let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let read = |name: &str| -> Result<String, CngRefusal> {
             let path = manifest.join("templates").join(name);
             fs::read_to_string(&path)
                 .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", path.display())))
         };
-        let outbox_dir = out_dir.join("dispatch").join("outbox");
-        let inbox_dir = out_dir.join("dispatch").join("inbox");
-        for dir in [&outbox_dir, &inbox_dir] {
+        for dir in [outbox_dir, inbox_dir] {
             fs::create_dir_all(dir)
                 .map_err(|e| CngRefusal::IoRefused(format!("mkdir {}: {e}", dir.display())))?;
         }
         Ok(DispatchAdapter {
-            outbox_dir,
-            inbox_dir,
+            outbox_dir: outbox_dir.to_path_buf(),
+            inbox_dir: inbox_dir.to_path_buf(),
+            project_root: project_root.to_path_buf(),
             contract_template: read("dispatch-contract.template.ttl")?,
             consequence_template: read("dispatch-consequence.template.ttl")?,
             shapes_path: manifest.join("shapes").join("dispatch-shapes.ttl"),
             standing_query: queries.get("standing-next-action")?.to_string(),
             queries,
+            ledger: FileLedgerSink::new(ledger_dir)?,
+            wait: Box::new(NoWait),
+            producer_engine: "local".to_string(),
             telemetry: DispatchTelemetry::default(),
             receipt_digests: BTreeMap::new(),
         })
+    }
+
+    /// Installs a real inter-poll wait (remote-engine coordination). The
+    /// wait is real time behind the seam; it never enters digests. O(1).
+    #[allow(dead_code)]
+    pub(super) fn set_wait(&mut self, wait: Box<dyn RealTimeWait>) {
+        self.wait = wait;
+    }
+
+    /// Declares the engine identity stamped on this adapter's remote
+    /// observations (PROJ-727). O(1).
+    #[allow(dead_code)]
+    pub(super) fn set_producer_engine(&mut self, engine_id: &str) {
+        self.producer_engine = engine_id.to_string();
+    }
+
+    /// Ledgered state advance (PROJ-721): performs the lawful transition
+    /// (`CNG_R16` otherwise) and appends exactly one `disp:StateEntry` to
+    /// the durable per-dispatch ledger BEFORE the new state has any further
+    /// effect.
+    ///
+    /// # Complexity
+    /// O(1) transition + O(ledger file bytes) atomic append.
+    fn advance_ledgered(
+        &mut self,
+        contract: &mut DispatchContract,
+        to: DispatchState,
+        tick: usize,
+    ) -> Result<(), CngRefusal> {
+        let from = contract.state;
+        contract.advance(to)?;
+        self.ledger
+            .append(&contract.dispatch_id, from.as_str(), to.as_str(), tick)
+    }
+
+    /// Idempotent-consume guard (PROJ-721): refuses `CNG_R25 DoubleAdmit`
+    /// when the contract's idempotency key was already admitted, else marks
+    /// it processed durably (`processed.ttl`, atomic append). Runs AFTER
+    /// the lawful re-entry pipeline accepts and BEFORE the admission has
+    /// any effect.
+    ///
+    /// # Complexity
+    /// O(log keys) lookup + O(file bytes) atomic append.
+    pub(super) fn guard_double_admit(
+        &mut self,
+        contract: &DispatchContract,
+    ) -> Result<(), CngRefusal> {
+        if self.ledger.is_processed(&contract.idempotency_key) {
+            return Err(CngRefusal::DoubleAdmit {
+                dispatch: contract.dispatch_id.clone(),
+                idempotency_key: contract.idempotency_key.clone(),
+            });
+        }
+        self.ledger
+            .mark_processed(&contract.idempotency_key, &contract.dispatch_id)
     }
 
     /// The adapter's on-disk query set (shared with the Arazzo projection).
     /// O(1).
     pub(super) fn queries(&self) -> &'a QuerySet {
         self.queries
+    }
+
+    /// The workday/engine `out_dir` this adapter was constructed over
+    /// (PROJ-745): the ggen sync project root `arazzo::run_arazzo_projection`
+    /// passes to `verify_arazzo_render_digest` before any step of the
+    /// projection reaches `DispatchState::ArazzoRendered`. O(1).
+    pub(super) fn project_root(&self) -> &Path {
+        &self.project_root
     }
 
     /// Deterministic loopback consequence synthesis — the SEAM where a real
@@ -672,6 +1285,23 @@ impl<'a> DispatchAdapter<'a> {
         // broker (CNG_R15), whether the gap is an empty Rust field or a
         // template/shape drift caught by the shape-driven SPARQL.
         let rendered = contract.render(&self.contract_template)?;
+        self.advance_ledgered(&mut contract, DispatchState::ArazzoRendered, tick)?;
+        // PROJ-727: the rendered Arazzo/contract projection is receipted
+        // BEFORE it can leave the broker; marker-arazzo-dispatch.rq requires
+        // its dispatched twin (emitted below at DISPATCHED) for every one.
+        let tick_text = tick.to_string();
+        let contract_digest = format!("blake3:{}", blake3::hash(rendered.as_bytes()).to_hex());
+        writer.emit(
+            "arazzo-workflow-generated",
+            &[
+                ("SET_ID", contract.dispatch_id.as_str()),
+                ("TICK", tick_text.as_str()),
+                ("DISPATCH_ID", contract.dispatch_id.as_str()),
+                ("EXECUTION_CLASS", contract.execution_class.as_str()),
+                ("CONTRACT_DIGEST", contract_digest.as_str()),
+            ],
+        )?;
+        self.telemetry.arazzo_generated += 1;
         let violations = shape_violations(&rendered, &self.shapes_path, self.queries)?;
         if let Some((entry, field)) = violations.first() {
             return Err(CngRefusal::DispatchContractIncomplete {
@@ -679,17 +1309,16 @@ impl<'a> DispatchAdapter<'a> {
                 missing: field.clone(),
             });
         }
-        contract.advance(DispatchState::DispatchReady)?;
+        self.advance_ledgered(&mut contract, DispatchState::DispatchReady, tick)?;
 
-        // --- Outbound: outbox artifact + dispatch_sent receipt.
+        // --- Outbound: outbox artifact + dispatch_sent receipt. Atomic
+        // tmp+rename: a remote engine's sorted inbox scan never sees a torn
+        // contract file.
         let outbox_path = self
             .outbox_dir
             .join(format!("{}.ttl", contract.dispatch_id));
-        fs::write(&outbox_path, &rendered)
-            .map_err(|e| CngRefusal::IoRefused(format!("write {}: {e}", outbox_path.display())))?;
-        let contract_digest = format!("blake3:{}", blake3::hash(rendered.as_bytes()).to_hex());
-        contract.advance(DispatchState::Dispatched)?;
-        let tick_text = tick.to_string();
+        write_atomic(&outbox_path, &rendered)?;
+        self.advance_ledgered(&mut contract, DispatchState::Dispatched, tick)?;
         let deadline_text = contract.deadline_ticks.to_string();
         writer.emit(
             "dispatch-sent",
@@ -705,6 +1334,34 @@ impl<'a> DispatchAdapter<'a> {
             ],
         )?;
         self.telemetry.sent += 1;
+        // PROJ-727: the dispatched twin of arazzo-workflow-generated —
+        // marker-arazzo-dispatch.rq requires the pair per dispatch id.
+        writer.emit(
+            "arazzo-workflow-dispatched",
+            &[
+                ("SET_ID", contract.dispatch_id.as_str()),
+                ("TICK", tick_text.as_str()),
+                ("DISPATCH_ID", contract.dispatch_id.as_str()),
+                ("TARGET_ENGINE", contract.target_engine.as_str()),
+            ],
+        )?;
+        self.telemetry.arazzo_dispatched += 1;
+        // PROJ-727: a contract addressed to a REMOTE engine additionally
+        // receipts the boundary crossing; marker-engine-isolation.rq derives
+        // bypasses from received-without-sent gaps over exactly this fact.
+        if contract.target_engine != "loopback-local" {
+            writer.emit(
+                "remote-dispatch-sent",
+                &[
+                    ("SET_ID", contract.dispatch_id.as_str()),
+                    ("ENGINE_ID", self.producer_engine.as_str()),
+                    ("DISPATCH_ID", contract.dispatch_id.as_str()),
+                    ("TARGET_ENGINE", contract.target_engine.as_str()),
+                    ("CORRELATION_ID", contract.correlation_id.as_str()),
+                ],
+            )?;
+            self.telemetry.remote_sent += 1;
+        }
 
         // --- Standing: with one dispatch awaited, "what now?" must derive
         // exactly the collect action for exactly this dispatch.
@@ -713,7 +1370,7 @@ impl<'a> DispatchAdapter<'a> {
         }
 
         // --- Loopback acknowledgement.
-        contract.advance(DispatchState::Acknowledged)?;
+        self.advance_ledgered(&mut contract, DispatchState::Acknowledged, tick)?;
         writer.emit(
             "dispatch-acknowledged",
             &[
@@ -722,7 +1379,8 @@ impl<'a> DispatchAdapter<'a> {
             ],
         )?;
         self.telemetry.acknowledged += 1;
-        contract.advance(DispatchState::InProgress)?;
+        self.advance_ledgered(&mut contract, DispatchState::RemoteStarted, tick)?;
+        self.advance_ledgered(&mut contract, DispatchState::RemoteInProgress, tick)?;
 
         // --- Recursive child dispatches + closure law (PROJ-620). The
         // dispatched workflow manufactures CHILD_FAN_OUT children per depth
@@ -753,7 +1411,7 @@ impl<'a> DispatchAdapter<'a> {
                     row.get("dispatch").map(String::as_str) == Some(contract.dispatch_id.as_str())
                 });
             if !satisfied {
-                contract.advance(DispatchState::Blocked)?;
+                self.advance_ledgered(&mut contract, DispatchState::Blocked, tick)?;
                 return Ok(DispatchOutcome::Open);
             }
         }
@@ -773,7 +1431,7 @@ impl<'a> DispatchAdapter<'a> {
                 b.copy_from_slice(&hash.as_bytes()[..8]);
                 u64::from_le_bytes(b) % SYNTH_DELAY_MOD
             }
-            SynthesisMode::FixtureFile(_) => 0,
+            SynthesisMode::FixtureFile(_) | SynthesisMode::RemoteEngine { .. } => 0,
         };
         let mut consequence_ttl: Option<String> = None;
         for poll in 0..contract.deadline_ticks {
@@ -787,13 +1445,48 @@ impl<'a> DispatchAdapter<'a> {
                 ],
             )?;
             self.telemetry.polls += 1;
-            if poll == delay {
-                let body = match synthesis {
-                    SynthesisMode::LoopbackDeterministic => self.synthesize_consequence(&contract),
-                    SynthesisMode::FixtureFile(path) => fs::read_to_string(path).map_err(|e| {
+            let candidate: Option<String> = match synthesis {
+                SynthesisMode::LoopbackDeterministic if poll == delay => {
+                    Some(self.synthesize_consequence(&contract))
+                }
+                SynthesisMode::FixtureFile(path) if poll == delay => {
+                    Some(fs::read_to_string(path).map_err(|e| {
                         CngRefusal::IoRefused(format!("read {}: {e}", path.display()))
-                    })?,
-                };
+                    })?)
+                }
+                // PROJ-723: a REAL second engine produces the file; each
+                // poll checks the collection surface (readers ignore the
+                // writer's *.tmp — only the renamed final file is visible).
+                SynthesisMode::RemoteEngine { inbox_dir } => {
+                    let path = inbox_dir.join(format!("{}.ttl", contract.dispatch_id));
+                    if path.is_file() {
+                        let body = fs::read_to_string(&path).map_err(|e| {
+                            CngRefusal::IoRefused(format!("read {}: {e}", path.display()))
+                        })?;
+                        // PROJ-727: the remote consequence is receipted as
+                        // crossing the engine boundary BEFORE the lawful
+                        // re-entry pipeline sees it (isolation marker input).
+                        writer.emit(
+                            "remote-consequence-received",
+                            &[
+                                ("SET_ID", contract.dispatch_id.as_str()),
+                                ("ENGINE_ID", self.producer_engine.as_str()),
+                                ("DISPATCH_ID", contract.dispatch_id.as_str()),
+                                ("SOURCE_ENGINE", contract.target_engine.as_str()),
+                            ],
+                        )?;
+                        self.telemetry.remote_received += 1;
+                        Some(body)
+                    } else {
+                        // Real time behind the seam only; the poll COUNT is
+                        // the logical fact that gets receipted.
+                        self.wait.wait();
+                        None
+                    }
+                }
+                _ => None,
+            };
+            if let Some(body) = candidate {
                 consequence_ttl = Some(body);
                 break;
             }
@@ -803,7 +1496,7 @@ impl<'a> DispatchAdapter<'a> {
         // escalation law is manufactured as a workflow through this same
         // broker (compensation-as-workflow doctrine).
         let Some(consequence_ttl) = consequence_ttl else {
-            contract.advance(DispatchState::TimedOut)?;
+            self.advance_ledgered(&mut contract, DispatchState::TimedOut, tick)?;
             writer.emit(
                 "dispatch-timed-out",
                 &[
@@ -821,11 +1514,11 @@ impl<'a> DispatchAdapter<'a> {
                 self.expect_standing_action(obs_store, tick, "remediate", &contract.dispatch_id)?;
             }
             if remediation_budget > 0 {
-                contract.advance(DispatchState::Compensating)?;
+                self.advance_ledgered(&mut contract, DispatchState::Compensating, tick)?;
                 self.remediate(writer, obs_store, &contract, tick, "escalation")?;
-                contract.advance(DispatchState::Completed)?;
+                self.advance_ledgered(&mut contract, DispatchState::Completed, tick)?;
             } else {
-                contract.advance(DispatchState::Blocked)?;
+                self.advance_ledgered(&mut contract, DispatchState::Blocked, tick)?;
             }
             return Ok(DispatchOutcome::TimedOut);
         };
@@ -833,14 +1526,16 @@ impl<'a> DispatchAdapter<'a> {
         // --- Inbound: inbox artifact + consequence_returned receipt. The
         // candidate is receipted BEFORE the re-entry pipeline runs, so a
         // later refusal never silently discards partial external execution.
+        // RESULT_AVAILABLE = the file exists on the collection surface;
+        // RESULT_RECEIVED = read + receipted, correlation to be verified by
+        // the staged pipeline below (PROJ-720 split of RESULT_RETURNED).
+        self.advance_ledgered(&mut contract, DispatchState::ResultAvailable, tick)?;
         let inbox_path = self.inbox_dir.join(format!("{}.ttl", contract.dispatch_id));
-        fs::write(&inbox_path, &consequence_ttl)
-            .map_err(|e| CngRefusal::IoRefused(format!("write {}: {e}", inbox_path.display())))?;
+        write_atomic(&inbox_path, &consequence_ttl)?;
         let consequence_digest = format!(
             "blake3:{}",
             blake3::hash(consequence_ttl.as_bytes()).to_hex()
         );
-        contract.advance(DispatchState::ResultReturned)?;
         writer.emit(
             "consequence-returned",
             &[
@@ -850,11 +1545,15 @@ impl<'a> DispatchAdapter<'a> {
             ],
         )?;
         self.telemetry.returned += 1;
+        self.advance_ledgered(&mut contract, DispatchState::ResultReceived, tick)?;
 
         // --- Lawful re-entry (staged, in order) → admission or refusal.
         match collect_consequence(&consequence_ttl, &contract, &self.shapes_path, self.queries) {
             Ok(()) => {
-                contract.advance(DispatchState::Admitted)?;
+                // PROJ-721: idempotent consume — a replayed consequence is
+                // CNG_R25 DoubleAdmit BEFORE the admission has any effect.
+                self.guard_double_admit(&contract)?;
+                self.advance_ledgered(&mut contract, DispatchState::ResultAdmitted, tick)?;
                 writer.emit(
                     "consequence-admitted",
                     &[
@@ -864,7 +1563,7 @@ impl<'a> DispatchAdapter<'a> {
                     ],
                 )?;
                 self.telemetry.admitted += 1;
-                contract.advance(DispatchState::Completed)?;
+                self.advance_ledgered(&mut contract, DispatchState::Completed, tick)?;
                 self.receipt_digests.insert(
                     contract.dispatch_id.clone(),
                     (contract_digest, consequence_digest),
@@ -872,7 +1571,7 @@ impl<'a> DispatchAdapter<'a> {
                 Ok(DispatchOutcome::Admitted)
             }
             Err(CngRefusal::ExternalConsequenceRefused { stage, .. }) => {
-                contract.advance(DispatchState::Refused)?;
+                self.advance_ledgered(&mut contract, DispatchState::Refused, tick)?;
                 writer.emit(
                     "consequence-refused",
                     &[
@@ -887,11 +1586,11 @@ impl<'a> DispatchAdapter<'a> {
                     (contract_digest, "refused".to_string()),
                 );
                 if remediation_budget > 0 {
-                    contract.advance(DispatchState::Compensating)?;
+                    self.advance_ledgered(&mut contract, DispatchState::Compensating, tick)?;
                     self.remediate(writer, obs_store, &contract, tick, "compensation")?;
-                    contract.advance(DispatchState::Completed)?;
+                    self.advance_ledgered(&mut contract, DispatchState::Completed, tick)?;
                 } else {
-                    contract.advance(DispatchState::Blocked)?;
+                    self.advance_ledgered(&mut contract, DispatchState::Blocked, tick)?;
                 }
                 Ok(DispatchOutcome::Refused { stage })
             }

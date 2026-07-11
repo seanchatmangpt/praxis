@@ -1,0 +1,54 @@
+# ocel-remote-engine.construct.rq (PROJ-727)
+# Inputs: obs graph (obs:obsKind in remote_dispatch_sent|
+# remote_consequence_received|direct_engine_bypass|
+# arazzo_workflow_generated|arazzo_workflow_dispatched — the distributed
+# dispatch surface plus the FORBIDDEN dispatch-correlated bypass kind,
+# which no production path emits; it appears here so a hostile/fixture
+# graph is still projected into evidence. shared_memory_crossing carries no
+# ex:dispatchId and is read by marker-engine-isolation.rq directly off the
+# OBSERVATION graph, not projected here).
+# Outputs: ocel:Event + ocel:EventType triples carrying ex:dispatchId, plus
+# ex:engineId (from obs:producedByEngine) and ex:targetEngine where present,
+# so the isolation/remote-execution/arazzo markers and the WorkdayReport
+# remote/arazzo headline counters are graph-derived. Yields zero triples on
+# corpora without these obs kinds, so pre-existing digests are unchanged
+# (the single-operator workday DOES emit the arazzo_* kinds from PROJ-727
+# onward — within-run producer/auditor consistency is what matters).
+# eventId = obsSetId + '-' + obsSeq. Timestamp encoding: logical,
+# deterministic — epoch 2000-01-01T00:00:00Z + obs:obsSeq seconds, identical
+# to ocel-events.construct.rq. No wall clock; obsSeq is a logical counter.
+# Subjects are IRI-minted (never blank nodes).
+PREFIX obs:  <https://ggen.io/ontology/bench-obs#>
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX ex:   <http://example.org/rwai#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ?ev a ocel:Event ;
+      ocel:eventId ?eid ;
+      ocel:activityName ?kind ;
+      ocel:timestamp ?ts ;
+      ocel:hasEventType ?etype ;
+      ex:dispatchId ?dispatchId ;
+      ex:engineId ?engine ;
+      ex:targetEngine ?targetEngine .
+  ?etype a ocel:EventType ;
+      ocel:eventTypeName ?kind .
+}
+WHERE {
+  ?o obs:obsKind ?kind ;
+     obs:obsSeq ?seq ;
+     obs:obsSetId ?setId ;
+     ex:dispatchId ?dispatchId .
+  FILTER(?kind IN ("remote_dispatch_sent", "remote_consequence_received",
+                   "direct_engine_bypass", "arazzo_workflow_generated",
+                   "arazzo_workflow_dispatched"))
+  OPTIONAL { ?o obs:producedByEngine ?engine }
+  OPTIONAL { ?o ex:targetEngine ?targetEngine }
+  BIND(CONCAT(?setId, "-", STR(?seq)) AS ?eid)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event/", ENCODE_FOR_URI(?eid))) AS ?ev)
+  BIND(IRI(CONCAT("https://ggen.io/bench/event-type/", ENCODE_FOR_URI(?kind))) AS ?etype)
+  BIND("2000-01-01T00:00:00Z"^^xsd:dateTime
+       + STRDT(CONCAT("PT", STR(?seq), "S"), xsd:dayTimeDuration) AS ?ts)
+}
+ORDER BY ?setId ?seq

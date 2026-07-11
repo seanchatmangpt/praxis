@@ -1,0 +1,22 @@
+# marker-arazzo-dispatch.rq (PROJ-727)
+# Marker: ARAZZO_WORKFLOWS_DISPATCHED.
+# Inputs: OBSERVATION graph (bench-obs vocabulary; the marker store union).
+# Output: single row ?value = arazzo_workflow_generated observations with
+# NO arazzo_workflow_dispatched twin sharing the same ex:dispatchId.
+# Semantics: 0 = proven (universal law: every rendered Arazzo/contract
+# projection actually left the broker). The broker emits both observations
+# on every dispatch lifecycle (dispatch.rs), so a gap means a projection
+# was rendered and silently dropped. Vacuously 0 on corpora without
+# dispatches. Existence of INTER-ENGINE Arazzo dispatch is asserted by the
+# inverted marker-arazzo-inter-engine.rq, not here.
+# Determinism: aggregate + NOT EXISTS over a fixed graph.
+PREFIX obs: <https://ggen.io/ontology/bench-obs#>
+PREFIX ex:  <http://example.org/rwai#>
+
+SELECT (COUNT(DISTINCT ?d) AS ?value)
+WHERE {
+  ?g obs:obsKind "arazzo_workflow_generated" ; ex:dispatchId ?d .
+  FILTER NOT EXISTS {
+    ?w obs:obsKind "arazzo_workflow_dispatched" ; ex:dispatchId ?d .
+  }
+}

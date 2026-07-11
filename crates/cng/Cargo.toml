@@ -39,6 +39,15 @@ wasm4pm-cognition = { version = "26.7.1", optional = true }
 # dependency does not participate in the build, so `cargo publish --dry-run`
 # of the default surface is unaffected.
 praxis-graphlaw = { path = "../praxis-graphlaw", optional = true }
+# Same bench-only exception: pddl-index is not published on crates.io (a
+# workspace-local sibling of bcinr-pddl, differential-tested against it in
+# tests/indexed_grounding.rs — see the wasm4pm-compat patch note in the
+# workspace root Cargo.toml). It supplies relaxed-reachability-pruned
+# grounding for the decomposition path (crates/cng/src/bench/decomp/),
+# where untyped multi-actor domains make bcinr-pddl's full-cross-product
+# grounding blow up combinatorially. Pulled ONLY by the optional `bench`
+# feature; the default surface is unaffected.
+pddl-index = { path = "../pddl-index", optional = true }
 
 # --- otel-live exception block ------------------------------------------
 # Deliberate exception to the registry-only rule above: chicago-tdd-tools is
@@ -60,7 +69,7 @@ runner = ["dep:bcinr-powl"]
 # Fortune-5 scale benchmark verbs (cng benchmark generate/run/verify/report).
 # Off by default: benchmark instrumentation (wall-clock timing, corpus
 # generation) stays out of the published default surface. Requires runner.
-bench = ["runner", "dep:wasm4pm-cognition", "dep:praxis-graphlaw"]
+bench = ["runner", "dep:wasm4pm-cognition", "dep:praxis-graphlaw", "dep:pddl-index"]
 # Production OTel emission surface for the OTel Weaver live-check campaign
 # (src/bin/otel-live.rs + src/telemetry_gen.rs). Off by default: the
 # publishable surface is unchanged when this feature is off.

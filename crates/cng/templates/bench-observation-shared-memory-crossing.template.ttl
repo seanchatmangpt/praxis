@@ -1,0 +1,17 @@
+# rwai-bench observation template (shared_memory_crossing, PROJ-727):
+# FORBIDDEN evidence — two engine instances shared in-memory state instead
+# of the filesystem inbox/outbox transport. NO production code path in this
+# crate emits this observation (separate OS processes make the crossing
+# structurally impossible on the lawful path): it exists so the isolation
+# marker (marker-engine-isolation.rq, SHARED_MEMORY_CROSSINGS_ZERO) has a
+# defined referent and so negative-test fixtures can falsify the marker.
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "shared_memory_crossing" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:producedByEngine "{{ENGINE_ID}}" ;
+  ex:detail "{{DETAIL}}" .

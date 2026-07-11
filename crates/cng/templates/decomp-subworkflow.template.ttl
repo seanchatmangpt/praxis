@@ -1,0 +1,14 @@
+# decomp subworkflow template (PROJ-710 handoff, one instance per
+# subworkflow): stable subworkflow IRI, its decomposition role (helper/main
+# — structural facts of the selected split, admitted as graph facts for the
+# dispatch side), its POWL v2 model root, and its rendered-PDDL provenance
+# digest.
+@prefix decomp: <https://truex.io/ontology/decomp#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+<{{RESULT_IRI}}/subworkflow/{{INDEX}}> a decomp:Subworkflow ;
+  decomp:subworkflowIndex "{{INDEX}}"^^xsd:integer ;
+  decomp:assignedRole "{{ROLE}}" ;
+  decomp:powlModel <{{POWL_ROOT_IRI}}> ;
+  decomp:problemDigest "{{PROBLEM_DIGEST}}" ;
+  decomp:partOf <{{RESULT_IRI}}> .

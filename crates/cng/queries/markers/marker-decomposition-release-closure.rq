@@ -1,0 +1,36 @@
+# marker-decomposition-release-closure.rq (PROJ-739)
+# Marker: RESOURCE_RELEASE_CLOSED.
+# Inputs: decomp:DecompositionResult / decomp:CandidateReceipt evidence
+# (interference.rs::check_release_closure — the resource-release closure
+# proof obligation, CNG_R24 ResourceUnreleased; PROJ-708/710).
+# Output: single row ?value = count of Selected-outcome results whose
+# SELECTED candidate's own receipt is not decomp:candidateStatus
+# "Selected" (or is entirely absent), or whose reason names CNG_R24 — a
+# residual, unresolved unreleased-resource condition on the WINNING
+# candidate.
+# Semantics: 0 = proven — decomp/mod.rs::decompose_with re-runs
+# check_release_closure on the selected candidate (step 8,
+# belt-and-braces) before emit_result_graph is ever called, making a
+# Selected outcome with a residual CNG_R24 on its own receipt structurally
+# impossible; this query proves the emitted evidence agrees.
+# Determinism: aggregate + OPTIONAL/FILTER over a fixed graph.
+PREFIX decomp: <https://truex.io/ontology/decomp#>
+
+SELECT (COUNT(DISTINCT ?result) AS ?value)
+WHERE {
+  ?result a decomp:DecompositionResult ;
+          decomp:outcome "Selected" ;
+          decomp:selectedCandidateId ?selectedId .
+  OPTIONAL {
+    ?receipt a decomp:CandidateReceipt ;
+             decomp:receiptOf ?result ;
+             decomp:candidateId ?selectedId ;
+             decomp:candidateStatus ?status ;
+             decomp:reason ?reason .
+  }
+  FILTER (
+    !BOUND(?status)
+    || ?status != "Selected"
+    || CONTAINS(?reason, "CNG_R24")
+  )
+}

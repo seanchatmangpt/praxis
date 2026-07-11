@@ -6,19 +6,6 @@ use crate::TripleStore;
 use super::parsing::clean_term;
 use super::GraphDelta;
 
-pub(crate) fn delta_touches(delta: &GraphDelta, var: &str) -> bool {
-    delta
-        .additions
-        .iter()
-        .chain(delta.removals.iter())
-        .any(|t| {
-            let p_str = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
-            let clean_p = clean_term(&p_str);
-            let clean_v = clean_term(var);
-            clean_p == clean_v
-        })
-}
-
 pub(crate) fn count_pred_in_store(store: &TripleStore, var: &str) -> u64 {
     let clean_v = clean_term(var);
     store

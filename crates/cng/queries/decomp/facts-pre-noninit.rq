@@ -1,0 +1,15 @@
+# facts-pre-noninit.rq — EDB projection (PROJ-704): (action, precondition
+# atom) pairs where the atom is NOT an initial-state atom of any Problem in
+# the lifted graph. The negation (Datalog NAF for the dependsOn rule) is
+# resolved here with FILTER NOT EXISTS so rules/decomp.dl stays
+# negation-free and trivially stratified. Atom identity is content-addressed
+# by the lifter, so IRI equality is atom equality.
+PREFIX pddl: <https://truex.io/ontology/pddl-strips#>
+
+SELECT ?action ?atom
+WHERE {
+  ?action a pddl:Action ;
+          pddl:precondition ?atom .
+  FILTER NOT EXISTS { ?prob a pddl:Problem ; pddl:initAtom ?atom . }
+}
+ORDER BY ?action ?atom

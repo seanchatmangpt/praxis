@@ -1,0 +1,16 @@
+# rwai-bench observation template (engine_started, PROJ-722/723): a
+# `cng engine serve`/`resume` loop began over its per-engine bundle.
+# obs:producedByEngine stamps the deterministic engine identity; {{NONCE}}
+# is splitmix64(seed ^ blake3(engine_id)) — never a PID or wall clock.
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{SUBJECT}} a obs:Observation ;
+  obs:obsKind "engine_started" ;
+  obs:obsSeq {{SEQ}} ;
+  obs:obsSetId "{{SET_ID}}" ;
+  obs:producedByEngine "{{ENGINE_ID}}" ;
+  ex:engineVersion "{{ENGINE_VERSION}}" ;
+  ex:instanceNonce "{{NONCE}}" ;
+  ex:resumed "{{RESUMED}}" .
