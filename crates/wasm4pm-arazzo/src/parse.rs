@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 use rayon::prelude::*;
+use memmap2::MmapOptions;
+use std::fs::File;
+use std::path::Path;
 use wasm4pm_compat::arazzo::ArazzoDescription;
 
 use crate::Refusal;
@@ -78,6 +81,76 @@ impl DocumentIndex {
                     "Duplicate document base URI: {}",
                     base_uri
                 )));
+            }
+            self.documents.insert(base_uri, doc);
+        }
+
+        Ok(())
+    }
+
+    /// Loads and parses an Arazzo document using memory-mapped I/O (zero-copy bypass).
+    pub fn add_document_from_file(&mut self, path: &Path, fallback_base_uri: &str) -> Result<(), Refusal> {
+        let file = File::open(path)
+            .map_err(|e| Refusal::Parse(format!("Failed to open file: {}", e)))?;
+        
+        let mmap = unsafe { MmapOptions::new().map(&file) }
+            .map_err(|e| Refusal::Parse(format!("Failed to mmap file: {}", e)))?;
+            
+        let doc: ArazzoDescription = serde_json::from_slice(&mmap)
+            .map_err(|e| Refusal::Parse(format!("Failed to parse Arazzo document from mmap: {}", e)))?;
+
+        if !doc.arazzo.starts_with("1.1.") {
+            return Err(Refusal::InvalidVersion(doc.arazzo.clone()));
+        }
+
+        let base_uri = if let Some(self_uri) = &doc.self_uri {
+            self_uri.clone()
+        } else {
+            fallback_base_uri.to_string()
+        };
+
+        if self.documents.contains_key(&base_uri) {
+            return Err(Refusal::Parse(format!("Duplicate document base URI: {}", base_uri)));
+        }
+
+        self.documents.insert(base_uri, doc);
+        Ok(())
+    }
+
+    /// Loads and parses multiple Arazzo documents in parallel using memory-mapped I/O.
+    pub fn add_documents_from_files_par(&mut self, paths: &[(&Path, &str)]) -> Result<(), Refusal> {
+        let parsed_results: Result<Vec<(String, ArazzoDescription)>, Refusal> = paths
+            .par_iter()
+            .map(|(path, fallback_base_uri)| {
+                let file = File::open(path)
+                    .map_err(|e| Refusal::Parse(format!("Failed to open file: {}", e)))?;
+                
+                let mmap = unsafe { MmapOptions::new().map(&file) }
+                    .map_err(|e| Refusal::Parse(format!("Failed to mmap file: {}", e)))?;
+                    
+                let doc: ArazzoDescription = serde_json::from_slice(&mmap)
+                    .map_err(|e| Refusal::Parse(format!("Failed to parse Arazzo document from mmap: {}", e)))?;
+
+                if !doc.arazzo.starts_with("1.1.") {
+                    return Err(Refusal::InvalidVersion(doc.arazzo.clone()));
+                }
+
+                let base_uri = if let Some(self_uri) = &doc.self_uri {
+                    self_uri.clone()
+                } else {
+                    fallback_base_uri.to_string()
+                };
+
+                Ok((base_uri, doc))
+            })
+            .collect();
+
+        let parsed = parsed_results?;
+        self.documents.reserve(parsed.len());
+        
+        for (base_uri, doc) in parsed {
+            if self.documents.contains_key(&base_uri) {
+                return Err(Refusal::Parse(format!("Duplicate document base URI: {}", base_uri)));
             }
             self.documents.insert(base_uri, doc);
         }
