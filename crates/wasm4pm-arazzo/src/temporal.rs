@@ -4,42 +4,52 @@ use std::collections::HashMap;
 
 /// Predictive Temporal Parsing Engine
 ///
-/// Implements "retrocausal" pre-collapsing of future Arazzo reference states.
-/// By statically analyzing the workflow graph, it propagates known future literal
-/// states backwards in the compilation timeline, substituting dynamic variables
-/// with their inevitable deterministic constants before execution.
+/// Implements "retrocausal" pre-collapsing and Closed Timelike Curves (CTCs).
+/// Simulates relativistic frame dragging by iterating the workflow graph until
+/// a fixed point is reached, allowing steps to fetch deterministic states that
+/// technically have not been computed yet (backward-in-time propagation).
 pub struct TemporalPredictor;
 
 impl TemporalPredictor {
-    /// Pre-collapses references in the AIR program.
+    /// Pre-collapses references in the AIR program using closed timelike curves.
     pub fn pre_collapse<'bump>(program: &mut AirProgram<'bump>, _bump: &'bump Bump) {
         for wf in program.workflows.iter_mut() {
-            // A theoretical "tachyonic" state map holding future inevitabilities
-            let mut retro_state: HashMap<&str, &str> = HashMap::new();
+            // Tachyonic state map holding future and past inevitabilities
+            let mut retro_state: HashMap<String, String> = HashMap::new();
 
-            for step in wf.steps.iter_mut() {
-                // Pre-collapse inputs based on retro-state
-                for input in step.action.inputs.iter_mut() {
-                    if let AirExpr::Variable(var_name) = input {
-                        if let Some(collapsed_val) = retro_state.get(var_name.as_str()) {
-                            // The future has collapsed; the variable is now a literal
-                            // We use unsafe to cast the string slice to a bump string to avoid reallocation
-                            // since the string already lives in the same bump arena.
-                            // However, to strictly avoid unsafe, we can just use the bump allocator.
-                            *input = AirExpr::Literal(bumpalo::collections::String::from_str_in(collapsed_val, _bump));
+            // Simulate closed timelike curves (CTCs) via fixed-point frame dragging
+            let mut stabilized = false;
+            let mut iterations = 0;
+
+            while !stabilized && iterations < 100 {
+                stabilized = true;
+
+                // First pass: accumulate all known deterministic outputs across the entire timeline
+                for step in wf.steps.iter() {
+                    for output in step.action.outputs.iter() {
+                        if let AirExpr::Literal(val) = output {
+                            if !retro_state.contains_key(val.as_str()) {
+                                retro_state.insert(val.as_str().to_string(), val.as_str().to_string());
+                                stabilized = false; // The timeline has shifted
+                            }
                         }
                     }
                 }
 
-                // Register outputs into the retro-state for future steps
-                // In Arazzo, step outputs often map to variables used in subsequent steps.
-                for output in step.action.outputs.iter() {
-                    if let AirExpr::Literal(val) = output {
-                        // For the sake of this theoretical engine, we assume the output literal
-                        // also defines a variable binding of the same name for downstream steps.
-                        retro_state.insert(val.as_str(), val.as_str());
+                // Second pass: apply causality bypass to inputs regardless of temporal position
+                for step in wf.steps.iter_mut() {
+                    for input in step.action.inputs.iter_mut() {
+                        if let AirExpr::Variable(var_name) = input {
+                            if let Some(collapsed_val) = retro_state.get(var_name.as_str()) {
+                                // The state is fetched from the future/past
+                                *input = AirExpr::Literal(bumpalo::collections::String::from_str_in(collapsed_val, _bump));
+                                stabilized = false; // A collapse occurred, timeline must be re-verified
+                            }
+                        }
                     }
                 }
+
+                iterations += 1;
             }
         }
     }
@@ -68,7 +78,6 @@ mod tests {
                             },
                             action: AirAction {
                                 inputs: BumpVec::new_in(&bump),
-                                // Step 1 emits literal "order_id"
                                 outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("order_id", &bump))],
                             }
                         },
@@ -79,7 +88,6 @@ mod tests {
                                 method: BumpString::from_str_in("POST", &bump),
                             },
                             action: AirAction {
-                                // Step 2 takes variable "order_id"
                                 inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("order_id", &bump))],
                                 outputs: BumpVec::new_in(&bump),
                             }
@@ -89,14 +97,60 @@ mod tests {
             ]
         };
 
-        // Pre-collapse
         TemporalPredictor::pre_collapse(&mut program, &bump);
 
-        // Verify Step 2 input collapsed from Variable to Literal
         let step2_input = &program.workflows[0].steps[1].action.inputs[0];
         match step2_input {
             AirExpr::Literal(val) => assert_eq!(val, "order_id"),
-            _ => panic!("Temporal predictor failed to pre-collapse the future state!"),
+            _ => panic!("Temporal predictor failed to pre-collapse!"),
+        }
+    }
+
+    #[test]
+    fn test_closed_timelike_curve() {
+        let bump = Bump::new();
+        // Step 1 requires an input that is generated by Step 2 in the future
+        let mut program = AirProgram {
+            workflows: vec![in &bump;
+                AirWorkflow {
+                    name: BumpString::from_str_in("ctc_wf", &bump),
+                    steps: vec![in &bump;
+                        AirStep {
+                            name: BumpString::from_str_in("step_1_past", &bump),
+                            target: AirTarget {
+                                url: BumpString::from_str_in("http://example.com/past", &bump),
+                                method: BumpString::from_str_in("POST", &bump),
+                            },
+                            action: AirAction {
+                                // Depends on the future!
+                                inputs: vec![in &bump; AirExpr::Variable(BumpString::from_str_in("future_artifact", &bump))],
+                                outputs: BumpVec::new_in(&bump),
+                            }
+                        },
+                        AirStep {
+                            name: BumpString::from_str_in("step_2_future", &bump),
+                            target: AirTarget {
+                                url: BumpString::from_str_in("http://example.com/future", &bump),
+                                method: BumpString::from_str_in("POST", &bump),
+                            },
+                            action: AirAction {
+                                inputs: BumpVec::new_in(&bump),
+                                // Generates the artifact for the past
+                                outputs: vec![in &bump; AirExpr::Literal(BumpString::from_str_in("future_artifact", &bump))],
+                            }
+                        }
+                    ],
+                }
+            ]
+        };
+
+        TemporalPredictor::pre_collapse(&mut program, &bump);
+
+        // Verify Step 1 input collapsed from Variable to Literal using future data
+        let step1_input = &program.workflows[0].steps[0].action.inputs[0];
+        match step1_input {
+            AirExpr::Literal(val) => assert_eq!(val, "future_artifact"),
+            _ => panic!("Causality bypass failed! The past did not receive the future artifact."),
         }
     }
 }
