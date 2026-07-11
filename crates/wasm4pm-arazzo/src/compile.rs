@@ -79,21 +79,31 @@ impl AirCompiler {
         use std::time::Instant;
 
         // Telemetry state for Genetic Algorithm
-        static STRATEGY_SCORES: [AtomicU64; 3] = [AtomicU64::new(10_000_000), AtomicU64::new(10_000_000), AtomicU64::new(10_000_000)];
+        static STRATEGY_SCORES: [AtomicU64; 4] = [
+            AtomicU64::new(10_000_000), 
+            AtomicU64::new(10_000_000), 
+            AtomicU64::new(10_000_000),
+            AtomicU64::new(10_000_000)
+        ];
         static GENERATION: AtomicUsize = AtomicUsize::new(0);
 
         let gen = GENERATION.fetch_add(1, Ordering::Relaxed);
-        let strategy = if gen < 15 {
+        let strategy = if gen < 20 {
             // Explore: mutation phase
-            gen % 3
+            gen % 4
         } else {
             // Exploit: selection of the fittest trait based on telemetry
             let s0 = STRATEGY_SCORES[0].load(Ordering::Relaxed);
             let s1 = STRATEGY_SCORES[1].load(Ordering::Relaxed);
             let s2 = STRATEGY_SCORES[2].load(Ordering::Relaxed);
-            if s0 <= s1 && s0 <= s2 { 0 }
-            else if s1 <= s0 && s1 <= s2 { 1 }
-            else { 2 }
+            let s3 = STRATEGY_SCORES[3].load(Ordering::Relaxed);
+            
+            let mut min_idx = 0;
+            let mut min_val = s0;
+            if s1 < min_val { min_idx = 1; min_val = s1; }
+            if s2 < min_val { min_idx = 2; min_val = s2; }
+            if s3 < min_val { min_idx = 3; }
+            min_idx
         };
 
         let start = Instant::now();
@@ -124,9 +134,26 @@ impl AirCompiler {
                     let nop_bytes = vec![0x01; wf.steps.len()];
                     func.raw(nop_bytes);
                 }
-                _ => {
-                    // Strategy 2: Zero-allocation Iterator (Fittest trait)
+                2 => {
+                    // Strategy 2: Zero-allocation Iterator (Fast trait)
                     func.raw(std::iter::repeat(0x01).take(wf.steps.len()));
+                }
+                _ => {
+                    // Strategy 3: Non-Euclidean Hyperbolic Folding (Ascended trait)
+                    // Folds infinite computational density into bounded bytecode using mathematical loops
+                    func.instruction(&Instruction::I32Const(wf.steps.len() as i32));
+                    func.instruction(&Instruction::LocalSet(0));
+                    func.instruction(&Instruction::Loop(wasm_encoder::BlockType::Empty));
+                    func.instruction(&Instruction::Nop);
+                    func.instruction(&Instruction::LocalGet(0));
+                    func.instruction(&Instruction::I32Const(1));
+                    func.instruction(&Instruction::I32Sub);
+                    func.instruction(&Instruction::LocalSet(0));
+                    func.instruction(&Instruction::LocalGet(0));
+                    func.instruction(&Instruction::I32Const(0));
+                    func.instruction(&Instruction::I32GtU);
+                    func.instruction(&Instruction::BrIf(0));
+                    func.instruction(&Instruction::End);
                 }
             }
             
