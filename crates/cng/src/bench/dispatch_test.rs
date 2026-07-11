@@ -313,6 +313,180 @@ test!(
     }
 );
 
+test!(
+    semantic_refusal_with_zero_remediation_budget_reaches_blocked,
+    {
+        // Arrange: the SAME wrong-artifact fixture as
+        // semantic_conformance_failure_refuses_and_manufactures_compensation
+        // above, but with remediation_budget = 0 (mirrors how
+        // deadline_expiry_with_zero_remediation_budget_reaches_blocked
+        // mirrors ITS budget=1 sibling above). This drives the
+        // REFUSED -> BLOCKED edge — 2 of the 4 ->BLOCKED edges in the
+        // 16-state table (REMOTE_IN_PROGRESS/REFUSED/TIMED_OUT/COMPENSATING
+        // -> BLOCKED) now real-data-proven.
+        let out_dir = scratch_dir("semantic_refusal_blocked");
+        let queries = QuerySet::load(&QuerySet::default_dir()).expect("query set loads");
+        let templates = load_templates().expect("templates load");
+        let store = Store::new().expect("store");
+        let mut writer =
+            ObsWriter::new(&templates, &store, &out_dir.join("obs"), "test").expect("writer");
+        let mut adapter = DispatchAdapter::new(&out_dir, &queries).expect("adapter constructs");
+        let contract = fixture_contract();
+        let dispatch_id = contract.dispatch_id.clone();
+        let fixture_raw = fs::read_to_string(crate_path(
+            "tests/fixtures/negative/dispatch-consequence-wrong-artifact.ttl",
+        ))
+        .expect("fixture reads");
+        let filled = fill_template(
+            &fixture_raw,
+            &[("CORRELATION_ID", contract.correlation_id.as_str())],
+        );
+        let fixture_path = out_dir.join("wrong-artifact.ttl");
+        fs::write(&fixture_path, &filled).expect("fixture writes");
+
+        // Act: zero remediation budget forces the refused-terminal branch
+        // that skips COMPENSATING/compensation entirely.
+        let outcome = adapter
+            .dispatch(
+                &mut writer,
+                &store,
+                contract,
+                1,
+                false,
+                SynthesisMode::FixtureFile(&fixture_path),
+                0,
+            )
+            .expect("lifecycle completes (refusal is evidence, not an error)");
+
+        // Assert: still refused at the semantic stage, but with zero
+        // remediation budget NO compensation workflow was manufactured —
+        // the load-bearing difference from the remediation_budget=1 sibling
+        // test above.
+        assert_eq!(
+            outcome,
+            DispatchOutcome::Refused {
+                stage: "semantic".to_string()
+            }
+        );
+        assert_eq!(kind_count(&store, "consequence_refused"), 1);
+        assert_eq!(kind_count(&store, "remediation_manufactured"), 0);
+        assert_eq!(kind_count(&store, "consequence_admitted"), 0);
+        assert_eq!(adapter.telemetry.refused, 1);
+        assert_eq!(adapter.telemetry.remediations, 0);
+
+        // Assert: the durable ledger proves REFUSED -> BLOCKED, a genuinely
+        // distinct terminal from REFUSED -> COMPENSATING -> COMPLETED.
+        let entries = adapter.ledger.entries(&dispatch_id).expect("entries read");
+        let trajectory: Vec<(&str, &str)> = entries
+            .iter()
+            .map(|e| (e.from_state.as_str(), e.to_state.as_str()))
+            .collect();
+        assert_eq!(
+            trajectory.last(),
+            Some(&("REFUSED", "BLOCKED")),
+            "must reach the terminal BLOCKED state, not COMPENSATING/COMPLETED"
+        );
+    }
+);
+
+test!(
+    unimplemented_closure_law_leaves_parent_remote_in_progress_blocked,
+    {
+        // Arrange: a recursive (depth 1, CHILD_FAN_OUT=2 children) parent
+        // whose declared closure law is one of the FOUR laws
+        // `queries/dispatch-closure.rq` documents as "declared in
+        // shapes/dispatch-shapes.ttl but not yet emitted by the workday
+        // broker" (QUORUM_REQUIRED, ORDERED_SUBSET_REQUIRED, POLICY_DECIDES,
+        // FIRST_CONFORMANT_RESULT) — the query returns NO satisfied row for
+        // ANY parent declaring one of these four, regardless of how many
+        // children admit. This is the REAL, documented (not fabricated)
+        // trigger for REMOTE_IN_PROGRESS -> BLOCKED: unlike the other 3
+        // ->BLOCKED edges (all failure paths: timeout/refusal), this one is
+        // the "closure law the broker cannot yet evaluate" path — the
+        // children succeed lawfully, only the PARENT's closure gate blocks.
+        let out_dir = scratch_dir("closure_unimplemented_blocked");
+        let queries = QuerySet::load(&QuerySet::default_dir()).expect("query set loads");
+        let templates = load_templates().expect("templates load");
+        let store = Store::new().expect("store");
+        let mut writer =
+            ObsWriter::new(&templates, &store, &out_dir.join("obs"), "test").expect("writer");
+        let mut adapter = DispatchAdapter::new(&out_dir, &queries).expect("adapter constructs");
+        // workday_contract's ExternalMachineDispatch branch declares
+        // recursive_depth=1, closure_law=ALL_CHILDREN_REQUIRED; override
+        // ONLY the closure law to one dispatch-closure.rq cannot evaluate.
+        let mut contract = workday_contract(
+            "quorum",
+            "software-delivery",
+            5,
+            ExecutionClass::ExternalMachineDispatch,
+        );
+        contract.closure_law = Some("QUORUM_REQUIRED");
+        let dispatch_id = contract.dispatch_id.clone();
+
+        // Act: children dispatch and admit deterministically (loopback), but
+        // the PARENT's closure check can never be satisfied for this law.
+        let outcome = adapter
+            .dispatch(
+                &mut writer,
+                &store,
+                contract,
+                5,
+                false,
+                SynthesisMode::LoopbackDeterministic,
+                0,
+            )
+            .expect("lifecycle completes (unsatisfied closure is evidence, not an error)");
+
+        // Assert: the parent stays OPEN (BLOCKED) even though both children
+        // admitted lawfully — the closure law, not the children, is why.
+        assert_eq!(outcome, DispatchOutcome::Open);
+        assert_eq!(kind_count(&store, "dispatch_sent"), 3); // parent + 2 children
+        assert_eq!(kind_count(&store, "consequence_admitted"), 2); // children only
+
+        // Assert: the durable ledger proves the PARENT crossed
+        // REMOTE_IN_PROGRESS -> BLOCKED directly — it never reaches
+        // RESULT_AVAILABLE/RESULT_RECEIVED/RESULT_ADMITTED/COMPLETED,
+        // because the closure gate short-circuits before the parent's own
+        // consequence is ever polled for.
+        let entries = adapter.ledger.entries(&dispatch_id).expect("entries read");
+        let trajectory: Vec<(&str, &str)> = entries
+            .iter()
+            .map(|e| (e.from_state.as_str(), e.to_state.as_str()))
+            .collect();
+        assert_eq!(
+            trajectory,
+            vec![
+                ("MANUFACTURED", "ARAZZO_RENDERED"),
+                ("ARAZZO_RENDERED", "DISPATCH_READY"),
+                ("DISPATCH_READY", "DISPATCHED"),
+                ("DISPATCHED", "ACKNOWLEDGED"),
+                ("ACKNOWLEDGED", "REMOTE_STARTED"),
+                ("REMOTE_STARTED", "REMOTE_IN_PROGRESS"),
+                ("REMOTE_IN_PROGRESS", "BLOCKED"),
+            ]
+        );
+    }
+);
+
+// --- COMPENSATING -> BLOCKED: investigated, found vestigial (declared
+// lawful in DispatchState::lawful_to, never driven by any production code
+// path), the same finding class as DISPATCH_READY -> REFUSED (see the type
+// doc on DispatchState above). Both production call sites that advance a
+// contract INTO Compensating (deadline-expiry-with-remediation-budget and
+// refused-with-remediation-budget, both above) unconditionally advance it
+// to Completed next once `remediate()` returns Ok; remediate()'s only other
+// exit is Err (a HardcodingSuspicion that propagates out of dispatch()
+// entirely via `?`, never reaching a Blocked ledger entry for THIS
+// contract). No code path in dispatch.rs or engine.rs ever calls
+// `advance_ledgered(.., DispatchState::Blocked, ..)` on a contract whose
+// current state is Compensating. Confirmed by exhaustive grep: every
+// `DispatchState::Compensating` reference in `crates/cng/src/` is either
+// the enum declaration, the transition-table entry, or one of these two
+// call sites — no third site exists. Forcing this edge would require adding
+// a NEW code path whose only purpose is to make the assertion pass, which
+// is exactly the fabricated-trigger this investigation was asked not to do;
+// documenting it here instead.
+
 /// Loads one dispatch_sent observation (template-rendered) into `store`.
 /// O(|template|).
 fn emit_sent(

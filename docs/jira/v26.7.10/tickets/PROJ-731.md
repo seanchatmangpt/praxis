@@ -38,13 +38,29 @@ across three waves of evidence landing in the same session:
    payload-carrying contract yet, PROJ-710 -> PROJ-723 open); §18 negative-corpus item 6 was
    closed (item 7 additionally confirmed); a workspace-wide sanity sweep (`cargo check`,
    scoped clippy, `cargo fmt`) found the tree otherwise clean.
+4. **Moonshot round** (this session, after the three waves above and a further load-bearing
+   `GAP_AUDIT.md` closure wave): PROJ-710 -> PROJ-723 is now CLOSED — a dispatched contract
+   carries its subworkflow's actual PDDL payload, digest-verified, and the remote engine
+   executes that specific plan (`dispatched_subworkflow_payload_is_the_content_the_engine_
+   actually_executes`, `cng_decompose_to_dispatch_integration.rs`, 3/3 passed). PROJ-714 moved
+   from 1/4 to 2/4 long-horizon scenarios. §18 negative-corpus item 5 (mutex-saturated goals)
+   was upgraded from an adjacent-scenario proxy to a literal fixture, closing all 8/8 items by
+   their named mechanism. See `docs/releases/v26.7.10/RELEASE_CONTROL.md` §9.2/§9.2a and
+   `docs/releases/v26.7.10/DOD_SIGNOFF.md`'s "Moonshot round" section for full detail.
 
-What remains UNVERIFIED after all three waves: `full_production_ready`'s real THREE-bundle
-composition (+ a real distributed bundle, needs `cng_multi_engine.rs`'s private harness
-helpers); a dispatched contract carrying its subworkflow's actual PDDL payload; potato itself
-dispatched across H/M (it has no split); PROJ-714's long-horizon scenarios (declared cut);
-any live-repo `ggen sync run`; and Phase 6 (commit — `git status` not clean, HEAD `1f3f9bc`).
-G0-G16 status: G0-G13 have code-level evidence (see PROJ-701..729, PROJ-749); G14 is ALIVE at
-full scale (PROJ-711 follow-up); G15 is the declared cut (PROJ-714, `RELEASE_CONTROL.md`
-§9.2, PROJ-747); G16's SPARQL-derived conjunction is ALIVE for the two-bundle composition,
-UNVERIFIED for the three-bundle composition.
+What remains UNVERIFIED, per this paragraph as first written (STALE — see the correction
+immediately below, which post-dates both the EOD push and the moonshot round): `full_
+production_ready`'s real THREE-bundle composition; a dispatched contract carrying its
+subworkflow's actual PDDL payload; potato itself dispatched across H/M (it has no split);
+PROJ-714's long-horizon scenarios (declared cut); any live-repo `ggen sync run`; and Phase 6.
+
+**Correction (current, after the EOD push and the moonshot round)**: the real THREE-bundle
+`full_production_ready` composition is now ALIVE
+(`full_production_ready_holds_on_real_triple_bundle_evidence`,
+`cng_production_ready_three_way.rs`, EOD push — see `DOD_SIGNOFF.md`'s "EOD push" section).
+The payload-carrying-contract gap is now CLOSED (PROJ-710 -> PROJ-723, moonshot round — see
+item 4 above). PROJ-714 stands at 2/4 (moonshot round), not fully cut. Potato dispatched
+across H/M, any live-repo `ggen sync run`, and Phase 6 push remain genuinely open, unchanged.
+G0-G16 status: G0-G13 code-level evidence unchanged; G14 ALIVE at full scale; G15 ALIVE
+(mechanism, 2/4) / PLANNED (3-4, time-boxed cut — `RELEASE_CONTROL.md` §9.2, `PROJ-714.md`);
+G16's SPARQL-derived conjunction is ALIVE for the three-bundle composition (EOD push).

@@ -18,14 +18,23 @@
 //! live in `ledger/` (PROJ-721), observations flush eagerly to `ticks/`,
 //! and the SHACL-validated `control/quiesce.ttl` ends the loop.
 //!
-//! Execution boundary (stated honestly): an admitted inbox contract is
-//! executed through the REAL cng manufacture chain — the engine
-//! deterministically derives a PDDL artifact set from the contract's
-//! content (`write_set`, seeded by `blake3(dispatch_id)`), manufactures it
-//! (`manufacture_set`: import → plan → project → validate → conformance),
-//! and only then renders the consequence. The contract does not yet carry
-//! its own PDDL payload — payload-carrying contracts are the decomposition
-//! track's integration point (PROJ-710 → PROJ-723).
+//! Execution boundary (stated honestly, PROJ-710 → PROJ-723 closure): an
+//! admitted inbox contract executes through the REAL cng manufacture chain.
+//! When the admitted contract's inbox entry carries a sibling PDDL payload
+//! (`<dispatch_id>.domain.pddl` + `<dispatch_id>.pddl`, written by
+//! `decomp::dispatch_bridge::dispatch_subworkflow_to_engine` BEFORE the
+//! contract itself becomes visible), the engine grounds and plans directly
+//! from THAT content — the specific subworkflow's own domain+problem
+//! text — after verifying its BLAKE3 fold against the admitted contract's
+//! `disp:inputArtifactSet` (`CNG_R11 AuditMismatch` on any divergence: a
+//! tampered or truncated payload is refused, never silently substituted).
+//! When no sibling payload is present (the common case: workday's own
+//! synthetic contracts, the multi-engine coordinator's `remote_contract`),
+//! the engine falls back UNCHANGED to deterministically deriving its own
+//! PDDL artifact set from the contract's content (`write_set`, seeded by
+//! `blake3(dispatch_id)`), manufacturing it (`manufacture_set`: import →
+//! plan → project → validate → conformance) — the payload path is purely
+//! additive, never a precondition for any contract that doesn't carry one.
 //!
 //! The ONLY real-time element (inter-poll sleep) sits behind the
 //! [`RealTimeWait`](super::dispatch::RealTimeWait) seam and never enters
@@ -35,11 +44,15 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use bcinr_pddl::parse::{domain_from_pddl, problem_from_pddl};
 use oxigraph::io::{RdfFormat, RdfParser};
 use oxigraph::store::Store;
+use pddl_index::ground::IndexedGroundProblem;
 
 use crate::powl::CngRefusal;
 
+use super::decomp::dispatch_bridge::payload_digest;
+use super::decomp::DECOMP_MAX_GROUND;
 use super::dispatch::{
     collect_consequence, disp_object, read_ledger_entries, shape_violations, write_atomic,
     DispatchContract, DispatchState, ExecutionClass, FileLedgerSink, LedgerSink, NoWait,
@@ -201,6 +214,14 @@ struct InboxContract {
     target_actor_local: String,
     expected_output_local: String,
     idempotency_key: String,
+    /// `disp:inputArtifactSet` local name. For a payload-carrying dispatch
+    /// (`decomp::dispatch_bridge::dispatch_subworkflow_to_engine`) this is
+    /// `payload-<16 hex>`, the real BLAKE3 fold over the dispatched
+    /// domain+problem PDDL text — verified against the sibling payload
+    /// files before they are trusted (see `run_serve_loop`). For every
+    /// other contract shape it stays the synthetic `inputs-<dispatch_id>`
+    /// label and is unused.
+    input_artifact_local: String,
 }
 
 /// Reads the engine-relevant fields out of one shape-valid contract graph.
@@ -232,6 +253,87 @@ fn read_inbox_contract(contract_ttl: &str, path: &Path) -> Result<InboxContract,
         target_actor_local: rwai_local(&field("targetActor")?).to_string(),
         expected_output_local: rwai_local(&field("expectedOutputArtifactSet")?).to_string(),
         idempotency_key: field("idempotencyKey")?,
+        input_artifact_local: rwai_local(&field("inputArtifactSet")?).to_string(),
+    })
+}
+
+/// Real manufacture evidence for one payload-carrying dispatch: grounded
+/// and planned from the dispatched domain+problem PDDL text itself (never
+/// `blake3(dispatch_id)`-seeded synthetic content). The parsed domain/
+/// problem names themselves are written into `set_dir/manifest.txt`
+/// (durable evidence a test or auditor can inspect), not carried here.
+struct PayloadOutcome {
+    /// Grounded plan length.
+    tape_ops: usize,
+    /// `blake3:<hex>` over the grounded plan's ordered action labels.
+    powl_digest: String,
+}
+
+/// Grounds and plans a dispatched PDDL domain/problem payload (PROJ-710 →
+/// PROJ-723 closure) and writes the manufactured evidence — the received
+/// domain/problem text verbatim plus the grounded plan's ordered action
+/// labels — under `set_dir`, the same per-dispatch admissions-dir
+/// convention `write_set`/`manufacture_set` use for the synthetic path, so
+/// both paths are auditable the same way (`bundle.admissions_dir()/
+/// <dispatch_id>/`).
+///
+/// `max_ground` mirrors `decomp::DECOMP_MAX_GROUND`, the SAME ceiling the
+/// dispatching side's own `decompose()` used to derive this payload in the
+/// first place — a bound mismatch here would let the engine refuse a
+/// payload `decompose()` itself could ground.
+///
+/// # Errors
+/// `CNG_R01 MalformedTtl` when either PDDL text fails to parse; `CNG_R09
+/// UnsupportedConstruct` when grounding fails (bound exceeded / empty
+/// grounding); `CNG_R04 PlanUnsolvable` when the dispatched problem admits
+/// no plan within the depth bound; `CNG_R10 IoRefused` for evidence-write
+/// IO.
+///
+/// # Complexity
+/// O(|domain_pddl| + |problem_pddl|) parse + bounded grounding/BFS
+/// (`DECOMP_MAX_GROUND` ceiling) + O(plan ops) evidence write.
+fn manufacture_from_payload(
+    set_dir: &Path,
+    domain_pddl: &str,
+    problem_pddl: &str,
+) -> Result<PayloadOutcome, CngRefusal> {
+    let domain = domain_from_pddl(domain_pddl).map_err(|e| {
+        CngRefusal::MalformedTtl(format!("dispatched domain payload failed to parse: {e:?}"))
+    })?;
+    let problem = problem_from_pddl(problem_pddl).map_err(|e| {
+        CngRefusal::MalformedTtl(format!("dispatched problem payload failed to parse: {e:?}"))
+    })?;
+    let ground = IndexedGroundProblem::build(&domain, &problem, Some(DECOMP_MAX_GROUND))
+        .map_err(|e| CngRefusal::UnsupportedConstruct(format!("payload grounding failed: {e}")))?;
+    let tape = ground.find_plan().map_err(|e| {
+        CngRefusal::PlanUnsolvable(format!("dispatched payload admits no plan: {e}"))
+    })?;
+
+    fs::create_dir_all(set_dir)
+        .map_err(|e| CngRefusal::IoRefused(format!("mkdir {}: {e}", set_dir.display())))?;
+    write_atomic(&set_dir.join("domain.pddl"), domain_pddl)?;
+    write_atomic(&set_dir.join("problem.pddl"), problem_pddl)?;
+    let plan_text = tape
+        .ops
+        .iter()
+        .map(|op| op.label.clone())
+        .collect::<Vec<_>>()
+        .join("\n");
+    write_atomic(&set_dir.join("plan.txt"), &plan_text)?;
+    // Real evidence of WHICH content was executed (not decorative — this is
+    // exactly what a load-bearing test inspects to tell a payload-carrying
+    // execution apart from the synthetic `wf-email-routing-*` path).
+    let manifest = format!(
+        "domain: {}\nproblem: {}\ntape_ops: {}\n",
+        domain.name,
+        problem.name,
+        tape.ops.len()
+    );
+    write_atomic(&set_dir.join("manifest.txt"), &manifest)?;
+
+    Ok(PayloadOutcome {
+        tape_ops: tape.ops.len(),
+        powl_digest: format!("blake3:{}", blake3::hash(plan_text.as_bytes()).to_hex()),
     })
 }
 
@@ -424,35 +526,87 @@ fn run_serve_loop(
                 tick,
             )?;
 
-            // REAL execution: deterministic artifact set from the
-            // contract's content (splitmix64 seeded by blake3(dispatch_id)),
-            // manufactured through the full cng chain.
-            let hash = blake3::hash(contract.dispatch_id.as_bytes());
-            let mut b = [0u8; 8];
-            b.copy_from_slice(&hash.as_bytes()[..8]);
-            let mut rng = u64::from_le_bytes(b) ^ identity.instance_nonce;
+            // REAL execution. PROJ-710 → PROJ-723: a sibling PDDL payload
+            // next to THIS contract's `.ttl` (written by
+            // `decomp::dispatch_bridge::dispatch_subworkflow_to_engine`)
+            // takes priority over the synthetic path — purely additive, no
+            // contract that never carried a payload changes behavior.
             let set_dir = bundle.admissions_dir().join(&contract.dispatch_id);
-            write_set(
-                templates,
-                &set_dir,
-                &mut rng,
-                &contract.dispatch_id,
-                &worker_iri,
-                "email-routing",
-                0,
-                false,
-                None,
-            )?;
-            let outcome = manufacture_set(&set_dir, None);
-            if let Some(code) = outcome.refusal_code {
-                // The engine derived its own deterministic, complete set; a
-                // refusal means the mechanism is broken, not the input.
-                return Err(CngRefusal::HardcodingSuspicion(format!(
-                    "engine {} manufacture of {} refused {code}; the \
-                     deterministic engine execution mechanism is broken",
-                    identity.engine_id, contract.dispatch_id
-                )));
-            }
+            let domain_payload_path =
+                path.with_file_name(format!("{}.domain.pddl", contract.dispatch_id));
+            let problem_payload_path =
+                path.with_file_name(format!("{}.pddl", contract.dispatch_id));
+            let powl_digest = if problem_payload_path.is_file() {
+                if !domain_payload_path.is_file() {
+                    return Err(CngRefusal::MalformedTtl(format!(
+                        "dispatch {} carries a problem payload ({}) with no paired \
+                         domain payload ({})",
+                        contract.dispatch_id,
+                        problem_payload_path.display(),
+                        domain_payload_path.display()
+                    )));
+                }
+                let domain_pddl = fs::read_to_string(&domain_payload_path).map_err(|e| {
+                    CngRefusal::IoRefused(format!("read {}: {e}", domain_payload_path.display()))
+                })?;
+                let problem_pddl = fs::read_to_string(&problem_payload_path).map_err(|e| {
+                    CngRefusal::IoRefused(format!("read {}: {e}", problem_payload_path.display()))
+                })?;
+                // Integrity: the admitted contract's disp:inputArtifactSet
+                // must equal the SAME length-prefixed BLAKE3 fold over the
+                // bytes actually read here — a tampered/truncated sibling
+                // payload refuses CNG_R11, never silently substitutes the
+                // synthetic path.
+                let expected = format!("payload-{}", payload_digest(&domain_pddl, &problem_pddl));
+                if contract.input_artifact_local != expected {
+                    return Err(CngRefusal::AuditMismatch(format!(
+                        "dispatch {} declared disp:inputArtifactSet {} but its sibling \
+                         payload digests to {expected}",
+                        contract.dispatch_id, contract.input_artifact_local
+                    )));
+                }
+                let payload_outcome =
+                    manufacture_from_payload(&set_dir, &domain_pddl, &problem_pddl)?;
+                if payload_outcome.tape_ops == 0 {
+                    return Err(CngRefusal::PlanUnsolvable(format!(
+                        "dispatch {} payload grounded to an empty plan",
+                        contract.dispatch_id
+                    )));
+                }
+                payload_outcome.powl_digest
+            } else {
+                // Synthetic path (unchanged): deterministic artifact set
+                // from the contract's content (splitmix64 seeded by
+                // blake3(dispatch_id)), manufactured through the full cng
+                // chain.
+                let hash = blake3::hash(contract.dispatch_id.as_bytes());
+                let mut b = [0u8; 8];
+                b.copy_from_slice(&hash.as_bytes()[..8]);
+                let mut rng = u64::from_le_bytes(b) ^ identity.instance_nonce;
+                write_set(
+                    templates,
+                    &set_dir,
+                    &mut rng,
+                    &contract.dispatch_id,
+                    &worker_iri,
+                    "email-routing",
+                    0,
+                    false,
+                    None,
+                )?;
+                let outcome = manufacture_set(&set_dir, None);
+                if let Some(code) = outcome.refusal_code {
+                    // The engine derived its own deterministic, complete
+                    // set; a refusal means the mechanism is broken, not the
+                    // input.
+                    return Err(CngRefusal::HardcodingSuspicion(format!(
+                        "engine {} manufacture of {} refused {code}; the \
+                         deterministic engine execution mechanism is broken",
+                        identity.engine_id, contract.dispatch_id
+                    )));
+                }
+                outcome.powl_digest
+            };
 
             // Consequence: template-rendered, atomically written to the
             // outbox (the coordinator's collection surface).
@@ -495,7 +649,7 @@ fn run_serve_loop(
                     ("SET_ID", bundle.engine_id.as_str()),
                     ("ENGINE_ID", identity.engine_id.as_str()),
                     ("DISPATCH_ID", contract.dispatch_id.as_str()),
-                    ("POWL_DIGEST", outcome.powl_digest.as_str()),
+                    ("POWL_DIGEST", powl_digest.as_str()),
                     ("CONSEQUENCE_DIGEST", consequence_digest.as_str()),
                 ],
             )?;

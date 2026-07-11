@@ -320,3 +320,145 @@ test!(
         assert_eq!(report.derived_from, 1);
     }
 );
+
+/// One representative instance of every `CngRefusal` variant, in `code()`
+/// order (`CNG_R01`..`CNG_R25`).
+///
+/// The internal match over the constructed values has no wildcard arm: a
+/// future `CNG_R26` variant fails to compile here until this list is
+/// extended, mirroring the exhaustiveness already enforced by `code()`,
+/// `message()`, and `hint()` themselves.
+fn all_refusal_variants() -> Vec<CngRefusal> {
+    let variants = vec![
+        CngRefusal::MalformedTtl("bad turtle: unexpected token".to_string()),
+        CngRefusal::MissingDomain("no domain fragment found".to_string()),
+        CngRefusal::MissingProblem("no problem fragment found".to_string()),
+        CngRefusal::PlanUnsolvable("empty PDDL plan tape".to_string()),
+        CngRefusal::UnsupportedConstruct("nested POWL is not supported".to_string()),
+        CngRefusal::InvalidPowl("PartialOrder missing hasChild".to_string()),
+        CngRefusal::RunnerMismatch("runner executed out of projected order".to_string()),
+        CngRefusal::Nondeterminism("repeated manufacture produced different bytes".to_string()),
+        CngRefusal::HardcodingSuspicion("leaf has no contributing source".to_string()),
+        CngRefusal::IoRefused("permission denied writing output".to_string()),
+        CngRefusal::AuditMismatch("digest drift".to_string()),
+        CngRefusal::StandingAmbiguous {
+            tick: 3,
+            candidate_count: 2,
+        },
+        CngRefusal::UnreceiptedActuation {
+            workflow: "wf-1".to_string(),
+            category: "manufacture".to_string(),
+        },
+        CngRefusal::DialectRegistryRefused {
+            entry: "urn:entry:1".to_string(),
+            missing: "sourceIri".to_string(),
+        },
+        CngRefusal::DispatchContractIncomplete {
+            dispatch: "d-1".to_string(),
+            missing: "callback_url".to_string(),
+        },
+        CngRefusal::DispatchStateUnlawful {
+            dispatch: "d-1".to_string(),
+            from: "Sent".to_string(),
+            to: "Acknowledged".to_string(),
+        },
+        CngRefusal::ExternalConsequenceRefused {
+            dispatch: "d-1".to_string(),
+            stage: "authority".to_string(),
+        },
+        CngRefusal::ArazzoProfileRefused {
+            feature: "criterionType=xpath".to_string(),
+        },
+        CngRefusal::EvidenceGateFailed {
+            gate: "unreceipted-actuations".to_string(),
+            count: 3,
+        },
+        CngRefusal::MarkerFalse {
+            marker: "AUTONOMIC_LOOP_CLOSED".to_string(),
+            value: 1,
+        },
+        CngRefusal::DecompositionInadmissible {
+            candidate: "0-single".to_string(),
+            reason: "interference".to_string(),
+        },
+        CngRefusal::InterferenceDetected {
+            helper_action: "pickup(a)".to_string(),
+            main_action: "stack(a,b)".to_string(),
+            atom: "holding(a)".to_string(),
+        },
+        CngRefusal::InterfaceStateMismatch {
+            step: 2,
+            atom: "clear(b)".to_string(),
+        },
+        CngRefusal::ResourceUnreleased {
+            resource: "lock(room1)".to_string(),
+            holder: "helper".to_string(),
+        },
+        CngRefusal::DoubleAdmit {
+            dispatch: "d-2".to_string(),
+            idempotency_key: "key-123".to_string(),
+        },
+    ];
+    for refusal in &variants {
+        match refusal {
+            CngRefusal::MalformedTtl(_) => {}
+            CngRefusal::MissingDomain(_) => {}
+            CngRefusal::MissingProblem(_) => {}
+            CngRefusal::PlanUnsolvable(_) => {}
+            CngRefusal::UnsupportedConstruct(_) => {}
+            CngRefusal::InvalidPowl(_) => {}
+            CngRefusal::RunnerMismatch(_) => {}
+            CngRefusal::Nondeterminism(_) => {}
+            CngRefusal::HardcodingSuspicion(_) => {}
+            CngRefusal::IoRefused(_) => {}
+            CngRefusal::AuditMismatch(_) => {}
+            CngRefusal::StandingAmbiguous { .. } => {}
+            CngRefusal::UnreceiptedActuation { .. } => {}
+            CngRefusal::DialectRegistryRefused { .. } => {}
+            CngRefusal::DispatchContractIncomplete { .. } => {}
+            CngRefusal::DispatchStateUnlawful { .. } => {}
+            CngRefusal::ExternalConsequenceRefused { .. } => {}
+            CngRefusal::ArazzoProfileRefused { .. } => {}
+            CngRefusal::EvidenceGateFailed { .. } => {}
+            CngRefusal::MarkerFalse { .. } => {}
+            CngRefusal::DecompositionInadmissible { .. } => {}
+            CngRefusal::InterferenceDetected { .. } => {}
+            CngRefusal::InterfaceStateMismatch { .. } => {}
+            CngRefusal::ResourceUnreleased { .. } => {}
+            CngRefusal::DoubleAdmit { .. } => {}
+        }
+    }
+    variants
+}
+
+test!(every_refusal_variant_has_a_specific_actionable_hint, {
+    let variants = all_refusal_variants();
+    assert_eq!(
+        variants.len(),
+        25,
+        "expected one instance per CNG_R01..CNG_R25 variant"
+    );
+    let mut seen_hints = std::collections::BTreeSet::new();
+    for refusal in &variants {
+        let code = refusal.code();
+        let hint = refusal.hint();
+        assert!(
+            hint.len() >= 40,
+            "{code}: hint too short to carry an actionable next step: {hint:?}"
+        );
+        assert_ne!(
+            hint,
+            refusal.message(),
+            "{code}: hint must add actionable guidance, not restate message()"
+        );
+        assert!(
+            seen_hints.insert(hint),
+            "{code}: hint duplicates another variant's hint verbatim (copy-paste)"
+        );
+    }
+    assert_eq!(
+        seen_hints.len(),
+        25,
+        "every variant must carry its own distinct, non-generic hint"
+    );
+});

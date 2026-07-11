@@ -245,10 +245,22 @@ cng-test:
 cng-test-bench:
     timeout 900s cargo test -p cng --features bench
 
+# Type-check the cng crate + its tests with the bench feature (fast inner
+# loop before cng-test-one / cng-test-bench; catches compile errors without
+# running anything).
+cng-check:
+    timeout 300s cargo check -p cng --features bench --tests
+
 # Run ONE cng integration-test binary by exact name (scoped inner loop; avoids
 # rebuilding/running the whole bench suite when investigating a single binary)
 cng-test-one binary *args:
     timeout 1200s cargo test -p cng --features bench --test {{binary}} {{args}}
+
+# Run ONLY the cng crate's in-crate unit tests (dispatch_test.rs, engine_test.rs,
+# decomp_test.rs, etc. via #[cfg(test)] modules) — skips the heavier standalone
+# integration-test binaries (cng_long_horizon_scenario and friends) entirely.
+cng-test-lib *args:
+    timeout 600s cargo test -p cng --features bench --lib {{args}}
 
 # PROJ-728/729 multi-engine harness: coordinator + REAL engine OS processes
 # over the filesystem transport — isolation falsifiers, G13 crash-resume,
@@ -261,6 +273,50 @@ cng-multi-engine:
 cng-install-smoke:
     timeout 600s cargo install --path crates/cng --debug --root target/install-smoke --force
     target/install-smoke/bin/cng workflow doctor
+
+# --- Isolated-target cargo recipes (concurrent-agent-safe) ---
+#
+# WHY: cargo takes an exclusive lock on `target/.cargo-lock` scoped to CARGO_TARGET_DIR (see
+# the lock-contention NOTE at the top of this file). Concurrent Claude Code agents/terminals
+# all hitting the default `target/` serialize on that lock rather than running in parallel --
+# looks like a hang, isn't. This session hand-typed `CARGO_TARGET_DIR=target/agent-<name>
+# cargo test ...` 20+ times, always slightly differently, to work around it; these recipes
+# formalize that pattern so it's discoverable and consistent going forward.
+#
+# WHEN: any time you're running cargo alongside other concurrent Claude Code agent work in
+# this repo. Pick a short, descriptive `name` (your ticket or feature slug) so `du -sh
+# target/agent-*` stays legible later. Isolated dirs trade a slower first build (no shared
+# incremental cache) for true concurrency -- and they are not self-cleaning, so run
+# `cng-clean-isolated` when you're done with yours; they accumulate multi-GB each otherwise.
+
+# Run one cng integration-test binary in an isolated target dir (concurrent-agent-safe; see
+# note above), e.g. `just cng-test-isolated my-feature cng_decomp -- --nocapture`
+cng-test-isolated name binary *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 1200s cargo test -p cng --features bench --test {{binary}} {{args}}
+
+# Type-check the cng crate + its tests in an isolated target dir (concurrent-agent-safe; fast
+# compile-only sanity check mid-edit, before cng-test-isolated)
+cng-check-isolated name:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo check -p cng --features bench --tests
+
+# Remove one isolated target dir (cleanup after an agent/dev is done with it)
+cng-clean-isolated name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dir="target/agent-{{name}}"
+    if [ -d "$dir" ]; then
+        du -sh "$dir"
+        rm -rf "$dir"
+        echo "cng-clean-isolated: removed $dir"
+    else
+        echo "cng-clean-isolated: $dir does not exist, nothing to remove"
+    fi
+
+# Remove every isolated target dir in one shot (periodic cleanup). Only removes your own work
+# if run mid-session by other agents too -- check `du -sh target/agent-*` first if you want to
+# know what you're about to reclaim, since this takes everyone's isolated dirs at once.
+cng-clean-all-isolated:
+    rm -rf target/agent-*
 
 # Search crates.io for a crate name (publishability checks)
 crates-search name:

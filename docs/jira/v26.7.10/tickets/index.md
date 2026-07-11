@@ -50,11 +50,26 @@ individually below. Nothing flips without a cited command + output in `RELEASE_C
 Numbers **PROJ-715..719 are deliberately skipped** — the gap separates Track P (planning,
 701-714) from Track E (multi-engine execution, 720-729); no tickets ever existed there.
 
+Numbers **PROJ-732 and PROJ-735..738** are absent from standalone ticket files but, unlike
+715-719, correspond to real session work — not a designed skip. PROJ-735..738 were assigned to
+Phase 2's four isolated verification runs (`cng_decomp` -> `cng_ipc_corpus` -> `cng_multi_engine`
+-> full suite; see "Execution sequence" below), named explicitly as "PROJ-735..738 isolated
+verification ladder" in `DOD_SIGNOFF.md`'s "Final state" section; their results are folded into
+`RELEASE_CONTROL.md` §9.1's own verification-ladder items 1-4 and the "Evidence" sections of the
+tickets they verify (PROJ-701..713/720..729/733/734), so no dedicated PROJ-735.md..PROJ-738.md
+was ever written. PROJ-732 sits at the Phase 1 boundary between the original approved plan's
+PROJ-701..731 ticket range and this session's closure-plan-added tickets, which start at
+PROJ-733 (both `PROJ-733.md` and `PROJ-734.md` self-describe their Track as "closure (beyond the
+original v26.7.10-revised plan's PROJ-701..731 ticket range; filed this session per the approved
+closure plan's Phase 1)"); its scope split into the two concrete fixes filed separately as
+PROJ-733 (grounder swap) and PROJ-734 (watch-loop race fix) rather than remaining a single
+ticket, so PROJ-732.md was never written either.
+
 ### Track P — no-LLM planning/decomposition
 
 | Ticket | Scope | Status |
 |---|---|---|
-| [PROJ-701](PROJ-701.md) | `pddl-strips.ttl` ontology + closed shapes | ALIVE |
+| [PROJ-701](PROJ-701.md) | `pddl-strips.ttl` ontology + closed shapes | ALIVE / PARTIAL (no standalone closed-shape-violation negative test — see `PROJ-701.md`) |
 | [PROJ-702](PROJ-702.md) | Lifter: PDDL string → pddl-strips triples | ALIVE |
 | [PROJ-703](PROJ-703.md) | Deterministic PDDL renderer + round-trip test | ALIVE |
 | [PROJ-704](PROJ-704.md) | `decomp.dl` + `decomp-resources.dl` edge rules | ALIVE |
@@ -148,16 +163,26 @@ cross-engine dispatch run. PROJ-749 (second synthesis round) closes that specifi
 mechanism level, via a new bridge module (`decomp/dispatch_bridge.rs`) and a new dedicated
 integration test — not by modifying `cng_multi_engine.rs` — on a fixture built for the
 purpose (the canonical potato scenario's own `decompose()` output is single-actor and has
-nothing to dispatch). See `DOD_SIGNOFF.md` §2/§8 for the exact scope of what PROJ-749 proves
-and what it does not (no PDDL-payload-carrying contract yet, PROJ-710 -> PROJ-723 open).
+nothing to dispatch). See `DOD_SIGNOFF.md` §2/§8 for the exact scope of what PROJ-749 proves.
+**Moonshot round (this session): PROJ-710 -> PROJ-723 is now closed** — a dispatched contract
+carries its subworkflow's actual PDDL payload as digest-verified sibling files, and the remote
+engine executes that specific plan (`dispatched_subworkflow_payload_is_the_content_the_engine_
+actually_executes`, `cng_decompose_to_dispatch_integration.rs`, 3/3 passed). See
+`RELEASE_CONTROL.md` §9.2a for the full mechanism and verification. The narrower global-goal
+closure question (whether two engines' combined outputs satisfy the original problem) remains
+open, unchanged.
 
 ## Standing boundaries (honesty notes)
 
 - Multi-engine transport is filesystem inbox/outbox between separate OS processes; HTTP
   binding is declared via generated OpenAPI/AsyncAPI docs and UNVERIFIED as a live network
   path (`DEFINITION_OF_DONE.md` §20).
-- Long-horizon scenarios (PROJ-714) are the declared cut line — may be CUT, never faked; see
-  `RELEASE_CONTROL.md` §9.2 for the recorded cut subsection (PROJ-747).
+- Long-horizon scenarios (PROJ-714) are the declared cut line — may be CUT, never faked;
+  moonshot round moved this from 1/4 to 2/4 (tyreworld-chain closed alongside the prior
+  logistics scenario); barman/termes/blocksworld/grippers were each tried and dropped per
+  `PROJ-714.md`'s own "do not force a fit" clause (planner-search performance cliffs, not
+  grounding blowups); see `RELEASE_CONTROL.md` §9.2 for the recorded cut subsection
+  (PROJ-747).
 - Synthesized human consequences remain MOCKED-HUMAN wherever they appear.
 - Phase 1 boundaries (loopback-real dispatch, TripleStore hook surface, deferred
   ChatmanEngine) are recorded in `DEFINITION_OF_DONE_INTERIM.md`.
@@ -167,11 +192,12 @@ and what it does not (no PDDL-payload-carrying contract yet, PROJ-710 -> PROJ-72
   26 keys `true`) — see `DEFINITION_OF_DONE.md` §16 and `RELEASE_CONTROL.md` §9.1. The
   three-bundle composition (+ a real distributed bundle) remains UNVERIFIED.
 - PROJ-749's decompose-to-dispatch bridge proves the mechanism (a real `decompose()` output
-  reaches a real cross-engine dispatch run), not payload fidelity: the remote engine still
-  executes its OWN dispatch-id-seeded synthetic PDDL artifact set, not the dispatched
-  subworkflow's actual plan — no payload-carrying contract exists yet (PROJ-710 -> PROJ-723).
-  It also does not cover the potato scenario itself, which selects single-actor and has
-  nothing to dispatch — see `DOD_SIGNOFF.md` §2/§8.
+  reaches a real cross-engine dispatch run) AND, as of the moonshot round, payload fidelity —
+  the remote engine executes the dispatched subworkflow's ACTUAL PDDL plan, digest-verified
+  (PROJ-710 -> PROJ-723 closed; see `RELEASE_CONTROL.md` §9.2a). It still does not cover the
+  potato scenario itself, which selects single-actor and has nothing to dispatch, and does not
+  prove that combining two engines' outputs closes the ORIGINAL problem's global goal (no
+  machinery on disk checks that) — see `DOD_SIGNOFF.md` §2/§8.
 - This session's work is uncommitted — `git status` is not clean, HEAD is still `1f3f9bc`.
   Nothing in this index or `RELEASE_CONTROL.md` claims the increment is committed.
 

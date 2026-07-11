@@ -1,7 +1,27 @@
 # PROJ-714 — Long-horizon scenarios (EOD-finishable scope)
 
-Status: ALIVE (mechanism, 1 of 4 declared scenarios) / PLANNED (scenarios 2-4, time-boxed cut
+Status: ALIVE (mechanism, 2 of 4 declared scenarios) / PLANNED (scenarios 3-4, time-boxed cut
 this session)
+
+Update (moonshot round, this session): a second agent picked up scenarios 2-4 per this
+ticket's own revised scope. Result: 2/4, not 3/4 or 4/4 — tyreworld (`chained_ipc_problem`/
+`namespace_ipc_instance`, chain_len=2, size=3) closed as the second scenario
+(`long_horizon_tyreworld_chain_scenario_decomposes_and_plans_end_to_end`); barman, termes,
+blocksworld, and grippers were each tried at the minimum chain length clearing the ~20-step
+bar and dropped per this ticket's own "do not force a fit" clause — every one hit a genuine
+planner-search performance cliff (>180s barman, >90s termes, >60s blocksworld, >45s/33min
+grippers), not a `DECOMP_MAX_GROUND` grounding blowup (grounding measured at 2-3ms in every
+case). Command + output:
+`CARGO_TARGET_DIR=target/agent-714scenarios cargo test --package cng --test
+cng_long_horizon_scenario --features bench` →
+`test long_horizon_tyreworld_chain_scenario_decomposes_and_plans_end_to_end ... ok` /
+`test long_horizon_logistics_scenario_decomposes_and_plans_end_to_end ... ok` / `test result:
+ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s`. Full
+per-domain accounting, including a real namespacing bug found and fixed along the way
+(zero-arity global-flag predicates silently merging across chained instances, caught by the
+`>= 20`-step assertion failing rather than passing silently), lives in
+`crates/cng/tests/cng_long_horizon_scenario.rs`'s own module doc, before `namespace_pred`.
+Never round this up past "2/4, honestly" — see that file's "Honest scope" section.
 
 Track: P (planning/decomposition).
 Milestone: v26.7.10-revised (No-LLM Multi-Actor Planning + Multi-Engine Execution).

@@ -1,7 +1,8 @@
 # PROJ-749 — Decompose-to-dispatch bridge (Track P / Track E integration)
 
-Status: ALIVE (mechanism, on a non-potato fixture) — evidenced this session (uncommitted;
-HEAD `1f3f9bc`, Phase 6 commit not run)
+Status: ALIVE (mechanism, on a non-potato fixture); ALIVE (payload fidelity, moonshot round —
+PROJ-710 -> PROJ-723 closed, see the update section below) — evidenced this session
+(uncommitted; HEAD `1f3f9bc`, Phase 6 commit not run)
 
 Track: closure (beyond the original v26.7.10-revised plan's PROJ-701..731 range and beyond
 the first closure round's PROJ-733/734/739..748; filed this session, second synthesis pass).
@@ -68,7 +69,35 @@ doc pass): the existing 15 in-crate `decomp`/`workday` unit tests and the 7
 `cng_multi_engine` integration tests continue to pass; `cargo build -p cng --features bench
 --tests` succeeds with no new warnings.
 
-## Honest boundary — what this does NOT prove
+## Update (moonshot round, this session) — PROJ-710 -> PROJ-723 closed
+
+The "honest boundary" section immediately below is left unedited as a historical record of
+what this ticket proved at the time it was written. A later round in this same session closed
+the specific gap it names: `DispatchContract` now DOES carry a PDDL payload. Mechanism: when
+`dispatch_subworkflow_to_engine` bridges a subworkflow with a non-empty `problem_pddl`, it
+takes an added `domain_pddl: &str` parameter and writes two sibling files into the target
+engine's real inbox, atomically, before the contract `.ttl` itself: `<dispatch_id>.domain.pddl`
+and `<dispatch_id>.pddl`. `disp:inputArtifactSet` now carries a real content digest
+(`payload-<16-hex>`, new `payload_digest()`, length-prefixed BLAKE3 fold over both texts)
+instead of the synthetic `inputs-<dispatch_id>` label this ticket originally shipped.
+`engine.rs::run_serve_loop` checks for both sibling files next to each admitted inbox contract:
+if present, it recomputes and verifies the digest (`CNG_R11 AuditMismatch` on divergence), then
+parses/grounds/plans the SPECIFIC dispatched PDDL instead of its `blake3(dispatch_id)`-seeded
+synthetic `write_set`; if absent, execution falls through unchanged to the synthetic path this
+ticket originally proved — purely additive, no schema/template/shape change. New test
+`dispatched_subworkflow_payload_is_the_content_the_engine_actually_executes`
+(`cng_decompose_to_dispatch_integration.rs`) proves byte-identity between what was dispatched
+and what each of two independently-run real engines manufactured, that the two engines'
+manufactured content genuinely differs, and that the synthetic path never fires when a payload
+is present. Command + output:
+`CARGO_TARGET_DIR=target/agent-payload cargo test -p cng --features bench --test
+cng_decompose_to_dispatch_integration -- --test-threads=1` → `test result: ok. 3 passed; 0
+failed`. Full account: `docs/releases/v26.7.10/RELEASE_CONTROL.md` §9.2a. **What is still NOT
+proven** (narrower than, and distinct from, the payload-fidelity gap just closed): that
+combining two engines' outputs together closes the ORIGINAL undecomposed problem's global
+goal — no machinery on disk checks that today.
+
+## Honest boundary — what this ticket proved BEFORE the moonshot-round update above
 
 `engine.rs::run_serve_loop` derives its own deterministic PDDL artifact set from
 `blake3(dispatch_id)` (`write_set`, category hardcoded `"email-routing"`) regardless of
@@ -76,7 +105,8 @@ contract content — confirmed directly against on-disk evidence
 (`engines/H/admissions/<dispatch_id>/fragment-*.domain.ttl` is the engine's own synthetic
 manufacture, not the helper subworkflow's actual PDDL). `DispatchContract` does not yet carry
 a PDDL payload; `engine.rs`'s own module doc names this open work as "PROJ-710 -> PROJ-723".
-So this ticket proves:
+**This paragraph and the module-doc citation it describes are now stale — see the update above
+for the current state.** So this ticket, as first written, proved:
 
 1. A real `decompose()` run derives a genuine multi-actor split, not hardcoded.
 2. Each subworkflow's identity converts deterministically into a valid, shape-conformant
@@ -88,8 +118,11 @@ So this ticket proves:
 It does NOT prove that the remote engine executed the dispatched subworkflow's OWN plan, nor
 that combining the two engines' outputs reconstructs or closes the original problem's global
 goal — no machinery in the crate today makes that claim checkable (no payload-carrying
-contract exists yet). It also does NOT prove the potato scenario itself dispatches across
-H/M (see `DEFINITION_OF_DONE.md` §8 / `DOD_SIGNOFF.md` §8) — potato's own `decompose()`
+contract exists yet). **The first of these two — the remote engine executing the dispatched
+subworkflow's own plan — is the PROJ-710 -> PROJ-723 gap the moonshot-round update above
+closes; the second — global-goal closure across two engines' outputs — remains open,
+unaffected by that update.** It also does NOT prove the potato scenario itself dispatches
+across H/M (see `DEFINITION_OF_DONE.md` §8 / `DOD_SIGNOFF.md` §8) — potato's own `decompose()`
 output has no split to dispatch.
 
 ## Links

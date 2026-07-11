@@ -142,9 +142,7 @@ fn verify_one_render_digest(
 /// O(1) — three filesystem existence checks.
 fn api_docs_present(project_root: &Path) -> bool {
     project_root.join(OPENAPI_RENDERED_YAML_REL_PATH).is_file()
-        && project_root
-            .join(ASYNCAPI_RENDERED_YAML_REL_PATH)
-            .is_file()
+        && project_root.join(ASYNCAPI_RENDERED_YAML_REL_PATH).is_file()
         && project_root.join(".ggen-v2").join("receipt.json").is_file()
 }
 

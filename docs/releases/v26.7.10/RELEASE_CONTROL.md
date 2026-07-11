@@ -72,6 +72,19 @@ this correction. Summary (full detail in `PRD.md`):
 10. Status vocabulary is the 5-value ALIVE/PARTIAL/PLANNED/UNKNOWN/MOCKED set, used exactly as
     in v26.7.9 — no 4-value variant invented.
 
+**Vocabulary cross-reference (doc-polish note; not a rewrite).** The 5-value set in item 10 is
+this file's own release-scoped subset, not a competing standard. The house rules' canonical
+status vocabulary — ALIVE / PARTIAL / BLOCKED / MOCKED / REFUSED / UNSUPPORTED / UNVERIFIED (7
+terms, `.claude/rules/no-overclaiming.md`) — is authoritative repo-wide. Local mapping: this
+file's PLANNED and `DEFINITION_OF_DONE.md`'s PLANNED (its own, separate 7-term set: ALIVE /
+PARTIAL / MOCKED / UNVERIFIED / BLOCKED / REFUSED / PLANNED, `DEFINITION_OF_DONE.md` line 5)
+both correspond to house UNVERIFIED (not yet exercised, not fabricated) — neither local doc
+uses the house term UNSUPPORTED; this file's UNKNOWN corresponds to house UNVERIFIED (pending
+re-check) or BLOCKED (cite file:line), depending on context; ALIVE/PARTIAL/MOCKED map 1:1
+across all three sets. This is a pointer for readers moving between documents, not a unification
+— no label in this file or the DoD is being renamed this pass. Full drift catalog:
+`GAP_AUDIT.md` §5 finding 5.
+
 ## 4. Claims Reconciliation table — single logical table, two files
 
 The `## Claims Reconciliation` section in `PRD.md` and `ARD.md` is one logical table maintained
@@ -285,8 +298,13 @@ Commands run this session (cited exactly; not re-derived):
    "bench")]`.
 7. (Second synthesis round) `cargo test -p cng --features bench --test
    cng_decompose_to_dispatch_integration`: 2/2 passed, 1.76s — PROJ-749, the decompose-to-
-   dispatch bridge; see §2/§8 of `DOD_SIGNOFF.md` for the reconciled clause status and the
-   honest boundary (no PDDL-payload-carrying contract yet).
+   dispatch bridge; see §2/§8 of `DOD_SIGNOFF.md` for the reconciled clause status.
+   **Superseded (moonshot round, this session): the "no PDDL-payload-carrying contract yet"**
+   **boundary this item originally cited is now closed** —
+   `CARGO_TARGET_DIR=target/agent-payload cargo test -p cng --features bench --test
+   cng_decompose_to_dispatch_integration -- --test-threads=1` → `test result: ok. 3 passed; 0
+   failed` (the 2 prior tests plus new
+   `dispatched_subworkflow_payload_is_the_content_the_engine_actually_executes`); see §9.2a.
 8. (Second synthesis round) `just cng-test-one cng_decomp_negative_corpus_completeness --
    --nocapture`: 2/2 passed, run twice, 0.05s — closes DoD §18 negative-corpus items 6 and 7
    (item 7 additionally, alongside the follow-up round's own `CNG_R09` test); see PROJ-712/713.
@@ -296,7 +314,7 @@ Per-ticket evidence citations (exact test names, file:line) live in each ticket 
 
 | Ticket | Scope item | Status |
 |---|---|---|
-| PROJ-701 | `pddl-strips.ttl` ontology + closed shapes | ALIVE |
+| PROJ-701 | `pddl-strips.ttl` ontology + closed shapes | ALIVE / PARTIAL (no standalone closed-shape-violation negative test for `pddl-strips-shapes.ttl` specifically — see `PROJ-701.md`) |
 | PROJ-702 | Lifter: PDDL string literal → pddl-strips triples | ALIVE |
 | PROJ-703 | Deterministic PDDL renderer + round-trip property test | ALIVE |
 | PROJ-704 | `rules/decomp.dl` + `decomp-resources.dl` edge derivation | ALIVE |
@@ -309,7 +327,7 @@ Per-ticket evidence citations (exact test names, file:line) live in each ticket 
 | PROJ-711 | IPC generators (5 domains × 20, solvability gate) | ALIVE (full 5x20=100 scale run, follow-up round) |
 | PROJ-712 | Potato canonical scenario + negative corpus | ALIVE |
 | PROJ-713 | Anti-hardcoding gate | ALIVE |
-| PROJ-714 | 4 long-horizon scenarios | ALIVE (mechanism, 1/4) / PLANNED (2-4, time-boxed — §9.2 below) |
+| PROJ-714 | 4 long-horizon scenarios | ALIVE (mechanism, 2/4) / PLANNED (3-4, time-boxed — §9.2 below) |
 | PROJ-720 | 16-state dispatch machine everywhere + drift test | ALIVE |
 | PROJ-721 | Durable dispatch ledger + idempotent consume (`DoubleAdmit`) | ALIVE |
 | PROJ-722 | Deterministic `EngineIdentity` + per-engine bundle layout | ALIVE |
@@ -334,7 +352,7 @@ Per-ticket evidence citations (exact test names, file:line) live in each ticket 
 | PROJ-746 | Ticket status flips + this table + `index.md` sync | DONE (doc) |
 | PROJ-747 | PROJ-714 cut-line record (this subsection) | DONE (doc) |
 | PROJ-748 | Revised `DOD_SIGNOFF.md`/`DOD_EVIDENCE_MAP.md` | DONE (doc) |
-| PROJ-749 | Decompose-to-dispatch bridge (Track P/E integration, second synthesis round) | ALIVE (mechanism, non-potato fixture) |
+| PROJ-749 | Decompose-to-dispatch bridge (Track P/E integration, second synthesis round) | ALIVE (mechanism, non-potato fixture) / ALIVE (payload-carrying, PROJ-710 -> PROJ-723 closed, moonshot round — see §9.2a) |
 
 Marker note: `V26_7_10_PRODUCTION_READY` keeps its name but its meaning is revised to the
 `DEFINITION_OF_DONE.md` §16 conjunction (`LLM_CALLS_ZERO` family + planning set + distributed
@@ -353,25 +371,83 @@ conjunction is now ALIVE for the two-way (workday + planning) composition. The t
 composition (+ a real distributed bundle) remains UNVERIFIED: it requires
 `cng_multi_engine.rs`'s private harness helpers, not importable from a separate test crate.
 
-### 9.2 PROJ-714 cut record (G14/G15) — updated, EOD push
+### 9.2 PROJ-714 cut record (G14/G15) — updated, moonshot round
 
 Originally: PROJ-714 (4 long-horizon scenarios, G14/G15, `DEFINITION_OF_DONE.md` §19/§20 item
 3) was never built, by design, and this subsection recorded it as the release's declared cut
-line. That has partially changed: an EOD push built one real, non-stubbed long-horizon
+line. That has changed twice: an EOD push built one real, non-stubbed long-horizon
 scenario — `tests/cng_long_horizon_scenario.rs`
-(`long_horizon_logistics_scenario_decomposes_and_plans_end_to_end`, run this session, 1/1
+(`long_horizon_logistics_scenario_decomposes_and_plans_end_to_end`, run that session, 1/1
 passed, 0.24s/0.27s across two independent runs) — a two-package, 16-room-corridor logistics
 domain whose single-actor plan is 30 real steps and whose helper/main decomposition genuinely
 wins the selection law (makespan 15 vs. 30), proving the full pipeline (grounding → Datalog
 edge derivation → candidate search → planning → interference/release proofs → selection →
-receipt) holds at this length without the grounding-blowup cliff PROJ-733 fixed. `PROJ-714.md`
-now reads `ALIVE (mechanism, 1/4)` / `PLANNED (2-4, time-boxed cut)`. Scenarios 2-4, per
-`PROJ-714.md`'s own revised scope, are three parameter variations of the existing 5-domain IPC
-generator family at extended plan length — a time-boxed cut this session (2.2h EOD window),
-not silently dropped, and not the same gap as PROJ-714's original "nothing exists" state. Do
-not cite this subsection as "PROJ-714 = cut line, nothing built" — that framing is now stale;
-cite `PROJ-714.md` directly for the precise, current 1-of-4 scope. Distinct from PROJ-711's IPC
+receipt) holds at this length without the grounding-blowup cliff PROJ-733 fixed. This
+session's moonshot round then closed a second scenario — a chained tyreworld domain
+(`long_horizon_tyreworld_chain_scenario_decomposes_and_plans_end_to_end`, `chain_len=2`,
+`size=3` MAX_SIZE, glued via new `chained_ipc_problem`/`namespace_ipc_instance` helpers that
+namespace both objects AND predicate names per instance — a real bug in the first attempt,
+zero-arity global-flag predicates silently merging across instances, was caught by the
+`>= 20`-step assertion failing rather than passing, then fixed). Command + output:
+`CARGO_TARGET_DIR=target/agent-714scenarios cargo test --package cng --test
+cng_long_horizon_scenario --features bench` → `test result: ok. 2 passed; 0 failed; 0
+ignored; 0 measured; 0 filtered out; finished in 0.24s`. `PROJ-714.md` now reads `ALIVE
+(mechanism, 2/4)` / `PLANNED (3-4, time-boxed cut)`. Scenarios 3-4 were attempted this round
+(barman chain_len=3, termes chain_len=4, blocksworld chain_len=5, grippers chain_len=6 then a
+corrected chain_len=4) and each dropped per `PROJ-714.md`'s own "do not force a fit" clause —
+every one hit a genuine planner-search performance cliff (>180s barman, >90s termes, >60s
+blocksworld, 33+ min then >45s grippers, all killed), not the grounding blowup PROJ-733 fixed
+(grounding itself measured at 2-3ms in every case) — a time-boxed cut, not silently dropped,
+and not the same gap as PROJ-714's original "nothing exists" state. Do not cite this
+subsection as "PROJ-714 = cut line, nothing built" or "1/4" — both framings are now stale;
+cite `PROJ-714.md` directly for the precise, current 2-of-4 scope. Distinct from PROJ-711's IPC
 corpus (a separate ticket, ALIVE at full 5x20 scale) — the two remain not to be conflated.
+
+### 9.2a Payload-carrying dispatch (PROJ-710 -> PROJ-723) — closed, moonshot round
+
+Every prior wave's honest-boundary language (§9's marker note below, `DEFINITION_OF_DONE.md`
+§2, `DOD_SIGNOFF.md`'s "what remains not claimed" lists, `docs/jira/v26.7.10/tickets/
+PROJ-749.md`'s own "Honest boundary" section) named the same open gap: a dispatched
+`DispatchContract` carried only a synthetic, dispatch-id-seeded label
+(`disp:inputArtifactSet`), not its subworkflow's actual PDDL text — the remote engine
+(`engine.rs::run_serve_loop`) manufactured its own `blake3(dispatch_id)`-derived artifact set
+(`write_set`, category hardcoded `"email-routing"`) regardless of what was sent. This
+session's moonshot round closed that gap. Mechanism: sibling files, not a schema redesign.
+When `dispatch_subworkflow_to_engine` (`crates/cng/src/bench/decomp/dispatch_bridge.rs`)
+bridges a subworkflow with a non-empty `problem_pddl`, it now takes an added `domain_pddl: &str`
+parameter (the decomposition's one shared domain text) and writes two sibling files into the
+target engine's real inbox directory, atomically, before the contract `.ttl` itself:
+`<dispatch_id>.domain.pddl` and `<dispatch_id>.pddl`. `disp:inputArtifactSet` now carries a
+real content digest `payload-<16-hex>` (new `payload_digest()`, length-prefixed BLAKE3 fold
+over both texts) instead of the prior synthetic `inputs-<dispatch_id>` label. On the receiving
+side, `engine.rs::run_serve_loop` checks for both sibling files next to each admitted inbox
+contract: if present, it recomputes the same digest and refuses `CNG_R11 AuditMismatch` on any
+divergence, then parses/grounds/plans the SPECIFIC dispatched PDDL (`bcinr_pddl::parse`,
+`pddl_index::ground::IndexedGroundProblem::build`, the same `DECOMP_MAX_GROUND` bound
+`decompose()` itself uses) and writes the manufactured evidence under `admissions/
+<dispatch_id>/`; if absent, execution falls through unchanged to the prior synthetic path —
+purely additive, no schema/template/shape change. Load-bearing test
+(`dispatched_subworkflow_payload_is_the_content_the_engine_actually_executes`,
+`crates/cng/tests/cng_decompose_to_dispatch_integration.rs`): a real `decompose()` split
+dispatches helper/main to two real `cng engine serve` OS processes; asserts byte-identity
+between each engine's own manufactured `problem.pddl` and the specific dispatched payload,
+that an independently re-derived digest matches `decompose()`'s own recorded digest, that the
+two engines' manufactured content genuinely differs, and that `plan.txt` is non-empty and
+never contains `"email-routing"` (proving the synthetic path did not also fire). Command +
+output: `CARGO_TARGET_DIR=target/agent-payload cargo test -p cng --features bench --test
+cng_decompose_to_dispatch_integration -- --test-threads=1` → `test result: ok. 3 passed; 0
+failed`. Regression: `cng-test-lib` (82 tests) → 81 passed, 1 unrelated failure in
+`bench::report_pretty::tests` (a concurrent sibling agent's untracked, in-progress file, not
+this change); `cng_multi_engine` (7/7), `cng_cli_nonzero_exit_on_hostile_marker` (2 tests, not
+independently re-verified by this doc pass), `cng_production_ready_three_way` (2/2) — all pass,
+confirming the fallback path is unbroken. Files touched: `dispatch_bridge.rs`, `engine.rs`,
+`dispatch_test.rs`, `cng_decompose_to_dispatch_integration.rs`, `justfile` (new `cng-check`/
+`cng-test-lib` recipes). `dispatch.rs`, the contract template, and the shapes file were
+untouched — the existing `input_artifact_set` field was reused rather than adding a new one.
+**Remaining, narrower gap** (distinct from the payload-fidelity question just closed): whether
+combining two independently-dispatched engines' manufactured outputs actually closes the
+ORIGINAL undecomposed problem's global goal has no checking machinery on disk today — this is
+unchanged and still open (see `DOD_SIGNOFF.md`'s "what remains not claimed" list).
 
 ### 9.3 Session sanity sweep (second synthesis round): workspace check, clippy, fmt
 

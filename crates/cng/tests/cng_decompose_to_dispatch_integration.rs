@@ -2,8 +2,14 @@
 //! dispatch narrative — Track P (`crates/cng/src/bench/decomp/`, no-LLM goal
 //! decomposition, PROJ-702..710) feeding Track E (`crates/cng/src/bench/
 //! {dispatch,engine}.rs`, multi-engine execution, PROJ-720..724) — driven
-//! end to end through the new bridge
-//! (`crates/cng/src/bench/decomp/dispatch_bridge.rs`).
+//! end to end through the bridge
+//! (`crates/cng/src/bench/decomp/dispatch_bridge.rs`), INCLUDING the
+//! payload-carrying closure (PROJ-710 → PROJ-723): a dispatched contract now
+//! carries its subworkflow's actual PDDL payload (sibling
+//! `<dispatch_id>.domain.pddl` / `<dispatch_id>.pddl` files next to the
+//! inbox contract), and a real, independently-spawned `cng engine serve`
+//! process grounds and plans from THAT specific content — not a
+//! `blake3(dispatch_id)`-seeded synthetic artifact.
 //!
 //! Fixture: the canonical potato example (`examples/pddl-strips-potato.ttl`,
 //! same bridge pattern as `tests/cng_decomp.rs`) currently SELECTS THE
@@ -19,13 +25,19 @@
 //! construction (not cherry-picked) to split into `helper` ∥ `main`. The
 //! fixture cannot be imported from an external integration test (it is
 //! `#[cfg(test)]`-private to the crate), so it is reconstructed here from
-//! the same public `bcinr_pddl` struct types, field-for-field identical.
+//! the same public `bcinr_pddl` struct types, field-for-field identical —
+//! including a hand-authored PDDL TEXT rendering of the same domain
+//! (`kitchen_domain_pddl`), since a real dispatcher supplies the domain's
+//! own source text (the same text it read before calling `decompose()`),
+//! not the parsed struct.
 //!
-//! What this test proves and what it does NOT: see the assertions at the
-//! bottom and the module doc on `dispatch_bridge` for the stated boundary
-//! (the remote engine executes its OWN dispatch-id-seeded synthetic
-//! manufacture, not the dispatched subworkflow's PDDL plan — no payload-
-//! carrying contract exists yet, PROJ-710 → PROJ-723 is still open).
+//! What each test proves: `decomposed_subworkflows_dispatch_to_real_engines_
+//! and_are_admitted` proves the identity/contract/admission round-trip;
+//! `dispatched_subworkflow_payload_is_the_content_the_engine_actually_
+//! executes` (below) is the LOAD-BEARING proof that the remote engine's own
+//! manufactured evidence is byte-identical to the SPECIFIC subworkflow
+//! payload dispatched to it — not the other subworkflow's, and not a shared
+//! synthetic seed.
 
 #![cfg(feature = "bench")]
 
@@ -145,6 +157,19 @@ fn kitchen_problem() -> Pddl8Problem {
     }
 }
 
+/// Hand-authored PDDL TEXT rendering of [`kitchen_domain`], field-for-field
+/// equivalent (same predicate/action/param/pre/add/del structure), same
+/// `:strips` untyped syntax `tests/logistics.rs` (bcinr-pddl) and
+/// `main.rs::plan_decompose` use for a domain sourced from raw PDDL text.
+/// This is what a real dispatcher has on hand BEFORE calling `decompose()`
+/// (the domain file it read off disk, per `plan_decompose`'s own two-file
+/// CLI convention) — the exact text a payload-carrying dispatch bundles
+/// alongside a subworkflow's manufactured problem
+/// (`dispatch_subworkflow_to_engine`'s `domain_pddl` parameter).
+fn kitchen_domain_pddl() -> &'static str {
+    include_str!("kitchen_domain.pddl")
+}
+
 /// Runs the compiled `cng` binary to completion. O(child runtime).
 fn run_cng(args: &[&str]) -> (String, String, bool) {
     let output = Command::new(env!("CARGO_BIN_EXE_cng"))
@@ -237,18 +262,21 @@ test!(
         assert_eq!(helper.role, "helper");
         assert_eq!(main.role, "main");
         // Each subworkflow carries its own manufactured PDDL problem + digest —
-        // the content the bridge below identifies (not yet the content the
-        // engine executes; see the module doc on `dispatch_bridge`).
+        // the content the bridge below now ALSO dispatches as a real payload
+        // (see `dispatched_subworkflow_payload_is_the_content_the_engine_
+        // actually_executes` below for the byte-fidelity proof).
         assert!(!helper.problem_pddl.is_empty());
         assert!(!main.problem_pddl.is_empty());
         assert_ne!(helper.problem_digest, main.problem_digest);
 
         // Act 1 (dispatch): bridge each subworkflow into a real dispatch
         // contract, addressed to a DISTINCT target engine, written directly
-        // into that engine's real filesystem inbox.
+        // into that engine's real filesystem inbox — carrying the real
+        // domain PDDL text alongside it (payload-carrying dispatch).
         let root = scratch_dir("kitchen-dispatch-root");
-        let handle_h = dispatch_subworkflow_to_engine(&root, helper, "H")?;
-        let handle_m = dispatch_subworkflow_to_engine(&root, main, "M")?;
+        let domain_pddl = kitchen_domain_pddl();
+        let handle_h = dispatch_subworkflow_to_engine(&root, helper, domain_pddl, "H")?;
+        let handle_m = dispatch_subworkflow_to_engine(&root, main, domain_pddl, "M")?;
         assert_eq!(handle_h.role, "helper");
         assert_eq!(handle_h.target_engine, "H");
         assert_eq!(handle_m.role, "main");
@@ -301,23 +329,172 @@ test!(
         assert!(root.join("engines/H/receipts/serve-report.json").is_file());
         assert!(root.join("engines/M/receipts/serve-report.json").is_file());
 
-        // --- What this test does NOT prove (stated honestly, not asserted
-        // past): the H/M engine processes above each derive their OWN
-        // deterministic PDDL artifact set from `blake3(dispatch_id)`
-        // (`engine.rs::run_serve_loop`, `write_set` seeded, category hardcoded
-        // to "email-routing") — dispatch contracts do not yet carry the
-        // subworkflow's `problem_pddl`/tape as an executable payload. So this
-        // test proves: (1) a real `decompose()` run derives a genuine 2-actor
-        // split (not hardcoded), (2) each subworkflow's identity converts
-        // deterministically into a valid, shape-conformant dispatch contract
-        // via the new bridge, (3) that contract round-trips through a REAL,
-        // independently-spawned second OS process's admission + lawful
+        // What this test proves: (1) a real `decompose()` run derives a
+        // genuine 2-actor split (not hardcoded), (2) each subworkflow's
+        // identity converts deterministically into a valid, shape-conformant
+        // dispatch contract via the bridge, now carrying a real PDDL payload,
+        // (3) that contract (and its sibling payload) round-trips through a
+        // REAL, independently-spawned second OS process's admission + lawful
         // re-entry pipeline (provenance/correlation/authority/structural/
         // semantic, all five stages), and (4) the receipts of that round trip
-        // are durable on disk. It does NOT prove that engine H executed
-        // `helper`'s specific plan/PDDL, nor that combining the two engines'
-        // outputs reconstructs or closes the ORIGINAL kitchen problem's goal —
-        // no machinery in this crate today makes that claim checkable, because
-        // no payload-carrying contract exists yet (PROJ-710 → PROJ-723).
+        // are durable on disk. See
+        // `dispatched_subworkflow_payload_is_the_content_the_engine_actually_
+        // executes` below for the byte-level proof that engine H/M executed
+        // the SPECIFIC dispatched subworkflow's plan, not a synthetic one —
+        // this test does not itself inspect manufactured content, only the
+        // dispatch/admission round trip.
+    }
+);
+
+test!(
+    dispatched_subworkflow_payload_is_the_content_the_engine_actually_executes,
+    {
+        // Arrange: the same real decompose() split as the test above.
+        let domain = kitchen_domain();
+        let problem = kitchen_problem();
+        let decomp_out = scratch_dir("kitchen-decompose-payload");
+        let result = decompose(
+            &domain,
+            &problem,
+            &decomp_out,
+            "urn:cng:test:decompose-to-dispatch-payload",
+        )?;
+        let DecompositionOutcome::Selected {
+            subworkflows: 2, ..
+        } = result.outcome
+        else {
+            panic!(
+                "fixture must select a 2-subworkflow split, got {:?}",
+                result.outcome
+            );
+        };
+        let helper = &result.subworkflows[0];
+        let main = &result.subworkflows[1];
+        assert_eq!(helper.role, "helper");
+        assert_eq!(main.role, "main");
+
+        // Act 1 (dispatch WITH payload): bridge each subworkflow, carrying
+        // the real domain PDDL text a dispatcher has on hand.
+        let root = scratch_dir("kitchen-dispatch-payload-root");
+        let domain_pddl = kitchen_domain_pddl();
+        let handle_h = dispatch_subworkflow_to_engine(&root, helper, domain_pddl, "H")?;
+        let handle_m = dispatch_subworkflow_to_engine(&root, main, domain_pddl, "M")?;
+
+        // Assert: the sibling payload files landed next to the contract
+        // BEFORE the engine ever runs, byte-identical to what decompose()
+        // manufactured, and the contract itself declares a REAL content
+        // digest (`payload-<hex>`), not the old synthetic `inputs-<id>`
+        // label.
+        let payload_h = root
+            .join("engines/H/inbox")
+            .join(format!("{}.pddl", handle_h.dispatch_id));
+        let domain_payload_h = root
+            .join("engines/H/inbox")
+            .join(format!("{}.domain.pddl", handle_h.dispatch_id));
+        assert_eq!(
+            fs::read_to_string(&payload_h).expect("read dispatched helper payload"),
+            helper.problem_pddl
+        );
+        assert_eq!(
+            fs::read_to_string(&domain_payload_h).expect("read dispatched domain payload"),
+            domain_pddl
+        );
+        let contract_h = fs::read_to_string(
+            root.join("engines/H/inbox")
+                .join(format!("{}.ttl", handle_h.dispatch_id)),
+        )
+        .expect("read helper contract");
+        assert!(
+            contract_h.contains("disp:inputArtifactSet ex:payload-"),
+            "contract must declare a real payload digest, not a synthetic inputs-<id> label: \
+             {contract_h}"
+        );
+
+        // Act 2 (execute): spawn REAL, independent H and M engine OS
+        // processes; the payload is already on disk before either starts.
+        serve_to_budget(&root, "H", "4");
+        serve_to_budget(&root, "M", "4");
+
+        // Act 3 (collect): same lawful re-entry pipeline as above.
+        let outcome_h = collect_subworkflow_consequence(&root, &handle_h, 4, None)?;
+        let outcome_m = collect_subworkflow_consequence(&root, &handle_m, 4, None)?;
+        assert!(
+            outcome_h.admitted,
+            "helper consequence must be admitted: {outcome_h:?}"
+        );
+        assert!(
+            outcome_m.admitted,
+            "main consequence must be admitted: {outcome_m:?}"
+        );
+
+        // --- THE LOAD-BEARING ASSERTION ---
+        // The engine's OWN manufactured evidence
+        // (`engines/<id>/admissions/<dispatch_id>/problem.pddl`, written by
+        // `engine.rs::manufacture_from_payload`, never touched by this test
+        // directly) must be BYTE-IDENTICAL to the SPECIFIC subworkflow's
+        // dispatched problem text — not a `blake3(dispatch_id)`-seeded
+        // synthetic artifact, and not the OTHER engine's subworkflow either.
+        let manufactured_problem_h = fs::read_to_string(
+            root.join("engines/H/admissions")
+                .join(&handle_h.dispatch_id)
+                .join("problem.pddl"),
+        )
+        .expect("engine H must have manufactured problem.pddl from the real payload");
+        let manufactured_problem_m = fs::read_to_string(
+            root.join("engines/M/admissions")
+                .join(&handle_m.dispatch_id)
+                .join("problem.pddl"),
+        )
+        .expect("engine M must have manufactured problem.pddl from the real payload");
+
+        assert_eq!(
+            manufactured_problem_h, helper.problem_pddl,
+            "engine H's manufactured problem must be byte-identical to the dispatched helper \
+             payload, not a synthetic derivation"
+        );
+        assert_eq!(
+            manufactured_problem_m, main.problem_pddl,
+            "engine M's manufactured problem must be byte-identical to the dispatched main \
+             payload, not a synthetic derivation"
+        );
+
+        // An independent auditor re-deriving the digest from the engine's OWN
+        // manufactured artifact reaches the SAME digest `decompose()` already
+        // recorded for the dispatched subworkflow — "the engine's
+        // manufactured problem's digest matches a digest derivable from the
+        // dispatched payload".
+        let rederived_h = format!(
+            "blake3:{}",
+            blake3::hash(manufactured_problem_h.as_bytes()).to_hex()
+        );
+        let rederived_m = format!(
+            "blake3:{}",
+            blake3::hash(manufactured_problem_m.as_bytes()).to_hex()
+        );
+        assert_eq!(rederived_h, helper.problem_digest);
+        assert_eq!(rederived_m, main.problem_digest);
+
+        // The two engines executed genuinely DIFFERENT content (not a
+        // shared/hardcoded value) — exactly as different as the two
+        // dispatched payloads were.
+        assert_ne!(manufactured_problem_h, manufactured_problem_m);
+        assert_ne!(helper.problem_digest, main.problem_digest);
+
+        // Neither manufactured artifact carries the OLD synthetic path's
+        // signature — proving this run took the payload branch, never the
+        // `write_set`/`manufacture_set("email-routing")` fallback.
+        let plan_h = fs::read_to_string(
+            root.join("engines/H/admissions")
+                .join(&handle_h.dispatch_id)
+                .join("plan.txt"),
+        )
+        .expect("engine H must have written plan.txt from the real payload");
+        assert!(!plan_h.is_empty());
+        assert!(!plan_h.contains("email-routing"));
+        assert!(!root
+            .join("engines/H/admissions")
+            .join(&handle_h.dispatch_id)
+            .join("fragment-0.domain.ttl")
+            .is_file());
     }
 );

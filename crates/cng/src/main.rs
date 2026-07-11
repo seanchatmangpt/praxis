@@ -77,6 +77,100 @@ struct DecomposeReport {
     result_graph_path: String,
 }
 
+/// Human-readable rendering of a [`DecomposeReport`] for `--pretty`
+/// (PROJ-dx-pretty-report). `DecomposeReport` lives in this binary crate
+/// (not the `cng` library), so its renderer lives next to it here; it
+/// reuses the shared ANSI/digest helpers from `cng::bench::report_pretty`
+/// rather than duplicating color logic.
+///
+/// Per-candidate scores (`bench::decomp::CandidateReceipt::score`) are not
+/// surfaced here: `DecomposeReport` only carries the aggregate counts
+/// (`candidate_receipt_count`, `rejected_candidate_count`) that
+/// `plan_decompose` already extracts from the decomposition result, so the
+/// "comparison" below is candidates-examined vs. admitted vs. rejected,
+/// not a per-candidate score table.
+///
+/// # Complexity
+/// O(1) — fixed field count.
+#[cfg(feature = "bench")]
+fn render_decompose_report_human(report: &DecomposeReport) -> String {
+    use cng::bench::report_pretty::{paint, use_color, Ansi};
+
+    let color = use_color();
+    let mut out = String::new();
+
+    out.push_str(&paint("== cng plan decompose ==\n", Ansi::Bold, color));
+    out.push_str(&format!("  domain  : {}\n", report.domain_pddl_path));
+    out.push_str(&format!("  problem : {}\n", report.problem_pddl_path));
+    out.push_str(&format!("  out_dir : {}\n\n", report.out_dir));
+
+    let outcome_color = if report.outcome == "Selected" {
+        Ansi::Green
+    } else {
+        Ansi::Yellow
+    };
+    out.push_str(&format!(
+        "  {} {}\n",
+        paint("OUTCOME", Ansi::Bold, color),
+        paint(&report.outcome, outcome_color, color)
+    ));
+    out.push_str(&format!(
+        "  selected_candidate_id : {}\n\n",
+        report.selected_candidate_id
+    ));
+
+    out.push_str(&paint("CANDIDATE COMPARISON\n", Ansi::Bold, color));
+    let admissible_or_selected = report
+        .candidate_receipt_count
+        .saturating_sub(report.rejected_candidate_count);
+    out.push_str(&format!(
+        "  {:<22} {}\n",
+        "candidates examined", report.candidate_receipt_count
+    ));
+    out.push_str(&format!(
+        "  {:<22} {}\n",
+        "admissible/selected",
+        paint(&admissible_or_selected.to_string(), Ansi::Green, color)
+    ));
+    out.push_str(&format!(
+        "  {:<22} {}\n\n",
+        "rejected",
+        if report.rejected_candidate_count > 0 {
+            paint(
+                &report.rejected_candidate_count.to_string(),
+                Ansi::Red,
+                color,
+            )
+        } else {
+            report.rejected_candidate_count.to_string()
+        }
+    ));
+
+    out.push_str(&paint("STRUCTURE\n", Ansi::Bold, color));
+    out.push_str(&format!(
+        "  subworkflows        : {}\n",
+        report.subworkflow_count
+    ));
+    out.push_str(&format!(
+        "  interface_atoms     : {}\n",
+        report.interface_atom_count
+    ));
+    out.push_str(&format!(
+        "  release_obligations : {}\n",
+        report.release_obligation_count
+    ));
+    out.push_str(&format!(
+        "  cross_edges         : {}\n\n",
+        report.cross_edge_count
+    ));
+
+    out.push_str(&format!(
+        "  result_graph_path : {}\n",
+        report.result_graph_path
+    ));
+    out
+}
+
 #[derive(Debug, Serialize)]
 struct ProjectReport {
     generated_plan_id: String,
@@ -261,6 +355,10 @@ fn plan_decompose(
     problem: String,
     out: String,
     base_iri: Option<String>,
+    // PROJ-dx-pretty-report: prints `render_decompose_report_human` instead
+    // of the JSON report; `main()` auto-adds `--format quiet` when this
+    // flag is present, so the two never both print.
+    pretty: bool,
 ) -> Result<DecomposeReport> {
     let domain_text = fs::read_to_string(&domain)
         .map_err(|e| to_cli_error_msg(format!("cannot read {domain}: {e}")))?;
@@ -322,6 +420,9 @@ fn plan_decompose(
         report.release_obligation_count
     );
     println!("RESULT_GRAPH_PATH={}", report.result_graph_path);
+    if pretty {
+        println!("{}", render_decompose_report_human(&report));
+    }
     Ok(report)
 }
 
@@ -734,6 +835,10 @@ fn benchmark_workday(
     seed: Option<u64>,
     ticks: Option<usize>,
     refusal_per_mille: Option<usize>,
+    // PROJ-dx-pretty-report: prints `render_workday_report_human` instead
+    // of the JSON report; `main()` auto-adds `--format quiet` when this
+    // flag is present, so the two never both print.
+    pretty: bool,
 ) -> Result<cng::bench::WorkdayReport> {
     let cfg = cng::bench::WorkdayConfig {
         seed: seed.unwrap_or(42),
@@ -770,6 +875,12 @@ fn benchmark_workday(
         "WORKDAY_RESULT_PATH={}/results/workday-report.json",
         report.out_dir
     );
+    if pretty {
+        println!(
+            "{}",
+            cng::bench::report_pretty::render_workday_report_human(&report)
+        );
+    }
     Ok(report)
 }
 
@@ -793,9 +904,12 @@ fn benchmark_verify(
     Ok(report)
 }
 
-/// Prints the standard engine serve/resume marker lines. O(1).
+/// Prints the standard engine serve/resume marker lines, or (PROJ-dx-
+/// pretty-report) `render_engine_serve_report_human` when `pretty` is set
+/// — `main()` auto-adds `--format quiet` whenever `--pretty` is present,
+/// so the two never both print. O(1).
 #[cfg(feature = "bench")]
-fn print_engine_report(report: &cng::bench::EngineServeReport) {
+fn print_engine_report(report: &cng::bench::EngineServeReport, pretty: bool) {
     println!("MEASUREMENT_CLASS={}", report.measurement_class);
     println!("ENGINE_ID={}", report.engine_id);
     println!("ENGINE_VERSION={}", report.engine_version);
@@ -806,6 +920,12 @@ fn print_engine_report(report: &cng::bench::EngineServeReport) {
     println!("CONTRACTS_EXECUTED={}", report.contracts_executed);
     println!("ENGINE_QUIESCED={}", report.quiesced);
     println!("RECEIPT_CHAIN_DIGEST={}", report.receipt_chain_digest);
+    if pretty {
+        println!(
+            "{}",
+            cng::bench::report_pretty::render_engine_serve_report_human(report)
+        );
+    }
 }
 
 /// Runs one Chatman Engine worker process (PROJ-723): a bounded receipted
@@ -823,6 +943,8 @@ fn engine_serve(
     seed: Option<u64>,
     max_polls: Option<u64>,
     poll_wait_ms: Option<u64>,
+    // PROJ-dx-pretty-report: see `print_engine_report`.
+    pretty: bool,
 ) -> Result<cng::bench::EngineServeReport> {
     let report = cng::bench::engine_serve(
         Path::new(&root),
@@ -832,7 +954,7 @@ fn engine_serve(
         poll_wait_ms,
     )
     .map_err(to_cli_error)?;
-    print_engine_report(&report);
+    print_engine_report(&report, pretty);
     Ok(report)
 }
 
@@ -848,6 +970,8 @@ fn engine_resume(
     seed: Option<u64>,
     max_polls: Option<u64>,
     poll_wait_ms: Option<u64>,
+    // PROJ-dx-pretty-report: see `print_engine_report`.
+    pretty: bool,
 ) -> Result<cng::bench::EngineServeReport> {
     let report = cng::bench::engine_resume(
         Path::new(&root),
@@ -857,7 +981,7 @@ fn engine_resume(
         poll_wait_ms,
     )
     .map_err(to_cli_error)?;
-    print_engine_report(&report);
+    print_engine_report(&report, pretty);
     Ok(report)
 }
 
@@ -888,13 +1012,106 @@ fn model_shape(model: &Powl) -> (usize, usize) {
 }
 
 fn to_cli_error(refusal: powl::CngRefusal) -> clap_noun_verb::NounVerbError {
-    clap_noun_verb::NounVerbError::execution_error(refusal.to_string())
+    clap_noun_verb::NounVerbError::execution_error(format!("{refusal}\nhint: {}", refusal.hint()))
 }
 
 fn to_cli_error_msg(msg: String) -> clap_noun_verb::NounVerbError {
     clap_noun_verb::NounVerbError::execution_error(format!("CNG_R10: {msg}"))
 }
 
+/// PROJ-dx-pretty-report: `--pretty` is one user-facing flag, but getting
+/// "human-readable INSTEAD of JSON, never both" out of the underlying
+/// `clap-noun-verb` framework needs two effects — the per-verb `pretty:
+/// bool` param (added to `plan_decompose`/`benchmark_workday`/
+/// `engine_serve`/`engine_resume`) that prints the human-readable render,
+/// and the framework's own `--format quiet` (already-global, pre-existing
+/// flag) to suppress its automatic JSON dump of the verb's return value.
+/// This wrapper sets `--format quiet` in argv whenever `--pretty` is
+/// present so the user never has to pass both. An explicit `--format
+/// <other>` given alongside `--pretty` has its value overwritten in place
+/// (clap refuses a *second* `--format` occurrence outright — it does not
+/// silently keep the last one — so this rewrites the existing occurrence
+/// rather than appending a new one); pretty output always wins over JSON
+/// when both are requested.
 fn main() -> Result<()> {
-    clap_noun_verb::run()
+    let mut args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--pretty") {
+        if let Some(idx) = args.iter().position(|a| a == "--format") {
+            match args.get_mut(idx + 1) {
+                Some(value) => *value = "quiet".to_string(),
+                None => args.push("quiet".to_string()),
+            }
+        } else if let Some(idx) = args.iter().position(|a| a.starts_with("--format=")) {
+            args[idx] = "--format=quiet".to_string();
+        } else {
+            args.push("--format".to_string());
+            args.push("quiet".to_string());
+        }
+    }
+    let registry = clap_noun_verb::cli::registry::CommandRegistry::get();
+    let registry = registry.lock().map_err(|e| {
+        clap_noun_verb::NounVerbError::execution_error(format!("failed to lock CLI registry: {e}"))
+    })?;
+    registry.run(args)
+}
+
+#[cfg(all(test, feature = "bench"))]
+mod tests {
+    use chicago_tdd_tools::prelude::*;
+
+    use std::fs;
+    use std::path::PathBuf;
+
+    use super::{plan_decompose, render_decompose_report_human};
+
+    fn scratch_dir(test_name: &str) -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../target/chatman/cng-tests/main-report-pretty")
+            .join(test_name)
+    }
+
+    // PROJ-dx-pretty-report: exercises the REAL `plan decompose` CLI verb
+    // end to end (not a hand-built `DecomposeReport`) — a solvable IPC
+    // blocksworld instance rendered to on-disk PDDL and admitted/decomposed
+    // exactly as `cng plan decompose --pretty` would — and asserts the
+    // human-readable render carries the outcome, the candidate comparison,
+    // and the structural counts.
+    test!(render_decompose_report_human_is_sensible_on_a_real_run, {
+        // Arrange: a small, guaranteed-solvable blocksworld instance
+        // written to on-disk .pddl files (plan_decompose reads paths, the
+        // same convention as the CLI's `--domain`/`--problem` flags).
+        let (problem, _gated_size) = cng::bench::ipc::generate_solvable("blocksworld", 0, 3)
+            .expect("blocksworld has a solvable size <= 3");
+        let dir = scratch_dir("decompose_pretty_smoke");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("create scratch dir");
+        let domain_path = dir.join("domain.pddl");
+        let problem_path = dir.join("problem.pddl");
+        fs::write(&domain_path, &problem.domain_pddl).expect("write domain fixture");
+        fs::write(&problem_path, &problem.problem_pddl).expect("write problem fixture");
+        let out_dir = dir.join("out");
+
+        // Act: the real CLI verb function, pretty=true.
+        let report = plan_decompose(
+            domain_path.display().to_string(),
+            problem_path.display().to_string(),
+            out_dir.display().to_string(),
+            None,
+            true,
+        )
+        .expect("real plan decompose run");
+        let rendered = render_decompose_report_human(&report);
+
+        // Assert: non-empty, and carries the substance a human would look
+        // for — outcome, candidate comparison, structure — not just a
+        // re-serialization of the JSON.
+        assert!(!rendered.is_empty());
+        assert!(rendered.contains("cng plan decompose"));
+        assert!(rendered.contains("OUTCOME"));
+        assert!(rendered.contains(&report.outcome));
+        assert!(rendered.contains("CANDIDATE COMPARISON"));
+        assert!(rendered.contains("candidates examined"));
+        assert!(rendered.contains("STRUCTURE"));
+        assert!(rendered.contains(&report.result_graph_path));
+    });
 }

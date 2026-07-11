@@ -56,11 +56,23 @@ Status: ALIVE (constituent mechanisms, PROJ-701..713/720..729) / ALIVE (decompos
 bridge, mechanism — PROJ-749, second synthesis round: `dispatch_subworkflow_to_engine`/
 `collect_subworkflow_consequence` in `decomp/dispatch_bridge.rs` stitch a real `decompose()`
 output into a real cross-engine `cng engine serve` run for the first time this milestone,
-`cng_decompose_to_dispatch_integration.rs` 2/2 passed) / PARTIAL (a dispatched contract does
-not yet carry its subworkflow's own PDDL payload — the remote engine executes its own
-dispatch-id-seeded synthetic artifact set, not the specific plan sent to it, PROJ-710 ->
-PROJ-723 remains open; global-goal closure across two engines' outputs is not provable by any
-machinery on disk today). See `DOD_SIGNOFF.md` §2 for the full clause-level reconciliation.
+`cng_decompose_to_dispatch_integration.rs` 2/2 passed) / ALIVE (payload-carrying dispatch,
+moonshot round: PROJ-710 -> PROJ-723 is now closed — a dispatched contract carries its
+subworkflow's actual `(domain_pddl, problem_pddl)` text as two sibling files written
+atomically into the target engine's real inbox, with `disp:inputArtifactSet` now holding a
+real content digest (`payload_digest`, length-prefixed BLAKE3 fold) instead of a synthetic
+label; the receiving `engine.rs::run_serve_loop` recomputes and verifies that digest
+(`CNG_R11 AuditMismatch` on divergence) before parsing/grounding/planning the SPECIFIC
+dispatched plan via `bcinr_pddl`/`pddl_index`, falling through unchanged to the prior
+synthetic path when no payload is present. `dispatched_subworkflow_payload_is_the_content_the_
+engine_actually_executes` (`cng_decompose_to_dispatch_integration.rs`) proves byte-identity
+between what two independently-dispatched engines manufactured and what was sent, that the two
+engines' manufactured content genuinely differs, and that the synthetic `"email-routing"` path
+never fired) / PARTIAL (global-goal closure across two engines' outputs — reconstructing that
+the combined outcome of two independently-dispatched subworkflows satisfies the ORIGINAL
+undecomposed problem's goal — is still not provable by any machinery on disk today; this is a
+narrower remaining gap than the payload-fidelity question PROJ-710 -> PROJ-723 named, which is
+now closed). See `DOD_SIGNOFF.md` §2 for the full clause-level reconciliation.
 
 ## 3. TWOSTEP-replacement table
 
@@ -307,7 +319,7 @@ checkpoints are primary; planning checkpoints are folded in where they gate exec
 | G12 | `engine serve` loop + Arazzo/API projection on the lawful path | 723/725/726 | PLANNED |
 | G13 | Crash-restart-resume; chain-prefix verified after kill/restart | 724/729 | PLANNED |
 | G14 | IPC corpus runs, or honest PARTIAL at the solvability bound | 711 | PLANNED |
-| G15 | 4 long-horizon scenarios (may be CUT, never faked) | 714 | ALIVE (mechanism, 1/4 real scenarios) / PLANNED (2-4, time-boxed) — see PROJ-714.md |
+| G15 | 4 long-horizon scenarios (may be CUT, never faked) | 714 | ALIVE (mechanism, 2/4 real scenarios) / PLANNED (3-4, time-boxed) — see PROJ-714.md |
 | G16 | Revised marker conjunction TRUE via SPARQL; closure + sign-off | PROJ-727/731 | PLANNED |
 
 ## 16. Required result markers
@@ -514,11 +526,15 @@ If mid-size problems exceed the blind-BFS solvability bound, the result is an ho
 at the declared bound, not heuristic-planner scope creep.
 
 Status: ALIVE, full scale (PROJ-711 — 5x20=100, `cng_ipc_corpus_full_scale.rs`, 2/2 runs
-green, 11.66s/11.79s). Long-horizon set (PROJ-714): ALIVE mechanism, 1/4 real scenarios
+green, 11.66s/11.79s). Long-horizon set (PROJ-714): ALIVE mechanism, 2/4 real scenarios
 (`long_horizon_logistics_scenario_decomposes_and_plans_end_to_end`, a genuine 2-actor
-30-step logistics split, real helper/main benefit at makespan 15 vs. single-actor 30) —
-scenarios 2-4 (drawing from the existing IPC generator family at extended plan length, per
-PROJ-714.md's own revised scope) remain a time-boxed cut this session, not silently dropped.
+30-step logistics split, real helper/main benefit at makespan 15 vs. single-actor 30;
+`long_horizon_tyreworld_chain_scenario_decomposes_and_plans_end_to_end`, moonshot round, a
+2-instance chained tyreworld domain clearing the same ~20-step bar) — scenarios 3-4 (barman,
+termes, blocksworld, and grippers were each tried at minimum chain length and dropped per
+PROJ-714.md's own "do not force a fit" clause; every one hit a genuine planner-search
+performance cliff, not a grounding blowup) remain a time-boxed cut this session, not
+silently dropped.
 
 ## 20. Honest boundaries
 
@@ -557,9 +573,10 @@ PROJ-714.md's own revised scope) remain a time-boxed cut this session, not silen
    digest-integrity of a generated document, not a running HTTP/AsyncAPI server.
 2. **Real time.** The single real-time element (inter-poll sleep) sits behind a
    `RealTimeWait` seam and never enters digests; logical poll counts do.
-3. **Long-horizon scenarios** (4, G15/PROJ-714): the mechanism is proven real on 1 scenario
-   this session (`tests/cng_long_horizon_scenario.rs`, not faked or stubbed); scenarios 2-4
-   are a time-boxed cut, recorded honestly (PROJ-714.md), not silently dropped.
+3. **Long-horizon scenarios** (4, G15/PROJ-714): the mechanism is proven real on 2 scenarios
+   this session (`tests/cng_long_horizon_scenario.rs` — logistics + tyreworld-chain, neither
+   faked nor stubbed); scenarios 3-4 are a time-boxed cut, recorded honestly (PROJ-714.md),
+   not silently dropped.
 4. **Synthesized human consequences** remain MOCKED-HUMAN wherever they appear (carried
    forward from the interim DoD).
 5. **8³ recursion** is doctrine, not a required demonstration (§9) — UNVERIFIED.

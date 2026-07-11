@@ -26,6 +26,13 @@ pub enum Powl {
         children: Vec<Powl>,
         order: BTreeSet<(usize, usize)>,
     },
+    /// An external execution cut identifying a POWL region whose execution boundary
+    /// leaves the current process cell.
+    ExternalCut {
+        region: Box<Powl>,
+        projection: String,
+        renderer: String,
+    },
 }
 
 /// Typed refusal algebra for the whole μ pipeline. Release law: for any
@@ -340,6 +347,137 @@ impl CngRefusal {
             }
         }
     }
+
+    /// A short, actionable next step for diagnosing this refusal — what to
+    /// look at or run, not a restatement of `message()`. Exhaustive by
+    /// variant (no wildcard arm) so a future `CNG_R26` forces this method to
+    /// be extended alongside `code()` and `message()`.
+    ///
+    /// # Complexity
+    /// O(1).
+    pub fn hint(&self) -> &'static str {
+        match self {
+            CngRefusal::MalformedTtl(_) => {
+                "Validate the artifact with a Turtle parser and check any PDDL literal \
+                 strings inside it for syntax errors; the message names which failed."
+            }
+            CngRefusal::MissingDomain(_) => {
+                "Confirm the admitted artifact set includes a PDDL domain definition \
+                 fragment; check the import/admission list for a missing domain file."
+            }
+            CngRefusal::MissingProblem(_) => {
+                "Confirm the admitted artifact set includes a PDDL problem definition \
+                 fragment; check the import/admission list for a missing problem file."
+            }
+            CngRefusal::PlanUnsolvable(_) => {
+                "The admitted domain/problem has no valid plan -- check :init/:goal atoms \
+                 are reachable given the domain actions, and that grounding produced at \
+                 least one applicable action."
+            }
+            CngRefusal::UnsupportedConstruct(_) => {
+                "Read the message for the specific construct named (mismatched domain \
+                 name, duplicate action, nested/branching POWL, or a >64-op tape) and \
+                 simplify the input to the supported flat or hierarchical shape."
+            }
+            CngRefusal::InvalidPowl(_) => {
+                "Run the POWL SHACL shapes (crate::shape::validate_powl_store) against \
+                 the emitted graph to find which shape constraint failed."
+            }
+            CngRefusal::RunnerMismatch(_) => {
+                "Compare the bcinr-powl runner's executed trace against the projected \
+                 `powl2:precedes` order; the runner either refused or executed out of \
+                 order relative to that order relation."
+            }
+            CngRefusal::Nondeterminism(_) => {
+                "Diff the two manufactured outputs byte-for-byte to find the varying \
+                 region -- look for unsorted map/set iteration or non-canonical ordering \
+                 in the serializer path that produced it."
+            }
+            CngRefusal::HardcodingSuspicion(_) => {
+                "Check that every emitted element traces back to an admitted input via \
+                 provenance (`prov:wasDerivedFrom`); an element with no traceable source \
+                 is canned or detached output."
+            }
+            CngRefusal::IoRefused(_) => {
+                "Check the path exists and is readable/writable by this process."
+            }
+            CngRefusal::AuditMismatch(_) => {
+                "Compare the two digests named in the message -- one is stale or the \
+                 underlying artifact was tampered with; re-run the manifest-named inputs \
+                 through the replay path to see which digest diverges."
+            }
+            CngRefusal::StandingAmbiguous { .. } => {
+                "Query the standing next-action SPARQL directly at the named tick to see \
+                 whether zero or multiple candidate rows are returned, then fix the \
+                 standing graph so exactly one lawful action is derivable."
+            }
+            CngRefusal::UnreceiptedActuation { .. } => {
+                "Check the hook broker for the named workflow/category pair -- the \
+                 graphlaw HookReceipt for that transition was never obtained or was \
+                 recorded under the wrong name."
+            }
+            CngRefusal::DialectRegistryRefused { .. } => {
+                "Inspect the named entry against dialect-registry.shape.ttl -- either add \
+                 the missing required field or remove the undeclared property that the \
+                 shape's sh:closed rejected."
+            }
+            CngRefusal::DispatchContractIncomplete { .. } => {
+                "Check the named dispatch's missing fields against dispatch-shapes.ttl \
+                 DispatchContractShape's 21 required fields before resubmitting; an \
+                 incomplete contract must never leave the broker."
+            }
+            CngRefusal::DispatchStateUnlawful { .. } => {
+                "Compare the from/to states named in the message against the lawful \
+                 transition table on bench::dispatch::DispatchState to find the \
+                 disallowed edge the broker attempted."
+            }
+            CngRefusal::ExternalConsequenceRefused { .. } => {
+                "The named stage (provenance | correlation | authority | structural | \
+                 semantic) is where re-entry failed for the named dispatch -- inspect \
+                 that stage's check first; later stages never ran."
+            }
+            CngRefusal::ArazzoProfileRefused { .. } => {
+                "The named feature is outside the supported Arazzo 80/20 profile \
+                 (arazzo-shapes.ttl) -- remove or rewrite it, or extend the profile \
+                 explicitly rather than expecting it to be silently skipped."
+            }
+            CngRefusal::EvidenceGateFailed { .. } => {
+                "Query the OCEL evidence graph for the named gate \
+                 (unreceipted-actuations | unreceipted-dispatches | \
+                 unadmitted-consequences) to find the specific records behind the \
+                 nonzero count."
+            }
+            CngRefusal::MarkerFalse { .. } => {
+                "Query the named marker's .rq file directly against the evidence bundle \
+                 to see which fact is missing."
+            }
+            CngRefusal::DecompositionInadmissible { .. } => {
+                "Inspect the CandidateReceipt entries in <out>/decomposition-result.ttl \
+                 for the specific proof obligation (interference, release-closure, or \
+                 interface-state) that failed for the named candidate."
+            }
+            CngRefusal::InterferenceDetected { .. } => {
+                "Check whether a derived ordering path exists between the named helper \
+                 and main actions -- add an ordering constraint, or reassign the \
+                 clobbered atom, so the two segments stop conflicting."
+            }
+            CngRefusal::InterfaceStateMismatch { .. } => {
+                "Replay the helper tape up to the named step and inspect the state for \
+                 the missing precondition atom -- the tape does not replay lawfully from \
+                 the claimed interface state."
+            }
+            CngRefusal::ResourceUnreleased { .. } => {
+                "Add a main-side action whose precondition consumes the named resource \
+                 atom, or have the helper release it before the interface state is \
+                 captured."
+            }
+            CngRefusal::DoubleAdmit { .. } => {
+                "Check ledger/processed.ttl for the named idempotency key -- the \
+                 consequence was already admitted once and this is a duplicate or \
+                 replayed presentation, not a new event."
+            }
+        }
+    }
 }
 
 impl std::fmt::Display for CngRefusal {
@@ -632,6 +770,22 @@ fn emit_powl_node(model: &Powl, base_iri: &str, path: &str, out: &mut String) {
                 ));
             }
         }
+        Powl::ExternalCut { region, projection, renderer } => {
+            out.push_str(&format!("<{base_iri}/{path}> a powl2:ExternalCut .\n"));
+            let region_path = format!("{path}/region");
+            out.push_str(&format!(
+                "<{base_iri}/{path}> powl2:cutRegion <{base_iri}/{region_path}> ;\n"
+            ));
+            out.push_str(&format!(
+                "  powl2:cutProjection \"{}\" ;\n",
+                escape_turtle_literal(projection)
+            ));
+            out.push_str(&format!(
+                "  powl2:cutRenderer \"{}\" .\n",
+                escape_turtle_literal(renderer)
+            ));
+            emit_powl_node(region, base_iri, &region_path, out);
+        }
     }
 }
 
@@ -660,6 +814,11 @@ pub fn powl_to_turtle_with_provenance(
     let child_count = match model {
         Powl::PartialOrder { children, .. } => children.len(),
         Powl::Leaf(_) => 1,
+        Powl::ExternalCut { .. } => {
+            return Err(CngRefusal::UnsupportedConstruct(
+                "per-element provenance requires the flat linear shape, found ExternalCut".to_string()
+            ));
+        }
     };
     if leaf_sources.len() != child_count {
         return Err(CngRefusal::UnsupportedConstruct(format!(
@@ -678,6 +837,7 @@ pub fn powl_to_turtle_with_provenance(
         let subject = match model {
             Powl::PartialOrder { .. } => format!("{base}/n0/c{idx}"),
             Powl::Leaf(_) => format!("{base}/n0"),
+            Powl::ExternalCut { .. } => unreachable!(),
         };
         out.push_str(&format!(
             "<{subject}> prov:wasDerivedFrom <{source_iri}> .\n"
@@ -714,7 +874,7 @@ pub fn powl_to_turtle_with_phase_provenance(
     let Powl::PartialOrder { children, .. } = model else {
         return Err(CngRefusal::UnsupportedConstruct(
             "hierarchical provenance requires a root PartialOrder of phase PartialOrders; \
-             found a bare Leaf model"
+             found a bare Leaf or ExternalCut model"
                 .to_string(),
         ));
     };

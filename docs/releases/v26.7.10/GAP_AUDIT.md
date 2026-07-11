@@ -1,6 +1,10 @@
 # GAP_AUDIT.md — v26.7.10-revised Consolidated Gap Audit
 
-Version: v26.7.10-revised. Status: snapshot report, read-only inputs, no code or doc changes made.
+Version: v26.7.10-revised. Status: originally a read-only snapshot report (no code/doc changes
+at the time it was written); this file itself has since been annotated in place, twice, with
+**Closure status** entries as later closure passes acted on its own punch list — fix-forward,
+original findings preserved verbatim, closure annotations added below each one. Not read-only
+as of this revision.
 
 This document consolidates five independent read-only audits of the `crates/cng` /
 `crates/praxis-graphlaw` tree and the `docs/releases/v26.7.10/` doc-closure artifacts. Each
@@ -28,19 +32,54 @@ gap, and one file worth a second look for clean-room provenance without concrete
 problem. Two areas — the CNG_Rxx code table structure and dependency/license posture — audited
 clean with no gaps found.
 
-**Load-bearing closure pass (this session, after this audit was originally written).** An
-8-agent wave (7 parallel + 1 sequential synthesis) closed the top 10 items of §7's punch list —
-see each item's own **Closure status** annotation for the exact command+output. Net: 5 items
-CLOSED (CNG_R10 at one representative site, the 3 process-leak windows, `TIMED_OUT→BLOCKED`
-reachability, CNG_R07 at 2 of 5 sites, the stale-HEAD sweep); 3 items INVESTIGATED and found
-correctly out-of-scope/unreachable/vestigial rather than forced (CNG_R08, `DISPATCH_READY→
-REFUSED`, OpenAPI/AsyncAPI — each got a doc correction instead of a fabricated fixture); 2 items
-were already STALE before the wave started (`dispatch_bridge.rs`'s cited test file exists;
-`NoBeneficialDecomposition` is forced) and are corrected in place at their original findings
-(§2, §3.2). Items 11-20 (the narrower §18/§14 sub-parts and the 29 non-load-bearing cosmetic
-items) were out of this wave's scope and remain open or unchanged — see §7 for the full
-per-item detail. Full account: `docs/releases/v26.7.10/DOD_SIGNOFF.md`'s "Load-bearing closure
-pass" section.
+**Load-bearing closure pass (an earlier session round, after this audit was originally
+written).** An 8-agent wave (7 parallel + 1 sequential synthesis) closed the top 10 items of
+§7's punch list — see each item's own **Closure status** annotation for the exact
+command+output. Net: 5 items CLOSED (CNG_R10 at one representative site, the 3 process-leak
+windows, `TIMED_OUT→BLOCKED` reachability, CNG_R07 at 2 of 5 sites, the stale-HEAD sweep); 3
+items INVESTIGATED and found correctly out-of-scope/unreachable/vestigial rather than forced
+(CNG_R08, `DISPATCH_READY→REFUSED`, OpenAPI/AsyncAPI — each got a doc correction instead of a
+fabricated fixture); 2 items were already STALE before that wave started
+(`dispatch_bridge.rs`'s cited test file exists; `NoBeneficialDecomposition` is forced) and were
+corrected in place at their original findings (§2, §3.2). Items 11-20 were out of that wave's
+scope and remained open or unchanged at that point.
+
+**Moonshot closure pass (this session, a further round after the load-bearing pass above).** A
+second 8-agent wave (7 parallel + 1 sequential synthesis) picked up §7's remaining items 5, 6,
+11, and 12 (the sub-parts the load-bearing pass left partially or fully open), plus §7's items
+13-16 (doc-polish), plus PROJ-714's remaining scenarios and the PROJ-710 -> PROJ-723
+payload-carrying-dispatch boundary (not itself one of the original 41 gaps — `dispatch_bridge.rs`
+did not carry a payload capability when Audits 1-5 ran — but explicitly in scope for this
+round; see the new addendum after item 12 below). Net, by the same command+output-cited
+discipline as the pass above: **item 5** (`DispatchState::Blocked`) fully resolved — 3 of 4
+edges now live-walked, the 4th investigated-vestigial; **item 6** (CNG_R07) fully resolved — 3
+of 5 sites now tested, 2 investigated-unreachable; **item 11** (mutex-saturated goals) CLOSED
+with a literal fixture, upgrading it from an adjacent-scenario proxy; **item 12**
+(CLI/process-exit) ATTEMPTED, NOT CLOSED — a well-formed test file exists on disk but the
+closing agent's own report contained no command+output this session, so it stays UNVERIFIED,
+not rounded up; **items 13 and 16** CLOSED (doc-polish: PARTIAL-qualifier propagation,
+ticket-number-gap explanation); **item 14** PARTIAL (the `DOD_SIGNOFF.md` half closed, the
+`DOD_EVIDENCE_MAP.md` half explicitly left out of scope); **item 15** PARTIAL (a vocabulary
+cross-reference pointer was added, not a unification — the underlying three-set drift still
+exists by design, now just legible from one place). The payload-carrying-dispatch addendum
+CLOSED. Items 17-20 remain untouched.
+
+**Tally of the 20 individually-itemized §7 punch-list items, after both passes**: 12 CLOSED
+(items 1*, 3, 4, 5, 6, 7*, 8, 9, 10, 11, 13, 16 — items marked `*` are "closed" in the sense
+this milestone defines closure for a mechanism-proof item: item 1 proves the `CNG_R10`
+mechanism at 1 of ~130 structurally-identical sites by explicit design, not exhaustively; item
+7 is investigated-and-confirmed-vestigial, not a live production caller); 4 PARTIAL with a
+precisely named remaining scope (items 2, 12, 14, 15); 4 untouched, either genuinely open
+(items 17, 19) or standing notes requiring no fix (items 18, 20 — the original audit already
+characterized both as "none required now"/"timing artifact, not a contradiction"). This 20-item
+list is the individually-actionable subset of the 41 gaps this document originally cataloged;
+the remaining ~21 are the cosmetic/doc-polish items §1's original paragraph above bucketed as
+"roughly 29" without individually itemizing each one in §7, plus several sub-findings the
+original audits explicitly recorded as clean/non-gaps at write time (zero panics, zero
+TODO/FIXME, clean dependency/license graph, marker-name drift's "genuine negative result") —
+those were never open work items to close and are unaffected by either closure pass. Full
+account of both passes: `docs/releases/v26.7.10/DOD_SIGNOFF.md`'s "Load-bearing closure pass"
+and "Moonshot round" sections.
 
 ## 2. Doctrine-vs-Code Gaps (Audit 1) — by Gall Checkpoint
 
@@ -64,7 +103,7 @@ Read against `DEFINITION_OF_DONE.md` (516 lines) cross-referenced with `RELEASE_
 | G12 | `engine serve` loop + Arazzo/API projection on lawful path | ALIVE | Arazzo leg digest-verified before dispatch; OpenAPI/AsyncAPI leg digest-verified at engine startup (`api_docs.rs`, closed this session — see §7 item 8). Schema validation and live HTTP binding remain the open boundary, not this row. |
 | G13 | Crash-restart-resume; chain-prefix verified | VERIFIED | `cng_multi_engine.rs:318` kills a real process mid-run and proves torn-tail refusal + successful resume. |
 | G14 | IPC corpus runs at declared scale | VERIFIED | 5 domains × 20 seeds = 100 pairs, matches doc exactly. |
-| G15 | 4 long-horizon scenarios, may be CUT | VERIFIED (honest absence) | No code exists; `RELEASE_CONTROL.md`/`DOD_EVIDENCE_MAP.md` both record PROJ-714 as declared-cut. |
+| G15 | 4 long-horizon scenarios, may be CUT | STALE — corrected by the moonshot closure pass (see §7) | Originally "no code exists." Now: 2 of 4 real scenarios ALIVE (logistics + tyreworld-chain, `tests/cng_long_horizon_scenario.rs`); scenarios 3-4 tried and honestly dropped (planner-search performance cliffs) per `PROJ-714.md`'s own "do not force a fit" clause. `RELEASE_CONTROL.md` §9.2/`PROJ-714.md` current. |
 | G16 | Revised marker conjunction TRUE via SPARQL | VERIFIED (marker computation); STALE (one sub-claim) | See "Honest gap is now stale" below. |
 
 ### STALE — DoD's "Honest gap" sub-claim (§16, lines 423–447)
@@ -230,6 +269,17 @@ Scope: `crates/cng/src/bench/{decomp,ipc,engine.rs,arazzo.rs}` + touched `dispat
    file does not exist**. Zero callers, zero unit tests, zero integration tests anywhere in the
    crate. Overclaiming (cited artifact is fiction) stacked on top of a completely unexercised
    real-time-shaped code path. (Independently corroborated by Audit 1's MISSING finding #2.)
+
+   **STALE (double-corrected: this audit's own text predates two later closure rounds).**
+   The cited test file exists and is exercised (see §2's inline STALE correction for MISSING
+   #2). The module was then substantially rewritten in this session's moonshot round to add
+   payload-carrying dispatch (PROJ-710 -> PROJ-723, see §7's new addendum item below):
+   `dispatch_subworkflow_to_engine` now takes a `domain_pddl` parameter and writes two
+   digest-verified sibling files into the target engine's real inbox before the contract
+   itself. `polls_taken`'s own risk characterization is unchanged by that rewrite — still not
+   serialized anywhere, still not currently a digest-invariant violation — this specific
+   finding stands on its narrow technical merits; only the "untested"/"zero callers" framing is
+   what's now stale.
 
 2. **Multi-engine coordinator's concurrent collect path** — real timing variance exists
    (`engine_collect_remote`, `engine.rs:955`, via `RealTimeWait` at `engine.rs:1015`), but
@@ -511,10 +561,27 @@ original audit except where noted.
    Command: `CARGO_TARGET_DIR=target/agent-dispatchstate cargo test -p cng --features bench
    --lib bench::dispatch::dispatch_test -- --test-threads=4` → `test result: ok. 15 passed; 0
    failed; ... 62 filtered out` (all 15 tests in the module, including the 4 preexisting
-   transition-table tests). **Remaining open**: `REMOTE_IN_PROGRESS→BLOCKED`,
-   `REFUSED→BLOCKED`, `COMPENSATING→BLOCKED` are still never driven by any test — this closes
-   the `TIMED_OUT→BLOCKED` edge specifically (the edge the original suggested action named),
-   not all four.
+   transition-table tests). **Remaining open (at the time this item was written)**:
+   `REMOTE_IN_PROGRESS→BLOCKED`, `REFUSED→BLOCKED`, `COMPENSATING→BLOCKED` were still never
+   driven by any test.
+
+   **Closure status update (moonshot round, this session): item fully resolved — 3 of 4 edges
+   live-walked, 1 of 4 investigated-vestigial.** Two new tests in
+   `crates/cng/src/bench/dispatch_test.rs`:
+   `semantic_refusal_with_zero_remediation_budget_reaches_blocked` proves
+   `REFUSED→BLOCKED` (the same wrong-artifact fixture as the existing budget=1 test, at
+   budget=0) and `unimplemented_closure_law_leaves_parent_remote_in_progress_blocked` proves
+   `REMOTE_IN_PROGRESS→BLOCKED` (a recursive parent declaring `QUORUM_REQUIRED`, one of the
+   four closure laws `dispatch-closure.rq` documents as "declared but not yet emitted" — the
+   query never satisfies these regardless of child outcomes). Both assert the full ledger
+   trajectory. `COMPENSATING→BLOCKED` was investigated, not forced, and found **vestigial**:
+   exhaustive grep confirms only two call sites ever advance a contract into `Compensating`,
+   and both unconditionally advance to `Completed` next once `remediate()` returns `Ok`;
+   `remediate()`'s only other exit is an `Err` that propagates out via `?` before any `Blocked`
+   ledger entry for that contract could exist — no code path reaches it, documented rather than
+   forced, same class as this item's own `DISPATCH_READY→REFUSED` cousin (item 7 below). All 4
+   originally-flagged edges are now accounted for; nothing about `DispatchState::Blocked`
+   reachability remains an open, untried question.
 6. **CNG_R07 `RunnerMismatch` has zero negative-path test** across 5 construction sites guarding
    the conformance check (Audit 2, gap #4). *Suggested next action: construct a tape/model pair
    engineered to disagree and assert the exact refusal.*
@@ -528,9 +595,32 @@ original audit except where noted.
    test `kahn_check_rejects_non_loop_cycle`). Both assert `refusal.code() == "CNG_R07"` and
    message content naming the specific failure. Command: `CARGO_TARGET_DIR=target/agent-r07
    cargo test -p cng --test cng_runner_mismatch_negative` → `test result: ok. 2 passed; 0
-   failed`; re-run confirmed deterministic. **Remaining open**: the other 3 construction sites
-   (op-count mismatch at `runner.rs:177`, incomplete-scheduler-firing at `runner.rs:269`,
-   order-violated-at-runtime at `runner.rs:279`) remain UNVERIFIED individually.
+   failed`; re-run confirmed deterministic. **Remaining open (at the time this item was
+   written)**: the other 3 construction sites (op-count mismatch at `runner.rs:177`,
+   incomplete-scheduler-firing at `runner.rs:269`, order-violated-at-runtime at
+   `runner.rs:279`) were UNVERIFIED individually.
+
+   **Closure status update (moonshot round, this session): item fully resolved — 3 of 5 sites
+   tested, 2 of 5 investigated-unreachable.** New test
+   `model_leaf_count_disagrees_with_tape_op_count_refuses_cng_r07`
+   (`crates/cng/tests/cng_runner_mismatch_negative.rs`) closes the op-count-mismatch site
+   (`runner.rs:177`) through the real `validate_run` path. Command:
+   `CARGO_TARGET_DIR=target/agent-r07expand cargo test -p cng --test
+   cng_runner_mismatch_negative -- --nocapture` → `test result: ok. 3 passed; 0 failed`,
+   reproduced twice, byte-identical both times. The remaining 2 sites
+   (`runner.rs:269`/`runner.rs:279`, incomplete-scheduler-firing and order-violated-at-runtime)
+   were investigated, not forced: both are guarded by the same post-scheduler cross-check in
+   `run_labels_and_edges`, which lowers every model this adapter compiles into one flat
+   `PartialOrder` of `Atom` leaves (nested composites are refused as `CNG_R05` before
+   compilation, never flattened). For that shape, `bcinr-powl`'s `pred_satisfied` gate and the
+   per-fire `check_mask` re-population of every real predecessor edge structurally rule out
+   firing-before-a-predecessor and budget exhaustion for any DAG `compile_powl`'s own Kahn
+   check admits — corroborated empirically (29,403 real `validate_run` calls via
+   permutation-derived and worst-case topological orders, `n`=2-63, zero budget hits, zero
+   conformance hits; exploratory harness, not committed). The file's header doc now records
+   this investigation instead of a fabricated triggering test, mirroring the CNG_R08 /
+   `DISPATCH_READY→REFUSED` precedent (items 2 and 7 in this list). All 5 of the
+   originally-flagged construction sites are now accounted for.
 7. **`DISPATCH_READY→REFUSED` is dead code, not merely untested** — declared lawful, verified by
    the predicate table, but no production caller reaches it (Audit 2, gap #6). *Suggested next
    action: either add the missing pre-dispatch refusal caller or mark the table entry as
@@ -603,40 +693,133 @@ original audit except where noted.
     admissible-but-never-beneficial splits) (Audit 1 PARTIAL/UNCLEAR). Noted as already
     in-progress under session task #32. *Suggested next action: land the fixtures task #32 is
     already targeting; re-audit once complete.*
-    **Not in this wave's scope.** Sub-part status, re-verified this session for accuracy only
+    **Not in the load-bearing wave's scope.** Sub-part status, re-verified for accuracy only
     (not acted on by any Phase-1 agent): item 6 (admissible-but-never-beneficial) is the same
-    fixture as punch-list item 10 above — ALIVE, forced, predates this wave. Item 5
-    (mutex-saturated goals) remains open: `DOD_SIGNOFF.md` §18 still records it as "ALIVE
-    (adjacent scenario)" via `single_atom_goal_yields_no_admissible_decomposition`, which proves
-    the typed-outcome mechanism but is not a literal "mutex-saturated" fixture by that name.
+    fixture as punch-list item 10 above — ALIVE, forced, predates that wave. Item 5
+    (mutex-saturated goals) remained open at that point: `DOD_SIGNOFF.md` §18 recorded it as
+    "ALIVE (adjacent scenario)" via `single_atom_goal_yields_no_admissible_decomposition`, which
+    proved the typed-outcome mechanism but was not a literal "mutex-saturated" fixture by that
+    name.
+
+    **Closure status (moonshot round, this session): CLOSED — upgraded to a literal fixture.**
+    New file `crates/cng/tests/cng_mutex_saturated_negative.rs` exercises the real Datalog
+    `:mutex` rule (`rules/decomp.dl`) and `search.rs::partition_goals`'s union-find directly,
+    not an adjacent typed-outcome proxy: `genuine_datalog_mutex_between_sole_achievers_unions_
+    both_goal_atoms_into_one_partition_component` proves a real STRIPS mutex (one action's sole
+    achiever deletes the precondition the other goal's sole achiever needs) derives a `:mutex`
+    edge between the two sole achievers and unions both goal atoms into one partition
+    component; `mutex_saturated_goals_force_no_admissible_decomposition_with_zero_candidates_
+    ever_attempted` runs a real end-to-end `decompose()`, exact-asserts
+    `NoAdmissibleDecomposition { rejected: 0 }` and `candidate_receipts.len() == 1` (proving
+    zero splits were ever ATTEMPTED — the load-bearing distinction from item 3's `CNG_R22`
+    mechanism, which rejects an already-enumerated candidate); a third test swaps in a
+    structurally identical, mutex-free control domain and proves the outcome flips to
+    `Selected`, isolating the mutex edge (not goal count or domain shape) as the cause. Command:
+    `CARGO_TARGET_DIR=target/agent-mutexgoals cargo test -p cng --features bench --test
+    cng_mutex_saturated_negative -- --test-threads=1 --nocapture` → `test result: ok. 3 passed;
+    0 failed`, reproduced 4 times, byte-identical every time.
 12. **§14 item 4's "fail the run with nonzero exit" half is untested** — only the marker-query
     computation is proven directly; the CLI/process-exit path is not (Audit 1 PARTIAL/UNCLEAR).
     *Suggested next action: run the hostile fixture through the actual CLI entry point and assert
     nonzero exit.*
-    **Not in this wave's scope.** No Phase-1 agent was assigned this item; status unchanged from
-    the original audit.
+    **Not in the load-bearing wave's scope.** No Phase-1 agent was assigned this item; status
+    unchanged from the original audit at that point.
+
+    **Status update (moonshot round, this session): ATTEMPTED, NOT CLOSED — new file exists,
+    unverified this session.** New file
+    `crates/cng/tests/cng_cli_nonzero_exit_on_hostile_marker.rs` (untracked, 205 lines,
+    well-formed) spawns the REAL compiled `cng` binary
+    (`std::process::Command::new(env!("CARGO_BIN_EXE_cng"))`) against `benchmark workday
+    --ticks 0` (a real CLI-only hostile input that drives `marker-autonomic-loop.rq`'s
+    `extraOperators` term negative) and asserts on `std::process::ExitStatus` directly, not an
+    in-process `Result` — exactly the gap this item names. However, the closing agent's own
+    final report to the synthesis pass contained no command+output for this file (only a
+    mid-task "waiting on a background build" status). Per `.claude/rules/no-overclaiming.md`, a
+    file existing on disk is not evidence of a passing run — this item is reported ATTEMPTED,
+    not CLOSED. Do not cite as closed until a command+output exists.
+
+### Addendum (not one of the numbered 1-20 items) — payload-carrying dispatch, PROJ-710 -> PROJ-723
+
+Not a numbered item in the original 41-gap audit (it postdates this document's own writing —
+`dispatch_bridge.rs` did not yet exist when Audits 1-5 ran), but named explicitly as part of
+this round's task and referenced throughout `DEFINITION_OF_DONE.md` §2, `DOD_SIGNOFF.md`
+(multiple "what remains not claimed" lists), `RELEASE_CONTROL.md`, `index.md`, and
+`PROJ-749.md` as the single most-repeated "remains open" line across this milestone's doc set.
+
+**Closure status (moonshot round, this session): CLOSED.** A dispatched contract now carries
+its subworkflow's actual `(domain_pddl, problem_pddl)` text as two BLAKE3-digest-verified
+sibling files written atomically into the target engine's real inbox before the contract
+itself; `disp:inputArtifactSet` holds a real content digest instead of a synthetic label; the
+receiving engine recomputes and verifies that digest (`CNG_R11 AuditMismatch` on divergence)
+before parsing/grounding/planning the SPECIFIC dispatched plan, falling back unchanged to the
+prior synthetic path when no payload is present. Load-bearing test
+(`dispatched_subworkflow_payload_is_the_content_the_engine_actually_executes`,
+`crates/cng/tests/cng_decompose_to_dispatch_integration.rs`) proves byte-identity between what
+was dispatched and what each of two independently-run real engine processes manufactured, that
+the two engines' manufactured content genuinely differs, and that the prior synthetic
+`"email-routing"` path never fires when a payload is present. Command + output:
+`CARGO_TARGET_DIR=target/agent-payload cargo test -p cng --features bench --test
+cng_decompose_to_dispatch_integration -- --test-threads=1` → `test result: ok. 3 passed; 0
+failed`. Full mechanism, files touched, and regression evidence: `RELEASE_CONTROL.md` §9.2a.
+**Remaining, narrower gap** (distinct from the payload-fidelity question just closed): whether
+combining two independently-dispatched engines' outputs actually closes the ORIGINAL
+undecomposed problem's global goal has no checking machinery on disk today — unchanged, still
+open.
 
 Items 13-20 (cosmetic/doc-polish, the "roughly 29" non-load-bearing gaps referenced in §1) were
-explicitly out of this wave's scope and remain exactly as originally audited below — none of the
-8 agents touched them.
+explicitly out of the load-bearing wave's scope; a doc-polish agent in this session's moonshot
+round then closed items 13, 14, and 16 and partially addressed item 15 — see each item below for
+the exact edits and files.
 
 13. **Suppressed PARTIAL sub-claim rounds up to ALIVE** in `RELEASE_CONTROL.md` and `index.md` for
     PROJ-701, dropping the ticket's own self-identified narrower gap (Audit 4, finding 1).
     *Suggested next action: propagate the PARTIAL qualifier into both summary tables, consistent
     with how PROJ-711/728/729/742/745 already do it.*
+    **Closure status (moonshot round, this session): CLOSED.** `RELEASE_CONTROL.md`'s §9.1
+    table and `index.md`'s Track P table both now read `ALIVE / PARTIAL (no standalone
+    closed-shape-violation negative test for `pddl-strips-shapes.ttl` specifically — see
+    `PROJ-701.md`)` for the PROJ-701 row, copying forward the qualifier from `PROJ-701.md`'s own
+    Evidence section verbatim (`git diff --stat` confirms both files as the only diffs for this
+    item).
 14. **Bare ALIVE claims without a specific test/command citation** in `DOD_SIGNOFF.md` (§4, §6,
     §11, §13) and `DOD_EVIDENCE_MAP.md` (PROJ-701, PROJ-704 rows) (Audit 4, finding 3). *Suggested
     next action: add the specific test-name citation each row is missing (PROJ-704's is already
     available in `PROJ-704.md` and just needs to be copied forward).*
+    **Closure status (moonshot round, this session): PARTIAL — `DOD_SIGNOFF.md` rows closed;
+    `DOD_EVIDENCE_MAP.md` rows explicitly left untouched (out of scope).** `DOD_SIGNOFF.md`'s
+    §4, §6, §11, and §13 rows now carry specific test-name + file:line citations, copied
+    forward from PROJ-705/707/708/710/721/722/724/728/729's own Evidence sections (none
+    fabricated — spot-checked against those ticket files). `DOD_EVIDENCE_MAP.md`'s PROJ-701 and
+    PROJ-704 rows were checked and found unchanged, per the closing agent's own stated scope
+    boundary (that file belongs to a different task surface) — still open if read strictly, but
+    the more load-bearing half (`DOD_SIGNOFF.md`) is done.
 15. **Status-vocabulary drift across three incompatible term sets** (house rules' 7-term set vs.
     DoD's different 7-term set vs. RELEASE_CONTROL's "binding" 5-value set), plus four different
     words (`ALIVE(doc)`/`DONE(doc)`/`CLOSED(doc)`/`FINAL(doc)`) used interchangeably for "doc
     complete" (Audit 4, finding 5). *Suggested next action: pick one vocabulary as canonical and
     update the other two doc-closure artifacts to match.*
+    **Closure status (moonshot round, this session): PARTIAL — a Rosetta-stone cross-reference
+    was added, not a unification.** `RELEASE_CONTROL.md` §3 now has a "Vocabulary
+    cross-reference" note directly after item 10's own vocabulary definition, pointing to
+    `.claude/rules/no-overclaiming.md`'s 7-term set as repo-wide authoritative and mapping this
+    file's PLANNED/UNKNOWN and the DoD's separate PLANNED term onto house UNVERIFIED/BLOCKED;
+    explicitly framed in the note itself as a pointer, not a relabeling — no label in either
+    file was renamed. The `ALIVE(doc)`/`DONE(doc)`/`CLOSED(doc)`/`FINAL(doc)` interchangeable-
+    word sub-finding was not addressed by this note and remains open.
 16. **Unexplained ticket-number gap: PROJ-732, PROJ-735–738** — no equivalent explanation to the
     documented PROJ-715–719 skip, despite real completed session work under those numbers (Audit
     4, finding 2). *Suggested next action: add the same skip/reassignment explanation that
     PROJ-715-719 already has, or retro-file the missing ticket stubs.*
+    **Closure status (moonshot round, this session): CLOSED.** `index.md` now has a paragraph
+    directly after the existing PROJ-715-719 skip note, explaining PROJ-735..738 as Phase 2's
+    four isolated verification runs (`cng_decomp` -> `cng_ipc_corpus` -> `cng_multi_engine` ->
+    full suite), named explicitly as "PROJ-735..738 isolated verification ladder" in
+    `DOD_SIGNOFF.md`'s own text and folded into `RELEASE_CONTROL.md` §9.1's verification ladder
+    items 1-4 rather than written up as standalone ticket files; and PROJ-732 as sitting at the
+    Phase 1 boundary between the original plan's PROJ-701..731 range and the closure session's
+    PROJ-733+ range, its scope split into the two separately-filed PROJ-733/PROJ-734 fixes
+    rather than remaining one ticket — both confirmed by reading `PROJ-733.md`, `PROJ-734.md`,
+    `PROJ-739.md`, and grepping `DOD_SIGNOFF.md`, not asserted without checking.
 17. **Task-tracker vs. document-claim mismatch** — tracker shows pending/in_progress where
     multiple documents already assert CLOSED/DONE (Audit 4, finding 7). *Suggested next action:
     reconcile once the doc-closure session actually completes; do not treat current doc claims as

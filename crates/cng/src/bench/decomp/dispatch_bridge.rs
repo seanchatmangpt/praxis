@@ -18,24 +18,38 @@
 //! handle/outcome so no private dispatch type leaks across the crate
 //! boundary.
 //!
-//! Honest scope: the target engine's serve loop (`engine.rs:run_serve_loop`)
-//! derives its OWN deterministic PDDL artifact set from
-//! `blake3(dispatch_id)` (`write_set`, seeded, category hardcoded to
-//! `"email-routing"`) — contracts do not yet carry their own PDDL payload
-//! (see the module doc on `crate::bench::engine`: "the decomposition
-//! track's integration point (PROJ-710 → PROJnn-723)" is still open). So a
-//! contract built here identifies WHICH subworkflow was dispatched and
-//! WHERE (content-derived `dispatch_id`/`activity_identity`/
-//! `problem_digest`-keyed idempotency), and proves that identity round-trips
-//! through a REAL second OS process's lawful re-entry pipeline — it does
-//! NOT prove the remote engine executed that subworkflow's own PDDL plan.
-//! See `crates/cng/tests/cng_decompose_to_dispatch_integration.rs` for the
-//! test that exercises this end to end and states exactly this boundary.
+//! Payload-carrying dispatch (PROJ-710 → PROJ-723 closure): when a bridged
+//! [`SubworkflowPlan`] carries a real manufactured PDDL problem
+//! (`problem_pddl` non-empty — every split-candidate `helper`/`main`
+//! subworkflow; empty only for the `single`-role fallback, which has
+//! nothing of its own to send), [`dispatch_subworkflow_to_engine`] writes
+//! TWO sibling files into the SAME target-engine inbox directory the
+//! contract `.ttl` lands in: `<dispatch_id>.domain.pddl` (the shared
+//! decomposition domain's PDDL text, supplied by the caller — decomposition
+//! never rewrites the domain, only the per-subworkflow problem) and
+//! `<dispatch_id>.pddl` (the subworkflow's own `problem_pddl`). The
+//! contract's `disp:inputArtifactSet` is set to `payload-<digest>`, a
+//! length-prefixed BLAKE3 fold over both texts — a real content digest, not
+//! the old synthetic `inputs-<dispatch_id>` label — so the receiving engine
+//! can verify the sibling payload it reads is exactly what was dispatched
+//! (`engine.rs:run_serve_loop`, `CNG_R11 AuditMismatch` on any divergence).
+//! The payload files are written and fsync-renamed (`write_atomic`) BEFORE
+//! the contract `.ttl` itself, so a concurrent engine's sorted inbox scan
+//! never observes a contract whose declared payload isn't there yet.
+//!
+//! `crate::bench::engine::run_serve_loop` grounds and plans directly from
+//! this payload when present; contracts with no sibling payload (workday's
+//! own synthetic contracts, the multi-engine coordinator's
+//! `remote_contract`) execute exactly as before — the payload path is
+//! purely additive. See
+//! `crates/cng/tests/cng_decompose_to_dispatch_integration.rs` for the test
+//! that proves the engine's own manufactured evidence traces back to the
+//! specific dispatched subworkflow's content, not a shared synthetic seed.
 //!
 //! No wall clock enters any digest here: every dispatch id, key, and digest
-//! is content-derived (BLAKE3 over subworkflow identity / rendered text);
-//! the only real-time element is the bounded inter-poll wait behind
-//! [`crate::bench::dispatch::RealTimeWait`], never serialized.
+//! is content-derived (BLAKE3 over subworkflow identity / rendered text /
+//! payload text); the only real-time element is the bounded inter-poll wait
+//! behind [`crate::bench::dispatch::RealTimeWait`], never serialized.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -55,6 +69,24 @@ fn short_key(text: &str) -> String {
     blake3::hash(text.as_bytes()).to_hex()[..12].to_string()
 }
 
+/// Real content digest of a dispatched PDDL payload: length-prefixed
+/// `blake3(len(domain_pddl) | domain_pddl | len(problem_pddl) | problem_pddl)`,
+/// first 16 hex chars. Length-prefixing (rather than bare concatenation)
+/// means two different `(domain, problem)` splits can never fold to the same
+/// digest by an accidental shared boundary. `pub(crate)` — the receiving
+/// side (`crate::bench::engine::run_serve_loop`) recomputes this SAME fold
+/// over the bytes it reads off the sibling files and refuses `CNG_R11` on
+/// any mismatch, so both sides must call the one function, never reimplement
+/// it. O(|domain_pddl| + |problem_pddl|).
+pub(crate) fn payload_digest(domain_pddl: &str, problem_pddl: &str) -> String {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(&(domain_pddl.len() as u64).to_le_bytes());
+    hasher.update(domain_pddl.as_bytes());
+    hasher.update(&(problem_pddl.len() as u64).to_le_bytes());
+    hasher.update(problem_pddl.as_bytes());
+    hasher.finalize().to_hex()[..16].to_string()
+}
+
 /// Builds the sealed dispatch contract for one decomposed subworkflow,
 /// addressed to `target_engine`. Every field is content-derived from
 /// `(subworkflow.id, subworkflow.role, subworkflow.problem_digest,
@@ -63,10 +95,19 @@ fn short_key(text: &str) -> String {
 /// `engine::remote_contract`. Crate-private: `DispatchContract` cannot
 /// leave the crate boundary (see module docs).
 ///
+/// When `subworkflow.problem_pddl` is non-empty (every `helper`/`main`
+/// split subworkflow; empty for `single`), `disp:inputArtifactSet` carries
+/// the REAL payload digest (`payload-<16 hex>` via [`payload_digest`]) over
+/// `(domain_pddl, subworkflow.problem_pddl)` instead of the synthetic
+/// `inputs-<dispatch_id>` label — the value [`dispatch_subworkflow_to_engine`]
+/// later verifies the sibling payload files against.
+///
 /// # Complexity
-/// O(1).
+/// O(1) when `subworkflow.problem_pddl` is empty; otherwise
+/// O(|domain_pddl| + |subworkflow.problem_pddl|) for the payload digest.
 pub(super) fn subworkflow_to_contract(
     subworkflow: &SubworkflowPlan,
+    domain_pddl: &str,
     target_engine: &str,
 ) -> DispatchContract {
     let identity_key = short_key(&format!(
@@ -74,6 +115,14 @@ pub(super) fn subworkflow_to_contract(
         subworkflow.id, subworkflow.role, subworkflow.problem_digest
     ));
     let dispatch_id = format!("disp-decomp-{}-{identity_key}", subworkflow.role);
+    let input_artifact_set = if subworkflow.problem_pddl.is_empty() {
+        format!("inputs-{dispatch_id}")
+    } else {
+        format!(
+            "payload-{}",
+            payload_digest(domain_pddl, &subworkflow.problem_pddl)
+        )
+    };
     DispatchContract {
         dispatch_id: dispatch_id.clone(),
         workflow_instance: format!("wf-{dispatch_id}"),
@@ -83,7 +132,7 @@ pub(super) fn subworkflow_to_contract(
         target_engine: target_engine.to_string(),
         required_role: "operator".to_string(),
         declared_authority: format!("decomp-dispatch-authority-{}", subworkflow.role),
-        input_artifact_set: format!("inputs-{dispatch_id}"),
+        input_artifact_set,
         expected_output_artifact_set: format!("outputs-{dispatch_id}"),
         activity_identity: format!("decomp-{}-{dispatch_id}", subworkflow.role),
         deadline_ticks: 64,
@@ -148,18 +197,30 @@ pub struct SubworkflowDispatchOutcome {
 /// + `DispatchContractShape`). CNG_R15 refuses BEFORE any file is written
 /// if the rendered contract is incomplete or shape-violating.
 ///
+/// `domain_pddl` is the decomposition's shared domain PDDL text (the SAME
+/// text across every subworkflow of one `decompose()` run — decomposition
+/// only manufactures per-subworkflow PROBLEMs, never a new domain). When
+/// `subworkflow.problem_pddl` is non-empty, two sibling payload files are
+/// written into the SAME inbox directory as the contract, BEFORE the
+/// contract itself becomes visible: `<dispatch_id>.domain.pddl` and
+/// `<dispatch_id>.pddl` (the problem). `domain_pddl` is ignored (may be
+/// empty) when `subworkflow.problem_pddl` is empty (the `single`-role
+/// fallback carries nothing of its own to dispatch).
+///
 /// # Errors
-/// `CNG_R10` for template/shape-file IO; `CNG_R15` for an incomplete or
-/// shape-violating contract; `CNG_R16` should the internal state-cursor
-/// advance ever leave the lawful transition table (defensive; unreachable
-/// in this fixed sequence).
+/// `CNG_R10` for template/shape-file IO or payload-file IO; `CNG_R15` for an
+/// incomplete or shape-violating contract; `CNG_R16` should the internal
+/// state-cursor advance ever leave the lawful transition table (defensive;
+/// unreachable in this fixed sequence).
 ///
 /// # Complexity
-/// O(template bytes) render + one shape SELECT pair + one atomic file
-/// write.
+/// O(template bytes) render + one shape SELECT pair + one atomic contract
+/// write + (when a payload is carried) two atomic payload writes, O(|domain_
+/// pddl| + |subworkflow.problem_pddl|).
 pub fn dispatch_subworkflow_to_engine(
     root: &Path,
     subworkflow: &SubworkflowPlan,
+    domain_pddl: &str,
     target_engine: &str,
 ) -> Result<SubworkflowDispatchHandle, CngRefusal> {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -172,7 +233,7 @@ pub fn dispatch_subworkflow_to_engine(
     let shapes_path = manifest.join("shapes").join("dispatch-shapes.ttl");
     let queries = QuerySet::load(&QuerySet::default_dir())?;
 
-    let mut contract = subworkflow_to_contract(subworkflow, target_engine);
+    let mut contract = subworkflow_to_contract(subworkflow, domain_pddl, target_engine);
     // Render fixes the on-disk `disp:dispatchState` at MANUFACTURED (mirrors
     // `DispatchAdapter::dispatch`: render happens before any state advance).
     let rendered = contract.render(&contract_template)?;
@@ -187,6 +248,19 @@ pub fn dispatch_subworkflow_to_engine(
     contract.advance(DispatchState::DispatchReady)?;
 
     let bundle = EngineBundle::new(root, target_engine)?;
+    // Payload BEFORE contract: a sorted inbox scan (`engine.rs:run_serve_loop`)
+    // that observes the `.ttl` must always find its sibling payload already
+    // in place — never a torn/partial dispatch.
+    if !subworkflow.problem_pddl.is_empty() {
+        let domain_payload_path = bundle
+            .inbox_dir()
+            .join(format!("{}.domain.pddl", contract.dispatch_id));
+        let problem_payload_path = bundle
+            .inbox_dir()
+            .join(format!("{}.pddl", contract.dispatch_id));
+        write_atomic(&domain_payload_path, domain_pddl)?;
+        write_atomic(&problem_payload_path, &subworkflow.problem_pddl)?;
+    }
     let path = bundle
         .inbox_dir()
         .join(format!("{}.ttl", contract.dispatch_id));
