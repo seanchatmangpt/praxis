@@ -1,28 +1,36 @@
 use wasm4pm_arazzo::air::{AirProgram, AirWorkflow, AirStep, AirTarget, AirAction};
 use wasm4pm_arazzo::compile::AirCompiler;
+use bumpalo::Bump;
+use bumpalo::collections::{String as BumpString, Vec as BumpVec};
+use bumpalo::vec;
 use std::time::Instant;
+use std::fmt::Write;
 
 #[test]
 fn bench_million_steps() {
-    let mut steps = Vec::with_capacity(1_000_000);
+    let bump = Bump::new();
+    let mut steps = BumpVec::with_capacity_in(1_000_000, &bump);
     for i in 0..1_000_000 {
+        let mut name = BumpString::with_capacity_in(32, &bump);
+        write!(&mut name, "step_{}", i).unwrap();
+        
         steps.push(AirStep {
-            name: format!("step_{}", i),
+            name,
             target: AirTarget {
-                url: "http://example.com".to_string(),
-                method: "GET".to_string(),
+                url: BumpString::from_str_in("http://example.com", &bump),
+                method: BumpString::from_str_in("GET", &bump),
             },
             action: AirAction {
-                inputs: vec![],
-                outputs: vec![],
+                inputs: BumpVec::new_in(&bump),
+                outputs: BumpVec::new_in(&bump),
             }
         });
     }
 
     let program = AirProgram {
-        workflows: vec![
+        workflows: vec![in &bump;
             AirWorkflow {
-                name: "huge_wf".to_string(),
+                name: BumpString::from_str_in("huge_wf", &bump),
                 steps,
             }
         ]

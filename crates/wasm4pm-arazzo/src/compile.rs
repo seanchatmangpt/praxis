@@ -1,6 +1,5 @@
 use crate::air::AirProgram;
 use crate::Refusal;
-use rayon::prelude::*;
 
 /// The main compiler harness for Arazzo Intermediate Representation.
 #[derive(Debug)]
@@ -15,7 +14,7 @@ impl AirCompiler {
             return Err(Refusal::InvalidWorkflow("Program has no workflows".to_string()));
         }
         
-        for wf in &program.workflows {
+        for wf in program.workflows.iter() {
             if wf.name.is_empty() {
                 return Err(Refusal::InvalidWorkflow("Workflow name cannot be empty".to_string()));
             }
@@ -23,8 +22,8 @@ impl AirCompiler {
                 return Err(Refusal::InvalidWorkflow(format!("Workflow '{}' has no steps", wf.name)));
             }
             
-            // Fast path: parallel autovectorizable check for any invalid steps without creating error strings
-            let has_error = wf.steps.par_chunks(125_000).any(|chunk| {
+            // Fast path: autovectorizable check for any invalid steps without creating error strings
+            let has_error = wf.steps.chunks(125_000).any(|chunk| {
                 let mut err = false;
                 let mut iter = chunk.chunks_exact(8);
                 for c in &mut iter {
@@ -55,7 +54,7 @@ impl AirCompiler {
             
             // Slow path: generate exactly the right error string if we found an error
             if has_error {
-                for step in &wf.steps {
+                for step in wf.steps.iter() {
                     if step.name.is_empty() {
                         return Err(Refusal::InvalidWorkflow(format!("Workflow '{}' has a step with no name", wf.name)));
                     }
@@ -74,10 +73,14 @@ impl AirCompiler {
 mod tests {
     use super::*;
     use crate::air::*;
+    use bumpalo::Bump;
+    use bumpalo::collections::{String as BumpString, Vec as BumpVec};
+    use bumpalo::vec;
 
     #[test]
     fn test_empty_program_refused() {
-        let program = AirProgram { workflows: vec![] };
+        let bump = Bump::new();
+        let program = AirProgram { workflows: BumpVec::new_in(&bump) };
         assert_eq!(
             AirCompiler::compile(&program),
             Err(Refusal::InvalidWorkflow("Program has no workflows".to_string()))
@@ -86,11 +89,12 @@ mod tests {
     
     #[test]
     fn test_empty_workflow_name_refused() {
+        let bump = Bump::new();
         let program = AirProgram {
-            workflows: vec![
+            workflows: vec![in &bump;
                 AirWorkflow {
-                    name: "".to_string(),
-                    steps: vec![],
+                    name: BumpString::from_str_in("", &bump),
+                    steps: BumpVec::new_in(&bump),
                 }
             ]
         };
@@ -102,11 +106,12 @@ mod tests {
 
     #[test]
     fn test_empty_steps_refused() {
+        let bump = Bump::new();
         let program = AirProgram {
-            workflows: vec![
+            workflows: vec![in &bump;
                 AirWorkflow {
-                    name: "test_wf".to_string(),
-                    steps: vec![],
+                    name: BumpString::from_str_in("test_wf", &bump),
+                    steps: BumpVec::new_in(&bump),
                 }
             ]
         };
@@ -118,20 +123,21 @@ mod tests {
 
     #[test]
     fn test_empty_step_name_refused() {
+        let bump = Bump::new();
         let program = AirProgram {
-            workflows: vec![
+            workflows: vec![in &bump;
                 AirWorkflow {
-                    name: "test_wf".to_string(),
-                    steps: vec![
+                    name: BumpString::from_str_in("test_wf", &bump),
+                    steps: vec![in &bump;
                         AirStep {
-                            name: "".to_string(),
+                            name: BumpString::from_str_in("", &bump),
                             target: AirTarget {
-                                url: "http://example.com".to_string(),
-                                method: "GET".to_string(),
+                                url: BumpString::from_str_in("http://example.com", &bump),
+                                method: BumpString::from_str_in("GET", &bump),
                             },
                             action: AirAction {
-                                inputs: vec![],
-                                outputs: vec![],
+                                inputs: BumpVec::new_in(&bump),
+                                outputs: BumpVec::new_in(&bump),
                             }
                         }
                     ],
@@ -146,20 +152,21 @@ mod tests {
 
     #[test]
     fn test_empty_target_url_refused() {
+        let bump = Bump::new();
         let program = AirProgram {
-            workflows: vec![
+            workflows: vec![in &bump;
                 AirWorkflow {
-                    name: "test_wf".to_string(),
-                    steps: vec![
+                    name: BumpString::from_str_in("test_wf", &bump),
+                    steps: vec![in &bump;
                         AirStep {
-                            name: "step_1".to_string(),
+                            name: BumpString::from_str_in("step_1", &bump),
                             target: AirTarget {
-                                url: "".to_string(),
-                                method: "GET".to_string(),
+                                url: BumpString::from_str_in("", &bump),
+                                method: BumpString::from_str_in("GET", &bump),
                             },
                             action: AirAction {
-                                inputs: vec![],
-                                outputs: vec![],
+                                inputs: BumpVec::new_in(&bump),
+                                outputs: BumpVec::new_in(&bump),
                             }
                         }
                     ],
@@ -174,20 +181,21 @@ mod tests {
 
     #[test]
     fn test_valid_program() {
+        let bump = Bump::new();
         let program = AirProgram {
-            workflows: vec![
+            workflows: vec![in &bump;
                 AirWorkflow {
-                    name: "test_wf".to_string(),
-                    steps: vec![
+                    name: BumpString::from_str_in("test_wf", &bump),
+                    steps: vec![in &bump;
                         AirStep {
-                            name: "step_1".to_string(),
+                            name: BumpString::from_str_in("step_1", &bump),
                             target: AirTarget {
-                                url: "http://example.com".to_string(),
-                                method: "GET".to_string(),
+                                url: BumpString::from_str_in("http://example.com", &bump),
+                                method: BumpString::from_str_in("GET", &bump),
                             },
                             action: AirAction {
-                                inputs: vec![],
-                                outputs: vec![],
+                                inputs: BumpVec::new_in(&bump),
+                                outputs: BumpVec::new_in(&bump),
                             }
                         }
                     ],
