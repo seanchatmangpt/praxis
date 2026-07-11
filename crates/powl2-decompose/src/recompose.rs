@@ -72,6 +72,7 @@ impl Builder {
             }
             Powl::PartialOrder { children, order } => self.build_partial_order(children, order),
             Powl::Choice { children, graph } => self.build_choice(children, graph),
+            Powl::ExternalCut { region, .. } => self.build(region),
         }
     }
 

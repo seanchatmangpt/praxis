@@ -76,6 +76,11 @@ fn model_to_labels_and_edges(model: &Powl) -> Result<(Vec<&str>, Vec<(usize, usi
              POWL v2 model is a single silent leaf"
                 .to_string(),
         )),
+        Powl::ExternalCut { .. } => Err(CngRefusal::UnsupportedConstruct(
+            "bcinr-powl runner adapter requires named activities; \
+             POWL v2 model is an external cut"
+                .to_string(),
+        )),
         Powl::PartialOrder { children, order } => {
             let mut labels = Vec::with_capacity(children.len());
             for (i, child) in children.iter().enumerate() {
@@ -91,6 +96,12 @@ fn model_to_labels_and_edges(model: &Powl) -> Result<(Vec<&str>, Vec<(usize, usi
                         return Err(CngRefusal::UnsupportedConstruct(format!(
                             "bcinr-powl 26.6.25 adapter covers the flat linear \
                              projection only; child {i} is a nested PartialOrder"
+                        )));
+                    }
+                    Powl::ExternalCut { .. } => {
+                        return Err(CngRefusal::UnsupportedConstruct(format!(
+                            "bcinr-powl 26.6.25 adapter covers the flat linear \
+                             projection only; child {i} is an external cut"
                         )));
                     }
                 }
@@ -381,6 +392,12 @@ pub fn linearize_hierarchical(
                     return Err(CngRefusal::UnsupportedConstruct(format!(
                         "hierarchical linearization covers the two-level shape only; \
                          phase {phase_idx} child {leaf_idx} is a nested PartialOrder"
+                    )));
+                }
+                Powl::ExternalCut { .. } => {
+                    return Err(CngRefusal::UnsupportedConstruct(format!(
+                        "hierarchical linearization covers the two-level shape only; \
+                         phase {phase_idx} child {leaf_idx} is an external cut"
                     )));
                 }
             }

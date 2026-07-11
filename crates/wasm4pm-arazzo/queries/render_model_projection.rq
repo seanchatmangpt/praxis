@@ -1,0 +1,47 @@
+PREFIX powl: <https://w3id.org/powl/core/>
+PREFIX wf: <https://w3id.org/workflow/>
+PREFIX ext: <https://w3id.org/powl/ext/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+# Iteration 8 - Rail A Projection
+# Deterministically projects a POWL graph region (W) into a flat relational model 
+# for the Tera renderer (T) to manufacture an Arazzo document (A_z).
+#
+# Core Team Discipline: 
+# - Deterministic extraction (ORDER BY all bound variables)
+# - Zero ambient state (operates purely on the admitted graph region provided)
+
+SELECT 
+    ?elementId 
+    ?elementType 
+    ?label 
+    ?sourceId 
+    ?targetId 
+    ?closureLaw 
+    ?socketContract 
+    ?budgetDepth 
+    ?retryPolicy 
+    ?timeout
+WHERE {
+    ?elementId a ?elementType .
+    
+    OPTIONAL { ?elementId rdfs:label ?label }
+    OPTIONAL { ?elementId powl:source ?sourceId }
+    OPTIONAL { ?elementId powl:target ?targetId }
+    
+    # Recursive socket boundaries
+    OPTIONAL { ?elementId powl:closureLaw ?closureLaw }
+    OPTIONAL { ?elementId powl:socketContract ?socketContract }
+    
+    # Bounded descent bounds
+    OPTIONAL { ?elementId powl:budgetDepth ?budgetDepth }
+    
+    # Outer workflow parameters
+    OPTIONAL { ?elementId wf:retryPolicy ?retryPolicy }
+    OPTIONAL { ?elementId wf:timeout ?timeout }
+}
+ORDER BY 
+    ASC(?elementId) 
+    ASC(?elementType) 
+    ASC(?sourceId) 
+    ASC(?targetId)

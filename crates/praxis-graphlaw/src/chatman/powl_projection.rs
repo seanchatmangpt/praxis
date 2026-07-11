@@ -307,6 +307,25 @@ fn emit_powl_node(model: &Powl, base_iri: &str, path: &str, out: &mut String) {
                 ));
             }
         }
+        Powl::ExternalCut {
+            region,
+            projection,
+            renderer,
+        } => {
+            out.push_str(&format!("<{base_iri}/{path}> a powl2:ExternalCut .\n"));
+            out.push_str(&format!(
+                "<{base_iri}/{path}> powl2:hasRegion <{base_iri}/{path}/region> ;\n"
+            ));
+            out.push_str(&format!(
+                "  powl2:sparqlProjection \"{}\" ;\n",
+                escape_turtle_literal(projection)
+            ));
+            out.push_str(&format!(
+                "  powl2:teraRenderer \"{}\" .\n",
+                escape_turtle_literal(renderer)
+            ));
+            emit_powl_node(region, base_iri, &format!("{path}/region"), out);
+        }
     }
 }
 

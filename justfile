@@ -176,6 +176,55 @@ chatman-verify:
 
 # --- cng CLI (crates/cng) ---
 
+# Golden-path onboarding check for cng first-time contributors: doctor check, a real
+# small-scale `benchmark workday` run, a real `plan decompose` run against the on-disk
+# fixture CHEATSHEET.md documents, and the `cng_cli_smoke` integration test (plan
+# generate -> workflow export -> inspect over plans/joseph/). One command, green output,
+# you're set up -- see crates/cng/GETTING_STARTED.md. Fails fast (set -euo pipefail,
+# each cargo call has its own timeout) and isolates its cargo calls in
+# target/agent-smoke so it never collides with a concurrent agent's lock on the default
+# target/ dir (see the CARGO_TARGET_DIR note at the top of this file); the last step
+# reuses cng-test-isolated against the SAME isolated dir so the whole recipe shares one
+# incremental build. Not a throughput benchmark -- deliberately the smallest
+# already-proven scenario per step, not an invented one: 4-tick workday,
+# CHEATSHEET.md's decompose fixture, the existing plan/export/inspect CLI smoke test.
+# Clean up the isolated dir afterward with `just cng-clean-isolated smoke`.
+cng-smoke:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export CARGO_TARGET_DIR="target/agent-smoke"
+    scratch="$CARGO_TARGET_DIR/cng-smoke"
+
+    echo "=== [1/4] doctor check ==="
+    doctor_out=$(timeout 120s cargo run --quiet -p cng --features bench --bin cng -- workflow doctor)
+    echo "$doctor_out"
+    if echo "$doctor_out" | grep -q "FAILED"; then
+        echo "FAIL: doctor check reported a FAILED runtime check"
+        exit 1
+    fi
+    echo "PASS: doctor check"
+
+    echo "=== [2/4] benchmark workday (smoke scale: 4 ticks) ==="
+    rm -rf "$scratch/workday"
+    timeout 120s cargo run --quiet -p cng --features bench --bin cng -- \
+        benchmark workday --out "$scratch/workday" --seed 1 --ticks 4
+    echo "PASS: benchmark workday"
+
+    echo "=== [3/4] plan decompose (fixture: tests/fixtures/decomp-negative/actor-lacks-capability) ==="
+    rm -rf "$scratch/decompose"
+    timeout 120s cargo run --quiet -p cng --features bench --bin cng -- \
+        plan decompose \
+        --domain crates/cng/tests/fixtures/decomp-negative/actor-lacks-capability.domain.pddl \
+        --problem crates/cng/tests/fixtures/decomp-negative/actor-lacks-capability.problem.pddl \
+        --out "$scratch/decompose"
+    echo "PASS: plan decompose"
+
+    echo "=== [4/4] cng_cli_smoke integration test ==="
+    just cng-test-isolated smoke cng_cli_smoke
+    echo "PASS: cng_cli_smoke"
+
+    echo "cng-smoke: PASS -- doctor + workday(4 ticks) + decompose(fixture) + cng_cli_smoke all green; you're set up"
+
 # Build the cng CLI binary
 cng-build:
     timeout 600s cargo build -p cng

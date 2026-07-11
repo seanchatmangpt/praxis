@@ -237,7 +237,8 @@ members = [
     "crates/praxis-lean",
     "crates/praxis-graphlaw",
     "crates/praxis-graphlaw-wasm",
-    "audit-tools",
+    "crates/wasm4pm-arazzo",
+    "audit-tools", "apps/air_core/native/air_core_nif",
 ]
 [workspace.metadata.dylint]
 libraries = [{ path = "/Users/sac/chicago-tdd-tools/crates/chicago-lints" }]

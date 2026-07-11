@@ -38,7 +38,11 @@ pub mod net;
 pub mod powl;
 pub mod recompose;
 
+/// External-Cut Validator module.
+pub mod external_cut;
+
 pub use decompose::{convert, convert_with_budget, Refusal, RefusalReason, DEFAULT_DEPTH_BUDGET};
+pub use external_cut::{validate_external_cut, ExternalCutRefusal};
 pub use net::{NetError, WfNet};
 pub use powl::{ChoiceGraph, GNode, Language, Powl, Trace};
 pub use recompose::recompose;

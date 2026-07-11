@@ -63,6 +63,16 @@ pub enum Powl {
         /// the routing graph over child indices.
         graph: ChoiceGraph,
     },
+    /// An external execution cut identifying a POWL region whose execution boundary
+    /// leaves the current process cell.
+    ExternalCut {
+        /// The admitted POWL region (W).
+        region: Box<Powl>,
+        /// The declared SPARQL projection (Q).
+        projection: String,
+        /// The declared Tera renderer (T).
+        renderer: String,
+    },
 }
 
 impl Powl {
@@ -94,6 +104,7 @@ impl Powl {
                     children.iter().map(|c| c.language_upto(max_len)).collect();
                 choice_language(&child_langs, graph, max_len)
             }
+            Powl::ExternalCut { region, .. } => region.language_upto(max_len),
         }
     }
 }

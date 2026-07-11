@@ -17,3 +17,4 @@ fn register_l4_noun() {
         "Lean 4/Lake kernel admission gate: verify, no-sorry audit, corpus reconciliation, and receipt reporting.",
     );
 }
+

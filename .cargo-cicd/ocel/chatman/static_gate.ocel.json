@@ -3,30 +3,8 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
-    "evt_000": {
-      "event_id": "395cabeb-5e83-479e-8ad7-6b498a6852f9",
-      "case_id": "chatman-static_gate",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 1,
-      "objects": [
-        [
-          "Falsify_DuplicateCanonicalTapeType",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "refusal": "DuplicateCanonicalTapeType",
-        "fixture_id": "Falsify_DuplicateCanonicalTapeType",
-        "outcome": "refused"
-      }
-    },
     "evt_001": {
-      "event_id": "69b1f301-f649-4d2c-ae99-8a4e69d505cb",
+      "event_id": "3c0d8ab5-92ff-47eb-be14-5e205bef6372",
       "case_id": "chatman-static_gate",
       "activity": {
         "DiagnosticEmitted": {
@@ -42,13 +20,13 @@
         ]
       ],
       "attributes": {
+        "outcome": "refused",
         "fixture_id": "Falsify_ProcessReceiptShadowType",
-        "refusal": "ProcessReceiptShadowType",
-        "outcome": "refused"
+        "refusal": "ProcessReceiptShadowType"
       }
     },
     "evt_002": {
-      "event_id": "58099ac3-17b7-487a-b7c4-46688a88e5b8",
+      "event_id": "2ad7f447-0094-4507-af7b-11f853d1840d",
       "case_id": "chatman-static_gate",
       "activity": {
         "DiagnosticEmitted": {
@@ -69,7 +47,7 @@
       }
     },
     "evt_003": {
-      "event_id": "51ab592e-0ae0-4f82-819c-aca78d1661cb",
+      "event_id": "1a0952e3-d7d4-4726-b8b9-2820237576d8",
       "case_id": "chatman-static_gate",
       "activity": {
         "DiagnosticEmitted": {
@@ -87,6 +65,28 @@
       "attributes": {
         "fixture_id": "Accept_UniqueCanonicalTapeType",
         "outcome": "admitted"
+      }
+    },
+    "evt_000": {
+      "event_id": "041ca899-8333-47db-a1bc-7545983ce637",
+      "case_id": "chatman-static_gate",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 1,
+      "objects": [
+        [
+          "Falsify_DuplicateCanonicalTapeType",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "refused",
+        "refusal": "DuplicateCanonicalTapeType",
+        "fixture_id": "Falsify_DuplicateCanonicalTapeType"
       }
     }
   },

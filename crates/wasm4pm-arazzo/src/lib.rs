@@ -4,6 +4,7 @@ pub mod parse;
 pub mod quantum;
 pub mod resolve;
 pub mod temporal;
+pub mod normalizer;
 
 use thiserror::Error;
 

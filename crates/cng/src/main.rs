@@ -1008,6 +1008,7 @@ fn model_shape(model: &Powl) -> (usize, usize) {
     match model {
         Powl::PartialOrder { children, order } => (children.len(), order.len()),
         Powl::Leaf(_) => (1, 0),
+        Powl::ExternalCut { region, .. } => model_shape(region),
     }
 }
 

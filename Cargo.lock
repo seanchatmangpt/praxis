@@ -7059,6 +7059,7 @@ dependencies = [
 name = "wasm4pm-arazzo"
 version = "26.7.8"
 dependencies = [
+ "blake3",
  "bumpalo",
  "memmap2",
  "phf 0.14.0",

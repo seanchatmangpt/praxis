@@ -1027,7 +1027,7 @@ impl ChatmanEngine {
         // Re-run S1's presence check (read-only); the plan computation below
         // re-reads the snapshot's PDDL literals directly by snapshot_id, so
         // no other part of S1's canonicalization output is needed here.
-        let _ = self.fetch_snapshot(snapshot_id)?;
+        self.fetch_snapshot(snapshot_id)?;
         let (tape, _digest) = self.compute_pddl_plan(snapshot_id)?;
         Ok(tape)
     }
@@ -1072,7 +1072,7 @@ impl ChatmanEngine {
         let mut problems: Vec<Pddl8Problem> = Vec::new();
         for snapshot_id in snapshot_ids {
             // Re-run S1's presence check (read-only) per snapshot.
-            let _ = self.fetch_snapshot(snapshot_id)?;
+            self.fetch_snapshot(snapshot_id)?;
             let graph = snapshot_graph(snapshot_id)?;
             if let Some(domain_text) = self.select_literal(&graph, PDDL_DOMAIN_PREDICATE)? {
                 domains.push(domain_from_pddl(&domain_text)?);
