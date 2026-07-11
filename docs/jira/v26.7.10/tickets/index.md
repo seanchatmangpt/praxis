@@ -33,11 +33,11 @@ the PROJ-617 final gate.
 | [PROJ-619](PROJ-619.md) | Broker dispatch + re-admission (loopback) | DONE (loopback-real) |
 | [PROJ-620](PROJ-620.md) | Recursive closure / timeout / compensation | DONE (session-verified) |
 | [PROJ-621](PROJ-621.md) | Arazzo dialect | DONE (session-verified) |
-| [PROJ-614](PROJ-614.md) | Graph-authoritative metrics closure | IN_PROGRESS (pending final build) |
+| [PROJ-614](PROJ-614.md) | Graph-authoritative metrics closure | DONE (final build green) |
 | [PROJ-615](PROJ-615.md) | Optional ed25519 signatures | CUT (`RELEASE_CONTROL.md` §8.1) |
-| [PROJ-616](PROJ-616.md) | Verification harness + tamper negatives | IN_PROGRESS (pending final build) |
-| [PROJ-622](PROJ-622.md) | SPARQL-derived success markers | IN_PROGRESS (pending final build) |
-| [PROJ-617](PROJ-617.md) | Release closure + DoD sign-off | IN_PROGRESS (this doc pass) |
+| [PROJ-616](PROJ-616.md) | Verification harness + tamper negatives | DONE (final build green) |
+| [PROJ-622](PROJ-622.md) | SPARQL-derived success markers | DONE (all 11 markers TRUE) |
+| [PROJ-617](PROJ-617.md) | Release closure + DoD sign-off | DONE |
 
 ## Execution sequence
 

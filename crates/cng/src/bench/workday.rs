@@ -704,7 +704,8 @@ pub fn workday(
     // passed load(REGISTERED) → kh:HookShape SHACL (ADMITTED) → registry
     // gate (AUTHORIZED) → compile+Kahn schedule (READY) inside the broker
     // constructor; EXECUTED/RECEIPTED follow at first firing. REPLAYABLE
-    // is reserved for an independent replay pass (PROJ-616 seam).
+    // (order 7) is emitted only after the end-of-day producer replay
+    // verification passes (PROJ-614/622; see the replay block below).
     //
     // # Complexity
     // O(hooks × 4) observation emissions.

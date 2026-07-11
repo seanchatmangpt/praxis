@@ -154,11 +154,26 @@ scratch dirs under `/private/tmp/.../scratchpad/v267.10/` (X then relocated to Y
 
 ## 8. PROJ-606..622 closure table (PROJ-617, 2026-07-10)
 
-Statuses below reflect the closing session. ALIVE rows cite this session's green
-`just cng-test-bench` run (31 lib tests + integration suites passing, recorded in the session
-logs for the PROJ-608..613 and PROJ-618..621 waves). IN_PROGRESS rows are UNVERIFIED pending
-the consolidated final build — the orchestrator flips them to ALIVE only after that build runs
-green; no such build has run at the time of this writing, and this table does not claim it.
+Statuses below reflect the closing session, including the consolidated final build,
+orchestrator-verified this session:
+
+1. `just cng-test-bench` — ALL GREEN: 40 lib tests passed, 0 failed; integration suites
+   6/1/1/5/4/2 passed, 0 failures anywhere. Includes the PROJ-614/616/622 tests (marker
+   positive+negative, `CNG_R19`/`CNG_R20`, all 5 tamper negatives, in-process determinism
+   gate).
+2. `just cng-workday-verify` (seed=616, ticks=8, rpm=125) — two same-seed runs produced
+   byte-identical evidence bundles; report shows all 11 success markers TRUE
+   (`AUTONOMIC_LOOP_CLOSED` … `V26_7_10_PRODUCTION_READY`); telemetry 64 transitions /
+   64 hook actuations / 3 dispatches sent / 3 consequences admitted / 1 refusal resumed;
+   `evidence_chain_digest blake3:4e38a38f…0475`, `ocel_graph_digest blake3:853638…b315`,
+   `run_hook_hash ba8615…8ffe`.
+
+Fix-forward record: after the first consolidated build, the orchestrator rewrote
+`crates/cng/queries/markers/marker-child-closure.rq` and
+`crates/cng/queries/metric-dispatch-closure.rq` — a SPARQL scoping bug (FILTER on outer-bound
+`?law` inside UNION branches, unbound in branch scope, so `satisfiedParents` was always 0) was
+fixed by matching the closure law as a triple pattern inside each UNION arm, mirroring
+`dispatch-closure.rq`. The green results above postdate this fix.
 
 | Ticket | Scope item | Status | Evidence |
 |---|---|---|---|
@@ -174,11 +189,11 @@ green; no such build has run at the time of this writing, and this table does no
 | PROJ-619 | Broker dispatch + re-admission (loopback) | ALIVE | same run; loopback-real only, see boundary below |
 | PROJ-620 | Recursive dispatch / closure / compensation | ALIVE | same run |
 | PROJ-621 | Arazzo dialect | ALIVE | same run |
-| PROJ-614 | Graph-authoritative metrics closure | IN_PROGRESS — UNVERIFIED pending final build | agent wave running; no green build cited yet |
+| PROJ-614 | Graph-authoritative metrics closure | ALIVE | consolidated build items 1-2 above; `metric-hook-actuations.rq`/`metric-dispatch-closure.rq` on disk (old `metric-hook-receipts.rq` deleted) |
 | PROJ-615 | Optional ed25519 signatures | CUT | optional cut line exercised — see below |
-| PROJ-616 | Verification harness | IN_PROGRESS — UNVERIFIED pending final build | agent wave running; no green build cited yet |
-| PROJ-622 | SPARQL success markers | IN_PROGRESS — UNVERIFIED pending final build | agent wave running; no green build cited yet |
-| PROJ-617 | Closure (this pass) | ALIVE (doc) | this section + `DOD_SIGNOFF.md` |
+| PROJ-616 | Verification harness | ALIVE | consolidated build item 1 (5 tamper negatives, determinism gate) + item 2 (byte-identical same-seed bundles) |
+| PROJ-622 | SPARQL success markers | ALIVE | consolidated build item 2 — all 11 markers TRUE via SPARQL; marker negatives green in item 1 |
+| PROJ-617 | Closure (complete) | ALIVE (doc) | this section + `DOD_SIGNOFF.md` |
 
 ChatmanEngine adoption is DEFERRED to a future increment — v26.7.10 uses the `TripleStore` hook
 surface, not `ChatmanEngine`.
@@ -204,5 +219,7 @@ consequences are labeled MOCKED-HUMAN wherever they appear.
 
 Clause-by-clause sign-off against `DEFINITION_OF_DONE.md`'s 15 sections lives in
 `DOD_SIGNOFF.md` (this directory), indexed through `DOD_EVIDENCE_MAP.md`. Per that sign-off,
-`V26_7_10_PRODUCTION_READY` is **not** claimed: its conjunction depends on PROJ-614/616/622,
-which are UNVERIFIED pending the consolidated final build.
+`V26_7_10_PRODUCTION_READY` is claimed **scoped exactly as the DoD defines it**: SPARQL-derived
+marker conjunction TRUE on the `just cng-workday-verify` run above, with loopback-real external
+dispatch, MOCKED-HUMAN synthesized consequences, and live network endpoints out of scope
+(Sec. 8.2). No unscoped production-ready claim is made.

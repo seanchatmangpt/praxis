@@ -11,8 +11,12 @@ use chicago_tdd_tools::prelude::*;
 use oxigraph::io::{RdfFormat, RdfParser};
 use oxigraph::store::Store;
 
-use super::{expect_standing_rows, workday, WorkdayConfig};
+use super::{
+    build_marker_store, evaluate_markers, expect_standing_rows, hook_actuation_gate, workday,
+    WorkdayConfig, WorkdayHookBroker,
+};
 use crate::bench::fill_template;
+use crate::bench::roles::run_construct;
 use crate::bench::templates::{load_templates, QuerySet};
 use crate::powl::CngRefusal;
 
@@ -61,6 +65,137 @@ test!(workday_same_seed_twice_is_byte_identical, {
     );
     assert!(!report_a.run_hook_hash.is_empty());
     assert_eq!(report_a.run_hook_hash, report_b.run_hook_hash);
+    // PROJ-614: the replay headline is graph-derived (metric-replay.rq over
+    // replay_verified events) and every receipted tick was replayed.
+    assert_eq!(report_a.replay_verified, report_a.receipts);
+    // PROJ-614: the CNG_R19-gated dispatch-closure facets are zero.
+    assert_eq!(report_a.dispatch_closure.get("unacknowledged"), Some(&0));
+    assert_eq!(
+        report_a.dispatch_closure.get("returned_unadmitted"),
+        Some(&0)
+    );
+    // PROJ-622: all eleven success markers are SPARQL-derived and true on a
+    // healthy seeded run (a false marker would have refused CNG_R20).
+    for marker in [
+        "AUTONOMIC_LOOP_CLOSED",
+        "EXTERNAL_WORKFLOW_DISPATCH_PROVEN",
+        "EXTERNAL_RESULT_READMISSION_PROVEN",
+        "RECURSIVE_CHILD_CLOSURE_PROVEN",
+        "TIMEOUT_ESCALATION_PROVEN",
+        "COMPENSATION_WORKFLOW_PROVEN",
+        "ONE_PERSON_RECURSIVE_WORKFLOW_PROVEN",
+        "GRAPHLAW_DIALECT_CLOSURE",
+        "HOOK_ACTUATION_PROVEN",
+        "ZERO_UNRECEIPTED_ACTUATION",
+        "V26_7_10_PRODUCTION_READY",
+    ] {
+        assert_eq!(
+            report_a.markers.get(marker),
+            Some(&true),
+            "marker {marker} missing or false"
+        );
+    }
+    assert_eq!(report_a.markers.len(), 11);
+});
+
+test!(forced_false_marker_refuses_cng_r20, {
+    // Arrange: a marker store holding ONE unresolved workday_tick
+    // observation (rendered from the on-disk template — no inline Turtle)
+    // and nothing else: the autonomic-loop chain (planned /
+    // transition_fired / hook_receipt / receipted) is missing, so
+    // marker-autonomic-loop.rq must yield a nonzero ?value.
+    let templates = load_templates().expect("templates load");
+    let tick_template = templates
+        .obs
+        .get("workday-tick")
+        .expect("workday-tick template present");
+    let obs_store = Store::new().expect("obs store");
+    let body = fill_template(
+        tick_template,
+        &[
+            ("SUBJECT", "obs-broken-0"),
+            ("SEQ", "0"),
+            ("SET_ID", "tick-0000"),
+            ("TICK", "0"),
+            ("WORKER_ID", "w0"),
+        ],
+    );
+    obs_store
+        .load_from_slice(RdfParser::from_format(RdfFormat::Turtle), body.as_bytes())
+        .expect("fabricated observation parses");
+    let evidence_store = Store::new().expect("evidence store");
+    let registry_path = WorkdayHookBroker::default_hooks_dir().join("dialect-registry.ttl");
+    let marker_store =
+        build_marker_store(&obs_store, &evidence_store, &registry_path).expect("marker store");
+    let marker_queries =
+        QuerySet::load(&QuerySet::default_dir().join("markers")).expect("marker queries load");
+
+    // Act.
+    let result = evaluate_markers(&marker_store, &marker_queries);
+
+    // Assert: typed CNG_R20 naming the broken marker and its value.
+    match result {
+        Err(CngRefusal::MarkerFalse { marker, value }) => {
+            assert_eq!(marker, "AUTONOMIC_LOOP_CLOSED");
+            assert!(value > 0);
+            assert_eq!(CngRefusal::MarkerFalse { marker, value }.code(), "CNG_R20");
+        }
+        other => panic!("expected MarkerFalse, got {other:?}"),
+    }
+});
+
+test!(unreceipted_actuation_gate_refuses_cng_r19, {
+    // Arrange: an observation store with ONE transition_fired observation
+    // (template-rendered) and NO hook_receipt; materialize the OCEL
+    // evidence through the same on-disk constructs the workday uses, so
+    // the graph shows one transition and zero receipted actuations.
+    let templates = load_templates().expect("templates load");
+    let fired_template = templates
+        .obs
+        .get("transition-fired")
+        .expect("transition-fired template present");
+    let obs_store = Store::new().expect("obs store");
+    let body = fill_template(
+        fired_template,
+        &[
+            ("SUBJECT", "obs-unreceipted-0"),
+            ("SEQ", "0"),
+            ("SET_ID", "tick-0000"),
+            ("WORKFLOW_ID", "tick-0000"),
+            ("WORKER_ID", "w0"),
+            ("ACTIVITY_LABEL", "classify"),
+            ("TICK", "0"),
+        ],
+    );
+    obs_store
+        .load_from_slice(RdfParser::from_format(RdfFormat::Turtle), body.as_bytes())
+        .expect("fabricated observation parses");
+    let queries = QuerySet::load(&QuerySet::default_dir()).expect("query set loads");
+    let evidence_store = Store::new().expect("evidence store");
+    for construct in ["ocel-events.construct", "ocel-hook-receipts.construct"] {
+        run_construct(
+            &obs_store,
+            queries.get(construct).expect("construct present"),
+            &evidence_store,
+        )
+        .expect("construct runs");
+    }
+
+    // Act: the graph-derived hook-actuation gate.
+    let result = hook_actuation_gate(&evidence_store, &queries);
+
+    // Assert: typed CNG_R19 naming the gate and the mismatch count.
+    match result {
+        Err(CngRefusal::EvidenceGateFailed { gate, count }) => {
+            assert_eq!(gate, "unreceipted-actuations");
+            assert_eq!(count, 1);
+            assert_eq!(
+                CngRefusal::EvidenceGateFailed { gate, count }.code(),
+                "CNG_R19"
+            );
+        }
+        other => panic!("expected EvidenceGateFailed, got {other:?}"),
+    }
 });
 
 test!(workday_bounded_admission_resumes_every_refusal, {

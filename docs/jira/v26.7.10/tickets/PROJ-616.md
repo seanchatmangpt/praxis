@@ -1,7 +1,8 @@
 # PROJ-616 — Verification harness: recipes, byte-identity, tamper negatives
 
-Status: IN_PROGRESS — UNVERIFIED pending consolidated final build (agent wave running this
-session; no green build cited yet)
+Status: DONE (consolidated final build green this session: `just cng-test-bench` includes all
+5 tamper negatives + in-process determinism gate; `just cng-workday-verify` seed=616 — two
+same-seed runs byte-identical; `RELEASE_CONTROL.md` Sec. 8)
 
 ## Summary
 

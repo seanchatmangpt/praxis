@@ -2,10 +2,11 @@
 # Markers: HOOK_ACTUATION_PROVEN + ZERO_UNRECEIPTED_ACTUATION.
 # Inputs: materialized OCEL graph (union of ocel-events.construct.rq and
 # ocel-hook-receipts.construct.rq outputs).
-# Predicate sources: ocel:activityName ("transition_fired" from
-# templates/bench-observation-transition-fired.template.ttl; "hook_receipt"
-# from templates/bench-observation-hook-receipt.template.ttl),
-# ex:hookDeltaHash (carried onto hook_receipt events by
+# Predicate sources: ocel:eventTypeName "transition_fired"
+# (ocel-events.construct.rq puts the ACTIVITY LABEL in ocel:activityName,
+# so the kind is only reachable through the event type);
+# ocel:activityName "hook_receipt" (ocel-hook-receipts.construct.rq puts
+# the kind there); ex:hookDeltaHash (carried onto hook_receipt events by
 # ocel-hook-receipts.construct.rq). Same law as the reconcile-gate
 # metric-hook-actuations.rq (?mismatches column) — the marker restates it
 # as a single ?value for the marker protocol.
@@ -20,7 +21,11 @@ SELECT ((?total - ?receipted) AS ?value)
 WHERE {
   {
     SELECT (COUNT(DISTINCT ?t) AS ?total)
-    WHERE { ?t ocel:activityName "transition_fired" . }
+    WHERE {
+      ?t a ocel:Event ;
+         ocel:hasEventType ?et .
+      ?et ocel:eventTypeName "transition_fired" .
+    }
   }
   {
     SELECT (COUNT(DISTINCT ?r) AS ?receipted)

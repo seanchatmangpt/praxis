@@ -37,7 +37,7 @@ pub struct AuditReplayReport {
 /// Steps: (1) parse `results/evidence-manifest.json`; (2) re-hash
 /// `obs/*.ttl` and compare `obs_digest`; (3) re-hash `queries/*.rq` against
 /// `manifest.query_digests`; (4) load `obs/*.ttl` into a fresh store, run
-/// the six bundled `ocel-*.construct` queries, serialize sorted N-Triples,
+/// the bundled `ocel-*.construct` queries, serialize sorted N-Triples,
 /// BLAKE3, compare to `ocel_graph_digest`. Any disagreement or missing
 /// input refuses `CNG_R11 AuditMismatch`.
 ///

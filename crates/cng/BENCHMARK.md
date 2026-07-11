@@ -133,10 +133,44 @@ modeled arithmetic, not measurements.
 Determinism: same corpus → byte-identical POWL digests; independent replay via
 `just cng-bench-verify <dir>`. Seeded names propagate into every generated POWL,
 so changing the seed changes every digest. Refusals are typed
-(`CNG_R01`–`CNG_R11`). Known-by-design gap: the `replay_verified` headline
-(`metric-replay.rq`) is 0 until a CONSTRUCT emits `replay.verified` attributes
-into the evidence graph; replay evidence currently lives in telemetry
-(`replay_checked` / `replay_passes`).
+(`CNG_R01`–`CNG_R20`). The `replay_verified` headline (`metric-replay.rq`) is
+graph-derived (PROJ-614): every passing replay re-manufacture is receipted as a
+`replay_verified` observation, `ocel-replays.construct.rq` projects it into an
+event carrying the `replay.verified` attribute, and the refuse gate reconciles
+the SELECT count against the `replay_passes` telemetry counter.
+
+### Graph-derived closure gates (PROJ-614) and success markers (PROJ-622)
+
+The workday run ends with two additional graph-authoritative layers, both
+SPARQL-only (Rust counters are telemetry):
+
+- **Closure gates (`CNG_R19 EvidenceGateFailed`)** —
+  `metric-hook-actuations.rq` (the DEFINITION_OF_DONE-named authority; the
+  earlier `metric-hook-receipts.rq` was folded into its `?receipted` column
+  and removed) refuses on any transitions-vs-receipted-actuations mismatch;
+  `metric-dispatch-closure.rq` (likewise the DoD-named metrics authority —
+  the operational `dispatch-closure.rq` remains the broker's per-parent
+  closure-law evaluator, not a metrics source) refuses on unacknowledged
+  dispatches or returned-but-unadmitted consequences and reports the
+  open/refused/compensating/completed-tree facets.
+- **Success markers (`CNG_R20 MarkerFalse`)** — the eleven v26.7.10 markers
+  (AUTONOMIC_LOOP_CLOSED, EXTERNAL_WORKFLOW_DISPATCH_PROVEN,
+  EXTERNAL_RESULT_READMISSION_PROVEN, RECURSIVE_CHILD_CLOSURE_PROVEN,
+  TIMEOUT_ESCALATION_PROVEN, COMPENSATION_WORKFLOW_PROVEN,
+  ONE_PERSON_RECURSIVE_WORKFLOW_PROVEN, GRAPHLAW_DIALECT_CLOSURE,
+  HOOK_ACTUATION_PROVEN, ZERO_UNRECEIPTED_ACTUATION,
+  V26_7_10_PRODUCTION_READY — the last is the conjunction of the other ten)
+  are evaluated from `queries/markers/*.rq` over the obs ∪ evidence ∪
+  dialect-registry union store; any nonzero `?value` is a typed refusal with
+  a nonzero exit. Each marker header states which graph it reads and what it
+  deliberately does NOT claim (e.g. only 2 of 6 closure laws are
+  broker-evaluated; dialect closure is observed⊆registered, not
+  registered⊆observed).
+
+REPLAYABLE HookStanding (order 7) is emitted only after the end-of-day
+producer replay re-manufactures every tick set byte-identically; the
+independent auditor pass (`workday_verify`) re-checks from bundle files
+alone.
 
 ### Two replay paths: producer verify vs. independent auditor replay
 
@@ -159,7 +193,7 @@ paths below still resolve.
    producer memory, re-derives evidence from the bundle alone. Steps: parse
    `results/evidence-manifest.json`; re-hash `obs/*.ttl` and compare to `obs_digest`; re-hash
    `queries/*.rq` against `query_digests`; load the bundled observations into a fresh store; run
-   the six bundled `ocel-*.construct` queries in fixed order; serialize the resulting evidence as
+   the bundled `ocel-*.construct` queries in fixed order; serialize the resulting evidence as
    sorted N-Triples and BLAKE3 it; compare to `ocel_graph_digest`. Any disagreement or missing
    input refuses `CNG_R11 AuditMismatch` (distinct from `CNG_R08 Nondeterminism`, which is
    same-producer re-manufacture drift, not third-party integrity failure) and the process exits

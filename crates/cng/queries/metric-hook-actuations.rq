@@ -5,7 +5,11 @@
 # which has been removed — the ?receipted column below is that query's
 # count, verbatim semantics.
 # Inputs: materialized OCEL graph (union of ocel-events.construct.rq and
-# ocel-hook-receipts.construct.rq outputs).
+# ocel-hook-receipts.construct.rq outputs). transition_fired events are
+# matched via ocel:eventTypeName (ocel-events.construct.rq puts the
+# ACTIVITY LABEL in ocel:activityName, not the kind); hook_receipt events
+# via ocel:activityName (ocel-hook-receipts.construct.rq puts the kind
+# there).
 # Outputs: single row:
 #   ?transitions — COUNT(DISTINCT transition_fired events)
 #   ?receipted   — COUNT(DISTINCT hook_receipt events carrying
@@ -22,7 +26,11 @@ SELECT ?transitions ?receipted ((?transitions - ?receipted) AS ?mismatches)
 WHERE {
   {
     SELECT (COUNT(DISTINCT ?t) AS ?transitions)
-    WHERE { ?t ocel:activityName "transition_fired" . }
+    WHERE {
+      ?t a ocel:Event ;
+         ocel:hasEventType ?et .
+      ?et ocel:eventTypeName "transition_fired" .
+    }
   }
   {
     SELECT (COUNT(DISTINCT ?r) AS ?receipted)

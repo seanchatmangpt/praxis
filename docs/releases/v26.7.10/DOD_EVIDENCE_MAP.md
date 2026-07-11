@@ -4,8 +4,10 @@ Version: v26.7.10. Consumed by PROJ-617 (closure) and PROJ-622 (SPARQL success m
 Status: DRAFT, tied to `RELEASE_CONTROL.md`. Every claim cites a file, test, or receipt. Rows
 without evidence are marked PLANNED or UNKNOWN, never asserted. If this file and
 `RELEASE_CONTROL.md` disagree, `RELEASE_CONTROL.md` wins. This file does not upgrade any
-marker's verdict — all success markers remain UNVERIFIED/PLANNED per `RELEASE_CONTROL.md` §8
-and `DEFINITION_OF_DONE.md` §14.
+marker's verdict on its own. Final marker verdicts live in `RELEASE_CONTROL.md` §8 and
+`DOD_SIGNOFF.md` (PROJ-617): per the consolidated final build cited there, all 11 success
+markers derived TRUE via SPARQL. PLANNED rows below are the pre-build planning record, kept
+for traceability; where they disagree with `DOD_SIGNOFF.md`, the sign-off wins.
 
 ## How to read this map
 
@@ -14,24 +16,26 @@ and `DEFINITION_OF_DONE.md` §14.
   `(PLANNED)` = named by `DEFINITION_OF_DONE.md` or ticket scope but not yet real evidence.
 - **Refusal** — the `CngRefusal` variant guarding the clause. Variant doc comments and stable
   codes for `CNG_R12`..`CNG_R18` are present in `crates/cng/src/powl.rs:69-172` (read this
-  session). Code presence is a forward-pointing PARTIAL note only: the shared verdict for
-  PROJ-608..622 behaviors stays PLANNED pending fresh command+output per `RELEASE_CONTROL.md`
-  §1/§8. No test run was cited for R12..R18 this session.
+  session), plus `CNG_R19 EvidenceGateFailed` (`powl.rs:146-158`, graph-derived closure gate
+  unclosed, PROJ-614) and `CNG_R20 MarkerFalse` (`powl.rs:159-171`, false success marker,
+  PROJ-622). R12..R20 all exercised by `just cng-test-bench` this session (40 lib tests
+  green, incl. `unreceipted_actuation_gate_refuses_cng_r19` and
+  `forced_false_marker_refuses_cng_r20`); final verdicts live in `DOD_SIGNOFF.md`.
 - **Test/recipe** — the `just` recipe or test binary expected to exercise the marker.
 - **Status** — no-overclaiming vocabulary; nothing exceeds `RELEASE_CONTROL.md`.
 
-Note on naming: `DEFINITION_OF_DONE.md` §4 names `metric-hook-actuations.rq` and
-`metric-dispatch-closure.rq`. On disk this session the actual files are
-`metric-hook-receipts.rq` (covering hook-actuation semantics) and `dispatch-closure.rq`.
-PROJ-607/PROJ-614 own reconciling the names; this map uses the on-disk names.
+Note on naming (resolved at PROJ-617 closure): the `DEFINITION_OF_DONE.md` §4 names are now
+authoritative and on disk — `metric-hook-actuations.rq` and `metric-dispatch-closure.rq`
+(`ls` verified). The old `metric-hook-receipts.rq` was folded and deleted under PROJ-614;
+`dispatch-closure.rq` remains as a separate broader query. This map uses the new names.
 
 ## Success-marker evidence map
 
 | Marker | Query | Refusal | Test/recipe | Status |
 |---|---|---|---|---|
-| `HOOK_ACTUATION_PROVEN` | `metric-hook-receipts.rq` (exists) | `CNG_R13 UnreceiptedActuation` (code present, untested) | `just cng-workday` (PLANNED, PROJ-608); `just cng-test-bench` | PLANNED (PROJ-612) |
-| `ZERO_UNRECEIPTED_ACTUATION` | `metric-hook-receipts.rq` (exists; zero-gap check vs `metric-transitions.rq`) | `CNG_R13 UnreceiptedActuation` | tamper negatives (PLANNED, PROJ-616) | PLANNED (PROJ-614) |
-| `EXTERNAL_WORKFLOW_DISPATCH_PROVEN` | `dispatch-closure.rq` (exists); `ocel-dispatches.construct.rq` (exists) | `CNG_R15 DispatchContractIncomplete`, `CNG_R16 DispatchStateUnlawful` | loopback outbox/inbox run under `just cng-workday` (PLANNED) | PLANNED (PROJ-618/619; loopback-real, no live network) |
+| `HOOK_ACTUATION_PROVEN` | `metric-hook-actuations.rq` (exists) | `CNG_R13 UnreceiptedActuation` (code present, untested) | `just cng-workday` (PLANNED, PROJ-608); `just cng-test-bench` | PLANNED (PROJ-612) |
+| `ZERO_UNRECEIPTED_ACTUATION` | `metric-hook-actuations.rq` (exists; zero-gap check vs `metric-transitions.rq`) | `CNG_R13 UnreceiptedActuation` | tamper negatives (PLANNED, PROJ-616) | PLANNED (PROJ-614) |
+| `EXTERNAL_WORKFLOW_DISPATCH_PROVEN` | `metric-dispatch-closure.rq`, `dispatch-closure.rq` (exist); `ocel-dispatches.construct.rq` (exists) | `CNG_R15 DispatchContractIncomplete`, `CNG_R16 DispatchStateUnlawful` | loopback outbox/inbox run under `just cng-workday` (PLANNED) | PLANNED (PROJ-618/619; loopback-real, no live network) |
 | `EXTERNAL_RESULT_READMISSION_PROVEN` | `ocel-admissions.construct.rq` (exists) + admission SELECT (PLANNED, PROJ-614) | `CNG_R17 ExternalConsequenceRefused` | admission-refusal negative tests (PLANNED, PROJ-616) | PLANNED (PROJ-619) |
 | `RECURSIVE_CHILD_CLOSURE_PROVEN` | `attachments-with-parent.rq` (exists); `metric-recursive-attachments.rq` (exists) | `CNG_R16 DispatchStateUnlawful` (unlawful parent close) | closure-law scenarios (PLANNED, PROJ-620) | PLANNED (attachment substrate ALIVE at depth 2: `RECURSIVE_ATTACHMENTS=8`, `RELEASE_CONTROL.md` §1) |
 | `TIMEOUT_ESCALATION_PROVEN` | timeout-escalation SELECT (PLANNED, PROJ-614) | `CNG_R16 DispatchStateUnlawful` (`TIMED_OUT` path) | deterministic-tick timeout scenario (PLANNED, PROJ-620) | PLANNED |
@@ -67,7 +71,7 @@ column names the intended enforcement, not achieved state.
 | 4 | Redraws workflows | POWL manufacture from PDDL (deterministic re-manufacture) | PLANNED as behavior; manufacture digest ALIVE (§7) |
 | 5 | Determines ownership | Datalog role derivation (`metric-derived-roles.rq`) | PLANNED as behavior; role derivation ALIVE (§1) |
 | 6 | Routes evidence | broker exclusivity + admission pipeline (`ocel-admissions.construct.rq`) | PLANNED (PROJ-619) |
-| 7 | Reconciles completed work | parent-child closure laws + `dispatch-closure.rq` | PLANNED (PROJ-620) |
+| 7 | Reconciles completed work | parent-child closure laws + `metric-dispatch-closure.rq` | PLANNED (PROJ-620) |
 | 8 | Loses replay | evidence bundle + `just cng-evidence-replay` + `CNG_R11` | ALIVE for baseline bundle (§7); workday-mode PLANNED |
 | 9 | Performs semantic glue | SPARQL CONSTRUCT materialization, no inline SPARQL (guard test) | PARTIAL — guard ALIVE (§7 item 1); workday-mode PLANNED |
 | 10 | Remembers open loops | dispatch state machine, no implicit completion (`CNG_R16`) | PLANNED (PROJ-618) |

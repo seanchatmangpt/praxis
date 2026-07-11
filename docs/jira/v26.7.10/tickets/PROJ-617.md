@@ -1,8 +1,9 @@
 # PROJ-617 — Release closure: RELEASE_CONTROL.md final statuses + DoD sign-off
 
-Status: IN_PROGRESS (this doc pass delivered: `RELEASE_CONTROL.md` Sec. 8 closure table +
-`docs/releases/v26.7.10/DOD_SIGNOFF.md`; final flip to DONE waits on the consolidated final
-build resolving PROJ-614/616/622)
+Status: DONE (delivered: `RELEASE_CONTROL.md` Sec. 8 closure table with consolidated-build
+evidence, `docs/releases/v26.7.10/DOD_SIGNOFF.md` 15-clause sign-off, `DOD_EVIDENCE_MAP.md`
+query-name sweep, `DEFINITION_OF_DONE.md` Sec. 4/14/15 refresh; `V26_7_10_PRODUCTION_READY`
+claimed scoped only — loopback-real, MOCKED-HUMAN, no live network)
 
 ## Summary
 

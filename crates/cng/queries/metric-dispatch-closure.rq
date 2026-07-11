@@ -72,13 +72,14 @@ WHERE {
   {
     SELECT ("completed_trees" AS ?facet) (COUNT(DISTINCT ?d) AS ?count)
     WHERE {
-      ?p obs:obsKind "dispatch_sent" ;
-         ex:dispatchId ?d ;
-         ex:closureLaw ?law .
-      FILTER(?law != "NONE")
-      ?a0 obs:obsKind "consequence_admitted" ; ex:dispatchId ?d .
+      # Law matched as a triple pattern INSIDE each arm (mirrors
+      # dispatch-closure.rq): UNION branches evaluate independently, so a
+      # FILTER on an outer-bound ?law would see it unbound and reject all.
       {
-        FILTER(?law = "ALL_CHILDREN_REQUIRED")
+        ?p obs:obsKind "dispatch_sent" ;
+           ex:dispatchId ?d ;
+           ex:closureLaw "ALL_CHILDREN_REQUIRED" .
+        ?a0 obs:obsKind "consequence_admitted" ; ex:dispatchId ?d .
         FILTER EXISTS {
           ?c obs:obsKind "dispatch_sent" ; ex:parentDispatch ?d .
         }
@@ -93,7 +94,10 @@ WHERE {
       }
       UNION
       {
-        FILTER(?law = "ANY_CHILD_SUFFICIENT")
+        ?p obs:obsKind "dispatch_sent" ;
+           ex:dispatchId ?d ;
+           ex:closureLaw "ANY_CHILD_SUFFICIENT" .
+        ?a0 obs:obsKind "consequence_admitted" ; ex:dispatchId ?d .
         ?c obs:obsKind "dispatch_sent" ;
            ex:parentDispatch ?d ;
            ex:dispatchId ?cid .

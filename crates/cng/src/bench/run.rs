@@ -27,7 +27,7 @@ use super::templates::{load_templates, QuerySet};
 use super::verify::{count_ttl, count_ttl_recursive, dir_bytes, dir_bytes_recursive};
 use super::{parallel_chunks, rwai_local, splitmix64};
 
-/// The six OCEL CONSTRUCT query stems, in the fixed order `run()` and
+/// The OCEL CONSTRUCT query stems, in the fixed order `run()` and
 /// `audit_replay()` both materialize them — order is part of the contract
 /// only insofar as it's identical between producer and auditor (the final
 /// serialization is sorted, so materialization order does not affect the

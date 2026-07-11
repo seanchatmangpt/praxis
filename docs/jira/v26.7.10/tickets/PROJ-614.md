@@ -1,8 +1,9 @@
 # PROJ-614 — Graph-authoritative metrics closure
 
-Status: IN_PROGRESS — UNVERIFIED pending consolidated final build (agent wave running this
-session; query names `metric-hook-actuations.rq`/`metric-dispatch-closure.rq` made
-authoritative here, old names folded; no green build cited yet)
+Status: DONE (consolidated final build green this session: `just cng-test-bench` 40 lib +
+6/1/1/5/4/2 integration, 0 failures; `metric-hook-actuations.rq`/`metric-dispatch-closure.rq`
+on disk, old `metric-hook-receipts.rq` deleted; fix-forward on `metric-dispatch-closure.rq`
+UNION/FILTER scoping recorded in `RELEASE_CONTROL.md` Sec. 8)
 
 ## Summary
 

@@ -1,7 +1,9 @@
 # PROJ-622 — SPARQL-derived success markers
 
-Status: IN_PROGRESS — UNVERIFIED pending consolidated final build (agent wave running this
-session; no marker may flip until the queries run over a real workday bundle)
+Status: DONE (consolidated final build green this session: `just cng-workday-verify` seed=616
+— all 11 success markers TRUE via SPARQL over the emitted OCEL graph; marker
+positive+negative tests green in `just cng-test-bench`; fix-forward on
+`marker-child-closure.rq` scoping recorded in `RELEASE_CONTROL.md` Sec. 8)
 
 ## Summary
 

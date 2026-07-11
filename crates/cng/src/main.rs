@@ -8,7 +8,7 @@
 //! never the planning actor.
 //!
 //! Release law: for any admitted artifact set, every command either returns
-//! its JSON result or emits exactly one typed refusal (`CNG_R01`–`CNG_R10`).
+//! its JSON result or emits exactly one typed refusal (`CNG_R01`–`CNG_R20`).
 //! There is no third state — no silent fallback, no placeholder output, no
 //! hand-authored generated POWL.
 
@@ -649,6 +649,12 @@ fn benchmark_workday(
     println!("CONSEQUENCES_REFUSED={}", report.consequences_refused);
     println!("DISPATCH_TIMEOUTS={}", report.dispatch_timeouts);
     println!("REMEDIATIONS_MANUFACTURED={}", report.remediations);
+    println!("REPLAY_VERIFIED={}", report.replay_verified);
+    // PROJ-622: SPARQL-derived success markers (all true by construction —
+    // a false marker refused CNG_R20 with a nonzero exit before this line).
+    for (marker, value) in &report.markers {
+        println!("MARKER_{marker}={value}");
+    }
     println!("POWL_DIGEST={}", report.evidence_chain_digest);
     println!("OCEL_GRAPH_DIGEST={}", report.ocel_graph_digest);
     println!("OBS_DIGEST={}", report.obs_digest);

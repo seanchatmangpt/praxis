@@ -92,9 +92,10 @@ Zero-unreceipted-actuation, extended to dispatch and acceptance:
 ```
 
 Checked by SPARQL over the emitted OCEL graph (`queries/metric-hook-actuations.rq`,
-`queries/metric-dispatch-closure.rq` — PLANNED under PROJ-614).
+`queries/metric-dispatch-closure.rq` — on disk, delivered under PROJ-614).
 
-Status: UNVERIFIED (hook actuation is PLANNED; queries do not yet exist).
+Status: ALIVE at closure — `ZERO_UNRECEIPTED_ACTUATION` and `HOOK_ACTUATION_PROVEN` derived
+TRUE (§14; evidence in `DOD_SIGNOFF.md`).
 
 ## 5. Dialect Registry Invariant
 
@@ -252,30 +253,36 @@ loop continuation are UNVERIFIED/PLANNED.
 
 Each marker is derived from SPARQL over the emitted OCEL graph — never asserted.
 
-| Marker | Status (2026-07-10) |
+All 11 markers derived TRUE via SPARQL on the closing-session `just cng-workday-verify` run
+(seed=616, ticks=8, rpm=125) — command + output citation in `RELEASE_CONTROL.md` §8 and
+`DOD_SIGNOFF.md`.
+
+| Marker | Status (2026-07-10, closure) |
 |---|---|
-| `AUTONOMIC_LOOP_CLOSED` | UNVERIFIED/PLANNED (PROJ-608..622) |
-| `EXTERNAL_WORKFLOW_DISPATCH_PROVEN` | UNVERIFIED/PLANNED (loopback-real; no live network) |
-| `EXTERNAL_RESULT_READMISSION_PROVEN` | UNVERIFIED/PLANNED |
-| `RECURSIVE_CHILD_CLOSURE_PROVEN` | UNVERIFIED/PLANNED |
-| `TIMEOUT_ESCALATION_PROVEN` | UNVERIFIED/PLANNED |
-| `COMPENSATION_WORKFLOW_PROVEN` | UNVERIFIED/PLANNED |
-| `ONE_PERSON_RECURSIVE_WORKFLOW_PROVEN` | UNVERIFIED/PLANNED (workday mode) |
-| `GRAPHLAW_DIALECT_CLOSURE` | UNVERIFIED/PLANNED |
-| `HOOK_ACTUATION_PROVEN` | UNVERIFIED/PLANNED |
-| `ZERO_UNRECEIPTED_ACTUATION` | UNVERIFIED/PLANNED (PROJ-614 queries) |
-| `V26_7_10_PRODUCTION_READY` | UNVERIFIED — conjunction of all markers above |
+| `AUTONOMIC_LOOP_CLOSED` | ALIVE — VERIFIED-TRUE (`DOD_SIGNOFF.md` §3) |
+| `EXTERNAL_WORKFLOW_DISPATCH_PROVEN` | ALIVE — VERIFIED-TRUE (loopback-real; no live network) |
+| `EXTERNAL_RESULT_READMISSION_PROVEN` | ALIVE — VERIFIED-TRUE (loopback-real) |
+| `RECURSIVE_CHILD_CLOSURE_PROVEN` | ALIVE — VERIFIED-TRUE (post `marker-child-closure.rq` fix) |
+| `TIMEOUT_ESCALATION_PROVEN` | ALIVE — VERIFIED-TRUE |
+| `COMPENSATION_WORKFLOW_PROVEN` | ALIVE — VERIFIED-TRUE |
+| `ONE_PERSON_RECURSIVE_WORKFLOW_PROVEN` | ALIVE — VERIFIED-TRUE (workday mode; MOCKED-HUMAN) |
+| `GRAPHLAW_DIALECT_CLOSURE` | ALIVE — VERIFIED-TRUE |
+| `HOOK_ACTUATION_PROVEN` | ALIVE — VERIFIED-TRUE (64/64 receipted) |
+| `ZERO_UNRECEIPTED_ACTUATION` | ALIVE — VERIFIED-TRUE (`metric-hook-actuations.rq`) |
+| `V26_7_10_PRODUCTION_READY` | ALIVE — VERIFIED-TRUE, scoped per §7: loopback-real dispatch, MOCKED-HUMAN consequences, live network endpoints out of scope |
 
-## 15. Current status summary (2026-07-10)
+## 15. Current status summary (2026-07-10, closure)
 
-- Hook actuation, external dispatch, closure laws, compensation, Arazzo, and workday mode are
-  all UNVERIFIED/PLANNED — tickets PROJ-608..622.
-- The existing Fortune-5 benchmark machinery — OCEL authority, receipts, replay, Datalog
-  roles — is ALIVE per `RELEASE_CONTROL.md` §1 and §7.
-- External dispatch will be loopback-real (deterministic local outbox/inbox); live network
-  endpoints are explicitly out of scope for v26.7.10.
+- PROJ-606..622 are closed per `RELEASE_CONTROL.md` §8: PROJ-615 CUT (ed25519 deferred;
+  `signatures: []` deliberately empty, PARTIAL by design), everything else ALIVE with the
+  consolidated-build evidence cited there.
+- The Fortune-5 benchmark machinery — OCEL authority, receipts, replay, Datalog roles — is
+  ALIVE per `RELEASE_CONTROL.md` §1 and §7.
+- External dispatch is loopback-real (deterministic local outbox/inbox); live network
+  endpoints are explicitly out of scope for v26.7.10 and remain UNVERIFIED.
 - Synthesized human consequences are MOCKED-HUMAN, and are said to be so wherever they appear.
 - ChatmanEngine adoption is deferred; this release uses the TripleStore hook surface.
+- LLM edge-only (§12) remains doctrine, UNVERIFIED as an enforced runtime boundary.
 
 ## See Also
 
