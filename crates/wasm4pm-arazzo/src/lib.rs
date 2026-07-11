@@ -3,6 +3,7 @@ pub mod compile;
 pub mod parse;
 pub mod quantum;
 pub mod resolve;
+pub mod temporal;
 
 use thiserror::Error;
 
