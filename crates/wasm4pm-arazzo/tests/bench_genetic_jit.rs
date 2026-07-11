@@ -37,23 +37,23 @@ fn bench_genetic_jit() {
 
     println!("Starting Genetic JIT Execution...");
 
-    // Generation 1-15 (Exploration phase - slow!)
+    // Generation 1-25 (Exploration phase - slow!)
     let start_explore = Instant::now();
-    for _ in 0..15 {
+    for _ in 0..25 {
         let _ = AirCompiler::compile_to_wasm(&program).unwrap();
     }
     let duration_explore = start_explore.elapsed();
-    let avg_explore = duration_explore / 15;
-    println!("Exploration Phase (Generations 1-15) average time: {:?}", avg_explore);
+    let avg_explore = duration_explore / 25;
+    println!("Exploration Phase (Generations 1-25) average time: {:?}", avg_explore);
 
-    // Generation 16-100 (Exploitation phase - fast! should converge on Strategy 2)
+    // Generation 26-100 (Exploitation phase - fast! should converge on Strategy 4)
     let start_exploit = Instant::now();
-    for _ in 0..85 {
+    for _ in 0..75 {
         let _ = AirCompiler::compile_to_wasm(&program).unwrap();
     }
     let duration_exploit = start_exploit.elapsed();
-    let avg_exploit = duration_exploit / 85;
-    println!("Exploitation Phase (Generations 16-100) average time: {:?}", avg_exploit);
+    let avg_exploit = duration_exploit / 75;
+    println!("Exploitation Phase (Generations 26-100) average time: {:?}", avg_exploit);
 
     assert!(avg_exploit < avg_explore, "Genetic evolution should select a strategy faster than the exploration average");
 }

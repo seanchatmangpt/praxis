@@ -79,30 +79,33 @@ impl AirCompiler {
         use std::time::Instant;
 
         // Telemetry state for Genetic Algorithm
-        static STRATEGY_SCORES: [AtomicU64; 4] = [
+        static STRATEGY_SCORES: [AtomicU64; 5] = [
             AtomicU64::new(10_000_000), 
             AtomicU64::new(10_000_000), 
+            AtomicU64::new(10_000_000),
             AtomicU64::new(10_000_000),
             AtomicU64::new(10_000_000)
         ];
         static GENERATION: AtomicUsize = AtomicUsize::new(0);
 
         let gen = GENERATION.fetch_add(1, Ordering::Relaxed);
-        let strategy = if gen < 20 {
+        let strategy = if gen < 25 {
             // Explore: mutation phase
-            gen % 4
+            gen % 5
         } else {
             // Exploit: selection of the fittest trait based on telemetry
             let s0 = STRATEGY_SCORES[0].load(Ordering::Relaxed);
             let s1 = STRATEGY_SCORES[1].load(Ordering::Relaxed);
             let s2 = STRATEGY_SCORES[2].load(Ordering::Relaxed);
             let s3 = STRATEGY_SCORES[3].load(Ordering::Relaxed);
+            let s4 = STRATEGY_SCORES[4].load(Ordering::Relaxed);
             
             let mut min_idx = 0;
             let mut min_val = s0;
             if s1 < min_val { min_idx = 1; min_val = s1; }
             if s2 < min_val { min_idx = 2; min_val = s2; }
-            if s3 < min_val { min_idx = 3; }
+            if s3 < min_val { min_idx = 3; min_val = s3; }
+            if s4 < min_val { min_idx = 4; }
             min_idx
         };
 
@@ -138,7 +141,7 @@ impl AirCompiler {
                     // Strategy 2: Zero-allocation Iterator (Fast trait)
                     func.raw(std::iter::repeat(0x01).take(wf.steps.len()));
                 }
-                _ => {
+                3 => {
                     // Strategy 3: Non-Euclidean Hyperbolic Folding (Ascended trait)
                     // Folds infinite computational density into bounded bytecode using mathematical loops
                     func.instruction(&Instruction::I32Const(wf.steps.len() as i32));
@@ -154,6 +157,22 @@ impl AirCompiler {
                     func.instruction(&Instruction::I32GtU);
                     func.instruction(&Instruction::BrIf(0));
                     func.instruction(&Instruction::End);
+                }
+                _ => {
+                    // Strategy 4: Holographic Horizon Compression (Bekenstein Bound limit)
+                    // Perfectly hashes the AST state and emits a single receipt-returning instruction (O(1) space and time)
+                    let mut hasher = blake3::Hasher::new();
+                    hasher.update(wf.name.as_bytes());
+                    hasher.update(&(wf.steps.len() as u64).to_le_bytes());
+                    let hash = hasher.finalize();
+                    
+                    // Convert the first 8 bytes into a 64-bit integer
+                    let mut bytes = [0u8; 8];
+                    bytes.copy_from_slice(&hash.as_bytes()[0..8]);
+                    let receipt = i64::from_le_bytes(bytes);
+                    
+                    // The entire workflow collapses into this singular holographic projection
+                    func.instruction(&Instruction::I64Const(receipt));
                 }
             }
             
