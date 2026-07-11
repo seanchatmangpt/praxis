@@ -5,6 +5,23 @@ use wasm4pm_compat::arazzo::{
     SuccessActionOrReference,
 };
 use rayon::prelude::*;
+use phf::phf_set;
+
+static PREDEFINED_REFS: phf::Set<&'static str> = phf_set! {
+    "$url",
+    "$method",
+    "$statusCode",
+    "$request",
+    "$response",
+    "$steps",
+    "$workflows",
+    "$sourceDescriptions",
+    "$components",
+    "#/components",
+    "#/workflows",
+    "#/sourceDescriptions",
+};
+
 
 /// Normalizes all URIs in the given index. Resolves relative references to
 /// absolute URIs based on the document's base URI. This does not follow or
@@ -106,9 +123,30 @@ fn resolve_reusable_object(r: &mut ReusableObject, base: &Url) -> Result<(), Ref
         return Ok(());
     }
 
-    // Fast path: if the reference is just a fragment, we can just join it quickly.
-    // However, url::Url::join handles fragments safely, but we can do a very fast check
-    // if we just want a string concatenation, but `Url::join` handles relative resolution correctly.
+    // Fast path: perfect hashing for predefined Arazzo variables and local references
+    // Extracts the root prefix (e.g., $request.header -> $request, #/components/parameters -> #/components)
+    let root_prefix = if r.reference.starts_with('$') {
+        r.reference.split('.').next().unwrap_or(&r.reference)
+    } else if r.reference.starts_with("#/") {
+        let mut parts = r.reference.split('/');
+        let _ = parts.next(); // #
+        if let Some(second) = parts.next() {
+            // We just need to check if the prefix "#/second" is known
+            // However, it's easier to check by string slicing
+            let end_idx = r.reference[2..].find('/').map(|i| i + 2).unwrap_or(r.reference.len());
+            &r.reference[..end_idx]
+        } else {
+            &r.reference
+        }
+    } else {
+        &r.reference
+    };
+
+    if PREDEFINED_REFS.contains(root_prefix) {
+        return Ok(());
+    }
+
+    // Dynamic path: resolve relative reference against the base URI
     let resolved = base.join(&r.reference).map_err(|e| {
         Refusal::UriResolution(format!(
             "Failed to resolve reference '{}': {}",
