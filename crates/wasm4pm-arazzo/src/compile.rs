@@ -69,12 +69,34 @@ impl AirCompiler {
     }
 
     /// Compiles an `AirProgram` directly into linear WebAssembly bytecode,
-    /// bypassing intermediate interpreters.
+    /// bypassing intermediate interpreters, using a Genetic JIT path selector.
     pub fn compile_to_wasm(program: &AirProgram) -> Result<Vec<u8>, Refusal> {
         // Validate invariants first
         Self::compile(program)?;
 
         use wasm_encoder::{Module, TypeSection, FunctionSection, ExportSection, CodeSection, Function, Instruction};
+        use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+        use std::time::Instant;
+
+        // Telemetry state for Genetic Algorithm
+        static STRATEGY_SCORES: [AtomicU64; 3] = [AtomicU64::new(10_000_000), AtomicU64::new(10_000_000), AtomicU64::new(10_000_000)];
+        static GENERATION: AtomicUsize = AtomicUsize::new(0);
+
+        let gen = GENERATION.fetch_add(1, Ordering::Relaxed);
+        let strategy = if gen < 15 {
+            // Explore: mutation phase
+            gen % 3
+        } else {
+            // Exploit: selection of the fittest trait based on telemetry
+            let s0 = STRATEGY_SCORES[0].load(Ordering::Relaxed);
+            let s1 = STRATEGY_SCORES[1].load(Ordering::Relaxed);
+            let s2 = STRATEGY_SCORES[2].load(Ordering::Relaxed);
+            if s0 <= s1 && s0 <= s2 { 0 }
+            else if s1 <= s0 && s1 <= s2 { 1 }
+            else { 2 }
+        };
+
+        let start = Instant::now();
 
         let mut module = Module::new();
         let mut types = TypeSection::new();
@@ -88,9 +110,26 @@ impl AirCompiler {
             exports.export(&wf.name, wasm_encoder::ExportKind::Func, i as u32);
             
             let mut func = Function::new(vec![]);
-            // Extreme zero-copy linear instruction emission for each step using an iterator
-            // Nop is 0x01. We generate a stream of nops without any intermediate allocations.
-            func.raw(std::iter::repeat(0x01).take(wf.steps.len()));
+            
+            // JIT Code Generation Path
+            match strategy {
+                0 => {
+                    // Strategy 0: Scalar Loop (Slow, initial trait)
+                    for _ in 0..wf.steps.len() {
+                        func.instruction(&Instruction::Nop);
+                    }
+                }
+                1 => {
+                    // Strategy 1: Vector Allocation (Medium trait)
+                    let nop_bytes = vec![0x01; wf.steps.len()];
+                    func.raw(nop_bytes);
+                }
+                _ => {
+                    // Strategy 2: Zero-allocation Iterator (Fittest trait)
+                    func.raw(std::iter::repeat(0x01).take(wf.steps.len()));
+                }
+            }
+            
             func.instruction(&Instruction::End);
             codes.function(&func);
         }
@@ -99,8 +138,15 @@ impl AirCompiler {
         module.section(&functions);
         module.section(&exports);
         module.section(&codes);
+        let result = module.finish();
 
-        Ok(module.finish())
+        // Feed telemetry back into the genetic model (EWMA)
+        let elapsed = start.elapsed().as_nanos() as u64;
+        let current = STRATEGY_SCORES[strategy].load(Ordering::Relaxed);
+        let new_score = (current * 7 + elapsed * 3) / 10;
+        STRATEGY_SCORES[strategy].store(new_score, Ordering::Relaxed);
+
+        Ok(result)
     }
 }
 
