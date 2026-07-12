@@ -208,7 +208,22 @@ instead of re-planning the shared problem. Resolves task #3; hardens the trunk b
 - `jira-tracking-pack` (the nearest real ticket→render pipeline) targets **v26.7.11**, narrower
   schema. `scripts/verifier_report.py` is hardcoded to `v26.7.11` — does not cover this milestone.
 - ggen-generated LOC ≈ **7.0%** of the crate (1,889 / 26,868) vs the ~80% reuse/generate target.
-- PRD self-declares: "not yet dry-run-publishable" (`docs/jira/v26.7.12/PRD.md:6`).
+- **Dry-run publish mechanically confirmed to fail** (`just publish-dry-run multifractal-workflow`
+  → `cargo publish -p multifractal-workflow --dry-run --allow-dirty`, this session): `error: failed
+  to verify manifest ... all dependencies must have a version requirement specified when
+  publishing. dependency 'cng' does not specify a version`. `cng` is only the first alphabetically;
+  grep of `crates/multifractal-workflow/Cargo.toml` finds **7** in-workspace path dependencies with
+  no `version =` (`powl2-decompose:22`, `praxis-core:29`, `praxis-graphlaw:37`,
+  `wasm4pm-arazzo:49`, `pddl-index:136`, `cng:183`, `ggen:228`) — none of these sibling crates have
+  ever been published to crates.io. This supersedes the PRD's vaguer self-declaration
+  (`docs/jira/v26.7.12/PRD.md:6`, "not yet dry-run-publishable") with the exact mechanical reason.
+  **Not a code-quality gap and not something to patch with a fake version number** (that would only
+  move the failure to "crate not found on crates.io" at real-publish time) — closing it for real
+  means either publishing all 7 sibling crates first (a consequential, external, likely-unintended
+  action for what this repo treats as internal workspace infrastructure) or accepting that
+  crates.io publishability is not the correct completion bar for this milestone's actual
+  deliverable (crown-witness contiguity, not a public crate). Flagging the distinction rather than
+  resolving it — this is a product-scope question, not an implementation one.
 
 ### Security surface (EXTERNAL witness) — mostly clean, two real gaps
 
