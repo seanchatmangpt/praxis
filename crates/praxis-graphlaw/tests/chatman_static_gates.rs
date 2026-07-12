@@ -371,6 +371,9 @@ fn gate_refusal_name_matches_const_list() {
         Refusal::UnsupportedDialect(ctx()),
         Refusal::N3UnavailableByProfile(ctx()),
         Refusal::N3ActuationRefused(ctx()),
+        Refusal::N3CostBoundExceeded(ctx()),
+        Refusal::N3BuiltinRefused(ctx()),
+        Refusal::N3DirectActuationRefused(ctx()),
         Refusal::RouteDecisionMismatch(ctx()),
         Refusal::GraphSnapshotMismatch(ctx()),
         Refusal::ProfileHashMismatch(ctx()),
@@ -383,6 +386,18 @@ fn gate_refusal_name_matches_const_list() {
         Refusal::TripleTermInSnapshot(ctx()),
         Refusal::StageSealMismatch(ctx()),
         Refusal::UnlawfulActuation(ctx()),
+        Refusal::PowlRegionNotAdmitted(ctx()),
+        Refusal::ExternalCutUndeclared(ctx()),
+        Refusal::ExternalCutTypeMismatch(ctx()),
+        Refusal::ExternalCutAuthorityMismatch(ctx()),
+        Refusal::ClosureLawNoChildren(ctx()),
+        Refusal::ClosureLawQuorumOutOfRange(ctx()),
+        Refusal::ClosureLawUnknownChild(ctx()),
+        Refusal::ClosureLawOrderedSubsetInvalid(ctx()),
+        Refusal::ClosureLawPolicyNotDeclared(ctx()),
+        Refusal::ChildConformanceRefused(ctx()),
+        Refusal::ChildCompletionUnadmitted(ctx()),
+        Refusal::ParentClosureUnsatisfied(ctx()),
     ];
     assert_eq!(all.len(), ALL_REFUSAL_NAMES.len());
     for (refusal, expected) in all.iter().zip(ALL_REFUSAL_NAMES) {

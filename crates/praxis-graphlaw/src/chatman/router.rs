@@ -478,6 +478,421 @@ impl DialectRouter {
     }
 }
 
+// ---------------------------------------------------------------------------
+// N3 controlled execution surface (PROJ-779, extended by PROJ-780).
+//
+// PRD §12 ("N3 Quarantine") names five requirements for N3 execution:
+// explicit profile capability, declared cost bounds, a builtin whitelist, a
+// controlled execution surface, and receipt/replay support (plus, separately,
+// zero direct actuation: "An N3 rule that requests direct actuation SHALL be
+// refused", `PRD.md:608`). `ProfileGates`/`DialectRouter::decide` above
+// already enforce the first requirement (N3 defaults off; enabling it is an
+// explicit act — PROJ-777/778). The types below are the halves PROJ-779
+// added — a real, enforced cost bound and a real builtin whitelist, both
+// checked by [`N3Executor::run`] rather than merely declared and ignored —
+// plus [`N3ActuationBuiltin`]/[`N3Rule::direct_actuation_builtins`], PROJ-780's
+// addition: PROJ-779's [`N3Builtin`] is a closed, *pure*-only vocabulary (no
+// I/O/network/dispatch variant exists in it, by construction), so a rule
+// requesting direct actuation was previously simply inexpressible rather
+// than actively checked and refused. [`N3ActuationBuiltin`] gives the
+// controlled execution surface a way to represent such a request (as
+// caller-declared classification data, matching how `builtins`/
+// `declared_cost` are caller-declared rather than parsed — `N3Executor`
+// still does not parse N3 syntax), and [`N3Executor::run`] refuses it
+// unconditionally via [`Refusal::N3DirectActuationRefused`]. The full
+// typed-refusal-catalog wiring (this crate's `ALL_REFUSAL_NAMES`, the
+// acceptance schemas) for these three N3 variants landed in the same
+// catalog-completeness pass that closed PROJ-786/787's other 12 deferred
+// variants; see `abi.rs`'s `ALL_REFUSAL_NAMES` doc comment.
+// ---------------------------------------------------------------------------
+
+/// Domain-tag prefix for [`N3ExecutionReceipt::execution_hash`] material.
+const N3_EXECUTION_HASH_TAG: &str = "chatman/router/n3-execution/v1";
+
+/// Abstract N3 execution cost, in ticks — the same declared-not-measured
+/// unit convention as `crates/praxis-synthesis/src/budget.rs`'s `Ticks` /
+/// `TickBudget` / `CHATMAN_CONSTANT`: one tick is one declared unit of
+/// bounded work, never a measured CPU cycle or a wall-clock duration.
+/// Reimplemented locally rather than taken as a cross-crate dependency
+/// (this ticket's scope is `router.rs` only, and `praxis-graphlaw` does not
+/// otherwise depend on `praxis-synthesis`), with intentionally identical
+/// semantics — saturating accumulation, strict `used > limit` exhaustion —
+/// so a future cross-crate consolidation is a pure dedup, never a behavior
+/// change.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
+pub struct N3Ticks(pub u64);
+
+/// Declared cost ceiling for one N3 execution, with branchless accounting
+/// mirroring `TickBudget::consume` (`crates/praxis-synthesis/src/budget.rs`):
+/// saturating add, then strict `used > limit` decides exhaustion (spending
+/// exactly the limit is still within budget).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct N3CostBound {
+    /// Maximum allowed cumulative ticks for the whole execution.
+    pub limit: N3Ticks,
+    /// Ticks consumed so far.
+    pub used: N3Ticks,
+}
+
+impl N3CostBound {
+    /// Builds a fresh, unconsumed bound at `limit`.
+    ///
+    /// # Complexity
+    /// O(1).
+    pub const fn new(limit: N3Ticks) -> Self {
+        Self {
+            limit,
+            used: N3Ticks(0),
+        }
+    }
+
+    /// Whether the bound is already spent (`used >= limit`).
+    ///
+    /// # Complexity
+    /// O(1).
+    pub const fn is_exhausted(&self) -> bool {
+        self.used.0 >= self.limit.0
+    }
+
+    /// Consumes `ticks`, saturating rather than wrapping, and reports
+    /// whether cumulative usage is still within budget after this
+    /// consumption (`false` means this consumption exhausted the bound).
+    ///
+    /// # Complexity
+    /// O(1).
+    pub fn consume(&mut self, ticks: N3Ticks) -> bool {
+        self.used = N3Ticks(self.used.0.saturating_add(ticks.0));
+        self.used.0 <= self.limit.0
+    }
+}
+
+/// N3 builtin predicates this engine may whitelist for execution, drawn from
+/// the pure, side-effect-free subset of the `log:`/`math:`/`string:`/`list:`
+/// SWAP builtin vocabularies (<https://www.w3.org/2000/10/swap/>). Builtins
+/// capable of I/O, network, or process actuation (e.g. `log:webOperation`)
+/// are deliberately never modeled here — this whitelist can only ever grant
+/// access to a builtin drawn from this fixed, pure set, regardless of what
+/// mask value a profile declares.
+///
+/// Eight variants by construction, so the whitelist fits the same
+/// bit-per-variant mask convention as [`Dialect::mask_bit`] in a `u8`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[repr(u8)]
+pub enum N3Builtin {
+    /// `log:equalTo` — RDF term identity.
+    LogEqualTo = 0,
+    /// `log:notEqualTo` — RDF term non-identity.
+    LogNotEqualTo = 1,
+    /// `math:sum`.
+    MathSum = 2,
+    /// `math:difference`.
+    MathDifference = 3,
+    /// `math:product`.
+    MathProduct = 4,
+    /// `math:quotient`.
+    MathQuotient = 5,
+    /// `string:concatenation`.
+    StringConcatenation = 6,
+    /// `list:member`.
+    ListMember = 7,
+}
+
+impl N3Builtin {
+    /// Every whitelist-able builtin, in declaration order.
+    pub const ALL: [N3Builtin; 8] = [
+        N3Builtin::LogEqualTo,
+        N3Builtin::LogNotEqualTo,
+        N3Builtin::MathSum,
+        N3Builtin::MathDifference,
+        N3Builtin::MathProduct,
+        N3Builtin::MathQuotient,
+        N3Builtin::StringConcatenation,
+        N3Builtin::ListMember,
+    ];
+
+    /// The bit this builtin occupies in a whitelist mask (`1 << discriminant`).
+    ///
+    /// # Complexity
+    /// O(1).
+    pub const fn mask_bit(self) -> u8 {
+        1 << (self as u8)
+    }
+
+    /// The builtin's canonical SWAP IRI, used as hash/refusal-message
+    /// material.
+    ///
+    /// # Complexity
+    /// O(1).
+    pub const fn iri(self) -> &'static str {
+        match self {
+            N3Builtin::LogEqualTo => "http://www.w3.org/2000/10/swap/log#equalTo",
+            N3Builtin::LogNotEqualTo => "http://www.w3.org/2000/10/swap/log#notEqualTo",
+            N3Builtin::MathSum => "http://www.w3.org/2000/10/swap/math#sum",
+            N3Builtin::MathDifference => "http://www.w3.org/2000/10/swap/math#difference",
+            N3Builtin::MathProduct => "http://www.w3.org/2000/10/swap/math#product",
+            N3Builtin::MathQuotient => "http://www.w3.org/2000/10/swap/math#quotient",
+            N3Builtin::StringConcatenation => "http://www.w3.org/2000/10/swap/string#concatenation",
+            N3Builtin::ListMember => "http://www.w3.org/2000/10/swap/list#member",
+        }
+    }
+}
+
+/// A recognized N3 builtin classified as **actuation-triggering** (real I/O,
+/// network, or process dispatch — a side effect outside pure graph
+/// reasoning), drawn from the `log:`/`http:` corners of the SWAP builtin
+/// vocabularies (<https://www.w3.org/2000/10/swap/>) that [`N3Builtin`]
+/// deliberately excludes. PRD §12 requires "zero direct actuation" from N3
+/// (`PRD.md:604,608`); this type exists so [`N3Executor::run`] has something
+/// concrete to check and refuse — a caller-declared reference to a variant
+/// here is refused unconditionally by
+/// [`Refusal::N3DirectActuationRefused`], the same way for every profile,
+/// with no whitelist mask that could ever admit it (contrast
+/// [`N3Builtin`], whose mask-gated membership *can* be widened by a
+/// profile).
+///
+/// Deliberately **not** mask-based (unlike [`N3Builtin::mask_bit`]): there is
+/// no notion of a profile "enabling" a direct-actuation builtin, so no bit
+/// convention is needed, and this enum is free to grow past eight variants
+/// without colliding with the `u8` whitelist-mask trick.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum N3ActuationBuiltin {
+    /// `log:webOperation` — issues a real HTTP request as a side effect.
+    LogWebOperation,
+    /// `log:semantics` — dereferences a URI and parses the fetched document,
+    /// a real network fetch rather than pure graph reasoning.
+    LogSemantics,
+    /// `os:process` — spawns an operating-system process.
+    OsProcess,
+}
+
+impl N3ActuationBuiltin {
+    /// Every recognized direct-actuation builtin, in declaration order.
+    pub const ALL: [N3ActuationBuiltin; 3] = [
+        N3ActuationBuiltin::LogWebOperation,
+        N3ActuationBuiltin::LogSemantics,
+        N3ActuationBuiltin::OsProcess,
+    ];
+
+    /// The builtin's canonical SWAP IRI, used as hash/refusal-message
+    /// material.
+    ///
+    /// # Complexity
+    /// O(1).
+    pub const fn iri(self) -> &'static str {
+        match self {
+            N3ActuationBuiltin::LogWebOperation => {
+                "http://www.w3.org/2000/10/swap/log#webOperation"
+            }
+            N3ActuationBuiltin::LogSemantics => "http://www.w3.org/2000/10/swap/log#semantics",
+            N3ActuationBuiltin::OsProcess => "http://www.w3.org/2000/10/swap/os#process",
+        }
+    }
+}
+
+/// The N3-specific execution parameters a profile declares once it enables
+/// N3 at all (via [`ProfileGates::DEFAULT_ENABLED_MASK`]-overriding
+/// enablement, checked by [`N3Executor::run`]). Distinct from
+/// [`ProfileGates`], which gates *whether* N3 may run; this struct gates
+/// *what* an admitted N3 execution may reference ([`N3Builtin`] whitelist)
+/// and *how much* bounded work it may spend ([`N3CostBound`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct N3ExecutionProfile {
+    /// Bitmask of [`N3Builtin`] variants this execution may reference.
+    pub builtin_whitelist_mask: u8,
+    /// Declared cumulative cost ceiling, in [`N3Ticks`], for one execution.
+    pub cost_bound_ticks: N3Ticks,
+}
+
+impl N3ExecutionProfile {
+    /// Whether `builtin` is in this execution's whitelist.
+    ///
+    /// # Complexity
+    /// O(1).
+    pub const fn is_builtin_permitted(&self, builtin: N3Builtin) -> bool {
+        self.builtin_whitelist_mask & builtin.mask_bit() != 0
+    }
+}
+
+/// One N3 rule as [`N3Executor`]'s controlled execution surface sees it: not
+/// a full N3 parse tree (an N3 interpreter is out of this ticket's scope —
+/// this router models *enforcement*, not evaluation), but the facts PRD §12
+/// gates on: which builtins the rule body invokes, its declared execution
+/// cost, and (PROJ-780) whether the rule body invokes any recognized
+/// direct-actuation builtin.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct N3Rule {
+    /// Stable identifier for this rule (carried into refusal messages and
+    /// the execution receipt).
+    pub rule_id: String,
+    /// Builtins the rule body invokes. Order-independent; a rule invoking
+    /// zero builtins is legal (a bare graph-pattern implication).
+    pub builtins: Vec<N3Builtin>,
+    /// Declared execution cost, in [`N3Ticks`]. Declared, not measured —
+    /// the same non-negotiable as `Ticks` in the `praxis-synthesis` budget
+    /// convention: no wall clock, no measured CPU cycles in a
+    /// receipt-adjacent path.
+    pub declared_cost: N3Ticks,
+    /// Recognized direct-actuation builtins ([`N3ActuationBuiltin`]) this
+    /// rule body invokes, if any. Order-independent; empty for the ordinary
+    /// pure-reasoning rule. Caller-declared classification data, the same
+    /// convention as `builtins`/`declared_cost` (`N3Executor` does not parse
+    /// N3 syntax — see the struct-level doc). Any non-empty value here is
+    /// refused unconditionally by [`N3Executor::run`]
+    /// ([`Refusal::N3DirectActuationRefused`]), independent of
+    /// `builtin_whitelist_mask` or `cost_bound_ticks` — PRD §12: "An N3 rule
+    /// that requests direct actuation SHALL be refused" (`PRD.md:608`).
+    pub direct_actuation_builtins: Vec<N3ActuationBuiltin>,
+}
+
+/// The sealed result of [`N3Executor::run`] admitting and running a sequence
+/// of [`N3Rule`]s.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct N3ExecutionReceipt {
+    /// Rule IDs admitted, in execution order.
+    pub rules_admitted: Vec<String>,
+    /// Total ticks consumed across all admitted rules.
+    pub ticks_used: N3Ticks,
+    /// Digest binding (profile, rules admitted, ticks used) together.
+    pub execution_hash: Digest,
+}
+
+/// Runs [`N3Rule`]s under a fixed [`ProfileGates`] and [`N3ExecutionProfile`],
+/// enforcing PRD §12's capability gate, direct-actuation refusal, builtin
+/// whitelist, and cost bound.
+#[derive(Debug, Clone, Copy)]
+pub struct N3Executor<'a> {
+    gates: &'a ProfileGates,
+    execution: &'a N3ExecutionProfile,
+}
+
+impl<'a> N3Executor<'a> {
+    /// Builds an executor over a fixed gates/execution-profile pair. Neither
+    /// is copied or validated against the other; the caller is responsible
+    /// for pairing the `execution` parameters with the `gates` they are
+    /// meant to govern (mirrors [`DialectRouter::new`], which likewise takes
+    /// [`ProfileGates`] as given).
+    pub fn new(gates: &'a ProfileGates, execution: &'a N3ExecutionProfile) -> Self {
+        Self { gates, execution }
+    }
+
+    /// Admits and runs `rules` in order under the controlled execution
+    /// surface.
+    ///
+    /// # Errors
+    /// - [`Refusal::N3UnavailableByProfile`] — the profile does not enable
+    ///   N3 at all; no rule is inspected.
+    /// - [`Refusal::N3DirectActuationRefused`] — some rule declares a
+    ///   recognized direct-actuation builtin
+    ///   ([`N3Rule::direct_actuation_builtins`]); refused unconditionally,
+    ///   before that rule's ordinary builtin whitelist is checked or its
+    ///   cost is consumed (and before any later rule runs) — no
+    ///   `execution.builtin_whitelist_mask` value can ever admit it.
+    /// - [`Refusal::N3BuiltinRefused`] — some rule references a builtin
+    ///   outside `execution`'s whitelist; refused before that rule's cost is
+    ///   consumed (and before any later rule runs).
+    /// - [`Refusal::N3CostBoundExceeded`] — cumulative declared cost across
+    ///   `rules`, taken in order, exceeds `execution.cost_bound_ticks`.
+    ///   Cost is tracked incrementally via [`N3CostBound::consume`] rule by
+    ///   rule (not a single pre-declared-total check performed once), so a
+    ///   single over-cost rule is rejected before any rule runs, and a
+    ///   later rule that pushes an otherwise-within-budget running total
+    ///   over the bound is caught mid-execution by the same accounting.
+    ///
+    /// # Complexity
+    /// O(R * (A + B)) where R = `rules.len()`, A = direct-actuation builtins
+    /// per rule (bounded by [`N3ActuationBuiltin::ALL`]'s fixed 3-variant
+    /// size for any well-formed rule), and B = ordinary builtins per rule,
+    /// bounded by [`N3Builtin::ALL`]'s fixed 8-variant size for any
+    /// well-formed rule. Sealing the receipt on success hashes the admitted
+    /// rule IDs and the profile identity, O(|profile_id| + sum of admitted
+    /// rule ID lengths).
+    pub fn run(&self, rules: &[N3Rule]) -> Result<N3ExecutionReceipt, Refusal> {
+        if !self.gates.is_enabled(Dialect::N3) {
+            return Err(Refusal::N3UnavailableByProfile(format!(
+                "profile {}: N3 execution requested but the profile does not enable N3 \
+                 (enabled mask {:#010b})",
+                self.gates.profile_id, self.gates.enabled_dialects_mask
+            )));
+        }
+
+        let mut bound = N3CostBound::new(self.execution.cost_bound_ticks);
+        let mut admitted: Vec<String> = Vec::with_capacity(rules.len());
+
+        // O(R * (A + B)): one pass over rules, each checking its declared
+        // direct-actuation builtins, then its bounded ordinary builtin list,
+        // before consuming its declared cost.
+        for rule in rules {
+            if let Some(actuation_builtin) = rule.direct_actuation_builtins.first() {
+                return Err(Refusal::N3DirectActuationRefused(format!(
+                    "profile {}: rule {} requests direct actuation via builtin {}; N3 rules \
+                     may never drive actuation regardless of any execution whitelist",
+                    self.gates.profile_id,
+                    rule.rule_id,
+                    actuation_builtin.iri()
+                )));
+            }
+            for &builtin in &rule.builtins {
+                if !self.execution.is_builtin_permitted(builtin) {
+                    return Err(Refusal::N3BuiltinRefused(format!(
+                        "profile {}: rule {} invokes builtin {} which is outside the N3 \
+                         execution whitelist (mask {:#010b})",
+                        self.gates.profile_id,
+                        rule.rule_id,
+                        builtin.iri(),
+                        self.execution.builtin_whitelist_mask
+                    )));
+                }
+            }
+            let within_bound = bound.consume(rule.declared_cost);
+            if !within_bound {
+                return Err(Refusal::N3CostBoundExceeded(format!(
+                    "profile {}: rule {} pushed cumulative cost to {} ticks, exceeding the \
+                     declared bound of {} ticks ({} rule(s) already admitted)",
+                    self.gates.profile_id,
+                    rule.rule_id,
+                    bound.used.0,
+                    bound.limit.0,
+                    admitted.len()
+                )));
+            }
+            admitted.push(rule.rule_id.clone());
+        }
+
+        Ok(self.seal(admitted, bound.used))
+    }
+
+    /// Builds the sealed receipt for an admitted execution. Material is
+    /// version- and field-tagged with each admitted rule ID passed as its
+    /// own length-prefixed element (never joined into one string), so the
+    /// hash is injective over the ordered rule-ID sequence; same (gates,
+    /// rules admitted, ticks used) → byte-identical digest.
+    ///
+    /// # Complexity
+    /// O(|profile_id| + sum of admitted rule ID lengths).
+    fn seal(&self, rules_admitted: Vec<String>, ticks_used: N3Ticks) -> N3ExecutionReceipt {
+        let profile_hash = self.gates.hash();
+        let ticks_str = ticks_used.0.to_string();
+        let mut material: Vec<&str> = Vec::with_capacity(5 + rules_admitted.len() * 2);
+        material.push(N3_EXECUTION_HASH_TAG);
+        material.push("profile_hash");
+        material.push(&profile_hash.0);
+        for rule_id in &rules_admitted {
+            material.push("rule");
+            material.push(rule_id.as_str());
+        }
+        material.push("ticks_used");
+        material.push(&ticks_str);
+        let execution_hash = Digest::new(blake3_combined(&material));
+        N3ExecutionReceipt {
+            rules_admitted,
+            ticks_used,
+            execution_hash,
+        }
+    }
+}
+
 #[cfg(test)]
 #[path = "router_test.rs"]
 mod tests;

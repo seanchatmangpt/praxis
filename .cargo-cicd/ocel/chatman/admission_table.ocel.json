@@ -4,7 +4,7 @@
   },
   "ocel:events": {
     "evt_003": {
-      "event_id": "16ee2294-15e7-4c2b-843b-59166617a46a",
+      "event_id": "8ee75c66-c28a-469b-9aa1-9a74c2eea6fd",
       "case_id": "chatman-admission_table",
       "activity": {
         "DiagnosticEmitted": {
@@ -21,12 +21,12 @@
       ],
       "attributes": {
         "fixture_id": "Falsify_OcelEventNotAdmitted",
-        "outcome": "refused",
-        "refusal": "OcelEventNotAdmitted"
+        "refusal": "OcelEventNotAdmitted",
+        "outcome": "refused"
       }
     },
     "evt_000": {
-      "event_id": "0e07297f-8b90-4e78-9e64-e3634e8d7c7e",
+      "event_id": "d8c4541c-67d4-46e1-93bc-2463ec35abe7",
       "case_id": "chatman-admission_table",
       "activity": {
         "DiagnosticEmitted": {
@@ -42,12 +42,34 @@
         ]
       ],
       "attributes": {
-        "fixture_id": "Accept_AdmissionTableMatches",
-        "outcome": "admitted"
+        "outcome": "admitted",
+        "fixture_id": "Accept_AdmissionTableMatches"
+      }
+    },
+    "evt_001": {
+      "event_id": "715fa3f4-d862-4a59-a0a0-474949a7f1b9",
+      "case_id": "chatman-admission_table",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 2,
+      "objects": [
+        [
+          "Falsify_AdmissionTableMismatch",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "refused",
+        "refusal": "AdmissionTableMismatch",
+        "fixture_id": "Falsify_AdmissionTableMismatch"
       }
     },
     "evt_002": {
-      "event_id": "f25dde19-72b3-4355-9695-8fca50949fdb",
+      "event_id": "c701fd4e-af8d-4f0a-b9a7-8d34e530d7e9",
       "case_id": "chatman-admission_table",
       "activity": {
         "DiagnosticEmitted": {
@@ -65,28 +87,6 @@
       "attributes": {
         "outcome": "admitted",
         "fixture_id": "Accept_OcelEventAdmitted"
-      }
-    },
-    "evt_001": {
-      "event_id": "1d71a0e9-1901-4a49-b1ed-d7dd3a1b2a37",
-      "case_id": "chatman-admission_table",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 2,
-      "objects": [
-        [
-          "Falsify_AdmissionTableMismatch",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "refusal": "AdmissionTableMismatch",
-        "fixture_id": "Falsify_AdmissionTableMismatch",
-        "outcome": "refused"
       }
     }
   },

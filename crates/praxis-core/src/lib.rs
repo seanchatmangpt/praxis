@@ -5,6 +5,7 @@
 pub mod arazzo;
 pub mod default_law;
 pub mod error;
+pub mod graphlaw_authority;
 pub mod law;
 pub mod lifecycle;
 pub mod ocel_export;

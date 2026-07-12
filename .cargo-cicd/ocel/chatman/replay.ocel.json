@@ -3,30 +3,8 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
-    "evt_000": {
-      "event_id": "f6c11ecf-6ca2-4715-b5ce-41d1afc4c67a",
-      "case_id": "chatman-replay",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 1,
-      "objects": [
-        [
-          "Falsify_GraphSnapshotMismatch",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Falsify_GraphSnapshotMismatch",
-        "refusal": "GraphSnapshotMismatch",
-        "outcome": "refused"
-      }
-    },
     "evt_001": {
-      "event_id": "480babff-b51a-4c66-935d-1d4ad5bd0e69",
+      "event_id": "6e4a03bd-d322-45b3-900c-e03657643929",
       "case_id": "chatman-replay",
       "activity": {
         "DiagnosticEmitted": {
@@ -47,7 +25,7 @@
       }
     },
     "evt_003": {
-      "event_id": "7f796ba0-c46f-4cea-a64b-6d31fd954f1b",
+      "event_id": "1c786692-ad6d-4514-be74-3a25fd5573d2",
       "case_id": "chatman-replay",
       "activity": {
         "DiagnosticEmitted": {
@@ -63,13 +41,13 @@
         ]
       ],
       "attributes": {
+        "refusal": "ProfileSymbolTableMismatch",
         "fixture_id": "Falsify_ProfileSymbolTableMismatch",
-        "outcome": "refused",
-        "refusal": "ProfileSymbolTableMismatch"
+        "outcome": "refused"
       }
     },
     "evt_002": {
-      "event_id": "57e9b02e-82db-476c-81a9-901dfcb42b22",
+      "event_id": "e572882b-750a-4463-8625-46a0421a5324",
       "case_id": "chatman-replay",
       "activity": {
         "DiagnosticEmitted": {
@@ -85,8 +63,30 @@
         ]
       ],
       "attributes": {
-        "outcome": "admitted",
-        "fixture_id": "Accept_ProfileSymbolTableAligned"
+        "fixture_id": "Accept_ProfileSymbolTableAligned",
+        "outcome": "admitted"
+      }
+    },
+    "evt_000": {
+      "event_id": "5604fb4e-8222-4db0-b60f-c3b889d296f1",
+      "case_id": "chatman-replay",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 1,
+      "objects": [
+        [
+          "Falsify_GraphSnapshotMismatch",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "refusal": "GraphSnapshotMismatch",
+        "outcome": "refused",
+        "fixture_id": "Falsify_GraphSnapshotMismatch"
       }
     }
   },

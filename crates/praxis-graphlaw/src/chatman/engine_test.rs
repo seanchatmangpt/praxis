@@ -4,6 +4,8 @@
 //! happy path, one refusal per stage, determinism (byte-identical
 //! receipt roots across independent engines), actuation, and replay.
 
+use std::collections::BTreeSet;
+
 use super::*;
 use crate::chatman::abi::{InputHandles, InvocationId, OperatorId, ProfileId};
 
@@ -494,4 +496,451 @@ fn verify_replay_accepts_faithful_and_refuses_tampered() -> Result<(), Refusal> 
             "tampered root must fail as ReplayMismatch::ReceiptRoot, got {other:?}"
         ))),
     }
+}
+
+/// A [`Powl`] region declaring one external cut, mirroring
+/// `powl_projection::tests::model_with_external_cut` (this module cannot
+/// depend on `praxis-core`, so it builds its own tiny fixture rather than
+/// sharing one; see this file's `use super::*` for why `Powl` is in scope).
+fn model_with_external_cut() -> Powl {
+    Powl::PartialOrder {
+        children: vec![
+            Powl::Leaf(Some("intake".to_string())),
+            Powl::ExternalCut {
+                region: Box::new(Powl::Leaf(Some("remote_settle".to_string()))),
+                projection: "SELECT * WHERE { ?s ?p ?o }".to_string(),
+                renderer: "arazzo_projection.tera".to_string(),
+            },
+        ],
+        order: BTreeSet::from([(0usize, 1usize)]),
+    }
+}
+
+/// A deterministic, in-crate stand-in for the real Rail A/B pipeline
+/// (`praxis_core::arazzo::ChatmanRailAbCompiler`, PROJ-796): this crate
+/// cannot depend on `praxis-core` (see `powl_projection`'s module doc for
+/// why), so PROJ-796's digest-#10 replay-verification gap is exercised here
+/// through the same [`ExternalCutCompiler`] trait seam production code
+/// uses, with a fake implementation the test controls directly. Two
+/// instances built with different `air_digest_hex` values stand in for
+/// "same S1-S6 state, different compiled WASM" — exactly the drift
+/// PROJ-796 named as unreachable-to-catch before this fix.
+struct FakeExternalCutCompiler {
+    air_digest_hex: String,
+}
+
+impl ExternalCutCompiler for FakeExternalCutCompiler {
+    fn compile(
+        &self,
+        request: &ExternalCutCompilationRequest<'_>,
+    ) -> Result<ExternalCutCompilationOutcome, Refusal> {
+        Ok(ExternalCutCompilationOutcome {
+            source_powl_digest_hex: blake3_combined(&["fake-source", request.region_turtle]),
+            sparql_projection_digest_hex: "fake-sparql-digest".to_string(),
+            tera_template_digest_hex: "fake-tera-digest".to_string(),
+            arazzo_digest_hex: "fake-arazzo-digest".to_string(),
+            compiler_version: "fake-compiler/v1".to_string(),
+            air_digest_hex: self.air_digest_hex.clone(),
+            arazzo_document: "{}".to_string(),
+        })
+    }
+}
+
+/// PROJ-796 gap closure: [`ChatmanEngine::verify_replay_with_external_cut`]
+/// recomputes digest #10 and catches a tampered/drifted Rail A/B artifact
+/// that carries the exact same S1-S6 state (same envelope, same snapshot,
+/// same declared region) as the admitted receipt — the scenario the ticket
+/// disclosed as unreachable through plain [`ChatmanEngine::verify_replay`].
+#[test]
+fn verify_replay_with_external_cut_accepts_faithful_and_refuses_tampered_artifact(
+) -> Result<(), Refusal> {
+    // Arrange: admit through the real external-cut path with a fixed fake
+    // compiler, so the receipt carries a real (recomputable) digest #10.
+    let model = model_with_external_cut();
+    let admit_compiler = FakeExternalCutCompiler {
+        air_digest_hex: "air-v1".to_string(),
+    };
+    let transition = engine_with(SNAPSHOT_TTL)?.admit_transition_with_external_cut(
+        envelope(),
+        &model,
+        &admit_compiler,
+    )?;
+    let receipt = transition.receipt().clone();
+    assert!(
+        receipt.external_cut.is_some(),
+        "a declared ExternalCut must populate digest #10"
+    );
+
+    let inputs = ReplayInputs {
+        envelope: envelope(),
+        snapshot_turtle: SNAPSHOT_TTL.to_string(),
+        profile: test_profile()?,
+    };
+
+    // Act + Assert: faithful replay (same compiler, same region) verifies.
+    match ChatmanEngine::verify_replay_with_external_cut(
+        &receipt,
+        &inputs,
+        Some(&model),
+        &admit_compiler,
+    ) {
+        Ok(()) => {}
+        Err(mismatch) => {
+            return Err(Refusal::ValidationFailed(format!(
+                "faithful external-cut replay must verify, got {mismatch}"
+            )))
+        }
+    }
+
+    // Tampered replay: identical S1-S6 inputs, but the compiler now stands
+    // in for a different compiled WASM artifact. Digest #10 must diverge
+    // and replay must refuse with the new taxonomy variant — this is the
+    // exact case that verified cleanly (silently) before this fix, because
+    // verify_replay never looked at digest #10 at all.
+    let tampered_compiler = FakeExternalCutCompiler {
+        air_digest_hex: "air-v2-tampered".to_string(),
+    };
+    match ChatmanEngine::verify_replay_with_external_cut(
+        &receipt,
+        &inputs,
+        Some(&model),
+        &tampered_compiler,
+    ) {
+        Err(ReplayMismatch::ExternalCut { recorded, replayed }) => {
+            assert_ne!(
+                recorded, replayed,
+                "mismatch must carry two different digests"
+            );
+        }
+        other => {
+            return Err(Refusal::ValidationFailed(format!(
+                "tampered external-cut artifact must fail as ReplayMismatch::ExternalCut, \
+                 got {other:?}"
+            )))
+        }
+    }
+
+    // A receipt with Some digest #10 replayed with no powl_region at all
+    // must also refuse (there is nothing to recompile against).
+    match ChatmanEngine::verify_replay_with_external_cut(&receipt, &inputs, None, &admit_compiler) {
+        Err(ReplayMismatch::ExternalCut { .. }) => Ok(()),
+        other => Err(Refusal::ValidationFailed(format!(
+            "Some digest #10 replayed with no powl_region must fail as \
+             ReplayMismatch::ExternalCut, got {other:?}"
+        ))),
+    }
+}
+
+/// A receipt with `external_cut: None` (the common, plain-`admit_transition`
+/// case) replays exactly like [`ChatmanEngine::verify_replay`] — the
+/// [`ExternalCutCompiler`] is never consulted.
+#[test]
+fn verify_replay_with_external_cut_matches_plain_replay_when_receipt_has_no_digest_10(
+) -> Result<(), Refusal> {
+    let transition = admit(SNAPSHOT_TTL)?;
+    assert!(transition.receipt().external_cut.is_none());
+    let inputs = ReplayInputs {
+        envelope: envelope(),
+        snapshot_turtle: SNAPSHOT_TTL.to_string(),
+        profile: test_profile()?,
+    };
+    let compiler = FakeExternalCutCompiler {
+        air_digest_hex: "unused-when-digest-10-is-none".to_string(),
+    };
+    match ChatmanEngine::verify_replay_with_external_cut(
+        transition.receipt(),
+        &inputs,
+        None,
+        &compiler,
+    ) {
+        Ok(()) => Ok(()),
+        Err(mismatch) => Err(Refusal::ValidationFailed(format!(
+            "None digest #10 must replay clean with no powl_region, got {mismatch}"
+        ))),
+    }
+}
+
+/// PROJ-771 (PRD.md sec.8, "Independent Process Cells"): two independently
+/// constructed [`ChatmanEngine`] instances, alive in the same process, must
+/// not be able to observe or reproduce one another's admitted graph/state
+/// through any hidden channel. `ChatmanEngine` holds no `static`,
+/// `OnceCell`/`OnceLock`, `lazy_static`, or thread-local field anywhere in
+/// its own struct or constructors (`in_memory`/`open`/`with_store`): each
+/// instance owns a private `oxigraph::store::Store` built fresh by
+/// `Store::new()`, so there is no field-level sharing to defeat. This test
+/// exercises that guarantee behaviorally, entirely through the public
+/// admission API (never reaching into a "cross-engine" accessor, because
+/// none exists on `ChatmanEngine` — no method takes another engine's handle
+/// or a raw numeric term id):
+///
+/// 1. Engine A admits a full S1-S6 transition over a snapshot carrying a
+///    distinctive marker literal.
+/// 2. Engine B — a wholly separate `in_memory` instance under the same
+///    profile — is asked to admit a transition against the *exact same*
+///    `snapshot_id` A just used. It refuses `SnapshotNotFound`: B's own
+///    store never received A's triples, so the identifier alone unlocks
+///    nothing.
+/// 3. Engine B then loads and admits its own (unmarked) snapshot under that
+///    same `snapshot_id` and profile. Its receipt's canonical N-Quads
+///    material contains none of A's marker literal, and every one of B's
+///    receipt digests differs from A's — proving content isolation, not
+///    just a missing-graph refusal.
+///
+/// This also stands as the disclosed answer to whether the crate's
+/// process-wide term-interning statics (`crate::registry::LIST_REGISTRY`
+/// et al., `crate::encoding::GLOBAL_ENCODER` — real `static`s shared by
+/// every `crate::TripleStore` instance in the process, per
+/// `registry.rs`'s own module doc) could defeat this guarantee: they
+/// cannot be reached from here, because `ChatmanEngine`'s public surface
+/// never exposes a raw numeric term id or a `TripleStore`/`Encoder`/
+/// `VarOrTerm` handle to a caller. `apply_owl_closure` (S2) constructs its
+/// `TripleStore` fresh, local to that one call, and every output that
+/// crosses back out of it (`canonicalize_quads`) is already-decoded
+/// N-Quads text, never a raw id — so even though those side tables are
+/// literally process-wide, nothing in this crate's *public* API lets one
+/// engine instance use them to read another instance's content. Recorded
+/// here rather than silently assumed, per PROJ-771's scope note.
+#[test]
+fn process_cell_isolation_engine_b_cannot_observe_engine_a() -> Result<(), Refusal> {
+    const MARKER: &str = "ISOLATION-MARKER-ONLY-IN-ENGINE-A-7f3c9a2d";
+    let snapshot_a_ttl =
+        format!("{SNAPSHOT_TTL}\n<urn:chatman:secret> <urn:chatman:marker> \"{MARKER}\" .");
+
+    // Arrange: Engine A is a fully independent instance that admits a real
+    // S1-S6 transition over the marked snapshot.
+    let mut engine_a = ChatmanEngine::in_memory(test_profile()?)?;
+    engine_a.load_snapshot(&GraphSnapshotId::new(SNAPSHOT_IRI), &snapshot_a_ttl)?;
+    let transition_a = engine_a.admit_transition(envelope())?;
+    assert!(
+        transition_a.receipt().canon_nquads.contains(MARKER),
+        "sanity: engine A's own receipt must contain its own marker"
+    );
+
+    // Act 1 + Assert 1: Engine B is a second, wholly separate instance
+    // (same profile, own fresh in-memory store) that never loaded anything.
+    // Asking it to admit the identical snapshot_id A just used must refuse
+    // SnapshotNotFound -- the id alone unlocks nothing from B's own store.
+    let mut engine_b = ChatmanEngine::in_memory(test_profile()?)?;
+    match engine_b.admit_transition(envelope()) {
+        Err(Refusal::SnapshotNotFound(_)) => {}
+        other => {
+            return Err(Refusal::ValidationFailed(format!(
+                "isolation violated: engine B resolved engine A's snapshot id \
+                 <{SNAPSHOT_IRI}> without ever loading it: {other:?}"
+            )))
+        }
+    }
+
+    // Act 2 + Assert 2: Engine B loads and admits its own, unmarked
+    // snapshot under the very same snapshot_id/profile A used. Its receipt
+    // must carry none of A's marker, and every digest must differ from A's.
+    engine_b.load_snapshot(&GraphSnapshotId::new(SNAPSHOT_IRI), SNAPSHOT_TTL)?;
+    let transition_b = engine_b.admit_transition(envelope())?;
+    assert!(
+        !transition_b.receipt().canon_nquads.contains(MARKER),
+        "isolation violated: engine B's canonical material contains engine A's \
+         private marker literal"
+    );
+    let receipt_a = transition_a.receipt();
+    let receipt_b = transition_b.receipt();
+    // digest #1 (graph_snapshot) hashes the raw snapshot content, which
+    // genuinely differs (A carries the marker triple, B does not) -- this
+    // is the direct proof that B's S1 read its own content, not A's.
+    assert_ne!(
+        receipt_a.graph_snapshot.0, receipt_b.graph_snapshot.0,
+        "isolation violated: engine B's graph_snapshot digest equals engine A's"
+    );
+    // digest #6 root folds graph_snapshot in, so it must differ too.
+    // (digest #4 `projection`, over the *derived* OWL RL closure delta, is
+    // legitimately identical here: the marker triple has no RDFS rule
+    // applicable to it, so both engines derive the same closure from the
+    // same underlying RDFS fragment -- that is expected engine behavior,
+    // not cross-instance leakage, and is not asserted on.)
+    assert_ne!(
+        receipt_a.receipt_root.0, receipt_b.receipt_root.0,
+        "isolation violated: engine B's receipt_root equals engine A's"
+    );
+
+    // Act 3 + Assert 3: reaching directly at the store level (available to
+    // this in-crate test module) confirms B's store never received A's
+    // marker graph content at all, independent of any digest comparison.
+    let (canon_b, _) = engine_b.fetch_snapshot(&GraphSnapshotId::new(SNAPSHOT_IRI))?;
+    assert!(
+        !canon_b.contains(MARKER),
+        "isolation violated: engine B's own store-level snapshot read contains \
+         engine A's private marker"
+    );
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// PROJ-774 engine bridge -- `ChatmanEngine::admit_child_completion`.
+//
+// `docs/jira/v26.7.11/PATH_TO_100.md` §7 names the closure/compensation
+// group as real, tested, and reachable from zero non-test callers of
+// `ChatmanEngine`. These tests exercise the minimal, honestly-scoped bridge
+// method added to close that gap: they prove `admit_child_completion` is a
+// real `ChatmanEngine` entry point that (a) genuinely consults this
+// engine's own S1 snapshot-presence check before the closure-law state
+// machine ever sees the signal, and (b) genuinely drives
+// `RecursiveSocketClosure`'s real PROJ-774 promotion gate through to a
+// changed, observable state -- not a call that merely returns `Ok(())`
+// without the underlying state having moved.
+// ---------------------------------------------------------------------------
+
+use crate::chatman::closure::ClosureLaw;
+use crate::shacl::ValidationResult;
+use crate::term::Term;
+use powl2_decompose::{ParentChildClosure, SocketKind, SocketPath};
+
+const CHILD_SNAPSHOT_IRI: &str = "urn:chatman:snapshot:test-child";
+
+fn closure_root_socket() -> WorkflowSocketId {
+    WorkflowSocketId {
+        path: SocketPath::root(),
+        kind: SocketKind::PartialOrder,
+    }
+}
+
+fn closure_leaf_socket(i: usize) -> WorkflowSocketId {
+    WorkflowSocketId {
+        path: SocketPath::root().child(i),
+        kind: SocketKind::Leaf,
+    }
+}
+
+/// One recursive socket, one declared child, `all_required` -- the
+/// smallest closure law shape that lets a single `admit_child_completion`
+/// call close the parent.
+fn one_leaf_closure() -> Result<RecursiveSocketClosure, Refusal> {
+    let model = Powl::PartialOrder {
+        children: vec![Powl::Leaf(Some("leaf-0".to_string()))],
+        order: BTreeSet::new(),
+    };
+    let pcc = ParentChildClosure::from_model(&model);
+    RecursiveSocketClosure::declare(&pcc, closure_root_socket(), ClosureLaw::AllRequired)
+}
+
+/// A `ValidationReport` with zero results -- real SHACL Core conformance,
+/// matching `crate::shacl::report::Validator::validate`'s own invariant
+/// (`conforms` iff `results.is_empty()`).
+fn conforming_evidence() -> ValidationReport {
+    ValidationReport {
+        conforms: true,
+        results: Vec::new(),
+    }
+}
+
+/// A `ValidationReport` carrying one real violation result -- genuinely
+/// non-conforming evidence, not a fabricated always-fail stub. Mirrors
+/// `closure_test.rs`'s own `nonconforming_evidence()` fixture.
+fn nonconforming_evidence() -> ValidationReport {
+    let focus = Term::parse("<urn:test:focus-node>".to_string());
+    let constraint =
+        Term::parse("<http://www.w3.org/ns/shacl#MinCountConstraintComponent>".to_string());
+    let shape = Term::parse("<urn:test:shape>".to_string());
+    let severity = Term::parse("<http://www.w3.org/ns/shacl#Violation>".to_string());
+    ValidationReport {
+        conforms: false,
+        results: vec![ValidationResult {
+            focus_node: focus,
+            result_path: None,
+            value: None,
+            source_constraint_component: constraint,
+            source_shape: shape,
+            severity,
+            message: Some("test-injected violation".to_string()),
+        }],
+    }
+}
+
+/// Happy path: a real `ChatmanEngine`, holding a real child snapshot in its
+/// own store, admits a child-workflow completion signal end to end through
+/// `admit_child_completion` -- and the closure law genuinely closes as a
+/// result, not merely "returns without error".
+#[test]
+fn admit_child_completion_admits_through_real_engine_s1_and_closure_gate() -> Result<(), Refusal> {
+    let mut engine = engine_with(SNAPSHOT_TTL)?;
+    engine.load_snapshot(
+        &GraphSnapshotId::new(CHILD_SNAPSHOT_IRI),
+        "<urn:ex:s> <urn:ex:p> <urn:ex:o> .\n",
+    )?;
+    let mut socket = one_leaf_closure()?;
+
+    engine.admit_child_completion(
+        &mut socket,
+        &closure_leaf_socket(0),
+        &GraphSnapshotId::new(CHILD_SNAPSHOT_IRI),
+        &conforming_evidence(),
+    )?;
+
+    // Real, observable state change: `require_terminal_admitted` is the
+    // same PRD §9 line 525 check `closure.rs`'s own tests use -- this is
+    // not merely "no error was returned".
+    socket.require_terminal_admitted(&closure_leaf_socket(0))?;
+    assert!(socket.is_closed()?);
+    socket.close()?;
+    Ok(())
+}
+
+/// Refusal path proving the engine's real S1 presence check runs *before*
+/// the closure-law state machine is touched at all: a completion signal
+/// citing a snapshot this engine never loaded is refused with the same
+/// `Refusal::SnapshotNotFound` `admit_transition`'s own S1 raises, and the
+/// child is left genuinely `Open` -- not silently advanced to `Observed`
+/// first and only then refused.
+#[test]
+fn admit_child_completion_refuses_before_touching_closure_state_when_child_snapshot_is_unresolvable(
+) -> Result<(), Refusal> {
+    let engine = engine_with(SNAPSHOT_TTL)?;
+    let mut socket = one_leaf_closure()?;
+
+    let result = engine.admit_child_completion(
+        &mut socket,
+        &closure_leaf_socket(0),
+        &GraphSnapshotId::new("urn:chatman:snapshot:never-loaded"),
+        &conforming_evidence(),
+    );
+
+    assert!(
+        matches!(result, Err(Refusal::SnapshotNotFound(_))),
+        "expected SnapshotNotFound, got {result:?}"
+    );
+    // The child is still Open (never even reached Observed): proof the S1
+    // check short-circuited before `socket.observe()` ran.
+    assert!(matches!(
+        socket.require_terminal_admitted(&closure_leaf_socket(0)),
+        Err(Refusal::ChildCompletionUnadmitted(_))
+    ));
+    Ok(())
+}
+
+/// Refusal path proving `admit_child_completion` genuinely reaches
+/// PROJ-774's real conformance gate: non-conforming evidence for a
+/// resolvable child snapshot is refused with `ChildConformanceRefused`,
+/// the same variant `promote_observed_to_admitted` raises when called
+/// directly in `closure_test.rs`.
+#[test]
+fn admit_child_completion_refuses_nonconforming_evidence_through_the_real_engine_entry_point(
+) -> Result<(), Refusal> {
+    let mut engine = engine_with(SNAPSHOT_TTL)?;
+    engine.load_snapshot(
+        &GraphSnapshotId::new(CHILD_SNAPSHOT_IRI),
+        "<urn:ex:s> <urn:ex:p> <urn:ex:o> .\n",
+    )?;
+    let mut socket = one_leaf_closure()?;
+
+    let result = engine.admit_child_completion(
+        &mut socket,
+        &closure_leaf_socket(0),
+        &GraphSnapshotId::new(CHILD_SNAPSHOT_IRI),
+        &nonconforming_evidence(),
+    );
+
+    assert!(
+        matches!(result, Err(Refusal::ChildConformanceRefused(_))),
+        "expected ChildConformanceRefused, got {result:?}"
+    );
+    Ok(())
 }

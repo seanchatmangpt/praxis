@@ -357,6 +357,36 @@ pub enum Refusal {
     /// An N3 rule attempted actuation (side effects), which is refused.
     #[error("N3 actuation refused: {0}")]
     N3ActuationRefused(String),
+    /// An admitted N3 execution's cumulative declared cost exceeded its
+    /// profile's declared cost bound (PROJ-779,
+    /// `chatman::router::N3Executor`). Reserves the PRD §18
+    /// `N3_COST_BOUND_EXCEEDED` catalog name; full N3/measurement typed-
+    /// refusal-catalog wiring (this crate's `ALL_REFUSAL_NAMES` and the
+    /// acceptance schemas) is PROJ-787's scope, not added here.
+    #[error("N3 cost bound exceeded: {0}")]
+    N3CostBoundExceeded(String),
+    /// An N3 rule referenced a builtin outside its profile's N3 execution
+    /// builtin whitelist (PROJ-779, `chatman::router::N3Executor`). Reserves
+    /// the PRD §18 `N3_BUILTIN_REFUSED` catalog name; full N3/measurement
+    /// typed-refusal-catalog wiring is PROJ-787's scope, not added here.
+    #[error("N3 builtin refused: {0}")]
+    N3BuiltinRefused(String),
+    /// An N3 rule referenced a recognized actuation-triggering builtin (I/O,
+    /// network, or process dispatch — e.g. `log:webOperation`), refused
+    /// unconditionally regardless of any profile's N3 execution whitelist
+    /// mask (PROJ-780, PRD.md §12 "N3 Quarantine": "An N3 rule that requests
+    /// direct actuation SHALL be refused", `PRD.md:608`). Distinct from
+    /// [`Refusal::N3ActuationRefused`] (the `ProfileGates`/`DialectRouter`
+    /// level refusal for a *query shape* declaring `wants_actuation` while
+    /// requiring N3) and from [`Refusal::N3BuiltinRefused`] (a pure builtin
+    /// simply outside the declared whitelist mask, which a profile *could*
+    /// admit by widening the mask) — a direct-actuation builtin can never be
+    /// admitted by any mask, at any executor. Wired at
+    /// `chatman::router::N3Executor::run`. Reserves the PRD §18
+    /// `N3_DIRECT_ACTUATION_REFUSED` catalog name; full N3/measurement
+    /// typed-refusal-catalog wiring is PROJ-787's scope, not added here.
+    #[error("N3 direct actuation refused: {0}")]
+    N3DirectActuationRefused(String),
     /// A replayed route decision differs from the recorded decision.
     #[error("route decision mismatch: {0}")]
     RouteDecisionMismatch(String),
@@ -401,12 +431,147 @@ pub enum Refusal {
     /// [`Refusal::BoundaryRequestMissingReceipt`] (boundary-specific).
     #[error("unlawful actuation: {0}")]
     UnlawfulActuation(String),
+    /// PROJ-783 (PRD.md v26.7.11 sec.18, `POWL_REGION_NOT_ADMITTED`): a
+    /// declared `powl2_decompose::Powl::ExternalCut`'s inner region fails
+    /// admission — an empty composite (`PartialOrder`/`Choice` with zero
+    /// children) or a further-nested external cut inside the region, per
+    /// `powl2_decompose::validate_external_cut`'s own
+    /// `ExternalCutRefusal::PowlRegionNotAdmitted`. Wired at
+    /// `chatman::powl_projection::admit_powl_model`.
+    #[error("POWL_REGION_NOT_ADMITTED: {0}")]
+    PowlRegionNotAdmitted(String),
+    /// PROJ-783 (PRD.md v26.7.11 sec.18, `EXTERNAL_CUT_UNDECLARED`): a
+    /// declared `powl2_decompose::Powl::ExternalCut` carries an empty SPARQL
+    /// projection or Tera renderer string — the cut names no real projection
+    /// authority to dispatch to. Wired at
+    /// `chatman::powl_projection::admit_powl_model`.
+    #[error("EXTERNAL_CUT_UNDECLARED: {0}")]
+    ExternalCutUndeclared(String),
+    /// PROJ-783 (PRD.md v26.7.11 sec.18, `EXTERNAL_CUT_TYPE_MISMATCH`): a
+    /// caller-declared structural address (a `powl2_decompose::SocketPath`)
+    /// claimed to name a `powl2_decompose::Powl::ExternalCut` resolves to a
+    /// different POWL variant, or to no node at all. Wired at
+    /// `chatman::powl_projection::resolve_external_cut_at`.
+    #[error("EXTERNAL_CUT_TYPE_MISMATCH: {0}")]
+    ExternalCutTypeMismatch(String),
+    /// PROJ-783 (PRD.md v26.7.11 sec.18, `EXTERNAL_CUT_AUTHORITY_MISMATCH`):
+    /// a POWL model that declares an external cut names a `derived_from`
+    /// provenance IRI whose RFC 3986-style authority component differs from
+    /// the region's own `base_iri` authority — a manufactured artifact
+    /// cannot claim provenance from an authority other than the one
+    /// producing it (PRD.md sec.7.1: "No runtime layer SHALL infer ambient
+    /// authority from syntax"). Wired at
+    /// `chatman::powl_projection::powl_to_turtle`.
+    #[error("EXTERNAL_CUT_AUTHORITY_MISMATCH: {0}")]
+    ExternalCutAuthorityMismatch(String),
+    /// PROJ-759 (PRD.md v26.7.11 sec.9, closure-law foundation): a recursive
+    /// socket's declared closure law was evaluated against zero declared
+    /// children (`powl2_decompose::ParentChildClosure::children_of` returned
+    /// an empty set) — a recursive socket with no children cannot
+    /// meaningfully declare a closure law. Wired at
+    /// `chatman::closure::RecursiveSocketClosure::declare`.
+    #[error("closure law declares zero children: {0}")]
+    ClosureLawNoChildren(String),
+    /// PROJ-759 (PRD.md v26.7.11 sec.9): a declared `quorum(q)` closure
+    /// law's `q` is zero or exceeds the declared child count — `Close(W)
+    /// iff |{c in C(W): TerminalAdmitted(c)}| >= q` is vacuous or
+    /// unreachable for such `q`. Wired at
+    /// `chatman::closure::RecursiveSocketClosure::declare`.
+    #[error("closure law quorum out of range: {0}")]
+    ClosureLawQuorumOutOfRange(String),
+    /// PROJ-759 (PRD.md v26.7.11 sec.9): a completion/admission signal
+    /// (`observe`/`admit`/`require_terminal_admitted`) cited a
+    /// `powl2_decompose::WorkflowSocketId` that is not one of the recursive
+    /// socket's declared children. Wired at
+    /// `chatman::closure::RecursiveSocketClosure`.
+    #[error("closure law unknown child: {0}")]
+    ClosureLawUnknownChild(String),
+    /// PROJ-773 (PRD.md v26.7.11 sec.9): a declared `ordered_subset`
+    /// closure law's required child sequence is empty, contains a
+    /// duplicate entry, or names a `powl2_decompose::WorkflowSocketId`
+    /// that is not one of the recursive socket's own direct declared
+    /// children — `Close(W) iff forall c in S, TerminalAdmitted(c)` is
+    /// undefined/vacuous for such an `S`. Wired at
+    /// `chatman::closure::RecursiveSocketClosure::declare`.
+    #[error("closure law ordered_subset invalid: {0}")]
+    ClosureLawOrderedSubsetInvalid(String),
+    /// PROJ-773 (PRD.md v26.7.11 sec.9): `record_policy_decision` was
+    /// called on a recursive socket whose declared law is not
+    /// `policy_decides` — a policy verdict has no closure-law meaning
+    /// outside that declared law. Wired at
+    /// `chatman::closure::RecursiveSocketClosure::record_policy_decision`.
+    #[error("closure law policy not declared: {0}")]
+    ClosureLawPolicyNotDeclared(String),
+    /// PROJ-774 (PRD.md v26.7.11 sec.9 line 525, the admission gate that
+    /// actually promotes `Observed` to `Admitted`): a child's completion
+    /// signal was submitted for promotion together with real SHACL
+    /// conformance evidence (`crate::shacl::ValidationReport`) whose
+    /// `.conforms` is `false` — the child stays `Observed`, never silently
+    /// promoted on failing evidence. Wired at
+    /// `chatman::closure::RecursiveSocketClosure::promote_observed_to_admitted`.
+    #[error("CHILD_CONFORMANCE_REFUSED: {0}")]
+    ChildConformanceRefused(String),
+    /// PROJ-759 (PRD.md v26.7.11 sec.9 line 525; reserves the PRD §18
+    /// `CHILD_COMPLETION_UNADMITTED` catalog name): "A child completion
+    /// signal SHALL be treated as observation until admitted" — a caller
+    /// asked whether a specific child is `TerminalAdmitted` and found it
+    /// merely `Observed` or still `Open`. Distinct from
+    /// [`Refusal::ClosureLawUnknownChild`] (the child isn't declared at
+    /// all). Wired at
+    /// `chatman::closure::RecursiveSocketClosure::require_terminal_admitted`.
+    /// Full PRD §18 typed-refusal-catalog wiring (`ALL_REFUSAL_NAMES`, the
+    /// acceptance schemas) is PROJ-786's scope, following the same
+    /// PROJ-779/780/783 precedent below — not added there yet.
+    #[error("CHILD_COMPLETION_UNADMITTED: {0}")]
+    ChildCompletionUnadmitted(String),
+    /// PROJ-759 (PRD.md v26.7.11 sec.9; reserves the PRD §18
+    /// `PARENT_CLOSURE_UNSATISFIED` catalog name): an attempt to close a
+    /// recursive socket's parent workflow found its declared closure law
+    /// not yet satisfied (PRD §19.4/§19.5: an unsatisfied closure law
+    /// leaves the parent open, it does not silently proceed). Wired at
+    /// `chatman::closure::RecursiveSocketClosure::close`. Full PRD §18
+    /// typed-refusal-catalog wiring is PROJ-786's scope, same precedent as
+    /// [`Refusal::ChildCompletionUnadmitted`] above.
+    #[error("PARENT_CLOSURE_UNSATISFIED: {0}")]
+    ParentClosureUnsatisfied(String),
 }
 
 /// Every [`Refusal`] name, in declaration order. This is the cross-lane
 /// contract mirrored by the `expected_refusal` enum in each acceptance
 /// schema; `tests/chatman_static_gates.rs` asserts set-equality.
-pub const ALL_REFUSAL_NAMES: [&str; 31] = [
+///
+/// Catalog-complete (PROJ-786/787): all 46 [`Refusal`] variants appear here,
+/// in the same order as the enum declaration above. This closes three
+/// previously-deferred gaps, each tracked by its own NOTE in prior
+/// revisions of this comment:
+///
+/// - PROJ-779/780: [`Refusal::N3CostBoundExceeded`],
+///   [`Refusal::N3BuiltinRefused`], [`Refusal::N3DirectActuationRefused`]
+///   (real, constructed in `chatman::router::N3Executor`).
+/// - PROJ-783: [`Refusal::PowlRegionNotAdmitted`],
+///   [`Refusal::ExternalCutUndeclared`],
+///   [`Refusal::ExternalCutTypeMismatch`],
+///   [`Refusal::ExternalCutAuthorityMismatch`] (real, constructed in
+///   `chatman::powl_projection::admit_powl_model`/`resolve_external_cut_at`/
+///   `powl_to_turtle`).
+/// - PROJ-759/772/773/774: [`Refusal::ClosureLawNoChildren`],
+///   [`Refusal::ClosureLawQuorumOutOfRange`],
+///   [`Refusal::ClosureLawUnknownChild`],
+///   [`Refusal::ClosureLawOrderedSubsetInvalid`],
+///   [`Refusal::ClosureLawPolicyNotDeclared`],
+///   [`Refusal::ChildConformanceRefused`],
+///   [`Refusal::ChildCompletionUnadmitted`],
+///   [`Refusal::ParentClosureUnsatisfied`] (real, constructed in
+///   `chatman::closure::RecursiveSocketClosure`).
+///
+/// All 15 were already real, constructed, end-to-end-tested variants before
+/// this change; only the catalog-completeness bookkeeping (this array, the
+/// 8 acceptance schemas' `expected_refusal.enum`, and
+/// `gate_refusal_name_matches_const_list`'s hand-built variant list) was
+/// behind. `engine.rs::ReplayMismatch` is a separate, intentionally
+/// uncataloged type (replay-tamper detection, not an admission-time
+/// [`Refusal`]) and is out of scope for this array by design.
+pub const ALL_REFUSAL_NAMES: [&str; 46] = [
     "ValidationFailed",
     "PlanInfeasible",
     "TraceUnlawful",
@@ -426,6 +591,9 @@ pub const ALL_REFUSAL_NAMES: [&str; 31] = [
     "UnsupportedDialect",
     "N3UnavailableByProfile",
     "N3ActuationRefused",
+    "N3CostBoundExceeded",
+    "N3BuiltinRefused",
+    "N3DirectActuationRefused",
     "RouteDecisionMismatch",
     "GraphSnapshotMismatch",
     "ProfileHashMismatch",
@@ -438,6 +606,18 @@ pub const ALL_REFUSAL_NAMES: [&str; 31] = [
     "TripleTermInSnapshot",
     "StageSealMismatch",
     "UnlawfulActuation",
+    "PowlRegionNotAdmitted",
+    "ExternalCutUndeclared",
+    "ExternalCutTypeMismatch",
+    "ExternalCutAuthorityMismatch",
+    "ClosureLawNoChildren",
+    "ClosureLawQuorumOutOfRange",
+    "ClosureLawUnknownChild",
+    "ClosureLawOrderedSubsetInvalid",
+    "ClosureLawPolicyNotDeclared",
+    "ChildConformanceRefused",
+    "ChildCompletionUnadmitted",
+    "ParentClosureUnsatisfied",
 ];
 
 impl Refusal {
@@ -468,6 +648,9 @@ impl Refusal {
             Refusal::UnsupportedDialect(_) => "UnsupportedDialect",
             Refusal::N3UnavailableByProfile(_) => "N3UnavailableByProfile",
             Refusal::N3ActuationRefused(_) => "N3ActuationRefused",
+            Refusal::N3CostBoundExceeded(_) => "N3CostBoundExceeded",
+            Refusal::N3BuiltinRefused(_) => "N3BuiltinRefused",
+            Refusal::N3DirectActuationRefused(_) => "N3DirectActuationRefused",
             Refusal::RouteDecisionMismatch(_) => "RouteDecisionMismatch",
             Refusal::GraphSnapshotMismatch(_) => "GraphSnapshotMismatch",
             Refusal::ProfileHashMismatch(_) => "ProfileHashMismatch",
@@ -482,6 +665,18 @@ impl Refusal {
             Refusal::TripleTermInSnapshot(_) => "TripleTermInSnapshot",
             Refusal::StageSealMismatch(_) => "StageSealMismatch",
             Refusal::UnlawfulActuation(_) => "UnlawfulActuation",
+            Refusal::PowlRegionNotAdmitted(_) => "PowlRegionNotAdmitted",
+            Refusal::ExternalCutUndeclared(_) => "ExternalCutUndeclared",
+            Refusal::ExternalCutTypeMismatch(_) => "ExternalCutTypeMismatch",
+            Refusal::ExternalCutAuthorityMismatch(_) => "ExternalCutAuthorityMismatch",
+            Refusal::ClosureLawNoChildren(_) => "ClosureLawNoChildren",
+            Refusal::ClosureLawQuorumOutOfRange(_) => "ClosureLawQuorumOutOfRange",
+            Refusal::ClosureLawUnknownChild(_) => "ClosureLawUnknownChild",
+            Refusal::ClosureLawOrderedSubsetInvalid(_) => "ClosureLawOrderedSubsetInvalid",
+            Refusal::ClosureLawPolicyNotDeclared(_) => "ClosureLawPolicyNotDeclared",
+            Refusal::ChildConformanceRefused(_) => "ChildConformanceRefused",
+            Refusal::ChildCompletionUnadmitted(_) => "ChildCompletionUnadmitted",
+            Refusal::ParentClosureUnsatisfied(_) => "ParentClosureUnsatisfied",
         }
     }
 }

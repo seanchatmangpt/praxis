@@ -4,7 +4,7 @@
   },
   "ocel:events": {
     "evt_001": {
-      "event_id": "3c0d8ab5-92ff-47eb-be14-5e205bef6372",
+      "event_id": "64dc21dd-bf45-4b12-88ca-0bd3d28d91f4",
       "case_id": "chatman-static_gate",
       "activity": {
         "DiagnosticEmitted": {
@@ -21,12 +21,12 @@
       ],
       "attributes": {
         "outcome": "refused",
-        "fixture_id": "Falsify_ProcessReceiptShadowType",
-        "refusal": "ProcessReceiptShadowType"
+        "refusal": "ProcessReceiptShadowType",
+        "fixture_id": "Falsify_ProcessReceiptShadowType"
       }
     },
     "evt_002": {
-      "event_id": "2ad7f447-0094-4507-af7b-11f853d1840d",
+      "event_id": "7665ea42-d596-4154-bb75-f399ec7fae10",
       "case_id": "chatman-static_gate",
       "activity": {
         "DiagnosticEmitted": {
@@ -42,33 +42,12 @@
         ]
       ],
       "attributes": {
-        "outcome": "admitted",
-        "fixture_id": "Accept_SingleProcessReceiptType"
-      }
-    },
-    "evt_003": {
-      "event_id": "1a0952e3-d7d4-4726-b8b9-2820237576d8",
-      "case_id": "chatman-static_gate",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Info"
-        }
-      },
-      "timestamp_ns": 4,
-      "objects": [
-        [
-          "Accept_UniqueCanonicalTapeType",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Accept_UniqueCanonicalTapeType",
+        "fixture_id": "Accept_SingleProcessReceiptType",
         "outcome": "admitted"
       }
     },
     "evt_000": {
-      "event_id": "041ca899-8333-47db-a1bc-7545983ce637",
+      "event_id": "acd823d8-f1cf-4e0d-bb61-6c2c6d2a3a34",
       "case_id": "chatman-static_gate",
       "activity": {
         "DiagnosticEmitted": {
@@ -84,9 +63,30 @@
         ]
       ],
       "attributes": {
-        "outcome": "refused",
         "refusal": "DuplicateCanonicalTapeType",
+        "outcome": "refused",
         "fixture_id": "Falsify_DuplicateCanonicalTapeType"
+      }
+    },
+    "evt_003": {
+      "event_id": "30f491cc-d73f-4e43-8637-d574fd766000",
+      "case_id": "chatman-static_gate",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 4,
+      "objects": [
+        [
+          "Accept_UniqueCanonicalTapeType",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "admitted",
+        "fixture_id": "Accept_UniqueCanonicalTapeType"
       }
     }
   },

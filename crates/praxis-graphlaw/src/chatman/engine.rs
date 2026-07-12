@@ -51,13 +51,13 @@ use oxigraph::sparql::{QueryResults, SparqlEvaluator};
 use oxigraph::store::Store;
 use oxrdf::dataset::{CanonicalizationAlgorithm, CanonicalizationHashAlgorithm};
 use oxrdf::{Dataset, NamedNode, Term};
-use powl2_decompose::Powl;
+use powl2_decompose::{Powl, WorkflowSocketId};
 use serde::{Deserialize, Serialize};
 
 use bcinr_pddl::error::Pddl8Error;
-use bcinr_pddl::ground::GroundProblem;
+use bcinr_pddl::ground::{GroundProblem, GroundTemporalProblem};
 use bcinr_pddl::parse::{domain_from_pddl, problem_from_pddl};
-use bcinr_pddl::{Pddl8Domain, Pddl8Problem, Pddl8Tape};
+use bcinr_pddl::{Pddl8Domain, Pddl8Problem, Pddl8Tape, TemporalPlan};
 use bcinr_powl::ocel::{validate_against_tape, ConformanceResult, OcelLog as PowlOcelLog};
 use bcinr_powl::tape::{OpKind, PowlTape};
 use bcinr_powl_receipt::causal_receipt::{OcelCausalFrame, OcelCausalReceipt, PackedObjRef};
@@ -68,10 +68,12 @@ use wasm4pm_compat::ocel::{EventObjectLink, Object, ObjectChange, ObjectObjectLi
 
 use crate::hooks::{canonicalize_quads, HookReceipt};
 use crate::parser::Syntax;
+use crate::shacl::ValidationReport;
 use crate::TripleStore;
 
 use super::abi::{Digest, GraphSnapshotId, InvocationEnvelope, Refusal, StageSeal};
 use super::admission8::{AdmissionTable8, ConstraintMask};
+use super::closure::RecursiveSocketClosure;
 use super::powl_projection::{
     model_declares_external_cut, powl_to_turtle, ExternalCutCompilationOutcome,
     ExternalCutCompilationRequest, ExternalCutCompiler,
@@ -261,9 +263,10 @@ pub struct EngineProcessReceipt {
     /// produces byte-identical digests #1-#9 and `receipt_root` to what
     /// this engine produced before this field existed. This field is its
     /// own independently verifiable digest instead of perturbing the
-    /// existing nine-term root. Not yet covered by
-    /// [`ChatmanEngine::verify_replay`] (a disclosed PROJ-796 gap: replay
-    /// verification recomputes and compares only digests #1-#9 today).
+    /// existing nine-term root. [`ChatmanEngine::verify_replay`] does not
+    /// recompute this field (it has no `powl_region`/`compiler` to recompute
+    /// it from); a recorded receipt with `Some` digest #10 must instead be
+    /// checked with [`ChatmanEngine::verify_replay_with_external_cut`].
     pub external_cut: Option<Digest>,
 }
 
@@ -323,6 +326,41 @@ fn external_cut_digest(outcome: &ExternalCutCompilationOutcome, root_element_id:
         &outcome.compiler_version,
         &outcome.air_digest_hex,
     ]))
+}
+
+/// Shared Rail A/B invocation: builds the [`ExternalCutCompilationRequest`]
+/// from `snapshot_id`/`invocation_id`/`powl_region` exactly as
+/// [`ChatmanEngine::admit_transition_with_external_cut`] always has (base
+/// IRI, root element id, workflow id, title all derived the same way), runs
+/// `compiler.compile`, and folds the outcome into digest #10. Used by both
+/// that method and [`ChatmanEngine::verify_replay_with_external_cut`] so the
+/// request-building formula has exactly one definition — a replay that
+/// diverged from admission because someone hand-rolled a second copy of this
+/// logic is exactly the class of bug digest #10 exists to catch.
+///
+/// # Complexity
+/// [`powl_to_turtle`]'s admission/Turtle-emission cost plus the injected
+/// `compiler`'s own bound.
+fn compile_external_cut_digest(
+    snapshot_id: &str,
+    invocation_id: &str,
+    powl_region: &Powl,
+    compiler: &dyn ExternalCutCompiler,
+) -> Result<Digest, Refusal> {
+    let base_iri = snapshot_id.trim_end_matches('/');
+    let turtle = powl_to_turtle(powl_region, base_iri, Some(snapshot_id))?;
+    let root_element_id = format!("{base_iri}/n0");
+    let workflow_id = format!("chatman-external-cut/{invocation_id}");
+    let title = format!("Chatman Rail A/B external cut for invocation {invocation_id}");
+
+    let request = ExternalCutCompilationRequest {
+        region_turtle: &turtle,
+        root_element_id: &root_element_id,
+        workflow_id: &workflow_id,
+        title: &title,
+    };
+    let outcome = compiler.compile(&request)?;
+    Ok(external_cut_digest(&outcome, &root_element_id))
 }
 
 /// An admitted transition: the only constructors are
@@ -459,6 +497,21 @@ pub enum ReplayMismatch {
         recorded: String,
         /// Root recomputed over the carried digests.
         recomputed: String,
+    },
+    /// Digest #10 drifted (PROJ-796). Only reachable via
+    /// [`ChatmanEngine::verify_replay_with_external_cut`] — plain
+    /// [`ChatmanEngine::verify_replay`] never recomputes digest #10, so it
+    /// cannot raise this variant.
+    #[error("external_cut mismatch: recorded {recorded} replayed {replayed}")]
+    ExternalCut {
+        /// Digest #10 carried by the recorded receipt.
+        recorded: String,
+        /// Digest #10 the replay recomputed, or a sentinel string (never
+        /// valid 64-hex digest material) describing why no real digest
+        /// could be recomputed: `receipt.external_cut` is `Some` but the
+        /// caller supplied no `powl_region`, or the supplied `powl_region`
+        /// declares no [`Powl::ExternalCut`] anywhere.
+        replayed: String,
     },
     /// The replay run itself refused before any digest could be compared.
     #[error("replay refused: {0}")]
@@ -727,21 +780,72 @@ impl ChatmanEngine {
             return Ok(transition);
         }
 
-        let base_iri = snapshot_id.trim_end_matches('/');
-        let turtle = powl_to_turtle(powl_region, base_iri, Some(&snapshot_id))?;
-        let root_element_id = format!("{base_iri}/n0");
-        let workflow_id = format!("chatman-external-cut/{invocation_id}");
-        let title = format!("Chatman Rail A/B external cut for invocation {invocation_id}");
-
-        let request = ExternalCutCompilationRequest {
-            region_turtle: &turtle,
-            root_element_id: &root_element_id,
-            workflow_id: &workflow_id,
-            title: &title,
-        };
-        let outcome = compiler.compile(&request)?;
-        transition.receipt.external_cut = Some(external_cut_digest(&outcome, &root_element_id));
+        let digest =
+            compile_external_cut_digest(&snapshot_id, &invocation_id, powl_region, compiler)?;
+        transition.receipt.external_cut = Some(digest);
         Ok(transition)
+    }
+
+    /// Admits a child-workflow completion signal against its recursive
+    /// socket's declared closure law (PRD v26.7.11 §9; PROJ-774).
+    ///
+    /// **Scope note (honest disclosure — a minimal bridge, not full
+    /// PROJ-774/775 engine wiring).** `ChatmanEngine` holds no persistent
+    /// [`RecursiveSocketClosure`] state of its own today — the struct is
+    /// exactly the five fields [`ChatmanEngine::in_memory`] builds — and
+    /// neither [`InvocationEnvelope`] nor [`ChatmanEngine::admit_transition`]'s
+    /// S1-S6 pipeline has any concept of a "child-workflow completion
+    /// signal": there is no socket-addressed transition input anywhere in
+    /// the current envelope model. A caller therefore owns `socket` and
+    /// passes it in by `&mut` reference; this is disclosed as a real gap,
+    /// not silently routed around — see `docs/jira/v26.7.11/PATH_TO_100.md`
+    /// §7 for the wider architectural item this method is a first, minimal
+    /// slice of.
+    ///
+    /// What this method genuinely contributes beyond calling
+    /// [`RecursiveSocketClosure::observe`] /
+    /// [`RecursiveSocketClosure::promote_observed_to_admitted`] directly
+    /// from a test: it re-runs this engine's real S1 presence check
+    /// ([`ChatmanEngine::fetch_snapshot`] — the same private method
+    /// [`ChatmanEngine::admit_transition`] calls to open every invocation
+    /// and to TOCTOU-recheck it before sealing) against `child_snapshot_id`
+    /// before honoring the signal at all. A completion signal citing a
+    /// snapshot this engine cannot resolve in its own store is refused
+    /// before the closure-law state machine ever observes it — the
+    /// "observation" PRD §9 line 525 describes is tied to something this
+    /// engine can actually verify landed in its store, not accepted on
+    /// say-so from the caller.
+    ///
+    /// # Errors
+    /// [`Refusal::SnapshotNotFound`] / [`Refusal::ValidationFailed`] from
+    /// the S1 check if `child_snapshot_id` does not resolve in this
+    /// engine's store; otherwise every error
+    /// [`RecursiveSocketClosure::observe`] and
+    /// [`RecursiveSocketClosure::promote_observed_to_admitted`] can return,
+    /// unchanged: [`Refusal::ClosureLawUnknownChild`] (undeclared child),
+    /// [`Refusal::ChildCompletionUnadmitted`] (still `Open`, never
+    /// observed), or [`Refusal::ChildConformanceRefused`] (observed but
+    /// `evidence.conforms` is `false`).
+    ///
+    /// # Complexity
+    /// [`ChatmanEngine::fetch_snapshot`]'s O(q log q) snapshot
+    /// canonicalization bound (q = the child snapshot's quad count), plus
+    /// O(log c) for the two closure-state lookups (c = the socket's
+    /// declared child count).
+    pub fn admit_child_completion(
+        &self,
+        socket: &mut RecursiveSocketClosure,
+        child: &WorkflowSocketId,
+        child_snapshot_id: &GraphSnapshotId,
+        evidence: &ValidationReport,
+    ) -> Result<(), Refusal> {
+        // Real S1 check — the same private method `admit_transition` opens
+        // and TOCTOU-rechecks every invocation with: a completion signal is
+        // not honored unless this engine can actually resolve the child's
+        // cited snapshot in its own store.
+        self.fetch_snapshot(child_snapshot_id)?;
+        socket.observe(child)?;
+        socket.promote_observed_to_admitted(child, evidence)
     }
 
     /// Applies an admitted transition's boundary requests as SPARQL UPDATE
@@ -886,6 +990,78 @@ impl ChatmanEngine {
             return Err(ReplayMismatch::ReceiptRoot {
                 recorded: receipt.receipt_root.0.clone(),
                 recomputed: recomputed.0,
+            });
+        }
+        Ok(())
+    }
+
+    /// Opt-in extension of [`ChatmanEngine::verify_replay`] (closes the
+    /// PROJ-796 gap disclosed on [`EngineProcessReceipt::external_cut`]):
+    /// additionally recomputes and compares digest #10 when the recorded
+    /// receipt carries one, via the same [`ExternalCutCompiler`] trait seam
+    /// [`ChatmanEngine::admit_transition_with_external_cut`] uses
+    /// ([`compile_external_cut_digest`], the one shared definition of the
+    /// request-building formula both call sites use).
+    ///
+    /// Mirrors [`ChatmanEngine::admit_transition_with_external_cut`]'s
+    /// "local POWL remains local" contract in reverse: if
+    /// `receipt.external_cut` is `None`, this call is exactly
+    /// [`ChatmanEngine::verify_replay`] — `powl_region` and `compiler` are
+    /// never consulted. If it is `Some`, `powl_region` must be supplied,
+    /// must declare at least one [`Powl::ExternalCut`]
+    /// ([`model_declares_external_cut`]), and recompiling it through
+    /// `compiler` must reproduce the same digest #10 — a tampered or
+    /// drifted manufactured-Arazzo artifact (different WASM, same S1-S6
+    /// state) now fails replay instead of silently verifying.
+    ///
+    /// # Errors
+    /// Everything [`ChatmanEngine::verify_replay`] can refuse with,
+    /// unchanged (checked first — digests #1-#9 and the root fail fast
+    /// before digest #10 is even considered); plus
+    /// [`ReplayMismatch::ExternalCut`] if: `receipt.external_cut` is `Some`
+    /// but `powl_region` is `None`; `powl_region` is `Some` but declares no
+    /// external cut; or the recompiled digest #10 disagrees with the
+    /// recorded one. [`ReplayMismatch::ReplayRefused`] if the injected
+    /// `compiler` itself refuses to compile the replayed region.
+    ///
+    /// # Complexity
+    /// [`ChatmanEngine::verify_replay`]'s own bound, plus (only when
+    /// `receipt.external_cut` is `Some`) the same additional cost
+    /// [`ChatmanEngine::admit_transition_with_external_cut`] pays for its
+    /// Rail A/B compilation.
+    pub fn verify_replay_with_external_cut(
+        receipt: &EngineProcessReceipt,
+        inputs: &ReplayInputs,
+        powl_region: Option<&Powl>,
+        compiler: &dyn ExternalCutCompiler,
+    ) -> Result<(), ReplayMismatch> {
+        Self::verify_replay(receipt, inputs)?;
+
+        let recorded = match &receipt.external_cut {
+            None => return Ok(()),
+            Some(digest) => digest,
+        };
+        let region = powl_region.ok_or_else(|| ReplayMismatch::ExternalCut {
+            recorded: recorded.0.clone(),
+            replayed: "<no powl_region supplied for replay>".to_string(),
+        })?;
+        if !model_declares_external_cut(region) {
+            return Err(ReplayMismatch::ExternalCut {
+                recorded: recorded.0.clone(),
+                replayed: "<powl_region declares no external cut>".to_string(),
+            });
+        }
+        let replayed = compile_external_cut_digest(
+            inputs.envelope.snapshot_id.as_str(),
+            inputs.envelope.invocation_id.as_str(),
+            region,
+            compiler,
+        )
+        .map_err(ReplayMismatch::ReplayRefused)?;
+        if replayed.0 != recorded.0 {
+            return Err(ReplayMismatch::ExternalCut {
+                recorded: recorded.0.clone(),
+                replayed: replayed.0,
             });
         }
         Ok(())
@@ -1154,6 +1330,71 @@ impl ChatmanEngine {
         self.fetch_snapshot(snapshot_id)?;
         let (tape, _digest) = self.compute_pddl_plan(snapshot_id)?;
         Ok(tape)
+    }
+
+    /// Read-only side-door, temporal counterpart to
+    /// [`ChatmanEngine::plan_tape_for_snapshot`]: reads the same snapshot's
+    /// PDDL domain/problem literals, but grounds and schedules them through
+    /// `bcinr_pddl::ground::GroundTemporalProblem` (the `:durative-action`
+    /// grounding + real-time-interval scheduling path) instead of the
+    /// classical `GroundProblem`/`find_plan` BFS that
+    /// [`ChatmanEngine::compute_pddl_plan`] (and therefore S3
+    /// `generate_pddl_plan`) uses.
+    ///
+    /// This does not alter S3 or [`ChatmanEngine::plan_tape_for_snapshot`]
+    /// in any way -- it is a wholly separate, additive read path, exactly
+    /// like `plan_tape_for_snapshot` is with respect to S3 itself. A
+    /// snapshot whose PDDL domain declares only classical `:action` schemas
+    /// (every existing praxis PDDL fixture as of this writing) grounds zero
+    /// durative actions here; `GroundTemporalProblem::find_temporal_plan`
+    /// then refuses with [`Pddl8Error::NoAdmittedPlan`] (mapped to
+    /// [`Refusal::PlanInfeasible`]) unless the problem's goal already holds
+    /// in the initial state. This accessor exists so a snapshot carrying
+    /// genuine `:durative-action` PDDL can be projected through
+    /// `chatman::powl_projection::project_temporal_plan_to_powl` without
+    /// admitting a full transition -- same non-participation-in-sealing
+    /// contract as `plan_tape_for_snapshot`: no store mutation, no effect on
+    /// any [`AdmittedTransition`] or [`EngineProcessReceipt`].
+    ///
+    /// # Errors
+    /// [`Refusal::SnapshotNotFound`] if the snapshot graph is absent;
+    /// [`Refusal::PlanInfeasible`] if either PDDL literal is missing; the
+    /// [`Pddl8Error`] taxonomy (parse/grounding/scheduling failures) mapped
+    /// through this module's `From<Pddl8Error> for Refusal` impl.
+    ///
+    /// # Complexity
+    /// Grounding is bounded by `PDDL8_MAX_GROUND`; the temporal scheduling
+    /// search is bounded by `PDDL8_MAX_PLAN_DEPTH` (64) ticks, each tick
+    /// bounded by `durative_actions.len()` applicability re-scan passes.
+    pub fn plan_temporal_tape_for_snapshot(
+        &self,
+        snapshot_id: &GraphSnapshotId,
+    ) -> Result<TemporalPlan, Refusal> {
+        // Re-run S1's presence check (read-only), same as
+        // `plan_tape_for_snapshot`.
+        self.fetch_snapshot(snapshot_id)?;
+        let graph = snapshot_graph(snapshot_id)?;
+        let domain_text = self
+            .select_literal(&graph, PDDL_DOMAIN_PREDICATE)?
+            .ok_or_else(|| {
+                Refusal::PlanInfeasible(format!(
+                    "snapshot {snapshot_id}: no PDDL domain literal at \
+                     <{PDDL_DOMAIN_PREDICATE}>"
+                ))
+            })?;
+        let problem_text = self
+            .select_literal(&graph, PDDL_PROBLEM_PREDICATE)?
+            .ok_or_else(|| {
+                Refusal::PlanInfeasible(format!(
+                    "snapshot {snapshot_id}: no PDDL problem literal at \
+                     <{PDDL_PROBLEM_PREDICATE}>"
+                ))
+            })?;
+        let domain = domain_from_pddl(&domain_text)?;
+        let problem = problem_from_pddl(&problem_text)?;
+        let ground = GroundTemporalProblem::build(&domain, &problem)?;
+        let plan = ground.find_temporal_plan()?;
+        Ok(plan)
     }
 
     /// Read-only side-door, many-to-one form of

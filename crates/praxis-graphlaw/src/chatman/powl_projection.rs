@@ -16,14 +16,25 @@
 //! evaluation itself runs over an in-memory oxigraph store built solely from
 //! its `turtle` argument -- no ambient state, no network, no wall clock.
 
-use bcinr_pddl::Pddl8Tape;
+use bcinr_pddl::powl_bridge::{temporal_plan_to_powl_tape, PowlOpSpec};
+use bcinr_pddl::{Pddl8Tape, TemporalPlan};
 use oxigraph::io::{RdfFormat, RdfParser};
 use oxigraph::sparql::{QueryResults, QuerySolution, SparqlEvaluator};
 use oxigraph::store::Store;
 use oxrdf::Term;
-use powl2_decompose::{validate_external_cut, GNode, Powl};
+use powl2_decompose::{validate_external_cut, ExternalCutRefusal, GNode, Powl, SocketPath};
 
 use super::abi::Refusal;
+
+/// Upper bound on `TemporalPlan::steps.len()` this module's temporal
+/// projection accepts, matching the 64-bit `pred_mask`/`succ_mask` width
+/// `bcinr_pddl::powl_bridge::temporal_plan_to_powl_tape` assumes (and, in
+/// practice, `bcinr_pddl`'s own `PDDL8_MAX_PLAN_DEPTH = 64` bound on
+/// `TemporalPlan::steps`). Checked defensively at the top of
+/// [`project_temporal_plan_to_powl`] rather than trusted implicitly, so a
+/// future change to either bound fails loudly here instead of silently
+/// truncating/overflowing a `1u64 << i` shift.
+const MAX_TEMPORAL_PLAN_STEPS: usize = 64;
 
 /// Projects a bounded, sequential Chatman Engine PDDL plan tape into a POWL 2.0
 /// model (Kourani et al. Defs 3.6-3.9), matching crates/powl2-decompose's Powl type.
@@ -56,6 +67,141 @@ pub fn project_pddl_tape_to_powl(tape: &Pddl8Tape) -> Result<Powl, Refusal> {
     for i in 0..n {
         for j in (i + 1)..n {
             order.insert((i, j));
+        }
+    }
+
+    Ok(Powl::PartialOrder { children, order })
+}
+
+/// Projects a [`TemporalPlan`] (produced by
+/// `bcinr_pddl::ground::GroundTemporalProblem::find_temporal_plan`, which
+/// schedules real `:durative-action` steps by genuine precondition/effect
+/// time-interval overlap, not a fixed BFS total order) into a POWL 2.0
+/// model.
+///
+/// Sibling to [`project_pddl_tape_to_powl`], but sound for genuine
+/// concurrency. [`project_pddl_tape_to_powl`] is only correct because a
+/// classical [`Pddl8Tape`] plan step's tape position *is* a total order by
+/// construction (its own doc comment proves that pre-condition); a
+/// [`TemporalPlan`]'s steps carry no such guarantee — two steps with
+/// non-overlapping duties can genuinely execute concurrently, and this
+/// function must not serialize them.
+///
+/// # Algorithm
+/// 1. `bcinr_pddl::powl_bridge::temporal_plan_to_powl_tape` computes, per
+///    step `i`, a `pred_mask` bitmask of `i`'s *direct* (transitively
+///    reduced) predecessors: step `j` gets an edge to `i` only when `j`'s
+///    interval provably finishes no later than `i` starts (`prev_end <=
+///    step.start_time + 1e-9`) — two steps with overlapping intervals never
+///    get an edge in either direction, so they end up as POWL siblings, not
+///    a precedence pair.
+/// 2. This function recovers the full (Kourani Def 3.7) *transitively
+///    closed* strict partial order `Powl::PartialOrder::order` requires, by
+///    walking each step's direct-predecessor mask and OR-ing in the
+///    already-computed ancestor masks of those predecessors. Every
+///    predecessor index is strictly smaller than its successor's (by
+///    construction, `temporal_plan_to_powl_tape` only ever sets a bit `j`
+///    with `j < i`), so processing steps in tape order guarantees every
+///    predecessor's ancestor mask is already final by the time it's read —
+///    one forward pass, no revisiting.
+///
+/// This recovery is exact, not an approximation. Before
+/// `temporal_plan_to_powl_tape`'s internal reduction pass, step `i`'s
+/// `pred_mask` is precisely `{j : end(j) <= start(i)}` — a relation that is
+/// already transitively closed by the transitivity of real-number time
+/// comparison (`end(j) <= start(k)` and `end(k) <= start(i)` together imply
+/// `end(j) <= start(i)`, since `start(k) <= end(k)` for any non-negative
+/// duration). The reduction pass only removes an edge `(j, i)` when another
+/// path through the *same* graph already reaches `i` from `j`, so
+/// re-closing the reduced graph recovers exactly that original relation.
+///
+/// # Errors
+/// [`Refusal::PlanInfeasible`] for a plan with no steps, or one whose step
+/// count exceeds [`MAX_TEMPORAL_PLAN_STEPS`] (the 64-bit `pred_mask`/
+/// `succ_mask` width `temporal_plan_to_powl_tape` assumes — `bcinr_pddl`'s
+/// own `PDDL8_MAX_PLAN_DEPTH` bounds `TemporalPlan::steps` at exactly 64
+/// today, so this is a defensive check against that upstream invariant
+/// changing, not a reachable case as of this writing).
+/// [`Refusal::ValidationFailed`] if `plan.steps` is not sorted by
+/// non-decreasing `start_time` — a precondition this function's "exact, not
+/// an approximation" transitive-closure recovery (see the algorithm note
+/// above) silently depends on:
+/// `bcinr_pddl::powl_bridge::temporal_plan_to_powl_tape`'s `pred_mask`
+/// computation only ever considers a step at an *earlier tape index* `j < i`
+/// as a candidate predecessor of step `i`, so tape-index order must coincide
+/// with start-time order or a genuine precedence edge is silently dropped
+/// rather than reported. The one real producer,
+/// `bcinr_pddl::ground::GroundTemporalProblem::find_temporal_plan`,
+/// guarantees this ordering by construction, but `TemporalPlan`/
+/// `TemporalPlanStep` are public types with a public `steps` field, so a
+/// directly constructed plan is not guaranteed to satisfy it.
+///
+/// # Complexity
+/// O(n) to verify the start-time ordering precondition, plus O(n^2) bit
+/// operations for n = plan.steps.len() (n <= 64, so this is a bounded
+/// constant in practice): one O(n) ancestor-mask OR walk per step.
+pub fn project_temporal_plan_to_powl(plan: &TemporalPlan) -> Result<Powl, Refusal> {
+    if plan.steps.is_empty() {
+        return Err(Refusal::PlanInfeasible(
+            "cannot project an empty temporal PDDL plan to a POWL model".to_string(),
+        ));
+    }
+    if plan.steps.len() > MAX_TEMPORAL_PLAN_STEPS {
+        return Err(Refusal::PlanInfeasible(format!(
+            "temporal PDDL plan has {} steps, exceeding the {MAX_TEMPORAL_PLAN_STEPS}-step \
+             bound the pred_mask/succ_mask bitmask width assumes",
+            plan.steps.len()
+        )));
+    }
+    // O(n): the transitive-closure recovery below is exact only when tape
+    // index order coincides with start_time order (see doc comment above).
+    // A directly constructed, out-of-order TemporalPlan would otherwise
+    // silently drop a required precedence edge rather than fail loudly.
+    for (i, pair) in plan.steps.windows(2).enumerate() {
+        let (earlier, later) = (&pair[0], &pair[1]);
+        if later.start_time < earlier.start_time {
+            return Err(Refusal::ValidationFailed(format!(
+                "temporal PDDL plan steps are not sorted by non-decreasing start_time: \
+                 step {i} (action {:?}, start_time {}) is immediately followed by step {} \
+                 (action {:?}, start_time {}), which starts earlier; \
+                 project_temporal_plan_to_powl's transitive-closure recovery requires tape \
+                 index order to coincide with start_time order",
+                earlier.action_name,
+                earlier.start_time,
+                i + 1,
+                later.action_name,
+                later.start_time
+            )));
+        }
+    }
+
+    let ops: Vec<PowlOpSpec> = temporal_plan_to_powl_tape(plan);
+    let n = ops.len();
+
+    let children: Vec<Powl> = ops
+        .iter()
+        .map(|op| Powl::Leaf(Some(op.label.clone())))
+        .collect();
+
+    // ancestors[i]: full transitive-closure predecessor mask for step i,
+    // final by construction the moment it is written (see doc comment).
+    let mut ancestors: Vec<u64> = vec![0u64; n];
+    let mut order = std::collections::BTreeSet::new();
+    for (i, op) in ops.iter().enumerate() {
+        let mut closure = op.pred_mask;
+        let mut direct_preds = op.pred_mask;
+        while direct_preds != 0 {
+            let j = direct_preds.trailing_zeros() as usize;
+            direct_preds &= direct_preds - 1;
+            closure |= ancestors[j];
+        }
+        ancestors[i] = closure;
+
+        let mut ancestor_bits = closure;
+        while ancestor_bits != 0 {
+            let j = ancestor_bits.trailing_zeros() as usize;
+            ancestor_bits &= ancestor_bits - 1;
+            order.insert((j, i));
         }
     }
 
@@ -220,9 +366,176 @@ fn admit_powl_model(model: &Powl) -> Result<(), Refusal> {
             }
             Ok(())
         }
-        Powl::ExternalCut { .. } => validate_external_cut(model)
-            .map_err(|e| Refusal::ValidationFailed(format!("external cut admission refused: {e}"))),
+        Powl::ExternalCut { .. } => validate_external_cut(model).map_err(refusal_from_external_cut),
     }
+}
+
+/// Maps `powl2_decompose`'s [`ExternalCutRefusal`] taxonomy onto this
+/// crate's own [`Refusal`] taxonomy one-for-one (PROJ-783, PRD.md v26.7.11
+/// sec.18): `POWL_REGION_NOT_ADMITTED`, `EXTERNAL_CUT_UNDECLARED`, and
+/// `EXTERNAL_CUT_TYPE_MISMATCH` each become their own typed [`Refusal`]
+/// variant instead of being folded into a single generic
+/// [`Refusal::ValidationFailed`] carrying the upstream `Display` text — the
+/// prior state this ticket closes: every external-cut admission refusal was
+/// indistinguishable from any other `ValidationFailed` to a caller matching
+/// on [`Refusal`] variants, even though `powl2_decompose` already classified
+/// the reason precisely.
+///
+/// # Complexity
+/// O(1).
+fn refusal_from_external_cut(refusal: ExternalCutRefusal) -> Refusal {
+    match refusal {
+        ExternalCutRefusal::ExternalCutUndeclared => Refusal::ExternalCutUndeclared(format!(
+            "external cut declares an empty SPARQL projection or Tera renderer: {refusal}"
+        )),
+        ExternalCutRefusal::PowlRegionNotAdmitted => Refusal::PowlRegionNotAdmitted(format!(
+            "external cut's inner region fails admission (empty composite, or a nested \
+             external cut): {refusal}"
+        )),
+        ExternalCutRefusal::ExternalCutTypeMismatch { .. } => {
+            Refusal::ExternalCutTypeMismatch(format!("{refusal}"))
+        }
+        ExternalCutRefusal::ExternalCutAuthorityMismatch => Refusal::ExternalCutAuthorityMismatch(
+            format!("powl2_decompose reported an authority-boundary violation: {refusal}"),
+        ),
+    }
+}
+
+/// Resolves the [`Powl::ExternalCut`] node structurally addressed by `path`
+/// within `model`, admitting it via [`validate_external_cut`] before
+/// returning it (PROJ-783, PRD.md v26.7.11 sec.18
+/// `EXTERNAL_CUT_TYPE_MISMATCH`).
+///
+/// This wires `powl2_decompose`'s [`SocketPath`]/[`Powl::socket_at`] —
+/// exported since that crate's own PRD v26.7.11 §7.3 work ("every POWL
+/// activity SHALL be addressable as a potential workflow socket") but
+/// unused by any caller anywhere in this workspace until this function — to
+/// the real question a socket-addressed dispatch surface must answer before
+/// treating a declared address as an external cut: does `path` actually
+/// resolve to one, in *this* model, right now? A caller that assumes so
+/// without checking is exactly the "generic acceptance, wrong POWL variant"
+/// gap `EXTERNAL_CUT_TYPE_MISMATCH` exists to refuse.
+///
+/// # Errors
+/// [`Refusal::ExternalCutTypeMismatch`] if `path` resolves to a node that is
+/// not a [`Powl::ExternalCut`], or does not resolve to any node in `model`
+/// at all (an absent path is, definitionally, not an external cut either).
+/// Otherwise, whatever [`Refusal`] [`refusal_from_external_cut`] maps
+/// [`validate_external_cut`]'s own refusal to.
+///
+/// # Complexity
+/// O(depth(path)) to resolve the node, plus [`validate_external_cut`]'s own
+/// O(n) region-admission bound over the resolved cut's region.
+pub fn resolve_external_cut_at<'a>(
+    model: &'a Powl,
+    path: &SocketPath,
+) -> Result<&'a Powl, Refusal> {
+    let node = model.socket_at(path).ok_or_else(|| {
+        Refusal::ExternalCutTypeMismatch(format!(
+            "socket path {path} does not resolve to any node in this POWL model; a claimed \
+             external cut is absent"
+        ))
+    })?;
+    if !matches!(node, Powl::ExternalCut { .. }) {
+        return Err(Refusal::ExternalCutTypeMismatch(format!(
+            "socket path {path} resolves to a {}, not an ExternalCut",
+            powl_kind_name(node)
+        )));
+    }
+    validate_external_cut(node).map_err(refusal_from_external_cut)?;
+    Ok(node)
+}
+
+/// The [`Powl`] variant name at `node`, for [`Refusal`] messages only (no
+/// production semantics depend on this string).
+///
+/// # Complexity
+/// O(1).
+fn powl_kind_name(node: &Powl) -> &'static str {
+    match node {
+        Powl::Leaf(_) => "Leaf",
+        Powl::PartialOrder { .. } => "PartialOrder",
+        Powl::Choice { .. } => "Choice",
+        Powl::ExternalCut { .. } => "ExternalCut",
+    }
+}
+
+/// Extracts the RFC 3986-style "authority" component of `iri`, for
+/// provenance-authority comparison (PROJ-783,
+/// [`Refusal::ExternalCutAuthorityMismatch`]):
+/// - `scheme://authority/...` IRIs: the substring between `://` and the
+///   next `/`, `?`, or `#` (the real RFC 3986 authority component).
+/// - `urn:<nid>:<nss>` IRIs (no `//` authority component by construction,
+///   RFC 8141): `urn:<nid>` stands in as the comparable authority segment —
+///   this crate's own snapshot/base IRIs are `urn:`-scheme throughout (see
+///   this module's own tests and `chatman::engine`'s real call site).
+/// - Any other IRI shape: the substring up to (not including) the first
+///   `/`, or the whole string if there is none.
+///
+/// # Complexity
+/// O(len(iri)) — a small bounded number of linear scans.
+fn iri_authority(iri: &str) -> &str {
+    if let Some(scheme_end) = iri.find("://") {
+        let rest = &iri[scheme_end + 3..];
+        let end = rest.find(['/', '?', '#']).unwrap_or(rest.len());
+        &rest[..end]
+    } else if let Some(rest) = iri.strip_prefix("urn:") {
+        let end = rest.find(':').unwrap_or(rest.len());
+        &iri[..4 + end]
+    } else {
+        let end = iri.find('/').unwrap_or(iri.len());
+        &iri[..end]
+    }
+}
+
+/// Admits the provenance a manufactured POWL model's Turtle would carry via
+/// `powl2:derivedFrom` (PROJ-783, PRD.md v26.7.11 sec.18
+/// `EXTERNAL_CUT_AUTHORITY_MISMATCH`): when `model` declares at least one
+/// external cut ([`model_declares_external_cut`]) and `derived_from` is
+/// declared, its [`iri_authority`] must match `base_iri`'s own
+/// [`iri_authority`].
+///
+/// Scoped to models that actually declare an external cut: a plain local
+/// POWL region (PRD.md sec.19.1, "local POWL remains local") never crosses
+/// a process-cell boundary, so its own `derived_from` provenance carries no
+/// authority-boundary risk this check exists to catch.
+///
+/// Without this check, [`powl_to_turtle`] (and, downstream,
+/// `praxis_core::arazzo::ArazzoProjectionReceipt::project_and_compile`,
+/// which accepts `base_iri`/`derived_from` as two fully independent
+/// parameters with no cross-check of its own today) would silently emit a
+/// `powl2:derivedFrom` claim naming a different engine/tenant authority
+/// than the one that actually owns the manufactured region — a
+/// confused-deputy-style authority-boundary violation PRD.md sec.7.1's law
+/// ("No runtime layer SHALL infer ambient authority from syntax") forbids
+/// accepting silently.
+///
+/// # Complexity
+/// O(n) to scan `model` for a declared cut ([`model_declares_external_cut`])
+/// plus O(len(base_iri) + len(derived_from)) for the two bounded
+/// [`iri_authority`] scans.
+fn admit_provenance(
+    model: &Powl,
+    base_iri: &str,
+    derived_from: Option<&str>,
+) -> Result<(), Refusal> {
+    if !model_declares_external_cut(model) {
+        return Ok(());
+    }
+    let Some(source_iri) = derived_from else {
+        return Ok(());
+    };
+    let region_authority = iri_authority(base_iri);
+    let source_authority = iri_authority(source_iri);
+    if region_authority != source_authority {
+        return Err(Refusal::ExternalCutAuthorityMismatch(format!(
+            "derived_from {source_iri:?} has authority {source_authority:?}, which differs \
+             from base_iri {base_iri:?}'s authority {region_authority:?}; a manufactured \
+             model declaring an external cut cannot claim provenance from an authority other \
+             than the one producing it"
+        )));
+    }
+    Ok(())
 }
 
 /// Serializes a POWL 2.0 model as RDF Turtle conforming to the powl2: vocabulary
@@ -245,20 +558,26 @@ fn admit_powl_model(model: &Powl) -> Result<(), Refusal> {
 /// text produced the tape).
 ///
 /// # Errors
-/// Propagates [`admit_powl_model`]'s refusal (wrapped
-/// [`powl2_decompose::ExternalCutRefusal`]) when any `ExternalCut` node in
-/// `model` fails admission — no Turtle is emitted for a refused model.
+/// Propagates [`admit_powl_model`]'s typed refusal
+/// ([`Refusal::PowlRegionNotAdmitted`], [`Refusal::ExternalCutUndeclared`],
+/// [`Refusal::ExternalCutTypeMismatch`], or
+/// [`Refusal::ExternalCutAuthorityMismatch`]) when any `ExternalCut` node in
+/// `model` fails admission, or [`admit_provenance`]'s
+/// [`Refusal::ExternalCutAuthorityMismatch`] when `model` declares an
+/// external cut and `derived_from`'s authority differs from `base_iri`'s —
+/// no Turtle is emitted for a refused model.
 ///
 /// # Complexity
 /// O(n + |order|) in the total node count of the model tree plus the size of
 /// each PartialOrder's (pre-closed, up to quadratic) order relation, plus the
-/// O(n) admission pass.
+/// O(n) admission pass, plus [`admit_provenance`]'s own O(n) bound.
 pub fn powl_to_turtle(
     model: &Powl,
     base_iri: &str,
     derived_from: Option<&str>,
 ) -> Result<String, Refusal> {
     admit_powl_model(model)?;
+    admit_provenance(model, base_iri, derived_from)?;
 
     let base_iri = base_iri.trim_end_matches('/');
     let mut out = String::new();
@@ -453,6 +772,30 @@ pub struct ProjectionRow {
     /// `powl2:teraRenderer` literal (T), bound when the element is a
     /// `powl2:ExternalCut`.
     pub tera_renderer: Option<String>,
+    /// `powl2:derivedFrom` IRI, bound on the model root when
+    /// [`powl_to_turtle`] was called with `derived_from = Some(_)`.
+    pub derived_from: Option<String>,
+    /// `powl2:startNode` target, bound when the element is a
+    /// `powl2:ChoiceGraph` (Def 3.6's `▷` sentinel).
+    pub start_node: Option<String>,
+    /// `powl2:endNode` target, bound when the element is a
+    /// `powl2:ChoiceGraph` (Def 3.6's `□` sentinel).
+    pub end_node: Option<String>,
+    /// One `powl2:hasNode` target of a bound `powl2:ChoiceGraph` element --
+    /// a `▷`/`□` sentinel or a `powl2:ChildNode` routing-graph node.
+    pub routing_node: Option<String>,
+    /// `powl2:ofChildIndex` of `routing_node`, bound only when `routing_node`
+    /// is a `powl2:ChildNode` (the `▷`/`□` sentinels carry none). Distinct
+    /// from `child_index`, which is a `powl2:ChildBinding`'s index rather
+    /// than a routing-graph node's.
+    pub routing_node_child_index: Option<String>,
+    /// One `powl2:hasEdge` target of a bound `powl2:ChoiceGraph` element --
+    /// a reified `powl2:GraphEdge` subject IRI.
+    pub edge_id: Option<String>,
+    /// `powl2:edgeSource` of `edge_id`.
+    pub edge_source: Option<String>,
+    /// `powl2:edgeTarget` of `edge_id`.
+    pub edge_target: Option<String>,
 }
 
 /// Executes the real Q-stage SPARQL projection ([`RENDER_MODEL_PROJECTION_QUERY`])
@@ -527,6 +870,14 @@ pub fn run_render_model_projection(turtle: &str) -> Result<Vec<ProjectionRow>, R
                     region_id: term_string(&solution, "regionId")?,
                     sparql_projection: term_string(&solution, "sparqlProjection")?,
                     tera_renderer: term_string(&solution, "teraRenderer")?,
+                    derived_from: term_string(&solution, "derivedFrom")?,
+                    start_node: term_string(&solution, "startNode")?,
+                    end_node: term_string(&solution, "endNode")?,
+                    routing_node: term_string(&solution, "routingNode")?,
+                    routing_node_child_index: term_string(&solution, "routingNodeChildIndex")?,
+                    edge_id: term_string(&solution, "edgeId")?,
+                    edge_source: term_string(&solution, "edgeSource")?,
+                    edge_target: term_string(&solution, "edgeTarget")?,
                 });
             }
         }
@@ -657,6 +1008,7 @@ pub trait ExternalCutCompiler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use powl2_decompose::ChoiceGraph;
 
     const PROJECTION: &str = "SELECT * WHERE { ?s ?p ?o }";
     const RENDERER: &str = "arazzo_step.tera";
@@ -702,9 +1054,9 @@ mod tests {
         assert!(
             matches!(
                 &result,
-                Err(Refusal::ValidationFailed(msg)) if msg.contains("EXTERNAL_CUT_UNDECLARED")
+                Err(Refusal::ExternalCutUndeclared(msg)) if msg.contains("EXTERNAL_CUT_UNDECLARED")
             ),
-            "refusal must carry the typed ExternalCutRefusal reason, got: {result:?}"
+            "refusal must be the typed ExternalCutUndeclared variant, got: {result:?}"
         );
     }
 
@@ -731,9 +1083,9 @@ mod tests {
         assert!(
             matches!(
                 &result,
-                Err(Refusal::ValidationFailed(msg)) if msg.contains("POWL_REGION_NOT_ADMITTED")
+                Err(Refusal::PowlRegionNotAdmitted(msg)) if msg.contains("POWL_REGION_NOT_ADMITTED")
             ),
-            "refusal must name the nested-cut reason, got: {result:?}"
+            "refusal must be the typed PowlRegionNotAdmitted variant, got: {result:?}"
         );
     }
 
@@ -798,6 +1150,150 @@ mod tests {
         Ok(())
     }
 
+    // ── Choice-routing projection (PROJ-751 remediation): the query's
+    // ── initial vocabulary-correction pass omitted every predicate the
+    // ── Powl::Choice arm of emit_powl_node emits, silently dropping a
+    // ── Choice node's entire routing topology (an adversarial review
+    // ── found this with zero prior test coverage of a Choice node through
+    // ── the query at all).
+
+    /// A minimal admitted `Choice` (XOR) region: two leaf activities,
+    /// `▷ -> {approve, reject} -> □`. Exercises every routing predicate
+    /// `Powl::Choice`'s Turtle arm emits: `powl2:startNode`/`endNode`,
+    /// `powl2:hasNode` over both sentinels and both `ChildNode`s,
+    /// `powl2:ofChildIndex`, and the 4 reified `powl2:GraphEdge`s.
+    fn model_with_choice() -> Powl {
+        Powl::Choice {
+            children: vec![
+                Powl::Leaf(Some("approve".to_string())),
+                Powl::Leaf(Some("reject".to_string())),
+            ],
+            graph: ChoiceGraph {
+                n: 2,
+                edges: std::collections::BTreeSet::from([
+                    (GNode::Start, GNode::Child(0)),
+                    (GNode::Start, GNode::Child(1)),
+                    (GNode::Child(0), GNode::End),
+                    (GNode::Child(1), GNode::End),
+                ]),
+            },
+        }
+    }
+
+    #[test]
+    fn admitted_choice_node_produces_real_sparql_routing_projection_rows() -> Result<(), Refusal> {
+        let model = model_with_choice();
+        let turtle = powl_to_turtle(&model, "urn:test:choice", Some("urn:test:plan-source"))?;
+
+        let rows = run_render_model_projection(&turtle)?;
+        assert!(
+            !rows.is_empty(),
+            "the corrected query must yield real result rows over real emitted RDF"
+        );
+
+        let choice_type = format!("{POWL2_PREFIX}ChoiceGraph");
+        let choice_rows: Vec<&ProjectionRow> = rows
+            .iter()
+            .filter(|r| r.element_type == choice_type)
+            .collect();
+        assert!(
+            !choice_rows.is_empty(),
+            "expected at least one ChoiceGraph row, got zero: {rows:?}"
+        );
+        // Every ChoiceGraph row shares the same subject and the same
+        // functional startNode/endNode bindings.
+        for row in &choice_rows {
+            assert_eq!(row.element_id, "urn:test:choice/n0");
+            assert_eq!(row.start_node.as_deref(), Some("urn:test:choice/n0/start"));
+            assert_eq!(row.end_node.as_deref(), Some("urn:test:choice/n0/end"));
+        }
+
+        // The root's provenance link survives the round trip too (PROJ-751
+        // also flagged root-level powl2:derivedFrom as unprojected).
+        assert!(
+            rows.iter().any(|r| r.element_id == "urn:test:choice/n0"
+                && r.derived_from.as_deref() == Some("urn:test:plan-source")),
+            "powl2:derivedFrom must survive Turtle round-trip through the projection"
+        );
+
+        // Both sentinel routing nodes (▷/□) are reachable via hasNode, with
+        // no ofChildIndex (only ChildNode members carry one).
+        assert!(
+            choice_rows.iter().any(|r| r.routing_node.as_deref()
+                == Some("urn:test:choice/n0/start")
+                && r.routing_node_child_index.is_none()),
+            "the ▷ sentinel must be projected as a routing node with no ofChildIndex"
+        );
+        assert!(
+            choice_rows.iter().any(
+                |r| r.routing_node.as_deref() == Some("urn:test:choice/n0/end")
+                    && r.routing_node_child_index.is_none()
+            ),
+            "the □ sentinel must be projected as a routing node with no ofChildIndex"
+        );
+
+        // Both ChildNode routing nodes are reachable via hasNode, each
+        // carrying its real ofChildIndex.
+        assert!(
+            choice_rows.iter().any(|r| r.routing_node.as_deref()
+                == Some("urn:test:choice/n0/node/0")
+                && r.routing_node_child_index.as_deref() == Some("0")),
+            "child routing node 0 must carry ofChildIndex 0"
+        );
+        assert!(
+            choice_rows.iter().any(|r| r.routing_node.as_deref()
+                == Some("urn:test:choice/n0/node/1")
+                && r.routing_node_child_index.as_deref() == Some("1")),
+            "child routing node 1 must carry ofChildIndex 1"
+        );
+
+        // All 4 reified routing edges survive with their real
+        // edgeSource/edgeTarget pairs: ▷->node/0, ▷->node/1, node/0->□,
+        // node/1->□.
+        let expected_edges = [
+            ("urn:test:choice/n0/start", "urn:test:choice/n0/node/0"),
+            ("urn:test:choice/n0/start", "urn:test:choice/n0/node/1"),
+            ("urn:test:choice/n0/node/0", "urn:test:choice/n0/end"),
+            ("urn:test:choice/n0/node/1", "urn:test:choice/n0/end"),
+        ];
+        for (source, target) in expected_edges {
+            assert!(
+                choice_rows
+                    .iter()
+                    .any(|r| r.edge_source.as_deref() == Some(source)
+                        && r.edge_target.as_deref() == Some(target)),
+                "expected a projected GraphEdge {source} -> {target}, got: {choice_rows:?}"
+            );
+        }
+        // Exactly 4 distinct edge subjects were projected (no duplication,
+        // no dropped edges).
+        let distinct_edge_ids: std::collections::BTreeSet<&str> = choice_rows
+            .iter()
+            .filter_map(|r| r.edge_id.as_deref())
+            .collect();
+        assert_eq!(
+            distinct_edge_ids.len(),
+            4,
+            "expected exactly 4 distinct GraphEdge subjects, got: {distinct_edge_ids:?}"
+        );
+
+        // Both child activities under the Choice are themselves projected --
+        // proving the children round-tripped through Turtle, not just the
+        // routing-graph wrapper.
+        assert!(
+            rows.iter().any(|r| r.element_id == "urn:test:choice/n0/c0"
+                && r.activity_label.as_deref() == Some("approve")),
+            "child activity 0 must still be projected alongside its routing node"
+        );
+        assert!(
+            rows.iter().any(|r| r.element_id == "urn:test:choice/n0/c1"
+                && r.activity_label.as_deref() == Some("reject")),
+            "child activity 1 must still be projected alongside its routing node"
+        );
+
+        Ok(())
+    }
+
     #[test]
     fn run_render_model_projection_is_deterministic() -> Result<(), Refusal> {
         let model = model_with_external_cut();
@@ -842,5 +1338,133 @@ mod tests {
     #[test]
     fn model_declares_external_cut_is_false_for_a_single_leaf() {
         assert!(!model_declares_external_cut(&Powl::Leaf(None)));
+    }
+
+    // ── resolve_external_cut_at (PROJ-783, EXTERNAL_CUT_TYPE_MISMATCH) ──
+
+    #[test]
+    fn resolve_external_cut_at_finds_the_real_cut_by_socket_path() -> Result<(), Refusal> {
+        let model = model_with_external_cut();
+        // model_with_external_cut() is a two-child PartialOrder whose
+        // second child (index 1) is the ExternalCut.
+        let path = SocketPath::root().child(1);
+        let node = resolve_external_cut_at(&model, &path)?;
+        assert!(matches!(node, Powl::ExternalCut { .. }));
+        Ok(())
+    }
+
+    #[test]
+    fn resolve_external_cut_at_refuses_a_path_that_names_a_non_cut_node() {
+        let model = model_with_external_cut();
+        // Index 0 is the plain "intake" leaf, not an ExternalCut.
+        let path = SocketPath::root().child(0);
+        let result = resolve_external_cut_at(&model, &path);
+        assert!(
+            matches!(
+                &result,
+                Err(Refusal::ExternalCutTypeMismatch(msg)) if msg.contains("Leaf")
+            ),
+            "a path addressing a Leaf must refuse ExternalCutTypeMismatch naming the real \
+             kind found there, got: {result:?}"
+        );
+    }
+
+    #[test]
+    fn resolve_external_cut_at_refuses_a_path_that_does_not_resolve() {
+        let model = model_with_external_cut();
+        // Only children 0 and 1 exist at the root.
+        let path = SocketPath::root().child(7);
+        let result = resolve_external_cut_at(&model, &path);
+        assert!(
+            matches!(&result, Err(Refusal::ExternalCutTypeMismatch(_))),
+            "an out-of-range path must refuse ExternalCutTypeMismatch, got: {result:?}"
+        );
+    }
+
+    #[test]
+    fn resolve_external_cut_at_propagates_region_admission_refusals() {
+        // The cut itself resolves, but its own admission is invalid (empty
+        // projection) -- proves resolve_external_cut_at does not skip the
+        // real validate_external_cut gate once a cut is found.
+        let model = Powl::ExternalCut {
+            region: Box::new(Powl::Leaf(Some("x".to_string()))),
+            projection: String::new(),
+            renderer: "t".to_string(),
+        };
+        let result = resolve_external_cut_at(&model, &SocketPath::root());
+        assert!(
+            matches!(&result, Err(Refusal::ExternalCutUndeclared(_))),
+            "a resolved-but-invalid cut must still refuse via validate_external_cut, \
+             got: {result:?}"
+        );
+    }
+
+    // ── admit_provenance / EXTERNAL_CUT_AUTHORITY_MISMATCH (PROJ-783) ──
+
+    #[test]
+    fn powl_to_turtle_refuses_external_cut_with_mismatched_provenance_authority() {
+        let model = model_with_external_cut();
+        let result = powl_to_turtle(
+            &model,
+            "urn:tenant-a:region",
+            Some("urn:tenant-b:other-snapshot"),
+        );
+        assert!(
+            matches!(
+                &result,
+                Err(Refusal::ExternalCutAuthorityMismatch(msg))
+                    if msg.contains("EXTERNAL_CUT_AUTHORITY_MISMATCH") || msg.contains("authority")
+            ),
+            "a derived_from IRI under a different authority than base_iri must refuse \
+             ExternalCutAuthorityMismatch, got: {result:?}"
+        );
+    }
+
+    #[test]
+    fn powl_to_turtle_admits_external_cut_with_same_authority_different_path() -> Result<(), Refusal>
+    {
+        let model = model_with_external_cut();
+        // Same "urn:tenant-a" authority, different structural path -- proves
+        // the check compares authority, not full string equality.
+        let turtle = powl_to_turtle(
+            &model,
+            "urn:tenant-a:region",
+            Some("urn:tenant-a:other-snapshot"),
+        )?;
+        assert!(turtle.contains("powl2:derivedFrom"));
+        Ok(())
+    }
+
+    #[test]
+    fn powl_to_turtle_ignores_provenance_authority_for_a_model_with_no_cut() -> Result<(), Refusal>
+    {
+        // PRD.md sec.19.1 "local POWL remains local": a plain model with no
+        // declared external cut never crosses a process-cell boundary, so a
+        // mismatched derived_from authority is not an error for it.
+        let model = Powl::PartialOrder {
+            children: vec![Powl::Leaf(Some("a".to_string()))],
+            order: std::collections::BTreeSet::new(),
+        };
+        let turtle = powl_to_turtle(
+            &model,
+            "urn:tenant-a:region",
+            Some("urn:tenant-b:other-snapshot"),
+        )?;
+        assert!(turtle.contains("powl2:Model"));
+        Ok(())
+    }
+
+    #[test]
+    fn iri_authority_distinguishes_urn_and_http_authorities() {
+        assert_eq!(iri_authority("urn:test:cut"), "urn:test");
+        assert_eq!(
+            iri_authority("urn:chatman:rail-ab-wiring:test"),
+            "urn:chatman"
+        );
+        assert_eq!(iri_authority("http://example.org/foo/bar"), "example.org");
+        assert_ne!(
+            iri_authority("urn:tenant-a:x"),
+            iri_authority("urn:tenant-b:x")
+        );
     }
 }

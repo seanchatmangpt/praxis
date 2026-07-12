@@ -7,6 +7,19 @@
 //! That is exactly what the differential round-trip test compares against the
 //! WF-net's bounded token-game language — three independent computations of
 //! the same bounded language must agree.
+//!
+//! ## A separate Lean formalization exists
+//!
+//! `~/mfact/procint/ProcInt/Models/ChoiceGraph.lean` and
+//! `~/mfact/procint/ProcInt/Models/Powl.lean` are a kernel-checked Lean 4
+//! formalization (`lake build`, zero unauthorized axioms) of definitions from
+//! the same Kourani/Park/van der Aalst paper lineage this module implements.
+//! Neither codebase references the other — mfact's own doc comments say those
+//! two files port a *different, separate* Rust crate (`wasm4pm-compat`, not
+//! `powl2-decompose`). See the doc comments on [`ChoiceGraph`], [`GNode`],
+//! and [`Powl`] below for which specific definitions correspond and where
+//! the two sides diverge. This is a citation for discoverability only; the
+//! two formalizations have not been cross-verified against each other.
 
 use std::collections::BTreeSet;
 
@@ -18,6 +31,18 @@ pub type Language = BTreeSet<Trace>;
 /// A directed choice graph over child indices `0..n` plus the artificial
 /// start `▷` and end `□` nodes (Def 3.6). Edges are index pairs; [`START`]
 /// and [`END`] are the sentinels for `▷`/`□`.
+///
+/// `ChoiceGraph`/`ChoiceGraph.Valid` in
+/// `~/mfact/procint/ProcInt/Models/ChoiceGraph.lean` independently formalize
+/// Definition 1 of Kourani, Park, van der Aalst, "Unlocking Non-Block-
+/// Structured Decisions: Inductive Mining with Choice Graphs" (arXiv:
+/// 2505.07052) — a directed graph over start/end/activity/submodel nodes
+/// with a unique reachable-from-start, reaches-end node set. This type here
+/// implements the same shape of definition under Def 3.6 of arXiv:2602.15739
+/// (Kourani, Park & van der Aalst, "Hierarchical Decomposition of Separable
+/// Workflow-Nets"), a different, later paper by an overlapping author set;
+/// whether Def 1 (2505.07052) and Def 3.6 (2602.15739) are the identical
+/// definition restated has not been verified from this codebase alone.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChoiceGraph {
     /// number of child submodels (graph nodes, excluding ▷/□).
@@ -27,6 +52,15 @@ pub struct ChoiceGraph {
 }
 
 /// A node of a [`ChoiceGraph`]: the start `▷`, the end `□`, or a child index.
+///
+/// Compare `ChoiceGraphNode` in
+/// `~/mfact/procint/ProcInt/Models/ChoiceGraph.lean`: Lean's `start`/
+/// `finish` correspond to [`Start`](GNode::Start)/[`End`](GNode::End) here,
+/// and Lean's `subModel (i : ℕ)` corresponds to [`Child`](GNode::Child).
+/// Lean additionally carries an inline `activity (a : α)` node kind that
+/// this Rust type does not have as a separate `GNode` variant — here an
+/// activity is always reached indirectly, as a `Child` index into a
+/// [`Powl::Leaf`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum GNode {
     /// The artificial start node `▷`.
@@ -43,6 +77,19 @@ pub const START: GNode = GNode::Start;
 pub const END: GNode = GNode::End;
 
 /// A POWL 2.0 model over transition labels (Def 3.7).
+///
+/// `~/mfact/procint/ProcInt/Models/Powl.lean` also defines a Lean `Powl`
+/// inductive type, but by its own doc comment it formalizes a *different*
+/// source: Kourani and van Zelst, BPM 2023, Definitions 1–2 — the original
+/// tree-structured POWL (`atom` / `silent` / `xor` / `loop` / `po`), not the
+/// choice-graph-based POWL 2.0 this enum implements. The two are not
+/// structural analogs: this enum's [`Choice`](Powl::Choice) variant routes
+/// through a [`ChoiceGraph`] (exclusive paths *and* cycles), whereas Lean's
+/// exclusive choice is an n-ary tree node (`xor`, arity ≥ 2) and its
+/// iteration is a dedicated `loop (doP redoP : Powl α)` constructor rather
+/// than a graph cycle. See the [`ChoiceGraph`] doc comment above for the
+/// definition that Lean's `ChoiceGraph.lean` (not `Powl.lean`) does
+/// correspond to.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Powl {
     /// A leaf transition: `Some(activity)` or silent `τ` (`None`).
@@ -759,6 +806,54 @@ mod socket_tests {
         assert!(model.socket_at(&leaf_path.child(0)).is_none());
     }
 
+    /// `≺(≺(γ(a, b), c), d)`: three levels of nesting below the root
+    /// (root PartialOrder → child PartialOrder → Choice → leaf), the case
+    /// PROJ-750's adversarial review flagged as untested depth for
+    /// `ParentChildClosure` determinism specifically (existing fixtures in
+    /// this module top out at 2 levels of nesting).
+    fn three_level_nested_model() -> Powl {
+        let choice = Powl::Choice {
+            children: vec![
+                Powl::Leaf(Some("a".to_string())),
+                Powl::Leaf(Some("b".to_string())),
+            ],
+            graph: ChoiceGraph {
+                n: 2,
+                edges: BTreeSet::from([
+                    (START, GNode::Child(0)),
+                    (GNode::Child(0), END),
+                    (START, GNode::Child(1)),
+                    (GNode::Child(1), END),
+                ]),
+            },
+        };
+        let level1 = Powl::PartialOrder {
+            children: vec![choice, Powl::Leaf(Some("c".to_string()))],
+            order: BTreeSet::from([(0, 1)]),
+        };
+        Powl::PartialOrder {
+            children: vec![level1, Powl::Leaf(Some("d".to_string()))],
+            order: BTreeSet::from([(0, 1)]),
+        }
+    }
+
+    #[test]
+    fn parent_child_closure_is_deterministic_across_calls_three_level_nesting() {
+        let model = three_level_nested_model();
+        // Leaf "a" sits at /0/0/0: root PartialOrder -> level1 PartialOrder
+        // -> Choice -> Leaf, i.e. 3 levels of nesting below the root.
+        let leaf_a_path = SocketPath::root().child(0).child(0).child(0);
+        assert_eq!(leaf_a_path.depth(), 3);
+        assert_eq!(
+            model.socket_at(&leaf_a_path),
+            Some(&Powl::Leaf(Some("a".to_string())))
+        );
+
+        let first = model.parent_child_closure();
+        let second = model.parent_child_closure();
+        assert_eq!(first, second);
+    }
+
     #[test]
     fn parent_child_closure_direct_edges_match_tree_shape() {
         let model = nested_model();
@@ -837,5 +932,130 @@ mod socket_tests {
         assert_eq!(closure.parent_of(&phantom), None);
         assert!(closure.ancestors(&phantom).is_empty());
         assert!(closure.descendants(&phantom).is_empty());
+    }
+
+    /// Recursively counts every `Powl` tree node (leaves + composites),
+    /// walking only `children`/`region` — the same structural surface
+    /// [`Powl::collect_sockets`] and [`ParentChildClosure::walk`] use.
+    /// Deliberately never consults `Choice::graph`, so it is an independent
+    /// ground truth for the node count that cannot be inflated or deflated
+    /// by a routing cycle.
+    fn count_tree_nodes(model: &Powl) -> usize {
+        1 + match model {
+            Powl::Leaf(_) => 0,
+            Powl::PartialOrder { children, .. } | Powl::Choice { children, .. } => {
+                children.iter().map(count_tree_nodes).sum()
+            }
+            Powl::ExternalCut { region, .. } => count_tree_nodes(region),
+        }
+    }
+
+    /// Plain DFS cycle detection (recursion-stack method) over a
+    /// [`ChoiceGraph`]'s directed edges. Used only to confirm a test
+    /// fixture is genuinely cyclic before trusting it as the cyclic case —
+    /// not part of the crate's production surface.
+    fn graph_has_cycle(graph: &ChoiceGraph) -> bool {
+        fn visit(
+            node: GNode,
+            graph: &ChoiceGraph,
+            visiting: &mut BTreeSet<GNode>,
+            done: &mut BTreeSet<GNode>,
+        ) -> bool {
+            if done.contains(&node) {
+                return false;
+            }
+            if !visiting.insert(node) {
+                return true; // back-edge: `node` is already on the current path
+            }
+            for next in graph.successors(node) {
+                if visit(next, graph, visiting, done) {
+                    return true;
+                }
+            }
+            visiting.remove(&node);
+            done.insert(node);
+            false
+        }
+        let mut visiting = BTreeSet::new();
+        let mut done = BTreeSet::new();
+        visit(START, graph, &mut visiting, &mut done)
+    }
+
+    /// PROJ-750's Fortune-5 done bar names two coverage bars: "test depth
+    /// extended to 3+-level nesting AND at least one cyclic ChoiceGraph
+    /// case". [`parent_child_closure_is_deterministic_across_calls_three_level_nesting`]
+    /// covers the first bar; this test covers the second, reusing the exact
+    /// WF-net shape of `decompose_tests.rs::loop_decomposes_to_cyclic_choice_graph`
+    /// (a POWL loop: `a` forks into a redo branch `c` that feeds back into the
+    /// same choice point, or an exit branch `b`) so the routing graph under
+    /// test is a *real* decomposition output, not a hand-approximated cycle.
+    ///
+    /// [`Powl::sockets`] and [`Powl::parent_child_closure`] only ever recurse
+    /// over `children: Vec<Powl>` (a `Choice` node's tree-structural
+    /// children) — never over `ChoiceGraph::edges` (the routing graph that
+    /// carries the cycle). This test proves that by checking the node counts
+    /// both methods return against [`count_tree_nodes`], an independent
+    /// count that is structurally incapable of seeing `graph.edges` — and
+    /// documents it as the invariant that makes a routing cycle inert to
+    /// both methods: neither can loop forever, double-count, or diverge run
+    /// to run because of a cycle that exists only in `graph.edges`.
+    #[test]
+    fn sockets_and_closure_are_inert_to_a_cyclic_choice_graph() {
+        let n = crate::net::WfNet::new(
+            ["source", "p1", "sink"].map(str::to_string),
+            [
+                ("a".to_string(), Some("a".to_string())),
+                ("c".to_string(), Some("c".to_string())),
+                ("b".to_string(), Some("b".to_string())),
+            ],
+            [
+                ("source".to_string(), "a".to_string()),
+                ("p1".to_string(), "c".to_string()),
+                ("p1".to_string(), "b".to_string()),
+            ],
+            [
+                ("a".to_string(), "p1".to_string()),
+                ("c".to_string(), "p1".to_string()),
+                ("b".to_string(), "sink".to_string()),
+            ],
+            "source",
+            "sink",
+        )
+        .unwrap_or_else(|e| panic!("valid WF-net (mirrors decompose_tests::loop_net): {e}"));
+
+        let model = crate::decompose::convert(&n).unwrap_or_else(|e| {
+            panic!("loop net is separable (mirrors decompose_tests::loop_net): {e:?}")
+        });
+        let Powl::Choice { graph, .. } = &model else {
+            panic!(
+                "a loop decomposes to Powl::Choice, per \
+                 decompose_tests::loop_decomposes_to_cyclic_choice_graph; got {model:?}"
+            );
+        };
+
+        // Confirm the routing graph is genuinely cyclic — otherwise this
+        // would not be a meaningful test of cyclic-graph inertness.
+        assert!(
+            graph_has_cycle(graph),
+            "loop_net's ChoiceGraph must contain a routing cycle for this \
+             to be a meaningful test of cyclic-graph inertness; graph = {graph:?}"
+        );
+
+        // Node counts from sockets()/parent_child_closure() must equal the
+        // independent tree-only count — proof neither consults graph.edges.
+        let expected_nodes = count_tree_nodes(&model);
+        let sockets = model.sockets();
+        assert_eq!(sockets.len(), expected_nodes);
+
+        let closure = model.parent_child_closure();
+        // A tree with n nodes has exactly n-1 direct edges (same invariant
+        // `parent_child_closure_edge_count_equals_node_count_minus_one`
+        // checks acyclically), confirmed here across a real routing cycle.
+        assert_eq!(closure.edges().len(), expected_nodes - 1);
+
+        // Determinism holds across a cyclic graph too, not only acyclic
+        // ones: re-running both methods must reproduce identical output.
+        assert_eq!(model.sockets(), sockets);
+        assert_eq!(model.parent_child_closure(), closure);
     }
 }

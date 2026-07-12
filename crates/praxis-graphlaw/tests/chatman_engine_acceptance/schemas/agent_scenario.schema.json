@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://praxis.chatman.io/schemas/triple8_scenario.schema.json",
-  "title": "Triple8 scenario",
+  "$id": "https://praxis.chatman.io/schemas/agent_scenario.schema.json",
+  "title": "Agent scenario",
   "description": "Chatman engine acceptance/falsification scenario. The expected_refusal enum mirrors Refusal::name() in crates/praxis-graphlaw/src/chatman/abi.rs exactly; tests/chatman_static_gates.rs asserts set-equality.",
   "type": "object",
   "required": [
@@ -89,39 +89,33 @@
       "description": "Human-readable statement of the admitted behavior (kind=acceptance)."
     },
     "input": {
-      "description": "Bounded Triple8 universe membership input.",
+      "description": "Agent authority and breed input.",
       "type": "object",
       "required": [
-        "universe",
-        "terms"
+        "agent_id",
+        "operator_id"
       ],
       "additionalProperties": false,
       "properties": {
-        "universe": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "maxItems": 8,
-          "uniqueItems": true,
-          "description": "Bounded Triple8 term universe (at most 8 terms)."
+        "agent_id": {
+          "type": "string",
+          "minLength": 1
         },
-        "terms": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "description": "Terms the scenario references; each must be in the universe or the engine refuses."
+        "operator_id": {
+          "type": "string",
+          "minLength": 1
         },
-        "overflow_terms": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "description": "Optional extra terms a falsification case tries to admit past the 8-term bound."
+        "override_requested": {
+          "type": "boolean",
+          "description": "Whether the agent requests to override an operator decision (denied without authority)."
+        },
+        "breed_requested": {
+          "type": "boolean",
+          "description": "Whether the agent requests a breed (lineage) operation."
+        },
+        "witness_presented_as_authority": {
+          "type": "boolean",
+          "description": "Whether a witness receipt is presented as an authorization (refused: witnesses attest only)."
         }
       }
     }

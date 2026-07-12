@@ -7,12 +7,18 @@
 //! - [`router`] — least-expressive dialect routing.
 //! - [`engine`] — the engine loop over admitted invocations.
 //! - [`bridge`] — boundary bridge to external process substrates.
+//! - [`closure`] — parent-child closure law for recursive workflow sockets
+//!   (PRD v26.7.11 §9, PROJ-759).
+//! - [`compensation`] — compensation-as-workflow manufacture path (PRD
+//!   v26.7.11 §10, PROJ-759).
 //! - [`quarantine`] — index of the security-review quarantine boundaries
 //!   that have real code correlates (and which named ones do not).
 
 pub mod abi;
 pub mod admission8;
 pub mod bridge;
+pub mod closure;
+pub mod compensation;
 pub mod engine;
 pub mod powl_projection;
 pub mod quarantine;

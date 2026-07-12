@@ -1,0 +1,7 @@
+{
+  "case": "Accept_AgentActsWithinPermits",
+  "kind": "acceptance",
+  "seed": 18316409293611735784,
+  "expected_behavior": "agent_action_permitted",
+  "input": {"agent_id": "urn:chatman:agent:1", "operator_id": "urn:chatman:operator:1"}
+}

@@ -1,6 +1,6 @@
 //! Coverage theorem over the chatman refusal taxonomy.
 //!
-//! Maps each of the 31 `Refusal` variant names (`src/chatman/abi.rs:354-386`)
+//! Maps each of the 46 `Refusal` variant names (`src/chatman/abi.rs:574-621`)
 //! to the test(s) that provoke it, across this file's own corpus plus the
 //! three sibling `chatman_*` test files (referenced here only as string test
 //! names — this file does not call into them, since Rust integration test
@@ -20,10 +20,18 @@
 //! governs). PROJ-SEC-04's `StageSealMismatch` and `UnlawfulActuation` are
 //! likewise `#[cfg(test)]` unit-tested in `src/chatman/abi.rs` only (no
 //! triggering plumbing exists yet), so they are also listed with
-//! `covered: false` here. The remaining variants are UNVERIFIED by this test
-//! corpus and are listed with `covered: false`. Full 31/31 coverage is NOT
-//! claimed; the coverage assertion below is scoped to what this session's
-//! corpus proves, not to the full taxonomy.
+//! `covered: false` here. The 15 variants added to `ALL_REFUSAL_NAMES` by
+//! PROJ-786/787's catalog-completeness pass (N3 cost/builtin/direct-
+//! actuation, POWL external-cut, closure-law/child-completion/parent-
+//! closure) are each real and end-to-end-tested in their own module's
+//! `#[cfg(test)]` suite (`chatman::router`, `chatman::powl_projection`,
+//! `chatman::closure`) but, per this table's strict per-file corpus scope,
+//! not by a test named in this integration-test corpus — so they are listed
+//! with `covered: false` here too, same convention as the six above. The
+//! remaining variants are UNVERIFIED by this test corpus and are listed
+//! with `covered: false`. Full 46/46 coverage is NOT claimed; the coverage
+//! assertion below is scoped to what this session's corpus proves, not to
+//! the full taxonomy.
 
 use std::collections::BTreeSet;
 
@@ -92,6 +100,27 @@ const PROVOCATION_TABLE: &[(&str, &[&str])] = &[
     // HookPatternNotAdmitted et al. above).
     ("StageSealMismatch", &[]),
     ("UnlawfulActuation", &[]),
+    // PROJ-786/787 catalog-completeness pass: the following 15 variants were
+    // already real, constructed, end-to-end-tested in their own module's
+    // `#[cfg(test)]` suite before this row was added — only their presence
+    // in ALL_REFUSAL_NAMES (and, transitively, this table) was behind. Not
+    // provoked by a test named in this integration-test corpus, so listed
+    // `covered: false` here, same convention as above.
+    ("PowlRegionNotAdmitted", &[]),
+    ("ExternalCutUndeclared", &[]),
+    ("ExternalCutTypeMismatch", &[]),
+    ("ExternalCutAuthorityMismatch", &[]),
+    ("ClosureLawNoChildren", &[]),
+    ("ClosureLawQuorumOutOfRange", &[]),
+    ("ClosureLawUnknownChild", &[]),
+    ("ClosureLawOrderedSubsetInvalid", &[]),
+    ("ClosureLawPolicyNotDeclared", &[]),
+    ("ChildConformanceRefused", &[]),
+    ("ChildCompletionUnadmitted", &[]),
+    ("ParentClosureUnsatisfied", &[]),
+    ("N3CostBoundExceeded", &[]),
+    ("N3BuiltinRefused", &[]),
+    ("N3DirectActuationRefused", &[]),
 ];
 
 /// The table's key set must be exactly `ALL_REFUSAL_NAMES` — every variant
@@ -104,17 +133,17 @@ fn provocation_table_has_a_row_for_every_refusal_variant() {
         table_keys,
         all_names,
         "PROVOCATION_TABLE must have exactly one row per ALL_REFUSAL_NAMES entry \
-         (abi.rs:340-370), covered or not — no variant may be silently omitted"
+         (abi.rs:574-621), covered or not — no variant may be silently omitted"
     );
     assert_eq_msg!(
         table_keys.len(),
-        31,
-        "expected 31 rows, matching the 31 Refusal variants read from abi.rs"
+        46,
+        "expected 46 rows, matching the 46 Refusal variants read from abi.rs"
     );
 }
 
-/// Honest coverage count: how many of the 31 variants have at least one
-/// provoking test in this session's corpus. This is NOT asserted to equal 31
+/// Honest coverage count: how many of the 46 variants have at least one
+/// provoking test in this session's corpus. This is NOT asserted to equal 46
 /// — that would overclaim per `.claude/rules/no-overclaiming.md`. It is
 /// asserted to equal the exact count this session actually wired (6), so a
 /// regression (a row silently losing its test reference) fails loudly, and
@@ -128,7 +157,7 @@ fn covered_variant_count_matches_this_sessions_honest_total() {
     assert_eq_msg!(
         covered_count,
         6,
-        "this session's corpus provokes exactly 6 of 31 Refusal variants by exact name; \
+        "this session's corpus provokes exactly 6 of 46 Refusal variants by exact name; \
          see tests/chatman_refusal_governance.rs for the provoking tests and this file's \
          module doc for the honest scope of what 'covered' means here"
     );

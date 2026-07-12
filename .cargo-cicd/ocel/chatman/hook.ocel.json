@@ -3,51 +3,8 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
-    "evt_002": {
-      "event_id": "ab60d9e1-3227-45cf-a0d9-ca1a2bca6916",
-      "case_id": "chatman-hook",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 3,
-      "objects": [
-        [
-          "Falsify_HookPatternNotAdmitted",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Falsify_HookPatternNotAdmitted",
-        "outcome": "refused",
-        "refusal": "HookPatternNotAdmitted"
-      }
-    },
-    "evt_000": {
-      "event_id": "399500b7-1a42-49ab-b78c-0629f86405f4",
-      "case_id": "chatman-hook",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Info"
-        }
-      },
-      "timestamp_ns": 1,
-      "objects": [
-        [
-          "Accept_DeterministicOperatorWithoutReceipt",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Accept_DeterministicOperatorWithoutReceipt",
-        "outcome": "admitted"
-      }
-    },
     "evt_001": {
-      "event_id": "67dd47b2-fd4d-4312-828e-6540c081decb",
+      "event_id": "dc0ffa65-7f2c-47ce-a026-68e08a12a51e",
       "case_id": "chatman-hook",
       "activity": {
         "DiagnosticEmitted": {
@@ -63,12 +20,12 @@
         ]
       ],
       "attributes": {
-        "fixture_id": "Accept_HookPatternAdmitted",
-        "outcome": "admitted"
+        "outcome": "admitted",
+        "fixture_id": "Accept_HookPatternAdmitted"
       }
     },
     "evt_003": {
-      "event_id": "de814f9a-e0d3-4e40-a003-41d311034214",
+      "event_id": "6c6476e7-4751-4560-b798-13274753eb0d",
       "case_id": "chatman-hook",
       "activity": {
         "DiagnosticEmitted": {
@@ -84,9 +41,52 @@
         ]
       ],
       "attributes": {
+        "outcome": "refused",
         "refusal": "NondeterministicOperatorRequiresReceipt",
-        "fixture_id": "Falsify_NondeterministicOperatorRequiresReceipt",
-        "outcome": "refused"
+        "fixture_id": "Falsify_NondeterministicOperatorRequiresReceipt"
+      }
+    },
+    "evt_000": {
+      "event_id": "9e560db5-6d19-4032-a6d3-a70ac85a61d1",
+      "case_id": "chatman-hook",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 1,
+      "objects": [
+        [
+          "Accept_DeterministicOperatorWithoutReceipt",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "admitted",
+        "fixture_id": "Accept_DeterministicOperatorWithoutReceipt"
+      }
+    },
+    "evt_002": {
+      "event_id": "19df2a2f-6c16-4dab-9dc9-00ba3aa1c447",
+      "case_id": "chatman-hook",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 3,
+      "objects": [
+        [
+          "Falsify_HookPatternNotAdmitted",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "refused",
+        "refusal": "HookPatternNotAdmitted",
+        "fixture_id": "Falsify_HookPatternNotAdmitted"
       }
     }
   },

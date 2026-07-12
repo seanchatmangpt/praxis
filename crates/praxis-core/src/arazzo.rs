@@ -3,8 +3,17 @@
 //! real Q-stage SPARQL projection rows: `A_z = T(Q(W))` (PRD.md sec.7.4).
 
 use crate::error::CoreError;
-use praxis_graphlaw::chatman::powl_projection::ProjectionRow;
+use powl2_decompose::Powl;
+use praxis_graphlaw::chatman::powl_projection::{
+    powl_to_turtle, run_render_model_projection, ExternalCutCompilationOutcome,
+    ExternalCutCompilationRequest, ExternalCutCompiler, ProjectionRow,
+    RENDER_MODEL_PROJECTION_QUERY,
+};
 use serde::{Deserialize, Serialize};
+use wasm4pm_arazzo::compile::AirCompiler;
+use wasm4pm_arazzo::normalizer::ArazzoNormalizer;
+use wasm4pm_arazzo::parse::DocumentIndex;
+use wasm4pm_arazzo::{lower, resolve};
 
 /// Binding for the Arazzo Projection Receipt as required by PRD Iteration 8.
 ///
@@ -43,7 +52,7 @@ impl ArazzoProjectionReceipt {
             "<urn:praxis:arazzo:projection:{}>",
             self.external_cut_identity
         );
-        let mut quads = vec![
+        let mut quads = [
             format!(
                 "{subject} <urn:praxis:predicate:source_powl_digest> \"{}\" .",
                 self.source_powl_digest_hex
@@ -135,6 +144,127 @@ impl ArazzoProjectionReceipt {
             air_digest_hex: air_digest_hex.to_string(),
         }
     }
+}
+
+// ── Manufacture admission (PROJ-783) ────────────────────────────────────
+//
+// PRD.md v26.7.11 sec.7.5: "Production Arazzo without an admitted POWL
+// source and projection receipt SHALL be refused." Acceptance scenario
+// 19.3 ("Handwritten Arazzo Is Refused"): "Given production Arazzo without
+// a projection receipt and admitted POWL source, execution SHALL return
+// ARAZZO_UNMANUFACTURED." Everything from `render_and_compile` through
+// `ChatmanRailAbCompiler` (below) is the *manufacture* side of Rail A/B;
+// this function is the *admission* side -- the gate a presented Arazzo
+// document plus its claimed receipt must pass before either is trusted as
+// a genuine `A_z = T(Q(W))` artifact rather than handwritten production
+// Arazzo wearing a receipt-shaped decoration.
+
+/// Admits a presented Arazzo document as genuinely *manufactured* (Rail
+/// A's `A_z = T(Q(W))`, PRD.md sec.7.4-7.5) rather than handwritten
+/// production Arazzo (PRD.md sec.5's non-goal "accept arbitrary Arazzo as
+/// production workflow authority").
+///
+/// Three independent, ordered checks, each a distinct PRD.md sec.18 typed
+/// refusal:
+/// 1. [`CoreError::ArazzoUnmanufactured`] (`ARAZZO_UNMANUFACTURED`) -- no
+///    projection receipt was presented at all (acceptance scenario 19.3).
+/// 2. [`CoreError::ArazzoSourceReceiptMissing`]
+///    (`ARAZZO_SOURCE_RECEIPT_MISSING`) -- a receipt was presented, but it
+///    does not actually bind to an admitted POWL source
+///    (`source_powl_digest_hex`/`external_cut_identity` empty) -- a
+///    receipt shape that attests nothing.
+/// 3. [`CoreError::ArazzoProjectionDigestMismatch`]
+///    (`ARAZZO_PROJECTION_DIGEST_MISMATCH`) -- the receipt's own
+///    `arazzo_digest_hex` does not equal the real BLAKE3 digest of the
+///    presented `arazzo_document` bytes -- the receipt was cut over
+///    different material than what is actually being presented (a stale,
+///    substituted, or hand-edited document wearing a real receipt).
+///
+/// # Complexity
+/// O(b) where b is the byte length of `arazzo_document` (one BLAKE3 pass);
+/// every other check is O(1) string comparison.
+pub fn admit_manufactured_arazzo(
+    arazzo_document: &str,
+    receipt: Option<&ArazzoProjectionReceipt>,
+) -> Result<(), CoreError> {
+    let Some(receipt) = receipt else {
+        return Err(CoreError::ArazzoUnmanufactured(format!(
+            "no projection receipt presented for this Arazzo document ({} bytes); \
+             production Arazzo without an admitted POWL source and projection receipt is \
+             refused (PRD.md v26.7.11 sec.7.5)",
+            arazzo_document.len()
+        )));
+    };
+    if receipt.source_powl_digest_hex.is_empty() || receipt.external_cut_identity.is_empty() {
+        return Err(CoreError::ArazzoSourceReceiptMissing(format!(
+            "projection receipt does not bind an admitted POWL source \
+             (source_powl_digest_hex={:?}, external_cut_identity={:?})",
+            receipt.source_powl_digest_hex, receipt.external_cut_identity
+        )));
+    }
+    let recomputed = hex::encode(blake3::hash(arazzo_document.as_bytes()).as_bytes());
+    if recomputed != receipt.arazzo_digest_hex {
+        return Err(CoreError::ArazzoProjectionDigestMismatch(format!(
+            "presented Arazzo document recomputes to {recomputed}, but the projection \
+             receipt carries {}; the receipt does not attest this document's bytes",
+            receipt.arazzo_digest_hex
+        )));
+    }
+    Ok(())
+}
+
+/// PROJ-777/778: admits a presented Arazzo document the same way as
+/// [`admit_manufactured_arazzo`], but first requires the caller to declare
+/// which GraphLaw dialect it is presenting under, and checks that
+/// declaration against [`crate::graphlaw_authority::REGISTRY`] before
+/// running the existing manufacture checks. This is the dialect-authority
+/// gate PROJ-778 requires ("No dialect SHALL acquire authority from another
+/// dialect merely because it can encode equivalent syntax",
+/// `docs/jira/v26.7.11/PRD.md:588`) applied concretely to Arazzo manufacture
+/// admission: a caller cannot obtain Arazzo's manufacture authority by
+/// presenting a document under an unregistered dialect name, or under a
+/// different *registered* dialect's name -- even one whose own authority
+/// also covers graph consequence (e.g. `"SPARQL CONSTRUCT"`, authority
+/// `"manufacture graph consequence"`) -- only a document declared exactly
+/// `"Arazzo"` reaches the real admission checks in
+/// [`admit_manufactured_arazzo`].
+///
+/// [`admit_manufactured_arazzo`] itself is unchanged and remains directly
+/// callable (no breaking change to its existing signature or callers, per
+/// this crate's API-stability rule); this is an additive, stricter entry
+/// point for callers that also want the dialect-name check enforced.
+///
+/// # Complexity
+/// O(D) for the registry lookup (D = 14 registered dialects, a fixed
+/// constant -- a linear scan of a `&'static` slice, per
+/// [`crate::graphlaw_authority::authority_for`]'s own doc), plus
+/// [`admit_manufactured_arazzo`]'s O(b) BLAKE3 pass over the document bytes.
+pub fn admit_manufactured_arazzo_for_dialect(
+    declared_dialect: &str,
+    arazzo_document: &str,
+    receipt: Option<&ArazzoProjectionReceipt>,
+) -> Result<(), CoreError> {
+    let declaration =
+        crate::graphlaw_authority::authority_for(declared_dialect).ok_or_else(|| {
+            CoreError::ArazzoDialectAuthorityMismatch {
+                declared: declared_dialect.to_string(),
+                expected: "Arazzo",
+                reason: "declared dialect is not registered in the GraphLaw authority registry"
+                    .to_string(),
+            }
+        })?;
+    if declaration.name != "Arazzo" {
+        return Err(CoreError::ArazzoDialectAuthorityMismatch {
+            declared: declared_dialect.to_string(),
+            expected: "Arazzo",
+            reason: format!(
+                "declared dialect holds authority {:?}, not Arazzo's \"manufactured \
+                 inter-engine workflow carrier\" authority",
+                declaration.authority
+            ),
+        });
+    }
+    admit_manufactured_arazzo(arazzo_document, receipt)
 }
 
 // ── T stage: Tera renderer (PROJ-752) ───────────────────────────────────
@@ -367,6 +497,270 @@ pub fn render_arazzo_document(
         .map_err(|e| CoreError::TemplateRenderFailed(format!("{e:?}")))
 }
 
+// ── Rail A/B production pipeline (PROJ-796) ─────────────────────────────
+//
+// Before this section, every stage from Q(W) SPARQL execution through AIR
+// compilation was real and independently tested, but the full composition
+// existed only inside this module's own `#[cfg(test)]` round-trip test
+// (`manufactured_arazzo_round_trips_through_wasm4pm_arazzo_parser`, below).
+// `ArazzoProjectionReceipt::project_and_compile` and `ChatmanRailAbCompiler`
+// are the real, non-test-only entry points: the former for direct callers
+// of this crate, the latter as the concrete implementation
+// `ChatmanEngine::admit_transition_with_external_cut`
+// (`praxis_graphlaw::chatman::engine`) invokes through the
+// `ExternalCutCompiler` seam (see that trait's doc comment for why a trait
+// seam is needed instead of a direct call: `praxis-graphlaw` cannot depend
+// on this crate without a cyclic crate dependency).
+
+/// Real, non-test-only output of [`ArazzoProjectionReceipt::
+/// project_and_compile`]: the manufactured Arazzo document, the receipt
+/// binding every material digest, and the compiled AIR module -- both its
+/// digest (`receipt.air_digest_hex`, carried again here as raw bytes) and
+/// its compiled WASM bytes, for callers that need to inspect the compiled
+/// module without recompiling it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArazzoCompilationArtifact {
+    /// The receipt binding every material digest of this run.
+    pub receipt: ArazzoProjectionReceipt,
+    /// The manufactured Arazzo 1.1.x JSON document text (`A_z`).
+    pub arazzo_document: String,
+    /// The compiled AIR module's own digest
+    /// (`wasm4pm_arazzo::compile::AirCompiler::digest_program`), matching
+    /// `receipt.air_digest_hex`.
+    pub air_digest: [u8; 32],
+    /// The compiled AIR module's WASM bytes
+    /// (`wasm4pm_arazzo::compile::AirCompiler::compile_to_wasm`).
+    pub air_wasm: Vec<u8>,
+}
+
+/// Shared core of the Rail A/B pipeline (Q(W) SPARQL projection, T Tera
+/// render, Arazzo parse/resolve, AIR lowering/normalization/compile):
+/// called by both [`ArazzoProjectionReceipt::project_and_compile`] (which
+/// additionally runs POWL admission/Turtle-emission first) and
+/// [`ChatmanRailAbCompiler::compile`] (which receives an already-admitted
+/// Turtle from `ChatmanEngine::admit_transition_with_external_cut`) -- one
+/// real implementation, never two, so both entry points compute
+/// byte-identical materials for the same inputs.
+///
+/// # Errors
+/// [`CoreError::ExternalCutCompilationFailed`], naming the failing
+/// sub-stage (`sparql_projection`, `arazzo_parse`, `uri_resolution`,
+/// `air_lowering`, `air_normalization`, `air_compile`); or
+/// [`CoreError::TemplateRenderFailed`] / [`CoreError::
+/// UnresolvedProjectionElement`] from [`render_arazzo_document`].
+///
+/// # Complexity
+/// O(n * d) for the Q(W) projection/step flattening (see
+/// `flatten_ordered_steps`) plus O(s) for the Tera render plus the AIR
+/// compiler's own bound (linear in program size).
+fn render_and_compile(
+    turtle: &str,
+    root_element_id: &str,
+    workflow_id: &str,
+    title: &str,
+    compiler_version: &str,
+) -> Result<(ExternalCutCompilationOutcome, Vec<u8>), CoreError> {
+    let rows = run_render_model_projection(turtle).map_err(|e| {
+        CoreError::ExternalCutCompilationFailed {
+            stage: "sparql_projection".to_string(),
+            detail: e.to_string(),
+        }
+    })?;
+    let arazzo_json = render_arazzo_document(&rows, root_element_id, workflow_id, title)?;
+
+    // Synthetic document key, distinct from `root_element_id` itself (which
+    // names the *source* POWL element, not the manufactured Arazzo
+    // document) -- must be a valid absolute URI: `resolve::normalize_uris`
+    // parses it with `url::Url::parse`.
+    let doc_key = format!("{root_element_id}/manufactured");
+    let mut index = DocumentIndex::new();
+    index.add_document(&arazzo_json, &doc_key).map_err(|e| {
+        CoreError::ExternalCutCompilationFailed {
+            stage: "arazzo_parse".to_string(),
+            detail: e.to_string(),
+        }
+    })?;
+    resolve::normalize_uris(&mut index).map_err(|e| CoreError::ExternalCutCompilationFailed {
+        stage: "uri_resolution".to_string(),
+        detail: e.to_string(),
+    })?;
+    let parsed =
+        index
+            .documents
+            .get(&doc_key)
+            .ok_or_else(|| CoreError::ExternalCutCompilationFailed {
+                stage: "uri_resolution".to_string(),
+                detail: format!("document {doc_key:?} missing from the index after normalize_uris"),
+            })?;
+
+    let bump = bumpalo::Bump::new();
+    let mut air_program = lower::lower_description(parsed, &bump).map_err(|e| {
+        CoreError::ExternalCutCompilationFailed {
+            stage: "air_lowering".to_string(),
+            detail: e.to_string(),
+        }
+    })?;
+    ArazzoNormalizer::normalize(&mut air_program, &bump).map_err(|e| {
+        CoreError::ExternalCutCompilationFailed {
+            stage: "air_normalization".to_string(),
+            detail: e.to_string(),
+        }
+    })?;
+    let air_wasm = AirCompiler::compile_to_wasm(&air_program).map_err(|e| {
+        CoreError::ExternalCutCompilationFailed {
+            stage: "air_compile".to_string(),
+            detail: e.to_string(),
+        }
+    })?;
+    let air_digest = AirCompiler::digest_program(&air_program).map_err(|e| {
+        CoreError::ExternalCutCompilationFailed {
+            stage: "air_compile".to_string(),
+            detail: e.to_string(),
+        }
+    })?;
+
+    let outcome = ExternalCutCompilationOutcome {
+        source_powl_digest_hex: hex::encode(blake3::hash(turtle.as_bytes()).as_bytes()),
+        sparql_projection_digest_hex: hex::encode(
+            blake3::hash(RENDER_MODEL_PROJECTION_QUERY.as_bytes()).as_bytes(),
+        ),
+        tera_template_digest_hex: hex::encode(
+            blake3::hash(ARAZZO_PROJECTION_TEMPLATE.as_bytes()).as_bytes(),
+        ),
+        arazzo_digest_hex: hex::encode(blake3::hash(arazzo_json.as_bytes()).as_bytes()),
+        compiler_version: compiler_version.to_string(),
+        air_digest_hex: hex::encode(air_digest.0),
+        arazzo_document: arazzo_json,
+    };
+    Ok((outcome, air_wasm))
+}
+
+/// Decodes a 64-hex-character AIR digest string back into raw bytes. Only
+/// ever called on a hex string [`render_and_compile`] just produced via
+/// `hex::encode`, so a decode failure here indicates a crate defect, not
+/// caller input.
+fn decode_air_digest(hex_str: &str) -> Result<[u8; 32], CoreError> {
+    let bytes = hex::decode(hex_str).map_err(|e| CoreError::ExternalCutCompilationFailed {
+        stage: "air_compile".to_string(),
+        detail: format!("AIR digest hex decode failed (crate defect): {e}"),
+    })?;
+    bytes
+        .try_into()
+        .map_err(|_| CoreError::ExternalCutCompilationFailed {
+            stage: "air_compile".to_string(),
+            detail: "AIR digest did not decode to exactly 32 bytes (crate defect)".to_string(),
+        })
+}
+
+impl ArazzoProjectionReceipt {
+    /// Rail A/B production pipeline (PROJ-796): runs the full real chain
+    /// `A_z = T(Q(W))` (PRD.md sec.7.4) plus Rail B's Arazzo -> AIR
+    /// lowering, normalization, and WASM compilation over one POWL region,
+    /// admitting it first (via [`powl_to_turtle`]'s own
+    /// `ExternalCutRefusal`-wrapping admission). Not a test-only helper:
+    /// this runs the same real computation
+    /// [`ChatmanRailAbCompiler::compile`] runs for
+    /// `ChatmanEngine::admit_transition_with_external_cut` (both call
+    /// [`render_and_compile`], the shared core), so a direct caller of this
+    /// crate and the sealed engine's own admission path can never diverge.
+    ///
+    /// # Errors
+    /// [`CoreError::ExternalCutCompilationFailed`] naming the failing
+    /// sub-stage (`admission`, `sparql_projection`, `arazzo_parse`,
+    /// `uri_resolution`, `air_lowering`, `air_normalization`,
+    /// `air_compile`); [`CoreError::TemplateRenderFailed`] /
+    /// [`CoreError::UnresolvedProjectionElement`] from
+    /// [`render_arazzo_document`].
+    ///
+    /// # Complexity
+    /// [`powl_to_turtle`]'s admission/emission bound (O(n + |order|) plus
+    /// its own O(n) admission pass) plus [`render_and_compile`]'s bound.
+    pub fn project_and_compile(
+        region: &Powl,
+        base_iri: &str,
+        derived_from: Option<&str>,
+        workflow_id: &str,
+        title: &str,
+        compiler_version: &str,
+    ) -> Result<ArazzoCompilationArtifact, CoreError> {
+        let turtle = powl_to_turtle(region, base_iri, derived_from).map_err(|e| {
+            CoreError::ExternalCutCompilationFailed {
+                stage: "admission".to_string(),
+                detail: e.to_string(),
+            }
+        })?;
+        let root_element_id = format!("{}/n0", base_iri.trim_end_matches('/'));
+        let (outcome, air_wasm) = render_and_compile(
+            &turtle,
+            &root_element_id,
+            workflow_id,
+            title,
+            compiler_version,
+        )?;
+
+        let receipt = ArazzoProjectionReceipt::from_materials(
+            &turtle,
+            &root_element_id,
+            RENDER_MODEL_PROJECTION_QUERY,
+            ARAZZO_PROJECTION_TEMPLATE,
+            &outcome.arazzo_document,
+            compiler_version,
+            &outcome.air_digest_hex,
+        );
+        let air_digest = decode_air_digest(&outcome.air_digest_hex)?;
+        Ok(ArazzoCompilationArtifact {
+            receipt,
+            arazzo_document: outcome.arazzo_document,
+            air_digest,
+            air_wasm,
+        })
+    }
+}
+
+/// The one real implementation of `praxis_graphlaw::chatman::
+/// powl_projection::ExternalCutCompiler` this crate provides to
+/// `ChatmanEngine::admit_transition_with_external_cut` -- injected because
+/// `praxis-graphlaw` cannot depend on this crate (`praxis-core` already
+/// depends on `praxis-graphlaw`; the reverse edge would be a cyclic crate
+/// dependency), so the sealed engine depends on the trait seam instead and
+/// a caller that already links both crates wires the concrete, real Rail
+/// A/B pipeline in from here.
+#[derive(Debug, Clone, Copy)]
+pub struct ChatmanRailAbCompiler {
+    /// Compiler version string folded into the receipt (mirrors
+    /// `ArazzoProjectionReceipt::compiler_version`).
+    pub compiler_version: &'static str,
+}
+
+impl Default for ChatmanRailAbCompiler {
+    fn default() -> Self {
+        Self {
+            compiler_version: "26.7.11",
+        }
+    }
+}
+
+impl ExternalCutCompiler for ChatmanRailAbCompiler {
+    fn compile(
+        &self,
+        request: &ExternalCutCompilationRequest<'_>,
+    ) -> Result<ExternalCutCompilationOutcome, praxis_graphlaw::chatman::abi::Refusal> {
+        let (outcome, _air_wasm) = render_and_compile(
+            request.region_turtle,
+            request.root_element_id,
+            request.workflow_id,
+            request.title,
+            self.compiler_version,
+        )
+        .map_err(|e| {
+            praxis_graphlaw::chatman::abi::Refusal::ValidationFailed(format!(
+                "Rail A/B compilation failed: {e}"
+            ))
+        })?;
+        Ok(outcome)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -389,12 +783,11 @@ mod tests {
     }
 
     // ── PROJ-752: real T-stage render + full round-trip ─────────────────
-
-    use powl2_decompose::Powl;
-    use praxis_graphlaw::chatman::powl_projection::{
-        powl_to_turtle, run_render_model_projection, RENDER_MODEL_PROJECTION_QUERY,
-    };
-    use wasm4pm_arazzo::parse::DocumentIndex;
+    //
+    // `Powl`, `powl_to_turtle`, `run_render_model_projection`,
+    // `RENDER_MODEL_PROJECTION_QUERY`, and `DocumentIndex` are all already
+    // in scope via `use super::*;` above (PROJ-796 promoted them to
+    // module-level production imports).
 
     const TEST_PROJECTION: &str = "SELECT * WHERE { ?s ?p ?o }";
     const TEST_RENDERER: &str = "arazzo_projection.tera";
@@ -470,7 +863,7 @@ mod tests {
         assert!(parsed.workflows[0]
             .steps
             .iter()
-            .any(|s| s.extensions.get("x-powl-external-cut").is_some()));
+            .any(|s| s.extensions.contains_key("x-powl-external-cut")));
 
         // PROJ-753: resolve URIs, lower the parsed document into AIR, normalize
         // (resolve any cross-step Variable references), and compile to WASM --
@@ -551,5 +944,147 @@ mod tests {
             result,
             Err(CoreError::UnresolvedProjectionElement(_))
         ));
+    }
+
+    // ── admit_manufactured_arazzo (PROJ-783: ARAZZO_UNMANUFACTURED /
+    // ── ARAZZO_SOURCE_RECEIPT_MISSING / ARAZZO_PROJECTION_DIGEST_MISMATCH)
+    //
+    // All four scenarios run the real Rail A/B pipeline
+    // (`ArazzoProjectionReceipt::project_and_compile`) to get a genuine
+    // manufactured document + receipt, then exercise the admission gate
+    // over that real output -- never a hand-typed fixture standing in for
+    // one.
+
+    fn real_manufactured_artifact() -> Result<ArazzoCompilationArtifact, Box<dyn std::error::Error>>
+    {
+        let model = model_with_external_cut();
+        Ok(ArazzoProjectionReceipt::project_and_compile(
+            &model,
+            "urn:test:proj783",
+            Some("urn:test:proj783"),
+            "manufactured-admission-workflow",
+            "PROJ-783 manufacture admission test",
+            "26.7.11",
+        )?)
+    }
+
+    #[test]
+    fn admit_manufactured_arazzo_accepts_a_real_manufactured_document(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let artifact = real_manufactured_artifact()?;
+        admit_manufactured_arazzo(&artifact.arazzo_document, Some(&artifact.receipt))?;
+        Ok(())
+    }
+
+    #[test]
+    fn admit_manufactured_arazzo_refuses_a_document_with_no_receipt(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let artifact = real_manufactured_artifact()?;
+        let result = admit_manufactured_arazzo(&artifact.arazzo_document, None);
+        assert!(
+            matches!(&result, Err(CoreError::ArazzoUnmanufactured(_))),
+            "a document presented with no receipt at all must refuse \
+             ArazzoUnmanufactured, got: {result:?}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn admit_manufactured_arazzo_refuses_a_receipt_with_no_source_binding(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let artifact = real_manufactured_artifact()?;
+        let mut unbound_receipt = artifact.receipt.clone();
+        unbound_receipt.source_powl_digest_hex = String::new();
+        let result = admit_manufactured_arazzo(&artifact.arazzo_document, Some(&unbound_receipt));
+        assert!(
+            matches!(&result, Err(CoreError::ArazzoSourceReceiptMissing(_))),
+            "a receipt with an empty source_powl_digest_hex must refuse \
+             ArazzoSourceReceiptMissing, got: {result:?}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn admit_manufactured_arazzo_refuses_a_tampered_document(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let artifact = real_manufactured_artifact()?;
+        // The receipt was cut over `artifact.arazzo_document`; presenting a
+        // byte-different document under the same receipt must be refused.
+        let tampered = format!(
+            "{}\n// tampered after manufacture\n",
+            artifact.arazzo_document
+        );
+        let result = admit_manufactured_arazzo(&tampered, Some(&artifact.receipt));
+        assert!(
+            matches!(&result, Err(CoreError::ArazzoProjectionDigestMismatch(_))),
+            "a document that no longer recomputes to the receipt's arazzo_digest_hex must \
+             refuse ArazzoProjectionDigestMismatch, got: {result:?}"
+        );
+        Ok(())
+    }
+
+    // ── admit_manufactured_arazzo_for_dialect (PROJ-777/778: dialect
+    // ── authority gate wired against graphlaw_authority::REGISTRY) ────────
+
+    #[test]
+    fn admit_manufactured_arazzo_for_dialect_accepts_the_arazzo_dialect(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let artifact = real_manufactured_artifact()?;
+        admit_manufactured_arazzo_for_dialect(
+            "Arazzo",
+            &artifact.arazzo_document,
+            Some(&artifact.receipt),
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn admit_manufactured_arazzo_for_dialect_refuses_an_unregistered_dialect_name(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let artifact = real_manufactured_artifact()?;
+        let result = admit_manufactured_arazzo_for_dialect(
+            "not-a-real-dialect",
+            &artifact.arazzo_document,
+            Some(&artifact.receipt),
+        );
+        assert!(
+            matches!(
+                &result,
+                Err(CoreError::ArazzoDialectAuthorityMismatch { declared, expected, .. })
+                    if declared == "not-a-real-dialect" && *expected == "Arazzo"
+            ),
+            "an unregistered dialect name must refuse ArazzoDialectAuthorityMismatch, \
+             got: {result:?}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn admit_manufactured_arazzo_for_dialect_refuses_a_different_registered_dialect(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // PROJ-778's core claim, exercised end-to-end: a document that is
+        // otherwise a byte-perfect, receipt-matched manufactured Arazzo
+        // artifact still must not be admitted if the caller declares it
+        // under "SPARQL CONSTRUCT" -- a real, registered dialect whose own
+        // authority ("manufacture graph consequence") is not Arazzo's. No
+        // dialect acquires Arazzo's authority merely by being *presented*
+        // alongside content that would otherwise pass Arazzo's own checks.
+        let artifact = real_manufactured_artifact()?;
+        let result = admit_manufactured_arazzo_for_dialect(
+            "SPARQL CONSTRUCT",
+            &artifact.arazzo_document,
+            Some(&artifact.receipt),
+        );
+        assert!(
+            matches!(
+                &result,
+                Err(CoreError::ArazzoDialectAuthorityMismatch { declared, expected, .. })
+                    if declared == "SPARQL CONSTRUCT" && *expected == "Arazzo"
+            ),
+            "declaring a real but different dialect must refuse \
+             ArazzoDialectAuthorityMismatch, not fall through to Arazzo's own checks, \
+             got: {result:?}"
+        );
+        Ok(())
     }
 }

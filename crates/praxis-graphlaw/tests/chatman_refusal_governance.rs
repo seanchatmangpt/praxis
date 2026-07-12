@@ -1,10 +1,13 @@
 //! Refusal-taxonomy governance tests.
 //!
-//! Ground truth read this session: `src/chatman/abi.rs:244-349` (the
-//! `Refusal` enum, 31 variants, including PROJ-SEC-04's `StageSealMismatch`
-//! and `UnlawfulActuation`) and `src/chatman/abi.rs:354-386`
-//! (`ALL_REFUSAL_NAMES: [&str; 31]`, declaration order) and
-//! `src/chatman/abi.rs:388-432` (`Refusal::name()`, exhaustive match).
+//! Ground truth: `src/chatman/abi.rs:301-537` (the `Refusal` enum, 46
+//! variants, including PROJ-SEC-04's `StageSealMismatch` and
+//! `UnlawfulActuation`, and PROJ-786/787's closure-law/external-cut/N3
+//! catalog-completeness variants added in a later session than the
+//! original 31-variant count this file was authored against) and
+//! `src/chatman/abi.rs:574-621` (`ALL_REFUSAL_NAMES: [&str; 46]`,
+//! declaration order) and `src/chatman/abi.rs:630-681` (`Refusal::name()`,
+//! exhaustive match).
 //!
 //! `chicago_tdd_tools::prelude` (verified this session in
 //! `/Users/sac/chicago-tdd-tools/src/lib.rs:262-320`) exports no
@@ -28,10 +31,16 @@ use praxis_graphlaw::chatman::triple8::ProfileSymbolTable;
 const SNAPSHOT_IRI: &str = "urn:chatman:refusal-governance:snapshot";
 const PROFILE_IRI: &str = "profile:refusal-governance-test";
 
-/// Governed list, hand-transcribed from `abi.rs:341-369` by reading the enum
-/// declaration in the same session (not copied from `ALL_REFUSAL_NAMES`
-/// itself, so this test actually cross-checks two independent readings of
-/// the source, not the constant against itself).
+/// Governed list, hand-transcribed from `abi.rs:301-537` by reading the enum
+/// declaration independently (not copied from `ALL_REFUSAL_NAMES` itself, so
+/// this test actually cross-checks two independent readings of the source,
+/// not the constant against itself). Extended to 46 entries when
+/// `ALL_REFUSAL_NAMES` grew from 31 to 46 (PROJ-786/787 catalog-completeness
+/// wiring): the 15 added entries below were already real, constructed,
+/// end-to-end-tested `Refusal` variants (N3 cost/builtin/direct-actuation,
+/// POWL external-cut, and closure-law/child-completion/parent-closure) —
+/// only their presence in this governance list and `ALL_REFUSAL_NAMES` was
+/// behind.
 const GOVERNED_REFUSAL_NAMES: &[&str] = &[
     "ValidationFailed",
     "PlanInfeasible",
@@ -52,6 +61,9 @@ const GOVERNED_REFUSAL_NAMES: &[&str] = &[
     "UnsupportedDialect",
     "N3UnavailableByProfile",
     "N3ActuationRefused",
+    "N3CostBoundExceeded",
+    "N3BuiltinRefused",
+    "N3DirectActuationRefused",
     "RouteDecisionMismatch",
     "GraphSnapshotMismatch",
     "ProfileHashMismatch",
@@ -64,21 +76,33 @@ const GOVERNED_REFUSAL_NAMES: &[&str] = &[
     "TripleTermInSnapshot",
     "StageSealMismatch",
     "UnlawfulActuation",
+    "PowlRegionNotAdmitted",
+    "ExternalCutUndeclared",
+    "ExternalCutTypeMismatch",
+    "ExternalCutAuthorityMismatch",
+    "ClosureLawNoChildren",
+    "ClosureLawQuorumOutOfRange",
+    "ClosureLawUnknownChild",
+    "ClosureLawOrderedSubsetInvalid",
+    "ClosureLawPolicyNotDeclared",
+    "ChildConformanceRefused",
+    "ChildCompletionUnadmitted",
+    "ParentClosureUnsatisfied",
 ];
 
-/// `ALL_REFUSAL_NAMES` is a hard-coded `[&str; 31]` array
-/// (`abi.rs:340`); this asserts the exact count read from the source.
+/// `ALL_REFUSAL_NAMES` is a hard-coded `[&str; 46]` array
+/// (`abi.rs:574`); this asserts the exact count read from the source.
 #[test]
-fn all_refusal_names_has_exactly_thirty_one_entries() {
+fn all_refusal_names_has_exactly_forty_six_entries() {
     assert_eq_msg!(
         ALL_REFUSAL_NAMES.len(),
-        31,
-        "abi.rs:340 declares ALL_REFUSAL_NAMES: [&str; 31]; count drifted"
+        46,
+        "abi.rs:574 declares ALL_REFUSAL_NAMES: [&str; 46]; count drifted"
     );
     assert_eq_msg!(
         GOVERNED_REFUSAL_NAMES.len(),
-        31,
-        "independently-transcribed governed list must also have 31 entries"
+        46,
+        "independently-transcribed governed list must also have 46 entries"
     );
 }
 
@@ -99,7 +123,7 @@ fn governed_list_is_set_equal_to_all_refusal_names() {
     assert_eq_msg!(
         governed,
         actual,
-        "governed refusal-name list must be exactly ALL_REFUSAL_NAMES (abi.rs:340-370), \
+        "governed refusal-name list must be exactly ALL_REFUSAL_NAMES (abi.rs:574-621), \
          no more, no fewer"
     );
 }
