@@ -345,9 +345,6 @@ pub fn consult_wasm4pm_breed(
         });
     }
     permits.require(stage, breed_id)?;
-    if breed_id == "allen_temporal" {
-        println!("DEBUG TEMPORAL INPUT: {:#?}", input);
-    }
     let output = dispatch_breed(breed_id, input).map_err(|detail| {
         BreedCompositionRefused::BreedDispatchFailed {
             stage,

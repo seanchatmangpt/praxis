@@ -324,11 +324,17 @@ impl ViolationSet {
     /// deterministic JSON (`serde_json` field order follows struct
     /// declaration order, not a `HashMap`, so this is stable across runs).
     fn canonical_material(&self, decision: &AdmissionDecision) -> String {
-        format!(
-            "{}\u{1}{}",
-            serde_json::to_string(self).unwrap_or_default(),
-            decision.as_str()
-        )
+        // `.expect`, not `.unwrap_or_default()`: this struct's fields are plain
+        // String/bool/Vec<Violation> (Violation itself is String/String/enum) --
+        // no non-string map keys, no floats, no recursive types -- so
+        // serde_json::to_string cannot fail for this type. Silently defaulting
+        // to an empty string here would corrupt the receipt's hash material
+        // (hashing "nothing" instead of the real violation set) without any
+        // signal that it happened -- exactly the silent-default failure mode
+        // this repo's receipts-are-cryptographic-not-wishful doctrine forbids.
+        let material = serde_json::to_string(self)
+            .expect("ViolationSet has no non-string map keys, floats, or recursive types");
+        format!("{material}\u{1}{}", decision.as_str())
     }
 }
 
