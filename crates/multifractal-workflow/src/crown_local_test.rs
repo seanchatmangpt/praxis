@@ -199,9 +199,9 @@ fn base_run<'a>(
 // --------------------------------------------------------------------------
 
 /// The load-bearing test: one admitted observation graph drives F02 -> F03 -> F08 -> F09 -> F10
-/// -> F11 -> F18 end to end, and every stage's real output is present and correct.
+/// -> F11 -> F18 -> F19 end to end, and every stage's real output is present and correct.
 #[test]
-fn crown_local_prefix_drives_f02_through_f18_end_to_end() {
+fn crown_local_prefix_drives_f02_through_f19_end_to_end() {
     let policy = crown_policy();
     let ledger = AdmissionLedger::new();
     let (root, closure) = open_growth_root_and_closure();
@@ -262,6 +262,18 @@ fn crown_local_prefix_drives_f02_through_f18_end_to_end() {
     );
     assert!(!outcome.broker_receipt.receipt_hash_hex.is_empty());
     assert!(!outcome.broker_receipt.authority_token_hex.is_empty());
+
+    // --- F18 -> F19: the actuated action really resolved to exactly one registered hook ---
+    assert_eq!(
+        outcome.hook_resolution.state,
+        crate::f19_hooks::HookResolutionState::Replayable
+    );
+    assert_eq!(outcome.hook_resolution.binding.hook_name, "move-hook");
+    assert_eq!(
+        outcome.hook_resolution.declared_authority,
+        "crown-local-authority"
+    );
+    assert!(!outcome.hook_resolution.receipt_hash.is_empty());
 
     // --- Crown receipt is a real 64-hex BLAKE3 fold over every stage's digest ---
     assert_eq!(outcome.crown_receipt.len(), 64);

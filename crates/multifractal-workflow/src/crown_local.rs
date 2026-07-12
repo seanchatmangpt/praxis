@@ -13,6 +13,7 @@
 //! | F10 POWL Geometry         | reached *inside* F09's `manufacture_and_bind_child` (which calls [`crate::f10_powl_geometry::manufacture_powl_v2`]) |
 //! | F11 BCINR Local Execution | [`crate::f11_bcinr_runtime::geometry_to_local_ast`] over F09's real `growth.geometry` |
 //! | F18 Broker                | [`crate::f11_bcinr_runtime::dispatch_local_execution_via_broker`] |
+//! | F19 Hooks                 | [`crate::f19_hooks::resolve_hook_for_action`] over F08's real bound action |
 //!
 //! # What makes each edge real (and the honest nuances)
 //!
@@ -52,6 +53,16 @@
 //!   Receipt chain hash, not a placeholder. Also previously `TEST_ONLY_EDGE` for the same reason
 //!   as F10 -> F11; this driver is its first production caller too (F18's own module doc
 //!   previously said "No production caller in this repo" -- stale as of this pass).
+//! - **F18 -> F19**: gated on a real `broker_receipt` -- only reached once local execution
+//!   actually actuated through the broker. Resolves F19's real hook capability for the *same*
+//!   grounded action F08's `ActionHookBinder` already bound at planning time (`plan.tape.ops`'s
+//!   first op), against the same admitted `hook_pack_turtle`, but with a fresh
+//!   [`crate::f19_hooks::InMemoryReceiptLedger`] -- this is a distinct, post-actuation binding
+//!   ("this real actuation corresponds to exactly this registered hook"), not a re-check of
+//!   planning-time admissibility (which F08 already performed and gated on). Per F19's own atlas
+//!   doc (`F19_hooks.md`: "Maps planner actions to typed executable capabilities"), this is F19's
+//!   canonical real entry point, reused verbatim -- not a second, parallel hook-lookup
+//!   mechanism invented for this driver.
 //!
 //! Content-identity note for F08: F08 consumes the [`AdmittedTriple`] set built from the very
 //! same PDDL/hook-pack strings the crown serialized into F02's `payload_turtle`. Identity is
@@ -87,6 +98,9 @@ use crate::f11_bcinr_runtime::{
     F11BrokerHandoffRefused,
 };
 use crate::f18_broker_law::{ActionId, Broker, BrokerReceipt, BrokerSecret};
+use crate::f19_hooks::{
+    resolve_hook_for_action, HookResolution, HookResolutionRefused, InMemoryReceiptLedger,
+};
 
 /// The `prov:wasDerivedFrom` predicate the admitted observation's provenance triple uses (F02
 /// gate 2). Bare IRI, matching F02's own `PROV_WAS_DERIVED_FROM` constant.
@@ -166,6 +180,9 @@ pub struct LocalWitnessOutcome {
     pub growth: GrowthOutcome,
     /// F18's real broker receipt for the F10 -> F11 -> F18 local-execution dispatch.
     pub broker_receipt: BrokerReceipt,
+    /// F19's real hook resolution for the actuated action -- confirms the real local actuation
+    /// corresponds to exactly one registered, authorized hook capability.
+    pub hook_resolution: HookResolution,
     /// BLAKE3-hex over every stage's real digest, in canonical sorted order (no wall clock, no
     /// randomness) -- deterministic across runs of the same inputs.
     pub crown_receipt: String,
@@ -205,6 +222,16 @@ pub enum LocalWitnessRefused {
     /// Local execution did not complete, or a F18 broker stage refused the dispatch.
     #[error("crown-local F11->F18 broker handoff refused: {0}")]
     BrokerHandoff(#[from] F11BrokerHandoffRefused),
+    /// F08's plan tape had zero ops (a trivially-already-satisfied goal) -- there is no grounded
+    /// action for F19 to resolve a hook against.
+    #[error(
+        "crown-local: F08's plan tape has zero ops; no grounded action for F19 hook resolution"
+    )]
+    EmptyPlanTapeForHookResolution,
+    /// F19 could not resolve (or ambiguously resolved) a real hook capability for the actuated
+    /// action.
+    #[error("crown-local F18->F19 hook resolution refused: {0}")]
+    HookResolution(#[from] HookResolutionRefused),
 }
 
 /// Drive the LOCAL crown-witness prefix `F02 -> F03 -> F08 -> F09 -> F10` end to end, in one
@@ -333,6 +360,22 @@ pub fn drive_local_witness_prefix(
         run.local_max_ticks,
     )?;
 
+    // ---- Stage F18 -> F19: resolve the actuated action's real hook capability ----
+    // Gated by F18 above (broker_receipt exists): only reached once local execution really
+    // actuated through the broker. Reuses F08's own bound action (the same grounded action
+    // ActionHookBinder already confirmed a capability exists for at planning time) and the same
+    // admitted hook-pack catalog, but with a fresh ledger -- a distinct, post-actuation binding,
+    // not a re-check of planning-time admissibility (see module doc).
+    let ground_action = plan
+        .tape
+        .ops
+        .first()
+        .map(|op| op.action.clone())
+        .ok_or(LocalWitnessRefused::EmptyPlanTapeForHookResolution)?;
+    let mut hook_ledger = InMemoryReceiptLedger::default();
+    let hook_resolution =
+        resolve_hook_for_action(&run.hook_pack_turtle, &ground_action, &mut hook_ledger)?;
+
     // ---- Crown receipt: deterministic BLAKE3 over every stage's real digest ----
     let crown_receipt = compute_crown_receipt(
         &admission,
@@ -341,6 +384,7 @@ pub fn drive_local_witness_prefix(
         &growth_plan,
         &growth,
         &broker_receipt,
+        &hook_resolution,
     );
 
     Ok(LocalWitnessOutcome {
@@ -349,6 +393,7 @@ pub fn drive_local_witness_prefix(
         plan,
         growth,
         broker_receipt,
+        hook_resolution,
         crown_receipt,
     })
 }
@@ -417,6 +462,7 @@ fn compute_crown_receipt(
     growth_plan: &GrowthPlan,
     growth: &GrowthOutcome,
     broker_receipt: &BrokerReceipt,
+    hook_resolution: &HookResolution,
 ) -> String {
     let f08_tape_sig: String = f08
         .tape
@@ -436,6 +482,7 @@ fn compute_crown_receipt(
         ),
         format!("f10.geometry_turtle_len={}", growth.geometry_turtle.len()),
         format!("f18.receipt_hash={}", broker_receipt.receipt_hash_hex),
+        format!("f19.receipt_hash={}", hook_resolution.receipt_hash),
     ];
     lines.sort();
     let mut hasher = blake3::Hasher::new();
