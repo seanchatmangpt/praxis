@@ -1,0 +1,11 @@
+{application, air_core, [
+    {description, "AIR (Arazzo Intermediate Representation) shared Erlang transition core"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib
+    ]},
+    {env, []},
+    {modules, []}
+]}.

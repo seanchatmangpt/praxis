@@ -4,7 +4,11 @@
     {registered, [arazzo_runner_sup]},
     {applications, [
         kernel,
-        stdlib
+        stdlib,
+        %% PROJ-758: arazzo_runner_broker.erl uses crypto:hash/2 (sha256)
+        %% for its consequence-hash / evidence-chain (PRD 13 post-actuation
+        %% "hash the consequence" / "extend the receipt chain").
+        crypto
     ]},
     {mod, {arazzo_runner_app, []}},
     {env, []},
