@@ -346,7 +346,7 @@ mod tests {
     /// missing (per this session's standing rule against decorative Refusal
     /// placeholders that hide which gap is real).
     #[test]
-    #[ignore]
+    
     fn durability_functions_honestly_refuse_not_yet_implemented() {
         assert_eq!(
             durability::admit_idempotent("any-correlation-id"),

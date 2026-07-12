@@ -1350,7 +1350,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    
     fn test_locate_scale_always_refuses_not_implemented() {
         let closure = ClosureGraph {
             rule_pack_id: "fixture".to_string(),
@@ -1444,7 +1444,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    
     fn test_run_breed_composition_reaches_closure_then_honestly_halts_at_scale_gate() {
         let permits = BreedPermitTable::new([
             "bayesian_network".to_string(),

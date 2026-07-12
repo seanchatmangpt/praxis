@@ -190,9 +190,11 @@ impl std::error::Error for L7ExternalCutChaosNotImplemented {}
 /// # Complexity
 /// O(1): this function does no work beyond constructing its refusal value.
 pub fn check_external_cut_chaos_recovery(
-    _correlation_key: &str,
+    scenario: &str,
 ) -> Result<(), L7ExternalCutChaosNotImplemented> {
-    Ok(())
+    Err(L7ExternalCutChaosNotImplemented {
+        scenario: scenario.to_string(),
+    })
 }
 
 #[cfg(test)]
@@ -410,7 +412,7 @@ ex:world ceng:ocelLog """{"run_id":1,"sealed":true,"objects":[{"id":"case-1","ot
     /// F12-L7: the chaos/recovery stub must never claim success -- it always
     /// refuses, honestly, until real hand engineering lands.
     #[test]
-    #[ignore]
+
     fn f12_l7_chaos_recovery_stub_always_refuses() {
         let result = check_external_cut_chaos_recovery("duplicate_event");
         assert_eq!(

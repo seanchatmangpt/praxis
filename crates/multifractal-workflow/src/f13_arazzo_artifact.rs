@@ -117,10 +117,10 @@ impl std::error::Error for L7NotImplemented {}
 ///
 /// # Complexity
 /// O(1): this function does no work beyond constructing its refusal value.
-pub fn check_idempotency_and_correlation(
-    _correlation_key: &str,
-) -> Result<(), L7NotImplemented> {
-    Ok(())
+pub fn check_idempotency_and_correlation(correlation_key: &str) -> Result<(), L7NotImplemented> {
+    Err(L7NotImplemented {
+        correlation_key: correlation_key.to_string(),
+    })
 }
 
 #[cfg(test)]
@@ -206,7 +206,7 @@ mod tests {
     /// F13-L7: the idempotency/correlation stub must never claim success --
     /// it always refuses, honestly, until real hand engineering lands.
     #[test]
-    #[ignore]
+
     fn f13_l7_idempotency_stub_always_refuses() {
         let result = check_idempotency_and_correlation("some-correlation-key");
         assert_eq!(

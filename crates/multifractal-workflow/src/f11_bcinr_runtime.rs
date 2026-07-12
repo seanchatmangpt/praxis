@@ -461,7 +461,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    
     fn f11_detect_external_socket_always_refuses() {
         assert_eq!(
             detect_external_socket(0xFF),

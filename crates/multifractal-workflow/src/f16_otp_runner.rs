@@ -602,7 +602,7 @@ mod tests {
     /// refuses, honestly, with the matching generated gap, until real Erlang
     /// engineering lands in `apps/arazzo_runner/`.
     #[test]
-    #[ignore]
+    
     fn hand_write_required_stubs_always_refuse_with_the_matching_gap() {
         let g0 = check_gen_statem_lifecycle_wired().unwrap_err();
         assert_eq!(g0.gap.name, f16_otp_runner_vocab::HAND_WRITE_GAPS[0].name);

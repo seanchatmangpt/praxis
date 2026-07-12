@@ -497,7 +497,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    
     fn live_atomvm_target_evidence_always_refuses() {
         assert!(matches!(
             live_atomvm_target_evidence(),

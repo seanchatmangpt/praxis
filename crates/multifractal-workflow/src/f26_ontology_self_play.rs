@@ -245,7 +245,7 @@ pub fn generate_scenario(
     _catalog: &OntologyDimensionCatalog,
 ) -> Result<ScenarioGraph, SelfPlayRefusal> {
     Err(SelfPlayRefusal::NotYetImplemented {
-        stage: "ScenarioGenerator",
+        stage: "scenario_generator (D2)",
         reason: "no dimension-to-RDF-world mutation algorithm exists anywhere in this repo or \
                  the three surveyed external candidates (repo-wide grep, survey time)",
     })
@@ -966,7 +966,7 @@ mod tests {
     // -------------------------------------------------------------
 
     #[test]
-    #[ignore]
+
     fn generate_scenario_always_refuses_not_yet_implemented() {
         let catalog = OntologyDimensionCatalog {
             profile: ScenarioMutationProfile {

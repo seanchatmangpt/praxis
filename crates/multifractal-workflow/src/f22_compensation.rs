@@ -461,7 +461,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    
     fn detect_timeout_fails_loud_not_silently() {
         let err = detect_timeout(&valid_prior_ref(), 100).expect_err("stage not yet implemented");
         assert!(matches!(

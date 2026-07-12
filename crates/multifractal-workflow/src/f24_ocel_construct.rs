@@ -384,9 +384,12 @@ pub fn build_default_measurement_profile(
 /// Always [`OCELConstructionRefused::NotYetImplemented`] currently.
 pub fn idempotency_gate(_correlation_key: &str) -> Result<(), OCELConstructionRefused> {
     Err(OCELConstructionRefused::NotYetImplemented {
-        stage: "idempotency_gate",
-        detail: "no atomic idempotency/correlation gate with durable receipt-head recovery \
-                 exists in cng::otel_ocel/cng::otel_receipt (repo-wide grep, survey time)",
+        stage: "l7_idempotency_correlation_gate",
+        detail: "atomic idempotency/correlation gate over duplicate events, process/engine \
+                 restarts, and stale/malformed results, plus durable receipt-head recovery, \
+                 is HAND_WRITE_REQUIRED per the F24 survey and not yet built; zero existing \
+                 idempotency/correlation/duplicate/restart/recovery code exists in cng's \
+                 otel_ocel/otel_receipt modules for this to wrap",
     })
 }
 
@@ -604,7 +607,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+
     fn idempotency_gate_is_honestly_unimplemented() {
         assert_eq!(
             idempotency_gate("any-correlation-key"),
