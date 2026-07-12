@@ -33,7 +33,11 @@
 //! (metrics/report types), [`manufacture`] (per-set real chain execution),
 //! [`roles`] (SPARQL exec helpers, attachment derivation, Datalog role
 //! layer), [`run`] (top-level orchestration), [`audit_replay`]
-//! (independent bundle auditor), [`verify`] (replay/export verification).
+//! (independent bundle auditor), [`verify`] (replay/export verification),
+//! `multifractal` (Rail G Track 2b: `Z(q,epsilon)` -> `tau(q)` -> `D(q)`
+//! -> `alpha(q)`/`f(alpha)` over real per-tick `tape_ops` mass, see that
+//! module's doc comment and `docs/jira/v26.7.11/
+//! RAIL_G_MEASUREMENT_DESIGN.md`).
 
 mod api_docs;
 mod arazzo;
@@ -46,6 +50,7 @@ mod generate;
 mod hooks;
 pub mod ipc;
 mod manufacture;
+mod multifractal;
 pub mod refusal_sarif;
 mod report;
 pub mod report_pretty;

@@ -1,0 +1,30 @@
+# measurement-mass-by-object-type.rq — PROJ-766, Rail G measurement profile
+# (PRD.md sec.16/22). Computes the raw per-family execution measure mu_x at
+# the "object-centric aggregation level" declared process scale: mass_i =
+# count of admitted G_OCEL events attributed to object-type family i,
+# grouped by ocel:objectTypeName reached via ocel:relatesTo ->
+# ocel:hasObjectType (otel-to-ocel.construct.rq, PROJ-764, already asserts
+# this on every derived ocel:Event: the required process.object.type OTLP
+# attribute becomes ocel:Object -> ocel:hasObjectType -> ocel:ObjectType ->
+# ocel:objectTypeName). Unlike the other two real scales (workflow,
+# activity), this one indirects through the related ocel:Object node rather
+# than reading a same-subject property -- that indirection mirrors OCEL
+# 2.0's own object-centric design: the "aggregation level" this scale
+# measures is exactly OCEL's core organizing dimension, object type. Raw
+# count only; see measurement-mass-by-workflow.rq's header for the
+# normalization/statistics scope boundary, which applies identically here.
+#
+# Compiled into crates/cng/src/measurement.rs via include_str! (library
+# query, per the crate's no-inline-SPARQL convention).
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+
+SELECT ?family (COUNT(?ev) AS ?mass)
+WHERE {
+  GRAPH <urn:graph:ocel> {
+    ?ev ocel:relatesTo ?obj .
+    ?obj ocel:hasObjectType ?otype .
+    ?otype ocel:objectTypeName ?family .
+  }
+}
+GROUP BY ?family
+ORDER BY ?family

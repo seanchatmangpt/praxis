@@ -1,0 +1,164 @@
+# otel-to-ocel.construct.rq — PROJ-764, closes the second half of gap G11
+# (docs/otel-rdf-handoff.md: "G_OCEL = CONSTRUCT_P(G_OTEL)"). Compiled into
+# crates/cng/src/otel_ocel.rs via include_str! (library query, per the
+# crate's no-inline-SPARQL convention).
+#
+# Inputs (GRAPH <urn:graph:otel> — must stay byte-identical to
+# otel_rdf::OTEL_GRAPH_IRI): span occurrences admitted by PROJ-763
+# (otel_rdf::project_admitted_spans), typed ocel:Event + prov:Activity,
+# carrying ob:traceId / ob:spanId / ob:startTimeUnixNano / ob:activityIri /
+# ob:workflowId / ob:hasOutcome, plus already-OCEL-shaped ocel:relatesTo
+# (Event -> Object), ocel:Object / ocel:ObjectType triples, and generic
+# ocel:hasAttribute (Event -> ocel:Attribute) triples for any span
+# attribute outside the five required ones.
+#
+# Outputs: a pure OCEL 2.0 event log fragment (no template triple names a
+# GRAPH — the caller assigns the target graph, urn:graph:ocel, on insert,
+# matching the crate's existing run_construct convention). ocel:Event
+# gains ocel:eventId / ocel:timestamp / ocel:activityName /
+# ocel:hasEventType -> ocel:EventType; the already-OCEL-shaped
+# Object/ObjectType/relatesTo/Attribute triples pass through unchanged;
+# two new ocel:Attribute nodes per event carry process.outcome and
+# process.workflow.id as OCEL data-payload attributes (ocel:Attribute's
+# own definition: "data payloads such as costs, quantities, statuses, and
+# identifiers" — outcome is exactly a status, workflow id an identifier).
+#
+# Determinism: eventId / EventType / attribute IRIs are pure functions of
+# admitted span fields (trace id, span id, activity IRI) via
+# ENCODE_FOR_URI. ocel:timestamp is derived from the producer-supplied
+# ob:startTimeUnixNano payload value — never a wall-clock read; the mapper
+# that asserted ob:startTimeUnixNano in the first place (otel_rdf.rs)
+# documents the same no-wall-clock guarantee. The caller canonicalizes the
+# returned quads (BTreeMap keyed by N-Quads text) before hashing or
+# serializing, so CONSTRUCT's per-solution-row duplication (one row per
+# extra attribute, each re-asserting the shared event-level triples)
+# collapses to a set.
+#
+# Timestamp arithmetic note: this query computes the calendar
+# year/month/day/hour/minute/second directly via integer division/modulo
+# (Howard Hinnant's public-domain `civil_from_days` algorithm — see
+# http://howardhinnant.github.io/date_algorithms.html) and assembles the
+# ISO-8601 string with CONCAT + STRDT, rather than adding an
+# xsd:dayTimeDuration to a fixed xsd:dateTime epoch (the pattern
+# ocel-events.construct.rq uses for small logical-tick offsets). oxigraph
+# 0.5.9's dateTime + dayTimeDuration addition operator was found, empirically
+# (this ticket, PROJ-764), to silently drop the bound solution for
+# multi-year-scale durations (a >60-year OTLP-epoch offset is far larger
+# than the small tick offsets ocel-events.construct.rq ever adds) — the
+# BIND simply fails to bind rather than raising a query error, so any
+# CONSTRUCT triple depending on it is silently dropped from the result.
+# The calendar-math form below has no such dependency and was verified
+# against Python's `datetime.utcfromtimestamp` for the fixture epoch value
+# (1_700_000_000 -> 2023-11-14T22:13:20Z) in `otel_ocel_test.rs`.
+# Precondition: post-1970 timestamps only (the OTLP producer's own payload
+# data is always post-epoch); the algorithm's `xsd:integer` truncating casts
+# rely on every intermediate value being non-negative.
+PREFIX ob:   <https://ggen.io/ontology/otel-bridge#>
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ?ev a ocel:Event ;
+      ocel:eventId ?eid ;
+      ocel:timestamp ?ts ;
+      ocel:activityName ?activityName ;
+      ocel:hasEventType ?etype ;
+      ocel:hasAttribute ?outcomeAttr ;
+      ocel:hasAttribute ?workflowAttr ;
+      ocel:relatesTo ?obj ;
+      ocel:hasAttribute ?attr .
+  ?etype a ocel:EventType ;
+      ocel:eventTypeName ?activityName .
+  ?outcomeAttr a ocel:Attribute ;
+      ocel:attributeKey "process.outcome" ;
+      ocel:attributeValue ?outcomeStr .
+  ?workflowAttr a ocel:Attribute ;
+      ocel:attributeKey "process.workflow.id" ;
+      ocel:attributeValue ?workflowId .
+  ?obj a ocel:Object ;
+      ocel:objectId ?objId ;
+      ocel:hasObjectType ?otype .
+  ?otype a ocel:ObjectType ;
+      ocel:objectTypeName ?otypeName .
+  ?attr a ocel:Attribute ;
+      ocel:attributeKey ?akey ;
+      ocel:attributeValue ?aval .
+}
+WHERE {
+  GRAPH <urn:graph:otel> {
+    ?ev a ocel:Event ;
+        ob:traceId ?traceId ;
+        ob:spanId ?spanId ;
+        ob:startTimeUnixNano ?startNanos ;
+        ob:activityIri ?activityIri ;
+        ob:workflowId ?workflowId ;
+        ob:hasOutcome ?outcome .
+    OPTIONAL {
+      ?ev ocel:relatesTo ?obj .
+      ?obj ocel:objectId ?objId ;
+           ocel:hasObjectType ?otype .
+      ?otype ocel:objectTypeName ?otypeName .
+    }
+    OPTIONAL {
+      ?ev ocel:hasAttribute ?attr .
+      ?attr ocel:attributeKey ?akey ;
+            ocel:attributeValue ?aval .
+    }
+  }
+  BIND(IF(?outcome = ob:OutcomeCompleted, "completed", "refused") AS ?outcomeStr)
+  BIND(REPLACE(STR(?activityIri), "^.*[:/]", "") AS ?activityName)
+  BIND(CONCAT(?traceId, "-", ?spanId) AS ?eid)
+  BIND(xsd:integer(?startNanos / 1000000000) AS ?startSeconds)
+
+  # ---- whole days since 1970-01-01 + time-of-day, from ?startSeconds ----
+  # Every subtraction below is kept to a single '-' per BIND (each feeding
+  # the next via its own intermediate variable): oxigraph 0.5.9 was found,
+  # empirically (this ticket), to mis-associate a chained
+  # "A - B - C" / "A - B + C" numeric expression as "A - (B <op> C)"
+  # instead of the correct left-associative "(A - B) <op> C" — see the
+  # query header's timestamp-arithmetic note.
+  BIND(xsd:integer(?startSeconds / 86400) AS ?daysSinceEpoch)
+  BIND(?startSeconds - (?daysSinceEpoch * 86400) AS ?secOfDay)
+  BIND(xsd:integer(?secOfDay / 3600) AS ?hh)
+  BIND(?secOfDay - ?hh * 3600 AS ?secAfterHours)
+  BIND(xsd:integer(?secAfterHours / 60) AS ?mi)
+  BIND(?secAfterHours - ?mi * 60 AS ?ss)
+
+  # ---- Hinnant civil_from_days: days-since-epoch -> proleptic Gregorian
+  # year/month/day, pure non-negative integer arithmetic ----
+  BIND(?daysSinceEpoch + 719468 AS ?z)
+  BIND(xsd:integer(?z / 146097) AS ?era)
+  BIND(?z - ?era * 146097 AS ?doe)
+  BIND(xsd:integer(?doe / 1460) AS ?doe1460)
+  BIND(xsd:integer(?doe / 36524) AS ?doe36524)
+  BIND(xsd:integer(?doe / 146096) AS ?doe146096)
+  BIND(?doe - ?doe1460 AS ?doeStep1)
+  BIND(?doeStep1 + ?doe36524 AS ?doeStep2)
+  BIND(?doeStep2 - ?doe146096 AS ?doeAdjusted)
+  BIND(xsd:integer(?doeAdjusted / 365) AS ?yoe)
+  BIND(xsd:integer(?yoe / 4) AS ?yoe4)
+  BIND(xsd:integer(?yoe / 100) AS ?yoe100)
+  BIND(?doe - (365 * ?yoe + ?yoe4 - ?yoe100) AS ?doy)
+  BIND(xsd:integer((5 * ?doy + 2) / 153) AS ?mp)
+  BIND(xsd:integer((153 * ?mp + 2) / 5) AS ?dayOffset)
+  BIND(?doy - ?dayOffset AS ?dayZeroBased)
+  BIND(?dayZeroBased + 1 AS ?day)
+  BIND(IF(?mp < 10, ?mp + 3, ?mp - 9) AS ?month)
+  BIND(?yoe + ?era * 400 + IF(?month <= 2, 1, 0) AS ?year)
+
+  BIND(CONCAT(
+         STR(?year), "-",
+         IF(?month < 10, CONCAT("0", STR(?month)), STR(?month)), "-",
+         IF(?day < 10, CONCAT("0", STR(?day)), STR(?day)), "T",
+         IF(?hh < 10, CONCAT("0", STR(?hh)), STR(?hh)), ":",
+         IF(?mi < 10, CONCAT("0", STR(?mi)), STR(?mi)), ":",
+         IF(?ss < 10, CONCAT("0", STR(?ss)), STR(?ss)), "Z"
+       ) AS ?tsStr)
+  BIND(STRDT(?tsStr, xsd:dateTime) AS ?ts)
+
+  BIND(IRI(CONCAT("urn:otel:ocel:eventtype:", ENCODE_FOR_URI(?activityName))) AS ?etype)
+  BIND(IRI(CONCAT("urn:otel:ocel:attr:", ENCODE_FOR_URI(?traceId), ":",
+                  ENCODE_FOR_URI(?spanId), ":outcome")) AS ?outcomeAttr)
+  BIND(IRI(CONCAT("urn:otel:ocel:attr:", ENCODE_FOR_URI(?traceId), ":",
+                  ENCODE_FOR_URI(?spanId), ":workflowId")) AS ?workflowAttr)
+}

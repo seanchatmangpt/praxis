@@ -1,0 +1,52 @@
+# otel-ocel-calendar-math.rq — test-fixture query.
+# Isolates the calendar-math sub-expression `otel-to-ocel.construct.rq` uses
+# to derive ocel:timestamp from ob:startTimeUnixNano (integer division/modulo
+# to whole days + time-of-day, then Howard Hinnant's civil_from_days), so a
+# regression test can assert every intermediate value against an
+# independently computed reference date without going through the full
+# CONSTRUCT pipeline. Must be kept byte-for-byte in sync with the equivalent
+# BIND chain in queries/otel-to-ocel.construct.rq.
+#
+# Regression coverage note (PROJ-764): oxigraph 0.5.9 was found to
+# mis-associate a chained "A - B - C" / "A - B + C" numeric expression
+# (leading '-') as "A - (B <op> C)" instead of the correct left-associative
+# "(A - B) <op> C" — every subtraction below is therefore split into its own
+# BIND with a single '-' each, feeding the next step via an intermediate
+# variable, never chained.
+#
+# Inputs: none (the two reference epoch values are supplied via VALUES).
+# Outputs: one row per input, ordered by ?nanos.
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?nanos ?startSeconds ?daysSinceEpoch ?hh ?mi ?ss ?year ?month ?day
+WHERE {
+  VALUES ?startNanos { "1700000000000000000"^^xsd:long "4107542400000000000"^^xsd:long }
+  BIND(?startNanos AS ?nanos)
+  BIND(xsd:integer(?startNanos / 1000000000) AS ?startSeconds)
+  BIND(xsd:integer(?startSeconds / 86400) AS ?daysSinceEpoch)
+  BIND(?startSeconds - (?daysSinceEpoch * 86400) AS ?secOfDay)
+  BIND(xsd:integer(?secOfDay / 3600) AS ?hh)
+  BIND(?secOfDay - ?hh * 3600 AS ?secAfterHours)
+  BIND(xsd:integer(?secAfterHours / 60) AS ?mi)
+  BIND(?secAfterHours - ?mi * 60 AS ?ss)
+  BIND(?daysSinceEpoch + 719468 AS ?z)
+  BIND(xsd:integer(?z / 146097) AS ?era)
+  BIND(?z - ?era * 146097 AS ?doe)
+  BIND(xsd:integer(?doe / 1460) AS ?doe1460)
+  BIND(xsd:integer(?doe / 36524) AS ?doe36524)
+  BIND(xsd:integer(?doe / 146096) AS ?doe146096)
+  BIND(?doe - ?doe1460 AS ?doeStep1)
+  BIND(?doeStep1 + ?doe36524 AS ?doeStep2)
+  BIND(?doeStep2 - ?doe146096 AS ?doeAdjusted)
+  BIND(xsd:integer(?doeAdjusted / 365) AS ?yoe)
+  BIND(xsd:integer(?yoe / 4) AS ?yoe4)
+  BIND(xsd:integer(?yoe / 100) AS ?yoe100)
+  BIND(?doe - (365 * ?yoe + ?yoe4 - ?yoe100) AS ?doy)
+  BIND(xsd:integer((5 * ?doy + 2) / 153) AS ?mp)
+  BIND(xsd:integer((153 * ?mp + 2) / 5) AS ?dayOffset)
+  BIND(?doy - ?dayOffset AS ?dayZeroBased)
+  BIND(?dayZeroBased + 1 AS ?day)
+  BIND(IF(?mp < 10, ?mp + 3, ?mp - 9) AS ?month)
+  BIND(?yoe + ?era * 400 + IF(?month <= 2, 1, 0) AS ?year)
+}
+ORDER BY ?nanos

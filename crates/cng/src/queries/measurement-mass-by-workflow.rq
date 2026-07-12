@@ -1,0 +1,25 @@
+# measurement-mass-by-workflow.rq — PROJ-766, Rail G measurement profile
+# (PRD.md sec.16/22). Computes the raw per-workflow-family execution
+# measure mu_x at the "workflow" declared process scale: mass_i = count of
+# admitted G_OCEL events attributed to workflow family i, grouped by the
+# process.workflow.id OCEL attribute value that otel-to-ocel.construct.rq
+# (PROJ-764) already asserts as a workflowAttr node per event. This is the
+# raw count "SPARQL SELECT SHALL measure" (PRD.md sec.14); normalization
+# (mass / total_mass) and any tau(q)/D(q)/f(alpha) statistics over this
+# measure are left to the caller / PROJ-767's separately scoped estimator,
+# never precomputed here as a baked-in float.
+#
+# Compiled into crates/cng/src/measurement.rs via include_str! (library
+# query, per the crate's no-inline-SPARQL convention).
+PREFIX ocel: <https://www.ocel-standard.org/2.0/>
+
+SELECT ?family (COUNT(?ev) AS ?mass)
+WHERE {
+  GRAPH <urn:graph:ocel> {
+    ?ev ocel:hasAttribute ?attr .
+    ?attr ocel:attributeKey "process.workflow.id" ;
+          ocel:attributeValue ?family .
+  }
+}
+GROUP BY ?family
+ORDER BY ?family

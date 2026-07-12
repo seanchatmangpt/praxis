@@ -1,7 +1,7 @@
 //! SARIF 2.1.0-shaped JSON for `CngRefusal` errors — a CI-annotation
 //! primitive, not a CI wiring. Converts any typed refusal
 //! (`crate::powl::CngRefusal`) into a minimal SARIF log: `ruleId` = the
-//! refusal's `code()` (`CNG_R01`..`CNG_R25`), `message.text` = the
+//! refusal's `code()` (`CNG_R01`..`CNG_R26`), `message.text` = the
 //! refusal's `Display` rendering (code-prefixed diagnostic including all
 //! structured fields, e.g. tick/candidate counts, dispatch ids), `level`
 //! = `"error"` always (every `CngRefusal` variant is a typed refusal by
