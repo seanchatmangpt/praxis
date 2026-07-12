@@ -53,6 +53,12 @@ pub struct VerifyArgs {
     pub lean: String,
     #[arg(long, default_value_t = crate::lean::default_lake_command())]
     pub lake: String,
+    /// Force `lake env lean` (instead of bare `lean`) even for a `root`
+    /// that doesn't look Lake-managed. Leave unset to auto-detect: `true`
+    /// when `root` contains a `lakefile.lean`/`lakefile.toml`
+    /// ([`crate::lean::detect_lake_env`]), `false` otherwise. Auto-detection
+    /// only ever turns this *on* for a Lake-managed root; it never forces
+    /// it *off* for a root where this flag was explicitly passed.
     #[arg(long, default_value_t = false)]
     pub lake_env: bool,
 }
@@ -104,13 +110,16 @@ pub fn run_cli(cli: Cli) -> anyhow::Result<()> {
     // below for why.
     let value = match cli.command {
         Command::Init(args) => init(&args.root, args.toolchain),
-        Command::Verify(args) => verify(
-            args.lake,
-            args.lake_env,
-            args.lean,
-            &args.receipts,
-            &args.root,
-        ),
+        Command::Verify(args) => {
+            // `--lake-env` defaults to `false` (see `VerifyArgs::lake_env`)
+            // but is OR'd with auto-detection here, so a Lake-managed
+            // `root` (has its own `lakefile.lean`/`lakefile.toml`) is
+            // checked via `lake env lean` without the caller needing to
+            // know to pass the flag -- see `detect_lake_env` doc comment
+            // for the bare-`lean` failure this avoids.
+            let lake_env = args.lake_env || crate::lean::detect_lake_env(&args.root);
+            verify(args.lake, lake_env, args.lean, &args.receipts, &args.root)
+        }
         Command::NoSorry(args) => no_sorry(&args.root),
         Command::IndexBuild(args) => index_build(
             &args.corpus,

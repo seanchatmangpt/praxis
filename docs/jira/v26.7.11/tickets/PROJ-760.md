@@ -37,9 +37,26 @@ Out of scope: the differential corpus itself (PROJ-761) and the drift-refusal ty
 
 ## Status
 
-OPEN. File targets and the missing-build-entrypoint gap are concretely identified from this
-session's reconciliation of PRD §7.9 (status: MOCKED); no further audit is needed before a
-developer can start. Direct evidence:
-`crates/wasm4pm-arazzo/src/compile.rs:140-146` — the current AIR compiler's own doc comment
-states "the planned AIR execution architecture (Erlang transition core, OTP/AtomVM runners) —
-none of that exists in this repo today."
+**ALIVE.** Built and independently verified later in this same session (the OPEN framing above
+describes this ticket's starting state; re-verified fresh, not taken on report). Direct
+evidence:
+
+- `apps/atomvm_runner/src/atomvm_runner.erl` (74 lines) is now a thin delegation facade: every
+  exported function (`start/1`, `start/2`, `dispatch_event/2`, `stop/1`, `get_state/1`) forwards
+  to `arazzo_atomvm_workflow` — confirmed via
+  `grep -n "arazzo_atomvm_workflow" apps/atomvm_runner/src/atomvm_runner.erl`. The old
+  `start_cosmic_inflation/1`/`spawn_multiverse/1`/`reverse_heat_death/1`/
+  `generate_negative_entropy/2` exports this ticket describes above are gone.
+- `apps/arazzo_atomvm/src/arazzo_atomvm_workflow.erl` calls `air_core:new/1` (line 37) and
+  `air_core:transition/2` (lines 85, 111) directly — confirmed via
+  `grep -n "air_core:" apps/arazzo_atomvm/src/arazzo_atomvm_workflow.erl` — the real AIR
+  transition core, not a separate semantic implementation.
+- A real build entrypoint now exists: `rebar.config` at repo root (umbrella project for
+  `apps/air_core`, `arazzo_runner`, `arazzo_atomvm`, `atomvm_runner`). Re-run fresh this
+  session: `rebar3 eunit --dir apps/atomvm_runner/test` → `3 tests, 0 failures`.
+- `apps/arazzo_atomvm/PROOF_OF_EQUIVALENCE.md`'s prose proof has been retired as the evidence
+  of record in favor of PROJ-761's differential corpus (see that ticket).
+
+Disclosed, unchanged: no AtomVM runtime is installed in this environment, so verification above
+is real logic-level proof via plain BEAM/OTP, not a live AtomVM target — correctly out-of-scope
+future work, not a gap in this ticket.

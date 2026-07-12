@@ -18,6 +18,103 @@ export RUSTC_WRAPPER := "sccache"
 check-lock:
     @ps aux | grep -E "cargo (test|build|check)" | grep -v grep || echo "no cargo build/test/check currently running"
 
+# Verify each hardcoded external path dependency (wasm4pm-compat, bcinr-pddl/bcinr-powl/
+# bcinr-powl-receipt, lsp-max, affidavit -- root Cargo.toml [dependencies] and
+# [patch.crates-io]) actually exists on disk, report its git branch/HEAD (flagging a
+# detached HEAD), and check whether the sibling's own Cargo.toml [package] version
+# satisfies this workspace's declared version requirement (Cargo caret semantics: same
+# major, sibling >= required). A detached-HEAD sibling checkout or a version drift here
+# is exactly the failure class that cost 5+ agents a large stretch of an earlier session
+# (a detached HEAD plus an unwired subcrate extraction in wasm4pm-compat) -- this turns
+# that multi-agent debugging saga into a 2-second check. Nonzero exit if any sibling is
+# missing, detached, or version-mismatched.
+check-sibling-deps:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    status=0
+
+    # Cargo's default caret compatibility: same major, then (minor, patch) of the
+    # sibling's actual version must be >= the workspace's required version. All deps
+    # here are major 26, but the 0.x.y stricter case (pin minor too) is handled for
+    # completeness.
+    semver_ok() {
+        local req="$1" act="$2"
+        local req_maj req_min req_pat act_maj act_min act_pat
+        IFS='.' read -r req_maj req_min req_pat <<< "$req"
+        IFS='.' read -r act_maj act_min act_pat <<< "$act"
+        req_min=${req_min:-0}; req_pat=${req_pat:-0}
+        act_min=${act_min:-0}; act_pat=${act_pat:-0}
+        [ "$req_maj" = "$act_maj" ] || return 1
+        if [ "$req_maj" = "0" ]; then
+            [ "$req_min" = "$act_min" ] || return 1
+            [ "$act_pat" -ge "$req_pat" ]
+            return $?
+        fi
+        if [ "$act_min" -gt "$req_min" ]; then return 0; fi
+        if [ "$act_min" -lt "$req_min" ]; then return 1; fi
+        [ "$act_pat" -ge "$req_pat" ]
+    }
+
+    deps=(
+        "wasm4pm-compat:/Users/sac/wasm4pm-compat"
+        "bcinr-pddl:../bcinr/crates/bcinr-pddl"
+        "bcinr-powl:../bcinr/crates/bcinr-powl"
+        "bcinr-powl-receipt:../bcinr/crates/bcinr-powl-receipt"
+        "lsp-max:/Users/sac/lsp-max"
+        "affidavit:/Users/sac/affidavit"
+    )
+
+    for entry in "${deps[@]}"; do
+        name="${entry%%:*}"
+        path="${entry#*:}"
+        echo "=== $name ($path) ==="
+
+        if [ ! -d "$path" ]; then
+            echo "  MISSING: directory does not exist on disk"
+            status=1
+            continue
+        fi
+
+        if git -C "$path" rev-parse --git-dir >/dev/null 2>&1; then
+            branch=$(git -C "$path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+            sha=$(git -C "$path" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+            if [ "$branch" = "HEAD" ]; then
+                echo "  DETACHED HEAD at $sha -- sibling checkout is not on a named branch"
+                status=1
+            else
+                echo "  branch: $branch @ $sha"
+            fi
+        else
+            echo "  not a git repository"
+        fi
+
+        sibling_toml="$path/Cargo.toml"
+        if [ ! -f "$sibling_toml" ]; then
+            echo "  MISSING: no Cargo.toml at $sibling_toml"
+            status=1
+            continue
+        fi
+        sibling_ver=$(grep -m1 -E '^version[[:space:]]*=[[:space:]]*"' "$sibling_toml" \
+            | sed -E 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/')
+
+        required_ver=$(grep -m1 -E "^${name}[[:space:]]*=.*version[[:space:]]*=[[:space:]]*\"" Cargo.toml \
+            | sed -E 's/.*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/')
+
+        if [ -z "$sibling_ver" ]; then
+            echo "  sibling Cargo.toml has no literal [package] version (workspace-inherited and unresolved)"
+            status=1
+        elif [ -z "$required_ver" ]; then
+            echo "  version: $sibling_ver (workspace has no version constraint on this dep; patch-only reference)"
+        elif semver_ok "$required_ver" "$sibling_ver"; then
+            echo "  version: $sibling_ver satisfies workspace requirement ^$required_ver"
+        else
+            echo "  VERSION MISMATCH: sibling=$sibling_ver does not satisfy workspace requirement ^$required_ver"
+            status=1
+        fi
+    done
+
+    exit $status
+
 # One-time: install sccache and print the shell-profile line to wire it up. Speeds up
 # repeated compiles across this crate's many separate test binaries (shared deps like
 # oxigraph/praxis_graphlaw get cached at the object level instead of recompiled per binary).
@@ -56,6 +153,11 @@ test-changed:
 # Check target directory size and prune
 clean-stale:
     timeout 30s cargo cicd target prune
+
+# Full cargo clean (wipes target/ entirely) — check `ps aux | grep cargo` first;
+# this will corrupt any concurrently running build, not just slow it down.
+clean:
+    timeout 600s cargo clean
 
 # NOTE: must invoke `cargo-cicd` (direct binary), not `cargo cicd` — the installed
 # binary's clap parser rejects cargo's prepended arg.
@@ -105,6 +207,15 @@ fmt:
 fmt-check:
     cargo fmt --all --check
 
+# Format (write) just the named package -- scoped so a change to one crate doesn't touch
+# unrelated in-flight edits elsewhere in the workspace (e.g. concurrent agent sessions).
+fmt-pkg pkg:
+    cargo fmt -p {{pkg}}
+
+# Format-check just the named package, scoped (same rationale as fmt-pkg)
+fmt-check-pkg pkg:
+    cargo fmt -p {{pkg}} -- --check
+
 # Holistic health check: build, config witness, frontier, tools, receipts, features. `just doctor format=json` for machine output
 doctor format="text":
     cargo run --quiet --bin my-conforming-project --all-features -- doctor check --format {{format}}
@@ -116,6 +227,16 @@ frontier:
 # The full local Definition-of-Done gate in CI order: check, test, clippy, then doctor (stops at first failure)
 verify-all: check test clippy doctor
     @echo "verify-all: check + test + clippy + doctor all passed"
+
+# PROJ-795 (v26.7.11): FIRST-SLICE Verifier Report (PRD.md sec.20 "Verifier Report", 13
+# required fields). NOT the full 13-field instrument -- answers only the fields today's
+# real, already-built artifacts can back with a live command or a real parse of
+# docs/jira/v26.7.11/tickets/index.md; every other field is printed as an explicit,
+# visible NOT_YET_AVAILABLE row naming the blocking ticket, never a guessed value.
+# Re-runs every underlying check live (no cached results). See scripts/verifier_report.py
+# for the field-by-field design notes.
+verifier-report:
+    python3 scripts/verifier_report.py
 
 # Run workspace benchmarks. `just bench filter="bench_name"` to scope to one benchmark target
 bench filter="":
@@ -230,8 +351,10 @@ cng-build:
     timeout 600s cargo build -p cng
 
 # Run the cng CLI with arguments (e.g. `just cng-run plan generate --dir plans/`)
+# --bin cng is required now that the crate ships 3 binaries (cng, otel-live,
+# otel-rdf-demo); `cargo run` refuses to guess once a crate has more than one.
 cng-run *args:
-    timeout 300s cargo run -q -p cng -- {{args}}
+    timeout 300s cargo run -q -p cng --bin cng -- {{args}}
 
 # Build/run the cng CLI with the bench feature (Fortune-5 benchmark verbs)
 cng-bench-build:
@@ -311,6 +434,19 @@ cng-test-one binary *args:
 cng-test-lib *args:
     timeout 600s cargo test -p cng --features bench --lib {{args}}
 
+# Rail G Track 2b: run the real-workday multifractal measurement test
+# (`track2b_real_workday_tape_ops_measurement`, crates/cng/src/bench/multifractal_test.rs)
+# and print its report. Previously only reachable via a bare `cargo test`; its output
+# directory was already wiped once by `cargo clean` earlier this session and had to be
+# regenerated by hand. Writes (and here, prints)
+# target/chatman/cng-tests/multifractal/track2b_real/track2b-measurement.txt -- that path
+# is fixed relative to CARGO_MANIFEST_DIR by the test itself (scratch_dir()), so it lands
+# there regardless of any CARGO_TARGET_DIR override used for the build.
+cng-track2b-report:
+    timeout 600s cargo test -p cng --features bench --lib track2b_real_workday_tape_ops_measurement -- --nocapture
+    @echo "--- target/chatman/cng-tests/multifractal/track2b_real/track2b-measurement.txt ---"
+    @cat target/chatman/cng-tests/multifractal/track2b_real/track2b-measurement.txt
+
 # PROJ-728/729 multi-engine harness: coordinator + REAL engine OS processes
 # over the filesystem transport — isolation falsifiers, G13 crash-resume,
 # distributed determinism, cross-engine recursion. Exact --test scope;
@@ -342,6 +478,12 @@ cng-install-smoke:
 # note above), e.g. `just cng-test-isolated my-feature cng_decomp -- --nocapture`
 cng-test-isolated name binary *args:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 1200s cargo test -p cng --features bench --test {{binary}} {{args}}
+
+# Run cng's in-crate unit tests (cng-test-lib) in an isolated target dir
+# (concurrent-agent-safe; see note above), e.g.
+# `just cng-test-lib-isolated my-feature otel_rdf`
+cng-test-lib-isolated name *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 600s cargo test -p cng --features bench --lib {{args}}
 
 # Type-check the cng crate + its tests in an isolated target dir (concurrent-agent-safe; fast
 # compile-only sanity check mid-edit, before cng-test-isolated)
@@ -380,16 +522,43 @@ publish-dry-run crate:
 test-bin binary:
     timeout 600s cargo test -p praxis-graphlaw --test {{binary}} -- --nocapture
 
+# Run praxis-graphlaw's in-crate `#[cfg(test)]` lib unit tests, filtered by a nextest test-name
+# expression (e.g. `just praxis-graphlaw-test-lib 'test(chatman::router)'`). Falls back to
+# `cargo test`'s substring filter if nextest isn't on PATH. Scoped to `--lib` so a filter that
+# only matches lib-module tests (like `chatman::router::tests::*`) doesn't pull in the
+# integration-test binaries `test-bin` already covers individually.
+praxis-graphlaw-test-lib filter:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if command -v cargo-nextest >/dev/null 2>&1; then
+        timeout 300s cargo nextest run -p praxis-graphlaw --lib -E '{{filter}}'
+    else
+        timeout 300s cargo test -p praxis-graphlaw --lib '{{filter}}'
+    fi
+
 # Type-check the praxis-graphlaw crate + its tests, scoped (the workspace-wide `just check`
 # pulls in every crate; this isolates praxis-graphlaw from unrelated in-flight breakage
 # elsewhere in the workspace)
 praxis-graphlaw-check:
     timeout 180s cargo check -p praxis-graphlaw --all-targets --all-features
 
+# Type-check the praxis-graphlaw crate's lib + tests only, excluding benches. Exists because
+# `benches/owlrl.rs` has a pre-existing, unrelated break (`TripleStore::from` returns
+# `TripleStore`, not `Result`, so its `.expect(...)` calls don't compile -- confirmed via `git
+# log` to predate this session's work) that would otherwise block `praxis-graphlaw-check` for
+# anyone touching only src/tests.
+praxis-graphlaw-check-libtests:
+    timeout 180s cargo check -p praxis-graphlaw --lib --tests --all-features
+
 # Lint the praxis-graphlaw crate with the same flags CI's clippy job uses, scoped (same
 # isolation rationale as praxis-graphlaw-check)
 praxis-graphlaw-clippy:
     timeout 180s cargo clippy -p praxis-graphlaw --all-targets --all-features -- -D warnings
+
+# Lint the praxis-graphlaw crate's lib + tests only, excluding benches -- same pre-existing
+# `benches/owlrl.rs` break as `praxis-graphlaw-check-libtests` above.
+praxis-graphlaw-clippy-libtests:
+    timeout 180s cargo clippy -p praxis-graphlaw --lib --tests --all-features -- -D warnings
 
 # Type-check the wasm4pm-arazzo crate + its tests
 wasm4pm-arazzo-check:
@@ -414,6 +583,19 @@ praxis-core-check:
 praxis-core-clippy:
     timeout 180s cargo clippy -p praxis-core --all-targets -- -D warnings
 
+# PROJ-796 reachability closure (docs/jira/v26.7.11/PATH_TO_100.md sec.2.3 W1):
+# real, non-test entry point for
+# ChatmanEngine::admit_transition_with_external_cut -- drives a real Rail A/B
+# admission (SPARQL projection -> Tera render -> Arazzo parse/resolve/lower/
+# normalize/compile -> WASM) through ChatmanRailAbCompiler and prints the
+# sealed EngineProcessReceipt. Pass --snapshot <path.ttl> to use a real
+# snapshot file instead of the embedded PROJ-796 fixture. `*args` already
+# forwards everything after the recipe name to the binary (this recipe body
+# inserts the `--` separator itself) -- e.g. `just admit-external-cut --help`,
+# not `just admit-external-cut -- --help`.
+admit-external-cut *args:
+    timeout 120s cargo run -p praxis-core --bin admit-external-cut -- {{args}}
+
 # Lint the wasm4pm-arazzo crate with the same flags CI's clippy job uses
 wasm4pm-arazzo-clippy:
     timeout 180s cargo clippy -p wasm4pm-arazzo --all-targets -- -D warnings
@@ -429,6 +611,62 @@ powl2-decompose-test *args:
 # Lint the powl2-decompose crate with the same flags CI's clippy job uses
 powl2-decompose-clippy:
     timeout 180s cargo clippy -p powl2-decompose --all-targets -- -D warnings
+
+# Type-check the multifractal-workflow crate + its tests (v26.7.12 architecture-atlas
+# scaffolding crate: 30 family modules, Wire-phase-0 skeletons only as of the crate's
+# creation -- this recipe just confirms the skeleton compiles, it proves nothing about
+# any family's real logic since none exists yet).
+multifractal-workflow-check:
+    timeout 180s cargo check -p multifractal-workflow --tests
+
+# Lint the multifractal-workflow crate with the same flags CI's clippy job uses
+multifractal-workflow-clippy:
+    timeout 180s cargo clippy -p multifractal-workflow --all-targets -- -D warnings
+
+# Type-check multifractal-workflow in an isolated target dir (concurrent-agent-safe;
+# see the "Isolated-target cargo recipes" note above cng-check-isolated), e.g.
+# `just multifractal-workflow-check-isolated my-feature`
+multifractal-workflow-check-isolated name:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo check -p multifractal-workflow --tests
+
+# Type-check only the multifractal-workflow lib target (no --tests), isolated target
+# dir. Narrower than multifractal-workflow-check-isolated: useful while this crate has
+# 30 family modules being wired concurrently by different agents and one family's
+# #[cfg(test)] code may be mid-edit/broken without that meaning every other family's
+# non-test code is broken too. Does NOT compile or run any module's tests -- it is not
+# a substitute for multifractal-workflow-test-isolated, only a narrower compile signal.
+multifractal-workflow-check-lib-isolated name:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo check -p multifractal-workflow --lib
+
+# Run the multifractal-workflow crate's unit tests (per-family modules that have
+# real wired logic + tests as of when this runs; modules still at Wire-phase-0
+# skeleton contribute zero tests, not failures).
+multifractal-workflow-test *args:
+    timeout 300s cargo test -p multifractal-workflow {{args}}
+
+# Run multifractal-workflow's tests in an isolated target dir (concurrent-agent-safe;
+# see the "Isolated-target cargo recipes" note above cng-check-isolated), e.g.
+# `just multifractal-workflow-test-isolated my-feature`
+multifractal-workflow-test-isolated name *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo test -p multifractal-workflow {{args}}
+
+# Type-check the praxis-lean crate (standalone-cli feature, the plain-clap
+# `praxis-l4` entry point) + its tests
+praxis-lean-check:
+    timeout 180s cargo check -p praxis-lean --no-default-features --features standalone-cli --all-targets
+
+# Run the praxis-lean crate's unit + integration tests
+praxis-lean-test *args:
+    timeout 300s cargo test -p praxis-lean {{args}}
+
+# Lint the praxis-lean crate with the same flags CI's clippy job uses
+praxis-lean-clippy:
+    timeout 180s cargo clippy -p praxis-lean --no-default-features --features standalone-cli --all-targets -- -D warnings
+
+# Run the praxis-l4 CLI binary (standalone-cli feature) with arbitrary args, e.g.
+# `just praxis-lean-run -- verify --root tools/paper-factory/lean-lake`
+praxis-lean-run *args:
+    cargo run -q -p praxis-lean --bin praxis-l4 --no-default-features --features standalone-cli -- {{args}}
 
 # Type-check the air_core Erlang NIF (apps/air_core/native/air_core_nif)
 air-core-nif-check:
@@ -478,6 +716,28 @@ otel-weaver-generate:
 # Static registry check against weaver 0.22.1 semantic-convention schema
 otel-weaver-check:
     timeout 120s weaver registry check -r registry/otel --future
+
+# Regenerate jira-tracking-pack: real-parses docs/jira/v26.7.11/tickets/index.md into
+# packs/jira-tracking-pack/instances.ttl + ontology.ttl (+ the compiled-in
+# crates/cng/src/jira-data.ttl copy), then runs ggen sync to emit the `jira`
+# CLI routes + SPARQL queries into crates/cng/src. The Tera template output
+# is not guaranteed rustfmt-clean (line-wrap rules are impractical to
+# replicate in a template), so this runs `cargo fmt -p cng` afterward —
+# whitespace-only, deterministic, so double-render byte-identity still
+# holds — rather than hand-editing the generated `jira_routes.rs`.
+jira-tracking-generate:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    command -v ggen >/dev/null || { echo "ggen not found on PATH — run: just install-ggen"; exit 1; }
+    python3 packs/jira-tracking-pack/make-ontology.py
+    timeout 120s ggen sync run
+    cargo fmt -p cng
+
+# Idempotence check: ggen sync twice (after a fresh real-parse) must leave
+# generated jira-tracking-pack outputs byte-identical (mirrors chatman-sync-verify).
+jira-tracking-verify: jira-tracking-generate
+    timeout 120s ggen sync run
+    git diff --exit-code -- 'crates/cng/src/jira_routes.rs' 'crates/cng/src/queries/jira-list.rq' 'crates/cng/src/queries/jira-evidence.rq' 'crates/cng/src/queries/jira-deps.rq' 'crates/cng/src/queries/jira-report.rq'
 
 # Build the feature-gated otel-live emitter binary
 otel-weaver-build:
@@ -645,4 +905,49 @@ otel-weaver-live:
     echo "G8_NEGATIVE_REFUSED=PASS"
     echo "G9_RECEIPT_MARKERS=PASS"
     echo "G10_OTEL_RDF_BOUNDARY=ALIVE_AS_DOC (docs/otel-rdf-handoff.md)"
-    echo "G11_OTEL_TO_RDF_MAPPER=BLOCKED (not implemented; see docs/otel-rdf-handoff.md)"
+    echo "G11_OTEL_TO_RDF_MAPPER=ALIVE (crates/cng/src/otel_rdf.rs, PROJ-763; see docs/otel-rdf-handoff.md)"
+
+# Rail F/G reachability demo (PATH_TO_100.md §5.2(a)): real, non-test entry point wiring
+# otel_rdf::admit -> otel_rdf::project_admitted_spans/admitted_spans_to_trig ->
+# otel_ocel::project_otel_to_ocel -> otel_receipt::receipt_otel_to_ocel over one fixture
+# span, printing cngr:receiptHead plus a full TriG dump of G_OTEL/G_OCEL/G_RECEIPT. No
+# otel-live feature needed (oxigraph/blake3 are unconditional deps); isolated target dir
+# so it never collides with a concurrent agent's default-target build (see the
+# CARGO_TARGET_DIR note at the top of this file).
+cng-otel-rdf-demo *args:
+    CARGO_TARGET_DIR=target/agent-otel-rdf-demo timeout 300s cargo run -q -p cng --bin otel-rdf-demo -- {{args}}
+
+# Finds code that looks complete but isn't wired to anything real: orphaned modules (a .rs
+# file that compiles clean but is never `mod`-declared from the crate root, so it's excluded
+# from the binary entirely — PROJ-777/778's bug), zero-production-caller pub fns (real, tested,
+# reachable only from test code), and doc comments claiming enforcement/verification over a
+# function body with no actual branching logic. Heuristic (regex-based, not a real Rust
+# parser) — read tools/rigor-gap-scanner/scan.py's own LIMITATIONS section before trusting a
+# clean run, and treat every finding as a candidate for a human to look at, not a proof.
+# Defaults to scanning the whole workspace; pass a path to scope it, e.g.
+# `just rigor-gap-scan crates/praxis-graphlaw`.
+rigor-gap-scan path=".":
+    python3 tools/rigor-gap-scanner/scan.py {{path}}
+
+# --- Erlang/OTP umbrella (apps/, rebar.config at repo root) ---
+# air_core, arazzo_runner, arazzo_atomvm, atomvm_runner. Never invoke `rebar3` directly
+# (same rule as `cargo` above) -- use these recipes instead.
+
+# Compile the Erlang/OTP umbrella (rebar.config's apps/* + lib/* discovery) from the repo root
+erlang-compile:
+    timeout 300s rebar3 compile
+
+# Compile, then run the eunit suite across the Erlang/OTP umbrella from the repo root
+erlang-test: erlang-compile
+    timeout 600s rebar3 eunit
+
+# Compile, then run ONLY the OTP/AtomVM differential comparator eunit module
+# (arazzo_runner_atomvm_differential_test -- PROJ-761/PROJ-762, the F17/V12-017
+# "AtomVM Edge Runtime" family's Differential Comparator evidence). Scoped with
+# `-m` (rebar3's documented module filter, `rebar3 help eunit`) rather than the
+# full-umbrella `erlang-test` so crates/multifractal-workflow's F17 module can
+# gather real, targeted evidence without paying for the whole 55-test suite on
+# every call. Machine-parseable stdout tail: "N tests, M failures" or "All N
+# tests passed.", matching what erlang-test's own summary line looks like.
+erlang-test-atomvm-differential: erlang-compile
+    timeout 60s rebar3 eunit -m arazzo_runner_atomvm_differential_test

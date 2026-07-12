@@ -1,16 +1,36 @@
 # Rail G Measurement Design — Multifractal Execution Density
 
-Updated 2026-07-11. Companion to `PRD.md` section 16 ("Multifractal Measurement Rail") and
-section 22 Rail G ("OCEL execution measure -> declared scale profiles -> Z(q,epsilon) ->
-tau(q) -> f(alpha) -> standing report").
+Updated 2026-07-11 (Track 2b landed, see update note below). Companion to `PRD.md` section 16
+("Multifractal Measurement Rail") and section 22 Rail G ("OCEL execution measure -> declared
+scale profiles -> Z(q,epsilon) -> tau(q) -> f(alpha) -> standing report").
 
-## Executive summary
+## Update: Track 2b is now ALIVE, not just designed
 
-"Multifractal" has zero grounding in this repository today. `git grep -rli multifractal`
-returns exactly one file: `PRD.md`. The one commit whose message claims "multifractal
-execution logic" (`b404c53e`) did not implement the formalism — it added a typed `ExternalCut`
-scaffold with no SPARQL execution, no Tera rendering, and a receipt struct that hashes
-pre-computed digests nobody ever supplies. See `RAIL_A_B_STATUS.md` (companion doc,
+Built this session, after the rest of this document (which was the design spec it was built
+from): `crates/cng/src/bench/multifractal.rs` — a real `Z(q,epsilon)`/`tau(q)`/`D(q)`/`f(alpha)`
+partition-function module, proven correct against a deterministic binomial cascade with an
+independently-known closed-form `tau(q)` (matched to <1e-8) and a monofractal negative control
+(13 tests, `crates/cng/src/bench/multifractal_test.rs`). It was then run against one real
+64-tick workday (Track 2b's `tape_ops`-per-tick mass source, exactly as scoped in §3 below).
+**Honest result: `D(q)` is flat at 1.0 for every `q` — monofractal, not multifractal** — traced
+to a real, specific cause: `bench::generate::write_set` emits exactly 8 `STEP_VERBS`-derived
+actions per artifact set regardless of category, so `tape_ops` carries zero cross-tick
+heterogeneity in the current corpus generator. This is the flat-`D(q)`-is-a-legitimate-result
+case this document anticipated in §1 — reported as such, not massaged. See the ticket index
+(PROJ-766/767) for status; full measurement table at
+`target/chatman/cng-tests/multifractal/track2b_real/track2b-measurement.txt`. Track 1
+(structural, POWL-tree) can now reuse this module's `Z`/`tau`/`D`/Legendre-transform code
+directly — it was deliberately not folded into `praxis-core` (this doc's original §4 item 1
+suggestion) because `praxis-core` was excluded scope for this task; it lives in `crates/cng`
+instead, `pub(super)`-scoped to the `bench` module today.
+
+## Executive summary (original, Track 2b since resolved above)
+
+"Multifractal" had zero grounding in this repository before this session. `git grep -rli
+multifractal` returned exactly one file: `PRD.md`. The one commit whose message claimed
+"multifractal execution logic" (`b404c53e`) did not implement the formalism — it added a typed
+`ExternalCut` scaffold with no SPARQL execution, no Tera rendering, and a receipt struct that
+hashes pre-computed digests nobody ever supplies. See `RAIL_A_B_STATUS.md` (companion doc,
 Rail A/B reconciliation) for that finding in detail.
 
 This document is not a status report — it is the instrumentation design needed to make a
@@ -160,6 +180,49 @@ instrumentation produces, scoped to the metric and the workload class it was mea
    wired to the chatman engine (a Rail B/C dependency — see `RAIL_A_B_STATUS.md`); until then
    it has no real data source and should not be attempted.
 
+## 7. External grounding — arXiv:2606.14825 gives a worked example of D(q=2)
+
+Qin, Yang, Zhang, Wang, Fan, "Experimental realization of the complete seven-phase
+Anderson-localization landscape" (arXiv:2606.14825, Jun 2026) has no Rust-adoptable analog for
+Floquet unitary evolution, quasiperiodic golden-ratio hopping modulation, or Avila's Global
+Theory of one-frequency Schrödinger operators — praxis has no wave equation or spectral
+eigenstates. Forcing a "seven phases -> eight rails" mapping would repeat the
+vocabulary-borrowing this repo already purged from `wasm4pm-arazzo` (Bekenstein bound, closed
+timelike curves, hyperbolic tensor folding — see `SAFETY_FINDINGS.md`). One piece is a real,
+checkable identity rather than an analogy, and is worth landing:
+
+- Their per-eigenstate diagnostic is \(IPR_m = \sum_n |\psi_{m,n}|^4 = \sum_n p_n^2\), where
+  \(p_n = |\psi_{m,n}|^2\) is the site-probability ("mass") at the finest box size (one site).
+  \(D_m = -\ln(IPR_m)/\ln(N_s)\).
+- In this document's own §1 notation, \(p_n\) is exactly \(\mu_i(\epsilon)\) at
+  \(\epsilon_{\min}\), so \(IPR_m = Z(q{=}2,\epsilon_{\min})\) and \(D_m\) is exactly the
+  generalized dimension \(D(q{=}2) = \tau(2)/(2-1)\) already defined in §1 — evaluated at a
+  single \(q\) rather than swept, with system size \(N_s\) playing the role \(1/\epsilon\)
+  plays here.
+- Their finite-size-scaling discipline (3+ system sizes, \(D\) plotted against \(1/\ln N_s\),
+  extrapolated to a limiting value) is the same discipline §1 precondition 2 already requires;
+  their Fig. 6 is a concrete existence proof of what that plot looks like when it works.
+- Their most load-bearing methodological point for Track 1: **D is computed and reported per
+  spectral window, not as one global average** — different regions of the same spectrum carry
+  different D, and that region-local heterogeneity *is* the coexistence claim (their four
+  coexistence phases, Fig. 1b). Track 1 should adopt this directly: compute D(2) per POWL
+  subtree/region across several tree sizes, not one number for a whole workflow.
+
+One combinatorial fact transfers exactly, by elementary set theory, not physics: if a measure
+decomposes into \(k\) fundamental local-scaling classes (their \(k=3\): extended, critical,
+localized), the number of possible non-empty coexistence combinations is \(2^k-1\) — seven for
+\(k=3\). That is why their landscape has exactly seven phases; it is not evidence praxis's own
+measure has seven of anything. If Track 1/2 ever identifies its own small number of fundamental
+local-scaling classes for POWL regions or tick-windows, the same \(2^k-1\) counting applies —
+but \(k\) has to be measured, not assumed to be three.
+
+**Suggested first concrete Track 1 metric** (narrower and cheaper than the full \(q\)-sweep):
+implement \(D(q{=}2)\) via participation ratio over subtree leaf-mass first. It is the
+single-\(q\) special case of the already-scoped `Z(q,epsilon)` module, gives a real yes/no
+answer ("does D vary by region?") before committing to the full \(\tau(q)\)/\(f(\alpha)\)
+Legendre-transform machinery, and has this paper's Fig. 6 as an external validation template
+for what the finite-size-scaling plot should look like.
+
 ## See also
 
 - `PRD.md` — sections 16 (formalism definitions), 17 item 21 (required schema artifact), 22
@@ -172,3 +235,6 @@ instrumentation produces, scoped to the metric and the workload class it was mea
   Track 2a would consume once wired.
 - `crates/cng/src/bench/manufacture.rs`, `crates/cng/src/bench/workday.rs` — Track 2b's
   existing scale-varying benchmark harness.
+- arXiv:2606.14825 (Qin et al., "Experimental realization of the complete seven-phase
+  Anderson-localization landscape") — external worked example of \(D(q{=}2)\) via
+  participation ratio + finite-size scaling; see §7.

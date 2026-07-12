@@ -29,11 +29,26 @@ detected divergence (PROJ-762).
 
 ## Status
 
-PLANNED. This session's reconciliation of PRD §7.9 (status: MOCKED) found no differential
-harness, no shared corpus, and no build entrypoint for this rail: `grep -rniI differential . |
-grep -v docs/jira` and `grep -rniI 'atomvm' . | grep -iE 'test|corpus|differential|equival'`
-(repo root, excluding `_build/`) returned no matches outside this ticket's own citations. The
-sole existing test, `apps/arazzo_atomvm/test/arazzo_atomvm_SUITE.erl:1-11`, has a body of
-`runner_equivalence_test() -> ok.` with a comment admitting the comparison was never
-implemented ("we cannot inspect the internal state of gen_statem easily"). This is greenfield
-work, not a scoped fix — PLANNED, not OPEN.
+**ALIVE.** Built and independently verified later in this same session (the PLANNED framing
+above describes this ticket's starting state; re-verified fresh, not taken on report).
+`apps/arazzo_runner/test/arazzo_runner_atomvm_differential_test.erl` (530 lines) now exists:
+a 6-event ordered corpus (linear segment, AND-join, one genuine timeout failure) driven through
+both the OTP path (`arazzo_runner_workflow` + broker) and the AtomVM path
+(`arazzo_atomvm_workflow` directly), asserting equality across all 4 PRD §7.9 dimensions (state
+digest, result digest, refusal class, command sequence). Command sequence — the one dimension
+AtomVM doesn't natively expose — is captured via standard BEAM call tracing
+(`erlang:trace/3`), not a NIF or source modification.
+
+Direct evidence, re-verified fresh this session:
+
+- `grep -n "?assertEqual\|?assert(" apps/arazzo_runner/test/arazzo_runner_atomvm_differential_test.erl | wc -l`
+  → 14 real assertions, including golden-digest comparisons (`?GOLDEN_STATE_DIGEST`,
+  `?GOLDEN_RESULT_DIGEST`) and OTP-vs-AtomVM cross-path equality checks
+  (`?assertEqual(CmdOtp, CmdAtom)`, `?assertEqual(StateOtp, StateAtom)`,
+  `?assertEqual(ResultOtp, ResultAtom)`, `?assertEqual(RefusalOtp, RefusalAtom)`) — this is not
+  a vacuous pass; it fails on divergence.
+- `rebar3 eunit --module arazzo_runner_atomvm_differential_test` → `3 tests, 0 failures`.
+
+Disclosed, unchanged scope: one corpus (6 events), not an exhaustive AIR-program equivalence
+proof — the event translator only covers `result`/`timeout` reaction classes. PROJ-762 (the
+typed refusal fired on detected divergence) remains PLANNED, not built by this ticket.

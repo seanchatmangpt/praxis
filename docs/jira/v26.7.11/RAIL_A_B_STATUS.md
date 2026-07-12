@@ -118,6 +118,29 @@ more precisely located gap than "scaffolding only," but still a real one; do not
   depends on Rail A/B's projection actually producing real Arazzo output before Track 2a
   (real receipt-stream measurement) becomes possible. That precondition is now met.
 - `PRD.md` sections 7.4-7.6, 22.
-- `tickets/index.md` PROJ-750 through PROJ-754 (the build) and PROJ-796 (the remaining gap).
+- `tickets/index.md` PROJ-750 through PROJ-754 (the build) and PROJ-796 (closed, see below).
 - `crates/wasm4pm-arazzo/` — this session's determinism/data-loss/causality fixes (see git
   log on `compile.rs`, `temporal.rs`, `normalizer.rs`, `lib.rs`), plus the new `lower.rs`.
+
+## Closing note: PROJ-796 is now ALIVE, not the surviving gap
+
+The "Update" section above named PROJ-796 (`ChatmanEngine::admit_transition` calling none of
+PROJ-751/752/753's new functions) as the one gap that survived the build pass. That gap is now
+closed — re-verified fresh this session, not taken on report:
+
+- `crates/praxis-graphlaw/src/chatman/engine.rs:716` defines
+  `ChatmanEngine::admit_transition_with_external_cut`, a real production entry point (not
+  `#[cfg(test)]`-gated) adjacent to `admit_transition` (`engine.rs:616`). Confirmed via
+  `grep -n "admit_transition_with_external_cut" crates/praxis-graphlaw/src/chatman/engine.rs`.
+- `crates/praxis-core/src/arazzo.rs:678` defines `ArazzoProjectionReceipt::project_and_compile`,
+  the real Rail A/B pipeline entry the engine calls through the `ExternalCutCompiler` trait
+  seam. Confirmed via `grep -n "fn project_and_compile" crates/praxis-core/src/arazzo.rs`.
+- `crates/praxis-core/tests/rail_ab_external_cut_wiring.rs` (10,839 bytes) exists on disk and
+  independently recomputes the engine's private digest-#10 formula, asserting equality to what
+  the sealed engine produces.
+
+`tickets/index.md`'s own PROJ-796 row already carries the full **ALIVE** writeup and disclosed
+gaps (replay-mismatch detection for digest #10 not yet wired; two pre-existing, out-of-scope
+`praxis-graphlaw` build failures). This section exists only to correct the "Update" section
+above, which is now stale on this one point: do not read PROJ-796 as an open gap from this
+file: it is **ALIVE**, per `tickets/index.md` row 796.

@@ -21,9 +21,19 @@
 //! is a regression guard on the CURRENT count (71), not a claim that 71 is
 //! correct or acceptable -- an increase means new unaudited axioms landed;
 //! a decrease means real reconciliation happened (update the constant).
-//! `Praxis/Mathlib` was excluded going forward with a name suggesting
-//! mathlib-style axiomatization is expected there; verify that assumption
-//! before relying on it (not verified this session).
+//! `Praxis/Mathlib` is NOT excluded from this audit -- verified fresh this
+//! session (a prior version of this comment flagged the exclusion as an
+//! unverified assumption; that assumption was false). `NoSorryAudit::
+//! audit_root` (`crates/praxis-lean/src/no_sorry.rs`) walks every `.lean`
+//! file under the given root via `WalkDir` with no directory-name
+//! exclusion, so `Praxis/Mathlib/*.lean` is scanned exactly like every
+//! other file. Direct evidence: re-running the audit against
+//! `tools/paper-factory/lean-lake/Praxis` and filtering findings whose
+//! `file` path contains `Mathlib` found 5 of the 71 counted axioms
+//! originating there -- 2 in `Mathlib/DefReceipt.lean` (`chainH`,
+//! `chainStep`) and 3 in `Mathlib/ObsSimEquivalence.lean` (`Obs`, `Sim`,
+//! `Sim_equiv`). `KNOWN_UNAUDITED_AXIOM_COUNT` below already includes
+//! these 5; no separate carve-out exists or is needed.
 
 use camino::Utf8Path;
 

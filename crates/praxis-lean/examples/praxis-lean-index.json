@@ -1,11 +1,1790 @@
 {
   "records": [
     {
-      "statement_label": "def:receipt",
-      "lean_declaration": "Praxis.Receipt.DefReceipt",
-      "file_path": "Praxis/Receipt.lean",
-      "dependency_labels": ["def:mu"],
+      "statement_label": "def:seqtoken",
+      "lean_declaration": "def_seqtoken",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_seqtoken.lean",
+      "dependency_labels": [
+        "def:lifecat"
+      ],
       "kind": "definition"
+    },
+    {
+      "statement_label": "cor:orphan",
+      "lean_declaration": "cor_orphan",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_orphan.lean",
+      "dependency_labels": [
+        "thm:conservation"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "prop:notesledger",
+      "lean_declaration": "prop_notesledger",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_notesledger.lean",
+      "dependency_labels": [
+        "def:gitlock"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "con:join",
+      "lean_declaration": "con_join",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_join.lean",
+      "dependency_labels": [
+        "def:domain",
+        "def:symdict"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "con:xorf",
+      "lean_declaration": "con_xorf",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_xorf.lean",
+      "dependency_labels": [
+        "def:ground"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "thm:lang-correct",
+      "lean_declaration": "thm_lang_correct",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_lang_correct.lean",
+      "dependency_labels": [
+        "con:normalize"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "thm:mrr",
+      "lean_declaration": "thm_mrr",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_mrr.lean",
+      "dependency_labels": [
+        "def:cost"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "cor:diag",
+      "lean_declaration": "cor_diag",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_diag.lean",
+      "dependency_labels": [
+        "thm:kill"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "cor:onedenial",
+      "lean_declaration": "cor_onedenial",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_onedenial.lean",
+      "dependency_labels": [
+        "thm:branchless"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "cor:onlybit",
+      "lean_declaration": "cor_onlybit",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_onlybit.lean",
+      "dependency_labels": [
+        "thm:afford"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "def:worktree",
+      "lean_declaration": "def_worktree",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_worktree.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "est:wall",
+      "lean_declaration": "est_wall",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/est_wall.lean",
+      "dependency_labels": [
+        "prop:invariance"
+      ],
+      "kind": "estimate"
+    },
+    {
+      "statement_label": "thm:swar-verify",
+      "lean_declaration": "thm_swar_verify",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_swar_verify.lean",
+      "dependency_labels": [
+        "con:swar"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "thm:sep",
+      "lean_declaration": "thm_sep",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_sep.lean",
+      "dependency_labels": [
+        "def:adm"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "con:merklecell",
+      "lean_declaration": "con_merklecell",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_merklecell.lean",
+      "dependency_labels": [],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "def:fragile",
+      "lean_declaration": "def_fragile",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_fragile.lean",
+      "dependency_labels": [
+        "def:depth"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:sandbox",
+      "lean_declaration": "def_sandbox",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_sandbox.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:walframe",
+      "lean_declaration": "def_walframe",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_walframe.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "lineage:actorlineage",
+      "lean_declaration": "lineage_actorlineage",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/lineage_actorlineage.lean",
+      "dependency_labels": [],
+      "kind": "lineage"
+    },
+    {
+      "statement_label": "lineage:armstrong",
+      "lean_declaration": "lineage_armstrong",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/lineage_armstrong.lean",
+      "dependency_labels": [],
+      "kind": "lineage"
+    },
+    {
+      "statement_label": "lineage:instruments",
+      "lean_declaration": "lineage_instruments",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/lineage_instruments.lean",
+      "dependency_labels": [],
+      "kind": "lineage"
+    },
+    {
+      "statement_label": "meas:recoveryinvisible",
+      "lean_declaration": "meas_recoveryinvisible",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/meas_recoveryinvisible.lean",
+      "dependency_labels": [
+        "prop:totalaccounting"
+      ],
+      "kind": "measurement"
+    },
+    {
+      "statement_label": "refusal:noknhkpath",
+      "lean_declaration": "refusal_noknhkpath",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/refusal_noknhkpath.lean",
+      "dependency_labels": [],
+      "kind": "refusal"
+    },
+    {
+      "statement_label": "refusal:nomeasuredticks",
+      "lean_declaration": "refusal_nomeasuredticks",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/refusal_nomeasuredticks.lean",
+      "dependency_labels": [],
+      "kind": "refusal"
+    },
+    {
+      "statement_label": "ref:curve",
+      "lean_declaration": "ref_curve",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/ref_curve.lean",
+      "dependency_labels": [],
+      "kind": "refusal"
+    },
+    {
+      "statement_label": "refusal:oneforall",
+      "lean_declaration": "refusal_oneforall",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/refusal_oneforall.lean",
+      "dependency_labels": [
+        "def:earned"
+      ],
+      "kind": "refusal"
+    },
+    {
+      "statement_label": "refusal:simpleoneforone",
+      "lean_declaration": "refusal_simpleoneforone",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/refusal_simpleoneforone.lean",
+      "dependency_labels": [],
+      "kind": "refusal"
+    },
+    {
+      "statement_label": "refusal:v1scope",
+      "lean_declaration": "refusal_v1scope",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/refusal_v1scope.lean",
+      "dependency_labels": [],
+      "kind": "refusal"
+    },
+    {
+      "statement_label": "remark:flatthroughput",
+      "lean_declaration": "remark_flatthroughput",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/remark_flatthroughput.lean",
+      "dependency_labels": [
+        "meas:cell"
+      ],
+      "kind": "remark"
+    },
+    {
+      "statement_label": "remark:mockmembranes",
+      "lean_declaration": "remark_mockmembranes",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/remark_mockmembranes.lean",
+      "dependency_labels": [
+        "def:fable",
+        "prop:fable-oracle"
+      ],
+      "kind": "remark"
+    },
+    {
+      "statement_label": "ax:obs",
+      "lean_declaration": "ax_obs",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/ax_obs.lean",
+      "dependency_labels": [],
+      "kind": "axiom"
+    },
+    {
+      "statement_label": "cor:antibody",
+      "lean_declaration": "cor_antibody",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_antibody.lean",
+      "dependency_labels": [
+        "def:brce",
+        "thm:conservation"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "cor:subcat",
+      "lean_declaration": "cor_subcat",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_subcat.lean",
+      "dependency_labels": [
+        "thm:typestate"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "prop:retract",
+      "lean_declaration": "prop_retract",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_retract.lean",
+      "dependency_labels": [
+        "def:adm"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:semilattice",
+      "lean_declaration": "prop_semilattice",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_semilattice.lean",
+      "dependency_labels": [
+        "con:denial"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:total",
+      "lean_declaration": "prop_total",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_total.lean",
+      "dependency_labels": [
+        "con:denial",
+        "def:taxonomy"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "ax:refusal",
+      "lean_declaration": "ax_refusal",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/ax_refusal.lean",
+      "dependency_labels": [],
+      "kind": "axiom"
+    },
+    {
+      "statement_label": "cor:assembled",
+      "lean_declaration": "cor_assembled",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_assembled.lean",
+      "dependency_labels": [
+        "prop:obtotal",
+        "prop:section",
+        "thm:total"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "cor:galois",
+      "lean_declaration": "cor_galois",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_galois.lean",
+      "dependency_labels": [
+        "thm:mono"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "cor:mrrindep",
+      "lean_declaration": "cor_mrrindep",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_mrrindep.lean",
+      "dependency_labels": [
+        "thm:mono",
+        "thm:mrrsep"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "prop:boundary",
+      "lean_declaration": "prop_boundary",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_boundary.lean",
+      "dependency_labels": [
+        "def:obsauth"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:boundedcert",
+      "lean_declaration": "prop_boundedcert",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_boundedcert.lean",
+      "dependency_labels": [
+        "def:logicadm",
+        "thm:trichotomy"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:embed",
+      "lean_declaration": "prop_embed",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_embed.lean",
+      "dependency_labels": [
+        "def:tax",
+        "prop:section",
+        "thm:total",
+        "thm:trichotomy"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:fleet",
+      "lean_declaration": "prop_fleet",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_fleet.lean",
+      "dependency_labels": [
+        "cor:allstages",
+        "thm:firedhom",
+        "thm:freehom"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:partial",
+      "lean_declaration": "prop_partial",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_partial.lean",
+      "dependency_labels": [
+        "def:decoder"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "con:ocel",
+      "lean_declaration": "con_ocel",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_ocel.lean",
+      "dependency_labels": [
+        "def:frame"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "con:provo",
+      "lean_declaration": "con_provo",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_provo.lean",
+      "dependency_labels": [
+        "def:chain"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "cor:cost",
+      "lean_declaration": "cor_cost",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_cost.lean",
+      "dependency_labels": [
+        "thm:faithful"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "prop:cas",
+      "lean_declaration": "prop_cas",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_cas.lean",
+      "dependency_labels": [
+        "ax:cr",
+        "def:contentaddr"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:failclosed",
+      "lean_declaration": "prop_failclosed",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_failclosed.lean",
+      "dependency_labels": [
+        "def:signed"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:mapcommit",
+      "lean_declaration": "prop_mapcommit",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_mapcommit.lean",
+      "dependency_labels": [
+        "con:ocel",
+        "con:provo",
+        "prop:nodrift",
+        "thm:faithful"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:notesledger-op",
+      "lean_declaration": "prop_notesledger_op",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_notesledger_op.lean",
+      "dependency_labels": [
+        "def:gitlock-op"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "thm:localize",
+      "lean_declaration": "thm_localize",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_localize.lean",
+      "dependency_labels": [
+        "def:pipeline",
+        "prop:nodrift",
+        "thm:faithful"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "con:normalize",
+      "lean_declaration": "con_normalize",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_normalize.lean",
+      "dependency_labels": [
+        "thm:sep"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "cor:dominate",
+      "lean_declaration": "cor_dominate",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_dominate.lean",
+      "dependency_labels": [
+        "thm:lex"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "def:conf",
+      "lean_declaration": "def_conf",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_conf.lean",
+      "dependency_labels": [
+        "def:polytope"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:conserve",
+      "lean_declaration": "prop_conserve",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_conserve.lean",
+      "dependency_labels": [
+        "def:balance"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:critical",
+      "lean_declaration": "prop_critical",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_critical.lean",
+      "dependency_labels": [
+        "def:makespan"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:dictcost",
+      "lean_declaration": "prop_dictcost",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_dictcost.lean",
+      "dependency_labels": [
+        "def:symdict",
+        "thm:bounded-ground"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:hasse",
+      "lean_declaration": "prop_hasse",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_hasse.lean",
+      "dependency_labels": [
+        "con:tape"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:honest",
+      "lean_declaration": "prop_honest",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_honest.lean",
+      "dependency_labels": [
+        "def:fitness",
+        "thm:fitness"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:quarantine",
+      "lean_declaration": "prop_quarantine",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_quarantine.lean",
+      "dependency_labels": [
+        "thm:sep"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:sensitivity",
+      "lean_declaration": "prop_sensitivity",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_sensitivity.lean",
+      "dependency_labels": [
+        "def:makespan",
+        "prop:balance"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "con:swar",
+      "lean_declaration": "con_swar",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_swar.lean",
+      "dependency_labels": [
+        "con:agent8"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "cor:reflexive",
+      "lean_declaration": "cor_reflexive",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_reflexive.lean",
+      "dependency_labels": [
+        "prop:footprint",
+        "thm:branchless",
+        "thm:instance-gap",
+        "thm:magnitude"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "cor:throughput",
+      "lean_declaration": "cor_throughput",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_throughput.lean",
+      "dependency_labels": [
+        "est:sweep"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "def:claim",
+      "lean_declaration": "def_claim",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_claim.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:residual",
+      "lean_declaration": "def_residual",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_residual.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:astterm",
+      "lean_declaration": "prop_astterm",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_astterm.lean",
+      "dependency_labels": [
+        "def:astgate"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:diff-bound",
+      "lean_declaration": "prop_diff_bound",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_diff_bound.lean",
+      "dependency_labels": [
+        "def:diff"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:fuzz",
+      "lean_declaration": "prop_fuzz",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_fuzz.lean",
+      "dependency_labels": [
+        "def:fuzz"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:mainclean",
+      "lean_declaration": "prop_mainclean",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_mainclean.lean",
+      "dependency_labels": [
+        "def:worktree-ret"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:vizgap",
+      "lean_declaration": "prop_vizgap",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_vizgap.lean",
+      "dependency_labels": [
+        "def:vizgap"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:attnconservation",
+      "lean_declaration": "prop_attnconservation",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_attnconservation.lean",
+      "dependency_labels": [
+        "def:attnbalance"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:planetary",
+      "lean_declaration": "prop_planetary",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_planetary.lean",
+      "dependency_labels": [
+        "con:agent8",
+        "thm:gap"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:selfauditedscale",
+      "lean_declaration": "prop_selfauditedscale",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_selfauditedscale.lean",
+      "dependency_labels": [
+        "cor:noncomp",
+        "thm:gap"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "thm:conservation",
+      "lean_declaration": "thm_conservation",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_conservation.lean",
+      "dependency_labels": [
+        "def:adm",
+        "def:mu",
+        "def:receipt",
+        "thm:faithful"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "thm:unitfitness",
+      "lean_declaration": "thm_unitfitness",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_unitfitness.lean",
+      "dependency_labels": [
+        "def:fitnessdistance",
+        "prop:conformembership"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "def:classes",
+      "lean_declaration": "def_classes",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_classes.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "meas:cell",
+      "lean_declaration": "meas_cell",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/meas_cell.lean",
+      "dependency_labels": [
+        "prop:totalaccounting"
+      ],
+      "kind": "measurement"
+    },
+    {
+      "statement_label": "thm:gap",
+      "lean_declaration": "thm_gap",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_gap.lean",
+      "dependency_labels": [
+        "def:branch"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "cor:noadmit",
+      "lean_declaration": "cor_noadmit",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_noadmit.lean",
+      "dependency_labels": [
+        "thm:rice"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "def:fit",
+      "lean_declaration": "def_fit",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_fit.lean",
+      "dependency_labels": [
+        "def:receipt"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:taxonomy",
+      "lean_declaration": "def_taxonomy",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_taxonomy.lean",
+      "dependency_labels": [
+        "con:denial"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:denialabstract",
+      "lean_declaration": "def_denialabstract",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_denialabstract.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:obsauth",
+      "lean_declaration": "def_obsauth",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_obsauth.lean",
+      "dependency_labels": [
+        "ax:refusal"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "thm:mrrsep",
+      "lean_declaration": "thm_mrrsep",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_mrrsep.lean",
+      "dependency_labels": [
+        "def:mrr"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "def:gitlock",
+      "lean_declaration": "def_gitlock",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_gitlock.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:intauth",
+      "lean_declaration": "prop_intauth",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_intauth.lean",
+      "dependency_labels": [
+        "def:signed"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:prefix",
+      "lean_declaration": "prop_prefix",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_prefix.lean",
+      "dependency_labels": [
+        "def:chain",
+        "def:genesis"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "con:strips",
+      "lean_declaration": "con_strips",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_strips.lean",
+      "dependency_labels": [
+        "def:net"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "cor:cert",
+      "lean_declaration": "cor_cert",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_cert.lean",
+      "dependency_labels": [
+        "thm:farkas"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "def:polytope",
+      "lean_declaration": "def_polytope",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_polytope.lean",
+      "dependency_labels": [
+        "prop:cone"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:saturation",
+      "lean_declaration": "def_saturation",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_saturation.lean",
+      "dependency_labels": [
+        "def:ground"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:local",
+      "lean_declaration": "prop_local",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_local.lean",
+      "dependency_labels": [
+        "def:powl"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:satcorrect",
+      "lean_declaration": "prop_satcorrect",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_satcorrect.lean",
+      "dependency_labels": [
+        "def:net",
+        "def:saturation"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "def:diff",
+      "lean_declaration": "def_diff",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_diff.lean",
+      "dependency_labels": [
+        "def:oracle"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:fuzz",
+      "lean_declaration": "def_fuzz",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_fuzz.lean",
+      "dependency_labels": [
+        "def:oracle"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:vizgap",
+      "lean_declaration": "def_vizgap",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_vizgap.lean",
+      "dependency_labels": [
+        "def:residual"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:worktree-ret",
+      "lean_declaration": "def_worktree_ret",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_worktree_ret.lean",
+      "dependency_labels": [
+        "def:astgate"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "est:bit-supply",
+      "lean_declaration": "est_bit_supply",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/est_bit_supply.lean",
+      "dependency_labels": [
+        "cor:throughput"
+      ],
+      "kind": "estimate"
+    },
+    {
+      "statement_label": "est:comp-supply",
+      "lean_declaration": "est_comp_supply",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/est_comp_supply.lean",
+      "dependency_labels": [],
+      "kind": "estimate"
+    },
+    {
+      "statement_label": "est:demand",
+      "lean_declaration": "est_demand",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/est_demand.lean",
+      "dependency_labels": [],
+      "kind": "estimate"
+    },
+    {
+      "statement_label": "est:sweep",
+      "lean_declaration": "est_sweep",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/est_sweep.lean",
+      "dependency_labels": [
+        "thm:branchless"
+      ],
+      "kind": "estimate"
+    },
+    {
+      "statement_label": "prop:footprint",
+      "lean_declaration": "prop_footprint",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_footprint.lean",
+      "dependency_labels": [
+        "con:agent8"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:invariance",
+      "lean_declaration": "prop_invariance",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_invariance.lean",
+      "dependency_labels": [
+        "def:instance-q"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:necessity",
+      "lean_declaration": "prop_necessity",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_necessity.lean",
+      "dependency_labels": [
+        "def:oracle"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "thm:afford",
+      "lean_declaration": "thm_afford",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_afford.lean",
+      "dependency_labels": [
+        "est:bit-supply",
+        "est:comp-supply",
+        "est:demand"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "thm:kill",
+      "lean_declaration": "thm_kill",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_kill.lean",
+      "dependency_labels": [
+        "def:mut",
+        "def:staged"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "def:attnbalance",
+      "lean_declaration": "def_attnbalance",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_attnbalance.lean",
+      "dependency_labels": [
+        "def:adm"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:costvector",
+      "lean_declaration": "def_costvector",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_costvector.lean",
+      "dependency_labels": [
+        "def:adm"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:fitnessdistance",
+      "lean_declaration": "def_fitnessdistance",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_fitnessdistance.lean",
+      "dependency_labels": [
+        "prop:conformembership"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:reachcone",
+      "lean_declaration": "def_reachcone",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_reachcone.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "thm:lex",
+      "lean_declaration": "thm_lex",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_lex.lean",
+      "dependency_labels": [
+        "def:costvector"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "thm:rice",
+      "lean_declaration": "thm_rice",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_rice.lean",
+      "dependency_labels": [
+        "ax:obs"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "def:earned",
+      "lean_declaration": "def_earned",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_earned.lean",
+      "dependency_labels": [
+        "def:depth"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:topology",
+      "lean_declaration": "prop_topology",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_topology.lean",
+      "dependency_labels": [
+        "def:depth",
+        "def:earned"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:totalaccounting",
+      "lean_declaration": "prop_totalaccounting",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_totalaccounting.lean",
+      "dependency_labels": [
+        "def:branch"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "def:mu",
+      "lean_declaration": "def_mu",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_mu.lean",
+      "dependency_labels": [
+        "def:adm"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "lem:commit",
+      "lean_declaration": "lem_commit",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/lem_commit.lean",
+      "dependency_labels": [
+        "def:receipt"
+      ],
+      "kind": "lemma"
+    },
+    {
+      "statement_label": "prop:mudet",
+      "lean_declaration": "prop_mudet",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_mudet.lean",
+      "dependency_labels": [
+        "def:mu"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "thm:typestate",
+      "lean_declaration": "thm_typestate",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_typestate.lean",
+      "dependency_labels": [
+        "def:lifecat",
+        "prop:hom"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "cor:allstages",
+      "lean_declaration": "cor_allstages",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_allstages.lean",
+      "dependency_labels": [
+        "prop:monoid",
+        "thm:freehom"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "def:fired",
+      "lean_declaration": "def_fired",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_fired.lean",
+      "dependency_labels": [
+        "def:denialcode"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:mrr",
+      "lean_declaration": "def_mrr",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_mrr.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:pipeline",
+      "lean_declaration": "def_pipeline",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_pipeline.lean",
+      "dependency_labels": [
+        "def:ob"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:queryresult",
+      "lean_declaration": "def_queryresult",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_queryresult.lean",
+      "dependency_labels": [
+        "def:logicadm"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:bottom",
+      "lean_declaration": "prop_bottom",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_bottom.lean",
+      "dependency_labels": [
+        "def:ob",
+        "prop:monoid"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:code_is_sl",
+      "lean_declaration": "prop_code_is_sl",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_code_is_sl.lean",
+      "dependency_labels": [
+        "def:denialcode",
+        "prop:monoid"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:obtotal",
+      "lean_declaration": "prop_obtotal",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_obtotal.lean",
+      "dependency_labels": [
+        "def:ob"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:section",
+      "lean_declaration": "prop_section",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_section.lean",
+      "dependency_labels": [
+        "def:decoder",
+        "thm:total"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "thm:firedhom",
+      "lean_declaration": "thm_firedhom",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_firedhom.lean",
+      "dependency_labels": [
+        "def:fired",
+        "prop:code_is_sl"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "thm:freehom",
+      "lean_declaration": "thm_freehom",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_freehom.lean",
+      "dependency_labels": [
+        "def:pipeline",
+        "prop:monoid"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "thm:trichotomy",
+      "lean_declaration": "thm_trichotomy",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_trichotomy.lean",
+      "dependency_labels": [
+        "def:logicadm",
+        "def:queryresult"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "def:contentaddr",
+      "lean_declaration": "def_contentaddr",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_contentaddr.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:fitness",
+      "lean_declaration": "def_fitness",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_fitness.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:gitlock-op",
+      "lean_declaration": "def_gitlock_op",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_gitlock_op.lean",
+      "dependency_labels": [
+        "def:gitlock"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:fitness",
+      "lean_declaration": "prop_fitness",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_fitness.lean",
+      "dependency_labels": [
+        "def:fitness"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:fold",
+      "lean_declaration": "prop_fold",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_fold.lean",
+      "dependency_labels": [
+        "def:chain"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:payloadcommit",
+      "lean_declaration": "prop_payloadcommit",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_payloadcommit.lean",
+      "dependency_labels": [
+        "con:commit",
+        "prop:bodyinj"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "def:domain",
+      "lean_declaration": "def_domain",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_domain.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:incidence",
+      "lean_declaration": "def_incidence",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_incidence.lean",
+      "dependency_labels": [
+        "def:net"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:balance",
+      "lean_declaration": "prop_balance",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_balance.lean",
+      "dependency_labels": [
+        "def:balance"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "thm:bounded-ground",
+      "lean_declaration": "thm_bounded_ground",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_bounded_ground.lean",
+      "dependency_labels": [
+        "def:ground"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "thm:fitness",
+      "lean_declaration": "thm_fitness",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_fitness.lean",
+      "dependency_labels": [
+        "def:net",
+        "def:replay",
+        "prop:safe"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "def:astgate",
+      "lean_declaration": "def_astgate",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_astgate.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:layouts",
+      "lean_declaration": "def_layouts",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_layouts.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:oracle",
+      "lean_declaration": "def_oracle",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_oracle.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:staged",
+      "lean_declaration": "def_staged",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_staged.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "thm:instance-gap",
+      "lean_declaration": "thm_instance_gap",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_instance_gap.lean",
+      "dependency_labels": [
+        "def:instance-q"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "thm:magnitude",
+      "lean_declaration": "thm_magnitude",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_magnitude.lean",
+      "dependency_labels": [
+        "def:over"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "con:agent8",
+      "lean_declaration": "con_agent8",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_agent8.lean",
+      "dependency_labels": [
+        "con:denial"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "cor:noncomp",
+      "lean_declaration": "cor_noncomp",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/cor_noncomp.lean",
+      "dependency_labels": [
+        "thm:faithful"
+      ],
+      "kind": "corollary"
+    },
+    {
+      "statement_label": "def:regimes",
+      "lean_declaration": "def_regimes",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_regimes.lean",
+      "dependency_labels": [
+        "def:receipt"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:conformembership",
+      "lean_declaration": "prop_conformembership",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_conformembership.lean",
+      "dependency_labels": [
+        "def:reachcone"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "con:fablechain",
+      "lean_declaration": "con_fablechain",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_fablechain.lean",
+      "dependency_labels": [
+        "def:fable",
+        "prop:fable-oracle"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "def:fable",
+      "lean_declaration": "def_fable",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_fable.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:hom",
+      "lean_declaration": "prop_hom",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_hom.lean",
+      "dependency_labels": [
+        "def:lifecat"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "def:ob",
+      "lean_declaration": "def_ob",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_ob.lean",
+      "dependency_labels": [
+        "def:denialcode"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "ax:cr",
+      "lean_declaration": "ax_cr",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/ax_cr.lean",
+      "dependency_labels": [],
+      "kind": "axiom"
+    },
+    {
+      "statement_label": "con:commit",
+      "lean_declaration": "con_commit",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_commit.lean",
+      "dependency_labels": [
+        "def:frame"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "def:body",
+      "lean_declaration": "def_body",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_body.lean",
+      "dependency_labels": [
+        "def:frame"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:frame",
+      "lean_declaration": "def_frame",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_frame.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:genesis",
+      "lean_declaration": "def_genesis",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_genesis.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "con:tape",
+      "lean_declaration": "con_tape",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_tape.lean",
+      "dependency_labels": [
+        "def:powl"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "def:balance",
+      "lean_declaration": "def_balance",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_balance.lean",
+      "dependency_labels": [
+        "def:domain"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:cost",
+      "lean_declaration": "def_cost",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_cost.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:powl",
+      "lean_declaration": "def_powl",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_powl.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:replay",
+      "lean_declaration": "def_replay",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_replay.lean",
+      "dependency_labels": [
+        "prop:safe"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:symdict",
+      "lean_declaration": "def_symdict",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_symdict.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:safe",
+      "lean_declaration": "prop_safe",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_safe.lean",
+      "dependency_labels": [
+        "con:strips",
+        "def:net"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "def:mut",
+      "lean_declaration": "def_mut",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_mut.lean",
+      "dependency_labels": [
+        "def:staged"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:over",
+      "lean_declaration": "def_over",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_over.lean",
+      "dependency_labels": [
+        "def:claim"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "thm:branchless",
+      "lean_declaration": "thm_branchless",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_branchless.lean",
+      "dependency_labels": [
+        "con:agent8",
+        "def:layouts"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "thm:faithful",
+      "lean_declaration": "thm_faithful",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_faithful.lean",
+      "dependency_labels": [
+        "def:receipt"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "def:depth",
+      "lean_declaration": "def_depth",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_depth.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:brce",
+      "lean_declaration": "def_brce",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_brce.lean",
+      "dependency_labels": [
+        "def:fit",
+        "def:mu",
+        "def:receipt"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:five",
+      "lean_declaration": "def_five",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_five.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "thm:mono",
+      "lean_declaration": "thm_mono",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_mono.lean",
+      "dependency_labels": [
+        "prop:bottom",
+        "prop:monoid"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "prop:bodyinj",
+      "lean_declaration": "prop_bodyinj",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_bodyinj.lean",
+      "dependency_labels": [
+        "def:body"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "prop:nodrift",
+      "lean_declaration": "prop_nodrift",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_nodrift.lean",
+      "dependency_labels": [
+        "prop:fold"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "def:ground",
+      "lean_declaration": "def_ground",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_ground.lean",
+      "dependency_labels": [
+        "def:domain"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:makespan",
+      "lean_declaration": "def_makespan",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_makespan.lean",
+      "dependency_labels": [
+        "con:tape"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "thm:farkas",
+      "lean_declaration": "thm_farkas",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_farkas.lean",
+      "dependency_labels": [
+        "def:conf",
+        "prop:cone"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "con:denial",
+      "lean_declaration": "con_denial",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/con_denial.lean",
+      "dependency_labels": [
+        "def:adm"
+      ],
+      "kind": "construction"
+    },
+    {
+      "statement_label": "def:branch",
+      "lean_declaration": "def_branch",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_branch.lean",
+      "dependency_labels": [
+        "def:classes"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:fable-oracle",
+      "lean_declaration": "prop_fable_oracle",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_fable_oracle.lean",
+      "dependency_labels": [
+        "def:fable"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "def:lifecat",
+      "lean_declaration": "def_lifecat",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_lifecat.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:decoder",
+      "lean_declaration": "def_decoder",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_decoder.lean",
+      "dependency_labels": [
+        "def:tax"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:signed",
+      "lean_declaration": "def_signed",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_signed.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "thm:scope",
+      "lean_declaration": "thm_scope",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_scope.lean",
+      "dependency_labels": [
+        "prop:fitness",
+        "prop:intauth",
+        "thm:conservation",
+        "thm:faithful"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "prop:cone",
+      "lean_declaration": "prop_cone",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_cone.lean",
+      "dependency_labels": [
+        "def:incidence"
+      ],
+      "kind": "proposition"
+    },
+    {
+      "statement_label": "def:adm",
+      "lean_declaration": "def_adm",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_adm.lean",
+      "dependency_labels": [
+        "cor:noadmit"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:receipt",
+      "lean_declaration": "def_receipt",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_receipt.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:denialcode",
+      "lean_declaration": "def_denialcode",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_denialcode.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:logicadm",
+      "lean_declaration": "def_logicadm",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_logicadm.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "thm:total",
+      "lean_declaration": "thm_total",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/thm_total.lean",
+      "dependency_labels": [
+        "def:tax"
+      ],
+      "kind": "theorem"
+    },
+    {
+      "statement_label": "def:instance-q",
+      "lean_declaration": "def_instance_q",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_instance_q.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:tax",
+      "lean_declaration": "def_tax",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_tax.lean",
+      "dependency_labels": [
+        "def:denialcode",
+        "prop:obtotal"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:net",
+      "lean_declaration": "def_net",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_net.lean",
+      "dependency_labels": [],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "def:chain",
+      "lean_declaration": "def_chain",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/def_chain.lean",
+      "dependency_labels": [
+        "def:body",
+        "def:genesis"
+      ],
+      "kind": "definition"
+    },
+    {
+      "statement_label": "prop:monoid",
+      "lean_declaration": "prop_monoid",
+      "file_path": "tools/paper-factory/lean-lake/Praxis/Corpus/prop_monoid.lean",
+      "dependency_labels": [
+        "def:denialabstract"
+      ],
+      "kind": "proposition"
     }
   ]
 }

@@ -24,6 +24,27 @@ pub fn default_lake_command() -> String {
     default_elan_bin("lake")
 }
 
+/// Auto-detect whether `root` is a Lake-managed corpus, i.e. it has its own
+/// `lakefile.lean` / `lakefile.toml` (as scaffolded by [`crate::cli::init`]
+/// at `root.join("lakefile.lean")`) versus a bare-`lean`-verified corpus
+/// with no Lake package of its own.
+///
+/// Used to default `--lake-env` when the caller doesn't force it: a
+/// Lake-managed corpus (e.g. `tools/paper-factory/lean-lake/`, whose files
+/// `import Mathlib...`) must be checked via `lake env lean`, which
+/// resolves Mathlib and other Lake dependencies onto the search path.
+/// Bare `lean <file>` on such a file fails with "unknown module prefix
+/// 'Mathlib'" (exit 1) even though the file's proof is correct --
+/// confirmed this session against
+/// `tools/paper-factory/lean-lake/Praxis/Corpus/con_agent8.lean`, which
+/// exits 1 under bare `lean` and exits 0 under `lake env lean` on the
+/// identical file. A bare-`lean`-verified corpus (e.g.
+/// `tools/paper-factory/lean-pilot/`, no `lakefile.lean`) has no Lake
+/// package to resolve against, so bare `lean` is still correct there.
+pub fn detect_lake_env(root: &Utf8Path) -> bool {
+    root.join("lakefile.lean").is_file() || root.join("lakefile.toml").is_file()
+}
+
 /// Lean/Lake toolchain data recorded into receipts.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LeanToolchain {
