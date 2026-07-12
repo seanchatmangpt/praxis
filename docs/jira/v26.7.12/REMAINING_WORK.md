@@ -1,5 +1,12 @@
 # v26.7.12 Remaining Work — Crown-Witness Punch List
 
+⚠️ **Edge-status staleness notice (as of commit `66d8732e`):** this doc's per-edge tables below
+predate commits `d60f2036`, `eeca952a`, and `66d8732e`, which advanced the LOCAL witness from 4 to
+8 contiguous real edges (`F02→F03→F08→F09→F10→F11→F18→F19→F02(re-admit)`). For current edge
+counts and verdicts, `docs/jira/v26.7.12/CROWN_STATUS.md` is the actively-maintained authoritative
+doc; this file's ranked repairs (R1–R8) remain useful as a punch list but their edge-count framing
+is superseded.
+
 Milestone: v26.7.12 (30 families F01–F30). Scope of this doc: what remains to close the two
 crown witnesses, ranked by downstream unlock value, with cross-cutting blockers and an honest
 completion estimate.
