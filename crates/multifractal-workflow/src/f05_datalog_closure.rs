@@ -336,7 +336,10 @@ pub fn close_datalog(
 pub fn compare_residue(closure_facts: &[Triple], planner_residue: &[String]) -> ResidueDiff {
     let closed_predicates: BTreeSet<String> = closure_facts
         .iter()
-        .filter_map(|t| Encoder::decode(&t.p.to_encoded()).map(|s| s.trim_matches(|c| c == '<' || c == '>').to_string()))
+        .filter_map(|t| {
+            Encoder::decode(&t.p.to_encoded())
+                .map(|s| s.trim_matches(|c| c == '<' || c == '>').to_string())
+        })
         .collect();
 
     let mut stripped = Vec::new();

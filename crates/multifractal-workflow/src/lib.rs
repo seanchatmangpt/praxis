@@ -80,3 +80,8 @@ pub mod f27_western_electric;
 pub mod f28_multi_breed_science;
 pub mod f29_capability_roadmap;
 pub mod f30_ggen_release_state;
+
+/// Composed crown-witness pipelines (real production callers that chain multiple families'
+/// real entry points end to end). `crown_local` drives the LOCAL witness prefix
+/// F02 -> F03 -> F08 -> F09 -> F10 in one real call.
+pub mod crown_local;

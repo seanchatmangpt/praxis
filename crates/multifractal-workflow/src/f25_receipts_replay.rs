@@ -1370,7 +1370,7 @@ mod tests {
     }
 
     #[test]
-    
+
     fn chaos_gate_fails_loud_not_yet_implemented() {
         let err = chaos_gate::admit_for_replay("corr-id-1").unwrap_err();
         assert_eq!(err, ReceiptReplayRefused::L7ChaosGateNotImplemented);

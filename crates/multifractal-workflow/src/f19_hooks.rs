@@ -198,7 +198,10 @@ pub fn capability_action_iri(schema_name: &str) -> String {
 /// `<urn:pddl:action:deploy>` bind the identical "deploy" capability.
 #[must_use]
 pub fn action_iri_base(iri: &str) -> &str {
-    iri.trim_matches(|c| c == '<' || c == '>').split('#').next().unwrap_or(iri)
+    iri.trim_matches(|c| c == '<' || c == '>')
+        .split('#')
+        .next()
+        .unwrap_or(iri)
 }
 
 /// The exact, non-fictional binding of one PDDL ground action to exactly one registered
