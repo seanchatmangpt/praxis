@@ -1,0 +1,19 @@
+# jira-list.rq
+# Inputs: jira-tracking-pack ontology (compiled into the `cng` binary as
+# crates/cng/src/jira-data.ttl).
+# Outputs: rows (?id ?title ?section ?statusLabel), ORDER BY ?id.
+# Used by `jira list` (all rows, optionally client-filtered by --status/
+# --section) and, filtered to one ?id, by `jira show`/`jira status`.
+PREFIX jira: <http://seanchatmangpt.github.io/packs/jira-tracking#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?id ?title ?section ?statusLabel
+WHERE {
+  ?t a jira:Ticket ;
+     jira:id ?id ;
+     jira:title ?title ;
+     jira:section ?section ;
+     jira:status ?statusIri .
+  ?statusIri rdfs:label ?statusLabel .
+}
+ORDER BY ?id

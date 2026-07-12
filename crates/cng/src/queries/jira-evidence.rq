@@ -1,0 +1,15 @@
+# jira-evidence.rq
+# Inputs: jira-tracking-pack ontology (crates/cng/src/jira-data.ttl).
+# Outputs: rows (?id ?evidence), ORDER BY ?id.
+# Kept separate from jira-list.rq so `jira list`'s output stays compact
+# (evidence text can be thousands of characters per ticket); used by
+# `jira show`, filtered client-side to one ?id.
+PREFIX jira: <http://seanchatmangpt.github.io/packs/jira-tracking#>
+
+SELECT ?id ?evidence
+WHERE {
+  ?t a jira:Ticket ;
+     jira:id ?id ;
+     jira:evidence ?evidence .
+}
+ORDER BY ?id

@@ -1,0 +1,19 @@
+# jira-deps.rq
+# Inputs: jira-tracking-pack ontology (crates/cng/src/jira-data.ttl).
+# Outputs: rows (?id ?dep), ORDER BY ?id ?dep — one row per (ticket,
+# transitive dependency) pair, computed by the real SPARQL 1.1 property
+# path `jira:dependsOn+` (arbitrary-length path, cycle-safe by the ALP
+# evaluation semantics even though this milestone's real dependency graph
+# is acyclic in practice).
+# Used by `jira deps`, filtered client-side to one ?id (a ticket with no
+# dependencies simply has zero rows for that ?id, not an error).
+PREFIX jira: <http://seanchatmangpt.github.io/packs/jira-tracking#>
+
+SELECT ?id ?dep
+WHERE {
+  ?t a jira:Ticket ;
+     jira:id ?id ;
+     jira:dependsOn+ ?dt .
+  ?dt jira:id ?dep .
+}
+ORDER BY ?id ?dep

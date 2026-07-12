@@ -1,0 +1,119 @@
+# jira-tracking-pack schema — hand-authored vocabulary for milestone ticket
+# tracking (docs/jira/*/tickets/index.md) plus the CLI command individuals
+# that generate the `jira` noun-verb route skeleton, following
+# clap-noun-verb-pack's cnv: pattern (cnv:Command/cnv:Noun individuals ->
+# `#[verb]` route generation). Instance data (real jira:Ticket individuals)
+# is generated separately by make-ontology.py into instances.ttl; this file
+# never contains ticket instance data itself. Namespace is unique to this
+# pack, matching the convention every other pack in packs/*/ontology.ttl
+# uses (its own `#<pack>` fragment on seanchatmangpt.github.io/packs/).
+@prefix jira: <http://seanchatmangpt.github.io/packs/jira-tracking#> .
+@prefix cnv:  <http://seanchatmangpt.github.io/packs/clap-noun-verb#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# ── Classes ──────────────────────────────────────────────────────────
+
+jira:Ticket
+    a            rdfs:Class ;
+    rdfs:label   "Ticket" ;
+    rdfs:comment "One row of a docs/jira/*/tickets/index.md milestone ticket table." .
+
+jira:Status
+    a            rdfs:Class ;
+    rdfs:label   "Status" ;
+    rdfs:comment "The closed status vocabulary this session's no-overclaiming discipline uses (.claude/rules/no-overclaiming.md), restricted to the 5 individuals below." .
+
+# ── Ticket properties ────────────────────────────────────────────────
+
+jira:id
+    a rdf:Property ; rdfs:label "id" ; rdfs:domain jira:Ticket ; rdfs:range xsd:string ;
+    rdfs:comment "The bare PROJ number (e.g. \"750\"), as it appears in the table's leading `#` column." .
+
+jira:title
+    a rdf:Property ; rdfs:label "title" ; rdfs:domain jira:Ticket ; rdfs:range xsd:string ;
+    rdfs:comment "The table's Name column, with any markdown link syntax [text](url) stripped to its link text." .
+
+jira:section
+    a rdf:Property ; rdfs:label "section" ; rdfs:domain jira:Ticket ; rdfs:range xsd:string ;
+    rdfs:comment "The table's Rail or §PRD column verbatim (single-letter rail A-H, or a §-prefixed PRD section reference)." .
+
+jira:status
+    a rdf:Property ; rdfs:label "status" ; rdfs:domain jira:Ticket ; rdfs:range jira:Status ;
+    rdfs:comment "The ticket's current terminal status individual (see jira:Alive et al. below)." .
+
+jira:dependsOn
+    a rdf:Property ; rdfs:label "dependsOn" ; rdfs:domain jira:Ticket ; rdfs:range jira:Ticket ;
+    rdfs:comment "One direct dependency edge, parsed from the table's Dependencies column (numeric ticket ids and NNN-NNN ranges only; prose like \"Rail A/B (\" is dropped — see make-ontology.py's extract_deps())." .
+
+jira:evidence
+    a rdf:Property ; rdfs:label "evidence" ; rdfs:domain jira:Ticket ; rdfs:range xsd:string ;
+    rdfs:comment "The full Scope/evidence column text (every physical line of the ticket's markdown table row block, joined with spaces)." .
+
+# ── Status individuals (closed set; do not add more without updating the
+#    STATUS_MAP in make-ontology.py and this file together) ───────────
+
+jira:Alive
+    a jira:Status ; rdfs:label "ALIVE" ;
+    rdfs:comment "Ran and passed this session, per .claude/rules/no-overclaiming.md's ALIVE." .
+
+jira:Partial
+    a jira:Status ; rdfs:label "PARTIAL" ;
+    rdfs:comment "Some paths real, gaps named, per .claude/rules/no-overclaiming.md's PARTIAL." .
+
+jira:Blocked
+    a jira:Status ; rdfs:label "BLOCKED" ;
+    rdfs:comment "Cites the exact file:line blocker, per .claude/rules/no-overclaiming.md's BLOCKED." .
+
+jira:Planned
+    a jira:Status ; rdfs:label "PLANNED" ;
+    rdfs:comment "Scoped but not yet started. Also the target for the source table's rarer bare \"OPEN\" status token (make-ontology.py's STATUS_MAP), the closest existing meaning of the two (no committed work yet)." .
+
+jira:Overclaimed
+    a jira:Status ; rdfs:label "OVERCLAIMED" ;
+    rdfs:comment "A claim later corrected by adversarial review. Defined per this pack's closed vocabulary; as of the 2026-07-11 v26.7.11 snapshot, 0 of 49 tickets resolve here in their FINAL status — every literal \"OVERCLAIMED\" occurrence in the source table is a self-correction narrative that itself resolves to a later ALIVE/PARTIAL/BLOCKED/PLANNED token before the ticket's row ends (make-ontology.py takes the status token nearest the row's closing cell, i.e. the most recent claim, matching how a human reads top-to-bottom)." .
+
+# ── CLI command individuals (cnv: vocabulary, reused verbatim from
+#    clap-noun-verb-pack so both packs' Command/Noun individuals share one
+#    shape even though this repo's ggen.toml registers only one of them at
+#    a time) ───────────────────────────────────────────────────────────
+
+jira:JiraNoun
+    a cnv:Noun ; rdfs:label "jira" ;
+    rdfs:comment "Query milestone ticket-tracking data generated from docs/jira/*/tickets/index.md." .
+
+jira:JiraList
+    a           cnv:Command ;
+    cnv:noun    "jira" ;
+    cnv:verb    "list" ;
+    cnv:handler "jira_list_handler" ;
+    cnv:doc     "List all tickets, optionally filtered by --status and/or --section." .
+
+jira:JiraShow
+    a           cnv:Command ;
+    cnv:noun    "jira" ;
+    cnv:verb    "show" ;
+    cnv:handler "jira_show_handler" ;
+    cnv:doc     "Show full detail (title, section, status, evidence, transitive dependencies) for one ticket id." .
+
+jira:JiraStatus
+    a           cnv:Command ;
+    cnv:noun    "jira" ;
+    cnv:verb    "status" ;
+    cnv:handler "jira_status_handler" ;
+    cnv:doc     "Print just the status line for one ticket id." .
+
+jira:JiraDeps
+    a           cnv:Command ;
+    cnv:noun    "jira" ;
+    cnv:verb    "deps" ;
+    cnv:handler "jira_deps_handler" ;
+    cnv:doc     "Print the full transitive dependency chain for one ticket id (SPARQL 1.1 property path jira:dependsOn+)." .
+
+jira:JiraReport
+    a           cnv:Command ;
+    cnv:noun    "jira" ;
+    cnv:verb    "report" ;
+    cnv:handler "jira_report_handler" ;
+    cnv:doc     "Summary counts of tickets per status (SPARQL GROUP BY/COUNT)." .

@@ -1,0 +1,22 @@
+---
+to: "crates/cng/src/queries/jira-report.rq"
+force: true
+determinism: true
+---
+# jira-report.rq
+# Inputs: jira-tracking-pack ontology (crates/cng/src/jira-data.ttl).
+# Outputs: rows (?statusLabel ?count), one row per distinct status, ORDER
+# BY ?statusLabel — a real SPARQL 1.1 aggregate (GROUP BY/COUNT), not a
+# Rust-side tally.
+# Used by `jira report`.
+PREFIX jira: <http://seanchatmangpt.github.io/packs/jira-tracking#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?statusLabel (COUNT(?t) AS ?count)
+WHERE {
+  ?t a jira:Ticket ;
+     jira:status ?statusIri .
+  ?statusIri rdfs:label ?statusLabel .
+}
+GROUP BY ?statusLabel
+ORDER BY ?statusLabel

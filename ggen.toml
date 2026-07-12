@@ -20,6 +20,10 @@ chatman-engine-pack = { path = "packs/chatman-engine-pack" }
 otel-weaver-pack = { path = "packs/otel-weaver-pack" }
 ocel-bench-pack = { path = "packs/ocel-bench-pack" }
 arazzo-pack = { path = "packs/arazzo-pack" }
+jira-tracking-pack = { path = "packs/jira-tracking-pack" }
+shape-admission-pack = { path = "packs/shape-admission-pack" }
+semantic-contraction-pack = { path = "packs/semantic-contraction-pack" }
+pddl-planning-pack = { path = "packs/pddl-planning-pack" }
 
 [law]
 rules = ["ontology/rules/breed_standing.n3"]
