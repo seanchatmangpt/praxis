@@ -2,7 +2,7 @@
 
 use crate::csprite::CSprite;
 use crate::{Parser, Triple, VarOrTerm};
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[test]
 fn test_sprite_compute() {
@@ -88,7 +88,7 @@ fn test_rewrite_hierarchy_csprite() {
     let (_content, rules) = Parser::parse(data.to_string());
     println!("{:?}", rules);
 
-    let rc_rules = rules.into_iter().map(Rc::new).collect();
+    let rc_rules = rules.into_iter().map(Arc::new).collect();
     let rewritten_rules = CSprite::rewrite_hierarchy(&rc_rules);
     println!("{:?}", rewritten_rules);
 }

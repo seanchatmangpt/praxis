@@ -13,7 +13,7 @@ use crate::bindings::Binding;
 use crate::reasoner::Reasoner;
 use crate::{BackwardChainer, Rule, RuleIndex, Triple, TripleIndex, TripleStore};
 use log::debug;
-use std::rc::Rc;
+use std::sync::Arc;
 
 /// Perform backward chaining with a visited-triple history to avoid cycles.
 ///
@@ -38,7 +38,7 @@ pub fn eval_backward_with_history(
     rule_head: &Triple,
     history: &mut Vec<Triple>,
 ) -> Binding {
-    let sub_rules: Vec<(Rc<Rule>, Vec<(usize, usize)>)> =
+    let sub_rules: Vec<(Arc<Rule>, Vec<(usize, usize)>)> =
         BackwardChainer::find_subrules(rule_index, rule_head);
     let mut all_bindings = Binding::new();
 

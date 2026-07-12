@@ -6,7 +6,7 @@ use crate::fastmap::{FxHashMap, FxHashSet};
 use crate::queryengine::{QueryEngine, SimpleQueryEngine};
 use crate::{Binding, BodyLiteral, Rule, RuleIndex, Triple, TripleIndex, TripleStore, VarOrTerm};
 use log::{debug, warn};
-use std::rc::Rc; // Use log crate when building application
+use std::sync::Arc; // Use log crate when building application
 
 pub struct BackwardChainer;
 
@@ -48,7 +48,7 @@ impl BackwardChainer {
             return false;
         }
 
-        let candidates: &[Rc<Rule>] = if goal.p.is_term() {
+        let candidates: &[Arc<Rule>] = if goal.p.is_term() {
             rule_index
                 .head_by_pred
                 .get(&goal.p.to_encoded())
@@ -218,7 +218,7 @@ impl BackwardChainer {
         if !history.insert(rule_head.clone()) {
             return Binding::new();
         }
-        let sub_rules: Vec<(Rc<Rule>, Vec<(usize, usize)>)> =
+        let sub_rules: Vec<(Arc<Rule>, Vec<(usize, usize)>)> =
             Self::find_subrules(rule_index, rule_head);
         let mut all_bindings = Binding::new();
         for (sub_rule, var_subs) in sub_rules.into_iter() {
@@ -287,8 +287,8 @@ impl BackwardChainer {
     pub fn find_subrules(
         rules_index: &RuleIndex,
         rule_head: &Triple,
-    ) -> Vec<(Rc<Rule>, Vec<(usize, usize)>)> {
-        let candidates: &[Rc<Rule>] = if rule_head.p.is_term() {
+    ) -> Vec<(Arc<Rule>, Vec<(usize, usize)>)> {
+        let candidates: &[Arc<Rule>] = if rule_head.p.is_term() {
             // Fast path: look up only rules whose head predicate matches
             rules_index
                 .head_by_pred
@@ -453,7 +453,7 @@ impl BackwardChainer {
         }
 
         // Rule-derived (IDB) solutions.
-        let candidates: &[Rc<Rule>] = if goal.p.is_term() {
+        let candidates: &[Arc<Rule>] = if goal.p.is_term() {
             rule_index
                 .head_by_pred
                 .get(&goal.p.to_encoded())

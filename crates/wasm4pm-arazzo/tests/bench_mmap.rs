@@ -4,7 +4,19 @@ use std::path::PathBuf;
 use std::time::Instant;
 use wasm4pm_arazzo::parse::DocumentIndex;
 
+// Perf smoke test, not a correctness test: compares two `Instant::now()` wall-clock
+// measurements against a fixed 5ms margin. This is inherently sensitive to machine
+// load, OS page-cache state, and scheduler jitter, and has been observed to fail
+// non-deterministically on developer machines (docs/jira/v26.7.11/ADVERSARIAL_DOD.md,
+// "PROJ-753's wasm4pm-arazzo full suite green claim" finding). Bundling it with
+// correctness tests means a single flaky timing failure fail-fasts `cargo test` and
+// silently prevents `end_to_end_lowering.rs` and the rest of the correctness suite
+// from ever running in that invocation. `#[ignore]` keeps it out of the default
+// `cargo test` / `just wasm4pm-arazzo-test` run; invoke explicitly via
+// `cargo test -p wasm4pm-arazzo --test bench_mmap -- --ignored` when checking mmap
+// perf deliberately.
 #[test]
+#[ignore = "timing-dependent perf smoke test, not correctness — see comment above"]
 fn bench_mmap_vs_read() {
     let mut doc_str = String::new();
     doc_str.push_str(

@@ -72,8 +72,17 @@ pub struct TripleStore {
     pub additions: Vec<Triple>,
     pub removals: Vec<Triple>,
 }
-unsafe impl Send for TripleStore {}
-
+// No `unsafe impl Send` here: TripleStore is auto-Send now that every field is
+// honestly Send. It previously carried `unsafe impl Send for TripleStore {}`
+// while `rules_index: RuleIndex` stored rules behind `Rc<Rule>` -- Rc's
+// non-atomic refcount makes that unsound the moment a TripleStore crosses a
+// real thread boundary, which it does: `rsp.rs`'s `RSPEngine::register_r2r`
+// (the `OperationMode::MultiThread` path, the default for `RSPBuilder::new`)
+// spawns a thread holding `Arc<Mutex<Box<dyn R2ROperator<I, O>>>>`, and
+// `SimpleR2R { item: TripleStore }` is a concrete `R2ROperator` impl (the
+// trait requires `Send` as a supertrait). RuleIndex was switched from
+// `Rc<Rule>` to `Arc<Rule>` (see ruleindex.rs) so Send now holds by
+// construction instead of by assertion.
 impl Default for TripleStore {
     fn default() -> Self {
         Self::new()

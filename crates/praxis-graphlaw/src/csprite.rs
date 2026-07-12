@@ -11,6 +11,7 @@ use log::trace; // Use log crate when building application
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::imars_window::ImarsWindow;
 
@@ -162,7 +163,7 @@ impl CSprite {
         let (backward_rules, hierarcies) = self.eval_backward_csprite(query);
 
         // new rules
-        let mut new_rules: Vec<Rc<Rule>> = backward_rules
+        let mut new_rules: Vec<Arc<Rule>> = backward_rules
             .into_iter()
             .filter(|r| r.body.len() > 1)
             .collect();
@@ -170,7 +171,7 @@ impl CSprite {
             let rewritten_hierarchy = Self::rewrite_hierarchy(&hierarchy);
             rewritten_hierarchy
                 .into_iter()
-                .for_each(|r| new_rules.push(Rc::new(r)));
+                .for_each(|r| new_rules.push(Arc::new(r)));
         }
 
         // new rule index
@@ -181,13 +182,13 @@ impl CSprite {
         self.rules_index = parsed_rules_index;
         self.rules = new_rules
             .into_iter()
-            .map(|r| Rc::try_unwrap(r).unwrap_or_else(|r| (*r).clone()))
+            .map(|r| Arc::try_unwrap(r).unwrap_or_else(|r| (*r).clone()))
             .collect();
     }
     fn eval_backward_csprite(
         &self,
         rule_head: &Triple,
-    ) -> (FxHashSet<Rc<Rule>>, Vec<Vec<Rc<Rule>>>) {
+    ) -> (FxHashSet<Arc<Rule>>, Vec<Vec<Arc<Rule>>>) {
         let mut matched_rules = FxHashSet::default();
         let mut hierarchies = Vec::new();
         let mut history = FxHashSet::default();
@@ -204,15 +205,15 @@ impl CSprite {
     fn eval_backward_csprite_helper(
         &self,
         rule_head: &Triple,
-        matched_rules: &mut FxHashSet<Rc<Rule>>,
+        matched_rules: &mut FxHashSet<Arc<Rule>>,
         hierarchy: bool,
-        hierarchies: &mut Vec<Vec<Rc<Rule>>>,
+        hierarchies: &mut Vec<Vec<Arc<Rule>>>,
         history: &mut FxHashSet<Triple>,
     ) {
         if !history.insert(rule_head.clone()) {
             return;
         }
-        let sub_rules: Vec<(Rc<Rule>, Vec<(usize, usize)>)> =
+        let sub_rules: Vec<(Arc<Rule>, Vec<(usize, usize)>)> =
             BackwardChainer::find_subrules(&self.rules_index, rule_head);
         let mut current_hierarchy = false;
         for (sub_rule, _var_subs) in sub_rules.into_iter() {
@@ -246,7 +247,7 @@ impl CSprite {
     fn eval_backward_csprite_helper_with_stack(
         &self,
         rule_head: &Triple,
-    ) -> (FxHashSet<Rc<Rule>>, Vec<Vec<Rc<Rule>>>) {
+    ) -> (FxHashSet<Arc<Rule>>, Vec<Vec<Arc<Rule>>>) {
         enum StackFrame {
             Enter { rule_head: Triple, hierarchy: bool },
             Exit { rule_head: Triple },
@@ -256,7 +257,7 @@ impl CSprite {
             hierarchy: false,
         }];
         let mut matched_rules = FxHashSet::default();
-        let mut hierarchies: Vec<Vec<Rc<Rule>>> = Vec::new();
+        let mut hierarchies: Vec<Vec<Arc<Rule>>> = Vec::new();
         let mut history = FxHashSet::default();
         while let Some(frame) = stack.pop() {
             match frame {
@@ -273,7 +274,7 @@ impl CSprite {
                     stack.push(StackFrame::Exit {
                         rule_head: rule_head.clone(),
                     });
-                    let sub_rules: Vec<(Rc<Rule>, Vec<(usize, usize)>)> =
+                    let sub_rules: Vec<(Arc<Rule>, Vec<(usize, usize)>)> =
                         BackwardChainer::find_subrules(&self.rules_index, &rule_head);
                     for (sub_rule, _var_subs) in sub_rules.into_iter() {
                         if matched_rules.insert(sub_rule.clone()) {
@@ -303,7 +304,7 @@ impl CSprite {
         }
         (matched_rules, hierarchies)
     }
-    fn rewrite_hierarchy(rules: &Vec<Rc<Rule>>) -> Vec<Rule> {
+    fn rewrite_hierarchy(rules: &Vec<Arc<Rule>>) -> Vec<Rule> {
         let mut new_rules = Vec::new();
         if !rules.is_empty() {
             let new_head = &rules.first().unwrap().head;

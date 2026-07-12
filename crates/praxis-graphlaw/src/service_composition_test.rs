@@ -10,7 +10,7 @@ use crate::{
 };
 use log::debug;
 use std::collections::HashMap;
-use std::rc::Rc; // Use log crate when building application
+use std::sync::Arc; // Use log crate when building application
 
 pub fn eval_backward_with_history(
     triple_index: &TripleIndex,
@@ -18,7 +18,7 @@ pub fn eval_backward_with_history(
     rule_head: &Triple,
     history: &mut Vec<Triple>,
 ) -> Binding {
-    let sub_rules: Vec<(Rc<Rule>, Vec<(usize, usize)>)> =
+    let sub_rules: Vec<(Arc<Rule>, Vec<(usize, usize)>)> =
         BackwardChainer::find_subrules(rule_index, rule_head);
     let mut all_bindings = Binding::new();
     for (sub_rule, var_subs) in sub_rules.into_iter() {

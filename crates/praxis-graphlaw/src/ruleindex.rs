@@ -4,21 +4,26 @@
 
 use crate::fastmap::FxHashMap;
 use crate::{Rule, Triple};
-use std::rc::Rc;
+// Arc, not Rc: RuleIndex is a field of TripleStore, and TripleStore genuinely
+// crosses a real thread boundary (rsp.rs::RSPEngine::register_r2r spawns a
+// thread holding a SimpleR2R { item: TripleStore } via Arc<Mutex<Box<dyn
+// R2ROperator<..>: Send>>>). Rc's non-atomic refcount made the old
+// `unsafe impl Send for TripleStore` unsound; Arc makes Send hold honestly.
+use std::sync::Arc;
 
 pub struct RuleIndex {
-    pub rules: Vec<Rc<Rule>>,
-    spo: Vec<Rc<Rule>>,
-    s: FxHashMap<usize, Vec<Rc<Rule>>>,
-    p: FxHashMap<usize, Vec<Rc<Rule>>>,
-    o: FxHashMap<usize, Vec<Rc<Rule>>>,
-    sp: FxHashMap<usize, FxHashMap<usize, Vec<Rc<Rule>>>>,
-    po: FxHashMap<usize, FxHashMap<usize, Vec<Rc<Rule>>>>,
-    so: FxHashMap<usize, FxHashMap<usize, Vec<Rc<Rule>>>>,
-    spo_all: FxHashMap<usize, FxHashMap<usize, FxHashMap<usize, Vec<Rc<Rule>>>>>,
+    pub rules: Vec<Arc<Rule>>,
+    spo: Vec<Arc<Rule>>,
+    s: FxHashMap<usize, Vec<Arc<Rule>>>,
+    p: FxHashMap<usize, Vec<Arc<Rule>>>,
+    o: FxHashMap<usize, Vec<Arc<Rule>>>,
+    sp: FxHashMap<usize, FxHashMap<usize, Vec<Arc<Rule>>>>,
+    po: FxHashMap<usize, FxHashMap<usize, Vec<Arc<Rule>>>>,
+    so: FxHashMap<usize, FxHashMap<usize, Vec<Arc<Rule>>>>,
+    spo_all: FxHashMap<usize, FxHashMap<usize, FxHashMap<usize, Vec<Arc<Rule>>>>>,
     /// Index from head predicate encoding -> rules whose head has that predicate.
     /// Used for fast backward-chaining rule lookup.
-    pub head_by_pred: FxHashMap<usize, Vec<Rc<Rule>>>,
+    pub head_by_pred: FxHashMap<usize, Vec<Arc<Rule>>>,
 }
 
 impl Default for RuleIndex {
@@ -54,7 +59,7 @@ impl RuleIndex {
             head_by_pred: FxHashMap::default(),
         }
     }
-    fn add_rc(&mut self, rule: Rc<Rule>) {
+    fn add_rc(&mut self, rule: Arc<Rule>) {
         self.rules.push(rule.clone());
         // Index by head predicate for fast backward-chaining lookup
         self.head_by_pred
@@ -227,16 +232,16 @@ impl RuleIndex {
         }
     }
     pub fn add(&mut self, rule: Rule) {
-        let clone_rule = Rc::new(rule);
+        let clone_rule = Arc::new(rule);
         self.add_rc(clone_rule);
     }
     pub fn add_ref(&mut self, rule: &Rule) {
-        let clone_rule = Rc::new(rule.clone());
+        let clone_rule = Arc::new(rule.clone());
         self.add_rc(clone_rule);
     }
 
     /// Fast lookup of rules by head predicate. Returns an empty slice if none found.
-    pub fn find_by_head_pred(&self, pred_encoded: usize) -> &[Rc<Rule>] {
+    pub fn find_by_head_pred(&self, pred_encoded: usize) -> &[Arc<Rule>] {
         self.head_by_pred
             .get(&pred_encoded)
             .map(|v| v.as_slice())

@@ -11,6 +11,7 @@ use log::trace; // Use log crate when building application
 use crate::utils::Utils;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct DRed {
     pub rules: Vec<Rule>,
@@ -115,8 +116,8 @@ impl DRed {
     pub(crate) fn find_rules_by_head(
         rules_index: &RuleIndex,
         head_triple: &Triple,
-    ) -> Vec<(Rc<Rule>, Binding)> {
-        let candidates: &[Rc<Rule>] = if head_triple.p.is_term() {
+    ) -> Vec<(Arc<Rule>, Binding)> {
+        let candidates: &[Arc<Rule>] = if head_triple.p.is_term() {
             // Fast path: look up only rules whose head predicate matches
             rules_index
                 .head_by_pred

@@ -234,6 +234,87 @@ pub enum CngRefusal {
         /// The already-processed idempotency key.
         idempotency_key: String,
     },
+    /// `CNG_R26` — a multifractal partition-function fit (Rail G Track 2/
+    /// 2b: `Z(q,epsilon)` -> `tau(q)` log-log regression, `docs/jira/
+    /// v26.7.11/RAIL_G_MEASUREMENT_DESIGN.md` §1) was attempted over
+    /// insufficient or degenerate input: fewer than two distinct epsilon
+    /// scales, an epsilon sweep whose `log(epsilon)` values have zero
+    /// variance, a scale whose box masses summed to zero (nothing to
+    /// partition), or a `tau(q)` curve too short (or unsorted in `q`) for
+    /// the Legendre transform. `tau(q)` is a regression SLOPE; a slope
+    /// fit from fewer than two points, or from points with no spread in
+    /// the independent variable, is not a measurement, it is an
+    /// assumption wearing a number.
+    MultifractalFitDegenerate {
+        /// Which stage of the Z/tau/D/f pipeline refused (e.g.
+        /// `"box_masses"`, `"linear_regression"`, `"mass_exponent"`,
+        /// `"singularity_spectrum"`).
+        stage: String,
+        /// Why the fit is degenerate, named.
+        reason: String,
+    },
+    /// `CNG_R27` — an OTLP span failed the OTEL admission gate
+    /// (`otel_rdf::admit`) before being mapped into the named RDF graph
+    /// `urn:graph:otel` (PROJ-763, closes gap G11, `docs/otel-rdf-handoff.md`):
+    /// a required `event.praxis.activity_executed` attribute
+    /// (`registry/otel/praxis-events.yaml`) is missing, `process.outcome` is
+    /// outside the closed vocabulary (`completed` | `refused`), an id field
+    /// is empty, or `process.activity.iri` does not parse as an IRI. Mirrors
+    /// the external Weaver live-check gate's
+    /// `WEAVER_SEMANTIC_CONVENTION_REFUSED` contract in-process, for callers
+    /// mapping spans without round-tripping through the live gRPC weaver
+    /// process.
+    OtelSpanRefused {
+        /// `trace_id:span_id` of the refused span, for correlation.
+        span: String,
+        /// Which check failed, named (missing attribute id, invalid
+        /// outcome value, empty id field, or unparseable activity IRI).
+        reason: String,
+    },
+    /// `CNG_R28` — the `G_OTEL -> G_OCEL` SPARQL CONSTRUCT projection
+    /// (`otel_ocel::project_otel_to_ocel`, PROJ-764, closes the second half
+    /// of gap G11: `docs/otel-rdf-handoff.md`'s
+    /// `G_OCEL = CONSTRUCT_P(G_OTEL)`) failed at the named stage: the query
+    /// failed to parse, failed to execute, did not yield a graph result, a
+    /// derived quad failed to insert into a named graph, a caller-supplied
+    /// `G_SOURCE` Turtle payload failed to parse, or a caller-supplied graph
+    /// IRI (`graph_content_digest`'s `graph_iri` parameter) did not parse as
+    /// a legal absolute IRI (`graph_iri_parse`). OCEL is exclusively the
+    /// output of this CONSTRUCT query — a failure here is refused, never
+    /// silently skipped or hand-built in Rust as a fallback (the handoff
+    /// doc's forbidden-alternatives list, verified against its literal text
+    /// in `otel_ocel`'s module doc). PROJ-765's `otel_receipt` module reuses
+    /// this same variant (a genuine sub-stage of the same G_OTEL->G_OCEL
+    /// pipeline, not a new failure class) for two additional named stages:
+    /// `digest_iteration` (canonical named-graph content digest read failed)
+    /// and `receipt_iri` (a digest-derived receipt/entity IRI failed to
+    /// construct — defensive; unreachable in practice since BLAKE3 hex is
+    /// always a legal IRI segment).
+    OcelConstructRefused {
+        /// Which stage failed, named (`query_parse` | `query_execution` |
+        /// `not_a_graph_result` | `graph_insert` | `source_load` |
+        /// `graph_iri_parse` | `digest_iteration` | `receipt_iri`).
+        stage: String,
+        /// Why it failed.
+        reason: String,
+    },
+    /// `CNG_R29` — a Rail G measurement (`measurement::compute_execution_measure`
+    /// / `measurement::build_measurement_profile`, PROJ-766) was requested
+    /// over a declared process scale (PRD.md sec.16) with no sufficient
+    /// admitted OCEL evidence: the scale has no real data source in this
+    /// codebase yet, the mass query yielded zero admitted rows, or the
+    /// measured family count fell below the profile's declared minimum
+    /// evidence threshold. Mirrors the PRD's own
+    /// `MEASUREMENT_EVIDENCE_INSUFFICIENT` refusal code (PRD.md sec.18) and
+    /// this rail's anti-relabeling mandate: insufficient evidence refuses,
+    /// it never reports a fabricated zero or placeholder measure.
+    MeasurementEvidenceInsufficient {
+        /// The declared process scale that was requested (PRD.md sec.16's
+        /// canonical scale name, e.g. `"workflow"`).
+        scale: String,
+        /// Why the evidence was insufficient, named.
+        reason: String,
+    },
 }
 
 impl CngRefusal {
@@ -268,6 +349,10 @@ impl CngRefusal {
             CngRefusal::InterfaceStateMismatch { .. } => "CNG_R23",
             CngRefusal::ResourceUnreleased { .. } => "CNG_R24",
             CngRefusal::DoubleAdmit { .. } => "CNG_R25",
+            CngRefusal::MultifractalFitDegenerate { .. } => "CNG_R26",
+            CngRefusal::OtelSpanRefused { .. } => "CNG_R27",
+            CngRefusal::OcelConstructRefused { .. } => "CNG_R28",
+            CngRefusal::MeasurementEvidenceInsufficient { .. } => "CNG_R29",
         }
     }
 
@@ -345,12 +430,30 @@ impl CngRefusal {
                 "consequence idempotency key was already admitted; a replayed \
                  consequence is refused, never silently re-applied"
             }
+            CngRefusal::MultifractalFitDegenerate { .. } => {
+                "multifractal partition-function fit attempted over insufficient or \
+                 degenerate input; tau(q) is a regression slope and refuses rather \
+                 than reporting a slope fit from too few or zero-variance points"
+            }
+            CngRefusal::OtelSpanRefused { .. } => {
+                "OTLP span failed the OTEL admission gate; the span was not mapped \
+                 into urn:graph:otel"
+            }
+            CngRefusal::OcelConstructRefused { .. } => {
+                "the G_OTEL -> G_OCEL SPARQL CONSTRUCT projection failed; OCEL is \
+                 exclusively CONSTRUCT-derived, never hand-built in Rust as a fallback"
+            }
+            CngRefusal::MeasurementEvidenceInsufficient { .. } => {
+                "a Rail G measurement was requested over a declared process scale with \
+                 no sufficient admitted OCEL evidence; insufficient evidence refuses \
+                 rather than reporting a fabricated zero or placeholder measure"
+            }
         }
     }
 
     /// A short, actionable next step for diagnosing this refusal — what to
     /// look at or run, not a restatement of `message()`. Exhaustive by
-    /// variant (no wildcard arm) so a future `CNG_R26` forces this method to
+    /// variant (no wildcard arm) so a future `CNG_R30` forces this method to
     /// be extended alongside `code()` and `message()`.
     ///
     /// # Complexity
@@ -476,6 +579,32 @@ impl CngRefusal {
                  consequence was already admitted once and this is a duplicate or \
                  replayed presentation, not a new event."
             }
+            CngRefusal::MultifractalFitDegenerate { .. } => {
+                "Read the named stage and reason -- add more distinct epsilon scales \
+                 (or q points), or check why a scale's box masses summed to zero \
+                 before retrying the fit."
+            }
+            CngRefusal::OtelSpanRefused { .. } => {
+                "Check the named span's attributes against registry/otel/praxis-events.yaml's \
+                 five required process.* attributes and the closed process.outcome \
+                 vocabulary (completed | refused) -- the same contract weaver registry \
+                 check enforces live."
+            }
+            CngRefusal::OcelConstructRefused { .. } => {
+                "Read the named stage (query_parse | query_execution | not_a_graph_result | \
+                 graph_insert | source_load | graph_iri_parse | digest_iteration | \
+                 receipt_iri) and reason -- check queries/otel-to-ocel.construct.rq syntax \
+                 against the urn:graph:otel content it reads from, the caller-supplied \
+                 G_SOURCE Turtle payload, or the graph_iri argument passed to \
+                 graph_content_digest."
+            }
+            CngRefusal::MeasurementEvidenceInsufficient { .. } => {
+                "Check the named declared process scale against \
+                 measurement::DeclaredProcessScale's real-data-source list -- either it has \
+                 no real G_OCEL data source yet, or urn:graph:ocel needs more admitted \
+                 evidence (more distinct families, or a lower declared minimum-evidence \
+                 threshold) before this scale can be measured."
+            }
         }
     }
 }
@@ -571,6 +700,30 @@ impl std::fmt::Display for CngRefusal {
             } => write!(
                 f,
                 "{}: {} (dispatch {dispatch}, key {idempotency_key})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::MultifractalFitDegenerate { stage, reason } => write!(
+                f,
+                "{}: {} (stage {stage}, reason {reason})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::OtelSpanRefused { span, reason } => write!(
+                f,
+                "{}: {} (span {span}, reason {reason})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::OcelConstructRefused { stage, reason } => write!(
+                f,
+                "{}: {} (stage {stage}, reason {reason})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::MeasurementEvidenceInsufficient { scale, reason } => write!(
+                f,
+                "{}: {} (scale {scale}, reason {reason})",
                 self.code(),
                 self.message()
             ),
@@ -770,7 +923,11 @@ fn emit_powl_node(model: &Powl, base_iri: &str, path: &str, out: &mut String) {
                 ));
             }
         }
-        Powl::ExternalCut { region, projection, renderer } => {
+        Powl::ExternalCut {
+            region,
+            projection,
+            renderer,
+        } => {
             out.push_str(&format!("<{base_iri}/{path}> a powl2:ExternalCut .\n"));
             let region_path = format!("{path}/region");
             out.push_str(&format!(
@@ -816,7 +973,8 @@ pub fn powl_to_turtle_with_provenance(
         Powl::Leaf(_) => 1,
         Powl::ExternalCut { .. } => {
             return Err(CngRefusal::UnsupportedConstruct(
-                "per-element provenance requires the flat linear shape, found ExternalCut".to_string()
+                "per-element provenance requires the flat linear shape, found ExternalCut"
+                    .to_string(),
             ));
         }
     };

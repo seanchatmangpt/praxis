@@ -322,10 +322,10 @@ test!(
 );
 
 /// One representative instance of every `CngRefusal` variant, in `code()`
-/// order (`CNG_R01`..`CNG_R25`).
+/// order (`CNG_R01`..`CNG_R29`).
 ///
 /// The internal match over the constructed values has no wildcard arm: a
-/// future `CNG_R26` variant fails to compile here until this list is
+/// future `CNG_R29` variant fails to compile here until this list is
 /// extended, mirroring the exhaustiveness already enforced by `code()`,
 /// `message()`, and `hint()` themselves.
 fn all_refusal_variants() -> Vec<CngRefusal> {
@@ -398,6 +398,24 @@ fn all_refusal_variants() -> Vec<CngRefusal> {
             dispatch: "d-2".to_string(),
             idempotency_key: "key-123".to_string(),
         },
+        CngRefusal::MultifractalFitDegenerate {
+            stage: "mass_exponent".to_string(),
+            reason: "need >= 2 distinct epsilon scales for a log-log fit, got 1".to_string(),
+        },
+        CngRefusal::OtelSpanRefused {
+            span: "4bf92f3577b34da6a3ce929d0e0e4736:00f067aa0ba902b7".to_string(),
+            reason: "missing required attribute process.outcome".to_string(),
+        },
+        CngRefusal::OcelConstructRefused {
+            stage: "query_execution".to_string(),
+            reason: "construct execution failed: undefined variable in template".to_string(),
+        },
+        CngRefusal::MeasurementEvidenceInsufficient {
+            scale: "enterprise goal".to_string(),
+            reason: "no OCEL-evidence data source exists in this codebase for this declared \
+                     process scale yet"
+                .to_string(),
+        },
     ];
     for refusal in &variants {
         match refusal {
@@ -426,6 +444,10 @@ fn all_refusal_variants() -> Vec<CngRefusal> {
             CngRefusal::InterfaceStateMismatch { .. } => {}
             CngRefusal::ResourceUnreleased { .. } => {}
             CngRefusal::DoubleAdmit { .. } => {}
+            CngRefusal::MultifractalFitDegenerate { .. } => {}
+            CngRefusal::OtelSpanRefused { .. } => {}
+            CngRefusal::OcelConstructRefused { .. } => {}
+            CngRefusal::MeasurementEvidenceInsufficient { .. } => {}
         }
     }
     variants
@@ -435,8 +457,8 @@ test!(every_refusal_variant_has_a_specific_actionable_hint, {
     let variants = all_refusal_variants();
     assert_eq!(
         variants.len(),
-        25,
-        "expected one instance per CNG_R01..CNG_R25 variant"
+        29,
+        "expected one instance per CNG_R01..CNG_R29 variant"
     );
     let mut seen_hints = std::collections::BTreeSet::new();
     for refusal in &variants {
@@ -458,7 +480,7 @@ test!(every_refusal_variant_has_a_specific_actionable_hint, {
     }
     assert_eq!(
         seen_hints.len(),
-        25,
+        29,
         "every variant must carry its own distinct, non-generic hint"
     );
 });

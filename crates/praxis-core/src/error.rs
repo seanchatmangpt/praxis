@@ -56,4 +56,198 @@ pub enum CoreError {
     /// document.
     #[error("arazzo projection: unresolved projected element {0}")]
     UnresolvedProjectionElement(String),
+
+    /// PROJ-796: the Rail A/B production pipeline
+    /// (`ArazzoProjectionReceipt::project_and_compile` /
+    /// `ChatmanRailAbCompiler`) refused during POWL admission, SPARQL Q(W)
+    /// projection, Arazzo parsing, URI resolution, AIR lowering,
+    /// normalization, or WASM compilation. `stage` names which of those
+    /// sub-stages produced the failure; `detail` carries the underlying
+    /// error's own formatted text verbatim (never summarized or dropped),
+    /// so the failure is attributable without inventing a second taxonomy
+    /// on top of `praxis_graphlaw::chatman::abi::Refusal` and
+    /// `wasm4pm_arazzo::Refusal`. Named `detail`, not `source`: `thiserror`
+    /// treats a field literally named `source` as `std::error::Error::
+    /// source()` and requires it to implement `std::error::Error`, which a
+    /// plain `String` does not.
+    #[error("external cut compilation failed at {stage}: {detail}")]
+    ExternalCutCompilationFailed {
+        /// The pipeline sub-stage that refused (e.g. `"admission"`,
+        /// `"sparql_projection"`, `"arazzo_parse"`, `"uri_resolution"`,
+        /// `"air_lowering"`, `"air_normalization"`, `"air_compile"`).
+        stage: String,
+        /// The underlying error's formatted text.
+        detail: String,
+    },
+
+    /// PROJ-783 (PRD.md v26.7.11 sec.7.5/18/19.3, `ARAZZO_UNMANUFACTURED`):
+    /// a production Arazzo document was presented with no projection
+    /// receipt at all -- PRD.md sec.5's non-goal "accept arbitrary Arazzo
+    /// as production workflow authority" and sec.7.5's "Production Arazzo
+    /// without an admitted POWL source and projection receipt SHALL be
+    /// refused" made concrete (acceptance scenario 19.3, "Handwritten
+    /// Arazzo Is Refused"). Wired at
+    /// [`crate::arazzo::admit_manufactured_arazzo`].
+    #[error("ARAZZO_UNMANUFACTURED: {0}")]
+    ArazzoUnmanufactured(String),
+
+    /// PROJ-783 (PRD.md v26.7.11 sec.18, `ARAZZO_SOURCE_RECEIPT_MISSING`): a
+    /// projection receipt was presented, but it does not actually bind to
+    /// an admitted POWL source (`source_powl_digest_hex`/
+    /// `external_cut_identity` empty) -- a receipt shape that attests no
+    /// real source material. Wired at
+    /// [`crate::arazzo::admit_manufactured_arazzo`].
+    #[error("ARAZZO_SOURCE_RECEIPT_MISSING: {0}")]
+    ArazzoSourceReceiptMissing(String),
+
+    /// PROJ-783 (PRD.md v26.7.11 sec.18, `ARAZZO_PROJECTION_DIGEST_MISMATCH`):
+    /// a projection receipt's own `arazzo_digest_hex` does not equal the
+    /// real BLAKE3 digest of the presented Arazzo document's bytes -- the
+    /// receipt attests different material than what is actually being
+    /// presented (a stale, substituted, or hand-edited document wearing a
+    /// real receipt). Wired at
+    /// [`crate::arazzo::admit_manufactured_arazzo`].
+    #[error("ARAZZO_PROJECTION_DIGEST_MISMATCH: {0}")]
+    ArazzoProjectionDigestMismatch(String),
+
+    /// PROJ-777/778 (`docs/jira/v26.7.11/PRD.md:588`): a document was
+    /// presented for admission under a dialect name that either is not
+    /// registered in [`crate::graphlaw_authority::REGISTRY`] at all, or is
+    /// registered under a *different* dialect's authority than the one the
+    /// admission gate enforces (e.g. declaring `"SPARQL CONSTRUCT"` --
+    /// which also carries "manufacture graph consequence" authority -- to
+    /// route content through the Arazzo manufacture gate). Not a PRD
+    /// section-18 catalog code; this crate's own typed refusal for the
+    /// dialect-name check at
+    /// [`crate::arazzo::admit_manufactured_arazzo_for_dialect`].
+    #[error(
+        "dialect authority mismatch: declared dialect {declared:?} does not hold {expected:?}'s \
+         authority ({reason})"
+    )]
+    ArazzoDialectAuthorityMismatch {
+        /// The dialect name the caller declared.
+        declared: String,
+        /// The dialect name whose authority the gate actually requires.
+        expected: &'static str,
+        /// Why the declared name failed to resolve to `expected`'s authority.
+        reason: String,
+    },
+}
+
+/// Every [`CoreError`] name, in declaration order. Mirrors
+/// `praxis_graphlaw::chatman::abi::ALL_REFUSAL_NAMES`'s catalog-completeness
+/// pattern: this array plus [`CoreError::name`]'s exhaustive match are the
+/// enforcement pair. Adding an enum variant without adding a match arm to
+/// `name()` is a compile error (non-exhaustive match); adding a match arm
+/// without extending this array is caught at test time by
+/// `tests::all_core_error_names_matches_enum` below, which builds one
+/// instance of every variant and zip-checks `name()` against this array in
+/// order.
+pub const ALL_CORE_ERROR_NAMES: [&str; 14] = [
+    "ObligationUnmet",
+    "SignatureInvalid",
+    "ChainMismatch",
+    "SerializationFailed",
+    "SigningFailed",
+    "HexDecodeFailed",
+    "Io",
+    "TemplateRenderFailed",
+    "UnresolvedProjectionElement",
+    "ExternalCutCompilationFailed",
+    "ArazzoUnmanufactured",
+    "ArazzoSourceReceiptMissing",
+    "ArazzoProjectionDigestMismatch",
+    "ArazzoDialectAuthorityMismatch",
+];
+
+impl CoreError {
+    /// The variant name as a static string, matching [`ALL_CORE_ERROR_NAMES`].
+    ///
+    /// The exhaustive match keeps this in sync with the enum: adding a
+    /// variant without extending both this match and
+    /// [`ALL_CORE_ERROR_NAMES`] is a compile error or a test failure
+    /// respectively (see `tests::all_core_error_names_matches_enum`).
+    pub fn name(&self) -> &'static str {
+        match self {
+            CoreError::ObligationUnmet(_) => "ObligationUnmet",
+            CoreError::SignatureInvalid => "SignatureInvalid",
+            CoreError::ChainMismatch => "ChainMismatch",
+            CoreError::SerializationFailed(_) => "SerializationFailed",
+            CoreError::SigningFailed(_) => "SigningFailed",
+            CoreError::HexDecodeFailed(_) => "HexDecodeFailed",
+            CoreError::Io(_) => "Io",
+            CoreError::TemplateRenderFailed(_) => "TemplateRenderFailed",
+            CoreError::UnresolvedProjectionElement(_) => "UnresolvedProjectionElement",
+            CoreError::ExternalCutCompilationFailed { .. } => "ExternalCutCompilationFailed",
+            CoreError::ArazzoUnmanufactured(_) => "ArazzoUnmanufactured",
+            CoreError::ArazzoSourceReceiptMissing(_) => "ArazzoSourceReceiptMissing",
+            CoreError::ArazzoProjectionDigestMismatch(_) => "ArazzoProjectionDigestMismatch",
+            CoreError::ArazzoDialectAuthorityMismatch { .. } => "ArazzoDialectAuthorityMismatch",
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeSet;
+
+    /// `ALL_CORE_ERROR_NAMES`'s declared length must match its actual
+    /// element count (catches a hand-edit that changes the array body
+    /// without updating the `[&str; N]` size annotation, which would
+    /// otherwise be a compile error anyway -- kept as a same-shape
+    /// companion to `chatman_static_gates.rs::gate_schema_refusal_enums_match_abi`).
+    #[test]
+    fn all_core_error_names_len_matches_array() {
+        assert_eq!(ALL_CORE_ERROR_NAMES.len(), 14, "ALL_CORE_ERROR_NAMES size drifted");
+    }
+
+    /// No duplicate names in the catalog.
+    #[test]
+    fn all_core_error_names_has_no_duplicates() {
+        let as_set: BTreeSet<&str> = ALL_CORE_ERROR_NAMES.iter().copied().collect();
+        assert_eq!(
+            as_set.len(),
+            ALL_CORE_ERROR_NAMES.len(),
+            "ALL_CORE_ERROR_NAMES must contain no duplicates"
+        );
+    }
+
+    /// Construct one instance of every `CoreError` variant; `name()` of each
+    /// must appear in `ALL_CORE_ERROR_NAMES` in declaration order. Mirrors
+    /// `chatman_static_gates.rs::gate_refusal_name_matches_const_list`:
+    /// adding a variant without updating this list fails here; removing one
+    /// fails to compile at `CoreError::name`'s exhaustive match.
+    #[test]
+    fn all_core_error_names_matches_enum() {
+        let all = vec![
+            CoreError::ObligationUnmet(vec![Obligation::BlockingConstraint {
+                reason: "gate".to_string(),
+            }]),
+            CoreError::SignatureInvalid,
+            CoreError::ChainMismatch,
+            CoreError::SerializationFailed("gate".to_string()),
+            CoreError::SigningFailed("gate".to_string()),
+            CoreError::HexDecodeFailed("gate".to_string()),
+            CoreError::Io("gate".to_string()),
+            CoreError::TemplateRenderFailed("gate".to_string()),
+            CoreError::UnresolvedProjectionElement("gate".to_string()),
+            CoreError::ExternalCutCompilationFailed {
+                stage: "gate".to_string(),
+                detail: "gate".to_string(),
+            },
+            CoreError::ArazzoUnmanufactured("gate".to_string()),
+            CoreError::ArazzoSourceReceiptMissing("gate".to_string()),
+            CoreError::ArazzoProjectionDigestMismatch("gate".to_string()),
+            CoreError::ArazzoDialectAuthorityMismatch {
+                declared: "gate".to_string(),
+                expected: "gate",
+                reason: "gate".to_string(),
+            },
+        ];
+        assert_eq!(all.len(), ALL_CORE_ERROR_NAMES.len());
+        for (err, expected) in all.iter().zip(ALL_CORE_ERROR_NAMES) {
+            assert_eq!(err.name(), expected);
+        }
+    }
 }
