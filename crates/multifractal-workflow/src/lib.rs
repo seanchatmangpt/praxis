@@ -81,7 +81,10 @@ pub mod f28_multi_breed_science;
 pub mod f29_capability_roadmap;
 pub mod f30_ggen_release_state;
 
+pub mod crown_external;
 /// Composed crown-witness pipelines (real production callers that chain multiple families'
 /// real entry points end to end). `crown_local` drives the LOCAL witness prefix
-/// F02 -> F03 -> F08 -> F09 -> F10 in one real call.
+/// F02 -> F03 -> F08 -> F09 -> F10 in one real call; `crown_external` drives the EXTERNAL witness
+/// tail F10 -> F12 -> F13 -> F14 -> F15 in one real call, stopping honestly at the F15 -> F16
+/// Erlang OTP-runner boundary.
 pub mod crown_local;
