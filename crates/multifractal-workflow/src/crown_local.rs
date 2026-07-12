@@ -1,4 +1,5 @@
-//! Crown LOCAL-witness prefix, composed for real: `F02 -> F03 -> F08 -> F09 -> F10`.
+//! Crown LOCAL-witness prefix, composed for real:
+//! `F02 -> F03 -> F08 -> F09 -> F10 -> F11 -> F18 -> F19 -> F02(re-admit) -> F24`.
 //!
 //! This module is the first *production caller* (a real, non-`#[cfg(test)]` `pub fn`) that
 //! drives the shared crown-witness prefix end to end in one call, reusing each family's own
@@ -15,6 +16,7 @@
 //! | F18 Broker                | [`crate::f11_bcinr_runtime::dispatch_local_execution_via_broker`] |
 //! | F19 Hooks                 | [`crate::f19_hooks::resolve_hook_for_action`] over F08's real bound action |
 //! | F02 (re-admit)            | [`crate::f02_observation_admission::admit_observation`], called a second time over a freshly synthesized actuation-consequence observation |
+//! | F24 CONSTRUCT/OCEL        | [`crate::f24_ocel_construct::run_construct`], over a real `cng::otel_rdf::OtlpSpan` built from the re-admitted actuation |
 //!
 //! # What makes each edge real (and the honest nuances)
 //!
@@ -76,12 +78,24 @@
 //!   new `urn:mfw:f19#`/`urn:mfw:f18#` actuation predicates (never the F08 planning predicates).
 //!   The re-admission's `correlation_id` is `{run.correlation_id}-actuation` -- deterministic and
 //!   distinct from the planning observation's, so it lands as a new ledger entry rather than
-//!   colliding with (or replaying) the first admission. **Scope disclosure**: this closes only the
-//!   `F19 -> F02` edge itself, not the further `F02(re-admit) -> F24 -> F21 -> F25` tail --
+//!   colliding with (or replaying) the first admission.
+//! - **F02 (re-admit) -> F24**: the re-admitted actuation consequence is synthesized into a real
+//!   [`cng::otel_rdf::OtlpSpan`] -- `trace_id`/`span_id` are F18/F19's own real receipt hashes
+//!   (not placeholders), `process.object.id` is the same `actuation_subject_iri` F02 just
+//!   admitted, and `process.activity.iri` is derived from F19's real resolved hook name. The span
+//!   is admitted ([`cng::otel_rdf::admit`]), projected
+//!   ([`cng::otel_rdf::project_admitted_spans`]), inserted into a fresh in-memory `Store`
+//!   ([`cng::otel_ocel::insert_quads`]), then run through F24's real `run_construct`. Honest
+//!   nuance: span timestamps (`start_time_unix_nano`/`end_time_unix_nano`) are fixed sentinel
+//!   constants, not a wall-clock read -- this driver's own composition never observes a real
+//!   clock anywhere (repo invariant #3), and OTel's schema requires *some* timestamp value even
+//!   though none is semantically load-bearing for the crown witness. **Scope disclosure**: this
+//!   closes `F19 -> F02` and `F02(re-admit) -> F24`, not the further `F24 -> F21 -> F25` tail --
 //!   `f24_ocel_construct::idempotency_gate` and `f25_receipts_replay::chaos_gate::admit_for_replay`
 //!   are both audited-and-confirmed-honest `NotYetImplemented` refusals (not corruption; checked
 //!   this pass), so composing further through them would either have to skip a real gate
-//!   (dishonest) or terminate in a by-design refusal rather than a witness-advancing success.
+//!   (dishonest) or terminate in a by-design refusal rather than a witness-advancing success. This
+//!   driver never calls `idempotency_gate`.
 //!
 //! Content-identity note for F08: F08 consumes the [`AdmittedTriple`] set built from the very
 //! same PDDL/hook-pack strings the crown serialized into F02's `payload_turtle`. Identity is
@@ -90,6 +104,13 @@
 //! accessor, so a round-trip would mean string-munging `Term`'s display form, which this module
 //! declines to do.
 
+use cng::otel_ocel::insert_quads as insert_otel_quads;
+use cng::otel_rdf::{
+    admit as admit_otel_span, project_admitted_spans, OtlpSpan, SpanStatus, SpanStatusCode,
+};
+use cng::powl::CngRefusal;
+use cng::telemetry_gen;
+use oxigraph::store::Store;
 use powl2_decompose::Powl;
 use praxis_graphlaw::chatman::closure::{ClosureLaw, RecursiveSocketClosure};
 use praxis_graphlaw::parser::{Parser, Syntax};
@@ -120,6 +141,7 @@ use crate::f18_broker_law::{ActionId, Broker, BrokerReceipt, BrokerSecret};
 use crate::f19_hooks::{
     resolve_hook_for_action, HookResolution, HookResolutionRefused, InMemoryReceiptLedger,
 };
+use crate::f24_ocel_construct::{run_construct, OCELConstructionRefused, OcelConstructOutcome};
 
 /// The `prov:wasDerivedFrom` predicate the admitted observation's provenance triple uses (F02
 /// gate 2). Bare IRI, matching F02's own `PROV_WAS_DERIVED_FROM` constant.
@@ -133,6 +155,25 @@ const HOOK_ACTUATION_NAME_PREDICATE: &str = "urn:mfw:f19#actuatedHookName";
 const HOOK_ACTUATION_RECEIPT_PREDICATE: &str = "urn:mfw:f19#actuationReceiptHash";
 /// F19 -> F02 re-admission vocabulary: the F18 broker receipt the actuation was dispatched under.
 const HOOK_ACTUATION_BROKER_RECEIPT_PREDICATE: &str = "urn:mfw:f18#brokerReceiptHash";
+
+/// F02(re-admit) -> F24: the synthesized OTel span's `process.object.type` value for the
+/// actuation-consequence event -- a literal value (not an IRI), matching the shape
+/// `f24_ocel_construct`'s own test fixture uses for `process.object.type` (e.g. `"Order"`).
+const ACTUATION_OTEL_OBJECT_TYPE: &str = "HookActuation";
+/// F02(re-admit) -> F24: `cng::otel_rdf`'s closed `process.outcome` vocabulary value for a
+/// successfully-completed activity. Not importable: `cng::otel_rdf::OUTCOME_COMPLETED` is a
+/// private module constant (`admit`'s own closed-vocabulary check is what actually enforces this
+/// value, not this driver), so the literal is reproduced here rather than fabricated -- disclosed
+/// duplication, not invention.
+const ACTUATION_OTEL_OUTCOME_COMPLETED: &str = "completed";
+/// F02(re-admit) -> F24: fixed, non-wall-clock nanosecond timestamps for the synthesized OTel
+/// span. Repo invariant #3 forbids wall-clock reads in receipt/hash paths; this driver's own
+/// composition never observes a real clock anywhere (matching how `broker_secret`/`local_run_id`
+/// are already caller-supplied fixed values rather than `SystemTime::now()` reads) -- these
+/// timestamps are structural placeholders OTel's schema requires, not semantically meaningful
+/// data the crown witness depends on.
+const ACTUATION_OTEL_START_NANOS: u64 = 1_700_000_000_000_000_000;
+const ACTUATION_OTEL_END_NANOS: u64 = 1_700_000_000_500_000_000;
 
 /// Everything one real LOCAL-witness prefix run needs. Every field is an input a real family
 /// entry point genuinely requires -- none is decorative.
@@ -222,6 +263,9 @@ pub struct LocalWitnessOutcome {
     /// through the same real gate pipeline as `admission`, under a distinct principal and
     /// correlation id.
     pub actuation_admission: AdmissionReceipt,
+    /// F24's real OCEL construction outcome (`F02(re-admit) -> F24`): the re-admitted actuation
+    /// consequence, projected as a real OTel span, run through `f24_ocel_construct::run_construct`.
+    pub ocel_outcome: OcelConstructOutcome,
     /// BLAKE3-hex over every stage's real digest, in canonical sorted order (no wall clock, no
     /// randomness) -- deterministic across runs of the same inputs.
     pub crown_receipt: String,
@@ -277,21 +321,39 @@ pub enum LocalWitnessRefused {
     /// variant, not by source type.
     #[error("crown-local F19->F02 re-admission refused: {0}")]
     ReAdmission(ObservationAdmissionRefused),
+    /// Admitting, projecting, or inserting the actuation-consequence OTel span refused. Covers
+    /// [`cng::otel_rdf::admit`], [`cng::otel_rdf::project_admitted_spans`], and
+    /// [`cng::otel_ocel::insert_quads`], which all share this error type.
+    #[error("crown-local F02(re-admit)->F24 actuation telemetry refused: {0}")]
+    ActuationTelemetry(#[from] CngRefusal),
+    /// The in-memory oxigraph `Store` backing F24 construction could not be created (defensive:
+    /// an in-memory store has no external dependency to fail on; kept as a typed refusal rather
+    /// than `.expect()` per this repo's no-panics-on-fallible-code invariant).
+    #[error("crown-local F24 store unavailable: {reason}")]
+    ActuationStoreUnavailable { reason: String },
+    /// F24's real OCEL construction refused. Never reaches F24's own unimplemented L7
+    /// idempotency gate -- this driver does not call `idempotency_gate` (see module doc's scope
+    /// disclosure).
+    #[error("crown-local F02(re-admit)->F24 OCEL construction refused: {0}")]
+    OcelConstruction(#[from] OCELConstructionRefused),
 }
 
-/// Drive the LOCAL crown-witness prefix `F02 -> F03 -> F08 -> F09 -> F10` end to end, in one
-/// real call, over a single admitted observation graph.
+/// Drive the LOCAL crown-witness prefix
+/// `F02 -> F03 -> F08 -> F09 -> F10 -> F11 -> F18 -> F19 -> F02(re-admit) -> F24` end to end, in
+/// one real call, over a single admitted observation graph.
 ///
 /// See the module doc comment for exactly what makes each edge a real (gated, data-threaded)
-/// production edge and the one disclosed F08 -> F09 nuance.
+/// production edge and every disclosed nuance.
 ///
 /// # Errors
 /// [`LocalWitnessRefused`], carrying the first stage's own typed refusal.
 ///
 /// # Complexity
 /// The sum of each stage's own documented cost: F02 O(T+S) admission, F03 OWL-RL + Datalog
-/// closure + SHACL, F08 grounding + BFS plan search, F09 indexed planning + O(n^3) F10 geometry.
-/// This function itself adds only O(T) glue (payload build, re-parse check, receipt fold).
+/// closure + SHACL, F08 grounding + BFS plan search, F09 indexed planning + O(n^3) F10 geometry,
+/// F11/F18 bounded-tick local execution, F19 O(1) hook lookup, F02(re-admit) a second O(T+S)
+/// admission, F24 O(m log m) OTel projection + OCEL construction (m = emitted triple count). This
+/// function itself adds only O(T) glue (payload build, re-parse check, receipt fold).
 pub fn drive_local_witness_prefix(
     run: LocalWitnessRun<'_>,
 ) -> Result<LocalWitnessOutcome, LocalWitnessRefused> {
@@ -441,11 +503,66 @@ pub fn drive_local_witness_prefix(
     let actuation_obs = RawObservation {
         correlation_id: format!("{}-actuation", run.correlation_id),
         source_id: run.actuation_source_id.clone(),
-        declared_subject: actuation_subject_iri,
+        declared_subject: actuation_subject_iri.clone(),
         payload_turtle: actuation_payload_turtle,
     };
     let actuation_admission = admit_observation(run.policy, run.ledger, actuation_obs)
         .map_err(LocalWitnessRefused::ReAdmission)?;
+
+    // ---- Stage F02 (re-admit) -> F24: the re-admitted actuation consequence becomes a real OTel
+    // span (admit -> project -> insert into a fresh in-memory store), then runs through F24's
+    // real OCEL construction ----
+    // Gated by the re-admission above (`actuation_admission` exists). `parent_span_id` is set to
+    // `actuation_admission.receipt_hash` itself -- not merely the same upstream values that fed
+    // the re-admission's own payload, but F02(re-admit)'s own real output receipt, threaded
+    // forward as this span's causal parent (a genuine OTel field, projected verbatim by
+    // `cng::otel_rdf::project_admitted_spans` as `ob:parentSpanId`). `process.object.id` is the
+    // same `actuation_subject_iri` F02 just admitted. So F24's OCEL projection is built over the
+    // actual re-admission's output, not a disconnected fixture that merely shares source values.
+    // Honest nuance: F24's own `idempotency_gate` (L7 atomic idempotency/correlation gate) is
+    // never called here -- see the module doc's scope disclosure; it is a confirmed-honest
+    // `NotYetImplemented` refusal, not composable into a success path this driver could reach.
+    let actuation_span = OtlpSpan {
+        trace_id: broker_receipt.receipt_hash_hex.clone(),
+        span_id: hook_resolution.receipt_hash.clone(),
+        parent_span_id: Some(actuation_admission.receipt_hash.clone()),
+        name: telemetry_gen::REGISTRY_GROUP_ID.to_string(),
+        start_time_unix_nano: ACTUATION_OTEL_START_NANOS,
+        end_time_unix_nano: ACTUATION_OTEL_END_NANOS,
+        attributes: vec![
+            (
+                telemetry_gen::ATTR_WORKFLOW_ID.to_string(),
+                run.correlation_id.clone(),
+            ),
+            (
+                telemetry_gen::ATTR_OBJECT_ID.to_string(),
+                actuation_subject_iri,
+            ),
+            (
+                telemetry_gen::ATTR_OBJECT_TYPE.to_string(),
+                ACTUATION_OTEL_OBJECT_TYPE.to_string(),
+            ),
+            (
+                telemetry_gen::ATTR_ACTIVITY_IRI.to_string(),
+                format!("urn:mfw:f19:hook:{}", hook_resolution.binding.hook_name),
+            ),
+            (
+                telemetry_gen::ATTR_OUTCOME.to_string(),
+                ACTUATION_OTEL_OUTCOME_COMPLETED.to_string(),
+            ),
+        ],
+        status: SpanStatus {
+            code: SpanStatusCode::Ok,
+            message: None,
+        },
+    };
+    admit_otel_span(&actuation_span)?;
+    let otel_quads = project_admitted_spans(&[actuation_span])?;
+    let ocel_store = Store::new().map_err(|e| LocalWitnessRefused::ActuationStoreUnavailable {
+        reason: e.to_string(),
+    })?;
+    insert_otel_quads(&ocel_store, &otel_quads)?;
+    let ocel_outcome = run_construct("otel-to-ocel", &ocel_store)?;
 
     // ---- Crown receipt: deterministic BLAKE3 over every stage's real digest ----
     let crown_receipt = compute_crown_receipt(
@@ -457,6 +574,7 @@ pub fn drive_local_witness_prefix(
         &broker_receipt,
         &hook_resolution,
         &actuation_admission,
+        &ocel_outcome,
     );
 
     Ok(LocalWitnessOutcome {
@@ -467,6 +585,7 @@ pub fn drive_local_witness_prefix(
         broker_receipt,
         hook_resolution,
         actuation_admission,
+        ocel_outcome,
         crown_receipt,
     })
 }
@@ -560,6 +679,7 @@ fn compute_crown_receipt(
     broker_receipt: &BrokerReceipt,
     hook_resolution: &HookResolution,
     actuation_admission: &AdmissionReceipt,
+    ocel_outcome: &OcelConstructOutcome,
 ) -> String {
     let f08_tape_sig: String = f08
         .tape
@@ -581,6 +701,7 @@ fn compute_crown_receipt(
         format!("f18.receipt_hash={}", broker_receipt.receipt_hash_hex),
         format!("f19.receipt_hash={}", hook_resolution.receipt_hash),
         format!("f02_readmit.receipt={}", actuation_admission.receipt_hash),
+        format!("f24.receipt_head={}", ocel_outcome.receipt_head),
     ];
     lines.sort();
     let mut hasher = blake3::Hasher::new();

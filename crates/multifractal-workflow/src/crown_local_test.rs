@@ -220,10 +220,10 @@ fn base_run<'a>(
 // --------------------------------------------------------------------------
 
 /// The load-bearing test: one admitted observation graph drives F02 -> F03 -> F08 -> F09 -> F10
-/// -> F11 -> F18 -> F19 -> F02(re-admit) end to end, and every stage's real output is present
-/// and correct.
+/// -> F11 -> F18 -> F19 -> F02(re-admit) -> F24 end to end, and every stage's real output is
+/// present and correct.
 #[test]
-fn crown_local_prefix_drives_f02_through_f02_readmit_end_to_end() {
+fn crown_local_prefix_drives_f02_through_f24_end_to_end() {
     let policy = crown_policy();
     let ledger = AdmissionLedger::new();
     let (root, closure) = open_growth_root_and_closure();
@@ -312,6 +312,22 @@ fn crown_local_prefix_drives_f02_through_f02_readmit_end_to_end() {
          original planning observation"
     );
     assert!(!outcome.actuation_admission.receipt_hash.is_empty());
+
+    // --- F02(re-admit) -> F24: the re-admitted actuation consequence was really projected as an
+    //     OTel span and run through F24's real OCEL construction ---
+    assert_eq!(
+        outcome.ocel_outcome.profile,
+        crate::f24_ocel_construct::ConstructProfile::OtelToOcel
+    );
+    assert!(
+        !outcome.ocel_outcome.ocel_quads.is_empty(),
+        "F24 must derive at least one G_OCEL quad from the real actuation span"
+    );
+    assert!(
+        !outcome.ocel_outcome.receipt_quads.is_empty(),
+        "F24 must derive at least one G_RECEIPT quad"
+    );
+    assert!(!outcome.ocel_outcome.receipt_head.is_empty());
 
     // --- Crown receipt is a real 64-hex BLAKE3 fold over every stage's digest ---
     assert_eq!(outcome.crown_receipt.len(), 64);
