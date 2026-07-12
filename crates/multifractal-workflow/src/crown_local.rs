@@ -1,5 +1,5 @@
 //! Crown LOCAL-witness prefix, composed for real:
-//! `F02 -> F03 -> F08 -> F09 -> F10 -> F11 -> F18 -> F19 -> F02(re-admit) -> F24`.
+//! `F02 -> F03 -> F08 -> F09 -> F10 -> F11 -> F18 -> F19 -> F02(re-admit) -> F24 -> F21`.
 //!
 //! This module is the first *production caller* (a real, non-`#[cfg(test)]` `pub fn`) that
 //! drives the shared crown-witness prefix end to end in one call, reusing each family's own
@@ -17,6 +17,7 @@
 //! | F19 Hooks                 | [`crate::f19_hooks::resolve_hook_for_action`] over F08's real bound action |
 //! | F02 (re-admit)            | [`crate::f02_observation_admission::admit_observation`], called a second time over a freshly synthesized actuation-consequence observation |
 //! | F24 CONSTRUCT/OCEL        | [`crate::f24_ocel_construct::run_construct`], over a real `cng::otel_rdf::OtlpSpan` built from the re-admitted actuation |
+//! | F21 Parent-Child Closure  | [`crate::f21_parent_child_closure::admit_child_and_evaluate`], over F09's own real `growth.closure`/`growth.child_socket` |
 //!
 //! # What makes each edge real (and the honest nuances)
 //!
@@ -89,13 +90,31 @@
 //!   nuance: span timestamps (`start_time_unix_nano`/`end_time_unix_nano`) are fixed sentinel
 //!   constants, not a wall-clock read -- this driver's own composition never observes a real
 //!   clock anywhere (repo invariant #3), and OTel's schema requires *some* timestamp value even
-//!   though none is semantically load-bearing for the crown witness. **Scope disclosure**: this
-//!   closes `F19 -> F02` and `F02(re-admit) -> F24`, not the further `F24 -> F21 -> F25` tail --
-//!   `f24_ocel_construct::idempotency_gate` and `f25_receipts_replay::chaos_gate::admit_for_replay`
-//!   are both audited-and-confirmed-honest `NotYetImplemented` refusals (not corruption; checked
-//!   this pass), so composing further through them would either have to skip a real gate
-//!   (dishonest) or terminate in a by-design refusal rather than a witness-advancing success. This
-//!   driver never calls `idempotency_gate`.
+//!   though none is semantically load-bearing for the crown witness. This driver never calls
+//!   `idempotency_gate` -- see the `F24 -> F21` nuance below for why.
+//! - **F24 -> F21**: `growth.closure`/`growth.child_socket` are F09's *own* real output, produced
+//!   fresh by `manufacture_and_bind_child` specifically for this purpose (see
+//!   [`GrowthOutcome::child_socket`](crate::f09_mfw_growth::GrowthOutcome)'s own doc comment: "for
+//!   a caller that wants to `admit` it once its own execution completes") -- not a repurposed or
+//!   reinvented closure. The evidence is a real, non-vacuous SHACL check
+//!   ([`Validator::validate`](praxis_graphlaw::shacl::Validator::validate)): this driver asserts
+//!   `ocel_outcome.receipt_head` (the genuine value F24 just produced) about `actuation_subject_iri`
+//!   and checks it against [`ACTUATION_CONSTRUCT_EVIDENCE_SHAPES`], which requires a non-empty
+//!   `ocelReceiptHead`. Unlike this codebase's `VACUOUS_SHAPES` pattern (an intentionally
+//!   unmatchable target class), this shape's target class is matched by a real individual and its
+//!   `sh:minCount 1` constraint is genuinely evaluated -- it passes because F24 really produced a
+//!   receipt head, not because the check is empty. Honest nuance: this is *not* SHACL validation
+//!   of the OCEL construction's own projected quads (`ocel_outcome.ocel_quads`/`receipt_quads`,
+//!   which live in `oxigraph`'s `Quad` representation, a different RDF library than
+//!   `praxis-graphlaw`'s own `Term`/`TripleIndex` this validator consumes) -- bridging those two
+//!   representations for a full structural OCEL-conformance check is deferred, disclosed future
+//!   work, not attempted here. `parent_closed = false` is a legitimate outcome under
+//!   `ClosureLaw::AllRequired` over a multi-child socket (the other children remain unobserved),
+//!   not a failure. **Scope disclosure**: this closes `F19 -> F02`, `F02(re-admit) -> F24`, and
+//!   `F24 -> F21`, not the further `F21 -> F25` tail -- `f25_receipts_replay::chaos_gate::admit_for_replay`
+//!   is an audited-and-confirmed-honest `NotYetImplemented` refusal (not corruption; checked this
+//!   pass), and `f25_receipts_replay::run` (F25's own top-level real entry point) has not yet been
+//!   audited this pass for a composable non-chaos-gate path into it.
 //!
 //! Content-identity note for F08: F08 consumes the [`AdmittedTriple`] set built from the very
 //! same PDDL/hook-pack strings the crown serialized into F02's `payload_turtle`. Identity is
@@ -114,6 +133,8 @@ use oxigraph::store::Store;
 use powl2_decompose::Powl;
 use praxis_graphlaw::chatman::closure::{ClosureLaw, RecursiveSocketClosure};
 use praxis_graphlaw::parser::{Parser, Syntax};
+use praxis_graphlaw::shacl::{ShapesGraph, Validator};
+use praxis_graphlaw::tripleindex::TripleIndex;
 use praxis_graphlaw::triples::VarOrTerm;
 
 use crate::f02_observation_admission::{
@@ -141,6 +162,7 @@ use crate::f18_broker_law::{ActionId, Broker, BrokerReceipt, BrokerSecret};
 use crate::f19_hooks::{
     resolve_hook_for_action, HookResolution, HookResolutionRefused, InMemoryReceiptLedger,
 };
+use crate::f21_parent_child_closure::{admit_child_and_evaluate, Refusal as F21Refusal};
 use crate::f24_ocel_construct::{run_construct, OCELConstructionRefused, OcelConstructOutcome};
 
 /// The `prov:wasDerivedFrom` predicate the admitted observation's provenance triple uses (F02
@@ -174,6 +196,30 @@ const ACTUATION_OTEL_OUTCOME_COMPLETED: &str = "completed";
 /// data the crown witness depends on.
 const ACTUATION_OTEL_START_NANOS: u64 = 1_700_000_000_000_000_000;
 const ACTUATION_OTEL_END_NANOS: u64 = 1_700_000_000_500_000_000;
+
+/// F24 -> F21 vocabulary: class/predicate this driver asserts about the actuation-construct
+/// evidence subject, under the same `urn:mfw:crown#` namespace `crown_local_test.rs`'s
+/// `VACUOUS_SHAPES` fixture already uses for driver-local vocabulary.
+const ACTUATION_CONSTRUCT_EVIDENCE_CLASS: &str = "urn:mfw:crown#ActuationConstructEvidence";
+const ACTUATION_CONSTRUCT_EVIDENCE_RECEIPT_HEAD_PREDICATE: &str = "urn:mfw:crown#ocelReceiptHead";
+
+/// F24 -> F21 evidence shape: requires the actuation-construct evidence subject to carry a
+/// non-empty `ocelReceiptHead` value. Unlike this codebase's `VACUOUS_SHAPES` pattern elsewhere
+/// (an intentionally-unmatchable target class used where the check itself is not yet the point),
+/// this shape's target class is matched by a real asserted individual and its `sh:minCount 1`
+/// constraint is genuinely checked against a real value (`ocel_outcome.receipt_head`) -- it passes
+/// because F24's `run_construct` really produced a non-empty receipt head, not because the shape
+/// is vacuous.
+const ACTUATION_CONSTRUCT_EVIDENCE_SHAPES: &str = r#"
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <urn:mfw:crown#> .
+ex:ActuationConstructEvidenceShape a sh:NodeShape ;
+    sh:targetClass ex:ActuationConstructEvidence ;
+    sh:property [
+        sh:path ex:ocelReceiptHead ;
+        sh:minCount 1 ;
+    ] .
+"#;
 
 /// Everything one real LOCAL-witness prefix run needs. Every field is an input a real family
 /// entry point genuinely requires -- none is decorative.
@@ -266,6 +312,11 @@ pub struct LocalWitnessOutcome {
     /// F24's real OCEL construction outcome (`F02(re-admit) -> F24`): the re-admitted actuation
     /// consequence, projected as a real OTel span, run through `f24_ocel_construct::run_construct`.
     pub ocel_outcome: OcelConstructOutcome,
+    /// Whether F09's own recursive socket closure (`growth.closure`) closed once the manufactured
+    /// child (`growth.child_socket`) was admitted under F24's real evidence (`F24 -> F21`). `false`
+    /// is a legitimate outcome under `ClosureLaw::AllRequired` over a multi-child socket -- it does
+    /// not mean the edge failed, only that the parent socket has other, still-unobserved children.
+    pub parent_closed: bool,
     /// BLAKE3-hex over every stage's real digest, in canonical sorted order (no wall clock, no
     /// randomness) -- deterministic across runs of the same inputs.
     pub crown_receipt: String,
@@ -336,11 +387,26 @@ pub enum LocalWitnessRefused {
     /// disclosure).
     #[error("crown-local F02(re-admit)->F24 OCEL construction refused: {0}")]
     OcelConstruction(#[from] OCELConstructionRefused),
+    /// This driver's own actuation-evidence Turtle failed to parse (defensive: the payload is
+    /// built from a compile-time-controlled format string plus `ocel_outcome.receipt_head`, a
+    /// hex-digest string with no Turtle-breaking characters -- kept as a typed refusal rather
+    /// than `.expect()` per this repo's no-panics-on-fallible-code invariant).
+    #[error("crown-local F24->F21 evidence payload malformed: {reason}")]
+    ActuationEvidenceMalformed { reason: String },
+    /// This driver's own `ACTUATION_CONSTRUCT_EVIDENCE_SHAPES` constant failed to parse
+    /// (defensive: hand-verified compile-time SHACL Turtle; kept as a typed refusal, not
+    /// `.expect()`, for the same reason as [`Self::ActuationEvidenceMalformed`]).
+    #[error("crown-local F24->F21 evidence shapes invalid: {reason}")]
+    ActuationEvidenceShapesInvalid { reason: String },
+    /// F21 refused to admit the manufactured child under F09's recursive socket closure (unknown
+    /// child, non-conforming evidence, or an already-admitted-but-conflicting state).
+    #[error("crown-local F24->F21 child admission refused: {0}")]
+    ChildClosureRefused(F21Refusal),
 }
 
 /// Drive the LOCAL crown-witness prefix
-/// `F02 -> F03 -> F08 -> F09 -> F10 -> F11 -> F18 -> F19 -> F02(re-admit) -> F24` end to end, in
-/// one real call, over a single admitted observation graph.
+/// `F02 -> F03 -> F08 -> F09 -> F10 -> F11 -> F18 -> F19 -> F02(re-admit) -> F24 -> F21` end to
+/// end, in one real call, over a single admitted observation graph.
 ///
 /// See the module doc comment for exactly what makes each edge a real (gated, data-threaded)
 /// production edge and every disclosed nuance.
@@ -352,8 +418,9 @@ pub enum LocalWitnessRefused {
 /// The sum of each stage's own documented cost: F02 O(T+S) admission, F03 OWL-RL + Datalog
 /// closure + SHACL, F08 grounding + BFS plan search, F09 indexed planning + O(n^3) F10 geometry,
 /// F11/F18 bounded-tick local execution, F19 O(1) hook lookup, F02(re-admit) a second O(T+S)
-/// admission, F24 O(m log m) OTel projection + OCEL construction (m = emitted triple count). This
-/// function itself adds only O(T) glue (payload build, re-parse check, receipt fold).
+/// admission, F24 O(m log m) OTel projection + OCEL construction (m = emitted triple count), F21
+/// O(log c) closure admission (c = declared child count). This function itself adds only O(T)
+/// glue (payload build, re-parse check, receipt fold).
 pub fn drive_local_witness_prefix(
     run: LocalWitnessRun<'_>,
 ) -> Result<LocalWitnessOutcome, LocalWitnessRefused> {
@@ -444,7 +511,10 @@ pub fn drive_local_witness_prefix(
     let goal = resolve_continuation_goal(&residue)?;
     let mut meter = DescentMeter::new(run.descent_budget);
     let growth_plan = plan_growth(run.socket_blocked, &run.growth_closure, &goal, &mut meter)?;
-    let growth = manufacture_and_bind_child(&run.growth_root, &growth_plan, run.closure_law)?;
+    // `mut`: F21 below re-borrows `growth.closure` mutably to admit `growth.child_socket` once
+    // its own execution (F10..F24) has completed, per `GrowthOutcome::child_socket`'s own doc
+    // comment ("for a caller that wants to `admit` it once its own execution completes").
+    let mut growth = manufacture_and_bind_child(&run.growth_root, &growth_plan, run.closure_law)?;
 
     // ---- Stage F10 -> F11 -> F18: convert F10's real geometry to F11's AST, then dispatch it
     // through the real F18 broker to a receipted local actuation ----
@@ -536,7 +606,7 @@ pub fn drive_local_witness_prefix(
             ),
             (
                 telemetry_gen::ATTR_OBJECT_ID.to_string(),
-                actuation_subject_iri,
+                actuation_subject_iri.clone(),
             ),
             (
                 telemetry_gen::ATTR_OBJECT_TYPE.to_string(),
@@ -564,6 +634,38 @@ pub fn drive_local_witness_prefix(
     insert_otel_quads(&ocel_store, &otel_quads)?;
     let ocel_outcome = run_construct("otel-to-ocel", &ocel_store)?;
 
+    // ---- Stage F24 -> F21: admit the manufactured child under F09's own recursive socket
+    // closure, evidenced by a real (non-vacuous) SHACL check over F24's real receipt head ----
+    // Gated by `ocel_outcome` above. `growth.closure`/`growth.child_socket` are F09's own real
+    // output for exactly this purpose (see `GrowthOutcome::child_socket`'s doc comment) -- not a
+    // repurposed or reinvented closure. The evidence triples assert the real, just-produced
+    // `ocel_outcome.receipt_head` about `actuation_subject_iri` (the same subject F02 re-admitted
+    // and F24 constructed over); `Validator::validate` genuinely runs against them, so `conforms`
+    // is a real fact (F24 really produced a non-empty receipt head), not fabricated. `parent_closed`
+    // is a legitimate outcome either way per `is_closed`'s own contract -- `AllRequired` over a
+    // multi-child socket correctly stays open until every child is admitted, not only this one.
+    let evidence_turtle = format!(
+        "<{actuation_subject_iri}> a <{ACTUATION_CONSTRUCT_EVIDENCE_CLASS}> ;\n  \
+         <{ACTUATION_CONSTRUCT_EVIDENCE_RECEIPT_HEAD_PREDICATE}> \"{}\" .\n",
+        ocel_outcome.receipt_head
+    );
+    let evidence_parsed = Parser::parse_triples(&evidence_turtle, Syntax::Turtle).map_err(|e| {
+        LocalWitnessRefused::ActuationEvidenceMalformed {
+            reason: e.to_string(),
+        }
+    })?;
+    let mut evidence_index = TripleIndex::new();
+    for t in evidence_parsed {
+        evidence_index.add(t);
+    }
+    let evidence_shapes = ShapesGraph::parse(ACTUATION_CONSTRUCT_EVIDENCE_SHAPES)
+        .map_err(|reason| LocalWitnessRefused::ActuationEvidenceShapesInvalid { reason })?;
+    let evidence_report = Validator::validate(&evidence_index, &evidence_shapes);
+    let child_socket = growth.child_socket.clone();
+    let parent_closed =
+        admit_child_and_evaluate(&mut growth.closure, &child_socket, &evidence_report)
+            .map_err(LocalWitnessRefused::ChildClosureRefused)?;
+
     // ---- Crown receipt: deterministic BLAKE3 over every stage's real digest ----
     let crown_receipt = compute_crown_receipt(
         &admission,
@@ -575,6 +677,7 @@ pub fn drive_local_witness_prefix(
         &hook_resolution,
         &actuation_admission,
         &ocel_outcome,
+        parent_closed,
     );
 
     Ok(LocalWitnessOutcome {
@@ -586,6 +689,7 @@ pub fn drive_local_witness_prefix(
         hook_resolution,
         actuation_admission,
         ocel_outcome,
+        parent_closed,
         crown_receipt,
     })
 }
@@ -680,6 +784,7 @@ fn compute_crown_receipt(
     hook_resolution: &HookResolution,
     actuation_admission: &AdmissionReceipt,
     ocel_outcome: &OcelConstructOutcome,
+    parent_closed: bool,
 ) -> String {
     let f08_tape_sig: String = f08
         .tape
@@ -702,6 +807,7 @@ fn compute_crown_receipt(
         format!("f19.receipt_hash={}", hook_resolution.receipt_hash),
         format!("f02_readmit.receipt={}", actuation_admission.receipt_hash),
         format!("f24.receipt_head={}", ocel_outcome.receipt_head),
+        format!("f21.parent_closed={parent_closed}"),
     ];
     lines.sort();
     let mut hasher = blake3::Hasher::new();

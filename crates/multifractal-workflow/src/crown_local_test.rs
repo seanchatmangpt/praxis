@@ -6,7 +6,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use powl2_decompose::{ParentChildClosure, Powl, SocketKind, SocketPath, WorkflowSocketId};
-use praxis_graphlaw::chatman::closure::{ClosureLaw, RecursiveSocketClosure};
+use praxis_graphlaw::chatman::closure::{ChildCompletionState, ClosureLaw, RecursiveSocketClosure};
 use praxis_graphlaw::triples::{BodyLiteral, Rule, Triple};
 
 use super::{drive_local_witness_prefix, LocalWitnessRefused, LocalWitnessRun};
@@ -220,10 +220,10 @@ fn base_run<'a>(
 // --------------------------------------------------------------------------
 
 /// The load-bearing test: one admitted observation graph drives F02 -> F03 -> F08 -> F09 -> F10
-/// -> F11 -> F18 -> F19 -> F02(re-admit) -> F24 end to end, and every stage's real output is
-/// present and correct.
+/// -> F11 -> F18 -> F19 -> F02(re-admit) -> F24 -> F21 end to end, and every stage's real output
+/// is present and correct.
 #[test]
-fn crown_local_prefix_drives_f02_through_f24_end_to_end() {
+fn crown_local_prefix_drives_f02_through_f21_end_to_end() {
     let policy = crown_policy();
     let ledger = AdmissionLedger::new();
     let (root, closure) = open_growth_root_and_closure();
@@ -328,6 +328,25 @@ fn crown_local_prefix_drives_f02_through_f24_end_to_end() {
         "F24 must derive at least one G_RECEIPT quad"
     );
     assert!(!outcome.ocel_outcome.receipt_head.is_empty());
+
+    // --- F24 -> F21: the manufactured child was really admitted under F09's own recursive
+    //     socket closure, evidenced by a real (non-vacuous) SHACL check over F24's receipt head.
+    //     The socket root has 2 original leaves + this 1 manufactured child under
+    //     ClosureLaw::AllRequired, so admitting only this one child legitimately leaves the
+    //     parent open -- not a failure, the documented contract of AllRequired. ---
+    assert_eq!(
+        outcome
+            .growth
+            .closure
+            .children()
+            .get(&outcome.growth.child_socket),
+        Some(&ChildCompletionState::Admitted),
+        "F21 must have promoted the manufactured child to Admitted, not left it Observed"
+    );
+    assert!(
+        !outcome.parent_closed,
+        "AllRequired over 2 unobserved original leaves + this 1 admitted child must stay open"
+    );
 
     // --- Crown receipt is a real 64-hex BLAKE3 fold over every stage's digest ---
     assert_eq!(outcome.crown_receipt.len(), 64);
