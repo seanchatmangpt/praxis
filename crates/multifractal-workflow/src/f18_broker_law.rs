@@ -602,10 +602,20 @@ impl Broker {
 
     /// Confirms `observed_correlation_id` against `expected_correlation_id`
     /// (the value bound to this action at dispatch time by the caller, e.g.
-    /// from a workflow identity). A mismatch marks the ledger entry
-    /// `Refused` (chaos: "stale/malformed results ... resolve through ... a
-    /// typed refusal, never silent duplicate actuation") rather than leaving
-    /// it stuck mid-pipeline.
+    /// from a workflow identity). A mismatch arriving at the legitimate
+    /// Correlation Binder window (ledger state `IdempotencyClaimed`) marks
+    /// the ledger entry `Refused` (chaos: "stale/malformed results ...
+    /// resolve through ... a typed refusal, never silent duplicate
+    /// actuation") rather than leaving it stuck mid-pipeline. A mismatch
+    /// arriving AFTER the action has already lawfully advanced past
+    /// `Correlated` is a stale/duplicate/forged delivery for an action a
+    /// prior lawful call already owns: it is still refused
+    /// (`CorrelationMismatch`), but does NOT mutate that action's ledger
+    /// state -- see [`tests::stale_correlation_mismatch_after_actuation_does_not_orphan_the_action`]
+    /// for the adversarial case this guards (a stale mismatch landing after
+    /// `actuate()` already ran the real-world dispatch closure must not
+    /// orphan that already-actuated action by flipping it to `Refused`
+    /// before it can reach a receipt).
     ///
     /// # Complexity
     /// O(1) amortized `HashMap` lookup/update + O(|correlation_id|) string
@@ -617,12 +627,28 @@ impl Broker {
         observed_correlation_id: &str,
     ) -> Result<BrokerState, UnreceiptedActuationRefused> {
         if expected_correlation_id != observed_correlation_id {
-            // Mark Refused before returning the error so a subsequent
-            // duplicate delivery for the same action sees a terminal state,
-            // not a silently-abandoned IdempotencyClaimed entry.
+            // Mark Refused ONLY if this mismatch arrives at the legitimate
+            // Correlation Binder window (state == IdempotencyClaimed) --
+            // i.e. this call is the actual first correlation attempt for
+            // this action, not a stale/duplicate/forged delivery arriving
+            // after the action already advanced lawfully. Checking only
+            // `entry.state.lawful_to(Refused)` (any prior revision of this
+            // branch) is unsound: `Actuating.lawful_to(Refused)` is true, so
+            // a mismatched delivery landing AFTER a legitimate
+            // bind_correlation + actuate() -- i.e. after the real-world
+            // dispatch closure already ran -- could flip
+            // `Actuating -> Refused` and permanently orphan an
+            // already-actuated action (capture_consequence would then
+            // refuse with UnlawfulTransition, and no BrokerReceipt could
+            // ever be issued): an actuation with no receipt, which is
+            // exactly the failure this module (Zero Unreceipted Actuation)
+            // exists to prevent. See
+            // [`tests::stale_correlation_mismatch_after_actuation_does_not_orphan_the_action`],
+            // which reproduces the unfixed bug sequentially (no concurrency
+            // required) and pins the fixed behavior.
             let mut ledger = self.lock_ledger();
             if let Some(entry) = ledger.get_mut(action) {
-                if entry.state.lawful_to(BrokerState::Refused) {
+                if entry.state == BrokerState::IdempotencyClaimed {
                     entry.state = BrokerState::Refused;
                 }
             }
@@ -1210,6 +1236,127 @@ mod tests {
         }
         assert_eq!(PROVENANCE_CHAIN[0].label, "ActionArtifact");
         assert_eq!(PROVENANCE_CHAIN[7].label, "BrokerReceipt");
+    }
+
+    // -- Adversarial audit additions (this pass): direct concurrency proof for
+    // the Actuating stage (item 2 of the audit -- prior coverage only raced
+    // claim_idempotency, not actuate), and a same-action-stale-delivery probe
+    // for the family's own "loser cannot overwrite winner" property (item 3).
+    // ---------------------------------------------------------------------
+
+    /// Direct concurrency proof that `actuate` (not just `claim_idempotency`)
+    /// is exclusive: N threads race `actuate` for the SAME action, already
+    /// `Correlated`. Exactly one thread's `advance(Correlated -> Actuating)`
+    /// may succeed, so the caller-supplied dispatch closure -- which stands
+    /// in for a real external side effect -- must run exactly once, never
+    /// zero or more than once.
+    #[test]
+    fn concurrent_actuate_calls_run_the_dispatch_closure_exactly_once() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+
+        let broker = Arc::new(Broker::new(secret()));
+        let a = action(20);
+        broker.verify_standing(&a, "actor-1", true, "").unwrap();
+        let (_, token) = broker.authorize(&a);
+        broker.claim_idempotency(a.clone(), token).unwrap();
+        broker.bind_correlation(&a, "corr-20", "corr-20").unwrap();
+        assert_eq!(broker.state_of(&a), Some(BrokerState::Correlated));
+
+        let dispatch_count = Arc::new(AtomicUsize::new(0));
+        let handles: Vec<_> = (0..16)
+            .map(|_| {
+                let broker = Arc::clone(&broker);
+                let a = a.clone();
+                let dispatch_count = Arc::clone(&dispatch_count);
+                std::thread::spawn(move || {
+                    broker.actuate(&a, || {
+                        dispatch_count.fetch_add(1, Ordering::SeqCst);
+                        b"side-effect".to_vec()
+                    })
+                })
+            })
+            .collect();
+        let results: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+        let wins = results.iter().filter(|r| r.is_ok()).count();
+        assert_eq!(wins, 1, "exactly one racer may pass the Actuating gate");
+        assert_eq!(
+            dispatch_count.load(Ordering::SeqCst),
+            1,
+            "the dispatch closure (the real-world side effect) must run exactly once, \
+             even under 16-way concurrent actuate() calls for the same action"
+        );
+    }
+
+    /// Adversarial finding (this pass), FIXED by this pass: before the fix
+    /// below, `bind_correlation`'s mismatch branch marked an action `Refused`
+    /// based only on whether the CURRENT ledger state had a lawful edge to
+    /// `Refused` -- not on whether the mismatch arrived at the legitimate
+    /// Correlation Binder window (`IdempotencyClaimed`). Since
+    /// `Actuating.lawful_to(Refused)` is true, a stale/duplicate mismatched
+    /// correlation delivery landing AFTER a legitimate `bind_correlation` +
+    /// `actuate` (i.e. after the real-world dispatch closure had ALREADY
+    /// run) could flip `Actuating -> Refused`, permanently orphaning an
+    /// already-actuated action: `capture_consequence` then refuses
+    /// (`UnlawfulTransition`, wrong `from` state) and no `BrokerReceipt` can
+    /// ever be issued for it. That is an actuation with no receipt --
+    /// exactly the failure this module's name (Zero Unreceipted Actuation)
+    /// says cannot happen. No concurrency is even required to trigger it:
+    /// plain sequential calls reproduce it, which is what this test drives.
+    ///
+    /// The fix scopes the mismatch-branch's `Refused` write to the one
+    /// legitimate window (`entry.state == IdempotencyClaimed`); a mismatch
+    /// arriving after the action has already lawfully advanced past
+    /// `Correlated` is still refused (`CorrelationMismatch`, unchanged) but
+    /// no longer mutates a ledger entry that a concurrent/prior lawful chain
+    /// already owns.
+    #[test]
+    fn stale_correlation_mismatch_after_actuation_does_not_orphan_the_action() {
+        let broker = Broker::new(secret());
+        let a = action(21);
+        broker.verify_standing(&a, "actor-1", true, "").unwrap();
+        let (_, token) = broker.authorize(&a);
+        broker.claim_idempotency(a.clone(), token).unwrap();
+        broker.bind_correlation(&a, "corr-21", "corr-21").unwrap();
+        assert_eq!(broker.state_of(&a), Some(BrokerState::Correlated));
+
+        // The real-world side effect happens here.
+        let consequence = broker
+            .actuate(&a, || b"already-happened-side-effect".to_vec())
+            .expect("actuation runs");
+        assert_eq!(broker.state_of(&a), Some(BrokerState::Actuating));
+
+        // A stale/duplicate correlation delivery for the SAME action, with a
+        // mismatched id, arrives late. It must still be refused...
+        let err = broker
+            .bind_correlation(&a, "corr-21", "corr-STALE-OR-FORGED")
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            UnreceiptedActuationRefused::CorrelationMismatch { .. }
+        ));
+
+        // ...but (post-fix) it must NOT perturb an action that already
+        // lawfully advanced past the Correlation Binder window.
+        assert_eq!(
+            broker.state_of(&a),
+            Some(BrokerState::Actuating),
+            "a stale mismatch arriving after Correlated must not clobber the \
+             ledger state of an action already advanced by a lawful caller"
+        );
+
+        // The already-actuated side effect can still reach a receipt: this
+        // is the crux of the finding -- an orphaned actuation (dispatch ran,
+        // no receipt reachable) would show up here as an unexpected
+        // UnlawfulTransition.
+        broker
+            .capture_consequence(&a, &consequence)
+            .expect("consequence capture must still succeed after a stale mismatch");
+        let receipt = broker
+            .issue_receipt(&a)
+            .expect("receipt must still be issuable");
+        assert_eq!(receipt.correlation_id, "corr-21");
+        assert_eq!(broker.state_of(&a), Some(BrokerState::Receipted));
     }
 
     #[test]

@@ -623,6 +623,12 @@ multifractal-workflow-check:
 multifractal-workflow-clippy:
     timeout 180s cargo clippy -p multifractal-workflow --all-targets -- -D warnings
 
+# Lint multifractal-workflow in an isolated target dir (concurrent-agent-safe; see the
+# "Isolated-target cargo recipes" note above cng-check-isolated), e.g.
+# `just multifractal-workflow-clippy-isolated my-feature`
+multifractal-workflow-clippy-isolated name:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo clippy -p multifractal-workflow --all-targets -- -D warnings
+
 # Type-check multifractal-workflow in an isolated target dir (concurrent-agent-safe;
 # see the "Isolated-target cargo recipes" note above cng-check-isolated), e.g.
 # `just multifractal-workflow-check-isolated my-feature`

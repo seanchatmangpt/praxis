@@ -65,6 +65,41 @@
 //!   test, an unrelated write-idempotent bitmask-op comment, and OCEL JSON
 //!   object-list deduplication; none is a concurrency/replay gate.
 //!
+//! ## F10 -> F11 -> F18: two production edges wired this pass
+//!
+//! Before this pass, nothing in this crate called [`BCINRLocalRuntime`] from a
+//! real F10 [`crate::f10_powl_geometry::POWLModel`], and nothing called
+//! [`crate::f18_broker_law::Broker`] at all -- that module's own doc comment
+//! discloses "No production caller in this repo".
+//!
+//! - **F10 -> F11**: [`geometry_to_local_ast`] / [`BCINRLocalRuntime::load_from_geometry`]
+//!   convert F10's real `Powl` tree into a real `PowlAstNode` for the tractable
+//!   subset that has a lossless representation (`Leaf`, `PartialOrder`, and flat
+//!   non-cyclic `Choice`), and refuse, typed, on the rest (`ExternalCut`, any
+//!   cyclic/partially-routed `ChoiceGraph`) rather than approximating a lossy
+//!   conversion -- see that section's own doc comment for exactly why
+//!   `Powl::Choice`'s general `ChoiceGraph` (Def 3.6) is not isomorphic to
+//!   `PowlAstNode::XorChoice`/`Loop`. Exercised against F10's own real pipeline
+//!   output (`build_powl_geometry`, not a hand-built `Powl` stand-in) by this
+//!   module's own `f11_load_from_geometry_runs_a_real_f10_*` tests.
+//! - **F11 -> F18**: [`dispatch_local_execution_via_broker`] is this pass's real
+//!   caller for `Broker` -- it drives a real `BCINRLocalRuntime` to `LOCAL_DONE`
+//!   and routes the real Local Receipt chain hash through every one of
+//!   `Broker`'s eight lawful stages, so the Broker's captured consequence and
+//!   issued receipt are bound to genuine local-execution output, not the
+//!   placeholder byte string `f18_broker_law`'s own test fixture uses.
+//!
+//! **Scope of "production" claimed here, precisely**: both functions are real,
+//! `pub`, non-test-gated library entry points -- not decorative re-exports and
+//! not test-only helpers -- and both are exercised by this module's own real
+//! (non-mocked) tests. Neither is yet called from any binary or orchestrator
+//! outside this crate's own test module (`multifractal-workflow` has no
+//! top-level binary; per its own `Cargo.toml` description it is still
+//! "scaffolding... real logic wired in a later phase"). This is a REAL,
+//! library-level edge ready for a future orchestrator to call, not yet a
+//! REAL_EDGE by the stricter "actual production caller" bar -- named
+//! precisely so a later pass does not have to re-derive the distinction.
+//!
 //! ## L5 state machine reachability, disclosed honestly
 //!
 //! [`BCINRLocalState`] names all eight atlas states
@@ -99,6 +134,11 @@ pub use bcinr_powl::scheduler::{scheduler_tick, FiredSet, PowlRunState};
 pub use bcinr_powl::tape::{OpKind, PowlTape};
 pub use bcinr_powl_receipt::causal_receipt::{OcelCausalFrame, OcelCausalReceipt, PackedObjRef};
 pub use bcinr_powl_receipt::denial::DenialPolarity;
+
+use std::collections::BTreeSet;
+
+use crate::f10_powl_geometry::{ChoiceGraph, GNode, POWLModel, Powl};
+use powl2_decompose::powl::{END, START};
 
 // ── F11-L5: state machine ───────────────────────────────────────────────────
 
@@ -326,6 +366,286 @@ impl BCINRLocalRuntime {
         }
         Ok(self.state)
     }
+
+    /// F10 -> F11 production entry point: POWL Loader + Compact State directly
+    /// from a real F10 [`POWLModel`] (`crate::f10_powl_geometry::build_powl_geometry`'s
+    /// own output), via [`geometry_to_local_ast`]. This is F11's real consumer of
+    /// F10's output -- see that function's own doc comment for exactly which
+    /// [`Powl`] shapes convert and which are refused.
+    ///
+    /// # Errors
+    /// [`F11FromF10Refused::Geometry`] if `model.root` uses a `Powl` shape
+    /// [`geometry_to_local_ast`] cannot losslessly represent (a non-flat
+    /// `Choice` routing graph, or any `ExternalCut`).
+    /// [`F11FromF10Refused::LocalExecution`] if the converted AST then fails
+    /// `compile_powl` (see [`BCINRLocalRuntime::load`]).
+    pub fn load_from_geometry(
+        model: &POWLModel,
+        run_id: [u8; 32],
+    ) -> Result<Self, F11FromF10Refused> {
+        let ast = geometry_to_local_ast(&model.root)?;
+        Self::load(&ast, run_id).map_err(F11FromF10Refused::LocalExecution)
+    }
+}
+
+// ── F10 -> F11: POWLModel -> PowlAstNode adapter ────────────────────────────
+//
+// F10's `Powl` (`powl2_decompose::powl::Powl`) and F11's `PowlAstNode`
+// (`bcinr_powl::compiler::PowlAstNode`) are two independent tree types from
+// two independent crates -- there is no shared ancestor type, and no
+// converter between them existed anywhere in this repo before this pass
+// (confirmed by grep: `grep -rn "PowlAstNode" crates/powl2-decompose/src
+// crates/multifractal-workflow/src` had zero hits outside this module's own
+// re-export before this function was added). The two AST shapes are NOT
+// isomorphic: `Powl::Choice`'s `ChoiceGraph` (Def 3.6) is a general directed
+// routing graph over `▷`/children/`□` that can express partial routing and
+// arbitrary cycles, while `PowlAstNode::XorChoice` is a flat n-ary exclusive
+// pick with no re-entry and `PowlAstNode::Loop{body,redo,max_iters}` requires
+// a pre-separated body/redo pair `compile_loop` wires as a single back-edge --
+// neither construct can losslessly represent an arbitrary `ChoiceGraph`. This
+// adapter therefore converts only the tractable, real subset (flat
+// exclusive-choice graphs with no cycle) and refuses, typed, on anything
+// wider rather than silently approximating a lossy conversion.
+
+/// F10 -> F11 conversion refusal: the real, disclosed boundary of what
+/// [`geometry_to_local_ast`] can losslessly convert.
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
+pub enum F10ToF11GeometryRefused {
+    /// `Powl::Choice`'s `ChoiceGraph` is not a flat n-ary exclusive choice
+    /// (exactly `{(START, Child(i)), (Child(i), END)}` for every child, no
+    /// other edges). A cyclic or partially-routed choice graph has no lossless
+    /// `PowlAstNode` representation today -- see this module's "F10 -> F11"
+    /// section doc comment for why `XorChoice`/`Loop` cannot express it.
+    #[error(
+        "F10->F11 at socket depth {depth}: Powl::Choice's ChoiceGraph over {child_count} \
+         children has {edge_count} edge(s), not the {expected_edge_count} a flat n-ary \
+         exclusive choice needs (or graph.n={graph_n} != child_count={child_count}); \
+         bcinr-powl's XorChoice/Loop AST cannot losslessly represent a cyclic or \
+         partially-routed ChoiceGraph, so this is refused rather than silently approximated"
+    )]
+    NonFlatChoiceGraph {
+        depth: usize,
+        child_count: usize,
+        graph_n: usize,
+        edge_count: usize,
+        expected_edge_count: usize,
+    },
+    /// `Powl::ExternalCut` has no analog in `PowlAstNode`: `bcinr-powl` has no
+    /// local-vs-external transition distinction (the same gap
+    /// [`detect_external_socket`] discloses at the tape-op level -- this is
+    /// the same absence, encountered one layer up, at the geometry-tree
+    /// level).
+    #[error(
+        "F10->F11 at socket depth {depth}: Powl::ExternalCut has no local-only analog in \
+         bcinr-powl's PowlAstNode (see detect_external_socket's own doc comment for the \
+         same absence at the tape-op level)"
+    )]
+    ExternalCutNotLocal { depth: usize },
+}
+
+/// Combined F10 -> F11 -> local-execution refusal for
+/// [`BCINRLocalRuntime::load_from_geometry`].
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
+pub enum F11FromF10Refused {
+    /// The F10 [`POWLModel`] used a `Powl` shape [`geometry_to_local_ast`]
+    /// cannot convert. See [`F10ToF11GeometryRefused`]'s variants.
+    #[error(transparent)]
+    Geometry(#[from] F10ToF11GeometryRefused),
+    /// The converted AST was well-formed but `compile_powl` itself refused
+    /// (tape-full, cycle, unreachable, XOR-inside-loop, ...).
+    #[error(transparent)]
+    LocalExecution(BCINRLocalExecutionRefused),
+}
+
+/// `true` iff `graph` is exactly the flat n-ary exclusive-choice shape
+/// `build_choice_node`'s own non-loop-back branch produces
+/// (`crates/multifractal-workflow/src/f10_powl_geometry.rs`): every child has
+/// exactly one incoming edge from `START` and one outgoing edge to `END`, and
+/// no other edge exists. This is a real structural check (a `BTreeSet`
+/// equality over the full edge set), not a heuristic -- any cycle, any
+/// `Child -> Child` edge, or any `Child -> START` re-entry edge makes this
+/// `false`.
+///
+/// # Complexity
+/// O(child_count) to build the expected edge set, O(child_count) to compare
+/// (both sides are `BTreeSet`s of the same expected size in the accepting
+/// case).
+fn is_flat_exclusive_choice(graph: &ChoiceGraph, child_count: usize) -> bool {
+    if graph.n != child_count {
+        return false;
+    }
+    let expected: BTreeSet<(GNode, GNode)> = (0..child_count)
+        .flat_map(|i| [(START, GNode::Child(i)), (GNode::Child(i), END)])
+        .collect();
+    graph.edges == expected
+}
+
+/// Recursive F10 -> F11 conversion. `depth` is the socket-tree recursion
+/// depth, carried only for refusal diagnostics (not a lifetime/scope
+/// mechanism).
+fn powl_to_ast(node: &Powl, depth: usize) -> Result<PowlAstNode<'_>, F10ToF11GeometryRefused> {
+    match node {
+        Powl::Leaf(Some(label)) => Ok(PowlAstNode::Atom(label.as_str())),
+        Powl::Leaf(None) => Ok(PowlAstNode::Silent),
+        Powl::PartialOrder { children, order } => {
+            let children_ast = children
+                .iter()
+                .map(|c| powl_to_ast(c, depth + 1))
+                .collect::<Result<Vec<_>, _>>()?;
+            // `order` is already transitively closed (F10's own invariant, see
+            // `Powl::PartialOrder`'s doc comment) -- passing it directly as
+            // `edges` is correct, not merely convenient: `compile_partial_order`
+            // derives entries/exits from which children have zero incoming/
+            // outgoing edges, so a transitively-closed order set correctly
+            // yields only the true sources/sinks as entries/exits, and the
+            // redundant transitive dependency bits it also wires are harmless
+            // (a predecessor's predecessor is already done by the time a
+            // direct predecessor fires, so the extra bit never blocks
+            // anything that wasn't already blocked).
+            let edges: Vec<(usize, usize)> = order.iter().copied().collect();
+            Ok(PowlAstNode::PartialOrder {
+                children: children_ast,
+                edges,
+            })
+        }
+        Powl::Choice { children, graph } => {
+            if !is_flat_exclusive_choice(graph, children.len()) {
+                return Err(F10ToF11GeometryRefused::NonFlatChoiceGraph {
+                    depth,
+                    child_count: children.len(),
+                    graph_n: graph.n,
+                    edge_count: graph.edges.len(),
+                    expected_edge_count: children.len() * 2,
+                });
+            }
+            let children_ast = children
+                .iter()
+                .map(|c| powl_to_ast(c, depth + 1))
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(PowlAstNode::XorChoice(children_ast))
+        }
+        Powl::ExternalCut { .. } => Err(F10ToF11GeometryRefused::ExternalCutNotLocal { depth }),
+    }
+}
+
+/// F10 -> F11 production adapter: converts a real F10 [`Powl`] tree (as built
+/// by `crate::f10_powl_geometry::build_powl_geometry`) into a real F11/
+/// `bcinr-powl` [`PowlAstNode`], for the tractable subset of `Powl` shapes
+/// that have a lossless `PowlAstNode` representation. See this module's
+/// "F10 -> F11" section doc comment for exactly which shapes convert
+/// (`Leaf`, `PartialOrder`, flat non-cyclic `Choice`) and which are refused
+/// (`ExternalCut`, any cyclic or partially-routed `Choice`).
+///
+/// # Errors
+/// See [`F10ToF11GeometryRefused`]'s variants.
+///
+/// # Complexity
+/// O(n) over the `Powl` tree's node count (one recursive visit per node, each
+/// doing O(1)-O(children) local work).
+pub fn geometry_to_local_ast(root: &Powl) -> Result<PowlAstNode<'_>, F10ToF11GeometryRefused> {
+    powl_to_ast(root, 0)
+}
+
+// ── F11 -> F18: production Broker handoff ───────────────────────────────────
+
+/// F11 -> F18 handoff refusal.
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
+pub enum F11BrokerHandoffRefused {
+    /// Local execution itself refused (compile error or a genuine scheduler
+    /// deadlock) -- surfaced BEFORE any [`crate::f18_broker_law::Broker`]
+    /// stage is touched (see this enum's own module-level doc note on
+    /// [`dispatch_local_execution_via_broker`]).
+    #[error(transparent)]
+    LocalExecution(#[from] BCINRLocalExecutionRefused),
+    /// `run_to_local_done` exhausted `max_ticks` without reaching
+    /// `LOCAL_DONE` (still `DEPENDENCIES_READY`, not a deadlock -- a genuine
+    /// deadlock already surfaces as `LocalExecution` above). Refusing here,
+    /// rather than handing a truncated Local Receipt to the Broker as though
+    /// it were a finished consequence, is the same no-silent-partial-success
+    /// discipline this repo's other typed refusals follow.
+    #[error(
+        "F11->F18 handoff refused: local execution did not reach LOCAL_DONE within \
+         {max_ticks} ticks (final state {final_state:?}); refusing rather than handing a \
+         truncated Local Receipt to the Broker as a finished consequence"
+    )]
+    LocalExecutionIncomplete {
+        max_ticks: u32,
+        final_state: BCINRLocalState,
+    },
+    /// A [`crate::f18_broker_law::Broker`] stage refused (invalid standing,
+    /// forged/duplicate authority, correlation mismatch, or an unlawful
+    /// transition).
+    #[error(transparent)]
+    Broker(#[from] crate::f18_broker_law::UnreceiptedActuationRefused),
+}
+
+/// F11 -> F18 production handoff: this pass's real caller for
+/// [`crate::f18_broker_law::Broker`], which had none before it (that module's
+/// own doc comment discloses "No production caller in this repo... nothing in
+/// `crates/multifractal-workflow` yet routes a real external actuation
+/// through this Broker"). Drives a real [`BCINRLocalRuntime`] (built from
+/// `ast`) to `LOCAL_DONE`, then routes the outcome through every one of
+/// [`crate::f18_broker_law::Broker`]'s eight lawful stages so the real Local
+/// Receipt chain hash -- not a placeholder byte string like the one this
+/// crate's own `f18_broker_law::tests::full_lifecycle` test fixture uses --
+/// becomes the Broker's captured consequence and, ultimately, its issued
+/// [`crate::f18_broker_law::BrokerReceipt`].
+///
+/// Local execution runs to completion BEFORE any Broker stage is touched:
+/// [`crate::f18_broker_law::Broker::actuate`]'s dispatch closure is an
+/// infallible `FnOnce() -> Vec<u8>` by design, so it cannot itself propagate
+/// a [`BCINRLocalExecutionRefused`] -- running local execution first and
+/// refusing immediately via [`F11BrokerHandoffRefused::LocalExecution`] /
+/// [`F11BrokerHandoffRefused::LocalExecutionIncomplete`] means a
+/// local-execution failure never leaves a half-claimed ledger entry behind
+/// (`claim_idempotency` is never called until real local work has already
+/// succeeded).
+///
+/// `has_standing`/`standing_reason` are caller-supplied, not judged here --
+/// this function does not own standing logic, matching
+/// [`crate::f18_broker_law::Broker::verify_standing`]'s own doc comment
+/// ("this module does not itself judge standing; see F01 'Standing Algebra'
+/// for that family"). `correlation_id` is used as both the expected and
+/// observed value: this call IS the initiating dispatch, not a
+/// reconciliation of a previously-bound correlation against a later,
+/// separately-delivered result.
+///
+/// # Errors
+/// See [`F11BrokerHandoffRefused`]'s variants.
+///
+/// # Complexity
+/// Dominated by `run_to_local_done`'s own O(max_ticks * popcount(check_mask))
+/// bound, plus O(1)-per-stage Broker overhead (see each `Broker` method's own
+/// complexity note).
+#[allow(clippy::too_many_arguments)]
+pub fn dispatch_local_execution_via_broker(
+    broker: &crate::f18_broker_law::Broker,
+    action: crate::f18_broker_law::ActionId,
+    actor: &str,
+    has_standing: bool,
+    standing_reason: &str,
+    correlation_id: &str,
+    ast: &PowlAstNode<'_>,
+    run_id: [u8; 32],
+    max_ticks: u32,
+) -> Result<crate::f18_broker_law::BrokerReceipt, F11BrokerHandoffRefused> {
+    let mut runtime = BCINRLocalRuntime::load(ast, run_id)?;
+    let final_state = runtime.run_to_local_done(max_ticks)?;
+    if final_state != BCINRLocalState::LocalDone {
+        return Err(F11BrokerHandoffRefused::LocalExecutionIncomplete {
+            max_ticks,
+            final_state,
+        });
+    }
+    let consequence = runtime.receipt_chain_hash().to_vec();
+
+    broker.verify_standing(&action, actor, has_standing, standing_reason)?;
+    let (_, token) = broker.authorize(&action);
+    broker.claim_idempotency(action.clone(), token)?;
+    broker.bind_correlation(&action, correlation_id, correlation_id)?;
+    let actuated = broker.actuate(&action, || consequence.clone())?;
+    broker.capture_consequence(&action, &actuated)?;
+    Ok(broker.issue_receipt(&action)?)
 }
 
 // ── F11 External Socket Detector (HAND_WRITE_REQUIRED) ─────────────────────
@@ -461,7 +781,7 @@ mod tests {
     }
 
     #[test]
-    
+
     fn f11_detect_external_socket_always_refuses() {
         assert_eq!(
             detect_external_socket(0xFF),
@@ -479,5 +799,217 @@ mod tests {
                 }
             )
         );
+    }
+
+    // ── F10 -> F11 real-edge tests ──────────────────────────────────────────
+    //
+    // These drive F10's own real `build_powl_geometry` pipeline (not a
+    // hand-crafted `Powl` stand-in) end to end into F11's real local
+    // execution -- the actual REAL_EDGE this session's task named.
+
+    use crate::f10_powl_geometry::{
+        build_powl_geometry, ChoiceGroupSpec, LoopBound, Plan, PlanAction,
+    };
+    use std::collections::BTreeMap;
+
+    fn plan_action(id: &str, source: &str) -> PlanAction {
+        PlanAction {
+            id: id.to_string(),
+            source: source.to_string(),
+        }
+    }
+
+    #[test]
+    fn f11_load_from_geometry_runs_a_real_f10_partial_order_to_local_done() {
+        // Real F10 pipeline: two ordered actions from the same provenance
+        // source -> one phase, a PartialOrder with declared order (0,1).
+        let plan = Plan {
+            actions: vec![plan_action("a0", "src"), plan_action("a1", "src")],
+            precedes: BTreeSet::from([(0, 1)]),
+            choice_groups: vec![],
+        };
+        let model = build_powl_geometry(&plan, &BTreeMap::new())
+            .expect("F10: a two-action ordered plan is a valid geometry");
+
+        let mut runtime = BCINRLocalRuntime::load_from_geometry(&model, [11u8; 32])
+            .expect("F10->F11: a PartialOrder-of-leaves model must convert and compile");
+        let final_state = runtime
+            .run_to_local_done(10)
+            .expect("a two-action ordered plan must not deadlock");
+        assert_eq!(final_state, BCINRLocalState::LocalDone);
+        assert!(
+            runtime.receipt_frame_count() > 0,
+            "real local execution must have chained at least one Local Receipt frame"
+        );
+    }
+
+    #[test]
+    fn f11_load_from_geometry_runs_a_real_f10_flat_choice_to_local_done() {
+        // Real F10 pipeline: a two-way acyclic choice group (no loop_branches)
+        // builds a Powl::Choice whose ChoiceGraph is exactly the flat
+        // exclusive-choice shape geometry_to_local_ast converts.
+        let plan = Plan {
+            actions: vec![
+                plan_action("branch-a", "planner"),
+                plan_action("branch-b", "planner"),
+            ],
+            precedes: BTreeSet::new(),
+            choice_groups: vec![ChoiceGroupSpec {
+                members: vec![0, 1],
+                loop_branches: BTreeSet::new(),
+            }],
+        };
+        let model = build_powl_geometry(&plan, &BTreeMap::new())
+            .expect("F10: an acyclic two-way choice needs no bound");
+
+        let mut runtime = BCINRLocalRuntime::load_from_geometry(&model, [12u8; 32])
+            .expect("F10->F11: a flat acyclic Choice model must convert and compile");
+        let final_state = runtime
+            .run_to_local_done(10)
+            .expect("an acyclic XOR choice must not deadlock");
+        assert_eq!(final_state, BCINRLocalState::LocalDone);
+    }
+
+    #[test]
+    fn f11_load_from_geometry_refuses_a_real_f10_cyclic_choice_graph() {
+        // Real F10 pipeline: a two-way choice with a loop-back branch, bound
+        // with a valid LoopBound so F10 itself succeeds (mirrors F10's own
+        // loop_bound_binder_attaches_bound_to_the_correct_choice_socket
+        // fixture) -- the resulting Powl::Choice graph is genuinely cyclic
+        // (Child -> START, not Child -> END), which geometry_to_local_ast
+        // must refuse rather than silently drop the loop-back edge.
+        let plan = Plan {
+            actions: vec![
+                plan_action("branch-a", "planner"),
+                plan_action("branch-b", "planner"),
+            ],
+            precedes: BTreeSet::new(),
+            choice_groups: vec![ChoiceGroupSpec {
+                members: vec![0, 1],
+                loop_branches: BTreeSet::from([0usize]),
+            }],
+        };
+        let bounds = BTreeMap::from([(0usize, LoopBound { max_iterations: 5 })]);
+        let model = build_powl_geometry(&plan, &bounds)
+            .expect("F10: a cyclic choice with a valid bound must build");
+
+        // `PowlAstNode` (the `Ok` type) does not implement `Debug`, so
+        // `.unwrap_err()` (which requires `T: Debug` for its panic message)
+        // does not compile here -- `.err()` sidesteps that bound.
+        let err = geometry_to_local_ast(&model.root)
+            .err()
+            .expect("a genuinely cyclic ChoiceGraph must be refused");
+        assert!(
+            matches!(err, F10ToF11GeometryRefused::NonFlatChoiceGraph { .. }),
+            "a genuinely cyclic ChoiceGraph must be refused, not silently approximated: {err:?}"
+        );
+    }
+
+    #[test]
+    fn f11_geometry_refuses_external_cut() {
+        let cut = Powl::ExternalCut {
+            region: Box::new(Powl::Leaf(Some("a".to_string()))),
+            projection: "SELECT * WHERE { ?s ?p ?o }".to_string(),
+            renderer: "tera-template".to_string(),
+        };
+        let err = geometry_to_local_ast(&cut)
+            .err()
+            .expect("Powl::ExternalCut must be refused");
+        assert!(matches!(
+            err,
+            F10ToF11GeometryRefused::ExternalCutNotLocal { depth: 0 }
+        ));
+    }
+
+    // ── F11 -> F18 real-edge tests ──────────────────────────────────────────
+    //
+    // F18's own module doc comment discloses it has no production caller in
+    // this crate; these tests exercise dispatch_local_execution_via_broker
+    // as that real caller, driving a real BCINRLocalRuntime's actual Local
+    // Receipt hash through every one of Broker's eight lawful stages.
+
+    use crate::f18_broker_law::{ActionId, Broker, BrokerSecret, BrokerState};
+
+    #[test]
+    fn f11_dispatch_via_broker_issues_a_receipt_bound_to_the_real_local_receipt_hash() {
+        let broker = Broker::new(BrokerSecret::new([42u8; 32]));
+        let action = ActionId::new("wf-f11-f18", "step-1", "idem-1");
+        let ast = PowlAstNode::Sequence(vec![PowlAstNode::Atom("a"), PowlAstNode::Atom("b")]);
+
+        // Independently recompute the expected consequence bytes the same
+        // way the handoff does, to prove the Broker's captured consequence
+        // really is F11's own real Local Receipt hash, not a placeholder.
+        let mut shadow = BCINRLocalRuntime::load(&ast, [13u8; 32]).unwrap();
+        shadow.run_to_local_done(10).unwrap();
+        let expected_consequence = shadow.receipt_chain_hash().to_vec();
+
+        let receipt = dispatch_local_execution_via_broker(
+            &broker, action, "actor-1", true, "", "corr-1", &ast, [13u8; 32], 10,
+        )
+        .expect("a linear two-atom sequence must dispatch through every Broker stage");
+
+        assert_eq!(receipt.correlation_id, "corr-1");
+        assert!(!receipt.consequence_hash_hex.is_empty());
+        assert!(!receipt.receipt_hash_hex.is_empty());
+        // fold_consequence_hash = blake3(prev_head="" | raw_consequence); prev
+        // head is empty for a fresh workflow_id, so this must recompute
+        // exactly from the real Local Receipt hash bytes.
+        assert_eq!(
+            receipt.consequence_hash_hex,
+            blake3::hash(&expected_consequence).to_hex().to_string(),
+            "Broker's captured consequence must be F11's real Local Receipt hash, not a stand-in"
+        );
+
+        let action_again = ActionId::new("wf-f11-f18", "step-1", "idem-1");
+        assert_eq!(broker.state_of(&action_again), Some(BrokerState::Receipted));
+    }
+
+    #[test]
+    fn f11_dispatch_via_broker_refuses_local_execution_before_touching_the_ledger() {
+        let broker = Broker::new(BrokerSecret::new([7u8; 32]));
+        let action = ActionId::new("wf-f11-f18-refuse", "step-1", "idem-1");
+        // 65 atoms overflow the 64-slot tape -- a real CompactStateEncodeFailed.
+        let atoms: Vec<PowlAstNode<'_>> = (0..65).map(|_| PowlAstNode::Atom("x")).collect();
+        let ast = PowlAstNode::Sequence(atoms);
+
+        let err = dispatch_local_execution_via_broker(
+            &broker, action, "actor-1", true, "", "corr-2", &ast, [1u8; 32], 10,
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, F11BrokerHandoffRefused::LocalExecution(_)));
+        let action_again = ActionId::new("wf-f11-f18-refuse", "step-1", "idem-1");
+        assert_eq!(
+            broker.state_of(&action_again),
+            None,
+            "a local-execution failure must never leave a half-claimed ledger entry"
+        );
+    }
+
+    #[test]
+    fn f11_dispatch_via_broker_refuses_on_invalid_standing_before_claiming_idempotency() {
+        let broker = Broker::new(BrokerSecret::new([9u8; 32]));
+        let action = ActionId::new("wf-f11-f18-standing", "step-1", "idem-1");
+        let ast = PowlAstNode::Atom("a");
+
+        let err = dispatch_local_execution_via_broker(
+            &broker,
+            action,
+            "actor-1",
+            false,
+            "no standing on file",
+            "corr-3",
+            &ast,
+            [2u8; 32],
+            10,
+        )
+        .unwrap_err();
+
+        assert!(matches!(
+            err,
+            F11BrokerHandoffRefused::Broker(
+                crate::f18_broker_law::UnreceiptedActuationRefused::StandingInvalid { .. }
+            )
+        ));
     }
 }

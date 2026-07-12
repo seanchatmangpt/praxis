@@ -61,22 +61,40 @@
 //!   it alongside the new root, rather than silently pretending the old
 //!   closure object updated itself.
 //!
+//! ## What became REAL in the F10 crown-edge pass (fixed forward)
+//!
+//! - [`manufacture_and_bind_child`] now really projects its `plan_tape`
+//!   through F10's canonical POWL geometry pipeline
+//!   ([`project_growth_plan_geometry`] -> `f10_powl_geometry::manufacture_powl_v2`)
+//!   *before* grafting, and refuses the whole growth attempt (folded into
+//!   [`MFWGrowthRefused::GraftRefused`], see that variant's reuse note) if
+//!   F10 rejects the derived geometry. This is the real F09 -> F10
+//!   production edge: F09's own confirmed real production entry point now
+//!   has F10 as a genuine gate, not a parallel unused call -- see
+//!   `tests::manufacture_and_bind_child_refuses_a_tape_with_self_referential_pred_mask`
+//!   for the adversarial proof that this gate actually blocks a tape F09's
+//!   own local logic alone would have grafted anyway.
+//!
 //! ## What remains an HONEST STUB (HAND_WRITE_REQUIRED, tracked under V12-009)
 //!
 //! - L7 (idempotent/duplicate-safe, restart-durable, chaos-tolerant
 //!   re-admission with replay equivalence) is entirely unbuilt: there is no
 //!   re-admission loop yet for it to guard.
 //! - No production caller composes F08's `run_pipeline` output into this
-//!   module's [`resolve_continuation_goal`]/[`plan_growth`] chain yet, or
-//!   this module's output into F10 -- these stages are each independently
-//!   real and independently tested, not yet an end-to-end wired pipeline.
+//!   module's [`resolve_continuation_goal`]/[`plan_growth`] chain yet --
+//!   that upstream (F08 -> F09) half of the crown path is tracked
+//!   separately from this module's own (now real) F09 -> F10 half.
+//! - Nothing yet calls [`manufacture_and_bind_child`] from outside this
+//!   file's own test module: it is F09's real, tested production entry
+//!   point, but no live orchestrator in this repo invokes it autonomously
+//!   yet (disclosed, not silently implied).
 //!
 //! `MFW_AUTONOMIC_RESOLUTION_ALIVE` is **not** claimed by this module: no
 //! single call composes admission through a manufactured, closure-admitted
 //! child yet (each stage is real and tested in isolation -- see
-//! `tests::growth_cycle_composes_resolve_through_manufacture_end_to_end`
-//! for the closest thing to a full cycle, which is real but caller-driven,
-//! not wired to any upstream/downstream production caller).
+//! `tests::plan_growth_succeeds_through_every_real_gate` for the closest
+//! thing to a full cycle, which is real but test-driven, not wired to any
+//! upstream/downstream production caller outside this module).
 //! `BOUNDED_DESCENT_PROVEN` is claimed only for [`DescentMeter`] in
 //! isolation (tested below), not for a full growth cycle under repeated
 //! autonomic triggering.
@@ -94,13 +112,15 @@
 //! - /Users/sac/praxis/crates/powl2-decompose/src/recompose.rs
 //! - /Users/sac/praxis/packs/f09-mfw-growth-pack/ (this wiring pass, new)
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use pddl_index::GroundStats;
 use powl2_decompose::{ParentChildClosure, Powl, WorkflowSocketId};
 use praxis_graphlaw::chatman::closure::{ClosureLaw, RecursiveSocketClosure};
 use wasm4pm_compat::hash::blake3_combined;
 use wasm4pm_compat::pddl::{Pddl8Domain, Pddl8Problem, Pddl8Tape};
+
+use crate::f10_powl_geometry;
 
 include!("f09_mfw_growth_generated.rs");
 
@@ -620,9 +640,12 @@ fn graft_child(root: &Powl, at: &WorkflowSocketId, child: Powl) -> Result<Powl, 
 }
 
 /// The real, post-graft evidence [`manufacture_and_bind_child`] returns:
-/// the new root model with the manufactured child attached, and a freshly
+/// the new root model with the manufactured child attached, a freshly
 /// re-derived closure over `plan.parent_socket` (see this function's
-/// disclosed "Parent Re-evaluator" scope note).
+/// disclosed "Parent Re-evaluator" scope note), and the canonical F10 POWL
+/// v2 geometry [`project_growth_plan_geometry`] independently derived from
+/// the same plan tape (the real F09 -> F10 production edge -- see that
+/// function's doc comment for what this is and is not).
 #[derive(Debug, Clone)]
 pub struct GrowthOutcome {
     /// The root `Powl` model after grafting the manufactured child.
@@ -634,6 +657,132 @@ pub struct GrowthOutcome {
     /// `plan.parent_socket`), for a caller that wants to `admit` it once
     /// its own execution completes.
     pub child_socket: WorkflowSocketId,
+    /// `crate::f10_powl_geometry`'s canonical [`f10_powl_geometry::POWLModel`]
+    /// for the same plan tape, built by F10's real, independently-tested
+    /// Plan Grouper -> Partial Order Builder -> Hierarchy Builder pipeline
+    /// (`f10_powl_geometry::build_powl_geometry`), not by this module's own
+    /// ad hoc [`manufacture_child_powl`]. Two independent constructions of
+    /// "a Powl geometry for this tape" exist on this struct by design: F09's
+    /// own (already grafted into `new_root`) and F10's canonical one (kept
+    /// separate, not substituted in-place, since F10's Plan Grouper may
+    /// legitimately shape the tree differently -- e.g. deeper phase nesting
+    /// -- and swapping it in would change `new_root`'s shape out from under
+    /// this function's own already-tested grafting contract).
+    pub geometry: f10_powl_geometry::POWLModel,
+    /// `geometry`'s canonical Turtle serialization
+    /// ([`f10_powl_geometry::to_turtle`]).
+    pub geometry_turtle: String,
+    /// `geometry`'s structural shape report
+    /// ([`f10_powl_geometry::validate_shape`]).
+    pub geometry_shape: f10_powl_geometry::ShapeReport,
+}
+
+/// Base IRI [`project_growth_plan_geometry`] serializes F09's derived F10
+/// geometry Turtle under. Fixed rather than a parameter of
+/// [`manufacture_and_bind_child`]: this Turtle is provenance evidence, not
+/// a publishable artifact with a caller-chosen namespace yet (no receipt
+/// store exists for F09 to publish it into -- see the module doc's "HONEST
+/// STUB" section on L6/L7). Revisit if/when that changes.
+const F09_GROWTH_GEOMETRY_BASE_IRI: &str = "https://truex.io/ontology/mfw/f09-growth";
+
+/// Converts a real [`GrowthPlan`]'s `plan_tape` into an F10
+/// [`f10_powl_geometry::Plan`] -- the actual F09 -> F10 data bridge.
+///
+/// One [`f10_powl_geometry::PlanAction`] per tape op (`id` = `op.label`,
+/// `source` = `socket.to_string()`, the growth socket that justifies every
+/// op's inclusion -- never empty, since `WorkflowSocketId::to_string()`
+/// always renders a non-empty `socket:...` address). `precedes` is decoded
+/// directly from each op's `pred_mask` bitmask (`Pddl8TapeOp`'s own
+/// documented meaning: "bitmask of ops that must complete before this one
+/// is eligible") -- one `(predecessor_index, index)` pair per set bit, not
+/// an assumed `(i-1, i)` chain, so a tape whose predecessor bits encode
+/// something other than a simple chain is still decoded faithfully rather
+/// than approximated. No choice groups: a PDDL8 plan tape is a linear
+/// sequence, never a branch.
+///
+/// This function cannot itself fail -- any inconsistency in the decoded
+/// `precedes` relation (an out-of-range or self-referential bit, a
+/// contradiction) is caught downstream by
+/// [`f10_powl_geometry::build_powl_geometry`]'s own typed refusals, not
+/// pre-validated here (no duplicated validation logic).
+///
+/// # Complexity
+/// O(ops * 64) worst case (64 = `u64::BITS`, decoding every `pred_mask`).
+fn pddl_tape_to_f10_plan(socket: &WorkflowSocketId, tape: &Pddl8Tape) -> f10_powl_geometry::Plan {
+    let actions = tape
+        .ops
+        .iter()
+        .map(|op| f10_powl_geometry::PlanAction {
+            id: op.label.clone(),
+            source: socket.to_string(),
+        })
+        .collect();
+    let mut precedes: BTreeSet<(usize, usize)> = BTreeSet::new();
+    for op in &tape.ops {
+        let i = op.index as usize;
+        for bit in 0..u64::BITS {
+            if op.pred_mask & (1u64 << bit) != 0 {
+                precedes.insert((bit as usize, i));
+            }
+        }
+    }
+    f10_powl_geometry::Plan {
+        actions,
+        precedes,
+        choice_groups: Vec::new(),
+    }
+}
+
+/// The real F09 -> F10 production edge: projects `plan`'s real, planner-
+/// produced `plan_tape` through F10's actual, independently-tested POWL
+/// geometry pipeline ([`f10_powl_geometry::manufacture_powl_v2`]) -- Plan
+/// Grouper -> Partial Order Builder -> Hierarchy Builder -> Serializer ->
+/// Shape Validator -- and returns its real output. This is not a parallel,
+/// unused call: [`manufacture_and_bind_child`] (F09's own confirmed real
+/// production entry point) calls this before grafting and refuses the
+/// entire growth attempt if F10 rejects the derived geometry, so F10 is a
+/// genuine gate in F09's real pipeline, not decoration.
+///
+/// # Errors
+/// [`MFWGrowthRefused::GraftRefused`], wrapping whatever
+/// [`f10_powl_geometry::POWLGeometryRefused`] F10's pipeline raised (F10's
+/// own `Display` renders the exact rejected invariant, e.g.
+/// `F10_POWL_GEOMETRY_REFUSED[ORDER_DERIVED] InventedOrder: ...`). Reuses
+/// `GraftRefused` rather than a new `MFWGrowthRefused` variant: this
+/// module's refusal catalog is `ggen`-sourced from
+/// `packs/f09-mfw-growth-pack/ontology.ttl` (see the module doc comment),
+/// and adding a new ontology-backed variant for this one wiring pass was
+/// judged out of scope; `GraftRefused`'s existing meaning ("cannot graft a
+/// child at socket {socket}: {reason}") already covers "this plan tape's
+/// geometry is rejected, so no child will be grafted for it" -- disclosed
+/// here rather than silently reused without comment.
+///
+/// # Complexity
+/// Dominated by [`f10_powl_geometry::build_powl_geometry`]'s O(n^3)
+/// (n = `plan.plan_tape.ops.len()`).
+fn project_growth_plan_geometry(
+    plan: &GrowthPlan,
+) -> Result<
+    (
+        f10_powl_geometry::POWLModel,
+        String,
+        f10_powl_geometry::ShapeReport,
+    ),
+    MFWGrowthRefused,
+> {
+    let f10_plan = pddl_tape_to_f10_plan(&plan.parent_socket, &plan.plan_tape);
+    f10_powl_geometry::manufacture_powl_v2(
+        &f10_plan,
+        &BTreeMap::new(),
+        F09_GROWTH_GEOMETRY_BASE_IRI,
+    )
+    .map_err(|e| MFWGrowthRefused::GraftRefused {
+        socket: plan.parent_socket.to_string(),
+        reason: format!(
+            "F10 POWL geometry pipeline rejected this plan tape's derived process \
+                 geometry: {e}"
+        ),
+    })
 }
 
 /// POWL Manufacturer + Socket Binder + Parent Re-evaluator -- the pipeline
@@ -652,18 +801,28 @@ pub struct GrowthOutcome {
 /// ([`RecursiveSocketClosure::law`]), not ownership of it.
 ///
 /// # Errors
-/// [`MFWGrowthRefused::EmptyPlanTape`], [`MFWGrowthRefused::GraftRefused`],
-/// or a propagated [`RecursiveSocketClosure::declare`] failure folded into
-/// [`MFWGrowthRefused::GraftRefused`] (re-declaring a closure over the
-/// grafted socket failed -- e.g. it still has zero children, which cannot
-/// happen given a non-empty manufactured child was just grafted, but is
-/// handled rather than unwrapped per this repo's no-panic invariant).
+/// [`MFWGrowthRefused::EmptyPlanTape`]; [`MFWGrowthRefused::GraftRefused`]
+/// from three distinct sources folded into one variant (see that variant's
+/// reuse note on [`project_growth_plan_geometry`]): F10's POWL geometry
+/// pipeline rejecting the derived plan geometry (checked first, before any
+/// graft), the graft itself failing to resolve `plan.parent_socket`, or a
+/// propagated [`RecursiveSocketClosure::declare`] failure (re-declaring a
+/// closure over the grafted socket failed -- e.g. it still has zero
+/// children, which cannot happen given a non-empty manufactured child was
+/// just grafted, but is handled rather than unwrapped per this repo's
+/// no-panic invariant).
 pub fn manufacture_and_bind_child(
     root: &Powl,
     plan: &GrowthPlan,
     law: ClosureLaw,
 ) -> Result<GrowthOutcome, MFWGrowthRefused> {
     let child = manufacture_child_powl(&plan.parent_socket, &plan.plan_tape)?;
+    // Real F09 -> F10 production edge: the same plan tape that justified
+    // `child` above is independently projected through F10's canonical POWL
+    // geometry pipeline and gates this whole growth attempt -- a tape F10
+    // rejects is refused here, before any graft happens, not silently
+    // grafted anyway. See `project_growth_plan_geometry`'s doc comment.
+    let (geometry, geometry_turtle, geometry_shape) = project_growth_plan_geometry(plan)?;
     let new_root = graft_child(root, &plan.parent_socket, child)?;
 
     // The manufactured child is the new last child of parent_socket's
@@ -710,6 +869,9 @@ pub fn manufacture_and_bind_child(
         new_root,
         closure,
         child_socket,
+        geometry,
+        geometry_turtle,
+        geometry_shape,
     })
 }
 
@@ -719,7 +881,7 @@ mod tests {
 
     use powl2_decompose::{ParentChildClosure, Powl, SocketKind, SocketPath};
     use praxis_graphlaw::chatman::closure::ClosureLaw;
-    use wasm4pm_compat::pddl::{Pddl8ActionSchema, Pddl8Atom};
+    use wasm4pm_compat::pddl::{Pddl8ActionSchema, Pddl8Atom, Pddl8GroundAction, Pddl8TapeOp};
 
     use super::*;
 
@@ -1134,6 +1296,81 @@ mod tests {
             format!("{:?}", a.new_root),
             format!("{:?}", b.new_root),
             "same plan tape grafted onto the same root must produce the same tree"
+        );
+    }
+
+    // -----------------------------------------------------------------
+    // project_growth_plan_geometry / GrowthOutcome::geometry* (real F09 ->
+    // F10 production edge)
+    // -----------------------------------------------------------------
+
+    #[test]
+    fn manufacture_and_bind_child_populates_the_real_f10_geometry_projection() {
+        let closure = open_closure();
+        let goal = reachable_goal();
+        let mut meter = DescentMeter::new(4);
+        let plan = plan_growth(true, &closure, &goal, &mut meter).expect("all real gates pass");
+        let root = root_partial_order_over(2);
+        let outcome = manufacture_and_bind_child(&root, &plan, ClosureLaw::AllRequired)
+            .expect("a one-op plan tape passes F10's geometry gate and grafts");
+        // F10's canonical geometry is a real, independent projection of the
+        // same tape (via crate::f10_powl_geometry::build_powl_geometry),
+        // not a decorative copy of `outcome.new_root`.
+        assert_eq!(outcome.geometry_shape.leaves, plan.plan_tape.ops.len());
+        assert_eq!(
+            outcome.geometry.source_action_count,
+            plan.plan_tape.ops.len()
+        );
+        assert!(outcome.geometry_turtle.contains("a powl2:Model"));
+        assert!(outcome.geometry_turtle.contains(&format!(
+            "powl2:activityLabel \"{}\"",
+            plan.plan_tape.ops[0].label
+        )));
+    }
+
+    #[test]
+    fn manufacture_and_bind_child_refuses_a_tape_with_self_referential_pred_mask() {
+        // F09's own local `manufacture_child_powl` does not inspect
+        // `pred_mask` at all -- it always builds a plain (i, i+1) chain
+        // regardless of what `pred_mask` says (see that function's doc
+        // comment). Without the F10 geometry gate this malformed tape (op 0
+        // claims itself as its own predecessor) would graft anyway. This
+        // proves the gate this pass adds has real bite: it independently
+        // decodes `pred_mask` and refuses what F09's own local logic alone
+        // would have silently accepted.
+        let action = Pddl8GroundAction {
+            schema_name: "self-loop".to_string(),
+            label: "self-loop".to_string(),
+            preconditions: Vec::new(),
+            add_effects: Vec::new(),
+            del_effects: Vec::new(),
+        };
+        let tape = wasm4pm_compat::pddl::Pddl8Tape {
+            ops: vec![Pddl8TapeOp {
+                index: 0,
+                label: "self-loop".to_string(),
+                pred_mask: 1, // bit 0 set on op 0 itself: "op 0 precedes op 0".
+                action,
+            }],
+        };
+        let plan = GrowthPlan {
+            parent_socket: root_socket(),
+            plan_tape: tape,
+            ground_stats: GroundStats {
+                candidate_groundings: 0,
+                materialized_groundings: 0,
+                reachable_atoms: 0,
+            },
+            descent_receipt: DescentReceipt::seal(root_socket(), &DescentMeter::new(4)),
+        };
+        let root = root_partial_order_over(2);
+        let err = manufacture_and_bind_child(&root, &plan, ClosureLaw::AllRequired)
+            .expect_err("a self-referential pred_mask must be refused by F10's geometry gate");
+        assert!(matches!(err, MFWGrowthRefused::GraftRefused { .. }));
+        let msg = err.to_string();
+        assert!(
+            msg.contains("F10 POWL geometry pipeline rejected"),
+            "refusal must be attributable to the F10 gate, not a generic graft failure: {msg}"
         );
     }
 

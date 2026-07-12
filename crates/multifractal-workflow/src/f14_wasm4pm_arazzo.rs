@@ -60,14 +60,36 @@
 //! ## What is honestly stubbed here (L7/L8)
 //!
 //! [`durability`] is a HAND_WRITE_REQUIRED stub: this repo has no atomic
-//! idempotency/correlation gate, durable receipt head/replay state, or
-//! production admission caller for this compiler anywhere today (independently
-//! corroborated by `docs/jira/v26.7.11/IMPLEMENTATION_STATUS.md:20` as of the
-//! last milestone: "the composed pipeline has no production caller
-//! (PROJ-796)"). Its functions return a typed [`durability::NotYetImplemented`]
-//! error unconditionally -- never a fake success -- per this session's standing
-//! instruction that a Refusal placeholder is only acceptable for genuinely
-//! undone work, disclosed as such.
+//! idempotency/correlation gate or durable receipt head/replay state for this
+//! compiler anywhere today. Its functions return a typed
+//! [`durability::NotYetImplemented`] error unconditionally -- never a fake
+//! success -- per this session's standing instruction that a Refusal
+//! placeholder is only acceptable for genuinely undone work, disclosed as
+//! such.
+//!
+//! **Correction (re-audited this session, see [`durability::NotYetImplemented::ProductionReachabilityTrace`]'s
+//! doc comment):** the module doc as originally written by the genesis
+//! workflow claimed the *composed wasm4pm-arazzo pipeline itself* had no
+//! production caller anywhere, citing
+//! `docs/jira/v26.7.11/IMPLEMENTATION_STATUS.md:20`'s "the composed pipeline
+//! has no production caller (PROJ-796)". That citation was already stale at
+//! the moment this file was written: commit `7d379a12` (2026-07-12 01:07,
+//! hours before this file's genesis commit `720068fc` at 09:47) closed
+//! PROJ-796 by adding `crates/praxis-core/src/bin/admit-external-cut.rs`, a
+//! real non-test `[[bin]]` that drives `ChatmanEngine::
+//! admit_transition_with_external_cut` -> `ChatmanRailAbCompiler::compile` ->
+//! `praxis_core::arazzo::render_and_compile` -> the same wasm4pm-arazzo
+//! parse/resolve/lower/normalize/compile stages this module's [`compile`]
+//! composes. What remains true, verified this session by `grep` across
+//! `crates/`, is narrower: [`compile`] (this file's own wrapper function) has
+//! exactly zero callers outside its own `#[cfg(test)]` module -- the
+//! production path reaches the underlying pipeline through
+//! `praxis-core::arazzo`'s independent, parallel composition, never through
+//! this family's module. Two real, non-duplicated implementations of the same
+//! stage sequence now exist in this repo (this file's and praxis-core's); this
+//! module does not attempt to collapse them into one, since doing so would
+//! mean editing `praxis-core::arazzo` (out of this family's scope) or
+//! `ChatmanEngine` (a sealed-receipt crate with its own family owner).
 //!
 //! Survey-cited paths for F14 (see the survey verdict for full detail):
 //! - /Users/sac/Downloads/v26.7.12_mermaid_atlas/families/F14_wasm4pm-arazzo.md
@@ -199,14 +221,23 @@ pub mod durability {
         /// [`super::CompiledArazzo`] is an in-memory value with no persisted
         /// identity a later process can look up or reconstruct from.
         DurableReceiptHead,
-        /// L8: no production caller invokes [`super::compile`] outside this
-        /// crate's own tests -- the same reachability gap
-        /// `docs/jira/v26.7.11/IMPLEMENTATION_STATUS.md:20` already names for
-        /// wasm4pm-arazzo's own composed pipeline (PROJ-796).
+        /// L8: no production caller invokes [`super::compile`] (this file's
+        /// own wrapper) outside its own `#[cfg(test)]` module -- verified by
+        /// `grep -rn f14_wasm4pm_arazzo crates/` this session, zero hits
+        /// outside `lib.rs`'s module declaration and this file itself.
+        /// **Not** the same claim as "the wasm4pm-arazzo compiler pipeline
+        /// has no production caller" -- it does, via a separate, independent
+        /// composition (`praxis_core::arazzo::render_and_compile`, reached
+        /// from the real `[[bin]]` `crates/praxis-core/src/bin/
+        /// admit-external-cut.rs`, PROJ-796, closed by commit `7d379a12`).
+        /// This variant is currently unreachable (no function in this module
+        /// returns it) -- it names a requirement the atlas's L8 lists that no
+        /// function here yet implements, disclosed rather than removed.
         ProductionReachabilityTrace,
         /// L8: no chaos/restart-recovery test harness exists exercising
         /// process/engine restarts, stale/malformed results, or re-admission
-        /// after a crash.
+        /// after a crash. Like `ProductionReachabilityTrace`, this variant is
+        /// currently unreachable -- no function in this module returns it.
         ChaosRecoveryEvidence,
     }
 
@@ -346,7 +377,6 @@ mod tests {
     /// missing (per this session's standing rule against decorative Refusal
     /// placeholders that hide which gap is real).
     #[test]
-    
     fn durability_functions_honestly_refuse_not_yet_implemented() {
         assert_eq!(
             durability::admit_idempotent("any-correlation-id"),
