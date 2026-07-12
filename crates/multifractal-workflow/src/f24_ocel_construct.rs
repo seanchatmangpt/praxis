@@ -383,7 +383,11 @@ pub fn build_default_measurement_profile(
 /// # Errors
 /// Always [`OCELConstructionRefused::NotYetImplemented`] currently.
 pub fn idempotency_gate(_correlation_key: &str) -> Result<(), OCELConstructionRefused> {
-    Ok(())
+    Err(OCELConstructionRefused::NotYetImplemented {
+        stage: "idempotency_gate",
+        detail: "no atomic idempotency/correlation gate with durable receipt-head recovery \
+                 exists in cng::otel_ocel/cng::otel_receipt (repo-wide grep, survey time)",
+    })
 }
 
 /// HAND_WRITE_REQUIRED (V12-024): the MFW Feedback Adapter -- feeds

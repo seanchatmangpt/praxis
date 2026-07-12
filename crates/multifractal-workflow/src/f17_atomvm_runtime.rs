@@ -379,7 +379,10 @@ pub fn exit_evidence_gate_from_differential_run(
 /// # Complexity
 /// O(1).
 pub fn live_atomvm_target_evidence() -> Result<(), Refusal> {
-    Ok(())
+    Err(Refusal::LiveRuntimeNotProven {
+        reason: "no real live-AtomVM execution evidence exists anywhere in this repo to report"
+            .to_string(),
+    })
 }
 
 #[cfg(test)]

@@ -987,8 +987,8 @@ pub mod chaos_gate {
     /// silently admitting a duplicate/stale/post-restart replay as if it had
     /// been checked.
     pub fn admit_for_replay(_correlation_id: &str) -> Result<(), ReceiptReplayRefused> {
-    Ok(())
-}
+        Err(ReceiptReplayRefused::L7ChaosGateNotImplemented)
+    }
 }
 
 // ---------------------------------------------------------------------

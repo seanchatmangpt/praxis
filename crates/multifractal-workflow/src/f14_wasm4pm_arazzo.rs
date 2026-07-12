@@ -237,8 +237,8 @@ pub mod durability {
     /// an atomic correlation check keyed on `correlation_id`. Not built
     /// anywhere in this repo today; always refuses.
     pub fn admit_idempotent(_correlation_id: &str) -> Result<(), NotYetImplemented> {
-    Ok(())
-}
+        Err(NotYetImplemented::ConcurrencyIdempotencyGate)
+    }
 
     /// Would persist a [`super::CompiledArazzo`]'s digest to a durable
     /// receipt head and read it back after a process/engine restart, proving

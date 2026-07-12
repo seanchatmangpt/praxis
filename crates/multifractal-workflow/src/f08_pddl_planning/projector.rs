@@ -31,6 +31,12 @@ use super::refusal::Refusal;
 /// admitted-graph fixtures are interchangeable between the two.
 pub const PDDL_DOMAIN_PREDICATE: &str = "urn:chatman:engine#pddlDomain";
 pub const PDDL_PROBLEM_PREDICATE: &str = "urn:chatman:engine#pddlProblem";
+/// F08-owned (not a `ChatmanEngine` predicate -- the Action-Hook Binder's
+/// hook-pack admission point is new to this pipeline): the admitted
+/// hook-pack Turtle text [`super::hook_binder::bind_actions`] validates and
+/// matches grounded actions against. Same `AdmittedTriple`/literal-select
+/// projection discipline as the PDDL predicates above.
+pub const HOOK_PACK_PREDICATE: &str = "urn:mfw:f08#hookPack";
 
 /// One admitted RDF fact, reduced to what this module needs: a predicate
 /// IRI and its literal object value. Not a general triple/store type --

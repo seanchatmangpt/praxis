@@ -192,29 +192,14 @@ pub struct ResidueState {
 pub fn resolve_continuation_goal(
     _residue: &ResidueState,
 ) -> Result<ContinuationGoal, MFWGrowthRefused> {
-    Ok(ContinuationGoal { domain: Pddl8Domain {
-        name: "".into(),
-        predicates: Vec::new(),
-        actions: Vec::new(),
-        types: Vec::new(),
-        functions: Vec::new(),
-        durative_actions: Vec::new(),
-        derived: Vec::new(),
-        constraints: Vec::new(),
-        processes: Vec::new(),
-        events: Vec::new(),
-    }, problem: Pddl8Problem {
-        name: "".into(),
-        domain: "".into(),
-        objects: Vec::new(),
-        init: Vec::new(),
-        goal: Vec::new(),
-        object_types: Vec::new(),
-        fn_values: Vec::new(),
-        timed_inits: Vec::new(),
-        preferences: Vec::new(),
-        metric: None,
-    } })
+    Err(MFWGrowthRefused::NotYetImplemented {
+        stage: "continuation_goal_resolver",
+        detail: "converting a blocked socket's residue state into a concrete PDDL8 \
+                 domain/problem is HAND_WRITE_REQUIRED per the F09 survey and not \
+                 yet built; plan_growth accepts an already-resolved ContinuationGoal \
+                 so the real downstream gates can be exercised and tested \
+                 independently of this stage",
+    })
 }
 
 /// Bounded-descent budget for one MFW growth attempt (invariant: "No child
@@ -782,7 +767,6 @@ mod tests {
     // -----------------------------------------------------------------
 
     #[test]
-    #[ignore]
     fn resolve_continuation_goal_is_honestly_unimplemented() {
         let residue = ResidueState {
             socket: root_socket(),

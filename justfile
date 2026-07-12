@@ -644,6 +644,12 @@ multifractal-workflow-check-lib-isolated name:
 multifractal-workflow-test *args:
     timeout 300s cargo test -p multifractal-workflow {{args}}
 
+# Longer-timeout variant of multifractal-workflow-test for the full suite (the crate's
+# first shared-target link alone can exceed the 300s recipe above once enough family
+# modules have real tests wired).
+multifractal-workflow-test-long *args:
+    timeout 900s cargo test -p multifractal-workflow {{args}}
+
 # Run multifractal-workflow's tests in an isolated target dir (concurrent-agent-safe;
 # see the "Isolated-target cargo recipes" note above cng-check-isolated), e.g.
 # `just multifractal-workflow-test-isolated my-feature`

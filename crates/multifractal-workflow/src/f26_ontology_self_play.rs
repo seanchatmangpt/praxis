@@ -241,8 +241,14 @@ pub struct ScenarioGraph {
 /// Real prose-authority invariant this stub is written to respect once
 /// implemented: the generator mutates the catalog's own dimension graph
 /// (RDF), never treats free-text prompt prose as scenario authority.
-pub fn generate_scenario(_catalog: &OntologyDimensionCatalog) -> Result<ScenarioGraph, SelfPlayRefusal> {
-    Ok(ScenarioGraph { facts_turtle: "".to_string() })
+pub fn generate_scenario(
+    _catalog: &OntologyDimensionCatalog,
+) -> Result<ScenarioGraph, SelfPlayRefusal> {
+    Err(SelfPlayRefusal::NotYetImplemented {
+        stage: "ScenarioGenerator",
+        reason: "no dimension-to-RDF-world mutation algorithm exists anywhere in this repo or \
+                 the three surveyed external candidates (repo-wide grep, survey time)",
+    })
 }
 
 // ---------------------------------------------------------------------

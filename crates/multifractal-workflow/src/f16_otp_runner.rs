@@ -344,7 +344,9 @@ impl std::error::Error for OTPRunnerHandWriteRequired {}
 /// # Complexity
 /// O(1): constructs its refusal value from the generated table, no I/O.
 pub fn check_gen_statem_lifecycle_wired() -> Result<(), OTPRunnerHandWriteRequired> {
-    Ok(())
+    Err(OTPRunnerHandWriteRequired {
+        gap: &f16_otp_runner_vocab::HAND_WRITE_GAPS[0],
+    })
 }
 
 /// Always refuses with [`OTPRunnerHandWriteRequired`]: no distinct Dispatch Worker

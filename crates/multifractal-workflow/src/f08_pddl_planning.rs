@@ -26,27 +26,26 @@
 //!   stages 5-7) -- REUSE_ADAPT, real. Thin wrap of
 //!   `bcinr_pddl::execute::execute_tape` (independent Prolog8-admitted
 //!   replay + genuine BLAKE3-by-execution receipt + OCEL trace).
-//! - [`hook_binder`] (Action-Hook Binder, stage 3) -- HAND_WRITE_REQUIRED,
-//!   **not implemented**. No general hook-capability registry query
-//!   surface was found anywhere in this repo this session (see that
-//!   module's doc comment for what was checked); [`hook_binder::bind_actions`]
-//!   always returns a typed [`refusal::Refusal::NoAdmissiblePlan`], never a
+//! - [`hook_binder`] (Action-Hook Binder, stage 3) -- **wired to
+//!   `crate::f19_hooks`, real** (previously HAND_WRITE_REQUIRED; F19 was
+//!   unwired when this doc comment was first written and has since been
+//!   built out for real -- see [`hook_binder`]'s own module doc for that
+//!   history, including a corrupted-by-scratch-script episode fixed
+//!   forward in the same pass). [`hook_binder::bind_actions`] resolves
+//!   every grounded action against a real admitted hook-pack catalog via
+//!   [`crate::f19_hooks::resolve_hook_for_action`]; zero or ambiguous
+//!   bindings are a typed [`refusal::Refusal::NoAdmissiblePlan`], never a
 //!   fabricated success.
 //! - [`refusal`] -- hand-written, real. The `NoAdmissiblePlan` taxonomy the
 //!   family invariant names, classifying `bcinr_pddl::Pddl8Error` into it.
 //!
-//! **Consequence, stated plainly**: because the Action-Hook Binder always
-//! refuses, [`run_pipeline`] -- the full, real, 5-stage composition below
-//! -- always returns `Err` today. This is the disclosed exception this
-//! repo's "refusal is not the default" rule carves out for genuinely
-//! not-yet-built work: the *other four* stages are real and independently
-//! tested end-to-end (see each module's own tests, and
-//! `tests::real_stages_compose_up_to_the_disclosed_hook_binder_gap`
-//! below), and the pipeline's wiring itself -- projector output feeds
-//! planner, planner's grounded actions feed the (stub) binder, its tape
-//! feeds effect_trace -- is real, not decorative. What is not real is the
-//! Action-Hook Binder's actual matching logic, and this module does not
-//! pretend otherwise.
+//! **Consequence, stated plainly**: [`run_pipeline`] now composes all 7
+//! real stages end to end and can return `Ok` for a graph that admits a
+//! real PDDL domain/problem *and* a real hook-pack catalog covering every
+//! grounded action (see `tests::run_pipeline_succeeds_end_to_end_with_a_real_hook_pack`
+//! below). It still refuses -- correctly, not as a gap -- when the admitted
+//! hook-pack catalog does not cover an action's effect, per the family
+//! invariant.
 //!
 //! Not attempted this pass (disclosed, not silently skipped): L5's
 //! transition-guard *enforcement* (validating a caller-claimed
@@ -77,10 +76,12 @@ pub mod refusal;
 use refusal::Refusal;
 
 /// The real output of a successful [`run_pipeline`] call: the plan tape,
-/// its independent execution log/receipt/OCEL trace, and the L6 entities
-/// materialized along the way (content-addressed, chained per
-/// [`generated::L6_CHAIN`] -- see that constant's own doc comment for the
-/// disclosed "not yet written to an RDF store" boundary).
+/// its independent execution log/receipt/OCEL trace, the real F08-L2
+/// stage-3 Action-Hook Binder output (every grounded action bound to a
+/// real F19 hook capability), and the L6 entities materialized along the
+/// way (content-addressed, chained per [`generated::L6_CHAIN`] -- see that
+/// constant's own doc comment for the disclosed "not yet written to an RDF
+/// store" boundary).
 #[derive(Debug, Clone)]
 pub struct PipelineOutcome {
     pub tape: bcinr_pddl::Pddl8Tape,
@@ -89,16 +90,18 @@ pub struct PipelineOutcome {
     pub ocel: bcinr_pddl::OCEL,
     pub pddl_problem: generated::entity::PDDLProblem,
     pub pddl_domain: generated::entity::PDDLDomain,
+    pub capability_map: generated::entity::ActionCapabilityMap,
 }
 
 /// Run the real F08-L2 pipeline end to end, in atlas stage order: Problem
 /// Projector -> Domain Resolver -> Action-Hook Binder -> Planner -> Plan
 /// Validator -> Effect Trace -> Plan Receipt.
 ///
-/// As documented on this module: stage 3 (Action-Hook Binder) is not yet
-/// implemented and always refuses, so this function always returns `Err`
-/// today. It is still real, composed wiring -- not a decorative pass-
-/// through -- see the module doc comment.
+/// Stage 3 (Action-Hook Binder) is real as of this pass: it calls
+/// [`crate::f19_hooks::resolve_hook_for_action`] for every grounded action
+/// against the hook-pack Turtle admitted at
+/// [`projector::HOOK_PACK_PREDICATE`] -- see [`hook_binder`]'s module doc
+/// comment for what changed and why.
 ///
 /// # Errors
 /// [`Refusal::NoAdmissiblePlan`] or [`Refusal::Underlying`] from whichever
@@ -114,11 +117,18 @@ pub fn run_pipeline(
 
     let grounded = planner::ground(&domain, &problem)?;
 
-    // Stage 3: Action-Hook Binder. Not yet implemented -- always refuses
-    // (see hook_binder's doc comment). Every action's grounded effects are
-    // real (from `grounded.actions`); what's missing is the registry to
-    // check them against, not the data to check.
-    let _capability_map = hook_binder::bind_actions(&grounded.actions)?;
+    // Stage 3: Action-Hook Binder. Real: every grounded action must bind
+    // to exactly one registered hook capability in the admitted hook-pack
+    // catalog, or the whole pipeline refuses here.
+    let hook_pack_turtle = projector::select_literal(graph, projector::HOOK_PACK_PREDICATE)
+        .ok_or_else(|| Refusal::NoAdmissiblePlan {
+            stage: "ActionHookBinder",
+            reason: format!(
+                "no hook-pack literal at <{}> in admitted graph",
+                projector::HOOK_PACK_PREDICATE
+            ),
+        })?;
+    let capability_map = hook_binder::bind_actions(&grounded.actions, hook_pack_turtle)?;
 
     let tape = planner::plan(&grounded)?;
     let (log, receipt, ocel) = effect_trace::validate_and_execute(
@@ -136,13 +146,16 @@ pub fn run_pipeline(
         ocel,
         pddl_problem,
         pddl_domain,
+        capability_map,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use projector::{AdmittedTriple, PDDL_DOMAIN_PREDICATE, PDDL_PROBLEM_PREDICATE};
+    use projector::{
+        AdmittedTriple, HOOK_PACK_PREDICATE, PDDL_DOMAIN_PREDICATE, PDDL_PROBLEM_PREDICATE,
+    };
 
     const DOMAIN_TEXT: &str = r#"
 (define (domain f08-pipeline-test)
@@ -160,6 +173,19 @@ mod tests {
   (:init (at a))
   (:goal (and (goal-reached))))
 "#;
+    const MOVE_HOOK_PACK: &str = r#"
+        @prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+        @prefix ex: <http://example.org/f08#> .
+        ex:hook-move a kh:Hook ;
+          kh:name "move-hook" ;
+          kh:kind "delta" ;
+          kh:var "http://example.org/f08#actuates-move" ;
+          kh:on "assert" ;
+          kh:effect "ground-action" ;
+          kh:action <urn:pddl:action:move> ;
+          kh:reason "f08-pipeline-test-authority" ;
+          kh:priority 1 .
+    "#;
 
     fn fixture_graph() -> Vec<AdmittedTriple> {
         vec![
@@ -173,21 +199,43 @@ mod tests {
                 predicate: PDDL_PROBLEM_PREDICATE.to_string(),
                 object_literal: PROBLEM_TEXT.to_string(),
             },
+            AdmittedTriple {
+                subject: "urn:mfw:f08:pipeline-test-snapshot".to_string(),
+                predicate: HOOK_PACK_PREDICATE.to_string(),
+                object_literal: MOVE_HOOK_PACK.to_string(),
+            },
         ]
     }
 
-    /// The disclosed, current, honest state of `run_pipeline`: it always
-    /// refuses today, and it refuses exactly at `ActionHookBinder` -- not
-    /// earlier (proving projector+planner really ran first) and not later
-    /// (proving nothing downstream silently ran past the unimplemented
-    /// gate).
+    /// The real, current state of `run_pipeline`: given a graph that admits
+    /// a real PDDL domain/problem *and* a real hook-pack catalog covering
+    /// every grounded action's effect, it composes all 7 stages and
+    /// succeeds end to end -- not a decorative pass-through.
     #[test]
-    #[ignore]
-    fn run_pipeline_reaches_and_stops_at_the_disclosed_hook_binder_gap() {
+    fn run_pipeline_succeeds_end_to_end_with_a_real_hook_pack() {
         let graph = fixture_graph();
-        let err = run_pipeline(&graph, "f08-pipeline-case").expect_err(
-            "hook_binder is not implemented, so the full pipeline must refuse, not succeed",
-        );
+        let outcome = run_pipeline(&graph, "f08-pipeline-case")
+            .expect("real PDDL + real covering hook pack must plan and bind end to end");
+        assert!(outcome.receipt.goal_reached);
+        assert!(!outcome.capability_map.content_digest.is_empty());
+        assert!(outcome
+            .capability_map
+            .iri
+            .starts_with("urn:mfw:f08:action_capability_map:"));
+    }
+
+    /// Proves the pipeline refuses exactly at `ActionHookBinder` -- not
+    /// earlier (proving projector+planner really ran first) and not later
+    /// (proving nothing downstream silently ran past an uncovered action)
+    /// -- when the admitted graph has real PDDL but no hook-pack catalog.
+    #[test]
+    fn run_pipeline_refuses_at_action_hook_binder_when_no_hook_pack_is_admitted() {
+        let graph: Vec<AdmittedTriple> = fixture_graph()
+            .into_iter()
+            .filter(|t| t.predicate != HOOK_PACK_PREDICATE)
+            .collect();
+        let err = run_pipeline(&graph, "f08-pipeline-case")
+            .expect_err("no admitted hook-pack catalog must refuse, not silently skip binding");
         assert!(
             matches!(
                 err,
@@ -200,14 +248,13 @@ mod tests {
         );
     }
 
-    /// Proves the four *real* stages actually compose end-to-end when
-    /// called directly (bypassing only the not-yet-built hook_binder
-    /// step): a graph-derived problem/domain plans, and the resulting plan
+    /// Proves the four other real stages actually compose end-to-end when
+    /// called directly (bypassing hook_binder to isolate this specific
+    /// claim): a graph-derived problem/domain plans, and the resulting plan
     /// independently validates against Prolog8 admission with a real
-    /// receipt. This is not a public "skip the invariant" API -- see the
-    /// module doc comment for why `run_pipeline` itself never does this.
+    /// receipt.
     #[test]
-    fn real_stages_compose_up_to_the_disclosed_hook_binder_gap() {
+    fn real_stages_compose_independently_of_hook_binder() {
         let graph = fixture_graph();
         let (domain, problem) = projector::project_and_resolve(&graph).expect("stage 1-2 real");
         let grounded = planner::ground(&domain, &problem).expect("grounded (stage 3 precursor)");

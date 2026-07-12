@@ -309,8 +309,15 @@ pub enum F22Refusal {
 ///
 /// # Errors
 /// Always returns [`F22Refusal::NotYetImplemented`].
-pub fn detect_timeout(_actuation: &PriorActuationRef, _timeout: u64) -> Result<FailureObservation, F22Refusal> {
-    Ok(FailureObservation { remediates: _actuation.clone(), observed_at_tick: 0, failure_kind: "timeout".to_string() })
+pub fn detect_timeout(
+    _actuation: &PriorActuationRef,
+    _timeout: u64,
+) -> Result<FailureObservation, F22Refusal> {
+    Err(F22Refusal::NotYetImplemented {
+        stage: "TimeoutDetector",
+        reason: "no live invocation-tick clock exists anywhere in praxis-graphlaw or this crate \
+                 (repo-wide grep, survey time)",
+    })
 }
 
 /// Retry Policy evaluator (atlas L2 C2) -- HAND_WRITE_REQUIRED, not

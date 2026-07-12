@@ -884,7 +884,10 @@ pub struct ScaleProfile {
 /// This is a typed refusal, not a fake success and not a silent default --
 /// per this repo's no-overclaiming discipline, unimplemented work fails loud.
 pub fn locate_scale(_closure: &ClosureGraph) -> Result<ScaleProfile, BreedCompositionRefused> {
-    Ok(ScaleProfile { derived_from: _closure.receipt.clone() })
+    Err(BreedCompositionRefused::ScaleAnalyzerNotImplemented {
+        ticket: "V12-028",
+        upstream_closure_receipt_hex: _closure.receipt.to_hex().to_string(),
+    })
 }
 
 // ───────────────── Stage 8: PDDL Planner (real, independently reachable) ─────────────────

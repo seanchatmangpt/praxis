@@ -341,7 +341,7 @@ impl BCINRLocalRuntime {
 /// # Complexity
 /// O(1): does no work beyond constructing its refusal value.
 pub fn detect_external_socket(_fired_mask: u64) -> Result<(), BCINRLocalExecutionRefused> {
-    Ok(())
+    Err(BCINRLocalExecutionRefused::ExternalSocketDetectionNotImplemented)
 }
 
 // ── F11-L7: Concurrency Recovery Chaos (HAND_WRITE_REQUIRED) ────────────────
