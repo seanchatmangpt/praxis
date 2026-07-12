@@ -11,8 +11,10 @@
 //! | F08 PDDL Planning         | [`crate::f08_pddl_planning::run_pipeline`] |
 //! | F09 MFW Growth            | [`crate::f09_mfw_growth::resolve_continuation_goal`] -> [`plan_growth`](crate::f09_mfw_growth::plan_growth) -> [`manufacture_and_bind_child`](crate::f09_mfw_growth::manufacture_and_bind_child) |
 //! | F10 POWL Geometry         | reached *inside* F09's `manufacture_and_bind_child` (which calls [`crate::f10_powl_geometry::manufacture_powl_v2`]) |
+//! | F11 BCINR Local Execution | [`crate::f11_bcinr_runtime::geometry_to_local_ast`] over F09's real `growth.geometry` |
+//! | F18 Broker                | [`crate::f11_bcinr_runtime::dispatch_local_execution_via_broker`] |
 //!
-//! # What makes each edge real (and the one honest nuance)
+//! # What makes each edge real (and the honest nuances)
 //!
 //! Every stage is `?`-gated on the previous: a refusal anywhere short-circuits, so no downstream
 //! stage runs on an un-admitted / un-contracted / un-planned input. The data flow is:
@@ -36,6 +38,20 @@
 //! - **F09 -> F10**: unchanged from the prior session -- F09's `manufacture_and_bind_child`
 //!   already gates on F10's `manufacture_powl_v2`; the crown is now a real production caller of
 //!   that whole chain, so F10's geometry is a genuine consequence of the admitted observation.
+//! - **F10 -> F11**: [`geometry_to_local_ast`](crate::f11_bcinr_runtime::geometry_to_local_ast)
+//!   converts `growth.geometry.root` -- F10's own canonical `Powl` geometry for the same plan
+//!   tape (not F09's separately-grafted `new_root`) -- into F11's `PowlAstNode`. This was
+//!   previously `TEST_ONLY_EDGE`: the function existed and was tested, but had zero production
+//!   callers (adversarially confirmed this session by `docs/jira/v26.7.12/CROWN_STATUS.md`). This
+//!   driver is now that caller.
+//! - **F11 -> F18**: the converted AST feeds
+//!   [`dispatch_local_execution_via_broker`](crate::f11_bcinr_runtime::dispatch_local_execution_via_broker)
+//!   directly -- real local execution to `LOCAL_DONE`, then all eight of
+//!   [`crate::f18_broker_law::Broker`]'s lawful stages, ending in a real
+//!   [`crate::f18_broker_law::BrokerReceipt`] whose `consequence_hash_hex` is the real Local
+//!   Receipt chain hash, not a placeholder. Also previously `TEST_ONLY_EDGE` for the same reason
+//!   as F10 -> F11; this driver is its first production caller too (F18's own module doc
+//!   previously said "No production caller in this repo" -- stale as of this pass).
 //!
 //! Content-identity note for F08: F08 consumes the [`AdmittedTriple`] set built from the very
 //! same PDDL/hook-pack strings the crown serialized into F02's `payload_turtle`. Identity is
@@ -66,6 +82,11 @@ use crate::f09_mfw_growth::{
     manufacture_and_bind_child, plan_growth, resolve_continuation_goal, DescentMeter,
     GrowthOutcome, GrowthPlan, MFWGrowthRefused, ResidueState,
 };
+use crate::f11_bcinr_runtime::{
+    dispatch_local_execution_via_broker, geometry_to_local_ast, F10ToF11GeometryRefused,
+    F11BrokerHandoffRefused,
+};
+use crate::f18_broker_law::{ActionId, Broker, BrokerReceipt, BrokerSecret};
 
 /// The `prov:wasDerivedFrom` predicate the admitted observation's provenance triple uses (F02
 /// gate 2). Bare IRI, matching F02's own `PROV_WAS_DERIVED_FROM` constant.
@@ -109,6 +130,26 @@ pub struct LocalWitnessRun<'a> {
     pub descent_budget: usize,
     /// F09 closure law to re-declare the parent socket under after grafting.
     pub closure_law: ClosureLaw,
+    /// F18 server-side authority secret (32 bytes). Caller-supplied per this repo's determinism
+    /// discipline: this driver does not source randomness itself. Reusing the same secret across
+    /// runs is the caller's own key-management choice, not judged here.
+    pub broker_secret: [u8; 32],
+    /// F18 action identity for the local dispatch this run performs (workflow/step/idempotency
+    /// key) -- see [`ActionId`]'s own doc comment for why these three fields alone must not be
+    /// sufficient to derive authority.
+    pub action: ActionId,
+    /// F18 `actor` for the standing check.
+    pub actor: String,
+    /// F18 caller-supplied standing determination; the broker does not itself judge standing (see
+    /// [`Broker::verify_standing`]'s own doc comment).
+    pub has_standing: bool,
+    /// F18 standing reason, carried alongside `has_standing`.
+    pub standing_reason: String,
+    /// F11 local-execution run id (32 bytes) -- the same "no ambient randomness" discipline as
+    /// `broker_secret`.
+    pub local_run_id: [u8; 32],
+    /// F11 bounded-descent tick budget for local execution (`BCINRLocalRuntime::run_to_local_done`).
+    pub local_max_ticks: u32,
 }
 
 /// The real, composed output of one LOCAL-witness prefix run: every stage's own genuine output,
@@ -123,6 +164,8 @@ pub struct LocalWitnessOutcome {
     pub plan: PipelineOutcome,
     /// F09's growth outcome (grafted child + F10 geometry inside `geometry`/`geometry_turtle`).
     pub growth: GrowthOutcome,
+    /// F18's real broker receipt for the F10 -> F11 -> F18 local-execution dispatch.
+    pub broker_receipt: BrokerReceipt,
     /// BLAKE3-hex over every stage's real digest, in canonical sorted order (no wall clock, no
     /// randomness) -- deterministic across runs of the same inputs.
     pub crown_receipt: String,
@@ -155,6 +198,13 @@ pub enum LocalWitnessRefused {
     /// F09 (or F10, via F09's geometry gate) refused the growth attempt.
     #[error("crown-local F09/F10 growth refused: {0}")]
     Growth(#[from] MFWGrowthRefused),
+    /// F10's real geometry used a `Powl` shape F11's `geometry_to_local_ast` cannot losslessly
+    /// convert (a cyclic/partially-routed `Choice`, or an `ExternalCut`).
+    #[error("crown-local F10->F11 geometry conversion refused: {0}")]
+    GeometryToLocalAst(#[from] F10ToF11GeometryRefused),
+    /// Local execution did not complete, or a F18 broker stage refused the dispatch.
+    #[error("crown-local F11->F18 broker handoff refused: {0}")]
+    BrokerHandoff(#[from] F11BrokerHandoffRefused),
 }
 
 /// Drive the LOCAL crown-witness prefix `F02 -> F03 -> F08 -> F09 -> F10` end to end, in one
@@ -262,15 +312,43 @@ pub fn drive_local_witness_prefix(
     let growth_plan = plan_growth(run.socket_blocked, &run.growth_closure, &goal, &mut meter)?;
     let growth = manufacture_and_bind_child(&run.growth_root, &growth_plan, run.closure_law)?;
 
+    // ---- Stage F10 -> F11 -> F18: convert F10's real geometry to F11's AST, then dispatch it
+    // through the real F18 broker to a receipted local actuation ----
+    // Gated by F09/F10 above: `growth.geometry` only exists once manufacture_and_bind_child
+    // succeeded. Uses F10's own canonical geometry (`growth.geometry`, built by
+    // `f10_powl_geometry::build_powl_geometry`), not F09's separately-grafted `growth.new_root` --
+    // the two are independent constructions of "a Powl for this tape" by design (see
+    // `GrowthOutcome::geometry`'s own doc comment).
+    let local_ast = geometry_to_local_ast(&growth.geometry.root)?;
+    let broker = Broker::new(BrokerSecret::new(run.broker_secret));
+    let broker_receipt = dispatch_local_execution_via_broker(
+        &broker,
+        run.action.clone(),
+        &run.actor,
+        run.has_standing,
+        &run.standing_reason,
+        &run.correlation_id,
+        &local_ast,
+        run.local_run_id,
+        run.local_max_ticks,
+    )?;
+
     // ---- Crown receipt: deterministic BLAKE3 over every stage's real digest ----
-    let crown_receipt =
-        compute_crown_receipt(&admission, &planning_state, &plan, &growth_plan, &growth);
+    let crown_receipt = compute_crown_receipt(
+        &admission,
+        &planning_state,
+        &plan,
+        &growth_plan,
+        &growth,
+        &broker_receipt,
+    );
 
     Ok(LocalWitnessOutcome {
         admission,
         planning_state,
         plan,
         growth,
+        broker_receipt,
         crown_receipt,
     })
 }
@@ -338,6 +416,7 @@ fn compute_crown_receipt(
     f08: &PipelineOutcome,
     growth_plan: &GrowthPlan,
     growth: &GrowthOutcome,
+    broker_receipt: &BrokerReceipt,
 ) -> String {
     let f08_tape_sig: String = f08
         .tape
@@ -356,6 +435,7 @@ fn compute_crown_receipt(
             growth.geometry_shape.leaves, growth.geometry_shape.child_bindings
         ),
         format!("f10.geometry_turtle_len={}", growth.geometry_turtle.len()),
+        format!("f18.receipt_hash={}", broker_receipt.receipt_hash_hex),
     ];
     lines.sort();
     let mut hasher = blake3::Hasher::new();

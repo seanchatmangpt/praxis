@@ -16,6 +16,7 @@ use crate::f05_datalog_closure::RulePack;
 use crate::f08_pddl_planning::projector::{
     HOOK_PACK_PREDICATE, PDDL_DOMAIN_PREDICATE, PDDL_PROBLEM_PREDICATE,
 };
+use crate::f18_broker_law::ActionId;
 
 // --------------------------------------------------------------------------
 // Real fixture constants
@@ -183,6 +184,13 @@ fn base_run<'a>(
         socket_blocked: true,
         descent_budget: 4,
         closure_law: ClosureLaw::AllRequired,
+        broker_secret: [7u8; 32],
+        action: ActionId::new(SUBJECT, "move", correlation_id),
+        actor: "crown-local-test-actor".to_string(),
+        has_standing: true,
+        standing_reason: "crown-local fixture: caller-asserted standing".to_string(),
+        local_run_id: [9u8; 32],
+        local_max_ticks: 16,
     }
 }
 
@@ -191,9 +199,9 @@ fn base_run<'a>(
 // --------------------------------------------------------------------------
 
 /// The load-bearing test: one admitted observation graph drives F02 -> F03 -> F08 -> F09 -> F10
-/// end to end, and every stage's real output is present and correct.
+/// -> F11 -> F18 end to end, and every stage's real output is present and correct.
 #[test]
-fn crown_local_prefix_drives_f02_through_f10_end_to_end() {
+fn crown_local_prefix_drives_f02_through_f18_end_to_end() {
     let policy = crown_policy();
     let ledger = AdmissionLedger::new();
     let (root, closure) = open_growth_root_and_closure();
@@ -245,6 +253,15 @@ fn crown_local_prefix_drives_f02_through_f10_end_to_end() {
         outcome.growth.geometry_turtle.contains("truex.io"),
         "F10 geometry Turtle must be real serialized output under F09's growth base IRI"
     );
+
+    // --- F11 -> F18: real local execution actually ran and was really broker-dispatched ---
+    assert_eq!(outcome.broker_receipt.correlation_id, "crown-corr-1");
+    assert!(
+        !outcome.broker_receipt.consequence_hash_hex.is_empty(),
+        "F18's captured consequence must be F11's real Local Receipt chain hash, not empty"
+    );
+    assert!(!outcome.broker_receipt.receipt_hash_hex.is_empty());
+    assert!(!outcome.broker_receipt.authority_token_hex.is_empty());
 
     // --- Crown receipt is a real 64-hex BLAKE3 fold over every stage's digest ---
     assert_eq!(outcome.crown_receipt.len(), 64);
