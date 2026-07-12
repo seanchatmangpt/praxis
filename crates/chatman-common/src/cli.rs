@@ -127,10 +127,11 @@ impl GlobalArgs {
 /// name when empty).
 pub fn init(args: &GlobalArgs, service_name: &str) -> Result<()> {
     let name = if service_name.is_empty() {
-        std::env::current_exe()
-            .ok()
-            .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
-            .unwrap_or_else(|| "app".to_string())
+        let p = std::env::current_exe()?;
+        p.file_stem()
+            .ok_or_else(|| crate::Error::msg("Executable path has no file stem"))?
+            .to_string_lossy()
+            .into_owned()
     } else {
         service_name.to_string()
     };

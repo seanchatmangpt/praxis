@@ -1,0 +1,4 @@
+[pack]
+name = "f26-ontology-self-play-pack"
+version = "26.7.12"
+description = "F26 \"Public Ontology Self Play\" (V12-026) provenance vocabulary: the D1-D9 RDF entity types (OntologyDimensionCatalog/ScenarioGraph/ClosureDelta/AdmissionDecision/Plan/SimulatedWorkflow/ScenarioReceipt/DiscoveryPattern/ConstructedRelation), their prov:wasDerivedFrom edges, the 8-state self-play lifecycle (DIMENSIONS_SELECTED..CAPITALIZED) with its two REFUSED off-ramps, and the exit-evidence flag names. Generates crates/multifractal-workflow/src/f26_ontology_self_play_vocab.rs (IRI constants + edge/state/flag tables) consumed by the hand-written crates/multifractal-workflow/src/f26_ontology_self_play.rs orchestration module -- this pack supplies vocabulary/documentation data, not scenario-generation, mining, or capitalization logic."

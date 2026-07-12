@@ -280,7 +280,11 @@ where
             match receiver.recv() {
                 Ok(content) => {
                     debug!("Found graph {:?}", content);
-                    consumer_temp.data.lock().unwrap().push(content);
+                    consumer_temp
+                        .data
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .push(content);
                 }
                 Err(_) => {
                     debug!("Shutting down!");
@@ -290,7 +294,11 @@ where
         });
     }
     fn len(&self) -> usize {
-        self.inner.data.lock().unwrap().len()
+        self.inner
+            .data
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .len()
     }
 }
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]

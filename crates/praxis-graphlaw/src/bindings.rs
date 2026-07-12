@@ -17,11 +17,7 @@ impl Binding {
         }
     }
     pub fn add(&mut self, var_name: &usize, term: usize) {
-        if !self.bindings.contains_key(var_name) {
-            self.bindings.insert(*var_name, Vec::new());
-        }
-        let binding_values = self.bindings.get_mut(var_name).unwrap();
-        binding_values.push(term);
+        self.bindings.entry(*var_name).or_default().push(term);
     }
     pub fn len(&self) -> usize {
         if let Some(values) = self.bindings.values().next() {
@@ -95,7 +91,9 @@ impl Binding {
             for right_c in 0..right.len() {
                 let mut key_vals = Vec::with_capacity(join_keys.len());
                 for &join_key in &join_keys {
-                    key_vals.push(right.bindings.get(join_key).unwrap()[right_c]);
+                    if let Some(col) = right.bindings.get(join_key) {
+                        key_vals.push(col[right_c]);
+                    }
                 }
                 hash_map.entry(key_vals).or_default().push(right_c);
             }
@@ -104,7 +102,9 @@ impl Binding {
             for left_c in 0..left.len() {
                 probe_key.clear();
                 for &join_key in &join_keys {
-                    probe_key.push(left.bindings.get(join_key).unwrap()[left_c]);
+                    if let Some(col) = left.bindings.get(join_key) {
+                        probe_key.push(col[left_c]);
+                    }
                 }
                 if let Some(right_indices) = hash_map.get(&probe_key) {
                     for &right_c in right_indices {

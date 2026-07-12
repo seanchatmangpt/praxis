@@ -1,0 +1,4 @@
+[pack]
+name = "f29-capability-roadmap-pack"
+version = "0.1.0"
+description = "Generates the F29 Thermodynamic Capability Roadmap (V12-029) L6 PROV-chain entity catalog, L5 state-machine catalog, and CapabilityRoadmapRefused catalog for crates/multifractal-workflow/src/f29_capability_roadmap_generated.rs, from mfwroad:ProvChainEntity / mfwroad:LifecycleStateEntity / mfwroad:RefusalKind individuals in this pack's ontology. Pure data projection only -- the real 8-stage pipeline (measure_process_work / cluster_high_pressure_regions / generate_capability_seed / inject_candidate_into_sandbox / replay_scenario_corpus / compare_work_delta / check_standing_invariants / render_roadmap), the 9-state lifecycle transition table, the CapabilityRoadmapRefused enum, the L7 idempotency ledger, and the L6/L8 replay/claim-ceiling logic are hand-written in f29_capability_roadmap.rs, not generated."

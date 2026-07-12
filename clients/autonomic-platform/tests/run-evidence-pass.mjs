@@ -32,7 +32,7 @@ const RUN_ID = `ocel-evidence-${new Date().toISOString().replace(/[:.]/g, '-')}`
 const MCP_BIN = path.join(REPO, 'target', 'debug', 'my-conforming-project');
 const GGEN_BIN = path.join(REPO, 'target', 'debug', 'ggen');
 const EXPECTED_FACTORY_HEAD =
-  '35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a';
+  'e12a2d2ce9fe8ace7cdd9e092a08ae0b51ce4dbec0f56eedd72b0ec4b24c7c72';
 
 fs.mkdirSync(RAW_DIR, { recursive: true });
 

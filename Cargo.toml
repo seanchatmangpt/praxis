@@ -119,6 +119,7 @@ wasm4pm-cognition = { path = "../wasm4pm/crates/wasm4pm-cognition", version = "2
 praxis-graphlaw = { path = "crates/praxis-graphlaw", version = "26.7.9" }
 # WASM builds: getrandom must compile with wasm_js feature (pulled transitively via praxis-graphlaw deps)
 getrandom = { version = "0.3", features = ["wasm_js"] }
+spargebra = "0.3.5"
 
 [dev-dependencies]
 assert_cmd = "2"
@@ -129,6 +130,9 @@ proptest = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
 divan = "0.1"
 tokio = { version = "1", features = ["full"] }
+axum = { version = "0.7", features = ["ws"] }
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
 # Differential-verification oracle pair (tests/differential.rs, Pair 1 PLANNERS):
 # independent PDDL temporal planner (wasm4pm-native, greedy-tick scheduler)
 # checked against praxis's bcinr-pddl dep on a shared durative-STRIPS corpus.
@@ -238,7 +242,8 @@ members = [
     "crates/praxis-graphlaw",
     "crates/praxis-graphlaw-wasm",
     "crates/wasm4pm-arazzo",
-    "audit-tools", "apps/air_core/native/air_core_nif",
+    "crates/multifractal-workflow",
+    "audit-tools", "apps/air_core/native/air_core_nif", "tmp_sparql2", "crates/mfact-core", 
 ]
 [workspace.metadata.dylint]
 libraries = [{ path = "/Users/sac/chicago-tdd-tools/crates/chicago-lints" }]

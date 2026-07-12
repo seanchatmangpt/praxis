@@ -1,0 +1,111 @@
+# f19-hooks-pack ontology — V12-019 (F19 "Hook Registry and Machine-First
+# Actuation") L6 PROV-chain entity catalog for the multifractal-workflow
+# crate's hook-resolution pipeline.
+#
+# GGEN_GENERATABLE scope (per the F19 family survey): this ontology carries
+# only the L6 "PROV chain of 8 RDF entities" the atlas requires
+# (HookDeclaration -> HookShapeReport -> ActionEffect -> CapabilityBinding ->
+# ExecutionClass -> RecoveryPolicy -> HookSchedule -> HookReceipt), as a
+# straight-line prov:wasDerivedFrom chain mirroring the atlas's own F19 L2/L6
+# component names. It is a pure data projection — the real SHACL catalog
+# validation (reused from praxis-graphlaw), the capability matcher, the
+# execution classifier, the 8-state HookResolutionState lifecycle ladder, and
+# the HookResolutionRefused taxonomy are hand-written in f19_hooks.rs and are
+# deliberately NOT modeled here.
+
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix mfwhook: <http://seanchatmangpt.github.io/praxis/multifractal-workflow/hooks#> .
+
+#################################################################
+# Vocabulary
+#################################################################
+
+mfwhook: a owl:Ontology ;
+  rdfs:label "multifractal-workflow F19 Hook Resolution PROV-chain vocabulary" ;
+  rdfs:comment "L6 provenance-chain entity catalog for F19 (V12-019): one mfwhook:ProvChainEntity per pipeline stage, in prov:wasDerivedFrom order. See f19_hooks.rs for the real lifecycle/refusal/matcher logic this catalog describes but does not implement." .
+
+mfwhook:ProvChainEntity a rdfs:Class ;
+  rdfs:label "PROV chain entity" ;
+  rdfs:comment "One RDF entity in F19's L6 provenance chain. Ordered by mfwhook:chainOrder; the chain is a straight line (each entity prov:wasDerivedFrom exactly its predecessor), matching the atlas's own linear L2 component pipeline for this family." .
+
+mfwhook:chainOrder a rdf:Property ;
+  rdfs:domain mfwhook:ProvChainEntity ;
+  rdfs:range xsd:integer ;
+  rdfs:label "chain order" ;
+  rdfs:comment "1-indexed position in the F19 L6 provenance chain." .
+
+mfwhook:derivedFromEntity a rdf:Property ;
+  rdfs:domain mfwhook:ProvChainEntity ;
+  rdfs:range xsd:string ;
+  rdfs:label "derived from entity" ;
+  rdfs:comment "Local name of the predecessor mfwhook:ProvChainEntity this entity's prov:wasDerivedFrom edge points to; \"none\" for the chain head." .
+
+mfwhook:pipelineStage a rdf:Property ;
+  rdfs:domain mfwhook:ProvChainEntity ;
+  rdfs:range xsd:string ;
+  rdfs:label "pipeline stage" ;
+  rdfs:comment "Name of the atlas F19 L2 pipeline component this entity is the receipt/record of (Hook RDF Catalog, Hook SHACL, Capability Matcher, Authority Binder, Execution Classifier, Retry Compensation Binder, Hook Scheduler, Hook Receipt Store)." .
+
+#################################################################
+# Instances (F19-L6: 8 entities, straight-line PROV chain)
+#################################################################
+
+mfwhook:HookDeclaration a mfwhook:ProvChainEntity ;
+  rdfs:label "HookDeclaration" ;
+  rdfs:comment "The admitted kh:Hook RDF individual as parsed from an admitted hook-pack Turtle document, before any shape/authority/schedule judgment. Chain head: nothing precedes it." ;
+  mfwhook:chainOrder 1 ;
+  mfwhook:pipelineStage "Hook RDF Catalog" ;
+  mfwhook:derivedFromEntity "none" .
+
+mfwhook:HookShapeReport a mfwhook:ProvChainEntity ;
+  rdfs:label "HookShapeReport" ;
+  rdfs:comment "The SHACL validation report (conforms flag plus violation results) produced by validating a HookDeclaration against kh:HookShape (praxis-graphlaw's real, already-tested closed-shape law pack)." ;
+  mfwhook:chainOrder 2 ;
+  mfwhook:pipelineStage "Hook SHACL" ;
+  mfwhook:derivedFromEntity "HookDeclaration" .
+
+mfwhook:ActionEffect a mfwhook:ProvChainEntity ;
+  rdfs:label "ActionEffect" ;
+  rdfs:comment "A grounded PDDL action (pddl-index's Pddl8GroundAction: schema_name, preconditions, add_effects, del_effects) admitted as the candidate the hook resolution pipeline must bind to a declared capability." ;
+  mfwhook:chainOrder 3 ;
+  mfwhook:pipelineStage "Capability Matcher (input)" ;
+  mfwhook:derivedFromEntity "HookShapeReport" .
+
+mfwhook:CapabilityBinding a mfwhook:ProvChainEntity ;
+  rdfs:label "CapabilityBinding" ;
+  rdfs:comment "The exact, non-fictional binding of one ActionEffect's schema_name to exactly one shape-valid hook whose kh:effect is ground-action and whose kh:action IRI local name matches — produced by the Capability Matcher. Zero or more-than-one matching hooks refuse rather than guess." ;
+  mfwhook:chainOrder 4 ;
+  mfwhook:pipelineStage "Capability Matcher (output)" ;
+  mfwhook:derivedFromEntity "ActionEffect" .
+
+mfwhook:ExecutionClass a mfwhook:ProvChainEntity ;
+  rdfs:label "ExecutionClass" ;
+  rdfs:comment "The three-way LocalActuation / ExternalMachineDispatch / ExternalHumanDispatch classification of a CapabilityBinding's bound hook, plus its bound declared-authority string (non-empty required to pass the Classified conformance gate)." ;
+  mfwhook:chainOrder 5 ;
+  mfwhook:pipelineStage "Authority Binder + Execution Classifier" ;
+  mfwhook:derivedFromEntity "CapabilityBinding" .
+
+mfwhook:RecoveryPolicy a mfwhook:ProvChainEntity ;
+  rdfs:label "RecoveryPolicy" ;
+  rdfs:comment "The declarative-only retry/compensation law attached to a Classified hook resolution before scheduling. Declarative only: no executing retry loop exists in this module (disclosed limitation, mirrors cng dispatch.rs's own retry_law doc comment)." ;
+  mfwhook:chainOrder 6 ;
+  mfwhook:pipelineStage "Retry Compensation Binder" ;
+  mfwhook:derivedFromEntity "ExecutionClass" .
+
+mfwhook:HookSchedule a mfwhook:ProvChainEntity ;
+  rdfs:label "HookSchedule" ;
+  rdfs:comment "The Kahn's-algorithm topological placement of a policy-bound hook resolution, produced by praxis-graphlaw's real, already-tested schedule_hooks (ID-based, (priority, HookId) tie-break)." ;
+  mfwhook:chainOrder 7 ;
+  mfwhook:pipelineStage "Hook Scheduler" ;
+  mfwhook:derivedFromEntity "RecoveryPolicy" .
+
+mfwhook:HookReceipt a mfwhook:ProvChainEntity ;
+  rdfs:label "HookReceipt" ;
+  rdfs:comment "The BLAKE3/SHA-256-hashed, replayable receipt (praxis-graphlaw's real HookReceipt/HookVerdictRecord/hook_hash) for a scheduled hook resolution, admitted through the atomic idempotency+correlation gate before being marked REPLAYABLE. Chain tail: nothing derives from it." ;
+  mfwhook:chainOrder 8 ;
+  mfwhook:pipelineStage "Hook Receipt Store" ;
+  mfwhook:derivedFromEntity "HookSchedule" .

@@ -1,0 +1,4 @@
+[pack]
+name = "semantic-contraction-pack"
+version = "26.7.12"
+description = "F03 \"Semantic Contraction\" (V12-003) provenance vocabulary: the D1-D7 RDF entity types (TypedGraph/ClosureGraph/RefinementDelta/ShapeReport/AdmissibilityDecision/ResidueGraph/PlanningState), their prov:wasDerivedFrom edges, the TYPED..PLANNABLE/REFUSED lifecycle state names, and the C1-C7 pipeline component names. Generates crates/multifractal-workflow/src/f03_semantic_contraction_vocab.rs (IRI constants + edge/state/component tables) consumed by the hand-written crates/multifractal-workflow/src/f03_semantic_contraction.rs orchestration module -- this pack supplies vocabulary/documentation data, not closure, shape-gate, or refusal logic."

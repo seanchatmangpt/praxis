@@ -75,3 +75,40 @@ docs/thesis/*.vrb
 _build/
 *.beam
 
+# Erlang/OTP and rebar3 crash dumps (regenerated on the next crash; never
+# useful to keep in history).
+/erl_crash.dump
+/rebar3.crashdump
+
+# Root-level scratch scripts and one-off debug/rewrite/patch/fix tooling
+# from interactive sessions -- not part of the build, never a durable
+# artifact. Real tooling belongs under scripts/ or tools/.
+/fix*.py
+/patch*.py
+/rewrite*.py
+/refactor*.py
+/remove_debug.py
+/update_powl.py
+/debug_*.py
+/debug_*.sh
+/debug_test
+/debug_test.rs
+/run_test_debug
+/run_test_debug.rs
+/scratch.rs
+/test_*
+/tmp_sparql2/
+crates/praxis-graphlaw/run_test_debug.rs
+crates/praxis-graphlaw/test_empty.rs
+**/*.rs.bak
+
+# Test run logs and scratch failure lists from local nextest/cargo runs.
+/nextest.log
+/nextest_log.txt
+/nextest_oom.log
+/nextest_output.log
+/cng_tests.txt
+/test_failures.txt
+/test_list.txt
+/tier_failures.txt
+

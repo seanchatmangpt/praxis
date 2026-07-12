@@ -1,0 +1,150 @@
+# f15-air-core-pack ontology -- V12-015 (F15 "AIR Single Semantic Core")
+#
+# Per the F15 family survey (MIXED verdict): this ontology is the
+# GGEN_GENERATABLE slice only -- mechanical catalog/vocabulary data, never
+# transition logic. The real, single-source AIR transition machine is
+# apps/air_core/src/air_core.erl (context()/event()/transition/2, PROJ-755/
+# 756), tested cross-shell in
+# apps/arazzo_runner/test/arazzo_runner_atomvm_differential_test.erl
+# (verified this session: `just erlang-test` -> 55 tests, 0 failures).
+# Nothing in this ontology or its generated Rust catalog re-derives, ranks,
+# or re-executes that transition -- every `air:realizedBy` value below is an
+# honest citation of the real Erlang/Rust code (or an honest disclosure that
+# no such code exists yet), not a re-implementation. If f15_air_transition_
+# core.rs's real/stub boundary moves, this ontology must be re-edited to
+# match -- it is not auto-derived from the Rust or Erlang source.
+
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix air:   <http://seanchatmangpt.github.io/praxis/multifractal-workflow/air-core#> .
+
+#################################################################
+# Vocabulary
+#################################################################
+
+air: a owl:Ontology ;
+  rdfs:label "multifractal-workflow F15 AIR Single Semantic Core vocabulary" ;
+  rdfs:comment "8-state AIR transition lifecycle, AIRTransitionRefused catalog, and PROV-linked data model for the shared OTP/AtomVM AIR transition core (V12-015)." .
+
+#################################################################
+# 8-state lifecycle (+ REFUSED)
+#################################################################
+
+air:LifecycleState a rdfs:Class ;
+  rdfs:label "AIR transition lifecycle state" ;
+  rdfs:comment "One named state of the F15 8-state AIR transition lifecycle (PROGRAM_LOADED .. RECEIPTED), or the parallel REFUSED terminal." .
+
+air:stateOrder a rdf:Property ; rdfs:domain air:LifecycleState ; rdfs:range xsd:integer ;
+  rdfs:label "state order" ; rdfs:comment "Position in the fixed 8-state lifecycle, 0-indexed. REFUSED carries no order (it is a parallel terminal reachable from any state, not a rung on the ladder)." .
+air:realizedBy a rdf:Property ; rdfs:domain air:LifecycleState ;
+  rdfs:label "realized by" ; rdfs:comment "Honest citation (file:line) of the real Erlang/Rust code that performs this stage's work today, or an explicit disclosure that no dedicated function exists." .
+
+air:programLoaded a air:LifecycleState ; rdfs:label "PROGRAM_LOADED" ; air:stateOrder 0 ;
+  air:realizedBy "air_core:new/1 -- apps/air_core/src/air_core.erl:84-102 (workflow map, step_bit_map/bit_step_map, pred_mask_map construction from the AIR program's step graph)." .
+air:readyComputed a air:LifecycleState ; rdfs:label "READY_COMPUTED" ; air:stateOrder 1 ;
+  air:realizedBy "air_core:ready_steps/1 (air_core.erl:187-189) reads state_mask; state_mask is advanced by the AND/join readiness predicate newly_ready_successors/5 (air_core.erl:259-277, PROJ-756)." .
+air:expressionsEvaluated a air:LifecycleState ; rdfs:label "EXPRESSIONS_EVALUATED" ; air:stateOrder 2 ;
+  air:realizedBy "air_core:eval_expr/2,3 (air_core.erl:297-306) dispatches to eval_expr_nif, the real Rust expression VM -- apps/air_core/native/air_core_nif/src/lib.rs:8-112 (literal/var/op AST evaluation over rustler::Term, tied to the loaded BEAM NIF environment)." .
+air:criteriaEvaluated a air:LifecycleState ; rdfs:label "CRITERIA_EVALUATED" ; air:stateOrder 3 ;
+  air:realizedBy "air_core:eval_criteria/2 -- air_core.erl:308-317 (AND-folds a criteria list via eval_expr/2, short-circuits on the first false)." .
+air:actionApplied a air:LifecycleState ; rdfs:label "ACTION_APPLIED" ; air:stateOrder 4 ;
+  air:realizedBy "air_core:apply_action/2 -- air_core.erl:319-331 (set/delete env mutations from an action or action list)." .
+air:outputsBound a air:LifecycleState ; rdfs:label "OUTPUTS_BOUND" ; air:stateOrder 5 ;
+  air:realizedBy "air_core:bind_outputs/3 -- air_core.erl:333-339, invoked from handle_step_completed/3:213 to bind a completed step's outputs into env." .
+air:terminalChecked a air:LifecycleState ; rdfs:label "TERMINAL_CHECKED" ; air:stateOrder 6 ;
+  air:realizedBy "DISCLOSED GAP: no dedicated terminal-check function exists anywhere in air_core.erl, arazzo_runner_workflow.erl, or arazzo_atomvm_workflow.erl (grepped this session for terminal/is_terminal/workflow_complete/all_done -- zero hits). Callers infer completion implicitly from ready_steps/1 returning empty, not from a named, testable terminal predicate." .
+air:receipted a air:LifecycleState ; rdfs:label "RECEIPTED" ; air:stateOrder 7 ;
+  air:realizedBy "arazzo_runner_event_receipt:build/1 (apps/arazzo_runner/src/arazzo_runner_event_receipt.erl:81-124) + emit/1 (:157-198) -- BLAKE3 chain_material sealing of the 10 PRD-declared receipt fields, chained via prior_receipt_head." .
+air:refused a air:LifecycleState ; rdfs:label "REFUSED" ;
+  air:realizedBy "DISCLOSED GAP: air_core:transition/2 itself is TOTAL and never refuses (confirmed by reading its full 339-line source this session: every clause returns {Context, Commands}, no error/refused return anywhere). The refusal atoms this catalog's AIRTransitionRefused mirrors live one layer up, in apps/arazzo_runner/src/arazzo_runner_broker.erl's {refused, Code, Ctx} tuples -- not inside the semantic core the F15 diagram places this state in." .
+
+#################################################################
+# AIRTransitionRefused catalog
+#################################################################
+
+air:RefusalKind a rdfs:Class ;
+  rdfs:label "Refusal kind" ;
+  rdfs:comment "One variant of AIRTransitionRefused, each mirroring a real refused-tuple atom found in the broker (or the differential test's cross-shell comparator)." .
+
+air:meaning a rdf:Property ; rdfs:domain air:RefusalKind ;
+  rdfs:label "meaning" ; rdfs:comment "What condition triggers this refusal." .
+air:sourceCitation a rdf:Property ; rdfs:domain air:RefusalKind ;
+  rdfs:label "source citation" ; rdfs:comment "file:line where the real Erlang atom this variant mirrors is actually returned/compared." .
+air:status a rdf:Property ; rdfs:domain air:RefusalKind ; rdfs:range xsd:string ;
+  rdfs:label "status" ; rdfs:comment "REAL (the cited Erlang code enforces this for real, this session verified via `just erlang-test`) or DISCLOSED_GAP (named as unenforced by the Erlang code's own comments, not invented here)." .
+
+air:correlationMissing a air:RefusalKind ; rdfs:label "CorrelationMissing" ;
+  air:meaning "The dispatch_token presented at return time is unknown to the broker's ledger." ;
+  air:sourceCitation "apps/arazzo_runner/src/arazzo_runner_broker.erl:193,483 ('CORRELATION_MISSING')." ;
+  air:status "REAL" .
+air:correlationMismatch a air:RefusalKind ; rdfs:label "CorrelationMismatch" ;
+  air:meaning "The returner's claimed correlation ID does not match the ledger's D#dispatch.correlation_id for that token." ;
+  air:sourceCitation "apps/arazzo_runner/src/arazzo_runner_broker.erl:488 ('CORRELATION_MISMATCH')." ;
+  air:status "REAL" .
+air:brokerReceiptPreconditionMissing a air:RefusalKind ; rdfs:label "BrokerReceiptPreconditionMissing" ;
+  air:meaning "A required prior receipt_head precondition is missing before actuation is admitted." ;
+  air:sourceCitation "apps/arazzo_runner/src/arazzo_runner_broker.erl:216 ('BROKER_RECEIPT_PRECONDITION_MISSING')." ;
+  air:status "REAL" .
+air:returnProvenanceMissing a air:RefusalKind ; rdfs:label "ReturnProvenanceMissing" ;
+  air:meaning "The returned consequence's #dispatch.status does not prove it originated from a broker-dispatched IO operation." ;
+  air:sourceCitation "apps/arazzo_runner/src/arazzo_runner_broker.erl:520,523 ('RETURN_PROVENANCE_MISSING')." ;
+  air:status "REAL" .
+air:returnAuthorityRefused a air:RefusalKind ; rdfs:label "ReturnAuthorityRefused" ;
+  air:meaning "The returner is not authorized to complete this dispatch (authority stage of the PRD 8 return-admission chain)." ;
+  air:sourceCitation "apps/arazzo_runner/src/arazzo_runner_broker.erl:542 ('RETURN_AUTHORITY_REFUSED')." ;
+  air:status "REAL" .
+air:returnStructureRefused a air:RefusalKind ; rdfs:label "ReturnStructureRefused" ;
+  air:meaning "raw_consequence fails the type requirement derived from StepDef's own outputs bind-rules (e.g. a non-numeric value where {var,'__result__'} feeds a +/-/*// operator)." ;
+  air:sourceCitation "apps/arazzo_runner/src/arazzo_runner_broker.erl:569 ('RETURN_STRUCTURE_REFUSED')." ;
+  air:status "REAL" .
+air:returnSemanticRefused a air:RefusalKind ; rdfs:label "ReturnSemanticRefused" ;
+  air:meaning "SHACL/admission-layer semantic conformance of raw_consequence (PRD 11) is not checked -- no bridge exists from this Erlang codebase to crates/praxis-graphlaw's admission layer." ;
+  air:sourceCitation "apps/arazzo_runner/src/arazzo_runner_broker.erl:141-165 (?UNENFORCED_RETURN_STAGES, return_semantic_refused) -- the broker's own disclosed, not-silently-passing gap." ;
+  air:status "DISCLOSED_GAP" .
+air:directActuationRefused a air:RefusalKind ; rdfs:label "DirectActuationRefused" ;
+  air:meaning "An io-worker attempted actuation without a valid, broker-minted actuation token." ;
+  air:sourceCitation "apps/arazzo_runner/src/arazzo_runner_broker.erl:344,708-722 (consume_actuation_token/1, DIRECT_ACTUATION_REFUSED; enforced in arazzo_runner_workflow:enqueue_io/2, not in the broker module itself)." ;
+  air:status "REAL" .
+air:otpAtomvmSemanticDrift a air:RefusalKind ; rdfs:label "OtpAtomvmSemanticDrift" ;
+  air:meaning "The OTP and AtomVM shells produced a different state digest, result digest, refusal class, or command trail for the identical ordered event corpus -- the CTQ's own negative case." ;
+  air:sourceCitation "apps/arazzo_runner/test/arazzo_runner_atomvm_differential_test.erl:130,511-546 ('OTP_ATOMVM_SEMANTIC_DRIFT') -- a differential-TEST comparator, not a runtime refusal either shell emits on its own." ;
+  air:status "REAL (as a test-time comparator; not wired as a live runtime refusal path)" .
+air:notYetImplemented a air:RefusalKind ; rdfs:label "NotYetImplemented" ;
+  air:meaning "A pipeline stage or bridge this family's own diagram requires (a literal Rust<->Erlang core reuse bridge, or a dedicated terminal-check predicate) was reached and is genuinely HAND_WRITE_REQUIRED; fails loud instead of faking success." ;
+  air:sourceCitation "No citation -- this variant exists for gaps this pass discloses, not ones the Erlang code discloses about itself." ;
+  air:status "DISCLOSED_GAP" .
+
+#################################################################
+# PROV data model: AIRProgram -> ... -> TransitionReceipt
+#################################################################
+
+air:ProvEntity a rdfs:Class ;
+  rdfs:label "AIR PROV entity" ;
+  rdfs:comment "One node of the F15 L6 PROV-linked data model (PRD-style prov:wasDerivedFrom chain)." .
+
+air:provOrder a rdf:Property ; rdfs:domain air:ProvEntity ; rdfs:range xsd:integer ;
+  rdfs:label "PROV chain order" ; rdfs:comment "Position in the fixed 8-entity PROV chain, 0-indexed." .
+air:derivedFromLabel a rdf:Property ; rdfs:domain air:ProvEntity ; rdfs:range xsd:string ;
+  rdfs:label "derived from (label)" ; rdfs:comment "rdfs:label of this entity's prov:wasDerivedFrom predecessor, or the empty string for the chain root." .
+air:mirrorsField a rdf:Property ; rdfs:domain air:ProvEntity ;
+  rdfs:label "mirrors field" ; rdfs:comment "Which real air_core.erl context()/event()/command() field or arazzo_runner_event_receipt.erl #event_receipt{} field this entity corresponds to." .
+
+air:airProgram a air:ProvEntity ; rdfs:label "AIRProgram" ; air:provOrder 0 ; air:derivedFromLabel "" ;
+  air:mirrorsField "context().workflow (the steps map new/1 receives, air_core.erl:30-31,86-88)." .
+air:workflowState a air:ProvEntity ; rdfs:label "WorkflowState" ; air:provOrder 1 ; air:derivedFromLabel "AIRProgram" ;
+  air:mirrorsField "context().state_mask / completed_mask / env / history (air_core.erl:30-57)." .
+air:readySet a air:ProvEntity ; rdfs:label "ReadySet" ; air:provOrder 2 ; air:derivedFromLabel "WorkflowState" ;
+  air:mirrorsField "ready_steps/1's bitmask_to_list(state_mask, bit_step_map) result (air_core.erl:187-189)." .
+air:expressionResult a air:ProvEntity ; rdfs:label "ExpressionResult" ; air:provOrder 3 ; air:derivedFromLabel "ReadySet" ;
+  air:mirrorsField "eval_expr/2,3's return value (air_core.erl:297-306, evaluated by eval_expr_nif)." .
+air:criterionResult a air:ProvEntity ; rdfs:label "CriterionResult" ; air:provOrder 4 ; air:derivedFromLabel "ExpressionResult" ;
+  air:mirrorsField "eval_criteria/2's boolean result (air_core.erl:308-317)." .
+air:routeAction a air:ProvEntity ; rdfs:label "RouteAction" ; air:provOrder 5 ; air:derivedFromLabel "CriterionResult" ;
+  air:mirrorsField "the command() type -- {dispatch_step, StepId, StepDef} (air_core.erl:72, produced by handle_step_completed/3:246)." .
+air:boundOutputs a air:ProvEntity ; rdfs:label "BoundOutputs" ; air:provOrder 6 ; air:derivedFromLabel "RouteAction" ;
+  air:mirrorsField "bind_outputs/3's returned env() (air_core.erl:333-339)." .
+air:transitionReceipt a air:ProvEntity ; rdfs:label "TransitionReceipt" ; air:provOrder 7 ; air:derivedFromLabel "BoundOutputs" ;
+  air:mirrorsField "#event_receipt{} (apps/arazzo_runner/include/arazzo_event_receipt.hrl) -- 10 PRD-declared fields plus the derived receipt_head." .

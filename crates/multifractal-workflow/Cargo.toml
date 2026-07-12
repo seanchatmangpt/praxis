@@ -1,0 +1,269 @@
+[package]
+name = "multifractal-workflow"
+version = "26.7.12"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT OR Apache-2.0"
+description = "v26.7.12 architecture atlas (30 families x 8 lenses): scaffolding skeleton only, one module per family, real logic wired in a later phase."
+
+[lib]
+doctest = false
+
+# Deps are added module-by-module as each family is actually wired (per the
+# reuse/adapt sources named in the per-family survey doc comments), not
+# speculatively for all 30 up front.
+#
+# F10 "POWL Recursive Process Geometry" (V12-010, ALREADY_BUILT slice): real
+# dependency on the sibling powl2-decompose crate (Kourani et al. WF-net ->
+# POWL 2.0 decomposition; PartialOrder/Choice/hierarchy/socket types), not a
+# re-implementation. See src/f10_powl_geometry.rs for what is thinly wrapped
+# vs. genuinely hand-written.
+[dependencies]
+powl2-decompose = { path = "../powl2-decompose" }
+# F13 "Arazzo Generated Artifact" (V12-013, ALREADY_BUILT slice for L1-L6):
+# thin re-export/wrapper over the real, already-tested Rail A/B
+# Arazzo-manufacture pipeline. praxis-graphlaw does not depend on
+# praxis-core (no cyclic edge); this is a one-way addition, matching how
+# praxis-core itself documents the same dependency direction. See
+# src/f13_arazzo_artifact.rs for what is thinly wrapped vs. genuine stub.
+praxis-core = { path = "../praxis-core" }
+# F06 "N3 Quarantine and Refinement" (V12-006, MIXED): real dependency on
+# praxis-graphlaw's chatman::router module (Dialect/ProfileGates/DialectRouter
+# routing gate + N3Executor/N3CostBound/N3Builtin execution-quarantine types),
+# not a re-implementation. Path-only, no version pin, matching
+# crates/cng/Cargo.toml's existing `praxis-graphlaw = { path = "../praxis-graphlaw" }`
+# convention. See src/f06_n3_quarantine.rs for what is thinly wrapped vs. the
+# disclosed, still-unwired gaps.
+praxis-graphlaw = { path = "../praxis-graphlaw" }
+# F14 "wasm4pm Arazzo Compiler" (V12-014, MIXED: ALREADY_BUILT for L1-L6):
+# real dependency on the sibling wasm4pm-arazzo crate (Arazzo 1.1.x parse ->
+# resolve -> lower -> normalize -> compile pipeline), same path-dependency
+# pattern crates/praxis-core already uses (crates/praxis-core/Cargo.toml:40).
+# bumpalo is needed directly (not just transitively) because
+# f14_wasm4pm_arazzo's own public functions name `bumpalo::Bump` in their
+# signatures; version pinned identically to wasm4pm-arazzo's own Cargo.toml
+# and to crates/praxis-core's own bumpalo pin. See src/f14_wasm4pm_arazzo.rs
+# for what is thinly wrapped (L1-L6) vs. the disclosed HAND_WRITE_REQUIRED
+# gap (L7/L8: no idempotency gate, durable receipt head, or production
+# caller exists anywhere in this repo for this compiler today).
+wasm4pm-arazzo = { path = "../wasm4pm-arazzo" }
+bumpalo = "3.20.3"
+# F05 "Datalog Closure" (V12-005, MIXED): thin-wraps the already-real,
+# already-tested stratified semi-naive Datalog engine in praxis-graphlaw
+# (`TripleStore::add_rules`/`materialize`, `datalog::validate_rules`,
+# `reasoner::Reasoner`) rather than reimplementing it; praxis-graphlaw
+# itself is already a dependency above (added for F06). blake3 matches the
+# version praxis-graphlaw pins, so the F05 closure digest hashes with the
+# same algorithm family the rest of the workspace's receipt paths use. See
+# src/f05_datalog_closure.rs for what is thinly wrapped vs. genuinely
+# hand-written vs. disclosed as still undone.
+blake3 = "1"
+# F01 "Standing Algebra" (V12-001, MIXED): reuses
+# `praxis_graphlaw::shacl::ValidationReport` as the real conformance-evidence
+# type for the Admission Engine gate, and `praxis_graphlaw::chatman::abi::Receipt`
+# for the Receipt Emitter (canonical-N-Quads BLAKE3 construction, already a
+# dependency above for F06/F05 -- reused here, not re-added). Reuses
+# `bcinr_powl_receipt::replay::PowlReplayVerifier` for the Replay Verifier --
+# the same token-passing verifier crates/praxis-core/src/replay_adapter.rs
+# uses for its fixed 3-step judge/admit/receipt lifecycle, generalized here
+# to F01's 7-step standing lifecycle. Path/version match
+# crates/praxis-core/Cargo.toml's own bcinr-powl-receipt entry (same
+# workspace depth). thiserror backs F01's own typed Refusal taxonomy
+# (SilentPromotionRefused and friends); hex backs the Manufacture Boundary's
+# digest comparison, adapted from praxis_core::arazzo::admit_manufactured_arazzo.
+# See src/f01_standing_algebra.rs for what is genuinely reused/adapted vs.
+# disclosed HAND_WRITE_REQUIRED (L7 concurrency/chaos has no deterministic
+# Rust analog elsewhere in this repo; L8's claim-vocabulary is new).
+bcinr-powl-receipt = { path = "../../../bcinr/crates/bcinr-powl-receipt", version = "26.6.24" }
+thiserror = "2"
+hex = "0.4"
+# F11 "BCINR Local Runtime" (V12-011, MIXED: REUSE_ADAPT for L1-L3/L5/L6's
+# non-external-socket parts, HAND_WRITE_REQUIRED for the External Socket
+# Detector and L7 idempotency/recovery gate): real dependency on bcinr-powl
+# for `compiler::compile_powl` (POWL Loader), `tape::PowlTape`/`Powl64Op`
+# (Compact State + Dependency Bitmap), and `scheduler::scheduler_tick`
+# (Eligibility Engine + Local Transition Kernel). bcinr-powl-receipt is
+# already a dependency above (added for F01); F11 reuses its
+# `causal_receipt::OcelCausalReceipt`/`OcelCausalFrame` BLAKE3 chain for
+# Local Receipt rather than re-adding the crate. Relative path matches the
+# style bcinr-powl-receipt's own F01 entry already established in this file
+# (bcinr lives outside this workspace at /Users/sac/bcinr, a sibling of
+# /Users/sac/praxis). thiserror (already a dependency above, added for F01)
+# backs F11's own BCINRLocalExecutionRefused typed refusal. See
+# src/f11_bcinr_runtime.rs for what is thinly wrapped vs. the disclosed
+# HAND_WRITE_REQUIRED gaps.
+bcinr-powl = { path = "../../../bcinr/crates/bcinr-powl", version = "26.6.25" }
+# F07 "SHACL and ShEx Admission" (V12-007, MIXED): thin-wraps praxis-graphlaw's
+# already-real, already-tested native SHACL/ShEx validators (`TripleStore::
+# validate_shacl`/`validate_shex`/`validate_shex_c`) rather than
+# reimplementing them; praxis-graphlaw is already a dependency above (added
+# for F06/F01/F05/F11). blake3/thiserror (already dependencies above, added
+# for F05/F01) back F07's own ShapeReceipt digest and typed
+# ShapeAdmissionRefused taxonomy. serde/serde_json are new here: they back
+# the durable idempotency-map persist/restore round-trip (L7 restart
+# recovery) and are not yet a dependency of this crate. See
+# src/f07_shape_admission.rs for what is genuinely reused/hand-written vs.
+# disclosed HAND_WRITE_REQUIRED/PARTIAL gaps.
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+# F04 "GraphLaw Dialect Registry" (V12-004, PARTIAL): real dependency on
+# oxigraph (already resolved in Cargo.lock at 0.5.9 via crates/cng and the
+# workspace root's `ggen` feature, so this does not force a second
+# resolution) for the runtime closed-shape SHACL validation of the
+# mfwreg:DialectEntry catalog (registry-missing-fields.rq /
+# registry-closed-violations.rq executed as real SPARQL SELECTs). blake3 is
+# already a dependency above (added for F05); F04 reuses it for
+# RegistryReceipt::content_hash. See src/f04_dialect_registry.rs for what is
+# genuinely reused/adapted/generated/hand-written vs. disclosed as still
+# undone.
+oxigraph = "0.5"
+# F09 "MFW Growth Operator" (V12-009, MIXED): real dependency on pddl-index
+# for the indexed PDDL8 planner (solve_indexed) backing the Reachability
+# Gate + PDDL Planner stages; powl2-decompose and praxis-graphlaw are
+# already dependencies above (added for F10/F06) and are reused here too
+# (RecursiveSocketClosure/ClosureLaw for the Semantic Closure Check,
+# WorkflowSocketId for socket addressing). wasm4pm-compat is added
+# directly (not just transitively via pddl-index) because
+# f09_mfw_growth's own public functions name Pddl8Domain/Pddl8Problem/
+# Pddl8Tape in their signatures and call wasm4pm_compat::hash::
+# blake3_combined directly for the DescentReceipt digest; path/version
+# match praxis-graphlaw's own wasm4pm-compat entry. thiserror is already a
+# dependency above (added for F01) and backs MFWGrowthRefused. See
+# src/f09_mfw_growth.rs for what is genuinely reused/adapted vs. disclosed
+# HAND_WRITE_REQUIRED gaps (Continuation Goal Resolver, POWL Manufacturer,
+# Socket Binder, Parent Re-evaluator, L7 idempotency -- none of these exist
+# anywhere in the repo per the family survey's repo-wide grep).
+pddl-index = { path = "../pddl-index" }
+wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat", version = "26.6.29" }
+# F08 "PDDL Planning and Action-Hook Binder" (V12-008, MIXED): real
+# dependency on bcinr-pddl for `ground::GroundProblem` (grounding +
+# BFS plan search) and `execute::execute_tape` (Prolog8-admitted
+# execution replay + genuine BLAKE3-by-execution receipt + OCEL trace),
+# the same real, already-tested functions praxis-graphlaw's chatman
+# engine.rs (`compute_pddl_plan`) and crates/cng/src/pipeline.rs both
+# wrap for the identical parse -> ground -> plan flow. Registry-only
+# version string (no path), matching crates/cng/Cargo.toml's own
+# `bcinr-pddl = "26.6.26"` entry rather than praxis-graphlaw's absolute
+# path entry, since this crate does not need bcinr-pddl's dev/test
+# surface. blake3 is already a dependency above (added for F05/F01/F07)
+# and backs the generated L6 entity IRIs' content-addressing
+# (`entity::*::from_content`, ggen-generated -- see
+# packs/pddl-planning-pack/). See src/f08_pddl_planning/ for what is
+# genuinely reused/adapted (projector/planner/effect_trace) vs.
+# disclosed HAND_WRITE_REQUIRED (hook_binder: no general hook-registry
+# query API was found anywhere in this repo this session, so the
+# Action-Hook Binder always refuses rather than faking a match).
+bcinr-pddl = "26.6.26"
+
+# F20 "External Dispatch and Re-admission" (V12-020, ALREADY_BUILT): real
+# dependency on cng's bench-only decomposition-to-dispatch bridge
+# (`crates/cng/src/bench/decomp/dispatch_bridge.rs`, PROJ-618/720/721/723) --
+# the ONLY externally `pub` surface over cng's otherwise crate-private
+# (`mod dispatch;`, not `pub mod`) DispatchContract/DispatchState/
+# collect_consequence machinery. `features = ["bench"]` is required to reach
+# `cng::bench::decomp` at all (the whole `bench` module is
+# `#[cfg(feature = "bench")]` in cng's own lib.rs); `bench` in turn requires
+# cng's default `runner` feature (`dep:bcinr-powl`, already a dependency
+# above for F11, identical version) and pulls in praxis-graphlaw/pddl-index
+# (already dependencies above for F06/F09, reused not re-added) plus
+# wasm4pm-cognition (new transitive dependency, registry-only, not used
+# directly by this crate). bcinr-pddl and blake3 (both already dependencies
+# above, for F08 and F05/F01/F07 respectively) are reused directly by
+# f20_external_dispatch's own tests to construct a real `SubworkflowPlan`
+# fixture -- no new dependency needed for that. Path-only, no version pin,
+# matching this crate's other path-dependency entries. See
+# src/f20_external_dispatch.rs for what is thinly wrapped (the bridge's two
+# entry points + supporting types) vs. the disclosed scope boundary (the
+# generic, non-decomposition-anchored contract builder and the specific
+# `ExternalConsequenceRefused` stage detail stay behind cng's private
+# module boundary; this crate's only real access path is the
+# SubworkflowPlan-scoped bridge, and the bridge itself collapses a failed
+# re-admission to a plain `admitted: false` rather than surfacing which
+# pipeline stage refused).
+cng = { path = "../cng", features = ["bench"] }
+# F24 "SPARQL CONSTRUCT to OCEL" (V12-024, MIXED: ALREADY_BUILT for the
+# G_OTEL -> G_OCEL CONSTRUCT projection + G_RECEIPT provenance/replay +
+# G_RESULT measurement writer): reuses the `cng` path dependency declared
+# immediately above for F20 rather than adding a second entry (Cargo forbids
+# duplicate dependency keys). F24 only needs `otel_ocel`, `otel_rdf`,
+# `otel_receipt`, and `measurement` -- all four are unconditional `pub mod`s
+# in `crates/cng/src/lib.rs` (confirmed by reading it this session; none is
+# behind `#[cfg(feature = "bench")]`), so F20's `features = ["bench"]` being
+# enabled is harmless (Cargo features are additive/union across the whole
+# dependency graph) rather than required for F24's own surface. See
+# src/f24_ocel_construct.rs for what is thinly wrapped vs. genuinely
+# hand-written (CONSTRUCT Profile Resolver, OCELConstructionRefused) vs.
+# disclosed HAND_WRITE_REQUIRED (L7 idempotency/correlation gate, MFW
+# Feedback Adapter -- F09's module has no consequence-intake API yet for
+# this to feed into).
+
+# F30 "GGEN Dynamic Project State and Release Admission" (V12-030, MIXED):
+# real dependency on ggen's own `graph` module (`DeterministicGraph`,
+# `GraphEngine` trait, `EngineQueryResults`) -- the exact in-memory
+# oxigraph-backed Turtle-load + SPARQL-query + canonical-BLAKE3-state-hash
+# engine the family survey names as ALREADY_BUILT (crates/ggen/src/graph.rs,
+# read in full this session). f30_ggen_release_state's `ProjectStateGraph`
+# thinly wraps it to run the real Status CONSTRUCT
+# (queries/f30-status-construct.rq, ggen-synced from
+# packs/f30-ggen-release-state-pack/) and the real Dependency SELECT
+# (queries/f30-dependency-select.rq, `mfwrel:dependsOn+` adapted from
+# packs/jira-tracking-pack's proven `jira:dependsOn+` pattern) against
+# runtime-admitted observation facts -- never against hand-typed status.
+# oxigraph is already a dependency above (added for F04, same 0.5 line ggen
+# itself pins, so this does not force a second resolution). `never the
+# frozen ~/ggen` -- this is crates/ggen, the only permitted ggen target.
+# tera backs the Tera Renderers (C7): matches crates/ggen's own `tera =
+# "1.20.0"` pin so both crates render with the same engine version; used
+# only to interpolate already-CONSTRUCTed facts into doc templates, never
+# to decide release state itself (F30's own family invariant). thiserror
+# and blake3 are already dependencies above (added for F01/F05) and back
+# `ReleaseAdmissionRefused` and `ReleaseReceipt::content_hash` respectively
+# (BLAKE3 over sorted canonical N-Quads / sorted fact strings, repo
+# invariant #2). serde_json is already a dependency above (added for F07)
+# and backs the durable JSONL receipt-head journal (L7 restart/replay
+# recovery). See src/f30_ggen_release_state.rs for what is genuinely
+# hand-written vs. disclosed HAND_WRITE_REQUIRED/PARTIAL gaps (no live
+# `cargo test`/`just verify-all` process-spawning verifier is wired this
+# pass -- the Verifier Aggregator consumes already-collected field results).
+ggen = { path = "../ggen" }
+tera = "1.20.0"
+
+# F28 "Multi-Breed Executable Process Science" (V12-028, MIXED): real
+# dependency on wasm4pm-cognition for the 4 registered, real, already-tested
+# old-AI breeds F28 reuses directly (`bayesian_network`/`event_calculus`/
+# `allen_temporal`/`abductive_ibe`, dispatched through the crate's own
+# `breeds::dispatch_breed` routing table -- read in full this session).
+# Already a workspace-level entry (`/Users/sac/praxis/Cargo.toml:114`) with
+# zero prior consumers inside this crate before this pass. Real dependency on
+# wasm4pm-planner for the PDDL Planner + POWL Manufacturer stages
+# (`manufacture_world`/`domain_from_pddl`/`problem_from_pddl`/`ground_domain`/
+# `find_temporal_plan`/`plan_to_powl_v2`, all real and already-tested in their
+# home crate's own `receipt.rs` unit tests) -- also already declared at
+# workspace level (`/Users/sac/praxis/Cargo.toml:135`) with the family survey
+# confirming zero praxis crates consumed it before this pass; this module is
+# the first real consumer. blake3 (already a dependency above, added for
+# F05/F01/F07) and hex (already a dependency above, added for F01) back
+# F28's own receipt chain and L7 correlation-digest encoding respectively --
+# reused, not re-added. `wasm4pm` (the base package with
+# `spc::check_western_electric_rules` and `powl_arena`/`powl_to_process_tree`)
+# was deliberately NOT added: it pins `wasm-bindgen = "=0.2.100"` exactly
+# (`/Users/sac/wasm4pm/wasm4pm/Cargo.toml:34`), which conflicts with the
+# `0.2.126` this workspace's Cargo.lock already resolves for
+# `crates/praxis-graphlaw-wasm`'s unpinned `"0.2"` requirement (confirmed by
+# reading `Cargo.lock` this session) -- adding it would force a disruptive
+# workspace-wide `wasm-bindgen` downgrade while sibling family agents were
+# concurrently building against this same lockfile. See
+# src/f28_multi_breed_science.rs's module doc for the full ALREADY_BUILT /
+# REUSE_ADAPT / BLOCKED / HAND_WRITE_REQUIRED breakdown, including which two
+# stages (Western Electric SPC, POWL Manufacturer) are therefore hand-written
+# minimal reimplementations rather than ports, and which one stage (Scale
+# Analyzer) is a disclosed, always-refusing, not-yet-implemented stub.
+wasm4pm-cognition = { path = "../../../wasm4pm/crates/wasm4pm-cognition", version = "26.7.6" }
+wasm4pm-planner = { path = "../../../wasm4pm/crates/wasm4pm-planner", version = "26.7.6" }
+
+[dev-dependencies]
+# f13_arazzo_artifact's tests construct a real Powl::ExternalCut fixture
+# (mirrors praxis_core::arazzo's own test fixture) to drive the pipeline
+# through this crate's re-exports end-to-end. (powl2-decompose is already a
+# normal [dependencies] entry above for F10, so it is in scope for tests too
+# without a separate dev-dependency line.)

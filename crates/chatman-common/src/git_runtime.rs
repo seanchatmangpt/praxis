@@ -53,11 +53,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 // ---------------------------------------------------------------------------
 
 /// Return the current epoch seconds (UTC).
-fn epoch_secs() -> u64 {
+fn epoch_secs() -> Result<u64> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
+        .map(|d| d.as_secs())
+        .map_err(|e| Error::msg(format!("system time before unix epoch: {e}")))
 }
 
 /// BLAKE3 hex digest of arbitrary bytes (32 bytes → 64 hex chars).
@@ -105,22 +105,18 @@ impl GitLock {
         let ref_name = format!("refs/locks/{lock_name}");
 
         // Resolve HEAD to a commit SHA so we have a value to store.
-        let head_sha = Command::new("git")
+        let output = Command::new("git")
             .args(["rev-parse", "HEAD"])
             .current_dir(repo)
             .output()
-            .ok()
-            .and_then(|o| {
-                if o.status.success() {
-                    Some(String::from_utf8_lossy(&o.stdout).trim().to_owned())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_else(|| {
-                // Bare / empty repo: use a placeholder SHA.
-                "0000000000000000000000000000000000000000".to_owned()
-            });
+            .map_err(|e| Error::msg(format!("git rev-parse HEAD failed: {e}")))?;
+
+        let head_sha = if output.status.success() {
+            String::from_utf8_lossy(&output.stdout).trim().to_owned()
+        } else {
+            // Bare / empty repo: use a placeholder SHA.
+            "0000000000000000000000000000000000000000".to_owned()
+        };
 
         // `git update-ref <ref> <new-value> <expected-value>` is an atomic CAS.
         // The all-zeros OID is git's sentinel meaning "ref must not exist".
@@ -247,7 +243,7 @@ impl GitAuditLedger {
             .map_err(|e| Error::msg(format!("serialize payload: {e}")))?;
 
         let entry = AuditEntry {
-            timestamp: epoch_secs(),
+            timestamp: epoch_secs()?,
             event_type: event_type.to_owned(),
             payload_hash: blake3_hex(&canonical),
             payload: payload.clone(),
@@ -302,11 +298,10 @@ impl GitAuditLedger {
         }
 
         let text = String::from_utf8_lossy(&output.stdout);
-        let entries = text
-            .lines()
-            .filter(|l| !l.trim().is_empty())
-            .filter_map(|l| serde_json::from_str::<AuditEntry>(l).ok())
-            .collect();
+        let mut entries = Vec::new();
+        for l in text.lines().filter(|l| !l.trim().is_empty()) {
+            entries.push(serde_json::from_str::<AuditEntry>(l)?);
+        }
 
         Ok(entries)
     }

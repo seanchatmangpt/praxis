@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Hand-written acceptance harness for the chatman engine lanes.
 //!
 //! ggen never touches this file. It owns three things:

@@ -62,17 +62,17 @@ pub fn compile_condition(condition: &HookCondition) -> CompiledCondition {
     }
 }
 
-fn delta_touches(delta: &GraphDelta, var: &str) -> bool {
-    delta
-        .additions
-        .iter()
-        .chain(delta.removals.iter())
-        .any(|t| {
-            let p_str = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
-            let clean_p = clean_term(&p_str);
-            let clean_v = clean_term(var);
-            clean_p == clean_v
-        })
+fn delta_touches(delta: &GraphDelta, var: &str) -> Result<bool, String> {
+    for t in delta.additions.iter().chain(delta.removals.iter()) {
+        let p_str = Encoder::decode(&t.p.to_encoded())
+            .ok_or_else(|| format!("failed to decode predicate in delta: {:?}", t.p))?;
+        let clean_p = clean_term(&p_str);
+        let clean_v = clean_term(var);
+        if clean_p == clean_v {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 /// Evaluates CompiledHooks against the current state and delta.
@@ -103,19 +103,28 @@ pub fn evaluate_condition(
                 .materialize()
                 .map_err(|e| format!("materialize error: {} (rules: {})", e, n3_rules))?;
             let goal_lower = goal.to_lowercase();
-            let fired = temp_store.triple_index.triples.iter().any(|t| {
-                let p_str = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
+            let mut fired = false;
+            for t in &temp_store.triple_index.triples {
+                let p_str = Encoder::decode(&t.p.to_encoded())
+                    .ok_or_else(|| "failed to decode predicate in Datalog goal evaluation".to_string())?;
                 let cleaned_p = clean_term(&p_str);
                 let is_type = cleaned_p == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
                     || cleaned_p == "a";
                 if is_type {
-                    let o_str = Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
+                    let o_str = Encoder::decode(&t.o.to_encoded())
+                        .ok_or_else(|| "failed to decode object in Datalog goal evaluation".to_string())?;
                     let clean_o = clean_term(&o_str).to_lowercase();
-                    clean_o == goal_lower
+                    if clean_o == goal_lower {
+                        fired = true;
+                        break;
+                    }
                 } else {
-                    cleaned_p.to_lowercase() == goal_lower
+                    if cleaned_p.to_lowercase() == goal_lower {
+                        fired = true;
+                        break;
+                    }
                 }
-            });
+            }
             let diag = TriggerDiagnostic {
                 hook_iri: hook_iri.to_string(),
                 conforms: !fired,
@@ -134,7 +143,7 @@ pub fn evaluate_condition(
             Ok((fired, Some(diag)))
         }
         HookCondition::Delta { var } => {
-            let fired = delta_touches(delta, var);
+            let fired = delta_touches(delta, var)?;
             let diag = TriggerDiagnostic {
                 hook_iri: hook_iri.to_string(),
                 conforms: !fired,

@@ -1,0 +1,136 @@
+# f26-ontology-self-play-pack ontology — F26 "Public Ontology Self Play"
+# (V12-026) provenance vocabulary. Namespace is unique to this pack,
+# following the convention set by shape-admission-pack/otel-weaver-pack's
+# `https://ggen.io/ontology/<pack>#`.
+#
+# Models the survey's D1-D9 data model (9 RDF entity types linked via
+# prov:wasDerivedFrom into a single chain from OntologyDimensionCatalog to
+# ConstructedRelation) as classes plus explicit DerivationEdge individuals
+# describing the provenance DAG shape, the self-play lifecycle's
+# DIMENSIONS_SELECTED -> ... -> CAPITALIZED ordered LifecycleState
+# individuals (REFUSED is a LifecycleState too, but reached only via the two
+# RefusalExit off-ramps below, not by pipeline ordinal), and the family's
+# three exit-evidence flag names. This is vocabulary/documentation data
+# only -- no scenario-mutation, closure, admission, planning, simulation,
+# mining, or capitalization *logic* lives here; that is hand-written in
+# crates/multifractal-workflow/src/f26_ontology_self_play.rs (real, reused
+# code for the contraction/admission/planning/simulation stages; honest
+# typed-refusal stubs for scenario generation, discovery mining, and
+# CONSTRUCT capitalization, per the family survey's HAND_WRITE_REQUIRED
+# classification for those three).
+
+@prefix ospl: <https://ggen.io/ontology/f26-ontology-self-play#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+# ── Meta classes ─────────────────────────────────────────────────────
+
+ospl:DerivationEdge
+    a            rdfs:Class ;
+    rdfs:label   "DerivationEdge" ;
+    rdfs:comment "A prov:wasDerivedFrom edge between two D1-D9 entity-type classes." .
+
+ospl:LifecycleState
+    a            rdfs:Class ;
+    rdfs:label   "LifecycleState" ;
+    rdfs:comment "One state in the F26 self-play state machine." .
+
+ospl:RefusalExit
+    a            rdfs:Class ;
+    rdfs:label   "RefusalExit" ;
+    rdfs:comment "A state from which the pipeline may exit directly to REFUSED instead of advancing to the next ordinal state." .
+
+ospl:ExitEvidenceFlag
+    a            rdfs:Class ;
+    rdfs:label   "ExitEvidenceFlag" ;
+    rdfs:comment "One of the family's named exit-evidence flags asserted by a successful or refused pipeline run." .
+
+ospl:fromClass    a rdf:Property ; rdfs:domain ospl:DerivationEdge ; rdfs:range rdfs:Class .
+ospl:toClass      a rdf:Property ; rdfs:domain ospl:DerivationEdge ; rdfs:range rdfs:Class .
+ospl:stateName    a rdf:Property ; rdfs:domain ospl:LifecycleState ; rdfs:range xsd:string .
+ospl:ordinal      a rdf:Property ; rdfs:domain ospl:LifecycleState ; rdfs:range xsd:integer .
+ospl:fromState    a rdf:Property ; rdfs:domain ospl:RefusalExit ; rdfs:range xsd:string .
+ospl:flagName     a rdf:Property ; rdfs:domain ospl:ExitEvidenceFlag ; rdfs:range xsd:string .
+
+# ── D1-D9 entity types (pipeline order) ──────────────────────────────
+
+ospl:OntologyDimensionCatalog
+    a            rdfs:Class ;
+    rdfs:label   "OntologyDimensionCatalog" ;
+    rdfs:comment "D1: indexes public-ontology dimensions and a scenario-mutation profile; the Ontology Dimension Catalog stage's output." .
+
+ospl:ScenarioGraph
+    a            rdfs:Class ;
+    rdfs:label   "ScenarioGraph" ;
+    rdfs:comment "D2: a candidate RDF world produced by mutating catalog dimensions; the Scenario Generator's output." .
+
+ospl:ClosureDelta
+    a            rdfs:Class ;
+    rdfs:label   "ClosureDelta" ;
+    rdfs:comment "D3: the Datalog/N3 contraction's derived-triple delta over a ScenarioGraph." .
+
+ospl:AdmissionDecision
+    a            rdfs:Class ;
+    rdfs:label   "AdmissionDecision" ;
+    rdfs:comment "D4: Shape Admission's admit/refuse verdict over a contracted world (refusal type: SelfPlayScenarioRefused)." .
+
+ospl:Plan
+    a            rdfs:Class ;
+    rdfs:label   "Plan" ;
+    rdfs:comment "D5: the PDDL Planner's goal-closure plan over an admitted world." .
+
+ospl:SimulatedWorkflow
+    a            rdfs:Class ;
+    rdfs:label   "SimulatedWorkflow" ;
+    rdfs:comment "D6: the POWL Simulator's manufactured workflow from a Plan." .
+
+ospl:ScenarioReceipt
+    a            rdfs:Class ;
+    rdfs:label   "ScenarioReceipt" ;
+    rdfs:comment "D7: the Synthetic Hook Surface's execution receipt over a SimulatedWorkflow." .
+
+ospl:DiscoveryPattern
+    a            rdfs:Class ;
+    rdfs:label   "DiscoveryPattern" ;
+    rdfs:comment "D8: the Discovery Miner's recurrent-structure pattern mined from one or more ScenarioReceipts." .
+
+ospl:ConstructedRelation
+    a            rdfs:Class ;
+    rdfs:label   "ConstructedRelation" ;
+    rdfs:comment "D9: the CONSTRUCT Capitalizer's admitted, receipt-bound, replay-verified relation derived from a DiscoveryPattern." .
+
+# ── Provenance edges (prov:wasDerivedFrom direction: subject <- object) ─
+
+[] a ospl:DerivationEdge ; ospl:fromClass ospl:ScenarioGraph         ; ospl:toClass ospl:OntologyDimensionCatalog .
+[] a ospl:DerivationEdge ; ospl:fromClass ospl:ClosureDelta          ; ospl:toClass ospl:ScenarioGraph .
+[] a ospl:DerivationEdge ; ospl:fromClass ospl:AdmissionDecision     ; ospl:toClass ospl:ClosureDelta .
+[] a ospl:DerivationEdge ; ospl:fromClass ospl:Plan                  ; ospl:toClass ospl:AdmissionDecision .
+[] a ospl:DerivationEdge ; ospl:fromClass ospl:SimulatedWorkflow     ; ospl:toClass ospl:Plan .
+[] a ospl:DerivationEdge ; ospl:fromClass ospl:ScenarioReceipt       ; ospl:toClass ospl:SimulatedWorkflow .
+[] a ospl:DerivationEdge ; ospl:fromClass ospl:DiscoveryPattern      ; ospl:toClass ospl:ScenarioReceipt .
+[] a ospl:DerivationEdge ; ospl:fromClass ospl:ConstructedRelation   ; ospl:toClass ospl:DiscoveryPattern .
+
+# ── Self-play lifecycle states (ordinal order = pipeline order) ────────
+
+ospl:StateDimensionsSelected a ospl:LifecycleState ; ospl:stateName "DIMENSIONS_SELECTED" ; ospl:ordinal 0 .
+ospl:StateWorldGenerated     a ospl:LifecycleState ; ospl:stateName "WORLD_GENERATED"     ; ospl:ordinal 1 .
+ospl:StateContracted         a ospl:LifecycleState ; ospl:stateName "CONTRACTED"          ; ospl:ordinal 2 .
+ospl:StateAdmitted           a ospl:LifecycleState ; ospl:stateName "ADMITTED"            ; ospl:ordinal 3 .
+ospl:StatePlanned            a ospl:LifecycleState ; ospl:stateName "PLANNED"             ; ospl:ordinal 4 .
+ospl:StateSimulated          a ospl:LifecycleState ; ospl:stateName "SIMULATED"           ; ospl:ordinal 5 .
+ospl:StateMined              a ospl:LifecycleState ; ospl:stateName "MINED"               ; ospl:ordinal 6 .
+ospl:StateCapitalized        a ospl:LifecycleState ; ospl:stateName "CAPITALIZED"         ; ospl:ordinal 7 .
+ospl:StateRefused            a ospl:LifecycleState ; ospl:stateName "REFUSED"             ; ospl:ordinal 8 .
+
+# ── Refusal off-ramps (per survey: "REFUSED exits from WORLD_GENERATED and PLANNED") ─
+
+[] a ospl:RefusalExit ; ospl:fromState "WORLD_GENERATED" .
+[] a ospl:RefusalExit ; ospl:fromState "PLANNED" .
+
+# ── Exit-evidence flags ──────────────────────────────────────────────
+
+[] a ospl:ExitEvidenceFlag ; ospl:flagName "PUBLIC_ONTOLOGY_SELF_PLAY_PROVEN" .
+[] a ospl:ExitEvidenceFlag ; ospl:flagName "IMPOSSIBLE_SCENARIO_PREPLAN_REFUSAL" .
+[] a ospl:ExitEvidenceFlag ; ospl:flagName "SELF_PLAY_DISCOVERY_CAPITALIZED" .

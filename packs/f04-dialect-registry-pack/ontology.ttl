@@ -1,0 +1,137 @@
+# f04-dialect-registry-pack ontology — V12-004 (F04 "GraphLaw Dialect
+# Registry") individuals for the multifractal-workflow crate's own dialect
+# catalog and lifecycle ladder.
+#
+# REUSE_ADAPT provenance: the vocabulary shape (eight mandatory fields per
+# dreg:DialectEntry) and a subset of the entries are adapted from the real,
+# committed `crates/cng/hooks/dialect-registry.ttl` (PROJ-613); reduced to
+# four representative dialects (kept small, per this task's REUSE_ADAPT
+# guidance) rather than duplicating all fourteen, and re-namespaced under
+# `mfwreg:` (distinct IRI from cng's private `dreg:`) so the two registries
+# never collide if ever loaded into the same oxigraph store. The
+# `executableRouting` values are marked "not yet bound" wherever this crate
+# (multifractal-workflow) has not itself wired a routing target — unlike
+# cng's registry, which names cng's own live routes, this is honest about
+# what V12-004's Wire-phase-1 pass has NOT yet connected.
+#
+# The 7-state DialectLifecycleState ladder is new content for this family
+# (F04-L5), not adapted from cng's dreg:HookStanding (which is a different,
+# 8-state, hook-scoped lifecycle — see f04_dialect_registry.rs module docs).
+
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix mfwreg: <http://seanchatmangpt.github.io/praxis/multifractal-workflow/dialect-registry#> .
+
+#################################################################
+# Vocabulary
+#################################################################
+
+mfwreg: a owl:Ontology ;
+  rdfs:label "multifractal-workflow F04 Dialect Registry vocabulary" ;
+  rdfs:comment "Registry of execution dialects admitted by the multifractal-workflow crate (V12-004). Every mfwreg:DialectEntry must carry exactly the eight registry properties; see registry/dialect-registry.shape.ttl for the closed SHACL law." .
+
+mfwreg:DialectEntry a rdfs:Class ;
+  rdfs:label "Dialect registry entry" ;
+  rdfs:comment "A registered dialect. Must carry exactly the eight properties: admittedInputs, manufacturedOutputs, authorityBoundary, quarantineBoundary, refusalVocabulary, receiptSchema, replaySemantics, executableRouting." .
+
+mfwreg:admittedInputs a rdf:Property ; rdfs:domain mfwreg:DialectEntry ;
+  rdfs:label "admitted inputs" ; rdfs:comment "What input artifacts this dialect admits into the engine." .
+mfwreg:manufacturedOutputs a rdf:Property ; rdfs:domain mfwreg:DialectEntry ;
+  rdfs:label "manufactured outputs" ; rdfs:comment "What artifacts execution of this dialect manufactures." .
+mfwreg:authorityBoundary a rdf:Property ; rdfs:domain mfwreg:DialectEntry ;
+  rdfs:label "authority boundary" ; rdfs:comment "The extent of authority this dialect's results carry." .
+mfwreg:quarantineBoundary a rdf:Property ; rdfs:domain mfwreg:DialectEntry ;
+  rdfs:label "quarantine boundary" ; rdfs:comment "Where this dialect's results must stay quarantined." .
+mfwreg:refusalVocabulary a rdf:Property ; rdfs:domain mfwreg:DialectEntry ;
+  rdfs:label "refusal vocabulary" ; rdfs:comment "The typed refusal variants this dialect can raise." .
+mfwreg:receiptSchema a rdf:Property ; rdfs:domain mfwreg:DialectEntry ;
+  rdfs:label "receipt schema" ; rdfs:comment "The receipt evidence schema produced for executions of this dialect." .
+mfwreg:replaySemantics a rdf:Property ; rdfs:domain mfwreg:DialectEntry ;
+  rdfs:label "replay semantics" ; rdfs:comment "How executions of this dialect are deterministically replayed and verified." .
+mfwreg:executableRouting a rdf:Property ; rdfs:domain mfwreg:DialectEntry ;
+  rdfs:label "executable routing" ; rdfs:comment "Which engine route/adapter executes this dialect." .
+
+#################################################################
+# Registry entries (4 of the atlas's dialects; representative subset)
+#################################################################
+
+mfwreg:datalog a mfwreg:DialectEntry ;
+  rdfs:label "Datalog" ;
+  rdfs:comment "Stratified Datalog rule dialect for deterministic fact materialization to fixpoint." ;
+  mfwreg:admittedInputs "Stratified Datalog rules over admitted RDF facts" ;
+  mfwreg:manufacturedOutputs "Derived facts materialized to fixpoint via semi-naive evaluation" ;
+  mfwreg:authorityBoundary "Derived facts are authoritative inside the admitted graph; no external actuation" ;
+  mfwreg:quarantineBoundary "None beyond graph admission; rules with unsupported constructs are refused at compile" ;
+  mfwreg:refusalVocabulary "UnsupportedFeature, UnknownVocabulary, stratification-cycle refusals" ;
+  mfwreg:receiptSchema "BLAKE3 receipt over canonical sorted N-Quads of the materialized closure" ;
+  mfwreg:replaySemantics "Deterministic re-materialization from admitted inputs; byte-identical receipt required" ;
+  mfwreg:executableRouting "not yet bound: praxis-graphlaw reasoner materialization route is the candidate target (V12-004 Wire-phase-2)" .
+
+mfwreg:shacl a mfwreg:DialectEntry ;
+  rdfs:label "SHACL" ;
+  rdfs:comment "SHACL shape validation dialect; closed-shape law packs gate admission. This registry's own closed-shape law (dialect-registry.shape.ttl) is itself an instance of this dialect." ;
+  mfwreg:admittedInputs "SHACL NodeShapes/PropertyShapes (closed-shape law packs) plus data graphs to validate" ;
+  mfwreg:manufacturedOutputs "Validation reports (conforms flag plus violation results as facts)" ;
+  mfwreg:authorityBoundary "Validation verdicts gate admission; a violation blocks the gated operation" ;
+  mfwreg:quarantineBoundary "Shapes cannot mutate data; validation is read-only over the target graph" ;
+  mfwreg:refusalVocabulary "DialectRegistryRefused::MissingField, DialectRegistryRefused::ClosedShapeViolation" ;
+  mfwreg:receiptSchema "BLAKE3 receipt over the canonical validation report facts" ;
+  mfwreg:replaySemantics "Re-validation of the same data and shapes graphs yields an identical report" ;
+  mfwreg:executableRouting "bound: f04_dialect_registry::validate_registry_turtle (this module, live)" .
+
+mfwreg:sparql-select a mfwreg:DialectEntry ;
+  rdfs:label "SPARQL SELECT" ;
+  rdfs:comment "Read-only SPARQL SELECT query dialect with deterministic ordering discipline." ;
+  mfwreg:admittedInputs "SPARQL SELECT queries (file-shipped .rq, never inline) over admitted graphs" ;
+  mfwreg:manufacturedOutputs "Solution bindings (rows), deterministically ordered via explicit ORDER BY" ;
+  mfwreg:authorityBoundary "Read-only; results feed metrics and gates but never mutate the graph" ;
+  mfwreg:quarantineBoundary "Queries without deterministic ordering are nonconforming to house style" ;
+  mfwreg:refusalVocabulary "Query-parse and unknown-vocabulary refusals" ;
+  mfwreg:receiptSchema "BLAKE3 receipt over the ordered result rows in canonical serialization" ;
+  mfwreg:replaySemantics "Re-execution over the same fixed graph yields byte-identical ordered rows" ;
+  mfwreg:executableRouting "bound: registry/queries/*.rq executed via oxigraph in validate_registry_turtle" .
+
+mfwreg:n3 a mfwreg:DialectEntry ;
+  rdfs:label "N3" ;
+  rdfs:comment "Notation3 rule dialect. Quarantined to the cold route; mirrors the praxis-graphlaw chatman router's N3ActuationRefused law." ;
+  mfwreg:admittedInputs "N3 rules and formulas over admitted graphs" ;
+  mfwreg:manufacturedOutputs "Derived facts in a quarantined cold-route graph" ;
+  mfwreg:authorityBoundary "Advisory only; N3 derivations never carry actuation authority" ;
+  mfwreg:quarantineBoundary "cold route only; never actuation" ;
+  mfwreg:refusalVocabulary "N3ActuationRefused (chatman router), unsupported-builtin refusals" ;
+  mfwreg:receiptSchema "BLAKE3 receipt over sorted cold-route derivations" ;
+  mfwreg:replaySemantics "Deterministic cold-route re-derivation from the same inputs" ;
+  mfwreg:executableRouting "not yet bound: crates/praxis-graphlaw/src/chatman/router.rs DialectRouter is the candidate target (V12-004 Wire-phase-2; see F06 N3 Quarantine family for the fuller bridge)" .
+
+#################################################################
+# DialectLifecycleState ladder (F04-L5): fixed 7-state ladder plus the
+# off-ladder REFUSED terminal, reachable only from LOADED or
+# AUTHORITY_BOUND (enforced in hand-written transition() code, not here --
+# this ontology only carries the state identity and total order).
+#################################################################
+
+mfwreg:DialectLifecycleState a rdfs:Class ;
+  rdfs:label "Dialect lifecycle state" ;
+  rdfs:comment "Lifecycle state of a dialect registry entry. Ordered via mfwreg:stateOrder: DECLARED < LOADED < SHAPE_VALID < AUTHORITY_BOUND < RECEIPT_BOUND < REPLAY_BOUND < ACTIVE; REFUSED is the off-ladder terminal (order -1), reachable only from LOADED or AUTHORITY_BOUND." .
+
+mfwreg:lifecycleState a rdf:Property ;
+  rdfs:range mfwreg:DialectLifecycleState ;
+  rdfs:label "lifecycle state" ;
+  rdfs:comment "Attaches a DialectLifecycleState to a dialect registry entry IRI." .
+
+mfwreg:stateOrder a rdf:Property ;
+  rdfs:domain mfwreg:DialectLifecycleState ;
+  rdfs:range xsd:integer ;
+  rdfs:label "state order" ;
+  rdfs:comment "Position of the state in the lifecycle ladder; REFUSED carries -1 (off-ladder terminal)." .
+
+mfwreg:DECLARED       a mfwreg:DialectLifecycleState ; rdfs:label "DECLARED" ;       mfwreg:stateOrder 0 ; rdfs:comment "Entry exists as a declaration only (not yet loaded from RDF)." .
+mfwreg:LOADED         a mfwreg:DialectLifecycleState ; rdfs:label "LOADED" ;         mfwreg:stateOrder 1 ; rdfs:comment "Entry Turtle parsed into the store; not yet shape-checked." .
+mfwreg:SHAPE_VALID    a mfwreg:DialectLifecycleState ; rdfs:label "SHAPE_VALID" ;    mfwreg:stateOrder 2 ; rdfs:comment "Entry passed the closed-shape SHACL law (no missing field, no closedness violation)." .
+mfwreg:AUTHORITY_BOUND a mfwreg:DialectLifecycleState ; rdfs:label "AUTHORITY_BOUND" ; mfwreg:stateOrder 3 ; rdfs:comment "Entry's authorityBoundary/quarantineBoundary have been bound to an enforcement target." .
+mfwreg:RECEIPT_BOUND  a mfwreg:DialectLifecycleState ; rdfs:label "RECEIPT_BOUND" ;  mfwreg:stateOrder 4 ; rdfs:comment "Entry's receiptSchema has been bound to a computed receipt path." .
+mfwreg:REPLAY_BOUND   a mfwreg:DialectLifecycleState ; rdfs:label "REPLAY_BOUND" ;   mfwreg:stateOrder 5 ; rdfs:comment "Entry's replaySemantics have been bound to a verified replay surface." .
+mfwreg:ACTIVE         a mfwreg:DialectLifecycleState ; rdfs:label "ACTIVE" ;         mfwreg:stateOrder 6 ; rdfs:comment "Entry is fully bound and admitted for live executableRouting." .
+mfwreg:REFUSED        a mfwreg:DialectLifecycleState ; rdfs:label "REFUSED" ;        mfwreg:stateOrder -1 ; rdfs:comment "Terminal off-ladder state: a typed DialectRegistryRefused was raised at the LOADED or AUTHORITY_BOUND gate." .

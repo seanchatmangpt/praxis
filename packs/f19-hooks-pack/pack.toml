@@ -1,0 +1,4 @@
+[pack]
+name = "f19-hooks-pack"
+version = "0.1.0"
+description = "Generates the F19 Hook Registry and Machine-First Actuation (V12-019) L6 PROV-chain entity catalog for crates/multifractal-workflow/src/f19_hooks_generated.rs, from mfwhook:ProvChainEntity individuals in this pack's ontology (HookDeclaration -> HookShapeReport -> ActionEffect -> CapabilityBinding -> ExecutionClass -> RecoveryPolicy -> HookSchedule -> HookReceipt). Pure data projection only -- the real SHACL catalog reuse, capability matcher, execution classifier, 8-state HookResolutionState lifecycle, and HookResolutionRefused taxonomy are hand-written in f19_hooks.rs, not generated."

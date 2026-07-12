@@ -764,8 +764,8 @@ fn test_b6_gating_refusal_deep_rollback() {
         .load_triples("ex:Node <http://example.org/start> 'go' .", Syntax::Turtle)
         .unwrap();
 
-    let inferred = store.materialize().unwrap();
-    assert!(inferred.is_empty());
+    let err = store.materialize().unwrap_err();
+    assert!(err.contains("refused by hook 'deep_3'"));
     // Ensure both step1 and step2 are completely rolled back
     assert_not_contains_triple(&store, "Node", "step1", "yes");
     assert_not_contains_triple(&store, "Node", "step2", "yes");
@@ -810,14 +810,14 @@ fn test_b6_multi_strata_evaluation() {
             
         ex:strat_action a kh:Action ;
             kh:handler <http://seanchatmangpt.github.io/praxis/handler#sparql-construct> ;
-            kh:query "CONSTRUCT { ?s <http://example.org/stratum1> 'done' } WHERE { ?s <http://example.org/input> ?any }" .
+            kh:query "CONSTRUCT { ?s <http://example.org/stratum1> 'done'^^<http://www.w3.org/2001/XMLSchema#string> } WHERE { ?s <http://example.org/input> ?any }" .
     "#;
     store.load_hook_pack(hook_pack).unwrap();
-    // Add Datalog rule to stratum 2: { ?x :stratum1 'done' } => { ?x :stratum2 'complete' }
-    store.load_rules("{ ?x <http://example.org/stratum1> 'done' } => { ?x <http://example.org/stratum2> 'complete' } .").unwrap();
+    // Add Datalog rule to stratum 2: { ?x :stratum1 "done" } => { ?x :stratum2 "complete" }
+    store.load_rules("{ ?x <http://example.org/stratum1> \"done\" } => { ?x <http://example.org/stratum2> \"complete\" } .").unwrap();
     store
         .load_triples(
-            "ex:Node <http://example.org/input> 'start' .",
+            "<http://example.org/Node> <http://example.org/input> \"start\" .",
             Syntax::Turtle,
         )
         .unwrap();

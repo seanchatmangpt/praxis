@@ -1,0 +1,137 @@
+# f22-recovery-pack ontology -- V12-022 (F22 "Timeout Retry Escalation and
+# Compensation") L6 PROV-chain entity catalog, L5 state-machine catalog, and
+# refusal catalog for the multifractal-workflow crate's recovery pipeline.
+#
+# Per the F22 family survey (MIXED verdict): this ontology is the
+# GGEN_GENERATABLE slice only -- mechanical catalog data, not algorithmic
+# logic. `mfwrec:realizedBy` on each `ProvChainEntity`, `mfwrec:status` on
+# each `RefusalKind`, and the L5 state catalog's own doc comment are honest
+# self-reports matching f22_compensation.rs's module documentation at the
+# time this ontology was written: REAL entities are unchanged re-exports of
+# already-tested `praxis_graphlaw::chatman::compensation` code (verified this
+# session: `just praxis-graphlaw-test-lib 'test(chatman::compensation)'`);
+# NOT_YET_IMPLEMENTED entities have a real Rust data-carrier struct but no
+# stage function that produces one from a live invocation -- the stage
+# function always returns `F22Refusal::NotYetImplemented` rather than faking
+# success. If f22_compensation.rs's real/stub boundary moves, this ontology
+# must be re-edited to match -- it is not auto-derived from the Rust source.
+
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:   <http://www.w3.org/ns/prov#> .
+@prefix mfwrec: <http://seanchatmangpt.github.io/praxis/multifractal-workflow/recovery#> .
+
+#################################################################
+# Vocabulary
+#################################################################
+
+mfwrec: a owl:Ontology ;
+  rdfs:label "multifractal-workflow F22 Timeout Retry Escalation and Compensation vocabulary" ;
+  rdfs:comment "L6 provenance chain (FailureObservation -> RetryPolicy -> EscalationPolicy -> CompensationKind -> CompensationWorkflow -> RecoveryDispatch -> HistoryEntry -> RecoveryReceipt), L5 state-machine catalog (FAILURE_OBSERVED..BLOCKED plus REFUSED), and refusal catalog for the recovery pipeline (V12-022)." .
+
+mfwrec:ProvChainEntity a rdfs:Class ;
+  rdfs:label "PROV chain entity" ;
+  rdfs:comment "One RDF entity in F22's L6 provenance chain. Ordered by mfwrec:chainOrder; the chain is a straight line (each entity prov:wasDerivedFrom exactly its predecessor), matching the atlas's own linear L2 component pipeline for this family." .
+
+mfwrec:chainOrder a rdf:Property ; rdfs:domain mfwrec:ProvChainEntity ; rdfs:range xsd:integer ;
+  rdfs:label "chain order" ; rdfs:comment "1-indexed position in the F22 L6 provenance chain." .
+mfwrec:derivedFromEntity a rdf:Property ; rdfs:domain mfwrec:ProvChainEntity ; rdfs:range xsd:string ;
+  rdfs:label "derived from entity" ; rdfs:comment "Local name of the predecessor mfwrec:ProvChainEntity this entity's prov:wasDerivedFrom edge points to; \"none\" for the chain head." .
+mfwrec:pipelineStage a rdf:Property ; rdfs:domain mfwrec:ProvChainEntity ; rdfs:range xsd:string ;
+  rdfs:label "pipeline stage" ; rdfs:comment "Name of the atlas F22 L2 pipeline component this entity is the record of (Timeout Detector, Retry Policy, Escalation Resolver, Compensation Catalog, Compensation Manufacturer, Broker Recovery Dispatch, Append-only History, Recovery Receipt)." .
+mfwrec:realizedBy a rdf:Property ; rdfs:domain mfwrec:ProvChainEntity ; rdfs:range xsd:string ;
+  rdfs:label "realized by" ; rdfs:comment "Honest self-report of what (if anything) in f22_compensation.rs realizes this entity today." .
+
+mfwrec:RecoveryStateEntity a rdfs:Class ;
+  rdfs:label "Recovery state" ;
+  rdfs:comment "One state of F22's L5 state machine. The states themselves are declared as a real Rust enum (RecoveryState) in f22_compensation.rs; no transition function enforces the legal edges below yet (HAND_WRITE_REQUIRED, not implemented)." .
+
+mfwrec:stateOrder a rdf:Property ; rdfs:domain mfwrec:RecoveryStateEntity ; rdfs:range xsd:integer ;
+  rdfs:label "state order" ; rdfs:comment "1-indexed position in the L5 lifecycle listing (REFUSED is listed last; it is reachable from two states, not a single linear successor)." .
+mfwrec:legalTransitions a rdf:Property ; rdfs:domain mfwrec:RecoveryStateEntity ; rdfs:range xsd:string ;
+  rdfs:label "legal transitions" ; rdfs:comment "Comma-separated names of states this state may lawfully transition to per the atlas L5 diagram; \"none (terminal)\" for BLOCKED and REFUSED." .
+
+mfwrec:RefusalKind a rdfs:Class ;
+  rdfs:label "Refusal kind" ;
+  rdfs:comment "One variant of F22Refusal." .
+
+mfwrec:meaning a rdf:Property ; rdfs:domain mfwrec:RefusalKind ;
+  rdfs:label "meaning" ; rdfs:comment "What condition triggers this refusal." .
+mfwrec:invariant a rdf:Property ; rdfs:domain mfwrec:RefusalKind ;
+  rdfs:label "invariant" ; rdfs:comment "Which F22 family invariant (from the atlas survey) this refusal enforces." .
+mfwrec:status a rdf:Property ; rdfs:domain mfwrec:RefusalKind ; rdfs:range xsd:string ;
+  rdfs:label "status" ; rdfs:comment "REAL (this session verified the gate actually runs and can be returned), DECLARED_ONLY (the variant is a real, typed enum member matching the atlas's own vocabulary, but no real logic path returns it yet), or NOT_YET_IMPLEMENTED." .
+
+#################################################################
+# L6 provenance chain (8 entities, fixed order, D1-D8 in the atlas)
+#################################################################
+
+mfwrec:FailureObservation a mfwrec:ProvChainEntity ; rdfs:label "FailureObservation" ; mfwrec:chainOrder 1 ;
+  mfwrec:pipelineStage "Timeout Detector" ; mfwrec:derivedFromEntity "none" ;
+  mfwrec:realizedBy "FailureObservation { remediates: PriorActuationRef, observed_at_tick, failure_kind } is a real Rust data-carrier struct; detect_timeout() that would produce one from a live invocation always returns F22Refusal::NotYetImplemented -- no live invocation-tick clock or still-running determination exists anywhere in praxis-graphlaw or this crate (repo-wide grep, survey time)." .
+
+mfwrec:RetryPolicy a mfwrec:ProvChainEntity ; rdfs:label "RetryPolicy" ; mfwrec:chainOrder 2 ;
+  mfwrec:pipelineStage "Retry Policy" ; mfwrec:derivedFromEntity "FailureObservation" ;
+  mfwrec:realizedBy "RetryPolicy { max_attempts, backoff_ticks } is a real Rust data-carrier struct; evaluate_retry_policy() that would bound a real retry decision against a FailureObservation always returns F22Refusal::NotYetImplemented -- no bounded-retry runtime state tracker exists anywhere in the repo (repo-wide grep, survey time)." .
+
+mfwrec:EscalationPolicy a mfwrec:ProvChainEntity ; rdfs:label "EscalationPolicy" ; mfwrec:chainOrder 3 ;
+  mfwrec:pipelineStage "Escalation Resolver" ; mfwrec:derivedFromEntity "RetryPolicy" ;
+  mfwrec:realizedBy "EscalationPolicy { escalation_threshold, escalate_to_role } is a real Rust data-carrier struct; resolve_escalation() always returns F22Refusal::NotYetImplemented -- no escalation-threshold policy engine exists anywhere in the repo (repo-wide grep, survey time)." .
+
+mfwrec:CompensationKind a mfwrec:ProvChainEntity ; rdfs:label "CompensationKind" ; mfwrec:chainOrder 4 ;
+  mfwrec:pipelineStage "Compensation Catalog" ; mfwrec:derivedFromEntity "EscalationPolicy" ;
+  mfwrec:realizedBy "Unchanged re-export of praxis_graphlaw::chatman::compensation::CompensationKind (7 PRD-named variants, per-kind field validation). REAL: verified this session via `just praxis-graphlaw-test-lib 'test(chatman::compensation)'`." .
+
+mfwrec:CompensationWorkflow a mfwrec:ProvChainEntity ; rdfs:label "CompensationWorkflow" ; mfwrec:chainOrder 5 ;
+  mfwrec:pipelineStage "Compensation Manufacturer" ; mfwrec:derivedFromEntity "CompensationKind" ;
+  mfwrec:realizedBy "Unchanged re-export of praxis_graphlaw::chatman::compensation::{CompensationWorkflow, manufacture_compensation_workflow} -- sole constructor, BLAKE3 dispatch digest + canonical N-Quads receipt. REAL: verified this session." .
+
+mfwrec:RecoveryDispatch a mfwrec:ProvChainEntity ; rdfs:label "RecoveryDispatch" ; mfwrec:chainOrder 6 ;
+  mfwrec:pipelineStage "Broker Recovery Dispatch" ; mfwrec:derivedFromEntity "CompensationWorkflow" ;
+  mfwrec:realizedBy "praxis_graphlaw::chatman::compensation::CompensationDispatch (re-exported) is a real sealed PASSIVE dispatch envelope (digest + invocation_id), not the ACTIVE broker the atlas names. dispatch_broker_recovery() -- an active broker call that would route a manufactured CompensationWorkflow to a live recovery broker -- always returns F22Refusal::NotYetImplemented; no broker-dispatch caller exists anywhere in the repo (repo-wide grep, survey time)." .
+
+mfwrec:HistoryEntry a mfwrec:ProvChainEntity ; rdfs:label "HistoryEntry" ; mfwrec:chainOrder 7 ;
+  mfwrec:pipelineStage "Append-only History" ; mfwrec:derivedFromEntity "RecoveryDispatch" ;
+  mfwrec:realizedBy "The ledger itself (praxis_graphlaw::chatman::compensation::CompensationLedger, re-exported: append() is its only mutator, no remove/clear/pop) is REAL, verified this session. HistoryEntry as a distinct per-entry record type is a new, real, hand-written struct in f22_compensation.rs (ledger position + workflow reference), not a praxis-graphlaw type." .
+
+mfwrec:RecoveryReceipt a mfwrec:ProvChainEntity ; rdfs:label "RecoveryReceipt" ; mfwrec:chainOrder 8 ;
+  mfwrec:pipelineStage "Recovery Receipt" ; mfwrec:derivedFromEntity "HistoryEntry" ;
+  mfwrec:realizedBy "Unchanged re-export of praxis_graphlaw::chatman::abi::Receipt, reused as-is by CompensationWorkflow::receipt(). REAL; no F22-specific receipt wrapper is added." .
+
+#################################################################
+# L5 state machine catalog (8 declared lifecycle states + REFUSED)
+#################################################################
+
+mfwrec:FAILURE_OBSERVED a mfwrec:RecoveryStateEntity ; rdfs:label "FAILURE_OBSERVED" ; mfwrec:stateOrder 1 ;
+  mfwrec:legalTransitions "RETRY_EVALUATED" .
+mfwrec:RETRY_EVALUATED a mfwrec:RecoveryStateEntity ; rdfs:label "RETRY_EVALUATED" ; mfwrec:stateOrder 2 ;
+  mfwrec:legalTransitions "RETRYING,REFUSED" .
+mfwrec:RETRYING a mfwrec:RecoveryStateEntity ; rdfs:label "RETRYING" ; mfwrec:stateOrder 3 ;
+  mfwrec:legalTransitions "ESCALATING" .
+mfwrec:ESCALATING a mfwrec:RecoveryStateEntity ; rdfs:label "ESCALATING" ; mfwrec:stateOrder 4 ;
+  mfwrec:legalTransitions "COMPENSATION_SELECTED" .
+mfwrec:COMPENSATION_SELECTED a mfwrec:RecoveryStateEntity ; rdfs:label "COMPENSATION_SELECTED" ; mfwrec:stateOrder 5 ;
+  mfwrec:legalTransitions "COMPENSATING,REFUSED" .
+mfwrec:COMPENSATING a mfwrec:RecoveryStateEntity ; rdfs:label "COMPENSATING" ; mfwrec:stateOrder 6 ;
+  mfwrec:legalTransitions "RECOVERED" .
+mfwrec:RECOVERED a mfwrec:RecoveryStateEntity ; rdfs:label "RECOVERED" ; mfwrec:stateOrder 7 ;
+  mfwrec:legalTransitions "BLOCKED" .
+mfwrec:BLOCKED a mfwrec:RecoveryStateEntity ; rdfs:label "BLOCKED" ; mfwrec:stateOrder 8 ;
+  mfwrec:legalTransitions "none (terminal)" .
+mfwrec:REFUSED a mfwrec:RecoveryStateEntity ; rdfs:label "REFUSED" ; mfwrec:stateOrder 9 ;
+  mfwrec:legalTransitions "none (terminal)" .
+
+#################################################################
+# F22Refusal catalog
+#################################################################
+
+mfwrec:recoveryPolicyRefused a mfwrec:RefusalKind ; rdfs:label "RecoveryPolicyRefused" ;
+  mfwrec:meaning "An invalid or unauthorized recovery policy decision was reached (atlas L5: branches from RETRY_EVALUATED and COMPENSATION_SELECTED; atlas L2: REUSE from Retry Policy, Compensation Catalog, and Recovery Receipt stages)." ;
+  mfwrec:invariant "Unauthorized or invalid recovery policy is a typed RecoveryPolicyRefused refusal, never a silent default." ;
+  mfwrec:status "DECLARED_ONLY (the variant is a real, typed F22Refusal member matching the atlas's own vocabulary; no real authority/conformance-check logic path returns it yet, since the stages that would produce a genuine invalid-policy verdict -- Retry Policy, Escalation Resolver -- are themselves NotYetImplemented)" .
+mfwrec:notYetImplemented a mfwrec:RefusalKind ; rdfs:label "NotYetImplemented" ;
+  mfwrec:meaning "A pipeline stage that is genuinely HAND_WRITE_REQUIRED and not yet built (timeout detection, retry evaluation, escalation resolution, active broker dispatch, L5 state transitions, L7 idempotency/correlation gate) was reached; fails loud instead of faking success." ;
+  mfwrec:invariant "Every failed branch terminates in a declared recovery state with receipt and replay -- cannot be honored until these stages exist." ;
+  mfwrec:status "NOT_YET_IMPLEMENTED (by design; this is the honest refusal, not a bug)" .

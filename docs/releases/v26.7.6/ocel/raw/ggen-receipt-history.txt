@@ -1,14 +1,14 @@
 # command: /Users/sac/praxis/target/debug/ggen receipt history
 # cwd: /Users/sac/praxis
-# started_at_utc: 2026-07-06T19:10:44.921Z
-# finished_at_utc: 2026-07-06T19:10:44.950Z
+# started_at_utc: 2026-07-12T08:33:47.684Z
+# finished_at_utc: 2026-07-12T08:33:47.751Z
 # exit_code: 0
 
 ## stdout
 {
-  "head_chain_hash": "35bc4ab0c984ed5198e2609ec771f17a24d020d6e6882c2bb82ea6feab04765a",
-  "records": 8,
-  "valid": true
+  "valid": true,
+  "records": 96,
+  "head_chain_hash": "e12a2d2ce9fe8ace7cdd9e092a08ae0b51ce4dbec0f56eedd72b0ec4b24c7c72"
 }
 
 ## stderr

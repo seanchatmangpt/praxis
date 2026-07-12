@@ -7,21 +7,24 @@ pure SPARQL projection of the compiled `cicd-standing.v1` index. See
 cargo-cicd's `docs/reference/standing-schema.md` for the schema and ladder
 this groups by.
 
-## Artifacts (25), grouped by kind then ladder level
+## Artifacts (30), grouped by kind then ladder level
 
 | id | kind | ladder | standing | scope | path |
 |---|---|---|---|---|---|
 | `bench:bench-ggen` | Bench | 0 | Benchmarked,Discovered |  | `docs/releases/v26.7.6/ocel/raw/bench-ggen.txt` |
 | `bench:bench-graphlaw` | Bench | 0 | Benchmarked,Discovered |  | `docs/releases/v26.7.6/ocel/raw/bench-graphlaw.txt` |
 | `bench:bench-root` | Bench | 0 | Benchmarked,Discovered |  | `docs/releases/v26.7.6/ocel/raw/bench-root.txt` |
-| `autonomic-platform` | Client | 0 | Discovered |  | `clients/autonomic-platform` |
+| `autonomic-platform` | Client | 1 | Builds,Discovered |  | `clients/autonomic-platform` |
 | `doctor-report` | Doc | 1 | Builds,Discovered |  | `cargo run --quiet --bin my-conforming-project -- doctor check --format json` |
 | `claim:CLAIM_PROMOTION_TABLE` | Doc | 0 | Discovered |  | `docs/releases/v26.7.6/CLAIM_PROMOTION_TABLE.md` |
 | `receipt-ledger:receipt-log` | Doc | 0 | Discovered |  | `.ggen-v2/receipt-log.jsonl` |
 | `crate:agent8` | RustCrate | 0 | Discovered |  | `crates/agent8` |
+| `crate:air_core_nif` | RustCrate | 0 | Discovered |  | `apps/air_core/native/air_core_nif` |
 | `crate:audit-tools` | RustCrate | 0 | Discovered |  | `audit-tools` |
 | `crate:chatman-common` | RustCrate | 0 | Discovered |  | `crates/chatman-common` |
+| `crate:cng` | RustCrate | 0 | Discovered |  | `crates/cng` |
 | `crate:ggen` | RustCrate | 0 | Discovered |  | `crates/ggen` |
+| `crate:multifractal-workflow` | RustCrate | 0 | Discovered |  | `crates/multifractal-workflow` |
 | `crate:pddl-index` | RustCrate | 0 | Discovered |  | `crates/pddl-index` |
 | `crate:powl2-decompose` | RustCrate | 0 | Discovered |  | `crates/powl2-decompose` |
 | `crate:praxis-core` | RustCrate | 0 | Discovered |  | `crates/praxis-core` |
@@ -32,8 +35,10 @@ this groups by.
 | `crate:praxis-retrofit` | RustCrate | 0 | Discovered |  | `crates/praxis-retrofit` |
 | `crate:praxis-synthesis` | RustCrate | 0 | Discovered |  | `crates/praxis-synthesis` |
 | `crate:rust-fable-testbed` | RustCrate | 0 | Discovered |  | `crates/rust-fable-testbed` |
+| `crate:wasm4pm-arazzo` | RustCrate | 0 | Discovered |  | `crates/wasm4pm-arazzo` |
 | `ocel:wasm4pm-process-validation` | Workflow | 4 | OcelProven,Discovered |  | `docs/releases/v26.7.6/ocel/wasm4pm-process-validation.json` |
+| `plan:ocel_pass` | Workflow | 3 | Receipted,Discovered |  | `target/plan_run/ocel_pass/plan.json` |
+| `plan:ocel_pass2` | Workflow | 3 | Receipted,Discovered |  | `target/plan_run/ocel_pass2/plan.json` |
 | `ocel:ledger-export.ocel` | Workflow | 0 | Discovered |  | `docs/releases/v26.7.6/ocel/ledger-export.ocel.json` |
 | `ocel:playwright-wasm4pm-validation.ocel` | Workflow | 0 | Discovered |  | `docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json` |
-| `plan-runs:target/plan_run/*/plan.json` | Workflow | 0 | Unseen |  | `target/plan_run/*/plan.json` |
 

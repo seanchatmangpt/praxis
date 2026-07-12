@@ -1,0 +1,95 @@
+# f27-western-electric-pack ontology -- V12-027 (F27 "Western Electric Workflow
+# Genesis").
+#
+# Per the F27 family survey (MIXED verdict): this ontology is the
+# GGEN_GENERATABLE slice only -- the D1-D8 RDF/PROV provenance-chain vocabulary
+# and the ProcessSignalRefused choke-point catalog, both mechanical catalog
+# data, not algorithmic logic. `wego:realizedBy` on each `ProvenanceStage` and
+# `wego:status` on each `RefusalChokePoint` are honest self-reports matching
+# f27_western_electric.rs's own module documentation at the time this ontology
+# was written. If f27_western_electric.rs's real/stub boundary moves, this
+# ontology must be re-edited to match -- it is not auto-derived from the Rust
+# source.
+
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix wego:  <http://seanchatmangpt.github.io/praxis/multifractal-workflow/western-electric#> .
+
+#################################################################
+# Vocabulary
+#################################################################
+
+wego: a owl:Ontology ;
+  rdfs:label "multifractal-workflow F27 Western Electric Workflow Genesis vocabulary" ;
+  rdfs:comment "D1-D8 RDF/PROV provenance chain for V12-027: a control signal never merely alerts a human and never directly accuses a cause -- it creates unfinished diagnostic work. ProcessMeasure -[prov:wasDerivedFrom]-> ControlBaseline -[generates]-> RuleEvaluation -[prov:wasDerivedFrom]-> ProcessShiftSignal -[generates]-> SignalReceipt -[prov:wasDerivedFrom]-> DiagnosticGoal -[generates]-> InvestigationPlan -[prov:wasDerivedFrom]-> InvestigationPOWL." .
+
+wego:ProvenanceStage a rdfs:Class ;
+  rdfs:label "Provenance chain stage" ;
+  rdfs:comment "One node of the D1-D8 provenance chain a manufactured investigation workflow must carry receipts for." .
+
+wego:chainOrder a rdf:Property ; rdfs:domain wego:ProvenanceStage ; rdfs:range xsd:integer ;
+  rdfs:label "chain order" ; rdfs:comment "Position in the fixed provenance chain, 0-indexed (D1=0 .. D8=7)." .
+wego:edgeToNext a rdf:Property ; rdfs:domain wego:ProvenanceStage ; rdfs:range xsd:string ;
+  rdfs:label "edge to next" ; rdfs:comment "PROV-O predicate on the edge from this stage to the next one in chain order (prov:wasDerivedFrom or (this pack's own) generates)." .
+wego:realizedBy a rdf:Property ; rdfs:domain wego:ProvenanceStage ;
+  rdfs:label "realized by" ; rdfs:comment "Honest self-report of what f27_western_electric.rs code (if any) realizes this stage, and whether it is real or not-yet-implemented." .
+
+wego:RefusalChokePoint a rdfs:Class ;
+  rdfs:label "Refusal choke point" ;
+  rdfs:comment "One of the three typed ProcessSignalRefused choke points the family survey names: baseline load, signal admission, POWL construction." .
+
+wego:meaning a rdf:Property ; rdfs:domain wego:RefusalChokePoint ;
+  rdfs:label "meaning" ; rdfs:comment "What condition triggers this refusal." .
+wego:invariant a rdf:Property ; rdfs:domain wego:RefusalChokePoint ;
+  rdfs:label "invariant" ; rdfs:comment "Which F27 family invariant (from the atlas survey) this refusal enforces." .
+wego:status a rdf:Property ; rdfs:domain wego:RefusalChokePoint ; rdfs:range xsd:string ;
+  rdfs:label "status" ; rdfs:comment "REAL (this session verified the gate actually runs and is tested) or NOT_YET_IMPLEMENTED." .
+
+#################################################################
+# D1-D8 provenance chain (8 stages, fixed order)
+#################################################################
+
+wego:processMeasure a wego:ProvenanceStage ; rdfs:label "ProcessMeasure" ; wego:chainOrder 0 ;
+  wego:edgeToNext "prov:wasDerivedFrom (ControlBaseline wasDerivedFrom ProcessMeasure)" ;
+  wego:realizedBy "ProcessMeasure { tick: u64 (logical, no wall clock), label, value } hand-written struct; project_measures_to_chart_points() is the real Measure Projector (HAND_WRITE_REQUIRED per survey, built this pass)." .
+wego:controlBaseline a wego:ProvenanceStage ; rdfs:label "ControlBaseline" ; wego:chainOrder 1 ;
+  wego:edgeToNext "wego:generates (ControlBaseline generates RuleEvaluation)" ;
+  wego:realizedBy "ControlBaseline::admit() computes mean/Bessel-corrected std dev (adapted from wasm4pm::spc::spc_mean/spc_std_dev) and refuses BaselineRefused on <2 samples or any non-finite measure (HAND_WRITE_REQUIRED admission gate, real, tested this pass)." .
+wego:ruleEvaluation a wego:ProvenanceStage ; rdfs:label "RuleEvaluation" ; wego:chainOrder 2 ;
+  wego:edgeToNext "prov:wasDerivedFrom (ProcessShiftSignal wasDerivedFrom RuleEvaluation)" ;
+  wego:realizedBy "evaluate_western_electric_rules() ports Rules 1, 2, and 4 of wasm4pm/wasm4pm/src/spc.rs::check_western_electric_rules (REUSE_ADAPT, real, cited port). Rule 3 (6-point monotone trend) is disclosed NOT ported this pass -- see module doc comment." .
+wego:processShiftSignal a wego:ProvenanceStage ; rdfs:label "ProcessShiftSignal" ; wego:chainOrder 3 ;
+  wego:edgeToNext "wego:generates (ProcessShiftSignal generates SignalReceipt)" ;
+  wego:realizedBy "admit_signal() selects the highest-priority fired SpecialCause (Rule1 > Rule4 > Rule2, priority order taken from lsp-max/src/primitives/spc.rs's own doc comment) and refuses SignalAdmissionRefused if the baseline itself was refused (HAND_WRITE_REQUIRED gate, real, tested this pass)." .
+wego:signalReceipt a wego:ProvenanceStage ; rdfs:label "SignalReceipt" ; wego:chainOrder 4 ;
+  wego:edgeToNext "prov:wasDerivedFrom (DiagnosticGoal wasDerivedFrom SignalReceipt)" ;
+  wego:realizedBy "SignalReceipt::construct() BLAKE3-hashes a canonical, sorted field-tagged encoding of the baseline + fired rule (HAND_WRITE_REQUIRED CONSTRUCT step, real, tested this pass)." .
+wego:diagnosticGoal a wego:ProvenanceStage ; rdfs:label "DiagnosticGoal" ; wego:chainOrder 5 ;
+  wego:edgeToNext "wego:generates (DiagnosticGoal generates InvestigationPlan)" ;
+  wego:realizedBy "generate_diagnostic_goal() emits real PDDL domain+problem text for a fixed 3-action open-investigation domain (gather-measures -> draft-hypotheses -> schedule-investigation), never a cause-blaming or closure predicate -- the literal substance of the family invariant (HAND_WRITE_REQUIRED, real, tested this pass; central novel logic, not ported from anywhere)." .
+wego:investigationPlan a wego:ProvenanceStage ; rdfs:label "InvestigationPlan" ; wego:chainOrder 6 ;
+  wego:edgeToNext "prov:wasDerivedFrom (InvestigationPOWL wasDerivedFrom InvestigationPlan)" ;
+  wego:realizedBy "crate::f08_pddl_planning::projector::project_and_resolve + planner::{ground, plan} (REUSE_ADAPT, real, sibling in-crate F08 module already wired against bcinr_pddl -- no PDDL search logic reimplemented here)." .
+wego:investigationPowl a wego:ProvenanceStage ; rdfs:label "InvestigationPOWL" ; wego:chainOrder 7 ;
+  wego:edgeToNext "(terminal: WORKFLOW_MANUFACTURED)" ;
+  wego:realizedBy "cng::powl::{project_tape_to_powl, powl_to_turtle} (REUSE_ADAPT, real; cng is already a workspace dependency of this crate for F20/F24, its bench cargo feature already enables the unconditional powl module)." .
+
+#################################################################
+# ProcessSignalRefused choke-point catalog (3 named in the survey)
+#################################################################
+
+wego:baselineRefused a wego:RefusalChokePoint ; rdfs:label "BaselineRefused" ;
+  wego:meaning "Fewer than 2 historical measures, or any non-finite (NaN/inf) measure value, was offered to ControlBaseline::admit()." ;
+  wego:invariant "Boundary-violated inputs (baseline drift, signal from unclosed fake work) must hit typed refusal ProcessSignalRefused with no standing and no actuation -- never silently pass through." ;
+  wego:status "REAL" .
+wego:signalAdmissionRefused a wego:RefusalChokePoint ; rdfs:label "SignalAdmissionRefused" ;
+  wego:meaning "admit_signal() was called against a baseline that itself carries no admitted evidence (defensive re-check at the second named choke point)." ;
+  wego:invariant "State machine is closed ... with only two lawful REFUSED transitions (from BASELINED, from SIGNAL_ADMITTED), typed as ProcessSignalRefused." ;
+  wego:status "REAL" .
+wego:powlConstructionRefused a wego:RefusalChokePoint ; rdfs:label "PowlConstructionRefused" ;
+  wego:meaning "Diagnostic-goal PDDL failed to parse/ground/plan (crate::f08_pddl_planning refusal), or the resulting plan tape was empty and cng::powl::project_tape_to_powl refused." ;
+  wego:invariant "A control signal ... creates unfinished diagnostic work -- if no investigation workflow can actually be manufactured, the pipeline must refuse rather than emit a bare alert." ;
+  wego:status "REAL" .

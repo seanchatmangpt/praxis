@@ -17,9 +17,12 @@ use crate::powl::CngRefusal;
 
 /// Scratch root for this test file. O(1).
 fn scratch_dir(test_name: &str) -> PathBuf {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    static COUNTER: AtomicUsize = AtomicUsize::new(0);
+    let count = COUNTER.fetch_add(1, Ordering::SeqCst);
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../target/chatman/cng-tests/api_docs")
-        .join(test_name);
+        .join(format!("{}_{}_{}", test_name, std::process::id(), count));
     let _ = fs::remove_dir_all(&dir);
     dir
 }

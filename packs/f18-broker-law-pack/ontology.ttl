@@ -1,0 +1,119 @@
+# f18-broker-law-pack ontology — V12-018 (F18 "Broker and Zero Unreceipted
+# Actuation") individuals for the multifractal-workflow crate's own L6
+# provenance-chain catalog and typed-refusal cross-reference.
+#
+# REUSE_ADAPT provenance: the 8-node chain shape (ActionArtifact ->
+# StandingReceipt -> AuthorityToken -> IdempotencyRecord -> CorrelationBinding
+# -> ActuationResult -> ConsequenceObservation -> BrokerReceipt) is the
+# family survey's own L6 lens text for F18, verbatim; `realizedBy` values name
+# the actual hand-written f18_broker_law.rs type/method that stands in for
+# each node (all bound -- see f18_broker_law.rs's own doc comment for what
+# is genuinely wired vs. disclosed as a gap). The 7 mfwbrk:RefusalKind
+# individuals are a 1:1 projection of f18_broker_law::UnreceiptedActuationRefused's
+# actual variants (cross-referenced by a hand-written test in f18_broker_law.rs
+# so this catalog cannot silently drift from the real enum without a test
+# failure). Pattern (scratch-project sync, pack not registered in the shared
+# root ggen.toml) follows packs/f09-mfw-growth-pack/ontology.ttl exactly.
+
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix mfwbrk: <http://seanchatmangpt.github.io/praxis/multifractal-workflow/broker-law#> .
+
+#################################################################
+# Vocabulary
+#################################################################
+
+mfwbrk: a owl:Ontology ;
+  rdfs:label "multifractal-workflow F18 Broker Law vocabulary" ;
+  rdfs:comment "L6 provenance chain and typed-refusal catalog for the F18 broker choke point (V12-018). See crates/multifractal-workflow/src/f18_broker_law.rs for the real (hand-written) state machine, idempotency ledger, authority token, and receipt logic this catalog cross-references." .
+
+mfwbrk:ProvenanceStage a rdfs:Class ;
+  rdfs:label "L6 provenance chain node" ;
+  rdfs:comment "One node of F18-L6's 8-node prov:wasDerivedFrom/prov:generated chain (ActionArtifact through BrokerReceipt)." .
+
+mfwbrk:chainOrder a rdf:Property ; rdfs:domain mfwbrk:ProvenanceStage ; rdfs:range xsd:integer ;
+  rdfs:label "chain order" ; rdfs:comment "0-based position in the L6 provenance chain." .
+mfwbrk:realizedBy a rdf:Property ; rdfs:domain mfwbrk:ProvenanceStage ;
+  rdfs:label "realized by" ; rdfs:comment "The f18_broker_law.rs type or method that stands in for this chain node." .
+
+mfwbrk:RefusalKind a rdfs:Class ;
+  rdfs:label "Typed refusal kind" ;
+  rdfs:comment "One variant of f18_broker_law::UnreceiptedActuationRefused." .
+
+mfwbrk:meaning a rdf:Property ; rdfs:domain mfwbrk:RefusalKind ;
+  rdfs:label "meaning" ; rdfs:comment "What triggers this refusal." .
+mfwbrk:invariant a rdf:Property ; rdfs:domain mfwbrk:RefusalKind ;
+  rdfs:label "invariant" ; rdfs:comment "Which family invariant/claim-ceiling boolean this refusal enforces." .
+mfwbrk:status a rdf:Property ; rdfs:domain mfwbrk:RefusalKind ;
+  rdfs:label "status" ; rdfs:comment "Whether this refusal is bound to real, tested logic (all 7 are, this pass)." .
+
+#################################################################
+# L6 provenance chain (8 nodes, family survey order)
+#################################################################
+
+mfwbrk:action-artifact a mfwbrk:ProvenanceStage ;
+  rdfs:label "ActionArtifact" ; mfwbrk:chainOrder 0 ;
+  mfwbrk:realizedBy "f18_broker_law::ActionId (public identifiers: workflow_id, step_id, idempotency_key)" .
+mfwbrk:standing-receipt a mfwbrk:ProvenanceStage ;
+  rdfs:label "StandingReceipt" ; mfwbrk:chainOrder 1 ;
+  mfwbrk:realizedBy "f18_broker_law::BrokerState::StandingVerified, produced by Broker::verify_standing" .
+mfwbrk:authority-token a mfwbrk:ProvenanceStage ;
+  rdfs:label "AuthorityToken" ; mfwbrk:chainOrder 2 ;
+  mfwbrk:realizedBy "f18_broker_law::AuthorityToken, minted by Broker::authorize (blake3::keyed_hash)" .
+mfwbrk:idempotency-record a mfwbrk:ProvenanceStage ;
+  rdfs:label "IdempotencyRecord" ; mfwbrk:chainOrder 3 ;
+  mfwbrk:realizedBy "f18_broker_law::BrokerState::IdempotencyClaimed ledger entry, produced by Broker::claim_idempotency" .
+mfwbrk:correlation-binding a mfwbrk:ProvenanceStage ;
+  rdfs:label "CorrelationBinding" ; mfwbrk:chainOrder 4 ;
+  mfwbrk:realizedBy "f18_broker_law::BrokerState::Correlated, produced by Broker::bind_correlation" .
+mfwbrk:actuation-result a mfwbrk:ProvenanceStage ;
+  rdfs:label "ActuationResult" ; mfwbrk:chainOrder 5 ;
+  mfwbrk:realizedBy "raw bytes returned by the caller-supplied dispatch closure inside Broker::actuate" .
+mfwbrk:consequence-observation a mfwbrk:ProvenanceStage ;
+  rdfs:label "ConsequenceObservation" ; mfwbrk:chainOrder 6 ;
+  mfwbrk:realizedBy "f18_broker_law::BrokerState::ConsequenceCaptured, consequence_hash_hex bound by Broker::capture_consequence" .
+mfwbrk:broker-receipt a mfwbrk:ProvenanceStage ;
+  rdfs:label "BrokerReceipt" ; mfwbrk:chainOrder 7 ;
+  mfwbrk:realizedBy "f18_broker_law::BrokerReceipt, issued by Broker::issue_receipt and re-verified by Broker::replay_receipt" .
+
+#################################################################
+# UnreceiptedActuationRefused catalog (7 variants, 1:1 with the real enum)
+#################################################################
+
+mfwbrk:standing-invalid a mfwbrk:RefusalKind ;
+  rdfs:label "StandingInvalid" ;
+  mfwbrk:meaning "Standing Verifier found no admitted standing for the acting actor." ;
+  mfwbrk:invariant "No real-world actuation occurs without standing, authority, idempotency, correlation, and a receipt-binding path" ;
+  mfwbrk:status "bound: f18_broker_law::UnreceiptedActuationRefused::StandingInvalid, tests::standing_invalid_refuses" .
+mfwbrk:authority-invalid a mfwbrk:RefusalKind ;
+  rdfs:label "AuthorityInvalid" ;
+  mfwbrk:meaning "Presented authority token does not match the one this broker's secret would issue for the same public identifiers." ;
+  mfwbrk:invariant "PUBLIC_ID_TOKEN_BYPASS_REFUSED" ;
+  mfwbrk:status "bound: f18_broker_law::UnreceiptedActuationRefused::AuthorityInvalid, tests::forged_token_from_public_ids_is_refused" .
+mfwbrk:duplicate-idempotency-claim a mfwbrk:RefusalKind ;
+  rdfs:label "DuplicateIdempotencyClaim" ;
+  mfwbrk:meaning "Atomic Idempotency Gate found an existing ledger entry for this action's dedup key." ;
+  mfwbrk:invariant "DUPLICATE_DISPATCH_SINGLE_ACTUATION" ;
+  mfwbrk:status "bound: f18_broker_law::UnreceiptedActuationRefused::DuplicateIdempotencyClaim, tests::duplicate_idempotency_claim_is_refused, tests::concurrent_duplicate_claims_yield_exactly_one_winner" .
+mfwbrk:correlation-mismatch a mfwbrk:RefusalKind ;
+  rdfs:label "CorrelationMismatch" ;
+  mfwbrk:meaning "Observed correlation id does not equal the id bound to this action at dispatch time." ;
+  mfwbrk:invariant "Recovery paths must resolve via a typed refusal, never silent duplicate actuation" ;
+  mfwbrk:status "bound: f18_broker_law::UnreceiptedActuationRefused::CorrelationMismatch, tests::correlation_mismatch_refuses_and_marks_refused" .
+mfwbrk:invalid-receipt a mfwbrk:RefusalKind ;
+  rdfs:label "InvalidReceipt" ;
+  mfwbrk:meaning "Broker Receipt replay recomputed a receipt_hash that does not match the recorded one (tampered/malformed receipt), or receipt issuance was attempted before its required fields were bound." ;
+  mfwbrk:invariant "ZERO_UNRECEIPTED_ACTUATION" ;
+  mfwbrk:status "bound: f18_broker_law::UnreceiptedActuationRefused::InvalidReceipt, tests::replay_of_tampered_receipt_is_refused" .
+mfwbrk:unlawful-transition a mfwbrk:RefusalKind ;
+  rdfs:label "UnlawfulTransition" ;
+  mfwbrk:meaning "A stage method was invoked while the action's ledger entry was not in the required prior BrokerState." ;
+  mfwbrk:invariant "The broker is the exclusive actuation/dispatch route -- mechanical bypass prevention" ;
+  mfwbrk:status "bound: f18_broker_law::UnreceiptedActuationRefused::UnlawfulTransition, tests::unlawful_transition_refused, tests::stale_second_capture_after_receipt_is_refused" .
+mfwbrk:unknown-action a mfwbrk:RefusalKind ;
+  rdfs:label "UnknownAction" ;
+  mfwbrk:meaning "A stage past the Atomic Idempotency Gate was invoked for an action with no ledger entry at all." ;
+  mfwbrk:invariant "Idempotency claim must be atomic so duplicate dispatch yields single actuation" ;
+  mfwbrk:status "bound: f18_broker_law::UnreceiptedActuationRefused::UnknownAction, tests::unlawful_transition_refused" .

@@ -1,0 +1,4 @@
+[pack]
+name = "f27-western-electric-pack"
+version = "0.1.0"
+description = "Generates the F27 Western Electric Workflow Genesis (V12-027) D1-D8 RDF/PROV provenance-chain catalog and ProcessSignalRefused choke-point catalog for crates/multifractal-workflow/src/f27_western_electric_generated.rs, from wego:ProvenanceStage and wego:RefusalChokePoint individuals in this pack's ontology. Pure data/vocabulary projection only -- the real Western Electric rule detection, baseline admission, signal admission, diagnostic-goal PDDL generation, planner/POWL wiring, state machine, and idempotency gate are hand-written in f27_western_electric.rs, not generated."

@@ -1,0 +1,156 @@
+# mfw-pddl-planning: — RDF vocabulary + instance data for the v26.7.12
+# architecture atlas's F08 "PDDL Problem and Planning" family (ticket
+# V12-008, crates/multifractal-workflow/src/f08_pddl_planning/).
+#
+# What this is: NOT a general PDDL/STRIPS vocabulary (that already exists,
+# clean-room, at crates/cng/ontologies/pddl-strips.ttl -- this pack does not
+# duplicate it). This is instance data describing F08's own pipeline
+# structure -- its L5 7-state machine and L6 7-entity provenance chain --
+# transcribed directly from
+# /Users/sac/Downloads/v26.7.12_mermaid_atlas/families/F08_pddl-planning.md
+# sections F08-L2 (Component Topology), F08-L5 (State Machine), F08-L6
+# (Data and Provenance) and F08-L8 (Verification Claim Ceiling), each
+# mermaid node/edge label copied verbatim into an RDF individual below so
+# `packs/pddl-planning-pack/templates/f08_generated.rs.tmpl` can render them
+# into real Rust (`crates/multifractal-workflow/src/f08_pddl_planning/
+# generated.rs`) via SPARQL instead of the atlas prose being hand-copied
+# and silently able to drift.
+#
+# Public-ontology check: `prov:wasDerivedFrom` (PROV-O) is reused verbatim
+# for the three L6 edges the atlas itself labels `prov:wasDerivedFrom`; the
+# three it labels bare `generates` are intentionally NOT rendered as
+# `prov:generated`/`prov:wasGeneratedBy` (whose direction is inverted vs.
+# `wasDerivedFrom`, so silently "fixing" the atlas's naming here would
+# assert a claim the atlas doesn't make) -- `mfw:generates` is a local term
+# for exactly what the diagram says and no more.
+#
+# L5/L2 refusal-source note (disclosed, not reconciled): F08-L5's
+# `stateDiagram-v2` names exactly two refusal-source states (DOMAIN_BOUND,
+# PLANNING); F08-L2's component-topology diagram names three
+# refusal-attaching components instead (Domain Resolver, Action-Hook
+# Binder, Plan Receipt). Both are transcribed below as given -- this pack
+# does not invent a reconciliation the atlas itself does not state.
+
+@prefix mfw:     <https://truex.io/ontology/mfw-pddl-planning#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+<https://truex.io/ontology/mfw-pddl-planning#> a owl:Ontology ;
+    rdfs:label "F08 PDDL Planning pipeline structure (v26.7.12 atlas, V12-008)" ;
+    dcterms:description "Instance data (not a general PDDL vocabulary) describing the F08 family's L5 state machine and L6 provenance chain, transcribed verbatim from the v26.7.12 mermaid atlas for ggen codegen." .
+
+### --------------------------------------------------------------------
+### Classes (structural types for the individuals below)
+### --------------------------------------------------------------------
+
+mfw:PipelineState a rdfs:Class ;
+    rdfs:comment "One state in F08-L5's stateDiagram-v2. Individuals carrying mfw:stateOrder (1-7) are the 'the 7 states' the family invariant names; mfw:sRefused carries no stateOrder -- it is the terminal failure branch, not one of the 7." .
+
+mfw:StateTransition a rdfs:Class ;
+    rdfs:comment "One edge in F08-L5's stateDiagram-v2, either transitionKind 'lawful' or 'refusal'." .
+
+mfw:PipelineStage a rdfs:Class ;
+    rdfs:comment "One of the 7 named components in F08-L2's component-topology diagram (Problem Projector .. Plan Receipt)." .
+
+mfw:PDDLPlanningEntity a rdfs:Class ;
+    rdfs:comment "Marker class: an F08-L6 'Data and Provenance' graph-entity node (D1..D7 in the atlas diagram)." .
+
+mfw:ClaimGate a rdfs:Class ;
+    rdfs:comment "One of F08-L8's three named claim-ceiling metrics." .
+
+### --------------------------------------------------------------------
+### F08-L5 — State Machine (7 ordered states + 1 terminal REFUSED state)
+### --------------------------------------------------------------------
+
+mfw:sProblemProjected a mfw:PipelineState ; mfw:stateOrder 1 ; mfw:stateName "PROBLEM_PROJECTED" .
+mfw:sDomainBound      a mfw:PipelineState ; mfw:stateOrder 2 ; mfw:stateName "DOMAIN_BOUND" .
+mfw:sActionsBound     a mfw:PipelineState ; mfw:stateOrder 3 ; mfw:stateName "ACTIONS_BOUND" .
+mfw:sPlanning         a mfw:PipelineState ; mfw:stateOrder 4 ; mfw:stateName "PLANNING" .
+mfw:sPlanFound        a mfw:PipelineState ; mfw:stateOrder 5 ; mfw:stateName "PLAN_FOUND" .
+mfw:sValidated        a mfw:PipelineState ; mfw:stateOrder 6 ; mfw:stateName "VALIDATED" .
+mfw:sReceipted        a mfw:PipelineState ; mfw:stateOrder 7 ; mfw:stateName "RECEIPTED" .
+mfw:sRefused          a mfw:PipelineState ; mfw:stateName "REFUSED" .
+
+# 6 lawful edges + 2 refusal edges, exactly as drawn in F08-L5's
+# stateDiagram-v2 (the `[*] --> PROBLEM_PROJECTED` / `RECEIPTED --> [*]` /
+# `REFUSED --> [*]` pseudostate edges are not transcribed -- they carry no
+# information the 7-state enum + REFUSAL_SOURCES table doesn't already).
+mfw:t1 a mfw:StateTransition ; mfw:transitionOrder 1 ; mfw:fromState mfw:sProblemProjected ; mfw:toState mfw:sDomainBound  ; mfw:transitionKind "lawful" .
+mfw:t2 a mfw:StateTransition ; mfw:transitionOrder 2 ; mfw:fromState mfw:sDomainBound      ; mfw:toState mfw:sActionsBound ; mfw:transitionKind "lawful" .
+mfw:t3 a mfw:StateTransition ; mfw:transitionOrder 3 ; mfw:fromState mfw:sActionsBound     ; mfw:toState mfw:sPlanning     ; mfw:transitionKind "lawful" .
+mfw:t4 a mfw:StateTransition ; mfw:transitionOrder 4 ; mfw:fromState mfw:sPlanning         ; mfw:toState mfw:sPlanFound    ; mfw:transitionKind "lawful" .
+mfw:t5 a mfw:StateTransition ; mfw:transitionOrder 5 ; mfw:fromState mfw:sPlanFound         ; mfw:toState mfw:sValidated    ; mfw:transitionKind "lawful" .
+mfw:t6 a mfw:StateTransition ; mfw:transitionOrder 6 ; mfw:fromState mfw:sValidated          ; mfw:toState mfw:sReceipted    ; mfw:transitionKind "lawful" .
+mfw:t7 a mfw:StateTransition ; mfw:transitionOrder 7 ; mfw:fromState mfw:sDomainBound        ; mfw:toState mfw:sRefused ; mfw:transitionKind "refusal" .
+mfw:t8 a mfw:StateTransition ; mfw:transitionOrder 8 ; mfw:fromState mfw:sPlanning           ; mfw:toState mfw:sRefused ; mfw:transitionKind "refusal" .
+
+### --------------------------------------------------------------------
+### F08-L2 — Component Topology (7 pipeline stages)
+### --------------------------------------------------------------------
+
+mfw:stgProblemProjector a mfw:PipelineStage ;
+    mfw:stageOrder 1 ; rdfs:label "Problem Projector" ;
+    mfw:completesState mfw:sProblemProjected ; mfw:refusalPoint false .
+mfw:stgDomainResolver a mfw:PipelineStage ;
+    mfw:stageOrder 2 ; rdfs:label "Domain Resolver" ;
+    mfw:completesState mfw:sDomainBound ; mfw:refusalPoint true .
+mfw:stgActionHookBinder a mfw:PipelineStage ;
+    mfw:stageOrder 3 ; rdfs:label "Action-Hook Binder" ;
+    mfw:completesState mfw:sActionsBound ; mfw:refusalPoint true .
+mfw:stgPlanner a mfw:PipelineStage ;
+    mfw:stageOrder 4 ; rdfs:label "Planner" ;
+    mfw:completesState mfw:sPlanFound ; mfw:refusalPoint false .
+mfw:stgPlanValidator a mfw:PipelineStage ;
+    mfw:stageOrder 5 ; rdfs:label "Plan Validator" ;
+    mfw:completesState mfw:sValidated ; mfw:refusalPoint false .
+mfw:stgEffectTrace a mfw:PipelineStage ;
+    mfw:stageOrder 6 ; rdfs:label "Effect Trace" ;
+    mfw:completesState mfw:sReceipted ; mfw:refusalPoint false .
+mfw:stgPlanReceipt a mfw:PipelineStage ;
+    mfw:stageOrder 7 ; rdfs:label "Plan Receipt" ;
+    mfw:completesState mfw:sReceipted ; mfw:refusalPoint true .
+
+### --------------------------------------------------------------------
+### F08-L6 — Data and Provenance (7-entity chain, D1..D7 verbatim)
+### --------------------------------------------------------------------
+
+mfw:PDDLProblem a rdfs:Class, mfw:PDDLPlanningEntity ;
+    rdfs:label "PDDLProblem" ;
+    rdfs:comment "Materialized admitted-state projection: the PDDL problem (init/goal) the Problem Projector stage derives from admitted RDF graph facts." ;
+    mfw:chainOrder 1 ; mfw:chainEdgeToNext "prov:wasDerivedFrom" ; mfw:chainNextClass "PDDLDomain" .
+mfw:PDDLDomain a rdfs:Class, mfw:PDDLPlanningEntity ;
+    rdfs:label "PDDLDomain" ;
+    rdfs:comment "Materialized PDDL domain (action schemas) the Domain Resolver stage resolves." ;
+    mfw:chainOrder 2 ; mfw:chainEdgeToNext "mfw:generates" ; mfw:chainNextClass "ActionCapabilityMap" .
+mfw:ActionCapabilityMap a rdfs:Class, mfw:PDDLPlanningEntity ;
+    rdfs:label "ActionCapabilityMap" ;
+    rdfs:comment "The Action-Hook Binder stage's output: every grounded action's effect predicate bound to a hook capability, or declared external dispatch." ;
+    mfw:chainOrder 3 ; mfw:chainEdgeToNext "prov:wasDerivedFrom" ; mfw:chainNextClass "Plan" .
+mfw:Plan a rdfs:Class, mfw:PDDLPlanningEntity ;
+    rdfs:label "Plan" ;
+    rdfs:comment "The Planner stage's bounded state-transition search result." ;
+    mfw:chainOrder 4 ; mfw:chainEdgeToNext "mfw:generates" ; mfw:chainNextClass "ValidationTrace" .
+mfw:ValidationTrace a rdfs:Class, mfw:PDDLPlanningEntity ;
+    rdfs:label "ValidationTrace" ;
+    rdfs:comment "The Plan Validator stage's independent conformance check: does the plan tape actually reach the goal, not just planner say-so." ;
+    mfw:chainOrder 5 ; mfw:chainEdgeToNext "prov:wasDerivedFrom" ; mfw:chainNextClass "EffectTrace" .
+mfw:EffectTrace a rdfs:Class, mfw:PDDLPlanningEntity ;
+    rdfs:label "EffectTrace" ;
+    rdfs:comment "The Effect Trace stage's per-step add/delete effect record." ;
+    mfw:chainOrder 6 ; mfw:chainEdgeToNext "mfw:generates" ; mfw:chainNextClass "PlanReceipt" .
+mfw:PlanReceipt a rdfs:Class, mfw:PDDLPlanningEntity ;
+    rdfs:label "PlanReceipt" ;
+    rdfs:comment "The Plan Receipt stage's sealed receipt binding the whole chain, with replay authority (replay must reconstruct an equivalent consequence)." ;
+    mfw:chainOrder 7 ; mfw:chainEdgeToNext "none" ; mfw:chainNextClass "none" .
+
+### --------------------------------------------------------------------
+### F08-L8 — Verification Claim Ceiling (3 named gates)
+### --------------------------------------------------------------------
+
+mfw:gate1 a mfw:ClaimGate ; mfw:gateOrder 1 ; mfw:gateName "PDDL_IRREDUCIBLE_TRANSITION_PLANNING_PROVEN" .
+mfw:gate2 a mfw:ClaimGate ; mfw:gateOrder 2 ; mfw:gateName "ZERO_FICTIONAL_ACTIONS" .
+mfw:gate3 a mfw:ClaimGate ; mfw:gateOrder 3 ; mfw:gateName "PLAN_VALIDATION_ALIVE" .

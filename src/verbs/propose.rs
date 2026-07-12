@@ -239,7 +239,7 @@ fn resolve_church_objective(
     let path = if !arg_path.is_empty() {
         arg_path
     } else {
-        objective_file.as_deref().unwrap_or_default()
+        objective_file.as_deref().unwrap_or("")
     };
     church::objective_from_path(std::path::Path::new(path)).map_err(|e| e.to_string())
 }

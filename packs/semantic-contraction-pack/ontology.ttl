@@ -1,0 +1,143 @@
+# semantic-contraction-pack ontology — F03 "Semantic Contraction" (V12-003)
+# provenance vocabulary. Namespace is unique to this pack, following the
+# convention set by otel-weaver-pack / shape-admission-pack's
+# `https://ggen.io/ontology/<pack>#` pattern.
+#
+# Models the survey's D1-D7 data model (7 RDF entity types linked by two
+# distinct provenance-edge kinds -- `prov:wasDerivedFrom` for direct
+# graph-to-graph derivation, `generates` for a report/decision object
+# yielding its successor artifact, per the atlas's own F03-L6 diagram, which
+# alternates the two labels rather than using one uniformly) as classes plus
+# explicit DerivationEdge individuals, the F03-L5 lifecycle state machine
+# (TYPED -> CLOSED -> REFINED -> SHAPED -> ADMISSIBLE -> CONTRACTED ->
+# PLANNABLE, with CLOSED/SHAPED able to branch to REFUSED) as ordered
+# LifecycleState individuals plus Transition individuals carrying a legality
+# kind, and the F03-L2 pipeline's C1-C7 component names each tagged with
+# this wiring pass's real honest status (REAL = backed by a genuine call
+# into existing praxis-graphlaw code this pass; HONEST_STUB = typed
+# not-yet-implemented refusal, no fake success). This is vocabulary/
+# documentation data only -- no closure, shape-gate, refusal, or
+# state-machine *logic* lives here; that is hand-written in
+# crates/multifractal-workflow/src/f03_semantic_contraction.rs.
+
+@prefix sc:   <https://ggen.io/ontology/semantic-contraction#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+# ── Meta classes ─────────────────────────────────────────────────────
+
+sc:DerivationEdge
+    a            rdfs:Class ;
+    rdfs:label   "DerivationEdge" ;
+    rdfs:comment "A provenance edge (prov:wasDerivedFrom or generates) between two D1-D7 entity-type classes." .
+
+sc:LifecycleState
+    a            rdfs:Class ;
+    rdfs:label   "LifecycleState" ;
+    rdfs:comment "One state in the F03 semantic-contraction state machine." .
+
+sc:Transition
+    a            rdfs:Class ;
+    rdfs:label   "Transition" ;
+    rdfs:comment "One legal (or refusing) edge in the F03 state machine, from the F03-L5 diagram." .
+
+sc:PipelineComponent
+    a            rdfs:Class ;
+    rdfs:label   "PipelineComponent" ;
+    rdfs:comment "One C1-C7 stage of the F03-L2 component topology, tagged with this wiring pass's real status." .
+
+sc:fromClass   a rdf:Property ; rdfs:domain sc:DerivationEdge ; rdfs:range rdfs:Class .
+sc:toClass     a rdf:Property ; rdfs:domain sc:DerivationEdge ; rdfs:range rdfs:Class .
+sc:relation    a rdf:Property ; rdfs:domain sc:DerivationEdge ; rdfs:range xsd:string .
+sc:stateName   a rdf:Property ; rdfs:domain sc:LifecycleState ; rdfs:range xsd:string .
+sc:ordinal     a rdf:Property ; rdfs:domain sc:LifecycleState ; rdfs:range xsd:integer .
+sc:fromState   a rdf:Property ; rdfs:domain sc:Transition ; rdfs:range xsd:string .
+sc:toState     a rdf:Property ; rdfs:domain sc:Transition ; rdfs:range xsd:string .
+sc:kind        a rdf:Property ; rdfs:domain sc:Transition ; rdfs:range xsd:string .
+sc:componentName   a rdf:Property ; rdfs:domain sc:PipelineComponent ; rdfs:range xsd:string .
+sc:componentStatus a rdf:Property ; rdfs:domain sc:PipelineComponent ; rdfs:range xsd:string .
+sc:componentOrdinal a rdf:Property ; rdfs:domain sc:PipelineComponent ; rdfs:range xsd:integer .
+
+# ── D1-D7 entity types ───────────────────────────────────────────────
+
+sc:TypedGraph
+    a            rdfs:Class ;
+    rdfs:label   "TypedGraph" ;
+    rdfs:comment "Admitted RDF state after Ontology Typing (OWL RL entailment); the pipeline's first receipted artifact." .
+
+sc:ClosureGraph
+    a            rdfs:Class ;
+    rdfs:label   "ClosureGraph" ;
+    rdfs:comment "TypedGraph plus Datalog closure over any caller-declared rules; fixpoint-materialized, never partial." .
+
+sc:RefinementDelta
+    a            rdfs:Class ;
+    rdfs:label   "RefinementDelta" ;
+    rdfs:comment "The (possibly empty) set of facts contributed by bounded N3 refinement after quarantine routing authorized it." .
+
+sc:ShapeReport
+    a            rdfs:Class ;
+    rdfs:label   "ShapeReport" ;
+    rdfs:comment "Combined SHACL + ShEx conformance report for the refined graph." .
+
+sc:AdmissibilityDecision
+    a            rdfs:Class ;
+    rdfs:label   "AdmissibilityDecision" ;
+    rdfs:comment "Admitted or Refused, decided from exactly one ShapeReport." .
+
+sc:ResidueGraph
+    a            rdfs:Class ;
+    rdfs:label   "ResidueGraph" ;
+    rdfs:comment "The irreducible residue: admitted state minus everything Ontology Typing + Datalog Closure + N3 Refinement could derive." .
+
+sc:PlanningState
+    a            rdfs:Class ;
+    rdfs:label   "PlanningState" ;
+    rdfs:comment "Minimal unresolved planning state hand off to PDDL problem construction; bound to a receipt head with replay identity." .
+
+# ── Provenance edges (F03-L6, in pipeline order) ────────────────────────
+
+[] a sc:DerivationEdge ; sc:fromClass sc:ClosureGraph          ; sc:toClass sc:TypedGraph          ; sc:relation "prov:wasDerivedFrom" .
+[] a sc:DerivationEdge ; sc:fromClass sc:RefinementDelta       ; sc:toClass sc:ClosureGraph         ; sc:relation "generates" .
+[] a sc:DerivationEdge ; sc:fromClass sc:ShapeReport           ; sc:toClass sc:RefinementDelta      ; sc:relation "prov:wasDerivedFrom" .
+[] a sc:DerivationEdge ; sc:fromClass sc:AdmissibilityDecision ; sc:toClass sc:ShapeReport          ; sc:relation "generates" .
+[] a sc:DerivationEdge ; sc:fromClass sc:ResidueGraph          ; sc:toClass sc:AdmissibilityDecision; sc:relation "prov:wasDerivedFrom" .
+[] a sc:DerivationEdge ; sc:fromClass sc:PlanningState         ; sc:toClass sc:ResidueGraph         ; sc:relation "generates" .
+
+# ── Lifecycle states (F03-L5, ordinal order = pipeline order) ──────────
+
+sc:StateTyped       a sc:LifecycleState ; sc:stateName "TYPED"       ; sc:ordinal 0 .
+sc:StateClosed      a sc:LifecycleState ; sc:stateName "CLOSED"      ; sc:ordinal 1 .
+sc:StateRefined     a sc:LifecycleState ; sc:stateName "REFINED"     ; sc:ordinal 2 .
+sc:StateShaped      a sc:LifecycleState ; sc:stateName "SHAPED"      ; sc:ordinal 3 .
+sc:StateAdmissible  a sc:LifecycleState ; sc:stateName "ADMISSIBLE"  ; sc:ordinal 4 .
+sc:StateContracted  a sc:LifecycleState ; sc:stateName "CONTRACTED"  ; sc:ordinal 5 .
+sc:StatePlannable   a sc:LifecycleState ; sc:stateName "PLANNABLE"   ; sc:ordinal 6 .
+sc:StateRefused     a sc:LifecycleState ; sc:stateName "REFUSED"     ; sc:ordinal 7 .
+
+# ── Transitions (F03-L5 edges, with legality kind) ──────────────────────
+
+[] a sc:Transition ; sc:fromState "TYPED"      ; sc:toState "CLOSED"     ; sc:kind "lawful" .
+[] a sc:Transition ; sc:fromState "CLOSED"     ; sc:toState "REFINED"    ; sc:kind "lawful" .
+[] a sc:Transition ; sc:fromState "REFINED"    ; sc:toState "SHAPED"     ; sc:kind "lawful" .
+[] a sc:Transition ; sc:fromState "SHAPED"     ; sc:toState "ADMISSIBLE" ; sc:kind "lawful" .
+[] a sc:Transition ; sc:fromState "ADMISSIBLE" ; sc:toState "CONTRACTED" ; sc:kind "lawful" .
+[] a sc:Transition ; sc:fromState "CONTRACTED" ; sc:toState "PLANNABLE"  ; sc:kind "lawful" .
+[] a sc:Transition ; sc:fromState "CLOSED"     ; sc:toState "REFUSED"    ; sc:kind "invalid" .
+[] a sc:Transition ; sc:fromState "SHAPED"     ; sc:toState "REFUSED"    ; sc:kind "authority_or_conformance_failure" .
+
+# ── Pipeline components (F03-L2, ordinal order = call order) ───────────
+# componentStatus is this wiring pass's own honest self-report, not a
+# design aspiration: REAL means a genuine call into existing, independently
+# verified praxis-graphlaw code; HONEST_STUB means a typed not-yet-
+# implemented refusal, tracked under V12-003, with no fake success path.
+
+sc:CompOntologyTyping     a sc:PipelineComponent ; sc:componentName "Ontology Typing"       ; sc:componentOrdinal 0 ; sc:componentStatus "REAL" .
+sc:CompDatalogClosure     a sc:PipelineComponent ; sc:componentName "Datalog Closure"        ; sc:componentOrdinal 1 ; sc:componentStatus "REAL" .
+sc:CompN3QuarantineRouter a sc:PipelineComponent ; sc:componentName "N3 Quarantine Router"   ; sc:componentOrdinal 2 ; sc:componentStatus "HONEST_STUB" .
+sc:CompN3Refinement       a sc:PipelineComponent ; sc:componentName "Bounded N3 Refinement"  ; sc:componentOrdinal 3 ; sc:componentStatus "HONEST_STUB" .
+sc:CompShaclGate          a sc:PipelineComponent ; sc:componentName "SHACL Gate"             ; sc:componentOrdinal 4 ; sc:componentStatus "REAL" .
+sc:CompShexGate           a sc:PipelineComponent ; sc:componentName "ShEx Gate"              ; sc:componentOrdinal 5 ; sc:componentStatus "REAL" .
+sc:CompResidueProjector   a sc:PipelineComponent ; sc:componentName "Residue Projector"      ; sc:componentOrdinal 6 ; sc:componentStatus "HONEST_STUB" .

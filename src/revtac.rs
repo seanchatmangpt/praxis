@@ -231,7 +231,7 @@ mod tests {
 
     const OBJECTIVE: &str = include_str!("../crates/praxis-proposer/revenue_objective.json");
 
-    fn fixture_state() -> RevenueState {
+    fn fixture_state() -> Result<RevenueState, crate::AppError> {
         serde_json::from_value(json!({
             "accounts": [
                 { "id": "acct-apex", "stage": "proposal", "amount_cents": 5_000_000,
@@ -242,37 +242,38 @@ mod tests {
                   "security_review_done": false, "legal_approved": false, "exec_sponsor": false, "days_in_stage": 90 }
             ]
         }))
-        .expect("fixture is a RevenueState")
+        .map_err(|e| crate::AppError::Other(e.to_string()))
     }
 
-    fn mission_json() -> String {
-        json!({
+    fn mission_json() -> Result<String, crate::AppError> {
+        Ok(json!({
             "mission": "close-q3",
             "constraints": {
                 "min_evidence": ["legal_approved", "security_review_done"],
                 "exclude_accounts": []
             },
-            "objective": serde_json::from_str::<Value>(OBJECTIVE).unwrap(),
+            "objective": serde_json::from_str::<Value>(OBJECTIVE).map_err(|e| crate::AppError::Other(e.to_string()))?,
         })
-        .to_string()
+        .to_string())
     }
 
     #[test]
-    fn compiles_mission_to_planner_goal() {
-        let mission = Mission::parse(&mission_json(), "auto").expect("parse mission");
-        let out = compile_mission(&mission, &fixture_state()).expect("compile");
+    fn compiles_mission_to_planner_goal() -> Result<(), crate::AppError> {
+        let mission = Mission::parse(&mission_json()?, "auto").map_err(|e| crate::AppError::Other(e.to_string()))?;
+        let out = compile_mission(&mission, &fixture_state()?).map_err(|e| crate::AppError::Other(e.to_string()))?;
         assert_eq!(out["status"], json!("compiled"));
         assert_eq!(out["mission"], json!("close-q3"));
         // min_evidence [legal, security] drops legal-gap and fresh; only apex is in scope.
         assert_eq!(out["accounts_considered"], json!(1));
         assert_eq!(out["planner_goal"], json!("(stage acct-apex closed-won)"));
-        assert_eq!(out["top_proposal_hash"].as_str().unwrap().len(), 64);
+        assert_eq!(out["top_proposal_hash"].as_str().ok_or_else(|| crate::AppError::Other("missing hash".into()))?.len(), 64);
         // The scoped MRR is apex's full amount (it is closeable).
         assert_eq!(out["mrr"]["max_reachable_revenue_cents"], json!(5_000_000));
+        Ok(())
     }
 
     #[test]
-    fn toml_and_json_missions_compile_identically() {
+    fn toml_and_json_missions_compile_identically() -> Result<(), crate::AppError> {
         let toml_text = r#"
 mission = "close-q3"
 objective = "crates/praxis-proposer/revenue_objective.json"
@@ -288,82 +289,96 @@ exclude_accounts = []
         })
         .to_string();
 
-        let m_toml = Mission::parse(toml_text, "toml").expect("parse toml");
-        let m_json = Mission::parse(&json_text, "json").expect("parse json");
-        let state = fixture_state();
-        let a = compile_mission(&m_toml, &state).expect("compile toml");
-        let b = compile_mission(&m_json, &state).expect("compile json");
+        let m_toml = Mission::parse(toml_text, "toml").map_err(|e| crate::AppError::Other(e.to_string()))?;
+        let m_json = Mission::parse(&json_text, "json").map_err(|e| crate::AppError::Other(e.to_string()))?;
+        let state = fixture_state()?;
+        let a = compile_mission(&m_toml, &state).map_err(|e| crate::AppError::Other(e.to_string()))?;
+        let b = compile_mission(&m_json, &state).map_err(|e| crate::AppError::Other(e.to_string()))?;
         assert_eq!(
             a, b,
             "TOML and JSON missions must compile to identical output"
         );
+        Ok(())
     }
 
     #[test]
-    fn exclude_accounts_removes_from_scope_with_reason() {
+    fn exclude_accounts_removes_from_scope_with_reason() -> Result<(), crate::AppError> {
         let mission = Mission::parse(
             &json!({
                 "mission": "exclude-apex",
                 "constraints": { "exclude_accounts": ["acct-apex"] },
-                "objective": serde_json::from_str::<Value>(OBJECTIVE).unwrap(),
+                "objective": serde_json::from_str::<Value>(OBJECTIVE).map_err(|e| crate::AppError::Other(e.to_string()))?,
             })
             .to_string(),
             "json",
         )
-        .expect("parse");
-        let out = compile_mission(&mission, &fixture_state()).expect("compile");
-        let dropped = out["accounts_dropped"].as_array().unwrap();
+        .map_err(|e| crate::AppError::Other(e.to_string()))?;
+        let out = compile_mission(&mission, &fixture_state()?).map_err(|e| crate::AppError::Other(e.to_string()))?;
+        let dropped = out["accounts_dropped"].as_array().ok_or_else(|| crate::AppError::Other("missing array".into()))?;
         assert!(dropped
             .iter()
             .any(|d| d["id"] == json!("acct-apex") && d["reason"] == json!("excluded_by_mission")));
+        Ok(())
     }
 
     #[test]
-    fn unknown_evidence_flag_is_hard_error() {
+    fn unknown_evidence_flag_is_hard_error() -> Result<(), crate::AppError> {
         let mission = Mission::parse(
             &json!({
                 "mission": "typo",
                 "constraints": { "min_evidence": ["legel_aproved"] },
-                "objective": serde_json::from_str::<Value>(OBJECTIVE).unwrap(),
+                "objective": serde_json::from_str::<Value>(OBJECTIVE).map_err(|e| crate::AppError::Other(e.to_string()))?,
             })
             .to_string(),
             "json",
         )
-        .expect("parse");
-        let err = compile_mission(&mission, &fixture_state()).unwrap_err();
-        assert!(err.contains("unknown evidence flag"), "got: {err}");
+        .map_err(|e| crate::AppError::Other(e.to_string()))?;
+        let res = compile_mission(&mission, &fixture_state()?);
+        match res {
+            Err(err) => {
+                assert!(err.contains("unknown evidence flag"), "got: {err}");
+            },
+            Ok(_) => return Err(crate::AppError::Other("expected an error".into())),
+        }
+        Ok(())
     }
 
     #[test]
-    fn missing_objective_is_hard_error() {
+    fn missing_objective_is_hard_error() -> Result<(), crate::AppError> {
         // No `objective` key at all: deny_unknown_fields + required field.
-        let err = Mission::parse(
+        let res = Mission::parse(
             &json!({ "mission": "no-obj", "constraints": {} }).to_string(),
             "json",
-        )
-        .unwrap_err();
-        assert!(
-            err.contains("objective") || err.contains("missing"),
-            "got: {err}"
         );
+        match res {
+            Err(err) => {
+                assert!(
+                    err.contains("objective") || err.contains("missing"),
+                    "got: {err}"
+                );
+            },
+            Ok(_) => return Err(crate::AppError::Other("expected an error".into())),
+        }
+        Ok(())
     }
 
     #[test]
-    fn over_constrained_mission_is_domain_no_not_error() {
+    fn over_constrained_mission_is_domain_no_not_error() -> Result<(), crate::AppError> {
         // Require an evidence flag no in-scope account has → empty scope.
         let mission = Mission::parse(
             &json!({
                 "mission": "impossible",
                 "constraints": { "min_evidence": ["exec_sponsor"], "exclude_accounts": ["acct-apex", "acct-legal-gap"] },
-                "objective": serde_json::from_str::<Value>(OBJECTIVE).unwrap(),
+                "objective": serde_json::from_str::<Value>(OBJECTIVE).map_err(|e| crate::AppError::Other(e.to_string()))?,
             })
             .to_string(),
             "json",
         )
-        .expect("parse");
+        .map_err(|e| crate::AppError::Other(e.to_string()))?;
         let out =
-            compile_mission(&mission, &fixture_state()).expect("compile is Ok even when empty");
+            compile_mission(&mission, &fixture_state()?).map_err(|e| crate::AppError::Other(e.to_string()))?;
         assert_eq!(out["status"], json!("no_lawful_candidates"));
         assert_eq!(out["planner_goal"], Value::Null);
+        Ok(())
     }
 }

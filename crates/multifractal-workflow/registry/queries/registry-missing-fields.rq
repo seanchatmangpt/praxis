@@ -1,0 +1,28 @@
+# registry-missing-fields.rq (V12-004, REUSE_ADAPT from cng's PROJ-613
+# crates/cng/queries/registry-missing-fields.rq — reused near-verbatim
+# because the query is already shape-driven and generic: it reads the
+# required-field list from whatever shape graph is loaded, rather than
+# hardcoding a vocabulary, so it works unchanged against this crate's
+# mfwreg:DialectEntry shape).
+# Inputs: ONE oxigraph store holding both a dialect-registry Turtle catalog
+# (entries) and dialect-registry.shape.ttl (the closed SHACL law). The
+# required field list is read from the shape graph's sh:property/sh:path
+# declarations (sh:minCount >= 1), never duplicated in Rust or here.
+# Outputs: rows (?entry ?field) — one per registry entry missing a required
+# field. A non-empty result maps to DialectRegistryRefused::MissingField
+# naming the first (?entry, ?field) pair.
+# Determinism: ORDER BY ?entry ?field over a fixed graph.
+PREFIX sh:   <http://www.w3.org/ns/shacl#>
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?entry ?field
+WHERE {
+  ?shape sh:targetClass ?class ;
+         sh:property ?ps .
+  ?ps sh:path ?field ;
+      sh:minCount ?min .
+  FILTER(?min >= 1)
+  ?entry a ?class .
+  FILTER NOT EXISTS { ?entry ?field ?value }
+}
+ORDER BY ?entry ?field

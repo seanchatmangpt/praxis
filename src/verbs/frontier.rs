@@ -24,7 +24,7 @@ pub fn matrix(
     out: String,
 ) -> Result<Value> {
     let report = if out.is_empty() {
-        frontier::full_report()
+        frontier::full_report().map_err(|e| NounVerbError::argument_error(e.to_string()))?
     } else {
         frontier::write_report(std::path::Path::new(&out))
             .map_err(|e| NounVerbError::argument_error(e.to_string()))?
@@ -36,7 +36,8 @@ pub fn matrix(
 /// pass_rate / failures) without the full per-cell matrix.
 #[verb]
 pub fn summary() -> Result<Value> {
-    let report = frontier::frontier_report();
+    let report = frontier::frontier_report()
+        .map_err(|e| NounVerbError::argument_error(e.to_string()))?;
     serde_json::to_value(&report).map_err(|e| NounVerbError::argument_error(e.to_string()))
 }
 
@@ -44,9 +45,11 @@ pub fn summary() -> Result<Value> {
 /// they partition the evaluated set (no third, silently-dropped state).
 #[verb]
 pub fn counts() -> Result<Value> {
-    let matrix = frontier::build_frontier_matrix();
+    let matrix = frontier::build_frontier_matrix()
+        .map_err(|e| NounVerbError::argument_error(e.to_string()))?;
     let evaluated = matrix.evaluated();
-    let refused = frontier::refused_count();
+    let refused = frontier::refused_count()
+        .map_err(|e| NounVerbError::argument_error(e.to_string()))?;
     let admitted = evaluated.saturating_sub(refused);
     Ok(json!({
         "total_cells": matrix.total(),

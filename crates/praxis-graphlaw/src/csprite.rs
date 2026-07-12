@@ -154,6 +154,7 @@ impl CSprite {
             &Vec::new(),
             &mut Vec::new(),
             &mut Vec::new(),
+            &mut Vec::new(),
         )
     }
     pub fn clear(&mut self) {

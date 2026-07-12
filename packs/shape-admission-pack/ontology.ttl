@@ -1,0 +1,93 @@
+# shape-admission-pack ontology — F07 "SHACL and ShEx Admission" (V12-007)
+# provenance vocabulary. Namespace is unique to this pack, following the
+# convention set by otel-weaver-pack's `https://ggen.io/ontology/<pack>#`.
+#
+# Models the survey's D1-D7 data model (7 RDF entity types linked via
+# prov:wasDerivedFrom to a receipt head with replay identity) as classes plus
+# explicit DerivationEdge individuals describing the provenance DAG shape,
+# and the admission lifecycle's PROFILED -> ... -> HANDED_OFF state sequence
+# (with REFUSED as a terminal off-ramp from any non-terminal state) as
+# ordered LifecycleState individuals. This is vocabulary/documentation data
+# only -- no validation, receipt, or state-machine *logic* lives here; that
+# is hand-written in crates/multifractal-workflow/src/f07_shape_admission.rs.
+
+@prefix sadm: <https://ggen.io/ontology/shape-admission#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+# ── Meta classes ─────────────────────────────────────────────────────
+
+sadm:DerivationEdge
+    a            rdfs:Class ;
+    rdfs:label   "DerivationEdge" ;
+    rdfs:comment "A prov:wasDerivedFrom edge between two D1-D7 entity-type classes." .
+
+sadm:LifecycleState
+    a            rdfs:Class ;
+    rdfs:label   "LifecycleState" ;
+    rdfs:comment "One state in the F07 admission state machine." .
+
+sadm:fromClass a rdf:Property ; rdfs:domain sadm:DerivationEdge ; rdfs:range rdfs:Class .
+sadm:toClass   a rdf:Property ; rdfs:domain sadm:DerivationEdge ; rdfs:range rdfs:Class .
+sadm:stateName a rdf:Property ; rdfs:domain sadm:LifecycleState ; rdfs:range xsd:string .
+sadm:ordinal   a rdf:Property ; rdfs:domain sadm:LifecycleState ; rdfs:range xsd:integer .
+
+# ── D1-D7 entity types ───────────────────────────────────────────────
+
+sadm:ShapeProfile
+    a            rdfs:Class ;
+    rdfs:label   "ShapeProfile" ;
+    rdfs:comment "Resolved (SHACL shapes graph, optional ShEx schema + shape map) bound to a profile id; the Profile Resolver's output." .
+
+sadm:SHACLReport
+    a            rdfs:Class ;
+    rdfs:label   "SHACLReport" ;
+    rdfs:comment "The SHACL Validator's sh:ValidationReport (conforms + results) for one admission attempt." .
+
+sadm:ShExReport
+    a            rdfs:Class ;
+    rdfs:label   "ShExReport" ;
+    rdfs:comment "The ShEx Validator's ShexValidationReport (conforms + failures) for one admission attempt." .
+
+sadm:ViolationSet
+    a            rdfs:Class ;
+    rdfs:label   "ViolationSet" ;
+    rdfs:comment "The Violation Normalizer's single merged, sorted set of violations drawn from both the SHACLReport and ShExReport." .
+
+sadm:AdmissionDecision
+    a            rdfs:Class ;
+    rdfs:label   "AdmissionDecision" ;
+    rdfs:comment "Admitted or Refused, decided from exactly one ViolationSet." .
+
+sadm:ShapeReceipt
+    a            rdfs:Class ;
+    rdfs:label   "ShapeReceipt" ;
+    rdfs:comment "BLAKE3 digest over the canonical ViolationSet + AdmissionDecision material; binds a replay identity." .
+
+sadm:AdmittedGraph
+    a            rdfs:Class ;
+    rdfs:label   "AdmittedGraph" ;
+    rdfs:comment "The Admission Handoff's output: a graph that has passed the declared structural profile, carrying its ShapeReceipt." .
+
+# ── Provenance edges (prov:wasDerivedFrom direction: subject <- object) ─
+
+[] a sadm:DerivationEdge ; sadm:fromClass sadm:SHACLReport      ; sadm:toClass sadm:ShapeProfile .
+[] a sadm:DerivationEdge ; sadm:fromClass sadm:ShExReport       ; sadm:toClass sadm:ShapeProfile .
+[] a sadm:DerivationEdge ; sadm:fromClass sadm:ViolationSet     ; sadm:toClass sadm:SHACLReport .
+[] a sadm:DerivationEdge ; sadm:fromClass sadm:ViolationSet     ; sadm:toClass sadm:ShExReport .
+[] a sadm:DerivationEdge ; sadm:fromClass sadm:AdmissionDecision; sadm:toClass sadm:ViolationSet .
+[] a sadm:DerivationEdge ; sadm:fromClass sadm:ShapeReceipt     ; sadm:toClass sadm:AdmissionDecision .
+[] a sadm:DerivationEdge ; sadm:fromClass sadm:AdmittedGraph    ; sadm:toClass sadm:ShapeReceipt .
+
+# ── Admission lifecycle states (ordinal order = pipeline order) ────────
+
+sadm:StateProfiled            a sadm:LifecycleState ; sadm:stateName "PROFILED"              ; sadm:ordinal 0 .
+sadm:StateShaclChecked        a sadm:LifecycleState ; sadm:stateName "SHACL_CHECKED"          ; sadm:ordinal 1 .
+sadm:StateShexChecked         a sadm:LifecycleState ; sadm:stateName "SHEX_CHECKED"           ; sadm:ordinal 2 .
+sadm:StateViolationsNormalized a sadm:LifecycleState ; sadm:stateName "VIOLATIONS_NORMALIZED" ; sadm:ordinal 3 .
+sadm:StateDecided             a sadm:LifecycleState ; sadm:stateName "DECIDED"                ; sadm:ordinal 4 .
+sadm:StateReceipted           a sadm:LifecycleState ; sadm:stateName "RECEIPTED"              ; sadm:ordinal 5 .
+sadm:StateHandedOff           a sadm:LifecycleState ; sadm:stateName "HANDED_OFF"             ; sadm:ordinal 6 .
+sadm:StateRefused             a sadm:LifecycleState ; sadm:stateName "REFUSED"                ; sadm:ordinal 7 .

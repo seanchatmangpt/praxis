@@ -202,38 +202,40 @@ pub fn parse_tp(pairs: Pairs<'_, Rule>, prefixes: &PrefixMapper) -> Vec<Triple> 
             // desugars to the ordinary triple (subject, predicate, object).
             Rule::InverseTP => {
                 let mut inner = pair.into_inner();
-                let object_pair = inner.next().expect("InverseTP must have an Object");
-                let property_pair = inner.next().expect("InverseTP must have a Property");
-                let subject_pair = inner.next().expect("InverseTP must have a Subject");
-                let object_vot = n3_terms::parse_object(object_pair, prefixes, &mut triples);
-                let property_vot =
-                    n3_terms::make_term(&n3_terms::expand_property(property_pair, prefixes));
-                let subject_vot2 = parse_subject(subject_pair, prefixes, &mut triples);
-                triples.push(Triple {
-                    s: subject_vot2,
-                    p: property_vot,
-                    o: object_vot,
-                    g: None,
-                });
+                if let (Some(object_pair), Some(property_pair), Some(subject_pair)) =
+                    (inner.next(), inner.next(), inner.next())
+                {
+                    let object_vot = n3_terms::parse_object(object_pair, prefixes, &mut triples);
+                    let property_vot =
+                        n3_terms::make_term(&n3_terms::expand_property(property_pair, prefixes));
+                    let subject_vot2 = parse_subject(subject_pair, prefixes, &mut triples);
+                    triples.push(Triple {
+                        s: subject_vot2,
+                        p: property_vot,
+                        o: object_vot,
+                        g: None,
+                    });
+                }
             }
             // `has` sugar: "subject has predicate object ." desugars to the
             // same ordinary triple (subject, predicate, object) -- `has` is
             // purely a readability filler word.
             Rule::HasTP => {
                 let mut inner = pair.into_inner();
-                let subject_pair = inner.next().expect("HasTP must have a Subject");
-                let property_pair = inner.next().expect("HasTP must have a Property");
-                let object_pair = inner.next().expect("HasTP must have an Object");
-                let subject_vot2 = parse_subject(subject_pair, prefixes, &mut triples);
-                let property_vot =
-                    n3_terms::make_term(&n3_terms::expand_property(property_pair, prefixes));
-                let object_vot = n3_terms::parse_object(object_pair, prefixes, &mut triples);
-                triples.push(Triple {
-                    s: subject_vot2,
-                    p: property_vot,
-                    o: object_vot,
-                    g: None,
-                });
+                if let (Some(subject_pair), Some(property_pair), Some(object_pair)) =
+                    (inner.next(), inner.next(), inner.next())
+                {
+                    let subject_vot2 = parse_subject(subject_pair, prefixes, &mut triples);
+                    let property_vot =
+                        n3_terms::make_term(&n3_terms::expand_property(property_pair, prefixes));
+                    let object_vot = n3_terms::parse_object(object_pair, prefixes, &mut triples);
+                    triples.push(Triple {
+                        s: subject_vot2,
+                        p: property_vot,
+                        o: object_vot,
+                        g: None,
+                    });
+                }
             }
             Rule::EOI => {}
             _ => {}
@@ -312,11 +314,9 @@ fn parse_document_body(document: Pair<Rule>) -> Result<(Vec<Triple>, Vec<Reasone
                     match child.as_rule() {
                         Rule::PrefixIdentifier => prefix_name = child.as_str().to_string(),
                         Rule::BracketedIri => {
-                            prefix_iri = child
-                                .into_inner()
-                                .next()
-                                .map(|p| p.as_str().to_string())
-                                .unwrap_or_default();
+                            if let Some(p) = child.into_inner().next() {
+                                prefix_iri = p.as_str().to_string();
+                            }
                         }
                         _ => {}
                     }
@@ -346,11 +346,9 @@ fn parse_document_body(document: Pair<Rule>) -> Result<(Vec<Triple>, Vec<Reasone
                     match child.as_rule() {
                         Rule::PrefixIdentifier => prefix_name = child.as_str().to_string(),
                         Rule::BracketedIri => {
-                            prefix_iri = child
-                                .into_inner()
-                                .next()
-                                .map(|p| p.as_str().to_string())
-                                .unwrap_or_default();
+                            if let Some(p) = child.into_inner().next() {
+                                prefix_iri = p.as_str().to_string();
+                            }
                         }
                         _ => {}
                     }
@@ -520,17 +518,17 @@ fn parse_document_body(document: Pair<Rule>) -> Result<(Vec<Triple>, Vec<Reasone
                                         let is_negated =
                                             bl_pair.as_str().trim_start().starts_with("not");
                                         // Find the TP inside the BodyLiteral
-                                        let tp_pair = bl_pair
-                                            .into_inner()
-                                            .find(|p| p.as_rule() == Rule::TP)
-                                            .expect("BodyLiteral must contain a TP");
-                                        let patterns =
-                                            parse_tp(tp_pair.into_inner(), &prefix_mapper);
-                                        for pattern in patterns {
-                                            body.push(BodyLiteral {
-                                                negated: is_negated,
-                                                pattern,
-                                            });
+                                        if let Some(tp_pair) =
+                                            bl_pair.into_inner().find(|p| p.as_rule() == Rule::TP)
+                                        {
+                                            let patterns =
+                                                parse_tp(tp_pair.into_inner(), &prefix_mapper);
+                                            for pattern in patterns {
+                                                body.push(BodyLiteral {
+                                                    negated: is_negated,
+                                                    pattern,
+                                                });
+                                            }
                                         }
                                     }
                                 }

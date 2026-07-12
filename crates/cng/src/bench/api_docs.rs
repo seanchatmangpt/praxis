@@ -127,6 +127,7 @@ fn verify_one_render_digest(
         )));
     }
 
+    println!("DEBUG: rel_path={}, recomputed={}, recorded={}", rel_path, recomputed, recorded);
     Ok(ApiDocRenderVerification {
         output_path: rel_path.to_string(),
         digest: recomputed,
@@ -140,10 +141,22 @@ fn verify_one_render_digest(
 ///
 /// # Complexity
 /// O(1) — three filesystem existence checks.
-fn api_docs_present(project_root: &Path) -> bool {
-    project_root.join(OPENAPI_RENDERED_YAML_REL_PATH).is_file()
-        && project_root.join(ASYNCAPI_RENDERED_YAML_REL_PATH).is_file()
-        && project_root.join(".ggen-v2").join("receipt.json").is_file()
+fn api_docs_present(project_root: &Path) -> Result<bool, CngRefusal> {
+    let check = |p: &Path| -> Result<bool, CngRefusal> {
+        match fs::metadata(p) {
+            Ok(m) => Ok(m.is_file()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+            Err(e) => Err(CngRefusal::IoRefused(format!(
+                "cannot stat {}: {}",
+                p.display(),
+                e
+            ))),
+        }
+    };
+    let p1 = project_root.join(OPENAPI_RENDERED_YAML_REL_PATH);
+    let p2 = project_root.join(ASYNCAPI_RENDERED_YAML_REL_PATH);
+    let p3 = project_root.join(".ggen-v2").join("receipt.json");
+    Ok(check(&p1)? && check(&p2)? && check(&p3)?)
 }
 
 /// Verifies both the OpenAPI and AsyncAPI capability documents against the
@@ -181,7 +194,7 @@ pub(super) fn verify_api_docs_render_digest(
 pub(super) fn verify_api_docs_render_digest_if_present(
     project_root: &Path,
 ) -> Result<Option<Vec<ApiDocRenderVerification>>, CngRefusal> {
-    if !api_docs_present(project_root) {
+    if !api_docs_present(project_root)? {
         return Ok(None);
     }
     Ok(Some(verify_api_docs_render_digest(project_root)?))

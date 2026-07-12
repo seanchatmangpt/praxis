@@ -329,12 +329,13 @@ impl<Payload: Serialize, Law> LawObject<Payload, Admitted, Law> {
 
         // Get current timestamp in nanoseconds since UNIX_EPOCH, unless the
         // caller supplied a deterministic timestamp via `meta.ts_ns`.
-        let ts_ns = meta.ts_ns.unwrap_or_else(|| {
-            SystemTime::now()
+        let ts_ns = match meta.ts_ns {
+            Some(t) => t,
+            None => SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos() as u64
-        });
+                .map_err(|e| crate::error::CoreError::SerializationFailed(format!("system time error: {e}")))?
+                .as_nanos() as u64,
+        };
 
         let frame = build_admission_frame(&payload_hash, prev_chain_hash, &meta, ts_ns);
         let chain_hash = chain_from_frame(prev_chain_hash, &frame);

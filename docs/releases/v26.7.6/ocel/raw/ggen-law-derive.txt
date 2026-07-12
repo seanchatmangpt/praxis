@@ -1,14 +1,14 @@
 # command: /Users/sac/praxis/target/debug/ggen law derive
 # cwd: /Users/sac/praxis
-# started_at_utc: 2026-07-06T19:10:45.261Z
-# finished_at_utc: 2026-07-06T19:10:46.777Z
+# started_at_utc: 2026-07-12T08:34:11.076Z
+# finished_at_utc: 2026-07-12T08:34:13.884Z
 # exit_code: 0
 
 ## stdout
 {
+  "rules_loaded": 1,
   "derived": 55,
-  "graph_hash": "181850a747b21e698a35831857140b70305f38baf1c7df456275b5cb0036c1b7",
-  "rules_loaded": 1
+  "graph_hash": "13bade55e1b419d81cf6c6ac80c55133e96c91f10a9b7d6bbea507e23033a652"
 }
 
 ## stderr

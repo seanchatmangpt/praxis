@@ -287,11 +287,48 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "axum"
+version = "0.7.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edca88bc138befd0323b20752846e6587272d3b03b0343c8ea28a6f819e6e71f"
+dependencies = [
+ "async-trait",
+ "axum-core 0.4.5",
+ "base64 0.22.1",
+ "bytes",
+ "futures-util",
+ "http 1.4.2",
+ "http-body 1.0.1",
+ "http-body-util",
+ "hyper 1.10.1",
+ "hyper-util",
+ "itoa",
+ "matchit 0.7.3",
+ "memchr",
+ "mime",
+ "percent-encoding",
+ "pin-project-lite",
+ "rustversion",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "serde_urlencoded",
+ "sha1 0.10.6",
+ "sync_wrapper 1.0.2",
+ "tokio",
+ "tokio-tungstenite 0.24.0",
+ "tower 0.5.3",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "axum"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31b698c5f9a010f6573133b09e0de5408834d0c82f8d7475a89fc1867a71cd90"
 dependencies = [
- "axum-core",
+ "axum-core 0.5.6",
  "bytes",
  "form_urlencoded",
  "futures-util",
@@ -301,7 +338,7 @@ dependencies = [
  "hyper 1.10.1",
  "hyper-util",
  "itoa",
- "matchit",
+ "matchit 0.8.4",
  "memchr",
  "mime",
  "percent-encoding",
@@ -313,6 +350,27 @@ dependencies = [
  "sync_wrapper 1.0.2",
  "tokio",
  "tower 0.5.3",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "axum-core"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09f2bd6146b97ae3359fa0cc6d6b376d9539582c7b4220f041a33ec24c226199"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures-util",
+ "http 1.4.2",
+ "http-body 1.0.1",
+ "http-body-util",
+ "mime",
+ "pin-project-lite",
+ "rustversion",
+ "sync_wrapper 1.0.2",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -1377,6 +1435,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "data-encoding"
+version = "2.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4ae5f15dda3c708c0ade84bfee31ccab44a3da4f88015ed22f63732abe300c8"
+
+[[package]]
 name = "deepmesa-collections"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2068,7 +2132,7 @@ dependencies = [
  "anyhow",
  "arbitrary",
  "async-trait",
- "axum",
+ "axum 0.8.9",
  "base64 0.22.1",
  "blake3",
  "bytes",
@@ -3324,6 +3388,12 @@ dependencies = [
 
 [[package]]
 name = "matchit"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
+
+[[package]]
+name = "matchit"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
@@ -3366,6 +3436,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "mfact-core"
+version = "0.1.0"
+dependencies = [
+ "axum 0.7.9",
+ "futures",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
 ]
 
 [[package]]
@@ -3445,12 +3528,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "multifractal-workflow"
+version = "26.7.12"
+dependencies = [
+ "bcinr-pddl 26.6.26 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bcinr-powl 26.6.25",
+ "bcinr-powl-receipt",
+ "blake3",
+ "bumpalo",
+ "cng",
+ "ggen",
+ "hex",
+ "oxigraph",
+ "pddl-index",
+ "powl2-decompose",
+ "praxis-core",
+ "praxis-graphlaw",
+ "serde",
+ "serde_json",
+ "tera",
+ "thiserror 2.0.18",
+ "wasm4pm-arazzo",
+ "wasm4pm-cognition 26.7.6",
+ "wasm4pm-compat",
+ "wasm4pm-planner",
+]
+
+[[package]]
 name = "my-conforming-project"
 version = "26.7.2"
 dependencies = [
  "agent8",
  "anyhow",
  "assert_cmd",
+ "axum 0.7.9",
  "bcinr-pddl 26.6.26",
  "bcinr-powl 26.6.25",
  "bcinr-powl-receipt",
@@ -3462,6 +3573,7 @@ dependencies = [
  "criterion",
  "dashmap",
  "divan",
+ "futures-util",
  "getrandom 0.3.4",
  "ggen-graph",
  "hex",
@@ -3471,7 +3583,7 @@ dependencies = [
  "moka",
  "once_cell",
  "oxigraph",
- "oxrdf",
+ "oxrdf 0.3.3",
  "parking_lot",
  "pddl-index",
  "powl2-decompose",
@@ -3491,11 +3603,13 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "spargebra 0.3.5",
  "star-toml",
  "tempfile",
  "tera",
  "thiserror 2.0.18",
  "tokio",
+ "tokio-tungstenite 0.21.0",
  "toml 0.8.23",
  "tracing-subscriber",
  "tree-sitter",
@@ -3858,7 +3972,7 @@ dependencies = [
  "getrandom 0.3.4",
  "libc",
  "oxiri",
- "oxrdf",
+ "oxrdf 0.3.3",
  "oxrdfio",
  "oxrocksdb-sys",
  "oxsdatatypes",
@@ -3867,7 +3981,7 @@ dependencies = [
  "siphasher",
  "sparesults",
  "spareval",
- "spargebra",
+ "spargebra 0.4.6",
  "thiserror 2.0.18",
 ]
 
@@ -3894,8 +4008,20 @@ checksum = "f6e1380a504a8571763f13b8bcad629ff90d0300d47d8a519f3c6c599625840e"
 dependencies = [
  "json-event-parser",
  "oxiri",
- "oxrdf",
+ "oxrdf 0.3.3",
  "ryu-js",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "oxrdf"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a04761319ef84de1f59782f189d072cbfc3a9a40c4e8bded8667202fbd35b02a"
+dependencies = [
+ "oxilangtag",
+ "oxiri",
+ "rand 0.8.6",
  "thiserror 2.0.18",
 ]
 
@@ -3921,7 +4047,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "696223589ecbcab06b1a5df9b527dc25b0c656160cca38752fdb3878a5d3dd03"
 dependencies = [
  "oxjsonld",
- "oxrdf",
+ "oxrdf 0.3.3",
  "oxrdfxml",
  "oxttl",
  "thiserror 2.0.18",
@@ -3935,7 +4061,7 @@ checksum = "cd5516ae083d09bc57ec65ed5ee97701481725de6ffaa83d968ab42a96157ba1"
 dependencies = [
  "oxilangtag",
  "oxiri",
- "oxrdf",
+ "oxrdf 0.3.3",
  "quick-xml 0.37.5",
  "thiserror 2.0.18",
 ]
@@ -3968,7 +4094,7 @@ dependencies = [
  "memchr",
  "oxilangtag",
  "oxiri",
- "oxrdf",
+ "oxrdf 0.3.3",
  "thiserror 2.0.18",
 ]
 
@@ -4418,7 +4544,7 @@ dependencies = [
  "md5",
  "once_cell",
  "oxigraph",
- "oxrdf",
+ "oxrdf 0.3.3",
  "pest",
  "pest_derive",
  "powl2-decompose",
@@ -4435,7 +4561,7 @@ dependencies = [
  "sha2 0.11.0",
  "smallvec",
  "sparesults",
- "spargebra",
+ "spargebra 0.4.6",
  "thiserror 2.0.18",
  "tokio",
  "wasm4pm-cognition 26.7.6",
@@ -5881,7 +6007,7 @@ checksum = "7e13362decdcbeb3fefadff1631238c835c112027221e83d217cc5779f5a81c2"
 dependencies = [
  "json-event-parser",
  "memchr",
- "oxrdf",
+ "oxrdf 0.3.3",
  "quick-xml 0.37.5",
  "thiserror 2.0.18",
 ]
@@ -5896,7 +6022,7 @@ dependencies = [
  "json-event-parser",
  "md-5",
  "oxiri",
- "oxrdf",
+ "oxrdf 0.3.3",
  "oxsdatatypes",
  "rand 0.9.4",
  "regex",
@@ -5904,8 +6030,22 @@ dependencies = [
  "sha1 0.10.6",
  "sha2 0.10.9",
  "sparesults",
- "spargebra",
+ "spargebra 0.4.6",
  "sparopt",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "spargebra"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8907e262be4b4b363218f4688f5654d423a958aa4b8d7c7a7f898be591fa474e"
+dependencies = [
+ "oxilangtag",
+ "oxiri",
+ "oxrdf 0.2.4",
+ "peg",
+ "rand 0.8.6",
  "thiserror 2.0.18",
 ]
 
@@ -5917,7 +6057,7 @@ checksum = "46715eb957d1fe960cbbc0b713da8f78e2cb19df315b48fb09c9467a1c84f656"
 dependencies = [
  "oxilangtag",
  "oxiri",
- "oxrdf",
+ "oxrdf 0.3.3",
  "peg",
  "rand 0.9.4",
  "thiserror 2.0.18",
@@ -5929,9 +6069,9 @@ version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aed7a854b8ea67618f8ce69aabb0e904d7704226060e9d5a2930eb3136c3fa3b"
 dependencies = [
- "oxrdf",
+ "oxrdf 0.3.3",
  "rand 0.9.4",
- "spargebra",
+ "spargebra 0.4.6",
 ]
 
 [[package]]
@@ -6293,6 +6433,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
+name = "tmp_sparql2"
+version = "0.1.0"
+dependencies = [
+ "spargebra 0.4.6",
+]
+
+[[package]]
 name = "tokio"
 version = "1.52.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6349,6 +6496,30 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+]
+
+[[package]]
+name = "tokio-tungstenite"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c83b561d025642014097b66e6c1bb422783339e0909e4429cde4749d1990bc38"
+dependencies = [
+ "futures-util",
+ "log",
+ "tokio",
+ "tungstenite 0.21.0",
+]
+
+[[package]]
+name = "tokio-tungstenite"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edc5f74e248dc973e0dbb7b74c7e0d6fcc301c694ff50049504004ef4d0cdcd9"
+dependencies = [
+ "futures-util",
+ "log",
+ "tokio",
+ "tungstenite 0.24.0",
 ]
 
 [[package]]
@@ -6684,6 +6855,43 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
+name = "tungstenite"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ef1a641ea34f399a848dea702823bbecfb4c486f911735368f1f137cb8257e1"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "data-encoding",
+ "http 1.4.2",
+ "httparse",
+ "log",
+ "rand 0.8.6",
+ "sha1 0.10.6",
+ "thiserror 1.0.69",
+ "url",
+ "utf-8",
+]
+
+[[package]]
+name = "tungstenite"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18e5b8366ee7a95b16d32197d0b2604b43a0be89dc5fac9f8e96ccafbaedda8a"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "data-encoding",
+ "http 1.4.2",
+ "httparse",
+ "log",
+ "rand 0.8.6",
+ "sha1 0.10.6",
+ "thiserror 1.0.69",
+ "utf-8",
+]
+
+[[package]]
 name = "typed-builder"
 version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6822,6 +7030,12 @@ name = "urlencoding"
 version = "2.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
+
+[[package]]
+name = "utf-8"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 
 [[package]]
 name = "utf8-zero"

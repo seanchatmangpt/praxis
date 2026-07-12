@@ -267,11 +267,12 @@
 <https://praxis.dev/ontology/standing#Wasm4pmValidationRef> <https://praxis.dev/ontology/standing#hash> "sha256:62403c522bb610694529451d9ad6d31e328ed7c8e28b242c62505f37181c092a".
 <https://praxis.dev/ontology/standing#Wasm4pmValidationRef> <https://praxis.dev/ontology/standing#path> "docs/case-studies/autonomic-standing-factory/case-study/wasm4pm_validation.json".
 <https://praxis.dev/ontology/standing#artifact-autonomic-platform> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
-<https://praxis.dev/ontology/standing#artifact-autonomic-platform> <https://praxis.dev/ontology/standing#evidence> "{\"artifact\":\"clients/autonomic-platform\",\"command\":\"npm run build\",\"exit_code\":127,\"kind\":\"command\"}".
+<https://praxis.dev/ontology/standing#artifact-autonomic-platform> <https://praxis.dev/ontology/standing#evidence> "{\"artifact\":\"clients/autonomic-platform\",\"command\":\"npm run build\",\"exit_code\":0,\"kind\":\"command\"}".
 <https://praxis.dev/ontology/standing#artifact-autonomic-platform> <https://praxis.dev/ontology/standing#id> "autonomic-platform".
 <https://praxis.dev/ontology/standing#artifact-autonomic-platform> <https://praxis.dev/ontology/standing#kind> "Client".
-<https://praxis.dev/ontology/standing#artifact-autonomic-platform> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
+<https://praxis.dev/ontology/standing#artifact-autonomic-platform> <https://praxis.dev/ontology/standing#ladderLevel> "1"^^<http://www.w3.org/2001/XMLSchema#integer>.
 <https://praxis.dev/ontology/standing#artifact-autonomic-platform> <https://praxis.dev/ontology/standing#path> "clients/autonomic-platform".
+<https://praxis.dev/ontology/standing#artifact-autonomic-platform> <https://praxis.dev/ontology/standing#standing> "Builds".
 <https://praxis.dev/ontology/standing#artifact-autonomic-platform> <https://praxis.dev/ontology/standing#standing> "Discovered".
 <https://praxis.dev/ontology/standing#artifact-bench_bench-ggen> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
 <https://praxis.dev/ontology/standing#artifact-bench_bench-ggen> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"docs/releases/v26.7.6/ocel/raw/bench-ggen.txt\",\"hash\":\"2cbf6b12a98243afe7cf3abb57858d04e7e14b22fba92b8244311e7158eaa2b5\"}".
@@ -311,6 +312,13 @@
 <https://praxis.dev/ontology/standing#artifact-crate_agent8> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
 <https://praxis.dev/ontology/standing#artifact-crate_agent8> <https://praxis.dev/ontology/standing#path> "crates/agent8".
 <https://praxis.dev/ontology/standing#artifact-crate_agent8> <https://praxis.dev/ontology/standing#standing> "Discovered".
+<https://praxis.dev/ontology/standing#artifact-crate_air_core_nif> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
+<https://praxis.dev/ontology/standing#artifact-crate_air_core_nif> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"apps/air_core/native/air_core_nif/Cargo.toml\",\"hash\":\"79c51dc90bfcc065ac90bcc20d98ed29b75a7d7d8abd771a11df6c1d72e39645\"}".
+<https://praxis.dev/ontology/standing#artifact-crate_air_core_nif> <https://praxis.dev/ontology/standing#id> "crate:air_core_nif".
+<https://praxis.dev/ontology/standing#artifact-crate_air_core_nif> <https://praxis.dev/ontology/standing#kind> "RustCrate".
+<https://praxis.dev/ontology/standing#artifact-crate_air_core_nif> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
+<https://praxis.dev/ontology/standing#artifact-crate_air_core_nif> <https://praxis.dev/ontology/standing#path> "apps/air_core/native/air_core_nif".
+<https://praxis.dev/ontology/standing#artifact-crate_air_core_nif> <https://praxis.dev/ontology/standing#standing> "Discovered".
 <https://praxis.dev/ontology/standing#artifact-crate_audit-tools> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
 <https://praxis.dev/ontology/standing#artifact-crate_audit-tools> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"audit-tools/Cargo.toml\",\"hash\":\"940ccfdf7c4a0ba954174b3c6a01bcc85e0a1cfb9a2298f0a19084bb2c0141eb\"}".
 <https://praxis.dev/ontology/standing#artifact-crate_audit-tools> <https://praxis.dev/ontology/standing#id> "crate:audit-tools".
@@ -325,6 +333,13 @@
 <https://praxis.dev/ontology/standing#artifact-crate_chatman-common> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
 <https://praxis.dev/ontology/standing#artifact-crate_chatman-common> <https://praxis.dev/ontology/standing#path> "crates/chatman-common".
 <https://praxis.dev/ontology/standing#artifact-crate_chatman-common> <https://praxis.dev/ontology/standing#standing> "Discovered".
+<https://praxis.dev/ontology/standing#artifact-crate_cng> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
+<https://praxis.dev/ontology/standing#artifact-crate_cng> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"crates/cng/Cargo.toml\",\"hash\":\"fd989b61bb638ad6cfb549e14447a52fe0065c437a872e5dc3d0de6de85bae59\"}".
+<https://praxis.dev/ontology/standing#artifact-crate_cng> <https://praxis.dev/ontology/standing#id> "crate:cng".
+<https://praxis.dev/ontology/standing#artifact-crate_cng> <https://praxis.dev/ontology/standing#kind> "RustCrate".
+<https://praxis.dev/ontology/standing#artifact-crate_cng> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
+<https://praxis.dev/ontology/standing#artifact-crate_cng> <https://praxis.dev/ontology/standing#path> "crates/cng".
+<https://praxis.dev/ontology/standing#artifact-crate_cng> <https://praxis.dev/ontology/standing#standing> "Discovered".
 <https://praxis.dev/ontology/standing#artifact-crate_ggen> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
 <https://praxis.dev/ontology/standing#artifact-crate_ggen> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"crates/ggen/Cargo.toml\",\"hash\":\"f8f5553f743db9257e89f0473a913fee08d80542d0c7cef2ab38ee1406dab02b\"}".
 <https://praxis.dev/ontology/standing#artifact-crate_ggen> <https://praxis.dev/ontology/standing#id> "crate:ggen".
@@ -332,6 +347,20 @@
 <https://praxis.dev/ontology/standing#artifact-crate_ggen> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
 <https://praxis.dev/ontology/standing#artifact-crate_ggen> <https://praxis.dev/ontology/standing#path> "crates/ggen".
 <https://praxis.dev/ontology/standing#artifact-crate_ggen> <https://praxis.dev/ontology/standing#standing> "Discovered".
+<https://praxis.dev/ontology/standing#artifact-crate_mfact-core> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
+<https://praxis.dev/ontology/standing#artifact-crate_mfact-core> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"crates/mfact-core/Cargo.toml\",\"hash\":\"53a248a338d6b22130f8daec79b382cf0e3fbe4f561426c51fa3c4fc59541968\"}".
+<https://praxis.dev/ontology/standing#artifact-crate_mfact-core> <https://praxis.dev/ontology/standing#id> "crate:mfact-core".
+<https://praxis.dev/ontology/standing#artifact-crate_mfact-core> <https://praxis.dev/ontology/standing#kind> "RustCrate".
+<https://praxis.dev/ontology/standing#artifact-crate_mfact-core> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
+<https://praxis.dev/ontology/standing#artifact-crate_mfact-core> <https://praxis.dev/ontology/standing#path> "crates/mfact-core".
+<https://praxis.dev/ontology/standing#artifact-crate_mfact-core> <https://praxis.dev/ontology/standing#standing> "Discovered".
+<https://praxis.dev/ontology/standing#artifact-crate_multifractal-workflow> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
+<https://praxis.dev/ontology/standing#artifact-crate_multifractal-workflow> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"crates/multifractal-workflow/Cargo.toml\",\"hash\":\"9123c08e37e0955345528a2deffa00b9ede0cd1645e29f0191777c38ae87061f\"}".
+<https://praxis.dev/ontology/standing#artifact-crate_multifractal-workflow> <https://praxis.dev/ontology/standing#id> "crate:multifractal-workflow".
+<https://praxis.dev/ontology/standing#artifact-crate_multifractal-workflow> <https://praxis.dev/ontology/standing#kind> "RustCrate".
+<https://praxis.dev/ontology/standing#artifact-crate_multifractal-workflow> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
+<https://praxis.dev/ontology/standing#artifact-crate_multifractal-workflow> <https://praxis.dev/ontology/standing#path> "crates/multifractal-workflow".
+<https://praxis.dev/ontology/standing#artifact-crate_multifractal-workflow> <https://praxis.dev/ontology/standing#standing> "Discovered".
 <https://praxis.dev/ontology/standing#artifact-crate_pddl-index> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
 <https://praxis.dev/ontology/standing#artifact-crate_pddl-index> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"crates/pddl-index/Cargo.toml\",\"hash\":\"d3701821a54172e44079e3398bcde472d928d09e53f0334fd4922cd9f1c6e39b\"}".
 <https://praxis.dev/ontology/standing#artifact-crate_pddl-index> <https://praxis.dev/ontology/standing#id> "crate:pddl-index".
@@ -347,7 +376,7 @@
 <https://praxis.dev/ontology/standing#artifact-crate_powl2-decompose> <https://praxis.dev/ontology/standing#path> "crates/powl2-decompose".
 <https://praxis.dev/ontology/standing#artifact-crate_powl2-decompose> <https://praxis.dev/ontology/standing#standing> "Discovered".
 <https://praxis.dev/ontology/standing#artifact-crate_praxis-core> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
-<https://praxis.dev/ontology/standing#artifact-crate_praxis-core> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"crates/praxis-core/Cargo.toml\",\"hash\":\"fb7cf90936eb8e432181a03912c28f42e183bc4685d7ef57674f63e13b054fec\"}".
+<https://praxis.dev/ontology/standing#artifact-crate_praxis-core> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"crates/praxis-core/Cargo.toml\",\"hash\":\"c4c295a8b523aa3302b6fe47df05e44f6881a9f899a25d1893091730e20fe1cf\"}".
 <https://praxis.dev/ontology/standing#artifact-crate_praxis-core> <https://praxis.dev/ontology/standing#id> "crate:praxis-core".
 <https://praxis.dev/ontology/standing#artifact-crate_praxis-core> <https://praxis.dev/ontology/standing#kind> "RustCrate".
 <https://praxis.dev/ontology/standing#artifact-crate_praxis-core> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
@@ -361,7 +390,7 @@
 <https://praxis.dev/ontology/standing#artifact-crate_praxis-graphlaw-wasm> <https://praxis.dev/ontology/standing#path> "crates/praxis-graphlaw-wasm".
 <https://praxis.dev/ontology/standing#artifact-crate_praxis-graphlaw-wasm> <https://praxis.dev/ontology/standing#standing> "Discovered".
 <https://praxis.dev/ontology/standing#artifact-crate_praxis-graphlaw> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
-<https://praxis.dev/ontology/standing#artifact-crate_praxis-graphlaw> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"crates/praxis-graphlaw/Cargo.toml\",\"hash\":\"be1315c06bc781127cb9161f20762392fea94d507e2b0316e8f50ef64016003e\"}".
+<https://praxis.dev/ontology/standing#artifact-crate_praxis-graphlaw> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"crates/praxis-graphlaw/Cargo.toml\",\"hash\":\"4cf994aca109dc03dff1bdaa0e2b92f6d3056dbbd858f4bc403b2728d1701f09\"}".
 <https://praxis.dev/ontology/standing#artifact-crate_praxis-graphlaw> <https://praxis.dev/ontology/standing#id> "crate:praxis-graphlaw".
 <https://praxis.dev/ontology/standing#artifact-crate_praxis-graphlaw> <https://praxis.dev/ontology/standing#kind> "RustCrate".
 <https://praxis.dev/ontology/standing#artifact-crate_praxis-graphlaw> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
@@ -402,15 +431,26 @@
 <https://praxis.dev/ontology/standing#artifact-crate_rust-fable-testbed> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
 <https://praxis.dev/ontology/standing#artifact-crate_rust-fable-testbed> <https://praxis.dev/ontology/standing#path> "crates/rust-fable-testbed".
 <https://praxis.dev/ontology/standing#artifact-crate_rust-fable-testbed> <https://praxis.dev/ontology/standing#standing> "Discovered".
+<https://praxis.dev/ontology/standing#artifact-crate_tmp_sparql2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
+<https://praxis.dev/ontology/standing#artifact-crate_tmp_sparql2> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"tmp_sparql2/Cargo.toml\",\"hash\":\"d90932737a43f38734d61d58750e213db3145eb523fd2667264fc794b3d87ab3\"}".
+<https://praxis.dev/ontology/standing#artifact-crate_tmp_sparql2> <https://praxis.dev/ontology/standing#id> "crate:tmp_sparql2".
+<https://praxis.dev/ontology/standing#artifact-crate_tmp_sparql2> <https://praxis.dev/ontology/standing#kind> "RustCrate".
+<https://praxis.dev/ontology/standing#artifact-crate_tmp_sparql2> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
+<https://praxis.dev/ontology/standing#artifact-crate_tmp_sparql2> <https://praxis.dev/ontology/standing#path> "tmp_sparql2".
+<https://praxis.dev/ontology/standing#artifact-crate_tmp_sparql2> <https://praxis.dev/ontology/standing#standing> "Discovered".
+<https://praxis.dev/ontology/standing#artifact-crate_wasm4pm-arazzo> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
+<https://praxis.dev/ontology/standing#artifact-crate_wasm4pm-arazzo> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"crates/wasm4pm-arazzo/Cargo.toml\",\"hash\":\"d60a12496f379ff42325583e2c75ab16dd1dd5cf1766e0836f7f49138b6e2609\"}".
+<https://praxis.dev/ontology/standing#artifact-crate_wasm4pm-arazzo> <https://praxis.dev/ontology/standing#id> "crate:wasm4pm-arazzo".
+<https://praxis.dev/ontology/standing#artifact-crate_wasm4pm-arazzo> <https://praxis.dev/ontology/standing#kind> "RustCrate".
+<https://praxis.dev/ontology/standing#artifact-crate_wasm4pm-arazzo> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
+<https://praxis.dev/ontology/standing#artifact-crate_wasm4pm-arazzo> <https://praxis.dev/ontology/standing#path> "crates/wasm4pm-arazzo".
+<https://praxis.dev/ontology/standing#artifact-crate_wasm4pm-arazzo> <https://praxis.dev/ontology/standing#standing> "Discovered".
 <https://praxis.dev/ontology/standing#artifact-doctor-report> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
-<https://praxis.dev/ontology/standing#artifact-doctor-report> <https://praxis.dev/ontology/standing#evidence> "{\"artifact\":null,\"command\":\"cargo run --quiet --bin my-conforming-project -- doctor check --format json\",\"exit_code\":0,\"kind\":\"command\"}".
-<https://praxis.dev/ontology/standing#artifact-doctor-report> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"doctor:frontier.pass_rate\",\"hash\":\"1.0\"}".
-<https://praxis.dev/ontology/standing#artifact-doctor-report> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"doctor:receipts.record_count\",\"hash\":\"0\"}".
+<https://praxis.dev/ontology/standing#artifact-doctor-report> <https://praxis.dev/ontology/standing#evidence> "{\"artifact\":null,\"command\":\"cargo run --quiet --bin my-conforming-project -- doctor check --format json\",\"exit_code\":-1,\"kind\":\"command\"}".
 <https://praxis.dev/ontology/standing#artifact-doctor-report> <https://praxis.dev/ontology/standing#id> "doctor-report".
 <https://praxis.dev/ontology/standing#artifact-doctor-report> <https://praxis.dev/ontology/standing#kind> "Doc".
-<https://praxis.dev/ontology/standing#artifact-doctor-report> <https://praxis.dev/ontology/standing#ladderLevel> "1"^^<http://www.w3.org/2001/XMLSchema#integer>.
+<https://praxis.dev/ontology/standing#artifact-doctor-report> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
 <https://praxis.dev/ontology/standing#artifact-doctor-report> <https://praxis.dev/ontology/standing#path> "cargo run --quiet --bin my-conforming-project -- doctor check --format json".
-<https://praxis.dev/ontology/standing#artifact-doctor-report> <https://praxis.dev/ontology/standing#standing> "Builds".
 <https://praxis.dev/ontology/standing#artifact-doctor-report> <https://praxis.dev/ontology/standing#standing> "Discovered".
 <https://praxis.dev/ontology/standing#artifact-ocel_ledger-export_ocel> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
 <https://praxis.dev/ontology/standing#artifact-ocel_ledger-export_ocel> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"ocel_event\",\"event_id\":\"ledger-export.ocel\",\"path\":\"docs/releases/v26.7.6/ocel/ledger-export.ocel.json\"}".
@@ -427,14 +467,13 @@
 <https://praxis.dev/ontology/standing#artifact-ocel_playwright-wasm4pm-validation_ocel> <https://praxis.dev/ontology/standing#path> "docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json".
 <https://praxis.dev/ontology/standing#artifact-ocel_playwright-wasm4pm-validation_ocel> <https://praxis.dev/ontology/standing#standing> "Discovered".
 <https://praxis.dev/ontology/standing#artifact-ocel_wasm4pm-process-validation> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
-<https://praxis.dev/ontology/standing#artifact-ocel_wasm4pm-process-validation> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"docs/releases/v26.7.6/ocel/wasm4pm-process-validation.json:fitness\",\"hash\":\"1.0\"}".
+<https://praxis.dev/ontology/standing#artifact-ocel_wasm4pm-process-validation> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"artifact\",\"path\":\"docs/releases/v26.7.6/ocel/wasm4pm-process-validation.json:fitness\",\"hash\":\"0.9957081545064378\"}".
 <https://praxis.dev/ontology/standing#artifact-ocel_wasm4pm-process-validation> <https://praxis.dev/ontology/standing#evidence> "{\"kind\":\"ocel_event\",\"event_id\":\"wasm4pm-process-validation\",\"path\":\"docs/releases/v26.7.6/ocel/wasm4pm-process-validation.json\"}".
 <https://praxis.dev/ontology/standing#artifact-ocel_wasm4pm-process-validation> <https://praxis.dev/ontology/standing#id> "ocel:wasm4pm-process-validation".
 <https://praxis.dev/ontology/standing#artifact-ocel_wasm4pm-process-validation> <https://praxis.dev/ontology/standing#kind> "Workflow".
-<https://praxis.dev/ontology/standing#artifact-ocel_wasm4pm-process-validation> <https://praxis.dev/ontology/standing#ladderLevel> "4"^^<http://www.w3.org/2001/XMLSchema#integer>.
+<https://praxis.dev/ontology/standing#artifact-ocel_wasm4pm-process-validation> <https://praxis.dev/ontology/standing#ladderLevel> "0"^^<http://www.w3.org/2001/XMLSchema#integer>.
 <https://praxis.dev/ontology/standing#artifact-ocel_wasm4pm-process-validation> <https://praxis.dev/ontology/standing#path> "docs/releases/v26.7.6/ocel/wasm4pm-process-validation.json".
 <https://praxis.dev/ontology/standing#artifact-ocel_wasm4pm-process-validation> <https://praxis.dev/ontology/standing#standing> "Discovered".
-<https://praxis.dev/ontology/standing#artifact-ocel_wasm4pm-process-validation> <https://praxis.dev/ontology/standing#standing> "OcelProven".
 <https://praxis.dev/ontology/standing#artifact-plan-runs_target_plan_run___plan_json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://praxis.dev/ontology/standing#StandingArtifact>.
 <https://praxis.dev/ontology/standing#artifact-plan-runs_target_plan_run___plan_json> <https://praxis.dev/ontology/standing#id> "plan-runs:target/plan_run/*/plan.json".
 <https://praxis.dev/ontology/standing#artifact-plan-runs_target_plan_run___plan_json> <https://praxis.dev/ontology/standing#kind> "Workflow".

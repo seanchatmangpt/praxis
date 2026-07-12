@@ -265,26 +265,26 @@ impl OwlRlEngine {
     /// Accepts &TripleIndex references to support both Arc<TripleIndex> snapshots
     /// (via Arc::as_ref()) and mutable TripleStore indexes without copying.
     /// Multiple compile() calls on the same snapshot share zero-copy read-only access.
-    pub fn compile(&self, index: &TripleIndex) -> (Vec<crate::rule::Rule>, ScanReport) {
+    pub fn compile(&self, index: &TripleIndex) -> Result<(Vec<crate::rule::Rule>, ScanReport), String> {
         let mut rules = Vec::new();
 
         // Add all supported daily-profile rules unconditionally.
         // These 9 features are the bounded OWL RL profile for v26.7.8.
-        rules.push(rule_subclass_transitive(&self.vocab));
-        rules.push(rule_subclass_type_propagation(&self.vocab));
-        rules.push(rule_subproperty_transitive(&self.vocab));
-        rules.push(rule_subproperty_assertion_propagation(&self.vocab));
-        rules.push(rule_domain(&self.vocab));
-        rules.push(rule_range(&self.vocab));
-        let eq_class_rules = rules_equivalent_class(&self.vocab);
+        rules.push(rule_subclass_transitive(&self.vocab)?);
+        rules.push(rule_subclass_type_propagation(&self.vocab)?);
+        rules.push(rule_subproperty_transitive(&self.vocab)?);
+        rules.push(rule_subproperty_assertion_propagation(&self.vocab)?);
+        rules.push(rule_domain(&self.vocab)?);
+        rules.push(rule_range(&self.vocab)?);
+        let eq_class_rules = rules_equivalent_class(&self.vocab)?;
         rules.push(eq_class_rules[0].clone());
         rules.push(eq_class_rules[1].clone());
-        let eq_prop_rules = rules_equivalent_property(&self.vocab);
+        let eq_prop_rules = rules_equivalent_property(&self.vocab)?;
         rules.push(eq_prop_rules[0].clone());
         rules.push(eq_prop_rules[1].clone());
-        rules.push(rule_inverse_of(&self.vocab));
-        rules.push(rule_symmetric_property(&self.vocab));
-        rules.push(rule_transitive_property(&self.vocab));
+        rules.push(rule_inverse_of(&self.vocab)?);
+        rules.push(rule_symmetric_property(&self.vocab)?);
+        rules.push(rule_transitive_property(&self.vocab)?);
 
         // Scan the actual ontology for unsupported/external-boundary features
         // (owl:sameAs, cardinality, complex class expressions, propertyChainAxiom,
@@ -293,7 +293,7 @@ impl OwlRlEngine {
         // cannot correctly reason over.
         let report = scan_ontology(index, &self.vocab);
 
-        (rules, report)
+        Ok((rules, report))
     }
 }
 
@@ -345,7 +345,7 @@ mod owlrl_test {
     #[test]
     fn test_rule_subclass_transitive() {
         let vocab = OwlRlVocab::new();
-        let rule = rule_subclass_transitive(&vocab);
+        let rule = rule_subclass_transitive(&vocab).unwrap();
         assert_eq!(rule.body.len(), 2);
         assert_eq!(
             rule.head.s.to_encoded(),
@@ -356,28 +356,28 @@ mod owlrl_test {
     #[test]
     fn test_rule_subclass_type_propagation() {
         let vocab = OwlRlVocab::new();
-        let rule = rule_subclass_type_propagation(&vocab);
+        let rule = rule_subclass_type_propagation(&vocab).unwrap();
         assert_eq!(rule.body.len(), 2);
     }
 
     #[test]
     fn test_rule_domain() {
         let vocab = OwlRlVocab::new();
-        let rule = rule_domain(&vocab);
+        let rule = rule_domain(&vocab).unwrap();
         assert_eq!(rule.body.len(), 2);
     }
 
     #[test]
     fn test_rule_range() {
         let vocab = OwlRlVocab::new();
-        let rule = rule_range(&vocab);
+        let rule = rule_range(&vocab).unwrap();
         assert_eq!(rule.body.len(), 2);
     }
 
     #[test]
     fn test_rules_equivalent_class() {
         let vocab = OwlRlVocab::new();
-        let rules = rules_equivalent_class(&vocab);
+        let rules = rules_equivalent_class(&vocab).unwrap();
         assert_eq!(rules.len(), 2);
         assert_eq!(rules[0].body.len(), 1);
         assert_eq!(rules[1].body.len(), 1);
@@ -386,28 +386,28 @@ mod owlrl_test {
     #[test]
     fn test_rules_equivalent_property() {
         let vocab = OwlRlVocab::new();
-        let rules = rules_equivalent_property(&vocab);
+        let rules = rules_equivalent_property(&vocab).unwrap();
         assert_eq!(rules.len(), 2);
     }
 
     #[test]
     fn test_rule_inverse_of() {
         let vocab = OwlRlVocab::new();
-        let rule = rule_inverse_of(&vocab);
+        let rule = rule_inverse_of(&vocab).unwrap();
         assert_eq!(rule.body.len(), 2);
     }
 
     #[test]
     fn test_rule_symmetric_property() {
         let vocab = OwlRlVocab::new();
-        let rule = rule_symmetric_property(&vocab);
+        let rule = rule_symmetric_property(&vocab).unwrap();
         assert_eq!(rule.body.len(), 2);
     }
 
     #[test]
     fn test_rule_transitive_property() {
         let vocab = OwlRlVocab::new();
-        let rule = rule_transitive_property(&vocab);
+        let rule = rule_transitive_property(&vocab).unwrap();
         assert_eq!(rule.body.len(), 3);
     }
 
@@ -424,7 +424,7 @@ mod owlrl_test {
     fn test_engine_compile_empty() {
         let store = TripleStore::new();
         let engine = OwlRlEngine::new();
-        let (rules, _report) = engine.compile(&store.triple_index);
+        let (rules, _report) = engine.compile(&store.triple_index).unwrap();
         // Daily profile v26.7.8 unconditionally adds all 9 supported rules.
         // Each gets compiled: subclass/subproperty/domain/range are 1 rule each,
         // while equivalent_class/equivalent_property each expand to 2 rules,

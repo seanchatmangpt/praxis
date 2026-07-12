@@ -1,0 +1,4 @@
+[pack]
+name = "shape-admission-pack"
+version = "26.7.12"
+description = "F07 \"SHACL and ShEx Admission\" (V12-007) provenance vocabulary: the D1-D7 RDF entity types (ShapeProfile/SHACLReport/ShExReport/ViolationSet/AdmissionDecision/ShapeReceipt/AdmittedGraph), their prov:wasDerivedFrom edges, and the admission lifecycle's ordered state names. Generates crates/multifractal-workflow/src/f07_shape_admission_vocab.rs (IRI constants + edge/state tables) consumed by the hand-written crates/multifractal-workflow/src/f07_shape_admission.rs orchestration module -- this pack supplies vocabulary/documentation data, not validation or lifecycle logic."

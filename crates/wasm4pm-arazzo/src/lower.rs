@@ -23,12 +23,31 @@
 //!   [`Refusal::MissingIdentity`].
 //! - **Parameters and request bodies** (`AirAction::inputs`): each `Parameter.value` /
 //!   `RequestBody.payload` is lowered by [`lower_json_value`] -- see its doc comment for the
-//!   exact `Literal` vs. `Variable` classification rule. `RequestBody.replacements` (targeted
-//!   JSON-pointer overrides within a payload) are not lowered: an unimplemented feature, not a
-//!   silently dropped one -- nothing in this crate claims replacements are applied.
-//! - **Parameter/component `$ref`s** (`ParameterOrReference::Reference`): skipped, not
-//!   fabricated as an input. Dereferencing `#/components/parameters/<name>` is a real gap, left
-//!   for a follow-up ticket rather than invented here.
+//!   exact `Literal` vs. `Variable` classification rule. A non-empty `RequestBody.replacements`
+//!   (PROJ-810: targeted JSON-pointer overrides within a payload, Arazzo's "Payload Replacement
+//!   Object") is applied by [`apply_payload_replacements`] before the payload is lowered: each
+//!   replacement's `target` is an RFC 6901 JSON Pointer resolved (and set) within the payload,
+//!   in declaration order, each replacement seeing the previous one's result. Only the spec's
+//!   default target shape (`targetSelectorType` omitted, or explicitly `jsonpointer`) is
+//!   implemented; a non-jsonpointer target shape is refused with
+//!   [`Refusal::UnsupportedExpression`] (the same selector-shape boundary
+//!   [`classify_criterion`]/[`classify_output_value`] enforce elsewhere), and a `target` that
+//!   does not resolve within the payload (an absent object key, an out-of-bounds array index) is
+//!   refused with [`Refusal::UnresolvableReference`] rather than silently no-op'd. Replacements
+//!   declared with no `payload` to apply them to are refused with
+//!   [`Refusal::UnsupportedFeature`]: this bridge has no OpenAPI operation resolver to source the
+//!   implicit default payload the replacements would otherwise apply against (PROJ-753 had
+//!   refused every non-empty `replacements` unconditionally; PROJ-810 narrows that refusal to
+//!   only this genuinely-out-of-scope case).
+//! - **Parameter/component `$ref`s** (`ParameterOrReference::Reference`): dereferencing
+//!   `#/components/parameters/<name>` (PROJ-810) is resolved by [`resolve_parameter_reference`]
+//!   against `Components.parameters`, the same local-only boundary
+//!   [`resolve_success_reference`]/[`resolve_failure_reference`] already enforce for routing-rule
+//!   references: a cross-document reference, or a name absent from this document's own
+//!   `components.parameters`, is refused with [`Refusal::UnresolvableReference`] (PROJ-753 had
+//!   refused every `$ref`-shaped parameter unconditionally with
+//!   [`Refusal::UnsupportedFeature`]; PROJ-810 replaces that with real dereferencing, keeping the
+//!   refusal only for a genuinely dangling or cross-document reference).
 //! - **Outputs** (`AirAction::outputs`): one `AirExpr::Literal` per key of `Step.outputs`
 //!   (`BTreeMap`, so already sorted -- no `HashMap` iteration-order risk), carrying the bare
 //!   output name. This matches `temporal::ReferenceResolver`'s existing (pre-PROJ-753,
@@ -41,10 +60,30 @@
 //!   `components.failureActions` (a bounded, local, deterministic lookup); a reference to
 //!   another document, or to a name absent from `components`, is refused with
 //!   [`Refusal::UnresolvableReference`] rather than silently dropped.
-//! - **Workflow-level `successActions`/`failureActions`, `depends_on`, and workflow `inputs`**
-//!   are not lowered: this ticket scopes AIR at the step level (routing, expression
-//!   compilation *per step*); workflow-level defaults are a distinct concern left to a
-//!   follow-up ticket.
+//! - **Workflow-level `successActions`/`failureActions`** (as opposed to `Step.onSuccess`/
+//!   `onFailure`, which do lower -- see "Success/failure routing" above): PROJ-810 implements
+//!   the Arazzo spec's own semantics for these fields ("applicable for all steps... can be
+//!   overridden at the step level but cannot be removed there", mirrored on `Step.onSuccess`/
+//!   `onFailure`: "the new definition will override [a workflow-level action of the same name]
+//!   but can never remove it"). [`lower_workflow`] resolves the workflow's own
+//!   `successActions`/`failureActions` once (dereferencing any `Reference` entries against
+//!   `components`, same as step-level routing) and [`lower_step`] merges them with each step's
+//!   own via [`merge_success_actions`]/[`merge_failure_actions`]: a step-level action whose
+//!   `name` matches a workflow-level one replaces it in place; a step-level action with a new
+//!   name is appended; a workflow-level action the step doesn't mention passes through
+//!   unchanged. A step declaring no actions of its own gets exactly the workflow-level list.
+//!   (PROJ-753 had refused any workflow declaring either field at all with
+//!   [`Refusal::UnsupportedFeature`]; PROJ-810 replaces that with this real merge -- there is no
+//!   longer a "genuinely invalid" shape of this construct to refuse, since every
+//!   `SuccessActionOrReference`/`FailureActionOrReference` entry is validated the same way at
+//!   both the workflow and step level.)
+//! - **Workflow-level `depends_on` and workflow `inputs`** (distinct fields from the
+//!   workflow-level routing above, and from `Step.depends_on`/step parameters, both of which do
+//!   lower or refuse -- see above): still genuinely out of this bridge's scope, and still not
+//!   lowered. Unlike the three constructs above, PROJ-753's adversarial re-review did not flag
+//!   these as silently-skipped-with-no-disclosure -- they remain a disclosed, pre-existing gap
+//!   (the same category as `Step.success_criteria`, noted below), left to a follow-up ticket
+//!   rather than addressed here.
 //! - **Step-level `depends_on`** (PROJ-754): validated for referential and structural
 //!   soundness by [`validate_step_dependencies`] before any step in the workflow is lowered --
 //!   a `depends_on` entry naming a step id absent from the workflow is refused with
@@ -62,18 +101,47 @@
 //!   (step-level pass/fail gating, a distinct field) is not read anywhere in this module,
 //!   before or after PROJ-754 -- a real, pre-existing gap, not silently misrepresented as
 //!   covered by this check.
+//! - **Output expression shape** (PROJ-784): [`classify_output_value`], called from
+//!   [`lower_step`] for every entry of `Step.outputs`, refuses a `Selector`-shaped output value
+//!   (`wasm4pm_compat::arazzo::OutputValue::Selector` -- a structured JSONPath/XPath/JSONPointer
+//!   selector object) with [`Refusal::UnsupportedExpression`]. Before PROJ-784, only the
+//!   `BTreeMap`'s *keys* were read (see "Outputs" above); the value was never inspected, so a
+//!   `Selector`-shaped output was silently accepted with no record it was even present -- the
+//!   same silent-acceptance gap PROJ-754's `classify_criterion` closed for `Criterion.type`.
+//!   Only the spec's plain runtime-expression string (`OutputValue::Expression`) lowers.
 //! - **Timeout / retry policy** (PROJ-754): [`validate_step_timeout`] refuses a step declaring
 //!   `timeout: 0`; [`validate_retry_policy`] refuses a `type: retry` failure action whose
 //!   `retryLimit` is `0` or whose `retryAfter` is negative or non-finite. Both fields remain
 //!   optional per spec -- only an explicitly present, unsatisfiable value is refused, with
 //!   [`Refusal::MalformedRetryPolicy`].
 //!
+//! - **Step declaration order vs. `depends_on` order** (PROJ-784 correction): before this fix,
+//!   `AirWorkflow.steps` were lowered in raw source declaration order, but
+//!   `temporal::ReferenceResolver::resolve` (which runs later, in `normalizer::normalize`)
+//!   treats array order as the only valid "earlier step" order -- so a step using `depends_on`
+//!   to declare a legitimate non-textual execution order (e.g. declared first, but depending on
+//!   and referencing a step declared second) would lower successfully here and then be *wrongly*
+//!   refused at normalization as an `UnresolvableReference`, even though the dependency graph
+//!   itself was sound. [`lower_workflow`] now calls [`topological_sort_step_indices`] after
+//!   [`validate_step_dependencies`] confirms the graph is acyclic, and lowers steps in that
+//!   topological order (ties broken by original declaration index, so a workflow with no
+//!   `depends_on` edges at all lowers in exactly its original order, byte-for-byte unchanged).
+//!
 //! # Complexity
-//! O(w + s + p + a + d) where w = workflow count, s = total step count, p = total parameter +
-//! output count, a = total success/failure routing-rule count, d = total `depends_on` edge
-//! count. One linear pass over `doc` plus one `O(steps + edges)` dependency-graph traversal per
-//! workflow (`validate_step_dependencies`, iterative DFS, each node/edge visited once); no
-//! sorting is ever needed (`Step.outputs` / `Components.*` are already `BTreeMap`s).
+//! O(w + s + p + a + d + r) where w = workflow count, s = total step count, p = total parameter +
+//! output count, a = total success/failure routing-rule count (workflow-level plus step-level),
+//! d = total `depends_on` edge count, r = total `RequestBody.replacements` entry count. One
+//! linear pass over `doc` plus, per workflow: one `O(steps + edges)` dependency-graph traversal
+//! (`validate_step_dependencies`, iterative DFS, each node/edge visited once) and one
+//! `O(steps + edges + log(steps))` topological sort (`topological_sort_step_indices`, Kahn's
+//! algorithm over a binary-heap ready set); no `HashMap` iteration ever drives output order or
+//! content (`Step.outputs` / `Components.*` are already `BTreeMap`s; the id -> index `HashMap`s
+//! built by both dependency-graph passes are only ever looked up by key, never iterated).
+//! PROJ-810 adds, per step: `O(workflow_defaults * step_actions)` for
+//! [`merge_success_actions`]/[`merge_failure_actions`] (a linear name-scan, not a `HashMap` --
+//! both lists are single digits in real documents) and `O(replacements * pointer_depth)` for
+//! [`apply_payload_replacements`] (each replacement walks its own JSON Pointer once via
+//! `serde_json::Value::pointer_mut`).
 
 use crate::air::{
     AirAction, AirExpr, AirProgram, AirRouting, AirRoutingOutcome, AirStep, AirTarget, AirWorkflow,
@@ -82,11 +150,13 @@ use crate::Refusal;
 use bumpalo::collections::{String as BumpString, Vec as BumpVec};
 use bumpalo::Bump;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
 use wasm4pm_compat::arazzo::{
     ArazzoDescription, Components, Criterion, ExpressionKind, ExpressionTypeOrKind, FailureAction,
-    FailureActionOrReference, FailureActionType, ParameterOrReference, ReusableObject, Step,
-    SuccessAction, SuccessActionOrReference, SuccessActionType, Workflow,
+    FailureActionOrReference, FailureActionType, OutputValue, Parameter, ParameterOrReference,
+    PayloadReplacement, ReusableObject, SelectorKind, SelectorType, Step, SuccessAction,
+    SuccessActionOrReference, SuccessActionType, Workflow,
 };
 
 /// Lowers every workflow in `doc` into an [`AirProgram`] allocated in `bump`. See the module
@@ -97,8 +167,13 @@ use wasm4pm_compat::arazzo::{
 /// steps. [`Refusal::MissingIdentity`] if a workflow/step has an empty id, a step names none of
 /// `operationId`/`operationPath`/`channelPath`/`workflowId`, or a `goto` routing action names
 /// neither `stepId` nor `workflowId`. [`Refusal::UnresolvableReference`] if a success/failure
-/// action reference cannot be dereferenced against this document's own `components` (see
-/// module doc for the local-only dereferencing boundary).
+/// action reference, a step parameter reference, or a request-body payload replacement target
+/// cannot be dereferenced/resolved (see module doc for the exact per-construct boundary).
+/// [`Refusal::UnsupportedExpression`] if a payload replacement declares a non-jsonpointer
+/// `targetSelectorType`. [`Refusal::UnsupportedFeature`] if a document declares
+/// `RequestBody.replacements` with no `payload` to apply them to -- the one remaining
+/// genuinely-out-of-scope shape of the three constructs PROJ-753 originally refused
+/// unconditionally (see module doc).
 pub fn lower_description<'bump>(
     doc: &ArazzoDescription,
     bump: &'bump Bump,
@@ -131,10 +206,24 @@ fn lower_workflow<'bump>(
             wf.workflow_id
         )));
     }
+    // Workflow-level `successActions`/`failureActions` (PROJ-810): resolved once per workflow
+    // (dereferencing any `Reference` entries against `components`, same as step-level routing),
+    // then merged into every step's own routing by `lower_step` -- see the module doc's
+    // "Workflow-level successActions/failureActions" section for the exact override-but-cannot-
+    // remove semantics.
+    let workflow_success_defaults = resolve_success_actions(&wf.success_actions, components)?;
+    let workflow_failure_defaults = resolve_failure_actions(&wf.failure_actions, components)?;
     validate_step_dependencies(wf)?;
+    let order = topological_sort_step_indices(wf)?;
     let mut steps = BumpVec::with_capacity_in(wf.steps.len(), bump);
-    for step in &wf.steps {
-        steps.push(lower_step(step, components, bump)?);
+    for &idx in &order {
+        steps.push(lower_step(
+            &wf.steps[idx],
+            components,
+            &workflow_success_defaults,
+            &workflow_failure_defaults,
+            bump,
+        )?);
     }
     Ok(AirWorkflow {
         name: BumpString::from_str_in(&wf.workflow_id, bump),
@@ -211,9 +300,99 @@ fn validate_step_dependencies(wf: &Workflow) -> Result<(), Refusal> {
     Ok(())
 }
 
+/// Computes a deterministic topological order over `wf.steps`'s `depends_on` graph, so
+/// [`lower_workflow`] can lower `AirWorkflow.steps` in dependency-respecting order instead of
+/// raw source declaration order (PROJ-784 correction: see the module doc's "Step declaration
+/// order vs. `depends_on` order" note for why declaration order alone is not a safe assumption
+/// once `depends_on` is used non-textually). Must be called only after
+/// [`validate_step_dependencies`] has confirmed the graph is acyclic and referentially sound --
+/// this function re-derives referential soundness defensively (see below) rather than trusting
+/// that invariant silently, but does not re-detect a cycle by construction; the length check at
+/// the end is the cycle-safety net for a graph that somehow reached this function un-validated.
+///
+/// # Algorithm
+/// Kahn's algorithm: `dep_count[i]` starts as the number of prerequisites (`depends_on` entries)
+/// step `i` has; a step enters the ready set once its `dep_count` reaches zero. At each step,
+/// the *smallest original index* among the currently-ready steps is scheduled next -- ties are
+/// only possible among steps with no relative-order constraint between them (including the
+/// all-ties case of a workflow with zero `depends_on` edges at all, which this reduces to
+/// exactly), and breaking by original declaration index keeps the result deterministic and
+/// stable rather than depending on any `HashMap`/`HashSet` iteration order or randomness.
+///
+/// # Complexity
+/// O(steps + edges + steps * log(steps)): one reverse-adjacency (`successors`) build in
+/// `O(steps + edges)`, then each step enters and leaves the `BinaryHeap` ready set exactly once
+/// (`O(log(steps))` per push/pop).
+fn topological_sort_step_indices(wf: &Workflow) -> Result<Vec<usize>, Refusal> {
+    let n = wf.steps.len();
+    let mut index_of: HashMap<&str, usize> = HashMap::with_capacity(n);
+    for (i, step) in wf.steps.iter().enumerate() {
+        index_of.insert(step.step_id.as_str(), i);
+    }
+
+    // dep_count[i] = number of not-yet-scheduled prerequisites step i still has.
+    // successors[p] = steps that name p in their own depends_on (p must be scheduled first).
+    let mut dep_count: Vec<usize> = vec![0; n];
+    let mut successors: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (i, step) in wf.steps.iter().enumerate() {
+        for dep in &step.depends_on {
+            // Referential soundness is already checked by `validate_step_dependencies`, called
+            // immediately before this function in `lower_workflow`; this is a defensive
+            // re-check (a typed Refusal, not a panic/index-out-of-bounds) in case that
+            // invariant is ever violated by a future caller, not new externally-visible
+            // behavior.
+            let &predecessor = index_of.get(dep.as_str()).ok_or_else(|| {
+                Refusal::UnresolvableReference(format!(
+                    "step '{}' in workflow '{}' declares depends_on '{}', which is not a step \
+                     id in this workflow",
+                    step.step_id, wf.workflow_id, dep
+                ))
+            })?;
+            dep_count[i] += 1;
+            successors[predecessor].push(i);
+        }
+    }
+
+    let mut ready: BinaryHeap<Reverse<usize>> = BinaryHeap::with_capacity(n);
+    for (i, &count) in dep_count.iter().enumerate() {
+        if count == 0 {
+            ready.push(Reverse(i));
+        }
+    }
+
+    let mut order = Vec::with_capacity(n);
+    while let Some(Reverse(i)) = ready.pop() {
+        order.push(i);
+        for &succ in &successors[i] {
+            dep_count[succ] -= 1;
+            if dep_count[succ] == 0 {
+                ready.push(Reverse(succ));
+            }
+        }
+    }
+
+    if order.len() != n {
+        // Unreachable in practice: `lower_workflow` only calls this after
+        // `validate_step_dependencies` has confirmed the graph is acyclic, and a finite acyclic
+        // graph always fully drains through Kahn's algorithm. Fails loud with a typed Refusal
+        // rather than silently returning a truncated/wrong order or panicking on an
+        // out-of-bounds index later, should that precondition ever be violated.
+        return Err(Refusal::CyclicStepDependency(format!(
+            "workflow '{}' has a cyclic step dependency (topological sort could not order all \
+             {n} steps, only {})",
+            wf.workflow_id,
+            order.len()
+        )));
+    }
+
+    Ok(order)
+}
+
 fn lower_step<'bump>(
     step: &Step,
     components: Option<&Components>,
+    workflow_success_defaults: &[SuccessAction],
+    workflow_failure_defaults: &[FailureAction],
     bump: &'bump Bump,
 ) -> Result<AirStep<'bump>, Refusal> {
     if step.step_id.is_empty() {
@@ -226,25 +405,77 @@ fn lower_step<'bump>(
 
     let mut inputs = BumpVec::new_in(bump);
     for param in &step.parameters {
-        if let ParameterOrReference::Parameter(p) = param {
-            inputs.push(lower_json_value(&p.value, bump));
+        match param {
+            ParameterOrReference::Parameter(p) => {
+                inputs.push(lower_json_value(&p.value, bump));
+            }
+            ParameterOrReference::Reference(r) => {
+                // Local `#/components/parameters/<name>` dereferencing (PROJ-810): resolved
+                // against `components`, the same local-only boundary
+                // `resolve_success_reference`/`resolve_failure_reference` already enforce for
+                // routing-rule references. A dangling or cross-document reference still refuses
+                // (see `resolve_parameter_reference`); a real one now lowers instead of vanishing
+                // from `AirAction::inputs` with no error (PROJ-753's original gap).
+                let resolved = resolve_parameter_reference(r, components)?;
+                inputs.push(lower_json_value(&resolved.value, bump));
+            }
         }
-        // Reference(ReusableObject) parameters: local component dereferencing is out of
-        // scope for this bridge (see module doc) -- skipped, not fabricated.
     }
     if let Some(body) = &step.request_body {
-        if let Some(payload) = &body.payload {
-            inputs.push(lower_json_value(payload, bump));
+        match (&body.payload, body.replacements.is_empty()) {
+            (Some(payload), true) => {
+                inputs.push(lower_json_value(payload, bump));
+            }
+            (Some(payload), false) => {
+                // `RequestBody.replacements` (PROJ-810: targeted JSON-pointer overrides within a
+                // payload) applied before lowering -- see `apply_payload_replacements` for the
+                // exact target-resolution and refusal rules (PROJ-753's original unconditional
+                // refusal is now narrowed to only the genuinely out-of-scope no-payload case,
+                // below).
+                let replaced =
+                    apply_payload_replacements(&step.step_id, payload, &body.replacements)?;
+                inputs.push(lower_json_value(&replaced, bump));
+            }
+            (None, true) => {}
+            (None, false) => {
+                // Replacements with no base `payload` to apply them onto: this bridge has no
+                // OpenAPI operation resolver to source the implicit default payload the Arazzo
+                // spec would otherwise let the runtime supply, so there is nothing to apply the
+                // replacement to. A genuinely out-of-scope construct, refused rather than
+                // silently dropped.
+                return Err(Refusal::UnsupportedFeature(format!(
+                    "step '{}' request body declares {} payload replacement(s) but no payload \
+                     for this bridge (which has no OpenAPI operation resolver) to apply them \
+                     onto",
+                    step.step_id,
+                    body.replacements.len()
+                )));
+            }
         }
     }
 
     let mut outputs = BumpVec::new_in(bump);
-    for name in step.outputs.keys() {
+    for (name, value) in step.outputs.iter() {
+        classify_output_value(&step.step_id, name, value)?;
         outputs.push(AirExpr::Literal(BumpString::from_str_in(name, bump)));
     }
 
-    let on_success = lower_success_routing(&step.on_success, components, bump)?;
-    let on_failure = lower_failure_routing(&step.on_failure, components, bump)?;
+    // Workflow-level `successActions`/`failureActions` (PROJ-810): merged with this step's own
+    // per the Arazzo spec's override-but-cannot-remove semantics -- see
+    // `merge_success_actions`/`merge_failure_actions` and the module doc's "Workflow-level
+    // successActions/failureActions" section.
+    let step_success_actions = resolve_success_actions(&step.on_success, components)?;
+    let merged_success = merge_success_actions(workflow_success_defaults, &step_success_actions);
+    let on_success = lower_resolved_success_actions(&merged_success, bump)?;
+
+    let step_failure_actions = resolve_failure_actions(&step.on_failure, components)?;
+    let merged_failure = merge_failure_actions(workflow_failure_defaults, &step_failure_actions);
+    for action in &merged_failure {
+        if action.action_type == FailureActionType::Retry {
+            validate_retry_policy(action)?;
+        }
+    }
+    let on_failure = lower_resolved_failure_actions(&merged_failure, bump)?;
 
     Ok(AirStep {
         name: BumpString::from_str_in(&step.step_id, bump),
@@ -385,6 +616,29 @@ fn classify_criterion(c: &Criterion) -> Result<(), Refusal> {
     }
 }
 
+/// Rejects a `Step.outputs` entry whose declared value is a structured `Selector` object
+/// (JSONPath, XPath, or JSONPointer) rather than the spec's plain runtime-expression string.
+/// This bridge has no evaluator for any selector shape -- the same boundary
+/// [`classify_criterion`] enforces for `Criterion.type` -- so only `OutputValue::Expression`
+/// lowers; a `Selector`-shaped value must be refused rather than silently accepted with its
+/// shape (and the fact it carries a selector at all) discarded, which is what happened before
+/// PROJ-784 added this check (only the map's keys were ever read).
+fn classify_output_value(
+    step_id: &str,
+    output_name: &str,
+    value: &OutputValue,
+) -> Result<(), Refusal> {
+    match value {
+        OutputValue::Expression(_) => Ok(()),
+        OutputValue::Selector(selector) => Err(Refusal::UnsupportedExpression(format!(
+            "step '{step_id}' output '{output_name}' declares a {:?}-typed selector object, \
+             which this bridge has no evaluator for (only a plain runtime-expression string is \
+             supported)",
+            selector.selector_type
+        ))),
+    }
+}
+
 fn lower_criteria<'bump>(
     criteria: &[Criterion],
     bump: &'bump Bump,
@@ -400,17 +654,110 @@ fn lower_criteria<'bump>(
     Ok(out)
 }
 
-fn lower_success_routing<'bump>(
+/// Resolves each `SuccessActionOrReference` entry to a concrete, owned `SuccessAction`,
+/// dereferencing `Reference` entries against `components` (see [`resolve_success_reference`]).
+/// Preserves declaration order. Used for both step-level `Step.onSuccess` and workflow-level
+/// `Workflow.successActions` (PROJ-810) -- the two lists are merged by
+/// [`merge_success_actions`] before either is lowered to AIR by
+/// [`lower_resolved_success_actions`].
+fn resolve_success_actions(
     actions: &[SuccessActionOrReference],
     components: Option<&Components>,
+) -> Result<Vec<SuccessAction>, Refusal> {
+    actions
+        .iter()
+        .map(|action| match action {
+            SuccessActionOrReference::Action(a) => Ok(a.clone()),
+            SuccessActionOrReference::Reference(r) => resolve_success_reference(r, components),
+        })
+        .collect()
+}
+
+/// Same contract as [`resolve_success_actions`], for `FailureActionOrReference`.
+fn resolve_failure_actions(
+    actions: &[FailureActionOrReference],
+    components: Option<&Components>,
+) -> Result<Vec<FailureAction>, Refusal> {
+    actions
+        .iter()
+        .map(|action| match action {
+            FailureActionOrReference::Action(a) => Ok(a.clone()),
+            FailureActionOrReference::Reference(r) => resolve_failure_reference(r, components),
+        })
+        .collect()
+}
+
+/// Merges a workflow's default success actions with one step's own (PROJ-810), per the Arazzo
+/// spec's Workflow Object `successActions` field: "applicable for all steps ... can be
+/// overridden at the step level but cannot be removed there" (mirrored on `Step.onSuccess`:
+/// "the new definition will override [a workflow-level action of the same name] but can never
+/// remove it"). A step-level action whose `name` matches a workflow-level action replaces it in
+/// place (same position in the merged list, so criteria/outcome come from the step's
+/// definition); a step-level action with a name the workflow-level list doesn't have is
+/// appended after all workflow-level entries, in step declaration order; a workflow-level action
+/// the step doesn't mention passes through unchanged. When the step declares no actions of its
+/// own, the result is exactly `workflow_defaults`, unchanged (byte-for-byte, same as before
+/// PROJ-810 for the overwhelming majority of documents that never use workflow-level actions at
+/// all: `workflow_defaults` is then empty, so the merge is a no-op).
+///
+/// # Complexity
+/// O(workflow_defaults * step_actions): a linear name-scan per pairing rather than a `HashMap`
+/// keyed by name, because both lists are small (single digits) in real documents and preserving
+/// workflow-level declaration order for non-overridden entries matters more here than
+/// asymptotic lookup cost.
+fn merge_success_actions(
+    workflow_defaults: &[SuccessAction],
+    step_actions: &[SuccessAction],
+) -> Vec<SuccessAction> {
+    if step_actions.is_empty() {
+        return workflow_defaults.to_vec();
+    }
+    let mut merged = Vec::with_capacity(workflow_defaults.len() + step_actions.len());
+    for wf_action in workflow_defaults {
+        match step_actions.iter().find(|s| s.name == wf_action.name) {
+            Some(overriding) => merged.push(overriding.clone()),
+            None => merged.push(wf_action.clone()),
+        }
+    }
+    for step_action in step_actions {
+        if !workflow_defaults.iter().any(|w| w.name == step_action.name) {
+            merged.push(step_action.clone());
+        }
+    }
+    merged
+}
+
+/// Same contract as [`merge_success_actions`], for `FailureAction`.
+fn merge_failure_actions(
+    workflow_defaults: &[FailureAction],
+    step_actions: &[FailureAction],
+) -> Vec<FailureAction> {
+    if step_actions.is_empty() {
+        return workflow_defaults.to_vec();
+    }
+    let mut merged = Vec::with_capacity(workflow_defaults.len() + step_actions.len());
+    for wf_action in workflow_defaults {
+        match step_actions.iter().find(|s| s.name == wf_action.name) {
+            Some(overriding) => merged.push(overriding.clone()),
+            None => merged.push(wf_action.clone()),
+        }
+    }
+    for step_action in step_actions {
+        if !workflow_defaults.iter().any(|w| w.name == step_action.name) {
+            merged.push(step_action.clone());
+        }
+    }
+    merged
+}
+
+/// Lowers an already-resolved, already-merged success-action list to `AirRouting`. See
+/// [`resolve_success_actions`]/[`merge_success_actions`] for how `actions` gets to this state.
+fn lower_resolved_success_actions<'bump>(
+    actions: &[SuccessAction],
     bump: &'bump Bump,
 ) -> Result<BumpVec<'bump, AirRouting<'bump>>, Refusal> {
     let mut out = BumpVec::with_capacity_in(actions.len(), bump);
-    for action in actions {
-        let resolved: SuccessAction = match action {
-            SuccessActionOrReference::Action(a) => a.clone(),
-            SuccessActionOrReference::Reference(r) => resolve_success_reference(r, components)?,
-        };
+    for resolved in actions {
         let outcome = match resolved.action_type {
             SuccessActionType::End => AirRoutingOutcome::End,
             SuccessActionType::Goto => lower_goto_outcome(
@@ -429,20 +776,15 @@ fn lower_success_routing<'bump>(
     Ok(out)
 }
 
-fn lower_failure_routing<'bump>(
-    actions: &[FailureActionOrReference],
-    components: Option<&Components>,
+/// Same contract as [`lower_resolved_success_actions`], for `FailureAction`. Retry-policy
+/// validation ([`validate_retry_policy`]) runs in the caller ([`lower_step`]) against the merged
+/// list before this function is called, not duplicated here.
+fn lower_resolved_failure_actions<'bump>(
+    actions: &[FailureAction],
     bump: &'bump Bump,
 ) -> Result<BumpVec<'bump, AirRouting<'bump>>, Refusal> {
     let mut out = BumpVec::with_capacity_in(actions.len(), bump);
-    for action in actions {
-        let resolved: FailureAction = match action {
-            FailureActionOrReference::Action(a) => a.clone(),
-            FailureActionOrReference::Reference(r) => resolve_failure_reference(r, components)?,
-        };
-        if resolved.action_type == FailureActionType::Retry {
-            validate_retry_policy(&resolved)?;
-        }
+    for resolved in actions {
         let outcome = match resolved.action_type {
             FailureActionType::End => AirRoutingOutcome::End,
             FailureActionType::Retry => AirRoutingOutcome::Retry,
@@ -541,9 +883,104 @@ fn resolve_failure_reference(
         })
 }
 
+/// Dereferences a local `#/components/parameters/<name>` reference against `components`
+/// (PROJ-810). Same local-only boundary as [`resolve_success_reference`]/
+/// [`resolve_failure_reference`]: a cross-document reference, or a name absent from this
+/// document's own `components.parameters`, is refused with [`Refusal::UnresolvableReference`]
+/// rather than resolved (this bridge has no `DocumentIndex` in scope to look a cross-document
+/// reference up in).
+fn resolve_parameter_reference(
+    r: &ReusableObject,
+    components: Option<&Components>,
+) -> Result<Parameter, Refusal> {
+    let name = r
+        .reference
+        .strip_prefix("#/components/parameters/")
+        .ok_or_else(|| {
+            Refusal::UnresolvableReference(format!(
+                "parameter reference '{}' is not a local #/components/parameters/<name> \
+                 reference (cross-document component dereferencing is out of scope for this bridge)",
+                r.reference
+            ))
+        })?;
+    components
+        .and_then(|c| c.parameters.get(name))
+        .cloned()
+        .ok_or_else(|| {
+            Refusal::UnresolvableReference(format!(
+                "parameter reference '{}' has no matching entry in this document's \
+                 components.parameters",
+                r.reference
+            ))
+        })
+}
+
+/// Applies `RequestBody.replacements` (PROJ-810: Arazzo's "Payload Replacement Object") to
+/// `payload` before it is lowered by [`lower_json_value`]. Each replacement's `target` is a JSON
+/// Pointer (RFC 6901) identifying an existing location within `payload`, and `value` is
+/// substituted there. Replacements apply in declaration order, each seeing the previous
+/// replacement's result, so a document may compose multiple targeted overrides into one payload
+/// (e.g. replacing `/id` and then `/nested/id` in the same call).
+///
+/// Only the spec's default target shape is implemented: `targetSelectorType` omitted, or
+/// explicitly `jsonpointer`. An `xpath`/`jsonpath`/versioned target shape has no evaluator in
+/// this bridge -- the same selector-shape boundary [`classify_criterion`] and
+/// [`classify_output_value`] enforce for `Criterion.type` / `OutputValue::Selector` -- and is
+/// refused rather than silently misapplied as a JSON Pointer.
+///
+/// A replacement whose `target` does not resolve to an existing location within the (possibly
+/// already-replaced) payload -- an object key that doesn't exist, or an array index out of
+/// bounds -- is refused: RFC 6901 defines pointer resolution as failing in exactly these cases,
+/// and silently no-op'ing a declared-but-unappliable replacement would be exactly the kind of
+/// silent data loss PROJ-753 exists to close.
+///
+/// Runtime-expression strings nested inside the (original or replaced) payload's fields are not
+/// individually resolved to `AirExpr::Variable` -- the same documented, pre-existing scope
+/// boundary [`lower_json_value`] already has for any non-string-root JSON value (an object/array
+/// payload always lowers as a single serialized `Literal`); this function only changes *which*
+/// JSON value occupies the payload before that existing lowering rule runs.
+///
+/// # Errors
+/// [`Refusal::UnsupportedExpression`] for a non-jsonpointer `targetSelectorType`.
+/// [`Refusal::UnresolvableReference`] for a `target` JSON Pointer that does not resolve.
+///
+/// # Complexity
+/// O(replacements * pointer_depth): each replacement walks its own pointer's token list once
+/// (`serde_json::Value::pointer_mut`); pointer_depth is small (single digits) in real documents.
+fn apply_payload_replacements(
+    step_id: &str,
+    payload: &Value,
+    replacements: &[PayloadReplacement],
+) -> Result<Value, Refusal> {
+    let mut out = payload.clone();
+    for replacement in replacements {
+        match &replacement.target_selector_type {
+            None | Some(SelectorType::Kind(SelectorKind::Jsonpointer)) => {}
+            Some(other) => {
+                return Err(Refusal::UnsupportedExpression(format!(
+                    "step '{step_id}' request body replacement targeting '{}' declares \
+                     targetSelectorType {other:?}, which this bridge has no evaluator for (only \
+                     the default JSON Pointer target shape is supported)",
+                    replacement.target
+                )));
+            }
+        }
+        let slot = out.pointer_mut(&replacement.target).ok_or_else(|| {
+            Refusal::UnresolvableReference(format!(
+                "step '{step_id}' request body replacement target '{}' does not resolve within \
+                 the payload (RFC 6901 JSON Pointer)",
+                replacement.target
+            ))
+        })?;
+        *slot = replacement.value.clone();
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::normalizer::ArazzoNormalizer;
     use serde_json::json;
     use wasm4pm_compat::arazzo::{ArazzoInfo, RequestBody};
 
@@ -910,6 +1347,40 @@ mod tests {
     }
 
     #[test]
+    fn refuses_three_step_cyclic_dependency() {
+        // A -> B -> C -> A: a longer cycle than the 1-node (self) and 2-node cases already
+        // covered above, proving the iterative DFS's gray/black coloring detects a cycle that
+        // closes through an intermediate node rather than only the immediately-previous one.
+        // Traced by hand against `validate_step_dependencies`'s DFS: steps are pushed onto the
+        // `index_of`/adjacency arrays in declaration order (step_a=0, step_b=1, step_c=2), so
+        // the DFS visits step_a -> step_b -> step_c -> (back-edge to step_a, still gray) and the
+        // refusal names step_a, the step whose gray back-edge closes the cycle.
+        let bump = Bump::new();
+        let mut step_a = minimal_step("step_a", "urn:test:a");
+        step_a.depends_on = vec!["step_b".to_string()];
+        let mut step_b = minimal_step("step_b", "urn:test:b");
+        step_b.depends_on = vec!["step_c".to_string()];
+        let mut step_c = minimal_step("step_c", "urn:test:c");
+        step_c.depends_on = vec!["step_a".to_string()];
+        let doc = minimal_doc(vec![wf_with_steps(vec![step_a, step_b, step_c])]);
+
+        let result = lower_description(&doc, &bump);
+        match result {
+            Err(Refusal::CyclicStepDependency(msg)) => {
+                assert!(
+                    msg.contains("step_a"),
+                    "3-node cycle A->B->C->A: refusal must name the step whose back-edge \
+                     closes the cycle, got: {msg}"
+                );
+            }
+            other => panic!(
+                "step_a -> step_b -> step_c -> step_a is a 3-node cycle: expected \
+                 CyclicStepDependency, got {other:?}"
+            ),
+        }
+    }
+
+    #[test]
     fn refuses_self_referential_step_dependency() {
         let bump = Bump::new();
         let mut step_a = minimal_step("step_a", "urn:test:a");
@@ -1147,5 +1618,455 @@ mod tests {
             program.workflows[0].steps[0].on_failure[0].outcome,
             AirRoutingOutcome::Retry
         );
+    }
+
+    // --- PROJ-784: UnsupportedExpression (output selector) --------------------------------
+
+    #[test]
+    fn refuses_selector_shaped_step_output() {
+        let bump = Bump::new();
+        let mut step = minimal_step("step_1", "urn:test:op1");
+        step.outputs.insert(
+            "order_id".to_string(),
+            OutputValue::Selector(wasm4pm_compat::arazzo::Selector {
+                context: "$response.body".to_string(),
+                selector: "$.id".to_string(),
+                selector_type: wasm4pm_compat::arazzo::SelectorType::Kind(
+                    wasm4pm_compat::arazzo::SelectorKind::Jsonpath,
+                ),
+                extensions: Default::default(),
+            }),
+        );
+        let doc = minimal_doc(vec![wf_with_steps(vec![step])]);
+
+        let result = lower_description(&doc, &bump);
+        assert!(
+            matches!(result, Err(Refusal::UnsupportedExpression(_))),
+            "a Selector-shaped output value has no evaluator in this bridge, got {result:?}"
+        );
+    }
+
+    #[test]
+    fn accepts_expression_shaped_step_output() {
+        let bump = Bump::new();
+        let mut step = minimal_step("step_1", "urn:test:op1");
+        step.outputs.insert(
+            "order_id".to_string(),
+            OutputValue::Expression("$response.body#/id".to_string()),
+        );
+        let doc = minimal_doc(vec![wf_with_steps(vec![step])]);
+
+        let program = lower_description(&doc, &bump).expect("plain expression output must lower");
+        assert_eq!(program.workflows[0].steps[0].action.outputs.len(), 1);
+    }
+
+    // --- PROJ-810: parameter $ref dereferencing, RequestBody.replacements, and workflow-level
+    // successActions/failureActions now genuinely implemented (PROJ-753 had refused all three
+    // unconditionally as a safety-net interim fix; the tests below prove real, spec-compliant
+    // documents using these constructs now lower correctly end-to-end, while a document with a
+    // genuinely malformed use of the construct -- e.g. a $ref to a nonexistent component -- is
+    // still refused). ------------------------------------------------------------------------
+
+    fn components_with_parameter(name: &str, value: Value) -> Components {
+        let mut components = Components {
+            inputs: Default::default(),
+            parameters: Default::default(),
+            success_actions: Default::default(),
+            failure_actions: Default::default(),
+            extensions: Default::default(),
+        };
+        components.parameters.insert(
+            name.to_string(),
+            wasm4pm_compat::arazzo::Parameter {
+                name: name.to_string(),
+                location: None,
+                value,
+                extensions: Default::default(),
+            },
+        );
+        components
+    }
+
+    #[test]
+    fn lowers_step_parameter_reference_via_local_components() {
+        let bump = Bump::new();
+        let mut step = minimal_step("step_1", "urn:test:op1");
+        step.parameters = vec![ParameterOrReference::Reference(ReusableObject {
+            reference: "#/components/parameters/region".to_string(),
+            value: None,
+        })];
+        let mut doc = minimal_doc(vec![wf_with_steps(vec![step])]);
+        doc.components = Some(components_with_parameter("region", json!("us-east-1")));
+
+        let program = lower_description(&doc, &bump)
+            .expect("a $ref parameter resolving against components.parameters must lower");
+        match &program.workflows[0].steps[0].action.inputs[0] {
+            AirExpr::Literal(l) => assert_eq!(l, "us-east-1"),
+            AirExpr::Variable(_) => panic!("resolved parameter value is a plain string literal"),
+        }
+    }
+
+    #[test]
+    fn refuses_step_parameter_reference_to_nonexistent_component() {
+        let bump = Bump::new();
+        let mut step = minimal_step("step_1", "urn:test:op1");
+        step.parameters = vec![ParameterOrReference::Reference(ReusableObject {
+            reference: "#/components/parameters/region".to_string(),
+            value: None,
+        })];
+        // No `components` declared at all: the $ref cannot resolve.
+        let doc = minimal_doc(vec![wf_with_steps(vec![step])]);
+
+        let result = lower_description(&doc, &bump);
+        assert!(
+            matches!(result, Err(Refusal::UnresolvableReference(_))),
+            "a $ref to a component that doesn't exist must still refuse, got {result:?}"
+        );
+    }
+
+    #[test]
+    fn refuses_cross_document_step_parameter_reference() {
+        let bump = Bump::new();
+        let mut step = minimal_step("step_1", "urn:test:op1");
+        step.parameters = vec![ParameterOrReference::Reference(ReusableObject {
+            reference: "https://example.com/other.json#/components/parameters/region".to_string(),
+            value: None,
+        })];
+        let mut doc = minimal_doc(vec![wf_with_steps(vec![step])]);
+        doc.components = Some(components_with_parameter("region", json!("us-east-1")));
+
+        let result = lower_description(&doc, &bump);
+        assert!(
+            matches!(result, Err(Refusal::UnresolvableReference(_))),
+            "cross-document parameter dereferencing is out of scope, got {result:?}"
+        );
+    }
+
+    #[test]
+    fn applies_request_body_payload_replacements() {
+        let bump = Bump::new();
+        let mut step = minimal_step("step_1", "urn:test:op1");
+        step.request_body = Some(RequestBody {
+            content_type: None,
+            payload: Some(json!({"id": 1, "nested": {"x": 0}})),
+            replacements: vec![
+                PayloadReplacement {
+                    target: "/id".to_string(),
+                    target_selector_type: None,
+                    value: json!(42),
+                    extensions: Default::default(),
+                },
+                PayloadReplacement {
+                    target: "/nested/x".to_string(),
+                    target_selector_type: None,
+                    value: json!(99),
+                    extensions: Default::default(),
+                },
+            ],
+            extensions: Default::default(),
+        });
+        let doc = minimal_doc(vec![wf_with_steps(vec![step])]);
+
+        let program = lower_description(&doc, &bump)
+            .expect("payload replacements targeting real JSON Pointer locations must lower");
+        let expected = json!({"id": 42, "nested": {"x": 99}}).to_string();
+        match &program.workflows[0].steps[0].action.inputs[0] {
+            AirExpr::Literal(l) => assert_eq!(l.as_str(), expected),
+            AirExpr::Variable(_) => panic!("a replaced JSON object payload lowers as a Literal"),
+        }
+    }
+
+    #[test]
+    fn refuses_request_body_replacement_target_that_does_not_resolve() {
+        let bump = Bump::new();
+        let mut step = minimal_step("step_1", "urn:test:op1");
+        step.request_body = Some(RequestBody {
+            content_type: None,
+            payload: Some(json!({"id": 1})),
+            replacements: vec![PayloadReplacement {
+                target: "/nonexistent/deep".to_string(),
+                target_selector_type: None,
+                value: json!(42),
+                extensions: Default::default(),
+            }],
+            extensions: Default::default(),
+        });
+        let doc = minimal_doc(vec![wf_with_steps(vec![step])]);
+
+        let result = lower_description(&doc, &bump);
+        assert!(
+            matches!(result, Err(Refusal::UnresolvableReference(_))),
+            "a replacement target JSON Pointer that does not resolve within the payload must \
+             refuse, got {result:?}"
+        );
+    }
+
+    #[test]
+    fn refuses_request_body_replacement_with_unsupported_target_selector_type() {
+        let bump = Bump::new();
+        let mut step = minimal_step("step_1", "urn:test:op1");
+        step.request_body = Some(RequestBody {
+            content_type: None,
+            payload: Some(json!({"id": 1})),
+            replacements: vec![PayloadReplacement {
+                target: "/id".to_string(),
+                target_selector_type: Some(wasm4pm_compat::arazzo::SelectorType::Kind(
+                    wasm4pm_compat::arazzo::SelectorKind::Xpath,
+                )),
+                value: json!(42),
+                extensions: Default::default(),
+            }],
+            extensions: Default::default(),
+        });
+        let doc = minimal_doc(vec![wf_with_steps(vec![step])]);
+
+        let result = lower_description(&doc, &bump);
+        assert!(
+            matches!(result, Err(Refusal::UnsupportedExpression(_))),
+            "an xpath-targeted replacement has no evaluator in this bridge, got {result:?}"
+        );
+    }
+
+    #[test]
+    fn refuses_request_body_replacements_without_payload() {
+        let bump = Bump::new();
+        let mut step = minimal_step("step_1", "urn:test:op1");
+        step.request_body = Some(RequestBody {
+            content_type: None,
+            payload: None,
+            replacements: vec![PayloadReplacement {
+                target: "/id".to_string(),
+                target_selector_type: None,
+                value: json!(42),
+                extensions: Default::default(),
+            }],
+            extensions: Default::default(),
+        });
+        let doc = minimal_doc(vec![wf_with_steps(vec![step])]);
+
+        let result = lower_description(&doc, &bump);
+        assert!(
+            matches!(result, Err(Refusal::UnsupportedFeature(_))),
+            "replacements with no base payload have no OpenAPI-resolved default to apply onto \
+             in this bridge, got {result:?}"
+        );
+    }
+
+    #[test]
+    fn applies_workflow_level_success_action_as_step_default() {
+        let bump = Bump::new();
+        let step = minimal_step("step_1", "urn:test:op1");
+        let mut wf = wf_with_steps(vec![step]);
+        wf.success_actions = vec![SuccessActionOrReference::Action(SuccessAction {
+            name: "wf_finish".to_string(),
+            action_type: SuccessActionType::End,
+            workflow_id: None,
+            step_id: None,
+            parameters: vec![],
+            criteria: vec![],
+            extensions: Default::default(),
+        })];
+        let doc = minimal_doc(vec![wf]);
+
+        let program = lower_description(&doc, &bump)
+            .expect("workflow-level successActions must lower as a step default");
+        let routing = &program.workflows[0].steps[0].on_success[0];
+        assert_eq!(routing.name, "wf_finish");
+        assert_eq!(routing.outcome, AirRoutingOutcome::End);
+    }
+
+    #[test]
+    fn applies_workflow_level_failure_action_as_step_default() {
+        let bump = Bump::new();
+        let step = minimal_step("step_1", "urn:test:op1");
+        let mut wf = wf_with_steps(vec![step]);
+        wf.failure_actions = vec![FailureActionOrReference::Action(retry_failure_action(
+            Some(3),
+            Some(1.5),
+        ))];
+        let doc = minimal_doc(vec![wf]);
+
+        let program = lower_description(&doc, &bump)
+            .expect("workflow-level failureActions must lower as a step default");
+        assert_eq!(
+            program.workflows[0].steps[0].on_failure[0].outcome,
+            AirRoutingOutcome::Retry
+        );
+    }
+
+    #[test]
+    fn step_level_success_action_overrides_same_named_workflow_default() {
+        let bump = Bump::new();
+        let mut step = minimal_step("step_1", "urn:test:op1");
+        step.on_success = vec![SuccessActionOrReference::Action(SuccessAction {
+            name: "finish".to_string(),
+            action_type: SuccessActionType::Goto,
+            workflow_id: None,
+            step_id: Some("step_2".to_string()),
+            parameters: vec![],
+            criteria: vec![],
+            extensions: Default::default(),
+        })];
+        let mut wf = wf_with_steps(vec![step]);
+        wf.success_actions = vec![SuccessActionOrReference::Action(SuccessAction {
+            name: "finish".to_string(),
+            action_type: SuccessActionType::End,
+            workflow_id: None,
+            step_id: None,
+            parameters: vec![],
+            criteria: vec![],
+            extensions: Default::default(),
+        })];
+        let doc = minimal_doc(vec![wf]);
+
+        let program = lower_description(&doc, &bump)
+            .expect("a step-level action overriding a same-named workflow default must lower");
+        let routing = &program.workflows[0].steps[0].on_success;
+        assert_eq!(
+            routing.len(),
+            1,
+            "the step's own 'finish' must replace, not duplicate, the workflow default"
+        );
+        match &routing[0].outcome {
+            AirRoutingOutcome::GotoStep(s) => assert_eq!(s, "step_2"),
+            other => panic!(
+                "step-level 'finish' (type=goto) must override the workflow-level 'finish' \
+                 (type=end), got {other:?}"
+            ),
+        }
+    }
+
+    #[test]
+    fn step_level_success_actions_cannot_remove_unmentioned_workflow_defaults() {
+        let bump = Bump::new();
+        let mut step = minimal_step("step_1", "urn:test:op1");
+        // Step only overrides "a"; "b" is a workflow-level default the step never mentions.
+        step.on_success = vec![SuccessActionOrReference::Action(SuccessAction {
+            name: "a".to_string(),
+            action_type: SuccessActionType::Goto,
+            workflow_id: None,
+            step_id: Some("step_x".to_string()),
+            parameters: vec![],
+            criteria: vec![],
+            extensions: Default::default(),
+        })];
+        let mut wf = wf_with_steps(vec![step]);
+        wf.success_actions = vec![
+            SuccessActionOrReference::Action(SuccessAction {
+                name: "a".to_string(),
+                action_type: SuccessActionType::End,
+                workflow_id: None,
+                step_id: None,
+                parameters: vec![],
+                criteria: vec![],
+                extensions: Default::default(),
+            }),
+            SuccessActionOrReference::Action(SuccessAction {
+                name: "b".to_string(),
+                action_type: SuccessActionType::End,
+                workflow_id: None,
+                step_id: None,
+                parameters: vec![],
+                criteria: vec![],
+                extensions: Default::default(),
+            }),
+        ];
+        let doc = minimal_doc(vec![wf]);
+
+        let program = lower_description(&doc, &bump)
+            .expect("a workflow-level default the step does not mention must survive the merge");
+        let routing = &program.workflows[0].steps[0].on_success;
+        assert_eq!(
+            routing.len(),
+            2,
+            "'b' must not be removed just because the step declared its own on_success list, \
+             got {routing:?}"
+        );
+        let a = routing.iter().find(|r| r.name == "a").expect("'a' present");
+        match &a.outcome {
+            AirRoutingOutcome::GotoStep(s) => assert_eq!(s, "step_x"),
+            other => panic!("'a' must be the step's override (goto), got {other:?}"),
+        }
+        let b = routing.iter().find(|r| r.name == "b").expect("'b' present");
+        assert_eq!(
+            b.outcome,
+            AirRoutingOutcome::End,
+            "'b' must pass through unchanged from the workflow-level default"
+        );
+    }
+
+    // --- PROJ-784 correction: depends_on non-textual order vs. declaration order ----------
+
+    #[test]
+    fn depends_on_execution_order_resolves_when_declared_out_of_textual_order() {
+        // step_A is declared FIRST but depends on step_B (declared SECOND) and references
+        // step_B's output -- a legitimate use of `depends_on` to declare non-textual execution
+        // order, exactly what the field exists for per the Arazzo spec. Before PROJ-784's
+        // topological-sort fix, `lower_workflow` lowered steps in raw declaration order
+        // (step_A before step_B), so `ArazzoNormalizer::normalize`'s single left-to-right scan
+        // over that order would wrongly refuse this as an UnresolvableReference even though the
+        // dependency graph itself is acyclic and referentially sound.
+        let bump = Bump::new();
+
+        let mut step_a = minimal_step("step_A", "urn:test:a");
+        step_a.depends_on = vec!["step_B".to_string()];
+        step_a.request_body = Some(RequestBody {
+            content_type: None,
+            payload: Some(json!("$steps.step_B.outputs.thing")),
+            replacements: vec![],
+            extensions: Default::default(),
+        });
+
+        let mut step_b = minimal_step("step_B", "urn:test:b");
+        step_b.outputs.insert(
+            "thing".to_string(),
+            OutputValue::Expression("$response.body#/id".to_string()),
+        );
+
+        // Declaration order is [step_A, step_B] -- step_A textually first, even though it
+        // depends on step_B.
+        let doc = minimal_doc(vec![wf_with_steps(vec![step_a, step_b])]);
+
+        let mut program = lower_description(&doc, &bump).expect(
+            "an acyclic, referentially sound depends_on graph must lower even when declared \
+             out of textual order",
+        );
+
+        // The topological sort must have reordered lowering so step_B (the dependency) comes
+        // before step_A (the dependent) in AirWorkflow.steps, regardless of source declaration
+        // order.
+        assert_eq!(program.workflows[0].steps[0].name, "step_B");
+        assert_eq!(program.workflows[0].steps[1].name, "step_A");
+
+        // Normalization -- which assumes array order == "earlier step" order -- must now
+        // resolve the reference instead of wrongly refusing it.
+        ArazzoNormalizer::normalize(&mut program, &bump).expect(
+            "step_A's reference to step_B's output must resolve once steps are lowered in \
+             dependency order, not raw declaration order",
+        );
+        match &program.workflows[0].steps[1].action.inputs[0] {
+            AirExpr::Literal(l) => assert_eq!(l, "thing"),
+            AirExpr::Variable(_) => {
+                panic!("normalization must resolve step_A's reference into a Literal")
+            }
+        }
+    }
+
+    #[test]
+    fn depends_on_reorder_is_a_no_op_when_no_dependencies_are_declared() {
+        // Ties in the topological sort (the common case: no depends_on edges at all) must
+        // break by original declaration index, so a workflow that never uses depends_on lowers
+        // in exactly its original order -- no behavior change for the overwhelming majority of
+        // documents.
+        let bump = Bump::new();
+        let step_1 = minimal_step("step_1", "urn:test:1");
+        let step_2 = minimal_step("step_2", "urn:test:2");
+        let step_3 = minimal_step("step_3", "urn:test:3");
+        let doc = minimal_doc(vec![wf_with_steps(vec![step_1, step_2, step_3])]);
+
+        let program = lower_description(&doc, &bump).expect("must lower");
+        assert_eq!(program.workflows[0].steps[0].name, "step_1");
+        assert_eq!(program.workflows[0].steps[1].name, "step_2");
+        assert_eq!(program.workflows[0].steps[2].name, "step_3");
     }
 }

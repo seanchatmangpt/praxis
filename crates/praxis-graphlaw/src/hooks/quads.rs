@@ -204,6 +204,12 @@ pub fn parse_construct(query_str: &str) -> Result<ConstructQuery, String> {
     let template_text = clean_query[first_brace + 1..template_end].trim();
 
     let where_text = clean_query[template_end + 1..].trim();
+    if regex::Regex::new(r"(?i)\bSERVICE\b")
+        .unwrap()
+        .is_match(where_text)
+    {
+        return Err("unsupported SERVICE clause".to_string());
+    }
     let where_pattern = if where_text.to_uppercase().starts_with("WHERE") {
         where_text[5..].trim()
     } else {

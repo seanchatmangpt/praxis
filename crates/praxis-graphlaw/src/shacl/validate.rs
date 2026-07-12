@@ -197,7 +197,7 @@ pub(crate) fn validate_shape(
     // sh:minLength / sh:maxLength (node-level)
     let char_len = get_string_representation(focus_node).map(|lex| lex.chars().count() as i64);
     for ml in get_objects(shapes, shape_node, vocab.sh_min_length) {
-        if let Some(v) = get_integer_value(ml) {
+        if let Ok(v) = get_integer_value(ml) {
             if char_len.is_none_or(|len| len < v) {
                 results.push(make_result(
                     focus_node,
@@ -212,7 +212,7 @@ pub(crate) fn validate_shape(
         }
     }
     for ml in get_objects(shapes, shape_node, vocab.sh_max_length) {
-        if let Some(v) = get_integer_value(ml) {
+        if let Ok(v) = get_integer_value(ml) {
             if char_len.is_none_or(|len| len > v) {
                 results.push(make_result(
                     focus_node,
@@ -230,7 +230,7 @@ pub(crate) fn validate_shape(
     // sh:minExclusive / sh:minInclusive / sh:maxExclusive / sh:maxInclusive (node-level)
     for bound in get_objects(shapes, shape_node, vocab.sh_min_exclusive) {
         match compare_numeric(focus_node, bound) {
-            Some(std::cmp::Ordering::Greater) => {}
+            Ok(Some(std::cmp::Ordering::Greater)) => {}
             _ => {
                 results.push(make_result(
                     focus_node,
@@ -246,7 +246,7 @@ pub(crate) fn validate_shape(
     }
     for bound in get_objects(shapes, shape_node, vocab.sh_min_inclusive) {
         match compare_numeric(focus_node, bound) {
-            Some(std::cmp::Ordering::Greater) | Some(std::cmp::Ordering::Equal) => {}
+            Ok(Some(std::cmp::Ordering::Greater)) | Ok(Some(std::cmp::Ordering::Equal)) => {}
             _ => {
                 results.push(make_result(
                     focus_node,
@@ -262,7 +262,7 @@ pub(crate) fn validate_shape(
     }
     for bound in get_objects(shapes, shape_node, vocab.sh_max_exclusive) {
         match compare_numeric(focus_node, bound) {
-            Some(std::cmp::Ordering::Less) => {}
+            Ok(Some(std::cmp::Ordering::Less)) => {}
             _ => {
                 results.push(make_result(
                     focus_node,
@@ -278,7 +278,7 @@ pub(crate) fn validate_shape(
     }
     for bound in get_objects(shapes, shape_node, vocab.sh_max_inclusive) {
         match compare_numeric(focus_node, bound) {
-            Some(std::cmp::Ordering::Less) | Some(std::cmp::Ordering::Equal) => {}
+            Ok(Some(std::cmp::Ordering::Less)) | Ok(Some(std::cmp::Ordering::Equal)) => {}
             _ => {
                 results.push(make_result(
                     focus_node,
@@ -537,7 +537,7 @@ pub(crate) fn validate_property_shape(
 
     // sh:minCount
     for mc in get_objects(shapes, ps, vocab.sh_min_count) {
-        if let Some(mc_val) = get_integer_value(mc) {
+        if let Ok(mc_val) = get_integer_value(mc) {
             if (v_nodes.len() as i64) < mc_val {
                 results.push(make_result(
                     focus_node,
@@ -554,7 +554,7 @@ pub(crate) fn validate_property_shape(
 
     // sh:maxCount
     for mc in get_objects(shapes, ps, vocab.sh_max_count) {
-        if let Some(mc_val) = get_integer_value(mc) {
+        if let Ok(mc_val) = get_integer_value(mc) {
             if (v_nodes.len() as i64) > mc_val {
                 results.push(make_result(
                     focus_node,
@@ -695,7 +695,7 @@ pub(crate) fn validate_property_shape(
 
     // sh:minLength / sh:maxLength (per-value)
     for ml in get_objects(shapes, ps, vocab.sh_min_length) {
-        if let Some(min) = get_integer_value(ml) {
+        if let Ok(min) = get_integer_value(ml) {
             for &v in &v_nodes {
                 let violates = match get_string_representation(v) {
                     Some(s) => (s.chars().count() as i64) < min,
@@ -716,7 +716,7 @@ pub(crate) fn validate_property_shape(
         }
     }
     for ml in get_objects(shapes, ps, vocab.sh_max_length) {
-        if let Some(max) = get_integer_value(ml) {
+        if let Ok(max) = get_integer_value(ml) {
             for &v in &v_nodes {
                 let violates = match get_string_representation(v) {
                     Some(s) => (s.chars().count() as i64) > max,
@@ -741,7 +741,7 @@ pub(crate) fn validate_property_shape(
     for bound in get_objects(shapes, ps, vocab.sh_min_exclusive) {
         for &v in &v_nodes {
             match compare_numeric(v, bound) {
-                Some(std::cmp::Ordering::Greater) => {}
+                Ok(Some(std::cmp::Ordering::Greater)) => {}
                 _ => {
                     results.push(make_result(
                         focus_node,
@@ -759,7 +759,7 @@ pub(crate) fn validate_property_shape(
     for bound in get_objects(shapes, ps, vocab.sh_min_inclusive) {
         for &v in &v_nodes {
             match compare_numeric(v, bound) {
-                Some(std::cmp::Ordering::Greater) | Some(std::cmp::Ordering::Equal) => {}
+                Ok(Some(std::cmp::Ordering::Greater)) | Ok(Some(std::cmp::Ordering::Equal)) => {}
                 _ => {
                     results.push(make_result(
                         focus_node,
@@ -777,7 +777,7 @@ pub(crate) fn validate_property_shape(
     for bound in get_objects(shapes, ps, vocab.sh_max_exclusive) {
         for &v in &v_nodes {
             match compare_numeric(v, bound) {
-                Some(std::cmp::Ordering::Less) => {}
+                Ok(Some(std::cmp::Ordering::Less)) => {}
                 _ => {
                     results.push(make_result(
                         focus_node,
@@ -795,7 +795,7 @@ pub(crate) fn validate_property_shape(
     for bound in get_objects(shapes, ps, vocab.sh_max_inclusive) {
         for &v in &v_nodes {
             match compare_numeric(v, bound) {
-                Some(std::cmp::Ordering::Less) | Some(std::cmp::Ordering::Equal) => {}
+                Ok(Some(std::cmp::Ordering::Less)) | Ok(Some(std::cmp::Ordering::Equal)) => {}
                 _ => {
                     results.push(make_result(
                         focus_node,
@@ -939,7 +939,7 @@ pub(crate) fn validate_property_shape(
         for &v in &v_nodes {
             for &ov in &other_values {
                 match compare_numeric(v, ov) {
-                    Some(std::cmp::Ordering::Less) => {}
+                    Ok(Some(std::cmp::Ordering::Less)) => {}
                     _ => {
                         results.push(make_result(
                             focus_node,
@@ -962,7 +962,7 @@ pub(crate) fn validate_property_shape(
         for &v in &v_nodes {
             for &ov in &other_values {
                 match compare_numeric(v, ov) {
-                    Some(std::cmp::Ordering::Less) | Some(std::cmp::Ordering::Equal) => {}
+                    Ok(Some(std::cmp::Ordering::Less)) | Ok(Some(std::cmp::Ordering::Equal)) => {}
                     _ => {
                         results.push(make_result(
                             focus_node,
@@ -988,7 +988,7 @@ pub(crate) fn validate_property_shape(
             .filter(|&&v| conforms_to_shape(data, shapes, vocab, v, qvs, visited, closure))
             .count() as i64;
         for qmin in get_objects(shapes, ps, vocab.sh_qualified_min_count) {
-            if let Some(min) = get_integer_value(qmin) {
+            if let Ok(min) = get_integer_value(qmin) {
                 if conforming_count < min {
                     results.push(make_result(
                         focus_node,
@@ -1003,7 +1003,7 @@ pub(crate) fn validate_property_shape(
             }
         }
         for qmax in get_objects(shapes, ps, vocab.sh_qualified_max_count) {
-            if let Some(max) = get_integer_value(qmax) {
+            if let Ok(max) = get_integer_value(qmax) {
                 if conforming_count > max {
                     results.push(make_result(
                         focus_node,

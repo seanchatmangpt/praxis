@@ -1,0 +1,102 @@
+# dialect-registry.shape.ttl — V12-004 (F04 "GraphLaw Dialect Registry") closed
+# SHACL law for the multifractal-workflow crate's own dialect catalog.
+#
+# REUSE_ADAPT provenance: structurally adapted from the real, committed,
+# tested `crates/cng/hooks/dialect-registry.shape.ttl` (PROJ-613,
+# CngRefusal::DialectRegistryRefused / CNG_R14) — same eight-mandatory-field
+# `sh:closed` pattern, retargeted at this crate's own `mfwreg:DialectEntry`
+# class/namespace (kept distinct from cng's private `dreg:` vocabulary so the
+# two registries never collide if ever loaded into one store) and adding a
+# lifecycle-state membership shape for this family's own 7-state ladder
+# (`f04_dialect_registry::DialectLifecycleState`), which is NOT the same
+# state set as cng's 8-state `dreg:HookStanding` (hook lifecycle, not
+# dialect-registry-entry lifecycle — see V12-004 survey L5).
+#
+# sh:closed true means any property outside the eight registry fields (plus
+# rdf:type, rdfs:label, rdfs:comment) is a violation; every registry field is
+# sh:minCount 1 sh:maxCount 1, so a missing field yields a SHACL violation
+# that `f04_dialect_registry::validate_registry_turtle` maps to
+# `DialectRegistryRefused::MissingField`.
+
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix mfwreg: <http://seanchatmangpt.github.io/praxis/multifractal-workflow/dialect-registry#> .
+@prefix ex:     <urn:multifractal-workflow:shapes#> .
+
+ex:DialectEntryShape a sh:NodeShape ;
+  sh:targetClass mfwreg:DialectEntry ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path rdfs:label ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:minLength 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:comment ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:minLength 1 ;
+  ] ;
+  sh:property [
+    sh:path mfwreg:admittedInputs ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path mfwreg:manufacturedOutputs ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path mfwreg:authorityBoundary ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path mfwreg:quarantineBoundary ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path mfwreg:refusalVocabulary ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path mfwreg:receiptSchema ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path mfwreg:replaySemantics ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] ;
+  sh:property [
+    sh:path mfwreg:executableRouting ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:nodeKind sh:IRI ] ) ;
+  ] .
+
+# F04-L5: the fixed 7-state ladder plus the off-ladder REFUSED terminal.
+# Distinct from cng's dreg:HookStanding (8-state hook lifecycle) — this
+# shape constrains dialect-*registry-entry* standing, not hook standing.
+ex:DialectLifecycleShape a sh:NodeShape ;
+  sh:targetObjectsOf mfwreg:lifecycleState ;
+  sh:class mfwreg:DialectLifecycleState ;
+  sh:in ( mfwreg:DECLARED mfwreg:LOADED mfwreg:SHAPE_VALID mfwreg:AUTHORITY_BOUND
+          mfwreg:RECEIPT_BOUND mfwreg:REPLAY_BOUND mfwreg:ACTIVE mfwreg:REFUSED ) .

@@ -202,15 +202,19 @@ fn check_receipts(dir: &str) -> Value {
 /// Build the capability-frontier report and reduce it to the fields useful
 /// for a health summary (full per-cell detail belongs to `frontier`/`dod`).
 fn check_frontier() -> Value {
-    let report = frontier::frontier_report();
-    json!({
-        "total": report.total,
-        "evaluated": report.evaluated,
-        "passing": report.passing,
-        "coverage": report.coverage,
-        "pass_rate": report.pass_rate,
-        "failure_count": report.failures.len(),
-    })
+    match frontier::frontier_report() {
+        Ok(report) => json!({
+            "total": report.total,
+            "evaluated": report.evaluated,
+            "passing": report.passing,
+            "coverage": report.coverage,
+            "pass_rate": report.pass_rate,
+            "failure_count": report.failures.len(),
+        }),
+        Err(e) => json!({
+            "error": e.to_string()
+        })
+    }
 }
 
 /// Which of [`FEATURE_FLAGS`] this binary was actually compiled with.

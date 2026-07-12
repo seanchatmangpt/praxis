@@ -1,0 +1,4 @@
+[pack]
+name = "f01-standing-algebra-pack"
+version = "0.1.0"
+description = "Generates the F01 Standing Algebra (V12-001) L6 Data & Provenance projection for crates/multifractal-workflow/src/f01_standing_algebra_generated.rs: the 7 typed provenance entities (Observation, AdmissionDecision, ManufactureRun, Artifact, StandingAssertion, Receipt, ReplayRun) and the mfwprov:derivedFrom/generatesNext chain between them, from mfwprov:ProvenanceEntity individuals in this pack's ontology. Pure data projection only -- the pipeline/lifecycle/refusal logic that walks this chain at runtime is hand-written in f01_standing_algebra.rs, not generated."

@@ -1,7 +1,7 @@
 # command: cargo build --features ggen --bin my-conforming-project
 # cwd: /Users/sac/praxis
-# started_at_utc: 2026-07-06T19:10:42.925Z
-# finished_at_utc: 2026-07-06T19:10:43.282Z
+# started_at_utc: 2026-07-12T08:33:45.682Z
+# finished_at_utc: 2026-07-12T08:33:45.981Z
 # exit_code: 0
 
 ## stdout
@@ -10,7 +10,96 @@
 warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
 package:   /Users/sac/praxis/crates/ggen/Cargo.toml
 workspace: /Users/sac/praxis/Cargo.toml
-warning: /Users/sac/praxis/Cargo.toml: `panic` setting is ignored for `bench` profile
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /Users/sac/praxis/crates/praxis-graphlaw-wasm/Cargo.toml
+workspace: /Users/sac/praxis/Cargo.toml
+warning: Cargo.toml: `panic` setting is ignored for `bench` profile
+warning: `my-conforming-project` (manifest) generated 1 warning
+warning: unused import: `crate::encoding::Encoder`
+ --> crates/praxis-graphlaw/src/hooks/mod.rs:4:5
+  |
+4 | use crate::encoding::Encoder;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `crate::fastmap::FxHashMap`
+ --> crates/praxis-graphlaw/src/hooks/mod.rs:5:5
+  |
+5 | use crate::fastmap::FxHashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Triple` and `VarOrTerm`
+ --> crates/praxis-graphlaw/src/hooks/mod.rs:6:19
+  |
+6 | use crate::term::{Triple, VarOrTerm};
+  |                   ^^^^^^  ^^^^^^^^^
+
+warning: unused import: `crate::TripleStore`
+ --> crates/praxis-graphlaw/src/hooks/mod.rs:7:5
+  |
+7 | use crate::TripleStore;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `CmpOp`
+  --> crates/praxis-graphlaw/src/hooks/condition.rs:10:5
+   |
+10 |     CmpOp, CompiledCondition, DiagnosticDetail, GraphDelta, HookCondition, TriggerDiagnostic,
+   |     ^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> crates/praxis-graphlaw/src/hooks/evaluate.rs:5:13
+  |
+5 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> crates/praxis-graphlaw/src/hooks/parsing.rs:8:13
+  |
+8 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> crates/praxis-graphlaw/src/owlrl/mod.rs:3:5
+  |
+3 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `crate::encoding::Encoder`
+ --> crates/praxis-graphlaw/src/shacl/model.rs:1:5
+  |
+1 | use crate::encoding::Encoder;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `super::index_utils::get_objects`
+   --> crates/praxis-graphlaw/src/shacl/model.rs:172:13
+    |
+172 |         use super::index_utils::get_objects;
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `get_objects`
+   --> crates/praxis-graphlaw/src/shacl/report.rs:162:34
+    |
+162 |         use super::index_utils::{get_objects, get_subjects, get_triples_by_predicate};
+    |                                  ^^^^^^^^^^^
+
+warning: unused import: `decode_to_term`
+ --> crates/praxis-graphlaw/src/shacl/validate.rs:7:21
+  |
+7 | use super::values::{decode_to_term, get_integer_value, get_string_representation};
+  |                     ^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+   --> crates/praxis-graphlaw/src/reasoner/mod.rs:215:17
+    |
+215 |             let mut stratum_rollback_len = triple_index.len();
+    |                 ----^^^^^^^^^^^^^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `praxis-graphlaw` (lib) generated 13 warnings (run `cargo fix --lib -p praxis-graphlaw` to apply 13 suggestions)
 warning: unknown lint: `removed`
   --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/autosystems/candidates.rs:45:9
    |
@@ -22,7 +111,7 @@ warning: unknown lint: `removed`
 warning: unused import: `Candidate`
  --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/abductive_ibe.rs:2:51
   |
-2 |     BreedError, BreedId, BreedInput, BreedOutput, Candidate, CognitionBreed, Fact, TraceStep,
+2 |     BreedError, BreedId, BreedInput, BreedOutput, Candidate, CognitionBreed, F...
   |                                                   ^^^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
@@ -30,25 +119,25 @@ warning: unused import: `Candidate`
 warning: unused import: `Candidate`
  --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/abductive_lp.rs:2:51
   |
-2 |     BreedError, BreedId, BreedInput, BreedOutput, Candidate, CognitionBreed, Fact, TraceStep,
+2 |     BreedError, BreedId, BreedInput, BreedOutput, Candidate, CognitionBreed, F...
   |                                                   ^^^^^^^^^
 
 warning: unused import: `Candidate`
  --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/asp.rs:2:51
   |
-2 |     BreedError, BreedId, BreedInput, BreedOutput, Candidate, CognitionBreed, Fact, TraceStep,
+2 |     BreedError, BreedId, BreedInput, BreedOutput, Candidate, CognitionBreed, F...
   |                                                   ^^^^^^^^^
 
 warning: unused import: `Rule`
   --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/autoinstinct_semantics.rs:14:73
    |
-14 |     BreedError, BreedId, BreedInput, BreedOutput, CognitionBreed, Fact, Rule, TraceStep,
-   |                                                                         ^^^^
+14 | ...BreedOutput, CognitionBreed, Fact, Rule, TraceStep,
+   |                                       ^^^^
 
 warning: unused import: `Candidate`
  --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/bayesian_network.rs:3:51
   |
-3 |     BreedError, BreedId, BreedInput, BreedOutput, Candidate, CognitionBreed, CognitionError, Fact,
+3 |     BreedError, BreedId, BreedInput, BreedOutput, Candidate, CognitionBreed, C...
   |                                                   ^^^^^^^^^
 
 warning: unused import: `std::fmt::Write as _`
@@ -66,7 +155,7 @@ warning: unused import: `crate::breeds::support::trace_query::TraceQuery`
 warning: unused import: `Candidate`
  --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/description_logic.rs:2:51
   |
-2 |     BreedError, BreedId, BreedInput, BreedOutput, Candidate, CognitionBreed, Fact, TraceStep,
+2 |     BreedError, BreedId, BreedInput, BreedOutput, Candidate, CognitionBreed, F...
   |                                                   ^^^^^^^^^
 
 warning: unused import: `HashMap`
@@ -108,14 +197,14 @@ warning: unused import: `HashSet`
 warning: unused import: `Fact`
  --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/mdp.rs:8:67
   |
-8 |     BreedError, BreedId, BreedInput, BreedOutput, CognitionBreed, Fact, TraceStep,
+8 |     BreedError, BreedId, BreedInput, BreedOutput, CognitionBreed, Fact, TraceS...
   |                                                                   ^^^^
 
 warning: unused import: `TraceStep`
   --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/morphological.rs:38:73
    |
-38 |     BreedError, BreedId, BreedInput, BreedOutput, CognitionBreed, Fact, TraceStep,
-   |                                                                         ^^^^^^^^^
+38 | ...edOutput, CognitionBreed, Fact, TraceStep,
+   |                                    ^^^^^^^^^
 
 warning: unused import: `BTreeSet`
   --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/ocpm_route_discoverer.rs:13:34
@@ -162,16 +251,16 @@ warning: unused import: `crate::breeds::support::trace_query::TraceQuery`
 warning: unused import: `CognitionError`
  --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/version_space.rs:9:67
   |
-9 |     BreedError, BreedId, BreedInput, BreedOutput, CognitionBreed, CognitionError, Fact, TraceStep,
-  |                                                                   ^^^^^^^^^^^^^^
+9 | ... BreedOutput, CognitionBreed, CognitionError, Fact, TraceStep,
+  |                                  ^^^^^^^^^^^^^^
 
 warning: variable does not need to be mutable
   --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/act_r.rs:74:13
    |
-74 |         let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
-   |             ----^^^^
-   |             |
-   |             help: remove this `mut`
+74 | ...   let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
+   |           ----^^^^
+   |           |
+   |           help: remove this `mut`
    |
    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
 
@@ -186,10 +275,10 @@ warning: unused variable: `id`
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/analogy_sme.rs:156:13
     |
-156 |         let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+156 | ...   let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/asp.rs:106:21
@@ -241,18 +330,18 @@ warning: variable does not need to be mutable
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/circumscription.rs:162:13
     |
-162 |         let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+162 | ...   let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/construction_grammar.rs:161:13
     |
-161 |         let mut push = |kind: &str, detail: String, trace: &mut Vec<TraceStep>| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+161 | ...   let mut push = |kind: &str, detail: String, trace: &mut Vec<TraceStep>| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: unused variable: `inverse_mapping`
   --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/dempster_shafer.rs:47:5
@@ -263,26 +352,26 @@ warning: unused variable: `inverse_mapping`
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/episodic_memory.rs:118:13
     |
-118 |         let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+118 | ...   let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/ilp.rs:202:13
     |
-202 |         let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+202 | ...   let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/markov_logic.rs:166:13
     |
-166 |         let mut push = |kind: &str, detail: String, trace: &mut Vec<TraceStep>| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+166 | ...   let mut push = |kind: &str, detail: String, trace: &mut Vec<TraceStep>| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
   --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/mdp.rs:59:13
@@ -295,18 +384,18 @@ warning: variable does not need to be mutable
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/meta_reasoning.rs:128:13
     |
-128 |         let mut push = |kind: &str, detail: String, trace: &mut Vec<TraceStep>| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+128 | ...   let mut push = |kind: &str, detail: String, trace: &mut Vec<TraceStep>| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/naive_physics.rs:129:13
     |
-129 |         let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+129 | ...   let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/partial_order_plan.rs:192:25
@@ -327,10 +416,10 @@ warning: variable does not need to be mutable
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/pomdp.rs:381:13
     |
-381 |         let mut push = |kind: &str, detail: String, trace: &mut Vec<TraceStep>| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+381 | ...   let mut push = |kind: &str, detail: String, trace: &mut Vec<TraceStep>| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/pomdp.rs:420:13
@@ -343,26 +432,26 @@ warning: variable does not need to be mutable
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/problog.rs:127:13
     |
-127 |         let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+127 | ...   let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/rl_symbolic.rs:160:13
     |
-160 |         let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+160 | ...   let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/sat_cdcl.rs:148:13
     |
-148 |         let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+148 | ...   let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/sat_cdcl.rs:174:13
@@ -375,18 +464,18 @@ warning: variable does not need to be mutable
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/situation_calculus.rs:159:13
     |
-159 |         let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+159 | ...   let mut push = |trace: &mut Vec<TraceStep>, kind: &str, detail: String| {
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: variable does not need to be mutable
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/tableaux.rs:183:13
     |
-183 |         let mut push = |kind: &str, detail: String, depth: u32, trace: &mut Vec<TraceStep>| {
-    |             ----^^^^
-    |             |
-    |             help: remove this `mut`
+183 | ...   let mut push = |kind: &str, detail: String, depth: u32, trace: &mut Ve...
+    |           ----^^^^
+    |           |
+    |           help: remove this `mut`
 
 warning: field `0` is never read
    --> /Users/sac/wasm4pm/crates/wasm4pm-cognition/src/breeds/ebl.rs:118:10
@@ -423,4 +512,4 @@ warning: field `breed` is never read
    |     ^^^^^
 
 warning: `wasm4pm-cognition` (lib) generated 56 warnings (run `cargo fix --lib -p wasm4pm-cognition` to apply 50 suggestions)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.31s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.25s

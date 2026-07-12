@@ -41,8 +41,12 @@ pub fn schedule_hooks(hooks: &[CompiledHook]) -> Result<Vec<CompiledHook>, Strin
                     hook.iri, dep_id.0
                 ));
             }
-            adj.get_mut(&dep_id).unwrap().push(hook.id);
-            *in_degree.get_mut(&hook.id).unwrap() += 1;
+            adj.get_mut(&dep_id)
+                .ok_or_else(|| format!("internal error: adj missing {}", dep_id.0))?
+                .push(hook.id);
+            *in_degree
+                .get_mut(&hook.id)
+                .ok_or_else(|| format!("internal error: in_degree missing {}", hook.id.0))? += 1;
         }
     }
 
@@ -50,7 +54,12 @@ pub fn schedule_hooks(hooks: &[CompiledHook]) -> Result<Vec<CompiledHook>, Strin
     let mut queue = Vec::new();
     for (&hook_id, &deg) in &in_degree {
         if deg == 0 {
-            queue.push(hook_map.get(&hook_id).unwrap().clone());
+            queue.push(
+                hook_map
+                    .get(&hook_id)
+                    .ok_or_else(|| format!("internal error: hook missing {}", hook_id.0))?
+                    .clone(),
+            );
         }
     }
 
@@ -62,11 +71,21 @@ pub fn schedule_hooks(hooks: &[CompiledHook]) -> Result<Vec<CompiledHook>, Strin
         scheduled.push(next.clone());
 
         // Decrement in-degree for neighbors
-        for &neighbor_id in adj.get(&next.id).unwrap() {
-            let deg = in_degree.get_mut(&neighbor_id).unwrap();
+        for &neighbor_id in adj
+            .get(&next.id)
+            .ok_or_else(|| format!("internal error: adj missing {}", next.id.0))?
+        {
+            let deg = in_degree
+                .get_mut(&neighbor_id)
+                .ok_or_else(|| format!("internal error: deg missing {}", neighbor_id.0))?;
             *deg -= 1;
             if *deg == 0 {
-                queue.push(hook_map.get(&neighbor_id).unwrap().clone());
+                queue.push(
+                    hook_map
+                        .get(&neighbor_id)
+                        .ok_or_else(|| format!("internal error: hook missing {}", neighbor_id.0))?
+                        .clone(),
+                );
             }
         }
     }

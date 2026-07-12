@@ -1,0 +1,4 @@
+[pack]
+name = "f18-broker-law-pack"
+version = "0.1.0"
+description = "Generates the F18 Broker and Zero Unreceipted Actuation (V12-018) L6 provenance-chain catalog and UnreceiptedActuationRefused cross-reference catalog for crates/multifractal-workflow/src/f18_broker_law_generated.rs, from mfwbrk:ProvenanceStage and mfwbrk:RefusalKind individuals in this pack's ontology. Pure data projection only -- the real broker state machine, atomic idempotency ledger, forgery-resistant authority token, and BLAKE3 receipt/replay logic are hand-written in f18_broker_law.rs, not generated."

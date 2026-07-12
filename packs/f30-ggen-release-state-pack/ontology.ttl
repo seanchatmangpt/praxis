@@ -1,0 +1,161 @@
+# f30-ggen-release-state-pack ontology -- V12-030 (F30 "GGEN Dynamic Project
+# State and Release Admission").
+#
+# Two disjoint concerns share this one ontology.ttl file (ggen sync loads
+# exactly one pack ontology file per pack via insert_turtle and does not
+# follow owl:imports, the same constraint packs/jira-tracking-pack/pack.toml
+# documents):
+#
+# 1. mfwrel:LifecycleState / mfwrel:LifecycleTransition individuals -- the
+#    L6 Data & Provenance catalog: the 9 named states (8 lawful +
+#    REFUSED) and 9 transition edges of F30-L5's state machine, copied
+#    verbatim from
+#    /Users/sac/Downloads/v26.7.12_mermaid_atlas/families/F30_ggen-release-state.md
+#    (`stateDiagram-v2` block). This is the GGEN_GENERATABLE slice: a pure
+#    data projection, synced into
+#    crates/multifractal-workflow/src/f30_ggen_release_state_generated.rs
+#    by templates/f30_ggen_release_state_generated.rs.tmpl. Simplification,
+#    disclosed rather than glossed over: transitions are recorded as plain
+#    string-literal `mfwrel:fromLabel` / `mfwrel:toLabel` pairs rather than
+#    object-property edges between the state individuals themselves --
+#    the same working convention packs/f01-standing-algebra-pack/ontology.ttl
+#    already established for this crate's chain-projection packs (avoids a
+#    SPARQL OPTIONAL + Tera-conditional for boundary states).
+#
+# 2. mfwrel:Observation / mfwrel:Ticket schema -- the vocabulary the two
+#    real SPARQL query bodies in this pack's templates/*.rq.tmpl (Status
+#    CONSTRUCT, Dependency SELECT) are written against. No instance data of
+#    either class is declared here: F30's own invariant is "status is graph
+#    consequence, never hand-typed prose", so this pack must not (and does
+#    not) assert any `mfwrel:Ticket`/`mfwrel:Observation` individual with a
+#    pre-computed status -- runtime observation facts are admitted at
+#    runtime by `ProjectStateGraph::admit_observations` in
+#    f30_ggen_release_state.rs, never sourced from this ontology file.
+
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix mfwrel: <http://seanchatmangpt.github.io/praxis/multifractal-workflow/release-state#> .
+
+#################################################################
+# Vocabulary
+#################################################################
+
+mfwrel: a owl:Ontology ;
+  rdfs:label "multifractal-workflow F30 GGEN release-state vocabulary" ;
+  rdfs:comment "Lifecycle-state catalog (L6 data projection) plus the Observation/Ticket schema the F30 Status CONSTRUCT and Dependency SELECT queries run against (V12-030)." .
+
+# --- Lifecycle-state catalog schema ---
+
+mfwrel:LifecycleState a rdfs:Class ;
+  rdfs:label "F30 release lifecycle state" ;
+  rdfs:comment "One of the 9 named nodes of F30-L5's state machine: OBSERVATIONS_ADMITTED, STATUS_CONSTRUCTED, DEPENDENCIES_DERIVED, CLAIMS_BOUNDED, DIAGRAMS_PROJECTED, VERIFIER_LIVE, DOCS_RENDERED, RELEASE_ADMITTED, REFUSED." .
+mfwrel:order a rdf:Property ; rdfs:domain mfwrel:LifecycleState ; rdfs:range xsd:integer ;
+  rdfs:label "order" ; rdfs:comment "0-based position in the atlas's declared state list (REFUSED is 8, terminal, reachable only from STATUS_CONSTRUCTED and DIAGRAMS_PROJECTED)." .
+
+mfwrel:LifecycleTransition a rdfs:Class ;
+  rdfs:label "F30 release lifecycle transition" ;
+  rdfs:comment "One directed edge of F30-L5's state machine, copied from the atlas stateDiagram-v2 (7 lawful chain edges + 2 REFUSED branch edges = 9 total)." .
+mfwrel:transitionOrder a rdf:Property ; rdfs:domain mfwrel:LifecycleTransition ; rdfs:range xsd:integer ;
+  rdfs:label "transition order" ; rdfs:comment "0-based position in atlas edge-declaration order." .
+mfwrel:fromLabel a rdf:Property ; rdfs:domain mfwrel:LifecycleTransition ; rdfs:range xsd:string ;
+  rdfs:label "from label" ; rdfs:comment "rdfs:label of the source LifecycleState." .
+mfwrel:toLabel a rdf:Property ; rdfs:domain mfwrel:LifecycleTransition ; rdfs:range xsd:string ;
+  rdfs:label "to label" ; rdfs:comment "rdfs:label of the target LifecycleState." .
+mfwrel:transitionLabel a rdf:Property ; rdfs:domain mfwrel:LifecycleTransition ; rdfs:range xsd:string ;
+  rdfs:label "transition label" ; rdfs:comment "The atlas edge annotation verbatim (e.g. \"lawful transition\", \"invalid\", \"authority or conformance failure\")." .
+
+# --- Observation/Ticket schema (no instances declared; see file header) ---
+
+mfwrel:Observation a rdfs:Class ;
+  rdfs:label "Observation" ;
+  rdfs:comment "One admitted code/test/workflow/ticket/verifier/receipt observation (F30-L2 component C1, Project State RDF)." .
+mfwrel:observationKind a rdf:Property ; rdfs:domain mfwrel:Observation ; rdfs:range xsd:string ;
+  rdfs:label "observation kind" ; rdfs:comment "One of: Code, Test, Workflow, Ticket, Verifier, Receipt." .
+mfwrel:observationResult a rdf:Property ; rdfs:domain mfwrel:Observation ; rdfs:range xsd:string ;
+  rdfs:label "observation result" ; rdfs:comment "PASS or FAIL -- the raw evidence the Status CONSTRUCT (C2) derives mfwrel:derivedStatus from." .
+
+mfwrel:Ticket a rdfs:Class ;
+  rdfs:label "Ticket" ;
+  rdfs:comment "One tracked release-admission ticket." .
+mfwrel:id a rdf:Property ; rdfs:domain mfwrel:Ticket ; rdfs:range xsd:string ;
+  rdfs:label "ticket id" .
+mfwrel:hasObservation a rdf:Property ; rdfs:domain mfwrel:Ticket ; rdfs:range mfwrel:Observation ;
+  rdfs:label "has observation" ; rdfs:comment "Links a Ticket to an Observation admitted as evidence for it." .
+mfwrel:dependsOn a rdf:Property ; rdfs:domain mfwrel:Ticket ; rdfs:range mfwrel:Ticket ;
+  rdfs:label "depends on" ; rdfs:comment "Direct (non-transitive) ticket dependency edge; the Dependency SPARQL (C3) walks this with the SPARQL 1.1 property path mfwrel:dependsOn+, the same pattern packs/jira-tracking-pack/templates/jira-deps.rq.tmpl already proves for jira:dependsOn+." .
+mfwrel:derivedStatus a rdf:Property ; rdfs:domain mfwrel:Ticket ; rdfs:range xsd:string ;
+  rdfs:label "derived status" ; rdfs:comment "CONSTRUCT-derived only (never asserted by this ontology or by hand): ALIVE if >=1 PASS observation and 0 FAIL observations, BLOCKED if >=1 FAIL observation, UNVERIFIED otherwise. Produced by queries/f30-status-construct.rq, never hand-typed." .
+
+#################################################################
+# The 9 lifecycle states, in atlas order (F30-L5)
+#################################################################
+
+mfwrel:ObservationsAdmitted a mfwrel:LifecycleState ;
+  rdfs:label "OBSERVATIONS_ADMITTED" ;
+  rdfs:comment "Entry state: [*] --> OBSERVATIONS_ADMITTED." ;
+  mfwrel:order 0 .
+
+mfwrel:StatusConstructed a mfwrel:LifecycleState ;
+  rdfs:label "STATUS_CONSTRUCTED" ;
+  rdfs:comment "Status CONSTRUCT has run; may branch to REFUSED (invalid)." ;
+  mfwrel:order 1 .
+
+mfwrel:DependenciesDerived a mfwrel:LifecycleState ;
+  rdfs:label "DEPENDENCIES_DERIVED" ;
+  rdfs:comment "Dependency SPARQL has run." ;
+  mfwrel:order 2 .
+
+mfwrel:ClaimsBounded a mfwrel:LifecycleState ;
+  rdfs:label "CLAIMS_BOUNDED" ;
+  rdfs:comment "Claim Ceiling Query has bounded the claim level." ;
+  mfwrel:order 3 .
+
+mfwrel:DiagramsProjected a mfwrel:LifecycleState ;
+  rdfs:label "DIAGRAMS_PROJECTED" ;
+  rdfs:comment "Mermaid Atlas Projector has run; may branch to REFUSED (authority or conformance failure)." ;
+  mfwrel:order 4 .
+
+mfwrel:VerifierLive a mfwrel:LifecycleState ;
+  rdfs:label "VERIFIER_LIVE" ;
+  rdfs:comment "Verifier Aggregator has collected live verifier fields." ;
+  mfwrel:order 5 .
+
+mfwrel:DocsRendered a mfwrel:LifecycleState ;
+  rdfs:label "DOCS_RENDERED" ;
+  rdfs:comment "Tera Renderers have rendered RenderedReleaseDocs." ;
+  mfwrel:order 6 .
+
+mfwrel:ReleaseAdmitted a mfwrel:LifecycleState ;
+  rdfs:label "RELEASE_ADMITTED" ;
+  rdfs:comment "Exit state: RELEASE_ADMITTED --> [*]." ;
+  mfwrel:order 7 .
+
+mfwrel:Refused a mfwrel:LifecycleState ;
+  rdfs:label "REFUSED" ;
+  rdfs:comment "Terminal refusal state: REFUSED --> [*] via a typed ReleaseAdmissionRefused." ;
+  mfwrel:order 8 .
+
+#################################################################
+# The 9 transitions, in atlas declaration order (F30-L5)
+#################################################################
+
+mfwrel:Transition0 a mfwrel:LifecycleTransition ; mfwrel:transitionOrder 0 ;
+  mfwrel:fromLabel "OBSERVATIONS_ADMITTED" ; mfwrel:toLabel "STATUS_CONSTRUCTED" ; mfwrel:transitionLabel "lawful transition" .
+mfwrel:Transition1 a mfwrel:LifecycleTransition ; mfwrel:transitionOrder 1 ;
+  mfwrel:fromLabel "STATUS_CONSTRUCTED" ; mfwrel:toLabel "DEPENDENCIES_DERIVED" ; mfwrel:transitionLabel "lawful transition" .
+mfwrel:Transition2 a mfwrel:LifecycleTransition ; mfwrel:transitionOrder 2 ;
+  mfwrel:fromLabel "STATUS_CONSTRUCTED" ; mfwrel:toLabel "REFUSED" ; mfwrel:transitionLabel "invalid" .
+mfwrel:Transition3 a mfwrel:LifecycleTransition ; mfwrel:transitionOrder 3 ;
+  mfwrel:fromLabel "DEPENDENCIES_DERIVED" ; mfwrel:toLabel "CLAIMS_BOUNDED" ; mfwrel:transitionLabel "lawful transition" .
+mfwrel:Transition4 a mfwrel:LifecycleTransition ; mfwrel:transitionOrder 4 ;
+  mfwrel:fromLabel "CLAIMS_BOUNDED" ; mfwrel:toLabel "DIAGRAMS_PROJECTED" ; mfwrel:transitionLabel "lawful transition" .
+mfwrel:Transition5 a mfwrel:LifecycleTransition ; mfwrel:transitionOrder 5 ;
+  mfwrel:fromLabel "DIAGRAMS_PROJECTED" ; mfwrel:toLabel "VERIFIER_LIVE" ; mfwrel:transitionLabel "lawful transition" .
+mfwrel:Transition6 a mfwrel:LifecycleTransition ; mfwrel:transitionOrder 6 ;
+  mfwrel:fromLabel "DIAGRAMS_PROJECTED" ; mfwrel:toLabel "REFUSED" ; mfwrel:transitionLabel "authority or conformance failure" .
+mfwrel:Transition7 a mfwrel:LifecycleTransition ; mfwrel:transitionOrder 7 ;
+  mfwrel:fromLabel "VERIFIER_LIVE" ; mfwrel:toLabel "DOCS_RENDERED" ; mfwrel:transitionLabel "lawful transition" .
+mfwrel:Transition8 a mfwrel:LifecycleTransition ; mfwrel:transitionOrder 8 ;
+  mfwrel:fromLabel "DOCS_RENDERED" ; mfwrel:toLabel "RELEASE_ADMITTED" ; mfwrel:transitionLabel "lawful transition" .

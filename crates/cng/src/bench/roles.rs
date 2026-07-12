@@ -291,8 +291,32 @@ impl<'a> ObsWriter<'a> {
         dir: &Path,
         prefix: &'static str,
     ) -> Result<Self, CngRefusal> {
-        fs::create_dir_all(dir)
-            .map_err(|e| CngRefusal::IoRefused(format!("mkdir {}: {e}", dir.display())))?;
+        let mut attempts = 0;
+        loop {
+            if let Err(e) = fs::create_dir_all(dir) {
+                if attempts < 10 {
+                    attempts += 1;
+                    std::thread::yield_now();
+                    continue;
+                }
+                return Err(CngRefusal::IoRefused(format!(
+                    "mkdir {}: {e}",
+                    dir.display()
+                )));
+            }
+            if dir.exists() {
+                break;
+            }
+            if attempts < 10 {
+                attempts += 1;
+                std::thread::yield_now();
+                continue;
+            }
+            return Err(CngRefusal::IoRefused(format!(
+                "mkdir {}: returned Ok but does not exist",
+                dir.display()
+            )));
+        }
         Ok(ObsWriter {
             templates,
             store,

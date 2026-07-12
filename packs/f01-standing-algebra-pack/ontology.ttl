@@ -1,0 +1,108 @@
+# f01-standing-algebra-pack ontology -- V12-001 (F01 "Standing Algebra") L6
+# Data & Provenance lens: the 7 typed entities the family survey names
+# ("Observation, AdmissionDecision, ManufactureRun, Artifact,
+# StandingAssertion, Receipt, ReplayRun") chained by prov:wasDerivedFrom /
+# prov:generates.
+#
+# Simplification, disclosed honestly rather than silently glossed over:
+# real PROV-O distinguishes prov:Entity from prov:Activity and relates them
+# with prov:used/prov:wasGeneratedBy/prov:wasDerivedFrom in a specific
+# direction. This pack does not attempt a fully PROV-O-conformant model --
+# it declares one flat mfwprov:ProvenanceEntity class per named entity, and
+# records the chain as plain string-literal labels
+# (mfwprov:derivedFromLabel / mfwprov:generatesNextLabel, empty string at
+# the chain's ends) rather than object-property edges, matching the same
+# working convention `packs/f15-air-core-pack/ontology.ttl`'s
+# `air:derivedFromLabel` already uses in this crate -- this avoids a SPARQL
+# OPTIONAL + Tera-conditional for the two boundary entities. That sequence
+# is a pure data projection: the actual gate/refusal logic that enforces it
+# at runtime lives in f01_standing_algebra.rs (hand-written), not here.
+
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:   <http://www.w3.org/ns/prov#> .
+@prefix mfwprov: <http://seanchatmangpt.github.io/praxis/multifractal-workflow/standing-provenance#> .
+
+#################################################################
+# Vocabulary
+#################################################################
+
+mfwprov: a owl:Ontology ;
+  rdfs:label "multifractal-workflow F01 Standing Algebra provenance vocabulary" ;
+  rdfs:comment "The 7 typed provenance entities of the F01 Standing Algebra pipeline (V12-001 L6), chained by mfwprov:derivedFromLabel / mfwprov:generatesNextLabel (a simplified, disclosed reading of prov:wasDerivedFrom / prov:generates -- see this ontology's file header)." .
+
+mfwprov:ProvenanceEntity a rdfs:Class ;
+  rdfs:subClassOf prov:Entity ;
+  rdfs:label "Standing Algebra provenance entity" ;
+  rdfs:comment "One typed node of the F01 pipeline's provenance chain: Raw Observation -> Observation Gate -> Admission Engine -> Manufacture Boundary -> Standing Algebra -> Receipt Emitter -> Replay Verifier." .
+
+mfwprov:chainOrder a rdf:Property ; rdfs:domain mfwprov:ProvenanceEntity ; rdfs:range xsd:integer ;
+  rdfs:label "chain order" ; rdfs:comment "0-based position in the fixed 7-entity provenance chain." .
+mfwprov:derivedFromLabel a rdf:Property ; rdfs:domain mfwprov:ProvenanceEntity ; rdfs:range xsd:string ;
+  rdfs:label "derived from label" ; rdfs:comment "rdfs:label of the entity this one is derived from (simplified prov:wasDerivedFrom reading); empty string for the chain's first entity." .
+mfwprov:generatesNextLabel a rdf:Property ; rdfs:domain mfwprov:ProvenanceEntity ; rdfs:range xsd:string ;
+  rdfs:label "generates next label" ; rdfs:comment "rdfs:label of the entity this one generates (simplified prov:generates reading); empty string for the chain's last entity." .
+mfwprov:lifecycleState a rdf:Property ; rdfs:domain mfwprov:ProvenanceEntity ; rdfs:range xsd:string ;
+  rdfs:label "lifecycle state" ; rdfs:comment "The f01_standing_algebra::LifecycleState variant name this entity corresponds to producing." .
+
+#################################################################
+# The 7 entities, in chain order
+#################################################################
+
+mfwprov:Observation a mfwprov:ProvenanceEntity ;
+  rdfs:label "Observation" ;
+  rdfs:comment "A raw observation admitted past the Observation Gate (L1); corresponds to LifecycleState::Observed." ;
+  mfwprov:chainOrder 0 ;
+  mfwprov:lifecycleState "Observed" ;
+  mfwprov:derivedFromLabel "" ;
+  mfwprov:generatesNextLabel "AdmissionDecision" .
+
+mfwprov:AdmissionDecision a mfwprov:ProvenanceEntity ;
+  rdfs:label "AdmissionDecision" ;
+  rdfs:comment "The Admission Engine's verdict (L2) on an Observation, gated on SHACL conformance evidence; corresponds to LifecycleState::Admitted." ;
+  mfwprov:chainOrder 1 ;
+  mfwprov:lifecycleState "Admitted" ;
+  mfwprov:derivedFromLabel "Observation" ;
+  mfwprov:generatesNextLabel "ManufactureRun" .
+
+mfwprov:ManufactureRun a mfwprov:ProvenanceEntity ;
+  rdfs:label "ManufactureRun" ;
+  rdfs:comment "One Manufacture Boundary execution (L3) that recomputes and checks an artifact digest against its admitted source; corresponds to the transition into LifecycleState::Manufactured." ;
+  mfwprov:chainOrder 2 ;
+  mfwprov:lifecycleState "Manufactured" ;
+  mfwprov:derivedFromLabel "AdmissionDecision" ;
+  mfwprov:generatesNextLabel "Artifact" .
+
+mfwprov:Artifact a mfwprov:ProvenanceEntity ;
+  rdfs:label "Artifact" ;
+  rdfs:comment "The manufactured artifact (A) itself -- A = mu(O*), docs/CHATMAN_EQUATION.md -- once its digest has been verified." ;
+  mfwprov:chainOrder 3 ;
+  mfwprov:lifecycleState "Manufactured" ;
+  mfwprov:derivedFromLabel "ManufactureRun" ;
+  mfwprov:generatesNextLabel "StandingAssertion" .
+
+mfwprov:StandingAssertion a mfwprov:ProvenanceEntity ;
+  rdfs:label "StandingAssertion" ;
+  rdfs:comment "The grant of standing to a manufactured Artifact (L4); corresponds to LifecycleState::Standing." ;
+  mfwprov:chainOrder 4 ;
+  mfwprov:lifecycleState "Standing" ;
+  mfwprov:derivedFromLabel "Artifact" ;
+  mfwprov:generatesNextLabel "Receipt" .
+
+mfwprov:Receipt a mfwprov:ProvenanceEntity ;
+  rdfs:label "Receipt" ;
+  rdfs:comment "The BLAKE3-over-canonical-N-Quads receipt (R = receipt(A)) emitted for a StandingAssertion (L6); corresponds to LifecycleState::Receipted." ;
+  mfwprov:chainOrder 5 ;
+  mfwprov:lifecycleState "Receipted" ;
+  mfwprov:derivedFromLabel "StandingAssertion" ;
+  mfwprov:generatesNextLabel "ReplayRun" .
+
+mfwprov:ReplayRun a mfwprov:ProvenanceEntity ;
+  rdfs:label "ReplayRun" ;
+  rdfs:comment "A Replay Verifier execution (L6/L8) that reconstructs the standing chain and checks it against the Receipt; corresponds to LifecycleState::Replayable." ;
+  mfwprov:chainOrder 6 ;
+  mfwprov:lifecycleState "Replayable" ;
+  mfwprov:derivedFromLabel "Receipt" ;
+  mfwprov:generatesNextLabel "" .

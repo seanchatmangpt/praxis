@@ -1,0 +1,4 @@
+[pack]
+name = "f09-mfw-growth-pack"
+version = "0.1.0"
+description = "Generates the F09 MFW Growth Operator (V12-009) L6 provenance-chain catalog and MFWGrowthRefused refusal catalog for crates/multifractal-workflow/src/f09_mfw_growth_generated.rs, from mfwg:ProvenanceStage and mfwg:RefusalKind individuals in this pack's ontology. Pure data projection only -- the real closure/reachability/descent-budget gate logic and the honest not-yet-implemented stubs for the manufacture/bind/reevaluate stages are hand-written in f09_mfw_growth.rs, not generated."

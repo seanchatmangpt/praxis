@@ -1,0 +1,4 @@
+[pack]
+name = "f15-air-core-pack"
+version = "0.1.0"
+description = "Generates the F15 AIR Single Semantic Core (V12-015) 8-state lifecycle catalog, AIRTransitionRefused refusal catalog, and PROV data-model catalog for crates/multifractal-workflow/src/f15_air_transition_core_generated.rs, from air:LifecycleState, air:RefusalKind, and air:ProvEntity individuals in this pack's ontology. Pure data projection only -- the real AIR transition semantics (readiness, expression evaluation, criteria, routing) live in apps/air_core/src/air_core.erl and are NOT reimplemented here or anywhere in this crate; this pack generates citation/documentation-grade catalogs cross-checked against the hand-written Rust types in f15_air_transition_core.rs, not executable transition logic."

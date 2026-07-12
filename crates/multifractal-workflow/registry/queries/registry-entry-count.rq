@@ -1,0 +1,12 @@
+# registry-entry-count.rq (V12-004) — counts distinct mfwreg:DialectEntry
+# individuals in the loaded store. Run only after both closed-shape checks
+# (registry-missing-fields.rq, registry-closed-violations.rq) have already
+# passed; feeds RegistryReceipt::entry_count.
+# Determinism: ORDER BY ?entry over a fixed graph.
+PREFIX mfwreg: <http://seanchatmangpt.github.io/praxis/multifractal-workflow/dialect-registry#>
+
+SELECT ?entry
+WHERE {
+  ?entry a mfwreg:DialectEntry .
+}
+ORDER BY ?entry

@@ -550,7 +550,7 @@ fn validate_node_constraint(focus: usize, se: &ShapeExpr) -> Result<(), Vec<Stri
         if let Some(bound) = bound_val {
             let bound_id = Encoder::add(bound.to_string());
             match compare_numeric(focus, bound_id) {
-                Some(ord) if ok_orderings.contains(&ord) => {}
+                Ok(Some(ord)) if ok_orderings.contains(&ord) => {}
                 _ => errors.push(format!("{bound_name} {bound} not satisfied")),
             }
         }

@@ -1,16 +1,19 @@
 {
-  "is_conforming": true,
-  "fitness": 1.0,
-  "violations": [],
+  "is_conforming": false,
+  "fitness": 0.9957081545064378,
+  "violations": [
+    "conformance: loop-sequence (benchmark_run_started benchmark_run_completed benchmark_result_attached) not matched",
+    "participation: no object of type 'benchmark_result'"
+  ],
   "integrity_report_summary": {
     "valid": true,
     "error_count": 0,
     "error_codes": []
   },
-  "event_count": 50,
-  "object_count": 36,
-  "ocel_sha256": "628807e0780a7d6f479f1a3d9dc744a17f5158cac3f7b2963244e10614f89e61",
-  "ocel_blake3": "4c0d8584b1e0a1b786d1d4dc498aa20841d8f4977b8d82a4ab611a7863afca40",
+  "event_count": 35,
+  "object_count": 23,
+  "ocel_sha256": "7f9cebaf07c0c9c454e1839214f9bba4a0a4d60dc9e929bc933e5d21f4c5003f",
+  "ocel_blake3": "115becc17aa4ef63f6b830be028fbe209e84f422852756e2629050f635c1c7ba",
   "model": {
     "alphabet": [
       "api_request_observed",
@@ -911,5 +914,7 @@
   },
   "method": "library composition: wasm4pm_compat::ocel::validate (OCEDO/OCPQ integrity) + powl2_decompose::Powl release-loop model with a direct membership decision procedure (exact for disjoint child alphabets; differentially validated against Powl::language_upto in unit tests). The wasm4pm CLI conformance command is stubbed (crates/wasm4pm-cli/src/commands/mining.rs:25), hence in-process composition.",
   "closure_rule": "the validator validates the log as it existed BEFORE its own val_e* bookkeeping events: ocel_sha256/ocel_blake3 are taken before the append, and the bookkeeping event types are outside the model alphabet so conformance projection drops them on re-runs.",
-  "validated_at_utc": "2026-07-06T21:52:25.938Z"
+  "validated_at_utc": "2026-07-12T11:04:23.778Z",
+  "model_ref": "release-v26.7.6",
+  "ocel_ref": "docs/releases/v26.7.6/ocel/playwright-wasm4pm-validation.ocel.json"
 }

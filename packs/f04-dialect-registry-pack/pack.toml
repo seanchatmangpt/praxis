@@ -1,0 +1,4 @@
+[pack]
+name = "f04-dialect-registry-pack"
+version = "0.1.0"
+description = "Generates the F04 GraphLaw Dialect Registry (V12-004) Rust projection for crates/multifractal-workflow/src/f04_dialect_registry_generated.rs: the DialectEntry catalog struct/data and the 7-state DialectLifecycleState ladder, from mfwreg:DialectEntry and mfwreg:DialectLifecycleState individuals in this pack's ontology. Pure data projection only -- SHACL closed-shape validation logic and lifecycle transition guards are hand-written in f04_dialect_registry.rs, not generated."

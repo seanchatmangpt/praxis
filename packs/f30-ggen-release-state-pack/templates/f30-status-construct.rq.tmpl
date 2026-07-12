@@ -1,0 +1,48 @@
+---
+to: "crates/multifractal-workflow/queries/f30-status-construct.rq"
+force: true
+determinism: true
+---
+# f30-status-construct.rq -- F30-L2 component C2, "Status CONSTRUCT".
+# Inputs: the runtime Project State RDF admitted by
+# `ProjectStateGraph::admit_observations` (f30_ggen_release_state.rs) --
+# `mfwrel:Ticket` / `mfwrel:Observation` facts, never this pack's own
+# ontology.ttl (which declares the schema only, no instances; see that
+# file's header).
+# Output: `?ticket mfwrel:derivedStatus ?status`, one triple per admitted
+# Ticket, computed ENTIRELY from admitted mfwrel:observationResult evidence
+# -- never hand-typed or edited (F30's own family invariant). ALIVE
+# requires >=1 PASS and 0 FAIL observations; any FAIL observation makes the
+# ticket BLOCKED regardless of PASS count (a single failing observation
+# outranks any number of passing ones); a Ticket with zero observations is
+# UNVERIFIED (the no-overclaiming default, never rounded up).
+PREFIX mfwrel: <http://seanchatmangpt.github.io/praxis/multifractal-workflow/release-state#>
+
+CONSTRUCT {
+  ?ticket mfwrel:derivedStatus ?status .
+}
+WHERE {
+  ?ticket a mfwrel:Ticket .
+  {
+    SELECT ?ticket
+           (COUNT(DISTINCT ?failObs) AS ?failCount)
+           (COUNT(DISTINCT ?passObs) AS ?passCount)
+    WHERE {
+      ?ticket a mfwrel:Ticket .
+      OPTIONAL {
+        ?ticket mfwrel:hasObservation ?failObs .
+        ?failObs mfwrel:observationResult "FAIL" .
+      }
+      OPTIONAL {
+        ?ticket mfwrel:hasObservation ?passObs .
+        ?passObs mfwrel:observationResult "PASS" .
+      }
+    }
+    GROUP BY ?ticket
+  }
+  BIND(
+    IF(?failCount > 0, "BLOCKED",
+      IF(?passCount > 0, "ALIVE", "UNVERIFIED")
+    ) AS ?status
+  )
+}

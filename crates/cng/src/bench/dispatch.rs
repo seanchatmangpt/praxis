@@ -492,16 +492,34 @@ fn ledger_chain_hash(prev: &str, from: &str, to: &str, tick: u64, seq: u64) -> S
 /// torn file; a crash mid-rename leaves the previous version intact).
 /// O(|body|).
 pub(super) fn write_atomic(path: &Path, body: &str) -> Result<(), CngRefusal> {
-    let tmp = path.with_extension("tmp");
+    static TMP_COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let count = TMP_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let tmp = path.with_extension(format!("write-tmp-{}", count));
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent).map_err(|e| CngRefusal::IoRefused(format!("create_dir_all {}: {e}", parent.display())))?;
+        }
+    }
     fs::write(&tmp, body)
         .map_err(|e| CngRefusal::IoRefused(format!("write {}: {e}", tmp.display())))?;
-    fs::rename(&tmp, path).map_err(|e| {
-        CngRefusal::IoRefused(format!(
-            "rename {} -> {}: {e}",
-            tmp.display(),
-            path.display()
-        ))
-    })
+    let mut attempts = 0;
+    loop {
+        match fs::rename(&tmp, path) {
+            Ok(()) => break,
+            Err(e) if attempts < 10 => {
+                attempts += 1;
+                std::thread::yield_now();
+            }
+            Err(e) => {
+                return Err(CngRefusal::IoRefused(format!(
+                    "rename {} -> {}: {e}",
+                    tmp.display(),
+                    path.display()
+                )));
+            }
+        }
+    }
+    Ok(())
 }
 
 impl FileLedgerSink {

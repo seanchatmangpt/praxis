@@ -35,11 +35,11 @@ use crate::{
 pub struct DefaultLaw;
 
 /// Current time in milliseconds since the UNIX epoch, used for `Andon::Halted::at`.
-fn now_ms() -> u64 {
+fn now_ms() -> Result<u64, String> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
+        .map(|d| d.as_millis() as u64)
+        .map_err(|e| format!("system time error: {e}"))
 }
 
 /// True iff `payload[key]` is a JSON array containing the string `needle`.
@@ -85,15 +85,26 @@ impl Judge for DefaultLaw {
         if unmet.is_empty() {
             Ok(raw.transition())
         } else {
-            // Each unmet obligation maps 1:1 onto a `RefusalScenario` (see
-            // `crate::refusal`), so `DefaultLaw`'s halts are always fully
-            // categorized, not just listed.
+            let at_ms = match now_ms() {
+                Ok(t) => t,
+                Err(e) => {
+                    // Propagate time failure as a halt reason rather than silently defaulting to 0
+                    let mut halted = raw;
+                    halted.andon = Andon::Halted {
+                        unmet: vec![Obligation::BlockingConstraint { reason: e }],
+                        refusals: vec![RefusalScenario::WatchdogDrained],
+                        at: 0,
+                    };
+                    return Err(halted);
+                }
+            };
+            
             let refusals: Vec<RefusalScenario> = unmet.iter().map(RefusalScenario::from).collect();
             let mut halted = raw;
             halted.andon = Andon::Halted {
                 unmet,
                 refusals,
-                at: now_ms(),
+                at: at_ms,
             };
             Err(halted)
         }

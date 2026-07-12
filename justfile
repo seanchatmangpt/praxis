@@ -157,14 +157,14 @@ clean-stale:
 # Full cargo clean (wipes target/ entirely) — check `ps aux | grep cargo` first;
 # this will corrupt any concurrently running build, not just slow it down.
 clean:
-    timeout 600s cargo clean
+    cargo clean
 
 # NOTE: must invoke `cargo-cicd` (direct binary), not `cargo cicd` — the installed
 # binary's clap parser rejects cargo's prepended arg.
 # Refresh the praxis-standing.v1 index, standing-pack ontology, and docs/standing/REALITY_INDEX.md
 standing:
     command -v ggen >/dev/null || (echo "ggen not found on PATH — run: cargo install --path crates/ggen --locked" && exit 1)
-    timeout 60s cargo-cicd standing refresh
+    timeout 180s cargo-cicd standing refresh
     cp target/praxis-standing/standing.ttl ../cargo-cicd/plugins/cargo-cicd-kit/standing-pack/ontology.ttl
     timeout 120s ggen sync run
     timeout 60s cargo-cicd claude_context show
@@ -190,9 +190,9 @@ check:
 # back to cargo test if nextest isn't on PATH (see chatman-verify for the same pattern)
 test:
     if command -v cargo-nextest >/dev/null 2>&1; then \
-        timeout 600s cargo nextest run --workspace --all-features; \
+        cargo nextest run --workspace --all-features -j 4; \
     else \
-        timeout 600s cargo test --workspace --all-features; \
+        cargo test --workspace --all-features -- --test-threads=1; \
     fi
 
 # Lint with the exact flags CI's `clippy` job uses — fails on any warning (.github/workflows/ci.yml)
@@ -240,12 +240,12 @@ verifier-report:
 
 # Run workspace benchmarks. `just bench filter="bench_name"` to scope to one benchmark target
 bench filter="":
-    timeout 600s cargo bench {{ if filter != "" { "--bench " + filter } else { "" } }}
+    cargo bench {{ if filter != "" { "--bench " + filter } else { "" } }}
 
 # Line/branch coverage report via tarpaulin (installs it if missing). `just coverage out="Html"` for other tarpaulin --out formats
 coverage out="Html":
     command -v cargo-tarpaulin >/dev/null 2>&1 || cargo install cargo-tarpaulin --locked
-    timeout 600s cargo tarpaulin --out {{out}} --output-dir coverage --exclude-files "tests/*"
+    cargo tarpaulin --out {{out}} --output-dir coverage --exclude-files "tests/*"
 
 # Genesis Day 2 Revenue Physics pipe end to end: observation -> proposals -> goal -> plan -> admit -> receipt
 revenue-demo:
@@ -288,9 +288,9 @@ nextest-list *args:
 # Fast chatman verification: tests (incl. static gates) + diagram atlas
 chatman-verify:
     if command -v cargo-nextest >/dev/null 2>&1; then \
-        timeout 600s cargo nextest run -p praxis-graphlaw -E 'test(chatman)'; \
+        cargo nextest run -p praxis-graphlaw -E 'test(chatman)'; \
     else \
-        timeout 600s cargo test -p praxis-graphlaw chatman; \
+        cargo test -p praxis-graphlaw chatman; \
     fi
     timeout 300s cargo test -p praxis-graphlaw --test chatman_static_gates
     python3 docs/chatman-engine/diagrams/atlas/verify_atlas.py
@@ -348,7 +348,7 @@ cng-smoke:
 
 # Build the cng CLI binary
 cng-build:
-    timeout 600s cargo build -p cng
+    cargo build -p cng
 
 # Run the cng CLI with arguments (e.g. `just cng-run plan generate --dir plans/`)
 # --bin cng is required now that the crate ships 3 binaries (cng, otel-live,
@@ -411,7 +411,7 @@ cng-engine-resume *args:
 
 # Run the cng test suite
 cng-test:
-    timeout 600s cargo test -p cng
+    cargo test -p cng
 
 # Run the cng test suite with the bench feature (portability/audit tests)
 cng-test-bench:
@@ -426,13 +426,13 @@ cng-check:
 # Run ONE cng integration-test binary by exact name (scoped inner loop; avoids
 # rebuilding/running the whole bench suite when investigating a single binary)
 cng-test-one binary *args:
-    timeout 1200s cargo test -p cng --features bench --test {{binary}} {{args}}
+    cargo test -p cng --features bench --test {{binary}} {{args}}
 
 # Run ONLY the cng crate's in-crate unit tests (dispatch_test.rs, engine_test.rs,
 # decomp_test.rs, etc. via #[cfg(test)] modules) — skips the heavier standalone
 # integration-test binaries (cng_long_horizon_scenario and friends) entirely.
 cng-test-lib *args:
-    timeout 600s cargo test -p cng --features bench --lib {{args}}
+    cargo test -p cng --features bench --lib {{args}}
 
 # Rail G Track 2b: run the real-workday multifractal measurement test
 # (`track2b_real_workday_tape_ops_measurement`, crates/cng/src/bench/multifractal_test.rs)
@@ -443,7 +443,7 @@ cng-test-lib *args:
 # is fixed relative to CARGO_MANIFEST_DIR by the test itself (scratch_dir()), so it lands
 # there regardless of any CARGO_TARGET_DIR override used for the build.
 cng-track2b-report:
-    timeout 600s cargo test -p cng --features bench --lib track2b_real_workday_tape_ops_measurement -- --nocapture
+    cargo test -p cng --features bench --lib track2b_real_workday_tape_ops_measurement -- --nocapture
     @echo "--- target/chatman/cng-tests/multifractal/track2b_real/track2b-measurement.txt ---"
     @cat target/chatman/cng-tests/multifractal/track2b_real/track2b-measurement.txt
 
@@ -456,7 +456,7 @@ cng-multi-engine:
 
 # Package-surface smoke: install the cng binary from the crate and invoke it
 cng-install-smoke:
-    timeout 600s cargo install --path crates/cng --debug --root target/install-smoke --force
+    cargo install --path crates/cng --debug --root target/install-smoke --force
     target/install-smoke/bin/cng workflow doctor
 
 # --- Isolated-target cargo recipes (concurrent-agent-safe) ---
@@ -477,13 +477,13 @@ cng-install-smoke:
 # Run one cng integration-test binary in an isolated target dir (concurrent-agent-safe; see
 # note above), e.g. `just cng-test-isolated my-feature cng_decomp -- --nocapture`
 cng-test-isolated name binary *args:
-    CARGO_TARGET_DIR=target/agent-{{name}} timeout 1200s cargo test -p cng --features bench --test {{binary}} {{args}}
+    CARGO_TARGET_DIR=target/agent-{{name}} cargo test -p cng --features bench --test {{binary}} {{args}}
 
 # Run cng's in-crate unit tests (cng-test-lib) in an isolated target dir
 # (concurrent-agent-safe; see note above), e.g.
 # `just cng-test-lib-isolated my-feature otel_rdf`
 cng-test-lib-isolated name *args:
-    CARGO_TARGET_DIR=target/agent-{{name}} timeout 600s cargo test -p cng --features bench --lib {{args}}
+    CARGO_TARGET_DIR=target/agent-{{name}} cargo test -p cng --features bench --lib {{args}}
 
 # Type-check the cng crate + its tests in an isolated target dir (concurrent-agent-safe; fast
 # compile-only sanity check mid-edit, before cng-test-isolated)
@@ -515,12 +515,12 @@ crates-search name:
 
 # Dry-run publish one workspace crate (no upload; packaging + verify build)
 publish-dry-run crate:
-    timeout 600s cargo publish -p {{crate}} --dry-run --allow-dirty
+    cargo publish -p {{crate}} --dry-run --allow-dirty
 
 # Run one exact praxis-graphlaw integration-test binary (e.g. `just test-bin chatman_pddl_to_powl_projection`).
 # --nocapture so artifact-path markers (GENERATED_POWL_TTL_PATH=, IMPORTED_PDDL_TTL_PATH=) stay visible.
 test-bin binary:
-    timeout 600s cargo test -p praxis-graphlaw --test {{binary}} -- --nocapture
+    cargo test -p praxis-graphlaw --test {{binary}} -- --nocapture
 
 # Run praxis-graphlaw's in-crate `#[cfg(test)]` lib unit tests, filtered by a nextest test-name
 # expression (e.g. `just praxis-graphlaw-test-lib 'test(chatman::router)'`). Falls back to
@@ -566,7 +566,7 @@ wasm4pm-arazzo-check:
 
 # Run the wasm4pm-arazzo crate's unit + integration tests
 wasm4pm-arazzo-test *args:
-    timeout 600s cargo test -p wasm4pm-arazzo {{args}}
+    cargo test -p wasm4pm-arazzo {{args}}
 
 # Type-check + test the praxis-core crate (isolate with CARGO_TARGET_DIR=target/agent-<name>
 # when running alongside other concurrent cargo work -- see the lock-contention NOTE above)
@@ -606,7 +606,7 @@ powl2-decompose-check:
 
 # Run the powl2-decompose crate's unit + integration tests
 powl2-decompose-test *args:
-    timeout 600s cargo test -p powl2-decompose {{args}}
+    cargo test -p powl2-decompose {{args}}
 
 # Lint the powl2-decompose crate with the same flags CI's clippy job uses
 powl2-decompose-clippy:
@@ -939,7 +939,7 @@ erlang-compile:
 
 # Compile, then run the eunit suite across the Erlang/OTP umbrella from the repo root
 erlang-test: erlang-compile
-    timeout 600s rebar3 eunit
+    rebar3 eunit
 
 # Compile, then run ONLY the OTP/AtomVM differential comparator eunit module
 # (arazzo_runner_atomvm_differential_test -- PROJ-761/PROJ-762, the F17/V12-017

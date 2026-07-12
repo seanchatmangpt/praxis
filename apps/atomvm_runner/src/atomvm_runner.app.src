@@ -1,0 +1,9 @@
+{application, atomvm_runner,
+ [
+  {description, "AtomVM Runner -- PRD v26.7.11 7.9 entrypoint over the shared AIR transition core"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications, [kernel, stdlib, arazzo_atomvm]},
+  {env, []},
+  {modules, []}
+ ]}.

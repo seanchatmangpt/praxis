@@ -130,8 +130,32 @@ impl EngineBundle {
         };
         for dir in Self::DIRS {
             let path = bundle.root.join(dir);
-            fs::create_dir_all(&path)
-                .map_err(|e| CngRefusal::IoRefused(format!("mkdir {}: {e}", path.display())))?;
+            let mut attempts = 0;
+            loop {
+                if let Err(e) = fs::create_dir_all(&path) {
+                    if attempts < 10 {
+                        attempts += 1;
+                        std::thread::yield_now();
+                        continue;
+                    }
+                    return Err(CngRefusal::IoRefused(format!(
+                        "mkdir {}: {e}",
+                        path.display()
+                    )));
+                }
+                if path.exists() {
+                    break;
+                }
+                if attempts < 10 {
+                    attempts += 1;
+                    std::thread::yield_now();
+                    continue;
+                }
+                return Err(CngRefusal::IoRefused(format!(
+                    "mkdir {}: returned Ok but does not exist",
+                    path.display()
+                )));
+            }
         }
         Ok(bundle)
     }

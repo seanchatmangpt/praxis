@@ -76,9 +76,8 @@ pub fn canonicalize_equivalences(
     let same_as_edges = get_triples_by_predicate(data, vocab.owl_same_as);
     for (subj, obj) in same_as_edges.iter() {
         term_uf.union(*subj, *obj)?;
-        // Also merge in class and property universes if applicable
-        class_uf.union(*subj, *obj).ok(); // Ignore errors for cross-universe merges
-        property_uf.union(*subj, *obj).ok();
+        class_uf.union(*subj, *obj)?;
+        property_uf.union(*subj, *obj)?;
     }
 
     // Render canonical edge lists

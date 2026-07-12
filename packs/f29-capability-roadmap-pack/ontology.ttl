@@ -1,0 +1,162 @@
+# f29-capability-roadmap-pack ontology -- V12-029 (F29 "Thermodynamic
+# Capability Roadmap") L6 PROV-chain entity catalog, L5 state-machine
+# catalog, and CapabilityRoadmapRefused catalog for the
+# multifractal-workflow crate's roadmap pipeline.
+#
+# Per the F29 family survey (MIXED verdict): this ontology is the
+# GGEN_GENERATABLE slice only -- mechanical catalog data, not algorithmic
+# logic. `mfwroad:realizedBy` on each `ProvChainEntity` and `mfwroad:status`
+# on each `RefusalKind` are honest self-reports matching
+# f29_capability_roadmap.rs's module documentation at the time this
+# ontology was written: unlike several sibling MIXED families in this
+# crate, every C1-C8 pipeline stage for F29 has a real, hand-written,
+# unit-tested pure-function implementation (no NOT_YET_IMPLEMENTED entries)
+# -- the survey found no domain-specific precedent anywhere in the repo to
+# reuse, but the stages themselves (measurement, clustering, content
+# addressing, structural-identity checking, arithmetic delta, evidence-flag
+# gating, ranking) are generic enough to implement for real over
+# caller-supplied data, disclosed per-entity below where the caller-supplied
+# boundary sits (e.g. no live self-play feed, no OS-level sandbox executor,
+# no live standing.json parse exist anywhere in this repo at survey time).
+# If f29_capability_roadmap.rs's real/stub boundary moves, this ontology
+# must be re-edited to match -- it is not auto-derived from the Rust source.
+
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix mfwroad: <http://seanchatmangpt.github.io/praxis/multifractal-workflow/roadmap#> .
+
+#################################################################
+# Vocabulary
+#################################################################
+
+mfwroad: a owl:Ontology ;
+  rdfs:label "multifractal-workflow F29 Thermodynamic Capability Roadmap vocabulary" ;
+  rdfs:comment "L6 provenance chain (WorkProfile -> PressureCluster -> CapabilitySeed -> CandidateEcosystem -> ScenarioCorpus -> DeltaFReport -> InvariantReport -> RoadmapArtifact), L5 state-machine catalog (WORK_MEASURED..ROADMAP_EMITTED plus REFUSED), and CapabilityRoadmapRefused catalog for the thermodynamic capability roadmap pipeline (V12-029)." .
+
+mfwroad:ProvChainEntity a rdfs:Class ;
+  rdfs:label "PROV chain entity" ;
+  rdfs:comment "One RDF entity in F29's L6 provenance chain. Ordered by mfwroad:chainOrder; the chain is a straight line (each entity prov:wasDerivedFrom exactly its predecessor) -- a deliberate simplification of the atlas L6 diagram's alternating prov:wasDerivedFrom/generates edges, matching the same straight-chain convention F01/F22's own ontologies already use in this crate." .
+
+mfwroad:chainOrder a rdf:Property ; rdfs:domain mfwroad:ProvChainEntity ; rdfs:range xsd:integer ;
+  rdfs:label "chain order" ; rdfs:comment "1-indexed position in the F29 L6 provenance chain." .
+mfwroad:derivedFromEntity a rdf:Property ; rdfs:domain mfwroad:ProvChainEntity ; rdfs:range xsd:string ;
+  rdfs:label "derived from entity" ; rdfs:comment "Local name of the predecessor mfwroad:ProvChainEntity this entity's prov:wasDerivedFrom edge points to; \"none\" for the chain head." .
+mfwroad:pipelineStage a rdf:Property ; rdfs:domain mfwroad:ProvChainEntity ; rdfs:range xsd:string ;
+  rdfs:label "pipeline stage" ; rdfs:comment "Name of the atlas F29 L2 pipeline component (C1-C8) this entity is the record of." .
+mfwroad:realizedBy a rdf:Property ; rdfs:domain mfwroad:ProvChainEntity ; rdfs:range xsd:string ;
+  rdfs:label "realized by" ; rdfs:comment "Honest self-report of what in f29_capability_roadmap.rs realizes this entity today, and what caller-supplied boundary it stops at." .
+
+mfwroad:LifecycleStateEntity a rdfs:Class ;
+  rdfs:label "Lifecycle state" ;
+  rdfs:comment "One state of F29's L5 state machine. The states themselves and their legal transitions are declared and enforced as a real Rust enum (LifecycleState) and can_transition_to() in f29_capability_roadmap.rs." .
+
+mfwroad:stateOrder a rdf:Property ; rdfs:domain mfwroad:LifecycleStateEntity ; rdfs:range xsd:integer ;
+  rdfs:label "state order" ; rdfs:comment "1-indexed position in the L5 lifecycle listing (REFUSED is listed last; it is reachable from two states, not a single linear successor)." .
+mfwroad:legalTransitions a rdf:Property ; rdfs:domain mfwroad:LifecycleStateEntity ; rdfs:range xsd:string ;
+  rdfs:label "legal transitions" ; rdfs:comment "Comma-separated names of states this state may lawfully transition to per the atlas L5 stateDiagram-v2; \"none (terminal)\" for ROADMAP_EMITTED and REFUSED." .
+
+mfwroad:RefusalKind a rdfs:Class ;
+  rdfs:label "Refusal kind" ;
+  rdfs:comment "One variant of CapabilityRoadmapRefused." .
+
+mfwroad:meaning a rdf:Property ; rdfs:domain mfwroad:RefusalKind ;
+  rdfs:label "meaning" ; rdfs:comment "What condition triggers this refusal." .
+mfwroad:invariant a rdf:Property ; rdfs:domain mfwroad:RefusalKind ;
+  rdfs:label "invariant" ; rdfs:comment "Which F29 family invariant (from the atlas survey) this refusal enforces." .
+mfwroad:status a rdf:Property ; rdfs:domain mfwroad:RefusalKind ; rdfs:range xsd:string ;
+  rdfs:label "status" ; rdfs:comment "REAL (this session verified the gate actually runs, is unit-tested, and can be returned) or NOT_YET_IMPLEMENTED." .
+
+#################################################################
+# L6 provenance chain (8 entities, fixed order, D1-D8 in the atlas)
+#################################################################
+
+mfwroad:WorkProfile a mfwroad:ProvChainEntity ; rdfs:label "WorkProfile" ; mfwroad:chainOrder 1 ;
+  mfwroad:pipelineStage "Process Work Functional" ; mfwroad:derivedFromEntity "none" ;
+  mfwroad:realizedBy "measure_process_work() is a real, hand-written pure function (sum/mean over caller-supplied WorkRegion measurements) in f29_capability_roadmap.rs. It does not yet consume a live self-play feed: F26 (Public Ontology Self Play) and F09 (MFW Growth Operator) -- the two families the atlas cross-references as this stage's real input -- do not themselves emit a WorkRegion-shaped feed anywhere in this repo (grep-confirmed at F29 survey time). REAL as a pure function, unit-tested this session; UNVERIFIED against a live production feed." .
+
+mfwroad:PressureCluster a mfwroad:ProvChainEntity ; rdfs:label "PressureCluster" ; mfwroad:chainOrder 2 ;
+  mfwroad:pipelineStage "Pressure Clusterer" ; mfwroad:derivedFromEntity "WorkProfile" ;
+  mfwroad:realizedBy "cluster_high_pressure_regions() is a real, hand-written, deterministic O(n log n) integer-threshold clustering function (regions at or above 1.5x mean ticks, sorted descending by ticks) in f29_capability_roadmap.rs. REAL, unit-tested this session." .
+
+mfwroad:CapabilitySeed a mfwroad:ProvChainEntity ; rdfs:label "CapabilitySeed" ; mfwroad:chainOrder 3 ;
+  mfwroad:pipelineStage "Capability Seed Generator" ; mfwroad:derivedFromEntity "PressureCluster" ;
+  mfwroad:realizedBy "generate_capability_seed() is real: content-addresses a candidate seed id via BLAKE3 over the cluster's member region ids, and refuses (CapabilityRoadmapRefused::PressureClusterInvalid) on an empty cluster -- the atlas L5 PRESSURE_CLUSTERED -> REFUSED ('invalid') edge. REAL, unit-tested this session." .
+
+mfwroad:CandidateEcosystem a mfwroad:ProvChainEntity ; rdfs:label "CandidateEcosystem" ; mfwroad:chainOrder 4 ;
+  mfwroad:pipelineStage "Counterfactual Sandbox" ; mfwroad:derivedFromEntity "CapabilitySeed" ;
+  mfwroad:realizedBy "inject_candidate_into_sandbox() is real: constructs a content-addressed, independent CandidateEcosystem value (its own BLAKE3 id) from a seed id and a caller-supplied corpus snapshot digest. This is data-isolation (an independent value sharing no mutable state with its inputs), not OS/process-level sandboxing of executable code -- no code-execution sandbox exists anywhere in this repo (grep-confirmed at F29 survey time), disclosed here rather than implied. REAL at the data-isolation level, unit-tested this session." .
+
+mfwroad:ScenarioCorpus a mfwroad:ProvChainEntity ; rdfs:label "ScenarioCorpus" ; mfwroad:chainOrder 5 ;
+  mfwroad:pipelineStage "Scenario Corpus Replayer" ; mfwroad:derivedFromEntity "CandidateEcosystem" ;
+  mfwroad:realizedBy "replay_scenario_corpus() is real: verifies the candidate corpus run used the identical ordered scenario-id list as the baseline corpus (structural identity check), refusing (CapabilityRoadmapRefused::CorpusReplayFailed) on any mismatch -- the atlas L5 CORPUS_REPLAYED -> REFUSED ('authority or conformance failure') edge. It does not itself execute the candidate to observe a live trace: no live executor exists anywhere in this repo (grep-confirmed); the candidate's measured post-run work is caller-supplied input. REAL as a corpus-identity check, unit-tested this session; PARTIAL as a full behavioral replay." .
+
+mfwroad:DeltaFReport a mfwroad:ProvChainEntity ; rdfs:label "DeltaFReport" ; mfwroad:chainOrder 6 ;
+  mfwroad:pipelineStage "Work Delta Comparator" ; mfwroad:derivedFromEntity "ScenarioCorpus" ;
+  mfwroad:realizedBy "compare_work_delta() is real: integer-arithmetic comparison of baseline vs. candidate total ticks (work is 'contracted' iff candidate ticks are strictly less than baseline ticks). REAL, unit-tested this session." .
+
+mfwroad:InvariantReport a mfwroad:ProvChainEntity ; rdfs:label "InvariantReport" ; mfwroad:chainOrder 7 ;
+  mfwroad:pipelineStage "Standing Invariant Gate" ; mfwroad:derivedFromEntity "DeltaFReport" ;
+  mfwroad:realizedBy "check_standing_invariants() is real: refuses (CapabilityRoadmapRefused::StandingInvariantViolated) iff a caller-supplied StandingEvidence.blocking_statuses list is non-empty, matching the real cicd-standing.v1 blocking-status vocabulary (NON_STANDING/QUARANTINED/RETIRED, confirmed by reading /Users/sac/cargo-cicd/crates/cargo-cicd-core/src/standing/model.rs this session). It does not itself invoke `just standing` or parse a live target/praxis-standing/standing.json -- that file does not exist in this checkout (verified via `test -f` this session), and a library function autonomously shelling out to a build tool would itself risk this repo's own no-concurrent-just-invocations build-hygiene rule. REAL against a caller-supplied evidence snapshot; wiring a live standing.json parse is disclosed follow-on work." .
+
+mfwroad:RoadmapArtifact a mfwroad:ProvChainEntity ; rdfs:label "RoadmapArtifact" ; mfwroad:chainOrder 8 ;
+  mfwroad:pipelineStage "Roadmap Renderer" ; mfwroad:derivedFromEntity "InvariantReport" ;
+  mfwroad:realizedBy "render_roadmap() is real: ranks admitted candidates by delta_ticks descending (integer sort) and emits a receipted RoadmapArtifact via praxis_graphlaw::chatman::abi::Receipt::from_canonical_nquads (already-tested BLAKE3-over-canonical-N-Quads construction, reused not reimplemented -- praxis-graphlaw is already a dependency of this crate, added for F06). REAL, unit-tested this session." .
+
+#################################################################
+# L5 state machine catalog (8 declared lifecycle states + REFUSED)
+#################################################################
+
+mfwroad:WORK_MEASURED a mfwroad:LifecycleStateEntity ; rdfs:label "WORK_MEASURED" ; mfwroad:stateOrder 1 ;
+  mfwroad:legalTransitions "PRESSURE_CLUSTERED" .
+mfwroad:PRESSURE_CLUSTERED a mfwroad:LifecycleStateEntity ; rdfs:label "PRESSURE_CLUSTERED" ; mfwroad:stateOrder 2 ;
+  mfwroad:legalTransitions "SEED_GENERATED,REFUSED" .
+mfwroad:SEED_GENERATED a mfwroad:LifecycleStateEntity ; rdfs:label "SEED_GENERATED" ; mfwroad:stateOrder 3 ;
+  mfwroad:legalTransitions "CANDIDATE_INJECTED" .
+mfwroad:CANDIDATE_INJECTED a mfwroad:LifecycleStateEntity ; rdfs:label "CANDIDATE_INJECTED" ; mfwroad:stateOrder 4 ;
+  mfwroad:legalTransitions "CORPUS_REPLAYED" .
+mfwroad:CORPUS_REPLAYED a mfwroad:LifecycleStateEntity ; rdfs:label "CORPUS_REPLAYED" ; mfwroad:stateOrder 5 ;
+  mfwroad:legalTransitions "DELTA_MEASURED,REFUSED" .
+mfwroad:DELTA_MEASURED a mfwroad:LifecycleStateEntity ; rdfs:label "DELTA_MEASURED" ; mfwroad:stateOrder 6 ;
+  mfwroad:legalTransitions "INVARIANTS_CHECKED" .
+mfwroad:INVARIANTS_CHECKED a mfwroad:LifecycleStateEntity ; rdfs:label "INVARIANTS_CHECKED" ; mfwroad:stateOrder 7 ;
+  mfwroad:legalTransitions "ROADMAP_EMITTED" .
+mfwroad:ROADMAP_EMITTED a mfwroad:LifecycleStateEntity ; rdfs:label "ROADMAP_EMITTED" ; mfwroad:stateOrder 8 ;
+  mfwroad:legalTransitions "none (terminal)" .
+mfwroad:REFUSED a mfwroad:LifecycleStateEntity ; rdfs:label "REFUSED" ; mfwroad:stateOrder 9 ;
+  mfwroad:legalTransitions "none (terminal)" .
+
+#################################################################
+# CapabilityRoadmapRefused catalog
+#################################################################
+
+mfwroad:pressureClusterInvalid a mfwroad:RefusalKind ; rdfs:label "PressureClusterInvalid" ;
+  mfwroad:meaning "A clustered pressure region set was empty (or otherwise failed cluster admission) when the Capability Seed Generator attempted to propose a candidate (atlas L5: PRESSURE_CLUSTERED -> REFUSED, 'invalid')." ;
+  mfwroad:invariant "A roadmap item requires measured process pressure, a specific candidate capability, a counterfactual corpus replay, and standing-preserving work reduction." ;
+  mfwroad:status "REAL" .
+mfwroad:corpusReplayFailed a mfwroad:RefusalKind ; rdfs:label "CorpusReplayFailed" ;
+  mfwroad:meaning "The candidate corpus run did not replay the identical ordered scenario corpus as the baseline (atlas L5: CORPUS_REPLAYED -> REFUSED, 'authority or conformance failure')." ;
+  mfwroad:invariant "Every accepted candidate measurably contracts lawful goal-closure work on the same corpus without violating standing or actuation invariants." ;
+  mfwroad:status "REAL" .
+mfwroad:standingInvariantViolated a mfwroad:RefusalKind ; rdfs:label "StandingInvariantViolated" ;
+  mfwroad:meaning "A candidate that would otherwise be admitted carries one or more blocking cicd-standing.v1 statuses (NON_STANDING/QUARANTINED/RETIRED) in its caller-supplied evidence snapshot, even if it improves the measured work delta." ;
+  mfwroad:invariant "Every accepted candidate measurably contracts lawful goal-closure work on the same corpus without violating standing or actuation invariants -- a candidate that improves one metric by creating unreceipted actuation elsewhere must be refused." ;
+  mfwroad:status "REAL" .
+mfwroad:illegalLifecycleTransition a mfwroad:RefusalKind ; rdfs:label "IllegalLifecycleTransition" ;
+  mfwroad:meaning "An attempted lifecycle transition is not one of the legal edges in the L5 state machine." ;
+  mfwroad:invariant "State transitions are exhaustive and one-directional except for the two named refusal edges." ;
+  mfwroad:status "REAL" .
+mfwroad:duplicateOrStaleEvent a mfwroad:RefusalKind ; rdfs:label "DuplicateOrStaleEvent" ;
+  mfwroad:meaning "L7: a duplicate or stale (out-of-order / post-restart re-delivered) event was refused by the atomic idempotency and correlation gate rather than silently re-admitted." ;
+  mfwroad:invariant "Duplicate/restart/stale-result chaos must resolve through an atomic idempotency/correlation gate and durable receipt head to either re-admission or typed refusal, never an ambiguous state." ;
+  mfwroad:status "REAL" .
+mfwroad:replayEquivalenceFailed a mfwroad:RefusalKind ; rdfs:label "ReplayEquivalenceFailed" ;
+  mfwroad:meaning "L6/L8: replaying the recorded lifecycle transition history did not reconstruct a consequence equivalent to the receipted one." ;
+  mfwroad:invariant "Receipts are bound to the RoadmapArtifact and replay must reconstruct an equivalent consequence -- no receipt-by-assertion." ;
+  mfwroad:status "REAL" .
+mfwroad:receiptEmissionRefused a mfwroad:RefusalKind ; rdfs:label "ReceiptEmissionRefused" ;
+  mfwroad:meaning "The underlying praxis_graphlaw::chatman::abi::Receipt construction refused (e.g. empty/unsorted canonical N-Quads material)." ;
+  mfwroad:invariant "Receipts are bound to the RoadmapArtifact and replay must reconstruct an equivalent consequence -- no receipt-by-assertion." ;
+  mfwroad:status "REAL" .

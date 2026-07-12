@@ -452,6 +452,9 @@ pub fn eval_query<'a>(query: &'a Query, _index: &'a TripleIndex) -> PlanNode {
             ..
         } => {
             let inner = extract_query_plan(pattern);
+            if template.is_empty() {
+                return inner;
+            }
             let mapping: Vec<usize> = template
                 .iter()
                 .flat_map(|tp| {

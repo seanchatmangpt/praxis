@@ -452,13 +452,13 @@ pub fn forced_admit_by_id(account_id: &str, target_pddl: &str) -> Result<Value, 
 mod tests {
     use super::*;
 
-    fn state() -> RevenueState {
-        serde_json::from_value(fixture_state()).expect("fixture is a RevenueState")
+    fn state() -> Result<RevenueState, crate::AppError> {
+        Ok(serde_json::from_value(fixture_state())?)
     }
 
     #[test]
-    fn evidence_gate_agrees_for_every_account_and_stage() {
-        for account in &state().accounts {
+    fn evidence_gate_agrees_for_every_account_and_stage() -> Result<(), crate::AppError> {
+        for account in &state()?.accounts {
             for target in Stage::ALL {
                 assert!(
                     evidence_gate_agrees(account, target),
@@ -468,6 +468,7 @@ mod tests {
                 );
             }
         }
+        Ok(())
     }
 
     /// Under `--features law-signed`, the receipt step fails closed without a
@@ -488,11 +489,12 @@ mod tests {
     }
 
     #[test]
-    fn demo_runs_green_and_is_deterministic() {
+    fn demo_runs_green_and_is_deterministic() -> Result<(), crate::AppError> {
         ensure_signing_key();
-        let a = run_demo(1_000).expect("pipe should run green");
-        let b = run_demo(1_000).expect("pipe should run green");
+        let a = run_demo(1_000).map_err(|e| crate::AppError::Other(e.to_string()))?;
+        let b = run_demo(1_000).map_err(|e| crate::AppError::Other(e.to_string()))?;
         assert_eq!(a, b, "same ts_ns must yield a byte-identical transcript");
-        assert_eq!(a["step_3_plan"]["plan_len"].as_u64().unwrap(), 2);
+        assert_eq!(a["step_3_plan"]["plan_len"].as_u64().ok_or_else(|| crate::AppError::Other("missing val".into()))?, 2);
+        Ok(())
     }
 }

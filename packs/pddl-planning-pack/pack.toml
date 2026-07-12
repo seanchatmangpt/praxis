@@ -1,0 +1,4 @@
+[pack]
+name = "pddl-planning-pack"
+version = "0.1.0"
+description = "Generates the F08 (v26.7.12 atlas, V12-008) PDDL Planning family's L5 7-state machine and L6 provenance-chained entity vocabulary as real Rust, transcribed verbatim from the atlas's own F08-L5/F08-L6 mermaid diagrams into RDF individuals in this pack's ontology.ttl."

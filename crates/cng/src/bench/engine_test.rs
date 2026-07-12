@@ -22,7 +22,7 @@ use crate::powl::CngRefusal;
 /// Scratch root for this test file. O(1).
 fn scratch_dir(test_name: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../target/chatman/cng-tests/engine")
+        .join(format!("../../target/chatman/cng-tests/engine_{}", std::process::id()))
         .join(test_name);
     let _ = fs::remove_dir_all(&dir);
     dir

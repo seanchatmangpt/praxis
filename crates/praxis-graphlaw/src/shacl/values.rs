@@ -50,9 +50,9 @@ pub fn get_lang_tag(x: usize) -> Option<String> {
 
 /// Return the numeric value of a literal as f64, handling xsd:integer,
 /// xsd:decimal, xsd:double.
-pub(crate) fn get_numeric_value(term_id: usize) -> Option<f64> {
-    let lex = get_lexical_form(term_id)?;
-    lex.trim().parse::<f64>().ok()
+pub(crate) fn get_numeric_value(term_id: usize) -> Result<f64, String> {
+    let lex = get_lexical_form(term_id).ok_or_else(|| "Not a lexical form".to_string())?;
+    lex.trim().parse::<f64>().map_err(|e| format!("parse error: {}", e))
 }
 
 /// Parse an `xsd:dateTime` lexical form
@@ -60,20 +60,20 @@ pub(crate) fn get_numeric_value(term_id: usize) -> Option<f64> {
 /// into (seconds-since-a-fixed-epoch, has_explicit_timezone). The epoch choice is
 /// arbitrary (proleptic Gregorian day count is not needed here) since only
 /// relative comparisons between two parsed values are ever made.
-pub(crate) fn parse_datetime(lex: &str) -> Option<(i64, bool)> {
+pub(crate) fn parse_datetime(lex: &str) -> Result<(i64, bool), String> {
     let lex = lex.trim();
-    let t_pos = lex.find('T')?;
+    let t_pos = lex.find('T').ok_or_else(|| "Missing T in datetime".to_string())?;
     let (date_part, rest) = lex.split_at(t_pos);
     let rest = &rest[1..]; // skip 'T'
 
     let date_fields: Vec<&str> = date_part.splitn(3, '-').collect();
     // A leading '-' (BCE year) would produce an empty first field; not handled here.
     if date_fields.len() != 3 || date_fields.iter().any(|f| f.is_empty()) {
-        return None;
+        return Err("Invalid date fields".to_string());
     }
-    let year: i64 = date_fields[0].parse().ok()?;
-    let month: i64 = date_fields[1].parse().ok()?;
-    let day: i64 = date_fields[2].parse().ok()?;
+    let year: i64 = date_fields[0].parse().map_err(|e| format!("year parse error: {}", e))?;
+    let month: i64 = date_fields[1].parse().map_err(|e| format!("month parse error: {}", e))?;
+    let day: i64 = date_fields[2].parse().map_err(|e| format!("day parse error: {}", e))?;
 
     // Split off an explicit timezone: 'Z', or a trailing "+HH:MM"/"-HH:MM"
     // (search from index 1 to skip a leading '-' that might belong to... time
@@ -83,8 +83,11 @@ pub(crate) fn parse_datetime(lex: &str) -> Option<(i64, bool)> {
     } else if let Some(sign_pos) = rest.rfind(['+', '-']) {
         let (t, off) = rest.split_at(sign_pos);
         let off_fields: Vec<&str> = off[1..].splitn(2, ':').collect();
-        let off_h: i64 = off_fields.first()?.parse().ok()?;
-        let off_m: i64 = off_fields.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
+        let off_h: i64 = off_fields.first().ok_or_else(|| "Missing tz hour".to_string())?.parse().map_err(|e| format!("tz hour parse error: {}", e))?;
+        let off_m: i64 = match off_fields.get(1) {
+            Some(s) => s.parse().map_err(|e| format!("tz minute parse error: {}", e))?,
+            None => 0,
+        };
         let sign = if off.starts_with('-') { -1 } else { 1 };
         (t, sign * (off_h * 3600 + off_m * 60), true)
     } else {
@@ -93,11 +96,11 @@ pub(crate) fn parse_datetime(lex: &str) -> Option<(i64, bool)> {
 
     let time_fields: Vec<&str> = time_part.splitn(3, ':').collect();
     if time_fields.len() != 3 {
-        return None;
+        return Err("Invalid time fields".to_string());
     }
-    let hour: i64 = time_fields[0].parse().ok()?;
-    let minute: i64 = time_fields[1].parse().ok()?;
-    let second: f64 = time_fields[2].parse().ok()?;
+    let hour: i64 = time_fields[0].parse().map_err(|e| format!("hour parse error: {}", e))?;
+    let minute: i64 = time_fields[1].parse().map_err(|e| format!("minute parse error: {}", e))?;
+    let second: f64 = time_fields[2].parse().map_err(|e| format!("second parse error: {}", e))?;
 
     // Days since an arbitrary fixed epoch via a standard civil-to-days
     // algorithm (Howard Hinnant's `days_from_civil`), valid for the
@@ -111,7 +114,7 @@ pub(crate) fn parse_datetime(lex: &str) -> Option<(i64, bool)> {
     let days = era * 146097 + doe - 719468;
 
     let total_secs = days * 86400 + hour * 3600 + minute * 60 + (second as i64) - tz_offset_secs;
-    Some((total_secs, has_tz))
+    Ok((total_secs, has_tz))
 }
 
 /// Compare two terms numerically (for sh:lessThan etc.), falling back to
@@ -123,17 +126,17 @@ pub(crate) fn parse_datetime(lex: &str) -> Option<(i64, bool)> {
 /// this crate treats the same as any other non-comparable pair: a
 /// range-facet result of `None` (constraint not satisfied). This matches
 /// the real W3C SHACL test suite's expectation (minInclusive-002/003).
-pub fn compare_numeric(a: usize, b: usize) -> Option<std::cmp::Ordering> {
-    if let (Some(av), Some(bv)) = (get_numeric_value(a), get_numeric_value(b)) {
-        return av.partial_cmp(&bv);
+pub fn compare_numeric(a: usize, b: usize) -> Result<Option<std::cmp::Ordering>, String> {
+    if let (Ok(av), Ok(bv)) = (get_numeric_value(a), get_numeric_value(b)) {
+        return Ok(av.partial_cmp(&bv));
     }
-    let (a_lex, b_lex) = (get_lexical_form(a)?, get_lexical_form(b)?);
+    let (a_lex, b_lex) = (get_lexical_form(a).ok_or_else(|| "a not lexical".to_string())?, get_lexical_form(b).ok_or_else(|| "b not lexical".to_string())?);
     let (a_secs, a_tz) = parse_datetime(&a_lex)?;
     let (b_secs, b_tz) = parse_datetime(&b_lex)?;
     if a_tz != b_tz {
-        return None;
+        return Ok(None);
     }
-    a_secs.partial_cmp(&b_secs)
+    Ok(a_secs.partial_cmp(&b_secs))
 }
 
 /// Test if text matches a regex pattern with the given flags
@@ -160,12 +163,15 @@ pub fn match_regex(pattern: &str, text: &str, flags: &str) -> bool {
 }
 
 /// Parse an xsd:integer literal as i64 (allowing negative values)
-pub(crate) fn get_integer_value(term_id: usize) -> Option<i64> {
-    let lex = get_lexical_form(term_id)?;
-    lex.trim().parse::<i64>().ok()
+pub(crate) fn get_integer_value(term_id: usize) -> Result<i64, String> {
+    let lex = get_lexical_form(term_id).ok_or_else(|| "Not a lexical form".to_string())?;
+    lex.trim().parse::<i64>().map_err(|e| format!("parse error: {}", e))
 }
 
 /// Decode a term ID to a Term
 pub fn decode_to_term(id: usize) -> Term {
-    Encoder::decode_to_term(id).unwrap_or(Term::Iri(crate::triples::TermImpl { iri: id }))
+    match Encoder::decode_to_term(id) {
+        Some(t) => t,
+        None => Term::Iri(crate::triples::TermImpl { iri: id }),
+    }
 }

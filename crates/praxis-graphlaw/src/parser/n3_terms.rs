@@ -55,40 +55,42 @@ pub fn parse_literal_pair(pair: Pair<Rule>, prefixes: &PrefixMapper) -> VarOrTer
     if let Some(first) = inner.peek() {
         match first.as_rule() {
             Rule::StringValue => {
-                let string_pair = inner.next().unwrap();
-                let lex = unescape_string(string_pair.as_str());
+                if let Some(string_pair) = inner.next() {
+                    let lex = unescape_string(string_pair.as_str());
 
-                // Check for lang tag or datatype
-                if let Some(annotation) = inner.next() {
-                    match annotation.as_rule() {
-                        Rule::LangTag => {
-                            // @en → strip the @
-                            let lang = &annotation.as_str()[1..];
-                            return VarOrTerm::new_literal(lex, None, Some(lang.to_string()));
+                    // Check for lang tag or datatype
+                    if let Some(annotation) = inner.next() {
+                        match annotation.as_rule() {
+                            Rule::LangTag => {
+                                // @en → strip the @
+                                let lang = &annotation.as_str()[1..];
+                                return VarOrTerm::new_literal(lex, None, Some(lang.to_string()));
+                            }
+                            Rule::DatatypeAnnotation => {
+                                // "^^" has been consumed by pest; the child is either a
+                                // bare "<IRI>" (Rule::Iri) or a "prefix:local" name
+                                // (Rule::Prefixed) that must be expanded via `prefixes`.
+                                let dt_str = match annotation.into_inner().next() {
+                                    Some(p) if p.as_rule() == Rule::BracketedIri => {
+                                        let iri =
+                                            p.into_inner().next().map(|q| q.as_str()).unwrap_or("");
+                                        format!("<{}>", prefixes.resolve(iri))
+                                    }
+                                    Some(p) if p.as_rule() == Rule::Prefixed => {
+                                        prefixes.expand(p.as_str())
+                                    }
+                                    _ => String::new(),
+                                };
+                                return VarOrTerm::new_literal(lex, Some(dt_str), None);
+                            }
+                            _ => {}
                         }
-                        Rule::DatatypeAnnotation => {
-                            // "^^" has been consumed by pest; the child is either a
-                            // bare "<IRI>" (Rule::Iri) or a "prefix:local" name
-                            // (Rule::Prefixed) that must be expanded via `prefixes`.
-                            let dt_str = match annotation.into_inner().next() {
-                                Some(p) if p.as_rule() == Rule::BracketedIri => {
-                                    let iri =
-                                        p.into_inner().next().map(|q| q.as_str()).unwrap_or("");
-                                    format!("<{}>", prefixes.resolve(iri))
-                                }
-                                Some(p) if p.as_rule() == Rule::Prefixed => {
-                                    prefixes.expand(p.as_str())
-                                }
-                                _ => String::new(),
-                            };
-                            return VarOrTerm::new_literal(lex, Some(dt_str), None);
-                        }
-                        _ => {}
                     }
+                    // Plain string literal → xsd:string
+                    let xsd_string = "<http://www.w3.org/2001/XMLSchema#string>".to_string();
+                    return VarOrTerm::new_literal(lex, Some(xsd_string), None);
                 }
-                // Plain string literal → xsd:string
-                let xsd_string = "<http://www.w3.org/2001/XMLSchema#string>".to_string();
-                return VarOrTerm::new_literal(lex, Some(xsd_string), None);
+                return VarOrTerm::new_literal(String::new(), None, None);
             }
             Rule::IntegerLiteral => {
                 return VarOrTerm::new_literal(
@@ -319,18 +321,21 @@ pub fn parse_path_expr(
     extra: &mut Vec<Triple>,
 ) -> VarOrTerm {
     let mut inner = pair.into_inner();
-    let head_pair = inner.next().expect("PathExpr must have a PathHead");
-    let head_child = head_pair
-        .into_inner()
-        .next()
-        .expect("PathHead must have a child term");
+    let Some(head_pair) = inner.next() else {
+        return VarOrTerm::new_var("parse_error".to_string());
+    };
+    let Some(head_child) = head_pair.into_inner().next() else {
+        return VarOrTerm::new_var("parse_error".to_string());
+    };
     let mut current = term_from_pair(head_child, prefixes, extra);
     for segment in inner {
         let mut seg_inner = segment.into_inner();
-        let dir_pair = seg_inner.next().expect("PathSegment must have a direction");
-        let pred_pair = seg_inner
-            .next()
-            .expect("PathSegment must have a PathPredicate");
+        let Some(dir_pair) = seg_inner.next() else {
+            continue;
+        };
+        let Some(pred_pair) = seg_inner.next() else {
+            continue;
+        };
         let predicate = parse_path_predicate(pred_pair, prefixes);
         let fresh = fresh_path_bnode();
         match dir_pair.as_rule() {
@@ -432,7 +437,10 @@ pub fn take_hex_escape(chars: &mut std::iter::Peekable<std::str::Chars>, n: usiz
             _ => return None,
         }
     }
-    let code = u32::from_str_radix(&digits, 16).ok()?;
+    let code = match u32::from_str_radix(&digits, 16) {
+        Ok(c) => c,
+        Err(_) => return None,
+    };
     let ch = char::from_u32(code)?;
     // Only consume from the real iterator once we know decoding succeeded.
     for _ in 0..n {

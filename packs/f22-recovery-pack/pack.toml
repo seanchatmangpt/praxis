@@ -1,0 +1,4 @@
+[pack]
+name = "f22-recovery-pack"
+version = "0.1.0"
+description = "Generates the F22 Timeout Retry Escalation and Compensation (V12-022) L6 PROV-chain entity catalog, L5 state-machine catalog, and refusal catalog for crates/multifractal-workflow/src/f22_compensation_generated.rs, from mfwrec:ProvChainEntity / mfwrec:RecoveryStateEntity / mfwrec:RefusalKind individuals in this pack's ontology. Pure data projection only -- the real compensation catalog/manufacture/ledger logic (re-exported from praxis-graphlaw::chatman::compensation) and the honest not-yet-implemented stubs for the timeout/retry/escalation/broker-dispatch stages are hand-written in f22_compensation.rs, not generated."

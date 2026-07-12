@@ -1,6 +1,7 @@
 import Praxis.Corpus.def_reachcone
 import Mathlib.Data.Matrix.Basic
 import Mathlib.Data.Matrix.Mul
+import Mathlib.LinearAlgebra.Matrix.DotProduct
 import Mathlib.Algebra.Order.Pi
 
 /-!
@@ -75,23 +76,26 @@ direction). -/
 theorem nonconformance_of_certificate (N : ReachMatrix p ntrans) (m0 mdag : Marking p)
     (y : Fin p → ℝ)
     (hyN : (Nᵀ).map (fun z : ℤ => (z : ℝ)) *ᵥ y ≤ 0)
-    (hgap : 0 < Matrix.dotProduct y (fun i => (mdag i : ℝ) - (m0 i : ℝ))) :
+    (hgap : 0 < dotProduct y (fun i => (mdag i : ℝ) - (m0 i : ℝ))) :
     (fun i => (mdag i : ℝ)) ∉ reachCone p ntrans N m0 := by
   rintro ⟨c, hc, hmdag⟩
   have hcert :
-      Matrix.dotProduct y (fun i => (mdag i : ℝ) - (m0 i : ℝ))
-        = Matrix.dotProduct ((N.map (fun z : ℤ => (z : ℝ)))ᵀ *ᵥ y) c := by
+      dotProduct y (fun i => (mdag i : ℝ) - (m0 i : ℝ))
+        = dotProduct ((N.map (fun z : ℤ => (z : ℝ)))ᵀ *ᵥ y) c := by
     have h1 : (fun i => (mdag i : ℝ) - (m0 i : ℝ))
         = (N.map (fun z : ℤ => (z : ℝ))).mulVec c := by
-      funext i; simp [hmdag]
+      funext i
+      have h_eval := congr_fun hmdag i
+      simp only [Pi.add_apply] at h_eval
+      exact sub_eq_of_eq_add (by rw [h_eval, add_comm])
     rw [h1, Matrix.dotProduct_mulVec, Matrix.mulVec_transpose]
   have htrans : (Nᵀ).map (fun z : ℤ => (z : ℝ)) = (N.map (fun z : ℤ => (z : ℝ)))ᵀ := by
     ext i j; simp [Matrix.transpose_apply, Matrix.map_apply]
   rw [htrans] at hyN
-  have hle : Matrix.dotProduct ((N.map (fun z : ℤ => (z : ℝ)))ᵀ *ᵥ y) c ≤ 0 := by
-    have := Matrix.dotProduct_le_dotProduct_of_nonneg_right hyN hc
+  have hle : dotProduct ((N.map (fun z : ℤ => (z : ℝ)))ᵀ *ᵥ y) c ≤ 0 := by
+    have := dotProduct_le_dotProduct_of_nonneg_right hyN hc
     simpa using this
-  have : Matrix.dotProduct y (fun i => (mdag i : ℝ) - (m0 i : ℝ)) ≤ 0 := hcert ▸ hle
+  have : dotProduct y (fun i => (mdag i : ℝ) - (m0 i : ℝ)) ≤ 0 := hcert ▸ hle
   exact absurd this (not_le.mpr hgap)
 
 end Praxis.Corpus

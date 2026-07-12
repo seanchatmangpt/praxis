@@ -63,15 +63,15 @@ struct HookProps {
 }
 
 impl HookProps {
-    fn new(triples: &[Triple], subject: &str) -> Self {
+    fn new(triples: &[Triple], subject: &str) -> Result<Self, String> {
         let mut map = FxHashMap::default();
         for t in triples {
-            let s_str = Encoder::decode(&t.s.to_encoded()).unwrap_or_default();
+            let s_str = Encoder::decode(&t.s.to_encoded()).ok_or_else(|| format!("failed to decode subject: {:?}", t.s))?;
             if clean_term(&s_str) == subject {
-                let p_str = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
+                let p_str = Encoder::decode(&t.p.to_encoded()).ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
                 let cleaned_p = clean_term(&p_str);
                 if let Some(local) = cleaned_p.strip_prefix(KH_NS) {
-                    let o_str = Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
+                    let o_str = Encoder::decode(&t.o.to_encoded()).ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
                     let cleaned_o = clean_term(&o_str).to_string();
                     map.entry(local.to_string())
                         .or_insert_with(Vec::new)
@@ -79,7 +79,7 @@ impl HookProps {
                 }
             }
         }
-        HookProps { map }
+        Ok(HookProps { map })
     }
 
     fn one_str(&self, local: &str) -> Result<String, String> {
@@ -123,13 +123,13 @@ impl HookProps {
 ///
 /// # FIX #9
 /// Handles rdf:type → kh:Hook conversion from hook:Hook alias to kh:Hook canonical form.
-fn rewrite_hook_alias(triples: &[Triple]) -> Vec<Triple> {
+fn rewrite_hook_alias(triples: &[Triple]) -> Result<Vec<Triple>, String> {
     triples
         .iter()
         .map(|t| {
-            let p_str = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
+            let p_str = Encoder::decode(&t.p.to_encoded()).ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
             let cleaned_p = clean_term(&p_str);
-            let o_str = Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
+            let o_str = Encoder::decode(&t.o.to_encoded()).ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
             let cleaned_o = clean_term(&o_str);
 
             let mut new_t = t.clone();
@@ -151,14 +151,14 @@ fn rewrite_hook_alias(triples: &[Triple]) -> Vec<Triple> {
                 new_t.o = VarOrTerm::new_term(format!("{}Hook", KH_NS));
             }
 
-            new_t
+            Ok(new_t)
         })
         .collect()
 }
 
 pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHook>, String> {
     // Pre-pass: rewrite hook: aliases to kh: canonical form
-    let rewritten_triples = rewrite_hook_alias(triples);
+    let rewritten_triples = rewrite_hook_alias(triples)?;
     let mut temp_store = TripleStore::new();
     for t in &rewritten_triples {
         temp_store.add(t.clone());
@@ -176,9 +176,9 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
     }
 
     for t in &rewritten_triples {
-        let decoded_s = Encoder::decode(&t.s.to_encoded()).unwrap_or_default();
-        let decoded_p = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
-        let decoded_o = Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
+        let decoded_s = Encoder::decode(&t.s.to_encoded()).ok_or_else(|| format!("failed to decode subject: {:?}", t.s))?;
+        let decoded_p = Encoder::decode(&t.p.to_encoded()).ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
+        let decoded_o = Encoder::decode(&t.o.to_encoded()).ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
 
         if contains_forbidden_keyword(&decoded_s) {
             return Err(format!("forbidden keyword in subject: {}", decoded_s));
@@ -190,7 +190,7 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
             return Err(format!("forbidden keyword in object: {}", decoded_o));
         }
         if let Some(ref g) = t.g {
-            let decoded_g = Encoder::decode(&g.to_encoded()).unwrap_or_default();
+            let decoded_g = Encoder::decode(&g.to_encoded()).ok_or_else(|| format!("failed to decode graph: {:?}", g))?;
             if contains_forbidden_keyword(&decoded_g) {
                 return Err(format!("forbidden keyword in graph: {}", decoded_g));
             }
@@ -204,8 +204,11 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
             }
         }
         if cleaned_p == "http://seanchatmangpt.github.io/praxis/kh#query" {
+            if let Err(e) = spargebra::SparqlParser::new().parse_query(&cleaned_o) {
+                return Err(format!("SPARQL parse error: {}", e));
+            }
             if cleaned_o.to_uppercase().contains("CONSTRUCT") {
-                if let Ok(c_query) = parse_construct(cleaned_o) {
+                if let Ok(c_query) = parse_construct(&cleaned_o) {
                     for (s, p, o) in &c_query.template_triples {
                         if s.contains("http://seanchatmangpt.github.io/praxis/kh#")
                             || s.contains("kh:")
@@ -238,9 +241,9 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
 
     let mut hook_subjects = Vec::new();
     for t in &rewritten_triples {
-        let s_str = Encoder::decode(&t.s.to_encoded()).unwrap_or_default();
-        let p_str = Encoder::decode(&t.p.to_encoded()).unwrap_or_default();
-        let o_str = Encoder::decode(&t.o.to_encoded()).unwrap_or_default();
+        let s_str = Encoder::decode(&t.s.to_encoded()).ok_or_else(|| format!("failed to decode subject: {:?}", t.s))?;
+        let p_str = Encoder::decode(&t.p.to_encoded()).ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
+        let o_str = Encoder::decode(&t.o.to_encoded()).ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
         if is_rdf_type(&p_str) && is_kh_hook(&o_str) {
             let clean_s = clean_term(&s_str).to_string();
             if !hook_subjects.contains(&clean_s) {
@@ -258,7 +261,7 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
 
     let mut hooks = Vec::new();
     for subj in hook_subjects {
-        let props = HookProps::new(&rewritten_triples, &subj);
+        let props = HookProps::new(&rewritten_triples, &subj)?;
         let name = props.one_str("name")?;
         let on = props.opt_str("on")?.unwrap_or_else(|| "any".to_string());
         if !matches!(on.as_str(), "assert" | "retract" | "any") {
@@ -315,6 +318,9 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
             }
             "sparql" => {
                 let query = props.one_str("query")?;
+                if spargebra::Query::parse(&query, None).is_err() {
+                    return Err("invalid sparql query".to_string());
+                }
                 HookCondition::Sparql { query }
             }
             other => {

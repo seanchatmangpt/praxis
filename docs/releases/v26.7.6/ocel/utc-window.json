@@ -1,11 +1,9 @@
 {
-  "run_id": "ocel-evidence-2026-07-06T19-10-42-924Z",
+  "run_id": "ocel-evidence-2026-07-12T08-33-45-681Z",
   "release_id": "v26.7.6",
-  "started_at_utc": "2026-07-06T19:10:49.311Z",
-  "finished_at_utc": "2026-07-06T19:38:52.930Z",
+  "started_at_utc": "2026-07-12T08:34:21.464Z",
+  "finished_at_utc": "2026-07-12T08:34:22.778Z",
   "clock_source": "system",
   "timezone_policy": "ISO-8601 UTC Z only",
-  "local_timezone_ignored": true,
-  "browser_session_finished_at_utc": "2026-07-06T19:10:50.604Z",
-  "window_semantics": "started_at/finished_at cover the full evidence pass (first to last OCEL event, including benchmark attachment and wasm4pm validation bookkeeping); browser_session_finished_at_utc preserves the Playwright session close."
+  "local_timezone_ignored": true
 }

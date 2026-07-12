@@ -103,7 +103,7 @@ fn test_suite1_minimal_malformed_unknown_predicate() {
             kh:unknownPredicate "should_fail" .
     "#;
 
-    let res = store.load_hook_pack(hook_pack);
+    let _res = store.load_hook_pack(hook_pack);
     // Either fails at load or passes but unknown predicate is ignored
     // Core discipline: unknown predicates in kh: vocabulary should be rejected
 }

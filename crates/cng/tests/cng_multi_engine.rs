@@ -51,7 +51,7 @@ const SEED: u64 = 616;
 fn scratch_dir(test_name: &str) -> PathBuf {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../target/chatman/cng-tests/multi-engine-it")
-        .join(test_name);
+        .join(format!("{}-{}", test_name, std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).expect("create scratch dir");
     dir
@@ -419,7 +419,16 @@ test!(g13_crash_resume_verifies_chain_and_completes, {
         }
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
-    assert!(saw_ledger, "engine never wrote durable ledger state");
+    if !saw_ledger {
+        child.kill().ok();
+        let mut stderr = String::new();
+        std::io::Read::read_to_string(&mut child.stderr.take().unwrap(), &mut stderr)
+            .unwrap_or_default();
+        panic!(
+            "engine never wrote durable ledger state. stderr:\n{}",
+            stderr
+        );
+    }
     child.kill().expect("kill engine mid-serve");
     let _ = child.wait();
 

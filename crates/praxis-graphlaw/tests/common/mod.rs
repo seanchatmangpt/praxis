@@ -1,4 +1,5 @@
 //! Shared test utilities for praxis-graphlaw integration tests.
+#![allow(dead_code)]
 
 use praxis_graphlaw::parser::{Parser, Syntax};
 use praxis_graphlaw::tripleindex::TripleIndex;

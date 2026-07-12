@@ -1,14 +1,14 @@
 # command: /Users/sac/praxis/target/debug/my-conforming-project receipt export-ocel --out docs/releases/v26.7.6/ocel/ledger-export.ocel.json
 # cwd: /Users/sac/praxis
-# started_at_utc: 2026-07-06T19:10:46.778Z
-# finished_at_utc: 2026-07-06T19:10:46.811Z
+# started_at_utc: 2026-07-12T08:34:13.884Z
+# finished_at_utc: 2026-07-12T08:34:13.916Z
 # exit_code: 0
 
 ## stdout
 {
   "status": "exported",
-  "event_count": 3,
-  "object_count": 4,
+  "event_count": 2,
+  "object_count": 3,
   "out": "docs/releases/v26.7.6/ocel/ledger-export.ocel.json",
   "ocel": {
     "eventTypes": [
@@ -93,39 +93,6 @@
             "qualifier": "extends"
           }
         ]
-      },
-      {
-        "id": "receipt:9f8e1e18f87c48e1ef696338698297b5c7906f67c7c6f0569354fe72835f1d91",
-        "type": "lifecycle:receipt",
-        "time": "1970-01-01T00:00:00Z",
-        "attributes": [
-          {
-            "name": "instruction_id",
-            "value": 0
-          },
-          {
-            "name": "payload_hash",
-            "value": "f54a16fbd8e8569e2914fe46a227f4ceb81b2fb8fa7cda665ec936a9da6a2eea"
-          },
-          {
-            "name": "chain_hash",
-            "value": "9f8e1e18f87c48e1ef696338698297b5c7906f67c7c6f0569354fe72835f1d91"
-          },
-          {
-            "name": "andon",
-            "value": "green"
-          }
-        ],
-        "relationships": [
-          {
-            "objectId": "law:f54a16fbd8e8569e",
-            "qualifier": "governs"
-          },
-          {
-            "objectId": "chain:5862dd12bfbe1eb1",
-            "qualifier": "extends"
-          }
-        ]
       }
     ],
     "objects": [
@@ -137,12 +104,6 @@
       },
       {
         "id": "chain:0000000000000000",
-        "type": "ReceiptChain",
-        "attributes": [],
-        "relationships": []
-      },
-      {
-        "id": "chain:5862dd12bfbe1eb1",
         "type": "ReceiptChain",
         "attributes": [],
         "relationships": []

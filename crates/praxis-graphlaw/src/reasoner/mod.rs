@@ -183,6 +183,7 @@ impl Reasoner {
         hooks: &Vec<crate::hooks::CompiledHook>,
         receipts: &mut Vec<crate::hooks::HookReceipt>,
         verdicts: &mut Vec<crate::hooks::HookVerdictRecord>,
+        removals: &mut Vec<Triple>,
     ) -> Result<Vec<Triple>, String> {
         let mut inferred = Vec::new();
         if rules.is_empty() && hooks.is_empty() {
@@ -212,7 +213,7 @@ impl Reasoner {
             let mut stratum_start_counter = None;
             let mut changed = true;
 
-            let mut stratum_rollback_len = triple_index.len();
+            let stratum_rollback_len = triple_index.len();
             let stratum_rollback_inferred_len = inferred.len();
             let mut stratum_history: Vec<Vec<Triple>> = Vec::new();
             let mut previous_round_hook_additions = Vec::new();
@@ -466,7 +467,7 @@ impl Reasoner {
                 for hook in hooks {
                     let gated = match hook.on.as_str() {
                         "assert" => round_additions.is_empty(),
-                        "retract" => true,
+                        "retract" => removals.is_empty(),
                         _ => false,
                     };
                     if gated {
@@ -491,7 +492,8 @@ impl Reasoner {
 
                     match &hook.condition {
                         HookCondition::Delta { var } => {
-                            fired = delta_touches(&round_additions, var);
+                            fired = delta_touches(&round_additions, var)
+                                || delta_touches(removals, var);
                         }
                         HookCondition::Threshold { var, op, k } => {
                             let count = count_pred(triple_index, var);
@@ -621,6 +623,7 @@ impl Reasoner {
 
                     // For delta hooks with emit-delta and no action, pre-populate hook_additions
                     let mut delta_hook_additions = Vec::new();
+                    let mut delta_hook_removals = Vec::new();
                     if fired {
                         if let HookCondition::Delta { var } = &hook.condition {
                             if hook.action.is_none() && matches!(hook.effect, EffectKind::EmitDelta)
@@ -630,6 +633,13 @@ impl Reasoner {
                                         .unwrap_or_default();
                                     if clean_term(&p_str) == clean_term(var) {
                                         delta_hook_additions.push(t.clone());
+                                    }
+                                }
+                                for t in removals.iter() {
+                                    let p_str = crate::encoding::Encoder::decode(&t.p.to_encoded())
+                                        .unwrap_or_default();
+                                    if clean_term(&p_str) == clean_term(var) {
+                                        delta_hook_removals.push(t.clone());
                                     }
                                 }
                             }
@@ -690,6 +700,7 @@ impl Reasoner {
                         }
                         EffectKind::EmitDelta | EffectKind::GroundAction => {
                             let mut hook_additions = delta_hook_additions.clone();
+                            let mut hook_removals = delta_hook_removals.clone();
                             if let Some(action_iri) = &hook.action {
                                 let adds_pred =
                                     "http://seanchatmangpt.github.io/praxis/kh#adds_ttl";
@@ -767,6 +778,11 @@ impl Reasoner {
                                             triple_index,
                                         ) {
                                             for t in adds {
+                                                println!(
+                                                    "HOOK ADDING TRIPLE: {:?} (o_encoded={})",
+                                                    t,
+                                                    t.o.to_encoded()
+                                                );
                                                 if Self::apply_new_triple(
                                                     t.clone(),
                                                     triple_index,
@@ -774,7 +790,14 @@ impl Reasoner {
                                                 ) {
                                                     hook_changed = true;
                                                     hook_additions.push(t.clone());
-                                                    current_round_hook_additions.push(t);
+                                                    current_round_hook_additions.push(t.clone());
+                                                }
+                                            }
+                                            for t in _dels {
+                                                if triple_index.contains(&t) {
+                                                    triple_index.remove_ref(&t);
+                                                    hook_changed = true;
+                                                    hook_removals.push(t.clone());
                                                 }
                                             }
                                         }
@@ -786,8 +809,19 @@ impl Reasoner {
                             let mut delta_hash = None;
                             let mut idempotency_key = None;
                             let mut verdict_pushed = false;
-                            if !hook_additions.is_empty() {
-                                let lines = crate::hooks::canonicalize_quads(&hook_additions);
+                            if !hook_additions.is_empty() || !hook_removals.is_empty() {
+                                let mut lines = Vec::new();
+                                for t in &hook_additions {
+                                    crate::hooks::serialize_delta_quad(
+                                        &hook.iri, t, true, &mut lines,
+                                    );
+                                }
+                                for t in &hook_removals {
+                                    crate::hooks::serialize_delta_quad(
+                                        &hook.iri, t, false, &mut lines,
+                                    );
+                                }
+                                lines.sort();
                                 let delta_quads = lines.join("\n");
                                 let d_hash =
                                     blake3::hash(delta_quads.as_bytes()).to_hex().to_string();

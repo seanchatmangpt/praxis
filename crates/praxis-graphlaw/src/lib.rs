@@ -297,6 +297,7 @@ impl TripleStore {
             &self.hooks,
             &mut self.receipts,
             &mut self.verdicts,
+            &mut self.removals,
         ) {
             Ok(inferred) => inferred,
             Err(e) => {
@@ -552,7 +553,7 @@ impl TripleStore {
     /// from new()/load_triples()/materialize() — caller must opt in explicitly.
     pub fn materialize_owlrl(&mut self) -> Result<(Vec<Triple>, owlrl::ScanReport), String> {
         let engine = owlrl::OwlRlEngine::new();
-        let (owlrl_rules, report) = engine.compile(&self.triple_index);
+        let (owlrl_rules, report) = engine.compile(&self.triple_index)?;
 
         let owlrl_rule_count = owlrl_rules.len();
 
@@ -579,6 +580,7 @@ impl TripleStore {
             &self.hooks,
             &mut self.receipts,
             &mut self.verdicts,
+            &mut self.removals,
         )?;
 
         // Update self.rules and self.strata to reflect the OWL RL rules

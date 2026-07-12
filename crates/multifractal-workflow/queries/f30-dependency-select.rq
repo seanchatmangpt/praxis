@@ -1,0 +1,21 @@
+# f30-dependency-select.rq -- F30-L2 component C3, "Dependency SPARQL".
+# Inputs: the runtime Project State RDF admitted by
+# `ProjectStateGraph::admit_observations`.
+# Outputs: rows (?id ?dep), ORDER BY ?id ?dep -- one row per (ticket,
+# transitive dependency) pair, computed by the real SPARQL 1.1 property
+# path `mfwrel:dependsOn+` (arbitrary-length path, cycle-safe by ALP
+# evaluation semantics). Directly adapted from
+# packs/jira-tracking-pack/templates/jira-deps.rq.tmpl's proven
+# `jira:dependsOn+` pattern (REUSE_ADAPT, disclosed in this pack's
+# pack.toml and in f30_ggen_release_state.rs) -- only the prefix/predicate
+# names changed, the property-path mechanism is identical.
+PREFIX mfwrel: <http://seanchatmangpt.github.io/praxis/multifractal-workflow/release-state#>
+
+SELECT ?id ?dep
+WHERE {
+  ?t a mfwrel:Ticket ;
+     mfwrel:id ?id ;
+     mfwrel:dependsOn+ ?dt .
+  ?dt mfwrel:id ?dep .
+}
+ORDER BY ?id ?dep
