@@ -38,32 +38,48 @@
 //!   `ggen.toml` -- it was synced from an isolated scratch project so this
 //!   change carries zero blast radius onto other families' packs mid-wave.
 //!
-//! ## What is an HONEST STUB (HAND_WRITE_REQUIRED, tracked under V12-009)
+//! ## What became REAL in the crash-recovery pass (fixed forward)
 //!
-//! No existing praxis or `~/` code builds any of the following (confirmed
-//! at survey time by a repo-wide grep for this family's own vocabulary --
-//! zero hits) and they are not implemented here; each fails loud with
-//! [`MFWGrowthRefused::NotYetImplemented`] rather than faking success:
+//! - [`resolve_continuation_goal`] now really parses [`ResidueState`]'s
+//!   admitted `domain_pddl`/`problem_pddl` text via the same
+//!   `bcinr_pddl::parse` functions F08's `projector` module uses. It does
+//!   not decide *what* the continuation goal is (that remains an upstream
+//!   admission concern, not silently assumed here) -- it is the real,
+//!   mechanical parse-and-validate step, refusing
+//!   [`MFWGrowthRefused::ResidueMalformed`] on malformed text.
+//! - [`manufacture_and_bind_child`] now really builds a child
+//!   `powl2_decompose::Powl` from a plan tape (one `Leaf` per tape op, in a
+//!   real total-order `PartialOrder`) and grafts it via [`graft_child`], a
+//!   new tree-replace-at-path primitive this module adds because none
+//!   existed anywhere in `powl2_decompose` (confirmed absent by grep;
+//!   `Powl` had read-only `socket_at`, no mutator). Parent re-evaluation is
+//!   real but disclosed-scoped: `RecursiveSocketClosure` only tracks
+//!   children declared at `ParentChildClosure::from_model` time, so a
+//!   freshly grafted child cannot be `admit`ted into the *caller's*
+//!   pre-existing closure object -- this function instead re-derives a
+//!   fresh `RecursiveSocketClosure` from the *post-graft* model and returns
+//!   it alongside the new root, rather than silently pretending the old
+//!   closure object updated itself.
 //!
-//! - [`resolve_continuation_goal`] -- the Continuation Goal Resolver
-//!   (residue state -> concrete PDDL8 goal) is genuinely new judgment-laden
-//!   logic. [`plan_growth`] takes an already-resolved [`ContinuationGoal`]
-//!   as input precisely so the real downstream gates can be exercised and
-//!   tested independently of this unbuilt stage.
-//! - [`manufacture_and_bind_child`] -- POWL Manufacturer + Socket Binder +
-//!   Parent Re-evaluator. Constructing a real child `powl2_decompose::Powl`
-//!   from a `Pddl8Tape`, binding it at the parent's exact socket with L6
-//!   provenance, and re-evaluating the parent's closure afterward is new
-//!   control-flow logic with no existing code to adapt.
+//! ## What remains an HONEST STUB (HAND_WRITE_REQUIRED, tracked under V12-009)
+//!
 //! - L7 (idempotent/duplicate-safe, restart-durable, chaos-tolerant
 //!   re-admission with replay equivalence) is entirely unbuilt: there is no
 //!   re-admission loop yet for it to guard.
+//! - No production caller composes F08's `run_pipeline` output into this
+//!   module's [`resolve_continuation_goal`]/[`plan_growth`] chain yet, or
+//!   this module's output into F10 -- these stages are each independently
+//!   real and independently tested, not yet an end-to-end wired pipeline.
 //!
-//! `MFW_AUTONOMIC_RESOLUTION_ALIVE` is **not** claimed by this module: the
-//! pipeline does not run end to end (it stops, honestly, at
-//! `manufacture_and_bind_child`). `BOUNDED_DESCENT_PROVEN` is claimed only
-//! for [`DescentMeter`] in isolation (tested below), not for a full growth
-//! cycle, since no cycle completes yet.
+//! `MFW_AUTONOMIC_RESOLUTION_ALIVE` is **not** claimed by this module: no
+//! single call composes admission through a manufactured, closure-admitted
+//! child yet (each stage is real and tested in isolation -- see
+//! `tests::growth_cycle_composes_resolve_through_manufacture_end_to_end`
+//! for the closest thing to a full cycle, which is real but caller-driven,
+//! not wired to any upstream/downstream production caller).
+//! `BOUNDED_DESCENT_PROVEN` is claimed only for [`DescentMeter`] in
+//! isolation (tested below), not for a full growth cycle under repeated
+//! autonomic triggering.
 //!
 //! Survey-cited paths for F09 (informed research from the v26.7.12 family
 //! survey handed to this wiring session inline):
@@ -78,9 +94,11 @@
 //! - /Users/sac/praxis/crates/powl2-decompose/src/recompose.rs
 //! - /Users/sac/praxis/packs/f09-mfw-growth-pack/ (this wiring pass, new)
 
+use std::collections::BTreeSet;
+
 use pddl_index::GroundStats;
-use powl2_decompose::WorkflowSocketId;
-use praxis_graphlaw::chatman::closure::RecursiveSocketClosure;
+use powl2_decompose::{ParentChildClosure, Powl, WorkflowSocketId};
+use praxis_graphlaw::chatman::closure::{ClosureLaw, RecursiveSocketClosure};
 use wasm4pm_compat::hash::blake3_combined;
 use wasm4pm_compat::pddl::{Pddl8Domain, Pddl8Problem, Pddl8Tape};
 
@@ -148,6 +166,36 @@ pub enum MFWGrowthRefused {
         /// Why it is not built and what would be needed.
         detail: &'static str,
     },
+    /// [`resolve_continuation_goal`]: the residue state's admitted PDDL
+    /// domain/problem text failed to parse (`bcinr_pddl::parse`, the same
+    /// real parser F08's `projector` module uses on admitted PDDL text).
+    #[error("residue state PDDL text failed to parse: {reason}")]
+    ResidueMalformed {
+        /// The underlying `bcinr_pddl::Pddl8Error`, stringified.
+        reason: String,
+    },
+    /// [`manufacture_and_bind_child`]: the plan tape produced zero ops, so
+    /// there is no real child workflow to manufacture -- a plan that
+    /// already satisfies the goal in zero steps grows nothing (distinct
+    /// from a planning failure, which [`reachability_gate`] already
+    /// refuses earlier as [`MFWGrowthRefused::GoalUnreachable`]).
+    #[error("plan tape for socket {socket} has zero ops; nothing to manufacture")]
+    EmptyPlanTape {
+        /// The socket growth was attempted at.
+        socket: String,
+    },
+    /// [`manufacture_and_bind_child`]: `parent_socket`'s path does not
+    /// resolve inside the supplied root [`powl2_decompose::Powl`] model, or
+    /// resolves to a node this module does not know how to graft a new
+    /// child into (only [`powl2_decompose::Powl::PartialOrder`] targets are
+    /// supported -- see [`graft_child`]).
+    #[error("cannot graft a child at socket {socket}: {reason}")]
+    GraftRefused {
+        /// The socket growth was attempted at.
+        socket: String,
+        /// Why the graft was refused.
+        reason: String,
+    },
 }
 
 /// A resolved continuation goal: the concrete PDDL8 domain/problem a
@@ -156,10 +204,6 @@ pub enum MFWGrowthRefused {
 /// `pddl_index` and `praxis_graphlaw::chatman::engine`'s S3 PDDL stage
 /// already plan over. This module does not invent its own goal
 /// representation.
-///
-/// Producing one of these from a blocked socket's live state is
-/// [`resolve_continuation_goal`]'s job, which is not yet implemented; a
-/// caller of [`plan_growth`] must supply an already-resolved goal.
 #[derive(Debug, Clone)]
 pub struct ContinuationGoal {
     /// The PDDL8 domain (action schemas) growth must plan over.
@@ -170,36 +214,61 @@ pub struct ContinuationGoal {
 
 /// A blocked socket's residue state -- the L6 data-lens concept this
 /// family's provenance chain names between `Socket` and `ContinuationGoal`.
-/// Carries no semantics of its own yet; see [`resolve_continuation_goal`].
+///
+/// `domain_pddl`/`problem_pddl` are real PDDL8 text, admitted by whatever
+/// upstream mechanism produced this residue (this module does not invent
+/// or infer them from `description`) -- the identical admission discipline
+/// F08's `projector` module uses for its own admitted PDDL literals. This
+/// module's contribution is the real, mechanical parse-and-validate step
+/// in [`resolve_continuation_goal`], not a semantic derivation of *what*
+/// the goal should be.
 #[derive(Debug, Clone)]
 pub struct ResidueState {
     /// The blocked socket this residue state describes.
     pub socket: WorkflowSocketId,
     /// Human-readable description of the residue (why the socket is
-    /// blocked). Not machine-interpreted by anything in this module.
+    /// blocked). Not machine-interpreted by anything in this module --
+    /// audit/logging context only.
     pub description: String,
+    /// Real PDDL8 domain text (action schemas available to resolve this
+    /// residue), parsed via `bcinr_pddl::parse::domain_from_pddl`.
+    pub domain_pddl: String,
+    /// Real PDDL8 problem text (current state + the continuation goal),
+    /// parsed via `bcinr_pddl::parse::problem_from_pddl`.
+    pub problem_pddl: String,
 }
 
-/// HAND_WRITE_REQUIRED (V12-009): the Continuation Goal Resolver stage.
-/// Converting a blocked socket's [`ResidueState`] into a concrete
-/// [`ContinuationGoal`] requires real semantic introspection of live engine
-/// state that this module does not yet have, and is genuinely new
-/// judgment-laden logic per the F09 survey (no existing praxis code
-/// performs this conversion). Fails loud rather than fabricating a goal.
+/// Continuation Goal Resolver stage: parses `residue`'s admitted
+/// `domain_pddl`/`problem_pddl` text into a [`ContinuationGoal`] via the
+/// same real `bcinr_pddl::parse` functions F08's `projector` module uses on
+/// admitted PDDL literals. What this module does *not* do -- and does not
+/// pretend to do -- is decide *what* the continuation goal should be from
+/// `description` or any other unstructured signal; that decision belongs
+/// to whatever upstream mechanism populates `domain_pddl`/`problem_pddl`
+/// on the [`ResidueState`] in the first place. A caller with only a
+/// human-readable residue description and no admitted PDDL text has no
+/// admissible input here, by design -- see the family invariant against
+/// treating free-text prose as scenario authority (the same invariant
+/// `crate::f26_ontology_self_play`'s Scenario Generator is written to
+/// respect).
 ///
 /// # Errors
-/// Always [`MFWGrowthRefused::NotYetImplemented`].
+/// [`MFWGrowthRefused::ResidueMalformed`] if either PDDL text fails to
+/// parse.
 pub fn resolve_continuation_goal(
-    _residue: &ResidueState,
+    residue: &ResidueState,
 ) -> Result<ContinuationGoal, MFWGrowthRefused> {
-    Err(MFWGrowthRefused::NotYetImplemented {
-        stage: "continuation_goal_resolver",
-        detail: "converting a blocked socket's residue state into a concrete PDDL8 \
-                 domain/problem is HAND_WRITE_REQUIRED per the F09 survey and not \
-                 yet built; plan_growth accepts an already-resolved ContinuationGoal \
-                 so the real downstream gates can be exercised and tested \
-                 independently of this stage",
-    })
+    let domain = bcinr_pddl::parse::domain_from_pddl(&residue.domain_pddl).map_err(|e| {
+        MFWGrowthRefused::ResidueMalformed {
+            reason: format!("domain: {e}"),
+        }
+    })?;
+    let problem = bcinr_pddl::parse::problem_from_pddl(&residue.problem_pddl).map_err(|e| {
+        MFWGrowthRefused::ResidueMalformed {
+            reason: format!("problem: {e}"),
+        }
+    })?;
+    Ok(ContinuationGoal { domain, problem })
 }
 
 /// Bounded-descent budget for one MFW growth attempt (invariant: "No child
@@ -426,25 +495,221 @@ pub fn plan_growth(
     })
 }
 
-/// HAND_WRITE_REQUIRED (V12-009): POWL Manufacturer + Socket Binder +
-/// Parent Re-evaluator -- the pipeline stages after [`plan_growth`].
-/// Constructing a real child `powl2_decompose::Powl` from `plan.plan_tape`,
-/// binding it at `plan.parent_socket` with exact parent-socket/PDDL-
-/// ancestry/descent-budget/closure-path provenance (L6), and re-evaluating
-/// the parent's closure afterward is genuinely new, judgment-laden
-/// control-flow logic with no existing praxis code to adapt -- confirmed
-/// absent by the F09 survey's repo-wide grep for this vocabulary (zero
-/// hits). This function fails loud rather than faking success.
+/// POWL Manufacturer (real): projects a plan tape into a `Powl` child model
+/// -- a total-order [`Powl::PartialOrder`] with one `Leaf(Some(op.label))`
+/// per tape op, ordered `(i, i+1)` for every consecutive pair, since a plan
+/// tape is inherently sequential (each op's `pred_mask` already encodes
+/// that it depends on prior ops -- see `Pddl8TapeOp`). This is the one
+/// well-defined, unambiguous POWL shape a linear plan projects to; a
+/// planner that ever produces genuinely concurrent (non-sequential) tapes
+/// would need a different projection, not built here (disclosed scope
+/// boundary, matching the family survey's own finding that no such
+/// projector exists anywhere in this repo).
 ///
 /// # Errors
-/// Always [`MFWGrowthRefused::NotYetImplemented`] currently.
-pub fn manufacture_and_bind_child(_plan: &GrowthPlan) -> Result<(), MFWGrowthRefused> {
-    Err(MFWGrowthRefused::NotYetImplemented {
-        stage: "powl_manufacturer+socket_binder+parent_reevaluator",
-        detail: "child-workflow construction from a PDDL plan tape, binding it at the \
-                 parent's exact socket, and parent re-evaluation are HAND_WRITE_REQUIRED \
-                 per the F09 survey and not yet built; plan_growth's real gates (closure, \
-                 reachability, descent budget) must all pass before this is even reached",
+/// [`MFWGrowthRefused::EmptyPlanTape`] if `tape` has zero ops.
+fn manufacture_child_powl(
+    socket: &WorkflowSocketId,
+    tape: &Pddl8Tape,
+) -> Result<Powl, MFWGrowthRefused> {
+    if tape.ops.is_empty() {
+        return Err(MFWGrowthRefused::EmptyPlanTape {
+            socket: socket.to_string(),
+        });
+    }
+    let children: Vec<Powl> = tape
+        .ops
+        .iter()
+        .map(|op| Powl::Leaf(Some(op.label.clone())))
+        .collect();
+    let order: BTreeSet<(usize, usize)> = (0..children.len().saturating_sub(1))
+        .map(|i| (i, i + 1))
+        .collect();
+    Ok(Powl::PartialOrder { children, order })
+}
+
+/// Socket Binder (real): grafts `child` as a new, order-unconstrained
+/// sibling under the [`Powl::PartialOrder`] node at `at.path` inside
+/// `root`, returning the new root. `powl2_decompose::Powl` has no mutator
+/// of its own (confirmed by the F09 survey and re-checked this pass: only
+/// read-only `socket_at`/`sockets` exist) -- this is a genuinely new
+/// tree-replace-at-path primitive, not adapted from anywhere.
+///
+/// The new child is added with no order constraint relative to existing
+/// siblings (immediately available, not sequenced after them): growth
+/// manufactures an *additional* way for the blocked socket to close, not a
+/// continuation of whatever already-declared children exist there.
+///
+/// # Errors
+/// [`MFWGrowthRefused::GraftRefused`] if `at.path` does not resolve inside
+/// `root`, or resolves to a node that is not a [`Powl::PartialOrder`]
+/// (`Leaf`/`Choice`/`ExternalCut` grafting is out of scope this pass,
+/// disclosed rather than silently mishandled).
+///
+/// # Complexity
+/// O(depth) to locate the node, O(n) to clone-and-rebuild the path back to
+/// the root (immutable-tree update, consistent with `Powl: Clone`).
+fn graft_child(root: &Powl, at: &WorkflowSocketId, child: Powl) -> Result<Powl, MFWGrowthRefused> {
+    fn go(node: &Powl, remaining: &[usize], child: Powl) -> Result<Powl, String> {
+        match remaining {
+            [] => match node {
+                Powl::PartialOrder { children, order } => {
+                    let mut new_children = children.clone();
+                    new_children.push(child);
+                    Ok(Powl::PartialOrder {
+                        children: new_children,
+                        order: order.clone(),
+                    })
+                }
+                Powl::Leaf(_) => Err("target is a Leaf, not a PartialOrder".to_string()),
+                Powl::Choice { .. } => Err("target is a Choice, not a PartialOrder".to_string()),
+                Powl::ExternalCut { .. } => {
+                    Err("target is an ExternalCut, not a PartialOrder".to_string())
+                }
+            },
+            [seg, rest @ ..] => match node {
+                Powl::PartialOrder { children, order } => {
+                    let idx = *seg;
+                    let existing = children
+                        .get(idx)
+                        .ok_or_else(|| format!("child index {idx} out of range"))?;
+                    let updated = go(existing, rest, child)?;
+                    let mut new_children = children.clone();
+                    new_children[idx] = updated;
+                    Ok(Powl::PartialOrder {
+                        children: new_children,
+                        order: order.clone(),
+                    })
+                }
+                Powl::Choice { children, graph } => {
+                    let idx = *seg;
+                    let existing = children
+                        .get(idx)
+                        .ok_or_else(|| format!("child index {idx} out of range"))?;
+                    let updated = go(existing, rest, child)?;
+                    let mut new_children = children.clone();
+                    new_children[idx] = updated;
+                    Ok(Powl::Choice {
+                        children: new_children,
+                        graph: graph.clone(),
+                    })
+                }
+                Powl::ExternalCut {
+                    region,
+                    projection,
+                    renderer,
+                } => {
+                    if *seg != 0 {
+                        return Err(format!("ExternalCut has no child index {seg}"));
+                    }
+                    let updated = go(region, rest, child)?;
+                    Ok(Powl::ExternalCut {
+                        region: Box::new(updated),
+                        projection: projection.clone(),
+                        renderer: renderer.clone(),
+                    })
+                }
+                Powl::Leaf(_) => Err("path descends past a Leaf".to_string()),
+            },
+        }
+    }
+    go(root, at.path.segments(), child).map_err(|reason| MFWGrowthRefused::GraftRefused {
+        socket: at.to_string(),
+        reason,
+    })
+}
+
+/// The real, post-graft evidence [`manufacture_and_bind_child`] returns:
+/// the new root model with the manufactured child attached, and a freshly
+/// re-derived closure over `plan.parent_socket` (see this function's
+/// disclosed "Parent Re-evaluator" scope note).
+#[derive(Debug, Clone)]
+pub struct GrowthOutcome {
+    /// The root `Powl` model after grafting the manufactured child.
+    pub new_root: Powl,
+    /// `RecursiveSocketClosure` re-declared over `new_root` at
+    /// `plan.parent_socket`, reflecting the freshly grafted child.
+    pub closure: RecursiveSocketClosure,
+    /// The manufactured child's own socket id (a new leaf/child under
+    /// `plan.parent_socket`), for a caller that wants to `admit` it once
+    /// its own execution completes.
+    pub child_socket: WorkflowSocketId,
+}
+
+/// POWL Manufacturer + Socket Binder + Parent Re-evaluator -- the pipeline
+/// stages after [`plan_growth`], real as of the crash-recovery pass. See
+/// [`manufacture_child_powl`] and [`graft_child`] for what each stage does
+/// and its disclosed scope boundary; see the module doc comment's "What
+/// became REAL" section for why parent re-evaluation returns a *freshly
+/// derived* closure rather than mutating `plan_growth`'s caller-supplied
+/// one.
+///
+/// `law` is the closure law to re-declare the parent socket's closure
+/// under after grafting -- the caller's own choice (mirroring
+/// [`RecursiveSocketClosure::declare`]'s own signature), not silently
+/// defaulted, since `plan_growth`'s original `&RecursiveSocketClosure`
+/// only exposes a read accessor for its law
+/// ([`RecursiveSocketClosure::law`]), not ownership of it.
+///
+/// # Errors
+/// [`MFWGrowthRefused::EmptyPlanTape`], [`MFWGrowthRefused::GraftRefused`],
+/// or a propagated [`RecursiveSocketClosure::declare`] failure folded into
+/// [`MFWGrowthRefused::GraftRefused`] (re-declaring a closure over the
+/// grafted socket failed -- e.g. it still has zero children, which cannot
+/// happen given a non-empty manufactured child was just grafted, but is
+/// handled rather than unwrapped per this repo's no-panic invariant).
+pub fn manufacture_and_bind_child(
+    root: &Powl,
+    plan: &GrowthPlan,
+    law: ClosureLaw,
+) -> Result<GrowthOutcome, MFWGrowthRefused> {
+    let child = manufacture_child_powl(&plan.parent_socket, &plan.plan_tape)?;
+    let new_root = graft_child(root, &plan.parent_socket, child)?;
+
+    // The manufactured child is the new last child of parent_socket's
+    // PartialOrder node -- socket_at + sockets() on new_root confirms its
+    // exact address rather than assuming it.
+    let target = new_root
+        .socket_at(&plan.parent_socket.path)
+        .ok_or_else(|| MFWGrowthRefused::GraftRefused {
+            socket: plan.parent_socket.to_string(),
+            reason: "grafted node not found by its own path immediately after graft \
+                     (internal invariant violation)"
+                .to_string(),
+        })?;
+    let new_child_index = match target {
+        Powl::PartialOrder { children, .. } => children.len() - 1,
+        _ => {
+            return Err(MFWGrowthRefused::GraftRefused {
+                socket: plan.parent_socket.to_string(),
+                reason: "grafted node is not a PartialOrder immediately after graft \
+                         (internal invariant violation)"
+                    .to_string(),
+            });
+        }
+    };
+    // manufacture_child_powl always returns Powl::PartialOrder on success
+    // (see that function) -- the manufactured child's own socket kind is
+    // therefore always PartialOrder, not inspected via the (private)
+    // SocketKind::of.
+    let child_socket = WorkflowSocketId {
+        path: plan.parent_socket.path.child(new_child_index),
+        kind: powl2_decompose::SocketKind::PartialOrder,
+    };
+
+    let pcc = ParentChildClosure::from_model(&new_root);
+    let closure =
+        RecursiveSocketClosure::declare(&pcc, plan.parent_socket.clone(), law).map_err(|e| {
+            MFWGrowthRefused::GraftRefused {
+                socket: plan.parent_socket.to_string(),
+                reason: format!("re-declaring closure over the grafted socket failed: {e}"),
+            }
+        })?;
+
+    Ok(GrowthOutcome {
+        new_root,
+        closure,
+        child_socket,
     })
 }
 
@@ -748,40 +1013,127 @@ mod tests {
             "meter itself must reflect the real descent"
         );
 
-        // The genuinely-unbuilt stage after this point fails loud, honestly.
-        assert_eq!(
-            manufacture_and_bind_child(&plan),
-            Err(MFWGrowthRefused::NotYetImplemented {
-                stage: "powl_manufacturer+socket_binder+parent_reevaluator",
-                detail: "child-workflow construction from a PDDL plan tape, binding it at \
-                         the parent's exact socket, and parent re-evaluation are \
-                         HAND_WRITE_REQUIRED per the F09 survey and not yet built; \
-                         plan_growth's real gates (closure, reachability, descent budget) \
-                         must all pass before this is even reached",
-            })
-        );
+        // Manufacture + bind is real as of the crash-recovery pass.
+        let root = root_partial_order_over(2);
+        let outcome = manufacture_and_bind_child(&root, &plan, ClosureLaw::AllRequired)
+            .expect("a one-op plan tape grafts a real child under the root PartialOrder");
+        assert!(matches!(outcome.new_root, Powl::PartialOrder { .. }));
+        if let Powl::PartialOrder { children, .. } = &outcome.new_root {
+            assert_eq!(
+                children.len(),
+                3,
+                "2 original leaves + 1 manufactured child"
+            );
+            assert!(matches!(children[2], Powl::PartialOrder { .. }));
+        }
+        assert_eq!(outcome.closure.socket(), &root_socket());
     }
 
     // -----------------------------------------------------------------
-    // resolve_continuation_goal (honest stub)
+    // resolve_continuation_goal (real: parses admitted PDDL text)
     // -----------------------------------------------------------------
 
+    const RESIDUE_DOMAIN_TEXT: &str = r#"
+(define (domain f09-residue-test)
+  (:requirements :strips)
+  (:predicates (at ?x) (goal-reached))
+  (:action move
+    :parameters (?x)
+    :precondition (at ?x)
+    :effect (and (goal-reached))))
+"#;
+    const RESIDUE_PROBLEM_TEXT: &str = r#"
+(define (problem f09-residue-test-problem)
+  (:domain f09-residue-test)
+  (:objects a)
+  (:init (at a))
+  (:goal (and (goal-reached))))
+"#;
+
     #[test]
-    fn resolve_continuation_goal_is_honestly_unimplemented() {
+    fn resolve_continuation_goal_parses_real_admitted_pddl_text() {
         let residue = ResidueState {
             socket: root_socket(),
             description: "test residue".into(),
+            domain_pddl: RESIDUE_DOMAIN_TEXT.to_string(),
+            problem_pddl: RESIDUE_PROBLEM_TEXT.to_string(),
         };
+        let goal = resolve_continuation_goal(&residue).expect("real admitted PDDL text parses");
+        assert_eq!(goal.domain.name, "f09-residue-test");
+        assert_eq!(goal.problem.name, "f09-residue-test-problem");
+    }
+
+    #[test]
+    fn resolve_continuation_goal_refuses_malformed_domain_text() {
+        let residue = ResidueState {
+            socket: root_socket(),
+            description: "test residue".into(),
+            domain_pddl: "not pddl at all".to_string(),
+            problem_pddl: RESIDUE_PROBLEM_TEXT.to_string(),
+        };
+        let err = resolve_continuation_goal(&residue)
+            .expect_err("malformed domain text must refuse, never fabricate a goal");
+        assert!(matches!(err, MFWGrowthRefused::ResidueMalformed { .. }));
+    }
+
+    // -----------------------------------------------------------------
+    // manufacture_and_bind_child (real: Powl projection + tree graft)
+    // -----------------------------------------------------------------
+
+    #[test]
+    fn manufacture_and_bind_child_refuses_an_empty_plan_tape() {
+        let closure = open_closure();
+        let plan = GrowthPlan {
+            parent_socket: root_socket(),
+            plan_tape: wasm4pm_compat::pddl::Pddl8Tape { ops: Vec::new() },
+            ground_stats: GroundStats {
+                candidate_groundings: 0,
+                materialized_groundings: 0,
+                reachable_atoms: 0,
+            },
+            descent_receipt: DescentReceipt::seal(root_socket(), &DescentMeter::new(4)),
+        };
+        let root = root_partial_order_over(2);
+        let err = manufacture_and_bind_child(&root, &plan, ClosureLaw::AllRequired)
+            .expect_err("empty tape must refuse, never manufacture a placeholder child");
+        assert!(matches!(err, MFWGrowthRefused::EmptyPlanTape { .. }));
+        let _ = closure; // fixture parity with the other plan_growth tests
+    }
+
+    #[test]
+    fn manufacture_and_bind_child_refuses_an_unresolvable_socket() {
+        let closure = open_closure();
+        let goal = reachable_goal();
+        let mut meter = DescentMeter::new(4);
+        let mut plan = plan_growth(true, &closure, &goal, &mut meter).expect("real gates pass");
+        // Point at a socket that does not exist in `root` at all.
+        plan.parent_socket = WorkflowSocketId {
+            path: SocketPath::root().child(99),
+            kind: powl2_decompose::SocketKind::Leaf,
+        };
+        let root = root_partial_order_over(2);
+        let err = manufacture_and_bind_child(&root, &plan, ClosureLaw::AllRequired)
+            .expect_err("a socket path that doesn't resolve must refuse, not silently graft");
+        assert!(matches!(err, MFWGrowthRefused::GraftRefused { .. }));
+    }
+
+    #[test]
+    fn manufacture_and_bind_child_is_deterministic() {
+        let closure = open_closure();
+        let goal = reachable_goal();
+        let mut meter_a = DescentMeter::new(4);
+        let plan_a = plan_growth(true, &closure, &goal, &mut meter_a).expect("gates pass");
+        let mut meter_b = DescentMeter::new(4);
+        let plan_b = plan_growth(true, &closure, &goal, &mut meter_b).expect("gates pass");
+        let root = root_partial_order_over(2);
+        let a =
+            manufacture_and_bind_child(&root, &plan_a, ClosureLaw::AllRequired).expect("grafts");
+        let b =
+            manufacture_and_bind_child(&root, &plan_b, ClosureLaw::AllRequired).expect("grafts");
         assert_eq!(
-            resolve_continuation_goal(&residue).unwrap_err(),
-            MFWGrowthRefused::NotYetImplemented {
-                stage: "continuation_goal_resolver",
-                detail: "converting a blocked socket's residue state into a concrete PDDL8 \
-                         domain/problem is HAND_WRITE_REQUIRED per the F09 survey and not \
-                         yet built; plan_growth accepts an already-resolved ContinuationGoal \
-                         so the real downstream gates can be exercised and tested \
-                         independently of this stage",
-            }
+            format!("{:?}", a.new_root),
+            format!("{:?}", b.new_root),
+            "same plan tape grafted onto the same root must produce the same tree"
         );
     }
 
@@ -795,8 +1147,11 @@ mod tests {
             "ClosureAlreadySatisfied",
             "ClosureCheckFailed",
             "DescentBudgetExhausted",
+            "EmptyPlanTape",
             "GoalUnreachable",
+            "GraftRefused",
             "NotYetImplemented",
+            "ResidueMalformed",
             "SocketNotBlocked",
         ];
         expected.sort_unstable();

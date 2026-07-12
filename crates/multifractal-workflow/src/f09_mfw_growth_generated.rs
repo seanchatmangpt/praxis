@@ -57,12 +57,12 @@ pub const PROVENANCE_CHAIN: &[ProvenanceStage] = &[
     ProvenanceStage {
         name: "ContinuationGoal",
         chain_order: 2,
-        realized_by: "ContinuationGoal { domain: Pddl8Domain, problem: Pddl8Problem } data carrier is real; the Resolver that produces one from a ResidueState is NOT_YET_IMPLEMENTED (resolve_continuation_goal stub).",
+        realized_by: "ContinuationGoal { domain: Pddl8Domain, problem: Pddl8Problem } is real; resolve_continuation_goal() parses ResidueState's admitted domain_pddl/problem_pddl text via the same bcinr_pddl::parse functions F08's projector uses (REAL, crash-recovery pass).",
     },
     ProvenanceStage {
         name: "ResidueState",
         chain_order: 3,
-        realized_by: "ResidueState { socket, description } data carrier only; nothing yet derives one from live engine state (NOT_YET_IMPLEMENTED).",
+        realized_by: "ResidueState { socket, description, domain_pddl, problem_pddl } -- domain_pddl/problem_pddl are real admitted PDDL text (REAL, crash-recovery pass); this module does not derive them from description or infer a goal from unstructured signal.",
     },
     ProvenanceStage {
         name: "Plan",
@@ -72,7 +72,7 @@ pub const PROVENANCE_CHAIN: &[ProvenanceStage] = &[
     ProvenanceStage {
         name: "ChildWorkflow",
         chain_order: 5,
-        realized_by: "manufacture_and_bind_child() -- NOT_YET_IMPLEMENTED; no code anywhere in the repo constructs a powl2_decompose::Powl child from a Pddl8Tape (confirmed by repo-wide grep at survey time).",
+        realized_by: "manufacture_and_bind_child() -- REAL (crash-recovery pass): manufacture_child_powl() projects a plan tape to a total-order Powl::PartialOrder; graft_child() is a new tree-replace-at-path primitive (none existed in powl2_decompose) that attaches it under the parent socket.",
     },
     ProvenanceStage {
         name: "DescentReceipt",
@@ -82,7 +82,7 @@ pub const PROVENANCE_CHAIN: &[ProvenanceStage] = &[
     ProvenanceStage {
         name: "ParentClosureDecision",
         chain_order: 7,
-        realized_by: "Parent Re-evaluator -- NOT_YET_IMPLEMENTED; semantic_closure_check() re-runs RecursiveSocketClosure::is_closed() before growth (real) but nothing re-evaluates the parent after a child attaches, since attachment itself is not built.",
+        realized_by: "Parent Re-evaluator -- REAL but disclosed-scoped (crash-recovery pass): RecursiveSocketClosure only tracks children declared at ParentChildClosure::from_model time, so manufacture_and_bind_child re-derives a fresh RecursiveSocketClosure from the post-graft model rather than mutating the caller's pre-existing one.",
     },
 ];
 
@@ -118,16 +118,34 @@ pub const REFUSAL_CATALOG: &[RefusalCatalogEntry] = &[
         status: "REAL",
     },
     RefusalCatalogEntry {
+        name: "EmptyPlanTape",
+        meaning: "The plan tape produced zero ops, so there is no real child workflow to manufacture.",
+        invariant: "No child workflow is manufactured from an empty plan; a zero-step plan grows nothing rather than fabricating a placeholder child.",
+        status: "REAL",
+    },
+    RefusalCatalogEntry {
         name: "GoalUnreachable",
         meaning: "pddl_index::solve_indexed found no plan for the continuation goal.",
         invariant: "No child workflow is manufactured for ... [a state where] the goal remains reachable [does not hold].",
         status: "REAL",
     },
     RefusalCatalogEntry {
+        name: "GraftRefused",
+        meaning: "The parent socket's path does not resolve inside the supplied root Powl model, or resolves to a node type graft_child does not support (only PartialOrder targets).",
+        invariant: "Every manufactured child is bound at its parent's exact, real socket -- never silently attached to the wrong node or fabricated as attached when the graft could not happen.",
+        status: "REAL",
+    },
+    RefusalCatalogEntry {
         name: "NotYetImplemented",
-        meaning: "A pipeline stage that is genuinely HAND_WRITE_REQUIRED and not yet built (continuation-goal resolution, POWL manufacture, socket binding, parent re-evaluation) was reached; fails loud instead of faking success.",
-        invariant: "Every manufactured child has an exact parent socket, PDDL ancestry, descent budget, and closure path -- cannot be honored until these stages exist.",
+        meaning: "A pipeline stage that is genuinely HAND_WRITE_REQUIRED and not yet built (L7 idempotent/restart-durable re-admission) was reached; fails loud instead of faking success.",
+        invariant: "Every manufactured child has an exact parent socket, PDDL ancestry, descent budget, and closure path -- cannot be honored until L7 exists.",
         status: "NOT_YET_IMPLEMENTED (by design; this is the honest refusal, not a bug)",
+    },
+    RefusalCatalogEntry {
+        name: "ResidueMalformed",
+        meaning: "The residue state's admitted domain_pddl/problem_pddl text failed to parse via bcinr_pddl::parse.",
+        invariant: "A continuation goal is only ever derived from real, admitted, parseable PDDL text -- never fabricated or inferred from unstructured description.",
+        status: "REAL",
     },
     RefusalCatalogEntry {
         name: "SocketNotBlocked",

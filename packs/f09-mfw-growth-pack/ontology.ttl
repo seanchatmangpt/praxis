@@ -56,17 +56,17 @@ mfwg:parentWorkflow a mfwg:ProvenanceStage ; rdfs:label "ParentWorkflow" ; mfwg:
 mfwg:socket a mfwg:ProvenanceStage ; rdfs:label "Socket" ; mfwg:chainOrder 1 ;
   mfwg:realizedBy "RecursiveSocketClosure::socket() (REUSE_ADAPT, real; praxis_graphlaw::chatman::closure)." .
 mfwg:continuationGoal a mfwg:ProvenanceStage ; rdfs:label "ContinuationGoal" ; mfwg:chainOrder 2 ;
-  mfwg:realizedBy "ContinuationGoal { domain: Pddl8Domain, problem: Pddl8Problem } data carrier is real; the Resolver that produces one from a ResidueState is NOT_YET_IMPLEMENTED (resolve_continuation_goal stub)." .
+  mfwg:realizedBy "ContinuationGoal { domain: Pddl8Domain, problem: Pddl8Problem } is real; resolve_continuation_goal() parses ResidueState's admitted domain_pddl/problem_pddl text via the same bcinr_pddl::parse functions F08's projector uses (REAL, crash-recovery pass)." .
 mfwg:residueState a mfwg:ProvenanceStage ; rdfs:label "ResidueState" ; mfwg:chainOrder 3 ;
-  mfwg:realizedBy "ResidueState { socket, description } data carrier only; nothing yet derives one from live engine state (NOT_YET_IMPLEMENTED)." .
+  mfwg:realizedBy "ResidueState { socket, description, domain_pddl, problem_pddl } -- domain_pddl/problem_pddl are real admitted PDDL text (REAL, crash-recovery pass); this module does not derive them from description or infer a goal from unstructured signal." .
 mfwg:plan a mfwg:ProvenanceStage ; rdfs:label "Plan" ; mfwg:chainOrder 4 ;
   mfwg:realizedBy "pddl_index::solve_indexed via reachability_gate() (REUSE_ADAPT, real; differentially verified against bcinr_pddl elsewhere in the workspace)." .
 mfwg:childWorkflow a mfwg:ProvenanceStage ; rdfs:label "ChildWorkflow" ; mfwg:chainOrder 5 ;
-  mfwg:realizedBy "manufacture_and_bind_child() -- NOT_YET_IMPLEMENTED; no code anywhere in the repo constructs a powl2_decompose::Powl child from a Pddl8Tape (confirmed by repo-wide grep at survey time)." .
+  mfwg:realizedBy "manufacture_and_bind_child() -- REAL (crash-recovery pass): manufacture_child_powl() projects a plan tape to a total-order Powl::PartialOrder; graft_child() is a new tree-replace-at-path primitive (none existed in powl2_decompose) that attaches it under the parent socket." .
 mfwg:descentReceipt a mfwg:ProvenanceStage ; rdfs:label "DescentReceipt" ; mfwg:chainOrder 6 ;
   mfwg:realizedBy "DescentMeter::descend() + DescentReceipt::seal() (REUSE_ADAPT, real; BLAKE3-sealed via wasm4pm_compat::hash::blake3_combined, budget-check shape adapted from powl2_decompose::decompose's RefusalReason::BudgetExhausted)." .
 mfwg:parentClosureDecision a mfwg:ProvenanceStage ; rdfs:label "ParentClosureDecision" ; mfwg:chainOrder 7 ;
-  mfwg:realizedBy "Parent Re-evaluator -- NOT_YET_IMPLEMENTED; semantic_closure_check() re-runs RecursiveSocketClosure::is_closed() before growth (real) but nothing re-evaluates the parent after a child attaches, since attachment itself is not built." .
+  mfwg:realizedBy "Parent Re-evaluator -- REAL but disclosed-scoped (crash-recovery pass): RecursiveSocketClosure only tracks children declared at ParentChildClosure::from_model time, so manufacture_and_bind_child re-derives a fresh RecursiveSocketClosure from the post-graft model rather than mutating the caller's pre-existing one." .
 
 #################################################################
 # MFWGrowthRefused catalog
@@ -93,6 +93,18 @@ mfwg:descentBudgetExhausted a mfwg:RefusalKind ; rdfs:label "DescentBudgetExhaus
   mfwg:invariant "No child workflow is manufactured for ... unbounded descent (BOUNDED_DESCENT_PROVEN)." ;
   mfwg:status "REAL" .
 mfwg:notYetImplemented a mfwg:RefusalKind ; rdfs:label "NotYetImplemented" ;
-  mfwg:meaning "A pipeline stage that is genuinely HAND_WRITE_REQUIRED and not yet built (continuation-goal resolution, POWL manufacture, socket binding, parent re-evaluation) was reached; fails loud instead of faking success." ;
-  mfwg:invariant "Every manufactured child has an exact parent socket, PDDL ancestry, descent budget, and closure path -- cannot be honored until these stages exist." ;
+  mfwg:meaning "A pipeline stage that is genuinely HAND_WRITE_REQUIRED and not yet built (L7 idempotent/restart-durable re-admission) was reached; fails loud instead of faking success." ;
+  mfwg:invariant "Every manufactured child has an exact parent socket, PDDL ancestry, descent budget, and closure path -- cannot be honored until L7 exists." ;
   mfwg:status "NOT_YET_IMPLEMENTED (by design; this is the honest refusal, not a bug)" .
+mfwg:residueMalformed a mfwg:RefusalKind ; rdfs:label "ResidueMalformed" ;
+  mfwg:meaning "The residue state's admitted domain_pddl/problem_pddl text failed to parse via bcinr_pddl::parse." ;
+  mfwg:invariant "A continuation goal is only ever derived from real, admitted, parseable PDDL text -- never fabricated or inferred from unstructured description." ;
+  mfwg:status "REAL" .
+mfwg:emptyPlanTape a mfwg:RefusalKind ; rdfs:label "EmptyPlanTape" ;
+  mfwg:meaning "The plan tape produced zero ops, so there is no real child workflow to manufacture." ;
+  mfwg:invariant "No child workflow is manufactured from an empty plan; a zero-step plan grows nothing rather than fabricating a placeholder child." ;
+  mfwg:status "REAL" .
+mfwg:graftRefused a mfwg:RefusalKind ; rdfs:label "GraftRefused" ;
+  mfwg:meaning "The parent socket's path does not resolve inside the supplied root Powl model, or resolves to a node type graft_child does not support (only PartialOrder targets)." ;
+  mfwg:invariant "Every manufactured child is bound at its parent's exact, real socket -- never silently attached to the wrong node or fabricated as attached when the graft could not happen." ;
+  mfwg:status "REAL" .
