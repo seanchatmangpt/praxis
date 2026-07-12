@@ -26,6 +26,11 @@ const SOURCE: &str = "crown-planner-1";
 const PRINCIPAL: &str = "https://planners.example.org/crown-planner-1";
 const SUBJECT: &str = "urn:mfw:crown:snapshot-1";
 
+/// F02 re-admission (F19 -> F02) source identity: the local runtime itself, distinct from
+/// `SOURCE` (the external planner) -- see `crown_local.rs`'s module doc F19->F02 nuance.
+const ACTUATION_SOURCE: &str = "crown-local-runtime";
+const ACTUATION_PRINCIPAL: &str = "urn:mfw:crown:local-runtime";
+
 /// The exact STRIPS domain F08's own `run_pipeline` end-to-end test uses (proven to plan+bind on
 /// F08's side) and F09's `resolve_continuation_goal` test parses (proven to parse on F09's side).
 const DOMAIN_TEXT: &str = r#"
@@ -94,6 +99,10 @@ ex:PlanningSnapshotShape a sh:NodeShape ;
 fn crown_policy() -> AdmissionPolicy {
     let mut known_principals = BTreeMap::new();
     known_principals.insert(SOURCE.to_string(), PRINCIPAL.to_string());
+    known_principals.insert(
+        ACTUATION_SOURCE.to_string(),
+        ACTUATION_PRINCIPAL.to_string(),
+    );
 
     let mut authorized = BTreeSet::new();
     authorized.insert(PDDL_DOMAIN_PREDICATE.to_string());
@@ -102,12 +111,22 @@ fn crown_policy() -> AdmissionPolicy {
     let mut authorized_predicates = BTreeMap::new();
     authorized_predicates.insert(SOURCE.to_string(), authorized);
 
+    // The local runtime (re-admission principal) is authorized only for the F19->F02 actuation
+    // predicates -- never the F08 planning predicates, which remain the external planner's alone.
+    let mut actuation_authorized = BTreeSet::new();
+    actuation_authorized.insert("urn:mfw:f19#actuatedHookName".to_string());
+    actuation_authorized.insert("urn:mfw:f19#actuationReceiptHash".to_string());
+    actuation_authorized.insert("urn:mfw:f18#brokerReceiptHash".to_string());
+    authorized_predicates.insert(ACTUATION_SOURCE.to_string(), actuation_authorized);
+
     AdmissionPolicy::new(
         known_principals,
         authorized_predicates,
         vec![
             "urn:chatman:engine#".to_string(),
             "urn:mfw:f08#".to_string(),
+            "urn:mfw:f19#".to_string(),
+            "urn:mfw:f18#".to_string(),
         ],
         vec!["urn:".to_string(), "https://".to_string()],
         VACUOUS_SHAPES,
@@ -191,6 +210,8 @@ fn base_run<'a>(
         standing_reason: "crown-local fixture: caller-asserted standing".to_string(),
         local_run_id: [9u8; 32],
         local_max_ticks: 16,
+        actuation_source_id: ACTUATION_SOURCE.to_string(),
+        actuation_principal_iri: ACTUATION_PRINCIPAL.to_string(),
     }
 }
 
@@ -199,9 +220,10 @@ fn base_run<'a>(
 // --------------------------------------------------------------------------
 
 /// The load-bearing test: one admitted observation graph drives F02 -> F03 -> F08 -> F09 -> F10
-/// -> F11 -> F18 -> F19 end to end, and every stage's real output is present and correct.
+/// -> F11 -> F18 -> F19 -> F02(re-admit) end to end, and every stage's real output is present
+/// and correct.
 #[test]
-fn crown_local_prefix_drives_f02_through_f19_end_to_end() {
+fn crown_local_prefix_drives_f02_through_f02_readmit_end_to_end() {
     let policy = crown_policy();
     let ledger = AdmissionLedger::new();
     let (root, closure) = open_growth_root_and_closure();
@@ -274,6 +296,22 @@ fn crown_local_prefix_drives_f02_through_f19_end_to_end() {
         "crown-local-authority"
     );
     assert!(!outcome.hook_resolution.receipt_hash.is_empty());
+
+    // --- F19 -> F02 (re-admit): the actuation consequence was really re-admitted through the
+    //     same F02 gate pipeline, under the distinct local-runtime principal, as a new ledger
+    //     entry (not colliding with or replaying the original planning admission) ---
+    assert_eq!(outcome.actuation_admission.state, AdmissionState::Admitted);
+    assert_eq!(
+        outcome.actuation_admission.correlation_id,
+        "crown-corr-1-actuation"
+    );
+    assert_eq!(outcome.actuation_admission.source_id, ACTUATION_SOURCE);
+    assert_ne!(
+        outcome.actuation_admission.receipt_hash, outcome.admission.receipt_hash,
+        "the re-admitted actuation consequence must be a distinct admission, not a replay of the \
+         original planning observation"
+    );
+    assert!(!outcome.actuation_admission.receipt_hash.is_empty());
 
     // --- Crown receipt is a real 64-hex BLAKE3 fold over every stage's digest ---
     assert_eq!(outcome.crown_receipt.len(), 64);

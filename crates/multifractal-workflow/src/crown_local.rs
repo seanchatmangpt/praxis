@@ -14,6 +14,7 @@
 //! | F11 BCINR Local Execution | [`crate::f11_bcinr_runtime::geometry_to_local_ast`] over F09's real `growth.geometry` |
 //! | F18 Broker                | [`crate::f11_bcinr_runtime::dispatch_local_execution_via_broker`] |
 //! | F19 Hooks                 | [`crate::f19_hooks::resolve_hook_for_action`] over F08's real bound action |
+//! | F02 (re-admit)            | [`crate::f02_observation_admission::admit_observation`], called a second time over a freshly synthesized actuation-consequence observation |
 //!
 //! # What makes each edge real (and the honest nuances)
 //!
@@ -63,6 +64,24 @@
 //!   doc (`F19_hooks.md`: "Maps planner actions to typed executable capabilities"), this is F19's
 //!   canonical real entry point, reused verbatim -- not a second, parallel hook-lookup
 //!   mechanism invented for this driver.
+//! - **F19 -> F02 (re-admit)**: the actuation consequence (which hook actuated, under which
+//!   receipts) is synthesized into a *new* observation and passed through
+//!   [`admit_observation`](crate::f02_observation_admission::admit_observation) a second time --
+//!   the same real gate pipeline, not a second implementation. Honest nuance: the re-admission is
+//!   asserted by a distinct principal (`run.actuation_source_id`/`actuation_principal_iri`), not
+//!   the original external planner (`run.source_id`) -- the local runtime observing its own
+//!   actuation is architecturally a different asserting party than the external system that
+//!   submitted the original planning problem, so this driver requires that party to be a
+//!   separately-declared known principal in the same [`AdmissionPolicy`], authorized only for the
+//!   new `urn:mfw:f19#`/`urn:mfw:f18#` actuation predicates (never the F08 planning predicates).
+//!   The re-admission's `correlation_id` is `{run.correlation_id}-actuation` -- deterministic and
+//!   distinct from the planning observation's, so it lands as a new ledger entry rather than
+//!   colliding with (or replaying) the first admission. **Scope disclosure**: this closes only the
+//!   `F19 -> F02` edge itself, not the further `F02(re-admit) -> F24 -> F21 -> F25` tail --
+//!   `f24_ocel_construct::idempotency_gate` and `f25_receipts_replay::chaos_gate::admit_for_replay`
+//!   are both audited-and-confirmed-honest `NotYetImplemented` refusals (not corruption; checked
+//!   this pass), so composing further through them would either have to skip a real gate
+//!   (dishonest) or terminate in a by-design refusal rather than a witness-advancing success.
 //!
 //! Content-identity note for F08: F08 consumes the [`AdmittedTriple`] set built from the very
 //! same PDDL/hook-pack strings the crown serialized into F02's `payload_turtle`. Identity is
@@ -105,6 +124,15 @@ use crate::f19_hooks::{
 /// The `prov:wasDerivedFrom` predicate the admitted observation's provenance triple uses (F02
 /// gate 2). Bare IRI, matching F02's own `PROV_WAS_DERIVED_FROM` constant.
 const PROV_WAS_DERIVED_FROM: &str = "http://www.w3.org/ns/prov#wasDerivedFrom";
+
+/// F19 -> F02 re-admission vocabulary: which hook name actuated the grounded action. New
+/// predicate this crown composition introduces (no prior owner in F19's own module), under the
+/// same `urn:mfw:fNN#` convention as [`crate::f08_pddl_planning::projector::HOOK_PACK_PREDICATE`].
+const HOOK_ACTUATION_NAME_PREDICATE: &str = "urn:mfw:f19#actuatedHookName";
+/// F19 -> F02 re-admission vocabulary: F19's own hook-resolution receipt hash for the actuation.
+const HOOK_ACTUATION_RECEIPT_PREDICATE: &str = "urn:mfw:f19#actuationReceiptHash";
+/// F19 -> F02 re-admission vocabulary: the F18 broker receipt the actuation was dispatched under.
+const HOOK_ACTUATION_BROKER_RECEIPT_PREDICATE: &str = "urn:mfw:f18#brokerReceiptHash";
 
 /// Everything one real LOCAL-witness prefix run needs. Every field is an input a real family
 /// entry point genuinely requires -- none is decorative.
@@ -164,6 +192,13 @@ pub struct LocalWitnessRun<'a> {
     pub local_run_id: [u8; 32],
     /// F11 bounded-descent tick budget for local execution (`BCINRLocalRuntime::run_to_local_done`).
     pub local_max_ticks: u32,
+    /// F02 re-admission source id (F19 -> F02): the *local runtime's own* identity, distinct from
+    /// `source_id` (the external planner). Must be a known principal in `policy`, authorized for
+    /// the `urn:mfw:f19#`/`urn:mfw:f18#` actuation predicates only.
+    pub actuation_source_id: String,
+    /// The principal IRI `actuation_source_id` maps to in `policy` -- the re-admission's own
+    /// `prov:wasDerivedFrom` object.
+    pub actuation_principal_iri: String,
 }
 
 /// The real, composed output of one LOCAL-witness prefix run: every stage's own genuine output,
@@ -183,6 +218,10 @@ pub struct LocalWitnessOutcome {
     /// F19's real hook resolution for the actuated action -- confirms the real local actuation
     /// corresponds to exactly one registered, authorized hook capability.
     pub hook_resolution: HookResolution,
+    /// F02's second admission receipt (F19 -> F02 re-admit): the actuation consequence, admitted
+    /// through the same real gate pipeline as `admission`, under a distinct principal and
+    /// correlation id.
+    pub actuation_admission: AdmissionReceipt,
     /// BLAKE3-hex over every stage's real digest, in canonical sorted order (no wall clock, no
     /// randomness) -- deterministic across runs of the same inputs.
     pub crown_receipt: String,
@@ -232,6 +271,12 @@ pub enum LocalWitnessRefused {
     /// action.
     #[error("crown-local F18->F19 hook resolution refused: {0}")]
     HookResolution(#[from] HookResolutionRefused),
+    /// F02 refused to re-admit the synthesized actuation-consequence observation (the
+    /// `F19 -> F02` loop-back edge). Not `#[from]`: `ObservationAdmissionRefused` already backs
+    /// [`Self::Admission`] for the first F02 call, so the two admissions are disambiguated by
+    /// variant, not by source type.
+    #[error("crown-local F19->F02 re-admission refused: {0}")]
+    ReAdmission(ObservationAdmissionRefused),
 }
 
 /// Drive the LOCAL crown-witness prefix `F02 -> F03 -> F08 -> F09 -> F10` end to end, in one
@@ -376,6 +421,32 @@ pub fn drive_local_witness_prefix(
     let hook_resolution =
         resolve_hook_for_action(&run.hook_pack_turtle, &ground_action, &mut hook_ledger)?;
 
+    // ---- Stage F19 -> F02 (re-admit): the actuation consequence loops back through the same
+    // real F02 admission gate as a new observation ----
+    // Gated by F19 above (hook_resolution exists): the actuation subject is derived from the
+    // broker receipt hash, so it names a distinct logical entity per actuation, never colliding
+    // with the original planning-snapshot subject. Asserted by `run.actuation_source_id` -- a
+    // distinct known principal from `run.source_id` (see module doc's F19->F02 nuance).
+    let actuation_subject_iri = format!(
+        "{}/actuation/{}",
+        run.subject_iri, broker_receipt.receipt_hash_hex
+    );
+    let actuation_payload_turtle = build_actuation_payload(
+        &actuation_subject_iri,
+        &run.actuation_principal_iri,
+        &hook_resolution.binding.hook_name,
+        &hook_resolution.receipt_hash,
+        &broker_receipt.receipt_hash_hex,
+    );
+    let actuation_obs = RawObservation {
+        correlation_id: format!("{}-actuation", run.correlation_id),
+        source_id: run.actuation_source_id.clone(),
+        declared_subject: actuation_subject_iri,
+        payload_turtle: actuation_payload_turtle,
+    };
+    let actuation_admission = admit_observation(run.policy, run.ledger, actuation_obs)
+        .map_err(LocalWitnessRefused::ReAdmission)?;
+
     // ---- Crown receipt: deterministic BLAKE3 over every stage's real digest ----
     let crown_receipt = compute_crown_receipt(
         &admission,
@@ -385,6 +456,7 @@ pub fn drive_local_witness_prefix(
         &growth,
         &broker_receipt,
         &hook_resolution,
+        &actuation_admission,
     );
 
     Ok(LocalWitnessOutcome {
@@ -394,6 +466,7 @@ pub fn drive_local_witness_prefix(
         growth,
         broker_receipt,
         hook_resolution,
+        actuation_admission,
         crown_receipt,
     })
 }
@@ -417,6 +490,29 @@ fn build_planning_payload(
          <{PDDL_DOMAIN_PREDICATE}> \"\"\"{pddl_domain}\"\"\" ;\n  \
          <{PDDL_PROBLEM_PREDICATE}> \"\"\"{pddl_problem}\"\"\" ;\n  \
          <{HOOK_PACK_PREDICATE}> \"\"\"{hook_pack_turtle}\"\"\" .\n"
+    )
+}
+
+/// Serialize the F19 hook-actuation consequence into a single Turtle observation payload F02 can
+/// re-admit: the provenance triple (gate 2, against the *actuation* principal, not the planner)
+/// plus the three actuation literals.
+///
+/// `hook_name` and the two receipt hashes are all values this driver itself produced or received
+/// from an already-admitted hook-pack catalog (never raw external input at this point), so plain
+/// (non-triple-quoted) Turtle string literals are safe here -- unlike `build_planning_payload`,
+/// which embeds externally-supplied PDDL/hook-pack text and so uses `"""..."""` long strings.
+fn build_actuation_payload(
+    actuation_subject_iri: &str,
+    actuation_principal_iri: &str,
+    hook_name: &str,
+    hook_receipt_hash: &str,
+    broker_receipt_hash: &str,
+) -> String {
+    format!(
+        "<{actuation_subject_iri}> <{PROV_WAS_DERIVED_FROM}> <{actuation_principal_iri}> ;\n  \
+         <{HOOK_ACTUATION_NAME_PREDICATE}> \"{hook_name}\" ;\n  \
+         <{HOOK_ACTUATION_RECEIPT_PREDICATE}> \"{hook_receipt_hash}\" ;\n  \
+         <{HOOK_ACTUATION_BROKER_RECEIPT_PREDICATE}> \"{broker_receipt_hash}\" .\n"
     )
 }
 
@@ -463,6 +559,7 @@ fn compute_crown_receipt(
     growth: &GrowthOutcome,
     broker_receipt: &BrokerReceipt,
     hook_resolution: &HookResolution,
+    actuation_admission: &AdmissionReceipt,
 ) -> String {
     let f08_tape_sig: String = f08
         .tape
@@ -483,6 +580,7 @@ fn compute_crown_receipt(
         format!("f10.geometry_turtle_len={}", growth.geometry_turtle.len()),
         format!("f18.receipt_hash={}", broker_receipt.receipt_hash_hex),
         format!("f19.receipt_hash={}", hook_resolution.receipt_hash),
+        format!("f02_readmit.receipt={}", actuation_admission.receipt_hash),
     ];
     lines.sort();
     let mut hasher = blake3::Hasher::new();
