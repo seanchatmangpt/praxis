@@ -13,15 +13,17 @@ Scope note: this is a status/audit artifact. It does not modify `tickets/index.m
 
 | Marker | Value | Why |
 |---|---|---|
-| `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | 4 of 11 LOCAL edges are `REAL_EDGE`; breaks at `F10 -> F11`. |
+| `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | 7 of 11 LOCAL edges are `REAL_EDGE` (updated post-`d60f2036`/`eeca952a`); breaks at `F19 -> F02(re-admit)`. |
 | `EXTERNAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | 7 of 16 EXTERNAL edges are `REAL_EDGE`; first sub-real at `F10 -> F12`, hard break at `F15 -> F16`. |
 | `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | Requires **both** witness markers true; neither is. |
 
-The shared prefix `F02 -> F03 -> F08 -> F09 -> F10` is a genuine, adversarially-confirmed
-`REAL_EDGE` chain (4 edges) driven by one real production `pub fn`
-(`crown_local::drive_local_witness_prefix`). The EXTERNAL tail adds three more real edges
-(`F12 -> F13 -> F14 -> F15`) via `crown_external::drive_external_witness_tail`. Everything past
-`F10` on the LOCAL tail, and everything past `F15` on the EXTERNAL tail, is not yet a real edge.
+The shared prefix `F02 -> F03 -> F08 -> F09 -> F10` plus the LOCAL tail through `F11 -> F18 -> F19`
+is a genuine, real production-caller chain (7 edges) driven by one function,
+`crown_local::drive_local_witness_prefix` (commits `3322bf2d`, `d60f2036`, `eeca952a` -- this status
+doc was written after the first of these and is being brought current now). The EXTERNAL tail adds
+three more real edges (`F12 -> F13 -> F14 -> F15`) via `crown_external::drive_external_witness_tail`.
+Everything past `F19` on the LOCAL tail, and everything past `F15` on the EXTERNAL tail, is not yet
+a real edge.
 
 ## Witness topologies (as given; not reinterpreted)
 
@@ -39,31 +41,32 @@ but leaves one required semantic sub-property unsatisfied is `PARTIAL_REAL_EDGE`
 
 ## LOCAL witness — per-edge classification
 
-Production caller for edges 1-4: `crown_local::drive_local_witness_prefix`
-(`crates/multifractal-workflow/src/crown_local.rs:173`). Verified this session: the driver calls
-`admit_observation` (crown_local.rs:192), `contract` with the exact admitted bytes
-(crown_local.rs:202 per module doc), `run_pipeline` (crown_local.rs:245), and F09's
-`manufacture_and_bind_child` (which reaches F10 internally). Confirmed the driver **stops at F10**:
-`grep -n 'load_from_geometry|dispatch_local_execution_via_broker|f11_bcinr' crown_local.rs` returns
-nothing.
+Production caller for edges 1-7: `crown_local::drive_local_witness_prefix`
+(`crates/multifractal-workflow/src/crown_local.rs`). Verified this session (post-`d60f2036`,
+`eeca952a`): the driver calls `admit_observation`, `contract` with the exact admitted bytes,
+`run_pipeline`, F09's `manufacture_and_bind_child` (reaches F10 internally), then
+`geometry_to_local_ast` -> `dispatch_local_execution_via_broker` (F11 -> F18) -> real
+`resolve_hook_for_action` (F18 -> F19), gated end to end. `crown_local_prefix_drives_f02_through_f19_end_to_end`
+(`crown_local_test.rs`) exercises the whole chain and asserts on every stage's real output,
+including `HookResolutionState::Replayable` and a non-empty F19 receipt hash.
 
 | # | Edge | Verdict | Evidence (this session) |
 |---|---|---|---|
-| 1 | F02 -> F03 | `REAL_EDGE` | crown_local.rs:192 -> :202; adversarial verdict CONFIRMED. |
+| 1 | F02 -> F03 | `REAL_EDGE` | crown_local.rs; adversarial verdict CONFIRMED. |
 | 2 | F03 -> F08 | `REAL_EDGE` | gated on `Plannable`; `receipt_head` salts F08 `case_id`; CONFIRMED. |
 | 3 | F08 -> F09 | `REAL_EDGE`* | control-gated + provenance-bound + tape-consistency-checked; CONFIRMED. *Disclosed: F09 re-plans the shared PDDL rather than byte-ingesting F08's `Pddl8Tape` (no residual-goal extractor exists). Honest, not smuggled. |
 | 4 | F09 -> F10 | `REAL_EDGE` | `manufacture_and_bind_child` -> `f10_powl_geometry::manufacture_powl_v2` (f09_mfw_growth.rs:825 -> :774); CONFIRMED. |
-| 5 | F10 -> F11 | `TEST_ONLY` | F11 `load_from_geometry` converts real F10 geometry -> F11 AST and is exercised by real (non-mock) tests, but has **zero production callers**: `grep -rn` for it outside `f11_bcinr_runtime.rs` returns nothing. Fails the `REAL_EDGE` bar. |
-| 6 | F11 -> F18 | `TEST_ONLY` | F11 `dispatch_local_execution_via_broker` drives the real F18 8-stage broker (F18 verifier saw `f11_bcinr_runtime.rs:645` call `broker.bind_correlation`), but only from F11's own test module; no production caller. |
-| 7 | F18 -> F19 | `MISSING_EDGE` | No production path composes F18 broker actuation into the F19 hook registry. Not attempted this pass. |
+| 5 | F10 -> F11 | `REAL_EDGE` | (commit `d60f2036`) `geometry_to_local_ast(&growth.geometry.root)` now called from `drive_local_witness_prefix`, a non-test `pub fn`; was `TEST_ONLY` when this doc was first written. |
+| 6 | F11 -> F18 | `REAL_EDGE` | (commit `d60f2036`) `dispatch_local_execution_via_broker` now called from the same driver, real `BrokerReceipt` returned with real `consequence_hash_hex`/`receipt_hash_hex`; was `TEST_ONLY`. |
+| 7 | F18 -> F19 | `REAL_EDGE` | (commit `eeca952a`) `resolve_hook_for_action` called `?`-gated on a real `broker_receipt`, against F08's real bound action and the real admitted hook-pack catalog; was `MISSING_EDGE`. |
 | 8 | F19 -> F02 (re-admit) | `MISSING_EDGE` | Re-admission of a hook consequence through `admit_observation` is not wired anywhere. |
 | 9 | F02 -> F24 | `MISSING_EDGE` | Not wired. |
 | 10 | F24 -> F21 | `MISSING_EDGE` | Not wired. |
 | 11 | F21 -> F25 | `MISSING_EDGE` | Not wired. |
 
-`FIRST_LOCAL_BROKEN_EDGE` = **`F10 -> F11`** (first edge that is not a full `REAL_EDGE`; real code
-exists but has no production caller). First **structurally absent** edge (no composition anywhere,
-not even in tests) = `F18 -> F19`.
+`FIRST_LOCAL_BROKEN_EDGE` = **`F19 -> F02 (re-admit)`** (updated -- edges 5-7 closed since this doc
+was first written; see commits `d60f2036`, `eeca952a`). This is also the first **structurally
+absent** edge on the LOCAL tail (no composition anywhere, not even in tests).
 
 ## EXTERNAL witness — per-edge classification
 
@@ -105,19 +108,20 @@ The shared prefix (4 edges) is counted once. Union total = 4 (shared) + 7 (LOCAL
 
 | Bucket | Count | Edges |
 |---|---|---|
-| `REAL_EDGE_COUNT` (full) | **7** | F02->F03, F03->F08, F08->F09, F09->F10, F12->F13, F13->F14, F14->F15 |
+| `REAL_EDGE_COUNT` (full) | **10** | F02->F03, F03->F08, F08->F09, F09->F10, F10->F11, F11->F18, F18->F19 (LOCAL, all committed `d60f2036`/`eeca952a`); F12->F13, F13->F14, F14->F15 (EXTERNAL) |
 | `PARTIAL_REAL_EDGE` | 1 | F10->F12 |
-| `TEST_ONLY_EDGE` | 2 | F10->F11, F11->F18 |
-| `MISSING_EDGE_COUNT` | **13** | F18->F19, F19->F02, F02->F24, F24->F21, F21->F25 (LOCAL); F15->F16, F16->F18, F18->F20, F20->F02, F02->F15, F15->F21, F21->F24, F24->F25 (EXTERNAL) |
+| `TEST_ONLY_EDGE` | 0 | (was F10->F11, F11->F18 -- both closed to `REAL_EDGE`, see above) |
+| `MISSING_EDGE_COUNT` | **12** | F19->F02, F02->F24, F24->F21, F21->F25 (LOCAL); F15->F16, F16->F18, F18->F20, F20->F02, F02->F15, F15->F21, F21->F24, F24->F25 (EXTERNAL) |
 | `REFUSED_EDGE_COUNT` | **0** | No witness edge is a by-design correct-refusal boundary. |
 
-Strict-contiguity accounting: only the 7 full `REAL_EDGE`s satisfy the path predicate. The 3
-in-between edges (1 `PARTIAL` + 2 `TEST_ONLY`) have real, tested code but no production composition,
-so they do not count toward either contiguous path. If bucketed coarsely as "real vs not-real,"
-not-real = 1 + 2 + 13 = 16 of 23.
+Strict-contiguity accounting: only the 10 full `REAL_EDGE`s satisfy the path predicate. The 1
+`PARTIAL_REAL_EDGE` (`F10->F12`) has real, tested code but leaves a semantic sub-property
+unsatisfied, so it does not count toward the EXTERNAL contiguous path. If bucketed coarsely as
+"real vs not-real," not-real = 1 + 12 = 13 of 23.
 
-Per-witness contiguous real prefix from F02: LOCAL = 4 edges (stops before `F10->F11`); EXTERNAL =
-4 edges (stops at the `F10->F12` partial; then 3 more real edges F12->F15 sit past the break).
+Per-witness contiguous real prefix from F02: LOCAL = **7 edges** (stops before `F19->F02`, updated
+from the original 4 -- see commits `d60f2036`, `eeca952a`); EXTERNAL = 4 edges (stops at the
+`F10->F12` partial; then 3 more real edges F12->F15 sit past the break).
 
 ## Whole-crate confirmation (commands run this session, non-isolated)
 
@@ -148,13 +152,16 @@ carries a legitimate, checkable environment-gate reason (not the blanket-hide co
 
 ## Three highest-value next repairs (by downstream unlock, not ticket number)
 
+**Repairs 1 and 2 below are DONE** (commits `d60f2036`, `eeca952a`) -- kept here with their original
+text for history; repair 3 is the current frontier.
+
 All three are on the **LOCAL** witness. Rationale: the EXTERNAL decisive break (`F15 -> F16`) is a
 genuine Rust-to-BEAM process boundary — F16's gen_statem is not in the production dispatch path, and
 composing Rust into the OTP runner is real distributed-systems engineering with low unlock per unit
 effort. The LOCAL tail, by contrast, is nearly closable by **reusing code that already exists and
 already passes real tests**.
 
-### 1. Extend `drive_local_witness_prefix` two stages past F10 (converts 2 edges at once)
+### 1. ~~Extend `drive_local_witness_prefix` two stages past F10~~ — DONE (`d60f2036`)
 
 Call F11's already-real, already-tested `load_from_geometry` (F10 `Powl` geometry -> F11 AST) and
 then `dispatch_local_execution_via_broker` (F11 -> `LOCAL_DONE` -> F18's 8-stage broker) from the
@@ -165,15 +172,16 @@ call sites plus one composition test — it converts `F10 -> F11` **and** `F11 -
 (F02->F10) to 6 (F02->F18). Lowest risk, highest immediate edge yield, and a prerequisite for
 repairs 2 and 3.
 
-### 2. Wire F18 broker actuation into the real F19 hook registry (`F18 -> F19`)
+### 2. ~~Wire F18 broker actuation into the real F19 hook registry~~ — DONE (`eeca952a`)
 
 After repair 1, `F18 -> F19` is the next LOCAL break. F19 is already a real, tested
 hook-capability registry (`f19_hooks::resolve_hook_for_action`, the pattern F08's `hook_binder.rs`
-already reuses). Make the broker's caller-supplied `actuate()` closure resolve and invoke an F19
-hook and capture its consequence as the actuation result. Medium effort. Unlocks `F18 -> F19` and
-produces the consequence that feeds the re-admission loop in repair 3.
+already reuses). Landed as: `drive_local_witness_prefix`, gated on a real `broker_receipt`,
+resolves F19's hook for the same grounded action F08 bound at planning time (fresh ledger, distinct
+post-actuation binding). Unlocks `F18 -> F19`; advances the LOCAL contiguous real path from 6 edges
+to **7** (F02->F19).
 
-### 3. Close the LOCAL re-admission + receipt tail (`F19 -> F02 -> F24 -> F21 -> F25`)
+### 3. Close the LOCAL re-admission + receipt tail (`F19 -> F02 -> F24 -> F21 -> F25`) — CURRENT FRONTIER
 
 Re-admit the hook consequence through F02's real `admit_observation` (`F19 -> F02`), then
 `F24` CONSTRUCT/OCEL -> `F21` parent closure -> `F25` receipts/replay. This is the
