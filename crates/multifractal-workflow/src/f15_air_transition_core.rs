@@ -106,10 +106,17 @@
 //! ggen-generated data, since "is this claim earned" is not a mechanical
 //! projection.
 //!
-//! ## What is HAND_WRITE_REQUIRED and NOT done here (disclosed, not faked)
+//! ## What became REAL in the crash-recovery pass (fixed forward)
 //!
-//! - **A literal Rust<->Erlang reuse bridge** for the transition core (see
-//!   above) -- genuinely new infrastructure, not attempted this pass.
+//! - [`bridge`] -- a real, minimal Rust<->Erlang bridge, closing the gap the
+//!   section above used to describe as out of scope. See that module's own
+//!   doc comment for the full design (a spawned `escript` subprocess, one
+//!   JSON line each way, calling `air_core`'s real, already-compiled
+//!   functions -- not a reimplementation, not an LLM-driven code-generation
+//!   path) and its disclosed scope limits (stateless per call, no `outputs`
+//!   bind-rule wiring).
+//!
+//! ## What is HAND_WRITE_REQUIRED and NOT done here (disclosed, not faked)
 //! - **The L7 chaos/recovery test suite** (duplicate events, process/engine
 //!   restart, stale results) the family survey names: the underlying
 //!   idempotency/dedup ETS machinery already exists in
@@ -145,6 +152,8 @@
 //! - /Users/sac/praxis/packs/f15-air-core-pack/ (this wiring pass, new)
 
 include!("f15_air_transition_core_generated.rs");
+
+pub mod bridge;
 
 /// The F15 8-state AIR transition lifecycle, plus the parallel `REFUSED`
 /// terminal. Naming/ordering only -- carries no transition behavior; the

@@ -1,7 +1,7 @@
 {application, arazzo_runner, [
     {description, "Arazzo Runner - Workflow Execution Engine wrapping air_core"},
     {vsn, "0.1.0"},
-    {registered, [arazzo_runner_sup]},
+    {registered, [arazzo_runner_root_sup, arazzo_runner_sup, arazzo_runner_dispatch_sup]},
     {applications, [
         kernel,
         stdlib,

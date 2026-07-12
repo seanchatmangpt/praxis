@@ -225,8 +225,8 @@ frontier:
     cargo run --quiet --bin my-conforming-project --all-features -- frontier matrix
 
 # The full local Definition-of-Done gate in CI order: check, test, clippy, then doctor (stops at first failure)
-verify-all: check test clippy doctor
-    @echo "verify-all: check + test + clippy + doctor all passed"
+verify-all: check test clippy doctor lean-receipt-gate
+    @echo "verify-all: check + test + clippy + doctor + lean-receipt-gate all passed"
 
 # PROJ-795 (v26.7.11): FIRST-SLICE Verifier Report (PRD.md sec.20 "Verifier Report", 13
 # required fields). NOT the full 13-field instrument -- answers only the fields today's
@@ -679,6 +679,19 @@ praxis-lean-clippy:
 # `just praxis-lean-run -- verify --root tools/paper-factory/lean-lake`
 praxis-lean-run *args:
     cargo run -q -p praxis-lean --bin praxis-l4 --no-default-features --features standalone-cli -- {{args}}
+
+# Permanent gate against "claimed verified, never actually compiled": computes the real
+# transitive import closure of tools/paper-factory/lean-lake/Praxis.lean (static import-line
+# parsing, not .lake/build/ artifact inspection -- see crates/praxis-lean/src/closure.rs doc
+# comment for why) and fails non-zero if mathlib_migration_receipts.jsonl claims
+# "status": "verified" for any label whose file is outside that closure. Exits 0 with a JSON
+# summary when clean; prints the exact offending labels and exits non-zero otherwise.
+lean-receipt-gate:
+    cargo run -q -p praxis-lean --bin praxis-l4 --no-default-features --features standalone-cli -- \
+        receipt-closure-gate \
+        --root tools/paper-factory/lean-lake \
+        --entry Praxis.lean \
+        --receipts tools/paper-factory/lean-lake/mathlib_migration_receipts.jsonl
 
 # Type-check the air_core Erlang NIF (apps/air_core/native/air_core_nif)
 air-core-nif-check:
