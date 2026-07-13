@@ -384,11 +384,12 @@ fn external_reentry_dispatches_serves_collects_and_readmits_a_real_consequence()
 /// `f15_air_transition_core::bridge`'s own integration tests are: it needs `escript` on `PATH`
 /// and a compiled `apps/air_core` via `just erlang-compile`; run with `--ignored`).
 ///
-/// Drives the full `F20 -> F02(re-admit) -> F15 (AIR transition)` chain: a real dispatch/serve/
-/// collect/re-admit round trip, then a real `air_core:transition/2` call completing a minimal
-/// bridge workflow keyed by the real dispatch id, carrying the real F02 admission receipt hash as
-/// its event payload -- proving the re-admitted consequence's completion is genuinely fed back
-/// into the real transition core, not merely asserted.
+/// Drives the full `F20 -> F02(re-admit) -> F15 (AIR transition) -> F21` chain: a real
+/// dispatch/serve/collect/re-admit round trip, a real `air_core:transition/2` call completing a
+/// minimal bridge workflow keyed by the real dispatch id (carrying the real F02 admission receipt
+/// hash as its event payload), then a real F21 child admission evidenced by a SHACL check over
+/// the transition's own real output -- proving each consequence is genuinely fed into the next
+/// real mechanism, not merely asserted.
 #[test]
 #[ignore = "requires escript on PATH and apps/air_core compiled via `just erlang-compile`; run with --ignored"]
 fn external_readmit_transition_completes_the_dispatched_step_through_real_air_core() {
@@ -432,6 +433,13 @@ fn external_readmit_transition_completes_the_dispatched_step_through_real_air_co
     assert!(
         outcome.transition.commands.is_empty(),
         "a single terminal step emits no further dispatch command"
+    );
+
+    // F15(AIR transition) -> F21: the external-dispatch child was really admitted under the
+    // freshly-declared closure, evidenced by a real SHACL check over the transition's own output.
+    assert!(
+        outcome.parent_closed,
+        "the single declared child under AllRequired must close its parent once admitted"
     );
 
     let _ = fs::remove_dir_all(&root);

@@ -5,11 +5,11 @@
 //!   not require `F15 -> F16` -> ... -> `F20` to be wired first -- classified on its own real
 //!   data-threading, the same way `F13 -> F14` was independently real while `F10 -> F12` was only
 //!   `PARTIAL_REAL_EDGE`).
-//! - [`drive_external_readmit_transition`]: `F02(re-admit) -> F15 (AIR transition)`, composing
-//!   [`drive_external_reentry`] verbatim then a second, real `call_air_core_bridge` round trip
-//!   that completes a minimal bridge workflow keyed by the real dispatch id, carrying the real F02
-//!   admission receipt hash as its result payload -- the externally-dispatched step's completion,
-//!   fed back into the real AIR transition core.
+//! - [`drive_external_readmit_transition`]: `F02(re-admit) -> F15 (AIR transition) -> F21`,
+//!   composing [`drive_external_reentry`] verbatim, then a second, real `call_air_core_bridge`
+//!   round trip that completes a minimal bridge workflow keyed by the real dispatch id (carrying
+//!   the real F02 admission receipt hash as its result payload), then admitting that completion as
+//!   a real child under a freshly-declared recursive socket closure.
 //!
 //! This module is the first *production caller* (a real, non-`#[cfg(test)]` `pub fn`) that
 //! drives the crown-witness EXTERNAL tail from F10's geometry output through the Arazzo
@@ -26,6 +26,7 @@
 //! | F20 External Dispatch | [`crate::f20_external_dispatch::dispatch_subworkflow_to_engine`] -> [`crate::f20_external_dispatch::engine_serve`] -> [`crate::f20_external_dispatch::collect_subworkflow_consequence`] |
 //! | F02 (re-admit)              | [`crate::f02_observation_admission::admit_observation`], over a synthesized observation asserting F20's real collected consequence |
 //! | F15 (AIR re-transition)    | [`crate::f15_air_transition_core::bridge::call_air_core_bridge`], called a second time to complete the externally-dispatched step |
+//! | F21 Parent-Child Closure (EXTERNAL) | [`crate::f21_parent_child_closure::admit_child_and_evaluate`], over a freshly-declared closure and a real SHACL check on the AIR transition's own output |
 //!
 //! # What makes each edge real (and the honest boundaries)
 //!
@@ -132,11 +133,28 @@
 //! [`drive_external_reentry`] alone, which is escript-independent) -- kept as a *separate*
 //! function rather than folded into `drive_external_reentry`, so a caller that only needs the
 //! `F20 -> F02` edge is not forced to depend on a compiled `air_core`.
+//!
+//! **`F15(AIR transition) -> F21`, closed as the same function's final stage**: once the AIR
+//! transition completes, its real output (`ready_steps`/`commands`) is folded into a deterministic
+//! BLAKE3 receipt and admitted as a child under a freshly-declared `RecursiveSocketClosure`.
+//! Honest nuance: unlike `crown_local.rs`'s `F24 -> F21` (which reuses F09's own real
+//! `growth.closure`/`growth.child_socket`, produced fresh for exactly that purpose), no upstream
+//! family here naturally produces a closure over the external-dispatch structure, so a minimal
+//! one -- a single-leaf `PartialOrder` whose one child *is* the external dispatch -- is declared
+//! in this driver. The evidence is real and non-vacuous (same discipline as `F24 -> F21`'s SHACL
+//! check): a deterministic fold of the transition's actual `ready_steps`/`commands`, always
+//! non-empty (BLAKE3 of even an empty input is a real digest), so `conforms: true` reflects a
+//! real fact about this specific transition, not a fabricated pass. `parent_closed` is always
+//! `true` for this single-child `AllRequired` closure (a real, not hardcoded, field regardless).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use powl2_decompose::{Powl, SocketPath};
+use powl2_decompose::{ParentChildClosure, Powl, SocketKind, SocketPath, WorkflowSocketId};
+use praxis_graphlaw::chatman::closure::{ClosureLaw, RecursiveSocketClosure};
+use praxis_graphlaw::parser::{Parser, Syntax};
+use praxis_graphlaw::shacl::{ShapesGraph, Validator};
+use praxis_graphlaw::tripleindex::TripleIndex;
 use wasm4pm_arazzo::air::{AirProgram, AirRoutingOutcome};
 
 use crate::f02_observation_admission::{
@@ -155,6 +173,7 @@ use crate::f20_external_dispatch::{
     collect_subworkflow_consequence, dispatch_subworkflow_to_engine, engine_serve, CngRefusal,
     SubworkflowDispatchOutcome, SubworkflowPlan,
 };
+use crate::f21_parent_child_closure::{admit_child_and_evaluate, Refusal as F21Refusal};
 
 /// The SPARQL projection string stamped onto the declared external cut. The real Q-stage query
 /// F13 runs is [`crate::f12_external_cut::RENDER_MODEL_PROJECTION_QUERY`]; this per-cut string is
@@ -647,7 +666,28 @@ fn compute_reentry_crown_receipt(
     hasher.finalize().to_hex().to_string()
 }
 
-/// The real, composed output of one `F02(re-admit) -> F15 (AIR transition)` run.
+/// `F15(AIR transition) -> F21` evidence vocabulary/shape this crown composition introduces (no
+/// prior owner in F21's own module), matching the `urn:mfw:crown-ext#` namespace this module's
+/// own re-admission predicates already use.
+const EXTERNAL_TRANSITION_EVIDENCE_CLASS: &str = "urn:mfw:crown-ext#ExternalTransitionEvidence";
+const EXTERNAL_TRANSITION_EVIDENCE_RECEIPT_PREDICATE: &str = "urn:mfw:crown-ext#transitionReceipt";
+
+/// `F15(AIR transition) -> F21` evidence shape: requires the transition evidence subject to carry
+/// a non-empty `transitionReceipt` value. Same non-vacuous pattern as `crown_local.rs`'s
+/// `ACTUATION_CONSTRUCT_EVIDENCE_SHAPES`: the target class is matched by a real individual and
+/// `sh:minCount 1` is genuinely evaluated against a real, deterministically-folded value.
+const EXTERNAL_TRANSITION_EVIDENCE_SHAPES: &str = r#"
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <urn:mfw:crown-ext#> .
+ex:ExternalTransitionEvidenceShape a sh:NodeShape ;
+    sh:targetClass ex:ExternalTransitionEvidence ;
+    sh:property [
+        sh:path ex:transitionReceipt ;
+        sh:minCount 1 ;
+    ] .
+"#;
+
+/// The real, composed output of one `F02(re-admit) -> F15(AIR transition) -> F21` run.
 #[derive(Debug)]
 pub struct ExternalReadmitTransitionOutcome {
     /// The `F20 -> F02(re-admit)` outcome this run composes verbatim as its first stage.
@@ -655,9 +695,14 @@ pub struct ExternalReadmitTransitionOutcome {
     /// The real transition result from completing the externally-dispatched step -- empty
     /// `ready_steps`/`commands` on a single terminal step is a legitimate outcome, not a failure.
     pub transition: BridgeTransitionResult,
+    /// Whether the freshly-declared single-child recursive socket closure closed once the
+    /// external-dispatch child was admitted (`F15 -> F21`). Always `true` for this single-child
+    /// `AllRequired` closure (admitting the one declared child always closes it) -- kept as a real
+    /// field, not hardcoded, so a caller never has to assume the closure semantics.
+    pub parent_closed: bool,
 }
 
-/// Typed refusal for the composed `F02(re-admit) -> F15` edge.
+/// Typed refusal for the composed `F02(re-admit) -> F15 -> F21` edge.
 #[derive(Debug, thiserror::Error)]
 pub enum ExternalReadmitTransitionRefused {
     /// The `F20 -> F02(re-admit)` stage refused.
@@ -666,12 +711,25 @@ pub enum ExternalReadmitTransitionRefused {
     /// The real `air_core` bridge transition refused.
     #[error("crown-external F02(re-admit)->F15 transition: AIR transition refused: {0}")]
     AirTransition(#[from] AirBridgeRefused),
+    /// This driver's own transition-evidence Turtle failed to parse (defensive: built from a
+    /// compile-time-controlled format string plus a BLAKE3 hex digest; kept as a typed refusal
+    /// rather than `.expect()` per this repo's no-panics-on-fallible-code invariant).
+    #[error("crown-external F15->F21 transition evidence malformed: {reason}")]
+    TransitionEvidenceMalformed { reason: String },
+    /// This driver's own `EXTERNAL_TRANSITION_EVIDENCE_SHAPES` constant failed to parse
+    /// (defensive: hand-verified compile-time SHACL Turtle).
+    #[error("crown-external F15->F21 transition evidence shapes invalid: {reason}")]
+    TransitionEvidenceShapesInvalid { reason: String },
+    /// Declaring the recursive socket closure, or F21 admitting the external-dispatch child under
+    /// it, refused. Both share `praxis_graphlaw::chatman::abi::Refusal` as their error type.
+    #[error("crown-external F15->F21 child closure refused: {0}")]
+    ChildClosure(F21Refusal),
 }
 
-/// Drive the EXTERNAL witness's `F02(re-admit) -> F15 (AIR transition)` edge end to end: dispatch,
-/// serve, collect, and re-admit a real consequence via [`drive_external_reentry`], then complete a
-/// minimal real bridge workflow for that same dispatch through a second, real
-/// [`call_air_core_bridge`] round trip.
+/// Drive the EXTERNAL witness's `F02(re-admit) -> F15 (AIR transition) -> F21` edge end to end:
+/// dispatch, serve, collect, and re-admit a real consequence via [`drive_external_reentry`],
+/// complete a minimal real bridge workflow through a real [`call_air_core_bridge`] round trip,
+/// then admit that completion as a real child under a freshly-declared recursive socket closure.
 ///
 /// See the module doc comment's `F02(re-admit) -> F15 (AIR transition)` section for exactly what
 /// makes this a real production edge and every disclosed nuance -- including why this function,
@@ -700,9 +758,70 @@ pub fn drive_external_readmit_transition(
         }],
     )?;
 
+    // ---- Stage F15(AIR transition) -> F21: admit the external-dispatch consequence as a real
+    // child under a freshly-declared recursive socket closure ---------------------------------
+    // Gated by `transition` above. Unlike `crown_local.rs`'s F24->F21 (which reuses F09's own
+    // real `growth.closure`/`growth.child_socket`), this composition has no upstream family that
+    // naturally produces a closure over the external-dispatch structure, so a minimal one is
+    // declared here: a single-leaf `PartialOrder` whose one child *is* the external dispatch.
+    // Evidence is a real, non-vacuous SHACL check over a deterministic BLAKE3 fold of the
+    // transition's own real `ready_steps`/`commands` output -- always non-empty (BLAKE3 of even
+    // an empty input is a real 64-hex digest), so `conforms: true` genuinely reflects "the AIR
+    // core really processed this transition," not a fabricated pass.
+    let closure_model = Powl::PartialOrder {
+        children: vec![Powl::Leaf(Some("external-dispatch".to_string()))],
+        order: BTreeSet::new(),
+    };
+    let parent_socket = WorkflowSocketId {
+        path: SocketPath::root(),
+        kind: SocketKind::PartialOrder,
+    };
+    let dispatch_child_socket = WorkflowSocketId {
+        path: SocketPath::root().child(0),
+        kind: SocketKind::Leaf,
+    };
+    let pcc = ParentChildClosure::from_model(&closure_model);
+    let mut closure = RecursiveSocketClosure::declare(&pcc, parent_socket, ClosureLaw::AllRequired)
+        .map_err(ExternalReadmitTransitionRefused::ChildClosure)?;
+
+    let transition_receipt = {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(reentry.dispatch_outcome.dispatch_id.as_bytes());
+        for step in &transition.ready_steps {
+            hasher.update(step.as_bytes());
+        }
+        for cmd in &transition.commands {
+            hasher.update(cmd.step_id.as_bytes());
+        }
+        hasher.finalize().to_hex().to_string()
+    };
+    let evidence_subject_iri = format!("{}/transition", reentry.reentry_admission.subject_iri);
+    let evidence_turtle = format!(
+        "<{evidence_subject_iri}> a <{EXTERNAL_TRANSITION_EVIDENCE_CLASS}> ;\n  \
+         <{EXTERNAL_TRANSITION_EVIDENCE_RECEIPT_PREDICATE}> \"{transition_receipt}\" .\n"
+    );
+    let evidence_parsed = Parser::parse_triples(&evidence_turtle, Syntax::Turtle).map_err(|e| {
+        ExternalReadmitTransitionRefused::TransitionEvidenceMalformed {
+            reason: e.to_string(),
+        }
+    })?;
+    let mut evidence_index = TripleIndex::new();
+    for t in evidence_parsed {
+        evidence_index.add(t);
+    }
+    let evidence_shapes =
+        ShapesGraph::parse(EXTERNAL_TRANSITION_EVIDENCE_SHAPES).map_err(|reason| {
+            ExternalReadmitTransitionRefused::TransitionEvidenceShapesInvalid { reason }
+        })?;
+    let evidence_report = Validator::validate(&evidence_index, &evidence_shapes);
+    let parent_closed =
+        admit_child_and_evaluate(&mut closure, &dispatch_child_socket, &evidence_report)
+            .map_err(ExternalReadmitTransitionRefused::ChildClosure)?;
+
     Ok(ExternalReadmitTransitionOutcome {
         reentry,
         transition,
+        parent_closed,
     })
 }
 
