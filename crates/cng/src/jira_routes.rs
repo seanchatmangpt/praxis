@@ -41,10 +41,7 @@ fn jira_deps(id: String) -> Result<cng::jira::TicketDeps> {
 
 /// List all tickets, optionally filtered by --status and/or --section.
 #[verb("list", "jira")]
-fn jira_list(
-    status: Option<String>,
-    section: Option<String>,
-) -> Result<cng::jira::TicketListReport> {
+fn jira_list(status: Option<String>, section: Option<String>) -> Result<cng::jira::TicketListReport> {
     cng::jira::handlers::jira_list_handler(status, section)
 }
 
@@ -72,6 +69,7 @@ fn jira_status(id: String) -> Result<cng::jira::TicketStatus> {
     cng::jira::handlers::jira_status_handler(id)
 }
 
+
 // ---------------------------------------------------------------------
 // Noun `--help` description, generated from the `cnv:Noun` individual's
 // `rdfs:comment` — same first-writer-wins registration rationale as
@@ -79,6 +77,7 @@ fn jira_status(id: String) -> Result<cng::jira::TicketStatus> {
 // block for the full explanation of why this beats the macro's runtime
 // `file!()`-based scrape for a distributed/installed binary).
 // ---------------------------------------------------------------------
+
 
 #[linkme::distributed_slice(::clap_noun_verb::cli::registry::__NOUN_REGISTRY)]
 static REGISTER_JIRA_NOUN: fn() = register_jira_noun;
@@ -88,3 +87,4 @@ fn register_jira_noun() {
         "Query milestone ticket-tracking data generated from docs/jira/*/tickets/index.md.",
     );
 }
+

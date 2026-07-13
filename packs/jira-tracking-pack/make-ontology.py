@@ -3,9 +3,9 @@
 
 This is a REAL parse of the human-maintained markdown ticket table, not a
 hand-transcribed snapshot: rerun this script any time the source table
-changes and instances.ttl (and the ontology.ttl union built from it) tracks
-the real file, never goes stale on its own. Reuses the same block-boundary
-technique `scripts/verifier_report.py`'s `parse_ticket_statuses()` already
+changes and instances.ttl tracks the real file, never goes stale on its
+own. Reuses the same block-boundary technique
+`scripts/verifier_report.py`'s `parse_ticket_statuses()` already
 established for this exact file (row_start regex bounding each ticket's
 markdown "row", which in this document spans multiple physical lines —
 remediation paragraphs appended below the initial declaration, not standard
@@ -15,14 +15,32 @@ single-line GFM rows) and extends it to pull every structured column
 Parsing strategy (see extract_ticket_rows() docstring for the exact
 algorithm and its documented limitations).
 
+Scope note (post extra_ontologies migration, see crates/ggen/src/config.rs
+`PackRef::Path.extra_ontologies`, landed commit c0e7cd71): this script used
+to also write packs/jira-tracking-pack/ontology.ttl as a committed union of
+schema.ttl (hand-authored vocabulary) + instances.ttl (this parse's output),
+because ggen's sync pipeline loads exactly one ontology.ttl per pack and
+does not follow owl:imports. That union is no longer this script's job:
+the hand-authored vocabulary now lives directly in
+packs/jira-tracking-pack/ontology.ttl (schema.ttl was renamed away, its
+content is unchanged), and instances.ttl is unioned into the pack graph at
+`ggen sync` time via this pack's `ggen.toml` `extra_ontologies` entry. This
+script now does exactly two things: (1) the real markdown-to-Turtle parse,
+writing instances.ttl, and (2) the crates/cng/src/jira-data.ttl copy step
+below, which is a separate concern from what ggen's own pack graph loads —
+that file is compiled into the `cng` binary via `include_str!`
+(crates/cng/src/jira.rs) and needs the same ontology.ttl + instances.ttl
+union content regardless of how ggen assembles its own pack graph, so this
+script still concatenates them itself for that one purpose.
+
 Run: `python3 packs/jira-tracking-pack/make-ontology.py`, or via
 `just jira-tracking-generate` (also runs `ggen sync run` afterward).
 Writes:
   - packs/jira-tracking-pack/instances.ttl   (GENERATED ticket instance data)
-  - packs/jira-tracking-pack/ontology.ttl    (GENERATED union: schema.ttl + instances.ttl)
-  - crates/cng/src/jira-data.ttl             (GENERATED copy of ontology.ttl,
-    compiled into the `cng` binary via `include_str!` so the CLI needs no
-    runtime data-file path)
+  - crates/cng/src/jira-data.ttl             (GENERATED copy: concatenation
+    of packs/jira-tracking-pack/ontology.ttl (hand-authored vocabulary) and
+    the instances.ttl this script just generated, compiled into the `cng`
+    binary via `include_str!` so the CLI needs no runtime data-file path)
 """
 
 from __future__ import annotations
@@ -33,9 +51,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PACK_ROOT = Path(__file__).resolve().parent
 TICKETS_INDEX = REPO_ROOT / "docs/jira/v26.7.11/tickets/index.md"
-SCHEMA_TTL = PACK_ROOT / "schema.ttl"
-INSTANCES_TTL = PACK_ROOT / "instances.ttl"
 ONTOLOGY_TTL = PACK_ROOT / "ontology.ttl"
+INSTANCES_TTL = PACK_ROOT / "instances.ttl"
 CNG_DATA_COPY = REPO_ROOT / "crates/cng/src/jira-data.ttl"
 
 JIRA_NS = "http://seanchatmangpt.github.io/packs/jira-tracking#"
@@ -53,8 +70,8 @@ DEP_TOKEN_RE = re.compile(r"\b(\d{3})(?:-(\d{3}))?\b")
 STATUS_KEYWORDS = ["ALIVE", "PARTIAL", "BLOCKED", "PLANNED", "OVERCLAIMED", "OPEN", "DONE"]
 STATUS_KEYWORD_RE = re.compile(r"\b(" + "|".join(STATUS_KEYWORDS) + r")\b")
 
-# Closed-vocabulary normalization (schema.ttl's 5 jira:Status individuals).
-# OPEN -> Planned and DONE -> Alive are documented heuristics (schema.ttl's
+# Closed-vocabulary normalization (ontology.ttl's 5 jira:Status individuals).
+# OPEN -> Planned and DONE -> Alive are documented heuristics (ontology.ttl's
 # jira:Planned comment); every other keyword maps to its literal namesake.
 STATUS_MAP = {
     "ALIVE": "Alive",
@@ -230,25 +247,24 @@ def main() -> int:
     instances_ttl = render_instances_ttl(rows)
     INSTANCES_TTL.write_text(instances_ttl)
 
-    schema_ttl = SCHEMA_TTL.read_text()
-    union = (
-        "# GENERATED union — do not edit. Sources:\n"
-        "#   packs/jira-tracking-pack/schema.ttl   (hand-authored vocabulary)\n"
-        "#   packs/jira-tracking-pack/instances.ttl (generated ticket data, see below)\n"
-        "# Regenerate: packs/jira-tracking-pack/make-ontology.py\n"
-        + schema_ttl
-        + "\n"
-        + instances_ttl
-    )
-    ONTOLOGY_TTL.write_text(union)
+    # Pack graph union (ontology.ttl + instances.ttl) is now ggen's own job
+    # at sync time via this pack's `ggen.toml` `extra_ontologies` entry —
+    # this script no longer writes packs/jira-tracking-pack/ontology.ttl.
+    # The crates/cng/src/jira-data.ttl compiled-in copy is a separate
+    # concern (a build artifact for the `cng` binary, not a ggen pack
+    # input) so it still needs the same union; this script assembles it
+    # directly from the two source files rather than depending on ggen
+    # having run first.
+    ontology_ttl = ONTOLOGY_TTL.read_text()
     CNG_DATA_COPY.write_text(
         "# GENERATED — do not edit. Compiled into the `cng` binary via\n"
         "# include_str! (crates/cng/src/jira.rs) so the CLI needs no runtime\n"
-        "# data-file path. Byte-identical in content to\n"
-        "# packs/jira-tracking-pack/ontology.ttl (this pack's own source of\n"
-        "# truth); regenerate both together via\n"
-        "# packs/jira-tracking-pack/make-ontology.py.\n"
-        + schema_ttl
+        "# data-file path. Concatenation of\n"
+        "# packs/jira-tracking-pack/ontology.ttl (hand-authored vocabulary,\n"
+        "# this pack's own source of truth) and\n"
+        "# packs/jira-tracking-pack/instances.ttl (generated ticket data,\n"
+        "# see above); regenerate via packs/jira-tracking-pack/make-ontology.py.\n"
+        + ontology_ttl
         + "\n"
         + instances_ttl
     )
@@ -260,7 +276,6 @@ def main() -> int:
     for status, count in sorted(by_status.items()):
         print(f"  {status}: {count}")
     print(f"wrote {INSTANCES_TTL.relative_to(REPO_ROOT)}")
-    print(f"wrote {ONTOLOGY_TTL.relative_to(REPO_ROOT)}")
     print(f"wrote {CNG_DATA_COPY.relative_to(REPO_ROOT)}")
     return 0
 

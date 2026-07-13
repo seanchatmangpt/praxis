@@ -31,38 +31,41 @@ ClassDef { label: "SimulatedWorkflow", iri: "https://ggen.io/ontology/f26-ontolo
 /// `(from_label, to_label)` pairs: `from` `prov:wasDerivedFrom` `to`, i.e.
 /// `from` cannot exist without `to` already having been computed.
 pub const DERIVATION_EDGES: &[(&str, &str)] = &[
-    ("AdmissionDecision", "ClosureDelta"),
-    ("ClosureDelta", "ScenarioGraph"),
-    ("ConstructedRelation", "DiscoveryPattern"),
-    ("DiscoveryPattern", "ScenarioReceipt"),
-    ("Plan", "AdmissionDecision"),
-    ("ScenarioGraph", "OntologyDimensionCatalog"),
-    ("ScenarioReceipt", "SimulatedWorkflow"),
-    ("SimulatedWorkflow", "Plan"),
+("AdmissionDecision", "ClosureDelta"),
+("ClosureDelta", "ScenarioGraph"),
+("ConstructedRelation", "DiscoveryPattern"),
+("DiscoveryPattern", "ScenarioReceipt"),
+("Plan", "AdmissionDecision"),
+("ScenarioGraph", "OntologyDimensionCatalog"),
+("ScenarioReceipt", "SimulatedWorkflow"),
+("SimulatedWorkflow", "Plan"),
 ];
 
 /// Self-play lifecycle state names, in ordinal (pipeline) order.
 /// `"REFUSED"` (last) is the terminal off-ramp reachable from the states in
 /// [`REFUSAL_EXIT_STATES`], not a pipeline stage in sequence with the rest.
 pub const LIFECYCLE_STATES: &[&str] = &[
-    "DIMENSIONS_SELECTED",
-    "WORLD_GENERATED",
-    "CONTRACTED",
-    "ADMITTED",
-    "PLANNED",
-    "SIMULATED",
-    "MINED",
-    "CAPITALIZED",
-    "REFUSED",
+"DIMENSIONS_SELECTED",
+"WORLD_GENERATED",
+"CONTRACTED",
+"ADMITTED",
+"PLANNED",
+"SIMULATED",
+"MINED",
+"CAPITALIZED",
+"REFUSED",
 ];
 
 /// State names from which the pipeline may exit directly to `"REFUSED"`
 /// instead of advancing to the next ordinal state.
-pub const REFUSAL_EXIT_STATES: &[&str] = &["PLANNED", "WORLD_GENERATED"];
+pub const REFUSAL_EXIT_STATES: &[&str] = &[
+"PLANNED",
+"WORLD_GENERATED",
+];
 
 /// The family's named exit-evidence flags, sorted.
 pub const EXIT_EVIDENCE_FLAGS: &[&str] = &[
-    "IMPOSSIBLE_SCENARIO_PREPLAN_REFUSAL",
-    "PUBLIC_ONTOLOGY_SELF_PLAY_PROVEN",
-    "SELF_PLAY_DISCOVERY_CAPITALIZED",
+"IMPOSSIBLE_SCENARIO_PREPLAN_REFUSAL",
+"PUBLIC_ONTOLOGY_SELF_PLAY_PROVEN",
+"SELF_PLAY_DISCOVERY_CAPITALIZED",
 ];

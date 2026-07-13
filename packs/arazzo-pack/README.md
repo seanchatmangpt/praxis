@@ -13,16 +13,18 @@ projection artifact, never a source of truth and never re-admitted.
 | `templates/engine-openapi.yaml.tmpl` | `generated/engine-openapi.yaml` | `a_engines` |
 | `templates/engine-asyncapi.yaml.tmpl` | `generated/engine-asyncapi.yaml` | `a_engines` |
 
-`ontology.ttl` is a generated union (ggen sync loads exactly one pack ontology via
-`insert_turtle` and does not follow `owl:imports`) of:
+`ontology.ttl` is this pack's own content: the `arzeng:` engine capability contract
+(coordinator C, helper H, main M) — a documented bridge vocabulary pending real
+engine-description triples from PROJ-722/723. Two external sources are unioned into the
+sync graph via this pack's `ggen.toml` `extra_ontologies` entry (`[packs].arazzo-pack`),
+not committed into this pack:
 
 1. `crates/cng/ontologies/arazzo.ttl` — the `arz:` Arazzo 1.1.0 80/20 vocabulary.
 2. `crates/cng/examples/arazzo-api-orchestration.ttl` — workflow instance data.
-3. `packs/arazzo-pack/engines-local.ttl` — pack-local `arzeng:` engine instances
-   (coordinator C, helper H, main M); a documented bridge vocabulary pending real
-   engine-description triples from PROJ-722/723.
 
-Regenerate the union with `packs/arazzo-pack/make-ontology.sh` after editing any source.
+This replaces the pack's former `make-ontology.sh` committed-union convention (deleted):
+ggen now unions declared `extra_ontologies` after the pack's own `ontology.ttl` at sync
+time, so the pack graph can no longer drift from its external sources.
 
 ## Design choices
 
@@ -50,7 +52,7 @@ Engine processes (`submitWorkflow`, `getExecutionEvidence`, `quiesce`;
 `workflowAcknowledged`, `workflowResultProduced`). The transport binding implemented this
 increment is filesystem (`engines/<id>/{inbox,outbox}` Turtle exchange, plan decision 6):
 declared-contract mechanism ALIVE (rendered from the graph, digest-recorded); HTTP/broker
-binding UNVERIFIED and intentionally absent. Engine instances in `engines-local.ttl` are
+binding UNVERIFIED and intentionally absent. Engine instances in `ontology.ttl` are
 hand-authored declarations, not runtime-derived facts.
 
 ## Downstream verification seam (Rust wiring is a separate ticket)
@@ -64,6 +66,7 @@ seam only; it is not part of this pack.
 ## See Also
 
 - `packs/otel-weaver-pack/` — frontmatter/Tera precedent this pack follows.
-- `packs/ocel-bench-pack/make-ontology.sh` — ontology-union convention.
+- `packs/togaf-adm-pack/` — `extra_ontologies` convention precedent this pack now follows
+  (own content in `ontology.ttl`; external sources declared in `ggen.toml`, not unioned in).
 - `crates/cng/ontologies/arazzo.ttl` and `crates/cng/shapes/arazzo-shapes.ttl` —
   authoritative vocabulary and closed shapes (refused 1.1 features listed there).

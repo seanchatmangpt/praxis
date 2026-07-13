@@ -1,4 +1,4 @@
 [pack]
 name = "jira-tracking-pack"
 version = "0.1.0"
-description = "Ticket-tracking CLI (jira list/show/status/deps/report) generated from real docs/jira/v26.7.11/tickets/index.md instance data. ontology.ttl is a committed union of schema.ttl (hand-authored jira:/cnv: vocabulary) and instances.ttl (parsed from the real ticket markdown table) because ggen sync loads exactly one pack ontology file via insert_turtle and does not follow owl:imports; regenerate with packs/jira-tracking-pack/make-ontology.py."
+description = "Ticket-tracking CLI (jira list/show/status/deps/report) generated from real docs/jira/v26.7.11/tickets/index.md instance data. ontology.ttl is this pack's own hand-authored jira:/cnv: vocabulary; instances.ttl (real ticket data parsed from the markdown table by packs/jira-tracking-pack/make-ontology.py) is unioned into the pack graph at sync time via this pack's ggen.toml extra_ontologies entry, not committed here. Regenerate instances.ttl with packs/jira-tracking-pack/make-ontology.py."

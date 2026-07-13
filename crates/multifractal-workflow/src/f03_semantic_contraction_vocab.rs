@@ -31,16 +31,12 @@ ClassDef { label: "TypedGraph", iri: "https://ggen.io/ontology/semantic-contract
 /// artifact) -- see the atlas's own F03-L6 diagram, which alternates the
 /// two labels rather than using one uniformly.
 pub const DERIVATION_EDGES: &[(&str, &str, &str)] = &[
-    ("AdmissibilityDecision", "generates", "ShapeReport"),
-    ("ClosureGraph", "prov:wasDerivedFrom", "TypedGraph"),
-    ("PlanningState", "generates", "ResidueGraph"),
-    ("RefinementDelta", "generates", "ClosureGraph"),
-    (
-        "ResidueGraph",
-        "prov:wasDerivedFrom",
-        "AdmissibilityDecision",
-    ),
-    ("ShapeReport", "prov:wasDerivedFrom", "RefinementDelta"),
+("AdmissibilityDecision", "generates", "ShapeReport"),
+("ClosureGraph", "prov:wasDerivedFrom", "TypedGraph"),
+("PlanningState", "generates", "ResidueGraph"),
+("RefinementDelta", "generates", "ClosureGraph"),
+("ResidueGraph", "prov:wasDerivedFrom", "AdmissibilityDecision"),
+("ShapeReport", "prov:wasDerivedFrom", "RefinementDelta"),
 ];
 
 /// Lifecycle state names, in ordinal (pipeline) order. Index 0 is the first
@@ -48,14 +44,14 @@ pub const DERIVATION_EDGES: &[(&str, &str, &str)] = &[
 /// off-ramp reachable from `CLOSED` or `SHAPED`, not a pipeline stage in
 /// sequence with the rest.
 pub const LIFECYCLE_STATES: &[&str] = &[
-    "TYPED",
-    "CLOSED",
-    "REFINED",
-    "SHAPED",
-    "ADMISSIBLE",
-    "CONTRACTED",
-    "PLANNABLE",
-    "REFUSED",
+"TYPED",
+"CLOSED",
+"REFINED",
+"SHAPED",
+"ADMISSIBLE",
+"CONTRACTED",
+"PLANNABLE",
+"REFUSED",
 ];
 
 /// `(from_state, to_state, kind)` triples describing every legal (or
@@ -63,14 +59,14 @@ pub const LIFECYCLE_STATES: &[&str] = &[
 /// `"lawful"`, `"invalid"`, or `"authority_or_conformance_failure"`. Any
 /// `(from, to)` pair not present here is not a legal transition.
 pub const TRANSITIONS: &[(&str, &str, &str)] = &[
-    ("ADMISSIBLE", "CONTRACTED", "lawful"),
-    ("CLOSED", "REFINED", "lawful"),
-    ("CLOSED", "REFUSED", "invalid"),
-    ("CONTRACTED", "PLANNABLE", "lawful"),
-    ("REFINED", "SHAPED", "lawful"),
-    ("SHAPED", "ADMISSIBLE", "lawful"),
-    ("SHAPED", "REFUSED", "authority_or_conformance_failure"),
-    ("TYPED", "CLOSED", "lawful"),
+("ADMISSIBLE", "CONTRACTED", "lawful"),
+("CLOSED", "REFINED", "lawful"),
+("CLOSED", "REFUSED", "invalid"),
+("CONTRACTED", "PLANNABLE", "lawful"),
+("REFINED", "SHAPED", "lawful"),
+("SHAPED", "ADMISSIBLE", "lawful"),
+("SHAPED", "REFUSED", "authority_or_conformance_failure"),
+("TYPED", "CLOSED", "lawful"),
 ];
 
 /// One C1-C7 pipeline component: `(name, status, ordinal)`. `status` is
@@ -79,11 +75,11 @@ pub const TRANSITIONS: &[(&str, &str, &str)] = &[
 /// `"HONEST_STUB"` means a typed not-yet-implemented refusal, tracked
 /// under V12-003, with no fake success path. Not a design aspiration.
 pub const PIPELINE_COMPONENTS: &[(&str, &str, u32)] = &[
-    ("Ontology Typing", "REAL", 0),
-    ("Datalog Closure", "REAL", 1),
-    ("N3 Quarantine Router", "HONEST_STUB", 2),
-    ("Bounded N3 Refinement", "HONEST_STUB", 3),
-    ("SHACL Gate", "REAL", 4),
-    ("ShEx Gate", "REAL", 5),
-    ("Residue Projector", "HONEST_STUB", 6),
+("Ontology Typing", "REAL", 0),
+("Datalog Closure", "REAL", 1),
+("N3 Quarantine Router", "HONEST_STUB", 2),
+("Bounded N3 Refinement", "HONEST_STUB", 3),
+("SHACL Gate", "REAL", 4),
+("ShEx Gate", "REAL", 5),
+("Residue Projector", "HONEST_STUB", 6),
 ];
