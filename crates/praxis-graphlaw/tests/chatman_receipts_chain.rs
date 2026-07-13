@@ -347,3 +347,25 @@ fn verify_replay_receipt_root_mismatch() -> Result<(), Refusal> {
         ))),
     }
 }
+
+#[test]
+fn verify_replay_refused_when_snapshot_turtle_is_malformed() -> Result<(), Refusal> {
+    // Not a digest-drift case: the replay run itself must fail to even
+    // reach S1-S5, because `ChatmanEngine::load_snapshot`'s Turtle parser
+    // refuses `snapshot_turtle` outright. `verify_replay` must surface that
+    // as `ReplayMismatch::ReplayRefused`, not panic, not silently treat it
+    // as some other mismatch variant, and not report a spurious verified
+    // `Ok(())`.
+    let transition = admitted_transition()?;
+    let receipt = transition.receipt();
+
+    let mut inputs = replay_inputs()?;
+    inputs.snapshot_turtle = "this is not @@@ valid [[ turtle syntax at all".to_string();
+
+    match ChatmanEngine::verify_replay(receipt, &inputs) {
+        Err(ReplayMismatch::ReplayRefused(_)) => Ok(()),
+        other => Err(Refusal::ValidationFailed(format!(
+            "expected ReplayMismatch::ReplayRefused, got {other:?}"
+        ))),
+    }
+}
