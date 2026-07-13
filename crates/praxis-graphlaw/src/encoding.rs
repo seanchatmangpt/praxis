@@ -231,41 +231,92 @@ impl InternalEncoder {
 #[derive(Debug)]
 pub struct Encoder {}
 
+// Swarm finding (`panics-unwraps-core`, encoding.rs:236, HIGH): `GLOBAL_ENCODER.lock().unwrap()`
+// turned any single panic while a thread held this lock (from lib.rs:75-85's documented
+// `RSPEngine::register_r2r` multi-thread mode, or any other panic mid-`Encoder::*` call) into a
+// permanent process-wide crash -- every subsequent `Encoder::add/get/decode` call panics
+// immediately on the poisoned lock, wedging all other callers for the rest of the process's
+// life, not just the thread that panicked. Fixed with Rust's standard poison-recovery idiom
+// (`unwrap_or_else(|poisoned| poisoned.into_inner())`) rather than propagating a typed refusal:
+// `InternalEncoder`'s own mutations (`intern`'s two `HashMap::insert`s plus a counter increment)
+// are simple, synchronous, and do not themselves panic under any realistic input, so a poisoning
+// event necessarily originates from a caller-side bug *outside* this locked section, not from a
+// half-completed mutation of the encoder's own `encoded`/`decoded` maps -- recovering the guard
+// restores exactly the valid state that existed when the unrelated panic fired. This is strictly
+// better than today's guaranteed-permanent-wedge, not a claim that every possible panic source is
+// eliminated (that would require auditing and hardening every call site that can reach these
+// functions, a much larger, separate effort).
+fn recover(
+    result: std::sync::LockResult<std::sync::MutexGuard<'_, InternalEncoder>>,
+) -> std::sync::MutexGuard<'_, InternalEncoder> {
+    result.unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 impl Encoder {
     pub fn add(uri: String) -> usize {
-        let mut encoder = GLOBAL_ENCODER.lock().unwrap();
+        let mut encoder = recover(GLOBAL_ENCODER.lock());
         encoder.add(uri)
     }
 
     pub fn get(uri: &str) -> Option<usize> {
-        let encoder = GLOBAL_ENCODER.lock().unwrap();
+        let encoder = recover(GLOBAL_ENCODER.lock());
         encoder.get(uri)
     }
 
     pub fn decode(encoded: &usize) -> Option<String> {
-        let encoder = GLOBAL_ENCODER.lock().unwrap();
+        let encoder = recover(GLOBAL_ENCODER.lock());
         encoder.decode(encoded)
     }
 
     pub fn add_iri(iri: String) -> usize {
-        let mut encoder = GLOBAL_ENCODER.lock().unwrap();
+        let mut encoder = recover(GLOBAL_ENCODER.lock());
         encoder.add_iri(iri)
     }
 
     pub fn add_blank_node(label: String) -> usize {
-        let mut encoder = GLOBAL_ENCODER.lock().unwrap();
+        let mut encoder = recover(GLOBAL_ENCODER.lock());
         encoder.add_blank_node_label(label)
     }
 
     pub fn add_literal(value: String, datatype: Option<String>, lang: Option<String>) -> usize {
-        let mut encoder = GLOBAL_ENCODER.lock().unwrap();
+        let mut encoder = recover(GLOBAL_ENCODER.lock());
         encoder.add_literal(value, datatype, lang)
     }
 
     pub fn decode_to_term(id: usize) -> Option<Term> {
-        let encoder = GLOBAL_ENCODER.lock().unwrap();
+        let encoder = recover(GLOBAL_ENCODER.lock());
         encoder.decode_to_term(id)
     }
+}
+
+// Regression for swarm finding `panics-unwraps-core` (encoding.rs:236, HIGH): before the
+// `recover()` fix above, poisoning `GLOBAL_ENCODER` (e.g. via any panic on a thread holding the
+// lock, a real, documented, live code path per lib.rs:75-85's multi-thread `RSPEngine` mode, not
+// just a hypothetical) would have permanently wedged every subsequent `Encoder::add/get/decode`
+// call for the rest of the process's life. This test deliberately poisons the lock on a separate
+// thread, then proves the crate's own public API continues to work correctly afterward -- not
+// just "doesn't panic," but returns the actually-correct decoded value.
+#[test]
+fn encoder_recovers_from_lock_poisoning() {
+    let handle = std::thread::spawn(|| {
+        let _guard = GLOBAL_ENCODER.lock().unwrap();
+        panic!("intentional test poisoning of GLOBAL_ENCODER");
+    });
+    // The spawned thread panics while holding the lock; `join` returns `Err` with the panic
+    // payload, which we deliberately discard -- the poisoning itself is the test setup, not the
+    // thing under test.
+    assert!(
+        handle.join().is_err(),
+        "the spawned thread must have actually panicked, or this test proves nothing"
+    );
+
+    let id = Encoder::add("http://poison-recovery-test/example".to_string());
+    let decoded =
+        Encoder::decode(&id).expect("Encoder::decode must succeed after lock poisoning recovery");
+    assert_eq!(
+        decoded, "http://poison-recovery-test/example",
+        "the recovered encoder must return the correct value, not just avoid panicking"
+    );
 }
 
 #[test]

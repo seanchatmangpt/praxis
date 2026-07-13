@@ -136,14 +136,41 @@ impl VarOrTerm {
 
     /// Build an RDF-list term from an ordered set of members (which may be
     /// variables or ground terms). See the module-level design note above.
+    ///
+    /// Poison-recovery note (matches `Encoder`'s own fix, see
+    /// `encoding.rs::recover`'s doc comment for the full rationale): each
+    /// `.lock()` here uses `unwrap_or_else(|poisoned| poisoned.into_inner())`
+    /// rather than `.unwrap()`, so an unrelated panic elsewhere in the
+    /// process no longer permanently wedges every future list/formula
+    /// lookup. Honest nuance specific to this function: `LIST_INTERN` and
+    /// `LIST_REGISTRY` are two separate locks updated in two separate
+    /// statements (not one atomic critical section), so a panic landing
+    /// between the two inserts below could in principle leave `LIST_REGISTRY`
+    /// populated for an id that `LIST_INTERN` doesn't yet cache -- the next
+    /// `new_list` call with the same members would then miss the cache and
+    /// mint a second, redundant blank-node id for logically-identical
+    /// members, rather than returning a wrong answer. That is a strictly
+    /// smaller failure than today's alternative (the panic's poisoning wedges
+    /// this function, and everything downstream of it, for the rest of the
+    /// process).
     pub fn new_list(members: Vec<VarOrTerm>) -> VarOrTerm {
-        if let Some(&existing_id) = LIST_INTERN.lock().unwrap().get(&members) {
+        if let Some(&existing_id) = LIST_INTERN
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(&members)
+        {
             return VarOrTerm::new_encoded_term(existing_id);
         }
         let tag = SYNTHETIC_COUNTER.fetch_add(1, Ordering::SeqCst);
         let id = Encoder::add_blank_node(format!("__n3list_{}", tag));
-        LIST_REGISTRY.lock().unwrap().insert(id, members.clone());
-        LIST_INTERN.lock().unwrap().insert(members, id);
+        LIST_REGISTRY
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(id, members.clone());
+        LIST_INTERN
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(members, id);
         VarOrTerm::new_encoded_term(id)
     }
 
@@ -152,7 +179,10 @@ impl VarOrTerm {
     pub fn new_formula(triples: Vec<Triple>) -> VarOrTerm {
         let tag = SYNTHETIC_COUNTER.fetch_add(1, Ordering::SeqCst);
         let id = Encoder::add_blank_node(format!("__n3formula_{}", tag));
-        FORMULA_REGISTRY.lock().unwrap().insert(id, triples);
+        FORMULA_REGISTRY
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(id, triples);
         VarOrTerm::new_encoded_term(id)
     }
 
@@ -168,7 +198,11 @@ impl VarOrTerm {
     /// Like `list_members`, but preserves each member's full `VarOrTerm`
     /// (Var vs Term), which `to_encoded()` alone discards.
     pub fn list_members_typed(id: usize) -> Option<Vec<VarOrTerm>> {
-        LIST_REGISTRY.lock().unwrap().get(&id).cloned()
+        LIST_REGISTRY
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(&id)
+            .cloned()
     }
 
     /// True if `id` names a list term with at least one variable member,
@@ -278,7 +312,11 @@ impl VarOrTerm {
 
     /// If `id` names a synthetic formula (quoted graph) term, return its triples.
     pub fn formula_triples(id: usize) -> Option<Vec<Triple>> {
-        FORMULA_REGISTRY.lock().unwrap().get(&id).cloned()
+        FORMULA_REGISTRY
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(&id)
+            .cloned()
     }
 }
 
