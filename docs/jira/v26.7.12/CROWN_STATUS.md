@@ -276,6 +276,29 @@ substantially larger than any single Rust-wiring repair this pass closed -- real
 Erlang/OTP engineering, not incremental Rust wiring -- and should be scoped as its own
 multi-cycle effort, not forced into one pass.
 
+**Re-investigated this pass with deeper evidence than any prior cycle** (no code changed; the
+already-built `arazzo_runner_dispatch_statem.erl` was read in full, not just cited secondhand):
+the gen_statem's own module header (point 5) states the reason wiring was deliberately deferred is
+a **concrete, already-identified regression risk**, not just architectural size --
+`apply_transition/4` calling `arazzo_runner_broker:dispatch/4` directly is *synchronous*
+(blocks until the round trip completes); `arazzo_runner_dispatch_statem:dispatch/1` is
+deliberately *asynchronous* by design (point 2: "The `dispatch` call replies `ok` immediately
+upon entering `dispatched`, BEFORE the worker's round trip completes -- proving this state is a
+real async, concurrently-executing state, not a synchronous simulation dressed up as one").
+Naively swapping the call site would flip `apply_transition/4`'s completion-ordering guarantee
+from synchronous to asynchronous, and "several `arazzo_runner_workflow_test.erl` assertions rely
+on dispatch completing before the next reaction is processed" (the module's own words) -- i.e.,
+this specific rewiring would **break existing, currently-passing Erlang tests**, confirmed by
+reading the actual dispatch-reply timing in `ready/3`, not inferred. Preserving synchronous
+ordering while still routing through the supervised worker would require adding a genuinely new
+blocking wait API to the gen_statem (polling `get_outcome/1` or restructuring the reply timing),
+which would partially undo the module's own stated purpose (a provably async dispatch state) and
+constitutes real new Erlang/OTP design work carrying real regression risk to load-bearing,
+already-passing tests -- a categorically different risk than any Rust-side crown-witness edge
+built this session, none of which touched shared, already-tested production modules in a way
+that could regress existing assertions. Confirms (with stronger, code-level evidence) the
+prior conclusion: not attempted, correctly scoped as its own effort.
+
 ### 8. ~~Close `F20 -> F02(re-admit)`~~ — DONE (`b4d743f7`)
 
 **Supersedes the "ruled out" investigation previously recorded here.** That investigation
