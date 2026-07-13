@@ -439,7 +439,7 @@ fn crown_local_prefix_is_deterministic() {
 /// exercises, recompute the golden value the same way (run the test, take the real `left` value
 /// from the assertion failure) and update the constant -- never guess a replacement value.
 const GOLDEN_CROWN_LOCAL_RECEIPT_HEX: &str =
-    "7312777b2239047e7ef4bf723a7eb466ab8ac26729606b7cb6b20b246f10bfd3";
+    "41f8b1d2a9749fd3030a66fcaea36fec5c6e9ccb6aaeae9fd0e758b139c919b5";
 
 /// Recomputes the crown-local receipt for the same fixed fixture the golden value above was
 /// captured from, and asserts byte-for-byte equality. This is the mechanical gate: no `.contains`

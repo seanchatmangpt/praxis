@@ -117,7 +117,17 @@
 //!   fit: `source` = F02's admitted payload, `query` = the PDDL problem driving planning,
 //!   `template` = the real SHACL shape the F24->F21 evidence rendered through, `program` = the
 //!   hook-pack catalog the actuation executed via, `event` = the F24->F21 evidence Turtle itself,
-//!   `output` = F24's real receipt head. Honest nuance: the replay closure returns
+//!   `output` = **F21's own real, freshly-computed consequence**: `parent_closed` (this stage's
+//!   own return value) plus `growth.closure.children()`'s post-admission
+//!   `BTreeMap<WorkflowSocketId, ChildCompletionState>` (deterministically `Ord`-keyed).
+//!   Corrected in a later pass: `output` previously reused `ocel_outcome.receipt_head` a second
+//!   time (already present verbatim inside `event`'s own Turtle), so F21's own produced
+//!   consequence never reached `Materials` at all -- a real, `?`-gated caller sequence with one
+//!   of six required material kinds duplicating another rather than representing this edge's own
+//!   transformation. `compute_crown_receipt` (below) already folded `parent_closed` into this
+//!   driver's own crown receipt before this fix, confirming the value was already trusted receipt
+//!   content elsewhere in this function -- it was simply never threaded into `F25Materials`
+//!   specifically until now. Honest nuance: the replay closure returns
 //!   `materials.clone()` -- not a shortcut invented for this driver, but the identical pattern
 //!   `f25_receipts_replay.rs`'s own test suite uses for a deterministic transformation
 //!   (`independent_verifier_confirms_equivalent_replay`: `run(&materials, || Ok(materials.clone()))`).
@@ -699,9 +709,35 @@ pub fn drive_local_witness_prefix(
     // from this same run, mapped by genuine semantic fit, not filler: `source` is F02's admitted
     // payload; `query` is the PDDL problem driving planning; `template` is the real SHACL shape
     // the F24->F21 evidence rendered through; `program` is the hook-pack catalog the actuation
-    // executed via; `event` is the F24->F21 evidence Turtle itself; `output` is F24's real
-    // receipt head. Honest nuance: the replay closure returns `materials.clone()`, matching
-    // F25's own test suite's established pattern for a deterministic transformation
+    // executed via; `event` is the F24->F21 evidence Turtle itself.
+    //
+    // `output` is F21's own real, freshly-computed consequence -- `parent_closed` (this call's
+    // own return value) plus `growth.closure.children()`'s post-admission state (a
+    // `BTreeMap<WorkflowSocketId, ChildCompletionState>`, `Ord`-keyed and therefore
+    // deterministically ordered without an extra sort step). This is the actual `F21 -> F25`
+    // data-threading a prior pass of this file's own crown-status doc flagged as missing:
+    // `output` previously reused `ocel_outcome.receipt_head` a second time (it is already present
+    // verbatim inside `event`'s Turtle, embedded there a few lines above), so F21's own produced
+    // consequence never actually reached `Materials` -- one of the six required CTQ material
+    // kinds was a duplicate of another rather than representing this edge's own transformation.
+    // `compute_crown_receipt` below already folds `parent_closed` into the driver's own crown
+    // receipt (`f21.parent_closed={parent_closed}`) as legitimate material, confirming this value
+    // was already trusted receipt content elsewhere in this function -- it was simply never
+    // threaded into `F25Materials` specifically. `ChildCompletionState` has no `Display` impl (only
+    // `Debug`), so `{state:?}` is used for its lexical form; this is still fully deterministic
+    // (the enum's `Debug` output is fixed per variant, not derived from memory addresses or
+    // anything platform-dependent).
+    let closure_children_text = growth
+        .closure
+        .children()
+        .iter()
+        .map(|(socket, state)| format!("{socket}={state:?}"))
+        .collect::<Vec<_>>()
+        .join(",");
+    let f21_output = format!("parent_closed={parent_closed};children={{{closure_children_text}}}");
+
+    // Honest nuance: the replay closure returns `materials.clone()`, matching F25's own test
+    // suite's established pattern for a deterministic transformation
     // (`f25_receipts_replay.rs`'s `independent_verifier_confirms_equivalent_replay` test uses the
     // identical `run(&materials, || Ok(materials.clone()))` shape) -- since every field here is
     // already a real, deterministically-computed value (not fabricated), an honest replay
@@ -714,7 +750,7 @@ pub fn drive_local_witness_prefix(
         template: ACTUATION_CONSTRUCT_EVIDENCE_SHAPES.to_string(),
         program: run.hook_pack_turtle.clone(),
         event: evidence_turtle.clone(),
-        output: ocel_outcome.receipt_head.clone(),
+        output: f21_output,
     };
     let replay_outcome = run_receipt_replay(&materials, || Ok(materials.clone()))
         .map_err(LocalWitnessRefused::ReceiptReplay)?;
