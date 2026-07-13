@@ -25,7 +25,13 @@ use std::collections::HashMap;
 use std::iter::empty;
 use std::rc::Rc;
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+// `Ord`/`PartialOrd` added (previously just Debug/Eq/PartialEq/Hash/Clone) specifically so
+// `rsp::r2s::Relation2StreamOperator::eval`'s DSTREAM branch can sort `Vec<Binding>` rows
+// before returning them -- see that function's own doc comment for the determinism bug this
+// fixes. Purely additive (derives, no removed capability); lexicographic over (var, val), a
+// well-defined total order with no ties to break arbitrarily since two distinct Bindings always
+// differ in at least one field.
+#[derive(Debug, Eq, PartialEq, Hash, Clone, PartialOrd, Ord)]
 pub struct Binding {
     pub var: String,
     pub val: String,

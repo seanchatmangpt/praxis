@@ -41,7 +41,9 @@ pub struct RSPBuilder<'a, I, O> {
 }
 impl<'a, I, O> RSPBuilder<'a, I, O>
 where
-    O: Clone + Hash + Eq + Send + Debug + 'static,
+    // `Ord` added alongside the swarm-finding-#22-class fix in `r2s.rs`'s
+    // `Relation2StreamOperator::eval` (DSTREAM branch) -- see that function's own doc comment.
+    O: Clone + Hash + Eq + Ord + Send + Debug + 'static,
     I: Eq + PartialEq + Clone + Debug + Hash + Send + 'static,
 {
     pub fn new(width: usize, slide: usize) -> RSPBuilder<'a, I, O> {
@@ -134,7 +136,9 @@ pub struct ResultConsumer<I> {
 
 impl<I, O> RSPEngine<I, O>
 where
-    O: Clone + Hash + Eq + Send + 'static,
+    // `Ord` added alongside the swarm-finding-#22-class fix in `r2s.rs`'s
+    // `Relation2StreamOperator::eval` (DSTREAM branch) -- see that function's own doc comment.
+    O: Clone + Hash + Eq + Ord + Send + 'static,
     I: Eq + PartialEq + Clone + Debug + Hash + Send + 'static,
 {
     pub fn new(
