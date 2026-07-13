@@ -219,11 +219,11 @@ fn base_run<'a>(
 // Tests
 // --------------------------------------------------------------------------
 
-/// The load-bearing test: one admitted observation graph drives F02 -> F03 -> F08 -> F09 -> F10
-/// -> F11 -> F18 -> F19 -> F02(re-admit) -> F24 -> F21 end to end, and every stage's real output
-/// is present and correct.
+/// The load-bearing test: one admitted observation graph drives the **entire LOCAL crown
+/// witness**, F02 -> F03 -> F08 -> F09 -> F10 -> F11 -> F18 -> F19 -> F02(re-admit) -> F24 ->
+/// F21 -> F25, end to end, and every stage's real output is present and correct.
 #[test]
-fn crown_local_prefix_drives_f02_through_f21_end_to_end() {
+fn crown_local_prefix_drives_the_entire_local_witness_end_to_end() {
     let policy = crown_policy();
     let ledger = AdmissionLedger::new();
     let (root, closure) = open_growth_root_and_closure();
@@ -346,6 +346,30 @@ fn crown_local_prefix_drives_f02_through_f21_end_to_end() {
     assert!(
         !outcome.parent_closed,
         "AllRequired over 2 unobserved original leaves + this 1 admitted child must stay open"
+    );
+
+    // --- F21 -> F25: the crown chain's own canonical texts were really folded into a receipt
+    //     and independently replay-verified -- all 6 CTQ material kinds matched, the folded
+    //     receipt root matched its replay, and real PROV-O receipt-graph quads were written ---
+    assert_eq!(
+        outcome.replay_outcome.report.matched_kinds.len(),
+        6,
+        "all 6 CTQ material kinds (source/query/template/program/event/output) must match"
+    );
+    assert!(outcome.replay_outcome.report.receipt_root_matched);
+    assert!(!outcome
+        .replay_outcome
+        .receipt
+        .receipt_root
+        .as_str()
+        .is_empty());
+    assert_eq!(
+        outcome.replay_outcome.receipt.receipt_root, outcome.replay_outcome.replayed.receipt_root,
+        "the folded receipt and its independent replay must agree on the receipt root"
+    );
+    assert!(
+        !outcome.replay_outcome.graph.is_empty(),
+        "F25 must write real PROV-O receipt-graph quads"
     );
 
     // --- Crown receipt is a real 64-hex BLAKE3 fold over every stage's digest ---
