@@ -36,7 +36,20 @@ arazzo_runner_workflow_test_() ->
               "sibling: an unrecognized event tag reaching handle_reaction/3 is "
               "caught by a catch-all clause, not left to crash the workflow "
               "process via an uncaught function_clause",
-              fun test_unrecognized_reaction_event_does_not_crash_the_workflow/0}
+              fun test_unrecognized_reaction_event_does_not_crash_the_workflow/0},
+             {"dogfood cycle 20 (w6a5iv25g) coverage gap: a directly-dispatched "
+              "dispatch_ready reaction genuinely enqueues the given step/def pair, "
+              "not just the internally-synthesized path apply_transition/4 already "
+              "covers",
+              fun test_dispatch_ready_reaction_enqueues_the_given_step/0},
+             {"dogfood cycle 20 (w6a5iv25g) coverage gap: a child_refused reaction "
+              "folds as a real step_failed transition (blocking the join, not just "
+              "recording an audit note) and records the child's refusal",
+              fun test_child_refused_reaction_blocks_join_and_records_refusal/0},
+             {"dogfood cycle 20 (w6a5iv25g) coverage gap: the admission_result "
+              "accepted sibling of the already-tested refused path genuinely "
+              "records to the audit log and lets the workflow keep running",
+              fun test_admission_result_accepted_reaction_records_audit_log/0}
          ]
      end}.
 
@@ -510,3 +523,101 @@ test_unrecognized_reaction_event_does_not_crash_the_workflow() ->
     RS1 = wait_for_reaction(WorkflowId, C0, result),
     ?assertEqual(true, maps:get(<<"step_a_done">>, air_core:get_env(RS1#runner_state.core))),
     ?assertEqual([<<"step_b">>], air_core:ready_steps(RS1#runner_state.core)).
+
+%% dogfood cycle 20 (w6a5iv25g) reported: dispatch_ready, child_refused, and the
+%% admission_result-accepted sibling of the already-tested refused path have no
+%% direct dispatch_event-driven test, unlike the module's other 7 documented PRD
+%% 7.8 reaction-event classes. These three close that gap -- real dispatch_event/2
+%% calls against a real supervised workflow, no test-only shortcut into
+%% handle_reaction/3.
+
+%% dispatch_ready is normally synthesized internally by apply_transition/4 for
+%% every dispatch_step command air_core produces (already exercised by
+%% test_reactions_change_observable_state); this drives the DIRECT path -- a
+%% dispatch_ready reaction announced on its own, as the module's own doc comment
+%% says a future broker re-signalling readiness (or retry_due, above it in the
+%% clause list) would do -- and proves it genuinely enqueues the given
+%% {StepId, StepDef} pair into pending_dispatches, not just records an audit note.
+test_dispatch_ready_reaction_enqueues_the_given_step() ->
+    WorkflowId = <<"wf-dispatch-ready-1">>,
+    StartSpec = start_spec(WorkflowId),
+    {ok, Pid} = arazzo_runner_sup:start_workflow(StartSpec),
+
+    StepBDef = maps:get(<<"step_b">>, maps:get(steps, sample_workflow_def())),
+    C0 = reaction_count(WorkflowId),
+    ok = arazzo_runner_workflow:dispatch_event(Pid, {dispatch_ready, <<"step_b">>, StepBDef}),
+    RS1 = wait_for_reaction(WorkflowId, C0, {dispatch_ready, <<"step_b">>}),
+    ?assertEqual([{<<"step_b">>, StepBDef}], RS1#runner_state.pending_dispatches),
+
+    %% Still genuinely responsive afterward -- a real `result` reaction for the
+    %% step already active (step_a) still advances state normally.
+    C1 = reaction_count(WorkflowId),
+    ok = arazzo_runner_workflow:dispatch_event(Pid, {result, <<"step_a">>, ok}),
+    RS2 = wait_for_reaction(WorkflowId, C1, result),
+    ?assertEqual(true, maps:get(<<"step_a_done">>, air_core:get_env(RS2#runner_state.core))).
+
+%% child_refused (unlike child_complete, exercised by
+%% test_reactions_change_observable_state) folds as a real step_failed
+%% transition -- air_core:handle_step_failed/3 clears the step's bit but
+%% deliberately never sets completed_mask (no compensation protocol, PROJ-759),
+%% permanently blocking any AND/join depending on it. Proves this is a genuine
+%% state-machine transition, not just an audit-log append: step_a's own bit
+%% clears from ready_steps, step_a never appears completed, and the refusal is
+%% recorded on both the children map and the refusals list.
+test_child_refused_reaction_blocks_join_and_records_refusal() ->
+    WorkflowId = <<"wf-child-refused-1">>,
+    StartSpec = start_spec(WorkflowId),
+    {ok, Pid} = arazzo_runner_sup:start_workflow(StartSpec),
+
+    {ok, RS0} = arazzo_runner_workflow:get_runner_state(WorkflowId),
+    ?assertEqual([<<"step_a">>], air_core:ready_steps(RS0#runner_state.core)),
+
+    C0 = reaction_count(WorkflowId),
+    ok = arazzo_runner_workflow:dispatch_event(
+        Pid, {child_refused, <<"child-wf-1">>, <<"step_a">>, no_capacity}
+    ),
+    RS1 = wait_for_reaction(WorkflowId, C0, {child_refused, <<"child-wf-1">>}),
+
+    %% The join-blocking consequence: step_a is no longer ready (its bit
+    %% cleared), but it never became a completed step either -- a genuinely
+    %% failed, not completed, transition.
+    ?assertEqual([], air_core:ready_steps(RS1#runner_state.core)),
+    ?assertNot(maps:is_key(<<"step_a_done">>, air_core:get_env(RS1#runner_state.core))),
+
+    %% The audit-trail consequence: recorded on both fields handle_reaction/3
+    %% documents, not just the reaction log.
+    ?assertEqual({refused, no_capacity}, maps:get(<<"child-wf-1">>, RS1#runner_state.children)),
+    ?assertEqual([{<<"child-wf-1">>, no_capacity}], RS1#runner_state.refusals).
+
+%% admission_result accepted is the untested sibling of the already-tested
+%% {admission_result, {refused, Reason}} path (which additionally persists and
+%% exits -- a much heavier consequence). This proves the accepted path is
+%% genuinely lighter-weight as handle_reaction/3's own doc comment claims:
+%% recorded for audit, execution continues -- not silently a no-op, and not
+%% accidentally sharing the refused path's persist-and-exit behavior.
+test_admission_result_accepted_reaction_records_audit_log() ->
+    WorkflowId = <<"wf-admission-accepted-1">>,
+    StartSpec = start_spec(WorkflowId),
+    {ok, Pid} = arazzo_runner_sup:start_workflow(StartSpec),
+    Mon = monitor(process, Pid),
+
+    C0 = reaction_count(WorkflowId),
+    ok = arazzo_runner_workflow:dispatch_event(Pid, {admission_result, accepted}),
+    RS1 = wait_for_reaction(WorkflowId, C0, {admission_result, accepted}),
+    ?assertEqual([accepted], RS1#runner_state.admission_log),
+
+    %% Unlike the refused sibling, the workflow process must still be alive --
+    %% no exit, no DETS persist-and-terminate.
+    receive
+        {'DOWN', Mon, process, Pid, Reason} ->
+            error({workflow_process_exited_on_admission_accepted, Reason})
+    after 200 ->
+        ok
+    end,
+    ?assert(is_process_alive(Pid)),
+
+    %% And a subsequent, real `result` reaction still advances state normally.
+    C1 = reaction_count(WorkflowId),
+    ok = arazzo_runner_workflow:dispatch_event(Pid, {result, <<"step_a">>, ok}),
+    RS2 = wait_for_reaction(WorkflowId, C1, result),
+    ?assertEqual(true, maps:get(<<"step_a_done">>, air_core:get_env(RS2#runner_state.core))).
