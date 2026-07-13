@@ -534,6 +534,14 @@ cng-check-isolated name:
 cng-clippy-isolated name:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo clippy -p cng --features bench --tests -- -D warnings
 
+# Lint ONLY the cng crate's own code (--no-deps), skipping clippy's lint pass on path
+# dependencies like praxis-graphlaw. Use this when cng-clippy-isolated fails inside a
+# dependency crate you didn't touch -- that failure blocks clippy from ever reaching cng's
+# own code, so this is the only way to get a clean signal on a cng-only change until the
+# dependency's own debt is addressed separately.
+cng-clippy-own-code-isolated name:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo clippy -p cng --features bench --tests --no-deps -- -D warnings
+
 # Remove one isolated target dir (cleanup after an agent/dev is done with it)
 cng-clean-isolated name:
     #!/usr/bin/env bash

@@ -712,6 +712,95 @@ test!(
     }
 );
 
+// Swarm audit wnl2yhbgm finding #33: `templates/dispatch-consequence.template.ttl` substitutes
+// `{{DISPATCH_ID}}` directly after an `ex:` prefix (`prov:wasDerivedFrom ex:{{DISPATCH_ID}}`) --
+// an unescaped Turtle IRI-local-name position, via the same naive `fill_template` string
+// substitution `EngineBundle::new`'s finding #32 fix and finding #30's `dispatchId` shape-pattern
+// fix both guard elsewhere. A `dispatch_id` carrying `>`/`<`/`.`/space characters embedded there
+// would corrupt or mis-bind the rendered outbox consequence's Turtle structure rather than merely
+// carry a wrong value. Investigation (this session, no code change needed): `contract.dispatch_id`
+// in `run_serve_loop` (engine.rs) is the same `InboxContract` bound straight from
+// `read_inbox_contract`, which is only ever called *after* `shape_violations` has already checked
+// the raw contract Turtle against `DispatchContractShape` -- the same `sh:pattern
+// "^[A-Za-z0-9_-]+$"` finding #30's fix (commit `6ba85a75`) added, and confirmed still wired
+// through all three `shape_violations` queries (`dispatch.rs::shape_violations`, unchanged since
+// that commit). Since `[A-Za-z0-9_-]` excludes every Turtle-syntax-breaking character, no
+// admitted `dispatch_id` can ever reach `fill_template`'s `ex:{{DISPATCH_ID}}` position unsafely
+// -- finding #33 is closed as a genuine (if previously undisclosed) side effect of finding #30's
+// fix, not a separate code change. This test closes the disclosure gap: it proves the specific
+// Turtle-injection-shaped payload finding #33 describes is refused at the same contract-admission
+// gate g15 exercises, AND that the outbox consequence file -- the artifact finding #33 says would
+// be corrupted -- is never written for the rejected dispatch.
+test!(
+    g17_turtle_injection_dispatch_id_is_refused_before_any_outbox_consequence_is_written,
+    {
+        let root = scratch_dir("g17");
+        let dispatched =
+            engine_dispatch_remote(&root, "C", &["H"], 1, 0, 0, SEED).expect("dispatch phase");
+        assert_eq!(dispatched, 1);
+
+        let inbox = root.join("engines/H/inbox");
+        let contract_path = fs::read_dir(&inbox)
+            .expect("read inbox")
+            .flatten()
+            .map(|e| e.path())
+            .find(|p| p.extension().and_then(|x| x.to_str()) == Some("ttl"))
+            .expect("real dispatched contract exists");
+        let original = fs::read_to_string(&contract_path).expect("read real contract");
+        let needle = "disp:dispatchId \"disp-remote-H-0000\"";
+        assert!(
+            original.contains(needle),
+            "expected the real contract to carry the deterministic dispatch id: {original}"
+        );
+        // If this landed unescaped at `ex:{{DISPATCH_ID}}` in the consequence template, it would
+        // close the IRI early (`>`), terminate the statement (`.`), and open an injected triple.
+        let malicious = original.replacen(
+            needle,
+            "disp:dispatchId \"evil> . <urn:injected> a <urn:MaliciousClass>.\"",
+            1,
+        );
+        fs::write(&contract_path, &malicious).expect("tamper dispatchId in place");
+
+        let (_stdout, stderr, ok) = run_cng(&[
+            "engine",
+            "serve",
+            "--root",
+            root.to_str().expect("utf-8 root"),
+            "--engine-id",
+            "H",
+            "--seed",
+            "616",
+            "--max-polls",
+            "2",
+            "--poll-wait-ms",
+            "0",
+        ]);
+        assert!(
+            !ok,
+            "a Turtle-injection-shaped dispatchId must refuse the contract, not render it into \
+         the outbox: stderr={stderr}"
+        );
+        assert!(
+            stderr.contains("CNG_R15") || stderr.contains("dispatchId"),
+            "the refusal must be the shape-pattern violation on dispatchId, not an unrelated \
+         failure: stderr={stderr}"
+        );
+        let outbox = root.join("engines/H/outbox");
+        let outbox_ttl_count = fs::read_dir(&outbox)
+            .map(|it| {
+                it.flatten()
+                    .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("ttl"))
+                    .count()
+            })
+            .unwrap_or(0);
+        assert_eq!(
+            outbox_ttl_count, 0,
+            "the malicious dispatch_id must never reach fill_template's ex:{{DISPATCH_ID}} \
+         position -- no consequence file should exist in the outbox for the rejected dispatch"
+        );
+    }
+);
+
 test!(
     distributed_determinism_two_serialized_runs_byte_identical,
     {
