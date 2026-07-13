@@ -455,7 +455,27 @@ handle_reaction(_WorkflowId, {admission_result, {refused, Reason}} = Ev, RS) ->
     RS2 = record_reaction(RS1, Ev),
     ok = arazzo_runner_identity:persist(RS2),
     ets:insert(arazzo_workflow_states, {(RS2#runner_state.identity)#workflow_identity.workflow_id, RS2}),
-    exit({admission_refused, Reason}).
+    exit({admission_refused, Reason});
+
+%% Swarm audit wnl2yhbgm finding #13's OTP-runner reaction-dispatch sibling (deferred from
+%% commit f22c1db4, dogfood workflow w8ckcazm7): no prior clause matched this Event -- an
+%% unrecognized/malformed reaction tag, reachable via the exported dispatch_event/2 API
+%% with no shape validation. Unlike apply_transition/4's own exception path (which
+%% indicates internal state may be inconsistent, so exit-and-restart via
+%% arazzo_runner_sup's `restart => transient` is correct there), an unrecognized Event is
+%% not evidence of state corruption -- RS is untouched -- so exit-and-restart would be the
+%% WRONG recovery here: it would still terminate the process and lose the in-flight event,
+%% the exact residual harm this finding is about, even though the supervisor mitigates the
+%% permanent-destruction severity the AtomVM sibling (f22c1db4) had. Disclosed-log +
+%% ignore + keep running, matching this repo's typed-refusal doctrine translated to
+%% Erlang's untyped message passing: the bad message is dropped, the workflow's own state
+%% and every other in-flight/future event are unaffected.
+handle_reaction(WorkflowId, UnknownEvent, RS) ->
+    error_logger:warning_msg(
+        "Workflow ~p: unrecognized reaction event ~p, ignoring",
+        [WorkflowId, UnknownEvent]
+    ),
+    RS.
 
 %% ---------------------------------------------------------------------
 %% Shared air_core transition application

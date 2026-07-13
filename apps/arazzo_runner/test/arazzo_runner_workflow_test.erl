@@ -31,7 +31,12 @@ arazzo_runner_workflow_test_() ->
               "outputs field that crashes required_result_types/1 inside the "
               "broker dispatch call is caught, not left to crash the whole "
               "workflow process",
-              fun test_broker_dispatch_exception_does_not_crash_the_workflow/0}
+              fun test_broker_dispatch_exception_does_not_crash_the_workflow/0},
+             {"swarm audit wnl2yhbgm finding #13's OTP-runner reaction-dispatch "
+              "sibling: an unrecognized event tag reaching handle_reaction/3 is "
+              "caught by a catch-all clause, not left to crash the workflow "
+              "process via an uncaught function_clause",
+              fun test_unrecognized_reaction_event_does_not_crash_the_workflow/0}
          ]
      end}.
 
@@ -464,3 +469,44 @@ test_broker_dispatch_exception_does_not_crash_the_workflow() ->
     %% -- genuinely completed first, proving this is a real two-step chain,
     %% not a workflow that never got past step_a.
     ?assertEqual(true, maps:get(<<"step_a_done">>, air_core:get_env(RS#runner_state.core))).
+
+%% swarm audit wnl2yhbgm finding #13's OTP-runner reaction-dispatch sibling
+%% (deferred from commit f22c1db4, precisely scoped by dogfood workflow
+%% w8ckcazm7): before the handle_reaction/3 catch-all clause, no prior clause
+%% matched an unrecognized event tag -- react/2 calls handle_reaction/3
+%% directly, with no try/catch of its own, so the resulting function_clause
+%% propagated straight through react/2 into workflow_loop/1's receive,
+%% crashing the whole (supervised) workflow process and losing whatever
+%% other commands this in-flight event would have produced. This drives the
+%% REAL dispatch_event/2 -> workflow_loop/1 -> react/2 -> handle_reaction/3
+%% path with a real, unrecognized event tuple -- no test-only shortcut into
+%% the reaction handler.
+test_unrecognized_reaction_event_does_not_crash_the_workflow() ->
+    {ok, _Started} = application:ensure_all_started(arazzo_runner),
+    WorkflowId = <<"wf-unrecognized-event-1">>,
+    StartSpec = start_spec(WorkflowId),
+    {ok, Pid} = arazzo_runner_sup:start_workflow(StartSpec),
+    Mon = monitor(process, Pid),
+
+    ok = arazzo_runner_workflow:dispatch_event(Pid, {totally_unrecognized_event_tag, 1, 2, 3}),
+
+    %% The critical safety property: no DOWN message arrives in a generous
+    %% window -- proves the catch-all clause returned RS unchanged instead of
+    %% letting the function_clause propagate.
+    receive
+        {'DOWN', Mon, process, Pid, Reason} ->
+            error({workflow_process_crashed_on_unrecognized_event, Reason})
+    after 500 ->
+        ok
+    end,
+    ?assert(is_process_alive(Pid)),
+
+    %% Not just "alive but wedged" -- a subsequent, well-formed `result`
+    %% event still genuinely advances state, proving this workflow instance
+    %% is still fully usable (RS_/reaction_log untouched by the dropped
+    %% unrecognized event, not left in some half-applied condition).
+    C0 = reaction_count(WorkflowId),
+    ok = arazzo_runner_workflow:dispatch_event(Pid, {result, <<"step_a">>, ok}),
+    RS1 = wait_for_reaction(WorkflowId, C0, result),
+    ?assertEqual(true, maps:get(<<"step_a_done">>, air_core:get_env(RS1#runner_state.core))),
+    ?assertEqual([<<"step_b">>], air_core:ready_steps(RS1#runner_state.core)).
