@@ -14,7 +14,7 @@ Scope note: this is a status/audit artifact. It does not modify `tickets/index.m
 | Marker | Value | Why |
 |---|---|---|
 | `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **true** | All 11 of 11 LOCAL edges are `REAL_EDGE` (updated post-`66cb59b1`). **First crown witness closed.** |
-| `EXTERNAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | 13 of 16 EXTERNAL edges are `REAL_EDGE`; first sub-real at `F10 -> F12`, hard break now at `F16 -> F18` (from the shared-prefix side -- `F15 -> F16` closed, commit `1d3b9fb2`); `F20->F02(re-admit)->F15(AIR transition)->F21->F24->F25` is a separately-real, now-COMPLETE 5-edge loop-back tail, topologically disconnected until `F18`/`F18->F20` close. |
+| `EXTERNAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | 14 of 16 EXTERNAL edges are `REAL_EDGE`; first sub-real at `F10 -> F12`, hard break now at `F18 -> F20` (from the shared-prefix side -- `F15 -> F16` closed commit `1d3b9fb2`, `F16 -> F18` closed commit `4ce20102`); `F20->F02(re-admit)->F15(AIR transition)->F21->F24->F25` is a separately-real, now-COMPLETE 5-edge loop-back tail, topologically disconnected until `F18->F20` closes -- the **sole remaining EXTERNAL gap**. |
 | `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | Requires **both** witness markers true; LOCAL is, EXTERNAL is not. |
 
 The shared prefix `F02 -> F03 -> F08 -> F09 -> F10` plus the entire LOCAL tail
@@ -103,7 +103,7 @@ through F02 -- classified as `REAL_EDGE` on its own real data-threading regardle
 | 7 | F13 -> F14 | `REAL_EDGE` (byte-level) | F13's manufactured `arazzo_document` fed verbatim into F14's own `compile` (crown_external.rs:211) — the **first production caller** of `f14_wasm4pm_arazzo::compile`. Proven identical AIR: `air_digest_hex == receipt.air_digest_hex`; CONFIRMED. |
 | 8 | F14 -> F15 | `REAL_EDGE` | F14 `AirProgram` -> `air_program_to_bridge_workflow` (crown_external.rs:296) builds the `BridgeWorkflow` shape `air_core:new/1` consumes; the gated test drives the **real** Erlang `air_core:transition/2` and emits a `dispatch_step` command. Adversarial CONFIRMED (ran the ignored test, passed). |
 | 9 | F15 -> F16 | `REAL_EDGE` | (commit `1d3b9fb2`) `crown_external::drive_external_witness_tail_through_f16` drives F15's real `air_core:transition/2` result, then feeds every real `dispatch_step` command into a real `arazzo_runner_dispatch_statem` gen_statem via a *second*, independent production entrypoint (`f16_otp_runner::bridge::call_dispatch_statem_bridge`, a new escript reusing `arazzo_runner_sup:start_workflow/1` -- not `apply_transition/4`, which stays untouched, so `check_gen_statem_lifecycle_wired` (f16_otp_runner.rs) correctly still returns `Err` since that check is specifically about `apply_transition/4`'s own internal wiring). Verified LIVE (`--ignored`, real escript + clean-rebuilt `apps/arazzo_runner`): a lawful single-step dispatch traverses all 8 atlas states with a real, non-empty dispatch token; a missing-`correlation_id` request is genuinely refused by the real broker's `CORRELATION_MISSING` atom. Honest nuance: F10's own template-derived output has zero `onSuccess` routing, so applying this driver to that specific input dispatches nothing to F16 (empty, not a failure) -- proven, not just asserted, by a dedicated non-`#[ignore]`d test. Was `MISSING_EDGE`. |
-| 10 | F16 -> F18 | `MISSING_EDGE` | F18's **Rust** broker has no caller on the external path; the Erlang `arazzo_runner_broker` is a different broker. |
+| 10 | F16 -> F18 | `REAL_EDGE` | (commit `4ce20102`) `crown_external::drive_f16_completion_through_f18_broker` reuses `f11_bcinr_runtime::dispatch_local_execution_via_broker`'s own proven `Broker` stage sequence verbatim (`verify_standing -> authorize -> claim_idempotency -> bind_correlation -> actuate -> capture_consequence -> issue_receipt`), applied to a different real consequence source: F16's real dispatch token (from a `DispatchStatemOutcome::Completed`) becomes the bytes `actuate`'s closure returns and `capture_consequence` folds into its BLAKE3 chain. Honest boundary: a `Refused` F16 outcome has no token to actuate, so this refuses with `ExternalF18Refused::F16DispatchNotCompleted` rather than fabricating a consequence. Verified LIVE (`--ignored`, real escript + clean-rebuilt `apps/air_core`+`apps/arazzo_runner`): `f16_completion_actuates_a_real_f18_broker_receipt` drives the full F14->F15->F16->F18 chain and asserts non-empty, real `BrokerReceipt` hashes. Was `MISSING_EDGE`. |
 | 11 | F18 -> F20 | `MISSING_EDGE` | F20 (`f20_external_dispatch.rs`) has no production caller *triggered by F18* anywhere in the workspace; F20's own dispatch is real (edge 12) but is initiated directly by `drive_external_reentry`, not by F18's broker. |
 | 12 | F20 -> F02 (re-admit) | `REAL_EDGE` | (commit `b4d743f7`) `dispatch_subworkflow_to_engine` -> `engine_serve` (real, previously-zero-callers receiving side of the same bridge) -> `collect_subworkflow_consequence`, gated on cng's own real `admitted: true`, then re-admitted through F02's real `admit_observation` under a third distinct principal. `SubworkflowDispatchOutcome` widened with `consequence_turtle: Option<String>` (cng, minimal: one field, no new admission logic). Empirically verified: the real round trip produces `admitted: true` with real consequence content, not just structural plumbing; was `MISSING_EDGE`. |
 | 13 | F02 -> F15 (AIR transition) | `REAL_EDGE` | (commit `38048b27`) `crown_external::drive_external_readmit_transition` composes `drive_external_reentry` verbatim then calls `call_air_core_bridge` a second time to complete a minimal bridge workflow keyed by the real `dispatch_id`, event payload = the real F02 admission receipt hash. Verified LIVE (`--ignored`, real escript + compiled `apps/air_core`), not just structurally: `external_readmit_transition_completes_the_dispatched_step_through_real_air_core` passes against the real Erlang subprocess. Was `MISSING_EDGE`. |
@@ -111,15 +111,17 @@ through F02 -- classified as `REAL_EDGE` on its own real data-threading regardle
 | 15 | F21 -> F24 | `REAL_EDGE` | (commit `8c2675be`) `crown_external::drive_external_readmit_transition`'s final stage: the admitted external-dispatch consequence (F21) is projected as a real `cng::otel_rdf::OtlpSpan` (`trace_id`/`span_id`/`parent_span_id` all real F20/F21/F02 output; `process.object.id` reuses F21's own evidence subject) run through `f24_ocel_construct::run_construct`. Verified LIVE (`--ignored`, real escript + compiled `apps/air_core`): real `ConstructProfile::OtelToOcel` outcome with non-empty quads/receipt_head confirmed against the actual call. Topology note: EXTERNAL's own atlas order is `F21 -> F24` (admission before construction), the reverse of LOCAL's `F24 -> F21` -- taken as given, not reinterpreted. Was `MISSING_EDGE`. |
 | 16 | F24 -> F25 | `REAL_EDGE` | (commit `11dcee0e`) `crown_external::drive_external_readmit_transition`'s final stage: folds a real F25 receipt over the whole chain's own canonical texts (source=consequence Turtle, query=dispatch id, template=SHACL evidence shape, program=F21's transition_receipt, event=F21's evidence Turtle, output=F24's receipt head), replayed via `materials.clone()` matching F25's own established test pattern. Verified LIVE (`--ignored`): all 6 CTQ material kinds matched, `receipt_root_matched`, non-empty PROV-O graph confirmed against real escript-derived data. **Completes the entire EXTERNAL loop-back tail** (`F20->F02->F15->F21->F24->F25`, all real). Was `MISSING_EDGE`. |
 
-`FIRST_EXTERNAL_BROKEN_EDGE` = **`F16 -> F18`** (updated: `F15 -> F16` closed for real, commit
-`1d3b9fb2` -- a second, independent Rust-composable production entrypoint now exists into F16's OTP
-runner via `arazzo_runner_sup:start_workflow/1`, not `apply_transition/4`). `F16 -> F18` is now the
-first **structurally absent** edge: F18's Rust broker has no production caller on the EXTERNAL path.
-Under the strict "every edge must be `REAL_EDGE`" reading, the first edge that is not a *full*
-`REAL_EDGE` is still `F10 -> F12` (`PARTIAL_REAL_EDGE`): real data flows F10 -> F12, but F10 does not
-synthesize the cut. Both facts independently force `EXTERNAL_..._CONTIGUOUS_PATH = false`;
-`F16 -> F18` is the edge where the *shared-prefix-anchored* composition actually stops (edge 12,
-`F20->F02`, is real but topologically disconnected from that composition until edges 10-11 close).
+`FIRST_EXTERNAL_BROKEN_EDGE` = **`F18 -> F20`** (updated twice this cycle: `F15 -> F16` closed
+commit `1d3b9fb2` via a second production entrypoint into F16's OTP runner; `F16 -> F18` closed
+commit `4ce20102` via F16's real dispatch token actuated through F18's real `Broker` lifecycle,
+the same stage sequence LOCAL's own F11->F18 edge already uses). `F18 -> F20` is now the **sole
+remaining** structurally absent edge: nothing triggers F20's real dispatch as a downstream
+consequence of a real F18 `BrokerReceipt`. Under the strict "every edge must be `REAL_EDGE`"
+reading, the first edge that is not a *full* `REAL_EDGE` is still `F10 -> F12`
+(`PARTIAL_REAL_EDGE`): real data flows F10 -> F12, but F10 does not synthesize the cut. Both facts
+independently force `EXTERNAL_..._CONTIGUOUS_PATH = false`; `F18 -> F20` is the edge where the
+*shared-prefix-anchored* composition actually stops (edge 12, `F20->F02`, is real but
+topologically disconnected from that composition until edge 11 closes).
 
 ## Edge census (distinct edges across the union of both witnesses)
 
@@ -128,10 +130,10 @@ The shared prefix (4 edges) is counted once. Union total = 4 (shared) + 7 (LOCAL
 
 | Bucket | Count | Edges |
 |---|---|---|
-| `REAL_EDGE_COUNT` (full) | **20** | F02->F03, F03->F08, F08->F09, F09->F10, F10->F11, F11->F18, F18->F19, F19->F02(re-admit), F02(re-admit)->F24, F24->F21, F21->F25 (LOCAL, complete -- all committed `d60f2036`/`eeca952a`/`66d8732e`/`0815680a`/`217dc37d`/`66cb59b1`); F12->F13, F13->F14, F14->F15, F15->F16, F20->F02(re-admit), F02(re-admit)->F15(AIR transition), F15->F21, F21->F24, F24->F25 (EXTERNAL, `F20->F02` committed `b4d743f7`, `F02->F15` committed `38048b27`, `F15->F16` committed `1d3b9fb2`, `F15->F21` committed `a139d477`, `F21->F24` committed `8c2675be`, `F24->F25` committed `11dcee0e`) |
+| `REAL_EDGE_COUNT` (full) | **21** | F02->F03, F03->F08, F08->F09, F09->F10, F10->F11, F11->F18, F18->F19, F19->F02(re-admit), F02(re-admit)->F24, F24->F21, F21->F25 (LOCAL, complete -- all committed `d60f2036`/`eeca952a`/`66d8732e`/`0815680a`/`217dc37d`/`66cb59b1`); F12->F13, F13->F14, F14->F15, F15->F16, F16->F18, F20->F02(re-admit), F02(re-admit)->F15(AIR transition), F15->F21, F21->F24, F24->F25 (EXTERNAL, `F20->F02` committed `b4d743f7`, `F02->F15` committed `38048b27`, `F15->F16` committed `1d3b9fb2`, `F16->F18` committed `4ce20102`, `F15->F21` committed `a139d477`, `F21->F24` committed `8c2675be`, `F24->F25` committed `11dcee0e`) |
 | `PARTIAL_REAL_EDGE` | 1 | F10->F12 |
 | `TEST_ONLY_EDGE` | 0 | (was F10->F11, F11->F18 -- both closed to `REAL_EDGE`, see above) |
-| `MISSING_EDGE_COUNT` | **2** | F16->F18, F18->F20 (EXTERNAL only -- LOCAL has zero; F15->F16 closed, commit `1d3b9fb2`) |
+| `MISSING_EDGE_COUNT` | **1** | F18->F20 (EXTERNAL only, the sole remaining gap -- LOCAL has zero; F15->F16 closed commit `1d3b9fb2`, F16->F18 closed commit `4ce20102`) |
 | `REFUSED_EDGE_COUNT` | **0** | No witness edge is a by-design correct-refusal boundary. |
 
 Strict-contiguity accounting: only the 19 full `REAL_EDGE`s satisfy the path predicate. The 1
