@@ -662,6 +662,74 @@ multifractal-workflow-test-long *args:
 multifractal-workflow-test-isolated name *args:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo test -p multifractal-workflow {{args}}
 
+# --- Mutation testing: PILOT, one module only ---
+# PILOT SCOPE, explicit: this recipe runs cargo-mutants against exactly ONE
+# small, well-tested module --
+# crates/multifractal-workflow/src/f16_otp_runner/bridge.rs -- as a
+# feasibility pilot for mutation testing in this repo. It is NOT a
+# crate-wide or workspace-wide mutation-testing rollout; extending scope to
+# more files/crates (and wiring a CI gate on mutation score) is a separate,
+# deliberate follow-up decision this recipe does not make for you.
+#
+# Erlang-side mutation testing (e.g. a PropEr-based equivalent for
+# apps/arazzo_runner, apps/air_core, apps/arazzo_atomvm) is a SEPARATE,
+# UNATTEMPTED follow-up -- not built here, not implied by this recipe.
+#
+# Uses `--in-place` (mutates the source file directly in the real working
+# tree, then restores it after every mutant -- cargo-mutants' own behavior;
+# verified this session by `git diff --stat` on the target file before/after
+# a full run showing no residual mutation) rather than the tool's default
+# copy-the-whole-workspace-per-mutant mode: this is a large monorepo and a
+# full per-mutant workspace copy would be needlessly slow/disk-heavy for a
+# single-file pilot.
+#
+# Builds in an isolated CARGO_TARGET_DIR (target/agent-mutants-pilot, per
+# this file's CARGO_TARGET_DIR-isolation convention -- see the note at the
+# top of this file) so a run of this recipe never lock-contends with any
+# other concurrent `just` build/test/check in this repo. On first use it
+# seeds that isolated dir from the existing shared target/debug via an APFS
+# copy-on-write clone (`cp -Rc`, falling back to a plain recursive copy on
+# non-APFS filesystems) so the baseline build doesn't recompile this crate's
+# full dependency graph from scratch; the seed step is skipped on later runs
+# once target/agent-mutants-pilot already exists.
+#
+# Real result, this pilot's first run (crates/multifractal-workflow @
+# 26.7.12, cargo-mutants 27.0.0): 12 mutants generated, 4 unviable (failed
+# to even compile -- `Ok(Default::default())` against a return type with no
+# `Default` impl -- excluded from scoring by cargo-mutants itself), 1
+# caught, 7 missed. Mutation score over viable mutants: 1/8 (12.5%). The 7
+# missed mutants are a real, disclosed test-coverage gap, not a tooling
+# artifact: (a) the `+`/`>=` arithmetic mutants in `wait_with_timeout`
+# survive because the only unit test of that function asserts the
+# *eventual* TimedOut outcome for a hung child, never that the wait took
+# approximately the requested duration (not near-instant) nor exercises the
+# "child exits before the timeout" success path at all; (b) the `!`-deletion
+# and match-arm-deletion mutants in `call_dispatch_statem_bridge`/
+# `parse_dispatch_statem_stdout` survive because the module's `proptest`
+# suite only asserts "never panics" on arbitrary/malformed input, never that
+# a well-formed response parses to the *correct* value -- that positive-
+# value check exists only in the two `#[ignore]`d integration tests, which
+# require a real `escript`+compiled `apps/arazzo_runner` and are not part of
+# a default `cargo test` run. This recipe does not attempt to fix that gap;
+# it reports it.
+mutants-pilot:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    command -v cargo-mutants >/dev/null || { echo "cargo-mutants not found on PATH -- run: cargo install cargo-mutants --locked"; exit 1; }
+    target_dir="target/agent-mutants-pilot"
+    if [ ! -d "$target_dir" ]; then
+        mkdir -p "$target_dir"
+        if [ -d target/debug ]; then
+            cp -Rc target/debug "$target_dir/debug" 2>/dev/null || cp -R target/debug "$target_dir/debug"
+        fi
+    fi
+    CARGO_TARGET_DIR="$target_dir" timeout 1800s cargo mutants \
+        -p multifractal-workflow \
+        --file 'crates/multifractal-workflow/src/f16_otp_runner/bridge.rs' \
+        --in-place \
+        --no-times \
+        -o target/agent-mutants-pilot-report
+
 # Type-check the praxis-lean crate (standalone-cli feature, the plain-clap
 # `praxis-l4` entry point) + its tests
 praxis-lean-check:
@@ -969,10 +1037,23 @@ rigor-gap-scan path=".":
 # nothing to do -- rebar3's incremental compile is mtime-based, so a source file whose mtime
 # was set backward (e.g. by a concurrent session's git checkout/restore on a shared working
 # tree) can be silently skipped even though its compiled beam is missing exports the current
-# source declares. `rebar3 clean` alone only clears the current profile; `-a` covers every
-# profile's `_build/*/lib/*/ebin` so a stale `_build/test/...` copy can't mask the same bug.
+# source declares.
+#
+# CORRECTED (caught by a real ci-clean-verify run): `-a` on its own is `--all` ("clean all
+# apps, including deps"), scoped to whatever profile is active -- `default` when no `-p` is
+# given (`rebar3 help clean`). It does NOT also cover the `test` profile, despite this
+# recipe's own prior comment claiming otherwise. `rebar3 eunit` compiles under the `test`
+# profile into a SEPARATE `_build/test/lib/*/ebin` tree; a plain `rebar3 clean -a` never
+# touches it, so a stale `_build/test/.../*.beam` can survive indefinitely, get
+# reported "nothing to do" by the next incremental `rebar3 eunit`, and diverge from its own
+# current source -- reproduced live: `_build/test/lib/arazzo_atomvm/ebin/
+# arazzo_atomvm_workflow.beam` was missing the `start/2` export apps/arazzo_atomvm/src/
+# arazzo_atomvm_workflow.erl declares, causing 9 real eunit failures (`undef`) even though
+# `_build/default`'s freshly-recompiled copy of the same module was correct. Both profiles
+# must be cleaned explicitly for this recipe to deliver genuine clean-room.
 erlang-clean:
     rebar3 clean -a
+    rebar3 clean -a -p test
 
 # Compile the Erlang/OTP umbrella (rebar.config's apps/* + lib/* discovery) from the repo root
 erlang-compile:
@@ -992,3 +1073,52 @@ erlang-test: erlang-compile
 # tests passed.", matching what erlang-test's own summary line looks like.
 erlang-test-atomvm-differential: erlang-compile
     timeout 60s rebar3 eunit -m arazzo_runner_atomvm_differential_test
+
+# Compile, then run ONLY the F16 dispatch_statem/dispatch_sup eunit module
+# (arazzo_runner_dispatch_statem_test -- V12-016), including its repeated
+# start/kill supervisor fault-injection soak test. Scoped with `-m` (same
+# convention as erlang-test-atomvm-differential above) so this module's
+# supervision-tree churn proof can be re-run in isolation without paying for
+# the whole umbrella suite on every call.
+erlang-test-dispatch-statem: erlang-compile
+    timeout 60s rebar3 eunit -m arazzo_runner_dispatch_statem_test
+
+# --- Clean-room CI verification (spans the Erlang umbrella and cng/Rust) ---
+#
+# WHY THIS EXISTS: rebar3's incremental compile is mtime-based (see the erlang-clean
+# comment above), and cargo's incremental compile is likewise reuse-by-default. Both can
+# report "nothing to do" and hand back a compiled artifact (a `.beam`, a test binary) that
+# no longer matches its own current source -- e.g. a stale `.beam` whose exported
+# functions silently drifted from the `.erl` it was built from, invisible to the build
+# tool itself and only caught by asking the *runtime* directly (Erlang's `code:which/1` +
+# `module_info(exports)`) whether what's loaded actually matches what's on disk. That
+# defect class is exactly what a normal `just erlang-test` or `just cng-test` cannot catch,
+# because both trust their own incremental-build bookkeeping. This recipe exists so a CI/
+# pre-merge gate gets a real clean-room rebuild instead of an incrementally-warm one:
+#   1. Erlang/OTP umbrella: `erlang-clean` wipes every profile's `_build/*/lib/*/ebin`
+#      before `erlang-compile` (full rebuild from source) and `erlang-test` (full eunit
+#      suite) run.
+#   2. cng (Rust): a dedicated, disposable `CARGO_TARGET_DIR` (target/ci-clean-verify) is
+#      removed before the build so cargo cannot reuse any prior incremental state for this
+#      run. This is NOT the developer's normal shared `target/` dir used by other
+#      concurrent `just` invocations (see the CARGO_TARGET_DIR note at the top of this
+#      file) -- only the dedicated isolated dir this recipe owns is ever removed.
+# Prints one unambiguous "ci-clean-verify: PASS" line at the end; `set -euo pipefail`
+# means any failing step (Erlang compile/test, or cargo test) aborts the script and
+# `just` reports a nonzero exit -- there is no partial-pass ambiguity.
+ci-clean-verify:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== ci-clean-verify [1/2]: Erlang/OTP umbrella clean rebuild ==="
+    just erlang-clean
+    just erlang-compile
+    just erlang-test
+    echo "PASS: erlang-clean + erlang-compile + erlang-test (full eunit suite)"
+
+    echo "=== ci-clean-verify [2/2]: cng (Rust) clean rebuild ==="
+    rust_target="target/ci-clean-verify"
+    rm -rf "$rust_target"
+    CARGO_TARGET_DIR="$rust_target" timeout 1800s cargo test -p cng --features bench
+    echo "PASS: cng clean rebuild + test suite (CARGO_TARGET_DIR=$rust_target)"
+
+    echo "ci-clean-verify: PASS -- genuine clean-room rebuild + test on both the Erlang umbrella and cng (Rust)"
