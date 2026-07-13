@@ -1,6 +1,6 @@
 [package]
 name = "ggen"
-version = "26.7.4"                       # CalVer YY.M.patch
+version = "26.7.13"                      # CalVer YY.M.patch
 edition = "2021"
 rust-version = "1.82"
 authors = ["Sean Chatman <xpointsh@gmail.com>"]

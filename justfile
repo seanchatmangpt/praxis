@@ -243,9 +243,13 @@ build:
 
 # NOTE: consumers pinning absolute paths (e.g. mfact -> target/debug/ggen) are
 # intentionally not updated by this recipe.
-# Install the release ggen binary to ~/.cargo/bin so the global `ggen` tracks this checkout
+# Install the release ggen binary to ~/.cargo/bin so the global `ggen` tracks this checkout.
+# `cargo install` builds in its own isolated target dir by default (not the workspace
+# target/), so a cold install recompiles the full dependency tree -- 180s was observed to
+# time out (exit 124) on a cold build; 900s covers that plus headroom, matching the other
+# from-scratch build timeouts in this file (e.g. ci-clean-verify's 1800s cng rebuild).
 install-ggen:
-    timeout 180s cargo install --path crates/ggen --force
+    timeout 900s cargo install --path crates/ggen --force
     @ggen --version
 
 # Type-check the whole workspace with every feature enabled (what `doctor check` itself shells out to)
@@ -1281,3 +1285,11 @@ ci-clean-verify:
 # (concurrent-agent-safe, same convention as cng-test-isolated).
 ggen-test-isolated name binary *args:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 600s cargo test -p ggen --test {{binary}} {{args}}
+
+# Run the FULL ggen test suite (lib + every integration-test binary, including
+# cross_pack_matrix and framework_packs_e2e which sweep every pack under packs/) in an
+# isolated target dir (concurrent-agent-safe; mirrors cng-test-bench-isolated). Use this
+# for whole-crate regression sweeps where ggen-test-isolated's single-binary scoping
+# would miss cross-binary interactions -- e.g. after a ggen.toml pack-wiring change.
+ggen-test-all-isolated name *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 600s cargo test -p ggen {{args}}
