@@ -611,6 +611,65 @@ test!(g14_crash_resume_never_overwrites_a_prior_tick_partition, {
     );
 });
 
+// Swarm audit wnl2yhbgm finding #30: `disp:dispatchId` had no character-class restriction in
+// `DispatchContractShape`, so an inbox contract (anything writing into
+// `<root>/engines/<id>/inbox/`, the real External Dispatch transport `cng engine serve`
+// implements) with a path-traversal value would pass shape validation and then be joined
+// unsanitized into real filesystem paths across several sites in engine.rs/dispatch.rs. This
+// tampers a REAL, already-rendered contract's `dispatchId` literal in place (every other field
+// stays genuinely valid, from the real `engine_dispatch_remote` renderer) so the refusal this
+// test proves is isolated to that one property, not some unrelated missing field.
+test!(
+    g15_path_traversal_dispatch_id_is_refused_by_shape_pattern,
+    {
+        let root = scratch_dir("g15");
+        let dispatched =
+            engine_dispatch_remote(&root, "C", &["H"], 1, 0, 0, SEED).expect("dispatch phase");
+        assert_eq!(dispatched, 1);
+
+        let inbox = root.join("engines/H/inbox");
+        let contract_path = fs::read_dir(&inbox)
+            .expect("read inbox")
+            .flatten()
+            .map(|e| e.path())
+            .find(|p| p.extension().and_then(|x| x.to_str()) == Some("ttl"))
+            .expect("real dispatched contract exists");
+        let original = fs::read_to_string(&contract_path).expect("read real contract");
+        let needle = "disp:dispatchId \"disp-remote-H-0000\"";
+        assert!(
+            original.contains(needle),
+            "expected the real contract to carry the deterministic dispatch id: {original}"
+        );
+        let malicious =
+            original.replacen(needle, "disp:dispatchId \"../../../../../../tmp/pwned\"", 1);
+        fs::write(&contract_path, &malicious).expect("tamper dispatchId in place");
+
+        let (_stdout, stderr, ok) = run_cng(&[
+            "engine",
+            "serve",
+            "--root",
+            root.to_str().expect("utf-8 root"),
+            "--engine-id",
+            "H",
+            "--seed",
+            "616",
+            "--max-polls",
+            "2",
+            "--poll-wait-ms",
+            "0",
+        ]);
+        assert!(
+        !ok,
+        "a path-traversal dispatchId must refuse the contract, not silently admit it: stderr={stderr}"
+    );
+        assert!(
+            stderr.contains("CNG_R15") || stderr.contains("dispatchId"),
+            "the refusal must be the shape-pattern violation on dispatchId, not an unrelated \
+         failure: stderr={stderr}"
+        );
+    }
+);
+
 test!(
     distributed_determinism_two_serialized_runs_byte_identical,
     {

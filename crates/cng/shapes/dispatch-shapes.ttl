@@ -63,7 +63,8 @@ ex:DispatchContractShape a sh:NodeShape ;
   sh:targetClass disp:DispatchContract ;
   sh:closed true ;
   sh:ignoredProperties ( rdf:type disp:closureLaw ) ;
-  sh:property [ sh:path disp:dispatchId ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path disp:dispatchId ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:pattern "^[A-Za-z0-9_-]+$" ] ;
   sh:property [ sh:path disp:workflowInstance ; sh:minCount 1 ; sh:maxCount 1 ;
                 sh:nodeKind sh:IRI ] ;
   sh:property [ sh:path disp:parentWorkflow ; sh:minCount 1 ; sh:maxCount 1 ;
@@ -128,7 +129,8 @@ ex:StateEntryShape a sh:NodeShape ;
   sh:targetClass disp:StateEntry ;
   sh:closed true ;
   sh:ignoredProperties ( rdf:type ) ;
-  sh:property [ sh:path disp:dispatchId ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path disp:dispatchId ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:pattern "^[A-Za-z0-9_-]+$" ] ;
   sh:property [ sh:path disp:entrySeq ; sh:minCount 1 ; sh:maxCount 1 ;
                 sh:datatype xsd:integer ] ;
   sh:property [ sh:path disp:fromState ; sh:minCount 1 ; sh:maxCount 1 ;
@@ -146,7 +148,8 @@ ex:ProcessedConsequenceShape a sh:NodeShape ;
   sh:closed true ;
   sh:ignoredProperties ( rdf:type ) ;
   sh:property [ sh:path disp:idempotencyKey ; sh:minCount 1 ; sh:maxCount 1 ] ;
-  sh:property [ sh:path disp:dispatchId ; sh:minCount 1 ; sh:maxCount 1 ] .
+  sh:property [ sh:path disp:dispatchId ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:pattern "^[A-Za-z0-9_-]+$" ] .
 
 # --- QuiescenceShape (PROJ-723 engine serve control file) -----------------------
 # <root>/engines/<id>/control/quiesce.ttl must conform to this shape before

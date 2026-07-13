@@ -1,0 +1,32 @@
+# shape-pattern-violations.rq (swarm audit wnl2yhbgm finding #30)
+# Inputs: ONE oxigraph store holding a shapes graph (SHACL NodeShapes with
+# sh:targetClass + sh:property [ sh:path ... ; sh:pattern "..." ]) and instance
+# data. Shape-driven, same discipline as registry-missing-fields.rq and
+# shape-closed-violations.rq: the regex to enforce is read from the shape
+# graph's own sh:pattern declarations, never duplicated in Rust or here.
+# Outputs: rows (?entry ?field) — one per (targeted node, property value that
+# fails its shape's sh:pattern) pair. A non-empty result means the instance
+# violates a declared pattern constraint; the caller maps rows to its typed
+# refusal, same as the other two shape queries.
+# Determinism: ORDER BY ?entry ?field over a fixed graph.
+#
+# Before this query existed, `shape_violations` (dispatch.rs) only ran
+# registry-missing-fields.rq and shape-closed-violations.rq -- neither
+# interprets sh:pattern at all, so every sh:pattern declaration already
+# present in this crate's shapes (dispatch-shapes.ttl's disp:dispatchId,
+# arazzo-shapes.ttl's several identifier fields) was silently inert: SHACL
+# triples sitting in the shapes graph that no query ever consulted.
+PREFIX sh:   <http://www.w3.org/ns/shacl#>
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?entry ?field
+WHERE {
+  ?shape sh:targetClass ?class ;
+         sh:property ?ps .
+  ?ps sh:path ?field ;
+      sh:pattern ?pattern .
+  ?entry a ?class ;
+         ?field ?value .
+  FILTER(!REGEX(STR(?value), ?pattern))
+}
+ORDER BY ?entry ?field

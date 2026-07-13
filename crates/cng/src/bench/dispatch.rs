@@ -908,14 +908,17 @@ fn child_contract(parent: &DispatchContract, c: usize) -> DispatchContract {
 }
 
 /// Shape-driven structural validation: loads `shapes_ttl_path` and
-/// `instance_ttl` into ONE store and runs the two generic shape queries
+/// `instance_ttl` into ONE store and runs the three generic shape queries
 /// (`registry-missing-fields.rq` for required fields,
 /// `shape-closed-violations.rq` for closedness honoring
-/// `sh:ignoredProperties`). Returns the `(entry, field)` violation rows;
-/// callers map them to their typed refusal.
+/// `sh:ignoredProperties`, `shape-pattern-violations.rq` for `sh:pattern`
+/// regex constraints -- added for swarm audit wnl2yhbgm finding #30, since
+/// this function's `sh:pattern` declarations were previously loaded into the
+/// store but never checked by any query, silently inert). Returns the
+/// `(entry, field)` violation rows; callers map them to their typed refusal.
 ///
 /// # Complexity
-/// O(shape + instance triples) load + two SELECTs over the fixed graph.
+/// O(shape + instance triples) load + three SELECTs over the fixed graph.
 pub(super) fn shape_violations(
     instance_ttl: &str,
     shapes_ttl_path: &Path,
@@ -931,7 +934,11 @@ pub(super) fn shape_violations(
             .map_err(|e| CngRefusal::MalformedTtl(format!("shape-validation load: {e}")))?;
     }
     let mut out = Vec::new();
-    for query_name in ["registry-missing-fields", "shape-closed-violations"] {
+    for query_name in [
+        "registry-missing-fields",
+        "shape-closed-violations",
+        "shape-pattern-violations",
+    ] {
         for row in select_rows(&store, queries.get(query_name)?)? {
             let bound = |var: &str| -> Result<String, CngRefusal> {
                 row.get(var).cloned().ok_or_else(|| {

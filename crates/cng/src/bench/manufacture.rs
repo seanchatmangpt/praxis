@@ -86,16 +86,27 @@ pub(super) fn manufacture_set(set_dir: &Path, export_dir: Option<&Path>) -> SetO
     // first admitted artifact's graph. The category is read from the graph,
     // not from Rust.
     let t = Instant::now();
-    let (category, worker, parsed_triples) = match artifacts
-        .first()
-        .and_then(|artifact| classify_artifact(&artifact.path))
-    {
-        Some(result) => result,
+    let (category, worker, parsed_triples) = match artifacts.first() {
         None => {
             out.refusal_code = Some("CNG_R01");
             out.total_ns = t_total.elapsed().as_nanos() as u64;
             return out;
         }
+        Some(artifact) => match classify_artifact(&artifact.path) {
+            Ok(Some(result)) => result,
+            // Syntactically valid Turtle missing ex:category/ex:worker: not
+            // an I/O or parse fault, but still nothing to classify against.
+            Ok(None) => {
+                out.refusal_code = Some("CNG_R01");
+                out.total_ns = t_total.elapsed().as_nanos() as u64;
+                return out;
+            }
+            Err(refusal) => {
+                out.refusal_code = Some(refusal_code_static(&refusal));
+                out.total_ns = t_total.elapsed().as_nanos() as u64;
+                return out;
+            }
+        },
     };
     out.graph_triples += parsed_triples;
     out.classification_lookups += 1;
@@ -244,30 +255,65 @@ pub(super) fn term_value(term: &Term) -> String {
     }
 }
 
-/// First object of `(any, <predicate>, ?o)` in `store`, as a plain string.
-pub(super) fn first_object(store: &Store, predicate: &str) -> Option<Term> {
-    let pred = NamedNodeRef::new(predicate).ok()?;
-    store
-        .quads_for_pattern(None, Some(pred), None, None)
-        .next()?
-        .ok()
-        .map(|q| q.object)
+/// First object of `(any, <predicate>, ?o)` in `store`, as a term.
+///
+/// Distinguishes three outcomes a single `.ok()?` chain previously collapsed
+/// into one `None`: an unparseable predicate IRI (`CNG_R01 MalformedTtl`,
+/// defensive — `predicate` is always built from a compile-time
+/// `RWAI_PREFIX` constant in this crate, but the check is real, not asserted
+/// away); a genuine store-read fault on the pattern scan (`CNG_R10
+/// IoRefused` — previously silently treated as "no such triple" via
+/// `.ok()`); and an honest zero-match scan (`Ok(None)`), which is not a
+/// failure at all.
+pub(super) fn first_object(store: &Store, predicate: &str) -> Result<Option<Term>, CngRefusal> {
+    let pred = NamedNodeRef::new(predicate)
+        .map_err(|e| CngRefusal::MalformedTtl(format!("predicate IRI {predicate}: {e}")))?;
+    match store.quads_for_pattern(None, Some(pred), None, None).next() {
+        None => Ok(None),
+        Some(Ok(quad)) => Ok(Some(quad.object)),
+        Some(Err(e)) => Err(CngRefusal::IoRefused(format!(
+            "quad scan for {predicate}: {e}"
+        ))),
+    }
 }
 
 /// Real classification: oxigraph pattern reads of `ex:category` and
 /// `ex:worker` over the artifact's admitted graph (no SPARQL text — the
 /// benchmark's only SPARQL comes from the on-disk query set).
-pub(super) fn classify_artifact(path: &Path) -> Option<(String, String, usize)> {
-    let turtle = fs::read_to_string(path).ok()?;
-    let store = Store::new().ok()?;
+///
+/// The four fallible operations on this path each carry their own cause
+/// instead of collapsing into one `CNG_R01 MalformedTtl` via a `.ok()?`
+/// chain: reading the artifact off disk and constructing the scratch store
+/// both refuse `CNG_R10 IoRefused` (a permission error or a path that
+/// resolves to a directory is an I/O fault, not a Turtle defect); only an
+/// actual Turtle parse failure refuses `CNG_R01 MalformedTtl`. A
+/// syntactically valid artifact simply missing the `ex:category`/
+/// `ex:worker` predicates is `Ok(None)` — not an error at all — leaving the
+/// caller's pre-existing CNG_R01 "nothing to classify" fallback for that
+/// case unchanged.
+pub(super) fn classify_artifact(
+    path: &Path,
+) -> Result<Option<(String, String, usize)>, CngRefusal> {
+    let turtle = fs::read_to_string(path)
+        .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", path.display())))?;
+    let store =
+        Store::new().map_err(|e| CngRefusal::IoRefused(format!("store construction: {e}")))?;
     store
         .load_from_slice(RdfParser::from_format(RdfFormat::Turtle), turtle.as_bytes())
-        .ok()?;
+        .map_err(|e| CngRefusal::MalformedTtl(format!("{}: {e}", path.display())))?;
     let category = first_object(&store, &format!("{RWAI_PREFIX}category"))?;
     let worker = first_object(&store, &format!("{RWAI_PREFIX}worker"))?;
-    Some((
+    let (category, worker) = match (category, worker) {
+        (Some(c), Some(w)) => (c, w),
+        _ => return Ok(None),
+    };
+    Ok(Some((
         term_value(&category),
         term_value(&worker),
         store.len().unwrap_or(0),
-    ))
+    )))
 }
+
+#[cfg(test)]
+#[path = "manufacture_test.rs"]
+mod manufacture_test;
