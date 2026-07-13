@@ -2168,3 +2168,7 @@ impl ChatmanEngine {
 #[cfg(test)]
 #[path = "engine_test.rs"]
 mod tests;
+
+#[cfg(all(test, feature = "cognition"))]
+#[path = "engine_cognition_test.rs"]
+mod cognition_tests;
