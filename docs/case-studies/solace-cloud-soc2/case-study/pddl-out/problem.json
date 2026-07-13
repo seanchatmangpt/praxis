@@ -1,0 +1,33 @@
+{
+  "name": "solace-soc2-audit-cycle-combined",
+  "domain": "solace-soc2-audit-cycle",
+  "objects": [
+    "solace"
+  ],
+  "init": [
+    {
+      "pred": "audit-engaged",
+      "args": [
+        "solace"
+      ]
+    }
+  ],
+  "goal": [
+    {
+      "pred": "evidence-bundle-complete",
+      "args": [
+        "solace"
+      ]
+    }
+  ],
+  "object_types": [
+    [
+      "solace",
+      "object"
+    ]
+  ],
+  "fn_values": [],
+  "timed_inits": [],
+  "preferences": [],
+  "metric": null
+}

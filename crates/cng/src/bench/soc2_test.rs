@@ -24,7 +24,10 @@ use chicago_tdd_tools::prelude::*;
 use oxigraph::io::{RdfFormat, RdfParser};
 use oxigraph::store::Store;
 
-use super::{soc2_fixture_dir, verify_no_compliance_or_opinion_effects, SOC2_PHASES};
+use super::{
+    compute_evidence_metrics, soc2_fixture_dir, verify_no_compliance_or_opinion_effects,
+    Soc2EvidenceMetrics, SOC2_PHASES,
+};
 use crate::bench::dispatch::shape_violations;
 use crate::bench::templates::QuerySet;
 use crate::bench::togaf::verify_eight_constraint_split;
@@ -214,3 +217,80 @@ test!(no_action_effect_ever_asserts_compliance_or_opinion, {
         "typed fence refusal expected, got {err:?}"
     );
 });
+
+test!(
+    soc2_evidence_metrics_measure_the_shipped_case_study_instance_data,
+    {
+        // Arrange: the on-disk metric-soc2-*.rq queries (v26.7.12/13 Stage
+        // 2) over the SAME shipped Solace Cloud case-study instance data the
+        // SHACL test above validates.
+        let queries = QuerySet::load(&QuerySet::default_dir()).expect("query set loads");
+        let instance_path = soc2_fixture_dir().join("solace-case-study.ttl");
+
+        // Act: the real chain — Turtle parse + 3 measured SELECT counts +
+        // one Rust-computed DERIVED_ARITHMETIC ratio.
+        let metrics =
+            compute_evidence_metrics(&instance_path, &queries).expect("evidence metrics compute");
+
+        // Assert: measured against the shipped fixture's actual content
+        // (3 documented control points; the Exception Identification and
+        // Management Response & Remediation phases each generate exactly
+        // one deliverable entity for this engagement).
+        assert_eq!(
+            metrics.measurement_class,
+            Soc2EvidenceMetrics::MEASUREMENT_CLASS
+        );
+        assert_eq!(
+            metrics.evidenced_controls, 3,
+            "CTRL-ACCESS-PROVISIONING, CTRL-DR-FAILOVER-TEST, CTRL-DATA-CLASSIFICATION"
+        );
+        assert_eq!(
+            metrics.exception_register_artifacts, 1,
+            "one Exception Register deliverable (DELIV-EXCEPTION-REGISTER)"
+        );
+        assert_eq!(
+            metrics.remediation_log_artifacts, 1,
+            "one Management Response & Remediation Log deliverable (DELIV-REMEDIATION-LOG)"
+        );
+        assert_eq!(
+            metrics.derived_exception_register_ratio_class,
+            Soc2EvidenceMetrics::DERIVED_ARITHMETIC,
+            "the ratio field must be machine-tagged DERIVED_ARITHMETIC, not left implicit"
+        );
+        // DERIVED_ARITHMETIC: 1 / 3, computed in Rust from the two measured
+        // counts above — never a SPARQL aggregate.
+        let expected_ratio = 1.0_f64 / 3.0_f64;
+        assert!(
+            (metrics.derived_exception_register_ratio - expected_ratio).abs() < 1e-12,
+            "derived ratio must be exactly exception_register_artifacts / evidenced_controls, \
+             got {}",
+            metrics.derived_exception_register_ratio
+        );
+
+        // A control point without any deliverables in the graph at all
+        // (a directory holding zero AUDIT-EXCEPTION-ID / AUDIT-REMEDIATION
+        // phase activities) must divide-by-zero SAFELY to 0.0, never
+        // silently fabricate a nonzero ratio or panic. Reuse the SHACL
+        // test's own control-notation-stripping mutant as a source of a
+        // still-parseable but structurally different graph, mutated further
+        // to drop every prov:Activity entirely.
+        let instance = fs::read_to_string(&instance_path).expect("instance reads");
+        let no_controls = instance
+            .lines()
+            .filter(|line| !line.contains("prov:Plan"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let scratch_dir = std::env::temp_dir().join("cng-soc2-evidence-metrics-test");
+        fs::create_dir_all(&scratch_dir).expect("scratch dir");
+        let scratch_path = scratch_dir.join("no-controls.ttl");
+        fs::write(&scratch_path, &no_controls).expect("scratch write");
+        let empty_metrics = compute_evidence_metrics(&scratch_path, &queries)
+            .expect("empty-control metrics compute");
+        assert_eq!(empty_metrics.evidenced_controls, 0);
+        assert_eq!(
+            empty_metrics.derived_exception_register_ratio, 0.0,
+            "zero evidenced controls must yield a documented 0.0 ratio, not a panic or a \
+             fabricated nonzero value"
+        );
+    }
+);

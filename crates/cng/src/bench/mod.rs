@@ -82,7 +82,7 @@ pub use workday::{
 pub(crate) const WORKERS_PER_ROSTER_PARTITION: usize = 5_000;
 pub(crate) const OBS_PER_PARTITION: usize = 4_000;
 pub(crate) const RWAI_PREFIX: &str = "http://example.org/rwai#";
-pub(crate) const CATEGORIES: [&str; 15] = [
+pub(crate) const CATEGORIES: [&str; 16] = [
     "email-routing",
     "calendar-change",
     "invoice-matching",
@@ -107,6 +107,18 @@ pub(crate) const CATEGORIES: [&str; 15] = [
     // arz:Step is projected into a DispatchContract and executed
     // EXTERNAL_MACHINE_DISPATCH through the loopback adapter.
     "api-orchestration",
+    // v26.7.12/13 Stage 2: SOC2 audit-engagement content-bearing category
+    // (mirrors interruption/planning/api-orchestration's PROJ-609/621
+    // pattern, not a broker-dispatch integration). The artifact set's first
+    // domain fragment additionally carries `ex:evidencesControl` pointing at
+    // the control point the artifact set evidences (bench-category-
+    // soc2-audit.template.ttl), defaulting to the set's own case IRI when no
+    // other target is supplied. COMPLIANCE-OVERCLAIM FENCE: this category
+    // and its content predicate describe engagement-process EVIDENCE only —
+    // never a compliance verdict (see `soc2.rs`'s module doc for the full
+    // fence disclosure, which this category's role/action vocabulary
+    // inherits).
+    "soc2-audit",
 ];
 pub(crate) const STEP_VERBS: [&str; 8] = [
     "classify",

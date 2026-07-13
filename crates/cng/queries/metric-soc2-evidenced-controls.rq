@@ -1,0 +1,28 @@
+# metric-soc2-evidenced-controls.rq
+# Inputs: the SOC2 case-study INSTANCE graph (prov:/skos:/dcterms: vocabulary
+#         from packs/soc2-audit-pack/ontology.ttl, e.g.
+#         tests/fixtures/soc2/solace-case-study.ttl) — NOT the OCEL evidence
+#         graph the other metric-*.rq files in this directory read.
+# Outputs: single row: ?count = COUNT(DISTINCT control points carrying a
+#          complete evidentiary record: a notation handle, a design
+#          attribution, and a TSC-category mapping).
+# Meaning: "evidenced" here means the control point's own record satisfies
+#          the minimum fields crates/cng/shapes/soc2-shapes.ttl's
+#          Soc2ControlPointShape requires — NOT a claim that the control is
+#          "compliant" or that any auditor opinion has been rendered. See
+#          crates/cng/src/bench/soc2.rs's module doc for the full
+#          COMPLIANCE-OVERCLAIM FENCE this query's naming and semantics obey.
+# Determinism: aggregate over a fixed graph; single row needs no ORDER BY,
+# one is present for uniformity.
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+SELECT (COUNT(DISTINCT ?control) AS ?count)
+WHERE {
+  ?control a prov:Plan ;
+           skos:notation ?notation ;
+           prov:wasAttributedTo ?org ;
+           dcterms:subject ?category .
+}
+ORDER BY ?count

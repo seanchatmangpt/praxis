@@ -1,0 +1,311 @@
+@prefix powl2: <https://truex.io/ontology/powl2#> .
+@prefix base: <urn:chatman:powl:solace-soc2/> .
+
+<urn:chatman:powl:solace-soc2/n0> a powl2:Model .
+<urn:chatman:powl:solace-soc2/n0> powl2:derivedFrom <urn:chatman:plan:solace-soc2> .
+<urn:chatman:powl:solace-soc2/n0> a powl2:PartialOrder .
+<urn:chatman:powl:solace-soc2/n0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/binding/0> .
+<urn:chatman:powl:solace-soc2/n0/binding/0> a powl2:ChildBinding ;
+  powl2:childIndex 0 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c0> .
+<urn:chatman:powl:solace-soc2/n0/c0> a powl2:PartialOrder .
+<urn:chatman:powl:solace-soc2/n0/c0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c0/binding/0> .
+<urn:chatman:powl:solace-soc2/n0/c0/binding/0> a powl2:ChildBinding ;
+  powl2:childIndex 0 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c0/c0> .
+<urn:chatman:powl:solace-soc2/n0/c0/c0> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "define-system-boundary(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c0/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c0/binding/1> a powl2:ChildBinding ;
+  powl2:childIndex 1 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c0/c1> .
+<urn:chatman:powl:solace-soc2/n0/c0/c1> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "select-in-scope-tsc-categories(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c0/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c0/binding/2> a powl2:ChildBinding ;
+  powl2:childIndex 2 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c0/c2> .
+<urn:chatman:powl:solace-soc2/n0/c0/c2> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "document-system-description(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c0/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c0/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c0/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c0/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c0/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c0/binding/2> .
+<urn:chatman:powl:solace-soc2/n0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/binding/1> a powl2:ChildBinding ;
+  powl2:childIndex 1 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c1> .
+<urn:chatman:powl:solace-soc2/n0/c1> a powl2:PartialOrder .
+<urn:chatman:powl:solace-soc2/n0/c1> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c1/binding/0> .
+<urn:chatman:powl:solace-soc2/n0/c1/binding/0> a powl2:ChildBinding ;
+  powl2:childIndex 0 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c1/c0> .
+<urn:chatman:powl:solace-soc2/n0/c1/c0> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "inventory-existing-controls(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c1> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c1/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c1/binding/1> a powl2:ChildBinding ;
+  powl2:childIndex 1 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c1/c1> .
+<urn:chatman:powl:solace-soc2/n0/c1/c1> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "perform-gap-analysis(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c1> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c1/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c1/binding/2> a powl2:ChildBinding ;
+  powl2:childIndex 2 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c1/c2> .
+<urn:chatman:powl:solace-soc2/n0/c1/c2> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "produce-readiness-report(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c1/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c1/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c1/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c1/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c1/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c1/binding/2> .
+<urn:chatman:powl:solace-soc2/n0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/binding/2> a powl2:ChildBinding ;
+  powl2:childIndex 2 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c2> .
+<urn:chatman:powl:solace-soc2/n0/c2> a powl2:PartialOrder .
+<urn:chatman:powl:solace-soc2/n0/c2> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c2/binding/0> .
+<urn:chatman:powl:solace-soc2/n0/c2/binding/0> a powl2:ChildBinding ;
+  powl2:childIndex 0 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c2/c0> .
+<urn:chatman:powl:solace-soc2/n0/c2/c0> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "draft-control-narratives(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c2> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c2/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c2/binding/1> a powl2:ChildBinding ;
+  powl2:childIndex 1 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c2/c1> .
+<urn:chatman:powl:solace-soc2/n0/c2/c1> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "map-controls-to-criteria(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c2> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c2/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c2/binding/2> a powl2:ChildBinding ;
+  powl2:childIndex 2 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c2/c2> .
+<urn:chatman:powl:solace-soc2/n0/c2/c2> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "finalize-control-matrix(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c2/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c2/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c2/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c2/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c2/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c2/binding/2> .
+<urn:chatman:powl:solace-soc2/n0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/binding/3> .
+<urn:chatman:powl:solace-soc2/n0/binding/3> a powl2:ChildBinding ;
+  powl2:childIndex 3 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c3> .
+<urn:chatman:powl:solace-soc2/n0/c3> a powl2:PartialOrder .
+<urn:chatman:powl:solace-soc2/n0/c3> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c3/binding/0> .
+<urn:chatman:powl:solace-soc2/n0/c3/binding/0> a powl2:ChildBinding ;
+  powl2:childIndex 0 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c3/c0> .
+<urn:chatman:powl:solace-soc2/n0/c3/c0> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "review-control-design-sufficiency(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c3> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c3/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c3/binding/1> a powl2:ChildBinding ;
+  powl2:childIndex 1 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c3/c1> .
+<urn:chatman:powl:solace-soc2/n0/c3/c1> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "identify-design-deficiencies(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c3> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c3/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c3/binding/2> a powl2:ChildBinding ;
+  powl2:childIndex 2 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c3/c2> .
+<urn:chatman:powl:solace-soc2/n0/c3/c2> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "approve-control-design(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c3/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c3/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c3/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c3/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c3/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c3/binding/2> .
+<urn:chatman:powl:solace-soc2/n0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/binding/4> .
+<urn:chatman:powl:solace-soc2/n0/binding/4> a powl2:ChildBinding ;
+  powl2:childIndex 4 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c4> .
+<urn:chatman:powl:solace-soc2/n0/c4> a powl2:PartialOrder .
+<urn:chatman:powl:solace-soc2/n0/c4> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c4/binding/0> .
+<urn:chatman:powl:solace-soc2/n0/c4/binding/0> a powl2:ChildBinding ;
+  powl2:childIndex 0 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c4/c0> .
+<urn:chatman:powl:solace-soc2/n0/c4/c0> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "establish-observation-period(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c4> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c4/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c4/binding/1> a powl2:ChildBinding ;
+  powl2:childIndex 1 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c4/c1> .
+<urn:chatman:powl:solace-soc2/n0/c4/c1> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "configure-evidence-sampling-plan(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c4> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c4/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c4/binding/2> a powl2:ChildBinding ;
+  powl2:childIndex 2 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c4/c2> .
+<urn:chatman:powl:solace-soc2/n0/c4/c2> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "open-evidence-collection-window(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c4/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c4/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c4/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c4/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c4/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c4/binding/2> .
+<urn:chatman:powl:solace-soc2/n0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/binding/5> .
+<urn:chatman:powl:solace-soc2/n0/binding/5> a powl2:ChildBinding ;
+  powl2:childIndex 5 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c5> .
+<urn:chatman:powl:solace-soc2/n0/c5> a powl2:PartialOrder .
+<urn:chatman:powl:solace-soc2/n0/c5> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c5/binding/0> .
+<urn:chatman:powl:solace-soc2/n0/c5/binding/0> a powl2:ChildBinding ;
+  powl2:childIndex 0 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c5/c0> .
+<urn:chatman:powl:solace-soc2/n0/c5/c0> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "sample-control-instances(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c5> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c5/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c5/binding/1> a powl2:ChildBinding ;
+  powl2:childIndex 1 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c5/c1> .
+<urn:chatman:powl:solace-soc2/n0/c5/c1> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "test-operating-effectiveness(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c5> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c5/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c5/binding/2> a powl2:ChildBinding ;
+  powl2:childIndex 2 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c5/c2> .
+<urn:chatman:powl:solace-soc2/n0/c5/c2> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "record-test-results(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c5/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c5/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c5/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c5/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c5/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c5/binding/2> .
+<urn:chatman:powl:solace-soc2/n0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/binding/6> .
+<urn:chatman:powl:solace-soc2/n0/binding/6> a powl2:ChildBinding ;
+  powl2:childIndex 6 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c6> .
+<urn:chatman:powl:solace-soc2/n0/c6> a powl2:PartialOrder .
+<urn:chatman:powl:solace-soc2/n0/c6> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c6/binding/0> .
+<urn:chatman:powl:solace-soc2/n0/c6/binding/0> a powl2:ChildBinding ;
+  powl2:childIndex 0 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c6/c0> .
+<urn:chatman:powl:solace-soc2/n0/c6/c0> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "analyze-test-deviations(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c6> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c6/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c6/binding/1> a powl2:ChildBinding ;
+  powl2:childIndex 1 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c6/c1> .
+<urn:chatman:powl:solace-soc2/n0/c6/c1> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "classify-exception-severity(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c6> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c6/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c6/binding/2> a powl2:ChildBinding ;
+  powl2:childIndex 2 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c6/c2> .
+<urn:chatman:powl:solace-soc2/n0/c6/c2> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "log-exception-register(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c6/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c6/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c6/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c6/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c6/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c6/binding/2> .
+<urn:chatman:powl:solace-soc2/n0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/binding/7> .
+<urn:chatman:powl:solace-soc2/n0/binding/7> a powl2:ChildBinding ;
+  powl2:childIndex 7 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c7> .
+<urn:chatman:powl:solace-soc2/n0/c7> a powl2:PartialOrder .
+<urn:chatman:powl:solace-soc2/n0/c7> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c7/binding/0> .
+<urn:chatman:powl:solace-soc2/n0/c7/binding/0> a powl2:ChildBinding ;
+  powl2:childIndex 0 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c7/c0> .
+<urn:chatman:powl:solace-soc2/n0/c7/c0> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "obtain-management-response(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c7> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c7/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c7/binding/1> a powl2:ChildBinding ;
+  powl2:childIndex 1 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c7/c1> .
+<urn:chatman:powl:solace-soc2/n0/c7/c1> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "implement-corrective-action(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c7> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c7/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c7/binding/2> a powl2:ChildBinding ;
+  powl2:childIndex 2 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c7/c2> .
+<urn:chatman:powl:solace-soc2/n0/c7/c2> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "verify-remediation-evidence(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c7/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c7/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c7/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c7/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c7/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c7/binding/2> .
+<urn:chatman:powl:solace-soc2/n0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/binding/8> .
+<urn:chatman:powl:solace-soc2/n0/binding/8> a powl2:ChildBinding ;
+  powl2:childIndex 8 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c8> .
+<urn:chatman:powl:solace-soc2/n0/c8> a powl2:PartialOrder .
+<urn:chatman:powl:solace-soc2/n0/c8> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c8/binding/0> .
+<urn:chatman:powl:solace-soc2/n0/c8/binding/0> a powl2:ChildBinding ;
+  powl2:childIndex 0 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c8/c0> .
+<urn:chatman:powl:solace-soc2/n0/c8/c0> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "compile-evidence-artifacts(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c8> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c8/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c8/binding/1> a powl2:ChildBinding ;
+  powl2:childIndex 1 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c8/c1> .
+<urn:chatman:powl:solace-soc2/n0/c8/c1> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "cross-reference-evidence-to-criteria(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c8> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c8/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c8/binding/2> a powl2:ChildBinding ;
+  powl2:childIndex 2 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c8/c2> .
+<urn:chatman:powl:solace-soc2/n0/c8/c2> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "seal-evidence-bundle(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c8/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c8/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c8/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c8/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c8/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c8/binding/2> .
+<urn:chatman:powl:solace-soc2/n0> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/binding/9> .
+<urn:chatman:powl:solace-soc2/n0/binding/9> a powl2:ChildBinding ;
+  powl2:childIndex 9 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c9> .
+<urn:chatman:powl:solace-soc2/n0/c9> a powl2:PartialOrder .
+<urn:chatman:powl:solace-soc2/n0/c9> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c9/binding/0> .
+<urn:chatman:powl:solace-soc2/n0/c9/binding/0> a powl2:ChildBinding ;
+  powl2:childIndex 0 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c9/c0> .
+<urn:chatman:powl:solace-soc2/n0/c9/c0> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "package-evidence-bundle-for-handoff(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c9> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c9/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c9/binding/1> a powl2:ChildBinding ;
+  powl2:childIndex 1 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c9/c1> .
+<urn:chatman:powl:solace-soc2/n0/c9/c1> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "transfer-custody-to-auditor(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c9> powl2:hasChild <urn:chatman:powl:solace-soc2/n0/c9/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c9/binding/2> a powl2:ChildBinding ;
+  powl2:childIndex 2 ;
+  powl2:childModel <urn:chatman:powl:solace-soc2/n0/c9/c2> .
+<urn:chatman:powl:solace-soc2/n0/c9/c2> a powl2:Leaf, powl2:ActivityLeaf ;
+  powl2:activityLabel "confirm-evidence-bundle-complete(solace)" .
+<urn:chatman:powl:solace-soc2/n0/c9/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c9/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/c9/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c9/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/c9/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/c9/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/1> .
+<urn:chatman:powl:solace-soc2/n0/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/3> .
+<urn:chatman:powl:solace-soc2/n0/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/4> .
+<urn:chatman:powl:solace-soc2/n0/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/5> .
+<urn:chatman:powl:solace-soc2/n0/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/6> .
+<urn:chatman:powl:solace-soc2/n0/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/7> .
+<urn:chatman:powl:solace-soc2/n0/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/8> .
+<urn:chatman:powl:solace-soc2/n0/binding/0> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/9> .
+<urn:chatman:powl:solace-soc2/n0/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/2> .
+<urn:chatman:powl:solace-soc2/n0/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/3> .
+<urn:chatman:powl:solace-soc2/n0/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/4> .
+<urn:chatman:powl:solace-soc2/n0/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/5> .
+<urn:chatman:powl:solace-soc2/n0/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/6> .
+<urn:chatman:powl:solace-soc2/n0/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/7> .
+<urn:chatman:powl:solace-soc2/n0/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/8> .
+<urn:chatman:powl:solace-soc2/n0/binding/1> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/9> .
+<urn:chatman:powl:solace-soc2/n0/binding/2> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/3> .
+<urn:chatman:powl:solace-soc2/n0/binding/2> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/4> .
+<urn:chatman:powl:solace-soc2/n0/binding/2> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/5> .
+<urn:chatman:powl:solace-soc2/n0/binding/2> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/6> .
+<urn:chatman:powl:solace-soc2/n0/binding/2> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/7> .
+<urn:chatman:powl:solace-soc2/n0/binding/2> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/8> .
+<urn:chatman:powl:solace-soc2/n0/binding/2> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/9> .
+<urn:chatman:powl:solace-soc2/n0/binding/3> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/4> .
+<urn:chatman:powl:solace-soc2/n0/binding/3> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/5> .
+<urn:chatman:powl:solace-soc2/n0/binding/3> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/6> .
+<urn:chatman:powl:solace-soc2/n0/binding/3> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/7> .
+<urn:chatman:powl:solace-soc2/n0/binding/3> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/8> .
+<urn:chatman:powl:solace-soc2/n0/binding/3> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/9> .
+<urn:chatman:powl:solace-soc2/n0/binding/4> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/5> .
+<urn:chatman:powl:solace-soc2/n0/binding/4> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/6> .
+<urn:chatman:powl:solace-soc2/n0/binding/4> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/7> .
+<urn:chatman:powl:solace-soc2/n0/binding/4> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/8> .
+<urn:chatman:powl:solace-soc2/n0/binding/4> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/9> .
+<urn:chatman:powl:solace-soc2/n0/binding/5> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/6> .
+<urn:chatman:powl:solace-soc2/n0/binding/5> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/7> .
+<urn:chatman:powl:solace-soc2/n0/binding/5> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/8> .
+<urn:chatman:powl:solace-soc2/n0/binding/5> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/9> .
+<urn:chatman:powl:solace-soc2/n0/binding/6> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/7> .
+<urn:chatman:powl:solace-soc2/n0/binding/6> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/8> .
+<urn:chatman:powl:solace-soc2/n0/binding/6> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/9> .
+<urn:chatman:powl:solace-soc2/n0/binding/7> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/8> .
+<urn:chatman:powl:solace-soc2/n0/binding/7> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/9> .
+<urn:chatman:powl:solace-soc2/n0/binding/8> powl2:precedes <urn:chatman:powl:solace-soc2/n0/binding/9> .

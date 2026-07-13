@@ -1,0 +1,1578 @@
+{
+  "name": "solace-soc2-audit-cycle",
+  "predicates": [
+    [
+      "remediation-applied",
+      1
+    ],
+    [
+      "bundle-assembly-step1-done",
+      1
+    ],
+    [
+      "bundle-assembly-step2-done",
+      1
+    ],
+    [
+      "evidence-bundle-assembled",
+      1
+    ],
+    [
+      "control-design-evaluated",
+      1
+    ],
+    [
+      "collection-init-step1-done",
+      1
+    ],
+    [
+      "collection-init-step2-done",
+      1
+    ],
+    [
+      "evidence-collection-initiated",
+      1
+    ],
+    [
+      "readiness-assessed",
+      1
+    ],
+    [
+      "control-design-doc-step1-done",
+      1
+    ],
+    [
+      "control-design-doc-step2-done",
+      1
+    ],
+    [
+      "control-design-documented",
+      1
+    ],
+    [
+      "design-eval-step1-done",
+      1
+    ],
+    [
+      "design-eval-step2-done",
+      1
+    ],
+    [
+      "operating-effectiveness-tested",
+      1
+    ],
+    [
+      "exception-id-step1-done",
+      1
+    ],
+    [
+      "exception-id-step2-done",
+      1
+    ],
+    [
+      "exceptions-identified",
+      1
+    ],
+    [
+      "oe-testing-step1-done",
+      1
+    ],
+    [
+      "oe-testing-step2-done",
+      1
+    ],
+    [
+      "scoping-complete",
+      1
+    ],
+    [
+      "readiness-step1-done",
+      1
+    ],
+    [
+      "readiness-step2-done",
+      1
+    ],
+    [
+      "remediation-step1-done",
+      1
+    ],
+    [
+      "remediation-step2-done",
+      1
+    ],
+    [
+      "report-handoff-step1-done",
+      1
+    ],
+    [
+      "report-handoff-step2-done",
+      1
+    ],
+    [
+      "evidence-bundle-complete",
+      1
+    ],
+    [
+      "audit-engaged",
+      1
+    ],
+    [
+      "scoping-step1-done",
+      1
+    ],
+    [
+      "scoping-step2-done",
+      1
+    ]
+  ],
+  "actions": [
+    {
+      "name": "compile-evidence-artifacts",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "remediation-applied",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "bundle-assembly-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "remediation-applied",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "bundle-assembly-step1-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "cross-reference-evidence-to-criteria",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "bundle-assembly-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "bundle-assembly-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "bundle-assembly-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "bundle-assembly-step2-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "seal-evidence-bundle",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "bundle-assembly-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "evidence-bundle-assembled",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "bundle-assembly-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "evidence-bundle-assembled",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "establish-observation-period",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "control-design-evaluated",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "collection-init-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "control-design-evaluated",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "collection-init-step1-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "configure-evidence-sampling-plan",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "collection-init-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "collection-init-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "collection-init-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "collection-init-step2-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "open-evidence-collection-window",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "collection-init-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "evidence-collection-initiated",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "collection-init-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "evidence-collection-initiated",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "draft-control-narratives",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "readiness-assessed",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "control-design-doc-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "readiness-assessed",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "control-design-doc-step1-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "map-controls-to-criteria",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "control-design-doc-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "control-design-doc-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "control-design-doc-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "control-design-doc-step2-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "finalize-control-matrix",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "control-design-doc-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "control-design-documented",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "control-design-doc-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "control-design-documented",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "review-control-design-sufficiency",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "control-design-documented",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "design-eval-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "control-design-documented",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "design-eval-step1-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "identify-design-deficiencies",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "design-eval-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "design-eval-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "design-eval-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "design-eval-step2-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "approve-control-design",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "design-eval-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "control-design-evaluated",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "design-eval-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "control-design-evaluated",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "analyze-test-deviations",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "operating-effectiveness-tested",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "exception-id-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "operating-effectiveness-tested",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "exception-id-step1-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "classify-exception-severity",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "exception-id-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "exception-id-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "exception-id-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "exception-id-step2-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "log-exception-register",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "exception-id-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "exceptions-identified",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "exception-id-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "exceptions-identified",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "sample-control-instances",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "evidence-collection-initiated",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "oe-testing-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "evidence-collection-initiated",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "oe-testing-step1-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "test-operating-effectiveness",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "oe-testing-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "oe-testing-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "oe-testing-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "oe-testing-step2-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "record-test-results",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "oe-testing-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "operating-effectiveness-tested",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "oe-testing-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "operating-effectiveness-tested",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "inventory-existing-controls",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "scoping-complete",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "readiness-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "scoping-complete",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "readiness-step1-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "perform-gap-analysis",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "readiness-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "readiness-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "readiness-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "readiness-step2-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "produce-readiness-report",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "readiness-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "readiness-assessed",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "readiness-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "readiness-assessed",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "obtain-management-response",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "exceptions-identified",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "remediation-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "exceptions-identified",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "remediation-step1-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "implement-corrective-action",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "remediation-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "remediation-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "remediation-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "remediation-step2-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "verify-remediation-evidence",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "remediation-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "remediation-applied",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "remediation-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "remediation-applied",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "package-evidence-bundle-for-handoff",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "evidence-bundle-assembled",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "report-handoff-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "evidence-bundle-assembled",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "report-handoff-step1-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "transfer-custody-to-auditor",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "report-handoff-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "report-handoff-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "report-handoff-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "report-handoff-step2-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "confirm-evidence-bundle-complete",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "report-handoff-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "evidence-bundle-complete",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "report-handoff-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "evidence-bundle-complete",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "define-system-boundary",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "audit-engaged",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "scoping-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "audit-engaged",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "scoping-step1-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "select-in-scope-tsc-categories",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "scoping-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "scoping-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "scoping-step1-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "scoping-step2-done",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    },
+    {
+      "name": "document-system-description",
+      "params": [
+        "??x"
+      ],
+      "preconditions": [
+        {
+          "pred": "scoping-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "add_effects": [
+        {
+          "pred": "scoping-complete",
+          "args": [
+            "??x"
+          ]
+        }
+      ],
+      "del_effects": [],
+      "typed_params": [
+        [
+          "??x",
+          "object"
+        ]
+      ],
+      "condition": {
+        "Atom": {
+          "pred": "scoping-step2-done",
+          "args": [
+            "??x"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "Add": {
+            "pred": "scoping-complete",
+            "args": [
+              "??x"
+            ]
+          }
+        }
+      ],
+      "numeric_effects": []
+    }
+  ],
+  "types": [],
+  "functions": [],
+  "durative_actions": [],
+  "derived": [],
+  "constraints": [],
+  "processes": [],
+  "events": []
+}

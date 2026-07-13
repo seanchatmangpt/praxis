@@ -1,0 +1,784 @@
+{
+  "ops": [
+    {
+      "index": 0,
+      "label": "define-system-boundary(solace)",
+      "pred_mask": 0,
+      "action": {
+        "schema_name": "define-system-boundary",
+        "label": "define-system-boundary(solace)",
+        "preconditions": [
+          {
+            "pred": "audit-engaged",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "scoping-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 1,
+      "label": "select-in-scope-tsc-categories(solace)",
+      "pred_mask": 1,
+      "action": {
+        "schema_name": "select-in-scope-tsc-categories",
+        "label": "select-in-scope-tsc-categories(solace)",
+        "preconditions": [
+          {
+            "pred": "scoping-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "scoping-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 2,
+      "label": "document-system-description(solace)",
+      "pred_mask": 2,
+      "action": {
+        "schema_name": "document-system-description",
+        "label": "document-system-description(solace)",
+        "preconditions": [
+          {
+            "pred": "scoping-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "scoping-complete",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 3,
+      "label": "inventory-existing-controls(solace)",
+      "pred_mask": 4,
+      "action": {
+        "schema_name": "inventory-existing-controls",
+        "label": "inventory-existing-controls(solace)",
+        "preconditions": [
+          {
+            "pred": "scoping-complete",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "readiness-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 4,
+      "label": "perform-gap-analysis(solace)",
+      "pred_mask": 8,
+      "action": {
+        "schema_name": "perform-gap-analysis",
+        "label": "perform-gap-analysis(solace)",
+        "preconditions": [
+          {
+            "pred": "readiness-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "readiness-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 5,
+      "label": "produce-readiness-report(solace)",
+      "pred_mask": 16,
+      "action": {
+        "schema_name": "produce-readiness-report",
+        "label": "produce-readiness-report(solace)",
+        "preconditions": [
+          {
+            "pred": "readiness-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "readiness-assessed",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 6,
+      "label": "draft-control-narratives(solace)",
+      "pred_mask": 32,
+      "action": {
+        "schema_name": "draft-control-narratives",
+        "label": "draft-control-narratives(solace)",
+        "preconditions": [
+          {
+            "pred": "readiness-assessed",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "control-design-doc-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 7,
+      "label": "map-controls-to-criteria(solace)",
+      "pred_mask": 64,
+      "action": {
+        "schema_name": "map-controls-to-criteria",
+        "label": "map-controls-to-criteria(solace)",
+        "preconditions": [
+          {
+            "pred": "control-design-doc-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "control-design-doc-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 8,
+      "label": "finalize-control-matrix(solace)",
+      "pred_mask": 128,
+      "action": {
+        "schema_name": "finalize-control-matrix",
+        "label": "finalize-control-matrix(solace)",
+        "preconditions": [
+          {
+            "pred": "control-design-doc-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "control-design-documented",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 9,
+      "label": "review-control-design-sufficiency(solace)",
+      "pred_mask": 256,
+      "action": {
+        "schema_name": "review-control-design-sufficiency",
+        "label": "review-control-design-sufficiency(solace)",
+        "preconditions": [
+          {
+            "pred": "control-design-documented",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "design-eval-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 10,
+      "label": "identify-design-deficiencies(solace)",
+      "pred_mask": 512,
+      "action": {
+        "schema_name": "identify-design-deficiencies",
+        "label": "identify-design-deficiencies(solace)",
+        "preconditions": [
+          {
+            "pred": "design-eval-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "design-eval-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 11,
+      "label": "approve-control-design(solace)",
+      "pred_mask": 1024,
+      "action": {
+        "schema_name": "approve-control-design",
+        "label": "approve-control-design(solace)",
+        "preconditions": [
+          {
+            "pred": "design-eval-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "control-design-evaluated",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 12,
+      "label": "establish-observation-period(solace)",
+      "pred_mask": 2048,
+      "action": {
+        "schema_name": "establish-observation-period",
+        "label": "establish-observation-period(solace)",
+        "preconditions": [
+          {
+            "pred": "control-design-evaluated",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "collection-init-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 13,
+      "label": "configure-evidence-sampling-plan(solace)",
+      "pred_mask": 4096,
+      "action": {
+        "schema_name": "configure-evidence-sampling-plan",
+        "label": "configure-evidence-sampling-plan(solace)",
+        "preconditions": [
+          {
+            "pred": "collection-init-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "collection-init-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 14,
+      "label": "open-evidence-collection-window(solace)",
+      "pred_mask": 8192,
+      "action": {
+        "schema_name": "open-evidence-collection-window",
+        "label": "open-evidence-collection-window(solace)",
+        "preconditions": [
+          {
+            "pred": "collection-init-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "evidence-collection-initiated",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 15,
+      "label": "sample-control-instances(solace)",
+      "pred_mask": 16384,
+      "action": {
+        "schema_name": "sample-control-instances",
+        "label": "sample-control-instances(solace)",
+        "preconditions": [
+          {
+            "pred": "evidence-collection-initiated",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "oe-testing-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 16,
+      "label": "test-operating-effectiveness(solace)",
+      "pred_mask": 32768,
+      "action": {
+        "schema_name": "test-operating-effectiveness",
+        "label": "test-operating-effectiveness(solace)",
+        "preconditions": [
+          {
+            "pred": "oe-testing-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "oe-testing-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 17,
+      "label": "record-test-results(solace)",
+      "pred_mask": 65536,
+      "action": {
+        "schema_name": "record-test-results",
+        "label": "record-test-results(solace)",
+        "preconditions": [
+          {
+            "pred": "oe-testing-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "operating-effectiveness-tested",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 18,
+      "label": "analyze-test-deviations(solace)",
+      "pred_mask": 131072,
+      "action": {
+        "schema_name": "analyze-test-deviations",
+        "label": "analyze-test-deviations(solace)",
+        "preconditions": [
+          {
+            "pred": "operating-effectiveness-tested",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "exception-id-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 19,
+      "label": "classify-exception-severity(solace)",
+      "pred_mask": 262144,
+      "action": {
+        "schema_name": "classify-exception-severity",
+        "label": "classify-exception-severity(solace)",
+        "preconditions": [
+          {
+            "pred": "exception-id-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "exception-id-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 20,
+      "label": "log-exception-register(solace)",
+      "pred_mask": 524288,
+      "action": {
+        "schema_name": "log-exception-register",
+        "label": "log-exception-register(solace)",
+        "preconditions": [
+          {
+            "pred": "exception-id-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "exceptions-identified",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 21,
+      "label": "obtain-management-response(solace)",
+      "pred_mask": 1048576,
+      "action": {
+        "schema_name": "obtain-management-response",
+        "label": "obtain-management-response(solace)",
+        "preconditions": [
+          {
+            "pred": "exceptions-identified",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "remediation-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 22,
+      "label": "implement-corrective-action(solace)",
+      "pred_mask": 2097152,
+      "action": {
+        "schema_name": "implement-corrective-action",
+        "label": "implement-corrective-action(solace)",
+        "preconditions": [
+          {
+            "pred": "remediation-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "remediation-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 23,
+      "label": "verify-remediation-evidence(solace)",
+      "pred_mask": 4194304,
+      "action": {
+        "schema_name": "verify-remediation-evidence",
+        "label": "verify-remediation-evidence(solace)",
+        "preconditions": [
+          {
+            "pred": "remediation-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "remediation-applied",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 24,
+      "label": "compile-evidence-artifacts(solace)",
+      "pred_mask": 8388608,
+      "action": {
+        "schema_name": "compile-evidence-artifacts",
+        "label": "compile-evidence-artifacts(solace)",
+        "preconditions": [
+          {
+            "pred": "remediation-applied",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "bundle-assembly-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 25,
+      "label": "cross-reference-evidence-to-criteria(solace)",
+      "pred_mask": 16777216,
+      "action": {
+        "schema_name": "cross-reference-evidence-to-criteria",
+        "label": "cross-reference-evidence-to-criteria(solace)",
+        "preconditions": [
+          {
+            "pred": "bundle-assembly-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "bundle-assembly-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 26,
+      "label": "seal-evidence-bundle(solace)",
+      "pred_mask": 33554432,
+      "action": {
+        "schema_name": "seal-evidence-bundle",
+        "label": "seal-evidence-bundle(solace)",
+        "preconditions": [
+          {
+            "pred": "bundle-assembly-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "evidence-bundle-assembled",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 27,
+      "label": "package-evidence-bundle-for-handoff(solace)",
+      "pred_mask": 67108864,
+      "action": {
+        "schema_name": "package-evidence-bundle-for-handoff",
+        "label": "package-evidence-bundle-for-handoff(solace)",
+        "preconditions": [
+          {
+            "pred": "evidence-bundle-assembled",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "report-handoff-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 28,
+      "label": "transfer-custody-to-auditor(solace)",
+      "pred_mask": 134217728,
+      "action": {
+        "schema_name": "transfer-custody-to-auditor",
+        "label": "transfer-custody-to-auditor(solace)",
+        "preconditions": [
+          {
+            "pred": "report-handoff-step1-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "report-handoff-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    },
+    {
+      "index": 29,
+      "label": "confirm-evidence-bundle-complete(solace)",
+      "pred_mask": 268435456,
+      "action": {
+        "schema_name": "confirm-evidence-bundle-complete",
+        "label": "confirm-evidence-bundle-complete(solace)",
+        "preconditions": [
+          {
+            "pred": "report-handoff-step2-done",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "add_effects": [
+          {
+            "pred": "evidence-bundle-complete",
+            "args": [
+              "solace"
+            ]
+          }
+        ],
+        "del_effects": []
+      }
+    }
+  ]
+}

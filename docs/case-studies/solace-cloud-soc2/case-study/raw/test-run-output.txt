@@ -1,0 +1,45 @@
+$ just cng-test-lib-isolated soc2-2 bench::soc2 -- --nocapture
+running 5 tests
+test bench::soc2::soc2_test::soc2_evidence_metrics_measure_the_shipped_case_study_instance_data ... ok
+test bench::soc2::soc2_test::no_action_effect_ever_asserts_compliance_or_opinion ... ok
+test bench::soc2::soc2_test::eight_constraint_split_violations_refuse_typed ... ok
+test bench::soc2::soc2_test::full_audit_cycle_plans_projects_validates_and_replays_byte_identically ... ok
+test bench::soc2::soc2_test::case_study_instance_data_passes_the_soc2_shapes_and_a_mutant_fails ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 174 filtered out; finished in 0.09s
+
+$ just cng-test-lib-isolated soc2-2 bench::roles -- --nocapture
+running 2 tests
+test bench::roles::roles_test::soc2_standing_roles_mycin_and_datalog_agree ... ok
+test bench::roles::roles_test::fixture_obs_materialize_and_count ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 177 filtered out; finished in 0.01s
+
+$ just cng-test-lib-isolated soc2-2 bench::hooks -- --nocapture
+running 5 tests
+test bench::hooks::hooks_test::registry_missing_field_refuses_cng_r14 ... ok
+test bench::hooks::hooks_test::missing_category_hook_refuses_cng_r13 ... ok
+test bench::hooks::hooks_test::broker_covers_every_bench_category ... ok
+test bench::hooks::hooks_test::real_registry_passes_the_closed_shape_gate ... ok
+test bench::hooks::hooks_test::spike_delta_hook_fires_and_receipts_are_byte_deterministic ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 174 filtered out; finished in 0.12s
+
+$ just cng-test-lib-isolated soc2-2 bench::multifractal -- --nocapture
+running 13 tests
+[... 12 pre-existing tests ok ...]
+test bench::multifractal::multifractal_test::track2b_real_workday_tape_ops_measurement ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 166 filtered out; finished in 12.70s
+
+$ just cng-test-lib-isolated soc2-2 workday_bounded_admission_resumes_every_refusal -- --nocapture
+running 1 test
+test bench::workday::workday_test::workday_bounded_admission_resumes_every_refusal ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 178 filtered out; finished in 1.37s
+
+# Pipeline dump (case-study artifacts), computed against an isolated scratchpad copy of the
+# Stage-1-committed fixtures (see CASE_STUDY.md's concurrent-edit disclosure):
+plan ops: 30
+phase children: 10
+shape violations: 0

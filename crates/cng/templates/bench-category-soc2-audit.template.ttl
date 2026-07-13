@@ -1,0 +1,16 @@
+# rwai-bench content-bearing category fragment (soc2-audit, v26.7.12/13
+# Stage 2): the artifact set evidences a specific SOC2 audit-engagement
+# control point. Appended to the first domain fragment by generate::write_set
+# and workday's per-tick set writer, exactly like the interruption/planning/
+# api-orchestration fragments (PROJ-609/621) — a purely declarative content
+# marker, not a broker-dispatch integration.
+#
+# COMPLIANCE-OVERCLAIM FENCE: `ex:evidencesControl` records that this
+# artifact set's workflow instance is the evidence trail for the named
+# control point — it never asserts, and must never be read as asserting,
+# that the control point is "compliant" or that any opinion has been
+# rendered. See `crates/cng/src/bench/soc2.rs`'s module doc for the full
+# fence disclosure this category's vocabulary inherits.
+@prefix ex: <http://example.org/rwai#> .
+
+ex:{{SUBJECT}} ex:evidencesControl ex:{{TARGET}} .

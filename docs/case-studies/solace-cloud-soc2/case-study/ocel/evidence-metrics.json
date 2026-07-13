@@ -1,0 +1,8 @@
+{
+  "measurement_class": "SOC2_EVIDENCE_BUNDLE_METRICS",
+  "evidenced_controls": 3,
+  "exception_register_artifacts": 1,
+  "remediation_log_artifacts": 1,
+  "derived_exception_register_ratio": 0.3333333333333333,
+  "derived_exception_register_ratio_class": "DERIVED_ARITHMETIC"
+}

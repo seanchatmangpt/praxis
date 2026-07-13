@@ -20,3 +20,17 @@
 # the broker's machine surface (api-orchestration routes to the operator
 # role in the Mycin layer; this fact mirrors that capacity).
 {?w :derivedRole :operator}=>{?w :canOrchestrate :external-api}
+# v26.7.12/13 Stage 2: SOC2 audit-engagement standing roles. The identity
+# rule at the top of this file (:declaredRole -> :derivedRole) already
+# covers any role name, including these 5; only the per-role obligation
+# needs a new rule. Obligation text mirrors bench/roles.rs::soc2_role_rules
+# EXACTLY (Mycin/Datalog parity — roles_test.rs::soc2_standing_roles_mycin_
+# and_datalog_agree asserts the two never drift). Every obligation names an
+# EVIDENCE deliverable, never a compliance verdict or auditor opinion (the
+# same COMPLIANCE-OVERCLAIM FENCE bench/soc2.rs enforces mechanically over
+# the PDDL domain).
+{?w :derivedRole :control-owner}=>{?w :obligation :document-control-design-and-attach-evidence}
+{?w :derivedRole :internal-audit-lead}=>{?w :obligation :execute-readiness-assessment-and-oe-testing}
+{?w :derivedRole :compliance-program-manager}=>{?w :obligation :coordinate-scope-and-assemble-evidence-bundle}
+{?w :derivedRole :remediation-engineer}=>{?w :obligation :implement-remediation-for-identified-exception}
+{?w :derivedRole :evidence-custodian}=>{?w :obligation :maintain-evidence-chain-of-custody}

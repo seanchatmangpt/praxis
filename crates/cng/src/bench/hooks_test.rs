@@ -70,7 +70,7 @@ test!(
     }
 );
 
-test!(broker_covers_all_fifteen_categories, {
+test!(broker_covers_every_bench_category, {
     // Arrange: the real pack.
     let broker = real_broker();
 
@@ -152,7 +152,9 @@ test!(real_registry_passes_the_closed_shape_gate, {
     // Arrange + Act: the real registry and shape (construction is the gate).
     let broker = real_broker();
 
-    // Assert: the pack admitted and all fifteen hooks are present.
-    assert_eq!(broker.hook_names().len(), 15);
+    // Assert: the pack admitted and all sixteen hooks are present (one per
+    // CATEGORIES entry — v26.7.12/13 Stage 2 added "soc2-audit" as the
+    // 16th).
+    assert_eq!(broker.hook_names().len(), crate::bench::CATEGORIES.len());
     assert_eq!(broker.actuations(), 0);
 });

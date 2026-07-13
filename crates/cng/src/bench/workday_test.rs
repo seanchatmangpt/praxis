@@ -227,6 +227,40 @@ test!(workday_bounded_admission_resumes_every_refusal, {
     let _ = fs::remove_dir_all(&dir_a);
     let _ = fs::remove_dir_all(&dir_b);
 
+    // v26.7.12/13 Stage 2 added a 16th CATEGORIES entry ("soc2-audit"),
+    // shifting which category `seed: 7` draws at each of these 3 ticks; it
+    // now draws "api-orchestration" at least once. `workday()`'s dispatch
+    // broker gates that category's Arazzo projection on
+    // `verify_arazzo_render_digest` finding a rendered `generated/
+    // arazzo.yaml` whose bytes match a `.ggen-v2/receipt.json` digest at the
+    // run directory — the SAME precondition
+    // `track2b_real_workday_tape_ops_measurement` (`multifractal_test.rs`)
+    // and `arazzo_projection_dispatches_every_step_through_the_loopback_
+    // adapter` (`arazzo_test.rs`) already seed for their own isolated
+    // coverage; this is `workday()`'s own existing requirement, not
+    // something this resume test invented. Seed it in BOTH run directories
+    // (the test calls `workday()` twice for the determinism comparison).
+    let seed_arazzo_fixture = |dir: &std::path::Path| -> Result<(), CngRefusal> {
+        fs::create_dir_all(dir.join("generated"))
+            .map_err(|e| CngRefusal::IoRefused(format!("mkdir generated: {e}")))?;
+        fs::create_dir_all(dir.join(".ggen-v2"))
+            .map_err(|e| CngRefusal::IoRefused(format!("mkdir .ggen-v2: {e}")))?;
+        let rendered_yaml: &[u8] = b"arazzo: \"1.1.0\"\ninfo:\n  title: resume_test\n";
+        fs::write(dir.join("generated/arazzo.yaml"), rendered_yaml)
+            .map_err(|e| CngRefusal::IoRefused(format!("write generated/arazzo.yaml: {e}")))?;
+        let rendered_digest = blake3::hash(rendered_yaml).to_hex().to_string();
+        fs::write(
+            dir.join(".ggen-v2/receipt.json"),
+            format!(
+                "{{\"payload\":{{\"outputs\":{{\"generated/arazzo.yaml\":\"{rendered_digest}\"}}}}}}"
+            ),
+        )
+        .map_err(|e| CngRefusal::IoRefused(format!("write .ggen-v2/receipt.json: {e}")))?;
+        Ok(())
+    };
+    seed_arazzo_fixture(&dir_a)?;
+    seed_arazzo_fixture(&dir_b)?;
+
     // Act.
     let report_a = workday(&dir_a, &cfg, None).expect("workday resume run a");
     let report_b = workday(&dir_b, &cfg, None).expect("workday resume run b");

@@ -33,3 +33,16 @@ ex:hook-api-orchestration a kh:Hook ;
   kh:on "assert" ;
   kh:effect "emit-delta" ;
   kh:priority 15 .
+
+# v26.7.12/13 Stage 2: soc2-audit category hook (category 16). Same
+# delta/assert/emit-delta shape as every other category hook in this pack —
+# a purely declarative actuation receipt, not a compliance judgment (see
+# bench/soc2.rs's module doc for the COMPLIANCE-OVERCLAIM FENCE this
+# category's whole vocabulary inherits).
+ex:hook-soc2-audit a kh:Hook ;
+  kh:name "soc2-audit" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/rwai#actuates-soc2-audit" ;
+  kh:on "assert" ;
+  kh:effect "emit-delta" ;
+  kh:priority 16 .

@@ -46,6 +46,19 @@ pub(super) fn role_rules() -> Vec<Rule> {
         // PROJ-621: external-API orchestration is operator work (dispatch
         // contracts executed through the broker's machine surface).
         ("api-orchestration", "operator"),
+        // v26.7.12/13 Stage 2: the generic per-artifact classification for
+        // ANY soc2-audit artifact routes to the auditor role (mirrors
+        // "compliance-check" -> "auditor"), same as every other category in
+        // this flat table. The 5 distinct SOC2 standing roles (control-owner,
+        // internal-audit-lead, compliance-program-manager,
+        // remediation-engineer, evidence-custodian) are a SEPARATE,
+        // responsibility-keyed Mycin sub-table below (`soc2_role_rules`) —
+        // this flat category->role table is inherently 1:1 per category
+        // (`infer_lawful_next_action` supplies only a single "category=X"
+        // premise fact), so it cannot itself select among 5 roles for one
+        // category; `infer_soc2_standing_role` is the dedicated entry point
+        // for that finer-grained inference.
+        ("soc2-audit", "auditor"),
     ];
     let action_of = [
         ("coordinator", "route-and-schedule"),
@@ -86,6 +99,98 @@ pub(super) fn infer_lawful_next_action(category: &str) -> Option<String> {
             value: category.to_string(),
         }],
         rules: role_rules(),
+        ..Default::default()
+    };
+    Mycin.run(&input).ok().and_then(|out| out.selected)
+}
+
+/// Knowledge base for the SOC2 audit-engagement standing roles (v26.7.12/13
+/// Stage 2): responsibility → standing role → lawful next action, keyed by
+/// the engagement RESPONSIBILITY the artifact was scoped for (not the flat
+/// "category=soc2-audit" fact `role_rules` uses — a single category premise
+/// cannot itself distinguish 5 roles, since Mycin selects one terminal
+/// conclusion per premise set). Certainty factors mirror `role_rules`'s own
+/// convention exactly: 0.95 for the responsibility->role rule (a direct,
+/// near-certain classification — real Shortliffe-Buchanan practice keeps
+/// directly-observed classifications above 0.9), 0.9 for the role->action
+/// rule (one inferential hop, combined CF = 0.95 * 0.9 = 0.855 for the
+/// terminal `next=` conclusion, same combination law as `role_rules`'s
+/// 0.95/0.9 pair). Every lawful next action names an EVIDENCE deliverable,
+/// never a compliance verdict or auditor opinion — the same
+/// COMPLIANCE-OVERCLAIM FENCE `soc2.rs::verify_no_compliance_or_opinion_
+/// effects` enforces mechanically over the PDDL domain.
+pub(super) fn soc2_role_rules() -> Vec<Rule> {
+    let role_of = [
+        // control-owner: owns a specific control point's design and
+        // evidence (Phase 3, Control Design Documentation).
+        (
+            "control-design-and-evidence",
+            "control-owner",
+            "document-control-design-and-attach-evidence",
+        ),
+        // internal-audit-lead: runs readiness assessment (Phase 2) and
+        // operating-effectiveness testing (Phase 6).
+        (
+            "readiness-and-oe-testing",
+            "internal-audit-lead",
+            "execute-readiness-assessment-and-oe-testing",
+        ),
+        // compliance-program-manager: coordinates scoping (Phase 1) and
+        // evidence-bundle assembly (Phase 9).
+        (
+            "scoping-and-bundle-coordination",
+            "compliance-program-manager",
+            "coordinate-scope-and-assemble-evidence-bundle",
+        ),
+        // remediation-engineer: implements fixes for identified exceptions
+        // (Phase 8, management response & remediation).
+        (
+            "exception-remediation",
+            "remediation-engineer",
+            "implement-remediation-for-identified-exception",
+        ),
+        // evidence-custodian: maintains the evidence chain of custody
+        // (Phase 5 collection through Phase 10 handoff).
+        (
+            "evidence-chain-of-custody",
+            "evidence-custodian",
+            "maintain-evidence-chain-of-custody",
+        ),
+    ];
+    let mut rules = Vec::new();
+    for (responsibility, role, _action) in role_of {
+        rules.push(Rule {
+            id: format!("r-soc2-role-{role}"),
+            premise: vec![format!("responsibility={responsibility}")],
+            conclusion: format!("role={role}"),
+            certainty: 0.95,
+        });
+    }
+    for (_responsibility, role, action) in role_of {
+        rules.push(Rule {
+            id: format!("r-soc2-act-{role}"),
+            premise: vec![format!("role={role}")],
+            conclusion: format!("next={action}"),
+            certainty: 0.9,
+        });
+    }
+    rules
+}
+
+/// Old-AI standing-role inference for the SOC2 audit engagement: derives the
+/// lawful next action for the given engagement RESPONSIBILITY via the same
+/// Mycin forward-chaining breed `infer_lawful_next_action` uses, over
+/// `soc2_role_rules`'s knowledge base instead of `role_rules`'s. Returns
+/// `None` when the responsibility is not one of the 5 standing roles —
+/// callers must refuse, never fall back silently.
+pub(super) fn infer_soc2_standing_role(responsibility: &str) -> Option<String> {
+    let input = BreedInput {
+        intent: "derive SOC2 standing role and lawful next action".to_string(),
+        facts: vec![Fact {
+            key: "responsibility".to_string(),
+            value: responsibility.to_string(),
+        }],
+        rules: soc2_role_rules(),
         ..Default::default()
     };
     Mycin.run(&input).ok().and_then(|out| out.selected)
@@ -474,6 +579,16 @@ pub(super) fn roster_workers(obs_store: &Store) -> Result<Vec<RosterWorker>, Cng
 pub(super) struct DatalogRoles {
     /// worker id → Datalog-derived role.
     pub(super) derived: BTreeMap<String, String>,
+    /// worker id → Datalog-derived `:obligation` atom (v26.7.12/13 Stage 2
+    /// addition: exposes the SAME `:obligation` facts `derived_facts`
+    /// already counts, so a caller can assert full text parity between a
+    /// role's Mycin-inferred `next=<action>` conclusion and its
+    /// Datalog-derived `:obligation` atom, not merely that a role identity
+    /// round-trips — see `roles_test.rs::soc2_standing_roles_mycin_and_
+    /// datalog_agree`, which extends this existing role-agreement
+    /// mechanism to the 5 new SOC2 standing roles rather than inventing a
+    /// second parity check).
+    pub(super) obligations: BTreeMap<String, String>,
     /// Total derived facts (roles + obligations + custody + closure).
     pub(super) derived_facts: usize,
 }
@@ -531,6 +646,7 @@ pub(super) fn derive_roles_datalog(
             .ok_or_else(|| CngRefusal::MalformedTtl("Datalog term failed to decode".to_string()))
     };
     let mut derived: BTreeMap<String, String> = BTreeMap::new();
+    let mut obligations: BTreeMap<String, String> = BTreeMap::new();
     for triple in &inferred {
         let predicate = decode(triple.p.to_encoded())?;
         if predicate == ":derivedRole" {
@@ -539,6 +655,13 @@ pub(super) fn derive_roles_datalog(
             derived.insert(
                 worker.trim_start_matches(':').to_string(),
                 role.trim_start_matches(':').to_string(),
+            );
+        } else if predicate == ":obligation" {
+            let worker = decode(triple.s.to_encoded())?;
+            let obligation = decode(triple.o.to_encoded())?;
+            obligations.insert(
+                worker.trim_start_matches(':').to_string(),
+                obligation.trim_start_matches(':').to_string(),
             );
         }
     }
@@ -563,6 +686,7 @@ pub(super) fn derive_roles_datalog(
     }
     Ok(DatalogRoles {
         derived,
+        obligations,
         derived_facts: inferred.len(),
     })
 }

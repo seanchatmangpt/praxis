@@ -15,9 +15,10 @@ pub(super) struct Templates {
     pub(super) problem: String,
     /// Observation templates keyed by kind suffix (see [`OBS_KINDS`]).
     pub(super) obs: BTreeMap<&'static str, String>,
-    /// Content-bearing category fragments (PROJ-609/621), keyed by category
-    /// name ("interruption", "planning", "api-orchestration"); appended to
-    /// the domain fragment.
+    /// Content-bearing category fragments (PROJ-609/621, and the Stage 2
+    /// "soc2-audit" addition below), keyed by category name ("interruption",
+    /// "planning", "api-orchestration", "soc2-audit"); appended to the
+    /// domain fragment.
     pub(super) category_content: BTreeMap<&'static str, String>,
     /// ex:AdmissionRequest artifact template (PROJ-611).
     pub(super) admission_request: String,
@@ -37,7 +38,12 @@ pub(super) fn load_templates() -> Result<Templates, CngRefusal> {
         );
     }
     let mut category_content = BTreeMap::new();
-    for category in ["interruption", "planning", "api-orchestration"] {
+    for category in [
+        "interruption",
+        "planning",
+        "api-orchestration",
+        "soc2-audit",
+    ] {
         category_content.insert(
             category,
             read(&format!("bench-category-{category}.template.ttl"))?,
