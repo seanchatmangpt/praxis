@@ -1,10 +1,9 @@
-//! Tests for the crown-witness EXTERNAL tail (`F10 -> F12 -> F13 -> F14 -> F15`) and the
-//! independent `F20 -> F02(re-admit)` edge.
+//! Tests for the crown-witness EXTERNAL tail (`F10 -> F12 -> F13 -> F14 -> F15`), the independent
+//! `F20 -> F02(re-admit)` edge, and `F02(re-admit) -> F15 (AIR transition)`.
 //!
 //! The non-`#[ignore]` tests drive the whole `F10 (real geometry) -> F12 -> F13 -> F14 ->
-//! F15 (converter)` chain in pure Rust, with no Erlang dependency. The single `#[ignore]`d test
-//! additionally spawns the real `air_core` escript bridge and asserts the AIR program F14 lowered
-//! is executed by the real `air_core:transition/2` (run with `--ignored`).
+//! F15 (converter)` chain in pure Rust, with no Erlang dependency. The `#[ignore]`d tests
+//! additionally spawn the real `air_core` escript bridge (run with `--ignored`).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -13,8 +12,8 @@ use std::path::{Path, PathBuf};
 use powl2_decompose::Powl;
 
 use super::{
-    air_program_to_bridge_workflow, drive_external_reentry, drive_external_witness_tail,
-    ExternalReentryRun, ExternalWitnessRun,
+    air_program_to_bridge_workflow, drive_external_readmit_transition, drive_external_reentry,
+    drive_external_witness_tail, ExternalReentryRun, ExternalWitnessRun,
 };
 use crate::f02_observation_admission::{AdmissionLedger, AdmissionPolicy, AdmissionState};
 use crate::f10_powl_geometry::{manufacture_powl_v2, POWLModel, Plan, PlanAction};
@@ -377,6 +376,63 @@ fn external_reentry_dispatches_serves_collects_and_readmits_a_real_consequence()
     // Crown receipt is a real 64-hex BLAKE3 digest.
     assert_eq!(outcome.crown_receipt.len(), 64);
     assert!(outcome.crown_receipt.chars().all(|c| c.is_ascii_hexdigit()));
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+/// Real, end-to-end through the actual `air_core` (marked `#[ignore]` for the same reason
+/// `f15_air_transition_core::bridge`'s own integration tests are: it needs `escript` on `PATH`
+/// and a compiled `apps/air_core` via `just erlang-compile`; run with `--ignored`).
+///
+/// Drives the full `F20 -> F02(re-admit) -> F15 (AIR transition)` chain: a real dispatch/serve/
+/// collect/re-admit round trip, then a real `air_core:transition/2` call completing a minimal
+/// bridge workflow keyed by the real dispatch id, carrying the real F02 admission receipt hash as
+/// its event payload -- proving the re-admitted consequence's completion is genuinely fed back
+/// into the real transition core, not merely asserted.
+#[test]
+#[ignore = "requires escript on PATH and apps/air_core compiled via `just erlang-compile`; run with --ignored"]
+fn external_readmit_transition_completes_the_dispatched_step_through_real_air_core() {
+    let root = reentry_scratch_dir("readmit-transition");
+    let subworkflow = reentry_trivial_subworkflow("wf-crown-reentry-transition-1");
+    let policy = reentry_policy();
+    let ledger = AdmissionLedger::new();
+
+    let run = ExternalReentryRun {
+        root: &root,
+        subworkflow: &subworkflow,
+        target_engine: "crown-reentry-transition-engine-1".to_string(),
+        engine_seed: 42,
+        max_polls: 8,
+        poll_wait_ms: None,
+        policy: &policy,
+        ledger: &ledger,
+        reentry_source_id: REENTRY_SOURCE.to_string(),
+        reentry_principal_iri: REENTRY_PRINCIPAL.to_string(),
+        reentry_subject_base_iri: REENTRY_BASE_IRI.to_string(),
+        correlation_id: "crown-reentry-transition-corr-1".to_string(),
+    };
+
+    let outcome = drive_external_readmit_transition(run)
+        .expect("the full dispatch/serve/collect/re-admit/AIR-transition chain must succeed");
+
+    // F20 -> F02: the same real re-admission this module's other test already proves.
+    assert!(outcome.reentry.dispatch_outcome.admitted);
+    assert_eq!(
+        outcome.reentry.reentry_admission.state,
+        AdmissionState::Admitted
+    );
+
+    // F02(re-admit) -> F15: the real air_core bridge really processed a single terminal step.
+    // Empty ready_steps/commands is the correct outcome for a one-step workflow with no
+    // successors -- there is nothing further to dispatch, not a failure.
+    assert!(
+        outcome.transition.ready_steps.is_empty(),
+        "a single terminal step has no successors to newly-ready"
+    );
+    assert!(
+        outcome.transition.commands.is_empty(),
+        "a single terminal step emits no further dispatch command"
+    );
 
     let _ = fs::remove_dir_all(&root);
 }

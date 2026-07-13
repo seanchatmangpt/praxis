@@ -5,6 +5,11 @@
 //!   not require `F15 -> F16` -> ... -> `F20` to be wired first -- classified on its own real
 //!   data-threading, the same way `F13 -> F14` was independently real while `F10 -> F12` was only
 //!   `PARTIAL_REAL_EDGE`).
+//! - [`drive_external_readmit_transition`]: `F02(re-admit) -> F15 (AIR transition)`, composing
+//!   [`drive_external_reentry`] verbatim then a second, real `call_air_core_bridge` round trip
+//!   that completes a minimal bridge workflow keyed by the real dispatch id, carrying the real F02
+//!   admission receipt hash as its result payload -- the externally-dispatched step's completion,
+//!   fed back into the real AIR transition core.
 //!
 //! This module is the first *production caller* (a real, non-`#[cfg(test)]` `pub fn`) that
 //! drives the crown-witness EXTERNAL tail from F10's geometry output through the Arazzo
@@ -20,6 +25,7 @@
 //! | F15 AIR Transition Core | [`air_program_to_bridge_workflow`] -> [`crate::f15_air_transition_core::bridge::call_air_core_bridge`] |
 //! | F20 External Dispatch | [`crate::f20_external_dispatch::dispatch_subworkflow_to_engine`] -> [`crate::f20_external_dispatch::engine_serve`] -> [`crate::f20_external_dispatch::collect_subworkflow_consequence`] |
 //! | F02 (re-admit)              | [`crate::f02_observation_admission::admit_observation`], over a synthesized observation asserting F20's real collected consequence |
+//! | F15 (AIR re-transition)    | [`crate::f15_air_transition_core::bridge::call_air_core_bridge`], called a second time to complete the externally-dispatched step |
 //!
 //! # What makes each edge real (and the honest boundaries)
 //!
@@ -105,6 +111,27 @@
 //! `collect_subworkflow_consequence` already read into a local variable -- no new admission logic,
 //! no cng-private stage detail surfaced, nothing else about cng's disclosed scope boundary
 //! (documented in `f20_external_dispatch.rs`'s own module doc) changed.
+//!
+//! # `F02(re-admit) -> F15 (AIR transition)`, closed for real ([`drive_external_readmit_transition`])
+//!
+//! Composes [`drive_external_reentry`] verbatim as its first stage, then calls
+//! [`call_air_core_bridge`](crate::f15_air_transition_core::bridge::call_air_core_bridge) a
+//! *second* time (the same real entry point [`drive_external_witness_tail`]'s own gated test
+//! already exercises, reused here for a different real workflow) to complete a minimal bridge
+//! workflow: one step, keyed by the real `dispatch_id` F20 dispatched, with a `StepCompleted`
+//! event whose `result` carries the real F02 admission receipt hash. This threads a genuine
+//! upstream consequence (the fact that F02 really admitted this specific dispatch's real
+//! collected content) into F15's real downstream mechanism (the Erlang `air_core:transition/2`
+//! state machine) -- not two real modules that merely coexist. A single terminal step with no
+//! successors legitimately yields empty `ready_steps`/`commands` (nothing further to dispatch),
+//! matching `BridgeTransitionResult`'s own documented contract; that is not a smuggled failure.
+//!
+//! Honest nuance, matching this module's own established precedent for `F14 -> F15`: the real
+//! escript round trip is environment-gated (needs `escript` + a compiled `apps/air_core`), so
+//! [`drive_external_readmit_transition`] itself has that same dependency (unlike
+//! [`drive_external_reentry`] alone, which is escript-independent) -- kept as a *separate*
+//! function rather than folded into `drive_external_reentry`, so a caller that only needs the
+//! `F20 -> F02` edge is not forced to depend on a compiled `air_core`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -120,7 +147,10 @@ use crate::f10_powl_geometry::POWLModel;
 use crate::f12_external_cut::{resolve_external_cut_at, Refusal as EngineRefusal};
 use crate::f13_arazzo_artifact::{ArazzoProjectionReceipt, CoreError};
 use crate::f14_wasm4pm_arazzo::{compile as compile_arazzo, ArazzoCompileRefused};
-use crate::f15_air_transition_core::bridge::{BridgeEvent, BridgeStepDef, BridgeWorkflow};
+use crate::f15_air_transition_core::bridge::{
+    call_air_core_bridge, AirBridgeRefused, BridgeEvent, BridgeStepDef, BridgeTransitionResult,
+    BridgeWorkflow,
+};
 use crate::f20_external_dispatch::{
     collect_subworkflow_consequence, dispatch_subworkflow_to_engine, engine_serve, CngRefusal,
     SubworkflowDispatchOutcome, SubworkflowPlan,
@@ -615,6 +645,65 @@ fn compute_reentry_crown_receipt(
         hasher.update(b"\n");
     }
     hasher.finalize().to_hex().to_string()
+}
+
+/// The real, composed output of one `F02(re-admit) -> F15 (AIR transition)` run.
+#[derive(Debug)]
+pub struct ExternalReadmitTransitionOutcome {
+    /// The `F20 -> F02(re-admit)` outcome this run composes verbatim as its first stage.
+    pub reentry: ExternalReentryOutcome,
+    /// The real transition result from completing the externally-dispatched step -- empty
+    /// `ready_steps`/`commands` on a single terminal step is a legitimate outcome, not a failure.
+    pub transition: BridgeTransitionResult,
+}
+
+/// Typed refusal for the composed `F02(re-admit) -> F15` edge.
+#[derive(Debug, thiserror::Error)]
+pub enum ExternalReadmitTransitionRefused {
+    /// The `F20 -> F02(re-admit)` stage refused.
+    #[error("crown-external F02(re-admit)->F15 transition: reentry stage refused: {0}")]
+    Reentry(#[from] ExternalReentryRefused),
+    /// The real `air_core` bridge transition refused.
+    #[error("crown-external F02(re-admit)->F15 transition: AIR transition refused: {0}")]
+    AirTransition(#[from] AirBridgeRefused),
+}
+
+/// Drive the EXTERNAL witness's `F02(re-admit) -> F15 (AIR transition)` edge end to end: dispatch,
+/// serve, collect, and re-admit a real consequence via [`drive_external_reentry`], then complete a
+/// minimal real bridge workflow for that same dispatch through a second, real
+/// [`call_air_core_bridge`] round trip.
+///
+/// See the module doc comment's `F02(re-admit) -> F15 (AIR transition)` section for exactly what
+/// makes this a real production edge and every disclosed nuance -- including why this function,
+/// unlike [`drive_external_reentry`] alone, requires a live `escript` + compiled `apps/air_core`.
+///
+/// # Errors
+/// [`ExternalReadmitTransitionRefused`], carrying the first stage's own typed refusal.
+pub fn drive_external_readmit_transition(
+    run: ExternalReentryRun<'_>,
+) -> Result<ExternalReadmitTransitionOutcome, ExternalReadmitTransitionRefused> {
+    // ---- Stage F20 -> F02 (re-admit): reuse drive_external_reentry verbatim -----------------
+    let reentry = drive_external_reentry(run)?;
+
+    // ---- Stage F02(re-admit) -> F15 (AIR transition): complete a real, minimal bridge workflow
+    // representing the externally-dispatched consequence, via the real air_core bridge ---------
+    let dispatch_id = reentry.dispatch_outcome.dispatch_id.clone();
+    let completion_workflow = BridgeWorkflow {
+        steps: BTreeMap::from([(dispatch_id.clone(), BridgeStepDef { next: Vec::new() })]),
+    };
+    let transition = call_air_core_bridge(
+        &completion_workflow,
+        &[dispatch_id.clone()],
+        &[BridgeEvent::StepCompleted {
+            step_id: dispatch_id,
+            result: serde_json::Value::String(reentry.reentry_admission.receipt_hash.clone()),
+        }],
+    )?;
+
+    Ok(ExternalReadmitTransitionOutcome {
+        reentry,
+        transition,
+    })
 }
 
 #[cfg(test)]
