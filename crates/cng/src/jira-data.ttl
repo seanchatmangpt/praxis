@@ -1,18 +1,29 @@
 # GENERATED — do not edit. Compiled into the `cng` binary via
 # include_str! (crates/cng/src/jira.rs) so the CLI needs no runtime
-# data-file path. Byte-identical in content to
-# packs/jira-tracking-pack/ontology.ttl (this pack's own source of
-# truth); regenerate both together via
-# packs/jira-tracking-pack/make-ontology.py.
-# jira-tracking-pack schema — hand-authored vocabulary for milestone ticket
-# tracking (docs/jira/*/tickets/index.md) plus the CLI command individuals
-# that generate the `jira` noun-verb route skeleton, following
+# data-file path. Concatenation of
+# packs/jira-tracking-pack/ontology.ttl (hand-authored vocabulary,
+# this pack's own source of truth) and
+# packs/jira-tracking-pack/instances.ttl (generated ticket data,
+# see above); regenerate via packs/jira-tracking-pack/make-ontology.py.
+# jira-tracking-pack ontology — hand-authored vocabulary for milestone
+# ticket tracking (docs/jira/*/tickets/index.md) plus the CLI command
+# individuals that generate the `jira` noun-verb route skeleton, following
 # clap-noun-verb-pack's cnv: pattern (cnv:Command/cnv:Noun individuals ->
-# `#[verb]` route generation). Instance data (real jira:Ticket individuals)
-# is generated separately by make-ontology.py into instances.ttl; this file
-# never contains ticket instance data itself. Namespace is unique to this
-# pack, matching the convention every other pack in packs/*/ontology.ttl
-# uses (its own `#<pack>` fragment on seanchatmangpt.github.io/packs/).
+# `#[verb]` route generation).
+#
+# This file is the pack's own genuinely-owned content — no committed
+# union (mirrors packs/togaf-adm-pack/ontology.ttl's precedent: a real,
+# hand-authored ontology.ttl plus a `ggen.toml` `extra_ontologies` entry
+# for the source that is not this pack's own vocabulary). Ticket instance
+# data (real jira:Ticket individuals, parsed from
+# docs/jira/v26.7.11/tickets/index.md by make-ontology.py) lives in
+# packs/jira-tracking-pack/instances.ttl and is unioned into this pack's
+# graph at sync time via this pack's `ggen.toml` `extra_ontologies` entry
+# — it is never duplicated into this file.
+#
+# Namespace is unique to this pack, matching the convention every other
+# pack in packs/*/ontology.ttl uses (its own `#<pack>` fragment on
+# seanchatmangpt.github.io/packs/).
 @prefix jira: <http://seanchatmangpt.github.io/packs/jira-tracking#> .
 @prefix cnv:  <http://seanchatmangpt.github.io/packs/clap-noun-verb#> .
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
