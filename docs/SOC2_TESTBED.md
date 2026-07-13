@@ -40,11 +40,16 @@ independently caught or corrected the same framing.
 ## What was built
 
 - **Ontology and phases** (Stage 1, commit `756a2584`): `packs/soc2-audit-pack/` — a
-  public-ontology-first domain (SKOS/PROV/DCTERMS/ORG) with 5 concept schemes: 10 audit
-  phases, 5 TSC categories, and the CC1–CC9/A1-1..A1-3/C1-1/C1-2 control-point hierarchy
-  (with the CC9 split above applied). 13 templates render to 13 on-disk PDDL/SHACL
-  fixtures under `crates/cng/tests/fixtures/soc2/`, verified byte-identical to their
-  template bodies before commit.
+  public-ontology-first domain (SKOS/PROV/DCTERMS/ORG) with 5 concept schemes at Stage 1
+  (10 audit phases, 5 TSC categories, and the CC1–CC9/A1-1..A1-3/C1-1/C1-2 control-point
+  hierarchy, with the CC9 split above applied) — now **7** after the separate Fortune-5
+  rescale (commit `f8c9e3dd`, between Stage 2 and Stage 3) added Processing Integrity
+  (PI1.1-1.5) and Privacy (P1-P8) schemes, both out of scope for the original Solace Cloud
+  case study. 13 templates render
+  to 13 on-disk fixtures: **12** PDDL/instance-data files under
+  `crates/cng/tests/fixtures/soc2/` plus **1** SHACL shapes file
+  (`crates/cng/shapes/soc2-shapes.ttl`) — verified byte-identical to their template bodies
+  before commit.
 - **Category and roles wiring** (Stage 2, commit `3909f89d`): `soc2-audit` added as
   `crates/cng`'s 16th bench category; `role_of` gained an `auditor` role; a Mycin
   sub-table (`soc2_role_rules`/`infer_soc2_standing_role`) and a matching Datalog rule set
@@ -85,12 +90,16 @@ recomputed or rounded up.
   tests broke from widening the bench category count 15→16 (a fixed-seed `splitmix64`
   draw-sequence shift) and were fixed forward in this same commit.
 - **Stage 3**: `soc2_growth` filter — 5 passed, 0 failed. Full lib suite: **181 passed,
-  3 failed** — the 3 failures are reported as pre-existing, attributed to a separate
+  3 failed** at Stage 3's own `HEAD` — the 3 failures were attributed to a separate
   Solace→Arclight rescale commit (`f8c9e3dd`) landing on `soc2.rs`/`soc2_test.rs`'s
-  still-Solace-named constants, tracked as a follow-up rather than fixed in Stage 3. This
-  document does not independently re-run that suite to confirm the attribution — treat the
-  "pre-existing, not caused by Stage 3" framing as **UNVERIFIED** by this document, only as
-  reported.
+  still-Solace-named constants. **Resolved** in a follow-up commit
+  (`fix(cng): reconcile soc2.rs/soc2_test.rs naming to Arclight`): BASE_IRI, plan-graph
+  IRI, PDDL object name, fixture path, and the `evidenced_controls`/ratio assertions
+  (3→16 control points, matching the rescale's 5-category scope) were all updated.
+  Independently re-verified post-fix: `just cng-test-lib-isolated soc2-reconcile
+  bench::soc2 -- --nocapture` → 10 passed, 0 failed; full lib suite (background task
+  `b02woqay0`) → **184 passed, 0 failed** — confirming the "pre-existing, not caused by
+  Stage 3" attribution was correct.
 - Across all three stages: `just fmt-check-pkg cng` is reported clean on every file each
   stage touched. Clippy findings reported in Stage 1 were pre-existing dead-code false
   positives shared with `togaf.rs`, not a regression; one real finding (an unused `pub use`)

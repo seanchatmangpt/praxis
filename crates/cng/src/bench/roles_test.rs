@@ -125,7 +125,7 @@ fn soc2_standing_roles_mycin_and_datalog_agree() {
         .map(|(i, (_, role, _))| RosterWorker {
             worker_id: format!("soc2-w{i}"),
             role: (*role).to_string(),
-            department: "solace-cloud-audit".to_string(),
+            department: "arclight-cloud-audit".to_string(),
         })
         .collect();
     let datalog = derive_roles_datalog(&workers, &rules_text)
