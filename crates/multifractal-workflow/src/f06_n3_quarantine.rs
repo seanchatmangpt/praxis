@@ -48,8 +48,11 @@
 //!     mean editing `praxis-graphlaw::chatman::engine`, a different crate's core admission path)
 //!     and is not claimed here.
 //! (b) **The real N3 parser/reasoner is not bridged to the quarantine boundary.** Verified this
-//!     session: `grep -rln "n3rule_parser" crates/praxis-graphlaw/src/` finds only
-//!     `parser/n3rule_parser.rs` itself and `parser/mod.rs`'s re-export; `N3Rule` above is a
+//!     session: `grep -rln "n3rule_parser" crates/praxis-graphlaw/src/` finds 4 files --
+//!     `parser/n3rule_parser.rs` itself, `parser/mod.rs`'s re-export, and two other
+//!     parser-internal files that reference it for unrelated internal reasons
+//!     (`parser/n3.pest`'s grammar comments, `parser/n3_terms.rs`'s scope-stack imports) -- none
+//!     of which route through this crate's quarantine boundary. `N3Rule` above is a
 //!     caller-declared classification struct (rule id + declared builtins + declared cost), not
 //!     a parsed N3 rule -- anyone calling `parser::n3rule_parser::parse` directly still bypasses
 //!     every gate in this module. This module does not close that gap; it is real hand-engineering
