@@ -1,7 +1,8 @@
 #![cfg(test)]
 
-//! SOC2 audit-engagement full-lifecycle tests (Solace Cloud, v26.7.12/13
-//! Stage 1): the 10 chained phase fixtures admit, plan as one 30-step
+//! SOC2 audit-engagement full-lifecycle tests (Arclight Cloud Platform,
+//! v26.7.12/13; rescaled from Solace Cloud in the Stage 2 rescale): the 10
+//! chained phase fixtures admit, plan as one 30-step
 //! cycle, project hierarchically into 10 phase children by artifact
 //! provenance, validate against the POWL structural shape, and replay to a
 //! byte-identical digest. The 8-constraint split law is verified
@@ -35,7 +36,7 @@ use crate::pipeline::{generate_plan, hierarchical_projection, import_artifacts};
 use crate::powl::{powl_to_turtle, CngRefusal, Powl};
 use crate::shape::validate_powl_store;
 
-const BASE_IRI: &str = "urn:chatman:powl:solace-soc2";
+const BASE_IRI: &str = "urn:chatman:powl:arclight-soc2";
 
 test!(
     full_audit_cycle_plans_projects_validates_and_replays_byte_identically,
@@ -54,7 +55,7 @@ test!(
                 .expect("compliance-overclaim fence holds");
             let (powl, phase_sources) =
                 hierarchical_projection(&tape, &surface).expect("hierarchical projection");
-            let ttl = powl_to_turtle(&powl, BASE_IRI, Some("urn:chatman:plan:solace-soc2"));
+            let ttl = powl_to_turtle(&powl, BASE_IRI, Some("urn:chatman:plan:arclight-soc2"));
             (tape, powl, phase_sources, ttl)
         };
         let (tape, powl, phase_sources, ttl) = run();
@@ -64,8 +65,8 @@ test!(
         // phases), forced through every phase by the precondition chain.
         assert_eq!(tape.ops.len(), 30, "3 actions per phase × 10 phases");
         let labels: Vec<&str> = tape.ops.iter().map(|op| op.label.as_str()).collect();
-        assert_eq!(labels[0], "define-system-boundary(solace)");
-        assert_eq!(labels[29], "confirm-evidence-bundle-complete(solace)");
+        assert_eq!(labels[0], "define-system-boundary(arclight)");
+        assert_eq!(labels[29], "confirm-evidence-bundle-complete(arclight)");
 
         // The hierarchical projection groups the plan into exactly 10 phase
         // children — one per contributing fixture artifact, in engagement
@@ -147,7 +148,7 @@ test!(
         // Arrange: the public-vocabulary case-study instance data and the
         // generated soc2 shapes, validated through the SAME generic
         // shape-driven queries every other shape law in this crate uses.
-        let instance = fs::read_to_string(soc2_fixture_dir().join("solace-case-study.ttl"))
+        let instance = fs::read_to_string(soc2_fixture_dir().join("arclight-case-study.ttl"))
             .expect("case-study fixture reads");
         let shapes_path =
             std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("shapes/soc2-shapes.ttl");
@@ -222,27 +223,31 @@ test!(
     soc2_evidence_metrics_measure_the_shipped_case_study_instance_data,
     {
         // Arrange: the on-disk metric-soc2-*.rq queries (v26.7.12/13 Stage
-        // 2) over the SAME shipped Solace Cloud case-study instance data the
-        // SHACL test above validates.
+        // 2) over the SAME shipped Arclight Cloud Platform case-study
+        // instance data the SHACL test above validates.
         let queries = QuerySet::load(&QuerySet::default_dir()).expect("query set loads");
-        let instance_path = soc2_fixture_dir().join("solace-case-study.ttl");
+        let instance_path = soc2_fixture_dir().join("arclight-case-study.ttl");
 
         // Act: the real chain — Turtle parse + 3 measured SELECT counts +
         // one Rust-computed DERIVED_ARITHMETIC ratio.
         let metrics =
             compute_evidence_metrics(&instance_path, &queries).expect("evidence metrics compute");
 
-        // Assert: measured against the shipped fixture's actual content
-        // (3 documented control points; the Exception Identification and
+        // Assert: measured against the shipped fixture's actual content (16
+        // documented control points -- the Fortune-5 rescale's 5-TSC-category
+        // scope, up from Solace Cloud's 3; the Exception Identification and
         // Management Response & Remediation phases each generate exactly
-        // one deliverable entity for this engagement).
+        // one deliverable entity for this engagement, unaffected by the
+        // control-point count since those are per-phase deliverables, not
+        // per-control).
         assert_eq!(
             metrics.measurement_class,
             Soc2EvidenceMetrics::MEASUREMENT_CLASS
         );
         assert_eq!(
-            metrics.evidenced_controls, 3,
-            "CTRL-ACCESS-PROVISIONING, CTRL-DR-FAILOVER-TEST, CTRL-DATA-CLASSIFICATION"
+            metrics.evidenced_controls, 16,
+            "3 Security + 1 CUEC (Sequoia carve-out) + 3 Availability + 3 Confidentiality \
+             + 3 Processing Integrity + 3 Privacy control points"
         );
         assert_eq!(
             metrics.exception_register_artifacts, 1,
@@ -257,9 +262,9 @@ test!(
             Soc2EvidenceMetrics::DERIVED_ARITHMETIC,
             "the ratio field must be machine-tagged DERIVED_ARITHMETIC, not left implicit"
         );
-        // DERIVED_ARITHMETIC: 1 / 3, computed in Rust from the two measured
+        // DERIVED_ARITHMETIC: 1 / 16, computed in Rust from the two measured
         // counts above — never a SPARQL aggregate.
-        let expected_ratio = 1.0_f64 / 3.0_f64;
+        let expected_ratio = 1.0_f64 / 16.0_f64;
         assert!(
             (metrics.derived_exception_register_ratio - expected_ratio).abs() < 1e-12,
             "derived ratio must be exactly exception_register_artifacts / evidenced_controls, \

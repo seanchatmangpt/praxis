@@ -1,7 +1,7 @@
 # metric-soc2-evidenced-controls.rq
 # Inputs: the SOC2 case-study INSTANCE graph (prov:/skos:/dcterms: vocabulary
 #         from packs/soc2-audit-pack/ontology.ttl, e.g.
-#         tests/fixtures/soc2/solace-case-study.ttl) — NOT the OCEL evidence
+#         tests/fixtures/soc2/arclight-case-study.ttl) — NOT the OCEL evidence
 #         graph the other metric-*.rq files in this directory read.
 # Outputs: single row: ?count = COUNT(DISTINCT control points carrying a
 #          complete evidentiary record: a notation handle, a design

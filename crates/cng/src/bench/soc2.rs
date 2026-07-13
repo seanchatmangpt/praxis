@@ -1,9 +1,11 @@
-//! SOC2 Type II audit engagement case study — Solace Cloud (v26.7.12/13).
+//! SOC2 Type II audit engagement case study — Arclight Cloud Platform
+//! (v26.7.12/13; rescaled from the original Solace Cloud small-SaaS case
+//! study to Fortune-5 scale in the Stage 2 rescale commit).
 //!
 //! Drives the ENTIRE 10-phase audit engagement lifecycle (Scoping & System
 //! Description through Auditor Report Handoff) through the real cng
 //! manufacture chain: the 10 phase fixtures under `tests/fixtures/soc2/`
-//! are domain FRAGMENTS of one shared `solace-soc2-audit-cycle` STRIPS
+//! are domain FRAGMENTS of one shared `arclight-soc2-audit-cycle` STRIPS
 //! domain (each contributing that phase's 3 actions, chained by
 //! phase-completion predicates), plus one problem fragment carrying the
 //! single init atom and the single terminal goal atom.
@@ -82,20 +84,19 @@
 //! disclosure and `soc2_growth_test.rs`'s composed witness test for the
 //! resulting honest REAL_EDGE verdict.
 //!
-//! Also disclosed here rather than silently left stale: as of the Stage 3
-//! commit, three tests below —
-//! `full_audit_cycle_plans_projects_validates_and_replays_byte_identically`,
-//! `case_study_instance_data_passes_the_soc2_shapes_and_a_mutant_fails`,
-//! and `soc2_evidence_metrics_measure_the_shipped_case_study_instance_data`
-//! (`soc2_test.rs`) — fail against this same `HEAD`: a real, PRE-EXISTING
-//! regression from the separate Fortune-5 rescale commit (Solace Cloud ->
-//! Arclight Cloud Platform: renamed domain object, `solace-case-study.ttl`
-//! replaced by `arclight-case-study.ttl`) landing on this file's own
-//! still-"solace" `BASE_IRI`/case-study path constants below. Confirmed via
-//! `git log`, not introduced by Stage 3 (Stage 3 touches neither this
-//! file's constants nor `tests/fixtures/soc2/`'s phase fixtures) — left for
-//! the already-tracked Solace->Arclight naming-reconciliation follow-up
-//! rather than fixed here, out of Stage 3's own stated scope.
+//! # Solace -> Arclight naming reconciliation (post-Stage-3 follow-up)
+//!
+//! Stage 3 disclosed (rather than fixed, out of its own stated scope) that
+//! three tests in `soc2_test.rs` failed against its own `HEAD` because this
+//! file's `BASE_IRI`/case-study-path constants still said "solace" after
+//! the separate Fortune-5 rescale commit renamed the domain object and
+//! `solace-case-study.ttl` -> `arclight-case-study.ttl`. Fixed in this
+//! follow-up: `BASE_IRI`, the plan-graph IRI, the PDDL object name, and the
+//! case-study fixture path below now all say "arclight", matching the
+//! rescaled fixtures. `soc2_evidence_metrics_measure_the_shipped_case_study_instance_data`'s
+//! `evidenced_controls`/ratio assertions were also updated: the rescale
+//! grew the case study from 3 control points to 16 (all 5 TSC categories
+//! instead of 3), which is a real, measured count change, not a test bug.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -225,7 +226,7 @@ impl Soc2EvidenceMetrics {
 }
 
 /// Loads `instance_ttl_path` (a SOC2 case-study instance-data file, e.g.
-/// `tests/fixtures/soc2/solace-case-study.ttl`) into a fresh store and runs
+/// `tests/fixtures/soc2/arclight-case-study.ttl`) into a fresh store and runs
 /// the 3 on-disk `metric-soc2-*.rq` COUNT queries over it, returning the
 /// measured counts plus the one Rust-computed DERIVED_ARITHMETIC ratio.
 ///
