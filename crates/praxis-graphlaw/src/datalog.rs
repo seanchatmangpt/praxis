@@ -64,6 +64,19 @@ pub fn validate_rules(
     rules: &[Rule],
     aggregates: &HashMap<Rule, Aggregate>,
 ) -> Result<Vec<usize>, String> {
+    // An empty ruleset is trivially stratifiable (zero predicates, zero strata) -- return
+    // before the Bellman-Ford propagation below, which always executes its loop body at
+    // least once (`changed` starts `true`), incrementing `iteration` to 1 even though there
+    // are zero edges to relax. With `num_predicates == 0` that spuriously satisfies the
+    // post-loop cycle check (`iteration > num_predicates` is `1 > 0`), reporting a
+    // "not stratifiable" cycle for input that has no rules at all, hence no cycle. This
+    // guard is specific to the `num_predicates == 0` boundary; the loop's iteration bound is
+    // otherwise correct (`num_predicates` predicates need at most `num_predicates` relaxation
+    // passes to converge for any legitimately stratifiable, i.e. acyclic, dependency graph).
+    if rules.is_empty() {
+        return Ok(Vec::new());
+    }
+
     // -----------------------------------------------------------------------
     // 1. Safety check
     // -----------------------------------------------------------------------

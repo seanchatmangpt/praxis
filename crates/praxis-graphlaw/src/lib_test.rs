@@ -626,6 +626,41 @@ fn test_datalog_safe_rule_stratification() {
     assert_eq!(result.unwrap(), vec![0]);
 }
 
+// Regression for a real, `docs/jira/v26.7.12/REMAINING_WORK.md`-flagged correctness bug: the
+// Bellman-Ford stratification loop's `iteration` counter always executes its loop body at
+// least once (`changed` starts `true`), so on an empty ruleset (`num_predicates == 0`) it
+// still increments `iteration` to 1 over zero edges, then the post-loop cycle check
+// (`iteration > num_predicates`, i.e. `1 > 0`) spuriously reports a stratification cycle for
+// input that has no rules -- and therefore cannot have a cycle. `crown_local.rs` already works
+// around this by requiring a non-empty rule pack (a harmless-non-firing rule instead of a true
+// empty one); this test asserts the direct, unworked-around call is now correct.
+#[test]
+fn test_datalog_empty_ruleset_is_trivially_stratifiable() {
+    use crate::datalog::validate_rules;
+    let result = validate_rules(&[], &std::collections::HashMap::new());
+    assert_eq!(
+        result,
+        Ok(Vec::new()),
+        "an empty ruleset has no predicates and no cycle to detect; it must not be refused"
+    );
+}
+
+// Same bug, exercised through its actual production caller: `TripleStore::add_rules` was
+// reachable by this false refusal any time a caller extended an already-empty ruleset with
+// another empty batch (e.g. `TripleStore::new()` followed by `add_rules(vec![])`) --
+// `?`-propagated as a real, user-visible `Err`, unlike `TripleStore::from`'s constructor path,
+// which happened to survive the bug only because it silently discards `validate_rules`'s
+// result via `if let Ok(...)`.
+#[test]
+fn test_add_rules_with_empty_ruleset_does_not_refuse() {
+    let mut store = TripleStore::new();
+    let result = store.add_rules(Vec::new());
+    assert!(
+        result.is_ok(),
+        "extending an empty ruleset with zero new rules must not be refused, got: {result:?}"
+    );
+}
+
 // N3 / forward chaining integration
 #[test]
 fn test_n3_rules_forward_chaining() {

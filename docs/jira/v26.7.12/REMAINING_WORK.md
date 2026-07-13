@@ -194,16 +194,26 @@ instead of re-planning the shared problem. Resolves task #3; hardens the trunk b
   `crate:multifractal-workflow` — contradicted by live builds. Run `just standing` before any
   standing-based claim.
 
-### Latent correctness bug (currently only worked around)
+### ~~Latent correctness bug (currently only worked around)~~ — FIXED
 
 - **Empty-ruleset false-positive stratification cycle** in `praxis-graphlaw`
-  (`crates/praxis-graphlaw/src/datalog.rs:264,276`). The Bellman-Ford loop pre-increments
-  `iteration` before its body, so on an empty ruleset (`num_predicates == 0`) the post-loop check
-  `iteration > num_predicates` (`1 > 0`) spuriously fires `StratificationCycle`. Confirmed still
-  present (no datalog commit since `b5f22776` touches it). `crown_local` dodges it by **requiring**
-  a non-empty rule pack (`crown_local.rs:95-99`) — any future caller passing an empty `RulePack`
-  gets a false refusal. Fix: guard the empty-edge case (`num_predicates == 0` ⇒ trivially
-  stratifiable) or correct the loop bound.
+  (`crates/praxis-graphlaw/src/datalog.rs`). The Bellman-Ford loop's `iteration` counter always
+  executes its loop body at least once (`changed` starts `true`), so on an empty ruleset
+  (`num_predicates == 0`) it still incremented `iteration` to 1 over zero edges, then the
+  post-loop check `iteration > num_predicates` (`1 > 0`) spuriously fired `StratificationCycle`
+  for input with no rules — and therefore no possible cycle. Fixed with an early `Ok(Vec::new())`
+  return for `rules.is_empty()`, before the Bellman-Ford propagation runs at all; the loop's
+  general iteration bound (`num_predicates` passes suffice for any legitimately stratifiable,
+  i.e. acyclic, dependency graph of `num_predicates` predicates) was otherwise correct and is
+  untouched. `crown_local` still requires a non-empty rule pack (`crown_local.rs:95-99`) — that
+  workaround was not removed, since removing it is a separate, unrelated decision about that
+  driver's own input contract, not required by this fix. Verified: `TripleStore::add_rules`
+  (`lib.rs:292`), the real production caller this bug was reachable through (any caller
+  extending an already-empty ruleset with another empty batch got a real, `?`-propagated `Err`
+  refusal), no longer refuses; `just praxis-graphlaw-test-lib 'test(/./)'` → 411 passed, 0
+  failed, 7 skipped (was 409/0/7 before the two new regression tests); `just
+  multifractal-workflow-test-isolated <name>` → 441 passed, 0 failed, 13 ignored (no regression
+  in the crown-witness driver crate, which depends on `praxis-graphlaw`).
 
 ### GGEN / publish readiness
 
