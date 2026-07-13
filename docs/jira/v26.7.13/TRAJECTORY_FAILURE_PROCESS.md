@@ -115,6 +115,19 @@ asserted. This is disclosed here rather than silently patched into the module, b
 it requires re-running the module's documented `git log` capture command and updating its test
 fixtures — a code change outside this documentation task's scope.
 
+**Second-order staleness, found by a later dogfood audit re-checking this very section**: the
+"Verification Performed" section below states `git log -1 -- docs/jira/v26.7.12/CROWN_STATUS.md`
+"resolved to commit `8a66ea62`" -- independently re-run just now, it resolves to
+`00152c24be51570a5480c8a0413dbff90f127406` (2026-07-13T00:31:48-07:00,
+`"docs(v26.7.12): correct F08->F09 to PARTIAL_REAL_EDGE too -- first pass was inconsistent"`),
+17 minutes after `8a66ea62`. This is exactly the recursive-staleness pattern this module exists
+to detect, occurring in this module's own documentation -- disclosed rather than silently left.
+It does **not** change the `f18_f19_case_study` figures above: `00152c24` corrects a different
+edge (`F08->F09`), never touches `F18->F19`'s classification, so `8a66ea62` remains the correct
+and only fix commit for that specific claim. Both deltas re-derived from `8a66ea62`'s own commit
+metadata still check out exactly (`1783926849 - 1783925118 = 1731`s;
+`1783926849 - 1783901330 = 25519`s).
+
 ## Disclosed Limitations
 
 Carried over from the module's own doc comments, verified as accurate by direct reading:
@@ -147,8 +160,11 @@ This session, independently of the module's own claims:
 - `grep -n "trajectory_failure_process" crates/multifractal-workflow/src/lib.rs` showed exactly
   one hit — the `pub mod` declaration required for compilation, not a call site.
 - `git log -1 --format='%H%x09%aI%x09%s' -- docs/jira/v26.7.12/CROWN_STATUS.md` and `git log -1
-  --format='%H %aI %s'` both resolved to commit `8a66ea62`, confirming the fix-commit staleness
-  noted above.
+  --format='%H %aI %s'` both resolved to commit `8a66ea62` **at the time this line was first
+  written**; a later audit re-ran the same command and got `00152c24` instead (see the
+  "Second-order staleness" paragraph above) -- this line itself is a snapshot of one moment, not
+  a claim that stays true. Treat any `git log -1` result cited in this document as accurate only
+  as of its own cited commit, never as a live fact.
 - The unix timestamp of `8a66ea62` (`1783926849`) was independently recomputed from its ISO
   author date and cross-checked against the 1731-second and 25519-second deltas cited above.
 
