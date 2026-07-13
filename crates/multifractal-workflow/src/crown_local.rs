@@ -367,6 +367,20 @@ pub enum LocalWitnessRefused {
          (F02 admitted a payload that does not structurally carry the F08 planning triples)"
     )]
     AdmittedGraphMissingPredicate { predicate: &'static str },
+    /// Swarm audit wnl2yhbgm finding #31's sibling: `build_planning_payload` embeds
+    /// `pddl_domain`/`pddl_problem`/`hook_pack_turtle` -- real, externally-supplied
+    /// `LocalWitnessRun` fields, not this driver's own construction -- inside `"""..."""`
+    /// triple-quoted Turtle long-string literals. A value carrying a literal `"""` sequence
+    /// would close that literal early and hand the remainder to F02's admission parser as
+    /// first-class Turtle statements, the same graph-injection shape `crown_external.rs`'s
+    /// `build_reentry_payload` was fixed against (commit `f789c6db`). Refused before embedding,
+    /// per field, rather than escaped -- same rationale as that fix: keeps every safe value
+    /// byte-identical in the admitted payload, no escape/unescape asymmetry to get wrong.
+    #[error(
+        "crown-local: {field} contains a literal \"\"\" sequence, unsafe to embed in a \
+         triple-quoted Turtle literal"
+    )]
+    PlanningPayloadUnsafeForEmbedding { field: &'static str },
     /// F03 refused to contract the admitted semantic world.
     #[error("crown-local F03 contraction refused: {0}")]
     Contraction(#[from] SemanticWorldRefused),
@@ -469,7 +483,7 @@ pub fn drive_local_witness_prefix(
         &run.pddl_domain,
         &run.pddl_problem,
         &run.hook_pack_turtle,
-    );
+    )?;
     let obs = RawObservation {
         correlation_id: run.correlation_id.clone(),
         source_id: run.source_id.clone(),
@@ -798,13 +812,22 @@ fn build_planning_payload(
     pddl_domain: &str,
     pddl_problem: &str,
     hook_pack_turtle: &str,
-) -> String {
-    format!(
+) -> Result<String, LocalWitnessRefused> {
+    for (field, value) in [
+        ("pddl_domain", pddl_domain),
+        ("pddl_problem", pddl_problem),
+        ("hook_pack_turtle", hook_pack_turtle),
+    ] {
+        if value.contains("\"\"\"") {
+            return Err(LocalWitnessRefused::PlanningPayloadUnsafeForEmbedding { field });
+        }
+    }
+    Ok(format!(
         "<{subject_iri}> <{PROV_WAS_DERIVED_FROM}> <{principal_iri}> ;\n  \
          <{PDDL_DOMAIN_PREDICATE}> \"\"\"{pddl_domain}\"\"\" ;\n  \
          <{PDDL_PROBLEM_PREDICATE}> \"\"\"{pddl_problem}\"\"\" ;\n  \
          <{HOOK_PACK_PREDICATE}> \"\"\"{hook_pack_turtle}\"\"\" .\n"
-    )
+    ))
 }
 
 /// Serialize the F19 hook-actuation consequence into a single Turtle observation payload F02 can

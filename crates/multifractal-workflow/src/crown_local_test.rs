@@ -619,3 +619,53 @@ fn crown_local_prefix_refuses_at_re_admission_when_actuation_principal_is_unregi
     // actuation consequence refused, so the ledger never grows to 2.
     assert_eq!(ledger.len().expect("ledger evaluable"), 1);
 }
+
+/// Swarm audit wnl2yhbgm finding #31's sibling (not itself one of the 33 confirmed findings --
+/// found this session while investigating `083cbd01`'s follow-up candidates): `crown_local.rs`'s
+/// `build_planning_payload` embeds `pddl_domain`/`pddl_problem`/`hook_pack_turtle` -- real,
+/// externally-supplied `LocalWitnessRun` fields -- inside `"""..."""` triple-quoted Turtle
+/// long-string literals. `crown_external.rs`'s `build_reentry_payload` doc comment (predating this
+/// fix) explicitly cites this function's embedding pattern as its own precedent, confirming this
+/// is the original instance of the shape finding #31 fixed a copy of. A `pddl_domain` (or the
+/// other two fields) carrying a literal `"""` sequence would close the literal early and hand the
+/// remainder of the string to F02's admission parser as first-class Turtle statements -- arbitrary
+/// graph injection into the very payload F03/F08/F09 plan over. Drives the real, composed
+/// `drive_local_witness_prefix` entry point directly with such a value (not the private
+/// `build_planning_payload` in isolation), so the refusal proven here is the one an actual caller
+/// would see.
+#[test]
+fn crown_local_prefix_refuses_a_pddl_domain_containing_a_triple_quote_sequence() {
+    let policy = crown_policy();
+    let ledger = AdmissionLedger::new();
+    let (root, closure) = open_growth_root_and_closure();
+    let mut run = base_run(
+        &policy,
+        &ledger,
+        root,
+        closure,
+        "crown-triple-quote-domain",
+        HOOK_PACK,
+    );
+    // If this landed unescaped inside build_planning_payload's `"""{pddl_domain}"""` literal, it
+    // would close the literal early, terminate the statement, and open an injected triple.
+    run.pddl_domain = format!(
+        "{DOMAIN_TEXT}\"\"\" .\n<urn:injected> a <urn:MaliciousClass> ;\n  a \"\"\"trailer"
+    );
+
+    let err = drive_local_witness_prefix(run).expect_err(
+        "a pddl_domain carrying an embedded \"\"\" sequence must refuse before F02 ever admits \
+         the corrupted payload, not silently graph-inject",
+    );
+    assert!(
+        matches!(
+            err,
+            LocalWitnessRefused::PlanningPayloadUnsafeForEmbedding {
+                field: "pddl_domain"
+            }
+        ),
+        "expected PlanningPayloadUnsafeForEmbedding{{field: \"pddl_domain\"}}, got {err:?}"
+    );
+    // No observation was ever admitted for the malicious run -- the refusal is strictly upstream
+    // of F02, not a downstream catch of an already-admitted corrupted graph.
+    assert_eq!(ledger.len().expect("ledger evaluable"), 0);
+}

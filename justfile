@@ -698,6 +698,12 @@ multifractal-workflow-clippy:
 multifractal-workflow-clippy-isolated name:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo clippy -p multifractal-workflow --all-targets -- -D warnings
 
+# Lint ONLY multifractal-workflow's own code (--no-deps), skipping clippy's lint pass on path
+# dependencies like praxis-graphlaw. Use this when multifractal-workflow-clippy-isolated fails
+# inside a dependency crate you didn't touch -- same rationale as cng-clippy-own-code-isolated.
+multifractal-workflow-clippy-own-code-isolated name:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo clippy -p multifractal-workflow --all-targets --no-deps -- -D warnings
+
 # Type-check multifractal-workflow in an isolated target dir (concurrent-agent-safe;
 # see the "Isolated-target cargo recipes" note above cng-check-isolated), e.g.
 # `just multifractal-workflow-check-isolated my-feature`
