@@ -1,0 +1,311 @@
+# Arclight Cloud Platform — case-study instance data (PUBLIC ontologies
+# only; blank nodes + skos:notation handles, no private namespace). Stage 2
+# rescale from the original Solace Cloud (small B2B SaaS) case study to a
+# Fortune-5-scale entity, per an explicit user directive that this testbed
+# demonstrate knowledge-hook-driven actuation "for a Fortune 5 company" —
+# fictional throughout (Arclight Continental Holdings, Arclight Cloud
+# Platform, and Sequoia Colocation Partners are invented entities; the same
+# reasoning packs/togaf-adm-pack/templates/meridian-case-study.ttl.tmpl
+# documents for Meridian Global Carrier applies here — chosen fictional
+# precisely so this fixture can never be read as a real company's
+# compliance claim, and deliberately NOT named after any actual Fortune 5
+# company). Concepts are re-asserted here with the SAME skos:notation
+# values as packs/soc2-audit-pack/ontology.ttl — notation is the
+# deterministic join key across files (blank-node labels do not survive
+# re-serialization).
+#
+# COMPLIANCE-OVERCLAIM FENCE: every fact below is an ENGAGEMENT-PROCESS
+# fact (scoping decision, evidenced control, phase deliverable) — none of
+# it is, or implies, a compliance verdict or auditor opinion. See
+# packs/soc2-audit-pack/ontology.ttl for the full fence disclosure.
+#
+# Scale rationale (why this is a realistic Fortune-5-scale scoping, not
+# padding): a genuinely large, multi-subsidiary holding company does not
+# put its ENTIRE conglomerate under one SOC2 engagement — SOC2 is a
+# service-organization framework, scoped to a specific system. The
+# realistic Fortune-5-scale pattern is a SHARED PLATFORM subsidiary that
+# many internal business units and external customers depend on,
+# undergoing its own SOC2 Type II audit, with ALL 5 Trust Services
+# Categories in scope (unlike Solace Cloud's 3) because a shared platform
+# at this scale genuinely does process billing data for many business
+# units (Processing Integrity) and hold PII across many jurisdictions for
+# many business units and external customers (Privacy) — both of which
+# Solace Cloud, as a small single-product SaaS, could legitimately exclude.
+# A named sub-service organization (Sequoia Colocation Partners, a
+# third-party data-center operator) is modeled under the AICPA CARVE-OUT
+# METHOD: Sequoia's own physical/environmental controls are EXCLUDED from
+# Arclight's report; Arclight instead evidences its own Complementary User
+# Entity Control (CUEC) for vendor oversight of Sequoia — a real,
+# documented AICPA reporting pattern for audits involving sub-service
+# organizations, not an invented mechanism.
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix org:     <http://www.w3.org/ns/org#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+
+# --- Organizations -----------------------------------------------------
+
+_:arclightHoldings
+    rdf:type org:Organization , prov:Agent ;
+    skos:notation "ENT-ARCLIGHT-HOLDINGS" ;
+    dcterms:description "Arclight Continental Holdings: fictional Fortune-5-scale (~$180B annual revenue) diversified holding company operating cloud infrastructure, payments, logistics, and healthcare-data-adjacent business units. Not itself the audited entity — context for why the audited subsidiary below is at Fortune-5 scale, not the SOC2 system boundary."@en .
+
+_:arclightCloudPlatform
+    rdf:type org:Organization , prov:Agent ;
+    org:subOrganizationOf _:arclightHoldings ;
+    skos:notation "ENT-ARCLIGHT-CLOUD-PLATFORM" ;
+    dcterms:description "Arclight Cloud Platform: Arclight Continental Holdings' shared cloud/data platform subsidiary, depended on by roughly 60 internal business units plus external enterprise customers. This is the actual SOC2 Type II AUDITED SYSTEM (a realistic Fortune-5 scoping pattern — SOC2 audits a specific service organization, never a whole conglomerate literally). First SOC2 Type II audit engagement, 12-month observation period. Scoping decision: ALL 5 TSC categories in scope — Security (mandatory), Availability, Confidentiality, Processing Integrity (the platform processes metered usage billing for internal chargebacks and external customer invoicing), and Privacy (the platform stores PII for many business units' end users across multiple jurisdictions). This is a materially broader scope than the Stage 1 Solace Cloud case study (3 categories), reflecting genuine Fortune-5-scale platform complexity rather than an arbitrary expansion."@en ;
+    dcterms:subject "TSC-SECURITY" , "TSC-AVAILABILITY" , "TSC-CONFIDENTIALITY" , "TSC-PROCESSING-INTEGRITY" , "TSC-PRIVACY" .
+
+_:sequoiaColo
+    rdf:type org:Organization , prov:Agent ;
+    skos:notation "ENT-SEQUOIA-COLOCATION" ;
+    dcterms:description "Sequoia Colocation Partners: fictional third-party data-center operator hosting a subset of Arclight Cloud Platform's physical infrastructure. Modeled under the AICPA CARVE-OUT METHOD: Sequoia's own physical/environmental security controls are EXCLUDED from this engagement's testing scope. Arclight instead evidences its own Complementary User Entity Control (CTRL-VENDOR-OVERSIGHT-COLOCATION below) for ongoing vendor oversight of Sequoia, per the carve-out method's requirements."@en .
+
+# --- Control points: 16 notated concepts (up from Solace Cloud's 3),
+# spanning all 5 in-scope TSC categories plus one Complementary User Entity
+# Control (CUEC) for the Sequoia carve-out. Each is a prov:Plan (a
+# documented control is a plan for achieving a control objective) linked to
+# its governing TSC category via a literal dcterms:subject value (the same
+# cross-file join discipline as skos:notation — see
+# packs/soc2-audit-pack/ontology.ttl's own comment on why this is a
+# literal, not a resource link).
+
+# Security (TSC-SECURITY / CC1-CC9)
+_:ctrlAccessProvisioning
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-ACCESS-PROVISIONING" ;
+    dcterms:description "Logical access provisioning and periodic access review for production systems, across all ~60 dependent business units (CC6 Logical and Physical Access Controls)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-SECURITY" .
+
+_:ctrlPrivilegedAccessReview
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-PRIVILEGED-ACCESS-REVIEW" ;
+    dcterms:description "Quarterly review of privileged (administrative) access to production systems, with attestation from each business unit's designated access owner (CC6 Logical and Physical Access Controls)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-SECURITY" .
+
+_:ctrlVulnMgmtPatching
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-VULN-MGMT-PATCHING" ;
+    dcterms:description "Vulnerability scanning and patch management with defined remediation SLAs by severity, across the shared platform's full fleet (CC7 System Operations)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-SECURITY" .
+
+_:ctrlVendorOversightColocation
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-VENDOR-OVERSIGHT-COLOCATION" ;
+    dcterms:description "Complementary User Entity Control (CUEC): Arclight's own ongoing oversight of Sequoia Colocation Partners (annual on-site review, SOC2/SOC3 report review, contractual SLA monitoring) — required because Sequoia's own physical/environmental controls are carved out of this engagement's direct testing scope."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-SECURITY" .
+
+# Availability (TSC-AVAILABILITY / A1.1-A1.3)
+_:ctrlDrFailoverTest
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-DR-FAILOVER-TEST" ;
+    dcterms:description "Annual disaster-recovery failover test with documented results, exercised against each dependent business unit's declared recovery-time objective (A1.3 requires TESTED recovery procedures, not merely a written plan)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-AVAILABILITY" .
+
+_:ctrlCapacityMonitoring
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-CAPACITY-MONITORING" ;
+    dcterms:description "Continuous capacity monitoring with automated scale-out triggers, sized against the aggregate demand of ~60 dependent business units rather than a single product's load profile (A1.2 environmental protections, backup, and capacity monitoring)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-AVAILABILITY" .
+
+_:ctrlIncidentResponse
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-INCIDENT-RESPONSE" ;
+    dcterms:description "Documented incident response plan with defined severity tiers and cross-business-unit notification procedures, tested via at least one tabletop exercise per observation period (A1.1 system availability commitments)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-AVAILABILITY" .
+
+# Confidentiality (TSC-CONFIDENTIALITY / C1.1-C1.2)
+_:ctrlDataClassification
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-DATA-CLASSIFICATION" ;
+    dcterms:description "Data classification policy applied uniformly across all dependent business units' data stores, distinguishing confidential, internal, and public data (C1.1 data classification)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-CONFIDENTIALITY" .
+
+_:ctrlEncryptionAtRest
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-ENCRYPTION-AT-REST" ;
+    dcterms:description "Encryption at rest for all confidential-classified data stores, with platform-managed key rotation (C1.2 protection mechanisms)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-CONFIDENTIALITY" .
+
+_:ctrlVendorConfidentialityAgreements
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-VENDOR-CONFIDENTIALITY-AGREEMENTS" ;
+    dcterms:description "Confidentiality/NDA agreements maintained with all subcontractors and sub-service organizations with data access, including Sequoia Colocation Partners (C1.2 protection mechanisms)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-CONFIDENTIALITY" .
+
+# Processing Integrity (TSC-PROCESSING-INTEGRITY / PI1.1-PI1.5) — in scope
+# only because of Fortune-5-scale billing complexity; Solace Cloud excluded
+# this category entirely.
+_:ctrlBillingReconciliation
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-BILLING-RECONCILIATION" ;
+    dcterms:description "Automated reconciliation of metered usage inputs against calculated internal chargebacks and external customer invoices, across all dependent business units, with discrepancies routed to exception handling (PI1.3 processing is complete, accurate, timely, and authorized)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-PROCESSING-INTEGRITY" .
+
+_:ctrlInputValidation
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-INPUT-VALIDATION" ;
+    dcterms:description "Schema and range validation on metered-usage ingestion pipelines feeding the billing system, rejecting malformed records before they reach reconciliation (PI1.1 processing inputs are complete, accurate, and timely)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-PROCESSING-INTEGRITY" .
+
+_:ctrlChangeMgmtApproval
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-CHANGE-MGMT-APPROVAL" ;
+    dcterms:description "Change-approval workflow requiring independent review before any deployment to billing or metering system components, preserving processing correctness across changes (PI1.2 processing specifications are defined and applied consistently)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-PROCESSING-INTEGRITY" .
+
+# Privacy (TSC-PRIVACY / P1-P8) — in scope only because of Fortune-5-scale
+# multi-jurisdiction PII footprint; Solace Cloud excluded this category
+# entirely.
+_:ctrlConsentMgmt
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-CONSENT-MGMT" ;
+    dcterms:description "Consent capture and withdrawal mechanism for end-user personal information, propagated to every dependent business unit's data processing pipeline (P2 choice and consent)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-PRIVACY" .
+
+_:ctrlDataSubjectRequestHandling
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-DATA-SUBJECT-REQUEST-HANDLING" ;
+    dcterms:description "Documented process and defined SLA for handling data-subject access, correction, and deletion requests across all business units' data on the shared platform (P5 access)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-PRIVACY" .
+
+_:ctrlCrossBorderTransferReview
+    rdf:type skos:Concept , prov:Plan ;
+    skos:notation "CTRL-CROSS-BORDER-TRANSFER-REVIEW" ;
+    dcterms:description "Legal review and approval gate for any cross-border personal-data transfer initiated by a dependent business unit, reflecting the platform's multi-jurisdiction footprint (P6 disclosure to third parties)."@en ;
+    prov:wasAttributedTo _:arclightCloudPlatform ;
+    dcterms:subject "TSC-PRIVACY" .
+
+# --- Audit phase executions: each of the 10 lifecycle phases, run for the
+# Arclight Cloud Platform engagement, typed as both the public taxonomy
+# concept (skos:Concept, re-asserting the ontology's notation) and a
+# prov:Activity (this phase AS EXECUTED for this engagement), each
+# generating at least one deliverable/evidence-artifact entity
+# (prov:Entity).
+
+_:phaseScoping
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "AUDIT-SCOPING" ;
+    dcterms:description "Arclight Cloud Platform engagement Phase 1: system boundary defined (the shared platform subsidiary, not the holding company), all 5 in-scope TSC categories selected, sub-service organization (Sequoia) carve-out documented, system description documented."@en ;
+    prov:wasAssociatedWith _:arclightCloudPlatform ;
+    prov:generated _:delivSystemDescription .
+_:delivSystemDescription
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-SYSTEM-DESCRIPTION" ;
+    dcterms:description "System Description document (Phase 1 deliverable)."@en .
+
+_:phaseReadiness
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "AUDIT-READINESS" ;
+    dcterms:description "Arclight Cloud Platform engagement Phase 2: existing controls inventoried across all 16 control points, gap analysis performed against the in-scope criteria."@en ;
+    prov:wasAssociatedWith _:arclightCloudPlatform ;
+    prov:generated _:delivGapAnalysisReport .
+_:delivGapAnalysisReport
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-GAP-ANALYSIS-REPORT" ;
+    dcterms:description "Gap Analysis Report (Phase 2 deliverable)."@en .
+
+_:phaseControlDesignDoc
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "AUDIT-CONTROL-DESIGN-DOC" ;
+    dcterms:description "Arclight Cloud Platform engagement Phase 3: control narratives drafted for all 16 control points, controls mapped to criteria, control matrix finalized, CUEC obligations for the Sequoia carve-out documented."@en ;
+    prov:wasAssociatedWith _:arclightCloudPlatform ;
+    prov:generated _:delivControlMatrix .
+_:delivControlMatrix
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-CONTROL-MATRIX" ;
+    dcterms:description "Control Matrix mapping each control to its TSC criterion (Phase 3 deliverable)."@en .
+
+_:phaseDesignEval
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "AUDIT-DESIGN-EVAL" ;
+    dcterms:description "Arclight Cloud Platform engagement Phase 4: control design sufficiency reviewed across all 16 control points, deficiencies identified, control design approved."@en ;
+    prov:wasAssociatedWith _:arclightCloudPlatform ;
+    prov:generated _:delivDesignEvalMemo .
+_:delivDesignEvalMemo
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-DESIGN-EVAL-MEMO" ;
+    dcterms:description "Control Design Evaluation memo (Phase 4 deliverable)."@en .
+
+_:phaseCollectionInit
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "AUDIT-COLLECTION-INIT" ;
+    dcterms:description "Arclight Cloud Platform engagement Phase 5: 12-month observation period established, evidence sampling plan configured per control point (sized for Fortune-5-scale evidence volume across ~60 dependent business units), collection window opened."@en ;
+    prov:wasAssociatedWith _:arclightCloudPlatform ;
+    prov:generated _:delivSamplingPlan .
+_:delivSamplingPlan
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-SAMPLING-PLAN" ;
+    dcterms:description "Evidence Sampling Plan (Phase 5 deliverable)."@en .
+
+_:phaseOeTesting
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "AUDIT-OE-TESTING" ;
+    dcterms:description "Arclight Cloud Platform engagement Phase 6: control instances sampled, operating effectiveness tested across the observation period for all 16 control points, results recorded. This is the phase the knowledge-hook actuation layer (crates/praxis-graphlaw/tests/soc2_hook_actuation.rs) drives directly: per-control evidence-sufficiency hooks assert control-tested completion once each control's sampling target is met, rather than that fact being asserted by fiat."@en ;
+    prov:wasAssociatedWith _:arclightCloudPlatform ;
+    prov:generated _:delivTestWorkpapers .
+_:delivTestWorkpapers
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-TEST-WORKPAPERS" ;
+    dcterms:description "Operating Effectiveness Test Workpapers (Phase 6 deliverable)."@en .
+
+_:phaseExceptionId
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "AUDIT-EXCEPTION-ID" ;
+    dcterms:description "Arclight Cloud Platform engagement Phase 7: test deviations analyzed, exception severity classified, exception register logged. Feeds the knowledge-hook remediation-gating layer directly: a high/critical-severity exception automatically derives a remediation-required fact, which the bundle-assembly gate below refuses to clear without matching remediation-verified evidence."@en ;
+    prov:wasAssociatedWith _:arclightCloudPlatform ;
+    prov:generated _:delivExceptionRegister .
+_:delivExceptionRegister
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-EXCEPTION-REGISTER" ;
+    dcterms:description "Exception Register (Phase 7 deliverable) — identified exceptions are evidence, not a pass/fail verdict."@en .
+
+_:phaseRemediation
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "AUDIT-REMEDIATION" ;
+    dcterms:description "Arclight Cloud Platform engagement Phase 8: management response obtained, corrective action implemented, remediation evidence verified per exception."@en ;
+    prov:wasAssociatedWith _:arclightCloudPlatform ;
+    prov:generated _:delivRemediationLog .
+_:delivRemediationLog
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-REMEDIATION-LOG" ;
+    dcterms:description "Management Response & Remediation Log (Phase 8 deliverable)."@en .
+
+_:phaseBundleAssembly
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "AUDIT-BUNDLE-ASSEMBLY" ;
+    dcterms:description "Arclight Cloud Platform engagement Phase 9: evidence artifacts compiled across all 16 control points, cross-referenced to criteria, CUEC evidence for the Sequoia carve-out attached, evidence bundle sealed. The knowledge-hook actuation layer refuses (typed) to derive bundle-assembly-complete while any high/critical exception lacks matching remediation-verified evidence, or while the Sequoia CUEC control lacks its own evidence — a real gate enforced by the hook/rule engine, not a decorative status field."@en ;
+    prov:wasAssociatedWith _:arclightCloudPlatform ;
+    prov:generated _:delivEvidenceBundleManifest .
+_:delivEvidenceBundleManifest
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-EVIDENCE-BUNDLE-MANIFEST" ;
+    dcterms:description "Evidence Bundle Manifest (Phase 9 deliverable)."@en .
+
+_:phaseReportHandoff
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "AUDIT-REPORT-HANDOFF" ;
+    dcterms:description "Arclight Cloud Platform engagement Phase 10 (terminal): evidence bundle packaged and custody transferred to the auditor. No opinion or compliance verdict is produced by this pipeline; the human auditor's professional judgment begins where this deliverable ends."@en ;
+    prov:wasAssociatedWith _:arclightCloudPlatform ;
+    prov:generated _:delivAuditorHandoffPackage .
+_:delivAuditorHandoffPackage
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-AUDITOR-HANDOFF-PACKAGE" ;
+    dcterms:description "Auditor Handoff Package (Phase 10 deliverable — the terminal evidence-bundle-complete artifact)."@en .

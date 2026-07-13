@@ -1,6 +1,6 @@
-# SOC2 audit engagement phase 6: Operating Effectiveness Testing — Solace
-# Cloud case study. One domain FRAGMENT of the shared
-# solace-soc2-audit-cycle domain: this phase's 3 actions chain
+# SOC2 audit engagement phase 6: Operating Effectiveness Testing — Arclight
+# Cloud Platform case study. One domain FRAGMENT of the shared
+# arclight-soc2-audit-cycle domain: this phase's 3 actions chain
 # evidence-collection-initiated -> oe-testing-step1-done -> oe-testing-step2-done -> operating-effectiveness-tested,
 # so the merged cycle plan can only reach this phase after Phase 5
 # (Evidence Collection Period Initiation) completes. 8-constraint split:
@@ -25,9 +25,9 @@
 
 _:artifact
     skos:notation "AUDIT-OE-TESTING" ;
-    dcterms:description "Operating Effectiveness Testing domain fragment of the solace-soc2-audit-cycle STRIPS domain."@en ;
+    dcterms:description "Operating Effectiveness Testing domain fragment of the arclight-soc2-audit-cycle STRIPS domain."@en ;
     ceng:pddlDomain """
-(define (domain solace-soc2-audit-cycle)
+(define (domain arclight-soc2-audit-cycle)
   (:requirements :strips)
   (:predicates
     (evidence-collection-initiated ?x)

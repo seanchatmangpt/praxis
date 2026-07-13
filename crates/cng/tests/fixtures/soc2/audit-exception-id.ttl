@@ -1,5 +1,5 @@
-# SOC2 audit engagement phase 7: Exception Identification — Solace Cloud
-# case study. One domain FRAGMENT of the shared solace-soc2-audit-cycle
+# SOC2 audit engagement phase 7: Exception Identification — Arclight Cloud Platform
+# case study. One domain FRAGMENT of the shared arclight-soc2-audit-cycle
 # domain: this phase's 3 actions chain
 # operating-effectiveness-tested -> exception-id-step1-done -> exception-id-step2-done -> exceptions-identified,
 # so the merged cycle plan can only reach this phase after Phase 6
@@ -27,9 +27,9 @@
 
 _:artifact
     skos:notation "AUDIT-EXCEPTION-ID" ;
-    dcterms:description "Exception Identification domain fragment of the solace-soc2-audit-cycle STRIPS domain."@en ;
+    dcterms:description "Exception Identification domain fragment of the arclight-soc2-audit-cycle STRIPS domain."@en ;
     ceng:pddlDomain """
-(define (domain solace-soc2-audit-cycle)
+(define (domain arclight-soc2-audit-cycle)
   (:requirements :strips)
   (:predicates
     (operating-effectiveness-tested ?x)

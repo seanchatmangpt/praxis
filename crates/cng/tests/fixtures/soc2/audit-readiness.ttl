@@ -1,6 +1,6 @@
 # SOC2 audit engagement phase 2: Readiness Assessment (Gap Analysis) —
-# Solace Cloud case study. One domain FRAGMENT of the shared
-# solace-soc2-audit-cycle domain: this phase's 3 actions chain
+# Arclight Cloud Platform case study. One domain FRAGMENT of the shared
+# arclight-soc2-audit-cycle domain: this phase's 3 actions chain
 # scoping-complete -> readiness-step1-done -> readiness-step2-done -> readiness-assessed,
 # so the merged cycle plan can only reach this phase after Phase 1
 # (Scoping & System Description) completes. 8-constraint split: every
@@ -25,9 +25,9 @@
 
 _:artifact
     skos:notation "AUDIT-READINESS" ;
-    dcterms:description "Readiness Assessment (Gap Analysis) domain fragment of the solace-soc2-audit-cycle STRIPS domain."@en ;
+    dcterms:description "Readiness Assessment (Gap Analysis) domain fragment of the arclight-soc2-audit-cycle STRIPS domain."@en ;
     ceng:pddlDomain """
-(define (domain solace-soc2-audit-cycle)
+(define (domain arclight-soc2-audit-cycle)
   (:requirements :strips)
   (:predicates
     (scoping-complete ?x)

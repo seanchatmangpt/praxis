@@ -4,8 +4,8 @@ force: true
 determinism: true
 ---
 # SOC2 audit engagement phase 5: Evidence Collection Period Initiation —
-# Solace Cloud case study. One domain FRAGMENT of the shared
-# solace-soc2-audit-cycle domain: this phase's 3 actions chain
+# Arclight Cloud Platform case study. One domain FRAGMENT of the shared
+# arclight-soc2-audit-cycle domain: this phase's 3 actions chain
 # control-design-evaluated -> collection-init-step1-done -> collection-init-step2-done -> evidence-collection-initiated,
 # so the merged cycle plan can only reach this phase after Phase 4
 # (Control Design Evaluation) completes. 8-constraint split: every
@@ -30,9 +30,9 @@ determinism: true
 
 _:artifact
     skos:notation "AUDIT-COLLECTION-INIT" ;
-    dcterms:description "Evidence Collection Period Initiation domain fragment of the solace-soc2-audit-cycle STRIPS domain."@en ;
+    dcterms:description "Evidence Collection Period Initiation domain fragment of the arclight-soc2-audit-cycle STRIPS domain."@en ;
     ceng:pddlDomain """
-(define (domain solace-soc2-audit-cycle)
+(define (domain arclight-soc2-audit-cycle)
   (:requirements :strips)
   (:predicates
     (control-design-evaluated ?x)

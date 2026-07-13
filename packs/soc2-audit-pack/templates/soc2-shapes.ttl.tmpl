@@ -3,9 +3,10 @@ to: "crates/cng/shapes/soc2-shapes.ttl"
 force: true
 determinism: true
 ---
-# soc2-shapes.ttl — SHACL shapes for the Solace Cloud case-study instance
-# data (public-vocabulary modeling: skos concepts + prov classes + blank
-# nodes). Consumed by the SAME generic shape queries as every other shape
+# soc2-shapes.ttl — SHACL shapes for the Arclight Cloud Platform case-study
+# instance data (Stage 2 Fortune-5 rescale from the original Solace Cloud
+# case study; public-vocabulary modeling: skos concepts + prov classes +
+# blank nodes). Consumed by the SAME generic shape queries as every other shape
 # law in this crate (registry-missing-fields.rq, shape-closed-violations.rq,
 # shape-pattern-violations.rq) — no SPARQL-based SHACL target extension is
 # used, so every constraint here is expressible as sh:targetClass +
@@ -77,16 +78,23 @@ ex:Soc2ControlPointShape a sh:NodeShape ;
   sh:property [ sh:path dcterms:subject ; sh:minCount 1 ; sh:maxCount 1 ;
                 sh:pattern "^TSC-(SECURITY|AVAILABILITY|PROCESSING-INTEGRITY|CONFIDENTIALITY|PRIVACY)$" ; ] .
 
-# The audited enterprise itself: organization + agent, notated, described,
-# with its in-scope TSC categories (dcterms:subject, closed-enumerated the
-# same way as control points; one to five values, minCount 1 means "at
-# least one category is in scope").
+# Every organization (audited entity, parent holding company, or
+# sub-service organization — Stage 2's Fortune-5 rescale introduced the
+# latter two, which do not themselves carry a TSC scope): notated and
+# described. dcterms:subject is OPTIONAL here (sh:minCount 0, the default —
+# only the audited entity declares one) but still closed-enumerated to the
+# 5 known TSC category notations whenever present: sh:pattern only
+# constrains values that exist, so an organization with zero dcterms:subject
+# values (the parent holding company, the sub-service organization) is not
+# penalized for having no TSC scope, while an organization that DOES
+# declare one is still held to the same 5-way enumeration as control
+# points.
 ex:Soc2EnterpriseShape a sh:NodeShape ;
   sh:targetClass org:Organization ;
   sh:property [ sh:path skos:notation ; sh:minCount 1 ;
                 sh:pattern "^ENT-[A-Z0-9-]+$" ; ] ;
   sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] ;
-  sh:property [ sh:path dcterms:subject ; sh:minCount 1 ;
+  sh:property [ sh:path dcterms:subject ;
                 sh:pattern "^TSC-(SECURITY|AVAILABILITY|PROCESSING-INTEGRITY|CONFIDENTIALITY|PRIVACY)$" ; ] .
 
 # Every deliverable/evidence-artifact entity must be notated and described.

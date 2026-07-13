@@ -3,9 +3,9 @@ to: "crates/cng/tests/fixtures/soc2/audit-control-design-doc.ttl"
 force: true
 determinism: true
 ---
-# SOC2 audit engagement phase 3: Control Design Documentation — Solace
-# Cloud case study. One domain FRAGMENT of the shared
-# solace-soc2-audit-cycle domain: this phase's 3 actions chain
+# SOC2 audit engagement phase 3: Control Design Documentation — Arclight
+# Cloud Platform case study. One domain FRAGMENT of the shared
+# arclight-soc2-audit-cycle domain: this phase's 3 actions chain
 # readiness-assessed -> control-design-doc-step1-done -> control-design-doc-step2-done -> control-design-documented,
 # so the merged cycle plan can only reach this phase after Phase 2
 # (Readiness Assessment) completes. 8-constraint split: every
@@ -30,9 +30,9 @@ determinism: true
 
 _:artifact
     skos:notation "AUDIT-CONTROL-DESIGN-DOC" ;
-    dcterms:description "Control Design Documentation domain fragment of the solace-soc2-audit-cycle STRIPS domain."@en ;
+    dcterms:description "Control Design Documentation domain fragment of the arclight-soc2-audit-cycle STRIPS domain."@en ;
     ceng:pddlDomain """
-(define (domain solace-soc2-audit-cycle)
+(define (domain arclight-soc2-audit-cycle)
   (:requirements :strips)
   (:predicates
     (readiness-assessed ?x)

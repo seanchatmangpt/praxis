@@ -1,6 +1,6 @@
 # SOC2 audit engagement phase 8: Management Response & Remediation —
-# Solace Cloud case study. One domain FRAGMENT of the shared
-# solace-soc2-audit-cycle domain: this phase's 3 actions chain
+# Arclight Cloud Platform case study. One domain FRAGMENT of the shared
+# arclight-soc2-audit-cycle domain: this phase's 3 actions chain
 # exceptions-identified -> remediation-step1-done -> remediation-step2-done -> remediation-applied,
 # so the merged cycle plan can only reach this phase after Phase 7
 # (Exception Identification) completes. 8-constraint split: every
@@ -26,9 +26,9 @@
 
 _:artifact
     skos:notation "AUDIT-REMEDIATION" ;
-    dcterms:description "Management Response & Remediation domain fragment of the solace-soc2-audit-cycle STRIPS domain."@en ;
+    dcterms:description "Management Response & Remediation domain fragment of the arclight-soc2-audit-cycle STRIPS domain."@en ;
     ceng:pddlDomain """
-(define (domain solace-soc2-audit-cycle)
+(define (domain arclight-soc2-audit-cycle)
   (:requirements :strips)
   (:predicates
     (exceptions-identified ?x)

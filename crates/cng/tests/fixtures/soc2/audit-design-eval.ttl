@@ -1,5 +1,5 @@
-# SOC2 audit engagement phase 4: Control Design Evaluation — Solace Cloud
-# case study. One domain FRAGMENT of the shared solace-soc2-audit-cycle
+# SOC2 audit engagement phase 4: Control Design Evaluation — Arclight Cloud Platform
+# case study. One domain FRAGMENT of the shared arclight-soc2-audit-cycle
 # domain: this phase's 3 actions chain
 # control-design-documented -> design-eval-step1-done -> design-eval-step2-done -> control-design-evaluated,
 # so the merged cycle plan can only reach this phase after Phase 3
@@ -25,9 +25,9 @@
 
 _:artifact
     skos:notation "AUDIT-DESIGN-EVAL" ;
-    dcterms:description "Control Design Evaluation domain fragment of the solace-soc2-audit-cycle STRIPS domain."@en ;
+    dcterms:description "Control Design Evaluation domain fragment of the arclight-soc2-audit-cycle STRIPS domain."@en ;
     ceng:pddlDomain """
-(define (domain solace-soc2-audit-cycle)
+(define (domain arclight-soc2-audit-cycle)
   (:requirements :strips)
   (:predicates
     (control-design-documented ?x)

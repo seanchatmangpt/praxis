@@ -3,8 +3,8 @@ to: "crates/cng/tests/fixtures/soc2/audit-bundle-assembly.ttl"
 force: true
 determinism: true
 ---
-# SOC2 audit engagement phase 9: Evidence Bundle Assembly — Solace Cloud
-# case study. One domain FRAGMENT of the shared solace-soc2-audit-cycle
+# SOC2 audit engagement phase 9: Evidence Bundle Assembly — Arclight Cloud Platform
+# case study. One domain FRAGMENT of the shared arclight-soc2-audit-cycle
 # domain: this phase's 3 actions chain
 # remediation-applied -> bundle-assembly-step1-done -> bundle-assembly-step2-done -> evidence-bundle-assembled,
 # so the merged cycle plan can only reach this phase after Phase 8
@@ -30,9 +30,9 @@ determinism: true
 
 _:artifact
     skos:notation "AUDIT-BUNDLE-ASSEMBLY" ;
-    dcterms:description "Evidence Bundle Assembly domain fragment of the solace-soc2-audit-cycle STRIPS domain."@en ;
+    dcterms:description "Evidence Bundle Assembly domain fragment of the arclight-soc2-audit-cycle STRIPS domain."@en ;
     ceng:pddlDomain """
-(define (domain solace-soc2-audit-cycle)
+(define (domain arclight-soc2-audit-cycle)
   (:requirements :strips)
   (:predicates
     (remediation-applied ?x)

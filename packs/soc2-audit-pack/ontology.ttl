@@ -32,12 +32,16 @@
 # Public vocabularies used:
 #   skos:    concept schemes for the 10-phase audit engagement lifecycle,
 #            the 5 Trust Services Categories, the 9 Common Criteria (CC1-9),
-#            the 3 Availability criteria (A1.1-1.3), and the 2
-#            Confidentiality criteria (C1.1-1.2) — all AICPA TSC (2017
-#            framework, 2022 revised points of focus), verified via live
-#            web search this session; no public ontology models this
-#            vocabulary, so SKOS concepts in blank-node schemes represent
-#            it without minting a private namespace.
+#            the 3 Availability criteria (A1.1-1.3), the 2 Confidentiality
+#            criteria (C1.1-1.2), the 5 Processing Integrity criteria
+#            (PI1.1-1.5), and the 8 Privacy criteria (P1-P8) — all AICPA TSC
+#            (2017 framework, 2022 revised points of focus), verified via
+#            live web search (Processing Integrity and Privacy verified in
+#            the Stage 2 Fortune-5 rescale pass; CC/Availability/
+#            Confidentiality verified in the earlier Stage 1 pass); no
+#            public ontology models this vocabulary, so SKOS concepts in
+#            blank-node schemes represent it without minting a private
+#            namespace.
 #   prov:    engagement activities (audit phases as prov:Activity),
 #            generated evidence/deliverable entities (prov:Entity), control
 #            designs (prov:Plan), and the audited organization (prov:Agent).
@@ -189,3 +193,68 @@ _:c1pt1 rdf:type skos:Concept ; skos:inScheme _:confidentialityScheme ; skos:bro
     skos:notation "C1-1" ; rdfs:label "C1.1: Data classification"@en .
 _:c1pt2 rdf:type skos:Concept ; skos:inScheme _:confidentialityScheme ; skos:broader _:tscConfidentiality ;
     skos:notation "C1-2" ; rdfs:label "C1.2: Protection mechanisms"@en .
+
+# --- Processing Integrity criteria PI1.1-PI1.5 (SKOS concept scheme) -------
+# Out of scope for the original (Solace Cloud) Stage 1 case study; added for
+# the Stage 2 rescale to a Fortune-5-scale shared platform, whose billing
+# and metered-usage processing puts Processing Integrity genuinely in
+# scope (unlike Solace Cloud, which delegated payment processing to a
+# third party). Confirmed via live web search this session: the criterion
+# as a whole confirms system processing is complete, valid, accurate,
+# timely, and authorized; detailed point-of-focus wording is guidance, not
+# itself normative (2022 revision changed only points of focus, not the
+# criteria) — so points below are described at the same summary level this
+# file already uses for A1.1-A1.3 and C1.1-C1.2, not quoted as verbatim
+# AICPA text.
+
+_:piScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "AICPA Processing Integrity criteria (PI1.1-PI1.5)"@en ;
+    skos:notation "PROCESSING-INTEGRITY-CRITERIA" ;
+    dcterms:description "The 5 points of focus under the Processing Integrity TSC category, confirming system processing is complete, valid, accurate, timely, and authorized."@en .
+
+_:pi1pt1 rdf:type skos:Concept ; skos:inScheme _:piScheme ; skos:broader _:tscProcessingIntegrity ;
+    skos:notation "PI1-1" ; rdfs:label "PI1.1: Processing inputs are complete, accurate, and timely"@en .
+_:pi1pt2 rdf:type skos:Concept ; skos:inScheme _:piScheme ; skos:broader _:tscProcessingIntegrity ;
+    skos:notation "PI1-2" ; rdfs:label "PI1.2: Processing specifications are defined and applied consistently"@en .
+_:pi1pt3 rdf:type skos:Concept ; skos:inScheme _:piScheme ; skos:broader _:tscProcessingIntegrity ;
+    skos:notation "PI1-3" ; rdfs:label "PI1.3: Processing is complete, accurate, timely, and authorized"@en .
+_:pi1pt4 rdf:type skos:Concept ; skos:inScheme _:piScheme ; skos:broader _:tscProcessingIntegrity ;
+    skos:notation "PI1-4" ; rdfs:label "PI1.4: Outputs are complete, accurate, timely, and distributed appropriately"@en .
+_:pi1pt5 rdf:type skos:Concept ; skos:inScheme _:piScheme ; skos:broader _:tscProcessingIntegrity ;
+    skos:notation "PI1-5" ; rdfs:label "PI1.5: Inputs and outputs are stored completely, accurately, and timely as specified"@en .
+
+# --- Privacy criteria P1-P8 (SKOS concept scheme) ---------------------------
+# Also out of scope for Solace Cloud Stage 1; in scope for the Stage 2
+# rescale since a Fortune-5-scale shared platform holds PII for many
+# internal business units and external customers across jurisdictions.
+# Confirmed via live web search this session; sources show minor ordering
+# variance on the last two criteria (some order Quality before Monitoring
+# & Enforcement, at least one source swaps "Security for Privacy" in for
+# P7) — this scheme follows the ordering already used elsewhere in this
+# project's SOC2 verification pass (Notice, Choice/Consent, Collection,
+# Use/Retention/Disposal, Access, Disclosure, Quality, Monitoring &
+# Enforcement), disclosed here rather than silently picking one.
+
+_:privacyScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "AICPA Privacy criteria (P1-P8)"@en ;
+    skos:notation "PRIVACY-CRITERIA" ;
+    dcterms:description "The 8 criteria under the Privacy TSC category, covering the full lifecycle of personal information from notice through monitoring and enforcement."@en .
+
+_:p1 rdf:type skos:Concept ; skos:inScheme _:privacyScheme ; skos:broader _:tscPrivacy ;
+    skos:notation "P1" ; rdfs:label "P1: Notice"@en .
+_:p2 rdf:type skos:Concept ; skos:inScheme _:privacyScheme ; skos:broader _:tscPrivacy ;
+    skos:notation "P2" ; rdfs:label "P2: Choice and consent"@en .
+_:p3 rdf:type skos:Concept ; skos:inScheme _:privacyScheme ; skos:broader _:tscPrivacy ;
+    skos:notation "P3" ; rdfs:label "P3: Collection"@en .
+_:p4 rdf:type skos:Concept ; skos:inScheme _:privacyScheme ; skos:broader _:tscPrivacy ;
+    skos:notation "P4" ; rdfs:label "P4: Use, retention, and disposal"@en .
+_:p5 rdf:type skos:Concept ; skos:inScheme _:privacyScheme ; skos:broader _:tscPrivacy ;
+    skos:notation "P5" ; rdfs:label "P5: Access"@en .
+_:p6 rdf:type skos:Concept ; skos:inScheme _:privacyScheme ; skos:broader _:tscPrivacy ;
+    skos:notation "P6" ; rdfs:label "P6: Disclosure to third parties"@en .
+_:p7 rdf:type skos:Concept ; skos:inScheme _:privacyScheme ; skos:broader _:tscPrivacy ;
+    skos:notation "P7" ; rdfs:label "P7: Quality"@en .
+_:p8 rdf:type skos:Concept ; skos:inScheme _:privacyScheme ; skos:broader _:tscPrivacy ;
+    skos:notation "P8" ; rdfs:label "P8: Monitoring and enforcement"@en .

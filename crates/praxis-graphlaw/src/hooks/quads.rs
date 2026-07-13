@@ -11,13 +11,54 @@ pub struct ConstructQuery {
     pub is_delete: bool,
 }
 
+/// Strips `#`-comments from a SPARQL/Turtle-ish query string, one line at a
+/// time. A `#` only starts a comment when it appears OUTSIDE an IRI ref
+/// (`<...>`) and outside a quoted string literal (`"..."` or `'...'`) --
+/// matching real Turtle/SPARQL comment grammar. A naive first-`#` truncation
+/// corrupts any query containing a hash-fragment IRI (e.g.
+/// `<http://example.org/soc2#evidenceCount>`, an extremely common IRI
+/// style): everything from that `#` onward, including a CONSTRUCT
+/// template's closing brace and its entire WHERE clause, would be silently
+/// discarded rather than erroring loudly.
+///
+/// # Complexity
+/// O(n) over the input length: one pass per line, one bool flag per
+/// delimiter class (no backtracking).
 pub fn strip_comments(s: &str) -> String {
     let mut out = String::new();
     for line in s.lines() {
-        if let Some(idx) = line.find('#') {
-            out.push_str(&line[..idx]);
-        } else {
-            out.push_str(line);
+        let mut in_iri = false;
+        let mut in_string: Option<char> = None;
+        let mut comment_start = None;
+        for (idx, c) in line.char_indices() {
+            match in_string {
+                Some(q) => {
+                    if c == q {
+                        in_string = None;
+                    }
+                    continue;
+                }
+                None => {}
+            }
+            if in_iri {
+                if c == '>' {
+                    in_iri = false;
+                }
+                continue;
+            }
+            match c {
+                '<' => in_iri = true,
+                '"' | '\'' => in_string = Some(c),
+                '#' => {
+                    comment_start = Some(idx);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        match comment_start {
+            Some(idx) => out.push_str(&line[..idx]),
+            None => out.push_str(line),
         }
         out.push('\n');
     }

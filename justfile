@@ -649,6 +649,14 @@ praxis-graphlaw-check-libtests:
 praxis-graphlaw-test-lib-isolated name *args:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo test -p praxis-graphlaw --lib {{args}}
 
+# Run one praxis-graphlaw `tests/*.rs` integration-test binary in an isolated target dir
+# (concurrent-agent-safe; see the "Isolated-target cargo recipes" note above
+# cng-check-isolated). `binary` is the file stem under tests/ (e.g. `soc2_hook_actuation`),
+# not the crate name. Pass a substring filter as extra args, e.g.
+# `just praxis-graphlaw-test-integration-isolated my-feature soc2_hook_actuation test_cuec_gate`
+praxis-graphlaw-test-integration-isolated name binary *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo test -p praxis-graphlaw --test {{binary}} {{args}}
+
 # Lint praxis-graphlaw's lib + tests in an isolated target dir (concurrent-agent-safe;
 # same --lib --tests scope as praxis-graphlaw-clippy-libtests, same pre-existing
 # owlrl.rs bench break excluded).

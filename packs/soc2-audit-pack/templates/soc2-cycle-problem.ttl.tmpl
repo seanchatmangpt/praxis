@@ -3,8 +3,11 @@ to: "crates/cng/tests/fixtures/soc2/soc2-cycle-problem.ttl"
 force: true
 determinism: true
 ---
-# The one problem fragment for the merged solace-soc2-audit-cycle domain.
-# Init holds ONLY the Phase 1 (Scoping & System Description) entry atom;
+# The one problem fragment for the merged arclight-soc2-audit-cycle domain
+# (Stage 2 Fortune-5 rescale; domain object renamed from "solace" to
+# "arclight" — see packs/soc2-audit-pack/templates/arclight-case-study.ttl.tmpl
+# for the case-study rationale). Init holds ONLY the Phase 1 (Scoping &
+# System Description) entry atom;
 # the goal is ONLY the terminal Phase 10 (Auditor Report Handoff)
 # deliverable (1 conjunct — the merged goal stays far inside
 # PDDL8_MAX_CONJUNCTS=8 because no other fragment declares a goal). Every
@@ -25,9 +28,9 @@ _:artifact
     skos:notation "SOC2-CYCLE-PROBLEM" ;
     dcterms:description "Full SOC2 audit engagement cycle problem: from audit-engaged to evidence-bundle-complete through all 10 chained phases."@en ;
     ceng:pddlProblem """
-(define (problem solace-soc2-audit-cycle-p)
-  (:domain solace-soc2-audit-cycle)
-  (:objects solace)
-  (:init (audit-engaged solace))
-  (:goal (evidence-bundle-complete solace)))
+(define (problem arclight-soc2-audit-cycle-p)
+  (:domain arclight-soc2-audit-cycle)
+  (:objects arclight)
+  (:init (audit-engaged arclight))
+  (:goal (evidence-bundle-complete arclight)))
 """ .

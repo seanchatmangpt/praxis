@@ -3,10 +3,11 @@ to: "crates/cng/tests/fixtures/soc2/audit-scoping.ttl"
 force: true
 determinism: true
 ---
-# SOC2 audit engagement phase 1: Scoping & System Description — Solace
-# Cloud case study (a fictional B2B SaaS company's first SOC2 Type II
-# audit). One domain FRAGMENT of the shared solace-soc2-audit-cycle
-# domain: this phase's 3 actions chain
+# SOC2 audit engagement phase 1: Scoping & System Description — Arclight
+# Cloud Platform case study (a fictional Fortune-5-scale shared-platform
+# subsidiary's first SOC2 Type II audit; Stage 2 rescale from the original
+# Solace Cloud small-SaaS case study). One domain FRAGMENT of the shared
+# arclight-soc2-audit-cycle domain: this phase's 3 actions chain
 # audit-engaged -> scoping-step1-done -> scoping-step2-done -> scoping-complete,
 # so the merged cycle plan can only reach this phase after the problem's
 # init atom is asserted. 8-constraint split: every precondition/effect/goal
@@ -30,9 +31,9 @@ determinism: true
 
 _:artifact
     skos:notation "AUDIT-SCOPING" ;
-    dcterms:description "Scoping & System Description domain fragment of the solace-soc2-audit-cycle STRIPS domain."@en ;
+    dcterms:description "Scoping & System Description domain fragment of the arclight-soc2-audit-cycle STRIPS domain."@en ;
     ceng:pddlDomain """
-(define (domain solace-soc2-audit-cycle)
+(define (domain arclight-soc2-audit-cycle)
   (:requirements :strips)
   (:predicates
     (audit-engaged ?x)
