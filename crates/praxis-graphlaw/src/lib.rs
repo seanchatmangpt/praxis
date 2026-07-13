@@ -312,29 +312,78 @@ impl TripleStore {
         self.triple_index.is_empty()
     }
 
+    /// Materializes all rules/hooks to fixpoint, or rolls back to the
+    /// pre-call checkpoint and returns a typed error.
+    ///
+    /// # Panic safety
+    /// The inner `reasoner.materialize` call mutates `triple_index`,
+    /// `receipts`, `verdicts`, and `removals` in place before it can know
+    /// whether the derivation will succeed -- the [`Err`] arm below exists
+    /// specifically to undo that partial mutation on a *typed* failure. A
+    /// **panic** partway through the same mutation used to bypass this
+    /// entirely: unwinding skips both match arms, so a caller that catches
+    /// the panic higher up (this crate already does exactly that for SPARQL
+    /// planning -- see `plan_query_or_refuse`'s own `catch_unwind`) and then
+    /// reuses the same `TripleStore` would be operating on a torn,
+    /// partially-materialized graph with no checkpoint restored. Wrapping
+    /// the call in [`std::panic::catch_unwind`] closes that gap: a caught
+    /// panic now gets the *exact* rollback the `Err` arm already performs,
+    /// then converts to the same `Result<_, String>` convention, instead of
+    /// silently corrupting state. `AssertUnwindSafe` is sound here (unlike a
+    /// blanket use of it) precisely because the rollback below immediately
+    /// restores every field the closure could have left mid-mutation --
+    /// there is no window where torn state escapes this function.
     pub fn materialize(&mut self) -> Result<Vec<Triple>, String> {
         let checkpoint = self.triple_index.clone();
 
         self.receipts.clear();
         self.verdicts.clear();
 
-        let inferred = match self.reasoner.materialize(
-            &mut self.triple_index,
-            &self.rules,
-            &self.strata,
-            &self.aggregates,
-            &self.hooks,
-            &mut self.receipts,
-            &mut self.verdicts,
-            &mut self.removals,
-        ) {
-            Ok(inferred) => inferred,
-            Err(e) => {
+        let reasoner = &self.reasoner;
+        let rules = &self.rules;
+        let strata = &self.strata;
+        let aggregates = &self.aggregates;
+        let hooks = &self.hooks;
+        let triple_index = &mut self.triple_index;
+        let receipts = &mut self.receipts;
+        let verdicts = &mut self.verdicts;
+        let removals = &mut self.removals;
+
+        let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            reasoner.materialize(
+                triple_index,
+                rules,
+                strata,
+                aggregates,
+                hooks,
+                receipts,
+                verdicts,
+                removals,
+            )
+        }));
+
+        let inferred = match panicked {
+            Ok(Ok(inferred)) => inferred,
+            Ok(Err(e)) => {
                 self.triple_index = checkpoint;
                 self.receipts.clear();
                 self.additions.clear();
                 self.removals.clear();
                 return Err(e);
+            }
+            Err(panic_payload) => {
+                let detail = panic_payload
+                    .downcast_ref::<&str>()
+                    .map(|s| s.to_string())
+                    .or_else(|| panic_payload.downcast_ref::<String>().cloned())
+                    .unwrap_or_else(|| "non-string panic payload".to_string());
+                self.triple_index = checkpoint;
+                self.receipts.clear();
+                self.additions.clear();
+                self.removals.clear();
+                return Err(format!(
+                    "materialize panicked (checkpoint rolled back): {detail}"
+                ));
             }
         };
 

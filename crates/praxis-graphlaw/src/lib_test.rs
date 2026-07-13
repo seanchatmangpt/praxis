@@ -973,6 +973,87 @@ fn materialize_does_not_panic_on_a_directly_constructed_zero_window_hook() {
     );
 }
 
+// Regression for the `TripleStore::materialize` checkpoint-rollback hardening (task tracked
+// as "materialize's checkpoint rollback is panic-blind" this session): the pre-existing
+// `Err` arm already restored `triple_index` from the pre-call checkpoint on a *typed*
+// failure, but a *panic* partway through the same reasoner call used to bypass both match
+// arms entirely, leaving `triple_index`/`receipts`/`verdicts`/`removals` in whatever
+// partially-mutated state the panic interrupted -- silently corrupting the store for any
+// caller further up the stack that catches the panic and keeps using the same `TripleStore`
+// (this crate already does exactly that pattern elsewhere -- see `plan_query_or_refuse`'s
+// own `catch_unwind`, and `HookCondition::Datalog`'s condition evaluator, which recursively
+// calls `materialize()` on a `temp_store` while itself running *inside* an outer
+// `materialize()` call). `materialize()` now wraps the reasoner call in
+// `std::panic::catch_unwind` and runs the identical checkpoint-restore the `Err` arm always
+// did on a caught panic, before converting it to the same `Result<_, String>` convention.
+//
+// This test proves the *unchanged* half of that contract -- an ordinary typed failure
+// (an unparseable Datalog hook condition, constructed the same directly-onto-`store.hooks`
+// way the sibling window=0 test above does, bypassing hook-pack parsing) still rolls the
+// checkpoint back and returns Err exactly as before the refactor. An extensive search this
+// cycle across the reasoner/hooks/datalog-translation call graph materialize() reaches
+// (reasoner/mod.rs, hooks/condition.rs, hooks/datalog.rs, hooks/quads.rs,
+// reasoner/substitution.rs) found every raw-indexing site already explicitly length-guarded
+// (`match len() { .. _ => Err(..) }`, `.get().unwrap_or(..)`, `.saturating_sub(1)`) -- no
+// currently-live, easily-reproduced panic trigger was found to exercise the *new* catch_unwind
+// arm itself against a real caller this cycle; that arm's coverage is therefore proactive
+// hardening, disclosed as such rather than claimed to close a reproduced crash. One deeper,
+// not-yet-confirmed-reachable concern was found and disclosed separately (not fixed here):
+// `Binding::len()` (`bindings.rs`) returns `self.bindings.values().next()`'s column length --
+// HashMap-iteration-order-dependent, so if two variables in the same `Binding` ever end up
+// with genuinely different-length columns, several `Vec` index sites (this file's own
+// aggregate grouping in `reasoner/mod.rs` and `Binding::join`) would index the shorter column
+// out of bounds. Whether that state is reachable through the query engine's own binding
+// construction (which normally produces uniform-length columns per solution row) was not
+// established this cycle.
+#[test]
+fn materialize_still_rolls_back_the_checkpoint_and_returns_err_on_an_ordinary_typed_failure() {
+    use crate::hooks::{CompiledHook, EffectKind, EventId, HookCondition, HookId};
+
+    let mut store = TripleStore::new();
+    store
+        .load_triples(
+            "<http://example.org/pre-existing> <http://example.org/p> \"already-here\".",
+            crate::parser::Syntax::NTriples,
+        )
+        .unwrap();
+    let checkpoint_triples = store.triple_index.triples.clone();
+
+    // A Datalog program whose head has no parenthesized argument list --
+    // `translate_datalog_program` (reasoner/mod.rs) splits on ":-" first (so a program with
+    // no ":-" at all is silently skipped as a no-op, not an error -- confirmed by an earlier,
+    // wrong version of this test); given a head/body split, it returns a typed `Err` when
+    // `head_part.split('(').nth(1)` is `None` ("Datalog rule head missing argument"). This
+    // is the pre-existing `Err` arm's path, not the new panic-catching arm.
+    store.hooks.push(CompiledHook {
+        id: HookId(0),
+        iri: "urn:test:malformed-datalog-direct".to_string(),
+        name: "malformed_datalog_direct".to_string(),
+        event: EventId(0),
+        on: "any".to_string(),
+        condition: HookCondition::Datalog {
+            program: "foo :- t(?x,?y,?z)".to_string(),
+            goal: "irrelevant".to_string(),
+        },
+        effect: EffectKind::EmitDelta,
+        action: None,
+        reason: None,
+        priority: 0,
+        after: smallvec::SmallVec::new(),
+    });
+
+    let result = store.materialize();
+    assert!(
+        result.is_err(),
+        "an unparseable Datalog hook condition must be a typed refusal, not a silent success"
+    );
+    assert_eq!(
+        store.triple_index.triples, checkpoint_triples,
+        "checkpoint must be fully restored on the ordinary Err path -- unchanged by the \
+         catch_unwind refactor"
+    );
+}
+
 // Regression for a real, `docs/jira/v26.7.12/REMAINING_WORK.md`-flagged correctness bug: the
 // Bellman-Ford stratification loop's `iteration` counter always executes its loop body at
 // least once (`changed` starts `true`), so on an empty ruleset (`num_predicates == 0`) it
