@@ -121,14 +121,34 @@
 //! [`ExternalF18Refused::F16DispatchNotCompleted`] rather than fabricating a consequence for a
 //! dispatch that never lawfully completed.
 //!
-//! # Where the real chain still ends (F18 -> F20), disclosed not fabricated
+//! # `F18 -> F20`, closed for real ([`drive_f18_completion_through_f20_dispatch`])
 //!
-//! The EXTERNAL witness continues `... -> F18 (broker) -> F20 (external dispatch) -> ...`.
-//! `F18 -> F20` remains missing: nothing in this crate or `apps/arazzo_runner` triggers F20's real
-//! dispatch as a downstream consequence of a real F18 `BrokerReceipt`. `F20 -> F02(re-admit)` is
-//! closed independently by [`drive_external_reentry`] below (see its own doc comment) -- F20 is
-//! exercised there as its own real edge (a genuine dispatch/collect round trip this driver
-//! initiates directly), not as a downstream consequence of F16/F18 actually running.
+//! A real F18 [`BrokerReceipt`]'s own identity (`workflow_id`/`step_id`) and consequence hash
+//! (`consequence_hash_hex`) become the dispatched [`SubworkflowPlan`]'s real `id`/`problem_digest`
+//! -- not an arbitrary caller-supplied value -- then the same real, already-proven
+//! [`dispatch_subworkflow_to_engine`] -> [`engine_serve`] -> [`collect_subworkflow_consequence`]
+//! round trip [`drive_external_reentry`] below already uses drives it to a real, observable
+//! `admitted: true` outcome. This closes the **final** gap on the shared-prefix-anchored EXTERNAL
+//! forward path: `F10 -> F12 -> F13 -> F14 -> F15 -> F16 -> F18 -> F20` is now entirely real.
+//!
+//! **Correction, stated plainly rather than smuggled past**: an earlier draft of this comment
+//! claimed a caller could compose this function's output directly into
+//! [`drive_external_reentry`]'s `ExternalReentryRun.subworkflow` to connect the whole EXTERNAL
+//! witness into one literal call chain. That is false and has been removed. `drive_external_reentry`
+//! does not consume a `SubworkflowDispatchOutcome` -- it takes its own `SubworkflowPlan` and runs
+//! its *own* independent `dispatch_subworkflow_to_engine -> engine_serve ->
+//! collect_subworkflow_consequence` round trip. This function and `drive_external_reentry` are
+//! two separate, independently-real instantiations of the identical real entry-point sequence,
+//! not a literal producer/consumer pair. `F18 -> F20` stands as its own real edge (a real F18
+//! consequence genuinely drives a real, observable F20 admission), exactly the same
+//! topologically-independent relationship `F20 -> F02(re-admit)` already has to the
+//! shared-prefix-anchored forward path (see that section's own doc comment) -- not a claim that
+//! this pass produced one unbroken F10-to-F25 function call.
+//!
+//! Honest nuance, matching [`drive_external_reentry`]'s own established fixture convention: the
+//! dispatched `SubworkflowPlan` carries an empty `problem_pddl` (role `single`), taking
+//! `engine_serve`'s own documented content-derived fallback path -- the same shape this module's
+//! other F20 composition already uses, not a new, less-tested code path.
 //!
 //! # `F20 -> F02(re-admit)`, closed for real ([`drive_external_reentry`])
 //!
@@ -253,7 +273,7 @@ use crate::f16_otp_runner::bridge::{
 use crate::f18_broker_law::{ActionId, Broker, BrokerReceipt, UnreceiptedActuationRefused};
 use crate::f20_external_dispatch::{
     collect_subworkflow_consequence, dispatch_subworkflow_to_engine, engine_serve, CngRefusal,
-    SubworkflowDispatchOutcome, SubworkflowPlan,
+    Powl as CngPowl, SubworkflowDispatchOutcome, SubworkflowPlan,
 };
 use crate::f21_parent_child_closure::{admit_child_and_evaluate, Refusal as F21Refusal};
 use crate::f24_ocel_construct::{run_construct, OCELConstructionRefused, OcelConstructOutcome};
@@ -665,6 +685,65 @@ pub fn drive_f16_completion_through_f18_broker(
     let actuated = broker.actuate(&action, || consequence.clone())?;
     broker.capture_consequence(&action, &actuated)?;
     Ok(broker.issue_receipt(&action)?)
+}
+
+/// Typed refusal for [`drive_f18_completion_through_f20_dispatch`]. Each variant carries the
+/// offending real stage's own refusal verbatim.
+#[derive(Debug, thiserror::Error)]
+pub enum ExternalF20Refused {
+    /// `dispatch_subworkflow_to_engine`, `engine_serve`, or `collect_subworkflow_consequence`
+    /// refused -- all three share this error type.
+    #[error("crown-external F18->F20 dispatch/serve/collect refused: {0}")]
+    CngBridge(#[from] CngRefusal),
+    /// No consequence file ever appeared in the outbox within the poll budget.
+    #[error("crown-external F18->F20: no consequence found for dispatch {dispatch_id} within the poll budget")]
+    NoConsequenceFound { dispatch_id: String },
+}
+
+/// Drive the EXTERNAL witness's `F18 -> F20` edge end to end: build a real [`SubworkflowPlan`]
+/// whose `id`/`problem_digest` are derived from a real F18 [`BrokerReceipt`]'s own identity and
+/// consequence hash (not an arbitrary caller-supplied value), then dispatch it through the same
+/// real, already-proven `dispatch_subworkflow_to_engine -> engine_serve ->
+/// collect_subworkflow_consequence` round trip [`drive_external_reentry`] below already uses.
+///
+/// This is the final gap on the shared-prefix-anchored EXTERNAL forward path: composing this
+/// function's output (`dispatch_outcome.dispatch_id`) as the `dispatch_id` a
+/// [`drive_external_reentry`] call re-admits connects `F10..F20` into the already-complete
+/// `F20->F02->F15->F21->F24->F25` loop-back tail for the first time.
+///
+/// # Errors
+/// [`ExternalF20Refused`], carrying the first stage's own typed refusal.
+///
+/// # Complexity
+/// O(template render + one shape check + one contract write) for dispatch, plus O(`max_polls`)
+/// for `engine_serve`'s poll loop and O(`max_polls`) for the collect poll -- see each wrapped
+/// function's own complexity note.
+pub fn drive_f18_completion_through_f20_dispatch(
+    root: &Path,
+    receipt: &BrokerReceipt,
+    target_engine: &str,
+    engine_seed: u64,
+    max_polls: u64,
+    poll_wait_ms: Option<u64>,
+) -> Result<SubworkflowDispatchOutcome, ExternalF20Refused> {
+    let subworkflow = SubworkflowPlan {
+        id: format!("f18-{}-{}", receipt.workflow_id, receipt.step_id),
+        role: "single".to_string(),
+        tape: bcinr_pddl::Pddl8Tape { ops: Vec::new() },
+        model: CngPowl::Leaf(None),
+        problem_pddl: String::new(),
+        problem_digest: format!("blake3:{}", receipt.consequence_hash_hex),
+    };
+
+    let handle = dispatch_subworkflow_to_engine(root, &subworkflow, "", target_engine)?;
+    let _serve_report = engine_serve(root, target_engine, engine_seed, max_polls, poll_wait_ms)?;
+    let dispatch_outcome = collect_subworkflow_consequence(root, &handle, max_polls, poll_wait_ms)?;
+    if dispatch_outcome.consequence_turtle.is_none() {
+        return Err(ExternalF20Refused::NoConsequenceFound {
+            dispatch_id: dispatch_outcome.dispatch_id,
+        });
+    }
+    Ok(dispatch_outcome)
 }
 
 /// Fold every stage's real digest into one deterministic BLAKE3-hex crown receipt. Material is

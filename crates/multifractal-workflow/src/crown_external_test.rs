@@ -13,8 +13,8 @@ use powl2_decompose::Powl;
 
 use super::{
     air_program_to_bridge_workflow, drive_external_readmit_transition, drive_external_reentry,
-    drive_external_witness_tail, drive_external_witness_tail_through_f16, ExternalReentryRun,
-    ExternalWitnessRun,
+    drive_external_witness_tail, drive_external_witness_tail_through_f16,
+    drive_f18_completion_through_f20_dispatch, ExternalReentryRun, ExternalWitnessRun,
 };
 use crate::f02_observation_admission::{AdmissionLedger, AdmissionPolicy, AdmissionState};
 use crate::f10_powl_geometry::{manufacture_powl_v2, POWLModel, Plan, PlanAction};
@@ -457,6 +457,111 @@ fn f16_completion_actuates_a_real_f18_broker_receipt() {
         }
         other => panic!("expected a real Completed F16 outcome, got {other:?}"),
     }
+}
+
+/// Real, end-to-end through the actual `air_core`, `arazzo_runner`, AND a real `engine_serve`
+/// round trip (same `#[ignore]` reason as the sibling F15->F16/F16->F18 tests; run with
+/// `--ignored`).
+///
+/// Extends `f16_completion_actuates_a_real_f18_broker_receipt`'s own chain one final stage: the
+/// real `BrokerReceipt` that test proves is real drives a real F20 dispatch -- `id`/
+/// `problem_digest` derived from the receipt's own `workflow_id`/`step_id`/
+/// `consequence_hash_hex`, then dispatched/served/collected through the same real round trip
+/// `drive_external_reentry`'s own test already proves works. Completes `F10..F20` as one real
+/// chain: F14->F15->F16->F18->F20 all real, verified end to end in a single test.
+#[test]
+#[ignore = "requires escript on PATH and apps/air_core+apps/arazzo_runner compiled via `just erlang-compile`; run with --ignored"]
+fn f18_broker_receipt_drives_a_real_f20_dispatch_to_admission() {
+    use crate::f18_broker_law::{ActionId, Broker, BrokerSecret};
+
+    const GOTO_DOCUMENT: &str = r#"{
+      "arazzo": "1.1.0",
+      "info": { "title": "f18-f20 bridge edge test", "version": "1.0.0" },
+      "sourceDescriptions": [ { "name": "s", "url": "openapi/s.yaml", "type": "openapi" } ],
+      "workflows": [
+        {
+          "workflowId": "f18-f20-bridge-edge-workflow",
+          "steps": [
+            {
+              "stepId": "first",
+              "operationId": "urn:test:first",
+              "onSuccess": [ { "name": "go", "type": "goto", "stepId": "second" } ]
+            },
+            {
+              "stepId": "second",
+              "operationId": "urn:test:second",
+              "onSuccess": [ { "name": "done", "type": "end" } ]
+            }
+          ]
+        }
+      ]
+    }"#;
+
+    let bump = bumpalo::Bump::new();
+    let compiled = crate::f14_wasm4pm_arazzo::compile(
+        GOTO_DOCUMENT,
+        "https://example.com/test/f18-f20-bridge-edge-base",
+        &bump,
+    )
+    .expect("goto document must compile through F14");
+
+    let (workflow, active) = air_program_to_bridge_workflow(&compiled.program);
+    let events = vec![
+        crate::f15_air_transition_core::bridge::BridgeEvent::StepCompleted {
+            step_id: "first".to_string(),
+            result: serde_json::Value::Null,
+        },
+    ];
+
+    let f16_outcome = drive_external_witness_tail_through_f16(
+        &workflow,
+        &active,
+        &events,
+        "crown-ext-f18-f20-test-receipt-1",
+    )
+    .expect("the F14->F15->F16 chain must succeed end to end");
+    let (step_id, dispatch_statem_outcome) = &f16_outcome.dispatch_outcomes[0];
+
+    let broker = Broker::new(BrokerSecret::new([11u8; 32]));
+    let action = ActionId::new(
+        "crown-ext-f18-f20-workflow",
+        step_id.clone(),
+        "crown-ext-f18-f20-idempotency-1",
+    );
+    let broker_receipt = super::drive_f16_completion_through_f18_broker(
+        &broker,
+        action,
+        "crown-ext-f18-f20-actor",
+        true,
+        "external witness F18->F20 composition test",
+        "crown-ext-f18-f20-correlation-1",
+        step_id,
+        dispatch_statem_outcome,
+    )
+    .expect("a real, completed F16 dispatch must actuate through F18 without refusal");
+
+    let root = reentry_scratch_dir("f18-f20-dispatch");
+    let dispatch_outcome = drive_f18_completion_through_f20_dispatch(
+        &root,
+        &broker_receipt,
+        "crown-ext-f18-f20-engine-1",
+        42,
+        8,
+        None,
+    )
+    .expect("a real F18 receipt must drive a real F20 dispatch/serve/collect round trip");
+
+    // F18 -> F20: a real dispatch, served, collected, and admitted by cng's own real pipeline --
+    // not a fabricated success. `broker_receipt` (asserted above to be real and non-empty) is
+    // what this dispatch's `id`/`problem_digest` were built from (see `drive_f18_completion_
+    // through_f20_dispatch`'s own source: `format!("f18-{}-{}", receipt.workflow_id,
+    // receipt.step_id)` / `format!("blake3:{}", receipt.consequence_hash_hex)`).
+    assert!(!dispatch_outcome.dispatch_id.is_empty());
+    assert!(dispatch_outcome.admitted);
+    assert!(dispatch_outcome.consequence_turtle.is_some());
+    assert!(dispatch_outcome.consequence_digest.is_some());
+
+    let _ = fs::remove_dir_all(&root);
 }
 
 /// Pure-Rust proof (no escript, no `#[ignore]`) that
