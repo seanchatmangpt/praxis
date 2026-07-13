@@ -255,9 +255,7 @@ pub fn rules_equivalent_property(vocab: &OwlRlVocab) -> Result<[Rule; 2], String
                 negated: false,
                 pattern: Triple {
                     s: VarOrTerm::new_var("?p".to_string()),
-                    p: VarOrTerm::new_term(
-                        dec(&vocab.owl_equivalent_property)?,
-                    ),
+                    p: VarOrTerm::new_term(dec(&vocab.owl_equivalent_property)?),
                     o: VarOrTerm::new_var("?q".to_string()),
                     g: None,
                 },
@@ -274,9 +272,7 @@ pub fn rules_equivalent_property(vocab: &OwlRlVocab) -> Result<[Rule; 2], String
                 negated: false,
                 pattern: Triple {
                     s: VarOrTerm::new_var("?p".to_string()),
-                    p: VarOrTerm::new_term(
-                        dec(&vocab.owl_equivalent_property)?,
-                    ),
+                    p: VarOrTerm::new_term(dec(&vocab.owl_equivalent_property)?),
                     o: VarOrTerm::new_var("?q".to_string()),
                     g: None,
                 },
@@ -364,9 +360,7 @@ pub fn rule_transitive_property(vocab: &OwlRlVocab) -> Result<Rule, String> {
                 pattern: Triple {
                     s: VarOrTerm::new_var("?p".to_string()),
                     p: VarOrTerm::new_term(dec(&vocab.rdf_type)?),
-                    o: VarOrTerm::new_term(
-                        dec(&vocab.owl_transitive_property)?,
-                    ),
+                    o: VarOrTerm::new_term(dec(&vocab.owl_transitive_property)?),
                     g: None,
                 },
             },

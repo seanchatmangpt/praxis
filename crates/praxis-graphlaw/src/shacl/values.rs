@@ -52,7 +52,9 @@ pub fn get_lang_tag(x: usize) -> Option<String> {
 /// xsd:decimal, xsd:double.
 pub(crate) fn get_numeric_value(term_id: usize) -> Result<f64, String> {
     let lex = get_lexical_form(term_id).ok_or_else(|| "Not a lexical form".to_string())?;
-    lex.trim().parse::<f64>().map_err(|e| format!("parse error: {}", e))
+    lex.trim()
+        .parse::<f64>()
+        .map_err(|e| format!("parse error: {}", e))
 }
 
 /// Parse an `xsd:dateTime` lexical form
@@ -62,7 +64,9 @@ pub(crate) fn get_numeric_value(term_id: usize) -> Result<f64, String> {
 /// relative comparisons between two parsed values are ever made.
 pub(crate) fn parse_datetime(lex: &str) -> Result<(i64, bool), String> {
     let lex = lex.trim();
-    let t_pos = lex.find('T').ok_or_else(|| "Missing T in datetime".to_string())?;
+    let t_pos = lex
+        .find('T')
+        .ok_or_else(|| "Missing T in datetime".to_string())?;
     let (date_part, rest) = lex.split_at(t_pos);
     let rest = &rest[1..]; // skip 'T'
 
@@ -71,9 +75,15 @@ pub(crate) fn parse_datetime(lex: &str) -> Result<(i64, bool), String> {
     if date_fields.len() != 3 || date_fields.iter().any(|f| f.is_empty()) {
         return Err("Invalid date fields".to_string());
     }
-    let year: i64 = date_fields[0].parse().map_err(|e| format!("year parse error: {}", e))?;
-    let month: i64 = date_fields[1].parse().map_err(|e| format!("month parse error: {}", e))?;
-    let day: i64 = date_fields[2].parse().map_err(|e| format!("day parse error: {}", e))?;
+    let year: i64 = date_fields[0]
+        .parse()
+        .map_err(|e| format!("year parse error: {}", e))?;
+    let month: i64 = date_fields[1]
+        .parse()
+        .map_err(|e| format!("month parse error: {}", e))?;
+    let day: i64 = date_fields[2]
+        .parse()
+        .map_err(|e| format!("day parse error: {}", e))?;
 
     // Split off an explicit timezone: 'Z', or a trailing "+HH:MM"/"-HH:MM"
     // (search from index 1 to skip a leading '-' that might belong to... time
@@ -83,9 +93,15 @@ pub(crate) fn parse_datetime(lex: &str) -> Result<(i64, bool), String> {
     } else if let Some(sign_pos) = rest.rfind(['+', '-']) {
         let (t, off) = rest.split_at(sign_pos);
         let off_fields: Vec<&str> = off[1..].splitn(2, ':').collect();
-        let off_h: i64 = off_fields.first().ok_or_else(|| "Missing tz hour".to_string())?.parse().map_err(|e| format!("tz hour parse error: {}", e))?;
+        let off_h: i64 = off_fields
+            .first()
+            .ok_or_else(|| "Missing tz hour".to_string())?
+            .parse()
+            .map_err(|e| format!("tz hour parse error: {}", e))?;
         let off_m: i64 = match off_fields.get(1) {
-            Some(s) => s.parse().map_err(|e| format!("tz minute parse error: {}", e))?,
+            Some(s) => s
+                .parse()
+                .map_err(|e| format!("tz minute parse error: {}", e))?,
             None => 0,
         };
         let sign = if off.starts_with('-') { -1 } else { 1 };
@@ -98,9 +114,15 @@ pub(crate) fn parse_datetime(lex: &str) -> Result<(i64, bool), String> {
     if time_fields.len() != 3 {
         return Err("Invalid time fields".to_string());
     }
-    let hour: i64 = time_fields[0].parse().map_err(|e| format!("hour parse error: {}", e))?;
-    let minute: i64 = time_fields[1].parse().map_err(|e| format!("minute parse error: {}", e))?;
-    let second: f64 = time_fields[2].parse().map_err(|e| format!("second parse error: {}", e))?;
+    let hour: i64 = time_fields[0]
+        .parse()
+        .map_err(|e| format!("hour parse error: {}", e))?;
+    let minute: i64 = time_fields[1]
+        .parse()
+        .map_err(|e| format!("minute parse error: {}", e))?;
+    let second: f64 = time_fields[2]
+        .parse()
+        .map_err(|e| format!("second parse error: {}", e))?;
 
     // Days since an arbitrary fixed epoch via a standard civil-to-days
     // algorithm (Howard Hinnant's `days_from_civil`), valid for the
@@ -130,7 +152,10 @@ pub fn compare_numeric(a: usize, b: usize) -> Result<Option<std::cmp::Ordering>,
     if let (Ok(av), Ok(bv)) = (get_numeric_value(a), get_numeric_value(b)) {
         return Ok(av.partial_cmp(&bv));
     }
-    let (a_lex, b_lex) = (get_lexical_form(a).ok_or_else(|| "a not lexical".to_string())?, get_lexical_form(b).ok_or_else(|| "b not lexical".to_string())?);
+    let (a_lex, b_lex) = (
+        get_lexical_form(a).ok_or_else(|| "a not lexical".to_string())?,
+        get_lexical_form(b).ok_or_else(|| "b not lexical".to_string())?,
+    );
     let (a_secs, a_tz) = parse_datetime(&a_lex)?;
     let (b_secs, b_tz) = parse_datetime(&b_lex)?;
     if a_tz != b_tz {
@@ -165,7 +190,9 @@ pub fn match_regex(pattern: &str, text: &str, flags: &str) -> bool {
 /// Parse an xsd:integer literal as i64 (allowing negative values)
 pub(crate) fn get_integer_value(term_id: usize) -> Result<i64, String> {
     let lex = get_lexical_form(term_id).ok_or_else(|| "Not a lexical form".to_string())?;
-    lex.trim().parse::<i64>().map_err(|e| format!("parse error: {}", e))
+    lex.trim()
+        .parse::<i64>()
+        .map_err(|e| format!("parse error: {}", e))
 }
 
 /// Decode a term ID to a Term

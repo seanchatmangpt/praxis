@@ -66,12 +66,15 @@ impl HookProps {
     fn new(triples: &[Triple], subject: &str) -> Result<Self, String> {
         let mut map = FxHashMap::default();
         for t in triples {
-            let s_str = Encoder::decode(&t.s.to_encoded()).ok_or_else(|| format!("failed to decode subject: {:?}", t.s))?;
+            let s_str = Encoder::decode(&t.s.to_encoded())
+                .ok_or_else(|| format!("failed to decode subject: {:?}", t.s))?;
             if clean_term(&s_str) == subject {
-                let p_str = Encoder::decode(&t.p.to_encoded()).ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
+                let p_str = Encoder::decode(&t.p.to_encoded())
+                    .ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
                 let cleaned_p = clean_term(&p_str);
                 if let Some(local) = cleaned_p.strip_prefix(KH_NS) {
-                    let o_str = Encoder::decode(&t.o.to_encoded()).ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
+                    let o_str = Encoder::decode(&t.o.to_encoded())
+                        .ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
                     let cleaned_o = clean_term(&o_str).to_string();
                     map.entry(local.to_string())
                         .or_insert_with(Vec::new)
@@ -127,9 +130,11 @@ fn rewrite_hook_alias(triples: &[Triple]) -> Result<Vec<Triple>, String> {
     triples
         .iter()
         .map(|t| {
-            let p_str = Encoder::decode(&t.p.to_encoded()).ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
+            let p_str = Encoder::decode(&t.p.to_encoded())
+                .ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
             let cleaned_p = clean_term(&p_str);
-            let o_str = Encoder::decode(&t.o.to_encoded()).ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
+            let o_str = Encoder::decode(&t.o.to_encoded())
+                .ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
             let cleaned_o = clean_term(&o_str);
 
             let mut new_t = t.clone();
@@ -176,9 +181,12 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
     }
 
     for t in &rewritten_triples {
-        let decoded_s = Encoder::decode(&t.s.to_encoded()).ok_or_else(|| format!("failed to decode subject: {:?}", t.s))?;
-        let decoded_p = Encoder::decode(&t.p.to_encoded()).ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
-        let decoded_o = Encoder::decode(&t.o.to_encoded()).ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
+        let decoded_s = Encoder::decode(&t.s.to_encoded())
+            .ok_or_else(|| format!("failed to decode subject: {:?}", t.s))?;
+        let decoded_p = Encoder::decode(&t.p.to_encoded())
+            .ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
+        let decoded_o = Encoder::decode(&t.o.to_encoded())
+            .ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
 
         if contains_forbidden_keyword(&decoded_s) {
             return Err(format!("forbidden keyword in subject: {}", decoded_s));
@@ -190,7 +198,8 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
             return Err(format!("forbidden keyword in object: {}", decoded_o));
         }
         if let Some(ref g) = t.g {
-            let decoded_g = Encoder::decode(&g.to_encoded()).ok_or_else(|| format!("failed to decode graph: {:?}", g))?;
+            let decoded_g = Encoder::decode(&g.to_encoded())
+                .ok_or_else(|| format!("failed to decode graph: {:?}", g))?;
             if contains_forbidden_keyword(&decoded_g) {
                 return Err(format!("forbidden keyword in graph: {}", decoded_g));
             }
@@ -241,9 +250,12 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
 
     let mut hook_subjects = Vec::new();
     for t in &rewritten_triples {
-        let s_str = Encoder::decode(&t.s.to_encoded()).ok_or_else(|| format!("failed to decode subject: {:?}", t.s))?;
-        let p_str = Encoder::decode(&t.p.to_encoded()).ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
-        let o_str = Encoder::decode(&t.o.to_encoded()).ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
+        let s_str = Encoder::decode(&t.s.to_encoded())
+            .ok_or_else(|| format!("failed to decode subject: {:?}", t.s))?;
+        let p_str = Encoder::decode(&t.p.to_encoded())
+            .ok_or_else(|| format!("failed to decode predicate: {:?}", t.p))?;
+        let o_str = Encoder::decode(&t.o.to_encoded())
+            .ok_or_else(|| format!("failed to decode object: {:?}", t.o))?;
         if is_rdf_type(&p_str) && is_kh_hook(&o_str) {
             let clean_s = clean_term(&s_str).to_string();
             if !hook_subjects.contains(&clean_s) {

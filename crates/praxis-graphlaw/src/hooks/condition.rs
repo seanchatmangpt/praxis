@@ -105,14 +105,16 @@ pub fn evaluate_condition(
             let goal_lower = goal.to_lowercase();
             let mut fired = false;
             for t in &temp_store.triple_index.triples {
-                let p_str = Encoder::decode(&t.p.to_encoded())
-                    .ok_or_else(|| "failed to decode predicate in Datalog goal evaluation".to_string())?;
+                let p_str = Encoder::decode(&t.p.to_encoded()).ok_or_else(|| {
+                    "failed to decode predicate in Datalog goal evaluation".to_string()
+                })?;
                 let cleaned_p = clean_term(&p_str);
                 let is_type = cleaned_p == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
                     || cleaned_p == "a";
                 if is_type {
-                    let o_str = Encoder::decode(&t.o.to_encoded())
-                        .ok_or_else(|| "failed to decode object in Datalog goal evaluation".to_string())?;
+                    let o_str = Encoder::decode(&t.o.to_encoded()).ok_or_else(|| {
+                        "failed to decode object in Datalog goal evaluation".to_string()
+                    })?;
                     let clean_o = clean_term(&o_str).to_lowercase();
                     if clean_o == goal_lower {
                         fired = true;

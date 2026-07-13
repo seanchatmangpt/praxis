@@ -265,7 +265,10 @@ impl OwlRlEngine {
     /// Accepts &TripleIndex references to support both Arc<TripleIndex> snapshots
     /// (via Arc::as_ref()) and mutable TripleStore indexes without copying.
     /// Multiple compile() calls on the same snapshot share zero-copy read-only access.
-    pub fn compile(&self, index: &TripleIndex) -> Result<(Vec<crate::rule::Rule>, ScanReport), String> {
+    pub fn compile(
+        &self,
+        index: &TripleIndex,
+    ) -> Result<(Vec<crate::rule::Rule>, ScanReport), String> {
         let mut rules = Vec::new();
 
         // Add all supported daily-profile rules unconditionally.
