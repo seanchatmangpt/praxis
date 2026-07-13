@@ -14,7 +14,7 @@ Scope note: this is a status/audit artifact. It does not modify `tickets/index.m
 | Marker | Value | Why |
 |---|---|---|
 | `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **true** | All 11 of 11 LOCAL edges are `REAL_EDGE` (updated post-`66cb59b1`). **First crown witness closed.** |
-| `EXTERNAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | 12 of 16 EXTERNAL edges are `REAL_EDGE`; first sub-real at `F10 -> F12`, hard break at `F15 -> F16` (from the shared-prefix side); `F20->F02(re-admit)->F15(AIR transition)->F21->F24->F25` is a separately-real, now-COMPLETE 5-edge loop-back tail, topologically disconnected until `F16`/`F18`/`F18->F20` close. |
+| `EXTERNAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | 13 of 16 EXTERNAL edges are `REAL_EDGE`; first sub-real at `F10 -> F12`, hard break now at `F16 -> F18` (from the shared-prefix side -- `F15 -> F16` closed, commit `1d3b9fb2`); `F20->F02(re-admit)->F15(AIR transition)->F21->F24->F25` is a separately-real, now-COMPLETE 5-edge loop-back tail, topologically disconnected until `F18`/`F18->F20` close. |
 | `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | Requires **both** witness markers true; LOCAL is, EXTERNAL is not. |
 
 The shared prefix `F02 -> F03 -> F08 -> F09 -> F10` plus the entire LOCAL tail
@@ -102,7 +102,7 @@ through F02 -- classified as `REAL_EDGE` on its own real data-threading regardle
 | 6 | F12 -> F13 | `REAL_EDGE` | `resolve_external_cut_at(&model, child(1))` gates `project_and_compile` over the identical `model`; refuses `ExternalCutTypeMismatch` before F13 runs; CONFIRMED. |
 | 7 | F13 -> F14 | `REAL_EDGE` (byte-level) | F13's manufactured `arazzo_document` fed verbatim into F14's own `compile` (crown_external.rs:211) — the **first production caller** of `f14_wasm4pm_arazzo::compile`. Proven identical AIR: `air_digest_hex == receipt.air_digest_hex`; CONFIRMED. |
 | 8 | F14 -> F15 | `REAL_EDGE` | F14 `AirProgram` -> `air_program_to_bridge_workflow` (crown_external.rs:296) builds the `BridgeWorkflow` shape `air_core:new/1` consumes; the gated test drives the **real** Erlang `air_core:transition/2` and emits a `dispatch_step` command. Adversarial CONFIRMED (ran the ignored test, passed). |
-| 9 | F15 -> F16 | `MISSING_EDGE` (from Rust) | The real F15 -> F16 edge exists Erlang-side (`apps/arazzo_runner/src/arazzo_runner_workflow.erl:114,:475`) but there is **no Rust-composable path** into F16's OTP runner. Driver stops here rather than fabricate topology. F16's own `check_gen_statem_lifecycle_wired` (f16_otp_runner.rs:401) still returns `Err` — its gen_statem is not in the production dispatch path. |
+| 9 | F15 -> F16 | `REAL_EDGE` | (commit `1d3b9fb2`) `crown_external::drive_external_witness_tail_through_f16` drives F15's real `air_core:transition/2` result, then feeds every real `dispatch_step` command into a real `arazzo_runner_dispatch_statem` gen_statem via a *second*, independent production entrypoint (`f16_otp_runner::bridge::call_dispatch_statem_bridge`, a new escript reusing `arazzo_runner_sup:start_workflow/1` -- not `apply_transition/4`, which stays untouched, so `check_gen_statem_lifecycle_wired` (f16_otp_runner.rs) correctly still returns `Err` since that check is specifically about `apply_transition/4`'s own internal wiring). Verified LIVE (`--ignored`, real escript + clean-rebuilt `apps/arazzo_runner`): a lawful single-step dispatch traverses all 8 atlas states with a real, non-empty dispatch token; a missing-`correlation_id` request is genuinely refused by the real broker's `CORRELATION_MISSING` atom. Honest nuance: F10's own template-derived output has zero `onSuccess` routing, so applying this driver to that specific input dispatches nothing to F16 (empty, not a failure) -- proven, not just asserted, by a dedicated non-`#[ignore]`d test. Was `MISSING_EDGE`. |
 | 10 | F16 -> F18 | `MISSING_EDGE` | F18's **Rust** broker has no caller on the external path; the Erlang `arazzo_runner_broker` is a different broker. |
 | 11 | F18 -> F20 | `MISSING_EDGE` | F20 (`f20_external_dispatch.rs`) has no production caller *triggered by F18* anywhere in the workspace; F20's own dispatch is real (edge 12) but is initiated directly by `drive_external_reentry`, not by F18's broker. |
 | 12 | F20 -> F02 (re-admit) | `REAL_EDGE` | (commit `b4d743f7`) `dispatch_subworkflow_to_engine` -> `engine_serve` (real, previously-zero-callers receiving side of the same bridge) -> `collect_subworkflow_consequence`, gated on cng's own real `admitted: true`, then re-admitted through F02's real `admit_observation` under a third distinct principal. `SubworkflowDispatchOutcome` widened with `consequence_turtle: Option<String>` (cng, minimal: one field, no new admission logic). Empirically verified: the real round trip produces `admitted: true` with real consequence content, not just structural plumbing; was `MISSING_EDGE`. |
@@ -111,13 +111,15 @@ through F02 -- classified as `REAL_EDGE` on its own real data-threading regardle
 | 15 | F21 -> F24 | `REAL_EDGE` | (commit `8c2675be`) `crown_external::drive_external_readmit_transition`'s final stage: the admitted external-dispatch consequence (F21) is projected as a real `cng::otel_rdf::OtlpSpan` (`trace_id`/`span_id`/`parent_span_id` all real F20/F21/F02 output; `process.object.id` reuses F21's own evidence subject) run through `f24_ocel_construct::run_construct`. Verified LIVE (`--ignored`, real escript + compiled `apps/air_core`): real `ConstructProfile::OtelToOcel` outcome with non-empty quads/receipt_head confirmed against the actual call. Topology note: EXTERNAL's own atlas order is `F21 -> F24` (admission before construction), the reverse of LOCAL's `F24 -> F21` -- taken as given, not reinterpreted. Was `MISSING_EDGE`. |
 | 16 | F24 -> F25 | `REAL_EDGE` | (commit `11dcee0e`) `crown_external::drive_external_readmit_transition`'s final stage: folds a real F25 receipt over the whole chain's own canonical texts (source=consequence Turtle, query=dispatch id, template=SHACL evidence shape, program=F21's transition_receipt, event=F21's evidence Turtle, output=F24's receipt head), replayed via `materials.clone()` matching F25's own established test pattern. Verified LIVE (`--ignored`): all 6 CTQ material kinds matched, `receipt_root_matched`, non-empty PROV-O graph confirmed against real escript-derived data. **Completes the entire EXTERNAL loop-back tail** (`F20->F02->F15->F21->F24->F25`, all real). Was `MISSING_EDGE`. |
 
-`FIRST_EXTERNAL_BROKEN_EDGE` = **`F15 -> F16`** (first **structurally absent** edge — no
-Rust-composable path exists; the driver correctly refuses to fabricate a shortcut). Under the
-strict "every edge must be `REAL_EDGE`" reading, the first edge that is not a *full* `REAL_EDGE` is
-`F10 -> F12` (`PARTIAL_REAL_EDGE`): real data flows F10 -> F12, but F10 does not synthesize the cut.
-Both facts independently force `EXTERNAL_..._CONTIGUOUS_PATH = false`; `F15 -> F16` is the edge
-where the *shared-prefix-anchored* composition actually stops (edge 12, `F20->F02`, is real but
-topologically disconnected from that composition until edges 9-11 close).
+`FIRST_EXTERNAL_BROKEN_EDGE` = **`F16 -> F18`** (updated: `F15 -> F16` closed for real, commit
+`1d3b9fb2` -- a second, independent Rust-composable production entrypoint now exists into F16's OTP
+runner via `arazzo_runner_sup:start_workflow/1`, not `apply_transition/4`). `F16 -> F18` is now the
+first **structurally absent** edge: F18's Rust broker has no production caller on the EXTERNAL path.
+Under the strict "every edge must be `REAL_EDGE`" reading, the first edge that is not a *full*
+`REAL_EDGE` is still `F10 -> F12` (`PARTIAL_REAL_EDGE`): real data flows F10 -> F12, but F10 does not
+synthesize the cut. Both facts independently force `EXTERNAL_..._CONTIGUOUS_PATH = false`;
+`F16 -> F18` is the edge where the *shared-prefix-anchored* composition actually stops (edge 12,
+`F20->F02`, is real but topologically disconnected from that composition until edges 10-11 close).
 
 ## Edge census (distinct edges across the union of both witnesses)
 
@@ -126,10 +128,10 @@ The shared prefix (4 edges) is counted once. Union total = 4 (shared) + 7 (LOCAL
 
 | Bucket | Count | Edges |
 |---|---|---|
-| `REAL_EDGE_COUNT` (full) | **19** | F02->F03, F03->F08, F08->F09, F09->F10, F10->F11, F11->F18, F18->F19, F19->F02(re-admit), F02(re-admit)->F24, F24->F21, F21->F25 (LOCAL, complete -- all committed `d60f2036`/`eeca952a`/`66d8732e`/`0815680a`/`217dc37d`/`66cb59b1`); F12->F13, F13->F14, F14->F15, F20->F02(re-admit), F02(re-admit)->F15(AIR transition), F15->F21, F21->F24, F24->F25 (EXTERNAL, `F20->F02` committed `b4d743f7`, `F02->F15` committed `38048b27`, `F15->F21` committed `a139d477`, `F21->F24` committed `8c2675be`, `F24->F25` committed `11dcee0e`) |
+| `REAL_EDGE_COUNT` (full) | **20** | F02->F03, F03->F08, F08->F09, F09->F10, F10->F11, F11->F18, F18->F19, F19->F02(re-admit), F02(re-admit)->F24, F24->F21, F21->F25 (LOCAL, complete -- all committed `d60f2036`/`eeca952a`/`66d8732e`/`0815680a`/`217dc37d`/`66cb59b1`); F12->F13, F13->F14, F14->F15, F15->F16, F20->F02(re-admit), F02(re-admit)->F15(AIR transition), F15->F21, F21->F24, F24->F25 (EXTERNAL, `F20->F02` committed `b4d743f7`, `F02->F15` committed `38048b27`, `F15->F16` committed `1d3b9fb2`, `F15->F21` committed `a139d477`, `F21->F24` committed `8c2675be`, `F24->F25` committed `11dcee0e`) |
 | `PARTIAL_REAL_EDGE` | 1 | F10->F12 |
 | `TEST_ONLY_EDGE` | 0 | (was F10->F11, F11->F18 -- both closed to `REAL_EDGE`, see above) |
-| `MISSING_EDGE_COUNT` | **3** | F15->F16, F16->F18, F18->F20 (EXTERNAL only -- LOCAL has zero) |
+| `MISSING_EDGE_COUNT` | **2** | F16->F18, F18->F20 (EXTERNAL only -- LOCAL has zero; F15->F16 closed, commit `1d3b9fb2`) |
 | `REFUSED_EDGE_COUNT` | **0** | No witness edge is a by-design correct-refusal boundary. |
 
 Strict-contiguity accounting: only the 19 full `REAL_EDGE`s satisfy the path predicate. The 1
@@ -257,24 +259,37 @@ remains a confirmed-honest `NotYetImplemented` refusal and was never called. Adv
 contiguous real path from 10 edges to **11 of 11 (COMPLETE)**.
 `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true` -- the first crown witness closed.
 
-### 7. Close the EXTERNAL witness (`F15 -> F16` and beyond) — CURRENT FRONTIER, ONLY REMAINING CROWN WORK
+### 7. Close the EXTERNAL witness (`F16 -> F18` and beyond) — CURRENT FRONTIER, ONLY REMAINING CROWN WORK
 
-The remaining work to flip `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true` is entirely the
-EXTERNAL witness's genuine Rust-to-BEAM boundary: `F15 -> F16 -> F18 -> F20-triggered-by-F18`.
-Every edge past `F20` on the loop-back tail (`F02(re-admit) -> F15(AIR transition) -> F21 -> F24
--> F25`) is now real -- see repairs 8-12 -- so this is the **only** remaining gap; closing it
-would connect the shared-prefix-anchored composition directly into the already-complete
-loop-back tail, closing the entire EXTERNAL witness in one stroke. The decisive break, `F15 ->
-F16`, remains a genuine Rust-to-BEAM process boundary: F16's `check_gen_statem_lifecycle_wired`
-still returns `Err`, and `arazzo_runner_workflow.erl:503` routes dispatch via the direct
-synchronous `arazzo_runner_broker:dispatch/4`, not through `arazzo_runner_dispatch_statem`/`_sup`.
-**Decide first** (per `REMAINING_WORK.md`'s own R5 framing, still accurate): does the EXTERNAL F15
-step run through the stateless `escript` bridge (`crown_external`'s current approach -- fresh
-context per call) or the stateful OTP `workflow_loop`? These are two different `air_core` entry
-paths and only the latter carries broker-return continuity across F16's stages. This is
-substantially larger than any single Rust-wiring repair this pass closed -- real distributed
-Erlang/OTP engineering, not incremental Rust wiring -- and should be scoped as its own
-multi-cycle effort, not forced into one pass.
+**`F15 -> F16` is now DONE (commit `1d3b9fb2`)** -- see edge 9's row above and
+`f16_otp_runner::bridge` for the full account. The blocker this section originally described (no
+Rust-composable path into F16's OTP runner) is closed via a *second*, independent production
+entrypoint (`arazzo_runner_sup:start_workflow/1` + `arazzo_runner_dispatch_statem`), not by
+rewiring `apply_transition/4` -- that specific rewiring remains genuinely out of scope for the
+reasons preserved below (kept as historical record, not because it still blocks `F15 -> F16`; it
+never needed to be attempted once the second-entrypoint angle was found).
+
+The remaining work to flip `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true` is now narrower:
+`F16 -> F18 -> F20-triggered-by-F18`. Every edge past `F20` on the loop-back tail
+(`F02(re-admit) -> F15(AIR transition) -> F21 -> F24 -> F25`) is already real -- see repairs 8-12
+-- so this is the **only** remaining gap; closing it would connect the shared-prefix-anchored
+composition directly into the already-complete loop-back tail, closing the entire EXTERNAL witness
+in one stroke. F18's Rust broker still has no production caller on the EXTERNAL path (`grep` for
+callers of any `f18_*` module reachable from `crown_external.rs` -- none exist), and nothing in
+`apps/arazzo_runner` triggers this crate's F20 dispatch as a downstream consequence of a real F16
+completion. Whether closing `F16 -> F18` is a similarly-tractable "second entrypoint" repair (as
+`F15 -> F16` turned out to be) or requires genuinely new Erlang/OTP work has **not yet been
+investigated this pass** -- apply the same due-diligence pattern (read the real current source
+before assuming size) before scoping the next cycle's repair.
+
+**Historical record, preserved (no longer the live blocker for `F15 -> F16`, since a different
+angle closed it)**: `arazzo_runner_workflow.erl:503` routes dispatch via the direct synchronous
+`arazzo_runner_broker:dispatch/4`, not through `arazzo_runner_dispatch_statem`/`_sup` -- rewiring
+that specific call site was correctly assessed (three independent times) as carrying real
+regression risk to `arazzo_runner_workflow_test.erl`'s synchronous-ordering assertions, and
+remains un-attempted for that reason. It simply turned out not to be necessary: `F15 -> F16` was
+closed via `arazzo_runner_sup:start_workflow/1` instead, a second real entrypoint into the same
+OTP app that never touches `apply_transition/4`.
 
 **Re-investigated this pass with deeper evidence than any prior cycle** (no code changed; the
 already-built `arazzo_runner_dispatch_statem.erl` was read in full, not just cited secondhand):
