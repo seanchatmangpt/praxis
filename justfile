@@ -529,6 +529,11 @@ cng-test-lib-isolated name *args:
 cng-check-isolated name:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo check -p cng --features bench --tests
 
+# Lint the cng crate (lib + tests, bench feature) in an isolated target dir
+# (concurrent-agent-safe; see note above), same flags as CI's clippy job.
+cng-clippy-isolated name:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo clippy -p cng --features bench --tests -- -D warnings
+
 # Remove one isolated target dir (cleanup after an agent/dev is done with it)
 cng-clean-isolated name:
     #!/usr/bin/env bash

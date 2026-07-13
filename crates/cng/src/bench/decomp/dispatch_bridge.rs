@@ -56,7 +56,7 @@ use std::path::{Path, PathBuf};
 
 use crate::bench::dispatch::{
     collect_consequence, shape_violations, write_atomic, DispatchContract, DispatchState,
-    ExecutionClass, NoWait, RealTimeWait, ThreadSleepWait,
+    ExecutionClass, FileLedgerSink, LedgerSink, NoWait, RealTimeWait, ThreadSleepWait,
 };
 use crate::bench::engine::EngineBundle;
 use crate::bench::templates::QuerySet;
@@ -357,8 +357,41 @@ pub fn collect_subworkflow_consequence(
     contract.advance(DispatchState::ResultAvailable)?;
     contract.advance(DispatchState::ResultReceived)?;
 
+    // Idempotent-consume guard (PROJ-721 law, same as engine.rs's
+    // engine_collect_remote): a replayed idempotency key is CNG_R25
+    // DoubleAdmit BEFORE admission has any effect. `FileLedgerSink::new`
+    // reloads `processed.ttl` from disk on construction, so this durably
+    // guards across separate process invocations of this function, not just
+    // within one call -- exactly the gap swarm audit wnl2yhbgm finding #9
+    // identified: two concurrent/retried calls (e.g. an orchestrator retry
+    // that mints a fresh correlation_id per attempt) reading the same
+    // already-produced outbox file must not both admit.
+    //
+    // Namespaced key, not the bare `contract.idempotency_key`: this same
+    // `bundle.ledger_dir()` is the TARGET ENGINE's own ledger, and
+    // `run_serve_loop` (engine.rs) already calls
+    // `ledger.mark_processed(&contract.idempotency_key, ...)` the moment it
+    // executes the dispatched work and writes the outbox consequence (a
+    // DIFFERENT event -- "this task was executed" -- than the one this guard
+    // tracks -- "this consequence was admitted"). Reusing the bare key here
+    // collided with that engine-side marker and made every legitimate FIRST
+    // collection look like a replay (caught live via
+    // `cng-test-isolated`, not by a mocked unit test). `engine_collect_remote`
+    // avoids this because it ledgers under a distinct coordinator identity's
+    // own bundle, not the remote engine's; this function has no such identity
+    // to construct one from, so a namespaced key over the same durable ledger
+    // is the minimal fix that doesn't change the public signature.
+    let mut ledger = FileLedgerSink::new(&bundle.ledger_dir())?;
+    let collect_idempotency_key = format!("collect:{}", contract.idempotency_key);
     let admitted = match collect_consequence(&consequence_ttl, &contract, &shapes_path, &queries) {
         Ok(()) => {
+            if ledger.is_processed(&collect_idempotency_key) {
+                return Err(CngRefusal::DoubleAdmit {
+                    dispatch: contract.dispatch_id.clone(),
+                    idempotency_key: contract.idempotency_key.clone(),
+                });
+            }
+            ledger.mark_processed(&collect_idempotency_key, &contract.dispatch_id)?;
             contract.advance(DispatchState::ResultAdmitted)?;
             contract.advance(DispatchState::Completed)?;
             true

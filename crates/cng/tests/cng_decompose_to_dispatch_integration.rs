@@ -53,6 +53,7 @@ use cng::bench::decomp::dispatch_bridge::{
     collect_subworkflow_consequence, dispatch_subworkflow_to_engine,
 };
 use cng::bench::decomp::{decompose, DecompositionOutcome};
+use cng::powl::CngRefusal;
 
 fn scratch_dir(test_name: &str) -> PathBuf {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -496,5 +497,64 @@ test!(
             .join(&handle_h.dispatch_id)
             .join("fragment-0.domain.ttl")
             .is_file());
+    }
+);
+
+test!(
+    collect_subworkflow_consequence_refuses_a_replayed_dispatch_as_double_admit,
+    {
+        // Swarm audit wnl2yhbgm finding #9: collect_subworkflow_consequence had no
+        // idempotent-consume guard, unlike the structurally identical coordinator path
+        // engine.rs::engine_collect_remote. Two calls over the SAME dispatch handle (e.g. an
+        // orchestrator-level retry that re-invokes this bridge function while the outbox file
+        // is still on disk) both used to return `admitted: true`, silently double-admitting one
+        // real external consequence. This proves the fix via the real, live pipeline: a genuine
+        // second call over an unchanged handle must now be refused as CNG_R25 DoubleAdmit.
+        let domain = kitchen_domain();
+        let problem = kitchen_problem();
+        let decomp_out = scratch_dir("kitchen-decompose-double-admit");
+        let result = decompose(
+            &domain,
+            &problem,
+            &decomp_out,
+            "urn:cng:test:decompose-to-dispatch-double-admit",
+        )?;
+        let DecompositionOutcome::Selected {
+            subworkflows: 2, ..
+        } = result.outcome
+        else {
+            panic!(
+                "fixture must select a 2-subworkflow split, got {:?}",
+                result.outcome
+            );
+        };
+        let helper = &result.subworkflows[0];
+        assert_eq!(helper.role, "helper");
+
+        let root = scratch_dir("kitchen-dispatch-double-admit-root");
+        let domain_pddl = kitchen_domain_pddl();
+        let handle_h = dispatch_subworkflow_to_engine(&root, helper, domain_pddl, "H")?;
+        serve_to_budget(&root, "H", "4");
+
+        // Act 1: the real consequence-collection pipeline admits the outbox consequence
+        // exactly once.
+        let outcome_first = collect_subworkflow_consequence(&root, &handle_h, 4, None)?;
+        assert!(
+            outcome_first.admitted,
+            "first collection must admit the real consequence: {outcome_first:?}"
+        );
+
+        // Act 2: a second call over the SAME handle -- the outbox file is untouched, so
+        // without the idempotent-consume guard this would re-run the lawful re-entry pipeline
+        // and admit a second time.
+        let second = collect_subworkflow_consequence(&root, &handle_h, 4, None);
+        match second {
+            Err(CngRefusal::DoubleAdmit { dispatch, .. }) => {
+                assert_eq!(dispatch, handle_h.dispatch_id);
+            }
+            other => {
+                panic!("expected CngRefusal::DoubleAdmit on a replayed dispatch, got {other:?}")
+            }
+        }
     }
 );
