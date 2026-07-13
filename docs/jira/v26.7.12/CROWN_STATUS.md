@@ -14,7 +14,7 @@ Scope note: this is a status/audit artifact. It does not modify `tickets/index.m
 | Marker | Value | Why |
 |---|---|---|
 | `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **true** | All 11 of 11 LOCAL edges are `REAL_EDGE` (updated post-`66cb59b1`). **First crown witness closed.** |
-| `EXTERNAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | 9 of 16 EXTERNAL edges are `REAL_EDGE`; first sub-real at `F10 -> F12`, hard break at `F15 -> F16` (from the shared-prefix side); `F20->F02(re-admit)->F15(AIR transition)` is a separately-real 2-edge chain, topologically disconnected until `F16`/`F18`/`F18->F20` close. |
+| `EXTERNAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | 10 of 16 EXTERNAL edges are `REAL_EDGE`; first sub-real at `F10 -> F12`, hard break at `F15 -> F16` (from the shared-prefix side); `F20->F02(re-admit)->F15(AIR transition)->F21` is a separately-real 3-edge chain, topologically disconnected until `F16`/`F18`/`F18->F20` close. |
 | `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | Requires **both** witness markers true; LOCAL is, EXTERNAL is not. |
 
 The shared prefix `F02 -> F03 -> F08 -> F09 -> F10` plus the entire LOCAL tail
@@ -107,7 +107,7 @@ through F02 -- classified as `REAL_EDGE` on its own real data-threading regardle
 | 11 | F18 -> F20 | `MISSING_EDGE` | F20 (`f20_external_dispatch.rs`) has no production caller *triggered by F18* anywhere in the workspace; F20's own dispatch is real (edge 12) but is initiated directly by `drive_external_reentry`, not by F18's broker. |
 | 12 | F20 -> F02 (re-admit) | `REAL_EDGE` | (commit `b4d743f7`) `dispatch_subworkflow_to_engine` -> `engine_serve` (real, previously-zero-callers receiving side of the same bridge) -> `collect_subworkflow_consequence`, gated on cng's own real `admitted: true`, then re-admitted through F02's real `admit_observation` under a third distinct principal. `SubworkflowDispatchOutcome` widened with `consequence_turtle: Option<String>` (cng, minimal: one field, no new admission logic). Empirically verified: the real round trip produces `admitted: true` with real consequence content, not just structural plumbing; was `MISSING_EDGE`. |
 | 13 | F02 -> F15 (AIR transition) | `REAL_EDGE` | (commit `38048b27`) `crown_external::drive_external_readmit_transition` composes `drive_external_reentry` verbatim then calls `call_air_core_bridge` a second time to complete a minimal bridge workflow keyed by the real `dispatch_id`, event payload = the real F02 admission receipt hash. Verified LIVE (`--ignored`, real escript + compiled `apps/air_core`), not just structurally: `external_readmit_transition_completes_the_dispatched_step_through_real_air_core` passes against the real Erlang subprocess. Was `MISSING_EDGE`. |
-| 14 | F15 -> F21 | `MISSING_EDGE` | Not wired. |
+| 14 | F15 -> F21 | `REAL_EDGE` | (commit `a139d477`) `crown_external::drive_external_readmit_transition`'s final stage: the real AIR transition's own `ready_steps`/`commands` output is folded into a deterministic BLAKE3 receipt, validated by a real (non-vacuous) SHACL check, and admitted via `admit_child_and_evaluate` under a freshly-declared `RecursiveSocketClosure` (no upstream family here naturally produces one, unlike LOCAL's F09-sourced closure -- disclosed, not smuggled). Verified LIVE (`--ignored`, real escript + compiled `apps/air_core`): `parent_closed: true` confirmed against the actual call. Was `MISSING_EDGE`. |
 | 15 | F21 -> F24 | `MISSING_EDGE` | Not wired. |
 | 16 | F24 -> F25 | `MISSING_EDGE` | Not wired. |
 
@@ -126,23 +126,23 @@ The shared prefix (4 edges) is counted once. Union total = 4 (shared) + 7 (LOCAL
 
 | Bucket | Count | Edges |
 |---|---|---|
-| `REAL_EDGE_COUNT` (full) | **16** | F02->F03, F03->F08, F08->F09, F09->F10, F10->F11, F11->F18, F18->F19, F19->F02(re-admit), F02(re-admit)->F24, F24->F21, F21->F25 (LOCAL, complete -- all committed `d60f2036`/`eeca952a`/`66d8732e`/`0815680a`/`217dc37d`/`66cb59b1`); F12->F13, F13->F14, F14->F15, F20->F02(re-admit), F02(re-admit)->F15(AIR transition) (EXTERNAL, `F20->F02` committed `b4d743f7`, `F02->F15` committed `38048b27`) |
+| `REAL_EDGE_COUNT` (full) | **17** | F02->F03, F03->F08, F08->F09, F09->F10, F10->F11, F11->F18, F18->F19, F19->F02(re-admit), F02(re-admit)->F24, F24->F21, F21->F25 (LOCAL, complete -- all committed `d60f2036`/`eeca952a`/`66d8732e`/`0815680a`/`217dc37d`/`66cb59b1`); F12->F13, F13->F14, F14->F15, F20->F02(re-admit), F02(re-admit)->F15(AIR transition), F15->F21 (EXTERNAL, `F20->F02` committed `b4d743f7`, `F02->F15` committed `38048b27`, `F15->F21` committed `a139d477`) |
 | `PARTIAL_REAL_EDGE` | 1 | F10->F12 |
 | `TEST_ONLY_EDGE` | 0 | (was F10->F11, F11->F18 -- both closed to `REAL_EDGE`, see above) |
-| `MISSING_EDGE_COUNT` | **6** | F15->F16, F16->F18, F18->F20, F15->F21, F21->F24, F24->F25 (EXTERNAL only -- LOCAL has zero) |
+| `MISSING_EDGE_COUNT` | **5** | F15->F16, F16->F18, F18->F20, F21->F24, F24->F25 (EXTERNAL only -- LOCAL has zero) |
 | `REFUSED_EDGE_COUNT` | **0** | No witness edge is a by-design correct-refusal boundary. |
 
-Strict-contiguity accounting: only the 16 full `REAL_EDGE`s satisfy the path predicate. The 1
+Strict-contiguity accounting: only the 17 full `REAL_EDGE`s satisfy the path predicate. The 1
 `PARTIAL_REAL_EDGE` (`F10->F12`) has real, tested code but leaves a semantic sub-property
 unsatisfied, so it does not count toward the EXTERNAL contiguous path. If bucketed coarsely as
-"real vs not-real," not-real = 1 + 6 = 7 of 23.
+"real vs not-real," not-real = 1 + 5 = 6 of 23.
 
 Per-witness contiguous real prefix from F02: LOCAL = **11 of 11 edges (COMPLETE)** -- updated from
 the original 4 -- see commits `d60f2036`, `eeca952a`, `66d8732e`, `0815680a`, `217dc37d`,
 `66cb59b1`; EXTERNAL = 4 edges (stops at the `F10->F12` partial; then 3 more real edges F12->F15
-sit past the break; `F20->F02(re-admit)->F15(AIR transition)` is a real 2-edge EXTERNAL chain but
-is topologically disconnected from this contiguous-from-F02 prefix until `F16`/`F18`/`F18->F20`
-close).
+sit past the break; `F20->F02(re-admit)->F15(AIR transition)->F21` is a real 3-edge EXTERNAL
+chain but is topologically disconnected from this contiguous-from-F02 prefix until
+`F16`/`F18`/`F18->F20` close).
 
 ## Whole-crate confirmation (commands run this session, non-isolated)
 
@@ -260,11 +260,12 @@ contiguous real path from 10 edges to **11 of 11 (COMPLETE)**.
 ### 7. Close the EXTERNAL witness (`F15 -> F16` and beyond) — CURRENT FRONTIER, ONLY REMAINING CROWN WORK
 
 The remaining work to flip `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true` is the EXTERNAL
-witness's topologically-anchored chain, which still needs 3 more edges past its current break:
-`F15 -> F16 -> F18 -> F20-triggered-by-F18 -> F21 -> F24 -> F25` (both `F20 -> F02(re-admit)` and
-`F02(re-admit) -> F15(AIR transition)` are now real -- see repairs 8 and 9 -- but F18 does not yet
-trigger F20; see edge 11's own table entry). The decisive break, `F15 -> F16`, remains a genuine
-Rust-to-BEAM process boundary: F16's `check_gen_statem_lifecycle_wired` still returns `Err`, and
+witness's topologically-anchored chain, which still needs 2 more edges past its current break:
+`F15 -> F16 -> F18 -> F20-triggered-by-F18 -> F24 -> F25` (`F20 -> F02(re-admit)`,
+`F02(re-admit) -> F15(AIR transition)`, and `F15 -> F21` are now all real -- see repairs 8-10 --
+but F18 does not yet trigger F20; see edge 11's own table entry). The decisive break, `F15 -> F16`,
+remains a genuine Rust-to-BEAM process boundary: F16's `check_gen_statem_lifecycle_wired` still
+returns `Err`, and
 `arazzo_runner_workflow.erl:503` routes dispatch via the direct synchronous
 `arazzo_runner_broker:dispatch/4`, not through `arazzo_runner_dispatch_statem`/`_sup`.
 **Decide first** (per `REMAINING_WORK.md`'s own R5 framing, still accurate): does the EXTERNAL F15
@@ -307,6 +308,25 @@ the actual Erlang subprocess, not merely structurally. Adds a 2nd real EXTERNAL 
 `F20->F02`, still topologically disconnected from the shared-prefix-anchored composition until
 `F16`/`F18`/`F18->F20` close (same disconnection class as edge 8's own note).
 
+### 10. ~~Close `F15(AIR transition) -> F21`~~ — DONE (`a139d477`)
+
+Extends `drive_external_readmit_transition` (repair 9) with a final stage: the real transition's
+own `ready_steps`/`commands` output is folded into a deterministic BLAKE3 receipt and admitted via
+`admit_child_and_evaluate` under a freshly-declared `RecursiveSocketClosure`. Honest nuance,
+disclosed not smuggled: unlike `crown_local.rs`'s `F24 -> F21` (which reuses F09's own real
+`growth.closure`/`child_socket`, produced fresh for exactly that purpose), no upstream family here
+naturally produces a closure over the external-dispatch structure, so a minimal one -- a
+single-leaf `PartialOrder` whose one child is the external dispatch -- is declared in this driver.
+Evidence remains real and non-vacuous (BLAKE3 of the transition's actual output, always non-empty).
+Verified LIVE (`--ignored`): `parent_closed: true` confirmed against the real `admit_child_and_evaluate`
+call. Adds a 3rd real EXTERNAL edge past `F20->F02`, still topologically disconnected until
+`F16`/`F18`/`F18->F20` close. **Note**: EXTERNAL's own declared topology orders this tail
+`F15(AIR transition) -> F21 -> F24 -> F25` (F21 *before* F24), the reverse of LOCAL's
+`F24 -> F21 -> F25` -- taken as given from the atlas, not reinterpreted; a future `F21 -> F24`
+repair for EXTERNAL will need its own OCEL-construction input (this closure's admission has no
+natural OTel span source the way LOCAL's F19/F18 actuation did), not a reuse of this edge's own
+evidence-building code.
+
 ## Reachability ceiling (cross-cutting, not an edge repair)
 
 `multifractal-workflow` declares `[lib]` only — no `[[bin]]`, no `main.rs` (confirmed:
@@ -348,7 +368,7 @@ these drivers. Track this separately from edge contiguity; it does not change an
 ## See also
 
 - `crates/multifractal-workflow/src/crown_local.rs` — LOCAL witness production caller (F02->F25, complete).
-- `crates/multifractal-workflow/src/crown_external.rs` — EXTERNAL production callers: `drive_external_witness_tail` (F10->F15), `drive_external_reentry` (F20->F02), `drive_external_readmit_transition` (F02->F15 AIR transition).
+- `crates/multifractal-workflow/src/crown_external.rs` — EXTERNAL production callers: `drive_external_witness_tail` (F10->F15), `drive_external_reentry` (F20->F02), `drive_external_readmit_transition` (F02->F15 AIR transition -> F21).
 - `apps/arazzo_runner/src/arazzo_runner_workflow.erl` — the real (Erlang-side) F15->F16 edge.
 - `docs/jira/v26.7.11/SAFETY_FINDINGS.md` — the removed LLM-hot-load pattern; do not reintroduce.
 - `CLAUDE.md` (Invariants, Standing) and `.claude/rules/no-overclaiming.md` — the discipline this
