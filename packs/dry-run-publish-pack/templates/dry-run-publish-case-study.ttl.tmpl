@@ -1,0 +1,166 @@
+---
+to: "crates/cng/tests/fixtures/dry-run-publish/dry-run-publish-case-study.ttl"
+force: true
+determinism: true
+---
+# Kestrel Toolkit — case-study instance data (PUBLIC ontologies only; blank
+# nodes + skos:notation handles, no private namespace). A fictional 3-crate
+# Rust workspace invented so this fixture has something concrete to run the
+# 6-phase dry-run publish gate against, in particular Phase 4 (Package
+# Manufacture), which runs "per publish-set member". Fictional throughout
+# (the Kestrel Toolkit, its v3.4.0 release candidate, and its crates
+# kestrel-core / kestrel-cli / kestrel-macros are invented) — chosen
+# precisely so this fixture can never be read as this repo's own real
+# crates.io publish set; the REAL per-crate dry-run results belong in Rust
+# harness output (crates/cng/src/bench/dry_run_publish_test.rs), never baked
+# into this fixture Turtle. Concepts are re-asserted here with the SAME
+# skos:notation values as packs/dry-run-publish-pack/ontology.ttl — notation
+# is the deterministic join key across files (blank-node labels do not
+# survive re-serialization).
+#
+# DRY-RUN-OVERCLAIM FENCE: every fact below is a LOCAL, REVERSIBLE
+# gate-process fact (a scoping decision, a lock-verification report, a
+# per-crate `cargo publish --dry-run` log, a receipt bundle). None of it
+# is, or implies, an external mutation: each per-crate dry-run log states
+# "exit 0; NO crates.io upload occurred (dry-run only)" explicitly, and the
+# terminal receipt bundle records external_mutation=false explicitly. No
+# entity here is named "published", "crates-io-uploaded", or
+# "release-complete". See packs/dry-run-publish-pack/ontology.ttl for the
+# full fence disclosure.
+#
+# Release-candidate dual-typing (disclosed): _:kestrelRC is typed
+# prov:Entity , prov:Agent — prov:Entity because a release candidate is
+# itself a build artifact under test, prov:Agent because it is the
+# prov:wasAssociatedWith target of every phase activity (mirrors
+# arclight-case-study.ttl.tmpl's org:Organization , prov:Agent dual role,
+# minus org:Organization since a release candidate is not an organization).
+# Because _:kestrelRC is therefore a prov:Entity, dry-run-publish-shapes.ttl
+# admits an RC- arm in the entity-notation alternation; see that file's
+# comment. The RC's own required properties are checked by
+# ex:DryRunReleaseCandidateShape via prov:Agent.
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+
+# --- Release candidate under test --------------------------------------
+
+_:kestrelRC
+    rdf:type prov:Entity , prov:Agent ;
+    skos:notation "RC-KESTREL-TOOLKIT" ;
+    dcterms:description "Kestrel Toolkit: a fictional multi-crate Rust workspace, here at its v3.4.0 release candidate undergoing the v26.7.13 dry-run publish gate. Illustrative fixture data only — deliberately not named after, and not modeling, this repo's own crates. Nothing about this candidate asserts that any crate was uploaded to crates.io; the gate below produces evidence for a human release-manager go/no-go decision."@en .
+
+# --- Publish-set members: the 3 crates dry-run-published independently in
+# Phase 4 (Package Manufacture). Re-assert the ontology's PKG-KESTREL-*
+# notations, dual-typed skos:Concept , prov:Entity (concept because they are
+# taxonomy members of the publish set; entity because each is a build
+# artifact attributed to the release candidate).
+
+_:pkgCore
+    rdf:type skos:Concept , prov:Entity ;
+    skos:notation "PKG-KESTREL-CORE" ;
+    dcterms:description "kestrel-core: the fictional workspace's core library crate; first in publish-set dependency order (the crates that depend on it come after it in a real release sequence)."@en ;
+    prov:wasAttributedTo _:kestrelRC .
+
+_:pkgCli
+    rdf:type skos:Concept , prov:Entity ;
+    skos:notation "PKG-KESTREL-CLI" ;
+    dcterms:description "kestrel-cli: the fictional workspace's command-line binary crate; depends on kestrel-core."@en ;
+    prov:wasAttributedTo _:kestrelRC .
+
+_:pkgMacros
+    rdf:type skos:Concept , prov:Entity ;
+    skos:notation "PKG-KESTREL-MACROS" ;
+    dcterms:description "kestrel-macros: the fictional workspace's procedural-macro crate; depends on kestrel-core."@en ;
+    prov:wasAttributedTo _:kestrelRC .
+
+# --- Gate phase executions: each of the 6 lifecycle phases, run for the
+# Kestrel Toolkit release candidate, typed as both the public taxonomy
+# concept (skos:Concept, re-asserting the ontology's notation) and a
+# prov:Activity (this phase AS EXECUTED for this candidate), each generating
+# at least one deliverable entity (prov:Entity).
+
+_:phaseScope
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "DRY-RUN-SCOPE" ;
+    dcterms:description "Kestrel Toolkit gate Phase 1: publish set defined (kestrel-core, kestrel-cli, kestrel-macros), workspace version synced across members, PRD/ARD/RELEASE_CONTROL docs synced, git SHA bound on a clean worktree."@en ;
+    prov:wasAssociatedWith _:kestrelRC ;
+    prov:generated _:delivPublishSetManifest .
+_:delivPublishSetManifest
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-PUBLISH-SET-MANIFEST" ;
+    dcterms:description "Publish-Set Manifest: the 3 in-scope crates, their synced version, and the bound git SHA (Phase 1 deliverable)."@en .
+
+_:phaseGenerate
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "DRY-RUN-GENERATE" ;
+    dcterms:description "Kestrel Toolkit gate Phase 2: ggen version pinned, sync re-run and shown idempotent (second sync produces byte-identical outputs), lock correctness verified."@en ;
+    prov:wasAssociatedWith _:kestrelRC ;
+    prov:generated _:delivLockVerificationReport .
+_:delivLockVerificationReport
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-LOCK-VERIFICATION-REPORT" ;
+    dcterms:description "Lock Verification Report: sync idempotence diff (empty) and lock-correctness result (Phase 2 deliverable)."@en .
+
+_:phaseVerify
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "DRY-RUN-VERIFY" ;
+    dcterms:description "Kestrel Toolkit gate Phase 3: the verify-all gate run to green, standing refreshed, and every test confirmed to run (none silently ignored)."@en ;
+    prov:wasAssociatedWith _:kestrelRC ;
+    prov:generated _:delivVerificationLadderLog .
+_:delivVerificationLadderLog
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-VERIFICATION-LADDER-LOG" ;
+    dcterms:description "Verification Ladder Log: verify-all output, standing refresh result, and the ignored-test census showing zero silently-skipped tests (Phase 3 deliverable)."@en .
+
+# Phase 4 (Package Manufacture) generates a manifest PLUS one dry-run log
+# per publish-set member — the concrete place the fence's "never asserts an
+# external-mutation fact" requirement is enforced in the fixture data,
+# stated explicitly for each crate rather than left implicit.
+_:phaseManufacture
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "DRY-RUN-MANUFACTURE" ;
+    dcterms:description "Kestrel Toolkit gate Phase 4: `cargo package --locked` and `cargo publish --dry-run --locked` run for each of the 3 publish-set members; publish-set coverage confirmed. No crates.io upload occurs in this phase — dry-run only."@en ;
+    prov:wasAssociatedWith _:kestrelRC ;
+    prov:generated _:delivManufactureManifest ;
+    prov:generated _:delivDryRunLogCore ;
+    prov:generated _:delivDryRunLogCli ;
+    prov:generated _:delivDryRunLogMacros .
+_:delivManufactureManifest
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-MANUFACTURE-MANIFEST" ;
+    dcterms:description "Package Manufacture Manifest: the .crate packages produced by `cargo package --locked` for each publish-set member, with per-crate sizes and checksums (Phase 4 deliverable)."@en .
+_:delivDryRunLogCore
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-DRYRUN-LOG-KESTREL-CORE" ;
+    dcterms:description "`cargo publish --dry-run --locked` executed for kestrel-core; exit 0; NO crates.io upload occurred (dry-run only)."@en .
+_:delivDryRunLogCli
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-DRYRUN-LOG-KESTREL-CLI" ;
+    dcterms:description "`cargo publish --dry-run --locked` executed for kestrel-cli; exit 0; NO crates.io upload occurred (dry-run only)."@en .
+_:delivDryRunLogMacros
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-DRYRUN-LOG-KESTREL-MACROS" ;
+    dcterms:description "`cargo publish --dry-run --locked` executed for kestrel-macros; exit 0; NO crates.io upload occurred (dry-run only)."@en .
+
+_:phaseCleanroom
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "DRY-RUN-CLEANROOM" ;
+    dcterms:description "Kestrel Toolkit gate Phase 5: each manufactured .crate unpacked into a fresh directory isolated from the dev workspace, then built and tested there to confirm it stands alone."@en ;
+    prov:wasAssociatedWith _:kestrelRC ;
+    prov:generated _:delivCleanroomReport .
+_:delivCleanroomReport
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-CLEANROOM-REPORT" ;
+    dcterms:description "Clean-Room Report: fresh-directory unpack, build, and test results for each publish-set member (Phase 5 deliverable)."@en .
+
+_:phaseReceipt
+    rdf:type skos:Concept , prov:Activity ;
+    skos:notation "DRY-RUN-RECEIPT" ;
+    dcterms:description "Kestrel Toolkit gate Phase 6 (terminal): final receipt emitted, OCEL evidence attached, byte-identical replay confirmed. The gate reaches dry-run-verified only after recording external_mutation=false. This produces a dry-run evidence bundle for a human release manager's go/no-go decision; it is never itself a release, and never a claim that `cargo publish` (without --dry-run) ran."@en ;
+    prov:wasAssociatedWith _:kestrelRC ;
+    prov:generated _:delivReceiptBundle .
+_:delivReceiptBundle
+    rdf:type prov:Entity ;
+    skos:notation "DELIV-RECEIPT-BUNDLE" ;
+    dcterms:description "Dry-Run Receipt Bundle (Phase 6 terminal deliverable): BLAKE3 receipt, attached OCEL evidence, byte-identical replay confirmation, and external_mutation=false recorded. Evidence for a human release-manager go/no-go decision — never the decision itself, and never an assertion that a live crates.io upload happened."@en .

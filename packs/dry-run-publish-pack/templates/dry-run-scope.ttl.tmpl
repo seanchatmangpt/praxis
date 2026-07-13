@@ -1,0 +1,62 @@
+---
+to: "crates/cng/tests/fixtures/dry-run-publish/dry-run-scope.ttl"
+force: true
+determinism: true
+---
+# Dry-run publish gate phase 1: Release Scope & Identity — Kestrel Toolkit
+# release-candidate case study (a fictional 3-crate Rust workspace's v3.4.0
+# dry-run publish gate; see packs/dry-run-publish-pack/templates/
+# dry-run-publish-case-study.ttl.tmpl for the case-study rationale). One
+# domain FRAGMENT of the shared kestrel-dry-run-publish-cycle domain: this
+# phase's 3 actions chain
+# scope-engaged -> scope-step1-done -> scope-step2-done -> scope-complete,
+# so the merged cycle plan can only reach this phase after the problem's
+# init atom (scope-engaged) is asserted. 8-constraint split: every
+# precondition/effect/goal here is a 1-conjunct (and ...) — far inside
+# PDDL8_MAX_CONJUNCTS=8 — and each action takes 1 parameter
+# (PDDL8_MAX_PARAMS=8); the dry-run harness asserts these bounds
+# mechanically for every fragment (reusing
+# crate::bench::togaf::verify_eight_constraint_split verbatim, the same
+# function soc2_test.rs imports).
+#
+# scope-engaged is the ONE init atom of the whole merged problem; every
+# later phase is forced by the precondition chain, never by an extra init
+# atom.
+#
+# DRY-RUN-OVERCLAIM FENCE: no action effect below is named "published",
+# "crates-io-uploaded", or "release-complete" — the LOCAL, REVERSIBLE
+# scope-and-identity gate is modeled here, never an external upload. See
+# packs/dry-run-publish-pack/ontology.ttl for the full fence disclosure.
+#
+# Public-ontology doctrine: the artifact node is a blank node; the phase is
+# identified by its public SKOS notation. The only private predicate is
+# the cng pipeline's ABI carrier ceng:pddlDomain (urn:chatman:engine#),
+# disclosed in packs/dry-run-publish-pack/ontology.ttl.
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:artifact
+    skos:notation "DRY-RUN-SCOPE" ;
+    dcterms:description "Release Scope & Identity domain fragment of the kestrel-dry-run-publish-cycle STRIPS domain."@en ;
+    ceng:pddlDomain """
+(define (domain kestrel-dry-run-publish-cycle)
+  (:requirements :strips)
+  (:predicates
+    (scope-engaged ?x)
+    (scope-step1-done ?x)
+    (scope-step2-done ?x)
+    (scope-complete ?x))
+  (:action define-publish-set-and-version
+    :parameters (?x)
+    :precondition (and (scope-engaged ?x))
+    :effect (and (scope-step1-done ?x)))
+  (:action sync-release-control-docs
+    :parameters (?x)
+    :precondition (and (scope-step1-done ?x))
+    :effect (and (scope-step2-done ?x)))
+  (:action bind-git-sha-on-clean-worktree
+    :parameters (?x)
+    :precondition (and (scope-step2-done ?x))
+    :effect (and (scope-complete ?x))))
+""" .

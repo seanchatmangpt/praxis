@@ -1,0 +1,82 @@
+---
+to: "crates/cng/shapes/dry-run-publish-shapes.ttl"
+force: true
+determinism: true
+---
+# dry-run-publish-shapes.ttl — SHACL shapes for the Kestrel Toolkit
+# case-study instance data (public-vocabulary modeling: skos concepts +
+# prov classes + blank nodes; no org:Organization here because a release
+# candidate is not an organization). Consumed by the SAME generic shape
+# queries as every other shape law in this crate
+# (registry-missing-fields.rq, shape-closed-violations.rq,
+# shape-pattern-violations.rq) — no SPARQL-based SHACL target extension is
+# used, so every constraint here is expressible as sh:targetClass +
+# sh:property/sh:path + sh:minCount / sh:closed+sh:ignoredProperties /
+# sh:pattern, exactly what those three queries interpret.
+#
+# prov:Entity notation-alternation note: three kinds of node in the
+# case-study graph are legitimately prov:Entity — phase deliverables
+# (DELIV-*), publish-set members (PKG-*, dual-typed skos:Concept ,
+# prov:Entity), and the release candidate itself (RC-*, dual-typed
+# prov:Entity , prov:Agent per packs/dry-run-publish-pack/ontology.ttl's
+# disclosed dual-role design). Because sh:targetClass prov:Entity therefore
+# selects all three, ex:DryRunDeliverableShape's notation sh:pattern is a
+# 3-way alternation ^(DELIV|PKG|RC)- rather than DELIV- alone (soc2-shapes.ttl's
+# Soc2EvidenceArtifactShape only needed DELIV- because its audited
+# enterprise was org:Organization , prov:Agent, never a prov:Entity — the
+# dual-typing choice here is what widens the alternation). The release
+# candidate's OWN required properties are enforced separately by
+# ex:DryRunReleaseCandidateShape via prov:Agent; this alternation only keeps
+# the generic prov:Entity notation check from firing a false pattern
+# violation on the RC. This mirrors soc2-shapes.ttl's own disclosed-
+# alternation pattern for dcterms:subject's 5-way TSC regex.
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix ex:      <urn:cng:shapes#> .
+
+# Every SKOS concept in the case-study graph must carry a deterministic
+# uppercase notation handle — notation is the cross-file join key in the
+# blank-node discipline, so a concept without one is unreachable.
+ex:DryRunConceptShape a sh:NodeShape ;
+  sh:targetClass skos:Concept ;
+  sh:property [
+    sh:path skos:notation ;
+    sh:minCount 1 ;
+    sh:pattern "^[A-Z0-9][A-Z0-9-]*$" ;
+  ] .
+
+# Every gate-phase execution (prov:Activity) must be notated, described,
+# associated with the release candidate, and generate at least one
+# deliverable entity (prov:generated). Closed: no undeclared predicates
+# sneak onto a phase-execution node.
+ex:DryRunPhaseShape a sh:NodeShape ;
+  sh:targetClass prov:Activity ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^DRY-RUN-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:wasAssociatedWith ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:generated ; sh:minCount 1 ; ] .
+
+# The release candidate under test (prov:Agent — the prov:wasAssociatedWith
+# target of every phase activity): notated and described. Not closed,
+# because the same node is also dual-typed prov:Entity and carries the
+# entity-side notation handle checked by ex:DryRunDeliverableShape.
+ex:DryRunReleaseCandidateShape a sh:NodeShape ;
+  sh:targetClass prov:Agent ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^RC-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] .
+
+# Every prov:Entity — phase deliverable (DELIV-*), publish-set member
+# (PKG-*), or the release candidate (RC-*) — must be notated and described.
+# The 3-way notation alternation is disclosed in the header comment above.
+ex:DryRunDeliverableShape a sh:NodeShape ;
+  sh:targetClass prov:Entity ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^(DELIV|PKG|RC)-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] .
