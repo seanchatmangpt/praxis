@@ -5,11 +5,12 @@
 //!   not require `F15 -> F16` -> ... -> `F20` to be wired first -- classified on its own real
 //!   data-threading, the same way `F13 -> F14` was independently real while `F10 -> F12` was only
 //!   `PARTIAL_REAL_EDGE`).
-//! - [`drive_external_readmit_transition`]: `F02(re-admit) -> F15 (AIR transition) -> F21`,
+//! - [`drive_external_readmit_transition`]: `F02(re-admit) -> F15 (AIR transition) -> F21 -> F24`,
 //!   composing [`drive_external_reentry`] verbatim, then a second, real `call_air_core_bridge`
 //!   round trip that completes a minimal bridge workflow keyed by the real dispatch id (carrying
-//!   the real F02 admission receipt hash as its result payload), then admitting that completion as
-//!   a real child under a freshly-declared recursive socket closure.
+//!   the real F02 admission receipt hash as its result payload), admitting that completion as a
+//!   real child under a freshly-declared recursive socket closure, then projecting it as a real
+//!   OTel span run through F24's real OCEL construction.
 //!
 //! This module is the first *production caller* (a real, non-`#[cfg(test)]` `pub fn`) that
 //! drives the crown-witness EXTERNAL tail from F10's geometry output through the Arazzo
@@ -27,6 +28,7 @@
 //! | F02 (re-admit)              | [`crate::f02_observation_admission::admit_observation`], over a synthesized observation asserting F20's real collected consequence |
 //! | F15 (AIR re-transition)    | [`crate::f15_air_transition_core::bridge::call_air_core_bridge`], called a second time to complete the externally-dispatched step |
 //! | F21 Parent-Child Closure (EXTERNAL) | [`crate::f21_parent_child_closure::admit_child_and_evaluate`], over a freshly-declared closure and a real SHACL check on the AIR transition's own output |
+//! | F24 CONSTRUCT/OCEL (EXTERNAL) | [`crate::f24_ocel_construct::run_construct`], over a real `cng::otel_rdf::OtlpSpan` built from the admitted external-dispatch consequence |
 //!
 //! # What makes each edge real (and the honest boundaries)
 //!
@@ -146,10 +148,28 @@
 //! non-empty (BLAKE3 of even an empty input is a real digest), so `conforms: true` reflects a
 //! real fact about this specific transition, not a fabricated pass. `parent_closed` is always
 //! `true` for this single-child `AllRequired` closure (a real, not hardcoded, field regardless).
+//!
+//! **`F21 -> F24`, closed as the same function's next stage**: the admitted external-dispatch
+//! consequence is projected as a real `cng::otel_rdf::OtlpSpan` and run through F24's real
+//! `run_construct`, matching `crown_local.rs`'s `F02(re-admit) -> F24` pattern exactly: `trace_id`
+//! is the real dispatch id, `span_id` is F21's own `transition_receipt` fold, `parent_span_id` is
+//! the F02 re-admission's own output receipt hash, and `process.object.id` reuses the identical
+//! `evidence_subject_iri` F21's evidence asserted facts about -- so F24's projection is built over
+//! the same real identity F21 just admitted, not a disconnected fixture. Honest topology note:
+//! the atlas's own EXTERNAL tail orders this `F21 -> F24` (F21 admission before OCEL construction),
+//! the reverse of LOCAL's `F24 -> F21` (OCEL construction before admission) -- taken as given, not
+//! reinterpreted; the two witnesses build the SAME two real edges in opposite causal order, and
+//! this driver honors EXTERNAL's own declared order rather than forcing LOCAL's shape onto it.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
+use cng::otel_ocel::insert_quads as insert_otel_quads;
+use cng::otel_rdf::{
+    admit as admit_otel_span, project_admitted_spans, OtlpSpan, SpanStatus, SpanStatusCode,
+};
+use cng::telemetry_gen;
+use oxigraph::store::Store;
 use powl2_decompose::{ParentChildClosure, Powl, SocketKind, SocketPath, WorkflowSocketId};
 use praxis_graphlaw::chatman::closure::{ClosureLaw, RecursiveSocketClosure};
 use praxis_graphlaw::parser::{Parser, Syntax};
@@ -174,6 +194,7 @@ use crate::f20_external_dispatch::{
     SubworkflowDispatchOutcome, SubworkflowPlan,
 };
 use crate::f21_parent_child_closure::{admit_child_and_evaluate, Refusal as F21Refusal};
+use crate::f24_ocel_construct::{run_construct, OCELConstructionRefused, OcelConstructOutcome};
 
 /// The SPARQL projection string stamped onto the declared external cut. The real Q-stage query
 /// F13 runs is [`crate::f12_external_cut::RENDER_MODEL_PROJECTION_QUERY`]; this per-cut string is
@@ -687,7 +708,19 @@ ex:ExternalTransitionEvidenceShape a sh:NodeShape ;
     ] .
 "#;
 
-/// The real, composed output of one `F02(re-admit) -> F15(AIR transition) -> F21` run.
+/// `F21 -> F24` OTel span vocabulary this crown composition introduces, matching
+/// `crown_local.rs`'s `ACTUATION_OTEL_*` naming/reasoning for its own F02(re-admit)->F24 span.
+const EXTERNAL_TRANSITION_OTEL_OBJECT_TYPE: &str = "ExternalDispatchTransition";
+/// `cng::otel_rdf`'s closed `process.outcome` vocabulary value for a successfully-completed
+/// activity. Not importable (private module constant); reproduced here, matching
+/// `crown_local.rs`'s own disclosed-duplication reasoning for the identical value.
+const EXTERNAL_TRANSITION_OTEL_OUTCOME_COMPLETED: &str = "completed";
+/// Fixed, non-wall-clock nanosecond timestamps for the synthesized OTel span (repo invariant #3;
+/// same reasoning as `crown_local.rs`'s `ACTUATION_OTEL_START_NANOS`/`_END_NANOS`).
+const EXTERNAL_TRANSITION_OTEL_START_NANOS: u64 = 1_700_000_000_000_000_000;
+const EXTERNAL_TRANSITION_OTEL_END_NANOS: u64 = 1_700_000_000_500_000_000;
+
+/// The real, composed output of one `F02(re-admit) -> F15(AIR transition) -> F21 -> F24` run.
 #[derive(Debug)]
 pub struct ExternalReadmitTransitionOutcome {
     /// The `F20 -> F02(re-admit)` outcome this run composes verbatim as its first stage.
@@ -700,9 +733,12 @@ pub struct ExternalReadmitTransitionOutcome {
     /// `AllRequired` closure (admitting the one declared child always closes it) -- kept as a real
     /// field, not hardcoded, so a caller never has to assume the closure semantics.
     pub parent_closed: bool,
+    /// F24's real OCEL construction outcome (`F21 -> F24`): the admitted external-dispatch
+    /// consequence, projected as a real OTel span, run through `f24_ocel_construct::run_construct`.
+    pub ocel_outcome: OcelConstructOutcome,
 }
 
-/// Typed refusal for the composed `F02(re-admit) -> F15 -> F21` edge.
+/// Typed refusal for the composed `F02(re-admit) -> F15 -> F21 -> F24` edge.
 #[derive(Debug, thiserror::Error)]
 pub enum ExternalReadmitTransitionRefused {
     /// The `F20 -> F02(re-admit)` stage refused.
@@ -724,6 +760,17 @@ pub enum ExternalReadmitTransitionRefused {
     /// it, refused. Both share `praxis_graphlaw::chatman::abi::Refusal` as their error type.
     #[error("crown-external F15->F21 child closure refused: {0}")]
     ChildClosure(F21Refusal),
+    /// Admitting, projecting, or inserting the external-dispatch OTel span refused. Covers
+    /// `cng::otel_rdf::admit`, `cng::otel_rdf::project_admitted_spans`, and
+    /// `cng::otel_ocel::insert_quads`, which all share this error type.
+    #[error("crown-external F21->F24 external telemetry refused: {0}")]
+    ExternalTelemetry(#[from] CngRefusal),
+    /// The in-memory oxigraph `Store` backing F24 construction could not be created (defensive).
+    #[error("crown-external F24 store unavailable: {reason}")]
+    TransitionStoreUnavailable { reason: String },
+    /// F24's real OCEL construction refused.
+    #[error("crown-external F21->F24 OCEL construction refused: {0}")]
+    OcelConstruction(#[from] OCELConstructionRefused),
 }
 
 /// Drive the EXTERNAL witness's `F02(re-admit) -> F15 (AIR transition) -> F21` edge end to end:
@@ -818,10 +865,67 @@ pub fn drive_external_readmit_transition(
         admit_child_and_evaluate(&mut closure, &dispatch_child_socket, &evidence_report)
             .map_err(ExternalReadmitTransitionRefused::ChildClosure)?;
 
+    // ---- Stage F21 -> F24: the admitted external-dispatch consequence becomes a real OTel span
+    // (admit -> project -> insert into a fresh in-memory store), then runs through F24's real
+    // OCEL construction ------------------------------------------------------------------------
+    // Gated by `parent_closed` above (F21's admission succeeded). `parent_span_id` is the F02
+    // re-admission's own real output receipt hash, matching `crown_local.rs`'s
+    // `F02(re-admit)->F24` pattern; `process.object.id` reuses the same `evidence_subject_iri`
+    // F21's own evidence asserted facts about, so F24's projection is built over the identity F21
+    // just admitted, not a disconnected fixture.
+    let external_span = OtlpSpan {
+        trace_id: reentry.dispatch_outcome.dispatch_id.clone(),
+        span_id: transition_receipt.clone(),
+        parent_span_id: Some(reentry.reentry_admission.receipt_hash.clone()),
+        name: telemetry_gen::REGISTRY_GROUP_ID.to_string(),
+        start_time_unix_nano: EXTERNAL_TRANSITION_OTEL_START_NANOS,
+        end_time_unix_nano: EXTERNAL_TRANSITION_OTEL_END_NANOS,
+        attributes: vec![
+            (
+                telemetry_gen::ATTR_WORKFLOW_ID.to_string(),
+                reentry.dispatch_outcome.dispatch_id.clone(),
+            ),
+            (
+                telemetry_gen::ATTR_OBJECT_ID.to_string(),
+                evidence_subject_iri,
+            ),
+            (
+                telemetry_gen::ATTR_OBJECT_TYPE.to_string(),
+                EXTERNAL_TRANSITION_OTEL_OBJECT_TYPE.to_string(),
+            ),
+            (
+                telemetry_gen::ATTR_ACTIVITY_IRI.to_string(),
+                format!(
+                    "urn:mfw:f20:dispatch:{}",
+                    reentry.dispatch_outcome.dispatch_id
+                ),
+            ),
+            (
+                telemetry_gen::ATTR_OUTCOME.to_string(),
+                EXTERNAL_TRANSITION_OTEL_OUTCOME_COMPLETED.to_string(),
+            ),
+        ],
+        status: SpanStatus {
+            code: SpanStatusCode::Ok,
+            message: None,
+        },
+    };
+    admit_otel_span(&external_span)?;
+    let external_otel_quads = project_admitted_spans(&[external_span])?;
+    let external_ocel_store =
+        Store::new().map_err(
+            |e| ExternalReadmitTransitionRefused::TransitionStoreUnavailable {
+                reason: e.to_string(),
+            },
+        )?;
+    insert_otel_quads(&external_ocel_store, &external_otel_quads)?;
+    let ocel_outcome = run_construct("otel-to-ocel", &external_ocel_store)?;
+
     Ok(ExternalReadmitTransitionOutcome {
         reentry,
         transition,
         parent_closed,
+        ocel_outcome,
     })
 }
 

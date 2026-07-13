@@ -384,12 +384,13 @@ fn external_reentry_dispatches_serves_collects_and_readmits_a_real_consequence()
 /// `f15_air_transition_core::bridge`'s own integration tests are: it needs `escript` on `PATH`
 /// and a compiled `apps/air_core` via `just erlang-compile`; run with `--ignored`).
 ///
-/// Drives the full `F20 -> F02(re-admit) -> F15 (AIR transition) -> F21` chain: a real
+/// Drives the full `F20 -> F02(re-admit) -> F15 (AIR transition) -> F21 -> F24` chain: a real
 /// dispatch/serve/collect/re-admit round trip, a real `air_core:transition/2` call completing a
 /// minimal bridge workflow keyed by the real dispatch id (carrying the real F02 admission receipt
-/// hash as its event payload), then a real F21 child admission evidenced by a SHACL check over
-/// the transition's own real output -- proving each consequence is genuinely fed into the next
-/// real mechanism, not merely asserted.
+/// hash as its event payload), a real F21 child admission evidenced by a SHACL check over the
+/// transition's own real output, then a real F24 OCEL construction over that same admitted
+/// consequence -- proving each consequence is genuinely fed into the next real mechanism, not
+/// merely asserted.
 #[test]
 #[ignore = "requires escript on PATH and apps/air_core compiled via `just erlang-compile`; run with --ignored"]
 fn external_readmit_transition_completes_the_dispatched_step_through_real_air_core() {
@@ -441,6 +442,22 @@ fn external_readmit_transition_completes_the_dispatched_step_through_real_air_co
         outcome.parent_closed,
         "the single declared child under AllRequired must close its parent once admitted"
     );
+
+    // F21 -> F24: the admitted consequence was really projected as an OTel span and run through
+    // F24's real OCEL construction.
+    assert_eq!(
+        outcome.ocel_outcome.profile,
+        crate::f24_ocel_construct::ConstructProfile::OtelToOcel
+    );
+    assert!(
+        !outcome.ocel_outcome.ocel_quads.is_empty(),
+        "F24 must derive at least one G_OCEL quad from the real external-dispatch span"
+    );
+    assert!(
+        !outcome.ocel_outcome.receipt_quads.is_empty(),
+        "F24 must derive at least one G_RECEIPT quad"
+    );
+    assert!(!outcome.ocel_outcome.receipt_head.is_empty());
 
     let _ = fs::remove_dir_all(&root);
 }
