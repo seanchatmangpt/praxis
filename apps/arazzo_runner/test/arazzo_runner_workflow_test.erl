@@ -26,7 +26,12 @@ arazzo_runner_workflow_test_() ->
              {"a genuine crash of BOTH the workflow process and the ETS-owning "
               "infra process still reconstructs full execution state, purely "
               "from durable (DETS) persistence",
-              fun test_crash_restart_reconstructs_from_dets/0}
+              fun test_crash_restart_reconstructs_from_dets/0},
+             {"swarm audit wnl2yhbgm finding #13: a genuinely malformed step "
+              "outputs field that crashes required_result_types/1 inside the "
+              "broker dispatch call is caught, not left to crash the whole "
+              "workflow process",
+              fun test_broker_dispatch_exception_does_not_crash_the_workflow/0}
          ]
      end}.
 
@@ -385,3 +390,77 @@ test_crash_restart_reconstructs_from_dets() ->
     ?assertEqual([], air_core:ready_steps(Core3)),
     ?assertEqual(2, length(air_core:get_history(Core3))),
     ok.
+
+%% ---------------------------------------------------------------------
+%% Proof 4: swarm audit wnl2yhbgm finding #13 -- a genuine broker-dispatch
+%% exception is caught, not left to crash the whole workflow process.
+%% ---------------------------------------------------------------------
+
+%% step_a's outputs are well-formed and trivial (no result-sentinel typing
+%% needed); step_b_malformed's `outputs` field is genuinely malformed --
+%% `{bind, <<"step_b_done">>}` is an arity-2 tuple, not the arity-3
+%% `{bind, Var, Expr}` arazzo_runner_broker:required_result_types/1's sole
+%% function clause matches on. This is real, unvalidated caller-supplied
+%% data flowing through the SAME path every real workflow_def does -- no
+%% mock, no fault injection into the broker itself.
+malformed_outputs_workflow_def() ->
+    #{steps => #{
+        <<"step_a">> => #{
+            outputs => [{bind, <<"step_a_done">>, {literal, true}}],
+            next => [<<"step_b_malformed">>]
+        },
+        <<"step_b_malformed">> => #{
+            outputs => [{bind, <<"step_b_done">>}],
+            next => []
+        }
+    }}.
+
+%% step_a's completion (a real {result, ...} reaction event, driven exactly
+%% like test_reactions_change_observable_state/0 drives step_a's own
+%% completion) makes step_b_malformed newly ready -- air_core:transition/2
+%% genuinely produces a {dispatch_step, <<"step_b_malformed">>, StepDef}
+%% command, which apply_transition/4's foldl then dispatches through the
+%% REAL arazzo_runner_broker:dispatch/4 -> do_dispatch/7 ->
+%% required_result_types/1 call chain, inside this SAME test's single
+%% reaction event -- no test-only shortcut into the broker.
+test_broker_dispatch_exception_does_not_crash_the_workflow() ->
+    {ok, _Started} = application:ensure_all_started(arazzo_runner),
+    WorkflowId = <<"wf-malformed-outputs-1">>,
+    StartSpec = maps:merge(sample_identity(WorkflowId), #{
+        workflow_def => malformed_outputs_workflow_def(),
+        active_steps => [<<"step_a">>],
+        env => #{},
+        history => []
+    }),
+    {ok, Pid} = arazzo_runner_sup:start_workflow(StartSpec),
+    Mon = monitor(process, Pid),
+
+    C0 = reaction_count(WorkflowId),
+    ok = arazzo_runner_workflow:dispatch_event(Pid, {result, <<"step_a">>, true}),
+    _RS1 = wait_for_reaction(WorkflowId, C0, result),
+
+    %% The critical safety property this fix exists for: the workflow
+    %% process did not crash on the malformed step_b_malformed dispatch --
+    %% no DOWN message arrives in a generous window past the reaction
+    %% having already completed (proving this isn't a race against a
+    %% not-yet-delivered exit signal).
+    receive
+        {'DOWN', Mon, process, Pid, Reason} ->
+            error({workflow_process_crashed_on_malformed_step_outputs, Reason})
+    after 500 ->
+        ok
+    end,
+    ?assert(is_process_alive(Pid)),
+
+    %% Not just "didn't crash" -- the exception was genuinely caught and
+    %% recorded in broker_dispatches, the same durable field ordinary
+    %% broker results use, not silently dropped.
+    {ok, RS} = arazzo_runner_workflow:get_runner_state(WorkflowId),
+    {value, {<<"step_b_malformed">>, BrokerResult}} =
+        lists:keysearch(<<"step_b_malformed">>, 1, RS#runner_state.broker_dispatches),
+    ?assertMatch({error, {exception, _Class, _Reason, _Stack}}, BrokerResult),
+
+    %% And step_a's own outputs -- unaffected by step_b_malformed's failure
+    %% -- genuinely completed first, proving this is a real two-step chain,
+    %% not a workflow that never got past step_a.
+    ?assertEqual(true, maps:get(<<"step_a_done">>, air_core:get_env(RS#runner_state.core))).

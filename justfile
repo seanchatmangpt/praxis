@@ -1186,6 +1186,14 @@ erlang-test-dispatch-statem: erlang-compile
 erlang-test-blake3: erlang-compile
     timeout 60s rebar3 eunit -m arazzo_runner_blake3_test
 
+# Compile, then run ONLY the arazzo_runner_workflow eunit module -- PROJ-757's
+# real supervisor-driven crash+restart/reaction/DETS-reconstruction proof suite,
+# plus swarm audit wnl2yhbgm finding #13's uncaught-broker-dispatch-exception
+# regression coverage. Scoped with `-m` (same convention as
+# erlang-test-dispatch-statem above).
+erlang-test-workflow: erlang-compile
+    timeout 90s rebar3 eunit -m arazzo_runner_workflow_test
+
 # Compile, then run ONLY the arazzo_runner_broker eunit module -- the real
 # production consumer of arazzo_runner_blake3:hex/1 (do_dispatch/6), so
 # this is the narrowest scoped check that a blake3.erl change didn't

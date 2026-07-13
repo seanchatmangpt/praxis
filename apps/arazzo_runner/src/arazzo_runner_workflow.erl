@@ -500,7 +500,31 @@ apply_transition(WorkflowId, RS, Event, ReactionTag) ->
                     %% ticket could spawn a per-dispatch worker to decouple
                     %% this without changing that event vocabulary).
                     Identity = Acc1#runner_state.identity,
-                    BrokerResult = arazzo_runner_broker:dispatch(WorkflowId, Identity, StepId, StepDef),
+                    %% Swarm audit wnl2yhbgm finding #13: arazzo_runner_broker:dispatch/4 is
+                    %% called with no try/catch here, unlike the identical call the not-yet-wired
+                    %% dispatch_statem worker wraps (arazzo_runner_dispatch_statem.erl). A genuine,
+                    %% non-fabricated crash reaches this: StepDef's `outputs` field is real,
+                    %% unvalidated caller-supplied data (workflow_def flows verbatim from
+                    %% start_link/1's own caller through air_core, which never inspects `outputs`,
+                    %% down to dispatch/4's do_dispatch/7 -> required_result_types/1, whose single-
+                    %% clause `{bind, _, _}` match has no catch-all). An uncaught exception here
+                    %% previously crashed this ENTIRE lists:foldl -- not just this one command, but
+                    %% every OTHER dispatch_step command still pending in this same batch, with none
+                    %% of the logging/persist discipline the sibling air_core:transition/2 exception
+                    %% branch above already has. Caught and folded into the SAME {error, _Reason} ->
+                    %% Acc2 handling ordinary broker errors already use (no new branch invented),
+                    %% after a disclosed log so an exception is distinguishable from an ordinary
+                    %% typed refusal in the logs.
+                    BrokerResult = try
+                        arazzo_runner_broker:dispatch(WorkflowId, Identity, StepId, StepDef)
+                    catch
+                        Class:Reason:Stack ->
+                            error_logger:error_msg(
+                                "Workflow ~p broker dispatch crashed on step ~p: ~p:~p ~p",
+                                [WorkflowId, StepId, Class, Reason, Stack]
+                            ),
+                            {error, {exception, Class, Reason, Stack}}
+                    end,
                     Acc2 = Acc1#runner_state{
                         broker_dispatches = [{StepId, BrokerResult} | Acc1#runner_state.broker_dispatches]
                     },
