@@ -13,16 +13,26 @@ Scope note: this is a status/audit artifact. It does not modify `tickets/index.m
 
 | Marker | Value | Why |
 |---|---|---|
-| `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **true** | All 11 of 11 LOCAL edges are `REAL_EDGE` (updated post-`66cb59b1`). **First crown witness closed.** |
+| `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | Corrected by an independent re-audit (this pass, not the original `66cb59b1` self-report): `MISSING_EDGE_COUNT` is **0** (all 11 edges are real code, `?`-gated, live-tested), but 2 of 11 are `PARTIAL_REAL_EDGE`, not full `REAL_EDGE` -- `F18 -> F19` and `F21 -> F25` (see their rows below). Under the same strict "every edge must be a full `REAL_EDGE`" reading already applied to EXTERNAL's `F10 -> F12`, this marker must also read **false**. The prior "true / first crown witness closed" claim in this doc was an overclaim; corrected here rather than left standing. |
 | `EXTERNAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | `MISSING_EDGE_COUNT` is now **0** (`F18 -> F20` closed commit `1e1ce976`, following `F15 -> F16` commit `1d3b9fb2` and `F16 -> F18` commit `4ce20102` -- the entire shared-prefix-anchored EXTERNAL forward path `F10->F12->F13->F14->F15->F16->F18->F20` is real). Still **false** under the strict "every edge must be a full `REAL_EDGE`" reading: `F10 -> F12` remains `PARTIAL_REAL_EDGE` (F10 does not itself synthesize the `ExternalCut` node it's wrapped in -- see that edge's own row). **Not a function-composition chain**: `drive_f18_completion_through_f20_dispatch` and `drive_external_reentry`'s own `F20 -> F02(re-admit)` continuation are two independently-real instantiations of the same real entry points, not literally one Rust call chain from F10 to F25 -- see `crown_external.rs`'s own self-correction in the `F18 -> F20` doc section (commit `1e1ce976`) for why an earlier draft's stronger claim was wrong and was fixed before committing. |
-| `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | Requires **both** witness markers true; LOCAL is, EXTERNAL is not. |
+| `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` | **false** | Requires **both** witness markers true; neither is (corrected this pass -- LOCAL was previously, incorrectly, marked true). |
 
 The shared prefix `F02 -> F03 -> F08 -> F09 -> F10` plus the entire LOCAL tail
-`F11 -> F18 -> F19 -> F02(re-admit) -> F24 -> F21 -> F25` is a genuine, real production-caller
-chain (all 11 edges) driven by one function, `crown_local::drive_local_witness_prefix` (commits
-`3322bf2d`, `d60f2036`, `eeca952a`, `66d8732e`, `0815680a`, `217dc37d`, `66cb59b1` -- this status
-doc was written after the first of these and is being brought current now). **This is the first
-of the two crown witnesses to reach full observation-to-replay contiguity.** The EXTERNAL tail
+`F11 -> F18 -> F19 -> F02(re-admit) -> F24 -> F21 -> F25` is driven by one real, `?`-gated,
+live-tested production function, `crown_local::drive_local_witness_prefix` (commits `3322bf2d`,
+`d60f2036`, `eeca952a`, `66d8732e`, `0815680a`, `217dc37d`, `66cb59b1`) -- but an independent
+re-audit of this exact chain (this pass) found 2 of its 11 edges are `PARTIAL_REAL_EDGE`, not
+full `REAL_EDGE`: `F18 -> F19` (`resolve_hook_for_action` is real and genuinely `?`-gated on
+`broker_receipt` existing, but never reads any of `broker_receipt`'s fields -- control sequencing
+only, no data-threading) and `F21 -> F25` (`f25_receipts_replay::run`'s `Materials` are built
+entirely from F02/F24's already-computed texts, never from `F21`'s own produced output --
+`parent_closed` and `growth.closure`'s post-admission state are not consumed). Both are real,
+tested, `?`-gated code with no fabricated caller -- the correction is to this doc's classification
+of them, not to the code, which does exactly what it was built to do (see each row's own note for
+why threading the "missing" data into the call would be an artificial, unmotivated dependency
+rather than a real one; investigated and rejected as a fix path this pass). The corrected count is
+**9 full `REAL_EDGE` + 2 `PARTIAL_REAL_EDGE` of 11**, not 11/11 -- so **LOCAL is not yet a closed
+crown witness** under the strict reading. The EXTERNAL tail
 adds three more real edges (`F12 -> F13 -> F14 -> F15`) via
 `crown_external::drive_external_witness_tail`, but remains blocked past `F15` -- everything past
 `F15` on the EXTERNAL tail is not yet a real edge.
@@ -66,19 +76,24 @@ outcome (all 6 CTQ material kinds matched, `receipt_root_matched`, non-empty PRO
 |---|---|---|---|
 | 1 | F02 -> F03 | `REAL_EDGE` | crown_local.rs; adversarial verdict CONFIRMED. |
 | 2 | F03 -> F08 | `REAL_EDGE` | gated on `Plannable`; `receipt_head` salts F08 `case_id`; CONFIRMED. |
-| 3 | F08 -> F09 | `REAL_EDGE`* | control-gated + provenance-bound + tape-consistency-checked; CONFIRMED. *Disclosed: F09 re-plans the shared PDDL rather than byte-ingesting F08's `Pddl8Tape` (no residual-goal extractor exists). Honest, not smuggled. |
+| 3 | F08 -> F09 | `REAL_EDGE`* | control-gated + provenance-bound; CONFIRMED. *Disclosed: F09 re-plans the shared PDDL rather than byte-ingesting F08's `Pddl8Tape` (no residual-goal extractor exists). Honest, not smuggled. Corrected this pass: earlier wording here said "tape-consistency-checked" as if enforced in production; re-audit found the tape-count check (`outcome.growth.geometry.source_action_count == outcome.plan.tape.ops.len()`) exists only inside `crown_local_test.rs`, never in `drive_local_witness_prefix` itself -- nothing in production would catch a divergence on a different fixture. Fuller prose already in `crown_local.rs`'s own module doc got this right; only this table's shorthand was imprecise. |
 | 4 | F09 -> F10 | `REAL_EDGE` | `manufacture_and_bind_child` -> `f10_powl_geometry::manufacture_powl_v2` (f09_mfw_growth.rs:825 -> :774); CONFIRMED. |
 | 5 | F10 -> F11 | `REAL_EDGE` | (commit `d60f2036`) `geometry_to_local_ast(&growth.geometry.root)` now called from `drive_local_witness_prefix`, a non-test `pub fn`; was `TEST_ONLY` when this doc was first written. |
 | 6 | F11 -> F18 | `REAL_EDGE` | (commit `d60f2036`) `dispatch_local_execution_via_broker` now called from the same driver, real `BrokerReceipt` returned with real `consequence_hash_hex`/`receipt_hash_hex`; was `TEST_ONLY`. |
-| 7 | F18 -> F19 | `REAL_EDGE` | (commit `eeca952a`) `resolve_hook_for_action` called `?`-gated on a real `broker_receipt`, against F08's real bound action and the real admitted hook-pack catalog; was `MISSING_EDGE`. |
+| 7 | F18 -> F19 | `PARTIAL_REAL_EDGE` | **Corrected this pass** (was `REAL_EDGE` since commit `eeca952a`; an independent re-audit found this an overclaim). `resolve_hook_for_action` (crown_local.rs:572-580) is real and genuinely `?`-gated on `dispatch_local_execution_via_broker` having returned `Ok` -- but its actual arguments (`ground_action` from F08's `plan.tape`, `run.hook_pack_turtle` from F02's original admission, a fresh `InMemoryReceiptLedger::default()`) never read any field of `broker_receipt` (`consequence_hash_hex`/`receipt_hash_hex`/`authority_token_hex`); `broker_receipt.receipt_hash_hex` is first read three lines later, inside the *next* edge (F19->F02 re-admit). So this edge is real control sequencing (unreachable unless F18 succeeded) but not data-threading (nothing F18 actually produced is consumed here) -- fails this doc's own stated `REAL_EDGE` bar ("passes the actual upstream consequence... into the actual downstream mechanism"). Investigated whether threading `broker_receipt` into `resolve_hook_for_action` is an honest fix: no -- that function is also a real, live production caller from F08's own `hook_binder.rs::bind_actions_with_ledger` (planning-time capability check, before any actuation/broker_receipt exists), so its core logic must stay actuation-agnostic by design; hook capability resolution is correctly a pure function of (hook catalog, action schema), not of which specific actuation triggered the check. Forcing an unused actuation parameter into it to satisfy this table would be the smuggled/fabricated dependency this project's own discipline forbids. The honest fix is this reclassification, not a code change. |
 | 8 | F19 -> F02 (re-admit) | `REAL_EDGE` | (commit `66d8732e`) `admit_observation` called a second time, `?`-gated on real `hook_resolution`, over a synthesized actuation-consequence observation under a distinct local-runtime principal (`actuation_source_id`); was `MISSING_EDGE`. |
 | 9 | F02 -> F24 | `REAL_EDGE` | (commit `0815680a`) the re-admitted consequence becomes a real `cng::otel_rdf::OtlpSpan` (`trace_id`/`span_id` = F18/F19's own receipt hashes, `parent_span_id` = the re-admission's own output receipt hash) run through `f24_ocel_construct::run_construct("otel-to-ocel", ...)`; was `MISSING_EDGE`. Never calls F24's own `idempotency_gate` (that's a distinct, orthogonal L7 capability `run_construct` does not require as a precondition — confirmed by reading `run_construct`'s body — so this is a full `REAL_EDGE`, not `PARTIAL_REAL_EDGE`). |
 | 10 | F24 -> F21 | `REAL_EDGE` | (commit `217dc37d`) `admit_child_and_evaluate(&mut growth.closure, &growth.child_socket, &evidence)` -- `growth.closure`/`growth.child_socket` are F09's own real output built for exactly this purpose (`GrowthOutcome::child_socket`'s own doc comment). Evidence is a real, non-vacuous `Validator::validate` result: asserts F24's actual `ocel_outcome.receipt_head` and checks a `sh:minCount 1` constraint that is genuinely evaluated (target class matched by a real individual), not a vacuous shape and not a fabricated `conforms:true`; was `MISSING_EDGE`. |
-| 11 | F21 -> F25 | `REAL_EDGE` | (commit `66cb59b1`) `f25_receipts_replay::run(&materials, || Ok(materials.clone()))` -- every `Materials` field (`source`/`query`/`template`/`program`/`event`/`output`) is a real, already-computed canonical text from this same run, mapped by genuine semantic fit (not filler). The replay closure matches F25's own test suite's established pattern for a deterministic transformation (`independent_verifier_confirms_equivalent_replay`), not an invented shortcut; F25's own digest/fold/compare/graph-write logic performs the real verification. Never calls `chaos_gate::admit_for_replay`; was `MISSING_EDGE`. |
+| 11 | F21 -> F25 | `PARTIAL_REAL_EDGE` | **Corrected this pass** (was `REAL_EDGE` since commit `66cb59b1`; an independent re-audit found this an overclaim). `admit_child_and_evaluate` (F21) is real and `f25_receipts_replay::run` is real, genuinely `?`-gated in sequence -- but every `Materials` field (`source`=F02's payload, `query`=`run.pddl_problem`, `template`=the static SHACL shape, `program`=`run.hook_pack_turtle`, `event`=F24's `evidence_turtle`, `output`=F24's `ocel_outcome.receipt_head`) was already computed *before* F21 ran; none derive from `parent_closed` (F21's own boolean outcome) or from `growth.closure`'s post-admission mutated state. F21's own produced consequence never appears anywhere in `Materials` -- F25 reuses F02/F24's canonical texts a second time rather than consuming anything F21 itself produced. Same defect class as `F18 -> F19` above: real sequential `?`-gating between two real production functions, not data-threading of the specific adjacent stage's own output. Nothing is fabricated (every reused field is genuinely real, per its own original edge), so this is a reclassification, not a code fix. |
 
-`FIRST_LOCAL_BROKEN_EDGE` = **none — the LOCAL witness is fully closed** (edges 5-11 closed since
-this doc was first written; see commits `d60f2036`, `eeca952a`, `66d8732e`, `0815680a`,
-`217dc37d`, `66cb59b1`). `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true`.
+`FIRST_LOCAL_BROKEN_EDGE` = **none — `MISSING_EDGE_COUNT = 0`** (edges 5-11 closed since this doc
+was first written; see commits `d60f2036`, `eeca952a`, `66d8732e`, `0815680a`, `217dc37d`,
+`66cb59b1`). `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` is **still false**, for the same reason
+class as EXTERNAL: under the strict "every edge must be a full `REAL_EDGE`" reading, edges 7
+(`F18 -> F19`) and 11 (`F21 -> F25`) are `PARTIAL_REAL_EDGE` (corrected this pass; see their rows
+above). LOCAL now has 9/11 full `REAL_EDGE` and 2/11 `PARTIAL_REAL_EDGE`; EXTERNAL (below) has a
+single `PARTIAL_REAL_EDGE` among its own edges. Neither witness is closed under this doc's own
+stated bar.
 
 ## EXTERNAL witness — per-edge classification
 
@@ -131,23 +146,25 @@ The shared prefix (4 edges) is counted once. Union total = 4 (shared) + 7 (LOCAL
 
 | Bucket | Count | Edges |
 |---|---|---|
-| `REAL_EDGE_COUNT` (full) | **22** | F02->F03, F03->F08, F08->F09, F09->F10, F10->F11, F11->F18, F18->F19, F19->F02(re-admit), F02(re-admit)->F24, F24->F21, F21->F25 (LOCAL, complete -- all committed `d60f2036`/`eeca952a`/`66d8732e`/`0815680a`/`217dc37d`/`66cb59b1`); F12->F13, F13->F14, F14->F15, F15->F16, F16->F18, F18->F20, F20->F02(re-admit), F02(re-admit)->F15(AIR transition), F15->F21, F21->F24, F24->F25 (EXTERNAL, `F20->F02` committed `b4d743f7`, `F02->F15` committed `38048b27`, `F15->F16` committed `1d3b9fb2`, `F16->F18` committed `4ce20102`, `F18->F20` committed `1e1ce976`, `F15->F21` committed `a139d477`, `F21->F24` committed `8c2675be`, `F24->F25` committed `11dcee0e`) |
-| `PARTIAL_REAL_EDGE` | 1 | F10->F12 |
+| `REAL_EDGE_COUNT` (full) | **20** | F02->F03, F03->F08, F08->F09, F09->F10, F10->F11, F11->F18, F19->F02(re-admit), F02(re-admit)->F24, F24->F21 (LOCAL, 9 of 11 -- `F18->F19` and `F21->F25` moved to `PARTIAL_REAL_EDGE` this pass, see below); F12->F13, F13->F14, F14->F15, F15->F16, F16->F18, F18->F20, F20->F02(re-admit), F02(re-admit)->F15(AIR transition), F15->F21, F21->F24, F24->F25 (EXTERNAL, complete, 11 of 11 -- `F20->F02` committed `b4d743f7`, `F02->F15` committed `38048b27`, `F15->F16` committed `1d3b9fb2`, `F16->F18` committed `4ce20102`, `F18->F20` committed `1e1ce976`, `F15->F21` committed `a139d477`, `F21->F24` committed `8c2675be`, `F24->F25` committed `11dcee0e`) |
+| `PARTIAL_REAL_EDGE` | 3 | F10->F12 (EXTERNAL); F18->F19, F21->F25 (LOCAL -- corrected this pass, see their rows above: real `?`-gated sequencing but no data-threading of the specific adjacent stage's own output) |
 | `TEST_ONLY_EDGE` | 0 | (was F10->F11, F11->F18 -- both closed to `REAL_EDGE`, see above) |
-| `MISSING_EDGE_COUNT` | **0** | None -- EXTERNAL's last missing edge (`F18->F20`) closed commit `1e1ce976`. Only `F10->F12`'s `PARTIAL_REAL_EDGE` status now blocks `EXTERNAL_..._CONTIGUOUS_PATH`. |
+| `MISSING_EDGE_COUNT` | **0** | None -- EXTERNAL's last missing edge (`F18->F20`) closed commit `1e1ce976`, and LOCAL has no missing edges either (its 2 non-`REAL_EDGE` entries are `PARTIAL_REAL_EDGE`, not `MISSING`). `F10->F12` blocks `EXTERNAL_..._CONTIGUOUS_PATH`; `F18->F19`/`F21->F25` block `LOCAL_..._CONTIGUOUS_PATH`. |
 | `REFUSED_EDGE_COUNT` | **0** | No witness edge is a by-design correct-refusal boundary. |
 
-Strict-contiguity accounting: only the 19 full `REAL_EDGE`s satisfy the path predicate. The 1
-`PARTIAL_REAL_EDGE` (`F10->F12`) has real, tested code but leaves a semantic sub-property
-unsatisfied, so it does not count toward the EXTERNAL contiguous path. If bucketed coarsely as
-"real vs not-real," not-real = 1 + 3 = 4 of 23.
+Strict-contiguity accounting: only the 20 full `REAL_EDGE`s satisfy the path predicate. The 3
+`PARTIAL_REAL_EDGE`s (`F10->F12`; `F18->F19` and `F21->F25` corrected this pass) each have real,
+tested code but leave a semantic sub-property unsatisfied, so none counts toward either witness's
+contiguous path. If bucketed coarsely as "real vs not-real," not-real = 3 of 23.
 
-Per-witness contiguous real prefix from F02: LOCAL = **11 of 11 edges (COMPLETE)** -- updated from
-the original 4 -- see commits `d60f2036`, `eeca952a`, `66d8732e`, `0815680a`, `217dc37d`,
-`66cb59b1`; EXTERNAL = 4 edges (stops at the `F10->F12` partial; then 3 more real edges F12->F15
-sit past the break; `F20->F02(re-admit)->F15(AIR transition)->F21->F24->F25` is a real, now
-COMPLETE 5-edge EXTERNAL loop-back tail, but is topologically disconnected from this
-contiguous-from-F02 prefix until `F16`/`F18`/`F18->F20` close -- the only remaining EXTERNAL gap).
+Per-witness contiguous real prefix from F02: LOCAL = **9 of 11 edges full `REAL_EDGE`**
+(`MISSING_EDGE_COUNT = 0`, but `F18->F19` and `F21->F25` are `PARTIAL_REAL_EDGE`, corrected this
+pass -- see commits `d60f2036`, `eeca952a`, `66d8732e`, `0815680a`, `217dc37d`, `66cb59b1` for the
+code, and this doc's own edge rows for the corrected classification); EXTERNAL = 4 edges (stops at
+the `F10->F12` partial; then 3 more real edges F12->F15 sit past the break;
+`F20->F02(re-admit)->F15(AIR transition)->F21->F24->F25` is a real, now COMPLETE 5-edge EXTERNAL
+loop-back tail, but is topologically disconnected from this contiguous-from-F02 prefix until
+`F16`/`F18`/`F18->F20` close -- the only remaining EXTERNAL topological gap).
 
 ## Whole-crate confirmation (commands run this session, non-isolated)
 
@@ -179,8 +196,12 @@ carries a legitimate, checkable environment-gate reason (not the blanket-hide co
 ## Three highest-value next repairs (by downstream unlock, not ticket number)
 
 **Repairs 1-6 are all DONE** (commits `d60f2036`, `eeca952a`, `66d8732e`, `0815680a`, `217dc37d`,
-`66cb59b1`) -- **the entire LOCAL crown witness is closed.** Kept here with their original text
-for history. The only remaining crown-witness work is on the **EXTERNAL** witness (repair 7,
+`66cb59b1`) -- `MISSING_EDGE_COUNT = 0` on the LOCAL witness. **Not** "the entire LOCAL crown
+witness is closed" as an earlier version of this doc claimed: a later independent re-audit found
+2 of the 11 edges these repairs built (`F18->F19`, `F21->F25`) are `PARTIAL_REAL_EDGE`, not full
+`REAL_EDGE` -- see the corrected per-edge table and executive summary above. Kept here with their
+original text for history; treat the "closed" framing below as superseded by that correction.
+The only remaining **missing-edge** crown-witness work is on the **EXTERNAL** witness (repair 7,
 below), which was never scoped as a same-pass repair -- the EXTERNAL decisive break (`F15 -> F16`)
 is a genuine Rust-to-BEAM process boundary: F16's gen_statem is not in the production dispatch
 path, and composing Rust into the OTP runner is real distributed-systems engineering with low
@@ -259,8 +280,16 @@ the F24->F21 evidence Turtle, `output` = F24's real receipt head. The replay clo
 `materials.clone()`, matching F25's own test suite's established pattern for a deterministic
 transformation, not an invented shortcut. `f25_receipts_replay::chaos_gate::admit_for_replay`
 remains a confirmed-honest `NotYetImplemented` refusal and was never called. Advances the LOCAL
-contiguous real path from 10 edges to **11 of 11 (COMPLETE)**.
-`LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true` -- the first crown witness closed.
+`MISSING_EDGE_COUNT` from 1 to **0 (11 of 11 edges have real, `?`-gated code)**.
+
+**Corrected by a later pass**: the claim below this line, as originally written, said
+`LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true` / "the first crown witness closed." An
+independent re-audit found that while every `Materials` field listed above is genuinely real, none
+of them is `F21`'s *own* produced output (`parent_closed`, `growth.closure`'s post-admission
+state) -- they are all F02/F24 values already computed before F21 ran. That makes this edge real
+`?`-gated sequencing, not data-threading of the adjacent upstream stage's own consequence, i.e.
+`PARTIAL_REAL_EDGE` under this doc's own bar, not full `REAL_EDGE`. See the corrected per-edge
+table and executive summary at the top of this document for the current, authoritative claim.
 
 ### 7. Close the EXTERNAL witness — `MISSING_EDGE_COUNT = 0`; `F10 -> F12` is the only remaining blocker
 
@@ -414,6 +443,14 @@ these drivers. Track this separately from edge contiguity; it does not change an
   wiring claims wherever they conflict. Where an adversarial pass found an imprecision (e.g. the
   crown_external report's stale secondhand claim that F18's broker has zero callers — F11 does call
   it on the LOCAL path), the correction is reflected above.
+- **This pass's own correction**: an independent re-audit (3 agents, fresh live test runs, no trust
+  in the original `d60f2036`/`eeca952a`/`66d8732e`/`0815680a`/`217dc37d`/`66cb59b1` self-reports)
+  found `F18 -> F19` and `F21 -> F25` were classified `REAL_EDGE` but only satisfy real `?`-gated
+  control sequencing, not this doc's own data-threading bar -- see their rows above.
+  `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH` was `true` in this doc from `66cb59b1` until this
+  pass; that was an overclaim, corrected here rather than left standing per this project's own
+  no-overclaiming discipline. The underlying code is unchanged and still does exactly what it was
+  built to do -- only this doc's classification of two edges changed.
 - `REFUSED_EDGE_COUNT = 0`: no witness edge is a correct-by-design refusal boundary. Refusals do
   occur *within* real edges (e.g. `ExternalCutTypeMismatch` gating F12->F13), but those are the
   edge working, not a refused edge.
@@ -426,19 +463,19 @@ these drivers. Track this separately from edge contiguity; it does not change an
   freshly-asserted fact about `ocel_outcome.receipt_head`, not full structural conformance of
   `ocel_outcome`'s own OCEL quads -- those live in `oxigraph`'s `Quad` representation, a different
   RDF library than the `praxis-graphlaw` `Term`/`TripleIndex` this validator consumes. Bridging the
-  two representations for a full OCEL-conformance check is disclosed, deferred future work; it
-  does not affect the truth of `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true` (the `REAL_EDGE`
-  bar for this pass does not require it -- see the bar's own definition above).
-- **LOCAL witness closure claim scope**: "LOCAL crown witness closed" means the `F02..F25`
-  production-caller chain is real and `?`-gated end to end, verified by one passing test on one
-  real fixture (404/404 total tests, this session). It does **not** mean the atlas's L8
-  "production reachability" gate is met (see the Reachability ceiling section below, unchanged by
-  this pass) or that every disclosed nuance's deferred future work is done. Scope stated, not
-  rounded up.
+  two representations for a full OCEL-conformance check is disclosed, deferred future work,
+  unrelated to this pass's `F18 -> F19`/`F21 -> F25` correction.
+- **LOCAL witness scope, corrected**: the `F02..F25` production-caller chain is real and `?`-gated
+  end to end (`MISSING_EDGE_COUNT = 0`), verified by one passing test on one real fixture (404/404
+  total tests, this session) -- but "real and `?`-gated end to end" is **not** the same claim as
+  "every edge is a full `REAL_EDGE`," and this doc previously conflated the two. 9 of 11 edges meet
+  the full bar; 2 (`F18 -> F19`, `F21 -> F25`) are `PARTIAL_REAL_EDGE`. It does **not** mean the
+  atlas's L8 "production reachability" gate is met (see the Reachability ceiling section below,
+  unchanged by this pass) either. Scope stated, not rounded up.
 
 ## See also
 
-- `crates/multifractal-workflow/src/crown_local.rs` — LOCAL witness production caller (F02->F25, complete).
+- `crates/multifractal-workflow/src/crown_local.rs` — LOCAL witness production caller (F02->F25, `?`-gated end to end; 9/11 edges full `REAL_EDGE`, 2/11 `PARTIAL_REAL_EDGE` -- see per-edge table above).
 - `crates/multifractal-workflow/src/crown_external.rs` — EXTERNAL production callers: `drive_external_witness_tail` (F10->F15), `drive_external_reentry` (F20->F02), `drive_external_readmit_transition` (F02->F15 AIR transition -> F21 -> F24 -> F25, the complete loop-back tail).
 - `apps/arazzo_runner/src/arazzo_runner_workflow.erl` — the real (Erlang-side) F15->F16 edge.
 - `docs/jira/v26.7.11/SAFETY_FINDINGS.md` — the removed LLM-hot-load pattern; do not reintroduce.
