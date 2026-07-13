@@ -52,9 +52,18 @@ fn test_group_by_count_aggregation() {
     println!("{:?}", query);
     let plan = eval_query(&query, &index);
     let iterator = evaluate_plan_and_debug(&plan, &index);
+    // Expected value updated: CountAccumulator::get() previously interned its result via the
+    // generic Encoder::add(), which mis-classifies a bare numeric string as an IRI (no leading
+    // ?/_:/", falls through to add_iri) rather than a typed literal -- invisible here since this
+    // test only ever decoded the raw string back out, but it silently broke any expression-level
+    // use of an aggregate's output (HAVING, ORDER BY) because the mis-typed value couldn't be
+    // numerically compared. Fixed via Encoder::add_literal(value, Some(xsd:integer), None); this
+    // assertion now reflects the corrected, properly-typed value, matching how every other typed
+    // literal in this codebase decodes (see Utils::remove_literal_tags, which exists specifically
+    // to strip this same `"value"^^<datatype>` shape for callers that want the bare number).
     let results = vec![vec![Binding {
         var: "count".to_string(),
-        val: "2".to_string(),
+        val: "\"2\"^^<http://www.w3.org/2001/XMLSchema#integer>".to_string(),
     }]];
 
     assert_eq!(results, iterator.collect::<Vec<Vec<Binding>>>());
@@ -87,6 +96,18 @@ fn test_group_by_sum_aggregation() {
     println!("{:?}", query);
     let plan = eval_query(&query, &index);
     let iterator = evaluate_plan_and_debug(&plan, &index);
+    // Expected value updated: SumAccumulator::get() now uses
+    // Encoder::add_literal(..., Some(xsd:decimal), None) instead of the generic Encoder::add(),
+    // which mis-classified the bare "0" as an IRI -- this is the same root cause and fix as
+    // test_group_by_count_aggregation above. Unlike COUNT's xsd:integer result, though, this
+    // query aliases the aggregate ("AS ?sum"), which routes the value through an Extend/rename
+    // step in sparql/eval.rs's PlanExpression::Variable evaluator; that evaluator only
+    // special-cases xsd:integer/xsd:boolean for typed re-encoding, so an xsd:decimal literal
+    // falls through to its generic StringLiteral branch, which strips the datatype tag via
+    // Utils::remove_literal_tags on the way out. The value is untagged here ("0", not
+    // "0"^^<...decimal>) for that reason -- see the matching disclosure comments in
+    // sparql/accumulators.rs's SumAccumulator::get() and sparql/eval.rs, and the equivalent
+    // regression test lib_test.rs::sum_over_untagged_literals_computes_the_real_value.
     let results = vec![vec![
         Binding {
             var: "s".to_string(),
@@ -94,7 +115,7 @@ fn test_group_by_sum_aggregation() {
         },
         Binding {
             var: "sum".to_string(),
-            val: "0".to_string(),
+            val: "\"0\"".to_string(),
         },
     ]];
 

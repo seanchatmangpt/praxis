@@ -249,7 +249,18 @@ pub fn evaluate_plan<'a>(
                     let item_to_aggregate = if let Some(ref agg_var) = agg_fn.variable {
                         let var_str = agg_var.as_str().to_string();
                         let var_str = strip_variable_prefix(&var_str).to_string();
-                        let encoded_agg_var = Encoder::get(&var_str).unwrap_or(0);
+                        // Was `.unwrap_or(0)`: if the operand variable (e.g. "o" in SUM(?o))
+                        // had not yet been interned at this exact point, that produced encoded
+                        // ID 0 -- a real, already-meaningful encoder slot, not a sentinel for
+                        // "unknown" -- so the lookup below would silently match nothing (or
+                        // worse, match an unrelated binding that happened to also be ID 0),
+                        // and every row's operand value would be lost, leaving SUM/MIN/MAX/AVG
+                        // stuck at their zero-valued default. Matches the same safe fallback
+                        // already used for the GROUP BY keys (line 212) and the aggregate
+                        // target variable (line 168): intern the string if it wasn't already
+                        // known, rather than guessing ID 0.
+                        let encoded_agg_var =
+                            Encoder::get(&var_str).unwrap_or_else(|| Encoder::add(var_str));
                         child_binding
                             .iter()
                             .find(|b| b.var == encoded_agg_var)

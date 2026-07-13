@@ -61,13 +61,101 @@ fn group_by_unbound_variable_groups_instead_of_panicking() {
                 .iter()
                 .find(|b| b.var == "c")
                 .expect("aggregate binding ?c must be present");
+            // Expected value updated after fixing CountAccumulator::get() to intern its result
+            // as a properly-typed xsd:integer literal (Encoder::add_literal) instead of letting
+            // the generic Encoder::add() mis-classify the bare "3" as an IRI -- see the fix's own
+            // commit message for the full root cause (HAVING/ORDER BY on an aggregate silently
+            // failed since a mis-typed IRI can't be numerically compared). The bare-string
+            // assertion this test originally had was itself asserting the bug's symptom.
             assert_eq!(
-                count_binding.val, "3",
+                count_binding.val, "\"3\"^^<http://www.w3.org/2001/XMLSchema#integer>",
                 "COUNT(*) over all 3 triples must be 3, got: {rows:?}"
             );
         }
         Err(msg) => panic!("expected a real grouped result, got a refusal: {msg}"),
     }
+}
+
+// Regression for a real, dogfood-workflow-identified symptom: `SELECT ?s (COUNT(*) AS ?c)
+// ... GROUP BY ?s HAVING (COUNT(*) > 1)` silently returned zero rows for data where a real
+// group has count > 1. The originating audit's own root-cause claim (a `GraphPattern::Having`
+// enum variant falling through `extract_query_plan`'s catch-all) was checked directly against
+// spargebra 0.4.6's source and found to be wrong -- no such variant exists; `HAVING` desugars
+// at parse time into `Filter(Group(...))`, both already-matched arms. The real, four-layer bug
+// chain: (1) `CountAccumulator::get()` handed its result to the generic `Encoder::add()`
+// classifier, which mis-tagged the bare numeric string as an IRI (any lexical form with no `?`/
+// `_:`/`"` prefix falls into the IRI branch); (2) the aggregate operand-variable lookup in
+// `sparql/mod.rs` used `Encoder::get(&var_str).unwrap_or(0)`, silently substituting a wrong-but-
+// valid-looking symbol ID 0 instead of interning the variable; (3) `Utils::remove_literal_tags`
+// only stripped surrounding quotes when a `^^datatype` suffix was present, so an untagged
+// decoded literal like `"3"` passed through the FILTER's numeric-comparison path still quote-
+// wrapped, failing `.parse::<f64>()` silently. Fixed (1) via `Encoder::add_literal` with an
+// explicit `xsd:integer`/`xsd:decimal` datatype tag, (2) via the same safe
+// `unwrap_or_else(|| Encoder::add(var_str))` fallback used elsewhere in this file, (3) by
+// unconditionally stripping quotes from the pre-`^^`-split lexical form. A fourth, deeper gap
+// remains and is intentionally NOT fixed here: `EncodedTerm` (sparql/eval.rs) has no decimal/
+// float variant, so `xsd:decimal`-tagged SUM/MIN/MAX/AVG results still can't be numerically
+// compared once routed through `PlanExpression::Variable`'s evaluator -- see that file's and
+// `sparql/accumulators.rs`'s cross-referencing disclosure comments. COUNT is unaffected (its
+// `xsd:integer` tag IS handled by that evaluator), so this HAVING/COUNT case is now genuinely
+// fixed end-to-end; HAVING/ORDER BY on SUM/MIN/MAX/AVG remains future work.
+#[test]
+fn having_count_filters_correctly() {
+    let data = "<http://example.org/a> <http://example.org/p> \"1\".\n\
+                <http://example.org/a> <http://example.org/p> \"2\".\n\
+                <http://example.org/a> <http://example.org/p> \"3\".\n\
+                <http://example.org/b> <http://example.org/p> \"4\".";
+    let store = TripleStore::from(data);
+    let result = store
+        .query(
+            "SELECT ?s (COUNT(*) AS ?c) WHERE { ?s <http://example.org/p> ?o } GROUP BY ?s HAVING (COUNT(*) > 1)",
+        )
+        .expect("query must succeed");
+    assert_eq!(result.len(), 1, "only ?s=a has count > 1, got: {result:?}");
+}
+
+#[test]
+fn having_count_excludes_all_when_threshold_too_high() {
+    let data = "<http://example.org/a> <http://example.org/p> \"1\".\n\
+                <http://example.org/a> <http://example.org/p> \"2\".\n\
+                <http://example.org/a> <http://example.org/p> \"3\".\n\
+                <http://example.org/b> <http://example.org/p> \"4\".";
+    let store = TripleStore::from(data);
+    let result = store
+        .query(
+            "SELECT ?s (COUNT(*) AS ?c) WHERE { ?s <http://example.org/p> ?o } GROUP BY ?s HAVING (COUNT(*) > 10)",
+        )
+        .expect("query must succeed");
+    assert_eq!(result.len(), 0, "no group has count > 10, got: {result:?}");
+}
+
+// SUM's own accumulated VALUE is now correct (the `remove_literal_tags` quote-stripping fix
+// plus the accumulator's `Encoder::add_literal` type-tagging fix both apply here too). The
+// displayed value is untagged ("6", not "\"6\"^^<...decimal>") because SPARQL requires an
+// aggregate to be aliased ("AS ?total"), which routes the result through an Extend/rename step
+// -- and that step's expression evaluator has no decimal/float `EncodedTerm` variant either, so
+// it strips the datatype tag on the way out (the same disclosed, deferred gap noted above). This
+// test asserts what the current architecture actually, honestly guarantees: the numeric VALUE is
+// correct, not that HAVING/ORDER BY on it works yet.
+#[test]
+fn sum_over_untagged_literals_computes_the_real_value() {
+    let data = "<http://example.org/a> <http://example.org/p> \"1\".\n\
+                <http://example.org/a> <http://example.org/p> \"2\".\n\
+                <http://example.org/a> <http://example.org/p> \"3\".\n\
+                <http://example.org/b> <http://example.org/p> \"4\".";
+    let store = TripleStore::from(data);
+    let result = store
+        .query("SELECT ?s (SUM(?o) AS ?total) WHERE { ?s <http://example.org/p> ?o } GROUP BY ?s")
+        .expect("query must succeed");
+    let a_row = result
+        .iter()
+        .find(|row| row.iter().any(|b| b.var == "s" && b.val.contains("/a")))
+        .expect("row for ?s=a must exist");
+    let total = a_row
+        .iter()
+        .find(|b| b.var == "total")
+        .expect("total bound");
+    assert_eq!(total.val, "\"6\"", "1+2+3=6, got: {result:?}");
 }
 
 #[test]

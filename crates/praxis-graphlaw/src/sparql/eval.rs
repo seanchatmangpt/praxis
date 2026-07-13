@@ -130,6 +130,15 @@ pub fn eval_expression<'a>(
                                         val_str == "true" || val_str == "1",
                                     ));
                                 }
+                                // Disclosed, separate gap (not fixed here): xsd:decimal and
+                                // other numeric xsd types fall through to StringLiteral below,
+                                // same as any other untyped literal -- EncodedTerm (this file)
+                                // has no decimal/float variant at all, only IntegerLiteral. A
+                                // value the accumulators (sparql/accumulators.rs) now correctly
+                                // tag xsd:decimal (SUM/MIN/MAX/AVG) still can't be numerically
+                                // compared once it reaches here, so HAVING/ORDER BY/comparisons
+                                // on those aggregates' results still silently fail past this
+                                // point -- only xsd:integer (COUNT) round-trips correctly.
                             }
                             Some(EncodedTerm::StringLiteral(val_str))
                         }
