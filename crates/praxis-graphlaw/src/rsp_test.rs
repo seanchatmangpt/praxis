@@ -246,3 +246,69 @@ fn evaluate_r2r_and_call_r2s_skips_the_tick_on_a_poisoned_consumer_lock() {
         "r2s_consumer must never be invoked when the tick was skipped due to a poisoned lock"
     );
 }
+
+#[test]
+#[allow(clippy::type_complexity)]
+fn evaluate_r2r_and_call_r2s_skips_the_tick_on_a_poisoned_r2s_operator_lock() {
+    // Mirrors the test above but poisons the *second* lock instead of the first:
+    // `consumer_temp` stays healthy (the R2R stage -- add/materialize/execute_query --
+    // genuinely runs), and only `r2s_operator` is poisoned. This exercises rsp.rs's
+    // second typed-refusal match arm (evaluate_r2r_and_call_r2s's `r2s_operator.lock()`
+    // match), which the first test above never reaches because it returns early on the
+    // first lock. Without this test, that second match arm had zero coverage.
+    let consumer_temp: Arc<Mutex<Box<dyn R2ROperator<WindowTriple, Vec<Binding>>>>> =
+        Arc::new(Mutex::new(Box::new(SimpleR2R {
+            item: TripleStore::new(),
+        })));
+
+    let r2s_operator = Arc::new(Mutex::new(Relation2StreamOperator::new(
+        StreamOperator::RSTREAM,
+        0,
+    )));
+
+    let poison_handle = {
+        let r2s_operator = r2s_operator.clone();
+        thread::spawn(move || {
+            let _guard = r2s_operator.lock().unwrap();
+            panic!("intentional test poisoning of r2s_operator");
+        })
+    };
+    assert!(
+        poison_handle.join().is_err(),
+        "the spawned thread must have actually panicked, or this test proves nothing"
+    );
+
+    let r2s_called = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let r2s_consumer: Arc<dyn Fn(Vec<Binding>) + Send + Sync> = {
+        let r2s_called = r2s_called.clone();
+        Arc::new(move |_: Vec<Binding>| {
+            r2s_called.store(true, std::sync::atomic::Ordering::SeqCst);
+        })
+    };
+    let query = Query::parse("Select * WHERE{?s ?p ?o}", None).expect("static query must parse");
+    let mut content: ContentContainer<WindowTriple> = ContentContainer::new();
+    content.add(
+        WindowTriple {
+            s: "<http://example.com/foo>".to_string(),
+            p: "<http://test.be/hasVal>".to_string(),
+            o: "<http://example.com/bar>".to_string(),
+        },
+        0,
+    );
+
+    // Must not panic: consumer_temp's stage runs to completion, then the poisoned
+    // r2s_operator lock is reached and the tick's R2S evaluation is skipped.
+    RSPEngine::<WindowTriple, Vec<Binding>>::evaluate_r2r_and_call_r2s(
+        &query,
+        consumer_temp,
+        r2s_consumer,
+        r2s_operator,
+        content,
+    );
+
+    assert!(
+        !r2s_called.load(std::sync::atomic::Ordering::SeqCst),
+        "r2s_consumer must never be invoked when the R2S stage was skipped due to a poisoned \
+         r2s_operator lock"
+    );
+}
