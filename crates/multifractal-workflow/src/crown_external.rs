@@ -25,6 +25,7 @@
 //! | F13 Arazzo Artifact | [`crate::f13_arazzo_artifact::ArazzoProjectionReceipt::project_and_compile`] |
 //! | F14 wasm4pm Arazzo Compiler | [`crate::f14_wasm4pm_arazzo::compile`] |
 //! | F15 AIR Transition Core | [`air_program_to_bridge_workflow`] -> [`crate::f15_air_transition_core::bridge::call_air_core_bridge`] |
+//! | F16 Erlang OTP Outer Runner | [`crate::f16_otp_runner::bridge::call_dispatch_statem_bridge`], via [`drive_external_witness_tail_through_f16`] |
 //! | F20 External Dispatch | [`crate::f20_external_dispatch::dispatch_subworkflow_to_engine`] -> [`crate::f20_external_dispatch::engine_serve`] -> [`crate::f20_external_dispatch::collect_subworkflow_consequence`] |
 //! | F02 (re-admit)              | [`crate::f02_observation_admission::admit_observation`], over a synthesized observation asserting F20's real collected consequence |
 //! | F15 (AIR re-transition)    | [`crate::f15_air_transition_core::bridge::call_air_core_bridge`], called a second time to complete the externally-dispatched step |
@@ -70,22 +71,49 @@
 //!   trip is environment-gated (needs `escript` + a compiled `apps/air_core`) and is exercised by
 //!   this module's own `#[ignore]`d integration test.
 //!
-//! # Where the real chain ends (F15 -> F16), disclosed not fabricated
+//! # `F14 -> F15 -> F16`, closed for real ([`drive_external_witness_tail_through_f16`])
 //!
-//! The EXTERNAL witness continues `... -> F15 -> F16 (OTP runner) -> F18 (broker) -> F20 (external
-//! dispatch) -> ...`. This driver stops at F15. The `F15 -> F16` edge *is* real, but only on the
-//! Erlang side: `apps/arazzo_runner/src/arazzo_runner_workflow.erl:114` (`air_core:new`) and `:475`
-//! (`air_core:transition`) are the production consumers of F15's transition core. There is no
-//! Rust-composable path from this driver into F16's OTP runner (a separate BEAM process, driven by
-//! Erlang callers, not by this Rust process), so composing past F15 from here would mean
-//! fabricating a topology edge that does not exist. F16's own gen_statem dispatch supervisor is
-//! additionally *not* wired into the production dispatch path (its
-//! `check_gen_statem_lifecycle_wired` correctly still returns `Err`), and F18's Rust broker has no
-//! production caller on the EXTERNAL path either. `F20 -> F02(re-admit)` is closed independently
-//! by [`drive_external_reentry`] below (see its own doc comment); `F16 -> F18 -> F20`'s own
-//! dispatch-triggering wiring remains missing, so F20 is exercised here as its own real edge (a
-//! genuine dispatch/collect round trip this driver initiates directly), not as a downstream
-//! consequence of F16/F18 actually running.
+//! A later session closed `F15 -> F16` for real: [`drive_external_witness_tail_through_f16`] takes
+//! the real `BridgeWorkflow`/active-steps/events this module's own converter produces, drives them
+//! through the real `air_core:new/1` + `air_core:transition/2` chain
+//! ([`call_air_core_bridge`](crate::f15_air_transition_core::bridge::call_air_core_bridge)), and
+//! for every real `dispatch_step` command that transition produces, feeds that step into the real
+//! `arazzo_runner_dispatch_statem` 8-state gen_statem
+//! ([`call_dispatch_statem_bridge`](crate::f16_otp_runner::bridge::call_dispatch_statem_bridge)) --
+//! a *second*, independent, real production entrypoint into `apps/arazzo_runner` (via
+//! `arazzo_runner_sup:start_workflow/1`) that does not touch `apply_transition/4` at all (see
+//! [`crate::f16_otp_runner::bridge`]'s own module doc for the full disclosed regression-risk
+//! reasoning this session re-confirmed three independent times before building it). Observing that
+//! gen_statem's own real terminal outcome -- `completed` with a real dispatch token, or `refused`
+//! with a real Erlang refusal atom -- is what makes this a genuine `REAL_EDGE`: a real F15
+//! consequence (a dispatch command the transition core actually emitted) threaded into a real F16
+//! mechanism, not two real modules that merely coexist.
+//!
+//! **Honest nuance**: F13's own projection template (see this module's `F12 -> F13` disclosure)
+//! emits no `onSuccess` routing, so completing F10's own flat, template-derived workflow yields
+//! *zero* `dispatch_step` commands -- `drive_external_witness_tail_through_f16` applied to
+//! [`drive_external_witness_tail`]'s own output legitimately dispatches nothing to F16 (an empty
+//! `dispatch_outcomes`, not a failure, matching this module's established "empty is a legitimate
+//! outcome" precedent from `drive_external_readmit_transition`'s single-terminal-step case). This
+//! module's own test proves the edge is real using the same hand-built `onSuccess: goto` document
+//! `f14_air_program_drives_real_air_core_through_the_bridge` already uses to get a genuine,
+//! non-empty `dispatch_step` command -- the function itself is general (it drives whatever
+//! `BridgeWorkflow`/events it is given), the flat-template limitation is F13's, not this function's.
+//!
+//! **F16 identity fields are deterministically derived, not fabricated**: [`f16_identity_for_step`]
+//! builds every one of [`DispatchStatemRequest`](crate::f16_otp_runner::bridge::DispatchStatemRequest)'s
+//! fields from the F15 transition's own `crown_receipt` and the dispatched step's own id -- no wall
+//! clock, no randomness, and no invented identity unrelated to this specific F15 run.
+//!
+//! # Where the real chain still ends (F16 -> F18 -> F20), disclosed not fabricated
+//!
+//! The EXTERNAL witness continues `... -> F16 -> F18 (broker) -> F20 (external dispatch) -> ...`.
+//! `F16 -> F18` and `F18 -> F20` remain missing: F18's Rust broker has no production caller on the
+//! EXTERNAL path, and nothing in `apps/arazzo_runner` triggers this crate's F20 dispatch as a
+//! downstream consequence of a real F16 completion. `F20 -> F02(re-admit)` is closed independently
+//! by [`drive_external_reentry`] below (see its own doc comment) -- F20 is exercised there as its
+//! own real edge (a genuine dispatch/collect round trip this driver initiates directly), not as a
+//! downstream consequence of F16/F18 actually running.
 //!
 //! # `F20 -> F02(re-admit)`, closed for real ([`drive_external_reentry`])
 //!
@@ -202,6 +230,10 @@ use crate::f14_wasm4pm_arazzo::{compile as compile_arazzo, ArazzoCompileRefused}
 use crate::f15_air_transition_core::bridge::{
     call_air_core_bridge, AirBridgeRefused, BridgeEvent, BridgeStepDef, BridgeTransitionResult,
     BridgeWorkflow,
+};
+use crate::f16_otp_runner::bridge::{
+    call_dispatch_statem_bridge, DispatchStatemBridgeRefused, DispatchStatemOutcome,
+    DispatchStatemRequest,
 };
 use crate::f20_external_dispatch::{
     collect_subworkflow_consequence, dispatch_subworkflow_to_engine, engine_serve, CngRefusal,
@@ -460,6 +492,97 @@ fn air_program_to_bridge_workflow(program: &AirProgram) -> (BridgeWorkflow, Vec<
         .filter(|id| !successors.contains(id))
         .collect();
     (BridgeWorkflow { steps }, active)
+}
+
+/// The real, composed output of driving a real F15 AIR transition, then feeding every real
+/// `dispatch_step` command it produced into a real F16 gen_statem dispatch. Each entry is the
+/// dispatched step's own id paired with that dispatch's real terminal outcome (`completed` or
+/// `refused` -- both are legitimate, non-error outcomes; see [`DispatchStatemOutcome`]).
+#[derive(Debug, Clone)]
+pub struct ExternalWitnessF16Outcome {
+    /// F15's real transition result (`ready_steps`/`commands`), same as
+    /// [`drive_external_readmit_transition`]'s own `transition` field.
+    pub transition: BridgeTransitionResult,
+    /// One real F16 dispatch outcome per `dispatch_step` command `transition` produced, in command
+    /// order. Empty is a legitimate outcome (a transition with no new commands dispatches nothing
+    /// to F16) -- see the module doc's "honest nuance" for why F10's own flat template hits this.
+    pub dispatch_outcomes: Vec<(String, DispatchStatemOutcome)>,
+}
+
+/// Typed refusal for [`drive_external_witness_tail_through_f16`]. Each variant carries the
+/// offending stage's own real refusal verbatim.
+#[derive(Debug, thiserror::Error)]
+pub enum ExternalWitnessF16Refused {
+    /// The real `air_core` bridge transition refused.
+    #[error("crown-external F14->F15 AIR transition refused: {0}")]
+    AirTransition(#[from] AirBridgeRefused),
+    /// The real F16 dispatch-statem bridge refused for the named step.
+    #[error("crown-external F15->F16 dispatch-statem bridge refused for step {step_id}: {source}")]
+    DispatchStatem {
+        step_id: String,
+        #[source]
+        source: DispatchStatemBridgeRefused,
+    },
+}
+
+/// Deterministically derives one real [`DispatchStatemRequest`] from an F15 transition's own
+/// `crown_receipt` and the specific step F15 said is ready to dispatch -- no wall clock, no
+/// randomness, no identity unrelated to this specific run. `bind_value` is always `true` (the same
+/// literal-bind shape this crate's other F16 fixtures use; see
+/// [`crate::f16_otp_runner::bridge`]'s own "single output-bind shape" disclosure).
+fn f16_identity_for_step(crown_receipt: &str, step_id: &str) -> DispatchStatemRequest {
+    DispatchStatemRequest {
+        workflow_id: format!("crown-ext-f16-{crown_receipt}"),
+        correlation_id: format!("crown-ext-f16-corr-{crown_receipt}-{step_id}"),
+        source_digest: crown_receipt.to_string(),
+        projection_digest: crown_receipt.to_string(),
+        receipt_head: crown_receipt.to_string(),
+        replay_id: format!("crown-ext-f16-replay-{crown_receipt}"),
+        step_id: step_id.to_string(),
+        bind_name: format!("{step_id}_done"),
+        bind_value: true,
+    }
+}
+
+/// Drive the EXTERNAL witness's `F14 -> F15 -> F16` edge end to end: complete `bridge_workflow`'s
+/// `active_steps` through the real `air_core` transition core, then feed every real `dispatch_step`
+/// command that transition produces into a real F16 gen_statem dispatch.
+///
+/// Takes the transition inputs directly (not the full [`ExternalWitnessOutcome`]) so it composes
+/// equally well with [`drive_external_witness_tail`]'s own real (but commandless) F10-derived
+/// output and with a hand-built AIR program that has real `onSuccess` routing -- see the module
+/// doc's "honest nuance" for why F10's own output alone does not exercise F16.
+///
+/// # Errors
+/// [`ExternalWitnessF16Refused`], carrying the first stage's own typed refusal.
+///
+/// # Complexity
+/// O(1) Rust-side glue plus one `call_air_core_bridge` round trip and one
+/// `call_dispatch_statem_bridge` round trip per real dispatch command.
+pub fn drive_external_witness_tail_through_f16(
+    bridge_workflow: &BridgeWorkflow,
+    active_steps: &[String],
+    bridge_events: &[BridgeEvent],
+    crown_receipt: &str,
+) -> Result<ExternalWitnessF16Outcome, ExternalWitnessF16Refused> {
+    let transition = call_air_core_bridge(bridge_workflow, active_steps, bridge_events)?;
+
+    let mut dispatch_outcomes = Vec::with_capacity(transition.commands.len());
+    for cmd in &transition.commands {
+        let request = f16_identity_for_step(crown_receipt, &cmd.step_id);
+        let outcome = call_dispatch_statem_bridge(&request).map_err(|source| {
+            ExternalWitnessF16Refused::DispatchStatem {
+                step_id: cmd.step_id.clone(),
+                source,
+            }
+        })?;
+        dispatch_outcomes.push((cmd.step_id.clone(), outcome));
+    }
+
+    Ok(ExternalWitnessF16Outcome {
+        transition,
+        dispatch_outcomes,
+    })
 }
 
 /// Fold every stage's real digest into one deterministic BLAKE3-hex crown receipt. Material is

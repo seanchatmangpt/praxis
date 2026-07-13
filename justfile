@@ -760,8 +760,13 @@ jira-tracking-generate:
 
 # Idempotence check: ggen sync twice (after a fresh real-parse) must leave
 # generated jira-tracking-pack outputs byte-identical (mirrors chatman-sync-verify).
+# Re-runs `cargo fmt -p cng` after this second raw sync too — same reason
+# jira-tracking-generate runs it after its own sync (Tera output isn't
+# rustfmt-clean), so this check compares fmt'd-to-fmt'd instead of flagging
+# the sync-vs-fmt line-wrap delta as if it were real pack drift.
 jira-tracking-verify: jira-tracking-generate
     timeout 120s ggen sync run
+    cargo fmt -p cng
     git diff --exit-code -- 'crates/cng/src/jira_routes.rs' 'crates/cng/src/queries/jira-list.rq' 'crates/cng/src/queries/jira-evidence.rq' 'crates/cng/src/queries/jira-deps.rq' 'crates/cng/src/queries/jira-report.rq'
 
 # Build the feature-gated otel-live emitter binary
@@ -957,6 +962,17 @@ rigor-gap-scan path=".":
 # --- Erlang/OTP umbrella (apps/, rebar.config at repo root) ---
 # air_core, arazzo_runner, arazzo_atomvm, atomvm_runner. Never invoke `rebar3` directly
 # (same rule as `cargo` above) -- use these recipes instead.
+
+# Remove all compiled Erlang/OTP artifacts (_build/{default,test}/lib/*/ebin) so the next
+# erlang-compile is a full rebuild from source, not an mtime-based incremental one. Use this
+# when a beam may be stale relative to its .erl source despite a normal recompile reporting
+# nothing to do -- rebar3's incremental compile is mtime-based, so a source file whose mtime
+# was set backward (e.g. by a concurrent session's git checkout/restore on a shared working
+# tree) can be silently skipped even though its compiled beam is missing exports the current
+# source declares. `rebar3 clean` alone only clears the current profile; `-a` covers every
+# profile's `_build/*/lib/*/ebin` so a stale `_build/test/...` copy can't mask the same bug.
+erlang-clean:
+    rebar3 clean -a
 
 # Compile the Erlang/OTP umbrella (rebar.config's apps/* + lib/* discovery) from the repo root
 erlang-compile:

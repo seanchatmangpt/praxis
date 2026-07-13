@@ -185,9 +185,30 @@
 //!   already on this repo's toolchain -- infrastructure a future Erlang gen_statem
 //!   rewrite would use, not a repo to port application code from)
 //! - `/Users/sac/praxis/packs/f16-otp-runner-pack/` (this pass's ggen pack)
+//!
+//! ## `F15 -> F16`, closed for real via a *second* production entrypoint ([`bridge`])
+//!
+//! A later session built [`bridge::call_dispatch_statem_bridge`]: a real Rust<->Erlang OS-process
+//! bridge (escript), structurally identical to
+//! [`crate::f15_air_transition_core::bridge::call_air_core_bridge`], that drives the real
+//! `arazzo_runner_dispatch_statem` gen_statem end to end -- through
+//! `application:ensure_all_started(arazzo_runner)` + `arazzo_runner_sup:start_workflow/1` (a
+//! second, real, already-existing production entrypoint into the same OTP app), never through
+//! `apply_transition/4`. This does **not** change [`check_gen_statem_lifecycle_wired`]'s answer --
+//! that check's documented meaning is specifically about `apply_transition/4`'s own internal
+//! wiring, which this bridge does not touch and which correctly still refuses -- but it does close
+//! the crown-witness `F15 -> F16` edge for real: `crate::crown_external`'s forward witness tail can
+//! now feed a real F15 AIR-transition dispatch command into a real F16 8-state lifecycle run and
+//! observe its real terminal outcome (`completed` with a real dispatch token, or `refused` with a
+//! real Erlang refusal atom), reusing every entry point verbatim. See [`bridge`]'s own module doc
+//! for the full disclosed scope and the specific regression-risk reasoning (re-confirmed three
+//! independent times in `docs/jira/v26.7.12/CROWN_STATUS.md`) for why this is a new, second
+//! entrypoint rather than a rewiring of the existing one.
 
 #[path = "f16_otp_runner_vocab.rs"]
 pub mod f16_otp_runner_vocab;
+
+pub mod bridge;
 
 use std::collections::BTreeMap;
 
