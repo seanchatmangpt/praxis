@@ -89,6 +89,11 @@ Edges 1-4 are the same shared prefix (all `REAL_EDGE`, above). Production caller
 `air_program_to_bridge_workflow` (crown_external.rs:216). Confirmed it **stops at building F15's
 input**: the actual `call_air_core_bridge` is deliberately not invoked in the production path
 (crown_external.rs:164, "not called here"); the live Erlang round trip runs only in the gated test.
+A separate, topologically independent production caller closes edge 12: `crown_external::drive_external_reentry`
+(commit `b4d743f7`) really dispatches a subworkflow contract, has a real `engine_serve` admit and
+manufacture a response, collects it through cng's own real 5-stage pipeline, and re-admits it
+through F02 -- classified as `REAL_EDGE` on its own real data-threading regardless of edges 9-11's
+`MISSING_EDGE` status, the same way edge 7 (`F13->F14`) was real while edge 5 was only `PARTIAL`.
 
 | # | Edge | Verdict | Evidence (this session) |
 |---|---|---|---|
@@ -99,8 +104,8 @@ input**: the actual `call_air_core_bridge` is deliberately not invoked in the pr
 | 8 | F14 -> F15 | `REAL_EDGE` | F14 `AirProgram` -> `air_program_to_bridge_workflow` (crown_external.rs:296) builds the `BridgeWorkflow` shape `air_core:new/1` consumes; the gated test drives the **real** Erlang `air_core:transition/2` and emits a `dispatch_step` command. Adversarial CONFIRMED (ran the ignored test, passed). |
 | 9 | F15 -> F16 | `MISSING_EDGE` (from Rust) | The real F15 -> F16 edge exists Erlang-side (`apps/arazzo_runner/src/arazzo_runner_workflow.erl:114,:475`) but there is **no Rust-composable path** into F16's OTP runner. Driver stops here rather than fabricate topology. F16's own `check_gen_statem_lifecycle_wired` (f16_otp_runner.rs:401) still returns `Err` — its gen_statem is not in the production dispatch path. |
 | 10 | F16 -> F18 | `MISSING_EDGE` | F18's **Rust** broker has no caller on the external path; the Erlang `arazzo_runner_broker` is a different broker. |
-| 11 | F18 -> F20 | `MISSING_EDGE` | F20 (`f20_external_dispatch.rs`) has no production caller anywhere in the workspace; not wired to F18. |
-| 12 | F20 -> F02 (re-admit) | `MISSING_EDGE` | F20's collect path re-admits through cng's own private pipeline, not this crate's `admit_observation`; `SubworkflowDispatchOutcome` exposes only a digest, never the raw consequence Turtle. Structurally absent. |
+| 11 | F18 -> F20 | `MISSING_EDGE` | F20 (`f20_external_dispatch.rs`) has no production caller *triggered by F18* anywhere in the workspace; F20's own dispatch is real (edge 12) but is initiated directly by `drive_external_reentry`, not by F18's broker. |
+| 12 | F20 -> F02 (re-admit) | `REAL_EDGE` | (commit `b4d743f7`) `dispatch_subworkflow_to_engine` -> `engine_serve` (real, previously-zero-callers receiving side of the same bridge) -> `collect_subworkflow_consequence`, gated on cng's own real `admitted: true`, then re-admitted through F02's real `admit_observation` under a third distinct principal. `SubworkflowDispatchOutcome` widened with `consequence_turtle: Option<String>` (cng, minimal: one field, no new admission logic). Empirically verified: the real round trip produces `admitted: true` with real consequence content, not just structural plumbing; was `MISSING_EDGE`. |
 | 13 | F02 -> F15 (AIR transition) | `MISSING_EDGE` | Not wired. |
 | 14 | F15 -> F21 | `MISSING_EDGE` | Not wired. |
 | 15 | F21 -> F24 | `MISSING_EDGE` | Not wired. |
@@ -111,7 +116,8 @@ Rust-composable path exists; the driver correctly refuses to fabricate a shortcu
 strict "every edge must be `REAL_EDGE`" reading, the first edge that is not a *full* `REAL_EDGE` is
 `F10 -> F12` (`PARTIAL_REAL_EDGE`): real data flows F10 -> F12, but F10 does not synthesize the cut.
 Both facts independently force `EXTERNAL_..._CONTIGUOUS_PATH = false`; `F15 -> F16` is the edge
-where composition actually stops.
+where the *shared-prefix-anchored* composition actually stops (edge 12, `F20->F02`, is real but
+topologically disconnected from that composition until edges 9-11 close).
 
 ## Edge census (distinct edges across the union of both witnesses)
 
@@ -120,21 +126,22 @@ The shared prefix (4 edges) is counted once. Union total = 4 (shared) + 7 (LOCAL
 
 | Bucket | Count | Edges |
 |---|---|---|
-| `REAL_EDGE_COUNT` (full) | **14** | F02->F03, F03->F08, F08->F09, F09->F10, F10->F11, F11->F18, F18->F19, F19->F02(re-admit), F02(re-admit)->F24, F24->F21, F21->F25 (LOCAL, complete -- all committed `d60f2036`/`eeca952a`/`66d8732e`/`0815680a`/`217dc37d`/`66cb59b1`); F12->F13, F13->F14, F14->F15 (EXTERNAL) |
+| `REAL_EDGE_COUNT` (full) | **15** | F02->F03, F03->F08, F08->F09, F09->F10, F10->F11, F11->F18, F18->F19, F19->F02(re-admit), F02(re-admit)->F24, F24->F21, F21->F25 (LOCAL, complete -- all committed `d60f2036`/`eeca952a`/`66d8732e`/`0815680a`/`217dc37d`/`66cb59b1`); F12->F13, F13->F14, F14->F15, F20->F02(re-admit) (EXTERNAL, `F20->F02` committed `b4d743f7`) |
 | `PARTIAL_REAL_EDGE` | 1 | F10->F12 |
 | `TEST_ONLY_EDGE` | 0 | (was F10->F11, F11->F18 -- both closed to `REAL_EDGE`, see above) |
-| `MISSING_EDGE_COUNT` | **8** | F15->F16, F16->F18, F18->F20, F20->F02, F02->F15, F15->F21, F21->F24, F24->F25 (EXTERNAL only -- LOCAL has zero) |
+| `MISSING_EDGE_COUNT` | **7** | F15->F16, F16->F18, F18->F20, F02->F15, F15->F21, F21->F24, F24->F25 (EXTERNAL only -- LOCAL has zero) |
 | `REFUSED_EDGE_COUNT` | **0** | No witness edge is a by-design correct-refusal boundary. |
 
-Strict-contiguity accounting: only the 14 full `REAL_EDGE`s satisfy the path predicate. The 1
+Strict-contiguity accounting: only the 15 full `REAL_EDGE`s satisfy the path predicate. The 1
 `PARTIAL_REAL_EDGE` (`F10->F12`) has real, tested code but leaves a semantic sub-property
 unsatisfied, so it does not count toward the EXTERNAL contiguous path. If bucketed coarsely as
-"real vs not-real," not-real = 1 + 8 = 9 of 23.
+"real vs not-real," not-real = 1 + 7 = 8 of 23.
 
 Per-witness contiguous real prefix from F02: LOCAL = **11 of 11 edges (COMPLETE)** -- updated from
 the original 4 -- see commits `d60f2036`, `eeca952a`, `66d8732e`, `0815680a`, `217dc37d`,
 `66cb59b1`; EXTERNAL = 4 edges (stops at the `F10->F12` partial; then 3 more real edges F12->F15
-sit past the break).
+sit past the break; `F20->F02(re-admit)` is a 5th real EXTERNAL edge but is topologically
+disconnected from this contiguous-from-F02 prefix until `F16`/`F18`/`F18->F20` close).
 
 ## Whole-crate confirmation (commands run this session, non-isolated)
 
@@ -251,15 +258,14 @@ contiguous real path from 10 edges to **11 of 11 (COMPLETE)**.
 
 ### 7. Close the EXTERNAL witness (`F15 -> F16` and beyond) — CURRENT FRONTIER, ONLY REMAINING CROWN WORK
 
-The sole remaining work to flip `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true` is the EXTERNAL
-witness, which needs 5 more edges past its current break: `F15 -> F16 -> F18 -> F20 ->
-F02(re-admit) -> F15(AIR transition) -> F21 -> F24 -> F25` (some of the tail, e.g. the shared
-`F21 -> F24 -> F25` closure, may be reusable from the now-real LOCAL composition once F20's own
-re-admission gap is resolved -- `SubworkflowDispatchOutcome` exposes only a digest, never the raw
-consequence Turtle, per this doc's own EXTERNAL edge 12 evidence). The decisive break, `F15 ->
-F16`, remains a genuine Rust-to-BEAM process boundary: F16's `check_gen_statem_lifecycle_wired`
-still returns `Err`, and `arazzo_runner_workflow.erl:503` routes dispatch via the direct
-synchronous `arazzo_runner_broker:dispatch/4`, not through `arazzo_runner_dispatch_statem`/`_sup`.
+The remaining work to flip `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true` is the EXTERNAL
+witness's topologically-anchored chain, which still needs 4 more edges past its current break:
+`F15 -> F16 -> F18 -> F20-triggered-by-F18 -> F15(AIR transition) -> F21 -> F24 -> F25` (the
+`F20 -> F02(re-admit)` edge itself is now real -- see repair 8 -- but F18 does not yet trigger F20;
+see edge 11's own table entry). The decisive break, `F15 -> F16`, remains a genuine Rust-to-BEAM
+process boundary: F16's `check_gen_statem_lifecycle_wired` still returns `Err`, and
+`arazzo_runner_workflow.erl:503` routes dispatch via the direct synchronous
+`arazzo_runner_broker:dispatch/4`, not through `arazzo_runner_dispatch_statem`/`_sup`.
 **Decide first** (per `REMAINING_WORK.md`'s own R5 framing, still accurate): does the EXTERNAL F15
 step run through the stateless `escript` bridge (`crown_external`'s current approach -- fresh
 context per call) or the stateful OTP `workflow_loop`? These are two different `air_core` entry
@@ -268,32 +274,25 @@ substantially larger than any single LOCAL-witness repair this pass closed -- re
 Erlang/OTP engineering, not incremental Rust wiring -- and should be scoped as its own
 multi-cycle effort, not forced into one pass.
 
-**Investigated and ruled out this pass** (no code changed; recorded so a future cycle doesn't
-re-walk the same ground): two edges were checked for a smaller tractable slice, the way
-`F02(re-admit)->F24`/`F24->F21`/`F21->F25` turned out smaller than first estimated in prior
-cycles. Neither panned out:
-- **`F10 -> F12` upgrade to full `REAL_EDGE`**: would require `f10_powl_geometry::build_powl_geometry`
-  to itself decide *when* to synthesize a `Powl::ExternalCut` node -- a new semantic/algorithmic
-  design question (what real signal marks a subtree as external?), not a wiring task. Bigger than
-  this pass's sizing bar.
-- **`F20 -> F02(re-admit)`**: `SubworkflowDispatchOutcome.consequence_digest` really is
-  digest-only (confirmed by reading `collect_subworkflow_consequence`'s body,
-  `crates/cng/src/bench/decomp/dispatch_bridge.rs:297-369` -- the raw `consequence_ttl: String` is
-  a local variable in scope at both `SubworkflowDispatchOutcome` construction sites and *could* be
-  exposed with one new struct field, a genuinely small fix). But reaching `admitted: true` for a
-  real test fixture requires satisfying `collect_consequence`'s real 5-stage admission protocol
-  (`crates/cng/src/bench/dispatch.rs:986-1041`: provenance/correlation/authority/structural/semantic
-  checks against `DispatchContract`'s real `RWAI_PREFIX`/`DISP_PREFIX` fields and
-  `dispatch-shapes.ttl`) -- and the one real synthesis mechanism that produces a conformant
-  consequence without a live remote engine, `SynthesisMode::LoopbackDeterministic`
-  (`dispatch.rs:1050`), is `pub(super)`, genuinely inaccessible outside `cng::bench::dispatch`.
-  This matches (and confirms, independently) `crates/multifractal-workflow/Cargo.toml`'s own
-  pre-existing comment on the `cng` dependency: "the bridge itself collapses a failed re-admission
-  to a plain `admitted: false` rather than surfacing which pipeline stage refused" -- a
-  deliberately thin, disclosed scope boundary, not an oversight. Closing this edge for real needs
-  either a `cng` crate change (expose a way to produce/validate a conformant consequence from
-  outside the crate) or hand-reconstructing the private protocol from outside it (fragile,
-  duplicative of family internals this session has consistently avoided reimplementing).
+### 8. ~~Close `F20 -> F02(re-admit)`~~ — DONE (`b4d743f7`)
+
+**Supersedes the "ruled out" investigation previously recorded here.** That investigation
+correctly found `SynthesisMode::LoopbackDeterministic` (`cng/src/bench/dispatch.rs:1050`)
+`pub(super)`-inaccessible, but missed a *different*, publicly re-exported real function that
+solves the same problem: `cng::bench::engine_serve` (`pub use engine::{engine_serve, ...}` in
+`cng/src/bench/mod.rs`) is the real *receiving* side of the exact same `dispatch_bridge.rs`
+inbox/outbox convention (`engine.rs`'s own module doc: "the SAME on-disk contract format
+`engine_dispatch_remote` writes and a real `cng engine serve` process organically scans and
+admits" -- and `dispatch_subworkflow_to_engine`'s own doc: "a real `cng engine serve` process
+organically scans and admits"). Calling `engine_serve` between dispatch and collect makes cng's
+own real import/plan/project/validate/conformance chain manufacture a genuinely conformant
+response, empirically verified to produce `admitted: true`.
+`SubworkflowDispatchOutcome.consequence_digest` was genuinely digest-only (the "ruled out" note's
+other finding stands), so `SubworkflowDispatchOutcome` was widened with one new field,
+`consequence_turtle: Option<String>`, carrying the already-computed raw text -- no new admission
+logic, no cng-private stage detail surfaced. Adds a 15th `REAL_EDGE` (`F20->F02(re-admit)`),
+topologically independent of edges 9-11 (same class of independence as `F13->F14` vs.
+`F10->F12`'s `PARTIAL` status).
 
 ## Reachability ceiling (cross-cutting, not an edge repair)
 
