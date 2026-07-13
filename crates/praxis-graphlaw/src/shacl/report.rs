@@ -200,7 +200,19 @@ impl Validator {
 
         let mut results = Vec::new();
 
-        for shape in shape_nodes {
+        // Sort before iterating: `shape_nodes`/`focus_nodes` are `std::collections::HashSet<usize>`,
+        // whose default `RandomState` hasher is reseeded per process, so iterating them directly
+        // (as this loop previously did) pushes `ValidationResult`s into `results` in a different
+        // order on every process run even for byte-identical input triples/shapes -- the ordering
+        // then flows unmodified into `hook_hash`'s BLAKE3 receipt-chain digest (via
+        // `hooks/condition.rs` -> `hooks/evaluate.rs` -> `cng`'s `workday.rs`), silently breaking
+        // this repo's own determinism invariant at the point a receipt is finalized. `usize`
+        // symbol IDs sort numerically; the set's actual membership is unchanged, so sorting here
+        // changes only presentation order, not which violations are reported.
+        let mut sorted_shape_nodes: Vec<usize> = shape_nodes.into_iter().collect();
+        sorted_shape_nodes.sort_unstable();
+
+        for shape in sorted_shape_nodes {
             use super::index_utils::is_shape_deactivated;
             use super::targets_paths::get_focus_nodes;
 
@@ -209,7 +221,9 @@ impl Validator {
                 continue;
             }
             let focus_nodes = get_focus_nodes(data, shapes_index, shape, &vocab);
-            for focus in focus_nodes {
+            let mut sorted_focus_nodes: Vec<usize> = focus_nodes.into_iter().collect();
+            sorted_focus_nodes.sort_unstable();
+            for focus in sorted_focus_nodes {
                 let mut visited = HashSet::new();
                 validate_shape(
                     data,

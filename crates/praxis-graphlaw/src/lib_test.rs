@@ -435,6 +435,57 @@ ex:PersonShape a sh:NodeShape ;
     assert!(report.conforms, "Expected conformance");
 }
 
+// Regression for a real, swarm-identified determinism bug: `shacl::report::Validator::validate`
+// (`report.rs`) iterated its `shape_nodes`/`focus_nodes` sets -- both `std::collections::
+// HashSet<usize>`, whose default `RandomState` hasher is reseeded from OS entropy once per
+// process -- directly, so byte-identical input produced differently-ordered `results` across
+// separate process runs (the swarm's own scenario: the same `cng` workday benchmark run twice as
+// two OS processes). That cross-process nondeterminism cannot be reproduced by a single-process
+// unit test (within one process, `RandomState`'s cached per-thread seed is reused across
+// `HashSet::new()` calls, so pre-fix code already happened to look consistent test-to-test here)
+// -- disclosed, not smuggled: this test instead asserts the two properties actually verifiable
+// in-process: (1) validating the identical input repeatedly always returns the identical,
+// byte-equal `results` order (this codebase's own established determinism-verification method,
+// `.claude/rules/rust-agi-core-team.md` rule 1: "run N times, diff outputs"), and (2) with >= 2
+// distinct violations present, both are captured (count is unaffected by the ordering fix).
+#[test]
+fn test_shacl_validate_is_deterministic_across_repeated_calls() {
+    let mut store = TripleStore::new();
+    store
+        .load_triples(
+            "<http://example/det-shacl-alice> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example/det-shacl-Person> .\n\
+             <http://example/det-shacl-bob> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example/det-shacl-Person> .",
+            crate::parser::Syntax::NTriples,
+        )
+        .unwrap();
+
+    let shapes = "@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example/> .
+ex:DetShaclPersonShape a sh:NodeShape ;
+    sh:targetClass ex:det-shacl-Person ;
+    sh:property [ sh:path ex:det-shacl-name ; sh:minCount 1 ] .";
+
+    let first = store.validate_shacl(shapes).unwrap();
+    assert!(
+        !first.conforms,
+        "both instances lack ex:det-shacl-name; expected minCount violations"
+    );
+    assert_eq!(
+        first.results.len(),
+        2,
+        "both alice and bob must be reported, got: {:?}",
+        first.results
+    );
+
+    for _ in 0..4 {
+        let repeat = store.validate_shacl(shapes).unwrap();
+        assert_eq!(
+            repeat.results, first.results,
+            "validating identical input must return results in the identical order every time"
+        );
+    }
+}
+
 #[test]
 fn test_shacl_report_to_triples() {
     let mut store = TripleStore::new();
