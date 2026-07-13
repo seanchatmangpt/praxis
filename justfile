@@ -1289,6 +1289,29 @@ ci-clean-verify:
 
     echo "ci-clean-verify: PASS -- genuine clean-room rebuild + test on both the Erlang umbrella and cng (Rust)"
 
+# --- v26.7.13 Dry-Run Publish gate (docs/releases/v26.7.13/, packs/dry-run-publish-pack/) ---
+#
+# `cargo publish`/`cargo package` are blocked from direct invocation by
+# .claude/hooks/block-direct-cargo.sh (CLAUDE.md: route cargo through just) -- these two
+# recipes are that routing. Each is scoped to ONE crate (dependency-order fan-out lives in
+# the harness, crates/cng/src/bench/dry_run_publish.rs, not in justfile), and uses a
+# per-crate isolated CARGO_TARGET_DIR so a package/publish attempt for one crate never
+# collides with another concurrent `just` invocation's build (see the "Isolated-target
+# cargo recipes" note above cng-check-isolated).
+
+# `cargo package --locked` for one workspace member, isolated target dir. Verifies the
+# package file list assembles and the manifest is well-formed; does NOT build the crate
+# (that's cargo-publish-dry-run below). `name` is a caller-chosen isolation tag (unique per
+# concurrent run), `crate` is the -p package name.
+cargo-package-dry-run name crate:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo package --locked -p {{crate}}
+
+# `cargo publish --dry-run --locked` for one workspace member, isolated target dir. This
+# DOES build the crate in an isolated environment (closer to what crates.io's build farm
+# would see) but never uploads anything -- `--dry-run` is load-bearing, never omit it.
+cargo-publish-dry-run name crate:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 600s cargo publish --dry-run --locked -p {{crate}}
+
 # Run one ggen integration-test binary in an isolated target dir
 # (concurrent-agent-safe, same convention as cng-test-isolated).
 ggen-test-isolated name binary *args:

@@ -1,0 +1,135 @@
+# dry-run-publish-pack ontology — PUBLIC-ONTOLOGY-FIRST (no private namespace).
+#
+# Doctrine (matches packs/soc2-audit-pack/ontology.ttl and
+# packs/togaf-adm-pack/ontology.ttl's own fence): every class and predicate
+# comes from a public RDF vocabulary; release-specific individuals are blank
+# nodes carrying skos:notation as their deterministic, human-operable
+# handle. No custom prefix, no @base, no default namespace is minted here.
+#
+# DRY-RUN-OVERCLAIM FENCE (structural, not just stated here): a "dry run"
+# publish check is a set of LOCAL, REVERSIBLE verification steps (packaging,
+# `cargo publish --dry-run`, clean-room unpack/build/test, receipt replay)
+# — it is NOT a crates.io upload and NOTHING this pipeline computes can ever
+# BE a live release. This pack models the v26.7.13 Dry-Run Publish
+# Definition of Done's six blocking-gate categories (release scope and
+# identity; deterministic generation; the verification ladder; package
+# manufacture; clean-room verification; receipt and replay) and produces a
+# DRY-RUN EVIDENCE BUNDLE for a human release manager's go/no-go decision.
+# No concept in this ontology and no action effect in the generated PDDL
+# fragments (packs/dry-run-publish-pack/templates/dry-run-*.ttl.tmpl) is
+# named "published", "crates-io-uploaded", "release-complete", or any
+# synonym implying external mutation occurred; the only terminal goal atom
+# in the merged cycle problem is "dry-run-verified" (crates/cng/src/bench/
+# dry_run_publish_test.rs is expected to assert this mechanically over the
+# parsed domain, matching how soc2_test.rs greps the merged SOC2 domain for
+# "compliant"/"opinion" and asserts zero matches — not just an inspection
+# claim here). This mirrors the identical line SOC2 draws between an
+# evidence bundle and an auditor's opinion: this pipeline's terminal
+# deliverable is evidence for a human decision, never the decision itself,
+# and never a claim that `cargo publish` (without `--dry-run`) ran.
+#
+# Public vocabularies used:
+#   skos:    concept schemes for the 6-phase dry-run publish gate lifecycle
+#            and the illustrative publish-set members of the case-study
+#            release candidate — no public ontology models either of these
+#            (they are this pipeline's own process taxonomy and this pack's
+#            fixture data), so SKOS concepts in blank-node schemes represent
+#            them without minting a private namespace, the same move
+#            soc2-audit-pack made for the AICPA TSC taxonomy and
+#            togaf-adm-pack made for the Ross/Weill/Robertson operating
+#            models.
+#   prov:    gate-phase executions (prov:Activity), generated evidence/
+#            deliverable entities (prov:Entity), and the release-candidate
+#            workspace under test (dual-typed prov:Entity + prov:Agent: it
+#            is itself a build artifact AND the association target of each
+#            phase's prov:wasAssociatedWith, the same dual role
+#            org:Organization + prov:Agent plays for the audited enterprise
+#            in soc2-audit-pack — there is no org:Organization here because
+#            a release candidate is not an organization, so only the
+#            prov:Agent half of that pattern is reused).
+#   dcterms: descriptions throughout.
+#
+# Private namespaces this pipeline still REQUIRES (pipeline ABI, not
+# modeling vocabulary — disclosed, not used in this file):
+#   urn:chatman:engine#pddlDomain / #pddlProblem — the PDDL text carrier
+#     predicates hardwired into cng pipeline.rs import_artifacts.
+#   https://truex.io/ontology/powl2# — the POWL v2 output vocabulary
+#     hardwired into cng powl.rs powl_to_turtle and powl2-shapes.ttl.
+# Like soc2-audit-pack and unlike togaf-adm-pack, this pack does NOT union
+# pddl-strips.ttl: PDDL is carried only as ceng:pddlDomain/#pddlProblem
+# literal text here, never as RDF structure, so no ggen.toml
+# extra_ontologies entry is needed.
+
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# --- Dry-run publish gate phases (SKOS concept scheme; blank nodes) --------
+# The 6 blocking-gate categories of the v26.7.13 Dry-Run Publish Definition
+# of Done, in DoD order. Unlike soc2-audit-pack (10 phases, bespoke
+# per-phase terminal-deliverable predicate names, e.g. "vision-produced" for
+# TOGAF Phase A) this pack uses a UNIFORM predicate-naming convention across
+# all 6 phases — "{phase}-engaged" / "{phase}-step1-done" /
+# "{phase}-step2-done" / "{phase}-complete" — a deliberate, explicit product
+# directive for this pack, disclosed here rather than silently deviating
+# from the family's established per-phase-bespoke-naming precedent. The one
+# exception is Phase 6 (Receipt & Replay): its terminal effect atom is
+# "dry-run-verified", not "receipt-complete", because that atom is also the
+# merged problem's sole GOAL atom and the DRY-RUN-OVERCLAIM FENCE above
+# requires the goal atom to read unambiguously as "dry run", never as a
+# generic phase-completion word that could be misread as "release shipped".
+# Phase 6's deliverable-atom deviation is the same design move SOC2 makes
+# for its own terminal phase ("evidence-bundle-complete", not
+# "report-handoff-complete").
+
+_:dryRunScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "v26.7.13 Dry-Run Publish DoD gate phases"@en ;
+    skos:notation "DRY-RUN-PUBLISH-PHASES" ;
+    dcterms:description "The 6 blocking-gate categories of the v26.7.13 Dry-Run Publish Definition of Done, from release scope and identity through receipt and replay. Order is carried by skos:notation sequence and instance-data precondition chains, not by this scheme's triple order."@en .
+
+_:phScope rdf:type skos:Concept ; skos:inScheme _:dryRunScheme ;
+    skos:notation "DRY-RUN-SCOPE" ; rdfs:label "1: Release Scope & Identity"@en ;
+    dcterms:description "Publish set, version sync, PRD/ARD/RELEASE_CONTROL sync, git SHA binding, clean worktree."@en .
+_:phGenerate rdf:type skos:Concept ; skos:inScheme _:dryRunScheme ;
+    skos:notation "DRY-RUN-GENERATE" ; rdfs:label "2: Deterministic Generation"@en ;
+    dcterms:description "ggen version pin, sync idempotence, lock correctness."@en .
+_:phVerify rdf:type skos:Concept ; skos:inScheme _:dryRunScheme ;
+    skos:notation "DRY-RUN-VERIFY" ; rdfs:label "3: Verification Ladder"@en ;
+    dcterms:description "just verify-all, just standing, no silently-ignored tests."@en .
+_:phManufacture rdf:type skos:Concept ; skos:inScheme _:dryRunScheme ;
+    skos:notation "DRY-RUN-MANUFACTURE" ; rdfs:label "4: Package Manufacture"@en ;
+    dcterms:description "cargo package --locked, cargo publish --dry-run --locked, per publish-set member."@en .
+_:phCleanroom rdf:type skos:Concept ; skos:inScheme _:dryRunScheme ;
+    skos:notation "DRY-RUN-CLEANROOM" ; rdfs:label "5: Clean-Room Verification"@en ;
+    dcterms:description "Unpack, build, and test in a fresh directory, isolated from the dev workspace."@en .
+_:phReceipt rdf:type skos:Concept ; skos:inScheme _:dryRunScheme ;
+    skos:notation "DRY-RUN-RECEIPT" ; rdfs:label "6: Receipt & Replay (terminal — dry-run verified; no external mutation ever occurs)"@en ;
+    dcterms:description "Final receipt, OCEL evidence, byte-identical replay, external_mutation=false."@en .
+
+# --- Kestrel Toolkit publish-set members (SKOS concept scheme) -------------
+# The illustrative case study's publish set: a fictional 3-crate Rust
+# workspace, invented so packs/dry-run-publish-pack/templates/dry-run-
+# publish-case-study.ttl.tmpl has something concrete to run "per
+# publish-set member" (Phase 4) against. Fictional and generic — chosen
+# precisely so this fixture can never be read as this repo's own real
+# crates.io publish set; the REAL per-crate dry-run results belong in Rust
+# harness output (crates/cng/src/bench/dry_run_publish_test.rs), never
+# baked into this fixture Turtle. Same skos:notation-as-join-key discipline
+# as soc2-audit-pack's control points and togaf-adm-pack's capabilities.
+
+_:publishSetScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "Kestrel Toolkit publish-set members"@en ;
+    skos:notation "KESTREL-PUBLISH-SET" ;
+    dcterms:description "The 3 illustrative crates in the fictional Kestrel Toolkit workspace's publish set, each dry-run-published independently during Phase 4 (Package Manufacture)."@en .
+
+_:pkgCore rdf:type skos:Concept ; skos:inScheme _:publishSetScheme ;
+    skos:notation "PKG-KESTREL-CORE" ; rdfs:label "kestrel-core"@en .
+_:pkgCli rdf:type skos:Concept ; skos:inScheme _:publishSetScheme ;
+    skos:notation "PKG-KESTREL-CLI" ; rdfs:label "kestrel-cli"@en .
+_:pkgMacros rdf:type skos:Concept ; skos:inScheme _:publishSetScheme ;
+    skos:notation "PKG-KESTREL-MACROS" ; rdfs:label "kestrel-macros"@en .
