@@ -486,6 +486,126 @@ ex:DetShaclPersonShape a sh:NodeShape ;
     }
 }
 
+// Regression for swarm finding #23 (same bug class as #22 above, different file): `shacl::
+// validate::validate_shape_closed_and_targets_tail`'s `sh:closed` check iterated
+// `data.spo.get(&focus_node)`'s `FxHashMap<usize, ...>` keys directly, so with >= 2 forbidden
+// predicates present on one focus node, `results` push order depended on that map's bucket
+// layout rather than a canonical order. Fixed the same way as #22: collect and
+// `sort_unstable()` the predicate IDs before iterating. Disclosed, not smuggled: `FxHashMap`
+// uses a deterministic (non-randomly-seeded) hasher, unlike `std::collections::HashSet`'s
+// default `RandomState` (finding #22's cross-process issue) -- but its iteration order can
+// still depend on insertion sequence via resize/rehash history, so two logically-identical but
+// differently-*constructed* `TripleIndex`es (e.g. two independent loaders) were not
+// guaranteed the same order even within one process. Same in-process verification limits as
+// #22's test apply: this asserts repeated-call determinism and correct violation count, the
+// properties actually checkable without reconstructing the index two different ways.
+#[test]
+fn test_shacl_closed_shape_violation_order_is_deterministic() {
+    let mut store = TripleStore::new();
+    store
+        .load_triples(
+            "<http://example/det-closed-alice> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example/det-closed-Person> .\n\
+             <http://example/det-closed-alice> <http://example/det-closed-extra-a> \"x\" .\n\
+             <http://example/det-closed-alice> <http://example/det-closed-extra-b> \"y\" .",
+            crate::parser::Syntax::NTriples,
+        )
+        .unwrap();
+
+    let shapes = "@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example/> .
+ex:DetClosedPersonShape a sh:NodeShape ;
+    sh:targetClass ex:det-closed-Person ;
+    sh:closed true ;
+    sh:ignoredProperties (rdf:type) .";
+
+    let first = store.validate_shacl(shapes).unwrap();
+    assert!(
+        !first.conforms,
+        "both extra predicates are outside the closed shape"
+    );
+    assert_eq!(
+        first.results.len(),
+        2,
+        "both det-closed-extra-a and det-closed-extra-b must be reported, got: {:?}",
+        first.results
+    );
+
+    for _ in 0..4 {
+        let repeat = store.validate_shacl(shapes).unwrap();
+        assert_eq!(
+            repeat.results, first.results,
+            "validating identical input must return sh:closed violations in the identical order every time"
+        );
+    }
+}
+
+// Regression for swarm finding #24 (same bug class as #22/#23, ShEx's CLOSED shape check
+// instead of SHACL's sh:closed): `shex_native::validate_node`'s CLOSED-shape branch iterated
+// `data.spo.get(&focus)`'s `FxHashMap<usize, ...>` keys directly, joining one "CLOSED shape:
+// predicate ..." message per extra predicate into a single `ShexValidationFailure.reason`
+// string via `errors.join("; ")` -- so with >= 2 extra predicates, the joined message order
+// depended on FxHashMap bucket layout. Fixed the same way as #22/#23: sort the predicate IDs
+// before iterating. Same in-process verification limits apply: asserts repeated-call
+// determinism of the joined `reason` string, not a synthetic two-differently-built-index
+// comparison.
+#[test]
+fn test_shex_closed_shape_violation_order_is_deterministic() {
+    let mut store = TripleStore::new();
+    store
+        .load_triples(
+            "<http://example.org/det-shex-alice> <http://example.org/det-shex-extra-a> \"x\" .\n\
+             <http://example.org/det-shex-alice> <http://example.org/det-shex-extra-b> \"y\" .",
+            crate::parser::Syntax::NTriples,
+        )
+        .unwrap();
+
+    let schema_json = r#"{
+          "@context": "http://www.w3.org/ns/shexj.jsonld",
+          "type": "Schema",
+          "shapes": [
+            {
+              "type": "ShapeDecl",
+              "id": "http://example.org/DetShexClosedShape",
+              "shapeExpr": {
+                "type": "Shape",
+                "closed": true,
+                "expression": null
+              }
+            }
+          ]
+        }"#;
+
+    let shape_map = vec![(
+        "http://example.org/det-shex-alice".to_string(),
+        "http://example.org/DetShexClosedShape".to_string(),
+    )];
+
+    let first = store.validate_shex(schema_json, &shape_map).unwrap();
+    assert!(
+        !first.conforms,
+        "both extra predicates violate the closed shape with no expression/EXTRA"
+    );
+    assert_eq!(
+        first.failures.len(),
+        1,
+        "one failure for the one (node, shape) pair"
+    );
+    assert!(
+        first.failures[0].reason.contains("det-shex-extra-a")
+            && first.failures[0].reason.contains("det-shex-extra-b"),
+        "reason must name both extra predicates, got: {:?}",
+        first.failures[0].reason
+    );
+
+    for _ in 0..4 {
+        let repeat = store.validate_shex(schema_json, &shape_map).unwrap();
+        assert_eq!(
+            repeat.failures[0].reason, first.failures[0].reason,
+            "validating identical input must return the CLOSED-shape reason string in the identical order every time"
+        );
+    }
+}
+
 #[test]
 fn test_shacl_report_to_triples() {
     let mut store = TripleStore::new();

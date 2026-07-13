@@ -291,7 +291,15 @@ fn validate_node(
                     .map(|p| VarOrTerm::convert(format!("<{p}>")).to_encoded())
                     .collect();
                 if let Some(preds) = data.spo.get(&focus) {
-                    for &pred in preds.keys() {
+                    // Sort before iterating: `preds` is an `FxHashMap<usize, ...>`, whose key
+                    // iteration order depends on bucket layout / insertion history, not just
+                    // content -- same non-determinism class as swarm finding #22/#23 (fixed in
+                    // shacl/report.rs and shacl/validate.rs). `errors` is joined into
+                    // `ShexValidationFailure.reason`, which flows into the same hook-receipt
+                    // digest chain, so unsorted iteration here is equally reachable.
+                    let mut sorted_preds: Vec<usize> = preds.keys().copied().collect();
+                    sorted_preds.sort_unstable();
+                    for pred in sorted_preds {
                         if !consumed_predicates.contains(&pred) && !extra_ids.contains(&pred) {
                             errors.push(format!(
                                 "CLOSED shape: predicate {:?} is neither matched by the shape expression nor listed in EXTRA",

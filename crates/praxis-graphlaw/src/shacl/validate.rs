@@ -1150,7 +1150,18 @@ fn validate_shape_closed_and_targets_tail(
                     }
                 }
                 if let Some(preds) = data.spo.get(&focus_node) {
-                    for &pred in preds.keys() {
+                    // Sort before iterating: `preds` is an `FxHashMap<usize, ...>` (rustc_hash,
+                    // deterministic hasher but NOT insertion-order-preserving), so its key
+                    // iteration order depends on bucket layout, which can shift with insertion
+                    // sequence (e.g. differing resize/rehash history across two loaders of the
+                    // same logical graph, or two independent SPARQL CONSTRUCT evaluations). This
+                    // `results` push order flows unmodified into the same hook-receipt digest
+                    // chain swarm finding #22 fixed in shacl/report.rs's `Validator::validate` --
+                    // matching that fix's discipline: a real `usize` symbol ID sorts numerically
+                    // without changing which violations are reported, only their order.
+                    let mut sorted_preds: Vec<usize> = preds.keys().copied().collect();
+                    sorted_preds.sort_unstable();
+                    for pred in sorted_preds {
                         if !allowed_preds.contains(&pred) {
                             results.push(make_result(
                                 focus_node,
