@@ -1207,6 +1207,44 @@ mod tests {
         ));
     }
 
+    /// `consult_wasm4pm_breed` really gates on `dispatch_breed`'s own real precondition check,
+    /// not just its own permit/substitution gates before it (swarm audit wnl2yhbgm finding #28):
+    /// `bayesian_network`'s `preconditions` (`wasm4pm-cognition/src/breeds/bayesian_network.rs`)
+    /// requires at least one `Goal` with `predicate == "query"`, else `dispatch_breed` returns
+    /// `Err("missing query goal")`, wrapped here as `BreedDispatchFailed`. This calls
+    /// `consult_wasm4pm_breed` with the exact same `stage`/`expected_breeds`/`breed_id` args
+    /// `rank_causes` itself passes, so it exercises the real dispatch/precondition chain
+    /// `rank_causes` would hit, not a hand-rolled stand-in for it.
+    #[test]
+    fn test_consult_wasm4pm_breed_reports_dispatch_failure_from_a_real_breed_precondition() {
+        let permits = BreedPermitTable::new(["bayesian_network".to_string()]);
+        let mut input = bayesian_input();
+        input.goals.clear();
+        let err = consult_wasm4pm_breed(
+            "CausesRanked",
+            &permits,
+            &["bayesian_network"],
+            "bayesian_network",
+            &input,
+        )
+        .expect_err("a breed input missing its required query goal must fail dispatch");
+        match err {
+            BreedCompositionRefused::BreedDispatchFailed {
+                stage,
+                breed,
+                detail,
+            } => {
+                assert_eq!(stage, "CausesRanked");
+                assert_eq!(breed, "bayesian_network");
+                assert!(
+                    detail.contains("missing query goal"),
+                    "expected the real bayesian_network precondition failure text, got: {detail}"
+                );
+            }
+            other => panic!("expected BreedDispatchFailed, got {other:?}"),
+        }
+    }
+
     #[test]
     fn test_witness_never_promotes_to_authority() {
         let err = assert_witness_not_authority("CausesRanked", "bayesian_network")
