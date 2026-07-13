@@ -12,6 +12,7 @@ use oxigraph::model::{GraphName, LiteralRef, NamedNodeRef, Term, TermRef};
 use oxigraph::sparql::{QueryResults, SparqlEvaluator};
 use oxigraph::store::Store;
 
+use crate::bench::dispatch::write_atomic;
 use crate::powl::CngRefusal;
 use wasm4pm_cognition::breeds::production_rules::Mycin;
 use wasm4pm_cognition::breeds::{BreedInput, CognitionBreed, Fact, Rule};
@@ -317,6 +318,30 @@ impl<'a> ObsWriter<'a> {
                 dir.display()
             )));
         }
+        // Resume-safe partition numbering (swarm audit wnl2yhbgm finding #8): a fresh
+        // `ObsWriter` always started `part_idx` at 0 regardless of what's already on disk, so
+        // `engine_resume`'s `run_serve_loop` call -- which constructs a NEW `ObsWriter` over
+        // the SAME `bundle.ticks_dir()` a prior `engine_serve` pass already wrote into --
+        // would silently overwrite that prior pass's own `<prefix>-part-00000.ttl` (and
+        // onward) with the resumed session's own first flush, destroying already-durable
+        // observation partitions in exactly the crash-resume scenario `engine_resume` exists
+        // for. Scan for the highest already-written `<prefix>-part-<N>.ttl` and continue one
+        // past it; never overwrite.
+        let next_part_idx = fs::read_dir(dir)
+            .map_err(|e| CngRefusal::IoRefused(format!("read {}: {e}", dir.display())))?
+            .flatten()
+            .filter_map(|entry| {
+                let name = entry.file_name();
+                let name = name.to_str()?.to_string();
+                name.strip_prefix(prefix)?
+                    .strip_prefix("-part-")?
+                    .strip_suffix(".ttl")?
+                    .parse::<usize>()
+                    .ok()
+            })
+            .max()
+            .map_or(0, |max_idx| max_idx + 1);
+
         Ok(ObsWriter {
             templates,
             store,
@@ -325,7 +350,7 @@ impl<'a> ObsWriter<'a> {
             seq: 0,
             buf: String::new(),
             in_buf: 0,
-            part_idx: 0,
+            part_idx: next_part_idx,
             flush_threshold: OBS_PER_PARTITION,
         })
     }
@@ -376,8 +401,10 @@ impl<'a> ObsWriter<'a> {
         let path = self
             .dir
             .join(format!("{}-part-{:05}.ttl", self.prefix, self.part_idx));
-        fs::write(&path, &self.buf)
-            .map_err(|e| CngRefusal::IoRefused(format!("write {}: {e}", path.display())))?;
+        // write_atomic (tmp + fs::rename), not plain fs::write: a concurrent reader scanning
+        // ticks_dir() (e.g. engine_collect_remote's evidence-materialization pass) must never
+        // observe a torn/partially-written partition file (swarm audit wnl2yhbgm finding #8).
+        write_atomic(&path, &self.buf)?;
         self.part_idx += 1;
         self.buf.clear();
         self.in_buf = 0;

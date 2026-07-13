@@ -516,6 +516,101 @@ test!(g13_crash_resume_verifies_chain_and_completes, {
     assert!(found >= 1, "resume_verified observation must be durable");
 });
 
+// Swarm audit wnl2yhbgm finding #8: `ObsWriter::new` used to always start `part_idx` at 0
+// regardless of what was already on disk. `engine_resume` calls the same `run_serve_loop` as
+// `engine_serve`, which constructs a FRESH `ObsWriter` over the SAME `bundle.ticks_dir()` a
+// crashed pass already wrote into -- so resume's own first flush would silently overwrite the
+// crashed pass's `engine-part-00000.ttl` (and onward), destroying already-durable observation
+// partitions in exactly the crash-resume scenario `engine_resume` exists for. This test's own
+// falsifier is partition-numbering safety specifically, not chain verification (already covered
+// by g13 above): every pre-crash tick partition must be byte-identical after a real `cng engine
+// resume`, and resume must have written at least one genuinely new partition beyond that set.
+test!(g14_crash_resume_never_overwrites_a_prior_tick_partition, {
+    let root = scratch_dir("g14");
+    let dispatched =
+        engine_dispatch_remote(&root, "C", &["H"], 2, 0, 0, SEED).expect("dispatch phase");
+    assert_eq!(dispatched, 2);
+
+    let mut child = EngineGuard::new(spawn_engine(&root, "H", "10000", "50"));
+    let ticks_dir = root.join("engines/H/ticks");
+    let mut saw_ticks = false;
+    for _ in 0..600 {
+        let has_ttl_entry = fs::read_dir(&ticks_dir)
+            .map(|d| {
+                d.flatten()
+                    .any(|e| e.path().extension().and_then(|x| x.to_str()) == Some("ttl"))
+            })
+            .unwrap_or(false);
+        if has_ttl_entry {
+            saw_ticks = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    if !saw_ticks {
+        child.kill().ok();
+        let mut stderr = String::new();
+        std::io::Read::read_to_string(&mut child.stderr.take().unwrap(), &mut stderr)
+            .unwrap_or_default();
+        panic!(
+            "engine never wrote a durable tick partition. stderr:\n{}",
+            stderr
+        );
+    }
+    child.kill().expect("kill engine mid-serve");
+    let _ = child.wait();
+
+    // Snapshot every pre-crash partition file's exact content before resume.
+    let pre_crash_partitions: BTreeMap<String, String> = fs::read_dir(&ticks_dir)
+        .expect("read ticks dir")
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().and_then(|x| x.to_str()) == Some("ttl"))
+        .map(|p| {
+            let name = p.file_name().expect("tick partition has a filename");
+            let name = name.to_string_lossy().to_string();
+            let content = fs::read_to_string(&p).expect("read pre-crash partition");
+            (name, content)
+        })
+        .collect();
+    assert!(
+        !pre_crash_partitions.is_empty(),
+        "at least one tick partition must be durable before resume"
+    );
+
+    let (_stdout, stderr, ok) = run_cng(&[
+        "engine",
+        "resume",
+        "--root",
+        root.to_str().expect("utf-8 root"),
+        "--engine-id",
+        "H",
+        "--seed",
+        "616",
+        "--max-polls",
+        "6",
+    ]);
+    assert!(ok, "resume failed: {stderr}");
+
+    for (name, pre_content) in &pre_crash_partitions {
+        let post_content = fs::read_to_string(ticks_dir.join(name))
+            .unwrap_or_else(|e| panic!("pre-crash partition {name} missing after resume: {e}"));
+        assert_eq!(
+            &post_content, pre_content,
+            "resume must not overwrite the pre-crash partition {name}"
+        );
+    }
+    let post_crash_partition_count = fs::read_dir(&ticks_dir)
+        .expect("read ticks dir")
+        .flatten()
+        .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("ttl"))
+        .count();
+    assert!(
+        post_crash_partition_count > pre_crash_partitions.len(),
+        "resume must have written at least one new tick partition beyond the pre-crash set"
+    );
+});
+
 test!(
     distributed_determinism_two_serialized_runs_byte_identical,
     {
