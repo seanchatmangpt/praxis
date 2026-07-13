@@ -105,12 +105,21 @@ use wasm4pm_compat::pddl::{Pddl8Domain, Pddl8Problem, Pddl8Tape};
 // named refusal type for D4 Shape Admission's refused verdict).
 // ---------------------------------------------------------------------
 
-/// F26 self-play pipeline's typed refusal taxonomy. Every variant is
-/// returned from a real code path exercised by this module's tests (see
-/// each variant's doc comment for which stage raises it), except
-/// [`SelfPlayRefusal::NotYetImplemented`], which is raised unconditionally
-/// by the three HAND_WRITE_REQUIRED stubs ([`generate_scenario`],
-/// [`mine_discovery_patterns`], [`capitalize_discoveries`]).
+/// F26 self-play pipeline's typed refusal taxonomy. [`SelfPlayRefusal::NotYetImplemented`]
+/// is raised unconditionally by the three HAND_WRITE_REQUIRED stubs
+/// ([`generate_scenario`], [`mine_discovery_patterns`], [`capitalize_discoveries`]).
+/// Four more variants are genuinely exercised by this module's tests --
+/// [`SelfPlayRefusal::SelfPlayScenarioRefused`],
+/// [`SelfPlayRefusal::ImpossibleScenarioPreplanRefused`],
+/// [`SelfPlayRefusal::DuplicateCorrelationConflict`], and (weakly --
+/// `contraction_refuses_on_malformed_facts` accepts either this refusal or
+/// an empty-closure `Ok`, so it does not force the path)
+/// [`SelfPlayRefusal::WorldMalformed`]. The remaining five --
+/// [`SelfPlayRefusal::RuleSetMalformed`], [`SelfPlayRefusal::ContractionFailed`],
+/// [`SelfPlayRefusal::ShaclValidatorError`], [`SelfPlayRefusal::SimulationRefused`],
+/// and [`SelfPlayRefusal::SyntheticHookFailed`] -- are real error-mapping arms
+/// over their underlying crate calls, but no test in this module drives any
+/// of those calls to actually fail; UNVERIFIED, not yet exercised.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum SelfPlayRefusal {
     /// Raised unconditionally by a stage whose real algorithm does not yet

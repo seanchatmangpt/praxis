@@ -1126,6 +1126,33 @@ mod tests {
     }
 
     #[test]
+    fn render_roadmap_refuses_on_empty_canonical_nquads() {
+        // Trigger test for CapabilityRoadmapRefused::ReceiptEmissionRefused:
+        // Receipt::from_canonical_nquads itself refuses empty N-Quads
+        // material (see crates/praxis-graphlaw/src/chatman/abi.rs), and
+        // render_roadmap must surface that as a real, typed C8 refusal
+        // rather than a bare generic message.
+        let candidates = vec![RoadmapCandidate {
+            seed: CapabilitySeed {
+                seed_id: "seed-1".to_string(),
+                cluster_id: "cluster-1".to_string(),
+                description: "desc".to_string(),
+            },
+            delta: DeltaFReport {
+                baseline_total_ticks: 100,
+                candidate_total_ticks: 90,
+                delta_ticks: 10,
+                contracted: true,
+            },
+        }];
+        let result = render_roadmap(candidates, "witness-1", "replay-hint-1", "");
+        assert!(matches!(
+            result,
+            Err(CapabilityRoadmapRefused::ReceiptEmissionRefused(_))
+        ));
+    }
+
+    #[test]
     fn full_pipeline_reaches_roadmap_emitted_and_receipt_verifies() {
         let regions = sample_regions();
         let profile = measure_process_work(&regions);
@@ -1274,6 +1301,43 @@ mod tests {
         assert!(matches!(
             result,
             Err(bcinr_powl_receipt::replay::ReplayViolation::TokenNotEnabled { .. })
+        ));
+    }
+
+    #[test]
+    fn verify_receipt_head_refuses_on_out_of_order_replay() {
+        // Trigger test for CapabilityRoadmapRefused::ReplayEquivalenceFailed:
+        // a real, valid receipt (from render_roadmap) paired with a
+        // transitions slice that replays out-of-order must refuse via this
+        // variant, not merely be name-checked against REFUSAL_CATALOG.
+        let candidates = vec![RoadmapCandidate {
+            seed: CapabilitySeed {
+                seed_id: "seed-1".to_string(),
+                cluster_id: "cluster-1".to_string(),
+                description: "desc".to_string(),
+            },
+            delta: DeltaFReport {
+                baseline_total_ticks: 100,
+                candidate_total_ticks: 90,
+                delta_ticks: 10,
+                contracted: true,
+            },
+        }];
+        let artifact = render_roadmap(
+            candidates,
+            "witness-1",
+            "replay-hint-1",
+            "<urn:a> <urn:b> <urn:c> .\n",
+        )
+        .expect("render_roadmap must succeed on valid canonical N-Quads");
+        let out_of_order_transitions = [(
+            LifecycleState::PressureClustered,
+            LifecycleState::SeedGenerated,
+        )];
+        let result = verify_receipt_head(&out_of_order_transitions, &artifact.receipt);
+        assert!(matches!(
+            result,
+            Err(CapabilityRoadmapRefused::ReplayEquivalenceFailed { .. })
         ));
     }
 
