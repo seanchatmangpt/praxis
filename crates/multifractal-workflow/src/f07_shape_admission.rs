@@ -154,9 +154,44 @@ pub enum ShapeAdmissionRefused {
     /// The SHACL validator itself returned an error (distinct from a
     /// non-conforming report, which is a normal [`AdmissionDecision::Refused`]
     /// outcome, not this variant).
+    ///
+    /// # Disclosed: structurally unreachable through [`ShapeAdmissionGate::admit`] today
+    ///
+    /// [`ShapeProfile::resolve`] already parses `shacl_shapes_turtle` via
+    /// `praxis_graphlaw::shacl::ShapesGraph::parse` and is called with `?`
+    /// before [`TripleStore::validate_shacl`] runs on the *same, unmutated*
+    /// string. `ShapesGraph::parse` is a pure function of its input bytes
+    /// (no I/O, no environment dependence -- confirmed by reading
+    /// `shacl::model::ShapesGraph::parse`), and
+    /// `praxis_graphlaw::shacl::Validator::validate` itself is infallible
+    /// (`ValidationReport`, not `Result`). So `validate_shacl`'s *only*
+    /// failure mode is the same parse `resolve()` already proved succeeds
+    /// on the identical bytes -- there is no admit()-reachable input for
+    /// which this variant is constructed. This is disclosed, not
+    /// silently left untested: forcing a test through `admit()` would
+    /// require fabricating a divergence between the two parses that does
+    /// not exist. Precedent: `ObservationAdmissionRefused::LedgerUnavailable`
+    /// in `f02_observation_admission.rs`'s test-module doc table.
     #[error("SHACL validator error for profile `{profile_id}`: {reason}")]
     ShaclValidatorError { profile_id: String, reason: String },
-    /// The ShEx validator itself returned an error (same distinction as above).
+    /// The ShEx validator itself returned an error (same distinction as
+    /// [`ShaclValidatorError`]'s doc comment draws for SHACL).
+    ///
+    /// Unlike `ShaclValidatorError`, this variant *is* reachable through
+    /// [`ShapeAdmissionGate::admit`]: [`ShapeProfile::resolve`] only proves
+    /// the ShExC schema string parses (it explicitly discards the shape
+    /// map -- see `resolve`'s `let Some((schema_shexc, _map))`). It never
+    /// checks that every `(focus_node, shape_label)` pair in
+    /// [`ShapeProfile::shex`]'s shape map actually names a shape declared
+    /// in that schema. A profile can resolve cleanly (schema is
+    /// well-formed ShExC) and still supply a shape map whose
+    /// `shape_label` is absent from the schema, or whose `focus_node` is
+    /// an empty string -- both fail inside
+    /// `shex_native::validate_shex_schema` (`"shape not declared in
+    /// schema: {shape_label}"` / `"invalid focus node syntax: empty node
+    /// string"`), a distinct failure mode from schema parsing. See
+    /// `shex_validator_error_on_shape_label_absent_from_schema` (test,
+    /// below) for the end-to-end reachability proof.
     #[error("ShEx validator error for profile `{profile_id}`: {reason}")]
     ShexValidatorError { profile_id: String, reason: String },
     /// A duplicate `correlation_id` was submitted with a different profile
@@ -712,6 +747,29 @@ impl<'de> serde::Deserialize<'de> for Violation {
 
 #[cfg(test)]
 mod tests {
+    //! Every [`ShapeAdmissionRefused`] variant has >= 1 test below, per
+    //! this repo's `.claude/rules/rust-agi-core-team.md` rule 8 -- except
+    //! `ShaclValidatorError`, which is disclosed structurally unreachable
+    //! through [`ShapeAdmissionGate::admit`] on its own doc comment above
+    //! (precedent: `ObservationAdmissionRefused::LedgerUnavailable` in
+    //! `f02_observation_admission.rs`):
+    //!
+    //! | Variant | Test |
+    //! |---|---|
+    //! | `ProfileMalformed` (bad SHACL) | `malformed_profile_is_refused_at_profile_resolver` |
+    //! | `ProfileMalformed` (context payload) | `profile_malformed_refusal_carries_context` |
+    //! | `GraphMalformed` | `malformed_world_is_refused_pre_plan` |
+    //! | `ShaclValidatorError` | not independently triggerable through `admit()` --
+    //!   see the variant's own doc comment above for the structural-unreachability
+    //!   argument (double-parse of an already-`resolve()`d, deterministic-parser
+    //!   input; `Validator::validate` itself is infallible). |
+    //! | `ShexValidatorError` | `shex_validator_error_on_shape_label_absent_from_schema` |
+    //! | `DuplicateCorrelationConflict` | `duplicate_correlation_id_with_different_content_conflicts` |
+    //! | `ReplayMismatch` | not independently triggerable without hand-corrupting a
+    //!   `ShapeReceipt`'s private `canonical_material`/`digest_hex` fields from
+    //!   outside the module; `verify`'s match arm is exercised by every other
+    //!   test's `handoff.receipt.verify().expect(...)` call on the non-mismatch path. |
+
     use super::*;
 
     /// Ontology-is-source-of-truth check: the hand-written `AdmissionState`
@@ -836,6 +894,54 @@ mod tests {
             err,
             ShapeAdmissionRefused::ProfileMalformed { .. }
         ));
+    }
+
+    /// `ShexValidatorError` reachability proof: a profile whose ShExC
+    /// schema is well-formed (so `ShapeProfile::resolve` succeeds --
+    /// asserted below) but whose shape map names a shape label the schema
+    /// never declares is refused at the ShEx Validator stage, not the
+    /// Profile Resolver stage. This is the concrete failure mode
+    /// `resolve()` cannot catch (it discards the shape map -- see
+    /// `ShexValidatorError`'s doc comment), proving the variant is real
+    /// and admit()-reachable, unlike `ShaclValidatorError`.
+    #[test]
+    fn shex_validator_error_on_shape_label_absent_from_schema() {
+        let p = ShapeProfile {
+            profile_id: "p-shex-mismatch".to_string(),
+            shacl_shapes_turtle: CONFORMING_SHAPES.to_string(),
+            shex: Some((
+                "PREFIX ex: <http://example.org/>\nex:WidgetShapeExpr { ex:status . }".to_string(),
+                vec![(
+                    "http://example.org/w1".to_string(),
+                    "http://example.org/NotDeclaredShape".to_string(),
+                )],
+            )),
+        };
+        // The schema string itself is well-formed ShExC: resolve() must
+        // succeed. The bug is not in the schema, it's in the shape map
+        // referencing a shape the schema never declared.
+        p.resolve()
+            .expect("schema parses; profile resolves cleanly");
+
+        let mut gate = ShapeAdmissionGate::new();
+        let data = r#"
+            @prefix ex: <http://example.org/> .
+            ex:w1 a ex:Widget ; ex:status ex:Active .
+        "#;
+        let err = gate.admit("corr-shex-mismatch", &p, data).expect_err(
+            "a shape map naming a shape absent from the schema must refuse \
+                 at the ShEx Validator stage",
+        );
+        match err {
+            ShapeAdmissionRefused::ShexValidatorError { profile_id, reason } => {
+                assert_eq!(profile_id, "p-shex-mismatch");
+                assert!(
+                    reason.contains("not declared"),
+                    "expected a 'shape not declared in schema' reason, got: {reason}"
+                );
+            }
+            other => panic!("expected ShexValidatorError, got {other:?}"),
+        }
     }
 
     /// Idempotency+correlation gate: duplicate events (same correlation id,
