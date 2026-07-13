@@ -330,9 +330,10 @@ impl TripleStore {
     /// panic now gets the *exact* rollback the `Err` arm already performs,
     /// then converts to the same `Result<_, String>` convention, instead of
     /// silently corrupting state. `AssertUnwindSafe` is sound here (unlike a
-    /// blanket use of it) precisely because the rollback below immediately
-    /// restores every field the closure could have left mid-mutation --
-    /// there is no window where torn state escapes this function.
+    /// blanket use of it) precisely because the rollback below restores
+    /// every field the closure could have left mid-mutation (`triple_index`,
+    /// `receipts`, `verdicts`, `additions`, `removals`) -- there is no
+    /// window where torn state escapes this function.
     pub fn materialize(&mut self) -> Result<Vec<Triple>, String> {
         let checkpoint = self.triple_index.clone();
 
@@ -367,6 +368,7 @@ impl TripleStore {
             Ok(Err(e)) => {
                 self.triple_index = checkpoint;
                 self.receipts.clear();
+                self.verdicts.clear();
                 self.additions.clear();
                 self.removals.clear();
                 return Err(e);
@@ -379,6 +381,7 @@ impl TripleStore {
                     .unwrap_or_else(|| "non-string panic payload".to_string());
                 self.triple_index = checkpoint;
                 self.receipts.clear();
+                self.verdicts.clear();
                 self.additions.clear();
                 self.removals.clear();
                 return Err(format!(

@@ -21,24 +21,34 @@ pub struct ConstructQuery {
 /// template's closing brace and its entire WHERE clause, would be silently
 /// discarded rather than erroring loudly.
 ///
+/// String-literal tracking is backslash-escape-aware: an escaped quote
+/// (`\"` inside a `"..."` literal) does not close the string, so a `#`
+/// following it is still correctly treated as literal string content, not a
+/// comment start. Found by an adversarial dogfood audit of an earlier
+/// version of this function that only checked `c == q` with no escape
+/// lookback, so `"foo\"bar#baz"` was mis-parsed as closing at the escaped
+/// quote and truncating everything from `#baz"` onward.
+///
 /// # Complexity
 /// O(n) over the input length: one pass per line, one bool flag per
-/// delimiter class (no backtracking).
+/// delimiter class plus one pending-escape flag (no backtracking).
 pub fn strip_comments(s: &str) -> String {
     let mut out = String::new();
     for line in s.lines() {
         let mut in_iri = false;
         let mut in_string: Option<char> = None;
+        let mut pending_escape = false;
         let mut comment_start = None;
         for (idx, c) in line.char_indices() {
-            match in_string {
-                Some(q) => {
-                    if c == q {
-                        in_string = None;
-                    }
-                    continue;
+            if let Some(q) = in_string {
+                if pending_escape {
+                    pending_escape = false;
+                } else if c == '\\' {
+                    pending_escape = true;
+                } else if c == q {
+                    in_string = None;
                 }
-                None => {}
+                continue;
             }
             if in_iri {
                 if c == '>' {
@@ -428,4 +438,73 @@ pub fn canonicalize_quads(quads: &[Triple]) -> Vec<String> {
 
     raw_lines.sort();
     raw_lines
+}
+
+#[cfg(test)]
+mod strip_comments_test {
+    use super::strip_comments;
+
+    // Regression for the original bug (fixed alongside this file's SOC2 hook-actuation
+    // work): a hash-fragment IRI predicate must survive intact, not get truncated at its
+    // own '#'.
+    #[test]
+    fn hash_fragment_iri_is_not_treated_as_a_comment() {
+        let q = "CONSTRUCT { ?ctrl <http://example.org/soc2#controlTested> 'true' } \
+                 WHERE { ?ctrl <http://example.org/soc2#evidenceCount> ?ec }";
+        let out = strip_comments(q);
+        assert!(
+            out.contains("WHERE { ?ctrl <http://example.org/soc2#evidenceCount> ?ec }"),
+            "the WHERE clause after the hash-fragment IRI must not be stripped: {out:?}"
+        );
+    }
+
+    // Regression for a real bug an adversarial dogfood audit found in the fix above: an
+    // escaped quote inside a string literal closed `in_string` prematurely (no
+    // backslash-escape lookback), so a '#' following it inside the SAME literal was wrongly
+    // treated as a comment start, truncating the rest of the line.
+    #[test]
+    fn escaped_quote_inside_a_string_literal_does_not_end_the_string_early() {
+        let q = r#"CONSTRUCT { ?s <http://example.org/label> "foo\"bar#baz" } WHERE { ?s ?p ?o }"#;
+        let out = strip_comments(q);
+        assert!(
+            out.contains(r#""foo\"bar#baz""#),
+            "the '#' inside the escaped-quote string literal must not start a comment: {out:?}"
+        );
+        assert!(
+            out.contains("WHERE { ?s ?p ?o }"),
+            "the WHERE clause after the string literal must survive intact: {out:?}"
+        );
+    }
+
+    // A genuine, unescaped '#' comment outside any string/IRI must still be stripped --
+    // the fix must not overcorrect into never stripping anything.
+    #[test]
+    fn a_real_unescaped_comment_is_still_stripped() {
+        let q = "SELECT ?s WHERE { ?s ?p ?o } # this is a real trailing comment";
+        let out = strip_comments(q);
+        assert!(
+            out.contains("SELECT ?s WHERE { ?s ?p ?o }"),
+            "the query body before the comment must survive: {out:?}"
+        );
+        assert!(
+            !out.contains("trailing comment"),
+            "a genuine unescaped comment must still be stripped: {out:?}"
+        );
+    }
+
+    // Lesser edge case disclosed alongside the escaped-quote fix: an unterminated '<' with
+    // no closing '>' leaves `in_iri` true for the rest of the line, so a trailing '#'
+    // comment is never stripped in that malformed-input case. Not data-corrupting (nothing
+    // downstream parses successfully either way), but documented here so the behavior is a
+    // deliberate, tested choice rather than an unexamined side effect.
+    #[test]
+    fn unterminated_iri_leaves_a_trailing_comment_unstripped() {
+        let q = "CONSTRUCT { ?s <http://example.org/broken # not a real comment";
+        let out = strip_comments(q);
+        assert!(
+            out.contains("# not a real comment"),
+            "documented lesser-edge-case behavior: an unterminated '<' suppresses comment \
+             stripping for the rest of the line: {out:?}"
+        );
+    }
 }

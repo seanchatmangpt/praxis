@@ -1054,6 +1054,73 @@ fn materialize_still_rolls_back_the_checkpoint_and_returns_err_on_an_ordinary_ty
     );
 }
 
+// Regression for a real bug an adversarial dogfood audit found in the `catch_unwind` hardening
+// above: both rollback arms (the pre-existing `Err` arm and the new panic arm) restore
+// `triple_index`/`receipts`/`additions`/`removals` but never cleared `self.verdicts` -- so a
+// hook that fires and records a `HookVerdictRecord` *before* a later hook in the same
+// `materialize()` call fails would leave that stale verdict sitting in `store.verdicts` after
+// rollback, contradicting the doc comment's "restores every field" claim. Two hooks, processed
+// in push order: Hook A (a `Sparql`-condition hook matching the pre-existing triple, no action)
+// fires and pushes a real `Fired` verdict (confirmed by reading `reasoner/mod.rs`: a fired hook
+// with no additions still gets `verdict_pushed = true` via the empty-receipt branch). Hook B is
+// the same malformed-Datalog hook from the test above, which then fails the whole call.
+#[test]
+fn materialize_clears_verdicts_on_rollback_not_just_triple_index() {
+    use crate::hooks::{CompiledHook, EffectKind, EventId, HookCondition, HookId};
+
+    let mut store = TripleStore::new();
+    store
+        .load_triples(
+            "<http://example.org/pre-existing> <http://example.org/p> \"already-here\".",
+            crate::parser::Syntax::NTriples,
+        )
+        .unwrap();
+
+    store.hooks.push(CompiledHook {
+        id: HookId(0),
+        iri: "urn:test:fires-and-records-a-verdict".to_string(),
+        name: "fires_and_records_a_verdict".to_string(),
+        event: EventId(0),
+        on: "any".to_string(),
+        condition: HookCondition::Sparql {
+            query: "SELECT ?s WHERE { ?s <http://example.org/p> \"already-here\" }".to_string(),
+        },
+        effect: EffectKind::EmitDelta,
+        action: None,
+        reason: None,
+        priority: 0,
+        after: smallvec::SmallVec::new(),
+    });
+    store.hooks.push(CompiledHook {
+        id: HookId(1),
+        iri: "urn:test:malformed-datalog-direct".to_string(),
+        name: "malformed_datalog_direct".to_string(),
+        event: EventId(0),
+        on: "any".to_string(),
+        condition: HookCondition::Datalog {
+            program: "foo :- t(?x,?y,?z)".to_string(),
+            goal: "irrelevant".to_string(),
+        },
+        effect: EffectKind::EmitDelta,
+        action: None,
+        reason: None,
+        priority: 1,
+        after: smallvec::SmallVec::new(),
+    });
+
+    let result = store.materialize();
+    assert!(
+        result.is_err(),
+        "the second hook's unparseable Datalog condition must still refuse the whole call"
+    );
+    assert!(
+        store.verdicts.is_empty(),
+        "verdicts must be cleared on rollback along with triple_index/receipts -- found {} \
+         stale verdict(s) from the first hook's Fired record surviving the Err rollback",
+        store.verdicts.len()
+    );
+}
+
 // Regression for a real, `docs/jira/v26.7.12/REMAINING_WORK.md`-flagged correctness bug: the
 // Bellman-Ford stratification loop's `iteration` counter always executes its loop body at
 // least once (`changed` starts `true`), so on an empty ruleset (`num_predicates == 0`) it
