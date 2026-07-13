@@ -6,6 +6,7 @@
 
 use std::path::PathBuf;
 
+use camino::Utf8PathBuf;
 use clap_noun_verb::{NounVerbError, Result};
 
 use crate::config::GgenConfig;
@@ -73,17 +74,41 @@ pub fn handle_sync_run(dry_run: bool, watch: bool) -> Result<serde_json::Value> 
     serde_json::to_value(report).map_err(exec_err)
 }
 
-/// `ggen graph validate` — load `ggen.toml` + ontology, report quad count
-/// and deterministic state hash, then run the static frontmatter/SPARQL
-/// cross-checks ([`crate::lint`]) over every discovered template (project
-/// plus resolved packs). Any parse failure or lint violation is a hard
-/// error (fail closed): the response lists every violation at once.
+/// `ggen graph validate [--files <TTL>...]` — validate RDF/Turtle graphs.
+///
+/// Two modes, selected by whether any `files` were passed:
+///
+/// * **No files (project mode)** — load `ggen.toml` + ontology, report quad
+///   count and deterministic state hash, then run the static
+///   frontmatter/SPARQL cross-checks ([`crate::lint`]) over every discovered
+///   template (project plus resolved packs). Any parse failure or lint
+///   violation is a hard error (fail closed): the response lists every
+///   violation at once. This branch is byte-for-byte the pre-multi-file
+///   behavior.
+/// * **One or more files (file mode)** — parse and hash each file
+///   independently against a fresh, isolated store (file B's contents can
+///   never taint file A). Every unreadable or unparseable file is collected;
+///   if any file is invalid the call fails closed (non-zero) naming *every*
+///   bad file with its error. The project ontology and templates are NOT
+///   touched in this mode — validating arbitrary user Turtle is not linting
+///   the project's own codegen templates.
+///
+/// `files` is transported as a repeatable `--files` option (published
+/// clap-noun-verb 26.7.4 does not carry multi-value bare positionals), and
+/// defaults to empty, so every existing zero-argument invocation lands in
+/// project mode unchanged.
 ///
 /// # Errors
-/// Missing/invalid `ggen.toml`, unreadable ontology, Turtle parse failures,
-/// pack resolution failures, or any `FM-TPL-003`/`FM-TPL-004`/`FM-TPL-005`
-/// template diagnostic exit non-zero.
-pub fn handle_graph_validate() -> Result<serde_json::Value> {
+/// Project mode: missing/invalid `ggen.toml`, unreadable ontology, Turtle
+/// parse failures, pack resolution failures, or any
+/// `FM-TPL-003`/`FM-TPL-004`/`FM-TPL-005` template diagnostic exit non-zero.
+/// File mode: any unreadable file, Turtle parse failure, or hash failure on
+/// any supplied file exits non-zero, naming each offending file.
+pub fn handle_graph_validate(files: Vec<Utf8PathBuf>) -> Result<serde_json::Value> {
+    if !files.is_empty() {
+        return validate_files(&files);
+    }
+
     let root = project_root()?;
     let config = GgenConfig::load(&root.join("ggen.toml")).map_err(exec_err)?;
     let ontology_path = root.join(&config.ontology.source);
@@ -118,6 +143,63 @@ pub fn handle_graph_validate() -> Result<serde_json::Value> {
         "quads": quads,
         "hash": hash_hex,
         "templates_checked": templates.len(),
+    }))
+}
+
+/// Validate each supplied Turtle file independently (file mode).
+///
+/// Errors are accumulated, never short-circuited, so a single call reports
+/// *every* invalid file at once (same convention as the project-mode
+/// template-violation join). A fresh [`DeterministicGraph`] per file keeps
+/// files isolated. `oxigraph`'s Turtle-load error carries only the parser
+/// message, not the path, so each error is path-prefixed here before
+/// collection — otherwise the aggregate could not name the offending file.
+///
+/// # Complexity
+/// O(sum over files of parse+hash cost); one linear pass, no cross-file work.
+fn validate_files(files: &[Utf8PathBuf]) -> Result<serde_json::Value> {
+    let mut ok_records: Vec<serde_json::Value> = Vec::with_capacity(files.len());
+    let mut bad: Vec<String> = Vec::new();
+
+    for path in files {
+        let ttl = match std::fs::read_to_string(path) {
+            Ok(t) => t,
+            Err(e) => {
+                bad.push(format!("{path}: unreadable: {e}"));
+                continue;
+            }
+        };
+        // Fresh store per file: file B's triples never contaminate file A.
+        let graph = DeterministicGraph::new().map_err(exec_err)?;
+        let quads = match graph.insert_turtle(&ttl) {
+            Ok(q) => q,
+            Err(e) => {
+                bad.push(format!("{path}: {e}"));
+                continue;
+            }
+        };
+        match graph.state_hash() {
+            Ok(hash) => ok_records.push(serde_json::json!({
+                "path": path.as_str(),
+                "quads": quads,
+                "hash": crate::sync::hex32(&hash),
+            })),
+            Err(e) => bad.push(format!("{path}: {e}")),
+        }
+    }
+
+    if !bad.is_empty() {
+        return Err(exec_err(format!(
+            "graph validate failed: {} of {} file(s) invalid: {}",
+            bad.len(),
+            files.len(),
+            bad.join("; ")
+        )));
+    }
+
+    Ok(serde_json::json!({
+        "files": ok_records,
+        "files_checked": files.len(),
     }))
 }
 

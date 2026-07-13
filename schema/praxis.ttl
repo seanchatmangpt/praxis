@@ -168,6 +168,12 @@ praxis:flag a rdf:Property ;
     rdfs:domain praxis:CliCommand ;
     rdfs:range xsd:string .
 
+praxis:arg a rdf:Property ;
+    rdfs:label "arg" ;
+    rdfs:comment "A value-carrying (non-boolean) CLI argument passed to the command's handler, encoded \"snake_case_name:type::help text\" where type in {string, pathbuf, pathbufs}: string->String, pathbuf->camino::Utf8PathBuf, pathbufs->repeatable multi-value Vec<camino::Utf8PathBuf> emitted with #[arg(action=\"append\")] (a --name option that accepts >=0 occurrences, e.g. --files a --files b). Distinct from praxis:flag, which stays boolean-only. NOTE: published clap-noun-verb 26.7.4 transports multi-value args only through repeatable --name options, not bare positionals (its extract_args reads a positional as a single value), so pathbufs renders a --name option, not a space-separated positional list." ;
+    rdfs:domain praxis:CliCommand ;
+    rdfs:range xsd:string .
+
 # Standing Artifact Properties
 praxis:standing a rdf:Property ;
     rdfs:label "standing" ;
@@ -306,6 +312,7 @@ praxis:CmdGgenGraphValidate a praxis:CliCommand ;
     praxis:noun "graph" ;
     praxis:verb "validate" ;
     praxis:handler "handle_graph_validate" ;
+    praxis:arg "files:pathbufs::Turtle files to validate independently (repeatable --files a.ttl --files b.ttl). If omitted, validate the project ontology and templates." ;
     praxis:nounAbout "Validate RDF/Turtle ontology graphs against praxis vocabulary constraints." ;
     rdfs:comment "Load a Turtle ontology and report parse or constraint violations." .
 

@@ -5,9 +5,11 @@
 
 use std::path::Path;
 
+use camino::Utf8PathBuf;
 use chicago_tdd_tools::cli_proof::CliHarness;
 use ggen::lint::lint_template;
 use ggen::template::Template;
+use ggen::verbs::handlers::handle_graph_validate;
 use tempfile::TempDir;
 
 /// Scaffold a minimal project with one template body.
@@ -126,4 +128,75 @@ fn cli_graph_validate_fails_closed_on_unbound_var() {
         combined.contains("typo"),
         "must name the variable: {combined}"
     );
+}
+
+// ---------------------------------------------------------------------
+// graph validate — file mode (multi-file `--files`), direct handler calls
+// ---------------------------------------------------------------------
+// These exercise `handle_graph_validate(files)` directly (the fn behind the
+// generated `--files` route). Absolute paths in a TempDir make them
+// cwd-independent: file mode never touches project_root/ggen.toml.
+
+/// Two well-formed Turtle files both validate; each is reported with a path,
+/// a positive quad count, and a 64-hex state hash. Independent per-file
+/// validation, all reported at once.
+#[test]
+fn graph_validate_files_two_good_pass() {
+    let dir = TempDir::new().expect("tempdir");
+    let p1 = dir.path().join("a.ttl");
+    let p2 = dir.path().join("b.ttl");
+    std::fs::write(&p1, "@prefix ex: <http://example.org/> .\nex:a ex:p \"1\" .\n")
+        .expect("write a.ttl");
+    std::fs::write(&p2, "@prefix ex: <http://example.org/> .\nex:b ex:q \"2\" .\n")
+        .expect("write b.ttl");
+    let f1 = Utf8PathBuf::from_path_buf(p1).expect("utf8 path");
+    let f2 = Utf8PathBuf::from_path_buf(p2).expect("utf8 path");
+
+    let out = handle_graph_validate(vec![f1, f2]).expect("both files valid");
+    assert_eq!(out["files_checked"], 2, "{out}");
+    let files = out["files"].as_array().expect("files array");
+    assert_eq!(files.len(), 2, "{out}");
+    for rec in files {
+        assert!(rec["path"].is_string(), "path present: {rec}");
+        assert!(rec["quads"].as_u64().unwrap_or(0) > 0, "quads > 0: {rec}");
+        let hash = rec["hash"].as_str().expect("hash string");
+        assert_eq!(hash.len(), 64, "64-hex hash: {rec}");
+        assert!(hash.chars().all(|c| c.is_ascii_hexdigit()), "hex hash: {rec}");
+    }
+}
+
+/// One good file + one malformed file fails closed (Err), and the error
+/// names the malformed file by path and carries the "graph validate failed"
+/// aggregate marker — never a cheerful `valid: false`.
+#[test]
+fn graph_validate_files_one_malformed_fails_named() {
+    let dir = TempDir::new().expect("tempdir");
+    let good = dir.path().join("good.ttl");
+    let bad = dir.path().join("broken.ttl");
+    std::fs::write(&good, "@prefix ex: <http://example.org/> .\nex:a ex:p \"1\" .\n")
+        .expect("write good.ttl");
+    std::fs::write(&bad, "this is not valid turtle {{{").expect("write broken.ttl");
+    let fg = Utf8PathBuf::from_path_buf(good).expect("utf8 path");
+    let fb = Utf8PathBuf::from_path_buf(bad).expect("utf8 path");
+
+    let err = handle_graph_validate(vec![fg, fb]).expect_err("must fail closed");
+    let msg = err.to_string();
+    assert!(msg.contains("broken.ttl"), "names the bad file: {msg}");
+    assert!(msg.contains("graph validate failed"), "aggregate marker: {msg}");
+}
+
+/// Empty file list lands in project mode: with no ggen.toml in cwd it must
+/// fail closed, never silently succeed. (Project-mode success with a real
+/// scaffold is covered by `clean_demo_project_validates_via_cli` and the
+/// `graph validate` CLI-boundary tests.)
+#[test]
+fn graph_validate_empty_files_is_project_mode() {
+    let dir = TempDir::new().expect("tempdir");
+    // Run from a directory with no ggen.toml so project mode fails closed
+    // deterministically regardless of the test runner's cwd.
+    let prev = std::env::current_dir().expect("cwd");
+    std::env::set_current_dir(dir.path()).expect("chdir tempdir");
+    let res = handle_graph_validate(vec![]);
+    std::env::set_current_dir(prev).expect("restore cwd");
+    assert!(res.is_err(), "empty files -> project mode, no manifest -> Err");
 }

@@ -52,6 +52,7 @@ anyhow = "1"
 blake3 = "1"
 linkme = "0.3"
 clap = { version = "4", features = ["derive", "env"] }               # CLI parsing
+camino = "1"                                                         # UTF-8 paths for graph-validate multi-file args
 tokio = { version = "1", features = ["full"], optional = true }      # async runtime (required by mcp feature)
 # Engine deps (unconditional — the whole point of this crate is the SPARQL+Tera pipeline)
 oxigraph = "0.5.9"
