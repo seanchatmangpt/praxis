@@ -1,0 +1,46 @@
+# ea-togaf-shapes.ttl — SHACL shapes for the Meridian ADM case-study
+# instance data (public-vocabulary modeling: skos concepts + togaf content
+# metamodel classes + blank nodes). Consumed by the same generic shape
+# queries as dispatch/arazzo shapes (registry-missing-fields.rq,
+# shape-closed-violations.rq, shape-pattern-violations.rq).
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix org:     <http://www.w3.org/ns/org#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix togaf:   <http://www.semanticweb.org/ontologies/2020/4/OntologyTOGAFContentMetamodel.owl#> .
+@prefix ex:      <urn:cng:shapes#> .
+
+# Every SKOS concept in the case-study graph must carry a deterministic
+# uppercase notation handle — notation is the cross-file join key in the
+# blank-node discipline, so a concept without one is unreachable.
+ex:EaConceptShape a sh:NodeShape ;
+  sh:targetClass skos:Concept ;
+  sh:property [
+    sh:path skos:notation ;
+    sh:minCount 1 ;
+    sh:pattern "^[A-Z0-9][A-Z0-9-]*$" ;
+  ] .
+
+# Every TOGAF capability must be described, notated, and attributed to an
+# enterprise agent (closed: no undeclared predicates sneak onto capability
+# nodes).
+ex:EaCapabilityShape a sh:NodeShape ;
+  sh:targetClass togaf:Capability ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^CAP-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:wasAttributedTo ; sh:minCount 1 ; ] .
+
+# The enterprise itself: organization + agent, notated, described, with an
+# operating model (dcterms:type) and maturity stage (dcterms:coverage).
+ex:EaEnterpriseShape a sh:NodeShape ;
+  sh:targetClass org:Organization ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^ENT-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path dcterms:type ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path dcterms:coverage ; sh:minCount 1 ; ] .

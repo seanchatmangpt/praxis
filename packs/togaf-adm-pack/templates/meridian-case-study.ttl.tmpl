@@ -1,0 +1,64 @@
+---
+to: "crates/cng/tests/fixtures/togaf/meridian-case-study.ttl"
+force: true
+determinism: true
+---
+# Meridian Global Carrier — case-study instance data (PUBLIC ontologies
+# only; blank nodes + skos:notation handles, no private namespace).
+# A lightly fictionalized Unification-operating-model airline (the Delta
+# case from Enterprise Architecture as Strategy ch. 2/4) modernized to a
+# 2026 Fortune-5 cloud architecture. Concepts are re-asserted here with the
+# SAME skos:notation values as packs/togaf-adm-pack/ontology.ttl — notation
+# is the deterministic join key across files, since blank-node labels do
+# not survive re-serialization.
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix org:     <http://www.w3.org/ns/org#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix togaf:   <http://www.semanticweb.org/ontologies/2020/4/OntologyTOGAFContentMetamodel.owl#> .
+
+_:meridian
+    rdf:type org:Organization , prov:Agent ;
+    skos:notation "ENT-MERIDIAN" ;
+    dcterms:description "Meridian Global Carrier: global airline, Unification operating model (high process standardization + high data integration), targeting the Optimized Core maturity stage on a 2026 event-driven multi-cloud platform."@en ;
+    dcterms:type _:omUnification ;
+    dcterms:coverage _:matOptCore .
+
+_:omUnification
+    rdf:type skos:Concept ;
+    skos:notation "OM-UNIFICATION" ;
+    dcterms:description "Unification operating model."@en .
+
+_:matOptCore
+    rdf:type skos:Concept ;
+    skos:notation "MAT-3-OPTIMIZED-CORE" ;
+    dcterms:description "Optimized Core maturity stage."@en .
+
+# Core-diagram capabilities (2026 technology), typed with the public TOGAF
+# content metamodel and owned by the enterprise via org/prov.
+_:capLandingZones
+    rdf:type togaf:Capability ;
+    skos:notation "CAP-CLOUD-LANDING-ZONES" ;
+    dcterms:description "Standardized multi-cloud landing zones with policy-as-code admission."@en ;
+    prov:wasAttributedTo _:meridian .
+_:capZeroTrust
+    rdf:type togaf:Capability ;
+    skos:notation "CAP-ZERO-TRUST" ;
+    dcterms:description "Zero-trust identity and network segmentation across the digitized platform."@en ;
+    prov:wasAttributedTo _:meridian .
+_:capDataMesh
+    rdf:type togaf:Capability ;
+    skos:notation "CAP-DATA-MESH" ;
+    dcterms:description "Shared customer/flight/employee data as governed data-mesh products (the Unification core diagram's shared-data quadrant)."@en ;
+    prov:wasAttributedTo _:meridian .
+_:capFinOps
+    rdf:type togaf:Capability ;
+    skos:notation "CAP-FINOPS" ;
+    dcterms:description "FinOps cost governance for migration sequencing (Phase F alignment)."@en ;
+    prov:wasAttributedTo _:meridian .
+_:capAiPlatform
+    rdf:type togaf:Capability ;
+    skos:notation "CAP-AI-PLATFORM" ;
+    dcterms:description "AI platform for crew and operations copilots on the shared core."@en ;
+    prov:wasAttributedTo _:meridian .

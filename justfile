@@ -1269,3 +1269,8 @@ ci-clean-verify:
     echo "PASS: cng clean rebuild + test suite (CARGO_TARGET_DIR=$rust_target)"
 
     echo "ci-clean-verify: PASS -- genuine clean-room rebuild + test on both the Erlang umbrella and cng (Rust)"
+
+# Run one ggen integration-test binary in an isolated target dir
+# (concurrent-agent-safe, same convention as cng-test-isolated).
+ggen-test-isolated name binary *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 600s cargo test -p ggen --test {{binary}} {{args}}

@@ -1,0 +1,48 @@
+---
+to: "crates/cng/tests/fixtures/togaf/adm-phase-a.ttl"
+force: true
+determinism: true
+---
+# TOGAF ADM A: Architecture Vision — Meridian Global Carrier case study (2026 cloud
+# modernization of the Unification-operating-model carrier from Enterprise
+# Architecture as Strategy). One domain FRAGMENT of the shared
+# meridian-adm-cycle domain: this phase's 3 actions chain
+# prelim-chartered -> phase-a-step1-done -> phase-a-step2-done -> vision-produced,
+# so the merged cycle plan can only reach this phase after its predecessor
+# completes. 8-constraint split: every precondition/effect/goal here is a
+# 1-conjunct (and ...) — far inside PDDL8_MAX_CONJUNCTS=8 — and each action
+# takes 1 parameter (PDDL8_MAX_PARAMS=8); togaf_test.rs asserts these bounds
+# mechanically for every fragment.
+#
+# Public-ontology doctrine: the artifact node is a blank node; the phase is
+# identified by its public SKOS notation. The only private predicates are
+# the cng pipeline's ABI carrier ceng:pddlDomain (urn:chatman:engine#),
+# disclosed in packs/togaf-adm-pack/ontology.ttl.
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:artifact
+    skos:notation "ADM-PHASE-A" ;
+    dcterms:description "A: Architecture Vision domain fragment of the meridian-adm-cycle STRIPS domain."@en ;
+    ceng:pddlDomain """
+(define (domain meridian-adm-cycle)
+  (:requirements :strips)
+  (:predicates
+    (prelim-chartered ?x)
+    (phase-a-step1-done ?x)
+    (phase-a-step2-done ?x)
+    (vision-produced ?x))
+  (:action identify-stakeholders
+    :parameters (?x)
+    :precondition (and (prelim-chartered ?x))
+    :effect (and (phase-a-step1-done ?x)))
+  (:action assess-unification-operating-model
+    :parameters (?x)
+    :precondition (and (phase-a-step1-done ?x))
+    :effect (and (phase-a-step2-done ?x)))
+  (:action produce-architecture-vision
+    :parameters (?x)
+    :precondition (and (phase-a-step2-done ?x))
+    :effect (and (vision-produced ?x))))
+""" .

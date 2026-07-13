@@ -1,0 +1,48 @@
+---
+to: "crates/cng/tests/fixtures/togaf/adm-phase-h.ttl"
+force: true
+determinism: true
+---
+# TOGAF ADM H: Architecture Change Management — Meridian Global Carrier case study (2026 cloud
+# modernization of the Unification-operating-model carrier from Enterprise
+# Architecture as Strategy). One domain FRAGMENT of the shared
+# meridian-adm-cycle domain: this phase's 3 actions chain
+# governance-established -> phase-h-step1-done -> phase-h-step2-done -> change-mgmt-established,
+# so the merged cycle plan can only reach this phase after its predecessor
+# completes. 8-constraint split: every precondition/effect/goal here is a
+# 1-conjunct (and ...) — far inside PDDL8_MAX_CONJUNCTS=8 — and each action
+# takes 1 parameter (PDDL8_MAX_PARAMS=8); togaf_test.rs asserts these bounds
+# mechanically for every fragment.
+#
+# Public-ontology doctrine: the artifact node is a blank node; the phase is
+# identified by its public SKOS notation. The only private predicates are
+# the cng pipeline's ABI carrier ceng:pddlDomain (urn:chatman:engine#),
+# disclosed in packs/togaf-adm-pack/ontology.ttl.
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:artifact
+    skos:notation "ADM-PHASE-H" ;
+    dcterms:description "H: Architecture Change Management domain fragment of the meridian-adm-cycle STRIPS domain."@en ;
+    ceng:pddlDomain """
+(define (domain meridian-adm-cycle)
+  (:requirements :strips)
+  (:predicates
+    (governance-established ?x)
+    (phase-h-step1-done ?x)
+    (phase-h-step2-done ?x)
+    (change-mgmt-established ?x))
+  (:action monitor-architecture-drift
+    :parameters (?x)
+    :precondition (and (governance-established ?x))
+    :effect (and (phase-h-step1-done ?x)))
+  (:action assess-change-requests
+    :parameters (?x)
+    :precondition (and (phase-h-step1-done ?x))
+    :effect (and (phase-h-step2-done ?x)))
+  (:action produce-change-management-record
+    :parameters (?x)
+    :precondition (and (phase-h-step2-done ?x))
+    :effect (and (change-mgmt-established ?x))))
+""" .

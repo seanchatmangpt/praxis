@@ -1,0 +1,128 @@
+# togaf-adm-pack ontology — PUBLIC-ONTOLOGY-FIRST (no private namespace).
+#
+# Doctrine (matches the Fortune-5 public-ontology cloud-architecture graph's
+# own fence): every class and predicate comes from a public RDF vocabulary;
+# enterprise/lifecycle-specific individuals are blank nodes carrying
+# skos:notation as their deterministic, human-operable handle. No custom
+# prefix, no @base, no default namespace is minted here.
+#
+# Public vocabularies used:
+#   togaf:  TOGAF 9.2 Content Metamodel OWL (Capability, Gap, WorkPackage,
+#           Requirement, architectures) — the same public ontology the
+#           Fortune-5 reference graph conforms to.
+#   skos:   concept schemes for the ADM phase taxonomy, the
+#           Ross/Weill/Robertson operating models, and EA maturity stages
+#           (no public ontology exists for the book's concepts; SKOS
+#           concepts in blank-node schemes represent them without minting
+#           a private namespace).
+#   prov:   lifecycle activities and feedback derivations.
+#   dcterms: descriptions, references between phases and fixture artifacts.
+#
+# Private namespaces this pipeline still REQUIRES (pipeline ABI, not
+# modeling vocabulary — disclosed, not used in this file):
+#   urn:chatman:engine#pddlDomain / #pddlProblem — the PDDL text carrier
+#     predicates hardwired into cng pipeline.rs import_artifacts.
+#   https://truex.io/ontology/powl2# — the POWL v2 output vocabulary
+#     hardwired into cng powl.rs powl_to_turtle and powl2-shapes.ttl.
+#   https://truex.io/ontology/pddl-strips# — only when PDDL is carried as
+#     RDF structure rather than literals (unioned via this pack's
+#     ggen.toml extra_ontologies entry, not duplicated here).
+
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix togaf:   <http://www.semanticweb.org/ontologies/2020/4/OntologyTOGAFContentMetamodel.owl#> .
+
+# --- ADM phase taxonomy (SKOS concept scheme; blank nodes + notations) -----
+
+_:admScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "TOGAF ADM lifecycle phases"@en ;
+    skos:notation "ADM-PHASES" ;
+    dcterms:description "The 10 Architecture Development Method phases: Preliminary, A-H, and the continuous Requirements Management phase. Order is carried by skos:notation suffix and skos:broaderTransitive chains in instance data."@en .
+
+_:admPreliminary rdf:type skos:Concept ; skos:inScheme _:admScheme ;
+    skos:notation "ADM-PRELIM" ; rdfs:label "Preliminary"@en .
+_:admPhaseA rdf:type skos:Concept ; skos:inScheme _:admScheme ;
+    skos:notation "ADM-PHASE-A" ; rdfs:label "A: Architecture Vision"@en .
+_:admPhaseB rdf:type skos:Concept ; skos:inScheme _:admScheme ;
+    skos:notation "ADM-PHASE-B" ; rdfs:label "B: Business Architecture"@en .
+_:admPhaseC rdf:type skos:Concept ; skos:inScheme _:admScheme ;
+    skos:notation "ADM-PHASE-C" ; rdfs:label "C: Information Systems Architectures"@en .
+_:admPhaseD rdf:type skos:Concept ; skos:inScheme _:admScheme ;
+    skos:notation "ADM-PHASE-D" ; rdfs:label "D: Technology Architecture"@en .
+_:admPhaseE rdf:type skos:Concept ; skos:inScheme _:admScheme ;
+    skos:notation "ADM-PHASE-E" ; rdfs:label "E: Opportunities and Solutions"@en .
+_:admPhaseF rdf:type skos:Concept ; skos:inScheme _:admScheme ;
+    skos:notation "ADM-PHASE-F" ; rdfs:label "F: Migration Planning"@en .
+_:admPhaseG rdf:type skos:Concept ; skos:inScheme _:admScheme ;
+    skos:notation "ADM-PHASE-G" ; rdfs:label "G: Implementation Governance"@en .
+_:admPhaseH rdf:type skos:Concept ; skos:inScheme _:admScheme ;
+    skos:notation "ADM-PHASE-H" ; rdfs:label "H: Architecture Change Management"@en .
+_:admReqMgmt rdf:type skos:Concept ; skos:inScheme _:admScheme ;
+    skos:notation "ADM-REQ-MGMT" ; rdfs:label "Requirements Management"@en .
+
+# --- Operating models (Ross/Weill/Robertson; SKOS concept scheme) ----------
+
+_:operatingModelScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "Enterprise operating models"@en ;
+    skos:notation "EA-OPERATING-MODELS" ;
+    dcterms:description "The four operating models from Enterprise Architecture as Strategy, positioned by process standardization and integration."@en .
+
+_:omDiversification rdf:type skos:Concept ; skos:inScheme _:operatingModelScheme ;
+    skos:notation "OM-DIVERSIFICATION" ; rdfs:label "Diversification"@en .
+_:omCoordination rdf:type skos:Concept ; skos:inScheme _:operatingModelScheme ;
+    skos:notation "OM-COORDINATION" ; rdfs:label "Coordination"@en .
+_:omReplication rdf:type skos:Concept ; skos:inScheme _:operatingModelScheme ;
+    skos:notation "OM-REPLICATION" ; rdfs:label "Replication"@en .
+_:omUnification rdf:type skos:Concept ; skos:inScheme _:operatingModelScheme ;
+    skos:notation "OM-UNIFICATION" ; rdfs:label "Unification"@en .
+
+# --- EA maturity stages (SKOS concept scheme, ordered by notation) ---------
+
+_:maturityScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "EA maturity stages"@en ;
+    skos:notation "EA-MATURITY-STAGES" ;
+    dcterms:description "The four architecture maturity stages from Enterprise Architecture as Strategy, ordered MAT-1..MAT-4."@en .
+
+_:matSilos rdf:type skos:Concept ; skos:inScheme _:maturityScheme ;
+    skos:notation "MAT-1-BUSINESS-SILOS" ; rdfs:label "Business Silos"@en .
+_:matStdTech rdf:type skos:Concept ; skos:inScheme _:maturityScheme ;
+    skos:notation "MAT-2-STANDARDIZED-TECHNOLOGY" ; rdfs:label "Standardized Technology"@en .
+_:matOptCore rdf:type skos:Concept ; skos:inScheme _:maturityScheme ;
+    skos:notation "MAT-3-OPTIMIZED-CORE" ; rdfs:label "Optimized Core"@en .
+_:matModularity rdf:type skos:Concept ; skos:inScheme _:maturityScheme ;
+    skos:notation "MAT-4-BUSINESS-MODULARITY" ; rdfs:label "Business Modularity"@en .
+
+# --- IT engagement mechanisms (SKOS concept scheme) ------------------------
+
+_:engagementScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "IT engagement mechanisms"@en ;
+    skos:notation "EA-ENGAGEMENT-MECHANISMS" ;
+    dcterms:description "Linkage mechanisms from the IT engagement model: governance bodies and project-lifecycle gates."@en .
+
+_:engArb rdf:type skos:Concept ; skos:inScheme _:engagementScheme ;
+    skos:notation "ENG-ARCH-REVIEW-BOARD" ; rdfs:label "Architecture review board"@en .
+_:engFundingGate rdf:type skos:Concept ; skos:inScheme _:engagementScheme ;
+    skos:notation "ENG-PROJECT-FUNDING-GATE" ; rdfs:label "Project funding gate"@en .
+_:engComplianceReview rdf:type skos:Concept ; skos:inScheme _:engagementScheme ;
+    skos:notation "ENG-COMPLIANCE-REVIEW" ; rdfs:label "Phase G compliance review"@en .
+
+# --- Public TOGAF content-metamodel anchors used by instance data ----------
+# (declared here only so the pack graph names its dependency surface; the
+# classes themselves are owned by the public TOGAF Content Metamodel OWL)
+
+togaf:Capability      rdfs:isDefinedBy <http://www.semanticweb.org/ontologies/2020/4/OntologyTOGAFContentMetamodel.owl> .
+togaf:Gap             rdfs:isDefinedBy <http://www.semanticweb.org/ontologies/2020/4/OntologyTOGAFContentMetamodel.owl> .
+togaf:WorkPackage     rdfs:isDefinedBy <http://www.semanticweb.org/ontologies/2020/4/OntologyTOGAFContentMetamodel.owl> .
+togaf:Requirement     rdfs:isDefinedBy <http://www.semanticweb.org/ontologies/2020/4/OntologyTOGAFContentMetamodel.owl> .
+togaf:BusinessArchitecture rdfs:isDefinedBy <http://www.semanticweb.org/ontologies/2020/4/OntologyTOGAFContentMetamodel.owl> .
+togaf:ApplicationArchitecture rdfs:isDefinedBy <http://www.semanticweb.org/ontologies/2020/4/OntologyTOGAFContentMetamodel.owl> .
+togaf:DataArchitecture rdfs:isDefinedBy <http://www.semanticweb.org/ontologies/2020/4/OntologyTOGAFContentMetamodel.owl> .
+togaf:TechnologyArchitecture rdfs:isDefinedBy <http://www.semanticweb.org/ontologies/2020/4/OntologyTOGAFContentMetamodel.owl> .

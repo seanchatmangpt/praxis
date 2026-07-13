@@ -1,0 +1,26 @@
+---
+to: "crates/cng/tests/fixtures/togaf/adm-cycle-problem.ttl"
+force: true
+determinism: true
+---
+# The one problem fragment for the merged meridian-adm-cycle domain.
+# Init holds ONLY the Preliminary phase's entry atom; the goal is ONLY the
+# terminal Requirements-Management deliverable (1 conjunct — the merged goal
+# stays far inside PDDL8_MAX_CONJUNCTS=8 because no other fragment declares
+# a goal). Every intermediate phase is forced by the precondition chain,
+# never by goal conjuncts: that is how the 8-constraint budget splits across
+# 10 phases without ever concentrating in one conjunction.
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:artifact
+    skos:notation "ADM-CYCLE-PROBLEM" ;
+    dcterms:description "Full ADM cycle problem: from adm-initiated to requirements-managed through all 10 chained phases."@en ;
+    ceng:pddlProblem """
+(define (problem meridian-adm-cycle-p)
+  (:domain meridian-adm-cycle)
+  (:objects meridian)
+  (:init (adm-initiated meridian))
+  (:goal (requirements-managed meridian)))
+""" .

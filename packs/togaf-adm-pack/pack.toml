@@ -1,0 +1,4 @@
+[pack]
+name = "togaf-adm-pack"
+version = "26.7.13"
+description = "TOGAF ADM lifecycle + Enterprise-Architecture-as-Strategy reference graph (PUBLIC ontologies only: togaf content metamodel, skos, prov, dcterms; blank nodes + skos:notation handles, no private namespace) and the Meridian Global Carrier case-study fixtures (10 chained ADM phase PDDL Turtle fragments, cycle problem, case-study instance data, SHACL shapes) for the cng PDDL->POWL pipeline. pddl-strips.ttl is unioned via this pack's ggen.toml extra_ontologies entry, not committed here."

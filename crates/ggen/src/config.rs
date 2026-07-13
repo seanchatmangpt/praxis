@@ -85,10 +85,21 @@ pub struct Ontology {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
 #[serde(untagged)]
 pub enum PackRef {
-    /// Local pack: `{ path = "…" }`.
+    /// Local pack: `{ path = "…" }`, optionally with
+    /// `extra_ontologies = ["…"]` — additional Turtle files, resolved
+    /// relative to the manifest, unioned into the pack's graph after its
+    /// own `ontology.ttl`. This replaces the per-pack `make-ontology.sh`
+    /// committed-union convention (ocel-bench-pack): the union is declared
+    /// in `ggen.toml` and materialized at sync time, so a pack ontology can
+    /// no longer drift from its sources. Each extra file joins the pack's
+    /// content hash (ggen.lock) and the sync input closure.
     Path {
         /// Filesystem path to the pack directory.
         path: PathBuf,
+        /// Additional ontology Turtle files unioned into the pack graph,
+        /// relative to the manifest. Empty when omitted.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        extra_ontologies: Vec<PathBuf>,
     },
     /// Remote pack: `{ git = "…", version = "…" }`.
     Git {
@@ -203,8 +214,22 @@ impl Validate for PackRef {
             // does not apply here, unlike `ontology.source`/`templates.dir`
             // which must stay within the project. Only non-emptiness is
             // required.
-            Self::Path { path } => {
+            Self::Path {
+                path,
+                extra_ontologies,
+            } => {
                 v.check_non_empty("path", &path.to_string_lossy());
+                // Extra ontologies resolve relative to the manifest and must
+                // stay inside the project (same contract as
+                // `ontology.source`), unlike the pack `path` itself which
+                // may legitimately reference a sibling checkout.
+                for (i, extra) in extra_ontologies.iter().enumerate() {
+                    v.check_path(
+                        &format!("extra_ontologies[{i}]"),
+                        &extra.to_string_lossy(),
+                        Some(false),
+                    );
+                }
             }
             Self::Git { git, version } => {
                 v.check_non_empty("git", git);

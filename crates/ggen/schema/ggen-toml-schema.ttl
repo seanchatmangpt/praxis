@@ -105,12 +105,17 @@ ggenspec:PackRef
 
 ggenspec:PackRef-Path
     a ggenspec:Variant ; rdfs:label "Path" ;
-    ggenspec:hasField ggenspec:PackRef-Path-path .
+    ggenspec:hasField ggenspec:PackRef-Path-path , ggenspec:PackRef-Path-extra_ontologies .
 
 ggenspec:PackRef-Path-path
     a ggenspec:Field ; ggenspec:name "path" ; ggenspec:type ggenspec:Path ;
     ggenspec:required true ; ggenspec:nonEmpty true ;
     rdfs:comment "Filesystem path to the pack directory. Legitimately traverses to sibling directories (e.g. '../foo-pack'), so only non-emptiness is enforced (Validator::check_non_empty), not path-traversal rejection." .
+
+ggenspec:PackRef-Path-extra_ontologies
+    a ggenspec:Field ; ggenspec:name "extra_ontologies" ; ggenspec:type ggenspec:ListOfPath ;
+    ggenspec:required false ;
+    rdfs:comment "Additional ontology Turtle files unioned into the pack graph after its own ontology.ttl, resolved relative to the manifest and confined to the project (Validator::check_path). Each joins the pack content hash (ggen.lock) and the sync input closure — the in-manifest replacement for per-pack make-ontology.sh committed unions." .
 
 ggenspec:PackRef-Git
     a ggenspec:Variant ; rdfs:label "Git" ;

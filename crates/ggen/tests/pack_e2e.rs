@@ -654,3 +654,111 @@ fn git_resolved_pack_syncs_end_to_end_and_caches_across_runs() {
         "output unaffected by cache reuse"
     );
 }
+
+/// Write `root/extra-project/` referencing `pack_name` by relative path with
+/// an in-project extra ontology (`extra/extra.ttl`) declared via
+/// `extra_ontologies` — the in-manifest union that replaces per-pack
+/// make-ontology.sh committed unions.
+fn write_extra_ontology_project(root: &Path, pack_name: &str) -> PathBuf {
+    let project = root.join("extra-project");
+    std::fs::create_dir_all(project.join("templates")).expect("mkdir templates");
+    std::fs::create_dir_all(project.join("extra")).expect("mkdir extra");
+    std::fs::write(project.join("ontology.ttl"), "").expect("write ontology.ttl");
+    std::fs::write(
+        project.join("extra/extra.ttl"),
+        "@prefix dom: <http://example.com/ontology#> .\ndom:ExtraClass a dom:DomainClass .\n",
+    )
+    .expect("write extra.ttl");
+    std::fs::write(
+        project.join("ggen.toml"),
+        format!(
+            "[project]\nname = \"extra-project\"\n\n\
+             [ontology]\nsource = \"ontology.ttl\"\n\n\
+             [packs]\npack-a = {{ path = \"../{pack_name}\", extra_ontologies = [\"extra/extra.ttl\"] }}\n\n\
+             [templates]\ndir = \"templates\"\n"
+        ),
+    )
+    .expect("write ggen.toml");
+    project
+}
+
+#[test]
+fn extra_ontology_syncs_and_its_edit_invalidates_the_lock() {
+    let dir = TempDir::new().expect("tempdir");
+    write_pack(
+        dir.path(),
+        "extra-pack-a",
+        "Alpha",
+        "src/alpha.rs",
+        "pub struct Alpha;",
+    );
+    let project = write_extra_ontology_project(dir.path(), "extra-pack-a");
+
+    // First sync succeeds: the extra ontology is readable, unioned, and
+    // locked into the pack's content hash.
+    sync(
+        &project,
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("first sync with extra ontology");
+    assert!(project.join("src/alpha.rs").is_file(), "pack output written");
+    let lock_1 =
+        std::fs::read_to_string(project.join("ggen.lock")).expect("lockfile after first sync");
+    assert!(
+        lock_1.contains("pack-a"),
+        "lock records the pack: {lock_1}"
+    );
+
+    // Editing the EXTRA source (outside the pack directory) must invalidate
+    // the lock exactly like an in-pack edit — this is the drift the old
+    // committed-union make-ontology.sh convention could not detect.
+    std::fs::write(
+        project.join("extra/extra.ttl"),
+        "@prefix dom: <http://example.com/ontology#> .\ndom:ExtraClassEdited a dom:DomainClass .\n",
+    )
+    .expect("edit extra.ttl");
+    let err = sync(
+        &project,
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect_err("edited extra ontology must refuse against the stale lock");
+    let msg = format!("{err}");
+    assert!(
+        msg.contains("content hash mismatch"),
+        "typed FM-PACK-008 lock mismatch expected, got: {msg}"
+    );
+}
+
+#[test]
+fn missing_extra_ontology_refuses_with_a_typed_error() {
+    let dir = TempDir::new().expect("tempdir");
+    write_pack(
+        dir.path(),
+        "extra-pack-b",
+        "Beta",
+        "src/beta.rs",
+        "pub struct Beta;",
+    );
+    let project = write_extra_ontology_project(dir.path(), "extra-pack-b");
+    std::fs::remove_file(project.join("extra/extra.ttl")).expect("remove extra.ttl");
+
+    let err = sync(
+        &project,
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect_err("missing extra ontology must refuse");
+    let msg = format!("{err}");
+    assert!(
+        msg.contains("extra ontology") && msg.contains("missing"),
+        "typed FM-PACK-004 missing-extra error expected, got: {msg}"
+    );
+}

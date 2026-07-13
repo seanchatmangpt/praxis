@@ -57,6 +57,7 @@ pub mod report_pretty;
 mod roles;
 mod run;
 mod templates;
+mod togaf;
 mod verify;
 mod workday;
 pub mod workday_verify;

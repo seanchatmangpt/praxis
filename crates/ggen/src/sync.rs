@@ -173,6 +173,23 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
             )
         })?;
         graph.insert_turtle(&pack_ttl)?;
+        // Union each declared extra ontology (ggen.toml `extra_ontologies`)
+        // after the pack's own ontology.ttl, in declaration order — the
+        // in-manifest replacement for per-pack make-ontology.sh committed
+        // unions.
+        for (declared, extra_path) in &pack.extra_ontology_paths {
+            let extra_ttl = std::fs::read_to_string(extra_path).map_err(|e| {
+                AppError::fm_pack(
+                    4,
+                    format!(
+                        "pack `{}`: extra ontology `{declared}` unreadable at `{}`: {e}",
+                        pack.name,
+                        extra_path.display()
+                    ),
+                )
+            })?;
+            graph.insert_turtle(&extra_ttl)?;
+        }
     }
 
     let templates = discover_templates(root, &config, &packs)?;
@@ -195,6 +212,9 @@ pub fn sync(root: &Path, opts: SyncOptions) -> Result<SyncReport> {
             rel_display(root, &pack.ontology_path),
             hash_file_or_missing(&pack.ontology_path),
         );
+        for (declared, extra_path) in &pack.extra_ontology_paths {
+            closure.insert(declared.clone(), hash_file_or_missing(extra_path));
+        }
     }
     for (tpl_path, tpl) in &templates {
         closure.insert(rel_display(root, tpl_path), hash_file_or_missing(tpl_path));

@@ -41,6 +41,12 @@ pub struct Pack {
     pub root: PathBuf,
     /// Path to the pack's `ontology.ttl`.
     pub ontology_path: PathBuf,
+    /// Extra ontology files declared on this pack's `ggen.toml` entry
+    /// (`extra_ontologies = [...]`), resolved against the manifest root and
+    /// verified readable at resolve time. Unioned into the pack graph after
+    /// `ontology.ttl`, in declaration order; each joins the pack content
+    /// hash paired with its declared (manifest-relative) path string.
+    pub extra_ontology_paths: Vec<(String, PathBuf)>,
     /// Sorted paths of the pack's `templates/*.tmpl` files.
     pub template_paths: Vec<PathBuf>,
 }
@@ -83,7 +89,10 @@ pub fn resolve(config: &GgenConfig, config_root: &Path) -> Result<Vec<Pack>> {
                 let root = resolve_git_pack_dir(name, git, version, config_root)?;
                 packs.push(resolve_pack_dir(name, &root)?);
             }
-            PackRef::Path { path } => {
+            PackRef::Path {
+                path,
+                extra_ontologies,
+            } => {
                 let root = config_root.join(path);
                 if !root.is_dir() {
                     return Err(AppError::fm_pack(
@@ -95,7 +104,24 @@ pub fn resolve(config: &GgenConfig, config_root: &Path) -> Result<Vec<Pack>> {
                         ),
                     ));
                 }
-                packs.push(resolve_pack_dir(name, &root)?);
+                let mut pack = resolve_pack_dir(name, &root)?;
+                for extra in extra_ontologies {
+                    let extra_path = config_root.join(extra);
+                    if !extra_path.is_file() {
+                        return Err(AppError::fm_pack(
+                            4,
+                            format!(
+                                "pack `{name}`: extra ontology `{}` missing at `{}`. \
+                                 Remediation: fix the [packs] extra_ontologies entry.",
+                                extra.display(),
+                                extra_path.display()
+                            ),
+                        ));
+                    }
+                    pack.extra_ontology_paths
+                        .push((extra.to_string_lossy().into_owned(), extra_path));
+                }
+                packs.push(pack);
             }
         }
     }
@@ -280,6 +306,7 @@ fn resolve_pack_dir(name: &str, root: &Path) -> Result<Pack> {
         description: manifest.pack.description,
         root,
         ontology_path,
+        extra_ontology_paths: Vec::new(),
         template_paths,
     })
 }
@@ -293,11 +320,20 @@ fn resolve_pack_dir(name: &str, root: &Path) -> Result<Pack> {
 /// `[FM-PACK-006]` when a pack file becomes unreadable between resolution
 /// and hashing.
 pub fn content_hash(pack: &Pack) -> Result<[u8; 32]> {
-    let mut entries: Vec<(String, PathBuf)> = Vec::with_capacity(1 + pack.template_paths.len());
+    let mut entries: Vec<(String, PathBuf)> =
+        Vec::with_capacity(1 + pack.extra_ontology_paths.len() + pack.template_paths.len());
     entries.push((
         rel_string(&pack.ontology_path, &pack.root),
         pack.ontology_path.clone(),
     ));
+    // Extra ontologies live outside the pack root; their declared
+    // manifest-relative path string is the hash key, so an edit to a source
+    // like crates/cng/ontologies/pddl-strips.ttl invalidates the lock the
+    // same way an in-pack edit would (the drift the old make-ontology.sh
+    // committed-union convention could not detect).
+    for (declared, path) in &pack.extra_ontology_paths {
+        entries.push((declared.clone(), path.clone()));
+    }
     for tpl in &pack.template_paths {
         entries.push((rel_string(tpl, &pack.root), tpl.clone()));
     }
@@ -359,7 +395,7 @@ struct LockDocEntry {
 #[must_use]
 pub fn source_string(pack_ref: &PackRef) -> String {
     match pack_ref {
-        PackRef::Path { path } => format!("path:{}", path.display()),
+        PackRef::Path { path, .. } => format!("path:{}", path.display()),
         PackRef::Git { git, version } => format!("git:{git}@{version}"),
     }
 }
