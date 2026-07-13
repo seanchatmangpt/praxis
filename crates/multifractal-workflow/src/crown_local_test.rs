@@ -426,6 +426,44 @@ fn crown_local_prefix_is_deterministic() {
     );
 }
 
+/// Golden-receipt regression fixture (standing gate for repo invariants #2/#5/#6: determinism is
+/// checked mechanically here, not by ad hoc N-run manual diffing). This is the real, 64-hex
+/// BLAKE3 `crown_receipt` [`drive_local_witness_prefix`] produced for the exact fixed fixture
+/// below, computed once by actually running the pipeline (never hand-typed/fabricated) -- see
+/// this repo's `just multifractal-workflow-test-isolated` verification in the commit/PR history
+/// for the run that produced it. A future change that silently breaks determinism, or changes the
+/// crown receipt's composition (which stage digests feed it, their order, the fold algorithm)
+/// without anyone noticing, now fails this assertion immediately instead of requiring a human to
+/// notice via manual N-run diffing. If this test fails after an *intentional* change to
+/// [`compute_crown_receipt`](super::compute_crown_receipt) or any upstream stage this fixture
+/// exercises, recompute the golden value the same way (run the test, take the real `left` value
+/// from the assertion failure) and update the constant -- never guess a replacement value.
+const GOLDEN_CROWN_LOCAL_RECEIPT_HEX: &str =
+    "7312777b2239047e7ef4bf723a7eb466ab8ac26729606b7cb6b20b246f10bfd3";
+
+/// Recomputes the crown-local receipt for the same fixed fixture the golden value above was
+/// captured from, and asserts byte-for-byte equality. This is the mechanical gate: no `.contains`
+/// substring check, a typed struct field (`LocalWitnessOutcome::crown_receipt`) compared for
+/// exact equality against a committed literal.
+#[test]
+fn crown_local_prefix_matches_golden_receipt() {
+    let policy = crown_policy();
+    let ledger = AdmissionLedger::new();
+    let (root, closure) = open_growth_root_and_closure();
+    let run = base_run(&policy, &ledger, root, closure, "crown-golden-1", HOOK_PACK);
+
+    let outcome = drive_local_witness_prefix(run)
+        .expect("golden-receipt fixture must compose end to end on the same fixed fixture");
+
+    assert_eq!(
+        outcome.crown_receipt, GOLDEN_CROWN_LOCAL_RECEIPT_HEX,
+        "crown-local receipt drifted from the committed golden value -- either determinism broke \
+         (repo invariants #2/#5/#6) or the receipt's composition changed; if the change is \
+         intentional, recompute GOLDEN_CROWN_LOCAL_RECEIPT_HEX by running this test and taking \
+         the real `left` value, never guess a replacement"
+    );
+}
+
 /// F02 short-circuits the whole prefix: an unknown source is refused at admission, and no
 /// downstream stage runs (the returned refusal is the F02 one, proving F03/F08/F09 never ran).
 #[test]
