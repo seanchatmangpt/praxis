@@ -1191,6 +1191,13 @@ erlang-test: erlang-compile
 erlang-test-atomvm-differential: erlang-compile
     timeout 60s rebar3 eunit -m arazzo_runner_atomvm_differential_test
 
+# Compile, then run ONLY the arazzo_atomvm_workflow eunit module (swarm audit
+# wnl2yhbgm finding #13's AtomVM sibling -- loop/2 and start/2 crash-safety on
+# malformed caller-supplied Event/InitOpts). Scoped with `-m` (same convention as
+# erlang-test-atomvm-differential above).
+erlang-test-atomvm-workflow: erlang-compile
+    timeout 60s rebar3 eunit -m arazzo_atomvm_workflow_test
+
 # Compile, then run ONLY the F16 dispatch_statem/dispatch_sup eunit module
 # (arazzo_runner_dispatch_statem_test -- V12-016), including its repeated
 # start/kill supervisor fault-injection soak test. Scoped with `-m` (same

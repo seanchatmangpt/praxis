@@ -32,11 +32,29 @@ start(WorkflowId) ->
 %% StartSpec-driven construction on the OTP side. start/1 above is the
 %% zero-workflow convenience case (Opts = #{}, i.e. air_core:new(#{}), a
 %% valid empty context with no steps).
--spec start(binary(), map()) -> {ok, pid()}.
+%%
+%% Swarm audit wnl2yhbgm finding #13's AtomVM sibling (related exposure,
+%% dogfood workflow w3wsl28yy): air_core:new/1 is genuinely fallible on a
+%% caller-supplied InitOpts shape (e.g. a step's `next` field that isn't a
+%% list reaches build_pred_mask_map/2's lists:foldl/3 and raises). Unlike
+%% loop/2's crash below, an exception here would crash whatever process
+%% CALLS start/2 directly -- no worker process has been spawned yet to
+%% isolate it, and this module has no supervisor. Caught and returned as a
+%% typed {error, _}, matching Erlang's own constructor-that-can-fail
+%% convention, rather than crashing the caller. Confirmed no production
+%% caller pattern-matches this return in a way that would break: the only
+%% non-test caller is atomvm_runner:start/2, a thin pass-through delegation
+%% facade with no {ok, _} = ... match on the result.
+-spec start(binary(), map()) -> {ok, pid()} | {error, term()}.
 start(WorkflowId, InitOpts) when is_map(InitOpts) ->
-    InitialCoreState = air_core:new(InitOpts),
-    Pid = spawn(?MODULE, loop, [WorkflowId, InitialCoreState]),
-    {ok, Pid}.
+    try air_core:new(InitOpts) of
+        InitialCoreState ->
+            Pid = spawn(?MODULE, loop, [WorkflowId, InitialCoreState]),
+            {ok, Pid}
+    catch
+        Class:Reason:Stack ->
+            {error, {air_core_new_failed, Class, Reason, Stack}}
+    end.
 
 dispatch_event(Pid, Event) ->
     Pid ! {event, Event},
@@ -82,7 +100,32 @@ get_state(Pid) ->
 loop(WorkflowId, CoreState) ->
     receive
         {event, Event} ->
-            case air_core:transition(Event, CoreState) of
+            %% Swarm audit wnl2yhbgm finding #13's AtomVM sibling (dogfood workflow
+            %% w3wsl28yy, HIGH severity): air_core:transition/2 is genuinely fallible on
+            %% caller-supplied Event/CoreState shapes -- a malformed StepId, or a step's
+            %% outputs bind-rule with the wrong arity, the identical trigger class
+            %% arazzo_runner_workflow.erl's apply_transition/4 was fixed against in commit
+            %% 2966330f. Unlike that OTP sibling, THIS actor is spawned via bare spawn/3
+            %% (start/2 above) -- no supervisor, no restart, no DETS persistence -- so an
+            %% uncaught exception here does not just crash a supervised process that gets
+            %% respawned; it silently, permanently destroys the workflow instance with no
+            %% trace. Caught here, logged, and the one malformed event is discarded: the
+            %% loop continues with CoreState UNCHANGED, so every other in-flight/future
+            %% event for this workflow instance is unaffected -- matching
+            %% apply_transition/4's own established try/catch-then-case idiom (a 4-tuple
+            %% {exception, Class, Reason, Stack} sentinel cannot collide with any of this
+            %% case's other, real air_core:transition/2 return shapes below, all of which
+            %% are 2- or 3-tuples).
+            case try air_core:transition(Event, CoreState)
+                 catch C:R:S -> {exception, C, R, S}
+                 end of
+                {exception, Class, Reason, Stack} ->
+                    error_logger:error_msg(
+                        "arazzo_atomvm_workflow ~p: air_core:transition/2 crashed on "
+                        "event ~p: ~p:~p ~p",
+                        [WorkflowId, Event, Class, Reason, Stack]
+                    ),
+                    loop(WorkflowId, CoreState);
                 {ok, NewCoreState} ->
                     loop(WorkflowId, NewCoreState);
                 {io_request, Req, NewCoreState} ->
