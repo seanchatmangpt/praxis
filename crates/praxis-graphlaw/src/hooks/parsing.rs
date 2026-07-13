@@ -313,6 +313,26 @@ pub fn validate_and_extract_hooks(triples: &[Triple]) -> Result<Vec<KnowledgeHoo
                 let op = CmpOp::parse(&op_str)?;
                 let k = parse_rdf_integer::<u64>(&props.one_str("k")?)?;
                 let window = parse_rdf_integer::<u8>(&props.one_str("window")?)?;
+                // Refuse kh:window 0 at parse time rather than let it reach
+                // `Reasoner::materialize`'s round loop, which computes `window - 1` as a bound
+                // for how many PAST rounds (beyond the current one, already counted
+                // unconditionally before this subtraction) to look back over -- a genuine,
+                // reproduced bug found by an adversarial dogfood audit this session: `usize::
+                // from(0u8) - 1` underflows and panics under this workspace's default
+                // overflow-checked build profile, reachable in production via `ggen law derive/
+                // explain/export/validate` (ggen/src/graph.rs's build_law_store has no
+                // catch_unwind around TripleStore::materialize). `kh:window 0` is not a
+                // reinterpretable edge case with an obvious intended meaning (a "look back zero
+                // rounds" window is degenerate, not just a boundary value) -- refusing it here,
+                // at admission, is the honest fix; silently reinterpreting it as window=1 would
+                // be guessing at semantics this project's own hook vocabulary never specifies.
+                if window == 0 {
+                    return Err(
+                        "hook:window must be >= 1 (0 is not a valid look-back window; it would \
+                         underflow the round-history bound in Reasoner::materialize)"
+                            .to_string(),
+                    );
+                }
                 HookCondition::Window { var, op, k, window }
             }
             "shacl" => {

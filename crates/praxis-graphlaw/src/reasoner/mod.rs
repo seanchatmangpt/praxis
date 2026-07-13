@@ -505,8 +505,22 @@ impl Reasoner {
                         }
                         HookCondition::Window { var, op, k, window } => {
                             let mut total = delta_count(&round_additions, var);
-                            for past_adds in
-                                stratum_history.iter().rev().take(usize::from(*window) - 1)
+                            // `saturating_sub(1)`, not `- 1`: `window: u8` is now refused at
+                            // parse time when 0 (hooks/parsing.rs), but this reasoner loop is a
+                            // second, independent path a `HookCondition::Window` can reach --
+                            // defense-in-depth against any future caller that constructs one
+                            // directly, bypassing that admission-time check. Matches the
+                            // identical, already-established `saturating_sub(1)` pattern in
+                            // `hooks/condition.rs::evaluate_condition`'s own Window arm (a
+                            // sibling implementation of this same computation for a different
+                            // caller) -- this file was the one outlier still using raw `- 1`,
+                            // which underflowed and panicked for `window == 0` under this
+                            // workspace's default overflow-checked build profile (found by an
+                            // adversarial dogfood audit this session, reproduced directly).
+                            for past_adds in stratum_history
+                                .iter()
+                                .rev()
+                                .take(usize::from(*window).saturating_sub(1))
                             {
                                 total += delta_count(past_adds, var);
                             }

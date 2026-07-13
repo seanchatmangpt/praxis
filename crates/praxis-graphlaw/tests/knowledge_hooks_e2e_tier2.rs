@@ -245,13 +245,27 @@ fn test_b3_empty_trigger_results() {
 }
 
 /// Covers F3: Verifies boundary window size values (window = 0 or window = 255).
+///
+/// Assertion corrected (disclosed, not silently fixed): this test previously asserted
+/// `kh:window 0` loads successfully (`res.is_ok()`), unknowingly asserting the symptom of a
+/// real bug rather than "handled cleanly" (this test's own docstring's other acceptable
+/// outcome). `store.load_hook_pack` never calls `materialize()`, so this test never actually
+/// exercised the code path that panicked: `Reasoner::materialize`'s `HookCondition::Window`
+/// arm (reasoner/mod.rs) computed `usize::from(window) - 1` unconditionally, which underflows
+/// and panics for `window == 0` under this workspace's default overflow-checked build profile
+/// -- found by an adversarial dogfood audit this session, reproduced directly, and reachable in
+/// real production via `ggen law derive/explain/export/validate` (`ggen/src/graph.rs`'s
+/// `build_law_store` has no `catch_unwind` around `TripleStore::materialize`). Fixed by
+/// refusing `kh:window 0` at hook-parse time (hooks/parsing.rs) -- a degenerate "look back zero
+/// rounds" value has no sensible interpretation to silently substitute, so admission-time
+/// refusal is the honest fix, not a reinterpretation. This test now asserts that refusal.
 #[test]
 fn test_b3_window_size_bounds() {
     let mut store = TripleStore::new();
     let hook_pack = r#"
         @prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
         @prefix ex: <http://example.org/> .
-        
+
         ex:h_window_zero a kh:Hook ;
             kh:name "window_zero" ;
             kh:kind "window" ;
@@ -262,9 +276,10 @@ fn test_b3_window_size_bounds() {
             kh:effect "emit-delta" .
     "#;
     let res = store.load_hook_pack(hook_pack);
+    let err = res.expect_err("kh:window 0 is a degenerate value and must be refused at parse time, not silently accepted");
     assert!(
-        res.is_ok(),
-        "Window size 0 boundary should be valid or handled cleanly"
+        err.contains("window") && err.contains("0"),
+        "refusal message should name the offending window value, got: {err}"
     );
 }
 

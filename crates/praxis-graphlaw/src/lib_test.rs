@@ -922,6 +922,57 @@ fn test_datalog_safe_rule_stratification() {
     assert_eq!(result.unwrap(), vec![0]);
 }
 
+// Regression for a real, reproduced panic found by an adversarial dogfood audit this session:
+// `Reasoner::materialize`'s `HookCondition::Window` round-evaluation arm (reasoner/mod.rs)
+// computed `usize::from(window) - 1` unconditionally -- for `window == 0` this underflows and
+// panics under this workspace's default overflow-checked build profile. `kh:window 0` is now
+// refused at hook-PARSE time (hooks/parsing.rs, see `test_b3_window_size_bounds` in
+// tests/knowledge_hooks_e2e_tier2.rs for that half), so the normal `load_hook_pack` API can no
+// longer construct this scenario -- this test instead pushes a `CompiledHook` with `condition:
+// HookCondition::Window { window: 0, .. }` directly onto `TripleStore.hooks` (a public field),
+// bypassing the parser entirely, to prove the SEPARATE defense-in-depth fix in reasoner/mod.rs
+// itself (raw `- 1` changed to `.saturating_sub(1)`, matching the same pattern already used by
+// the sibling `hooks/condition.rs::evaluate_condition` implementation) actually holds for any
+// caller that reaches this code path without going through hook parsing at all.
+#[test]
+fn materialize_does_not_panic_on_a_directly_constructed_zero_window_hook() {
+    use crate::hooks::{CmpOp, CompiledHook, EffectKind, EventId, HookCondition, HookId};
+
+    let mut store = TripleStore::new();
+    store
+        .load_triples(
+            "<http://example.org/window-zero-subject> <http://example.org/metric> \"1\".",
+            crate::parser::Syntax::NTriples,
+        )
+        .unwrap();
+    store.hooks.push(CompiledHook {
+        id: HookId(0),
+        iri: "urn:test:window-zero-direct".to_string(),
+        name: "window_zero_direct".to_string(),
+        event: EventId(0),
+        on: "any".to_string(),
+        condition: HookCondition::Window {
+            var: "http://example.org/metric".to_string(),
+            op: CmpOp::Ge,
+            k: 0,
+            window: 0,
+        },
+        effect: EffectKind::EmitDelta,
+        action: None,
+        reason: None,
+        priority: 0,
+        after: smallvec::SmallVec::new(),
+    });
+
+    // Must not panic: this is the exact call sequence the audit reproduced the underflow with.
+    let result = store.materialize();
+    assert!(
+        result.is_ok(),
+        "materialize() must not panic (or otherwise fail) on a directly-constructed \
+         window=0 hook, got: {result:?}"
+    );
+}
+
 // Regression for a real, `docs/jira/v26.7.12/REMAINING_WORK.md`-flagged correctness bug: the
 // Bellman-Ford stratification loop's `iteration` counter always executes its loop body at
 // least once (`changed` starts `true`), so on an empty ruleset (`num_predicates == 0`) it
