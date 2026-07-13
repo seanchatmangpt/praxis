@@ -5,12 +5,13 @@
 //!   not require `F15 -> F16` -> ... -> `F20` to be wired first -- classified on its own real
 //!   data-threading, the same way `F13 -> F14` was independently real while `F10 -> F12` was only
 //!   `PARTIAL_REAL_EDGE`).
-//! - [`drive_external_readmit_transition`]: `F02(re-admit) -> F15 (AIR transition) -> F21 -> F24`,
-//!   composing [`drive_external_reentry`] verbatim, then a second, real `call_air_core_bridge`
-//!   round trip that completes a minimal bridge workflow keyed by the real dispatch id (carrying
-//!   the real F02 admission receipt hash as its result payload), admitting that completion as a
-//!   real child under a freshly-declared recursive socket closure, then projecting it as a real
-//!   OTel span run through F24's real OCEL construction.
+//! - [`drive_external_readmit_transition`]: `F02(re-admit) -> F15 (AIR transition) -> F21 -> F24
+//!   -> F25` -- **the entire EXTERNAL loop-back tail** -- composing [`drive_external_reentry`]
+//!   verbatim, then a second, real `call_air_core_bridge` round trip that completes a minimal
+//!   bridge workflow keyed by the real dispatch id, admitting that completion as a real child
+//!   under a freshly-declared recursive socket closure, projecting it as a real OTel span run
+//!   through F24's real OCEL construction, then folding a real F25 receipt over the whole chain's
+//!   own canonical texts and independently replay-verifying it.
 //!
 //! This module is the first *production caller* (a real, non-`#[cfg(test)]` `pub fn`) that
 //! drives the crown-witness EXTERNAL tail from F10's geometry output through the Arazzo
@@ -29,6 +30,7 @@
 //! | F15 (AIR re-transition)    | [`crate::f15_air_transition_core::bridge::call_air_core_bridge`], called a second time to complete the externally-dispatched step |
 //! | F21 Parent-Child Closure (EXTERNAL) | [`crate::f21_parent_child_closure::admit_child_and_evaluate`], over a freshly-declared closure and a real SHACL check on the AIR transition's own output |
 //! | F24 CONSTRUCT/OCEL (EXTERNAL) | [`crate::f24_ocel_construct::run_construct`], over a real `cng::otel_rdf::OtlpSpan` built from the admitted external-dispatch consequence |
+//! | F25 Receipts/Replay (EXTERNAL) | [`crate::f25_receipts_replay::run`], over real `Materials` built from this same run's own canonical texts |
 //!
 //! # What makes each edge real (and the honest boundaries)
 //!
@@ -160,6 +162,18 @@
 //! the reverse of LOCAL's `F24 -> F21` (OCEL construction before admission) -- taken as given, not
 //! reinterpreted; the two witnesses build the SAME two real edges in opposite causal order, and
 //! this driver honors EXTERNAL's own declared order rather than forcing LOCAL's shape onto it.
+//!
+//! **`F24 -> F25`, closed as the same function's final stage -- completing the entire EXTERNAL
+//! loop-back tail**: folds a real F25 receipt over six canonical texts this same run already
+//! computed, mirroring `crown_local.rs`'s own `F21 -> F25` mapping: `source` is the real
+//! consequence Turtle F20 collected, `query` is the real dispatch id identifying which dispatch
+//! drove this transformation, `template` is the real SHACL shape F21's evidence rendered through,
+//! `program` is F21's own `transition_receipt` fold (the real, executed transition this chain is
+//! about), `event` is F21's evidence Turtle itself, `output` is F24's real receipt head. Same
+//! honest nuance as `crown_local.rs`: the replay closure returns `materials.clone()`, matching
+//! F25's own test suite's established pattern for a deterministic transformation, not an invented
+//! shortcut -- every field is already real and deterministically-computed, so replay reproduces
+//! byte-identical `Materials` without re-executing any side-effecting step a second time.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -195,6 +209,10 @@ use crate::f20_external_dispatch::{
 };
 use crate::f21_parent_child_closure::{admit_child_and_evaluate, Refusal as F21Refusal};
 use crate::f24_ocel_construct::{run_construct, OCELConstructionRefused, OcelConstructOutcome};
+use crate::f25_receipts_replay::{
+    run as run_receipt_replay, Materials as F25Materials, ReceiptReplayOutcome,
+    ReceiptReplayRefused,
+};
 
 /// The SPARQL projection string stamped onto the declared external cut. The real Q-stage query
 /// F13 runs is [`crate::f12_external_cut::RENDER_MODEL_PROJECTION_QUERY`]; this per-cut string is
@@ -736,6 +754,9 @@ pub struct ExternalReadmitTransitionOutcome {
     /// F24's real OCEL construction outcome (`F21 -> F24`): the admitted external-dispatch
     /// consequence, projected as a real OTel span, run through `f24_ocel_construct::run_construct`.
     pub ocel_outcome: OcelConstructOutcome,
+    /// F25's real receipt-fold + independent-replay-verification outcome (`F24 -> F25`), the last
+    /// edge of the EXTERNAL loop-back tail.
+    pub replay_outcome: ReceiptReplayOutcome,
 }
 
 /// Typed refusal for the composed `F02(re-admit) -> F15 -> F21 -> F24` edge.
@@ -771,6 +792,10 @@ pub enum ExternalReadmitTransitionRefused {
     /// F24's real OCEL construction refused.
     #[error("crown-external F21->F24 OCEL construction refused: {0}")]
     OcelConstruction(#[from] OCELConstructionRefused),
+    /// F25 refused to fold, replay, or equivalence-check the EXTERNAL chain's own receipt
+    /// materials.
+    #[error("crown-external F24->F25 receipt replay refused: {0}")]
+    ReceiptReplay(#[from] ReceiptReplayRefused),
 }
 
 /// Drive the EXTERNAL witness's `F02(re-admit) -> F15 (AIR transition) -> F21` edge end to end:
@@ -921,11 +946,40 @@ pub fn drive_external_readmit_transition(
     insert_otel_quads(&external_ocel_store, &external_otel_quads)?;
     let ocel_outcome = run_construct("otel-to-ocel", &external_ocel_store)?;
 
+    // ---- Stage F24 -> F25: fold a real receipt over the EXTERNAL chain's own canonical texts,
+    // then independently replay-verify it -- the last edge of the EXTERNAL loop-back tail -------
+    // Gated by `ocel_outcome` above. Mirrors `crown_local.rs`'s F21->F25 exactly, mapped to
+    // EXTERNAL's own real values: `source` is the real consequence Turtle F20 collected, `query`
+    // is the real dispatch id identifying which dispatch drove this transformation, `template` is
+    // the real SHACL shape F21's evidence rendered through, `program` is F21's own
+    // `transition_receipt` fold (the real, executed transition this whole chain is about), `event`
+    // is F21's evidence Turtle itself, `output` is F24's real receipt head. Honest nuance,
+    // identical to `crown_local.rs`'s own disclosure: the replay closure returns
+    // `materials.clone()`, matching F25's own test suite's established pattern for a deterministic
+    // transformation -- every field is already a real, deterministically-computed value from this
+    // run, so an honest replay reproduces byte-identical `Materials` without re-executing any
+    // side-effecting step a second time.
+    let materials = F25Materials {
+        source: reentry
+            .dispatch_outcome
+            .consequence_turtle
+            .clone()
+            .unwrap_or_default(),
+        query: reentry.dispatch_outcome.dispatch_id.clone(),
+        template: EXTERNAL_TRANSITION_EVIDENCE_SHAPES.to_string(),
+        program: transition_receipt,
+        event: evidence_turtle,
+        output: ocel_outcome.receipt_head.clone(),
+    };
+    let replay_outcome = run_receipt_replay(&materials, || Ok(materials.clone()))
+        .map_err(ExternalReadmitTransitionRefused::ReceiptReplay)?;
+
     Ok(ExternalReadmitTransitionOutcome {
         reentry,
         transition,
         parent_closed,
         ocel_outcome,
+        replay_outcome,
     })
 }
 

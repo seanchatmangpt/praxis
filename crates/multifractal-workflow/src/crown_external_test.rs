@@ -384,13 +384,13 @@ fn external_reentry_dispatches_serves_collects_and_readmits_a_real_consequence()
 /// `f15_air_transition_core::bridge`'s own integration tests are: it needs `escript` on `PATH`
 /// and a compiled `apps/air_core` via `just erlang-compile`; run with `--ignored`).
 ///
-/// Drives the full `F20 -> F02(re-admit) -> F15 (AIR transition) -> F21 -> F24` chain: a real
-/// dispatch/serve/collect/re-admit round trip, a real `air_core:transition/2` call completing a
-/// minimal bridge workflow keyed by the real dispatch id (carrying the real F02 admission receipt
-/// hash as its event payload), a real F21 child admission evidenced by a SHACL check over the
-/// transition's own real output, then a real F24 OCEL construction over that same admitted
-/// consequence -- proving each consequence is genuinely fed into the next real mechanism, not
-/// merely asserted.
+/// Drives the full `F20 -> F02(re-admit) -> F15 (AIR transition) -> F21 -> F24 -> F25` chain --
+/// **the entire EXTERNAL loop-back tail**: a real dispatch/serve/collect/re-admit round trip, a
+/// real `air_core:transition/2` call completing a minimal bridge workflow keyed by the real
+/// dispatch id, a real F21 child admission evidenced by a SHACL check over the transition's own
+/// real output, a real F24 OCEL construction over that same admitted consequence, then a real F25
+/// receipt-fold + independent-replay-verification over the whole chain's own canonical texts --
+/// proving each consequence is genuinely fed into the next real mechanism, not merely asserted.
 #[test]
 #[ignore = "requires escript on PATH and apps/air_core compiled via `just erlang-compile`; run with --ignored"]
 fn external_readmit_transition_completes_the_dispatched_step_through_real_air_core() {
@@ -458,6 +458,30 @@ fn external_readmit_transition_completes_the_dispatched_step_through_real_air_co
         "F24 must derive at least one G_RECEIPT quad"
     );
     assert!(!outcome.ocel_outcome.receipt_head.is_empty());
+
+    // F24 -> F25: the whole chain's own canonical texts were really folded into a receipt and
+    // independently replay-verified -- all 6 CTQ material kinds matched, the folded receipt root
+    // matched its replay, and real PROV-O receipt-graph quads were written.
+    assert_eq!(
+        outcome.replay_outcome.report.matched_kinds.len(),
+        6,
+        "all 6 CTQ material kinds (source/query/template/program/event/output) must match"
+    );
+    assert!(outcome.replay_outcome.report.receipt_root_matched);
+    assert!(!outcome
+        .replay_outcome
+        .receipt
+        .receipt_root
+        .as_str()
+        .is_empty());
+    assert_eq!(
+        outcome.replay_outcome.receipt.receipt_root, outcome.replay_outcome.replayed.receipt_root,
+        "the folded receipt and its independent replay must agree on the receipt root"
+    );
+    assert!(
+        !outcome.replay_outcome.graph.is_empty(),
+        "F25 must write real PROV-O receipt-graph quads"
+    );
 
     let _ = fs::remove_dir_all(&root);
 }
