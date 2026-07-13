@@ -1,0 +1,7 @@
+# Well-formed Turtle that carries no ex:category/ex:worker classification
+# predicates -- used by manufacture_test.rs's
+# classify_artifact_valid_turtle_missing_predicates_returns_ok_none to prove
+# a syntactically valid but unrelated file returns a real Ok(None), not
+# collapsed into either I/O or MalformedTtl refusal.
+@prefix ex: <urn:example:> .
+ex:s ex:unrelatedPredicate "v" .

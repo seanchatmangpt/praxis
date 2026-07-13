@@ -28,6 +28,12 @@ fn scratch_root() -> PathBuf {
         .join("manufacture-classify-artifact")
 }
 
+/// Crate-root path helper, same convention as `dispatch_test.rs`'s own
+/// `crate_path`. O(1).
+fn crate_path(rel: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel)
+}
+
 /// `classify_artifact` on a path that names a DIRECTORY, not a file: its
 /// very first operation, `fs::read_to_string`, fails with a genuine OS I/O
 /// error (`IsADirectory`/`EISDIR` on Unix; `ERROR_ACCESS_DENIED` reading a
@@ -108,11 +114,12 @@ fn classify_artifact_valid_turtle_missing_predicates_returns_ok_none() {
     let dir = scratch_root().join("valid-turtle-no-classification-predicates");
     fs::create_dir_all(&dir).expect("create scratch dir for well-formed-but-unrelated fixture");
     let path = dir.join("unrelated.ttl");
-    fs::write(
-        &path,
-        b"@prefix ex: <urn:example:> .\nex:s ex:unrelatedPredicate \"v\" .\n",
-    )
-    .expect("write well-formed Turtle fixture lacking category/worker predicates");
+    let fixture = fs::read_to_string(crate_path(
+        "tests/fixtures/negative/manufacture-unrelated-predicates.ttl",
+    ))
+    .expect("read manufacture-unrelated-predicates.ttl fixture");
+    fs::write(&path, fixture)
+        .expect("write well-formed Turtle fixture lacking category/worker predicates");
 
     match classify_artifact(&path) {
         Ok(None) => {}
