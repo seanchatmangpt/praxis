@@ -124,6 +124,27 @@ impl EngineBundle {
     /// # Complexity
     /// O(1) — seven mkdirs.
     pub fn new(root: &Path, engine_id: &str) -> Result<EngineBundle, CngRefusal> {
+        // Swarm audit wnl2yhbgm finding #32: `engine_id` used to be joined into the filesystem
+        // root with no validation (`root.join("engines").join(engine_id)`), reachable from the
+        // `cng engine serve`/`resume` CLI verbs (argv, unsanitized) and from
+        // `target_engine: &str` params in multifractal-workflow's F20 dispatch entry points. An
+        // `engine_id` of "../../../../tmp/evil-engine" (or an absolute path, which replaces the
+        // whole joined `PathBuf` on Unix) relocates the entire per-engine bundle -- inbox,
+        // outbox, ledger, everything -- outside the intended root. Same character-class
+        // restriction already established for `disp:dispatchId` (dispatch-shapes.ttl's
+        // `sh:pattern`); real engine ids used throughout this crate (single letters like "H"/"M"
+        // in tests and CLI usage) already fit it.
+        if engine_id.is_empty()
+            || !engine_id
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+        {
+            return Err(CngRefusal::IoRefused(format!(
+                "invalid engine_id {engine_id:?}: must be non-empty and match \
+                 ^[A-Za-z0-9_-]+$ (rejected to prevent relocating the engine bundle outside its \
+                 intended root via path traversal)"
+            )));
+        }
         let bundle = EngineBundle {
             root: root.join("engines").join(engine_id),
             engine_id: engine_id.to_string(),

@@ -670,6 +670,48 @@ test!(
     }
 );
 
+// Swarm audit wnl2yhbgm finding #32: `EngineBundle::new` joined `engine_id` directly into the
+// filesystem root with no validation, reachable straight from `cng engine serve`'s own
+// `--engine-id` argv (no sanitization anywhere between the CLI arg and the join). A malicious or
+// mistyped `--engine-id` containing `..` segments would relocate the ENTIRE per-engine bundle
+// (inbox/outbox/ledger/everything) outside the intended root. This drives the real CLI directly
+// with such a value and asserts the engine refuses before creating anything.
+test!(
+    g16_path_traversal_engine_id_is_refused_before_any_bundle_dir_is_created,
+    {
+        let root = scratch_dir("g16");
+        let (_stdout, stderr, ok) = run_cng(&[
+            "engine",
+            "serve",
+            "--root",
+            root.to_str().expect("utf-8 root"),
+            "--engine-id",
+            "../../../../../../tmp/evil-engine",
+            "--seed",
+            "616",
+            "--max-polls",
+            "1",
+            "--poll-wait-ms",
+            "0",
+        ]);
+        assert!(
+            !ok,
+            "a path-traversal engine_id must refuse before creating the bundle, not silently \
+         relocate it: stderr={stderr}"
+        );
+        assert!(
+        stderr.contains("invalid engine_id"),
+        "the refusal must be the engine_id validation, not an unrelated failure: stderr={stderr}"
+    );
+        // The critical safety property: no `engines/` directory tree was ever created under root
+        // (the relocation this fix exists to prevent never got a chance to happen).
+        assert!(
+            !root.join("engines").exists(),
+            "no bundle directory should ever be created for a rejected engine_id"
+        );
+    }
+);
+
 test!(
     distributed_determinism_two_serialized_runs_byte_identical,
     {
