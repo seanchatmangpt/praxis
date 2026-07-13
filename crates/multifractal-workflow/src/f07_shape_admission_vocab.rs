@@ -27,13 +27,13 @@ ClassDef { label: "ViolationSet", iri: "https://ggen.io/ontology/shape-admission
 /// `(from_label, to_label)` pairs: `from` `prov:wasDerivedFrom` `to`, i.e.
 /// `from` cannot exist without `to` already having been computed.
 pub const DERIVATION_EDGES: &[(&str, &str)] = &[
-    ("AdmissionDecision", "ViolationSet"),
-    ("AdmittedGraph", "ShapeReceipt"),
-    ("SHACLReport", "ShapeProfile"),
-    ("ShExReport", "ShapeProfile"),
-    ("ShapeReceipt", "AdmissionDecision"),
-    ("ViolationSet", "SHACLReport"),
-    ("ViolationSet", "ShExReport"),
+("AdmissionDecision", "ViolationSet"),
+("AdmittedGraph", "ShapeReceipt"),
+("SHACLReport", "ShapeProfile"),
+("ShExReport", "ShapeProfile"),
+("ShapeReceipt", "AdmissionDecision"),
+("ViolationSet", "SHACLReport"),
+("ViolationSet", "ShExReport"),
 ];
 
 /// Admission lifecycle state names, in ordinal (pipeline) order. Index 0 is
@@ -41,12 +41,12 @@ pub const DERIVATION_EDGES: &[(&str, &str)] = &[
 /// the terminal off-ramp reachable from any non-terminal state, not a
 /// pipeline stage in sequence with the rest.
 pub const LIFECYCLE_STATES: &[&str] = &[
-    "PROFILED",
-    "SHACL_CHECKED",
-    "SHEX_CHECKED",
-    "VIOLATIONS_NORMALIZED",
-    "DECIDED",
-    "RECEIPTED",
-    "HANDED_OFF",
-    "REFUSED",
+"PROFILED",
+"SHACL_CHECKED",
+"SHEX_CHECKED",
+"VIOLATIONS_NORMALIZED",
+"DECIDED",
+"RECEIPTED",
+"HANDED_OFF",
+"REFUSED",
 ];

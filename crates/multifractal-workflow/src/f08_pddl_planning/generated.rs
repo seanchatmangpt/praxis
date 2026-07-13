@@ -75,8 +75,10 @@ pub const LAWFUL_TRANSITIONS: &[(PipelineState, PipelineState)] = &[
 /// F08-L2 (component-topology lens) names three refusal-attaching
 /// components instead -- see `stage::refusal_stages()`. The pack ontology's
 /// header comment discloses why these two lenses are not reconciled here.
-pub const REFUSAL_SOURCES: &[PipelineState] =
-    &[PipelineState::DomainBound, PipelineState::Planning];
+pub const REFUSAL_SOURCES: &[PipelineState] = &[
+    PipelineState::DomainBound,
+    PipelineState::Planning,
+];
 
 /// Is `(from, to)` one of [`LAWFUL_TRANSITIONS`]?
 ///
@@ -84,9 +86,7 @@ pub const REFUSAL_SOURCES: &[PipelineState] =
 /// O(n) linear scan over a fixed 6-entry table; not worth indexing.
 #[must_use]
 pub fn is_lawful_transition(from: PipelineState, to: PipelineState) -> bool {
-    LAWFUL_TRANSITIONS
-        .iter()
-        .any(|&(f, t)| f == from && t == to)
+    LAWFUL_TRANSITIONS.iter().any(|&(f, t)| f == from && t == to)
 }
 
 /// L1/L2 pipeline stage metadata -- deliberately separate from
@@ -108,48 +108,13 @@ pub mod stage {
     }
 
     pub const STAGES: &[Stage] = &[
-        Stage {
-            order: 1,
-            label: "Problem Projector",
-            completes_state: PipelineState::ProblemProjected,
-            refusal_point: false,
-        },
-        Stage {
-            order: 2,
-            label: "Domain Resolver",
-            completes_state: PipelineState::DomainBound,
-            refusal_point: true,
-        },
-        Stage {
-            order: 3,
-            label: "Action-Hook Binder",
-            completes_state: PipelineState::ActionsBound,
-            refusal_point: true,
-        },
-        Stage {
-            order: 4,
-            label: "Planner",
-            completes_state: PipelineState::PlanFound,
-            refusal_point: false,
-        },
-        Stage {
-            order: 5,
-            label: "Plan Validator",
-            completes_state: PipelineState::Validated,
-            refusal_point: false,
-        },
-        Stage {
-            order: 6,
-            label: "Effect Trace",
-            completes_state: PipelineState::Receipted,
-            refusal_point: false,
-        },
-        Stage {
-            order: 7,
-            label: "Plan Receipt",
-            completes_state: PipelineState::Receipted,
-            refusal_point: true,
-        },
+        Stage { order: 1, label: "Problem Projector", completes_state: PipelineState::ProblemProjected, refusal_point: false },
+        Stage { order: 2, label: "Domain Resolver", completes_state: PipelineState::DomainBound, refusal_point: true },
+        Stage { order: 3, label: "Action-Hook Binder", completes_state: PipelineState::ActionsBound, refusal_point: true },
+        Stage { order: 4, label: "Planner", completes_state: PipelineState::PlanFound, refusal_point: false },
+        Stage { order: 5, label: "Plan Validator", completes_state: PipelineState::Validated, refusal_point: false },
+        Stage { order: 6, label: "Effect Trace", completes_state: PipelineState::Receipted, refusal_point: false },
+        Stage { order: 7, label: "Plan Receipt", completes_state: PipelineState::Receipted, refusal_point: true },
     ];
 
     /// Stages the atlas's F08-L2 diagram marks as refusal-attaching
@@ -187,8 +152,7 @@ pub mod entity {
 
     impl PDDLProblem {
         /// This class's IRI in the pack ontology.
-        pub const RDF_CLASS: &'static str =
-            "https://truex.io/ontology/mfw-pddl-planning#PDDLProblem";
+        pub const RDF_CLASS: &'static str = "https://truex.io/ontology/mfw-pddl-planning#PDDLProblem";
         /// The atlas F08-L6 edge predicate from this entity to the next one
         /// in the chain (`"none"` for the terminal entity).
         pub const CHAIN_EDGE_TO_NEXT: &'static str = "prov:wasDerivedFrom";
@@ -219,8 +183,7 @@ pub mod entity {
 
     impl PDDLDomain {
         /// This class's IRI in the pack ontology.
-        pub const RDF_CLASS: &'static str =
-            "https://truex.io/ontology/mfw-pddl-planning#PDDLDomain";
+        pub const RDF_CLASS: &'static str = "https://truex.io/ontology/mfw-pddl-planning#PDDLDomain";
         /// The atlas F08-L6 edge predicate from this entity to the next one
         /// in the chain (`"none"` for the terminal entity).
         pub const CHAIN_EDGE_TO_NEXT: &'static str = "mfw:generates";
@@ -251,8 +214,7 @@ pub mod entity {
 
     impl ActionCapabilityMap {
         /// This class's IRI in the pack ontology.
-        pub const RDF_CLASS: &'static str =
-            "https://truex.io/ontology/mfw-pddl-planning#ActionCapabilityMap";
+        pub const RDF_CLASS: &'static str = "https://truex.io/ontology/mfw-pddl-planning#ActionCapabilityMap";
         /// The atlas F08-L6 edge predicate from this entity to the next one
         /// in the chain (`"none"` for the terminal entity).
         pub const CHAIN_EDGE_TO_NEXT: &'static str = "prov:wasDerivedFrom";
@@ -314,8 +276,7 @@ pub mod entity {
 
     impl ValidationTrace {
         /// This class's IRI in the pack ontology.
-        pub const RDF_CLASS: &'static str =
-            "https://truex.io/ontology/mfw-pddl-planning#ValidationTrace";
+        pub const RDF_CLASS: &'static str = "https://truex.io/ontology/mfw-pddl-planning#ValidationTrace";
         /// The atlas F08-L6 edge predicate from this entity to the next one
         /// in the chain (`"none"` for the terminal entity).
         pub const CHAIN_EDGE_TO_NEXT: &'static str = "prov:wasDerivedFrom";
@@ -346,8 +307,7 @@ pub mod entity {
 
     impl EffectTrace {
         /// This class's IRI in the pack ontology.
-        pub const RDF_CLASS: &'static str =
-            "https://truex.io/ontology/mfw-pddl-planning#EffectTrace";
+        pub const RDF_CLASS: &'static str = "https://truex.io/ontology/mfw-pddl-planning#EffectTrace";
         /// The atlas F08-L6 edge predicate from this entity to the next one
         /// in the chain (`"none"` for the terminal entity).
         pub const CHAIN_EDGE_TO_NEXT: &'static str = "mfw:generates";
@@ -378,8 +338,7 @@ pub mod entity {
 
     impl PlanReceipt {
         /// This class's IRI in the pack ontology.
-        pub const RDF_CLASS: &'static str =
-            "https://truex.io/ontology/mfw-pddl-planning#PlanReceipt";
+        pub const RDF_CLASS: &'static str = "https://truex.io/ontology/mfw-pddl-planning#PlanReceipt";
         /// The atlas F08-L6 edge predicate from this entity to the next one
         /// in the chain (`"none"` for the terminal entity).
         pub const CHAIN_EDGE_TO_NEXT: &'static str = "none";
@@ -396,6 +355,7 @@ pub mod entity {
             }
         }
     }
+
 }
 
 /// The atlas F08-L6 chain edges verbatim, `(from_class, edge_predicate,
