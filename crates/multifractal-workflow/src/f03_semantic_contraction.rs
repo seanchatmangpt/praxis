@@ -485,21 +485,21 @@ pub struct ResidueGraph {
 /// leaving only the genuinely irreducible remainder. See module doc for why this is
 /// predicate-level, not full-subgraph, set difference.
 ///
-/// **Upstream bug found and worked around, not silently relied on:** `compare_residue` matches
-/// against `praxis_graphlaw::encoding::Encoder::decode`'s raw stored form, which for an IRI
-/// term is the bracketed `<iri>` text `Triple::from`/`VarOrTerm::convert` interns -- confirmed
-/// by reading `encoding.rs`'s `Encoder::add`/`add_iri` this session, which store the string
-/// exactly as given, with no bracket-stripping. A bare (unbracketed) predicate string can never
-/// match, so `compare_residue` called with bare IRIs always reports every candidate as
-/// `remaining`, never `stripped`. This is a real, pre-existing bug in `f05_datalog_closure.rs`,
-/// not something introduced here: its own checked-in test
-/// (`f05_datalog_closure::tests::test_compare_residue_strips_closed_predicates`) fails for
-/// exactly this reason -- verified this session by running it in isolation (`cargo test -p
-/// multifractal-workflow --lib f05_datalog_closure::tests::test_compare_residue_strips_closed_predicates`
-/// -> FAILED, `left: []`, `right: ["http://example.org/knowsDerived"]`). Fixing
-/// `f05_datalog_closure.rs` itself is out of this module's scope (a sibling family's file, being
-/// actively developed this session); this function instead normalizes to and from the bracketed
-/// form at its own boundary, so callers of `project_residue` see bare IRIs in and out.
+/// **Correction (re-verified, does not reproduce):** an earlier version of this doc comment
+/// claimed `compare_residue` matched against `Encoder::decode`'s raw bracketed `<iri>` form
+/// with no stripping, so bare predicate IRIs could never match and `project_residue` had to
+/// normalize to/from brackets at its own boundary to work around it. Re-reading
+/// `compare_residue`'s current source (`f05_datalog_closure.rs:337-343`) shows it already
+/// calls `.trim_matches(|c| c == '<' || c == '>')` on the decoded predicate string before
+/// comparing, and `git log -p --follow` on that file shows the `trim_matches` call has been
+/// present since the function's first commit, not added later. Re-running the cited repro
+/// (`cargo test -p multifractal-workflow --lib
+/// f05_datalog_closure::tests::test_compare_residue_strips_closed_predicates`) passes. This
+/// function performs no bracket normalization of its own -- it is a genuine thin pass-through,
+/// as the paragraph above states -- and this file's own
+/// `project_residue_strips_predicates_the_closure_already_proves` test below exercises it with
+/// bare (unbracketed) predicate IRIs end to end, confirming there is nothing left to work
+/// around.
 /// # Complexity
 /// See `compare_residue`'s own O(|closure| + |admitted_predicates| * log(|closure|)) bound.
 pub fn project_residue(closure: &ClosureGraph, admitted_predicates: &[String]) -> ResidueGraph {
@@ -714,6 +714,35 @@ mod tests {
             .diff
             .remaining
             .contains(&"http://example.org/genuinelyOpenWork".to_string()));
+    }
+
+    /// Regression pin for the `project_residue` doc-comment correction: an earlier revision of
+    /// that doc claimed `compare_residue` (reused verbatim here, not re-derived) could never
+    /// match a bare/unbracketed predicate IRI against its bracketed internal decode, so
+    /// `project_residue` had to normalize brackets at its own boundary to work around it. This
+    /// test calls the real `crate::f05_datalog_closure::compare_residue` entry point directly
+    /// against this module's own `ClosureGraph` output (the same call `project_residue` makes),
+    /// with bare, unbracketed predicate strings on both sides of the comparison -- exactly the
+    /// shape the retracted doc claimed always fails -- and asserts a real match. If the
+    /// described bug ever regresses, this fails alongside
+    /// `f05_datalog_closure::tests::test_compare_residue_strips_closed_predicates`.
+    #[test]
+    fn compare_residue_matches_bare_predicate_iris_no_bracket_workaround_needed() {
+        let typed = type_ontology(ADMITTED_RDF).expect("types cleanly");
+        let closure =
+            close_semantic(&typed, &widget_rule_pack()).expect("closure over a safe rule pack");
+
+        // Bare (unbracketed) IRI, matching the shape planner-derived residue candidates use.
+        let bare_predicate = "http://example.org/derivedFlag".to_string();
+        let diff = compare_residue(&closure.facts, std::slice::from_ref(&bare_predicate));
+
+        assert_eq!(
+            diff.stripped,
+            vec![bare_predicate],
+            "compare_residue must strip a bare predicate IRI the closure proves; a bracket \
+             mismatch would leave it in `remaining` instead"
+        );
+        assert!(diff.remaining.is_empty());
     }
 
     #[test]
