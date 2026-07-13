@@ -1,13 +1,40 @@
 # v26.7.12 Remaining Work — Crown-Witness Punch List
 
-⚠️ **Edge-status staleness notice (as of commit `66cb59b1`):** this doc's per-edge tables below
-predate commits `d60f2036`, `eeca952a`, `66d8732e`, `0815680a`, `217dc37d`, and `66cb59b1`, which
-closed the **entire LOCAL crown witness** (all 11/11 edges real:
-`F02→F03→F08→F09→F10→F11→F18→F19→F02(re-admit)→F24→F21→F25`;
-`LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true`). For current edge counts and verdicts,
-`docs/jira/v26.7.12/CROWN_STATUS.md` is the actively-maintained authoritative doc; this file's
-ranked repairs (R1–R8) remain useful for the still-open EXTERNAL witness but their LOCAL-witness
-framing (R1–R3, R7) is fully superseded.
+⚠️ **Edge-status staleness notice (corrected — this banner's own prior version was itself
+stale and is superseded below):** `docs/jira/v26.7.12/CROWN_STATUS.md` is the sole
+actively-maintained authoritative doc for current edge counts and verdicts; treat every
+per-edge table and every ranked repair (R1–R8) in this file as a **historical snapshot**, not
+current status. Do not re-derive edge status from this file.
+
+Corrections to this banner's own earlier claim: it previously asserted
+`LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = true` (11/11 edges real) after commit `66cb59b1`.
+A later independent re-audit in `CROWN_STATUS.md` found that claim itself was an overclaim and
+corrected it: LOCAL is **9/11 full `REAL_EDGE` + 2 `PARTIAL_REAL_EDGE`** (`F08→F09`, `F18→F19`),
+so `LOCAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = false`, not `true`. EXTERNAL is similarly
+`MISSING_EDGE_COUNT = 0` but has 2 of its own `PARTIAL_REAL_EDGE`s (`F10→F12`,
+plus the shared `F08→F09`), so `EXTERNAL_OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = false` too.
+Both false → `OBSERVATION_TO_REPLAY_CONTIGUOUS_PATH = false`.
+
+Ranked-repair status, re-verified this session (commit history + `docs/jira/v26.7.12/CROWN_STATUS.md`):
+**R1–R7 have all landed** (`crown_local.rs`'s composed LOCAL prefix+tail through commit `3322bf2d`
+and its successors; `crown_external.rs`'s composed EXTERNAL tail including `F15→F16` (`1d3b9fb2`),
+`F16→F18` (`4ce20102`), `F18→F20` (`1e1ce976`), and the full EXTERNAL loop-back closure
+`F02(re-admit)→F15→F21→F24→F25`) — this doc's framing of EXTERNAL as "still-open" pending R4–R7 is
+itself now stale; EXTERNAL is composed with `MISSING_EDGE_COUNT = 0`, same as LOCAL. What R2
+(`F18→F19`) and R4 (`F10→F12`) actually landed as, under `CROWN_STATUS.md`'s stricter
+data-threading bar, is real control-sequencing but `PARTIAL_REAL_EDGE`, not full `REAL_EDGE` —
+`CROWN_STATUS.md` documents, for both, that this is an **honest architectural boundary, not an
+unfinished repair**: forcing data-threading through either would smuggle a fabricated dependency
+(confirmed independently for `F10→F12` this session — `Plan`/`PlanAction`
+(`f10_powl_geometry.rs`) carry no external-cut-region hint field for `build_powl_geometry` to
+thread; the cut boundary is a real driver/authority-level decision `crown_external.rs` makes on
+top of F10's geometry, not information available inside pure plan-tape geometry building).
+
+**R8** (`F08→F09` hardening: build a residual-goal extractor converting F08's `Pddl8Tape` into
+F09's continuation goal) is the **only ranked repair still genuinely open** — investigated this
+session (task #41) and confirmed oversized for a single-agent-pickup-able cycle, not merely
+unstarted. It is the third and last of the three disclosed `PARTIAL_REAL_EDGE`s shared by both
+witnesses' composed prefix.
 
 Milestone: v26.7.12 (30 families F01–F30). Scope of this doc: what remains to close the two
 crown witnesses, ranked by downstream unlock value, with cross-cutting blockers and an honest
