@@ -158,6 +158,59 @@ fn sum_over_untagged_literals_computes_the_real_value() {
     assert_eq!(total.val, "\"6\"", "1+2+3=6, got: {result:?}");
 }
 
+// Found by an adversarial dogfood sweep for the bug class fixed in commits 89ba964c/f08b4e41:
+// `sparql::mod`'s `PlanNode::Aggregate` branch of `evaluate_plan` groups rows into a
+// `std::collections::HashMap<Vec<usize>, Vec<AccumulatorImpl>>` (the same `RandomState`-hashed,
+// per-process-reseeded map type as finding #22 -- not even the narrower `FxHashMap` case of
+// #23/#24), then iterated it directly, so every SPARQL query using `GROUP BY` -- reachable via
+// `TripleStore::query`'s public SELECT/CONSTRUCT API -- returned its result rows in raw HashMap
+// order, differing across separate process runs of byte-identical input/query. Fixed by
+// collecting the map's entries and sorting by group key (`Vec<usize>`, `Ord` lexically -- an
+// unambiguous total order since distinct groups always have distinct key vectors).
+//
+// Written directly with the two-independently-built-stores pattern from the start (not the
+// repeated-calls-on-one-store pattern the SHACL/ShEx sibling tests above were found, by an
+// independent adversarial audit, to be toothless for -- see
+// `test_shacl_validate_order_is_independent_of_triple_insertion_order`'s own doc comment for the
+// full account of why that pattern proves nothing).
+#[test]
+fn test_group_by_row_order_is_independent_of_triple_insertion_order() {
+    let subjects = ["a", "b", "c", "d", "e", "f", "g", "h"];
+    let triple = |s: &str| {
+        format!("<http://example.org/det-groupby-{s}> <http://example.org/det-groupby-p> \"1\".")
+    };
+    let forward: String = subjects
+        .iter()
+        .map(|s| triple(s))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let reversed: String = subjects
+        .iter()
+        .rev()
+        .map(|s| triple(s))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let store_forward = TripleStore::from(forward.as_str());
+    let store_reversed = TripleStore::from(reversed.as_str());
+
+    let query =
+        "SELECT ?s (COUNT(*) AS ?c) WHERE { ?s <http://example.org/det-groupby-p> ?o } GROUP BY ?s";
+    let result_forward = store_forward.query(query).expect("query must succeed");
+    let result_reversed = store_reversed.query(query).expect("query must succeed");
+
+    assert_eq!(
+        result_forward.len(),
+        8,
+        "all 8 distinct subjects must form their own group, got: {result_forward:?}"
+    );
+    assert_eq!(
+        result_forward, result_reversed,
+        "the same logical facts, inserted in forward vs. reversed order into two separate \
+         TripleStores, must produce GROUP BY rows in the identical order"
+    );
+}
+
 #[test]
 fn test_parse() {
     let data = ":a a :C0.\n\
@@ -440,24 +493,47 @@ ex:PersonShape a sh:NodeShape ;
 // HashSet<usize>`, whose default `RandomState` hasher is reseeded from OS entropy once per
 // process -- directly, so byte-identical input produced differently-ordered `results` across
 // separate process runs (the swarm's own scenario: the same `cng` workday benchmark run twice as
-// two OS processes). That cross-process nondeterminism cannot be reproduced by a single-process
-// unit test (within one process, `RandomState`'s cached per-thread seed is reused across
-// `HashSet::new()` calls, so pre-fix code already happened to look consistent test-to-test here)
-// -- disclosed, not smuggled: this test instead asserts the two properties actually verifiable
-// in-process: (1) validating the identical input repeatedly always returns the identical,
-// byte-equal `results` order (this codebase's own established determinism-verification method,
-// `.claude/rules/rust-agi-core-team.md` rule 1: "run N times, diff outputs"), and (2) with >= 2
-// distinct violations present, both are captured (count is unaffected by the ordering fix).
+// two OS processes).
+//
+// SELF-CORRECTION (disclosed, not silently fixed): this test originally called
+// `store.validate_shacl(shapes)` repeatedly on the SAME already-built `TripleStore` and asserted
+// the results matched every time. An independent adversarial audit (of the sibling `#23`/`#24`
+// tests below, which shared this exact structure) proved that pattern provides ZERO regression
+// protection: it built the actual pre-fix buggy source in an isolated worktree, ran the
+// then-existing tests against it, and both passed anyway -- because `validate_shacl` borrows the
+// store's `TripleIndex` (`&self`) rather than rebuilding it, so its `HashSet`'s bucket layout is
+// already fixed in memory before the first call and cannot change between repeated calls on the
+// same instance, regardless of whether the code sorts before iterating. The audit's own follow-up
+// experiment (compiling a standalone program against this workspace's pinned `rustc-hash`
+// version) confirmed the actual mechanism instead: a hash-based collection's iteration order can
+// depend on insertion sequence (resize/rehash history), not just final key-set content -- so two
+// *independently constructed* collections with the same final content can iterate differently.
+// Fixed here by testing THAT property directly: two separately-built `TripleStore`s over the same
+// logical facts, inserted in reverse order, must still validate to the identical result order.
 #[test]
-fn test_shacl_validate_is_deterministic_across_repeated_calls() {
-    let mut store = TripleStore::new();
-    store
-        .load_triples(
-            "<http://example/det-shacl-alice> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example/det-shacl-Person> .\n\
-             <http://example/det-shacl-bob> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example/det-shacl-Person> .",
-            crate::parser::Syntax::NTriples,
+fn test_shacl_validate_order_is_independent_of_triple_insertion_order() {
+    // 8 target instances (not 2): more entries raises the chance that two differently-ordered
+    // `TripleIndex`es actually land in different `HashSet`/`FxHashMap` bucket layouts, matching
+    // the audit's own reproduction (which needed >= 5 keys to reliably observe a difference).
+    let names = [
+        "alice", "bob", "carol", "dave", "erin", "frank", "grace", "heidi",
+    ];
+    let triple = |n: &str| {
+        format!(
+            "<http://example/det-shacl-{n}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example/det-shacl-Person> ."
         )
-        .unwrap();
+    };
+    let forward: String = names
+        .iter()
+        .map(|n| triple(n))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let reversed: String = names
+        .iter()
+        .rev()
+        .map(|n| triple(n))
+        .collect::<Vec<_>>()
+        .join("\n");
 
     let shapes = "@prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix ex: <http://example/> .
@@ -465,25 +541,33 @@ ex:DetShaclPersonShape a sh:NodeShape ;
     sh:targetClass ex:det-shacl-Person ;
     sh:property [ sh:path ex:det-shacl-name ; sh:minCount 1 ] .";
 
-    let first = store.validate_shacl(shapes).unwrap();
+    let mut store_forward = TripleStore::new();
+    store_forward
+        .load_triples(&forward, crate::parser::Syntax::NTriples)
+        .unwrap();
+    let mut store_reversed = TripleStore::new();
+    store_reversed
+        .load_triples(&reversed, crate::parser::Syntax::NTriples)
+        .unwrap();
+
+    let report_forward = store_forward.validate_shacl(shapes).unwrap();
+    let report_reversed = store_reversed.validate_shacl(shapes).unwrap();
+
     assert!(
-        !first.conforms,
-        "both instances lack ex:det-shacl-name; expected minCount violations"
+        !report_forward.conforms,
+        "all 8 instances lack ex:det-shacl-name; expected minCount violations"
     );
     assert_eq!(
-        first.results.len(),
-        2,
-        "both alice and bob must be reported, got: {:?}",
-        first.results
+        report_forward.results.len(),
+        8,
+        "all 8 people must be reported, got: {:?}",
+        report_forward.results
     );
-
-    for _ in 0..4 {
-        let repeat = store.validate_shacl(shapes).unwrap();
-        assert_eq!(
-            repeat.results, first.results,
-            "validating identical input must return results in the identical order every time"
-        );
-    }
+    assert_eq!(
+        report_forward.results, report_reversed.results,
+        "the same logical facts, inserted in forward vs. reversed order into two separate \
+         TripleStores, must validate to the identical result order"
+    );
 }
 
 // Regression for swarm finding #23 (same bug class as #22 above, different file): `shacl::
@@ -491,25 +575,38 @@ ex:DetShaclPersonShape a sh:NodeShape ;
 // `data.spo.get(&focus_node)`'s `FxHashMap<usize, ...>` keys directly, so with >= 2 forbidden
 // predicates present on one focus node, `results` push order depended on that map's bucket
 // layout rather than a canonical order. Fixed the same way as #22: collect and
-// `sort_unstable()` the predicate IDs before iterating. Disclosed, not smuggled: `FxHashMap`
-// uses a deterministic (non-randomly-seeded) hasher, unlike `std::collections::HashSet`'s
-// default `RandomState` (finding #22's cross-process issue) -- but its iteration order can
-// still depend on insertion sequence via resize/rehash history, so two logically-identical but
-// differently-*constructed* `TripleIndex`es (e.g. two independent loaders) were not
-// guaranteed the same order even within one process. Same in-process verification limits as
-// #22's test apply: this asserts repeated-call determinism and correct violation count, the
-// properties actually checkable without reconstructing the index two different ways.
+// `sort_unstable()` the predicate IDs before iterating.
+//
+// Uses the two-independently-built-stores comparison established above (not repeated calls on
+// one store -- see that test's own doc comment for why the repeated-call pattern was proven
+// toothless by an independent adversarial audit). 8 extra predicates on one focus node, inserted
+// in forward vs. reversed order across two separate stores.
 #[test]
 fn test_shacl_closed_shape_violation_order_is_deterministic() {
-    let mut store = TripleStore::new();
-    store
-        .load_triples(
-            "<http://example/det-closed-alice> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example/det-closed-Person> .\n\
-             <http://example/det-closed-alice> <http://example/det-closed-extra-a> \"x\" .\n\
-             <http://example/det-closed-alice> <http://example/det-closed-extra-b> \"y\" .",
-            crate::parser::Syntax::NTriples,
-        )
-        .unwrap();
+    let extra_preds: Vec<String> = (0..24).map(|i| format!("extra-{i}")).collect();
+    let build = |order: &[String]| {
+        let mut lines = vec![
+            "<http://example/det-closed-alice> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example/det-closed-Person> .".to_string(),
+        ];
+        for p in order {
+            lines.push(format!(
+                "<http://example/det-closed-alice> <http://example/det-closed-{p}> \"x\" ."
+            ));
+        }
+        lines.join("\n")
+    };
+    let forward = build(&extra_preds);
+    // A scrambled (not just reversed) permutation: reversal alone can preserve enough relative
+    // hash-bucket structure to accidentally re-converge on the same iteration order for a given
+    // FxHash instance -- empirically confirmed against this exact fixture before settling on
+    // this permutation (see the commit message for the adversarial self-check this test was
+    // built under). Interleaving by stride scrambles insertion order more thoroughly than a
+    // straight reversal.
+    let scrambled: Vec<String> = (0..24)
+        .step_by(2)
+        .chain((1..24).step_by(2))
+        .map(|i| extra_preds[23 - i].clone())
+        .collect();
 
     let shapes = "@prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix ex: <http://example/> .
@@ -518,25 +615,33 @@ ex:DetClosedPersonShape a sh:NodeShape ;
     sh:closed true ;
     sh:ignoredProperties (rdf:type) .";
 
-    let first = store.validate_shacl(shapes).unwrap();
+    let mut store_forward = TripleStore::new();
+    store_forward
+        .load_triples(&forward, crate::parser::Syntax::NTriples)
+        .unwrap();
+    let mut store_scrambled = TripleStore::new();
+    store_scrambled
+        .load_triples(&build(&scrambled), crate::parser::Syntax::NTriples)
+        .unwrap();
+
+    let report_forward = store_forward.validate_shacl(shapes).unwrap();
+    let report_scrambled = store_scrambled.validate_shacl(shapes).unwrap();
+
     assert!(
-        !first.conforms,
-        "both extra predicates are outside the closed shape"
+        !report_forward.conforms,
+        "all 24 extra predicates are outside the closed shape"
     );
     assert_eq!(
-        first.results.len(),
-        2,
-        "both det-closed-extra-a and det-closed-extra-b must be reported, got: {:?}",
-        first.results
+        report_forward.results.len(),
+        24,
+        "all 24 extra predicates must be reported, got: {:?}",
+        report_forward.results
     );
-
-    for _ in 0..4 {
-        let repeat = store.validate_shacl(shapes).unwrap();
-        assert_eq!(
-            repeat.results, first.results,
-            "validating identical input must return sh:closed violations in the identical order every time"
-        );
-    }
+    assert_eq!(
+        report_forward.results, report_scrambled.results,
+        "the same logical extra predicates, inserted in forward vs. scrambled order into two \
+         separate TripleStores, must produce sh:closed violations in the identical order"
+    );
 }
 
 // Regression for swarm finding #24 (same bug class as #22/#23, ShEx's CLOSED shape check
@@ -545,19 +650,34 @@ ex:DetClosedPersonShape a sh:NodeShape ;
 // predicate ..." message per extra predicate into a single `ShexValidationFailure.reason`
 // string via `errors.join("; ")` -- so with >= 2 extra predicates, the joined message order
 // depended on FxHashMap bucket layout. Fixed the same way as #22/#23: sort the predicate IDs
-// before iterating. Same in-process verification limits apply: asserts repeated-call
-// determinism of the joined `reason` string, not a synthetic two-differently-built-index
-// comparison.
+// before iterating. Same two-independently-built-stores pattern as the sibling tests above.
 #[test]
 fn test_shex_closed_shape_violation_order_is_deterministic() {
-    let mut store = TripleStore::new();
-    store
-        .load_triples(
-            "<http://example.org/det-shex-alice> <http://example.org/det-shex-extra-a> \"x\" .\n\
-             <http://example.org/det-shex-alice> <http://example.org/det-shex-extra-b> \"y\" .",
-            crate::parser::Syntax::NTriples,
-        )
-        .unwrap();
+    // 24 predicates, scrambled (not just reversed) insertion order -- see the sibling
+    // `test_shacl_closed_shape_violation_order_is_deterministic`'s own comment: a straight
+    // reversal of a small (8-element) set was empirically confirmed, via an adversarial
+    // self-check against the actual pre-fix source, to NOT reliably trigger `FxHashMap`'s
+    // insertion-order-dependent bucket layout for this crate's symbol-ID value range. This
+    // larger, more scrambled fixture was confirmed (same self-check method) to actually fail
+    // against the pre-fix code before being trusted as a real regression test.
+    let extra_preds: Vec<String> = (0..24).map(|i| format!("extra-{i}")).collect();
+    let build = |order: &[String]| {
+        order
+            .iter()
+            .map(|p| {
+                format!(
+                    "<http://example.org/det-shex-alice> <http://example.org/det-shex-{p}> \"x\" ."
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let forward = build(&extra_preds);
+    let scrambled: Vec<String> = (0..24)
+        .step_by(2)
+        .chain((1..24).step_by(2))
+        .map(|i| extra_preds[23 - i].clone())
+        .collect();
 
     let schema_json = r#"{
           "@context": "http://www.w3.org/ns/shexj.jsonld",
@@ -574,36 +694,41 @@ fn test_shex_closed_shape_violation_order_is_deterministic() {
             }
           ]
         }"#;
-
     let shape_map = vec![(
         "http://example.org/det-shex-alice".to_string(),
         "http://example.org/DetShexClosedShape".to_string(),
     )];
 
-    let first = store.validate_shex(schema_json, &shape_map).unwrap();
+    let mut store_forward = TripleStore::new();
+    store_forward
+        .load_triples(&forward, crate::parser::Syntax::NTriples)
+        .unwrap();
+    let mut store_scrambled = TripleStore::new();
+    store_scrambled
+        .load_triples(&build(&scrambled), crate::parser::Syntax::NTriples)
+        .unwrap();
+
+    let report_forward = store_forward
+        .validate_shex(schema_json, &shape_map)
+        .unwrap();
+    let report_scrambled = store_scrambled
+        .validate_shex(schema_json, &shape_map)
+        .unwrap();
+
     assert!(
-        !first.conforms,
-        "both extra predicates violate the closed shape with no expression/EXTRA"
+        !report_forward.conforms,
+        "all 24 extra predicates violate the closed shape with no expression/EXTRA"
     );
     assert_eq!(
-        first.failures.len(),
+        report_forward.failures.len(),
         1,
         "one failure for the one (node, shape) pair"
     );
-    assert!(
-        first.failures[0].reason.contains("det-shex-extra-a")
-            && first.failures[0].reason.contains("det-shex-extra-b"),
-        "reason must name both extra predicates, got: {:?}",
-        first.failures[0].reason
+    assert_eq!(
+        report_forward.failures[0].reason, report_scrambled.failures[0].reason,
+        "the same logical extra predicates, inserted in forward vs. scrambled order into two \
+         separate TripleStores, must produce the identical joined CLOSED-shape reason string"
     );
-
-    for _ in 0..4 {
-        let repeat = store.validate_shex(schema_json, &shape_map).unwrap();
-        assert_eq!(
-            repeat.failures[0].reason, first.failures[0].reason,
-            "validating identical input must return the CLOSED-shape reason string in the identical order every time"
-        );
-    }
 }
 
 #[test]

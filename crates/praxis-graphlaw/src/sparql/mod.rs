@@ -285,7 +285,20 @@ pub fn evaluate_plan<'a>(
                     })
                     .collect();
 
-                for (group_keys, group_values) in temp_acc.iter() {
+                // Sort before iterating: `temp_acc` is a `std::collections::HashMap<Vec<usize>,
+                // ...>` -- the same `RandomState`-hashed, per-process-reseeded map type as swarm
+                // finding #22 (shacl/report.rs, fixed commit 89ba964c), not even the narrower
+                // FxHashMap case of #23/#24 (fixed commit f08b4e41). Every SPARQL query using
+                // GROUP BY (TripleStore::query's public SELECT/CONSTRUCT API, plus
+                // HookCondition::Sparql inside Reasoner::materialize()) returned its result rows
+                // in raw HashMap iteration order, which differs across separate process runs of
+                // byte-identical input/query. `Vec<usize>` (the group key) is `Ord` lexically, so
+                // sorting by key is an unambiguous, deterministic total order with no ties to
+                // break arbitrarily (two distinct groups always have distinct key vectors).
+                let mut sorted_groups: Vec<(&Vec<usize>, &Vec<AccumulatorImpl>)> =
+                    temp_acc.iter().collect();
+                sorted_groups.sort_by_key(|(k, _)| *k);
+                for (group_keys, group_values) in sorted_groups {
                     let mut new_row = Vec::with_capacity(key_values.len() + aggregate_vars.len());
                     for (i, &key_val) in key_values.iter().enumerate() {
                         if let Some(&val) = group_keys.get(i) {
