@@ -1,7 +1,10 @@
 #![cfg(test)]
 
-use crate::csprite::CSprite;
-use crate::{Parser, Triple, VarOrTerm};
+use crate::csprite::{CSprite, CSpriteReasoner};
+use crate::{
+    Binding, BodyLiteral, Parser, QueryEngine, Rule, SimpleQueryEngine, Triple, VarOrTerm,
+};
+use std::rc::Rc;
 use std::sync::Arc;
 
 #[test]
@@ -180,6 +183,92 @@ fn test_csprite_cycles_terminate() {
             );
         }
     }
+}
+
+#[test]
+fn test_reconstruct_triples_from_bindings_skips_negated_literal_with_unbound_variable() {
+    // swarm audit wnl2yhbgm finding #3: SimpleQueryEngine::query only ever binds
+    // variables from a rule's *positive* body literals (queryengine/mod.rs:95-97
+    // separates non_negated_lits/negated_lits and only the former populates
+    // Binding). A variable that appears solely inside a negated literal is
+    // therefore never a key in the returned Binding. This exercises the real
+    // `reconstruct_triples_from_bindings` directly with exactly that shape: `?x`
+    // is bound (it also appears in the positive literal), `?reason` is not.
+    let x_var = VarOrTerm::new_var("?x".to_string()).as_var().name;
+    let mut bindings = Binding::new();
+    bindings.add(
+        &x_var,
+        VarOrTerm::new_term("test:foo".to_string()).to_encoded(),
+    );
+
+    let rule = Rule {
+        head: Triple {
+            s: VarOrTerm::new_var("?x".to_string()),
+            p: VarOrTerm::new_term("test:included".to_string()),
+            o: VarOrTerm::new_term("test:yes".to_string()),
+            g: None,
+        },
+        body: vec![
+            BodyLiteral {
+                negated: false,
+                pattern: Triple {
+                    s: VarOrTerm::new_var("?x".to_string()),
+                    p: VarOrTerm::new_term("a".to_string()),
+                    o: VarOrTerm::new_term("test:Thing".to_string()),
+                    g: None,
+                },
+            },
+            BodyLiteral {
+                negated: true,
+                pattern: Triple {
+                    s: VarOrTerm::new_var("?x".to_string()),
+                    p: VarOrTerm::new_term("test:excluded".to_string()),
+                    o: VarOrTerm::new_var("?reason".to_string()),
+                    g: None,
+                },
+            },
+        ],
+    };
+
+    // Must not panic.
+    let reconstructed = CSpriteReasoner::reconstruct_triples_from_bindings(&mut bindings, &rule);
+
+    assert_eq!(reconstructed.len(), 1);
+    // Only the positive literal is reconstructed; the negated literal (whose
+    // ?reason variable has no binding) contributes no triple.
+    assert_eq!(reconstructed[0].len(), 1);
+    assert_eq!(
+        reconstructed[0][0],
+        Triple {
+            s: VarOrTerm::new_term("test:foo".to_string()),
+            p: VarOrTerm::new_term("a".to_string()),
+            o: VarOrTerm::new_term("test:Thing".to_string()),
+            g: None,
+        }
+    );
+}
+
+#[test]
+fn test_materialize_window_does_not_panic_on_negated_body_literal_with_unbound_variable() {
+    // End-to-end reachability check for the same bug via the real, public,
+    // production-wired entry point (CSprite::materialize_window, called from
+    // both pipeline.rs and imars_reasoner.rs). A rule with a negated body
+    // literal whose variable (?reason) appears nowhere else previously panicked
+    // CSpriteReasoner::materialize as soon as the rule's positive literal
+    // matched a stored fact.
+    let data = "test:foo a test:Thing.\n\
+{?x a test:Thing . not {?x test:excluded ?reason}}=>{?x test:included test:yes}";
+    let mut store = CSprite::from(data);
+
+    let trigger = Rc::new(Triple {
+        s: VarOrTerm::new_term("test:foo".to_string()),
+        p: VarOrTerm::new_term("a".to_string()),
+        o: VarOrTerm::new_term("test:Thing".to_string()),
+        g: None,
+    });
+
+    // Must not panic.
+    let _inferred = store.materialize_window(vec![(0, trigger)]);
 }
 
 // #[test]

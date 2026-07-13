@@ -425,7 +425,14 @@ impl CSpriteReasoner {
         let mut all_triples = Vec::new();
         while counter < result_bindings.len() {
             let mut triples = Vec::new();
-            for body_lit in rule.body.iter() {
+            // Skip negated literals: `SimpleQueryEngine::query` (queryengine/mod.rs)
+            // only ever populates `result_bindings` from the rule's non-negated body
+            // literals -- a negated literal succeeds precisely because no matching fact
+            // exists, so it has no witnessing triple to reconstruct. A variable that
+            // appears solely inside a negated literal (e.g. `not {?x <urn:excluded>
+            // ?reason}`) is therefore never a key in `result_bindings`; iterating
+            // negated literals here previously panicked on that lookup.
+            for body_lit in rule.body.iter().filter(|bl| !bl.negated) {
                 let triple = &body_lit.pattern;
                 let s = if triple.s.is_var() {
                     VarOrTerm::new_encoded_term(
