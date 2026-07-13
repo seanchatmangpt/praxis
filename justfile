@@ -612,6 +612,18 @@ wasm4pm-arazzo-check:
 wasm4pm-arazzo-test *args:
     cargo test -p wasm4pm-arazzo {{args}}
 
+# Type-check the wasm4pm-arazzo crate + its tests in an isolated target dir
+# (concurrent-agent-safe; see the "Isolated-target cargo recipes" note above
+# cng-check-isolated), e.g. `just wasm4pm-arazzo-check-isolated my-feature`
+wasm4pm-arazzo-check-isolated name:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo check -p wasm4pm-arazzo --tests
+
+# Run the wasm4pm-arazzo crate's unit + integration tests in an isolated
+# target dir (concurrent-agent-safe), e.g.
+# `just wasm4pm-arazzo-test-isolated my-feature`
+wasm4pm-arazzo-test-isolated name *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} cargo test -p wasm4pm-arazzo {{args}}
+
 # Type-check + test the praxis-core crate (isolate with CARGO_TARGET_DIR=target/agent-<name>
 # when running alongside other concurrent cargo work -- see the lock-contention NOTE above)
 praxis-core-test *args:
@@ -643,6 +655,11 @@ admit-external-cut *args:
 # Lint the wasm4pm-arazzo crate with the same flags CI's clippy job uses
 wasm4pm-arazzo-clippy:
     timeout 180s cargo clippy -p wasm4pm-arazzo --all-targets -- -D warnings
+
+# Lint the wasm4pm-arazzo crate in an isolated target dir (concurrent-agent-safe;
+# same flags as wasm4pm-arazzo-clippy), e.g. `just wasm4pm-arazzo-clippy-isolated my-feature`
+wasm4pm-arazzo-clippy-isolated name:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo clippy -p wasm4pm-arazzo --all-targets -- -D warnings
 
 # Type-check the powl2-decompose crate + its tests
 powl2-decompose-check:
