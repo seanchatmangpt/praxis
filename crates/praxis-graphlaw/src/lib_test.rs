@@ -7,6 +7,29 @@ use crate::{
 };
 use std::collections::HashMap;
 
+// Regression for a real, swarm-identified crash: `sparql/plan.rs`'s
+// `build_for_aggregate` returns `Err("Failed")` for GROUP_CONCAT/SAMPLE (its
+// catch-all for aggregates it doesn't implement), and the caller in
+// `extract_query_plan`'s `Group` arm unwraps that `Result`, panicking. Before
+// `plan_query_or_refuse`, this crashed the calling thread outright for any
+// caller of `TripleStore::query`. It must now surface as a typed `Err`.
+#[test]
+fn group_concat_aggregate_refuses_instead_of_panicking() {
+    let data = "<http://example.org/a> <http://example.org/p> \"1\".\n\
+                <http://example.org/a> <http://example.org/p> \"2\".";
+    let store = TripleStore::from(data);
+    let result = store.query(
+        "SELECT (GROUP_CONCAT(?o) AS ?g) WHERE { ?s <http://example.org/p> ?o } GROUP BY ?s",
+    );
+    match result {
+        Err(msg) => assert!(
+            msg.contains("planning refused"),
+            "expected a query-planning refusal message, got: {msg}"
+        ),
+        Ok(rows) => panic!("expected GROUP_CONCAT to be refused, got rows: {rows:?}"),
+    }
+}
+
 #[test]
 fn test_parse() {
     let data = ":a a :C0.\n\

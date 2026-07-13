@@ -7,7 +7,7 @@ use crate::rsp::r2s::{Relation2StreamOperator, StreamOperator};
 use crate::rsp::s2r::{
     CSPARQLWindow, ContentContainer, Report, ReportStrategy, Tick, WindowTriple,
 };
-use crate::sparql::{eval_query, evaluate_plan_and_debug, Binding};
+use crate::sparql::{evaluate_plan_and_debug, Binding};
 use crate::{Encoder, Syntax, Triple, TripleStore};
 use log::{debug, error}; // Use log crate when building application
 use spargebra::Query;
@@ -309,9 +309,20 @@ impl R2ROperator<WindowTriple, Vec<Binding>> for SimpleR2R {
     }
 
     fn execute_query(&self, query: &Query) -> Vec<Vec<Binding>> {
-        let plan = eval_query(query, &self.item.triple_index);
-        let iterator = evaluate_plan_and_debug(&plan, &self.item.triple_index);
-        iterator.collect()
+        // Trait signature is part of the vendored `R2ROperator` API (see the
+        // vendored-scope note atop this file) and stays infallible. On a
+        // planning refusal (e.g. GROUP_CONCAT/SAMPLE aggregate), log and
+        // emit no rows for this tick -- the same convention `RSPEngine::new`
+        // already uses two call sites up for `load_triples`/`load_rules`
+        // failures in a long-running stream engine that must not crash a
+        // window callback over one malformed query.
+        match crate::plan_query_or_refuse(query, &self.item.triple_index) {
+            Ok(plan) => evaluate_plan_and_debug(&plan, &self.item.triple_index).collect(),
+            Err(refusal) => {
+                error!("SPARQL query planning refused: {refusal}");
+                Vec::new()
+            }
+        }
     }
 }
 

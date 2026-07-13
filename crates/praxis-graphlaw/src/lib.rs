@@ -59,6 +59,35 @@ use crate::triples::{
     Aggregate, BlankNodeImpl, BodyLiteral, LiteralImpl, Rule, Term, TermImpl, Triple, VarOrTerm,
 }; // Workaround to use prinltn! for logs.
 
+/// Plans `query`, converting a query-planning panic into a typed refusal.
+///
+/// `sparql::eval_query` is vendored (see the scope note atop `sparql/mod.rs`:
+/// "API reshaping is out of scope"), so its signature stays infallible. It
+/// panics today on `GROUP_CONCAT`/`SAMPLE` aggregates (`build_for_aggregate`'s
+/// catch-all in `sparql/plan.rs` returns `Err`, which an outer `.unwrap()`
+/// then panics on) -- a real, swarm-identified crash for any caller of the
+/// four production entry points into this engine. Catching the panic here,
+/// at each non-vendored call site, turns that crash into this crate's own
+/// established `Result<_, String>` convention without reshaping the vendored
+/// module. `extract_query_plan` only builds a `PlanNode` tree from immutable
+/// inputs -- no shared mutable state exists yet at the panic site, so
+/// `AssertUnwindSafe` does not paper over a real corruption risk here.
+pub(crate) fn plan_query_or_refuse(
+    query: &Query,
+    index: &TripleIndex,
+) -> Result<crate::sparql::PlanNode, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| eval_query(query, index))).map_err(
+        |panic_payload| {
+            let detail = panic_payload
+                .downcast_ref::<&str>()
+                .map(|s| s.to_string())
+                .or_else(|| panic_payload.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "non-string panic payload".to_string());
+            format!("SPARQL query planning refused (unsupported construct): {detail}")
+        },
+    )
+}
+
 pub struct TripleStore {
     pub rules: Vec<Rule>,
     pub rules_index: RuleIndex,
@@ -431,7 +460,7 @@ impl TripleStore {
     pub fn query(&self, query_str: &str) -> Result<Vec<Vec<crate::sparql::Binding>>, String> {
         match Query::parse(query_str, None) {
             Ok(query) => {
-                let plan = eval_query(&query, &self.triple_index);
+                let plan = plan_query_or_refuse(&query, &self.triple_index)?;
                 Ok(evaluate_plan_and_debug(&plan, &self.triple_index).collect())
             }
             Err(err) => Err(format!("Unable to parse Query: {:?}", err.to_string())),

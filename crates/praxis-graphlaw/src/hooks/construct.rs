@@ -124,7 +124,7 @@ pub fn evaluate_construct(
         let mut additions = Vec::new();
         let mut deletions = Vec::new();
 
-        let plan = crate::sparql::eval_query(&query, triple_index);
+        let plan = crate::plan_query_or_refuse(&query, triple_index)?;
         let bindings: Vec<Vec<Binding>> =
             crate::sparql::evaluate_plan_and_debug(&plan, triple_index).collect();
 

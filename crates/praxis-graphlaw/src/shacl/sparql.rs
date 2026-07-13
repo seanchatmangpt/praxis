@@ -48,7 +48,7 @@ pub(crate) fn evaluate_sparql_text(
     query_text: &str,
 ) -> Result<Vec<Vec<crate::tripleindex::EncodedBinding>>, String> {
     let query = spargebra::Query::parse(query_text, None).map_err(|e| e.to_string())?;
-    let plan = crate::sparql::eval_query(&query, data);
+    let plan = crate::plan_query_or_refuse(&query, data)?;
     Ok(crate::sparql::evaluate_plan(&plan, data).collect())
 }
 
