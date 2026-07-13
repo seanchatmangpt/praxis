@@ -165,7 +165,21 @@ impl Parser {
                                 let close_curly = body_triple_trimmed
                                     .rfind('}')
                                     .unwrap_or(body_triple_trimmed.len());
-                                &body_triple_trimmed[open_curly + 1..close_curly]
+                                // Bounds-checked: a body literal whose braces are missing,
+                                // reversed, or otherwise malformed (e.g. a '}' appearing before
+                                // a '{', which a bare open_curly+1..close_curly slice would panic
+                                // on with "slice index starts at X but ends at Y") falls back to
+                                // the untouched trimmed text instead of crashing. parse_triple
+                                // below then correctly fails to parse that text as a well-formed
+                                // triple, and this body literal is silently skipped -- the same
+                                // "malformed sub-part is skipped, not a hard failure" convention
+                                // this function already applies to head/pattern parse failures a
+                                // few lines above and below.
+                                if open_curly < close_curly {
+                                    &body_triple_trimmed[open_curly + 1..close_curly]
+                                } else {
+                                    body_triple_trimmed
+                                }
                             } else {
                                 body_triple_trimmed
                             };
@@ -280,5 +294,54 @@ mod test {
             Ok(result) => assert_eq!(1, result.len()),
             Err(_err) => assert_eq!(0, 1),
         }
+    }
+
+    /// The legacy line-based `Parser::parse` (unlike the pest-based `parse_rules`/
+    /// `parse_n3_document`) treats ANY body clause starting with the literal substring
+    /// "not" as a negated literal and extracts the text between its first `{` and last
+    /// `}` with no bounds check. A clause whose `}` appears before its `{` -- here,
+    /// `not }x{` -- makes `open_curly + 1 > close_curly`, which a bare
+    /// `&s[open_curly + 1..close_curly]` slice previously panicked on ("slice index
+    /// starts at 7 but ends at 4"). This is real, non-test-only reachable input: this
+    /// exact `Parser::parse` is called from production code in
+    /// crates/cng/src/bench/{roles.rs,decomp/rules.rs}, crates/praxis-graphlaw-wasm/
+    /// src/core.rs (the WASM/browser-facing boundary -- fully untrusted external
+    /// input), and this crate's own imars_reasoner.rs/lib.rs/pipeline.rs, none of
+    /// which validate body-literal brace balance before calling it.
+    ///
+    /// Proves two things: (1) parsing this input does not panic, and (2) the
+    /// well-formed parts of the SAME rule survive -- the valid `?x <p> <o>` body
+    /// literal is still present, and the head still parses -- only the malformed
+    /// negated literal is silently skipped, matching this function's own existing
+    /// convention for other malformed sub-parts (see the `if let Ok(head_triple) = ...`
+    /// / `if let Ok(pattern) = ...` guards above).
+    #[test]
+    fn test_parse_does_not_panic_on_malformed_negated_body_literal_braces() {
+        // IRIs deliberately contain no `.` -- this legacy parser splits a rule body on
+        // literal `.` characters with no IRI-escaping awareness, so a dotted host (e.g.
+        // `example.org`) would itself fragment the body into more clauses than intended,
+        // unrelated to the brace-panic this test targets.
+        let malformed_rule =
+            "{?x <http://example/p> <http://example/o>.not }x{ }=>{?y <http://example/p2> <http://example/o2>}";
+        let (facts, rules) = Parser::parse(malformed_rule.to_string());
+
+        assert_eq!(0, facts.len(), "this line is a rule, not a top-level fact");
+        assert_eq!(
+            1,
+            rules.len(),
+            "the rule itself (head + surviving body) must still parse"
+        );
+
+        let rule = &rules[0];
+        assert_eq!(
+            1,
+            rule.body.len(),
+            "only the well-formed body literal survives; the malformed negated one is \
+             silently skipped, not fabricated into a bogus triple"
+        );
+        assert!(
+            !rule.body[0].negated,
+            "the surviving body literal is the well-formed, non-negated ?x <p> <o> clause"
+        );
     }
 }

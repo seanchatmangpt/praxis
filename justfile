@@ -539,6 +539,13 @@ cng-install-smoke:
 cng-test-isolated name binary *args:
     CARGO_TARGET_DIR=target/agent-{{name}} cargo test -p cng --features bench --test {{binary}} {{args}}
 
+# Run the FULL cng test suite (lib + every integration-test binary) with the bench
+# feature, in an isolated target dir (concurrent-agent-safe; see note above). Same
+# command as cng-test-bench, just isolated -- for whole-crate regression sweeps where
+# cng-test-isolated's single-binary scoping would miss cross-binary interactions.
+cng-test-bench-isolated name *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 900s cargo test -p cng --features bench {{args}}
+
 # Run cng's in-crate unit tests (cng-test-lib) in an isolated target dir
 # (concurrent-agent-safe; see note above), e.g.
 # `just cng-test-lib-isolated my-feature otel_rdf`
@@ -622,6 +629,20 @@ praxis-graphlaw-check:
 # anyone touching only src/tests.
 praxis-graphlaw-check-libtests:
     timeout 180s cargo check -p praxis-graphlaw --lib --tests --all-features
+
+# Run praxis-graphlaw's `--lib` unit tests in an isolated target dir (concurrent-agent-safe;
+# see the "Isolated-target cargo recipes" note above cng-check-isolated), scoped to --lib
+# (excludes benches, same pre-existing owlrl.rs break as praxis-graphlaw-check-libtests). Pass
+# a substring/nextest filter as extra args, e.g.
+# `just praxis-graphlaw-test-lib-isolated my-feature parser::test`
+praxis-graphlaw-test-lib-isolated name *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo test -p praxis-graphlaw --lib {{args}}
+
+# Lint praxis-graphlaw's lib + tests in an isolated target dir (concurrent-agent-safe;
+# same --lib --tests scope as praxis-graphlaw-clippy-libtests, same pre-existing
+# owlrl.rs bench break excluded).
+praxis-graphlaw-clippy-libtests-isolated name:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo clippy -p praxis-graphlaw --lib --tests --all-features -- -D warnings
 
 # Lint the praxis-graphlaw crate with the same flags CI's clippy job uses, scoped (same
 # isolation rationale as praxis-graphlaw-check)
