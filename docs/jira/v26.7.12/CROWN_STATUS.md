@@ -268,6 +268,33 @@ substantially larger than any single LOCAL-witness repair this pass closed -- re
 Erlang/OTP engineering, not incremental Rust wiring -- and should be scoped as its own
 multi-cycle effort, not forced into one pass.
 
+**Investigated and ruled out this pass** (no code changed; recorded so a future cycle doesn't
+re-walk the same ground): two edges were checked for a smaller tractable slice, the way
+`F02(re-admit)->F24`/`F24->F21`/`F21->F25` turned out smaller than first estimated in prior
+cycles. Neither panned out:
+- **`F10 -> F12` upgrade to full `REAL_EDGE`**: would require `f10_powl_geometry::build_powl_geometry`
+  to itself decide *when* to synthesize a `Powl::ExternalCut` node -- a new semantic/algorithmic
+  design question (what real signal marks a subtree as external?), not a wiring task. Bigger than
+  this pass's sizing bar.
+- **`F20 -> F02(re-admit)`**: `SubworkflowDispatchOutcome.consequence_digest` really is
+  digest-only (confirmed by reading `collect_subworkflow_consequence`'s body,
+  `crates/cng/src/bench/decomp/dispatch_bridge.rs:297-369` -- the raw `consequence_ttl: String` is
+  a local variable in scope at both `SubworkflowDispatchOutcome` construction sites and *could* be
+  exposed with one new struct field, a genuinely small fix). But reaching `admitted: true` for a
+  real test fixture requires satisfying `collect_consequence`'s real 5-stage admission protocol
+  (`crates/cng/src/bench/dispatch.rs:986-1041`: provenance/correlation/authority/structural/semantic
+  checks against `DispatchContract`'s real `RWAI_PREFIX`/`DISP_PREFIX` fields and
+  `dispatch-shapes.ttl`) -- and the one real synthesis mechanism that produces a conformant
+  consequence without a live remote engine, `SynthesisMode::LoopbackDeterministic`
+  (`dispatch.rs:1050`), is `pub(super)`, genuinely inaccessible outside `cng::bench::dispatch`.
+  This matches (and confirms, independently) `crates/multifractal-workflow/Cargo.toml`'s own
+  pre-existing comment on the `cng` dependency: "the bridge itself collapses a failed re-admission
+  to a plain `admitted: false` rather than surfacing which pipeline stage refused" -- a
+  deliberately thin, disclosed scope boundary, not an oversight. Closing this edge for real needs
+  either a `cng` crate change (expose a way to produce/validate a conformant consequence from
+  outside the crate) or hand-reconstructing the private protocol from outside it (fragile,
+  duplicative of family internals this session has consistently avoided reimplementing).
+
 ## Reachability ceiling (cross-cutting, not an edge repair)
 
 `multifractal-workflow` declares `[lib]` only — no `[[bin]]`, no `main.rs` (confirmed:
