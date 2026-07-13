@@ -4,7 +4,7 @@
 
 %% API
 -export([start_link/4, mark_ready/1, dispatch/1,
-         get_lifecycle_state/1, get_transition_log/1, get_outcome/1]).
+         get_lifecycle_state/1, get_transition_log/1, get_outcome/1, get_step_id/1]).
 
 %% gen_statem callbacks
 -export([init/1, callback_mode/0, terminate/3]).
@@ -138,6 +138,19 @@ get_transition_log(Pid) ->
 -spec get_outcome(pid()) -> term().
 get_outcome(Pid) ->
     gen_statem:call(Pid, get_outcome).
+
+%% Reads the real running gen_statem's own `#d.step_id` record field back --
+%% not the caller's own copy of whatever it originally requested, but a live
+%% query of this specific process's actual internal state (the same
+%% "ask the real thing, not the caller's bookkeeping" discipline
+%% arazzo_runner_atomvm_differential_test.erl's own call-tracing technique
+%% uses for its cross-runtime command-sequence comparison; see F16's own
+%% dispatch_statem_bridge.escript, which now echoes this value in its JSON
+%% response so a Rust caller can independently confirm which step this
+%% specific dispatch actually ran, not merely which step it asked for).
+-spec get_step_id(pid()) -> binary().
+get_step_id(Pid) ->
+    gen_statem:call(Pid, get_step_id).
 
 %% ---------------------------------------------------------------------
 %% gen_statem callbacks
@@ -322,5 +335,7 @@ common_call(_StateName, From, get_transition_log, Data = #d{transition_log = Log
     {keep_state, Data, [{reply, From, Log}]};
 common_call(_StateName, From, get_outcome, Data = #d{outcome = Outcome}) ->
     {keep_state, Data, [{reply, From, Outcome}]};
+common_call(_StateName, From, get_step_id, Data = #d{step_id = StepId}) ->
+    {keep_state, Data, [{reply, From, StepId}]};
 common_call(StateName, From, _Other, Data) ->
     {keep_state, Data, [{reply, From, {error, {unexpected_event_in_state, StateName}}}]}.

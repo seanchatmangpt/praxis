@@ -38,7 +38,11 @@ arazzo_runner_dispatch_statem_test_() ->
               fun test_dispatch_sup_supervises_children/0},
              {"arazzo_runner_root_sup genuinely supervises both the pre-existing workflow "
               "supervisor and the new dispatch worker supervisor as live, independent children",
-              fun test_root_sup_supervises_both_children/0}
+              fun test_root_sup_supervises_both_children/0},
+             {"repeated start/kill cycling of arazzo_runner_dispatch_sup children leaves the "
+              "supervisor's tracked child count at baseline every cycle -- no leaked "
+              "child-tracking state under churn",
+              fun test_repeated_dispatch_kill_cycling_returns_to_baseline/0}
          ]
      end}.
 
@@ -272,4 +276,53 @@ test_root_sup_supervises_both_children() ->
     %% arazzo_runner_workflow_test.erl already relies on.
     ?assertEqual(whereis(arazzo_runner_sup),
                  element(2, lists:keyfind(arazzo_runner_sup, 1, Children))),
+    ok.
+
+%% ---------------------------------------------------------------------
+%% Proof 8: fault injection -- repeated dispatch/kill cycling on the real,
+%% unmodified `arazzo_runner_dispatch_sup` supervision tree. Proof 6 above
+%% (`test_dispatch_sup_supervises_children/0`) shows a single start-then-kill
+%% cycle returns the supervisor's child count to baseline; that is not
+%% sufficient evidence that repeated churn is safe -- a supervisor could, in
+%% principle, leak internal child-tracking bookkeeping (or, for a
+%% DETS-backed child, leak an OS-level file handle) in a way that only shows
+%% up after many cycles, not the first one. This test runs N (kept small --
+%% 30, not thousands, to keep this fast in CI/eunit) real start/kill cycles
+%% through `arazzo_runner_dispatch_sup:start_dispatch/4` against the
+%% production supervisor and reasserts, via the existing
+%% `wait_for_child_count/2` helper, that the tracked child count returns to
+%% the exact pre-test baseline after every single cycle -- not just once at
+%% the end. A leak that grows the child list by even one entry per cycle, or
+%% that only manifests after repeated churn (e.g. `simple_one_for_one`
+%% internal state corruption), fails deterministically on whichever cycle it
+%% first appears, not just on average across many runs.
+%% ---------------------------------------------------------------------
+
+test_repeated_dispatch_kill_cycling_returns_to_baseline() ->
+    Iterations = 30,
+    Baseline = length(supervisor:which_children(arazzo_runner_dispatch_sup)),
+    lists:foreach(
+        fun(N) ->
+            WorkflowId = list_to_binary("wf-f16-cycle-" ++ integer_to_list(N)),
+            Id = identity(WorkflowId),
+            {ok, ChildPid} = arazzo_runner_dispatch_sup:start_dispatch(
+                WorkflowId, Id, <<"step_cycle">>, #{outputs => [], next => []}),
+            ?assert(is_process_alive(ChildPid)),
+            wait_for_child_count(arazzo_runner_dispatch_sup, Baseline + 1),
+
+            Mon = monitor(process, ChildPid),
+            true = erlang:exit(ChildPid, kill),
+            receive
+                {'DOWN', Mon, process, ChildPid, killed} -> ok
+            after 1000 ->
+                error({dispatch_child_did_not_die, N})
+            end,
+
+            %% The load-bearing assertion, repeated every cycle (not just
+            %% once at the end): the supervisor's own child-tracking state
+            %% is back at baseline, proving no per-cycle leak.
+            wait_for_child_count(arazzo_runner_dispatch_sup, Baseline)
+        end,
+        lists:seq(1, Iterations)
+    ),
     ok.

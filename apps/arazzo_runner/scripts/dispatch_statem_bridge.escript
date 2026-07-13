@@ -36,13 +36,19 @@
 %%
 %% Response (one line of JSON on stdout, exit 0 either way -- a real REFUSED terminal state is data,
 %% not a script crash):
-%%   completed: {"ok": true, "outcome": "completed",
+%%   completed: {"ok": true, "outcome": "completed", "step_id": "<binary as string>",
 %%               "transition_log": ["manufactured","ready",...,"completed"],
 %%               "dispatch_token": "<binary as string>", "refusal_atom": null}
-%%   refused:   {"ok": true, "outcome": "refused",
+%%   refused:   {"ok": true, "outcome": "refused", "step_id": "<binary as string>",
 %%               "transition_log": ["manufactured","ready",...,"refused"],
 %%               "dispatch_token": null, "refusal_atom": "<erlang atom as string>"}
 %%   bridge/protocol failure: {"ok": false, "error": "..."}
+%%
+%% `step_id` is read back from the real running gen_statem's own internal
+%% `#d.step_id` record field via `arazzo_runner_dispatch_statem:get_step_id/1`
+%% (a live query of the actual process, not this script's own copy of the
+%% request field) -- so a Rust caller can independently confirm which step
+%% this specific dispatch really ran, not merely which step it asked for.
 %%
 %% Each invocation runs in its own fresh escript BEAM VM (same "stateless per call" property
 %% `air_core_bridge.escript` discloses), so the `arazzo_runner` OTP application, its DETS state
@@ -95,9 +101,21 @@ handle_request(Req) ->
     BindName = b(maps:get(<<"bind_name">>, Req)),
     BindValue = maps:get(<<"bind_value">>, Req, true),
 
+    %% os:getpid/0 (the OS process id, genuinely unique across concurrently-running OS
+    %% processes on this machine) is combined with erlang:unique_integer/1 (unique only
+    %% *within* one BEAM VM instance) because this escript's own "stateless per call"
+    %% design means every invocation is a fresh, separate OS process/VM -- unique_integer
+    %% alone does not guarantee two concurrently-spawned escript instances pick different
+    %% values, since each VM's counter starts fresh. Reproduced live this session: running
+    %% this crate's ignored/live tests with cargo's default parallel test runner (multiple
+    %% concurrent escript spawns) hit a real `application:ensure_all_started(arazzo_runner)`
+    %% failure downstream (`air_core:new` reported `undef`) that did not reproduce when the
+    %% same test ran alone -- consistent with two concurrent escript VMs colliding on the
+    %% same unique_integer value and racing on the same state_dir.
     Dir = filename:join(
         "/tmp",
-        "arazzo_dispatch_statem_bridge_" ++ integer_to_list(erlang:unique_integer([positive]))
+        "arazzo_dispatch_statem_bridge_" ++ os:getpid() ++ "_" ++
+            integer_to_list(erlang:unique_integer([positive]))
     ),
     ok = filelib:ensure_dir(filename:join(Dir, "x")),
     ok = application:set_env(arazzo_runner, state_dir, Dir),
@@ -158,7 +176,11 @@ drive_dispatch(WorkflowId, Id, StepId, StepDef) ->
                 Terminal ->
                     TransitionLog = arazzo_runner_dispatch_statem:get_transition_log(Pid),
                     Outcome = arazzo_runner_dispatch_statem:get_outcome(Pid),
-                    to_response(Terminal, TransitionLog, Outcome)
+                    %% Read back from the real running process's own state
+                    %% (not this script's local `StepId` variable) -- see the
+                    %% module doc's `step_id` field note.
+                    ObservedStepId = arazzo_runner_dispatch_statem:get_step_id(Pid),
+                    to_response(Terminal, ObservedStepId, TransitionLog, Outcome)
             end
     end.
 
@@ -173,23 +195,25 @@ wait_for_terminal(Pid, N) ->
             wait_for_terminal(Pid, N - 1)
     end.
 
-to_response(completed, TransitionLog, {ok, DispatchToken}) when is_binary(DispatchToken) ->
+to_response(completed, StepId, TransitionLog, {ok, DispatchToken}) when is_binary(DispatchToken) ->
     {ok, #{
         ok => true,
         outcome => <<"completed">>,
+        step_id => StepId,
         transition_log => [atom_to_binary(S, utf8) || S <- TransitionLog],
         dispatch_token => DispatchToken,
         refusal_atom => null
     }};
-to_response(refused, TransitionLog, {refused, Atom, _Ctx}) when is_atom(Atom) ->
+to_response(refused, StepId, TransitionLog, {refused, Atom, _Ctx}) when is_atom(Atom) ->
     {ok, #{
         ok => true,
         outcome => <<"refused">>,
+        step_id => StepId,
         transition_log => [atom_to_binary(S, utf8) || S <- TransitionLog],
         dispatch_token => null,
         refusal_atom => atom_to_binary(Atom, utf8)
     }};
-to_response(Terminal, _TransitionLog, Outcome) ->
+to_response(Terminal, _StepId, _TransitionLog, Outcome) ->
     {error, io_lib:format("unexpected terminal/outcome pair: ~p ~p", [Terminal, Outcome])}.
 
 b(V) when is_binary(V) -> V;
