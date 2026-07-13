@@ -10,7 +10,9 @@ use praxis_graphlaw::chatman::closure::{ChildCompletionState, ClosureLaw, Recurs
 use praxis_graphlaw::triples::{BodyLiteral, Rule, Triple};
 
 use super::{drive_local_witness_prefix, LocalWitnessRefused, LocalWitnessRun};
-use crate::f02_observation_admission::{AdmissionLedger, AdmissionPolicy, AdmissionState};
+use crate::f02_observation_admission::{
+    AdmissionLedger, AdmissionPolicy, AdmissionState, ObservationAdmissionRefused,
+};
 use crate::f03_semantic_contraction::ContractionState;
 use crate::f05_datalog_closure::RulePack;
 use crate::f08_pddl_planning::projector::{
@@ -570,5 +572,50 @@ fn crown_local_prefix_refuses_at_f03_when_shapes_genuinely_do_not_conform() {
         "expected an F03 contraction refusal, got {err:?}"
     );
     // F02 still admitted the observation (the refusal is strictly downstream of admission).
+    assert_eq!(ledger.len().expect("ledger evaluable"), 1);
+}
+
+/// The F19->F02 re-admission edge (see `crown_local.rs`'s module doc F19->F02 nuance) is a real,
+/// distinct call into F02's own Identity Resolver over the actuation-consequence graph -- not a
+/// re-check of the *original* admission. With a policy that never registered `ACTUATION_SOURCE`
+/// as a known principal (a single caller-supplied policy override; every other input is the same
+/// happy-path fixture that genuinely succeeds all the way through F02 -> F03 -> F08 -> F09 -> F10
+/// -> F11 -> F18 -> F19), F02's real gate 1 refuses the second admission, which
+/// `LocalWitnessRefused::ReAdmission` (not `#[from]`, per its own doc comment, since
+/// `ObservationAdmissionRefused` already backs `Admission` for the first call) carries verbatim.
+/// Closes an untested-refusal-variant gap in the same class as swarm audit wnl2yhbgm findings
+/// #25-29: `ReAdmission` is constructed at crown_local.rs's real F19->F02 call site but had zero
+/// coverage anywhere in this file.
+#[test]
+fn crown_local_prefix_refuses_at_re_admission_when_actuation_principal_is_unregistered() {
+    let mut policy = crown_policy();
+    policy.known_principals.remove(ACTUATION_SOURCE);
+    let ledger = AdmissionLedger::new();
+    let (root, closure) = open_growth_root_and_closure();
+    let run = base_run(
+        &policy,
+        &ledger,
+        root,
+        closure,
+        "crown-unreg-actuation",
+        HOOK_PACK,
+    );
+
+    let err = drive_local_witness_prefix(run).expect_err(
+        "an actuation_source_id absent from the admission policy's known_principals must refuse \
+         at the real F19->F02 re-admission call, after F02/F03/F08/F09/F10/F11/F18/F19 all \
+         genuinely succeeded",
+    );
+    assert!(
+        matches!(
+            err,
+            LocalWitnessRefused::ReAdmission(
+                ObservationAdmissionRefused::IdentityUnresolved { .. }
+            )
+        ),
+        "expected an F02 Identity-Resolver refusal wrapped in ReAdmission, got {err:?}"
+    );
+    // The *original* observation was admitted (ledger has 1 entry); only the re-admission of the
+    // actuation consequence refused, so the ledger never grows to 2.
     assert_eq!(ledger.len().expect("ledger evaluable"), 1);
 }
