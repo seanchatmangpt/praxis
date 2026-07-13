@@ -92,6 +92,26 @@ ex:PlanningSnapshotShape a sh:NodeShape ;
     sh:targetClass ex:AbsentClass .
 "#;
 
+/// A real SHACL shape that genuinely does NOT conform against the admitted planning graph.
+/// `build_planning_payload` (crown_local.rs) never asserts an `rdf:type` triple on the admitted
+/// subject, so a `sh:targetClass` shape (like `VACUOUS_SHAPES` above) can only ever conform
+/// vacuously here -- this shape instead uses `sh:targetNode` to address `subject_iri` directly
+/// (a function, not a `const`, so it stays derived from `SUBJECT` rather than a second hardcoded
+/// copy of it) and requires a property (`ex:mustHaveThisField`) the admitted payload genuinely
+/// never carries, so `gate_shapes` finds one real, non-vacuous violation.
+fn shapes_that_genuinely_do_not_conform(subject_iri: &str) -> String {
+    format!(
+        "@prefix sh: <http://www.w3.org/ns/shacl#> .\n\
+         @prefix ex: <urn:mfw:crown#> .\n\
+         ex:PlanningSnapshotMustHaveFieldShape a sh:NodeShape ;\n  \
+         sh:targetNode <{subject_iri}> ;\n  \
+         sh:property [\n    \
+         sh:path ex:mustHaveThisField ;\n    \
+         sh:minCount 1 ;\n  \
+         ] .\n"
+    )
+}
+
 // --------------------------------------------------------------------------
 // Real fixture builders
 // --------------------------------------------------------------------------
@@ -513,6 +533,41 @@ fn crown_local_prefix_refuses_at_f08_when_no_hook_covers_the_action() {
     assert!(
         matches!(err, LocalWitnessRefused::Planning(_)),
         "expected an F08 planning refusal, got {err:?}"
+    );
+    // F02 still admitted the observation (the refusal is strictly downstream of admission).
+    assert_eq!(ledger.len().expect("ledger evaluable"), 1);
+}
+
+/// F03's SHACL Gate really gates the composed driver, not just its own standalone unit tests:
+/// with a real, non-vacuous SHACL shape the admitted planning graph does not conform to, F02
+/// admits (the graph is well-formed and policy-authorized) but F03's `contract(...)` genuinely
+/// refuses with `SemanticWorldRefused::ShapeNonconformant`, which `LocalWitnessRefused::
+/// Contraction`'s `#[from]` conversion propagates -- so F08 never runs. Closes the untested-
+/// refusal-variant gap swarm audit wnl2yhbgm finding #27 flagged: the only prior coverage of
+/// this `#[from]` wiring was F03's own standalone unit tests over `contract()` directly, never
+/// through the composed driver.
+#[test]
+fn crown_local_prefix_refuses_at_f03_when_shapes_genuinely_do_not_conform() {
+    let policy = crown_policy();
+    let ledger = AdmissionLedger::new();
+    let (root, closure) = open_growth_root_and_closure();
+    let mut run = base_run(
+        &policy,
+        &ledger,
+        root,
+        closure,
+        "crown-bad-shapes",
+        HOOK_PACK,
+    );
+    run.f03_shacl_shapes = shapes_that_genuinely_do_not_conform(&run.subject_iri);
+
+    let err = drive_local_witness_prefix(run).expect_err(
+        "a genuinely non-conforming F03 shape must refuse at F03's SHACL Gate, before F08 ever \
+         runs",
+    );
+    assert!(
+        matches!(err, LocalWitnessRefused::Contraction(_)),
+        "expected an F03 contraction refusal, got {err:?}"
     );
     // F02 still admitted the observation (the refusal is strictly downstream of admission).
     assert_eq!(ledger.len().expect("ledger evaluable"), 1);
