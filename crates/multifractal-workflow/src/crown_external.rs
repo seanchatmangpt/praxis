@@ -1,5 +1,10 @@
-//! Crown EXTERNAL-witness tail, composed for real: `F10 -> F12 -> F13 -> F14 -> F15`,
-//! stopping honestly at the `F15 -> F16` Erlang OTP-runner boundary.
+//! Crown EXTERNAL-witness modules, composed for real:
+//! - [`drive_external_witness_tail`]: `F10 -> F12 -> F13 -> F14 -> F15`, stopping honestly at the
+//!   `F15 -> F16` Erlang OTP-runner boundary.
+//! - [`drive_external_reentry`]: `F20 -> F02(re-admit)`, a topologically independent edge (does
+//!   not require `F15 -> F16` -> ... -> `F20` to be wired first -- classified on its own real
+//!   data-threading, the same way `F13 -> F14` was independently real while `F10 -> F12` was only
+//!   `PARTIAL_REAL_EDGE`).
 //!
 //! This module is the first *production caller* (a real, non-`#[cfg(test)]` `pub fn`) that
 //! drives the crown-witness EXTERNAL tail from F10's geometry output through the Arazzo
@@ -13,6 +18,8 @@
 //! | F13 Arazzo Artifact | [`crate::f13_arazzo_artifact::ArazzoProjectionReceipt::project_and_compile`] |
 //! | F14 wasm4pm Arazzo Compiler | [`crate::f14_wasm4pm_arazzo::compile`] |
 //! | F15 AIR Transition Core | [`air_program_to_bridge_workflow`] -> [`crate::f15_air_transition_core::bridge::call_air_core_bridge`] |
+//! | F20 External Dispatch | [`crate::f20_external_dispatch::dispatch_subworkflow_to_engine`] -> [`crate::f20_external_dispatch::engine_serve`] -> [`crate::f20_external_dispatch::collect_subworkflow_consequence`] |
+//! | F02 (re-admit)              | [`crate::f02_observation_admission::admit_observation`], over a synthesized observation asserting F20's real collected consequence |
 //!
 //! # What makes each edge real (and the honest boundaries)
 //!
@@ -62,20 +69,62 @@
 //! Erlang callers, not by this Rust process), so composing past F15 from here would mean
 //! fabricating a topology edge that does not exist. F16's own gen_statem dispatch supervisor is
 //! additionally *not* wired into the production dispatch path (its
-//! `check_gen_statem_lifecycle_wired` correctly still returns `Err`), and F18's Rust broker / F20's
-//! filesystem external-dispatch have no production caller on the EXTERNAL path either. See this
-//! module's report for the per-family status.
+//! `check_gen_statem_lifecycle_wired` correctly still returns `Err`), and F18's Rust broker has no
+//! production caller on the EXTERNAL path either. `F20 -> F02(re-admit)` is closed independently
+//! by [`drive_external_reentry`] below (see its own doc comment); `F16 -> F18 -> F20`'s own
+//! dispatch-triggering wiring remains missing, so F20 is exercised here as its own real edge (a
+//! genuine dispatch/collect round trip this driver initiates directly), not as a downstream
+//! consequence of F16/F18 actually running.
+//!
+//! # `F20 -> F02(re-admit)`, closed for real ([`drive_external_reentry`])
+//!
+//! [`dispatch_subworkflow_to_engine`] writes a real dispatch contract into `target_engine`'s real
+//! filesystem inbox; [`engine_serve`] -- the real *receiving* side of the same bridge
+//! (`f20_external_dispatch.rs`'s own doc comment previously identified it as having zero
+//! production callers) -- actually admits and manufactures a response through cng's real
+//! import/plan/project/validate/conformance chain, writing it to the same engine's real outbox;
+//! [`collect_subworkflow_consequence`] bounded-polls that outbox and runs cng's own real
+//! provenance/correlation/authority/structural/semantic admission pipeline over what it finds.
+//! Only once cng's *own* pipeline reports `admitted: true` does this driver proceed -- an
+//! `admitted: false` (or no consequence found at all) refuses honestly rather than re-admitting a
+//! consequence cng's own real check did not accept.
+//!
+//! The re-admission itself follows the same synthesized-observation pattern as the LOCAL
+//! witness's `F19 -> F02` and `F02(re-admit) -> F24` edges: a new observation is built asserting
+//! real facts about F20's real collected consequence (`dispatch_id`, `consequence_digest`, and
+//! the consequence Turtle text itself, embedded as a triple-quoted literal -- not re-parsed and
+//! merged as a graph, since the raw document's own vocabulary is cng's `disp:`/`prov:` dispatch
+//! shapes, not this crate's F02 vocabulary), then passed through F02's real, independent
+//! `admit_observation` gate pipeline. Honest nuance: this reuses `admit_observation` a *third*
+//! time in this crate (after the LOCAL witness's two calls) under yet another distinct principal
+//! (`reentry_source_id`), consistent with the established rule that each real party asserting an
+//! observation is its own declared principal, never borrowed from an unrelated caller.
+//!
+//! **cng widened, minimally**: `SubworkflowDispatchOutcome` gained one field,
+//! `consequence_turtle: Option<String>`, carrying the same already-computed raw text
+//! `collect_subworkflow_consequence` already read into a local variable -- no new admission logic,
+//! no cng-private stage detail surfaced, nothing else about cng's disclosed scope boundary
+//! (documented in `f20_external_dispatch.rs`'s own module doc) changed.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 use powl2_decompose::{Powl, SocketPath};
 use wasm4pm_arazzo::air::{AirProgram, AirRoutingOutcome};
 
+use crate::f02_observation_admission::{
+    admit_observation, AdmissionLedger, AdmissionPolicy, AdmissionReceipt,
+    ObservationAdmissionRefused, RawObservation,
+};
 use crate::f10_powl_geometry::POWLModel;
 use crate::f12_external_cut::{resolve_external_cut_at, Refusal as EngineRefusal};
 use crate::f13_arazzo_artifact::{ArazzoProjectionReceipt, CoreError};
 use crate::f14_wasm4pm_arazzo::{compile as compile_arazzo, ArazzoCompileRefused};
 use crate::f15_air_transition_core::bridge::{BridgeEvent, BridgeStepDef, BridgeWorkflow};
+use crate::f20_external_dispatch::{
+    collect_subworkflow_consequence, dispatch_subworkflow_to_engine, engine_serve, CngRefusal,
+    SubworkflowDispatchOutcome, SubworkflowPlan,
+};
 
 /// The SPARQL projection string stamped onto the declared external cut. The real Q-stage query
 /// F13 runs is [`crate::f12_external_cut::RENDER_MODEL_PROJECTION_QUERY`]; this per-cut string is
@@ -342,6 +391,222 @@ fn compute_external_crown_receipt(
         format!("f13.air_digest={}", receipt.air_digest_hex),
         format!("f14.recompiled_air_digest={air_digest_hex}"),
         format!("f15.bridge_steps={}", active_steps.join(",")),
+    ];
+    lines.sort();
+    let mut hasher = blake3::Hasher::new();
+    for line in &lines {
+        hasher.update(line.as_bytes());
+        hasher.update(b"\n");
+    }
+    hasher.finalize().to_hex().to_string()
+}
+
+/// `urn:mfw:f20#` re-admission vocabulary this crown composition introduces (no prior owner in
+/// F20's own module), matching the `urn:mfw:fNN#` convention `crown_local.rs`'s F19/F24
+/// re-admission predicates already use.
+const EXTERNAL_REENTRY_DISPATCH_ID_PREDICATE: &str = "urn:mfw:f20#dispatchId";
+const EXTERNAL_REENTRY_CONSEQUENCE_DIGEST_PREDICATE: &str = "urn:mfw:f20#consequenceDigest";
+const EXTERNAL_REENTRY_CONSEQUENCE_TURTLE_PREDICATE: &str = "urn:mfw:f20#consequenceTurtle";
+/// The `prov:wasDerivedFrom` predicate the re-admitted observation's provenance triple uses (F02
+/// gate 2). Same IRI as `crown_local.rs`'s own constant of the same name (kept module-local
+/// rather than shared, matching this crate's existing per-module constant style).
+const EXTERNAL_REENTRY_PROV_WAS_DERIVED_FROM: &str = "http://www.w3.org/ns/prov#wasDerivedFrom";
+
+/// Everything one real `F20 -> F02(re-admit)` run needs. Every field is an input a real family
+/// entry point genuinely requires -- none is decorative.
+pub struct ExternalReentryRun<'a> {
+    /// Real filesystem root `dispatch_subworkflow_to_engine`/`engine_serve`/
+    /// `collect_subworkflow_consequence` all operate under (the `EngineBundle` layout is built
+    /// beneath this path).
+    pub root: &'a Path,
+    /// The real subworkflow contract to dispatch.
+    pub subworkflow: &'a SubworkflowPlan,
+    /// The engine id both the dispatch and the real `engine_serve` poll loop address.
+    pub target_engine: String,
+    /// `engine_serve`'s deterministic identity seed (`instance_nonce = splitmix64(seed ^
+    /// blake3(engine_id))`, never a PID or wall clock).
+    pub engine_seed: u64,
+    /// Poll budget shared by `engine_serve` and `collect_subworkflow_consequence`.
+    pub max_polls: u64,
+    /// Inter-poll wait; `None` means no real sleep (matches this crate's other tests' preference
+    /// for a tight, deterministic bound over real elapsed time).
+    pub poll_wait_ms: Option<u64>,
+    /// F02 trust configuration for the re-admission.
+    pub policy: &'a AdmissionPolicy,
+    /// F02 idempotency/correlation ledger for the re-admission.
+    pub ledger: &'a AdmissionLedger,
+    /// F02 re-admission source id: the identity asserting "F20 collected this real consequence" --
+    /// distinct from any other principal this crate's other crown drivers use.
+    pub reentry_source_id: String,
+    /// The principal IRI `reentry_source_id` maps to in `policy`.
+    pub reentry_principal_iri: String,
+    /// Base IRI the re-admitted observation's subject is derived from
+    /// (`{base}/external-dispatch/{dispatch_id}`).
+    pub reentry_subject_base_iri: String,
+    /// F02 idempotency/correlation key for the re-admission.
+    pub correlation_id: String,
+}
+
+/// The real, composed output of one `F20 -> F02(re-admit)` run. `Debug` only (not `Clone`): its
+/// `dispatch_outcome` field is `cng::bench::decomp::dispatch_bridge::SubworkflowDispatchOutcome`,
+/// which itself derives only `Debug` -- kept as-is rather than widening cng's derives further for
+/// this driver's convenience.
+#[derive(Debug)]
+pub struct ExternalReentryOutcome {
+    /// F20's real dispatch/collect outcome (`admitted` is guaranteed `true` here; a `false`
+    /// outcome short-circuits into [`ExternalReentryRefused::NotAdmittedByDispatchPipeline`]
+    /// before this struct is ever constructed).
+    pub dispatch_outcome: SubworkflowDispatchOutcome,
+    /// F02's real admission receipt for the re-admitted consequence observation.
+    pub reentry_admission: AdmissionReceipt,
+    /// BLAKE3-hex over both stages' real digests, in canonical sorted order (no wall clock, no
+    /// randomness).
+    pub crown_receipt: String,
+}
+
+/// Typed refusal for the composed `F20 -> F02(re-admit)` edge. Each variant carries the
+/// offending stage's own real refusal verbatim, never a generic catch-all.
+#[derive(Debug, thiserror::Error)]
+pub enum ExternalReentryRefused {
+    /// `dispatch_subworkflow_to_engine`, `engine_serve`, or `collect_subworkflow_consequence`
+    /// refused -- all three share this error type, so one variant covers all three call sites.
+    #[error("crown-external F20 dispatch/serve/collect refused: {0}")]
+    CngBridge(#[from] CngRefusal),
+    /// No consequence file ever appeared in the outbox within the poll budget.
+    #[error("crown-external F20: no consequence found for dispatch {dispatch_id} within the poll budget")]
+    NoConsequenceFound { dispatch_id: String },
+    /// A consequence file was found but cng's own real provenance/correlation/authority/
+    /// structural/semantic pipeline did not admit it. Refused honestly rather than re-admitting a
+    /// consequence cng's own real check rejected.
+    #[error("crown-external F20: dispatch {dispatch_id}'s consequence was not admitted by cng's own dispatch-contract pipeline")]
+    NotAdmittedByDispatchPipeline { dispatch_id: String },
+    /// F02 refused to admit the synthesized re-admission observation.
+    #[error("crown-external F20->F02 re-admission refused: {0}")]
+    ReentryAdmission(ObservationAdmissionRefused),
+}
+
+/// Drive the EXTERNAL witness's `F20 -> F02(re-admit)` edge end to end, in one real call: dispatch
+/// a real subworkflow contract, have a real `engine_serve` poll loop admit and manufacture a real
+/// response, collect that real consequence through cng's own real admission pipeline, then
+/// re-admit it through F02's real, independent gate pipeline.
+///
+/// See the module doc comment's `F20 -> F02(re-admit)` section for exactly what makes this a real
+/// (gated, data-threaded) production edge and every disclosed nuance.
+///
+/// # Errors
+/// [`ExternalReentryRefused`], carrying the first stage's own typed refusal.
+///
+/// # Complexity
+/// O(template bytes) contract render + O(`max_polls`) engine-serve poll + O(`max_polls`)
+/// collect poll + F02's own O(T+S) admission cost. This function itself adds only O(1) glue.
+pub fn drive_external_reentry(
+    run: ExternalReentryRun<'_>,
+) -> Result<ExternalReentryOutcome, ExternalReentryRefused> {
+    // ---- Stage F20: dispatch a real subworkflow contract into target_engine's real inbox ------
+    let handle = dispatch_subworkflow_to_engine(run.root, run.subworkflow, "", &run.target_engine)?;
+
+    // ---- Stage: a real cng engine actually serves the dispatched contract ----------------------
+    // `engine_serve` is the real receiving side of the same bridge (previously zero production
+    // callers, per f20_external_dispatch.rs's own doc comment); real and deterministic (seed-
+    // derived identity, no wall clock), processing the SAME on-disk EngineBundle layout the
+    // dispatch above just wrote into.
+    let _serve_report = engine_serve(
+        run.root,
+        &run.target_engine,
+        run.engine_seed,
+        run.max_polls,
+        run.poll_wait_ms,
+    )?;
+
+    // ---- Stage F20 collect: bounded-poll the real outbox, run cng's own real admission gate ----
+    let dispatch_outcome =
+        collect_subworkflow_consequence(run.root, &handle, run.max_polls, run.poll_wait_ms)?;
+    if !dispatch_outcome.admitted {
+        return Err(ExternalReentryRefused::NotAdmittedByDispatchPipeline {
+            dispatch_id: dispatch_outcome.dispatch_id,
+        });
+    }
+    let consequence_turtle = dispatch_outcome.consequence_turtle.clone().ok_or_else(|| {
+        ExternalReentryRefused::NoConsequenceFound {
+            dispatch_id: dispatch_outcome.dispatch_id.clone(),
+        }
+    })?;
+    let consequence_digest = dispatch_outcome
+        .consequence_digest
+        .clone()
+        .unwrap_or_default();
+
+    // ---- Stage F20 -> F02 (re-admit): synthesize a real observation asserting the real
+    // consequence, admitted through F02's own independent gate pipeline ----------------------
+    let reentry_subject_iri = format!(
+        "{}/external-dispatch/{}",
+        run.reentry_subject_base_iri, dispatch_outcome.dispatch_id
+    );
+    let payload_turtle = build_reentry_payload(
+        &reentry_subject_iri,
+        &run.reentry_principal_iri,
+        &dispatch_outcome.dispatch_id,
+        &consequence_digest,
+        &consequence_turtle,
+    );
+    let obs = RawObservation {
+        correlation_id: run.correlation_id,
+        source_id: run.reentry_source_id,
+        declared_subject: reentry_subject_iri,
+        payload_turtle,
+    };
+    let reentry_admission = admit_observation(run.policy, run.ledger, obs)
+        .map_err(ExternalReentryRefused::ReentryAdmission)?;
+
+    let crown_receipt = compute_reentry_crown_receipt(&dispatch_outcome, &reentry_admission);
+
+    Ok(ExternalReentryOutcome {
+        dispatch_outcome,
+        reentry_admission,
+        crown_receipt,
+    })
+}
+
+/// Serialize F20's real collected consequence into a single Turtle observation payload F02 can
+/// admit: the provenance triple (gate 2) plus three literal facts about the consequence.
+///
+/// The consequence Turtle text is embedded as a triple-quoted long-string literal, matching
+/// `crown_local.rs`'s `build_planning_payload` pattern for externally-produced text -- it is
+/// re-asserted as a literal value, never re-parsed and merged as a graph (the raw document's own
+/// vocabulary is cng's `disp:`/`prov:` dispatch shapes, a different admission concern than this
+/// crate's F02 gates).
+fn build_reentry_payload(
+    subject_iri: &str,
+    principal_iri: &str,
+    dispatch_id: &str,
+    consequence_digest: &str,
+    consequence_turtle: &str,
+) -> String {
+    format!(
+        "<{subject_iri}> <{EXTERNAL_REENTRY_PROV_WAS_DERIVED_FROM}> <{principal_iri}> ;\n  \
+         <{EXTERNAL_REENTRY_DISPATCH_ID_PREDICATE}> \"{dispatch_id}\" ;\n  \
+         <{EXTERNAL_REENTRY_CONSEQUENCE_DIGEST_PREDICATE}> \"{consequence_digest}\" ;\n  \
+         <{EXTERNAL_REENTRY_CONSEQUENCE_TURTLE_PREDICATE}> \"\"\"{consequence_turtle}\"\"\" .\n"
+    )
+}
+
+/// Fold both stages' real digests into one deterministic BLAKE3-hex crown receipt. Material is
+/// sorted before hashing (repo invariant #2); no wall clock, no randomness.
+fn compute_reentry_crown_receipt(
+    dispatch_outcome: &SubworkflowDispatchOutcome,
+    reentry_admission: &AdmissionReceipt,
+) -> String {
+    let mut lines = vec![
+        format!("f20.dispatch_id={}", dispatch_outcome.dispatch_id),
+        format!(
+            "f20.consequence_digest={}",
+            dispatch_outcome
+                .consequence_digest
+                .clone()
+                .unwrap_or_default()
+        ),
+        format!("f20.polls_taken={}", dispatch_outcome.polls_taken),
+        format!("f02_readmit.receipt={}", reentry_admission.receipt_hash),
     ];
     lines.sort();
     let mut hasher = blake3::Hasher::new();

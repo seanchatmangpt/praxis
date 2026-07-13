@@ -114,38 +114,25 @@
 //!    crate-wide structural fact, not specific to F20, confirmed this session by
 //!    `find crates/multifractal-workflow -name main.rs -o -path "*/bin/*"` (zero
 //!    results).
-//! 2. **Is the atlas's F20 -> F02 re-admission edge real?** MISSING, and more
-//!    specifically-disclosed than the "stage detail not surfaced" note above: F20's
-//!    collect path (`collect_subworkflow_consequence` -> cng's private
-//!    `collect_consequence`) re-admits a returned consequence through cng's OWN
-//!    internal provenance/correlation/authority/structural/semantic pipeline, which is
-//!    a *different, non-integrated* admission pipeline from this crate's
-//!    `crate::f02_observation_admission::admit_observation` (SHACL-based, built this
-//!    session). Nothing calls `f02_observation_admission::admit_observation` from this
-//!    module or from anywhere in `cng` (confirmed:
-//!    `grep -rn "f02_observation_admission\|admit_observation" crates/cng/src`,
-//!    zero hits). Building a real bridge is not just undone but not currently
-//!    buildable from this crate's side of the boundary: `admit_observation` requires a
-//!    `RawObservation.payload_turtle: String` (the full RDF Turtle text), but
-//!    [`SubworkflowDispatchOutcome`] exposes only `consequence_digest: Option<String>`
-//!    (a BLAKE3 digest, not the text) -- the raw consequence Turtle
-//!    `collect_subworkflow_consequence` reads internally
-//!    (`dispatch_bridge.rs:320-325`, `fs::read_to_string(&path)`) is never returned.
-//!    Nor can this crate read that file independently at the same path itself: the
-//!    path is built from `cng::bench::engine::EngineBundle::outbox_dir()`, and
-//!    `crates/cng/src/bench/mod.rs` declares `mod engine;` (not `pub mod engine`,
-//!    confirmed this session by reading that line directly) -- `EngineBundle` cannot be
-//!    named outside the `cng` crate. Closing this edge for real would require either
-//!    widening cng's public surface (adding a `consequence_ttl: Option<String>` field
-//!    to `SubworkflowDispatchOutcome`, or a `pub` outbox-path accessor) -- out of scope
-//!    for a change scoped to this file, since `cng` is shared, actively-touched code --
-//!    or duplicating cng's private outbox-path convention here, which the module's
-//!    existing text above already correctly identifies as "a fork, not reuse" and
-//!    declines to do. Disclosed as MISSING, not attempted with synthesized/placeholder
-//!    Turtle text standing in for the real consequence (that would be exactly the kind
-//!    of fabricated `Ok(...)` this session's other corruption-recovery work exists to
-//!    prevent -- see `docs/jira/` v26.7.11 SAFETY_FINDINGS for the pattern this repo
-//!    treats as a standing hazard).
+//! 2. **Is the atlas's F20 -> F02 re-admission edge real?** BUILT in a later pass
+//!    (`crown_external.rs`'s `drive_external_reentry`), closing the gap this note
+//!    originally identified. The blocker described here at the time -- `admit_observation`
+//!    needs `RawObservation.payload_turtle: String` (the full text), but
+//!    [`SubworkflowDispatchOutcome`] exposed only `consequence_digest: Option<String>` (a
+//!    BLAKE3 digest), and `EngineBundle` (the only way to read the outbox file
+//!    independently) lives behind `crates/cng/src/bench/mod.rs`'s `mod engine;` (private,
+//!    not `pub mod`) -- was resolved by taking the first of the two options this note
+//!    already named: **widening cng's public surface**, not duplicating its private
+//!    outbox-path convention. `SubworkflowDispatchOutcome` now also carries
+//!    `consequence_turtle: Option<String>` (`crates/cng/src/bench/decomp/dispatch_bridge.rs`),
+//!    populated at both existing construction sites from the same `consequence_ttl` local
+//!    variable `collect_subworkflow_consequence` already computed -- no new admission
+//!    logic, no stage-detail surfaced, nothing else about cng's private boundary changed.
+//!    [`engine_serve`] (re-exported below) is the real complementary half: this module's
+//!    own earlier text already identified it as "the RECEIVING side of the bridge (an
+//!    engine's own inbox scan)" with zero production callers; `drive_external_reentry`
+//!    is now that caller, driving a real dispatch -> serve -> collect -> re-admit round
+//!    trip end to end.
 
 pub use cng::bench::decomp::dispatch_bridge::{
     collect_subworkflow_consequence, dispatch_subworkflow_to_engine, SubworkflowDispatchHandle,
@@ -154,6 +141,7 @@ pub use cng::bench::decomp::dispatch_bridge::{
 pub use cng::bench::decomp::{
     decompose, decompose_with, DecompositionOutcome, DecompositionResult, SubworkflowPlan,
 };
+pub use cng::bench::engine_serve;
 pub use cng::powl::{CngRefusal, Powl};
 
 use std::path::Path;

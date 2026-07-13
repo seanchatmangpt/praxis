@@ -187,6 +187,13 @@ pub struct SubworkflowDispatchOutcome {
     /// `blake3:<hex>` of the raw consequence Turtle, present whenever a
     /// consequence file was found (independent of `admitted`).
     pub consequence_digest: Option<String>,
+    /// The raw consequence Turtle text itself, present under the same
+    /// condition as `consequence_digest` (a file was found within the poll
+    /// budget, independent of `admitted`). Exists so a caller that needs the
+    /// actual content -- not just its digest -- can re-admit it through its
+    /// own downstream pipeline without re-reading the outbox file directly
+    /// (which would require reconstructing `EngineBundle`'s private layout).
+    pub consequence_turtle: Option<String>,
 }
 
 /// Renders and writes one subworkflow's dispatch contract directly into
@@ -335,6 +342,7 @@ pub fn collect_subworkflow_consequence(
             admitted: false,
             polls_taken,
             consequence_digest: None,
+            consequence_turtle: None,
         });
     };
     let consequence_digest = format!(
@@ -365,5 +373,6 @@ pub fn collect_subworkflow_consequence(
         admitted,
         polls_taken,
         consequence_digest: Some(consequence_digest),
+        consequence_turtle: Some(consequence_ttl),
     })
 }

@@ -1,4 +1,5 @@
-//! Tests for the crown-witness EXTERNAL tail (`F10 -> F12 -> F13 -> F14 -> F15`).
+//! Tests for the crown-witness EXTERNAL tail (`F10 -> F12 -> F13 -> F14 -> F15`) and the
+//! independent `F20 -> F02(re-admit)` edge.
 //!
 //! The non-`#[ignore]` tests drive the whole `F10 (real geometry) -> F12 -> F13 -> F14 ->
 //! F15 (converter)` chain in pure Rust, with no Erlang dependency. The single `#[ignore]`d test
@@ -6,11 +7,18 @@
 //! is executed by the real `air_core:transition/2` (run with `--ignored`).
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use powl2_decompose::Powl;
 
-use super::{air_program_to_bridge_workflow, drive_external_witness_tail, ExternalWitnessRun};
+use super::{
+    air_program_to_bridge_workflow, drive_external_reentry, drive_external_witness_tail,
+    ExternalReentryRun, ExternalWitnessRun,
+};
+use crate::f02_observation_admission::{AdmissionLedger, AdmissionPolicy, AdmissionState};
 use crate::f10_powl_geometry::{manufacture_powl_v2, POWLModel, Plan, PlanAction};
+use crate::f20_external_dispatch::{Powl as CngPowl, SubworkflowPlan};
 
 /// A real F10 geometry, built through F10's genuine, independently-tested
 /// `manufacture_powl_v2` (Plan Grouper -> Partial Order Builder -> ...). Two plan-required-ordered
@@ -254,4 +262,121 @@ fn f14_air_program_drives_real_air_core_through_the_bridge() {
             step_id: "second".to_string()
         }]
     );
+}
+
+// --------------------------------------------------------------------------
+// F20 -> F02(re-admit): a real dispatch/serve/collect/re-admit round trip
+// --------------------------------------------------------------------------
+
+const REENTRY_SOURCE: &str = "crown-external-reentry-1";
+const REENTRY_PRINCIPAL: &str = "https://truex.io/crown-ext-reentry/source";
+const REENTRY_BASE_IRI: &str = "https://truex.io/crown-ext-reentry";
+
+/// Real scratch directory under the workspace's own `target/` (git-ignored), matching
+/// `f20_external_dispatch.rs`'s own `scratch_dir` pattern (kept module-local to this test file,
+/// not shared, matching this crate's existing per-test-module convention).
+fn reentry_scratch_dir(test_name: &str) -> PathBuf {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../target/multifractal-workflow-tests/crown-external-reentry")
+        .join(test_name);
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).expect("create scratch dir");
+    dir
+}
+
+/// A minimal, real `SubworkflowPlan` (empty tape, bare leaf model, `single` role, empty
+/// `problem_pddl`) -- matches `f20_external_dispatch.rs`'s own `trivial_subworkflow` fixture: the
+/// dispatch path only reads `id`/`role`/`problem_digest`/`problem_pddl`. An empty `problem_pddl`
+/// takes `engine_serve`'s own documented fallback path (deterministically deriving its own PDDL
+/// artifact set from the contract's content, seeded by `blake3(dispatch_id)`), so no hand-authored
+/// PDDL text is needed for a real end-to-end round trip.
+fn reentry_trivial_subworkflow(id: &str) -> SubworkflowPlan {
+    SubworkflowPlan {
+        id: id.to_string(),
+        role: "single".to_string(),
+        tape: bcinr_pddl::Pddl8Tape { ops: Vec::new() },
+        model: CngPowl::Leaf(None),
+        problem_pddl: String::new(),
+        problem_digest: format!("blake3:{}", blake3::hash(id.as_bytes()).to_hex()),
+    }
+}
+
+fn reentry_policy() -> AdmissionPolicy {
+    let mut known_principals = BTreeMap::new();
+    known_principals.insert(REENTRY_SOURCE.to_string(), REENTRY_PRINCIPAL.to_string());
+
+    let mut authorized = BTreeSet::new();
+    authorized.insert("urn:mfw:f20#dispatchId".to_string());
+    authorized.insert("urn:mfw:f20#consequenceDigest".to_string());
+    authorized.insert("urn:mfw:f20#consequenceTurtle".to_string());
+    let mut authorized_predicates = BTreeMap::new();
+    authorized_predicates.insert(REENTRY_SOURCE.to_string(), authorized);
+
+    // Vacuous target class (matches `crown_local_test.rs`'s own `VACUOUS_SHAPES` pattern): a real
+    // SHACL shape whose target no admitted node matches, so F02 gate 4 genuinely runs and
+    // genuinely conforms, not a placeholder.
+    const REENTRY_VACUOUS_SHAPES: &str = r#"
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <urn:mfw:crown-ext-reentry#> .
+ex:ReentryShape a sh:NodeShape ;
+    sh:targetClass ex:AbsentClass .
+"#;
+
+    AdmissionPolicy::new(
+        known_principals,
+        authorized_predicates,
+        vec!["urn:mfw:f20#".to_string()],
+        vec!["https://".to_string()],
+        REENTRY_VACUOUS_SHAPES,
+    )
+    .expect("valid SHACL shapes in reentry fixture policy")
+}
+
+/// The load-bearing `F20 -> F02(re-admit)` test: a real subworkflow contract is dispatched, a
+/// real `engine_serve` poll loop admits and manufactures a real consequence, that consequence is
+/// really collected through cng's own admission pipeline, and re-admitted through F02's real,
+/// independent gate pipeline.
+#[test]
+fn external_reentry_dispatches_serves_collects_and_readmits_a_real_consequence() {
+    let root = reentry_scratch_dir("happy-path");
+    let subworkflow = reentry_trivial_subworkflow("wf-crown-reentry-1");
+    let policy = reentry_policy();
+    let ledger = AdmissionLedger::new();
+
+    let run = ExternalReentryRun {
+        root: &root,
+        subworkflow: &subworkflow,
+        target_engine: "crown-reentry-engine-1".to_string(),
+        engine_seed: 42,
+        max_polls: 8,
+        poll_wait_ms: None,
+        policy: &policy,
+        ledger: &ledger,
+        reentry_source_id: REENTRY_SOURCE.to_string(),
+        reentry_principal_iri: REENTRY_PRINCIPAL.to_string(),
+        reentry_subject_base_iri: REENTRY_BASE_IRI.to_string(),
+        correlation_id: "crown-reentry-corr-1".to_string(),
+    };
+
+    let outcome = drive_external_reentry(run)
+        .expect("a real dispatch/serve/collect/re-admit round trip must succeed end to end");
+
+    // F20: cng's own real admission pipeline accepted the real manufactured consequence.
+    assert!(outcome.dispatch_outcome.admitted);
+    assert!(outcome.dispatch_outcome.consequence_turtle.is_some());
+    assert!(outcome.dispatch_outcome.consequence_digest.is_some());
+
+    // F20 -> F02: the re-admission landed as a real, admitted, distinct F02 receipt.
+    assert_eq!(outcome.reentry_admission.state, AdmissionState::Admitted);
+    assert_eq!(
+        outcome.reentry_admission.correlation_id,
+        "crown-reentry-corr-1"
+    );
+    assert!(!outcome.reentry_admission.receipt_hash.is_empty());
+
+    // Crown receipt is a real 64-hex BLAKE3 digest.
+    assert_eq!(outcome.crown_receipt.len(), 64);
+    assert!(outcome.crown_receipt.chars().all(|c| c.is_ascii_hexdigit()));
+
+    let _ = fs::remove_dir_all(&root);
 }
