@@ -29,9 +29,10 @@ use std::path::{Path, PathBuf};
 use powl2_decompose::Powl;
 
 use super::{
-    air_program_to_bridge_workflow, drive_external_readmit_transition, drive_external_reentry,
-    drive_external_witness_tail, drive_external_witness_tail_through_f16,
-    drive_f18_completion_through_f20_dispatch, ExternalReentryRun, ExternalWitnessRun,
+    air_program_to_bridge_workflow, build_reentry_payload, drive_external_readmit_transition,
+    drive_external_reentry, drive_external_witness_tail, drive_external_witness_tail_through_f16,
+    drive_f18_completion_through_f20_dispatch, ExternalReentryRefused, ExternalReentryRun,
+    ExternalWitnessRun,
 };
 use crate::f02_observation_admission::{AdmissionLedger, AdmissionPolicy, AdmissionState};
 use crate::f10_powl_geometry::{manufacture_powl_v2, POWLModel, Plan, PlanAction};
@@ -882,6 +883,51 @@ fn external_reentry_dispatches_serves_collects_and_readmits_a_real_consequence()
     assert!(outcome.crown_receipt.chars().all(|c| c.is_ascii_hexdigit()));
 
     let _ = fs::remove_dir_all(&root);
+}
+
+/// Swarm audit wnl2yhbgm finding #31: `build_reentry_payload` embeds `consequence_turtle` --
+/// real text collected from another engine's outbox, not this driver's own construction --
+/// inside a triple-quoted Turtle long-string literal. A `consequence_turtle` carrying a literal
+/// `"""` sequence would close that literal early and hand the remainder to F02's admission parser
+/// as first-class Turtle statements (e.g. reassigning `declared_subject`'s type, or asserting
+/// facts under an unrelated principal) -- arbitrary graph injection via a value meant to be inert
+/// observation text. Drives the real (private, module-local) function directly with exactly that
+/// crafted input.
+#[test]
+fn build_reentry_payload_refuses_embedded_triple_quote_sequence() {
+    let injected = "urn:s> <urn:p> <urn:injected-object> .\n<urn:s2";
+    let malicious_consequence_turtle = format!("normal prefix text \"\"\"<{injected}> .");
+
+    let result = build_reentry_payload(
+        "https://truex.io/crown-ext-reentry/external-dispatch/d1",
+        REENTRY_PRINCIPAL,
+        "d1",
+        "blake3:deadbeef",
+        &malicious_consequence_turtle,
+    );
+
+    match result {
+        Err(ExternalReentryRefused::ConsequenceTurtleUnsafeForEmbedding { dispatch_id }) => {
+            assert_eq!(dispatch_id, "d1");
+        }
+        other => panic!(
+            "expected ConsequenceTurtleUnsafeForEmbedding, got {other:?} \
+             (the injected \"\"\" sequence was embedded unrefused)"
+        ),
+    }
+
+    // Regression guard: ordinary collected Turtle text (no embedded `"""`) still round-trips
+    // into the wrapping triple-quoted literal unrefused and byte-identical.
+    let benign = "@prefix ex: <urn:ex#> . <urn:s> ex:p \"benign value\" .";
+    let payload = build_reentry_payload(
+        "https://truex.io/crown-ext-reentry/external-dispatch/d2",
+        REENTRY_PRINCIPAL,
+        "d2",
+        "blake3:cafebabe",
+        benign,
+    )
+    .expect("benign consequence_turtle must not be refused");
+    assert!(payload.contains(&format!("\"\"\"{benign}\"\"\"")));
 }
 
 /// Real, end-to-end through the actual `air_core` (marked `#[ignore]` for the same reason

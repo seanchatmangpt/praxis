@@ -855,6 +855,14 @@ pub enum ExternalReentryRefused {
     /// F02 refused to admit the synthesized re-admission observation.
     #[error("crown-external F20->F02 re-admission refused: {0}")]
     ReentryAdmission(ObservationAdmissionRefused),
+    /// Swarm audit wnl2yhbgm finding #31: the real collected `consequence_turtle` contains a
+    /// literal `"""` sequence, which would terminate `build_reentry_payload`'s wrapping
+    /// triple-quoted long-string literal early and let the remainder of `consequence_turtle` be
+    /// parsed as first-class Turtle statements by F02's admission gate (arbitrary graph
+    /// injection into `RawObservation.payload_turtle`). Refused before embedding rather than
+    /// escaped, matching this crate's established refuse-the-dangerous-input pattern.
+    #[error("crown-external F20->F02 re-admission refused: dispatch {dispatch_id}'s consequence_turtle contains a literal \"\"\" sequence, unsafe to embed in a triple-quoted Turtle literal")]
+    ConsequenceTurtleUnsafeForEmbedding { dispatch_id: String },
 }
 
 /// Drive the EXTERNAL witness's `F20 -> F02(re-admit)` edge end to end, in one real call: dispatch
@@ -920,7 +928,7 @@ pub fn drive_external_reentry(
         &dispatch_outcome.dispatch_id,
         &consequence_digest,
         &consequence_turtle,
-    );
+    )?;
     let obs = RawObservation {
         correlation_id: run.correlation_id,
         source_id: run.reentry_source_id,
@@ -947,19 +955,38 @@ pub fn drive_external_reentry(
 /// re-asserted as a literal value, never re-parsed and merged as a graph (the raw document's own
 /// vocabulary is cng's `disp:`/`prov:` dispatch shapes, a different admission concern than this
 /// crate's F02 gates).
+///
+/// # Errors
+/// Swarm audit wnl2yhbgm finding #31: `consequence_turtle` is real text collected from another
+/// engine's outbox, not this driver's own construction, so it cannot be trusted to be free of a
+/// literal `"""` sequence. Turtle's `STRING_LITERAL_LONG_QUOTE` production ends at the first
+/// unescaped `"""`, so an embedded one would close this literal early and hand the remainder of
+/// `consequence_turtle` to F02's admission parser as first-class Turtle statements -- arbitrary
+/// graph injection into a value meant to be inert observation text. Refused
+/// ([`ExternalReentryRefused::ConsequenceTurtleUnsafeForEmbedding`]) rather than escaped: this
+/// keeps `consequenceTurtle`'s literal value byte-identical to the real collected text for every
+/// consequence that does not carry the dangerous sequence, with no escaping/unescaping asymmetry
+/// to get wrong.
 fn build_reentry_payload(
     subject_iri: &str,
     principal_iri: &str,
     dispatch_id: &str,
     consequence_digest: &str,
     consequence_turtle: &str,
-) -> String {
-    format!(
+) -> Result<String, ExternalReentryRefused> {
+    if consequence_turtle.contains("\"\"\"") {
+        return Err(
+            ExternalReentryRefused::ConsequenceTurtleUnsafeForEmbedding {
+                dispatch_id: dispatch_id.to_string(),
+            },
+        );
+    }
+    Ok(format!(
         "<{subject_iri}> <{EXTERNAL_REENTRY_PROV_WAS_DERIVED_FROM}> <{principal_iri}> ;\n  \
          <{EXTERNAL_REENTRY_DISPATCH_ID_PREDICATE}> \"{dispatch_id}\" ;\n  \
          <{EXTERNAL_REENTRY_CONSEQUENCE_DIGEST_PREDICATE}> \"{consequence_digest}\" ;\n  \
          <{EXTERNAL_REENTRY_CONSEQUENCE_TURTLE_PREDICATE}> \"\"\"{consequence_turtle}\"\"\" .\n"
-    )
+    ))
 }
 
 /// Fold both stages' real digests into one deterministic BLAKE3-hex crown receipt. Material is
