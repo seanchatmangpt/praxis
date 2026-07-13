@@ -105,7 +105,8 @@ ggenspec:PackRef
 
 ggenspec:PackRef-Path
     a ggenspec:Variant ; rdfs:label "Path" ;
-    ggenspec:hasField ggenspec:PackRef-Path-path , ggenspec:PackRef-Path-extra_ontologies .
+    ggenspec:hasField ggenspec:PackRef-Path-path , ggenspec:PackRef-Path-extra_ontologies ,
+        ggenspec:PackRef-Path-lock .
 
 ggenspec:PackRef-Path-path
     a ggenspec:Field ; ggenspec:name "path" ; ggenspec:type ggenspec:Path ;
@@ -116,6 +117,11 @@ ggenspec:PackRef-Path-extra_ontologies
     a ggenspec:Field ; ggenspec:name "extra_ontologies" ; ggenspec:type ggenspec:ListOfPath ;
     ggenspec:required false ;
     rdfs:comment "Additional ontology Turtle files unioned into the pack graph after its own ontology.ttl, resolved relative to the manifest and confined to the project (Validator::check_path). Each joins the pack content hash (ggen.lock) and the sync input closure — the in-manifest replacement for per-pack make-ontology.sh committed unions." .
+
+ggenspec:PackRef-Path-lock
+    a ggenspec:Field ; ggenspec:name "lock" ; ggenspec:type xsd:boolean ;
+    ggenspec:required false ;
+    rdfs:comment "Whether this pack participates in ggen.lock content-hash pinning. Defaults to true (existing behavior). Set to false to opt a pack out of locking entirely when its ontology.ttl is a regenerated output projection rather than a stable source (e.g. a sibling checkout rewritten by another tool on every run) — content-hash pinning is the wrong contract for such a pack, since every regeneration would otherwise trip a spurious FM-PACK-008 content-hash-mismatch refusal. An unlocked pack is never checked against ggen.lock and never written to it." .
 
 ggenspec:PackRef-Git
     a ggenspec:Variant ; rdfs:label "Git" ;

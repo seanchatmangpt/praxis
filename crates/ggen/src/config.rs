@@ -100,6 +100,18 @@ pub enum PackRef {
         /// relative to the manifest. Empty when omitted.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         extra_ontologies: Vec<PathBuf>,
+        /// Whether this pack participates in `ggen.lock` content-hash
+        /// pinning. Defaults to `true` (existing behavior, unchanged). Set
+        /// to `false` for a pack whose `ontology.ttl` is a regenerated
+        /// output projection rather than a stable source (e.g. a sibling
+        /// checkout's `standing-pack`, rewritten by every `just standing`
+        /// run) — content-hash pinning is fundamentally the wrong contract
+        /// for such a pack, since every regeneration would otherwise trip a
+        /// spurious `FM-PACK-008` content-hash-mismatch refusal. An
+        /// unlocked pack is never checked against `ggen.lock` and never
+        /// written to it (see `pack::lock_entries`).
+        #[serde(default = "default_true")]
+        lock: bool,
     },
     /// Remote pack: `{ git = "…", version = "…" }`.
     Git {
@@ -108,6 +120,13 @@ pub enum PackRef {
         /// Version requirement (tag or semver).
         version: String,
     },
+}
+
+/// `serde(default = "…")` helper: `PackRef::Path::lock` defaults to `true`
+/// (existing pin-and-check behavior) when the key is omitted from
+/// `ggen.toml`.
+fn default_true() -> bool {
+    true
 }
 
 /// `[templates]` — where Tera templates live.
@@ -217,6 +236,7 @@ impl Validate for PackRef {
             Self::Path {
                 path,
                 extra_ontologies,
+                lock: _,
             } => {
                 v.check_non_empty("path", &path.to_string_lossy());
                 // Extra ontologies resolve relative to the manifest and must
@@ -230,6 +250,7 @@ impl Validate for PackRef {
                         Some(false),
                     );
                 }
+                // `lock` is a bool — nothing to validate.
             }
             Self::Git { git, version } => {
                 v.check_non_empty("git", git);

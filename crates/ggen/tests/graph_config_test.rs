@@ -176,7 +176,8 @@ dir = "templates"
         cfg.packs.get("local_pack"),
         Some(&PackRef::Path {
             path: "packs/local".into(),
-            extra_ontologies: Vec::new()
+            extra_ontologies: Vec::new(),
+            lock: true
         })
     );
     assert_eq!(

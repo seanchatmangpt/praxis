@@ -704,13 +704,13 @@ fn extra_ontology_syncs_and_its_edit_invalidates_the_lock() {
         },
     )
     .expect("first sync with extra ontology");
-    assert!(project.join("src/alpha.rs").is_file(), "pack output written");
+    assert!(
+        project.join("src/alpha.rs").is_file(),
+        "pack output written"
+    );
     let lock_1 =
         std::fs::read_to_string(project.join("ggen.lock")).expect("lockfile after first sync");
-    assert!(
-        lock_1.contains("pack-a"),
-        "lock records the pack: {lock_1}"
-    );
+    assert!(lock_1.contains("pack-a"), "lock records the pack: {lock_1}");
 
     // Editing the EXTRA source (outside the pack directory) must invalidate
     // the lock exactly like an in-pack edit — this is the drift the old
@@ -761,4 +761,196 @@ fn missing_extra_ontology_refuses_with_a_typed_error() {
         msg.contains("extra ontology") && msg.contains("missing"),
         "typed FM-PACK-004 missing-extra error expected, got: {msg}"
     );
+}
+
+// ---------------------------------------------------------------------------
+// `lock = false` opt-out (PackRef::Path)
+// ---------------------------------------------------------------------------
+
+/// Write `root/<project_name>/` referencing `pack_a` (locked, default) and
+/// `pack_b` (with `lock = {lock_b}`) by relative path.
+fn write_two_pack_project_with_lock(
+    root: &Path,
+    project_name: &str,
+    pack_a: &str,
+    pack_b: &str,
+    lock_b: bool,
+) -> PathBuf {
+    let project = root.join(project_name);
+    std::fs::create_dir_all(project.join("templates")).expect("mkdir templates");
+    std::fs::write(project.join("ontology.ttl"), "").expect("write ontology.ttl");
+    std::fs::write(
+        project.join("ggen.toml"),
+        format!(
+            "[project]\nname = \"{project_name}\"\n\n\
+             [ontology]\nsource = \"ontology.ttl\"\n\n\
+             [packs]\npack-a = {{ path = \"../{pack_a}\" }}\n\
+             pack-b = {{ path = \"../{pack_b}\", lock = {lock_b} }}\n\n\
+             [templates]\ndir = \"templates\"\n"
+        ),
+    )
+    .expect("write ggen.toml");
+    project
+}
+
+/// Write `root/<project_name>/` referencing a single pack by relative path
+/// with no `lock` key declared — exercises the `#[serde(default =
+/// "default_true")]` path, not an explicit `lock = true`.
+fn write_single_pack_project(root: &Path, project_name: &str, pack_name: &str) -> PathBuf {
+    let project = root.join(project_name);
+    std::fs::create_dir_all(project.join("templates")).expect("mkdir templates");
+    std::fs::write(project.join("ontology.ttl"), "").expect("write ontology.ttl");
+    std::fs::write(
+        project.join("ggen.toml"),
+        format!(
+            "[project]\nname = \"{project_name}\"\n\n\
+             [ontology]\nsource = \"ontology.ttl\"\n\n\
+             [packs]\npack-a = {{ path = \"../{pack_name}\" }}\n\n\
+             [templates]\ndir = \"templates\"\n"
+        ),
+    )
+    .expect("write ggen.toml");
+    project
+}
+
+/// A pack declared `lock = false` is never checked against `ggen.lock` and
+/// never written to it — a second sync after editing its `ontology.ttl`
+/// must succeed instead of tripping `FM-PACK-008`. The companion locked
+/// pack (`pack-a`, default `lock = true`) proves the lockfile genuinely
+/// gets written in this run (not vacuously absent), so `pack-b`'s absence
+/// from it is a real assertion, not a no-op.
+#[test]
+fn lock_false_pack_is_never_locked_and_its_edit_does_not_refuse() {
+    let dir = TempDir::new().expect("tempdir");
+    write_pack(
+        dir.path(),
+        "lockopt-pack-a",
+        "Alpha",
+        "src/alpha.rs",
+        "pub struct Alpha;",
+    );
+    write_pack(
+        dir.path(),
+        "lockopt-pack-b",
+        "Beta",
+        "src/beta.rs",
+        "pub struct Beta;",
+    );
+    let project = write_two_pack_project_with_lock(
+        dir.path(),
+        "lock-false-project",
+        "lockopt-pack-a",
+        "lockopt-pack-b",
+        false,
+    );
+
+    sync(
+        &project,
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("first sync");
+    assert!(
+        project.join("src/alpha.rs").is_file(),
+        "pack-a output written"
+    );
+    assert!(
+        project.join("src/beta.rs").is_file(),
+        "pack-b output written"
+    );
+
+    let lock_1 = std::fs::read_to_string(project.join("ggen.lock"))
+        .expect("ggen.lock must exist: pack-a is locked, so lock_entries is non-empty");
+    assert!(
+        lock_1.contains("[packs.pack-a]"),
+        "default lock=true pack must still be locked: {lock_1}"
+    );
+    assert!(
+        !lock_1.contains("pack-b"),
+        "lock=false pack must never appear in ggen.lock: {lock_1}"
+    );
+
+    // Edit the unlocked pack's ontology.ttl (the exact mutation that trips
+    // FM-PACK-008 for a locked pack, per
+    // `pack_sync_end_to_end`'s tampering step).
+    std::fs::write(
+        dir.path().join("lockopt-pack-b/ontology.ttl"),
+        "@prefix dom: <http://example.com/ontology#> .\ndom:BetaEdited a dom:DomainClass .\n",
+    )
+    .expect("edit lock=false pack ontology");
+
+    sync(
+        &project,
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("second sync must NOT refuse: pack-b opted out of lock checking");
+
+    let lock_2 = std::fs::read_to_string(project.join("ggen.lock"))
+        .expect("ggen.lock must still exist after second sync");
+    assert!(
+        !lock_2.contains("pack-b"),
+        "lock=false pack must still never appear in ggen.lock after re-sync: {lock_2}"
+    );
+    assert!(
+        lock_2.contains("[packs.pack-a]"),
+        "locked pack must remain locked after re-sync: {lock_2}"
+    );
+}
+
+/// Regression guard: a pack with no `lock` key (default `lock = true`) keeps
+/// exactly the pre-existing behavior — locked into `ggen.lock`, and a
+/// tampering edit still refuses with the typed `FM-PACK-008` content-hash
+/// mismatch, asserting the same error-message shape as
+/// `extra_ontology_syncs_and_its_edit_invalidates_the_lock`.
+#[test]
+fn default_locked_pack_still_refuses_on_tampering_regression_guard() {
+    let dir = TempDir::new().expect("tempdir");
+    write_pack(
+        dir.path(),
+        "lockopt-pack-c",
+        "Gamma",
+        "src/gamma.rs",
+        "pub struct Gamma;",
+    );
+    let project = write_single_pack_project(dir.path(), "lock-default-project", "lockopt-pack-c");
+
+    sync(
+        &project,
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect("first sync with default lock=true pack");
+    let lock_1 = std::fs::read_to_string(project.join("ggen.lock")).expect("ggen.lock");
+    assert!(
+        lock_1.contains("[packs.pack-a]"),
+        "default lock=true pack must be locked: {lock_1}"
+    );
+
+    std::fs::write(
+        dir.path().join("lockopt-pack-c/ontology.ttl"),
+        "@prefix dom: <http://example.com/ontology#> .\ndom:GammaTampered a dom:DomainClass .\n",
+    )
+    .expect("tamper default-locked pack ontology");
+
+    let err = sync(
+        &project,
+        SyncOptions {
+            dry_run: false,
+            ..Default::default()
+        },
+    )
+    .expect_err("default-locked pack must still refuse on tampering");
+    let msg = format!("{err}");
+    assert!(
+        msg.contains("content hash mismatch"),
+        "typed FM-PACK-008 lock mismatch expected, got: {msg}"
+    );
+    assert!(msg.contains("FM-PACK-008"), "refusal code: {msg}");
 }

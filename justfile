@@ -215,13 +215,20 @@ clean:
 # `docs/standing/REALITY_INDEX.md`) were genuinely gated by the old hard-abort. The sibling publish
 # is now best-effort -- skips with a disclosed message if the sibling directory isn't present, so
 # that specific failure mode (an opaque hard-abort on a missing sibling) no longer happens. This
-# does NOT mean `just standing` currently completes end to end on every machine: `ggen sync run`
-# has its OWN separate, pre-existing failure mode this fix does not touch -- `standing.ttl`'s
-# content changes on every refresh while `ggen.lock` pins a specific prior hash, so `ggen sync run`
-# genuinely refuses with a content-hash mismatch (`FM-PACK-008`) on this developer's own machine
-# today, reproduced independently of this fix (workflow wr71ue3z9 ran the ORIGINAL unconditional cp
-# standalone and got the identical error). `ggen sync run`'s own error names its remediation
-# ("restore the pack, or delete ggen.lock to intentionally re-lock") -- out of this fix's scope.
+# used to mean `just standing` did not complete end to end on every machine: `ggen sync run` had
+# its OWN separate failure mode this fix did not touch -- `standing.ttl`'s content changes on every
+# refresh while `ggen.lock` pins a specific prior hash, so `ggen sync run` genuinely refused with a
+# content-hash mismatch (`FM-PACK-008`) on this developer's own machine (workflow wr71ue3z9 ran the
+# ORIGINAL unconditional cp standalone and got the identical error).
+#
+# FIXED: `PackRef::Path` gained a `lock: bool` opt-out field (default `true`, unchanged behavior
+# for every other pack). The root `ggen.toml`'s `standing-pack` entry should set `lock = false` --
+# `standing-pack/ontology.ttl` is a regenerated output projection (rewritten by every `just
+# standing` run above), not a stable source, so content-hash pinning was fundamentally the wrong
+# contract for it. An unlocked pack is never checked against `ggen.lock` and never written to it
+# (`crate::pack::lock_entries` skips it outright). See `crates/ggen/src/pack.rs` and
+# `crates/ggen/src/config.rs` for the implementation; `ggen.toml`'s `standing-pack` line itself is
+# updated in a separate step to avoid a concurrent-edit race with other in-flight agents.
 standing:
     command -v ggen >/dev/null || (echo "ggen not found on PATH — run: cargo install --path crates/ggen --locked" && exit 1)
     timeout 180s cargo-cicd standing refresh

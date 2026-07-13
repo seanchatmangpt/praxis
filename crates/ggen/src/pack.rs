@@ -49,6 +49,12 @@ pub struct Pack {
     pub extra_ontology_paths: Vec<(String, PathBuf)>,
     /// Sorted paths of the pack's `templates/*.tmpl` files.
     pub template_paths: Vec<PathBuf>,
+    /// Whether this pack participates in `ggen.lock` content-hash pinning
+    /// (`PackRef::Path`'s `lock` field; always `true` for `PackRef::Git`
+    /// packs, which have no opt-out — a git pack is already pinned by
+    /// `version`). `false` means [`lock_entries`] omits this pack entirely:
+    /// it is never checked against `ggen.lock` and never written to it.
+    pub lock: bool,
 }
 
 /// On-disk `pack.toml` schema (closed key set, fail closed).
@@ -92,6 +98,7 @@ pub fn resolve(config: &GgenConfig, config_root: &Path) -> Result<Vec<Pack>> {
             PackRef::Path {
                 path,
                 extra_ontologies,
+                lock,
             } => {
                 let root = config_root.join(path);
                 if !root.is_dir() {
@@ -105,6 +112,7 @@ pub fn resolve(config: &GgenConfig, config_root: &Path) -> Result<Vec<Pack>> {
                     ));
                 }
                 let mut pack = resolve_pack_dir(name, &root)?;
+                pack.lock = *lock;
                 for extra in extra_ontologies {
                     let extra_path = config_root.join(extra);
                     if !extra_path.is_file() {
@@ -308,6 +316,10 @@ fn resolve_pack_dir(name: &str, root: &Path) -> Result<Pack> {
         ontology_path,
         extra_ontology_paths: Vec::new(),
         template_paths,
+        // Default `true` (existing pin-and-check behavior). `resolve`'s
+        // `PackRef::Path` arm overwrites this from the declared `lock`
+        // field; `PackRef::Git` packs (no opt-out) keep this default.
+        lock: true,
     })
 }
 
@@ -402,11 +414,20 @@ pub fn source_string(pack_ref: &PackRef) -> String {
 
 /// Build lock entries (name → source + `blake3:<hex>`) for resolved packs.
 ///
+/// Packs with `lock == false` (`PackRef::Path`'s opt-out, see
+/// [`crate::config::PackRef`]) are skipped entirely — they never appear in
+/// the returned entries, so [`check_lock`] never checks them against
+/// `ggen.lock` and [`write_lock`]'s full-rewrite-from-current-entries never
+/// writes (or preserves a stale prior write of) them.
+///
 /// # Errors
 /// Propagates [`content_hash`] failures.
 pub fn lock_entries(config: &GgenConfig, packs: &[Pack]) -> Result<Vec<LockEntry>> {
     let mut entries = Vec::with_capacity(packs.len());
     for pack in packs {
+        if !pack.lock {
+            continue;
+        }
         let source = config
             .packs
             .get(&pack.name)
