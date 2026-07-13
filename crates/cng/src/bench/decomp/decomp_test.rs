@@ -27,7 +27,10 @@ use super::*;
 
 fn scratch_dir(test_name: &str) -> PathBuf {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join(format!("../../target/chatman/cng-tests/decomp_{}", std::process::id()))
+        .join(format!(
+            "../../target/chatman/cng-tests/decomp_{}",
+            std::process::id()
+        ))
         .join(test_name);
     std::fs::create_dir_all(&dir).expect("create scratch dir");
     dir

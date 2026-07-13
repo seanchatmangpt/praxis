@@ -127,7 +127,10 @@ fn verify_one_render_digest(
         )));
     }
 
-    println!("DEBUG: rel_path={}, recomputed={}, recorded={}", rel_path, recomputed, recorded);
+    println!(
+        "DEBUG: rel_path={}, recomputed={}, recorded={}",
+        rel_path, recomputed, recorded
+    );
     Ok(ApiDocRenderVerification {
         output_path: rel_path.to_string(),
         digest: recomputed,

@@ -60,7 +60,26 @@ pub enum JiraRefusal {
         var: &'static str,
     },
     /// `jira show`/`status`/`deps` given an id with zero matching ticket.
-    TicketNotFound(String),
+    /// Carries the known-id range (`min`/`max` of the sorted id list
+    /// [`find_ticket_row`] already fetched to search) and `count` so the
+    /// refusal is actionable instead of a bare "not found" — points the
+    /// caller at `jira list` rather than making them guess the valid range.
+    TicketNotFound {
+        id: String,
+        count: usize,
+        min: String,
+        max: String,
+    },
+    /// `jira list --status`/`--section` given a non-empty value that does
+    /// not match any ticket's real `statusLabel`/`section` in the
+    /// compiled-in data. Refused instead of silently filtering down to
+    /// `count: 0`, which would be indistinguishable from "this value is
+    /// real but currently has zero matching tickets".
+    UnknownFilterValue {
+        kind: &'static str,
+        value: String,
+        known: Vec<String>,
+    },
 }
 
 impl fmt::Display for JiraRefusal {
@@ -76,7 +95,19 @@ impl fmt::Display for JiraRefusal {
             Self::RowMissingBinding { query, var } => {
                 write!(f, "query {query:?} row missing ?{var} binding")
             }
-            Self::TicketNotFound(id) => write!(f, "no ticket with id {id:?}"),
+            Self::TicketNotFound {
+                id,
+                count,
+                min,
+                max,
+            } => write!(
+                f,
+                "no ticket with id {id:?} ({count} known tickets, ids {min}-{max}); \
+                 run `cng jira list` to see all"
+            ),
+            Self::UnknownFilterValue { kind, value, known } => {
+                write!(f, "unknown {kind} {value:?}; valid: {}", known.join(", "))
+            }
         }
     }
 }
@@ -168,12 +199,39 @@ fn run_select(
 /// instead of silently returning an empty result for a typo'd id — deps
 /// in particular would otherwise be indistinguishable from "0
 /// dependencies" (zero property-path hops and zero non-existence both
-/// yield zero rows from `Q_DEPS` alone).
+/// yield zero rows from `Q_DEPS` alone). On a miss, the refusal is built
+/// from the same `rows` this function already fetched to search — no
+/// second query — with a `BTreeSet` sort of the known ids so `min`/`max`
+/// are deterministic regardless of `Q_LIST`'s own row order.
+///
+/// # Complexity
+/// O(r log r) where r = `rows.len()` — the linear search from the prior
+/// version, plus a sort of the id set on the (cold) not-found path only.
 fn find_ticket_row(store: &Store, id: &str) -> Result<BTreeMap<String, String>, JiraRefusal> {
     let rows = run_select(store, Q_LIST, &["id", "title", "section", "statusLabel"])?;
-    rows.into_iter()
+    if let Some(row) = rows
+        .iter()
         .find(|r| r.get("id").map(String::as_str) == Some(id))
-        .ok_or_else(|| JiraRefusal::TicketNotFound(id.to_string()))
+    {
+        return Ok(row.clone());
+    }
+    let known_ids: std::collections::BTreeSet<&str> = rows
+        .iter()
+        .filter_map(|r| r.get("id").map(String::as_str))
+        .collect();
+    let count = known_ids.len();
+    // `<none>` is not a silent default: it only surfaces if `Q_LIST` itself
+    // returned zero rows, which would mean `jira-data.ttl` is empty — a
+    // data-corruption case, not a normal "id not found" miss, and one that
+    // `min`/`max` alone cannot represent as a real id.
+    let min = known_ids.first().map_or("<none>", |s| s).to_string();
+    let max = known_ids.last().map_or("<none>", |s| s).to_string();
+    Err(JiraRefusal::TicketNotFound {
+        id: id.to_string(),
+        count,
+        min,
+        max,
+    })
 }
 
 /// Reads a required field from a row [`run_select`] produced. Returns
@@ -247,11 +305,14 @@ pub struct TicketReport {
 /// [`Store`] from the compiled-in ticket data, runs one or more real
 /// compiled-in `.rq` queries, and maps the solutions into a typed report.
 pub mod handlers {
+    use std::collections::BTreeSet;
+
     use super::{
         find_ticket_row, must, open_store, run_select, JiraRefusal, StatusCount, TicketDeps,
         TicketDetail, TicketListReport, TicketReport, TicketStatus, TicketSummary, Q_DEPS,
         Q_EVIDENCE, Q_LIST, Q_REPORT,
     };
+    use std::collections::BTreeMap;
 
     fn to_cli_error(e: JiraRefusal) -> clap_noun_verb::NounVerbError {
         clap_noun_verb::NounVerbError::execution_error(format!("CNG_JIRA: {e}"))
@@ -261,7 +322,16 @@ pub mod handlers {
     /// (exact string match against the SPARQL-projected `statusLabel`/
     /// `section` values; filtering happens in Rust over an already-fetched
     /// real result set, not by hand-typing a second SPARQL query per
-    /// filter combination).
+    /// filter combination). A non-empty `--status`/`--section` value that
+    /// does not match any ticket's real value is refused
+    /// ([`JiraRefusal::UnknownFilterValue`]) rather than silently
+    /// producing `count: 0`, which would otherwise be indistinguishable
+    /// from "this value is real but currently has zero matching tickets".
+    ///
+    /// # Complexity
+    /// O(n) in `rows.len()` — one pass to collect the known
+    /// `statusLabel`/`section` value sets (`BTreeSet` for deterministic
+    /// `known` ordering in any refusal), one pass to filter.
     pub fn jira_list_handler(
         status: Option<String>,
         section: Option<String>,
@@ -269,6 +339,36 @@ pub mod handlers {
         let store = open_store().map_err(to_cli_error)?;
         let rows = run_select(&store, Q_LIST, &["id", "title", "section", "statusLabel"])
             .map_err(to_cli_error)?;
+
+        let mut known_statuses: BTreeSet<String> = BTreeSet::new();
+        let mut known_sections: BTreeSet<String> = BTreeSet::new();
+        for row in &rows {
+            known_statuses.insert(
+                must(row, Q_LIST, "statusLabel")
+                    .map_err(to_cli_error)?
+                    .clone(),
+            );
+            known_sections.insert(must(row, Q_LIST, "section").map_err(to_cli_error)?.clone());
+        }
+        if let Some(want) = status.as_deref() {
+            if !want.is_empty() && !known_statuses.contains(want) {
+                return Err(to_cli_error(JiraRefusal::UnknownFilterValue {
+                    kind: "status",
+                    value: want.to_string(),
+                    known: known_statuses.into_iter().collect(),
+                }));
+            }
+        }
+        if let Some(want) = section.as_deref() {
+            if !want.is_empty() && !known_sections.contains(want) {
+                return Err(to_cli_error(JiraRefusal::UnknownFilterValue {
+                    kind: "section",
+                    value: want.to_string(),
+                    known: known_sections.into_iter().collect(),
+                }));
+            }
+        }
+
         let mut tickets = Vec::new();
         for row in &rows {
             let st = must(row, Q_LIST, "statusLabel").map_err(to_cli_error)?;
@@ -389,11 +489,131 @@ pub mod handlers {
         }
         Ok(TicketReport { total, by_status })
     }
+
+    /// Case-insensitive full-text search over title and evidence: fetches
+    /// [`Q_LIST`] and [`Q_EVIDENCE`] exactly as [`jira_show_handler`] does,
+    /// joins them by `id` into a `BTreeMap` (deterministic join order), and
+    /// keeps tickets whose title or joined evidence contains `term`
+    /// case-insensitively — the same Rust-side-filter-over-already-fetched-
+    /// rows idiom [`jira_list_handler`]'s own doc comment describes, not a
+    /// third `.rq` file. A `term` matching zero tickets is not an error: an
+    /// empty [`TicketListReport`] (`count: 0`) is the honest answer to "no
+    /// ticket mentions this", the same way `jira list --status` on a
+    /// currently-empty-but-known status would be (unlike
+    /// [`JiraRefusal::UnknownFilterValue`], which only fires for a filter
+    /// value that isn't a real value at all, not an absence of matches).
+    ///
+    /// # Complexity
+    /// O(e) to build the id->evidence join map (e = evidence row count) +
+    /// O(l) to scan the title/evidence-joined list rows (l = list row
+    /// count) — two linear passes, no nested loop.
+    pub fn jira_search_handler(term: String) -> clap_noun_verb::Result<TicketListReport> {
+        let store = open_store().map_err(to_cli_error)?;
+        let list_rows = run_select(&store, Q_LIST, &["id", "title", "section", "statusLabel"])
+            .map_err(to_cli_error)?;
+        let ev_rows = run_select(&store, Q_EVIDENCE, &["id", "evidence"]).map_err(to_cli_error)?;
+
+        let mut evidence_by_id: BTreeMap<String, String> = BTreeMap::new();
+        for r in &ev_rows {
+            evidence_by_id.insert(
+                must(r, Q_EVIDENCE, "id").map_err(to_cli_error)?.clone(),
+                must(r, Q_EVIDENCE, "evidence")
+                    .map_err(to_cli_error)?
+                    .clone(),
+            );
+        }
+
+        let needle = term.to_lowercase();
+        let mut tickets = Vec::new();
+        for row in &list_rows {
+            let id = must(row, Q_LIST, "id").map_err(to_cli_error)?;
+            let title = must(row, Q_LIST, "title").map_err(to_cli_error)?;
+            let evidence = evidence_by_id.get(id).map(String::as_str).unwrap_or("");
+            let title_hit = title.to_lowercase().contains(&needle);
+            let evidence_hit = evidence.to_lowercase().contains(&needle);
+            if !title_hit && !evidence_hit {
+                continue;
+            }
+            tickets.push(TicketSummary {
+                id: id.clone(),
+                title: title.clone(),
+                section: must(row, Q_LIST, "section").map_err(to_cli_error)?.clone(),
+                status: must(row, Q_LIST, "statusLabel")
+                    .map_err(to_cli_error)?
+                    .clone(),
+            });
+        }
+        Ok(TicketListReport {
+            count: tickets.len(),
+            tickets,
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::handlers::*;
+    use super::{open_store, run_select, JiraRefusal, Q_EVIDENCE};
+    use oxigraph::io::{RdfFormat, RdfParser};
+    use oxigraph::store::Store;
+
+    /// [`run_select`] refuses [`JiraRefusal::RowMissingBinding`] when a
+    /// caller-declared `var` is absent from a solution row. `Q_LIST`'s own
+    /// four vars (`id`/`title`/`section`/`statusLabel`) can never actually
+    /// exercise this: they are all mandatory conjuncts of one connected
+    /// SPARQL BGP, so a store missing one of those triples simply drops the
+    /// whole ticket from `Q_LIST`'s results (a SPARQL solution mapping's
+    /// domain is exactly the pattern's own variables — never a partial
+    /// binding) rather than yielding a row with a hole in it. What
+    /// genuinely produces a missing binding is a `vars` entry disconnected
+    /// from the *executed* query's own WHERE clause entirely (SPARQL
+    /// projects a disconnected `SELECT` variable as always-unbound in
+    /// every solution) — so this runs the real compiled-in [`Q_EVIDENCE`]
+    /// (projects only `?id` and `?evidence`, no `?section` anywhere in its
+    /// WHERE clause) against a minimal one-ticket fixture, requesting
+    /// `section` as one of `run_select`'s caller-declared vars.
+    #[test]
+    fn run_select_refuses_row_missing_binding() {
+        let store = Store::new().expect("in-memory store");
+        let ttl = r#"
+<http://seanchatmangpt.github.io/packs/jira-tracking#PROJTEST>
+    <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://seanchatmangpt.github.io/packs/jira-tracking#Ticket> ;
+    <http://seanchatmangpt.github.io/packs/jira-tracking#id> "TEST" ;
+    <http://seanchatmangpt.github.io/packs/jira-tracking#evidence> "evidence text, no section anywhere in this fixture" .
+"#;
+        store
+            .load_from_slice(RdfParser::from_format(RdfFormat::Turtle), ttl.as_bytes())
+            .expect("fixture parses");
+        let err = run_select(&store, Q_EVIDENCE, &["id", "section"]).unwrap_err();
+        assert!(matches!(
+            err,
+            JiraRefusal::RowMissingBinding { var: "section", .. }
+        ));
+    }
+
+    /// [`run_select`] refuses [`JiraRefusal::QueryExecutionFailed`] when
+    /// the compiled-in query is syntactically valid SPARQL but not a
+    /// `SELECT` at all — the real compiled-in `.rq` files are always
+    /// `SELECT`, so this is otherwise-unreachable defensive coverage of
+    /// the `run_select` match arm's non-`Solutions` branch, exercised with
+    /// a hand-written `ASK` query string (a `&'static str` literal, same
+    /// as any `Q_*` constant — `run_select`'s own signature takes
+    /// `query: &'static str`, not necessarily one of the `include_str!`
+    /// constants) against the real compiled-in ticket data.
+    #[test]
+    fn run_select_refuses_non_select_query() {
+        let store = open_store().expect("real compiled-in data must load");
+        let err = run_select(&store, "ASK { ?s ?p ?o }", &["id"]).unwrap_err();
+        match err {
+            JiraRefusal::QueryExecutionFailed { reason, .. } => {
+                assert!(
+                    reason.contains("did not yield SELECT solutions"),
+                    "unexpected reason: {reason}"
+                );
+            }
+            other => panic!("expected QueryExecutionFailed, got {other:?}"),
+        }
+    }
 
     #[test]
     fn list_returns_all_49_real_tickets() {
@@ -417,6 +637,18 @@ mod tests {
     }
 
     #[test]
+    fn list_refuses_unknown_status() {
+        let err = jira_list_handler(Some("Alive".to_string()), None).unwrap_err();
+        assert!(format!("{err}").contains("unknown status"));
+    }
+
+    #[test]
+    fn list_refuses_unknown_section() {
+        let err = jira_list_handler(None, Some("ZZZ".to_string())).unwrap_err();
+        assert!(format!("{err}").contains("unknown section"));
+    }
+
+    #[test]
     fn show_returns_full_detail_for_a_real_ticket() {
         let detail = jira_show_handler("750".to_string()).expect("750 is real");
         assert_eq!(detail.id, "750");
@@ -432,7 +664,10 @@ mod tests {
     #[test]
     fn show_refuses_unknown_id() {
         let err = jira_show_handler("999999".to_string()).unwrap_err();
-        assert!(format!("{err}").contains("CNG_JIRA"));
+        let message = format!("{err}");
+        assert!(message.contains("CNG_JIRA"));
+        assert!(message.contains("known tickets"));
+        assert!(message.contains("jira list"));
     }
 
     #[test]
@@ -459,7 +694,10 @@ mod tests {
 
     #[test]
     fn deps_refuses_unknown_id() {
-        assert!(jira_deps_handler("999999".to_string()).is_err());
+        let err = jira_deps_handler("999999".to_string()).unwrap_err();
+        let message = format!("{err}");
+        assert!(message.contains("known tickets"));
+        assert!(message.contains("jira list"));
     }
 
     #[test]
@@ -482,5 +720,31 @@ mod tests {
             a.tickets.iter().map(|t| t.id.clone()).collect::<Vec<_>>(),
             b.tickets.iter().map(|t| t.id.clone()).collect::<Vec<_>>(),
         );
+    }
+
+    #[test]
+    fn search_matches_by_title_or_evidence() {
+        // "POWL v2" is real title text on ticket 750 (see
+        // show_returns_full_detail_for_a_real_ticket above); a title-only
+        // match proves the title half of the join without relying on
+        // evidence content.
+        let by_title = jira_search_handler("powl v2".to_string()).expect("query");
+        assert!(by_title.tickets.iter().any(|t| t.id == "750"));
+
+        // "TOCTOU" is real evidence text on ticket 758 (docs/jira/v26.7.11/
+        // tickets/index.md), not present in that ticket's title — proves
+        // the evidence half of the join, and case-insensitivity.
+        let by_evidence = jira_search_handler("toctou".to_string()).expect("query");
+        assert!(by_evidence.tickets.iter().any(|t| t.id == "758"));
+        assert_eq!(by_evidence.count, by_evidence.tickets.len());
+    }
+
+    #[test]
+    fn search_with_no_matches_returns_empty_not_error() {
+        let report =
+            jira_search_handler("no_ticket_could_possibly_contain_this_token_zzz".to_string())
+                .expect("a term matching nothing is not a refusal");
+        assert_eq!(report.count, 0);
+        assert!(report.tickets.is_empty());
     }
 }

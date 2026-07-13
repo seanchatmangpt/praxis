@@ -497,7 +497,9 @@ pub(super) fn write_atomic(path: &Path, body: &str) -> Result<(), CngRefusal> {
     let tmp = path.with_extension(format!("write-tmp-{}", count));
     if let Some(parent) = path.parent() {
         if !parent.exists() {
-            fs::create_dir_all(parent).map_err(|e| CngRefusal::IoRefused(format!("create_dir_all {}: {e}", parent.display())))?;
+            fs::create_dir_all(parent).map_err(|e| {
+                CngRefusal::IoRefused(format!("create_dir_all {}: {e}", parent.display()))
+            })?;
         }
     }
     fs::write(&tmp, body)

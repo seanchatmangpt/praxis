@@ -2,7 +2,11 @@
 //! `jira-tracking-pack` ontology (`cnv:Command` individuals scoped to
 //! `cnv:noun "jira"`, per PROJ-tracking's own `schema.ttl`). Do not edit by
 //! hand: routes are a pure projection of the ontology; logic lives in
-//! `cng::jira::handlers`. Add `ggen:local-override` here to freeze.
+//! `cng::jira::handlers`. (Freezing regeneration is configured in the
+//! template frontmatter's `skip_if` key itself, not spelled out verbatim
+//! here, so this generated body never accidentally self-matches its own
+//! freeze marker on the next `ggen sync run` — see this file's `.tmpl`
+//! source for the actual mechanism.)
 //!
 //! Adapted from `clap-noun-verb-pack`'s `clap_noun_verb_routes.rs.tmpl`
 //! mechanism (SPARQL SELECT over `cnv:Command` individuals -> Tera loop ->
@@ -20,10 +24,11 @@
 //! qualified `cng::jira::handlers::` path).
 //!
 //! Per-verb parameter shape (id: required String for show/status/deps;
-//! optional status/section filters for list; none for report) is branched
-//! on `cmd.verb` below rather than derived generically from the ontology —
-//! a deliberate, disclosed scope limit for this fixed 5-verb command set,
-//! not a claim that ggen infers arbitrary CLI arities from RDF alone.
+//! optional status/section filters for list; term: required String for
+//! search; none for report) is branched on `cmd.verb` below rather than
+//! derived generically from the ontology — a deliberate, disclosed scope
+//! limit for this fixed 6-verb command set, not a claim that ggen infers
+//! arbitrary CLI arities from RDF alone.
 
 use clap_noun_verb::Result;
 use clap_noun_verb_macros::verb;
@@ -47,6 +52,12 @@ fn jira_list(
 #[verb("report", "jira")]
 fn jira_report() -> Result<cng::jira::TicketReport> {
     cng::jira::handlers::jira_report_handler()
+}
+
+/// Case-insensitive full-text search over title and evidence for one search term.
+#[verb("search", "jira")]
+fn jira_search(term: String) -> Result<cng::jira::TicketListReport> {
+    cng::jira::handlers::jira_search_handler(term)
 }
 
 /// Show full detail (title, section, status, evidence, transitive dependencies) for one ticket id.

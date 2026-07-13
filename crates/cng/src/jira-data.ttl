@@ -124,6 +124,13 @@ jira:JiraReport
     cnv:handler "jira_report_handler" ;
     cnv:doc     "Summary counts of tickets per status (SPARQL GROUP BY/COUNT)." .
 
+jira:JiraSearch
+    a           cnv:Command ;
+    cnv:noun    "jira" ;
+    cnv:verb    "search" ;
+    cnv:handler "jira_search_handler" ;
+    cnv:doc     "Case-insensitive full-text search over title and evidence for one search term." .
+
 # GENERATED — do not edit. Source: docs/jira/v26.7.11/tickets/index.md
 # Regenerate: packs/jira-tracking-pack/make-ontology.py
 # 49 jira:Ticket individuals, real parse (not hand-transcribed).
