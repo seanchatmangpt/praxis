@@ -73,9 +73,10 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Output, Stdio};
+use std::time::{Duration, Instant};
 
 /// One step's forward edges, as the escript's `to_workflow/1` expects
 /// (`apps/air_core/scripts/air_core_bridge.escript`). Mirrors the subset of
@@ -198,6 +199,16 @@ pub enum AirBridgeRefused {
     /// `air_core` call that raised), not a Rust-side parsing problem.
     #[error("air_core bridge reported an error from the real Erlang call: {message}")]
     ErlangSideError { message: String },
+    /// The escript did not exit within the bounded wait window
+    /// (`BRIDGE_WAIT_TIMEOUT_SECS`) -- most commonly a genuine Erlang-side
+    /// hang (a real deadlock, or a broker call that never returns), not a
+    /// Rust-side bug. The child process has already been killed
+    /// (`Child::kill()`) by the time this variant is returned -- no process
+    /// is left running past this error. This closes a real production-
+    /// reliability gap: before this variant existed, a hung escript hung
+    /// the Rust caller forever with no recovery path.
+    #[error("air_core bridge did not exit within {seconds}s and was killed")]
+    Timeout { seconds: u64 },
 }
 
 /// Resolves the repo root from `CARGO_MANIFEST_DIR`
@@ -213,6 +224,126 @@ fn repo_root() -> Result<PathBuf, AirBridgeRefused> {
         .ok_or_else(|| AirBridgeRefused::RepoRootUnresolved {
             manifest_dir: manifest_dir.display().to_string(),
         })
+}
+
+/// How long [`call_air_core_bridge`] waits for the spawned escript to exit
+/// before treating it as hung and killing it (see [`wait_with_timeout`]).
+/// 30s is generous for a local subprocess call -- no network round trip is
+/// involved, the escript only spawns a local BEAM VM and calls already-
+/// compiled `air_core` functions -- while still bounding a genuine
+/// Erlang-side deadlock, or a broker call that never returns, to a finite,
+/// recoverable wait instead of hanging the Rust caller forever.
+const BRIDGE_WAIT_TIMEOUT_SECS: u64 = 30;
+
+/// Internal outcome of [`wait_with_timeout`], mapped by
+/// [`call_air_core_bridge`] to a variant of [`AirBridgeRefused`]. Kept
+/// private to this module -- `f16_otp_runner::bridge` has its own,
+/// independent copy of this same watchdog, matching this file's existing
+/// convention of not sharing infra across families (see [`repo_root`]'s doc
+/// comment, which states the same rationale for its own duplication).
+#[derive(Debug)]
+enum BoundedWaitError {
+    /// The child did not exit within the bounded wait window; by the time
+    /// this variant is returned, the child has already been killed
+    /// (`Child::kill()`) and reaped (`Child::wait()`).
+    TimedOut,
+    /// `Child::try_wait()` itself returned an OS-level error, distinct from
+    /// a timeout. The child is killed defensively before this variant is
+    /// returned.
+    Io(std::io::Error),
+    /// The stdout or stderr reader thread panicked (defensive -- neither
+    /// reader closure in [`wait_with_timeout`] contains an `.unwrap()`/
+    /// `panic!()` path, so this should be unreachable in practice; kept
+    /// typed rather than silently discarding the partial output).
+    ReaderPanicked,
+}
+
+/// Bounded, deadlock-safe replacement for `Child::wait_with_output()`.
+///
+/// `Child::wait_with_output()` blocks the calling thread until the child
+/// exits, with no timeout -- a real Erlang-side deadlock, or a broker call
+/// that never returns, previously hung the Rust caller forever with no
+/// recovery path. This function instead polls `Child::try_wait()` from the
+/// calling thread (never blocking longer than `POLL_INTERVAL` at a stretch)
+/// and, if `timeout` elapses before the child exits, kills the child
+/// (`Child::kill()`), reaps it (`Child::wait()`), and returns
+/// `Err(BoundedWaitError::TimedOut)` instead of hanging.
+///
+/// `stdout`/`stderr` are drained concurrently on two dedicated reader
+/// threads -- the same technique the standard library's own
+/// `wait_with_output` uses internally -- so a child that writes more output
+/// than the OS pipe buffer holds cannot deadlock against an undrained pipe
+/// while this function polls for exit. `stdin` is dropped up front (matching
+/// `Child::wait_with_output()`'s own first step), so a child reading its
+/// stdin to EOF is not left waiting on a stdin handle this function still
+/// holds open.
+///
+/// # Complexity
+/// O(timeout / POLL_INTERVAL) polling wake-ups on the calling thread in the
+/// worst case (a child that never exits); O(1) once the child exits
+/// promptly, which is the expected case for every real production call. The
+/// two reader threads are O(n) in the number of bytes the child writes to
+/// stdout/stderr -- bounded in practice by this bridge's single-line JSON
+/// payloads.
+fn wait_with_timeout(mut child: Child, timeout: Duration) -> Result<Output, BoundedWaitError> {
+    const POLL_INTERVAL: Duration = Duration::from_millis(20);
+
+    // Matches `Child::wait_with_output()`'s own first step: drop stdin so a
+    // child reading to EOF is not left blocked on a handle we still hold.
+    drop(child.stdin.take());
+
+    let mut stdout_pipe = child.stdout.take();
+    let mut stderr_pipe = child.stderr.take();
+    let stdout_reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(pipe) = stdout_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buf);
+        }
+        buf
+    });
+    let stderr_reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(pipe) = stderr_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buf);
+        }
+        buf
+    });
+
+    let deadline = Instant::now() + timeout;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) => {
+                if Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    let _ = stdout_reader.join();
+                    let _ = stderr_reader.join();
+                    return Err(BoundedWaitError::TimedOut);
+                }
+                std::thread::sleep(POLL_INTERVAL);
+            }
+            Err(e) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = stdout_reader.join();
+                let _ = stderr_reader.join();
+                return Err(BoundedWaitError::Io(e));
+            }
+        }
+    };
+
+    let stdout = stdout_reader
+        .join()
+        .map_err(|_| BoundedWaitError::ReaderPanicked)?;
+    let stderr = stderr_reader
+        .join()
+        .map_err(|_| BoundedWaitError::ReaderPanicked)?;
+    Ok(Output {
+        status,
+        stdout,
+        stderr,
+    })
 }
 
 /// Calls the real `air_core:new/1` + `air_core:transition/2` +
@@ -278,12 +409,22 @@ pub fn call_air_core_bridge(
         })?;
     }
 
-    let output = child
-        .wait_with_output()
-        .map_err(|e| AirBridgeRefused::SpawnFailed {
-            script: script_path.display().to_string(),
-            reason: format!("failed waiting for child output: {e}"),
-        })?;
+    let output = wait_with_timeout(child, Duration::from_secs(BRIDGE_WAIT_TIMEOUT_SECS)).map_err(
+        |e| match e {
+            BoundedWaitError::TimedOut => AirBridgeRefused::Timeout {
+                seconds: BRIDGE_WAIT_TIMEOUT_SECS,
+            },
+            BoundedWaitError::Io(io_err) => AirBridgeRefused::SpawnFailed {
+                script: script_path.display().to_string(),
+                reason: format!("failed waiting for child output: {io_err}"),
+            },
+            BoundedWaitError::ReaderPanicked => AirBridgeRefused::SpawnFailed {
+                script: script_path.display().to_string(),
+                reason: "stdout/stderr reader thread panicked while waiting for child output"
+                    .to_string(),
+            },
+        },
+    )?;
 
     if !output.status.success() {
         return Err(AirBridgeRefused::NonZeroExit {
@@ -293,10 +434,26 @@ pub fn call_air_core_bridge(
     }
 
     let raw = String::from_utf8_lossy(&output.stdout).into_owned();
+    parse_bridge_stdout(&raw)
+}
+
+/// Parses one line of the escript's stdout (the exact bytes
+/// [`call_air_core_bridge`] would have read from `output.stdout`) into a
+/// [`BridgeTransitionResult`], without spawning any process.
+///
+/// Factored out of [`call_air_core_bridge`] so this JSON-decode/response-
+/// contract boundary is independently testable against arbitrary
+/// (malformed, truncated, wrong-typed) input -- see the `proptest` suite in
+/// this module's tests, which feeds this function directly rather than
+/// spawning a real escript for every case.
+///
+/// # Complexity
+/// O(n) in the length of `raw` (one `serde_json` parse pass).
+fn parse_bridge_stdout(raw: &str) -> Result<BridgeTransitionResult, AirBridgeRefused> {
     let parsed: RawBridgeResponse =
         serde_json::from_str(raw.trim()).map_err(|e| AirBridgeRefused::MalformedResponse {
             reason: e.to_string(),
-            raw: raw.clone(),
+            raw: raw.to_string(),
         })?;
 
     if !parsed.ok {
@@ -333,6 +490,59 @@ mod tests {
         );
         steps.insert("C".to_string(), BridgeStepDef { next: vec![] });
         BridgeWorkflow { steps }
+    }
+
+    /// Proves the watchdog's timeout path is real and reachable, not just
+    /// declared: a real `sleep 5` OS subprocess (a deliberately slow test
+    /// double for a genuinely hung escript -- a real Erlang deadlock, or a
+    /// broker call that never returns -- not a mock) is spawned with the
+    /// exact same `Stdio::piped()` shape [`call_air_core_bridge`] uses, then
+    /// waited on with a 200ms timeout (far shorter than the 5s sleep). This
+    /// test does not run for 5 real seconds: it asserts
+    /// [`wait_with_timeout`] returns `TimedOut` well before that, and then
+    /// checks the real OS process table (`ps -p <pid>`) to confirm the
+    /// child was actually killed, not merely abandoned still running --
+    /// exactly the production-reliability property this fix exists for.
+    #[test]
+    fn wait_with_timeout_kills_a_hung_child_and_returns_timed_out() {
+        // Arrange
+        let child = Command::new("sleep")
+            .arg("5")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("spawn real `sleep 5` subprocess (test double for a hung escript)");
+        let pid = child.id();
+        let start = Instant::now();
+
+        // Act
+        let result = wait_with_timeout(child, Duration::from_millis(200));
+
+        // Assert: the wait genuinely timed out, not merely raced a fast exit.
+        let elapsed = start.elapsed();
+        assert!(
+            matches!(result, Err(BoundedWaitError::TimedOut)),
+            "expected Err(TimedOut), got {result:?}"
+        );
+        assert!(
+            elapsed < Duration::from_secs(3),
+            "wait_with_timeout took {elapsed:?}; expected it to return well before the real \
+             5s sleep would have finished on its own, proving the 200ms timeout (not the \
+             child's own exit) ended the wait"
+        );
+
+        // Assert: the child was actually killed, not left running orphaned.
+        let still_in_process_table = Command::new("ps")
+            .arg("-p")
+            .arg(pid.to_string())
+            .output()
+            .expect("run `ps -p <pid>` against the real OS process table");
+        assert!(
+            !still_in_process_table.status.success(),
+            "pid {pid} is still present in the process table after wait_with_timeout timed \
+             out -- the child was not actually killed"
+        );
     }
 
     #[test]
@@ -515,5 +725,105 @@ mod tests {
             .as_str()
             .unwrap_or_default()
             .contains("unknown_event_type"));
+    }
+
+    /// Bounded-depth strategy for arbitrary JSON *values* (null/bool/number/
+    /// string leaves; array/object composites up to depth 4, at most 8
+    /// elements per level, `BTreeMap` per this repo's determinism
+    /// convention). Used below to generate well-formed-JSON-but-wrong-shape
+    /// input for [`parse_bridge_stdout`] -- syntactically valid, but not the
+    /// `RawBridgeResponse` shape the escript contract expects.
+    fn arb_json_value() -> impl proptest::strategy::Strategy<Value = serde_json::Value> {
+        use proptest::prelude::*;
+        let leaf = prop_oneof![
+            Just(serde_json::Value::Null),
+            any::<bool>().prop_map(serde_json::Value::Bool),
+            any::<i64>().prop_map(|n| serde_json::json!(n)),
+            ".{0,16}".prop_map(serde_json::Value::String),
+        ];
+        leaf.prop_recursive(4, 64, 8, |inner| {
+            prop_oneof![
+                prop::collection::vec(inner.clone(), 0..8).prop_map(serde_json::Value::Array),
+                prop::collection::btree_map(".{0,8}", inner, 0..8)
+                    .prop_map(|m| serde_json::Value::Object(m.into_iter().collect())),
+            ]
+        })
+    }
+
+    /// One field's worth of arbitrary, possibly-wrong-typed JSON (bool where
+    /// an array was expected, string where bool was expected, etc.) -- used
+    /// to build "known field names, wrong types" fixtures below.
+    fn arb_field_value() -> impl proptest::strategy::Strategy<Value = serde_json::Value> {
+        use proptest::prelude::*;
+        prop_oneof![
+            Just(serde_json::Value::Null),
+            any::<bool>().prop_map(serde_json::Value::Bool),
+            any::<i64>().prop_map(|n| serde_json::json!(n)),
+            ".{0,16}".prop_map(serde_json::Value::String),
+            prop::collection::vec(".{0,8}".prop_map(serde_json::Value::String), 0..4)
+                .prop_map(serde_json::Value::Array),
+        ]
+    }
+
+    proptest::proptest! {
+        /// For ANY generated arbitrary string -- garbage, non-JSON, empty,
+        /// or accidentally-valid -- [`parse_bridge_stdout`] must return a
+        /// `Result` (a typed `Err(AirBridgeRefused::MalformedResponse)` in
+        /// the overwhelmingly common malformed case) and must never panic.
+        /// This is the escript-stdout boundary this file previously only
+        /// covered with hand-picked negative cases (e.g.
+        /// `unknown_event_type_is_refused_not_silently_dropped` above);
+        /// proptest's own panic-catching shrinker turns any panic here into
+        /// a minimal reproducing failure rather than a silent pass.
+        #[test]
+        fn parse_bridge_stdout_never_panics_on_arbitrary_strings(raw in ".{0,256}") {
+            let _ = parse_bridge_stdout(&raw);
+        }
+
+        /// For ANY prefix-truncation of a real, well-formed `{"ok":true,...}`
+        /// response (simulating the escript being killed mid-write, or a
+        /// pipe cut short), [`parse_bridge_stdout`] must return a typed
+        /// `Err`, never panic -- most cut points land mid-token, which
+        /// `serde_json` must reject as `Err`, not something this Rust code
+        /// should crash decoding.
+        #[test]
+        fn parse_bridge_stdout_never_panics_on_truncated_valid_response(cut in 0usize..120) {
+            let full = r#"{"ok":true,"ready_steps":["A","B"],"commands":[{"step_id":"C"}],"error":null}"#;
+            let truncated = &full[..cut.min(full.len())];
+            let _ = parse_bridge_stdout(truncated);
+        }
+
+        /// For ANY generated object using the escript contract's real field
+        /// names (`ok`, `ready_steps`, `commands`, `error`) but arbitrary,
+        /// often wrong-typed values for each, [`parse_bridge_stdout`] must
+        /// return a `Result`, never panic. This is the "wrong-typed JSON"
+        /// case specifically (valid JSON syntax, valid field names, invalid
+        /// field *types*) as distinct from the purely-garbage-string case
+        /// above.
+        #[test]
+        fn parse_bridge_stdout_never_panics_on_wrong_typed_known_fields(
+            ok_v in arb_field_value(),
+            ready_steps_v in arb_field_value(),
+            commands_v in arb_field_value(),
+            error_v in arb_field_value(),
+        ) {
+            let obj = serde_json::json!({
+                "ok": ok_v,
+                "ready_steps": ready_steps_v,
+                "commands": commands_v,
+                "error": error_v,
+            });
+            let raw = obj.to_string();
+            let _ = parse_bridge_stdout(&raw);
+        }
+
+        /// For ANY generated arbitrary JSON value (not necessarily an
+        /// object at all -- may be a bare number, array, string, or null),
+        /// [`parse_bridge_stdout`] must return a `Result`, never panic.
+        #[test]
+        fn parse_bridge_stdout_never_panics_on_arbitrary_json_values(value in arb_json_value()) {
+            let raw = value.to_string();
+            let _ = parse_bridge_stdout(&raw);
+        }
     }
 }

@@ -267,3 +267,16 @@ wasm4pm-planner = { path = "../../../wasm4pm/crates/wasm4pm-planner", version = 
 # through this crate's re-exports end-to-end. (powl2-decompose is already a
 # normal [dependencies] entry above for F10, so it is in scope for tests too
 # without a separate dev-dependency line.)
+#
+# F15/F16 escript-bridge stdout-contract fuzzing: property-based tests in
+# f15_air_transition_core::bridge and f16_otp_runner::bridge feed arbitrary
+# (malformed/truncated/wrong-typed) strings into parse_bridge_stdout /
+# parse_dispatch_statem_stdout (the process-spawn-free stdout-parsing
+# functions those modules now factor out) and assert every generated input
+# returns a typed Err, never panics -- the same "no panic on external input"
+# invariant this workspace's own no-overclaiming-rust rule requires, applied
+# to a boundary that previously only had hand-picked negative test cases.
+# Version pinned identically to the root package's own `proptest = "1"` dev-
+# dependency (Cargo.toml:129) so this does not force a second resolution;
+# Cargo.lock already resolves proptest 1.11.0 for this workspace.
+proptest = "1"

@@ -84,9 +84,10 @@
 //! Rust reimplementation of its transition logic.
 
 use serde::{Deserialize, Serialize};
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Output, Stdio};
+use std::time::{Duration, Instant};
 
 /// One real dispatch-statem lifecycle request. Every field is required by the real
 /// `arazzo_runner_identity:from_map/1` (via the escript's synthesized 10-field identity map) or the
@@ -107,11 +108,21 @@ pub struct DispatchStatemRequest {
 /// The real terminal outcome of one dispatch-statem lifecycle run, computed entirely by the real
 /// Erlang gen_statem and its real, unmodified `arazzo_runner_broker:dispatch/4` -- not recomputed
 /// or reinterpreted by this Rust module.
+///
+/// `step_id` is read back from the real running `arazzo_runner_dispatch_statem` process's own
+/// `#d.step_id` record field (via `arazzo_runner_dispatch_statem:get_step_id/1`, called by
+/// `dispatch_statem_bridge.escript` after the lifecycle reaches a terminal state) -- an
+/// independent, live query of the actual process's own internal state, not this Rust module's
+/// own copy of the [`DispatchStatemRequest::step_id`] it sent. This is what makes the F15->F16
+/// step-id correspondence checkable against the real runtime (see
+/// `crown_external_test.rs::f16_dispatch_step_id_corresponds_verbatim_to_the_f15_command_that_named_it`)
+/// rather than merely trusting the caller's own bookkeeping.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DispatchStatemOutcome {
     /// The real 8-state lawful path completed; `dispatch_token` is the real, non-empty token
     /// `arazzo_runner_broker:dispatch/4` computed.
     Completed {
+        step_id: String,
         transition_log: Vec<String>,
         dispatch_token: String,
     },
@@ -119,6 +130,7 @@ pub enum DispatchStatemOutcome {
     /// `REFUSED` -- parallels [`super::OTPWorkflowRefused::erlang_atom`]'s vocabulary, though this
     /// module does not itself construct that enum (its caller may, from `refusal_atom`).
     Refused {
+        step_id: String,
         transition_log: Vec<String>,
         refusal_atom: String,
     },
@@ -129,6 +141,8 @@ struct RawDispatchStatemResponse {
     ok: bool,
     #[serde(default)]
     outcome: Option<String>,
+    #[serde(default)]
+    step_id: Option<String>,
     #[serde(default)]
     transition_log: Vec<String>,
     #[serde(default)]
@@ -185,6 +199,16 @@ pub enum DispatchStatemBridgeRefused {
     /// drift between the two sides rather than silently defaulting to one outcome).
     #[error("dispatch-statem bridge reported ok=true with an unrecognized outcome shape: {raw}")]
     UnrecognizedOutcomeShape { raw: String },
+    /// The escript did not exit within the bounded wait window
+    /// (`BRIDGE_WAIT_TIMEOUT_SECS`) -- most commonly a genuine Erlang-side
+    /// hang (a real deadlock, or a broker call that never returns), not a
+    /// Rust-side bug. The child process has already been killed
+    /// (`Child::kill()`) by the time this variant is returned -- no process
+    /// is left running past this error. This closes a real production-
+    /// reliability gap: before this variant existed, a hung escript hung
+    /// the Rust caller forever with no recovery path.
+    #[error("dispatch-statem bridge did not exit within {seconds}s and was killed")]
+    Timeout { seconds: u64 },
 }
 
 /// Resolves the repo root from `CARGO_MANIFEST_DIR` (`<repo>/crates/multifractal-workflow`),
@@ -198,6 +222,117 @@ fn repo_root() -> Result<PathBuf, DispatchStatemBridgeRefused> {
         .ok_or_else(|| DispatchStatemBridgeRefused::RepoRootUnresolved {
             manifest_dir: manifest_dir.display().to_string(),
         })
+}
+
+/// How long [`call_dispatch_statem_bridge`] waits for the spawned escript to exit before treating
+/// it as hung and killing it (see [`wait_with_timeout`]). 30s is generous for a local subprocess
+/// call -- no network round trip is involved -- while still bounding a genuine Erlang-side
+/// deadlock, or a broker call that never returns, to a finite, recoverable wait instead of hanging
+/// the Rust caller forever. This is a separate, generous ceiling above the escript's own internal
+/// `wait_for_terminal/2` 2s poll ceiling (see the module doc comment) -- that bound only covers
+/// the gen_statem's own lifecycle polling, not the BEAM VM boot/supervision-tree startup this
+/// timeout also has to cover.
+const BRIDGE_WAIT_TIMEOUT_SECS: u64 = 30;
+
+/// Internal outcome of [`wait_with_timeout`], mapped by [`call_dispatch_statem_bridge`] to a
+/// variant of [`DispatchStatemBridgeRefused`]. Kept private to this module --
+/// `f15_air_transition_core::bridge` has its own, independent copy of this same watchdog, matching
+/// this file's existing convention of not sharing infra across families (see [`repo_root`]'s doc
+/// comment, which states the same rationale for its own duplication).
+#[derive(Debug)]
+enum BoundedWaitError {
+    /// The child did not exit within the bounded wait window; by the time this variant is
+    /// returned, the child has already been killed (`Child::kill()`) and reaped (`Child::wait()`).
+    TimedOut,
+    /// `Child::try_wait()` itself returned an OS-level error, distinct from a timeout. The child is
+    /// killed defensively before this variant is returned.
+    Io(std::io::Error),
+    /// The stdout or stderr reader thread panicked (defensive -- neither reader closure in
+    /// [`wait_with_timeout`] contains an `.unwrap()`/`panic!()` path, so this should be
+    /// unreachable in practice; kept typed rather than silently discarding the partial output).
+    ReaderPanicked,
+}
+
+/// Bounded, deadlock-safe replacement for `Child::wait_with_output()`.
+///
+/// `Child::wait_with_output()` blocks the calling thread until the child exits, with no timeout --
+/// a real Erlang-side deadlock, or a broker call that never returns, previously hung the Rust
+/// caller forever with no recovery path. This function instead polls `Child::try_wait()` from the
+/// calling thread (never blocking longer than `POLL_INTERVAL` at a stretch) and, if `timeout`
+/// elapses before the child exits, kills the child (`Child::kill()`), reaps it (`Child::wait()`),
+/// and returns `Err(BoundedWaitError::TimedOut)` instead of hanging.
+///
+/// `stdout`/`stderr` are drained concurrently on two dedicated reader threads -- the same
+/// technique the standard library's own `wait_with_output` uses internally -- so a child that
+/// writes more output than the OS pipe buffer holds cannot deadlock against an undrained pipe
+/// while this function polls for exit. `stdin` is dropped up front (matching
+/// `Child::wait_with_output()`'s own first step), so a child reading its stdin to EOF is not left
+/// waiting on a stdin handle this function still holds open.
+///
+/// # Complexity
+/// O(timeout / POLL_INTERVAL) polling wake-ups on the calling thread in the worst case (a child
+/// that never exits); O(1) once the child exits promptly, which is the expected case for every
+/// real production call. The two reader threads are O(n) in the number of bytes the child writes
+/// to stdout/stderr -- bounded in practice by this bridge's single-line JSON payloads.
+fn wait_with_timeout(mut child: Child, timeout: Duration) -> Result<Output, BoundedWaitError> {
+    const POLL_INTERVAL: Duration = Duration::from_millis(20);
+
+    // Matches `Child::wait_with_output()`'s own first step: drop stdin so a child reading to EOF
+    // is not left blocked on a handle we still hold.
+    drop(child.stdin.take());
+
+    let mut stdout_pipe = child.stdout.take();
+    let mut stderr_pipe = child.stderr.take();
+    let stdout_reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(pipe) = stdout_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buf);
+        }
+        buf
+    });
+    let stderr_reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(pipe) = stderr_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buf);
+        }
+        buf
+    });
+
+    let deadline = Instant::now() + timeout;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) => {
+                if Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    let _ = stdout_reader.join();
+                    let _ = stderr_reader.join();
+                    return Err(BoundedWaitError::TimedOut);
+                }
+                std::thread::sleep(POLL_INTERVAL);
+            }
+            Err(e) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = stdout_reader.join();
+                let _ = stderr_reader.join();
+                return Err(BoundedWaitError::Io(e));
+            }
+        }
+    };
+
+    let stdout = stdout_reader
+        .join()
+        .map_err(|_| BoundedWaitError::ReaderPanicked)?;
+    let stderr = stderr_reader
+        .join()
+        .map_err(|_| BoundedWaitError::ReaderPanicked)?;
+    Ok(Output {
+        status,
+        stdout,
+        stderr,
+    })
 }
 
 /// Calls the real `application:ensure_all_started(arazzo_runner)` + `arazzo_runner_sup:
@@ -258,13 +393,22 @@ pub fn call_dispatch_statem_bridge(
         })?;
     }
 
-    let output =
-        child
-            .wait_with_output()
-            .map_err(|e| DispatchStatemBridgeRefused::SpawnFailed {
+    let output = wait_with_timeout(child, Duration::from_secs(BRIDGE_WAIT_TIMEOUT_SECS)).map_err(
+        |e| match e {
+            BoundedWaitError::TimedOut => DispatchStatemBridgeRefused::Timeout {
+                seconds: BRIDGE_WAIT_TIMEOUT_SECS,
+            },
+            BoundedWaitError::Io(io_err) => DispatchStatemBridgeRefused::SpawnFailed {
                 script: script_path.display().to_string(),
-                reason: format!("failed waiting for child output: {e}"),
-            })?;
+                reason: format!("failed waiting for child output: {io_err}"),
+            },
+            BoundedWaitError::ReaderPanicked => DispatchStatemBridgeRefused::SpawnFailed {
+                script: script_path.display().to_string(),
+                reason: "stdout/stderr reader thread panicked while waiting for child output"
+                    .to_string(),
+            },
+        },
+    )?;
 
     if !output.status.success() {
         return Err(DispatchStatemBridgeRefused::NonZeroExit {
@@ -274,10 +418,28 @@ pub fn call_dispatch_statem_bridge(
     }
 
     let raw = String::from_utf8_lossy(&output.stdout).into_owned();
+    parse_dispatch_statem_stdout(&raw)
+}
+
+/// Parses one line of the escript's stdout (the exact bytes
+/// [`call_dispatch_statem_bridge`] would have read from `output.stdout`) into
+/// a [`DispatchStatemOutcome`], without spawning any process.
+///
+/// Factored out of [`call_dispatch_statem_bridge`] so this JSON-decode/
+/// response-contract boundary is independently testable against arbitrary
+/// (malformed, truncated, wrong-typed) input -- see the `proptest` suite in
+/// this module's tests, which feeds this function directly rather than
+/// spawning a real escript for every case.
+///
+/// # Complexity
+/// O(n) in the length of `raw` (one `serde_json` parse pass).
+fn parse_dispatch_statem_stdout(
+    raw: &str,
+) -> Result<DispatchStatemOutcome, DispatchStatemBridgeRefused> {
     let parsed: RawDispatchStatemResponse = serde_json::from_str(raw.trim()).map_err(|e| {
         DispatchStatemBridgeRefused::MalformedResponse {
             reason: e.to_string(),
-            raw: raw.clone(),
+            raw: raw.to_string(),
         }
     })?;
 
@@ -291,18 +453,25 @@ pub fn call_dispatch_statem_bridge(
 
     match (
         parsed.outcome.as_deref(),
+        parsed.step_id,
         parsed.dispatch_token,
         parsed.refusal_atom,
     ) {
-        (Some("completed"), Some(token), None) => Ok(DispatchStatemOutcome::Completed {
-            transition_log: parsed.transition_log,
-            dispatch_token: token,
-        }),
-        (Some("refused"), None, Some(atom)) => Ok(DispatchStatemOutcome::Refused {
+        (Some("completed"), Some(step_id), Some(token), None) => {
+            Ok(DispatchStatemOutcome::Completed {
+                step_id,
+                transition_log: parsed.transition_log,
+                dispatch_token: token,
+            })
+        }
+        (Some("refused"), Some(step_id), None, Some(atom)) => Ok(DispatchStatemOutcome::Refused {
+            step_id,
             transition_log: parsed.transition_log,
             refusal_atom: atom,
         }),
-        _ => Err(DispatchStatemBridgeRefused::UnrecognizedOutcomeShape { raw }),
+        _ => Err(DispatchStatemBridgeRefused::UnrecognizedOutcomeShape {
+            raw: raw.to_string(),
+        }),
     }
 }
 
@@ -331,6 +500,56 @@ mod tests {
             root.join("justfile").is_file(),
             "resolved repo root {} does not contain justfile",
             root.display()
+        );
+    }
+
+    /// Proves the watchdog's timeout path is real and reachable, not just declared: a real
+    /// `sleep 5` OS subprocess (a deliberately slow test double for a genuinely hung escript -- a
+    /// real Erlang deadlock, or a broker call that never returns -- not a mock) is spawned with the
+    /// exact same `Stdio::piped()` shape [`call_dispatch_statem_bridge`] uses, then waited on with
+    /// a 200ms timeout (far shorter than the 5s sleep). This test does not run for 5 real seconds:
+    /// it asserts [`wait_with_timeout`] returns `TimedOut` well before that, and then checks the
+    /// real OS process table (`ps -p <pid>`) to confirm the child was actually killed, not merely
+    /// abandoned still running -- exactly the production-reliability property this fix exists for.
+    #[test]
+    fn wait_with_timeout_kills_a_hung_child_and_returns_timed_out() {
+        // Arrange
+        let child = Command::new("sleep")
+            .arg("5")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("spawn real `sleep 5` subprocess (test double for a hung escript)");
+        let pid = child.id();
+        let start = Instant::now();
+
+        // Act
+        let result = wait_with_timeout(child, Duration::from_millis(200));
+
+        // Assert: the wait genuinely timed out, not merely raced a fast exit.
+        let elapsed = start.elapsed();
+        assert!(
+            matches!(result, Err(BoundedWaitError::TimedOut)),
+            "expected Err(TimedOut), got {result:?}"
+        );
+        assert!(
+            elapsed < Duration::from_secs(3),
+            "wait_with_timeout took {elapsed:?}; expected it to return well before the real \
+             5s sleep would have finished on its own, proving the 200ms timeout (not the \
+             child's own exit) ended the wait"
+        );
+
+        // Assert: the child was actually killed, not left running orphaned.
+        let still_in_process_table = Command::new("ps")
+            .arg("-p")
+            .arg(pid.to_string())
+            .output()
+            .expect("run `ps -p <pid>` against the real OS process table");
+        assert!(
+            !still_in_process_table.status.success(),
+            "pid {pid} is still present in the process table after wait_with_timeout timed \
+             out -- the child was not actually killed"
         );
     }
 
@@ -379,10 +598,11 @@ mod tests {
     #[test]
     #[ignore = "requires escript on PATH and apps/arazzo_runner+apps/air_core compiled via `just erlang-compile`; run with --ignored"]
     fn lawful_dispatch_completes_through_all_eight_real_atlas_states() {
-        let outcome =
-            call_dispatch_statem_bridge(&sample_request()).expect("real bridge call must succeed");
+        let request = sample_request();
+        let outcome = call_dispatch_statem_bridge(&request).expect("real bridge call must succeed");
         match outcome {
             DispatchStatemOutcome::Completed {
+                step_id,
                 transition_log,
                 dispatch_token,
             } => {
@@ -399,6 +619,12 @@ mod tests {
                     ]
                 );
                 assert!(!dispatch_token.is_empty());
+                // The real running gen_statem's own `#d.step_id` (read back via
+                // `get_step_id/1`) matches the step this request actually asked for --
+                // the same narrow correspondence property
+                // `crown_external_test.rs`'s own F15->F16 test checks against a real
+                // `air_core`-driven multi-step transition.
+                assert_eq!(step_id, request.step_id);
             }
             other => panic!("expected Completed, got {other:?}"),
         }
@@ -416,6 +642,7 @@ mod tests {
         let outcome = call_dispatch_statem_bridge(&request).expect("real bridge call must succeed");
         match outcome {
             DispatchStatemOutcome::Refused {
+                step_id,
                 transition_log,
                 refusal_atom,
             } => {
@@ -431,8 +658,118 @@ mod tests {
                     ]
                 );
                 assert_eq!(refusal_atom, "CORRELATION_MISSING");
+                assert_eq!(step_id, request.step_id);
             }
             other => panic!("expected Refused, got {other:?}"),
+        }
+    }
+
+    /// Bounded-depth strategy for arbitrary JSON *values* (null/bool/number/
+    /// string leaves; array/object composites up to depth 4, at most 8
+    /// elements per level, `BTreeMap` per this repo's determinism
+    /// convention). Used below to generate well-formed-JSON-but-wrong-shape
+    /// input for [`parse_dispatch_statem_stdout`] -- syntactically valid,
+    /// but not the `RawDispatchStatemResponse` shape the escript contract
+    /// expects.
+    fn arb_json_value() -> impl proptest::strategy::Strategy<Value = serde_json::Value> {
+        use proptest::prelude::*;
+        let leaf = prop_oneof![
+            Just(serde_json::Value::Null),
+            any::<bool>().prop_map(serde_json::Value::Bool),
+            any::<i64>().prop_map(|n| serde_json::json!(n)),
+            ".{0,16}".prop_map(serde_json::Value::String),
+        ];
+        leaf.prop_recursive(4, 64, 8, |inner| {
+            prop_oneof![
+                prop::collection::vec(inner.clone(), 0..8).prop_map(serde_json::Value::Array),
+                prop::collection::btree_map(".{0,8}", inner, 0..8)
+                    .prop_map(|m| serde_json::Value::Object(m.into_iter().collect())),
+            ]
+        })
+    }
+
+    /// One field's worth of arbitrary, possibly-wrong-typed JSON (bool where
+    /// a string was expected, array where bool was expected, etc.) -- used
+    /// to build "known field names, wrong types" fixtures below.
+    fn arb_field_value() -> impl proptest::strategy::Strategy<Value = serde_json::Value> {
+        use proptest::prelude::*;
+        prop_oneof![
+            Just(serde_json::Value::Null),
+            any::<bool>().prop_map(serde_json::Value::Bool),
+            any::<i64>().prop_map(|n| serde_json::json!(n)),
+            ".{0,16}".prop_map(serde_json::Value::String),
+            prop::collection::vec(".{0,8}".prop_map(serde_json::Value::String), 0..4)
+                .prop_map(serde_json::Value::Array),
+        ]
+    }
+
+    proptest::proptest! {
+        /// For ANY generated arbitrary string -- garbage, non-JSON, empty,
+        /// or accidentally-valid -- [`parse_dispatch_statem_stdout`] must
+        /// return a `Result` (a typed
+        /// `Err(DispatchStatemBridgeRefused::MalformedResponse)` in the
+        /// overwhelmingly common malformed case) and must never panic. This
+        /// is the escript-stdout boundary this file previously only covered
+        /// with hand-picked negative cases (the `#[ignore]`d integration
+        /// tests above); proptest's own panic-catching shrinker turns any
+        /// panic here into a minimal reproducing failure rather than a
+        /// silent pass.
+        #[test]
+        fn parse_dispatch_statem_stdout_never_panics_on_arbitrary_strings(raw in ".{0,256}") {
+            let _ = parse_dispatch_statem_stdout(&raw);
+        }
+
+        /// For ANY prefix-truncation of a real, well-formed
+        /// `{"ok":true,"outcome":"completed",...}` response (simulating the
+        /// escript being killed mid-write, or a pipe cut short),
+        /// [`parse_dispatch_statem_stdout`] must return a typed `Err`, never
+        /// panic.
+        #[test]
+        fn parse_dispatch_statem_stdout_never_panics_on_truncated_valid_response(cut in 0usize..170) {
+            let full = r#"{"ok":true,"outcome":"completed","step_id":"s1","transition_log":["manufactured","ready"],"dispatch_token":"tok-1","refusal_atom":null,"error":null}"#;
+            let truncated = &full[..cut.min(full.len())];
+            let _ = parse_dispatch_statem_stdout(truncated);
+        }
+
+        /// For ANY generated object using the escript contract's real field
+        /// names (`ok`, `outcome`, `step_id`, `transition_log`,
+        /// `dispatch_token`, `refusal_atom`, `error`) but arbitrary, often
+        /// wrong-typed values for each, [`parse_dispatch_statem_stdout`] must
+        /// return a `Result`, never panic. This is the "wrong-typed JSON"
+        /// case specifically (valid JSON syntax, valid field names, invalid
+        /// field *types*) as distinct from the purely-garbage-string case
+        /// above.
+        #[test]
+        fn parse_dispatch_statem_stdout_never_panics_on_wrong_typed_known_fields(
+            ok_v in arb_field_value(),
+            outcome_v in arb_field_value(),
+            step_id_v in arb_field_value(),
+            transition_log_v in arb_field_value(),
+            dispatch_token_v in arb_field_value(),
+            refusal_atom_v in arb_field_value(),
+            error_v in arb_field_value(),
+        ) {
+            let obj = serde_json::json!({
+                "ok": ok_v,
+                "outcome": outcome_v,
+                "step_id": step_id_v,
+                "transition_log": transition_log_v,
+                "dispatch_token": dispatch_token_v,
+                "refusal_atom": refusal_atom_v,
+                "error": error_v,
+            });
+            let raw = obj.to_string();
+            let _ = parse_dispatch_statem_stdout(&raw);
+        }
+
+        /// For ANY generated arbitrary JSON value (not necessarily an
+        /// object at all -- may be a bare number, array, string, or null),
+        /// [`parse_dispatch_statem_stdout`] must return a `Result`, never
+        /// panic.
+        #[test]
+        fn parse_dispatch_statem_stdout_never_panics_on_arbitrary_json_values(value in arb_json_value()) {
+            let raw = value.to_string();
+            let _ = parse_dispatch_statem_stdout(&raw);
         }
     }
 }

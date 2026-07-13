@@ -3544,6 +3544,7 @@ dependencies = [
  "powl2-decompose",
  "praxis-core",
  "praxis-graphlaw",
+ "proptest",
  "serde",
  "serde_json",
  "tera",
