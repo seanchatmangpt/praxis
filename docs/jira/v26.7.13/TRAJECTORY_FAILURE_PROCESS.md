@@ -1,6 +1,6 @@
 # Trajectory Failure Process — Wire-phase-0 Module
 
-Last Updated: <!-- fill in today's actual date -->
+Last Updated: 2026-07-13
 
 `crates/multifractal-workflow/src/trajectory_failure_process.rs` (1468 lines) implements the
 t_err/t_lock/t_obs failure-trajectory framework from Zhao, Li, Li, Zhao, Barr, Sarro & Ye,

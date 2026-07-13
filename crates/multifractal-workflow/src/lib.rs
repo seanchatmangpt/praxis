@@ -88,3 +88,13 @@ pub mod crown_external;
 /// tail F10 -> F12 -> F13 -> F14 -> F15 in one real call, stopping honestly at the F15 -> F16
 /// Erlang OTP-runner boundary.
 pub mod crown_local;
+
+/// Standalone Wire-phase-0 analysis module, **not** part of the 30-family v26.7.12 atlas
+/// above and not counted toward any family's ticket/verdict table or crown-witness edge
+/// count. Implements the failure-process framework (t_err/t_lock/t_obs, fix window,
+/// observability lag) from arXiv:2607.09510 (Zhao et al., "Failure as a Process: An
+/// Anatomy of CLI Coding Agent Trajectories") against this repo's own commit history,
+/// applied to this repo's real F18->F19 crown-witness overclaim as a worked example. No
+/// caller wires this module into `crown_local`/`crown_external` as of this writing --
+/// disclosed, not hidden. See the module's own doc comment for full scope and limitations.
+pub mod trajectory_failure_process;
