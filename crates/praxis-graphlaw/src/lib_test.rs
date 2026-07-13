@@ -30,6 +30,46 @@ fn group_concat_aggregate_refuses_instead_of_panicking() {
     }
 }
 
+// Regression for a real, swarm-identified crash: `sparql/mod.rs`'s `PlanNode::Aggregate`
+// execution arm called `Encoder::get(&var_str).unwrap()` on a GROUP BY key variable that
+// was never interned (never appears in the WHERE clause or SELECT projection), panicking
+// on the first row evaluated -- a separate execution-phase panic from the
+// group_concat_aggregate test above (planning-phase), so `plan_query_or_refuse`'s
+// catch_unwind does not cover it: `evaluate_plan` runs after planning already returned a
+// `PlanNode`, outside that boundary. Fixed by the same `unwrap_or_else(|| Encoder::add(...))`
+// safe-fallback pattern already used one block above (mod.rs:168) for the aggregate target
+// variable. Per SPARQL's own unbound-group-key semantics, grouping by a variable with no
+// binding groups every row together under that missing key -- not a crash -- so this
+// asserts real (non-panicking), correct output, not just that no crash occurs.
+#[test]
+fn group_by_unbound_variable_groups_instead_of_panicking() {
+    let data = "<http://example.org/a> <http://example.org/p> \"1\".\n\
+                <http://example.org/a> <http://example.org/p> \"2\".\n\
+                <http://example.org/b> <http://example.org/p> \"3\".";
+    let store = TripleStore::from(data);
+    let result = store.query(
+        "SELECT (COUNT(*) AS ?c) WHERE { ?s <http://example.org/p> ?o } GROUP BY ?neverBound",
+    );
+    match result {
+        Ok(rows) => {
+            assert_eq!(
+                rows.len(),
+                1,
+                "grouping by an unbound variable must fold every row into one group, got: {rows:?}"
+            );
+            let count_binding = rows[0]
+                .iter()
+                .find(|b| b.var == "c")
+                .expect("aggregate binding ?c must be present");
+            assert_eq!(
+                count_binding.val, "3",
+                "COUNT(*) over all 3 triples must be 3, got: {rows:?}"
+            );
+        }
+        Err(msg) => panic!("expected a real grouped result, got a refusal: {msg}"),
+    }
+}
+
 #[test]
 fn test_parse() {
     let data = ":a a :C0.\n\

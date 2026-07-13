@@ -209,7 +209,7 @@ pub fn evaluate_plan<'a>(
                     .map(|v| {
                         let var_str = v.as_str().to_string();
                         let var_str = strip_variable_prefix(&var_str).to_string();
-                        Encoder::get(&var_str).unwrap()
+                        Encoder::get(&var_str).unwrap_or_else(|| Encoder::add(var_str))
                     })
                     .collect();
 
@@ -270,7 +270,7 @@ pub fn evaluate_plan<'a>(
                     .map(|v| {
                         let var_str = v.as_str().to_string();
                         let var_str = strip_variable_prefix(&var_str).to_string();
-                        Encoder::get(&var_str).unwrap()
+                        Encoder::get(&var_str).unwrap_or_else(|| Encoder::add(var_str))
                     })
                     .collect();
 
