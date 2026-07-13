@@ -13,10 +13,49 @@ export RUSTC_WRAPPER := "sccache"
 # invocation: `CARGO_TARGET_DIR=target/agent-2 just check`. Isolated dirs trade a slower
 # first build (no shared incremental cache) for true concurrency.
 
-# Check for a stray concurrent cargo build/test/check holding the target/ lock before
-# starting a new one -- concurrent invocations serialize and silently double wall-clock time
+# Check for a stray concurrent cargo/rustc build or rebar3 (Erlang side, apps/arazzo_*) holding
+# a build lock before starting a new one -- concurrent invocations serialize and silently double
+# wall-clock time. Widened from a cargo-only grep after this session repeatedly needed the same
+# check against rebar3 compiles too (apps/arazzo_atomvm, apps/arazzo_runner).
 check-lock:
-    @ps aux | grep -E "cargo (test|build|check)" | grep -v grep || echo "no cargo build/test/check currently running"
+    @ps aux | grep -E "cargo|rustc|rebar3" | grep -v grep || echo "no cargo/rustc/rebar3 build currently running"
+
+# Report every isolated CARGO_TARGET_DIR under target/agent-* with its size, and warn (not
+# delete) if any cargo/rustc/rebar3 process is currently running -- a stray agent-* dir might
+# still be in active use by it. Read-only; pair with clean-stale-isolated to actually remove.
+list-isolated:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! ls -d target/agent-* >/dev/null 2>&1; then
+        echo "no target/agent-* dirs present"; exit 0
+    fi
+    du -sh target/agent-* 2>/dev/null | sort -rh
+    if ps aux | grep -E "cargo|rustc|rebar3" | grep -v grep >/dev/null; then
+        echo "WARNING: a cargo/rustc/rebar3 process is currently running -- do not blindly remove all of the above, one may be held by it"
+    fi
+
+# Remove every isolated target/agent-* dir not currently held by a running cargo/rustc/rebar3
+# process (regenerable, zero risk once confirmed unheld). Formalizes a pattern this session's
+# own agents hand-ran 15+ times (`ps aux | grep -E "cargo|rustc|rebar3"` then `rm -rf
+# target/agent-*`) because target/agent-* dirs are NOT self-cleaning and repeatedly filled disk
+# toward 100% this session. Refuses (does not delete anything) if a matching process is found --
+# re-run once it finishes. See also the older, cng-scoped `cng-clean-all-isolated` (identical
+# unconditional `rm -rf target/agent-*`, no process check) and single-dir `cng-clean-isolated
+# <name>`; this recipe is the crate-agnostic, safety-checked version those two predate.
+clean-stale-isolated:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! ls -d target/agent-* >/dev/null 2>&1; then
+        echo "clean-stale-isolated: no target/agent-* dirs present, nothing to do"; exit 0
+    fi
+    if ps aux | grep -E "cargo|rustc|rebar3" | grep -v grep >/dev/null; then
+        echo "clean-stale-isolated: refusing -- a cargo/rustc/rebar3 process is currently running"
+        echo "check 'just list-isolated' and re-run once it finishes"
+        exit 1
+    fi
+    du -sh target/agent-* 2>/dev/null
+    rm -rf target/agent-*
+    echo "clean-stale-isolated: removed all target/agent-* dirs listed above"
 
 # Verify each hardcoded external path dependency (wasm4pm-compat, bcinr-pddl/bcinr-powl/
 # bcinr-powl-receipt, lsp-max, affidavit -- root Cargo.toml [dependencies] and
