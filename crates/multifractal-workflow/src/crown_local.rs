@@ -802,10 +802,17 @@ pub fn drive_local_witness_prefix(
 /// Serialize the planning content into a single Turtle observation payload F02 can admit: the
 /// provenance triple (gate 2) plus the three planning literals on the F08 predicates.
 ///
-/// PDDL/hook-pack text is embedded as triple-quoted Turtle long-string literals (`"""..."""`);
-/// none of that text contains `"""`, so no escaping is needed. praxis-graphlaw's Turtle parser
-/// supports long-string literals with embedded newlines (see its own
-/// `parser_edge_cases_test::test_string_literal_styles`).
+/// PDDL/hook-pack text is embedded as triple-quoted Turtle long-string literals (`"""..."""`).
+/// praxis-graphlaw's Turtle parser supports long-string literals with embedded newlines (see its
+/// own `parser_edge_cases_test::test_string_literal_styles`).
+///
+/// # Errors
+/// Swarm audit wnl2yhbgm finding #31's original instance (see
+/// [`LocalWitnessRefused::PlanningPayloadUnsafeForEmbedding`]'s own doc comment): this used to
+/// assume "none of that text contains `\"\"\"`", which was the false premise the vulnerability
+/// lived in -- `pddl_domain`/`pddl_problem`/`hook_pack_turtle` are real, externally-supplied text
+/// and cannot be trusted to be free of an embedded `"""` sequence. Each is now checked and the
+/// call refused before any embedding happens.
 fn build_planning_payload(
     subject_iri: &str,
     principal_iri: &str,
