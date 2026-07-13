@@ -62,3 +62,29 @@ hex_refuses_when_b3sum_not_found_test() ->
     %% after this test, proving the restore (not just the assertion above)
     %% actually took effect.
     ?assertMatch({ok, _}, arazzo_runner_blake3:hex(<<"post-restore-probe">>)).
+
+%% Swarm audit wnl2yhbgm finding #10: tmp_file_path/0 previously used only
+%% erlang:unique_integer([positive]) for a filename in the SHARED /tmp
+%% filesystem -- unique across calls within THIS BEAM VM, but two separate,
+%% concurrently-running VM instances (this repo's own F16 driver spawns one
+%% escript per dispatch) each restart that counter independently, so their
+%% filenames could collide on the shared filesystem. os:getpid/0 is unique
+%% among concurrently-live OS processes at any instant, so its presence in
+%% the generated path is the structural property that makes cross-VM
+%% collision impossible. hex/1 itself can't be used to observe this (it
+%% deletes its temp file before returning), so this drives tmp_file_path/0
+%% directly -- exported for exactly this reason.
+tmp_file_path_includes_the_calling_os_process_id_test() ->
+    Path = arazzo_runner_blake3:tmp_file_path(),
+    Pid = os:getpid(),
+    ?assert(string:find(Path, Pid) =/= nomatch).
+
+%% Regression guard for the property that actually prevents the collision:
+%% two calls FROM THIS SAME PROCESS must still differ from each other (the
+%% pre-existing unique_integer component still does its job within one VM;
+%% the PID addition is additive, not a replacement that collapses distinct
+%% calls in the same process onto the same path).
+tmp_file_path_still_differs_across_repeated_calls_in_the_same_process_test() ->
+    Path1 = arazzo_runner_blake3:tmp_file_path(),
+    Path2 = arazzo_runner_blake3:tmp_file_path(),
+    ?assertNotEqual(Path1, Path2).

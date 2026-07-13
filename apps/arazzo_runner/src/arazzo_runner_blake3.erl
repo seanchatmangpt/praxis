@@ -1,5 +1,10 @@
 -module(arazzo_runner_blake3).
 -export([hex/1]).
+%% tmp_file_path/0 exported for direct unit testing only (see
+%% arazzo_runner_blake3_test.erl) -- hex/1 deletes its temp file before
+%% returning, so the PID-inclusion property tmp_file_path/0 is responsible
+%% for is not otherwise observable from hex/1's own external behavior.
+-export([tmp_file_path/0]).
 
 %% PROJ-781 (PRD v26.7.11 15 -- Receipt and Replay).
 %%
@@ -69,14 +74,35 @@ collect_port_output(Port, Acc) ->
         {error, b3sum_timeout}
     end.
 
-%% Filename choice only (erlang:unique_integer/1 does not feed the hashed
-%% bytes themselves), so its own non-determinism across runs does not
-%% compromise digest determinism -- same reasoning as
+%% Filename choice only (neither erlang:unique_integer/1 nor the OS pid
+%% feeds the hashed bytes themselves), so its own non-determinism across
+%% runs does not compromise digest determinism -- same reasoning as
 %% air_core_corpus_test.erl's tmp_file_path/0.
+%%
+%% Swarm audit wnl2yhbgm finding #10: erlang:unique_integer/1's counter is
+%% scoped to the calling BEAM VM, not the shared /tmp filesystem two
+%% SEPARATE VM instances actually write into -- two concurrently-spawned
+%% VMs (e.g. this repo's own F16 driver spawns one escript per dispatch,
+%% and recursion_crosses_engines_full_8x2_fanout genuinely drives many
+%% concurrent dispatches) can each start their unique_integer counter near
+%% the same low baseline and collide on the identical filename. A collision
+%% here is not merely a robustness concern: hex_via_port/2 writes Bytes to
+%% TmpPath, then reads it back via b3sum -- two VMs racing on the same path
+%% risk one VM's b3sum hashing the OTHER VM's bytes, silently producing a
+%% WRONG digest for the right input, in the exact receipt-chain primitive
+%% this repo's invariant #2 (receipts are computed, never asserted) depends
+%% on. os:getpid/0 is unique among concurrently-running OS processes at any
+%% given instant (the OS itself guarantees this), so combining it with the
+%% existing per-VM unique_integer makes cross-VM collision structurally
+%% impossible for any two genuinely distinct, concurrently-live processes.
 tmp_file_path() ->
     Dir = case os:getenv("TMPDIR") of
         false -> "/tmp";
         D -> D
     end,
+    Pid = os:getpid(),
     Unique = erlang:unique_integer([positive]),
-    filename:join(Dir, "arazzo_runner_blake3_" ++ integer_to_list(Unique) ++ ".bin").
+    filename:join(
+        Dir,
+        "arazzo_runner_blake3_" ++ Pid ++ "_" ++ integer_to_list(Unique) ++ ".bin"
+    ).

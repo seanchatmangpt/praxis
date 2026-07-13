@@ -1158,6 +1158,21 @@ erlang-test-atomvm-differential: erlang-compile
 erlang-test-dispatch-statem: erlang-compile
     timeout 60s rebar3 eunit -m arazzo_runner_dispatch_statem_test
 
+# Compile, then run ONLY the arazzo_runner_blake3 eunit module (real BLAKE3
+# hashing via b3sum, PROJ-781; swarm audit wnl2yhbgm finding #10's
+# cross-VM tmp_file_path collision fix). Scoped with `-m` (same convention
+# as erlang-test-dispatch-statem above).
+erlang-test-blake3: erlang-compile
+    timeout 60s rebar3 eunit -m arazzo_runner_blake3_test
+
+# Compile, then run ONLY the arazzo_runner_broker eunit module -- the real
+# production consumer of arazzo_runner_blake3:hex/1 (do_dispatch/6), so
+# this is the narrowest scoped check that a blake3.erl change didn't
+# regress its actual caller without paying for the whole umbrella suite
+# (which includes unrelated soak/differential tests).
+erlang-test-broker: erlang-compile
+    timeout 300s rebar3 eunit -m arazzo_runner_broker_test
+
 # --- Clean-room CI verification (spans the Erlang umbrella and cng/Rust) ---
 #
 # WHY THIS EXISTS: rebar3's incremental compile is mtime-based (see the erlang-clean
