@@ -436,7 +436,50 @@ pub fn transition(
 
 #[cfg(test)]
 mod tests {
+    //! `DialectRegistryRefused::IoRefused` -- raised only at the
+    //! `Store::new()` call in [`validate_registry_turtle`] -- has no
+    //! dedicated negative test below, unlike `MissingField`,
+    //! `ClosedShapeViolation`, and `IllegalTransition` (each of which does).
+    //! This is disclosed, not an oversight: oxigraph 0.5.9's in-memory path
+    //! (`Store::new` -> `storage::Storage::new` -> `MemoryStorage::new`) is
+    //! unconditionally infallible in-process -- `Storage::new`'s own body is
+    //! annotated `#[expect(clippy::unnecessary_wraps)]` upstream, i.e.
+    //! oxigraph itself documents that the `Result` never carries an `Err`
+    //! for the in-memory backend. There is no safe-Rust way to force that
+    //! call to fail from a unit test (no fault-injection seam, no I/O, no
+    //! OS resource to exhaust deterministically), so a "negative test" here
+    //! would have to fabricate a trigger that cannot occur, which this
+    //! module declines to do. `IoRefused`'s `Store::new()?` line is instead
+    //! exercised implicitly on its success path by every test below that
+    //! calls [`validate_registry_turtle`] or [`validate_catalog`] (the same
+    //! `?`-gated call site every one of them runs through), matching the
+    //! precedent already disclosed for
+    //! `ObservationAdmissionRefused::LedgerUnavailable` in
+    //! `f02_observation_admission.rs`'s own tests module doc and for
+    //! `ShaclValidatorError`/`ReplayMismatch` in
+    //! `f07_shape_admission.rs`'s.
+
     use super::*;
+
+    /// Not a trigger for [`DialectRegistryRefused::IoRefused`] (see the
+    /// module-doc disclosure above for why none exists) -- this asserts the
+    /// positive half of that disclosure stays true: `Store::new()` really
+    /// is infallible for oxigraph's in-memory backend, so the `IoRefused`
+    /// arm in [`validate_registry_turtle`] is dead-on-success-path-only by
+    /// construction, not merely by convention. If a future oxigraph
+    /// upgrade ever makes in-memory `Store::new()` fallible, this is the
+    /// test that would start failing and prompt revisiting the disclosure.
+    #[test]
+    fn store_new_is_infallible_for_in_memory_backend() {
+        for _ in 0..8 {
+            assert!(
+                oxigraph::store::Store::new().is_ok(),
+                "in-memory oxigraph Store::new() must not fail; if this ever \
+                 flips, DialectRegistryRefused::IoRefused has become \
+                 triggerable and deserves a real negative test"
+            );
+        }
+    }
 
     #[test]
     fn generated_catalog_validates_against_closed_shape() {
