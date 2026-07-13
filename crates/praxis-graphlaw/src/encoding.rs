@@ -232,7 +232,7 @@ impl InternalEncoder {
 pub struct Encoder {}
 
 // Swarm finding (`panics-unwraps-core`, encoding.rs:236, HIGH): `GLOBAL_ENCODER.lock().unwrap()`
-// turned any single panic while a thread held this lock (from lib.rs:75-85's documented
+// turned any single panic while a thread held this lock (from lib.rs:104-114's documented
 // `RSPEngine::register_r2r` multi-thread mode, or any other panic mid-`Encoder::*` call) into a
 // permanent process-wide crash -- every subsequent `Encoder::add/get/decode` call panics
 // immediately on the poisoned lock, wedging all other callers for the rest of the process's
@@ -291,7 +291,7 @@ impl Encoder {
 
 // Regression for swarm finding `panics-unwraps-core` (encoding.rs:236, HIGH): before the
 // `recover()` fix above, poisoning `GLOBAL_ENCODER` (e.g. via any panic on a thread holding the
-// lock, a real, documented, live code path per lib.rs:75-85's multi-thread `RSPEngine` mode, not
+// lock, a real, documented, live code path per lib.rs:104-114's multi-thread `RSPEngine` mode, not
 // just a hypothetical) would have permanently wedged every subsequent `Encoder::add/get/decode`
 // call for the rest of the process's life. This test deliberately poisons the lock on a separate
 // thread, then proves the crate's own public API continues to work correctly afterward -- not

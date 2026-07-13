@@ -226,6 +226,24 @@ where
         });
     }
 
+    // Typed-refusal note (swarm finding `panics-unwraps-core`, encoding.rs:236 -- `consumer_temp`/
+    // `r2s_operator` shared the same `.lock().unwrap()` anti-pattern `Encoder`'s `recover()` fix
+    // addressed, but a fresh adversarial audit of that fix (this session) found blind
+    // poison-recovery is the WRONG fix here, for a reason more specific than "TripleStore is
+    // complex": `TripleStore::materialize` (lib.rs) clones a checkpoint and restores it ONLY on
+    // its `Result::Err` arm -- a genuine panic unwinds past that `match` entirely, bypassing the
+    // checkpoint rollback that exists specifically to undo a bad materialization. So a panic
+    // inside `Reasoner::materialize`'s multi-stratum fixpoint loop can leave `triple_index` frozen
+    // mid-fixpoint with NO rollback ever having run, and blindly recovering the lock afterward
+    // would hand the next tick that exact frozen-mid-fixpoint store as if it were valid --
+    // silently wrong, not just delayed, unlike `GLOBAL_ENCODER`'s provably-always-consistent
+    // interning. The honest fix instead mirrors `SimpleR2R::execute_query`'s own convention two
+    // lines below (added 022aa0e9, same day as the original `.lock().unwrap()` bug): on a
+    // poisoned lock, log and skip this tick entirely rather than either panicking forever or
+    // silently continuing on a store a prior panic may have left inconsistent. Reachability note
+    // (checked, not assumed): `RSPEngine`/`RSPBuilder` are constructed nowhere in this workspace
+    // outside `rsp_test.rs`'s own test functions -- this is test-only code today, not a live
+    // production path, so this fix is precautionary hardening, not an active-incident repair.
     fn evaluate_r2r_and_call_r2s(
         query: &Query,
         consumer_temp: Arc<Mutex<Box<dyn R2ROperator<I, O>>>>,
@@ -235,13 +253,35 @@ where
     ) {
         debug!("R2R operator retrieved graph {:?}", content);
         let time_stamp = content.get_last_timestamp_changed();
-        let mut store = consumer_temp.lock().unwrap();
+        let mut store = match consumer_temp.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                error!(
+                    "R2R: consumer_temp lock is poisoned (a prior tick panicked while holding \
+                     it, possibly bypassing TripleStore::materialize's own checkpoint rollback); \
+                     skipping this tick rather than risking a silently stale/mid-fixpoint store"
+                );
+                return;
+            }
+        };
         content.clone().into_iter().for_each(|t| {
             store.add(t);
         });
         let inferred = store.materialize();
         let r2r_result = store.execute_query(query);
-        let r2s_result = r2s_operator.lock().unwrap().eval(r2r_result, time_stamp);
+        let mut r2s_guard = match r2s_operator.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                error!(
+                    "R2R: r2s_operator lock is poisoned (a prior tick panicked while holding \
+                     it); skipping this tick's R2S evaluation rather than risking stale RSTREAM/ \
+                     ISTREAM/DSTREAM old_result/new_result state"
+                );
+                return;
+            }
+        };
+        let r2s_result = r2s_guard.eval(r2r_result, time_stamp);
+        drop(r2s_guard);
         // R2S runs synchronously in the same thread as R2R; async dispatch is left for future work
         for result in r2s_result {
             (r2s_consumer)(result);
@@ -298,12 +338,36 @@ impl R2ROperator<WindowTriple, Vec<Binding>> for SimpleR2R {
     fn materialize(&mut self) -> Vec<WindowTriple> {
         println!("Store size: {:?}", self.item.triple_index.len());
         let inferred = self.item.materialize().unwrap_or_default();
+        // Each `t` here is a triple `self.item.materialize()` itself just derived and inserted,
+        // so `t.s`/`t.p`/`t.o` are symbol ids the crate's own (global, append-only, never-purging)
+        // Encoder assigned moments ago -- `decode` returning `None` for one of them should be
+        // unreachable under this crate's own interning invariants. Trait signature
+        // (`R2ROperator::materialize`, part of the vendored API, see this file's top-of-file
+        // scope note) is infallible, so a decode miss can't be surfaced as a typed error; the
+        // honest response is to skip and log that one triple rather than either panicking
+        // (finding #4's original bug: this ran inside a `Mutex::lock()` critical section, so a
+        // panic here poisoned the lock for every future call) or silently defaulting the missing
+        // component to an empty string (which would fabricate a wrong-but-valid-looking
+        // WindowTriple instead of honestly omitting the malformed one) -- matching the "log and
+        // emit no rows for this tick" convention `execute_query` already uses immediately below.
         inferred
             .into_iter()
-            .map(|t| WindowTriple {
-                s: Encoder::decode(&t.s.to_encoded()).unwrap().to_string(),
-                p: Encoder::decode(&t.p.to_encoded()).unwrap().to_string(),
-                o: Encoder::decode(&t.o.to_encoded()).unwrap().to_string(),
+            .filter_map(|t| {
+                let s = Encoder::decode(&t.s.to_encoded());
+                let p = Encoder::decode(&t.p.to_encoded());
+                let o = Encoder::decode(&t.o.to_encoded());
+                match (s, p, o) {
+                    (Some(s), Some(p), Some(o)) => Some(WindowTriple { s, p, o }),
+                    _ => {
+                        error!(
+                            "R2R materialize: skipping a just-inferred triple whose \
+                             subject/predicate/object failed to decode (encoder invariant \
+                             violated -- an id materialize() just produced was not found in the \
+                             global Encoder)"
+                        );
+                        None
+                    }
+                }
             })
             .collect()
     }

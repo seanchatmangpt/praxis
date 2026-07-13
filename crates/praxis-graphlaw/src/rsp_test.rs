@@ -174,3 +174,75 @@ fn test_static_abox() {
     }
     engine.stop();
 }
+
+// Regression for the `consumer_temp`/`r2s_operator` typed-refusal fix in
+// `evaluate_r2r_and_call_r2s` (that function's own doc comment has the full mechanism/nuance
+// disclosure -- an adversarial audit found blind poison-recovery, encoding.rs's pattern, was the
+// WRONG fix here, since `TripleStore::materialize`'s checkpoint rollback only runs on `Err`, not
+// on a panic unwind, so a recovered-but-possibly-mid-fixpoint store could be silently wrong, not
+// merely delayed). Calls `evaluate_r2r_and_call_r2s` DIRECTLY (not a hand-rolled stand-in for its
+// lock pattern -- `ContentContainer::new`/`add` were widened to `pub(crate)` specifically so this
+// test can build a real `ContentContainer` and exercise the actual fixed function), with a
+// pre-poisoned `consumer_temp`, and asserts two things: the call returns normally (no panic --
+// the poisoned-lock branch was reached and skipped this tick), and the `r2s_consumer` callback
+// was never invoked (proving the tick was genuinely skipped end-to-end, not silently continued on
+// a possibly-bad store).
+#[test]
+// Same complex-generic-type shape `rsp.rs`'s own file-level `#![allow(clippy::too_many_arguments,
+// deprecated)]` already tolerates for this API; the concrete type annotation is needed here
+// (unlike rsp.rs's own generic `I`/`O`-parameterized fields) to construct a real trait object.
+#[allow(clippy::type_complexity)]
+fn evaluate_r2r_and_call_r2s_skips_the_tick_on_a_poisoned_consumer_lock() {
+    let consumer_temp: Arc<Mutex<Box<dyn R2ROperator<WindowTriple, Vec<Binding>>>>> =
+        Arc::new(Mutex::new(Box::new(SimpleR2R {
+            item: TripleStore::new(),
+        })));
+
+    let poison_handle = {
+        let consumer_temp = consumer_temp.clone();
+        thread::spawn(move || {
+            let _guard = consumer_temp.lock().unwrap();
+            panic!("intentional test poisoning of consumer_temp");
+        })
+    };
+    assert!(
+        poison_handle.join().is_err(),
+        "the spawned thread must have actually panicked, or this test proves nothing"
+    );
+
+    let r2s_called = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let r2s_consumer: Arc<dyn Fn(Vec<Binding>) + Send + Sync> = {
+        let r2s_called = r2s_called.clone();
+        Arc::new(move |_: Vec<Binding>| {
+            r2s_called.store(true, std::sync::atomic::Ordering::SeqCst);
+        })
+    };
+    let r2s_operator = Arc::new(Mutex::new(Relation2StreamOperator::new(
+        StreamOperator::RSTREAM,
+        0,
+    )));
+    let query = Query::parse("Select * WHERE{?s ?p ?o}", None).expect("static query must parse");
+    let mut content: ContentContainer<WindowTriple> = ContentContainer::new();
+    content.add(
+        WindowTriple {
+            s: "<http://example.com/foo>".to_string(),
+            p: "<http://test.be/hasVal>".to_string(),
+            o: "<http://example.com/bar>".to_string(),
+        },
+        0,
+    );
+
+    // Must not panic: the poisoned `consumer_temp` lock is reached and this tick is skipped.
+    RSPEngine::<WindowTriple, Vec<Binding>>::evaluate_r2r_and_call_r2s(
+        &query,
+        consumer_temp,
+        r2s_consumer,
+        r2s_operator,
+        content,
+    );
+
+    assert!(
+        !r2s_called.load(std::sync::atomic::Ordering::SeqCst),
+        "r2s_consumer must never be invoked when the tick was skipped due to a poisoned lock"
+    );
+}

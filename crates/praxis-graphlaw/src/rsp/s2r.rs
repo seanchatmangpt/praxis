@@ -92,7 +92,11 @@ impl<I> ContentContainer<I>
 where
     I: Eq + PartialEq + Clone + Debug + Hash + Send,
 {
-    fn new() -> ContentContainer<I> {
+    // `pub(crate)`, not private: widened so `rsp_test.rs` can build a real `ContentContainer` to
+    // call `RSPEngine::evaluate_r2r_and_call_r2s` directly in a poison-recovery regression test,
+    // rather than a test that only re-implements the same lock pattern standalone without
+    // exercising the actual fixed function. No behavior change; visibility only.
+    pub(crate) fn new() -> ContentContainer<I> {
         ContentContainer {
             elements: HashSet::new(),
             last_timestamp_changed: 0,
@@ -101,7 +105,7 @@ where
     fn len(&self) -> usize {
         self.elements.len()
     }
-    fn add(&mut self, triple: I, ts: usize) {
+    pub(crate) fn add(&mut self, triple: I, ts: usize) {
         self.elements.insert(triple);
         self.last_timestamp_changed = ts;
     }
