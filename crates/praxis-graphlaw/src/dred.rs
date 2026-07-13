@@ -203,4 +203,44 @@ mod test {
         dred.remove_ref(Rc::new(remove_triple));
         assert_eq!(8, dred.triple_index.len());
     }
+
+    /// w3wenskxg dogfood audit (cycle 7): `remove_ref`'s rederivation pass
+    /// (`find_rules_by_head` -> `substitute_rule_body_with_binding`) previously panicked when the
+    /// matched rule's head was fully ground (no variables anywhere). `find_rules_by_head` only
+    /// calls `Binding::add` for a `(Var, Term)` pair (`eval_triple_element`); a ground head
+    /// matched via literal equality against a ground `head_triple` adds no bindings at all, so
+    /// the resulting `Binding` has zero columns, not just zero rows.
+    /// `substitute_triple_with_bindings`'s `for _ in 0..binding.len()` loop never executed for
+    /// that empty binding, producing an empty `Vec`, and `substitute_rule_body_with_binding`'s
+    /// `.first().unwrap()` panicked on it -- `dred.rs`'s own call site has no external
+    /// `is_empty()` guard (unlike `substitute_rule`'s separate internal call a few lines above).
+    #[test]
+    fn remove_ref_does_not_panic_when_a_ground_head_rule_is_rederived() {
+        let data = ":a :p :b.\n\
+                {:a :p :b.}=>{:trigger a :Fired.}";
+        let mut dred = DRed::from(data);
+        dred.materialize()
+            .expect("a fully ground rule must materialize cleanly");
+        assert!(
+            dred.triple_index.contains(&Triple {
+                s: VarOrTerm::new_term(":trigger".to_string()),
+                p: VarOrTerm::new_term("a".to_string()),
+                o: VarOrTerm::new_term(":Fired".to_string()),
+                g: None,
+            }),
+            "the ground rule must have derived :trigger a :Fired"
+        );
+
+        let remove_triple = Triple {
+            s: VarOrTerm::new_term(":a".to_string()),
+            p: VarOrTerm::new_term(":p".to_string()),
+            o: VarOrTerm::new_term(":b".to_string()),
+            g: None,
+        };
+
+        // Must not panic: rederiving :trigger a :Fired against the fully ground rule head
+        // reaches `find_rules_by_head` -> `substitute_rule_body_with_binding` with an empty
+        // (zero-column) `Binding`.
+        dred.remove_ref(Rc::new(remove_triple));
+    }
 }

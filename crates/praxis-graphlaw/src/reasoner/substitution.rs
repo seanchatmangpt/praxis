@@ -72,6 +72,19 @@ impl Reasoner {
     }
 
     pub fn substitute_triple_with_bindings(head: &Triple, binding: &Binding) -> Vec<Triple> {
+        // Mirrors `substitute_head_with_bindings`'s own guard above: an empty `binding` means
+        // there was nothing to substitute (e.g. a fully ground rule head/body matched via literal
+        // equality in `DRed::find_rules_by_head`, which never calls `Binding::add` for a
+        // `Term`-`Term` pair), not zero result rows to iterate. Without this guard, every caller
+        // of this function unconditionally does `.first().unwrap()` on the returned `Vec`, which
+        // previously panicked on the empty `Vec` this loop produces when `binding.len() == 0`
+        // (`0..0` never executes). Verified reproducible via `DRed::remove_ref` rederiving a
+        // fully ground-headed rule (dred.rs's `substitute_rule_body_with_binding` call site has
+        // no external `is_empty()` guard, unlike `substitute_rule`'s own internal call a few
+        // lines below in this file).
+        if binding.is_empty() {
+            return vec![head.clone()];
+        }
         let mut new_heads = Vec::new();
         for result_counter in 0..binding.len() {
             // Recurses INSIDE list-term structures, not just top-level s/p/o
