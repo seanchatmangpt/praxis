@@ -32,7 +32,8 @@ fn rsp_integration() {
         .add_consumer(result_consumer)
         .add_r2r(r2r)
         .add_r2s(StreamOperator::RSTREAM)
-        .build();
+        .build()
+        .unwrap();
     for i in 0..10 {
         let triple = WindowTriple {
             s: format!("s{}", i),
@@ -78,7 +79,8 @@ fn test_load_from_file() {
         .add_consumer(result_consumer)
         .add_r2r(r2r)
         .add_r2s(StreamOperator::RSTREAM)
-        .build();
+        .build()
+        .unwrap();
 
     //read from file:
     let file =
@@ -124,7 +126,8 @@ fn rsp_transitive_testp() {
         .add_r2r(r2r)
         .add_r2s(StreamOperator::RSTREAM)
         .set_operation_mode(OperationMode::SingleThread)
-        .build();
+        .build()
+        .unwrap();
     for i in 0..20 {
         let triple = WindowTriple {
             s: format!("<http://test/{}>", i),
@@ -162,7 +165,8 @@ fn test_static_abox() {
         .add_r2r(r2r)
         .add_r2s(StreamOperator::RSTREAM)
         .set_operation_mode(OperationMode::SingleThread)
-        .build();
+        .build()
+        .unwrap();
     for i in 0..20 {
         let triple = WindowTriple {
             s: format!("<http://test/{}>", i),
@@ -311,4 +315,28 @@ fn evaluate_r2r_and_call_r2s_skips_the_tick_on_a_poisoned_r2s_operator_lock() {
         "r2s_consumer must never be invoked when the R2S stage was skipped due to a poisoned \
          r2s_operator lock"
     );
+}
+
+// Regression for swarm finding `panics-unwraps-core` #5: `RSPBuilder::build()` used to
+// `.expect(...)` its two required fields (`query`, `r2r`), crashing the process instead of
+// surfacing a typed error when a caller omits one. Calls the REAL `RSPBuilder::build()` (not a
+// hand-rolled reimplementation of the missing-field check) in both omission orders so each of the
+// two `ok_or(...)` arms gets independent coverage.
+#[test]
+fn build_refuses_with_typed_error_when_query_is_missing() {
+    let r2r = Box::new(SimpleR2R {
+        item: TripleStore::new(),
+    });
+    let result = RSPBuilder::<WindowTriple, Vec<Binding>>::new(10, 2)
+        .add_r2r(r2r)
+        .build();
+    assert_eq!(result.err(), Some("Please provide R2R query"));
+}
+
+#[test]
+fn build_refuses_with_typed_error_when_r2r_is_missing() {
+    let result = RSPBuilder::<WindowTriple, Vec<Binding>>::new(10, 2)
+        .add_query("Select * WHERE{?s ?p ?o}")
+        .build();
+    assert_eq!(result.err(), Some("Please provide R2R operator!"));
 }

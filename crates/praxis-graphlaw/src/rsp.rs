@@ -102,8 +102,23 @@ where
         self.operation_mode = operation_mode;
         self
     }
-    pub fn build(self) -> RSPEngine<I, O> {
-        RSPEngine::new(
+    /// Builds the engine, or refuses with a typed error when a required
+    /// field (`query`, `r2r`) was never supplied via `add_query`/`add_r2r`.
+    ///
+    /// Reachability note (checked, not assumed): `RSPBuilder` is constructed
+    /// nowhere in this workspace outside `rsp_test.rs`'s own test functions
+    /// (`grep -rn "RSPBuilder::new" --include="*.rs" crates/ | grep -v
+    /// _test.rs` returns only the struct/impl definitions themselves) --
+    /// this is test-only code today, not a live production path. The two
+    /// required fields previously panicked via `.expect(...)` rather than
+    /// surfacing a typed error to a caller that omits them (swarm finding
+    /// `panics-unwraps-core` #5); fixed here as precautionary hardening of
+    /// this `pub fn`'s contract, matching the same-file convention already
+    /// used by `load_rules` (`Result<(), &'static str>`).
+    pub fn build(self) -> Result<RSPEngine<I, O>, &'static str> {
+        let query_str = self.query_str.ok_or("Please provide R2R query")?;
+        let r2r = self.r2r.ok_or("Please provide R2R operator!")?;
+        Ok(RSPEngine::new(
             self.width,
             self.slide,
             self.tick.unwrap_or_default(),
@@ -111,14 +126,14 @@ where
             self.triples.unwrap_or(""),
             self.syntax.unwrap_or_default(),
             self.rules.unwrap_or(""),
-            self.query_str.expect("Please provide R2R query"),
+            query_str,
             self.result_consumer.unwrap_or(ResultConsumer {
                 function: Arc::new(Box::new(|r| println!("Bindings: {:?}", r))),
             }),
             self.r2s.unwrap_or_default(),
-            self.r2r.expect("Please provide R2R operator!"),
+            r2r,
             self.operation_mode,
-        )
+        ))
     }
 }
 pub struct RSPEngine<I, O>
