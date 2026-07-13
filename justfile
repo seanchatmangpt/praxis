@@ -201,10 +201,21 @@ clean:
 # NOTE: must invoke `cargo-cicd` (direct binary), not `cargo cicd` — the installed
 # binary's clap parser rejects cargo's prepended arg.
 # Refresh the praxis-standing.v1 index, standing-pack ontology, and docs/standing/REALITY_INDEX.md
+#
+# Swarm audit wnl2yhbgm findings #16/#17: the sibling-repo ontology publish below used to be a
+# bare `cp` into `../cargo-cicd/plugins/cargo-cicd-kit/standing-pack/ontology.ttl` -- a hardcoded
+# sibling checkout that exists on this developer's machine but not in a fresh clone or CI. Since
+# `just` recipe lines run as separate shell invocations and abort the recipe on the first nonzero
+# exit, a missing sibling made `cp` fail and the recipe stop right there -- `ggen sync run` and
+# `cargo-cicd claude_context show` (this repo's own `target/praxis-standing/standing.json` +
+# `docs/standing/REALITY_INDEX.md` refresh, which CLAUDE.md instructs running every session and
+# does NOT depend on the sibling copy) never ran. Made the sibling publish best-effort: skips with
+# a disclosed message if the sibling directory isn't present, so core standing refresh always
+# completes regardless of which machine this runs on.
 standing:
     command -v ggen >/dev/null || (echo "ggen not found on PATH — run: cargo install --path crates/ggen --locked" && exit 1)
     timeout 180s cargo-cicd standing refresh
-    cp target/praxis-standing/standing.ttl ../cargo-cicd/plugins/cargo-cicd-kit/standing-pack/ontology.ttl
+    if [ -d "../cargo-cicd/plugins/cargo-cicd-kit/standing-pack" ]; then cp target/praxis-standing/standing.ttl ../cargo-cicd/plugins/cargo-cicd-kit/standing-pack/ontology.ttl && echo "just standing: published standing.ttl to sibling checkout"; else echo "just standing: sibling checkout not found at ../cargo-cicd/plugins/cargo-cicd-kit/standing-pack -- skipping the dev-convenience ontology publish (not required for core standing refresh; expected in a fresh clone or CI)"; fi
     timeout 120s ggen sync run
     timeout 60s cargo-cicd claude_context show
     @echo "just standing: refreshed target/praxis-standing/standing.json, regenerated docs/standing/REALITY_INDEX.md and target/praxis-standing/CLAUDE_CODE_CONTEXT.md"
