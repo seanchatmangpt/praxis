@@ -299,7 +299,7 @@ impl ProfileSymbolTable {
 mod tests {
     use super::*;
     use chicago_tdd_tools::prelude::*;
-    use oxrdf::{Literal, NamedNode, Triple};
+    use oxrdf::{Literal, NamedNode, Quad, Triple};
 
     fn profile() -> ProfileId {
         ProfileId::new("profile:test")
@@ -443,6 +443,40 @@ mod tests {
             matches!(&drift, Err(Refusal::ProjectionHashMismatch(_))),
             "expected ProjectionHashMismatch on drift, got {drift:?}"
         );
+        Ok::<(), Refusal>(())
+    });
+
+    test!(project_quad_round_trip, {
+        // Arrange: small_universe() plus a fourth term for the graph name,
+        // since project_quad resolves 4 terms (s, p, o, g) vs. project_triple's 3.
+        let table = ProfileSymbolTable::build(
+            profile(),
+            vec![
+                "<http://example.org/s>".to_string(),
+                "<http://example.org/p>".to_string(),
+                "\"hello\"".to_string(),
+                "<http://example.org/o>".to_string(),
+                "<http://example.org/g>".to_string(),
+            ],
+        )?;
+        let iri = |v: &str| {
+            NamedNode::new(v).map_err(|e| Refusal::ValidationFailed(format!("bad test IRI: {e}")))
+        };
+        let s = iri("http://example.org/s")?;
+        let p = iri("http://example.org/p")?;
+        let o = Literal::new_simple_literal("hello");
+        let g = iri("http://example.org/g")?;
+        let quad = Quad::new(s, p, o, g);
+
+        // Act: project, then round-trip each term back to its name.
+        let projected = table.project_quad(quad.as_ref())?;
+
+        // Assert round-trip against canonical N-Triples forms, mirroring
+        // projection_round_trip_and_hash_verify but also covering the graph term.
+        assert_eq!(table.name(projected.s)?, "<http://example.org/s>");
+        assert_eq!(table.name(projected.p)?, "<http://example.org/p>");
+        assert_eq!(table.name(projected.o)?, "\"hello\"");
+        assert_eq!(table.name(projected.g)?, "<http://example.org/g>");
         Ok::<(), Refusal>(())
     });
 }
