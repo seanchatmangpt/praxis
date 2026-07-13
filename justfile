@@ -206,12 +206,22 @@ clean:
 # bare `cp` into `../cargo-cicd/plugins/cargo-cicd-kit/standing-pack/ontology.ttl` -- a hardcoded
 # sibling checkout that exists on this developer's machine but not in a fresh clone or CI. Since
 # `just` recipe lines run as separate shell invocations and abort the recipe on the first nonzero
-# exit, a missing sibling made `cp` fail and the recipe stop right there -- `ggen sync run` and
-# `cargo-cicd claude_context show` (this repo's own `target/praxis-standing/standing.json` +
-# `docs/standing/REALITY_INDEX.md` refresh, which CLAUDE.md instructs running every session and
-# does NOT depend on the sibling copy) never ran. Made the sibling publish best-effort: skips with
-# a disclosed message if the sibling directory isn't present, so core standing refresh always
-# completes regardless of which machine this runs on.
+# exit, a missing sibling made `cp` fail and the recipe stop right there.
+#
+# CORRECTION (dogfood cycle 13, workflow wr71ue3z9, caught an overstated claim in this comment's
+# first version): `target/praxis-standing/standing.json` is produced by `cargo-cicd standing
+# refresh` on the line ABOVE the cp step and was never actually at risk from a cp failure, pre- or
+# post-fix. Only `ggen sync run` + `cargo-cicd claude_context show` (which produces
+# `docs/standing/REALITY_INDEX.md`) were genuinely gated by the old hard-abort. The sibling publish
+# is now best-effort -- skips with a disclosed message if the sibling directory isn't present, so
+# that specific failure mode (an opaque hard-abort on a missing sibling) no longer happens. This
+# does NOT mean `just standing` currently completes end to end on every machine: `ggen sync run`
+# has its OWN separate, pre-existing failure mode this fix does not touch -- `standing.ttl`'s
+# content changes on every refresh while `ggen.lock` pins a specific prior hash, so `ggen sync run`
+# genuinely refuses with a content-hash mismatch (`FM-PACK-008`) on this developer's own machine
+# today, reproduced independently of this fix (workflow wr71ue3z9 ran the ORIGINAL unconditional cp
+# standalone and got the identical error). `ggen sync run`'s own error names its remediation
+# ("restore the pack, or delete ggen.lock to intentionally re-lock") -- out of this fix's scope.
 standing:
     command -v ggen >/dev/null || (echo "ggen not found on PATH — run: cargo install --path crates/ggen --locked" && exit 1)
     timeout 180s cargo-cicd standing refresh
