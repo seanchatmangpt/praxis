@@ -105,15 +105,30 @@
 //! fields from the F15 transition's own `crown_receipt` and the dispatched step's own id -- no wall
 //! clock, no randomness, and no invented identity unrelated to this specific F15 run.
 //!
-//! # Where the real chain still ends (F16 -> F18 -> F20), disclosed not fabricated
+//! # `F16 -> F18`, closed for real ([`drive_f16_completion_through_f18_broker`])
 //!
-//! The EXTERNAL witness continues `... -> F16 -> F18 (broker) -> F20 (external dispatch) -> ...`.
-//! `F16 -> F18` and `F18 -> F20` remain missing: F18's Rust broker has no production caller on the
-//! EXTERNAL path, and nothing in `apps/arazzo_runner` triggers this crate's F20 dispatch as a
-//! downstream consequence of a real F16 completion. `F20 -> F02(re-admit)` is closed independently
-//! by [`drive_external_reentry`] below (see its own doc comment) -- F20 is exercised there as its
-//! own real edge (a genuine dispatch/collect round trip this driver initiates directly), not as a
-//! downstream consequence of F16/F18 actually running.
+//! Reuses [`crate::f11_bcinr_runtime::dispatch_local_execution_via_broker`]'s own proven
+//! [`crate::f18_broker_law::Broker`] stage sequence verbatim -- `verify_standing -> authorize ->
+//! claim_idempotency -> bind_correlation -> actuate -> capture_consequence -> issue_receipt` --
+//! not reimplemented, just applied to a different real consequence source: F16's real dispatch
+//! token (from a `DispatchStatemOutcome::Completed`) becomes the bytes `Broker::actuate`'s closure
+//! returns, exactly the way LOCAL's F11 edge uses its own BCINR receipt-chain bytes. This is a
+//! genuine `REAL_EDGE`, not two real modules coexisting: F16's actual computed dispatch token
+//! (not a placeholder) is the literal consequence F18 actuates and folds into its BLAKE3 chain.
+//!
+//! **Honest boundary, not smuggled**: a `DispatchStatemOutcome::Refused` has no dispatch token --
+//! there is nothing real to actuate. [`drive_f16_completion_through_f18_broker`] refuses with
+//! [`ExternalF18Refused::F16DispatchNotCompleted`] rather than fabricating a consequence for a
+//! dispatch that never lawfully completed.
+//!
+//! # Where the real chain still ends (F18 -> F20), disclosed not fabricated
+//!
+//! The EXTERNAL witness continues `... -> F18 (broker) -> F20 (external dispatch) -> ...`.
+//! `F18 -> F20` remains missing: nothing in this crate or `apps/arazzo_runner` triggers F20's real
+//! dispatch as a downstream consequence of a real F18 `BrokerReceipt`. `F20 -> F02(re-admit)` is
+//! closed independently by [`drive_external_reentry`] below (see its own doc comment) -- F20 is
+//! exercised there as its own real edge (a genuine dispatch/collect round trip this driver
+//! initiates directly), not as a downstream consequence of F16/F18 actually running.
 //!
 //! # `F20 -> F02(re-admit)`, closed for real ([`drive_external_reentry`])
 //!
@@ -235,6 +250,7 @@ use crate::f16_otp_runner::bridge::{
     call_dispatch_statem_bridge, DispatchStatemBridgeRefused, DispatchStatemOutcome,
     DispatchStatemRequest,
 };
+use crate::f18_broker_law::{ActionId, Broker, BrokerReceipt, UnreceiptedActuationRefused};
 use crate::f20_external_dispatch::{
     collect_subworkflow_consequence, dispatch_subworkflow_to_engine, engine_serve, CngRefusal,
     SubworkflowDispatchOutcome, SubworkflowPlan,
@@ -583,6 +599,72 @@ pub fn drive_external_witness_tail_through_f16(
         transition,
         dispatch_outcomes,
     })
+}
+
+/// Typed refusal for [`drive_f16_completion_through_f18_broker`].
+#[derive(Debug, thiserror::Error)]
+pub enum ExternalF18Refused {
+    /// The F16 dispatch for `step_id` was `refused`, not `completed` -- there is no real
+    /// dispatch token to actuate. Refusing rather than actuating a fabricated consequence for a
+    /// dispatch that never lawfully completed.
+    #[error(
+        "crown-external F16->F18: F16 dispatch for step {step_id} was refused \
+         ({refusal_atom}), nothing to actuate"
+    )]
+    F16DispatchNotCompleted {
+        step_id: String,
+        refusal_atom: String,
+    },
+    /// A [`Broker`] stage refused (invalid standing, forged/duplicate authority, correlation
+    /// mismatch, or an unlawful transition) -- the same shared error type
+    /// [`crate::f11_bcinr_runtime::F11BrokerHandoffRefused`] wraps for LOCAL's own F11->F18 edge.
+    #[error("crown-external F16->F18 broker refused: {0}")]
+    Broker(#[from] UnreceiptedActuationRefused),
+}
+
+/// Drive the EXTERNAL witness's `F16 -> F18` edge end to end: take one real F16 dispatch-statem
+/// outcome and, if it lawfully completed, actuate its real dispatch token through the real F18
+/// [`Broker`]'s lawful lifecycle -- the identical stage sequence
+/// [`crate::f11_bcinr_runtime::dispatch_local_execution_via_broker`] already uses for LOCAL's own
+/// F11->F18 edge, reused verbatim, not reimplemented.
+///
+/// # Errors
+/// [`ExternalF18Refused`]: [`ExternalF18Refused::F16DispatchNotCompleted`] if `f16_outcome` is a
+/// `Refused` (no dispatch token exists to actuate), or [`ExternalF18Refused::Broker`] if any real
+/// `Broker` stage refuses.
+///
+/// # Complexity
+/// O(1) glue plus `Broker`'s own O(1)-per-stage cost (see each method's own complexity note);
+/// `capture_consequence` is O(\|dispatch_token\|) for its single BLAKE3 fold.
+#[allow(clippy::too_many_arguments)]
+pub fn drive_f16_completion_through_f18_broker(
+    broker: &Broker,
+    action: ActionId,
+    actor: &str,
+    has_standing: bool,
+    standing_reason: &str,
+    correlation_id: &str,
+    step_id: &str,
+    f16_outcome: &DispatchStatemOutcome,
+) -> Result<BrokerReceipt, ExternalF18Refused> {
+    let dispatch_token = match f16_outcome {
+        DispatchStatemOutcome::Completed { dispatch_token, .. } => dispatch_token,
+        DispatchStatemOutcome::Refused { refusal_atom, .. } => {
+            return Err(ExternalF18Refused::F16DispatchNotCompleted {
+                step_id: step_id.to_string(),
+                refusal_atom: refusal_atom.clone(),
+            });
+        }
+    };
+
+    broker.verify_standing(&action, actor, has_standing, standing_reason)?;
+    let (_, token) = broker.authorize(&action);
+    broker.claim_idempotency(action.clone(), token)?;
+    broker.bind_correlation(&action, correlation_id, correlation_id)?;
+    let consequence = dispatch_token.as_bytes().to_vec();
+    let actuated = broker.actuate(&action, || consequence.clone())?;
+    broker.capture_consequence(&action, &actuated)?;
+    Ok(broker.issue_receipt(&action)?)
 }
 
 /// Fold every stage's real digest into one deterministic BLAKE3-hex crown receipt. Material is

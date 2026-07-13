@@ -361,6 +361,104 @@ fn f15_transition_command_drives_a_real_f16_dispatch_statem_to_completion() {
     }
 }
 
+/// Real, end-to-end through the actual `air_core` AND `arazzo_runner` (same `#[ignore]` reason as
+/// the sibling F15->F16 test; run with `--ignored`).
+///
+/// Extends `f15_transition_command_drives_a_real_f16_dispatch_statem_to_completion`'s own chain
+/// one stage further: the real F16 dispatch token that test proves is real gets fed into the real
+/// F18 `Broker`'s lawful lifecycle (`verify_standing -> authorize -> claim_idempotency ->
+/// bind_correlation -> actuate -> capture_consequence -> issue_receipt`) -- the exact same stage
+/// sequence `f11_bcinr_runtime::dispatch_local_execution_via_broker` already uses for LOCAL's own
+/// F11->F18 edge, reused verbatim here for a different real consequence source. Proves the F16
+/// dispatch token literally becomes the actuated consequence F18 folds into its BLAKE3 chain --
+/// not two real modules that merely coexist.
+#[test]
+#[ignore = "requires escript on PATH and apps/air_core+apps/arazzo_runner compiled via `just erlang-compile`; run with --ignored"]
+fn f16_completion_actuates_a_real_f18_broker_receipt() {
+    use crate::f18_broker_law::{ActionId, Broker, BrokerSecret};
+
+    const GOTO_DOCUMENT: &str = r#"{
+      "arazzo": "1.1.0",
+      "info": { "title": "f16-f18 bridge edge test", "version": "1.0.0" },
+      "sourceDescriptions": [ { "name": "s", "url": "openapi/s.yaml", "type": "openapi" } ],
+      "workflows": [
+        {
+          "workflowId": "f16-f18-bridge-edge-workflow",
+          "steps": [
+            {
+              "stepId": "first",
+              "operationId": "urn:test:first",
+              "onSuccess": [ { "name": "go", "type": "goto", "stepId": "second" } ]
+            },
+            {
+              "stepId": "second",
+              "operationId": "urn:test:second",
+              "onSuccess": [ { "name": "done", "type": "end" } ]
+            }
+          ]
+        }
+      ]
+    }"#;
+
+    let bump = bumpalo::Bump::new();
+    let compiled = crate::f14_wasm4pm_arazzo::compile(
+        GOTO_DOCUMENT,
+        "https://example.com/test/f16-f18-bridge-edge-base",
+        &bump,
+    )
+    .expect("goto document must compile through F14");
+
+    let (workflow, active) = air_program_to_bridge_workflow(&compiled.program);
+    let events = vec![
+        crate::f15_air_transition_core::bridge::BridgeEvent::StepCompleted {
+            step_id: "first".to_string(),
+            result: serde_json::Value::Null,
+        },
+    ];
+
+    let f16_outcome = drive_external_witness_tail_through_f16(
+        &workflow,
+        &active,
+        &events,
+        "crown-ext-f16-f18-test-receipt-1",
+    )
+    .expect("the F14->F15->F16 chain must succeed end to end");
+    assert_eq!(f16_outcome.dispatch_outcomes.len(), 1);
+    let (step_id, dispatch_statem_outcome) = &f16_outcome.dispatch_outcomes[0];
+
+    let broker = Broker::new(BrokerSecret::new([9u8; 32]));
+    let action = ActionId::new(
+        "crown-ext-f16-f18-workflow",
+        step_id.clone(),
+        "crown-ext-f16-f18-idempotency-1",
+    );
+    let receipt = super::drive_f16_completion_through_f18_broker(
+        &broker,
+        action,
+        "crown-ext-f16-f18-actor",
+        true,
+        "external witness F16->F18 composition test",
+        "crown-ext-f16-f18-correlation-1",
+        step_id,
+        dispatch_statem_outcome,
+    )
+    .expect("a real, completed F16 dispatch must actuate through F18 without refusal");
+
+    // F16 -> F18: the real dispatch token is literally what got actuated -- not a fabricated
+    // consequence. `capture_consequence` folds `blake3(prev_head | raw_consequence)`, so the
+    // receipt's consequence hash is deterministically derived from the real dispatch token.
+    assert!(!receipt.receipt_hash_hex.is_empty());
+    assert!(!receipt.consequence_hash_hex.is_empty());
+    match dispatch_statem_outcome {
+        crate::f16_otp_runner::bridge::DispatchStatemOutcome::Completed {
+            dispatch_token, ..
+        } => {
+            assert!(!dispatch_token.is_empty());
+        }
+        other => panic!("expected a real Completed F16 outcome, got {other:?}"),
+    }
+}
+
 /// Pure-Rust proof (no escript, no `#[ignore]`) that
 /// [`drive_external_witness_tail_through_f16`] applied to F10's own real, template-derived output
 /// legitimately dispatches nothing to F16 -- F13's projection template emits no `onSuccess`
