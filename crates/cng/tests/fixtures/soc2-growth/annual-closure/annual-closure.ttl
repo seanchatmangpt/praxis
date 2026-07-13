@@ -1,0 +1,38 @@
+# SOC2 Type II continuous-evidencing case study (v26.7.13 Stage 3) -- final
+# growth descent sealing the Operating Effectiveness Testing socket's
+# 12-month Type II observation period, after all 4 quarterly re-tests and
+# the Q2 remediation graft have closed. This is the 6th and last real
+# descent in `OE_TESTING_GROWTH_CYCLE` (matching `RE_TEST_BUDGET = 6`).
+#
+# `all-quarters-retested` is asserted in :init here because this residue's
+# continuation goal is scoped to sealing the observation period GIVEN the
+# 4 quarters are already closed (real, upstream F09 descents in this same
+# cycle) -- it does not re-derive that fact itself.
+#
+# COMPLIANCE-OVERCLAIM FENCE: "oe-testing-observation-period-closed" is
+# evidence-period closure, never a compliance verdict or auditor opinion.
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:artifact
+    skos:notation "OE-TESTING-GROWTH-ANNUAL-CLOSURE" ;
+    dcterms:description "Seals the OE-Testing socket's 12-month Type II observation period after all 4 quarterly re-tests and the Q2 remediation graft."@en ;
+    ceng:pddlDomain """
+(define (domain arclight-soc2-oe-annual-closure)
+  (:requirements :strips)
+  (:predicates
+    (all-quarters-retested ?x)
+    (oe-testing-observation-period-closed ?x))
+  (:action seal-oe-testing-observation-period
+    :parameters (?x)
+    :precondition (and (all-quarters-retested ?x))
+    :effect (and (oe-testing-observation-period-closed ?x))))
+""" ;
+    ceng:pddlProblem """
+(define (problem arclight-soc2-oe-annual-closure-p)
+  (:domain arclight-soc2-oe-annual-closure)
+  (:objects arclight)
+  (:init (all-quarters-retested arclight))
+  (:goal (and (oe-testing-observation-period-closed arclight))))
+""" .

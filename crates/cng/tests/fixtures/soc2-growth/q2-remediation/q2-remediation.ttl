@@ -1,0 +1,46 @@
+# SOC2 Type II continuous-evidencing case study (v26.7.13 Stage 3) -- the
+# ONE genuine exception this re-test cycle surfaces: at Q2, control point
+# CTRL-ACCESS-PROVISIONING has an evidence gap (its quarterly access-review
+# sample was not collected in time for this quarter's window). This residue
+# is the REMEDIATION continuation goal `resolve_continuation_goal` resolves
+# for that gap -- a SEPARATE F09 growth descent from q2-retest.ttl's normal
+# quarterly re-test, grafted as an independent second child at the same
+# Operating Effectiveness Testing socket.
+#
+# `exception-identified-ctrl-access-provisioning` is asserted in :init here
+# because upstream exception surfacing (the real Exception Identification
+# phase, audit-exception-id.ttl, in the base 10-phase cycle) is what
+# observes the gap in the first place -- this residue models the
+# continuation goal GIVEN that observation, not the observation itself.
+#
+# COMPLIANCE-OVERCLAIM FENCE: the effect is "remediation-applied-ctrl-
+# access-provisioning" -- remediation applied, never "compliant". A
+# genuinely un-remediable exception (no real corrective action reachable)
+# is NOT modeled here -- see unreachable-exception.ttl for that adversarial
+# case, which the typed-refusal discipline requires to REFUSE, never
+# fabricate a closing action.
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:artifact
+    skos:notation "OE-TESTING-GROWTH-Q2-REMEDIATION" ;
+    dcterms:description "Q2 exception (CTRL-ACCESS-PROVISIONING evidence gap) remediation residue: a real corrective action exists and is planned + grafted at the OE-Testing socket."@en ;
+    ceng:pddlDomain """
+(define (domain arclight-soc2-oe-q2-remediation)
+  (:requirements :strips)
+  (:predicates
+    (exception-identified-ctrl-access-provisioning ?x)
+    (remediation-applied-ctrl-access-provisioning ?x))
+  (:action apply-remediation-ctrl-access-provisioning
+    :parameters (?x)
+    :precondition (and (exception-identified-ctrl-access-provisioning ?x))
+    :effect (and (remediation-applied-ctrl-access-provisioning ?x))))
+""" ;
+    ceng:pddlProblem """
+(define (problem arclight-soc2-oe-q2-remediation-p)
+  (:domain arclight-soc2-oe-q2-remediation)
+  (:objects arclight)
+  (:init (exception-identified-ctrl-access-provisioning arclight))
+  (:goal (and (remediation-applied-ctrl-access-provisioning arclight))))
+""" .

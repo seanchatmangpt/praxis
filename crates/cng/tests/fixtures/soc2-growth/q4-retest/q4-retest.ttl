@@ -1,0 +1,31 @@
+# SOC2 Type II continuous-evidencing case study (v26.7.13 Stage 3) -- Q4
+# quarterly re-test residue for the Operating Effectiveness Testing socket.
+# See q1-retest.ttl for the fixture-shape disclosure.
+#
+# COMPLIANCE-OVERCLAIM FENCE: "quarterly-evidence-closed-q4" is evidence
+# closure, never a compliance verdict.
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:artifact
+    skos:notation "OE-TESTING-GROWTH-Q4" ;
+    dcterms:description "Q4 quarterly operating-effectiveness re-test residue: draws a fresh quarterly sample and closes Q4's evidence for the 12-month Type II observation period."@en ;
+    ceng:pddlDomain """
+(define (domain arclight-soc2-oe-quarterly-retest-q4)
+  (:requirements :strips)
+  (:predicates
+    (quarterly-sample-drawn-q4 ?x)
+    (quarterly-evidence-closed-q4 ?x))
+  (:action retest-operating-effectiveness-q4
+    :parameters (?x)
+    :precondition (and (quarterly-sample-drawn-q4 ?x))
+    :effect (and (quarterly-evidence-closed-q4 ?x))))
+""" ;
+    ceng:pddlProblem """
+(define (problem arclight-soc2-oe-quarterly-retest-q4-p)
+  (:domain arclight-soc2-oe-quarterly-retest-q4)
+  (:objects arclight)
+  (:init (quarterly-sample-drawn-q4 arclight))
+  (:goal (and (quarterly-evidence-closed-q4 arclight))))
+""" .

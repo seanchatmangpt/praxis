@@ -1,0 +1,41 @@
+# SOC2 Type II continuous-evidencing case study (v26.7.13 Stage 3) --
+# ADVERSARIAL fixture: a control point (CTRL-UNREMEDIABLE, fictional) whose
+# evidence gap has NO real corrective action reachable from its declared
+# initial state. `remediation-evidence-available` is never asserted by
+# :init and no action in this domain produces it, so
+# `apply-remediation-ctrl-unremediable`'s precondition can never hold.
+#
+# This fixture exists ONLY to prove the COMPLIANCE-OVERCLAIM FENCE's typed-
+# refusal discipline: "any control point that cannot be genuinely
+# evidenced must refuse typed (never silently pass, never fabricate
+# evidence)". `pddl_index::solve_indexed` must find no plan here, so F09's
+# `plan_growth` refuses `MFWGrowthRefused::GoalUnreachable` -- never a
+# silently-fabricated `remediation-applied` fact. Not part of
+# `OE_TESTING_GROWTH_CYCLE`'s 6 real descents; used by its own standalone
+# adversarial test.
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:artifact
+    skos:notation "OE-TESTING-GROWTH-UNREMEDIABLE-EXCEPTION" ;
+    dcterms:description "Adversarial fixture: CTRL-UNREMEDIABLE has an identified exception with no reachable remediation action; the continuation goal must be typed-refused, never fabricated closed."@en ;
+    ceng:pddlDomain """
+(define (domain arclight-soc2-oe-unremediable-exception)
+  (:requirements :strips)
+  (:predicates
+    (exception-identified-ctrl-unremediable ?x)
+    (remediation-evidence-available ?x)
+    (remediation-applied-ctrl-unremediable ?x))
+  (:action apply-remediation-ctrl-unremediable
+    :parameters (?x)
+    :precondition (and (remediation-evidence-available ?x))
+    :effect (and (remediation-applied-ctrl-unremediable ?x))))
+""" ;
+    ceng:pddlProblem """
+(define (problem arclight-soc2-oe-unremediable-exception-p)
+  (:domain arclight-soc2-oe-unremediable-exception)
+  (:objects arclight)
+  (:init (exception-identified-ctrl-unremediable arclight))
+  (:goal (and (remediation-applied-ctrl-unremediable arclight))))
+""" .

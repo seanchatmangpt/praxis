@@ -102,3 +102,32 @@ path = "src/bin/otel-rdf-demo.rs"
 # (chicago-tdd-tools/src/core/macros/weaver_test.rs gates on both).
 [dev-dependencies]
 chicago-tdd-tools = { path = "/Users/sac/chicago-tdd-tools", features = ["weaver", "otel"] }
+# SOC2 Stage 3 (v26.7.13, continuous re-evidencing / quarterly re-testing,
+# `bench::soc2_growth`) consumes F09 "MFW Growth Operator"
+# (`f09_mfw_growth::{resolve_continuation_goal, plan_growth,
+# manufacture_and_bind_child, semantic_closure_check, DescentMeter,
+# DescentReceipt}`, see crates/multifractal-workflow/src/f09_mfw_growth.rs's
+# own module doc for what is real vs. honest-stub in that family) and its
+# real graft target type (`powl2_decompose::Powl`/`WorkflowSocketId`/
+# `ParentChildClosure`). Both MUST be dev-dependencies, not optional
+# `[dependencies]` behind the `bench` feature, for a structural reason
+# discovered this session, not a design preference:
+# `crates/multifractal-workflow/Cargo.toml` already depends on `cng`
+# (`features = ["bench"]`, for F20/F24's real edges into
+# `otel_ocel`/`otel_rdf`/`otel_receipt`/`measurement`) — a regular
+# `[dependencies]` entry the other direction (`cng` -> `multifractal-
+# workflow`) is a hard Cargo cycle (`cargo check` refuses it outright:
+# "cyclic package dependency: package `cng` depends on itself"), regardless
+# of feature-gating, because Cargo's cycle check is over the package graph,
+# not per feature value. A `[dev-dependencies]` entry breaks the cycle
+# because it is never pulled in when `cng` is built as a LIBRARY dependency
+# of another crate (multifractal-workflow's own build of `cng` never sees
+# this edge) — only `cng`'s own test/bench targets see it. Consequence,
+# disclosed rather than silently absorbed: `bench::soc2_growth`'s functions
+# that touch `multifractal_workflow`/`powl2_decompose` types are
+# `#[cfg(test)]`-gated (see that module's own top doc comment), not reachable
+# from non-test production code — the F09 consumption this stage builds is a
+# real, non-fabricated, but test-scoped production-shaped caller, never a
+# library-reachable production entry point, for this structural reason.
+multifractal-workflow = { path = "../multifractal-workflow" }
+powl2-decompose = { path = "../powl2-decompose" }

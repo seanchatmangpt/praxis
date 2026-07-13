@@ -1,0 +1,40 @@
+# SOC2 Type II continuous-evidencing case study (v26.7.13 Stage 3) -- Q1
+# quarterly re-test residue for the Operating Effectiveness Testing socket.
+#
+# This is a real F09 MFW Growth `ResidueState` source: a self-contained
+# PDDL8 domain+problem pair (both `ceng:pddlDomain` and `ceng:pddlProblem`
+# in ONE fixture, unlike the base 10-phase audit-cycle fragments which
+# split domain/problem across files) -- growth residues are independent
+# bounded continuation goals, never merged with the base cycle's domain.
+# `crate::bench::soc2_growth::load_residue` admits this file through the
+# SAME real `pipeline::import_artifacts` oxigraph path the base cycle uses.
+#
+# COMPLIANCE-OVERCLAIM FENCE: the effect below is "quarterly-evidence-
+# closed-q1" -- evidence closure, never "compliant" or "opinion-issued".
+# See packs/soc2-audit-pack/ontology.ttl for the full fence disclosure this
+# growth cycle inherits.
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:artifact
+    skos:notation "OE-TESTING-GROWTH-Q1" ;
+    dcterms:description "Q1 quarterly operating-effectiveness re-test residue: draws a fresh quarterly sample and closes Q1's evidence for the 12-month Type II observation period."@en ;
+    ceng:pddlDomain """
+(define (domain arclight-soc2-oe-quarterly-retest-q1)
+  (:requirements :strips)
+  (:predicates
+    (quarterly-sample-drawn-q1 ?x)
+    (quarterly-evidence-closed-q1 ?x))
+  (:action retest-operating-effectiveness-q1
+    :parameters (?x)
+    :precondition (and (quarterly-sample-drawn-q1 ?x))
+    :effect (and (quarterly-evidence-closed-q1 ?x))))
+""" ;
+    ceng:pddlProblem """
+(define (problem arclight-soc2-oe-quarterly-retest-q1-p)
+  (:domain arclight-soc2-oe-quarterly-retest-q1)
+  (:objects arclight)
+  (:init (quarterly-sample-drawn-q1 arclight))
+  (:goal (and (quarterly-evidence-closed-q1 arclight))))
+""" .

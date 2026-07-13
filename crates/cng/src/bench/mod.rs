@@ -57,6 +57,7 @@ pub mod report_pretty;
 mod roles;
 mod run;
 mod soc2;
+mod soc2_growth;
 mod templates;
 mod togaf;
 mod verify;
