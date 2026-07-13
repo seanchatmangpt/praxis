@@ -1,0 +1,54 @@
+---
+to: "crates/cng/tests/fixtures/soc2/audit-readiness.ttl"
+force: true
+determinism: true
+---
+# SOC2 audit engagement phase 2: Readiness Assessment (Gap Analysis) —
+# Solace Cloud case study. One domain FRAGMENT of the shared
+# solace-soc2-audit-cycle domain: this phase's 3 actions chain
+# scoping-complete -> readiness-step1-done -> readiness-step2-done -> readiness-assessed,
+# so the merged cycle plan can only reach this phase after Phase 1
+# (Scoping & System Description) completes. 8-constraint split: every
+# precondition/effect/goal here is a 1-conjunct (and ...) — far inside
+# PDDL8_MAX_CONJUNCTS=8 — and each action takes 1 parameter
+# (PDDL8_MAX_PARAMS=8); soc2_test.rs asserts these bounds mechanically for
+# every fragment (reusing crate::bench::togaf::verify_eight_constraint_split
+# verbatim).
+#
+# COMPLIANCE-OVERCLAIM FENCE: no action effect below is named "compliant"
+# or "opinion" — the audit ENGAGEMENT PROCESS is modeled here, never a
+# compliance verdict. See packs/soc2-audit-pack/ontology.ttl for the full
+# fence disclosure.
+#
+# Public-ontology doctrine: the artifact node is a blank node; the phase is
+# identified by its public SKOS notation. The only private predicate is
+# the cng pipeline's ABI carrier ceng:pddlDomain (urn:chatman:engine#),
+# disclosed in packs/soc2-audit-pack/ontology.ttl.
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:artifact
+    skos:notation "AUDIT-READINESS" ;
+    dcterms:description "Readiness Assessment (Gap Analysis) domain fragment of the solace-soc2-audit-cycle STRIPS domain."@en ;
+    ceng:pddlDomain """
+(define (domain solace-soc2-audit-cycle)
+  (:requirements :strips)
+  (:predicates
+    (scoping-complete ?x)
+    (readiness-step1-done ?x)
+    (readiness-step2-done ?x)
+    (readiness-assessed ?x))
+  (:action inventory-existing-controls
+    :parameters (?x)
+    :precondition (and (scoping-complete ?x))
+    :effect (and (readiness-step1-done ?x)))
+  (:action perform-gap-analysis
+    :parameters (?x)
+    :precondition (and (readiness-step1-done ?x))
+    :effect (and (readiness-step2-done ?x)))
+  (:action produce-readiness-report
+    :parameters (?x)
+    :precondition (and (readiness-step2-done ?x))
+    :effect (and (readiness-assessed ?x))))
+""" .

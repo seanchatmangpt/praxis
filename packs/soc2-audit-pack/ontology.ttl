@@ -1,0 +1,191 @@
+# soc2-audit-pack ontology — PUBLIC-ONTOLOGY-FIRST (no private namespace).
+#
+# Doctrine (matches packs/togaf-adm-pack/ontology.ttl's own fence): every
+# class and predicate comes from a public RDF vocabulary; audit-specific
+# individuals are blank nodes carrying skos:notation as their deterministic,
+# human-operable handle. No custom prefix, no @base, no default namespace is
+# minted here. Confirmed via live web search this session: no public
+# OWL/RDF ontology exists for the AICPA Trust Services Criteria (only
+# academic ISO 27001/27002 ontology research and CSA's Cloud Controls
+# Matrix, which ships JSON/YAML/OSCAL mappings, not RDF/OWL) — so the TSC
+# taxonomy is modeled as SKOS concept schemes in blank nodes, exactly the
+# same move togaf-adm-pack made for the Ross/Weill/Robertson operating
+# models and EA maturity stages (concepts with no public ontology).
+#
+# COMPLIANCE-OVERCLAIM FENCE (structural, not just stated here): SOC2
+# "compliance" is an auditor's professional attestation under the AICPA
+# Trust Services Criteria, issued by a licensed CPA firm — it is NOT a
+# mathematical predicate and NOTHING this pipeline computes can ever BE
+# SOC2 compliance or a SOC2 opinion. This pack models the AUDIT ENGAGEMENT
+# PROCESS (evidence gathering, control design/operating-effectiveness
+# evaluation, exception handling) and produces EVIDENCE BUNDLES for a human
+# auditor's professional judgment. No concept in this ontology and no
+# action effect in the generated PDDL fragments (packs/soc2-audit-pack/
+# templates/audit-*.ttl.tmpl) is named "compliant" or "opinion"; the only
+# terminal goal atom in the merged cycle problem is "evidence-bundle-
+# complete" (crates/cng/src/bench/soc2_test.rs asserts this mechanically
+# over the parsed domain, not just by inspection). This mirrors a parallel
+# Lean-formalization effort (the sibling mfact repo) which drew the
+# identical line: no Lean theorem can ever BE SOC2 compliance, only
+# strengthen evidence for specific control points.
+#
+# Public vocabularies used:
+#   skos:    concept schemes for the 10-phase audit engagement lifecycle,
+#            the 5 Trust Services Categories, the 9 Common Criteria (CC1-9),
+#            the 3 Availability criteria (A1.1-1.3), and the 2
+#            Confidentiality criteria (C1.1-1.2) — all AICPA TSC (2017
+#            framework, 2022 revised points of focus), verified via live
+#            web search this session; no public ontology models this
+#            vocabulary, so SKOS concepts in blank-node schemes represent
+#            it without minting a private namespace.
+#   prov:    engagement activities (audit phases as prov:Activity),
+#            generated evidence/deliverable entities (prov:Entity), control
+#            designs (prov:Plan), and the audited organization (prov:Agent).
+#   dcterms: descriptions, and dcterms:subject as the (literal-notation)
+#            cross-reference from a control point to its governing TSC
+#            category — literal, not a resource link, for the same reason
+#            skos:notation is this pack family's deterministic cross-file
+#            join key: blank-node labels do not survive re-serialization
+#            (see packs/togaf-adm-pack/templates/meridian-case-study.ttl.tmpl's
+#            own comment on this).
+#   org:     the audited organization (org:Organization).
+#
+# Private namespaces this pipeline still REQUIRES (pipeline ABI, not
+# modeling vocabulary — disclosed, not used in this file):
+#   urn:chatman:engine#pddlDomain / #pddlProblem — the PDDL text carrier
+#     predicates hardwired into cng pipeline.rs import_artifacts.
+#   https://truex.io/ontology/powl2# — the POWL v2 output vocabulary
+#     hardwired into cng powl.rs powl_to_turtle and powl2-shapes.ttl.
+# Unlike togaf-adm-pack, this pack does NOT union pddl-strips.ttl: PDDL is
+# carried only as ceng:pddlDomain/#pddlProblem literal text here, never as
+# RDF structure, so no ggen.toml extra_ontologies entry is needed.
+
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix org:     <http://www.w3.org/ns/org#> .
+
+# --- SOC2 audit engagement phases (SKOS concept scheme; blank nodes) -------
+# The 10-phase audit engagement lifecycle: a real standard SOC2 Type II
+# audit structure, not arbitrarily matched to any other pack's phase count.
+# Phase 10 (Auditor Report Handoff) is TERMINAL: its deliverable is the
+# assembled evidence bundle itself, handed to a human auditor. It produces
+# NO opinion/verdict — see the fence above.
+
+_:auditScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "SOC2 Type II audit engagement phases"@en ;
+    skos:notation "SOC2-AUDIT-PHASES" ;
+    dcterms:description "The 10 phases of a SOC2 Type II audit engagement, from scoping through auditor report handoff. Order is carried by the skos:notation sequence and instance-data precondition chains, not by this scheme's triple order."@en .
+
+_:auditScoping rdf:type skos:Concept ; skos:inScheme _:auditScheme ;
+    skos:notation "AUDIT-SCOPING" ; rdfs:label "1: Scoping & System Description"@en .
+_:auditReadiness rdf:type skos:Concept ; skos:inScheme _:auditScheme ;
+    skos:notation "AUDIT-READINESS" ; rdfs:label "2: Readiness Assessment (Gap Analysis)"@en .
+_:auditControlDesignDoc rdf:type skos:Concept ; skos:inScheme _:auditScheme ;
+    skos:notation "AUDIT-CONTROL-DESIGN-DOC" ; rdfs:label "3: Control Design Documentation"@en .
+_:auditDesignEval rdf:type skos:Concept ; skos:inScheme _:auditScheme ;
+    skos:notation "AUDIT-DESIGN-EVAL" ; rdfs:label "4: Control Design Evaluation"@en .
+_:auditCollectionInit rdf:type skos:Concept ; skos:inScheme _:auditScheme ;
+    skos:notation "AUDIT-COLLECTION-INIT" ; rdfs:label "5: Evidence Collection Period Initiation"@en .
+_:auditOeTesting rdf:type skos:Concept ; skos:inScheme _:auditScheme ;
+    skos:notation "AUDIT-OE-TESTING" ; rdfs:label "6: Operating Effectiveness Testing"@en .
+_:auditExceptionId rdf:type skos:Concept ; skos:inScheme _:auditScheme ;
+    skos:notation "AUDIT-EXCEPTION-ID" ; rdfs:label "7: Exception Identification"@en .
+_:auditRemediation rdf:type skos:Concept ; skos:inScheme _:auditScheme ;
+    skos:notation "AUDIT-REMEDIATION" ; rdfs:label "8: Management Response & Remediation"@en .
+_:auditBundleAssembly rdf:type skos:Concept ; skos:inScheme _:auditScheme ;
+    skos:notation "AUDIT-BUNDLE-ASSEMBLY" ; rdfs:label "9: Evidence Bundle Assembly"@en .
+_:auditReportHandoff rdf:type skos:Concept ; skos:inScheme _:auditScheme ;
+    skos:notation "AUDIT-REPORT-HANDOFF" ; rdfs:label "10: Auditor Report Handoff (terminal — evidence bundle handed to a human auditor; no opinion/verdict produced)"@en .
+
+# --- Trust Services Categories (SKOS concept scheme) ------------------------
+# The 5 AICPA Trust Services Categories. Security is mandatory in every
+# SOC2 audit (also called the "Common Criteria"); the other 4 are scoped in
+# per engagement. Verified via live web search this session.
+
+_:tscScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "AICPA Trust Services Categories"@en ;
+    skos:notation "TSC-CATEGORIES" ;
+    dcterms:description "The 5 Trust Services Categories from the AICPA 2017 TSC framework (2022 revised points of focus): Security (mandatory, the Common Criteria), Availability, Processing Integrity, Confidentiality, Privacy."@en .
+
+_:tscSecurity rdf:type skos:Concept ; skos:inScheme _:tscScheme ;
+    skos:notation "TSC-SECURITY" ; rdfs:label "Security (Common Criteria; mandatory)"@en .
+_:tscAvailability rdf:type skos:Concept ; skos:inScheme _:tscScheme ;
+    skos:notation "TSC-AVAILABILITY" ; rdfs:label "Availability"@en .
+_:tscProcessingIntegrity rdf:type skos:Concept ; skos:inScheme _:tscScheme ;
+    skos:notation "TSC-PROCESSING-INTEGRITY" ; rdfs:label "Processing Integrity"@en .
+_:tscConfidentiality rdf:type skos:Concept ; skos:inScheme _:tscScheme ;
+    skos:notation "TSC-CONFIDENTIALITY" ; rdfs:label "Confidentiality"@en .
+_:tscPrivacy rdf:type skos:Concept ; skos:inScheme _:tscScheme ;
+    skos:notation "TSC-PRIVACY" ; rdfs:label "Privacy"@en .
+
+# --- Common Criteria CC1-CC9 (SKOS concept scheme) --------------------------
+# CC9 is the one Common Criterion with two distinct points of focus (general
+# risk mitigation vs. vendor/business-partner risk management) rather than a
+# single flat criterion — modeled as two skos:narrower concepts, a real
+# correction caught during this session's live verification (CC8 is Change
+# Management, NOT Processing Integrity — Processing Integrity is its own
+# separate TSC category, PI1.1-1.5).
+
+_:ccScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "AICPA Common Criteria (CC1-CC9)"@en ;
+    skos:notation "CC-CRITERIA" ;
+    dcterms:description "The 9 Common Criteria underlying the mandatory Security TSC category: CC1 Control Environment, CC2 Communication and Information, CC3 Risk Assessment, CC4 Monitoring Activities, CC5 Control Activities, CC6 Logical and Physical Access Controls, CC7 System Operations, CC8 Change Management, CC9 Risk Mitigation."@en .
+
+_:cc1 rdf:type skos:Concept ; skos:inScheme _:ccScheme ; skos:broader _:tscSecurity ;
+    skos:notation "CC1" ; rdfs:label "CC1: Control Environment"@en .
+_:cc2 rdf:type skos:Concept ; skos:inScheme _:ccScheme ; skos:broader _:tscSecurity ;
+    skos:notation "CC2" ; rdfs:label "CC2: Communication and Information"@en .
+_:cc3 rdf:type skos:Concept ; skos:inScheme _:ccScheme ; skos:broader _:tscSecurity ;
+    skos:notation "CC3" ; rdfs:label "CC3: Risk Assessment"@en .
+_:cc4 rdf:type skos:Concept ; skos:inScheme _:ccScheme ; skos:broader _:tscSecurity ;
+    skos:notation "CC4" ; rdfs:label "CC4: Monitoring Activities"@en .
+_:cc5 rdf:type skos:Concept ; skos:inScheme _:ccScheme ; skos:broader _:tscSecurity ;
+    skos:notation "CC5" ; rdfs:label "CC5: Control Activities"@en .
+_:cc6 rdf:type skos:Concept ; skos:inScheme _:ccScheme ; skos:broader _:tscSecurity ;
+    skos:notation "CC6" ; rdfs:label "CC6: Logical and Physical Access Controls"@en .
+_:cc7 rdf:type skos:Concept ; skos:inScheme _:ccScheme ; skos:broader _:tscSecurity ;
+    skos:notation "CC7" ; rdfs:label "CC7: System Operations"@en .
+_:cc8 rdf:type skos:Concept ; skos:inScheme _:ccScheme ; skos:broader _:tscSecurity ;
+    skos:notation "CC8" ; rdfs:label "CC8: Change Management"@en .
+_:cc9 rdf:type skos:Concept ; skos:inScheme _:ccScheme ; skos:broader _:tscSecurity ;
+    skos:notation "CC9" ; rdfs:label "CC9: Risk Mitigation"@en ;
+    skos:narrower _:cc9pt1 , _:cc9pt2 .
+_:cc9pt1 rdf:type skos:Concept ; skos:inScheme _:ccScheme ; skos:broader _:cc9 ;
+    skos:notation "CC9-1" ; rdfs:label "CC9.1: General risk mitigation business processes"@en .
+_:cc9pt2 rdf:type skos:Concept ; skos:inScheme _:ccScheme ; skos:broader _:cc9 ;
+    skos:notation "CC9-2" ; rdfs:label "CC9.2: Vendor and business-partner risk management"@en .
+
+# --- Availability criteria A1.1-A1.3 (SKOS concept scheme) ------------------
+
+_:availabilityScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "AICPA Availability criteria (A1.1-A1.3)"@en ;
+    skos:notation "AVAILABILITY-CRITERIA" ;
+    dcterms:description "The 3 points of focus under the Availability TSC category. A1.3 specifically requires TESTED recovery procedures, not merely a written disaster-recovery plan."@en .
+
+_:a1pt1 rdf:type skos:Concept ; skos:inScheme _:availabilityScheme ; skos:broader _:tscAvailability ;
+    skos:notation "A1-1" ; rdfs:label "A1.1: System availability commitments"@en .
+_:a1pt2 rdf:type skos:Concept ; skos:inScheme _:availabilityScheme ; skos:broader _:tscAvailability ;
+    skos:notation "A1-2" ; rdfs:label "A1.2: Environmental protections, backup, and capacity monitoring"@en .
+_:a1pt3 rdf:type skos:Concept ; skos:inScheme _:availabilityScheme ; skos:broader _:tscAvailability ;
+    skos:notation "A1-3" ; rdfs:label "A1.3: Tested recovery procedures"@en .
+
+# --- Confidentiality criteria C1.1-C1.2 (SKOS concept scheme) ---------------
+
+_:confidentialityScheme
+    rdf:type skos:ConceptScheme ;
+    rdfs:label "AICPA Confidentiality criteria (C1.1-C1.2)"@en ;
+    skos:notation "CONFIDENTIALITY-CRITERIA" ;
+    dcterms:description "The 2 points of focus under the Confidentiality TSC category: data classification and protection mechanisms."@en .
+
+_:c1pt1 rdf:type skos:Concept ; skos:inScheme _:confidentialityScheme ; skos:broader _:tscConfidentiality ;
+    skos:notation "C1-1" ; rdfs:label "C1.1: Data classification"@en .
+_:c1pt2 rdf:type skos:Concept ; skos:inScheme _:confidentialityScheme ; skos:broader _:tscConfidentiality ;
+    skos:notation "C1-2" ; rdfs:label "C1.2: Protection mechanisms"@en .

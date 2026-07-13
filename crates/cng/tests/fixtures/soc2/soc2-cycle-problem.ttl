@@ -1,0 +1,28 @@
+# The one problem fragment for the merged solace-soc2-audit-cycle domain.
+# Init holds ONLY the Phase 1 (Scoping & System Description) entry atom;
+# the goal is ONLY the terminal Phase 10 (Auditor Report Handoff)
+# deliverable (1 conjunct — the merged goal stays far inside
+# PDDL8_MAX_CONJUNCTS=8 because no other fragment declares a goal). Every
+# intermediate phase is forced by the precondition chain, never by goal
+# conjuncts: that is how the 8-constraint budget splits across 10 phases
+# without ever concentrating in one conjunction.
+#
+# COMPLIANCE-OVERCLAIM FENCE: the goal atom is "evidence-bundle-complete",
+# never "compliant" or "opinion-issued" — per the fence disclosed in
+# packs/soc2-audit-pack/ontology.ttl, this pipeline's terminal deliverable
+# is an evidence bundle for a human auditor's professional judgment, never
+# a compliance verdict.
+@prefix ceng:    <urn:chatman:engine#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+_:artifact
+    skos:notation "SOC2-CYCLE-PROBLEM" ;
+    dcterms:description "Full SOC2 audit engagement cycle problem: from audit-engaged to evidence-bundle-complete through all 10 chained phases."@en ;
+    ceng:pddlProblem """
+(define (problem solace-soc2-audit-cycle-p)
+  (:domain solace-soc2-audit-cycle)
+  (:objects solace)
+  (:init (audit-engaged solace))
+  (:goal (evidence-bundle-complete solace)))
+""" .

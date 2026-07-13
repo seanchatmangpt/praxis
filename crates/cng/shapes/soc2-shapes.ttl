@@ -1,0 +1,92 @@
+# soc2-shapes.ttl — SHACL shapes for the Solace Cloud case-study instance
+# data (public-vocabulary modeling: skos concepts + prov classes + blank
+# nodes). Consumed by the SAME generic shape queries as every other shape
+# law in this crate (registry-missing-fields.rq, shape-closed-violations.rq,
+# shape-pattern-violations.rq) — no SPARQL-based SHACL target extension is
+# used, so every constraint here is expressible as sh:targetClass +
+# sh:property/sh:path + sh:minCount / sh:closed+sh:ignoredProperties /
+# sh:pattern, exactly what those three queries interpret.
+#
+# Closed-enumeration note: Soc2ControlPointShape and Soc2EnterpriseShape
+# both constrain dcterms:subject with sh:pattern against a fixed 5-way
+# regex alternation of the TSC category notations — this is how "closed
+# enumeration of the 5 categories" is MECHANICALLY enforced given the
+# tooling actually wired here (none of the three generic queries interpret
+# sh:in). dcterms:subject's value is the category's notation as a plain
+# literal, not a resource link to the category's skos:Concept blank node,
+# for the same reason skos:notation is this pack family's deterministic
+# cross-file join key: blank-node labels do not survive re-serialization
+# (see packs/togaf-adm-pack/templates/meridian-case-study.ttl.tmpl's own
+# comment on this). sh:maxCount 1 is declared on dcterms:subject for
+# Soc2ControlPointShape as a documentation-correct constraint ("exactly
+# one" category); it is NOT mechanically enforced by the current generic
+# query trio (none of the three checks maxCount), so no test in
+# soc2_test.rs claims that half of the shape bites — only the minCount and
+# pattern halves are exercised by shape_violations().
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix org:     <http://www.w3.org/ns/org#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix ex:      <urn:cng:shapes#> .
+
+# Every SKOS concept in the case-study graph must carry a deterministic
+# uppercase notation handle — notation is the cross-file join key in the
+# blank-node discipline, so a concept without one is unreachable.
+ex:Soc2ConceptShape a sh:NodeShape ;
+  sh:targetClass skos:Concept ;
+  sh:property [
+    sh:path skos:notation ;
+    sh:minCount 1 ;
+    sh:pattern "^[A-Z0-9][A-Z0-9-]*$" ;
+  ] .
+
+# Every audit-phase execution (prov:Activity) must be notated, described,
+# attributed to the audited organization, and generate at least one
+# deliverable/evidence-artifact entity (prov:generated). Closed: no
+# undeclared predicates sneak onto a phase-execution node.
+ex:Soc2AuditPhaseShape a sh:NodeShape ;
+  sh:targetClass prov:Activity ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^AUDIT-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:wasAssociatedWith ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:generated ; sh:minCount 1 ; ] .
+
+# Every control point (prov:Plan) must be notated, described, attributed to
+# the audited organization, and linked to exactly one TSC category via
+# dcterms:subject — the value closed-enumerated to the 5 known category
+# notations. Closed: no undeclared predicates sneak onto a control-point
+# node.
+ex:Soc2ControlPointShape a sh:NodeShape ;
+  sh:targetClass prov:Plan ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^CTRL-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path prov:wasAttributedTo ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path dcterms:subject ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:pattern "^TSC-(SECURITY|AVAILABILITY|PROCESSING-INTEGRITY|CONFIDENTIALITY|PRIVACY)$" ; ] .
+
+# The audited enterprise itself: organization + agent, notated, described,
+# with its in-scope TSC categories (dcterms:subject, closed-enumerated the
+# same way as control points; one to five values, minCount 1 means "at
+# least one category is in scope").
+ex:Soc2EnterpriseShape a sh:NodeShape ;
+  sh:targetClass org:Organization ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^ENT-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] ;
+  sh:property [ sh:path dcterms:subject ; sh:minCount 1 ;
+                sh:pattern "^TSC-(SECURITY|AVAILABILITY|PROCESSING-INTEGRITY|CONFIDENTIALITY|PRIVACY)$" ; ] .
+
+# Every deliverable/evidence-artifact entity must be notated and described.
+ex:Soc2EvidenceArtifactShape a sh:NodeShape ;
+  sh:targetClass prov:Entity ;
+  sh:property [ sh:path skos:notation ; sh:minCount 1 ;
+                sh:pattern "^DELIV-[A-Z0-9-]+$" ; ] ;
+  sh:property [ sh:path dcterms:description ; sh:minCount 1 ; ] .

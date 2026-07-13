@@ -56,6 +56,7 @@ mod report;
 pub mod report_pretty;
 mod roles;
 mod run;
+mod soc2;
 mod templates;
 mod togaf;
 mod verify;
