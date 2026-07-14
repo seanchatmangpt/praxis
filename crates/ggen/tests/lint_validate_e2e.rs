@@ -145,14 +145,20 @@ fn graph_validate_files_two_good_pass() {
     let dir = TempDir::new().expect("tempdir");
     let p1 = dir.path().join("a.ttl");
     let p2 = dir.path().join("b.ttl");
-    std::fs::write(&p1, "@prefix ex: <http://example.org/> .\nex:a ex:p \"1\" .\n")
-        .expect("write a.ttl");
-    std::fs::write(&p2, "@prefix ex: <http://example.org/> .\nex:b ex:q \"2\" .\n")
-        .expect("write b.ttl");
+    std::fs::write(
+        &p1,
+        "@prefix ex: <http://example.org/> .\nex:a ex:p \"1\" .\n",
+    )
+    .expect("write a.ttl");
+    std::fs::write(
+        &p2,
+        "@prefix ex: <http://example.org/> .\nex:b ex:q \"2\" .\n",
+    )
+    .expect("write b.ttl");
     let f1 = Utf8PathBuf::from_path_buf(p1).expect("utf8 path");
     let f2 = Utf8PathBuf::from_path_buf(p2).expect("utf8 path");
 
-    let out = handle_graph_validate(vec![f1, f2]).expect("both files valid");
+    let out = handle_graph_validate(vec![f1, f2], vec![]).expect("both files valid");
     assert_eq!(out["files_checked"], 2, "{out}");
     let files = out["files"].as_array().expect("files array");
     assert_eq!(files.len(), 2, "{out}");
@@ -161,7 +167,10 @@ fn graph_validate_files_two_good_pass() {
         assert!(rec["quads"].as_u64().unwrap_or(0) > 0, "quads > 0: {rec}");
         let hash = rec["hash"].as_str().expect("hash string");
         assert_eq!(hash.len(), 64, "64-hex hash: {rec}");
-        assert!(hash.chars().all(|c| c.is_ascii_hexdigit()), "hex hash: {rec}");
+        assert!(
+            hash.chars().all(|c| c.is_ascii_hexdigit()),
+            "hex hash: {rec}"
+        );
     }
 }
 
@@ -173,16 +182,22 @@ fn graph_validate_files_one_malformed_fails_named() {
     let dir = TempDir::new().expect("tempdir");
     let good = dir.path().join("good.ttl");
     let bad = dir.path().join("broken.ttl");
-    std::fs::write(&good, "@prefix ex: <http://example.org/> .\nex:a ex:p \"1\" .\n")
-        .expect("write good.ttl");
+    std::fs::write(
+        &good,
+        "@prefix ex: <http://example.org/> .\nex:a ex:p \"1\" .\n",
+    )
+    .expect("write good.ttl");
     std::fs::write(&bad, "this is not valid turtle {{{").expect("write broken.ttl");
     let fg = Utf8PathBuf::from_path_buf(good).expect("utf8 path");
     let fb = Utf8PathBuf::from_path_buf(bad).expect("utf8 path");
 
-    let err = handle_graph_validate(vec![fg, fb]).expect_err("must fail closed");
+    let err = handle_graph_validate(vec![fg, fb], vec![]).expect_err("must fail closed");
     let msg = err.to_string();
     assert!(msg.contains("broken.ttl"), "names the bad file: {msg}");
-    assert!(msg.contains("graph validate failed"), "aggregate marker: {msg}");
+    assert!(
+        msg.contains("graph validate failed"),
+        "aggregate marker: {msg}"
+    );
 }
 
 /// Empty file list lands in project mode: with no ggen.toml in cwd it must
@@ -196,7 +211,122 @@ fn graph_validate_empty_files_is_project_mode() {
     // deterministically regardless of the test runner's cwd.
     let prev = std::env::current_dir().expect("cwd");
     std::env::set_current_dir(dir.path()).expect("chdir tempdir");
-    let res = handle_graph_validate(vec![]);
+    let res = handle_graph_validate(vec![], vec![]);
     std::env::set_current_dir(prev).expect("restore cwd");
-    assert!(res.is_err(), "empty files -> project mode, no manifest -> Err");
+    assert!(
+        res.is_err(),
+        "empty files -> project mode, no manifest -> Err"
+    );
+}
+
+// ---------------------------------------------------------------------
+// graph validate — SHACL shape-conformance (multi-value `--shapes`),
+// direct handler calls
+// ---------------------------------------------------------------------
+// These exercise `handle_graph_validate(files, shapes)` against the real
+// `packs/dogfood-lifecycle-pack/shapes.ttl` SHACL shapes and its
+// `fixtures/session-good.ttl` conforming sample, plus a hand-built
+// violating fixture (a `dfl:ToolEvent` missing the required `dfl:outcome`).
+
+/// Repository `packs/` directory (relative to this crate's manifest;
+/// mirrors `cross_pack_matrix.rs`/`framework_packs_e2e.rs`).
+fn packs_dir() -> std::path::PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs")
+}
+
+/// A well-formed session log conforming to `dogfood-lifecycle-pack/shapes.ttl`
+/// validates with `--shapes`: exit is `Ok`, the file is reported with a
+/// positive quad count, a 64-hex hash, and `shapes_conform: true`.
+#[test]
+fn graph_validate_files_with_shapes_conforms() {
+    let shapes = Utf8PathBuf::from_path_buf(packs_dir().join("dogfood-lifecycle-pack/shapes.ttl"))
+        .expect("utf8 path");
+    let good = Utf8PathBuf::from_path_buf(
+        packs_dir().join("dogfood-lifecycle-pack/fixtures/session-good.ttl"),
+    )
+    .expect("utf8 path");
+
+    let out =
+        handle_graph_validate(vec![good], vec![shapes]).expect("conforming fixture must pass");
+    assert_eq!(out["files_checked"], 1, "{out}");
+    assert_eq!(out["shapes_checked"], 1, "{out}");
+    let files = out["files"].as_array().expect("files array");
+    assert_eq!(files.len(), 1, "{out}");
+    assert!(files[0]["quads"].as_u64().unwrap_or(0) > 0, "{out}");
+    assert_eq!(files[0]["shapes_conform"], true, "{out}");
+    let hash = files[0]["hash"].as_str().expect("hash string");
+    assert_eq!(hash.len(), 64, "64-hex hash: {out}");
+}
+
+/// A `dfl:ToolEvent` missing the required `dfl:outcome` property fails SHACL
+/// validation (not a Turtle parse error — the file parses fine): exit is
+/// `Err`, naming the violating focus node, the source shape, and the
+/// `sh:message` text, and carrying the same "graph validate failed"
+/// aggregate marker as the parse-failure path.
+#[test]
+fn graph_validate_files_with_shapes_violation_fails_named() {
+    let dir = TempDir::new().expect("tempdir");
+    let bad = dir.path().join("missing-outcome.ttl");
+    // A minimal ToolEvent with every required property EXCEPT dfl:outcome.
+    std::fs::write(
+        &bad,
+        r#"
+        @prefix dfl:     <http://seanchatmangpt.github.io/packs/dogfood-lifecycle#> .
+        @prefix prov:    <http://www.w3.org/ns/prov#> .
+        @prefix dcterms: <http://purl.org/dc/terms/> .
+        @prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+        @prefix time:    <http://www.w3.org/2006/time#> .
+        @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+        @base <http://example.org/missing-outcome#> .
+
+        <#session>
+            a                     dfl:Session ;
+            dcterms:identifier    "missing-outcome-0000" ;
+            prov:wasAssociatedWith <#agent> .
+
+        <#agent> a prov:Agent, prov:SoftwareAgent .
+
+        <#event-1>
+            a                       dfl:ToolEvent ;
+            dcterms:isPartOf        <#session> ;
+            skos:notation           "Bash" ;
+            dfl:sequenceIndex       1 ;
+            prov:wasAssociatedWith  <#agent> ;
+            prov:used               <urn:blake3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa> ;
+            prov:generated          <urn:blake3:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb> .
+            # NOTE: no dfl:outcome — violates dfl:ToolEventShape's minCount 1.
+        "#,
+    )
+    .expect("write missing-outcome.ttl");
+    let fb = Utf8PathBuf::from_path_buf(bad).expect("utf8 path");
+    let shapes = Utf8PathBuf::from_path_buf(packs_dir().join("dogfood-lifecycle-pack/shapes.ttl"))
+        .expect("utf8 path");
+
+    let err =
+        handle_graph_validate(vec![fb], vec![shapes]).expect_err("missing dfl:outcome must fail");
+    let msg = err.to_string();
+    assert!(
+        msg.contains("graph validate failed"),
+        "aggregate marker: {msg}"
+    );
+    assert!(msg.contains("SHACL"), "names SHACL: {msg}");
+    assert!(
+        msg.contains("event-1"),
+        "names the violating focus node: {msg}"
+    );
+    // `dfl:ToolEventShape`'s `dfl:outcome` constraint is declared on an
+    // anonymous property shape (`sh:property [ sh:path dfl:outcome ; ... ]`
+    // shorthand in shapes.ttl), so per SHACL's `sh:sourceShape` semantics
+    // the *immediate* violated shape is that blank node, not the enclosing
+    // named node shape — `(source shape _:...)` is the correct, spec-true
+    // identification here, not a named IRI.
+    assert!(
+        msg.contains("(source shape "),
+        "names the source shape (blank-node property shape, per SHACL sourceShape \
+         semantics for an anonymous sh:property constraint): {msg}"
+    );
+    assert!(
+        msg.contains("outcome"),
+        "names the offending property via the shape's sh:message: {msg}"
+    );
 }

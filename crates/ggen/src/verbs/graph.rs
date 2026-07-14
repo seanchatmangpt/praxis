@@ -18,6 +18,6 @@ use clap_noun_verb::Result;
 
 /// Load a Turtle ontology and report parse or constraint violations.
 #[clap_noun_verb_macros::verb("validate")]
-fn graph_validate(#[arg(action = "append")] files: Vec<camino::Utf8PathBuf>) -> Result<serde_json::Value> {
-    crate::verbs::handlers::handle_graph_validate(files)
+fn graph_validate(#[arg(action = "append")] files: Vec<camino::Utf8PathBuf>, #[arg(action = "append")] shapes: Vec<camino::Utf8PathBuf>) -> Result<serde_json::Value> {
+    crate::verbs::handlers::handle_graph_validate(files, shapes)
 }

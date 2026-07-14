@@ -313,6 +313,7 @@ praxis:CmdGgenGraphValidate a praxis:CliCommand ;
     praxis:verb "validate" ;
     praxis:handler "handle_graph_validate" ;
     praxis:arg "files:pathbufs::Turtle files to validate independently (repeatable --files a.ttl --files b.ttl). If omitted, validate the project ontology and templates." ;
+    praxis:arg "shapes:pathbufs::SHACL shapes Turtle files (repeatable --shapes a.ttl --shapes b.ttl) to validate every --files target against, as one union graph. Ignored when --files is empty (project mode); with no --shapes, --files targets are Turtle-parse-only, unchanged from before this option existed." ;
     praxis:nounAbout "Validate RDF/Turtle ontology graphs against praxis vocabulary constraints." ;
     rdfs:comment "Load a Turtle ontology and report parse or constraint violations." .
 

@@ -74,7 +74,8 @@ pub fn handle_sync_run(dry_run: bool, watch: bool) -> Result<serde_json::Value> 
     serde_json::to_value(report).map_err(exec_err)
 }
 
-/// `ggen graph validate [--files <TTL>...]` — validate RDF/Turtle graphs.
+/// `ggen graph validate [--files <TTL>...] [--shapes <TTL>...]` — validate
+/// RDF/Turtle graphs.
 ///
 /// Two modes, selected by whether any `files` were passed:
 ///
@@ -84,29 +85,38 @@ pub fn handle_sync_run(dry_run: bool, watch: bool) -> Result<serde_json::Value> 
 ///   template (project plus resolved packs). Any parse failure or lint
 ///   violation is a hard error (fail closed): the response lists every
 ///   violation at once. This branch is byte-for-byte the pre-multi-file
-///   behavior.
+///   behavior. `shapes` is ignored in this mode.
 /// * **One or more files (file mode)** — parse and hash each file
 ///   independently against a fresh, isolated store (file B's contents can
 ///   never taint file A). Every unreadable or unparseable file is collected;
 ///   if any file is invalid the call fails closed (non-zero) naming *every*
 ///   bad file with its error. The project ontology and templates are NOT
 ///   touched in this mode — validating arbitrary user Turtle is not linting
-///   the project's own codegen templates.
+///   the project's own codegen templates. When `shapes` is non-empty, every
+///   `files` target is additionally SHACL-validated against the union of
+///   all `shapes` graphs (see [`validate_files`]); with `shapes` empty this
+///   branch is byte-for-byte the pre-`--shapes` (parse-only) behavior.
 ///
-/// `files` is transported as a repeatable `--files` option (published
+/// `files`/`shapes` are each transported as a repeatable option (published
 /// clap-noun-verb 26.7.4 does not carry multi-value bare positionals), and
-/// defaults to empty, so every existing zero-argument invocation lands in
-/// project mode unchanged.
+/// both default to empty, so every existing zero- and one-flag invocation
+/// lands in the same mode as before this option existed.
 ///
 /// # Errors
 /// Project mode: missing/invalid `ggen.toml`, unreadable ontology, Turtle
 /// parse failures, pack resolution failures, or any
 /// `FM-TPL-003`/`FM-TPL-004`/`FM-TPL-005` template diagnostic exit non-zero.
 /// File mode: any unreadable file, Turtle parse failure, or hash failure on
-/// any supplied file exits non-zero, naming each offending file.
-pub fn handle_graph_validate(files: Vec<Utf8PathBuf>) -> Result<serde_json::Value> {
+/// any supplied file exits non-zero, naming each offending file. With
+/// `shapes` supplied: an unreadable/unparseable shapes file, or any SHACL
+/// violation (naming focus node, source shape, and message) also exits
+/// non-zero.
+pub fn handle_graph_validate(
+    files: Vec<Utf8PathBuf>,
+    shapes: Vec<Utf8PathBuf>,
+) -> Result<serde_json::Value> {
     if !files.is_empty() {
-        return validate_files(&files);
+        return validate_files(&files, &shapes);
     }
 
     let root = project_root()?;
@@ -146,18 +156,56 @@ pub fn handle_graph_validate(files: Vec<Utf8PathBuf>) -> Result<serde_json::Valu
     }))
 }
 
-/// Validate each supplied Turtle file independently (file mode).
+/// Validate each supplied Turtle file independently (file mode), optionally
+/// against a union SHACL shapes graph.
 ///
 /// Errors are accumulated, never short-circuited, so a single call reports
 /// *every* invalid file at once (same convention as the project-mode
-/// template-violation join). A fresh [`DeterministicGraph`] per file keeps
-/// files isolated. `oxigraph`'s Turtle-load error carries only the parser
-/// message, not the path, so each error is path-prefixed here before
-/// collection — otherwise the aggregate could not name the offending file.
+/// template-violation join). A fresh store per file keeps files isolated:
+/// file B's triples never contaminate file A's parse, hash, or SHACL
+/// conformance check.
+///
+/// When `shapes` is empty this is exactly the pre-`--shapes` behavior: a
+/// fresh [`DeterministicGraph`] per file, Turtle-parse plus BLAKE3 state
+/// hash only, no SHACL evaluation. `oxigraph`'s Turtle-load error carries
+/// only the parser message, not the path, so each error is path-prefixed
+/// here before collection — otherwise the aggregate could not name the
+/// offending file.
+///
+/// When `shapes` is non-empty, every shapes file is read once and
+/// concatenated into a single Turtle document (a single [`ShapesGraph`
+/// parse](praxis_graphlaw) call, so shorthand blank nodes `[ ... ]` across
+/// shape files get distinct auto-generated labels from one continuous
+/// parser pass — no cross-file blank-node collision). Each `files` target
+/// is then loaded into a fresh [`crate::graph::GraphLawStore`] (rather than
+/// the bare oxigraph mirror) and validated against that union shapes
+/// document via [`crate::graph::GraphEngine::validate_shacl`]; `quads`/
+/// `hash` are unchanged (`GraphLawStore`'s hash delegates to the same
+/// oxigraph mirror algorithm as `DeterministicGraph`). Any non-conforming
+/// file is reported with every violation naming its focus node, source
+/// shape, and message (never a bare "invalid", and never silently coerced
+/// to a warning). Known scope: shape files sharing a `@prefix` name with
+/// *different* IRIs would silently take the last declaration's binding —
+/// no shape file in this repo does that today, so it is not guarded here.
 ///
 /// # Complexity
-/// O(sum over files of parse+hash cost); one linear pass, no cross-file work.
-fn validate_files(files: &[Utf8PathBuf]) -> Result<serde_json::Value> {
+/// O(sum over files of parse+hash cost) plus, when `shapes` is non-empty,
+/// O(sum over files of SHACL evaluation cost against the union shapes
+/// graph); one linear pass over `files`, no cross-file work.
+fn validate_files(files: &[Utf8PathBuf], shapes: &[Utf8PathBuf]) -> Result<serde_json::Value> {
+    let shapes_ttl: Option<String> = if shapes.is_empty() {
+        None
+    } else {
+        let mut combined = String::new();
+        for shape_path in shapes {
+            let ttl = std::fs::read_to_string(shape_path)
+                .map_err(|e| exec_err(format!("shapes file `{shape_path}` unreadable: {e}")))?;
+            combined.push_str(&ttl);
+            combined.push('\n');
+        }
+        Some(combined)
+    };
+
     let mut ok_records: Vec<serde_json::Value> = Vec::with_capacity(files.len());
     let mut bad: Vec<String> = Vec::new();
 
@@ -169,23 +217,73 @@ fn validate_files(files: &[Utf8PathBuf]) -> Result<serde_json::Value> {
                 continue;
             }
         };
-        // Fresh store per file: file B's triples never contaminate file A.
-        let graph = DeterministicGraph::new().map_err(exec_err)?;
-        let quads = match graph.insert_turtle(&ttl) {
+
+        let Some(shapes_ttl) = shapes_ttl.as_deref() else {
+            // Unchanged parse-only path (fresh isolated oxigraph store).
+            let graph = DeterministicGraph::new().map_err(exec_err)?;
+            let quads = match graph.insert_turtle(&ttl) {
+                Ok(q) => q,
+                Err(e) => {
+                    bad.push(format!("{path}: {e}"));
+                    continue;
+                }
+            };
+            match graph.state_hash() {
+                Ok(hash) => ok_records.push(serde_json::json!({
+                    "path": path.as_str(),
+                    "quads": quads,
+                    "hash": crate::sync::hex32(&hash),
+                })),
+                Err(e) => bad.push(format!("{path}: {e}")),
+            }
+            continue;
+        };
+
+        // Shapes path: fresh isolated GraphLaw engine per file (same
+        // per-file isolation guarantee as the parse-only path above).
+        use crate::graph::{GraphEngine as _, GraphLawStore};
+        let engine = match GraphLawStore::new() {
+            Ok(e) => e,
+            Err(e) => {
+                bad.push(format!("{path}: {e}"));
+                continue;
+            }
+        };
+        let quads = match engine.insert_turtle(&ttl) {
             Ok(q) => q,
             Err(e) => {
                 bad.push(format!("{path}: {e}"));
                 continue;
             }
         };
-        match graph.state_hash() {
-            Ok(hash) => ok_records.push(serde_json::json!({
-                "path": path.as_str(),
-                "quads": quads,
-                "hash": crate::sync::hex32(&hash),
-            })),
-            Err(e) => bad.push(format!("{path}: {e}")),
+        let hash = match engine.state_hash() {
+            Ok(h) => h,
+            Err(e) => {
+                bad.push(format!("{path}: {e}"));
+                continue;
+            }
+        };
+        let report = match engine.validate_shacl(shapes_ttl) {
+            Ok(r) => r,
+            Err(e) => {
+                bad.push(format!("{path}: {e}"));
+                continue;
+            }
+        };
+        if !report.conforms {
+            bad.push(format!(
+                "{path}: SHACL validation failed, {} violation(s): {}",
+                report.violations.len(),
+                report.violations.join("; ")
+            ));
+            continue;
         }
+        ok_records.push(serde_json::json!({
+            "path": path.as_str(),
+            "quads": quads,
+            "hash": crate::sync::hex32(&hash),
+            "shapes_conform": true,
+        }));
     }
 
     if !bad.is_empty() {
@@ -197,10 +295,14 @@ fn validate_files(files: &[Utf8PathBuf]) -> Result<serde_json::Value> {
         )));
     }
 
-    Ok(serde_json::json!({
+    let mut out = serde_json::json!({
         "files": ok_records,
         "files_checked": files.len(),
-    }))
+    });
+    if !shapes.is_empty() {
+        out["shapes_checked"] = serde_json::json!(shapes.len());
+    }
+    Ok(out)
 }
 
 /// `ggen receipt verify` — read `.ggen-v2/receipt.json`, recompute the
