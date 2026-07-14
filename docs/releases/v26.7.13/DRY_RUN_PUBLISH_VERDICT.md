@@ -163,3 +163,30 @@ a precondition for ever exercising it through this pipeline):
   --include="*.rs" .`; `git log --diff-filter=A --oneline --all -- "crates/cng/src/bench/
   dry_run_publish*"`; `just cng-test-lib-isolated dryrun-verdict-check bench::dry_run_publish --
   --nocapture`.
+
+## Update 2026-07-14 — pack authoring progressed; verdict UNCHANGED (REFUSED)
+
+Since this verdict was compiled (HEAD `bf982815`), the dry-run-publish-pack's authoring
+progressed on later commits. This addendum records the delta; it does not revise the point-in-time
+falsifier table above (which remains accurate for `bf982815`).
+
+Resolved since compile time:
+
+- Compile-time falsifier #4 ("`templates/` contains rendered fragments — FALSIFIED, 0 files") is
+  now SATISFIED: `packs/dry-run-publish-pack/templates/` has 9 templates (commit `c97adb8f`) and
+  the 9 rendered fixtures exist under `crates/cng/tests/fixtures/dry-run-publish/` (8) and
+  `crates/cng/shapes/` (1) (commit `a60d724d`). Verified: `ggen graph validate --files` over all 9
+  rendered fixtures → exit 0, `files_checked: 9`; deterministic render 9/9 (rendered == template
+  body after the second `---`); a malformed fixture → exit 1 (fail-closed).
+- Remediation step 2 ("Render `packs/dry-run-publish-pack/templates/` … currently 0 files") is done.
+
+Unchanged — the verdict stays **REFUSED**:
+
+- Remediation step 1 (the executing harness `crates/cng/src/bench/dry_run_publish.rs` +
+  `dry_run_publish_test.rs`, wired into `crates/cng/src/bench/mod.rs`) is still ABSENT — verified
+  this cycle (`ls`: absent; `grep dry_run_publish crates/cng/src/bench/mod.rs`: 0). Gates 2-6
+  therefore still have zero executed evidence and no gate verdict (pass or typed fail) is computed.
+- Gate 1's clean-worktree and PRD/ARD/RELEASE_CONTROL-sync checkboxes are unaddressed.
+
+Net: the PDDL domain + fixtures the DoD models are now authored and parse-valid, but the code that
+would EXECUTE the 6 gates does not exist, so the run does not reach ALIVE. REFUSED stands.
