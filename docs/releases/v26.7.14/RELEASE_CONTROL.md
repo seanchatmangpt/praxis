@@ -29,10 +29,15 @@ Sec. 12 ("Full itemization of these lives in `PRD.md` Sec. 12, not restated here
 drift"). This control file reproduces that same list verbatim so all three documents agree
 word-for-word:
 
-1. **M&A / deal-desk case study and FIBO/LEI ontology extension** — task #139, zero files, not
-   started. `git log --oneline --all --grep="139\|deal-desk\|M&A" -i` finds no build commit;
-   `TaskGet` confirms status=pending ("Future: M&A case study — LLM-as-decomposition-layer
-   stress test").
+1. **M&A / deal-desk case study — the PDDL8/POWL v2/Arazzo/Erlang chain (M&A-C4–C6)** — task
+   #139, in_progress, not the zero-files state this line previously described. Real work has
+   since landed (commit `66be8e6b`): FIBO/GLEIF/OMG-Commons vocabulary-fit research,
+   `packs/ma-case-study-pack/` (ontology, SHACL shapes, a tested Knowledge Hook, 4/4 passing
+   tests) — see open item 5 and `packs/ma-case-study-pack/STANDING.md` (M&A-C1–C6) for the exact
+   boundary. This exclusion narrows to what remains genuinely absent: no PDDL8 deal-progression
+   model, no POWL v2/Arazzo/Erlang dispatch chain, no multi-party Little's Law queue observation
+   — `THESIS.md` §33.12's ruling that the M&A case is PLANNED future work for v26.7.14 standing
+   still governs the case as a whole, even with M&A-C1–C3 real.
 2. **TOGAF ADM increments 2 and 3** — tickets #100 (`ea-adm` bench category + roles +
    `meridian-adm` bundle) and #101 (F09 recursion + crown witness + v26.7.13 docs). Zero
    commits against either ticket this release; both remain PLANNED, unchanged from v26.7.13's
