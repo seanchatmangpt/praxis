@@ -105,10 +105,16 @@ undone. No row here rounds a status up beyond what its cited evidence supports.
 | 9 | `crates/multifractal-workflow/ignore_tests.py` (scratch script, could mass-mute 16 honest-refusal tests) | RESOLVED (commit `ad0fe530`) — file deleted | INFO | N/A |
 | 10 | Solace→Arclight rename | RESOLVED (commits `8f461232`, `7b6a08e0`, `bf982815`'s `roles_test.rs` fix) — independently re-verified twice by separate dogfood audits (`wl8n77q65`, `w04f1v4su`), zero remaining discrepancies | INFO | #107–#119 |
 | 11 | v26.7.13 Dry-Run Publish DoD (6-gate/falsifier/outcome-algebra) — separate from the eight-theme A-H release this control file otherwise governs | REFUSED — see `DRY_RUN_PUBLISH_VERDICT.md` for the authoritative gate-by-gate breakdown; Gate 1 fails on clean-worktree and PRD/ARD/RELEASE_CONTROL-sync checkboxes, Gates 2-6 have zero executed evidence because `crates/cng/src/bench/dry_run_publish.rs`/`_test.rs` is still absent (the pack's 9 templates + 9 rendered fixtures were authored this cycle — c97adb8f, a60d724d — and parse-validate via `ggen graph validate --files`; nothing executes the gates yet, so the verdict stays REFUSED; see the 2026-07-14 addendum in `DRY_RUN_PUBLISH_VERDICT.md`) | HIGH | N/A (not a numbered ticket; tracked only via the verdict doc) |
+| 12 | Operation Dogfood PRD — separate 12-claim (C1-C12) Claims Reconciliation table plus a Grounding Appendix, distinct from this control file's eight-theme A-H table | DISCLOSED — `OPERATION_DOGFOOD_PRD.md` is target-state functional requirements (FR-1..FR-22, NFR-1..NFR-12) for making Claude Code's own lifecycle MFW-governed; its own table shows 1 ALIVE (C1), 3 PARTIAL_ALIVE (C9, C10, C11), 6 PLANNED (C2-C7), and 2 REFUSED (C8 real dry-run publish, C12 autonomous external publication) — no row here rounds that up; this control file does not merge or restate that table | HIGH | N/A (not a numbered ticket; tracked only via the PRD's own table) |
+| 13 | `VISION_2030.md` — 2030 target-state thesis adopted verbatim from an external source this cycle | DISCLOSED — fenced by its own "Working-Backwards Status Fence" (top of file): describes an aspirational 2030 end state, not v26.7.13 standing; current standing remains governed exclusively by this file and the Claims Reconciliation tables in `PRD.md`/`ARD.md`/`OPERATION_DOGFOOD_PRD.md`, which win on any apparent disagreement | INFO | N/A (not a numbered ticket; no claim in this document is load-bearing for release status) |
+| 14 | `PRESS_RELEASE.md` — working-backwards narrative announcing v26.7.13 as a completed release | DISCLOSED — fenced by its own "Working-Backwards Status Fence" (bottom of file): actual release standing is controlled by this control file's claims ledger, Definition of Done, receipts, and replay report; no claim in the narrative supersedes a `PARTIAL_ALIVE`/`BLOCKED`/`REFUSED`/`UNKNOWN`/`UNSUPPORTED` verdict produced by the real release run | INFO | N/A (not a numbered ticket; no claim in this document is load-bearing for release status) |
 
 `DRY_RUN_PUBLISH_VERDICT.md` is the authoritative status source for the dry-run-publish gate
 specifically — this register's row 11 defers to it rather than restating its evidence, the same
-deferral pattern row 1 uses for crown-witness repair R8 against `CROWN_STATUS.md`.
+deferral pattern row 1 uses for crown-witness repair R8 against `CROWN_STATUS.md`. Rows 12-14
+similarly defer to each named document's own status fence or claims table rather than restating
+it here; this control file does not merge those tables into its own and remains authoritative
+only over the eight-theme A-H release should any apparent conflict arise.
 
 ## 6. Documents governed by this control surface
 
@@ -117,5 +123,17 @@ deferral pattern row 1 uses for crown-witness repair R8 against `CROWN_STATUS.md
 - `docs/releases/v26.7.13/RELEASE_CONTROL.md` (this file)
 - `docs/releases/v26.7.13/DRY_RUN_PUBLISH_VERDICT.md` — additional governed document, added this
   cycle; authoritative for the separate v26.7.13 Dry-Run Publish DoD gate status (open item 11).
+- `docs/releases/v26.7.13/OPERATION_DOGFOOD_PRD.md` — additional governed document, adopted this
+  cycle; functional/non-functional requirements (FR-1..FR-22, NFR-1..NFR-12) for making the
+  Claude Code lifecycle itself MFW-governed, plus its own 12-claim Claims Reconciliation table
+  and a Grounding Appendix; authoritative only for its own claims (open item 12), not merged into
+  this file's eight-theme A-H table.
+- `docs/releases/v26.7.13/VISION_2030.md` — additional governed document, adopted this cycle;
+  2030 target-state thesis, not a claim about current v26.7.13 standing — see open item 13 and
+  the document's own "Working-Backwards Status Fence".
+- `docs/releases/v26.7.13/PRESS_RELEASE.md` — additional governed document, adopted this cycle;
+  working-backwards narrative announcing v26.7.13 as a completed release, fenced by its own
+  "Working-Backwards Status Fence" — see open item 14; this control file's claims ledger and
+  Definition of Done remain authoritative over any narrative claim.
 
 This file wins on conflict with either `PRD.md` or `ARD.md`.
