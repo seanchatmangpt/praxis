@@ -96,11 +96,11 @@ undone. No row here rounds a status up beyond what its cited evidence supports.
 |---|---|---|---|---|
 | 1 | Crown-witness repair R8 — 3 `PARTIAL_REAL_EDGE` edges (`F08→F09`, `F18→F19`, `F10→F12`) | OPEN — repair unstarted | HIGH | R8 |
 | 2 | ggen `dogfood_regression` closure gap | RESOLVED (commit `f8319978`) — no action owed | INFO | N/A (Theme C, #102–#105/#111) |
-| 3 | tier2/tier3 `knowledge_hooks_e2e` residual failures — re-verified this cycle | PARTIAL — `test_b6_multi_strata_evaluation`'s original truncation bug is FIXED, confirmed live; it now fails on a SEPARATE, newly-found bug: hook-derived facts not visible to N3 rules within the same `materialize()` call, likely a stratification-vs-hook-evaluation ordering gap — new open item, not yet fixed. tier3's `test_c3_construct_empty_no_receipt` (receipt-generation logic issue) and `test_c3_datalog_construct_delta_cascade` (`Datalog predicate missing argument`, likely a FILTER-clause-in-`kh:program` parsing gap) are confirmed unrelated to `strip_comments`; neither fixed. `test_c3_threshold_count_window_concurrency` remains tier3's third named failure, root cause not investigated this release. | MEDIUM | UNTRACKED (multi-file scope; commit `bf982815` re-verification) |
-| 4 | `Binding::len()` HashMap-iteration-order column-length issue (`bindings.rs:22`) | OPEN — reachability via real query-constructed bindings unconfirmed | LOW-MEDIUM | N/A |
-| 5 | 67 pre-existing `cng` clippy findings (workday/measurement/`otel_*`/runner + `jira_routes` fmt) | OPEN — untouched this release | MEDIUM | N/A |
+| 3 | tier2/tier3 `knowledge_hooks_e2e` residual failures — re-verified this cycle | PARTIAL — tier3's three named failures are now FIXED and confirmed passing this session (`test_c3_construct_empty_no_receipt`, `test_c3_datalog_construct_delta_cascade`, `test_c3_threshold_count_window_concurrency`; `crates/praxis-graphlaw/src/reasoner/mod.rs` + `tests/knowledge_hooks_e2e_tier3.rs`; `just praxis-graphlaw-test-integration-isolated verify713a knowledge_hooks_e2e_tier3` → 6 passed, 0 failed). tier2's `test_b6_multi_strata_evaluation` remains OPEN, re-confirmed still failing this session (byte-identical panic: "Expected triple <Node stratum2 complete> not found in store"; `just praxis-graphlaw-test-integration-isolated verify713b knowledge_hooks_e2e_tier2 test_b6_multi_strata_evaluation`). Root cause sharpened from "likely a stratification-vs-hook-evaluation ordering gap" to a pre-existing three-way-conflicting literal-datatype-interning convention across `encoding.rs`/`n3_terms.rs`/`hooks/construct.rs`/`sparql/eval.rs` — an attempted src-level fix broke 3 other passing tests and conflicts with a 4th (TICKET-005 DoD) test's opposite convention, so it was reverted (zero net diff on `encoding.rs`/`hooks/construct.rs`/`hooks/parsing.rs`). | MEDIUM | UNTRACKED (multi-file scope; commit `bf982815` re-verification) |
+| 4 | `Binding::len()` HashMap-iteration-order column-length issue (`bindings.rs:22`) | RESOLVED — `Binding::len()`'s `HashMap`-iteration-order dependency is fixed (reads the numerically-smallest-key column instead of an arbitrary `.values().next()`); reachability, previously unconfirmed, is now CONFIRMED via a real `TripleIndex::query()`-constructed ragged binding (`crates/praxis-graphlaw/src/bindings.rs`, new `bindings_test.rs`; `just praxis-graphlaw-test-lib-isolated verify713c bindings_test` → 4 passed, 0 failed, this session). Separate, deeper issue disclosed but NOT fixed: `Binding::combine()`'s row-multiplication logic is the actual producer of the ragged columns (does not re-expand a binding's pre-existing columns to match an incoming column's larger row count) — untouched, lives in shared backward-chaining/service-composition machinery feeding `materialize()`; a new candidate open item, not yet given its own tracked row. | LOW-MEDIUM | N/A |
+| 5 | 67 pre-existing `cng` clippy findings (workday/measurement/`otel_*`/runner + `jira_routes` fmt) | PARTIAL — the 6 findings reachable under `cargo clippy -p cng --lib -- -D warnings` are FIXED and confirmed this session (`crates/cng/src/measurement.rs`, `otel_rdf.rs`, `otel_receipt.rs`, `runner.rs`: `sort_by`→`sort_by_key`, `vec_init_then_push`→`vec!` literal, `type_complexity`→named `LabelsAndEdges` alias; `cargo clippy -p cng --lib -- -D warnings` → 0 errors, exit 0, re-run independently this session). The bulk of the originally-named ~67-finding debt is NOT reachable by that lib-only scope and remains untouched: `workday.rs`/bench-gated `otel_*`/`runner.rs` paths (require `--features bench`, which also pulls `praxis-graphlaw`/`wasm4pm-cognition` path-dependency findings into clippy's scope) and `jira_routes.rs` (only `mod`-included from the `main.rs` binary target, structurally unreachable by any `--lib`-scoped invocation) — remaining count not re-tallied this session. | MEDIUM | N/A |
 | 6 | `cng` ↔ `multifractal-workflow` dev-dependency constraint (`soc2_growth` test-scoped) | DISCLOSED (BY DESIGN) — structural constraint, not a defect | MEDIUM | N/A |
-| 7 | `run-evidence-pass.mjs` pinned `EXPECTED_FACTORY_HEAD` | OPEN — still pinned against a chain head Theme C's clean sync has since moved | LOW | #102–#105, #111 |
+| 7 | `run-evidence-pass.mjs` pinned `EXPECTED_FACTORY_HEAD` | RESOLVED (structural fix, not a re-pin) — `EXPECTED_FACTORY_HEAD` in `clients/autonomic-platform/tests/run-evidence-pass.mjs` is no longer a hardcoded literal; it now reads `.ggen-v2/receipt.json`'s `record.chain_hash_hex` at test-run time and compares it against `ggen receipt history`'s live output, so the check still catches a broken traversal or a desynced `receipt.json`/`receipt-log.jsonl` pair without going stale on every legitimate `ggen sync run` (`docs/GGEN_PARITY.md` updated to match). Confirmed this session: live head is `401d59f3...31df5` (`./target/debug/ggen receipt history` → `valid: true`, 110 records), matching `.ggen-v2/receipt.json`'s `record.chain_hash_hex` exactly; independently re-ran `node clients/autonomic-platform/tests/run-evidence-pass.mjs` → `EXIT_CODE=0`, no `[driver] FATAL factory chain` line, final `[driver] OK: 20 events, 13 objects -> docs/releases/v26.7.6/ocel/driver-intermediate.json`. | LOW | #102–#105, #111 |
 | 8 | arazzo `arazzo_runner_broker_test` hang (task #85) | CLOSED (unsupported-by-record) — two independent Explore agents found no repo evidence; latest record 17/17 passing, re-verified 3x | INFO | #85 |
 | 9 | `crates/multifractal-workflow/ignore_tests.py` (scratch script, could mass-mute 16 honest-refusal tests) | RESOLVED (commit `ad0fe530`) — file deleted | INFO | N/A |
 | 10 | Solace→Arclight rename | RESOLVED (commits `8f461232`, `7b6a08e0`, `bf982815`'s `roles_test.rs` fix) — independently re-verified twice by separate dogfood audits (`wl8n77q65`, `w04f1v4su`), zero remaining discrepancies | INFO | #107–#119 |
@@ -108,13 +108,14 @@ undone. No row here rounds a status up beyond what its cited evidence supports.
 | 12 | Operation Dogfood PRD — separate 12-claim (C1-C12) Claims Reconciliation table plus a Grounding Appendix, distinct from this control file's eight-theme A-H table | DISCLOSED — `OPERATION_DOGFOOD_PRD.md` is target-state functional requirements (FR-1..FR-22, NFR-1..NFR-12) for making Claude Code's own lifecycle MFW-governed; its own table shows 1 ALIVE (C1), 3 PARTIAL_ALIVE (C9, C10, C11), 6 PLANNED (C2-C7), and 2 REFUSED (C8 real dry-run publish, C12 autonomous external publication) — no row here rounds that up; this control file does not merge or restate that table | HIGH | N/A (not a numbered ticket; tracked only via the PRD's own table) |
 | 13 | `VISION_2030.md` — 2030 target-state thesis adopted verbatim from an external source this cycle | DISCLOSED — fenced by its own "Working-Backwards Status Fence" (top of file): describes an aspirational 2030 end state, not v26.7.13 standing; current standing remains governed exclusively by this file and the Claims Reconciliation tables in `PRD.md`/`ARD.md`/`OPERATION_DOGFOOD_PRD.md`, which win on any apparent disagreement | INFO | N/A (not a numbered ticket; no claim in this document is load-bearing for release status) |
 | 14 | `PRESS_RELEASE.md` — working-backwards narrative announcing v26.7.13 as a completed release | DISCLOSED — fenced by its own "Working-Backwards Status Fence" (bottom of file): actual release standing is controlled by this control file's claims ledger, Definition of Done, receipts, and replay report; no claim in the narrative supersedes a `PARTIAL_ALIVE`/`BLOCKED`/`REFUSED`/`UNKNOWN`/`UNSUPPORTED` verdict produced by the real release run | INFO | N/A (not a numbered ticket; no claim in this document is load-bearing for release status) |
+| 15 | `THESIS.md` — formal dissertation adopted verbatim from an external source this cycle (12-class epistemic type discipline; Ch. 26 standing ledger self-described as "project-reported rather than independently reproduced" where it did not rerun the repository) | DISCLOSED — companion `THESIS_GROUNDING.md` records the adoption-time re-checks: Sec. 26.4 crown verdicts CONFIRMED but edge inventory refined (`MISSING_EDGE_COUNT` is 0; F08→F09 is `PARTIAL_REAL_EDGE` not missing; F18→F19/F10→F12 are additional blockers the thesis omits); Sec. 26.6 blocker list accurate but omits B4/B7; C3/C7 PLANNED rows predate the committed Increment 1 (post-event capture is PARTIAL toward C7's promotion test, not promoted); Sec. 26.3 mfact numbers not re-verified here. This control file and the Claims Reconciliation tables win on any standing disagreement | INFO | N/A (not a numbered ticket; standing remains governed by this file, not the thesis) |
 
 `DRY_RUN_PUBLISH_VERDICT.md` is the authoritative status source for the dry-run-publish gate
 specifically — this register's row 11 defers to it rather than restating its evidence, the same
-deferral pattern row 1 uses for crown-witness repair R8 against `CROWN_STATUS.md`. Rows 12-14
-similarly defer to each named document's own status fence or claims table rather than restating
-it here; this control file does not merge those tables into its own and remains authoritative
-only over the eight-theme A-H release should any apparent conflict arise.
+deferral pattern row 1 uses for crown-witness repair R8 against `CROWN_STATUS.md`. Rows 12-15
+similarly defer to each named document's own status fence, claims table, or grounding companion
+rather than restating it here; this control file does not merge those tables into its own and
+remains authoritative only over the eight-theme A-H release should any apparent conflict arise.
 
 ## 6. Documents governed by this control surface
 
@@ -135,5 +136,47 @@ only over the eight-theme A-H release should any apparent conflict arise.
   working-backwards narrative announcing v26.7.13 as a completed release, fenced by its own
   "Working-Backwards Status Fence" — see open item 14; this control file's claims ledger and
   Definition of Done remain authoritative over any narrative claim.
+- `docs/releases/v26.7.13/THESIS.md` — additional governed document, adopted verbatim this
+  cycle; the formal dissertation (recursive law, admission, planning, POWL geometry, grafting,
+  permissioned actuation, receipts/replay, multifractal formalism, Fuller canon) — see open
+  item 15 and its companion `THESIS_GROUNDING.md` for adoption-time re-checks and deltas.
+- `docs/releases/v26.7.13/THESIS_GROUNDING.md` — additional governed document, authored this
+  cycle; records exactly what was independently re-checked at thesis adoption and every delta
+  found; defers to this control file on standing.
+
+### Local tooling disclosures (not governed documents; not new release claims)
+
+Two pieces of local Claude Code tooling changed state this cycle. Neither is a governed
+document above; both are disclosed here because they touch how this session's own work is
+admitted/validated, not because they change any Section 5 row's ticket status.
+
+- **PreToolUse guard socket exists, not yet default-on.** A local, session-conditional
+  PreToolUse guard (`.claude/hooks/cng-plan-admission-guard.sh`, wired in
+  `.claude/settings.json`; canonical source `packs/dogfood-lifecycle-pack/hooks/
+  cng-plan-admission-guard.sh`, both gitignored per `.gitignore:8`) now wires `cng plan check`
+  (`crates/cng/src/plan_approval.rs`) as a real admission backend for Bash tool calls. Per the
+  guard script's own "DESIGN DISCLOSURE": it is NO-OP BY DEFAULT, a passthrough (exit 0) for
+  every ordinary session, since nothing today calls `cng plan present` automatically to seed a
+  plan ledger at session start. Confirmed this session: piping a synthetic payload with a
+  nonexistent session id through the guard script exits 0 (passthrough). Real admission (exit 0
+  allow / exit 2 block against the presented plan's next literal step) only activates once a
+  session is deliberately opted in by writing
+  `.cargo-cicd/lifecycle/session-<id>/plan-ledger/plan-ledger.jsonl` — a manual step, not yet
+  automatic for every session. This is the socket existing and working end-to-end for an
+  opted-in session, not default-on admission control for arbitrary Bash.
+- **dogfood-lifecycle-pack session-end validator: SHACL is now real, not just parse.**
+  `packs/dogfood-lifecycle-pack/hooks/dogfood-lifecycle-session-end.sh` now passes `--shapes
+  shapes.ttl` to `ggen graph validate` on every invocation, performing real SHACL
+  shape-conformance checking (via `GraphLawStore::validate_shacl`, landed in commit `523cc6e4`,
+  `crates/ggen/src/verbs/handlers.rs`) against `dfl:ToolEventShape`/`dfl:SessionShape` — not
+  merely Turtle parse validation as the script's own prior "SCOPE NOTE" disclosed. Confirmed
+  independently this session: `ggen graph validate --files
+  packs/dogfood-lifecycle-pack/fixtures/session-good.ttl --shapes
+  packs/dogfood-lifecycle-pack/shapes.ttl` returns exit 0 with `"shapes_conform": true`.
+  Caveat: the live-installed copy at `.claude/hooks/dogfood-lifecycle-session-end.sh`
+  (gitignored) still has the pre-`523cc6e4`, parse-only script content as of this check — the
+  fix landed in the tracked `packs/dogfood-lifecycle-pack/` source but has not yet been
+  re-synced to the local install, and the session-end script is invoked manually today, not
+  wired as an automatic SessionEnd/Stop hook.
 
 This file wins on conflict with either `PRD.md` or `ARD.md`.
