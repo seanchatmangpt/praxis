@@ -1,0 +1,155 @@
+# shapes.ttl — SHACL shapes for packs/azure-terraform-pack/ontology.ttl.
+#
+# CLOSED-SHAPE DISCIPLINE: sh:closed true + sh:ignoredProperties (rdf:type)
+# on every shape below, matching packs/soc2-audit-pack / packs/jira-tracking-pack
+# / packs/ma-case-study-pack's own precedent for shapes targeting a pack's
+# OWN minted classes (this pack mints every aztf: class; there is no reused
+# external vocabulary here to leave an open floor for — see ontology.ttl's
+# own "PUBLIC-ONTOLOGY-FIRST CHECK" section for why).
+#
+# sh:in enum constraints below are taken directly from the real azurerm
+# provider's own documented argument value domains (verified this session
+# via the fetched container_group.html.markdown, MPL-2.0 — see
+# SOURCE_ATTRIBUTION.md), not invented: os_type in {Linux, Windows},
+# restart_policy in {Always, Never, OnFailure}, ip_address_type in
+# {Public, Private, None}.
+#
+# `ggen graph validate --files ontology.ttl --shapes shapes.ttl` runs real
+# SHACL constraint evaluation (praxis_graphlaw::shacl::ShapesGraph via
+# GraphLawStore::validate_shacl), not parse-only checking, per
+# crates/ggen/src/verbs/handlers.rs's validate_files() -- this pack's own
+# validation run (see SOURCE_ATTRIBUTION.md / task report) confirms real
+# conformance, not just Turtle syntax.
+
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix aztf: <https://ggen.io/ontology/azure-terraform#> .
+
+aztf:ContainerGroupShape
+    a sh:NodeShape ;
+    sh:targetClass aztf:ContainerGroup ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type rdfs:comment ) ;
+    sh:property [
+        sh:path     aztf:osType ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:in       ( "Linux" "Windows" ) ;
+        sh:message  "A ContainerGroup must carry exactly one aztf:osType from azurerm_container_group's real allowed values {Linux, Windows}." ;
+    ] ;
+    sh:property [
+        sh:path     aztf:restartPolicy ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:in       ( "Always" "Never" "OnFailure" ) ;
+        sh:message  "A ContainerGroup must carry exactly one aztf:restartPolicy from azurerm_container_group's real allowed values {Always, Never, OnFailure}." ;
+    ] ;
+    sh:property [
+        sh:path     aztf:ipAddressType ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:in       ( "Public" "Private" "None" ) ;
+        sh:message  "A ContainerGroup must carry exactly one aztf:ipAddressType from azurerm_container_group's real allowed values {Public, Private, None}." ;
+    ] ;
+    sh:property [
+        sh:path     aztf:hasContainer ;
+        sh:minCount 1 ;
+        sh:class    aztf:Container ;
+        sh:message  "A ContainerGroup must have at least one aztf:hasContainer member — azurerm_container_group's `container` argument is Required." ;
+    ] ;
+    sh:property [
+        sh:path     aztf:deploymentSlug ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern  "^[a-z0-9]+(-[a-z0-9]+)*$" ;
+        sh:message  "A ContainerGroup must carry exactly one kebab-case aztf:deploymentSlug (routes this instance's rendered files to deploy/azure/<slug>/)." ;
+    ] ;
+    sh:property [
+        sh:path     aztf:workloadLabel ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message  "A ContainerGroup must carry exactly one aztf:workloadLabel (human-readable description substituted into generated comments/tags)." ;
+    ] .
+
+aztf:ContainerShape
+    a sh:NodeShape ;
+    sh:targetClass aztf:Container ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type rdfs:comment ) ;
+    sh:property [
+        sh:path     aztf:containerOrder ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:message  "A Container must carry exactly one aztf:containerOrder (deterministic SPARQL ORDER BY key)." ;
+    ] ;
+    sh:property [
+        sh:path     aztf:containerName ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message  "A Container must carry exactly one aztf:containerName — azurerm container block's `name` argument is Required." ;
+    ] ;
+    sh:property [
+        sh:path         aztf:cpuCores ;
+        sh:minCount     1 ;
+        sh:maxCount     1 ;
+        sh:datatype     xsd:decimal ;
+        sh:minExclusive 0 ;
+        sh:message      "A Container must carry exactly one aztf:cpuCores > 0 — azurerm container block's `cpu` argument is Required." ;
+    ] ;
+    sh:property [
+        sh:path         aztf:memoryGb ;
+        sh:minCount     1 ;
+        sh:maxCount     1 ;
+        sh:datatype     xsd:decimal ;
+        sh:minExclusive 0 ;
+        sh:message      "A Container must carry exactly one aztf:memoryGb > 0 — azurerm container block's `memory` argument is Required." ;
+    ] ;
+    sh:property [
+        sh:path     aztf:command ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message  "A Container must carry exactly one aztf:command (this pack's single-command scope)." ;
+    ] ;
+    sh:property [
+        sh:path     aztf:hasEvidence ;
+        sh:minCount 1 ;
+        sh:class    aztf:Evidence ;
+        sh:message  "A Container must cite at least one aztf:hasEvidence source grounding its topology (no invented infra facts)." ;
+    ] .
+
+aztf:EvidenceShape
+    a sh:NodeShape ;
+    sh:targetClass aztf:Evidence ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type rdfs:comment ) ;
+    sh:property [
+        sh:path     aztf:evidenceOrder ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:message  "An Evidence citation must carry exactly one aztf:evidenceOrder." ;
+    ] ;
+    sh:property [
+        sh:path     aztf:evidenceFile ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message  "An Evidence citation must carry exactly one aztf:evidenceFile path." ;
+    ] ;
+    sh:property [
+        sh:path     aztf:evidenceLines ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message  "An Evidence citation must carry exactly one aztf:evidenceLines locator." ;
+    ] .

@@ -1,0 +1,44 @@
+# pddl-problem-blocked.ttl -- worked scenario over pddl-domain.ttl where the
+# ma-case-study deployment has all 4 required Terraform input variables
+# DECLARED, but the `container_image` variable's value is positively known
+# to be unavailable -- the typed non-closure path this task requires: the
+# deployment reaches `deployment-blocked`, a terminal state distinct from
+# a verified plan, rather than being silently treated as provisionable.
+# Concatenate with pddl-domain.ttl before calling
+# `my_conforming_project::mfg::manufacture`; proven live by
+# crates/multifractal-workflow/tests/azure_terraform_pddl.rs.
+#
+# DESIGN NOTE (disclosed, not fabricated): `(image-unavailable
+# var-container-image)` is authored directly in this problem's :init as a
+# positive STRIPS8-legal fact representing deploy/azure/ma-case-study/
+# variables.tf:50's own real, currently-true disclosure for the
+# `container_image` variable -- "No default: the built image URI is a
+# CI/CD-pipeline fact this repo's source tree does not itself contain (no
+# Dockerfile exists yet to build this image from -- a disclosed gap, see
+# SOURCE_ATTRIBUTION.md ...)" -- not a hypothetical failure mode invented
+# for this fixture.
+#
+# Object names are suffixed `-no-image` to keep this problem's deployment
+# object fully independent of pddl-problem-plannable.ttl's (each problem
+# file is only ever concatenated with pddl-domain.ttl ONE AT A TIME for
+# manufacture -- see that file's own header).
+
+@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+
+pdl:problem_azure_terraform_ma_case_study_blocked
+    a pdl:Problem ;
+    pdl:name "azure-terraform-ma-case-study-blocked" ;
+    pdl:domain "azure-terraform-provisioning-pddl8" ;
+    pdl:object [ pdl:name "deployment-ma-case-study-no-image" ; pdl:ofType "deployment" ] ,
+               [ pdl:name "provider-azurerm" ; pdl:ofType "provider" ] ,
+               [ pdl:name "var-location" ; pdl:ofType "location-variable" ] ,
+               [ pdl:name "var-environment" ; pdl:ofType "environment-variable" ] ,
+               [ pdl:name "var-resource-group-name" ; pdl:ofType "resource-group-name-variable" ] ,
+               [ pdl:name "var-container-image" ; pdl:ofType "container-image-variable" ] ;
+    pdl:init "(provider-required deployment-ma-case-study-no-image provider-azurerm)" ,
+             "(variable-declared deployment-ma-case-study-no-image var-location)" ,
+             "(variable-declared deployment-ma-case-study-no-image var-environment)" ,
+             "(variable-declared deployment-ma-case-study-no-image var-resource-group-name)" ,
+             "(variable-declared deployment-ma-case-study-no-image var-container-image)" ,
+             "(image-unavailable var-container-image)" ;
+    pdl:goal "(deployment-blocked deployment-ma-case-study-no-image)" .

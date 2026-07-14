@@ -1,0 +1,88 @@
+# instances/ma-case-deployment.ttl — a second real aztf:ContainerGroup
+# individual for packs/azure-terraform-pack/ontology.ttl's vocabulary,
+# grounding the M&A case study's Azure deployment (distinct from
+# ontology.ttl's own embedded aztf:crownBriberyCaseGroup individual).
+#
+# WHAT THIS DEPLOYS AND WHY (not invented -- see aztf:hasEvidence citations
+# on aztf:maCaseValidatorContainer below): per packs/ma-case-study-pack/
+# STANDING.md, the M&A case study's M&A-C4/M&A-C5 rows (PDDL8 planning
+# model, POWL v2 + Arazzo + Erlang/OTP dispatch chain) are PLANNED, not
+# built -- there is no crown-bribery-case-style multi-process runtime to
+# containerize for this case. What DOES exist and run today (M&A-C2) is a
+# real, re-run-this-session SHACL validation: `ggen graph validate --files
+# packs/ma-case-study-pack/fixtures/case.ttl,packs/ma-case-study-pack/
+# ontology.ttl --shapes packs/ma-case-study-pack/shapes.ttl`, which reports
+# shapes_conform:true for both files. This deployment containerizes exactly
+# that command as a run-to-completion compliance-check batch job (the same
+# kind of artifact packs/soc2-audit-pack's case study produces evidence
+# for) -- not a speculative future PDDL8/POWL/Erlang pipeline that does not
+# exist in this repo.
+#
+# RUNTIME-REQUIREMENTS GROUNDING (real measurement, this session, not
+# guessed): `/usr/bin/time -l ggen graph validate --files
+# packs/ma-case-study-pack/fixtures/case.ttl,packs/ma-case-study-pack/
+# ontology.ttl --shapes packs/ma-case-study-pack/shapes.ttl` on this
+# machine measured 0.01s real/user/sys, 15663104 bytes (~14.9 MiB) maximum
+# resident set size, 6865304 bytes (~6.5 MiB) peak memory footprint -- an
+# order of magnitude lighter than crown-bribery-case's workload (no
+# Erlang/OTP runtime or escript subprocess bridge, pure single-process
+# SPARQL/SHACL evaluation over a ~17KB/169-quad graph). Sizing is NOT set
+# to track that measurement directly, though: Azure Container Instances'
+# own documented resource floor is 1 CPU / 1 GB *per container group*
+# (individual containers within a MULTI-container group may go lower, but
+# this group has exactly one container, so the group floor applies to it
+# directly) -- verified via
+# https://learn.microsoft.com/en-us/azure/container-instances/container-instances-resource-and-quota-limits
+# this session. aztf:cpuCores 1.0 / aztf:memoryGb 1.0 below is therefore
+# the ACI platform floor, not a load-tested requirement -- the measured
+# workload sits roughly 68x under the memory floor alone, so there is no
+# real-world basis to request more than the floor.
+#
+# REGION/ENVIRONMENT/RESOURCE-GROUP-NAME/IMAGE: exactly as ontology.ttl's
+# own header discloses for aztf:crownBriberyCaseGroup, these remain
+# deployment-day Terraform `variable` inputs, not ontology-bound facts --
+# no fact in this repo's source tree determines an Azure region.
+
+@prefix aztf: <https://ggen.io/ontology/azure-terraform#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+aztf:maCaseDeploymentGroup
+    a aztf:ContainerGroup ;
+    aztf:osType         "Linux" ;
+    aztf:restartPolicy  "Never" ;
+    aztf:ipAddressType  "None" ;
+    aztf:hasContainer   aztf:maCaseValidatorContainer ;
+    aztf:deploymentSlug "ma-case-study" ;
+    aztf:workloadLabel  "M&A case study — ggen graph validate compliance check (packs/ma-case-study-pack ontology + shapes + case fixture)" ;
+    rdfs:comment "The single Azure Container Instance container group running the M&A case study's real, currently-existing artifact: a SHACL validation pass over packs/ma-case-study-pack's ontology/shapes/case-fixture graph. One container, no exposed IP, run-to-completion — `ggen graph validate` is a one-shot CLI subcommand with no server/listener code path anywhere in crates/ggen/src/ (grepped this session: zero TcpListener/axum/hyper::server/actix_web/warp::serve hits, zero reqwest/hyper/axum/tonic/actix in crates/ggen/Cargo.toml)." .
+
+aztf:maCaseValidatorContainer
+    a aztf:Container ;
+    aztf:containerOrder 0 ;
+    aztf:containerName  "ma-case-validator" ;
+    aztf:cpuCores       1.0 ;
+    aztf:memoryGb       1.0 ;
+    aztf:command        "/app/ggen graph validate --files /app/packs/ma-case-study-pack/fixtures/case.ttl,/app/packs/ma-case-study-pack/ontology.ttl --shapes /app/packs/ma-case-study-pack/shapes.ttl" ;
+    aztf:hasEvidence    aztf:maCaseC2Evidence, aztf:maCaseC5Evidence, aztf:ggenValidateCliEvidence ;
+    rdfs:comment "Runs the real `ggen` CLI binary (this repo's own crates/ggen, installed via `cargo install --path crates/ggen`) against the M&A case study pack's own files. Rendered via aztf:command's now-generalized `/bin/sh -c \"<command>\"` wrapping (see that property's rdfs:comment) because this invocation needs multiple flags/arguments, unlike crown-bribery-case's zero-argument entrypoint. Image-layout assumption disclosed: no Dockerfile exists in this repo yet for this workload either, so the /app/ prefix below is this pack's own convention (matching aztf:workflowRuntimeContainer's existing /app/ convention), not verified against a real build artifact." .
+
+aztf:maCaseC2Evidence
+    a aztf:Evidence ;
+    aztf:evidenceOrder 0 ;
+    aztf:evidenceFile  "packs/ma-case-study-pack/STANDING.md" ;
+    aztf:evidenceLines "16" ;
+    rdfs:comment "M&A-C2 claim row: 'Ontology + SHACL shapes pack built and validates' — ALIVE, narrowly. Cites the exact command this container runs and its exact expected output: `ggen graph validate --files packs/ma-case-study-pack/fixtures/case.ttl,packs/ma-case-study-pack/ontology.ttl --shapes packs/ma-case-study-pack/shapes.ttl` -> shapes_conform:true for both files, re-run the STANDING.md session with byte-identical result to the pack's original run." .
+
+aztf:maCaseC5Evidence
+    a aztf:Evidence ;
+    aztf:evidenceOrder 1 ;
+    aztf:evidenceFile  "packs/ma-case-study-pack/STANDING.md" ;
+    aztf:evidenceLines "19" ;
+    rdfs:comment "M&A-C5 claim row: 'POWL v2 + Arazzo + Erlang/OTP dispatch chain exists for the case' — PLANNED, not built; 'no POWL projection, no Arazzo workflow document, no Erlang/BEAM dispatch path exists for this case'. Grounds why this deployment is a single lightweight validate-only container rather than a crown-bribery-case-style Rust+Erlang/OTP multi-runtime bridge: the latter does not exist for the M&A case." .
+
+aztf:ggenValidateCliEvidence
+    a aztf:Evidence ;
+    aztf:evidenceOrder 2 ;
+    aztf:evidenceFile  "crates/ggen/src/verbs/handlers.rs" ;
+    aztf:evidenceLines "77-98,195" ;
+    rdfs:comment "Doc comment (lines 77-98) specifies the real `ggen graph validate [--files <TTL>...] [--shapes <TTL>...]` CLI contract (file-mode: parse + SHACL-validate each file independently). `validate_files` (line 195) is the function implementing it. Grounds that the command this container's aztf:command runs is real, installed CLI syntax in this repo's own binary, not invented for this deployment." .

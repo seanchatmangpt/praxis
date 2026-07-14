@@ -1,0 +1,189 @@
+# azure-terraform-pack ontology — deployment-fact vocabulary for the
+# crown-bribery-case Azure Container Instance runtime.
+#
+# WHAT THIS MODELS: the subset of the real `hashicorp/azurerm` Terraform
+# provider's `azurerm_container_group` resource schema (verified this
+# session via
+# https://raw.githubusercontent.com/hashicorp/terraform-provider-azurerm/main/website/docs/r/container_group.html.markdown,
+# MPL-2.0) that this repo's own compute requirement actually needs, plus a
+# handful of pack-owned provenance/ordering properties that have no azurerm
+# schema counterpart (disclosed individually below). See
+# packs/azure-terraform-pack/SOURCE_ATTRIBUTION.md for the full real-source
+# adaptation ledger (which HCL came from
+# Azure/terraform-azurerm-avm-res-containerinstance-containergroup vs. which
+# is custom-written).
+#
+# PUBLIC-ONTOLOGY-FIRST CHECK: no public RDF vocabulary for Terraform HCL
+# resource shapes or the azurerm provider schema was found this session (not
+# a W3C/schema.org/OMG vocabulary domain — Terraform provider schemas are
+# HashiCorp/Microsoft-maintained software interfaces, not general-purpose
+# real-world concepts). Consistent with packs/otel-weaver-pack's
+# otel-bridge.ttl precedent (bridge terms for a software-schema domain
+# with no public RDF equivalent), this pack mints a bridge vocabulary
+# (`aztf:`) whose class/property LOCAL NAMES are taken verbatim from the
+# real azurerm provider's own argument names wherever a 1:1 azurerm
+# argument exists, so the RDF vocabulary is traceable term-for-term back to
+# the real schema, not invented.
+#
+# SCOPE FENCE — azurerm_container_group/container arguments this pack
+# deliberately does NOT model, and why (grounded in the requirements
+# analysis this pack's caller supplied, not guessed):
+#   - dns_name_label, subnet_ids, exposed_port, zones, priority,
+#     key_vault_key_id, key_vault_user_assigned_identity_id, identity,
+#     dns_config, diagnostics, image_registry_credential: no networking,
+#     autoscaling, HA, or externally-sourced-secret requirement is
+#     evidenced in the crown-bribery-case chain (main() runs one linear
+#     pipeline to completion and exits; zero reqwest/hyper/axum/tonic/
+#     TcpListener in crown-bribery-case.rs or Cargo.toml; zero
+#     std::env::var reads for a secret in crates/multifractal-workflow/src/,
+#     all confirmed by grep this session). Modeling these would be
+#     inventing infrastructure the code does not need.
+#   - container `ports`/`readiness_probe`/`liveness_probe`/`volume`/
+#     `secure_environment_variables`: no listener exists to health-check
+#     or expose a port for (crown-bribery-case.rs's main() has no
+#     request/response loop), and no persistent volume is required — every
+#     stage artifact is written under target/crown-bribery-case/<run-id>/
+#     via std::fs::write, ephemeral container disk suffices for a
+#     single-run, tens-of-KB-per-run workload (measured this session:
+#     `du -sh target/crown-bribery-case` = 384K across 6 existing runs).
+#   - `sku` (Confidential/Dedicated/Standard): no confidential-computing or
+#     dedicated-host requirement evidenced; provider default (Standard)
+#     applies without needing an RDF-modeled decision.
+#
+# What IS modeled: os_type, restart_policy, ip_address_type (all
+# ContainerGroup-level facts that ARE determined by the code's own shape —
+# a single Linux batch job with no exposed IP), and per-container name/
+# cpu/memory/command (the one container that must run both the compiled
+# Rust binary and the Erlang/OTP-plus-escript bridge in the same process
+# namespace, per crates/multifractal-workflow/src/f15_air_transition_core/
+# bridge.rs and .../f16_otp_runner/bridge.rs). Region/environment/
+# resource-group-name/container-image-reference/tags are NOT modeled here
+# — those are genuine deployment-day inputs with no fact derivable from the
+# source tree, so the templates render them as plain Terraform `variable`
+# blocks instead (see packs/azure-terraform-pack/templates/variables.tf.tmpl).
+
+@prefix aztf: <https://ggen.io/ontology/azure-terraform#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+aztf: a owl:Ontology ;
+  rdfs:label "azure-terraform-pack vocabulary" ;
+  rdfs:comment "Bridge vocabulary over the real hashicorp/azurerm azurerm_container_group resource schema, originally scoped to the crown-bribery-case single-container Azure Container Instance deployment fact set and generalized (aztf:deploymentSlug/aztf:workloadLabel, see those properties' own rdfs:comment) to admit additional aztf:ContainerGroup individuals for other single-container batch deployments -- e.g. packs/azure-terraform-pack/instances/ma-case-deployment.ttl's M&A case study validator -- coexisting in the same graph, each rendered to its own deploy/azure/<slug>/ directory." .
+
+# ── Classes ──────────────────────────────────────────────────────────────
+
+aztf:ContainerGroup
+    a            rdfs:Class ;
+    rdfs:label   "Container Group" ;
+    rdfs:comment "One azurerm_container_group resource (adapted from Azure/terraform-azurerm-avm-res-containerinstance-containergroup's main.tf, resource \"azurerm_container_group\" \"this\", line 1)." .
+
+aztf:Container
+    a            rdfs:Class ;
+    rdfs:label   "Container" ;
+    rdfs:comment "One nested `container` block within a ContainerGroup (adapted from the same main.tf's `dynamic \"container\"` block, lines 17-108)." .
+
+aztf:Evidence
+    a            rdfs:Class ;
+    rdfs:label   "Requirement evidence citation" ;
+    rdfs:comment "Pack-owned provenance class (no azurerm schema counterpart): one file:line citation grounding why a Container carries the shape it does. Mirrors packs/f16-otp-runner-pack/ontology.ttl's otp:sourceModule/otp:sourceSite provenance-property convention." .
+
+# ── ContainerGroup properties (azurerm_container_group argument names,
+#    verbatim local names) ──────────────────────────────────────────────
+
+aztf:osType
+    a rdf:Property ; rdfs:domain aztf:ContainerGroup ; rdfs:range xsd:string ;
+    rdfs:comment "azurerm_container_group.os_type. Allowed values (verified via the real provider docs this session): 'Linux', 'Windows'. 'Linux' here: rebar3/escript and this repo's `target/release/<bin>` build output both target Linux; no Windows-container evidence exists anywhere in this codebase." .
+
+aztf:restartPolicy
+    a rdf:Property ; rdfs:domain aztf:ContainerGroup ; rdfs:range xsd:string ;
+    rdfs:comment "azurerm_container_group.restart_policy. Allowed values: 'Always', 'Never', 'OnFailure' (provider default: 'Always'). 'Never' here: crown-bribery-case.rs's main() runs one linear pipeline to completion and calls std::process::exit — a run-to-completion batch job, not a long-lived service to restart." .
+
+aztf:ipAddressType
+    a rdf:Property ; rdfs:domain aztf:ContainerGroup ; rdfs:range xsd:string ;
+    rdfs:comment "azurerm_container_group.ip_address_type. Allowed values: 'Public', 'Private', 'None' (provider default: 'Public'). 'None' here: zero reqwest/hyper/axum/warp/tonic/TcpListener/TcpStream/UdpSocket references exist in crown-bribery-case.rs, crown-local-cli.rs, or crates/multifractal-workflow/Cargo.toml (grepped this session) — no listener needs an address." .
+
+aztf:hasContainer
+    a rdf:Property ; rdfs:domain aztf:ContainerGroup ; rdfs:range aztf:Container ;
+    rdfs:comment "One member of the ContainerGroup's `container` block set. Exactly 1 individual today (the combined Rust+Erlang runtime); the property is multi-valued in the schema so a future second container (e.g. a sidecar) would not require a vocabulary change." .
+
+aztf:deploymentSlug
+    a rdf:Property ; rdfs:domain aztf:ContainerGroup ; rdfs:range xsd:string ;
+    rdfs:comment "Pack-owned deterministic per-deployment identifier (no azurerm schema counterpart), added when this pack was generalized from one embedded crown-bribery-case instance to multiple aztf:ContainerGroup individuals coexisting in one graph (see packs/azure-terraform-pack/instances/ma-case-deployment.ttl). Used by every templates/*.tmpl's `to:` frontmatter (Tera per-row rendering keyed on this value) to route each ContainerGroup's rendered files to its own deploy/azure/<slug>/ directory instead of colliding on the single hardcoded path the pack originally used. Kebab-case by convention (not SHACL-enforced beyond xsd:string), mirroring aztf:containerName's own naming style." .
+
+aztf:workloadLabel
+    a rdf:Property ; rdfs:domain aztf:ContainerGroup ; rdfs:range xsd:string ;
+    rdfs:comment "Pack-owned human-readable one-line description of what this ContainerGroup runs (no azurerm schema counterpart). Templates substitute this in place of what was previously a hardcoded literal 'crown-bribery-case' string in generated comments, the `workload` tag, and the default `name` variable's description -- so the same templates render truthfully for any ContainerGroup instance, not just the original one." .
+
+# ── Container properties ────────────────────────────────────────────────
+
+aztf:containerOrder
+    a rdf:Property ; rdfs:domain aztf:Container ; rdfs:range xsd:integer ;
+    rdfs:comment "Pack-owned deterministic ORDER BY key (no azurerm schema counterpart — the real resource keys `container` blocks by map key/for_each identity, not an explicit ordinal; this property exists only so the pack's SPARQL SELECT has a stable, explicit sort column per this project's determinism invariant)." .
+
+aztf:containerName
+    a rdf:Property ; rdfs:domain aztf:Container ; rdfs:range xsd:string ;
+    rdfs:comment "azurerm_container_group container block's `name` argument (Required)." .
+
+aztf:cpuCores
+    a rdf:Property ; rdfs:domain aztf:Container ; rdfs:range xsd:decimal ;
+    rdfs:comment "azurerm_container_group container block's `cpu` argument (Required, number of CPU cores). Sizing is per-instance, disclosed on each individual (see aztf:workflowRuntimeContainer / aztf:maCaseValidatorContainer's own rdfs:comment for this pack's two current individuals' measured-or-unbenchmarked basis) -- this property-level comment states only the schema meaning, not a value." .
+
+aztf:memoryGb
+    a rdf:Property ; rdfs:domain aztf:Container ; rdfs:range xsd:decimal ;
+    rdfs:comment "azurerm_container_group container block's `memory` argument (Required, GB). Sizing is per-instance; see aztf:cpuCores's own rdfs:comment for where each individual's disclosure lives." .
+
+aztf:command
+    a rdf:Property ; rdfs:domain aztf:Container ; rdfs:range xsd:string ;
+    rdfs:comment "The container block's `commands` argument (Optional list(string) in the real azurerm schema) is rendered by templates/main.tf.tmpl as `[\"/bin/sh\", \"-c\", \"<this value>\"]`, so this property holds ONE shell command line, not one argv token -- deliberately generalized from an earlier single-argv-element rendering (`commands = [\"{{ command }}\"]`) that only happened to be correct for crown-bribery-case.rs's own zero-argument entrypoint (src/bin/crown-bribery-case.rs:1542-1568's parse_args() takes no required positional/flag arguments) and would have silently mis-exec'd any command needing arguments, such as the M&A case study individual's multi-flag `ggen graph validate --files ... --shapes ...` invocation (see aztf:maCaseValidatorContainer). Image-layout assumption disclosed per-instance: no Dockerfile exists in this repo yet for either individual, so in-image absolute paths below are this pack's own convention, not verified against a real build artifact." .
+
+aztf:hasEvidence
+    a rdf:Property ; rdfs:domain aztf:Container ; rdfs:range aztf:Evidence ;
+    rdfs:comment "Links a Container to the source/documentation citation(s) establishing why it is shaped the way it is (e.g. why it runs the process(es) it does, in one container rather than split across several)." .
+
+aztf:evidenceOrder  a rdf:Property ; rdfs:domain aztf:Evidence ; rdfs:range xsd:integer .
+aztf:evidenceFile   a rdf:Property ; rdfs:domain aztf:Evidence ; rdfs:range xsd:string .
+aztf:evidenceLines  a rdf:Property ; rdfs:domain aztf:Evidence ; rdfs:range xsd:string .
+
+# ── Instance data: the crown-bribery-case deployment ────────────────────
+# (originally "the one real deployment" this pack modeled; a second
+# aztf:ContainerGroup individual for the M&A case study's Azure deployment
+# now lives in packs/azure-terraform-pack/instances/ma-case-deployment.ttl,
+# unioned into the graph via ggen.toml's extra_ontologies at sync time --
+# see aztf:deploymentSlug's rdfs:comment above for why two individuals can
+# coexist in one graph without colliding on output path or container list.)
+
+aztf:crownBriberyCaseGroup
+    a aztf:ContainerGroup ;
+    aztf:osType         "Linux" ;
+    aztf:restartPolicy  "Never" ;
+    aztf:ipAddressType  "None" ;
+    aztf:hasContainer   aztf:workflowRuntimeContainer ;
+    aztf:deploymentSlug "crown-bribery-case" ;
+    aztf:workloadLabel  "crown-bribery-case (multifractal-workflow crate: compiled Rust binary + Erlang/OTP-plus-escript bridge)" ;
+    rdfs:comment "The single Azure Container Instance container group hosting crown-bribery-case (multifractal-workflow crate). One container, no exposed IP, run-to-completion — the only topology matching f15_air_transition_core/bridge.rs and f16_otp_runner/bridge.rs's same-host OS-subprocess escript bridge (std::process::Command spawning apps/air_core/scripts/air_core_bridge.escript and apps/arazzo_runner/scripts/dispatch_statem_bridge.escript), which rules out separate per-language serverless functions." .
+
+aztf:workflowRuntimeContainer
+    a aztf:Container ;
+    aztf:containerOrder 0 ;
+    aztf:containerName  "workflow-runtime" ;
+    aztf:cpuCores       1.0 ;
+    aztf:memoryGb       2.0 ;
+    aztf:command        "/app/crown-bribery-case" ;
+    aztf:hasEvidence    aztf:f15BridgeEvidence, aztf:f16BridgeEvidence ;
+    rdfs:comment "Runs the compiled Rust binary target/release/crown-bribery-case AND requires escript + the rebar3-compiled apps/{air_core,arazzo_runner,arazzo_atomvm,atomvm_runner} BEAM artifacts under _build/default/lib/ on the same filesystem/PATH — a build-time (Dockerfile) requirement this pack discloses but does not generate, since no Dockerfile exists in this repo yet to adapt from. Sizing disclosure (moved here from aztf:cpuCores/aztf:memoryGb's now-generic property comments): 1.0 vCPU / 2.0 GiB are an unbenchmarked starting default — the only measured facts available this session were output-artifact size (384K across 6 runs) and crown-bribery-case.rs's own 'sub-second to low-second' escript-wait-window doc comments, neither a CPU-time measurement — not a load-tested requirement." .
+
+aztf:f15BridgeEvidence
+    a aztf:Evidence ;
+    aztf:evidenceOrder 0 ;
+    aztf:evidenceFile  "crates/multifractal-workflow/src/f15_air_transition_core/bridge.rs" ;
+    aztf:evidenceLines "7-9,78" ;
+    rdfs:comment "Doc comment (lines 7-9): 'this Rust code spawns apps/air_core/scripts/air_core_bridge.escript as a child process'. Line 78: `use std::process::{Child, Command, Output, Stdio};`. Actual spawn call: `Command::new(\"escript\")` at line 388." .
+
+aztf:f16BridgeEvidence
+    a aztf:Evidence ;
+    aztf:evidenceOrder 1 ;
+    aztf:evidenceFile  "crates/multifractal-workflow/src/f16_otp_runner/bridge.rs" ;
+    aztf:evidenceLines "14-17,89" ;
+    rdfs:comment "Doc comment (lines 14-17): spawns apps/arazzo_runner/scripts/dispatch_statem_bridge.escript as a child process, JSON over stdin/stdout. Line 89: `use std::process::{Child, Command, Output, Stdio};`. Actual spawn call: `Command::new(\"escript\")` at line 369." .

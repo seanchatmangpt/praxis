@@ -1,0 +1,45 @@
+# pddl-problem-plannable.ttl -- worked scenario over pddl-domain.ttl where
+# all 4 required Terraform input variables (location/environment/
+# resource_group_name/container_image -- deploy/azure/ma-case-study/
+# variables.tf) are supplied, so the ma-case-study deployment's real
+# generated Terraform (main.tf/providers.tf/outputs.tf/tests/
+# container_group.tftest.hcl) can be planned end to end: provider
+# initialized -> variables bound -> resource group created -> container
+# spec defined -> container group created (referencing the resource
+# group) -> outputs bound -> the mocked-provider plan test verified.
+# Concatenate with pddl-domain.ttl before calling
+# `my_conforming_project::mfg::manufacture` (see that file's own header for
+# why the domain/problem split is 3 files, not 1); proven live by
+# crates/multifractal-workflow/tests/azure_terraform_pddl.rs, which shows
+# the real plan `bcinr_pddl::GroundProblem::find_plan` produces.
+#
+# Object names mirror deploy/azure/ma-case-study's own real deployment slug
+# (`ma-case-study`, packs/azure-terraform-pack/instances/
+# ma-case-deployment.ttl's `aztf:deploymentSlug`) and the real
+# `container_group_topology` run block name from tests/
+# container_group.tftest.hcl -- bare PDDL symbol names, not the same RDF/
+# HCL identifiers, but intentionally traceable for a human reading both
+# files side by side.
+
+@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+
+pdl:problem_azure_terraform_ma_case_study_plannable
+    a pdl:Problem ;
+    pdl:name "azure-terraform-ma-case-study-plannable" ;
+    pdl:domain "azure-terraform-provisioning-pddl8" ;
+    pdl:object [ pdl:name "deployment-ma-case-study" ; pdl:ofType "deployment" ] ,
+               [ pdl:name "provider-azurerm" ; pdl:ofType "provider" ] ,
+               [ pdl:name "var-location" ; pdl:ofType "location-variable" ] ,
+               [ pdl:name "var-environment" ; pdl:ofType "environment-variable" ] ,
+               [ pdl:name "var-resource-group-name" ; pdl:ofType "resource-group-name-variable" ] ,
+               [ pdl:name "var-container-image" ; pdl:ofType "container-image-variable" ] ,
+               [ pdl:name "rg-ma-case-study" ; pdl:ofType "resource-group" ] ,
+               [ pdl:name "container-ma-case-validator" ; pdl:ofType "container" ] ,
+               [ pdl:name "cg-ma-case-study" ; pdl:ofType "container-group" ] ,
+               [ pdl:name "test-container-group-topology" ; pdl:ofType "test-suite" ] ;
+    pdl:init "(provider-required deployment-ma-case-study provider-azurerm)" ,
+             "(variable-declared deployment-ma-case-study var-location)" ,
+             "(variable-declared deployment-ma-case-study var-environment)" ,
+             "(variable-declared deployment-ma-case-study var-resource-group-name)" ,
+             "(variable-declared deployment-ma-case-study var-container-image)" ;
+    pdl:goal "(plan-verified test-container-group-topology)" .

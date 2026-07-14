@@ -538,6 +538,18 @@ cng-install-smoke:
     cargo install --path crates/cng --debug --root target/install-smoke --force
     target/install-smoke/bin/cng workflow doctor
 
+# Install the release cng binary to ~/.cargo/bin so the global `cng` tracks this checkout
+# (mirrors install-ggen). Default features only (["runner"]) -- the increment-2 approval-seam
+# verbs (`plan present`/`plan check`/`plan step`, crates/cng/src/plan_approval.rs) are
+# unconditional, no --features bench needed, so a synchronous PreToolUse hook can call this
+# installed binary without paying the bench feature's extra dependency compile cost
+# (wasm4pm-cognition, praxis-graphlaw, pddl-index). --bin cng scopes the install to the cng
+# binary only; the crate also ships otel-rdf-demo (default-enabled) and otel-live (feature-gated,
+# skipped here) as separate binaries -- see cng-run's note on why `cargo run` needs --bin cng.
+install-cng:
+    timeout 900s cargo install --path crates/cng --bin cng --force
+    @cng --version
+
 # --- Isolated-target cargo recipes (concurrent-agent-safe) ---
 #
 # WHY: cargo takes an exclusive lock on `target/.cargo-lock` scoped to CARGO_TARGET_DIR (see
@@ -588,6 +600,14 @@ cng-clippy-isolated name:
 # dependency's own debt is addressed separately.
 cng-clippy-own-code-isolated name:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo clippy -p cng --features bench --tests --no-deps -- -D warnings
+
+# Lint ONLY the cng crate's lib target (no tests, no bench feature) in an isolated target
+# dir (concurrent-agent-safe; see note above). Narrower scope than cng-clippy-isolated --
+# use this when auditing src/** lint debt specifically (e.g. RELEASE_CONTROL.md's
+# "67 pre-existing cng clippy findings" open item), since --tests/--features bench would
+# pull in test-only and bench-only code the src/** debt tally doesn't cover.
+cng-clippy-lib-isolated name:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo clippy -p cng --lib -- -D warnings
 
 # Remove one isolated target dir (cleanup after an agent/dev is done with it)
 cng-clean-isolated name:
@@ -673,6 +693,16 @@ praxis-graphlaw-test-lib-isolated name *args:
 # `just praxis-graphlaw-test-integration-isolated my-feature soc2_hook_actuation test_cuec_gate`
 praxis-graphlaw-test-integration-isolated name binary *args:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo test -p praxis-graphlaw --test {{binary}} {{args}}
+
+# Run praxis-graphlaw's full `--lib` + every `tests/*.rs` integration-test binary in one pass,
+# isolated target dir (concurrent-agent-safe; see the "Isolated-target cargo recipes" note above
+# cng-check-isolated). Wide-blast-radius regression sweep for a change to a core module (e.g.
+# `encoding.rs`) that many integration-test binaries could be sensitive to but that no single
+# `praxis-graphlaw-test-integration-isolated` binary scope would catch on its own. Long timeout
+# (600s) -- this compiles + runs the crate's entire test surface, not one binary.
+# `just praxis-graphlaw-test-all-isolated my-feature`
+praxis-graphlaw-test-all-isolated name *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 600s cargo test -p praxis-graphlaw --lib --tests {{args}}
 
 # Lint praxis-graphlaw's lib + tests in an isolated target dir (concurrent-agent-safe;
 # same --lib --tests scope as praxis-graphlaw-clippy-libtests, same pre-existing
@@ -782,6 +812,14 @@ multifractal-workflow-clippy-isolated name:
 multifractal-workflow-clippy-own-code-isolated name:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo clippy -p multifractal-workflow --all-targets --no-deps -- -D warnings
 
+# Clippy-lint one exact multifractal-workflow integration-test binary only (--no-deps, single
+# --test target), scoped so pre-existing lint debt elsewhere in the crate's src/ (e.g.
+# crown_external.rs/crown_local.rs's result_large_err findings, f29_capability_roadmap.rs's
+# unnecessary_sort_by finding -- none touched by this recipe's caller) does not block verifying
+# a single new test file in isolation. Mirrors praxis-graphlaw's own clippy-test-bin recipe.
+multifractal-workflow-clippy-test-bin binary:
+    timeout 180s cargo clippy -p multifractal-workflow --test {{binary}} --no-deps -- -D warnings
+
 # Type-check multifractal-workflow in an isolated target dir (concurrent-agent-safe;
 # see the "Isolated-target cargo recipes" note above cng-check-isolated), e.g.
 # `just multifractal-workflow-check-isolated my-feature`
@@ -815,6 +853,18 @@ multifractal-workflow-test-long *args:
 multifractal-workflow-test-isolated name *args:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo test -p multifractal-workflow {{args}}
 
+# Run crown-local-cli: the first real, non-test entry point for
+# crown_local::drive_local_witness_prefix. Drives the entire LOCAL crown
+# witness (F02->F03->F08->F09->F10->F11->F18->F19->F02(re-admit)->F24->F21->F25)
+# over a real RDF/Turtle observation file supplied as `*args`.
+# Usage: `just multifractal-workflow-run-crown-local-cli crates/multifractal-workflow/examples/email-needs-response.ttl`
+multifractal-workflow-run-crown-local-cli *args:
+    timeout 180s cargo run -p multifractal-workflow --bin crown-local-cli -- {{args}}
+
+# Isolated-target-dir variant of the above (concurrent-agent-safe).
+multifractal-workflow-run-crown-local-cli-isolated name *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 180s cargo run -p multifractal-workflow --bin crown-local-cli -- {{args}}
+
 # Run crown-bribery-case (Stage 2 of a 4-stage build): drives the Solvane
 # Global bribery-compliance case fixture (fixtures/bribery-case/, Stage 1)
 # through F02 admission -> Knowledge Hook obligation derivation -> F08 PDDL
@@ -829,6 +879,34 @@ multifractal-workflow-run-crown-bribery-case *args:
 # Isolated-target-dir variant of the above (concurrent-agent-safe).
 multifractal-workflow-run-crown-bribery-case-isolated name *args:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo run -p multifractal-workflow --bin crown-bribery-case -- {{args}}
+
+# Run the multi-org merge test (crates/multifractal-workflow/tests/ma_org_merge.rs):
+# the first real, working instance of
+# docs/standing/BOOTSTRAP_COLD_START_LIMITATIONS.md item 14 (multi-org first-merge
+# bootstrap). Proves, over packs/ma-case-study-pack/fixtures/{acquirer-org,
+# target-org,target-org-colliding}.ttl: (a) each organization's graph admits
+# independently through the real F02 6-gate pipeline with its own receipt, (b) a
+# real, no-conflict merge (crates/multifractal-workflow/src/f31_org_merge.rs)
+# produces one re-validated fused graph, (c) a deliberately-constructed
+# colliding-identifier adversarial case is detected and refused, not silently
+# corrupted.
+multifractal-workflow-test-org-merge *args:
+    timeout 300s cargo test -p multifractal-workflow --test ma_org_merge {{args}}
+
+# Isolated-target-dir variant of the above (concurrent-agent-safe; see the
+# "Isolated-target cargo recipes" note above cng-check-isolated).
+multifractal-workflow-test-org-merge-isolated name *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo test -p multifractal-workflow --test ma_org_merge {{args}}
+
+# Live verification that the Azure infrastructure PROVISIONING-SEQUENCE PDDL8
+# domain (packs/azure-terraform-pack/pddl-domain.ttl) genuinely manufactures
+# (my_conforming_project::mfg::manufacture) and ground+solves (real
+# bcinr_pddl::GroundProblem::find_plan), both the plannable and the
+# typed-blocked scenarios -- mirrors bribery-case-pddl-test, see
+# crates/multifractal-workflow/tests/azure_terraform_pddl.rs. Models the
+# provisioning SEQUENCE only; does not invoke `terraform apply`.
+multifractal-workflow-test-azure-terraform-pddl *args:
+    timeout 300s cargo test -p multifractal-workflow --test azure_terraform_pddl {{args}}
 
 # --- Mutation testing: PILOT, one module only ---
 # PILOT SCOPE, explicit: this recipe runs cargo-mutants against exactly ONE

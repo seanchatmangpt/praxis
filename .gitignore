@@ -115,3 +115,15 @@ crates/praxis-graphlaw/test_empty.rs
 /test_list.txt
 /tier_failures.txt
 
+# Terraform local state/provider-cache (deploy/**/*.tf and *.tftest.hcl are
+# ggen-generated tracked source, and .terraform.lock.hcl is the standard
+# provider-version pin Terraform itself recommends committing; .terraform/
+# is a local provider *binary* cache re-downloaded by `terraform init`, and
+# *.tfstate* would hold live resource state -- neither belongs in version
+# control).
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
