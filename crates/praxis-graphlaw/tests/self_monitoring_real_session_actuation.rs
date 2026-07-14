@@ -522,13 +522,20 @@ fn broadened_topic_experiment_fires_correctly_and_before_real_frustration_turn_o
 }
 
 /// Same broadened counterfactual, via `TripleStore`'s own proven `kh:`
-/// mechanism -- deliberately demonstrating the ALREADY-DISCLOSED (hook.ttl's
-/// own header, "ENGINE LIMITATION FOUND") single-blank-node-label aliasing
-/// bug for real, on genuinely multi-row CONSTRUCT firing, for the first time
-/// this session (previously only a hand-fixture-scoped-to-one-row concern
-/// was ever exercised).
+/// mechanism -- confirming the FIX for the formerly-disclosed (hook.ttl's
+/// prior header, "ENGINE LIMITATION FOUND") single-blank-node-label aliasing
+/// bug on genuinely multi-row CONSTRUCT firing:
+/// `crates/praxis-graphlaw/src/hooks/construct.rs`'s
+/// `instantiate_term_pattern` now mints a per-solution-row-scoped blank
+/// node (via `mint_or_reuse_construct_blank_node`'s content-addressed
+/// interning) instead of echoing the template's raw label verbatim, so 3
+/// genuinely qualifying solution rows now produce 3 distinct
+/// `EscalationObligation` nodes here too, matching oxigraph's independent,
+/// standards-compliant CONSTRUCT evaluator
+/// (`broadened_topic_experiment_fires_correctly_and_before_real_frustration_turn_oxigraph`)
+/// pair-for-pair rather than aliasing onto one shared node.
 #[test]
-fn broadened_topic_experiment_via_triplestore_exhibits_disclosed_blank_node_aliasing() {
+fn broadened_topic_experiment_via_triplestore_matches_oxigraph_after_blank_node_fix() {
     let store = run_via_triplestore(SESSION_BROAD_TTL);
     let rows = triplestore_escalation_rows(&store);
     eprintln!(
@@ -536,30 +543,40 @@ fn broadened_topic_experiment_via_triplestore_exhibits_disclosed_blank_node_alia
         rows.len()
     );
 
-    // Real, observed engine behavior (not the 3 clean pairs oxigraph
-    // produces): TripleStore's `instantiate_term_pattern` echoes the
-    // template's blank-node label `_:esc` VERBATIM per solution row
-    // (construct.rs::instantiate_term_pattern, `TermPattern::BlankNode(b) =>
-    // format!("_:{}", b.as_str())`), so all 3 solution rows' triples land on
-    // the SAME blank-node subject once added to the store, instead of 3
-    // distinct nodes. `?esc a Obligation ; hasPrior ?prior ; hasRepeat
-    // ?repeat` then joins across whatever DISTINCT prior/repeat values that
-    // one aliased node accumulated -- a cross product, not the original 3
-    // pairs. This assertion records the REAL observed row count and
-    // confirms it diverges from oxigraph's correct 3, and that every row
-    // shares one `esc` identity (the aliasing, not 3 separate identities).
-    assert_ne!(
+    // Fixed engine behavior, matching oxigraph's 3 clean pairs: each of the
+    // 3 genuinely-qualifying solution rows now gets its own fresh blank
+    // node (per-solution CONSTRUCT scoping, SPARQL 1.1 sec 16.2), so
+    // `?esc a Obligation ; hasPrior ?prior ; hasRepeat ?repeat` yields 3
+    // rows with 3 distinct `esc` identities, not a cross product aliased
+    // onto one shared node.
+    assert_eq!(
         rows.len(),
         3,
-        "if this ever equals 3, TripleStore's blank-node aliasing bug has been fixed and this \
-         test (and hook.ttl's header) needs updating -- got: {rows:?}"
+        "TripleStore must now derive exactly 3 EscalationObligation rows (one per genuinely \
+         qualifying solution), matching oxigraph's correct output; got: {rows:?}"
     );
     let distinct_esc: std::collections::BTreeSet<&str> =
         rows.iter().map(|(esc, _, _)| esc.as_str()).collect();
     assert_eq!(
         distinct_esc.len(),
-        1,
-        "all rows must alias onto exactly ONE blank-node identity (the disclosed engine \
-         limitation), not 3 distinct nodes as oxigraph correctly produces; got distinct esc ids: {distinct_esc:?}"
+        3,
+        "each of the 3 rows must carry its OWN distinct blank-node identity (the aliasing bug \
+         is fixed); got distinct esc ids: {distinct_esc:?}"
+    );
+
+    let mut pairs: Vec<(i64, i64)> = rows
+        .iter()
+        .map(|(_, prior, repeat)| {
+            (
+                turn_seq(prior).expect("prior must be a turn-N IRI"),
+                turn_seq(repeat).expect("repeat must be a turn-N IRI"),
+            )
+        })
+        .collect();
+    pairs.sort_unstable();
+    assert_eq!(
+        pairs,
+        vec![(1656, 1663), (1656, 1703), (1663, 1703)],
+        "TripleStore's derived (prior, repeat) pairs must match oxigraph's exactly; got: {rows:?}"
     );
 }

@@ -64,29 +64,26 @@
 # discipline the task brief requires ("the hook is not something the hook
 # derives... it does not classify raw natural-language text itself").
 #
-# ENGINE LIMITATION FOUND (already disclosed once this session, cited not
-# re-discovered) AND DELIBERATELY DESIGNED AROUND: identical to
-# crates/multifractal-workflow/fixtures/bribery-case/hook.ttl's own header
-# disclosure -- `crates/praxis-graphlaw/src/hooks/construct.rs::
-# instantiate_term_pattern` echoes a CONSTRUCT template's blank-node LABEL
-# verbatim per solution row (`format!("_:{}", b.as_str())`) rather than
-# minting a fresh blank node per SPARQL solution binding (full SPARQL 1.1
-# semantics would). Unlike the bribery-case hook (which avoided blank nodes
-# entirely because its CONSTRUCT needed no reified per-case node), this
+# ENGINE LIMITATION FOUND AND FIXED (was: process-global blank-node label
+# interning in `crates/praxis-graphlaw/src/hooks/construct.rs::
+# instantiate_term_pattern`, which echoed a CONSTRUCT template's blank-node
+# LABEL verbatim -- worse than per-solution-row aliasing, the literal string
+# was interned in a process-wide encoder for the whole process lifetime).
+# Fixed via content-addressed per-row interning (`CONSTRUCT_BNODE_INTERN` in
+# `crates/praxis-graphlaw/src/registry.rs`, keyed by query text + label +
+# canonical row bindings): different solution rows now mint distinct blank
+# nodes; the same row re-evaluated on a later `materialize()` fixpoint round
+# still gets the same node, preserving convergence and determinism. This
 # hook's CONSTRUCT genuinely needs ONE reified node per firing (to carry
-# BOTH turn links plus a reason literal, exactly what the task brief asks
-# for: "a smon:EscalationObligation node linking to both turns"). This hook
-# therefore uses a SINGLE blank-node label (`_:esc`) and is SAFE ONLY under
-# the explicit, disclosed constraint that at most ONE qualifying (Q, Q_prev,
-# resp) triple exists per `materialize()` call -- true of every fixture in
-# fixtures/ by design (each fixture's WHERE clause matches at most one row).
-# A graph with TWO OR MORE simultaneously-qualifying pairs in one
-# `materialize()` pass would alias every pair's EscalationObligation onto the
-# SAME blank node id -- silent data corruption across pairs, not merely
-# cosmetic. A future multi-pair deployment of this hook would need either a
-# per-pair minted IRI (via a capture-time smon:escalationCandidateId literal
-# the CONSTRUCT could echo into an IRI, NOT invented/tested here) or a
-# one-pair-per-materialize()-call discipline enforced by the caller.
+# BOTH turn links plus a reason literal), and now correctly gets a fresh one
+# per qualifying pair rather than aliasing every pair onto a single `_:esc`
+# id -- verified directly against `packs/self-monitoring-pack/fixtures/
+# session-real-broad-topic.ttl`'s 3-pair counterfactual, matching an
+# independent standards-compliant SPARQL engine (oxigraph) pair-for-pair.
+# A residual, disclosed narrowing (not a bug): two solution rows with
+# byte-identical bindings -- a true duplicate, not a different pair --
+# still share one blank node, since collapsing genuine duplicates is
+# required by `materialize()`'s own convergence invariant.
 #
 # SECOND ENGINE LIMITATION (also cited, not re-discovered): the same
 # `clean_term` one-quote-stripping limitation
