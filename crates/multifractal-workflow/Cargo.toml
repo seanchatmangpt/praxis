@@ -9,6 +9,26 @@ description = "v26.7.12 architecture atlas (30 families x 8 lenses): scaffolding
 [lib]
 doctest = false
 
+# crown-bribery-case (Stage 2 of a 4-stage build, v26.7.12): the first real,
+# non-test entry point driving the Solvane Global bribery-compliance case
+# fixture (fixtures/bribery-case/, Stage 1) through RDF admission (F02),
+# Knowledge-Hook obligation derivation (hook.ttl's kh:Hook, via
+# praxis-graphlaw's real hook engine), PDDL8 planning (F08), MFW growth/POWL
+# v2 geometry projection (F09/F10), and Arazzo 1.1.x manufacture + AIR
+# compilation (F13/F14) -- ending in a real Arazzo JSON artifact written to
+# disk and compiled to an AIR program. A same-crate bin needs no new Cargo
+# dependency edge for its own crate's `pub` API, matching crown-local-cli's
+# own rationale above; it DOES need the new `my-conforming-project` edge
+# below for `mfg::manufacture` (RDF `pdl:` instance data -> real, bound-
+# checked PDDL8 text -- the same mechanism Stage 1's own
+# `tests/bribery_case_pddl.rs` proved against this exact domain). Built as
+# an extensible driver (typed per-stage refusal, discrete stage functions),
+# not a one-off script: Stage 3 extends this same binary with real Erlang
+# dispatch. See src/bin/crown-bribery-case.rs for the full design rationale.
+[[bin]]
+name = "crown-bribery-case"
+path = "src/bin/crown-bribery-case.rs"
+
 # Deps are added module-by-module as each family is actually wired (per the
 # reuse/adapt sources named in the per-family survey doc comments), not
 # speculatively for all 30 up front.
@@ -260,6 +280,25 @@ tera = "1.20.0"
 # Analyzer) is a disclosed, always-refusing, not-yet-implemented stub.
 wasm4pm-cognition = { path = "../../../wasm4pm/crates/wasm4pm-cognition", version = "26.7.6" }
 wasm4pm-planner = { path = "../../../wasm4pm/crates/wasm4pm-planner", version = "26.7.6" }
+
+# `crown-bribery-case` bin (Stage 2 of a 4-stage build): real dependency on
+# the workspace ROOT package (`my-conforming-project`, crate name
+# `my_conforming_project`) for its `mfg::manufacture` function -- the same
+# real SPARQL-extraction + `enforce_pddl8` bound-checking + PDDL8-text-
+# emission pipeline `tests/bribery_case_pddl.rs` (repo root) already proved
+# against `fixtures/bribery-case/pddl-domain.ttl`. This is the reverse of
+# every other path dependency in this file: the root package depends on
+# NEITHER `multifractal-workflow` NOR anything that depends on it (checked
+# this session via `grep -n multifractal-workflow /Users/sac/praxis/
+# Cargo.toml`, zero hits), so this is a one-way edge, not a cycle. Only the
+# `ggen` feature is requested (not the crate's `mcp`/`lsp`/`repl` features,
+# which pull heavy, unrelated dependency trees) -- `ggen` is exactly what
+# `mfg` needs (`dep:oxigraph`, `dep:tera`, `dep:ggen-graph`), and `oxigraph`/
+# `tera` are already resolved elsewhere in this same dependency graph (F04's
+# `oxigraph = "0.5"` above, F30's `tera = "1.20.0"` above), so this does not
+# force a second resolution of either. See src/bin/crown-bribery-case.rs for
+# the full call site.
+my-conforming-project = { path = "../..", features = ["ggen"] }
 
 [dev-dependencies]
 # f13_arazzo_artifact's tests construct a real Powl::ExternalCut fixture

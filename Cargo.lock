@@ -3533,6 +3533,7 @@ dependencies = [
  "cng",
  "ggen",
  "hex",
+ "my-conforming-project",
  "oxigraph",
  "pddl-index",
  "powl2-decompose",

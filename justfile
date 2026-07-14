@@ -815,6 +815,21 @@ multifractal-workflow-test-long *args:
 multifractal-workflow-test-isolated name *args:
     CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo test -p multifractal-workflow {{args}}
 
+# Run crown-bribery-case (Stage 2 of a 4-stage build): drives the Solvane
+# Global bribery-compliance case fixture (fixtures/bribery-case/, Stage 1)
+# through F02 admission -> Knowledge Hook obligation derivation -> F08 PDDL
+# planning -> F09/F10 growth+geometry -> F13 Arazzo manufacture -> F14 AIR
+# compile, writing every real intermediate/final artifact under
+# target/crown-bribery-case/<run-id>/. Usage:
+# `just multifractal-workflow-run-crown-bribery-case` (or
+# `-- --run-id my-run` to override the default run-id).
+multifractal-workflow-run-crown-bribery-case *args:
+    timeout 300s cargo run -p multifractal-workflow --bin crown-bribery-case -- {{args}}
+
+# Isolated-target-dir variant of the above (concurrent-agent-safe).
+multifractal-workflow-run-crown-bribery-case-isolated name *args:
+    CARGO_TARGET_DIR=target/agent-{{name}} timeout 300s cargo run -p multifractal-workflow --bin crown-bribery-case -- {{args}}
+
 # --- Mutation testing: PILOT, one module only ---
 # PILOT SCOPE, explicit: this recipe runs cargo-mutants against exactly ONE
 # small, well-tested module --
