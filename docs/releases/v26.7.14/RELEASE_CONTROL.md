@@ -133,5 +133,19 @@ authoritative only over the five-claim table above should any apparent conflict 
   (Claims row 3); its own README.md is authoritative for the CLASSIFICATION-IS-INPUT FENCE, the
   blank-node aliasing bug, and the zero-firing false-negative investigation, which this control
   file's open items 3–4 defer to rather than restate.
+- `docs/releases/v26.7.14/THESIS.md` — additional governed document, adopted verbatim this
+  cycle; the v26.7.14 formal dissertation (Chapter 30 deterministic-envelope calculus, Chapter
+  31 bootstrap/cold-start formalization, Chapter 32 reachability/correspondence boundary,
+  Chapter 33 public-ontology scope and semantic fit including §33.12's explicit ruling that the
+  M&A case is PLANNED future work, Chapter 34 the Fortune-5 external-crown compliance case,
+  Chapter 35 current standing, Appendix N source/claim reconciliation). Its own Chapter 35 and
+  Appendix N.6 ("Claims the candidate must refuse") are, per `N.1`'s own source-hierarchy
+  ordering, subordinate to this control file's Claims Reconciliation table and ticket records —
+  the thesis states this explicitly ("No lower item silently overrides a higher standing
+  authority") — but nothing in this control file may promote a claim past what the thesis's own
+  stricter reconciliation (e.g. `F5-C1`–`F5-C15`, all PLANNED/UNVERIFIED) supports, either.
 
-This file wins on conflict with either `PRD.md` or `ARD.md`.
+This file wins on conflict with either `PRD.md` or `ARD.md`. Where `docs/releases/v26.7.14/
+THESIS.md` states a stricter (more conservative) standing than this file for the same claim —
+notably Chapter 35's treatment of the crown-external chain as PLANNED rather than this file's
+PARTIAL_ALIVE — the more conservative reading governs until reconciled in the same commit.
