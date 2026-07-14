@@ -613,6 +613,15 @@ publish-dry-run crate:
 test-bin binary:
     cargo test -p praxis-graphlaw --test {{binary}} -- --nocapture
 
+# Clippy-lint one exact praxis-graphlaw integration-test binary, scoped so it does NOT compile the
+# lib crate's own `#[cfg(test)]` unit-test module tree (that path currently has a pre-existing,
+# unrelated break: src/bindings.rs's `#[cfg(test)] mod bindings_test;` has no bindings_test.rs on
+# disk -- confirmed via `git log` to predate any self-monitoring-pack work). An integration-test
+# binary links the lib as an ordinary (non-`cfg(test)`) rlib dependency, so this recipe is
+# unaffected by that break, unlike the workspace-wide `clippy` recipe.
+clippy-test-bin binary:
+    timeout 300s cargo clippy -p praxis-graphlaw --test {{binary}} -- -D warnings
+
 # Run praxis-graphlaw's in-crate `#[cfg(test)]` lib unit tests, filtered by a nextest test-name
 # expression (e.g. `just praxis-graphlaw-test-lib 'test(chatman::router)'`). Falls back to
 # `cargo test`'s substring filter if nextest isn't on PATH. Scoped to `--lib` so a filter that

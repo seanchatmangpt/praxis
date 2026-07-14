@@ -1,0 +1,129 @@
+# hook.ttl -- the Knowledge Hook that DERIVES an escalation obligation from
+# the pattern "the same grounding_topic was asked about twice, and the
+# response immediately following the FIRST time was a mere survey, not an
+# actual run." This is the real, tested `kh:` hook-pack mechanism this repo
+# already uses in production-shaped form (same `kh:kind "sparql"` trigger +
+# `kh:action` -> `kh:handler <.../handler#sparql-construct>` shape exercised
+# by crates/praxis-graphlaw/tests/soc2_hook_actuation.rs and, closer to this
+# pack's own domain, crates/multifractal-workflow/fixtures/bribery-case/
+# hook.ttl's obligation-derivation hook), run here via
+# `praxis_graphlaw::TripleStore::load_hook_pack` + `.materialize()` -- not a
+# hand-simulated mechanism. Proven live by
+# crates/praxis-graphlaw/tests/self_monitoring_hook_actuation.rs.
+#
+# THE DATALOG/N3-SHAPE PATTERN THIS SPARQL-CONSTRUCT ENCODES (exactly the
+# rule form the task brief specifies):
+#
+#   grounding_question(Q) ∧ same_system(Q, Q_prev) ∧
+#     prior_response_was_survey(Q_prev)
+#   → derive(escalate_to_build)
+#
+# WHAT THIS HOOK DOES, PRECISELY: fires (kh:effect "emit-delta") whenever the
+# graph contains
+#   ?q1 a smon:Turn ; smon:turnKind smon:GroundingQuestion ;
+#       dcterms:subject ?topic ; smon:sequenceIndex ?i1 ;
+#       dcterms:isPartOf ?session .          -- Q_prev: a GroundingQuestion
+#   ?q2 a smon:Turn ; smon:turnKind smon:GroundingQuestion ;
+#       dcterms:subject ?topic ; smon:sequenceIndex ?i2 ;
+#       dcterms:isPartOf ?session .          -- Q: ANOTHER GroundingQuestion,
+#                                                same session, SAME
+#                                                dcterms:subject (this shared
+#                                                variable binding IS
+#                                                same_system(Q, Q_prev) --
+#                                                two turns unify to the same
+#                                                ?topic value)
+#   ?resp a smon:Turn ; smon:turnKind smon:SurveyResponse ;
+#       smon:immediatelyFollows ?q1 ;
+#       dcterms:isPartOf ?session .          -- prior_response_was_survey(Q_prev):
+#                                                positive existence check that
+#                                                the turn immediately after Q_prev
+#                                                was classified SurveyResponse
+#                                                (NOT RunResponse/BlockerResponse
+#                                                -- excluded by construction,
+#                                                since the triple pattern only
+#                                                matches turnKind =
+#                                                smon:SurveyResponse exactly;
+#                                                see the ENGINE LIMITATION note
+#                                                below for why this is a
+#                                                positive check, not a NOT-EXISTS
+#                                                negation)
+#   FILTER(?i2 > ?i1)                        -- Q_prev really is the EARLIER
+#                                                (first) GroundingQuestion
+#   FILTER(?q1 != ?q2)                       -- Q and Q_prev are genuinely
+#                                                distinct turns
+# and, when it fires, CONSTRUCTs one `smon:EscalationObligation` node linking
+# smon:hasPriorGroundingQuestion -> ?q1, smon:hasGroundingQuestion -> ?q2,
+# plus a smon:reason literal.
+#
+# CLASSIFICATION-IS-INPUT FENCE (see ontology.ttl's header for the full
+# statement): every property this WHERE clause reads --
+# smon:turnKind, dcterms:subject, smon:sequenceIndex, smon:immediatelyFollows
+# -- is an INPUT fact a fixture hand-asserts. This CONSTRUCT query never
+# reads turn TEXT and never classifies anything; it is pure pattern-match
+# over already-classified facts, exactly the Datalog/SPARQL-CONSTRUCT
+# discipline the task brief requires ("the hook is not something the hook
+# derives... it does not classify raw natural-language text itself").
+#
+# ENGINE LIMITATION FOUND (already disclosed once this session, cited not
+# re-discovered) AND DELIBERATELY DESIGNED AROUND: identical to
+# crates/multifractal-workflow/fixtures/bribery-case/hook.ttl's own header
+# disclosure -- `crates/praxis-graphlaw/src/hooks/construct.rs::
+# instantiate_term_pattern` echoes a CONSTRUCT template's blank-node LABEL
+# verbatim per solution row (`format!("_:{}", b.as_str())`) rather than
+# minting a fresh blank node per SPARQL solution binding (full SPARQL 1.1
+# semantics would). Unlike the bribery-case hook (which avoided blank nodes
+# entirely because its CONSTRUCT needed no reified per-case node), this
+# hook's CONSTRUCT genuinely needs ONE reified node per firing (to carry
+# BOTH turn links plus a reason literal, exactly what the task brief asks
+# for: "a smon:EscalationObligation node linking to both turns"). This hook
+# therefore uses a SINGLE blank-node label (`_:esc`) and is SAFE ONLY under
+# the explicit, disclosed constraint that at most ONE qualifying (Q, Q_prev,
+# resp) triple exists per `materialize()` call -- true of every fixture in
+# fixtures/ by design (each fixture's WHERE clause matches at most one row).
+# A graph with TWO OR MORE simultaneously-qualifying pairs in one
+# `materialize()` pass would alias every pair's EscalationObligation onto the
+# SAME blank node id -- silent data corruption across pairs, not merely
+# cosmetic. A future multi-pair deployment of this hook would need either a
+# per-pair minted IRI (via a capture-time smon:escalationCandidateId literal
+# the CONSTRUCT could echo into an IRI, NOT invented/tested here) or a
+# one-pair-per-materialize()-call discipline enforced by the caller.
+#
+# SECOND ENGINE LIMITATION (also cited, not re-discovered): the same
+# `clean_term` one-quote-stripping limitation
+# crates/multifractal-workflow/fixtures/bribery-case/hook.ttl's header
+# discloses (extracting a `kh:query` literal's lexical value strips exactly
+# one leading/trailing `"` rather than recognizing a Turtle
+# `"""..."""`-embedded double-quoted string) applies here too: this hook's
+# CONSTRUCT template embeds a `smon:reason` string literal. Following that
+# file's established, already-working convention, the embedded literal below
+# uses SINGLE quotes ('...') rather than double quotes, so it survives
+# `clean_term`'s stripping and spargebra's re-parse intact. This hook's WHERE
+# clause itself has no embedded string-literal FILTER (only IRI/variable
+# comparisons), so only the CONSTRUCT template's reason literal needs this
+# treatment.
+#
+# PUBLIC-ONTOLOGY-FIRST: see ontology.ttl's header for prov:/dcterms:/skos:
+# usage this file's WHERE clause queries against. No new public-ontology
+# terms are introduced here; smon:* individuals used below (smon:Turn,
+# smon:GroundingQuestion, smon:SurveyResponse, smon:EscalationObligation,
+# smon:hasPriorGroundingQuestion, smon:hasGroundingQuestion, smon:reason)
+# are all declared and disclosed in ontology.ttl.
+
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix kh:      <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix smon:    <http://seanchatmangpt.github.io/packs/self-monitoring#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+smon:derive_escalation_obligation
+    a kh:Hook ;
+    kh:name "derive_escalation_obligation" ;
+    kh:kind "sparql" ;
+    kh:query """SELECT ?q1 ?q2 WHERE { ?q1 a <http://seanchatmangpt.github.io/packs/self-monitoring#Turn> ; <http://seanchatmangpt.github.io/packs/self-monitoring#turnKind> <http://seanchatmangpt.github.io/packs/self-monitoring#GroundingQuestion> ; <http://purl.org/dc/terms/subject> ?topic ; <http://seanchatmangpt.github.io/packs/self-monitoring#sequenceIndex> ?i1 ; <http://purl.org/dc/terms/isPartOf> ?session . ?q2 a <http://seanchatmangpt.github.io/packs/self-monitoring#Turn> ; <http://seanchatmangpt.github.io/packs/self-monitoring#turnKind> <http://seanchatmangpt.github.io/packs/self-monitoring#GroundingQuestion> ; <http://purl.org/dc/terms/subject> ?topic ; <http://seanchatmangpt.github.io/packs/self-monitoring#sequenceIndex> ?i2 ; <http://purl.org/dc/terms/isPartOf> ?session . ?resp a <http://seanchatmangpt.github.io/packs/self-monitoring#Turn> ; <http://seanchatmangpt.github.io/packs/self-monitoring#turnKind> <http://seanchatmangpt.github.io/packs/self-monitoring#SurveyResponse> ; <http://seanchatmangpt.github.io/packs/self-monitoring#immediatelyFollows> ?q1 ; <http://purl.org/dc/terms/isPartOf> ?session . FILTER(?i2 > ?i1) FILTER(?q1 != ?q2) }""" ;
+    kh:effect "emit-delta" ;
+    kh:action smon:derive_escalation_obligation_action ;
+    kh:priority 1 .
+
+smon:derive_escalation_obligation_action
+    a kh:Action ;
+    kh:handler <http://seanchatmangpt.github.io/praxis/handler#sparql-construct> ;
+    kh:query """CONSTRUCT { _:esc <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://seanchatmangpt.github.io/packs/self-monitoring#EscalationObligation> . _:esc <http://seanchatmangpt.github.io/packs/self-monitoring#hasPriorGroundingQuestion> ?q1 . _:esc <http://seanchatmangpt.github.io/packs/self-monitoring#hasGroundingQuestion> ?q2 . _:esc <http://seanchatmangpt.github.io/packs/self-monitoring#reason> 'same grounding_topic asked twice by a GroundingQuestion turn, and the turn immediately following the first GroundingQuestion was only a SurveyResponse (not a RunResponse/BlockerResponse) -- escalate to an actual build/run rather than another survey' . } WHERE { ?q1 a <http://seanchatmangpt.github.io/packs/self-monitoring#Turn> ; <http://seanchatmangpt.github.io/packs/self-monitoring#turnKind> <http://seanchatmangpt.github.io/packs/self-monitoring#GroundingQuestion> ; <http://purl.org/dc/terms/subject> ?topic ; <http://seanchatmangpt.github.io/packs/self-monitoring#sequenceIndex> ?i1 ; <http://purl.org/dc/terms/isPartOf> ?session . ?q2 a <http://seanchatmangpt.github.io/packs/self-monitoring#Turn> ; <http://seanchatmangpt.github.io/packs/self-monitoring#turnKind> <http://seanchatmangpt.github.io/packs/self-monitoring#GroundingQuestion> ; <http://purl.org/dc/terms/subject> ?topic ; <http://seanchatmangpt.github.io/packs/self-monitoring#sequenceIndex> ?i2 ; <http://purl.org/dc/terms/isPartOf> ?session . ?resp a <http://seanchatmangpt.github.io/packs/self-monitoring#Turn> ; <http://seanchatmangpt.github.io/packs/self-monitoring#turnKind> <http://seanchatmangpt.github.io/packs/self-monitoring#SurveyResponse> ; <http://seanchatmangpt.github.io/packs/self-monitoring#immediatelyFollows> ?q1 ; <http://purl.org/dc/terms/isPartOf> ?session . FILTER(?i2 > ?i1) FILTER(?q1 != ?q2) }""" .
