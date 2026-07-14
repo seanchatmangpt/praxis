@@ -326,6 +326,14 @@ revenue-demo:
 revenue-test:
     cargo test --features proposer --test revenue_pipe
 
+# Stage-1 live verification that the Solvane Global bribery-compliance PDDL8
+# domain (crates/multifractal-workflow/fixtures/bribery-case/pddl-domain.ttl)
+# genuinely manufactures (praxis::mfg::manufacture) and ground+solves (real
+# bcinr_pddl::GroundProblem::find_plan), both the lawful-closure and the
+# typed-blocked scenarios -- see tests/bribery_case_pddl.rs.
+bribery-case-pddl-test *args:
+    timeout 300s cargo test -p my-conforming-project --features ggen --test bribery_case_pddl {{args}}
+
 # Drive the full Day 2 revenue pipe through the MCP server over raw JSON-RPC (membrane-only access)
 membrane-demo:
     ./scripts/membrane_demo.sh

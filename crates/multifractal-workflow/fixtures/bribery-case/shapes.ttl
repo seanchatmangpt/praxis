@@ -1,0 +1,70 @@
+# shapes.ttl -- real SHACL shapes for F02 gate 4 (Shape Validator) over
+# case.ttl. Loaded into `AdmissionPolicy::new(..., shapes_turtle)`
+# (crates/multifractal-workflow/src/f02_observation_admission.rs:278-293),
+# which parses it via the real, native-Rust SHACL engine
+# (`praxis_graphlaw::shacl::ShapesGraph::parse` + `Validator::validate`) --
+# not a vacuous placeholder like the crown-local-cli fixtures' VACUOUS_SHAPES
+# (a real, non-vacuous target+constraint set that case.ttl is proven to
+# satisfy by `crates/multifractal-workflow/tests/bribery_case_fixture.rs`).
+#
+# Engine feature check performed this session (grep over
+# crates/praxis-graphlaw/src/shacl/validate.rs): sh:minCount, sh:maxCount,
+# sh:datatype, sh:in, sh:class, sh:pattern, sh:or, sh:nodeKind are all
+# implemented constraint components. Every constraint below uses only that
+# confirmed-supported subset.
+#
+# sh:targetClass sc:ComplianceCase matches case.ttl's admitted case node
+# (typed `a prov:Activity, sc:ComplianceCase`) -- see case.ttl's header for
+# the sc: bridge-term disclosure this shape's sh:in list depends on
+# (sc:CaseStatusScheme's 4 closed concepts).
+
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix sc:      <https://cases.solvane-global.example.org/vocab#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+sc:ComplianceCaseShape
+    a sh:NodeShape ;
+    sh:targetClass sc:ComplianceCase ;
+
+    # provenance -- exactly one declared source (gate 2 also checks this
+    # structurally; this is the independent SHACL-layer restatement).
+    sh:property [
+        sh:path     prov:wasDerivedFrom ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message  "A compliance case must record exactly one prov:wasDerivedFrom source." ;
+    ] ;
+
+    # reporting agent -- who filed the allegation.
+    sh:property [
+        sh:path     prov:wasAssociatedWith ;
+        sh:minCount 1 ;
+        sh:message  "A compliance case must record its reporting agent (prov:wasAssociatedWith)." ;
+    ] ;
+
+    # the transaction record the case concerns.
+    sh:property [
+        sh:path     prov:used ;
+        sh:minCount 1 ;
+        sh:message  "A compliance case must reference the transaction record it concerns (prov:used)." ;
+    ] ;
+
+    # human-facing case number.
+    sh:property [
+        sh:path     dcterms:identifier ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message  "A compliance case must carry exactly one dcterms:identifier (xsd:string)." ;
+    ] ;
+
+    # lifecycle status, closed to the 4-concept sc:CaseStatusScheme.
+    sh:property [
+        sh:path     sc:caseStatus ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in       ( sc:Open sc:UnderInvestigation sc:Blocked sc:Closed ) ;
+        sh:message  "A compliance case must carry exactly one sc:caseStatus from the closed CaseStatus scheme." ;
+    ] .

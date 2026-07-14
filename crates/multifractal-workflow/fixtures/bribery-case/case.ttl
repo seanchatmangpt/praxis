@@ -1,0 +1,257 @@
+# case.ttl -- the F02-admissible RDF observation for the Solvane Global
+# bribery-compliance case (Stage 1 of a 4-stage build; see DESIGN.md in this
+# directory for how Stage 2 wires this file together with hook.ttl and the
+# pdl:-vocabulary PDDL8 files).
+#
+# SCENARIO: a Los Angeles-based Solvane Global employee reports (by email) an
+# allegation that a Sweden-based contractor used a Solvane Global company
+# credit card to pay a bribe. This file is the case-intake system's
+# `payload_turtle` for one call to
+# `multifractal_workflow::f02_observation_admission::admit_observation`
+# (crates/multifractal-workflow/src/f02_observation_admission.rs:412-630).
+# It is built, gate by gate, to satisfy that function's real logic -- not
+# decorative RDF -- and this is proven by a real, passing integration test:
+# `crates/multifractal-workflow/tests/bribery_case_fixture.rs`.
+#
+# GATE-BY-GATE DESIGN (see that test for the live AdmissionPolicy that
+# actually checks these):
+#   Gate 0 (parse, >=1 triple):        this file parses as Turtle and is
+#                                       non-empty (verified: real
+#                                       praxis_graphlaw::parser::Parser and,
+#                                       independently, real oxigraph -- see
+#                                       the Stage-1 verification notes).
+#   Gate 1 (Identity Resolver):        declared_subject is
+#                                       <https://cases.solvane-global.example.org/case/BRB-2026-0417>,
+#                                       an IRI under the allowed "https://"
+#                                       scheme, appearing as an IRI-term
+#                                       subject below.
+#   Gate 2 (Provenance Checker):       the case node asserts EXACTLY
+#                                       `prov:wasDerivedFrom
+#                                       <https://intake.solvane-global.example.org/case-intake-1>`,
+#                                       the one known principal registered
+#                                       for source_id "solvane-case-intake-1".
+#   Gate 3 (Authority Checker):        every predicate asserted directly ON
+#                                       the case node (rdf:type,
+#                                       prov:wasAssociatedWith, prov:used,
+#                                       prov:startedAtTime,
+#                                       dcterms:identifier,
+#                                       dcterms:description, sc:caseStatus)
+#                                       is in source_id's authorized set (see
+#                                       the test's AdmissionPolicy). NOTE:
+#                                       f02's real gate-3 loop only inspects
+#                                       triples whose SUBJECT is the declared
+#                                       subject (see
+#                                       f02_observation_admission.rs:536-570)
+#                                       -- predicates on the contractor /
+#                                       employee / transaction nodes below
+#                                       are outside that gate's scope, same
+#                                       as this repo's own crown-local-cli
+#                                       fixture convention.
+#   Gate 4 (SHACL):                    shapes.ttl's sc:ComplianceCaseShape
+#                                       targets sc:ComplianceCase and is
+#                                       satisfied by the case node below
+#                                       (real praxis_graphlaw::shacl
+#                                       validation, not asserted).
+#   Gate 5 (Semantic Conformance):     the same case-node predicate set is
+#                                       covered by the policy's
+#                                       allowed_vocabulary_prefixes (rdf:,
+#                                       prov:, dcterms:, and this file's own
+#                                       sc: bridge namespace).
+#   Gate 6 (Ledger write):             automatic once gates 1-5 pass.
+#
+# PUBLIC-ONTOLOGY-FIRST (same doctrine as packs/dogfood-lifecycle-pack/ontology.ttl
+# and packs/soc2-audit-pack/ontology.ttl): every relationship a public
+# vocabulary already covers reuses that vocabulary; the sc: namespace is
+# minted ONLY for terms with no public equivalent, each disclosed below with
+# the public ontologies checked and why they do not fit.
+#
+# Public vocabularies used (NOT redefined here -- used by IRI):
+#   prov:    the report/intake event is a prov:Activity (sc:ComplianceCase
+#            subclass, disclosed below); the LA employee (reporter) and the
+#            Sweden-based contractor are prov:Agent; the credit-card
+#            transaction record is a prov:Entity (also schema:MoneyTransfer,
+#            see below). Reused predicates: prov:wasDerivedFrom (gate 2),
+#            prov:wasAssociatedWith (case -> reporting employee),
+#            prov:used (case -> the transaction record it concerns),
+#            prov:wasAttributedTo (transaction -> the contractor who
+#            executed it), prov:startedAtTime / prov:generatedAtTime.
+#   dcterms: dcterms:identifier (the case's human-facing case number),
+#            dcterms:description (free-text allegation/memo summaries).
+#   foaf:    foaf:name on prov:Agent individuals (checked: PROV-O has no
+#            "display name" property of its own).
+#   vcard:   W3C vCard (http://www.w3.org/TR/vcard-rdf/) models the
+#            contractor's and the reporting employee's country/locality via
+#            vcard:hasAddress -> vcard:Address -> vcard:country-name /
+#            vcard:locality / vcard:region. This is the "contractor's
+#            country" concept the task brief flagged as a possible mint
+#            candidate -- checked and NOT minted: vCard's Address/
+#            country-name pair is the authoritative, stable public term for
+#            exactly this fact, so it is used directly.
+#   schema.org: schema:amount + schema:MonetaryAmount (schema:value +
+#            schema:currency) model the transaction amount -- also flagged
+#            as a possible mint candidate in the task brief, and also NOT
+#            minted: schema:amount's own domainIncludes list names
+#            schema:MoneyTransfer (https://schema.org/amount), which is
+#            exactly this fact (a card payment IS a money transfer), so the
+#            transaction record is additionally typed schema:MoneyTransfer
+#            and schema:amount is used directly, no bridge term needed.
+#            schema:paymentMethod + schema:CreditCard model "paid by credit
+#            card" (the payment TYPE, distinct from which specific card --
+#            see sc:cardLastFourDigits below for that).
+#   skos:    sc:CaseStatusScheme is a skos:ConceptScheme of skos:Concept
+#            individuals (sc:Open / sc:UnderInvestigation / sc:Blocked /
+#            sc:Closed), exactly packs/jira-tracking-pack's closed
+#            jira:Status pattern and packs/dogfood-lifecycle-pack's closed
+#            dfl:Outcome pattern, applied here to case status. See hook.ttl
+#            for the companion sc:ObligationStatusScheme (obligation status).
+#
+# DISCLOSED MINTED TERMS (sc:, capability-justified -- no public equivalent):
+#   sc:ComplianceCase  rdfs:subClassOf prov:Activity. PROV-O has no subtype
+#     for "a compliance investigation case opened from a reported
+#     allegation" -- checked prov: (no such subtype) and schema.org
+#     (Action/Report types describe a single event, not an object that
+#     itself acquires obligations and a lifecycle status over time, which is
+#     exactly what SHACL/the sc:caseStatus property need to target). Mirrors
+#     packs/dogfood-lifecycle-pack's dfl:Session/dfl:ToolEvent minted
+#     subclasses of prov:Activity for the identical reason (a precise
+#     sh:targetClass to constrain).
+#   sc:caseStatus + sc:CaseStatus  a case's current lifecycle status,
+#     restricted to the closed 4-concept sc:CaseStatusScheme below. No
+#     public ontology has a general-purpose closed-vocabulary "status"
+#     property; mirrors jira:status / dfl:outcome (same rationale disclosed
+#     in those packs' own ontology.ttl headers).
+#   sc:cardLastFourDigits  the case-specific card-instance identifier (last
+#     4 digits) needed to trace evidence (a card statement) back to the
+#     SPECIFIC company card used, not just the payment TYPE. Checked
+#     schema:paymentMethod / schema:CreditCard (a type-level classification
+#     of the payment method, not an instance identifier of the physical
+#     card) and schema:paymentMethodId (identifies a payment method
+#     configuration/account in a commerce checkout flow, not a card-instance
+#     fragment used for after-the-fact forensic matching) -- neither fits;
+#     minted as a plain xsd:string datatype property.
+#   sc:allegesImproperPayment  boolean flag on the transaction record: "this
+#     transaction is the subject of an improper-payment allegation". No
+#     public ontology models an allegation-against-an-entity as a boolean
+#     flag (PROV-O has no "disputed"/"alleged" qualifier); minted narrowly,
+#     scoped to this fixture's own trigger-pattern use (see hook.ttl).
+#
+# OBSERVATION-ONLY FENCE (mirrors packs/dogfood-lifecycle-pack's own fence):
+# this file records what was REPORTED, not a compliance verdict. No term
+# here asserts guilt, violation, or a finding -- sc:allegesImproperPayment
+# is an allegation flag, not a conclusion, and sc:caseStatus starts at
+# sc:Open. Any verdict is exactly what the PDDL8 obligation lifecycle in
+# pddl-domain.ttl exists to reach lawfully (judge/admit/receipt) or refuse
+# (block-for-missing-evidence) -- never asserted directly in intake data.
+
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+@prefix vcard:   <http://www.w3.org/2006/vcard/ns#> .
+@prefix schema:  <https://schema.org/> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix sc:      <https://cases.solvane-global.example.org/vocab#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+# ── sc: class declarations used by this file (properties are declared
+#    inline at first use below; see the header's DISCLOSED MINTED TERMS) ──
+
+sc:ComplianceCase
+    a               rdfs:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label      "ComplianceCase" ;
+    rdfs:comment    "A compliance-investigation case opened from a reported allegation. Minted subclass of prov:Activity -- see this file's header disclosure." .
+
+sc:CaseStatus
+    a            rdfs:Class ;
+    rdfs:label   "CaseStatus" ;
+    rdfs:comment "Closed 4-concept status vocabulary for a compliance case's lifecycle position (sc:Open / sc:UnderInvestigation / sc:Blocked / sc:Closed below)." .
+
+# ── The admitted case node (declared_subject) ─────────────────────────────
+# Every predicate on THIS node is gate-3/gate-5 checked -- see the header.
+
+<https://cases.solvane-global.example.org/case/BRB-2026-0417>
+    a prov:Activity, sc:ComplianceCase ;
+    prov:wasDerivedFrom <https://intake.solvane-global.example.org/case-intake-1> ;
+    prov:wasAssociatedWith <https://cases.solvane-global.example.org/agent/employee-jmartinez> ;
+    prov:used <https://cases.solvane-global.example.org/entity/txn-4471> ;
+    prov:startedAtTime "2026-04-17T09:14:00Z"^^xsd:dateTime ;
+    dcterms:identifier "BRB-2026-0417" ;
+    dcterms:description "Email from J. Martinez (LA) alleges that Nilsson Consulting AB (Sweden) used a Solvane Global company credit card to pay a bribe in connection with a regional permitting matter." ;
+    sc:caseStatus sc:Open .
+
+# ── Reporting employee (prov:Agent) -- outside gates 3/5 (not the declared
+#    subject), still real, well-formed, public-ontology-first data ────────
+
+<https://cases.solvane-global.example.org/agent/employee-jmartinez>
+    a prov:Agent ;
+    foaf:name "J. Martinez" ;
+    vcard:hasAddress [
+        a vcard:Address ;
+        vcard:locality "Los Angeles" ;
+        vcard:region "CA" ;
+        vcard:country-name "United States"
+    ] .
+
+# ── Sweden-based contractor (prov:Agent) ───────────────────────────────────
+
+<https://cases.solvane-global.example.org/agent/contractor-nilsson-consulting>
+    a prov:Agent ;
+    foaf:name "Nilsson Consulting AB" ;
+    vcard:hasAddress [
+        a vcard:Address ;
+        vcard:locality "Stockholm" ;
+        vcard:country-name "Sweden"
+    ] .
+
+# ── The transaction record (prov:Entity + schema:MoneyTransfer) ───────────
+
+<https://cases.solvane-global.example.org/entity/txn-4471>
+    a prov:Entity, schema:MoneyTransfer ;
+    prov:wasAttributedTo <https://cases.solvane-global.example.org/agent/contractor-nilsson-consulting> ;
+    prov:generatedAtTime "2026-03-02T14:00:00Z"^^xsd:dateTime ;
+    dcterms:description "Wire memo references \"consulting services acceleration fee\"." ;
+    schema:paymentMethod schema:CreditCard ;
+    schema:amount [
+        a schema:MonetaryAmount ;
+        schema:value "48500.00"^^xsd:decimal ;
+        schema:currency "USD"
+    ] ;
+    sc:cardLastFourDigits "7731" ;
+    sc:allegesImproperPayment true .
+
+# ── sc:CaseStatus closed vocabulary (SKOS; shapes.ttl's sh:in list depends
+#    on these 4 individuals existing under exactly these IRIs) ────────────
+
+sc:CaseStatusScheme
+    a skos:ConceptScheme ;
+    dcterms:description "Closed 4-concept scheme of compliance-case lifecycle statuses." .
+
+sc:Open
+    a sc:CaseStatus, skos:Concept ;
+    skos:inScheme sc:CaseStatusScheme ;
+    skos:notation "open" ;
+    skos:prefLabel "Open" ;
+    dcterms:description "Reported, not yet under active investigation." .
+
+sc:UnderInvestigation
+    a sc:CaseStatus, skos:Concept ;
+    skos:inScheme sc:CaseStatusScheme ;
+    skos:notation "under-investigation" ;
+    skos:prefLabel "Under Investigation" ;
+    dcterms:description "Obligations are being cleared against supplied evidence." .
+
+sc:Blocked
+    a sc:CaseStatus, skos:Concept ;
+    skos:inScheme sc:CaseStatusScheme ;
+    skos:notation "blocked" ;
+    skos:prefLabel "Blocked" ;
+    dcterms:description "At least one obligation's required evidence type cannot be supplied; the case cannot lawfully be closed (see pddl-domain.ttl's block-for-missing-evidence action). An observation, not a verdict." .
+
+sc:Closed
+    a sc:CaseStatus, skos:Concept ;
+    skos:inScheme sc:CaseStatusScheme ;
+    skos:notation "closed" ;
+    skos:prefLabel "Closed" ;
+    dcterms:description "All obligations cleared and the case was judged, admitted, and receipted." .

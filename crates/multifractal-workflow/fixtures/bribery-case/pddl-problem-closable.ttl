@@ -1,0 +1,47 @@
+# pddl-problem-closable.ttl -- worked scenario over pddl-domain.ttl where
+# ALL 3 obligations' required evidence is (eventually) supplied, so the case
+# reaches the `receipted` terminal state (judged/admitted/receipted
+# lawfully). Concatenate with pddl-domain.ttl before calling
+# `praxis::mfg::manufacture` (see DESIGN.md); proven live by
+# /Users/sac/praxis/tests/bribery_case_pddl.rs, which shows the real plan
+# `bcinr_pddl::GroundProblem::find_plan` produces.
+#
+# Object names mirror hook.ttl's derived `sc:hasObligation` targets' local
+# names exactly (verify-transaction-authenticity /
+# verify-contractor-authorization-level / assess-policy-violation) and
+# case.ttl's case identifier (case-brb-2026-0417 <- BRB-2026-0417) for
+# cross-file traceability, per this task's "instance data reuses identifiers
+# across files" doctrine -- these are bare PDDL symbol names (PDDL objects
+# have no IRI form), not the same RDF term, but the local-name match is
+# intentional and load-bearing for a human tracing the case end to end.
+
+@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+
+pdl:problem_bribery_case_brb_2026_0417
+    a pdl:Problem ;
+    pdl:name "bribery-case-brb-2026-0417" ;
+    pdl:domain "solvane-bribery-compliance-pddl8" ;
+    pdl:object [ pdl:name "case-brb-2026-0417" ; pdl:ofType "law-object" ] ,
+               [ pdl:name "verify-transaction-authenticity" ; pdl:ofType "obligation" ] ,
+               [ pdl:name "verify-contractor-authorization-level" ; pdl:ofType "obligation" ] ,
+               [ pdl:name "assess-policy-violation" ; pdl:ofType "obligation" ] ,
+               [ pdl:name "etype-card-statement" ; pdl:ofType "evidence-type" ] ,
+               [ pdl:name "etype-authorization-record" ; pdl:ofType "evidence-type" ] ,
+               [ pdl:name "etype-compliance-policy-citation" ; pdl:ofType "evidence-type" ] ,
+               [ pdl:name "compliance-officer-shreya-patel" ; pdl:ofType "validator" ] ,
+               [ pdl:name "general-counsel-marcus-webb" ; pdl:ofType "authority" ] ,
+               [ pdl:name "tok-genesis-brb-2026-0417" ; pdl:ofType "chain-token" ] ,
+               [ pdl:name "raw" ; pdl:ofType "lifecycle-stage" ] ,
+               [ pdl:name "validated" ; pdl:ofType "lifecycle-stage" ] ,
+               [ pdl:name "admitted" ; pdl:ofType "lifecycle-stage" ] ,
+               [ pdl:name "receipted" ; pdl:ofType "lifecycle-stage" ] ,
+               [ pdl:name "blocked" ; pdl:ofType "lifecycle-stage" ] ;
+    pdl:init "(in-stage case-brb-2026-0417 raw)" ,
+             "(has-obligation case-brb-2026-0417 verify-transaction-authenticity)" ,
+             "(has-obligation case-brb-2026-0417 verify-contractor-authorization-level)" ,
+             "(has-obligation case-brb-2026-0417 assess-policy-violation)" ,
+             "(requires-evidence verify-transaction-authenticity etype-card-statement)" ,
+             "(requires-evidence verify-contractor-authorization-level etype-authorization-record)" ,
+             "(requires-evidence assess-policy-violation etype-compliance-policy-citation)" ,
+             "(prev-chain-valid tok-genesis-brb-2026-0417)" ;
+    pdl:goal "(in-stage case-brb-2026-0417 receipted)" .

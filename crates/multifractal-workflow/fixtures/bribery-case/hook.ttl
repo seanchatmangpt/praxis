@@ -1,0 +1,186 @@
+# hook.ttl -- the Knowledge Hook that DERIVES which compliance obligations
+# apply to an admitted case, given the pattern "a cross-border card payment
+# to a contractor with an allegation of improper payment". This is the
+# real, tested `kh:` hook-pack mechanism this repo already uses in
+# production-shaped form (same `kh:kind "sparql"` trigger + `kh:action` ->
+# `kh:handler <.../handler#sparql-construct>` shape exercised by
+# crates/praxis-graphlaw/tests/soc2_hook_actuation.rs and
+# knowledge_hooks_e2e_tier3.rs's `test_c3_datalog_construct_delta_cascade`),
+# run here via `praxis_graphlaw::TripleStore::load_hook_pack` +
+# `.materialize()` -- not a hand-simulated mechanism. Proven live by
+# `crates/multifractal-workflow/tests/bribery_case_fixture.rs`.
+#
+# WHAT THIS HOOK DOES, PRECISELY: fires (kh:effect "emit-delta") whenever
+# an admitted case's graph contains
+#   ?case prov:used ?txn .            -- the case concerns a transaction
+#   ?txn prov:wasAttributedTo ?c .    -- executed by some agent (contractor)
+#   ?txn sc:cardLastFourDigits ?_ .   -- paid by a traceable company card
+#   ?txn sc:allegesImproperPayment true .  -- carrying an improper-payment allegation
+#   ?c vcard:hasAddress/vcard:country-name ?country .
+#   FILTER(?country != 'United States')    -- the contractor is outside the
+#                                              company's home jurisdiction
+#                                              ("cross-border")
+# and, when it fires, CONSTRUCTs exactly the 3 `sc:hasObligation` triples
+# below onto the case -- the RDF-level fact that becomes, after Stage 2's
+# projection (see DESIGN.md), the PDDL problem's `(has-obligation ...)`
+# :init atoms in pddl-domain.ttl / pddl-problem-closable.ttl.
+#
+# ENGINE LIMITATION FOUND AND DELIBERATELY DESIGNED AROUND (disclosed, not
+# hidden): `crates/praxis-graphlaw/src/hooks/construct.rs::instantiate_term_pattern`
+# echoes a CONSTRUCT template's blank-node LABEL verbatim per solution row
+# (`format!("_:{}", b.as_str())`), rather than minting a fresh blank node
+# per SPARQL solution binding (full SPARQL 1.1 semantics would). Over a
+# graph with MULTIPLE admitted cases matching in one `materialize()` pass,
+# a CONSTRUCT template using a shared blank-node label (e.g. to build a
+# per-case "obligation assignment" reified node) would alias every matching
+# case's assignment onto the SAME blank node id -- silent data corruption
+# across cases, not merely a cosmetic quirk. This hook's CONSTRUCT below is
+# therefore written with NO blank nodes: every derived triple links the
+# case (a real, distinct IRI per case) directly to a FIXED, shared
+# obligation-type individual (sc:verify-transaction-authenticity et al.),
+# which is safe under this engine's per-row blank-node aliasing because no
+# blank node is ever produced.
+#
+# CONSEQUENCE, DISCLOSED (not overclaimed): because obligation-status
+# tracking (sc:ObligationStatusScheme below) would need exactly the kind of
+# per-case reified node this hook avoids, this hook does NOT populate
+# sc:obligationStatus triples -- that scheme is declared for design
+# completeness (mirroring packs/jira-tracking-pack's closed jira:Status /
+# packs/dogfood-lifecycle-pack's closed dfl:Outcome) but is UNPOPULATED by
+# this Stage-1 hook. Per-case obligation status is tracked instead in the
+# PDDL8 STRIPS state (evidence-satisfied / txn-cleared / auth-cleared /
+# policy-cleared / evidence-unavailable in pddl-domain.ttl), which IS safely per-(case,
+# obligation)-scoped because PDDL grounds fresh objects per problem
+# instance -- no aliasing risk there. A future stage that needs
+# sc:obligationStatus populated from RDF should mint per-case obligation
+# IRIs by string-projection in Rust (as Stage 2's projector already must do
+# to turn `sc:hasObligation` into PDDL atoms -- see DESIGN.md), not via this
+# engine's CONSTRUCT blank nodes.
+#
+# SECOND ENGINE LIMITATION FOUND AND DELIBERATELY DESIGNED AROUND: this
+# session also found that `crates/praxis-graphlaw/src/hooks/parsing.rs`'s
+# `clean_term` (used by `HookProps::one_str` to extract a `kh:query`
+# literal's lexical value) strips exactly one leading/trailing `"`
+# character rather than recognizing/unescaping a Turtle `"""..."""`
+# long-string literal -- a `kh:query` value containing an EMBEDDED
+# double-quoted SPARQL string literal (e.g. `FILTER(?x != "some string")`)
+# is corrupted (the embedded `"` characters are left as literal `"` in the
+# extracted text, breaking spargebra's re-parse, observed live this session
+# as `SPARQL parse error: ... expected ENCODE_FOR_URI`). This matches the
+# established, already-working convention this session found in
+# `crates/praxis-graphlaw/tests/soc2_hook_actuation.rs` (every `kh:query`
+# string literal in that file uses SINGLE quotes: `'high'`, `'open'`,
+# `'true'`, `'vip'`, `'granted'`) -- this hook's FILTER below follows that
+# same convention (`'United States'`, single-quoted) for exactly that
+# reason, not by accident.
+#
+# PUBLIC-ONTOLOGY-FIRST: see case.ttl's header for prov:/dcterms:/vcard:/
+# schema:/skos: usage this file's WHERE clause queries against. No new
+# public-ontology terms are introduced here.
+#
+# DISCLOSED MINTED TERMS (sc:, in addition to case.ttl's list):
+#   sc:Obligation  a fixed, process-invariant obligation-TYPE catalog entry
+#     (e.g. sc:verify-transaction-authenticity). No public ontology models
+#     "a category of investigative duty a case can acquire" (PROV-O has no
+#     obligation/requirement concept at all).
+#   sc:hasObligation  case -> obligation-type link, the fact this hook
+#     exists to derive. No public equivalent (see above).
+#   sc:requiresEvidenceType  obligation-type -> evidence-type link (static
+#     catalog fact, not case-specific). No public equivalent.
+#   sc:EvidenceType  the 3 catalog evidence-type individuals below. Checked
+#     dcterms:type (too generic; names a resource's genre, not a
+#     compliance-obligation's evidentiary requirement) -- rejected, same
+#     reasoning packs/dogfood-lifecycle-pack's header applies to its own
+#     dfl:outcome vs dcterms:type check.
+#   sc:ObligationStatus + sc:ObligationStatusScheme  closed 3-concept SKOS
+#     scheme (sc:Pending / sc:Cleared / sc:Unavailable) for per-case
+#     obligation status. Declared per this task's SKOS doctrine (mirrors
+#     jira:Status / dfl:Outcome); UNPOPULATED by this hook -- see the
+#     engine-limitation disclosure above for why.
+
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix kh:      <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix sc:      <https://cases.solvane-global.example.org/vocab#> .
+
+# ── sc: catalog classes/properties this file introduces ───────────────────
+
+sc:Obligation
+    a rdfs:Class ; rdfs:label "Obligation" ;
+    rdfs:comment "A fixed, process-invariant compliance-obligation type. See this file's header disclosure." .
+
+sc:hasObligation
+    a rdf:Property ; rdfs:label "hasObligation" ; rdfs:domain sc:ComplianceCase ; rdfs:range sc:Obligation ;
+    rdfs:comment "Case acquired this obligation type -- the fact kh:derive_bribery_case_obligations derives." .
+
+sc:requiresEvidenceType
+    a rdf:Property ; rdfs:label "requiresEvidenceType" ; rdfs:domain sc:Obligation ; rdfs:range sc:EvidenceType ;
+    rdfs:comment "Static catalog fact: which evidence type clears this obligation type." .
+
+sc:EvidenceType
+    a rdfs:Class ; rdfs:label "EvidenceType" ;
+    rdfs:comment "A category of evidence a compliance obligation can be cleared with. See this file's header disclosure." .
+
+sc:ObligationStatus
+    a rdfs:Class ; rdfs:label "ObligationStatus" ;
+    rdfs:comment "Closed 3-concept status vocabulary for a case-scoped obligation instance (Pending/Cleared/Unavailable). Declared, UNPOPULATED by this hook -- see header." .
+
+sc:ObligationStatusScheme
+    a skos:ConceptScheme ;
+    dcterms:description "Closed 3-concept scheme of per-case obligation statuses (declared for design completeness; see hook.ttl header for why this Stage-1 hook does not populate it)." .
+
+sc:Pending     a sc:ObligationStatus, skos:Concept ; skos:inScheme sc:ObligationStatusScheme ; skos:notation "pending"     ; skos:prefLabel "Pending" .
+sc:Cleared     a sc:ObligationStatus, skos:Concept ; skos:inScheme sc:ObligationStatusScheme ; skos:notation "cleared"     ; skos:prefLabel "Cleared" .
+sc:Unavailable a sc:ObligationStatus, skos:Concept ; skos:inScheme sc:ObligationStatusScheme ; skos:notation "unavailable" ; skos:prefLabel "Unavailable" .
+
+# ── Evidence-type catalog (local names match pddl-domain.ttl's evidence-type
+#    PDDL objects -- etype-card-statement / etype-authorization-record /
+#    etype-compliance-policy-citation -- for cross-file traceability) ──────
+
+sc:etype-card-statement
+    a sc:EvidenceType ; rdfs:label "Card statement" ;
+    rdfs:comment "An itemized company-card statement confirming the transaction actually occurred as recorded." .
+
+sc:etype-authorization-record
+    a sc:EvidenceType ; rdfs:label "Authorization record" ;
+    rdfs:comment "A record of the contractor's authorized spend/signing level at the time of the transaction." .
+
+sc:etype-compliance-policy-citation
+    a sc:EvidenceType ; rdfs:label "Compliance policy citation" ;
+    rdfs:comment "The specific Solvane Global compliance-policy clause the alleged payment may violate." .
+
+# ── Obligation-type catalog (static; local names match pddl-domain.ttl's
+#    obligation PDDL objects) ──────────────────────────────────────────────
+
+sc:verify-transaction-authenticity
+    a sc:Obligation ; rdfs:label "Verify transaction authenticity" ;
+    sc:requiresEvidenceType sc:etype-card-statement ;
+    rdfs:comment "Confirm the alleged card transaction is real and matches the reported amount/date." .
+
+sc:verify-contractor-authorization-level
+    a sc:Obligation ; rdfs:label "Verify contractor authorization level" ;
+    sc:requiresEvidenceType sc:etype-authorization-record ;
+    rdfs:comment "Confirm whether the contractor/employee who authorized the payment had standing to do so." .
+
+sc:assess-policy-violation
+    a sc:Obligation ; rdfs:label "Assess policy violation" ;
+    sc:requiresEvidenceType sc:etype-compliance-policy-citation ;
+    rdfs:comment "Determine which (if any) compliance-policy clause the alleged payment implicates." .
+
+# ── The hook itself ─────────────────────────────────────────────────────
+
+sc:derive_bribery_case_obligations
+    a kh:Hook ;
+    kh:name "derive_bribery_case_obligations" ;
+    kh:kind "sparql" ;
+    kh:query """SELECT ?case WHERE { ?case <http://www.w3.org/ns/prov#used> ?txn . ?txn <http://www.w3.org/ns/prov#wasAttributedTo> ?contractor . ?txn <https://cases.solvane-global.example.org/vocab#cardLastFourDigits> ?card . ?txn <https://cases.solvane-global.example.org/vocab#allegesImproperPayment> true . ?contractor <http://www.w3.org/2006/vcard/ns#hasAddress> ?addr . ?addr <http://www.w3.org/2006/vcard/ns#country-name> ?country . FILTER(?country != 'United States') }""" ;
+    kh:effect "emit-delta" ;
+    kh:action sc:derive_bribery_case_obligations_action ;
+    kh:priority 1 .
+
+sc:derive_bribery_case_obligations_action
+    a kh:Action ;
+    kh:handler <http://seanchatmangpt.github.io/praxis/handler#sparql-construct> ;
+    kh:query """CONSTRUCT { ?case <https://cases.solvane-global.example.org/vocab#hasObligation> <https://cases.solvane-global.example.org/vocab#verify-transaction-authenticity> . ?case <https://cases.solvane-global.example.org/vocab#hasObligation> <https://cases.solvane-global.example.org/vocab#verify-contractor-authorization-level> . ?case <https://cases.solvane-global.example.org/vocab#hasObligation> <https://cases.solvane-global.example.org/vocab#assess-policy-violation> . } WHERE { ?case <http://www.w3.org/ns/prov#used> ?txn . ?txn <http://www.w3.org/ns/prov#wasAttributedTo> ?contractor . ?txn <https://cases.solvane-global.example.org/vocab#cardLastFourDigits> ?card . ?txn <https://cases.solvane-global.example.org/vocab#allegesImproperPayment> true . ?contractor <http://www.w3.org/2006/vcard/ns#hasAddress> ?addr . ?addr <http://www.w3.org/2006/vcard/ns#country-name> ?country . FILTER(?country != 'United States') }""" .

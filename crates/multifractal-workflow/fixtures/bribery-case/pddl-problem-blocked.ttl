@@ -1,0 +1,56 @@
+# pddl-problem-blocked.ttl -- worked scenario over pddl-domain.ttl where a
+# SECOND case (BRB-2026-0512) has one obligation
+# (assess-policy-violation-0512) whose required evidence type
+# (compliance-policy-citation) is positively known to be unobtainable (e.g.
+# no Solvane Global compliance-policy clause covering this jurisdiction/
+# payment pattern was ever adopted, so it cannot be cited) -- the typed
+# non-closure path this task requires: the case reaches `blocked`, a
+# terminal state distinct from `receipted`, rather than being silently
+# closed. Concatenate with pddl-domain.ttl before calling
+# `praxis::mfg::manufacture`; proven live by
+# /Users/sac/praxis/tests/bribery_case_pddl.rs.
+#
+# Object names are suffixed `-0512` to keep this problem's objects fully
+# independent of pddl-problem-closable.ttl's (each problem file is only
+# ever concatenated with pddl-domain.ttl ONE AT A TIME for manufacture --
+# see DESIGN.md -- but distinct names remove any ambiguity for a reader
+# comparing both files side by side).
+#
+# DESIGN NOTE (disclosed, not fabricated): `(evidence-unavailable
+# assess-policy-violation-0512)` is authored directly in this problem's
+# :init as a hand-written design sketch of what a real evidence-collection
+# step would positively assert once it exhausted the compliance-policy
+# citation search -- this fixture does NOT (yet) derive
+# evidence-unavailable via a Knowledge Hook the way hook.ttl derives
+# has-obligation (see hook.ttl's header for why: deriving a genuine
+# "positively known absent" fact would need a FILTER NOT EXISTS-style
+# CONSTRUCT, which this Stage-1 build did not implement or test -- named as
+# a gap for a later stage, not silently assumed solved).
+
+@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+
+pdl:problem_bribery_case_brb_2026_0512
+    a pdl:Problem ;
+    pdl:name "bribery-case-brb-2026-0512-blocked" ;
+    pdl:domain "solvane-bribery-compliance-pddl8" ;
+    pdl:object [ pdl:name "case-brb-2026-0512" ; pdl:ofType "law-object" ] ,
+               [ pdl:name "verify-transaction-authenticity-0512" ; pdl:ofType "obligation" ] ,
+               [ pdl:name "verify-contractor-authorization-level-0512" ; pdl:ofType "obligation" ] ,
+               [ pdl:name "assess-policy-violation-0512" ; pdl:ofType "obligation" ] ,
+               [ pdl:name "etype-card-statement" ; pdl:ofType "evidence-type" ] ,
+               [ pdl:name "etype-authorization-record" ; pdl:ofType "evidence-type" ] ,
+               [ pdl:name "etype-compliance-policy-citation" ; pdl:ofType "evidence-type" ] ,
+               [ pdl:name "raw" ; pdl:ofType "lifecycle-stage" ] ,
+               [ pdl:name "validated" ; pdl:ofType "lifecycle-stage" ] ,
+               [ pdl:name "admitted" ; pdl:ofType "lifecycle-stage" ] ,
+               [ pdl:name "receipted" ; pdl:ofType "lifecycle-stage" ] ,
+               [ pdl:name "blocked" ; pdl:ofType "lifecycle-stage" ] ;
+    pdl:init "(in-stage case-brb-2026-0512 raw)" ,
+             "(has-obligation case-brb-2026-0512 verify-transaction-authenticity-0512)" ,
+             "(has-obligation case-brb-2026-0512 verify-contractor-authorization-level-0512)" ,
+             "(has-obligation case-brb-2026-0512 assess-policy-violation-0512)" ,
+             "(requires-evidence verify-transaction-authenticity-0512 etype-card-statement)" ,
+             "(requires-evidence verify-contractor-authorization-level-0512 etype-authorization-record)" ,
+             "(requires-evidence assess-policy-violation-0512 etype-compliance-policy-citation)" ,
+             "(evidence-unavailable assess-policy-violation-0512)" ;
+    pdl:goal "(in-stage case-brb-2026-0512 blocked)" .
