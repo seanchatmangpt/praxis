@@ -34,6 +34,13 @@ pub mod otel_rdf;
 /// is unconditional like `otel_ocel`/`otel_rdf` themselves.
 pub mod otel_receipt;
 pub mod pipeline;
+/// Increment 2 approval-seam backend: `plan present` / `plan check` /
+/// `plan step` (`crates/cng/src/main.rs`). See the module's own doc for the
+/// disclosed deviation from the original design (a locally reimplemented
+/// plan digest, not a `praxis-graphlaw`/`bench`-gated call) and why the
+/// module is therefore unconditional rather than `bench`-gated like
+/// `plan decompose`.
+pub mod plan_approval;
 pub mod powl;
 #[cfg(feature = "runner")]
 pub mod runner;

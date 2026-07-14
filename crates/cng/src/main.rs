@@ -61,6 +61,41 @@ struct PlanReport {
     steps: Vec<String>,
 }
 
+/// `plan present`'s report: the disclosed plan digest and its steps. This
+/// HALTS -- printing this report is the entire effect of the call; no
+/// further mutation happens until a separate `plan check`/`plan step`
+/// invocation.
+#[derive(Debug, Serialize)]
+struct PlanPresentReport {
+    imported_pddl_ttl_paths: Vec<String>,
+    plan_digest: String,
+    steps: Vec<String>,
+    ledger_dir: String,
+}
+
+/// `plan check`'s report. Only ever constructed on the admitted path --
+/// `plan_approval::check_action`'s refusal path exits via `to_cli_error`
+/// before this type is built, so `admitted` is always `true` here; a
+/// nonzero process exit is what encodes "refused" for a caller scripting
+/// against this verb (e.g. a PreToolUse guard).
+#[derive(Debug, Serialize)]
+struct PlanCheckReport {
+    plan_digest: String,
+    proposed_action: String,
+    step_index: usize,
+    admitted: bool,
+}
+
+/// `plan step`'s report: which step executed and its resulting ledger
+/// chain hash.
+#[derive(Debug, Serialize)]
+struct PlanStepReport {
+    plan_digest: String,
+    step_index: usize,
+    step_label: String,
+    chain_hash: String,
+}
+
 /// Report of one real (non-test) no-LLM decomposition run (PROJ-741): the
 /// PLANNING marker set (`queries/markers/marker-decomposition-*.rq`,
 /// `marker-no-llm-authoring.rq`) is provable ONLY against evidence a real
@@ -430,6 +465,64 @@ fn plan_decompose(
         println!("{}", render_decompose_report_human(&report));
     }
     Ok(report)
+}
+
+/// Imports + plans `dir` once, computes its digest via
+/// `cng::plan_approval::present_plan`, and discloses it (appending one
+/// `Presented` ledger event if this exact digest is new to `ledger_dir`).
+/// HALTS: this call never executes anything further -- a human or
+/// orchestrator reads the printed `plan_digest`/`steps` and only then
+/// decides whether any `plan check`/`plan step` call against this digest
+/// is ever lawful.
+#[verb("present", "plan")]
+fn plan_present(dir: String, ledger_dir: String) -> Result<PlanPresentReport> {
+    let presented = cng::plan_approval::present_plan(Path::new(&dir), Path::new(&ledger_dir))
+        .map_err(to_cli_error)?;
+    Ok(PlanPresentReport {
+        imported_pddl_ttl_paths: presented.imported_pddl_ttl_paths,
+        plan_digest: presented.plan_digest,
+        steps: presented.steps,
+        ledger_dir: presented.ledger_dir,
+    })
+}
+
+/// Read-only admission check over the plan ledger at `ledger_dir`: `action`
+/// is admitted (exit 0) iff it is byte-exact equal to the single next
+/// unexecuted step of the plan identified by `plan_digest`; any other
+/// outcome (unpresented digest, mismatched action, exhausted plan) is a
+/// typed refusal (`CNG_R30`/`CNG_R31`) surfaced as a nonzero process exit.
+/// Never mutates the ledger -- this is the backend a `PreToolUse` guard
+/// would call before every proposed tool action, so the exit-code
+/// discipline is strict: 0 always means admit, nonzero always means
+/// refuse, never a third, ambiguous outcome.
+#[verb("check", "plan")]
+fn plan_check(plan_digest: String, action: String, ledger_dir: String) -> Result<PlanCheckReport> {
+    let outcome = cng::plan_approval::check_action(Path::new(&ledger_dir), &plan_digest, &action)
+        .map_err(to_cli_error)?;
+    Ok(PlanCheckReport {
+        plan_digest,
+        proposed_action: action,
+        step_index: outcome.step_index,
+        admitted: true,
+    })
+}
+
+/// Executes exactly one step -- always the literal next unexecuted step of
+/// the plan identified by `plan_digest` -- and durably chain-hash-records
+/// that it was authorized to proceed. `approved` is a default-deny gate:
+/// its absence alone refuses (`CNG_R32`), checked before any ledger I/O,
+/// regardless of ledger state.
+#[verb("step", "plan")]
+fn plan_step(plan_digest: String, ledger_dir: String, approved: bool) -> Result<PlanStepReport> {
+    let receipt =
+        cng::plan_approval::execute_approved_step(Path::new(&ledger_dir), &plan_digest, approved)
+            .map_err(to_cli_error)?;
+    Ok(PlanStepReport {
+        plan_digest: receipt.plan_digest,
+        step_index: receipt.step_index,
+        step_label: receipt.step_label,
+        chain_hash: receipt.chain_hash,
+    })
 }
 
 /// Projects the combined plan into a POWL v2 model and returns its

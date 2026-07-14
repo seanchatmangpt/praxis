@@ -315,6 +315,40 @@ pub enum CngRefusal {
         /// Why the evidence was insufficient, named.
         reason: String,
     },
+    /// `CNG_R30` — `plan check`/`plan step` (`crate::plan_approval`) was
+    /// invoked against a `plan_digest` the named plan ledger has never seen
+    /// a `Presented` event for. Every check/step call requires a prior
+    /// `plan present` disclosure — this is the "presented == approved"
+    /// boundary cng enforces on its own side; see the `plan_approval`
+    /// module doc for the full disclosed scope of what "approved" means
+    /// here.
+    PlanNotPresented {
+        /// The plan digest that was never presented.
+        plan_digest: String,
+    },
+    /// `CNG_R31` — the proposed action for `plan check`, or the implicit
+    /// next step for `plan step`, is not the single lawful next unexecuted
+    /// step of the presented plan. `expected_next` names the actual lawful
+    /// next step (`Some`), or `None` when the plan is already exhausted
+    /// (`next_step_index >= steps.len()`).
+    ActionNotNextApprovedStep {
+        /// The presented plan's digest.
+        plan_digest: String,
+        /// The action the caller proposed (or a fixed descriptive string
+        /// for `plan step`'s own exhausted-plan case, which takes no
+        /// action argument).
+        proposed_action: String,
+        /// The actual lawful next step, or `None` if the plan is
+        /// exhausted.
+        expected_next: Option<String>,
+    },
+    /// `CNG_R32` — `plan step` was invoked without `--approved`. Default
+    /// deny: the flag's absence is itself the refuse condition, checked
+    /// before any ledger I/O.
+    StepNotApproved {
+        /// The plan digest the caller attempted to step without approval.
+        plan_digest: String,
+    },
 }
 
 impl CngRefusal {
@@ -353,6 +387,9 @@ impl CngRefusal {
             CngRefusal::OtelSpanRefused { .. } => "CNG_R27",
             CngRefusal::OcelConstructRefused { .. } => "CNG_R28",
             CngRefusal::MeasurementEvidenceInsufficient { .. } => "CNG_R29",
+            CngRefusal::PlanNotPresented { .. } => "CNG_R30",
+            CngRefusal::ActionNotNextApprovedStep { .. } => "CNG_R31",
+            CngRefusal::StepNotApproved { .. } => "CNG_R32",
         }
     }
 
@@ -447,6 +484,18 @@ impl CngRefusal {
                 "a Rail G measurement was requested over a declared process scale with \
                  no sufficient admitted OCEL evidence; insufficient evidence refuses \
                  rather than reporting a fabricated zero or placeholder measure"
+            }
+            CngRefusal::PlanNotPresented { .. } => {
+                "plan digest was never presented; plan check/step require a prior \
+                 `plan present` disclosure for this exact plan"
+            }
+            CngRefusal::ActionNotNextApprovedStep { .. } => {
+                "proposed action is not the single lawful next unexecuted step of the \
+                 presented plan"
+            }
+            CngRefusal::StepNotApproved { .. } => {
+                "plan step requires --approved; its absence is the refuse condition, \
+                 checked before any ledger I/O"
             }
         }
     }
@@ -605,6 +654,20 @@ impl CngRefusal {
                  evidence (more distinct families, or a lower declared minimum-evidence \
                  threshold) before this scale can be measured."
             }
+            CngRefusal::PlanNotPresented { .. } => {
+                "Run `plan present --dir <dir> --ledger-dir <ledger_dir>` first and use \
+                 the printed plan_digest -- this exact digest has no Presented record in \
+                 the named ledger."
+            }
+            CngRefusal::ActionNotNextApprovedStep { .. } => {
+                "Read expected_next in the message: Some(...) names the actual lawful \
+                 next step to propose instead; None means the plan is exhausted and no \
+                 further check/step call is lawful for this plan_digest."
+            }
+            CngRefusal::StepNotApproved { .. } => {
+                "Re-invoke `plan step` with the --approved flag; step never executes \
+                 without it, regardless of any other ledger state."
+            }
         }
     }
 }
@@ -724,6 +787,28 @@ impl std::fmt::Display for CngRefusal {
             CngRefusal::MeasurementEvidenceInsufficient { scale, reason } => write!(
                 f,
                 "{}: {} (scale {scale}, reason {reason})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::PlanNotPresented { plan_digest } => write!(
+                f,
+                "{}: {} (plan_digest {plan_digest})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::ActionNotNextApprovedStep {
+                plan_digest,
+                proposed_action,
+                expected_next,
+            } => write!(
+                f,
+                "{}: {} (plan_digest {plan_digest}, proposed {proposed_action}, expected_next {expected_next:?})",
+                self.code(),
+                self.message()
+            ),
+            CngRefusal::StepNotApproved { plan_digest } => write!(
+                f,
+                "{}: {} (plan_digest {plan_digest})",
                 self.code(),
                 self.message()
             ),
