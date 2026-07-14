@@ -45,6 +45,7 @@ mod audit_replay;
 pub mod decomp;
 mod dispatch;
 pub mod dispatch_diagram;
+mod dry_run_publish;
 mod engine;
 mod generate;
 mod hooks;
