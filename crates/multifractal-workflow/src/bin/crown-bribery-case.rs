@@ -80,27 +80,41 @@
 //! printed verbatim). 2: usage or internal-setup error (before any pipeline
 //! stage ran).
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use bumpalo::Bump;
 
+use multifractal_workflow::crown_external::{
+    drive_external_readmit_transition, drive_external_witness_tail_through_f16,
+    drive_f16_completion_through_f18_broker, drive_f18_completion_through_f20_dispatch,
+    ExternalF18Refused, ExternalF20Refused, ExternalReadmitTransitionOutcome,
+    ExternalReadmitTransitionRefused, ExternalReentryRun, ExternalWitnessF16Refused,
+};
 use multifractal_workflow::f02_observation_admission::{
-    admit_observation, AdmissionLedger, AdmissionPolicy, ObservationAdmissionRefused,
-    RawObservation,
+    admit_observation, AdmissionLedger, AdmissionPolicy, AdmissionReceipt,
+    ObservationAdmissionRefused, RawObservation,
 };
 use multifractal_workflow::f08_pddl_planning::projector::{
     AdmittedTriple, HOOK_PACK_PREDICATE, PDDL_DOMAIN_PREDICATE, PDDL_PROBLEM_PREDICATE,
 };
 use multifractal_workflow::f08_pddl_planning::refusal::Refusal as PlanningRefusal;
-use multifractal_workflow::f08_pddl_planning::run_pipeline;
+use multifractal_workflow::f08_pddl_planning::{run_pipeline, PipelineOutcome};
 use multifractal_workflow::f09_mfw_growth::{
     manufacture_and_bind_child, plan_growth, resolve_continuation_goal, DescentMeter,
     MFWGrowthRefused, ResidueState,
 };
 use multifractal_workflow::f13_arazzo_artifact::{ArazzoProjectionReceipt, CoreError};
 use multifractal_workflow::f14_wasm4pm_arazzo::{self, ArazzoCompileRefused};
+use multifractal_workflow::f15_air_transition_core::bridge::{
+    BridgeEvent, BridgeStepDef, BridgeWorkflow,
+};
+use multifractal_workflow::f16_otp_runner::bridge::DispatchStatemOutcome;
+use multifractal_workflow::f18_broker_law::{ActionId, Broker, BrokerReceipt, BrokerSecret};
+use multifractal_workflow::f20_external_dispatch::{
+    Powl as CngPowl, SubworkflowDispatchOutcome, SubworkflowPlan,
+};
 
 use powl2_decompose::{ParentChildClosure, Powl, SocketKind, SocketPath, WorkflowSocketId};
 use praxis_graphlaw::chatman::closure::{ClosureLaw, RecursiveSocketClosure};
@@ -233,6 +247,54 @@ ex:hook-block-for-missing-evidence a kh:Hook ;
   kh:priority 1 .
 "#;
 
+// ---------------------------------------------------------------------------
+// Stage 3: real Erlang/OTP dispatch, broker, OCEL, receipt/replay, case
+// closure. See this file's module doc "Extensibility" section -- Stage 3
+// extends this same binary, driving the F08 plan tape (already real, already
+// computed by the Stage 2 chain above) through
+// F15(AIR transition)->F16(dispatch-statem)->F18(broker)->F20(direct
+// dispatch), then the full F20->F02(re-admit)->F15->F21->F24->F25 loop-back
+// tail, via `multifractal_workflow::crown_external`'s real, already-proven
+// composition functions (reused verbatim, not reimplemented).
+// ---------------------------------------------------------------------------
+
+/// Deterministic Stage-3 [`BrokerSecret`] -- BLAKE3 over a fixed,
+/// domain-separated label, never wall-clock/random (repo invariant #3/#5).
+/// Mirrors `crown_external_test.rs`'s own fixed `[9u8; 32]` broker-secret
+/// fixture pattern, but derived from a disclosed label rather than a bare
+/// magic literal.
+fn stage3_broker_secret() -> BrokerSecret {
+    BrokerSecret::new(*blake3::hash(b"crown-bribery-case:stage3:broker-secret:v1").as_bytes())
+}
+
+/// Fixed, disclosed seed for `engine_serve`'s deterministic identity
+/// derivation (`splitmix64(seed ^ blake3(engine_id))`) -- never a PID or
+/// wall clock. Matches this crate's other F20 fixtures' convention of a
+/// fixed seed.
+const STAGE3_ENGINE_SEED: u64 = 26_07_12;
+/// Poll budget shared by every Stage-3 `engine_serve`/collect round trip.
+const STAGE3_MAX_POLLS: u64 = 16;
+
+/// F02 re-admission source id for the `F20 -> F02(re-admit)` edge -- the
+/// identity asserting "F20 collected this real consequence" for this case,
+/// distinct from [`SOURCE_ID`] (the case-intake principal).
+const EXTERNAL_REENTRY_SOURCE: &str = "crown-bribery-case-external-reentry-1";
+/// The principal IRI [`EXTERNAL_REENTRY_SOURCE`] maps to in Stage 3's own
+/// [`AdmissionPolicy`] (see [`build_external_reentry_policy`]).
+const EXTERNAL_REENTRY_PRINCIPAL: &str =
+    "https://cases.solvane-global.example.org/crown-bribery-case/external-reentry-authority";
+/// A real but vacuous SHACL shape (`sh:targetClass` matches no admitted
+/// node) -- mirrors `crown_external_test.rs::reentry_policy`'s own
+/// `REENTRY_VACUOUS_SHAPES` fixture: F02 gate 4 genuinely runs and
+/// genuinely conforms (no node matches the absent target class), not a
+/// placeholder.
+const EXTERNAL_REENTRY_VACUOUS_SHAPES: &str = r#"
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <urn:mfw:crown-bribery-case:reentry#> .
+ex:ReentryShape a sh:NodeShape ;
+    sh:targetClass ex:AbsentClass .
+"#;
+
 /// Typed, exhaustive failure surface for this binary. No panics, no unwraps
 /// on external input or fallible library calls.
 #[derive(Debug, thiserror::Error)]
@@ -276,6 +338,46 @@ enum CliError {
     Compile(#[from] ArazzoCompileRefused),
     #[error("failed to serialize {what} to JSON: {reason}")]
     Serialize { what: &'static str, reason: String },
+    #[error(
+        "Stage 3 bridge-workflow construction refused: the plan tape has zero steps to \
+             chain (nothing for F15/F16 to dispatch)"
+    )]
+    EmptyPlanForBridgeWorkflow,
+    #[error("F15->F16 dispatch refused: {0}")]
+    F16Dispatch(#[from] ExternalWitnessF16Refused),
+    #[error(
+        "F15/F16 chain produced zero dispatch_step commands for completed step {step_id:?} -- \
+         nothing to drive through F16/F18/F20"
+    )]
+    NoF16DispatchCommands { step_id: String },
+    #[error("F16 dispatch for step {step_id} was refused by the real gen_statem: {refusal_atom}")]
+    F16DispatchRefused {
+        step_id: String,
+        refusal_atom: String,
+    },
+    #[error("F16->F18 broker actuation refused: {0}")]
+    F18Broker(Box<ExternalF18Refused>),
+    #[error("F18->F20 direct dispatch refused: {0}")]
+    F20Direct(#[from] ExternalF20Refused),
+    #[error("F20->F02 re-admission policy invalid: {0}")]
+    ReentryPolicyInvalid(String),
+    #[error("F20->F02->F15->F21->F24->F25 readmit-transition chain refused: {0}")]
+    ReadmitTransition(#[from] ExternalReadmitTransitionRefused),
+    #[error("case-closure RDF malformed: {reason}")]
+    ClosureRdfMalformed { reason: String },
+}
+
+impl From<ExternalF18Refused> for CliError {
+    // Manual instead of #[from]: ExternalF18Refused's largest variant is
+    // >=128 bytes, which clippy::result_large_err flags on every
+    // Result<_, CliError>-returning function in this file (CliError's own
+    // size is bounded by its largest field). Boxing here keeps every `?`
+    // call site unchanged -- this impl supplies the same conversion
+    // #[from] would have generated, just via an owned allocation instead
+    // of an inline large variant.
+    fn from(e: ExternalF18Refused) -> Self {
+        CliError::F18Broker(Box::new(e))
+    }
 }
 
 impl CliError {
@@ -288,7 +390,10 @@ impl CliError {
             | Self::HookPackMalformed(_)
             | Self::HookCatalogUnparsable(_)
             | Self::ClosureInvalid(_)
-            | Self::Serialize { .. } => 2,
+            | Self::Serialize { .. }
+            | Self::EmptyPlanForBridgeWorkflow
+            | Self::ReentryPolicyInvalid(_)
+            | Self::ClosureRdfMalformed { .. } => 2,
             _ => 1,
         }
     }
@@ -661,6 +766,552 @@ fn write_file(run_dir: &Path, name: &str, contents: &str) -> Result<PathBuf, Cli
     Ok(path)
 }
 
+// ---------------------------------------------------------------------------
+// Stage 3 functions
+// ---------------------------------------------------------------------------
+
+/// Builds a linear [`BridgeWorkflow`] directly from crown-bribery-case's own real F08 plan-tape
+/// order: `"{i:02}-{name}"` step ids, each chained to the next (`BridgeStepDef.next`) except the
+/// last, which has no successor.
+///
+/// **Why not build it from F13/F14's own output**: `crown_external.rs`'s own module doc discloses
+/// that F13's Arazzo projection template (`crates/praxis-core/templates/arazzo_projection.tera`)
+/// emits no `onSuccess` routing at all -- every step is a flat root, no `goto` edges (proven by
+/// `crown_external_test.rs::external_tail_f10_output_has_no_successor_edges_to_dispatch_to_f16`).
+/// Feeding this case's real F13/F14 output through `drive_external_witness_tail_through_f16`
+/// would legitimately dispatch **zero** F16 commands. `BridgeWorkflow`/`BridgeStepDef` are plain
+/// public-field structs (`f15_air_transition_core::bridge`), constructible directly without going
+/// through F13/F14's template -- so this function builds real routing edges directly from the
+/// plan's own real, already-computed linear execution order (Stage 2's `run_pipeline` tape),
+/// bypassing F13/F14's template only for the routing *shape*. The plan itself is 100% Stage 2's
+/// already-real, already-verified tape, not fabricated.
+///
+/// # Errors
+/// [`CliError::EmptyPlanForBridgeWorkflow`] if `schema_names` is empty (defensive; this binary's
+/// own real F08 plan always has >= 1 step, so this should be unreachable in practice).
+///
+/// # Complexity
+/// O(n) over `schema_names`.
+fn build_bridge_workflow_from_plan(
+    schema_names: &[&str],
+) -> Result<(BridgeWorkflow, String), CliError> {
+    if schema_names.is_empty() {
+        return Err(CliError::EmptyPlanForBridgeWorkflow);
+    }
+    let ids: Vec<String> = schema_names
+        .iter()
+        .enumerate()
+        .map(|(i, name)| format!("{i:02}-{name}"))
+        .collect();
+    let mut steps = BTreeMap::new();
+    for (i, id) in ids.iter().enumerate() {
+        let next = match ids.get(i + 1) {
+            Some(next_id) => vec![next_id.clone()],
+            None => Vec::new(),
+        };
+        steps.insert(id.clone(), BridgeStepDef { next });
+    }
+    let root_step_id = ids[0].clone();
+    Ok((BridgeWorkflow { steps }, root_step_id))
+}
+
+/// Stage 3's own [`AdmissionPolicy`] for the `F20 -> F02(re-admit)` edge -- mirrors
+/// `crown_external_test.rs::reentry_policy()`'s shape exactly (same 3-predicate authorized set,
+/// same vacuous-SHACL-shape pattern), reproduced here since that function is private to its own
+/// test module, not part of this crate's public API.
+///
+/// **Resolves this design's one open verification item** (whether `prov:wasDerivedFrom` needs to
+/// be in `authorized_predicates`): reading `f02_observation_admission.rs`'s gate 3 (Authority
+/// Checker) in full shows it explicitly skips the `prov:wasDerivedFrom` bookkeeping triple before
+/// building `distinct_predicates` (`if t.s == declared_subject_term && t.p == prov_predicate {
+/// continue; }`), and gate 5 (Semantic Conformance) only ever iterates that same
+/// `distinct_predicates` set -- so `prov:wasDerivedFrom` is never checked against
+/// `authorized_predicates` at all. Gate 2 (Provenance Checker) checks it by its own, separate
+/// mechanism: the asserted derivation IRI must equal `policy.known_principals[source_id]`. So the
+/// 3-predicate set below (`dispatchId`/`consequenceDigest`/`consequenceTurtle`) is sufficient;
+/// adding `prov:wasDerivedFrom` to `authorized_predicates` would be harmless but is not required.
+///
+/// # Errors
+/// [`CliError::ReentryPolicyInvalid`] if [`EXTERNAL_REENTRY_VACUOUS_SHAPES`] fails to parse
+/// (defensive: hand-verified compile-time SHACL Turtle).
+fn build_external_reentry_policy() -> Result<AdmissionPolicy, CliError> {
+    let mut known_principals = BTreeMap::new();
+    known_principals.insert(
+        EXTERNAL_REENTRY_SOURCE.to_string(),
+        EXTERNAL_REENTRY_PRINCIPAL.to_string(),
+    );
+
+    let mut authorized = BTreeSet::new();
+    authorized.insert("urn:mfw:f20#dispatchId".to_string());
+    authorized.insert("urn:mfw:f20#consequenceDigest".to_string());
+    authorized.insert("urn:mfw:f20#consequenceTurtle".to_string());
+    let mut authorized_predicates = BTreeMap::new();
+    authorized_predicates.insert(EXTERNAL_REENTRY_SOURCE.to_string(), authorized);
+
+    AdmissionPolicy::new(
+        known_principals,
+        authorized_predicates,
+        vec!["urn:mfw:f20#".to_string()],
+        vec!["https://".to_string()],
+        EXTERNAL_REENTRY_VACUOUS_SHAPES,
+    )
+    .map_err(CliError::ReentryPolicyInvalid)
+}
+
+/// The real, composed output of one Stage-3 run: every real hop's own genuine output, plus a
+/// deterministic crown receipt binding them.
+struct Stage3Outcome {
+    /// The real F15/F16-dispatched step id (`"01-clear-authorization-obligation"`).
+    f16_step_id: String,
+    /// F16's real, non-empty dispatch token.
+    f16_dispatch_token: String,
+    /// F16's real 7-state gen_statem transition log.
+    f16_transition_log: Vec<String>,
+    /// F18's real broker receipt actuating F16's dispatch token.
+    broker_receipt: BrokerReceipt,
+    /// F18 -> F20 direct dispatch's real outcome (a separate, independent dispatch/serve/collect
+    /// round trip from `readmit`'s own F20 dispatch -- see this file's module doc / final report
+    /// for why two independent dispatches of the same logical identity is deliberate, not
+    /// redundant).
+    f20_direct: SubworkflowDispatchOutcome,
+    /// The full `F20 -> F02(re-admit) -> F15 -> F21 -> F24 -> F25` loop-back tail's real outcome.
+    readmit: ExternalReadmitTransitionOutcome,
+    /// BLAKE3-hex over every Stage-3 hop's real digest, in canonical sorted order (no wall clock,
+    /// no randomness).
+    crown_receipt: String,
+}
+
+/// Fold every Stage-3 real digest into one deterministic BLAKE3-hex crown receipt, matching
+/// `crown_external.rs`'s own `compute_reentry_crown_receipt`/`compute_external_crown_receipt`
+/// pattern (sorted lines, BLAKE3, no wall clock).
+///
+/// # Complexity
+/// O(1): a small, fixed number of digest lines.
+fn compute_stage3_crown_receipt(
+    f16_dispatch_token: &str,
+    broker_receipt: &BrokerReceipt,
+    f20_direct: &SubworkflowDispatchOutcome,
+    readmit: &ExternalReadmitTransitionOutcome,
+) -> String {
+    let mut lines = vec![
+        format!("f16.dispatch_token={f16_dispatch_token}"),
+        format!("f18.receipt_hash={}", broker_receipt.receipt_hash_hex),
+        format!("f20_direct.dispatch_id={}", f20_direct.dispatch_id),
+        format!(
+            "f20_direct.consequence_digest={}",
+            f20_direct.consequence_digest.clone().unwrap_or_default()
+        ),
+        format!(
+            "f02_readmit.receipt_hash={}",
+            readmit.reentry.reentry_admission.receipt_hash
+        ),
+        format!("f24.receipt_head={}", readmit.ocel_outcome.receipt_head),
+        format!(
+            "f25.receipt_root={}",
+            readmit.replay_outcome.receipt.receipt_root.as_str()
+        ),
+        format!(
+            "f25.replayed_receipt_root={}",
+            readmit.replay_outcome.replayed.receipt_root.as_str()
+        ),
+    ];
+    lines.sort();
+    let mut hasher = blake3::Hasher::new();
+    for line in &lines {
+        hasher.update(line.as_bytes());
+        hasher.update(b"\n");
+    }
+    hasher.finalize().to_hex().to_string()
+}
+
+/// Drives Stage 3's full real chain, in order: build a [`BridgeWorkflow`] from the real F08 plan
+/// tape -> complete its root step through the real `air_core` bridge and drive every resulting
+/// `dispatch_step` command through the real F16 gen_statem
+/// ([`drive_external_witness_tail_through_f16`]) -> actuate the completed F16 dispatch through
+/// the real F18 [`Broker`] ([`drive_f16_completion_through_f18_broker`]) -> drive that receipt
+/// through a real, direct F20 dispatch/serve/collect round trip
+/// ([`drive_f18_completion_through_f20_dispatch`]) -> re-dispatch the same logical subworkflow
+/// identity through the full real `F20 -> F02(re-admit) -> F15 -> F21 -> F24 -> F25` loop-back
+/// tail ([`drive_external_readmit_transition`]).
+///
+/// Only the **first** plan-tape step transition is driven through the real Erlang chain this
+/// pass (matching `crown_external_test.rs::f15_transition_command_drives_a_real_f16_dispatch_
+/// statem_to_completion`'s own established one-step precedent) -- a disclosed scope bound, not
+/// an overclaim.
+///
+/// # Errors
+/// [`CliError`], carrying the first real hop's own typed refusal verbatim. A real F16 gen_statem
+/// refusal (`DispatchStatemOutcome::Refused`) is propagated as [`CliError::F16DispatchRefused`],
+/// never silently treated as success.
+fn run_stage3(
+    run_dir: &Path,
+    run_id: &str,
+    plan_steps: &[&str],
+    admission_receipt_hash: &str,
+    workflow_id: &str,
+) -> Result<Stage3Outcome, CliError> {
+    let (bridge_workflow, root_step_id) = build_bridge_workflow_from_plan(plan_steps)?;
+    let bridge_events = vec![BridgeEvent::StepCompleted {
+        step_id: root_step_id.clone(),
+        result: serde_json::Value::String(admission_receipt_hash.to_string()),
+    }];
+    let crown_receipt_seed =
+        format!("crown-bribery-case-{run_id}-f16-seed-{admission_receipt_hash}");
+    let f16_outer = drive_external_witness_tail_through_f16(
+        &bridge_workflow,
+        std::slice::from_ref(&root_step_id),
+        &bridge_events,
+        &crown_receipt_seed,
+    )?;
+
+    let (f16_step_id, f16_dispatch_statem_outcome) = f16_outer
+        .dispatch_outcomes
+        .into_iter()
+        .next()
+        .ok_or_else(|| CliError::NoF16DispatchCommands {
+            step_id: root_step_id.clone(),
+        })?;
+
+    let (f16_dispatch_token, f16_transition_log) = match &f16_dispatch_statem_outcome {
+        DispatchStatemOutcome::Completed {
+            dispatch_token,
+            transition_log,
+            ..
+        } => (dispatch_token.clone(), transition_log.clone()),
+        DispatchStatemOutcome::Refused { refusal_atom, .. } => {
+            return Err(CliError::F16DispatchRefused {
+                step_id: f16_step_id,
+                refusal_atom: refusal_atom.clone(),
+            });
+        }
+    };
+
+    let broker = Broker::new(stage3_broker_secret());
+    let action = ActionId::new(
+        workflow_id,
+        f16_step_id.clone(),
+        format!("crown-bribery-case-{run_id}-idempotency-1"),
+    );
+    let broker_receipt = drive_f16_completion_through_f18_broker(
+        &broker,
+        action,
+        "compliance-officer-shreya-patel",
+        true,
+        "solvane-compliance-officer-authority-external-dispatch",
+        &format!("crown-bribery-case-{run_id}-f18-correlation-1"),
+        &f16_step_id,
+        &f16_dispatch_statem_outcome,
+    )?;
+
+    let f20_direct = drive_f18_completion_through_f20_dispatch(
+        &run_dir.join("f20-direct-dispatch"),
+        &broker_receipt,
+        "crown-bribery-case-engine-direct",
+        STAGE3_ENGINE_SEED,
+        STAGE3_MAX_POLLS,
+        None,
+    )?;
+
+    let subworkflow = SubworkflowPlan {
+        id: format!(
+            "f18-{}-{}",
+            broker_receipt.workflow_id, broker_receipt.step_id
+        ),
+        role: "single".to_string(),
+        tape: bcinr_pddl::Pddl8Tape { ops: Vec::new() },
+        model: CngPowl::Leaf(None),
+        problem_pddl: String::new(),
+        problem_digest: format!("blake3:{}", broker_receipt.consequence_hash_hex),
+    };
+
+    let reentry_policy = build_external_reentry_policy()?;
+    let reentry_ledger = AdmissionLedger::new();
+
+    let readmit = drive_external_readmit_transition(ExternalReentryRun {
+        root: &run_dir.join("f20-readmit-transition"),
+        subworkflow: &subworkflow,
+        target_engine: "crown-bribery-case-engine-full".to_string(),
+        engine_seed: STAGE3_ENGINE_SEED,
+        max_polls: STAGE3_MAX_POLLS,
+        poll_wait_ms: None,
+        policy: &reentry_policy,
+        ledger: &reentry_ledger,
+        reentry_source_id: EXTERNAL_REENTRY_SOURCE.to_string(),
+        reentry_principal_iri: EXTERNAL_REENTRY_PRINCIPAL.to_string(),
+        reentry_subject_base_iri: format!("{SUBJECT}/external-reentry"),
+        correlation_id: format!("crown-bribery-case-{run_id}-reentry-correlation-1"),
+    })?;
+
+    let crown_receipt =
+        compute_stage3_crown_receipt(&f16_dispatch_token, &broker_receipt, &f20_direct, &readmit);
+
+    Ok(Stage3Outcome {
+        f16_step_id,
+        f16_dispatch_token,
+        f16_transition_log,
+        broker_receipt,
+        f20_direct,
+        readmit,
+        crown_receipt,
+    })
+}
+
+/// Derives this run's `run-id` from `run_dir`'s own final path component -- the identical
+/// computation `run()`'s own local `run_id` uses, kept as a shared helper so both call sites can
+/// never drift.
+///
+/// # Complexity
+/// O(1).
+fn run_id_from_dir(run_dir: &Path) -> String {
+    run_dir
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown-run")
+        .to_string()
+}
+
+/// Small machine-readable mirror of `08-case-closure.ttl`'s own real values, matching the
+/// `07-arazzo-receipt.json` sibling-file precedent already established in this binary.
+#[derive(serde::Serialize)]
+struct CaseClosureSummary {
+    case_status: &'static str,
+    run_id: String,
+    case_local_name: String,
+    subject: String,
+    admission_receipt_hash: String,
+    f08_plan_chain_hash: String,
+    f08_goal_reached: bool,
+    stage3: Option<Stage3ClosureSummary>,
+    blocked_reason: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct Stage3ClosureSummary {
+    f16_dispatch_step_id: String,
+    f16_dispatch_token: String,
+    f18_broker_receipt_hash: String,
+    f18_consequence_hash: String,
+    f20_direct_dispatch_id: String,
+    f20_direct_consequence_digest: String,
+    f20_readmit_dispatch_id: String,
+    f02_readmit_receipt_hash: String,
+    f24_ocel_receipt_head: String,
+    f25_receipt_root: String,
+    f25_replayed_receipt_root: String,
+    f25_receipt_root_matched: bool,
+    stage3_crown_receipt: String,
+}
+
+/// Builds the case-closure Turtle text: a real PROV-O `prov:Activity` (`cls:closure-decision-
+/// <run_id>`) plus a SKOS lifecycle `ConceptScheme` mirroring `pddl-problem-closable.ttl`'s own
+/// `raw`/`validated`/`admitted`/`receipted`/`blocked` `lifecycle-stage` local names verbatim.
+/// Asserts `cls:receipted` only if `stage3` is `Ok` (the real chain genuinely succeeded); asserts
+/// `cls:blocked` plus the exact real typed refusal reason otherwise -- never silently converted
+/// to `receipted` (this repo's "Bounded must never be reported as Exhausted" invariant).
+///
+/// # Complexity
+/// O(1): a small, fixed number of `format!`/`push_str` calls.
+fn build_case_closure_turtle(
+    run_id: &str,
+    case_local_name: &str,
+    plan: &PipelineOutcome,
+    stage3: Result<&Stage3Outcome, &CliError>,
+) -> String {
+    let mut out = String::new();
+    out.push_str("@prefix prov: <http://www.w3.org/ns/prov#> .\n");
+    out.push_str("@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n");
+    out.push_str(&format!("@prefix sc: <{SC}> .\n"));
+    out.push_str("@prefix cls: <urn:mfw:crown-bribery-case:closure#> .\n\n");
+
+    out.push_str("cls:CaseLifecycle a skos:ConceptScheme .\n\n");
+    out.push_str(
+        "cls:raw a skos:Concept ; skos:inScheme cls:CaseLifecycle ; skos:prefLabel \"raw\" .\n",
+    );
+    out.push_str(
+        "cls:validated a skos:Concept ; skos:inScheme cls:CaseLifecycle ; \
+         skos:prefLabel \"validated\" ; skos:broader cls:raw .\n",
+    );
+    out.push_str(
+        "cls:admitted a skos:Concept ; skos:inScheme cls:CaseLifecycle ; \
+         skos:prefLabel \"admitted\" ; skos:broader cls:validated .\n",
+    );
+    out.push_str(
+        "cls:receipted a skos:Concept ; skos:inScheme cls:CaseLifecycle ; \
+         skos:prefLabel \"receipted\" ; skos:broader cls:admitted .\n",
+    );
+    out.push_str(
+        "cls:blocked a skos:Concept ; skos:inScheme cls:CaseLifecycle ; \
+         skos:prefLabel \"blocked\" ; skos:broader cls:admitted .\n\n",
+    );
+
+    let activity = format!("cls:closure-decision-{run_id}");
+    match stage3 {
+        Ok(s) => {
+            out.push_str(&format!("<{SUBJECT}> sc:caseStatus cls:receipted .\n\n"));
+            out.push_str(&format!("{activity} a prov:Activity ;\n"));
+            out.push_str(&format!("  prov:used <{SUBJECT}> ;\n"));
+            out.push_str(&format!("  cls:caseLocalName \"{case_local_name}\" ;\n"));
+            out.push_str(&format!(
+                "  cls:f08PlanReceiptHash \"{}\" ;\n",
+                plan.receipt.chain_hash
+            ));
+            out.push_str(&format!(
+                "  cls:f08GoalReached \"{}\"^^<http://www.w3.org/2001/XMLSchema#boolean> ;\n",
+                plan.receipt.goal_reached
+            ));
+            out.push_str(&format!(
+                "  cls:f16DispatchStepId \"{}\" ;\n",
+                s.f16_step_id
+            ));
+            out.push_str(&format!(
+                "  cls:f16DispatchToken \"{}\" ;\n",
+                s.f16_dispatch_token
+            ));
+            out.push_str(&format!(
+                "  cls:f18BrokerReceiptHash \"{}\" ;\n",
+                s.broker_receipt.receipt_hash_hex
+            ));
+            out.push_str(&format!(
+                "  cls:f18ConsequenceHash \"{}\" ;\n",
+                s.broker_receipt.consequence_hash_hex
+            ));
+            out.push_str(&format!(
+                "  cls:f20DirectDispatchId \"{}\" ;\n",
+                s.f20_direct.dispatch_id
+            ));
+            out.push_str(&format!(
+                "  cls:f20DirectConsequenceDigest \"{}\" ;\n",
+                s.f20_direct.consequence_digest.clone().unwrap_or_default()
+            ));
+            out.push_str(&format!(
+                "  cls:f20ReadmitDispatchId \"{}\" ;\n",
+                s.readmit.reentry.dispatch_outcome.dispatch_id
+            ));
+            out.push_str(&format!(
+                "  cls:f02ReadmitReceiptHash \"{}\" ;\n",
+                s.readmit.reentry.reentry_admission.receipt_hash
+            ));
+            out.push_str(&format!(
+                "  cls:f24OcelReceiptHead \"{}\" ;\n",
+                s.readmit.ocel_outcome.receipt_head
+            ));
+            out.push_str(&format!(
+                "  cls:f25ReceiptRoot \"{}\" ;\n",
+                s.readmit.replay_outcome.receipt.receipt_root.as_str()
+            ));
+            out.push_str(&format!(
+                "  cls:f25ReplayedReceiptRoot \"{}\" ;\n",
+                s.readmit.replay_outcome.replayed.receipt_root.as_str()
+            ));
+            out.push_str(&format!(
+                "  cls:f25ReceiptRootMatched \
+                 \"{}\"^^<http://www.w3.org/2001/XMLSchema#boolean> ;\n",
+                s.readmit.replay_outcome.report.receipt_root_matched
+            ));
+            out.push_str(&format!(
+                "  cls:stage3CrownReceipt \"{}\" .\n",
+                s.crown_receipt
+            ));
+        }
+        Err(e) => {
+            let reason = e
+                .to_string()
+                .replace('\\', "\\\\")
+                .replace('"', "\\\"")
+                .replace('\n', "\\n");
+            out.push_str(&format!("<{SUBJECT}> sc:caseStatus cls:blocked .\n\n"));
+            out.push_str(&format!("{activity} a cls:RefusedClosure ;\n"));
+            out.push_str(&format!("  cls:caseLocalName \"{case_local_name}\" ;\n"));
+            out.push_str(&format!("  cls:refusalReason \"{reason}\" ;\n"));
+            out.push_str(&format!("  prov:used <{SUBJECT}> .\n"));
+        }
+    }
+    out
+}
+
+/// Writes the final case-closure (or typed refusal) RDF -- **regardless of whether Stage 3
+/// succeeded or refused**, so a caller always finds a receipted-or-blocked verdict on disk -- plus
+/// a machine-readable JSON summary sibling (`08-case-closure-summary.json`), matching the
+/// `07-arazzo-receipt.json` precedent already established in this binary. See
+/// [`build_case_closure_turtle`] for the RDF shape.
+///
+/// # Errors
+/// [`CliError::ClosureRdfMalformed`] if the built Turtle fails to re-parse (defensive self-check,
+/// matching `crown_external.rs`'s own `evidence_turtle` pattern: built from a compile-time-
+/// controlled format string plus real digests, should be unreachable). [`CliError::Io`] /
+/// [`CliError::Serialize`] on write/serialize failure.
+fn write_case_closure(
+    run_dir: &Path,
+    case_local_name: &str,
+    admission: &AdmissionReceipt,
+    plan: &PipelineOutcome,
+    stage3: Result<&Stage3Outcome, &CliError>,
+) -> Result<(), CliError> {
+    let run_id = run_id_from_dir(run_dir);
+    let turtle = build_case_closure_turtle(&run_id, case_local_name, plan, stage3);
+
+    Parser::parse_triples(&turtle, Syntax::Turtle).map_err(|reason| {
+        CliError::ClosureRdfMalformed {
+            reason: format!("case-closure Turtle self-check failed to re-parse: {reason}"),
+        }
+    })?;
+
+    write_file(run_dir, "08-case-closure.ttl", &turtle)?;
+
+    let summary = CaseClosureSummary {
+        case_status: if stage3.is_ok() {
+            "receipted"
+        } else {
+            "blocked"
+        },
+        run_id,
+        case_local_name: case_local_name.to_string(),
+        subject: SUBJECT.to_string(),
+        admission_receipt_hash: admission.receipt_hash.clone(),
+        f08_plan_chain_hash: plan.receipt.chain_hash.clone(),
+        f08_goal_reached: plan.receipt.goal_reached,
+        stage3: stage3.ok().map(|s| Stage3ClosureSummary {
+            f16_dispatch_step_id: s.f16_step_id.clone(),
+            f16_dispatch_token: s.f16_dispatch_token.clone(),
+            f18_broker_receipt_hash: s.broker_receipt.receipt_hash_hex.clone(),
+            f18_consequence_hash: s.broker_receipt.consequence_hash_hex.clone(),
+            f20_direct_dispatch_id: s.f20_direct.dispatch_id.clone(),
+            f20_direct_consequence_digest: s
+                .f20_direct
+                .consequence_digest
+                .clone()
+                .unwrap_or_default(),
+            f20_readmit_dispatch_id: s.readmit.reentry.dispatch_outcome.dispatch_id.clone(),
+            f02_readmit_receipt_hash: s.readmit.reentry.reentry_admission.receipt_hash.clone(),
+            f24_ocel_receipt_head: s.readmit.ocel_outcome.receipt_head.clone(),
+            f25_receipt_root: s
+                .readmit
+                .replay_outcome
+                .receipt
+                .receipt_root
+                .as_str()
+                .to_string(),
+            f25_replayed_receipt_root: s
+                .readmit
+                .replay_outcome
+                .replayed
+                .receipt_root
+                .as_str()
+                .to_string(),
+            f25_receipt_root_matched: s.readmit.replay_outcome.report.receipt_root_matched,
+            stage3_crown_receipt: s.crown_receipt.clone(),
+        }),
+        blocked_reason: stage3.err().map(|e| e.to_string()),
+    };
+    let summary_json = serde_json::to_string_pretty(&summary).map_err(|e| CliError::Serialize {
+        what: "case-closure summary",
+        reason: e.to_string(),
+    })?;
+    write_file(run_dir, "08-case-closure-summary.json", &summary_json)?;
+
+    Ok(())
+}
+
 /// Drives the full Stage-2 chain once, writing every stage's real
 /// intermediate/final state under `run_dir`.
 fn run(run_dir: &Path) -> Result<(), CliError> {
@@ -852,7 +1503,52 @@ fn run(run_dir: &Path) -> Result<(), CliError> {
         hex::encode(compiled.digest.0)
     );
 
-    println!("crown-bribery-case: OK -- full chain (F02 -> hook -> F08 -> F09/F10 -> F13 -> F14) composed for real; artifacts under {}", run_dir.display());
+    // ---- Stage 3: real F15->F16->F18->F20->F02(re-admit)->F15->F21->F24->F25 tail -----------
+    // Built directly from this run's own real F08 plan tape (see
+    // `build_bridge_workflow_from_plan`'s own doc comment for why: F13's projection template
+    // emits no forward-edge routing). Runs regardless of whether it succeeds or refuses; the
+    // case-closure RDF (and its JSON summary sibling) is written either way, never silently
+    // skipped or converted to a fake `receipted` on refusal.
+    // SAFETY note: `run_dir` is always constructed by this file's own `main()` as
+    // `PathBuf::from(format!("target/crown-bribery-case/{run_id}"))`, so `file_name()` is always
+    // `Some(valid utf8)`; still handled via `unwrap_or` inside `run_id_from_dir`, not `.expect()`,
+    // as a defensive non-panic fallback for any future caller that passes a different `run_dir`.
+    let run_id = run_id_from_dir(run_dir);
+    let stage3_result = run_stage3(
+        run_dir,
+        &run_id,
+        &plan_steps,
+        &admission.receipt_hash,
+        "crown-bribery-case-workflow",
+    );
+    write_case_closure(
+        run_dir,
+        &case_local_name,
+        &admission,
+        &plan,
+        stage3_result.as_ref(),
+    )?;
+    match &stage3_result {
+        Ok(s) => println!(
+            "[F15->F25 EXTERNAL tail] OK -- f16_step={} f16_transition_log={:?} \
+             f16_token_len={} broker_receipt={} f20_direct_dispatch={} readmit_dispatch={} \
+             f24_receipt_head={} f25_receipt_root={} f25_matched={} crown_receipt={}",
+            s.f16_step_id,
+            s.f16_transition_log,
+            s.f16_dispatch_token.len(),
+            s.broker_receipt.receipt_hash_hex,
+            s.f20_direct.dispatch_id,
+            s.readmit.reentry.dispatch_outcome.dispatch_id,
+            s.readmit.ocel_outcome.receipt_head,
+            s.readmit.replay_outcome.receipt.receipt_root.as_str(),
+            s.readmit.replay_outcome.report.receipt_root_matched,
+            s.crown_receipt
+        ),
+        Err(e) => println!("[F15->F25 EXTERNAL tail] BLOCKED at: {e}"),
+    }
+    stage3_result?;
+
+    println!("crown-bribery-case: OK -- full chain (F02 -> hook -> F08 -> F09/F10 -> F13 -> F14 -> F15/F16/F18/F20 -> F02(re-admit)/F15/F21/F24/F25) composed for real; artifacts under {}", run_dir.display());
     Ok(())
 }
 
