@@ -1,7 +1,7 @@
 //! Stage-1 live verification that the Solvane Global bribery-compliance
 //! PDDL8 domain (`crates/multifractal-workflow/fixtures/bribery-case/
 //! pddl-domain.ttl`) is not a hand-authored resemblance of a generated
-//! artifact -- it IS one. This test feeds the `pdl:`-vocabulary RDF Turtle
+//! artifact -- it IS one. This test feeds the `pddl:`-vocabulary RDF Turtle
 //! through the same real, already-tested pipeline `tests/mfg_golden.rs`
 //! pins for `ontology/lawobject.ttl`:
 //!   `mfg::manufacture` (SPARQL extraction + `enforce_pddl8` bound
@@ -45,40 +45,40 @@ const PROBLEM_BLOCKED_TTL: &str =
 #[test]
 fn domain_is_strips8_safe_and_manufactures_real_pddl8_text() {
     // `mfg::manufacture` extracts a domain AND a problem from one graph
-    // (`extract_problem` requires exactly one `pdl:Problem` instance), so
+    // (`extract_problem` requires exactly one `pddl:Problem` instance), so
     // this bound-checking test concatenates the domain with one problem
     // file (arbitrarily, the closable one) purely to give it a Problem to
     // extract -- the assertions below are about the DOMAIN text only.
     let combined = format!("{DOMAIN_TTL}\n{PROBLEM_CLOSABLE_TTL}");
     let manufactured = mfg::manufacture(&combined, "fixtures/bribery-case/pddl-domain.ttl")
         .expect("pddl-domain.ttl must satisfy PDDL8 bounds (arity/conjuncts/params <= 8)");
-    assert!(manufactured.domain_text.contains("close-obligations"));
+    assert!(manufactured.project_domain_text().contains("close-obligations"));
     assert!(manufactured
         .domain_text
         .contains("clear-transaction-obligation"));
     assert!(manufactured
         .domain_text
         .contains("clear-authorization-obligation"));
-    assert!(manufactured.domain_text.contains("clear-policy-obligation"));
+    assert!(manufactured.project_domain_text().contains("clear-policy-obligation"));
     assert!(manufactured
         .domain_text
         .contains("block-for-missing-evidence"));
-    eprintln!("manufactured domain text:\n{}", manufactured.domain_text);
+    eprintln!("manufactured domain text:\n{}", manufactured.project_domain_text());
 }
 
 /// Scenario 1: lawful closure. Concatenates pddl-domain.ttl with
 /// pddl-problem-closable.ttl (see DESIGN.md for why the domain/problem
 /// split is 3 files, not 1: `mfg::extract_problem` assumes exactly one
-/// `pdl:Problem` instance per graph), manufactures real PDDL8 text, and
+/// `pddl:Problem` instance per graph), manufactures real PDDL8 text, and
 /// calls the REAL `bcinr_pddl` grounder+solver -- not a mock.
 #[test]
 fn closable_case_grounds_and_solves_to_receipted() {
     let combined = format!("{DOMAIN_TTL}\n{PROBLEM_CLOSABLE_TTL}");
     let manufactured = mfg::manufacture(&combined, "bribery-case (closable scenario)")
         .expect("domain+closable-problem must manufacture");
-    eprintln!("manufactured problem text:\n{}", manufactured.problem_text);
+    eprintln!("manufactured problem text:\n{}", manufactured.project_problem_text());
 
-    let report = mfg::validate(&manufactured.domain_text, &manufactured.problem_text);
+    let report = mfg::solve_ir(&manufactured);
     assert!(
         report.parsed,
         "must round-trip through bcinr-pddl's parser: {:?}",
@@ -154,9 +154,9 @@ fn blocked_case_grounds_and_solves_to_blocked_not_receipted() {
     let combined = format!("{DOMAIN_TTL}\n{PROBLEM_BLOCKED_TTL}");
     let manufactured = mfg::manufacture(&combined, "bribery-case (blocked scenario)")
         .expect("domain+blocked-problem must manufacture");
-    eprintln!("manufactured problem text:\n{}", manufactured.problem_text);
+    eprintln!("manufactured problem text:\n{}", manufactured.project_problem_text());
 
-    let report = mfg::validate(&manufactured.domain_text, &manufactured.problem_text);
+    let report = mfg::solve_ir(&manufactured);
     assert!(
         report.parsed,
         "must round-trip through bcinr-pddl's parser: {:?}",

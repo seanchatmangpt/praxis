@@ -35,7 +35,7 @@
 //! chains (`crates/cng/src/bench/decomp/decomp_test.rs`'s `kitchen_domain`,
 //! `crates/cng/examples/pddl-strips-potato.ttl`'s 2-atom goal). Grounding
 //! stays typed and bounded: `move` has exactly 3 parameters, and
-//! `pddl_index`'s
+//! `bcinr_pddl`'s
 //! relaxed-reachability-pruned grounder (PROJ-733) only ever materializes
 //! the 30 ground actions actually reachable from the two package chains —
 //! not the naive `|objects|^3` cross product — so this scenario does not
@@ -359,7 +359,7 @@ test!(
 // per-instance count into something that did not return within the budget
 // below — grounding itself stayed cheap throughout (2-3ms, measured
 // directly for blocksworld/grippers by calling
-// `pddl_index::ground::IndexedGroundProblem::build`/`find_plan` directly,
+// `bcinr_pddl::ground::IndexedGroundProblem::build`/`find_plan` directly,
 // bypassing `decompose()`'s own candidate-search entirely), so this is
 // blind-BFS planner search cost, not a `DECOMP_MAX_GROUND` grounding-bound
 // failure and not a bug in `namespace_ipc_instance`/`chained_ipc_problem`

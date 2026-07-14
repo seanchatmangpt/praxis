@@ -1,7 +1,7 @@
 //! `mfg` verb dispatcher — pddl, facts, validate.
 //!
 //! Thin CLI wrappers over [`my_conforming_project::mfg`]: manufacture PDDL8
-//! domain/problem text from a `pdl:` RDF ontology, project SPARQL facts as
+//! domain/problem text from a `pddl:` RDF ontology, project SPARQL facts as
 //! JSON, and round-trip manufactured (or hand-written) PDDL8 text through
 //! `bcinr-pddl`'s parser/grounder/planner.
 //!
@@ -23,13 +23,13 @@ fn read_file(path: &str) -> std::result::Result<String, String> {
     std::fs::read_to_string(path).map_err(|e| format!("failed to read {path}: {e}"))
 }
 
-/// Manufacture PDDL8 domain + problem text from a `pdl:` Turtle ontology.
+/// Manufacture PDDL8 domain + problem text from a `pddl:` Turtle ontology.
 ///
 /// Writes to `--domain-out`/`--problem-out` when given; otherwise returns
 /// both texts (and the source graph's BLAKE3 hash) as JSON.
 #[verb]
 pub fn pddl(
-    #[arg(help = "Path to the pdl: Turtle ontology file")] ontology: String,
+    #[arg(help = "Path to the pddl: Turtle ontology file")] ontology: String,
     #[arg(help = "Write the domain PDDL text to this path instead of returning it")]
     domain_out: Option<String>,
     #[arg(help = "Write the problem PDDL text to this path instead of returning it")]
@@ -39,28 +39,28 @@ pub fn pddl(
     let manufactured = mfg::manufacture(&ttl, &ontology).map_err(|e| arg_err(e.to_string()))?;
 
     if let Some(path) = &domain_out {
-        std::fs::write(path, &manufactured.domain_text).map_err(arg_err)?;
+        std::fs::write(path, &manufactured.project_domain_text()).map_err(arg_err)?;
     }
     if let Some(path) = &problem_out {
-        std::fs::write(path, &manufactured.problem_text).map_err(arg_err)?;
+        std::fs::write(path, &manufactured.project_problem_text()).map_err(arg_err)?;
     }
 
     Ok(json!({
         "ontology": ontology,
-        "graph_hash": manufactured.graph_hash_hex,
-        "domain": manufactured.domain_text,
-        "problem": manufactured.problem_text,
+        "graph_hash": manufactured.receipt.graph_hash,
+        "domain": manufactured.project_domain_text(),
+        "problem": manufactured.project_problem_text(),
         "domain_out": domain_out,
         "problem_out": problem_out,
     }))
 }
 
-/// Run a SPARQL `SELECT` query over a `pdl:` ontology and return the result
+/// Run a SPARQL `SELECT` query over a `pddl:` ontology and return the result
 /// as a JSON array of objects (`ggen-core`'s `sparql_column`/`sparql_row`
 /// row shape).
 #[verb]
 pub fn facts(
-    #[arg(help = "Path to the pdl: Turtle ontology file")] ontology: String,
+    #[arg(help = "Path to the pddl: Turtle ontology file")] ontology: String,
     #[arg(help = "SPARQL SELECT query text")] query: String,
 ) -> Result<Value> {
     let ttl = read_file(&ontology).map_err(arg_err)?;

@@ -558,7 +558,7 @@ pub fn project_measurement_profile(
     // Canonical order: sorted by each quad's N-Quads text, independent of
     // insertion order — matches `otel_rdf`/`otel_ocel`/`otel_receipt`'s own
     // canonicalization convention.
-    quads.sort_by(|a, b| a.to_string().cmp(&b.to_string()));
+    quads.sort_by_key(|a| a.to_string());
     Ok(quads)
 }
 

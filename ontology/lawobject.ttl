@@ -26,15 +26,15 @@
 # object/problem name `obligation-validation-case-001`, without updating
 # every consumer of this contract.
 
-@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
 
 # ---------------------------------------------------------------------------
 # Domain
 # ---------------------------------------------------------------------------
 
-pdl:domain_lawobject
-    a pdl:Domain ;
-    pdl:name "lawobject-capability-pddl8" .
+pddl:domain_lawobject
+    a pddl:Domain ;
+    pddl:name "lawobject-capability-pddl8" .
 
 # ---------------------------------------------------------------------------
 # Types (flat mirror of docs/PDDL_CAPABILITY_MODEL.md's type table; andon-state
@@ -42,79 +42,79 @@ pdl:domain_lawobject
 # below represents "Andon green" as a plain predicate rather than an enum).
 # ---------------------------------------------------------------------------
 
-pdl:type_lawobject    a pdl:Type ; pdl:name "law-object" .
-pdl:type_obligation   a pdl:Type ; pdl:name "obligation" .
-pdl:type_evidencetype a pdl:Type ; pdl:name "evidence-type" .
-pdl:type_stage        a pdl:Type ; pdl:name "lifecycle-stage" .
-pdl:type_andonstate   a pdl:Type ; pdl:name "andon-state" .
-pdl:type_validator    a pdl:Type ; pdl:name "validator" .
-pdl:type_authority    a pdl:Type ; pdl:name "authority" .
-pdl:type_chaintoken   a pdl:Type ; pdl:name "chain-token" .
+pddl:type_lawobject    a pddl:Type ; pddl:name "law-object" .
+pddl:type_obligation   a pddl:Type ; pddl:name "obligation" .
+pddl:type_evidencetype a pddl:Type ; pddl:name "evidence-type" .
+pddl:type_stage        a pddl:Type ; pddl:name "lifecycle-stage" .
+pddl:type_andonstate   a pddl:Type ; pddl:name "andon-state" .
+pddl:type_validator    a pddl:Type ; pddl:name "validator" .
+pddl:type_authority    a pddl:Type ; pddl:name "authority" .
+pddl:type_chaintoken   a pddl:Type ; pddl:name "chain-token" .
 
 # ---------------------------------------------------------------------------
 # Predicates (all positive-checkable; STRIPS8-safe)
 # ---------------------------------------------------------------------------
 
-pdl:pred_in_stage
-    a pdl:Predicate ;
-    pdl:name "in-stage" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
-              [ pdl:index 1 ; pdl:var "?stage" ; pdl:ofType "lifecycle-stage" ] .
+pddl:pred_in_stage
+    a pddl:Predicate ;
+    pddl:name "in-stage" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] ,
+              [ pddl:index 1 ; pddl:var "?stage" ; pddl:ofType "lifecycle-stage" ] .
 
-pdl:pred_has_obligation
-    a pdl:Predicate ;
-    pdl:name "has-obligation" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
-              [ pdl:index 1 ; pdl:var "?ob" ; pdl:ofType "obligation" ] .
+pddl:pred_has_obligation
+    a pddl:Predicate ;
+    pddl:name "has-obligation" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] ,
+              [ pddl:index 1 ; pddl:var "?ob" ; pddl:ofType "obligation" ] .
 
-pdl:pred_requires_evidence
-    a pdl:Predicate ;
-    pdl:name "requires-evidence" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?ob" ; pdl:ofType "obligation" ] ,
-              [ pdl:index 1 ; pdl:var "?etype" ; pdl:ofType "evidence-type" ] .
+pddl:pred_requires_evidence
+    a pddl:Predicate ;
+    pddl:name "requires-evidence" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?ob" ; pddl:ofType "obligation" ] ,
+              [ pddl:index 1 ; pddl:var "?etype" ; pddl:ofType "evidence-type" ] .
 
-pdl:pred_evidence_satisfied
-    a pdl:Predicate ;
-    pdl:name "evidence-satisfied" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?ob" ; pdl:ofType "obligation" ] .
+pddl:pred_evidence_satisfied
+    a pddl:Predicate ;
+    pddl:name "evidence-satisfied" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?ob" ; pddl:ofType "obligation" ] .
 
-pdl:pred_obligations_met
-    a pdl:Predicate ;
-    pdl:name "obligations-met" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] .
+pddl:pred_obligations_met
+    a pddl:Predicate ;
+    pddl:name "obligations-met" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] .
 
-pdl:pred_andon_green
-    a pdl:Predicate ;
-    pdl:name "andon-green" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] .
+pddl:pred_andon_green
+    a pddl:Predicate ;
+    pddl:name "andon-green" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] .
 
-pdl:pred_validated_by
-    a pdl:Predicate ;
-    pdl:name "validated-by" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
-              [ pdl:index 1 ; pdl:var "?validator" ; pdl:ofType "validator" ] .
+pddl:pred_validated_by
+    a pddl:Predicate ;
+    pddl:name "validated-by" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] ,
+              [ pddl:index 1 ; pddl:var "?validator" ; pddl:ofType "validator" ] .
 
-pdl:pred_admitted_by
-    a pdl:Predicate ;
-    pdl:name "admitted-by" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
-              [ pdl:index 1 ; pdl:var "?authority" ; pdl:ofType "authority" ] .
+pddl:pred_admitted_by
+    a pddl:Predicate ;
+    pddl:name "admitted-by" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] ,
+              [ pddl:index 1 ; pddl:var "?authority" ; pddl:ofType "authority" ] .
 
-pdl:pred_prev_chain_valid
-    a pdl:Predicate ;
-    pdl:name "prev-chain-valid" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?tok" ; pdl:ofType "chain-token" ] .
+pddl:pred_prev_chain_valid
+    a pddl:Predicate ;
+    pddl:name "prev-chain-valid" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?tok" ; pddl:ofType "chain-token" ] .
 
-pdl:pred_chain_hash_computed
-    a pdl:Predicate ;
-    pdl:name "chain-hash-computed" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
-              [ pdl:index 1 ; pdl:var "?tok" ; pdl:ofType "chain-token" ] .
+pddl:pred_chain_hash_computed
+    a pddl:Predicate ;
+    pddl:name "chain-hash-computed" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] ,
+              [ pddl:index 1 ; pddl:var "?tok" ; pddl:ofType "chain-token" ] .
 
-pdl:pred_signature_applied
-    a pdl:Predicate ;
-    pdl:name "signature-applied" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] .
+pddl:pred_signature_applied
+    a pddl:Predicate ;
+    pddl:name "signature-applied" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] .
 
 # ---------------------------------------------------------------------------
 # Actions (STRIPS8 flattening of the five-step golden lifecycle plan)
@@ -122,67 +122,67 @@ pdl:pred_signature_applied
 
 # 1. supply-evidence(?obj, ?ob, ?etype)
 #    Satisfies the EvidenceRequired obligation ?ob for law-object ?obj.
-pdl:action_supply_evidence
-    a pdl:Action ;
-    pdl:name "supply-evidence" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
-              [ pdl:index 1 ; pdl:var "?ob" ; pdl:ofType "obligation" ] ,
-              [ pdl:index 2 ; pdl:var "?etype" ; pdl:ofType "evidence-type" ] ;
-    pdl:pre "(has-obligation ?obj ?ob)" ,
+pddl:action_supply_evidence
+    a pddl:Action ;
+    pddl:name "supply-evidence" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] ,
+              [ pddl:index 1 ; pddl:var "?ob" ; pddl:ofType "obligation" ] ,
+              [ pddl:index 2 ; pddl:var "?etype" ; pddl:ofType "evidence-type" ] ;
+    pddl:pre "(has-obligation ?obj ?ob)" ,
             "(requires-evidence ?ob ?etype)" ;
-    pdl:add "(evidence-satisfied ?ob)" .
+    pddl:add "(evidence-satisfied ?ob)" .
 
 # 2. clear-obligations(?obj, ?ob)
 #    Once evidence is satisfied, retires the obligation and marks the
 #    law-object as fully obligations-met (the flat replacement for the ADL
 #    domain's `forall obligation. implies(...)` universal check).
-pdl:action_clear_obligations
-    a pdl:Action ;
-    pdl:name "clear-obligations" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
-              [ pdl:index 1 ; pdl:var "?ob" ; pdl:ofType "obligation" ] ;
-    pdl:pre "(has-obligation ?obj ?ob)" ,
+pddl:action_clear_obligations
+    a pddl:Action ;
+    pddl:name "clear-obligations" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] ,
+              [ pddl:index 1 ; pddl:var "?ob" ; pddl:ofType "obligation" ] ;
+    pddl:pre "(has-obligation ?obj ?ob)" ,
             "(evidence-satisfied ?ob)" ;
-    pdl:add "(obligations-met ?obj)" ;
-    pdl:del "(has-obligation ?obj ?ob)" .
+    pddl:add "(obligations-met ?obj)" ;
+    pddl:del "(has-obligation ?obj ?ob)" .
 
 # 3. judge(?obj, ?validator): Raw -> Validated
-pdl:action_judge
-    a pdl:Action ;
-    pdl:name "judge" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
-              [ pdl:index 1 ; pdl:var "?validator" ; pdl:ofType "validator" ] ;
-    pdl:pre "(in-stage ?obj raw)" ,
+pddl:action_judge
+    a pddl:Action ;
+    pddl:name "judge" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] ,
+              [ pddl:index 1 ; pddl:var "?validator" ; pddl:ofType "validator" ] ;
+    pddl:pre "(in-stage ?obj raw)" ,
             "(obligations-met ?obj)" ;
-    pdl:add "(in-stage ?obj validated)" ,
+    pddl:add "(in-stage ?obj validated)" ,
             "(validated-by ?obj ?validator)" ,
             "(andon-green ?obj)" ;
-    pdl:del "(in-stage ?obj raw)" .
+    pddl:del "(in-stage ?obj raw)" .
 
 # 4. admit(?obj, ?authority): Validated -> Admitted
-pdl:action_admit
-    a pdl:Action ;
-    pdl:name "admit" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
-              [ pdl:index 1 ; pdl:var "?authority" ; pdl:ofType "authority" ] ;
-    pdl:pre "(in-stage ?obj validated)" ,
+pddl:action_admit
+    a pddl:Action ;
+    pddl:name "admit" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] ,
+              [ pddl:index 1 ; pddl:var "?authority" ; pddl:ofType "authority" ] ;
+    pddl:pre "(in-stage ?obj validated)" ,
             "(andon-green ?obj)" ;
-    pdl:add "(in-stage ?obj admitted)" ,
+    pddl:add "(in-stage ?obj admitted)" ,
             "(admitted-by ?obj ?authority)" ;
-    pdl:del "(in-stage ?obj validated)" .
+    pddl:del "(in-stage ?obj validated)" .
 
 # 5. receipt(?obj, ?tok): Admitted -> Receipted
-pdl:action_receipt
-    a pdl:Action ;
-    pdl:name "receipt" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?obj" ; pdl:ofType "law-object" ] ,
-              [ pdl:index 1 ; pdl:var "?tok" ; pdl:ofType "chain-token" ] ;
-    pdl:pre "(in-stage ?obj admitted)" ,
+pddl:action_receipt
+    a pddl:Action ;
+    pddl:name "receipt" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?obj" ; pddl:ofType "law-object" ] ,
+              [ pddl:index 1 ; pddl:var "?tok" ; pddl:ofType "chain-token" ] ;
+    pddl:pre "(in-stage ?obj admitted)" ,
             "(prev-chain-valid ?tok)" ;
-    pdl:add "(in-stage ?obj receipted)" ,
+    pddl:add "(in-stage ?obj receipted)" ,
             "(chain-hash-computed ?obj ?tok)" ,
             "(signature-applied ?obj)" ;
-    pdl:del "(in-stage ?obj admitted)" .
+    pddl:del "(in-stage ?obj admitted)" .
 
 # ---------------------------------------------------------------------------
 # Problem instance: obligation-validation-case-001
@@ -195,22 +195,22 @@ pdl:action_receipt
 #   admit(obj-001,authority-001)
 #   receipt(obj-001,tok-genesis)
 
-pdl:problem_obligation_validation_case_001
-    a pdl:Problem ;
-    pdl:name "obligation-validation-case-001" ;
-    pdl:domain "lawobject-capability-pddl8" ;
-    pdl:object [ pdl:name "obj-001" ; pdl:ofType "law-object" ] ,
-               [ pdl:name "ob-001" ; pdl:ofType "obligation" ] ,
-               [ pdl:name "etype-identity" ; pdl:ofType "evidence-type" ] ,
-               [ pdl:name "judge-001" ; pdl:ofType "validator" ] ,
-               [ pdl:name "authority-001" ; pdl:ofType "authority" ] ,
-               [ pdl:name "tok-genesis" ; pdl:ofType "chain-token" ] ,
-               [ pdl:name "raw" ; pdl:ofType "lifecycle-stage" ] ,
-               [ pdl:name "validated" ; pdl:ofType "lifecycle-stage" ] ,
-               [ pdl:name "admitted" ; pdl:ofType "lifecycle-stage" ] ,
-               [ pdl:name "receipted" ; pdl:ofType "lifecycle-stage" ] ;
-    pdl:init "(in-stage obj-001 raw)" ,
+pddl:problem_obligation_validation_case_001
+    a pddl:Problem ;
+    pddl:name "obligation-validation-case-001" ;
+    pddl:domain "lawobject-capability-pddl8" ;
+    pddl:object [ pddl:name "obj-001" ; pddl:ofType "law-object" ] ,
+               [ pddl:name "ob-001" ; pddl:ofType "obligation" ] ,
+               [ pddl:name "etype-identity" ; pddl:ofType "evidence-type" ] ,
+               [ pddl:name "judge-001" ; pddl:ofType "validator" ] ,
+               [ pddl:name "authority-001" ; pddl:ofType "authority" ] ,
+               [ pddl:name "tok-genesis" ; pddl:ofType "chain-token" ] ,
+               [ pddl:name "raw" ; pddl:ofType "lifecycle-stage" ] ,
+               [ pddl:name "validated" ; pddl:ofType "lifecycle-stage" ] ,
+               [ pddl:name "admitted" ; pddl:ofType "lifecycle-stage" ] ,
+               [ pddl:name "receipted" ; pddl:ofType "lifecycle-stage" ] ;
+    pddl:init "(in-stage obj-001 raw)" ,
              "(has-obligation obj-001 ob-001)" ,
              "(requires-evidence ob-001 etype-identity)" ,
              "(prev-chain-valid tok-genesis)" ;
-    pdl:goal "(in-stage obj-001 receipted)" .
+    pddl:goal "(in-stage obj-001 receipted)" .

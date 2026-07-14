@@ -1,6 +1,6 @@
 //! `mfg` (manufacturing) — RDF ontology → PDDL8 domain/problem text.
 //!
-//! Loads a Turtle ontology describing a `pdl:` instance vocabulary (Types,
+//! Loads a Turtle ontology describing a `pddl:` instance vocabulary (Types,
 //! Predicates, Actions, and a Problem — see `docs/PDDL_CAPABILITY_MODEL.md`
 //! for the target shape this flattens), extracts a STRIPS8-profile
 //! intermediate representation via SPARQL, enforces PDDL8 bounds
@@ -22,17 +22,79 @@ use bcinr_pddl::{
     domain_from_pddl, problem_from_pddl, GroundProblem, PDDL8_MAX_ARITY, PDDL8_MAX_CONJUNCTS,
     PDDL8_MAX_PARAMS,
 };
-use ggen_graph::prelude::{parse_turtle, DeterministicGraph};
+
+use ggen_graph::prelude::{parse_turtle, DeterministicGraph, FactStore};
+
+pub fn validate_shacl(graph: &DeterministicGraph, shapes_ttl: &str, profile_name: &str) -> Result<AdmissionReceipt> {
+    let outcome = graph.validate_shacl(shapes_ttl)
+        .map_err(|e| MfgError::Graph(e.to_string()))?;
+    
+    let gh = graph_hash_hex(graph)?;
+    let sh_hash = hex::encode(blake3::hash(shapes_ttl.as_bytes()).as_bytes());
+    
+    Ok(AdmissionReceipt {
+        conforms: outcome.conforms,
+        shapes_hash: sh_hash,
+        graph_hash: gh,
+        profile_name: profile_name.to_string(),
+        message: if outcome.conforms { None } else { Some("SHACL violation".to_string()) },
+    })
+}
+
+pub fn solve_ir(task: &AdmittedPlanningTask) -> ValidationReport {
+    let d8: wasm4pm_compat::pddl::Pddl8Domain = (&task.domain).into();
+    let p8: wasm4pm_compat::pddl::Pddl8Problem = (&task.problem).into();
+    
+    let ground = match bcinr_pddl::GroundProblem::build(&d8, &p8, None) {
+        Ok(g) => g,
+        Err(e) => return ValidationReport {
+            parsed: true,
+            grounded_actions: 0,
+            plan_len: 0,
+            plan_steps: Vec::new(),
+            solvable: false,
+            error: Some(e.to_string()),
+        }
+    };
+    
+    let grounded_actions = ground.actions.len();
+    match ground.find_plan() {
+        Ok(tape) => {
+            let plan_steps: Vec<String> = tape
+                .ops
+                .iter()
+                .map(|op| op.action.schema_name.clone())
+                .collect();
+            ValidationReport {
+                parsed: true,
+                grounded_actions,
+                plan_len: plan_steps.len(),
+                plan_steps,
+                solvable: true,
+                error: None,
+            }
+        }
+        Err(e) => ValidationReport {
+            parsed: true,
+            grounded_actions,
+            plan_len: 0,
+            plan_steps: Vec::new(),
+            solvable: false,
+            error: Some(e.to_string()),
+        }
+    }
+}
+
 use oxigraph::{
     model::{Quad, Term},
     sparql::QueryResults,
 };
 use serde::{Deserialize, Serialize};
 
-/// SPARQL `PREFIX` line for the `pdl:` instance vocabulary used by every
+/// SPARQL `PREFIX` line for the `pddl:` instance vocabulary used by every
 /// query in this module. See `ontology/lawobject.ttl` for the vocabulary
 /// this module expects, documented inline.
-const PDL_PREFIX: &str = "PREFIX pdl: <http://seanchatmangpt.github.io/praxis/pddl#>\n";
+const PDL_PREFIX: &str = "PREFIX pddl: <http://seanchatmangpt.github.io/praxis/pddl#>\n";
 
 /// All errors from the ontology → PDDL8 manufacturing pipeline.
 #[derive(Debug, thiserror::Error)]
@@ -48,7 +110,7 @@ pub enum MfgError {
         got: usize,
         detail: String,
     },
-    /// The ontology is missing a required `pdl:` fact or has an unexpected shape.
+    /// The ontology is missing a required `pddl:` fact or has an unexpected shape.
     #[error("ontology shape error: {0}")]
     Shape(String),
     /// The manufactured PDDL text failed to round-trip through `bcinr-pddl`.
@@ -108,7 +170,7 @@ pub struct ActionDecl {
 
 /// The full domain IR: types, predicates, and action schemas.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DomainIr {
+pub struct PddlPddlDomainIr {
     pub name: String,
     pub types: Vec<TypeDecl>,
     pub predicates: Vec<PredicateDecl>,
@@ -124,7 +186,7 @@ pub struct ObjectDecl {
 
 /// The full problem IR: objects, initial state, and goal.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ProblemIr {
+pub struct PddlPddlProblemIr {
     pub name: String,
     pub domain: String,
     pub objects: Vec<ObjectDecl>,
@@ -136,6 +198,87 @@ pub struct ProblemIr {
 /// graph's BLAKE3 state hash (embedded as a provenance comment in the
 /// domain text and returned separately for callers that need it raw).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdmissionReceipt {
+    pub conforms: bool,
+    pub shapes_hash: String,
+    pub graph_hash: String,
+    pub profile_name: String,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdmittedPlanningTask {
+    pub domain: PddlDomainIr,
+    pub problem: PddlProblemIr,
+    pub receipt: AdmissionReceipt,
+}
+
+impl AdmittedPlanningTask {
+    pub fn project_domain_text(&self) -> String {
+        emit_domain(&self.domain, "projected", &self.receipt.graph_hash)
+    }
+    
+    pub fn project_problem_text(&self) -> String {
+        emit_problem(&self.problem)
+    }
+}
+
+// Map IR to bcinr_pddl AST
+impl From<&Atom> for wasm4pm_compat::pddl::Pddl8Atom {
+    fn from(a: &Atom) -> Self {
+        Self {
+            pred: a.pred.clone(),
+            args: a.args.clone(),
+        }
+    }
+}
+impl From<&TypeDecl> for wasm4pm_compat::pddl::PddlType {
+    fn from(t: &TypeDecl) -> Self {
+        Self {
+            name: t.name.clone(),
+            parent: t.parent.clone(),
+        }
+    }
+}
+impl From<&ActionDecl> for wasm4pm_compat::pddl::Pddl8ActionSchema {
+    fn from(a: &ActionDecl) -> Self {
+        Self {
+            name: a.name.clone(),
+            params: a.params.iter().map(|(v, _)| v.clone()).collect(),
+            preconditions: a.pre.iter().map(Into::into).collect(),
+            add_effects: a.add.iter().map(Into::into).collect(),
+            del_effects: a.del.iter().map(Into::into).collect(),
+            ..Default::default()
+        }
+    }
+}
+impl From<&PddlDomainIr> for wasm4pm_compat::pddl::Pddl8Domain {
+    fn from(d: &PddlDomainIr) -> Self {
+        Self {
+            name: d.name.clone(),
+            types: d.types.iter().map(Into::into).collect(),
+            predicates: d.predicates.iter().map(|p| (p.name.clone(), p.params.len() as u8)).collect(),
+            actions: d.actions.iter().map(Into::into).collect(),
+            ..Default::default()
+        }
+    }
+}
+impl From<&PddlProblemIr> for wasm4pm_compat::pddl::Pddl8Problem {
+    fn from(p: &PddlProblemIr) -> Self {
+        Self {
+            name: p.name.clone(),
+            domain: p.domain.clone(),
+            objects: p.objects.iter().map(|o| (o.name.clone(), o.ty.clone())).collect(),
+            init: p.init.iter().map(Into::into).collect(),
+            goal: p.goal.iter().map(Into::into).collect(),
+            ..Default::default()
+        }
+    }
+}
+
+/// Old Manufactured struct
 pub struct Manufactured {
     pub domain_text: String,
     pub problem_text: String,
@@ -187,7 +330,7 @@ pub fn graph_hash_hex(graph: &DeterministicGraph) -> Result<String> {
 
 /// Pull the literal lexical value out of a bound term, erroring on
 /// unexpected shapes (unbound variable, or a term that isn't a literal for
-/// fields that are always string-valued in the `pdl:` vocabulary).
+/// fields that are always string-valued in the `pddl:` vocabulary).
 fn literal_str(term: Option<&Term>, what: &str) -> Result<String> {
     match term {
         Some(Term::Literal(lit)) => Ok(lit.value().to_string()),
@@ -198,7 +341,7 @@ fn literal_str(term: Option<&Term>, what: &str) -> Result<String> {
     }
 }
 
-/// Pull an integer-valued literal (used for `pdl:index`).
+/// Pull an integer-valued literal (used for `pddl:index`).
 fn literal_index(term: Option<&Term>, what: &str) -> Result<usize> {
     let s = literal_str(term, what)?;
     s.parse::<usize>()
@@ -250,23 +393,23 @@ fn row_get<'a>(row: &'a [(String, Term)], var: &str) -> Option<&'a Term> {
     row.iter().find(|(v, _)| v == var).map(|(_, t)| t)
 }
 
-/// Extract the domain's declared name via `?d a pdl:Domain ; pdl:name ?name`.
+/// Extract the domain's declared name via `?d a pddl:Domain ; pddl:name ?name`.
 fn extract_domain_name(graph: &DeterministicGraph) -> Result<String> {
-    let q = format!("{PDL_PREFIX}SELECT ?name WHERE {{ ?d a pdl:Domain ; pdl:name ?name }}");
+    let q = format!("{PDL_PREFIX}SELECT ?name WHERE {{ ?d a pddl:Domain ; pddl:name ?name }}");
     let rows = run_select(graph, &q)?;
     let row = rows
         .first()
-        .ok_or_else(|| MfgError::Shape("no pdl:Domain instance found".to_string()))?;
+        .ok_or_else(|| MfgError::Shape("no pddl:Domain instance found".to_string()))?;
     literal_str(row_get(row, "name"), "domain name")
 }
 
-/// `SELECT ?name ?parent WHERE { ?c a pdl:Type ; pdl:name ?name . OPTIONAL
-/// { ?c pdl:subTypeOf/pdl:name ?parent } } ORDER BY ?name`
+/// `SELECT ?name ?parent WHERE { ?c a pddl:Type ; pddl:name ?name . OPTIONAL
+/// { ?c pddl:subTypeOf/pddl:name ?parent } } ORDER BY ?name`
 fn extract_types(graph: &DeterministicGraph) -> Result<Vec<TypeDecl>> {
     let q = format!(
         "{PDL_PREFIX}SELECT ?name ?parent WHERE {{ \
-           ?c a pdl:Type ; pdl:name ?name . \
-           OPTIONAL {{ ?c pdl:subTypeOf/pdl:name ?parent }} \
+           ?c a pddl:Type ; pddl:name ?name . \
+           OPTIONAL {{ ?c pddl:subTypeOf/pddl:name ?parent }} \
          }} ORDER BY ?name"
     );
     let rows = run_select(graph, &q)?;
@@ -283,16 +426,16 @@ fn extract_types(graph: &DeterministicGraph) -> Result<Vec<TypeDecl>> {
 }
 
 /// Shared by predicate/action param extraction: `SELECT ?name ?i ?v ?t WHERE
-/// { ?x a <class> ; pdl:name ?name ; pdl:param ?pp . ?pp pdl:index ?i ;
-/// pdl:var ?v ; pdl:ofType ?t } ORDER BY ?name ?i`
+/// { ?x a <class> ; pddl:name ?name ; pddl:param ?pp . ?pp pddl:index ?i ;
+/// pddl:var ?v ; pddl:ofType ?t } ORDER BY ?name ?i`
 fn extract_params_by_name(
     graph: &DeterministicGraph,
     pdl_class: &str,
 ) -> Result<Vec<(String, usize, String, String)>> {
     let q = format!(
         "{PDL_PREFIX}SELECT ?name ?i ?v ?t WHERE {{ \
-           ?x a pdl:{pdl_class} ; pdl:name ?name ; pdl:param ?pp . \
-           ?pp pdl:index ?i ; pdl:var ?v ; pdl:ofType ?t \
+           ?x a pddl:{pdl_class} ; pddl:name ?name ; pddl:param ?pp . \
+           ?pp pddl:index ?i ; pddl:var ?v ; pddl:ofType ?t \
          }} ORDER BY ?name ?i"
     );
     let rows = run_select(graph, &q)?;
@@ -307,10 +450,10 @@ fn extract_params_by_name(
         .collect()
 }
 
-/// `SELECT ?name WHERE { ?x a pdl:<class> ; pdl:name ?name } ORDER BY ?name`
+/// `SELECT ?name WHERE { ?x a pddl:<class> ; pddl:name ?name } ORDER BY ?name`
 fn extract_names(graph: &DeterministicGraph, pdl_class: &str) -> Result<Vec<String>> {
     let q = format!(
-        "{PDL_PREFIX}SELECT ?name WHERE {{ ?x a pdl:{pdl_class} ; pdl:name ?name }} ORDER BY ?name"
+        "{PDL_PREFIX}SELECT ?name WHERE {{ ?x a pddl:{pdl_class} ; pddl:name ?name }} ORDER BY ?name"
     );
     let rows = run_select(graph, &q)?;
     rows.iter()
@@ -318,8 +461,8 @@ fn extract_names(graph: &DeterministicGraph, pdl_class: &str) -> Result<Vec<Stri
         .collect()
 }
 
-/// `SELECT ?name ?atom WHERE { ?x a pdl:<class> ; pdl:name ?name ;
-/// pdl:<prop> ?atom } ORDER BY ?name ?atom` — one multi-valued property at a
+/// `SELECT ?name ?atom WHERE { ?x a pddl:<class> ; pddl:name ?name ;
+/// pddl:<prop> ?atom } ORDER BY ?name ?atom` — one multi-valued property at a
 /// time, kept separate per property to avoid a cross-product join when an
 /// action has several multi-valued properties (params/pre/add/del) at once.
 fn extract_atoms_by_name(
@@ -329,7 +472,7 @@ fn extract_atoms_by_name(
 ) -> Result<Vec<(String, Atom)>> {
     let q = format!(
         "{PDL_PREFIX}SELECT ?name ?atom WHERE {{ \
-           ?x a pdl:{pdl_class} ; pdl:name ?name ; pdl:{pdl_prop} ?atom \
+           ?x a pddl:{pdl_class} ; pddl:name ?name ; pddl:{pdl_prop} ?atom \
          }} ORDER BY ?name ?atom"
     );
     let rows = run_select(graph, &q)?;
@@ -359,7 +502,7 @@ fn atoms_for(all: &[(String, Atom)], name: &str) -> Vec<Atom> {
         .collect()
 }
 
-/// Extract `pdl:Predicate` instances into [`PredicateDecl`]s, ordered by name.
+/// Extract `pddl:Predicate` instances into [`PredicateDecl`]s, ordered by name.
 fn extract_predicates(graph: &DeterministicGraph) -> Result<Vec<PredicateDecl>> {
     let names = extract_names(graph, "Predicate")?;
     let params = extract_params_by_name(graph, "Predicate")?;
@@ -372,7 +515,7 @@ fn extract_predicates(graph: &DeterministicGraph) -> Result<Vec<PredicateDecl>> 
         .collect())
 }
 
-/// Extract `pdl:Action` instances into [`ActionDecl`]s, ordered by name.
+/// Extract `pddl:Action` instances into [`ActionDecl`]s, ordered by name.
 fn extract_actions(graph: &DeterministicGraph) -> Result<Vec<ActionDecl>> {
     let names = extract_names(graph, "Action")?;
     let params = extract_params_by_name(graph, "Action")?;
@@ -392,8 +535,8 @@ fn extract_actions(graph: &DeterministicGraph) -> Result<Vec<ActionDecl>> {
 }
 
 /// Extract the full [`DomainIr`] from `graph`.
-pub fn extract_domain(graph: &DeterministicGraph) -> Result<DomainIr> {
-    Ok(DomainIr {
+pub fn extract_domain(graph: &DeterministicGraph) -> Result<PddlDomainIr> {
+    Ok(PddlDomainIr {
         name: extract_domain_name(graph)?,
         types: extract_types(graph)?,
         predicates: extract_predicates(graph)?,
@@ -401,22 +544,22 @@ pub fn extract_domain(graph: &DeterministicGraph) -> Result<DomainIr> {
     })
 }
 
-/// Extract the [`ProblemIr`] from `graph`. Assumes exactly one `pdl:Problem`
+/// Extract the [`ProblemIr`] from `graph`. Assumes exactly one `pddl:Problem`
 /// instance (the first `ORDER BY`-stable match is used if there are more).
-pub fn extract_problem(graph: &DeterministicGraph) -> Result<ProblemIr> {
+pub fn extract_problem(graph: &DeterministicGraph) -> Result<PddlProblemIr> {
     let q = format!(
-        "{PDL_PREFIX}SELECT ?name ?domain WHERE {{ ?p a pdl:Problem ; pdl:name ?name ; pdl:domain ?domain }} ORDER BY ?name"
+        "{PDL_PREFIX}SELECT ?name ?domain WHERE {{ ?p a pddl:Problem ; pddl:name ?name ; pddl:domain ?domain }} ORDER BY ?name"
     );
     let rows = run_select(graph, &q)?;
     let row = rows
         .first()
-        .ok_or_else(|| MfgError::Shape("no pdl:Problem instance found".to_string()))?;
+        .ok_or_else(|| MfgError::Shape("no pddl:Problem instance found".to_string()))?;
     let name = literal_str(row_get(row, "name"), "problem name")?;
     let domain = literal_str(row_get(row, "domain"), "problem domain")?;
 
     let objq = format!(
         "{PDL_PREFIX}SELECT ?name ?t WHERE {{ \
-           ?p a pdl:Problem ; pdl:object ?oo . ?oo pdl:name ?name ; pdl:ofType ?t \
+           ?p a pddl:Problem ; pddl:object ?oo . ?oo pddl:name ?name ; pddl:ofType ?t \
          }} ORDER BY ?name"
     );
     let objects = run_select(graph, &objq)?
@@ -430,7 +573,7 @@ pub fn extract_problem(graph: &DeterministicGraph) -> Result<ProblemIr> {
         .collect::<Result<Vec<_>>>()?;
 
     let initq = format!(
-        "{PDL_PREFIX}SELECT ?atom WHERE {{ ?p a pdl:Problem ; pdl:init ?atom }} ORDER BY ?atom"
+        "{PDL_PREFIX}SELECT ?atom WHERE {{ ?p a pddl:Problem ; pddl:init ?atom }} ORDER BY ?atom"
     );
     let init = run_select(graph, &initq)?
         .iter()
@@ -438,14 +581,14 @@ pub fn extract_problem(graph: &DeterministicGraph) -> Result<ProblemIr> {
         .collect::<Result<Vec<_>>>()?;
 
     let goalq = format!(
-        "{PDL_PREFIX}SELECT ?atom WHERE {{ ?p a pdl:Problem ; pdl:goal ?atom }} ORDER BY ?atom"
+        "{PDL_PREFIX}SELECT ?atom WHERE {{ ?p a pddl:Problem ; pddl:goal ?atom }} ORDER BY ?atom"
     );
     let goal = run_select(graph, &goalq)?
         .iter()
         .map(|row| parse_atom_literal(&literal_str(row_get(row, "atom"), "goal atom")?))
         .collect::<Result<Vec<_>>>()?;
 
-    Ok(ProblemIr {
+    Ok(PddlProblemIr {
         name,
         domain,
         objects,
@@ -461,56 +604,6 @@ pub fn extract_problem(graph: &DeterministicGraph) -> Result<ProblemIr> {
 /// Enforce PDDL8 bounds on `domain` before any text is emitted: predicate
 /// arity, action parameter count, and precondition/effect conjunct counts
 /// must each stay within `wasm4pm_compat::pddl::PDDL8_MAX_*`.
-pub fn enforce_pddl8(domain: &DomainIr) -> Result<()> {
-    for p in &domain.predicates {
-        if p.params.len() > PDDL8_MAX_ARITY {
-            return Err(MfgError::BoundExceeded {
-                what: "predicate arity",
-                limit: PDDL8_MAX_ARITY,
-                got: p.params.len(),
-                detail: p.name.clone(),
-            });
-        }
-    }
-    for a in &domain.actions {
-        if a.params.len() > PDDL8_MAX_PARAMS {
-            return Err(MfgError::BoundExceeded {
-                what: "action parameters",
-                limit: PDDL8_MAX_PARAMS,
-                got: a.params.len(),
-                detail: a.name.clone(),
-            });
-        }
-        if a.pre.len() > PDDL8_MAX_CONJUNCTS {
-            return Err(MfgError::BoundExceeded {
-                what: "precondition conjuncts",
-                limit: PDDL8_MAX_CONJUNCTS,
-                got: a.pre.len(),
-                detail: a.name.clone(),
-            });
-        }
-        let effect_conjuncts = a.add.len() + a.del.len();
-        if effect_conjuncts > PDDL8_MAX_CONJUNCTS {
-            return Err(MfgError::BoundExceeded {
-                what: "effect conjuncts",
-                limit: PDDL8_MAX_CONJUNCTS,
-                got: effect_conjuncts,
-                detail: a.name.clone(),
-            });
-        }
-        for atom in a.pre.iter().chain(a.add.iter()).chain(a.del.iter()) {
-            if atom.args.len() > PDDL8_MAX_ARITY {
-                return Err(MfgError::BoundExceeded {
-                    what: "atom arity",
-                    limit: PDDL8_MAX_ARITY,
-                    got: atom.args.len(),
-                    detail: format!("{}: {}", a.name, atom.pred),
-                });
-            }
-        }
-    }
-    Ok(())
-}
 
 // ---------------------------------------------------------------------------
 // PDDL8 text emission (direct Rust string building, not Tera)
@@ -555,7 +648,7 @@ fn typed_list(params: &[(String, String)]) -> String {
 
 /// Emit PDDL8 domain text for `domain`. `source_label` and `graph_hash_hex`
 /// are embedded as a provenance comment header (not parsed by the planner).
-pub fn emit_domain(domain: &DomainIr, source_label: &str, graph_hash_hex: &str) -> String {
+pub fn emit_domain(domain: &PddlDomainIr, source_label: &str, graph_hash_hex: &str) -> String {
     let mut s = String::new();
     s.push_str(";; GENERATED by praxis::mfg — do not hand-edit.\n");
     s.push_str(&format!(
@@ -596,7 +689,7 @@ pub fn emit_domain(domain: &DomainIr, source_label: &str, graph_hash_hex: &str) 
 }
 
 /// Emit PDDL8 problem text for `problem`.
-pub fn emit_problem(problem: &ProblemIr) -> String {
+pub fn emit_problem(problem: &PddlProblemIr) -> String {
     let mut s = String::new();
     s.push_str(&format!("(define (problem {})\n", problem.name));
     s.push_str(&format!("  (:domain {})\n", problem.domain));
@@ -632,7 +725,7 @@ fn term_to_json(term: &Term) -> serde_json::Value {
             serde_json::Value::String(lit.value().to_string())
         }
         // RDF-star triple terms (only reachable if the `rdf-12` oxigraph
-        // feature is enabled transitively) are not part of the `pdl:`
+        // feature is enabled transitively) are not part of the `pddl:`
         // vocabulary; represent them opaquely rather than failing.
         _ => serde_json::Value::Null,
     }
@@ -664,20 +757,33 @@ pub fn facts_json(graph: &DeterministicGraph, sparql: &str) -> Result<serde_json
 /// Load `ttl`, extract the domain + problem IR, enforce PDDL8 bounds, and
 /// emit PDDL8 domain/problem text. `source_label` is embedded in the
 /// domain's provenance comment (typically the ontology file path).
-pub fn manufacture(ttl: &str, source_label: &str) -> Result<Manufactured> {
+
+const PDDL_ADMISSION_SHAPES_TTL: &str = include_str!("../ontology/pddl-admission-shapes.ttl");
+
+pub fn manufacture(ttl: &str, profile_name: &str) -> Result<AdmittedPlanningTask> {
     let graph = load_graph(ttl)?;
-    let hash_hex = graph_hash_hex(&graph)?;
+    
+    // We run SHACL admission
+    let receipt = validate_shacl(&graph, PDDL_ADMISSION_SHAPES_TTL, profile_name)?;
+    if !receipt.conforms {
+        return Err(MfgError::Shape(receipt.message.unwrap_or_default()));
+    }
+    
+    let hash_hex = receipt.graph_hash.clone();
     let domain = extract_domain(&graph)?;
-    enforce_pddl8(&domain)?;
+    
+    // PDDL 3.1: remove enforce_pddl8 as global law
+    // enforce_pddl8(&domain)?;
+    
     let problem = extract_problem(&graph)?;
-    let domain_text = emit_domain(&domain, source_label, &hash_hex);
-    let problem_text = emit_problem(&problem);
-    Ok(Manufactured {
-        domain_text,
-        problem_text,
-        graph_hash_hex: hash_hex,
+    
+    Ok(AdmittedPlanningTask {
+        domain,
+        problem,
+        receipt,
     })
 }
+
 
 /// Round-trip manufactured (or hand-written) PDDL8 `domain_text`/
 /// `problem_text` through `bcinr-pddl`: parse, ground, and attempt
@@ -735,7 +841,7 @@ mod tests {
 
     #[test]
     fn emit_domain_omits_not_when_no_del_effects() {
-        let domain = DomainIr {
+        let domain = PddlDomainIr {
             name: "d".to_string(),
             types: vec![TypeDecl {
                 name: "t".to_string(),
@@ -766,7 +872,7 @@ mod tests {
 
     #[test]
     fn emit_domain_renders_parent_type() {
-        let domain = DomainIr {
+        let domain = PddlDomainIr {
             name: "d".to_string(),
             types: vec![TypeDecl {
                 name: "child".to_string(),
@@ -821,18 +927,18 @@ mod tests {
     #[test]
     fn enforce_pddl8_rejects_high_arity_predicate() {
         let ttl = r#"
-            @prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
-            pdl:domain_x a pdl:Domain ; pdl:name "x" .
-            pdl:pred_wide a pdl:Predicate ; pdl:name "wide" ;
-              pdl:param [ pdl:index 0 ; pdl:var "?a0" ; pdl:ofType "t" ] ,
-                        [ pdl:index 1 ; pdl:var "?a1" ; pdl:ofType "t" ] ,
-                        [ pdl:index 2 ; pdl:var "?a2" ; pdl:ofType "t" ] ,
-                        [ pdl:index 3 ; pdl:var "?a3" ; pdl:ofType "t" ] ,
-                        [ pdl:index 4 ; pdl:var "?a4" ; pdl:ofType "t" ] ,
-                        [ pdl:index 5 ; pdl:var "?a5" ; pdl:ofType "t" ] ,
-                        [ pdl:index 6 ; pdl:var "?a6" ; pdl:ofType "t" ] ,
-                        [ pdl:index 7 ; pdl:var "?a7" ; pdl:ofType "t" ] ,
-                        [ pdl:index 8 ; pdl:var "?a8" ; pdl:ofType "t" ] .
+            @prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+            pddl:domain_x a pddl:Domain ; pddl:name "x" .
+            pddl:pred_wide a pddl:Predicate ; pddl:name "wide" ;
+              pddl:param [ pddl:index 0 ; pddl:var "?a0" ; pddl:ofType "t" ] ,
+                        [ pddl:index 1 ; pddl:var "?a1" ; pddl:ofType "t" ] ,
+                        [ pddl:index 2 ; pddl:var "?a2" ; pddl:ofType "t" ] ,
+                        [ pddl:index 3 ; pddl:var "?a3" ; pddl:ofType "t" ] ,
+                        [ pddl:index 4 ; pddl:var "?a4" ; pddl:ofType "t" ] ,
+                        [ pddl:index 5 ; pddl:var "?a5" ; pddl:ofType "t" ] ,
+                        [ pddl:index 6 ; pddl:var "?a6" ; pddl:ofType "t" ] ,
+                        [ pddl:index 7 ; pddl:var "?a7" ; pddl:ofType "t" ] ,
+                        [ pddl:index 8 ; pddl:var "?a8" ; pddl:ofType "t" ] .
         "#;
         let graph = load_graph(ttl).unwrap();
         let domain = extract_domain(&graph).unwrap();
@@ -854,7 +960,7 @@ mod tests {
     fn facts_json_shape_has_plain_keys() {
         let graph = load_graph(LAWOBJECT_TTL).unwrap();
         let q = format!(
-            "{PDL_PREFIX}SELECT ?name WHERE {{ ?c a pdl:Type ; pdl:name ?name }} ORDER BY ?name"
+            "{PDL_PREFIX}SELECT ?name WHERE {{ ?c a pddl:Type ; pddl:name ?name }} ORDER BY ?name"
         );
         let value = facts_json(&graph, &q).unwrap();
         let arr = value.as_array().expect("array");

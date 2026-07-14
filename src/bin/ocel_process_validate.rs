@@ -635,7 +635,6 @@ fn membership_violations(trace: &[String], view: &ModelView) -> Vec<String> {
     violations
 }
 
-
 // ─── UTC ordering ───────────────────────────────────────────────────────────
 
 /// Every time string must be RFC 3339 with the literal `Z` suffix, and the
@@ -721,12 +720,7 @@ fn model_report(view: &ModelView) -> ModelReport {
         order_pairs: view
             .order
             .iter()
-            .map(|&(i, j)| {
-                [
-                    child_desc(&view.children[i]),
-                    child_desc(&view.children[j]),
-                ]
-            })
+            .map(|&(i, j)| [child_desc(&view.children[i]), child_desc(&view.children[j])])
             .collect(),
     }
 }

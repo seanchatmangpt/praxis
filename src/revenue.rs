@@ -30,12 +30,12 @@
 //! Genesis Day 2 asks whether the PDDL domain can be manufactured from
 //! `ontology/revenue.ttl` via the `mfg` lane. It cannot, and this is the
 //! receipt of that refusal: the `mfg` lane ([`crate::mfg`]) consumes the
-//! `pddl#` instance vocabulary — indexed `pdl:param`/`pdl:pre`/`pdl:add`/
-//! `pdl:del` **atom lists** plus a `pdl:Problem` individual — and lowers that
+//! `pddl#` instance vocabulary — indexed `pddl:param`/`pddl:pre`/`pddl:add`/
+//! `pddl:del` **atom lists** plus a `pddl:Problem` individual — and lowers that
 //! STRIPS8 IR to text. `ontology/revenue.ttl` instead uses the `pdl#`
-//! *formula-text* projection style: `pdl:precondition`/`pdl:effect` are opaque
-//! PDDL strings, `pdl:parameter` points at Types (not indexed param nodes),
-//! and there is no `pdl:Problem` individual at all. The two vocabularies do
+//! *formula-text* projection style: `pddl:precondition`/`pddl:effect` are opaque
+//! PDDL strings, `pddl:parameter` points at Types (not indexed param nodes),
+//! and there is no `pddl:Problem` individual at all. The two vocabularies do
 //! not overlap, so the `mfg` extractor would find zero actions. Rather than
 //! grow a second manufacturing path speculatively, the domain is hand-authored
 //! at `ontology/revenue.pddl` (PDDL8-safe: `:strips :typing`, add-only
@@ -494,7 +494,12 @@ mod tests {
         let a = run_demo(1_000).map_err(|e| crate::AppError::Other(e.to_string()))?;
         let b = run_demo(1_000).map_err(|e| crate::AppError::Other(e.to_string()))?;
         assert_eq!(a, b, "same ts_ns must yield a byte-identical transcript");
-        assert_eq!(a["step_3_plan"]["plan_len"].as_u64().ok_or_else(|| crate::AppError::Other("missing val".into()))?, 2);
+        assert_eq!(
+            a["step_3_plan"]["plan_len"]
+                .as_u64()
+                .ok_or_else(|| crate::AppError::Other("missing val".into()))?,
+            2
+        );
         Ok(())
     }
 }

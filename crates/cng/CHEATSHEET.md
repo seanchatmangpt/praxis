@@ -38,7 +38,7 @@ decomposition cases are template-rendered at test time, not fixture files).
 
 `runner` is a default feature (needs the nightly toolchain pinned by this workspace).
 `bench` is off by default; build/run with `--features bench` (pulls in
-`praxis-graphlaw`, `wasm4pm-cognition`, `pddl-index`).
+`praxis-graphlaw`, `wasm4pm-cognition`, `bcinr-pddl`).
 
 ## Global flags
 

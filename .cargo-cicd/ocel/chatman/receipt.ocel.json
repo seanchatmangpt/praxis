@@ -3,29 +3,30 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
-    "evt_002": {
-      "event_id": "a7f9afb1-1422-4123-ad3e-974390be1635",
+    "evt_005": {
+      "event_id": "f7786947-7005-4ac1-ada9-601a247a6739",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {
           "category": "Admission",
-          "severity": "Info"
+          "severity": "Andon"
         }
       },
-      "timestamp_ns": 3,
+      "timestamp_ns": 6,
       "objects": [
         [
-          "Accept_ProfileHashMatches",
+          "Falsify_ProjectionHashMismatch",
           "Fixture"
         ]
       ],
       "attributes": {
-        "fixture_id": "Accept_ProfileHashMatches",
-        "outcome": "admitted"
+        "refusal": "ProjectionHashMismatch",
+        "fixture_id": "Falsify_ProjectionHashMismatch",
+        "outcome": "refused"
       }
     },
     "evt_000": {
-      "event_id": "36849b3e-6a25-47b5-bef6-55b3a85589ee",
+      "event_id": "ec015142-f8c7-467a-8b9f-7dff430311d8",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {
@@ -46,7 +47,7 @@
       }
     },
     "evt_003": {
-      "event_id": "0852367e-8890-4030-8ed0-ee41b860951b",
+      "event_id": "79290268-fce7-43d2-b919-0aac213a2d20",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {
@@ -62,57 +63,13 @@
         ]
       ],
       "attributes": {
-        "outcome": "refused",
         "fixture_id": "Falsify_ProfileHashMismatch",
-        "refusal": "ProfileHashMismatch"
-      }
-    },
-    "evt_001": {
-      "event_id": "4623c564-2815-43e8-95cd-f5f8b53e7fe0",
-      "case_id": "chatman-receipt",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 2,
-      "objects": [
-        [
-          "Falsify_BoundaryRequestMissingReceipt",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "outcome": "refused",
-        "refusal": "BoundaryRequestMissingReceipt",
-        "fixture_id": "Falsify_BoundaryRequestMissingReceipt"
-      }
-    },
-    "evt_005": {
-      "event_id": "1d4da205-521b-405e-a570-6466ad77389f",
-      "case_id": "chatman-receipt",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 6,
-      "objects": [
-        [
-          "Falsify_ProjectionHashMismatch",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "outcome": "refused",
-        "fixture_id": "Falsify_ProjectionHashMismatch",
-        "refusal": "ProjectionHashMismatch"
+        "refusal": "ProfileHashMismatch",
+        "outcome": "refused"
       }
     },
     "evt_004": {
-      "event_id": "6a5baf9b-635f-4272-84f8-92879d807382",
+      "event_id": "3f457e79-c064-48b8-bc03-df8974693f78",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {
@@ -130,6 +87,49 @@
       "attributes": {
         "outcome": "admitted",
         "fixture_id": "Accept_ProjectionHashMatches"
+      }
+    },
+    "evt_001": {
+      "event_id": "0c5872c2-380d-4b1e-8091-2810df7318e3",
+      "case_id": "chatman-receipt",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 2,
+      "objects": [
+        [
+          "Falsify_BoundaryRequestMissingReceipt",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Falsify_BoundaryRequestMissingReceipt",
+        "outcome": "refused",
+        "refusal": "BoundaryRequestMissingReceipt"
+      }
+    },
+    "evt_002": {
+      "event_id": "92aaa230-3075-4562-9299-5effad6a8ddd",
+      "case_id": "chatman-receipt",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 3,
+      "objects": [
+        [
+          "Accept_ProfileHashMatches",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Accept_ProfileHashMatches",
+        "outcome": "admitted"
       }
     }
   },

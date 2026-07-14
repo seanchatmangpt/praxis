@@ -1,0 +1,12 @@
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+
+pddl:problem_traj
+    a pddl:Problem ;
+    pddl:name "trajectory-prob" ;
+    pddl:domain "trajectory-domain" ;
+    pddl:object [ pddl:name "r1" ; pddl:ofType "rover" ] ,
+                [ pddl:name "w1" ; pddl:ofType "waypoint" ] ,
+                [ pddl:name "w2" ; pddl:ofType "waypoint" ] ;
+    pddl:init "(at r1 w1)" ;
+    pddl:goal "(at r1 w2)" ;
+    pddl:constraint "(and (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))) (always (not (at r1 w2))))" .

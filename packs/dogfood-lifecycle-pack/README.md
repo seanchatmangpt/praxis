@@ -11,16 +11,17 @@ driven by MFW's own hook, on MFW's own session.
 ## The loop
 
 ```text
-tool call  --PostToolUse hook-->  session-<id>.ttl  --ggen graph validate --files-->  chained
- (capture)     (one dfl:ToolEvent      (admitted RDF          (parse validation)      receipt
-               node per event)          observation)                            (blake3 hash-chain)
+tool call  --PostToolUse hook-->  session-<id>.ttl  --ggen graph validate-->  chained
+ (capture)     (one dfl:ToolEvent      (admitted RDF          (parse + SHACL)   receipt
+               node per event)          observation)                     (blake3 hash-chain)
 ```
 
 1. **Capture** — `hooks/dogfood-lifecycle-capture.sh` (a PostToolUse hook) appends one
    `dfl:ToolEvent` Turtle node per tool event to `.cargo-cicd/lifecycle/session-<id>.ttl`,
    content-addressing the tool input/result with real blake3 digests (`urn:blake3:<hex>`).
 2. **Validate** — `hooks/dogfood-lifecycle-session-end.sh` runs
-   `ggen graph validate --files <session.ttl>` over every captured log.
+   `ggen graph validate --files <session.ttl> --shapes shapes.ttl` over every captured log
+   (Turtle parse plus SHACL shape-conformance against `dfl:ToolEventShape`/`dfl:SessionShape`).
 3. **Receipt** — the same script appends a hash-chained validation receipt per log to
    `.cargo-cicd/lifecycle/receipts.jsonl` (`payload_hash`/`prev_chain_hash`/`chain_hash`; see
    "Scope and named follow-ups" below for exactly what this does and does not guarantee).
@@ -101,8 +102,18 @@ during this verification run are local runtime data, not part of this change's t
 
 ## Scope and named follow-ups
 
-- `ggen graph validate --files` performs Turtle **parse** validation today, not SHACL. The
-  `shapes.ttl` constraints bite once the `--files X --shapes Y` SHACL layer lands.
+- **SHACL shape-conformance: live.** `ggen graph validate --files X --shapes Y` (landed in
+  commit 523cc6e4, reusing praxis-graphlaw's existing `GraphLawStore::validate_shacl`) performs
+  real SHACL constraint evaluation, not just Turtle parse validation. `hooks/dogfood-
+  lifecycle-session-end.sh` now passes `--shapes shapes.ttl` on every invocation, so every
+  captured session log is checked against `dfl:ToolEventShape`/`dfl:SessionShape` (session ref,
+  tool name, ordering, outcome, agent, used/generated), not merely parsed. Verified this session:
+  a well-formed fixture (`fixtures/session-good.ttl`) reports `shapes_conform: true`; a
+  hand-built fixture with a `skos:notation` value outside the closed tool-name vocabulary
+  (parse-valid, shape-invalid) makes both the raw `ggen graph validate --files ... --shapes ...`
+  call and the wrapper script exit non-zero naming the focus node, source shape, and message
+  text — not a bare parse error, proving `--shapes` is actually evaluated and not just present
+  in the args list.
 - **Receipt chain (production side, bash-only): done.** `hooks/dogfood-lifecycle-session-end.sh`
   appends a genuinely hash-chained record per validated session log —
   `payload_hash = blake3(canonical sorted-key JSON of {blake3, parse_valid, session_log,

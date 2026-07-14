@@ -1,0 +1,24 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix ex:   <http://example.org/domain#> .
+
+ex:InvalidTrafficProblem a pddl:Problem ;
+    pddl:name "traffic-invalid" ;
+    pddl:domain ex:TrafficDomain ;
+    pddl:init [
+        a pddl:TimedInitialLiteral ;
+        pddl:time "tomorrow"^^xsd:string ; # Should be xsd:decimal per shapes
+        pddl:literal [
+            a pddl:Literal ;
+            pddl:predicate ex:road-open ;
+            pddl:argument ex:loc2 ;
+            pddl:polarity true
+        ]
+    ] ;
+    pddl:goal [
+        a pddl:Literal ;
+        pddl:predicate ex:road-open ;
+        pddl:argument ex:loc2 ;
+        pddl:polarity true
+    ] .

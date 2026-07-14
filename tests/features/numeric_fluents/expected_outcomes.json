@@ -1,0 +1,11 @@
+{
+  "valid": {
+    "admission": "Admitted",
+    "capability": "Unsupported",
+    "plannerEntered": false
+  },
+  "invalid": {
+    "admission": "AdmissionRefused",
+    "plannerEntered": false
+  }
+}

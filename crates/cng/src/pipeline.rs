@@ -189,7 +189,7 @@ pub fn generate_plan(
     let ground = GroundProblem::build(&surface.domain, &surface.problem, None)
         .map_err(|e| CngRefusal::UnsupportedConstruct(format!("grounding failed: {e}")))?;
     let tape = ground
-        .find_plan()
+        .find_plan().into_result()
         .map_err(|e| CngRefusal::PlanUnsolvable(format!("no admitted plan: {e}")))?;
     Ok((tape, surface))
 }

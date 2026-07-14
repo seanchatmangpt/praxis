@@ -1,0 +1,25 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix ex:   <http://example.org/domain#> .
+
+ex:TrafficDomain a pddl:Domain ;
+    pddl:name "traffic" ;
+    pddl:requirement pddl:typing, pddl:timed-initial-literals .
+
+ex:road-open a pddl:Predicate ;
+    pddl:name "road-open" ;
+    pddl:parameter ex:Location .
+
+ex:drive a pddl:Action ;
+    pddl:name "drive" ;
+    pddl:parameter ex:Location, ex:Location ;
+    pddl:precondition [
+        a pddl:Literal ;
+        pddl:predicate ex:road-open ;
+        pddl:polarity true
+    ] ;
+    pddl:effect [
+        a pddl:Literal ;
+        pddl:predicate ex:road-open ;
+        pddl:polarity false
+    ] .

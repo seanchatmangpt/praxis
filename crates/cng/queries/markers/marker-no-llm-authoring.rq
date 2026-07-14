@@ -9,7 +9,7 @@
 # The PRIMARY proof is structural, not this query: `cng`'s Cargo.toml
 # dependency tree carries no LLM/inference-API crate (grep-verifiable —
 # `crates/cng/Cargo.toml`'s [dependencies]/[features] surface is
-# bcinr-pddl/pddl-index/oxigraph/blake3/serde/praxis-graphlaw/
+# bcinr-pddl/bcinr-pddl/oxigraph/blake3/serde/praxis-graphlaw/
 # wasm4pm-cognition/chicago-tdd-tools class dependencies only), and
 # `crates/cng/src/bench/decomp/` has no natural-language generation code
 # path: every rendered artifact (PDDL problem text, POWL Turtle, receipt

@@ -31,8 +31,22 @@ const RELEASE_ID = 'v26.7.6';
 const RUN_ID = `ocel-evidence-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const MCP_BIN = path.join(REPO, 'target', 'debug', 'my-conforming-project');
 const GGEN_BIN = path.join(REPO, 'target', 'debug', 'ggen');
-const EXPECTED_FACTORY_HEAD =
-  'e12a2d2ce9fe8ace7cdd9e092a08ae0b51ce4dbec0f56eedd72b0ec4b24c7c72';
+// EXPECTED_FACTORY_HEAD is derived at test-run time from the receipt file
+// `ggen sync` itself maintains, not a hardcoded snapshot. A literal hex
+// constant here goes stale on every legitimate `ggen sync run` that extends
+// the chain — that was the disclosed pinning risk (see "Disclosed
+// limitations" in docs/GGEN_PARITY.md, and RELEASE_CONTROL.md Sec. 2 item 6
+// / Sec. 5 row 7 in docs/releases/v26.7.13/): the evidence-pass test would
+// fail in a way indistinguishable from real tamper detection, unless a
+// maintainer knew to re-pin it by hand. Reading `.ggen-v2/receipt.json`
+// here instead means the check below verifies that `ggen receipt
+// history`'s independently-verified chain traversal agrees with the
+// on-disk receipt record — which still catches chain desync/corruption —
+// without requiring a re-pin after every sync.
+const RECEIPT_JSON_PATH = path.join(REPO, '.ggen-v2', 'receipt.json');
+const EXPECTED_FACTORY_HEAD = JSON.parse(
+  fs.readFileSync(RECEIPT_JSON_PATH, 'utf8'),
+).record.chain_hash_hex;
 
 fs.mkdirSync(RAW_DIR, { recursive: true });
 

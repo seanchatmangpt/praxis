@@ -301,50 +301,50 @@ pub fn receipt_otel_to_ocel(store: &Store) -> Result<Vec<Quad>, CngRefusal> {
     })?;
 
     let graph = receipt_graph_name();
-    let mut quads = Vec::new();
-
-    quads.push(Quad::new(
-        activity_node.clone(),
-        rdf_type(),
-        Term::NamedNode(ns_node(PROV_PREFIX, "Activity")),
-        graph.clone(),
-    ));
-    quads.push(Quad::new(
-        activity_node.clone(),
-        rdf_type(),
-        Term::NamedNode(ns_node(CNGR_NS, "ConstructTransformationReceipt")),
-        graph.clone(),
-    ));
-    quads.push(Quad::new(
-        activity_node.clone(),
-        ns_node(CNGR_NS, "transformationKind"),
-        Term::Literal(Literal::new_simple_literal(TRANSFORMATION_KIND)),
-        graph.clone(),
-    ));
-    quads.push(Quad::new(
-        activity_node.clone(),
-        ns_node(PROV_PREFIX, "used"),
-        Term::NamedNode(otel_node.clone()),
-        graph.clone(),
-    ));
-    quads.push(Quad::new(
-        activity_node.clone(),
-        ns_node(PROV_PREFIX, "hadPlan"),
-        Term::NamedNode(query_node.clone()),
-        graph.clone(),
-    ));
-    quads.push(Quad::new(
-        activity_node.clone(),
-        ns_node(PROV_PREFIX, "generated"),
-        Term::NamedNode(ocel_node.clone()),
-        graph.clone(),
-    ));
-    quads.push(Quad::new(
-        activity_node,
-        ns_node(CNGR_NS, "receiptHead"),
-        Term::Literal(Literal::new_simple_literal(&receipt_head)),
-        graph.clone(),
-    ));
+    let mut quads = vec![
+        Quad::new(
+            activity_node.clone(),
+            rdf_type(),
+            Term::NamedNode(ns_node(PROV_PREFIX, "Activity")),
+            graph.clone(),
+        ),
+        Quad::new(
+            activity_node.clone(),
+            rdf_type(),
+            Term::NamedNode(ns_node(CNGR_NS, "ConstructTransformationReceipt")),
+            graph.clone(),
+        ),
+        Quad::new(
+            activity_node.clone(),
+            ns_node(CNGR_NS, "transformationKind"),
+            Term::Literal(Literal::new_simple_literal(TRANSFORMATION_KIND)),
+            graph.clone(),
+        ),
+        Quad::new(
+            activity_node.clone(),
+            ns_node(PROV_PREFIX, "used"),
+            Term::NamedNode(otel_node.clone()),
+            graph.clone(),
+        ),
+        Quad::new(
+            activity_node.clone(),
+            ns_node(PROV_PREFIX, "hadPlan"),
+            Term::NamedNode(query_node.clone()),
+            graph.clone(),
+        ),
+        Quad::new(
+            activity_node.clone(),
+            ns_node(PROV_PREFIX, "generated"),
+            Term::NamedNode(ocel_node.clone()),
+            graph.clone(),
+        ),
+        Quad::new(
+            activity_node,
+            ns_node(CNGR_NS, "receiptHead"),
+            Term::Literal(Literal::new_simple_literal(&receipt_head)),
+            graph.clone(),
+        ),
+    ];
 
     for (node, digest, source_graph_iri) in [
         (&otel_node, &input_digest, otel_ocel::OTEL_GRAPH_IRI),
@@ -390,7 +390,7 @@ pub fn receipt_otel_to_ocel(store: &Store) -> Result<Vec<Quad>, CngRefusal> {
     // Canonical order: sorted by each quad's N-Quads text, independent of
     // insertion order — matches `otel_rdf::project_admitted_spans` and
     // `otel_ocel::project_otel_to_ocel`'s own canonicalization convention.
-    quads.sort_by(|a, b| a.to_string().cmp(&b.to_string()));
+    quads.sort_by_key(|a| a.to_string());
     Ok(quads)
 }
 

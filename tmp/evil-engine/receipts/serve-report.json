@@ -1,0 +1,12 @@
+{
+  "measurement_class": "MEASURED_CNG_RESULT",
+  "engine_id": "../../../../../../tmp/evil-engine",
+  "engine_version": "cng-engine/26.7.10",
+  "instance_nonce": 6003036265158968573,
+  "resumed": false,
+  "ledger_entries_verified": 0,
+  "polls": 1,
+  "contracts_executed": 0,
+  "quiesced": false,
+  "receipt_chain_digest": "blake3:af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"
+}

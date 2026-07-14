@@ -23,22 +23,22 @@
 # file is only ever concatenated with pddl-domain.ttl ONE AT A TIME for
 # manufacture -- see that file's own header).
 
-@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
 
-pdl:problem_azure_terraform_ma_case_study_blocked
-    a pdl:Problem ;
-    pdl:name "azure-terraform-ma-case-study-blocked" ;
-    pdl:domain "azure-terraform-provisioning-pddl8" ;
-    pdl:object [ pdl:name "deployment-ma-case-study-no-image" ; pdl:ofType "deployment" ] ,
-               [ pdl:name "provider-azurerm" ; pdl:ofType "provider" ] ,
-               [ pdl:name "var-location" ; pdl:ofType "location-variable" ] ,
-               [ pdl:name "var-environment" ; pdl:ofType "environment-variable" ] ,
-               [ pdl:name "var-resource-group-name" ; pdl:ofType "resource-group-name-variable" ] ,
-               [ pdl:name "var-container-image" ; pdl:ofType "container-image-variable" ] ;
-    pdl:init "(provider-required deployment-ma-case-study-no-image provider-azurerm)" ,
+pddl:problem_azure_terraform_ma_case_study_blocked
+    a pddl:Problem ;
+    pddl:name "azure-terraform-ma-case-study-blocked" ;
+    pddl:domain "azure-terraform-provisioning-pddl8" ;
+    pddl:object [ pddl:name "deployment-ma-case-study-no-image" ; pddl:ofType "deployment" ] ,
+               [ pddl:name "provider-azurerm" ; pddl:ofType "provider" ] ,
+               [ pddl:name "var-location" ; pddl:ofType "location-variable" ] ,
+               [ pddl:name "var-environment" ; pddl:ofType "environment-variable" ] ,
+               [ pddl:name "var-resource-group-name" ; pddl:ofType "resource-group-name-variable" ] ,
+               [ pddl:name "var-container-image" ; pddl:ofType "container-image-variable" ] ;
+    pddl:init "(provider-required deployment-ma-case-study-no-image provider-azurerm)" ,
              "(variable-declared deployment-ma-case-study-no-image var-location)" ,
              "(variable-declared deployment-ma-case-study-no-image var-environment)" ,
              "(variable-declared deployment-ma-case-study-no-image var-resource-group-name)" ,
              "(variable-declared deployment-ma-case-study-no-image var-container-image)" ,
              "(image-unavailable var-container-image)" ;
-    pdl:goal "(deployment-blocked deployment-ma-case-study-no-image)" .
+    pddl:goal "(deployment-blocked deployment-ma-case-study-no-image)" .

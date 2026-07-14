@@ -1,0 +1,15 @@
+# rwai-bench observation template (engine_poll, PROJ-723): one bounded
+# receipted inbox poll of a serve loop. 0 is a logical counter —
+# the ONLY real-time element (inter-poll sleep) sits behind the
+# RealTimeWait seam and is never serialized here.
+@prefix ex:  <http://example.org/rwai#> .
+@prefix obs: <https://ggen.io/ontology/bench-obs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:obs-engine-1 a obs:Observation ;
+  obs:obsKind "engine_poll" ;
+  obs:obsSeq 1 ;
+  obs:obsSetId "../../../../../../tmp/evil-engine" ;
+  obs:producedByEngine "../../../../../../tmp/evil-engine" ;
+  ex:pollNo "0"^^xsd:integer .
+

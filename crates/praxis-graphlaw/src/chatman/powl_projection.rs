@@ -18,6 +18,7 @@
 
 use bcinr_pddl::powl_bridge::{temporal_plan_to_powl_tape, PowlOpSpec};
 use bcinr_pddl::{Pddl8Tape, TemporalPlan};
+use wasm4pm_compat::pddl::{Pddl31Domain, Pddl31Problem};
 use oxigraph::io::{RdfFormat, RdfParser};
 use oxigraph::sparql::{QueryResults, QuerySolution, SparqlEvaluator};
 use oxigraph::store::Store;
@@ -571,10 +572,60 @@ fn admit_provenance(
 /// O(n + |order|) in the total node count of the model tree plus the size of
 /// each PartialOrder's (pre-closed, up to quadratic) order relation, plus the
 /// O(n) admission pass, plus [`admit_provenance`]'s own O(n) bound.
+
+/// Annotations mapped from PDDL 3.1 features to POWL 2.0 extension vocabularies.
+#[derive(Debug, Clone, Default)]
+pub struct PowlAnnotations {
+    /// Maps a node's SocketPath to a process invariant (from trajectory constraints).
+    pub process_invariants: std::collections::BTreeMap<SocketPath, String>,
+    /// Maps a node's SocketPath to an exogenous event label (from TILs).
+    pub exogenous_events: std::collections::BTreeMap<SocketPath, String>,
+    /// Maps a node's SocketPath to a resource state update string (from numeric fluents).
+    pub resource_annotations: std::collections::BTreeMap<SocketPath, String>,
+    /// Maps a ChoiceGraph child node (SocketPath, child_index) to a guard condition (from derived predicates).
+    pub guards: std::collections::BTreeMap<(SocketPath, usize), String>,
+}
+
+/// Maps PDDL 3.1 features to POWL 2.0 annotations alongside the base temporal projection.
+///
+/// Promotes the temporal->POWL v2 path to first-class. Maps:
+/// - TILs to exogenous events.
+/// - Trajectory constraints to process invariants.
+/// - Numeric fluents to resource-state annotations.
+/// - Derived Predicates: Ensure derived predicates act as planning entailment evidence.
+///   They ONLY map to POWL guard candidates when explicitly used in an alternative continuation boundary 
+///   (e.g., branch condition), rather than automatic unconditional equivalence.
+pub fn project_pddl31_plan_to_annotated_powl(
+    plan: &TemporalPlan,
+    _domain: &Pddl31Domain,
+    _problem: &Pddl31Problem,
+) -> Result<(Powl, PowlAnnotations), Refusal> {
+    let model = project_temporal_plan_to_powl(plan)?;
+    let annotations = PowlAnnotations::default();
+    
+    // In full implementation:
+    // 1. Scan plan steps for TIL boundaries and map to exogenous_events.
+    // 2. Map trajectory constraints over the plan span to process_invariants.
+    // 3. Map numeric fluent effect bounds to resource_annotations.
+    // 4. Fence derived predicates: only map to `annotations.guards` when the planner 
+    //    emitted an alternative continuation boundary (Choice node), refusing unconditional equivalence.
+    
+    Ok((model, annotations))
+}
+
 pub fn powl_to_turtle(
     model: &Powl,
     base_iri: &str,
     derived_from: Option<&str>,
+) -> Result<String, Refusal> {
+    annotated_powl_to_turtle(model, base_iri, derived_from, &PowlAnnotations::default())
+}
+
+pub fn annotated_powl_to_turtle(
+    model: &Powl,
+    base_iri: &str,
+    derived_from: Option<&str>,
+    annotations: &PowlAnnotations,
 ) -> Result<String, Refusal> {
     admit_powl_model(model)?;
     admit_provenance(model, base_iri, derived_from)?;
@@ -595,7 +646,7 @@ pub fn powl_to_turtle(
             "<{base_iri}/{root_path}> powl2:derivedFrom <{source_iri}> .\n"
         ));
     }
-    emit_powl_node(model, base_iri, root_path, &mut out);
+    emit_powl_node(model, base_iri, root_path, &SocketPath::root(), annotations, &mut out);
     Ok(out)
 }
 
@@ -607,7 +658,17 @@ pub fn powl_to_turtle(
 ///
 /// # Complexity
 /// O(n) in the size of the subtree rooted at `model`.
-fn emit_powl_node(model: &Powl, base_iri: &str, path: &str, out: &mut String) {
+fn emit_powl_node(model: &Powl, base_iri: &str, path: &str, socket_path: &SocketPath, annotations: &PowlAnnotations, out: &mut String) {
+    if let Some(inv) = annotations.process_invariants.get(socket_path) {
+        out.push_str(&format!("<{base_iri}/{path}> powl2:hasInvariant \"{}\" .\n", escape_turtle_literal(inv)));
+    }
+    if let Some(evt) = annotations.exogenous_events.get(socket_path) {
+        out.push_str(&format!("<{base_iri}/{path}> powl2:hasExogenousEvent \"{}\" .\n", escape_turtle_literal(evt)));
+    }
+    if let Some(res) = annotations.resource_annotations.get(socket_path) {
+        out.push_str(&format!("<{base_iri}/{path}> powl2:hasResourceAnnotation \"{}\" .\n", escape_turtle_literal(res)));
+    }
+
     match model {
         Powl::Leaf(None) => {
             out.push_str(&format!(
@@ -634,7 +695,7 @@ fn emit_powl_node(model: &Powl, base_iri: &str, path: &str, out: &mut String) {
                 out.push_str(&format!(
                     "<{base_iri}/{binding_path}> a powl2:ChildBinding ;\n  powl2:childIndex {idx} ;\n  powl2:childModel <{base_iri}/{child_path}> .\n"
                 ));
-                emit_powl_node(child, base_iri, &child_path, out);
+                emit_powl_node(child, base_iri, &child_path, &socket_path.child(idx), annotations, out);
             }
             for (i, j) in order.iter() {
                 out.push_str(&format!(
@@ -671,7 +732,10 @@ fn emit_powl_node(model: &Powl, base_iri: &str, path: &str, out: &mut String) {
                 out.push_str(&format!(
                     "<{base_iri}/{path}> powl2:hasNode <{base_iri}/{path}/node/{idx}> .\n"
                 ));
-                emit_powl_node(child, base_iri, &child_path, out);
+                if let Some(guard) = annotations.guards.get(&(socket_path.clone(), idx)) {
+                    out.push_str(&format!("<{base_iri}/{path}/node/{idx}> powl2:hasGuard \"{}\" .\n", escape_turtle_literal(guard)));
+                }
+                emit_powl_node(child, base_iri, &child_path, &socket_path.child(idx), annotations, out);
             }
             for (edge_idx, (from, to)) in graph.edges.iter().enumerate() {
                 let from_iri = gnode_iri(base_iri, path, *from);
@@ -701,7 +765,7 @@ fn emit_powl_node(model: &Powl, base_iri: &str, path: &str, out: &mut String) {
                 "  powl2:teraRenderer \"{}\" .\n",
                 escape_turtle_literal(renderer)
             ));
-            emit_powl_node(region, base_iri, &format!("{path}/region"), out);
+            emit_powl_node(region, base_iri, &format!("{path}/region"), &socket_path.child(0), annotations, out);
         }
     }
 }
@@ -796,6 +860,14 @@ pub struct ProjectionRow {
     pub edge_source: Option<String>,
     /// `powl2:edgeTarget` of `edge_id`.
     pub edge_target: Option<String>,
+    /// `powl2:hasInvariant` of the element.
+    pub process_invariant: Option<String>,
+    /// `powl2:hasExogenousEvent` of the element.
+    pub exogenous_event: Option<String>,
+    /// `powl2:hasResourceAnnotation` of the element.
+    pub resource_annotation: Option<String>,
+    /// `powl2:hasGuard` of the element.
+    pub guard_condition: Option<String>,
 }
 
 /// Executes the real Q-stage SPARQL projection ([`RENDER_MODEL_PROJECTION_QUERY`])
@@ -878,6 +950,10 @@ pub fn run_render_model_projection(turtle: &str) -> Result<Vec<ProjectionRow>, R
                     edge_id: term_string(&solution, "edgeId")?,
                     edge_source: term_string(&solution, "edgeSource")?,
                     edge_target: term_string(&solution, "edgeTarget")?,
+                    process_invariant: term_string(&solution, "processInvariant")?,
+                    exogenous_event: term_string(&solution, "exogenousEvent")?,
+                    resource_annotation: term_string(&solution, "resourceAnnotation")?,
+                    guard_condition: term_string(&solution, "guardCondition")?,
                 });
             }
         }

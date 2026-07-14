@@ -98,7 +98,7 @@ impl Judge for DefaultLaw {
                     return Err(halted);
                 }
             };
-            
+
             let refusals: Vec<RefusalScenario> = unmet.iter().map(RefusalScenario::from).collect();
             let mut halted = raw;
             halted.andon = Andon::Halted {

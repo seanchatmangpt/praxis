@@ -1,0 +1,10 @@
+{
+  "valid": {
+    "plannerEntered": true,
+    "outcome": "Unsupported"
+  },
+  "invalid": {
+    "plannerEntered": false,
+    "outcome": "AdmissionRefused"
+  }
+}

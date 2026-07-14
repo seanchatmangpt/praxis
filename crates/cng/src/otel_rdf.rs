@@ -529,7 +529,7 @@ pub fn project_admitted_spans(spans: &[OtlpSpan]) -> Result<Vec<Quad>, CngRefusa
 
     // Canonical order: sorted by each quad's N-Quads text, independent of
     // insertion order. Never hash/serialize this Vec unsorted.
-    quads.sort_by(|a, b| a.to_string().cmp(&b.to_string()));
+    quads.sort_by_key(|a| a.to_string());
     Ok(quads)
 }
 

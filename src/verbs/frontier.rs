@@ -36,8 +36,8 @@ pub fn matrix(
 /// pass_rate / failures) without the full per-cell matrix.
 #[verb]
 pub fn summary() -> Result<Value> {
-    let report = frontier::frontier_report()
-        .map_err(|e| NounVerbError::argument_error(e.to_string()))?;
+    let report =
+        frontier::frontier_report().map_err(|e| NounVerbError::argument_error(e.to_string()))?;
     serde_json::to_value(&report).map_err(|e| NounVerbError::argument_error(e.to_string()))
 }
 
@@ -48,8 +48,8 @@ pub fn counts() -> Result<Value> {
     let matrix = frontier::build_frontier_matrix()
         .map_err(|e| NounVerbError::argument_error(e.to_string()))?;
     let evaluated = matrix.evaluated();
-    let refused = frontier::refused_count()
-        .map_err(|e| NounVerbError::argument_error(e.to_string()))?;
+    let refused =
+        frontier::refused_count().map_err(|e| NounVerbError::argument_error(e.to_string()))?;
     let admitted = evaluated.saturating_sub(refused);
     Ok(json!({
         "total_cells": matrix.total(),

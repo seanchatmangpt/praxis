@@ -1,0 +1,25 @@
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+
+pddl:domain_traj
+    a pddl:Domain ;
+    pddl:name "trajectory-domain" ;
+    pddl:requirement ":strips", ":typing" .
+
+pddl:type_rover a pddl:Type ; pddl:name "rover" .
+pddl:type_waypoint a pddl:Type ; pddl:name "waypoint" .
+
+pddl:pred_at
+    a pddl:Predicate ;
+    pddl:name "at" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?x" ; pddl:ofType "rover" ] ,
+               [ pddl:index 1 ; pddl:var "?y" ; pddl:ofType "waypoint" ] .
+
+pddl:action_move
+    a pddl:Action ;
+    pddl:name "move" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?x" ; pddl:ofType "rover" ] ,
+               [ pddl:index 1 ; pddl:var "?from" ; pddl:ofType "waypoint" ] ,
+               [ pddl:index 2 ; pddl:var "?to" ; pddl:ofType "waypoint" ] ;
+    pddl:pre "(at ?x ?from)" ;
+    pddl:add "(at ?x ?to)" ;
+    pddl:del "(at ?x ?from)" .

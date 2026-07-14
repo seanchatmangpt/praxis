@@ -191,7 +191,10 @@ fn admitted_and_refused_are_disjoint_and_account_for_every_evaluated_cell() {
             !c.is_impossible && c.actual_standing != wasm4pm_compat::dfcm::Standing::Unknown
         })
         .count();
-    assert_eq!(admitted_count + refused_count().unwrap(), evaluated_count().unwrap());
+    assert_eq!(
+        admitted_count + refused_count().unwrap(),
+        evaluated_count().unwrap()
+    );
 }
 
 #[test]
@@ -202,6 +205,9 @@ fn frontier_report_serializes_to_target_directory() {
         path.exists(),
         "target/frontier-report.json must exist after write_report"
     );
-    assert_eq!(report.summary.total, build_frontier_matrix().unwrap().total());
+    assert_eq!(
+        report.summary.total,
+        build_frontier_matrix().unwrap().total()
+    );
     assert!((report.summary.pass_rate - 1.0).abs() < f64::EPSILON);
 }

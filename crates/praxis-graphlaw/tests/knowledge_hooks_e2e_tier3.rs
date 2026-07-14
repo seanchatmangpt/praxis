@@ -93,19 +93,38 @@ fn test_c3_gating_construct_blake3_fixpoint() {
 }
 
 /// Covers F3: Evaluates multiple hooks representing threshold, count, and window concurrently.
+///
+/// Root-cause note (RELEASE_CONTROL.md v26.7.13 Sec. 5 open item 3, "root cause not yet
+/// investigated"): this test previously used `kh:k 100` against a single `ex:Obj
+/// <http://example.org/val> 150` fact, apparently assuming `kh:kind "threshold"` compares the
+/// triple's *object value* (150) against `k` (100). That is not what this crate implements or
+/// has ever implemented: `HookCondition::Threshold` fires on `count_pred(store, var) op k` --
+/// the *count* of triples with predicate `var` in the whole store, not any object value --
+/// per `reasoner/mod.rs`'s `count_pred`/`cmp_holds` (both `u64`-typed) and confirmed
+/// independently by `hooks/condition.rs::compile_condition`'s `HookCondition::Threshold` arm
+/// ("Thresholds are converted to count-based conditions") and by
+/// `test_b3_threshold_boundary_values` (tier2), whose `kh:k 18446744073709551615` (`u64::MAX`)
+/// only makes sense as a count boundary, never a plausible metric value. With `kh:k 100` and
+/// exactly one `val` triple, `count_pred` is 1 and `1 > 100` is always false regardless of the
+/// triple's value -- the threshold hook could never fire, so `receipts.len() >= 2` was
+/// unreachable. Fixed by using `kh:k 0` so the single existing `val` fact's count (1) crosses
+/// the threshold (`1 > 0`), matching the real count-based semantics while preserving the test's
+/// documented intent (threshold + count + window hooks co-evaluated in one `materialize()`
+/// pass) -- no `src/` change; the implementation's count-based `Threshold` semantics are
+/// intentional and depended on by `test_f3_threshold_trigger`/`test_b3_threshold_boundary_values`.
 #[test]
 fn test_c3_threshold_count_window_concurrency() {
     let mut store = TripleStore::new();
     let hook_pack = r#"
         @prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
         @prefix ex: <http://example.org/> .
-        
+
         ex:h_thresh a kh:Hook ;
             kh:name "thresh_hook" ;
             kh:kind "threshold" ;
             kh:var "http://example.org/val" ;
             kh:op ">" ;
-            kh:k 100 ;
+            kh:k 0 ;
             kh:effect "emit-delta" .
 
         ex:h_count a kh:Hook ;

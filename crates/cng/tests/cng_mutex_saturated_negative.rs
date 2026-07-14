@@ -53,7 +53,7 @@ use std::path::{Path, PathBuf};
 use chicago_tdd_tools::prelude::*;
 
 use bcinr_pddl::{Pddl8ActionSchema, Pddl8Atom, Pddl8Domain, Pddl8Problem};
-use pddl_index::ground::IndexedGroundProblem as GroundProblem;
+use bcinr_pddl::ground::IndexedGroundProblem as GroundProblem;
 
 use cng::bench::decomp::{
     decomp_queries_dir, decompose, derive_edges, lift_ground, partition_goals, CandidateStatus,

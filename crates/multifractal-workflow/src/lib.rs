@@ -81,6 +81,16 @@ pub mod f28_multi_breed_science;
 pub mod f29_capability_roadmap;
 pub mod f30_ggen_release_state;
 
+/// F31 -- "Org Merge" (not one of the 30 atlas families; new work). Closes the
+/// first real, working instance of
+/// `docs/standing/BOOTSTRAP_COLD_START_LIMITATIONS.md` item 14 (multi-org
+/// first-merge bootstrap): two independently F02-admitted organization graphs
+/// fused into one re-validated merged graph, with real deterministic
+/// identifier-collision detection and a disclosed union-of-shapes governance
+/// rule. See the module's own doc comment for the full design and its honest
+/// scope boundary.
+pub mod f31_org_merge;
+
 pub mod crown_external;
 /// Composed crown-witness pipelines (real production callers that chain multiple families'
 /// real entry points end to end). `crown_local` drives the LOCAL witness prefix

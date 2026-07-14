@@ -1,6 +1,6 @@
 # after-neon factory floor — planner-loop demo goal (v26.7.6).
 #
-# A PDDL8-safe (STRIPS8) `pdl:` ontology for the post-cyberpunk civic
+# A PDDL8-safe (STRIPS8) `pddl:` ontology for the post-cyberpunk civic
 # factory: a blueprint must gain standing, be grounded into a plan, have its
 # artifact manufactured under gauge, and be folded into the receipt chain.
 #
@@ -10,119 +10,119 @@
 # Same schema as ontology/lawobject.ttl (the mfg lane's golden fixture);
 # consumed by `praxis plan run --goal examples/v26_7_6_after_neon/goal.ttl`.
 
-@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
 
 # ── Domain ────────────────────────────────────────────────────────────────
 
-pdl:domain_after_neon
-    a pdl:Domain ;
-    pdl:name "after-neon-factory-pddl8" .
+pddl:domain_after_neon
+    a pddl:Domain ;
+    pddl:name "after-neon-factory-pddl8" .
 
 # ── Types ─────────────────────────────────────────────────────────────────
 
-pdl:type_blueprint a pdl:Type ; pdl:name "blueprint" .
-pdl:type_registrar a pdl:Type ; pdl:name "registrar" .
-pdl:type_cell      a pdl:Type ; pdl:name "factory-cell" .
-pdl:type_gauge     a pdl:Type ; pdl:name "gauge" .
-pdl:type_token     a pdl:Type ; pdl:name "chain-token" .
+pddl:type_blueprint a pddl:Type ; pddl:name "blueprint" .
+pddl:type_registrar a pddl:Type ; pddl:name "registrar" .
+pddl:type_cell      a pddl:Type ; pddl:name "factory-cell" .
+pddl:type_gauge     a pddl:Type ; pddl:name "gauge" .
+pddl:type_token     a pddl:Type ; pddl:name "chain-token" .
 
 # ── Predicates ────────────────────────────────────────────────────────────
 
-pdl:pred_has_standing
-    a pdl:Predicate ;
-    pdl:name "has-standing" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?bp" ; pdl:ofType "blueprint" ] .
+pddl:pred_has_standing
+    a pddl:Predicate ;
+    pddl:name "has-standing" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?bp" ; pddl:ofType "blueprint" ] .
 
-pdl:pred_registrar_open
-    a pdl:Predicate ;
-    pdl:name "registrar-open" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?reg" ; pdl:ofType "registrar" ] .
+pddl:pred_registrar_open
+    a pddl:Predicate ;
+    pddl:name "registrar-open" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?reg" ; pddl:ofType "registrar" ] .
 
-pdl:pred_grounded
-    a pdl:Predicate ;
-    pdl:name "grounded" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?bp" ; pdl:ofType "blueprint" ] .
+pddl:pred_grounded
+    a pddl:Predicate ;
+    pddl:name "grounded" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?bp" ; pddl:ofType "blueprint" ] .
 
-pdl:pred_cell_idle
-    a pdl:Predicate ;
-    pdl:name "cell-idle" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?cell" ; pdl:ofType "factory-cell" ] .
+pddl:pred_cell_idle
+    a pddl:Predicate ;
+    pddl:name "cell-idle" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?cell" ; pddl:ofType "factory-cell" ] .
 
-pdl:pred_gauge_calibrated
-    a pdl:Predicate ;
-    pdl:name "gauge-calibrated" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?g" ; pdl:ofType "gauge" ] .
+pddl:pred_gauge_calibrated
+    a pddl:Predicate ;
+    pddl:name "gauge-calibrated" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?g" ; pddl:ofType "gauge" ] .
 
-pdl:pred_artifact_made
-    a pdl:Predicate ;
-    pdl:name "artifact-made" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?bp" ; pdl:ofType "blueprint" ] .
+pddl:pred_artifact_made
+    a pddl:Predicate ;
+    pddl:name "artifact-made" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?bp" ; pddl:ofType "blueprint" ] .
 
-pdl:pred_chain_open
-    a pdl:Predicate ;
-    pdl:name "chain-open" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?tok" ; pdl:ofType "chain-token" ] .
+pddl:pred_chain_open
+    a pddl:Predicate ;
+    pddl:name "chain-open" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?tok" ; pddl:ofType "chain-token" ] .
 
-pdl:pred_receipted
-    a pdl:Predicate ;
-    pdl:name "receipted" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?bp" ; pdl:ofType "blueprint" ] .
+pddl:pred_receipted
+    a pddl:Predicate ;
+    pddl:name "receipted" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?bp" ; pddl:ofType "blueprint" ] .
 
 # ── Actions ───────────────────────────────────────────────────────────────
 
 # 1. grant-standing(?bp, ?reg): admission — the registrar grants standing.
-pdl:action_grant_standing
-    a pdl:Action ;
-    pdl:name "grant-standing" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?bp" ; pdl:ofType "blueprint" ] ,
-              [ pdl:index 1 ; pdl:var "?reg" ; pdl:ofType "registrar" ] ;
-    pdl:pre "(registrar-open ?reg)" ;
-    pdl:add "(has-standing ?bp)" .
+pddl:action_grant_standing
+    a pddl:Action ;
+    pddl:name "grant-standing" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?bp" ; pddl:ofType "blueprint" ] ,
+              [ pddl:index 1 ; pddl:var "?reg" ; pddl:ofType "registrar" ] ;
+    pddl:pre "(registrar-open ?reg)" ;
+    pddl:add "(has-standing ?bp)" .
 
 # 2. ground-blueprint(?bp): law-state — bind the blueprint to ground facts.
-pdl:action_ground_blueprint
-    a pdl:Action ;
-    pdl:name "ground-blueprint" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?bp" ; pdl:ofType "blueprint" ] ;
-    pdl:pre "(has-standing ?bp)" ;
-    pdl:add "(grounded ?bp)" .
+pddl:action_ground_blueprint
+    a pddl:Action ;
+    pddl:name "ground-blueprint" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?bp" ; pddl:ofType "blueprint" ] ;
+    pddl:pre "(has-standing ?bp)" ;
+    pddl:add "(grounded ?bp)" .
 
 # 3. manufacture-artifact(?bp, ?cell, ?g): factory — make under a calibrated gauge.
-pdl:action_manufacture_artifact
-    a pdl:Action ;
-    pdl:name "manufacture-artifact" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?bp" ; pdl:ofType "blueprint" ] ,
-              [ pdl:index 1 ; pdl:var "?cell" ; pdl:ofType "factory-cell" ] ,
-              [ pdl:index 2 ; pdl:var "?g" ; pdl:ofType "gauge" ] ;
-    pdl:pre "(grounded ?bp)" ,
+pddl:action_manufacture_artifact
+    a pddl:Action ;
+    pddl:name "manufacture-artifact" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?bp" ; pddl:ofType "blueprint" ] ,
+              [ pddl:index 1 ; pddl:var "?cell" ; pddl:ofType "factory-cell" ] ,
+              [ pddl:index 2 ; pddl:var "?g" ; pddl:ofType "gauge" ] ;
+    pddl:pre "(grounded ?bp)" ,
             "(cell-idle ?cell)" ,
             "(gauge-calibrated ?g)" ;
-    pdl:add "(artifact-made ?bp)" ;
-    pdl:del "(cell-idle ?cell)" .
+    pddl:add "(artifact-made ?bp)" ;
+    pddl:del "(cell-idle ?cell)" .
 
 # 4. fold-receipt(?bp, ?tok): receipt — fold the run into the open chain.
-pdl:action_fold_receipt
-    a pdl:Action ;
-    pdl:name "fold-receipt" ;
-    pdl:param [ pdl:index 0 ; pdl:var "?bp" ; pdl:ofType "blueprint" ] ,
-              [ pdl:index 1 ; pdl:var "?tok" ; pdl:ofType "chain-token" ] ;
-    pdl:pre "(artifact-made ?bp)" ,
+pddl:action_fold_receipt
+    a pddl:Action ;
+    pddl:name "fold-receipt" ;
+    pddl:param [ pddl:index 0 ; pddl:var "?bp" ; pddl:ofType "blueprint" ] ,
+              [ pddl:index 1 ; pddl:var "?tok" ; pddl:ofType "chain-token" ] ;
+    pddl:pre "(artifact-made ?bp)" ,
             "(chain-open ?tok)" ;
-    pdl:add "(receipted ?bp)" .
+    pddl:add "(receipted ?bp)" .
 
 # ── Problem: after-neon-case-001 ──────────────────────────────────────────
 
-pdl:problem_after_neon_case_001
-    a pdl:Problem ;
-    pdl:name "after-neon-case-001" ;
-    pdl:domain "after-neon-factory-pddl8" ;
-    pdl:object [ pdl:name "bp-001" ; pdl:ofType "blueprint" ] ,
-               [ pdl:name "reg-001" ; pdl:ofType "registrar" ] ,
-               [ pdl:name "cell-07" ; pdl:ofType "factory-cell" ] ,
-               [ pdl:name "gauge-03" ; pdl:ofType "gauge" ] ,
-               [ pdl:name "tok-genesis" ; pdl:ofType "chain-token" ] ;
-    pdl:init "(registrar-open reg-001)" ,
+pddl:problem_after_neon_case_001
+    a pddl:Problem ;
+    pddl:name "after-neon-case-001" ;
+    pddl:domain "after-neon-factory-pddl8" ;
+    pddl:object [ pddl:name "bp-001" ; pddl:ofType "blueprint" ] ,
+               [ pddl:name "reg-001" ; pddl:ofType "registrar" ] ,
+               [ pddl:name "cell-07" ; pddl:ofType "factory-cell" ] ,
+               [ pddl:name "gauge-03" ; pddl:ofType "gauge" ] ,
+               [ pddl:name "tok-genesis" ; pddl:ofType "chain-token" ] ;
+    pddl:init "(registrar-open reg-001)" ,
              "(cell-idle cell-07)" ,
              "(gauge-calibrated gauge-03)" ,
              "(chain-open tok-genesis)" ;
-    pdl:goal "(receipted bp-001)" .
+    pddl:goal "(receipted bp-001)" .

@@ -55,6 +55,11 @@ pub struct RunnerReport {
     pub detail: String,
 }
 
+/// Extracted activity labels paired with their order-relation edges
+/// ((from, to) index pairs into the label vector) — the shared return shape
+/// of [`model_to_labels_and_edges`] and [`linearize_hierarchical`].
+type LabelsAndEdges<'a> = (Vec<&'a str>, Vec<(usize, usize)>);
+
 /// Extract the activity labels and order edges from the projected model.
 ///
 /// Only the shape the linear projection produces is adapted: a top-level
@@ -68,7 +73,7 @@ pub struct RunnerReport {
 ///
 /// # Complexity
 /// O(n + |order|) where n is the child count.
-fn model_to_labels_and_edges(model: &Powl) -> Result<(Vec<&str>, Vec<(usize, usize)>), CngRefusal> {
+fn model_to_labels_and_edges(model: &Powl) -> Result<LabelsAndEdges<'_>, CngRefusal> {
     match model {
         Powl::Leaf(Some(label)) => Ok((vec![label.as_str()], Vec::new())),
         Powl::Leaf(None) => Err(CngRefusal::UnsupportedConstruct(
@@ -334,9 +339,7 @@ fn run_labels_and_edges(
 /// O(n²) in flattened leaf count n (the emitted edge set is the full
 /// closure, C(n, 2) pairs), plus O(p²) root-order verification over p
 /// phases.
-pub fn linearize_hierarchical(
-    model: &Powl,
-) -> Result<(Vec<&str>, Vec<(usize, usize)>), CngRefusal> {
+pub fn linearize_hierarchical(model: &Powl) -> Result<LabelsAndEdges<'_>, CngRefusal> {
     let Powl::PartialOrder {
         children: phases,
         order: root_order,

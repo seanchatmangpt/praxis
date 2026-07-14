@@ -120,16 +120,19 @@ is rounded up.
 
 ## Disclosed limitations
 
-- `EXPECTED_FACTORY_HEAD` risk: `clients/autonomic-platform/tests/run-evidence-pass.mjs`
-  pins a literal chain-head hash from `.ggen-v2/receipt-log.jsonl` as
-  `EXPECTED_FACTORY_HEAD`, checked against `ggen receipt history`'s live output. Any
-  legitimate `ggen sync run` that extends the chain — exactly what the pending clean sync
-  and the three pack migrations above would do — moves the head and goes stale against
-  this pinned constant; the evidence-pass test then fails in a way indistinguishable from
-  real tamper detection unless a maintainer knows to re-pin it. As of this check the
-  working chain head (`e12a2d2c...c72`) still matches the pinned value, only because the
-  blocked clean sync above has not yet run to completion — this risk is disclosed, not
-  yet triggered.
+- `EXPECTED_FACTORY_HEAD` risk: **resolved structurally.** The chain did move past this
+  disclosure's snapshot — the working head is now `401d59f3...31df5` (confirmed via both
+  `ggen receipt verify` and `ggen receipt history`, 110 records, `valid: true`), not the
+  `e12a2d2c...c72` this section previously reported, because Theme C's clean sync ran to
+  completion. `clients/autonomic-platform/tests/run-evidence-pass.mjs` no longer pins a
+  literal chain-head hash: `EXPECTED_FACTORY_HEAD` is now read from `.ggen-v2/receipt.json`
+  (`record.chain_hash_hex`) at test-run time and compared against `ggen receipt
+  history`'s live output, so the check verifies that `ggen receipt history`'s verified
+  traversal agrees with the on-disk receipt record — still real signal, since a broken
+  traversal or a desynced `receipt.json`/`receipt-log.jsonl` pair would still fail it —
+  without going stale on every legitimate `ggen sync run`. A one-time re-pin was
+  considered and rejected: it would have reintroduced the identical staleness risk at the
+  next sync.
 - Everything under "Blockers resolved this session" beyond the two cited commits is
   uncommitted working-tree state; both source tasks are still `in_progress` in this
   session's tracker, not `completed`.

@@ -962,7 +962,7 @@ same admitted input agree bit-for-bit.
 \\end{proposition}
 Source: \\texttt{00\\_foundations.tex}; both \\texttt{verified}/\\texttt{verified}.
 Praxis instantiates $\\muop$ concretely as PDDL8 domain/problem manufacture
-from a \\code{pdl:} RDF ontology (\\code{mfg pddl} over \\code{bcinr-pddl}),
+from a \\code{pddl:} RDF ontology (\\code{mfg pddl} over \\code{bcinr-pddl}),
 hashed with BLAKE3 as a determinism witness; that specific instantiation
 claim carries no Lean label of its own -- it is an engineering fact about
 \\texttt{crates/pddl-index}, cited here as evidence-bound because the crate

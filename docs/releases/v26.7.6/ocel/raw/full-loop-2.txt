@@ -1,7 +1,7 @@
 # command: /Users/sac/praxis/target/debug/my-conforming-project plan run --goal examples/v26_7_6_after_neon/goal.ttl --out-dir target/plan_run/ocel_pass2 --receipts-dir target/plan_run/ocel_pass2_receipts
 # cwd: /Users/sac/praxis
-# started_at_utc: 2026-07-12T08:33:47.577Z
-# finished_at_utc: 2026-07-12T08:33:47.625Z
+# started_at_utc: 2026-07-14T03:38:22.348Z
+# finished_at_utc: 2026-07-14T03:38:22.398Z
 # exit_code: 0
 
 ## stdout
@@ -53,8 +53,8 @@
       "node_kind": 0,
       "ts_ns": 0,
       "payload_hash_hex": "93a09428ab259076c1f335db55b54ae896d8193af45a418ea2d551cc73747fef",
-      "prev_chain_hash_hex": "808c9c0b7fd11773464b191a15a764e65e39e910aeb8851f848a4c536e7d647f",
-      "chain_hash_hex": "024fab0c0aa2df2fd362469665144af1610aedede64e10ec0bdae69ce36cd13d",
+      "prev_chain_hash_hex": "78aa2cbf7ccdd7397f39ac9812f661f518576d048142dfe0ab8e0b69213d5f0b",
+      "chain_hash_hex": "03babaa5a1e382aa597436ccfd45b0e133cbc4b029c9ea566f291af56bac87bd",
       "andon": "Green",
       "obligation_count": 0,
       "object_ids": [

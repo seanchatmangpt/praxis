@@ -88,10 +88,16 @@ pub const PRAXIS_SOCKETS: &[&str] = &[
 
 /// Set a cell to `Admitted`/`Executed` with a fixture string describing the
 /// concrete check that was run and its observed result.
-fn admit(matrix: &mut DfCmMatrix, source: &str, socket: &str, executed: bool, fixture: &str) -> crate::error::Result<()> {
-    let cell = matrix
-        .find_cell_mut(&[source, socket])
-        .ok_or_else(|| crate::error::AppError::Other(format!("cell ({source}, {socket}) not in expanded matrix")))?;
+fn admit(
+    matrix: &mut DfCmMatrix,
+    source: &str,
+    socket: &str,
+    executed: bool,
+    fixture: &str,
+) -> crate::error::Result<()> {
+    let cell = matrix.find_cell_mut(&[source, socket]).ok_or_else(|| {
+        crate::error::AppError::Other(format!("cell ({source}, {socket}) not in expanded matrix"))
+    })?;
     cell.expected_standing = if executed {
         Standing::Executed
     } else {
@@ -105,10 +111,16 @@ fn admit(matrix: &mut DfCmMatrix, source: &str, socket: &str, executed: bool, fi
 /// Mark a cell as a refused ("impossible") combination, citing the refusal
 /// reason and what was salvaged instead — matching the frontier plan's
 /// refusal register exactly, one row per cell.
-fn refuse(matrix: &mut DfCmMatrix, source: &str, socket: &str, reason: &str, salvage: &str) -> crate::error::Result<()> {
-    let cell = matrix
-        .find_cell_mut(&[source, socket])
-        .ok_or_else(|| crate::error::AppError::Other(format!("cell ({source}, {socket}) not in expanded matrix")))?;
+fn refuse(
+    matrix: &mut DfCmMatrix,
+    source: &str,
+    socket: &str,
+    reason: &str,
+    salvage: &str,
+) -> crate::error::Result<()> {
+    let cell = matrix.find_cell_mut(&[source, socket]).ok_or_else(|| {
+        crate::error::AppError::Other(format!("cell ({source}, {socket}) not in expanded matrix"))
+    })?;
     cell.expected_standing = Standing::Impossible;
     cell.actual_standing = Standing::Refused;
     cell.is_impossible = true;

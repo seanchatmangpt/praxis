@@ -18,10 +18,10 @@
 //!    triples.
 //! 3. **DESIGN.md's Stage-2 projector** (closed by this file, not yet built
 //!    anywhere in this repo before this pass) -- turns the derived
-//!    obligation local names into `pdl:init` PDDL8 atom-literal strings
+//!    obligation local names into `pddl:init` PDDL8 atom-literal strings
 //!    (`(has-obligation ...)` + `(requires-evidence ...)`, the latter read
 //!    from `hook.ttl`'s own static `sc:requiresEvidenceType` catalog),
-//!    mints a fresh runtime `pdl:Problem` RDF fragment carrying them, and
+//!    mints a fresh runtime `pddl:Problem` RDF fragment carrying them, and
 //!    manufactures real, bound-checked PDDL8 domain/problem text from it
 //!    via `my_conforming_project::mfg::manufacture` -- the exact mechanism
 //!    `tests/bribery_case_pddl.rs` (repo root) already proved against
@@ -324,7 +324,7 @@ enum CliError {
         "hook.ttl declares no sc:requiresEvidenceType fact for obligation {obligation_local_name:?}"
     )]
     EvidenceTypeCatalogMissing { obligation_local_name: String },
-    #[error("mfg::manufacture (RDF pdl: instance data -> PDDL8 text) failed: {0}")]
+    #[error("mfg::manufacture (RDF pddl: instance data -> PDDL8 text) failed: {0}")]
     Manufacture(String),
     #[error("F08 planning refused: {0}")]
     Planning(#[from] PlanningRefusal),
@@ -629,7 +629,7 @@ fn evidence_type_for_obligation(
 }
 
 /// DESIGN.md's Stage-2 wiring contract, built for real: turns hook-derived
-/// `sc:hasObligation` object local names into the two `pdl:init` PDDL8 atom
+/// `sc:hasObligation` object local names into the two `pddl:init` PDDL8 atom
 /// families `pddl-problem-closable.ttl` hand-authored --
 /// `(has-obligation <case> <ob>)` for each derived obligation, plus the
 /// `(requires-evidence <ob> <etype>)` fact read from `hook.ttl`'s own
@@ -661,14 +661,14 @@ fn project_obligations_to_pddl_init(
     Ok(atoms)
 }
 
-/// Builds a runtime `pdl:Problem` RDF Turtle fragment -- the same shape
+/// Builds a runtime `pddl:Problem` RDF Turtle fragment -- the same shape
 /// `pddl-problem-closable.ttl` hand-authored (see that file's header), but
-/// with `pdl:init`'s obligation/evidence atoms and the corresponding
-/// `pdl:object` obligation/evidence-type entries driven entirely by
+/// with `pddl:init`'s obligation/evidence atoms and the corresponding
+/// `pddl:object` obligation/evidence-type entries driven entirely by
 /// `derived`/`evidence_types`/`init_atoms` (this run's real, live hook
 /// output), not hardcoded -- this is DESIGN.md's disclosed Stage-2 gap,
 /// closed here. Concatenate with [`DOMAIN_TTL`] before calling
-/// `mfg::manufacture` (that function requires exactly one `pdl:Problem`
+/// `mfg::manufacture` (that function requires exactly one `pddl:Problem`
 /// instance per graph, satisfied by construction: `DOMAIN_TTL` declares
 /// none).
 ///
@@ -682,41 +682,41 @@ fn build_pddl_problem_fragment(
     init_atoms: &[String],
 ) -> String {
     let mut out = String::new();
-    out.push_str("@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .\n\n");
+    out.push_str("@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .\n\n");
     out.push_str(&format!(
-        "<urn:mfw:crown-bribery-case:problem:{case_local_name}>\n    a pdl:Problem ;\n"
+        "<urn:mfw:crown-bribery-case:problem:{case_local_name}>\n    a pddl:Problem ;\n"
     ));
     out.push_str(&format!(
-        "    pdl:name \"bribery-case-{case_local_name}-runtime\" ;\n"
+        "    pddl:name \"bribery-case-{case_local_name}-runtime\" ;\n"
     ));
-    out.push_str("    pdl:domain \"solvane-bribery-compliance-pddl8\" ;\n");
+    out.push_str("    pddl:domain \"solvane-bribery-compliance-pddl8\" ;\n");
 
     let mut objects: Vec<String> = vec![format!(
-        "[ pdl:name \"{case_local_name}\" ; pdl:ofType \"law-object\" ]"
+        "[ pddl:name \"{case_local_name}\" ; pddl:ofType \"law-object\" ]"
     )];
     for o in derived {
-        objects.push(format!("[ pdl:name \"{o}\" ; pdl:ofType \"obligation\" ]"));
+        objects.push(format!("[ pddl:name \"{o}\" ; pddl:ofType \"obligation\" ]"));
     }
     for e in evidence_types {
         objects.push(format!(
-            "[ pdl:name \"{e}\" ; pdl:ofType \"evidence-type\" ]"
+            "[ pddl:name \"{e}\" ; pddl:ofType \"evidence-type\" ]"
         ));
     }
     objects.push(
-        "[ pdl:name \"compliance-officer-shreya-patel\" ; pdl:ofType \"validator\" ]".to_string(),
+        "[ pddl:name \"compliance-officer-shreya-patel\" ; pddl:ofType \"validator\" ]".to_string(),
     );
     objects.push(
-        "[ pdl:name \"general-counsel-marcus-webb\" ; pdl:ofType \"authority\" ]".to_string(),
+        "[ pddl:name \"general-counsel-marcus-webb\" ; pddl:ofType \"authority\" ]".to_string(),
     );
     objects.push(format!(
-        "[ pdl:name \"tok-genesis-{case_local_name}\" ; pdl:ofType \"chain-token\" ]"
+        "[ pddl:name \"tok-genesis-{case_local_name}\" ; pddl:ofType \"chain-token\" ]"
     ));
     for stage in ["raw", "validated", "admitted", "receipted", "blocked"] {
         objects.push(format!(
-            "[ pdl:name \"{stage}\" ; pdl:ofType \"lifecycle-stage\" ]"
+            "[ pddl:name \"{stage}\" ; pddl:ofType \"lifecycle-stage\" ]"
         ));
     }
-    out.push_str("    pdl:object ");
+    out.push_str("    pddl:object ");
     out.push_str(&objects.join(" ,\n               "));
     out.push_str(" ;\n");
 
@@ -727,12 +727,12 @@ fn build_pddl_problem_fragment(
     init.push(format!(
         "\"(prev-chain-valid tok-genesis-{case_local_name})\""
     ));
-    out.push_str("    pdl:init ");
+    out.push_str("    pddl:init ");
     out.push_str(&init.join(" ,\n             "));
     out.push_str(" ;\n");
 
     out.push_str(&format!(
-        "    pdl:goal \"(in-stage {case_local_name} receipted)\" .\n"
+        "    pddl:goal \"(in-stage {case_local_name} receipted)\" .\n"
     ));
     out
 }
@@ -1368,19 +1368,19 @@ fn run(run_dir: &Path) -> Result<(), CliError> {
     );
     let fragment_path = write_file(run_dir, "03-pddl-problem-fragment.ttl", &problem_fragment)?;
     println!(
-        "[pdl: problem fragment] case_local_name={case_local_name} init_atoms={} -> {}",
+        "[pddl: problem fragment] case_local_name={case_local_name} init_atoms={} -> {}",
         init_atoms.len() + 2,
         fragment_path.display()
     );
 
     let manufactured = manufacture_pddl(&problem_fragment, "crown-bribery-case runtime problem")?;
-    let domain_path = write_file(run_dir, "04-pddl-domain.pddl", &manufactured.domain_text)?;
-    let problem_path = write_file(run_dir, "04-pddl-problem.pddl", &manufactured.problem_text)?;
+    let domain_path = write_file(run_dir, "04-pddl-domain.pddl", &manufactured.project_domain_text())?;
+    let problem_path = write_file(run_dir, "04-pddl-problem.pddl", &manufactured.project_problem_text())?;
     println!(
         "[mfg::manufacture]   domain_bytes={} problem_bytes={} graph_hash={} -> {}, {}",
-        manufactured.domain_text.len(),
-        manufactured.problem_text.len(),
-        manufactured.graph_hash_hex,
+        manufactured.project_domain_text().len(),
+        manufactured.project_problem_text().len(),
+        manufactured.receipt.graph_hash,
         domain_path.display(),
         problem_path.display()
     );
@@ -1390,12 +1390,12 @@ fn run(run_dir: &Path) -> Result<(), CliError> {
         AdmittedTriple {
             subject: SUBJECT.to_string(),
             predicate: PDDL_DOMAIN_PREDICATE.to_string(),
-            object_literal: manufactured.domain_text.clone(),
+            object_literal: manufactured.project_domain_text().clone(),
         },
         AdmittedTriple {
             subject: SUBJECT.to_string(),
             predicate: PDDL_PROBLEM_PREDICATE.to_string(),
-            object_literal: manufactured.problem_text.clone(),
+            object_literal: manufactured.project_problem_text().clone(),
         },
         AdmittedTriple {
             subject: SUBJECT.to_string(),
@@ -1435,8 +1435,8 @@ fn run(run_dir: &Path) -> Result<(), CliError> {
     let residue = ResidueState {
         socket: growth_closure.socket().clone(),
         description: format!("crown-bribery-case continuation for {SUBJECT}"),
-        domain_pddl: manufactured.domain_text.clone(),
-        problem_pddl: manufactured.problem_text.clone(),
+        domain_pddl: manufactured.project_domain_text().clone(),
+        problem_pddl: manufactured.project_problem_text().clone(),
     };
     let goal = resolve_continuation_goal(&residue)?;
     let mut meter = DescentMeter::new(4);

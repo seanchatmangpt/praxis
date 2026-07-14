@@ -17,7 +17,7 @@
 # acts of hospitality — an operational aid, NOT a measure of a person's worth
 # or faith, and NOT a reduction of the spiritual.
 #
-# The `pdl:` planning-description vocabulary is defined standalone here (as in
+# The `pddl:` planning-description vocabulary is defined standalone here (as in
 # revenue.ttl) so this file stands alone; the church terms live in the `chr:`
 # namespace so they survive any later prefix reconciliation untouched.
 #
@@ -31,53 +31,53 @@
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-@prefix pdl:  <http://seanchatmangpt.github.io/praxis/pdl#> .
+@prefix pddl:  <http://seanchatmangpt.github.io/praxis/pddl#> .
 @prefix chr:  <http://seanchatmangpt.github.io/praxis/church#> .
 
 # =============================================================================
-# 0. The pdl: planning-description vocabulary (standalone definition)
+# 0. The pddl: planning-description vocabulary (standalone definition)
 # =============================================================================
 
-pdl:Type a rdfs:Class ;
+pddl:Type a rdfs:Class ;
     rdfs:label "Type" ;
     rdfs:comment "A PDDL object type. Projects to an entry in (:types ...)." .
 
-pdl:Predicate a rdfs:Class ;
+pddl:Predicate a rdfs:Class ;
     rdfs:label "Predicate" ;
     rdfs:comment "A boolean state predicate. Projects to an entry in (:predicates ...)." .
 
-pdl:Fluent a rdfs:Class ;
+pddl:Fluent a rdfs:Class ;
     rdfs:label "Fluent" ;
     rdfs:comment "A numeric state function. Projects to (:functions ...) under :numeric-fluents." .
 
-pdl:Action a rdfs:Class ;
+pddl:Action a rdfs:Class ;
     rdfs:label "Action" ;
     rdfs:comment "A planning operator. Projects to a (:action ...) schema." .
 
-pdl:Individual a rdfs:Class ;
+pddl:Individual a rdfs:Class ;
     rdfs:label "Individual" ;
-    rdfs:comment "A named constant of some pdl:Type. Projects to (:constants ...) or problem (:objects ...)." .
+    rdfs:comment "A named constant of some pddl:Type. Projects to (:constants ...) or problem (:objects ...)." .
 
-pdl:parameter a rdf:Property ;
+pddl:parameter a rdf:Property ;
     rdfs:label "parameter" ;
-    rdfs:comment "Ordered parameter of a predicate, fluent, or action; range is a pdl:Type." .
+    rdfs:comment "Ordered parameter of a predicate, fluent, or action; range is a pddl:Type." .
 
-pdl:precondition a rdf:Property ;
+pddl:precondition a rdf:Property ;
     rdfs:label "precondition" ;
     rdfs:comment "Precondition formula of an action, as PDDL text (positive preconditions only — PDDL8-safe)." ;
     rdfs:range xsd:string .
 
-pdl:effect a rdf:Property ;
+pddl:effect a rdf:Property ;
     rdfs:label "effect" ;
     rdfs:comment "Effect formula of an action, as PDDL text." ;
     rdfs:range xsd:string .
 
-pdl:pddlName a rdf:Property ;
+pddl:pddlName a rdf:Property ;
     rdfs:label "pddlName" ;
     rdfs:comment "Exact lower-kebab token emitted into PDDL text for this term. Byte-stable: hashed into proposal hashes." ;
     rdfs:range xsd:string .
 
-pdl:order a rdf:Property ;
+pddl:order a rdf:Property ;
     rdfs:label "order" ;
     rdfs:comment "Position of an individual within an ordered type (e.g. assimilation-stage index)." ;
     rdfs:range xsd:integer .
@@ -86,87 +86,87 @@ pdl:order a rdf:Property ;
 # 1. Types
 # =============================================================================
 
-chr:Person a pdl:Type ;
+chr:Person a pddl:Type ;
     rdfs:label "Person" ;
-    pdl:pddlName "person" ;
+    pddl:pddlName "person" ;
     rdfs:comment "A person the welcome team is walking with. Rust: praxis_proposer::church::Person." .
 
-chr:AssimilationStage a pdl:Type ;
+chr:AssimilationStage a pddl:Type ;
     rdfs:label "AssimilationStage" ;
-    pdl:pddlName "cstage" ;
+    pddl:pddlName "cstage" ;
     rdfs:comment "Ordered assimilation stage enum. Rust: praxis_proposer::church::Stage." .
 
 # =============================================================================
 # 2. Stage individuals (ordered)
 # =============================================================================
 
-chr:firstTime a pdl:Individual ;
+chr:firstTime a pddl:Individual ;
     rdf:type chr:AssimilationStage ;
-    pdl:pddlName "first-time" ;
-    pdl:order 0 .
+    pddl:pddlName "first-time" ;
+    pddl:order 0 .
 
-chr:returning a pdl:Individual ;
+chr:returning a pddl:Individual ;
     rdf:type chr:AssimilationStage ;
-    pdl:pddlName "returning" ;
-    pdl:order 1 .
+    pddl:pddlName "returning" ;
+    pddl:order 1 .
 
-chr:connected a pdl:Individual ;
+chr:connected a pddl:Individual ;
     rdf:type chr:AssimilationStage ;
-    pdl:pddlName "connected" ;
-    pdl:order 2 .
+    pddl:pddlName "connected" ;
+    pddl:order 2 .
 
-chr:serving a pdl:Individual ;
+chr:serving a pddl:Individual ;
     rdf:type chr:AssimilationStage ;
-    pdl:pddlName "serving" ;
-    pdl:order 3 .
+    pddl:pddlName "serving" ;
+    pddl:order 3 .
 
-chr:leading a pdl:Individual ;
+chr:leading a pddl:Individual ;
     rdf:type chr:AssimilationStage ;
-    pdl:pddlName "leading" ;
-    pdl:order 4 .
+    pddl:pddlName "leading" ;
+    pddl:order 4 .
 
 # =============================================================================
 # 3. Predicates
 # =============================================================================
 
-chr:stage a pdl:Predicate ;
+chr:stage a pddl:Predicate ;
     rdfs:label "stage" ;
-    pdl:pddlName "stage" ;
-    pdl:parameter chr:Person, chr:AssimilationStage ;
+    pddl:pddlName "stage" ;
+    pddl:parameter chr:Person, chr:AssimilationStage ;
     rdfs:comment "Person is currently in stage. PDDL: (stage ?p - person ?s - cstage). Proposal::pddl_goal() emits goal atoms of exactly this shape, e.g. (stage visitor-1 connected)." .
 
-chr:welcomed a pdl:Predicate ;
+chr:welcomed a pddl:Predicate ;
     rdfs:label "welcomed" ;
-    pdl:pddlName "welcomed" ;
-    pdl:parameter chr:Person ;
+    pddl:pddlName "welcomed" ;
+    pddl:parameter chr:Person ;
     rdfs:comment "Evidence flag: someone from the welcome team actually greeted them. Rust field: welcomed." .
 
-chr:followedUp a pdl:Predicate ;
+chr:followedUp a pddl:Predicate ;
     rdfs:label "followedUp" ;
-    pdl:pddlName "followed-up" ;
-    pdl:parameter chr:Person ;
+    pddl:pddlName "followed-up" ;
+    pddl:parameter chr:Person ;
     rdfs:comment "Evidence flag: a follow-up contact was made after a visit. Gates any move past returning. Rust field: followed_up." .
 
-chr:inSmallGroup a pdl:Predicate ;
+chr:inSmallGroup a pddl:Predicate ;
     rdfs:label "inSmallGroup" ;
-    pdl:pddlName "in-small-group" ;
-    pdl:parameter chr:Person ;
+    pddl:pddlName "in-small-group" ;
+    pddl:parameter chr:Person ;
     rdfs:comment "Evidence flag: the person is in a small group (real relational connection). Gates serving. Rust field: in_small_group." .
 
-chr:careAssigned a pdl:Predicate ;
+chr:careAssigned a pddl:Predicate ;
     rdfs:label "careAssigned" ;
-    pdl:pddlName "care-assigned" ;
-    pdl:parameter chr:Person ;
+    pddl:pddlName "care-assigned" ;
+    pddl:parameter chr:Person ;
     rdfs:comment "Evidence flag: a care need has been assigned to a care team member. Gates leading. Rust field: care_assigned." .
 
 # =============================================================================
 # 4. Numeric fluents (state)
 # =============================================================================
 
-chr:daysInStage a pdl:Fluent ;
+chr:daysInStage a pddl:Fluent ;
     rdfs:label "daysInStage" ;
-    pdl:pddlName "days-in-stage" ;
-    pdl:parameter chr:Person ;
+    pddl:pddlName "days-in-stage" ;
+    pddl:parameter chr:Person ;
     rdfs:comment "Days the person has sat in the current stage (staleness / follow-up timeliness). Rust field: days_in_stage (u32)." .
 
 # =============================================================================
@@ -179,36 +179,36 @@ chr:daysInStage a pdl:Fluent ;
 # Preconditions restate — as data — the same rules the proposer pre-filters
 # with and the admission boundary will enforce (AR-9).
 
-chr:inviteBack a pdl:Action ;
+chr:inviteBack a pddl:Action ;
     rdfs:label "inviteBack" ;
-    pdl:pddlName "invite-back" ;
-    pdl:parameter chr:Person, chr:AssimilationStage, chr:AssimilationStage ;
-    pdl:precondition "(and (stage ?p ?from) (next ?from ?to) (gate-free ?to))" ;
-    pdl:effect "(and (not (stage ?p ?from)) (stage ?p ?to))" ;
+    pddl:pddlName "invite-back" ;
+    pddl:parameter chr:Person, chr:AssimilationStage, chr:AssimilationStage ;
+    pddl:precondition "(and (stage ?p ?from) (next ?from ?to) (gate-free ?to))" ;
+    pddl:effect "(and (not (stage ?p ?from)) (stage ?p ?to))" ;
     rdfs:comment "Move into the ungated tier (returning): inviting someone back is never gated." .
 
-chr:advanceToConnected a pdl:Action ;
+chr:advanceToConnected a pddl:Action ;
     rdfs:label "advanceToConnected" ;
-    pdl:pddlName "advance-to-connected" ;
-    pdl:parameter chr:Person ;
-    pdl:precondition "(and (stage ?p returning) (welcomed ?p) (followed-up ?p))" ;
-    pdl:effect "(and (not (stage ?p returning)) (stage ?p connected))" ;
+    pddl:pddlName "advance-to-connected" ;
+    pddl:parameter chr:Person ;
+    pddl:precondition "(and (stage ?p returning) (welcomed ?p) (followed-up ?p))" ;
+    pddl:effect "(and (not (stage ?p returning)) (stage ?p connected))" ;
     rdfs:comment "Connection requires welcomed AND followed-up. A person never followed up cannot move past returning." .
 
-chr:advanceToServing a pdl:Action ;
+chr:advanceToServing a pddl:Action ;
     rdfs:label "advanceToServing" ;
-    pdl:pddlName "advance-to-serving" ;
-    pdl:parameter chr:Person ;
-    pdl:precondition "(and (stage ?p connected) (welcomed ?p) (followed-up ?p) (in-small-group ?p))" ;
-    pdl:effect "(and (not (stage ?p connected)) (stage ?p serving))" ;
+    pddl:pddlName "advance-to-serving" ;
+    pddl:parameter chr:Person ;
+    pddl:precondition "(and (stage ?p connected) (welcomed ?p) (followed-up ?p) (in-small-group ?p))" ;
+    pddl:effect "(and (not (stage ?p connected)) (stage ?p serving))" ;
     rdfs:comment "Serving requires welcomed AND followed-up AND in-small-group." .
 
-chr:advanceToLeading a pdl:Action ;
+chr:advanceToLeading a pddl:Action ;
     rdfs:label "advanceToLeading" ;
-    pdl:pddlName "advance-to-leading" ;
-    pdl:parameter chr:Person ;
-    pdl:precondition "(and (stage ?p serving) (welcomed ?p) (followed-up ?p) (in-small-group ?p) (care-assigned ?p))" ;
-    pdl:effect "(and (not (stage ?p serving)) (stage ?p leading))" ;
+    pddl:pddlName "advance-to-leading" ;
+    pddl:parameter chr:Person ;
+    pddl:precondition "(and (stage ?p serving) (welcomed ?p) (followed-up ?p) (in-small-group ?p) (care-assigned ?p))" ;
+    pddl:effect "(and (not (stage ?p serving)) (stage ?p leading))" ;
     rdfs:comment "Leading requires all four evidence flags: welcomed, followed-up, in-small-group, care-assigned." .
 
 # =============================================================================
@@ -220,22 +220,22 @@ chr:advanceToLeading a pdl:Action ;
 # objective is domain-authored data (church_objective.json). The system never
 # invents values (Non-goal 1). These are MISSION variables — not revenue.
 
-chr:peopleConnected a pdl:Fluent ;
+chr:peopleConnected a pddl:Fluent ;
     rdfs:label "peopleConnected" ;
-    pdl:pddlName "people-connected" ;
+    pddl:pddlName "people-connected" ;
     rdfs:comment "Scoring fluent: assimilation depth reached — the target stage index (connected=2, serving=3, leading=4) when the candidate reaches connected or beyond, else 0. Higher = deeper assimilation." .
 
-chr:careCompletionRate a pdl:Fluent ;
+chr:careCompletionRate a pddl:Fluent ;
     rdfs:label "careCompletionRate" ;
-    pdl:pddlName "care-completion-rate" ;
+    pddl:pddlName "care-completion-rate" ;
     rdfs:comment "Scoring fluent: 1.0 if the person has care assigned, else 0.0 (aggregates across a snapshot to a care-completion rate)." .
 
-chr:volunteerCapacityUsed a pdl:Fluent ;
+chr:volunteerCapacityUsed a pddl:Fluent ;
     rdfs:label "volunteerCapacityUsed" ;
-    pdl:pddlName "volunteer-capacity-used" ;
+    pddl:pddlName "volunteer-capacity-used" ;
     rdfs:comment "Scoring fluent: 1.0 if the candidate recruits into service (target >= serving), else 0.0. A COST fluent — typically authored with a negative weight, so the pipeline does not over-recruit before people are cared for." .
 
-chr:firstTimeFollowupWithin48h a pdl:Fluent ;
+chr:firstTimeFollowupWithin48h a pddl:Fluent ;
     rdfs:label "firstTimeFollowupWithin48h" ;
-    pdl:pddlName "first-time-followup-within-48h" ;
+    pddl:pddlName "first-time-followup-within-48h" ;
     rdfs:comment "Scoring fluent: 1.0 if a first-timer (days-in-stage <= 2) is being invited back promptly, else 0.0 — rewards catching the newcomer before they drift." .

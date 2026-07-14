@@ -5,7 +5,7 @@
 //! sequence at the Operating Effectiveness Testing phase's socket, reusing
 //! `crates/multifractal-workflow/src/f09_mfw_growth.rs`'s real, tested
 //! public API (`resolve_continuation_goal`, `plan_growth` via
-//! `pddl_index::solve_indexed`, `manufacture_and_bind_child`,
+//! `bcinr_pddl::solve_indexed`, `manufacture_and_bind_child`,
 //! `semantic_closure_check`, `DescentMeter`/`DescentReceipt`) rather than
 //! reimplementing any of it. This module is the first consumer of that API
 //! from `crates/cng`.

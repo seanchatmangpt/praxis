@@ -11,7 +11,7 @@ doctest = false
 
 [dependencies]
 # Dictionary encoding + sorted-ID fact relations, reused as the EDB substrate.
-pddl-index = { path = "../pddl-index", version = "26.7.2" }
+
 # BLAKE3 content-addressing + rolling receipt chains.
 chatman-common = { path = "../chatman-common", version = "26.7.2", features = ["provenance"] }
 blake3 = "1"

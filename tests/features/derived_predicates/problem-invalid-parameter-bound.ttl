@@ -1,0 +1,5 @@
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix ex: <http://example.org/> .
+
+ex:test-derived-invalid-prob a pddl:Problem ;
+    pddl:domain ex:test-derived-invalid .

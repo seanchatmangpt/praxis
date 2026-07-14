@@ -19,7 +19,7 @@ below as the concrete Stage 2 scope, not silently assumed done.
    `praxis_graphlaw::TripleStore::load_hook_pack` + `.materialize()` in the
    same test file.
 3. **`pddl-domain.ttl`** + **`pddl-problem-closable.ttl`** /
-   **`pddl-problem-blocked.ttl`** -- a STRIPS8-safe `pdl:` vocabulary
+   **`pddl-problem-blocked.ttl`** -- a STRIPS8-safe `pddl:` vocabulary
    compliance domain (same pattern as `ontology/lawobject.ttl`), proven to
    manufacture (`praxis::mfg::manufacture`) into real PDDL8 text and
    ground+solve (`bcinr_pddl::GroundProblem::find_plan`) via
@@ -49,20 +49,20 @@ below as the concrete Stage 2 scope, not silently assumed done.
      fn project_obligations_to_pddl_init(
          case_local_name: &str,          // e.g. "case-brb-2026-0417"
          derived: &[String],             // sc:hasObligation object IRIs
-     ) -> Vec<String>                    // pdl:init-shaped atom literals
+     ) -> Vec<String>                    // pddl:init-shaped atom literals
 
    For each derived `sc:hasObligation` object IRI, take its local name
    (the part after `vocab#`, e.g. "verify-transaction-authenticity" --
    this is EXACTLY the same local name pddl-problem-closable.ttl's
-   obligation pdl:object entries already use, by design -- see that file's
+   obligation pddl:object entries already use, by design -- see that file's
    header) and emit:
      "(has-obligation <case_local_name> <obligation-local-name>)"
    PLUS the corresponding static `requires-evidence` fact, read from
    hook.ttl's own `sc:requiresEvidenceType` catalog triples (also a simple
    SPARQL SELECT over hook.ttl, joined on the same obligation IRI):
      "(requires-evidence <obligation-local-name> <evidence-type-local-name>)"
-   These atom-literal strings are inserted as NEW `pdl:init` values on a
-   freshly-minted `pdl:Problem` individual (object name = case_local_name,
+   These atom-literal strings are inserted as NEW `pddl:init` values on a
+   freshly-minted `pddl:Problem` individual (object name = case_local_name,
    type "law-object"), i.e. this step PRODUCES a `pddl-problem-*.ttl`-shaped
    graph fragment at runtime instead of reading one of the two hand-authored
    problem files checked in here -- those two files are worked EXAMPLES /
@@ -108,7 +108,7 @@ below as the concrete Stage 2 scope, not silently assumed done.
 ## What Stage 1 explicitly did NOT build (named, not hidden)
 
 - The step-3 projector function above (`sc:hasObligation` RDF triples ->
-  `pdl:init` PDDL atom-literal strings). Small, mechanical, not yet
+  `pddl:init` PDDL atom-literal strings). Small, mechanical, not yet
   written.
 - A hook that positively derives `evidence-unavailable` facts (would need a
   FILTER NOT EXISTS-style CONSTRUCT and a defined "evidence-collection

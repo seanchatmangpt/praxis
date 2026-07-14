@@ -213,7 +213,7 @@ fn check_frontier() -> Value {
         }),
         Err(e) => json!({
             "error": e.to_string()
-        })
+        }),
     }
 }
 

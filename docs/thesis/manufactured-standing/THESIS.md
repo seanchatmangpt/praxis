@@ -111,7 +111,7 @@ is an instantiation of that equation at a particular layer:
 |---|---|---|---|
 | Standing compiler | gate outputs, receipts, logs | ingestion + ladder scoring | `standing.json` / `standing.ttl` |
 | Judgment engine | standing TTL + seed graph | N3/Datalog materialization | derived verdict facts |
-| Planner | judged state as `pdl:` facts | bounded STRIPS-8 search | repair plan |
+| Planner | judged state as `pddl:` facts | bounded STRIPS-8 search | repair plan |
 | Process validator | OCEL 2.0 event log | POWL conformance checking | conformance report |
 | Receipt chain | every transition above | genesis-folded BLAKE3 | replayable chain hash |
 

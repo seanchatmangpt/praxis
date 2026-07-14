@@ -1,16 +1,16 @@
 # command: /Users/sac/praxis/target/debug/ggen receipt verify
 # cwd: /Users/sac/praxis
-# started_at_utc: 2026-07-12T08:33:47.655Z
-# finished_at_utc: 2026-07-12T08:33:47.684Z
+# started_at_utc: 2026-07-14T03:38:22.427Z
+# finished_at_utc: 2026-07-14T03:38:22.456Z
 # exit_code: 0
 
 ## stdout
 {
   "valid": true,
-  "chain_hash": "e12a2d2ce9fe8ace7cdd9e092a08ae0b51ce4dbec0f56eedd72b0ec4b24c7c72",
-  "payload_hash": "1fe767747d4fba606ecc4ef451d0b914839d495846db1a0c6516edb953525c83",
-  "graph_hash": "13bade55e1b419d81cf6c6ac80c55133e96c91f10a9b7d6bbea507e23033a652",
-  "outputs": 92
+  "chain_hash": "401d59f38d652d0e3a571802fcd4a6fc13c6b2cc5bce25808c63301d13331df5",
+  "payload_hash": "8db7cc3f0c4fb0a520c79ac68753cca103719f2b484352473c7e63313d4e72ac",
+  "graph_hash": "4c990693c4c4168a8eb7bbbedaa6fb20bf7360946c58f124fbe3fe62ad1178b7",
+  "outputs": 106
 }
 
 ## stderr

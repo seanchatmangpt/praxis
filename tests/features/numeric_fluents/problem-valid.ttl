@@ -1,0 +1,13 @@
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+
+pddl:problem_rover_prob a pddl:Problem ;
+    pddl:name "rover-prob" ;
+    pddl:domain "rover-numeric" .
+
+pddl:obj_r1 a pddl:Object ; pddl:name "r1" ; pddl:ofType "rover" .
+pddl:obj_w1 a pddl:Object ; pddl:name "w1" ; pddl:ofType "waypoint" .
+pddl:obj_w2 a pddl:Object ; pddl:name "w2" ; pddl:ofType "waypoint" .
+
+pddl:init_at_r1_w1 a pddl:InitFact ; pddl:formula "(at r1 w1)" .
+pddl:init_energy_r1 a pddl:InitFact ; pddl:formula "(= (energy r1) 20)" .
+pddl:goal_at_r1_w2 a pddl:Goal ; pddl:formula "(at r1 w2)" .

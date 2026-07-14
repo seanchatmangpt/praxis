@@ -333,7 +333,9 @@ impl<Payload: Serialize, Law> LawObject<Payload, Admitted, Law> {
             Some(t) => t,
             None => SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .map_err(|e| crate::error::CoreError::SerializationFailed(format!("system time error: {e}")))?
+                .map_err(|e| {
+                    crate::error::CoreError::SerializationFailed(format!("system time error: {e}"))
+                })?
                 .as_nanos() as u64,
         };
 

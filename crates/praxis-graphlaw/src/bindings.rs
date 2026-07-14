@@ -19,9 +19,42 @@ impl Binding {
     pub fn add(&mut self, var_name: &usize, term: usize) {
         self.bindings.entry(*var_name).or_default().push(term);
     }
+    /// Number of rows in this binding table.
+    ///
+    /// # Determinism
+    /// `bindings` is a `std::collections::HashMap` (`RandomState`, reseeded per process), so
+    /// reading `self.bindings.values().next()` directly returns whichever column `HashMap`
+    /// happens to visit first -- not stable across process runs. Disclosed as
+    /// `docs/releases/v26.7.13/RELEASE_CONTROL.md` Sec. 5 row 4 ("`Binding::len()`
+    /// HashMap-iteration-order column-length issue", reachability previously unconfirmed).
+    ///
+    /// Reachability is now confirmed: `Binding::combine()` can produce a binding whose
+    /// columns have genuinely different lengths ("ragged") from real,
+    /// `TripleIndex::query()`-constructed inputs (see `bindings_test.rs`,
+    /// `test_combine_of_real_query_bindings_produces_ragged_columns_reachability_confirmed`),
+    /// so which column `len()` happened to read was observable, not merely cosmetic.
+    ///
+    /// Fixed by selecting the column for the numerically smallest variable id -- a total
+    /// order independent of hash bucket layout -- matching this crate's established fix
+    /// pattern for `HashMap`/`HashSet` iteration-order nondeterminism (commits `89ba964c`,
+    /// `f08b4e41`, `967ad485`: collect keys into a `Vec`, `sort_unstable()`, then read
+    /// deterministically).
+    ///
+    /// This does *not* fix `combine()`'s underlying ragged-column production (a separate,
+    /// deeper semantic issue in its row-multiplication logic, out of scope here -- see the
+    /// same test's doc comment); it only makes `len()`'s read of a binding -- ragged or not
+    /// -- reproducible across runs.
+    ///
+    /// # Complexity
+    /// O(k log k) where k = number of distinct bound variables in this binding (bounded by
+    /// rule/query arity, not by row count).
     pub fn len(&self) -> usize {
-        if let Some(values) = self.bindings.values().next() {
-            return values.len();
+        let mut keys: Vec<&usize> = self.bindings.keys().collect();
+        keys.sort_unstable();
+        if let Some(first_key) = keys.first() {
+            if let Some(values) = self.bindings.get(*first_key) {
+                return values.len();
+            }
         }
         0
     }
@@ -224,3 +257,7 @@ impl Binding {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "bindings_test.rs"]
+mod bindings_test;

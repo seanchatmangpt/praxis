@@ -50,6 +50,10 @@ SELECT
     ?edgeId
     ?edgeSource
     ?edgeTarget
+    ?processInvariant
+    ?exogenousEvent
+    ?resourceAnnotation
+    ?guardCondition
 WHERE {
     ?elementId a ?elementType .
 
@@ -103,6 +107,11 @@ WHERE {
         ?edgeId powl2:edgeSource ?edgeSource ;
                 powl2:edgeTarget ?edgeTarget .
     }
+
+    OPTIONAL { ?elementId powl2:hasInvariant ?processInvariant }
+    OPTIONAL { ?elementId powl2:hasExogenousEvent ?exogenousEvent }
+    OPTIONAL { ?elementId powl2:hasResourceAnnotation ?resourceAnnotation }
+    OPTIONAL { ?elementId powl2:hasGuard ?guardCondition }
 }
 ORDER BY
     ASC(?elementId)
@@ -117,3 +126,7 @@ ORDER BY
     ASC(?edgeId)
     ASC(?edgeSource)
     ASC(?edgeTarget)
+    ASC(?processInvariant)
+    ASC(?exogenousEvent)
+    ASC(?resourceAnnotation)
+    ASC(?guardCondition)

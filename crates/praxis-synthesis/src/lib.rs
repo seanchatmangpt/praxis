@@ -5,7 +5,7 @@
 //!
 //! | layer | module | research lesson | what it adds |
 //! |-------|--------|-----------------|--------------|
-//! | 1 | [`datalog`] | Nemo (scalable Datalog) | semi-naive forward saturation over `pddl-index`'s interned ID space |
+//! | 1 | [`datalog`] | Nemo (scalable Datalog) | semi-naive forward saturation over `bcinr_pddl`'s interned ID space |
 //! | 2 | [`sequence`] | SMT capability sequencing | declared capabilities → solver-discovered order + parameter bindings (no hand-authored PDDL) |
 //! | 3 | [`dag`] | OxyMake (content-addressable workflows) | BLAKE3 per-node output hashes, memoized replay, order-independent root hash |
 //! | 4 | [`verify`] | Flux (refinement types) | machine-checkable refinements over the pipeline's own receipts |

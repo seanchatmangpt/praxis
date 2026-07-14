@@ -10,7 +10,7 @@
 //!     `praxis_graphlaw::TripleStore::load_triples`/`load_rules`/`materialize`.
 //!   - D4 Shape Admission ([`admit_contracted_world`]) --
 //!     `praxis_graphlaw::TripleStore::validate_shacl`.
-//!   - D5 PDDL Planner ([`plan_goal_closure`]) -- `pddl_index::solve_indexed`
+//!   - D5 PDDL Planner ([`plan_goal_closure`]) -- `bcinr_pddl::solve_indexed`
 //!     (indexed grounder + BFS plan search over `wasm4pm_compat::pddl` types).
 //!   - D6 POWL Simulator ([`simulate_workflow`]) --
 //!     `praxis_graphlaw::chatman::powl_projection::project_pddl_tape_to_powl`
@@ -385,10 +385,10 @@ pub fn admit_contracted_world(
 #[derive(Debug, Clone)]
 pub struct Plan {
     pub tape: Pddl8Tape,
-    pub stats: pddl_index::GroundStats,
+    pub stats: bcinr_pddl::ground::GroundStats,
 }
 
-/// PDDL Planner (D5): thin call into `pddl_index::solve_indexed` -- the
+/// PDDL Planner (D5): thin call into `bcinr_pddl::solve_indexed` -- the
 /// real, already-tested (15/15 tests passing this session per the family
 /// survey) dictionary-encoded, XOR-filter-pruned indexed grounder + BFS
 /// plan search. No grounding or search logic reimplemented here.
@@ -401,9 +401,15 @@ pub fn plan_goal_closure(
     domain: &Pddl8Domain,
     problem: &Pddl8Problem,
 ) -> Result<Plan, SelfPlayRefusal> {
-    let (tape, stats) = pddl_index::solve_indexed(domain, problem).map_err(|e| {
+    let gp = bcinr_pddl::ground::IndexedGroundProblem::build(domain, problem, None).map_err(|e| {
         SelfPlayRefusal::ImpossibleScenarioPreplanRefused {
-            reason: e.to_string(),
+            reason: format!("pddl ground failed: {e}"),
+        }
+    })?;
+    let stats = gp.stats();
+    let tape = gp.find_plan().map_err(|e| {
+        SelfPlayRefusal::ImpossibleScenarioPreplanRefused {
+            reason: format!("pddl plan failed: {e}"),
         }
     })?;
     Ok(Plan { tape, stats })

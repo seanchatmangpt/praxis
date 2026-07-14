@@ -26,10 +26,10 @@ use std::collections::BTreeSet;
 use bcinr_pddl::Pddl8GroundAtom;
 use oxigraph::model::{Literal, NamedNode, Quad, Term};
 use oxigraph::store::Store;
-// PROJ-733: pddl_index::ground::IndexedGroundProblem (relaxed-reachability-
+// PROJ-733: bcinr_pddl::ground::IndexedGroundProblem (relaxed-reachability-
 // pruned grounding) mirrors bcinr_pddl::ground::GroundProblem's public
 // fields exactly — see crates/cng/src/bench/decomp/mod.rs's module doc.
-use pddl_index::ground::IndexedGroundProblem as GroundProblem;
+use bcinr_pddl::ground::IndexedGroundProblem as GroundProblem;
 
 use crate::powl::CngRefusal;
 

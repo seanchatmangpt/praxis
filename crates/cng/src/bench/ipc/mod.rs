@@ -16,7 +16,7 @@
 //! `decomp/render.rs`) — zero inline PDDL skeletons in Rust source.
 //!
 //! Solvability is gated honestly against the blind bounded-BFS planner
-//! (`pddl_index::ground::IndexedGroundProblem::find_plan`, PROJ-733;
+//! (`bcinr_pddl::ground::IndexedGroundProblem::find_plan`, PROJ-733;
 //! `PDDL8_MAX_PLAN_DEPTH`):
 //! [`generate_solvable`] steps `size` DOWN from the requested maximum until
 //! a plan exists, and refuses `CNG_R04` (with the last per-size refusal
@@ -51,7 +51,7 @@ use bcinr_pddl::{Pddl8Domain, Pddl8Problem, Pddl8Tape};
 // PROJ-733: same relaxed-reachability-pruned grounder as decomp/mod.rs —
 // grippers-scale untyped domains ground large under bcinr_pddl's naive
 // full-cross-product grounder even for this cheap solvability-gate path.
-use pddl_index::ground::IndexedGroundProblem as GroundProblem;
+use bcinr_pddl::ground::IndexedGroundProblem as GroundProblem;
 
 use crate::bench::decomp::DECOMP_MAX_GROUND;
 use crate::powl::CngRefusal;
@@ -62,10 +62,7 @@ pub const IPC_DOMAINS: [&str; 5] = ["barman", "blocksworld", "grippers", "termes
 /// Corpus width: seeds `0..IPC_CORPUS_SEEDS` per domain at the gated size.
 pub const IPC_CORPUS_SEEDS: u64 = 20;
 
-/// STRIPS8 caps enforced at authoring time (mirrors
-/// `bcinr_pddl::PDDL8_MAX_PARAMS` / `PDDL8_MAX_CONJUNCTS`).
-const IPC_MAX_PARAMS: usize = 8;
-const IPC_MAX_CONJUNCTS: usize = 8;
+use bcinr_pddl::{PDDL8_MAX_CONJUNCTS, PDDL8_MAX_PARAMS};
 
 /// Identity/goal permutation axis for the anti-hardcoding gate (PROJ-713).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -208,23 +205,23 @@ fn load_ipc_templates() -> Result<(String, String), CngRefusal> {
 fn render_domain_spec(spec: &DomainSpec, template: &str) -> Result<String, CngRefusal> {
     let mut arities: BTreeMap<String, usize> = BTreeMap::new();
     for action in &spec.actions {
-        if action.params.len() > IPC_MAX_PARAMS {
+        if action.params.len() > PDDL8_MAX_PARAMS {
             return Err(CngRefusal::UnsupportedConstruct(format!(
-                "ipc action {} has {} parameters; STRIPS8 caps at {IPC_MAX_PARAMS}",
+                "ipc action {} has {} parameters; STRIPS8 caps at {PDDL8_MAX_PARAMS}",
                 action.name,
                 action.params.len()
             )));
         }
-        if action.pre.len() > IPC_MAX_CONJUNCTS {
+        if action.pre.len() > PDDL8_MAX_CONJUNCTS {
             return Err(CngRefusal::UnsupportedConstruct(format!(
-                "ipc action {} has {} precondition conjuncts; STRIPS8 caps at {IPC_MAX_CONJUNCTS}",
+                "ipc action {} has {} precondition conjuncts; STRIPS8 caps at {PDDL8_MAX_CONJUNCTS}",
                 action.name,
                 action.pre.len()
             )));
         }
-        if action.add.len() + action.del.len() > IPC_MAX_CONJUNCTS {
+        if action.add.len() + action.del.len() > PDDL8_MAX_CONJUNCTS {
             return Err(CngRefusal::UnsupportedConstruct(format!(
-                "ipc action {} has {} effect conjuncts; STRIPS8 caps at {IPC_MAX_CONJUNCTS}",
+                "ipc action {} has {} effect conjuncts; STRIPS8 caps at {PDDL8_MAX_CONJUNCTS}",
                 action.name,
                 action.add.len() + action.del.len()
             )));
@@ -307,12 +304,12 @@ fn render_problem_spec(spec: &ProblemSpec, template: &str) -> Result<String, Cng
             spec.name
         )));
     }
-    if spec.goal.len() > IPC_MAX_CONJUNCTS {
-        return Err(CngRefusal::UnsupportedConstruct(format!(
-            "ipc problem {} has {} goal conjuncts; STRIPS8 caps at {IPC_MAX_CONJUNCTS}",
-            spec.name,
-            spec.goal.len()
-        )));
+    if spec.goal.len() > PDDL8_MAX_CONJUNCTS {
+            return Err(CngRefusal::UnsupportedConstruct(format!(
+                "ipc problem {} has {} goal conjuncts; STRIPS8 caps at {PDDL8_MAX_CONJUNCTS}",
+                spec.name,
+                spec.goal.len()
+            )));
     }
     let mut objects = spec.objects.clone();
     objects.sort();
@@ -443,7 +440,7 @@ pub fn plan(problem: &IpcProblem) -> Result<Pddl8Tape, CngRefusal> {
             problem.meta.domain
         ))
     })?;
-    ground.find_plan().map_err(|e| {
+    ground.find_plan().into_result().map_err(|e| {
         CngRefusal::PlanUnsolvable(format!(
             "ipc {} seed {} size {} admits no plan: {e}",
             problem.meta.domain, problem.meta.seed, problem.meta.size

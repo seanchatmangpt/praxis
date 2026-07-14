@@ -14,11 +14,11 @@ use bcinr_pddl::{
     Pddl8Tape, Pddl8TapeOp,
 };
 use oxigraph::model::{GraphName, NamedNode, Quad, Term};
-// PROJ-733: production code now grounds via pddl_index::ground::
+// PROJ-733: production code now grounds via bcinr_pddl::ground::
 // IndexedGroundProblem (see decomp/mod.rs's module doc) — these tests call
 // into that production code with `&GroundProblem` params, so the fixture's
 // own grounding must use the same aliased type, not bcinr_pddl's.
-use pddl_index::ground::IndexedGroundProblem as GroundProblem;
+use bcinr_pddl::ground::IndexedGroundProblem as GroundProblem;
 
 use crate::bench::templates::QuerySet;
 use crate::powl::{CngRefusal, Powl};

@@ -15,28 +15,28 @@
 # have no IRI form), not the same RDF term, but the local-name match is
 # intentional and load-bearing for a human tracing the case end to end.
 
-@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
 
-pdl:problem_bribery_case_brb_2026_0417
-    a pdl:Problem ;
-    pdl:name "bribery-case-brb-2026-0417" ;
-    pdl:domain "solvane-bribery-compliance-pddl8" ;
-    pdl:object [ pdl:name "case-brb-2026-0417" ; pdl:ofType "law-object" ] ,
-               [ pdl:name "verify-transaction-authenticity" ; pdl:ofType "obligation" ] ,
-               [ pdl:name "verify-contractor-authorization-level" ; pdl:ofType "obligation" ] ,
-               [ pdl:name "assess-policy-violation" ; pdl:ofType "obligation" ] ,
-               [ pdl:name "etype-card-statement" ; pdl:ofType "evidence-type" ] ,
-               [ pdl:name "etype-authorization-record" ; pdl:ofType "evidence-type" ] ,
-               [ pdl:name "etype-compliance-policy-citation" ; pdl:ofType "evidence-type" ] ,
-               [ pdl:name "compliance-officer-shreya-patel" ; pdl:ofType "validator" ] ,
-               [ pdl:name "general-counsel-marcus-webb" ; pdl:ofType "authority" ] ,
-               [ pdl:name "tok-genesis-brb-2026-0417" ; pdl:ofType "chain-token" ] ,
-               [ pdl:name "raw" ; pdl:ofType "lifecycle-stage" ] ,
-               [ pdl:name "validated" ; pdl:ofType "lifecycle-stage" ] ,
-               [ pdl:name "admitted" ; pdl:ofType "lifecycle-stage" ] ,
-               [ pdl:name "receipted" ; pdl:ofType "lifecycle-stage" ] ,
-               [ pdl:name "blocked" ; pdl:ofType "lifecycle-stage" ] ;
-    pdl:init "(in-stage case-brb-2026-0417 raw)" ,
+pddl:problem_bribery_case_brb_2026_0417
+    a pddl:Problem ;
+    pddl:name "bribery-case-brb-2026-0417" ;
+    pddl:domain "solvane-bribery-compliance-pddl8" ;
+    pddl:object [ pddl:name "case-brb-2026-0417" ; pddl:ofType "law-object" ] ,
+               [ pddl:name "verify-transaction-authenticity" ; pddl:ofType "obligation" ] ,
+               [ pddl:name "verify-contractor-authorization-level" ; pddl:ofType "obligation" ] ,
+               [ pddl:name "assess-policy-violation" ; pddl:ofType "obligation" ] ,
+               [ pddl:name "etype-card-statement" ; pddl:ofType "evidence-type" ] ,
+               [ pddl:name "etype-authorization-record" ; pddl:ofType "evidence-type" ] ,
+               [ pddl:name "etype-compliance-policy-citation" ; pddl:ofType "evidence-type" ] ,
+               [ pddl:name "compliance-officer-shreya-patel" ; pddl:ofType "validator" ] ,
+               [ pddl:name "general-counsel-marcus-webb" ; pddl:ofType "authority" ] ,
+               [ pddl:name "tok-genesis-brb-2026-0417" ; pddl:ofType "chain-token" ] ,
+               [ pddl:name "raw" ; pddl:ofType "lifecycle-stage" ] ,
+               [ pddl:name "validated" ; pddl:ofType "lifecycle-stage" ] ,
+               [ pddl:name "admitted" ; pddl:ofType "lifecycle-stage" ] ,
+               [ pddl:name "receipted" ; pddl:ofType "lifecycle-stage" ] ,
+               [ pddl:name "blocked" ; pddl:ofType "lifecycle-stage" ] ;
+    pddl:init "(in-stage case-brb-2026-0417 raw)" ,
              "(has-obligation case-brb-2026-0417 verify-transaction-authenticity)" ,
              "(has-obligation case-brb-2026-0417 verify-contractor-authorization-level)" ,
              "(has-obligation case-brb-2026-0417 assess-policy-violation)" ,
@@ -44,4 +44,4 @@ pdl:problem_bribery_case_brb_2026_0417
              "(requires-evidence verify-contractor-authorization-level etype-authorization-record)" ,
              "(requires-evidence assess-policy-violation etype-compliance-policy-citation)" ,
              "(prev-chain-valid tok-genesis-brb-2026-0417)" ;
-    pdl:goal "(in-stage case-brb-2026-0417 receipted)" .
+    pddl:goal "(in-stage case-brb-2026-0417 receipted)" .

@@ -211,11 +211,11 @@ sections.
 ## Correction of record
 
 An earlier documentation set for this project (deleted at the start of this
-book's rewrite) described a `pdl:LawObject` / `pdl:Obligation` vocabulary under
-a prefix `pdl: <http://praxis.seanchatmangpt.com/ontology/lawobject#>`. That
-vocabulary does not exist anywhere in `schema/praxis.ttl`: there is no `pdl:`
+book's rewrite) described a `pddl:LawObject` / `pddl:Obligation` vocabulary under
+a prefix `pddl: <http://praxis.seanchatmangpt.com/ontology/lawobject#>`. That
+vocabulary does not exist anywhere in `schema/praxis.ttl`: there is no `pddl:`
 prefix declared in the file, and no `LawObject` or `Obligation` class or
-property of any kind. A full-text search of the file for `pdl:` and for
+property of any kind. A full-text search of the file for `pddl:` and for
 `LawObject`/`lawobject` returns zero matches.
 
 The file's only namespace prefix for project-defined terms is
@@ -224,6 +224,6 @@ and its actual vocabulary is the nine classes and properties documented above â€
 `Project`, `RustCrate`, `Component`, `Feature`, `Dependency`,
 `ConfigurationFile`, `WorkflowFile`, `ZstTypestate`, `CliCommand`, and their
 associated `name`/`hasCrate`/`noun`/`verb`/`handler`/`inCrate`/`flag`
-properties. The `pdl:LawObject`/`pdl:Obligation` description was fictional
+properties. The `pddl:LawObject`/`pddl:Obligation` description was fictional
 relative to this ontology and should not be relied on as a description of
 Praxis's schema.

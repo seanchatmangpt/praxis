@@ -1,0 +1,44 @@
+# A real RDF/Turtle observation: "an email arrived that needs a response."
+#
+# Built to `crown-local-cli`'s documented input contract (see
+# `src/bin/crown-local-cli.rs`'s module doc): one subject asserting
+# `prov:wasDerivedFrom` the CLI's one pre-registered known principal, plus
+# the three F08 planning predicates as triple-quoted Turtle long-string
+# literals (a real PDDL8 STRIPS domain/problem pair, and a real F19
+# hook-pack catalog covering the grounded "respond-to-email" action).
+#
+# Run with:
+#   just multifractal-workflow-run-crown-local-cli \
+#     crates/multifractal-workflow/examples/email-needs-response.ttl
+
+<urn:mfw:email:msg-2026-07-13-001>
+  <http://www.w3.org/ns/prov#wasDerivedFrom> <https://connectors.example.org/email-connector-1> ;
+  <urn:chatman:engine#pddlDomain> """
+(define (domain email-response)
+  (:requirements :strips)
+  (:predicates (email-arrived ?e) (response-sent ?e))
+  (:action respond-to-email
+    :parameters (?e)
+    :precondition (email-arrived ?e)
+    :effect (and (response-sent ?e))))
+""" ;
+  <urn:chatman:engine#pddlProblem> """
+(define (problem email-response-problem)
+  (:domain email-response)
+  (:objects msg1)
+  (:init (email-arrived msg1))
+  (:goal (and (response-sent msg1))))
+""" ;
+  <urn:mfw:f08#hookPack> """
+@prefix kh: <http://seanchatmangpt.github.io/praxis/kh#> .
+@prefix ex: <http://example.org/email#> .
+ex:hook-respond a kh:Hook ;
+  kh:name "respond-to-email-hook" ;
+  kh:kind "delta" ;
+  kh:var "http://example.org/email#actuates-respond" ;
+  kh:on "assert" ;
+  kh:effect "ground-action" ;
+  kh:action <urn:pddl:action:respond-to-email> ;
+  kh:reason "email-connector-authority" ;
+  kh:priority 1 .
+""" .

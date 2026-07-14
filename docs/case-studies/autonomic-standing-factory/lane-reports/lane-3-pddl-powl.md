@@ -9,9 +9,9 @@ Lane 3 — PDDL Repair Planner and POWL Process Model
 
 ## Files inspected
 
-- `examples/v26_7_6_after_neon/goal.ttl` — the `pdl:` vocabulary exemplar
-  mirrored exactly (Domain/Type/Predicate/Action/Problem shape, `pdl:param`
-  with `pdl:index`/`pdl:var`/`pdl:ofType`, `pdl:pre`/`pdl:add`/`pdl:del` as
+- `examples/v26_7_6_after_neon/goal.ttl` — the `pddl:` vocabulary exemplar
+  mirrored exactly (Domain/Type/Predicate/Action/Problem shape, `pddl:param`
+  with `pddl:index`/`pddl:var`/`pddl:ofType`, `pddl:pre`/`pddl:add`/`pddl:del` as
   string-literal atoms).
 - `src/mfg.rs` — `enforce_pddl8` (arity/params/conjuncts bounds, confirmed
   against `wasm4pm-compat::pddl::PDDL8_MAX_*` = 8/8/8, plan depth 64, ground

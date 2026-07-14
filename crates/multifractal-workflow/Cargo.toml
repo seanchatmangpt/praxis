@@ -9,6 +9,20 @@ description = "v26.7.12 architecture atlas (30 families x 8 lenses): scaffolding
 [lib]
 doctest = false
 
+# crown-local-cli (v26.7.12): the first real, non-test entry point for
+# `crown_local::drive_local_witness_prefix` -- reads a real RDF/Turtle
+# observation file from disk and drives the entire LOCAL crown witness
+# (F02->F03->F08->F09->F10->F11->F18->F19->F02(re-admit)->F24->F21->F25) end
+# to end. A same-crate bin needs no new Cargo dependency edge (it reaches
+# this crate's own `pub` API the same way `crown_local_test.rs` already
+# does), unlike a cross-crate caller in `cng`, which would require a
+# cng->multifractal-workflow `[dependencies]` edge -- a hard Cargo cycle,
+# since multifractal-workflow already depends on cng unconditionally above.
+# See src/bin/crown-local-cli.rs for the full design rationale.
+[[bin]]
+name = "crown-local-cli"
+path = "src/bin/crown-local-cli.rs"
+
 # crown-bribery-case (Stage 2 of a 4-stage build, v26.7.12): the first real,
 # non-test entry point driving the Solvane Global bribery-compliance case
 # fixture (fixtures/bribery-case/, Stage 1) through RDF admission (F02),
@@ -19,7 +33,7 @@ doctest = false
 # disk and compiled to an AIR program. A same-crate bin needs no new Cargo
 # dependency edge for its own crate's `pub` API, matching crown-local-cli's
 # own rationale above; it DOES need the new `my-conforming-project` edge
-# below for `mfg::manufacture` (RDF `pdl:` instance data -> real, bound-
+# below for `mfg::manufacture` (RDF `pddl:` instance data -> real, bound-
 # checked PDDL8 text -- the same mechanism Stage 1's own
 # `tests/bribery_case_pddl.rs` proved against this exact domain). Built as
 # an extensible driver (typed per-stage refusal, discrete stage functions),
@@ -153,7 +167,7 @@ oxigraph = "0.5"
 # HAND_WRITE_REQUIRED gaps (Continuation Goal Resolver, POWL Manufacturer,
 # Socket Binder, Parent Re-evaluator, L7 idempotency -- none of these exist
 # anywhere in the repo per the family survey's repo-wide grep).
-pddl-index = { path = "../pddl-index" }
+
 wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat", version = "26.6.29" }
 # F08 "PDDL Planning and Action-Hook Binder" (V12-008, MIXED): real
 # dependency on bcinr-pddl for `ground::GroundProblem` (grounding +
@@ -173,7 +187,7 @@ wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat", version = "26.6.29" }
 # disclosed HAND_WRITE_REQUIRED (hook_binder: no general hook-registry
 # query API was found anywhere in this repo this session, so the
 # Action-Hook Binder always refuses rather than faking a match).
-bcinr-pddl = "26.6.26"
+bcinr-pddl = { path = "../../../bcinr/crates/bcinr-pddl", version = "26.6.26" }
 
 # F20 "External Dispatch and Re-admission" (V12-020, ALREADY_BUILT): real
 # dependency on cng's bench-only decomposition-to-dispatch bridge

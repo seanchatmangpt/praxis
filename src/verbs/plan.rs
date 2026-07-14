@@ -298,7 +298,7 @@ fn lawobject_payload() -> std::result::Result<Value, String> {
 
     let manufactured =
         mfg::manufacture(ONTOLOGY, "ontology/lawobject.ttl").map_err(|e| e.to_string())?;
-    let report = mfg::validate(&manufactured.domain_text, &manufactured.problem_text);
+    let report = mfg::solve_ir(&manufactured);
     if !report.solvable {
         return Err(format!(
             "lawobject self-test: golden plan not found: {:?}",
@@ -318,7 +318,7 @@ fn lawobject_payload() -> std::result::Result<Value, String> {
 
     Ok(json!({
         "admitted": true,
-        "graph_hash": manufactured.graph_hash_hex,
+        "graph_hash": manufactured.receipt.graph_hash,
         "plan_steps": report.plan_steps,
         "plan_len": report.plan_len,
         "grounded_actions": report.grounded_actions,
@@ -367,14 +367,14 @@ pub fn lawobject() -> Result<Value> {
     lawobject_payload().map_err(NounVerbError::argument_error)
 }
 
-/// Run the full planner vertical slice: goal graph (`pdl:` Turtle) ->
+/// Run the full planner vertical slice: goal graph (`pddl:` Turtle) ->
 /// manufactured PDDL8 -> classical solve -> POWL sequence -> receipted
 /// bcinr execution -> artifact write behind the solvability verifier ->
 /// ledger receipt. See `src/plan_run.rs`.
 #[cfg(feature = "ggen")]
 #[verb]
 pub fn run(
-    #[arg(help = "Path to the pdl: Turtle goal ontology (domain + problem facts)")] goal: String,
+    #[arg(help = "Path to the pddl: Turtle goal ontology (domain + problem facts)")] goal: String,
     #[arg(
         default_value = "target/plan_run",
         help = "Directory the manufactured artifact is written to"

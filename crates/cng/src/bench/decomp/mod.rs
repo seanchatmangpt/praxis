@@ -1,7 +1,7 @@
 //! No-LLM multi-actor goal decomposition (v26.7.10-revised Track P,
 //! PROJ-702..710): derive goal decompositions from admitted graph state,
 //! manufacture helper/main PDDL subproblems via SPARQL CONSTRUCT, plan
-//! classically on `pddl_index::ground::IndexedGroundProblem::find_plan`
+//! classically on `bcinr_pddl::ground::IndexedGroundProblem::find_plan`
 //! (PROJ-733: relaxed-reachability-pruned grounding — same BFS strategy
 //! and identical plans as `bcinr_pddl::GroundProblem`, differential-tested
 //! in `tests/indexed_grounding.rs`, but without materializing the
@@ -71,7 +71,7 @@ use bcinr_pddl::{Pddl8Domain, Pddl8GroundAtom, Pddl8Problem, Pddl8Tape};
 // GroundProblem` exactly, so every call site below needs no other change.
 use oxigraph::io::{RdfFormat, RdfParser};
 use oxigraph::store::Store;
-use pddl_index::ground::IndexedGroundProblem as GroundProblem;
+use bcinr_pddl::ground::IndexedGroundProblem as GroundProblem;
 
 use crate::bench::templates::QuerySet;
 use crate::powl::{CngRefusal, Powl};
@@ -284,7 +284,7 @@ fn plan_manufactured(
         CngRefusal::UnsupportedConstruct(format!("subproblem grounding failed: {e}"))
     })?;
     let tape = ground
-        .find_plan()
+        .find_plan().into_result()
         .map_err(|e| CngRefusal::PlanUnsolvable(format!("subproblem admits no plan: {e}")))?;
     Ok((tape, pddl_text))
 }
@@ -400,7 +400,7 @@ pub fn decompose_with(
     // 5. Candidate 0 — single actor. Unsolvable here means the admitted
     //    problem itself is unsolvable: propagate CNG_R04.
     let single_tape = ground
-        .find_plan()
+        .find_plan().into_result()
         .map_err(|e| CngRefusal::PlanUnsolvable(format!("no admitted plan: {e}")))?;
     let single_model = crate::powl::project_tape_to_powl(&single_tape)?;
     let mut receipts: Vec<CandidateReceipt> = vec![CandidateReceipt {

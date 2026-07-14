@@ -6,6 +6,7 @@ use crate::aggregation::{
     Accumulator, AccumulatorImpl, AvgAccumulator, CountAccumulator, MaxAccumulator, MinAccumulator,
     SumAccumulator,
 };
+use crate::builtins::math;
 use crate::fastmap::{FxHashMap, FxHashSet};
 use crate::hooks::{clean_term, CmpOp, EffectKind, HookCondition};
 use crate::parser::Parser;
@@ -610,13 +611,47 @@ impl Reasoner {
                         }
                         HookCondition::Datalog { program, goal } => {
                             let translated = translate_datalog_program(program)?;
-                            let mut temp_store = TripleStore::from(&translated);
+                            // `TripleStore::from(&str)` decides its parser by
+                            // `data.contains("@prefix")` -- `translated` is all
+                            // fully-qualified `<...>` IRIs (`translate_datalog_program`
+                            // never emits `@prefix`), so `from` would route it through
+                            // the legacy line-based `Parser::parse` (see that
+                            // function's doc comment), which mints every bare token
+                            // (e.g. a `FILTER`-translated numeric literal like `1000`)
+                            // as an opaque, unbracketed "IRI" rather than a real
+                            // `xsd:integer` literal -- silently breaking any
+                            // `math:greaterThan`-style numeric comparison against a
+                            // properly-typed fact (e.g. a Turtle-loaded `"1200"`).
+                            // `load_rules` (`Parser::parse_rules` ->
+                            // `n3rule_parser::parse`, the same pest grammar `from`
+                            // uses for its `@prefix`-gated path) parses `translated`
+                            // correctly regardless of `@prefix` presence, so build the
+                            // temp store directly and load rules through it instead of
+                            // going through the heuristic. Found via
+                            // `test_c3_datalog_construct_delta_cascade`.
+                            let mut temp_store = TripleStore::new();
+                            temp_store.load_rules(&translated)?;
                             for t in &triple_index.triples {
                                 temp_store.add(t.clone());
                             }
                             temp_store.materialize()?;
-                            let goal_type =
-                                format!("<http://seanchatmangpt.github.io/praxis/kh#{}>", goal);
+                            // `goal` is Datalog-atom syntax (`kh:goal "vip(?s)"`, matching
+                            // `kh:program`'s head-atom convention), not a bare predicate name --
+                            // strip the `(...)` argument list the same way
+                            // `translate_datalog_program` strips it from a rule head, so the
+                            // comparison below is against the plain predicate name
+                            // (`translate_datalog_program` materializes `?s a
+                            // <...kh#vip>`, never `<...kh#vip(?s)>`). Previously unexercised by
+                            // any test through a real `materialize()` fire -- the only two
+                            // prior `kh:goal "pred(...)"` users either never called
+                            // `materialize()` at all (`test_f3_datalog_trigger_format`, a
+                            // load-only format check) or used a program malformed by design
+                            // (`test_b3_datalog_program_size_limit`'s placeholder `"{}"`).
+                            let goal_pred = goal.split('(').next().unwrap_or(goal.as_str()).trim();
+                            let goal_type = format!(
+                                "<http://seanchatmangpt.github.io/praxis/kh#{}>",
+                                goal_pred
+                            );
                             for t in &temp_store.triple_index.triples {
                                 let p_str = crate::encoding::Encoder::decode(&t.p.to_encoded())
                                     .unwrap_or_default();
@@ -819,10 +854,12 @@ impl Reasoner {
                                 }
                             }
 
-                            // Always generate receipt/verdict when hook fires, even if no additions
+                            // Always generate a verdict when a hook fires (this match arm is
+                            // only reached once `fired` is already known true -- see the
+                            // `if !fired { ...continue; }` guard above); receipts are more
+                            // selective -- see the two `else` arms below.
                             let mut delta_hash = None;
                             let mut idempotency_key = None;
-                            let mut verdict_pushed = false;
                             if !hook_additions.is_empty() || !hook_removals.is_empty() {
                                 let mut lines = Vec::new();
                                 for t in &hook_additions {
@@ -854,10 +891,17 @@ impl Reasoner {
                                 receipts.push(receipt);
                                 delta_hash = Some(d_hash);
                                 idempotency_key = Some(i_key);
-                                verdict_pushed = true;
-                            } else {
-                                // Hook fired but produced no additions (no kh:action or empty delta)
-                                // Still generate an empty receipt to track the firing
+                            } else if hook.action.is_none() {
+                                // Hook fired but has no `kh:action` at all (e.g. a bare
+                                // threshold/count/window/delta trigger with no projection) --
+                                // the condition match itself is the payload being tracked, so
+                                // still emit an empty receipt to record the firing. Relied on
+                                // by e.g. `test_f3_delta_trigger`/`test_f3_threshold_trigger`/
+                                // `test_c3_threshold_count_window_concurrency` (no-action hooks
+                                // that assert `!receipts.is_empty()` purely from firing) and
+                                // `materialize_clears_verdicts_on_rollback_not_just_triple_index`
+                                // (lib_test.rs, an `action: None` hook whose doc comment already
+                                // documents this exact branch).
                                 if !receipts.iter().any(|r| r.hook_name == hook.name) {
                                     let receipt = crate::hooks::HookReceipt {
                                         hook_name: hook.name.clone(),
@@ -866,28 +910,33 @@ impl Reasoner {
                                         delta_quads: String::new(),
                                     };
                                     receipts.push(receipt);
-                                    verdict_pushed = true;
                                 }
+                            } else {
+                                // Hook fired *and* has a `kh:action` (e.g. sparql-construct),
+                                // but that action's WHERE clause matched nothing this round, so
+                                // it produced zero triples. Per the documented invariant "A
+                                // CONSTRUCT projection yielding zero changes must NOT generate
+                                // any BLAKE3 receipts" (`test_c3_construct_empty_no_receipt`),
+                                // no receipt is recorded here -- unlike the no-action branch
+                                // above, there is no condition-match payload worth tracking
+                                // when the projection itself is empty. The verdict is still
+                                // recorded (the condition genuinely matched), just without a
+                                // receipt/delta_hash.
                             }
 
-                            if verdict_pushed {
-                                verdicts.push(crate::hooks::HookVerdictRecord {
-                                    hook_id: hook.id,
-                                    hook_iri: hook.iri.clone(),
-                                    hook_name: hook.name.clone(),
-                                    condition_kind: hook.condition.kind().to_string(),
-                                    condition_hash: hook
-                                        .condition
-                                        .condition_hash()
-                                        .unwrap_or_default(),
-                                    verdict: crate::hooks::HookVerdict::Fired,
-                                    effect: hook.effect.clone(),
-                                    action_iri: hook.action.clone(),
-                                    diagnostics: None,
-                                    delta_hash,
-                                    idempotency_key,
-                                });
-                            }
+                            verdicts.push(crate::hooks::HookVerdictRecord {
+                                hook_id: hook.id,
+                                hook_iri: hook.iri.clone(),
+                                hook_name: hook.name.clone(),
+                                condition_kind: hook.condition.kind().to_string(),
+                                condition_hash: hook.condition.condition_hash().unwrap_or_default(),
+                                verdict: crate::hooks::HookVerdict::Fired,
+                                effect: hook.effect.clone(),
+                                action_iri: hook.action.clone(),
+                                diagnostics: None,
+                                delta_hash,
+                                idempotency_key,
+                            });
                         }
                     }
                 }
@@ -1038,9 +1087,141 @@ pub(crate) fn query(query_triple: &Triple, match_triple: &Triple) -> Option<Bind
     Some(bindings)
 }
 
+/// Translate a bounded `FILTER(<var> <op> <value>)` clause (the STRIPS8-style
+/// subset a `kh:program` Datalog body literal may use -- one comparison, no
+/// `&&`/`||`/function-call SPARQL FILTER grammar) into its N3 `math:`
+/// builtin-comparison equivalent, e.g. `FILTER(?a > 1000)` -> `?a
+/// <http://www.w3.org/2000/10/swap/math#greaterThan> 1000 .`. The six
+/// operators map onto this crate's existing N3 comparison builtins
+/// (`builtins/math.rs`), the same builtins `queryengine.rs`'s
+/// `SimpleQueryEngine` already evaluates for ordinary N3 rule bodies -- no
+/// new evaluation logic, just the surface syntax translation.
+///
+/// # Errors
+/// Returns `Err` if `clause` isn't `FILTER(...)`-wrapped, doesn't contain a
+/// recognized operator, or is missing either operand -- callers should treat
+/// this as "outside the bounded FILTER subset", not silently drop the
+/// literal (a body literal this crate can't faithfully translate must not be
+/// silently ignored, which would change the rule's semantics).
+///
+/// # Complexity
+/// O(|clause|): a handful of `find`/`split_once` scans over the clause text.
+fn translate_datalog_filter(clause: &str) -> Result<String, String> {
+    let inner = clause
+        .strip_prefix("FILTER(")
+        .and_then(|s| s.strip_suffix(')'))
+        .ok_or_else(|| "Datalog FILTER clause missing '(' / ')' delimiters".to_string())?
+        .trim();
+
+    // Longest-operator-first so `>=`/`<=`/`!=` aren't mis-split on their
+    // leading `>`/`<`/`!` before the two-character form is ever tried.
+    const OPERATORS: [(&str, &str); 6] = [
+        (">=", math::MATH_NOT_LESS_THAN),
+        ("<=", math::MATH_NOT_GREATER_THAN),
+        ("!=", math::MATH_NOT_EQUAL_TO),
+        (">", math::MATH_GREATER_THAN),
+        ("<", math::MATH_LESS_THAN),
+        ("=", math::MATH_EQUAL_TO),
+    ];
+
+    for (op, builtin_iri) in OPERATORS {
+        if let Some((lhs, rhs)) = inner.split_once(op) {
+            let lhs = lhs.trim();
+            let rhs = rhs.trim();
+            if lhs.is_empty() || rhs.is_empty() {
+                return Err(format!(
+                    "Datalog FILTER clause missing operand around '{}'",
+                    op
+                ));
+            }
+            return Ok(format!("{} {} {} .", lhs, builtin_iri, rhs));
+        }
+    }
+    Err(format!(
+        "Datalog FILTER clause '{}' has no recognized comparison operator",
+        inner
+    ))
+}
+
+/// Whether `lit` is a raw RDF triple-pattern body literal (`<subject>
+/// <predicate> <object>`, e.g. `?x <http://example.org/spent> ?a`) rather
+/// than the Datalog-atom shape (`pred(args)`) the rest of this translator's
+/// body-literal dispatch otherwise expects. `kh:program` may mix both
+/// styles in one rule body (an atom referring to a derived `kh:`-namespaced
+/// predicate alongside a raw pattern matching pre-existing RDF facts) --
+/// see `test_c3_datalog_construct_delta_cascade`'s `vip(?x) :- ?x
+/// <http://example.org/spent> ?a , FILTER(?a > 1000) .`, whose first body
+/// literal is exactly this raw-pattern shape. Detected by the absence of
+/// `(` -- every other body-literal form this translator supports (`pred(v)`,
+/// `!pred(v)`, `t(a,b,c)`, `FILTER(...)`) always contains one.
+fn is_raw_triple_pattern(lit: &str) -> bool {
+    !lit.contains('(')
+}
+
+/// Split a `kh:program` Datalog source into individual rule strings on
+/// top-level `.` characters only -- i.e. a rule terminator, not a `.`
+/// appearing inside an IRI's authority/path (`<http://example.org/spent>`)
+/// or a quoted string literal. A naive `program.split('.')` (this
+/// function's predecessor) silently truncated any rule containing an IRI
+/// with a dot in it, e.g. `vip(?x) :- ?x <http://example.org/spent> ?a .`
+/// split into `vip(?x) :- ?x <http://example` (truncated mid-IRI, no `:-`
+/// in the remaining fragments so they were dropped without error) --
+/// found via `test_c3_datalog_construct_delta_cascade`. Mirrors the
+/// existing bracket/quote-aware line scanner in
+/// `hooks/quads.rs::strip_comments` (same `in_iri`/`in_string` state
+/// machine, applied to `.` instead of `#`).
+///
+/// # Complexity
+/// O(|program|): a single pass over the source, one `char_indices()` scan.
+fn split_datalog_rules(program: &str) -> Vec<String> {
+    let mut rules = Vec::new();
+    let mut current = String::new();
+    let mut in_iri = false;
+    let mut in_string: Option<char> = None;
+    let mut pending_escape = false;
+    for c in program.chars() {
+        if let Some(q) = in_string {
+            current.push(c);
+            if pending_escape {
+                pending_escape = false;
+            } else if c == '\\' {
+                pending_escape = true;
+            } else if c == q {
+                in_string = None;
+            }
+            continue;
+        }
+        if in_iri {
+            current.push(c);
+            if c == '>' {
+                in_iri = false;
+            }
+            continue;
+        }
+        match c {
+            '<' => {
+                in_iri = true;
+                current.push(c);
+            }
+            '"' | '\'' => {
+                in_string = Some(c);
+                current.push(c);
+            }
+            '.' => {
+                rules.push(std::mem::take(&mut current));
+            }
+            _ => current.push(c),
+        }
+    }
+    if !current.trim().is_empty() {
+        rules.push(current);
+    }
+    rules
+}
+
 fn translate_datalog_program(program: &str) -> Result<String, String> {
     let mut n3 = String::new();
-    for rule_str in program.split('.') {
+    for rule_str in split_datalog_rules(program) {
         let rule_str = rule_str.trim();
         if rule_str.is_empty() {
             continue;
@@ -1095,6 +1276,19 @@ fn translate_datalog_program(program: &str) -> Result<String, String> {
                     if args.len() == 3 {
                         body_literals.push(format!("{} {} {} .", args[0], args[1], args[2]));
                     }
+                } else if lit.starts_with("FILTER(") {
+                    body_literals.push(translate_datalog_filter(lit)?);
+                } else if is_raw_triple_pattern(lit) {
+                    let tokens: Vec<&str> = lit.split_whitespace().collect();
+                    if tokens.len() != 3 {
+                        return Err(format!(
+                            "Datalog raw triple-pattern body literal '{}' must have exactly \
+                             3 whitespace-separated tokens (subject predicate object), found {}",
+                            lit,
+                            tokens.len()
+                        ));
+                    }
+                    body_literals.push(format!("{} {} {} .", tokens[0], tokens[1], tokens[2]));
                 } else {
                     let pred_name = lit
                         .split('(')

@@ -1,7 +1,7 @@
 # command: cargo test -p ggen --test graphlaw_e2e
 # cwd: /Users/sac/praxis
-# started_at_utc: 2026-07-12T08:33:47.752Z
-# finished_at_utc: 2026-07-12T08:34:11.074Z
+# started_at_utc: 2026-07-14T03:38:22.541Z
+# finished_at_utc: 2026-07-14T03:38:31.933Z
 # exit_code: 0
 
 ## stdout
@@ -25,30 +25,7 @@ package:   /Users/sac/praxis/crates/praxis-graphlaw-wasm/Cargo.toml
 workspace: /Users/sac/praxis/Cargo.toml
 warning: Cargo.toml: `panic` setting is ignored for `bench` profile
 warning: `my-conforming-project` (manifest) generated 1 warning
-   Compiling rand_chacha v0.9.0
-   Compiling wasm4pm-compat v26.6.29 (/Users/sac/wasm4pm-compat)
-   Compiling rand v0.9.4
-   Compiling oxrdf v0.3.3
-   Compiling spargebra v0.4.6
-   Compiling oxjsonld v0.2.5
-   Compiling sparopt v0.3.6
-   Compiling sparesults v0.3.3
-   Compiling oxrdfxml v0.2.3
-   Compiling oxttl v0.2.3
-   Compiling bcinr-powl v26.6.25 (/Users/sac/bcinr/crates/bcinr-powl)
-   Compiling oxrdfio v0.2.5
-   Compiling spareval v0.2.6
-   Compiling bcinr-pddl v26.6.26 (/Users/sac/bcinr/crates/bcinr-pddl)
-   Compiling rand v0.8.6
-   Compiling oxigraph v0.5.9
-   Compiling bcinr-powl-receipt v26.6.24 (/Users/sac/bcinr/crates/bcinr-powl-receipt)
-   Compiling tera v1.20.1
    Compiling praxis-graphlaw v26.7.9 (/Users/sac/praxis/crates/praxis-graphlaw)
-   Compiling wasm4pm-arazzo v26.7.8 (/Users/sac/praxis/crates/wasm4pm-arazzo)
-   Compiling notify v7.0.0
-   Compiling notify-debouncer-full v0.4.0
-   Compiling clap-noun-verb v26.7.4
-   Compiling star-toml v26.7.3
 warning: unused import: `crate::encoding::Encoder`
  --> crates/praxis-graphlaw/src/hooks/mod.rs:4:5
   |
@@ -123,22 +100,17 @@ warning: unused import: `decode_to_term`
 7 | use super::values::{decode_to_term, get_integer_value, get_string_representation};
   |                     ^^^^^^^^^^^^^^
 
-warning: variable does not need to be mutable
-   --> crates/praxis-graphlaw/src/reasoner/mod.rs:215:17
+warning: use of deprecated associated function `spargebra::Query::parse`: Use `SparqlParser::new().parse_query` instead
+   --> crates/praxis-graphlaw/src/hooks/parsing.rs:353:38
     |
-215 |             let mut stratum_rollback_len = triple_index.len();
-    |                 ----^^^^^^^^^^^^^^^^^^^^
-    |                 |
-    |                 help: remove this `mut`
+353 |                 if spargebra::Query::parse(&query, None).is_err() {
+    |                                      ^^^^^
     |
-    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+    = note: `#[warn(deprecated)]` on by default
 
-warning: `praxis-graphlaw` (lib) generated 13 warnings (run `cargo fix --lib -p praxis-graphlaw` to apply 13 suggestions)
    Compiling praxis-core v26.7.2 (/Users/sac/praxis/crates/praxis-core)
-   Compiling chicago-tdd-tools v26.7.1 (/Users/sac/chicago-tdd-tools)
-   Compiling ggen v26.7.4 (/Users/sac/praxis/crates/ggen)
-   Compiling tinytemplate v1.2.1
-   Compiling insta v1.48.0
+warning: `praxis-graphlaw` (lib) generated 13 warnings (run `cargo fix --lib -p praxis-graphlaw` to apply 12 suggestions)
+   Compiling ggen v26.7.13 (/Users/sac/praxis/crates/ggen)
 warning: associated function `validate_unchecked` is never used
    --> crates/ggen/src/types.rs:373:19
     |
@@ -218,7 +190,5 @@ warning: missing documentation for a variant
     |     ^^^^^^^
 
 warning: `ggen` (lib) generated 11 warnings
-   Compiling criterion v0.5.1
-   Compiling proptest v1.11.0
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 21.69s
-     Running tests/graphlaw_e2e.rs (target/debug/deps/graphlaw_e2e-312de272a61b9572)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.45s
+     Running tests/graphlaw_e2e.rs (target/debug/deps/graphlaw_e2e-6b058d82d58b8942)

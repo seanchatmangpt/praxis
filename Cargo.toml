@@ -99,7 +99,7 @@ toml = { version = "0.8", optional = true }
 hex = "0.4"
 bcinr-powl-receipt = { path = "../bcinr/crates/bcinr-powl-receipt", version = "26.6.24" }
 bcinr-pddl = { path = "../bcinr/crates/bcinr-pddl", version = "26.6.26" }
-pddl-index = { path = "crates/pddl-index", version = "26.7.2" }
+
 praxis-synthesis = { path = "crates/praxis-synthesis", version = "26.7.2" }
 bcinr-powl = { path = "../bcinr/crates/bcinr-powl", version = "26.6.25" }
 prolog8 = { path = "../wasm4pm/crates/prolog8", version = "26.7.1" }
@@ -223,6 +223,14 @@ affidavit = { path = "/Users/sac/affidavit" }
 # bcinr-logic whose #[no_mangle] symbols (aabb_intersect_branchless, ...)
 # collide under the release profile's fat LTO.
 bcinr-logic = { path = "/Users/sac/bcinr/crates/bcinr-logic" }
+# Required for unification: cng and multifractal-workflow declare the registry
+# version (`bcinr-pddl = "26.6.26"`, preserving their registry-only
+# publishability surface) while the workspace root and praxis-graphlaw
+# path-depend on the local checkout. Without this patch those are two distinct
+# Cargo SourceIds — edits to /Users/sac/bcinr/crates/bcinr-pddl never reach
+# cng/multifractal-workflow builds, and types mismatch at crate boundaries
+# crossing both.
+bcinr-pddl = { path = "/Users/sac/bcinr/crates/bcinr-pddl" }
 
 [workspace]
 resolver = "2"
@@ -236,7 +244,6 @@ members = [
     "crates/praxis-retrofit",
     "crates/rust-fable-testbed",
     "crates/powl2-decompose",
-    "crates/pddl-index",
     "crates/praxis-synthesis",
     "crates/praxis-lean",
     "crates/praxis-graphlaw",

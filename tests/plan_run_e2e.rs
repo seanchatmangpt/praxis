@@ -43,8 +43,8 @@ fn ensure_signing_key() {
 fn dry_run_solve_and_powl_compile() {
     let manufactured = mfg::manufacture(GOAL_TTL, GOAL_TTL_PATH).expect("fixture manufactures");
     let payload = json!({
-        "domain": manufactured.domain_text,
-        "problem": manufactured.problem_text,
+        "domain": manufactured.project_domain_text(),
+        "problem": manufactured.project_problem_text(),
         "mode": "classical",
     })
     .to_string();

@@ -24,7 +24,7 @@ Structural parallelism *is* the proof, so the church pack mirrors the revenue pa
 
 | Concern | Revenue | Church |
 |---|---|---|
-| Ontology (pdl: vocabulary) | `ontology/revenue.ttl` | `ontology/church.ttl` — `Person` states `FirstTime → Returning → Connected → Serving → Leading` (ordered stage enum), evidence flags `welcomed`, `followed_up`, `in_small_group`, `care_assigned` |
+| Ontology (pddl: vocabulary) | `ontology/revenue.ttl` | `ontology/church.ttl` — `Person` states `FirstTime → Returning → Connected → Serving → Leading` (ordered stage enum), evidence flags `welcomed`, `followed_up`, `in_small_group`, `care_assigned` |
 | PDDL domain (PDDL8-safe, positive-precondition) | `ontology/revenue.pddl` | `ontology/church.pddl` — evidence-gated stage-advance actions (`advance-to-connected` requires `welcomed ∧ followed_up`, etc.) |
 | Authored objective | `revenue_objective.json` | `crates/praxis-proposer/church_objective.json` |
 | Proposer | `engine::Proposer<RevenueDomain>` | `engine::Proposer<ChurchDomain>` |

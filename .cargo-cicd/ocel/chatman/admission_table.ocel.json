@@ -3,30 +3,8 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
-    "evt_003": {
-      "event_id": "8ee75c66-c28a-469b-9aa1-9a74c2eea6fd",
-      "case_id": "chatman-admission_table",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 4,
-      "objects": [
-        [
-          "Falsify_OcelEventNotAdmitted",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Falsify_OcelEventNotAdmitted",
-        "refusal": "OcelEventNotAdmitted",
-        "outcome": "refused"
-      }
-    },
     "evt_000": {
-      "event_id": "d8c4541c-67d4-46e1-93bc-2463ec35abe7",
+      "event_id": "dc57f410-ac28-40e0-8861-f1e6dde2d6b7",
       "case_id": "chatman-admission_table",
       "activity": {
         "DiagnosticEmitted": {
@@ -47,7 +25,7 @@
       }
     },
     "evt_001": {
-      "event_id": "715fa3f4-d862-4a59-a0a0-474949a7f1b9",
+      "event_id": "63b3d77a-4c53-47e6-8a5e-bbfd3ce936ee",
       "case_id": "chatman-admission_table",
       "activity": {
         "DiagnosticEmitted": {
@@ -63,13 +41,13 @@
         ]
       ],
       "attributes": {
+        "fixture_id": "Falsify_AdmissionTableMismatch",
         "outcome": "refused",
-        "refusal": "AdmissionTableMismatch",
-        "fixture_id": "Falsify_AdmissionTableMismatch"
+        "refusal": "AdmissionTableMismatch"
       }
     },
     "evt_002": {
-      "event_id": "c701fd4e-af8d-4f0a-b9a7-8d34e530d7e9",
+      "event_id": "11fc0a15-efc8-4115-a114-86ef43d26583",
       "case_id": "chatman-admission_table",
       "activity": {
         "DiagnosticEmitted": {
@@ -87,6 +65,28 @@
       "attributes": {
         "outcome": "admitted",
         "fixture_id": "Accept_OcelEventAdmitted"
+      }
+    },
+    "evt_003": {
+      "event_id": "3726e682-83c1-43fc-853c-88f42f8b0936",
+      "case_id": "chatman-admission_table",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 4,
+      "objects": [
+        [
+          "Falsify_OcelEventNotAdmitted",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "refused",
+        "fixture_id": "Falsify_OcelEventNotAdmitted",
+        "refusal": "OcelEventNotAdmitted"
       }
     }
   },

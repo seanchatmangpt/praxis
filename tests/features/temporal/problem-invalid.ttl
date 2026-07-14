@@ -1,0 +1,14 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pdl#> .
+@prefix temp: <http://seanchatmangpt.github.io/praxis/temporal#> .
+
+temp:w1 a pddl:Individual ;
+    rdf:type temp:Worker ;
+    pddl:pddlName "w1" .
+
+temp:tempProb a pddl:Problem ;
+    pddl:domain temp:TemporalDemo ;
+    pddl:init "(idle w1)" ;
+    pddl:goal "(done w1)" .

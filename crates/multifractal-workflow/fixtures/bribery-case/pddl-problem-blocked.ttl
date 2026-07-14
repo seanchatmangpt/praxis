@@ -27,25 +27,25 @@
 # CONSTRUCT, which this Stage-1 build did not implement or test -- named as
 # a gap for a later stage, not silently assumed solved).
 
-@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
 
-pdl:problem_bribery_case_brb_2026_0512
-    a pdl:Problem ;
-    pdl:name "bribery-case-brb-2026-0512-blocked" ;
-    pdl:domain "solvane-bribery-compliance-pddl8" ;
-    pdl:object [ pdl:name "case-brb-2026-0512" ; pdl:ofType "law-object" ] ,
-               [ pdl:name "verify-transaction-authenticity-0512" ; pdl:ofType "obligation" ] ,
-               [ pdl:name "verify-contractor-authorization-level-0512" ; pdl:ofType "obligation" ] ,
-               [ pdl:name "assess-policy-violation-0512" ; pdl:ofType "obligation" ] ,
-               [ pdl:name "etype-card-statement" ; pdl:ofType "evidence-type" ] ,
-               [ pdl:name "etype-authorization-record" ; pdl:ofType "evidence-type" ] ,
-               [ pdl:name "etype-compliance-policy-citation" ; pdl:ofType "evidence-type" ] ,
-               [ pdl:name "raw" ; pdl:ofType "lifecycle-stage" ] ,
-               [ pdl:name "validated" ; pdl:ofType "lifecycle-stage" ] ,
-               [ pdl:name "admitted" ; pdl:ofType "lifecycle-stage" ] ,
-               [ pdl:name "receipted" ; pdl:ofType "lifecycle-stage" ] ,
-               [ pdl:name "blocked" ; pdl:ofType "lifecycle-stage" ] ;
-    pdl:init "(in-stage case-brb-2026-0512 raw)" ,
+pddl:problem_bribery_case_brb_2026_0512
+    a pddl:Problem ;
+    pddl:name "bribery-case-brb-2026-0512-blocked" ;
+    pddl:domain "solvane-bribery-compliance-pddl8" ;
+    pddl:object [ pddl:name "case-brb-2026-0512" ; pddl:ofType "law-object" ] ,
+               [ pddl:name "verify-transaction-authenticity-0512" ; pddl:ofType "obligation" ] ,
+               [ pddl:name "verify-contractor-authorization-level-0512" ; pddl:ofType "obligation" ] ,
+               [ pddl:name "assess-policy-violation-0512" ; pddl:ofType "obligation" ] ,
+               [ pddl:name "etype-card-statement" ; pddl:ofType "evidence-type" ] ,
+               [ pddl:name "etype-authorization-record" ; pddl:ofType "evidence-type" ] ,
+               [ pddl:name "etype-compliance-policy-citation" ; pddl:ofType "evidence-type" ] ,
+               [ pddl:name "raw" ; pddl:ofType "lifecycle-stage" ] ,
+               [ pddl:name "validated" ; pddl:ofType "lifecycle-stage" ] ,
+               [ pddl:name "admitted" ; pddl:ofType "lifecycle-stage" ] ,
+               [ pddl:name "receipted" ; pddl:ofType "lifecycle-stage" ] ,
+               [ pddl:name "blocked" ; pddl:ofType "lifecycle-stage" ] ;
+    pddl:init "(in-stage case-brb-2026-0512 raw)" ,
              "(has-obligation case-brb-2026-0512 verify-transaction-authenticity-0512)" ,
              "(has-obligation case-brb-2026-0512 verify-contractor-authorization-level-0512)" ,
              "(has-obligation case-brb-2026-0512 assess-policy-violation-0512)" ,
@@ -53,4 +53,4 @@ pdl:problem_bribery_case_brb_2026_0512
              "(requires-evidence verify-contractor-authorization-level-0512 etype-authorization-record)" ,
              "(requires-evidence assess-policy-violation-0512 etype-compliance-policy-citation)" ,
              "(evidence-unavailable assess-policy-violation-0512)" ;
-    pdl:goal "(in-stage case-brb-2026-0512 blocked)" .
+    pddl:goal "(in-stage case-brb-2026-0512 blocked)" .

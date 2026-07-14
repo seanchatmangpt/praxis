@@ -339,7 +339,13 @@ impl AdmissionLedger {
 /// the term is not `Term::Iri` (a literal, blank node, or unresolved
 /// variable never has "an IRI"). Only ever inspects the variant tag, never a
 /// private field.
-fn bare_iri(vt: &VarOrTerm) -> Option<String> {
+///
+/// `pub(crate)` (not private): reused verbatim by
+/// [`crate::f31_org_merge`]'s identifier-collision detector, which needs the
+/// exact same "only `Term::Iri` counts" contract this function already
+/// establishes -- duplicating it would risk the two modules silently
+/// diverging on what counts as a comparable subject/predicate.
+pub(crate) fn bare_iri(vt: &VarOrTerm) -> Option<String> {
     match vt {
         VarOrTerm::Term(t @ Term::Iri(_)) => {
             let displayed = t.to_string();
@@ -358,7 +364,11 @@ fn bare_iri(vt: &VarOrTerm) -> Option<String> {
 /// hashing. Variables never appear in ground Turtle data parsed from an
 /// external payload; the `Var` arm exists only so this function is total,
 /// not because it is expected to run.
-fn term_display(vt: &VarOrTerm) -> String {
+///
+/// `pub(crate)`: reused by [`crate::f31_org_merge`] for its own canonical
+/// triple-line formatting (same reasoning as [`bare_iri`] above -- one
+/// canonicalization convention, not two that could drift).
+pub(crate) fn term_display(vt: &VarOrTerm) -> String {
     match vt {
         VarOrTerm::Term(t) => t.to_string(),
         VarOrTerm::Var(_) => "?unbound".to_string(),

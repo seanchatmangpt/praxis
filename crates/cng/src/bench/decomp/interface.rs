@@ -3,8 +3,8 @@
 //!
 //! This is a clean-room reimplementation of BTreeSet STRIPS effect
 //! application (state − del + add per step; semantics as proven in
-//! `pddl-index/src/ground.rs:375-414`), NOT a dependency on pddl-index
-//! internals (pddl-index is not a cng dependency). The verification is the
+//! `bcinr-pddl/src/ground.rs:375-414`), NOT a dependency on bcinr-pddl
+//! internals (bcinr-pddl is not a cng dependency). The verification is the
 //! s′ proof obligation: a tape that does not replay lawfully never yields
 //! an interface state — `CNG_R23 InterfaceStateMismatch`, never trust in
 //! the planner's BFS.

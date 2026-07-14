@@ -26,7 +26,7 @@ Manifest algorithm is Day 1's exactly: `manifest_hash = blake3(json.dumps(obj, s
 
 ### 1. CORPUS INGEST — the `mfg` lane consumes vendored open-ontologies vocabularies
 
-`src/corpus.rs` (feature `ggen`, wired at `src/lib.rs:32`) widens the manufacturing intake from one hand-authored `pdl:` ontology to three dependency-free Turtle vocabularies vendored under `ontology/vendor/` (each with a provenance header):
+`src/corpus.rs` (feature `ggen`, wired at `src/lib.rs:32`) widens the manufacturing intake from one hand-authored `pddl:` ontology to three dependency-free Turtle vocabularies vendored under `ontology/vendor/` (each with a provenance header):
 
 - `truex-ecosystem.ttl` — its nine `truex:Failure` individuals are the ecosystem's refusal conditions. `truex_failures()` ingests all nine via the existing `ggen_graph` SPARQL path; `refusal_category()` maps **every** one onto a `praxis_core::RefusalCategory`. The totality of that map over the corpus is a test (`every_failure_has_category` intent) — a refusal condition with no category is a hard failure, never a silent drop.
 - `mcpp-proof-chain.ttl` — the `mcpp:Verdict` model (`Admitted`/`Refused`/`Partial`) is manufactured into a Rust enum.

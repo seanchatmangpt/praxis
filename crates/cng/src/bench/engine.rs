@@ -47,7 +47,7 @@ use std::path::{Path, PathBuf};
 use bcinr_pddl::parse::{domain_from_pddl, problem_from_pddl};
 use oxigraph::io::{RdfFormat, RdfParser};
 use oxigraph::store::Store;
-use pddl_index::ground::IndexedGroundProblem;
+use bcinr_pddl::ground::IndexedGroundProblem;
 
 use crate::powl::CngRefusal;
 
@@ -350,7 +350,7 @@ fn manufacture_from_payload(
     })?;
     let ground = IndexedGroundProblem::build(&domain, &problem, Some(DECOMP_MAX_GROUND))
         .map_err(|e| CngRefusal::UnsupportedConstruct(format!("payload grounding failed: {e}")))?;
-    let tape = ground.find_plan().map_err(|e| {
+    let tape = ground.find_plan().into_result().map_err(|e| {
         CngRefusal::PlanUnsolvable(format!("dispatched payload admits no plan: {e}"))
     })?;
 

@@ -15,7 +15,7 @@
 //!   -- the real, tested Parent-Child Closure Law engine (PRD v26.7.11 §9,
 //!   PROJ-759). This module does not reimplement closure semantics.
 //! - **Reachability Gate + PDDL Planner** ([`reachability_gate`], folded
-//!   into [`plan_growth`]) delegates to [`pddl_index::solve_indexed`] --
+//!   into [`plan_growth`]) delegates to [`bcinr_pddl::solve_indexed`] --
 //!   the real, differentially-verified-against-`bcinr_pddl` indexed PDDL8
 //!   planner.
 //! - **Descent Meter** ([`DescentMeter`]) is a real, tested bounded-descent
@@ -114,7 +114,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use pddl_index::GroundStats;
+use bcinr_pddl::ground::GroundStats;
 use powl2_decompose::{ParentChildClosure, Powl, WorkflowSocketId};
 use praxis_graphlaw::chatman::closure::{ClosureLaw, RecursiveSocketClosure};
 use wasm4pm_compat::hash::blake3_combined;
@@ -221,7 +221,7 @@ pub enum MFWGrowthRefused {
 /// A resolved continuation goal: the concrete PDDL8 domain/problem a
 /// blocked socket's growth must plan toward. REUSE_ADAPT: expressed
 /// directly in `wasm4pm_compat`'s canonical PDDL8 types -- the same types
-/// `pddl_index` and `praxis_graphlaw::chatman::engine`'s S3 PDDL stage
+/// `bcinr_pddl` and `praxis_graphlaw::chatman::engine`'s S3 PDDL stage
 /// already plan over. This module does not invent its own goal
 /// representation.
 #[derive(Debug, Clone)]
@@ -439,17 +439,23 @@ struct ReachabilityWitness {
 }
 
 /// Reachability Gate + PDDL Planner (real; REUSE_ADAPT): runs
-/// [`pddl_index::solve_indexed`] over `goal`.
+/// [`bcinr_pddl::solve_indexed`] over `goal`.
 ///
 /// # Errors
 /// [`MFWGrowthRefused::GoalUnreachable`] if no plan is found.
 ///
 /// # Complexity
-/// Bounded by `pddl_index`'s indexed grounder (auto-selects over
-/// `pddl_index::GROUND_INDEX_THRESHOLD`) plus BFS plan search bounded by
+/// Bounded by `bcinr_pddl`'s indexed grounder (auto-selects over
+/// `bcinr_pddl::GROUND_INDEX_THRESHOLD`) plus BFS plan search bounded by
 /// `PDDL8_MAX_PLAN_DEPTH`.
 fn reachability_gate(goal: &ContinuationGoal) -> Result<ReachabilityWitness, MFWGrowthRefused> {
-    let (plan, stats) = pddl_index::solve_indexed(&goal.domain, &goal.problem).map_err(|e| {
+    let gp = bcinr_pddl::ground::IndexedGroundProblem::build(&goal.domain, &goal.problem, None).map_err(|e| {
+        MFWGrowthRefused::GoalUnreachable {
+            reason: format!("pddl index failed: {e}"),
+        }
+    })?;
+    let stats = gp.stats();
+    let plan = gp.find_plan().map_err(|e| {
         MFWGrowthRefused::GoalUnreachable {
             reason: e.to_string(),
         }
@@ -466,7 +472,7 @@ fn reachability_gate(goal: &ContinuationGoal) -> Result<ReachabilityWitness, MFW
 pub struct GrowthPlan {
     /// The socket this growth attempt is anchored to.
     pub parent_socket: WorkflowSocketId,
-    /// The real plan tape [`pddl_index::solve_indexed`] found.
+    /// The real plan tape [`bcinr_pddl::solve_indexed`] found.
     pub plan_tape: Pddl8Tape,
     /// Grounding statistics from the same planner call.
     pub ground_stats: GroundStats,

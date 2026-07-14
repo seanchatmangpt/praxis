@@ -67,7 +67,7 @@ pub const PROVENANCE_CHAIN: &[ProvenanceStage] = &[
     ProvenanceStage {
         name: "Plan",
         chain_order: 4,
-        realized_by: "pddl_index::solve_indexed via reachability_gate() (REUSE_ADAPT, real; differentially verified against bcinr_pddl elsewhere in the workspace).",
+        realized_by: "bcinr_pddl::solve_indexed via reachability_gate() (REUSE_ADAPT, real; differentially verified against bcinr_pddl elsewhere in the workspace).",
     },
     ProvenanceStage {
         name: "ChildWorkflow",
@@ -125,7 +125,7 @@ pub const REFUSAL_CATALOG: &[RefusalCatalogEntry] = &[
     },
     RefusalCatalogEntry {
         name: "GoalUnreachable",
-        meaning: "pddl_index::solve_indexed found no plan for the continuation goal.",
+        meaning: "bcinr_pddl::solve_indexed found no plan for the continuation goal.",
         invariant: "No child workflow is manufactured for ... [a state where] the goal remains reachable [does not hold].",
         status: "REAL",
     },

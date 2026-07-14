@@ -21,7 +21,7 @@ use std::path::Path;
 /// The exact dependency set of praxis-synthesis. Path deps are in-repo;
 /// the rest are offline data/hash/serde crates.
 const ALLOWED_DEPS: [&str; 7] = [
-    "pddl-index",
+
     "chatman-common",
     "blake3",
     "serde",

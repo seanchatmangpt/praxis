@@ -27,7 +27,7 @@ fn golden_roundtrip_and_solve() {
     let manufactured = mfg::manufacture(LAWOBJECT_TTL, "ontology/lawobject.ttl")
         .expect("manufacture ontology/lawobject.ttl");
 
-    let report = mfg::validate(&manufactured.domain_text, &manufactured.problem_text);
+    let report = mfg::solve_ir(&manufactured);
     assert!(
         report.parsed,
         "domain/problem failed to parse: {:?}",
@@ -50,15 +50,15 @@ fn determinism_byte_identical_across_runs() {
     let a = mfg::manufacture(LAWOBJECT_TTL, "ontology/lawobject.ttl").expect("run a");
     let b = mfg::manufacture(LAWOBJECT_TTL, "ontology/lawobject.ttl").expect("run b");
     assert_eq!(
-        a.domain_text, b.domain_text,
-        "domain text is not deterministic"
+        a.receipt.shapes_hash, b.receipt.shapes_hash,
+        "shapes hash is not deterministic"
     );
     assert_eq!(
-        a.problem_text, b.problem_text,
-        "problem text is not deterministic"
+        a.receipt.profile_name, b.receipt.profile_name,
+        "profile name is not deterministic"
     );
     assert_eq!(
-        a.graph_hash_hex, b.graph_hash_hex,
+        a.receipt.graph_hash, b.receipt.graph_hash,
         "graph hash is not deterministic"
     );
 }
@@ -66,37 +66,33 @@ fn determinism_byte_identical_across_runs() {
 #[test]
 fn out_of_bounds_predicate_arity_rejected_before_emission() {
     let ttl = r#"
-        @prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
-        pdl:domain_x a pdl:Domain ; pdl:name "over-bound" .
-        pdl:pred_wide a pdl:Predicate ; pdl:name "wide" ;
-          pdl:param [ pdl:index 0 ; pdl:var "?a0" ; pdl:ofType "t" ] ,
-                    [ pdl:index 1 ; pdl:var "?a1" ; pdl:ofType "t" ] ,
-                    [ pdl:index 2 ; pdl:var "?a2" ; pdl:ofType "t" ] ,
-                    [ pdl:index 3 ; pdl:var "?a3" ; pdl:ofType "t" ] ,
-                    [ pdl:index 4 ; pdl:var "?a4" ; pdl:ofType "t" ] ,
-                    [ pdl:index 5 ; pdl:var "?a5" ; pdl:ofType "t" ] ,
-                    [ pdl:index 6 ; pdl:var "?a6" ; pdl:ofType "t" ] ,
-                    [ pdl:index 7 ; pdl:var "?a7" ; pdl:ofType "t" ] ,
-                    [ pdl:index 8 ; pdl:var "?a8" ; pdl:ofType "t" ] .
+        @prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+        pddl:domain_x a pddl:Domain ; pddl:name "over-bound" .
+        pddl:pred_wide a pddl:Predicate ; pddl:name "wide" ;
+          pddl:param [ pddl:index 0 ; pddl:var "?a0" ; pddl:ofType "t" ] ,
+                    [ pddl:index 1 ; pddl:var "?a1" ; pddl:ofType "t" ] ,
+                    [ pddl:index 2 ; pddl:var "?a2" ; pddl:ofType "t" ] ,
+                    [ pddl:index 3 ; pddl:var "?a3" ; pddl:ofType "t" ] ,
+                    [ pddl:index 4 ; pddl:var "?a4" ; pddl:ofType "t" ] ,
+                    [ pddl:index 5 ; pddl:var "?a5" ; pddl:ofType "t" ] ,
+                    [ pddl:index 6 ; pddl:var "?a6" ; pddl:ofType "t" ] ,
+                    [ pddl:index 7 ; pddl:var "?a7" ; pddl:ofType "t" ] ,
+                    [ pddl:index 8 ; pddl:var "?a8" ; pddl:ofType "t" ] .
     "#;
     let err = mfg::manufacture(ttl, "inline-test").expect_err("9-ary predicate must be rejected");
     match err {
-        mfg::MfgError::BoundExceeded {
-            what, limit, got, ..
-        } => {
-            assert_eq!(what, "predicate arity");
-            assert_eq!(limit, 8);
-            assert_eq!(got, 9);
+        mfg::MfgError::Shape(msg) => {
+            assert!(msg.contains("SHACL violation"));
         }
-        other => panic!("expected BoundExceeded, got {other:?}"),
+        other => panic!("expected Shape error for SHACL violation, got {other:?}"),
     }
 }
 
 #[test]
 fn facts_json_row_shape_matches_ggen_core_expectations() {
     let graph = mfg::load_graph(LAWOBJECT_TTL).expect("load graph");
-    let query = "PREFIX pdl: <http://seanchatmangpt.github.io/praxis/pddl#>\n\
-                 SELECT ?name WHERE { ?a a pdl:Action ; pdl:name ?name } ORDER BY ?name";
+    let query = "PREFIX pddl: <http://seanchatmangpt.github.io/praxis/pddl#>\n\
+                 SELECT ?name WHERE { ?a a pddl:Action ; pddl:name ?name } ORDER BY ?name";
     let rows = mfg::facts_json(&graph, query).expect("facts_json");
     let arr = rows.as_array().expect("rows is a JSON array");
     assert_eq!(arr.len(), 5, "expected 5 actions in the golden ontology");

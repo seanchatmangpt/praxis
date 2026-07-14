@@ -25,7 +25,7 @@ exits nonzero on the first failure instead of running the rest. A final one-line
 summary confirms all four passed.
 
 First run compiles the `bench` feature (pulls in `praxis-graphlaw`,
-`wasm4pm-cognition`, `pddl-index`) from scratch into an isolated `target/agent-smoke`
+`wasm4pm-cognition`, `bcinr-pddl`) from scratch into an isolated `target/agent-smoke`
 directory — expect a real compile, not a sub-30-second wall clock, the first time.
 Re-runs reuse that incremental cache. Reclaim the disk afterward with
 `just cng-clean-isolated smoke`.

@@ -1,0 +1,8 @@
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix ex: <http://example.org/> .
+
+ex:test-derived-prob a pddl:Problem ;
+    pddl:domain ex:test-derived ;
+    pddl:object [ a pddl:Object ; pddl:name "o1" ; pddl:type ex:obj ] ;
+    pddl:init [ a pddl:AtomicFormula ; pddl:predicate ex:base-pred ; pddl:argument "o1" ] ;
+    pddl:goal [ a pddl:NotFormula ; pddl:argument [ a pddl:AtomicFormula ; pddl:predicate ex:base-pred ; pddl:argument "o1" ] ] .

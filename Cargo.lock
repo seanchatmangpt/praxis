@@ -431,21 +431,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bcinr-pddl"
-version = "26.6.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61eb2c4fde97a8dd6ffc9cb9bfc4b80591b7ee41814b4e7cb5990e895b9279c1"
-dependencies = [
- "blake3",
- "chrono",
- "pddl",
- "prolog8 26.7.1",
- "serde",
- "serde_json",
- "wasm4pm-compat",
-]
-
-[[package]]
 name = "bcinr-powl"
 version = "26.6.25"
 dependencies = [
@@ -971,7 +956,7 @@ dependencies = [
 name = "cng"
 version = "26.9.10"
 dependencies = [
- "bcinr-pddl 26.6.26 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bcinr-pddl",
  "bcinr-powl 26.6.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "blake3",
  "chicago-tdd-tools 26.7.1",
@@ -983,7 +968,6 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "oxigraph",
- "pddl-index",
  "powl2-decompose",
  "praxis-graphlaw",
  "serde",
@@ -3525,7 +3509,7 @@ dependencies = [
 name = "multifractal-workflow"
 version = "26.7.12"
 dependencies = [
- "bcinr-pddl 26.6.26 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bcinr-pddl",
  "bcinr-powl 26.6.25",
  "bcinr-powl-receipt",
  "blake3",
@@ -3535,7 +3519,6 @@ dependencies = [
  "hex",
  "my-conforming-project",
  "oxigraph",
- "pddl-index",
  "powl2-decompose",
  "praxis-core",
  "praxis-graphlaw",
@@ -3558,7 +3541,7 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "axum 0.7.9",
- "bcinr-pddl 26.6.26",
+ "bcinr-pddl",
  "bcinr-powl 26.6.25",
  "bcinr-powl-receipt",
  "blake3",
@@ -3581,7 +3564,6 @@ dependencies = [
  "oxigraph",
  "oxrdf 0.3.3",
  "parking_lot",
- "pddl-index",
  "powl2-decompose",
  "praxis-core",
  "praxis-graphlaw",
@@ -4172,13 +4154,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pddl-index"
-version = "26.7.2"
-dependencies = [
- "wasm4pm-compat",
-]
-
-[[package]]
 name = "peg"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4524,7 +4499,7 @@ dependencies = [
 name = "praxis-graphlaw"
 version = "26.7.9"
 dependencies = [
- "bcinr-pddl 26.6.26",
+ "bcinr-pddl",
  "bcinr-powl 26.6.25",
  "bcinr-powl-receipt",
  "bencher",
@@ -4645,7 +4620,6 @@ version = "26.7.2"
 dependencies = [
  "blake3",
  "chatman-common",
- "pddl-index",
  "praxis-graphlaw",
  "serde",
  "serde_json",

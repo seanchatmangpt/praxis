@@ -53,7 +53,7 @@ pub async fn bridge_transport(
                         Ok(p) => p,
                         Err(e) => return Err(TransportRefusal::Serialization(e)),
                     };
-                    
+
                     // Backpressure check: use try_send or send
                     // If the channel is full, try_send returns an error, giving backpressure.
                     if incoming_tx.try_send(parsed).is_err() {

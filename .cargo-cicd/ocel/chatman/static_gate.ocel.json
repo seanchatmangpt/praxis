@@ -3,51 +3,8 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
-    "evt_001": {
-      "event_id": "64dc21dd-bf45-4b12-88ca-0bd3d28d91f4",
-      "case_id": "chatman-static_gate",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 2,
-      "objects": [
-        [
-          "Falsify_ProcessReceiptShadowType",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "outcome": "refused",
-        "refusal": "ProcessReceiptShadowType",
-        "fixture_id": "Falsify_ProcessReceiptShadowType"
-      }
-    },
-    "evt_002": {
-      "event_id": "7665ea42-d596-4154-bb75-f399ec7fae10",
-      "case_id": "chatman-static_gate",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Info"
-        }
-      },
-      "timestamp_ns": 3,
-      "objects": [
-        [
-          "Accept_SingleProcessReceiptType",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Accept_SingleProcessReceiptType",
-        "outcome": "admitted"
-      }
-    },
     "evt_000": {
-      "event_id": "acd823d8-f1cf-4e0d-bb61-6c2c6d2a3a34",
+      "event_id": "9d6512c3-110d-4ba0-980d-d49ec62346c4",
       "case_id": "chatman-static_gate",
       "activity": {
         "DiagnosticEmitted": {
@@ -64,12 +21,55 @@
       ],
       "attributes": {
         "refusal": "DuplicateCanonicalTapeType",
+        "fixture_id": "Falsify_DuplicateCanonicalTapeType",
+        "outcome": "refused"
+      }
+    },
+    "evt_002": {
+      "event_id": "75a34aef-757e-4097-9ba7-caa107758280",
+      "case_id": "chatman-static_gate",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 3,
+      "objects": [
+        [
+          "Accept_SingleProcessReceiptType",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "outcome": "admitted",
+        "fixture_id": "Accept_SingleProcessReceiptType"
+      }
+    },
+    "evt_001": {
+      "event_id": "ffdd8d5c-5f1a-4252-b796-98b3bfcfba2b",
+      "case_id": "chatman-static_gate",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 2,
+      "objects": [
+        [
+          "Falsify_ProcessReceiptShadowType",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "refusal": "ProcessReceiptShadowType",
         "outcome": "refused",
-        "fixture_id": "Falsify_DuplicateCanonicalTapeType"
+        "fixture_id": "Falsify_ProcessReceiptShadowType"
       }
     },
     "evt_003": {
-      "event_id": "30f491cc-d73f-4e43-8637-d574fd766000",
+      "event_id": "a7195d70-efac-488c-a3ba-125ca06ecb6b",
       "case_id": "chatman-static_gate",
       "activity": {
         "DiagnosticEmitted": {

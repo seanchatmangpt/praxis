@@ -199,7 +199,11 @@ mod tests {
     /// companion to `chatman_static_gates.rs::gate_schema_refusal_enums_match_abi`).
     #[test]
     fn all_core_error_names_len_matches_array() {
-        assert_eq!(ALL_CORE_ERROR_NAMES.len(), 14, "ALL_CORE_ERROR_NAMES size drifted");
+        assert_eq!(
+            ALL_CORE_ERROR_NAMES.len(),
+            14,
+            "ALL_CORE_ERROR_NAMES size drifted"
+        );
     }
 
     /// No duplicate names in the catalog.

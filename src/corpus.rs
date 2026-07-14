@@ -1,7 +1,7 @@
 //! `corpus` — ingest reusable open-ontologies vocabularies as manufacturing
 //! *inputs* (feature `ggen`).
 //!
-//! The `mfg` lane manufactures PDDL from one hand-authored `pdl:` ontology.
+//! The `mfg` lane manufactures PDDL from one hand-authored `pddl:` ontology.
 //! This module widens the intake: it consumes three dependency-free Turtle
 //! vocabularies vendored under `ontology/vendor/` (provenance recorded in each
 //! file header) and manufactures byte-deterministic Rust from them, so the

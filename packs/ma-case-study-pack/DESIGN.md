@@ -132,9 +132,9 @@ case is the next stronger stress test after the bribery case's single-spine alle
 - **PDDL8 / POWL v2 / Arazzo / Erlang dispatch** for the M&A case. Per the task instruction and
   Section 33.12 itself ("The M&A case is PLANNED future work, not v26.7.14 implementation
   standing"), this pass's job was real vocabulary + ontology + case + hook progress, not the full
-  crown chain. A future stage would need exactly the same kind of `pdl:`-vocabulary domain +
+  crown chain. A future stage would need exactly the same kind of `pddl:`-vocabulary domain +
   problem-projector step bribery-case's own `DESIGN.md` names as its own Stage 2 (`sc:hasObligation`
-  RDF triples -> `pdl:init` PDDL atom-literal strings), applied here to
+  RDF triples -> `pddl:init` PDDL atom-literal strings), applied here to
   `ma:hasRegulatoryFilingObligation` and the other 5 processes' own derivable facts (e.g. a future
   hook deriving "board reauthorization required" when a negotiated deal term changes materially
   after signing -- named as an example in the task prompt, not built this pass).

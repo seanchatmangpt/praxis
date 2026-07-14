@@ -426,7 +426,7 @@ test!(actor_lacks_capability_refuses_cng_r05, {
     )
     .unwrap_err();
 
-    // Assert: PROJ-733's relaxed-reachability grounder (pddl-index) detects
+    // Assert: PROJ-733's relaxed-reachability grounder (bcinr-pddl) detects
     // the unreachable capability atom at GROUNDING time — the only schema
     // prunes to zero ground actions (`GroundError::EmptyGrounding`) — an
     // earlier, more precise catch of the same scenario than the naive

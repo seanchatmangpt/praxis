@@ -1,6 +1,6 @@
 //! `plan run` — the composed planner vertical slice (feature `ggen`).
 //!
-//! One call runs: graph facts (`pdl:` Turtle, the law-admitted planning
+//! One call runs: graph facts (`pddl:` Turtle, the law-admitted planning
 //! ontology) -> manufactured PDDL8 (`mfg::manufacture`) -> classical solve
 //! (`ops::plan_solve_payload`, indexed/naive grounder auto-select) -> POWL
 //! sequence compile (`bcinr_powl::compiler::compile_powl`, which enforces
@@ -143,7 +143,7 @@ pub fn execute_receipted(
 
 /// The full vertical slice. See module docs for the stage list.
 ///
-/// * `goal_ttl_path` — a `pdl:` Turtle ontology (domain + problem facts).
+/// * `goal_ttl_path` — a `pddl:` Turtle ontology (domain + problem facts).
 /// * `out_dir` — where the manufactured artifact is written.
 /// * `receipts_dir` — the append-only JSONL receipt ledger directory.
 pub fn plan_run_payload(
@@ -161,8 +161,8 @@ pub fn plan_run_payload(
 
     // (b) Bounded deterministic solve (classical; grounder auto-selected).
     let solve_payload = json!({
-        "domain": manufactured.domain_text,
-        "problem": manufactured.problem_text,
+        "domain": manufactured.project_domain_text(),
+        "problem": manufactured.project_problem_text(),
         "mode": "classical",
     })
     .to_string();
@@ -190,7 +190,7 @@ pub fn plan_run_payload(
     }
 
     // (e) Manufacture the artifact, gated by the shape verifier.
-    let report = mfg::validate(&manufactured.domain_text, &manufactured.problem_text);
+    let report = mfg::solve_ir(&manufactured);
     if !report.solvable {
         return Ok(json!({
             "admitted": false,
@@ -205,9 +205,9 @@ pub fn plan_run_payload(
     let domain_path = format!("{out_dir}/domain.pddl");
     let problem_path = format!("{out_dir}/problem.pddl");
     let plan_path = format!("{out_dir}/plan.json");
-    std::fs::write(&domain_path, &manufactured.domain_text)
+    std::fs::write(&domain_path, &manufactured.project_domain_text())
         .map_err(|e| format!("write {domain_path}: {e}"))?;
-    std::fs::write(&problem_path, &manufactured.problem_text)
+    std::fs::write(&problem_path, &manufactured.project_problem_text())
         .map_err(|e| format!("write {problem_path}: {e}"))?;
     let plan_artifact = json!({
         "graph_hash": graph_hash,
@@ -311,7 +311,7 @@ mod tests {
         // tapes; mfg::validate re-grounds and re-solves as the check).
         let manufactured =
             mfg::manufacture(LAWOBJECT_TTL, "ontology/lawobject.ttl").expect("manufactures");
-        let report = mfg::validate(&manufactured.domain_text, &manufactured.problem_text);
+        let report = mfg::solve_ir(&manufactured);
         assert!(
             report.parsed && report.solvable,
             "error: {:?}",

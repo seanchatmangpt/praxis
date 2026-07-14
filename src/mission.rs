@@ -713,27 +713,41 @@ mod tests {
         let mrr = praxis_proposer::maximum_reachable_revenue(&state);
         let c = ceiling::<RevenueDomain>(&state);
         assert_eq!(
-            c["max_reachable_value"].as_f64().ok_or_else(|| crate::AppError::Other("missing val".into()))? as i64,
+            c["max_reachable_value"]
+                .as_f64()
+                .ok_or_else(|| crate::AppError::Other("missing val".into()))? as i64,
             mrr.max_reachable_revenue_cents
         );
         assert_eq!(
-            c["already_realized_value"].as_f64().ok_or_else(|| crate::AppError::Other("missing val".into()))? as i64,
+            c["already_realized_value"]
+                .as_f64()
+                .ok_or_else(|| crate::AppError::Other("missing val".into()))? as i64,
             mrr.actual_closed_cents
         );
         assert_eq!(
-            c["opportunity_value"].as_f64().ok_or_else(|| crate::AppError::Other("missing val".into()))? as i64,
+            c["opportunity_value"]
+                .as_f64()
+                .ok_or_else(|| crate::AppError::Other("missing val".into()))? as i64,
             mrr.revenue_opportunity_cents
         );
-        assert!((c["utilization"].as_f64().ok_or_else(|| crate::AppError::Other("missing val".into()))? - mrr.revenue_utilization).abs() < 1e-12);
+        assert!(
+            (c["utilization"]
+                .as_f64()
+                .ok_or_else(|| crate::AppError::Other("missing val".into()))?
+                - mrr.revenue_utilization)
+                .abs()
+                < 1e-12
+        );
         Ok(())
     }
 
     #[test]
     fn church_ceiling_respects_evidence_gates() -> Result<(), crate::AppError> {
-        let state: ChurchState =
-            serde_json::from_value(church_fixture_state())?;
+        let state: ChurchState = serde_json::from_value(church_fixture_state())?;
         let full = ceiling::<ChurchDomain>(&state);
-        let full_max = full["max_reachable_value"].as_f64().ok_or_else(|| crate::AppError::Other("missing val".into()))?;
+        let full_max = full["max_reachable_value"]
+            .as_f64()
+            .ok_or_else(|| crate::AppError::Other("missing val".into()))?;
 
         // Strip the follow-up from the deep person: it can no longer be walked
         // to Leading, so the reachable connection ceiling must drop.
@@ -744,7 +758,10 @@ mod tests {
         stripped.people[0].stage = church::Stage::FirstTime;
         let after = ceiling::<ChurchDomain>(&stripped);
         assert!(
-            after["max_reachable_value"].as_f64().ok_or_else(|| crate::AppError::Other("missing val".into()))? < full_max,
+            after["max_reachable_value"]
+                .as_f64()
+                .ok_or_else(|| crate::AppError::Other("missing val".into()))?
+                < full_max,
             "removing evidence must lower the church ceiling"
         );
         Ok(())
@@ -753,21 +770,33 @@ mod tests {
     #[test]
     fn both_packs_run_the_same_pipeline_green() -> Result<(), crate::AppError> {
         ensure_signing_key();
-        let rev_state: RevenueState =
-            serde_json::from_value(revenue_fixture_state())?;
-        let rev_obj = RevenueDomain::load_objective(revenue::REVENUE_OBJECTIVE).map_err(|e| crate::AppError::Other(e.to_string()))?;
+        let rev_state: RevenueState = serde_json::from_value(revenue_fixture_state())?;
+        let rev_obj = RevenueDomain::load_objective(revenue::REVENUE_OBJECTIVE)
+            .map_err(|e| crate::AppError::Other(e.to_string()))?;
         let rev = run_pipeline::<RevenueDomain>(&rev_state, &rev_obj, "m", 1_000)
             .map_err(|e| crate::AppError::Other(e.to_string()))?;
         assert_eq!(rev["pack"], json!("revenue"));
-        assert_eq!(rev["chain_hash"].as_str().ok_or_else(|| crate::AppError::Other("missing val".into()))?.len(), 64);
+        assert_eq!(
+            rev["chain_hash"]
+                .as_str()
+                .ok_or_else(|| crate::AppError::Other("missing val".into()))?
+                .len(),
+            64
+        );
 
-        let ch_state: ChurchState =
-            serde_json::from_value(church_fixture_state())?;
-        let ch_obj = ChurchDomain::load_objective(CHURCH_OBJECTIVE).map_err(|e| crate::AppError::Other(e.to_string()))?;
+        let ch_state: ChurchState = serde_json::from_value(church_fixture_state())?;
+        let ch_obj = ChurchDomain::load_objective(CHURCH_OBJECTIVE)
+            .map_err(|e| crate::AppError::Other(e.to_string()))?;
         let ch = run_pipeline::<ChurchDomain>(&ch_state, &ch_obj, "m", 1_000)
             .map_err(|e| crate::AppError::Other(e.to_string()))?;
         assert_eq!(ch["pack"], json!("church"));
-        assert_eq!(ch["chain_hash"].as_str().ok_or_else(|| crate::AppError::Other("missing val".into()))?.len(), 64);
+        assert_eq!(
+            ch["chain_hash"]
+                .as_str()
+                .ok_or_else(|| crate::AppError::Other("missing val".into()))?
+                .len(),
+            64
+        );
         Ok(())
     }
 }

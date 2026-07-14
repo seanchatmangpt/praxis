@@ -21,25 +21,25 @@
 # HCL identifiers, but intentionally traceable for a human reading both
 # files side by side.
 
-@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
 
-pdl:problem_azure_terraform_ma_case_study_plannable
-    a pdl:Problem ;
-    pdl:name "azure-terraform-ma-case-study-plannable" ;
-    pdl:domain "azure-terraform-provisioning-pddl8" ;
-    pdl:object [ pdl:name "deployment-ma-case-study" ; pdl:ofType "deployment" ] ,
-               [ pdl:name "provider-azurerm" ; pdl:ofType "provider" ] ,
-               [ pdl:name "var-location" ; pdl:ofType "location-variable" ] ,
-               [ pdl:name "var-environment" ; pdl:ofType "environment-variable" ] ,
-               [ pdl:name "var-resource-group-name" ; pdl:ofType "resource-group-name-variable" ] ,
-               [ pdl:name "var-container-image" ; pdl:ofType "container-image-variable" ] ,
-               [ pdl:name "rg-ma-case-study" ; pdl:ofType "resource-group" ] ,
-               [ pdl:name "container-ma-case-validator" ; pdl:ofType "container" ] ,
-               [ pdl:name "cg-ma-case-study" ; pdl:ofType "container-group" ] ,
-               [ pdl:name "test-container-group-topology" ; pdl:ofType "test-suite" ] ;
-    pdl:init "(provider-required deployment-ma-case-study provider-azurerm)" ,
+pddl:problem_azure_terraform_ma_case_study_plannable
+    a pddl:Problem ;
+    pddl:name "azure-terraform-ma-case-study-plannable" ;
+    pddl:domain "azure-terraform-provisioning-pddl8" ;
+    pddl:object [ pddl:name "deployment-ma-case-study" ; pddl:ofType "deployment" ] ,
+               [ pddl:name "provider-azurerm" ; pddl:ofType "provider" ] ,
+               [ pddl:name "var-location" ; pddl:ofType "location-variable" ] ,
+               [ pddl:name "var-environment" ; pddl:ofType "environment-variable" ] ,
+               [ pddl:name "var-resource-group-name" ; pddl:ofType "resource-group-name-variable" ] ,
+               [ pddl:name "var-container-image" ; pddl:ofType "container-image-variable" ] ,
+               [ pddl:name "rg-ma-case-study" ; pddl:ofType "resource-group" ] ,
+               [ pddl:name "container-ma-case-validator" ; pddl:ofType "container" ] ,
+               [ pddl:name "cg-ma-case-study" ; pddl:ofType "container-group" ] ,
+               [ pddl:name "test-container-group-topology" ; pddl:ofType "test-suite" ] ;
+    pddl:init "(provider-required deployment-ma-case-study provider-azurerm)" ,
              "(variable-declared deployment-ma-case-study var-location)" ,
              "(variable-declared deployment-ma-case-study var-environment)" ,
              "(variable-declared deployment-ma-case-study var-resource-group-name)" ,
              "(variable-declared deployment-ma-case-study var-container-image)" ;
-    pdl:goal "(plan-verified test-container-group-topology)" .
+    pddl:goal "(plan-verified test-container-group-topology)" .

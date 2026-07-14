@@ -6,7 +6,7 @@ verifier -> receipt folded into the ledger chain.
 
 ## Files
 
-- `goal.ttl` — the `pdl:` goal ontology (domain, closed action vocabulary,
+- `goal.ttl` — the `pddl:` goal ontology (domain, closed action vocabulary,
   and the `after-neon-case-001` problem instance).
 - `rules.rq` — SPARQL projection of the closed action vocabulary
   (invariant 4), runnable via `mfg facts`.

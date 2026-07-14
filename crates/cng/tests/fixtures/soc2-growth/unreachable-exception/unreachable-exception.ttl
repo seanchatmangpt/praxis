@@ -8,7 +8,7 @@
 # This fixture exists ONLY to prove the COMPLIANCE-OVERCLAIM FENCE's typed-
 # refusal discipline: "any control point that cannot be genuinely
 # evidenced must refuse typed (never silently pass, never fabricate
-# evidence)". `pddl_index::solve_indexed` must find no plan here, so F09's
+# evidence)". `bcinr_pddl::solve_indexed` must find no plan here, so F09's
 # `plan_growth` refuses `MFWGrowthRefused::GoalUnreachable` -- never a
 # silently-fabricated `remediation-applied` fact. Not part of
 # `OE_TESTING_GROWTH_CYCLE`'s 6 real descents; used by its own standalone

@@ -7,7 +7,7 @@
 //!
 //! Storage per predicate is a lexicographically sorted `Vec<[u32; 8]>` plus a
 //! small unsorted tail; probes with a bound *prefix* of positions binary-search
-//! the sorted range (the qlever move `pddl-index` made for grounding,
+//! the sorted range (the qlever move `bcinr_pddl` made for grounding,
 //! generalized), and the tail is merged in amortized batches. Semi-naive
 //! deltas stay flat vectors — cache-linear.
 

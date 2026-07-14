@@ -54,7 +54,7 @@ Exit code `0`.
 | `F02 admission refused: ...` | 1 | One of F02's 6 real admission gates refused (Identity/Provenance/Authority/Shape/Semantic/Ledger — see `ObservationAdmissionRefused`). |
 | `hook.ttl derived zero sc:hasObligation triples ...` | 1 | The cross-border trigger pattern did not match the admitted case graph. |
 | `hook.ttl declares no sc:requiresEvidenceType fact for obligation ...` | 1 | **Scenario 3** (missing evidence): an obligation was derived but its evidence-type catalog entry is absent — see `tests/bribery_case_adversarial.rs::scenario3_*`. |
-| `mfg::manufacture (RDF pdl: instance data -> PDDL8 text) failed: ...` | 1 | RDF→PDDL8 manufacture refused (bound violation, malformed instance data). |
+| `mfg::manufacture (RDF pddl: instance data -> PDDL8 text) failed: ...` | 1 | RDF→PDDL8 manufacture refused (bound violation, malformed instance data). |
 | `F08 planning refused: ...` | 1 | `NoAdmissiblePlan` (no plan reachable — includes **Scenario 5**, an unbound Action-Hook capability) or `Underlying` (a real `Pddl8Error`, including **Scenario 6**'s `BoundExceeded` — see below; never silently folded into `NoAdmissiblePlan`). |
 | `F09/F10 growth refused: ...` | 1 | Growth/geometry stage refusal. |
 | `F13 Arazzo manufacture refused: ...` / `F14 Arazzo->AIR compile refused: ...` | 1 | Projection/compile stage refusal. |
@@ -77,7 +77,7 @@ Every run writes real intermediate/final artifacts under `target/crown-bribery-c
 |---|---|---|
 | `01-admitted-case.ttl` | F02 | The admitted case Turtle (verbatim `case.ttl`). |
 | `02-derived-obligations.ttl` | Knowledge Hook | The real `sc:hasObligation` triples the hook derived. |
-| `03-pddl-problem-fragment.ttl` | Stage-2 projector | The runtime `pdl:Problem` RDF fragment (obligations + evidence-type `:init` atoms). |
+| `03-pddl-problem-fragment.ttl` | Stage-2 projector | The runtime `pddl:Problem` RDF fragment (obligations + evidence-type `:init` atoms). |
 | `04-pddl-domain.pddl` / `04-pddl-problem.pddl` | `mfg::manufacture` | Real, bound-checked PDDL8 STRIPS text. |
 | `05-plan-tape.json` | F08 | The real grounded plan tape (`Pddl8Tape`, JSON-serialized). |
 | `06-powl-v2-model.ttl` | F09/F10 | Real POWL v2 geometry Turtle. |

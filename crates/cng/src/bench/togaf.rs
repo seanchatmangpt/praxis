@@ -69,7 +69,7 @@ pub(super) fn togaf_fixture_dir() -> PathBuf {
 /// # Complexity
 /// O(actions) over the merged surface.
 pub fn verify_eight_constraint_split(surface: &AdmittedSurface) -> Result<(), CngRefusal> {
-    const BOUND: usize = 8;
+    use bcinr_pddl::PDDL8_MAX_CONJUNCTS as BOUND;
     for action in &surface.domain.actions {
         for (kind, len) in [
             ("parameters", action.params.len()),

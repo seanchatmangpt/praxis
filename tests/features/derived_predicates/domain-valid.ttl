@@ -1,0 +1,28 @@
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix ex: <http://example.org/> .
+
+ex:test-derived a pddl:Domain ;
+    pddl:hasRequirement pddl:StripsRequirement, pddl:TypingRequirement, pddl:DerivedPredicatesRequirement ;
+    pddl:type [ a pddl:Type ; pddl:name "obj" ] ;
+    pddl:predicate ex:base-pred, ex:derived-pred ;
+    pddl:derivedPredicate ex:derived1 ;
+    pddl:action ex:do-something .
+
+ex:base-pred a pddl:Predicate ;
+    pddl:name "base-pred" ;
+    pddl:parameter [ a pddl:Parameter ; pddl:name "?x" ; pddl:type ex:obj ] .
+
+ex:derived-pred a pddl:Predicate ;
+    pddl:name "derived-pred" ;
+    pddl:parameter [ a pddl:Parameter ; pddl:name "?x" ; pddl:type ex:obj ] .
+
+ex:derived1 a pddl:DerivedPredicate ;
+    pddl:head ex:derived-pred ;
+    pddl:parameter [ a pddl:Parameter ; pddl:name "?x" ; pddl:type ex:obj ] ;
+    pddl:body [ a pddl:AtomicFormula ; pddl:predicate ex:base-pred ; pddl:argument "?x" ] .
+
+ex:do-something a pddl:Action ;
+    pddl:name "do-something" ;
+    pddl:parameter [ a pddl:Parameter ; pddl:name "?x" ; pddl:type ex:obj ] ;
+    pddl:precondition [ a pddl:AtomicFormula ; pddl:predicate ex:derived-pred ; pddl:argument "?x" ] ;
+    pddl:effect [ a pddl:NotFormula ; pddl:argument [ a pddl:AtomicFormula ; pddl:predicate ex:base-pred ; pddl:argument "?x" ] ] .

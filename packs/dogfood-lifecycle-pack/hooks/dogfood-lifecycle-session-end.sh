@@ -4,16 +4,20 @@
 #
 # Validates every captured session lifecycle log
 # (.cargo-cicd/lifecycle/session-*.ttl, produced by the PostToolUse
-# dogfood-lifecycle-capture.sh hook) with `ggen graph validate --files` and
+# dogfood-lifecycle-capture.sh hook) with `ggen graph validate --files ...
+# --shapes ../shapes.ttl` (Turtle parse + real SHACL shape-conformance) and
 # appends a hash-chained validation receipt per log to receipts.jsonl.
-# Closes the loop: capture -> admit/validate -> receipt.
+# Closes the loop: capture -> admit/validate (parse + SHACL) -> receipt.
 #
 # Invoke manually (`bash .claude/hooks/dogfood-lifecycle-session-end.sh`) or
 # wire as a SessionEnd/Stop hook.
 #
-# SCOPE NOTE: `ggen graph validate --files` performs Turtle PARSE validation
-# today, not SHACL. The shapes.ttl constraints bite once the `--files X
-# --shapes Y` SHACL layer lands (a named follow-up).
+# SCOPE NOTE (v26.7.13, commit 523cc6e4): `ggen graph validate --files X
+# --shapes Y` now performs real SHACL shape-conformance checking (via
+# praxis-graphlaw's GraphLawStore::validate_shacl), not just Turtle PARSE
+# validation. This script passes `--shapes shapes.ttl` on every invocation,
+# so every session log is checked against dfl:ToolEventShape/dfl:SessionShape
+# in `../shapes.ttl`, not merely parsed.
 #
 # CHAIN NOTE (v26.7.13 receipt-chain upgrade): each appended record now
 # carries a genuine two-hop hash chain, not just a flat content digest:
@@ -48,6 +52,7 @@
 
 set -uo pipefail
 dir="/Users/sac/praxis/.cargo-cicd/lifecycle"
+shapes="/Users/sac/praxis/packs/dogfood-lifecycle-pack/shapes.ttl"
 shopt -s nullglob
 files=("$dir"/session-*.ttl)
 if [ ${#files[@]} -eq 0 ]; then
@@ -57,13 +62,14 @@ fi
 
 args=()
 for f in "${files[@]}"; do args+=(--files "$f"); done
+args+=(--shapes "$shapes")
 
-echo "dogfood: validating ${#files[@]} session log(s) via ggen graph validate --files ..."
+echo "dogfood: validating ${#files[@]} session log(s) via ggen graph validate --files ... --shapes shapes.ttl ..."
 if ggen graph validate "${args[@]}" >/dev/null 2>&1; then
-  echo "dogfood: VALID — all ${#files[@]} session log(s) parse"
+  echo "dogfood: VALID — all ${#files[@]} session log(s) parse and conform to shapes.ttl"
   rc=0
 else
-  echo "dogfood: INVALID — at least one session log failed parse validation:"
+  echo "dogfood: INVALID — at least one session log failed parse or SHACL shape-conformance validation:"
   ggen graph validate "${args[@]}" 2>&1 | tail -5
   rc=1
 fi

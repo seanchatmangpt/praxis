@@ -56,7 +56,7 @@ const PROBLEM_BLOCKED_TTL: &str =
 #[test]
 fn domain_is_strips8_safe_and_manufactures_real_pddl8_text() {
     // `mfg::manufacture` extracts a domain AND a problem from one graph
-    // (`extract_problem` requires exactly one `pdl:Problem` instance), so
+    // (`extract_problem` requires exactly one `pddl:Problem` instance), so
     // this bound-checking test concatenates the domain with one problem
     // file (arbitrarily, the plannable one) purely to give it a Problem to
     // extract -- the assertions below are about the DOMAIN text only.
@@ -82,12 +82,12 @@ fn domain_is_strips8_safe_and_manufactures_real_pddl8_text() {
         "block-for-missing-image",
     ] {
         assert!(
-            manufactured.domain_text.contains(action_name),
+            manufactured.project_domain_text().contains(action_name),
             "manufactured domain text must declare action {action_name:?}: {}",
-            manufactured.domain_text
+            manufactured.project_domain_text()
         );
     }
-    eprintln!("manufactured domain text:\n{}", manufactured.domain_text);
+    eprintln!("manufactured domain text:\n{}", manufactured.project_domain_text());
 }
 
 /// Scenario 1: lawful provisioning sequence. Concatenates pddl-domain.ttl
@@ -101,10 +101,10 @@ fn plannable_deployment_grounds_and_solves_to_plan_verified() {
         "azure-terraform-pack (plannable scenario)",
     )
     .expect("domain+plannable-problem must manufacture");
-    eprintln!("manufactured problem text:\n{}", manufactured.problem_text);
+    eprintln!("manufactured problem text:\n{}", manufactured.project_problem_text());
 
     let report =
-        my_conforming_project::mfg::validate(&manufactured.domain_text, &manufactured.problem_text);
+        my_conforming_project::mfg::solve_ir(&manufactured);
     assert!(
         report.parsed,
         "must round-trip through bcinr-pddl's parser: {:?}",
@@ -231,10 +231,10 @@ fn blocked_deployment_grounds_and_solves_to_blocked_not_plan_verified() {
         "azure-terraform-pack (blocked scenario)",
     )
     .expect("domain+blocked-problem must manufacture");
-    eprintln!("manufactured problem text:\n{}", manufactured.problem_text);
+    eprintln!("manufactured problem text:\n{}", manufactured.project_problem_text());
 
     let report =
-        my_conforming_project::mfg::validate(&manufactured.domain_text, &manufactured.problem_text);
+        my_conforming_project::mfg::solve_ir(&manufactured);
     assert!(
         report.parsed,
         "must round-trip through bcinr-pddl's parser: {:?}",

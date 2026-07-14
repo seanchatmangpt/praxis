@@ -1,0 +1,28 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pdl#> .
+@prefix temp: <http://seanchatmangpt.github.io/praxis/temporal#> .
+
+temp:Worker a pddl:Type ;
+    rdfs:label "Worker" ;
+    pddl:pddlName "worker" .
+
+temp:idle a pddl:Predicate ;
+    pddl:pddlName "idle" ;
+    pddl:parameter temp:Worker .
+
+temp:busy a pddl:Predicate ;
+    pddl:pddlName "busy" ;
+    pddl:parameter temp:Worker .
+
+temp:done a pddl:Predicate ;
+    pddl:pddlName "done" ;
+    pddl:parameter temp:Worker .
+
+temp:assignWorker a pddl:DurativeAction ;
+    pddl:pddlName "assign-worker" ;
+    pddl:parameter temp:Worker ;
+    pddl:duration "(= ?duration 10)" ;
+    pddl:condition "(at start (idle ?w))" ;
+    pddl:effect "(and (at start (not (idle ?w))) (at start (busy ?w)) (at end (not (busy ?w))) (at end (done ?w)))" .

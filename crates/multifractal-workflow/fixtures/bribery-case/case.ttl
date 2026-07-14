@@ -1,7 +1,7 @@
 # case.ttl -- the F02-admissible RDF observation for the Solvane Global
 # bribery-compliance case (Stage 1 of a 4-stage build; see DESIGN.md in this
 # directory for how Stage 2 wires this file together with hook.ttl and the
-# pdl:-vocabulary PDDL8 files).
+# pddl:-vocabulary PDDL8 files).
 #
 # SCENARIO: a Los Angeles-based Solvane Global employee reports (by email) an
 # allegation that a Sweden-based contractor used a Solvane Global company

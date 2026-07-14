@@ -1,0 +1,18 @@
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix ex: <http://example.org/> .
+
+ex:test-derived-invalid a pddl:Domain ;
+    pddl:hasRequirement pddl:StripsRequirement, pddl:TypingRequirement, pddl:DerivedPredicatesRequirement ;
+    pddl:type [ a pddl:Type ; pddl:name "obj" ] ;
+    pddl:predicate ex:base-pred-invalid, ex:derived-pred-invalid ;
+    pddl:derivedPredicate ex:derived1-invalid ;
+    pddl:action ex:do-something-invalid .
+
+ex:base-pred-invalid a pddl:Predicate ;
+    pddl:name "base-pred" ;
+    pddl:parameter [ pddl:name "?x1" ], [ pddl:name "?x2" ], [ pddl:name "?x3" ], [ pddl:name "?x4" ], [ pddl:name "?x5" ], [ pddl:name "?x6" ], [ pddl:name "?x7" ], [ pddl:name "?x8" ], [ pddl:name "?x9" ] .
+
+ex:derived1-invalid a pddl:DerivedPredicate ;
+    pddl:head ex:derived-pred-invalid ;
+    pddl:parameter [ pddl:name "?x1" ], [ pddl:name "?x2" ], [ pddl:name "?x3" ], [ pddl:name "?x4" ], [ pddl:name "?x5" ], [ pddl:name "?x6" ], [ pddl:name "?x7" ], [ pddl:name "?x8" ], [ pddl:name "?x9" ] ;
+    pddl:body [ a pddl:AtomicFormula ; pddl:predicate ex:base-pred-invalid ] .

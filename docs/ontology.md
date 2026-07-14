@@ -16,14 +16,14 @@ Ontologies are written using standard prefixes:
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix pdl: <http://praxis.seanchatmangpt.com/ontology/lawobject#> .
+@prefix pddl: <http://praxis.seanchatmangpt.com/ontology/lawobject#> .
 ```
 
 ### Class Definitions
 Classes model key system entities, such as the `LawObject`, validators, and obligations. Inheritance is defined using `rdfs:subClassOf`.
 
 ### Property Constraints
-Properties link subjects to objects (e.g., `pdl:hasEvidence`) and specify domains and ranges.
+Properties link subjects to objects (e.g., `pddl:hasEvidence`) and specify domains and ranges.
 
 ## Compiling to Logic
 The `ggen` compilation pipeline reads these Turtle schemas, parses the directed graph, and emits a STRIPS8 PDDL planning domain. This guarantees that runtime logic models match declarative schemas.

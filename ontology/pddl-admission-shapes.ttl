@@ -1,0 +1,40 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
+@prefix : <http://seanchatmangpt.github.io/praxis/pddl-admission#> .
+
+# -----------------------------------------------------------------------------
+# SHACL checks structural lawfulness, not solver capability.
+# -----------------------------------------------------------------------------
+
+:Pddl31AdmissionProfile a sh:NodeShape ;
+    sh:targetClass pddl:Problem ;
+    sh:property [
+        sh:path pddl:domain ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] .
+
+:Strips8AdmissionProfile a sh:NodeShape ;
+    sh:targetClass pddl:Action ;
+    sh:property [
+        sh:path pddl:parameter ;
+        sh:maxCount 8 ;
+    ] ;
+    sh:property [
+        sh:path pddl:precondition ;
+        sh:maxCount 8 ;
+    ] ;
+    sh:property [
+        sh:path pddl:effect ;
+        sh:maxCount 8 ;
+    ] .
+
+:Strips8PredicateProfile a sh:NodeShape ;
+    sh:targetClass pddl:Predicate ;
+    sh:property [
+        sh:path pddl:parameter ;
+        sh:maxCount 8 ;
+    ] .

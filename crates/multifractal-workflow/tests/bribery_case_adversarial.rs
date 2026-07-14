@@ -370,40 +370,40 @@ fn manufacture_real_case_pddl() -> my_conforming_project::mfg::Manufactured {
     }
 
     let mut out = String::new();
-    out.push_str("@prefix pdl: <http://seanchatmangpt.github.io/praxis/pddl#> .\n\n");
+    out.push_str("@prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .\n\n");
     out.push_str(&format!(
-        "<urn:mfw:crown-bribery-case:problem:{case_local_name}>\n    a pdl:Problem ;\n"
+        "<urn:mfw:crown-bribery-case:problem:{case_local_name}>\n    a pddl:Problem ;\n"
     ));
     out.push_str(&format!(
-        "    pdl:name \"bribery-case-{case_local_name}-adversarial\" ;\n"
+        "    pddl:name \"bribery-case-{case_local_name}-adversarial\" ;\n"
     ));
-    out.push_str("    pdl:domain \"solvane-bribery-compliance-pddl8\" ;\n");
+    out.push_str("    pddl:domain \"solvane-bribery-compliance-pddl8\" ;\n");
     let mut objects: Vec<String> = vec![format!(
-        "[ pdl:name \"{case_local_name}\" ; pdl:ofType \"law-object\" ]"
+        "[ pddl:name \"{case_local_name}\" ; pddl:ofType \"law-object\" ]"
     )];
     for o in &derived.local_names {
-        objects.push(format!("[ pdl:name \"{o}\" ; pdl:ofType \"obligation\" ]"));
+        objects.push(format!("[ pddl:name \"{o}\" ; pddl:ofType \"obligation\" ]"));
     }
     for e in &evidence_types {
         objects.push(format!(
-            "[ pdl:name \"{e}\" ; pdl:ofType \"evidence-type\" ]"
+            "[ pddl:name \"{e}\" ; pddl:ofType \"evidence-type\" ]"
         ));
     }
     objects.push(
-        "[ pdl:name \"compliance-officer-shreya-patel\" ; pdl:ofType \"validator\" ]".to_string(),
+        "[ pddl:name \"compliance-officer-shreya-patel\" ; pddl:ofType \"validator\" ]".to_string(),
     );
     objects.push(
-        "[ pdl:name \"general-counsel-marcus-webb\" ; pdl:ofType \"authority\" ]".to_string(),
+        "[ pddl:name \"general-counsel-marcus-webb\" ; pddl:ofType \"authority\" ]".to_string(),
     );
     objects.push(format!(
-        "[ pdl:name \"tok-genesis-{case_local_name}\" ; pdl:ofType \"chain-token\" ]"
+        "[ pddl:name \"tok-genesis-{case_local_name}\" ; pddl:ofType \"chain-token\" ]"
     ));
     for stage in ["raw", "validated", "admitted", "receipted", "blocked"] {
         objects.push(format!(
-            "[ pdl:name \"{stage}\" ; pdl:ofType \"lifecycle-stage\" ]"
+            "[ pddl:name \"{stage}\" ; pddl:ofType \"lifecycle-stage\" ]"
         ));
     }
-    out.push_str("    pdl:object ");
+    out.push_str("    pddl:object ");
     out.push_str(&objects.join(" ,\n               "));
     out.push_str(" ;\n");
     let mut init: Vec<String> = vec![format!("\"(in-stage {case_local_name} raw)\"")];
@@ -413,11 +413,11 @@ fn manufacture_real_case_pddl() -> my_conforming_project::mfg::Manufactured {
     init.push(format!(
         "\"(prev-chain-valid tok-genesis-{case_local_name})\""
     ));
-    out.push_str("    pdl:init ");
+    out.push_str("    pddl:init ");
     out.push_str(&init.join(" ,\n             "));
     out.push_str(" ;\n");
     out.push_str(&format!(
-        "    pdl:goal \"(in-stage {case_local_name} receipted)\" .\n"
+        "    pddl:goal \"(in-stage {case_local_name} receipted)\" .\n"
     ));
 
     let combined = format!("{DOMAIN_TTL}\n{out}");
@@ -433,12 +433,12 @@ fn f08_graph(
         AdmittedTriple {
             subject: SUBJECT.to_string(),
             predicate: PDDL_DOMAIN_PREDICATE.to_string(),
-            object_literal: manufactured.domain_text.clone(),
+            object_literal: manufactured.project_domain_text().clone(),
         },
         AdmittedTriple {
             subject: SUBJECT.to_string(),
             predicate: PDDL_PROBLEM_PREDICATE.to_string(),
-            object_literal: manufactured.problem_text.clone(),
+            object_literal: manufactured.project_problem_text().clone(),
         },
         AdmittedTriple {
             subject: SUBJECT.to_string(),

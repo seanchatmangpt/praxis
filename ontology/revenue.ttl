@@ -7,12 +7,12 @@
 # predicates, numeric fluents, evidence gates, actions, and the objective
 # fluent vocabulary. Per PR-8, an ontology like this deterministically
 # projects to PDDL domain/problem text; the intended projections are noted
-# on each term in `pdl:pddlProjection` comments.
+# on each term in `pddl:pddlProjection` comments.
 #
 # Vocabulary note: ontology/lawobject.ttl did not exist when this file was
-# authored, so the `pdl:` planning-description vocabulary below is defined
+# authored, so the `pddl:` planning-description vocabulary below is defined
 # standalone (self-contained in this file). If/when lawobject.ttl lands with
-# its own pdl: vocabulary, integration reconciles prefixes; the revenue terms
+# its own pddl: vocabulary, integration reconciles prefixes; the revenue terms
 # (rev:) are namespaced separately so they survive that merge untouched.
 #
 # Boundary note (AR-9 / Non-goal 1): nothing in this file confers authority.
@@ -23,53 +23,53 @@
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-@prefix pdl:  <http://seanchatmangpt.github.io/praxis/pdl#> .
+@prefix pddl:  <http://seanchatmangpt.github.io/praxis/pddl#> .
 @prefix rev:  <http://seanchatmangpt.github.io/praxis/revenue#> .
 
 # =============================================================================
-# 0. The pdl: planning-description vocabulary (standalone definition)
+# 0. The pddl: planning-description vocabulary (standalone definition)
 # =============================================================================
 
-pdl:Type a rdfs:Class ;
+pddl:Type a rdfs:Class ;
     rdfs:label "Type" ;
     rdfs:comment "A PDDL object type. Projects to an entry in (:types ...)." .
 
-pdl:Predicate a rdfs:Class ;
+pddl:Predicate a rdfs:Class ;
     rdfs:label "Predicate" ;
     rdfs:comment "A boolean state predicate. Projects to an entry in (:predicates ...)." .
 
-pdl:Fluent a rdfs:Class ;
+pddl:Fluent a rdfs:Class ;
     rdfs:label "Fluent" ;
     rdfs:comment "A numeric state function. Projects to an entry in (:functions ...) under :numeric-fluents." .
 
-pdl:Action a rdfs:Class ;
+pddl:Action a rdfs:Class ;
     rdfs:label "Action" ;
     rdfs:comment "A planning operator. Projects to a (:action ...) schema." .
 
-pdl:Individual a rdfs:Class ;
+pddl:Individual a rdfs:Class ;
     rdfs:label "Individual" ;
-    rdfs:comment "A named constant of some pdl:Type. Projects to (:constants ...) or problem (:objects ...)." .
+    rdfs:comment "A named constant of some pddl:Type. Projects to (:constants ...) or problem (:objects ...)." .
 
-pdl:parameter a rdf:Property ;
+pddl:parameter a rdf:Property ;
     rdfs:label "parameter" ;
-    rdfs:comment "Ordered parameter of a predicate, fluent, or action; range is a pdl:Type." .
+    rdfs:comment "Ordered parameter of a predicate, fluent, or action; range is a pddl:Type." .
 
-pdl:precondition a rdf:Property ;
+pddl:precondition a rdf:Property ;
     rdfs:label "precondition" ;
     rdfs:comment "Precondition formula of an action, as PDDL text (law-bound text is emitted, not templated — AR-6)." ;
     rdfs:range xsd:string .
 
-pdl:effect a rdf:Property ;
+pddl:effect a rdf:Property ;
     rdfs:label "effect" ;
     rdfs:comment "Effect formula of an action, as PDDL text." ;
     rdfs:range xsd:string .
 
-pdl:pddlName a rdf:Property ;
+pddl:pddlName a rdf:Property ;
     rdfs:label "pddlName" ;
     rdfs:comment "Exact lower-kebab token emitted into PDDL text for this term. Byte-stable: hashed into proposal hashes." ;
     rdfs:range xsd:string .
 
-pdl:order a rdf:Property ;
+pddl:order a rdf:Property ;
     rdfs:label "order" ;
     rdfs:comment "Position of an individual within an ordered type (e.g. pipeline stage index)." ;
     rdfs:range xsd:integer .
@@ -78,87 +78,87 @@ pdl:order a rdf:Property ;
 # 1. Types
 # =============================================================================
 
-rev:Account a pdl:Type ;
+rev:Account a pddl:Type ;
     rdfs:label "Account" ;
-    pdl:pddlName "account" ;
+    pddl:pddlName "account" ;
     rdfs:comment "A revenue account (deal) moving through the pipeline. Rust: praxis_proposer::domain::Account." .
 
-rev:RevenueStage a pdl:Type ;
+rev:RevenueStage a pddl:Type ;
     rdfs:label "RevenueStage" ;
-    pdl:pddlName "revenue-stage" ;
+    pddl:pddlName "revenue-stage" ;
     rdfs:comment "Ordered pipeline stage enum. Rust: praxis_proposer::domain::Stage." .
 
 # =============================================================================
 # 2. Stage individuals (ordered)
 # =============================================================================
 
-rev:lead a pdl:Individual ;
+rev:lead a pddl:Individual ;
     rdf:type rev:RevenueStage ;
-    pdl:pddlName "lead" ;
-    pdl:order 0 .
+    pddl:pddlName "lead" ;
+    pddl:order 0 .
 
-rev:qualified a pdl:Individual ;
+rev:qualified a pddl:Individual ;
     rdf:type rev:RevenueStage ;
-    pdl:pddlName "qualified" ;
-    pdl:order 1 .
+    pddl:pddlName "qualified" ;
+    pddl:order 1 .
 
-rev:proposal a pdl:Individual ;
+rev:proposal a pddl:Individual ;
     rdf:type rev:RevenueStage ;
-    pdl:pddlName "proposal" ;
-    pdl:order 2 .
+    pddl:pddlName "proposal" ;
+    pddl:order 2 .
 
-rev:procurement a pdl:Individual ;
+rev:procurement a pddl:Individual ;
     rdf:type rev:RevenueStage ;
-    pdl:pddlName "procurement" ;
-    pdl:order 3 .
+    pddl:pddlName "procurement" ;
+    pddl:order 3 .
 
-rev:closedWon a pdl:Individual ;
+rev:closedWon a pddl:Individual ;
     rdf:type rev:RevenueStage ;
-    pdl:pddlName "closed-won" ;
-    pdl:order 4 .
+    pddl:pddlName "closed-won" ;
+    pddl:order 4 .
 
 # =============================================================================
 # 3. Predicates
 # =============================================================================
 
-rev:stage a pdl:Predicate ;
+rev:stage a pddl:Predicate ;
     rdfs:label "stage" ;
-    pdl:pddlName "stage" ;
-    pdl:parameter rev:Account, rev:RevenueStage ;
+    pddl:pddlName "stage" ;
+    pddl:parameter rev:Account, rev:RevenueStage ;
     rdfs:comment "Account is currently in stage. PDDL: (stage ?a - account ?s - revenue-stage). Proposal::pddl_goal() emits goal atoms of exactly this shape, e.g. (stage acct-7 procurement)." .
 
-rev:securityReviewDone a pdl:Predicate ;
+rev:securityReviewDone a pddl:Predicate ;
     rdfs:label "securityReviewDone" ;
-    pdl:pddlName "security-review-done" ;
-    pdl:parameter rev:Account ;
+    pddl:pddlName "security-review-done" ;
+    pddl:parameter rev:Account ;
     rdfs:comment "Evidence flag: security review completed. Rust field: security_review_done." .
 
-rev:legalApproved a pdl:Predicate ;
+rev:legalApproved a pddl:Predicate ;
     rdfs:label "legalApproved" ;
-    pdl:pddlName "legal-approved" ;
-    pdl:parameter rev:Account ;
+    pddl:pddlName "legal-approved" ;
+    pddl:parameter rev:Account ;
     rdfs:comment "Evidence flag: legal approved. Gates any move past proposal. Rust field: legal_approved." .
 
-rev:execSponsor a pdl:Predicate ;
+rev:execSponsor a pddl:Predicate ;
     rdfs:label "execSponsor" ;
-    pdl:pddlName "exec-sponsor" ;
-    pdl:parameter rev:Account ;
+    pddl:pddlName "exec-sponsor" ;
+    pddl:parameter rev:Account ;
     rdfs:comment "Evidence flag: executive sponsor attached. Gates closed-won. Rust field: exec_sponsor." .
 
 # =============================================================================
 # 4. Numeric fluents (state)
 # =============================================================================
 
-rev:amountCents a pdl:Fluent ;
+rev:amountCents a pddl:Fluent ;
     rdfs:label "amountCents" ;
-    pdl:pddlName "amount-cents" ;
-    pdl:parameter rev:Account ;
+    pddl:pddlName "amount-cents" ;
+    pddl:parameter rev:Account ;
     rdfs:comment "Deal size in integer cents (integers for determinism). Rust field: amount_cents (i64)." .
 
-rev:daysInStage a pdl:Fluent ;
+rev:daysInStage a pddl:Fluent ;
     rdfs:label "daysInStage" ;
-    pdl:pddlName "days-in-stage" ;
-    pdl:parameter rev:Account ;
+    pddl:pddlName "days-in-stage" ;
+    pddl:parameter rev:Account ;
     rdfs:comment "Days the account has sat in its current stage. Rust field: days_in_stage (u32)." .
 
 # =============================================================================
@@ -170,28 +170,28 @@ rev:daysInStage a pdl:Fluent ;
 # enforce: the proposer proposing lawfully does not exempt the proposal from
 # admission (AR-9).
 
-rev:advanceEarly a pdl:Action ;
+rev:advanceEarly a pddl:Action ;
     rdfs:label "advanceEarly" ;
-    pdl:pddlName "advance-early" ;
-    pdl:parameter rev:Account, rev:RevenueStage, rev:RevenueStage ;
-    pdl:precondition "(and (stage ?a ?from) (stage-succ ?from ?to) (stage-at-most ?to proposal))" ;
-    pdl:effect "(and (not (stage ?a ?from)) (stage ?a ?to))" ;
+    pddl:pddlName "advance-early" ;
+    pddl:parameter rev:Account, rev:RevenueStage, rev:RevenueStage ;
+    pddl:precondition "(and (stage ?a ?from) (stage-succ ?from ?to) (stage-at-most ?to proposal))" ;
+    pddl:effect "(and (not (stage ?a ?from)) (stage ?a ?to))" ;
     rdfs:comment "Advance within the ungated early pipeline (lead/qualified/proposal): no evidence required." .
 
-rev:advanceToProcurement a pdl:Action ;
+rev:advanceToProcurement a pddl:Action ;
     rdfs:label "advanceToProcurement" ;
-    pdl:pddlName "advance-to-procurement" ;
-    pdl:parameter rev:Account ;
-    pdl:precondition "(and (stage ?a proposal) (legal-approved ?a) (security-review-done ?a))" ;
-    pdl:effect "(and (not (stage ?a proposal)) (stage ?a procurement))" ;
+    pddl:pddlName "advance-to-procurement" ;
+    pddl:parameter rev:Account ;
+    pddl:precondition "(and (stage ?a proposal) (legal-approved ?a) (security-review-done ?a))" ;
+    pddl:effect "(and (not (stage ?a proposal)) (stage ?a procurement))" ;
     rdfs:comment "Procurement requires legal-approved AND security-review-done. An account missing legal-approved cannot move past proposal." .
 
-rev:closeWon a pdl:Action ;
+rev:closeWon a pddl:Action ;
     rdfs:label "closeWon" ;
-    pdl:pddlName "close-won" ;
-    pdl:parameter rev:Account ;
-    pdl:precondition "(and (stage ?a procurement) (legal-approved ?a) (security-review-done ?a) (exec-sponsor ?a))" ;
-    pdl:effect "(and (not (stage ?a procurement)) (stage ?a closed-won))" ;
+    pddl:pddlName "close-won" ;
+    pddl:parameter rev:Account ;
+    pddl:precondition "(and (stage ?a procurement) (legal-approved ?a) (security-review-done ?a) (exec-sponsor ?a))" ;
+    pddl:effect "(and (not (stage ?a procurement)) (stage ?a closed-won))" ;
     rdfs:comment "Closing requires all three evidence flags: legal-approved, security-review-done, exec-sponsor." .
 
 # =============================================================================
@@ -203,22 +203,22 @@ rev:closeWon a pdl:Action ;
 # this ontology: the objective function is domain-authored data
 # (revenue_objective.json). The system never invents values (Non-goal 1).
 
-rev:realizedRevenue a pdl:Fluent ;
+rev:realizedRevenue a pddl:Fluent ;
     rdfs:label "realizedRevenue" ;
-    pdl:pddlName "realized-revenue" ;
+    pddl:pddlName "realized-revenue" ;
     rdfs:comment "Scoring fluent: amount-cents if the candidate target is closed-won, else 0." .
 
-rev:pipelineValueAtRisk a pdl:Fluent ;
+rev:pipelineValueAtRisk a pddl:Fluent ;
     rdfs:label "pipelineValueAtRisk" ;
-    pdl:pddlName "pipeline-value-at-risk" ;
+    pddl:pddlName "pipeline-value-at-risk" ;
     rdfs:comment "Scoring fluent: amount-cents if the candidate target is still open (below closed-won), else 0." .
 
-rev:timePenalty a pdl:Fluent ;
+rev:timePenalty a pddl:Fluent ;
     rdfs:label "timePenalty" ;
-    pdl:pddlName "time-penalty" ;
+    pddl:pddlName "time-penalty" ;
     rdfs:comment "Scoring fluent: days-in-stage of the account being moved (staleness)." .
 
-rev:stageAdvance a pdl:Fluent ;
+rev:stageAdvance a pddl:Fluent ;
     rdfs:label "stageAdvance" ;
-    pdl:pddlName "stage-advance" ;
+    pddl:pddlName "stage-advance" ;
     rdfs:comment "Scoring fluent: number of stages the candidate move jumps forward." .

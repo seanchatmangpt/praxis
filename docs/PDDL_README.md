@@ -317,7 +317,7 @@ via `bcinr_pddl::domain_from_pddl` but does **not ground or solve**.
 
 `src/mfg.rs` therefore does not emit the ADL exemplar. It:
 
-1. Loads a `pdl:` instance-vocabulary Turtle ontology (`ontology/lawobject.ttl`
+1. Loads a `pddl:` instance-vocabulary Turtle ontology (`ontology/lawobject.ttl`
    is the shipped example — a PDDL8-safe flattening of this document's
    capability model, with obligation-clearing pre-compiled into a flat
    `obligations-met` predicate instead of a `forall`/`implies` check).
