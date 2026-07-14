@@ -190,3 +190,37 @@ Unchanged — the verdict stays **REFUSED**:
 
 Net: the PDDL domain + fixtures the DoD models are now authored and parse-valid, but the code that
 would EXECUTE the 6 gates does not exist, so the run does not reach ALIVE. REFUSED stands.
+
+## Update 2026-07-14 (later same day) — structural bench harness landed; verdict STILL UNCHANGED (REFUSED)
+
+Commit `d72bb001` adds `crates/cng/src/bench/dry_run_publish.rs` + `dry_run_publish_test.rs`,
+wired into `crates/cng/src/bench/mod.rs`, closing the prior addendum's "Remediation step 1 …
+still ABSENT" gap. Re-verified independently this cycle (fresh isolation, not trusting the
+committing session's self-report):
+
+```
+just cng-test-lib-isolated dryrunbench-recheck bench::dry_run_publish -- --nocapture
+=> test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 184 filtered out
+```
+
+The 4 tests mechanically assert, over the real cng manufacture chain
+(`import_artifacts -> generate_plan -> hierarchical_projection -> validate_powl_store`): the
+6-phase completion chain (`scope-engaged` init through `dry-run-verified` goal, 18-step plan,
+byte-identical replay); the DRY-RUN-OVERCLAIM FENCE (no effect atom named
+`published`/`crates-io-uploaded`/`release-complete`); and 5 adversarial mutants (2 forbidden
+effects, a broken phase chain, a dropped goal, a wrong init object) each correctly REFUSED with
+a typed `CngRefusal`.
+
+**This closes the narrow "bench harness absent / 0 collected tests" gap — the pack now has a
+structural validator exactly like `soc2`/`togaf` do. It does not change the verdict**, per the
+harness's own explicit, disclosed scope: it validates the pack's PDDL MODEL, not a real
+`cargo publish --dry-run` against the real workspace. Still unaddressed, unchanged from the
+prior addendum:
+
+- Gate 1's clean-worktree and PRD/ARD/RELEASE_CONTROL-sync checkboxes.
+- Gates 2-6 against the REAL workspace (not the fictional Kestrel Toolkit case study) — the
+  B1-B7 blocker taxonomy in `docs/PUBLISH_ALL_PRAXIS_PLAN.md` is unresolved.
+
+Net: the dry-run-publish-pack's authoring track (model + fixtures + structural harness) is now
+complete within its own disclosed scope. Reaching ALIVE requires the separate, larger B1-B7
+remediation this document has never claimed to include. **Verdict: REFUSED.**
