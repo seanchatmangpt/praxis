@@ -45,37 +45,39 @@ payload=$(cat 2>/dev/null || true)
   mkdir -p "$dir" 2>/dev/null || exit 0
   f="$dir/session-${sid}.ttl"
 
+  # Concurrent tool calls in one batch fire this hook concurrently. Without a
+  # lock, two invocations can read the same sequence count and interleave
+  # their multi-line appends (each printf is its own write(2) call, so a
+  # single logical write is not atomic), corrupting the Turtle block
+  # structure. Serialize the read-seq + append critical section with a
+  # portable mkdir-based lock (atomic, no external dependency) instead of
+  # relying on flock, which is not part of base macOS.
+  lock="$f.lock"
+  tries=0
+  while ! mkdir "$lock" 2>/dev/null; do
+    tries=$((tries + 1))
+    [ "$tries" -ge 50 ] && exit 0
+    sleep 0.05
+  done
+  trap 'rmdir "$lock" 2>/dev/null' EXIT
+
   if [ ! -f "$f" ]; then
-    # First event: emit prefixes + the session node + its acting agent.
-    {
-      printf '@prefix dfl:     <http://seanchatmangpt.github.io/packs/dogfood-lifecycle#> .\n'
-      printf '@prefix prov:    <http://www.w3.org/ns/prov#> .\n'
-      printf '@prefix dcterms: <http://purl.org/dc/terms/> .\n'
-      printf '@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .\n'
-      printf '@prefix time:    <http://www.w3.org/2006/time#> .\n'
-      printf '@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .\n\n'
-      printf '<urn:dfl:agent:%s> a prov:SoftwareAgent , prov:Agent .\n\n' "$sid"
-      printf '<urn:dfl:session:%s> a dfl:Session , prov:Activity ;\n' "$sid"
-      printf '    dcterms:identifier "%s" ;\n' "$sid"
-      printf '    prov:wasAssociatedWith <urn:dfl:agent:%s> .\n' "$sid"
-    } >> "$f" 2>/dev/null || exit 0
+    header=$(printf '@prefix dfl:     <http://seanchatmangpt.github.io/packs/dogfood-lifecycle#> .\n@prefix prov:    <http://www.w3.org/ns/prov#> .\n@prefix dcterms: <http://purl.org/dc/terms/> .\n@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .\n@prefix time:    <http://www.w3.org/2006/time#> .\n@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .\n\n<urn:dfl:agent:%s> a prov:SoftwareAgent , prov:Agent .\n\n<urn:dfl:session:%s> a dfl:Session , prov:Activity ;\n    dcterms:identifier "%s" ;\n    prov:wasAssociatedWith <urn:dfl:agent:%s> .\n' "$sid" "$sid" "$sid" "$sid")
     seq=0
   else
+    header=""
     seq=$(grep -c 'a dfl:ToolEvent' "$f" 2>/dev/null || echo 0)
   fi
 
-  # Append the tool-event node (all shape-required properties present).
-  {
-    printf '\n<urn:dfl:event:%s:%s> a dfl:ToolEvent , prov:Activity ;\n' "$sid" "$seq"
-    printf '    dcterms:isPartOf <urn:dfl:session:%s> ;\n' "$sid"
-    printf '    prov:wasAssociatedWith <urn:dfl:agent:%s> ;\n' "$sid"
-    printf '    skos:notation "%s" ;\n' "$tool"
-    printf '    dfl:sequenceIndex "%s"^^xsd:integer ;\n' "$seq"
-    printf '    time:inXSDDateTimeStamp "%s"^^xsd:dateTimeStamp ;\n' "$ts"
-    printf '    prov:used <urn:blake3:%s> ;\n' "$in_hash"
-    printf '    prov:generated <urn:blake3:%s> ;\n' "$out_hash"
-    printf '    dfl:outcome dfl:%s .\n' "$outcome"
-  } >> "$f" 2>/dev/null || exit 0
+  # Build the full event node as one string and append it with a SINGLE
+  # printf (one write(2) call), so even a lock-bypassing writer can't split
+  # a well-formed block mid-statement.
+  event=$(printf '\n<urn:dfl:event:%s:%s> a dfl:ToolEvent , prov:Activity ;\n    dcterms:isPartOf <urn:dfl:session:%s> ;\n    prov:wasAssociatedWith <urn:dfl:agent:%s> ;\n    skos:notation "%s" ;\n    dfl:sequenceIndex "%s"^^xsd:integer ;\n    time:inXSDDateTimeStamp "%s"^^xsd:dateTimeStamp ;\n    prov:used <urn:blake3:%s> ;\n    prov:generated <urn:blake3:%s> ;\n    dfl:outcome dfl:%s .\n' "$sid" "$seq" "$sid" "$sid" "$tool" "$seq" "$ts" "$in_hash" "$out_hash" "$outcome")
+
+  printf '%s%s' "$header" "$event" >> "$f" 2>/dev/null || true
+
+  rmdir "$lock" 2>/dev/null
+  trap - EXIT
 } 2>/dev/null || true
 
 exit 0
