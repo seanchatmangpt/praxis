@@ -5,7 +5,8 @@ edition = "2021"
 rust-version = "1.82"
 license = "MIT OR Apache-2.0"
 authors = ["Sean Chatman <xpointsh@gmail.com>"]
-repository = "https://github.com/seanchatmangpt/chatman-common"
+repository = "https://github.com/seanchatmangpt/praxis"
+readme = "README.md"
 description = "Shared house crate for the seanchatmangpt Rust fleet"
 keywords = ["common", "utilities", "provenance", "telemetry", "cli"]
 

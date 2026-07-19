@@ -4,6 +4,7 @@ version = "26.6.30"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/seanchatmangpt/praxis"
 description = "Kourani et al. Stage-1 decomposition: safe & sound WF-nets -> POWL 2.0. Separability is the admission predicate; non-separable nets are refused with a receipt."
 
 [lib]

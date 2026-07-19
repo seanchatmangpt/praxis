@@ -250,7 +250,7 @@ members = [
     "crates/praxis-graphlaw-wasm",
     "crates/wasm4pm-arazzo",
     "crates/multifractal-workflow",
-    "audit-tools", "apps/air_core/native/air_core_nif", "tmp_sparql2", "crates/mfact-core", 
+    "audit-tools", "apps/air_core/native/air_core_nif", "crates/mfact-core",
 ]
 [workspace.metadata.dylint]
 libraries = [{ path = "/Users/sac/chicago-tdd-tools/crates/chicago-lints" }]
