@@ -105,7 +105,7 @@ require_text "packs/combinatorial-maximalism-pack/gall.ttl" 'cmd:G0 a cmd:Checkp
 require_text "packs/combinatorial-maximalism-pack/gall.ttl" 'cmd:G9 a cmd:Checkpoint'
 require_text "scripts/cmd_kernel.py" 'class Refusal'
 require_text "scripts/cmd_kernel.py" 'def manufacture_intent'
-require_text "scripts/cmd-refactor.py" 'git ls-files'
+require_text "scripts/cmd-refactor.py" 'run_bytes("git", "ls-files"'
 require_text "scripts/cmd-refactor.py" 'ggen.verifier.report.v1'
 
 require_text ".github/workflows/agent-standards.yml" 'bash scripts/verify-agent-standards.sh'
