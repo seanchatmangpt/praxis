@@ -83,9 +83,11 @@ gmod:contentHash a owl:DatatypeProperty ;
     rdfs:domain gmod:SourceSurface ;
     rdfs:range xsd:string .
 
-gmod:headSha a owl:DatatypeProperty ;
+gmod:observationBinding a owl:DatatypeProperty ;
     rdfs:domain gmod:Inventory ;
-    rdfs:range xsd:string .
+    rdfs:range xsd:string ;
+    rdfs:label "filtered source-tree observation binding"@en ;
+    rdfs:comment "BLAKE3 identity of admitted source/control surfaces after excluding the projections and lock artifacts manufactured from this inventory."@en .
 
 gmod:surfaceCount a owl:DatatypeProperty ;
     rdfs:domain gmod:Inventory ;
@@ -122,3 +124,7 @@ gmod:GeneratedProjectionLaw a prov:Entity ;
 gmod:MigrationAdmissionLaw a prov:Entity ;
     dcterms:title "Migration admission law"@en ;
     dcterms:description "Preserve current behavior, admit a closed graph source, render deterministically, prove idempotence, run positive and negative fixtures, then remove hand-authored authority only after equivalence is observed."@en .
+
+gmod:TrackedProjectionIdentityLaw a prov:Entity ;
+    dcterms:title "Tracked projection identity law"@en ;
+    dcterms:description "Tracked generated output binds to a filtered source-tree content hash, never to the Git commit that contains the output. Exact Git head is recorded by the separate execution receipt."@en .
