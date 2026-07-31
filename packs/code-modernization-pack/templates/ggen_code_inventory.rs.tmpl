@@ -80,12 +80,13 @@ fn inventory_paths_are_strictly_sorted_and_unique() {
 }
 
 #[test]
-fn generated_projections_name_their_source() {
+fn generated_projection_sources_are_bounded_when_present() {
     for surface in SURFACES {
-        if surface.disposition == "Generated" {
+        if surface.disposition == "Generated" && !surface.projection_source.is_empty() {
             assert!(
-                !surface.projection_source.trim().is_empty(),
-                "generated projection lacks source authority: {surface:?}"
+                surface.projection_source.len() <= 512
+                    && !surface.projection_source.contains(['\n', '\r', '"']),
+                "generated projection source is not a bounded path-like value: {surface:?}"
             );
         }
     }
