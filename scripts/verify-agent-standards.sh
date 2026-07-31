@@ -22,7 +22,9 @@ required_files=(
   "CHATGPT-CLOUD-AGENTS.md"
   ".claude/rules/_core/absolute.md"
   ".claude/rules/cognition-contracts.md"
+  ".claude/rules/semantic-runtime-contracts.md"
   "docs/standing/STANDARDS_DELTA_2026-07-30.md"
+  "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md"
   ".github/workflows/agent-standards.yml"
 )
 
@@ -52,6 +54,15 @@ require_text ".claude/rules/cognition-contracts.md" 'Observation → Admission �
 require_text ".claude/rules/cognition-contracts.md" 'proposal visibility does not imply downstream authority'
 require_text ".claude/rules/cognition-contracts.md" 'Per-breed `ALIVE` does not promote a composed pipeline.'
 
+require_text ".claude/rules/semantic-runtime-contracts.md" 'BRCE is the authority root'
+require_text ".claude/rules/semantic-runtime-contracts.md" 'The Broker is the only `DO` path.'
+require_text ".claude/rules/semantic-runtime-contracts.md" 'Knowledge Hooks manufacture intents; they do not perform side effects.'
+require_text ".claude/rules/semantic-runtime-contracts.md" 'SalsaDoesNotOwnTreeSitterTree'
+require_text ".claude/rules/semantic-runtime-contracts.md" 'bounded recursion depth `<= 8`'
+require_text ".claude/rules/semantic-runtime-contracts.md" 'bounded derived facts `<= 4096`'
+require_text ".claude/rules/semantic-runtime-contracts.md" 'OCEL records lifecycle history and object relations. It does not grant'
+require_text ".claude/rules/semantic-runtime-contracts.md" 'A ticket must be deterministic.'
+
 require_text "CHATGPT-CLOUD-AGENTS.md" 'blob → tree → commit → ref → draft PR'
 require_text "CHATGPT-CLOUD-AGENTS.md" 'No unreceipted actuation'
 
@@ -59,6 +70,13 @@ require_text "docs/standing/STANDARDS_DELTA_2026-07-30.md" '**PARTIAL_ALIVE**'
 require_text "docs/standing/STANDARDS_DELTA_2026-07-30.md" '2026-07-24 through'
 require_text "docs/standing/STANDARDS_DELTA_2026-07-30.md" '## Falsifier'
 
+require_text "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md" '## Repositories with commits in the window'
+require_text "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md" '## Repositories checked with no commits in the window'
+require_text "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md" '`seanchatmangpt/ggen`'
+require_text "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md" '`seanchatmangpt/wasm4pm`'
+require_text "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md" '## Falsifier'
+
 require_text ".github/workflows/agent-standards.yml" 'bash scripts/verify-agent-standards.sh'
+require_text ".github/workflows/agent-standards.yml" 'docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md'
 
 printf 'agent-standards: ALIVE: required contracts and structural laws are present\n'
