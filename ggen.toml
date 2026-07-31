@@ -12,6 +12,7 @@ xsd    = "http://www.w3.org/2001/XMLSchema#"
 compat = "https://wasm4pm.dev/ns#"
 pi     = "https://wasm4pm.dev/pi#"
 law    = "http://seanchatmangpt.github.io/praxis/law#"
+cmd    = "https://praxis.chatman.io/ontology/cmd#"
 
 [packs]
 wasm4pm-facts-pack = { path = "packs/wasm4pm-facts-pack" }
@@ -27,6 +28,7 @@ pddl-planning-pack = { path = "packs/pddl-planning-pack" }
 f26-ontology-self-play-pack = { path = "packs/f26-ontology-self-play-pack" }
 togaf-adm-pack = { path = "packs/togaf-adm-pack", extra_ontologies = ["crates/cng/ontologies/pddl-strips.ttl"] }
 code-modernization-pack = { path = "packs/code-modernization-pack", extra_ontologies = ["packs/code-modernization-pack/instances.ttl"] }
+combinatorial-maximalism-pack = { path = "packs/combinatorial-maximalism-pack", extra_ontologies = ["packs/combinatorial-maximalism-pack/core-instances.ttl", "packs/combinatorial-maximalism-pack/internal-lattice.ttl", "packs/combinatorial-maximalism-pack/external-lattice.ttl", "packs/combinatorial-maximalism-pack/packs-passports.ttl", "packs/combinatorial-maximalism-pack/gall.ttl"] }
 
 [law]
 rules = ["ontology/rules/breed_standing.n3"]
