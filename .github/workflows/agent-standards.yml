@@ -55,3 +55,9 @@ jobs:
       - name: Verify agent standards
         shell: bash
         run: bash scripts/verify-agent-standards.sh
+
+      - name: Compile Python control surfaces
+        run: python3 -m py_compile scripts/cmd_kernel.py scripts/cmd-refactor.py scripts/tests/test_cmd_kernel.py
+
+      - name: Parse root ggen manifest
+        run: python3 -c 'import pathlib,tomllib; tomllib.loads(pathlib.Path("ggen.toml").read_text())'
