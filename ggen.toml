@@ -26,6 +26,7 @@ semantic-contraction-pack = { path = "packs/semantic-contraction-pack" }
 pddl-planning-pack = { path = "packs/pddl-planning-pack" }
 f26-ontology-self-play-pack = { path = "packs/f26-ontology-self-play-pack" }
 togaf-adm-pack = { path = "packs/togaf-adm-pack", extra_ontologies = ["crates/cng/ontologies/pddl-strips.ttl"] }
+code-modernization-pack = { path = "packs/code-modernization-pack", extra_ontologies = ["packs/code-modernization-pack/instances.ttl"] }
 
 [law]
 rules = ["ontology/rules/breed_standing.n3"]
