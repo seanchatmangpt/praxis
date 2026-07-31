@@ -5,12 +5,12 @@ determinism: true
 sparql:
   a_inventory: |
     PREFIX gmod: <https://praxis.chatman.io/ontology/ggen-modernization#>
-    SELECT ?head ?count ?hash WHERE {
+    SELECT ?binding ?count ?hash WHERE {
       ?inventory a gmod:Inventory ;
-                 gmod:headSha ?head ;
+                 gmod:observationBinding ?binding ;
                  gmod:surfaceCount ?count ;
                  gmod:contentHash ?hash .
-    } ORDER BY ?head
+    } ORDER BY ?binding
   b_dispositions: |
     PREFIX gmod: <https://praxis.chatman.io/ontology/ggen-modernization#>
     SELECT ?disposition_name (COUNT(?surface) AS ?count) WHERE {
@@ -68,10 +68,14 @@ addressed. Candidate ranking is diagnostic. No hand-authored runtime path is
 replaced until exact-boundary equivalence and mutation evidence exist.
 
 {% for inventory in a_inventory -%}
-- Observed head: `{{ inventory.head }}`
+- Filtered source-tree binding: `{{ inventory.binding }}`
 - Source surfaces: **{{ inventory.count }}**
-- Source-tree receipt: `{{ inventory.hash }}`
+- Inventory graph receipt: `{{ inventory.hash }}`
 {% endfor %}
+
+The exact Git commit belongs to the separate execution receipt. It is not
+embedded in tracked generated output because a commit cannot contain its own
+hash without creating an impossible fixed point.
 
 ## Disposition inventory
 
