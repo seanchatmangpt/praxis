@@ -49,7 +49,7 @@ require_text ".claude/rules/_core/absolute.md" 'Falsifier'
 require_text ".claude/rules/_core/absolute.md" 'Operationalization'
 
 require_text ".claude/rules/cognition-contracts.md" 'Observation → Admission → Breed execution'
-require_text ".claude/rules/cognition-contracts.md" 'Proposal visibility does not imply downstream authority'
+require_text ".claude/rules/cognition-contracts.md" 'proposal visibility does not imply downstream authority'
 require_text ".claude/rules/cognition-contracts.md" 'Per-breed `ALIVE` does not promote a composed pipeline.'
 
 require_text "CHATGPT-CLOUD-AGENTS.md" 'blob → tree → commit → ref → draft PR'
