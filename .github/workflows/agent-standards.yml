@@ -1,0 +1,43 @@
+name: Agent standards
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "CHATGPT-CLOUD-AGENTS.md"
+      - ".claude/rules/**"
+      - "docs/standing/STANDARDS_DELTA_2026-07-30.md"
+      - "scripts/verify-agent-standards.sh"
+      - ".github/workflows/agent-standards.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "AGENTS.md"
+      - "CHATGPT-CLOUD-AGENTS.md"
+      - ".claude/rules/**"
+      - "docs/standing/STANDARDS_DELTA_2026-07-30.md"
+      - "scripts/verify-agent-standards.sh"
+      - ".github/workflows/agent-standards.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-standards-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify normative contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify agent standards
+        shell: bash
+        run: bash scripts/verify-agent-standards.sh
