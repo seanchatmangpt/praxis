@@ -7,6 +7,7 @@ on:
       - "packs/combinatorial-maximalism-pack/**"
       - "scripts/cmd_kernel.py"
       - "scripts/cmd-refactor.py"
+      - "scripts/cmd_falsifiers.py"
       - "scripts/tests/test_cmd_kernel.py"
       - "ggen.toml"
       - ".gitignore"
@@ -139,6 +140,9 @@ jobs:
       - name: Execute G0-G9 evidence rail
         run: python3 scripts/cmd-refactor.py all
 
+      - name: Execute independent extended falsifiers
+        run: python3 scripts/cmd_falsifiers.py
+
       - name: Validate machine-readable crown report
         shell: bash
         run: |
@@ -157,12 +161,16 @@ jobs:
           assert report['external_production_standing'] == 'UNKNOWN'
           assert report['replay_result']['result'] == 'PASS'
           assert not report['failed_checks']
+          extended = json.loads(Path('.ggen/cmd/verifier/extended-sabotage.json').read_text())
+          assert extended['all_refused'] and extended['executed'] >= 16
+          assert set(extended['refusal_codes']).issubset(set(report['refusal_codes']))
           finalizer = json.loads(Path('.ggen/cmd/receipts/finalizer.json').read_text())
           assert finalizer['subject_head'] == os.environ['GITHUB_SHA']
           print(json.dumps({
               'aggregate': report['aggregate_standing'],
               'external_production': report['external_production_standing'],
               'refusals': len(report['refusal_codes']),
+              'extended_refusals': extended['executed'],
               'internal_candidates': report['benchmark_measurements']['internal_valid_candidates'],
               'external_candidates': report['benchmark_measurements']['external_valid_candidates'],
               'replay': report['replay_result']['replay_digest'],
