@@ -25,7 +25,16 @@ required_files=(
   ".claude/rules/semantic-runtime-contracts.md"
   "docs/standing/STANDARDS_DELTA_2026-07-30.md"
   "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md"
+  "docs/architecture/COMBINATORIAL_MAXIMALISM_REPOSITORY_REFACTOR.md"
+  "packs/combinatorial-maximalism-pack/ontology.ttl"
+  "packs/combinatorial-maximalism-pack/shapes.ttl"
+  "packs/combinatorial-maximalism-pack/internal-lattice.ttl"
+  "packs/combinatorial-maximalism-pack/external-lattice.ttl"
+  "packs/combinatorial-maximalism-pack/gall.ttl"
+  "scripts/cmd_kernel.py"
+  "scripts/cmd-refactor.py"
   ".github/workflows/agent-standards.yml"
+  ".github/workflows/combinatorial-maximalism.yml"
 )
 
 for path in "${required_files[@]}"; do
@@ -76,7 +85,34 @@ require_text "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md" '`seanchat
 require_text "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md" '`seanchatmangpt/wasm4pm`'
 require_text "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md" '## Falsifier'
 
+contract="docs/architecture/COMBINATORIAL_MAXIMALISM_REPOSITORY_REFACTOR.md"
+require_text "$contract" 'observation != admitted observation'
+require_text "$contract" 'O → O* → I → G → A → R → O′'
+require_text "$contract" '# 5. G0 — Orient and Admit the Exact Repository Tree'
+require_text "$contract" '# 8. G3 — Model Internal Combinatorial Maximalism'
+require_text "$contract" '# 9. G4 — Model External Combinatorial Maximalism'
+require_text "$contract" '# 11. G6 — Implement the Pure Shared Kernel'
+require_text "$contract" '# 13. G8 — Implement Brokered External Actuation'
+require_text "$contract" '# 14. G9 — Execute the Crown Verifier and Self-Host the Repository'
+require_text "$contract" 'ggen.verifier.report.v1'
+
+require_text "packs/combinatorial-maximalism-pack/ontology.ttl" 'cmd:BrokerIntent a owl:Class'
+require_text "packs/combinatorial-maximalism-pack/ontology.ttl" 'cmd:AuthorityGrant a owl:Class'
+require_text "packs/combinatorial-maximalism-pack/ontology.ttl" 'cmd:ConsentEvidence a owl:Class'
+require_text "packs/combinatorial-maximalism-pack/ontology.ttl" 'cmd:PartPassport a owl:Class'
+require_text "packs/combinatorial-maximalism-pack/shapes.ttl" 'cmd:BrokerIntentShape'
+require_text "packs/combinatorial-maximalism-pack/gall.ttl" 'cmd:G0 a cmd:Checkpoint'
+require_text "packs/combinatorial-maximalism-pack/gall.ttl" 'cmd:G9 a cmd:Checkpoint'
+require_text "scripts/cmd_kernel.py" 'class Refusal'
+require_text "scripts/cmd_kernel.py" 'def manufacture_intent'
+require_text "scripts/cmd-refactor.py" 'git ls-files'
+require_text "scripts/cmd-refactor.py" 'ggen.verifier.report.v1'
+
 require_text ".github/workflows/agent-standards.yml" 'bash scripts/verify-agent-standards.sh'
 require_text ".github/workflows/agent-standards.yml" 'docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md'
+require_text ".github/workflows/agent-standards.yml" 'docs/architecture/COMBINATORIAL_MAXIMALISM_REPOSITORY_REFACTOR.md'
+require_text ".github/workflows/combinatorial-maximalism.yml" 'Execute exact-tree G0-G9 verifier'
+require_text ".github/workflows/combinatorial-maximalism.yml" 'GGEN_SOURCE_SHA'
+require_text ".github/workflows/combinatorial-maximalism.yml" 'python3 scripts/cmd-refactor.py all'
 
 printf 'agent-standards: ALIVE: required contracts and structural laws are present\n'
