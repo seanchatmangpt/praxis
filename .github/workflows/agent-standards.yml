@@ -7,6 +7,7 @@ on:
       - "CHATGPT-CLOUD-AGENTS.md"
       - ".claude/rules/**"
       - "docs/standing/STANDARDS_DELTA_2026-07-30.md"
+      - "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md"
       - "scripts/verify-agent-standards.sh"
       - ".github/workflows/agent-standards.yml"
   push:
@@ -17,6 +18,7 @@ on:
       - "CHATGPT-CLOUD-AGENTS.md"
       - ".claude/rules/**"
       - "docs/standing/STANDARDS_DELTA_2026-07-30.md"
+      - "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md"
       - "scripts/verify-agent-standards.sh"
       - ".github/workflows/agent-standards.yml"
 
