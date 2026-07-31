@@ -33,7 +33,15 @@ restore_repository_config() {
     fi
 }
 
+restore_tamper_target() {
+    if [[ -f "$TMP/instances.ttl" ]]; then
+        cp "$TMP/instances.ttl" packs/code-modernization-pack/instances.ttl
+        rm -f "$TMP/instances.ttl"
+    fi
+}
+
 cleanup() {
+    restore_tamper_target
     restore_repository_config
     rm -rf "$TMP"
 }
@@ -109,11 +117,15 @@ CARGO_MANIFEST_DIR="$ROOT/crates/ggen" \
 
 cp packs/code-modernization-pack/instances.ttl "$TMP/instances.ttl"
 printf '\n# TAMPER\n' >> packs/code-modernization-pack/instances.ttl
+tamper_accepted=false
 if python3 scripts/ggen-code-inventory.py verify; then
+    tamper_accepted=true
+fi
+restore_tamper_target
+if [[ "$tamper_accepted" == "true" ]]; then
     echo "ggen-upgrade-all: BUILD_BROKEN: tampered inventory was accepted" >&2
     exit 1
 fi
-mv "$TMP/instances.ttl" packs/code-modernization-pack/instances.ttl
 python3 scripts/ggen-code-inventory.py verify
 
 restore_repository_config
@@ -137,6 +149,27 @@ cat > "$OUT/execution.receipt.json" <<JSON
   "generated_verifier_executed": true
 }
 JSON
+
+python3 - "$OUT/execution.receipt.json" <<'PY'
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+import blake3
+
+path = Path(sys.argv[1])
+payload = json.loads(path.read_text(encoding="utf-8"))
+canonical = json.dumps(
+    payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+).encode("utf-8")
+payload["receipt_blake3"] = blake3.blake3(canonical).hexdigest()
+path.write_text(
+    json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n",
+    encoding="utf-8",
+)
+PY
 
 echo "ggen-upgrade-all: PARTIAL_ALIVE"
 echo "generated_test_blake3=$second_test"
