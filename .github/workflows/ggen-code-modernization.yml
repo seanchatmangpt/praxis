@@ -15,7 +15,7 @@ jobs:
   inventory-projection:
     name: Render and verify complete code inventory
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout exact commit
         uses: actions/checkout@v4
@@ -29,8 +29,15 @@ jobs:
       - name: Install BLAKE3 support
         run: python3 -m pip install --disable-pip-version-check blake3
 
-      - name: Install released ggen
-        run: cargo install ggen --version 26.7.62 --locked
+      - name: Install canonical ggen CLI at exact revision
+        run: |
+          cargo install \
+            --git https://github.com/seanchatmangpt/ggen \
+            --rev 68952593c40214ac1a681073d65f3902a9cdfce4 \
+            --package ggen-cli-lib \
+            --bin ggen \
+            --locked
+          ggen --version
 
       - name: Execute bounded all-code upgrade
         run: bash scripts/ggen-upgrade-all.sh
