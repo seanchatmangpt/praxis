@@ -1,11 +1,12 @@
 @prefix gmod: <https://praxis.chatman.io/ontology/ggen-modernization#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 
-# Bootstrap-only seed. scripts/build-ggen-code-inventory.py deterministically
-# replaces this file with the exact tracked-tree inventory before verification.
+# Bootstrap-only seed. scripts/ggen-code-inventory.py deterministically
+# replaces this file with the filtered tracked-source inventory before ggen
+# renders any projection.
 
 gmod:inventory-bootstrap a gmod:Inventory ;
-    gmod:headSha "BOOTSTRAP" ;
+    gmod:observationBinding "blake3:BOOTSTRAP" ;
     gmod:surfaceCount 1 ;
     gmod:contentHash "blake3:BOOTSTRAP" ;
     gmod:hasSurface gmod:surface-generated-inventory-test .
