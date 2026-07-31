@@ -1,0 +1,143 @@
+name: ggen code modernization
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ggen-code-modernization-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inventory-projection:
+    name: Render and verify complete code inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install BLAKE3 support
+        run: python3 -m pip install --disable-pip-version-check blake3
+
+      - name: Install released ggen
+        run: cargo install ggen --version 26.7.62 --locked
+
+      - name: Build admitted code inventory
+        run: python3 scripts/ggen-code-inventory.py build
+
+      - name: Render modernization pack twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ggen.toml /tmp/praxis-ggen.toml
+          if [ -f ggen.lock ]; then cp ggen.lock /tmp/praxis-ggen.lock; fi
+
+          write_isolated_config() {
+            cat > ggen.toml <<'TOML'
+          [project]
+          name = "praxis-code-modernization"
+
+          [ontology]
+          source = "packs/code-modernization-pack/ontology.ttl"
+
+          [ontology.prefixes]
+          gmod = "https://praxis.chatman.io/ontology/ggen-modernization#"
+          rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          rdfs = "http://www.w3.org/2000/01/rdf-schema#"
+          xsd = "http://www.w3.org/2001/XMLSchema#"
+
+          [packs]
+          code-modernization-pack = { path = "packs/code-modernization-pack", extra_ontologies = ["packs/code-modernization-pack/instances.ttl"] }
+
+          [templates]
+          dir = "templates/crates/ggen"
+          TOML
+            rm -f ggen.lock
+          }
+
+          restore_repository_config() {
+            cp /tmp/praxis-ggen.toml ggen.toml
+            if [ -f /tmp/praxis-ggen.lock ]; then
+              cp /tmp/praxis-ggen.lock ggen.lock
+            else
+              rm -f ggen.lock
+            fi
+          }
+
+          write_isolated_config
+          ggen sync run
+          restore_repository_config
+
+          python3 scripts/ggen-code-inventory.py build
+          python3 scripts/ggen-code-inventory.py verify
+
+          first_test=$(b3sum crates/ggen/tests/ggen_code_inventory.rs | cut -d' ' -f1)
+          first_report=$(b3sum docs/standing/GGEN_CODE_MODERNIZATION.md | cut -d' ' -f1)
+
+          write_isolated_config
+          ggen sync run
+          restore_repository_config
+
+          second_test=$(b3sum crates/ggen/tests/ggen_code_inventory.rs | cut -d' ' -f1)
+          second_report=$(b3sum docs/standing/GGEN_CODE_MODERNIZATION.md | cut -d' ' -f1)
+          test "$first_test" = "$second_test"
+          test "$first_report" = "$second_report"
+          python3 scripts/ggen-code-inventory.py verify
+
+          echo "generated_test_blake3=$second_test"
+          echo "generated_report_blake3=$second_report"
+
+      - name: Compile and execute generated verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/ggen-code-modernization
+          CARGO_MANIFEST_DIR="$PWD/crates/ggen" \
+            rustc --edition=2021 --test \
+              crates/ggen/tests/ggen_code_inventory.rs \
+              -o target/ggen-code-modernization/ggen-code-inventory-test
+          target/ggen-code-modernization/ggen-code-inventory-test --nocapture
+
+      - name: Prove inventory receipt rejects tampering
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp packs/code-modernization-pack/instances.ttl /tmp/instances.ttl
+          printf '\n# TAMPER\n' >> packs/code-modernization-pack/instances.ttl
+          if python3 scripts/ggen-code-inventory.py verify; then
+            echo 'ggen-code-inventory: BUILD_BROKEN: tampered graph was accepted' >&2
+            exit 1
+          fi
+          mv /tmp/instances.ttl packs/code-modernization-pack/instances.ttl
+          python3 scripts/ggen-code-inventory.py verify
+
+      - name: Capture generated upgrade patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/ggen-code-modernization
+          git diff --stat | tee target/ggen-code-modernization/diff-stat.txt
+          git diff --binary > target/ggen-code-modernization/generated.patch
+          cp packs/code-modernization-pack/instances.ttl target/ggen-code-modernization/
+          cp packs/code-modernization-pack/instances.receipt.json target/ggen-code-modernization/
+          cp docs/standing/GGEN_CODE_MODERNIZATION.md target/ggen-code-modernization/
+          cp crates/ggen/tests/ggen_code_inventory.rs target/ggen-code-modernization/
+          sed -n '1,260p' docs/standing/GGEN_CODE_MODERNIZATION.md
+
+      - name: Upload generated upgrade receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: ggen-code-modernization-${{ github.sha }}
+          path: target/ggen-code-modernization/
+          if-no-files-found: error
+          retention-days: 14
