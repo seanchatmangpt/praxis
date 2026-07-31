@@ -34,12 +34,12 @@ struct Surface {
 const SURFACES: &[Surface] = &[
 {% for row in a_surfaces -%}
     Surface {
-        path: "{{ row.path }}",
-        language: "{{ row.language }}",
-        owner: "{{ row.owner }}",
-        kind: "{{ row.kind }}",
-        disposition: "{{ row.disposition_name }}",
-        projection_source: "{{ row.source | default(value="") }}",
+        path: {{ row.path | json_encode }},
+        language: {{ row.language | json_encode }},
+        owner: {{ row.owner | json_encode }},
+        kind: {{ row.kind | json_encode }},
+        disposition: {{ row.disposition_name | json_encode }},
+        projection_source: {{ row.source | default(value="") | json_encode }},
     },
 {% endfor -%}
 ];
@@ -83,12 +83,12 @@ fn inventory_paths_are_strictly_sorted_and_unique() {
 fn generated_projection_sources_are_bounded_when_present() {
     for surface in SURFACES {
         if surface.disposition == "Generated" && !surface.projection_source.is_empty() {
-            let has_control_or_quote = surface
+            let has_control = surface
                 .projection_source
                 .chars()
-                .any(|ch| matches!(ch, '\n' | '\r' | '"'));
+                .any(|ch| matches!(ch, '\n' | '\r'));
             assert!(
-                surface.projection_source.len() <= 512 && !has_control_or_quote,
+                surface.projection_source.len() <= 512 && !has_control,
                 "generated projection source is not a bounded path-like value: {surface:?}"
             );
         }
