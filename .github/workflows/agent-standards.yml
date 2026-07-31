@@ -8,8 +8,14 @@ on:
       - ".claude/rules/**"
       - "docs/standing/STANDARDS_DELTA_2026-07-30.md"
       - "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md"
+      - "docs/architecture/COMBINATORIAL_MAXIMALISM_REPOSITORY_REFACTOR.md"
+      - "packs/combinatorial-maximalism-pack/**"
+      - "scripts/cmd_kernel.py"
+      - "scripts/cmd-refactor.py"
+      - "scripts/tests/test_cmd_kernel.py"
       - "scripts/verify-agent-standards.sh"
       - ".github/workflows/agent-standards.yml"
+      - ".github/workflows/combinatorial-maximalism.yml"
   push:
     branches:
       - main
@@ -19,8 +25,14 @@ on:
       - ".claude/rules/**"
       - "docs/standing/STANDARDS_DELTA_2026-07-30.md"
       - "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md"
+      - "docs/architecture/COMBINATORIAL_MAXIMALISM_REPOSITORY_REFACTOR.md"
+      - "packs/combinatorial-maximalism-pack/**"
+      - "scripts/cmd_kernel.py"
+      - "scripts/cmd-refactor.py"
+      - "scripts/tests/test_cmd_kernel.py"
       - "scripts/verify-agent-standards.sh"
       - ".github/workflows/agent-standards.yml"
+      - ".github/workflows/combinatorial-maximalism.yml"
 
 permissions:
   contents: read
