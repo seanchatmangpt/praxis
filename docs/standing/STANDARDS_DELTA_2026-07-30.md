@@ -4,10 +4,10 @@
 
 **PARTIAL_ALIVE** for repository-wide adoption.
 
-The normative contract, hosted-agent transport contract, cognition contracts,
-and structural drift checker are present on the adoption branch. Application
-subsystems have not been individually migrated or reverified against every new
-rule by this change.
+The normative contract, hosted-agent transport contract, cognition and semantic
+runtime contracts, provenance sweep, and structural drift checker are present
+on the adoption branch. Application subsystems have not been individually
+migrated or reverified against every new rule by this change.
 
 ## Window
 
@@ -24,13 +24,17 @@ ontology used for this update.
 | `seanchatmangpt/wasm4pm` | `b74afe712331995419761aa56b64b019f81e2e07` | Combinatorial pattern language with explicit context, problem, forces, solution, falsifier, and composition rules |
 | `seanchatmangpt/ggen` | `faa52dac474d456ae00105869770161d666ba31f` | Consolidated architecture, autonomics, self-hosting, and evidence-backed capability standing |
 | `seanchatmangpt/ggen` | `2364ccda8d1a38f14e314365583c99f3fb81357d` | One receipted CI/CD release-law control plane and Gall-checkpoint roadmap |
-| `seanchatmangpt/ggen` | `742dcb34b5e539137f89a99af8fa734b22b9aaac` | Replay-safe exact-head finalization |
+| `seanchatmangpt/ggen` | `eebb23b0c866ac131a7843c56b34324c2aaeaf1b` | Extracted exact-head finalizer actuator |
+| `seanchatmangpt/ggen` | `b22bc0e05320d7be95386b58e941686f81e3c505` | Exact-head finalizer launch bound to the intended aggregate |
+| `seanchatmangpt/ggen` | `036ab703e885aff90a79536a5db5b24608e8a32f` | Successful one-use finalizer removed after consolidation |
 | `seanchatmangpt/ggen` | `f8f8e6c7719f5c68f45e5a12a0df8ac4f6cbc602` | Bounded engine failure receipts |
 | `seanchatmangpt/ggen` | `b4c0119e368f019b8f792b33dd501a93fffd8458` | Typed dry-run refusal ordering |
 | `seanchatmangpt/ggen` | `28a545edf0fb8ec11bfb86cd938e229ba8caf427` | Logical time carried into POWL/OCEL records |
 
 The source commits are provenance anchors, not dependencies and not claims that
 all source-repository behavior was independently re-executed inside Praxis.
+The complete repository boundary is recorded in
+`docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md`.
 
 ## Adopted standards
 
@@ -106,12 +110,28 @@ commit, artifacts, boundary execution, receipt verification, refusal ordering,
 logical time, clean-consumer evidence where applicable, and controlled
 actuation.
 
+### 11. Semantic runtime law
+
+- BRCE is the authority root and the Broker is the only `DO` path.
+- Reversible graph construction precedes machine-state actuation.
+- `O*.toml` is an admission carrier, not parse-success standing.
+- Public ontologies are preferred before minting local terms.
+- Knowledge Hooks manufacture intents, never side effects.
+- N3 remains bounded and quarantined from network, OS process, and canonical
+  mutation authority.
+- Tree-sitter, Salsa, Oxigraph, LSP, OCEL, and admission witnesses retain
+  distinct ownership and standing boundaries.
+- Tickets require deterministic acceptance, falsifier, and receipt law.
+
 ## Files introduced or changed
 
 - `AGENTS.md`
 - `CHATGPT-CLOUD-AGENTS.md`
 - `.claude/rules/_core/absolute.md`
 - `.claude/rules/cognition-contracts.md`
+- `.claude/rules/semantic-runtime-contracts.md`
+- `docs/standing/STANDARDS_DELTA_2026-07-30.md`
+- `docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md`
 - `scripts/verify-agent-standards.sh`
 - `.github/workflows/agent-standards.yml`
 
@@ -130,6 +150,6 @@ Those require subsystem-specific implementation and execution receipts.
 ## Falsifier
 
 The structural checker must fail when a required contract, state-lattice term,
-zero-unreceipted-actuation invariant, generated-surface law, cognition rule, or
-workflow binding is removed or renamed. CI invokes the checker on relevant
-policy changes.
+zero-unreceipted-actuation invariant, semantic-runtime boundary,
+generated-surface law, cognition rule, provenance sweep, or workflow binding is
+removed or renamed. CI invokes the checker on relevant policy changes.
