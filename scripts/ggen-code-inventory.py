@@ -3,15 +3,16 @@
 
 `ggen.lock` records the rendered pack graph and therefore changes as a
 consequence of this inventory. It cannot also be an input to the inventory
-content hash without creating a self-invalidating cycle. This wrapper excludes
-that projection-control artifact, completes the polyglot language/control
-vocabulary, narrows generated authority to explicit headers, then delegates to
-the governed builder.
+content hash without creating a self-invalidating cycle. Tracked inventory is
+bound to the filtered BLAKE3 source tree, while the separate execution receipt
+binds to the exact Git head. This wrapper also completes the polyglot vocabulary
+and narrows generated authority to explicit headers.
 """
 
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import sys
 from pathlib import Path
@@ -155,16 +156,9 @@ def load_builder() -> ModuleType:
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
 
-    # Projection/control artifacts cannot feed their own source-tree identity.
     module.EXCLUDED_EXACT.add("ggen.lock")
-
-    # Complete the admitted executable and build-control vocabulary without
-    # duplicating the builder implementation.
     module.CODE_LANGUAGES.update(ADDITIONAL_CODE_LANGUAGES)
     module.CONTROL_NAMES.update(ADDITIONAL_CONTROL_NAMES)
-
-    # Generated authority is established only by an explicit header marker,
-    # never by an incidental mention deep inside hand-authored source.
     module.GENERATED_MARKER = EXPLICIT_GENERATED_HEADER
     module.SOURCE_HINT = CANONICAL_SOURCE_HEADER
 
@@ -183,6 +177,55 @@ def load_builder() -> ModuleType:
         return "HandAuthoredRuntime", "HAND_AUTHORED_CODE"
 
     module.disposition = bounded_disposition
+
+    # A tracked projection cannot embed the commit that contains itself. Capture
+    # the filtered source-tree hash first, then use that as the observation
+    # binding consumed by the builder's existing head field.
+    hash_state: dict[str, str] = {}
+    original_source_tree_hash = module.source_tree_hash
+    original_run = module.run
+    original_render_instances = module.render_instances
+    original_build = module.build
+
+    def observed_source_tree_hash(surfaces: list[object]) -> str:
+        value = original_source_tree_hash(surfaces)
+        hash_state["value"] = value
+        return value
+
+    def observation_bound_run(*args: str) -> str:
+        if args == ("git", "rev-parse", "HEAD"):
+            value = hash_state.get("value")
+            if value is None:
+                raise SystemExit(
+                    "ggen-code-inventory: REFUSED: source-tree hash unavailable"
+                )
+            return f"blake3:{value}"
+        return original_run(*args)
+
+    def observation_bound_instances(
+        surfaces: list[object], head: str, tree_hash: str
+    ) -> bytes:
+        rendered = original_render_instances(surfaces, head, tree_hash)
+        return rendered.replace(b"gmod:headSha", b"gmod:observationBinding")
+
+    def observation_bound_build() -> int:
+        result = original_build()
+        receipt = json.loads(module.RECEIPT.read_text(encoding="utf-8"))
+        receipt.pop("receipt_blake3", None)
+        binding = receipt.pop("observed_head_sha", None)
+        if not isinstance(binding, str) or not binding.startswith("blake3:"):
+            raise SystemExit(
+                "ggen-code-inventory: REFUSED: invalid observation binding"
+            )
+        receipt["observation_binding"] = binding
+        receipt["receipt_blake3"] = module.digest(module.canonical_json(receipt))
+        module.RECEIPT.write_bytes(module.canonical_json(receipt) + b"\n")
+        return result
+
+    module.source_tree_hash = observed_source_tree_hash
+    module.run = observation_bound_run
+    module.render_instances = observation_bound_instances
+    module.build = observation_bound_build
     return module
 
 
