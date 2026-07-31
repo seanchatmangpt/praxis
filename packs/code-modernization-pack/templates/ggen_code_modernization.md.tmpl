@@ -13,12 +13,13 @@ sparql:
     } ORDER BY ?head
   b_dispositions: |
     PREFIX gmod: <https://praxis.chatman.io/ontology/ggen-modernization#>
-    SELECT ?disposition (COUNT(?surface) AS ?count) WHERE {
+    SELECT ?disposition_name (COUNT(?surface) AS ?count) WHERE {
       ?surface a gmod:SourceSurface ;
                gmod:disposition ?disposition .
+      BIND(REPLACE(STR(?disposition), "^.*#", "") AS ?disposition_name)
     }
-    GROUP BY ?disposition
-    ORDER BY DESC(?count) ?disposition
+    GROUP BY ?disposition_name
+    ORDER BY DESC(?count) ?disposition_name
   c_candidates: |
     PREFIX gmod: <https://praxis.chatman.io/ontology/ggen-modernization#>
     SELECT ?path ?language ?owner ?score
@@ -44,7 +45,7 @@ sparql:
     } ORDER BY ?path
   e_surfaces: |
     PREFIX gmod: <https://praxis.chatman.io/ontology/ggen-modernization#>
-    SELECT ?path ?language ?owner ?kind ?disposition ?score WHERE {
+    SELECT ?path ?language ?owner ?kind ?disposition_name ?score WHERE {
       ?surface a gmod:SourceSurface ;
                gmod:path ?path ;
                gmod:language ?language ;
@@ -52,6 +53,7 @@ sparql:
                gmod:kind ?kind ;
                gmod:disposition ?disposition ;
                gmod:candidateScore ?score .
+      BIND(REPLACE(STR(?disposition), "^.*#", "") AS ?disposition_name)
     } ORDER BY ?path
 ---
 # Praxis ggen Code Modernization
@@ -76,7 +78,7 @@ replaced until exact-boundary equivalence and mutation evidence exist.
 | Disposition | Count |
 |---|---:|
 {% for row in b_dispositions -%}
-| `{{ row.disposition | split(pat="#") | last }}` | {{ row.count }} |
+| `{{ row.disposition_name }}` | {{ row.count }} |
 {% endfor %}
 
 ## Ranked migration frontier
@@ -108,7 +110,7 @@ standing can be promoted:
 | Path | Language | Owner | Kind | Disposition | Score |
 |---|---|---|---|---|---:|
 {% for row in e_surfaces -%}
-| `{{ row.path }}` | {{ row.language }} | `{{ row.owner }}` | `{{ row.kind }}` | `{{ row.disposition | split(pat="#") | last }}` | {{ row.score }} |
+| `{{ row.path }}` | {{ row.language }} | `{{ row.owner }}` | `{{ row.kind }}` | `{{ row.disposition_name }}` | {{ row.score }} |
 {% endfor %}
 
 ## Migration law
