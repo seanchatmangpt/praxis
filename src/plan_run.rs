@@ -6,7 +6,7 @@
 //! sequence compile (`bcinr_powl::compiler::compile_powl`, which enforces
 //! acyclicity and all-ops-reachable) -> receipted execution
 //! (`bcinr_powl::scheduler::scheduler_tick`, one
-//! `bcinr_powl_receipt::causal_receipt::OcelCausalFrame` chained per fired
+//! `bcinr_powl::receipt::causal_receipt::OcelCausalFrame` chained per fired
 //! atom) -> artifact write (`domain.pddl`/`problem.pddl`/`plan.json`) behind
 //! the `mfg::validate` shape-verifier gate -> a final ledger receipt
 //! (`ops::receipt_issue_payload`).
@@ -26,8 +26,8 @@
 use bcinr_powl::compiler::{compile_powl, PowlAstNode};
 use bcinr_powl::scheduler::{scheduler_tick, PowlRunState};
 use bcinr_powl::tape::{OpKind, PowlTape};
-use bcinr_powl_receipt::causal_receipt::{OcelCausalFrame, OcelCausalReceipt, PackedObjRef};
-use bcinr_powl_receipt::denial::DenialPolarity;
+use bcinr_powl::receipt::causal_receipt::{OcelCausalFrame, OcelCausalReceipt, PackedObjRef};
+use bcinr_powl::receipt::denial::DenialPolarity;
 use serde_json::{json, Value};
 
 use crate::mfg;

@@ -20,7 +20,7 @@
 //! source and [`parse_enum_variants`] reads the variant set back, so the tests
 //! assert `parse(emit(corpus)) == corpus`.
 
-use bcinr_powl_receipt::denial::DenialPolarity;
+use bcinr_powl::receipt::denial::DenialPolarity;
 use ggen_graph::prelude::DeterministicGraph;
 use oxigraph::{model::Term, sparql::QueryResults};
 use praxis_core::RefusalCategory;

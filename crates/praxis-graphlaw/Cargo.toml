@@ -36,12 +36,19 @@ smallvec = { version = "1", features = ["serde"] }
 fixedbitset = "0.5"
 oxigraph = { version = "0.5.9", features = ["rdf-12"] }
 powl2-decompose = { path = "../powl2-decompose" }
-bcinr-pddl = { path = "/Users/sac/bcinr/crates/bcinr-pddl" }
-bcinr-powl = { path = "/Users/sac/bcinr/crates/bcinr-powl" }
-bcinr-powl-receipt = { path = "/Users/sac/bcinr/crates/bcinr-powl-receipt" }
+# Relative paths, not absolute: an absolute /Users/sac/... dep is why the
+# bcinr-powl-receipt rename (bcinr 251f3af5) broke this workspace invisibly --
+# CI never resolved these manifests, so the dangling path was unreproducible
+# anywhere but one machine. bcinr-powl-receipt itself is gone; its contents
+# are bcinr_powl::receipt::*.
+bcinr-pddl = { path = "../../../bcinr/crates/bcinr-pddl" }
+bcinr-powl = { path = "../../../bcinr/crates/bcinr-powl" }
 thiserror = "2"
 # compat owns receipt identity; all chatman hashing routes through wasm4pm_compat::hash.
-wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat", version = "26.6.29" }
+# Registry version (not a local path) so this resolves to the SAME crate instance as
+# bcinr-pddl's wasm4pm-compat dependency — a path dep here creates a second, incompatible
+# copy of Pddl8GroundAtom/OCEL types even at an identical version string.
+wasm4pm-compat = { version = "26.6.29" }
 wasm4pm-cognition = { path = "/Users/sac/wasm4pm/crates/wasm4pm-cognition", optional = true }
 
 [features]

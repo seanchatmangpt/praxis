@@ -2,8 +2,8 @@
 
 use super::causal_adapter::{frame_payload_bytes, CausalFrameEntry};
 use super::*;
-use bcinr_powl_receipt::causal_receipt::{OcelCausalFrame, PackedObjRef};
-use bcinr_powl_receipt::denial::DenialPolarity;
+use bcinr_powl::receipt::causal_receipt::{OcelCausalFrame, PackedObjRef};
+use bcinr_powl::receipt::denial::DenialPolarity;
 use chicago_tdd_tools::observability::receipt::{Blake3ChainValidator, ChainError};
 use wasm4pm_compat::pddl::Pddl8GroundAction;
 

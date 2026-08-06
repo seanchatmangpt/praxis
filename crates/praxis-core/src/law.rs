@@ -5,7 +5,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use bcinr_powl_receipt::{
+use bcinr_powl::receipt::{
     causal_receipt::{OcelCausalFrame, OcelCausalReceipt, PackedObjRef},
     denial::DenialPolarity,
 };
@@ -674,7 +674,7 @@ mod tests {
     fn receipt_uses_meta_denial() {
         #[cfg(feature = "signed")]
         let _guard = test_signing_env();
-        use bcinr_powl_receipt::denial::DenialPolarity;
+        use bcinr_powl::receipt::denial::DenialPolarity;
 
         let mut meta = fixed_meta(1);
         meta.denial = DenialPolarity::PRECONDITION_FAILED;
