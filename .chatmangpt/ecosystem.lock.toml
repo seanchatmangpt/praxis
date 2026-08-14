@@ -37,9 +37,10 @@ required_paths = ["Cargo.toml"]
 [[repository]]
 name = "ggen"
 url = "https://github.com/seanchatmangpt/ggen.git"
-sha = "8058558cdf993c0ea43ac7910912339f1eb99b3d"
+sha = "68d3c256082d1d0e3edf3164d9897a6848590885"
 standing = "UNKNOWN"
 required_paths = [
+  "Cargo.toml",
   "crates/ggen-core/Cargo.toml",
   "crates/ggen-graph/Cargo.toml",
 ]
