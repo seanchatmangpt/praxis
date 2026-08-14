@@ -1,0 +1,4 @@
+[pack]
+name = "chatman-ecosystem-pack"
+version = "26.8.13"
+description = "Public-ontology Praxis profile for the Chatman ecosystem: ggen manufacture, Lean admission, mfact certification, BRCE-only external DO, GymAct bounded execution, receipts, and replay. The pack asserts composition and authority boundaries, never subsystem ALIVE standing."

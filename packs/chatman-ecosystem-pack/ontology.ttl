@@ -1,0 +1,124 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix earl: <http://www.w3.org/ns/earl#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix pplan: <http://purl.org/net/p-plan#> .
+@prefix prof: <http://www.w3.org/ns/dx/prof/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix chatman: <https://chatmangpt.com/id/ecosystem/> .
+
+# This pack is an ABox/profile composition over public vocabularies. It does
+# not introduce a competing Chatman TBox. Repository identities name the live
+# implementation authorities; their presence here does not imply ALIVE standing.
+
+chatman:chatman-ecosystem a prov:Collection ;
+    dcterms:title "Chatman ecosystem" ;
+    dcterms:description "Composable manufacture, admission, certification, actuation, receipt, and replay authorities used by Praxis." .
+
+chatman:praxis-profile a prof:Profile ;
+    dcterms:identifier "seanchatmangpt/praxis" ;
+    dcterms:title "Praxis Chatman ecosystem profile" ;
+    prof:isProfileOf chatman:chatman-ecosystem ;
+    dcterms:relation chatman:ggen, chatman:lean, chatman:mfact, chatman:brce-policy, chatman:gymact .
+
+chatman:ggen a prov:SoftwareAgent ;
+    dcterms:identifier "seanchatmangpt/ggen" ;
+    dcterms:source <https://github.com/seanchatmangpt/ggen> ;
+    skos:prefLabel "ggen" ;
+    dcterms:description "Deterministically manufactures projections from admitted knowledge graphs and emits generation receipts." .
+
+chatman:lean a prov:SoftwareAgent ;
+    dcterms:identifier "Lean 4" ;
+    dcterms:source <https://github.com/leanprover/lean4> ;
+    skos:prefLabel "Lean" ;
+    dcterms:description "Kernel admission authority for generated formal declarations; proof admission is not actuation authority." .
+
+chatman:mfact a prov:SoftwareAgent ;
+    dcterms:identifier "seanchatmangpt/mfact" ;
+    dcterms:source <https://github.com/seanchatmangpt/mfact> ;
+    skos:prefLabel "mfact" ;
+    dcterms:description "Certifies the ggen to Lean mathematical manufacturing path from executable evidence." .
+
+chatman:gymact a prov:SoftwareAgent ;
+    dcterms:identifier "seanchatmangpt/gymact" ;
+    dcterms:source <https://github.com/seanchatmangpt/gymact> ;
+    skos:prefLabel "GymAct" ;
+    dcterms:description "Bounded benchmark-world execution adapter. Provider bindings do not grant authority; consequential transitions remain behind BRCE." .
+
+chatman:brce-policy a odrl:Policy ;
+    dcterms:identifier "BRCE" ;
+    dcterms:description "Exclusive external/world-changing DO authority: zero unreceipted actuation." ;
+    odrl:permission [
+        odrl:target chatman:brce-do ;
+        odrl:action odrl:execute ;
+        odrl:duty [
+            odrl:action odrl:inform ;
+            odrl:target chatman:receipt
+        ]
+    ] .
+
+# The stages are deliberately separate objects. A successful earlier stage is
+# not evidence that a later consequence happened.
+
+chatman:observe a pplan:Step ;
+    rdfs:label "OBSERVE" ;
+    dcterms:description "Acquire bounded observation O; observation is not admission." .
+
+chatman:select a pplan:Step ;
+    rdfs:label "SELECT" ;
+    pplan:isPrecededBy chatman:observe ;
+    dcterms:description "Choose among reversible lawful candidates; selection is not construction or DO." .
+
+chatman:construct a pplan:Step ;
+    rdfs:label "CONSTRUCT" ;
+    pplan:isPrecededBy chatman:select ;
+    dcterms:description "Construct admitted candidate knowledge without ambient execution authority." .
+
+chatman:ggen-render a pplan:Step ;
+    rdfs:label "GGEN_RENDER" ;
+    pplan:isPrecededBy chatman:construct ;
+    prov:wasAssociatedWith chatman:ggen ;
+    dcterms:description "Render deterministic software projections from the admitted graph; ggen receipts its bounded filesystem manufacture." .
+
+chatman:lean-admit a pplan:Step ;
+    rdfs:label "LEAN_ADMIT" ;
+    pplan:isPrecededBy chatman:ggen-render ;
+    prov:wasAssociatedWith chatman:lean ;
+    dcterms:description "Kernel-admit formal declarations. Admission proves only the stated formal boundary." .
+
+chatman:mfact-certify a pplan:Step ;
+    rdfs:label "MFACT_CERTIFY" ;
+    pplan:isPrecededBy chatman:lean-admit ;
+    prov:wasAssociatedWith chatman:mfact ;
+    dcterms:description "Certify the manufacturing/admission evidence and bind it to source, toolchain, and verifier identity." .
+
+chatman:hook-intent a pplan:Step ;
+    rdfs:label "HOOK_INTENT" ;
+    pplan:isPrecededBy chatman:mfact-certify ;
+    dcterms:description "Hooks manufacture intents; they never actuate." .
+
+chatman:brce-do a pplan:Step ;
+    rdfs:label "BRCE_DO" ;
+    pplan:isPrecededBy chatman:hook-intent ;
+    dcterms:requires chatman:brce-policy ;
+    dcterms:relation chatman:gymact ;
+    dcterms:description "External or world-changing DO requires BRCE authority. GymAct may execute an admitted bounded-world intent only behind that authority." .
+
+chatman:receipt a pplan:Step, prov:Entity ;
+    rdfs:label "RECEIPT" ;
+    pplan:isPrecededBy chatman:brce-do ;
+    dcterms:description "Bind identity, authority, consequence, verifier evidence, and replay material for an observed actuation." .
+
+chatman:replay a pplan:Step ;
+    rdfs:label "REPLAY" ;
+    pplan:isPrecededBy chatman:receipt ;
+    dcterms:description "Re-evaluate the receipted consequence under matching source, validator, toolchain, configuration, and environment identities." .
+
+chatman:verification-assertion a earl:Assertion ;
+    earl:subject chatman:praxis-profile ;
+    earl:test chatman:replay ;
+    earl:result chatman:verification-result .
+
+chatman:verification-result a earl:TestResult ;
+    dcterms:description "Runtime result placeholder. No outcome is asserted in the ontology; execution must manufacture the result." .
