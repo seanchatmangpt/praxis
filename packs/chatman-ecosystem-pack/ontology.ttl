@@ -14,13 +14,24 @@
 
 chatman:chatman-ecosystem a prov:Collection ;
     dcterms:title "Chatman ecosystem" ;
-    dcterms:description "Composable manufacture, admission, certification, actuation, receipt, and replay authorities used by Praxis." .
+    dcterms:description "Composable project, manufacture, admission, certification, actuation, receipt, and replay authorities used by Praxis." .
+
+# Open-world portfolio scope. This deliberately names the owner-wide repository
+# graph instead of freezing a list that becomes stale whenever another project
+# is created. Every repository visible to an authorized GitHub observation is a
+# planning candidate. No repository is excluded by name from SELECT/planning.
+# Discovery alone grants neither construction nor execution authority.
+chatman:project-universe a prov:Collection ;
+    dcterms:identifier "seanchatmangpt/*" ;
+    dcterms:source <https://github.com/seanchatmangpt> ;
+    skos:prefLabel "Complete Chatman project universe" ;
+    dcterms:description "All repositories visible under the seanchatmangpt GitHub owner. Projects enter SELECT/planning by discovery; executable composition requires explicit project admission, and consequential DO remains BRCE-only and receipted." .
 
 chatman:praxis-profile a prof:Profile ;
     dcterms:identifier "seanchatmangpt/praxis" ;
     dcterms:title "Praxis Chatman ecosystem profile" ;
     prof:isProfileOf chatman:chatman-ecosystem ;
-    dcterms:relation chatman:ggen, chatman:lean, chatman:mfact, chatman:brce-policy, chatman:gymact .
+    dcterms:relation chatman:project-universe, chatman:ggen, chatman:lean, chatman:mfact, chatman:brce-policy, chatman:gymact .
 
 chatman:ggen a prov:SoftwareAgent ;
     dcterms:identifier "seanchatmangpt/ggen" ;
@@ -58,8 +69,28 @@ chatman:brce-policy a odrl:Policy ;
         ]
     ] .
 
-# The stages are deliberately separate objects. A successful earlier stage is
-# not evidence that a later consequence happened.
+# Project composition has its own calculus. It is separate from execution so a
+# large portfolio can remain maximally available to planning without cloning or
+# actuating every repository.
+chatman:discover-projects a pplan:Step ;
+    rdfs:label "DISCOVER_PROJECTS" ;
+    pplan:isPrecededBy chatman:observe ;
+    dcterms:relation chatman:project-universe ;
+    dcterms:description "Observe every repository visible under the authorized seanchatmangpt owner scope. Discovery is not admission." .
+
+chatman:admit-project a pplan:Step ;
+    rdfs:label "ADMIT_PROJECT" ;
+    pplan:isPrecededBy chatman:discover-projects ;
+    dcterms:description "Admit a discovered project only against an explicit capability, source identity, compatibility, authority, and evidence contract." .
+
+chatman:compose-project a pplan:Step ;
+    rdfs:label "COMPOSE_PROJECT" ;
+    pplan:isPrecededBy chatman:admit-project ;
+    dcterms:relation chatman:select ;
+    dcterms:description "Expose admitted project capabilities to Praxis SELECT/CONSTRUCT. Composition does not grant DO authority." .
+
+# The lifecycle stages are deliberately separate objects. A successful earlier
+# stage is not evidence that a later consequence happened.
 
 chatman:observe a pplan:Step ;
     rdfs:label "OBSERVE" ;
@@ -68,7 +99,7 @@ chatman:observe a pplan:Step ;
 chatman:select a pplan:Step ;
     rdfs:label "SELECT" ;
     pplan:isPrecededBy chatman:observe ;
-    dcterms:description "Choose among reversible lawful candidates; selection is not construction or DO." .
+    dcterms:description "Choose among reversible lawful candidates, including admitted project capabilities; selection is not construction or DO." .
 
 chatman:construct a pplan:Step ;
     rdfs:label "CONSTRUCT" ;
