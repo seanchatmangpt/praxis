@@ -168,7 +168,7 @@ const REQUIRED_MARKERS: &[(&str, &str)] = &[
 /// deliberately does not invoke ggen, Lean, mfact, BRCE, or GymAct, so those
 /// external systems remain `UNKNOWN` until separately executed and receipted.
 pub fn verify_contract() -> Result<EcosystemContract, EcosystemContractError> {
-    for (marker, meaning) in REQUIRED_MARKERS {
+    for &(marker, meaning) in REQUIRED_MARKERS {
         if !ECOSYSTEM_ONTOLOGY.contains(marker) {
             return Err(EcosystemContractError::MissingMarker { marker, meaning });
         }
