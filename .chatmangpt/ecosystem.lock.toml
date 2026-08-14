@@ -37,9 +37,12 @@ required_paths = ["Cargo.toml"]
 [[repository]]
 name = "ggen"
 url = "https://github.com/seanchatmangpt/ggen.git"
-sha = "162e466d8f07d0a75a468b4441b4bc8b1aad369b"
+sha = "8058558cdf993c0ea43ac7910912339f1eb99b3d"
 standing = "UNKNOWN"
-required_paths = ["crates/ggen-graph/Cargo.toml"]
+required_paths = [
+  "crates/ggen-core/Cargo.toml",
+  "crates/ggen-graph/Cargo.toml",
+]
 
 [[repository]]
 name = "lsp-max"
