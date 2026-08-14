@@ -7,7 +7,7 @@ version = 1
 [[repository]]
 name = "bcinr"
 url = "https://github.com/seanchatmangpt/bcinr.git"
-sha = "d6fefefdb95df5dbbb520afe7b5a4df53aa6e27f"
+sha = "a4098445807ee8f98ccca190ec05458c2d685043"
 standing = "UNKNOWN"
 required_paths = [
   "crates/bcinr-logic/Cargo.toml",
