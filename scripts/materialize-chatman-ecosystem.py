@@ -3,7 +3,9 @@
 
 This is a source transport/admission helper, not an execution or standing
 oracle. It never promotes a sibling repository above UNKNOWN. It refuses to
-overwrite dirty checkouts and emits a machine-readable materialization report.
+overwrite dirty checkouts, refuses workstation-specific dependency paths in
+Praxis-owned workspace manifests, and emits a machine-readable materialization
+report.
 """
 
 from __future__ import annotations
@@ -40,6 +42,56 @@ def run(*args: str, cwd: Path | None = None, sudo: bool = False) -> str:
 
 def git_head(path: Path) -> str:
     return run("git", "rev-parse", "HEAD", cwd=path)
+
+
+def toml_path_values(value: Any, trail: tuple[str, ...] = ()) -> list[tuple[str, str]]:
+    """Return active TOML `path` values with their structural key trail."""
+    found: list[tuple[str, str]] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_trail = (*trail, str(key))
+            if key == "path" and isinstance(child, str):
+                found.append((".".join(child_trail), child))
+            found.extend(toml_path_values(child, child_trail))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            found.extend(toml_path_values(child, (*trail, str(index))))
+    return found
+
+
+def verify_praxis_workspace_paths(workspace: Path) -> list[dict[str, str]]:
+    """Refuse absolute active Cargo paths in the exact Praxis workspace graph."""
+    root_manifest = workspace / "Cargo.toml"
+    with root_manifest.open("rb") as handle:
+        root = tomllib.load(handle)
+
+    manifests = [root_manifest]
+    for member in root.get("workspace", {}).get("members", []):
+        manifest = workspace / member / "Cargo.toml"
+        if not manifest.exists():
+            raise Refused(f"REFUSED:PRAXIS_WORKSPACE_MEMBER_MISSING:{member}")
+        manifests.append(manifest)
+
+    verified: list[dict[str, str]] = []
+    absolute: list[str] = []
+    for manifest in manifests:
+        with manifest.open("rb") as handle:
+            parsed = tomllib.load(handle)
+        relative_manifest = str(manifest.relative_to(workspace))
+        active_paths = toml_path_values(parsed)
+        for key, raw_path in active_paths:
+            if Path(raw_path).is_absolute():
+                absolute.append(f"{relative_manifest}:{key}={raw_path}")
+        verified.append(
+            {
+                "manifest": relative_manifest,
+                "active_path_values": str(len(active_paths)),
+            }
+        )
+
+    if absolute:
+        raise Refused("REFUSED:PRAXIS_ABSOLUTE_CARGO_PATH:" + "|".join(sorted(absolute)))
+    return verified
 
 
 def ensure_checkout(parent: Path, spec: dict[str, Any]) -> dict[str, Any]:
@@ -136,6 +188,8 @@ def main() -> int:
     if not lock_path.exists():
         raise Refused(f"BLOCKED:ECOSYSTEM_LOCK_MISSING:{lock_path}")
 
+    workspace_manifests = verify_praxis_workspace_paths(workspace)
+
     with lock_path.open("rb") as handle:
         lock = tomllib.load(handle)
 
@@ -151,10 +205,11 @@ def main() -> int:
         "schema_version": 1,
         "subject": str(workspace),
         "lock": str(lock_path),
-        "observed": "exact source identities and required Cargo paths",
+        "observed": "portable Praxis workspace paths plus exact sibling source identities and required Cargo paths",
         "executed": "source materialization only",
         "not_executed": ["ggen", "Lean 4", "mfact", "BRCE", "GymAct"],
         "standing": "UNKNOWN",
+        "praxis_workspace_manifests": workspace_manifests,
         "repositories": repositories,
         "legacy_aliases": aliases,
     }
