@@ -163,7 +163,11 @@ pub const STAGES: &[&str] = &[
 
 /// Portfolio calculus used to turn the full repository graph into lawful
 /// capability candidates without ambient authority.
-pub const PROJECT_STAGES: &[&str] = &["DISCOVER_PROJECTS", "ADMIT_PROJECT", "COMPOSE_PROJECT"];
+pub const PROJECT_STAGES: &[&str] = &[
+    "DISCOVER_PROJECTS",
+    "ADMIT_PROJECT",
+    "COMPOSE_PROJECT",
+];
 
 const REQUIRED_MARKERS: &[(&str, &str)] = &[
     (
@@ -183,6 +187,10 @@ const REQUIRED_MARKERS: &[(&str, &str)] = &[
         "the complete owner-wide project universe is explicit",
     ),
     (
+        "dcterms:source <https://github.com/seanchatmangpt>",
+        "the project universe has an explicit canonical source",
+    ),
+    (
         "rdfs:label \"DISCOVER_PROJECTS\"",
         "project discovery is separate from admission",
     ),
@@ -193,10 +201,6 @@ const REQUIRED_MARKERS: &[(&str, &str)] = &[
     (
         "rdfs:label \"COMPOSE_PROJECT\"",
         "project composition is explicit",
-    ),
-    (
-        "No repository is excluded by name from SELECT/planning.",
-        "all observed owner projects remain planning candidates",
     ),
     (
         "https://github.com/seanchatmangpt/ggen",
@@ -305,7 +309,10 @@ mod tests {
     fn project_universe_is_open_owner_wide_and_non_actuating() -> Result<(), EcosystemContractError> {
         let contract = verify_contract()?;
         assert_eq!(contract.project_scope.repository_glob, "seanchatmangpt/*");
-        assert_eq!(contract.project_scope.discovery, "ALL_VISIBLE_REPOSITORIES");
+        assert_eq!(
+            contract.project_scope.discovery,
+            "ALL_VISIBLE_REPOSITORIES"
+        );
         assert_eq!(contract.project_scope.planning, "ELIGIBLE_FOR_SELECT");
         assert!(contract.project_scope.actuation.contains("REFUSED"));
         assert_eq!(contract.project_scope.standing, "UNKNOWN");
