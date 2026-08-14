@@ -168,7 +168,7 @@ oxigraph = "0.5"
 # Socket Binder, Parent Re-evaluator, L7 idempotency -- none of these exist
 # anywhere in the repo per the family survey's repo-wide grep).
 
-wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat", version = "26.6.29" }
+wasm4pm-compat = { path = "../../../wasm4pm-compat", version = "26.6.29" }
 # F08 "PDDL Planning and Action-Hook Binder" (V12-008, MIXED): real
 # dependency on bcinr-pddl for `ground::GroundProblem` (grounding +
 # BFS plan search) and `execute::execute_tape` (Prolog8-admitted
@@ -185,7 +185,7 @@ wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat", version = "26.6.29" }
 # packs/pddl-planning-pack/). See src/f08_pddl_planning/ for what is
 # genuinely reused/adapted (projector/planner/effect_trace) vs.
 # disclosed HAND_WRITE_REQUIRED (hook_binder: no general hook-registry
-# query API was found anywhere in this repo this session, so the
+# query API was found anywhere in the repo this session, so the
 # Action-Hook Binder always refuses rather than faking a match).
 bcinr-pddl = { path = "../../../bcinr/crates/bcinr-pddl", version = "26.6.26" }
 
