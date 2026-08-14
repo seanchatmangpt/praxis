@@ -3,8 +3,8 @@
 //! The source of truth is the RDF profile in
 //! `packs/chatman-ecosystem-pack/ontology.ttl`. This module does not execute
 //! any ecosystem component. It verifies the embedded profile contains the
-//! required identity, stage, authority, receipt, and replay boundaries and
-//! returns evidence about that bounded verification.
+//! required identity, project-universe, stage, authority, receipt, and replay
+//! boundaries and returns evidence about that bounded verification.
 
 use serde::Serialize;
 use thiserror::Error;
@@ -32,6 +32,34 @@ pub struct EcosystemSystem {
     pub standing: &'static str,
 }
 
+/// Open project universe consumed by Praxis.
+///
+/// The scope is intentionally owner-wide instead of a frozen repository list:
+/// every project visible under the authorized GitHub observation participates
+/// in discovery and may become a SELECT candidate. Discovery never grants
+/// construction or execution authority.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct EcosystemProjectScope {
+    /// GitHub owner whose complete visible repository graph is in scope.
+    pub owner: &'static str,
+    /// Stable open-world repository selector.
+    pub repository_glob: &'static str,
+    /// Canonical portfolio source.
+    pub source: &'static str,
+    /// Observation/discovery rule.
+    pub discovery: &'static str,
+    /// Admission rule before a project can contribute executable capability.
+    pub admission: &'static str,
+    /// Planning disposition for discovered projects.
+    pub planning: &'static str,
+    /// Construction disposition after admission.
+    pub construction: &'static str,
+    /// Consequential execution disposition.
+    pub actuation: &'static str,
+    /// Standing visible from this structural contract alone.
+    pub standing: &'static str,
+}
+
 /// Evidence returned after the embedded profile passes its structural guard.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct EcosystemContract {
@@ -41,8 +69,12 @@ pub struct EcosystemContract {
     pub source: &'static str,
     /// BLAKE3 identity of the exact embedded ontology bytes.
     pub ontology_blake3: String,
-    /// Ordered stage labels. Ordering is a contract, not an execution claim.
+    /// Ordered lifecycle labels. Ordering is a contract, not an execution claim.
     pub stages: &'static [&'static str],
+    /// Ordered project-universe labels. These govern portfolio composition.
+    pub project_stages: &'static [&'static str],
+    /// Open owner-wide project scope used by SELECT/planning.
+    pub project_scope: EcosystemProjectScope,
     /// External component identities and ownership boundaries.
     pub systems: &'static [EcosystemSystem],
     /// Explicit authority invariant for consequential external/world changes.
@@ -64,6 +96,20 @@ pub enum EcosystemContractError {
         meaning: &'static str,
     },
 }
+
+/// Complete owner-wide project universe. A newly created repository under the
+/// owner enters discovery automatically without silently entering execution.
+pub const PROJECT_SCOPE: EcosystemProjectScope = EcosystemProjectScope {
+    owner: "seanchatmangpt",
+    repository_glob: "seanchatmangpt/*",
+    source: "https://github.com/seanchatmangpt",
+    discovery: "ALL_VISIBLE_REPOSITORIES",
+    admission: "PROJECT_CONTRACT_REQUIRED",
+    planning: "ELIGIBLE_FOR_SELECT",
+    construction: "ELIGIBLE_AFTER_ADMISSION",
+    actuation: "PROJECT_EXECUTION_UNADMITTED_REFUSED; admitted consequential DO remains BRCE_ONLY",
+    standing: EXTERNAL_STANDING,
+};
 
 /// Canonical externally-owned systems. Praxis composes them; it does not
 /// silently absorb their authority into this crate.
@@ -100,8 +146,8 @@ pub const SYSTEMS: &[EcosystemSystem] = &[
     },
 ];
 
-/// Ordered calculus. A preceding stage passing never implies a later stage
-/// executed or changed state.
+/// Ordered lifecycle calculus. A preceding stage passing never implies a later
+/// stage executed or changed state.
 pub const STAGES: &[&str] = &[
     "OBSERVE",
     "SELECT",
@@ -115,6 +161,10 @@ pub const STAGES: &[&str] = &[
     "REPLAY",
 ];
 
+/// Portfolio calculus used to turn the full repository graph into lawful
+/// capability candidates without ambient authority.
+pub const PROJECT_STAGES: &[&str] = &["DISCOVER_PROJECTS", "ADMIT_PROJECT", "COMPOSE_PROJECT"];
+
 const REQUIRED_MARKERS: &[(&str, &str)] = &[
     (
         "http://www.w3.org/ns/prov#",
@@ -127,6 +177,26 @@ const REQUIRED_MARKERS: &[(&str, &str)] = &[
     (
         "http://www.w3.org/ns/odrl/2/",
         "ODRL carries the BRCE authority policy",
+    ),
+    (
+        "dcterms:identifier \"seanchatmangpt/*\"",
+        "the complete owner-wide project universe is explicit",
+    ),
+    (
+        "rdfs:label \"DISCOVER_PROJECTS\"",
+        "project discovery is separate from admission",
+    ),
+    (
+        "rdfs:label \"ADMIT_PROJECT\"",
+        "project admission is explicit",
+    ),
+    (
+        "rdfs:label \"COMPOSE_PROJECT\"",
+        "project composition is explicit",
+    ),
+    (
+        "No repository is excluded by name from SELECT/planning.",
+        "all observed owner projects remain planning candidates",
     ),
     (
         "https://github.com/seanchatmangpt/ggen",
@@ -165,8 +235,9 @@ const REQUIRED_MARKERS: &[(&str, &str)] = &[
 /// Verify the exact embedded ecosystem profile and return bounded evidence.
 ///
 /// This is a structural admission gate for the composition contract only. It
-/// deliberately does not invoke ggen, Lean, mfact, BRCE, or GymAct, so those
-/// external systems remain `UNKNOWN` until separately executed and receipted.
+/// deliberately does not invoke GitHub discovery, ggen, Lean, mfact, BRCE, or
+/// GymAct, so those external systems remain `UNKNOWN` until separately
+/// observed/executed and receipted.
 pub fn verify_contract() -> Result<EcosystemContract, EcosystemContractError> {
     for &(marker, meaning) in REQUIRED_MARKERS {
         if !ECOSYSTEM_ONTOLOGY.contains(marker) {
@@ -197,12 +268,14 @@ pub fn verify_contract() -> Result<EcosystemContract, EcosystemContractError> {
     }
 
     Ok(EcosystemContract {
-        schema_version: "1.0.0",
+        schema_version: "1.1.0",
         source: "packs/chatman-ecosystem-pack/ontology.ttl",
         ontology_blake3: blake3::hash(ECOSYSTEM_ONTOLOGY.as_bytes())
             .to_hex()
             .to_string(),
         stages: STAGES,
+        project_stages: PROJECT_STAGES,
+        project_scope: PROJECT_SCOPE,
         systems: SYSTEMS,
         actuation_law: "external/world-changing DO requires BRCE authority; zero unreceipted actuation",
         external_standing: EXTERNAL_STANDING,
@@ -211,15 +284,31 @@ pub fn verify_contract() -> Result<EcosystemContract, EcosystemContractError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{verify_contract, EcosystemContractError, EXTERNAL_STANDING, STAGES, SYSTEMS};
+    use super::{
+        verify_contract, EcosystemContractError, EXTERNAL_STANDING, PROJECT_SCOPE, PROJECT_STAGES,
+        STAGES, SYSTEMS,
+    };
 
     #[test]
     fn embedded_profile_preserves_chatman_boundaries() -> Result<(), EcosystemContractError> {
         let contract = verify_contract()?;
         assert_eq!(contract.stages, STAGES);
+        assert_eq!(contract.project_stages, PROJECT_STAGES);
+        assert_eq!(contract.project_scope, PROJECT_SCOPE);
         assert_eq!(contract.systems, SYSTEMS);
         assert_eq!(contract.external_standing, EXTERNAL_STANDING);
         assert_eq!(contract.ontology_blake3.len(), 64);
+        Ok(())
+    }
+
+    #[test]
+    fn project_universe_is_open_owner_wide_and_non_actuating() -> Result<(), EcosystemContractError> {
+        let contract = verify_contract()?;
+        assert_eq!(contract.project_scope.repository_glob, "seanchatmangpt/*");
+        assert_eq!(contract.project_scope.discovery, "ALL_VISIBLE_REPOSITORIES");
+        assert_eq!(contract.project_scope.planning, "ELIGIBLE_FOR_SELECT");
+        assert!(contract.project_scope.actuation.contains("REFUSED"));
+        assert_eq!(contract.project_scope.standing, "UNKNOWN");
         Ok(())
     }
 
