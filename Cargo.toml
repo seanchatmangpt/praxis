@@ -103,7 +103,7 @@ bcinr-pddl = { path = "../bcinr/crates/bcinr-pddl", version = "26.6.26" }
 praxis-synthesis = { path = "crates/praxis-synthesis", version = "26.7.2" }
 bcinr-powl = { path = "../bcinr/crates/bcinr-powl", version = "26.6.25" }
 prolog8 = { path = "../wasm4pm/crates/prolog8", version = "26.7.1" }
-wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat", version = "26.6.29" }
+wasm4pm-compat = { path = "../wasm4pm-compat", version = "26.6.29" }
 # OCEL evidence-log process validation (src/bin/ocel_process_validate.rs):
 # POWL release-loop model + membership, sha256 for the report's log digest,
 # chrono only to parse/emit the OCEL evidence timestamps (evidence time,
@@ -208,29 +208,29 @@ panic = "unwind"
 # (a raw path, same unification requirement as wasm4pm-compat below) --
 # removing this patch would resolve two distinct lsp-max copies wherever
 # both this workspace and bcinr-pddl-lsp are in the same dependency graph.
-lsp-max = { path = "/Users/sac/lsp-max" }
+lsp-max = { path = "../lsp-max" }
 # Required for unification with bcinr-pddl's own hardcoded path dependency
-# on wasm4pm-compat (see /Users/sac/bcinr/crates/bcinr-pddl/Cargo.toml) --
+# on wasm4pm-compat (see ../bcinr/crates/bcinr-pddl/Cargo.toml) --
 # without this, cargo resolves two distinct copies of wasm4pm-compat (one
 # from crates.io, one from bcinr-pddl's path dep) and type-mismatches at
 # any crate boundary crossing both (e.g. tests/indexed_grounding.rs).
-wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat" }
-affidavit = { path = "/Users/sac/affidavit" }
-# Required for unification with praxis-graphlaw's hardcoded path dependency on
+wasm4pm-compat = { path = "../wasm4pm-compat" }
+affidavit = { path = "../affidavit" }
+# Required for unification with praxis-graphlaw's path dependency on
 # bcinr-powl (which depends on bcinr-logic by path): without this, a binary
 # linking BOTH praxis-graphlaw (path bcinr-logic) and a registry bcinr-powl
 # (registry bcinr-logic) — e.g. cng --features bench — carries two copies of
 # bcinr-logic whose #[no_mangle] symbols (aabb_intersect_branchless, ...)
 # collide under the release profile's fat LTO.
-bcinr-logic = { path = "/Users/sac/bcinr/crates/bcinr-logic" }
+bcinr-logic = { path = "../bcinr/crates/bcinr-logic" }
 # Required for unification: cng and multifractal-workflow declare the registry
 # version (`bcinr-pddl = "26.6.26"`, preserving their registry-only
 # publishability surface) while the workspace root and praxis-graphlaw
 # path-depend on the local checkout. Without this patch those are two distinct
-# Cargo SourceIds — edits to /Users/sac/bcinr/crates/bcinr-pddl never reach
+# Cargo SourceIds — edits to ../bcinr/crates/bcinr-pddl never reach
 # cng/multifractal-workflow builds, and types mismatch at crate boundaries
 # crossing both.
-bcinr-pddl = { path = "/Users/sac/bcinr/crates/bcinr-pddl" }
+bcinr-pddl = { path = "../bcinr/crates/bcinr-pddl" }
 
 [workspace]
 resolver = "2"
@@ -253,4 +253,4 @@ members = [
     "audit-tools", "apps/air_core/native/air_core_nif", "crates/mfact-core", 
 ]
 [workspace.metadata.dylint]
-libraries = [{ path = "/Users/sac/chicago-tdd-tools/crates/chicago-lints" }]
+libraries = [{ path = "../chicago-tdd-tools/crates/chicago-lints" }]
