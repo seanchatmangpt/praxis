@@ -1,0 +1,27 @@
+@prefix inv: <https://praxis.chatman.io/innovation#> .
+@prefix demo: <https://praxis.chatman.io/innovation/demo#> .
+
+# Incumbent value system: manual coordination is expensive, low-utility to
+# the buyer, and blocks a noncustomer.  The replacement capability performs
+# the same underlying function deterministically; the fixture therefore
+# gives the law engine enough admitted structure to derive an ERRC
+# elimination opportunity without a strategist or agent.
+demo:manual-coordination a inv:Activity ;
+    inv:costClass inv:High ;
+    inv:buyerUtility inv:Low ;
+    inv:performs demo:route-work .
+
+demo:deterministic-router a inv:Capability ;
+    inv:performs demo:route-work ;
+    inv:mediation inv:Deterministic ;
+    inv:futureIdentity demo:direct-outcome .
+
+demo:noncustomer a inv:Noncustomer ;
+    inv:blockedBy demo:manual-coordination .
+
+# TRIZ contradiction: the incumbent assumes that increasing delivery speed
+# must reduce control.  GraphLaw derives multiple applicable principles and
+# deliberately does not choose between them.
+demo:speed-control a inv:Contradiction ;
+    inv:improvingParameter inv:Speed ;
+    inv:worseningParameter inv:Control .
