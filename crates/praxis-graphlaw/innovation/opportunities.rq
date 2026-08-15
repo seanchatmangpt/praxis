@@ -1,0 +1,6 @@
+PREFIX inv: <https://praxis.chatman.io/innovation#>
+SELECT ?activity
+WHERE {
+  ?activity a inv:EliminateOpportunity .
+}
+ORDER BY ?activity
