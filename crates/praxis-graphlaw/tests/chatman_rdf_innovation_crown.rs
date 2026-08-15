@@ -25,7 +25,7 @@ fn decoded(store: &TripleStore) -> String {
 }
 
 #[test]
-fn crown_derives_blue_ocean_opportunity_and_preserves_triz_alternatives() {
+fn crown_derives_full_errc_and_preserves_triz_alternatives() {
     let mut store = crown_store();
     store
         .materialize()
@@ -33,8 +33,11 @@ fn crown_derives_blue_ocean_opportunity_and_preserves_triz_alternatives() {
     let graph = decoded(&store);
 
     assert!(graph.contains("EliminateOpportunity"));
+    assert!(graph.contains("ReduceOpportunity"));
+    assert!(graph.contains("RaiseOpportunity"));
     assert!(graph.contains("direct-outcome"));
     assert!(graph.contains("CandidateFuture"));
+    assert!(graph.contains("Create"));
     assert!(graph.contains("SeparationInTime"));
     assert!(graph.contains("Intermediary"));
     assert!(
@@ -45,7 +48,11 @@ fn crown_derives_blue_ocean_opportunity_and_preserves_triz_alternatives() {
     let opportunity_rows = store
         .query(OPPORTUNITY_QUERY)
         .expect("SPARQL opportunity discovery must remain executable");
-    assert_eq!(opportunity_rows.len(), 1);
+    assert_eq!(
+        opportunity_rows.len(),
+        4,
+        "the reference crown must expose exactly Eliminate, Reduce, Raise, and Create"
+    );
 
     let denials = store.check_denials();
     assert!(
