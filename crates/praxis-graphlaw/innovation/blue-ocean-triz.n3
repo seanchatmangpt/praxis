@@ -1,9 +1,11 @@
 @prefix inv: <https://praxis.chatman.io/innovation#> .
 
+# GraphLaw's rule IR is deliberately one-head-triple per rule.  Keep every
+# consequence explicit rather than hiding multi-head semantics in parser sugar.
+
 # ---------------------------------------------------------------------------
 # Blue Ocean ERRC: high-cost + low-buyer-utility incumbent activity is an
-# ELIMINATE opportunity.  This is a derivation, not a recommendation from an
-# actor.
+# ELIMINATE opportunity. This is a derivation, not an actor recommendation.
 # ---------------------------------------------------------------------------
 {
   ?activity a inv:Activity .
@@ -11,14 +13,18 @@
   ?activity inv:buyerUtility inv:Low .
 } => {
   ?activity a inv:EliminateOpportunity .
+} .
+
+{
+  ?activity a inv:EliminateOpportunity .
+} => {
   ?activity inv:errcAction inv:Eliminate .
 } .
 
 # ---------------------------------------------------------------------------
-# CREATE: when an eliminated incumbent activity performs a function that a
-# deterministic capability also performs, and that activity blocks a
-# noncustomer, derive the future candidate named by the capability's admitted
-# future identity.  The future has no human or agent mediation by construction.
+# CREATE: deterministic capability substitutes for the same function and the
+# eliminated activity blocks a noncustomer.  Each rule emits one fact into the
+# candidate graph. DfCM preserves the candidate; nothing selects a winner.
 # ---------------------------------------------------------------------------
 {
   ?activity a inv:EliminateOpportunity .
@@ -30,21 +36,81 @@
   ?noncustomer a inv:Noncustomer .
   ?noncustomer inv:blockedBy ?activity .
 } => {
-  ?future a inv:CandidateFuture .
   ?future inv:replaces ?activity .
+} .
+
+{
+  ?activity a inv:EliminateOpportunity .
+  ?activity inv:performs ?function .
+  ?capability a inv:Capability .
+  ?capability inv:performs ?function .
+  ?capability inv:mediation inv:Deterministic .
+  ?capability inv:futureIdentity ?future .
+  ?noncustomer a inv:Noncustomer .
+  ?noncustomer inv:blockedBy ?activity .
+} => {
   ?future inv:uses ?capability .
+} .
+
+{
+  ?activity a inv:EliminateOpportunity .
+  ?activity inv:performs ?function .
+  ?capability a inv:Capability .
+  ?capability inv:performs ?function .
+  ?capability inv:mediation inv:Deterministic .
+  ?capability inv:futureIdentity ?future .
+  ?noncustomer a inv:Noncustomer .
+  ?noncustomer inv:blockedBy ?activity .
+} => {
   ?future inv:serves ?noncustomer .
+} .
+
+# Once a replacement relation exists, the future has enough identity to enter
+# the candidate lattice. The remaining rules manufacture its required facets.
+{
+  ?future inv:replaces ?activity .
+} => {
+  ?future a inv:CandidateFuture .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
   ?future inv:buyerValue inv:Raised .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
   ?future inv:deliveryMechanism inv:Direct .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
   ?future inv:economicExchange inv:OutcomePriced .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
   ?future inv:humanMediation inv:None .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
   ?future inv:agentMediation inv:None .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
   ?future inv:planningFrontier inv:Eligible .
 } .
 
 # ---------------------------------------------------------------------------
-# TRIZ: speed/control contradiction.  DfCM law: derive every applicable
-# principle; do not collapse the candidate space into a selected winner.
+# TRIZ: speed/control contradiction. Derive every applicable principle.
 # ---------------------------------------------------------------------------
 {
   ?contradiction a inv:Contradiction .
@@ -62,10 +128,6 @@
   ?contradiction inv:applicablePrinciple inv:Intermediary .
 } .
 
-# Attach all applicable TRIZ principles to every admitted candidate in this
-# bounded problem instance.  A richer pack can scope principles to explicit
-# contradiction/candidate links; this reference crown keeps the relation small
-# while proving non-selective combinatorial preservation.
 {
   ?future a inv:CandidateFuture .
   ?contradiction a inv:Contradiction .
@@ -75,9 +137,7 @@
 } .
 
 # ---------------------------------------------------------------------------
-# Post-AGI denial: if cognition/agent mediation is declared required while an
-# equivalent deterministic morphism is known, the future is not admissible.
-# Cognition is a fallback, never a privileged architectural primitive.
+# Post-AGI denials. Cognition is a fallback, never a privileged primitive.
 # ---------------------------------------------------------------------------
 {
   ?future a inv:CandidateFuture .
@@ -85,9 +145,6 @@
   ?future inv:hasEquivalentDeterministicMorphism inv:True .
 } => false .
 
-# A candidate cannot claim both zero-agent mediation and required-agent
-# mediation.  GraphLaw is monotonic, so contradictions must be denied rather
-# than silently resolved by deleting one side.
 {
   ?future a inv:CandidateFuture .
   ?future inv:agentMediation inv:None .
