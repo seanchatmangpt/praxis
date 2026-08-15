@@ -1,12 +1,13 @@
 @prefix inv: <https://praxis.chatman.io/innovation#> .
 
-# GraphLaw's rule IR is deliberately one-head-triple per rule.  Keep every
+# GraphLaw's rule IR is deliberately one-head-triple per rule. Keep every
 # consequence explicit rather than hiding multi-head semantics in parser sugar.
 
 # ---------------------------------------------------------------------------
-# Blue Ocean ERRC: high-cost + low-buyer-utility incumbent activity is an
-# ELIMINATE opportunity. This is a derivation, not an actor recommendation.
+# BLUE OCEAN ERRC
 # ---------------------------------------------------------------------------
+
+# ELIMINATE: high cost + low buyer utility.
 {
   ?activity a inv:Activity .
   ?activity inv:costClass inv:High .
@@ -21,11 +22,40 @@
   ?activity inv:errcAction inv:Eliminate .
 } .
 
-# ---------------------------------------------------------------------------
+# REDUCE: high incumbent investment + low buyer utility is an over-service
+# signal. The law identifies the factor; it does not choose a new level.
+{
+  ?factor a inv:ValueFactor .
+  ?factor inv:investmentLevel inv:High .
+  ?factor inv:buyerUtility inv:Low .
+} => {
+  ?factor a inv:ReduceOpportunity .
+} .
+
+{
+  ?factor a inv:ReduceOpportunity .
+} => {
+  ?factor inv:errcAction inv:Reduce .
+} .
+
+# RAISE: high buyer importance + low current performance.
+{
+  ?factor a inv:ValueFactor .
+  ?factor inv:buyerImportance inv:High .
+  ?factor inv:currentPerformance inv:Low .
+} => {
+  ?factor a inv:RaiseOpportunity .
+} .
+
+{
+  ?factor a inv:RaiseOpportunity .
+} => {
+  ?factor inv:errcAction inv:Raise .
+} .
+
 # CREATE: deterministic capability substitutes for the same function and the
-# eliminated activity blocks a noncustomer.  Each rule emits one fact into the
+# eliminated activity blocks a noncustomer. Each rule emits one fact into the
 # candidate graph. DfCM preserves the candidate; nothing selects a winner.
-# ---------------------------------------------------------------------------
 {
   ?activity a inv:EliminateOpportunity .
   ?activity inv:performs ?function .
@@ -71,6 +101,12 @@
   ?future inv:replaces ?activity .
 } => {
   ?future a inv:CandidateFuture .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
+  ?future inv:errcAction inv:Create .
 } .
 
 {
@@ -137,7 +173,7 @@
 } .
 
 # ---------------------------------------------------------------------------
-# Post-AGI denials. Cognition is a fallback, never a privileged primitive.
+# POST-AGI DENIALS. Cognition is a fallback, never a privileged primitive.
 # ---------------------------------------------------------------------------
 {
   ?future a inv:CandidateFuture .
