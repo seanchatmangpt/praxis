@@ -1,6 +1,7 @@
 use praxis_graphlaw::parser::Syntax;
 use praxis_graphlaw::TripleStore;
 
+const PROFILE: &str = include_str!("../innovation/ontology.ttl");
 const INDUSTRY: &str = include_str!("../innovation/industry-fixture.n3");
 const LAWS: &str = include_str!("../innovation/blue-ocean-triz.n3");
 const SHACL: &str = include_str!("../innovation/candidate.shacl.ttl");
@@ -13,7 +14,7 @@ const CANDIDATE: &str = "https://praxis.chatman.io/innovation/demo#direct-outcom
 const CANDIDATE_SHAPE: &str = "https://praxis.chatman.io/innovation#CandidateFutureShape";
 
 fn crown_document() -> String {
-    format!("{INDUSTRY}\n{LAWS}")
+    format!("{PROFILE}\n{INDUSTRY}\n{LAWS}")
 }
 
 fn crown_store() -> TripleStore {
@@ -32,6 +33,7 @@ fn crown_derives_full_errc_and_preserves_triz_alternatives() {
         .expect("innovation law closure must reach a deterministic fixpoint");
     let graph = decoded(&store);
 
+    assert!(graph.contains("Praxis RDF Innovation Law Profile"));
     assert!(graph.contains("EliminateOpportunity"));
     assert!(graph.contains("ReduceOpportunity"));
     assert!(graph.contains("RaiseOpportunity"));
