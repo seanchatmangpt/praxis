@@ -5,10 +5,10 @@ This directory is an executable GraphLaw reference pack for the Post-AGI doctrin
 The pack turns Blue Ocean Strategy and TRIZ into bounded graph-law operations:
 
 ```text
-RDF industry state
+RDF innovation profile + industry state
   -> Datalog/N3 closure
   -> SPARQL opportunity discovery
-  -> Blue Ocean ERRC derivation
+  -> full Blue Ocean ERRC derivation
   -> TRIZ contradiction principles
   -> candidate future RDF graphs
   -> ShEx structural grammar
@@ -19,6 +19,10 @@ RDF industry state
 ```
 
 The crown ends at a reversible planning frontier. It does **not** actuate. Any eventual world transition remains downstream of ggen manufacture and the BRCE/GymAct consequence boundary.
+
+## Semantic boundary
+
+`ontology.ttl` defines the narrow innovation-law profile used by the pack. It composes W3C RDF/RDFS, OWL, SKOS, and Dublin Core Terms for vocabulary identity and controlled concepts. It is not an attempt to replace domain ontologies: real industry graphs align their own activities, capabilities, buyer factors, constraints, and contradictions into these bounded innovation roles.
 
 ## Dialect responsibilities
 
@@ -38,27 +42,29 @@ N3 remains a last-resort rule surface. The reference pack uses simple monotonic 
 
 ## Reference crown
 
-`industry-fixture.n3` models one bounded incumbent contradiction:
+`industry-fixture.n3` models a bounded incumbent value system:
 
-- manual coordination is high cost and low buyer utility;
-- it blocks a noncustomer;
-- a deterministic capability performs the same underlying function;
-- the incumbent assumes increasing speed reduces control.
+- manual coordination is high cost and low buyer utility, so it is an **ELIMINATE** candidate;
+- bespoke reporting is heavily invested in with low buyer utility, so it is a **REDUCE** candidate;
+- verified outcome speed is highly important with low current performance, so it is a **RAISE** candidate;
+- manual coordination blocks a noncustomer while a deterministic capability performs the same function, allowing a **CREATE** future to be derived;
+- the incumbent assumes increasing speed reduces control, creating a TRIZ contradiction.
 
-`blue-ocean-triz.n3` derives:
+`blue-ocean-triz.n3` derives the complete ERRC surface plus:
 
-- an `EliminateOpportunity`;
 - a zero-human/zero-agent `CandidateFuture`;
 - both `SeparationInTime` and `Intermediary` TRIZ principles;
+- all applicable principles preserved on the candidate;
 - no selected winner.
 
-The denial rules refuse a candidate that declares agent mediation required while an equivalent deterministic morphism already exists.
+The denial rules refuse a candidate that declares agent mediation required while an equivalent deterministic morphism already exists, and also refuse contradictory `None` + `Required` agent-mediation state.
 
 `candidate.shacl.ttl` and `candidate.shex.json` independently gate completeness and structural form. `construct-futures.rq` then projects admitted candidates into a PDDL planning frontier.
 
 ## Crown invariants
 
 ```text
+ERRC surface                   = Eliminate + Reduce + Raise + Create
 human selection required      = false
 agent selection required      = false
 LLM inference required        = false
