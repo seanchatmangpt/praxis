@@ -1,5 +1,5 @@
 PREFIX inv: <https://praxis.chatman.io/innovation#>
-SELECT ?activity
+SELECT ?subject ?action
 WHERE {
-  ?activity a inv:EliminateOpportunity .
+  ?subject inv:errcAction ?action .
 }
