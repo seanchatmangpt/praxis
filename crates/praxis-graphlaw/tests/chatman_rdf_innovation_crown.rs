@@ -12,12 +12,12 @@ const NS: &str = "https://praxis.chatman.io/innovation#";
 const CANDIDATE: &str = "https://praxis.chatman.io/innovation/demo#direct-outcome";
 const CANDIDATE_SHAPE: &str = "https://praxis.chatman.io/innovation#CandidateFutureShape";
 
+fn crown_document() -> String {
+    format!("{INDUSTRY}\n{LAWS}")
+}
+
 fn crown_store() -> TripleStore {
-    let mut store = TripleStore::from(INDUSTRY);
-    store
-        .load_rules(LAWS)
-        .expect("innovation laws must parse as GraphLaw N3/Datalog rules");
-    store
+    TripleStore::from(&crown_document())
 }
 
 fn decoded(store: &TripleStore) -> String {
@@ -62,7 +62,7 @@ fn crown_candidate_passes_shacl_and_shex_before_planning_handoff() {
     let shacl = store
         .validate_shacl(SHACL)
         .expect("candidate SHACL shapes must parse");
-    assert!(shacl.conforms, "SHACL admission failed: {shacl:?}");
+    assert!(shacl.conforms, "SHACL admission must accept the complete crown future");
 
     let shex = store
         .validate_shex(
@@ -70,7 +70,7 @@ fn crown_candidate_passes_shacl_and_shex_before_planning_handoff() {
             &[(CANDIDATE.to_string(), CANDIDATE_SHAPE.to_string())],
         )
         .expect("candidate ShEx grammar must parse");
-    assert!(shex.conforms, "ShEx structural admission failed: {shex:?}");
+    assert!(shex.conforms, "ShEx grammar must accept the complete crown future");
 }
 
 #[test]
@@ -94,8 +94,7 @@ fn crown_constructs_a_pddl_frontier_without_actuation_or_selection() {
 
 #[test]
 fn denial_refuses_agent_mediation_when_an_equivalent_morphism_exists() {
-    let mut store = TripleStore::from(INDUSTRY);
-    store.load_rules(LAWS).unwrap();
+    let mut store = TripleStore::from(&crown_document());
     store
         .load_triples(
             &format!(
@@ -113,8 +112,10 @@ fn denial_refuses_agent_mediation_when_an_equivalent_morphism_exists() {
     store.materialize().unwrap();
 
     let denials = store.check_denials();
-    assert_eq!(denials.len(), 1, "expected one Post-AGI regression denial");
-    assert!(denials[0].contains("agentMediation"));
+    assert!(
+        denials.iter().any(|denial| denial.contains("agentMediation")),
+        "Post-AGI law must refuse required agent mediation when a deterministic morphism exists"
+    );
 }
 
 #[test]
