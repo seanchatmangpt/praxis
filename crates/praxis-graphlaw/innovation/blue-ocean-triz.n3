@@ -1,0 +1,95 @@
+@prefix inv: <https://praxis.chatman.io/innovation#> .
+
+# ---------------------------------------------------------------------------
+# Blue Ocean ERRC: high-cost + low-buyer-utility incumbent activity is an
+# ELIMINATE opportunity.  This is a derivation, not a recommendation from an
+# actor.
+# ---------------------------------------------------------------------------
+{
+  ?activity a inv:Activity .
+  ?activity inv:costClass inv:High .
+  ?activity inv:buyerUtility inv:Low .
+} => {
+  ?activity a inv:EliminateOpportunity .
+  ?activity inv:errcAction inv:Eliminate .
+} .
+
+# ---------------------------------------------------------------------------
+# CREATE: when an eliminated incumbent activity performs a function that a
+# deterministic capability also performs, and that activity blocks a
+# noncustomer, derive the future candidate named by the capability's admitted
+# future identity.  The future has no human or agent mediation by construction.
+# ---------------------------------------------------------------------------
+{
+  ?activity a inv:EliminateOpportunity .
+  ?activity inv:performs ?function .
+  ?capability a inv:Capability .
+  ?capability inv:performs ?function .
+  ?capability inv:mediation inv:Deterministic .
+  ?capability inv:futureIdentity ?future .
+  ?noncustomer a inv:Noncustomer .
+  ?noncustomer inv:blockedBy ?activity .
+} => {
+  ?future a inv:CandidateFuture .
+  ?future inv:replaces ?activity .
+  ?future inv:uses ?capability .
+  ?future inv:serves ?noncustomer .
+  ?future inv:buyerValue inv:Raised .
+  ?future inv:deliveryMechanism inv:Direct .
+  ?future inv:economicExchange inv:OutcomePriced .
+  ?future inv:humanMediation inv:None .
+  ?future inv:agentMediation inv:None .
+  ?future inv:planningFrontier inv:Eligible .
+} .
+
+# ---------------------------------------------------------------------------
+# TRIZ: speed/control contradiction.  DfCM law: derive every applicable
+# principle; do not collapse the candidate space into a selected winner.
+# ---------------------------------------------------------------------------
+{
+  ?contradiction a inv:Contradiction .
+  ?contradiction inv:improvingParameter inv:Speed .
+  ?contradiction inv:worseningParameter inv:Control .
+} => {
+  ?contradiction inv:applicablePrinciple inv:SeparationInTime .
+} .
+
+{
+  ?contradiction a inv:Contradiction .
+  ?contradiction inv:improvingParameter inv:Speed .
+  ?contradiction inv:worseningParameter inv:Control .
+} => {
+  ?contradiction inv:applicablePrinciple inv:Intermediary .
+} .
+
+# Attach all applicable TRIZ principles to every admitted candidate in this
+# bounded problem instance.  A richer pack can scope principles to explicit
+# contradiction/candidate links; this reference crown keeps the relation small
+# while proving non-selective combinatorial preservation.
+{
+  ?future a inv:CandidateFuture .
+  ?contradiction a inv:Contradiction .
+  ?contradiction inv:applicablePrinciple ?principle .
+} => {
+  ?future inv:considerPrinciple ?principle .
+} .
+
+# ---------------------------------------------------------------------------
+# Post-AGI denial: if cognition/agent mediation is declared required while an
+# equivalent deterministic morphism is known, the future is not admissible.
+# Cognition is a fallback, never a privileged architectural primitive.
+# ---------------------------------------------------------------------------
+{
+  ?future a inv:CandidateFuture .
+  ?future inv:agentMediation inv:Required .
+  ?future inv:hasEquivalentDeterministicMorphism inv:True .
+} => false .
+
+# A candidate cannot claim both zero-agent mediation and required-agent
+# mediation.  GraphLaw is monotonic, so contradictions must be denied rather
+# than silently resolved by deleting one side.
+{
+  ?future a inv:CandidateFuture .
+  ?future inv:agentMediation inv:None .
+  ?future inv:agentMediation inv:Required .
+} => false .
