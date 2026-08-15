@@ -3,4 +3,3 @@ SELECT ?activity
 WHERE {
   ?activity a inv:EliminateOpportunity .
 }
-ORDER BY ?activity
