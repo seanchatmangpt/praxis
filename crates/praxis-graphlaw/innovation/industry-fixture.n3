@@ -1,0 +1,36 @@
+@prefix inv: <https://praxis.chatman.io/innovation#> .
+@prefix demo: <https://praxis.chatman.io/innovation/demo#> .
+
+# ELIMINATE: manual coordination is expensive, low-utility to the buyer, and
+# blocks a noncustomer. The replacement capability performs the same function
+# deterministically.
+demo:manual-coordination a inv:Activity ;
+    inv:costClass inv:High ;
+    inv:buyerUtility inv:Low ;
+    inv:performs demo:route-work .
+
+# REDUCE: an incumbent value factor is heavily invested in but yields little
+# buyer utility -- classic over-service/red-ocean convergence.
+demo:bespoke-reporting a inv:ValueFactor ;
+    inv:investmentLevel inv:High ;
+    inv:buyerUtility inv:Low .
+
+# RAISE: a factor matters strongly to buyers but current performance is poor.
+demo:verified-outcome-speed a inv:ValueFactor ;
+    inv:buyerImportance inv:High ;
+    inv:currentPerformance inv:Low .
+
+demo:deterministic-router a inv:Capability ;
+    inv:performs demo:route-work ;
+    inv:mediation inv:Deterministic ;
+    inv:futureIdentity demo:direct-outcome .
+
+demo:noncustomer a inv:Noncustomer ;
+    inv:blockedBy demo:manual-coordination .
+
+# TRIZ contradiction: the incumbent assumes that increasing delivery speed
+# must reduce control. GraphLaw derives multiple applicable principles and
+# deliberately does not choose between them.
+demo:speed-control a inv:Contradiction ;
+    inv:improvingParameter inv:Speed ;
+    inv:worseningParameter inv:Control .

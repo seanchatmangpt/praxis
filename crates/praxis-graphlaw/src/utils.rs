@@ -1,4 +1,9 @@
-use crate::{Encoder, Rule, Triple};
+use std::collections::BTreeMap;
+
+use spargebra::Query;
+
+use crate::sparql::evaluate_plan_and_debug;
+use crate::{plan_query_or_refuse, Encoder, Rule, Triple, TripleStore};
 
 pub struct Utils;
 
@@ -47,6 +52,84 @@ impl Utils {
         } else {
             lexical.to_string()
         }
+    }
+}
+
+fn instantiate_construct_component(
+    encoded_pattern: String,
+    row: &[crate::sparql::Binding],
+) -> Result<Option<String>, String> {
+    if encoded_pattern.starts_with("_:") || encoded_pattern.starts_with("[]") {
+        return Err(
+            "SPARQL CONSTRUCT blank node template refused: provide an explicit deterministic identity law"
+                .to_string(),
+        );
+    }
+
+    if let Some(variable) = encoded_pattern.strip_prefix('?') {
+        return Ok(row
+            .iter()
+            .find(|binding| binding.var == variable)
+            .map(|binding| binding.val.clone()));
+    }
+
+    Ok(Some(encoded_pattern))
+}
+
+impl TripleStore {
+    /// Execute SPARQL `CONSTRUCT` as a reversible graph projection.
+    ///
+    /// `query()` historically returned the template-variable bindings for a
+    /// CONSTRUCT but did not instantiate the template. This method closes
+    /// that semantic gap without granting the query any mutation or DO
+    /// authority: it returns a canonical, deduplicated candidate graph and
+    /// leaves the source law state unchanged.
+    ///
+    /// A template triple containing an unbound variable is omitted, matching
+    /// SPARQL CONSTRUCT semantics. Anonymous blank-node templates are refused
+    /// because deterministic identity is a prerequisite for receipts/replay.
+    #[allow(deprecated)]
+    pub fn construct(&self, query_str: &str) -> Result<Vec<Triple>, String> {
+        let query = Query::parse(query_str, None)
+            .map_err(|err| format!("Unable to parse CONSTRUCT query: {}", err))?;
+
+        let template = match &query {
+            Query::Construct { template, .. } => template,
+            _ => {
+                return Err(
+                    "TripleStore::construct requires a SPARQL CONSTRUCT query".to_string(),
+                )
+            }
+        };
+
+        let plan = plan_query_or_refuse(&query, &self.triple_index)?;
+        let rows: Vec<Vec<crate::sparql::Binding>> =
+            evaluate_plan_and_debug(&plan, &self.triple_index).collect();
+
+        let mut canonical = BTreeMap::<String, Triple>::new();
+        for row in &rows {
+            for pattern in template {
+                let Some(subject) =
+                    instantiate_construct_component(pattern.subject.to_string(), row)?
+                else {
+                    continue;
+                };
+                let Some(predicate) =
+                    instantiate_construct_component(pattern.predicate.to_string(), row)?
+                else {
+                    continue;
+                };
+                let Some(object) = instantiate_construct_component(pattern.object.to_string(), row)?
+                else {
+                    continue;
+                };
+
+                let triple = Triple::from(subject, predicate, object);
+                canonical.insert(TripleStore::decode_triple(&triple), triple);
+            }
+        }
+
+        Ok(canonical.into_values().collect())
     }
 }
 

@@ -1,0 +1,42 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix inv: <https://praxis.chatman.io/innovation#> .
+
+# SHACL is the admission gate: a graph that merely calls itself a future is
+# not planning-eligible until it binds the value, delivery, exchange,
+# replacement, served noncustomer, and mediation dimensions required by the
+# Blue Ocean crown.
+inv:CandidateFutureAdmissionShape
+    a sh:NodeShape ;
+    sh:targetClass inv:CandidateFuture ;
+    sh:property [
+        sh:path inv:replaces ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path inv:serves ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path inv:buyerValue ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path inv:deliveryMechanism ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path inv:economicExchange ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path inv:humanMediation ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path inv:agentMediation ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path inv:planningFrontier ;
+        sh:minCount 1 ;
+    ] .

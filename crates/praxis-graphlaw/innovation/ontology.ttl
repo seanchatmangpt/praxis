@@ -1,0 +1,82 @@
+@prefix inv: <https://praxis.chatman.io/innovation#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+<https://praxis.chatman.io/innovation>
+    a owl:Ontology ;
+    dcterms:title "Praxis RDF Innovation Law Profile" ;
+    dcterms:description "Bounded profile vocabulary for expressing Blue Ocean value-curve opportunities, TRIZ contradictions, Post-AGI mediation constraints, and deterministic candidate-future handoff in GraphLaw." .
+
+# Domain-bearing classes. These are profile terms for the innovation law pack,
+# not replacements for external industry ontologies; real industry instances
+# are expected to align their domain classes into these narrow roles.
+inv:Activity a rdfs:Class ; rdfs:label "incumbent activity" .
+inv:ValueFactor a rdfs:Class ; rdfs:label "buyer value factor" .
+inv:Capability a rdfs:Class ; rdfs:label "available capability" .
+inv:Noncustomer a rdfs:Class ; rdfs:label "noncustomer" .
+inv:Contradiction a rdfs:Class ; rdfs:label "TRIZ contradiction" .
+inv:CandidateFuture a rdfs:Class ; rdfs:label "candidate future system" .
+inv:EliminateOpportunity a rdfs:Class ; rdfs:label "ERRC eliminate opportunity" .
+inv:ReduceOpportunity a rdfs:Class ; rdfs:label "ERRC reduce opportunity" .
+inv:RaiseOpportunity a rdfs:Class ; rdfs:label "ERRC raise opportunity" .
+
+# Observation / opportunity predicates.
+inv:costClass a rdf:Property .
+inv:buyerUtility a rdf:Property .
+inv:investmentLevel a rdf:Property .
+inv:buyerImportance a rdf:Property .
+inv:currentPerformance a rdf:Property .
+inv:performs a rdf:Property .
+inv:mediation a rdf:Property .
+inv:futureIdentity a rdf:Property .
+inv:blockedBy a rdf:Property .
+inv:errcAction a rdf:Property .
+
+# Candidate-future predicates.
+inv:replaces a rdf:Property .
+inv:uses a rdf:Property .
+inv:serves a rdf:Property .
+inv:buyerValue a rdf:Property .
+inv:deliveryMechanism a rdf:Property .
+inv:economicExchange a rdf:Property .
+inv:humanMediation a rdf:Property .
+inv:agentMediation a rdf:Property .
+inv:planningFrontier a rdf:Property .
+inv:handoff a rdf:Property .
+inv:standing a rdf:Property .
+inv:hasEquivalentDeterministicMorphism a rdf:Property .
+
+# TRIZ predicates.
+inv:improvingParameter a rdf:Property .
+inv:worseningParameter a rdf:Property .
+inv:applicablePrinciple a rdf:Property .
+inv:considerPrinciple a rdf:Property .
+
+# Controlled concepts used by the bounded reference crown.
+inv:ErrcActionScheme a skos:ConceptScheme ; skos:prefLabel "Blue Ocean ERRC actions" .
+inv:Eliminate a skos:Concept ; skos:inScheme inv:ErrcActionScheme .
+inv:Reduce a skos:Concept ; skos:inScheme inv:ErrcActionScheme .
+inv:Raise a skos:Concept ; skos:inScheme inv:ErrcActionScheme .
+inv:Create a skos:Concept ; skos:inScheme inv:ErrcActionScheme .
+
+inv:TrizPrincipleScheme a skos:ConceptScheme ; skos:prefLabel "TRIZ principles used by the reference crown" .
+inv:SeparationInTime a skos:Concept ; skos:inScheme inv:TrizPrincipleScheme .
+inv:Intermediary a skos:Concept ; skos:inScheme inv:TrizPrincipleScheme .
+
+inv:High a skos:Concept .
+inv:Low a skos:Concept .
+inv:Speed a skos:Concept .
+inv:Control a skos:Concept .
+inv:Deterministic a skos:Concept .
+inv:None a skos:Concept .
+inv:Required a skos:Concept .
+inv:True a skos:Concept .
+inv:Eligible a skos:Concept .
+inv:Raised a skos:Concept .
+inv:Direct a skos:Concept .
+inv:OutcomePriced a skos:Concept .
+inv:PDDL a skos:Concept .
+inv:AdmittedCandidate a skos:Concept .

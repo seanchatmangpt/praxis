@@ -1,0 +1,188 @@
+@prefix inv: <https://praxis.chatman.io/innovation#> .
+
+# GraphLaw's rule IR is deliberately one-head-triple per rule. Keep every
+# consequence explicit rather than hiding multi-head semantics in parser sugar.
+
+# ---------------------------------------------------------------------------
+# BLUE OCEAN ERRC
+# ---------------------------------------------------------------------------
+
+# ELIMINATE: high cost + low buyer utility.
+{
+  ?activity a inv:Activity .
+  ?activity inv:costClass inv:High .
+  ?activity inv:buyerUtility inv:Low .
+} => {
+  ?activity a inv:EliminateOpportunity .
+} .
+
+{
+  ?activity a inv:EliminateOpportunity .
+} => {
+  ?activity inv:errcAction inv:Eliminate .
+} .
+
+# REDUCE: high incumbent investment + low buyer utility is an over-service
+# signal. The law identifies the factor; it does not choose a new level.
+{
+  ?factor a inv:ValueFactor .
+  ?factor inv:investmentLevel inv:High .
+  ?factor inv:buyerUtility inv:Low .
+} => {
+  ?factor a inv:ReduceOpportunity .
+} .
+
+{
+  ?factor a inv:ReduceOpportunity .
+} => {
+  ?factor inv:errcAction inv:Reduce .
+} .
+
+# RAISE: high buyer importance + low current performance.
+{
+  ?factor a inv:ValueFactor .
+  ?factor inv:buyerImportance inv:High .
+  ?factor inv:currentPerformance inv:Low .
+} => {
+  ?factor a inv:RaiseOpportunity .
+} .
+
+{
+  ?factor a inv:RaiseOpportunity .
+} => {
+  ?factor inv:errcAction inv:Raise .
+} .
+
+# CREATE: deterministic capability substitutes for the same function and the
+# eliminated activity blocks a noncustomer. Each rule emits one fact into the
+# candidate graph. DfCM preserves the candidate; nothing selects a winner.
+{
+  ?activity a inv:EliminateOpportunity .
+  ?activity inv:performs ?function .
+  ?capability a inv:Capability .
+  ?capability inv:performs ?function .
+  ?capability inv:mediation inv:Deterministic .
+  ?capability inv:futureIdentity ?future .
+  ?noncustomer a inv:Noncustomer .
+  ?noncustomer inv:blockedBy ?activity .
+} => {
+  ?future inv:replaces ?activity .
+} .
+
+{
+  ?activity a inv:EliminateOpportunity .
+  ?activity inv:performs ?function .
+  ?capability a inv:Capability .
+  ?capability inv:performs ?function .
+  ?capability inv:mediation inv:Deterministic .
+  ?capability inv:futureIdentity ?future .
+  ?noncustomer a inv:Noncustomer .
+  ?noncustomer inv:blockedBy ?activity .
+} => {
+  ?future inv:uses ?capability .
+} .
+
+{
+  ?activity a inv:EliminateOpportunity .
+  ?activity inv:performs ?function .
+  ?capability a inv:Capability .
+  ?capability inv:performs ?function .
+  ?capability inv:mediation inv:Deterministic .
+  ?capability inv:futureIdentity ?future .
+  ?noncustomer a inv:Noncustomer .
+  ?noncustomer inv:blockedBy ?activity .
+} => {
+  ?future inv:serves ?noncustomer .
+} .
+
+# Once a replacement relation exists, the future has enough identity to enter
+# the candidate lattice. The remaining rules manufacture its required facets.
+{
+  ?future inv:replaces ?activity .
+} => {
+  ?future a inv:CandidateFuture .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
+  ?future inv:errcAction inv:Create .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
+  ?future inv:buyerValue inv:Raised .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
+  ?future inv:deliveryMechanism inv:Direct .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
+  ?future inv:economicExchange inv:OutcomePriced .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
+  ?future inv:humanMediation inv:None .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
+  ?future inv:agentMediation inv:None .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+} => {
+  ?future inv:planningFrontier inv:Eligible .
+} .
+
+# ---------------------------------------------------------------------------
+# TRIZ: speed/control contradiction. Derive every applicable principle.
+# ---------------------------------------------------------------------------
+{
+  ?contradiction a inv:Contradiction .
+  ?contradiction inv:improvingParameter inv:Speed .
+  ?contradiction inv:worseningParameter inv:Control .
+} => {
+  ?contradiction inv:applicablePrinciple inv:SeparationInTime .
+} .
+
+{
+  ?contradiction a inv:Contradiction .
+  ?contradiction inv:improvingParameter inv:Speed .
+  ?contradiction inv:worseningParameter inv:Control .
+} => {
+  ?contradiction inv:applicablePrinciple inv:Intermediary .
+} .
+
+{
+  ?future a inv:CandidateFuture .
+  ?contradiction a inv:Contradiction .
+  ?contradiction inv:applicablePrinciple ?principle .
+} => {
+  ?future inv:considerPrinciple ?principle .
+} .
+
+# ---------------------------------------------------------------------------
+# POST-AGI DENIALS. Cognition is a fallback, never a privileged primitive.
+# ---------------------------------------------------------------------------
+{
+  ?future a inv:CandidateFuture .
+  ?future inv:agentMediation inv:Required .
+  ?future inv:hasEquivalentDeterministicMorphism inv:True .
+} => false .
+
+{
+  ?future a inv:CandidateFuture .
+  ?future inv:agentMediation inv:None .
+  ?future inv:agentMediation inv:Required .
+} => false .
