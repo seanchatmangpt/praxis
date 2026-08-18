@@ -6,6 +6,7 @@
 pub mod config;
 pub mod doctor;
 pub mod dod;
+pub mod ecosystem;
 pub mod example;
 pub mod frontier;
 pub mod law;

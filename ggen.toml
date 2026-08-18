@@ -17,6 +17,7 @@ law    = "http://seanchatmangpt.github.io/praxis/law#"
 wasm4pm-facts-pack = { path = "packs/wasm4pm-facts-pack" }
 standing-pack = { path = "../cargo-cicd/plugins/cargo-cicd-kit/standing-pack", lock = false }
 chatman-engine-pack = { path = "packs/chatman-engine-pack" }
+chatman-ecosystem-pack = { path = "packs/chatman-ecosystem-pack" }
 otel-weaver-pack = { path = "packs/otel-weaver-pack" }
 ocel-bench-pack = { path = "packs/ocel-bench-pack", extra_ontologies = ["crates/praxis-graphlaw/ontologies/core/ocel2.ttl", "crates/praxis-graphlaw/ontologies/core/bench-obs.ttl"] }
 arazzo-pack = { path = "packs/arazzo-pack", extra_ontologies = ["crates/cng/ontologies/arazzo.ttl", "crates/cng/examples/arazzo-api-orchestration.ttl"] }

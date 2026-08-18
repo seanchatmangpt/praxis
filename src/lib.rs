@@ -13,6 +13,8 @@
 pub mod chain;
 pub mod cli;
 pub mod config;
+/// Public-ontology composition contract for the externally-owned Chatman ecosystem.
+pub mod ecosystem;
 pub mod error;
 pub mod ops;
 pub mod types;

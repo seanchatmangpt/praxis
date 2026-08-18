@@ -1,0 +1,12 @@
+name: Setup Chatman ecosystem
+description: Materialize the exact-pinned external source graph required by Praxis
+
+runs:
+  using: composite
+  steps:
+    - name: Materialize pinned Chatman sources
+      shell: bash
+      run: >-
+        python3 "$GITHUB_WORKSPACE/scripts/materialize-chatman-ecosystem.py"
+        --workspace "$GITHUB_WORKSPACE"
+        --report "$RUNNER_TEMP/praxis-chatman-ecosystem.json"

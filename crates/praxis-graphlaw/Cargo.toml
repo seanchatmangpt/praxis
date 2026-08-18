@@ -36,13 +36,13 @@ smallvec = { version = "1", features = ["serde"] }
 fixedbitset = "0.5"
 oxigraph = { version = "0.5.9", features = ["rdf-12"] }
 powl2-decompose = { path = "../powl2-decompose" }
-bcinr-pddl = { path = "/Users/sac/bcinr/crates/bcinr-pddl" }
-bcinr-powl = { path = "/Users/sac/bcinr/crates/bcinr-powl" }
-bcinr-powl-receipt = { path = "/Users/sac/bcinr/crates/bcinr-powl-receipt" }
+bcinr-pddl = { path = "../../../bcinr/crates/bcinr-pddl" }
+bcinr-powl = { path = "../../../bcinr/crates/bcinr-powl" }
+bcinr-powl-receipt = { path = "../../../bcinr/crates/bcinr-powl-receipt" }
 thiserror = "2"
 # compat owns receipt identity; all chatman hashing routes through wasm4pm_compat::hash.
-wasm4pm-compat = { path = "/Users/sac/wasm4pm-compat", version = "26.6.29" }
-wasm4pm-cognition = { path = "/Users/sac/wasm4pm/crates/wasm4pm-cognition", optional = true }
+wasm4pm-compat = { path = "../../../wasm4pm-compat", version = "26.6.29" }
+wasm4pm-cognition = { path = "../../../wasm4pm/crates/wasm4pm-cognition", optional = true }
 
 [features]
 cognition = ["dep:wasm4pm-cognition"]
@@ -90,7 +90,7 @@ proptest = "1.5"
 # Required for chicago_tdd_tools::async_test! (expands to #[tokio::test]).
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 # otel/weaver features left OFF: they drag network deps into the required build.
-chicago-tdd-tools = { path = "/Users/sac/chicago-tdd-tools", features = [
+chicago-tdd-tools = { path = "../../../chicago-tdd-tools", features = [
     "property-testing",
     "snapshot-testing",
     "parameterized-testing",

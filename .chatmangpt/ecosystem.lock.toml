@@ -1,0 +1,67 @@
+version = 1
+
+# Source identity for the external repositories required to resolve Praxis's
+# current Cargo path graph. Presence is not standing; every entry remains
+# UNKNOWN until its own verifier is executed against this exact source.
+
+[[repository]]
+name = "bcinr"
+url = "https://github.com/seanchatmangpt/bcinr.git"
+sha = "a4098445807ee8f98ccca190ec05458c2d685043"
+standing = "UNKNOWN"
+required_paths = [
+  "crates/bcinr-logic/Cargo.toml",
+  "crates/bcinr-pddl/Cargo.toml",
+  "crates/bcinr-powl/Cargo.toml",
+  "crates/bcinr-powl-receipt/Cargo.toml",
+]
+
+[[repository]]
+name = "wasm4pm"
+url = "https://github.com/seanchatmangpt/wasm4pm.git"
+sha = "b7ebccb53b1249d45d2472f7754c997982b2f1b7"
+standing = "UNKNOWN"
+required_paths = [
+  "crates/prolog8/Cargo.toml",
+  "crates/wasm4pm-cognition/Cargo.toml",
+  "crates/wasm4pm-planner/Cargo.toml",
+]
+
+[[repository]]
+name = "wasm4pm-compat"
+url = "https://github.com/seanchatmangpt/wasm4pm-compat.git"
+sha = "1d04337818d409160026b69c6917430267cf073a"
+standing = "UNKNOWN"
+required_paths = ["Cargo.toml"]
+
+[[repository]]
+name = "ggen"
+url = "https://github.com/seanchatmangpt/ggen.git"
+sha = "68d3c256082d1d0e3edf3164d9897a6848590885"
+standing = "UNKNOWN"
+required_paths = [
+  "Cargo.toml",
+  "crates/ggen-core/Cargo.toml",
+  "crates/ggen-graph/Cargo.toml",
+]
+
+[[repository]]
+name = "lsp-max"
+url = "https://github.com/seanchatmangpt/lsp-max.git"
+sha = "2bc341561312b81c3b6d1b4585e82e0cd524b839"
+standing = "UNKNOWN"
+required_paths = ["Cargo.toml"]
+
+[[repository]]
+name = "chicago-tdd-tools"
+url = "https://github.com/seanchatmangpt/chicago-tdd-tools.git"
+sha = "9420e9f55dd29a2ea2c6355c4b55db8b2a6a0a38"
+standing = "UNKNOWN"
+required_paths = ["Cargo.toml", "crates/chicago-lints/Cargo.toml"]
+
+[[repository]]
+name = "affidavit"
+url = "https://github.com/seanchatmangpt/affidavit.git"
+sha = "383b41dc9c587f8a8a90fe280b9621ec55701a2c"
+standing = "UNKNOWN"
+required_paths = ["Cargo.toml"]

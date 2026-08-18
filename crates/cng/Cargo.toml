@@ -48,7 +48,7 @@ praxis-graphlaw = { path = "../praxis-graphlaw", optional = true }
 # these dependencies participate in the build, so `cargo publish --dry-run`
 # of the default surface is unaffected. The opentelemetry crates are
 # registry-published; the path dep is the sole exception.
-chicago-tdd-tools = { path = "/Users/sac/chicago-tdd-tools", features = ["weaver"], optional = true }
+chicago-tdd-tools = { path = "../../../chicago-tdd-tools", features = ["weaver"], optional = true }
 opentelemetry = { version = "0.31", optional = true, default-features = false, features = ["trace"] }
 opentelemetry_sdk = { version = "0.31", optional = true, default-features = false, features = ["trace"] }
 opentelemetry-otlp = { version = "0.31", optional = true, default-features = false, features = ["grpc-tonic", "trace"] }
@@ -93,7 +93,7 @@ path = "src/bin/otel-rdf-demo.rs"
 # `weaver` + `otel` features are what `weaver_test!` requires
 # (chicago-tdd-tools/src/core/macros/weaver_test.rs gates on both).
 [dev-dependencies]
-chicago-tdd-tools = { path = "/Users/sac/chicago-tdd-tools", features = ["weaver", "otel"] }
+chicago-tdd-tools = { path = "../../../chicago-tdd-tools", features = ["weaver", "otel"] }
 # SOC2 Stage 3 (v26.7.13, continuous re-evidencing / quarterly re-testing,
 # `bench::soc2_growth`) consumes F09 "MFW Growth Operator"
 # (`f09_mfw_growth::{resolve_continuation_goal, plan_growth,
