@@ -785,7 +785,7 @@ impl IdempotencyLedger {
 }
 
 /// L6/L8: replays a recorded lawful transition history through
-/// [`bcinr_powl_receipt::replay::PowlReplayVerifier`] and returns the real
+/// [`bcinr_powl::receipt::replay::PowlReplayVerifier`] and returns the real
 /// conformance metrics, or the first violation encountered. A lawful,
 /// in-order Capability Roadmap chain (`WorkMeasured -> ... ->
 /// RoadmapEmitted`) replays to `fitness == 0x0001_0000` (1.0, Q16.16),
@@ -801,10 +801,10 @@ impl IdempotencyLedger {
 pub fn replay_capability_roadmap_chain(
     transitions: &[(LifecycleState, LifecycleState)],
 ) -> Result<
-    bcinr_powl_receipt::conformance::ConformanceMetrics,
-    bcinr_powl_receipt::replay::ReplayViolation,
+    bcinr_powl::receipt::conformance::ConformanceMetrics,
+    bcinr_powl::receipt::replay::ReplayViolation,
 > {
-    use bcinr_powl_receipt::replay::{PowlReplayFrame, PowlReplayVerifier};
+    use bcinr_powl::receipt::replay::{PowlReplayFrame, PowlReplayVerifier};
     let mut verifier = PowlReplayVerifier::new(LifecycleState::WorkMeasured.token_bit());
     for (idx, (from, to)) in transitions.iter().enumerate() {
         let frame = PowlReplayFrame {
@@ -837,7 +837,7 @@ pub fn replay_capability_roadmap_chain(
 pub fn verify_receipt_head(
     transitions: &[(LifecycleState, LifecycleState)],
     receipt: &Receipt,
-) -> Result<bcinr_powl_receipt::conformance::ConformanceMetrics, CapabilityRoadmapRefused> {
+) -> Result<bcinr_powl::receipt::conformance::ConformanceMetrics, CapabilityRoadmapRefused> {
     let metrics = replay_capability_roadmap_chain(transitions).map_err(|violation| {
         CapabilityRoadmapRefused::ReplayEquivalenceFailed {
             reason: format!("{violation:?}"),
@@ -1300,7 +1300,7 @@ mod tests {
         let result = replay_capability_roadmap_chain(&transitions);
         assert!(matches!(
             result,
-            Err(bcinr_powl_receipt::replay::ReplayViolation::TokenNotEnabled { .. })
+            Err(bcinr_powl::receipt::replay::ReplayViolation::TokenNotEnabled { .. })
         ));
     }
 

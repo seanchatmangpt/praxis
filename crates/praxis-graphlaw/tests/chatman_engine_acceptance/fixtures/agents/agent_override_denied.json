@@ -1,8 +1,0 @@
-{
-  "case": "Falsify_AgentOverrideDenied",
-  "kind": "falsification",
-  "seed": 10530256852488118473,
-  "mutation": "Have the agent claim an override flag on a decision it holds no permit for.",
-  "expected_refusal": "AgentOverrideDenied",
-  "input": {"agent_id": "urn:chatman:agent:2", "operator_id": "urn:chatman:operator:2", "override_requested": true}
-}

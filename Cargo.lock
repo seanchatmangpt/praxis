@@ -418,9 +418,17 @@ name = "bcinr-logic"
 version = "26.6.24"
 
 [[package]]
+name = "bcinr-mfw-ir"
+version = "26.6.26"
+dependencies = [
+ "blake3",
+]
+
+[[package]]
 name = "bcinr-pddl"
 version = "26.6.26"
 dependencies = [
+ "bcinr-mfw-ir",
  "blake3",
  "chrono",
  "pddl",
@@ -435,6 +443,7 @@ name = "bcinr-powl"
 version = "26.6.25"
 dependencies = [
  "bcinr-logic",
+ "bcinr-mfw-ir",
  "blake3",
  "wasm4pm-compat",
 ]
@@ -455,6 +464,7 @@ name = "bcinr-powl-receipt"
 version = "26.6.24"
 dependencies = [
  "bcinr-logic",
+ "bcinr-mfw-ir",
  "bcinr-powl 26.6.25",
  "blake3",
  "serde",

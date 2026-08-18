@@ -30,6 +30,20 @@ f26-ontology-self-play-pack = { path = "packs/f26-ontology-self-play-pack" }
 togaf-adm-pack = { path = "packs/togaf-adm-pack", extra_ontologies = ["crates/cng/ontologies/pddl-strips.ttl"] }
 code-modernization-pack = { path = "packs/code-modernization-pack", extra_ontologies = ["packs/code-modernization-pack/instances.ttl"] }
 combinatorial-maximalism-pack = { path = "packs/combinatorial-maximalism-pack", extra_ontologies = ["packs/combinatorial-maximalism-pack/core-instances.ttl", "packs/combinatorial-maximalism-pack/internal-lattice.ttl", "packs/combinatorial-maximalism-pack/external-lattice.ttl", "packs/combinatorial-maximalism-pack/packs-passports.ttl", "packs/combinatorial-maximalism-pack/gall.ttl"] }
+f01-standing-algebra-pack = { path = "packs/f01-standing-algebra-pack" }
+f04-dialect-registry-pack = { path = "packs/f04-dialect-registry-pack" }
+f09-mfw-growth-pack = { path = "packs/f09-mfw-growth-pack" }
+f15-air-core-pack = { path = "packs/f15-air-core-pack" }
+f16-otp-runner-pack = { path = "packs/f16-otp-runner-pack" }
+f18-broker-law-pack = { path = "packs/f18-broker-law-pack" }
+f19-hooks-pack = { path = "packs/f19-hooks-pack" }
+f22-recovery-pack = { path = "packs/f22-recovery-pack" }
+f27-western-electric-pack = { path = "packs/f27-western-electric-pack" }
+f29-capability-roadmap-pack = { path = "packs/f29-capability-roadmap-pack" }
+f30-ggen-release-state-pack = { path = "packs/f30-ggen-release-state-pack" }
+azure-terraform-pack = { path = "packs/azure-terraform-pack" }
+dry-run-publish-pack = { path = "packs/dry-run-publish-pack" }
+soc2-audit-pack = { path = "packs/soc2-audit-pack" }
 
 [law]
 rules = ["ontology/rules/breed_standing.n3"]

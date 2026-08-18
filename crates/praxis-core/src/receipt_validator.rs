@@ -7,8 +7,21 @@
 //!
 //! Stages, in order: `schema`, `chain_recompute` (tamper detection),
 //! `chain_linkage`, `monotonic` (uses an injectable [`Clock`] so "not in the
-//! future" checks are deterministic in tests), and `token_replay` (POWL
-//! lifecycle conformance via [`crate::replay_adapter`]).
+//! future" checks are deterministic in tests), and `token_replay`.
+//!
+//! `token_replay`'s real scope, precisely (do not read it as detecting an
+//! out-of-order or malformed lifecycle): it replays the fixed, canonical
+//! `Judged -> Admitted -> Receipted` sequence via
+//! [`crate::replay_adapter::replay_receipt_lifecycle`] as a conformance
+//! sanity check on the replay *model itself* -- receipts only exist for
+//! objects that already passed judge+admit by construction, so there is no
+//! persisted judge/admit event for this stage to reorder against, and it
+//! cannot fail on any syntactically valid `ReceiptRecord`. It is not a
+//! per-record tamper detector; that role belongs to `chain_recompute` and
+//! `chain_linkage` above, which are genuinely independent recompute-and-
+//! compare checks. A real negative case for the replay primitive itself is
+//! exercised directly via `replay_lifecycle` in `replay_adapter`'s own
+//! tests, never through this stage.
 
 use std::time::{SystemTime, UNIX_EPOCH};
 

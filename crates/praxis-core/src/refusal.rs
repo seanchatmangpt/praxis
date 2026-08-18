@@ -9,7 +9,7 @@
 //! real blocker for depending on it. Only the taxonomy pattern (category
 //! buckets + a closed enum of concrete refusal scenarios, each mapping to
 //! exactly one bucket) is ported here, reimplemented from scratch against
-//! praxis's own [`crate::law::Obligation`] and `bcinr_powl_receipt`'s
+//! praxis's own [`crate::law::Obligation`] and `bcinr_powl::receipt`'s
 //! `DenialPolarity` lanes rather than stpnt's stewardship domain.
 //!
 //! # What maps to what
@@ -32,7 +32,7 @@
 //! (e.g. a composed multi-lane value), which is covered by a dedicated test
 //! rather than the type system.
 
-use bcinr_powl_receipt::denial::DenialPolarity;
+use bcinr_powl::receipt::denial::DenialPolarity;
 use serde::{Deserialize, Serialize};
 
 use crate::law::Obligation;
@@ -98,7 +98,7 @@ pub enum RefusalScenario {
         predicate_id: String,
     },
 
-    // ── DenialPolarity lanes (bcinr_powl_receipt, non-ADMITTED) ─────────
+    // ── DenialPolarity lanes (bcinr_powl::receipt, non-ADMITTED) ─────────
     /// `DenialPolarity::WATCHDOG_DRAINED`.
     WatchdogDrained,
     /// `DenialPolarity::PRECONDITION_FAILED`.

@@ -38,10 +38,12 @@ oxigraph = { version = "0.5.9", features = ["rdf-12"] }
 powl2-decompose = { path = "../powl2-decompose" }
 bcinr-pddl = { path = "../../../bcinr/crates/bcinr-pddl", version = "26.6.26" }
 bcinr-powl = { path = "../../../bcinr/crates/bcinr-powl", version = "26.6.25" }
-bcinr-powl-receipt = { path = "../../../bcinr/crates/bcinr-powl-receipt", version = "26.6.24" }
 thiserror = "2"
 # compat owns receipt identity; all chatman hashing routes through wasm4pm_compat::hash.
-wasm4pm-compat = { path = "../../../wasm4pm-compat", version = "26.6.29" }
+# Registry version (not a local path) so this resolves to the SAME crate instance as
+# bcinr-pddl's wasm4pm-compat dependency -- a path dep here creates a second, incompatible
+# copy of Pddl8GroundAtom/OCEL types even at an identical version string.
+wasm4pm-compat = { version = "26.6.29" }
 wasm4pm-cognition = { path = "../../../wasm4pm/crates/wasm4pm-cognition", optional = true }
 
 [features]

@@ -13,7 +13,7 @@
 //! 4. **S4 admit_powl_trace** — read the OCEL trace from the snapshot,
 //!    validate it structurally (`wasm4pm_compat` core OCEL), check tape
 //!    conformance (`bcinr_powl`), chain causal frames and replay tokens
-//!    (`bcinr_powl_receipt`); any violation refuses with
+//!    (`bcinr_powl::receipt`); any violation refuses with
 //!    [`Refusal::TraceUnlawful`].
 //! 5. **S5 trigger_knowledge_hooks** — hook receipts from the S2
 //!    materialization become sealed [`BoundaryRequest`]s (not constructible
@@ -25,7 +25,7 @@
 //! No wall clock participates anywhere: OCEL time is the logical `at_ns`
 //! tick carried by the snapshot itself, and every hash routes through
 //! `wasm4pm_compat::hash` (compat owns hash identity) or a substrate crate's
-//! own BLAKE3 chain (`bcinr_powl_receipt`).
+//! own BLAKE3 chain (`bcinr_powl::receipt`).
 //!
 //! ## Deviations from the lane sketch (bridged, not stubbed)
 //! - `rdf-12` is **not** enabled anywhere in this workspace's feature graph
@@ -60,9 +60,9 @@ use bcinr_pddl::parse::{domain_from_pddl, problem_from_pddl};
 use bcinr_pddl::{Pddl8Domain, Pddl8Problem, Pddl8Tape, TemporalPlan};
 use bcinr_powl::ocel::{validate_against_tape, ConformanceResult, OcelLog as PowlOcelLog};
 use bcinr_powl::tape::{OpKind, PowlTape};
-use bcinr_powl_receipt::causal_receipt::{OcelCausalFrame, OcelCausalReceipt, PackedObjRef};
-use bcinr_powl_receipt::denial::DenialPolarity;
-use bcinr_powl_receipt::replay::{PowlReplayFrame, PowlReplayVerifier};
+use bcinr_powl::receipt::causal_receipt::{OcelCausalFrame, OcelCausalReceipt, PackedObjRef};
+use bcinr_powl::receipt::denial::DenialPolarity;
+use bcinr_powl::receipt::replay::{PowlReplayFrame, PowlReplayVerifier};
 use wasm4pm_compat::hash::blake3_combined;
 use wasm4pm_compat::ocel::{EventObjectLink, Object, ObjectChange, ObjectObjectLink, OcelEvent};
 
@@ -112,6 +112,7 @@ const EXTERNAL_CUT_DIGEST_TAG: &str = "chatman/engine/external-cut/v1";
 impl From<Pddl8Error> for Refusal {
     fn from(err: Pddl8Error) -> Self {
         match &err {
+            Pddl8Error::PlanningFailed(_) => Refusal::PlanInfeasible(format!("PlanningFailed: {err}")),
             Pddl8Error::ParseError(_) => Refusal::ValidationFailed(format!("ParseError: {err}")),
             Pddl8Error::BoundExceeded { .. } => {
                 Refusal::ValidationFailed(format!("BoundExceeded: {err}"))
@@ -131,6 +132,18 @@ impl From<Pddl8Error> for Refusal {
             }
             Pddl8Error::InvalidCaseId(_) => {
                 Refusal::ValidationFailed(format!("InvalidCaseId: {err}"))
+            }
+            Pddl8Error::NumericError { .. } => {
+                Refusal::ValidationFailed(format!("NumericError: {err}"))
+            }
+            Pddl8Error::UnsupportedTrajectoryConstraint(_) => {
+                Refusal::ValidationFailed(format!("UnsupportedTrajectoryConstraint: {err}"))
+            }
+            // Refusal, not infeasibility: bcinr declines to resolve `(= ?duration (f))`
+            // at grounding time rather than silently resolving it to 0.0. The domain is
+            // rejected as unsupported, so no plan was ever attempted.
+            Pddl8Error::FluentValuedDurationUnsupported { .. } => {
+                Refusal::ValidationFailed(format!("FluentValuedDurationUnsupported: {err}"))
             }
         }
     }
@@ -1393,7 +1406,7 @@ impl ChatmanEngine {
         let domain = domain_from_pddl(&domain_text)?;
         let problem = problem_from_pddl(&problem_text)?;
         let ground = GroundTemporalProblem::build(&domain, &problem)?;
-        let plan = ground.find_temporal_plan()?;
+        let plan = ground.find_temporal_plan().into_result().map_err(Pddl8Error::PlanningFailed)?;
         Ok(plan)
     }
 
@@ -1448,7 +1461,7 @@ impl ChatmanEngine {
         }
         let (domain, problem) = merge_pddl_fragments(domains, problems)?;
         let ground = GroundProblem::build(&domain, &problem, None)?;
-        let tape = ground.find_plan()?;
+        let tape = ground.find_plan().into_result().map_err(Pddl8Error::PlanningFailed)?;
         Ok(tape)
     }
 
@@ -1485,7 +1498,7 @@ impl ChatmanEngine {
         let domain = domain_from_pddl(&domain_text)?;
         let problem = problem_from_pddl(&problem_text)?;
         let ground = GroundProblem::build(&domain, &problem, None)?;
-        let tape = ground.find_plan()?;
+        let tape = ground.find_plan().into_result().map_err(Pddl8Error::PlanningFailed)?;
         let digest = tape_digest(&tape);
         Ok((tape, digest))
     }
@@ -1599,7 +1612,7 @@ impl ChatmanEngine {
                 ))
             })?;
             fired_mask |= bit;
-            plog.record_op_fired(doc.run_id, ev.op_index, 0)
+            plog.record_op_fired(doc.run_id, ev.op_index, ev.at_ns as u32, 0)
                 .map_err(|e| {
                     Refusal::TraceUnlawful(format!(
                         "event {}: POWL OCEL log refused the record: {e:?}",
@@ -1608,7 +1621,8 @@ impl ChatmanEngine {
                 })?;
         }
         if doc.sealed {
-            plog.record_run_sealed(doc.run_id, fired_mask)
+            let seal_time = doc.events.last().map(|ev| ev.at_ns as u32).unwrap_or(0);
+            plog.record_run_sealed(doc.run_id, fired_mask, seal_time)
                 .map_err(|e| {
                     Refusal::TraceUnlawful(format!(
                         "run {}: POWL OCEL log refused the seal: {e:?}",

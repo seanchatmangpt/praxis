@@ -3,8 +3,30 @@
     "ocel:version": "2.0"
   },
   "ocel:events": {
+    "evt_003": {
+      "event_id": "1fdb1b3d-6f12-42cb-8201-551a850d0e5b",
+      "case_id": "chatman-receipt",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Andon"
+        }
+      },
+      "timestamp_ns": 4,
+      "objects": [
+        [
+          "Falsify_ProfileHashMismatch",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "refusal": "ProfileHashMismatch",
+        "outcome": "refused",
+        "fixture_id": "Falsify_ProfileHashMismatch"
+      }
+    },
     "evt_005": {
-      "event_id": "f7786947-7005-4ac1-ada9-601a247a6739",
+      "event_id": "bd2fe2dc-1f48-4682-b1d7-486791836236",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {
@@ -21,55 +43,12 @@
       ],
       "attributes": {
         "refusal": "ProjectionHashMismatch",
-        "fixture_id": "Falsify_ProjectionHashMismatch",
-        "outcome": "refused"
-      }
-    },
-    "evt_000": {
-      "event_id": "ec015142-f8c7-467a-8b9f-7dff430311d8",
-      "case_id": "chatman-receipt",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Info"
-        }
-      },
-      "timestamp_ns": 1,
-      "objects": [
-        [
-          "Accept_BoundaryRequestCarriesReceipt",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Accept_BoundaryRequestCarriesReceipt",
-        "outcome": "admitted"
-      }
-    },
-    "evt_003": {
-      "event_id": "79290268-fce7-43d2-b919-0aac213a2d20",
-      "case_id": "chatman-receipt",
-      "activity": {
-        "DiagnosticEmitted": {
-          "category": "Admission",
-          "severity": "Andon"
-        }
-      },
-      "timestamp_ns": 4,
-      "objects": [
-        [
-          "Falsify_ProfileHashMismatch",
-          "Fixture"
-        ]
-      ],
-      "attributes": {
-        "fixture_id": "Falsify_ProfileHashMismatch",
-        "refusal": "ProfileHashMismatch",
-        "outcome": "refused"
+        "outcome": "refused",
+        "fixture_id": "Falsify_ProjectionHashMismatch"
       }
     },
     "evt_004": {
-      "event_id": "3f457e79-c064-48b8-bc03-df8974693f78",
+      "event_id": "60df46e6-b43a-4a49-a0a0-18cafda8ed17",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {
@@ -89,8 +68,29 @@
         "fixture_id": "Accept_ProjectionHashMatches"
       }
     },
+    "evt_000": {
+      "event_id": "1dc553de-4aad-4538-bca5-104b868dc09a",
+      "case_id": "chatman-receipt",
+      "activity": {
+        "DiagnosticEmitted": {
+          "category": "Admission",
+          "severity": "Info"
+        }
+      },
+      "timestamp_ns": 1,
+      "objects": [
+        [
+          "Accept_BoundaryRequestCarriesReceipt",
+          "Fixture"
+        ]
+      ],
+      "attributes": {
+        "fixture_id": "Accept_BoundaryRequestCarriesReceipt",
+        "outcome": "admitted"
+      }
+    },
     "evt_001": {
-      "event_id": "0c5872c2-380d-4b1e-8091-2810df7318e3",
+      "event_id": "586667e3-41ec-4125-9349-45699191f6b1",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {
@@ -112,7 +112,7 @@
       }
     },
     "evt_002": {
-      "event_id": "92aaa230-3075-4562-9299-5effad6a8ddd",
+      "event_id": "c203ca83-872b-4080-8cb5-85ac6bfbb7f1",
       "case_id": "chatman-receipt",
       "activity": {
         "DiagnosticEmitted": {

@@ -49,7 +49,7 @@
 //! (real, tested BLAKE3-over-canonical-N-Quads construction; read in full
 //! this session, `crates/praxis-graphlaw/src/chatman/abi.rs:217`) rather
 //! than reimplementing digest/sortedness logic. [`replay_standing_chain`]
-//! reuses `bcinr_powl_receipt::replay::PowlReplayVerifier` -- the identical
+//! reuses `bcinr_powl::receipt::replay::PowlReplayVerifier` -- the identical
 //! token-passing verifier `crates/praxis-core/src/replay_adapter.rs` uses
 //! for its fixed 3-step judge/admit/receipt lifecycle (read in full this
 //! session) -- generalized from 3 steps to F01's 7. [`verify_receipt_head`]
@@ -127,8 +127,8 @@
 
 use std::collections::BTreeMap;
 
-use bcinr_powl_receipt::conformance::ConformanceMetrics;
-use bcinr_powl_receipt::replay::{PowlReplayFrame, PowlReplayVerifier, ReplayViolation};
+use bcinr_powl::receipt::conformance::ConformanceMetrics;
+use bcinr_powl::receipt::replay::{PowlReplayFrame, PowlReplayVerifier, ReplayViolation};
 use praxis_graphlaw::chatman::abi::Receipt;
 use praxis_graphlaw::shacl::ValidationReport;
 

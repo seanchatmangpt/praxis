@@ -108,7 +108,8 @@ blake3 = "1"
 # See src/f01_standing_algebra.rs for what is genuinely reused/adapted vs.
 # disclosed HAND_WRITE_REQUIRED (L7 concurrency/chaos has no deterministic
 # Rust analog elsewhere in this repo; L8's claim-vocabulary is new).
-bcinr-powl-receipt = { path = "../../../bcinr/crates/bcinr-powl-receipt", version = "26.6.24" }
+# bcinr-powl-receipt collapsed into bcinr-powl::receipt (bcinr 251f3af5);
+# the successor is already depended on below.
 thiserror = "2"
 hex = "0.4"
 # F11 "BCINR Local Runtime" (V12-011, MIXED: REUSE_ADAPT for L1-L3/L5/L6's

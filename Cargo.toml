@@ -97,7 +97,11 @@ rust-fable-testbed = { path = "crates/rust-fable-testbed", optional = true }
 star-toml = "26.7.3"
 toml = { version = "0.8", optional = true }
 hex = "0.4"
-bcinr-powl-receipt = { path = "../bcinr/crates/bcinr-powl-receipt", version = "26.6.24" }
+# bcinr-powl-receipt was collapsed into bcinr-powl::receipt by bcinr commit
+# 251f3af5; the standalone crate existed through 26.7.28. Depend on the
+# successor only -- adding the retired crate back alongside bcinr-powl would
+# create a second, incompatible copy of the receipt types, the same hazard
+# the wasm4pm-compat note in crates/praxis-graphlaw/Cargo.toml records.
 bcinr-pddl = { path = "../bcinr/crates/bcinr-pddl", version = "26.6.26" }
 
 praxis-synthesis = { path = "crates/praxis-synthesis", version = "26.7.2" }

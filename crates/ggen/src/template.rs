@@ -216,7 +216,10 @@ fn split_closing_delimiter(rest: &str) -> Option<(&str, &str)> {
 ///   `shouty_snake_case`, `title_case`, `pluralize`, `singularize` filters.
 #[must_use]
 pub fn build_tera(graph: Arc<dyn GraphEngine>) -> Tera {
-    let mut tera = Tera::default();
+    let mut tera = Tera::new("templates/**/*").unwrap_or_else(|e| {
+        eprintln!("Tera template parsing error: {}", e);
+        Tera::default()
+    });
     tera.register_function("sparql", move |args: &HashMap<String, Value>| {
         let query = args
             .get("query")

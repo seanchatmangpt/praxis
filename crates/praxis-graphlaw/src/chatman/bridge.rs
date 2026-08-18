@@ -31,7 +31,7 @@ use super::abi::Refusal;
 
 use bcinr_powl::tape as legacy_tape;
 use bcinr_powl::tape::v2;
-use bcinr_powl_receipt::replay::PowlReplayFrame;
+use bcinr_powl::receipt::replay::PowlReplayFrame;
 use wasm4pm_compat::pddl::Pddl8Tape;
 
 // ─── Duplicate-copy detector ─────────────────────────────────────────────────
@@ -336,7 +336,7 @@ impl<'a> TapeBridge<'a> {
 
 /// Test-support adapter implementing chicago-tdd-tools'
 /// `Blake3ReceiptEntry` over the 128-byte
-/// `bcinr_powl_receipt::causal_receipt::OcelCausalFrame`.
+/// `bcinr_powl::receipt::causal_receipt::OcelCausalFrame`.
 ///
 /// Location note: this lives in `bridge.rs` but is `#[cfg(test)]`-scoped
 /// because `chicago-tdd-tools` is a dev-dependency of praxis-graphlaw; a
@@ -354,7 +354,7 @@ impl<'a> TapeBridge<'a> {
 /// tests compute stored hashes under that same rule).
 #[cfg(test)]
 pub mod causal_adapter {
-    use bcinr_powl_receipt::causal_receipt::OcelCausalFrame;
+    use bcinr_powl::receipt::causal_receipt::OcelCausalFrame;
     use chicago_tdd_tools::observability::receipt::Blake3ReceiptEntry;
 
     /// One chained causal frame: the raw 128-byte frame plus its stored

@@ -1,6 +1,6 @@
 //! `replay_adapter` — fixed 3-node SEQ POWL token model for the LawObject
 //! lifecycle (`judge -> admit -> receipt`), replayed via
-//! `bcinr_powl_receipt::replay::PowlReplayVerifier` to produce real
+//! `bcinr_powl::receipt::replay::PowlReplayVerifier` to produce real
 //! [`ConformanceMetrics`].
 //!
 //! This is a *lifecycle-conformance* model, distinct from the BLAKE3 hash
@@ -10,7 +10,7 @@
 //! (that's `crate::receipt_validator`'s `chain_recompute`/`chain_linkage`
 //! stages).
 
-use bcinr_powl_receipt::{
+use bcinr_powl::receipt::{
     conformance::ConformanceMetrics,
     replay::{PowlReplayFrame, PowlReplayVerifier, ReplayViolation},
 };

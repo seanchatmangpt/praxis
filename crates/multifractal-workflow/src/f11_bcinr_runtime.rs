@@ -28,7 +28,7 @@
 //!   `f11_eligibility_refuses_on_genuine_scheduler_deadlock` below for a real (not
 //!   simulated) deadlock driven through the real scheduler on a hand-crafted tape.
 //! - Local Receipt: every successful `tick()` chains a real
-//!   `bcinr_powl_receipt::causal_receipt::OcelCausalFrame` into a real
+//!   `bcinr_powl::receipt::causal_receipt::OcelCausalFrame` into a real
 //!   `OcelCausalReceipt` BLAKE3 rolling hash, read back via
 //!   [`BCINRLocalRuntime::receipt_chain_hash`] / [`BCINRLocalRuntime::receipt_frame_count`].
 //!   Per this repo's no-wall-clock-in-receipt-paths invariant, `OcelCausalFrame::ts_ns`
@@ -132,8 +132,8 @@
 pub use bcinr_powl::compiler::{compile_powl, CompileError, PowlAstNode};
 pub use bcinr_powl::scheduler::{scheduler_tick, FiredSet, PowlRunState};
 pub use bcinr_powl::tape::{OpKind, PowlTape};
-pub use bcinr_powl_receipt::causal_receipt::{OcelCausalFrame, OcelCausalReceipt, PackedObjRef};
-pub use bcinr_powl_receipt::denial::DenialPolarity;
+pub use bcinr_powl::receipt::causal_receipt::{OcelCausalFrame, OcelCausalReceipt, PackedObjRef};
+pub use bcinr_powl::receipt::denial::DenialPolarity;
 
 use std::collections::BTreeSet;
 
