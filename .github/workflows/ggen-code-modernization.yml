@@ -34,9 +34,9 @@ jobs:
           cargo install \
             --git https://github.com/seanchatmangpt/ggen \
             --rev 68952593c40214ac1a681073d65f3902a9cdfce4 \
-            --package ggen-cli-lib \
             --bin ggen \
-            --locked
+            --locked \
+            ggen-cli-lib
           ggen --version
 
       - name: Execute bounded all-code upgrade
