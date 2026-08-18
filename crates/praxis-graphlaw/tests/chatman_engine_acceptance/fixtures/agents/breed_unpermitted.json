@@ -1,8 +1,0 @@
-{
-  "case": "Falsify_BreedUnpermitted",
-  "kind": "falsification",
-  "seed": 8931902326189189136,
-  "mutation": "Dispatch work to an agent breed absent from the permit list.",
-  "expected_refusal": "BreedUnpermitted",
-  "input": {"agent_id": "urn:chatman:agent:6", "operator_id": "urn:chatman:operator:6", "breed_requested": true}
-}

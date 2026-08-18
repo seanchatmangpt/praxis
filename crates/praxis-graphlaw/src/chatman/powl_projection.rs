@@ -176,7 +176,7 @@ pub fn project_temporal_plan_to_powl(plan: &TemporalPlan) -> Result<Powl, Refusa
         }
     }
 
-    let ops: Vec<PowlOpSpec> = temporal_plan_to_powl_tape(plan);
+    let ops: Vec<PowlOpSpec> = temporal_plan_to_powl_tape(plan)?;
     let n = ops.len();
 
     let children: Vec<Powl> = ops
