@@ -1,0 +1,60 @@
+name: ggen modernization audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ggen-modernization-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Inventory and receipt all source surfaces
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install BLAKE3 support
+        run: python3 -m pip install --disable-pip-version-check blake3
+
+      - name: Audit exact tracked tree
+        env:
+          GGEN_AUDIT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python3 scripts/ggen-modernization-audit.py audit
+
+      - name: Verify audit receipt
+        run: python3 scripts/ggen-modernization-audit.py verify
+
+      - name: Prove tamper refusal
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a target/ggen-modernization target/ggen-modernization-tampered
+          printf '\nTAMPER\n' >> target/ggen-modernization-tampered/inventory.json
+          if python3 scripts/ggen-modernization-audit.py verify --out target/ggen-modernization-tampered; then
+            echo 'ggen-modernization-audit: BUILD_BROKEN: tampered artifact was accepted' >&2
+            exit 1
+          fi
+          echo 'ggen-modernization-audit: REFUSED tampered artifact as required'
+
+      - name: Print modernization report
+        run: sed -n '1,240p' target/ggen-modernization/GGEN_MODERNIZATION_AUDIT.md
+
+      - name: Upload receipted inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: ggen-modernization-${{ github.sha }}
+          path: target/ggen-modernization/
+          if-no-files-found: error
+          retention-days: 14

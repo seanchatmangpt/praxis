@@ -1,0 +1,123 @@
+@prefix cmd: <https://praxis.chatman.io/ontology/cmd#> .
+
+cmd:GitHubPartPassport a cmd:PartPassport ;
+    cmd:identity "passport.github-repository-boundary.v1" ;
+    cmd:conditionedInput "exact repository, ref, subject digest, scoped operation" ;
+    cmd:guaranteedOutput "Git object identity plus independently observed consequence" ;
+    cmd:authorityCeiling "exact repository grant only" ;
+    cmd:resourceCeiling 64 ;
+    cmd:isolationModel "GitHub App installation and repository permissions" ;
+    cmd:hostProfile "GitHub API" ;
+    cmd:jurisdictionProfile cmd:UsRepositoryJurisdiction ;
+    cmd:verifierIdentity "praxis-cmd-independent-verifier/v1" ;
+    cmd:receiptFormat "ggen.cmd.receipt.v1" ;
+    cmd:replacementLaw "replacement must preserve identity, scope, postcondition evidence, and receipt semantics" ;
+    cmd:removalLaw "retire only after clean replay through replacement" .
+
+cmd:LocalFilesystemPartPassport a cmd:PartPassport ;
+    cmd:identity "passport.local-filesystem-boundary.v1" ;
+    cmd:conditionedInput "exact plan, admitted root, owned target paths, byte ceilings" ;
+    cmd:guaranteedOutput "atomic commit or restored prior state" ;
+    cmd:authorityCeiling "local materialization grant" ;
+    cmd:resourceCeiling 67108864 ;
+    cmd:isolationModel "staging directory plus atomic rename" ;
+    cmd:hostProfile "POSIX filesystem" ;
+    cmd:jurisdictionProfile cmd:UsRepositoryJurisdiction ;
+    cmd:verifierIdentity "praxis-cmd-independent-verifier/v1" ;
+    cmd:receiptFormat "ggen.cmd.receipt.v1" ;
+    cmd:replacementLaw "replacement must preserve path canonicalization, ownership, atomicity, and rollback" ;
+    cmd:removalLaw "retire only after chaos and replay equivalence" .
+
+cmd:ObserverPack a cmd:Pack ;
+    cmd:identity "observer-exact-tree" ; cmd:version "1" ;
+    cmd:immutableSource "scripts/cmd-refactor.py" ;
+    cmd:providedCapability cmd:RepositoryObservationCapability ;
+    cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-observation" ;
+    cmd:migrationLaw "preserve Git modes, blobs, symlinks, and gitlinks" ;
+    cmd:rollbackLaw "delete ignored evidence only" ;
+    cmd:license "MIT OR Apache-2.0" ; cmd:trustFloor cmd:LOCALLY_ADMITTED .
+
+cmd:AuthorityPack a cmd:Pack ;
+    cmd:identity "authority-fence-graph" ; cmd:version "1" ;
+    cmd:immutableSource "packs/combinatorial-maximalism-pack/ontology.ttl" ;
+    cmd:providedCapability cmd:SemanticAuthorityCapability ;
+    cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-ownership" ;
+    cmd:migrationLaw "one owner or explicit UNKNOWN" ;
+    cmd:rollbackLaw "canonical graph revert" ;
+    cmd:license "MIT OR Apache-2.0" ; cmd:trustFloor cmd:LOCALLY_ADMITTED .
+
+cmd:CandidatePack a cmd:Pack ;
+    cmd:identity "candidate-lattice" ; cmd:version "1" ;
+    cmd:immutableSource "packs/combinatorial-maximalism-pack/internal-lattice.ttl" ;
+    cmd:providedCapability cmd:CandidateCoverageCapability ;
+    cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-candidates" ;
+    cmd:migrationLaw "candidate data never grants authority" ;
+    cmd:rollbackLaw "regenerate from canonical graph" ;
+    cmd:license "MIT OR Apache-2.0" ; cmd:trustFloor cmd:LOCALLY_ADMITTED .
+
+cmd:KernelPack a cmd:Pack ;
+    cmd:identity "core-pure-composition" ; cmd:version "1" ;
+    cmd:immutableSource "scripts/cmd_kernel.py" ;
+    cmd:providedCapability cmd:DeterministicPlanningCapability ;
+    cmd:verifierCommand "python3 -m unittest scripts.tests.test_cmd_kernel" ;
+    cmd:migrationLaw "all read-only adapters converge on one kernel" ;
+    cmd:rollbackLaw "restore prior pure module" ;
+    cmd:license "MIT OR Apache-2.0" ; cmd:trustFloor cmd:LOCALLY_ADMITTED .
+
+cmd:MaterializerPack a cmd:Pack ;
+    cmd:identity "consequence-local-materializer" ; cmd:version "1" ;
+    cmd:immutableSource "scripts/cmd-refactor.py" ;
+    cmd:providedCapability cmd:LocalMaterializationCapability ;
+    cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-materializer" ;
+    cmd:migrationLaw "stage, validate, and atomically commit or restore" ;
+    cmd:rollbackLaw "restore admitted snapshot" ;
+    cmd:license "MIT OR Apache-2.0" ; cmd:trustFloor cmd:LOCALLY_ADMITTED .
+
+cmd:BrokerPack a cmd:Pack ;
+    cmd:identity "contract-broker-intent" ; cmd:version "1" ;
+    cmd:immutableSource "packs/combinatorial-maximalism-pack/shapes.ttl" ;
+    cmd:providedCapability cmd:BrokerIntentCapability ;
+    cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" ;
+    cmd:migrationLaw "kernels emit intents only" ;
+    cmd:rollbackLaw "expire or revoke grant" ;
+    cmd:license "MIT OR Apache-2.0" ; cmd:trustFloor cmd:INDEPENDENTLY_VERIFIED .
+
+cmd:VerifierPack a cmd:Pack ;
+    cmd:identity "validator-crown-report" ; cmd:version "1" ;
+    cmd:immutableSource "scripts/cmd-refactor.py" ;
+    cmd:providedCapability cmd:ExternalVerifierCapability, cmd:ReplayCapability, cmd:ReceiptChainCapability ;
+    cmd:verifierCommand "python3 scripts/cmd-refactor.py crown" ;
+    cmd:migrationLaw "only independent verifier may promote aggregate standing" ;
+    cmd:rollbackLaw "retain prior immutable report" ;
+    cmd:license "MIT OR Apache-2.0" ; cmd:trustFloor cmd:INDEPENDENTLY_VERIFIED .
+
+cmd:CombinatorialMaximalismBBlock a cmd:BuildingBlock ;
+    cmd:identity "bblock.combinatorial-maximalism" ; cmd:version "1" ;
+    cmd:semanticOwner cmd:PraxisSemanticOwner ;
+    cmd:memberPack cmd:ObserverPack, cmd:AuthorityPack, cmd:CandidatePack,
+        cmd:KernelPack, cmd:MaterializerPack, cmd:BrokerPack, cmd:VerifierPack ;
+    cmd:requiredCapability cmd:RepositoryObservationCapability, cmd:SemanticAuthorityCapability ;
+    cmd:exclusiveCapability cmd:DeterministicPlanningCapability, cmd:ReceiptChainCapability ;
+    cmd:parameterSchema "target/ggen-cmd/cmd-manifest.schema.json" ;
+    cmd:policyProfile cmd:PraxisCmdPolicy ;
+    cmd:trustFloor cmd:LOCALLY_ADMITTED ;
+    cmd:migrationLaw "preserve legacy surfaces as thin adapters until observed equivalence" ;
+    cmd:removalLaw "remove only after clean exact-head replay" ;
+    cmd:allowedDownstreamIntent "local.materialize", "github.repository.mutate" .
+
+cmd:PraxisCmdPolicy a cmd:Policy ;
+    cmd:identity "policy.praxis-cmd.v1" ;
+    cmd:requiredBroker "BRCE" ;
+    cmd:idempotencyLaw "subject + operation + plan digest + grant digest" ;
+    cmd:evidenceObligation "intent receipt", "result receipt",
+        "independent consequence observation", "replay" .
+
+cmd:ReferencePackResolutionBlocked a cmd:Exclusion ;
+    cmd:identity "exclusion.reference-pack-identity-unresolved" ;
+    cmd:exclusionReason "The exact external ggen-combinatorial-maximalism-pack, gall-core-pack, ggen-self-host-pack, part-passport capability, and automatic-autonomic capability were not resolved as immutable external package identities. This Praxis-local pack implements the required roles but does not claim package identity or equivalence." ;
+    cmd:standingCeiling cmd:BLOCKED .
+
+cmd:ExternalProductionUnknown a cmd:Exclusion ;
+    cmd:identity "exclusion.external-production-unexecuted" ;
+    cmd:exclusionReason "External production actions remain inert intents until a real BRCE grant, actuation, consequence observation, result receipt, and replay execute." ;
+    cmd:standingCeiling cmd:UNKNOWN .

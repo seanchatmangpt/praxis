@@ -1,0 +1,94 @@
+---
+to: "target/ggen-cmd/ggen.verifier.report.schema.json"
+force: true
+determinism: true
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxis.chatman.io/schema/ggen.verifier.report.v1.json",
+  "title": "ggen.verifier.report.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "exact_subject_revision",
+    "tree_digest",
+    "toolchain",
+    "policy_digest",
+    "ontology_digest",
+    "suite_inventory",
+    "commands",
+    "boundaries_crossed",
+    "evidence_artifacts",
+    "passed_checks",
+    "failed_checks",
+    "blocked_checks",
+    "unknown_checks",
+    "unsupported_checks",
+    "refusal_codes",
+    "benchmark_measurements",
+    "replay_result",
+    "checkpoint_standing",
+    "external_production_standing",
+    "aggregate_standing",
+    "verifier_identity",
+    "collisions_or_findings"
+  ],
+  "properties": {
+    "schema": { "const": "ggen.verifier.report.v1" },
+    "exact_subject_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "tree_digest": { "type": "string", "pattern": "^blake3:[0-9a-f]{64}$" },
+    "toolchain": { "type": "object" },
+    "policy_digest": { "type": "string", "pattern": "^blake3:[0-9a-f]{64}$" },
+    "ontology_digest": { "type": "string", "pattern": "^blake3:[0-9a-f]{64}$" },
+    "suite_inventory": { "type": "array", "items": { "type": "string" } },
+    "commands": { "type": "array", "items": { "type": "string" } },
+    "boundaries_crossed": { "type": "array", "items": { "type": "string" } },
+    "evidence_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "digest"],
+        "properties": {
+          "path": { "type": "string" },
+          "digest": { "type": "string", "pattern": "^blake3:[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "passed_checks": { "type": "array", "items": { "type": "string" } },
+    "failed_checks": { "type": "array", "items": { "type": "string" } },
+    "blocked_checks": { "type": "array", "items": { "type": "string" } },
+    "unknown_checks": { "type": "array", "items": { "type": "string" } },
+    "unsupported_checks": { "type": "array", "items": { "type": "string" } },
+    "refusal_codes": { "type": "array", "items": { "type": "string", "pattern": "^CMD-G[0-9]-" } },
+    "benchmark_measurements": { "type": "object" },
+    "replay_result": { "type": "object" },
+    "checkpoint_standing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["G0", "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9"],
+      "properties": {
+        "G0": { "$ref": "#/$defs/standing" },
+        "G1": { "$ref": "#/$defs/standing" },
+        "G2": { "$ref": "#/$defs/standing" },
+        "G3": { "$ref": "#/$defs/standing" },
+        "G4": { "$ref": "#/$defs/standing" },
+        "G5": { "$ref": "#/$defs/standing" },
+        "G6": { "$ref": "#/$defs/standing" },
+        "G7": { "$ref": "#/$defs/standing" },
+        "G8": { "$ref": "#/$defs/standing" },
+        "G9": { "$ref": "#/$defs/standing" }
+      }
+    },
+    "external_production_standing": { "$ref": "#/$defs/standing" },
+    "aggregate_standing": { "$ref": "#/$defs/standing" },
+    "verifier_identity": { "type": "string" },
+    "collisions_or_findings": { "type": "integer", "minimum": 0 }
+  },
+  "$defs": {
+    "standing": {
+      "enum": ["PARTIAL_ALIVE", "ALIVE", "BLOCKED", "BUILD_BROKEN", "UNKNOWN", "UNSUPPORTED"]
+    }
+  }
+}

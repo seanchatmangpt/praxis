@@ -1,0 +1,140 @@
+@prefix cmd: <https://praxis.chatman.io/ontology/cmd#> .
+
+cmd:G0 a cmd:Checkpoint ;
+    cmd:checkpointCode "G0" ; cmd:checkpointOrder 0 ;
+    cmd:standingCeiling cmd:PARTIAL_ALIVE ;
+    cmd:allowedPath ".ggen/cmd/observation/**" ;
+    cmd:forbiddenPath "production/**" ;
+    cmd:requiredCommand "python3 scripts/cmd-refactor.py observe",
+        "python3 scripts/cmd-refactor.py verify-observation" ;
+    cmd:requiredArtifact "observation/repository.json", "observation/surfaces.json",
+        "observation/load-paths.json", "observation/unknowns.json" ;
+    cmd:requiredRefusal "CMD-G0-EXACT-SET" .
+
+cmd:G1 a cmd:Checkpoint ;
+    cmd:checkpointCode "G1" ; cmd:checkpointOrder 1 ; cmd:dependsOnCheckpoint cmd:G0 ;
+    cmd:standingCeiling cmd:PARTIAL_ALIVE ;
+    cmd:allowedPath ".ggen/cmd/authority/**" ; cmd:forbiddenPath "generated/**" ;
+    cmd:requiredCommand "python3 scripts/cmd-refactor.py ownership",
+        "python3 scripts/cmd-refactor.py verify-ownership" ;
+    cmd:requiredArtifact "authority/ownership.json", "authority/fences.json",
+        "authority/collisions.json", "authority/retirement-candidates.json" ;
+    cmd:requiredRefusal "CMD-G1-OWNER-MISSING", "CMD-G1-DUPLICATE-AUTHORITY" .
+
+cmd:G2 a cmd:Checkpoint ;
+    cmd:checkpointCode "G2" ; cmd:checkpointOrder 2 ; cmd:dependsOnCheckpoint cmd:G1 ;
+    cmd:standingCeiling cmd:PARTIAL_ALIVE ;
+    cmd:allowedPath "packs/combinatorial-maximalism-pack/**", "target/ggen-cmd/**" ;
+    cmd:forbiddenPath "production/**" ;
+    cmd:requiredCommand "ggen sync run", "python3 scripts/cmd-refactor.py verify-semantic" ;
+    cmd:requiredArtifact "verifier/semantic-authority.json" ;
+    cmd:requiredRefusal "CMD-G2-PROJECTION-DRIFT" .
+
+cmd:G3 a cmd:Checkpoint ;
+    cmd:checkpointCode "G3" ; cmd:checkpointOrder 3 ; cmd:dependsOnCheckpoint cmd:G2 ;
+    cmd:standingCeiling cmd:PARTIAL_ALIVE ;
+    cmd:allowedPath ".ggen/cmd/candidates/**" ; cmd:forbiddenPath "production/**" ;
+    cmd:requiredCommand "python3 scripts/cmd-refactor.py candidates",
+        "python3 scripts/cmd-refactor.py verify-candidates" ;
+    cmd:requiredArtifact "candidates/dimensions.json", "candidates/options.json",
+        "candidates/internal-candidates.json", "candidates/coverage.json" ;
+    cmd:requiredRefusal "CMD-G3-MISSING-DIMENSION", "CMD-G3-DUPLICATE-CANDIDATE",
+        "CMD-G3-INCOMPATIBLE", "CMD-G3-COUNT-MISMATCH",
+        "CMD-G3-RESOURCE-OVERFLOW", "CMD-G3-PREMATURE-ACTUATION" .
+
+cmd:G4 a cmd:Checkpoint ;
+    cmd:checkpointCode "G4" ; cmd:checkpointOrder 4 ; cmd:dependsOnCheckpoint cmd:G3 ;
+    cmd:standingCeiling cmd:PARTIAL_ALIVE ;
+    cmd:allowedPath ".ggen/cmd/candidates/**", ".ggen/cmd/receipts/intents/**" ;
+    cmd:forbiddenPath "production/**" ;
+    cmd:requiredCommand "python3 scripts/cmd-refactor.py verify-external" ;
+    cmd:requiredArtifact "candidates/external-candidates.json" ;
+    cmd:requiredRefusal "CMD-G4-CONSENT-MISSING", "CMD-G4-CONSENT-SCOPE",
+        "CMD-G4-JURISDICTION", "CMD-G4-TRUST", "CMD-G4-IDENTITY-REVOKED",
+        "CMD-G4-DIRECT-ACTUATION", "CMD-G4-POSTCONDITION", "CMD-G4-BROKER-RECEIPT" .
+
+cmd:G5 a cmd:Checkpoint ;
+    cmd:checkpointCode "G5" ; cmd:checkpointOrder 5 ; cmd:dependsOnCheckpoint cmd:G4 ;
+    cmd:standingCeiling cmd:PARTIAL_ALIVE ;
+    cmd:allowedPath "packs/combinatorial-maximalism-pack/**", ".ggen/cmd/plans/**" ;
+    cmd:forbiddenPath "production/**" ;
+    cmd:requiredCommand "python3 scripts/cmd-refactor.py verify-packs" ;
+    cmd:requiredArtifact "plans/compatibility-matrix.json" ;
+    cmd:requiredRefusal "CMD-G5-SEMANTIC-DIVERGENCE" .
+
+cmd:G6 a cmd:Checkpoint ;
+    cmd:checkpointCode "G6" ; cmd:checkpointOrder 6 ; cmd:dependsOnCheckpoint cmd:G5 ;
+    cmd:standingCeiling cmd:PARTIAL_ALIVE ;
+    cmd:allowedPath "scripts/cmd_kernel.py", "scripts/tests/test_cmd_kernel.py",
+        ".ggen/cmd/plans/**" ;
+    cmd:forbiddenPath "production/**" ;
+    cmd:requiredCommand "python3 -m unittest scripts.tests.test_cmd_kernel",
+        "python3 scripts/cmd-refactor.py verify-plan" ;
+    cmd:requiredArtifact "plans/plan.json" ;
+    cmd:requiredRefusal "CMD-G6-CYCLE", "CMD-G6-OWNERSHIP-COLLISION",
+        "CMD-G6-UNKNOWN-CAPABILITY", "CMD-G6-PROFILE-CONFLICT",
+        "CMD-G6-ACTUATOR-IMPORT" .
+
+cmd:G7 a cmd:Checkpoint ;
+    cmd:checkpointCode "G7" ; cmd:checkpointOrder 7 ; cmd:dependsOnCheckpoint cmd:G6 ;
+    cmd:standingCeiling cmd:PARTIAL_ALIVE ;
+    cmd:allowedPath ".ggen/cmd/receipts/**", ".ggen/cmd/replay/**" ;
+    cmd:forbiddenPath "production/**" ;
+    cmd:requiredCommand "python3 scripts/cmd-refactor.py verify-materializer" ;
+    cmd:requiredArtifact "receipts/chain.json" ;
+    cmd:requiredRefusal "CMD-G7-PATH-ESCAPE", "CMD-G7-SYMLINK-ESCAPE",
+        "CMD-G7-UNOWNED-WRITE", "CMD-G7-RESOURCE-OVERFLOW", "CMD-G7-PARTIAL-STATE" .
+
+cmd:G8 a cmd:Checkpoint ;
+    cmd:checkpointCode "G8" ; cmd:checkpointOrder 8 ; cmd:dependsOnCheckpoint cmd:G7 ;
+    cmd:standingCeiling cmd:PARTIAL_ALIVE ;
+    cmd:allowedPath ".ggen/cmd/receipts/intents/**", ".ggen/cmd/receipts/results/**" ;
+    cmd:forbiddenPath ".github/workflows/release*", "production/**" ;
+    cmd:requiredCommand "python3 scripts/cmd-refactor.py verify-external" ;
+    cmd:requiredArtifact "receipts/intents/fixture.json" ;
+    cmd:requiredRefusal "CMD-G8-GRANT-EXPIRED", "CMD-G8-WRONG-SUBJECT",
+        "CMD-G8-IDEMPOTENCY", "CMD-G8-RETRY-BUDGET", "CMD-G8-CIRCUIT-OPEN",
+        "CMD-G8-ANDON-RED", "CMD-G8-POSTCONDITION", "CMD-G8-CYCLE-LIMIT",
+        "CMD-G8-DIRECT-PROVIDER" .
+
+cmd:G9 a cmd:Checkpoint ;
+    cmd:checkpointCode "G9" ; cmd:checkpointOrder 9 ; cmd:dependsOnCheckpoint cmd:G8 ;
+    cmd:standingCeiling cmd:PARTIAL_ALIVE ;
+    cmd:allowedPath ".ggen/cmd/verifier/**", ".ggen/cmd/gall/**", ".ggen/cmd/replay/**" ;
+    cmd:forbiddenPath "production/**" ;
+    cmd:requiredCommand "python3 scripts/cmd-refactor.py sabotage",
+        "python3 scripts/cmd-refactor.py replay", "python3 scripts/cmd-refactor.py crown" ;
+    cmd:requiredArtifact "verifier/report.json", "gall/checkpoints.json", "gall/crown.json" ;
+    cmd:requiredRefusal "CMD-G9-RECEIPT-TAMPER", "CMD-G9-REPLAY-DIVERGENCE",
+        "CMD-G9-EXACT-HEAD" .
+
+cmd:FalsifierExactSet a cmd:Falsifier ;
+    cmd:falsifierMutation "remove one tracked path from copied observation" ;
+    cmd:expectedRefusal "CMD-G0-EXACT-SET" .
+cmd:FalsifierMissingOwner a cmd:Falsifier ;
+    cmd:falsifierMutation "remove owner from live surface" ;
+    cmd:expectedRefusal "CMD-G1-OWNER-MISSING" .
+cmd:FalsifierProjectionDrift a cmd:Falsifier ;
+    cmd:falsifierMutation "modify generated projection without canonical graph change" ;
+    cmd:expectedRefusal "CMD-G2-PROJECTION-DRIFT" .
+cmd:FalsifierCandidateCount a cmd:Falsifier ;
+    cmd:falsifierMutation "alter independently recomputed candidate count" ;
+    cmd:expectedRefusal "CMD-G3-COUNT-MISMATCH" .
+cmd:FalsifierConsent a cmd:Falsifier ;
+    cmd:falsifierMutation "remove scoped consent from mutating external candidate" ;
+    cmd:expectedRefusal "CMD-G4-CONSENT-MISSING" .
+cmd:FalsifierSemanticDivergence a cmd:Falsifier ;
+    cmd:falsifierMutation "resolve same request through two adapters to distinct closures" ;
+    cmd:expectedRefusal "CMD-G5-SEMANTIC-DIVERGENCE" .
+cmd:FalsifierActuatorImport a cmd:Falsifier ;
+    cmd:falsifierMutation "import subprocess, socket, requests, cloud SDK, or filesystem mutation into pure kernel" ;
+    cmd:expectedRefusal "CMD-G6-ACTUATOR-IMPORT" .
+cmd:FalsifierPartialState a cmd:Falsifier ;
+    cmd:falsifierMutation "interrupt transactional materializer before result receipt" ;
+    cmd:expectedRefusal "CMD-G7-PARTIAL-STATE" .
+cmd:FalsifierDirectProvider a cmd:Falsifier ;
+    cmd:falsifierMutation "call provider SDK outside BRCE broker" ;
+    cmd:expectedRefusal "CMD-G8-DIRECT-PROVIDER" .
+cmd:FalsifierReplayDivergence a cmd:Falsifier ;
+    cmd:falsifierMutation "alter replay artifact or exact-head identity" ;
+    cmd:expectedRefusal "CMD-G9-REPLAY-DIVERGENCE" .

@@ -1,0 +1,130 @@
+@prefix gmod: <https://praxis.chatman.io/ontology/ggen-modernization#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://praxis.chatman.io/ontology/ggen-modernization> a owl:Ontology ;
+    dcterms:title "Praxis ggen Code Modernization Ontology"@en ;
+    dcterms:description "Closed vocabulary for graph-addressing every tracked code surface, distinguishing generated projection from hand-authored runtime authority, and ranking bounded ggen migrations without promoting audit evidence into semantic equivalence."@en .
+
+gmod:Inventory a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Code inventory"@en .
+
+gmod:SourceSurface a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Tracked source surface"@en .
+
+gmod:CodeSurface a owl:Class ;
+    rdfs:subClassOf gmod:SourceSurface ;
+    rdfs:label "Executable or compile-time code surface"@en .
+
+gmod:GeneratedProjection a owl:Class ;
+    rdfs:subClassOf gmod:CodeSurface ;
+    rdfs:label "ggen-generated code projection"@en .
+
+gmod:Disposition a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Modernization disposition"@en .
+
+gmod:Generated a gmod:Disposition ;
+    skos:prefLabel "Generated projection"@en ;
+    skos:definition "Code rendered from an admitted graph/spec source. The projection is not hand-authored authority."@en .
+
+gmod:HighCandidate a gmod:Disposition ;
+    skos:prefLabel "High-value ggen migration candidate"@en ;
+    skos:definition "Hand-authored code with dense registries, schemas, routes, vocabularies, or repeated literal structure. Migration requires equivalence and mutation evidence."@en .
+
+gmod:MediumCandidate a gmod:Disposition ;
+    skos:prefLabel "Medium-value ggen migration candidate"@en ;
+    skos:definition "Hand-authored code with some projection-friendly structure but no automatic migration authority."@en .
+
+gmod:HandAuthoredRuntime a gmod:Disposition ;
+    skos:prefLabel "Hand-authored runtime"@en ;
+    skos:definition "Runtime or algorithmic code retained as hand-authored until a graph projection preserves its behavior and boundary semantics."@en .
+
+gmod:TestSurface a gmod:Disposition ;
+    skos:prefLabel "Test surface"@en ;
+    skos:definition "Test, fixture harness, or example code. Tests may themselves be generated but never substitute for execution evidence."@en .
+
+gmod:ControlSurface a gmod:Disposition ;
+    skos:prefLabel "Generator/control surface"@en ;
+    skos:definition "ggen templates, pack controls, ontology builders, or verification rails that govern projections."@en .
+
+gmod:path a owl:DatatypeProperty ;
+    rdfs:domain gmod:SourceSurface ;
+    rdfs:range xsd:string .
+
+gmod:language a owl:DatatypeProperty ;
+    rdfs:domain gmod:CodeSurface ;
+    rdfs:range xsd:string .
+
+gmod:owner a owl:DatatypeProperty ;
+    rdfs:domain gmod:SourceSurface ;
+    rdfs:range xsd:string .
+
+gmod:kind a owl:DatatypeProperty ;
+    rdfs:domain gmod:SourceSurface ;
+    rdfs:range xsd:string .
+
+gmod:lineCount a owl:DatatypeProperty ;
+    rdfs:domain gmod:SourceSurface ;
+    rdfs:range xsd:integer .
+
+gmod:byteCount a owl:DatatypeProperty ;
+    rdfs:domain gmod:SourceSurface ;
+    rdfs:range xsd:integer .
+
+gmod:contentHash a owl:DatatypeProperty ;
+    rdfs:domain gmod:SourceSurface ;
+    rdfs:range xsd:string .
+
+gmod:observationBinding a owl:DatatypeProperty ;
+    rdfs:domain gmod:Inventory ;
+    rdfs:range xsd:string ;
+    rdfs:label "filtered source-tree observation binding"@en ;
+    rdfs:comment "BLAKE3 identity of admitted source/control surfaces after excluding the projections and lock artifacts manufactured from this inventory."@en .
+
+gmod:surfaceCount a owl:DatatypeProperty ;
+    rdfs:domain gmod:Inventory ;
+    rdfs:range xsd:integer .
+
+gmod:candidateScore a owl:DatatypeProperty ;
+    rdfs:domain gmod:CodeSurface ;
+    rdfs:range xsd:integer .
+
+gmod:candidateReason a owl:DatatypeProperty ;
+    rdfs:domain gmod:CodeSurface ;
+    rdfs:range xsd:string .
+
+gmod:disposition a owl:ObjectProperty ;
+    rdfs:domain gmod:SourceSurface ;
+    rdfs:range gmod:Disposition .
+
+gmod:projectionSource a owl:DatatypeProperty ;
+    rdfs:domain gmod:GeneratedProjection ;
+    rdfs:range xsd:string .
+
+gmod:hasSurface a owl:ObjectProperty ;
+    rdfs:domain gmod:Inventory ;
+    rdfs:range gmod:SourceSurface .
+
+gmod:CodeInventoryLaw a prov:Entity ;
+    dcterms:title "Repository-wide code inventory law"@en ;
+    dcterms:description "Every tracked executable or compile-time code path is represented once in the generated inventory. A disposition is diagnostic until the exact code boundary is migrated and verified."@en .
+
+gmod:GeneratedProjectionLaw a prov:Entity ;
+    dcterms:title "Generated projection authority law"@en ;
+    dcterms:description "A generated file must name its source template or admitted graph. Editing the projection cannot change authority."@en .
+
+gmod:MigrationAdmissionLaw a prov:Entity ;
+    dcterms:title "Migration admission law"@en ;
+    dcterms:description "Preserve current behavior, admit a closed graph source, render deterministically, prove idempotence, run positive and negative fixtures, then remove hand-authored authority only after equivalence is observed."@en .
+
+gmod:TrackedProjectionIdentityLaw a prov:Entity ;
+    dcterms:title "Tracked projection identity law"@en ;
+    dcterms:description "Tracked generated output binds to a filtered source-tree content hash, never to the Git commit that contains the output. Exact Git head is recorded by the separate execution receipt."@en .

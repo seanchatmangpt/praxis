@@ -1,0 +1,199 @@
+name: Combinatorial maximalism G0-G9
+
+on:
+  pull_request:
+    paths:
+      - "docs/architecture/COMBINATORIAL_MAXIMALISM_REPOSITORY_REFACTOR.md"
+      - "packs/combinatorial-maximalism-pack/**"
+      - "scripts/cmd_kernel.py"
+      - "scripts/cmd-refactor.py"
+      - "scripts/cmd_falsifiers.py"
+      - "scripts/tests/test_cmd_kernel.py"
+      - "ggen.toml"
+      - ".gitignore"
+      - ".github/workflows/combinatorial-maximalism.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: combinatorial-maximalism-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CMD_BASE_REF: main
+  CMD_BASE_SHA: 3da96c67ddfc4267c224b4b5c4a5f9106c268dd0
+  GGEN_SOURCE_SHA: 68952593c40214ac1a681073d65f3902a9cdfce4
+
+jobs:
+  g0-g9:
+    name: Execute exact-tree G0-G9 verifier
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout exact subject
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install verifier dependencies
+        run: python3 -m pip install --disable-pip-version-check blake3 rdflib pyshacl jsonschema
+
+      - name: Install canonical exact-revision ggen CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/ggen-cli-source
+          git -C target/ggen-cli-source init
+          git -C target/ggen-cli-source remote add origin https://github.com/seanchatmangpt/ggen.git
+          git -C target/ggen-cli-source fetch --depth 1 origin "$GGEN_SOURCE_SHA"
+          git -C target/ggen-cli-source checkout --detach FETCH_HEAD
+          test "$(git -C target/ggen-cli-source rev-parse HEAD)" = "$GGEN_SOURCE_SHA"
+          cargo install \
+            --path target/ggen-cli-source/crates/ggen-cli \
+            --bin ggen \
+            --locked
+          ggen --version
+
+      - name: Render isolated combinatorial pack twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/ggen-cmd/empty-project-templates
+          cp ggen.toml /tmp/praxis-ggen.toml
+          if [ -f ggen.lock ]; then cp ggen.lock /tmp/praxis-ggen.lock; fi
+
+          restore_root_config() {
+            cp /tmp/praxis-ggen.toml ggen.toml
+            if [ -f /tmp/praxis-ggen.lock ]; then
+              cp /tmp/praxis-ggen.lock ggen.lock
+            else
+              rm -f ggen.lock
+            fi
+          }
+          trap restore_root_config EXIT INT TERM
+
+          write_isolated_config() {
+            cat > ggen.toml <<'TOML'
+          [project]
+          name = "praxis-combinatorial-maximalism"
+
+          [ontology]
+          source = "packs/combinatorial-maximalism-pack/ontology.ttl"
+
+          [ontology.prefixes]
+          cmd = "https://praxis.chatman.io/ontology/cmd#"
+          rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          rdfs = "http://www.w3.org/2000/01/rdf-schema#"
+          xsd = "http://www.w3.org/2001/XMLSchema#"
+
+          [packs]
+          combinatorial-maximalism-pack = { path = "packs/combinatorial-maximalism-pack", extra_ontologies = ["packs/combinatorial-maximalism-pack/core-instances.ttl", "packs/combinatorial-maximalism-pack/internal-lattice.ttl", "packs/combinatorial-maximalism-pack/external-lattice.ttl", "packs/combinatorial-maximalism-pack/packs-passports.ttl", "packs/combinatorial-maximalism-pack/gall.ttl"] }
+
+          [templates]
+          dir = "target/ggen-cmd/empty-project-templates"
+          TOML
+            rm -f ggen.lock
+          }
+
+          render_once() {
+            write_isolated_config
+            ggen sync run
+            restore_root_config
+          }
+
+          render_once
+          first_doc=$(b3sum docs/standing/COMBINATORIAL_MAXIMALISM.md | cut -d' ' -f1)
+          first_registry=$(b3sum target/ggen-cmd/cmd_registry.py | cut -d' ' -f1)
+          first_schema=$(b3sum target/ggen-cmd/ggen.verifier.report.schema.json | cut -d' ' -f1)
+
+          render_once
+          second_doc=$(b3sum docs/standing/COMBINATORIAL_MAXIMALISM.md | cut -d' ' -f1)
+          second_registry=$(b3sum target/ggen-cmd/cmd_registry.py | cut -d' ' -f1)
+          second_schema=$(b3sum target/ggen-cmd/ggen.verifier.report.schema.json | cut -d' ' -f1)
+
+          test "$first_doc" = "$second_doc"
+          test "$first_registry" = "$second_registry"
+          test "$first_schema" = "$second_schema"
+          python3 target/ggen-cmd/cmd_registry.py
+
+          unexpected=$(git status --porcelain | grep -v '^?? docs/standing/COMBINATORIAL_MAXIMALISM.md$' || true)
+          if [ -n "$unexpected" ]; then
+            echo "REFUSED: CMD-G2-PROJECTION-DRIFT: ggen wrote outside the admitted projection set" >&2
+            printf '%s\n' "$unexpected" >&2
+            exit 1
+          fi
+
+          printf 'first_sync_doc_blake3=%s\n' "$first_doc" | tee target/ggen-cmd/sync-receipts.txt
+          printf 'second_sync_doc_blake3=%s\n' "$second_doc" | tee -a target/ggen-cmd/sync-receipts.txt
+          printf 'registry_blake3=%s\n' "$second_registry" | tee -a target/ggen-cmd/sync-receipts.txt
+          printf 'schema_blake3=%s\n' "$second_schema" | tee -a target/ggen-cmd/sync-receipts.txt
+
+      - name: Execute pure-kernel tests
+        run: python3 -m unittest scripts.tests.test_cmd_kernel
+
+      - name: Execute G0-G9 evidence rail
+        run: python3 scripts/cmd-refactor.py all
+
+      - name: Execute independent extended falsifiers
+        run: python3 scripts/cmd_falsifiers.py
+
+      - name: Validate machine-readable crown report
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import jsonschema
+
+          report = json.loads(Path('.ggen/cmd/verifier/report.json').read_text())
+          schema = json.loads(Path('target/ggen-cmd/ggen.verifier.report.schema.json').read_text())
+          jsonschema.validate(report, schema)
+          assert report['exact_subject_revision'] == os.environ['GITHUB_SHA']
+          assert report['aggregate_standing'] == 'PARTIAL_ALIVE'
+          assert report['external_production_standing'] == 'UNKNOWN'
+          assert report['replay_result']['result'] == 'PASS'
+          assert not report['failed_checks']
+          extended = json.loads(Path('.ggen/cmd/verifier/extended-sabotage.json').read_text())
+          assert extended['all_refused'] and extended['executed'] >= 16
+          assert set(extended['refusal_codes']).issubset(set(report['refusal_codes']))
+          finalizer = json.loads(Path('.ggen/cmd/receipts/finalizer.json').read_text())
+          assert finalizer['subject_head'] == os.environ['GITHUB_SHA']
+          print(json.dumps({
+              'aggregate': report['aggregate_standing'],
+              'external_production': report['external_production_standing'],
+              'refusals': len(report['refusal_codes']),
+              'extended_refusals': extended['executed'],
+              'internal_candidates': report['benchmark_measurements']['internal_valid_candidates'],
+              'external_candidates': report['benchmark_measurements']['external_valid_candidates'],
+              'replay': report['replay_result']['replay_digest'],
+              'finalizer': finalizer['receipt_digest'],
+          }, sort_keys=True))
+          PY
+
+      - name: Capture exact-head evidence bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/combinatorial-maximalism-evidence
+          cp -R .ggen/cmd target/combinatorial-maximalism-evidence/
+          cp docs/standing/COMBINATORIAL_MAXIMALISM.md target/combinatorial-maximalism-evidence/
+          cp target/ggen-cmd/cmd_registry.py target/combinatorial-maximalism-evidence/
+          cp target/ggen-cmd/ggen.verifier.report.schema.json target/combinatorial-maximalism-evidence/
+          cp target/ggen-cmd/sync-receipts.txt target/combinatorial-maximalism-evidence/
+          git status --short > target/combinatorial-maximalism-evidence/git-status.txt
+
+      - name: Upload G0-G9 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: combinatorial-maximalism-${{ github.sha }}
+          path: target/combinatorial-maximalism-evidence/
+          if-no-files-found: error
+          retention-days: 30

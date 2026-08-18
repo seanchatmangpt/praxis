@@ -1,0 +1,93 @@
+@prefix cmd: <https://praxis.chatman.io/ontology/cmd#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+cmd:DimensionShape a sh:NodeShape ;
+    sh:targetClass cmd:Dimension ;
+    sh:closed true ;
+    sh:ignoredProperties ( <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2000/01/rdf-schema#label> ) ;
+    sh:property [ sh:path cmd:identity ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:domain ; sh:minCount 1 ; sh:maxCount 1 ; sh:class cmd:Domain ] ;
+    sh:property [ sh:path cmd:dimensionOrder ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path cmd:selectionCardinality ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 1 ] ;
+    sh:property [ sh:path cmd:coverageMode ; sh:minCount 1 ; sh:maxCount 1 ; sh:class cmd:CoverageMode ] ;
+    sh:property [ sh:path cmd:riskClass ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:resourceCeiling ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 1 ] .
+
+cmd:OptionShape a sh:NodeShape ;
+    sh:targetClass cmd:Option ;
+    sh:property [ sh:path cmd:identity ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:forDimension ; sh:minCount 1 ; sh:maxCount 1 ; sh:class cmd:Dimension ] ;
+    sh:property [ sh:path cmd:implementation ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:resourceCost ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ] ;
+    sh:property [ sh:path cmd:authorityRequirement ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:reversalClass ; sh:minCount 1 ; sh:maxCount 1 ; sh:class cmd:ReversalClass ] ;
+    sh:property [ sh:path cmd:verifierCommand ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] .
+
+cmd:CheckpointShape a sh:NodeShape ;
+    sh:targetClass cmd:Checkpoint ;
+    sh:property [ sh:path cmd:checkpointCode ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^G[0-9]$" ] ;
+    sh:property [ sh:path cmd:checkpointOrder ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ; sh:maxInclusive 9 ] ;
+    sh:property [ sh:path cmd:standingCeiling ; sh:minCount 1 ; sh:maxCount 1 ; sh:class cmd:StandingState ] ;
+    sh:property [ sh:path cmd:requiredCommand ; sh:minCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:requiredArtifact ; sh:minCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:requiredRefusal ; sh:minCount 1 ; sh:datatype xsd:string ] .
+
+cmd:ConsentEvidenceShape a sh:NodeShape ;
+    sh:targetClass cmd:ConsentEvidence ;
+    sh:property [ sh:path cmd:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:operation ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:resourceScope ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:purpose ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:issuer ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:issuedTime ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path cmd:expiry ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path cmd:revoked ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path cmd:evidenceDigest ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^blake3:[0-9a-f]{64}$" ] .
+
+cmd:JurisdictionProfileShape a sh:NodeShape ;
+    sh:targetClass cmd:JurisdictionProfile ;
+    sh:property [ sh:path cmd:processingLocation ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:storageLocation ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:residency ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:operatorJurisdiction ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:retentionPolicy ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:deletionPolicy ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:legalHoldPolicy ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] .
+
+cmd:BrokerIntentShape a sh:NodeShape ;
+    sh:targetClass cmd:BrokerIntent ;
+    sh:property [ sh:path cmd:identity ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:operation ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:requiredBroker ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:idempotencyKey ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:expectedPostcondition ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:resourceBudget ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ] ;
+    sh:property [ sh:path cmd:consentEvidence ; sh:minCount 1 ; sh:maxCount 1 ; sh:class cmd:ConsentEvidence ] .
+
+cmd:AuthorityGrantShape a sh:NodeShape ;
+    sh:targetClass cmd:AuthorityGrant ;
+    sh:property [ sh:path cmd:identity ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:intent ; sh:minCount 1 ; sh:maxCount 1 ; sh:class cmd:BrokerIntent ] ;
+    sh:property [ sh:path cmd:issuer ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:policyDigest ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:resourceScope ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:resourceBudget ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ] ;
+    sh:property [ sh:path cmd:expiry ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path cmd:treeDigest ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] .
+
+cmd:PartPassportShape a sh:NodeShape ;
+    sh:targetClass cmd:PartPassport ;
+    sh:property [ sh:path cmd:identity ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:conditionedInput ; sh:minCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:guaranteedOutput ; sh:minCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:authorityCeiling ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:resourceCeiling ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path cmd:isolationModel ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:hostProfile ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:jurisdictionProfile ; sh:minCount 1 ; sh:maxCount 1 ; sh:class cmd:JurisdictionProfile ] ;
+    sh:property [ sh:path cmd:verifierIdentity ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:receiptFormat ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:replacementLaw ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path cmd:removalLaw ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] .

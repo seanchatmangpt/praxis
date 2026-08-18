@@ -1,0 +1,80 @@
+@prefix cmd: <https://praxis.chatman.io/ontology/cmd#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Thirteen one-of dimensions form 8192 raw combinations. The verifier applies
+# conjunctive identity/authentication/consent/trust/jurisdiction/broker law and
+# emits only inert candidates and intents. External production standing remains
+# UNKNOWN until a real consequence is independently observed.
+
+cmd:ExternalProvider a cmd:Dimension ; cmd:identity "external.provider" ; cmd:domain cmd:External ; cmd:dimensionOrder 210 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:Pairwise ; cmd:riskClass "provider" ; cmd:resourceCeiling 8 .
+cmd:ExternalProtocol a cmd:Dimension ; cmd:identity "external.protocol" ; cmd:domain cmd:External ; cmd:dimensionOrder 220 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:Pairwise ; cmd:riskClass "protocol" ; cmd:resourceCeiling 8 .
+cmd:ExternalIdentity a cmd:Dimension ; cmd:identity "external.identity" ; cmd:domain cmd:External ; cmd:dimensionOrder 230 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:RiskWeightedExhaustive ; cmd:riskClass "identity" ; cmd:resourceCeiling 8 .
+cmd:ExternalAuthentication a cmd:Dimension ; cmd:identity "external.authentication" ; cmd:domain cmd:External ; cmd:dimensionOrder 240 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:RiskWeightedExhaustive ; cmd:riskClass "authentication" ; cmd:resourceCeiling 8 .
+cmd:ExternalAuthorityScope a cmd:Dimension ; cmd:identity "external.authority-scope" ; cmd:domain cmd:External ; cmd:dimensionOrder 250 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:RiskWeightedExhaustive ; cmd:riskClass "authority" ; cmd:resourceCeiling 8 .
+cmd:ExternalConsent a cmd:Dimension ; cmd:identity "external.consent" ; cmd:domain cmd:External ; cmd:dimensionOrder 260 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:RiskWeightedExhaustive ; cmd:riskClass "consent" ; cmd:resourceCeiling 8 .
+cmd:ExternalDataClass a cmd:Dimension ; cmd:identity "external.data-classification" ; cmd:domain cmd:External ; cmd:dimensionOrder 270 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:RiskWeightedExhaustive ; cmd:riskClass "data" ; cmd:resourceCeiling 8 .
+cmd:ExternalJurisdiction a cmd:Dimension ; cmd:identity "external.jurisdiction" ; cmd:domain cmd:External ; cmd:dimensionOrder 280 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:RiskWeightedExhaustive ; cmd:riskClass "jurisdiction" ; cmd:resourceCeiling 8 .
+cmd:ExternalRuntimeTarget a cmd:Dimension ; cmd:identity "external.runtime-target" ; cmd:domain cmd:External ; cmd:dimensionOrder 290 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:Pairwise ; cmd:riskClass "runtime" ; cmd:resourceCeiling 8 .
+cmd:ExternalAvailability a cmd:Dimension ; cmd:identity "external.availability" ; cmd:domain cmd:External ; cmd:dimensionOrder 300 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:Pairwise ; cmd:riskClass "availability" ; cmd:resourceCeiling 8 .
+cmd:ExternalConsequence a cmd:Dimension ; cmd:identity "external.consequence" ; cmd:domain cmd:External ; cmd:dimensionOrder 310 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:RiskWeightedExhaustive ; cmd:riskClass "consequence" ; cmd:resourceCeiling 8 .
+cmd:ExternalEvidence a cmd:Dimension ; cmd:identity "external.evidence-source" ; cmd:domain cmd:External ; cmd:dimensionOrder 320 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:RiskWeightedExhaustive ; cmd:riskClass "evidence" ; cmd:resourceCeiling 8 .
+cmd:ExternalCompensation a cmd:Dimension ; cmd:identity "external.compensation" ; cmd:domain cmd:External ; cmd:dimensionOrder 330 ; cmd:selectionCardinality 1 ; cmd:coverageMode cmd:RiskWeightedExhaustive ; cmd:riskClass "recovery" ; cmd:resourceCeiling 8 .
+
+cmd:GitHubProvider a cmd:Option ; cmd:identity "provider.github" ; cmd:forDimension cmd:ExternalProvider ; cmd:implementation "GitHub" ; cmd:resourceCost 2 ; cmd:authorityRequirement "brokered" ; cmd:reversalClass cmd:COMPENSATABLE ; cmd:requiresOption cmd:GitHubApiProtocol, cmd:GitHubAppIdentity, cmd:AppTokenAuthentication ; cmd:incompatibleWith cmd:PosixFilesystemProtocol ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:LocalFilesystemProvider a cmd:Option ; cmd:identity "provider.local-filesystem" ; cmd:forDimension cmd:ExternalProvider ; cmd:implementation "local filesystem" ; cmd:resourceCost 1 ; cmd:authorityRequirement "local materializer" ; cmd:reversalClass cmd:REVERSIBLE_WITH_SNAPSHOT ; cmd:requiresOption cmd:PosixFilesystemProtocol, cmd:LocalProcessIdentity, cmd:ProcessCredentialAuthentication ; cmd:incompatibleWith cmd:GitHubApiProtocol ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:GitHubApiProtocol a cmd:Option ; cmd:identity "protocol.github-api" ; cmd:forDimension cmd:ExternalProtocol ; cmd:implementation "GitHub REST/GraphQL" ; cmd:resourceCost 2 ; cmd:authorityRequirement "BRCE intent" ; cmd:reversalClass cmd:COMPENSATABLE ; cmd:requiresOption cmd:GitHubProvider ; cmd:incompatibleWith cmd:LocalFilesystemProvider ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:PosixFilesystemProtocol a cmd:Option ; cmd:identity "protocol.posix-filesystem" ; cmd:forDimension cmd:ExternalProtocol ; cmd:implementation "POSIX filesystem" ; cmd:resourceCost 1 ; cmd:authorityRequirement "transactional local grant" ; cmd:reversalClass cmd:REVERSIBLE_WITH_SNAPSHOT ; cmd:requiresOption cmd:LocalFilesystemProvider ; cmd:incompatibleWith cmd:GitHubProvider ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:GitHubAppIdentity a cmd:Option ; cmd:identity "identity.github-app" ; cmd:forDimension cmd:ExternalIdentity ; cmd:implementation "GitHub App identity" ; cmd:resourceCost 1 ; cmd:authorityRequirement "signed app installation" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:requiresOption cmd:GitHubProvider ; cmd:trustFloor cmd:VERIFIED_PUBLISHER ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:LocalProcessIdentity a cmd:Option ; cmd:identity "identity.local-process" ; cmd:forDimension cmd:ExternalIdentity ; cmd:implementation "local process identity" ; cmd:resourceCost 1 ; cmd:authorityRequirement "OS user boundary" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:requiresOption cmd:LocalFilesystemProvider ; cmd:trustFloor cmd:LOCALLY_ADMITTED ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:AppTokenAuthentication a cmd:Option ; cmd:identity "authentication.app-token" ; cmd:forDimension cmd:ExternalAuthentication ; cmd:implementation "short-lived app token" ; cmd:resourceCost 1 ; cmd:authorityRequirement "credential capability" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:requiresOption cmd:GitHubAppIdentity ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:ProcessCredentialAuthentication a cmd:Option ; cmd:identity "authentication.process-credential" ; cmd:forDimension cmd:ExternalAuthentication ; cmd:implementation "OS process credential" ; cmd:resourceCost 1 ; cmd:authorityRequirement "local user" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:requiresOption cmd:LocalProcessIdentity ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:ReadOnlyAuthority a cmd:Option ; cmd:identity "authority.read-only" ; cmd:forDimension cmd:ExternalAuthorityScope ; cmd:implementation "observation only" ; cmd:resourceCost 0 ; cmd:authorityRequirement "read grant" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:incompatibleWith cmd:RepositoryMutation, cmd:RepositoryPrivateData ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:RepositoryWriteAuthority a cmd:Option ; cmd:identity "authority.repository-write" ; cmd:forDimension cmd:ExternalAuthorityScope ; cmd:implementation "bounded repository mutation" ; cmd:resourceCost 2 ; cmd:authorityRequirement "exact grant" ; cmd:reversalClass cmd:COMPENSATABLE ; cmd:requiresOption cmd:ExplicitConsent ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:ExplicitConsent a cmd:Option ; cmd:identity "consent.explicit-evidence" ; cmd:forDimension cmd:ExternalConsent ; cmd:implementation "scoped consent evidence" ; cmd:resourceCost 1 ; cmd:authorityRequirement "consent object" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:NoConsent a cmd:Option ; cmd:identity "consent.none" ; cmd:forDimension cmd:ExternalConsent ; cmd:implementation "no consent evidence" ; cmd:resourceCost 0 ; cmd:authorityRequirement "observation only" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:incompatibleWith cmd:RepositoryMutation, cmd:RepositoryPrivateData, cmd:RepositoryWriteAuthority ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:PublicSourceData a cmd:Option ; cmd:identity "data.public-source" ; cmd:forDimension cmd:ExternalDataClass ; cmd:implementation "public repository source" ; cmd:resourceCost 1 ; cmd:authorityRequirement "read grant" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:RepositoryPrivateData a cmd:Option ; cmd:identity "data.repository-private" ; cmd:forDimension cmd:ExternalDataClass ; cmd:implementation "private repository data" ; cmd:resourceCost 2 ; cmd:authorityRequirement "explicit scoped consent" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:requiresOption cmd:ExplicitConsent, cmd:RepositoryWriteAuthority ; cmd:incompatibleWith cmd:NoConsent, cmd:ReadOnlyAuthority ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:UserSelectedUsJurisdiction a cmd:Option ; cmd:identity "jurisdiction.user-selected-us" ; cmd:forDimension cmd:ExternalJurisdiction ; cmd:implementation "user-selected US processing" ; cmd:resourceCost 1 ; cmd:authorityRequirement "jurisdiction profile" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:ProviderManagedJurisdiction a cmd:Option ; cmd:identity "jurisdiction.provider-managed" ; cmd:forDimension cmd:ExternalJurisdiction ; cmd:implementation "provider-managed location" ; cmd:resourceCost 2 ; cmd:authorityRequirement "explicit provider policy" ; cmd:reversalClass cmd:REVERSAL_UNKNOWN ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:GitHubHostedRuntime a cmd:Option ; cmd:identity "runtime-target.github-hosted" ; cmd:forDimension cmd:ExternalRuntimeTarget ; cmd:implementation "GitHub-hosted runner" ; cmd:resourceCost 2 ; cmd:authorityRequirement "workflow grant" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:requiresOption cmd:GitHubProvider ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:LocalProcessRuntime a cmd:Option ; cmd:identity "runtime-target.local-process" ; cmd:forDimension cmd:ExternalRuntimeTarget ; cmd:implementation "local process" ; cmd:resourceCost 1 ; cmd:authorityRequirement "local operator" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:requiresOption cmd:LocalFilesystemProvider ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:BestEffortAvailability a cmd:Option ; cmd:identity "availability.best-effort" ; cmd:forDimension cmd:ExternalAvailability ; cmd:implementation "single bounded attempt" ; cmd:resourceCost 1 ; cmd:authorityRequirement "none" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:BoundedRetryAvailability a cmd:Option ; cmd:identity "availability.bounded-retry" ; cmd:forDimension cmd:ExternalAvailability ; cmd:implementation "bounded retry with circuit breaker" ; cmd:resourceCost 2 ; cmd:authorityRequirement "retry budget" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:ObservationOnlyConsequence a cmd:Option ; cmd:identity "consequence.observation-only" ; cmd:forDimension cmd:ExternalConsequence ; cmd:implementation "no external mutation" ; cmd:resourceCost 0 ; cmd:authorityRequirement "read grant" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:RepositoryMutation a cmd:Option ; cmd:identity "consequence.repository-mutation" ; cmd:forDimension cmd:ExternalConsequence ; cmd:implementation "bounded repository mutation" ; cmd:resourceCost 3 ; cmd:authorityRequirement "BRCE grant" ; cmd:reversalClass cmd:COMPENSATABLE ; cmd:requiresOption cmd:RepositoryWriteAuthority, cmd:ExplicitConsent, cmd:PostconditionEvidence ; cmd:incompatibleWith cmd:NoConsent, cmd:ReadOnlyAuthority, cmd:NoopCompensation ; cmd:providesCapability cmd:BrokerIntentCapability ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:GitObjectEvidence a cmd:Option ; cmd:identity "evidence.git-object" ; cmd:forDimension cmd:ExternalEvidence ; cmd:implementation "Git object identity" ; cmd:resourceCost 1 ; cmd:authorityRequirement "independent read" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:PostconditionEvidence a cmd:Option ; cmd:identity "evidence.postcondition" ; cmd:forDimension cmd:ExternalEvidence ; cmd:implementation "independent consequence observation" ; cmd:resourceCost 2 ; cmd:authorityRequirement "observer capability" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:providesCapability cmd:ExternalVerifierCapability ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:NoopCompensation a cmd:Option ; cmd:identity "compensation.noop" ; cmd:forDimension cmd:ExternalCompensation ; cmd:implementation "no mutation to compensate" ; cmd:resourceCost 0 ; cmd:authorityRequirement "observation only" ; cmd:reversalClass cmd:REVERSIBLE ; cmd:incompatibleWith cmd:RepositoryMutation ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+cmd:GitRevertCompensation a cmd:Option ; cmd:identity "compensation.git-revert" ; cmd:forDimension cmd:ExternalCompensation ; cmd:implementation "receipted Git revert" ; cmd:resourceCost 2 ; cmd:authorityRequirement "new exact grant" ; cmd:reversalClass cmd:COMPENSATABLE ; cmd:requiresOption cmd:RepositoryMutation ; cmd:verifierCommand "python3 scripts/cmd-refactor.py verify-external" .
+
+cmd:UsRepositoryJurisdiction a cmd:JurisdictionProfile ;
+    cmd:processingLocation "United States" ;
+    cmd:storageLocation "provider-controlled United States or disclosed region" ;
+    cmd:residency "repository policy" ;
+    cmd:operatorJurisdiction "United States" ;
+    cmd:retentionPolicy "bounded by repository and provider policy" ;
+    cmd:deletionPolicy "provider deletion plus Git history constraints" ;
+    cmd:legalHoldPolicy "explicit legal hold only" .
+
+cmd:FixtureObservationConsent a cmd:ConsentEvidence ;
+    cmd:subject "seanchatmangpt/praxis" ;
+    cmd:operation "observe" ;
+    cmd:resourceScope "repository metadata and public source" ;
+    cmd:purpose "combinatorial maximalism verification fixture" ;
+    cmd:issuer "repository owner fixture" ;
+    cmd:issuedTime "2026-07-30T00:00:00Z"^^xsd:dateTime ;
+    cmd:expiry "2030-07-30T00:00:00Z"^^xsd:dateTime ;
+    cmd:revoked false ;
+    cmd:evidenceDigest "blake3:0000000000000000000000000000000000000000000000000000000000000000" .

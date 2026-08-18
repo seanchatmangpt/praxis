@@ -1,0 +1,29 @@
+@prefix gmod: <https://praxis.chatman.io/ontology/ggen-modernization#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# Bootstrap-only seed. scripts/ggen-code-inventory.py deterministically
+# replaces this file with the filtered tracked-source inventory before ggen
+# renders any projection.
+
+gmod:inventory-bootstrap a gmod:Inventory ;
+    gmod:observationBinding "blake3:BOOTSTRAP" ;
+    gmod:surfaceCount 1 ;
+    gmod:contentHash "blake3:BOOTSTRAP" ;
+    gmod:hasSurface gmod:surface-generated-inventory-test .
+
+gmod:surface-generated-inventory-test a gmod:SourceSurface,
+        gmod:CodeSurface,
+        gmod:GeneratedProjection ;
+    dcterms:identifier "crates/ggen/tests/ggen_code_inventory.rs" ;
+    gmod:path "crates/ggen/tests/ggen_code_inventory.rs" ;
+    gmod:language "Rust" ;
+    gmod:owner "crates/ggen" ;
+    gmod:kind "GENERATED_PROJECTION" ;
+    gmod:disposition gmod:Generated ;
+    gmod:lineCount 0 ;
+    gmod:byteCount 0 ;
+    gmod:contentHash "projection-bound-by-ggen-determinism" ;
+    gmod:candidateScore 0 ;
+    gmod:projectionSource "packs/code-modernization-pack/templates/ggen_code_inventory.rs.tmpl" ;
+    gmod:candidateReason "panic-sites:0" ;
+    gmod:candidateReason "todo-sites:0" .

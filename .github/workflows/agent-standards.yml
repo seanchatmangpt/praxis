@@ -1,0 +1,65 @@
+name: Agent standards
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "CHATGPT-CLOUD-AGENTS.md"
+      - ".claude/rules/**"
+      - "docs/standing/STANDARDS_DELTA_2026-07-30.md"
+      - "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md"
+      - "docs/architecture/COMBINATORIAL_MAXIMALISM_REPOSITORY_REFACTOR.md"
+      - "packs/combinatorial-maximalism-pack/**"
+      - "scripts/cmd_kernel.py"
+      - "scripts/cmd-refactor.py"
+      - "scripts/cmd_falsifiers.py"
+      - "scripts/tests/test_cmd_kernel.py"
+      - "scripts/verify-agent-standards.sh"
+      - ".github/workflows/agent-standards.yml"
+      - ".github/workflows/combinatorial-maximalism.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "AGENTS.md"
+      - "CHATGPT-CLOUD-AGENTS.md"
+      - ".claude/rules/**"
+      - "docs/standing/STANDARDS_DELTA_2026-07-30.md"
+      - "docs/standing/SEVEN_DAY_REPOSITORY_SWEEP_2026-07-30.md"
+      - "docs/architecture/COMBINATORIAL_MAXIMALISM_REPOSITORY_REFACTOR.md"
+      - "packs/combinatorial-maximalism-pack/**"
+      - "scripts/cmd_kernel.py"
+      - "scripts/cmd-refactor.py"
+      - "scripts/cmd_falsifiers.py"
+      - "scripts/tests/test_cmd_kernel.py"
+      - "scripts/verify-agent-standards.sh"
+      - ".github/workflows/agent-standards.yml"
+      - ".github/workflows/combinatorial-maximalism.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-standards-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify normative contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify agent standards
+        shell: bash
+        run: bash scripts/verify-agent-standards.sh
+
+      - name: Compile Python control surfaces
+        run: python3 -m py_compile scripts/cmd_kernel.py scripts/cmd-refactor.py scripts/cmd_falsifiers.py scripts/tests/test_cmd_kernel.py
+
+      - name: Parse root ggen manifest
+        run: python3 -c 'import pathlib,tomllib; tomllib.loads(pathlib.Path("ggen.toml").read_text())'

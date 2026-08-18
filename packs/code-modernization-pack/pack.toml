@@ -1,0 +1,4 @@
+[pack]
+name = "code-modernization-pack"
+version = "26.7.30"
+description = "Repository-wide ggen code inventory, modernization dispositions, generated verifier, and receipted review report"

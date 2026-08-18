@@ -1,0 +1,26 @@
+@prefix cmd: <https://praxis.chatman.io/ontology/cmd#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+cmd:PraxisRepository a cmd:Repository ;
+    cmd:identity "seanchatmangpt/praxis" ;
+    cmd:baseCommit "resolved-at-execution" ;
+    cmd:baseTree "resolved-at-execution" ;
+    cmd:semanticOwner cmd:PraxisSemanticOwner ;
+    cmd:operationalOwner cmd:PraxisOperationalOwner .
+
+cmd:PraxisSemanticOwner a cmd:Owner ; cmd:identity "praxis-semantic-authority" .
+cmd:PraxisOperationalOwner a cmd:Owner ; cmd:identity "praxis-repository-operator" .
+cmd:BrceBrokerOwner a cmd:Owner ; cmd:identity "BRCE" .
+cmd:IndependentCrownVerifier a cmd:Verifier ;
+    cmd:identity "praxis-cmd-independent-verifier/v1" ;
+    cmd:verifierIdentity "praxis-cmd-independent-verifier/v1" .
+
+cmd:DeterministicPlanningCapability a cmd:Capability ; skos:prefLabel "deterministic planning"@en .
+cmd:ReplayCapability a cmd:Capability ; skos:prefLabel "deterministic replay"@en .
+cmd:ExternalVerifierCapability a cmd:Capability ; skos:prefLabel "external verifier report"@en .
+cmd:LocalMaterializationCapability a cmd:Capability ; skos:prefLabel "transactional local materialization"@en .
+cmd:BrokerIntentCapability a cmd:Capability ; skos:prefLabel "inert broker intent"@en .
+cmd:RepositoryObservationCapability a cmd:Capability ; skos:prefLabel "exact Git observation"@en .
+cmd:SemanticAuthorityCapability a cmd:Capability ; skos:prefLabel "canonical semantic authority"@en .
+cmd:CandidateCoverageCapability a cmd:Capability ; skos:prefLabel "independent candidate coverage"@en .
+cmd:ReceiptChainCapability a cmd:Capability ; skos:prefLabel "causal receipt chain"@en .

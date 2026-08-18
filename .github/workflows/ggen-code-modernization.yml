@@ -1,0 +1,54 @@
+name: ggen code modernization
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ggen-code-modernization-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inventory-projection:
+    name: Render and verify complete code inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install BLAKE3 support
+        run: python3 -m pip install --disable-pip-version-check blake3
+
+      - name: Install canonical ggen CLI at exact revision
+        run: |
+          cargo install \
+            --git https://github.com/seanchatmangpt/ggen \
+            --rev 68952593c40214ac1a681073d65f3902a9cdfce4 \
+            --package ggen-cli-lib \
+            --bin ggen \
+            --locked
+          ggen --version
+
+      - name: Execute bounded all-code upgrade
+        run: bash scripts/ggen-upgrade-all.sh
+
+      - name: Print modernization report
+        run: sed -n '1,260p' docs/standing/GGEN_CODE_MODERNIZATION.md
+
+      - name: Upload generated upgrade receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: ggen-code-modernization-${{ github.sha }}
+          path: target/ggen-code-modernization/
+          if-no-files-found: error
+          retention-days: 14

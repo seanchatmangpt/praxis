@@ -1,0 +1,4 @@
+[pack]
+name = "praxis-combinatorial-maximalism-pack"
+version = "26.7.30"
+description = "Praxis-local bounded implementation of internal/external combinatorial maximalism: exact-tree observation, ownership/fences, candidate lattices, pure planning, inert broker intents, receipts, replay, Gall checkpoints, and verifier reports. It does not claim identity with unresolved external reference packs."

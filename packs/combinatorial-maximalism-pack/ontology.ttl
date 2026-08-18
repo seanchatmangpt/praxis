@@ -1,0 +1,232 @@
+@prefix cmd: <https://praxis.chatman.io/ontology/cmd#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix time: <http://www.w3.org/2006/time#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://praxis.chatman.io/ontology/cmd> a owl:Ontology ;
+    dcterms:title "Praxis Combinatorial Maximalism"@en ;
+    dcterms:description "Canonical law for exact observation, bounded internal and external candidate construction, pure planning, explicit grants, brokered actuation, causal receipts, replay, and Gall checkpoint verification."@en .
+
+#################################################################
+# Core objects
+#################################################################
+
+cmd:Repository a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:Surface a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:Owner a owl:Class ; rdfs:subClassOf prov:Agent .
+cmd:Capability a owl:Class ; rdfs:subClassOf skos:Concept .
+cmd:Dimension a owl:Class ; rdfs:subClassOf skos:Concept .
+cmd:Option a owl:Class ; rdfs:subClassOf skos:Concept .
+cmd:Constraint a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:Candidate a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:Pack a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:BuildingBlock a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:Output a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:Policy a owl:Class ; rdfs:subClassOf odrl:Policy .
+cmd:AuthorityGrant a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:BrokerIntent a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:ConsentEvidence a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:JurisdictionProfile a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:PartPassport a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:Receipt a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:Verifier a owl:Class ; rdfs:subClassOf prov:Agent .
+cmd:Checkpoint a owl:Class ; rdfs:subClassOf prov:Plan .
+cmd:WorkOrder a owl:Class ; rdfs:subClassOf prov:Plan .
+cmd:Exclusion a owl:Class ; rdfs:subClassOf prov:Entity .
+cmd:Falsifier a owl:Class ; rdfs:subClassOf prov:Plan .
+cmd:StandingState a owl:Class ; rdfs:subClassOf skos:Concept .
+cmd:LifecycleState a owl:Class ; rdfs:subClassOf skos:Concept .
+cmd:TrustState a owl:Class ; rdfs:subClassOf skos:Concept .
+cmd:CoverageMode a owl:Class ; rdfs:subClassOf skos:Concept .
+cmd:ReversalClass a owl:Class ; rdfs:subClassOf skos:Concept .
+cmd:Domain a owl:Class ; rdfs:subClassOf skos:Concept .
+
+#################################################################
+# Closed vocabularies
+#################################################################
+
+cmd:PARTIAL_ALIVE a cmd:StandingState .
+cmd:ALIVE a cmd:StandingState .
+cmd:BLOCKED a cmd:StandingState .
+cmd:BUILD_BROKEN a cmd:StandingState .
+cmd:UNKNOWN a cmd:StandingState .
+cmd:UNSUPPORTED a cmd:StandingState .
+
+cmd:ACTIVE a cmd:LifecycleState .
+cmd:DEPRECATED a cmd:LifecycleState .
+cmd:RETIRED a cmd:LifecycleState .
+cmd:ARCHIVED a cmd:LifecycleState .
+
+cmd:UNTRUSTED a cmd:TrustState .
+cmd:LOCALLY_ADMITTED a cmd:TrustState .
+cmd:SIGNED a cmd:TrustState .
+cmd:VERIFIED_PUBLISHER a cmd:TrustState .
+cmd:INDEPENDENTLY_VERIFIED a cmd:TrustState .
+cmd:PRODUCTION_APPROVED a cmd:TrustState .
+cmd:REVOKED a cmd:TrustState .
+
+cmd:Exhaustive a cmd:CoverageMode .
+cmd:Pairwise a cmd:CoverageMode .
+cmd:ThreeWise a cmd:CoverageMode .
+cmd:RiskWeightedExhaustive a cmd:CoverageMode .
+
+cmd:REVERSIBLE a cmd:ReversalClass .
+cmd:REVERSIBLE_WITH_SNAPSHOT a cmd:ReversalClass .
+cmd:COMPENSATABLE a cmd:ReversalClass .
+cmd:IRREVERSIBLE a cmd:ReversalClass .
+cmd:REVERSAL_UNSUPPORTED a cmd:ReversalClass .
+cmd:REVERSAL_UNKNOWN a cmd:ReversalClass .
+
+cmd:Internal a cmd:Domain .
+cmd:External a cmd:Domain .
+
+#################################################################
+# Identity and ownership
+#################################################################
+
+cmd:identity a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:path a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:mode a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:objectType a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:objectDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:treeDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:baseCommit a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:baseTree a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:observedAt a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+cmd:semanticOwner a owl:ObjectProperty ; rdfs:range cmd:Owner .
+cmd:operationalOwner a owl:ObjectProperty ; rdfs:range cmd:Owner .
+cmd:ownsOutput a owl:ObjectProperty ; rdfs:range cmd:Output .
+cmd:generatedBy a owl:ObjectProperty ; rdfs:range prov:Activity .
+cmd:consumedBy a owl:ObjectProperty ; rdfs:range prov:Entity .
+cmd:loadPath a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:mutationScope a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:failureBehavior a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:retirementDependency a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:exclusiveOwner a owl:DatatypeProperty ; rdfs:range xsd:boolean .
+cmd:mergeLaw a owl:DatatypeProperty ; rdfs:range xsd:string .
+
+#################################################################
+# Dimensions, options, candidates, constraints
+#################################################################
+
+cmd:domain a owl:ObjectProperty ; rdfs:domain cmd:Dimension ; rdfs:range cmd:Domain .
+cmd:dimensionOrder a owl:DatatypeProperty ; rdfs:domain cmd:Dimension ; rdfs:range xsd:integer .
+cmd:selectionCardinality a owl:DatatypeProperty ; rdfs:domain cmd:Dimension ; rdfs:range xsd:integer .
+cmd:coverageMode a owl:ObjectProperty ; rdfs:domain cmd:Dimension ; rdfs:range cmd:CoverageMode .
+cmd:riskClass a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:resourceCeiling a owl:DatatypeProperty ; rdfs:range xsd:integer .
+cmd:forDimension a owl:ObjectProperty ; rdfs:domain cmd:Option ; rdfs:range cmd:Dimension .
+cmd:implementation a owl:DatatypeProperty ; rdfs:domain cmd:Option ; rdfs:range xsd:string .
+cmd:providesCapability a owl:ObjectProperty ; rdfs:range cmd:Capability .
+cmd:requiresCapability a owl:ObjectProperty ; rdfs:range cmd:Capability .
+cmd:requiresOption a owl:ObjectProperty ; rdfs:range cmd:Option .
+cmd:incompatibleWith a owl:ObjectProperty ; rdfs:range cmd:Option ; a owl:SymmetricProperty .
+cmd:resourceCost a owl:DatatypeProperty ; rdfs:domain cmd:Option ; rdfs:range xsd:integer .
+cmd:authorityRequirement a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:reversalClass a owl:ObjectProperty ; rdfs:range cmd:ReversalClass .
+cmd:verifierCommand a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:selectedOption a owl:ObjectProperty ; rdfs:domain cmd:Candidate ; rdfs:range cmd:Option .
+cmd:candidateSignature a owl:DatatypeProperty ; rdfs:domain cmd:Candidate ; rdfs:range xsd:string .
+cmd:verified a owl:DatatypeProperty ; rdfs:domain cmd:Candidate ; rdfs:range xsd:boolean .
+cmd:authorized a owl:DatatypeProperty ; rdfs:domain cmd:Candidate ; rdfs:range xsd:boolean .
+cmd:actuated a owl:DatatypeProperty ; rdfs:domain cmd:Candidate ; rdfs:range xsd:boolean .
+cmd:constraintCode a owl:DatatypeProperty ; rdfs:domain cmd:Constraint ; rdfs:range xsd:string .
+cmd:constraintMessage a owl:DatatypeProperty ; rdfs:domain cmd:Constraint ; rdfs:range xsd:string .
+
+#################################################################
+# Pack and building-block law
+#################################################################
+
+cmd:version a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:contentDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:immutableSource a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:dependsOn a owl:ObjectProperty ; rdfs:range prov:Entity .
+cmd:memberPack a owl:ObjectProperty ; rdfs:domain cmd:BuildingBlock ; rdfs:range cmd:Pack .
+cmd:requiredCapability a owl:ObjectProperty ; rdfs:range cmd:Capability .
+cmd:providedCapability a owl:ObjectProperty ; rdfs:range cmd:Capability .
+cmd:exclusiveCapability a owl:ObjectProperty ; rdfs:range cmd:Capability .
+cmd:parameterSchema a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:policyProfile a owl:ObjectProperty ; rdfs:range cmd:Policy .
+cmd:trustFloor a owl:ObjectProperty ; rdfs:range cmd:TrustState .
+cmd:migrationLaw a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:rollbackLaw a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:replacementLaw a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:removalLaw a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:license a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:allowedDownstreamIntent a owl:DatatypeProperty ; rdfs:range xsd:string .
+
+#################################################################
+# External authority, consent, passport, broker, receipts
+#################################################################
+
+cmd:subject a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:operation a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:resourceScope a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:purpose a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:issuer a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:issuedTime a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+cmd:expiry a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+cmd:revoked a owl:DatatypeProperty ; rdfs:range xsd:boolean .
+cmd:evidenceDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:trustState a owl:ObjectProperty ; rdfs:range cmd:TrustState .
+cmd:jurisdictionProfile a owl:ObjectProperty ; rdfs:range cmd:JurisdictionProfile .
+cmd:processingLocation a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:storageLocation a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:residency a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:operatorJurisdiction a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:retentionPolicy a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:deletionPolicy a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:legalHoldPolicy a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:requiredBroker a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:idempotencyLaw a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:idempotencyKey a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:expectedPostcondition a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:evidenceObligation a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:resourceBudget a owl:DatatypeProperty ; rdfs:range xsd:integer .
+cmd:retryBudget a owl:DatatypeProperty ; rdfs:range xsd:integer .
+cmd:errorBudget a owl:DatatypeProperty ; rdfs:range xsd:integer .
+cmd:circuitState a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:consentEvidence a owl:ObjectProperty ; rdfs:range cmd:ConsentEvidence .
+cmd:authorityGrant a owl:ObjectProperty ; rdfs:range cmd:AuthorityGrant .
+cmd:intent a owl:ObjectProperty ; rdfs:range cmd:BrokerIntent .
+cmd:predecessorReceipt a owl:ObjectProperty ; rdfs:range cmd:Receipt .
+cmd:observedConsequence a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:receiptDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:conditionedInput a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:guaranteedOutput a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:authorityCeiling a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:isolationModel a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:hostProfile a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:receiptFormat a owl:DatatypeProperty ; rdfs:range xsd:string .
+
+#################################################################
+# Gall checkpoint and verifier law
+#################################################################
+
+cmd:checkpointOrder a owl:DatatypeProperty ; rdfs:domain cmd:Checkpoint ; rdfs:range xsd:integer .
+cmd:checkpointCode a owl:DatatypeProperty ; rdfs:domain cmd:Checkpoint ; rdfs:range xsd:string .
+cmd:dependsOnCheckpoint a owl:ObjectProperty ; rdfs:domain cmd:Checkpoint ; rdfs:range cmd:Checkpoint .
+cmd:allowedPath a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:forbiddenPath a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:requiredCommand a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:requiredArtifact a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:requiredRefusal a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:standingCeiling a owl:ObjectProperty ; rdfs:range cmd:StandingState .
+cmd:aggregateStanding a owl:ObjectProperty ; rdfs:range cmd:StandingState .
+cmd:verifierIdentity a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:policyDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:ontologyDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:planDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:replayDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:refusalCode a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:exclusionReason a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:falsifierMutation a owl:DatatypeProperty ; rdfs:range xsd:string .
+cmd:expectedRefusal a owl:DatatypeProperty ; rdfs:range xsd:string .
