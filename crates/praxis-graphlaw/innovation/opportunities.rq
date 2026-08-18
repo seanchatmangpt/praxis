@@ -1,0 +1,5 @@
+PREFIX inv: <https://praxis.chatman.io/innovation#>
+SELECT ?subject ?action
+WHERE {
+  ?subject inv:errcAction ?action .
+}
