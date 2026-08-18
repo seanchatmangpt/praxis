@@ -18,6 +18,7 @@
 pub mod model_client;
 pub mod pipeline;
 pub mod prompt;
+pub mod prompt_mfg;
 pub mod receipt;
 pub mod sandbox;
 pub mod spec;
@@ -37,7 +38,7 @@ pub enum Error {
 
     /// Failure compiling a task spec into a prompt.
     #[error("prompt compile error: {0}")]
-    Prompt(#[from] ggen_core::prompt_mfg::PromptError),
+    Prompt(#[from] prompt_mfg::PromptError),
 
     /// Failure talking to the model API.
     #[error("model client error: {0}")]

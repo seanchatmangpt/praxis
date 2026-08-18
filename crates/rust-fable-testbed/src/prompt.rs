@@ -5,7 +5,7 @@
 //! ggen's real emitter/validator/hash path via
 //! `ggen_core::prompt_mfg::PromptCompiler::compile_from_ir`.
 
-use ggen_core::prompt_mfg::{CompiledPrompt, PromptCompiler};
+use crate::prompt_mfg::{CompiledPrompt, PromptCompiler};
 
 use crate::spec::{task_to_prompt_ir, TaskSpec};
 use crate::{Error, Result};

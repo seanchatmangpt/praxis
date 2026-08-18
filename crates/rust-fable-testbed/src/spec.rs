@@ -27,7 +27,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 
-use ggen_core::prompt_mfg::ir::{
+use crate::prompt_mfg::ir::{
     BlockType, ContentBlock, PromptIR, PromptMetadata, Section, SectionType,
 };
 use oxigraph::io::RdfFormat;
@@ -753,7 +753,7 @@ tb:function_bugfix_001 a tb:Task ;
         assert!(ir.sections.contains_key("system"));
         assert!(ir.sections.contains_key("user"));
 
-        let compiler = ggen_core::prompt_mfg::PromptCompiler::new().expect("compiler init");
+        let compiler = crate::prompt_mfg::PromptCompiler::new().expect("compiler init");
         let compiled = compiler
             .compile_from_ir(ir)
             .expect("compile_from_ir should succeed");
