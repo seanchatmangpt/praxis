@@ -1,0 +1,5 @@
+error[E0599]: no method named `transition` found for struct `State<Verified>` in the current scope
+  --> tests/compile/fail/typestate_wrong_state.rs:14:28
+   |
+14 |     let _double = verified.transition();
+   |                            ^^^^^^^^^^ method not found in `State<Verified>`

@@ -1,0 +1,78 @@
+# {{project-name}}-mcp justfile
+#
+# Prerequisites: cargo, just
+# Install just: cargo install just
+
+# List available recipes
+default:
+    @just --list
+
+# ── Development ───────────────────────────────────────────────────────────────
+
+# Build the MCP server (debug)
+build:
+    cargo build
+
+# Build the MCP server (release)
+build-release:
+    cargo build --release
+
+# Start the MCP server with debug logging (stdio transport)
+# Logs go to stderr; stdout carries the JSON-RPC protocol stream.
+mcp-dev:
+    RUST_LOG=debug cargo run --bin {{project-name}}-mcp 2>&1
+
+# Send a test JSON-RPC `tools/list` call to the server via stdin,
+# then immediately EOF to let the server shut down.
+# Requires `jq` for pretty-printing the response.
+mcp-test:
+    @echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
+        | RUST_LOG=warn cargo run --bin {{project-name}}-mcp \
+        | jq .
+
+# Send a test `health` tool call via stdin
+mcp-health:
+    @echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"health","arguments":{}}}' \
+        | RUST_LOG=warn cargo run --bin {{project-name}}-mcp \
+        | jq .
+
+# Send a test `analyse_all` tool call via stdin
+mcp-analyse-all:
+    @echo '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"analyse_all","arguments":{"hours":24,"limit":100}}}' \
+        | RUST_LOG=warn cargo run --bin {{project-name}}-mcp \
+        | jq .
+
+# ── Quality gates ─────────────────────────────────────────────────────────────
+
+# Run all tests
+test:
+    cargo test --all-features
+
+# Run formatter check
+fmt:
+    cargo fmt --all --check
+
+# Run formatter (apply changes)
+fmt-fix:
+    cargo fmt --all
+
+# Run clippy (deny warnings)
+lint:
+    cargo clippy --all-targets --all-features -- -D warnings
+
+# Run cargo deny (license + advisory checks)
+deny:
+    cargo deny check
+
+# Run typos spell-checker
+typos:
+    typos
+
+# Full CI gate (same as CI pipeline)
+ci: fmt lint test deny typos
+
+# ── Utility ───────────────────────────────────────────────────────────────────
+
+# Remove build artefacts
+clean:
+    cargo clean

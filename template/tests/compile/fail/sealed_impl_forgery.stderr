@@ -1,0 +1,5 @@
+error[E0277]: the trait bound `MySpy: sealed::private::Sealed` is not satisfied
+  --> tests/compile/fail/sealed_impl_forgery.rs:9:6
+   |
+9  | impl Sealed for MySpy {}
+   |      ^^^^^^ the trait `sealed::private::Sealed` is not implemented for `MySpy`

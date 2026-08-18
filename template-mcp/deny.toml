@@ -1,0 +1,68 @@
+# cargo-deny configuration for {{project-name}}-mcp
+#
+# Run: cargo deny check
+# Docs: https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+# Check all targets; don't skip platform-specific deps.
+all-features = true
+
+# ── Licenses ──────────────────────────────────────────────────────────────────
+
+[licenses]
+# Allowlist of SPDX identifiers accepted for dependencies.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "ISC",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+    "MPL-2.0",
+    "Zlib",
+    "OpenSSL",
+]
+
+# If a crate has no detectable license, treat it as an error.
+unlicensed = "deny"
+
+# Deny copyleft licenses unless explicitly excepted below.
+copyleft = "deny"
+
+# Uncomment and repeat for any first-party BUSL-licensed deps:
+# [[licenses.exceptions]]
+# allow = ["BUSL-1.1"]
+# name = "wasm4pm"
+# version = "*"
+
+# ── Advisories ────────────────────────────────────────────────────────────────
+
+[advisories]
+# Deny crates with known security vulnerabilities.
+version = 2
+yanked = "deny"
+
+# ── Bans ──────────────────────────────────────────────────────────────────────
+
+[bans]
+# Deny duplicate versions of the same crate (forces deduplication).
+multiple-versions = "warn"
+# Deny wildcard dependencies.
+wildcards = "deny"
+
+# Allow multiple versions of crates that are intentionally multi-version in
+# the Rust ecosystem (e.g., syn 1 vs 2, proc-macro-error versions).
+# Add entries here as needed:
+# [[bans.allow]]
+# name = "syn"
+
+# ── Sources ───────────────────────────────────────────────────────────────────
+
+[sources]
+# Only allow crates.io and git sources; deny unknown registries.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

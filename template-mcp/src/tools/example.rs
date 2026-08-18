@@ -41,6 +41,32 @@ pub struct ExampleTool {
 
 impl ExampleTool {
     pub fn new() -> Self { Self::default() }
+
+    /// Direct (non-MCP-routed) entry point used by composite fan-out tools.
+    ///
+    /// Calling this method bypasses the MCP proc-macro dispatch and lets
+    /// [`AllTool`](crate::tools::all::AllTool) invoke the same logic directly.
+    /// Applies the same cache house pattern as [`ExampleTool::analyse`].
+    pub async fn call_analyse(&self, args: TimeWindowArgs) -> Result<String, ToolError> {
+        let canonical_input = serde_json::to_vec(&args).unwrap_or_default();
+        let key = ToolResultCache::key("analyse", &canonical_input);
+
+        if let Some(cached) = self.cache.get(&key).await {
+            return Ok(cached);
+        }
+
+        let response = match run_analysis(&args) {
+            Ok(data) => CommonResponse::ok(data),
+            Err(e)   => CommonResponse::<AnalysisResult>::err(e.to_string()),
+        };
+        let text = serde_json::to_string_pretty(&response)
+            .map_err(|e| ToolError::ExecutionError(e.to_string()))?;
+
+        if response.passed {
+            self.cache.insert(key, text.clone()).await;
+        }
+        Ok(text)
+    }
 }
 
 #[tool(tool_box)]
@@ -61,24 +87,7 @@ impl ExampleTool {
         &self,
         #[tool(description = "Time window (hours) and result limit")] args: TimeWindowArgs,
     ) -> Result<String, ToolError> {
-        let canonical_input = serde_json::to_vec(&args).unwrap_or_default();
-        let key = ToolResultCache::key("analyse", &canonical_input);
-
-        if let Some(cached) = self.cache.get(&key).await {
-            return Ok(cached);
-        }
-
-        let response = match run_analysis(&args) {
-            Ok(data) => CommonResponse::ok(data),
-            Err(e)   => CommonResponse::<AnalysisResult>::err(e.to_string()),
-        };
-        let text = serde_json::to_string_pretty(&response)
-            .map_err(|e| ToolError::ExecutionError(e.to_string()))?;
-
-        if response.passed {
-            self.cache.insert(key, text.clone()).await;
-        }
-        Ok(text)
+        self.call_analyse(args).await
     }
 }
 
@@ -141,5 +150,13 @@ mod tests {
         let a = tool.analyse(TimeWindowArgs { hours: 1, limit: 5 }).await.expect("call a");
         let b = tool.analyse(TimeWindowArgs { hours: 2, limit: 5 }).await.expect("call b");
         assert_ne!(a, b);
+    }
+
+    #[tokio::test]
+    async fn call_analyse_returns_json() {
+        let tool = ExampleTool::new();
+        let raw = tool.call_analyse(TimeWindowArgs::default()).await.unwrap();
+        let val: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(val["passed"], true);
     }
 }

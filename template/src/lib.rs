@@ -18,4 +18,8 @@ pub mod lsp;
 pub mod repl;
 
 pub use error::AppError;
-pub use types::{Blake3Hash, ObjectRef, canonical_bytes, ProfileId, Evidence, Admit, Raw, Validated, Admitted, RawEvidence, ValidatedEvidence, AdmittedEvidence, AdmittedReceipt};
+pub use types::{
+    Admitted, AdmittedEvidence, AdmittedReceipt, Blake3Hash, Evidence, ONTOLOGY_VERB_IDS,
+    ObjectRef, Pending, ProfileId, Raw, RawEvidence, ReceiptRefusal, Rejected, Sealed, State,
+    Validated, ValidatedEvidence, Verified, assert_unique_ids, canonical_bytes,
+};

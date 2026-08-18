@@ -1,50 +1,200 @@
-# ontology/domain.ttl — minimal domain ontology stub.
+# ontology/domain.ttl — domain ontology for {{project-name}}.
 #
-# Replace the example namespace, class, and properties with your own domain.
-# This file is the single source of truth that ggen reads to generate source.
+# This file is the single source of truth for domain concepts.  `ggen sync`
+# reads it to generate Rust types, CLI verbs, and SPARQL query stubs.
 #
 # Conventions:
 #   - One class per significant domain concept.
 #   - Every class carries rdfs:label (used as the generated Rust struct name).
-#   - Every property carries rdfs:label and rdfs:domain / rdfs:range.
+#   - Every property carries rdfs:label, rdfs:domain, and rdfs:range.
 #   - Use xsd: types for data properties; reference domain classes for object
 #     properties.
+#   - Verb classes (dom:VerbClass) produce CLI subcommands and handler stubs.
+#   - KEY uniqueness: every dom:verbId MUST be globally unique.  Duplicates are
+#     caught at compile time by `assert_unique_ids(ONTOLOGY_VERB_IDS)` in
+#     `src/types.rs` — add a new ID there whenever you add a verb here.
 #
-# After editing this file run `ggen sync` from the project root to regenerate
-# all outputs declared in ggen.toml.
+# After editing this file run:
+#   ggen sync          # regenerate Rust stubs from this ontology
+#   cargo check        # verify the generated stubs compile
 
-@prefix dom:  <http://example.com/ontology#> .
-@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-
-# ---------------------------------------------------------------------------
-# Class
-# ---------------------------------------------------------------------------
-
-dom:Widget
-    a               dom:DomainClass ;
-    rdfs:label      "Widget" ;
-    rdfs:comment    "A placeholder domain concept. Rename or replace this." .
+@prefix dom:   <http://example.com/ontology#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix ocel:  <http://ocel-standard.org/2.0/> .
 
 # ---------------------------------------------------------------------------
-# Data property — a scalar value carried by Widget
+# Ontology declaration
 # ---------------------------------------------------------------------------
 
-dom:hasName
-    a            rdf:Property ;
-    rdfs:label   "name" ;
-    rdfs:comment "Human-readable name for a Widget instance." ;
-    rdfs:domain  dom:Widget ;
+<http://example.com/ontology>
+    a            owl:Ontology ;
+    rdfs:label   "{{project-name}} domain ontology" ;
+    rdfs:comment "Replace this URI and all dom: prefixes with your project namespace." .
+
+# ---------------------------------------------------------------------------
+# Domain classes
+# ---------------------------------------------------------------------------
+
+dom:OperationEvent
+    a               owl:Class ;
+    rdfs:label      "OperationEvent" ;
+    rdfs:comment    "A single step in the build/test/deploy pipeline.  Maps to the
+                     OCEL 2.0 event concept.  Instances are content-addressed via
+                     BLAKE3 and linked into a chain receipt." ;
+    rdfs:subClassOf ocel:Event .
+
+dom:ChainReceipt
+    a               owl:Class ;
+    rdfs:label      "ChainReceipt" ;
+    rdfs:comment    "An immutable, sealed record of an ordered sequence of
+                     OperationEvents.  Constructed exclusively via ChainAssembler
+                     (seal pattern — private _seal field prevents forgery)." ;
+    rdfs:subClassOf prov:Collection .
+
+dom:ArtifactRef
+    a               owl:Class ;
+    rdfs:label      "ArtifactRef" ;
+    rdfs:comment    "A content-addressed reference to a build artifact.  The
+                     BLAKE3 commitment field is the canonical identity." .
+
+# ---------------------------------------------------------------------------
+# Verb classes (each produces one CLI subcommand + one handler stub)
+#
+# KEY uniqueness contract: dom:verbId values must match ONTOLOGY_VERB_IDS
+# in src/types.rs.  The compiler enforces uniqueness; ggen enforces coverage.
+# ---------------------------------------------------------------------------
+
+dom:BuildVerb
+    a            dom:VerbClass ;
+    rdfs:label   "build" ;
+    dom:verbId   "dom:build" ;
+    rdfs:comment "Compile sources and emit a BuildEvent into the chain." .
+
+dom:TestVerb
+    a            dom:VerbClass ;
+    rdfs:label   "test" ;
+    dom:verbId   "dom:test" ;
+    rdfs:comment "Run the test suite and emit a TestEvent into the chain." .
+
+dom:DeployVerb
+    a            dom:VerbClass ;
+    rdfs:label   "deploy" ;
+    dom:verbId   "dom:deploy" ;
+    rdfs:comment "Publish the artifact and emit a DeployEvent into the chain." .
+
+dom:VerifyVerb
+    a            dom:VerbClass ;
+    rdfs:label   "verify" ;
+    dom:verbId   "dom:verify" ;
+    rdfs:comment "Check the chain receipt integrity and emit a VerifyEvent." .
+
+# ---------------------------------------------------------------------------
+# Data properties for OperationEvent
+# ---------------------------------------------------------------------------
+
+dom:hasSeq
+    a            owl:DatatypeProperty ;
+    rdfs:label   "seq" ;
+    rdfs:comment "Monotone-increasing sequence number.  Ordering is by seq,
+                  never by wall-clock time." ;
+    rdfs:domain  dom:OperationEvent ;
+    rdfs:range   xsd:nonNegativeInteger .
+
+dom:hasEventId
+    a            owl:DatatypeProperty ;
+    rdfs:label   "event_id" ;
+    rdfs:comment "Globally unique event identifier within the chain." ;
+    rdfs:domain  dom:OperationEvent ;
+    rdfs:range   xsd:string .
+
+dom:hasEventType
+    a            owl:DatatypeProperty ;
+    rdfs:label   "event_type" ;
+    rdfs:comment "The verb name that produced this event (e.g., dom:build)." ;
+    rdfs:domain  dom:OperationEvent ;
+    rdfs:range   xsd:string .
+
+dom:hasCommitment
+    a            owl:DatatypeProperty ;
+    rdfs:label   "commitment" ;
+    rdfs:comment "BLAKE3 hex digest of the canonical event payload bytes.
+                  Proves the payload has not been tampered with." ;
+    rdfs:domain  dom:OperationEvent ;
     rdfs:range   xsd:string .
 
 # ---------------------------------------------------------------------------
-# Data property — a second scalar to show the pattern
+# Data properties for ChainReceipt
 # ---------------------------------------------------------------------------
 
-dom:hasCount
-    a            rdf:Property ;
-    rdfs:label   "count" ;
-    rdfs:comment "Quantity associated with a Widget instance." ;
-    rdfs:domain  dom:Widget ;
-    rdfs:range   xsd:integer .
+dom:hasChainHash
+    a            owl:DatatypeProperty ;
+    rdfs:label   "chain_hash" ;
+    rdfs:comment "Rolling BLAKE3 hash over all events in seq order.
+                  Changing any event invalidates every subsequent hash." ;
+    rdfs:domain  dom:ChainReceipt ;
+    rdfs:range   xsd:string .
+
+dom:hasFormatVersion
+    a            owl:DatatypeProperty ;
+    rdfs:label   "format_version" ;
+    rdfs:comment "Schema version string (e.g., '1.0').  Used for forward-
+                  compatibility gating." ;
+    rdfs:domain  dom:ChainReceipt ;
+    rdfs:range   xsd:string .
+
+# ---------------------------------------------------------------------------
+# Object property: receipt → events
+# ---------------------------------------------------------------------------
+
+dom:containsEvent
+    a            owl:ObjectProperty ;
+    rdfs:label   "containsEvent" ;
+    rdfs:comment "Links a ChainReceipt to each OperationEvent it contains." ;
+    rdfs:domain  dom:ChainReceipt ;
+    rdfs:range   dom:OperationEvent .
+
+# ---------------------------------------------------------------------------
+# SPARQL query examples
+#
+# These are documentation stubs — paste into an oxigraph REPL or ggen.toml
+# query block to verify your ontology interactively.
+#
+# Example 1: List all verb IDs in alphabetical order
+#
+#   PREFIX dom: <http://example.com/ontology#>
+#   SELECT ?verbId
+#   WHERE {
+#     ?v a dom:VerbClass ;
+#        dom:verbId ?verbId .
+#   }
+#   ORDER BY ?verbId
+#
+# Example 2: Find events with a specific event_type
+#
+#   PREFIX dom: <http://example.com/ontology#>
+#   SELECT ?event ?seq ?commitment
+#   WHERE {
+#     ?event a dom:OperationEvent ;
+#            dom:hasEventType "dom:build" ;
+#            dom:hasSeq ?seq ;
+#            dom:hasCommitment ?commitment .
+#   }
+#   ORDER BY ?seq
+#
+# Example 3: Reconstruct chain receipt events in order
+#
+#   PREFIX dom: <http://example.com/ontology#>
+#   SELECT ?receipt ?seq ?eventType ?commitment
+#   WHERE {
+#     ?receipt a dom:ChainReceipt ;
+#              dom:containsEvent ?event .
+#     ?event dom:hasSeq ?seq ;
+#            dom:hasEventType ?eventType ;
+#            dom:hasCommitment ?commitment .
+#   }
+#   ORDER BY ?receipt ?seq
+# ---------------------------------------------------------------------------

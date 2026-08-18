@@ -279,12 +279,267 @@ fn sort_value(value: serde_json::Value) -> serde_json::Value {
     }
 }
 
-// ─── Seal Pattern (doc example) ────────────────────────────────────────────
+// ─── Typestate: Private Seal Module ────────────────────────────────────────
 //
-// Use a private `_seal: ()` field on any type whose construction must pass
-// through a canonical builder (e.g., a chain assembler or admission gate).
-// Struct-literal construction from outside the module fails at compile time
-// with E0451 ("field `_seal` of struct `Foo` is private").
+// INN-1 pattern from wasm4pm-compat: a `sealed` module whose only exported
+// item is the `Sealed` trait.  Because the module is private and the trait
+// has an unnameable inner bound, no code outside `types` can implement
+// `Sealed`.  This makes `State<S>` and every function gated on `S: Sealed`
+// non-forgeable at compile time.
+
+/// Private internals for the typestate seal.
+///
+/// This module is not public.  Its sole purpose is to prevent external code
+/// from implementing `Sealed` and therefore from constructing `State<S>` with
+/// a type parameter not defined here.
+mod sealed {
+    mod private {
+        pub trait Sealed {}
+    }
+
+    /// Marker for states that may legally appear in [`super::State<S>`].
+    ///
+    /// This trait is **not** re-exported from the crate root.  Downstream code
+    /// cannot implement it; it may only be used as a bound in `where S: Sealed`.
+    pub trait Sealed: private::Sealed {}
+
+    /// The chain has been constructed but not yet verified.
+    #[derive(Debug, Clone, Copy)]
+    pub struct Pending;
+    impl Sealed for Pending {}
+    impl private::Sealed for Pending {}
+
+    /// The chain has passed all admission checks.
+    #[derive(Debug, Clone, Copy)]
+    pub struct Verified;
+    impl Sealed for Verified {}
+    impl private::Sealed for Verified {}
+
+    /// The chain was rejected by an admission check.
+    #[derive(Debug, Clone, Copy)]
+    pub struct Rejected;
+    impl Sealed for Rejected {}
+    impl private::Sealed for Rejected {}
+}
+
+// Re-export the state markers and bound so callers can write `State<Pending>`
+// without naming the private `sealed` module.
+pub use sealed::{Pending, Rejected, Sealed, Verified};
+
+/// A zero-cost typestate wrapper.
+///
+/// `S` must implement [`Sealed`], which is only implemented for the three
+/// built-in state markers: [`Pending`], [`Verified`], and [`Rejected`].
+/// Attempting to construct `State<MySpy>` fails with:
+///
+/// ```text
+/// E0277: the trait bound `MySpy: Sealed` is not satisfied
+/// ```
+///
+/// # State Machine
+///
+/// ```text
+/// Pending ──transition()──► Verified
+/// Pending ──reject()──────► Rejected
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// use {{project-name}}::{State, Pending, Verified};
+///
+/// fn verify(s: State<Pending>) -> State<Verified> {
+///     s.transition()
+/// }
+///
+/// let pending: State<Pending> = State::new();
+/// let verified: State<Verified> = verify(pending);
+/// // compile error — State<Verified> where State<Pending> expected:
+/// // verify(verified);
+/// ```
+#[derive(Debug, Clone, Copy)]
+pub struct State<S: Sealed> {
+    _state: std::marker::PhantomData<S>,
+}
+
+impl State<Pending> {
+    /// Create a new chain in the `Pending` state.
+    pub fn new() -> Self {
+        State { _state: std::marker::PhantomData }
+    }
+
+    /// Advance to `Verified` after all checks pass.
+    pub fn transition(self) -> State<Verified> {
+        State { _state: std::marker::PhantomData }
+    }
+
+    /// Reject the chain, moving to the `Rejected` terminal state.
+    pub fn reject(self) -> State<Rejected> {
+        State { _state: std::marker::PhantomData }
+    }
+}
+
+impl Default for State<Pending> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ─── Named Refusal Enums ────────────────────────────────────────────────────
+//
+// INN-1 pattern: domain errors are named enums, never bare `String`s.
+// This makes error matching exhaustive and lets callers distinguish error kinds
+// without parsing message text.  `#[derive(PartialEq, Eq)]` lets unit tests
+// use `assert_eq!` on error values directly.
+
+/// Reasons a receipt chain admission can be refused.
+///
+/// Use this instead of `anyhow::Error::msg("...")` for domain-level rejection
+/// paths — named variants let callers match exhaustively and let tests assert
+/// with `assert_eq!` rather than string-matching an error message.
+///
+/// # Examples
+///
+/// ```rust
+/// use {{project-name}}::ReceiptRefusal;
+///
+/// fn admit(seq: u32, expected: u32) -> Result<(), ReceiptRefusal> {
+///     if seq != expected {
+///         return Err(ReceiptRefusal::SeqOutOfOrder { got: seq, expected });
+///     }
+///     Ok(())
+/// }
+///
+/// assert_eq!(
+///     admit(2, 0),
+///     Err(ReceiptRefusal::SeqOutOfOrder { got: 2, expected: 0 })
+/// );
+/// ```
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum ReceiptRefusal {
+    /// Events must arrive in strict monotone-increasing order.
+    #[error("seq out of order: got {got}, expected {expected}")]
+    SeqOutOfOrder {
+        /// The sequence number that arrived.
+        got: u32,
+        /// The next expected sequence number.
+        expected: u32,
+    },
+
+    /// The commitment digest is not a valid 64-character lowercase hex string.
+    #[error("malformed commitment digest: {commitment:?}")]
+    MalformedCommitment {
+        /// The invalid digest string.
+        commitment: String,
+    },
+
+    /// The event-ID is empty or contains only whitespace.
+    #[error("empty or blank event_id")]
+    EmptyEventId,
+
+    /// The event-type is empty or contains only whitespace.
+    #[error("empty or blank event_type")]
+    EmptyEventType,
+
+    /// Two events share the same event-ID (IDs must be unique within a chain).
+    #[error("duplicate event_id: {id:?}")]
+    DuplicateEventId {
+        /// The repeated event identifier.
+        id: String,
+    },
+}
+
+// ─── Compile-Time Ontology KEY Uniqueness Proof ─────────────────────────────
+//
+// INN-6 pattern from wasm4pm-compat: a `const fn` that panics *at compile
+// time* if any two IDs in a `&[&str]` array are identical.
+//
+// Usage (evaluated during compilation, zero run-time cost):
+//
+//   const _: () = assert_unique_ids(ONTOLOGY_VERB_IDS);
+//
+// The `_: ()` binding forces evaluation.  A duplicate triggers a build error
+// before any binary is emitted.
+
+/// Assert at compile time that every ID string in `ids` is unique.
+///
+/// Call this in a `const _: () = ...` binding so that duplicate IDs cause a
+/// **compile-time error**, not a runtime panic.  The compiler will print the
+/// `panic!` message in the build transcript.
+///
+/// # Examples
+///
+/// ```rust
+/// use {{project-name}}::assert_unique_ids;
+///
+/// const VERB_IDS: &[&str] = &["build", "test", "deploy"];
+/// const _: () = assert_unique_ids(VERB_IDS);  // ok — all unique
+/// ```
+///
+/// A slice with a duplicate would not compile:
+///
+/// ```rust,compile_fail
+/// use {{project-name}}::assert_unique_ids;
+///
+/// const BAD: &[&str] = &["build", "test", "build"];
+/// const _: () = assert_unique_ids(BAD);   // error: duplicate ontology ID
+/// ```
+pub const fn assert_unique_ids(ids: &[&str]) -> () {
+    // O(n²) — acceptable because n < 200 verbs and this runs only at compile time.
+    let mut i = 0;
+    while i < ids.len() {
+        let mut j = i + 1;
+        while j < ids.len() {
+            let a = ids[i].as_bytes();
+            let b = ids[j].as_bytes();
+            if a.len() == b.len() {
+                // Byte-by-byte comparison: `PartialEq` is not available in `const fn`.
+                let mut k = 0;
+                let mut equal = true;
+                while k < a.len() {
+                    if a[k] != b[k] {
+                        equal = false;
+                        break;
+                    }
+                    k += 1;
+                }
+                if equal {
+                    // `panic!` in `const fn` is stable since Rust 1.73.
+                    panic!("duplicate ontology ID detected — every ID must be globally unique");
+                }
+            }
+            j += 1;
+        }
+        i += 1;
+    }
+}
+
+/// Example ontology verb IDs — each corresponds to one RDF class in `domain.ttl`.
+///
+/// Checked for uniqueness at compile time:
+///
+/// ```rust
+/// use {{project-name}}::{ONTOLOGY_VERB_IDS, assert_unique_ids};
+/// const _: () = assert_unique_ids(ONTOLOGY_VERB_IDS);
+/// ```
+pub const ONTOLOGY_VERB_IDS: &[&str] = &[
+    "dom:build",
+    "dom:test",
+    "dom:deploy",
+    "dom:verify",
+];
+
+// Enforce uniqueness at compile time — adding a duplicate to ONTOLOGY_VERB_IDS
+// will cause a build failure here, before any code runs.
+const _: () = assert_unique_ids(ONTOLOGY_VERB_IDS);
+
+// ─── Seal Pattern (basic variant, doc example) ──────────────────────────────
+//
+// For simple sealed types where a typestate machine is not needed, a private
+// `_seal: ()` field is sufficient.  Struct-literal construction from outside
+// the module fails at compile time with E0451 ("field `_seal` of struct `Foo`
+// is private").
 //
 // ```rust
 // pub struct Receipt {
@@ -302,8 +557,8 @@ fn sort_value(value: serde_json::Value) -> serde_json::Value {
 // ```
 //
 // External code that tries `Receipt { events: vec![], chain_hash: h, _seal: () }`
-// will not compile. This is a value-level immutability guarantee, not just a
-// runtime check.
+// will not compile.  Use the full typestate `State<S>` pattern (above) when
+// you need to track *which* construction phase the value is in.
 
 // ─── Evidence<T, State, W> — Typed Lifecycle Carrier ───────────────────────
 
@@ -968,6 +1223,73 @@ mod tests {
         let policy = AlwaysWarn;
         assert_eq!(policy.name(), "always-warn");
         assert_eq!(policy.evaluate(&PolicyConfig::default()), PolicyVerdict::Warn);
+    }
+
+    // ── Typestate tests ─────────────────────────────────────────────────────
+
+    #[test]
+    fn state_pending_transitions_to_verified() {
+        let s: State<Pending> = State::new();
+        let _v: State<Verified> = s.transition();
+        // Compilation proves the typestate: State<Pending> → State<Verified>.
+    }
+
+    #[test]
+    fn state_pending_can_be_rejected() {
+        let s: State<Pending> = State::new();
+        let _r: State<Rejected> = s.reject();
+    }
+
+    #[test]
+    fn state_default_is_pending() {
+        let _: State<Pending> = State::default();
+    }
+
+    // ── ReceiptRefusal tests ────────────────────────────────────────────────
+
+    #[test]
+    fn receipt_refusal_seq_out_of_order_is_eq() {
+        let e1 = ReceiptRefusal::SeqOutOfOrder { got: 2, expected: 0 };
+        let e2 = ReceiptRefusal::SeqOutOfOrder { got: 2, expected: 0 };
+        assert_eq!(e1, e2);
+    }
+
+    #[test]
+    fn receipt_refusal_empty_event_id_display() {
+        let e = ReceiptRefusal::EmptyEventId;
+        assert_eq!(e.to_string(), "empty or blank event_id");
+    }
+
+    #[test]
+    fn receipt_refusal_malformed_commitment_contains_value() {
+        let e = ReceiptRefusal::MalformedCommitment { commitment: "bad".into() };
+        assert!(e.to_string().contains("bad"));
+    }
+
+    #[test]
+    fn receipt_refusal_duplicate_event_id_contains_id() {
+        let e = ReceiptRefusal::DuplicateEventId { id: "evt-42".into() };
+        assert!(e.to_string().contains("evt-42"));
+    }
+
+    // ── assert_unique_ids tests ─────────────────────────────────────────────
+
+    #[test]
+    fn unique_ids_passes_for_distinct_values() {
+        // This is a runtime call; the compile-time check is the `const _` above.
+        assert_unique_ids(&["a", "b", "c"]);
+    }
+
+    #[test]
+    #[should_panic(expected = "duplicate ontology ID")]
+    fn unique_ids_panics_for_duplicate() {
+        assert_unique_ids(&["a", "b", "a"]);
+    }
+
+    #[test]
+    fn ontology_verb_ids_are_unique() {
+        // Belt-and-suspenders: also check at runtime so the test output names the set.
+        assert_unique_ids(ONTOLOGY_VERB_IDS);
     }
 }
 
