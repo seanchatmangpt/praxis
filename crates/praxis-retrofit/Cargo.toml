@@ -6,6 +6,7 @@ rust-version = "1.82"
 repository = "https://github.com/seanchatmangpt/praxis"
 license = "MIT OR Apache-2.0"
 description = "Retrofit automation tool: Apply praxis standards across Rust ecosystem"
+readme = "README.md"
 
 [dependencies]
 chicago-tdd-tools = { version = "=26.6.30", features = ["ocel-generation"] }

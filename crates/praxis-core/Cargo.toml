@@ -17,8 +17,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 chatman-common = { path = "../chatman-common", optional = true }
-bcinr-powl-receipt = { path = "../../../bcinr/crates/bcinr-powl-receipt" }
-wasm4pm-compat = { path = "../../../wasm4pm-compat" }
+bcinr-powl-receipt = { path = "../../../bcinr/crates/bcinr-powl-receipt", version = "26.6.24" }
+wasm4pm-compat = { path = "../../../wasm4pm-compat", version = "26.6.29" }
 hex = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 # PROJ-752 (PRD.md sec.7.4-7.5, A_z = T(Q(W))): real Tera template engine for

@@ -2,6 +2,7 @@
 name = "air_core_nif"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [lib]
 name = "air_core_nif"

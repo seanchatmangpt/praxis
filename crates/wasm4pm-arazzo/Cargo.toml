@@ -15,4 +15,4 @@ serde_json = "1.0"
 thiserror = "2.0"
 url = "2.5"
 wasm-encoder = "0.253.0"
-wasm4pm-compat = { path = "../../../wasm4pm-compat" }
+wasm4pm-compat = { path = "../../../wasm4pm-compat", version = "26.6.29" }

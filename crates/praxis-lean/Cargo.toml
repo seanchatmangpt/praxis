@@ -5,6 +5,7 @@ edition = "2021"
 license = "Apache-2.0 OR MIT"
 description = "Praxis Lean 4 manufacturing wrapper: Lake replay, no-sorry gates, receipts, RDF label/declaration index, and ggen report surface."
 repository = "https://github.com/seanchatmangpt/praxis"
+readme = "README.md"
 
 [lib]
 name = "praxis_lean"
