@@ -27,13 +27,21 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{receipt_record::ReceiptRecord, replay_adapter};
+use crate::{error::CoreError, receipt_record::ReceiptRecord, replay_adapter};
 
 /// Injectable wall-clock so "timestamp not in the future" checks are
 /// deterministic in tests.
 pub trait Clock: Sync {
     /// Current time in nanoseconds since the UNIX epoch.
-    fn now_ns(&self) -> u64;
+    ///
+    /// # Errors
+    /// Returns [`CoreError::SystemClockBeforeEpoch`] (or an equivalent
+    /// implementor-specific failure) if the underlying clock read cannot
+    /// produce a trustworthy nanosecond timestamp -- callers must refuse
+    /// the `monotonic` stage rather than substitute a default value, since
+    /// a defaulted "now" would make the future-timestamp check vacuously
+    /// pass for every record.
+    fn now_ns(&self) -> Result<u64, CoreError>;
 }
 
 /// Real wall-clock via `SystemTime::now()`.
@@ -41,11 +49,11 @@ pub trait Clock: Sync {
 pub struct SystemClock;
 
 impl Clock for SystemClock {
-    fn now_ns(&self) -> u64 {
+    fn now_ns(&self) -> Result<u64, CoreError> {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos() as u64
+            .map(|d| d.as_nanos() as u64)
+            .map_err(|_| CoreError::SystemClockBeforeEpoch)
     }
 }
 
@@ -54,8 +62,8 @@ impl Clock for SystemClock {
 pub struct FixedClock(pub u64);
 
 impl Clock for FixedClock {
-    fn now_ns(&self) -> u64 {
-        self.0
+    fn now_ns(&self) -> Result<u64, CoreError> {
+        Ok(self.0)
     }
 }
 
@@ -223,7 +231,15 @@ impl ReceiptValidator {
     }
 
     fn check_monotonic(records: &[ReceiptRecord], clock: &dyn Clock) -> StageResult {
-        let now = clock.now_ns();
+        let now = match clock.now_ns() {
+            Ok(now) => now,
+            Err(e) => {
+                return StageResult::new(
+                    "monotonic",
+                    CheckOutcome::Fail(format!("clock read failed: {e}")),
+                );
+            }
+        };
         let mut prev_instruction: Option<u64> = None;
         let mut prev_ts: Option<u64> = None;
 
@@ -293,6 +309,23 @@ impl ReceiptValidator {
             }
         }
         StageResult::new("token_replay", CheckOutcome::Pass)
+    }
+}
+
+/// A real `Clock` implementation whose `now_ns()` always fails, exercising
+/// the same "clock read failed" code path a genuine pre-epoch
+/// `SystemTime::now()` reading would take. Not a mock: it implements the
+/// full `Clock` contract with real (if trivial) behavior, and the test
+/// below asserts on the resulting `Verdict`'s state, not on whether/how
+/// many times `now_ns()` was called.
+#[cfg(test)]
+#[derive(Debug, Clone, Copy)]
+struct AlwaysErrClock;
+
+#[cfg(test)]
+impl Clock for AlwaysErrClock {
+    fn now_ns(&self) -> Result<u64, CoreError> {
+        Err(CoreError::SystemClockBeforeEpoch)
     }
 }
 
@@ -400,6 +433,39 @@ mod tests {
             .find(|s| s.stage == "monotonic")
             .unwrap();
         assert!(matches!(stage.outcome, CheckOutcome::Fail(_)));
+    }
+
+    #[test]
+    fn clock_read_failure_refuses_monotonic_instead_of_defaulting() {
+        // Regression test for the `.unwrap_or_default()` that used to
+        // silently treat a failed clock read as `now_ns() == 0`, which
+        // would make every subsequent record's `ts_ns > now` check
+        // vacuously true (fail-open) or, worse, mask a real clock fault as
+        // an unrelated timestamp violation. With a typed `Result`, a
+        // failing `Clock::now_ns()` must produce an explicit,
+        // attributable `CheckOutcome::Fail` naming the clock error, not a
+        // fabricated "now".
+        let records = chained_records(1);
+        let verdict = ReceiptValidator::validate(&records, &AlwaysErrClock);
+        assert!(!verdict.ok, "verdict: {verdict:?}");
+        let stage = verdict
+            .stages
+            .iter()
+            .find(|s| s.stage == "monotonic")
+            .unwrap();
+        match &stage.outcome {
+            CheckOutcome::Fail(msg) => {
+                assert!(
+                    msg.contains("clock read failed"),
+                    "expected clock-read-failure message, got: {msg}"
+                );
+                assert!(
+                    msg.contains(&CoreError::SystemClockBeforeEpoch.to_string()),
+                    "expected the underlying CoreError::SystemClockBeforeEpoch text, got: {msg}"
+                );
+            }
+            other => panic!("expected CheckOutcome::Fail, got {other:?}"),
+        }
     }
 
     #[test]

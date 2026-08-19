@@ -132,6 +132,15 @@ pub enum CoreError {
         /// Why the declared name failed to resolve to `expected`'s authority.
         reason: String,
     },
+
+    /// `receipt_validator::SystemClock::now_ns`: `SystemTime::now()` read a
+    /// time earlier than `UNIX_EPOCH` (a misconfigured or adversarial system
+    /// clock). Previously silently defaulted to `Duration::ZERO` via
+    /// `.unwrap_or_default()`, which would make the `monotonic` stage's
+    /// "not in the future" check vacuously pass for every record instead of
+    /// refusing loud on an untrustworthy clock reading.
+    #[error("system clock read before UNIX_EPOCH (clock misconfigured or adversarial)")]
+    SystemClockBeforeEpoch,
 }
 
 /// Every [`CoreError`] name, in declaration order. Mirrors
@@ -143,7 +152,7 @@ pub enum CoreError {
 /// `tests::all_core_error_names_matches_enum` below, which builds one
 /// instance of every variant and zip-checks `name()` against this array in
 /// order.
-pub const ALL_CORE_ERROR_NAMES: [&str; 14] = [
+pub const ALL_CORE_ERROR_NAMES: [&str; 15] = [
     "ObligationUnmet",
     "SignatureInvalid",
     "ChainMismatch",
@@ -158,6 +167,7 @@ pub const ALL_CORE_ERROR_NAMES: [&str; 14] = [
     "ArazzoSourceReceiptMissing",
     "ArazzoProjectionDigestMismatch",
     "ArazzoDialectAuthorityMismatch",
+    "SystemClockBeforeEpoch",
 ];
 
 impl CoreError {
@@ -183,6 +193,7 @@ impl CoreError {
             CoreError::ArazzoSourceReceiptMissing(_) => "ArazzoSourceReceiptMissing",
             CoreError::ArazzoProjectionDigestMismatch(_) => "ArazzoProjectionDigestMismatch",
             CoreError::ArazzoDialectAuthorityMismatch { .. } => "ArazzoDialectAuthorityMismatch",
+            CoreError::SystemClockBeforeEpoch => "SystemClockBeforeEpoch",
         }
     }
 }
@@ -201,7 +212,7 @@ mod tests {
     fn all_core_error_names_len_matches_array() {
         assert_eq!(
             ALL_CORE_ERROR_NAMES.len(),
-            14,
+            15,
             "ALL_CORE_ERROR_NAMES size drifted"
         );
     }
@@ -248,6 +259,7 @@ mod tests {
                 expected: "gate",
                 reason: "gate".to_string(),
             },
+            CoreError::SystemClockBeforeEpoch,
         ];
         assert_eq!(all.len(), ALL_CORE_ERROR_NAMES.len());
         for (err, expected) in all.iter().zip(ALL_CORE_ERROR_NAMES) {
