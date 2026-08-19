@@ -256,6 +256,15 @@ install-ggen:
 check:
     timeout 180s cargo check --workspace --all-features
 
+# Scoped test run for one package -- fallback for environments where `cargo-cicd` (used by
+# `test-changed` to compute the affected-package plan) isn't installed. Usage: just test-pkg praxis-core
+test-pkg pkg:
+    if command -v cargo-nextest >/dev/null 2>&1; then \
+        timeout 600s cargo nextest run -p {{pkg}} --all-features; \
+    else \
+        timeout 600s cargo test -p {{pkg}} --all-features; \
+    fi
+
 # Run the full test suite across the workspace with every feature enabled (matches CI's `test` job)
 # nextest runs test binaries in parallel (vs. cargo test's serial-by-binary execution); falls
 # back to cargo test if nextest isn't on PATH (see chatman-verify for the same pattern)
