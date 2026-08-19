@@ -1,6 +1,11 @@
 # PROJ-811: Fix broken `crates/cng` workspace dependency chain
 
-**Status**: BLOCKED — needs human decision
+**Status**: DONE — resolved by vendoring ggen-core's `prompt_mfg` module directly into
+`rust-fable-testbed` (pinned to ggen commit `68d3c2560`, the last commit before `ggen-core` was
+retired upstream in favor of `ggen-engine`, which did not migrate `prompt_mfg`). The dead
+path dependency on `/Users/sac/ggen/crates/ggen-core` is removed; `cargo check -p
+rust-fable-testbed` and `cargo check --workspace --all-features` no longer fail on this
+manifest-resolution error.
 **Dependencies**: none
 **Blocks**: PROJ-812, PROJ-813, PROJ-814, PROJ-816 (every ticket in this milestone that needs a
 passing `just` gate)

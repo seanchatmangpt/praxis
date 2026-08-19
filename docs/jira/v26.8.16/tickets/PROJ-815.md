@@ -1,6 +1,9 @@
 # PROJ-815: Document the POWL 3-way fork and cross-reference the two quarantine doctrines
 
-**Status**: OPEN
+**Status**: DONE — `docs/standing/POWL_IMPLEMENTATIONS.md` added; cross-reference doc comments
+added to both `crates/praxis-synthesis/src/quarantine.rs` and
+`crates/praxis-graphlaw/src/chatman/quarantine.rs` (no logic changed; `just fmt-check` clean
+for both files).
 **Dependencies**: none (docs-only, no build gate required)
 
 ## Scope
