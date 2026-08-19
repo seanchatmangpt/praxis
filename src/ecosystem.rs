@@ -12,8 +12,7 @@ use thiserror::Error;
 /// Public-ontology/ABox source embedded into the binary so contract drift is
 /// visible at compile time and verification never depends on the working
 /// directory.
-pub const ECOSYSTEM_ONTOLOGY: &str =
-    include_str!("../packs/chatman-ecosystem-pack/ontology.ttl");
+pub const ECOSYSTEM_ONTOLOGY: &str = include_str!("../packs/chatman-ecosystem-pack/ontology.ttl");
 
 /// Standing applied to external ecosystem components by this verifier.
 /// Structural verification of the profile cannot crown a sibling runtime.
@@ -163,11 +162,7 @@ pub const STAGES: &[&str] = &[
 
 /// Portfolio calculus used to turn the full repository graph into lawful
 /// capability candidates without ambient authority.
-pub const PROJECT_STAGES: &[&str] = &[
-    "DISCOVER_PROJECTS",
-    "ADMIT_PROJECT",
-    "COMPOSE_PROJECT",
-];
+pub const PROJECT_STAGES: &[&str] = &["DISCOVER_PROJECTS", "ADMIT_PROJECT", "COMPOSE_PROJECT"];
 
 const REQUIRED_MARKERS: &[(&str, &str)] = &[
     (
@@ -281,7 +276,8 @@ pub fn verify_contract() -> Result<EcosystemContract, EcosystemContractError> {
         project_stages: PROJECT_STAGES,
         project_scope: PROJECT_SCOPE,
         systems: SYSTEMS,
-        actuation_law: "external/world-changing DO requires BRCE authority; zero unreceipted actuation",
+        actuation_law:
+            "external/world-changing DO requires BRCE authority; zero unreceipted actuation",
         external_standing: EXTERNAL_STANDING,
     })
 }
@@ -306,13 +302,11 @@ mod tests {
     }
 
     #[test]
-    fn project_universe_is_open_owner_wide_and_non_actuating() -> Result<(), EcosystemContractError> {
+    fn project_universe_is_open_owner_wide_and_non_actuating() -> Result<(), EcosystemContractError>
+    {
         let contract = verify_contract()?;
         assert_eq!(contract.project_scope.repository_glob, "seanchatmangpt/*");
-        assert_eq!(
-            contract.project_scope.discovery,
-            "ALL_VISIBLE_REPOSITORIES"
-        );
+        assert_eq!(contract.project_scope.discovery, "ALL_VISIBLE_REPOSITORIES");
         assert_eq!(contract.project_scope.planning, "ELIGIBLE_FOR_SELECT");
         assert!(contract.project_scope.actuation.contains("REFUSED"));
         assert_eq!(contract.project_scope.standing, "UNKNOWN");

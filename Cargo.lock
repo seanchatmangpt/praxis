@@ -4458,6 +4458,7 @@ dependencies = [
  "anyhow",
  "blake3",
  "clap",
+ "hex",
  "oxigraph",
  "praxis-core",
  "reqwest 0.12.28",

@@ -24,10 +24,10 @@
 //! rest of the CLI.
 
 use bcinr_powl::compiler::{compile_powl, PowlAstNode};
-use bcinr_powl::scheduler::{scheduler_tick, PowlRunState};
-use bcinr_powl::tape::{OpKind, PowlTape};
 use bcinr_powl::receipt::causal_receipt::{OcelCausalFrame, OcelCausalReceipt, PackedObjRef};
 use bcinr_powl::receipt::denial::DenialPolarity;
+use bcinr_powl::scheduler::{scheduler_tick, PowlRunState};
+use bcinr_powl::tape::{OpKind, PowlTape};
 use serde_json::{json, Value};
 
 use crate::mfg;

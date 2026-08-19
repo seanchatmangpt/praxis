@@ -52,18 +52,25 @@ fn domain_is_strips8_safe_and_manufactures_real_pddl8_text() {
     let combined = format!("{DOMAIN_TTL}\n{PROBLEM_CLOSABLE_TTL}");
     let manufactured = mfg::manufacture(&combined, "fixtures/bribery-case/pddl-domain.ttl")
         .expect("pddl-domain.ttl must satisfy PDDL8 bounds (arity/conjuncts/params <= 8)");
-    assert!(manufactured.project_domain_text().contains("close-obligations"));
+    assert!(manufactured
+        .project_domain_text()
+        .contains("close-obligations"));
     assert!(manufactured
         .domain_text
         .contains("clear-transaction-obligation"));
     assert!(manufactured
         .domain_text
         .contains("clear-authorization-obligation"));
-    assert!(manufactured.project_domain_text().contains("clear-policy-obligation"));
+    assert!(manufactured
+        .project_domain_text()
+        .contains("clear-policy-obligation"));
     assert!(manufactured
         .domain_text
         .contains("block-for-missing-evidence"));
-    eprintln!("manufactured domain text:\n{}", manufactured.project_domain_text());
+    eprintln!(
+        "manufactured domain text:\n{}",
+        manufactured.project_domain_text()
+    );
 }
 
 /// Scenario 1: lawful closure. Concatenates pddl-domain.ttl with
@@ -76,7 +83,10 @@ fn closable_case_grounds_and_solves_to_receipted() {
     let combined = format!("{DOMAIN_TTL}\n{PROBLEM_CLOSABLE_TTL}");
     let manufactured = mfg::manufacture(&combined, "bribery-case (closable scenario)")
         .expect("domain+closable-problem must manufacture");
-    eprintln!("manufactured problem text:\n{}", manufactured.project_problem_text());
+    eprintln!(
+        "manufactured problem text:\n{}",
+        manufactured.project_problem_text()
+    );
 
     let report = mfg::solve_ir(&manufactured);
     assert!(
@@ -154,7 +164,10 @@ fn blocked_case_grounds_and_solves_to_blocked_not_receipted() {
     let combined = format!("{DOMAIN_TTL}\n{PROBLEM_BLOCKED_TTL}");
     let manufactured = mfg::manufacture(&combined, "bribery-case (blocked scenario)")
         .expect("domain+blocked-problem must manufacture");
-    eprintln!("manufactured problem text:\n{}", manufactured.project_problem_text());
+    eprintln!(
+        "manufactured problem text:\n{}",
+        manufactured.project_problem_text()
+    );
 
     let report = mfg::solve_ir(&manufactured);
     assert!(

@@ -25,38 +25,49 @@ use bcinr_pddl::{
 
 use ggen_graph::prelude::{parse_turtle, DeterministicGraph, FactStore};
 
-pub fn validate_shacl(graph: &DeterministicGraph, shapes_ttl: &str, profile_name: &str) -> Result<AdmissionReceipt> {
-    let outcome = graph.validate_shacl(shapes_ttl)
+pub fn validate_shacl(
+    graph: &DeterministicGraph,
+    shapes_ttl: &str,
+    profile_name: &str,
+) -> Result<AdmissionReceipt> {
+    let outcome = graph
+        .validate_shacl(shapes_ttl)
         .map_err(|e| MfgError::Graph(e.to_string()))?;
-    
+
     let gh = graph_hash_hex(graph)?;
     let sh_hash = hex::encode(blake3::hash(shapes_ttl.as_bytes()).as_bytes());
-    
+
     Ok(AdmissionReceipt {
         conforms: outcome.conforms,
         shapes_hash: sh_hash,
         graph_hash: gh,
         profile_name: profile_name.to_string(),
-        message: if outcome.conforms { None } else { Some("SHACL violation".to_string()) },
+        message: if outcome.conforms {
+            None
+        } else {
+            Some("SHACL violation".to_string())
+        },
     })
 }
 
 pub fn solve_ir(task: &AdmittedPlanningTask) -> ValidationReport {
     let d8: wasm4pm_compat::pddl::Pddl8Domain = (&task.domain).into();
     let p8: wasm4pm_compat::pddl::Pddl8Problem = (&task.problem).into();
-    
+
     let ground = match bcinr_pddl::GroundProblem::build(&d8, &p8, None) {
         Ok(g) => g,
-        Err(e) => return ValidationReport {
-            parsed: true,
-            grounded_actions: 0,
-            plan_len: 0,
-            plan_steps: Vec::new(),
-            solvable: false,
-            error: Some(e.to_string()),
+        Err(e) => {
+            return ValidationReport {
+                parsed: true,
+                grounded_actions: 0,
+                plan_len: 0,
+                plan_steps: Vec::new(),
+                solvable: false,
+                error: Some(e.to_string()),
+            }
         }
     };
-    
+
     let grounded_actions = ground.actions.len();
     match ground.find_plan() {
         Ok(tape) => {
@@ -81,7 +92,7 @@ pub fn solve_ir(task: &AdmittedPlanningTask) -> ValidationReport {
             plan_steps: Vec::new(),
             solvable: false,
             error: Some(e.to_string()),
-        }
+        },
     }
 }
 
@@ -197,9 +208,7 @@ pub struct PddlPddlProblemIr {
 /// Manufactured output: PDDL8 domain + problem text, plus the source
 /// graph's BLAKE3 state hash (embedded as a provenance comment in the
 /// domain text and returned separately for callers that need it raw).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Debug, Clone, Serialize, Deserialize)]
 pub struct AdmissionReceipt {
     pub conforms: bool,
     pub shapes_hash: String,
@@ -219,7 +228,7 @@ impl AdmittedPlanningTask {
     pub fn project_domain_text(&self) -> String {
         emit_domain(&self.domain, "projected", &self.receipt.graph_hash)
     }
-    
+
     pub fn project_problem_text(&self) -> String {
         emit_problem(&self.problem)
     }
@@ -259,7 +268,11 @@ impl From<&PddlDomainIr> for wasm4pm_compat::pddl::Pddl8Domain {
         Self {
             name: d.name.clone(),
             types: d.types.iter().map(Into::into).collect(),
-            predicates: d.predicates.iter().map(|p| (p.name.clone(), p.params.len() as u8)).collect(),
+            predicates: d
+                .predicates
+                .iter()
+                .map(|p| (p.name.clone(), p.params.len() as u8))
+                .collect(),
             actions: d.actions.iter().map(Into::into).collect(),
             ..Default::default()
         }
@@ -270,7 +283,11 @@ impl From<&PddlProblemIr> for wasm4pm_compat::pddl::Pddl8Problem {
         Self {
             name: p.name.clone(),
             domain: p.domain.clone(),
-            objects: p.objects.iter().map(|o| (o.name.clone(), o.ty.clone())).collect(),
+            objects: p
+                .objects
+                .iter()
+                .map(|o| (o.name.clone(), o.ty.clone()))
+                .collect(),
             init: p.init.iter().map(Into::into).collect(),
             goal: p.goal.iter().map(Into::into).collect(),
             ..Default::default()
@@ -762,28 +779,27 @@ const PDDL_ADMISSION_SHAPES_TTL: &str = include_str!("../ontology/pddl-admission
 
 pub fn manufacture(ttl: &str, profile_name: &str) -> Result<AdmittedPlanningTask> {
     let graph = load_graph(ttl)?;
-    
+
     // We run SHACL admission
     let receipt = validate_shacl(&graph, PDDL_ADMISSION_SHAPES_TTL, profile_name)?;
     if !receipt.conforms {
         return Err(MfgError::Shape(receipt.message.unwrap_or_default()));
     }
-    
+
     let hash_hex = receipt.graph_hash.clone();
     let domain = extract_domain(&graph)?;
-    
+
     // PDDL 3.1: remove enforce_pddl8 as global law
     // enforce_pddl8(&domain)?;
-    
+
     let problem = extract_problem(&graph)?;
-    
+
     Ok(AdmittedPlanningTask {
         domain,
         problem,
         receipt,
     })
 }
-
 
 /// Round-trip manufactured (or hand-written) PDDL8 `domain_text`/
 /// `problem_text` through `bcinr-pddl`: parse, ground, and attempt
