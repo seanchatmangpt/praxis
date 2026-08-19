@@ -1,0 +1,15 @@
+schema = "chatman.federated-capability-owner.v1"
+version = "26.9.1"
+repository = "seanchatmangpt/praxis"
+owner_id = "repository:praxis"
+control_plane_repository = "seanchatmangpt/chatman-ecosystem"
+control_plane_subject = "git:7430dfc9b3ca138e703430d25de7c6f48a8d6ade"
+base_sha = "1c34100efa2b99d43fa56c9c843532365a47d53e"
+release_component = "praxis"
+release_role = "fleet-conformance"
+release_dependencies = ["ggen"]
+allowed_authorities = ["observe", "classify", "persist_control_plane"]
+simulation_only = false
+do_mode = "none"
+ambient_do = false
+automatic_irreversible_do = false
