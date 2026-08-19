@@ -9,8 +9,8 @@ use serde_json::{json, Value};
 /// Return the complete admitted composition contract as JSON.
 #[verb]
 pub fn contract() -> Result<Value> {
-    let contract = ecosystem::verify_contract()
-        .map_err(|e| NounVerbError::argument_error(e.to_string()))?;
+    let contract =
+        ecosystem::verify_contract().map_err(|e| NounVerbError::argument_error(e.to_string()))?;
     serde_json::to_value(contract).map_err(|e| NounVerbError::argument_error(e.to_string()))
 }
 
@@ -18,8 +18,8 @@ pub fn contract() -> Result<Value> {
 /// that apply to every current and future project in that scope.
 #[verb]
 pub fn projects() -> Result<Value> {
-    let contract = ecosystem::verify_contract()
-        .map_err(|e| NounVerbError::argument_error(e.to_string()))?;
+    let contract =
+        ecosystem::verify_contract().map_err(|e| NounVerbError::argument_error(e.to_string()))?;
 
     Ok(json!({
         "scope": contract.project_scope,
@@ -44,8 +44,8 @@ pub fn projects() -> Result<Value> {
 /// check did and did not execute.
 #[verb]
 pub fn verify() -> Result<Value> {
-    let contract = ecosystem::verify_contract()
-        .map_err(|e| NounVerbError::argument_error(e.to_string()))?;
+    let contract =
+        ecosystem::verify_contract().map_err(|e| NounVerbError::argument_error(e.to_string()))?;
 
     Ok(json!({
         "contract": {
