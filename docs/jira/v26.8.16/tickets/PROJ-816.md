@@ -1,6 +1,7 @@
 # PROJ-816: Bootstrap the autonomous iteration loop
 
-**Status**: OPEN
+**Status**: BLOCKED — TaskList/TaskCreate tooling not available in this session; loop-mechanism
+bootstrap deferred to a session with that tooling.
 **Dependencies**: PROJ-811
 
 ## Scope

@@ -85,6 +85,32 @@ not an oversight:
   existence-checked only, not SHACL-run against output. Zero real templates exercise
   either path, so this is deferred rather than a currently-observed defect.
 
+## Excluded packs
+
+Five packs are confirmed intentionally outside the ggen-template pipeline entirely (distinct
+from "Deferred by design" above, which covers unused *mechanisms* within packs that do run
+through ggen). Each was checked directly against its own `pack.toml`/`templates/` this session:
+
+| Pack | Reason |
+|---|---|
+| `dogfood-lifecycle-pack` | no `templates/` dir — `pack.toml` states by design it's ontology+shapes+fixtures for a session hook, not a ggen-template pack |
+| `ma-case-study-pack` | no `templates/` dir — TBox-only ontology+shapes+fixtures, consumed directly by `crates/praxis-graphlaw/tests/ma_case_hook_actuation.rs` and as `azure-terraform-pack`'s row instance data, never via template rendering |
+| `lean-math-pack` | 5 real templates, all `to:` targeting `procint/**.lean` — no `procint/` directory exists anywhere in this repo (the separate `~/mfact` Lean package, out-of-repo) |
+| `post-release-pack` | 14 real templates, `to:` targeting `paper/`, `release/`, `research/wfnet/`, `procint/...` — none of these directories exist in this repo |
+| `quadrature-pack` | 10 real templates, `to:` targeting `paper/`, `release/`, `procint/...` — none of these directories exist in this repo |
+
+`quadrature-pack`'s exclusion was carried from a prior survey whose own summary line ("4
+DOCUMENT-EXCLUDE") disagreed with its own table (5 rows including this one) — re-verified
+directly this session rather than trusted: `packs/quadrature-pack/templates/` holds 10 `.tmpl`
+files (`quadrature_json.tmpl`, `quadrature_env.tmpl`, `quadrature_md.tmpl`,
+`quadrature_lean.tmpl`, `quadrature_tex.tmpl`, `paper_availability.tmpl`,
+`paper_conclusion.tmpl`, `paper_crown_jewel.tmpl`, `paper_final_status.tmpl`,
+`paper_macros.tmpl`), whose `to:` fields resolve to `paper/`, `release/`, and
+`procint/ProcInt/Release/Quadrature.lean`. `ls paper release procint research/wfnet` from the
+repo root confirms all four target directories are absent, so this pack's exclusion reason is
+the same class as `post-release-pack` and `lean-math-pack` (real templates, out-of-repo
+targets), not the no-`templates/`-dir class of the first two rows.
+
 ## Blockers resolved this session
 
 Three blocker workstreams were opened this session against the gaps above. Status below

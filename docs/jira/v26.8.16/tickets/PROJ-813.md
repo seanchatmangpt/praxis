@@ -1,6 +1,9 @@
 # PROJ-813: Create an "Excluded packs" section in `docs/GGEN_PARITY.md`
 
-**Status**: OPEN
+**Status**: DONE — independent audit confirmed the `## Excluded packs` section diff matches
+ticket scope exactly (5 rows, correct insertion point), and independently re-verified all cited
+facts (pack directory contents, template lists, `to:` targets, `quadrature-pack` re-check,
+directory absence) against real files.
 **Dependencies**: PROJ-811
 
 ## Scope

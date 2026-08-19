@@ -1,6 +1,9 @@
 # PROJ-812: Wire orphaned-but-consumed ggen packs into `ggen.toml`
 
-**Status**: DRAFTED, BLOCKED_ON_GATE
+**Status**: DONE — 14-entry additive `[packs]` diff confirmed present and committed in `ggen.toml`
+(landed via this session's earlier merge-conflict resolution, commit `5c41a0a7`); independently
+re-verified via `git log --oneline -- ggen.toml` and a direct grep of all 14 pack names in the
+current `ggen.toml`.
 **Dependencies**: PROJ-811
 
 ## Scope

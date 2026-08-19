@@ -1,6 +1,12 @@
 # PROJ-814: Extract shared receipt-root fold helper into `chatman-common`
 
-**Status**: OPEN
+**Status**: OPEN — see audit note. The independent audit confirmed the implementer's own
+finding: a real discrepancy exists between `engine.rs`'s and `otel_receipt.rs`'s byte-layout
+conventions that blocks extracting a single shared `fold_digest_root` helper as originally
+scoped. The implementer correctly stopped and touched no files rather than force a helper over
+a mismatched convention; the audit found this stop-and-report decision correct, not the
+extraction itself complete. No shared helper exists yet — this ticket remains open pending a
+reconciled design for the two conventions (or an explicit decision to keep them separate).
 **Dependencies**: PROJ-811
 
 ## Scope
