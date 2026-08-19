@@ -31,8 +31,8 @@ use powl2_decompose::Powl;
 use super::{
     air_program_to_bridge_workflow, build_reentry_payload, drive_external_readmit_transition,
     drive_external_reentry, drive_external_witness_tail, drive_external_witness_tail_through_f16,
-    drive_f18_completion_through_f20_dispatch, ExternalReentryRefused, ExternalReentryRun,
-    ExternalWitnessRun,
+    drive_f18_completion_through_f20_dispatch, require_consequence_digest, ExternalReentryRefused,
+    ExternalReentryRun, ExternalWitnessRun, SubworkflowDispatchOutcome,
 };
 use crate::f02_observation_admission::{AdmissionLedger, AdmissionPolicy, AdmissionState};
 use crate::f10_powl_geometry::{manufacture_powl_v2, POWLModel, Plan, PlanAction};
@@ -928,6 +928,55 @@ fn build_reentry_payload_refuses_embedded_triple_quote_sequence() {
     )
     .expect("benign consequence_turtle must not be refused");
     assert!(payload.contains(&format!("\"\"\"{benign}\"\"\"")));
+}
+
+/// 80/20 gap sweep gap-2: `dispatch_outcome.consequence_digest.clone().unwrap_or_default()` used
+/// to turn a missing digest into an empty string before it was baked into the F20->F02
+/// re-admission N-Quads and the crown receipt. Constructs a real `SubworkflowDispatchOutcome`
+/// (every field public, no mock/fake standing in for it) with `consequence_digest: None` --
+/// exactly the state `SubworkflowDispatchOutcome`'s own doc comment says should never happen
+/// once `consequence_turtle` is `Some`, but which this refusal guards regardless -- and asserts
+/// the real, typed `MissingConsequenceDigest` refusal comes back, carrying the real dispatch id.
+#[test]
+fn require_consequence_digest_refuses_missing_digest() {
+    let dispatch_outcome = SubworkflowDispatchOutcome {
+        dispatch_id: "d-missing-digest".to_string(),
+        role: "single".to_string(),
+        target_engine: "crown-bribery-case-engine-full".to_string(),
+        admitted: true,
+        polls_taken: 3,
+        consequence_digest: None,
+        consequence_turtle: Some(
+            "@prefix ex: <urn:ex#> . <urn:s> ex:p \"real text\" .".to_string(),
+        ),
+    };
+
+    match require_consequence_digest(&dispatch_outcome) {
+        Err(ExternalReentryRefused::MissingConsequenceDigest { dispatch_id }) => {
+            assert_eq!(dispatch_id, "d-missing-digest");
+        }
+        other => panic!(
+            "expected MissingConsequenceDigest, got {other:?} (a missing digest was not refused)"
+        ),
+    }
+
+    // Regression guard: a real, present digest is returned byte-identical, unrefused.
+    let dispatch_outcome_ok = SubworkflowDispatchOutcome {
+        dispatch_id: "d-ok".to_string(),
+        role: "single".to_string(),
+        target_engine: "crown-bribery-case-engine-full".to_string(),
+        admitted: true,
+        polls_taken: 1,
+        consequence_digest: Some("blake3:deadbeef".to_string()),
+        consequence_turtle: Some(
+            "@prefix ex: <urn:ex#> . <urn:s> ex:p \"real text\" .".to_string(),
+        ),
+    };
+    assert_eq!(
+        require_consequence_digest(&dispatch_outcome_ok)
+            .expect("present digest must not be refused"),
+        "blake3:deadbeef"
+    );
 }
 
 /// Real, end-to-end through the actual `air_core` (marked `#[ignore]` for the same reason

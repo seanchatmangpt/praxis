@@ -863,6 +863,13 @@ pub enum ExternalReentryRefused {
     /// escaped, matching this crate's established refuse-the-dangerous-input pattern.
     #[error("crown-external F20->F02 re-admission refused: dispatch {dispatch_id}'s consequence_turtle contains a literal \"\"\" sequence, unsafe to embed in a triple-quoted Turtle literal")]
     ConsequenceTurtleUnsafeForEmbedding { dispatch_id: String },
+    /// 80/20 gap sweep gap-2: `consequence_digest` was `None` despite `consequence_turtle` being
+    /// `Some`. `SubworkflowDispatchOutcome`'s own doc comment (`dispatch_bridge.rs`) guarantees
+    /// these two fields are set together -- both `None` or both `Some` -- so reaching this refusal
+    /// means that invariant broke upstream. Refused before any N-Quad/ledger write rather than
+    /// silently substituting an empty-string digest via `unwrap_or_default()`.
+    #[error("crown-external F20->F02 re-admission refused: dispatch {dispatch_id}'s consequence_digest was missing despite a collected consequence_turtle")]
+    MissingConsequenceDigest { dispatch_id: String },
 }
 
 /// Drive the EXTERNAL witness's `F20 -> F02(re-admit)` edge end to end, in one real call: dispatch
@@ -911,10 +918,7 @@ pub fn drive_external_reentry(
             dispatch_id: dispatch_outcome.dispatch_id.clone(),
         }
     })?;
-    let consequence_digest = dispatch_outcome
-        .consequence_digest
-        .clone()
-        .unwrap_or_default();
+    let consequence_digest = require_consequence_digest(&dispatch_outcome)?;
 
     // ---- Stage F20 -> F02 (re-admit): synthesize a real observation asserting the real
     // consequence, admitted through F02's own independent gate pipeline ----------------------
@@ -938,12 +942,35 @@ pub fn drive_external_reentry(
     let reentry_admission = admit_observation(run.policy, run.ledger, obs)
         .map_err(ExternalReentryRefused::ReentryAdmission)?;
 
-    let crown_receipt = compute_reentry_crown_receipt(&dispatch_outcome, &reentry_admission);
+    let crown_receipt =
+        compute_reentry_crown_receipt(&dispatch_outcome, &consequence_digest, &reentry_admission);
 
     Ok(ExternalReentryOutcome {
         dispatch_outcome,
         reentry_admission,
         crown_receipt,
+    })
+}
+
+/// 80/20 gap sweep gap-2: extract `dispatch_outcome.consequence_digest`, refusing before any
+/// N-Quad construction or ledger write if it is `None`. `SubworkflowDispatchOutcome`'s own doc
+/// comment (`dispatch_bridge.rs`) guarantees `consequence_digest` and `consequence_turtle` are set
+/// together (both `None` or both `Some`), so a caller that has already unwrapped a `Some`
+/// `consequence_turtle` (as [`drive_external_reentry`] has, immediately above its own call site)
+/// should never observe `None` here -- reaching it means that invariant broke upstream. Refused by
+/// typed error rather than silently substituted with `unwrap_or_default()`, which would have baked
+/// an empty-string digest into the F20->F02 re-admission N-Quads and the crown receipt.
+///
+/// Pulled out as its own function (mirroring `build_reentry_payload` below) so this refusal path
+/// is directly unit-testable against a real, directly-constructed [`SubworkflowDispatchOutcome`]
+/// value, without needing a live dispatch/serve/collect round trip to reach the `None` case.
+fn require_consequence_digest(
+    dispatch_outcome: &SubworkflowDispatchOutcome,
+) -> Result<String, ExternalReentryRefused> {
+    dispatch_outcome.consequence_digest.clone().ok_or_else(|| {
+        ExternalReentryRefused::MissingConsequenceDigest {
+            dispatch_id: dispatch_outcome.dispatch_id.clone(),
+        }
     })
 }
 
@@ -991,19 +1018,19 @@ fn build_reentry_payload(
 
 /// Fold both stages' real digests into one deterministic BLAKE3-hex crown receipt. Material is
 /// sorted before hashing (repo invariant #2); no wall clock, no randomness.
+///
+/// `consequence_digest` is taken as an explicit, already-validated parameter (rather than
+/// re-derived from `dispatch_outcome.consequence_digest`) so this function has no `Option` to
+/// silently default -- the caller has already turned a missing digest into
+/// [`ExternalReentryRefused::MissingConsequenceDigest`] before any receipt material is folded.
 fn compute_reentry_crown_receipt(
     dispatch_outcome: &SubworkflowDispatchOutcome,
+    consequence_digest: &str,
     reentry_admission: &AdmissionReceipt,
 ) -> String {
     let mut lines = vec![
         format!("f20.dispatch_id={}", dispatch_outcome.dispatch_id),
-        format!(
-            "f20.consequence_digest={}",
-            dispatch_outcome
-                .consequence_digest
-                .clone()
-                .unwrap_or_default()
-        ),
+        format!("f20.consequence_digest={consequence_digest}"),
         format!("f20.polls_taken={}", dispatch_outcome.polls_taken),
         format!("f02_readmit.receipt={}", reentry_admission.receipt_hash),
     ];

@@ -365,6 +365,17 @@ enum CliError {
     ReadmitTransition(#[from] ExternalReadmitTransitionRefused),
     #[error("case-closure RDF malformed: {reason}")]
     ClosureRdfMalformed { reason: String },
+    /// 80/20 gap sweep gap-2: `consequence_digest` was `None` despite `consequence_turtle` being
+    /// `Some`. `SubworkflowDispatchOutcome`'s own doc comment (`dispatch_bridge.rs`) guarantees
+    /// these two fields are set together -- both `None` or both `Some` -- so reaching this
+    /// refusal means that invariant broke upstream. Refused before folding into the Stage-3 crown
+    /// receipt or the case-closure Turtle/JSON summary, rather than silently substituting an
+    /// empty-string digest via `unwrap_or_default()`.
+    #[error(
+        "dispatch {dispatch_id}'s consequence_digest was missing despite a collected \
+         consequence_turtle"
+    )]
+    MissingConsequenceDigest { dispatch_id: String },
 }
 
 impl From<ExternalF18Refused> for CliError {
@@ -695,7 +706,9 @@ fn build_pddl_problem_fragment(
         "[ pddl:name \"{case_local_name}\" ; pddl:ofType \"law-object\" ]"
     )];
     for o in derived {
-        objects.push(format!("[ pddl:name \"{o}\" ; pddl:ofType \"obligation\" ]"));
+        objects.push(format!(
+            "[ pddl:name \"{o}\" ; pddl:ofType \"obligation\" ]"
+        ));
     }
     for e in evidence_types {
         objects.push(format!(
@@ -874,6 +887,11 @@ struct Stage3Outcome {
     /// for why two independent dispatches of the same logical identity is deliberate, not
     /// redundant).
     f20_direct: SubworkflowDispatchOutcome,
+    /// `f20_direct.consequence_digest`, extracted and validated once (80/20 gap sweep gap-2: a
+    /// `None` here despite a collected `consequence_turtle` is refused as
+    /// [`CliError::MissingConsequenceDigest`] before this struct is ever constructed, rather than
+    /// silently defaulted to an empty string every place the digest is read below).
+    f20_direct_consequence_digest: String,
     /// The full `F20 -> F02(re-admit) -> F15 -> F21 -> F24 -> F25` loop-back tail's real outcome.
     readmit: ExternalReadmitTransitionOutcome,
     /// BLAKE3-hex over every Stage-3 hop's real digest, in canonical sorted order (no wall clock,
@@ -891,16 +909,14 @@ fn compute_stage3_crown_receipt(
     f16_dispatch_token: &str,
     broker_receipt: &BrokerReceipt,
     f20_direct: &SubworkflowDispatchOutcome,
+    f20_direct_consequence_digest: &str,
     readmit: &ExternalReadmitTransitionOutcome,
 ) -> String {
     let mut lines = vec![
         format!("f16.dispatch_token={f16_dispatch_token}"),
         format!("f18.receipt_hash={}", broker_receipt.receipt_hash_hex),
         format!("f20_direct.dispatch_id={}", f20_direct.dispatch_id),
-        format!(
-            "f20_direct.consequence_digest={}",
-            f20_direct.consequence_digest.clone().unwrap_or_default()
-        ),
+        format!("f20_direct.consequence_digest={f20_direct_consequence_digest}"),
         format!(
             "f02_readmit.receipt_hash={}",
             readmit.reentry.reentry_admission.receipt_hash
@@ -1011,6 +1027,11 @@ fn run_stage3(
         STAGE3_MAX_POLLS,
         None,
     )?;
+    let f20_direct_consequence_digest = f20_direct.consequence_digest.clone().ok_or_else(|| {
+        CliError::MissingConsequenceDigest {
+            dispatch_id: f20_direct.dispatch_id.clone(),
+        }
+    })?;
 
     let subworkflow = SubworkflowPlan {
         id: format!(
@@ -1042,8 +1063,13 @@ fn run_stage3(
         correlation_id: format!("crown-bribery-case-{run_id}-reentry-correlation-1"),
     })?;
 
-    let crown_receipt =
-        compute_stage3_crown_receipt(&f16_dispatch_token, &broker_receipt, &f20_direct, &readmit);
+    let crown_receipt = compute_stage3_crown_receipt(
+        &f16_dispatch_token,
+        &broker_receipt,
+        &f20_direct,
+        &f20_direct_consequence_digest,
+        &readmit,
+    );
 
     Ok(Stage3Outcome {
         f16_step_id,
@@ -1051,6 +1077,7 @@ fn run_stage3(
         f16_transition_log,
         broker_receipt,
         f20_direct,
+        f20_direct_consequence_digest,
         readmit,
         crown_receipt,
     })
@@ -1181,7 +1208,7 @@ fn build_case_closure_turtle(
             ));
             out.push_str(&format!(
                 "  cls:f20DirectConsequenceDigest \"{}\" ;\n",
-                s.f20_direct.consequence_digest.clone().unwrap_or_default()
+                s.f20_direct_consequence_digest
             ));
             out.push_str(&format!(
                 "  cls:f20ReadmitDispatchId \"{}\" ;\n",
@@ -1276,11 +1303,7 @@ fn write_case_closure(
             f18_broker_receipt_hash: s.broker_receipt.receipt_hash_hex.clone(),
             f18_consequence_hash: s.broker_receipt.consequence_hash_hex.clone(),
             f20_direct_dispatch_id: s.f20_direct.dispatch_id.clone(),
-            f20_direct_consequence_digest: s
-                .f20_direct
-                .consequence_digest
-                .clone()
-                .unwrap_or_default(),
+            f20_direct_consequence_digest: s.f20_direct_consequence_digest.clone(),
             f20_readmit_dispatch_id: s.readmit.reentry.dispatch_outcome.dispatch_id.clone(),
             f02_readmit_receipt_hash: s.readmit.reentry.reentry_admission.receipt_hash.clone(),
             f24_ocel_receipt_head: s.readmit.ocel_outcome.receipt_head.clone(),
@@ -1374,8 +1397,16 @@ fn run(run_dir: &Path) -> Result<(), CliError> {
     );
 
     let manufactured = manufacture_pddl(&problem_fragment, "crown-bribery-case runtime problem")?;
-    let domain_path = write_file(run_dir, "04-pddl-domain.pddl", &manufactured.project_domain_text())?;
-    let problem_path = write_file(run_dir, "04-pddl-problem.pddl", &manufactured.project_problem_text())?;
+    let domain_path = write_file(
+        run_dir,
+        "04-pddl-domain.pddl",
+        &manufactured.project_domain_text(),
+    )?;
+    let problem_path = write_file(
+        run_dir,
+        "04-pddl-problem.pddl",
+        &manufactured.project_problem_text(),
+    )?;
     println!(
         "[mfg::manufacture]   domain_bytes={} problem_bytes={} graph_hash={} -> {}, {}",
         manufactured.project_domain_text().len(),
