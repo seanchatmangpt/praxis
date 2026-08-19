@@ -1,3 +1,7 @@
+// NOTE: praxis-graphlaw::chatman::quarantine implements the same "Rice/decidable-checks-only"
+// doctrine independently — no shared trait/type exists between the two as of PROJ-815.
+// See docs/jira/v26.8.16/tickets/PROJ-815.md.
+//!
 //! Rice quarantine + admission — the only door into the admitted graph.
 //!
 //! Raw meaning is bytes until it survives the quarantine: [`RiceQuarantine`]

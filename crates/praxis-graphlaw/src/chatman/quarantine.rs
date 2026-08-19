@@ -1,3 +1,7 @@
+// NOTE: praxis-synthesis::quarantine (RiceQuarantine/Admission/Origin) implements the same
+// "Rice/decidable-checks-only" doctrine independently -- no shared trait/type exists between
+// the two as of PROJ-815. See docs/jira/v26.8.16/tickets/PROJ-815.md.
+//!
 //! Quarantine boundary index (PROJ-SEC-03).
 //!
 //! A red-team security review named 10 "quarantine" boundaries for the
