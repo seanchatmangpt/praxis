@@ -57,20 +57,6 @@ impl Reasoner {
         new_heads
     }
 
-    #[allow(dead_code)]
-    fn subsitute_binding(
-        var_name: &usize,
-        binding: &Binding,
-        binding_counter: &usize,
-    ) -> VarOrTerm {
-        if let Some(s) = binding.get(var_name) {
-            let iri = *s.get(*binding_counter).unwrap();
-            VarOrTerm::new_encoded_term(iri)
-        } else {
-            VarOrTerm::new_encoded_var(*var_name)
-        }
-    }
-
     pub fn substitute_triple_with_bindings(head: &Triple, binding: &Binding) -> Vec<Triple> {
         // Mirrors `substitute_head_with_bindings`'s own guard above: an empty `binding` means
         // there was nothing to substitute (e.g. a fully ground rule head/body matched via literal
