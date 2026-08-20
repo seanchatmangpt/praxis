@@ -53,6 +53,29 @@ use star_toml::{ConfigLifecycle, TrustedLoader, Validate, Validator};
 
 use crate::models::RetrofitPhase;
 
+/// Which admitted source produced a [`RepositoryEntry`].
+///
+/// `ReposToml` is the pre-existing, hand-maintained fleet survey
+/// (`repos.toml`). `EcosystemLock` is the pinned Cargo-path dependency graph
+/// (`.chatmangpt/ecosystem.lock.toml`) consumed via [`load_ecosystem_lock`].
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum RepositorySource {
+    /// Sourced from the hand-maintained `repos.toml` fleet survey.
+    ReposToml,
+    /// Sourced from `.chatmangpt/ecosystem.lock.toml`.
+    EcosystemLock,
+}
+
+impl Default for RepositorySource {
+    /// `ReposToml` is the pre-existing source, so it is the default — this
+    /// keeps every existing `repos.toml`-sourced entry parsing unchanged via
+    /// `#[serde(default)]` on `RepositoryEntry::source`.
+    fn default() -> Self {
+        RepositorySource::ReposToml
+    }
+}
+
 /// Metadata for a single repository in the seanchatmangpt ecosystem.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RepositoryEntry {
@@ -100,6 +123,12 @@ pub struct RepositoryEntry {
 
     /// Context notes for retrofit decisions
     pub notes: String,
+
+    /// Which admitted source produced this entry. Defaults to
+    /// [`RepositorySource::ReposToml`] so every pre-existing `repos.toml`
+    /// entry (lacking this field) parses unchanged.
+    #[serde(default)]
+    pub source: RepositorySource,
 }
 
 impl RepositoryEntry {
@@ -354,13 +383,35 @@ impl RepositoryRegistry {
     /// Returns an error if the file cannot be read or parsed.
     pub async fn load(path: impl AsRef<std::path::Path>) -> crate::Result<Self> {
         let resolved = resolve_layered_path(path.as_ref());
-        TrustedLoader::new()
+        let registry = TrustedLoader::new()
             .layer_file_if_exists(&resolved)
             .load_admitted::<RepositoryRegistry>()
             .map(|a| a.into_value())
             .map_err(|e| {
                 crate::RetrofitError::ConfigError(format!("Failed to load repos.toml: {}", e))
-            })
+            })?;
+
+        // No-op unless PRAXIS_RETROFIT_OCEL_LOG is set (RetrofitOcelLog::enabled()).
+        if crate::ocel_log::RetrofitOcelLog::enabled() {
+            let log = crate::ocel_log::RetrofitOcelLog::global();
+            for entry in registry.repos.values() {
+                log.ensure_object(
+                    &entry.name,
+                    crate::ocel_log::object_types::REPOSITORY,
+                    &[(
+                        "source",
+                        wasm4pm_compat::ocel::OCELAttributeValue::String("repos.toml".to_string()),
+                    )],
+                );
+                log.emit(
+                    crate::ocel_log::event_types::DISCOVER,
+                    &[(&entry.name, "discovered")],
+                    &[],
+                );
+            }
+        }
+
+        Ok(registry)
     }
 
     /// Parses the registry from a TOML string and validates invariants.
@@ -588,6 +639,192 @@ impl RepositoryRegistry {
     }
 }
 
+/// One `[[repository]]` entry from `.chatmangpt/ecosystem.lock.toml`.
+///
+/// This is the pinned Cargo-path dependency graph's own shape (see
+/// `.chatmangpt/ecosystem.lock.toml`'s doc comment: "Presence is not
+/// standing; every entry remains UNKNOWN until its own verifier is executed
+/// against this exact source"), not the `repos.toml` fleet-survey shape.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+pub struct EcosystemLockEntry {
+    /// Repository slug (e.g., "bcinr", "ggen").
+    pub name: String,
+    /// Full HTTPS `.git` URL.
+    pub url: String,
+    /// Pinned commit SHA required to resolve Praxis's Cargo path graph.
+    pub sha: String,
+    /// Standing at pin time (e.g., "UNKNOWN"). Presence in the lock file is
+    /// not standing; this field only records what the lock file itself said.
+    pub standing: String,
+    /// `Cargo.toml` paths (relative to the repo root) required to exist for
+    /// this pin to resolve.
+    #[serde(default)]
+    pub required_paths: Vec<String>,
+}
+
+/// Top-level `.chatmangpt/ecosystem.lock.toml` document shape: a `version`
+/// scalar (currently unused by this loader) plus zero or more repeated
+/// `[[repository]]` tables.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+pub struct EcosystemLockDocument {
+    /// Lock-file format version.
+    #[serde(default)]
+    pub version: u32,
+    /// The repeated `[[repository]]` entries.
+    #[serde(default)]
+    pub repository: Vec<EcosystemLockEntry>,
+}
+
+/// Loads `.chatmangpt/ecosystem.lock.toml` and maps each `[[repository]]`
+/// entry into a [`RepositoryEntry`] with `source =
+/// `[`RepositorySource::EcosystemLock`].
+///
+/// # Why plain `toml::from_str` instead of `TrustedLoader`
+///
+/// `RepositoryRegistry::load`/`load_str` use `star_toml::TrustedLoader`
+/// because `RepositoryRegistry` implements `star_toml`'s `Validate` and
+/// `ConfigLifecycle` traits (name back-fill from the `repos.<slug>` table
+/// key, `crate_count`/`priority_score` range checks) — admission machinery
+/// built for the `repos.toml` shape specifically. `ecosystem.lock.toml` has
+/// a different top-level shape (`version` + repeated `[[repository]]`, no
+/// `repos.<slug>` keying, no `RepositoryEntry`-shaped fields to validate
+/// against `RepositoryRegistry`'s invariants) and this function does not
+/// need `TrustedLoader`'s admitted-config lifecycle (layering, env
+/// overrides, `Validate`/`ConfigLifecycle` hooks) — it needs a one-shot,
+/// direct parse of a fixed lock-file shape. Plain `toml::from_str` is the
+/// right-sized tool here; `TrustedLoader::layer_file_if_exists` +
+/// `load_admitted::<EcosystemLockDocument>()` would require implementing
+/// `Validate`/`ConfigLifecycle` for a type that has no analogous
+/// invariants to check.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be read or parsed as TOML.
+pub async fn load_ecosystem_lock(
+    path: impl AsRef<std::path::Path>,
+) -> crate::Result<Vec<RepositoryEntry>> {
+    let contents = std::fs::read_to_string(path.as_ref())?;
+    let doc: EcosystemLockDocument = toml::from_str(&contents)?;
+
+    Ok(doc
+        .repository
+        .into_iter()
+        .map(|entry| {
+            let github_url = entry
+                .url
+                .strip_suffix(".git")
+                .map(str::to_string)
+                .unwrap_or(entry.url);
+            let crate_count = entry.required_paths.len().max(1);
+            RepositoryEntry {
+                name: entry.name.clone(),
+                github_url,
+                github_owner: "seanchatmangpt".to_string(),
+                // Matches scripts/materialize-chatman-ecosystem.py's own
+                // checkout layout: `target = parent / name`, i.e. siblings
+                // of the workspace root, so `../{name}` relative to this
+                // workspace.
+                local_path: PathBuf::from(format!("../{}", entry.name)),
+                // Best-effort placeholder: ecosystem.lock.toml entries are
+                // not single-crate repos in general (see required_paths,
+                // which can name several Cargo.toml paths per entry). This
+                // reuses the repo slug pending real per-repo Cargo.toml
+                // inspection to pick the actual primary crate name.
+                crate_name: entry.name,
+                description: format!("Chatman-ecosystem pinned dependency (sha {})", entry.sha),
+                visibility: "public".to_string(),
+                workspace_type: "monorepo".to_string(),
+                crate_count,
+                // Never "ready": these are unvetted-for-retrofit by
+                // construction per the lock file's own standing="UNKNOWN".
+                retrofit_readiness: "requires-prep".to_string(),
+                retrofit_phase_complete: 0,
+                risk_level: "medium".to_string(),
+                priority_score: 0,
+                maintainer_status: "active".to_string(),
+                notes: format!(
+                    "Sourced from .chatmangpt/ecosystem.lock.toml; standing={}",
+                    entry.standing
+                ),
+                source: RepositorySource::EcosystemLock,
+            }
+        })
+        .collect())
+}
+
+impl RepositoryRegistry {
+    /// Loads `repos.toml` and `.chatmangpt/ecosystem.lock.toml` and unions
+    /// them into one registry.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::RetrofitError::EcosystemNameCollision`] if a
+    /// repository name is present in both sources — see that variant's doc
+    /// comment for why this refuses instead of merging.
+    pub async fn load_with_ecosystem(
+        repos_toml: impl AsRef<std::path::Path>,
+        ecosystem_lock: impl AsRef<std::path::Path>,
+    ) -> crate::Result<Self> {
+        let mut registry = Self::load(repos_toml).await?;
+        let ecosystem_entries = load_ecosystem_lock(ecosystem_lock).await?;
+
+        let mut colliding: Vec<String> = ecosystem_entries
+            .iter()
+            .filter(|e| registry.repos.contains_key(&e.name))
+            .map(|e| e.name.clone())
+            .collect();
+        if !colliding.is_empty() {
+            colliding.sort();
+            colliding.dedup();
+            return Err(crate::RetrofitError::EcosystemNameCollision(
+                colliding.join(", "),
+            ));
+        }
+
+        for entry in ecosystem_entries {
+            // This is the ONLY place the "Admit" OCEL event type ever
+            // fires in this crate: exactly the moment an
+            // ecosystem.lock.toml-sourced repository is admitted into the
+            // union registry. No-op unless PRAXIS_RETROFIT_OCEL_LOG is set
+            // (RetrofitOcelLog::enabled()).
+            if crate::ocel_log::RetrofitOcelLog::enabled() {
+                let log = crate::ocel_log::RetrofitOcelLog::global();
+                log.ensure_object(
+                    &entry.name,
+                    crate::ocel_log::object_types::REPOSITORY,
+                    &[
+                        (
+                            "github_url",
+                            wasm4pm_compat::ocel::OCELAttributeValue::String(
+                                entry.github_url.clone(),
+                            ),
+                        ),
+                        (
+                            "source",
+                            wasm4pm_compat::ocel::OCELAttributeValue::String(
+                                "ecosystem.lock.toml".to_string(),
+                            ),
+                        ),
+                        (
+                            "retrofit_phase",
+                            wasm4pm_compat::ocel::OCELAttributeValue::String("0".to_string()),
+                        ),
+                    ],
+                );
+                log.emit(
+                    crate::ocel_log::event_types::ADMIT,
+                    &[(&entry.name, "admitted")],
+                    &[],
+                );
+            }
+
+            registry.repos.insert(entry.name.clone(), entry);
+        }
+
+        Ok(registry)
+    }
+}
+
 /// Internal document structure for TOML deserialization.
 #[derive(Debug, Deserialize)]
 struct RegistryDocument {
@@ -688,6 +925,7 @@ mod tests {
             priority_score: 50,
             maintainer_status: "active".to_string(),
             notes: String::new(),
+            source: RepositorySource::default(),
         };
 
         assert_eq!(entry.retrofit_phase(), RetrofitPhase::Phase1Lints);
@@ -713,6 +951,7 @@ mod tests {
             priority_score: 50,
             maintainer_status: "active".to_string(),
             notes: String::new(),
+            source: RepositorySource::default(),
         };
 
         assert!(entry.is_ready_for_retrofit());
@@ -740,6 +979,7 @@ mod tests {
             priority_score: 50,
             maintainer_status: "active".to_string(),
             notes: String::new(),
+            source: RepositorySource::default(),
         };
 
         let effort = entry.estimated_effort_weeks();
@@ -877,5 +1117,124 @@ notes = ""
         }
 
         assert_eq!(resolved, fallback_path);
+    }
+
+    fn real_ecosystem_lock_path() -> std::path::PathBuf {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.chatmangpt/ecosystem.lock.toml")
+    }
+
+    #[tokio::test]
+    async fn test_load_ecosystem_lock_real_file() {
+        let entries = load_ecosystem_lock(real_ecosystem_lock_path())
+            .await
+            .expect("should parse the real .chatmangpt/ecosystem.lock.toml");
+
+        // 7 real [[repository]] entries in the current fixture.
+        assert_eq!(entries.len(), 7);
+
+        let bcinr = entries
+            .iter()
+            .find(|e| e.name == "bcinr")
+            .expect("bcinr entry present");
+        assert_eq!(bcinr.github_url, "https://github.com/seanchatmangpt/bcinr");
+        assert_eq!(bcinr.github_owner, "seanchatmangpt");
+        assert_eq!(bcinr.local_path, PathBuf::from("../bcinr"));
+        assert_eq!(bcinr.retrofit_readiness, "requires-prep");
+        assert_eq!(bcinr.source, RepositorySource::EcosystemLock);
+        assert!(bcinr.notes.contains("standing=UNKNOWN"));
+
+        let ggen = entries
+            .iter()
+            .find(|e| e.name == "ggen")
+            .expect("ggen entry present");
+        assert_eq!(ggen.github_url, "https://github.com/seanchatmangpt/ggen");
+        assert_eq!(ggen.retrofit_readiness, "requires-prep");
+        assert_eq!(ggen.crate_count, 3); // 3 required_paths for ggen
+        assert_eq!(ggen.source, RepositorySource::EcosystemLock);
+    }
+
+    const ECOSYSTEM_LOCK_COLLIDING_TOML: &str = r#"
+version = 1
+
+[[repository]]
+name = "test"
+url = "https://github.com/seanchatmangpt/test.git"
+sha = "deadbeef"
+standing = "UNKNOWN"
+required_paths = ["Cargo.toml"]
+"#;
+
+    #[tokio::test]
+    async fn test_load_with_ecosystem_name_collision_refused() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let repos_path = temp_dir.path().join("repos.toml");
+        let lock_path = temp_dir.path().join("ecosystem.lock.toml");
+        std::fs::write(&repos_path, MOCK_TOML).unwrap();
+        std::fs::write(&lock_path, ECOSYSTEM_LOCK_COLLIDING_TOML).unwrap();
+
+        let _guard = CWD_LOCK.lock().unwrap();
+        let original_env = std::env::var("PRAXIS_REGISTRY_PATH");
+        // Force resolve_layered_path to use our exact temp repos.toml
+        // instead of finding /Users/sac/praxis/repos.toml via parent search.
+        std::env::set_var("PRAXIS_REGISTRY_PATH", &repos_path);
+
+        let result = RepositoryRegistry::load_with_ecosystem(&repos_path, &lock_path).await;
+
+        match original_env {
+            Ok(val) => std::env::set_var("PRAXIS_REGISTRY_PATH", val),
+            Err(_) => std::env::remove_var("PRAXIS_REGISTRY_PATH"),
+        }
+
+        let err = result.expect_err("colliding name 'test' must be refused, not merged");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("test"),
+            "error message must name the colliding repo: {msg}"
+        );
+    }
+
+    const ECOSYSTEM_LOCK_NONCOLLIDING_TOML: &str = r#"
+version = 1
+
+[[repository]]
+name = "other-repo"
+url = "https://github.com/seanchatmangpt/other-repo.git"
+sha = "cafef00d"
+standing = "UNKNOWN"
+required_paths = ["Cargo.toml"]
+"#;
+
+    #[tokio::test]
+    async fn test_load_with_ecosystem_union_non_colliding() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let repos_path = temp_dir.path().join("repos.toml");
+        let lock_path = temp_dir.path().join("ecosystem.lock.toml");
+        std::fs::write(&repos_path, MOCK_TOML).unwrap();
+        std::fs::write(&lock_path, ECOSYSTEM_LOCK_NONCOLLIDING_TOML).unwrap();
+
+        let _guard = CWD_LOCK.lock().unwrap();
+        let original_env = std::env::var("PRAXIS_REGISTRY_PATH");
+        // Force resolve_layered_path to use our exact temp repos.toml
+        // instead of finding /Users/sac/praxis/repos.toml via parent search.
+        std::env::set_var("PRAXIS_REGISTRY_PATH", &repos_path);
+
+        let result = RepositoryRegistry::load_with_ecosystem(&repos_path, &lock_path).await;
+
+        match original_env {
+            Ok(val) => std::env::set_var("PRAXIS_REGISTRY_PATH", val),
+            Err(_) => std::env::remove_var("PRAXIS_REGISTRY_PATH"),
+        }
+
+        let registry = result.expect("non-colliding union should succeed");
+        assert_eq!(registry.all().len(), 2);
+
+        let repos_toml_entry = registry.get("test").expect("repos.toml entry present");
+        assert_eq!(repos_toml_entry.source, RepositorySource::ReposToml);
+
+        let ecosystem_entry = registry
+            .get("other-repo")
+            .expect("ecosystem.lock.toml entry present");
+        assert_eq!(ecosystem_entry.source, RepositorySource::EcosystemLock);
     }
 }

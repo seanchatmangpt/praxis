@@ -290,6 +290,28 @@ impl RetrofitValidator {
             post_score
         );
 
+        // No-op unless PRAXIS_RETROFIT_OCEL_LOG is set (RetrofitOcelLog::enabled()).
+        if crate::ocel_log::RetrofitOcelLog::enabled() {
+            let log = crate::ocel_log::RetrofitOcelLog::global();
+            let repo_name = repo_path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "unknown".to_string());
+            log.ensure_object(
+                &repo_name,
+                crate::ocel_log::object_types::REPOSITORY,
+                &[(
+                    "source",
+                    wasm4pm_compat::ocel::OCELAttributeValue::String("repos.toml".to_string()),
+                )],
+            );
+            log.emit(
+                crate::ocel_log::event_types::VALIDATE,
+                &[(&repo_name, "validated")],
+                &[],
+            );
+        }
+
         Ok(report)
     }
 

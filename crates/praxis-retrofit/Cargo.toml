@@ -29,6 +29,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 star-toml = "26.7.3"
 uuid = { version = "1.0", features = ["v4"] }
+wasm4pm-compat = { path = "../../../wasm4pm-compat", version = "26.6.29" }
 
 [dev-dependencies]
 tempfile = "3"

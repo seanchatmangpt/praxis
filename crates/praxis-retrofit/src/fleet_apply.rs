@@ -562,6 +562,34 @@ impl RetrofitApplier {
 
         messages.push("Applied retrofit changes".to_string());
 
+        // No-op unless PRAXIS_RETROFIT_OCEL_LOG is set (RetrofitOcelLog::enabled()).
+        if crate::ocel_log::RetrofitOcelLog::enabled() {
+            let log = crate::ocel_log::RetrofitOcelLog::global();
+            let plan_id = format!("{}-retrofit-plan", repo_name);
+            log.ensure_object(
+                &plan_id,
+                crate::ocel_log::object_types::RETROFIT_PLAN,
+                &[
+                    (
+                        "phase",
+                        wasm4pm_compat::ocel::OCELAttributeValue::String(format!("{:?}", phase)),
+                    ),
+                    (
+                        "risk_level",
+                        wasm4pm_compat::ocel::OCELAttributeValue::String(format!(
+                            "{:?}",
+                            plan.estimated_risk
+                        )),
+                    ),
+                ],
+            );
+            log.emit(
+                crate::ocel_log::event_types::APPLY,
+                &[(&repo_name, "applied_to"), (&plan_id, "applied")],
+                &[],
+            );
+        }
+
         // Validate retrofit
         match worktree.validate().await {
             Ok(true) => messages.push("Validation passed".to_string()),

@@ -3853,6 +3853,7 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "walkdir",
+ "wasm4pm-compat",
 ]
 
 [[package]]

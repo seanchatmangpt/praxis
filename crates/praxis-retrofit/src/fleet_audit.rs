@@ -666,6 +666,50 @@ impl FleetAuditCoordinator {
                             obs.on_repo_scan_complete(&repo_name, &report);
                         }
 
+                        // No-op unless PRAXIS_RETROFIT_OCEL_LOG is set (RetrofitOcelLog::enabled()).
+                        if crate::ocel_log::RetrofitOcelLog::enabled() {
+                            let log = crate::ocel_log::RetrofitOcelLog::global();
+                            log.ensure_object(
+                                &repo_name,
+                                crate::ocel_log::object_types::REPOSITORY,
+                                &[(
+                                    "source",
+                                    wasm4pm_compat::ocel::OCELAttributeValue::String(
+                                        "repos.toml".to_string(),
+                                    ),
+                                )],
+                            );
+                            let report_id = format!("{}-compliance-report", repo_name);
+                            log.ensure_object(
+                                &report_id,
+                                crate::ocel_log::object_types::COMPLIANCE_REPORT,
+                                &[
+                                    (
+                                        "status",
+                                        wasm4pm_compat::ocel::OCELAttributeValue::String(
+                                            if report.is_compliant() {
+                                                "pass"
+                                            } else {
+                                                "fail"
+                                            }
+                                            .to_string(),
+                                        ),
+                                    ),
+                                    (
+                                        "pass_rate",
+                                        wasm4pm_compat::ocel::OCELAttributeValue::Float(
+                                            report.score as f64,
+                                        ),
+                                    ),
+                                ],
+                            );
+                            log.emit(
+                                crate::ocel_log::event_types::AUDIT,
+                                &[(&repo_name, "audited"), (&report_id, "produced")],
+                                &[],
+                            );
+                        }
+
                         let _ = tx
                             .send(AuditResult {
                                 repo_path,
