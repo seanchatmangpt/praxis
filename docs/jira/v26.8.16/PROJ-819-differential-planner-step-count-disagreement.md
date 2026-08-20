@@ -1,6 +1,37 @@
 # PROJ-819: `wasm4pm` and `bcinr-pddl` classical planners systematically disagree on plan step count
 
-**Status**: OPEN -- discovered, not fixed
+**Status**: OPEN -- root cause CONFIRMED (not a hypothesis anymore), not
+fixed. Fix belongs in the external `wasm4pm-planner` sibling repo, out of
+this session's scope.
+
+**Confirmed mechanism** (read `/Users/sac/wasm4pm/crates/wasm4pm-planner/
+src/ground.rs:198-287`'s `find_temporal_plan`, the "greedy tick-based
+scheduler"): its in-flight guard only checks `pending` (actions
+*currently* mid-duration) before starting a ground action --
+`pending.iter().any(|(_, idx)| *idx == i)` -- it never checks whether that
+action was already started and completed **earlier** in the plan. In an
+add-monotone domain (no delete effects -- exactly `pair1_planners_
+revenue_stage_chain`'s 4-schema chain, and most of the generated corpus),
+every action's precondition remains true forever once first satisfied, so
+the scheduler keeps re-starting already-completed actions on every
+subsequent tick until the goal happens to be reached, inflating the step
+count with pure no-op-effect repeats (state.insert on an already-`true`
+atom is a no-op, but each restart still pushes a `PlanStep`). This exactly
+explains both the direction (`wasm4pm` always >= `bcinr`, never less) and
+the corpus-wide consistency (every generated instance is add-monotone by
+construction, per `GenModel`'s own domain generator) of the disagreement.
+`bcinr-pddl`'s BFS-based classical/temporal planners don't have this
+failure mode because BFS naturally finds a shortest action sequence and
+has no notion of "keep re-starting anything still applicable."
+
+This is a genuine `wasm4pm-planner` correctness/minimality bug (it
+produces plans with redundant, effect-free repeated actions), not a
+`bcinr-pddl` or praxis bug -- fixing it means adding a "skip if this exact
+ground action instance already fired and its post-state already holds all
+its add-effects" guard to that scheduler, a real design change in a
+sibling repo this session does not own or have standing to change
+unilaterally.
+
 **Dependencies**: none (independent of PROJ-811/814/815/816/817/818)
 
 ## Scope
@@ -31,50 +62,23 @@ pair1_planners_generated_corpus_triple_agreement (30-instance generated corpus, 
   (full 18-entry list in the test's own panic output)
 ```
 
-## Why this is suspicious, not just "two planners differ"
-
-Every single disagreement in the generated-corpus run goes the same
-direction (bcinr shorter, never longer), across 18 independently generated
-problem instances. A parser bug (the first failure, a hard `ParseError`
-on `revenue.pddl` at "trailing token index 214") is a separate, narrower
-issue -- but the systematic one-directional step-count gap across the
-generated corpus matches the exact SHAPE of a bug this same domain family
-already found and fixed once this session (see
-`crates/multifractal-workflow/fixtures/bribery-case/pddl-domain.ttl` lines
-168-215's own disclosed history): STRIPS8 has no `(not (= ?a ?b))`
-inequality constraint, so a classical grounder/planner can silently alias
-two distinct action parameters to the SAME object when nothing in the
-domain forbids it, satisfying multiple conjuncts (or reaching the goal
-early) with fewer real actions than a planner that doesn't take that
-shortcut. That prior bug was fixed by redesigning the DOMAIN (3 distinct
-predicate names instead of one shared one) rather than the planner -- but
-this new finding is about the PLANNER (`bcinr-pddl`'s `find_plan` itself),
-across problems this session did not author, so the same
-"redesign-the-domain" fix does not obviously apply here.
-
-**This is a hypothesis, not a confirmed root cause** -- it has not been
-verified against `bcinr-pddl`'s actual BFS/search implementation, and the
-alternative explanation (bcinr's planner is CORRECT and wasm4pm's is
-needlessly longer/suboptimal, since BFS classical planning does not
-guarantee shortest-plan optimality is being compared apples-to-apples
-between two different search strategies) has not been ruled out either.
-`pair4_objective_score_bit_exact` and `pair2_conformance_powl_vs_petri_
-agreement`/`pair3_chain_recompute_vs_independent_100_records` (unrelated
-non-planning cross-checks in the same file) all pass, so this is scoped
-specifically to the classical-planner step-count comparison.
-
 ## Why not fixed here
 
-Determining which planner (if either) is wrong requires reading a specific
-disagreeing instance's full ground/plan trace from BOTH planners side by
-side (not just the aggregate step counts the test currently reports), and
-possibly instrumenting one run to print the actual bound action sequence
--- genuinely separate, deeper work than PROJ-818's single-fixture type-
-filtering bug, per the same "Fence" discipline
-(`.claude/rules/_core/absolute.md`) that scoped PROJ-817/818 as separate
-tickets rather than one grab-bag fix.
+The mechanism above is confirmed by reading `find_temporal_plan`'s actual
+scheduler code, not inferred from step-count arithmetic alone. But fixing
+it means changing `wasm4pm-planner`'s scheduling policy in a sibling repo
+this session does not own or have standing to modify unilaterally --
+adding a completed-action guard is a real design decision (does the
+scheduler skip an already-fired ground action forever once its add-effects
+hold, or only until something deletes one of them again?) that belongs
+with that repo's own maintainers, not a unilateral cross-repo patch.
 
-## Verification plan (once root-caused)
+A first parser failure in the same test run
+(`pair1_scope_classical_exemplars`: `bcinr parses revenue.pddl (classical
+:strips): ParseError("trailing token at index 214")`) is a separate,
+narrower, still-unconfirmed issue -- not yet traced to a root cause.
+
+## Verification plan (once fixed upstream)
 
 ```
 cargo test -p my-conforming-project --test differential
