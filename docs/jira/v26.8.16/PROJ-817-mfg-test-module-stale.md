@@ -1,6 +1,15 @@
 # PROJ-817: root package's `src/mfg.rs` test module is stale (36 compile errors)
 
-**Status**: OPEN -- discovered, not fixed
+**Status**: DONE -- fixed in commit `37fe4405`, plus the further
+`PlannerOutcome`/`bcinr_pddl::ground::lazy::*`/`Manufactured` drift that
+`just check`/`just test` surfaced once this file's own errors stopped
+masking them (see that commit's message for the full per-cause breakdown).
+`just check` now reaches exit 0 for the whole workspace. Real remaining gap
+found by `just test`, explicitly NOT part of this ticket's scope: `ggen`'s
+`dogfood_regression::ggen_regenerates_route_files_byte_identically` fails
+inside the external `chicago-tdd-tools` CLI-proof harness's temp-directory
+repo copy (reports a real, git-tracked file as missing from the copy) --
+unrelated to `src/mfg.rs` or to any file `37fe4405` touches.
 **Dependencies**: none (independent of PROJ-811/814/815/816 and of commits
 `79cf4912`/`20ce7c56`, which fixed the two other build blockers found this
 session)
