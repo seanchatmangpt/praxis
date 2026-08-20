@@ -1,0 +1,18 @@
+[package]
+name = "pddl-index"
+version = "26.7.2"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT OR Apache-2.0"
+description = "Dictionary-encoded, XOR-filter-pruned lazy grounder for PDDL8 (the qlever treatment): grounding-as-join over compact u32 ID space, materializing only reachable ground actions."
+
+[lib]
+doctest = false
+
+[dependencies]
+# Canonical PDDL8 types (Pddl8Domain/Problem/GroundAction/…). Types only —
+# the parser lives in bcinr-pddl, which this crate deliberately does NOT depend
+# on so there is no cycle with praxis's differential oracle.
+wasm4pm-compat = { path = "../../../wasm4pm-compat", version = "26.6.29" }
+
+[dev-dependencies]

@@ -229,10 +229,15 @@ fn execute_payload(payload: &str) -> std::result::Result<Value, String> {
         Err(e) if is_infeasible(&e) => return Ok(refusal_json("temporal", &e)),
         Err(e) => return Err(e.to_string()),
     };
-    let plan = match gtp.find_temporal_plan() {
+    let plan = match gtp.find_temporal_plan().into_result() {
         Ok(p) => p,
-        Err(e) if is_infeasible(&e) => return Ok(refusal_json("temporal", &e)),
-        Err(e) => return Err(e.to_string()),
+        Err(failure) => {
+            let e: Pddl8Error = failure.into();
+            if is_infeasible(&e) {
+                return Ok(refusal_json("temporal", &e));
+            }
+            return Err(e.to_string());
+        }
     };
 
     let policy_owned: Vec<(String, Vec<String>)> = input

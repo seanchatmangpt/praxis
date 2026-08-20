@@ -277,6 +277,160 @@ pub fn fixture_state() -> Value {
     })
 }
 
+// ── Reusable goal → plan → admission bridge ─────────────────────────────────
+
+/// Project `state` to a PDDL8 problem over the shipped `revenue-pipeline`
+/// domain, solve for `goal_atom`, and run every resulting plan action through
+/// `law judge` + `law admit`.
+///
+/// Shared by [`run_demo`] (unscoped fixture) and `revtac::run_mission`
+/// (RevTAC-scoped state), so both callers exercise the exact same goal→plan→
+/// admission machinery instead of two divergent copies of it.
+///
+/// A plan action failed `law admit` partway through an otherwise-solvable
+/// plan. Carries every admission already computed for the steps that *did*
+/// admit successfully, plus the exact failing step's index and label, so the
+/// caller never has to re-derive or discard real admission evidence just
+/// because a later step in the same plan was refused.
+#[derive(Debug, Clone)]
+pub struct PlanAdmissionFailure {
+    /// Label of the plan action that failed admission.
+    pub failed_action: String,
+    /// Index into the plan (0-based) at which admission failed.
+    pub failed_step_index: usize,
+    /// The `admit_status` value `law admit` returned for the failing action.
+    pub admit_status: Value,
+    /// Admission summaries for every prior step in the plan that *did*
+    /// admit successfully, in plan order. Never discarded on failure.
+    pub partial_admissions: Vec<Value>,
+}
+
+impl std::fmt::Display for PlanAdmissionFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "plan action {} (step {}) was not admitted: {} ({} prior step(s) admitted)",
+            self.failed_action,
+            self.failed_step_index,
+            self.admit_status,
+            self.partial_admissions.len()
+        )
+    }
+}
+
+/// Typed failure surface for [`plan_and_admit`]. Replaces a lossy `String`
+/// error with a variant that distinguishes "the planner could not reach the
+/// goal at all" (`Solve`, no plan ever existed) from "a real plan existed and
+/// partially admitted, but one step was refused" (`Admission`, which carries
+/// every admission already computed).
+#[derive(Debug, Clone)]
+pub enum PlanAndAdmitError {
+    /// Domain/problem parsing, grounding, or the classical solver itself
+    /// failed to produce any plan for the proposed goal.
+    Solve(String),
+    /// A plan was found and executed, but one action's `law admit` call
+    /// returned a non-`"admitted"` status.
+    Admission(PlanAdmissionFailure),
+}
+
+impl std::fmt::Display for PlanAndAdmitError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PlanAndAdmitError::Solve(msg) => write!(f, "{msg}"),
+            PlanAndAdmitError::Admission(failure) => write!(f, "{failure}"),
+        }
+    }
+}
+
+impl std::error::Error for PlanAndAdmitError {}
+
+/// Existing call sites (`run_demo`, `revtac::run_mission`) return
+/// `Result<_, String>`; this lets `plan_and_admit`'s typed error flow through
+/// their `?` operator unchanged while callers that want the typed variant
+/// (e.g. tests asserting on `partial_admissions`) call `plan_and_admit`
+/// directly and match on `PlanAndAdmitError` before it is stringified.
+impl From<PlanAndAdmitError> for String {
+    fn from(err: PlanAndAdmitError) -> Self {
+        err.to_string()
+    }
+}
+
+/// Returns the admitted plan's action labels (in order) and the per-action
+/// admission summaries. An unsolvable goal is [`PlanAndAdmitError::Solve`];
+/// an unadmitted action is [`PlanAndAdmitError::Admission`], which carries
+/// every admission computed for the plan's prior, successfully-admitted
+/// steps rather than discarding them.
+pub fn plan_and_admit(
+    state: &RevenueState,
+    goal_atom: &str,
+) -> Result<(Vec<String>, Vec<Value>), PlanAndAdmitError> {
+    let domain_text = revenue_domain_text();
+    let problem_text = build_problem(state, goal_atom);
+    let domain = domain_from_pddl(&domain_text)
+        .map_err(|e| PlanAndAdmitError::Solve(format!("domain parse: {e}")))?;
+    let problem = problem_from_pddl(&problem_text)
+        .map_err(|e| PlanAndAdmitError::Solve(format!("problem parse: {e}")))?;
+    let ground = GroundProblem::build(&domain, &problem, None)
+        .map_err(|e| PlanAndAdmitError::Solve(format!("grounding failed: {e}")))?;
+    let tape = ground.find_plan().into_result().map_err(|e| {
+        PlanAndAdmitError::Solve(format!("no plan reaches proposed goal {goal_atom}: {e}"))
+    })?;
+    if tape.is_empty() {
+        return Err(PlanAndAdmitError::Solve(format!(
+            "empty plan for proposed goal {goal_atom}"
+        )));
+    }
+
+    let mut steps = Vec::with_capacity(tape.len());
+    for op in &tape.ops {
+        let (acct_id, target) = action_target(&op.action).ok_or_else(|| {
+            PlanAndAdmitError::Solve(format!(
+                "plan action {} has no (stage ?a ?to) add effect",
+                op.action.label
+            ))
+        })?;
+        steps.push((acct_id, target, op.action.label.clone()));
+    }
+    admit_plan_steps(state, &steps)
+}
+
+/// Run `law judge`/`law admit` over an ordered sequence of
+/// `(account_id, target_stage, action_label)` plan steps, stopping at the
+/// first unadmitted step.
+///
+/// Split out of [`plan_and_admit`] so the admission-loop invariant this
+/// ticket exists to fix — a failure partway through must carry every
+/// admission already computed for the steps that *did* admit, never discard
+/// it — is directly unit-testable against the real `law judge`/`law admit`
+/// pipe, without needing a plan the classical solver can actually produce
+/// (the shipped domain's preconditions are, by construction, kept in lock-
+/// step with [`stage_required_evidence`] via [`evidence_gate_agrees`], so a
+/// solver-found plan can never itself contain an unadmittable step).
+fn admit_plan_steps(
+    state: &RevenueState,
+    steps: &[(String, Stage, String)],
+) -> Result<(Vec<String>, Vec<Value>), PlanAndAdmitError> {
+    let mut plan_admissions = Vec::with_capacity(steps.len());
+    let mut plan_labels = Vec::with_capacity(steps.len());
+    for (acct_id, target, label) in steps {
+        let account = account_by_id(state, acct_id).ok_or_else(|| {
+            PlanAndAdmitError::Solve(format!("plan action moves unknown account {acct_id}"))
+        })?;
+        let summary = admit_action(account, *target, label).map_err(PlanAndAdmitError::Solve)?;
+        if summary["admit_status"] != json!("admitted") {
+            return Err(PlanAndAdmitError::Admission(PlanAdmissionFailure {
+                failed_action: label.clone(),
+                failed_step_index: plan_labels.len(),
+                admit_status: summary["admit_status"].clone(),
+                partial_admissions: plan_admissions,
+            }));
+        }
+        plan_labels.push(label.clone());
+        plan_admissions.push(summary);
+    }
+    Ok((plan_labels, plan_admissions))
+}
+
 // ── The whole pipe ──────────────────────────────────────────────────────────
 
 /// Run the full observation→proposal→plan→admission→receipt pipe over the
@@ -332,42 +486,9 @@ pub fn run_demo(ts_ns: u64) -> Result<Value, String> {
     let top: &Proposal = &proposals[0];
     let goal_atom = top.pddl_goal();
 
-    // 3. Goal → plan (project state to a problem, solve over the shipped domain).
-    let domain_text = revenue_domain_text();
-    let problem_text = build_problem(&state, &goal_atom);
-    let domain = domain_from_pddl(&domain_text).map_err(|e| format!("domain parse: {e}"))?;
-    let problem = problem_from_pddl(&problem_text).map_err(|e| format!("problem parse: {e}"))?;
-    let ground = GroundProblem::build(&domain, &problem, None)
-        .map_err(|e| format!("grounding failed: {e}"))?;
-    let tape = ground
-        .find_plan()
-        .map_err(|e| format!("no plan reaches proposed goal {goal_atom}: {e}"))?;
-    if tape.is_empty() {
-        return Err(format!("empty plan for proposed goal {goal_atom}"));
-    }
-
-    // 4. Plan → admission: every action passes judge + admit.
-    let mut plan_admissions = Vec::with_capacity(tape.len());
-    let mut plan_labels = Vec::with_capacity(tape.len());
-    for op in &tape.ops {
-        let (acct_id, target) = action_target(&op.action).ok_or_else(|| {
-            format!(
-                "plan action {} has no (stage ?a ?to) add effect",
-                op.action.label
-            )
-        })?;
-        let account = account_by_id(&state, &acct_id)
-            .ok_or_else(|| format!("plan action moves unknown account {acct_id}"))?;
-        let summary = admit_action(account, target, &op.action.label)?;
-        if summary["admit_status"] != json!("admitted") {
-            return Err(format!(
-                "plan action {} was not admitted: {}",
-                op.action.label, summary["admit_status"]
-            ));
-        }
-        plan_labels.push(op.action.label.clone());
-        plan_admissions.push(summary);
-    }
+    // 3. Goal → plan → admission (project state to a problem, solve over the
+    //    shipped domain, then run every action through judge + admit).
+    let (plan_labels, plan_admissions) = plan_and_admit(&state, &goal_atom)?;
 
     // 5. Admission → receipt binding the proposal_hash (AR-9 closure).
     let receipt_value = json!({
@@ -409,7 +530,7 @@ pub fn run_demo(ts_ns: u64) -> Result<Value, String> {
         },
         "step_3_plan": {
             "domain": "revenue-pipeline (ontology/revenue.pddl, hand-authored)",
-            "plan_len": tape.len(),
+            "plan_len": plan_labels.len(),
             "plan": plan_labels,
         },
         "step_4_admissions": plan_admissions,
@@ -486,6 +607,64 @@ mod tests {
                 );
             });
         }
+    }
+
+    /// The seam this ticket exists to fix: when a plan's steps are run
+    /// through `law judge`/`law admit` in order and a later step is refused,
+    /// every admission already computed for the prior, successfully-admitted
+    /// steps must survive on the error — never be silently discarded.
+    ///
+    /// Drives the real `admit_plan_steps` helper (the same one
+    /// `plan_and_admit` calls after solving) over a hand-built two-step
+    /// sequence rather than a solver-found plan: the shipped domain's
+    /// preconditions are kept in lock-step with `stage_required_evidence` via
+    /// `evidence_gate_agrees` (see the test above), so a plan the classical
+    /// solver actually finds can never itself contain an unadmittable step.
+    /// The second step here uses `acct-legal-gap`, whose fixture evidence
+    /// deliberately fails `procurement`'s gate — a real, non-mocked
+    /// `law judge`/`law admit` refusal, run through the same admission
+    /// machinery `plan_and_admit` uses.
+    #[test]
+    fn admit_plan_steps_preserves_partial_admissions_on_failure() -> Result<(), crate::AppError> {
+        let s = state()?;
+        let steps = vec![
+            (
+                "acct-apex".to_string(),
+                Stage::Proposal,
+                "step-0-admits".to_string(),
+            ),
+            (
+                "acct-legal-gap".to_string(),
+                Stage::Procurement,
+                "step-1-refused".to_string(),
+            ),
+        ];
+
+        let err = admit_plan_steps(&s, &steps)
+            .expect_err("acct-legal-gap must fail procurement's evidence gate");
+        let PlanAndAdmitError::Admission(failure) = err else {
+            return Err(crate::AppError::Other(format!(
+                "expected PlanAndAdmitError::Admission, got a Solve error: {err}"
+            )));
+        };
+
+        assert_eq!(failure.failed_action, "step-1-refused");
+        assert_eq!(failure.failed_step_index, 1);
+        assert_ne!(failure.admit_status, json!("admitted"));
+        assert_eq!(
+            failure.partial_admissions.len(),
+            1,
+            "step 0's real admission must not be discarded when step 1 fails"
+        );
+        assert_eq!(
+            failure.partial_admissions[0]["action"],
+            json!("step-0-admits")
+        );
+        assert_eq!(
+            failure.partial_admissions[0]["admit_status"],
+            json!("admitted")
+        );
+        Ok(())
     }
 
     #[test]

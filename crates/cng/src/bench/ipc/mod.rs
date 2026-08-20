@@ -16,7 +16,7 @@
 //! `decomp/render.rs`) — zero inline PDDL skeletons in Rust source.
 //!
 //! Solvability is gated honestly against the blind bounded-BFS planner
-//! (`bcinr_pddl::ground::IndexedGroundProblem::find_plan`, PROJ-733;
+//! (`bcinr_pddl::ground::lazy::IndexedGroundProblem::find_plan`, PROJ-733;
 //! `PDDL8_MAX_PLAN_DEPTH`):
 //! [`generate_solvable`] steps `size` DOWN from the requested maximum until
 //! a plan exists, and refuses `CNG_R04` (with the last per-size refusal
@@ -51,7 +51,7 @@ use bcinr_pddl::{Pddl8Domain, Pddl8Problem, Pddl8Tape};
 // PROJ-733: same relaxed-reachability-pruned grounder as decomp/mod.rs —
 // grippers-scale untyped domains ground large under bcinr_pddl's naive
 // full-cross-product grounder even for this cheap solvability-gate path.
-use bcinr_pddl::ground::IndexedGroundProblem as GroundProblem;
+use bcinr_pddl::ground::lazy::IndexedGroundProblem as GroundProblem;
 
 use crate::bench::decomp::DECOMP_MAX_GROUND;
 use crate::powl::CngRefusal;

@@ -47,7 +47,7 @@ use std::path::{Path, PathBuf};
 use bcinr_pddl::parse::{domain_from_pddl, problem_from_pddl};
 use oxigraph::io::{RdfFormat, RdfParser};
 use oxigraph::store::Store;
-use bcinr_pddl::ground::IndexedGroundProblem;
+use bcinr_pddl::ground::lazy::IndexedGroundProblem;
 
 use crate::powl::CngRefusal;
 

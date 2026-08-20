@@ -303,6 +303,7 @@ pub fn run_pipeline<P: Pack>(
         .map_err(|e| format!("grounding failed: {e}"))?;
     let tape = ground
         .find_plan()
+        .into_result()
         .map_err(|e| format!("no plan reaches proposed goal {goal_atom}: {e}"))?;
     if tape.is_empty() {
         return Err(format!("empty plan for proposed goal {goal_atom}"));

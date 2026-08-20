@@ -14,10 +14,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use oxigraph::store::Store;
-// PROJ-733: bcinr_pddl::ground::IndexedGroundProblem (relaxed-reachability-
+// PROJ-733: bcinr_pddl::ground::lazy::IndexedGroundProblem (relaxed-reachability-
 // pruned grounding) mirrors bcinr_pddl::ground::GroundProblem's public
 // fields exactly — see crates/cng/src/bench/decomp/mod.rs's module doc.
-use bcinr_pddl::ground::IndexedGroundProblem as GroundProblem;
+use bcinr_pddl::ground::lazy::IndexedGroundProblem as GroundProblem;
 
 use crate::bench::roles::select_rows;
 use crate::bench::templates::QuerySet;

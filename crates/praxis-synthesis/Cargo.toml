@@ -11,6 +11,15 @@ doctest = false
 
 [dependencies]
 # Dictionary encoding + sorted-ID fact relations, reused as the EDB substrate.
+# Restored 2026-08-19: crates/pddl-index was deleted wholesale in commit
+# 3da96c67 ("PDDL 3.1 consolidation and refactor progress before restart"),
+# but this crate's src/datalog.rs and src/sequence.rs kept their
+# `use pddl_index::{Dict, SymId}` imports and this dependency's own doc
+# comment, leaving the workspace unbuildable. Restored verbatim from
+# 3da96c67^ (the commit immediately before the deletion) with only the
+# wasm4pm-compat path fixed from an absolute /Users/sac path to the
+# workspace-relative pattern every other crate uses.
+pddl-index = { path = "../pddl-index", version = "26.7.2" }
 
 # BLAKE3 content-addressing + rolling receipt chains.
 chatman-common = { path = "../chatman-common", version = "26.7.2", features = ["provenance"] }

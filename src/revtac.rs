@@ -49,6 +49,8 @@ use praxis_proposer::{
 use serde::Deserialize;
 use serde_json::{json, Value};
 
+use crate::ops;
+
 /// The evidence flag names an operator may name in `min_evidence`, mapped to
 /// the `Account` field each reads. Keeping this list closed is what lets an
 /// unknown evidence name be a hard error.
@@ -173,26 +175,36 @@ fn proposal_json(p: &Proposal) -> Value {
     v
 }
 
+/// Partition `state`'s accounts into in-scope vs dropped (with reasons) under
+/// `constraints`. Shared by [`compile_mission`] and [`run_mission`] so the
+/// scoping computed at compile time is exactly the scoping the plan/admission
+/// step below actually solves and admits over — never a second, drifting copy.
+fn scope_state(
+    constraints: &MissionConstraints,
+    state: &RevenueState,
+) -> (RevenueState, Vec<Value>) {
+    let mut in_scope = Vec::new();
+    let mut dropped = Vec::new();
+    for a in &state.accounts {
+        match drop_reason(a, constraints) {
+            Some(reason) => dropped.push(json!({ "id": a.id, "reason": reason })),
+            None => in_scope.push(a.clone()),
+        }
+    }
+    (RevenueState { accounts: in_scope }, dropped)
+}
+
 /// Compile a parsed [`Mission`] against an observed [`RevenueState`] into the
 /// substrate invocation: a filtered proposer run plus a planner goal atom and
 /// the reachable-revenue ceiling for the constrained scope.
 ///
 /// Output is observation (O), not authority (O\*): the `planner_goal` and
-/// proposals must still be admitted downstream.
+/// proposals must still be admitted downstream (see [`run_mission`]).
 pub fn compile_mission(mission: &Mission, state: &RevenueState) -> Result<Value, String> {
     mission.validate_evidence_names()?;
     let objective = mission.resolve_objective()?;
 
-    // Partition accounts into in-scope vs dropped (with reasons).
-    let mut in_scope = Vec::new();
-    let mut dropped = Vec::new();
-    for a in &state.accounts {
-        match drop_reason(a, &mission.constraints) {
-            Some(reason) => dropped.push(json!({ "id": a.id, "reason": reason })),
-            None => in_scope.push(a.clone()),
-        }
-    }
-    let scoped_state = RevenueState { accounts: in_scope };
+    let (scoped_state, dropped) = scope_state(&mission.constraints, state);
 
     // The compiled proposer invocation over the constrained scope.
     let proposer = Proposer::new(objective.clone());
@@ -222,6 +234,70 @@ pub fn compile_mission(mission: &Mission, state: &RevenueState) -> Result<Value,
         "top_proposal_hash": top_hash,
         "proposals": proposals.iter().map(proposal_json).collect::<Vec<_>>(),
         "mrr": mrr,
+    }))
+}
+
+/// Compile `mission` and, if it yields a lawful top proposal, carry it all the
+/// way through goal → plan → admission → receipt over the RevTAC-scoped
+/// state — closing the gap between RevTAC's scoping/ranking layer and the
+/// generic plan/admit/receipt pipe (`crate::revenue::plan_and_admit` +
+/// `crate::ops::receipt_payload`), which never touched each other before.
+///
+/// `ts_ns` fixes the receipt timestamp so the returned `chain_hash` is stable
+/// across runs with identical inputs. If the mission compiles to
+/// `"no_lawful_candidates"` (empty scope, or no admissible proposal), this
+/// returns that compiled observation unchanged — there is nothing to plan or
+/// admit, and that is not an error, only the absence of a lawful candidate.
+/// A solvable-but-unadmittable plan, or a goal the planner cannot reach, is a
+/// hard `Err` — this pipe is only "real" if it stays green end to end.
+pub fn run_mission(mission: &Mission, state: &RevenueState, ts_ns: u64) -> Result<Value, String> {
+    let compiled = compile_mission(mission, state)?;
+    if compiled["status"] != json!("compiled") {
+        return Ok(json!({
+            "mission": mission.mission,
+            "status": "no_lawful_candidates",
+            "compiled": compiled,
+        }));
+    }
+    let goal_atom = compiled["planner_goal"]
+        .as_str()
+        .ok_or_else(|| "compiled mission missing planner_goal".to_string())?
+        .to_string();
+
+    // Re-derive the exact scoped state the compiled proposal was ranked
+    // over, so the plan is solved and admitted against the same accounts —
+    // never a raw, unscoped state.
+    let (scoped_state, _dropped) = scope_state(&mission.constraints, state);
+    let (plan_labels, admissions) = crate::revenue::plan_and_admit(&scoped_state, &goal_atom)?;
+
+    let receipt_value = json!({
+        "mission": mission.mission,
+        "proposal_hash": compiled["top_proposal_hash"],
+        "goal": goal_atom,
+        "admitted_plan": plan_labels,
+    });
+    let receipt_input = json!({
+        "value": receipt_value,
+        "instruction_id": 1,
+        "ts_ns": ts_ns,
+    });
+    let receipt = ops::receipt_payload(&receipt_input.to_string())?;
+    if receipt["status"] != json!("receipted") {
+        return Err(format!(
+            "mission receipt was not issued: {}",
+            receipt["status"]
+        ));
+    }
+
+    Ok(json!({
+        "mission": mission.mission,
+        "status": "receipted",
+        "ts_ns": ts_ns,
+        "compiled": compiled,
+        "plan": plan_labels,
+        "admissions": admissions,
+        "chain_hash": receipt["chain_hash"],
+        "binds_proposal_hash": compiled["top_proposal_hash"],
     }))
 }
 
@@ -394,6 +470,79 @@ exclude_accounts = []
             .map_err(|e| crate::AppError::Other(e.to_string()))?;
         assert_eq!(out["status"], json!("no_lawful_candidates"));
         assert_eq!(out["planner_goal"], Value::Null);
+        Ok(())
+    }
+
+    /// Under `--features law-signed`, the receipt step fails closed without a
+    /// signing key; set a fixed test key once so this test stays green in
+    /// that build too (mirrors `revenue::tests::ensure_signing_key`).
+    fn ensure_signing_key() {
+        #[cfg(feature = "law-signed")]
+        {
+            use std::sync::Once;
+            static ONCE: Once = Once::new();
+            ONCE.call_once(|| {
+                std::env::set_var(
+                    "PRAXIS_SIGNING_KEY",
+                    "8bb5514c228cf4275a64aba09f3da77ef7de8b74a4424d670e71c26b0557e293",
+                );
+            });
+        }
+    }
+
+    /// The composition this module exists to close: a RevTAC mission that
+    /// *scopes* the fixture (excludes `acct-legal-gap`, requires
+    /// `legal_approved` + `security_review_done`) drives the real
+    /// plan→admission→receipt pipe, not just a ranked-proposal observation.
+    #[test]
+    fn run_mission_produces_a_receipted_scoped_outcome() -> Result<(), crate::AppError> {
+        ensure_signing_key();
+        let mission = Mission::parse(
+            &json!({
+                "mission": "close-q3-scoped",
+                "constraints": {
+                    "min_evidence": ["legal_approved", "security_review_done"],
+                    "exclude_accounts": ["acct-legal-gap"]
+                },
+                "objective": serde_json::from_str::<Value>(OBJECTIVE)
+                    .map_err(|e| crate::AppError::Other(e.to_string()))?,
+            })
+            .to_string(),
+            "json",
+        )
+        .map_err(|e| crate::AppError::Other(e.to_string()))?;
+        let state = fixture_state()?;
+
+        let out = run_mission(&mission, &state, 1_000)
+            .map_err(|e| crate::AppError::Other(e.to_string()))?;
+
+        assert_eq!(out["status"], json!("receipted"));
+        // (a) every admitted plan action was actually admitted.
+        let admissions = out["admissions"]
+            .as_array()
+            .ok_or_else(|| crate::AppError::Other("missing admissions array".into()))?;
+        assert!(!admissions.is_empty(), "expected a non-empty admitted plan");
+        for admission in admissions {
+            assert_eq!(
+                admission["admit_status"],
+                json!("admitted"),
+                "expected every plan action admitted, got: {admission}"
+            );
+        }
+        // (b) the receipt's bound proposal_hash matches the compiled top hash.
+        assert_eq!(
+            out["binds_proposal_hash"],
+            out["compiled"]["top_proposal_hash"]
+        );
+        assert_ne!(out["binds_proposal_hash"], Value::Null);
+
+        // (c) determinism: same ts_ns -> identical chain_hash.
+        let out2 = run_mission(&mission, &state, 1_000)
+            .map_err(|e| crate::AppError::Other(e.to_string()))?;
+        assert_eq!(
+            out["chain_hash"], out2["chain_hash"],
+            "same ts_ns must yield a byte-identical chain_hash"
+        );
         Ok(())
     }
 }

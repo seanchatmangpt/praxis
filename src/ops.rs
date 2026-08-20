@@ -1114,6 +1114,13 @@ pub fn is_infeasible(e: &Pddl8Error) -> bool {
             | Pddl8Error::NoAdmittedPlan
             | Pddl8Error::StepDenied { .. }
             | Pddl8Error::GoalNotReached
+            // `find_plan`/`find_temporal_plan` now return
+            // `PlannerOutcome<T>` (bcinr_mfw_ir); `.into_result()?` wraps
+            // any non-`Found` outcome in `PlanningFailed` (see that
+            // variant's doc comment) rather than collapsing straight to
+            // `NoAdmittedPlan` as the old local `PlannerOutcome` did.
+            // Restored 2026-08-19 alongside crates/pddl-index.
+            | Pddl8Error::PlanningFailed(_)
     )
 }
 
@@ -1152,7 +1159,7 @@ fn solve_classical(domain_text: &str, problem_text: &str) -> std::result::Result
         Err(e) if is_infeasible(&e) => return Ok(refusal_json("classical", &e)),
         Err(e) => return Err(e.to_string()),
     };
-    match ground.find_plan() {
+    match ground.find_plan().into_result() {
         Ok(tape) => Ok(json!({
             "mode": "classical",
             "grounder": "naive",
@@ -1160,8 +1167,14 @@ fn solve_classical(domain_text: &str, problem_text: &str) -> std::result::Result
             "plan_len": tape.len(),
             "plan": to_json(&tape),
         })),
-        Err(e) if is_infeasible(&e) => Ok(refusal_json("classical", &e)),
-        Err(e) => Err(e.to_string()),
+        Err(failure) => {
+            let e: Pddl8Error = failure.into();
+            if is_infeasible(&e) {
+                Ok(refusal_json("classical", &e))
+            } else {
+                Err(e.to_string())
+            }
+        }
     }
 }
 
@@ -1223,7 +1236,7 @@ fn solve_temporal(domain_text: &str, problem_text: &str) -> std::result::Result<
         Err(e) if is_infeasible(&e) => return Ok(refusal_json("temporal", &e)),
         Err(e) => return Err(e.to_string()),
     };
-    match gtp.find_temporal_plan() {
+    match gtp.find_temporal_plan().into_result() {
         Ok(plan) => {
             let plan_chain = compute_plan_chain(&plan.steps);
             Ok(json!({
@@ -1234,8 +1247,14 @@ fn solve_temporal(domain_text: &str, problem_text: &str) -> std::result::Result<
                 "plan": to_json(&plan),
             }))
         }
-        Err(e) if is_infeasible(&e) => Ok(refusal_json("temporal", &e)),
-        Err(e) => Err(e.to_string()),
+        Err(failure) => {
+            let e: Pddl8Error = failure.into();
+            if is_infeasible(&e) {
+                Ok(refusal_json("temporal", &e))
+            } else {
+                Err(e.to_string())
+            }
+        }
     }
 }
 

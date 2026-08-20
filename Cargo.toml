@@ -105,6 +105,11 @@ hex = "0.4"
 bcinr-pddl = { path = "../bcinr/crates/bcinr-pddl", version = "26.6.26" }
 
 praxis-synthesis = { path = "crates/praxis-synthesis", version = "26.7.2" }
+# Restored 2026-08-19 alongside crates/pddl-index (see that crate's own
+# Cargo.toml comment): src/ops.rs and src/mfg.rs kept `pddl_index::`
+# call sites through the PDDL 3.1 "before restart" deletion; this makes
+# the root package's own manifest match code that was never updated.
+pddl-index = { path = "crates/pddl-index", version = "26.7.2" }
 bcinr-powl = { path = "../bcinr/crates/bcinr-powl", version = "26.6.25" }
 prolog8 = { path = "../wasm4pm/crates/prolog8", version = "26.7.1" }
 wasm4pm-compat = { path = "../wasm4pm-compat", version = "26.6.29" }
@@ -249,6 +254,7 @@ members = [
     "crates/rust-fable-testbed",
     "crates/powl2-decompose",
     "crates/praxis-synthesis",
+    "crates/pddl-index",
     "crates/praxis-lean",
     "crates/praxis-graphlaw",
     "crates/praxis-graphlaw-wasm",
