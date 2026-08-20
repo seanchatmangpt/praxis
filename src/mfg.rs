@@ -274,7 +274,18 @@ impl From<&ActionDecl> for wasm4pm_compat::pddl::Pddl8ActionSchema {
             preconditions: a.pre.iter().map(Into::into).collect(),
             add_effects: a.add.iter().map(Into::into).collect(),
             del_effects: a.del.iter().map(Into::into).collect(),
-            typed_params: Vec::new(),
+            // PROJ-818: this was hardcoded to Vec::new(), silently discarding
+            // every parameter's declared type (`a.params` is already
+            // `Vec<(var, type)>` -- the type was thrown away one line above
+            // too, only to build the untyped `params` list). Grounding reads
+            // `typed_params` to restrict each parameter's candidate object
+            // list to type-compatible objects (see bcinr-pddl's
+            // `ground_schema`); an empty `typed_params` makes every
+            // parameter fall back to the FULL untyped object list, which is
+            // exactly what turned a ~26-ground-action problem into 4965
+            // (real, observed: `tests/bribery_case_pddl.rs::
+            // closable_case_grounds_and_solves_to_receipted`).
+            typed_params: a.params.clone(),
             condition: None,
             effects: Vec::new(),
             numeric_effects: Vec::new(),
