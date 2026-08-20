@@ -10,11 +10,10 @@ version = 2
 # RustSec advisory DB — local cache and upstream URL.
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
-# In schema v2, vulnerability is always denied; these make the policy explicit.
-vulnerability = "deny"
-unmaintained = "warn"
+# Vulnerabilities are always denied in this cargo-deny schema; `vulnerability`
+# and `notice` config keys were removed upstream (see EmbarkStudios/cargo-deny#611).
+unmaintained = "workspace"
 yanked = "warn"
-notice = "warn"
 ignore = []
 
 [licenses]
