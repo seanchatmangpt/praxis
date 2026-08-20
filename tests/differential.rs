@@ -474,17 +474,20 @@ fn pair1_scope_classical_exemplars() {
     // durative-only, so no cross-planner differential is run on it; its
     // durative shape IS exercised as a differential in
     // `pair1_planners_revenue_stage_chain`.
-    let revenue = std::fs::read_to_string(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/ontology/revenue.pddl"
-    ));
-    if let Ok(text) = revenue {
-        let d = b_domain(&text).expect("bcinr parses revenue.pddl (classical :strips)");
-        assert!(
-            !d.actions.is_empty(),
-            "revenue.pddl should have classical actions"
-        );
-    }
+    //
+    // ontology/revenue.pddl's own file holds BOTH the domain and an
+    // illustrative example problem concatenated (`(define (domain ...))`
+    // followed by `(define (problem ...))`); `domain_from_pddl` parses
+    // exactly one top-level form and refuses on the trailing problem block
+    // ("trailing token"). `src/revenue.rs::revenue_domain_text()` already
+    // exists precisely to strip that trailing block for solver call sites
+    // (see `run_demo`) -- use it here too instead of reading the raw file.
+    let text = my_conforming_project::revenue::revenue_domain_text();
+    let d = b_domain(&text).expect("bcinr parses revenue.pddl (classical :strips)");
+    assert!(
+        !d.actions.is_empty(),
+        "revenue.pddl should have classical actions"
+    );
 
     // lawobject-capability.pddl uses `:adl` (forall / implies / when, and
     // `:precondition ((not …))` without an enclosing `and`). This is out of
