@@ -83,11 +83,19 @@ divan = "0.1"
 [[bin]]
 name = "dod"
 path = "src/bin/dod.rs"
+# The root workspace package also has a `dod` binary; `cargo doc
+# --workspace` refuses to build both (they'd collide on the same output
+# path). Root's is documented; this one isn't, per cargo's own suggested
+# remediation ("marking one with `doc = false`").
+doc = false
 
 [[bin]]
 name = "mcp_server"
 path = "src/bin/mcp_server.rs"
 required-features = ["mcp"]
+# The root workspace package also has an `mcp_server` binary; see the
+# `dod` bin above for why one of each colliding pair is marked doc = false.
+doc = false
 
 [[bench]]
 name = "bench_main"
