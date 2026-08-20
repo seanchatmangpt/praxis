@@ -21,6 +21,16 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # dtolnay/rust-toolchain's `@X.Y` ref selects the RUST toolchain
+      # version to install, not an action release tag — this action has
+      # no normal semver releases. Dependabot's minor/patch bump logic
+      # misread `@1.82` as an action version and "bumped" it to `@1.100`,
+      # a Rust version that does not exist (confirmed: CI failed with
+      # "could not download nonexistent rust version 1.100.0", 2026-08-20).
+      # Bump this manually to match `rust-version` in the workspace
+      # Cargo.tomls when the MSRV policy actually changes.
+      - dependency-name: "dtolnay/rust-toolchain"
 
   # Uncomment if the repo ships a web/ frontend.
   # - package-ecosystem: "npm"
