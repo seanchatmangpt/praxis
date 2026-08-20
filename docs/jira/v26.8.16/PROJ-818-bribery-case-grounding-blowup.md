@@ -1,6 +1,16 @@
 # PROJ-818: bribery-case PDDL grounding produces 4965 ground actions for a 15-object problem (suspected type-filter bug)
 
-**Status**: OPEN -- discovered, not fixed
+**Status**: DONE -- root-caused and fixed in commit `375fc669`. Confirmed by
+dumping the actual manufactured PDDL8 domain text (correctly typed) and
+tracing `mfg::solve_ir`, which converts the IR directly via `impl
+From<&ActionDecl> for Pddl8ActionSchema` rather than re-parsing that text --
+that conversion set `typed_params: Vec::new()` unconditionally, discarding
+every parameter's type a second time (it was already read once, correctly,
+to build the untyped `params` field) instead of copying it from
+`a.params: Vec<(String, String)>`. Fixed: `typed_params: a.params.clone()`.
+`tests/bribery_case_pddl.rs`'s 3 tests all pass now (was: 1 of 3 failing on
+`PDDL8_MAX_GROUND` bound exceeded, `got=4965` against a hand-computed
+type-correct estimate of ~26).
 **Dependencies**: none (independent of PROJ-811/814/815/816/817)
 
 ## Scope
