@@ -43,10 +43,17 @@ step count. This file was compile-blocked most of this session (stale
 `Result`-based `find_plan`/`find_temporal_plan` API usage, fixed alongside
 `indexed_grounding.rs` and `bribery_case_pddl.rs` in commit `37fe4405`) and
 has therefore not actually run in a long time. Now that it compiles, 3 of
-8 tests fail for real:
+8 tests failed for real; one of the three (`pair1_scope_classical_
+exemplars`) is FIXED, in commit `1eedcd8e` -- it was reading `ontology/
+revenue.pddl`'s raw file directly instead of using
+`revenue::revenue_domain_text()` to strip that file's trailing example
+`(define (problem ...))` block before parsing, and `domain_from_pddl`
+correctly refuses a domain+problem concatenation. The remaining 2 failures
+(the actual planner-disagreement finding this ticket is about) are
+confirmed root-caused below, not fixed:
 
 ```
-pair1_scope_classical_exemplars:
+pair1_scope_classical_exemplars (FIXED, commit 1eedcd8e):
   bcinr parses revenue.pddl (classical :strips): ParseError("trailing token at index 214")
 
 pair1_planners_revenue_stage_chain:
