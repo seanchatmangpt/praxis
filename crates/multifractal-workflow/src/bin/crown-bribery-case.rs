@@ -763,7 +763,7 @@ fn build_pddl_problem_fragment(
 fn manufacture_pddl(
     problem_fragment_ttl: &str,
     source_label: &str,
-) -> Result<my_conforming_project::mfg::Manufactured, CliError> {
+) -> Result<my_conforming_project::mfg::AdmittedPlanningTask, CliError> {
     let combined = format!("{DOMAIN_TTL}\n{problem_fragment_ttl}");
     my_conforming_project::mfg::manufacture(&combined, source_label)
         .map_err(|e| CliError::Manufacture(e.to_string()))

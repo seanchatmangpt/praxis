@@ -350,7 +350,7 @@ fn evidence_type_for_obligation(
 /// through the SAME `my_conforming_project::mfg::manufacture` real RDF ->
 /// PDDL8 pipeline `crown-bribery-case.rs` itself calls -- not a hand-authored
 /// substitute.
-fn manufacture_real_case_pddl() -> my_conforming_project::mfg::Manufactured {
+fn manufacture_real_case_pddl() -> my_conforming_project::mfg::AdmittedPlanningTask {
     let derived = derive_obligations(HOOK_TTL, CASE_TTL);
     let case_local_name = "case-brb-2026-0417";
     let evidence_types: Vec<String> = derived
@@ -426,7 +426,7 @@ fn manufacture_real_case_pddl() -> my_conforming_project::mfg::Manufactured {
 }
 
 fn f08_graph(
-    manufactured: &my_conforming_project::mfg::Manufactured,
+    manufactured: &my_conforming_project::mfg::AdmittedPlanningTask,
     hook_pack_ttl: &str,
 ) -> Vec<AdmittedTriple> {
     vec![

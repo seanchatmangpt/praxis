@@ -385,7 +385,7 @@ pub fn admit_contracted_world(
 #[derive(Debug, Clone)]
 pub struct Plan {
     pub tape: Pddl8Tape,
-    pub stats: bcinr_pddl::ground::GroundStats,
+    pub stats: bcinr_pddl::ground::lazy::GroundStats,
 }
 
 /// PDDL Planner (D5): thin call into `bcinr_pddl::solve_indexed` -- the
@@ -401,13 +401,13 @@ pub fn plan_goal_closure(
     domain: &Pddl8Domain,
     problem: &Pddl8Problem,
 ) -> Result<Plan, SelfPlayRefusal> {
-    let gp = bcinr_pddl::ground::IndexedGroundProblem::build(domain, problem, None).map_err(|e| {
-        SelfPlayRefusal::ImpossibleScenarioPreplanRefused {
+    let gp = bcinr_pddl::ground::lazy::IndexedGroundProblem::build(domain, problem, None).map_err(
+        |e| SelfPlayRefusal::ImpossibleScenarioPreplanRefused {
             reason: format!("pddl ground failed: {e}"),
-        }
-    })?;
+        },
+    )?;
     let stats = gp.stats();
-    let tape = gp.find_plan().map_err(|e| {
+    let tape = gp.find_plan().into_result().map_err(|e| {
         SelfPlayRefusal::ImpossibleScenarioPreplanRefused {
             reason: format!("pddl plan failed: {e}"),
         }

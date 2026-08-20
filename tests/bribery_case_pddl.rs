@@ -56,16 +56,16 @@ fn domain_is_strips8_safe_and_manufactures_real_pddl8_text() {
         .project_domain_text()
         .contains("close-obligations"));
     assert!(manufactured
-        .domain_text
+        .project_domain_text()
         .contains("clear-transaction-obligation"));
     assert!(manufactured
-        .domain_text
+        .project_domain_text()
         .contains("clear-authorization-obligation"));
     assert!(manufactured
         .project_domain_text()
         .contains("clear-policy-obligation"));
     assert!(manufactured
-        .domain_text
+        .project_domain_text()
         .contains("block-for-missing-evidence"));
     eprintln!(
         "manufactured domain text:\n{}",

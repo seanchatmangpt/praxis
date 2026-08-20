@@ -42,7 +42,8 @@ pub fn ground(domain: &Pddl8Domain, problem: &Pddl8Problem) -> Result<GroundProb
 pub fn plan(ground: &GroundProblem) -> Result<Pddl8Tape, Refusal> {
     ground
         .find_plan()
-        .map_err(|e| Refusal::from_pddl8("Planner", e))
+        .into_result()
+        .map_err(|e| Refusal::from_pddl8("Planner", e.into()))
 }
 
 #[cfg(test)]

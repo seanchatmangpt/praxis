@@ -260,7 +260,7 @@ fn run_planner_case(m: &GenModel) -> (bool, Option<String>) {
     let bd = b_domain(&dtext).expect("bcinr domain parse");
     let bp = b_problem(&ptext).expect("bcinr problem parse");
     let gtp = GroundTemporalProblem::build(&bd, &bp).expect("bcinr build");
-    let b_plan = gtp.find_temporal_plan();
+    let b_plan = gtp.find_temporal_plan().into_result();
 
     let mut note = None;
 
@@ -404,7 +404,7 @@ fn pair1_planners_capacity_numeric_exemplar() {
         let bd = b_domain(DOMAIN).unwrap();
         let bp = b_problem(&p).unwrap();
         let gtp = GroundTemporalProblem::build(&bd, &bp).unwrap();
-        let bpl = gtp.find_temporal_plan().expect("bcinr plan");
+        let bpl = gtp.find_temporal_plan().into_result().expect("bcinr plan");
 
         assert_eq!(wpl.steps.len(), 2, "cap={cap} wasm4pm step count");
         assert_eq!(bpl.steps.len(), 2, "cap={cap} bcinr step count");

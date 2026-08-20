@@ -18,7 +18,7 @@ use oxigraph::model::{GraphName, NamedNode, Quad, Term};
 // IndexedGroundProblem (see decomp/mod.rs's module doc) — these tests call
 // into that production code with `&GroundProblem` params, so the fixture's
 // own grounding must use the same aliased type, not bcinr_pddl's.
-use bcinr_pddl::ground::IndexedGroundProblem as GroundProblem;
+use bcinr_pddl::ground::lazy::IndexedGroundProblem as GroundProblem;
 
 use crate::bench::templates::QuerySet;
 use crate::powl::{CngRefusal, Powl};

@@ -114,7 +114,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use bcinr_pddl::ground::GroundStats;
+use bcinr_pddl::ground::lazy::GroundStats;
 use powl2_decompose::{ParentChildClosure, Powl, WorkflowSocketId};
 use praxis_graphlaw::chatman::closure::{ClosureLaw, RecursiveSocketClosure};
 use wasm4pm_compat::hash::blake3_combined;
@@ -449,17 +449,18 @@ struct ReachabilityWitness {
 /// `bcinr_pddl::GROUND_INDEX_THRESHOLD`) plus BFS plan search bounded by
 /// `PDDL8_MAX_PLAN_DEPTH`.
 fn reachability_gate(goal: &ContinuationGoal) -> Result<ReachabilityWitness, MFWGrowthRefused> {
-    let gp = bcinr_pddl::ground::IndexedGroundProblem::build(&goal.domain, &goal.problem, None).map_err(|e| {
-        MFWGrowthRefused::GoalUnreachable {
-            reason: format!("pddl index failed: {e}"),
-        }
-    })?;
+    let gp =
+        bcinr_pddl::ground::lazy::IndexedGroundProblem::build(&goal.domain, &goal.problem, None)
+            .map_err(|e| MFWGrowthRefused::GoalUnreachable {
+                reason: format!("pddl index failed: {e}"),
+            })?;
     let stats = gp.stats();
-    let plan = gp.find_plan().map_err(|e| {
-        MFWGrowthRefused::GoalUnreachable {
+    let plan = gp
+        .find_plan()
+        .into_result()
+        .map_err(|e| MFWGrowthRefused::GoalUnreachable {
             reason: e.to_string(),
-        }
-    })?;
+        })?;
     Ok(ReachabilityWitness { plan, stats })
 }
 

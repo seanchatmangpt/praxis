@@ -188,7 +188,7 @@ fn differential_indexed_matches_naive_on_day3_corpus() {
         total_candidate += indexed.stats().candidate_groundings;
         total_materialized += materialized;
 
-        let n_plan = naive.find_plan();
+        let n_plan = naive.find_plan().into_result();
         let i_plan = indexed.find_plan();
 
         match (n_plan, i_plan) {
@@ -302,7 +302,7 @@ fn benchmark_indexed_materializes_far_fewer_than_naive() {
     assert!(ratio < 0.05, "materialization ratio {ratio} not << 1");
 
     // Same plan (differential agreement at scale).
-    let np = naive.find_plan().expect("naive plan");
+    let np = naive.find_plan().into_result().expect("naive plan");
     let ip = indexed.find_plan().expect("indexed plan");
     assert_eq!(
         plan_labels(&np),

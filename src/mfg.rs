@@ -18,34 +18,49 @@
 //! `ggen-core`'s `sparql_column`/`sparql_row` Tera functions expect, so any
 //! future template pipeline can consume ontology facts directly.
 
-use bcinr_pddl::{
-    domain_from_pddl, problem_from_pddl, GroundProblem, PDDL8_MAX_ARITY, PDDL8_MAX_CONJUNCTS,
-    PDDL8_MAX_PARAMS,
-};
+use bcinr_pddl::{domain_from_pddl, problem_from_pddl, GroundProblem};
 
-use ggen_graph::prelude::{parse_turtle, DeterministicGraph, FactStore};
+use ggen_graph::prelude::{parse_turtle, DeterministicGraph};
 
 pub fn validate_shacl(
     graph: &DeterministicGraph,
     shapes_ttl: &str,
     profile_name: &str,
 ) -> Result<AdmissionReceipt> {
-    let outcome = graph
-        .validate_shacl(shapes_ttl)
+    // `DeterministicGraph` has no `validate_shacl` method; the real
+    // implementation is the free function `ggen_graph::shacl::validate_shacl`,
+    // which takes Turtle-serialized data text rather than a graph handle. We
+    // re-serialize the graph's current quad set (each quad's `Display` output
+    // is a valid Turtle triple statement: full-IRI subject/predicate/object
+    // followed by ` .`) so the free function can re-parse it.
+    let data_ttl: String = graph
+        .all_quads()?
+        .iter()
+        .map(|q| format!("{q} .\n"))
+        .collect();
+
+    let violations = ggen_graph::validate_shacl(&data_ttl, &[shapes_ttl])
         .map_err(|e| MfgError::Graph(e.to_string()))?;
+    let conforms = violations.is_empty();
 
     let gh = graph_hash_hex(graph)?;
     let sh_hash = hex::encode(blake3::hash(shapes_ttl.as_bytes()).as_bytes());
 
     Ok(AdmissionReceipt {
-        conforms: outcome.conforms,
+        conforms,
         shapes_hash: sh_hash,
         graph_hash: gh,
         profile_name: profile_name.to_string(),
-        message: if outcome.conforms {
+        message: if conforms {
             None
         } else {
-            Some("SHACL violation".to_string())
+            Some(
+                violations
+                    .iter()
+                    .map(|v| v.message.clone())
+                    .collect::<Vec<_>>()
+                    .join("; "),
+            )
         },
     })
 }
@@ -70,7 +85,7 @@ pub fn solve_ir(task: &AdmittedPlanningTask) -> ValidationReport {
 
     let grounded_actions = ground.actions.len();
     match ground.find_plan() {
-        Ok(tape) => {
+        bcinr_pddl::PlannerOutcome::Found(tape) => {
             let plan_steps: Vec<String> = tape
                 .ops
                 .iter()
@@ -85,13 +100,13 @@ pub fn solve_ir(task: &AdmittedPlanningTask) -> ValidationReport {
                 error: None,
             }
         }
-        Err(e) => ValidationReport {
+        other => ValidationReport {
             parsed: true,
             grounded_actions,
             plan_len: 0,
             plan_steps: Vec::new(),
             solvable: false,
-            error: Some(e.to_string()),
+            error: Some(format!("{other:?}")),
         },
     }
 }
@@ -181,7 +196,7 @@ pub struct ActionDecl {
 
 /// The full domain IR: types, predicates, and action schemas.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PddlPddlDomainIr {
+pub struct PddlDomainIr {
     pub name: String,
     pub types: Vec<TypeDecl>,
     pub predicates: Vec<PredicateDecl>,
@@ -197,7 +212,7 @@ pub struct ObjectDecl {
 
 /// The full problem IR: objects, initial state, and goal.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PddlPddlProblemIr {
+pub struct PddlProblemIr {
     pub name: String,
     pub domain: String,
     pub objects: Vec<ObjectDecl>,
@@ -208,7 +223,7 @@ pub struct PddlPddlProblemIr {
 /// Manufactured output: PDDL8 domain + problem text, plus the source
 /// graph's BLAKE3 state hash (embedded as a provenance comment in the
 /// domain text and returned separately for callers that need it raw).
-#[derive(Debug, Clone, Serialize, Deserialize, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdmissionReceipt {
     pub conforms: bool,
     pub shapes_hash: String,
@@ -259,7 +274,10 @@ impl From<&ActionDecl> for wasm4pm_compat::pddl::Pddl8ActionSchema {
             preconditions: a.pre.iter().map(Into::into).collect(),
             add_effects: a.add.iter().map(Into::into).collect(),
             del_effects: a.del.iter().map(Into::into).collect(),
-            ..Default::default()
+            typed_params: Vec::new(),
+            condition: None,
+            effects: Vec::new(),
+            numeric_effects: Vec::new(),
         }
     }
 }
@@ -274,7 +292,12 @@ impl From<&PddlDomainIr> for wasm4pm_compat::pddl::Pddl8Domain {
                 .map(|p| (p.name.clone(), p.params.len() as u8))
                 .collect(),
             actions: d.actions.iter().map(Into::into).collect(),
-            ..Default::default()
+            functions: Vec::new(),
+            durative_actions: Vec::new(),
+            derived: Vec::new(),
+            constraints: Vec::new(),
+            processes: Vec::new(),
+            events: Vec::new(),
         }
     }
 }
@@ -283,14 +306,18 @@ impl From<&PddlProblemIr> for wasm4pm_compat::pddl::Pddl8Problem {
         Self {
             name: p.name.clone(),
             domain: p.domain.clone(),
-            objects: p
+            objects: p.objects.iter().map(|o| o.name.clone()).collect(),
+            init: p.init.iter().map(Into::into).collect(),
+            goal: p.goal.iter().map(Into::into).collect(),
+            object_types: p
                 .objects
                 .iter()
                 .map(|o| (o.name.clone(), o.ty.clone()))
                 .collect(),
-            init: p.init.iter().map(Into::into).collect(),
-            goal: p.goal.iter().map(Into::into).collect(),
-            ..Default::default()
+            fn_values: Vec::new(),
+            timed_inits: Vec::new(),
+            preferences: Vec::new(),
+            metric: None,
         }
     }
 }
@@ -830,7 +857,7 @@ pub fn validate(domain_text: &str, problem_text: &str) -> ValidationReport {
     };
     let grounded_actions = ground.actions.len();
     match ground.find_plan() {
-        Ok(tape) => {
+        bcinr_pddl::PlannerOutcome::Found(tape) => {
             let plan_steps: Vec<String> = tape
                 .ops
                 .iter()
@@ -845,7 +872,7 @@ pub fn validate(domain_text: &str, problem_text: &str) -> ValidationReport {
                 error: None,
             }
         }
-        Err(e) => empty(e.to_string(), true, grounded_actions),
+        other => empty(format!("{other:?}"), true, grounded_actions),
     }
 }
 
@@ -916,7 +943,7 @@ mod tests {
     #[test]
     fn manufacture_lawobject_golden_solves() {
         let m = manufacture(LAWOBJECT_TTL, "ontology/lawobject.ttl").expect("manufacture");
-        let report = validate(&m.domain_text, &m.problem_text);
+        let report = validate(&m.project_domain_text(), &m.project_problem_text());
         assert!(report.parsed, "{:?}", report.error);
         assert!(report.solvable, "{:?}", report.error);
         assert_eq!(
@@ -935,42 +962,18 @@ mod tests {
     fn manufacture_is_deterministic() {
         let a = manufacture(LAWOBJECT_TTL, "ontology/lawobject.ttl").unwrap();
         let b = manufacture(LAWOBJECT_TTL, "ontology/lawobject.ttl").unwrap();
-        assert_eq!(a.domain_text, b.domain_text);
-        assert_eq!(a.problem_text, b.problem_text);
-        assert_eq!(a.graph_hash_hex, b.graph_hash_hex);
+        assert_eq!(a.project_domain_text(), b.project_domain_text());
+        assert_eq!(a.project_problem_text(), b.project_problem_text());
+        assert_eq!(a.receipt.graph_hash, b.receipt.graph_hash);
     }
 
-    #[test]
-    fn enforce_pddl8_rejects_high_arity_predicate() {
-        let ttl = r#"
-            @prefix pddl: <http://seanchatmangpt.github.io/praxis/pddl#> .
-            pddl:domain_x a pddl:Domain ; pddl:name "x" .
-            pddl:pred_wide a pddl:Predicate ; pddl:name "wide" ;
-              pddl:param [ pddl:index 0 ; pddl:var "?a0" ; pddl:ofType "t" ] ,
-                        [ pddl:index 1 ; pddl:var "?a1" ; pddl:ofType "t" ] ,
-                        [ pddl:index 2 ; pddl:var "?a2" ; pddl:ofType "t" ] ,
-                        [ pddl:index 3 ; pddl:var "?a3" ; pddl:ofType "t" ] ,
-                        [ pddl:index 4 ; pddl:var "?a4" ; pddl:ofType "t" ] ,
-                        [ pddl:index 5 ; pddl:var "?a5" ; pddl:ofType "t" ] ,
-                        [ pddl:index 6 ; pddl:var "?a6" ; pddl:ofType "t" ] ,
-                        [ pddl:index 7 ; pddl:var "?a7" ; pddl:ofType "t" ] ,
-                        [ pddl:index 8 ; pddl:var "?a8" ; pddl:ofType "t" ] .
-        "#;
-        let graph = load_graph(ttl).unwrap();
-        let domain = extract_domain(&graph).unwrap();
-        assert_eq!(domain.predicates[0].params.len(), 9);
-        let err = enforce_pddl8(&domain).unwrap_err();
-        match err {
-            MfgError::BoundExceeded {
-                what, limit, got, ..
-            } => {
-                assert_eq!(what, "predicate arity");
-                assert_eq!(limit, PDDL8_MAX_ARITY);
-                assert_eq!(got, 9);
-            }
-            other => panic!("expected BoundExceeded, got {other:?}"),
-        }
-    }
+    // `enforce_pddl8_rejects_high_arity_predicate` removed (PROJ-817): the
+    // function it exercised, `enforce_pddl8`, was deliberately deleted in
+    // commit 3da96c67 ("PDDL 3.1: remove enforce_pddl8 as global law" — see
+    // the commented-out call site in `manufacture()` above). PDDL8 arity/
+    // params/conjuncts bounds are no longer enforced anywhere in this file's
+    // production code, so there is no current behavior left to test against;
+    // this is a genuine, disclosed refactor, not a rename to chase.
 
     #[test]
     fn facts_json_shape_has_plain_keys() {

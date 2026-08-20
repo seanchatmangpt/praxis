@@ -359,7 +359,7 @@ test!(
 // per-instance count into something that did not return within the budget
 // below — grounding itself stayed cheap throughout (2-3ms, measured
 // directly for blocksworld/grippers by calling
-// `bcinr_pddl::ground::IndexedGroundProblem::build`/`find_plan` directly,
+// `bcinr_pddl::ground::lazy::IndexedGroundProblem::build`/`find_plan` directly,
 // bypassing `decompose()`'s own candidate-search entirely), so this is
 // blind-BFS planner search cost, not a `DECOMP_MAX_GROUND` grounding-bound
 // failure and not a bug in `namespace_ipc_instance`/`chained_ipc_problem`
