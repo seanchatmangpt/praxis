@@ -29,15 +29,22 @@ blake3 = "1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 # Old-AI cognition breeds (wasm4pm): role inference / lawful-next-action
-# derivation inside the benchmark's autonomic chain. Registry version, so
-# publishability is preserved; pulled only by the bench feature.
+# derivation. Registry version, so publishability is preserved; pulled only
+# by the `role-inference` feature (see below) — the benchmark's `bench`
+# feature depends on `role-inference` rather than pulling this directly, so
+# the same real Datalog/Mycin role layer (`crates/cng/src/roles.rs`) is now
+# reachable from the live, non-bench plan-admit path too
+# (`plan_approval.rs::derive_roster_roles`), not just bench fixtures.
 wasm4pm-cognition = { version = "26.7.1", optional = true }
-# Deliberate bench-only exception to the registry-only rule (mirrors the
-# otel-live exception block below): praxis-graphlaw supplies the Datalog
-# role/obligation/custody derivation layer for the benchmark. Pulled ONLY by
-# the optional `bench` feature; with `bench` off — the default — this path
+# Deliberate exception to the registry-only rule (mirrors the otel-live
+# exception block below): praxis-graphlaw supplies the Datalog
+# role/obligation/custody derivation layer. Pulled ONLY by the optional
+# `role-inference` feature; with it off — the default — this path
 # dependency does not participate in the build, so `cargo publish --dry-run`
-# of the default surface is unaffected.
+# of the default surface is unaffected. Widened from bench-only (its
+# original scope) to its own feature so the live plan-admit path can opt
+# into the identical Datalog engine without dragging in benchmark
+# instrumentation.
 praxis-graphlaw = { path = "../praxis-graphlaw", optional = true }
 
 
@@ -58,10 +65,16 @@ tokio = { version = "1", optional = true, features = ["rt", "macros", "time"] }
 [features]
 default = ["runner"]
 runner = ["dep:bcinr-powl"]
+# Real Datalog (praxis-graphlaw) + Mycin (wasm4pm-cognition) role-inference
+# layer (`crates/cng/src/roles.rs`), unconditional w.r.t. bench: this is the
+# feature `plan_approval::derive_roster_roles` (the live, non-bench
+# plan-admit path) requires. `bench` below depends on it so bench fixture
+# call sites (bench/roles.rs re-exports) keep compiling unchanged.
+role-inference = ["dep:wasm4pm-cognition", "dep:praxis-graphlaw"]
 # Fortune-5 scale benchmark verbs (cng benchmark generate/run/verify/report).
 # Off by default: benchmark instrumentation (wall-clock timing, corpus
 # generation) stays out of the published default surface. Requires runner.
-bench = ["runner", "dep:wasm4pm-cognition", "dep:praxis-graphlaw"]
+bench = ["runner", "role-inference"]
 # Production OTel emission surface for the OTel Weaver live-check campaign
 # (src/bin/otel-live.rs + src/telemetry_gen.rs). Off by default: the
 # publishable surface is unchanged when this feature is off.

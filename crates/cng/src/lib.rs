@@ -42,6 +42,12 @@ pub mod pipeline;
 /// `plan decompose`.
 pub mod plan_approval;
 pub mod powl;
+/// Real Mycin/Datalog role-inference layer, gated by the `role-inference`
+/// feature (widened from its original bench-only scope so the live
+/// plan-admit path, not just bench fixtures, can call it — see the
+/// module's own doc and `plan_approval.rs::derive_roster_roles`).
+#[cfg(feature = "role-inference")]
+pub mod roles;
 #[cfg(feature = "runner")]
 pub mod runner;
 pub mod shape;

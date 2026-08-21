@@ -32,6 +32,16 @@ use crate::powl::CngRefusal;
 
 const PDDL_DOMAIN_PREDICATE: &str = "urn:chatman:engine#pddlDomain";
 const PDDL_PROBLEM_PREDICATE: &str = "urn:chatman:engine#pddlProblem";
+/// Plain roster vocabulary (unrelated to bench's `roster_admitted`
+/// observation-store shape): any imported `.ttl` artifact may carry
+/// `ceng:rosterDeclaredRole` / `ceng:rosterDepartment` literals on a worker
+/// resource. This is the live plan-admit path's real, non-bench-fixture
+/// source for `crate::roles::RosterWorker` facts (see
+/// `plan_approval.rs::derive_roster_roles`).
+#[cfg(feature = "role-inference")]
+const ROSTER_ROLE_PREDICATE: &str = "urn:chatman:engine#rosterDeclaredRole";
+#[cfg(feature = "role-inference")]
+const ROSTER_DEPT_PREDICATE: &str = "urn:chatman:engine#rosterDepartment";
 
 /// One imported planning artifact: its canonical path, content-addressed
 /// source IRI, and the PDDL literals it carries (either or both may be
@@ -170,6 +180,115 @@ fn select_literal(
     }
     values.sort();
     Ok(values.into_iter().next())
+}
+
+/// Real, non-bench-fixture roster import: scans every `*.ttl` artifact
+/// under `dir` (same file set `import_artifacts` reads) for worker
+/// resources carrying both `ceng:rosterDeclaredRole` and
+/// `ceng:rosterDepartment` literals, and returns them as
+/// `crate::roles::RosterWorker` facts — the shape
+/// `crate::roles::derive_roles_datalog` requires. Returns an empty vec
+/// (never an error) when no artifact carries roster triples: an arbitrary
+/// PDDL-only planning artifact genuinely has no roster to derive roles
+/// over, and that absence is not a refusal.
+///
+/// # Errors
+/// `CNG_R10 IoRefused` for unreadable directories/files; `CNG_R01
+/// MalformedTtl` for Turtle parse failures.
+///
+/// # Complexity
+/// O(files) parse + O(triples) scan.
+#[cfg(feature = "role-inference")]
+pub fn import_roster(dir: &Path) -> Result<Vec<crate::roles::RosterWorker>, CngRefusal> {
+    use oxigraph::model::NamedNodeRef;
+
+    let entries = fs::read_dir(dir).map_err(|e| {
+        CngRefusal::IoRefused(format!("cannot read artifact dir {}: {e}", dir.display()))
+    })?;
+    let mut paths: Vec<PathBuf> = Vec::new();
+    for entry in entries {
+        let entry = entry
+            .map_err(|e| CngRefusal::IoRefused(format!("cannot list {}: {e}", dir.display())))?;
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) == Some("ttl") {
+            paths.push(path);
+        }
+    }
+    paths.sort();
+
+    let role_pred = NamedNodeRef::new(ROSTER_ROLE_PREDICATE)
+        .map_err(|e| CngRefusal::MalformedTtl(format!("roster role predicate: {e}")))?;
+    let dept_pred = NamedNodeRef::new(ROSTER_DEPT_PREDICATE)
+        .map_err(|e| CngRefusal::MalformedTtl(format!("roster department predicate: {e}")))?;
+
+    let mut workers: BTreeMap<String, crate::roles::RosterWorker> = BTreeMap::new();
+    for path in paths {
+        let turtle = fs::read_to_string(&path)
+            .map_err(|e| CngRefusal::IoRefused(format!("cannot read {}: {e}", path.display())))?;
+        let store = Store::new().map_err(|e| {
+            CngRefusal::IoRefused(format!("oxigraph store construction failed: {e}"))
+        })?;
+        store
+            .load_from_slice(RdfParser::from_format(RdfFormat::Turtle), turtle.as_bytes())
+            .map_err(|e| {
+                CngRefusal::MalformedTtl(format!("{}: Turtle parse failed: {e}", path.display()))
+            })?;
+        for quad in store.quads_for_pattern(None, Some(role_pred), None, None) {
+            let quad = quad.map_err(|e| {
+                CngRefusal::MalformedTtl(format!("roster role scan {}: {e}", path.display()))
+            })?;
+            let role = match &quad.object {
+                Term::Literal(lit) => lit.value().to_string(),
+                other => {
+                    return Err(CngRefusal::MalformedTtl(format!(
+                        "{}: rosterDeclaredRole must be a text literal, found {other}",
+                        path.display()
+                    )))
+                }
+            };
+            let subject = quad.subject.to_string();
+            let subject_iri = subject.trim_matches(|c| c == '<' || c == '>').to_string();
+            // Local name only (fragment after '#', else segment after the
+            // last '/'): the Datalog engine identifies workers by a bare
+            // Datalog term (`:worker_id`), and callers key `roster_roles`/
+            // `roster_obligations` by this same short id.
+            let worker_id = subject_iri
+                .rsplit(['#', '/'])
+                .next()
+                .unwrap_or(&subject_iri)
+                .to_string();
+            let dept = store
+                .quads_for_pattern(Some(quad.subject.as_ref()), Some(dept_pred), None, None)
+                .next()
+                .transpose()
+                .map_err(|e| {
+                    CngRefusal::MalformedTtl(format!(
+                        "roster department scan {}: {e}",
+                        path.display()
+                    ))
+                })?
+                .and_then(|q| match q.object {
+                    Term::Literal(lit) => Some(lit.value().to_string()),
+                    _ => None,
+                })
+                .ok_or_else(|| {
+                    CngRefusal::MalformedTtl(format!(
+                        "{}: roster worker {worker_id} has rosterDeclaredRole but no \
+                         rosterDepartment literal",
+                        path.display()
+                    ))
+                })?;
+            workers.insert(
+                worker_id.clone(),
+                crate::roles::RosterWorker {
+                    worker_id,
+                    role,
+                    department: dept,
+                },
+            );
+        }
+    }
+    Ok(workers.into_values().collect())
 }
 
 /// Structurally merges parsed fragments and plans once, returning the

@@ -364,6 +364,42 @@ pub struct PresentedPlan {
     pub plan_digest: String,
     pub steps: Vec<String>,
     pub ledger_dir: String,
+    /// worker id → Datalog-derived role, real role-inference over
+    /// `pipeline::import_roster`'s roster facts for this directory (see
+    /// `derive_roster_roles`). Empty when the artifact set carries no
+    /// roster triples — an arbitrary PDDL-only planning artifact has none,
+    /// and that is reported honestly, not fabricated.
+    #[cfg(feature = "role-inference")]
+    pub roster_roles: BTreeMap<String, String>,
+    /// worker id → Datalog-derived `:obligation` atom, parallel to
+    /// `roster_roles`.
+    #[cfg(feature = "role-inference")]
+    pub roster_obligations: BTreeMap<String, String>,
+}
+
+/// Real, non-bench-fixture role inference for the live plan-admit path:
+/// scans `dir` for roster triples (`pipeline::import_roster`) and, if any
+/// exist, runs the SAME praxis-graphlaw Datalog engine bench uses
+/// (`crate::roles::derive_roles_datalog`) over the on-disk
+/// `crates/cng/rules/bench-roles.dl` rule set. Returns `Ok(None)` — not an
+/// error — when the artifact set carries no roster facts: this is the
+/// disclosed generalization boundary (see `crate::roles`'s module doc),
+/// not a silent failure.
+///
+/// # Errors
+/// See `pipeline::import_roster`; `CNG_R05 UnsupportedConstruct` /
+/// `CNG_R09 HardcodingSuspicion` from `derive_roles_datalog` itself.
+#[cfg(feature = "role-inference")]
+pub fn derive_roster_roles(dir: &Path) -> Result<Option<crate::roles::DatalogRoles>, CngRefusal> {
+    const RULES_TEXT: &str = include_str!("../rules/bench-roles.dl");
+    let workers = pipeline::import_roster(dir)?;
+    if workers.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(crate::roles::derive_roles_datalog(
+        &workers,
+        RULES_TEXT,
+    )?))
 }
 
 /// Imports + plans `dir` once, computes its digest, and — if this exact
@@ -392,6 +428,11 @@ pub fn present_plan(dir: &Path, ledger_dir: &Path) -> Result<PresentedPlan, CngR
             logical_seq: ledger.next_seq,
         })?;
     }
+    #[cfg(feature = "role-inference")]
+    let (roster_roles, roster_obligations) = match derive_roster_roles(dir)? {
+        Some(roles) => (roles.derived, roles.obligations),
+        None => (BTreeMap::new(), BTreeMap::new()),
+    };
     Ok(PresentedPlan {
         imported_pddl_ttl_paths: artifacts
             .iter()
@@ -400,6 +441,10 @@ pub fn present_plan(dir: &Path, ledger_dir: &Path) -> Result<PresentedPlan, CngR
         plan_digest,
         steps,
         ledger_dir: ledger_dir.display().to_string(),
+        #[cfg(feature = "role-inference")]
+        roster_roles,
+        #[cfg(feature = "role-inference")]
+        roster_obligations,
     })
 }
 

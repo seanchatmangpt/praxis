@@ -1,0 +1,15 @@
+# Real, non-bench-fixture roster artifact: plain worker roster facts using
+# the live plan-admit path's own vocabulary (ceng:rosterDeclaredRole /
+# ceng:rosterDepartment), never bench's ObsWriter/roster_admitted
+# observation-store shape. Used by
+# plan_approval_test.rs::present_plan_derives_real_datalog_roles_for_a_non_bench_roster_artifact
+# to prove real Datalog role derivation on the live path.
+@prefix ceng: <urn:chatman:engine#> .
+@prefix ex: <http://example.org/live-roster#> .
+
+ex:worker-avery ceng:rosterDeclaredRole "reviewer" ;
+    ceng:rosterDepartment "finance" .
+ex:worker-bao ceng:rosterDeclaredRole "approver" ;
+    ceng:rosterDepartment "finance" .
+ex:worker-caro ceng:rosterDeclaredRole "auditor" ;
+    ceng:rosterDepartment "compliance" .
