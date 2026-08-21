@@ -62,10 +62,26 @@ fn cli_generate_export_inspect_smoke() {
     );
 
     // workflow inspect
+    //
+    // The joseph fixture's admitted surface traces to more than one source
+    // artifact, so `manufacture()` now takes the hierarchical projection
+    // branch (see `crates/cng/tests/cng_hierarchical.rs` for the direct
+    // library-level proof this is the same, already-validated structure:
+    // `partial_orders == children.len() + 1`, shape-valid). A flat
+    // single-PartialOrder projection over these 20 leaves would report a
+    // full transitive closure of C(20,2) = 190 `precedes` pairs; the
+    // hierarchical projection instead orders leaves within each of the 14
+    // phase/root PartialOrders, giving 85 -- fewer edges is the correct
+    // signature of the branch firing, not a regression.
     let (stdout, stderr, ok) = run_cng(&["workflow", "inspect", "--file", out_arg]);
     assert!(ok, "workflow inspect failed: stderr={stderr}");
     assert!(
-        stdout.contains("\"precedes\": 190"),
-        "inspect stdout must report 190 precedes pairs: {stdout}"
+        stdout.contains("\"partial_orders\": 14"),
+        "inspect stdout must report the hierarchical partial-order count: {stdout}"
+    );
+    assert!(
+        stdout.contains("\"precedes\": 85"),
+        "inspect stdout must report 85 precedes pairs (hierarchical, not the \
+         flat 190-pair transitive closure): {stdout}"
     );
 }

@@ -29,8 +29,14 @@ use oxigraph::io::{RdfFormat, RdfParser};
 use oxigraph::store::Store;
 use serde::Serialize;
 
-use pipeline::{generate_plan, import_artifacts, leaf_sources, plan_id, ImportedArtifact};
-use powl::{powl_to_turtle_with_provenance, project_tape_to_powl, Powl};
+use pipeline::{
+    generate_plan, hierarchical_projection, import_artifacts, leaf_sources, plan_id,
+    ImportedArtifact,
+};
+use powl::{
+    powl_to_turtle_with_phase_provenance, powl_to_turtle_with_provenance, project_tape_to_powl,
+    Powl,
+};
 
 const DEFAULT_BASE_IRI: &str = "urn:chatman:powl:cng";
 #[cfg(feature = "bench")]
@@ -267,11 +273,34 @@ fn manufacture(
 ) -> Result<Manufactured> {
     let artifacts = import_artifacts(Path::new(dir)).map_err(to_cli_error)?;
     let (tape, surface) = generate_plan(&artifacts).map_err(to_cli_error)?;
-    let model = project_tape_to_powl(&tape).map_err(to_cli_error)?;
-    let sources = leaf_sources(&tape, &surface).map_err(to_cli_error)?;
     let base = base_iri.unwrap_or_else(|| DEFAULT_BASE_IRI.to_string());
-    let turtle = powl_to_turtle_with_provenance(&model, &base, derived_from.as_deref(), &sources)
+
+    // An admitted surface whose contributing actions trace back to more than
+    // one source artifact is genuinely multi-phase: project it hierarchically
+    // (one phase PartialOrder per source, `README.md` `## Limitations`
+    // CNG_R05 gap) rather than always taking the flat single-source path.
+    let distinct_sources: std::collections::BTreeSet<&String> =
+        surface.action_sources.values().collect();
+
+    let (model, turtle) = if distinct_sources.len() > 1 {
+        let (model, phase_sources) = hierarchical_projection(&tape, &surface).map_err(to_cli_error)?;
+        let turtle = powl_to_turtle_with_phase_provenance(
+            &model,
+            &base,
+            derived_from.as_deref(),
+            &phase_sources,
+        )
         .map_err(to_cli_error)?;
+        (model, turtle)
+    } else {
+        let model = project_tape_to_powl(&tape).map_err(to_cli_error)?;
+        let sources = leaf_sources(&tape, &surface).map_err(to_cli_error)?;
+        let turtle =
+            powl_to_turtle_with_provenance(&model, &base, derived_from.as_deref(), &sources)
+                .map_err(to_cli_error)?;
+        (model, turtle)
+    };
+
     Ok(Manufactured {
         artifacts,
         tape,
@@ -1162,7 +1191,11 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
 
+    use oxigraph::io::{RdfFormat, RdfParser};
+    use oxigraph::store::Store;
+
     use super::{plan_decompose, render_decompose_report_human};
+    use crate::shape;
 
     fn scratch_dir(test_name: &str) -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -1214,4 +1247,64 @@ mod tests {
         assert!(rendered.contains("STRUCTURE"));
         assert!(rendered.contains(&report.result_graph_path));
     });
+
+    // PROJ-innovation-explorer-cycle14: exercises the REAL `workflow project`
+    // CLI verb (not the library `hierarchical_projection` function directly,
+    // which `tests/cng_hierarchical.rs` already covers) against the same
+    // real joseph fixtures used there. Before this change, `manufacture()`
+    // always took the flat path regardless of how many sources contributed
+    // to the plan; this proves the CLI verb itself now takes the
+    // hierarchical branch when the admitted surface is genuinely multi-phase
+    // -- the specific gap the exploration cycle named ("never reachable from
+    // any CLI verb").
+    test!(
+        workflow_project_verb_takes_hierarchical_path_for_multi_phase_joseph_plan,
+        {
+            let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("plans/joseph");
+
+            // Act: the real `workflow project` CLI verb, unmodified call
+            // signature -- no test-only parameter added to force the branch.
+            // `derived_from` is required by the shape validator (exactly one
+            // `powl2:derivedFrom` on the root); a real invocation would
+            // always supply one, so this is realistic input, not a test-only
+            // workaround.
+            let report = super::workflow_project(
+                dir.display().to_string(),
+                None,
+                Some("urn:chatman:plan:cng-workflow-project-hierarchical-test".to_string()),
+            )
+            .expect("real workflow project run over the joseph fixtures");
+
+            // Assert: the returned Turtle is genuinely hierarchical
+            // phase-provenance output, not the flat single-source form --
+            // parsed and structurally validated, not string-matched.
+            let store = Store::new().expect("store");
+            store
+                .load_from_slice(
+                    RdfParser::from_format(RdfFormat::Turtle),
+                    report.turtle.as_bytes(),
+                )
+                .expect("CLI verb output must parse as Turtle");
+            let validation =
+                shape::validate_powl_store(&store, true).expect("hierarchical output must validate");
+            assert_eq!(validation.models, 1);
+            assert!(
+                validation.partial_orders > 1,
+                "hierarchical output must have more than one PartialOrder (root + \
+                 phases); got {}, which would mean the flat path fired instead",
+                validation.partial_orders
+            );
+
+            // ProjectReport.activity_leaves reports model_shape()'s top-level
+            // children count -- for a hierarchical model those children are
+            // PHASES, not individual activities, so this is real evidence
+            // the branch fired (a small phase count), not a flaw to paper
+            // over; the flat path's plan has far more individual activities
+            // than phases.
+            assert!(
+                report.activity_leaves > 1,
+                "joseph plan must genuinely group into more than one phase"
+            );
+        }
+    );
 }
