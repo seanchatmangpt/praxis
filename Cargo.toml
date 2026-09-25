@@ -251,6 +251,7 @@ members = [
     "crates/praxis-core",
     "crates/praxis-proposer",
     "crates/praxis-retrofit",
+    "crates/praxis-reconciler",
     "crates/rust-fable-testbed",
     "crates/powl2-decompose",
     "crates/praxis-synthesis",
