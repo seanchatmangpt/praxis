@@ -1,9 +1,0 @@
-PREFIX inv: <https://praxis.chatman.io/innovation#>
-CONSTRUCT {
-  ?candidate inv:handoff inv:PDDL .
-  ?candidate inv:standing inv:AdmittedCandidate .
-}
-WHERE {
-  ?candidate a inv:CandidateFuture .
-  ?candidate inv:planningFrontier inv:Eligible .
-}
