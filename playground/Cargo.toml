@@ -1,7 +1,0 @@
-[workspace]
-resolver = "2"
-members = [
-    "tools/praxis-reconciler",
-    "tools/praxis-guard",
-    "my-sample-project",
-]

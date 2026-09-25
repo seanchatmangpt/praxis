@@ -1,7 +1,0 @@
-{
-  "mcpServers": {
-    "praxis": {
-      "command": "/Users/sac/praxis/target/debug/mcp_lawobject_server"
-    }
-  }
-}
