@@ -53,7 +53,7 @@ path = "src/bin/crown-bribery-case.rs"
 # re-implementation. See src/f10_powl_geometry.rs for what is thinly wrapped
 # vs. genuinely hand-written.
 [dependencies]
-powl2-decompose = { path = "../powl2-decompose" }
+powl2-decompose = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.6.30" }
 # F13 "Arazzo Generated Artifact" (V12-013, ALREADY_BUILT slice for L1-L6):
 # thin re-export/wrapper over the real, already-tested Rail A/B
 # Arazzo-manufacture pipeline. praxis-graphlaw does not depend on
