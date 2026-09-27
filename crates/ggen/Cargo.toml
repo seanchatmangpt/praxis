@@ -62,7 +62,7 @@ notify-debouncer-full = "0.4"
 serde_yaml = "0.9"
 star-toml = "26.7.3"
 praxis-core = { path = "../praxis-core" }
-praxis-graphlaw = { path = "../praxis-graphlaw" }
+praxis-graphlaw = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.7.9" }
 clap-noun-verb = "26.7.4"
 clap-noun-verb-macros = "26.7.4"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
