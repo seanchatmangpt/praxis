@@ -124,8 +124,8 @@ wasm4pm-cognition = { path = "../wasm4pm/crates/wasm4pm-cognition", version = "2
 # GraphLaw judgment (src/bin/case_study_judge.rs, docs/case-studies/
 # autonomic-standing-factory/ Lane 2): the root crate is NOT dep-frozen
 # (only praxis-synthesis is, per tests/no_llm_runtime.rs), so this is a
-# plain path dependency on the in-workspace SHACL/ShEx/N3/Datalog engine.
-praxis-graphlaw = { path = "crates/praxis-graphlaw", version = "26.7.9" }
+# exact-revision dependency on the canonical GraphLaw SHACL/ShEx/N3/Datalog engine.
+praxis-graphlaw = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.7.9" }
 # WASM builds: getrandom must compile with wasm_js feature (pulled transitively via praxis-graphlaw deps)
 getrandom = { version = "0.3", features = ["wasm_js"] }
 spargebra = "0.3.5"
@@ -256,8 +256,6 @@ members = [
     "crates/praxis-synthesis",
     "crates/pddl-index",
     "crates/praxis-lean",
-    "crates/praxis-graphlaw",
-    "crates/praxis-graphlaw-wasm",
     "crates/wasm4pm-arazzo",
     "crates/multifractal-workflow",
     "audit-tools", "apps/air_core/native/air_core_nif", "crates/mfact-core",
