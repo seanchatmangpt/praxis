@@ -37,7 +37,7 @@ praxis-graphlaw = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f
 # path (not just tests) now constructs `Powl::ExternalCut` fixtures and
 # drives the Rail A/B pipeline through `wasm4pm-arazzo`'s real parser,
 # resolver, lowering, normalizer, and `AirCompiler`.
-powl2-decompose = { path = "../powl2-decompose" }
+powl2-decompose = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.6.30" }
 wasm4pm-arazzo = { path = "../wasm4pm-arazzo" }
 # Allocator for wasm4pm-arazzo's bumpalo-arena-typed AirProgram, needed to
 # drive lower::lower_description/AirCompiler from production code. Same
