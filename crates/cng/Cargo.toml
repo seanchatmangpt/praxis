@@ -45,7 +45,7 @@ wasm4pm-cognition = { version = "26.7.1", optional = true }
 # original scope) to its own feature so the live plan-admit path can opt
 # into the identical Datalog engine without dragging in benchmark
 # instrumentation.
-praxis-graphlaw = { path = "../praxis-graphlaw", optional = true }
+praxis-graphlaw = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.7.9", optional = true }
 
 
 # --- otel-live exception block ------------------------------------------
@@ -135,4 +135,4 @@ chicago-tdd-tools = { path = "../../../chicago-tdd-tools", features = ["weaver",
 # real, non-fabricated, but test-scoped production-shaped caller, never a
 # library-reachable production entry point, for this structural reason.
 multifractal-workflow = { path = "../multifractal-workflow" }
-powl2-decompose = { path = "../powl2-decompose" }
+powl2-decompose = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.6.30" }

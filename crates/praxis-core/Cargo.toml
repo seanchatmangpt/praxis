@@ -31,13 +31,13 @@ tera = "1.20.0"
 # Q-stage SPARQL execution) as the T stage's input; praxis-graphlaw does not
 # depend on praxis-core (checked: no path back-edge), so this is a one-way
 # addition, not a cycle.
-praxis-graphlaw = { path = "../praxis-graphlaw", version = "26.7.9" }
+praxis-graphlaw = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.7.9" }
 # PROJ-796: real `[dependencies]`, not `[dev-dependencies]` -- promoted
 # because `ArazzoProjectionReceipt::project_and_compile`'s production code
 # path (not just tests) now constructs `Powl::ExternalCut` fixtures and
 # drives the Rail A/B pipeline through `wasm4pm-arazzo`'s real parser,
 # resolver, lowering, normalizer, and `AirCompiler`.
-powl2-decompose = { path = "../powl2-decompose" }
+powl2-decompose = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.6.30" }
 wasm4pm-arazzo = { path = "../wasm4pm-arazzo" }
 # Allocator for wasm4pm-arazzo's bumpalo-arena-typed AirProgram, needed to
 # drive lower::lower_description/AirCompiler from production code. Same

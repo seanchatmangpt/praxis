@@ -53,7 +53,7 @@ path = "src/bin/crown-bribery-case.rs"
 # re-implementation. See src/f10_powl_geometry.rs for what is thinly wrapped
 # vs. genuinely hand-written.
 [dependencies]
-powl2-decompose = { path = "../powl2-decompose" }
+powl2-decompose = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.6.30" }
 # F13 "Arazzo Generated Artifact" (V12-013, ALREADY_BUILT slice for L1-L6):
 # thin re-export/wrapper over the real, already-tested Rail A/B
 # Arazzo-manufacture pipeline. praxis-graphlaw does not depend on
@@ -65,10 +65,10 @@ praxis-core = { path = "../praxis-core" }
 # praxis-graphlaw's chatman::router module (Dialect/ProfileGates/DialectRouter
 # routing gate + N3Executor/N3CostBound/N3Builtin execution-quarantine types),
 # not a re-implementation. Path-only, no version pin, matching
-# crates/cng/Cargo.toml's existing `praxis-graphlaw = { path = "../praxis-graphlaw" }`
+# crates/cng/Cargo.toml's existing `praxis-graphlaw = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.7.9" }`
 # convention. See src/f06_n3_quarantine.rs for what is thinly wrapped vs. the
 # disclosed, still-unwired gaps.
-praxis-graphlaw = { path = "../praxis-graphlaw" }
+praxis-graphlaw = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.7.9" }
 # F14 "wasm4pm Arazzo Compiler" (V12-014, MIXED: ALREADY_BUILT for L1-L6):
 # real dependency on the sibling wasm4pm-arazzo crate (Arazzo 1.1.x parse ->
 # resolve -> lower -> normalize -> compile pipeline), same path-dependency
