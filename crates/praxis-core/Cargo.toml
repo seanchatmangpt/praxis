@@ -31,7 +31,7 @@ tera = "1.20.0"
 # Q-stage SPARQL execution) as the T stage's input; praxis-graphlaw does not
 # depend on praxis-core (checked: no path back-edge), so this is a one-way
 # addition, not a cycle.
-praxis-graphlaw = { path = "../praxis-graphlaw", version = "26.7.9" }
+praxis-graphlaw = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.7.9" }
 # PROJ-796: real `[dependencies]`, not `[dev-dependencies]` -- promoted
 # because `ArazzoProjectionReceipt::project_and_compile`'s production code
 # path (not just tests) now constructs `Powl::ExternalCut` fixtures and
