@@ -65,7 +65,7 @@ praxis-core = { path = "../praxis-core" }
 # praxis-graphlaw's chatman::router module (Dialect/ProfileGates/DialectRouter
 # routing gate + N3Executor/N3CostBound/N3Builtin execution-quarantine types),
 # not a re-implementation. Path-only, no version pin, matching
-# crates/cng/Cargo.toml's existing `praxis-graphlaw = { path = "../praxis-graphlaw" }`
+# crates/cng/Cargo.toml's existing `praxis-graphlaw = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.7.9" }`
 # convention. See src/f06_n3_quarantine.rs for what is thinly wrapped vs. the
 # disclosed, still-unwired gaps.
 praxis-graphlaw = { path = "../praxis-graphlaw" }
