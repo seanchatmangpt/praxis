@@ -68,7 +68,7 @@ praxis-core = { path = "../praxis-core" }
 # crates/cng/Cargo.toml's existing `praxis-graphlaw = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.7.9" }`
 # convention. See src/f06_n3_quarantine.rs for what is thinly wrapped vs. the
 # disclosed, still-unwired gaps.
-praxis-graphlaw = { path = "../praxis-graphlaw" }
+praxis-graphlaw = { git = "https://github.com/seanchatmangpt/graphlaw", rev = "f5781cc8f83906958567a324a7c42c17cacd3f92", version = "26.7.9" }
 # F14 "wasm4pm Arazzo Compiler" (V12-014, MIXED: ALREADY_BUILT for L1-L6):
 # real dependency on the sibling wasm4pm-arazzo crate (Arazzo 1.1.x parse ->
 # resolve -> lower -> normalize -> compile pipeline), same path-dependency
