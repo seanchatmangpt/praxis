@@ -172,6 +172,22 @@ enum PlanLedgerEvent {
         source_dir: String,
         /// Logical monotonic counter — never wall clock.
         logical_seq: u64,
+        /// worker id → Datalog-derived role, computed by
+        /// `derive_roster_roles` at the moment this plan was presented.
+        /// Persisted into the append-only ledger line so the
+        /// role-inference *decision* is itself auditable/receipted, not
+        /// just an in-memory value returned to the caller and discarded.
+        /// `#[serde(default)]` lets a `role-inference`-off build and an
+        /// older ledger line (written before this field existed) both
+        /// deserialize as empty rather than refusing.
+        #[cfg(feature = "role-inference")]
+        #[serde(default)]
+        roster_roles: BTreeMap<String, String>,
+        /// worker id → Datalog-derived `:obligation` atom, parallel to
+        /// `roster_roles`, same persistence rationale.
+        #[cfg(feature = "role-inference")]
+        #[serde(default)]
+        roster_obligations: BTreeMap<String, String>,
     },
     StepExecuted {
         plan_digest: String,
@@ -268,6 +284,10 @@ impl PlanLedger {
                 plan_digest,
                 steps,
                 logical_seq,
+                #[cfg(feature = "role-inference")]
+                    roster_roles: _,
+                #[cfg(feature = "role-inference")]
+                    roster_obligations: _,
                 ..
             } => {
                 if logical_seq >= self.next_seq {
@@ -397,8 +417,7 @@ pub fn derive_roster_roles(dir: &Path) -> Result<Option<crate::roles::DatalogRol
         return Ok(None);
     }
     Ok(Some(crate::roles::derive_roles_datalog(
-        &workers,
-        RULES_TEXT,
+        &workers, RULES_TEXT,
     )?))
 }
 
@@ -419,6 +438,11 @@ pub fn present_plan(dir: &Path, ledger_dir: &Path) -> Result<PresentedPlan, CngR
     let (tape, _surface) = pipeline::generate_plan(&artifacts)?;
     let plan_digest = compute_plan_digest(&tape);
     let steps: Vec<String> = tape.ops.iter().map(|op| op.label.clone()).collect();
+    #[cfg(feature = "role-inference")]
+    let (roster_roles, roster_obligations) = match derive_roster_roles(dir)? {
+        Some(roles) => (roles.derived, roles.obligations),
+        None => (BTreeMap::new(), BTreeMap::new()),
+    };
     let mut ledger = PlanLedger::open(ledger_dir)?;
     if !ledger.records.contains_key(&plan_digest) {
         ledger.append(PlanLedgerEvent::Presented {
@@ -426,13 +450,12 @@ pub fn present_plan(dir: &Path, ledger_dir: &Path) -> Result<PresentedPlan, CngR
             steps: steps.clone(),
             source_dir: dir.display().to_string(),
             logical_seq: ledger.next_seq,
+            #[cfg(feature = "role-inference")]
+            roster_roles: roster_roles.clone(),
+            #[cfg(feature = "role-inference")]
+            roster_obligations: roster_obligations.clone(),
         })?;
     }
-    #[cfg(feature = "role-inference")]
-    let (roster_roles, roster_obligations) = match derive_roster_roles(dir)? {
-        Some(roles) => (roles.derived, roles.obligations),
-        None => (BTreeMap::new(), BTreeMap::new()),
-    };
     Ok(PresentedPlan {
         imported_pddl_ttl_paths: artifacts
             .iter()

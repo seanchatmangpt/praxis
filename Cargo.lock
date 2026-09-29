@@ -1804,7 +1804,7 @@ dependencies = [
 
 [[package]]
 name = "ggen-graph"
-version = "26.8.12"
+version = "26.8.24"
 dependencies = [
  "blake3",
  "chrono",

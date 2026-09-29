@@ -57,7 +57,13 @@ impl Refusal {
         match &source {
             Pddl8Error::EmptyGrounding
             | Pddl8Error::NoAdmittedPlan
-            | Pddl8Error::GoalNotReached => Refusal::NoAdmissiblePlan {
+            | Pddl8Error::GoalNotReached
+            // `find_plan`/`find_temporal_plan` return `PlannerOutcome<T>`
+            // (bcinr_mfw_ir); `.into_result()` wraps any non-`Found`
+            // outcome (bounded-search exhaustion, i.e. an unreachable
+            // goal) in `PlanningFailed` rather than `NoAdmittedPlan` --
+            // see `src/ops.rs::is_infeasible`'s identical classification.
+            | Pddl8Error::PlanningFailed(_) => Refusal::NoAdmissiblePlan {
                 stage,
                 reason: source.to_string(),
             },
