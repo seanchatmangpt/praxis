@@ -1,0 +1,49 @@
+@prefix prx: <https://seanchatmangpt.github.io/praxis/ontology/reconciler#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix time: <http://www.w3.org/2006/time#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+prx: a owl:Ontology ;
+  dcterms:title "Praxis Reconciler Ontology" ;
+  dcterms:description "Public-ontology projection of A=mu(O*), DfCM SELECT, CONSTRUCT, BRCE DO, receipt, and replay." ;
+  owl:imports <http://www.w3.org/ns/prov-o#>,
+              <http://www.w3.org/ns/odrl/2/>,
+              <http://www.w3.org/2006/time#> .
+
+prx:Observation a owl:Class ; rdfs:subClassOf prov:Entity .
+prx:AdmittedObservation a owl:Class ; rdfs:subClassOf prx:Observation .
+prx:Selection a owl:Class ; rdfs:subClassOf prov:Entity .
+prx:ConstructedIntent a owl:Class ; rdfs:subClassOf prov:Entity .
+prx:AuthorityGrant a owl:Class ; rdfs:subClassOf odrl:Policy .
+prx:Actuation a owl:Class ; rdfs:subClassOf prov:Activity .
+prx:ActuationReceipt a owl:Class ; rdfs:subClassOf prov:Entity .
+prx:Replay a owl:Class ; rdfs:subClassOf prov:Activity .
+prx:Refusal a owl:Class ; rdfs:subClassOf prov:Entity .
+prx:CandidateEdge a owl:Class ; rdfs:subClassOf prov:Entity .
+
+prx:observationDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+prx:selectionDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+prx:constructDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+prx:receiptDigest a owl:DatatypeProperty ; rdfs:range xsd:string .
+prx:logicalTime a owl:DatatypeProperty ; rdfs:range xsd:nonNegativeInteger ; rdfs:subPropertyOf time:numericPosition .
+prx:authorityScope a owl:DatatypeProperty ; rdfs:range xsd:string .
+prx:replayKey a owl:DatatypeProperty ; rdfs:range xsd:string .
+prx:reversible a owl:DatatypeProperty ; rdfs:range xsd:boolean .
+prx:refusalCode a owl:DatatypeProperty ; rdfs:range xsd:string .
+
+prx:admittedFrom a owl:ObjectProperty ; rdfs:subPropertyOf prov:wasDerivedFrom .
+prx:selectedFrom a owl:ObjectProperty ; rdfs:subPropertyOf prov:wasDerivedFrom .
+prx:constructedFrom a owl:ObjectProperty ; rdfs:subPropertyOf prov:wasDerivedFrom .
+prx:authorizedBy a owl:ObjectProperty ; rdfs:range prx:AuthorityGrant .
+prx:receiptedBy a owl:ObjectProperty ; rdfs:range prx:ActuationReceipt .
+prx:replayedBy a owl:ObjectProperty ; rdfs:range prx:Replay .
+
+prx:SELECT a skos:Concept ; skos:definition "Preserve the bounded lawful topology and choose a reversible admitted edge." .
+prx:CONSTRUCT a skos:Concept ; skos:definition "Manufacture an intent without ambient execution authority." .
+prx:DO a skos:Concept ; skos:definition "Actuate only under an exact authority grant and return an atomic recomputable receipt." .
