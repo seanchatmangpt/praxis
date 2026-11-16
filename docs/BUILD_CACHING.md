@@ -4,6 +4,12 @@ Discovered 2026-07-09 while closing out Chatman Engine v26.7.9: a `cargo test -p
 praxis-graphlaw chatman --release` run stalled far longer than expected. Root causes, in
 order of impact:
 
+> **2026-09-27 (c78783b4):** `praxis-graphlaw` (and `powl2-decompose`) were extracted to their
+> canonical repository (`github.com/seanchatmangpt/graphlaw`) and are consumed here as pinned
+> git dependencies. `cargo test -p praxis-graphlaw …` no longer selects a workspace crate —
+> run those commands from a checkout of that repo. The caching principles below still apply
+> unchanged.
+
 ## 1. Never run two `cargo test`/`cargo build` invocations concurrently in this repo
 
 They serialize on the shared `target/` lock and silently double the wall-clock cost instead of
@@ -24,6 +30,8 @@ determinism and correctness do not depend on optimization level. For iteration:
 
 ```bash
 # fast inner loop — no LTO, no cross-binary link cost
+# (run inside the canonical graphlaw checkout — praxis-graphlaw was
+# extracted from this workspace on 2026-09-27, c78783b4)
 cargo test -p praxis-graphlaw --test chatman_acceptance_admission
 
 # only reach for --release when actually measuring perf/benchmarks

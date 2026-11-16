@@ -1,5 +1,11 @@
 # The Nine Crates
 
+> **Note (2026-09-27, c78783b4):** GraphLaw — `praxis-graphlaw`, `praxis-graphlaw-wasm`, and
+> `powl2-decompose` — was extracted to its canonical repository
+> (`github.com/seanchatmangpt/graphlaw`) on 2026-09-27; this workspace now consumes them as
+> pinned git dependencies (root `Cargo.toml`). This page describes the pre-extraction
+> workspace; the extraction-related sections are annotated in place.
+
 The workspace root `Cargo.toml` declares its members in a single list:
 
 ```toml
@@ -21,7 +27,7 @@ members = [
 
 (`/Users/sac/praxis/Cargo.toml:165-178`)
 
-That is nine crates, plus the workspace root package itself (`my-conforming-project`, `/Users/sac/praxis/Cargo.toml:1-13`). What follows is one description and one verified, cited fact per crate, in the order they appear in the `members` list.
+That is nine crates, plus the workspace root package itself (`my-conforming-project`, `/Users/sac/praxis/Cargo.toml:1-13`). As of c78783b4 (2026-09-27), `powl2-decompose` — like `praxis-graphlaw` and `praxis-graphlaw-wasm` — is no longer a member: they were extracted to the canonical GraphLaw repository and now enter as pinned git dependencies. What follows is one description and one verified, cited fact per crate, in the order they appear in the `members` list.
 
 ## `crates/agent8`
 
@@ -65,7 +71,9 @@ Description: "Deterministic Rust-eval testbed for Claude models: RDF/Turtle task
 
 `receipt.rs` documents its ledger as "a flat JSONL append log, not the full `law.rs` Raw→Validated→Admitted→Receipted lifecycle (a deliberate v1 simplification per the plan; `law.rs`'s receipt pattern is inspiration only, this chain is new code)" (`crates/rust-fable-testbed/src/receipt.rs:1-4`). Its `TestbedReceipt` struct chains entries via `chain_hash = blake3(prev_chain_hash || json(task_id, prompt_hash, model, metrics_summary, prev_chain_hash))`, with the genesis entry's `prev_chain_hash` being `"0".repeat(64)` (`crates/rust-fable-testbed/src/receipt.rs:16-29`).
 
-## `crates/powl2-decompose`
+## `crates/powl2-decompose` (extracted 2026-09-27)
+
+Extracted to the canonical GraphLaw repository (`github.com/seanchatmangpt/graphlaw`) by c78783b4; the cited sources below now live there. Description and facts are as they stood in this workspace before the extraction.
 
 Description: "Kourani et al. Stage-1 decomposition: safe & sound WF-nets -> POWL 2.0. Separability is the admission predicate; non-separable nets are refused with a receipt." (`crates/powl2-decompose/Cargo.toml:7`).
 

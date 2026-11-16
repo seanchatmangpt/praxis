@@ -96,4 +96,4 @@ projections of μ, not μ itself.
 - `docs/chatman-engine/chicago_tdd_final_report.md`
 - `docs/releases/v26.7.9/ARD.md`
 - `docs/releases/v26.7.9/PRD.md`
-- `crates/praxis-graphlaw/src/chatman/engine.rs`
+- `crates/praxis-graphlaw/src/chatman/engine.rs` — moved to the canonical GraphLaw repository (`github.com/seanchatmangpt/graphlaw`) by the 2026-09-27 extraction (c78783b4)

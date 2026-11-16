@@ -2,6 +2,12 @@
 
 This document establishes the engineering standards for praxis-graphlaw's Rust reasoning core, modeled after Rust language team discipline for std and rustc. Every rule is binding for code review, not advisory.
 
+> **Note (2026-09-27, c78783b4):** the praxis-graphlaw core was extracted to its canonical
+> repository (`github.com/seanchatmangpt/graphlaw`); `crates/praxis-graphlaw/src/` no longer
+> exists in this workspace. The rules below are unchanged and apply at that checkout — every
+> path referencing `crates/praxis-graphlaw/src/` must be run against the canonical graphlaw
+> repository.
+
 ---
 
 ## 1. Invariants Are Contracts, Not Aspirations
@@ -248,6 +254,9 @@ pub enum Refusal {
 
 ```bash
 # examples (real hooks in .git/hooks/pre-commit)
+# NOTE: run against the canonical graphlaw checkout — praxis-graphlaw was
+# extracted from this repo on 2026-09-27 (c78783b4); crates/praxis-graphlaw/src/
+# no longer exists here.
 grep -r "\.unwrap()" crates/praxis-graphlaw/src/ && exit 1
 grep -r "println!\|eprintln!" crates/praxis-graphlaw/src/ && exit 1
 grep -r "SystemTime\|Instant::now()" crates/praxis-graphlaw/src/ && exit 1
